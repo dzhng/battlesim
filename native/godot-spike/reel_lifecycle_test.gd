@@ -36,7 +36,7 @@ func run() -> void:
 	var reel = Reel.new()
 	root.add_child(reel)
 	reel.set_process(false)
-	check(not reel.get_children().any(func(node): return node is MultiMeshInstance3D), "map composition must not include the synthetic cube field")
+	check(not reel.proxy_field_used, "map composition must not fall back to the synthetic cube field")
 	check(reel.map_geometry_counts["first"].building_limit == 0, "map geometry must default to the complete building export")
 	check(reel.map_geometry_counts["first"].prop_limit == 0, "map geometry must default to the complete prop export")
 	check(reel.map_geometry_counts["first"].road_limit == 0, "map geometry must default to the complete road export")

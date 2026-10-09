@@ -25,6 +25,8 @@ var authored_map_scene_count := 0
 ## A non-positive limit means the authored catalog is complete.  A positive
 ## value is an explicit diagnostic cap, never an implicit production default.
 var authored_building_limit := 0
+var authored_cull_radius := 900.0
+var map_render_radius := 600.0
 var authored_scene_nodes: Dictionary = {}
 var authored_scene_by_family: Dictionary = {}
 var authored_shell_prototypes: Dictionary = {}
@@ -167,6 +169,9 @@ func _build_world() -> void:
 	var limit_text := OS.get_environment("GODOT_AUTHORED_BUILDING_LIMIT")
 	if not limit_text.is_empty():
 		authored_building_limit = maxi(0, int(limit_text))
+	var cull_text := OS.get_environment("GODOT_AUTHORED_CULL_RADIUS")
+	if not cull_text.is_empty() and float(cull_text) > 0.0:
+		authored_cull_radius = float(cull_text)
 	if not authored_paths.is_empty():
 		for path in authored_paths.split(","):
 			var clean_path := path.strip_edges()
@@ -211,6 +216,10 @@ func _build_map_geometry() -> void:
 		holder.visible = map_name == String(scenes[0].map)
 		add_child(holder)
 		var counts := {"terrain": 0, "forests": 0, "roads": 0, "props": 0, "buildings": 0}
+		var road_transforms: Array[Transform3D] = []
+		var building_transforms: Array[Transform3D] = []
+		var prop_transforms: Array[Transform3D] = []
+		var render_center := _map_render_center(map_name)
 		var size: Array = map.get("size", [100.0, 100.0])
 		var ground := MeshInstance3D.new()
 		var ground_mesh := PlaneMesh.new()
@@ -239,18 +248,13 @@ func _build_map_geometry() -> void:
 				var length := start.distance_to(end)
 				if length <= 0.01:
 					continue
-				var road := MeshInstance3D.new()
-				var road_mesh := BoxMesh.new()
-				road_mesh.size = Vector3(length, 0.035, float(shape.get("width_m", 8.0)))
-				var road_material := StandardMaterial3D.new()
-				road_material.albedo_color = Color("30383b")
-				road_material.roughness = 0.85
-				road_mesh.material = road_material
-				road.mesh = road_mesh
-				road.position = Vector3((start.x + end.x) * 0.5, 0.0, (start.y + end.y) * 0.5)
-				road.rotation.y = -atan2(end.y - start.y, end.x - start.x)
-				holder.add_child(road)
+				var midpoint := Vector2((start.x + end.x) * 0.5, (start.y + end.y) * 0.5)
+				if midpoint.distance_to(render_center) <= map_render_radius:
+					var basis := Basis(Vector3.UP, -atan2(end.y - start.y, end.x - start.x))
+					basis = basis.scaled(Vector3(length, 0.035, float(shape.get("width_m", 8.0))))
+					road_transforms.append(Transform3D(basis, Vector3(midpoint.x, 0.0, midpoint.y)))
 				counts.roads += 1
+		_add_box_batch(holder, road_transforms, Color("30383b"), 0.85)
 		for forest in map.get("forests", []):
 			if typeof(forest) != TYPE_DICTIONARY or typeof(forest.get("shape")) != TYPE_DICTIONARY:
 				continue
@@ -290,34 +294,24 @@ func _build_map_geometry() -> void:
 			if typeof(building) != TYPE_DICTIONARY:
 				continue
 			var frame: Dictionary = building.get("frame", {})
-			var building_node := MeshInstance3D.new()
-			var building_mesh := BoxMesh.new()
-			building_mesh.size = Vector3(18.0, 8.0, 18.0)
-			var building_material := StandardMaterial3D.new()
-			building_material.albedo_color = Color("8b8b83") if counts.buildings % 2 == 0 else Color("6f7377")
-			building_mesh.material = building_material
-			building_node.mesh = building_mesh
 			var translation: Array = frame.get("translation", [0.0, 0.0, 0.0])
-			building_node.position = Vector3(float(translation[0]), 4.0 + float(translation[2]), float(translation[1]))
-			building_node.rotation.y = float(frame.get("yaw", 0.0))
-			holder.add_child(building_node)
+			var building_position := Vector2(float(translation[0]), float(translation[1]))
+			if building_position.distance_to(render_center) <= map_render_radius:
+				var building_basis := Basis(Vector3.UP, float(frame.get("yaw", 0.0))).scaled(Vector3(18.0, 8.0, 18.0))
+				building_transforms.append(Transform3D(building_basis, Vector3(building_position.x, 4.0 + float(translation[2]), building_position.y)))
 			counts.buildings += 1
+		_add_box_batch(holder, building_transforms, Color("7b7d7b"), 0.8)
 		for prop in map.get("props", []):
 			if (prop_limit > 0 and counts.props >= prop_limit) or typeof(prop) != TYPE_DICTIONARY:
 				break
 			var center: Array = prop.get("center", [0.0, 0.0])
 			var half: Array = prop.get("half_extents", [1.0, 1.0, 0.5])
-			var prop_node := MeshInstance3D.new()
-			var prop_mesh := BoxMesh.new()
-			prop_mesh.size = Vector3(max(0.2, float(half[0]) * 2.0), max(0.2, float(half[2]) * 2.0), max(0.2, float(half[1]) * 2.0))
-			var prop_material := StandardMaterial3D.new()
-			prop_material.albedo_color = Color("7d6a50")
-			prop_mesh.material = prop_material
-			prop_node.mesh = prop_mesh
-			prop_node.position = Vector3(float(center[0]), float(half[2]), float(center[1]))
-			prop_node.rotation.y = float(prop.get("yaw", 0.0))
-			holder.add_child(prop_node)
+			var prop_position := Vector2(float(center[0]), float(center[1]))
+			if prop_position.distance_to(render_center) <= map_render_radius:
+				var prop_basis := Basis(Vector3.UP, float(prop.get("yaw", 0.0))).scaled(Vector3(max(0.2, float(half[0]) * 2.0), max(0.2, float(half[2]) * 2.0), max(0.2, float(half[1]) * 2.0)))
+				prop_transforms.append(Transform3D(prop_basis, Vector3(prop_position.x, float(half[2]), prop_position.y)))
 			counts.props += 1
+		_add_box_batch(holder, prop_transforms, Color("7d6a50"), 0.55)
 		counts["building_limit"] = building_limit
 		counts["prop_limit"] = prop_limit
 		counts["road_limit"] = road_limit
@@ -326,6 +320,33 @@ func _build_map_geometry() -> void:
 func _map_limit(environment_name: String) -> int:
 	var value := OS.get_environment(environment_name)
 	return int(value) if not value.is_empty() else 0
+
+func _map_render_center(map_name: String) -> Vector2:
+	var result: Dictionary = capture_results.get(map_name, {})
+	var frames: Array = result.get("capture", {}).get("frames", [])
+	if frames.is_empty():
+		return Vector2.ZERO
+	var target: Array = frames[0].get("camera", {}).get("target", [0.0, 0.0])
+	return Vector2(float(target[0]), float(target[1]))
+
+func _add_box_batch(holder: Node3D, transforms: Array[Transform3D], color: Color, roughness: float) -> void:
+	if transforms.is_empty():
+		return
+	var mesh := BoxMesh.new()
+	mesh.size = Vector3.ONE
+	var material := StandardMaterial3D.new()
+	material.albedo_color = color
+	material.roughness = roughness
+	mesh.material = material
+	var multi := MultiMesh.new()
+	multi.transform_format = MultiMesh.TRANSFORM_3D
+	multi.instance_count = transforms.size()
+	multi.mesh = mesh
+	for index in transforms.size():
+		multi.set_instance_transform(index, transforms[index])
+	var batch := MultiMeshInstance3D.new()
+	batch.multimesh = multi
+	holder.add_child(batch)
 
 func _build_fog_layers() -> void:
 	for scene_name in semantic_results:
@@ -551,6 +572,7 @@ func _process(delta: float) -> void:
 		scale = 1.0
 	var advance := delta * scale
 	_scene_pose()
+	_update_authored_culling()
 	_update_observed_units()
 	if not cut_dir.is_empty() and shot_elapsed <= advance:
 		pending_cut_saves += 1
@@ -636,6 +658,16 @@ func _show_scene() -> void:
 		map_geometry_nodes[map_name].visible = map_name == scenes[scene_index].map
 	for map_name in authored_scene_nodes:
 		authored_scene_nodes[map_name].visible = map_name == scenes[scene_index].map
+
+func _update_authored_culling() -> void:
+	var active_map := String(scenes[scene_index].map)
+	var center := camera.position
+	for map_name in authored_scene_nodes:
+		var holder: Node3D = authored_scene_nodes[map_name]
+		var active: bool = map_name == active_map
+		for child in holder.get_children():
+			if child is Node3D:
+				child.visible = active and child.position.distance_to(center) <= authored_cull_radius
 
 func _scene_pose() -> void:
 	var scene: Dictionary = scenes[scene_index]
@@ -740,6 +772,8 @@ func _write_report() -> void:
 		"authored_building_count": authored_building_count,
 		"authored_map_scene_count": authored_map_scene_count,
 		"authored_building_limit": authored_building_limit,
+		"authored_cull_radius": authored_cull_radius,
+		"map_render_radius": map_render_radius,
 		"authored_unresolved_templates": authored_unresolved_templates,
 		"map_geometry": map_geometry_counts,
 		"fog_rendered_cells": fog_rendered_cells,
