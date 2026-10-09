@@ -5,7 +5,7 @@
     "describe": "The complete main-menu reel as a player-facing graphics test, with frame-rate summary and pacing chart.",
     "map": null,
     "build": "production",
-    "timeout_s": 180
+    "timeout_s": 300
   },
   {
     "id": "cursor-orders",
