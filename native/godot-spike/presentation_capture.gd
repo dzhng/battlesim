@@ -167,7 +167,7 @@ static func decode_publication(capture_result: Dictionary, words: Array, baselin
 		cursor += payload_size
 		var values: Array = _decode_group(layout, group_index, encoding, payload_words, size, next_baselines[group_index])
 		if values.is_empty() and size > 0:
-			return {"valid": false, "units": [], "baselines": baselines}
+			return {"valid": false, "units": [], "baselines": baselines, "error": "group %d %s size %d payload %d old %d" % [group_index, String(layout.groupDelivery.encodings[encoding]) if encoding >= 0 and encoding < layout.groupDelivery.encodings.size() else "?", size, payload_size, -1 if next_baselines[group_index] == null else next_baselines[group_index].size()]}
 		payloads.append(values)
 		next_baselines[group_index] = values
 	var header_values: Dictionary = {}
@@ -185,7 +185,7 @@ static func decode_publication(capture_result: Dictionary, words: Array, baselin
 	var fog := {"full": fog_full, "nx": fog_nx, "ny": fog_ny, "cellM": float(header_values.get("fogCellM", 0.0)), "words": fog_words, "payloadWords": fog_count}
 	var ground := _decode_ground(layout, header_values, words, cursor)
 	if not ground.valid:
-		return {"valid": false, "units": [], "baselines": baselines}
+		return {"valid": false, "units": [], "baselines": baselines, "error": "ground"}
 	var own: Array = []
 	if payloads.size() > 0:
 		var group: Dictionary = layout.groups[0]
@@ -254,11 +254,10 @@ static func _decode_group(layout: Dictionary, group_index: int, encoding: int, p
 		var values: Array = old.duplicate()
 		values.resize(size)
 		if packed.is_empty():
-			return values if size == old.size() else []
+			return values
 		var cursor := 0
-		var operations := int(_carrier_float(packed[cursor])); cursor += 1
 		var last := 0
-		for _i in operations:
+		while cursor < packed.size():
 			if cursor + 2 > packed.size():
 				return []
 			var start := int(_carrier_float(packed[cursor])); cursor += 1
