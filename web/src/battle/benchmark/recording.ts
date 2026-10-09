@@ -43,18 +43,16 @@ export interface FrameRateSummary {
 }
 
 export function summarizeFrameRate(intervals: readonly number[]): FrameRateSummary | null {
-  const rates = intervals
-    .filter((ms) => Number.isFinite(ms) && ms > 0)
-    .map((ms) => 1000 / ms);
-  if (rates.length === 0) return null;
-  const sorted = [...rates].sort((a, b) => a - b);
-  const lowRank = Math.max(0, Math.ceil(sorted.length * 0.01) - 1);
-  const total = intervals.reduce((sum, ms) => sum + ms, 0);
+  const sorted = intervals.filter((ms) => Number.isFinite(ms) && ms > 0).sort((a, b) => b - a);
+  if (sorted.length === 0) return null;
+  const slowCount = Math.ceil(sorted.length * 0.01);
+  const slowTotal = sorted.slice(0, slowCount).reduce((sum, ms) => sum + ms, 0);
+  const total = sorted.reduce((sum, ms) => sum + ms, 0);
   return {
-    average: (1000 * rates.length) / total,
-    low1: sorted[lowRank],
-    minimum: sorted[0],
-    maximum: sorted[sorted.length - 1],
+    average: (1000 * sorted.length) / total,
+    low1: (1000 * slowCount) / slowTotal,
+    minimum: 1000 / sorted[0],
+    maximum: 1000 / sorted[sorted.length - 1],
   };
 }
 

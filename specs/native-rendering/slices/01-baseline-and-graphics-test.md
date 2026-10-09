@@ -8,7 +8,7 @@ Browser and future native clients consume one versioned workload and report shap
 
 Extend the existing benchmark/report owners under `web/src/battle/benchmark/` and the Settings page in `apps/battle-lab/src/MainMenu.tsx`. Read scene identity from `apps/battle-lab/src/menuReel.ts` and `fixtures/menu-backdrop.json`; do not duplicate menu content. Canonical playback must not use `prefers-reduced-motion` or the live menu's simulation clock to decide elapsed benchmark time.
 
-Derive FPS from displayed-frame intervals: mean from total elapsed time, 1% low from the slowest one percent of frame rates (equivalently the 99th percentile frame interval), and absolute minimum/maximum from observed displayed frames. Preserve raw samples for the chart and label offscreen, submission and GPU timings separately.
+Derive FPS from displayed-frame intervals: mean from total elapsed time, 1% low as 1000 divided by the mean of the slowest ceil(N × 0.01) valid frame intervals (this is distinct from inverse p99), and absolute minimum/maximum from observed displayed frames. Preserve raw samples for the chart and label offscreen, submission and GPU timings separately.
 
 ## Runnable artifact
 
