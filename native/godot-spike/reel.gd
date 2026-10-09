@@ -435,10 +435,13 @@ func _select_authored_shell(instance: Node, template_id: String) -> bool:
 			if child is Node3D:
 				child.visible = false
 		return false
+	var found := false
 	for child in instance.get_children():
 		if child is Node3D:
-			child.visible = String(child.name) == token
-	return true
+			var matches := String(child.name) == token
+			child.visible = matches
+			found = found or matches
+	return found
 
 func _build_proxy_field() -> void:
 	proxy_field_used = true
