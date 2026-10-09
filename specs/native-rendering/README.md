@@ -1,6 +1,6 @@
 # Native rendering and Godot evaluation
 
-**Status:** evaluation checkpoint: browser capture/export, native semantic decoding, bounded saved-map composition, and report identity are implemented. Godot remains experimental because authored-material/fog parity and display-backed comparison remain unbuilt.
+**Status:** evaluation checkpoint: browser capture/export, native semantic decoding, bounded saved-map composition, report identity, and a hashed evidence manifest are implemented. Godot remains experimental because authored-material/fog parity and display-backed comparison remain unbuilt.
 **Updated:** 2026-10-09.
 
 ## Next Agent Prompt
@@ -8,7 +8,7 @@
 Next session: execute [follow-on-display-backed.md](follow-on-display-backed.md). Hydrate the authored catalog, render terrain/props/fog/units in a foreground Godot run, capture matched named cuts, and complete the visual/performance gates. Keep the interactive GDExtension seam and Rust simulation as authorities; keep `/benchmark?preset=city-contact` unchanged.
 
 Evidence: focused client/reel/report/capture tests, TypeScript, production build, route smoke, Godot decoder test and current foreground browser plus Godot runs using regenerated per-scene captures. The browser completed the full reel and emitted 3,541 `market-town` and 1,291 `paris-corner` publication samples plus displayed-frame timelines. Godot consumed both current captures, validated their layouts, walked 1,676,322 raw publication words, decoded sampled unit poses, and consumed bounded terrain/road/building/prop geometry from both map exports. `comparison_ready=false` remains because authored materials, fog, the full catalog, and display-backed visual equivalence are not proven. The cuts are lifecycle and camera/world-placement evidence, not visual-equivalence evidence. Native replay/side-filter parity and IPC measurement pass. Godot's editor scan still reports the expected missing local extension dylib when the dylib is not built. Authored Godot rendering, visual comparison and performance verdict remain open.
-The capture now also carries the displayed-frame timeline; Godot follows those actual camera frames rather than deriving presentation time from simulation ticks.
+The durable [evidence manifest](evidence-manifest.json) pins the current capture hashes, workload fingerprint, viewport and scene identities. The capture now also carries the displayed-frame timeline; Godot follows those actual camera frames rather than deriving presentation time from simulation ticks.
 Godot's capture validator now parses the included layout object and consumes every raw publication word, reporting layout validity and total words; semantic observation decoding now reconstructs the Rust-packed group stream for native unit poses; bounded terrain, roads, building and prop geometry are also consumed from saved maps, while authored materials, fog and the full catalog remain open.
 The browser contract now has a real Rust publication regression: raw capture words from three consecutive publications decode through a fresh `ObservationDecoder`, proving the wire representation is replayable before native semantic decoding is attempted.
 The attempted headless Playwright capture did not produce a report within its timeout, so no browser capture files were promoted from that attempt.
@@ -70,7 +70,7 @@ External measurements are context only; the frozen Mac runs are the evidence.
 ## Global TODO
 
 - [~] Add displayed-frame rate summary fields and tests — slice 01 (landed).
-- [~] Freeze complete menu-reel identity, canonical capture and browser control — slice 01 (fingerprinted canonical identity and downloadable report added; named browser cuts and committed manifest remain open).
+- [x] Freeze complete menu-reel identity, canonical capture and browser control — slice 01 (fingerprinted identity, downloadable report and hashed evidence manifest).
 - [~] Add Settings graphics test and report chart — slice 01 (route exists; lifecycle, report identity and visual verification remain).
 - [~] Verify offline native seam and Godot headless toolchain — slice 02 (offline probe and live extension smoke load; real scenario transfer/parity remains).
 - [x] Spike binding candidates and select a seam — slice 02 (GDExtension for interactive authority; presentation capture for renderer comparison; IPC retained as measured fallback).

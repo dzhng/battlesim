@@ -1,0 +1,36 @@
+{
+  "schema": "native-rendering-evidence/v1",
+  "workload": {
+    "id": "menu-reel",
+    "fingerprint": "c905ce8c",
+    "sceneIds": [
+      "market-town",
+      "paris-corner"
+    ],
+    "viewport": [
+      1280,
+      720
+    ],
+    "plateComposition": "standalone_center",
+    "subjectTrackingLagSeconds": 0.5
+  },
+  "captures": [
+    {
+      "scene": "market-town",
+      "path": "throwaway/current-captures/market-town.json",
+      "sha256": "12f3b5e7753f67bf7e92aedc2131ec0ebd003124d1242ed023e5b8ee2659570d",
+      "samples": 3541,
+      "frames": 8330
+    },
+    {
+      "scene": "paris-corner",
+      "path": "throwaway/current-captures/paris-corner.json",
+      "sha256": "3cb26929d2f5920455a9c3d00c4e1257897493a598ac88744ece5f16d6fd3e70",
+      "samples": 1291,
+      "frames": 4417
+    }
+  ],
+  "browserReport": "throwaway/browser-graphics-report.json",
+  "nativeReport": "throwaway/native/authored-report-current.json",
+  "notes": "Ignored reports and captures are local evidence; this manifest pins their hashes and identity for review."
+}
