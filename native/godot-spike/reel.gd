@@ -312,10 +312,11 @@ func _build_map_geometry() -> void:
 			var half: Array = prop.get("half_extents", [1.0, 1.0, 0.5])
 			var prop_position := Vector2(float(center[0]), float(center[1]))
 			if prop_position.distance_to(render_center) <= map_render_radius:
-				var prop_basis := Basis(Vector3.UP, float(prop.get("yaw", 0.0))).scaled(Vector3(max(0.2, float(half[0]) * 2.0), max(0.2, float(half[2]) * 2.0), max(0.2, float(half[1]) * 2.0)))
 				if String(prop.get("kind", "")) == "street_tree":
-					tree_transforms.append(Transform3D(prop_basis, Vector3(prop_position.x, float(half[2]) + 2.5, prop_position.y)))
+					var tree_basis := Basis(Vector3.UP, float(prop.get("yaw", 0.0))).scaled(Vector3(1.4, 1.0, 1.4))
+					tree_transforms.append(Transform3D(tree_basis, Vector3(prop_position.x, 2.5, prop_position.y)))
 				else:
+					var prop_basis := Basis(Vector3.UP, float(prop.get("yaw", 0.0))).scaled(Vector3(max(0.2, float(half[0]) * 2.0), max(0.2, float(half[2]) * 2.0), max(0.2, float(half[1]) * 2.0)))
 					prop_transforms.append(Transform3D(prop_basis, Vector3(prop_position.x, float(half[2]), prop_position.y)))
 			counts.props += 1
 		_add_box_batch(holder, prop_transforms, Color("7d6a50"), 0.55)
