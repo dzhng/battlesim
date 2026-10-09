@@ -211,8 +211,6 @@ export async function run(ctx, named = false) {
       "the city result identifies the complete generated world and existing central contact script",
       report.scenario.id === preset &&
         report.scenario.variant === "city-arena-2" &&
-        report.scenario.blue === "scenario-orders" &&
-        report.scenario.red === "scenario-orders" &&
         p?.identity.kind === "generated" &&
         r?.type === "metro" &&
         r.size === "xl" &&

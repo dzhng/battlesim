@@ -29,7 +29,7 @@ export function benchmarkPreparation(
       battle_seed: scenario.seed,
     },
     documents: { presets, templates, rules: JSON.stringify(rules) },
-    stress: { kind: "city-arena-2", late: false },
+    stress: { kind: scenario.variant, late: false },
   };
 }
 

@@ -127,8 +127,7 @@ export function BenchmarkResults({
               </dd>
               <dt>Battle</dt>
               <dd>
-                {scenario.variant} · seed {scenario.seed} · blue{" "}
-                <span className="bench-nowrap">{scenario.blue}</span> · red {scenario.red}
+                {scenario.variant} · seed {scenario.seed}
               </dd>
             </dl>
           </section>

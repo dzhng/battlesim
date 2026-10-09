@@ -83,7 +83,7 @@ test(
       const run = createBenchmarkRun(built.workload, "short", 30, (r) => reports.push(r), report);
       expect(run.scripted.warmTo).toBe(150);
       run.cancel();
-      expect(reports[0].scenario.fingerprint).toBe("4b6a0d2d");
+      expect(reports[0].scenario.fingerprint).toBe("38f10949");
       expect(reports[0].tour).toEqual(built.workload.tour);
       expect(reports[0].preparation).toEqual(report);
     } finally {
