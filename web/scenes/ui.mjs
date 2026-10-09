@@ -10,8 +10,9 @@ import { spills } from "./_spills.mjs";
 /** The panels whose content must stay inside them. */
 const PANELS = ".hud-panel, .hud-card, .hud-rejected, .frame-rate";
 
-/** Never pinned: the menu's live 3D backdrop and the build's identity. */
-const MENU_UNPINNED = "canvas, [data-testid=menu-build] { visibility: hidden !important; }";
+/** Never pinned: the menu's live 3D backdrop (its film, grade and veil, all
+ *  of it) and the build's identity. */
+const MENU_UNPINNED = ".menu-backdrop, [data-testid=menu-build] { visibility: hidden !important; }";
 
 async function contained(ctx, page, name) {
   const out = await spills(page, PANELS);
@@ -56,7 +57,7 @@ async function picker(ctx, page, shot) {
   const picker = page.locator(".hud-purchase-picker");
   const tank = page.getByRole("button", { name: "Tank", exact: true });
   const before = { picker: await picker.boundingBox(), tank: await tank.boundingBox() };
-  await page.getByRole("button", { name: "Jeep", exact: true }).hover();
+  await page.getByRole("button", { name: "Supply Truck", exact: true }).hover();
   ctx.check(
     `${shot}: a family of one variant opens nothing`,
     (await page.locator(".hud-purchase-flyout").count()) === 0,
@@ -169,14 +170,36 @@ async function picker(ctx, page, shot) {
     `${shot}: the pointer reaches a variant with its menu still open`,
     await variant.isVisible(),
   );
-  // Resting on another family is a choice: its hover replaces the menu.
-  await page.getByRole("button", { name: "Tank", exact: true }).hover();
-  await page.getByRole("button", { name: "Jeep", exact: true }).hover();
+  // However the menu moves to another family, by resting on it or by
+  // clicking it at once, it stands on that family's own card.
+  const standsOn = async (family) => {
+    const card = await page.getByRole("button", { name: family, exact: true }).boundingBox();
+    const menu = await page.locator(".hud-purchase-flyout-panel").boundingBox();
+    const named = await page.locator(".hud-purchase-flyout-name").textContent();
+    const gap = card.y - (menu?.y ?? 0) - (menu?.height ?? 0);
+    return {
+      ok:
+        menu !== null &&
+        named.toLowerCase() === family.toLowerCase() &&
+        gap >= 0 &&
+        gap <= 6 &&
+        Math.abs(menu.x - card.x) < 0.5,
+      detail: JSON.stringify({ named, gap, menu, card }),
+    };
+  };
+  const jeep = page.getByRole("button", { name: "Jeep", exact: true });
+  await tank.hover();
+  await jeep.hover();
   await page.waitForTimeout(400);
-  ctx.check(
-    `${shot}: resting on another family moves the hover to it`,
-    (await page.locator(".hud-purchase-flyout").count()) === 0,
-  );
+  let at = await standsOn("Jeep");
+  ctx.check(`${shot}: resting on another family moves its menu onto that card`, at.ok, at.detail);
+  // A click that buys nothing (the tank is beyond the credits) keeps the
+  // picker open; its menu still stands on the clicked card.
+  if (short) {
+    await tank.click();
+    at = await standsOn("Tank");
+    ctx.check(`${shot}: clicking another family moves its menu onto that card`, at.ok, at.detail);
+  }
   await pointerAway(page);
   ctx.check(
     `${shot}: leaving the picker closes the variants`,
@@ -215,6 +238,31 @@ export async function run(ctx) {
   await page.waitForFunction(() => document.querySelectorAll(".menu-body").length === 1);
   await page.evaluate(() => document.fonts.ready);
   await pointerAway(page);
+  // A picture of a page whose art never loaded (an unfetched LFS pointer
+  // decodes to nothing) approves a broken page: every image must decode.
+  const undecoded = await page.evaluate(async () => {
+    // <img>s, and every CSS background (pseudo-elements too, where the
+    // menu's card art lives).
+    const urls = new Set([...document.images].map((i) => i.src));
+    for (const e of document.querySelectorAll("*"))
+      for (const pseudo of [null, "::before", "::after"])
+        for (const [, url] of getComputedStyle(e, pseudo).backgroundImage.matchAll(
+          /url\("?([^")]+)"?\)/g,
+        ))
+          urls.add(url);
+    const failed = [];
+    for (const url of urls) {
+      const image = new Image();
+      image.src = url;
+      await image.decode().catch(() => failed.push(url.split("/").pop()));
+    }
+    return failed;
+  });
+  ctx.check(
+    "every menu image decodes (art fetched, not an LFS pointer)",
+    undecoded.length === 0,
+    undecoded.join(", "),
+  );
   const body = page.locator("main.menu .menu-body");
   await ctx.matchBaseline(body, "menu", { style: MENU_UNPINNED });
   // The developer page lists every lab: it changes as labs come and go.

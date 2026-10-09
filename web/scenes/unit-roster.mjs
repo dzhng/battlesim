@@ -36,7 +36,18 @@ export async function run(ctx) {
   await page.getByRole("button", { name: "Reinforcements", exact: true }).click();
   await page.getByRole("tab", { name: "VEH", exact: true }).click();
   await snapshot(ctx, page, "vehicle-families.png");
-  await page.getByRole("button", { name: "M1 Abrams", exact: true }).click();
+  // Hovering a family of variants opens their menu standing on its card,
+  // 3 px above it, over the picker; clicking the card would buy at once.
+  const abrams = page.getByRole("button", { name: "M1 Abrams", exact: true });
+  await abrams.hover();
+  const card = await abrams.boundingBox();
+  const menu = await page.locator(".hud-purchase-flyout-panel").boundingBox();
+  assert(
+    menu !== null &&
+      Math.abs(card.y - (menu.y + menu.height) - 3) < 0.5 &&
+      Math.abs(menu.x - card.x) < 0.5,
+    `the variant menu stands 3 px above its card: ${JSON.stringify({ card, menu })}`,
+  );
   await snapshot(ctx, page, "abrams-variants.png");
   const variant = page.getByRole("button", { name: /^SEP v2 — \d+ credits$/ });
   await variant.click();
@@ -46,6 +57,7 @@ export async function run(ctx) {
   await page.keyboard.press("Escape");
   assert((await obs(page)).skirmish.credits === 1000, "free placement and Escape spend no credits");
   await page.getByRole("button", { name: "Reinforcements", exact: true }).click();
+  await page.getByRole("button", { name: "M1 Abrams", exact: true }).hover();
   await page.getByRole("button", { name: /^SEP v2 — \d+ credits$/ }).click();
   await page.mouse.move(640, 340);
   await page.waitForTimeout(100);
@@ -59,7 +71,7 @@ export async function run(ctx) {
       reserved.skirmish.occupiedSlots === 1,
     "cursor confirmation atomically reserves one variant during preparation",
   );
-  await page.getByRole("button", { name: "Ready for battle", exact: true }).click();
+  await page.getByRole("button", { name: "START BATTLE", exact: true }).click();
   await advance(page, 60 * 30);
   const active = await obs(page);
   assert(

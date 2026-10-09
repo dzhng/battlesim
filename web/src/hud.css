@@ -1339,7 +1339,7 @@
   position: absolute;
   z-index: 1;
   transform: translateY(-100%);
-  padding-bottom: 4px;
+  padding-bottom: 3px;
 }
 .hud-panel.hud-purchase-flyout-panel {
   display: flex;

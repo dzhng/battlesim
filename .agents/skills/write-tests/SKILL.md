@@ -119,7 +119,12 @@ the other catches:
   so judge it against the design it should match (the approved reference, the
   spec), never against itself, and pin the design's own rules as geometry too
   (the unit card is portrait, and the same card wherever it appears). A wrong
-  first picture is otherwise approved, and from then on defended.
+  first picture is otherwise approved, and from then on defended. That
+  includes a page captured without its art: in a worktree whose large files
+  are unfetched pointers, check every image decodes before approving.
+- **Check the real path, not only the fixture.** A gallery is the fixture's
+  view; when the player reports something the fixture doesn't show, drive the
+  real route with real content and measure there before arguing.
 
 Every state a player can reach is a shot: hovered, focused, open, empty,
 failed, at the screen's edge, at each supported width. A defect lives in the

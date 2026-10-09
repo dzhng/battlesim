@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import type { Faction, UnitCard, UnitCategory } from "@packages/scene-assets/src/units";
 import { UnitFace } from "./unitFace";
 import type { SkirmishView } from "../sim/observation";
@@ -27,9 +27,20 @@ export function PurchasePicker({ cards, faction, match, onChoose }: PickerProps)
   const [open, setOpen] = useState(false);
   const [category, setCategory] = useState<UnitCategory>("rec");
   const [family, setFamily] = useState<string | null>(null);
-  // Where the hovered family's card stands in the picker: its menu hangs
-  // from the card's top-left corner.
-  const [anchor, setAnchor] = useState({ left: 0, top: 0 });
+  // The menu hangs from its family's card's top-left corner, measured
+  // after every render from the card itself (whatever chose the family),
+  // inside the picker's border, where absolute positions start.
+  const flyout = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const menu = flyout.current;
+    const picker = menu?.closest<HTMLElement>(".hud-purchase-picker");
+    const card = picker?.querySelector<HTMLElement>(`[data-family="${family}"]`);
+    if (!menu || !picker || !card) return;
+    const at = card.getBoundingClientRect();
+    const box = picker.getBoundingClientRect();
+    menu.style.left = `${at.left - box.left - picker.clientLeft}px`;
+    menu.style.top = `${at.top - box.top - picker.clientTop}px`;
+  });
   // Hover intent, as a web menu has it: while a menu is open, crossing
   // another card on the way into the menu does not close it. Moving onto
   // another family switches only after a pause; reaching the menu cancels.
@@ -38,15 +49,9 @@ export function PurchasePicker({ cards, faction, match, onChoose }: PickerProps)
     if (pendingHover.current) clearTimeout(pendingHover.current);
     pendingHover.current = null;
   };
-  const hover = (id: string | null, card: HTMLElement | null, menuOpen: boolean) => {
+  const hover = (id: string | null, menuOpen: boolean) => {
     cancelHover();
-    const show = () => {
-      setFamily(id);
-      if (!card) return;
-      const at = card.getBoundingClientRect();
-      const picker = card.closest(".hud-purchase-picker")!.getBoundingClientRect();
-      setAnchor({ left: at.left - picker.left, top: at.top - picker.top });
-    };
+    const show = () => setFamily(id);
     if (menuOpen && id !== family) pendingHover.current = setTimeout(show, HOVER_INTENT_MS);
     else show();
   };
@@ -79,7 +84,7 @@ export function PurchasePicker({ cards, faction, match, onChoose }: PickerProps)
         <section
           className="hud-panel hud-purchase-picker"
           aria-label="Faction units"
-          onMouseLeave={() => hover(null, null, false)}
+          onMouseLeave={() => hover(null, false)}
         >
           <div className="hud-purchase-faction">
             {{ us: "U.S.", europe: "EUROPE", eastern: "EASTERN" }[faction]}
@@ -126,8 +131,9 @@ export function PurchasePicker({ cards, faction, match, onChoose }: PickerProps)
                   className={`hud-army-card hud-purchase-family${unavailable ? " unavailable" : firstAvailable ? "" : " short"}`}
                   aria-label={variants[0].roster.family_name}
                   aria-pressed={id === family}
-                  onMouseEnter={(event) => hover(id, event.currentTarget, chosen.length > 1)}
-                  onFocus={(event) => hover(id, event.currentTarget, false)}
+                  data-family={id}
+                  onMouseEnter={() => hover(id, chosen.length > 1)}
+                  onFocus={() => hover(id, false)}
                   onClick={() => {
                     cancelHover();
                     setFamily(id);
@@ -153,7 +159,7 @@ export function PurchasePicker({ cards, faction, match, onChoose }: PickerProps)
               climb into it; leaving the picker closes it. One variant opens
               nothing. */}
           {chosen.length > 1 && (
-            <div className="hud-purchase-flyout" style={anchor} onMouseEnter={cancelHover}>
+            <div className="hud-purchase-flyout" ref={flyout} onMouseEnter={cancelHover}>
               <div className="hud-panel hud-purchase-flyout-panel">
                 <span className="hud-purchase-flyout-name">{chosen[0].roster.family_name}</span>
                 <div

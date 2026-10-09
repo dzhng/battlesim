@@ -125,7 +125,7 @@ export async function appJourney(ctx) {
   await page.waitForTimeout(100);
   await page.mouse.click(cx, cy);
   await advance(page, 1);
-  await page.getByRole("button", { name: "Ready for battle", exact: true }).click();
+  await page.getByRole("button", { name: "START BATTLE", exact: true }).click();
   await advance(page, 60 * 30);
   const own = (await obs(page)).own[0]?.id;
   await page.evaluate((id) => window.__lab.route.select([id]), own);

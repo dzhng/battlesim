@@ -76,7 +76,8 @@ const CARDS: UnitCard[] = [
   card("test_tank", "veh", "Tank", "Base", 400),
   card("test_tank_trophy", "veh", "Tank", "Trophy", 520, "Protection deferred"),
   card("test_jeep", "veh", "Jeep", "Base", 80),
-  card("test_supply", "sup", "Supply Truck", "Base", 90),
+  card("test_jeep_hmg", "veh", "Jeep", "HMG", 95),
+  card("test_supply", "veh", "Supply Truck", "Base", 90),
 ];
 
 /** World metres to the screen: a flat map seen from straight above. */
