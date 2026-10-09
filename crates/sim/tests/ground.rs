@@ -373,15 +373,16 @@ fn a_small_burst_leaves_a_pock_and_a_shell_its_full_crater_and_scorch() {
         small.scorch > 0 && small.crater > 0,
         "a small burst still marks the ground"
     );
-    // Half the reference radius: half the scorch, and a shallower crater
-    // (its crater is narrower as well).
+    // Half the reference radius: half the scorch (burnt area, once per
+    // burst), and an eighth of the crater: half for its narrower crater, a
+    // quarter more for the share of ground it throws up. Bytes round.
     assert!(
         (2 * small.scorch as i32 - full.scorch as i32).abs() <= 1,
         "a half-size burst scorches half a shell's: {small:?} against {full:?}"
     );
     assert!(
-        small.crater < full.crater,
-        "a small burst digs less than a shell: {small:?} against {full:?}"
+        (8 * small.crater as i32 - full.crater as i32).abs() <= 8,
+        "a half-size burst digs an eighth of a shell's crater: {small:?} against {full:?}"
     );
     assert_eq!(
         big.scorch, full.scorch,

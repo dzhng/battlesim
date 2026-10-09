@@ -1032,9 +1032,9 @@ pub struct GroundRules {
     /// Scorch a burst adds at its centre, falling linearly to the rim.
     pub scorch_per_burst: f64,
     /// A burst of at least this blast radius marks the ground fully; a
-    /// smaller one adds crater and scorch in proportion to its radius's
-    /// share of this, so a small cannon shell leaves a dark pock where a
-    /// shell leaves a crater and a black scorch.
+    /// smaller one adds scorch in proportion to its radius's share of this,
+    /// and crater depth by the square of it, so a small cannon shell leaves
+    /// a dark pock where a shell leaves a crater and a black scorch.
     pub mark_reference_blast_m: f64,
     /// Track wear a vehicle track adds to each cell it enters.
     pub tracks_per_pass: f64,

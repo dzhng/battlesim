@@ -268,16 +268,20 @@ impl GroundLayer {
             return;
         }
         let height = at.z - ground.z;
-        // A burst smaller than the reference throws up less ground.
-        let marks = (blast_radius / rules.mark_reference_blast_m).min(1.0);
+        // A burst smaller than the reference marks less. Its crater's depth
+        // already grows with its radius (`crater_depth_per_m`), and the ground
+        // it throws up goes as the area, so the depth takes the share squared;
+        // scorch is burnt area added once per burst, so it takes the share
+        // itself. A small shell leaves a scorched pock, not a soil ring.
+        let share = (blast_radius / rules.mark_reference_blast_m).min(1.0);
         let crater = blast_radius * rules.crater_radius_fraction;
         if height <= crater {
-            let depth = rules.crater_depth_per_m * crater * marks;
+            let depth = rules.crater_depth_per_m * crater * share * share;
             self.stamp(at.xy(), crater, depth, |c, v| c.crater = add(c.crater, v));
         }
         let scorch = blast_radius * rules.scorch_radius_fraction;
         if height <= scorch {
-            self.stamp(at.xy(), scorch, rules.scorch_per_burst * marks, |c, v| {
+            self.stamp(at.xy(), scorch, rules.scorch_per_burst * share, |c, v| {
                 c.scorch = add(c.scorch, v)
             });
         }
