@@ -15,6 +15,7 @@ The attempted headless Playwright capture did not produce a report within its ti
 
 The first foreground cut probe produced 24 PNGs and loaded the authored GLB, but its shots visibly show one centered house against the clear background (and the opening fade is black). This is a renderer-path proof, not a matched menu-world result; retain the cuts as evidence only until the full map composition is loaded.
 The current Godot cut metrics confirm that limitation: several shots are transparent or single-colour (edge density 0), while the detailed authored shot is an isolated building against an incomplete field. An adversarial visual read is that the new unit decoder could still be invisible in the player view; the existing cuts do not prove unit readability or scene composition, so comparison remains blocked until a fresh semantic-unit cut set is captured.
+The new foreground authored cuts improve this only partially: named shots are now opaque and show roads, map ground, authored silhouettes and colored unit markers, but edge density remains low (about 0.016–0.038) and the units are tiny at the captured framing. The adversarial read is that the scene still reads as sparse proxy geometry rather than the browser menu world; no browser counterpart was available for a matched crop, so the visual gate remains red.
 
 ## Goal
 
