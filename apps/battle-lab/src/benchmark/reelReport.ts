@@ -3,6 +3,7 @@ import { MENU_REEL_WORKLOAD, menuReelFingerprint } from "@web/battle/benchmark/m
 import { APP_COMMIT } from "../buildIdentity";
 import type { BenchmarkOutcome } from "@web/battle/benchmark/report";
 import type { ReelResult } from "./reelRun";
+import { encodePresentationCapture, type PresentationCapture } from "@web/battle/benchmark/presentationCapture";
 
 export function createReelReport(results: readonly ReelResult[], interruption?: BenchmarkOutcome) {
   const durationMs = MENU_REEL_WORKLOAD.scenes.reduce((sum, s) => sum + s.reel.shots.reduce((n, shot) => n + shot.seconds * 1000, 0), 0);
@@ -21,6 +22,11 @@ export function createReelReport(results: readonly ReelResult[], interruption?: 
     return { name: s.map, from, to: phaseStart / durationMs };
   });
   const complete = results.length === MENU_REEL_WORKLOAD.scenes.length && results.every((r) => r.outcome.status === "complete");
+  const presentationCaptures: PresentationCapture[] = results.map((r) => ({
+    schema: "battle-presentation-capture/v1",
+    workload: { id: MENU_REEL_WORKLOAD.id, fingerprint: menuReelFingerprint(), scene: r.scene.map, map: r.scene.map, encounter: r.scene.encounter, seed: r.scene.seed },
+    tickHz: r.tickHz, warmTick: r.startTick, side: "blue", samples: r.capture,
+  }));
   return {
     kind: "graphics-test" as const,
     capture: {
@@ -37,6 +43,8 @@ export function createReelReport(results: readonly ReelResult[], interruption?: 
     outcome: interruption ?? (complete ? { status: "complete" as const, reason: "Full reel complete" } : (results.at(-1)?.outcome.status === "failed" ? results.at(-1)!.outcome : { status: "cancelled" as const, reason: "Partial reel" })),
     measurement: "Frame intervals measure rendered requestAnimationFrame cadence, not physical display scan-out. Scene preparation is excluded. Browser refresh pacing may cap FPS; GPU timings are reported separately when available.",
     scenes: results.map((r) => ({ scene: r.scene, startTick: r.startTick, endTick: r.endTick, outcome: r.outcome, adapter: r.adapter, ...r.recording.report([r.scene.map]) })),
+    presentationCaptures,
+    presentationCaptureJson: presentationCaptures.map(encodePresentationCapture),
     ...merged.report(phases.map((p) => p.name)),
     tour: { phases },
     samples: { frames: merged.frames, stats: merged.stats },

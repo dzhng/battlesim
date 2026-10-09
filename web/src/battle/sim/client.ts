@@ -30,6 +30,8 @@ export interface Publication {
   bytes: number;
   /** Wall time the authority spent stepping this tick, ms. */
   stepMs: number;
+  /** Copy the packed authority publication while the credit is held. */
+  copyPacked(): number[];
   /** Return the buffer to the producer. Until then the authority may stall. */
   release(): void;
 }
@@ -261,6 +263,9 @@ export function createSimClient(options: SimClientOptions): SimClient {
             ground: ground!,
             bytes: reply.length * Float32Array.BYTES_PER_ELEMENT,
             stepMs: reply.stepMs,
+            copyPacked() {
+              return Array.from(new Float32Array(buffer, 0, reply.length));
+            },
             release() {
               if (released || disposed) return;
               released = true;

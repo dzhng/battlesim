@@ -3,6 +3,7 @@ import type { BenchmarkOutcome } from "@web/battle/benchmark/report";
 import { sampleReel, type BackdropScene } from "../menuReel";
 import type { ScriptedSim } from "../useSimSession";
 import type { ViewportPilot } from "../LabViewport";
+import type { PresentationSample } from "@web/battle/benchmark/presentationCapture";
 
 export interface ReelResult {
   scene: BackdropScene;
@@ -10,7 +11,9 @@ export interface ReelResult {
   recording: BenchmarkRecording;
   startTick: number;
   endTick: number;
+  tickHz: number;
   adapter: string | null;
+  capture: readonly PresentationSample[];
 }
 
 /** One complete scene; preparation and inter-scene loading have no frame samples. */
@@ -27,6 +30,7 @@ export function createReelRun(scene: BackdropScene, tickHz: number, onDone: (res
   const subject = { unitAt: (_id: number): ArrayLike<number> | null => null };
   let lastSubject: readonly number[] = [0, 0];
   let tracked: { follow: number; at: [number, number]; now: number } | null = null;
+  const capture: PresentationSample[] = [];
   const track = (follow: number, now: number): readonly number[] => {
     const live = subject.unitAt(follow);
     if (tracked?.follow !== follow) tracked = live && { follow, at: [live[0], live[1]], now };
@@ -42,7 +46,7 @@ export function createReelRun(scene: BackdropScene, tickHz: number, onDone: (res
   const finish = (outcome: BenchmarkOutcome) => {
     if (finished) return;
     finished = true;
-    onDone({ scene, outcome, recording, startTick, endTick, adapter });
+    onDone({ scene, outcome, recording, startTick, endTick, tickHz, adapter, capture });
   };
   const sample = (now: number) => sampleReel(scene.reel, recording.elapsed(now) / 1000);
   const pilot: ViewportPilot = {
@@ -70,9 +74,14 @@ export function createReelRun(scene: BackdropScene, tickHz: number, onDone: (res
     warmTo: startTick,
     onWarm() { warm = true; },
     onTick(t) { endTick = t.tick; recording.tick(t); },
+    onPublication(p) {
+      if (!recording.started) return;
+      const pose = pilot.pose(performance.now());
+      if (pose) capture.push({ tick: p.tick, digest: p.digest, publication: p.packed, camera: pose });
+    },
   };
   return {
-    pilot, scripted, subject, recording, durationMs,
+    pilot, scripted, subject, recording, durationMs, captureSamples: () => capture,
     opacity: (now: number) => sample(now).black,
     cancel: () => finish({ status: "cancelled", reason: "Cancelled before the full reel finished" }),
     fail: (reason: string) => finish({ status: "failed", reason }),

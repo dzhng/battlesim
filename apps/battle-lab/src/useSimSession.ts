@@ -31,6 +31,8 @@ export interface ScriptedSim {
   onWarm: () => void;
   /** Every tick published once warm, with its cost. */
   onTick: (t: { tick: number; stepMs: number; bytes: number }) => void;
+  /** Called while a warm publication still owns its producer credit. */
+  onPublication?: (p: { tick: number; digest: string; packed: number[] }) => void;
 }
 
 /** One worker authority for a lab scenario. Publications are consumed (their
@@ -117,6 +119,11 @@ export function useSimSession({
       if (warm) {
         const { tick, stepMs, bytes } = publication;
         plan?.onTick({ tick, stepMs, bytes });
+        plan?.onPublication?.({
+          tick,
+          digest: publication.digest,
+          packed: publication.copyPacked(),
+        });
       }
       frame ??= requestAnimationFrame(render);
       onDecodedRef.current?.(publication.observation, publication.digest);

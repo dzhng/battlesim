@@ -27,6 +27,17 @@ test("a reel records only drawn intervals after warm-up, finishes once, and uses
   expect(results[0]).toMatchObject({ outcome: { status: "complete" }, startTick: 60, endTick: 90 });
 });
 
+test("a reel capture copies packed publications before their credits are released", () => {
+  const results: unknown[] = [];
+  const run = createReelRun(scene, 30, (r) => results.push(r));
+  run.scripted.onWarm();
+  run.pilot.frame!({ now: 1000, cpuMs: 1, camera });
+  run.scripted.onPublication!({ tick: 61, digest: "0123456789abcdef", packed: [1, 2, 3] });
+  expect(run.captureSamples()).toEqual([
+    expect.objectContaining({ tick: 61, digest: "0123456789abcdef", publication: [1, 2, 3] }),
+  ]);
+});
+
 test("cancelling during preparation cannot later publish a complete result", () => {
   const results: unknown[] = [];
   const run = createReelRun(scene, 30, (r) => results.push(r));
