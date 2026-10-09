@@ -432,6 +432,7 @@
     "crater_vehicle_mult": 0.85,
     "scorch_radius_fraction": 0.4,
     "scorch_per_burst": 120,
+    "mark_reference_blast_m": 4,
     "tracks_per_pass": 24,
     "trampled_per_pass": 6
   },
