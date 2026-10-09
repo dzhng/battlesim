@@ -1,13 +1,13 @@
 # Native rendering and Godot evaluation
 
-**Status:** implementation in progress; browser route smoke and native parity pass, with a Godot authored-reel camera probe added. Frozen capture and matched rendering remain unbuilt.
+**Status:** handed off mid-implementation; browser route smoke and native parity pass, with a Godot authored-reel camera probe and capture decoder added. Authored asset rendering and matched performance remain unbuilt.
 **Updated:** 2026-10-09.
 
 ## Next Agent Prompt
 
-Finish canonical presentation playback before comparing engines. The browser route has a full lifecycle run but still lacks a frozen capture/export and visual gates. Slice 02's same-input GDExtension parity and IPC probe pass. Slice 03 now has a Godot probe that reads the browser-owned menu reel and reproduces its camera timing over the synthetic field; its report is explicitly `comparison_ready=false`. Build the real capture decoder and authored asset path next. Cubes and headless smoke are not rendering-performance evidence. Keep `/benchmark` unchanged.
+Next session: build the browser-side frozen capture exporter, then feed a real capture through the Godot decoder and replace the synthetic cube field with the smallest authored battle asset path. Keep the interactive GDExtension seam and the Rust simulation as authorities. Do not claim comparison-ready or performance evidence until the Godot report consumes capture publications and named browser/Godot cuts are visually reviewed. Keep `/benchmark?preset=city-contact` unchanged.
 
-Evidence: focused recording/router/reel/capture tests, TypeScript, production build, and the route smoke pass. A real browser run completed both menu scenes (156 seconds) and emitted the full report; the shared preview was background-throttled to about 1 Hz, so that run is lifecycle evidence only, not FPS evidence. Native replay/side-filter parity and IPC measurement pass. Frozen browser capture, visual comparison and performance verdict remain open.
+Evidence: focused recording/router/reel/capture tests, TypeScript, production build, and the route smoke pass. A real browser run completed both menu scenes (156 seconds) and emitted the full report; the shared preview was background-throttled to about 1 Hz, so that run is lifecycle evidence only, not FPS evidence. Native replay/side-filter parity and IPC measurement pass. Godot's capture decoder test passes; its editor scan still reports the expected missing local extension dylib when the dylib is not built. Frozen browser capture, authored Godot rendering, visual comparison and performance verdict remain open.
 
 ## Goal
 
@@ -67,9 +67,25 @@ External measurements are context only; the frozen Mac runs are the evidence.
 - [~] Add Settings graphics test and report chart — slice 01 (route exists; lifecycle, report identity and visual verification remain).
 - [~] Verify offline native seam and Godot headless toolchain — slice 02 (offline probe and live extension smoke load; real scenario transfer/parity remains).
 - [x] Spike binding candidates and select a seam — slice 02 (GDExtension for interactive authority; presentation capture for renderer comparison; IPC retained as measured fallback).
-- [~] Render the full menu reel in Godot — slice 03 (camera/workload probe reads the authored reel; real publication/assets still open).
+- [~] Render the full menu reel in Godot — slice 03 (camera/workload probe and capture decoder added; real publication/assets still open).
 - [ ] Compare repeated distributions and reslice the chosen direction — slice 04.
 
 ## Human review surface
 
 The human reviews the frozen menu-reel shots, the browser report chart, the Godot matched shots, and the final comparison table. Feedback can change the reference workload, visual-equivalence allowance or whether Godot advances; it does not silently change the simulation authority or measurement contract.
+
+## Handoff state
+
+This branch is `t3code/explore-godot-renderer-spike`. The handoff includes the
+browser graphics-test route, native GDExtension parity/IPC probes, the versioned
+TypeScript capture contract, the Godot camera/workload probe, and the Godot
+capture validator. Generated `.godot` caches, UID files, binaries and reports
+were removed before handoff. The stopping point is after decoder checkpoint
+`cb007edd`; no full-reel Godot renderer exists yet.
+
+The next agent should start with `git status`, run the focused web tests and
+`native/godot-spike/presentation_capture_test.gd`, then implement the capture
+exporter at the existing publication seam. Preserve the explicit
+`comparison_ready=false` guard until authored assets and capture playback are
+actually rendered. Do not use headless Godot or the synthetic cube field for
+performance conclusions.
