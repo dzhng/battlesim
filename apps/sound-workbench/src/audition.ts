@@ -127,11 +127,17 @@ export class SoundAuditioner implements Auditioner {
   }
 
   async play(catalog: SoundCatalog, kind: "clip" | "sound", id: string, variant = 0, gain = 1) {
-    const { prepared, start, current } = await this.open(catalog, (bank, signal) =>
+    const opened = await this.open(catalog, (bank, signal) =>
       kind === "clip"
         ? bank.clip(id, signal)
         : bank.prepare([id], signal).then(() => bank.get(id, variant)),
-    );
+    ).catch((error: unknown) => {
+      // A one-shot stopped or replaced while it loaded just never sounds.
+      if (error instanceof DOMException && error.name === "AbortError") return null;
+      throw error;
+    });
+    if (!opened) return;
+    const { prepared, start, current } = opened;
     const loop = kind === "clip" ? catalog.clips[id].loop : catalog.sounds[id].loop;
     const { source } = start(prepared, gain, loop);
     source.onended = () => {
