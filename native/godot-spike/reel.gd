@@ -222,6 +222,7 @@ func _build_map_geometry() -> void:
 		var road_transforms: Array[Transform3D] = []
 		var building_transforms: Array[Transform3D] = []
 		var prop_transforms: Array[Transform3D] = []
+		var tree_transforms: Array[Transform3D] = []
 		var render_center := _map_render_center(map_name)
 		var size: Array = map.get("size", [100.0, 100.0])
 		var ground := MeshInstance3D.new()
@@ -312,9 +313,13 @@ func _build_map_geometry() -> void:
 			var prop_position := Vector2(float(center[0]), float(center[1]))
 			if prop_position.distance_to(render_center) <= map_render_radius:
 				var prop_basis := Basis(Vector3.UP, float(prop.get("yaw", 0.0))).scaled(Vector3(max(0.2, float(half[0]) * 2.0), max(0.2, float(half[2]) * 2.0), max(0.2, float(half[1]) * 2.0)))
-				prop_transforms.append(Transform3D(prop_basis, Vector3(prop_position.x, float(half[2]), prop_position.y)))
+				if String(prop.get("kind", "")) == "street_tree":
+					tree_transforms.append(Transform3D(prop_basis, Vector3(prop_position.x, float(half[2]) + 2.5, prop_position.y)))
+				else:
+					prop_transforms.append(Transform3D(prop_basis, Vector3(prop_position.x, float(half[2]), prop_position.y)))
 			counts.props += 1
 		_add_box_batch(holder, prop_transforms, Color("7d6a50"), 0.55)
+		_add_tree_batch(holder, tree_transforms)
 		counts["building_limit"] = building_limit
 		counts["prop_limit"] = prop_limit
 		counts["road_limit"] = road_limit
@@ -340,6 +345,27 @@ func _add_box_batch(holder: Node3D, transforms: Array[Transform3D], color: Color
 	var material := StandardMaterial3D.new()
 	material.albedo_color = color
 	material.roughness = roughness
+	mesh.material = material
+	var multi := MultiMesh.new()
+	multi.transform_format = MultiMesh.TRANSFORM_3D
+	multi.instance_count = transforms.size()
+	multi.mesh = mesh
+	for index in transforms.size():
+		multi.set_instance_transform(index, transforms[index])
+	var batch := MultiMeshInstance3D.new()
+	batch.multimesh = multi
+	holder.add_child(batch)
+
+func _add_tree_batch(holder: Node3D, transforms: Array[Transform3D]) -> void:
+	if transforms.is_empty():
+		return
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = 0.15
+	mesh.bottom_radius = 0.9
+	mesh.height = 5.0
+	var material := StandardMaterial3D.new()
+	material.albedo_color = Color("385941")
+	material.roughness = 1.0
 	mesh.material = material
 	var multi := MultiMesh.new()
 	multi.transform_format = MultiMesh.TRANSFORM_3D
