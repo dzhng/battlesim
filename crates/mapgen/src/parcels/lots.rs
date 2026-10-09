@@ -150,11 +150,12 @@ impl<'a> Ground<'a> {
     /// Cut parcels along every carriageway that runs through the district
     /// and stand a template on each. Returns how many buildings it placed.
     pub fn fill(&mut self, pass: &Pass, district: &DistrictPlan) -> Result<usize, Vec<Diagnostic>> {
-        let rule = pass.district(district)?.lots;
+        let preset = pass.district(district)?;
         let mut rng = pass.stream(&format!("lots/{}", district.id));
         let site = Site {
             district,
-            rule,
+            rule: preset.lots,
+            yards_paved: preset.props.courts.paved,
             choices: pass.choices(district)?,
             forests: self.forests_near(district),
         };
@@ -305,7 +306,7 @@ impl<'a> Ground<'a> {
                 // the rest by the district's coverage.
                 let first = self.plan_lots.len() - self.first_lot == 1;
                 if rng.chance(rule.coverage) || first {
-                    self.build(id, &lot, fit, rule, parcels.verge_m, &parcels.prop_kind);
+                    self.build(id, &lot, fit, site, parcels.verge_m, &parcels.prop_kind);
                 }
                 break;
             }
@@ -313,14 +314,20 @@ impl<'a> Ground<'a> {
         }
     }
 
-    fn build(&mut self, id: String, lot: &Lot, fit: &Fit, rule: &LotRule, verge: f64, kind: &str) {
+    fn build(&mut self, id: String, lot: &Lot, fit: &Fit, site: &Site, verge: f64, kind: &str) {
+        let rule = &site.rule;
         self.buildings
             .push(placement(id, lot, fit, rule, kind, &mut self.next_prop));
         // The apron is as wide as the building, so each stands on its own
         // yard with the side setbacks left open between them. It is paving:
-        // hard ground, no way through.
-        let depth = rule.apron_m.min(rule.front_m);
-        if depth > 0.0 {
+        // hard ground, no way through. A parcel paved whole as its yard
+        // (`courts`) has its apron only across the verge in front of it.
+        if rule.apron_m.min(rule.front_m) > 0.0 {
+            let depth = if site.yards_paved {
+                0.0
+            } else {
+                rule.apron_m.min(rule.front_m)
+            };
             let half = (fit.max[0] - fit.min[0]) / 2.0;
             let ring = [
                 [-half, -verge],
@@ -384,6 +391,8 @@ pub fn placement(
 struct Site<'a> {
     district: &'a DistrictPlan,
     rule: LotRule,
+    /// Whether its built parcels are paved whole as their yards.
+    yards_paved: bool,
     choices: Choices<'a>,
     forests: Vec<&'a [Point]>,
 }

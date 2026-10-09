@@ -1166,6 +1166,40 @@ fn every_built_parcel_of_a_dense_district_is_paved_as_its_yard() {
     assert!(yards >= 2_000, "{yards} yards");
 }
 
+/// A parcel paved as its yard is paved once: its building's apron is laid
+/// only across the verge in front of it, the ground the yard does not cover.
+#[test]
+fn a_yard_is_not_paved_again_by_its_apron() {
+    let mut aprons = 0;
+    every_cell(|name, _, town| {
+        let yards: Vec<&Vec<Point>> = town
+            .plan
+            .courts
+            .iter()
+            .filter(|court| court.kind == mapgen::CourtKind::Yard)
+            .map(|court| &court.ring)
+            .collect();
+        let courts: Vec<&Vec<Point>> = town.plan.courts.iter().map(|c| &c.ring).collect();
+        for area in &town.map.surfaces {
+            let GroundShape::Polygon { ring } = &area.shape else {
+                continue;
+            };
+            if courts.contains(&ring) {
+                continue;
+            }
+            let n = ring.len() as f64;
+            let middle = ring
+                .iter()
+                .fold([0.0, 0.0], |[x, y], p| [x + p[0] / n, y + p[1] / n]);
+            if let Some(yard) = yards.iter().find(|yard| polygon_contains(yard, middle)) {
+                panic!("{name}: an apron at {middle:?} paves the yard {yard:?} again");
+            }
+            aprons += 1;
+        }
+    });
+    assert!(aprons > 0, "no map has an apron");
+}
+
 /// Garden suburbs, villages and farms keep their grass (decided with the
 /// user); the town's dense districts pave.
 #[test]

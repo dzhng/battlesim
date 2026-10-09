@@ -850,6 +850,8 @@ pub struct LotRule {
     pub coverage: f64,
     /// Depth of the paved apron across the parcel's front (parking, a
     /// loading yard), from the street's edge; never under the building.
+    /// Where the district paves its built parcels as yards, the yard paves
+    /// the parcel and the apron only the verge in front of it.
     pub apron_m: f64,
 }
 
@@ -1974,7 +1976,7 @@ fn refusal(location: String, message: String) -> Diagnostic {
 
 /// A mix is written as an object and kept dominant first (then by name), so
 /// the plan lists categories the same way whatever order the file used.
-fn mix<'de, D: serde::Deserializer<'de>>(decoder: D) -> Result<Mix, D::Error> {
+pub(crate) fn mix<'de, D: serde::Deserializer<'de>>(decoder: D) -> Result<Mix, D::Error> {
     let wire = BTreeMap::<String, f64>::deserialize(decoder)?;
     let mut out = Vec::new();
     for (name, weight) in wire {

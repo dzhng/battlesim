@@ -56,7 +56,6 @@ const JOIN_OVERSHOOT_M: f64 = 0.5;
 
 mod coverage;
 mod rules;
-use rules::category_of;
 pub use rules::*;
 
 /// One thing's amount in each half.
@@ -1014,7 +1013,7 @@ pub(crate) fn furnish(
                 let mix = group
                     .mix
                     .iter()
-                    .filter_map(|(name, weight)| Some((category_of(name)?, *weight)))
+                    .copied()
                     .filter(|(category, _)| preset.categories.contains(category));
                 Choices::available(&fits, mix, family, preset.max_floors)
             })

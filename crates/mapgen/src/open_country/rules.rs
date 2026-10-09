@@ -1,9 +1,7 @@
 //! The `open_country` rows of the presets: every density, size and
 //! clearance the pass places by, refused at load when it cannot describe a
 //! country.
-use contract::templates::BuildingCategory;
 use serde::Deserialize;
-use std::collections::BTreeMap;
 
 /// The `open_country` block of the presets.
 #[derive(Clone, Debug, Deserialize)]
@@ -119,7 +117,8 @@ pub struct Group {
     /// How many homes, inclusive.
     pub homes: [u32; 2],
     /// Building categories by weight.
-    pub mix: BTreeMap<String, f64>,
+    #[serde(deserialize_with = "crate::layout::mix")]
+    pub mix: crate::layout::Mix,
 }
 
 /// A body of the prop catalog and the box it is placed as.
@@ -303,9 +302,7 @@ impl Rules {
                         && group.homes[0] >= 1
                         && group.homes[0] <= group.homes[1]
                         && !group.mix.is_empty()
-                        && group.mix.iter().all(|(category, weight)| {
-                            positive(*weight) && category_of(category).is_some()
-                        })
+                        && group.mix.iter().all(|(_, weight)| positive(*weight))
                 }),
             "homesteads.groups",
             "a group is one or more homes of known building categories, by positive weight",
@@ -362,8 +359,4 @@ impl Rules {
         );
         errors
     }
-}
-
-pub(super) fn category_of(name: &str) -> Option<BuildingCategory> {
-    serde_json::from_value(serde_json::Value::String(name.into())).ok()
 }
