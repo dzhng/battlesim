@@ -414,7 +414,7 @@ fn main_roads_meet_in_a_crossroads_on_some_maps_and_fork_on_others() {
 /// depth.
 #[test]
 fn an_approach_in_the_plan_is_really_open_ground() {
-    every_cell(|_, _, _, plan| {
+    every_cell(|map_type, size, seed, plan| {
         for approach in &plan.approaches {
             let settlement = &plan.settlements[approach.settlement];
             // The first and the last bearing of the run are ones it measured.
@@ -428,27 +428,37 @@ fn an_approach_in_the_plan_is_really_open_ground() {
                     ]
                 };
                 let lanes = [-approach.front_m / 2.0, 0.0, approach.front_m / 2.0];
-                // The settlement's edge: the last of its ground along any
-                // lane of the corridor, to the metre.
-                let edge = (0..=approach.front_m as usize / 10)
-                    .map(|lane| lane as f64 * 10.0 - approach.front_m / 2.0)
-                    .flat_map(|across| (0..600).map(move |step| (f64::from(step) * 10.0, across)))
-                    .filter(|(along, across)| {
-                        contract::ground::polygon_contains(&settlement.outline, at(*along, *across))
-                    })
-                    .map(|(along, _)| along)
-                    .fold(0.0, f64::max);
+                // The settlement's edge: the last of its ground anywhere
+                // across the corridor. A corner that pokes a hand's width
+                // into the corridor's flank counts, which a sampled search
+                // across the front would miss.
+                let edge = mapgen::layout::corridor_start(
+                    &settlement.outline,
+                    settlement.center,
+                    toward,
+                    approach.front_m,
+                );
                 for across in lanes {
-                    let mut open = 20.0;
-                    while open < approach.depth_m - 20.0 {
+                    let mut open = 10.0;
+                    while open < approach.depth_m {
                         let point = at(edge + open, across);
-                        assert!((0.0..=plan.size[0]).contains(&point[0]));
-                        assert!((0.0..=plan.size[1]).contains(&point[1]));
-                        assert!(!plan
-                            .settlements
-                            .iter()
-                            .any(|s| contract::ground::polygon_contains(&s.outline, point)));
-                        assert!(!plan.forests.iter().any(|f| f.shape.contains(point, 0.0)));
+                        let name = format!(
+                            "{map_type:?} {size:?} seed {seed}: {open} m into {approach:?} \
+                             at bearing {bearing}, lane {across}"
+                        );
+                        assert!((0.0..=plan.size[0]).contains(&point[0]), "{name}");
+                        assert!((0.0..=plan.size[1]).contains(&point[1]), "{name}");
+                        assert!(
+                            !plan
+                                .settlements
+                                .iter()
+                                .any(|s| contract::ground::polygon_contains(&s.outline, point)),
+                            "{name}: a settlement"
+                        );
+                        assert!(
+                            !plan.forests.iter().any(|f| f.shape.contains(point, 0.0)),
+                            "{name}: a wood"
+                        );
                         open += 10.0;
                     }
                 }
