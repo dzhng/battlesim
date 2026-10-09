@@ -16,6 +16,7 @@ func _init() -> void:
 		push_error("capture invalid")
 		quit(2)
 	var baselines: Array = []
+	var fog_baseline: Array = []
 	var unit_count := 0
 	var valid_publications := 0
 	var fog_publications := 0
@@ -25,11 +26,13 @@ func _init() -> void:
 		sample_limit = decoded.capture.samples.size()
 	for sample_index in mini(sample_limit, decoded.capture.samples.size()):
 		var sample = decoded.capture.samples[sample_index]
-		var result := CaptureDecoder.decode_publication(decoded, sample.publication, baselines)
+		var result := CaptureDecoder.decode_publication(decoded, sample.publication, baselines, fog_baseline)
 		if not result.valid:
 			push_error("semantic publication decode failed at %d tick %s: %s" % [sample_index, sample.tick, result.get("error", "unknown")])
 			quit(2)
 		baselines = result.baselines
+		if result.has("fog"):
+			fog_baseline = result.fog.bits
 		if result.has("fog") and int(result.fog.words) > 0:
 			fog_publications += 1
 		if result.has("ground") and not result.ground.packedValid:

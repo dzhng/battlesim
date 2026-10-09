@@ -38,6 +38,8 @@ var semantic_decode_ms := 0.0
 var semantic_fog_publications := 0
 var semantic_results: Dictionary = {}
 var unit_nodes: Array[Node3D] = []
+var fog_rendered_cells: Dictionary = {}
+var fog_nodes: Dictionary = {}
 
 func _ready() -> void:
 	startup_started_usec = Time.get_ticks_usec()
@@ -104,6 +106,7 @@ func _decode_semantic_captures() -> void:
 	for scene_name in capture_results:
 		var capture_result: Dictionary = capture_results[scene_name]
 		var baselines: Array = []
+		var fog_baseline: Array = []
 		var frames: Array = []
 		var semantic_limit := int(OS.get_environment("GODOT_SEMANTIC_SAMPLE_LIMIT"))
 		if semantic_limit <= 0:
@@ -113,10 +116,12 @@ func _decode_semantic_captures() -> void:
 			if semantic_index >= semantic_limit:
 				break
 			semantic_index += 1
-			var decoded := CaptureDecoder.decode_publication(capture_result, sample.publication, baselines)
+			var decoded := CaptureDecoder.decode_publication(capture_result, sample.publication, baselines, fog_baseline)
 			if not decoded.valid:
 				continue
 			baselines = decoded.baselines
+			if decoded.has("fog"):
+				fog_baseline = decoded.fog.bits
 			if decoded.has("fog"):
 				semantic_fog_publications += 1
 			frames.append({"tick": sample.tick, "units": decoded.units, "fog": decoded.get("fog", {})})
@@ -140,6 +145,7 @@ func _build_world() -> void:
 	camera = Camera3D.new()
 	add_child(camera)
 	_build_map_geometry()
+	_build_fog_layers()
 	var unit_holder := Node3D.new()
 	unit_holder.name = "ObservedUnits"
 	add_child(unit_holder)
@@ -275,6 +281,42 @@ func _build_map_geometry() -> void:
 		counts["road_limit"] = road_limit
 		map_geometry_counts[map_name] = counts
 
+func _build_fog_layers() -> void:
+	for scene_name in semantic_results:
+		var frames: Array = semantic_results[scene_name]
+		if frames.is_empty() or not frames[0].fog.has("bits"):
+			continue
+		var fog: Dictionary = frames[0].fog
+		var nx := int(fog.nx)
+		var ny := int(fog.ny)
+		var cell_m := float(fog.cellM)
+		var bits: Array = fog.bits
+		var holder := Node3D.new()
+		holder.name = "Fog_%s" % scene_name
+		holder.visible = scene_name == String(scenes[0].map)
+		add_child(holder)
+		fog_nodes[scene_name] = holder
+		var mesh := BoxMesh.new()
+		mesh.size = Vector3(cell_m, 0.03, cell_m)
+		var material := StandardMaterial3D.new()
+		material.albedo_color = Color(0.02, 0.04, 0.07, 0.42)
+		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mesh.material = material
+		var count := 0
+		for y in ny:
+			for x in nx:
+				if count >= 4096:
+					break
+				var index := y * nx + x
+				if index / 32 >= bits.size() or (int(bits[index / 32]) & (1 << (index % 32))) != 0:
+					continue
+				var cell := MeshInstance3D.new()
+				cell.mesh = mesh
+				cell.position = Vector3((float(x) + 0.5) * cell_m, 0.02, (float(y) + 0.5) * cell_m)
+				holder.add_child(cell)
+				count += 1
+		fog_rendered_cells[scene_name] = count
+
 func _build_authored_maps(authored: PackedScene) -> bool:
 	var directory := OS.get_environment("GODOT_AUTHORED_MAP_DIR")
 	if directory.is_empty():
@@ -396,6 +438,8 @@ func _update_observed_units() -> void:
 		node.rotation.y = float(pose.yaw)
 
 func _show_scene() -> void:
+	for map_name in fog_nodes:
+		fog_nodes[map_name].visible = map_name == scenes[scene_index].map
 	for map_name in map_geometry_nodes:
 		map_geometry_nodes[map_name].visible = map_name == scenes[scene_index].map
 	for map_name in authored_scene_nodes:
@@ -488,6 +532,7 @@ func _write_report() -> void:
 		"authored_map_scene_count": authored_map_scene_count,
 		"authored_building_limit": authored_building_limit,
 		"map_geometry": map_geometry_counts,
+		"fog_rendered_cells": fog_rendered_cells,
 		"proxy_field_used": proxy_field_used,
 		"cuts_saved": cuts_saved,
 		"capture_valid": not capture_results.is_empty(),

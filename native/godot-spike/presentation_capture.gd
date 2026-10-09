@@ -142,7 +142,7 @@ static func _valid_camera(value: Variant) -> bool:
 ## Reconstruct the Rust-owned publication groups from raw carrier words.
 ## This intentionally returns only the presentation fields needed by the reel;
 ## all packing, baselines and field offsets still come from the published layout.
-static func decode_publication(capture_result: Dictionary, words: Array, baselines: Array) -> Dictionary:
+static func decode_publication(capture_result: Dictionary, words: Array, baselines: Array, previous_fog: Array = []) -> Dictionary:
 	if not capture_result.get("valid", false):
 		return {"valid": false, "units": [], "baselines": baselines}
 	var layout: Dictionary = capture_result.layout
@@ -181,8 +181,27 @@ static func decode_publication(capture_result: Dictionary, words: Array, baselin
 	var expected_fog_words := fog_words * 2 if fog_full else fog_count
 	if fog_count < 0 or cursor + fog_count > words.size() or (fog_full and fog_count != expected_fog_words):
 		return {"valid": false, "units": [], "baselines": baselines}
+	var fog_bits: Array = []
+	if fog_full:
+		if fog_count != fog_words * 2:
+			return {"valid": false, "units": [], "baselines": baselines}
+		for i in fog_words:
+			var lo := int(_carrier_float(words[cursor + i * 2]))
+			var hi := int(_carrier_float(words[cursor + i * 2 + 1]))
+			fog_bits.append((lo & 65535) | ((hi & 65535) << 16))
+	else:
+		if previous_fog.size() != fog_words:
+			return {"valid": false, "units": [], "baselines": baselines}
+		fog_bits = previous_fog.duplicate()
+		for at in range(0, fog_count, 3):
+			if at + 2 >= fog_count:
+				return {"valid": false, "units": [], "baselines": baselines}
+			var index := int(_carrier_float(words[cursor + at]))
+			if index < 0 or index >= fog_words:
+				return {"valid": false, "units": [], "baselines": baselines}
+			fog_bits[index] = (int(_carrier_float(words[cursor + at + 1])) & 65535) | ((int(_carrier_float(words[cursor + at + 2])) & 65535) << 16)
 	cursor += fog_count
-	var fog := {"full": fog_full, "nx": fog_nx, "ny": fog_ny, "cellM": float(header_values.get("fogCellM", 0.0)), "words": fog_words, "payloadWords": fog_count}
+	var fog := {"full": fog_full, "nx": fog_nx, "ny": fog_ny, "cellM": float(header_values.get("fogCellM", 0.0)), "words": fog_words, "payloadWords": fog_count, "bits": fog_bits}
 	var ground := _decode_ground(layout, header_values, words, cursor)
 	if not ground.valid:
 		return {"valid": false, "units": [], "baselines": baselines, "error": "ground"}

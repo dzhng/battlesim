@@ -103,3 +103,5 @@
 - **Fog payloads are consumed at the native boundary before rendering.** The decoder validates the published dimensions, full/delta payload length and carrier location for each sampled publication, then leaves visibility semantics in the Rust-owned bitfield. Rendering still needs a display-facing fog pass; native code does not infer visibility from map geometry.
 
 - **Native semantic replay uses the complete capture stream.** The decoder follows the browser/Rust grammar for packed groups, raw replacement/copy carriers, fog and ground tails. Full market-town and paris-corner captures now decode with every publication accepted and zero invalid ground payloads; the reel may still bound presentation work separately from this validation pass.
+
+- **Fog presentation uses captured visibility cells, not a native visibility oracle.** Godot bitcasts the Rust publication fog words, applies full snapshots and deltas, and draws a bounded dark-cell layer from the resulting bitfield. The simulation still owns what is visible; the bound limits presentation geometry only.
