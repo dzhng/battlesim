@@ -2596,11 +2596,10 @@ async function muzzleTour(ctx) {
   await page.close();
 }
 
-/** The tours, by name: `STREET_TOURS=effects,smoke` runs only those. */
 /** Select similar (double-click a unit for its
  *  type, again or with Ctrl for its role), a mixed selection's command bar
  *  (the union of its capabilities, each order to the units that can), and
- *  the unit card's role symbol and silhouette. */
+ *  the army card's role symbol and silhouette. */
 async function selectionTour(ctx) {
   const page = await openBattle(ctx, { viewport: { width: 1600, height: 900 } });
   const o = await obs(page);
@@ -3636,6 +3635,7 @@ async function panelLayoutTour(ctx) {
   await page.close();
 }
 
+/** The tours, by name: `STREET_TOURS=effects,smoke` runs only those. */
 const TOURS = {
   appflow: appJourney,
   army: armyJourney,
