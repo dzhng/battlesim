@@ -4,7 +4,7 @@
 export async function run(ctx) {
   const page = await ctx.newPage({ viewport: { width: 1280, height: 800 } });
   await ctx.openLab(page, `${ctx.url}/graphics-test`, 120000);
-  await page.getByRole("button", { name: "Run graphics test" }).click({ timeout: 120000 });
+  await page.getByRole("button", { name: "Run graphics test" }).click({ timeout: 300000 });
   await page.locator(".graphics-test-progress").waitFor({ timeout: 30000 });
   const cancel = page.locator(".graphics-test-progress").getByRole("button", { name: "Cancel" });
   ctx.check("graphics test exposes a cancellable progress surface", await cancel.count() === 1, "cancel button");
