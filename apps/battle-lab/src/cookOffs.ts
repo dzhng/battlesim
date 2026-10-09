@@ -229,11 +229,7 @@ function placedPoint(model: ModelInstance, p: Vec3): Vec3 {
 }
 
 /** The wreck at `clock`: jolting whole, or as its hull and thrown turret. */
-function wreckModels(
-  f: CookOffTransition,
-  feel: CookOffFeel,
-  clock: number,
-): ModelInstance[] {
+function wreckModels(f: CookOffTransition, feel: CookOffFeel, clock: number): ModelInstance[] {
   const age = clock - f.hitAt;
   const seed = f.cookOff.prop;
   const piece = (state: string, motion: Mat4): ModelInstance => ({

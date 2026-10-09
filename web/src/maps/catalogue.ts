@@ -17,15 +17,7 @@ const MAP_SOURCES = ["imported", "generated", "authored"] as const;
  *  `metro`), or an authored test's `arena`. */
 const MAP_CHARACTERS = ["open", "mixed", "metro", "arena"] as const;
 /** The physical features a map can have, each a tag when the map has any. */
-const MAP_TAGS = [
-  "relief",
-  "river",
-  "road",
-  "bridge",
-  "forest",
-  "prop",
-  "building",
-] as const;
+const MAP_TAGS = ["relief", "river", "road", "bridge", "forest", "prop", "building"] as const;
 
 export type MapCategory = (typeof MAP_CATEGORIES)[number];
 export type MapStatus = (typeof MAP_STATUSES)[number];

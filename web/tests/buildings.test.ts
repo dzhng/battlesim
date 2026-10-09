@@ -3,12 +3,7 @@ import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
 import { TEST_RULES } from "./catalog";
 import { buildingUnderRay } from "@apps/battle-lab/src/useStaticWorld";
-import {
-  initSync,
-  WorldView,
-  world_layout,
-  Battle,
-} from "@wasm/game_wasm.js";
+import { initSync, WorldView, world_layout, Battle } from "@wasm/game_wasm.js";
 import { resolveAuthored } from "./authoredMap";
 import {
   readWorldExports,
