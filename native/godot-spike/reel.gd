@@ -398,6 +398,7 @@ func _build_authored_maps(authored: PackedScene) -> bool:
 			if building_scene == null:
 				continue
 			var instance = building_scene.instantiate()
+			_select_authored_shell(instance, String(building.get("template_id", "")))
 			instance.position = Vector3(float(translation[0]), float(translation[2]), float(translation[1]))
 			instance.rotation.y = float(frame.get("yaw", 0.0))
 			holder.add_child(instance)
@@ -405,6 +406,32 @@ func _build_authored_maps(authored: PackedScene) -> bool:
 		authored_building_count += count
 		authored_map_scene_count += 1
 	return authored_map_scene_count > 0
+
+func _select_authored_shell(instance: Node, template_id: String) -> void:
+	var token := ""
+	if template_id.contains("slab-35x11"):
+		token = "slab_35x11_4f_shell"
+	elif template_id.contains("slab-47x11"):
+		token = "slab_47x11_5f_shell"
+	elif template_id.contains("slab-59x14"):
+		token = "slab_59x14_6f_shell"
+	elif template_id.contains("slab-53x14"):
+		token = "slab_53x14_8f_shell"
+	elif template_id.contains("slab-47x14"):
+		token = "slab_47x14_6f_shell"
+	elif template_id.contains("slab-35x14"):
+		token = "slab_35x14_8f_shell"
+	elif template_id.contains("point-20x20"):
+		token = "point_20x20_7f_shell"
+	elif template_id.contains("block-u"):
+		token = "block_u_5f_shell"
+	elif template_id.contains("block-court"):
+		token = "block_court_6f_shell"
+	if token.is_empty():
+		return
+	for child in instance.get_children():
+		if child is Node3D:
+			child.visible = String(child.name) == token
 
 func _build_proxy_field() -> void:
 	proxy_field_used = true
