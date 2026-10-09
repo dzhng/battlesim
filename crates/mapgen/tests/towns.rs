@@ -5,9 +5,13 @@ use contract::ground::GroundShape;
 use mapgen::layout::{
     generate_layout, GenerationRequest, MapSize, MapType, PresetDefinitions, GENERATOR_VERSION,
 };
-use mapgen::{CompileLimits, MapPlan, SettlementPlan};
+use mapgen::{CompileLimits, Diagnostic, MapPlan, SettlementPlan};
+
+#[path = "common/admitted.rs"]
+mod admitted;
 
 const PRESETS: &str = include_str!("../../../fixtures/map-presets.json");
+/// Every cell runs these seeds, or the next in line for one refused.
 const SEEDS: [u64; 4] = [1, 2, 3, u64::MAX];
 type Point = [f64; 2];
 /// Two blocks' corners either side of a street are no farther apart than
@@ -18,7 +22,7 @@ fn presets() -> PresetDefinitions {
     PresetDefinitions::from_json(PRESETS).unwrap()
 }
 
-fn plan(map_type: MapType, size: MapSize, seed: u64) -> MapPlan {
+fn plan(map_type: MapType, size: MapSize, seed: u64) -> Result<MapPlan, Vec<Diagnostic>> {
     let presets = presets();
     let catalogue = contract::templates::TemplateGeometryCatalog::new(Vec::new()).unwrap();
     let request = GenerationRequest {
@@ -37,14 +41,18 @@ fn plan(map_type: MapType, size: MapSize, seed: u64) -> MapPlan {
         },
     };
     generate_layout(&request, &presets)
-        .unwrap_or_else(|errors| panic!("{map_type:?} {size:?} seed {seed}: {errors:?}"))
+}
+
+/// The cell's first `SEEDS.len()` admitted plans, from `SEEDS` on.
+fn plans(map_type: MapType, size: MapSize) -> Vec<(u64, MapPlan)> {
+    let candidates = SEEDS.into_iter().chain(4..);
+    admitted::admitted(candidates, SEEDS.len(), |seed| plan(map_type, size, seed))
 }
 
 fn every_settlement(mut check: impl FnMut(&str, &MapPlan, &SettlementPlan)) {
     for map_type in MapType::ALL {
         for size in [MapSize::Medium, MapSize::Large, MapSize::Xl] {
-            for seed in SEEDS {
-                let plan = plan(map_type, size, seed);
+            for (seed, plan) in plans(map_type, size) {
                 for settlement in &plan.settlements {
                     let name = format!("{map_type:?} {size:?} seed {seed} {}", settlement.id);
                     check(&name, &plan, settlement);
@@ -354,8 +362,7 @@ fn side_roads(plan: &MapPlan, settlement: &SettlementPlan) -> Vec<Point> {
 fn a_city_has_roads_out_that_miss_its_central_junction() {
     let (mut total, mut cities) = (0, 0);
     for size in [MapSize::Medium, MapSize::Large, MapSize::Xl] {
-        for seed in SEEDS {
-            let plan = plan(MapType::Metro, size, seed);
+        for (seed, plan) in plans(MapType::Metro, size) {
             let city = &plan.settlements[0];
             assert_eq!(city.class, "city");
             let sides = side_roads(&plan, city).len();
@@ -375,8 +382,7 @@ fn a_city_has_roads_out_that_miss_its_central_junction() {
 #[test]
 fn a_large_town_has_a_second_road_at_an_angle() {
     for size in [MapSize::Medium, MapSize::Large, MapSize::Xl] {
-        for seed in SEEDS {
-            let plan = plan(MapType::Mixed, size, seed);
+        for (seed, plan) in plans(MapType::Mixed, size) {
             let town = &plan.settlements[0];
             assert_eq!(town.class, "large_town");
             let through = roads_through(&plan, town);

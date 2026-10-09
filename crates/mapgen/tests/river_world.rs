@@ -1,9 +1,11 @@
 //! A generated river map in the simulation's world: what a battle loads. The
 //! plan's own measurements say its bridges join the banks; here the world
 //! the units move in says so.
+#[path = "common/first_where.rs"]
+mod first_where;
 use contract::map::{Bridge, MapDefinition};
 use mapgen::layout::{generate_layout, GenerationRequest, MapSize, MapType, PresetDefinitions};
-use mapgen::{CompileLimits, MapPlan};
+use mapgen::{CompileLimits, Diagnostic, MapPlan};
 use sim::math::v2;
 use sim::navigation::RoadNet;
 use sim::world::{SurfaceKind, WorldGeometry};
@@ -19,16 +21,19 @@ const PRESETS: &str = include_str!("../../../fixtures/map-presets.json");
 /// No town is built on it: the crossing is the layout's, and the parcel
 /// pass has its own river test.
 fn river_map(map_type: MapType, size: MapSize) -> (String, MapPlan, MapDefinition) {
-    (1..=10)
-        .find_map(|seed| {
-            let (plan, map) = river_seed(map_type, size, seed)?;
-            let centre = plan.settlements[0].center;
-            plan.settlements
-                .iter()
-                .any(|s| across(&plan.rivers[0], centre, s.center))
-                .then(|| (format!("{map_type:?} {size:?} seed {seed}"), plan, map))
-        })
-        .unwrap_or_else(|| panic!("{map_type:?} {size:?}: no settlement across the water"))
+    let across_the_water = |(plan, _): &(MapPlan, MapDefinition)| {
+        let centre = plan.settlements[0].center;
+        plan.settlements
+            .iter()
+            .any(|s| across(&plan.rivers[0], centre, s.center))
+    };
+    let (seed, (plan, map)) = first_where::first_where(
+        1..=10,
+        |seed| river_seed(map_type, size, seed),
+        across_the_water,
+    )
+    .unwrap_or_else(|| panic!("{map_type:?} {size:?}: no settlement across the water"));
+    (format!("{map_type:?} {size:?} seed {seed}"), plan, map)
 }
 
 /// Whether the straight line from `a` to `b` crosses the river's middle an
@@ -47,8 +52,12 @@ fn across(river: &contract::river::River, a: [f64; 2], b: [f64; 2]) -> bool {
     crossings % 2 == 1
 }
 
-/// One seed's river layout and its map, or nothing when it is refused.
-fn river_seed(map_type: MapType, size: MapSize, seed: u64) -> Option<(MapPlan, MapDefinition)> {
+/// One seed's river layout and its map, or the generator's refusal of it.
+fn river_seed(
+    map_type: MapType,
+    size: MapSize,
+    seed: u64,
+) -> Result<(MapPlan, MapDefinition), Vec<Diagnostic>> {
     let mut source: serde_json::Value = serde_json::from_str(PRESETS).unwrap();
     for map_type in ["open", "mixed", "metro"] {
         source["types"][map_type]["river_chance"] = 1.into();
@@ -70,25 +79,14 @@ fn river_seed(map_type: MapType, size: MapSize, seed: u64) -> Option<(MapPlan, M
             max_ground_points: 200_000,
         },
     };
-    let plan = match generate_layout(&request, &presets) {
-        Ok(plan) => plan,
-        Err(errors) => {
-            assert!(
-                errors
-                    .iter()
-                    .all(|error| error.code == mapgen::DiagnosticCode::GenerationFailed),
-                "{map_type:?} {size:?} seed {seed}: {errors:?}"
-            );
-            return None;
-        }
-    };
+    let plan = generate_layout(&request, &presets)?;
     let map = mapgen::lower(
         &mapgen::CompileRequest::generated(&request, plan.clone()),
         &catalogue,
     )
     .unwrap()
     .map;
-    Some((plan, map))
+    Ok((plan, map))
 }
 
 /// The point `along` metres down a deck's heading from its centre and

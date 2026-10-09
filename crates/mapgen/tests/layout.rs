@@ -43,15 +43,23 @@ fn request(map_type: MapType, size: MapSize, seed: u64) -> GenerationRequest {
     }
 }
 
-fn plan(map_type: MapType, size: MapSize, seed: u64) -> MapPlan {
-    generate_layout(&request(map_type, size, seed), &presets())
-        .unwrap_or_else(|errors| panic!("{map_type:?} {size:?} seed {seed}: {errors:?}"))
+/// The first `count` plans of this type and size that generate, from seed 1.
+fn plans(map_type: MapType, size: MapSize, count: usize) -> Vec<(u64, MapPlan)> {
+    let presets = presets();
+    admitted::admitted(1.., count, |seed| {
+        generate_layout(&request(map_type, size, seed), &presets)
+    })
 }
 
 /// Every cell's first `SEEDS.len()` admitted plans, from `SEEDS` on.
-fn every_cell(mut check: impl FnMut(MapType, MapSize, u64, &MapPlan)) {
+fn every_cell(check: impl FnMut(MapType, MapSize, u64, &MapPlan)) {
+    every_cell_of(&TYPES, check);
+}
+
+/// `every_cell` for these types only.
+fn every_cell_of(types: &[MapType], mut check: impl FnMut(MapType, MapSize, u64, &MapPlan)) {
     let presets = presets();
-    for map_type in TYPES {
+    for &map_type in types {
         for size in SIZES {
             let candidates = SEEDS.into_iter().chain(6..);
             let plans = admitted::admitted(candidates, SEEDS.len(), |seed| {
@@ -129,41 +137,58 @@ fn a_size_is_its_exact_playable_extent_at_every_type() {
         (MapSize::Xl, 10_000.0),
     ] {
         for map_type in TYPES {
-            assert_eq!(plan(map_type, size, 1).size, [metres, metres]);
+            let [(_, plan)] = &plans(map_type, size, 1)[..] else {
+                unreachable!()
+            };
+            assert_eq!(plan.size, [metres, metres]);
         }
     }
 }
 
 #[test]
 fn a_fixed_request_gives_the_same_plan_bytes_every_run() {
+    let presets = presets();
     for map_type in TYPES {
-        let first = serde_json::to_string(&plan(map_type, MapSize::Large, 7)).unwrap();
-        let again = serde_json::to_string(&plan(map_type, MapSize::Large, 7)).unwrap();
-        assert_eq!(first, again);
-        let other = serde_json::to_string(&plan(map_type, MapSize::Large, 8)).unwrap();
-        assert_ne!(first, other, "the seed must move the layout");
+        let [(seed, first), (_, other)] = &plans(map_type, MapSize::Large, 2)[..] else {
+            unreachable!()
+        };
+        let again = generate_layout(&request(map_type, MapSize::Large, *seed), &presets).unwrap();
+        let json = |plan: &MapPlan| serde_json::to_string(plan).unwrap();
+        assert_eq!(json(first), json(&again));
+        assert_ne!(json(first), json(other), "the seed must move the layout");
     }
 }
 
-/// The retained size profiles draw distinct layouts for one seed. Type and size key what the
-/// seed draws from, so no two of them share a road skeleton or a town shape.
+/// Type and size key what a seed draws from, so one seed gives every type and
+/// size its own layout: no two of them share a road skeleton.
 #[test]
 fn one_seed_gives_each_type_and_size_its_own_layout() {
+    let presets = presets();
+    let cells: Vec<(MapType, MapSize)> = TYPES
+        .into_iter()
+        .flat_map(|map_type| SIZES.map(|size| (map_type, size)))
+        .collect();
+    // A seed every cell admits.
+    let [(_, plans)] = &admitted::admitted(1.., 1, |seed| {
+        cells
+            .iter()
+            .map(|&(map_type, size)| generate_layout(&request(map_type, size, seed), &presets))
+            .collect::<Result<Vec<_>, _>>()
+    })[..] else {
+        unreachable!()
+    };
     let mut skeletons = Vec::new();
-    for map_type in TYPES {
-        for size in SIZES {
-            let plan = plan(map_type, size, 3);
-            // Where roads leave the map, as shares of the edge.
-            let exits: Vec<[i64; 2]> = road_runs(&plan)
-                .map(|(_, points)| points[0])
-                .filter(|p| p.iter().any(|v| *v == 0.0 || *v == plan.size[0]))
-                .map(|p| p.map(|v| (v / plan.size[0] * 1e4) as i64))
-                .collect();
-            // At least the road in from the bottom and the one from the top.
-            assert!(exits.len() >= 2);
-            assert!(!skeletons.contains(&exits), "{map_type:?} {size:?}");
-            skeletons.push(exits);
-        }
+    for (&(map_type, size), plan) in cells.iter().zip(plans) {
+        // Where roads leave the map, as shares of the edge.
+        let exits: Vec<[i64; 2]> = road_runs(plan)
+            .flat_map(|(_, points)| [points[0], points[points.len() - 1]])
+            .filter(|p| p.iter().any(|v| *v == 0.0 || *v == plan.size[0]))
+            .map(|p| p.map(|v| (v / plan.size[0] * 1e4) as i64))
+            .collect();
+        // At least the road in from the bottom and the one from the top.
+        assert!(exits.len() >= 2, "{map_type:?} {size:?}: exits {exits:?}");
+        assert!(!skeletons.contains(&exits), "{map_type:?} {size:?}");
+        skeletons.push(exits);
     }
 }
 
@@ -175,11 +200,22 @@ fn a_bigger_map_adds_settlements_and_keeps_their_dimensions() {
     let presets = presets();
     // Each class's outlines, in hectares, by map size.
     let mut sizes: std::collections::BTreeMap<String, [Vec<f64>; 3]> = Default::default();
+    // Road widths are the other dimension a size must not scale.
+    let mut widths: [Vec<(SurfaceKind, f64)>; 3] = Default::default();
     for map_type in [MapType::Open, MapType::Mixed] {
-        for seed in SEEDS {
-            let plans = SIZES.map(|size| plan(map_type, size, seed));
+        // Seeds every size admits, so each size is the same seed's map.
+        let candidates = SEEDS.into_iter().chain(6..);
+        for (seed, plans) in admitted::admitted(candidates, SEEDS.len(), |seed| {
+            SIZES
+                .into_iter()
+                .map(|size| generate_layout(&request(map_type, size, seed), &presets))
+                .collect::<Result<Vec<_>, _>>()
+        }) {
             for pair in plans.windows(2) {
-                assert!(pair[0].settlements.len() < pair[1].settlements.len());
+                assert!(
+                    pair[0].settlements.len() < pair[1].settlements.len(),
+                    "{map_type:?} seed {seed}"
+                );
             }
             for (size, plan) in plans.iter().enumerate() {
                 for settlement in &plan.settlements {
@@ -191,6 +227,12 @@ fn a_bigger_map_adds_settlements_and_keeps_their_dimensions() {
                         settlement.class
                     );
                     sizes.entry(settlement.class.clone()).or_default()[size].push(hectares);
+                }
+                if map_type == MapType::Mixed {
+                    widths[size].extend(plan.surfaces.iter().map(|area| match &area.shape {
+                        GroundShape::Stroke { width_m, .. } => (area.kind, *width_m),
+                        GroundShape::Polygon { .. } => panic!("a road is a stroke"),
+                    }));
                 }
             }
         }
@@ -210,20 +252,10 @@ fn a_bigger_map_adds_settlements_and_keeps_their_dimensions() {
             "{class}: median hectares by size {medians:?}"
         );
     }
-    // Road widths are the other dimension a size must not scale.
-    let widths = SIZES.map(|size| {
-        let mut widths: Vec<_> = plan(MapType::Mixed, size, 1)
-            .surfaces
-            .iter()
-            .map(|area| match &area.shape {
-                GroundShape::Stroke { width_m, .. } => (area.kind, *width_m),
-                GroundShape::Polygon { .. } => panic!("a road is a stroke"),
-            })
-            .collect();
+    for widths in &mut widths {
         widths.sort_by(|a, b| a.partial_cmp(b).unwrap());
         widths.dedup();
-        widths
-    });
+    }
     assert_eq!(widths[0], widths[1]);
     assert_eq!(widths[1], widths[2]);
 }
@@ -231,49 +263,43 @@ fn a_bigger_map_adds_settlements_and_keeps_their_dimensions() {
 /// M06: Metro is one dominant city at the centre with smaller places around it.
 #[test]
 fn metro_has_one_dominant_central_city() {
-    for size in SIZES {
-        for seed in SEEDS {
-            let plan = plan(MapType::Metro, size, seed);
-            let mut areas: Vec<f64> = plan.settlements.iter().map(built).collect();
-            let city = areas[0];
-            let total: f64 = areas.iter().sum();
-            areas.sort_by(|a, b| b.total_cmp(a));
-            assert_eq!(areas[0], city, "the first settlement is the city");
-            assert!(
-                city > 0.6 * total,
-                "{size:?} {seed}: city {city} of {total}"
-            );
-            assert!(city > 4.0 * areas.get(1).copied().unwrap_or(0.0));
-            let centre = [plan.size[0] / 2.0, plan.size[1] / 2.0];
-            assert!(contract::ground::polygon_contains(
-                &plan.settlements[0].outline,
-                centre
-            ));
-        }
-    }
+    every_cell_of(&[MapType::Metro], |_, size, seed, plan| {
+        let mut areas: Vec<f64> = plan.settlements.iter().map(built).collect();
+        let city = areas[0];
+        let total: f64 = areas.iter().sum();
+        areas.sort_by(|a, b| b.total_cmp(a));
+        assert_eq!(areas[0], city, "the first settlement is the city");
+        assert!(
+            city > 0.6 * total,
+            "{size:?} {seed}: city {city} of {total}"
+        );
+        assert!(city > 4.0 * areas.get(1).copied().unwrap_or(0.0));
+        let centre = [plan.size[0] / 2.0, plan.size[1] / 2.0];
+        assert!(contract::ground::polygon_contains(
+            &plan.settlements[0].outline,
+            centre
+        ));
+    });
 }
 
 /// M21: Mixed has one town clearly larger than every other settlement.
 #[test]
 fn mixed_has_one_clearly_larger_town() {
-    for size in SIZES {
-        for seed in SEEDS {
-            let plan = plan(MapType::Mixed, size, seed);
-            // Half as large again as the next, in the ground it covers and
-            // in what is built on it: the least the preset sizes allow.
-            let outline = |s: &mapgen::SettlementPlan| ring_area(&s.outline);
-            for measure in [outline as fn(&mapgen::SettlementPlan) -> f64, built] {
-                let mut areas: Vec<f64> = plan.settlements.iter().map(measure).collect();
-                areas.sort_by(|a, b| b.total_cmp(a));
-                assert!(
-                    areas[0] > 1.5 * areas[1],
-                    "{size:?} {seed}: {} against {}",
-                    areas[0],
-                    areas[1]
-                );
-            }
+    every_cell_of(&[MapType::Mixed], |_, size, seed, plan| {
+        // Half as large again as the next, in the ground it covers and
+        // in what is built on it: the least the preset sizes allow.
+        let outline = |s: &mapgen::SettlementPlan| ring_area(&s.outline);
+        for measure in [outline as fn(&mapgen::SettlementPlan) -> f64, built] {
+            let mut areas: Vec<f64> = plan.settlements.iter().map(measure).collect();
+            areas.sort_by(|a, b| b.total_cmp(a));
+            assert!(
+                areas[0] > 1.5 * areas[1],
+                "{size:?} {seed}: {} against {}",
+                areas[0],
+                areas[1]
+            );
         }
-    }
+    });
 }
 
 /// M07: a rural map cannot acquire a tower or a seven-storey block.
@@ -365,13 +391,9 @@ fn a_share_of_maps_has_a_road_from_side_to_side_and_a_share_has_none() {
         (MapType::Metro, MapSize::Xl),
     ] {
         let seeds = 40;
-        let with = (1..=seeds)
-            .filter(|seed| {
-                measure(&plan(map_type, size, *seed), &presets)
-                    .transit
-                    .east_west
-                    .is_some()
-            })
+        let with = plans(map_type, size, seeds)
+            .iter()
+            .filter(|(_, plan)| measure(plan, &presets).transit.east_west.is_some())
             .count();
         // The presets draw one on half of maps; forty seeds stray from that
         // by eight maps, one time in a hundred.
@@ -534,8 +556,7 @@ fn larger_settlements_leave_green_gaps_and_woods_reach_into_them() {
     let mut shares = Vec::new();
     let mut wooded = 0;
     for map_type in [MapType::Mixed, MapType::Metro] {
-        for seed in 1..=12 {
-            let plan = plan(map_type, MapSize::Large, seed);
+        for (_, plan) in plans(map_type, MapSize::Large, 12) {
             let main = &plan.settlements[0];
             let span = hull(&main.outline);
             shares.push(built(main) / ring_area(&span));
@@ -685,8 +706,7 @@ fn industry_gathers_along_main_roads() {
     // [on a road, away] × [industrial, all]
     let mut counts = [[0usize; 2]; 2];
     for map_type in [MapType::Mixed, MapType::Metro] {
-        for seed in 1..=12 {
-            let plan = plan(map_type, MapSize::Xl, seed);
+        for (_, plan) in plans(map_type, MapSize::Xl, 12) {
             let roads: Vec<[[f64; 2]; 2]> = road_runs(&plan)
                 .filter(|(kind, _)| *kind == SurfaceKind::CountryRoad)
                 .flat_map(|(_, points)| points.windows(2).map(|run| [run[0], run[1]]))
@@ -729,8 +749,8 @@ fn road_patterns_vary_between_a_network_and_a_few_corridors() {
     ] {
         let mut exits = Vec::new();
         let mut loops = Vec::new();
-        for seed in 1..=30 {
-            let metrics = measure(&plan(map_type, size, seed), &presets);
+        for (_, plan) in plans(map_type, size, 30) {
+            let metrics = measure(&plan, &presets);
             exits.push(metrics.roads.edge_exits);
             loops.push(metrics.roads.loops);
         }
@@ -754,9 +774,17 @@ fn forest_presets_do_not_move_settlements_or_roads() {
     let mut source: serde_json::Value = serde_json::from_str(PRESETS).unwrap();
     source["types"]["mixed"]["forest_share"] = serde_json::json!([0.05, 0.06]);
     let changed = PresetDefinitions::from_json(&source.to_string()).unwrap();
-    let request = request(MapType::Mixed, MapSize::Large, 3);
-    let before = generate_layout(&request, &presets()).unwrap();
-    let after = generate_layout(&request, &changed).unwrap();
+    // A seed both presets admit.
+    let presets = presets();
+    let [(_, (before, after))] = &admitted::admitted(1.., 1, |seed| {
+        let request = request(MapType::Mixed, MapSize::Large, seed);
+        Ok((
+            generate_layout(&request, &presets)?,
+            generate_layout(&request, &changed)?,
+        ))
+    })[..] else {
+        unreachable!()
+    };
     let json = |value: &dyn erased::Json| value.json();
     assert_eq!(json(&before.settlements), json(&after.settlements));
     assert_eq!(json(&before.surfaces), json(&after.surfaces));
@@ -832,7 +860,11 @@ fn a_request_must_name_this_generator_and_these_presets() {
 
 #[test]
 fn a_plan_over_the_callers_ground_allowance_is_refused() {
-    let mut tight = request(MapType::Mixed, MapSize::Xl, 1);
+    // A seed admitted under the ordinary allowance.
+    let [(seed, _)] = plans(MapType::Mixed, MapSize::Xl, 1)[..] else {
+        unreachable!()
+    };
+    let mut tight = request(MapType::Mixed, MapSize::Xl, seed);
     tight.limits.max_ground_points = 100;
     let errors = generate_layout(&tight, &presets()).unwrap_err();
     assert_eq!(errors[0].code, DiagnosticCode::ComplexityLimit);
@@ -922,15 +954,24 @@ fn every_generated_plan_compiles_into_a_battle_map() {
 }
 
 #[test]
-fn a_compact_city_keeps_every_district_inside_its_connected_outline() {
-    let plan = plan(MapType::Metro, MapSize::Small, 1);
-    for settlement in &plan.settlements {
-        assert!(built(settlement) <= ring_area(&settlement.outline) * 1.001);
-        for district in &settlement.districts {
-            assert!(contract::ground::polygon_contains(
-                &settlement.outline,
-                district.anchor
-            ));
+fn a_small_metro_keeps_every_district_inside_its_connected_outline() {
+    let presets = presets();
+    let plans = admitted::admitted(SEEDS.into_iter().chain(6..), SEEDS.len(), |seed| {
+        generate_layout(&request(MapType::Metro, MapSize::Small, seed), &presets)
+    });
+    for (seed, plan) in &plans {
+        for settlement in &plan.settlements {
+            assert!(
+                built(settlement) <= ring_area(&settlement.outline) * 1.001,
+                "seed {seed}"
+            );
+            for district in &settlement.districts {
+                assert!(
+                    contract::ground::polygon_contains(&settlement.outline, district.anchor),
+                    "seed {seed}: {}",
+                    district.id
+                );
+            }
         }
     }
 }

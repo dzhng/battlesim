@@ -23,14 +23,17 @@ pub struct Fit<'a> {
 }
 
 impl<'a> Fit<'a> {
-    /// `None` for a template that cannot be placed at the origin.
-    pub fn new(template: &'a BuildingTemplateDescriptor) -> Option<Self> {
+    /// Every template of a catalogue is a whole building (the catalogue
+    /// refuses any other), so it places at the origin and has an entrance.
+    pub fn new(template: &'a BuildingTemplateDescriptor) -> Self {
         let identity = PlacementFrame {
             translation: [0.0; 3],
             yaw: 0.0,
         };
-        let placed = template.materialize(identity).ok()?;
-        let street = placed.entrances.first()?.normal;
+        let placed = template
+            .materialize(identity)
+            .expect("a catalogue template places at the origin");
+        let street = placed.entrances[0].normal;
         let turn = -TAU / 4.0 - libm::atan2(street[1], street[0]);
         let (sin, cos) = libm::sincos(turn);
         let mut min = [f64::INFINITY; 2];
@@ -50,12 +53,12 @@ impl<'a> Fit<'a> {
                 max[i] = max[i].max(center[i] + reach[i]);
             }
         }
-        Some(Self {
+        Self {
             template,
             turn,
             min,
             max,
-        })
+        }
     }
 
     pub fn floors(&self) -> usize {

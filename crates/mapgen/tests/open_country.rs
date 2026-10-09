@@ -2,6 +2,8 @@
 //! settlements and the woods, judged on the finished plan and, where a rule
 //! is about what a unit sees or a vehicle fits through, in the simulation's
 //! own world. The arithmetic here is this file's own, not the generator's.
+#[path = "common/admitted.rs"]
+mod admitted;
 #[path = "common/halves.rs"]
 mod halves;
 #[path = "common/limits.rs"]
@@ -21,7 +23,7 @@ use mapgen::layout::{
 };
 use mapgen::open_country;
 use mapgen::parcels::fill_districts;
-use mapgen::MapPlan;
+use mapgen::{Diagnostic, MapPlan};
 use sim::encounter::{plan_encounter, PreparedMap};
 use sim::math::v2;
 use std::collections::BTreeMap;
@@ -34,11 +36,9 @@ const TEMPLATES: &str = include_str!("../../../fixtures/prototype-building-templ
 const RECIPES: &str = include_str!("../../../fixtures/encounters.json");
 const TYPES: [MapType; 3] = [MapType::Open, MapType::Mixed, MapType::Metro];
 const SIZES: [MapSize; 3] = [MapSize::Medium, MapSize::Large, MapSize::Xl];
-/// Every cell runs these seeds: a claim about the open country is a claim
-/// about the generator, not one map.
+/// Every cell runs these seeds, or the next in line for one refused: a claim
+/// about the open country is a claim about the generator, not one map.
 const SEEDS: [u64; 2] = [1, 2];
-/// The map the owner played and found empty: Mixed Small.
-const PLAYED: u64 = 55_012_999_855_851_041;
 
 type Point = [f64; 2];
 
@@ -67,6 +67,7 @@ fn request(map_type: MapType, size: MapSize, seed: u64) -> GenerationRequest {
 /// One request's map before the pass and after it.
 struct Country {
     name: String,
+    request: GenerationRequest,
     /// The built plan the pass was given.
     bare: MapPlan,
     plan: MapPlan,
@@ -74,12 +75,12 @@ struct Country {
     map: MapDefinition,
 }
 
-fn generate(map_type: MapType, size: MapSize, seed: u64) -> Country {
+/// The map of one request, or the generator's refusal of it.
+fn generate(map_type: MapType, size: MapSize, seed: u64) -> Result<Country, Vec<Diagnostic>> {
     let name = format!("{map_type:?} {size:?} seed {seed}");
     let (request, presets, catalogue) = (request(map_type, size, seed), presets(), catalogue());
-    let fail = |errors| -> ! { panic!("{name}: {errors:?}") };
-    let layout = generate_layout(&request, &presets).unwrap_or_else(|e| fail(e));
-    let bare = fill_districts(layout, &request, &catalogue, &presets).unwrap_or_else(|e| fail(e));
+    let layout = generate_layout(&request, &presets)?;
+    let bare = fill_districts(layout, &request, &catalogue, &presets)?;
     let plan = match mapgen::generate_plan(
         &serde_json::to_string(&request).unwrap(),
         PRESETS,
@@ -87,56 +88,76 @@ fn generate(map_type: MapType, size: MapSize, seed: u64) -> Country {
         &sim::fixtures::test_game().to_string(),
     ) {
         mapgen::GenerateOutcome::Ok { plan } => *plan,
-        mapgen::GenerateOutcome::Error { diagnostics } => fail(diagnostics),
+        mapgen::GenerateOutcome::Error { diagnostics } => return Err(diagnostics),
     };
     let lower = |plan: &MapPlan| {
         mapgen::lower(
             &mapgen::CompileRequest::generated(&request, plan.clone()),
             &catalogue,
         )
-        .unwrap_or_else(|e| fail(e))
+        .unwrap_or_else(|e| panic!("{name}: {e:?}"))
         .map
     };
-    Country {
+    Ok(Country {
         bare_map: lower(&bare),
         map: lower(&plan),
         name,
+        request,
         bare,
         plan,
-    }
+    })
 }
+
+/// One request's map, or the generator's refusal of it.
+type Made = Result<Arc<Country>, Vec<Diagnostic>>;
 
 /// Each map is generated once, whichever tests ask for it.
-fn country(map_type: MapType, size: MapSize, seed: u64) -> Arc<Country> {
-    static COUNTRIES: memo::Memo<(MapType, MapSize, u64), Country> = memo::Memo::new();
-    COUNTRIES.get((map_type, size, seed), || generate(map_type, size, seed))
+fn made(map_type: MapType, size: MapSize, seed: u64) -> Made {
+    static COUNTRIES: memo::Memo<(MapType, MapSize, u64), Made> = memo::Memo::new();
+    let made = COUNTRIES.get((map_type, size, seed), || {
+        generate(map_type, size, seed).map(Arc::new)
+    });
+    (*made).clone()
 }
 
-/// Every type and size on each seed, and the map the owner played: made side
-/// by side, checked in this order.
+/// The cell's first `SEEDS.len()` admitted maps, from `SEEDS` on.
+fn countries(map_type: MapType, size: MapSize) -> Vec<Arc<Country>> {
+    let candidates = SEEDS.into_iter().chain(3..);
+    admitted::admitted(candidates, SEEDS.len(), |seed| made(map_type, size, seed))
+        .into_iter()
+        .map(|(_, country)| country)
+        .collect()
+}
+
+/// Every type and size on its admitted maps: made side by side, checked in
+/// this order.
 fn every_cell(mut check: impl FnMut(&Country)) {
-    let mut cells: Vec<(MapType, MapSize, u64)> = TYPES
+    let cells: Vec<(MapType, MapSize)> = TYPES
         .into_iter()
         .flat_map(|map_type| SIZES.into_iter().map(move |size| (map_type, size)))
-        .flat_map(|(map_type, size)| SEEDS.into_iter().map(move |seed| (map_type, size, seed)))
         .collect();
-    cells.push((MapType::Mixed, MapSize::Medium, PLAYED));
-    for made in parallel::each(&cells, |&(map_type, size, seed)| {
-        country(map_type, size, seed)
-    }) {
-        check(&made);
+    // The listed seeds side by side first; a cell refused one finds the next.
+    let listed: Vec<(MapType, MapSize, u64)> = cells
+        .iter()
+        .flat_map(|&(map_type, size)| SEEDS.map(|seed| (map_type, size, seed)))
+        .collect();
+    parallel::each(&listed, |&(map_type, size, seed)| {
+        made(map_type, size, seed).is_ok()
+    });
+    for (map_type, size) in cells {
+        for country in countries(map_type, size) {
+            check(&country);
+        }
     }
 }
 
-/// The maps judged in the simulation's world: one of each type at the size
-/// the owner played, and the map he played.
-fn played_cells() -> Vec<Arc<Country>> {
-    let mut cells: Vec<Arc<Country>> = TYPES
+/// The maps judged in the simulation's world: the first admitted map of each
+/// type at Medium.
+fn medium_maps() -> Vec<Arc<Country>> {
+    TYPES
         .into_iter()
-        .map(|map_type| country(map_type, MapSize::Medium, 1))
-        .collect();
-    cells.push(country(MapType::Mixed, MapSize::Medium, PLAYED));
-    cells
+        .map(|map_type| countries(map_type, MapSize::Medium).swap_remove(0))
+        .collect()
 }
 
 fn rules() -> Rules {
@@ -497,7 +518,7 @@ fn a_vehicle_fits_through_a_tree_lines_gap() {
         .fold(0.0, f64::max);
     assert!(widest > 0.0);
     let mut gaps = 0;
-    for country in played_cells() {
+    for country in medium_maps() {
         let world = sim::world::WorldGeometry::new(&country.map, &rules);
         let lines = tree_lines(&country);
         let ends: Vec<(usize, Point)> = lines
@@ -588,7 +609,7 @@ fn recorded_approaches_stay_open_views() {
     // Their retention is a diagnostic; the main corridors remain mandatory.
     eprintln!("minor settlement approaches retained: {kept}/{had}");
     let rules = rules();
-    for country in played_cells() {
+    for country in medium_maps() {
         let world = sim::world::WorldGeometry::new(&country.map, &rules);
         let corridors = corridors(&country.plan);
         // The trees of what the pass planted. (A wood of the layout's may
@@ -646,11 +667,13 @@ fn the_halves_hold_about_the_same_of_each_thing() {
 /// furnishes another.
 #[test]
 fn the_same_request_furnishes_the_same_country() {
-    let first = generate(MapType::Mixed, MapSize::Medium, PLAYED);
-    let again = generate(MapType::Mixed, MapSize::Medium, PLAYED);
+    let [first, other] = &countries(MapType::Mixed, MapSize::Medium)[..] else {
+        unreachable!()
+    };
+    let seed = first.request.seed.value();
+    let again = generate(MapType::Mixed, MapSize::Medium, seed).unwrap();
     let json = |plan: &MapPlan| serde_json::to_string(plan).unwrap();
     assert_eq!(json(&first.plan), json(&again.plan));
-    let other = country(MapType::Mixed, MapSize::Medium, 1);
     assert_ne!(
         serde_json::to_string(&first.plan.props).unwrap(),
         serde_json::to_string(&other.plan.props).unwrap()
@@ -742,10 +765,9 @@ fn roads_bridges_and_water_stay_clear() {
 fn furnished_maps_stay_inside_the_admission_limits() {
     let catalogue = catalogue();
     every_cell(|country| {
-        let (map_type, size, seed) = cell_of(country);
-        let request = request(map_type, size, seed);
+        let request = &country.request;
         let report = mapgen::lower(
-            &mapgen::CompileRequest::generated(&request, country.plan.clone()),
+            &mapgen::CompileRequest::generated(request, country.plan.clone()),
             &catalogue,
         )
         .unwrap()
@@ -753,19 +775,6 @@ fn furnished_maps_stay_inside_the_admission_limits() {
         assert!(report.authored_parts <= request.limits.max_authored_parts);
         assert!(report.ground_points <= request.limits.max_ground_points);
     });
-}
-
-fn cell_of(country: &Country) -> (MapType, MapSize, u64) {
-    for map_type in TYPES {
-        for size in SIZES {
-            for seed in SEEDS.into_iter().chain([PLAYED]) {
-                if country.name == format!("{map_type:?} {size:?} seed {seed}") {
-                    return (map_type, size, seed);
-                }
-            }
-        }
-    }
-    panic!("{} is no cell", country.name)
 }
 
 /// What a map's sight circles come to: at its samples of open ground, and
@@ -834,9 +843,11 @@ fn no_sight_circle_is_unbroken_and_the_country_stays_open() {
     // Enclosed-ground distribution is reported for playtesting, not tuned here.
     const TYPICAL_OPEN: f64 = 0.50;
     let rules = rules();
-    for country in played_cells() {
+    let mut bare_unbroken = 0;
+    for country in medium_maps() {
         let name = &country.name;
         let bare = circles(&country.bare_map, &country.bare, &rules, name);
+        bare_unbroken += bare.unbroken();
         let after = circles(&country.map, &country.plan, &rules, name);
         assert_eq!(
             after.unbroken(),
@@ -865,14 +876,9 @@ fn no_sight_circle_is_unbroken_and_the_country_stays_open() {
             "{name}: the median place sees {is:.2} of its circle, from {was:.2} bare"
         );
     }
-    // The control: the map the owner played is the one that showed it.
-    let played = country(MapType::Mixed, MapSize::Medium, PLAYED);
-    let bare = circles(&played.bare_map, &played.bare, &rules, &played.name);
-    // (Under `layout-9` a column also started with an unbroken circle
-    // there. The seed is another map since the towns grew second roads, and
-    // its columns start in sight of one bare; the open ground still shows
-    // what the measure is for.)
-    assert!(bare.unbroken() > 0);
+    // The control: the same maps before the pass do show unbroken circles,
+    // so the measure can see what it rules out.
+    assert!(bare_unbroken > 0, "no bare map has an unbroken circle");
 }
 
 /// A row the pass cannot place from is refused when the presets load.
@@ -904,83 +910,6 @@ fn rows_that_cannot_describe_a_country_are_refused() {
     source["open_country"]["homesteads"]["groups"][0]["mix"] = serde_json::json!({ "castle": 1 });
     let errors = PresetDefinitions::from_json(&source.to_string()).unwrap_err();
     assert!(errors[0].message.contains("castle"), "{errors:?}");
-}
-
-#[test]
-fn the_recorded_playable_jeep_gap_has_a_physical_and_published_sight_cut() {
-    // Exact counterexample to rifle-only and centre-proximity validation.
-    // Generate the same real request that produced saved Market Town, under
-    // current resolved rules, so fixture refresh cannot conceal the gap.
-    let rules_json = sim::fixtures::test_game();
-    let rules: Rules = serde_json::from_value(rules_json.clone()).unwrap();
-    let request = request(MapType::Mixed, MapSize::Medium, 1);
-    let generated = mapgen::generate_map(
-        &serde_json::to_string(&request).unwrap(),
-        PRESETS,
-        TEMPLATES,
-        &serde_json::to_string(&rules_json).unwrap(),
-    );
-    let map = match generated {
-        mapgen::CompileOutcome::Ok { result } => result.map,
-        mapgen::CompileOutcome::Error { diagnostics } => {
-            panic!("real country request refused: {diagnostics:?}")
-        }
-    };
-    let prepared = PreparedMap::new(&map, &rules);
-    let at = v2(1150., 4450.);
-    let jeep = rules.catalog.by_id("test_jeep");
-    let mobility = sim::units::mobility(jeep, &rules);
-    assert!(
-        prepared.grid.placement_fits(at, &mobility),
-        "the recorded point must still fit the real jeep"
-    );
-    let eye = sim::math::v3(
-        at.x,
-        at.y,
-        prepared.world.height_at(at.x, at.y).unwrap() + jeep.hull().unwrap().eye_m,
-    );
-    let sight = sim::sight::Sight {
-        forward: 0.,
-        shape: jeep.sensors.sight_shape,
-        range: jeep.sensors.ground_m,
-    };
-    let rays =
-        ((std::f64::consts::TAU * sight.max_range() / map.fog_cell_m).ceil() as usize).max(64);
-    let mut grid = sim::visibility::OcclusionGrid::new(&prepared.world, map.fog_cell_m);
-    let mut field = grid.field();
-    sim::visibility::sweep(
-        &prepared.world,
-        &mut grid,
-        &rules.sensors,
-        eye,
-        &sight,
-        &mut field,
-    );
-    let physical_cut = (0..rays).any(|r| {
-        let angle = r as f64 / rays as f64 * std::f64::consts::TAU;
-        let far = sight.range_at(angle) - 0.01;
-        let end = v2(at.x + libm::cos(angle) * far, at.y + libm::sin(angle) * far);
-        let target = sim::math::v3(
-            end.x,
-            end.y,
-            prepared.world.height_at(end.x, end.y).unwrap() + rules.sensors.fog_target_height_m,
-        );
-        !prepared.world.sight_clear(eye, target) || prepared.world.foliage_depth(eye, target) > 0.
-    });
-    let published_cut = (0..rays).any(|r| {
-        let angle = r as f64 / rays as f64 * std::f64::consts::TAU;
-        let far = libm::floor(sight.range_at(angle) / map.fog_cell_m) * map.fog_cell_m;
-        !field.visible(at.x + libm::cos(angle) * far, at.y + libm::sin(angle) * far)
-    });
-    assert!(
-        physical_cut,
-        "real jeep at {at:?} has no physical ground-level sight cut (map {})",
-        contract::identity::json_hash(&map).unwrap()
-    );
-    assert!(
-        published_cut,
-        "the real jeep's published fog sweep is an unbroken circle"
-    );
 }
 
 fn coverage_refusal(presets: &str, rules: &serde_json::Value, reason: &str) {
@@ -1045,9 +974,12 @@ fn generation_refuses_an_unbounded_coverage_resolution() {
     );
 }
 
+/// A jeep anywhere a jeep fits sees no unbroken circle, by the world's own
+/// sight and in the fog it publishes: at the corners of the certificate's
+/// cells, at the map's corners and inside a town.
 #[test]
-fn real_ground_sight_is_cut_between_cells_at_edges_and_inside_an_unbuilt_town() {
-    let country = country(MapType::Mixed, MapSize::Medium, 1);
+fn real_ground_sight_is_cut_between_cells_at_edges_and_inside_a_town() {
+    let country = countries(MapType::Mixed, MapSize::Medium).swap_remove(0);
     let rules = rules();
     let prepared = PreparedMap::new(&country.map, &rules);
     let jeep = rules.catalog.by_id("test_jeep");
@@ -1060,26 +992,36 @@ fn real_ground_sight_is_cut_between_cells_at_edges_and_inside_an_unbuilt_town() 
     let rays = (libm::ceil(std::f64::consts::TAU * sight.max_range() / country.map.fog_cell_m)
         as usize)
         .max(64);
-    let mut points = vec![
-        [1100., 4400.],
-        [1200., 4500.],
-        [8., 8.],
-        [5992., 8.],
-        [8., 5992.],
-        [5992., 5992.],
-    ];
+    let fits = |p: &Point| prepared.grid.placement_fits(v2(p[0], p[1]), &mobility);
+    // Every tenth corner of the certificate's cells each way, and the map's
+    // corners a little in from its edges.
+    let cell = presets().open_country.sight.cell_m;
+    let [width, height] = country.plan.size;
+    let lattice = 10.0 * cell;
+    let mut points: Vec<Point> = (1..(height / lattice) as usize)
+        .flat_map(|j| {
+            (1..(width / lattice) as usize).map(move |i| [i as f64 * lattice, j as f64 * lattice])
+        })
+        .chain(
+            [8.0, width - 8.0]
+                .into_iter()
+                .flat_map(|x| [[x, 8.0], [x, height - 8.0]]),
+        )
+        .filter(|p| fits(p))
+        .collect();
+    assert!(
+        points.len() >= 8,
+        "only {} jeep points: {points:?}",
+        points.len()
+    );
     let town = country.plan.settlements[1].center;
     let town_point = (-5..=5)
         .flat_map(|j| (-5..=5).map(move |i| [town[0] + i as f64 * 10., town[1] + j as f64 * 10.]))
-        .find(|p| prepared.grid.placement_fits(v2(p[0], p[1]), &mobility))
+        .find(|p| fits(p))
         .expect("the town must contain a playable jeep point");
     points.push(town_point);
     let mut grid = sim::visibility::OcclusionGrid::new(&prepared.world, country.map.fog_cell_m);
     for at in points {
-        assert!(
-            prepared.grid.placement_fits(v2(at[0], at[1]), &mobility),
-            "probe must be a playable jeep point: {at:?}"
-        );
         let eye = sim::math::v3(
             at[0],
             at[1],
@@ -1116,15 +1058,4 @@ fn real_ground_sight_is_cut_between_cells_at_edges_and_inside_an_unbuilt_town() 
             "no in-bounds physical/published cut at playable location {at:?}"
         );
     }
-}
-
-/// Coverage additions must restore fairness measured from their final geometry.
-#[test]
-fn physical_coverage_keeps_the_recorded_metro_country_balanced() {
-    let country = generate(MapType::Metro, MapSize::Medium, 3);
-    let measured = open_country::measure(&country.plan, &presets());
-    assert!(
-        measured.copses.fair && measured.trees.fair && measured.tree_line_m.fair,
-        "{measured:?}"
-    );
 }

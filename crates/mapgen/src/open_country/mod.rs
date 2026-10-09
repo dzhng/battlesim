@@ -999,7 +999,7 @@ pub(crate) fn furnish(
     let rules = &presets.open_country;
     let placed = {
         let mut country = Country::new(&plan, request, presets);
-        let fits: Vec<Fit> = catalogue.templates().iter().filter_map(Fit::new).collect();
+        let fits: Vec<Fit> = catalogue.templates().iter().map(Fit::new).collect();
         let family = crate::parcels::family(request, presets);
         let (preset, _) = presets.cell(request.map_type, request.size);
         // Each group's templates: its categories, of the map's one family,

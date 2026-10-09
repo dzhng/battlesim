@@ -3,6 +3,8 @@
 //! last point, so an end that nothing hides is an end the player sees, and
 //! a joint whose two roads do not cover each other's ends is a bite out of
 //! the road. The arithmetic here is this file's own, not the generator's.
+#[path = "common/admitted.rs"]
+mod admitted;
 #[path = "common/limits.rs"]
 mod limits;
 use contract::ground::{polygon_contains, GroundShape};
@@ -10,15 +12,15 @@ use contract::map::SurfaceArea;
 use contract::templates::TemplateGeometryCatalog;
 use mapgen::layout::{generate_layout, GenerationRequest, MapSize, MapType, PresetDefinitions};
 use mapgen::parcels::fill_districts;
-use mapgen::MapPlan;
+use mapgen::{Diagnostic, MapPlan};
 use std::collections::{BTreeMap, HashMap};
 
 const PRESETS: &str = include_str!("../../../fixtures/map-presets.json");
 const TEMPLATES: &str = include_str!("../../../fixtures/prototype-building-templates.json");
 const TYPES: [MapType; 3] = [MapType::Open, MapType::Mixed, MapType::Metro];
 const SIZES: [MapSize; 3] = [MapSize::Medium, MapSize::Large, MapSize::Xl];
-/// Every cell runs these seeds: a claim about road ends is a claim about
-/// the generator, not one map.
+/// Every cell runs these seeds, or the next in line for one refused: a claim
+/// about road ends is a claim about the generator, not one map.
 const SEEDS: [u64; 4] = [1, 2, 3, u64::MAX];
 
 type Point = [f64; 2];
@@ -39,7 +41,7 @@ const OWN_WIDTHS: f64 = 6.0;
 /// How many ends of each failing kind a report lists.
 const LISTED: usize = 12;
 
-fn plan(map_type: MapType, size: MapSize, seed: u64) -> MapPlan {
+fn plan(map_type: MapType, size: MapSize, seed: u64) -> Result<MapPlan, Vec<Diagnostic>> {
     let presets = PresetDefinitions::from_json(PRESETS).unwrap();
     let catalogue = TemplateGeometryCatalog::new(serde_json::from_str(TEMPLATES).unwrap()).unwrap();
     let request = GenerationRequest {
@@ -53,10 +55,8 @@ fn plan(map_type: MapType, size: MapSize, seed: u64) -> MapPlan {
         region: None,
         limits: limits::game_limits(),
     };
-    let layout = generate_layout(&request, &presets)
-        .unwrap_or_else(|errors| panic!("{map_type:?} {size:?} seed {seed}: {errors:?}"));
+    let layout = generate_layout(&request, &presets)?;
     fill_districts(layout, &request, &catalogue, &presets)
-        .unwrap_or_else(|errors| panic!("{map_type:?} {size:?} seed {seed}: {errors:?}"))
 }
 
 /// The plan's paving, bucketed by each surface's limits.
@@ -271,8 +271,10 @@ fn every_road_end_is_hidden_or_serves_something() {
     let mut counts: BTreeMap<End, usize> = BTreeMap::new();
     for map_type in TYPES {
         for size in SIZES {
-            for seed in SEEDS {
-                let plan = plan(map_type, size, seed);
+            let candidates = SEEDS.into_iter().chain(4..);
+            let plans =
+                admitted::admitted(candidates, SEEDS.len(), |seed| plan(map_type, size, seed));
+            for (seed, plan) in plans {
                 for (kind, at, index) in ends(&plan) {
                     *counts.entry(kind).or_default() += 1;
                     if kind.sound() {

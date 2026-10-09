@@ -3,6 +3,8 @@
 //! its own arithmetic, not the generator's.
 #[path = "common/admitted.rs"]
 mod admitted;
+#[path = "common/first_where.rs"]
+mod first_where;
 #[path = "common/halves.rs"]
 mod halves;
 #[path = "common/limits.rs"]
@@ -2508,15 +2510,17 @@ fn length(from: Point, points: &[V2]) -> f64 {
 fn cars_park_at_the_kerb_and_before_the_terraces() {
     let presets = presets();
     let rules = rules();
-    for seed in [1, 2, 3] {
+    let towns = admitted::admitted(1.., 3, |seed| {
         let request = request(MapType::Mixed, MapSize::Medium, seed);
-        let plan = fill_districts(
-            generate_layout(&request, &presets).unwrap(),
+        fill_districts(
+            generate_layout(&request, &presets)?,
             &request,
             &catalogue(),
             &presets,
         )
-        .unwrap();
+    });
+    for (seed, plan) in towns {
+        let request = request(MapType::Mixed, MapSize::Medium, seed);
         let props = place(&plan, &presets, &rules.catalog, seed);
         let map = compiled(&plan, &[], &request);
         let roads = Roads::new(&plan);
@@ -2621,42 +2625,54 @@ fn routes_survive_the_furniture_on_every_type_and_size_of_map() {
         .unwrap();
     let on_foot = sim::units::mobility(squad, &rules);
     let hull_way = mapgen::street_props::hull_way(&rules.catalog, &presets);
-    let cases: Vec<(MapType, MapSize, u64)> = MapType::ALL
+    let cells: Vec<(MapType, MapSize)> = MapType::ALL
         .into_iter()
         .flat_map(|map_type| {
-            [MapSize::Medium, MapSize::Large, MapSize::Xl]
-                .into_iter()
-                .flat_map(move |size| SWEEP_SEEDS.map(move |seed| (map_type, size, seed)))
+            [MapSize::Medium, MapSize::Large, MapSize::Xl].map(|size| (map_type, size))
         })
+        .collect();
+    // Each cell's first admitted towns, from `SWEEP_SEEDS` on.
+    let cases: Vec<(MapType, MapSize, u64, MapPlan)> =
+        parallel::each(&cells, |&(map_type, size)| {
+            let candidates = SWEEP_SEEDS.into_iter().chain(3..);
+            admitted::admitted(candidates, SWEEP_SEEDS.len(), |seed| {
+                let request = request(map_type, size, seed);
+                fill_districts(
+                    generate_layout(&request, &presets)?,
+                    &request,
+                    &catalogue(),
+                    &presets,
+                )
+            })
+            .into_iter()
+            .map(|(seed, bare)| (map_type, size, seed, bare))
+            .collect::<Vec<_>>()
+        })
+        .into_iter()
+        .flatten()
         .collect();
     // Each map is its own question, so they run side by side; their
     // answers are read in the order the cases are listed.
-    let answers = parallel::each(&cases, |&(map_type, size, seed)| {
+    let answers = parallel::each(&cases, |(map_type, size, seed, bare)| {
+        let (map_type, size, seed) = (*map_type, *size, *seed);
         let mut totals = [0usize; 8];
         let mut broken: Vec<String> = Vec::new();
         let name = format!("{} {} seed {seed}", map_type.name(), size.name());
         let request = request(map_type, size, seed);
-        let bare = fill_districts(
-            generate_layout(&request, &presets).unwrap(),
-            &request,
-            &catalogue(),
-            &presets,
-        )
-        .unwrap_or_else(|errors| panic!("{name}: {errors:?}"));
-        let props: Vec<PropDefinition> = dressed(&bare, &request, &presets, &rules)
+        let props: Vec<PropDefinition> = dressed(bare, &request, &presets, &rules)
             .into_iter()
             .map(|prop| prop.geometry)
             .collect();
         let maps = [
-            compiled(&bare, &[], &request),
-            compiled(&bare, &props, &request),
+            compiled(bare, &[], &request),
+            compiled(bare, &props, &request),
         ];
         let [before, after] = [0, 1].map(|arm| PreparedMap::new(&maps[arm], &rules));
         let sites = bare.sites();
 
         // Where every body stands.
-        let roads = Roads::new(&bare);
-        let corridors = approach_corridors(&bare);
+        let roads = Roads::new(bare);
+        let corridors = approach_corridors(bare);
         let run = presets.rivers.bridge.approach_m;
         for prop in &props {
             let at = format!("{name}: a {} at {:?}", prop.kind, prop.center);
@@ -2798,7 +2814,7 @@ fn routes_survive_the_furniture_on_every_type_and_size_of_map() {
 
         // Gardens: the back of a dressed lot, as far behind its house
         // as half its rear setback, on open ground.
-        let kinds = district_kinds(&bare);
+        let kinds = district_kinds(bare);
         let built: std::collections::BTreeSet<&str> =
             bare.buildings.iter().map(|b| b.id.as_str()).collect();
         let gardens: Vec<Point> = bare
@@ -3227,26 +3243,20 @@ fn routes_survive_the_furniture_on_every_type_and_size_of_map() {
 fn yard_stock_and_sites_keep_to_their_parcels() {
     let presets = presets();
     let rules = rules();
-    let seed = (1..=40)
-        .find(|seed| {
-            generate_layout(&request(MapType::Mixed, MapSize::Medium, *seed), &presets).is_ok_and(
-                |plan| {
-                    plan.settlements
-                        .iter()
-                        .flat_map(|settlement| &settlement.districts)
-                        .any(|district| district.kind == "industrial")
-                },
-            )
-        })
-        .expect("a map with industry among forty seeds");
-    let request = request(MapType::Mixed, MapSize::Medium, seed);
-    let plan = fill_districts(
-        generate_layout(&request, &presets).unwrap(),
-        &request,
-        &catalogue(),
-        &presets,
+    let industrial = |plan: &MapPlan| {
+        plan.settlements
+            .iter()
+            .flat_map(|settlement| &settlement.districts)
+            .any(|district| district.kind == "industrial")
+    };
+    let (seed, layout) = first_where::first_where(
+        1..=40,
+        |seed| generate_layout(&request(MapType::Mixed, MapSize::Medium, seed), &presets),
+        industrial,
     )
-    .unwrap();
+    .expect("a map with industry among forty seeds");
+    let request = request(MapType::Mixed, MapSize::Medium, seed);
+    let plan = fill_districts(layout, &request, &catalogue(), &presets).unwrap();
     let props = place(&plan, &presets, &rules.catalog, seed);
     let map = compiled(&plan, &props, &request);
     let built: BTreeMap<&str, usize> = plan

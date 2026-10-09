@@ -488,28 +488,25 @@ fn no_street_is_shorter_than_two_of_its_widths() {
 
 /// A street runs on to the road ahead of it, or stops at the last lot it
 /// serves with nothing ahead: it never stops a few tens of metres short.
-/// (`layout-9` left 120 over these maps.)
 #[test]
 fn no_street_stops_just_short_of_the_road_ahead() {
     hold(Wart::StopsShort, STOPS_SHORT);
 }
 
 /// Two streets side by side on the same ground are one street drawn twice,
-/// or a stub lying along a road like a parking strip. (`layout-9`: 115.)
+/// or a stub lying along a road like a parking strip.
 #[test]
 fn no_two_streets_run_alongside_within_their_widths() {
     hold(Wart::Alongside, ALONGSIDE);
 }
 
 /// Streets either side of a road meet it at one crossroads or well apart.
-/// (`layout-9`: 1,538.)
 #[test]
 fn streets_across_a_road_from_each_other_line_up() {
     hold(Wart::Stagger, STAGGER);
 }
 
 /// A street bends; it does not jog through two sharp turns in a few metres.
-/// (`layout-9`: 11.)
 #[test]
 fn no_street_doglegs() {
     hold(Wart::Dogleg, DOGLEG);
