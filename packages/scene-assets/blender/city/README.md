@@ -1,6 +1,6 @@
 # City buildings: kits and templates
 
-A town's buildings are drawn as instances of a few shared **modules** (a window bay, a balcony, a roof, a wall shell), never as one mesh per building. The scripts here make the modules and say where each one goes on each building **template**. Large maps reuse a small kit across many buildings. Every building of every map is drawn this way, the hand-authored maps' few houses included.
+A town's buildings are drawn as instances of a few shared **modules** (a window bay, a balcony, a roof, a wall shell), never as one mesh per building. The scripts here make the modules and say where each one goes on each building **template**. Large maps reuse a small kit across many buildings. Every building of every map is drawn this way, the hand-authored maps' few included.
 
 Blender runs here and nowhere else: these scripts are an explicit source step, run by hand through `asset blender`, and their output is committed (Git LFS) under `assets/source/city/`. The asset bake, the asset check, the map generator and the game never start Blender.
 
@@ -31,8 +31,7 @@ receipt as proof of physical legality.
 
 The descriptor is the simulation's [physical template](../../../../crates/contract/src/templates.rs).
 Art is made to it: a wall that hides a unit physically must also hide it on screen.
-Generated templates declare complete doors, floors and fighting bays; legacy
-authored boxes carry only their admitted physical shape. Row transforms place
+Every template declares complete doors, floors and fighting bays. Row transforms place
 shared modules in that descriptor's frame, with positive scale and yaw; a tilt or
 mirror belongs in a module variant. Every state has geometry at every drawn tier
 so a building cannot vanish with distance.
@@ -45,12 +44,10 @@ not alter rendering or make an invalid source legal.
 
 ## From a set to a town
 
-A new set is listed in `assets/catalog.json`: its kit as an appearance, and the set under `city_sets` with the catalogue it dresses. Then, with the `asset` CLI:
+A new set is listed in `assets/catalog.json`: its kit as an appearance, and the set under `city_sets`. Then, with the `asset` CLI:
 
-1. `catalogue` copies the `generated` sets' descriptors into the physical catalogue the map generator reads. A template belongs to exactly one set, and a set's descriptor and its catalogue row are the same template. The catalogue's hash moves, and what pins it moves in the same commit.
+1. `catalogue` copies the sets' descriptors into the physical catalogue every map's buildings come from. A template belongs to exactly one set, and a set's descriptor and its catalogue row are the same template. The catalogue's hash moves, and what pins it moves in the same commit.
 2. `bake`, then `check`. They refuse a set whose descriptor the simulation's contract refuses, whose art leaves its parts, whose rows name a module its kit lacks, or that leaves a template of its catalogue undressed. What the bake does with a set is in the [scene-assets readme](../../README.md), "City buildings". A template is retired the same way: it leaves its set, and `catalogue` drops its row.
-
-The authored catalogue (`fixtures/building-templates.json`) runs the other way: its rows are written by hand, its hash is its maps' identity, and nothing derives it. Its set copies each row as its descriptor (`kit.dress`), so a new authored box needs only the set's script run again, then `bake` and `check`.
 
 **The picture a set is judged by** is the line-up lab, `/lab/city-lineup`: every template on flat ground, drawn as the game draws a town, at any one tier, state and station (its route file lists the address parameters). `CITY_SET=<set> bun run --cwd web scene -- city-lineup` holds each template to its parts and fit on screen and writes, under `throwaway/evidence/city-lineup/`, a sheet per category at each tier and each template across each tier boundary (the scene file lists what else narrows a run).
 
@@ -60,7 +57,7 @@ The source-only opening coverage checks run without Blender: `python3 -m unittes
 
 - **The same inputs write the same bytes.** Seeds are fixed, iteration is in a sorted order, and nothing reads the clock.
 - **Sizes are whole bays and whole floors.** A facade's windows sit on the descriptor's bay lattice (3 m pitch) and its floors on `floor_heights_m`. A graph-made facade run is 3n + 2 or 3n metres long, with its corresponding corner piers ([source lattice](china.py)).
-- **Every declared fighting bay has a visible opening.** Windows, doors and open fronts cover the physical eye and muzzle heights on each of the first three floor bands below that part's top. Every generated set reads those heights from the simulation fixture and refuses a blank bay before exporting. The one named exception is China's graph set: on some back walls its graph leaves a ground-floor bay without an opening over those heights, and those bays are printed rather than refused so the released set stands as built. Opening rectangles on one wall do not overlap: a displaced existing pane is aligned to the fighting band, and any cladding patch is cut around the actual pane. Opening bounds come from the source geometry; they are authoring checks, never extra descriptor fields or a second garrison policy. Legacy authored boxes without resolved bays make no such declaration.
+- **Every declared fighting bay has a visible opening.** Windows, doors and open fronts cover the physical eye and muzzle heights on each of the first three floor bands below that part's top. Every generated set reads those heights from the simulation fixture and refuses a blank bay before exporting. The one named exception is China's graph set: on some back walls its graph leaves a ground-floor bay without an opening over those heights, and those bays are printed rather than refused so the released set stands as built. Opening rectangles on one wall do not overlap: a displaced existing pane is aligned to the fighting band, and any cladding patch is cut around the actual pane. Opening bounds come from the source geometry; they are authoring checks, never extra descriptor fields or a second garrison policy.
 - **An exposed edge has a facade; an edge that is not exposed has none.** No windows on a party wall or an interior join.
 - **Detail is budgeted per template**, in triangles drawn at each tier (`TEMPLATE_TIER_TRIANGLES`, `src/templateSource.ts`; the bake reports each template against it). The script prints what each template draws. A far building is one row: at the coarse tiers a script folds what is left of its modules into the template's own shell.
 - **A destroyed building is the same building.** Its damage state is made on the same plan, in the same materials and tints, in the same frame, and by the same tier rule: shared wreckage (heaps of rubble, beams, burnt panels) is rows at the fine tiers, and the state's own shell is the whole of it at the coarse ones. It draws no more triangles than `intact` at any tier. Soot and breakage that must read from across the map are in the shell's own texture or vertex colour, never only in a fine tier's modules.

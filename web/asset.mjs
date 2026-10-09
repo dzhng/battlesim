@@ -99,25 +99,11 @@ const FIXTURE = join(ROOT, "fixtures/game.json");
 const ICONS = join(ROOT, "assets/icons");
 const REFERENCES = join(ROOT, "assets/references");
 const PRESETS = join(ROOT, "fixtures/map-presets.json");
-/** The physical template catalogues the city sets dress, by the name a set
- *  gives its own (`city_sets.<set>.catalogue`): where each is, how its file
- *  holds its rows, and whether every row is a complete building. */
-const CATALOGUES = {
-  // What the map generator builds towns from. Its rows are derived from its
-  // sets (`catalogue`), and it places them by their entrances and bays.
-  generated: {
-    path: "fixtures/prototype-building-templates.json",
-    rows: (file) => file,
-    complete: true,
-  },
-  // What the authored maps pin by hash: solid boxes, written as they are.
-  authored: {
-    path: "fixtures/building-templates.json",
-    rows: (file) => file.templates,
-    complete: false,
-  },
-};
-const GENERATED = join(ROOT, CATALOGUES.generated.path);
+/** The physical template catalogue the city sets dress: what the map
+ *  generator builds towns from, and every map's buildings. Its rows are
+ *  derived from the sets (`catalogue`). */
+const TEMPLATES = "fixtures/prototype-building-templates.json";
+const GENERATED = join(ROOT, TEMPLATES);
 const BLENDER_VERSION = "5.2.1";
 const BLENDER = process.env.BLENDER ?? "/Applications/Blender.app/Contents/MacOS/Blender";
 
@@ -242,14 +228,7 @@ async function validate(args) {
 async function bakeAll() {
   const cat = catalog();
   const templates = Object.keys(cat.city_sets ?? {}).length
-    ? {
-        catalogues: Object.entries(CATALOGUES).map(([name, { path, rows, complete }]) => ({
-          name,
-          rows: rows(readJson(join(ROOT, path))),
-          complete,
-        })),
-        physical: await physicalTemplates(),
-      }
+    ? { catalogue: readJson(GENERATED), physical: await physicalTemplates() }
     : undefined;
   return bakeCatalog(cat, readSource, {
     authority: await authority(),
@@ -762,12 +741,9 @@ function readSet(name, entry) {
   return set;
 }
 
-/** The map generator's sets as they are on disk: the catalog's city sets
- *  that name its catalogue. */
-const generatedSets = (cat) =>
-  Object.entries(cat.city_sets ?? {})
-    .filter(([, entry]) => entry.catalogue === "generated")
-    .map(([name, entry]) => readSet(name, entry));
+/** The catalog's city sets as they are on disk. */
+const citySets = (cat) =>
+  Object.entries(cat.city_sets ?? {}).map(([name, entry]) => readSet(name, entry));
 
 /** The stand-in kit's GLB, written where the catalog has its source. */
 async function standIn() {
@@ -787,20 +763,19 @@ async function standIn() {
 /** The map generator's catalogue, rewritten from its city sets' descriptors:
  *  what a Blender script's new templates reach the generator through. */
 async function catalogue() {
-  const { path } = CATALOGUES.generated;
   const physical = await physicalTemplates();
-  const sets = generatedSets(catalog());
+  const sets = citySets(catalog());
   const before = readFileSync(GENERATED, "utf8");
   const rows = catalogueRows(sets, JSON.parse(before), physical);
   const text = catalogueText(rows);
-  const hash = physical.complete(rows).hash;
+  const hash = physical.catalogue(rows).hash;
   if (text === before) {
-    console.log(`${path} is in step with the sets: ${rows.length} template(s), hash ${hash}`);
+    console.log(`${TEMPLATES} is in step with the sets: ${rows.length} template(s), hash ${hash}`);
     return 0;
   }
   writeFileSync(GENERATED, text);
   console.log(
-    `${path}: ${rows.length} template(s); hash ${physical.complete(JSON.parse(before)).hash} → ${hash}`,
+    `${TEMPLATES}: ${rows.length} template(s); hash ${physical.catalogue(JSON.parse(before)).hash} → ${hash}`,
   );
   console.log(
     "the map generator builds from these rows: maps and their identities move with them. Now run bake",

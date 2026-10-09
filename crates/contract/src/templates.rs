@@ -573,21 +573,6 @@ impl TemplateGeometryCatalog {
     pub fn canonical_json(&self) -> Result<String, String> {
         serde_json::to_string(self).map_err(|e| e.to_string())
     }
-
-    pub fn from_json(input: &str) -> Result<Self, String> {
-        #[derive(Deserialize)]
-        #[serde(deny_unknown_fields)]
-        struct Input {
-            hash: String,
-            templates: Vec<BuildingTemplateDescriptor>,
-        }
-        let input: Input = serde_json::from_str(input).map_err(|e| e.to_string())?;
-        let catalogue = Self::new(input.templates)?;
-        if catalogue.hash != input.hash {
-            return Err("physical catalogue hash does not match its geometry".into());
-        }
-        Ok(catalogue)
-    }
 }
 
 impl BuildingTemplateDescriptor {

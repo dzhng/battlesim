@@ -62,7 +62,7 @@ function libraryOf(templates: Record<string, Record<string, Row[]>>): TemplateAr
   let first = 0;
   return {
     art_hash: "art",
-    covers: ["physical"],
+    covers: "physical",
     kits: [
       { appearance: "city_kit_test", bundle: "a" },
       { appearance: BOX_KIT, bundle: "b" },

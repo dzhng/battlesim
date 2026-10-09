@@ -105,7 +105,7 @@ export const FINDING_CODES = [
   "kit.module",
   "kit.bytes",
   // city template sets (`templateSource.ts`): the source file, its rows, the
-  // physical contract, fit to the descriptor, and the catalogue it covers
+  // physical contract, fit to the descriptor, and the catalogue they cover
   "templates.source",
   "templates.kit",
   "templates.row",
@@ -620,14 +620,12 @@ export interface GrassSpec {
   };
 }
 
-/** One city source set (`blender/city/README.md`): its `templates.json`,
- *  the kit appearance whose modules its rows place, and the physical
- *  catalogue its templates are rows of, by the name the bake has it under
- *  (`TemplateCatalogue`). */
+/** One city source set (`blender/city/README.md`): its `templates.json` and
+ *  the kit appearance whose modules its rows place. Its templates are rows
+ *  of the map generator's physical catalogue. */
 export interface CitySetEntry {
   templates: string;
   kit: string;
-  catalogue: string;
 }
 
 /** `assets/catalog.json`, authored. The bake writes the runtime projection. */
@@ -636,8 +634,8 @@ export interface Catalog {
   sides: SideTints;
   skeletons: Record<string, SkeletonEntry>;
   appearances: Record<string, AppearanceEntry>;
-  /** The city sets, by set name. The bake packs them all, whichever
-   *  catalogue each dresses, into the one template art library. */
+  /** The city sets, by set name. The bake packs them all into the one
+   *  template art library. */
   city_sets?: Record<string, CitySetEntry>;
   /** The interior atlas sheets' source pictures (`blender/city/interiors.py`),
    *  by sheet: what a room material's bundle is given to show. */
@@ -675,9 +673,9 @@ export interface RuntimeCatalog {
     }
   >;
   /** The template art library (`templateLibrary.ts`), when the catalog has
-   *  city sets: its file's content hash, its art identity, and the hashes of
-   *  the physical catalogues it covers. */
-  templates?: { library: string; art_hash: string; covers: string[] };
+   *  city sets: its file's content hash, its art identity, and the hash of
+   *  the physical catalogue it covers. */
+  templates?: { library: string; art_hash: string; covers: string };
 }
 
 export interface GzipTransport {

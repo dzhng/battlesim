@@ -6,9 +6,9 @@
 //
 // The simulation never sees it. A template's physical shape is the contract's
 // descriptor, identified by its physical catalogue's hash; this library says
-// which catalogues it was made to (`covers`: the map generator's and the
-// authored maps') and has its own identity (`art_hash`). Art may change
-// without moving any map, scenario or battle.
+// which catalogue it was made to (`covers`: the map generator's) and has its
+// own identity (`art_hash`). Art may change without moving any map, scenario
+// or battle.
 //
 // Rows are columns over the whole library (34 bytes a row), and a template's
 // state is a range of them, so resolving a placed building copies nothing but
@@ -19,7 +19,7 @@ import { sha256Hex } from "./glb.ts";
 import { TIER_COUNT, type StaticBundle } from "./schema.ts";
 
 const MAGIC = 0x4c544742; // "BGTL" little-endian
-export const TEMPLATE_LIBRARY_VERSION = 2;
+export const TEMPLATE_LIBRARY_VERSION = 3;
 
 /** What a side can know a building as. `intact` always has rows; `ruin` (a
  *  collapsed building) and `gutted` (a burnt shell that stands) come with the
@@ -57,10 +57,9 @@ export interface TemplateArtLibrary {
   /** This library's identity: the kits' bundles (modules, materials, tiers),
    *  every row and status, and `covers`. */
   art_hash: string;
-  /** The hashes of the physical catalogues whose templates these rows
-   *  dress, in the order of the names the bake has them under: every
-   *  template of each has art here. */
-  covers: string[];
+  /** The hash of the physical catalogue whose templates these rows dress:
+   *  every template of it has art here. */
+  covers: string;
   /** The kit appearances the rows place modules of, and the bundle each was
    *  packed against, in name order. */
   kits: { appearance: string; bundle: string }[];
@@ -113,7 +112,7 @@ function assertShape(library: TemplateArtLibrary) {
   const { rows } = library;
   if (
     typeof library.art_hash !== "string" ||
-    !Array.isArray(library.covers) ||
+    typeof library.covers !== "string" ||
     !Array.isArray(library.kits) ||
     !Array.isArray(library.modules) ||
     !Array.isArray(library.templates) ||

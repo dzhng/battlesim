@@ -41,7 +41,6 @@ import {
 import { physicalTemplates } from "@web/maps/node";
 import { AUTHORITY, bakedBundle, testCatalog, testSources } from "./synthetic";
 import {
-  CATALOGUE,
   HOUSE,
   KIT,
   KIT_SOURCE,
@@ -160,7 +159,7 @@ test("packing the same sources twice gives the same bytes", async () => {
 
 test("the library holds every template's status and rows, and names what it covers", async () => {
   const lib = await library();
-  expect(lib.covers).toEqual([physicalTemplates().complete([HOUSE, YARD]).hash]);
+  expect(lib.covers).toBe(physicalTemplates().catalogue([HOUSE, YARD]).hash);
   expect(lib.templates.map((t) => [t.id, t.set, t.status, Object.keys(t.states)])).toEqual([
     ["test-house", "test", "release", ["intact", "ruin"]],
     ["test-yard", "test", "prototype", ["intact", "ruin"]],
@@ -507,7 +506,7 @@ test("the catalogue and the sets cover each other exactly", async () => {
   const shed = descriptor("test-shed", [{ id: "body", center: [0, 0], half: [3, 3, 2] }]);
   expect(await refusals(testSet(), [HOUSE, YARD, shed])).toEqual([
     expect.stringMatching(
-      /^templates\.coverage: template test-shed is in the physical catalogue "towns", but no set of it has art for it/,
+      /^templates\.coverage: template test-shed is in the physical catalogue, but no set has art for it/,
     ),
   ]);
   expect(await refusals(testSet(), [HOUSE])).toEqual([
@@ -524,7 +523,7 @@ test("the catalogue and the sets cover each other exactly", async () => {
 
 test("a template is dressed by exactly one set", async () => {
   const catalog = cityCatalog();
-  catalog.city_sets!.second = { templates: "second.json", kit: KIT, catalogue: CATALOGUE };
+  catalog.city_sets!.second = { templates: "second.json", kit: KIT };
   const second = testSet((set) => {
     set.set = "second";
     set.templates.pop();
@@ -539,104 +538,10 @@ test("a template is dressed by exactly one set", async () => {
   ]);
 });
 
-// ---------------------------------------------------------------- two catalogues
-
-/** A solid box: a valid physical template with no floor, door or bay of its
- *  own, as an authored map's building is. */
-const BOX = {
-  ...descriptor("test-box"),
-  floor_heights_m: null,
-  entrances: null,
-  edges: (descriptor("test-box").edges as object[]).map((edge) => ({ ...edge, bays: null })),
-};
-
-/** The test set over its own catalogue, and a `boxes` set that dresses BOX
- *  and names the catalogue `named`: every finding, and the library if any. */
-async function twoCatalogues(
-  towns: unknown[],
-  boxes: { rows: unknown[]; complete: boolean },
-  named = "boxes",
-) {
-  const catalog = cityCatalog();
-  catalog.city_sets!.boxes = { templates: "boxes.json", kit: KIT, catalogue: named };
-  const set = testSet((s) => {
-    s.set = "boxes";
-    s.templates = [
-      {
-        status: "release",
-        descriptor: structuredClone(BOX),
-        states: { intact: [shellRow(BOX.parts[0])], ruin: [ruinRow(BOX.parts[0])] },
-      },
-    ];
-  });
-  const sources: Record<string, Uint8Array> = { ...citySources(), "boxes.json": setBytes(set) };
-  const result = await bakeCatalog(
-    catalog,
-    async (path) => sources[path],
-    cityContext(towns, [{ name: "boxes", ...boxes }]),
-  );
-  const baked = result.runtime.templates;
-  return {
-    findings: result.reports.flatMap((r) => r.findings).map((f) => `${f.code}: ${f.message}`),
-    library:
-      baked && decodeTemplateLibrary(await rawContent(result, baked.library, templateLibraryPath)),
-  };
-}
-
-test("one library covers two catalogues, each held to its own rule", async () => {
-  const physical = physicalTemplates();
-  const { findings, library } = await twoCatalogues([HOUSE, YARD], {
-    rows: [BOX],
-    complete: false,
-  });
-  expect(findings).toEqual([]);
-  expect(library!.covers).toEqual([
-    physical.valid([BOX]).hash,
-    physical.complete([HOUSE, YARD]).hash,
-  ]);
-  expect(library!.templates.map((t) => [t.id, t.set])).toEqual([
-    ["test-box", "boxes"],
-    ["test-house", "test"],
-    ["test-yard", "test"],
-  ]);
-  // The same box in a catalogue of complete buildings has no floor, door or bay to be placed by.
-  const strict = await twoCatalogues([HOUSE, YARD], { rows: [BOX], complete: true });
-  expect(strict.library).toBeUndefined();
-  expect(strict.findings.join("\n")).toMatch(
-    /templates\.physical: .*template test-box is not a physical template a map may place: test-box: floor, entrance or bay geometry is unresolved/,
-  );
-});
-
-test("a catalogue is covered by the sets that name it, and no template is in two", async () => {
-  // The yard's row moved to the boxes' catalogue: its own set no longer finds
-  // it, and no set of the boxes' catalogue dresses it.
-  const moved = await twoCatalogues([HOUSE], { rows: [BOX, YARD], complete: false });
-  expect(moved.findings).toEqual([
-    expect.stringMatching(
-      /^templates\.coverage: template test-yard is in the physical catalogue "boxes", but no set of it has art for it/,
-    ),
-    expect.stringMatching(
-      /^templates\.catalogue: set test: template test-yard is not in the physical catalogue "towns"/,
-    ),
-  ]);
-  const twice = await twoCatalogues([HOUSE, YARD], { rows: [BOX, HOUSE], complete: false });
-  expect(twice.findings).toContainEqual(
-    expect.stringMatching(
-      /^templates\.catalogue: template test-house is in the physical catalogues "boxes" and "towns"/,
-    ),
-  );
-  const unnamed = await twoCatalogues([HOUSE, YARD], { rows: [BOX], complete: false }, "attic");
-  expect(unnamed.findings).toEqual([
-    expect.stringMatching(
-      /^templates\.catalogue: .*set "boxes" on catalogue "attic", which is not one of towns, boxes/,
-    ),
-  ]);
-});
-
 test("a descriptor the contract refuses is refused here, in the contract's words", async () => {
   const doorless = testSet((set) => (set.templates[0].descriptor.entrances = []));
   expect((await refusals(doorless, [HOUSE, YARD])).join("\n")).toMatch(
-    /templates\.physical: .*template test-house is not a physical template a map may place: test-house: complete building geometry needs an entrance/,
+    /templates\.physical: .*template test-house is not a physical template a map may place: test-house: a building needs an entrance/,
   );
 });
 

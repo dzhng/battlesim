@@ -68,7 +68,10 @@ pub fn resolve_saved_map(
     serde_json::to_string(&outcome).map_err(js_error)
 }
 
-/// Validate and canonically identify physical templates, independent of art.
+/// Admit physical templates as buildings a map may place, together one
+/// canonical catalogue (`{ hash, templates }`), independent of art. The asset
+/// check holds every source set's descriptors to this, so no other code
+/// decides what a legal template is. Fails with the contract's own refusal.
 #[wasm_bindgen]
 pub fn template_catalogue_json(descriptors_json: &str) -> Result<String, JsError> {
     let descriptors: Vec<BuildingTemplateDescriptor> =
@@ -77,21 +80,6 @@ pub fn template_catalogue_json(descriptors_json: &str) -> Result<String, JsError
         .map_err(js_error)?
         .canonical_json()
         .map_err(js_error)
-}
-
-/// Admit physical templates as buildings a map may place: each one complete
-/// (`require_complete`), together one canonical catalogue. The asset check
-/// holds every source set's descriptors to this, so no other code decides
-/// what a legal template is. Fails with the contract's own refusal.
-#[wasm_bindgen]
-pub fn complete_template_catalogue_json(descriptors_json: &str) -> Result<String, JsError> {
-    let descriptors: Vec<BuildingTemplateDescriptor> =
-        serde_json::from_str(descriptors_json).map_err(js_error)?;
-    let catalogue = TemplateGeometryCatalog::new(descriptors).map_err(js_error)?;
-    for template in catalogue.templates() {
-        template.require_complete().map_err(js_error)?;
-    }
-    catalogue.canonical_json().map_err(js_error)
 }
 
 /// Materialize one physical descriptor in a translation/rotation frame.

@@ -326,11 +326,14 @@ pub fn resolve(
         message,
     })?;
     let sources = MapSources::from_json(sources_json)?;
-    let catalogue = physical_library(library_json).map_err(|message| ResolveError {
-        code: ResolveCode::InvalidCatalogue,
-        location: "physical catalogue".into(),
-        message,
-    })?;
+    let catalogue = serde_json::from_str(library_json)
+        .map_err(|e: serde_json::Error| e.to_string())
+        .and_then(TemplateGeometryCatalog::new)
+        .map_err(|message| ResolveError {
+            code: ResolveCode::InvalidCatalogue,
+            location: "physical catalogue".into(),
+            message,
+        })?;
     let catalogue = match &sources.catalogue.template_ids {
         None => catalogue,
         Some(ids) => {
@@ -471,17 +474,6 @@ pub fn resolve(
         definition,
         identity: sources.identity,
     })
-}
-
-/// A physical library as its file holds it: a canonical catalogue (`{ hash,
-/// templates }`, the hash checked against the geometry) or the list of
-/// descriptors the map generator reads.
-fn physical_library(library_json: &str) -> Result<TemplateGeometryCatalog, String> {
-    if library_json.trim_start().starts_with('[') {
-        TemplateGeometryCatalog::new(serde_json::from_str(library_json).map_err(|e| e.to_string())?)
-    } else {
-        TemplateGeometryCatalog::from_json(library_json)
-    }
 }
 
 fn receipt_error(index: usize, field: &str, message: &str) -> ResolveError {

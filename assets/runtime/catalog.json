@@ -303,11 +303,6 @@
       "kind": "static",
       "unit": "kit"
     },
-    "city_kit_lab_boxes": {
-      "bundle": "ffd54afcbd5a4ff3dd4f7eaceda098698d9870c52b4786c1bc6b147459b3f78c",
-      "kind": "static",
-      "unit": "kit"
-    },
     "city_kit_prototype": {
       "bundle": "5808e059aa247e1ec61af5e4093e2777786f2cee272e9650bb192165b5d2f20b",
       "kind": "static",
@@ -1653,10 +1648,10 @@
       "unit": "scenery"
     },
     "ruin": {
-      "bundle": "4911cfddce01856f985b6a6d7077c87bd2390a45c81b22f2213c2b15785c108c",
+      "bundle": "0b76334296828420ddcdef1b3ba173c8484805a5717a8fa2f6ddbf4951ee9722",
       "footprint_half_m": [
-        15,
-        12,
+        6,
+        6,
         1
       ],
       "kind": "static",
@@ -2503,6 +2498,11 @@
       "hash": "9f8fa41f955802382659c6151e39b64c6a19a4ac856c63b97326664c0c1e3c96",
       "raw_bytes": 349543
     },
+    "0b76334296828420ddcdef1b3ba173c8484805a5717a8fa2f6ddbf4951ee9722": {
+      "bytes": 354779,
+      "hash": "98a9e7a1a9fd5c3c8d32ab556de0f4f7df4bf3add0082bff1163fd5c97f5f7e1",
+      "raw_bytes": 1398688
+    },
     "0c279e94c4ae0cc36cf18601598f9c19ffc6fd12ba03b548fdd6ef480517c8fc": {
       "bytes": 165661,
       "hash": "c618d8c709b2bb10eaf684ee3eea92524517df41357c0b4025a01edf975b9e5c",
@@ -3293,11 +3293,6 @@
       "hash": "aa502eb58fa900b68e3f11f411879573fe39bea7e97dd722eb41fa686f5cd428",
       "raw_bytes": 349543
     },
-    "4911cfddce01856f985b6a6d7077c87bd2390a45c81b22f2213c2b15785c108c": {
-      "bytes": 470436,
-      "hash": "98e332c2791a1eb420961cdccd51cc514ae4a43033d856bb98fc6b154a6cf181",
-      "raw_bytes": 1966548
-    },
     "492ae24b5cf83fda7a9ff4d62a4444a987d6ed8e87d742d6a93f53c32cb8c697": {
       "bytes": 1617,
       "hash": "11912e1d179814360dcd34c891e6ccbb6940aabf6926d1052e506a35363ad6e6",
@@ -3547,11 +3542,6 @@
       "bytes": 1002563,
       "hash": "118fc4463d410ab5448c7ba01fdda19b6bb9acada39b4d8d2692eefa8b7b78e8",
       "raw_bytes": 4219592
-    },
-    "5ce5098a4b82dc8612ffe3b293440c168ffaa9ef69de0e49b6e49e4af50adedd": {
-      "bytes": 215070,
-      "hash": "536d90cd85dbc553fc7c6fae88289982349ce625f5e36900909229c969d59e07",
-      "raw_bytes": 1626068
     },
     "5d654d5b70f78056a9c0a0801decd296f43e0eecd2e2541a1894977562723ed0": {
       "bytes": 119600,
@@ -3847,6 +3837,11 @@
       "bytes": 1243828,
       "hash": "31e8a32f622a10fca05125caa3f847532d0ea8bd95b339fc6ae13e28632f4806",
       "raw_bytes": 4269984
+    },
+    "79f079e4ab8811940095c2ffcc93710e256af91ba5aea1497c076554892669fc": {
+      "bytes": 214676,
+      "hash": "c9dce7ec92898bd057b829b3760cac206646a5407cbe2d3ef8c0d7945c331d21",
+      "raw_bytes": 1622480
     },
     "7a4925bec2ebe0d5b1fa0d412e51fdd0dd0888ef05a0ae9c5c482dbe59c32970": {
       "bytes": 2132138,
@@ -5637,11 +5632,6 @@
       "bytes": 28714,
       "hash": "7364c1726dc53127fcd95b8d3ce1541937c21f6a5113b175f0196d616b3a4fd3",
       "raw_bytes": 349543
-    },
-    "ffd54afcbd5a4ff3dd4f7eaceda098698d9870c52b4786c1bc6b147459b3f78c": {
-      "bytes": 7972149,
-      "hash": "4f69638dbe68f307641c5d9e43caa5649645980caa17738b969513151d3fe957",
-      "raw_bytes": 38755208
     }
   },
   "sides": {
@@ -5661,12 +5651,9 @@
     "quaternius-ubc-rifle": "19706856fef2f15bd61aae8ef6d4e614c58a028296738bdeab45195880187611"
   },
   "templates": {
-    "art_hash": "bcfa28946c90a6efc85487201078d3529f8c7d76957731f134b583725deb6fab",
-    "covers": [
-      "61fbae9d148e6a24bf589d80da0f572e515c04428e373938f06bae187d895e13",
-      "9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7"
-    ],
-    "library": "5ce5098a4b82dc8612ffe3b293440c168ffaa9ef69de0e49b6e49e4af50adedd"
+    "art_hash": "671b5ecb3b02dc7c21dcccbde087b5306f7c1d96d85c9bbb6be1a180c17a7ee6",
+    "covers": "9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7",
+    "library": "79f079e4ab8811940095c2ffcc93710e256af91ba5aea1497c076554892669fc"
   },
   "textures": {
     "0007032d39eea682fe0bfa0a8d2f157d0da0c810437097e86dc801b813849ed4": [
