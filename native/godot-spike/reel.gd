@@ -19,6 +19,7 @@ var started := false
 var source_path := ""
 var capture_result: Dictionary = {"valid": false, "comparison_ready": false, "comparison_blocker": "no presentation capture supplied"}
 var capture_results: Dictionary = {}
+var capture_errors: Dictionary = {}
 var authored_asset_loaded := false
 var authored_building_count := 0
 var authored_map_scene_count := 0
@@ -90,11 +91,15 @@ func _load_presentation_captures() -> void:
 			var result := _read_capture(path)
 			if result.valid:
 				capture_results[scene.map] = result
+			else:
+				capture_errors[scene.map] = result.get("comparison_blocker", "invalid capture")
 		return
 	if not configured.is_empty():
 		capture_result = _read_capture(configured)
 		if capture_result.valid:
 			capture_results[capture_result.capture.workload.scene] = capture_result
+		else:
+			capture_errors["configured"] = capture_result.get("comparison_blocker", "invalid capture")
 
 func _read_capture(path: String) -> Dictionary:
 	var capture_file := FileAccess.open(path, FileAccess.READ)
@@ -877,7 +882,8 @@ func _write_report() -> void:
 		"semantic_publications": semantic_publications,
 		"semantic_unit_samples": semantic_unit_samples,
 		"semantic_fog_publications": semantic_fog_publications,
-		"capture_blocker": "" if capture_results.size() == scenes.size() else "one or more scene captures are missing",
+		"capture_errors": capture_errors,
+		"capture_blocker": "" if capture_results.size() == scenes.size() else ("one or more scene captures were rejected: %s" % JSON.stringify(capture_errors) if not capture_errors.is_empty() else "one or more scene captures are missing"),
 		"source": source_path,
 		"authored_scene": OS.get_environment("GODOT_AUTHORED_SCENE"),
 		"authored_scenes": OS.get_environment("GODOT_AUTHORED_SCENES"),
