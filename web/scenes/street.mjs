@@ -750,6 +750,8 @@ async function vehicleTour(ctx) {
   );
   // The houses are buildings like any town's: each its template's rows in the
   // art library, on its own box, and no fitted appearance stands for one.
+  // The drawn box is published in float32, so the map's extents are compared
+  // as float32 too.
   const houses = streetMap.buildings.flatMap((b) => b.geometry.parts);
   const buildings = await lab(page, () => window.__lab.route.buildings());
   const fitted = (await lab(page, () => window.__lab.route.structures())).filter((s) =>
@@ -765,7 +767,8 @@ async function vehicleTour(ctx) {
           b.frame[0] === houses[i].center[0] &&
           b.frame[1] === houses[i].center[1] &&
           b.parts.length === 1 &&
-          b.parts[0].half.join() === houses[i].half_extents.join(),
+          b.parts[0].half.length === 3 &&
+          b.parts[0].half.every((h, k) => h === Math.fround(houses[i].half_extents[k])),
       ) &&
       fitted.length === 0 &&
       drawn.buildings === houses.length &&

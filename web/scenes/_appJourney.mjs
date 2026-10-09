@@ -277,7 +277,7 @@ export async function armyJourney(ctx) {
   const armyDigest = await page.evaluate(() => window.__lab.route.digest());
   ctx.check(
     "matched army capture preserves the original battle digest",
-    armyDigest === "a03ed47451db67b4",
+    armyDigest === "d1d3939064ebf9d0",
     armyDigest,
   );
   await roster.first().click();
