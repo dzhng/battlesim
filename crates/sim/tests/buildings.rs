@@ -261,7 +261,7 @@ fn compound_damageable_remains_have_one_fresh_integrity_per_state() {
 fn seating_uses_only_exposed_compound_spans() {
     let setup = compound_setup(json!([]));
     let b = Battle::new(&setup, 11);
-    let slots = sim::garrison::building_seats(b.world().building(0).unwrap(), &setup.rules);
+    let slots = sim::garrison::seats_for_state(b.world(), b.world().prop(0).unwrap(), &setup.rules);
     let east: Vec<_> = slots
         .iter()
         .filter(|s| s.slot.facade == 0)
@@ -732,7 +732,7 @@ fn floor_band_seats_follow_exposed_bays_and_stop_at_the_third_floor() {
     setup.map.buildings[0].geometry.floor_z = Some(vec![0.0, 3.0, 6.0, 7.0]);
     let b = Battle::new(&setup, 11);
     let definition = &setup.map.buildings[0].geometry;
-    let seats = sim::garrison::building_seats(b.world().building(0).unwrap(), &setup.rules);
+    let seats = sim::garrison::seats_for_state(b.world(), b.world().prop(0).unwrap(), &setup.rules);
     assert!(
         seats.iter().any(|s| s.position.z == 6.0),
         "third floor has seats"
@@ -774,7 +774,7 @@ fn known_floor_geometry_does_not_invent_unresolved_facade_bays() {
         .0;
     geometry.edges[unresolved].bays = None;
     let b = Battle::new(&setup, 11);
-    let seats = sim::garrison::building_seats(b.world().building(0).unwrap(), &setup.rules);
+    let seats = sim::garrison::seats_for_state(b.world(), b.world().prop(0).unwrap(), &setup.rules);
     assert!(!seats.is_empty(), "resolved facades still supply seats");
     assert!(
         seats.iter().all(|s| s.edge != unresolved),
@@ -800,7 +800,7 @@ fn abundant_facade_bays_never_admit_more_than_32_seats() {
         );
     }
     let b = Battle::new(&setup, 11);
-    let seats = sim::garrison::building_seats(b.world().building(0).unwrap(), &setup.rules);
+    let seats = sim::garrison::seats_for_state(b.world(), b.world().prop(0).unwrap(), &setup.rules);
     assert_eq!(seats.len(), 32);
     for f in 0..4 {
         assert_eq!(seats.iter().filter(|s| s.slot.facade == f).count(), 8);

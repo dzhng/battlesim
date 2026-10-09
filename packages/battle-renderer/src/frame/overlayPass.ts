@@ -4,8 +4,8 @@
 // units' x-ray already in it, over a transparent clear), and composite
 // premultiplied over post's output. So they are
 // never fogged, graded or tone mapped: their colours are the values their
-// builders chose, shaded exactly as the old one-shader frame shaded them
-// (landmine 13).
+// builders chose, lit only by the overlays' own fixed key and ambient
+// (`OVERLAY_SUN`), never the world's sun.
 //
 // Their glow is their own: never the world's bloom, which runs
 // before them. The resolved overlay is blurred at half resolution (a
@@ -34,7 +34,7 @@ import type { GpuRegistry } from "./registry";
 
 type Root = ReturnType<typeof tgpu.initFromDevice>;
 
-/** The flat light overlays have always had: one fixed key and an ambient. */
+/** The overlays' flat light: one fixed key and an ambient. */
 const OVERLAY_SUN = [0.5, -0.55, 0.67] as const;
 
 const overlayFragment = tgpu.fragmentFn({
@@ -376,7 +376,6 @@ export async function createOverlayPass(
     },
   };
 }
-export type OverlayPass = Awaited<ReturnType<typeof createOverlayPass>>;
 
 /** The bind groups that read one frame size's overlay and its halo, and
  *  its ground paint with none (`noGlow`). */

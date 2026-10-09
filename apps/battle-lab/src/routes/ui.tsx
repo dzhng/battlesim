@@ -356,7 +356,6 @@ export default function UiGallery() {
   useEffect(() => {
     window.__lab = {
       ready: true,
-      fixture: "ui",
       error: null,
       frame: async () => {},
     };

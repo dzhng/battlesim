@@ -35,8 +35,6 @@ struct Job {
     /// The side's knowledge revision the journey started against.
     revision: u64,
     stage: Stage,
-    /// Work spent on this request so far, restarts included.
-    spent: u64,
 }
 
 enum Stage {
@@ -65,8 +63,6 @@ impl Job {
                     let journey = held.get_or_insert_with(|| {
                         self.revision = revision;
                         Box::new(Journey::new(
-                            grid,
-                            roads,
                             spare.pop(),
                             Leg {
                                 from: r.from,
@@ -123,9 +119,7 @@ impl Job {
                 }
             }
         };
-        let spent = grid.work() - before;
-        self.spent += spent;
-        (spent, plan)
+        (grid.work() - before, plan)
     }
 }
 
@@ -135,8 +129,6 @@ impl Job {
 pub(crate) struct Charge {
     pub unit: UnitId,
     pub work: u64,
-    pub new_goal: bool,
-    pub distance_m: f64,
 }
 
 /// Every unit's route request in progress.
@@ -153,7 +145,7 @@ pub struct RoutePlanner {
     spare: Vec<Scratch>,
     /// Work spent in the latest tick.
     spent: u64,
-    /// Latest tick's charges, including whether the search starts a new leg.
+    /// Latest tick's charges.
     charges: Vec<Charge>,
 }
 
@@ -167,7 +159,6 @@ impl RoutePlanner {
                 request,
                 revision: 0,
                 stage: Stage::Planning(None),
-                spent: 0,
             },
         );
     }
@@ -251,8 +242,6 @@ impl RoutePlanner {
                 self.charges.push(Charge {
                     unit: id,
                     work: spent,
-                    new_goal: job.request.new_goal,
-                    distance_m: (job.request.goal - job.request.from).length(),
                 });
                 self.overdraft += spent.saturating_sub(left);
                 left = left.saturating_sub(spent);
@@ -305,7 +294,7 @@ impl RoutePlanner {
             for p in r.kept.iter().flatten() {
                 d.f64(p.x).f64(p.y);
             }
-            d.u64(job.revision).u64(job.spent);
+            d.u64(job.revision);
             match &job.stage {
                 Stage::Planning(None) => {
                     d.u64(0);

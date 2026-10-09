@@ -38,7 +38,7 @@ export const nearEnvelope = (c, aspect) =>
  * dolly straight across it, and a spiral that turns round the building
  * `box` while zooming from above the roofs down to the closest zoom.
  */
-export function townMoves(town, box) {
+function townMoves(town, box) {
   const dolly = Array.from({ length: 481 }, (_, k) => ({
     target: [town[0] - 160 + (320 * k) / 480, town[1]],
     distance: 30,
@@ -62,7 +62,7 @@ export function townMoves(town, box) {
  * camera: what it drew each animation frame, and beside it the pose it had
  * been asked for. The camera is left still on the last pose drawn.
  */
-export const flyLive = (page, poses, from = 0, to = poses.length - 1) =>
+const flyLive = (page, poses, from = 0, to = poses.length - 1) =>
   lab(
     page,
     async ([poses, from, to]) => {

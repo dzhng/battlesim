@@ -18,7 +18,6 @@
 import { tgpu } from "typegpu";
 import { liveCamera, type ViewportCamera } from "@packages/renderer-core/src/cameraUniform";
 import { GPU_DEPTH_CLEAR, GPU_DEPTH_FORMAT } from "@packages/renderer-core/src/depthContract";
-import { metresPerPxAt, type Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import type { BattleFrame, FrameView, SceneInstance, WorldLayers } from "../scene";
 import { Camera, typegpuCameraLayout } from "../world/camera";
 import { createTypegpuPost } from "../world/post";
@@ -88,11 +87,6 @@ const MASK_OF_VIEW: Partial<Record<FrameView, FogMaskViewKind>> = {
   "ground-mask": "ground",
   "ground-classes": "classes",
 };
-
-/** Device pixels per metre at the camera's target. */
-function pixelsPerMetre(camera: Camera3DParams, height: number): number {
-  return 1 / metresPerPxAt(camera.distance, camera.fovY, height);
-}
 
 /** Caller owns the device and canvas; the frame owns every allocation it makes. */
 export async function createBattleFrame(
@@ -187,21 +181,7 @@ export async function createBattleFrame(
             return;
           }
           const camera3d = liveCamera(viewport);
-          const state = frameCamera(
-            {
-              camera3d,
-              width,
-              height,
-              x: camera3d.target[0],
-              y: camera3d.target[1],
-              zoom: pixelsPerMetre(camera3d, height),
-              sunAzimuth: options.light.sun_azimuth,
-              sunElevation: options.light.sun_elevation,
-              time: clock,
-            },
-            width,
-            height,
-          );
+          const state = frameCamera({ camera3d, width, height, time: clock }, width, height);
           camera.write(state.bytes.buffer);
           const detail = setDetailView(detailView, camera3d, height);
           environment.setCastLights(lightsShown ? lights : NO_LIGHTS, detail.sides, camera3d);

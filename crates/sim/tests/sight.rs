@@ -9,7 +9,6 @@ use contract::observation::OwnUnit;
 use contract::scenario::Rules;
 use serde_json::json;
 use sim::battle::Battle;
-use sim::sight::sight_range;
 
 use crate::common;
 
@@ -54,7 +53,7 @@ fn range_follows_the_vehicle_shape_at_front_side_rear_and_across_the_wrap() {
         let unit = b.unit(UnitId(0)).unwrap();
         let [front, side, rear] = shape(kind);
         let range = base_range(kind);
-        let at = |rel: f64| sight_range(unit, &rules, yaw + rel);
+        let at = |rel: f64| sim::sight::of(unit, &rules).range_at(yaw + rel);
         assert!((at(0.0) - range * front).abs() < 1e-9, "{kind} ahead");
         assert!((at(FRAC_PI_2) - range * side).abs() < 1e-9, "{kind} left");
         assert!((at(-FRAC_PI_2) - range * side).abs() < 1e-9, "{kind} right");
@@ -88,7 +87,7 @@ fn infantry_sight_is_isotropic_whatever_the_yaw() {
         );
         let unit = b.unit(UnitId(0)).unwrap();
         for k in 0..36 {
-            let r = sight_range(unit, &rules, (k as f64 * 10.0).to_radians());
+            let r = sim::sight::of(unit, &rules).range_at((k as f64 * 10.0).to_radians());
             assert!((r - base_range(kind)).abs() < 1e-9, "{kind} at {}°", k * 10);
         }
         let sight = own(&b, Side::Blue, 0).sight;
@@ -196,7 +195,7 @@ fn sight_shape_consumers_agree() {
     );
     for k in 0..16 {
         let bearing = yaw + k as f64 * PI / 8.0;
-        let reach = sight_range(unit, &rules, bearing);
+        let reach = sim::sight::of(unit, &rules).range_at(bearing);
         for (d, seen) in [(reach - 3.0, true), (reach + 3.0, false)] {
             let at = [centre[0] + bearing.cos() * d, centre[1] + bearing.sin() * d];
             let b = battle(

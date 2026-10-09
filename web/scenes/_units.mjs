@@ -55,9 +55,6 @@ export const propType = (id) => {
   return t;
 };
 
-/** A soldier kind's full health. */
-export const soldierHp = (kind) => view.soldiers[kind].hp;
-
 /** Every model a vehicle type draws. */
 export const vehicleAppearances = new Set(
   view.units.flatMap((t) => (t.body.hull ? [t.appearance] : [])),

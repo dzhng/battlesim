@@ -185,7 +185,7 @@ impl Threat {
         }
         let here = unit.position.xy();
         let speed = unit.drive_speed_mps;
-        let mut left = speed.abs() * ctx.infantry.yield_horizon_s + hull.half.x;
+        let mut left = speed.abs() * ctx.rules.infantry_movement.yield_horizon_s + hull.half.x;
         if speed < 0.0 {
             let backwards = v2(-1.0, 0.0).rotated(unit.yaw);
             return Some(Threat {
@@ -366,9 +366,9 @@ impl Around {
         unit: &Unit,
         hulls: &[(Obb2, f64)],
     ) -> Around {
-        let r = &ctx.infantry;
+        let r = &ctx.rules.infantry_movement;
         let centre = unit.position.xy();
-        let reach = unit.footprint_radius(ctx.soldier_radius_m)
+        let reach = unit.footprint_radius(ctx.rules.physics.soldier_radius_m)
             + (r.lane_lookahead_m + r.wander_m + r.spread_m)
                 .max(r.window_m * std::f64::consts::FRAC_1_SQRT_2)
             + ENCOUNTER_RANGE_M;
@@ -436,9 +436,9 @@ pub struct Steer {
 fn wander(ctx: &MovementContext, unit: u32, soldier: u32) -> f64 {
     let mut rng = Rng::new(ctx.seed ^ (u64::from(unit) << 32) ^ u64::from(soldier) ^ 0x5eed_1a9e);
     let (phase, stretch) = (rng.unit(), rng.unit());
-    let period = ctx.infantry.wander_period_s * (0.75 + 0.5 * stretch);
-    let t = ctx.tick as f64 / ctx.tick_hz as f64;
-    ctx.infantry.wander_m * libm::sin(std::f64::consts::TAU * (phase + t / period))
+    let period = ctx.rules.infantry_movement.wander_period_s * (0.75 + 0.5 * stretch);
+    let t = ctx.tick as f64 / ctx.rules.tick_hz as f64;
+    ctx.rules.infantry_movement.wander_m * libm::sin(std::f64::consts::TAU * (phase + t / period))
 }
 
 /// A soldier's share of the squad's speed this tick: it swings between
@@ -446,8 +446,8 @@ fn wander(ctx: &MovementContext, unit: u32, soldier: u32) -> f64 {
 /// period, from his seeded phase for this move, so each soldier surges and
 /// drops back while nobody falls steadily behind.
 fn stride(ctx: &MovementContext, s: &Soldier) -> f64 {
-    let rules = ctx.infantry;
-    let t = ctx.tick as f64 / ctx.tick_hz as f64;
+    let rules = &ctx.rules.infantry_movement;
+    let t = ctx.tick as f64 / ctx.rules.tick_hz as f64;
     let swing =
         libm::sin(std::f64::consts::TAU * (s.pace + t / (rules.wander_period_s * 2.0 / 3.0)));
     1.0 - rules.pace_variation * 0.5 * (1.0 + swing)
@@ -466,17 +466,17 @@ pub fn soldier_steer(
     corridor: Option<Corridor>,
     threats: &[Threat],
 ) -> Option<Steer> {
-    let rules = ctx.infantry;
+    let rules = &ctx.rules.infantry_movement;
     let clear = |a: V2, b: V2| {
         let steps = ((b - a).length() / 0.5).ceil().max(1.0) as usize;
-        around.clear(a, b, ctx.soldier_radius_m)
+        around.clear(a, b, ctx.rules.physics.soldier_radius_m)
             && (1..=steps).all(|k| {
                 let p = a + (b - a) * (k as f64 / steps as f64);
                 ctx.world.traversable_at(p.x, p.y)
             })
     };
     let here = s.position.xy();
-    let clear_by = ctx.soldier_radius_m + rules.yield_margin_m;
+    let clear_by = ctx.rules.physics.soldier_radius_m + rules.yield_margin_m;
     if let Some(target) = threats.iter().find_map(|t| t.dodge(here, clear_by)) {
         return Some(Steer { target, pace: 1.0 });
     }
@@ -492,7 +492,7 @@ pub fn soldier_steer(
     if ctx.tick < s.start || (spot - here).inside_radius(1e-9) {
         return None;
     }
-    let dt = 1.0 / ctx.tick_hz as f64;
+    let dt = 1.0 / ctx.rules.tick_hz as f64;
     let pace = stride(ctx, s);
     let last = corridor.last();
     s.leg = s.leg.min(last);
@@ -549,9 +549,9 @@ pub fn soldier_steer(
     // Cut off from his lane and the corridor: find his own way back, to the
     // first corridor point ahead that is standing room within his window
     // (the corridor may run through a parked vehicle), else to his spot.
-    let every = (REJOIN_EVERY_S * ctx.tick_hz as f64) as u64;
+    let every = (REJOIN_EVERY_S * ctx.rules.tick_hz as f64) as u64;
     if ctx.tick >= s.planned_at + every || s.planned_at == 0 {
-        let r = ctx.soldier_radius_m;
+        let r = ctx.rules.physics.soldier_radius_m;
         let rejoin = corridor
             .rejoin(s.leg, t, rules.steer_ahead_m, here, reach, |p| {
                 around.stands(p, r)
@@ -582,7 +582,7 @@ fn plan_own(
     to: V2,
     standing: &[V2],
 ) {
-    let rules = ctx.infantry;
+    let rules = &ctx.rules.infantry_movement;
     let here = s.position.xy();
     s.planned_at = ctx.tick;
     s.path_revision = side.revision;
@@ -595,7 +595,7 @@ fn plan_own(
         to,
         &solids,
         standing,
-        ctx.soldier_radius_m,
+        ctx.rules.physics.soldier_radius_m,
         rules.window_m,
         |p| ctx.world.traversable_at(p.x, p.y),
     );
@@ -681,7 +681,7 @@ pub(super) fn step_squad(
     crowd: &mut Crowd,
     advancing: bool,
 ) {
-    let dt = 1.0 / ctx.tick_hz as f64;
+    let dt = 1.0 / ctx.rules.tick_hz as f64;
     for s in &mut unit.members {
         s.velocity = V2::default();
     }
@@ -696,7 +696,7 @@ pub(super) fn step_squad(
     if route.is_none() && threats.is_empty() && !posted {
         return;
     }
-    let clear_by = ctx.soldier_radius_m + ctx.infantry.yield_margin_m;
+    let clear_by = ctx.rules.physics.soldier_radius_m + ctx.rules.infantry_movement.yield_margin_m;
     if route.is_none()
         && !threats.is_empty()
         && unit.members.iter().filter(|s| s.alive()).all(|s| {
@@ -723,8 +723,8 @@ pub(super) fn step_squad(
             .suppression
             .penalties(unit.suppression)
             .map_or(0.0, |t| t.move_penalty);
-    let personal = ctx.infantry.personal_space_m;
-    let every = (REJOIN_EVERY_S * ctx.tick_hz as f64) as u64;
+    let personal = ctx.rules.infantry_movement.personal_space_m;
+    let every = (REJOIN_EVERY_S * ctx.rules.tick_hz as f64) as u64;
     let (unit_id, mobility) = (unit.id.0, unit.mobility);
     let mut arrived = true;
     for k in 0..unit.members.len() {
@@ -772,7 +772,8 @@ pub(super) fn step_squad(
             velocity = velocity * (speed / velocity.length());
         }
         let wanted = here.xy() + velocity * dt;
-        let clear_by = ctx.soldier_radius_m + ctx.infantry.yield_margin_m;
+        let clear_by =
+            ctx.rules.physics.soldier_radius_m + ctx.rules.infantry_movement.yield_margin_m;
         let enters_traffic = threats
             .iter()
             .any(|t| t.dodge(here.xy(), clear_by).is_none() && t.dodge(wanted, clear_by).is_some());
@@ -836,18 +837,19 @@ pub(super) fn step_squad(
                 s.path.last().copied().or_else(|| {
                     let c = corridor?;
                     let t = c.along(s.leg, next.xy()).clamp(0.0, 1.0);
-                    let reach = ctx.infantry.window_m / 2.0 - 2.0;
+                    let reach = ctx.rules.infantry_movement.window_m / 2.0 - 2.0;
                     c.rejoin(
                         s.leg,
                         t,
-                        ctx.infantry.steer_ahead_m,
+                        ctx.rules.infantry_movement.steer_ahead_m,
                         next.xy(),
                         reach,
                         |p| {
-                            around.stands(p, ctx.soldier_radius_m)
-                                && standing
-                                    .iter()
-                                    .all(|q| (*q - p).at_least_radius(2.0 * ctx.soldier_radius_m))
+                            around.stands(p, ctx.rules.physics.soldier_radius_m)
+                                && standing.iter().all(|q| {
+                                    (*q - p)
+                                        .at_least_radius(2.0 * ctx.rules.physics.soldier_radius_m)
+                                })
                         },
                     )
                 })
@@ -928,7 +930,7 @@ fn walk(
     if (wanted - from).inside_radius(1e-9) {
         return None;
     }
-    let r = ctx.soldier_radius_m;
+    let r = ctx.rules.physics.soldier_radius_m;
     let reach = (wanted - from).length() + r + ENCOUNTER_RANGE_M;
     let mut solids: Vec<Obb2> = Vec::new();
     for b in &around.bodies {
@@ -979,7 +981,7 @@ fn keep_apart(
     here: V3,
     next: V3,
 ) -> V3 {
-    let r = ctx.soldier_radius_m;
+    let r = ctx.rules.physics.soldier_radius_m;
     let apart = 2.0 * r;
     let mut p = next.xy();
     for _ in 0..2 {
@@ -1024,7 +1026,7 @@ pub(super) fn shove(ctx: &MovementContext, units: &mut [Unit], vehicle: usize, c
     let Some(hull) = units[vehicle].hull_box() else {
         return;
     };
-    let r = ctx.soldier_radius_m;
+    let r = ctx.rules.physics.soldier_radius_m;
     let reach = hull.half.length() + r;
     for k in 0..crowd.standing.len() {
         let j = crowd.standing[k];

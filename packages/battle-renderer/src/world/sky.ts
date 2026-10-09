@@ -20,7 +20,7 @@ const Rays = d.struct({ origin: d.vec3f, dx: d.vec3f, dy: d.vec3f });
 export async function createTypegpuSky(
   device: GPUDevice,
   params: SkyModelParams,
-  backgroundSamples: 1 | 4 = 1,
+  backgroundSamples: 1 | 4,
 ) {
   const root = tgpu.initFromDevice({ device });
   const lut = root

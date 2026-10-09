@@ -126,9 +126,9 @@ export interface Backdrop {
   scenes: readonly BackdropScene[];
 }
 
-/** `json` as a backdrop, or a refusal naming the field at fault. */
-/** `json` as the menu's backdrop; every scene's map must be one of `maps`'
- *  `menu` maps (the backdrop films no test's ground). */
+/** `json` as the menu's backdrop, or a refusal naming the field at fault;
+ *  every scene's map must be one of `maps`' `menu` maps (the backdrop films
+ *  no test's ground). */
 export function validateBackdrop(
   json: {
     scenes: {

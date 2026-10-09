@@ -19,6 +19,9 @@ use super::{
 use crate::digest::Digest;
 use crate::math::{Obb2, V2};
 
+/// A step through a tight cell is checked at this spacing.
+const STEP_CHECK_M: f64 = 0.4;
+
 /// A cell the search has reached: its cost from the start and the cell it
 /// was reached from.
 #[derive(Clone, Copy)]
@@ -748,7 +751,7 @@ fn expand(
         // keeps to the middle of a way.
         let tight = match (here, seats[direction]) {
             (Some((a, a_exact)), Some((b, b_exact))) if a_exact || b_exact => {
-                if !grid.step_clear(a, b, m, true) {
+                if !grid.sweep_clear((a, b), m.push, m.half_width_m, STEP_CHECK_M, true) {
                     continue;
                 }
                 true

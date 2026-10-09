@@ -152,7 +152,6 @@ function AmbushLab({ battles }: { battles: Record<Variant, SavedBattle> }) {
     ...session.probes,
     variant: (v: Variant) => setVariant(v),
     moveLauncher,
-    stopLauncher,
     observeAs: (side: "blue" | "red") => sim.client?.observeAs(side),
   };
 

@@ -214,7 +214,7 @@ export async function run(ctx) {
   );
 
   // A smaller viewport, then zoomed out: floating panels remain visible,
-  // and the selection card keeps every detail.
+  // and the army deck's card keeps every detail.
   await page.setViewportSize({ width: 900, height: 600 });
   await shots(ctx, page, "engaged-900x600", [200, 220, 0]);
   // Preserve the last row's dark support and the line's light, with only a faint tail below.
@@ -328,13 +328,21 @@ export async function run(ctx) {
   await lab(page, () => window.__lab.setCamera({ ...window.__lab.camera(), distance: 900 }));
   await page.evaluate(() => window.__lab.frame());
   const far = await rings(page);
-  const panel = await page.getByTestId("selection-card").innerText();
-  ctx.check(
-    "zoomed out, compact panels remain visible and the selection card keeps the details",
-    far.every((d) => d.shown) && /CANNON/.test(panel) && /HMG/.test(panel),
-    JSON.stringify({ shown: far.filter((d) => d.shown).map((d) => d.unit), panel }),
-  );
   await shots(ctx, page, "far-1280x800");
+  // The army deck's card keeps the details at any zoom: hovering the tank's
+  // card shows its whole panel, a row per weapon.
+  await page.locator('.hud-army-card[data-unit="0"]').hover();
+  const detail = await page.locator('.hud-army-detail[data-unit="0"]').evaluate((c) => ({
+    name: c.querySelector(".ro-name-word")?.textContent,
+    weapons: c.querySelectorAll(".ro-weapon").length,
+  }));
+  ctx.check(
+    "zoomed out, compact panels remain visible and the tank's army card keeps the details",
+    far.every((d) => d.shown) && (detail.name ?? "").endsWith("#0") && detail.weapons === 2,
+    JSON.stringify({ shown: far.filter((d) => d.shown).map((d) => d.unit), detail }),
+  );
+  await shots(ctx, page, "far-card-detail-1280x800");
+  await page.mouse.move(20, 20);
   await lab(page, () => window.__lab.reset());
 
   // Keys (CommandBindings): F toggles the fire policy; X arms attack-move,

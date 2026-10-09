@@ -3,6 +3,7 @@ import type { ComponentProps } from "react";
 import { afterEach, expect, test, vi } from "vitest";
 import type { LabViewport } from "@apps/battle-lab/src/LabViewport";
 import { gameCamera } from "@apps/battle-lab/src/gameCamera";
+import type { LoadingTasks } from "@apps/battle-lab/src/LabLoading";
 import type { BattleFrame, WorldLayers } from "@packages/battle-renderer/src/scene";
 
 const gpu = vi.hoisted(() => ({
@@ -28,8 +29,12 @@ vi.mock("@packages/battle-renderer/src/frame/battleFrame", () => ({
       gpu.resolve = resolve;
     }),
 }));
-async function mount(overrides: Partial<ComponentProps<typeof LabViewport>> = {}) {
+async function mount(
+  overrides: Partial<ComponentProps<typeof LabViewport>> = {},
+  report: ComponentProps<typeof LoadingTasks>["report"] = () => {},
+) {
   const { LabViewport } = await import("@apps/battle-lab/src/LabViewport");
+  const { LoadingTasks } = await import("@apps/battle-lab/src/LabLoading");
   gpu.resolve = null;
   gpu.destroyed = false;
   vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
@@ -46,7 +51,11 @@ async function mount(overrides: Partial<ComponentProps<typeof LabViewport>> = {}
     initialCamera: gameCamera.opening(),
     ...overrides,
   };
-  return { view: render(<LabViewport {...props} />), props, frames, Viewport: LabViewport };
+  // The lab loading boundary the viewport reports its readiness and refusal to.
+  const view = render(<LabViewport {...props} />, {
+    wrapper: ({ children }) => <LoadingTasks report={report}>{children}</LoadingTasks>,
+  });
+  return { view, props, frames, Viewport: LabViewport };
 }
 
 afterEach(() => {
@@ -90,8 +99,9 @@ test("a viewport disposed during its build releases the late frame and never bec
   expect(ready).toBe(false);
 });
 
-test("failed frame initialization releases the frame before showing its error", async () => {
-  const { view, props, Viewport } = await mount();
+test("failed frame initialization releases the frame and reports its error to the loading boundary", async () => {
+  const reported: (string | null | undefined)[] = [];
+  const { view, props, Viewport } = await mount({}, (id, task) => reported.push(task?.error));
   await act(async () => {});
   let disposed = false;
   await act(async () =>
@@ -107,7 +117,8 @@ test("failed frame initialization releases the frame before showing its error", 
       },
     } as unknown as BattleFrame),
   );
-  expect(view.getByRole("alert").textContent).toContain("frame setup failed");
+  // The boundary keeps the first refusal it hears and shows it in place of the page.
+  expect(reported).toContainEqual(expect.stringContaining("frame setup failed"));
   expect(disposed).toBe(true);
   view.rerender(<Viewport {...props} models={[]} />);
   view.unmount();

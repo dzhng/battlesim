@@ -113,7 +113,7 @@ export const STATION_MAPS = {
     },
   },
   generated: {
-    route: "/battle?type=mixed&size=medium&seed=2&profile=skirmish&faction=us",
+    route: "/battle?type=mixed&size=medium&seed=2&faction=us",
     stations: {
       "overview-2500": ({ size }) => at([size[0] / 2, size[1] / 2], 2500, 1.1),
       "town-250": ({ town }) => at(town, 250),

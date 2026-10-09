@@ -33,9 +33,6 @@ export const CommandBindings: Readonly<Record<KeyCommand, CommandBinding>> = {
  *  routes and cover icons. */
 export const ShowOrdersBinding: CommandBinding = { code: "Space", label: "Hold Space" };
 
-/** A right-click's move (Q9): right-drag from the goal toward the facing. */
-export const FacingBinding: CommandBinding = { code: "right-drag", label: "Right-drag" };
-
 const BY_CODE = new Map(
   (Object.entries(CommandBindings) as [KeyCommand, CommandBinding][]).map(([c, b]) => [b.code, c]),
 );

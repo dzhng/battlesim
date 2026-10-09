@@ -93,19 +93,6 @@ export interface FogWorld extends TerrainGrid {
   minSightGapM: number;
 }
 
-/** A point is in the simulation's playable rectangle (inclusive at its edge). */
-export function playableContains(
-  bounds: readonly [number, number, number, number],
-  point: readonly [number, number],
-): boolean {
-  return (
-    point[0] >= bounds[0] &&
-    point[1] >= bounds[1] &&
-    point[0] <= bounds[0] + bounds[2] &&
-    point[1] <= bounds[1] + bounds[3]
-  );
-}
-
 /** The static world fog reads, from the simulation's own exported geometry. */
 export function fogWorld(exports: WorldExports, sensors: FogSensorRules): FogWorld {
   // Foliage saturates at 8 bits: the full block must fall inside that.

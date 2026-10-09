@@ -17,8 +17,8 @@ use contract::random::Rng;
 use contract::scenario::{RicochetRules, Rules};
 use sim::damage::{decide, struck_face, RoundPower, StruckHull};
 use sim::flight::{
-    advance_projectiles, prepare_launch, Aim, Body, BodyId, FlightConfig, FlightEvent,
-    ImpactContext, ImpactDecision, Pose, Projectiles, Struck,
+    advance_projectiles, launch_along, solve_launch_past, Aim, Body, BodyId, FlightConfig,
+    FlightEvent, ImpactContext, ImpactDecision, Pose, Projectiles, Struck,
 };
 use sim::math::{v3, V3};
 use sim::world::WorldGeometry;
@@ -79,15 +79,20 @@ fn main() {
             target: pose.base + v3(0.0, 0.0, half.z),
             target_velocity: V3::default(),
         };
-        if let Ok((launch, _)) = prepare_launch(
-            &world,
-            &config,
-            &profile,
-            &aim,
-            profile.scatter_mrad,
-            &mut rng,
-            None,
-        ) {
+        let launched =
+            solve_launch_past(&world, &config, &profile, &aim, None).and_then(|intended| {
+                launch_along(
+                    &world,
+                    &config,
+                    &profile,
+                    &aim,
+                    &intended,
+                    profile.scatter_mrad,
+                    &mut rng,
+                    None,
+                )
+            });
+        if let Ok((launch, _)) = launched {
             store.launch(launch);
         }
     }

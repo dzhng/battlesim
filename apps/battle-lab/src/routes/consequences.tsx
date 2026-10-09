@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
 import type { ObservationView } from "@web/battle/sim/observation";
-import { ReadoutLayer, SelectionCard } from "@web/battle/present/readouts";
+import { ReadoutLayer } from "@web/battle/present/readouts";
 import type { Order } from "@web/battle/sim/protocol";
 import { AckLog } from "../AckLog";
 import { BattleMemory, orderLayer, remainsLayer, tracerLayer } from "../battleOverlay";
@@ -111,7 +111,6 @@ function ConsequencesLab({ battle }: { battle: SavedBattle }) {
   const diagnostics = { ...session.probes, demo: (name: string) => runDemo(name) };
 
   if (!meshes) return null;
-  const own = observation?.own ?? [];
   const fallen = observation?.corpses ?? [];
   return (
     <>
@@ -168,7 +167,6 @@ function ConsequencesLab({ battle }: { battle: SavedBattle }) {
           <span className="lab-swatch lab-swatch-tracer-own" /> blue rounds ·{" "}
           <span className="lab-swatch lab-swatch-tracer-enemy" /> red rounds
         </div>
-        <SelectionCard units={own} own={own} rules={session.rules} />
         <div>
           Fallen: {fallen.filter((c) => c.own).length} blue · {fallen.filter((c) => !c.own).length}{" "}
           red seen

@@ -46,7 +46,6 @@ export default function CursorLab() {
     window.addEventListener("scroll", place, true);
     window.__lab = {
       ready: true,
-      fixture: "cursor",
       error: null,
       frame: async () => place(),
     };

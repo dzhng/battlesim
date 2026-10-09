@@ -16,9 +16,9 @@ cannot substitute for physical picking or clearance.
 
 [The depth contract](src/depthContract.ts) keeps projection, format, clear and
 comparison consistent. A pass cannot change one of them independently or treat
-the convention as a device fallback. [Device admission](src/device.ts) exposes
-failures and capabilities once; consumers use [the admitted capability record](src/capabilities.ts)
-instead of independently probing a different device policy.
+the convention as a device fallback. [Device admission](src/device.ts) requests
+the device once and exposes its failures and granted features and limits;
+consumers read those instead of independently probing a different device policy.
 
 [Allocation tracking](src/gpuAllocations.ts) measures device allocations, including
 library-created resources. It counts in creation order, so an owner's teardown can be

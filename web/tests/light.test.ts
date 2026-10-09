@@ -16,7 +16,8 @@ import { aerialWgsl } from "@packages/battle-renderer/src/shaders/aerial.ts";
 import { skyCloudsWgsl } from "@packages/battle-renderer/src/shaders/physicalSky.ts";
 import { aerialParams } from "@packages/battle-renderer/src/light/aerialParameters.ts";
 import { createTypegpuPost } from "@packages/battle-renderer/src/world/post.ts";
-import { cascadeFrameData } from "@packages/battle-renderer/src/shadowData.ts";
+import { cascadeFrameFit, NativeShadowFrame } from "@packages/battle-renderer/src/shadowData.ts";
+import { Camera } from "@packages/battle-renderer/src/world/camera.ts";
 import { mapBox, receiverRange } from "@packages/battle-renderer/src/frame/receiverRange.ts";
 import { MeshBuilder } from "@packages/battle-renderer/src/mesh.ts";
 import {
@@ -26,6 +27,7 @@ import {
   type Camera3DParams,
 } from "@packages/renderer-core/src/camera3d.ts";
 import { mat4, vec2, vec3, type Mat4, type Vec3 } from "math";
+import { d } from "typegpu";
 
 const streetMap = loadMap("street").definition;
 
@@ -101,7 +103,7 @@ test("the sky, the environment light, the haze and the cascades share one sun", 
   expect(skyModelParams(LIGHT).sunDirection).toEqual(sun);
   expect(photorealEnvironment(LIGHT).sunDirection).toEqual(sun);
   // Each cascade light looks down the sun: its view's forward row is -sun.
-  const frame = cascadeFrameData(LIGHT.cascades, camera({}), sun, [30, 400]);
+  const frame = cascadeFrameFit(LIGHT.cascades, camera({}), sun, [30, 400]);
   for (const cascade of frame.cascades) {
     const v = cascade.view;
     [v[2], v[6], v[10]].forEach((c, i) => expect(c).toBeCloseTo(sun[i], 6));
@@ -154,17 +156,17 @@ test.each(Object.entries(CAMERAS))(
   (_, over) => {
     const cam = camera(over);
     const range = receiverRange(vec2.create(), cam, MAP);
-    const frame = cascadeFrameData(LIGHT.cascades, cam, sunDirection(LIGHT), range);
+    const frame = cascadeFrameFit(LIGHT.cascades, cam, sunDirection(LIGHT), range);
     expect(frame.cascades).toHaveLength(LIGHT.cascades.count);
     // Splits start where the map starts, not at the camera's near plane.
-    expect(frame.splitNear).toBeCloseTo(range[0], 6);
+    expect(frame.near).toBeCloseTo(range[0], 6);
     expect(frame.cappedFar).toBeLessThanOrEqual(LIGHT.cascades.max_far_m);
     const last = frame.cascades.length - 1;
     const points = visibleGround(cam).filter((g) => g.depth <= frame.cappedFar);
     expect(points.length).toBeGreaterThan(20);
     for (const { p, depth } of points) {
       // The receiver shader's normalisation: a fraction of the receiver range.
-      const linear = Math.max(0, (depth - frame.splitNear) / (frame.cappedFar - frame.splitNear));
+      const linear = Math.max(0, (depth - frame.near) / (frame.cappedFar - frame.near));
       let weight = 0;
       for (const c of frame.cascades) {
         const w = cascadeBlendWeight(
@@ -185,20 +187,47 @@ test.each(Object.entries(CAMERAS))(
   },
 );
 
+test("each cascade draws its casters through the world camera, posed as its light", () => {
+  const cam = camera(CAMERAS.default);
+  const range = receiverRange(vec2.create(), cam, MAP);
+  const fit = cascadeFrameFit(LIGHT.cascades, cam, sunDirection(LIGHT), range);
+  let uploaded: Float32Array[] = [];
+  new NativeShadowFrame(LIGHT, (data) => {
+    uploaded = data.cascades.map((c) => c.camera);
+  }).update(cam, range);
+  expect(uploaded).toHaveLength(fit.cascades.length);
+  type CameraValue = d.Infer<typeof Camera>;
+  const at = (data: Float32Array, field: (c: CameraValue) => unknown) =>
+    data[d.memoryLayoutOf(Camera, field).offset / 4];
+  for (const [i, data] of uploaded.entries()) {
+    const c = fit.cascades[i];
+    expect(data.byteLength).toBe(d.sizeOf(Camera));
+    const viewProj = d.memoryLayoutOf(Camera, (x) => x.viewProj).offset / 4;
+    expect([...data.subarray(viewProj, viewProj + 16)]).toEqual([...c.viewProjection]);
+    expect([at(data, (x) => x.eye.x), at(data, (x) => x.eye.y), at(data, (x) => x.eye.z)]).toEqual(
+      [...c.position].map(Math.fround),
+    );
+    expect(at(data, (x) => x.znear)).toBe(Math.fround(c.near));
+    // A cascade's viewport is its map, square.
+    expect(at(data, (x) => x.width)).toBe(fit.mapSize);
+    expect(at(data, (x) => x.height)).toBe(fit.mapSize);
+  }
+});
+
 test("the strategic camera spends its cascades on the map, 1.6 km out and beyond", () => {
   const cam = camera(CAMERAS.strategic);
   const range = receiverRange(vec2.create(), cam, MAP);
-  const frame = cascadeFrameData(LIGHT.cascades, cam, sunDirection(LIGHT), range);
+  const frame = cascadeFrameFit(LIGHT.cascades, cam, sunDirection(LIGHT), range);
   // The map's whole visible depth, not the kilometre and a half of air above it.
   const depths = visibleGround(cam).map((g) => g.depth);
   expect(Math.min(...depths)).toBeGreaterThan(1400);
-  expect(frame.splitNear).toBeGreaterThan(0.95 * Math.min(...depths));
+  expect(frame.near).toBeGreaterThan(0.95 * Math.min(...depths));
   expect(frame.cappedFar).toBeGreaterThanOrEqual(
     Math.min(Math.max(...depths), LIGHT.cascades.max_far_m),
   );
   // At about two metres a texel or finer, and never past the reach.
   for (const c of frame.cascades) expect(c.worldUnitsPerTexel).toBeLessThan(2.5);
-  const beyond = cascadeFrameData(LIGHT.cascades, cam, sunDirection(LIGHT), [1600, 5000]);
+  const beyond = cascadeFrameFit(LIGHT.cascades, cam, sunDirection(LIGHT), [1600, 5000]);
   expect(beyond.cappedFar).toBe(LIGHT.cascades.max_far_m);
 });
 

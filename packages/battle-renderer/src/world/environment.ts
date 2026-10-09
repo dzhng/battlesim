@@ -5,8 +5,6 @@ import {
   sunShadowSampleBodyWgsl,
   type TypegpuSunShadow,
 } from "./shadow";
-import { Camera, typegpuCameraLayout } from "./camera";
-import type { NativeShadowMode } from "../shadowData";
 import { typegpuTextureBytes } from "./textureUpload";
 import { tgpu, d, std } from "typegpu";
 import type { LightPresentation } from "../light/sceneLight";
@@ -19,7 +17,7 @@ import { standardPbrWgsl } from "../shaders/standardPbr";
 import { aerialWgsl } from "../shaders/aerial";
 import { equirectUvWgsl } from "../shaders/physicalSky";
 import { DFG_LUT_DATA, DFG_LUT_SIZE } from "../shaders/dfgLut";
-import { environmentFunctions, type WorldSurfaceDiagnostic } from "../shaders/environment";
+import { shadeEnvironmentWgsl } from "../shaders/environment";
 import {
   CAST_ALBEDO_FLOOR,
   CAST_ALBEDO_GREY,
@@ -48,14 +46,7 @@ const environmentEntries = {
   dfg: { texture: d.texture2d(), visibility: ["fragment"] },
   linear: { sampler: "filtering", visibility: ["fragment"] },
 } satisfies Parameters<typeof tgpu.bindGroupLayout>[0];
-export const environmentLayout = tgpu.bindGroupLayout(environmentEntries);
-const shadowEnvironmentLayout = tgpu.bindGroupLayout({
-  ...environmentEntries,
-  ...sunShadowEntries,
-});
-const casterEnvironmentLayout = tgpu.bindGroupLayout({
-  data: { uniform: Environment, visibility: ["vertex"] },
-});
+const layout = tgpu.bindGroupLayout({ ...environmentEntries, ...sunShadowEntries });
 const standardPbr = tgpu
   .fn(
     [
@@ -82,58 +73,47 @@ const standardPbr = tgpu
   .$uses({ samplePmrem });
 const equirectUv = tgpu.fn([d.vec3f], d.vec2f)(equirectUvWgsl);
 
-/** The receiver's sun-shadow entry point for one mode: the inherited sampling
- * body (see shadow.ts for that boundary) bound to THIS owner's typed resources
- * — the environment block, the world camera and the cascade depth array. High
- * reads the shared view row and near plane, so a receiver blends its cascades
- * against the same admitted frame the fits came from. */
-export function typegpuSunShadowSample(mode: NativeShadowMode) {
-  const inherited = tgpu
-    .fn(
-      [
-        Environment,
-        Camera,
-        SunShadow,
-        d.textureDepth2dArray(),
-        d.comparisonSampler(),
-        d.vec3f,
-        d.vec3f,
-        d.vec2f,
-      ],
-      d.f32,
-    )(sunShadowSampleBodyWgsl(mode))
-    .$uses({ Environment, Camera, SunShadow, shadowVisibility });
-  return tgpu.fn(
-    [d.vec3f, d.vec3f, d.vec2f],
+/** The receiver's sun-shadow entry point: the inherited sampling body (see
+ * shadow.ts for that boundary) bound to THIS owner's typed resources — the
+ * environment block and the cascade depth array. It reads the shared view
+ * row, so a receiver blends its cascades against the same admitted frame the
+ * fits came from. */
+const inheritedSunShadow = tgpu
+  .fn(
+    [
+      Environment,
+      SunShadow,
+      d.textureDepth2dArray(),
+      d.comparisonSampler(),
+      d.vec3f,
+      d.vec3f,
+      d.vec2f,
+    ],
     d.f32,
-  )((world, normal, pixel) => {
-    "use gpu";
-    return inherited(
-      shadowEnvironmentLayout.$.data,
-      typegpuCameraLayout.$.cam,
-      shadowEnvironmentLayout.$.sun,
-      shadowEnvironmentLayout.$.sunDepth,
-      shadowEnvironmentLayout.$.sunCompare,
-      world,
-      normal,
-      pixel,
-    );
-  });
-}
-/** Shadows off: receivers keep the same entry point and read nothing. */
-const unshadowed = tgpu.fn(
+  )(sunShadowSampleBodyWgsl())
+  .$uses({ Environment, SunShadow, shadowVisibility });
+const sampleSunShadow = tgpu.fn(
   [d.vec3f, d.vec3f, d.vec2f],
   d.f32,
-)("(world:vec3f,normal:vec3f,pixel:vec2f)->f32{return 1.0;}");
+)((world, normal, pixel) => {
+  "use gpu";
+  return inheritedSunShadow(
+    layout.$.data,
+    layout.$.sun,
+    layout.$.sunDepth,
+    layout.$.sunCompare,
+    world,
+    normal,
+    pixel,
+  );
+});
 
 /** TypeGPU resource ownership; exposed GPU views are borrowed by component bindings. */
 export async function createTypegpuEnvironment(
   device: GPUDevice,
   light: LightPresentation,
-  diagnostic?: WorldSurfaceDiagnostic,
-  backgroundSamples: 1 | 4 = 1,
-  shadow?: TypegpuSunShadow,
-  aerial = true,
+  backgroundSamples: 1 | 4,
+  shadow: TypegpuSunShadow,
 ) {
   const root = tgpu.initFromDevice({ device }),
     owned: { destroy(): void }[] = [];
@@ -168,26 +148,19 @@ export async function createTypegpuEnvironment(
       dfg: dfg.createView(),
       linear,
     };
-    const layout = shadow ? shadowEnvironmentLayout : environmentLayout;
-    const group = shadow
-      ? root.createBindGroup(shadowEnvironmentLayout, {
-          ...resources,
-          sun: shadow.state,
-          sunDepth: shadow.receiverView,
-          sunCompare: shadow.comparison,
-        })
-      : root.createBindGroup(environmentLayout, resources);
-    const casterGroup = root.createBindGroup(casterEnvironmentLayout, { data });
-    const sampleSunShadow = shadow ? typegpuSunShadowSample(shadow.mode) : unshadowed;
-    const spec = photorealEnvironment(light),
-      functions = environmentFunctions(diagnostic, aerial);
+    const group = root.createBindGroup(layout, {
+      ...resources,
+      sun: shadow.state,
+      sunDepth: shadow.receiverView,
+      sunCompare: shadow.comparison,
+    });
+    const spec = photorealEnvironment(light);
     const applyAerial = tgpu
       .fn(
         [d.vec4f, d.vec3f, d.vec3f, d.vec3f, d.texture2d(), d.sampler()],
         d.vec4f,
       )(aerialWgsl(light))
       .$uses({ equirectUv });
-    const fromView = tgpu.fn([d.vec3f], d.f32)(functions.geometryRoughnessFromView);
     const shadeAlgorithm = tgpu
       .fn(
         [
@@ -212,7 +185,7 @@ export async function createTypegpuEnvironment(
           d.sampler(),
         ],
         d.vec4f,
-      )(functions.shadeEnvironment)
+      )(shadeEnvironmentWgsl)
       .$uses({ standardPbr, applyAerial });
     /** The frame's cast lights on a surface of albedo `base` at `position`
      *  facing `normal`: each one's falloff inside its radius, its facing
@@ -297,7 +270,7 @@ export async function createTypegpuEnvironment(
         // standardPbr's diffuse terms have them.
         let skyLight=samplePmrem(pmrem,linear,vec3f(0.0,0.0,1.0),1.0,maxMip)*environmentIntensity;
         let white=sunRadiance*max(sunDirection.z,0.0)*shadowFloor*0.3183098861837907+skyLight;
-        return ${aerial ? "applyAerial(vec4f(colour*white,1),worldPosition,eye,observer,sky,linear)" : "vec4f(colour*white,1)"};
+        return applyAerial(vec4f(colour*white,1),worldPosition,eye,observer,sky,linear);
       }`)
       .$uses({ samplePmrem, applyAerial });
     /** A finished picture's place in the frame: a surface that takes no
@@ -329,20 +302,13 @@ export async function createTypegpuEnvironment(
     });
     return {
       group,
-      layout,
       /** The environment uniform and PMREM as raw resources, for raw passes
        *  that shade with the same light (the effect pass). */
       raw: { uniform: root.unwrap(data), pmrem: pmrem.texture, lights: root.unwrap(lights) },
-      casterLayout: casterEnvironmentLayout,
-      casterGroup,
-      shadows: Boolean(shadow),
-      shadowMode: shadow?.mode ?? null,
       sampleSunShadow,
       shade,
       unlit,
-      geometryRoughnessFromView: fromView,
       sky,
-      pmrem,
       /** The one sun direction every material shades with. */
       sunDirection: spec.sunDirection as readonly [number, number, number],
       /** This frame's cast lights, a packed `CastLights` image
@@ -374,4 +340,3 @@ export async function createTypegpuEnvironment(
     throw error;
   }
 }
-export type TypegpuEnvironment = Awaited<ReturnType<typeof createTypegpuEnvironment>>;

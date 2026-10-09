@@ -201,7 +201,6 @@ pub(crate) fn occupy(
                 slots: &slots,
                 orders: None,
                 queued: true,
-                reserve_repair: true,
             },
             &mut prefix_work,
         );
@@ -337,8 +336,6 @@ pub(crate) fn occupy(
                     continue;
                 }
                 let journey = Journey::new(
-                    grid,
-                    ctx.roads,
                     None,
                     Leg {
                         from,
@@ -629,7 +626,6 @@ fn gather(
             slots: &slots,
             orders: Some(&orders),
             queued: request.queued,
-            reserve_repair: true,
         },
         allowance,
     );

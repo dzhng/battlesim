@@ -853,10 +853,6 @@
   padding-top: 8px;
   border-top: 1px solid rgb(var(--hud-accent) / 0.22);
 }
-.hud-menu-list {
-  display: grid;
-  gap: 2px;
-}
 .hud-panel :is(button, a).hud-menu-item {
   display: block;
   box-sizing: border-box;
@@ -936,6 +932,8 @@
   gap: 10px;
   pointer-events: none;
 }
+/* The deck stands on the screen's edge; without it (no units, nothing to
+   buy) the captions keep their margin. */
 .hud-lower:has(.hud-army-deck) {
   inset-inline: 0;
   bottom: 0;
@@ -957,9 +955,6 @@
   padding: 8px 10px;
   pointer-events: auto;
 }
-.hud-bottom:has(.hud-group) {
-  flex-direction: column;
-}
 /* Keep the shared panel vocabulary; only spacing and text size change here. */
 .hud-card {
   --tone: var(--hud-accent);
@@ -968,26 +963,6 @@
   align-items: center;
   gap: 10px;
   max-width: 100%;
-}
-.hud-group {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  align-items: start;
-  width: min(900px, calc(100dvw - 54px));
-  box-sizing: border-box;
-  padding-right: 12px;
-  gap: 10px 18px;
-  max-width: min(900px, 100%);
-  max-height: calc(30dvh - 80px);
-  align-content: flex-start;
-  overflow-y: auto;
-}
-.hud-group::-webkit-scrollbar {
-  width: 6px;
-  background: rgb(var(--hud-accent) / 0.1);
-}
-.hud-group::-webkit-scrollbar-thumb {
-  background: rgb(var(--hud-accent) / 0.75);
 }
 .hud-card .ro-body {
   min-width: 230px;
@@ -1005,23 +980,6 @@
 }
 .hud-card .ro-kinds {
   padding-left: 4px;
-}
-.hud-portrait {
-  display: grid;
-  justify-items: center;
-  gap: 5px;
-  flex: none;
-  color: rgb(var(--hud-accent));
-}
-.hud-portrait .ro-icon {
-  margin: 0;
-}
-.hud-portrait .hud-role svg {
-  height: 20px;
-}
-.hud-portrait .hud-silhouette svg {
-  height: 24px;
-  max-width: 60px;
 }
 .hud-bottom .ro-commands {
   max-width: 384px;
@@ -1249,8 +1207,7 @@
 }
 .hud-purchase-controls,
 .hud-purchase-categories,
-.hud-purchase-variants,
-.hud-purchase-pending {
+.hud-purchase-variants {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -1327,8 +1284,7 @@
 .hud-panel .hud-purchase-variants button:disabled {
   opacity: 0.65;
 }
-.hud-purchase-price,
-.hud-purchase-pending small {
+.hud-purchase-price {
   font-size: 11px;
   color: rgb(var(--hud-text) / 0.7);
 }
@@ -1361,16 +1317,10 @@
   /* Variants are as tall as the tallest, their words top-aligned. */
   align-items: stretch;
 }
-.hud-purchase-variants button,
-.hud-purchase-pending button {
+.hud-purchase-variants button {
   display: flex;
   flex-direction: column;
   gap: 4px;
-}
-.hud-purchase-pending {
-  max-width: min(700px, 80vw);
-  overflow-x: auto;
-  padding-block: 6px;
 }
 .hud-score {
   color: rgb(var(--hud-accent));

@@ -90,7 +90,7 @@ async function checkNoGlyphIcons(ctx, page, where) {
  *  down over the first road's longest straight run, ground a metre inside
  *  its edge reads as road and ground a metre and a half outside reads as
  *  verge. */
-export async function checkRoadEdges(ctx, page) {
+async function checkRoadEdges(ctx, page) {
   const road = roadStrokes[0];
   const runs = road.points.slice(1).map((b, i) => [road.points[i], b]);
   const length = ([a, b]) => Math.hypot(b[0] - a[0], b[1] - a[1]);
@@ -2596,11 +2596,10 @@ async function muzzleTour(ctx) {
   await page.close();
 }
 
-/** The tours, by name: `STREET_TOURS=effects,smoke` runs only those. */
 /** Select similar (double-click a unit for its
  *  type, again or with Ctrl for its role), a mixed selection's command bar
  *  (the union of its capabilities, each order to the units that can), and
- *  the unit card's role symbol and silhouette. */
+ *  the army card's role symbol and silhouette. */
 async function selectionTour(ctx) {
   const page = await openBattle(ctx, { viewport: { width: 1600, height: 900 } });
   const o = await obs(page);
@@ -2684,12 +2683,12 @@ async function selectionTour(ctx) {
     JSON.stringify({ icons, cardPanel }),
   );
   await page.locator("footer.hud-bottom").screenshot({
-    path: ctx.evidencePath("selection-card-tank.png"),
+    path: ctx.evidencePath("army-deck-tank.png"),
   });
   await lab(page, (id) => window.__lab.route.select([id]), rifles[0]);
   await page.waitForFunction(() => window.__lab.route.selected().length === 1);
   await page.locator("footer.hud-bottom").screenshot({
-    path: ctx.evidencePath("selection-card-rifle.png"),
+    path: ctx.evidencePath("army-deck-rifle.png"),
   });
 
   // A tank and a supply truck: the one Deploy/Pack toggle reaches the truck
@@ -3636,6 +3635,7 @@ async function panelLayoutTour(ctx) {
   await page.close();
 }
 
+/** The tours, by name: `STREET_TOURS=effects,smoke` runs only those. */
 const TOURS = {
   appflow: appJourney,
   army: armyJourney,

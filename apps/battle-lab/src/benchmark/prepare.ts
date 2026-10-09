@@ -12,7 +12,7 @@ import { cityContactTour } from "@web/battle/benchmark/camera";
 import type { BenchmarkPreset, BenchmarkScenario } from "@web/battle/benchmark/presets";
 import type { GameRules } from "@web/battle/catalog/compose";
 
-export function benchmarkPreparation(
+function benchmarkPreparation(
   wasm: Wasm,
   scenario: BenchmarkPreset,
   rules: GameRules,
@@ -29,7 +29,7 @@ export function benchmarkPreparation(
       battle_seed: scenario.seed,
     },
     documents: { presets, templates, rules: JSON.stringify(rules) },
-    stress: { kind: "city-arena-2", late: false },
+    stress: { kind: scenario.variant, late: false },
   };
 }
 

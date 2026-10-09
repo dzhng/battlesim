@@ -12,7 +12,6 @@ import {
   fetchedOnRequest,
   KIT_BUNDLE_MAX_BYTES,
   RUNTIME_DIR,
-  templateLibraryPath,
   texturePath,
   type Bundle,
   type GzipTransport,
@@ -154,22 +153,6 @@ export function bundleFiles(catalog: RuntimeCatalog, hash: string): string[] {
   return [
     bundlePath(gzipTransport(catalog, hash).hash),
     ...(catalog.textures?.[hash] ?? []).map((id) => texturePath(gzipTransport(catalog, id).hash)),
-  ];
-}
-
-/** Every runtime file the catalog names, each once, but the catalog itself. */
-export function runtimeFiles(catalog: RuntimeCatalog): string[] {
-  const bundles = [
-    ...Object.values(catalog.skeletons ?? {}),
-    ...Object.values(catalog.appearances ?? {}).map((entry) => entry.bundle),
-  ];
-  return [
-    ...new Set([
-      ...bundles.flatMap((hash) => bundleFiles(catalog, hash)),
-      ...(catalog.templates
-        ? [templateLibraryPath(gzipTransport(catalog, catalog.templates.library).hash)]
-        : []),
-    ]),
   ];
 }
 

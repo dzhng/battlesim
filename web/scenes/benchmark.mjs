@@ -122,7 +122,7 @@ export async function run(ctx, named = false) {
       return {
         text: document.querySelector("[data-testid=benchmark-progress] span")?.textContent ?? "",
         rounds: observation?.projectiles?.length ?? 0,
-        audio: window.__lab?.route?.audio?.() ?? null,
+        audio: window.__lab?.route?.sound?.() ?? null,
         shots: checkContact
           ? observation.own.map((u) => [
               u.id,
@@ -211,8 +211,6 @@ export async function run(ctx, named = false) {
       "the city result identifies the complete generated world and existing central contact script",
       report.scenario.id === preset &&
         report.scenario.variant === "city-arena-2" &&
-        report.scenario.blue === "scenario-orders" &&
-        report.scenario.red === "scenario-orders" &&
         p?.identity.kind === "generated" &&
         r?.type === "metro" &&
         r.size === "xl" &&

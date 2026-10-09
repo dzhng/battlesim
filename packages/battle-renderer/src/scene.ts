@@ -152,7 +152,7 @@ export interface FrameStats {
   /** Where the sun's cascades fit this frame. */
   shadow: {
     receiverRange: [number, number];
-    cascades: { extent: number; texel: number }[];
+    cascades: number;
   };
   /** The sight lights: eyes, rebuilds and their buffers. */
   fog: FogVisibilityStats;

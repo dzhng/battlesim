@@ -17,6 +17,7 @@ const RELEASED: Record<string, string> = {
   "city-contact@3": "c166ad91",
   "city-contact@4": "5d4eaef8",
   "city-contact@5": "0d8e57f5",
+  "city-contact@6": "5d7b7859",
 };
 
 test("a scenario's workload is pinned to its version", () => {

@@ -115,7 +115,7 @@ const mounts = (soldier: boolean): GameplayField[] => [
       ]),
 ];
 
-export const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
+const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
   units: [
     field(
       "cost",

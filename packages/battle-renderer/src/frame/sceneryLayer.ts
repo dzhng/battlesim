@@ -1137,4 +1137,3 @@ export async function createSceneryLayer(
     },
   };
 }
-export type SceneryLayer = Awaited<ReturnType<typeof createSceneryLayer>>;

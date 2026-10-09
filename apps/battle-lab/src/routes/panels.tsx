@@ -54,7 +54,7 @@ export default function Panels() {
   });
   const groups = [...new Set(specimens.map((s) => s.group))];
   useEffect(() => {
-    window.__lab = { ready: true, fixture: "panels", error: null, frame: async () => {} };
+    window.__lab = { ready: true, error: null, frame: async () => {} };
     return () => void delete window.__lab;
   }, []);
   if (deck) return <DeckReview onBack={() => setDeck(false)} />;

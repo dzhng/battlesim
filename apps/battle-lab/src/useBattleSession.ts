@@ -86,7 +86,11 @@ import {
   type RevealedOrders,
 } from "@web/battle/present/orderReveal";
 import type { Faction } from "@packages/scene-assets/src/units";
-import { PurchasePlacementControl, type PurchaseGhost } from "@web/battle/input/purchasePlacement";
+import {
+  DEFAULT_PLACEMENT_FACING,
+  PurchasePlacementControl,
+  type PurchaseGhost,
+} from "@web/battle/input/purchasePlacement";
 import { useUnitControl } from "@web/battle/input/useUnitControl";
 import {
   dragFacing,
@@ -132,8 +136,6 @@ import type { FelledTree } from "@packages/battle-renderer/src/scenery/felled";
 import { orderView } from "./battleOverlay";
 
 const PURCHASE_BLOCKED = [...gameHud.bad, gameXray.selected[3]] as const;
-/** A placed ghost faces the opposing edge unless it was turned as it was placed. */
-const DEFAULT_PLACEMENT_FACING = -Math.PI / 2;
 /** How near a pending purchase's published destination is to the placed one. */
 const PLACED_MATCH_M = 0.5;
 
@@ -842,7 +844,7 @@ export function useBattleSession({
     (pick: LabPick) => {
       if (purchasePlacement.variant) {
         if (pick.button === "right") cancelPurchase();
-        else if (inputEnabled) {
+        else
           void purchasePlacement.confirm(control.issue).then((accepted) => {
             if (accepted) placedGhosts.current.push(accepted);
             if (accepted && !purchasePlacement.variant) {
@@ -850,7 +852,6 @@ export function useBattleSession({
               setPurchasing(null);
             }
           });
-        }
         return;
       }
       const held = captured.current;
@@ -868,7 +869,7 @@ export function useBattleSession({
         if (pointer) control.onPointer(pointer);
       }
     },
-    [semanticPick, control, world, sim.client, purchasePlacement, cancelPurchase, inputEnabled],
+    [semanticPick, control, world, sim.client, purchasePlacement, cancelPurchase],
   );
   const eligibilityIdentity = JSON.stringify(
     (observation?.own ?? []).map((u) => [
@@ -1059,7 +1060,6 @@ export function useBattleSession({
   // Lab-only probes for the scene harness; rebuilt each render.
   const probes = {
     tick: () => sim.latest.current?.tick ?? 0,
-    publicationBytes: () => sim.lastBytes.current,
     observation: () => sim.latest.current,
     /** The last drawn frame: the tick of the observation it presented, and
      *  its presentation clock in ticks. Null before the first frame. */
@@ -1283,9 +1283,7 @@ export function useBattleSession({
           faction: skirmish.factions[side === "blue" ? 0 : 1],
           cards: units.cards,
           placing: purchasing,
-          ghost: purchaseGhost,
           choose: choosePurchase,
-          cancel: cancelPurchase,
           ready: () => void control.issue({ kind: "ready" }),
         }
       : null,
@@ -1301,8 +1299,6 @@ export function useBattleSession({
     /** The battle's sound (null unless `sound`), and its per-frame listener. */
     audio,
     hear,
-    drawnAt,
-    drawnClock,
     /** The info panels' layer (`ReadoutLayer`'s handle), and its placing
      *  off what the last frame drew, at its presentation clock; call once
      *  per animation frame. */

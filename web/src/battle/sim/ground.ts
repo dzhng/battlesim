@@ -28,7 +28,7 @@ export interface GroundRunsPatch {
 export const GROUND_CHANNELS = ["crater", "scorch", "tracks", "trampled"] as const;
 export type GroundChannel = (typeof GROUND_CHANNELS)[number];
 export type GroundChanges = { all: true } | { all: false; cells: Uint32Array };
-export const GROUND_TILE = 16;
+const GROUND_TILE = 16;
 
 export class GroundView {
   readonly cellM: number;

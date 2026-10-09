@@ -2,9 +2,9 @@
 // The bake end to end: a valid catalog bakes to content-addressed bundles,
 // deterministically, and the bundles decode to what the art says.
 import { expect, test } from "vitest";
-import { bakeCatalog } from "@packages/scene-assets/src/bake.ts";
+import { bakeCatalog, runtimeCatalogText } from "@packages/scene-assets/src/bake.ts";
 import { sha256Hex } from "@packages/scene-assets/src/glb.ts";
-import { runtimeFiles } from "@packages/scene-assets/src/gzip.ts";
+import { AppearanceLibrary, memoryFetch } from "@packages/scene-assets/src/loader.ts";
 import { AUTHORITY, bakedBundle, testCatalog, testSources } from "./synthetic";
 
 async function bake() {
@@ -28,10 +28,19 @@ test("a valid catalog bakes every entry with no error findings", async () => {
   expect(Object.keys(result.runtime.skeletons)).toEqual(["test-rig"]);
 });
 
-test("each runtime file is named by the sha256 of its bytes, and the catalog names every one", async () => {
+test("each runtime file is named by the sha256 of its bytes, and loading the catalog reads every one", async () => {
   const result = await bake();
   for (const [path, bytes] of result.files) expect(path.split("/")[0]).toBe(await sha256Hex(bytes));
-  expect(runtimeFiles(result.runtime).sort()).toEqual([...result.files.keys()].sort());
+  const files = new Map(result.files);
+  files.set("catalog.json", new TextEncoder().encode(runtimeCatalogText(result.runtime)));
+  const fetch = memoryFetch(files, "/a/");
+  const read = new Set<string>();
+  await new AppearanceLibrary((url) => {
+    read.add(url.slice("/a/".length));
+    return fetch(url);
+  }).load("/a/");
+  read.delete("catalog.json");
+  expect([...read].sort()).toEqual([...result.files.keys()].sort());
 });
 
 test("baking twice gives the same hashes", async () => {

@@ -51,7 +51,7 @@ Publish each side's visible projectile segments, clipped to what its units can o
 
 ## Verdict — 2026-09-25
 
-`sim::weapons` owns the mounts. Each mount has one lock, one aim and one reload. It chooses targets only from its side's knowledge, and fires only through `flight::prepare_launch`. Every launch is recorded with `Battle::record_fire`. `Battle` flies rounds against soldier capsules and vehicle hulls, adds the projectile store to its digest, and publishes each side's rounds: its own whole, and the enemy's clipped to its visible ground. The attack orders (`attack` on identified/contact/ground, `attack_move`, `set_engagement`) travel the one command path.
+`sim::weapons` owns the mounts. Each mount has one lock, one aim and one reload. It chooses targets only from its side's knowledge, and fires only through `flight::solve_launch_past` then `flight::launch_along`. Every launch is recorded with `Battle::record_fire`. `Battle` flies rounds against soldier capsules and vehicle hulls, adds the projectile store to its digest, and publishes each side's rounds: its own whole, and the enemy's clipped to its visible ground. The attack orders (`attack` on identified/contact/ground, `attack_move`, `set_engagement`) travel the one command path.
 
 **Native tests** (`cargo test -p sim --test weapons`, 24). They cover:
 

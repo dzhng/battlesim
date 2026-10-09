@@ -838,10 +838,6 @@ impl Battle {
         &self.world
     }
 
-    pub fn seed(&self) -> u64 {
-        self.seed
-    }
-
     /// This tick's flight events, in order; damage has already applied them.
     pub fn flight_events(&self) -> &[FlightEvent] {
         &self.flight_events
@@ -1226,12 +1222,8 @@ impl Battle {
             world: &self.world,
             roads: &self.roads,
             ground: &self.ground,
-            ground_rules: &self.rules.ground,
             authored: self.authored_props,
             tick: self.tick,
-            tick_hz: self.rules.tick_hz,
-            infantry: &self.rules.infantry_movement,
-            soldier_radius_m: self.rules.physics.soldier_radius_m,
             seed: self.seed,
             rules: &self.rules,
             knowledge: [&self.knowledge[0], &self.knowledge[1]],
@@ -3015,12 +3007,8 @@ impl Battle {
             world: &self.world,
             roads: &self.roads,
             ground: &self.ground,
-            ground_rules: &self.rules.ground,
             authored: self.authored_props,
             tick: self.tick,
-            tick_hz: self.rules.tick_hz,
-            infantry: &self.rules.infantry_movement,
-            soldier_radius_m: self.rules.physics.soldier_radius_m,
             seed: self.seed,
             rules: &self.rules,
             knowledge: [&self.knowledge[0], &self.knowledge[1]],

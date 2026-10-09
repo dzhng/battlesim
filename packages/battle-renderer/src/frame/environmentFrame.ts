@@ -6,7 +6,7 @@
 // `setCastLights` hands every material the effects' lights (`light/castLights.ts`).
 //
 // Post's settings (exposure, grade, bloom) come from the same light, through
-// `post`; the camera uniform's sun angles through `light`.
+// `post`.
 import { vec2 } from "math";
 import type { Box3, Frustum } from "math/shapes";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
@@ -28,7 +28,7 @@ export async function createEnvironmentFrame(
   validateLight(light);
   const shadow = createTypegpuSunShadow(device, light);
   registry.adopt(shadow.dispose);
-  const environment = await createTypegpuEnvironment(device, light, undefined, FRAME_MSAA, shadow);
+  const environment = await createTypegpuEnvironment(device, light, FRAME_MSAA, shadow);
   registry.adopt(environment.dispose);
   const range = vec2.create();
   const castImage = new Float32Array(CAST_LIGHTS_BYTES / 4);
@@ -78,10 +78,7 @@ export async function createEnvironmentFrame(
       return {
         receiverRange: vec2.clone(range),
         castLights: castCount,
-        cascades: shadow.data.cascades.map((c) => ({
-          extent: c.extent,
-          texel: c.worldUnitsPerTexel,
-        })),
+        cascades: shadow.data.cascades.length,
       };
     },
   };

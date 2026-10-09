@@ -36,7 +36,7 @@ interface Beat {
   name: string;
 }
 
-export const INFANTRY_BEATS: Beat[] = [
+const INFANTRY_BEATS: Beat[] = [
   { at: 0, name: "idle" },
   { at: 2, name: "walk" },
   { at: 6, name: "run" },
@@ -46,7 +46,7 @@ export const INFANTRY_BEATS: Beat[] = [
   { at: 20, name: "end" },
 ];
 /** A hull with a turret gun (and perhaps a roof HMG on it). */
-export const GUN_BEATS: Beat[] = [
+const GUN_BEATS: Beat[] = [
   { at: 0, name: "idle" },
   { at: 1, name: "drive" },
   { at: 5, name: "turn" },
@@ -56,7 +56,7 @@ export const GUN_BEATS: Beat[] = [
   { at: 18, name: "end" },
 ];
 /** A hull that deploys in place. */
-export const DEPLOY_BEATS: Beat[] = [
+const DEPLOY_BEATS: Beat[] = [
   { at: 0, name: "idle" },
   { at: 1, name: "drive" },
   { at: 5, name: "deploy" },
@@ -66,7 +66,7 @@ export const DEPLOY_BEATS: Beat[] = [
 ];
 
 /** A hull whose one weapon is a machine gun on its own ring. */
-export const HMG_BEATS: Beat[] = [
+const HMG_BEATS: Beat[] = [
   { at: 0, name: "idle" },
   { at: 1, name: "drive" },
   { at: 4, name: "turn" },
@@ -84,7 +84,7 @@ function scriptFor({ kind, mounts, units }: ReplayUnit): Script {
   return mounts.includes("gun") ? "gun" : "hmg";
 }
 
-export function beatsFor(replay: ReplayUnit): Beat[] {
+function beatsFor(replay: ReplayUnit): Beat[] {
   return { infantry: INFANTRY_BEATS, deploy: DEPLOY_BEATS, gun: GUN_BEATS, hmg: HMG_BEATS }[
     scriptFor(replay)
   ];
@@ -232,7 +232,7 @@ function unitAt(replay: ReplayUnit, t: number, soldiers: number): FeedUnit {
 }
 
 /** The published frame at tick `k`, with the soldiers who have fallen. */
-export function feedTick(replay: ReplayUnit, k: number, soldiers = 4): FeedFrame {
+function feedTick(replay: ReplayUnit, k: number, soldiers = 4): FeedFrame {
   const { kind } = replay;
   const t = k / TICK_HZ;
   const unit = unitAt(replay, t, soldiers);

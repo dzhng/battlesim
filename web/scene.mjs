@@ -32,10 +32,10 @@ export const WEBGPU_FLAGS = ["--enable-unsafe-webgpu", "--enable-features=WebGPU
  *  arrays element by element. A per-publication GPU buffer passed as a prop
  *  once made each detail tens of megabytes and ran the page out of memory.
  *  Every scene page fails on a detail this long. */
-export const MEASURE_ENTRIES_MAX = 5000;
+const MEASURE_ENTRIES_MAX = 5000;
 
 /** In the page: report an oversized measure detail as a console error. */
-export function guardMeasures(max) {
+function guardMeasures(max) {
   const measure = performance.measure.bind(performance);
   performance.measure = (name, options) => {
     const entries = options?.detail?.devtools?.properties?.length ?? 0;

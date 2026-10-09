@@ -3,7 +3,7 @@ import {
   type ObjectiveMarkersHandle,
 } from "@web/battle/present/objectiveMarkers";
 // A played (or replayed) battle for blue: the world, the side's units and
-// every overlay, and the HUD: the top bar's readout, the unit card and
+// every overlay, and the HUD: the top bar's readout, the army deck and its
 // command bar, subtitles, and the pause menu. Routes compose it with their
 // own readout (a battle's clock, a lab's telemetry) and
 // pause menu items (the scenario, replays, a lab's switches).
@@ -244,11 +244,7 @@ export function BattleView({
             session.placePanels(project, view, pointer);
             objectiveMarkers.current?.place(project, surfaceZ);
           }}
-          diagnostics={{
-            ...session.probes,
-            audio: () => session.audio?.stats() ?? null,
-            ...diagnostics?.(session),
-          }}
+          diagnostics={{ ...session.probes, ...diagnostics?.(session) }}
         />
       )}
       <ObjectiveMarkers

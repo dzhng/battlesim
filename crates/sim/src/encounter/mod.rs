@@ -35,9 +35,8 @@ use contract::catalog::{TypeIndex, UnitType};
 use contract::command::{MoveDirection, Order, RoutePolicy};
 use contract::encounter::{
     bearing, heading, side_name, Deployment, EncounterDefinition, EncounterDiagnostic,
-    EncounterDiagnosticCode as Code, EncounterOutcome, EncounterRecipe, EncounterSetup,
-    EncounterSites, GarrisonPost, Half, Objective, OverwatchPost, Placement, Post, Requirement,
-    SettlementPreference,
+    EncounterDiagnosticCode as Code, EncounterRecipe, EncounterSetup, EncounterSites, GarrisonPost,
+    Half, Objective, OverwatchPost, Placement, Post, Requirement, SettlementPreference,
 };
 use contract::identity::Seed;
 use contract::ids::{Side, UnitId};
@@ -1396,79 +1395,4 @@ fn ring_exit(ring: &[[f64; 2]], from: V2, direction: V2) -> Option<f64> {
         }
     }
     last
-}
-
-/// [`plan_encounter`] over JSON, as the native tools and the Wasm boundary
-/// call it: the compiled map, its sites, the rules (a fixture with its
-/// catalog), one recipe and the encounter seed as canonical decimal text.
-/// The answer is an [`EncounterOutcome`], the same bytes on every target.
-pub fn plan_encounter_json(
-    map_json: &str,
-    sites_json: &str,
-    rules_json: &str,
-    recipe_json: &str,
-    encounter_seed: &str,
-) -> String {
-    let outcome = match plan_from_json(
-        map_json,
-        sites_json,
-        rules_json,
-        recipe_json,
-        encounter_seed,
-    ) {
-        Ok(encounter) => EncounterOutcome::Ok {
-            encounter: Box::new(encounter),
-        },
-        Err(diagnostics) => EncounterOutcome::Error { diagnostics },
-    };
-    serde_json::to_string(&outcome).expect("an encounter outcome serializes")
-}
-
-fn plan_from_json(
-    map_json: &str,
-    sites_json: &str,
-    rules_json: &str,
-    recipe_json: &str,
-    encounter_seed: &str,
-) -> Result<EncounterDefinition, Vec<EncounterDiagnostic>> {
-    fn refused(code: Code, location: &str, message: String) -> Vec<EncounterDiagnostic> {
-        vec![EncounterDiagnostic {
-            code,
-            feature: None,
-            location: location.into(),
-            message,
-        }]
-    }
-    fn read<T: serde::de::DeserializeOwned>(
-        text: &str,
-        code: Code,
-        location: &str,
-    ) -> Result<T, Vec<EncounterDiagnostic>> {
-        serde_json::from_str(text).map_err(|e| refused(code, location, e.to_string()))
-    }
-    let seed: Seed = serde_json::from_value(serde_json::Value::String(encounter_seed.into()))
-        .map_err(|e| refused(Code::InvalidRequest, "$.encounter_seed", e.to_string()))?;
-    let recipe: EncounterRecipe = read(recipe_json, Code::InvalidRecipe, "$.recipe")?;
-    let sites: EncounterSites = read(sites_json, Code::InvalidSites, "$.sites")?;
-    let rules: Rules = read(rules_json, Code::InvalidRequest, "$.rules")?;
-    let map: MapDefinition = read(map_json, Code::InvalidRequest, "$.map")?;
-    // The world refuses a map it cannot hold by panicking: ask first.
-    if let Some(error) = contract::map::validate_header(
-        map.size,
-        map.fog_cell_m,
-        map.height_grid_m,
-        map.slope_cutoff_deg,
-    )
-    .first()
-    {
-        return Err(refused(
-            Code::InvalidRequest,
-            "$.map",
-            format!("{}: {}", error.field, error.message),
-        ));
-    }
-    map.authored_props()
-        .map_err(|e| refused(Code::InvalidRequest, "$.map", e))?;
-    let prepared = PreparedMap::new(&map, &rules);
-    plan_encounter(&prepared.queries(&map, &sites), &rules, &recipe, seed)
 }

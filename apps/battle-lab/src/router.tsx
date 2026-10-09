@@ -77,12 +77,13 @@ function resolvePage(path: string) {
 }
 
 /** Policy for menu warm-up and the menu bed, derived from the rendered page.
- * Player battle/replay routes keep the bed while their loading cover is visible. */
+ * The player battle route (replays included) keeps the bed while its loading
+ * cover is visible. */
 export function screenForPath(path: string): "menu" | "loading" | "other" {
   const page = resolvePage(path);
   if (page.editor || page.path === "/labs") return "other";
   if (!page.Route) return "menu";
-  return /^\/(battle|replay)(\/|$)/.test(page.path) ? "loading" : "other";
+  return /^\/battle(\/|$)/.test(page.path) ? "loading" : "other";
 }
 
 function LabPage({ path: requestedPath }: { path: string }) {

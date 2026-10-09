@@ -74,8 +74,3 @@ pub fn of(unit: &Unit, rules: &Rules) -> Sight {
         range: sensors.ground_m,
     }
 }
-
-/// How far `unit` sees toward world bearing `bearing` this tick.
-pub fn sight_range(unit: &Unit, rules: &Rules, bearing: f64) -> f64 {
-    of(unit, rules).range_at(bearing)
-}

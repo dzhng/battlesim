@@ -2,7 +2,7 @@
 // the outputs. Skeleton clips bake first, since skinned bodies are laid out
 // on their skeleton's joint order and bounded by its clips.
 
-import { bundleHash } from "./codec.ts";
+import { sha256Hex } from "./glb.ts";
 import { publishBundle, publishGzip } from "./gzip.ts";
 import { textureLayerCounts, textureLayerFindings, type TextureLayerCounts } from "./texture.ts";
 import {
@@ -254,7 +254,7 @@ export async function bakeCatalog(
     if (packed.library) {
       const library = await sealTemplateLibrary(packed.library);
       const bytes = encodeTemplateLibrary(library);
-      out = { hash: await bundleHash(bytes), bytes: bytes.byteLength };
+      out = { hash: await sha256Hex(bytes), bytes: bytes.byteLength };
       await publishGzip(output, out.hash, bytes, templateLibraryPath);
       runtime.templates = { library: out.hash, art_hash: library.art_hash, covers: library.covers };
     }

@@ -171,7 +171,7 @@ export async function run(ctx) {
 
 /** A retained living soldier must play death before entering the static layer.
  *  A real ground attack supplies the event independently of assault balance. */
-export async function ownDeath(ctx) {
+async function ownDeath(ctx) {
   const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 } });
   const squad = (await obs(page)).own.find((u) => u.kind === "test_rifle");
   await aim(page, squad.position, { distance: 35, pitch: 0.6 });

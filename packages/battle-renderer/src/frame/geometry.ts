@@ -26,7 +26,7 @@ export const PROXY_KINDS = Object.keys(PROXY_MESHES) as DrawnProxyKind[];
 export const WORLD_VARYING = d.interpolate("perspective, centroid", d.vec3f);
 
 /** Rotates by the instance yaw and places it; static meshes use the identity
- *  instance. Reads the 48-float camera, the one group pinned to index 0. */
+ *  instance. Reads the world camera, the one group pinned to index 0. */
 export const meshVertex = tgpu.vertexFn({
   in: {
     position: d.vec3f,

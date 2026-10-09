@@ -14,8 +14,9 @@ use serde_json::Value;
 use sim::battle::Battle;
 use sim::damage::{decide, RoundPower, StruckHull};
 use sim::flight::{
-    advance_projectiles, Body, BodyId, FlightConfig, FlightEvent, ImpactContext, ImpactDecision,
-    ImpactResolver, LaunchProfile, Pose, ProjectileId, Projectiles, Shape, Struck,
+    advance_projectiles, launch_along, solve_launch_past, Aim, Body, BodyId, FiringSolution,
+    FlightConfig, FlightEvent, ImpactContext, ImpactDecision, ImpactResolver, Launch,
+    LaunchProfile, NoSolution, Pose, ProjectileId, Projectiles, Shape, Shooter, Struck,
 };
 use sim::math::{v3, V3};
 use sim::world::WorldGeometry;
@@ -87,13 +88,51 @@ pub fn flat(size: [f64; 2], extra: &str) -> WorldGeometry {
     WorldGeometry::new(&physical_map(map, &rules()), &rules())
 }
 
+/// A one-part building template: a physical box with every face exposed,
+/// using the same oriented-box primitive as props. Its floors, entrances and
+/// bays stay unresolved.
+fn solid_box(half_extents: [f64; 3]) -> contract::templates::BuildingTemplateDescriptor {
+    use contract::templates::{
+        BuildingCategory, BuildingTemplateDescriptor, Facade, FacadeEdge, TemplatePart,
+    };
+    let [x, y, z] = half_extents;
+    BuildingTemplateDescriptor {
+        id: format!("api-box-{x}-{y}-{z}"),
+        category: BuildingCategory::Farmstead,
+        regional_family: "api_fixture".into(),
+        parts: vec![TemplatePart {
+            id: "body".into(),
+            center: [0.0, 0.0],
+            yaw: 0.0,
+            half_extents,
+            base_z: 0.0,
+        }],
+        floor_heights_m: None,
+        entrances: None,
+        joins: vec![],
+        edges: Facade::ALL
+            .into_iter()
+            .enumerate()
+            .map(|(i, facade)| {
+                let half = facade.axes(half_extents).3;
+                FacadeEdge {
+                    id: format!("face-{i}"),
+                    part: "body".into(),
+                    facade,
+                    span_m: [-half, half],
+                    exposed: true,
+                    bays: None,
+                }
+            })
+            .collect(),
+    }
+}
+
 /// Analytic box inputs are authored into the same physical contract before
 /// entering the world. This is test preparation, never a runtime fallback.
 pub fn physical_map(mut map: MapDefinition, rules: &contract::scenario::Rules) -> MapDefinition {
     use contract::map::{BuildingDefinition, BuildingPartReference};
-    use contract::templates::{
-        BuildingCategory, BuildingTemplateDescriptor, PlacementFrame, TemplateGeometryCatalog,
-    };
+    use contract::templates::{PlacementFrame, TemplateGeometryCatalog};
     if !map
         .props
         .iter()
@@ -111,13 +150,7 @@ pub fn physical_map(mut map: MapDefinition, rules: &contract::scenario::Rules) -
     for (i, mut p) in std::mem::take(&mut map.props).into_iter().enumerate() {
         let id = p.id.unwrap_or(i as u32);
         if rules.catalog.props().by_id(&p.kind).body.garrison {
-            let half = p.half_extents;
-            let template = BuildingTemplateDescriptor::solid_box(
-                format!("api-box-{}-{}-{}", half[0], half[1], half[2]),
-                BuildingCategory::Farmstead,
-                "api_fixture".into(),
-                half,
-            );
+            let template = solid_box(p.half_extents);
             let base = p
                 .base_z
                 .unwrap_or_else(|| ground.height_at(p.center[0], p.center[1]).unwrap_or(0.0));
@@ -456,4 +489,29 @@ pub fn isolated_cost_test(name: &str) -> bool {
         .unwrap();
     assert!(status.success(), "isolated {name} failed");
     false
+}
+
+/// Fire one round in the open the way a weapon does: solve the intended arc
+/// (a round that cannot reach or is blocked is not fired), then launch it
+/// with spread.
+pub fn launch_round(
+    world: &WorldGeometry,
+    config: &FlightConfig,
+    profile: &LaunchProfile,
+    aim: &Aim,
+    scatter_mrad: f64,
+    rng: &mut Rng,
+    shooter: Option<Shooter>,
+) -> Result<(Launch, FiringSolution), NoSolution> {
+    let intended = solve_launch_past(world, config, profile, aim, None)?;
+    launch_along(
+        world,
+        config,
+        profile,
+        aim,
+        &intended,
+        scatter_mrad,
+        rng,
+        shooter,
+    )
 }

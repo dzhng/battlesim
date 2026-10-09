@@ -7,7 +7,8 @@ import { expect, test } from "vitest";
 import type { GltfJson } from "@packages/scene-assets/src/glb.ts";
 import { bakeCatalog, runtimeCatalogText } from "@packages/scene-assets/src/bake.ts";
 import { buildClips } from "@packages/scene-assets/src/build.ts";
-import { decodeBundle, encodeBundle, splitTextures } from "@packages/scene-assets/src/codec.ts";
+import { joinTextures, splitTextures } from "@packages/scene-assets/src/codec.ts";
+import { decodeTexture, encodeTexture } from "@packages/scene-assets/src/texture.ts";
 import { publishGzip } from "@packages/scene-assets/src/gzip.ts";
 import { AppearanceLibrary, memoryFetch } from "@packages/scene-assets/src/loader.ts";
 import { importScene } from "@packages/scene-assets/src/scene.ts";
@@ -54,11 +55,21 @@ async function panel(edit?: (material: GltfJson, b: GltfBuilder) => void) {
   );
 }
 
-/** The panel's material after the whole trip: built, encoded and decoded. */
+/** `bundle` as a page receives it: its content and each texture travel as
+ *  their own files and are joined again. */
+function travelled(bundle: Bundle): Bundle {
+  const { content, textures } = splitTextures(bundle);
+  return joinTextures(
+    content,
+    textures.map((t) => decodeTexture(t.id, encodeTexture(t))),
+  );
+}
+
+/** The panel's material after the whole trip: built and travelled. */
 async function shipped(edit?: (material: GltfJson, b: GltfBuilder) => void): Promise<Material> {
   const built = await panel(edit);
   expect(built.findings).toEqual([]);
-  const bundle = decodeBundle(encodeBundle(built.bundle!)) as StaticBundle;
+  const bundle = travelled(built.bundle!) as StaticBundle;
   expect(bundle.materials.length).toBe(1);
   return bundle.materials[0];
 }
@@ -83,7 +94,7 @@ test("a cutout ships its cutoff and its coverage texels, beside its wear and tin
     grille(m, b);
   });
   expect(built.findings).toEqual([]);
-  const bundle = decodeBundle(encodeBundle(built.bundle!)) as StaticBundle;
+  const bundle = travelled(built.bundle!) as StaticBundle;
   const [material] = bundle.materials;
   expect(material.coverage).toEqual({ kind: "cutout", cutoff: 0.25 });
   expect(material.wear).toEqual(WEAR);

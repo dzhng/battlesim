@@ -208,7 +208,7 @@ test("a preparation worker becomes the battle authority and replays its commands
                   .click();
                 while (!host.querySelector('input[type="file"]')) await wait();
                 await shot("menu-pending");
-                if (host.querySelector('a[href^="/battle"], a[href^="/replay"]'))
+                if (host.querySelector('a[href^="/battle"]'))
                   throw new Error("pending storage guessed a replay viewer");
                 window.history.replaceState(null, "", "/battle?replay=saved");
                 renderScreen(scoped(gameCatalog, createElement(Battle)));

@@ -1,13 +1,11 @@
 // @vitest-environment node
 // A production build carries every runtime appearance file, served
 // same-origin under the page's cross-origin isolation headers.
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { build, preview, type PreviewServer } from "vite";
 import { afterAll, beforeAll, expect, test } from "vitest";
-import type { RuntimeCatalog } from "@packages/scene-assets/src/schema.ts";
-import { runtimeFiles } from "@packages/scene-assets/src/gzip.ts";
 
 const WEB = new URL("../", import.meta.url).pathname;
 const RUNTIME = new URL("../../assets/runtime/", import.meta.url).pathname;
@@ -44,9 +42,14 @@ afterAll(async () => {
   rmSync(work, { recursive: true, force: true });
 });
 
-test("every runtime catalog file is in the build and served byte for byte, same-origin and isolated", async () => {
-  const catalog = JSON.parse(readFileSync(join(RUNTIME, "catalog.json"), "utf8")) as RuntimeCatalog;
-  const files = ["catalog.json", ...runtimeFiles(catalog)];
+test("the appearance catalog and every content-addressed file are in the build and served byte for byte, same-origin and isolated", async () => {
+  // Each baked file lives under its own hash's directory.
+  const files = [
+    "catalog.json",
+    ...readdirSync(RUNTIME)
+      .filter((dir) => /^[0-9a-f]{64}$/.test(dir))
+      .flatMap((dir) => readdirSync(join(RUNTIME, dir)).map((file) => `${dir}/${file}`)),
+  ];
   for (const file of files) {
     const response = await fetch(`${origin}/${file}`);
     expect(response.status, file).toBe(200);

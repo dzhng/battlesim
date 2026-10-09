@@ -14,9 +14,9 @@ export interface BenchmarkScenario {
   variant: "city-arena-2";
   /** The generated map the production preparation owner resolves. */
   generated: MapChoice;
+  /** The battle's seed; both sides' seeded orders are carried by the
+   *  simulation-owned stress scene. */
   seed: number;
-  /** Both sides' seeded orders are carried by the simulation-owned scenario. */
-  blue: "scenario-orders";
   /** Timing starts here, after stepping the real simulation to it. */
   startTick: number;
   durationMs: Readonly<Record<BenchmarkLength, number>>;
@@ -29,11 +29,10 @@ export type BenchmarkPreset = Omit<BenchmarkScenario, "tour"> & { tour: typeof C
 
 export const CITY_CONTACT = {
   id: "city-contact",
-  version: 5,
+  version: 6,
   variant: "city-arena-2",
   generated: { type: "metro", size: "xl", seed: "4" },
   seed: 4,
-  blue: "scenario-orders",
   startTick: 150,
   durationMs: { full: 300_000, short: 60_000 },
   tour: CITY_CONTACT_TOUR,

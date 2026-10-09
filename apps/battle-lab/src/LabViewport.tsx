@@ -121,7 +121,7 @@ interface LabViewportProps {
   leftDragAction?: boolean;
   /** Capture the semantic target once; null cancels a press. */
   onRightPress?: (pick: LabPick | null) => void;
-  /** Per-frame pointer feedback; null leaves the native pointer active. */
+  /** Per-frame action for the app cursor; null shows the plain arrow. */
   onCursor?: (
     pointer: ViewportPointer,
     camera: Camera3DParams,
@@ -258,7 +258,6 @@ type ClearanceReading = Pick<ClearanceState, "hold" | "cut" | "blocked">;
 /** Diagnostic hooks the scene harness reads; lab-only, never on a player route. */
 interface LabHandle {
   ready: boolean;
-  fixture: string;
   error: string | null;
   adapter?: { vendor: string; architecture: string; description: string; format: string };
   stats?: () => ReturnType<BattleFrame["stats"]>;
@@ -545,7 +544,6 @@ export function LabViewport({
     const canvas = canvasRef.current!;
     const handle: LabHandle = {
       ready: false,
-      fixture,
       error: null,
       route: diagnosticsRef.current,
     };
@@ -1126,7 +1124,7 @@ export function LabViewport({
           const target = e.target;
           if (
             target !== canvas &&
-            !(target instanceof Element && target.closest(".ro-layer .ro-unit, .hud-card"))
+            !(target instanceof Element && target.closest(".ro-layer .ro-unit"))
           )
             return;
           e.preventDefault();
@@ -1224,23 +1222,6 @@ export function LabViewport({
           frame={inspecting}
           setView={(view) => void window.__lab?.setFrameView?.(view)}
         />
-      )}
-      {error && (
-        <div
-          role="alert"
-          style={{
-            position: "absolute",
-            inset: 0,
-            display: "grid",
-            placeItems: "center",
-            background: "#15171c",
-          }}
-        >
-          <div style={{ maxWidth: 520, padding: 24 }}>
-            <strong>WebGPU unavailable.</strong>
-            <p>{error}</p>
-          </div>
-        </div>
       )}
     </div>
   );

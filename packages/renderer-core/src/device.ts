@@ -1,5 +1,3 @@
-import { resolveDeviceCaps, type GpuDeviceCaps, type GpuPowerPreference } from "./capabilities";
-
 export interface GpuDeviceInfo {
   adapter: GPUAdapter;
   device: GPUDevice;
@@ -9,7 +7,6 @@ export interface GpuDeviceInfo {
   description: string;
   features: string[];
   limits: Record<string, number>;
-  caps: GpuDeviceCaps;
 }
 
 export interface DeviceLostReport {
@@ -30,14 +27,12 @@ interface GpuDeviceCallbacks {
 
 interface RequestGpuDeviceOptions {
   callbacks?: GpuDeviceCallbacks;
-  /** Defaults to 'high-performance' — we always want the discrete GPU when present. */
-  powerPreference?: GpuPowerPreference;
 }
 
 // Bindings the renderer relies on above the spec's conservative device
 // defaults. We request them up to the adapter's ceiling so the granted device
 // has the headroom (e.g. animation and pose storage buffers, and model texture
-// arrays with a layer per distinct texture); caps reports what landed.
+// arrays with a layer per distinct texture); `limits` reports what landed.
 const REQUESTED_LIMIT_KEYS = [
   "maxStorageBufferBindingSize",
   "maxBufferSize",
@@ -51,12 +46,10 @@ export async function requestGpuDevice(
     throw new Error("WebGPU is required: navigator.gpu is not available in this browser.");
   }
   const { callbacks } = options;
-  const powerPreference: GpuPowerPreference = options.powerPreference ?? "high-performance";
   let adapter: GPUAdapter | null;
   try {
-    adapter = await navigator.gpu.requestAdapter(
-      powerPreference === "default" ? {} : { powerPreference },
-    );
+    // The discrete GPU whenever there is one.
+    adapter = await navigator.gpu.requestAdapter({ powerPreference: "high-performance" });
   } catch (error) {
     throw new Error(`WebGPU adapter request failed: ${messageOf(error)}`);
   }
@@ -89,11 +82,6 @@ export async function requestGpuDevice(
     description: info.description ?? "",
     features: Array.from(device.features).sort(),
     limits: numericLimits(device.limits),
-    caps: resolveDeviceCaps({
-      adapterLimits,
-      deviceFeatures: device.features,
-      powerPreference,
-    }),
   };
 }
 

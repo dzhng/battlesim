@@ -610,7 +610,13 @@ test("a missile striking armour sounds the strike and its explosion; tank rounds
   const strike = (kind: string, blast: boolean) => {
     const sink = new FakeSink();
     const frame = new SoundFrame(
-      { tickHz: HZ, presentation: AUDIO, smokeTimes: SMOKE, cookOff: COOK_OFF },
+      {
+        tickHz: HZ,
+        presentation: AUDIO,
+        smokeTimes: SMOKE,
+        cookOff: COOK_OFF,
+        catalog: gameSounds,
+      },
       sink,
     );
     const point = [0, 0, 1.5];
