@@ -29,6 +29,7 @@ var authored_scene_nodes: Dictionary = {}
 var authored_scene_by_family: Dictionary = {}
 var cut_dir := ""
 var cuts_saved := 0
+var saved_cut_paths: Dictionary = {}
 var capture_word_count := 0
 var capture_layout_valid := false
 var map_geometry_nodes: Dictionary = {}
@@ -517,7 +518,9 @@ func _save_cut() -> void:
 		return
 	var path := cut_dir.path_join("scene-%02d-shot-%02d.png" % [scene_index, shot_index])
 	if image.save_png(path) == OK:
-		cuts_saved += 1
+		if not saved_cut_paths.has(path):
+			saved_cut_paths[path] = true
+			cuts_saved += 1
 
 func _write_report() -> void:
 	if intervals.is_empty():
@@ -537,6 +540,9 @@ func _write_report() -> void:
 		semantic_publications += frames.size()
 		for frame in frames:
 			semantic_unit_samples += frame.units.size()
+	var expected_cuts := 0
+	for scene in scenes:
+		expected_cuts += scene.reel.shots.size()
 	var report := {
 		"schema": "godot-render-report/v1",
 		"identity": {"client": "godot", "renderer": ProjectSettings.get_setting("rendering/renderer/rendering_method", "unknown"), "viewport": [ProjectSettings.get_setting("display/window/size/viewport_width", 0), ProjectSettings.get_setting("display/window/size/viewport_height", 0)], "quality": "current-project-settings"},
@@ -551,6 +557,8 @@ func _write_report() -> void:
 		"fog_rendered_cells": fog_rendered_cells,
 		"proxy_field_used": proxy_field_used,
 		"cuts_saved": cuts_saved,
+		"expected_cuts": expected_cuts,
+		"named_cuts_complete": cuts_saved == expected_cuts,
 		"capture_valid": not capture_results.is_empty(),
 		"capture_scene_count": capture_results.size(),
 		"capture_comparison_ready": capture_results.size() == scenes.size(),
