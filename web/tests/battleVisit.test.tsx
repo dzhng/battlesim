@@ -47,6 +47,8 @@ test("Cancel discards admission even when its resolved continuation is already q
     </BrowserRouter>,
   );
   const cancel = await screen.findByRole("link", { name: "Cancel" });
+  // The loading cover shows before admission starts (its documents load first).
+  await vi.waitFor(() => expect(pending.input).not.toBeNull());
   const request = pending.input!.candidate("42");
   await act(async () => {
     pending.finish!({
@@ -75,6 +77,7 @@ test("successful ordinary admission publishes the exact address without returnin
     </BrowserRouter>,
   );
   await screen.findByRole("link", { name: "Cancel" });
+  await vi.waitFor(() => expect(pending.input).not.toBeNull());
   const request = pending.input!.candidate("9007199254740993");
   const bounds = [0, 0, 100, 100] as const;
   await act(async () => {
