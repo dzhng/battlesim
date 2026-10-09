@@ -46,13 +46,6 @@ export function metresPerPxAt(distance: number, fovY: number, heightPx: number):
 // renderer-core.
 export const FINITE_CAMERA_FAR_FALLBACK = 1e7;
 
-const WORLD_UP: Vec3 = [0, 0, 1];
-/** The up hint when the view looks along ±Z, where `WORLD_UP` would collapse
- *  lookAt's cross products (a top-down camera). */
-const TOP_DOWN_UP: Vec3 = [0, 1, 0];
-/** |forward · WORLD_UP| past which the view counts as top-down (about 87.4°). */
-const TOP_DOWN_DOT = 0.999;
-
 /** A `Mat4` (identity) in float32 storage: every camera and cascade matrix.
  *  `math` computes in double precision and each matrix rounds once as it is
  *  stored, exactly as the GPU uniform will hold it. */
@@ -61,7 +54,7 @@ export function createGpuMat4(): Mat4 {
 }
 
 const _view_eye = vec3.create();
-const _view_forward = vec3.create();
+const _view_up = vec3.create();
 const _viewProj_view = createGpuMat4();
 const _viewProj_projection = createGpuMat4();
 const _invViewProj_viewProj = createGpuMat4();
@@ -83,12 +76,15 @@ export function eyePosition(out: Vec3, p: Camera3DParams): Vec3 {
   );
 }
 
-/** World → eye space, right-handed, the camera looking down its −Z. */
+/** World → eye space, right-handed, the camera looking down its −Z. The up
+ *  hint is the orbit's own up (pitched back from +Z by the pitch), not world
+ *  +Z: it never lines up with the view, so the screen keeps the yaw's heading
+ *  at the top all the way to straight down instead of spinning near vertical. */
 export function viewMatrix(out: Mat4, p: Camera3DParams): Mat4 {
   eyePosition(_view_eye, p);
-  vec3.normalize(_view_forward, vec3.subtract(_view_forward, p.target, _view_eye));
-  const up = Math.abs(vec3.dot(_view_forward, WORLD_UP)) > TOP_DOWN_DOT ? TOP_DOWN_UP : WORLD_UP;
-  return mat4.lookAt(out, _view_eye, p.target, up);
+  const s = Math.sin(p.pitch);
+  vec3.set(_view_up, -s * Math.cos(p.yaw), -s * Math.sin(p.yaw), Math.cos(p.pitch));
+  return mat4.lookAt(out, _view_eye, p.target, _view_up);
 }
 
 export function projMatrix(out: Mat4, p: Camera3DParams): Mat4 {

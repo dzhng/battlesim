@@ -127,16 +127,21 @@ test("camera3d: matrices are deterministic for identical params", () => {
   assert.deepEqual(projMatrix(mat4.create(), CAM), projMatrix(mat4.create(), CAM));
 });
 
-test("camera3d: a top-down camera keeps world north at the top of the screen", () => {
-  // Straight down, the view's forward is parallel to +Z, so the up hint falls
-  // back to +Y: whatever the yaw, a point north of the target is screen-up.
+test("camera3d: tilting to top-down keeps the yaw's heading at the top of the screen", () => {
+  // Zooming out tilts the camera toward vertical; the map must not spin as it
+  // gets there. Whatever the yaw, the ground ahead of the camera stays
+  // screen-up at every pitch up to straight down.
   for (const yaw of [0, 0.7, 2.5, -1.9]) {
-    const top: Camera3DParams = { ...CAM, pitch: Math.PI / 2, yaw };
-    const [x, y, z] = top.target;
-    const north = project(top, [x, y + 20, z]).ndc;
-    const east = project(top, [x + 20, y, z]).ndc;
-    assert.ok(north[1] > 0.1 && Math.abs(north[0]) < 0.02, `yaw ${yaw}: north at ${north}`);
-    assert.ok(east[0] > 0.1 && Math.abs(east[1]) < 0.02, `yaw ${yaw}: east at ${east}`);
+    const ahead: Vec3 = [-Math.cos(yaw), -Math.sin(yaw), 0];
+    for (const pitch of [1.3, 1.5, Math.PI / 2 - 0.02, Math.PI / 2]) {
+      const cam: Camera3DParams = { ...CAM, pitch, yaw };
+      const [x, y, z] = cam.target;
+      const front = project(cam, [x + 20 * ahead[0], y + 20 * ahead[1], z]).ndc;
+      assert.ok(
+        front[1] > 0.01 && Math.abs(front[0]) < 1e-3,
+        `yaw ${yaw} pitch ${pitch}: ground ahead at ${front}`,
+      );
+    }
   }
 });
 
