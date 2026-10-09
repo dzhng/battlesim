@@ -1,20 +1,39 @@
 # Native rendering choices
 
-## Placeholder scope — 2026-09-30
+## User decisions — 2026-10-08
 
-The user requested a placeholder beginning with spikes. No engine or migration is
-approved. The three candidates separate native execution from an engine change:
-JavaScript/TypeGPU reuse, Rust wgpu orchestration, and Godot native presentation.
+- Mac-first, platform-neutral spike.
+- Godot versus the browser renderer first.
+- Full main-menu reel as the reference workload.
+- Graphics test is exposed in Settings for the current client only.
+- Report average FPS, 1% low, absolute minimum, maximum and a frame-time chart.
+- No hard performance threshold.
+- Same gameplay and visual target; engine-specific rendering is allowed.
+- Browser is the release baseline; Godot is experimental until broad parity.
+- Binding architecture is itself the first spike; no random bridge is accepted.
 
-Keep the Rust simulation as the authority and preserve the browser client during
-evaluation. Native JavaScript is the first renderer probe because it offers the
-largest potential reuse; that ordering does not select it as the winner.
+## Delegated decisions
 
-Window presentation gets its own feasibility verdict because an offscreen Node
-WebGPU example does not establish a shippable desktop host. Matched rendering
-workloads precede full-scene comparisons so omitted effects cannot masquerade as
-performance gains.
+- Candidate binding seams are compared before selection: direct native/GDExtension, offline replay/presentation capture and process boundary. The winner is the smallest seam that preserves fixed-tick authority, side-filtered bulk observations, replay/digest parity and clean lifecycle.
+- The live menu reel is not the timing driver. A canonical playback freezes its scene identities and camera data, ignores reduced-motion preferences and advances independently of render stalls.
+- The existing synthetic benchmark is preserved as a separate workload because its identity and reports are already part of the repository's contract.
 
-This is a provisional ladder, not a completed implementation spec. Shipping
-platforms and client maintenance budget remain open until the work is started.
-Record later decisions with their evidence and rejected alternatives.
+## Rejected or deferred
+
+- Pixel-level cross-engine screenshots: too costly for the agreed visual target.
+- A hard 2× or 25% performance gate: the verdict includes maintenance, startup, platform and visual evidence.
+- Full browser/Godot live side-by-side comparison: each client reports its own current run.
+- A general renderer backend abstraction before the spike proves a shared seam.
+- Native JavaScript WebGPU and Rust `wgpu` in the first comparison: follow-up probes only if Godot evidence makes the host question material.
+
+## Spike findings — 2026-10-09
+
+- Godot 4 is not installed on the target Mac and the workspace has no native
+  binding or Godot project. The first native pass therefore measures the
+  existing direct Rust concepts and offline replay seam before attempting a
+  live GDExtension window probe. This is a blocker for the live Godot artifact,
+  not a reason to invent an unmeasured bridge.
+- The existing `game-wasm::BattleHandle` already exposes the required seam
+  concepts: ordered commands, fixed stepping, side publication, digest,
+  replay and observation resync. Native work should reuse those simulation
+  owners rather than create a parallel authority.

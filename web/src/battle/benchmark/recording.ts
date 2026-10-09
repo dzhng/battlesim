@@ -34,6 +34,30 @@ export function summarize(values: readonly number[]): Summary | null {
   };
 }
 
+/** Frame-rate summary derived from displayed-frame intervals. */
+export interface FrameRateSummary {
+  average: number;
+  low1: number;
+  minimum: number;
+  maximum: number;
+}
+
+export function summarizeFrameRate(intervals: readonly number[]): FrameRateSummary | null {
+  const rates = intervals
+    .filter((ms) => Number.isFinite(ms) && ms > 0)
+    .map((ms) => 1000 / ms);
+  if (rates.length === 0) return null;
+  const sorted = [...rates].sort((a, b) => a - b);
+  const lowRank = Math.max(0, Math.ceil(sorted.length * 0.01) - 1);
+  const total = intervals.reduce((sum, ms) => sum + ms, 0);
+  return {
+    average: (1000 * rates.length) / total,
+    low1: sorted[lowRank],
+    minimum: sorted[0],
+    maximum: sorted[sorted.length - 1],
+  };
+}
+
 export interface FrameSample {
   /** End of the frame, from the start of timing. */
   elapsedMs: number;
@@ -148,6 +172,7 @@ export class BenchmarkRecording {
       const total = intervals.reduce((sum, ms) => sum + ms, 0);
       return {
         frameMs: summarize(intervals),
+        frameRate: summarizeFrameRate(intervals),
         cpuMs: summarize(frames.map((f) => f.cpuMs)),
         gpu: summarizeGpu(stats),
         averageFps: total > 0 ? (1000 * frames.length) / total : null,
