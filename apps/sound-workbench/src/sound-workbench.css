@@ -338,3 +338,21 @@
     flex: 1;
   }
 }
+
+.sw-drive {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px 20px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--sw-line);
+}
+.sw-drive .sw-slider {
+  flex: 1;
+  min-width: 220px;
+}
+.sw-drive .sw-check {
+  flex-direction: row;
+  align-items: center;
+  padding-bottom: 9px;
+}

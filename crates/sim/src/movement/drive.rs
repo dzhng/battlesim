@@ -401,8 +401,9 @@ pub fn final_facing(unit: &Unit) -> f64 {
 
 /// The yaw a hull ends at when `order` completes (D2): a right-drag's
 /// facing (Q9) where it can take it, else the way it travels along the
-/// route's last leg (held facing on a reverse, Q31). Wheels never pivot,
-/// so a wheeled vehicle ends facing its travel.
+/// route's last leg (held facing on a reverse, Q31). Wheels never pivot:
+/// driving forward they line up on the facing as far as they can
+/// ([`line_up_heading`]); once routed, the lead-in is that last leg.
 pub fn final_yaw(
     unit: &Unit,
     facing: Option<f64>,
@@ -414,8 +415,31 @@ pub fn final_yaw(
     if let Some(f) = facing.filter(|_| tracked || !unit.is_vehicle()) {
         return Some(f);
     }
+    if let Some(f) = facing.filter(|_| direction == MoveDirection::Forward) {
+        return line_up_heading(from, end, f);
+    }
     let leg = end - from;
     (leg.length() > 1e-6).then(|| travel(libm::atan2(leg.y, leg.x), gear_sign(direction)))
+}
+
+/// The heading a wheeled hull arriving from `from` can drive in to `end`
+/// on: the ordered `facing`, turned toward its approach by at most a right
+/// angle, so the last turn is an ordinary forward one, never a three-point
+/// turn. A facing straight back the way it came ends square to it.
+pub fn line_up_heading(from: V2, end: V2, facing: f64) -> Option<f64> {
+    let leg = end - from;
+    let approach = libm::atan2(leg.y, leg.x);
+    let off = wrap_angle(facing - approach)
+        .clamp(-std::f64::consts::FRAC_PI_2, std::f64::consts::FRAC_PI_2);
+    (leg.length() > 1e-6).then_some(approach + off)
+}
+
+/// Where a wheeled hull's straight lead-in to `end` on `heading` begins:
+/// far enough back that a hull of half-length `half`, turning onto it at
+/// `drive`'s radius, never has `end` inside its turning circle and has room
+/// to straighten.
+pub fn lead_in(end: V2, heading: f64, drive: &Drive, half: f64) -> V2 {
+    end - dir(heading) * (4.0 * (drive.radius_m + half))
 }
 
 /// A tracked vehicle at rest pivots toward its ordered facing (Q9), at its

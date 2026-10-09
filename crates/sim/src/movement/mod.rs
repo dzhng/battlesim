@@ -11,6 +11,7 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::sync::Arc;
 
+use contract::command::MoveDirection;
 use contract::ids::Tick;
 use contract::map::MoverClass;
 use contract::observation::MoveState;
@@ -677,6 +678,43 @@ fn plan_routes(
     for (id, request, plan) in ready {
         let unit = &mut units[id.0 as usize];
         take_route(ctx, unit, &sides[unit.side.index()], field, request, plan);
+        line_up(unit, sides[unit.side.index()].grid(ctx.world, ctx.authored));
+    }
+}
+
+/// A wheeled vehicle sent forward to a right-drag's facing drives in along
+/// it: its route ends on a straight lead-in on the heading it can line up on
+/// ([`drive::line_up_heading`]), long enough that the turn onto it is a
+/// forward one ([`drive::lead_in`]). Without room for it, the vehicle keeps
+/// the route it has.
+fn line_up(unit: &mut Unit, grid: &NavGrid) {
+    let Some(drive) = unit.mobility.drive.filter(|d| !d.tracked) else {
+        return;
+    };
+    let Some(order) = unit.orders.front().and_then(|o| o.movement()) else {
+        return;
+    };
+    let (Some(facing), MoveDirection::Forward) = (order.facing, order.direction) else {
+        return;
+    };
+    let Some(route) = unit
+        .route
+        .as_ref()
+        .filter(|r| r.last() == Some(&order.destination))
+    else {
+        return;
+    };
+    let end = order.destination;
+    let here = unit.position.xy();
+    let before = route.len().checked_sub(2).map_or(here, |i| route[i]);
+    let Some(heading) = drive::line_up_heading(before, end, facing) else {
+        return;
+    };
+    let lead = drive::lead_in(end, heading, &drive, unit.hull.map_or(0.0, |h| h.x));
+    let mut lined = route[..route.len() - 1].to_vec();
+    lined.extend([lead, end]);
+    if grid.placement_fits(lead, &unit.mobility) && grid.route_fits(here, &lined, &unit.mobility) {
+        unit.route = Some(lined);
     }
 }
 
@@ -830,7 +868,7 @@ fn may_advance(ctx: &MovementContext, unit: &mut Unit) -> bool {
 fn arrive(unit: &mut Unit) {
     if let Some(m) = unit.orders.front().and_then(|o| o.movement()) {
         // The right-drag's facing (Q9): a squad turns at once; tracks pivot
-        // at rest; wheels keep the way they came.
+        // at rest; wheels drove in along it as far as they could (`line_up`).
         match m.facing {
             Some(f) if !unit.is_vehicle() => unit.yaw = f,
             Some(f) if unit.mobility.drive.is_some_and(|d| d.tracked) => unit.turn_to = Some(f),

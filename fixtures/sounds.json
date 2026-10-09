@@ -431,6 +431,96 @@
       "path": "assets/third-party/audio/freesound-96634-ricochet-wood-wav.mp3",
       "sha256": "54f081f778e2f7d2416690ed5d72466bc81d2b8c681936a028597ce9bb758bba",
       "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login. CC-BY-4.0: credit CGEffex."
+    },
+    "freesound-530589": {
+      "label": "Footsteps_Boots_Gritty_Ground_(Gravel).wav",
+      "author": "Nox_Sound",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/people/Nox_Sound/sounds/530589/",
+      "path": "assets/third-party/audio/freesound-530589-boots-gritty-nox.mp3",
+      "sha256": "8c56533fb4e37d346bc6e0cace5b891b19bfd7634b91f58599a6d41d74e3725b",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login."
+    },
+    "freesound-521588": {
+      "label": "Hiking Boot Footsteps on Gravel",
+      "author": "Fission9",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/people/Fission9/sounds/521588/",
+      "path": "assets/third-party/audio/freesound-521588-boots-gravel-fission9.mp3",
+      "sha256": "085013ce436bc00838d28cf18bc90ac797c65db2aa49869f728c7dd10f3ded17",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login."
+    },
+    "freesound-556002": {
+      "label": "Footsteps_Mountain_Boots_Gravel_Mono.wav",
+      "author": "Nox_Sound",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/people/Nox_Sound/sounds/556002/",
+      "path": "assets/third-party/audio/freesound-556002-mountain-boots-gravel-nox.mp3",
+      "sha256": "0510a7626e5e4c7c87283c4cfb879530ac960af3767b0c3df947fe86eb715c64",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login."
+    },
+    "freesound-352870": {
+      "label": "Footsteps Dirt Gravel",
+      "author": "PotatokingXII",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/people/PotatokingXII/sounds/352870/",
+      "path": "assets/third-party/audio/freesound-352870-dirt-gravel-potatoking.mp3",
+      "sha256": "75dc7fc5cb4fe225eab27070e6b6b6771f8aa8ef00884b0028e13b767348b3a6",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login."
+    },
+    "freesound-637551": {
+      "label": "footsteps shoes sneakers dirt walk slow nice grit1.flac",
+      "author": "kyles",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/s/637551/",
+      "path": "assets/third-party/audio/freesound-637551-sneakers-dirt-kyles.mp3",
+      "sha256": "e651086f8735da217599a6bedb7fe2123e7a71161371ab0dff3ba064fe708318",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login."
+    },
+    "freesound-849062": {
+      "label": "tracks moving",
+      "author": "christerljung",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/people/christerljung/sounds/849062/",
+      "path": "assets/third-party/audio/freesound-849062-tracks-christerljung.mp3",
+      "sha256": "e3bcf56542892a0eb1f7097e394e7d3f9969d67097f2b3aa4d5d3bd06850a60b",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login."
+    },
+    "freesound-121531": {
+      "label": "tracked vehicle.wav",
+      "author": "cognito perceptu",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/people/cognito%20perceptu/sounds/121531/",
+      "path": "assets/third-party/audio/freesound-121531-tracks-cognito-tracked.mp3",
+      "sha256": "1492475dd5b0d2f344126b48976aa16f69c4450aab38fe6eccccfc2a955b59d3",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login."
+    },
+    "freesound-88422": {
+      "label": "construction equipment tracked.wav",
+      "author": "cognito perceptu",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/people/cognito%20perceptu/sounds/88422/",
+      "path": "assets/third-party/audio/freesound-88422-tracks-cognito-construction.mp3",
+      "sha256": "9c76adf93d6dd4988183d26a0d1c400a13b10019a365d5694c385ce9a1c91147",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login."
+    },
+    "freesound-438122": {
+      "label": "G15-26-Tanks Close Up.wav",
+      "author": "craigsmith",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/people/craigsmith/sounds/438122/",
+      "path": "assets/third-party/audio/freesound-438122-tracks-craigsmith-tanks-close.mp3",
+      "sha256": "61a0bbe4bd25da53ff2d224428042fdaa29dd11f8913eeb78058045a2d910891",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login."
+    },
+    "freesound-438120": {
+      "label": "G15-24-M-4 Squeaky Pass By.wav",
+      "author": "craigsmith",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/people/craigsmith/sounds/438120/",
+      "path": "assets/third-party/audio/freesound-438120-tracks-craigsmith-m4-squeaky.mp3",
+      "sha256": "0b6df2f8b199a55153c744446f863754dff7194483cb66808d770865e7e62d30",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login."
     }
   },
   "clips": {
@@ -3740,6 +3830,381 @@
       "frames": 77040,
       "loop": false,
       "notes": "A low boom and a steel crack, then a ricochet whine nine semitones down."
+    },
+    "footstep-boots-gritty-nox-1": {
+      "label": "Footsteps_Boots_Gritty_Ground_(Gravel).wav \u00b7 step 1",
+      "category": "footstep",
+      "role": "other",
+      "source": "freesound-530589",
+      "source_rate": 48000,
+      "source_frames": [101760, 117120],
+      "processing": "impact",
+      "url": "/audio/clips/footstep-boots-gritty-nox-1.wav",
+      "sha256": "18553c11a66401306123fe9307cada7b0730b2c309c798753d8f43e224064e39",
+      "sample_rate": 48000,
+      "frames": 15360,
+      "loop": false,
+      "notes": "Boots on gritty ground. One footfall, cut before the next."
+    },
+    "footstep-boots-gritty-nox-2": {
+      "label": "Footsteps_Boots_Gritty_Ground_(Gravel).wav \u00b7 step 2",
+      "category": "footstep",
+      "role": "other",
+      "source": "freesound-530589",
+      "source_rate": 48000,
+      "source_frames": [158400, 173760],
+      "processing": "impact",
+      "url": "/audio/clips/footstep-boots-gritty-nox-2.wav",
+      "sha256": "0d967bafc81a4348a0cdf66dbfe45b01b26406e744963c76b0f0dc4115108501",
+      "sample_rate": 48000,
+      "frames": 15360,
+      "loop": false,
+      "notes": "Boots on gritty ground. One footfall, cut before the next."
+    },
+    "footstep-boots-gritty-nox-3": {
+      "label": "Footsteps_Boots_Gritty_Ground_(Gravel).wav \u00b7 step 3",
+      "category": "footstep",
+      "role": "other",
+      "source": "freesound-530589",
+      "source_rate": 48000,
+      "source_frames": [303840, 319200],
+      "processing": "impact",
+      "url": "/audio/clips/footstep-boots-gritty-nox-3.wav",
+      "sha256": "8a7cad7080455c746f0151d16d87e96fcd455da67521a8094dfaa91776757ccc",
+      "sample_rate": 48000,
+      "frames": 15360,
+      "loop": false,
+      "notes": "Boots on gritty ground. One footfall, cut before the next."
+    },
+    "footstep-boots-gritty-nox-4": {
+      "label": "Footsteps_Boots_Gritty_Ground_(Gravel).wav \u00b7 step 4",
+      "category": "footstep",
+      "role": "other",
+      "source": "freesound-530589",
+      "source_rate": 48000,
+      "source_frames": [450720, 466080],
+      "processing": "impact",
+      "url": "/audio/clips/footstep-boots-gritty-nox-4.wav",
+      "sha256": "141bcb483ab8073fabbd94a47f8da4b0e3c861d34dd77a1aef24d4864c904718",
+      "sample_rate": 48000,
+      "frames": 15360,
+      "loop": false,
+      "notes": "Boots on gritty ground. One footfall, cut before the next."
+    },
+    "footstep-boots-gravel-fission9-1": {
+      "label": "Hiking Boot Footsteps on Gravel \u00b7 step 1",
+      "category": "footstep",
+      "role": "other",
+      "source": "freesound-521588",
+      "source_rate": 48000,
+      "source_frames": [3840, 19200],
+      "processing": "impact",
+      "url": "/audio/clips/footstep-boots-gravel-fission9-1.wav",
+      "sha256": "947646549d10c811fd4cad1680d327bdf72322667d30f6b695cbb0ae217d9ef1",
+      "sample_rate": 48000,
+      "frames": 15360,
+      "loop": false,
+      "notes": "Hiking boots on crunchy gravel, four isolated steps. One footfall, cut before the next."
+    },
+    "footstep-boots-gravel-fission9-2": {
+      "label": "Hiking Boot Footsteps on Gravel \u00b7 step 2",
+      "category": "footstep",
+      "role": "other",
+      "source": "freesound-521588",
+      "source_rate": 48000,
+      "source_frames": [40320, 55680],
+      "processing": "impact",
+      "url": "/audio/clips/footstep-boots-gravel-fission9-2.wav",
+      "sha256": "fe91ebc0f5804c14390e1ca4cd4df2af066d8bd873dc8b44aa03a29fc854c8cb",
+      "sample_rate": 48000,
+      "frames": 15360,
+      "loop": false,
+      "notes": "Hiking boots on crunchy gravel, four isolated steps. One footfall, cut before the next."
+    },
+    "footstep-boots-gravel-fission9-3": {
+      "label": "Hiking Boot Footsteps on Gravel \u00b7 step 3",
+      "category": "footstep",
+      "role": "other",
+      "source": "freesound-521588",
+      "source_rate": 48000,
+      "source_frames": [73920, 89280],
+      "processing": "impact",
+      "url": "/audio/clips/footstep-boots-gravel-fission9-3.wav",
+      "sha256": "868b207b70a6f866c16b5929199fc401d4f85291b00d4f3c2bfb68f4e4c80819",
+      "sample_rate": 48000,
+      "frames": 15360,
+      "loop": false,
+      "notes": "Hiking boots on crunchy gravel, four isolated steps. One footfall, cut before the next."
+    },
+    "footstep-boots-gravel-fission9-4": {
+      "label": "Hiking Boot Footsteps on Gravel \u00b7 step 4",
+      "category": "footstep",
+      "role": "other",
+      "source": "freesound-521588",
+      "source_rate": 48000,
+      "source_frames": [106080, 121440],
+      "processing": "impact",
+      "url": "/audio/clips/footstep-boots-gravel-fission9-4.wav",
+      "sha256": "8c28597b89aeb596d8531b11b5c177d13d18066f4065663346ed1c29abc2daab",
+      "sample_rate": 48000,
+      "frames": 15360,
+      "loop": false,
+      "notes": "Hiking boots on crunchy gravel, four isolated steps. One footfall, cut before the next."
+    },
+    "footstep-mountain-boots-gravel-nox-1": {
+      "label": "Footsteps_Mountain_Boots_Gravel_Mono.wav \u00b7 step 1",
+      "category": "footstep",
+      "role": "other",
+      "source": "freesound-556002",
+      "source_rate": 48000,
+      "source_frames": [1008000, 1023360],
+      "processing": "impact",
+      "url": "/audio/clips/footstep-mountain-boots-gravel-nox-1.wav",
+      "sha256": "9fc5c14ceb84834a6bddb1b54a76007881e7da1419ae6af5327567ed32e97e99",
+      "sample_rate": 48000,
+      "frames": 15360,
+      "loop": false,
+      "notes": "Mountain boots on gravel. One footfall, cut before the next."
+    },
+    "footstep-mountain-boots-gravel-nox-2": {
+      "label": "Footsteps_Mountain_Boots_Gravel_Mono.wav \u00b7 step 2",
+      "category": "footstep",
+      "role": "other",
+      "source": "freesound-556002",
+      "source_rate": 48000,
+      "source_frames": [1164480, 1179840],
+      "processing": "impact",
+      "url": "/audio/clips/footstep-mountain-boots-gravel-nox-2.wav",
+      "sha256": "83439db54ca70fe6b981919e3802cb0cd6d05003304ca339bc099b2725f8a00d",
+      "sample_rate": 48000,
+      "frames": 15360,
+      "loop": false,
+      "notes": "Mountain boots on gravel. One footfall, cut before the next."
+    },
+    "footstep-mountain-boots-gravel-nox-3": {
+      "label": "Footsteps_Mountain_Boots_Gravel_Mono.wav \u00b7 step 3",
+      "category": "footstep",
+      "role": "other",
+      "source": "freesound-556002",
+      "source_rate": 48000,
+      "source_frames": [1241280, 1256640],
+      "processing": "impact",
+      "url": "/audio/clips/footstep-mountain-boots-gravel-nox-3.wav",
+      "sha256": "0b03eb658418d791276b6169a25e768c770b42238f33ac019ecaf0c5a668009d",
+      "sample_rate": 48000,
+      "frames": 15360,
+      "loop": false,
+      "notes": "Mountain boots on gravel. One footfall, cut before the next."
+    },
+    "footstep-mountain-boots-gravel-nox-4": {
+      "label": "Footsteps_Mountain_Boots_Gravel_Mono.wav \u00b7 step 4",
+      "category": "footstep",
+      "role": "other",
+      "source": "freesound-556002",
+      "source_rate": 48000,
+      "source_frames": [1499520, 1514880],
+      "processing": "impact",
+      "url": "/audio/clips/footstep-mountain-boots-gravel-nox-4.wav",
+      "sha256": "1df9f0f27104720bd506c0480ca3c597230c5f4cb324ae633d179f94ef43b7e2",
+      "sample_rate": 48000,
+      "frames": 15360,
+      "loop": false,
+      "notes": "Mountain boots on gravel. One footfall, cut before the next."
+    },
+    "footstep-dirt-gravel-potatoking-1": {
+      "label": "Footsteps Dirt Gravel \u00b7 step 1",
+      "category": "footstep",
+      "role": "other",
+      "source": "freesound-352870",
+      "source_rate": 48000,
+      "source_frames": [270720, 286080],
+      "processing": "impact",
+      "url": "/audio/clips/footstep-dirt-gravel-potatoking-1.wav",
+      "sha256": "2f9a0c418020dff4409f076bee7e6b4a376300437cabcb7efc91adc55ad4807d",
+      "sample_rate": 48000,
+      "frames": 15360,
+      "loop": false,
+      "notes": "Walking on dirt and gravel; footwear not stated. One footfall, cut before the next."
+    },
+    "footstep-dirt-gravel-potatoking-2": {
+      "label": "Footsteps Dirt Gravel \u00b7 step 2",
+      "category": "footstep",
+      "role": "other",
+      "source": "freesound-352870",
+      "source_rate": 48000,
+      "source_frames": [420960, 436320],
+      "processing": "impact",
+      "url": "/audio/clips/footstep-dirt-gravel-potatoking-2.wav",
+      "sha256": "68ade72b25a436396a625adee1104df2663ab9881e984ba52c453a46551e091a",
+      "sample_rate": 48000,
+      "frames": 15360,
+      "loop": false,
+      "notes": "Walking on dirt and gravel; footwear not stated. One footfall, cut before the next."
+    },
+    "footstep-dirt-gravel-potatoking-3": {
+      "label": "Footsteps Dirt Gravel \u00b7 step 3",
+      "category": "footstep",
+      "role": "other",
+      "source": "freesound-352870",
+      "source_rate": 48000,
+      "source_frames": [494880, 510240],
+      "processing": "impact",
+      "url": "/audio/clips/footstep-dirt-gravel-potatoking-3.wav",
+      "sha256": "00189c4ad1cc617f9eb65e85cd191d044372f139f34170d52175818d9eaf2042",
+      "sample_rate": 48000,
+      "frames": 15360,
+      "loop": false,
+      "notes": "Walking on dirt and gravel; footwear not stated. One footfall, cut before the next."
+    },
+    "footstep-dirt-gravel-potatoking-4": {
+      "label": "Footsteps Dirt Gravel \u00b7 step 4",
+      "category": "footstep",
+      "role": "other",
+      "source": "freesound-352870",
+      "source_rate": 48000,
+      "source_frames": [808320, 823680],
+      "processing": "impact",
+      "url": "/audio/clips/footstep-dirt-gravel-potatoking-4.wav",
+      "sha256": "10b31aa222981375a9febf99195684b81cd5b7dc6fb28b047fdd8b98c8f3ed95",
+      "sample_rate": 48000,
+      "frames": 15360,
+      "loop": false,
+      "notes": "Walking on dirt and gravel; footwear not stated. One footfall, cut before the next."
+    },
+    "footstep-sneakers-dirt-kyles-1": {
+      "label": "footsteps shoes sneakers dirt walk slow nice grit1.flac \u00b7 step 1",
+      "category": "footstep",
+      "role": "other",
+      "source": "freesound-637551",
+      "source_rate": 48000,
+      "source_frames": [99360, 114720],
+      "processing": "impact",
+      "url": "/audio/clips/footstep-sneakers-dirt-kyles-1.wav",
+      "sha256": "596e051a8f7c71c951b91bcfdf326eb0da3a9436aabb6cc89318bbd37360a10c",
+      "sample_rate": 48000,
+      "frames": 15360,
+      "loop": false,
+      "notes": "Sneakers on gritty dirt, for comparison with boots. One footfall, cut before the next."
+    },
+    "footstep-sneakers-dirt-kyles-2": {
+      "label": "footsteps shoes sneakers dirt walk slow nice grit1.flac \u00b7 step 2",
+      "category": "footstep",
+      "role": "other",
+      "source": "freesound-637551",
+      "source_rate": 48000,
+      "source_frames": [139200, 154560],
+      "processing": "impact",
+      "url": "/audio/clips/footstep-sneakers-dirt-kyles-2.wav",
+      "sha256": "2d09358622662b5b518a089f6b5af572804da78d2ab25ae22db880420e5ed411",
+      "sample_rate": 48000,
+      "frames": 15360,
+      "loop": false,
+      "notes": "Sneakers on gritty dirt, for comparison with boots. One footfall, cut before the next."
+    },
+    "footstep-sneakers-dirt-kyles-3": {
+      "label": "footsteps shoes sneakers dirt walk slow nice grit1.flac \u00b7 step 3",
+      "category": "footstep",
+      "role": "other",
+      "source": "freesound-637551",
+      "source_rate": 48000,
+      "source_frames": [448320, 463680],
+      "processing": "impact",
+      "url": "/audio/clips/footstep-sneakers-dirt-kyles-3.wav",
+      "sha256": "4a2074e0506389aa09dcf394806c15c39e2f14d0dae353a4aa95ad8e77a977e8",
+      "sample_rate": 48000,
+      "frames": 15360,
+      "loop": false,
+      "notes": "Sneakers on gritty dirt, for comparison with boots. One footfall, cut before the next."
+    },
+    "footstep-sneakers-dirt-kyles-4": {
+      "label": "footsteps shoes sneakers dirt walk slow nice grit1.flac \u00b7 step 4",
+      "category": "footstep",
+      "role": "other",
+      "source": "freesound-637551",
+      "source_rate": 48000,
+      "source_frames": [496320, 511680],
+      "processing": "impact",
+      "url": "/audio/clips/footstep-sneakers-dirt-kyles-4.wav",
+      "sha256": "e0cec5700fdb36524d0456f015475255a358d3114ac9ee2863f6b96413219127",
+      "sample_rate": 48000,
+      "frames": 15360,
+      "loop": false,
+      "notes": "Sneakers on gritty dirt, for comparison with boots. One footfall, cut before the next."
+    },
+    "tracks-christerljung": {
+      "label": "tracks moving \u00b7 running loop",
+      "category": "tracks",
+      "role": "loop",
+      "source": "freesound-849062",
+      "source_rate": 44100,
+      "source_frames": [0, 132300],
+      "processing": "running-gear",
+      "url": "/audio/clips/tracks-christerljung.wav",
+      "sha256": "0a7a811bf53e546632b864a4460bfd267b9116ea81672ff2a7ed79d6603cc538",
+      "sample_rate": 48000,
+      "frames": 139200,
+      "loop": true,
+      "notes": "Tracks moving, like a bulldozer or tank; no engine to speak of. Its steadiest 3 s, crossfaded into a loop."
+    },
+    "tracks-cognito-tracked": {
+      "label": "tracked vehicle.wav \u00b7 running loop",
+      "category": "tracks",
+      "role": "loop",
+      "source": "freesound-121531",
+      "source_rate": 44100,
+      "source_frames": [110250, 242550],
+      "processing": "running-gear",
+      "url": "/audio/clips/tracks-cognito-tracked.wav",
+      "sha256": "4a175cf2f6a520bc50b66f11464e6e5fbb818678a08ff84f4807a0ce83d499cf",
+      "sample_rate": 48000,
+      "frames": 139200,
+      "loop": true,
+      "notes": "A tracked construction vehicle moving. Its steadiest 3 s, crossfaded into a loop."
+    },
+    "tracks-cognito-construction": {
+      "label": "construction equipment tracked.wav \u00b7 running loop",
+      "category": "tracks",
+      "role": "loop",
+      "source": "freesound-88422",
+      "source_rate": 44100,
+      "source_frames": [1455300, 1587600],
+      "processing": "running-gear",
+      "url": "/audio/clips/tracks-cognito-construction.wav",
+      "sha256": "1f8c18800edc26bb637f6ab0d159ef67e748c9923d65e73e72d537803df3a03c",
+      "sample_rate": 48000,
+      "frames": 139200,
+      "loop": true,
+      "notes": "Tracked construction equipment; the clattering stretch near its end. Its steadiest 3 s, crossfaded into a loop."
+    },
+    "tracks-craigsmith-tanks-close": {
+      "label": "G15-26-Tanks Close Up.wav \u00b7 running loop",
+      "category": "tracks",
+      "role": "loop",
+      "source": "freesound-438122",
+      "source_rate": 48000,
+      "source_frames": [4008000, 4152000],
+      "processing": "running-gear",
+      "url": "/audio/clips/tracks-craigsmith-tanks-close.wav",
+      "sha256": "2345016294fe7fb0bc57cdb65fe11a3d2173e0209c9c50fa35c086915db3483a",
+      "sample_rate": 48000,
+      "frames": 139200,
+      "loop": true,
+      "notes": "Hollywood optical effect (1930s-60s, USC transfer): tanks close up, slow moving. Its steadiest 3 s, crossfaded into a loop."
+    },
+    "tracks-craigsmith-m4-squeaky": {
+      "label": "G15-24-M-4 Squeaky Pass By.wav \u00b7 running loop",
+      "category": "tracks",
+      "role": "loop",
+      "source": "freesound-438120",
+      "source_rate": 48000,
+      "source_frames": [2400000, 2544000],
+      "processing": "running-gear",
+      "url": "/audio/clips/tracks-craigsmith-m4-squeaky.wav",
+      "sha256": "34ca619fce3fdf8044d42df5ee36870069bec5d1d9918493b08d43504c7799f0",
+      "sample_rate": 48000,
+      "frames": 139200,
+      "loop": true,
+      "notes": "Hollywood optical effect (1930s-60s, USC transfer): M-4 pass by, squeaky clacking treads. Its steadiest 3 s, crossfaded into a loop."
     }
   },
   "sounds": {
@@ -3929,10 +4394,10 @@
       "gain": 1,
       "loop": true
     },
-    "reverse_whine": {
-      "label": "Synth \u00b7 reverse whine",
+    "reverse_beep": {
+      "label": "Synth \u00b7 reverse beeper",
       "clips": [],
-      "synth": "reverse_whine",
+      "synth": "reverse_beep",
       "synth_gain": 1,
       "gain": 1,
       "loop": true
@@ -4909,6 +5374,121 @@
       "synth_gain": 0,
       "gain": 0.85,
       "loop": false
+    },
+    "recorded-footstep-boots-gritty-nox": {
+      "label": "Footstep \u00b7 Footsteps_Boots_Gritty_Ground_(Gravel).wav (Nox_Sound)",
+      "clips": [
+        "footstep-boots-gritty-nox-1",
+        "footstep-boots-gritty-nox-2",
+        "footstep-boots-gritty-nox-3",
+        "footstep-boots-gritty-nox-4"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 1,
+      "loop": false
+    },
+    "recorded-footstep-boots-gravel-fission9": {
+      "label": "Footstep \u00b7 Hiking Boot Footsteps on Gravel (Fission9)",
+      "clips": [
+        "footstep-boots-gravel-fission9-1",
+        "footstep-boots-gravel-fission9-2",
+        "footstep-boots-gravel-fission9-3",
+        "footstep-boots-gravel-fission9-4"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 1,
+      "loop": false
+    },
+    "recorded-footstep-mountain-boots-gravel-nox": {
+      "label": "Footstep \u00b7 Footsteps_Mountain_Boots_Gravel_Mono.wav (Nox_Sound)",
+      "clips": [
+        "footstep-mountain-boots-gravel-nox-1",
+        "footstep-mountain-boots-gravel-nox-2",
+        "footstep-mountain-boots-gravel-nox-3",
+        "footstep-mountain-boots-gravel-nox-4"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 1,
+      "loop": false
+    },
+    "recorded-footstep-dirt-gravel-potatoking": {
+      "label": "Footstep \u00b7 Footsteps Dirt Gravel (PotatokingXII)",
+      "clips": [
+        "footstep-dirt-gravel-potatoking-1",
+        "footstep-dirt-gravel-potatoking-2",
+        "footstep-dirt-gravel-potatoking-3",
+        "footstep-dirt-gravel-potatoking-4"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 1,
+      "loop": false
+    },
+    "recorded-footstep-sneakers-dirt-kyles": {
+      "label": "Footstep \u00b7 footsteps shoes sneakers dirt walk slow nice grit1.flac (kyles)",
+      "clips": [
+        "footstep-sneakers-dirt-kyles-1",
+        "footstep-sneakers-dirt-kyles-2",
+        "footstep-sneakers-dirt-kyles-3",
+        "footstep-sneakers-dirt-kyles-4"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 1,
+      "loop": false
+    },
+    "recorded-tracks-christerljung": {
+      "label": "Tracks \u00b7 tracks moving (christerljung)",
+      "clips": [
+        "tracks-christerljung"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 1,
+      "loop": true
+    },
+    "recorded-tracks-cognito-tracked": {
+      "label": "Tracks \u00b7 tracked vehicle.wav (cognito perceptu)",
+      "clips": [
+        "tracks-cognito-tracked"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 1,
+      "loop": true
+    },
+    "recorded-tracks-cognito-construction": {
+      "label": "Tracks \u00b7 construction equipment tracked.wav (cognito perceptu)",
+      "clips": [
+        "tracks-cognito-construction"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 1,
+      "loop": true
+    },
+    "recorded-tracks-craigsmith-tanks-close": {
+      "label": "Tracks \u00b7 G15-26-Tanks Close Up.wav (craigsmith)",
+      "clips": [
+        "tracks-craigsmith-tanks-close"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 1,
+      "loop": true
+    },
+    "recorded-tracks-craigsmith-m4-squeaky": {
+      "label": "Tracks \u00b7 G15-24-M-4 Squeaky Pass By.wav (craigsmith)",
+      "clips": [
+        "tracks-craigsmith-m4-squeaky"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 1,
+      "loop": true
     }
   },
   "defaults": {
@@ -4979,6 +5559,8 @@
     "ricochet": "ricochet-bullet",
     "explosion": "recorded-explosion",
     "explosion_far": "recorded-explosion",
-    "motor": "recorded-motor"
+    "motor": "recorded-motor",
+    "footstep": "recorded-footstep-boots-gravel-fission9",
+    "tracks": "recorded-tracks-craigsmith-tanks-close"
   }
 }

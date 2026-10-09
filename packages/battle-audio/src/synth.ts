@@ -446,14 +446,22 @@ export const SOUNDS: Record<string, Maker> = {
     for (let i = 0; i < n; i++) out[i] += 0.5 * gear[i];
     return toPeak(out);
   }),
-  reverse_whine: looped((sr) => {
+  reverse_beep: looped((sr) => {
+    // A back-up alarm: a bright 1.1 kHz tone, half a second on, half off,
+    // its edges ramped over 5 ms so it beeps rather than clicks.
     const n = Math.round(1 * sr);
     const out = new Float32Array(n);
+    const beep = 0.5;
+    const edge = 0.005;
     for (let i = 0; i < n; i++) {
       const t = i / sr;
+      if (t >= beep) break;
+      const env = Math.min(1, t / edge, (beep - t) / edge);
       out[i] =
-        (Math.sin(TAU * 720 * t) + 0.4 * Math.sin(TAU * 1440 * t)) *
-        (0.7 + 0.3 * Math.sin(TAU * 4 * t));
+        env *
+        (Math.sin(TAU * 1100 * t) +
+          0.25 * Math.sin(TAU * 2200 * t) +
+          0.3 * Math.sin(TAU * 3300 * t));
     }
     return toPeak(out);
   }),

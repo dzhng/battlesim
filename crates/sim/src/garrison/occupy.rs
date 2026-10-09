@@ -662,6 +662,7 @@ fn gather(
                 goal: [at.x, at.y],
                 placed: proof.stable && proof.facings[i].is_some(),
                 facing: proof.facings[i].unwrap_or(u.yaw),
+                spots: vec![],
             }
         })
         .collect();

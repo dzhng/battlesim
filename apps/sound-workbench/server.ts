@@ -52,6 +52,7 @@ interface Inputs {
   texts: string[];
   catalog: SoundCatalog;
   audio: AudioPresentation;
+  runMps: number;
   weapons: Snapshot["weapons"];
   media: [string, string][];
   revision: string;
@@ -102,6 +103,7 @@ export class SoundWorkbenchStore {
       texts,
       catalog,
       audio,
+      runMps: game.presentation.pose.gait.run_mps,
       // Each row's lineage only: what it inherits a firing choice from.
       weapons: Object.fromEntries(
         Object.entries(game.weapons as Record<string, { extends?: string }>).map(([kind, row]) => [
@@ -121,6 +123,8 @@ export class SoundWorkbenchStore {
       weapons: input.weapons,
       firing: input.audio.shots,
       vehicles: input.audio.vehicles,
+      footsteps: input.audio.footsteps,
+      runMps: input.runMps,
       // A glance is a contact too: each round may choose its ricochet.
       materials: [...Object.keys(input.audio.impacts), GLANCE],
     };

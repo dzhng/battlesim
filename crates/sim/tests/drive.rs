@@ -158,7 +158,7 @@ fn a_reverse_order_repeats_from_its_seed_and_changes_the_digest() {
 }
 
 /// A seen enemy vehicle's reverse is as plain as its position: the observing
-/// side's identified entry carries `reversing` (the reverse whine's cue).
+/// side's identified entry carries `reversing` (the reverse beeper's cue).
 #[test]
 fn a_seen_enemy_reversing_is_published_to_the_observer() {
     let setup: ScenarioDefinition = serde_json::from_value(json!({

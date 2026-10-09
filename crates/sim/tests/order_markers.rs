@@ -7,7 +7,7 @@ use contract::observation::{MoveState, OwnUnit};
 use contract::scenario::ScenarioDefinition;
 use serde_json::{json, Value};
 use sim::battle::Battle;
-use sim::math::wrap_angle;
+use sim::math::{v2, wrap_angle};
 use sim::publication::Publisher;
 
 fn rules() -> Value {
@@ -159,7 +159,7 @@ fn a_squads_published_spots_and_cover_are_its_soldiers_resolved_ones() {
 }
 
 #[test]
-fn a_right_drag_facing_is_published_and_kept_by_a_squad_and_a_tank_but_not_by_wheels() {
+fn a_right_drag_facing_is_published_and_kept_by_a_squad_a_tank_and_wheels_driving_in_along_it() {
     let north = std::f64::consts::FRAC_PI_2;
     let s = setup(
         [200.0, 200.0],
@@ -180,13 +180,14 @@ fn a_right_drag_facing_is_published_and_kept_by_a_squad_and_a_tank_but_not_by_wh
     b.step();
     assert!((own(&b, 0).final_facing - north).abs() < 1e-9, "squad");
     assert!((own(&b, 1).final_facing - north).abs() < 1e-9, "test_tank");
-    // Wheels never pivot: the jeep's marker shows the way it will come in.
     assert!(
-        wrap_angle(own(&b, 2).final_facing).abs() < 0.05,
-        "test_jeep"
+        wrap_angle(own(&b, 2).final_facing - north).abs() < 1e-6,
+        "the jeep's marker shows the heading it lines up on"
     );
+    let mut reversed = false;
     for _ in 0..40 * 30 {
         b.step();
+        reversed |= b.unit(UnitId(2)).unwrap().reversing;
     }
     let yaw = |id: u32| b.unit(UnitId(id)).unwrap().yaw;
     assert!(
@@ -197,13 +198,66 @@ fn a_right_drag_facing_is_published_and_kept_by_a_squad_and_a_tank_but_not_by_wh
         wrap_angle(yaw(1) - north).abs() < 1e-6,
         "the tank pivoted to it"
     );
-    assert!(wrap_angle(yaw(2)).abs() < 0.1, "the jeep kept its heading");
-    for id in 0..3 {
-        assert!(
-            (own(&b, id).final_facing - yaw(id)).abs() < 1e-9,
-            "at rest the marker is the unit's own facing"
-        );
+    let jeep = b.unit(UnitId(2)).unwrap();
+    assert!(
+        (jeep.position.xy() - v2(100.0, 160.0)).length() < 3.0,
+        "the jeep reached its spot: {:?} yaw {} state {:?} route {:?}",
+        jeep.position,
+        jeep.yaw,
+        jeep.state,
+        jeep.route
+    );
+    assert!(
+        wrap_angle(yaw(2) - north).abs() < 0.35,
+        "the jeep drove in facing the drag: {}",
+        yaw(2)
+    );
+    assert!(!reversed, "lining up never backs up");
+}
+
+/// A wheeled hull lines up as near the drag as a forward turn allows: a
+/// facing straight back the way it came ends square to its approach, never
+/// turned round by backing and filling; with no room for the lead-in it
+/// keeps the way it came.
+#[test]
+fn wheels_line_up_only_as_far_as_driving_forward_allows() {
+    let north = std::f64::consts::FRAC_PI_2;
+    let west = std::f64::consts::PI;
+    let s = setup(
+        [200.0, 200.0],
+        json!([]),
+        json!([
+            { "side": "blue", "kind": "test_jeep", "position": [40, 100], "yaw": 0, "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_jeep", "position": [40, 30], "yaw": 0, "engagement": "return_fire_only" },
+        ]),
+        json!([
+            mv(1, "blue", 0, [120.0, 100.0], json!({ "facing": west })),
+            // The lead-in would start off the map's southern edge.
+            mv(1, "blue", 1, [120.0, 6.0], json!({ "facing": north })),
+        ]),
+    );
+    let mut b = Battle::new(&s, 2);
+    let mut reversed = [false; 2];
+    for _ in 0..40 * 30 {
+        b.step();
+        for (id, reversed) in reversed.iter_mut().enumerate() {
+            *reversed |= b.unit(UnitId(id as u32)).unwrap().reversing;
+        }
     }
+    let unit = |id: u32| b.unit(UnitId(id)).unwrap();
+    assert!((unit(0).position.xy() - v2(120.0, 100.0)).length() < 3.0);
+    assert!(
+        (wrap_angle(unit(0).yaw).abs() - std::f64::consts::FRAC_PI_2).abs() < 0.35,
+        "square to its approach, not turned round: {}",
+        unit(0).yaw
+    );
+    assert!((unit(1).position.xy() - v2(120.0, 6.0)).length() < 3.0);
+    assert!(
+        wrap_angle(unit(1).yaw - north).abs() > 0.5,
+        "no room to line up: it keeps the way it came, {}",
+        unit(1).yaw
+    );
+    assert_eq!(reversed, [false; 2], "lining up never backs up");
 }
 
 #[test]

@@ -95,7 +95,7 @@ export interface OwnUnitView {
   /** Which way the current move drives (Q31); null without a move. */
   direction: MoveDirection | null;
   /** Driving backwards this tick: a reverse move or a three-point turn's
-   *  reversing leg (the reverse whine's cue). */
+   *  reversing leg (the reverse beeper's cue). */
   reversing: boolean;
   state: string;
   /** The friendly unit this one waits for. */
@@ -346,7 +346,7 @@ export interface IdentifiedView {
   memberLeans: (MemberLeanView | null)[];
   /** Every mount's pose while identified. */
   weaponPoses: WeaponPoseView[];
-  /** Driving backwards this tick (a seen vehicle's reverse whine). */
+  /** Driving backwards this tick (a seen vehicle's reverse beeper). */
   reversing: boolean;
 }
 

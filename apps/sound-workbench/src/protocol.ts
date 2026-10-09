@@ -12,6 +12,10 @@ export interface Snapshot {
   firing: AudioPresentation["shots"];
   /** Each vehicle class's loops (`presentation.audio.vehicles`), read only here. */
   vehicles: AudioPresentation["vehicles"];
+  /** A soldier's footstep and stride (`presentation.audio.footsteps`), read only here. */
+  footsteps: AudioPresentation["footsteps"];
+  /** A soldier's running pace (`presentation.pose.gait.run_mps`). */
+  runMps: number;
   materials: string[];
 }
 export interface Draft {
