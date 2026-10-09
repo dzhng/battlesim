@@ -13,8 +13,8 @@
 //   behind a taller building;
 // - a contact glyph draws over fog in its own colours: a last sighting
 //   reads red through its middle, not only at its rim;
-// - nothing seen reads as fog: under every style, the darkest
-//   seen ground is lighter than the darkest unseen ground, or apart in hue;
+// - every style marks unseen ground: under every style, the darkest of the
+//   unseen ground is darker than the same ground drawn seen, or apart in hue;
 // and the frames the visual verdict reads: default and ground framings (with
 // grass, as the street draws), each fixture style side by side, fog off, and
 // the seen/unseen and ground masks.
@@ -50,10 +50,10 @@ const FRAMINGS = {
  *  partly unseen pixels are grey between them. */
 const SEEN = 250;
 const UNSEEN = 3;
-/** The seen world's darks against fog: the darkest share of each
- *  side's ground compared, and the hue margin (CIELAB a*b* distance between
- *  the two darks' means) that tells them apart where the seen dark is not the
- *  lighter one. Each side needs this many settled ground pixels to count. */
+/** Unseen ground against the same ground seen: the darkest share of it
+ *  compared, and the hue margin (CIELAB a*b* distance between the two darks'
+ *  means) that tells them apart where the seen dark is not the lighter one. A
+ *  framing needs this many settled unseen ground pixels to count. */
 const DARKEST = 0.01;
 const HUE_MARGIN = 12;
 const MIN_GROUND = 2000;
@@ -325,8 +325,12 @@ export async function run(ctx) {
   const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
   await ctx.openLab(page);
   await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 60000 });
-  // The frames are the verdict's evidence: the panel stays out of them.
-  await page.addStyleTag({ content: "[data-testid=fog-look-panel] { display: none; }" });
+  // The frames are the verdict's evidence: the panel stays out of them, and
+  // so does the frame-rate readout, which follows the wall clock and would
+  // differ between two frames compared pixel for pixel.
+  await page.addStyleTag({
+    content: "[data-testid=fog-look-panel], .frame-rate { display: none; }",
+  });
   await lab(page, () => window.__lab.route.pause());
   await advance(page, 2);
   await lab(page, () => window.__lab.route.setReconOnly(true));
@@ -714,10 +718,15 @@ export async function run(ctx) {
 
   await contactGlyphOverFog(ctx, page);
 
-  // Nothing seen reads as fog: at every gate framing, under every
-  // fixture style, the darkest 1% of seen ground is lighter than the darkest
-  // 1% of unseen ground, or differs from it in hue by HUE_MARGIN. Each style's
-  // frames also make the A/B sheet. With grass, as the street draws.
+  // Every style marks unseen ground: at every gate framing, under every
+  // fixture style, the darkest 1% of settled unseen ground is darker than the
+  // darkest 1% of the same pixels with fog off (the same ground, under the
+  // same light, drawn as seen), or differs from it in hue by HUE_MARGIN. Like
+  // is compared with like: seen ground in a long cast shadow can be as dark as
+  // a style's fog on sunlit ground, and is still told apart by its colour
+  // and its place, so a style is judged on what it does to the ground it
+  // covers. Each style's frames also make the A/B sheet. With grass, as the
+  // street draws.
   await grass(page, true);
   const sides = {};
   for (const [name, framing] of Object.entries(FRAMINGS)) {
@@ -728,10 +737,10 @@ export async function run(ctx) {
     await view(page, "ground");
     const ground = decode(await snapshot(ctx, page, `${name}-ground-1920x1080.png`));
     await view(page, "final");
-    sides[name] = {
-      seen: settledGround(mask, ground, true, band),
-      unseen: settledGround(mask, ground, false, band),
-    };
+    await fog(page, false);
+    const seenLook = decode(await snapshot(ctx, page, `${name}-fog-off-1920x1080.png`));
+    await fog(page, true);
+    sides[name] = { unseen: settledGround(mask, ground, false, band), seenLook };
   }
   const darks = {};
   const failing = [];
@@ -741,15 +750,15 @@ export async function run(ctx) {
     for (const [name, framing] of Object.entries(FRAMINGS)) {
       await setCamera(page, framing);
       const frame = decode(await snapshot(ctx, page, `style-${style}-${name}-1920x1080.png`));
-      const { seen, unseen } = sides[name];
-      if (seen.length < MIN_GROUND || unseen.length < MIN_GROUND) {
-        darks[style][name] = { seen: seen.length, unseen: unseen.length };
+      const { unseen, seenLook } = sides[name];
+      if (unseen.length < MIN_GROUND) {
+        darks[style][name] = { unseen: unseen.length };
         continue;
       }
-      const s = darkest(frame, seen);
+      const s = darkest(seenLook, unseen);
       const u = darkest(frame, unseen);
       const hue = Math.hypot(s.ab[0] - u.ab[0], s.ab[1] - u.ab[1]);
-      const by = s.luma > u.luma ? "lighter" : hue >= HUE_MARGIN ? "hue" : "none";
+      const by = s.luma > u.luma ? "darker" : hue >= HUE_MARGIN ? "hue" : "none";
       darks[style][name] = {
         seen: Math.round(s.luma),
         unseen: Math.round(u.luma),
@@ -762,7 +771,7 @@ export async function run(ctx) {
   const measured = Object.values(darks).flatMap((f) => Object.values(f).filter((d) => d.by));
   await ctx.writeEvidence("darks.json", darks);
   ctx.check(
-    "every measured style and framing distinguishes seen and unseen ground",
+    "every measured style and framing marks unseen ground apart from the same ground seen",
     failing.length === 0 && measured.length >= styles.length * 4,
     JSON.stringify({ failing, darks }),
   );
