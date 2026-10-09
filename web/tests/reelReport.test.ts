@@ -51,7 +51,6 @@ test("exports a frozen workload identity and host capture metadata", () => {
     plateComposition: "standalone_center",
     sceneIds: ["market-town", "paris-corner"],
   });
-  expect(report.canonical.sceneIds).toEqual(["market-town", "paris-corner"]);
   expect(report.identity).toMatchObject({
     userAgent: expect.any(String),
     viewport: expect.any(Object),

@@ -96,6 +96,8 @@ function downloadReelEvidence(report: ReelReport): void {
   const link = document.createElement("a");
   link.href = url;
   link.download = `graphics-test-${report.canonical.fingerprint}.json`;
+  document.body.appendChild(link);
   link.click();
-  URL.revokeObjectURL(url);
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
 }
