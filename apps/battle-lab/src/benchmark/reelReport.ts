@@ -27,8 +27,24 @@ export function createReelReport(results: readonly ReelResult[], interruption?: 
     workload: { id: MENU_REEL_WORKLOAD.id, fingerprint: menuReelFingerprint(), scene: r.scene.map, map: r.scene.map, encounter: r.scene.encounter, seed: r.scene.seed },
     tickHz: r.tickHz, warmTick: r.startTick, side: "blue", layout: r.layout, samples: r.capture, frames: r.frames,
   }));
+  const host = typeof navigator === "undefined" ? null : navigator;
+  const viewport = typeof window === "undefined" ? null : { width: window.innerWidth, height: window.innerHeight, dpr: window.devicePixelRatio };
   return {
     kind: "graphics-test" as const,
+    canonical: {
+      workloadId: MENU_REEL_WORKLOAD.id,
+      workloadVersion: MENU_REEL_WORKLOAD.version,
+      fingerprint: menuReelFingerprint(),
+      subjectTrackingLagSeconds: 0.5,
+      plateComposition: "standalone_center" as const,
+      sceneIds: MENU_REEL_WORKLOAD.scenes.map((scene) => scene.map),
+    },
+    identity: {
+      userAgent: host?.userAgent ?? "unknown",
+      viewport,
+      dpr: viewport?.dpr ?? 1,
+      adapters: [...new Set(results.map((result) => result.adapter))],
+    },
     capture: {
       client: "browser" as const,
       build: APP_COMMIT,

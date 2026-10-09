@@ -29,10 +29,16 @@ var cut_dir := ""
 var cuts_saved := 0
 var capture_word_count := 0
 var capture_layout_valid := false
+var map_geometry_counts: Dictionary = {}
+var proxy_field_used := false
+var startup_started_usec := 0
+var startup_ms := 0.0
+var semantic_decode_ms := 0.0
 var semantic_results: Dictionary = {}
 var unit_nodes: Array[Node3D] = []
 
 func _ready() -> void:
+	startup_started_usec = Time.get_ticks_usec()
 	var configured := OS.get_environment("GODOT_REEL_SOURCE")
 	source_path = configured if not configured.is_empty() else ProjectSettings.globalize_path(DEFAULT_SOURCE)
 	var file := FileAccess.open(source_path, FileAccess.READ)
@@ -51,7 +57,14 @@ func _ready() -> void:
 	_decode_semantic_captures()
 	cut_dir = OS.get_environment("GODOT_REEL_CUTS")
 	_build_world()
+	startup_ms = float(Time.get_ticks_usec() - startup_started_usec) / 1000.0
 	started = true
+	if OS.get_environment("GODOT_EXIT_AFTER_READY") == "1":
+		call_deferred("_exit_after_ready")
+
+func _exit_after_ready() -> void:
+	print(JSON.stringify({"map_geometry": map_geometry_counts, "semantic_scenes": semantic_results.size()}))
+	get_tree().quit()
 
 func _load_presentation_captures() -> void:
 	var configured := OS.get_environment("GODOT_PRESENTATION_CAPTURE")
@@ -85,6 +98,7 @@ func _consume_capture_words() -> void:
 				capture_word_count += 1
 
 func _decode_semantic_captures() -> void:
+	var started_usec := Time.get_ticks_usec()
 	for scene_name in capture_results:
 		var capture_result: Dictionary = capture_results[scene_name]
 		var baselines: Array = []
@@ -103,6 +117,7 @@ func _decode_semantic_captures() -> void:
 			baselines = decoded.baselines
 			frames.append({"tick": sample.tick, "units": decoded.units})
 		semantic_results[scene_name] = frames
+	semantic_decode_ms = float(Time.get_ticks_usec() - started_usec) / 1000.0
 
 func _build_world() -> void:
 	var environment := WorldEnvironment.new()
@@ -120,6 +135,7 @@ func _build_world() -> void:
 	add_child(sun)
 	camera = Camera3D.new()
 	add_child(camera)
+	_build_map_geometry()
 	var unit_holder := Node3D.new()
 	unit_holder.name = "ObservedUnits"
 	add_child(unit_holder)
@@ -150,6 +166,108 @@ func _build_world() -> void:
 			authored_asset_loaded = true
 			return
 	_build_proxy_field()
+
+func _build_map_geometry() -> void:
+	var directory := OS.get_environment("GODOT_AUTHORED_MAP_DIR")
+	if directory.is_empty():
+		return
+	var prop_limit := int(OS.get_environment("GODOT_MAP_PROP_LIMIT"))
+	if prop_limit <= 0:
+		prop_limit = 512
+	var building_limit := int(OS.get_environment("GODOT_MAP_BUILDING_LIMIT"))
+	if building_limit <= 0:
+		building_limit = 512
+	var road_limit := int(OS.get_environment("GODOT_MAP_ROAD_LIMIT"))
+	if road_limit <= 0:
+		road_limit = 1000
+	for scene in scenes:
+		var map_name := String(scene.map)
+		var map_file := FileAccess.open(directory.path_join(map_name).path_join("map.json"), FileAccess.READ)
+		if map_file == null:
+			continue
+		var map = JSON.parse_string(map_file.get_as_text())
+		if typeof(map) != TYPE_DICTIONARY:
+			continue
+		var holder := Node3D.new()
+		holder.name = "MapGeometry_%s" % map_name
+		holder.visible = map_name == String(scenes[0].map)
+		add_child(holder)
+		var counts := {"terrain": 0, "roads": 0, "props": 0, "buildings": 0}
+		var size: Array = map.get("size", [100.0, 100.0])
+		var ground := MeshInstance3D.new()
+		var ground_mesh := PlaneMesh.new()
+		ground_mesh.size = Vector2(float(size[0]), float(size[1]))
+		var ground_material := StandardMaterial3D.new()
+		ground_material.albedo_color = Color("43564a") if String(map.get("regional_family", "")) == "china" else Color("55585b")
+		ground_mesh.material = ground_material
+		ground.mesh = ground_mesh
+		ground.position = Vector3(float(size[0]) * 0.5, -0.08, float(size[1]) * 0.5)
+		holder.add_child(ground)
+		counts.terrain = 1
+		for surface in map.get("surfaces", []):
+			if typeof(surface) != TYPE_DICTIONARY or typeof(surface.get("shape")) != TYPE_DICTIONARY:
+				continue
+			var shape: Dictionary = surface.shape
+			if shape.get("kind") != "stroke" or typeof(shape.get("points")) != TYPE_ARRAY:
+				continue
+			var points: Array = shape.points
+			for i in range(min(max(0, points.size() - 1), road_limit - counts.roads)):
+				var a: Array = points[i]
+				var b: Array = points[i + 1]
+				var start := Vector2(float(a[0]), float(a[1]))
+				var end := Vector2(float(b[0]), float(b[1]))
+				var length := start.distance_to(end)
+				if length <= 0.01:
+					continue
+				var road := MeshInstance3D.new()
+				var road_mesh := BoxMesh.new()
+				road_mesh.size = Vector3(length, 0.035, float(shape.get("width_m", 8.0)))
+				var road_material := StandardMaterial3D.new()
+				road_material.albedo_color = Color("252a2d")
+				road_mesh.material = road_material
+				road.mesh = road_mesh
+				road.position = Vector3((start.x + end.x) * 0.5, 0.0, (start.y + end.y) * 0.5)
+				road.rotation.y = -atan2(end.y - start.y, end.x - start.x)
+				holder.add_child(road)
+				counts.roads += 1
+		for building in map.get("buildings", []):
+			if counts.buildings >= building_limit:
+				break
+			if typeof(building) != TYPE_DICTIONARY:
+				continue
+			var frame: Dictionary = building.get("frame", {})
+			var building_node := MeshInstance3D.new()
+			var building_mesh := BoxMesh.new()
+			building_mesh.size = Vector3(18.0, 8.0, 18.0)
+			var building_material := StandardMaterial3D.new()
+			building_material.albedo_color = Color("8b8b83") if counts.buildings % 2 == 0 else Color("6f7377")
+			building_mesh.material = building_material
+			building_node.mesh = building_mesh
+			var translation: Array = frame.get("translation", [0.0, 0.0, 0.0])
+			building_node.position = Vector3(float(translation[0]), 4.0 + float(translation[2]), float(translation[1]))
+			building_node.rotation.y = float(frame.get("yaw", 0.0))
+			holder.add_child(building_node)
+			counts.buildings += 1
+		for prop in map.get("props", []):
+			if counts.props >= prop_limit or typeof(prop) != TYPE_DICTIONARY:
+				break
+			var center: Array = prop.get("center", [0.0, 0.0])
+			var half: Array = prop.get("half_extents", [1.0, 1.0, 0.5])
+			var prop_node := MeshInstance3D.new()
+			var prop_mesh := BoxMesh.new()
+			prop_mesh.size = Vector3(max(0.2, float(half[0]) * 2.0), max(0.2, float(half[2]) * 2.0), max(0.2, float(half[1]) * 2.0))
+			var prop_material := StandardMaterial3D.new()
+			prop_material.albedo_color = Color("7d6a50")
+			prop_mesh.material = prop_material
+			prop_node.mesh = prop_mesh
+			prop_node.position = Vector3(float(center[0]), float(half[2]), float(center[1]))
+			prop_node.rotation.y = float(prop.get("yaw", 0.0))
+			holder.add_child(prop_node)
+			counts.props += 1
+		counts["building_limit"] = building_limit
+		counts["prop_limit"] = prop_limit
+		counts["road_limit"] = road_limit
+		map_geometry_counts[map_name] = counts
 
 func _build_authored_maps(authored: PackedScene) -> bool:
 	var directory := OS.get_environment("GODOT_AUTHORED_MAP_DIR")
@@ -352,13 +470,16 @@ func _write_report() -> void:
 			semantic_unit_samples += frame.units.size()
 	var report := {
 		"schema": "godot-render-report/v1",
+		"identity": {"client": "godot", "renderer": ProjectSettings.get_setting("rendering/renderer/rendering_method", "unknown"), "viewport": [ProjectSettings.get_setting("display/window/size/viewport_width", 0), ProjectSettings.get_setting("display/window/size/viewport_height", 0)], "quality": "current-project-settings"},
 		"candidate": "godot-menu-reel-camera-probe",
 		"comparison_ready": false,
-		"comparison_blocker": "authored map assets are not loaded" if not authored_asset_loaded else "authored map composition is a capped kit placement; terrain, props and unit publications are not rendered",
+		"comparison_blocker": "authored model catalog is not loaded; map geometry and sampled units are rendered" if not authored_asset_loaded else "authored materials and full catalog are incomplete; map geometry and sampled unit publications are rendered",
 		"authored_asset_loaded": authored_asset_loaded,
 		"authored_building_count": authored_building_count,
 		"authored_map_scene_count": authored_map_scene_count,
 		"authored_building_limit": authored_building_limit,
+		"map_geometry": map_geometry_counts,
+		"proxy_field_used": proxy_field_used,
 		"cuts_saved": cuts_saved,
 		"capture_valid": not capture_results.is_empty(),
 		"capture_scene_count": capture_results.size(),
@@ -374,12 +495,14 @@ func _write_report() -> void:
 		"authored_scenes": OS.get_environment("GODOT_AUTHORED_SCENES"),
 		"scene_count": scenes.size(),
 		"scene_ids": scenes.map(func(s): return {"map": s.map, "encounter": s.encounter, "seed": s.seed}),
-		"instance_count": 0 if authored_asset_loaded else INSTANCE_COUNT,
+		"instance_count": 0 if not proxy_field_used else INSTANCE_COUNT,
 		"average_fps": float(intervals.size()) / total,
 		"minimum_fps": 1.0 / sorted[-1],
 		"maximum_fps": 1.0 / sorted[0],
 		"one_percent_low_fps": 1.0 / (slow_sum / slow_count),
 		"frame_intervals_s": intervals,
+		"timings_ms": {"startup": startup_ms, "capture_decode": semantic_decode_ms, "simulation": null, "transfer": null, "cpu_submission": null, "gpu": null, "presentation": total * 1000.0 / intervals.size(), "shader_compile": null, "memory": null},
+		"measurement": "Displayed-frame intervals are measured by Godot process frames. Simulation, GPU, transfer, shader and memory timings are null until the native extension and a real display-backed run provide them.",
 	}
 	var output_path := OS.get_environment("GODOT_REEL_REPORT")
 	if output_path.is_empty():

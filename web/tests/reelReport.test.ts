@@ -40,3 +40,21 @@ test("a preparation failure stays failed in the exported report even before a sc
   expect(report.outcome).toEqual({ status: "failed", reason: "Map download failed" });
   expect(report.frameRate).toBeNull();
 });
+
+test("exports a frozen workload identity and host capture metadata", () => {
+  const report = createReelReport([result("first", 1000, [10])]);
+  expect(report.canonical).toEqual({
+    workloadId: "menu-reel",
+    workloadVersion: 1,
+    fingerprint: "c905ce8c",
+    subjectTrackingLagSeconds: 0.5,
+    plateComposition: "standalone_center",
+    sceneIds: ["market-town", "paris-corner"],
+  });
+  expect(report.canonical.sceneIds).toEqual(["market-town", "paris-corner"]);
+  expect(report.identity).toMatchObject({
+    userAgent: expect.any(String),
+    viewport: expect.any(Object),
+    dpr: expect.any(Number),
+  });
+});

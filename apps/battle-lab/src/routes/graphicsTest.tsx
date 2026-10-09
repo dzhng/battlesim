@@ -48,6 +48,7 @@ export default function GraphicsTest() {
         ] as const).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{format(value)}</dd></div>)}</dl>
         <FrameChart report={report} />
         <p className="bench-note">{report.measurement}</p>
+        <button type="button" onClick={() => downloadReelEvidence(report)}>Download evidence JSON</button>
       </>}
     </div>
     <nav className="bench-actions" aria-label="Graphics test actions">
@@ -87,4 +88,14 @@ function ReelBattle({ scene, scenario, onDone }: { scene: BackdropScene; scenari
     <div className="menu-backdrop-veil" ref={veil} style={{ opacity: 1 }} />
     <div role="status" className="bench-progress graphics-test-progress"><span>Graphics test · {scene.map}</span><button type="button" onClick={run.cancel}>Cancel</button></div>
   </>;
+}
+
+function downloadReelEvidence(report: ReelReport): void {
+  const body = JSON.stringify(report, null, 2);
+  const url = URL.createObjectURL(new Blob([body], { type: "application/json" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `graphics-test-${report.canonical.fingerprint}.json`;
+  link.click();
+  URL.revokeObjectURL(url);
 }
