@@ -7,6 +7,7 @@
 /* The black halo that keeps callout text legible over any ground. */
 :root {
   --hud-text-halo: 0 0 2px rgb(0 0 0 / 0.95), 0 0 5px rgb(0 0 0 / 0.7);
+  --hud-deck-popup-gap: 4px;
 }
 
 /* ---- The panel ------------------------------------------------------- */
@@ -1081,7 +1082,7 @@
 }
 .hud-army-detail {
   position: absolute;
-  transform: translate(-50%, -100%);
+  transform: translate(-50%, calc(-100% - var(--hud-deck-popup-gap)));
   width: max-content;
   /* The host is a 0×0 anchor, so a percentage would size the card to nothing. */
   max-width: min(360px, calc(100dvw - 16px));
@@ -1105,6 +1106,10 @@
   letter-spacing: 0.02em;
   color: rgb(var(--hud-text));
   text-shadow: var(--hud-text-halo);
+}
+/* Keep hearing captions above the detail without moving its deck anchor. */
+.hud-lower:has(.hud-army-detail) .hud-subtitles {
+  transform: translateY(calc(-1 * var(--hud-army-detail-height)));
 }
 /* A rejected order's reason beside the cursor: the one "can't" colour,
    marked by its cross, no box. */
@@ -1224,6 +1229,10 @@
   width: min(720px, calc(100vw - 44px));
   padding: 12px;
   background: rgb(var(--hud-glass) / 0.96);
+}
+.hud-army-deck .hud-purchase-picker {
+  /* Absolute positioning starts inside the deck's one-pixel border. */
+  bottom: calc(100% + var(--hud-deck-popup-gap) + 1px);
 }
 .hud-purchase-categories {
   margin-bottom: 12px;

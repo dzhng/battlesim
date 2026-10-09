@@ -27,6 +27,7 @@ export function ArmyDeck({
   pending?: SkirmishView["pending"];
 }) {
   const lower = useRef<HTMLDivElement>(null);
+  const deck = useRef<HTMLElement>(null);
   const [hintHost, setHintHost] = useState<HTMLDivElement | null>(null);
   const [hovered, setHovered] = useState<number | null>(null);
   const [focused, setFocused] = useState<number | null>(null);
@@ -42,6 +43,7 @@ export function ArmyDeck({
     const half = card.offsetWidth / 2;
     const x = Math.min(Math.max(detailX, 8 + half), window.innerWidth - 8 - half);
     card.style.left = `${x}px`;
+    lower.current!.style.setProperty("--hud-army-detail-height", `${card.offsetHeight}px`);
   });
   const { units } = useSessionCatalog();
   const count = own.length + pending.length;
@@ -67,11 +69,10 @@ export function ArmyDeck({
   const active = hovered ?? focused;
   const detail = active === dismissed ? undefined : own.find((unit) => unit.id === active);
   const alignDetail = (button: HTMLButtonElement) => {
-    // Centred on its card, above the whole lower stack: the deck's own rows
-    // (reinforcements) and the captions over it stay readable.
+    // Both popups anchor to the deck; captions above it must not inflate the gap.
     const box = button.getBoundingClientRect();
     setDetailX(box.left + box.width / 2);
-    setDetailY(lower.current!.getBoundingClientRect().top - 8);
+    setDetailY(deck.current!.getBoundingClientRect().top);
     setDismissed(null);
   };
   return (
@@ -99,7 +100,11 @@ export function ArmyDeck({
       )}
       <div className="hud-command-hint" ref={setHintHost} />
       {(own.length > 0 || pending.length > 0 || reinforcements) && (
-        <footer className="hud-panel hud-bar hud-bottom hud-army-deck" data-occludes-readouts>
+        <footer
+          ref={deck}
+          className="hud-panel hud-bar hud-bottom hud-army-deck"
+          data-occludes-readouts
+        >
           {reinforcements}
           <div
             className="hud-army"

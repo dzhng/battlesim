@@ -124,6 +124,22 @@ test("hover and focus expose live unit facts, health and casualty removal withou
   expect(view.queryByRole("tooltip")).toBeNull();
 });
 
+test("hover detail anchors to the deck rather than the lower HUD stack", () => {
+  const view = render(
+    <ArmyDeck
+      own={[specimenUnit(TEST_CATALOG, "test_tank", { id: 11 })]}
+      selected={[]}
+      onSelect={vi.fn()}
+      rules={game as unknown as PanelRules}
+      captions={<ul className="hud-subtitles" />}
+    />,
+  );
+  const deck = view.getByRole("group", { name: "Your units" }).closest("footer")!;
+  vi.spyOn(deck, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 500, 400, 80));
+  fireEvent.mouseEnter(view.getByRole("button", { name: "Tank #11" }));
+  expect(view.getByRole("tooltip").style.top).toBe("500px");
+});
+
 test("the army remains in replay and empty selection while commands follow only selected units", () => {
   const own = [
     specimenUnit(TEST_CATALOG, "test_tank", { id: 11 }),
