@@ -87,7 +87,7 @@ test("an icon the generator cannot draw is refused, naming it", () => {
   );
   // A disabled card has no unit type; its icon comes from its source model.
   expect(() => iconFiles({}, UNITS, (id) => (UNITS.has(id) ? shipped(id) : null))).toThrow(
-    /disabled card \w+: its source model is not installed/,
+    /disabled card \w+: its source model, or for a soldier its skeleton's clips, is not installed/,
   );
 });
 
