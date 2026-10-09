@@ -50,10 +50,8 @@ export const FogParams = d
     radialBins: d.u32,
     tilePx: d.u32,
     tilesX: d.u32,
-    tilesY: d.u32,
     tileEyesMax: d.u32,
     eyeCount: d.u32,
-    occluderCount: d.u32,
     /** The foliage grid's cells across and down (0: no foliage). */
     foliageNx: d.u32,
     foliageNy: d.u32,

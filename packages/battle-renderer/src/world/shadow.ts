@@ -4,15 +4,10 @@
 import type { Vec2 } from "math";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { tgpu, d, type TgpuCommandEncoder, type TgpuRenderPass } from "typegpu";
-import {
-  SUN_SHADOW_BLOCK_FLOATS,
-  shadowPcfWgsl,
-  shadowVisibilityWgsl,
-  sunShadowSampleWgsl,
-} from "../shaders/shadow";
+import { shadowPcfWgsl, shadowVisibilityWgsl, sunShadowSampleWgsl } from "../shaders/shadow";
 import { BATTLE_DEPTH_ATTACHMENT } from "../worldDepth";
 import { Camera, typegpuCameraLayout } from "./camera";
-import { NativeShadowFrame, type NativeShadowData, type NativeShadowMode } from "../shadowData";
+import { NativeShadowFrame, type NativeShadowData } from "../shadowData";
 import { CSM_CASCADES } from "../light/shadowPolicy";
 import type { LightPresentation } from "../light/sceneLight";
 
@@ -23,24 +18,21 @@ export const SunCascade = d.struct({
   bias: d.vec4f,
   interval: d.vec4f,
 });
-/** The world's fixed receiver block — every shadow receiver's only uniform, in
- * both modes. The record count is the cascade policy's, so the typed schema and
- * the shared WGSL block describe the same 208 bytes. */
+/** The world's fixed receiver block — every shadow receiver's only uniform.
+ * The record count is the cascade policy's, so the typed schema and the
+ * shared WGSL block describe the same bytes. */
 export const SunShadow = d.struct({
   cascades: d.arrayOf(SunCascade, CSM_CASCADES),
   control: d.vec4f,
 });
 
-/** The receiver binding shape, owned once. Both the world environment group and
- * the lab shadow control spread these entries, so the depth dimension and the
- * block type cannot drift apart between them. */
+/** The receiver binding shape, owned once: the world environment group
+ * spreads these entries. */
 export const sunShadowEntries = {
   sun: { uniform: SunShadow, visibility: ["fragment"] },
   sunDepth: { texture: d.textureDepth2dArray(), visibility: ["fragment"] },
   sunCompare: { sampler: "comparison", visibility: ["fragment"] },
 } satisfies Parameters<typeof tgpu.bindGroupLayout>[0];
-
-export const sunSamplingLayout = tgpu.bindGroupLayout(sunShadowEntries);
 
 const shadowPcf = tgpu.fn(
   [d.textureDepth2dArray(), d.comparisonSampler(), d.i32, d.vec2f, d.f32, d.vec2f, d.f32],
@@ -67,33 +59,28 @@ export const shadowVisibility = tgpu
  * cascade fade all remain the shared owner's WGSL text.
  *
  * That owner writes `sampleSunShadow` against the world's module-scope shadow
- * bindings (`sunShadow`, `sunDepth`, `sunCompare`, `environment`, `cam`), which
+ * bindings (`sunShadow`, `sunDepth`, `sunCompare`, `environment`), which
  * TypeGPU instead owns inside typed bind group layouts. So the renderer
- * re-heads the SAME function with those five names as parameters and passes the
+ * re-heads the SAME function with those four names as parameters and passes the
  * typed resources in; the body — every line of the inherited math — is the
  * shared text verbatim. Only the signature is synthesized, and the guard below
  * fails loudly rather than silently forking if the shared head ever moves. */
 const SHARED_SAMPLE_HEAD = "fn sampleSunShadow(world:vec3f,normal:vec3f,pixel:vec2f)->f32 {";
-export function sunShadowSampleBodyWgsl(mode: NativeShadowMode): string {
-  const shared = sunShadowSampleWgsl(mode);
+export function sunShadowSampleBodyWgsl(): string {
+  const shared = sunShadowSampleWgsl();
   if (!shared.startsWith(SHARED_SAMPLE_HEAD))
     throw Error("Shared sun-shadow sampler no longer has the head the renderer re-heads");
-  return `(environment:Environment,cam:Camera,sunShadow:SunShadow,sunDepth:texture_depth_2d_array,sunCompare:sampler_comparison,world:vec3f,normal:vec3f,pixel:vec2f)->f32 {${shared.slice(SHARED_SAMPLE_HEAD.length)}`;
+  return `(environment:Environment,sunShadow:SunShadow,sunDepth:texture_depth_2d_array,sunCompare:sampler_comparison,world:vec3f,normal:vec3f,pixel:vec2f)->f32 {${shared.slice(SHARED_SAMPLE_HEAD.length)}`;
 }
 
-/** Camera-fitted directional depth, typed. Owns the depth ARRAY, one caster
- * camera per cascade and the one receiver block; the world owns caster
- * selection and binds the same pose with each cascade's own camera.
- *
- * Resource shape follows the mode and nothing else: the fitted single map is
- * ONE 1024 layer, High is TWO 2048 layers. Selecting single never allocates a
- * High-sized map. Both bind the same array view to receivers, so the binding
- * shape is fixed while the allocation is not.
+/** Camera-fitted directional depth, typed. Owns the depth ARRAY (one layer
+ * per cascade, `light.cascades.map_size` square), one caster camera per
+ * cascade and the one receiver block; the world owns caster selection and
+ * binds the same pose with each cascade's own camera.
  *
  * The device is BORROWED: `tgpu.initFromDevice` does not take ownership, so
  * this owner's `root.destroy()` releases only what it allocated. */
 export function createTypegpuSunShadow(device: GPUDevice, light: LightPresentation) {
-  const mode: NativeShadowMode = "csm";
   const root = tgpu.initFromDevice({ device });
   const owned: { destroy(): void }[] = [];
   let disposed = false;
@@ -121,7 +108,7 @@ export function createTypegpuSunShadow(device: GPUDevice, light: LightPresentati
         })
         .$usage("render", "sampled"),
     );
-    // Attachments are per-layer; receivers bind the whole array in both modes.
+    // Attachments are per-layer; receivers bind the whole array.
     const layerViews = Array.from({ length: layers }, (_, layer) =>
       depth.createView("render", { baseArrayLayer: layer, arrayLayerCount: 1 }),
     );
@@ -140,12 +127,7 @@ export function createTypegpuSunShadow(device: GPUDevice, light: LightPresentati
       addressModeU: "clamp-to-edge",
       addressModeV: "clamp-to-edge",
     });
-    const samplingGroup = root.createBindGroup(sunSamplingLayout, {
-      sun: state,
-      sunDepth: receiverView,
-      sunCompare: comparison,
-    });
-    const frameData = new NativeShadowFrame(light, mode, (data) => {
+    const frameData = new NativeShadowFrame(light, (data) => {
       // Every distinct caster camera and the shared block are written once
       // their inputs change; a cold frame publishes a legal empty block, so the
       // receiver never samples uninitialized uniform memory.
@@ -153,16 +135,10 @@ export function createTypegpuSunShadow(device: GPUDevice, light: LightPresentati
       state.write(data.receiver.buffer);
     });
     return {
-      mode,
-      mapSize,
-      layers,
-      depth,
       receiverView,
-      cameras,
       cameraGroups,
       state,
       comparison,
-      samplingGroup,
       update(camera: Camera3DParams, receiver: Vec2) {
         live();
         return frameData.update(camera, receiver);
@@ -192,20 +168,6 @@ export function createTypegpuSunShadow(device: GPUDevice, light: LightPresentati
             pass.end();
           }
         }
-      },
-      /** Real textures and buffers, counted as allocated — not as configured. */
-      stats() {
-        return {
-          mode,
-          cascades: frameData.data.cascades.length,
-          mapSize,
-          // First uploaded cascade: mat4 (16 floats), then bias.z is PCF radius.
-          radius: frameData.data.receiver[18],
-          layers,
-          depthBytes: mapSize * mapSize * 4 * layers,
-          cameraBuffers: cameras.length,
-          receiverBytes: SUN_SHADOW_BLOCK_FLOATS * 4,
-        };
       },
       dispose,
     };

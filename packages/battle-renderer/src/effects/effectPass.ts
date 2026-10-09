@@ -542,4 +542,3 @@ export async function createEffectPass(
     stats: () => ({ instances: count, capacity }),
   };
 }
-export type EffectPass = Awaited<ReturnType<typeof createEffectPass>>;

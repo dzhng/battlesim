@@ -180,12 +180,6 @@ export function createCardFragment(environment: EnvironmentFrame) {
   });
 }
 
-/** Where an atlas layer's card stands in its model's frame. */
-export interface CardFrame {
-  center: readonly [number, number, number];
-  radius: number;
-}
-
 /** The runtime atlases on the GPU: one array layer per baked atlas, and the
  *  bind group cards draw through. */
 export function uploadCardAtlases(

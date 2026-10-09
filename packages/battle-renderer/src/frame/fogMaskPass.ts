@@ -325,4 +325,3 @@ export async function createFogMaskPass(
     },
   };
 }
-export type FogMaskPass = Awaited<ReturnType<typeof createFogMaskPass>>;

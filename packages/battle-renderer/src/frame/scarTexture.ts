@@ -313,9 +313,6 @@ export class ScarSync {
     if (reset || resized || compacted) this.counts.fullUploads++;
     return true;
   }
-  directoryWords() {
-    return this.words;
-  }
   private release(offset: number, words: number) {
     this.pool.release(offset, words);
     this.residentWords -= words;
@@ -468,4 +465,3 @@ export function createScarTexture(registry: GpuRegistry) {
     stats: () => ({ ...sync.stats(), directoryBytes: directoryWidth * directoryHeight * 8 }),
   };
 }
-export type ScarTexture = ReturnType<typeof createScarTexture>;
