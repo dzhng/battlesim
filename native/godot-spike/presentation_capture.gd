@@ -40,6 +40,15 @@ static func validate(value: Variant) -> Dictionary:
 		return _invalid("capture side must be blue or red")
 	if typeof(capture.get("samples")) != TYPE_ARRAY:
 		return _invalid("capture samples must be an array")
+	if typeof(capture.get("frames")) != TYPE_ARRAY:
+		return _invalid("capture frames must be an array")
+	var previous_frame := -1.0
+	for raw_frame in capture.frames:
+		if typeof(raw_frame) != TYPE_DICTIONARY or not _is_finite_number(raw_frame.get("elapsedMs")) or float(raw_frame.elapsedMs) < previous_frame:
+			return _invalid("capture frame times must be increasing")
+		if not _is_non_negative_integer(raw_frame.get("tick")) or not _valid_camera(raw_frame.get("camera")):
+			return _invalid("capture frame is malformed")
+		previous_frame = float(raw_frame.elapsedMs)
 
 	var previous_tick := -1
 	var sample_index := 0

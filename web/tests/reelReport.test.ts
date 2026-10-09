@@ -16,7 +16,7 @@ function result(map: string, started: number, intervals: number[]): ReelResult {
   recording.tick({ tick: 61, stepMs: 2, bytes: 128 });
   return {
     scene: { map, encounter: "fake", seed: 1, warm_s: 2, reel: { fade_s: 0, shots: [{ seconds: 1, from: pose, to: pose }] } },
-    recording, outcome: { status: "complete", reason: "done" }, startTick: 60, endTick: 61, tickHz: 30, layout: "{\"schema\":\"test\"}", adapter: "fake", capture: [],
+    recording, outcome: { status: "complete", reason: "done" }, startTick: 60, endTick: 61, tickHz: 30, layout: "{\"schema\":\"test\"}", adapter: "fake", capture: [], frames: [],
   };
 }
 

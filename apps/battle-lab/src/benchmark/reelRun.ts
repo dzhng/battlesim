@@ -3,7 +3,7 @@ import type { BenchmarkOutcome } from "@web/battle/benchmark/report";
 import { sampleReel, type BackdropScene } from "../menuReel";
 import type { ScriptedSim } from "../useSimSession";
 import type { ViewportPilot } from "../LabViewport";
-import type { PresentationSample } from "@web/battle/benchmark/presentationCapture";
+import type { PresentationFrame, PresentationSample } from "@web/battle/benchmark/presentationCapture";
 
 export interface ReelResult {
   scene: BackdropScene;
@@ -15,6 +15,7 @@ export interface ReelResult {
   layout: string;
   adapter: string | null;
   capture: readonly PresentationSample[];
+  frames: readonly PresentationFrame[];
 }
 
 /** One complete scene; preparation and inter-scene loading have no frame samples. */
@@ -33,6 +34,7 @@ export function createReelRun(scene: BackdropScene, tickHz: number, onDone: (res
   let lastSubject: readonly number[] = [0, 0];
   let tracked: { follow: number; at: [number, number]; now: number } | null = null;
   const capture: PresentationSample[] = [];
+  const frames: PresentationFrame[] = [];
   const track = (follow: number, now: number): readonly number[] => {
     const live = subject.unitAt(follow);
     if (tracked?.follow !== follow) tracked = live && { follow, at: [live[0], live[1]], now };
@@ -48,7 +50,7 @@ export function createReelRun(scene: BackdropScene, tickHz: number, onDone: (res
   const finish = (outcome: BenchmarkOutcome) => {
     if (finished) return;
     finished = true;
-    onDone({ scene, outcome, recording, startTick, endTick, tickHz, layout, adapter, capture });
+    onDone({ scene, outcome, recording, startTick, endTick, tickHz, layout, adapter, capture, frames });
   };
   const sample = (now: number) => sampleReel(scene.reel, recording.elapsed(now) / 1000);
   const pilot: ViewportPilot = {
@@ -64,6 +66,7 @@ export function createReelRun(scene: BackdropScene, tickHz: number, onDone: (res
       if (!recording.started) { recording.start(now); lastStats = now; return; }
       const pose = { target: [camera.target[0], camera.target[1]] as const, distance: camera.distance, yaw: camera.yaw, pitch: camera.pitch };
       recording.frame({ now, cpuMs, camera: pose, intended: pilot.pose(now)!, phase: scene.map });
+      frames.push({ elapsedMs: recording.elapsed(now), tick: endTick, camera: pose });
       if (stats && now - lastStats >= 2000) {
         const s = stats();
         recording.sample({ elapsedMs: recording.elapsed(now), phase: scene.map, gpu: s.gpu, memory: s.memory, heapBytes: null });

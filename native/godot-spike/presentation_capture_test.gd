@@ -10,6 +10,7 @@ const VALID := {
 	"side": "blue",
 	"layout": "{\"schema\":\"test\"}",
 	"samples": [{"tick": 90, "digest": "0123456789abcdef", "publication": [1, 4294967294], "camera": {"target": [0.0, 0.0], "distance": 20.0, "yaw": 0.0, "pitch": 0.2}}],
+	"frames": [{"elapsedMs": 0.0, "tick": 90, "camera": {"target": [0.0, 0.0], "distance": 20.0, "yaw": 0.0, "pitch": 0.2}}],
 }
 
 func _init() -> void:

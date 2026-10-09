@@ -7,7 +7,7 @@ const capture: PresentationCapture = {
   schema: "battle-presentation-capture/v1",
   workload: { id: "menu-reel", fingerprint: "deadbeef", scene: "market-town", map: "menu", encounter: "menu", seed: 1 },
   tickHz: 30, warmTick: 90, side: "blue", layout: "{\"schema\":\"test\"}",
-  samples: [{ tick: 90, digest: "0123456789abcdef", publication: [1, 2], camera: pose }],
+  samples: [{ tick: 90, digest: "0123456789abcdef", publication: [1, 2], camera: pose }], frames: [{ elapsedMs: 0, tick: 90, camera: pose }],
 };
 
 test("accepts a versioned capture with ordered authority samples", () => {

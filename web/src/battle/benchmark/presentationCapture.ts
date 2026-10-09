@@ -12,6 +12,7 @@ export interface PresentationCapture {
   /** Exact Rust publication layout JSON for a fresh decoder. */
   layout: string;
   samples: readonly PresentationSample[];
+  frames: readonly PresentationFrame[];
 }
 
 export interface PresentationSample {
@@ -22,12 +23,26 @@ export interface PresentationSample {
   camera: CameraPose;
 }
 
+export interface PresentationFrame {
+  elapsedMs: number;
+  tick: number;
+  camera: CameraPose;
+}
+
 /** Reject malformed or reordered captures before a renderer can benchmark it. */
 export function validatePresentationCapture(capture: PresentationCapture): PresentationCapture {
   if (capture.schema !== "battle-presentation-capture/v1") throw new Error("unsupported presentation capture schema");
   if (!Number.isInteger(capture.tickHz) || capture.tickHz <= 0) throw new Error("capture tickHz must be positive");
   if (!Number.isInteger(capture.warmTick) || capture.warmTick < 0) throw new Error("capture warmTick must be non-negative");
   if (typeof capture.layout !== "string" || capture.layout.length === 0) throw new Error("capture layout must be non-empty JSON");
+  if (!Array.isArray(capture.frames)) throw new Error("capture frames must be an array");
+  let previousFrame = -1;
+  for (const frame of capture.frames) {
+    if (!Number.isFinite(frame.elapsedMs) || frame.elapsedMs < previousFrame)
+      throw new Error("capture frame times must be increasing");
+    if (!Number.isInteger(frame.tick) || frame.tick < 0) throw new Error("capture frame tick must be non-negative");
+    previousFrame = frame.elapsedMs;
+  }
   let previous = -1;
   for (const sample of capture.samples) {
     if (!Number.isInteger(sample.tick) || sample.tick < 0 || sample.tick <= previous)

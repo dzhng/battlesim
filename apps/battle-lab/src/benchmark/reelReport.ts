@@ -25,7 +25,7 @@ export function createReelReport(results: readonly ReelResult[], interruption?: 
   const presentationCaptures: PresentationCapture[] = results.map((r) => ({
     schema: "battle-presentation-capture/v1",
     workload: { id: MENU_REEL_WORKLOAD.id, fingerprint: menuReelFingerprint(), scene: r.scene.map, map: r.scene.map, encounter: r.scene.encounter, seed: r.scene.seed },
-    tickHz: r.tickHz, warmTick: r.startTick, side: "blue", layout: r.layout, samples: r.capture,
+    tickHz: r.tickHz, warmTick: r.startTick, side: "blue", layout: r.layout, samples: r.capture, frames: r.frames,
   }));
   return {
     kind: "graphics-test" as const,
