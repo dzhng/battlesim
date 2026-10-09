@@ -2,7 +2,7 @@
 
 ## Contract unlocked
 
-Browser and future native clients consume one versioned workload and report shape. The workload names the exact full menu reel, menu catalog/maps, encounters, seeds, warm-up, camera shots, resolution, quality and timing boundaries. The browser Settings page runs it and shows average FPS, 1% low, absolute minimum, maximum, raw intervals and a chart. The current synthetic `/benchmark?preset=city-contact` remains unchanged.
+Browser and future native clients consume one versioned workload and report shape. The workload names the exact full menu reel, menu catalog/maps, encounters, seeds, warm-up, camera shots, resolution, quality and timing boundaries. The browser Settings page runs it and shows average FPS, 1% low, absolute minimum, maximum, raw intervals and a chart. The current synthetic `/benchmark?preset=city-contact` remains unchanged. Before this slice closes, canonical reference evidence must use fixed workload time, the menu's 0.5 s subject smoothing and an explicit camera-plate composition decision; a live run cannot stand in for that frozen cross-engine stream.
 
 ## Seam and ownership
 
@@ -12,7 +12,7 @@ Derive FPS from displayed-frame intervals: mean from total elapsed time, 1% low 
 
 ## Runnable artifact
 
-On Mac, a production browser build exposes Settings → Graphics Test. One action runs the complete menu reel and ends on a chart and summary. An ignored-evidence manifest and JSON report record build, asset, browser, GPU, resolution, quality, workload identity and samples. The existing synthetic benchmark still runs through its existing route and report.
+On Mac, a production browser build exposes Settings → Graphics Test at `/graphics-test`. One action runs the complete menu reel and ends on a chart and summary. An ignored-evidence manifest and JSON report record build, asset, browser, GPU, resolution, quality, workload identity and samples. The existing synthetic benchmark still runs through its existing route and report.
 
 ## Verification
 

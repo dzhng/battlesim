@@ -419,6 +419,19 @@
   color: #9cc7ff;
 }
 
+.graphics-test-progress {
+  position: fixed;
+  z-index: 20;
+  top: 16px;
+  left: 16px;
+  right: 16px;
+  padding: 8px 12px;
+  color: #e8edf5;
+  background: rgba(10, 14, 20, 0.82);
+  border: 1px solid rgba(143, 180, 224, 0.45);
+  border-radius: 4px;
+}
+
 .bench-progress {
   display: flex;
   gap: 10px;

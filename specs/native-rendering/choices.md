@@ -75,3 +75,8 @@
   concepts: ordered commands, fixed stepping, side publication, digest,
   replay and observation resync. Native work should reuse those simulation
   owners rather than create a parallel authority.
+
+## Evidence decisions — 2026-10-09
+
+- **Keep the interactive seam as a GDExtension, while using offline presentation capture for renderer comparison.** Same-input blue/red runs now match native and Godot digests and packed publication bytes, including replay, duplicate-command rejection, retained-buffer immutability and teardown. A minimal stdin/stdout process candidate also completes cleanly, but it adds process framing without improving the interactive contract. The offline capture is a measurement control, not a second gameplay authority; it must freeze the presentation history that raw observations alone do not contain.
+- **Do not call the browser route a frozen reference yet.** The route now runs the full two-scene menu workload and uses the menu's subject smoothing, but its camera clock and plate composition still need to be aligned and its full production run and visual gates have not passed. Headless Godot and the 4096-cube scene remain smoke evidence only.

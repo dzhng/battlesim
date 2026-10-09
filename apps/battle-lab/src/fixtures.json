@@ -1,5 +1,13 @@
 [
   {
+    "id": "graphics-test",
+    "route": "/graphics-test",
+    "describe": "The complete main-menu reel as a player-facing graphics test, with frame-rate summary and pacing chart.",
+    "map": null,
+    "build": "production",
+    "timeout_s": 180
+  },
+  {
     "id": "cursor-orders",
     "route": "/lab/cursor-orders",
     "describe": "The production pointer over a reachable squad and a vehicle enclosed by known walls: combined entry, partial gathering refusal and readable callouts.",

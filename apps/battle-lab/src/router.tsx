@@ -13,6 +13,7 @@ const SoundWorkbench = lazy(() => import("../../sound-workbench/src/SoundWorkben
 
 /** The pages: the benchmark page also owns its named workload URLs. */
 const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
+  "graphics-test": lazy(() => import("./routes/graphicsTest")),
   "cursor-orders": lazy(() => import("./routes/cursorOrders")),
   cursor: lazy(() => import("./routes/cursor")),
   foundation: lazy(() => import("./routes/foundation")),
@@ -127,10 +128,12 @@ function LabPage({ path: requestedPath }: { path: string }) {
       </main>
     );
   }
-  // Player battles and replays run the game's catalog; labs run the test
-  // set, which adds the test units their fixtures field.
+  // Player battles and replays run the game's catalog; the graphics test uses
+  // the menu catalog because its reference reel is the menu's own content;
+  // labs run the test set.
+  const catalog = fixture.id === "generated" ? "game" : fixture.id === "graphics-test" ? "menu" : "test";
   const page = (
-    <SessionCatalogScope set={fixture.id === "generated" ? "game" : "test"}>
+    <SessionCatalogScope set={catalog}>
       <Route />
     </SessionCatalogScope>
   );

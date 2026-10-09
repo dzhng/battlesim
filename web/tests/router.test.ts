@@ -33,7 +33,7 @@ test("the main menu at / opens each of its pages inside its plate, and Back retu
     Skirmish: { Deploy: "/battle?play=1&type=mixed&size=small&faction=us" },
     // No battle saved on this browser: only the file to load one from.
     "Watch replay": {},
-    Settings: {},
+    Settings: { "Graphics test": "/graphics-test" },
     Developer: {
       "Mechanics editor": "/mechanics",
       "Map workbench": "/map-workbench",
@@ -56,6 +56,7 @@ test("the main menu at / opens each of its pages inside its plate, and Back retu
   fireEvent.click(menu.getByRole("button", { name: "Back" }));
   open("Settings");
   expect(menu.getByTestId("sound-controls")).toBeTruthy();
+  expect(menu.getByRole("link", { name: "Graphics test" }).getAttribute("href")).toBe("/graphics-test");
   // Escape is Back, as in a game's menus.
   fireEvent.keyDown(window, { key: "Escape" });
   expect(menu.getByRole("button", { name: "Settings" })).toBeTruthy();
