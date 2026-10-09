@@ -1301,9 +1301,10 @@ Spec: [slice 03](../../unit-models-followup/slices/03-disabled-air.md).
   and bars) with that photo's codes and numbers. The crash burns them off
   (`marking_*` go with the canopy glass). Colours are one marking paint per
   `MARK` key, role `marking`.
-- **The gap:** The Swedish crowns are three gold spots and the A-10's shark
-  mouth is left off: neither shape is a star-shaped outline the layers can
-  draw. Cyrillic titles use Blender's built-in font.
+- **The gap:** The Swedish crowns are three gold spots. The A-10's shark
+  mouth is drawn as layers too (a pointed lip outline, the maw, each tooth
+  its own triangle), turned toward the nose on both sides (`ahead`).
+  Cyrillic titles use Blender's built-in font.
 - **Verdict:** sound.
 - **Confidence:** medium.
 
@@ -1319,22 +1320,40 @@ Spec: [slice 03](../../unit-models-followup/slices/03-disabled-air.md).
 - **Verdict:** sound.
 - **Confidence:** high.
 
-### Helicopters got the shared detail and markings, not a re-measure
+### Every rotorcraft was measured against its photos
 
-- **The choice:** The Apache was measured against its side photo and rebuilt
-  (the tandem glass standing out of the body, half a metre aft; the engines
-  higher; the mains under the gunner). The other fifteen rotorcraft cards took
-  the shared rotor, gear and store detail and their air arm's markings, and
-  were checked by eye against their photos, but their cabin cross-sections
-  were not re-measured station by station.
-- **The gap:** The slice asks for cabin depth and cross-sections from the
-  references for every family; this pass ran out of room for fifteen of
-  them.
-- **The reach:** The "slim cabins" the closeout named may remain on the
-  H-1s, Little Birds, Chinooks, Tigers, NH90, Merlin, Wildcat, UH-60, Z-20,
-  Mi-8, Mi-35, Mi-28, Ka-52 and Z-10.
-- **Verdict:** needs-user. Provisional: as shipped. To finish: measure each
-  side photo as the jets were and rebuild the cabins.
+- **The choice:** Each helicopter's side photo was set beside a side render.
+  The common fault was glass buried in the body: the Apache, Tiger, Mi-35,
+  Mi-28, Z-10 and AH-1Z now drop the forward body under their cockpits and
+  stand larger, framed glass out of it, with the engine decks raised where
+  the photos show them tall (AH-1Z, Tiger). The UH-1Y, UH-60 and Z-20
+  cabins are taller under higher engine humps, the Hawks' mains move
+  forward under the cockpit, the Little Bird is the photo's egg rather than
+  a pill, the NH90's nose is blunter under a bigger windscreen and its cabin
+  deeper. The Chinooks, Merlin, Wildcat, Mi-8 and Ka-52 already matched in
+  body; their glazing grew and gained bows, the Chinooks' windows are round.
+- **The gap:** Several photos are three-quarter or from below, so heights are
+  read as ratios to the length rather than measured; the Z-10's reference is
+  a drawing.
+- **The reach:** The NH90's photo is an Italian Army TTH, so it wears the
+  Esercito's roundel (markings follow the photo's air arm).
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Planforms and stores against the top views
+
+- **The choice:** Every jet's top view was rendered beside its references.
+  The F-15's wing was a swept trapezoid where the top photo shows a cropped
+  delta (45 degree leading edge, straight trailing edge, raked tip), and its
+  conformal tanks barely showed: both corrected, with the wing and
+  centreline tanks, the E's GBU-31s on CFT stubs and its pods, the EX's
+  CFT AIM-120s. The other planforms (cropped and pure deltas, canard
+  deltas, the Tornado spread, the A-10's straight wing) and their stores
+  (tanks, pods, missiles on rails, bombs) matched their photos; the stealth
+  types carry theirs inside, as their photos show.
+- **The gap:** No three-view drawings were added to the libraries; the top
+  photos (where a family has one) and the side photos were the references.
+- **Verdict:** sound.
 - **Confidence:** medium.
 
 ### The NH90 stays 3.6 m wide

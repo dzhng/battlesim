@@ -19,9 +19,8 @@ TODO:
 - [x] [02 Wreck debris scatters and fades](slices/02-wreck-debris.md): "yes,
   maybe debris that scattered can just disappear?"
 - [x] [03 Disabled cards at the roster bar: air](slices/03-disabled-air.md):
-  all 45 cards re-exported with markings and the shared detail; every jet
-  and the Apache rebuilt to its side photo. Left open: the other fifteen
-  rotorcraft cards' cabins were not re-measured (choices, Follow-up 03).
+  all 45 cards rebuilt to their photos (jets' layouts, planforms and stores;
+  every rotorcraft's cabin and glass), with markings and the shared detail.
 - [ ] [04 Disabled cards at the roster bar: ground, support, drones, infantry](slices/04-disabled-ground.md):
   "Disable cards needs to be same detail bar - they will be implemented next".
 
