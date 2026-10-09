@@ -318,6 +318,11 @@ fn bearings(settlement: &crate::SettlementPlan, depth_m: f64) -> usize {
     (libm::ceil(TAU * (reach(settlement) + depth_m) / 100.0) as usize).clamp(64, 720)
 }
 
+/// The turn between those bearings.
+pub fn bearing_step(settlement: &crate::SettlementPlan, depth_m: f64) -> f64 {
+    TAU / bearings(settlement, depth_m) as f64
+}
+
 /// One bearing's corridor of a measured open approach: the ground the
 /// approach rule found open, and the generator keeps open.
 #[derive(Clone, Copy, Debug)]
@@ -345,7 +350,7 @@ pub fn approach_corridors(plan: &MapPlan) -> Vec<Corridor> {
         let Some(settlement) = plan.settlements.get(approach.settlement) else {
             continue;
         };
-        let step = TAU / bearings(settlement, approach.depth_m) as f64;
+        let step = bearing_step(settlement, approach.depth_m);
         let (first, last) = (
             libm::round(approach.from_rad / step) as usize,
             libm::round(approach.to_rad / step) as usize,
@@ -533,17 +538,6 @@ pub fn approaches(plan: &MapPlan, presets: &PresetDefinitions) -> Vec<ApproachPl
         }
     }
     found
-}
-
-/// The turn between the bearings an approach to `settlement` is measured
-/// along: a hundred metres apart at the corridors' far end.
-pub fn bearing_step(settlement: &crate::SettlementPlan, depth_m: f64) -> f64 {
-    let farthest = settlement
-        .outline
-        .iter()
-        .map(|p| distance(settlement.center, *p))
-        .fold(0.0, f64::max);
-    TAU / (libm::ceil(TAU * (farthest + depth_m) / 100.0) as usize).clamp(64, 720) as f64
 }
 
 /// Time as a heap key. Journey times are finite, so the total order is the

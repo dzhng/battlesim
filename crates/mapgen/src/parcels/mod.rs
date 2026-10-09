@@ -64,7 +64,7 @@ impl Pass<'_> {
     }
 
     fn choices(&self, district: &DistrictPlan) -> Result<Choices<'_>, Vec<Diagnostic>> {
-        Choices::new(&self.fits, district, self.family).map_err(|error| vec![error])
+        Choices::district(&self.fits, district, self.family).map_err(|error| vec![error])
     }
 }
 

@@ -10,7 +10,7 @@ use crate::layout::{CourtParking, LotRule};
 use crate::{BuildingPlacement, Diagnostic, DiagnosticCode, DistrictPlan, LotPlan, MapPlan};
 use contract::ground::GroundShape;
 use contract::map::{BuildingPartReference, SurfaceArea, SurfaceKind};
-use contract::templates::{BuildingTemplateDescriptor, PlacementFrame};
+use contract::templates::{BuildingCategory, BuildingTemplateDescriptor, PlacementFrame};
 
 /// A template as a parcel sees it: turned so its entrances face `−Y`, the
 /// street side, with the box its parts then fill.
@@ -93,20 +93,13 @@ impl<'a> Ground<'a> {
     pub fn new(plan: &'a MapPlan, network: &'a Network<'a>) -> Self {
         Self {
             network,
-            objectives: plan
-                .skirmish
-                .as_ref()
-                .map(|sites| {
-                    sites
-                        .all_reserved_objectives()
-                        .map(|o| Rect {
-                            center: o.center,
-                            axis: [1.0, 0.0],
-                            half: [o.radius_m + 10.0; 2],
-                        })
-                        .collect()
+            objectives: crate::skirmish::objective_clearances(plan.skirmish.as_ref())
+                .map(|(center, clearance)| Rect {
+                    center,
+                    axis: [1.0, 0.0],
+                    half: [clearance; 2],
                 })
-                .unwrap_or_default(),
+                .collect(),
             forests: plan
                 .forests
                 .iter()
@@ -157,11 +150,12 @@ impl<'a> Ground<'a> {
     /// Cut parcels along every carriageway that runs through the district
     /// and stand a template on each. Returns how many buildings it placed.
     pub fn fill(&mut self, pass: &Pass, district: &DistrictPlan) -> Result<usize, Vec<Diagnostic>> {
-        let rule = pass.district(district)?.lots;
+        let preset = pass.district(district)?;
         let mut rng = pass.stream(&format!("lots/{}", district.id));
         let site = Site {
             district,
-            rule,
+            rule: preset.lots,
+            yards_paved: preset.props.courts.paved,
             choices: pass.choices(district)?,
             forests: self.forests_near(district),
         };
@@ -312,7 +306,7 @@ impl<'a> Ground<'a> {
                 // the rest by the district's coverage.
                 let first = self.plan_lots.len() - self.first_lot == 1;
                 if rng.chance(rule.coverage) || first {
-                    self.build(id, &lot, fit, rule, parcels.verge_m, &parcels.prop_kind);
+                    self.build(id, &lot, fit, site, parcels.verge_m, &parcels.prop_kind);
                 }
                 break;
             }
@@ -320,14 +314,20 @@ impl<'a> Ground<'a> {
         }
     }
 
-    fn build(&mut self, id: String, lot: &Lot, fit: &Fit, rule: &LotRule, verge: f64, kind: &str) {
+    fn build(&mut self, id: String, lot: &Lot, fit: &Fit, site: &Site, verge: f64, kind: &str) {
+        let rule = &site.rule;
         self.buildings
             .push(placement(id, lot, fit, rule, kind, &mut self.next_prop));
         // The apron is as wide as the building, so each stands on its own
         // yard with the side setbacks left open between them. It is paving:
-        // hard ground, no way through.
-        let depth = rule.apron_m.min(rule.front_m);
-        if depth > 0.0 {
+        // hard ground, no way through. A parcel paved whole as its yard
+        // (`courts`) has its apron only across the verge in front of it.
+        if rule.apron_m.min(rule.front_m) > 0.0 {
+            let depth = if site.yards_paved {
+                0.0
+            } else {
+                rule.apron_m.min(rule.front_m)
+            };
             let half = (fit.max[0] - fit.min[0]) / 2.0;
             let ring = [
                 [-half, -verge],
@@ -391,6 +391,8 @@ pub fn placement(
 struct Site<'a> {
     district: &'a DistrictPlan,
     rule: LotRule,
+    /// Whether its built parcels are paved whole as their yards.
+    yards_paved: bool,
     choices: Choices<'a>,
     forests: Vec<&'a [Point]>,
 }
@@ -461,58 +463,92 @@ impl Frontage<'_> {
     }
 }
 
-/// The templates a district may select, by its category weights.
+/// The templates a place may select: for each building category of its mix,
+/// by the category's weight, the templates of the map's one regional family
+/// within its floors.
 pub struct Choices<'a> {
-    /// (weight, the category's eligible templates), dominant first.
+    /// (weight, the category's eligible templates), in the mix's order.
     categories: Vec<(f64, Vec<&'a Fit<'a>>)>,
 }
 
 impl<'a> Choices<'a> {
-    pub fn new(
+    /// Every category of `mix`, each with its eligible templates (perhaps
+    /// none), in `mix`'s order.
+    fn eligible(
+        fits: &'a [Fit<'a>],
+        mix: impl IntoIterator<Item = (BuildingCategory, f64)>,
+        family: &str,
+        max_floors: Option<u32>,
+    ) -> Vec<(BuildingCategory, f64, Vec<&'a Fit<'a>>)> {
+        mix.into_iter()
+            .map(|(category, weight)| {
+                let of_it = fits
+                    .iter()
+                    .filter(|fit| {
+                        fit.template.category == category
+                            && fit.template.regional_family == family
+                            && max_floors.is_none_or(|most| fit.floors() <= most as usize)
+                    })
+                    .collect();
+                (category, weight, of_it)
+            })
+            .collect()
+    }
+
+    /// A district's choices. A category of its mix that the catalogue cannot
+    /// build is refused: the district would not be what its kind says.
+    pub fn district(
         fits: &'a [Fit<'a>],
         district: &DistrictPlan,
         family: &str,
     ) -> Result<Self, Diagnostic> {
+        let mix = district.categories.iter().map(|s| (s.category, s.weight));
         let mut categories = Vec::new();
-        for share in &district.categories {
-            let eligible: Vec<&Fit> = fits
-                .iter()
-                .filter(|fit| {
-                    fit.template.category == share.category
-                        && fit.template.regional_family == family
-                        && district
-                            .max_floors
-                            .is_none_or(|most| fit.floors() <= most as usize)
-                })
-                .collect();
+        for (category, weight, eligible) in Self::eligible(fits, mix, family, district.max_floors) {
             if eligible.is_empty() {
                 return Err(Diagnostic {
                     code: DiagnosticCode::MissingTemplate,
                     feature: Some(district.id.clone()),
                     location: "$.catalogue".into(),
                     message: format!(
-                        "the {family} family has no complete {:?} template within {:?} floors",
-                        share.category, district.max_floors
+                        "the {family} family has no complete {category:?} template within {:?} floors",
+                        district.max_floors
                     ),
                 });
             }
-            categories.push((share.weight, eligible));
+            categories.push((weight, eligible));
         }
         Ok(Self { categories })
     }
 
-    /// One category's eligible templates, drawn by the categories' chances.
-    fn category(&self, rng: &mut Stream) -> &[&'a Fit<'a>] {
-        let total: f64 = self.categories.iter().map(|(weight, _)| weight).sum();
-        let mut pick = rng.unit() * total;
-        let (_, eligible) = self
-            .categories
-            .iter()
-            .find(|(weight, _)| {
-                pick -= weight;
-                pick < 0.0
-            })
-            .unwrap_or(&self.categories[self.categories.len() - 1]);
-        eligible
+    /// The choices of `mix` the catalogue can build; a category it cannot is
+    /// left out, and none at all leaves nothing to choose.
+    pub fn available(
+        fits: &'a [Fit<'a>],
+        mix: impl IntoIterator<Item = (BuildingCategory, f64)>,
+        family: &str,
+        max_floors: Option<u32>,
+    ) -> Self {
+        let categories = Self::eligible(fits, mix, family, max_floors)
+            .into_iter()
+            .filter(|(_, _, eligible)| !eligible.is_empty())
+            .map(|(_, weight, eligible)| (weight, eligible))
+            .collect();
+        Self { categories }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.categories.is_empty()
+    }
+
+    /// One category's eligible templates, drawn by the categories' weights.
+    /// There must be a category to draw.
+    pub fn category(&self, rng: &mut Stream) -> &[&'a Fit<'a>] {
+        rng.pick(
+            self.categories
+                .iter()
+                .map(|(weight, eligible)| (eligible.as_slice(), *weight)),
+        )
+        .expect("a choice has a category")
     }
 }

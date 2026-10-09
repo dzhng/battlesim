@@ -899,14 +899,11 @@ fn rows_that_cannot_describe_a_country_are_refused() {
         refused("/open_country/tree_lines/gap_m", serde_json::json!(0)).as_deref(),
         Some("$.presets.open_country.tree_lines")
     );
-    assert_eq!(
-        refused(
-            "/open_country/homesteads/groups/0/mix",
-            serde_json::json!({ "castle": 1 })
-        )
-        .as_deref(),
-        Some("$.presets.open_country.homesteads.groups")
-    );
+    // A home of no building category is refused as a district's would be.
+    let mut source: serde_json::Value = serde_json::from_str(PRESETS).unwrap();
+    source["open_country"]["homesteads"]["groups"][0]["mix"] = serde_json::json!({ "castle": 1 });
+    let errors = PresetDefinitions::from_json(&source.to_string()).unwrap_err();
+    assert!(errors[0].message.contains("castle"), "{errors:?}");
 }
 
 #[test]

@@ -24,7 +24,7 @@ use crate::{Diagnostic, DiagnosticCode, MapPlan};
 use std::collections::BTreeMap;
 
 /// A request pins this; a change that moves any generated point renames it.
-pub const GENERATOR_VERSION: &str = "layout-16";
+pub const GENERATOR_VERSION: &str = "layout-17";
 
 pub use contract::generation::{GenerationRequest, MapSize, MapType};
 
@@ -74,12 +74,12 @@ impl Context<'_> {
     }
 }
 
+/// The layout of `request` under `presets`, which are already resolved for
+/// it (`PresetDefinitions::for_request`), as every later pass reads them.
 pub fn generate_layout(
     request: &GenerationRequest,
     presets: &PresetDefinitions,
 ) -> Result<MapPlan, Vec<Diagnostic>> {
-    let resolved_presets = presets.for_request(request);
-    let presets = &resolved_presets;
     let pins = [
         (
             "generator_version",
@@ -149,21 +149,10 @@ pub fn generate_layout(
             .map(|t| t.outline.as_slice())
             .collect::<Vec<_>>(),
     )?;
-    if let Some(sites) = &skirmish {
-        placed
-            .reserved
-            .extend(sites.all_reserved_objectives().map(|o| {
-                // Keep the primary junction playable without hollowing out
-                // the town around it; the capture radius remains authoritative.
-                let clearance =
-                    if matches!(o.kind, contract::encounter::ObjectiveSiteKind::Junction) {
-                        o.radius_m.min(28.0)
-                    } else {
-                        o.radius_m
-                    };
-                sites::Corridor::objective(o.center, clearance + 10.0)
-            }));
-    }
+    placed.reserved.extend(
+        crate::skirmish::objective_clearances(skirmish.as_ref())
+            .map(|(center, clearance)| sites::Corridor::objective(center, clearance)),
+    );
     let forests = forests::grow(&context, &towns, &placed.reserved, &water, woodland);
     let blocks: Vec<&[geometry::Point]> = towns
         .iter()

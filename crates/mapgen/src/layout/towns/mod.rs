@@ -9,6 +9,7 @@ use crate::layout::geometry::{
     segment_crossing, segment_distance, sub, Point,
 };
 use crate::layout::presets::{SettlementClass, Zone};
+use crate::layout::rng::by_weight;
 use crate::layout::roads::Road;
 use crate::layout::sites::Site;
 use crate::layout::Context;
@@ -556,15 +557,7 @@ fn pick(
         .filter(|(kind, _)| fits(kind))
         .map(|(kind, weight)| (kind, *weight))
         .collect();
-    let mut pick = drawn * fitting.iter().map(|(_, weight)| weight).sum::<f64>();
-    fitting
-        .iter()
-        .find(|(_, weight)| {
-            pick -= weight;
-            pick < 0.0
-        })
-        .or(fitting.last())
-        .map(|(kind, _)| *kind)
+    by_weight(drawn, fitting)
         .or_else(|| kinds(class).find(|kind| fits(kind)))
         .cloned()
 }

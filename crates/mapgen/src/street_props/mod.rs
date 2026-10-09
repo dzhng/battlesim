@@ -24,6 +24,7 @@ use crate::layout::{
 use crate::parcels::space::Rect;
 use crate::{Diagnostic, DiagnosticCode, MapPlan};
 use contract::catalog::{Catalog, PropPlacement};
+use contract::generation_physics::GenerationPhysics;
 use contract::ground::{polygon_contains, GroundShape};
 use contract::map::{AuthoredPropDefinition, SurfaceKind};
 use contract::templates::TemplateGeometryCatalog;
@@ -253,8 +254,9 @@ pub fn place_street_props(
 /// Dress the courts of the dense districts and the gardens behind the
 /// houses of a finished plan, the last of a town's dressing: after the open
 /// country's cover has certified the map's sight, among every body the plan
-/// already holds, and `wood_clear_m` (the forests' trunk clearance) off every
-/// forest, so no court or garden fells a tree the certificate counted. Both
+/// already holds, and the forests' trunk clearance (of `physics`, whose
+/// catalog the bodies are) off every forest, so no court or garden fells a
+/// tree the certificate counted. Both
 /// stop at the request's authored-part limit, courts first: on the largest
 /// maps the gardens take what the courts leave. The answer is the bodies to
 /// add to the plan's `props`, as [`place_street_props`]'s are.
@@ -262,13 +264,13 @@ pub fn place_courts_and_gardens(
     plan: &MapPlan,
     request: &GenerationRequest,
     templates: &TemplateGeometryCatalog,
-    catalog: &Catalog,
+    physics: &GenerationPhysics,
     presets: &PresetDefinitions,
-    wood_clear_m: f64,
 ) -> Result<Vec<AuthoredPropDefinition>, Vec<Diagnostic>> {
-    let mut pass = Pass::prepare(plan, request, templates, catalog, presets)?;
+    let mut pass = Pass::prepare(plan, request, templates, &physics.catalog, presets)?;
     pass.field.stand_plan_bodies(&plan.props);
-    pass.field.keep_off_woods(&plan.forests, wood_clear_m);
+    pass.field
+        .keep_off_woods(&plan.forests, physics.forests.rule.trunk_clearance_m);
     let parts = plan.props.len() + plan.buildings.iter().map(|b| b.parts.len()).sum::<usize>();
     let room = (request.limits.max_authored_parts as usize).saturating_sub(parts);
     let courts = pass.courts(room);
@@ -409,9 +411,7 @@ impl<'a> Pass<'a> {
         let mut district_ids = BTreeMap::new();
         for district in plan.settlements.iter().flat_map(|s| &s.districts) {
             // A kind the presets lack was refused by the parcel pass.
-            let Some(preset) = presets.districts.get(&district.kind) else {
-                continue;
-            };
+            let preset = &presets.districts[&district.kind];
             let [x0, y0, x1, y1] = contract::ground::limits(&district.ring, 0.0);
             district_grid.insert([x0, y0, x1, y1], districts.len() as u32);
             district_ids.insert(district.id.as_str(), districts.len());
@@ -451,20 +451,13 @@ impl<'a> Pass<'a> {
                 .collect(),
             house_ids: BTreeMap::new(),
             field: Field {
-                objectives: plan
-                    .skirmish
-                    .as_ref()
-                    .map(|sites| {
-                        sites
-                            .all_reserved_objectives()
-                            .map(|o| Rect {
-                                center: o.center,
-                                axis: [1.0, 0.0],
-                                half: [o.radius_m + 10.0; 2],
-                            })
-                            .collect()
+                objectives: crate::skirmish::objective_clearances(plan.skirmish.as_ref())
+                    .map(|(center, clearance)| Rect {
+                        center,
+                        axis: [1.0, 0.0],
+                        half: [clearance; 2],
                     })
-                    .unwrap_or_default(),
+                    .collect(),
                 size: plan.size,
                 rule,
                 lane,
@@ -522,28 +515,19 @@ impl<'a> Pass<'a> {
     ) -> Result<(), Vec<Diagnostic>> {
         let plan = self.plan;
         for placement in &plan.buildings {
-            let refuse = |code, location: &str, message: String| {
-                vec![Diagnostic {
-                    code,
-                    feature: Some(placement.id.clone()),
-                    location: location.into(),
-                    message,
-                }]
-            };
             let template = templates
                 .templates()
                 .iter()
                 .find(|template| template.id == placement.template_id)
-                .ok_or_else(|| {
-                    refuse(
-                        DiagnosticCode::MissingTemplate,
-                        "template_id",
-                        format!("unknown physical template {}", placement.template_id),
-                    )
-                })?;
-            let building = template
-                .materialize(placement.frame)
-                .map_err(|message| refuse(DiagnosticCode::InvalidPlacement, "frame", message))?;
+                .expect("a placed template is the catalogue's: the generator chose it there");
+            let building = template.materialize(placement.frame).map_err(|message| {
+                vec![Diagnostic {
+                    code: DiagnosticCode::InvalidPlacement,
+                    feature: Some(placement.id.clone()),
+                    location: "frame".into(),
+                    message,
+                }]
+            })?;
             let first = self.field.walls.len();
             for part in &building.parts {
                 let wall = Rect {
@@ -897,7 +881,7 @@ impl<'a> Pass<'a> {
             return placed;
         }
         let kind = rng
-            .pick(&rule.boundary)
+            .pick(rule.boundary.iter().map(|(kind, weight)| (kind, *weight)))
             .expect("a boundary names a kind")
             .as_str();
         // On the parcel: a neighbour's run along the same edge is a run

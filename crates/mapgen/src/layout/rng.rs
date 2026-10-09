@@ -41,17 +41,10 @@ impl Stream {
         self.unit() < probability
     }
 
-    /// A key of `table` drawn by its weight; `None` for an empty table.
-    pub fn pick<'k, K>(&mut self, table: &'k BTreeMap<K, f64>) -> Option<&'k K> {
-        let mut pick = self.unit() * table.values().sum::<f64>();
-        table
-            .iter()
-            .find(|(_, weight)| {
-                pick -= **weight;
-                pick < 0.0
-            })
-            .or(table.iter().last())
-            .map(|(key, _)| key)
+    /// One of `items` drawn by its weight (`by_weight` of a fresh draw);
+    /// `None` for no items.
+    pub fn pick<T>(&mut self, items: impl IntoIterator<Item = (T, f64)> + Clone) -> Option<T> {
+        by_weight(self.unit(), items)
     }
 
     /// Every key of `table` in an order drawn by weight: each in turn the
@@ -70,6 +63,27 @@ impl Stream {
     pub fn shuffled<T>(&mut self, items: Vec<T>) -> Vec<T> {
         in_drawn_order(items.into_iter().map(|item| (self.unit(), item)).collect())
     }
+}
+
+/// The item a uniform draw `drawn` in `[0, 1)` lands on when `items` share
+/// the sum of their weights in their order, each its weight's span; the last
+/// where rounding leaves the draw past every span. `None` for no items.
+pub fn by_weight<T>(drawn: f64, items: impl IntoIterator<Item = (T, f64)> + Clone) -> Option<T> {
+    let mut pick = drawn
+        * items
+            .clone()
+            .into_iter()
+            .map(|(_, weight)| weight)
+            .sum::<f64>();
+    let mut last = None;
+    for (item, weight) in items {
+        pick -= weight;
+        if pick < 0.0 {
+            return Some(item);
+        }
+        last = Some(item);
+    }
+    last
 }
 
 /// The items of `keyed` by their drawn keys, least first; items whose keys

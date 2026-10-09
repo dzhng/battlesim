@@ -655,9 +655,11 @@ pub struct StreetProps {
     pub edge_m: f64,
 
     /// No body stands nearer a carriageway's middle than the catalog's
-    /// widest hull plus this. A vehicle keeps to the right of the middle,
-    /// and the simulation checks its lane on a 2 m grid: a body that stops
-    /// it, standing nearer than this, can close the road to it.
+    /// widest hull plus this. A vehicle drives its road's right-hand side,
+    /// a little off the middle (the simulation's road lanes, `KEEP_RIGHT_M`
+    /// in `crates/sim/src/navigation/journey.rs`): this is that offset and
+    /// room beside it, so a kerbside body stands outside the widest hull's
+    /// lane.
     pub lane_margin_m: f64,
     /// No body stands on a carriageway, nor within this of its edge.
     pub kerb_gap_m: f64,
@@ -697,11 +699,15 @@ pub struct StreetProps {
     /// Amenities a court is dressed with, each placed whole or not at all.
     #[serde(default)]
     pub groups: BTreeMap<String, Group>,
-    /// A vehicle's way is the catalog's widest hull and this: the
-    /// simulation judges a vehicle's room on a 2 m grid and can lose a cell
-    /// of it at each side. A lawn's lane keeps that much open, and a yard's
-    /// vehicle gate stands only in a side that leaves that much between
-    /// itself and the building.
+    /// A vehicle's way is the catalog's widest hull and this. A hull fits
+    /// through any gap it clears, but a way only as wide as the hull is a
+    /// squeeze that the simulation's routes avoid (a step through a tight
+    /// navigation cell costs more, `crates/sim/src/navigation/search.rs`);
+    /// this much more keeps the way's middle a cell with room for the hull,
+    /// on the simulation's 2 m grid at any offset. A lawn's lane keeps that
+    /// much open, a yard's vehicle gate stands only in a side that leaves
+    /// that much between itself and the building, and a body abandoned in
+    /// the road leaves it beside itself.
     pub hull_way_margin_m: f64,
     pub courts: CourtRule,
     pub parking: Parking,
@@ -844,6 +850,8 @@ pub struct LotRule {
     pub coverage: f64,
     /// Depth of the paved apron across the parcel's front (parking, a
     /// loading yard), from the street's edge; never under the building.
+    /// Where the district paves its built parcels as yards, the yard paves
+    /// the parcel and the apron only the verge in front of it.
     pub apron_m: f64,
 }
 
@@ -1083,252 +1091,132 @@ impl PresetDefinitions {
             "skirmish".into(), "compact construction requires feasible road/river budgets, midpoint hub and valid reserves",
         );
 
+        // Generation's geometric thresholds: each a distance, a multiple of a
+        // width or length, or a tangent, so above zero.
+        for (field, value) in [
+            ("joints.meet_m", self.joints.meet_m),
+            ("joints.near_m", self.joints.near_m),
+            ("joints.tail_spare_m", self.joints.tail_spare_m),
+            ("joints.beside_widths", self.joints.beside_widths),
+            ("joints.junction_m", self.joints.junction_m),
+            ("joints.swing_widths", self.joints.swing_widths),
+            ("joints.square_widths", self.joints.square_widths),
+            ("joints.stub_widths", self.joints.stub_widths),
+            ("joints.gate_widths", self.joints.gate_widths),
+            ("joints.trim_margin_m", self.joints.trim_margin_m),
+            ("joints.shortest_run_m", self.joints.shortest_run_m),
+            ("towns.geometry.sliver_m", self.towns.geometry.sliver_m),
+            ("towns.geometry.shared_m", self.towns.geometry.shared_m),
+            ("towns.geometry.meet_m", self.towns.geometry.meet_m),
+            (
+                "parcels.geometry.facing_past_m",
+                self.parcels.geometry.facing_past_m,
+            ),
+            (
+                "parcels.geometry.turn_widths",
+                self.parcels.geometry.turn_widths,
+            ),
+            (
+                "parcels.geometry.ahead_spread",
+                self.parcels.geometry.ahead_spread,
+            ),
+            (
+                "parcels.geometry.road_edge",
+                self.parcels.geometry.road_edge,
+            ),
+            (
+                "parcels.geometry.open_edge",
+                self.parcels.geometry.open_edge,
+            ),
+            (
+                "parcels.geometry.bow_reach",
+                self.parcels.geometry.bow_reach,
+            ),
+            (
+                "parcels.geometry.alone_widths",
+                self.parcels.geometry.alone_widths,
+            ),
+            (
+                "parcels.geometry.crowd_widths",
+                self.parcels.geometry.crowd_widths,
+            ),
+            ("parcels.geometry.own_tan", self.parcels.geometry.own_tan),
+            (
+                "parcels.geometry.corner_tan",
+                self.parcels.geometry.corner_tan,
+            ),
+            (
+                "parcels.geometry.end_margin_m",
+                self.parcels.geometry.end_margin_m,
+            ),
+            ("street_props.edge_m", self.street_props.edge_m),
+            ("street_props.door_reach_m", self.street_props.door_reach_m),
+            ("street_props.door_look_m", self.street_props.door_look_m),
+            ("street_props.owner_step_m", self.street_props.owner_step_m),
+            ("street_props.site_room_m", self.street_props.site_room_m),
+        ] {
+            check(
+                positive(value),
+                field.into(),
+                &format!("{field} is a distance or a multiple and must be finite and above zero"),
+            );
+        }
+        // Each the sine or cosine of an angle within a right angle.
+        for (field, value) in [
+            ("joints.through_cos", self.joints.through_cos),
+            ("joints.slant_cos", self.joints.slant_cos),
+            ("joints.alongside_cos", self.joints.alongside_cos),
+            ("roads.fork_sin", self.roads.fork_sin),
+            (
+                "towns.geometry.in_line_sin",
+                self.towns.geometry.in_line_sin,
+            ),
+            (
+                "towns.geometry.avenue_slant_sin",
+                self.towns.geometry.avenue_slant_sin,
+            ),
+            (
+                "parcels.geometry.parallel_cos",
+                self.parcels.geometry.parallel_cos,
+            ),
+            (
+                "parcels.geometry.facing_cos",
+                self.parcels.geometry.facing_cos,
+            ),
+            (
+                "parcels.geometry.slant_sin",
+                self.parcels.geometry.slant_sin,
+            ),
+            ("parcels.geometry.turn_sin", self.parcels.geometry.turn_sin),
+            (
+                "parcels.geometry.in_line_cos",
+                self.parcels.geometry.in_line_cos,
+            ),
+        ] {
+            check(
+                value.is_finite() && (0.0..=1.0).contains(&value),
+                field.into(),
+                &format!("{field} is the sine or cosine of an angle within a right angle: 0 to 1"),
+            );
+        }
+        // Each bounds a search: at least one round, and finite work.
+        for (field, value) in [
+            ("joints.carry_rounds", self.joints.carry_rounds),
+            ("joints.pin_rounds", self.joints.pin_rounds),
+            ("roads.side_road_tries", self.roads.side_road_tries),
+            ("towns.geometry.places", self.towns.geometry.places),
+        ] {
+            check(
+                (1..=4096).contains(&value),
+                field.into(),
+                &format!("{field} counts the rounds or tries of a bounded search: 1 to 4096"),
+            );
+        }
+        let [shortest, longest] = self.parcels.geometry.bow_lengths;
         check(
-            self.joints.meet_m.is_finite() && self.joints.meet_m > 0.0,
-            "joints.meet_m".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.joints.near_m.is_finite() && self.joints.near_m > 0.0,
-            "joints.near_m".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.joints.through_cos.is_finite() && (0.0..=1.0).contains(&self.joints.through_cos),
-            "joints.through_cos".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.joints.tail_spare_m.is_finite() && self.joints.tail_spare_m > 0.0,
-            "joints.tail_spare_m".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.joints.carry_rounds > 0 && self.joints.carry_rounds <= 4096,
-            "joints.carry_rounds".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.joints.beside_widths.is_finite() && self.joints.beside_widths > 0.0,
-            "joints.beside_widths".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.joints.junction_m.is_finite() && self.joints.junction_m > 0.0,
-            "joints.junction_m".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.joints.swing_widths.is_finite() && self.joints.swing_widths > 0.0,
-            "joints.swing_widths".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.joints.slant_cos.is_finite() && (0.0..=1.0).contains(&self.joints.slant_cos),
-            "joints.slant_cos".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.joints.square_widths.is_finite() && self.joints.square_widths > 0.0,
-            "joints.square_widths".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.joints.stub_widths.is_finite() && self.joints.stub_widths > 0.0,
-            "joints.stub_widths".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.joints.alongside_cos.is_finite()
-                && (0.0..=1.0).contains(&self.joints.alongside_cos),
-            "joints.alongside_cos".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.joints.gate_widths.is_finite() && self.joints.gate_widths > 0.0,
-            "joints.gate_widths".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.joints.trim_margin_m.is_finite() && self.joints.trim_margin_m > 0.0,
-            "joints.trim_margin_m".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.joints.pin_rounds > 0 && self.joints.pin_rounds <= 4096,
-            "joints.pin_rounds".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.joints.shortest_run_m.is_finite() && self.joints.shortest_run_m > 0.0,
-            "joints.shortest_run_m".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.roads.fork_sin.is_finite() && (0.0..=1.0).contains(&self.roads.fork_sin),
-            "roads.fork_sin".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.roads.side_road_tries > 0 && self.roads.side_road_tries <= 4096,
-            "roads.side_road_tries".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.towns.geometry.sliver_m.is_finite() && self.towns.geometry.sliver_m > 0.0,
-            "towns.geometry.sliver_m".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.towns.geometry.shared_m.is_finite() && self.towns.geometry.shared_m > 0.0,
-            "towns.geometry.shared_m".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.towns.geometry.meet_m.is_finite() && self.towns.geometry.meet_m > 0.0,
-            "towns.geometry.meet_m".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.towns.geometry.places > 0 && self.towns.geometry.places <= 4096,
-            "towns.geometry.places".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.towns.geometry.in_line_sin.is_finite()
-                && (0.0..=1.0).contains(&self.towns.geometry.in_line_sin),
-            "towns.geometry.in_line_sin".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.towns.geometry.avenue_slant_sin.is_finite()
-                && (0.0..=1.0).contains(&self.towns.geometry.avenue_slant_sin),
-            "towns.geometry.avenue_slant_sin".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.parcels.geometry.facing_past_m.is_finite()
-                && self.parcels.geometry.facing_past_m > 0.0,
-            "parcels.geometry.facing_past_m".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.parcels.geometry.parallel_cos.is_finite()
-                && (0.0..=1.0).contains(&self.parcels.geometry.parallel_cos),
-            "parcels.geometry.parallel_cos".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.parcels.geometry.facing_cos.is_finite()
-                && (0.0..=1.0).contains(&self.parcels.geometry.facing_cos),
-            "parcels.geometry.facing_cos".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.parcels.geometry.slant_sin.is_finite()
-                && (0.0..=1.0).contains(&self.parcels.geometry.slant_sin),
-            "parcels.geometry.slant_sin".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.parcels.geometry.turn_sin.is_finite()
-                && (0.0..=1.0).contains(&self.parcels.geometry.turn_sin),
-            "parcels.geometry.turn_sin".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.parcels.geometry.turn_widths.is_finite()
-                && self.parcels.geometry.turn_widths > 0.0,
-            "parcels.geometry.turn_widths".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.parcels.geometry.in_line_cos.is_finite()
-                && (0.0..=1.0).contains(&self.parcels.geometry.in_line_cos),
-            "parcels.geometry.in_line_cos".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.parcels.geometry.ahead_spread.is_finite()
-                && self.parcels.geometry.ahead_spread > 0.0,
-            "parcels.geometry.ahead_spread".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.parcels.geometry.road_edge.is_finite() && self.parcels.geometry.road_edge > 0.0,
-            "parcels.geometry.road_edge".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.parcels.geometry.open_edge.is_finite() && self.parcels.geometry.open_edge > 0.0,
-            "parcels.geometry.open_edge".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.parcels.geometry.bow_lengths[0].is_finite()
-                && self.parcels.geometry.bow_lengths[1].is_finite()
-                && self.parcels.geometry.bow_lengths[0] >= 1.0
-                && self.parcels.geometry.bow_lengths[0] <= self.parcels.geometry.bow_lengths[1],
+            shortest.is_finite() && longest.is_finite() && 1.0 <= shortest && shortest <= longest,
             "parcels.geometry.bow_lengths".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.parcels.geometry.bow_reach.is_finite() && self.parcels.geometry.bow_reach > 0.0,
-            "parcels.geometry.bow_reach".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.parcels.geometry.alone_widths.is_finite()
-                && self.parcels.geometry.alone_widths > 0.0,
-            "parcels.geometry.alone_widths".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.parcels.geometry.crowd_widths.is_finite()
-                && self.parcels.geometry.crowd_widths > 0.0,
-            "parcels.geometry.crowd_widths".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.parcels.geometry.own_tan.is_finite() && self.parcels.geometry.own_tan > 0.0,
-            "parcels.geometry.own_tan".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.parcels.geometry.corner_tan.is_finite() && self.parcels.geometry.corner_tan > 0.0,
-            "parcels.geometry.corner_tan".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.parcels.geometry.end_margin_m.is_finite()
-                && self.parcels.geometry.end_margin_m > 0.0,
-            "parcels.geometry.end_margin_m".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.street_props.edge_m.is_finite() && self.street_props.edge_m > 0.0,
-            "street_props.edge_m".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.street_props.door_reach_m.is_finite() && self.street_props.door_reach_m > 0.0,
-            "street_props.door_reach_m".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.street_props.door_look_m.is_finite() && self.street_props.door_look_m > 0.0,
-            "street_props.door_look_m".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.street_props.owner_step_m.is_finite() && self.street_props.owner_step_m > 0.0,
-            "street_props.owner_step_m".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
-        );
-        check(
-            self.street_props.site_room_m.is_finite() && self.street_props.site_room_m > 0.0,
-            "street_props.site_room_m".into(),
-            "Extracted policy must be finite and preserve its geometric/work domain",
+            "parcels.geometry.bow_lengths is a range of district lengths, from at least one, in order",
         );
         check(
             contract::identity::validate_version_identifier(&self.revision).is_ok(),
@@ -2088,7 +1976,7 @@ fn refusal(location: String, message: String) -> Diagnostic {
 
 /// A mix is written as an object and kept dominant first (then by name), so
 /// the plan lists categories the same way whatever order the file used.
-fn mix<'de, D: serde::Deserializer<'de>>(decoder: D) -> Result<Mix, D::Error> {
+pub(crate) fn mix<'de, D: serde::Deserializer<'de>>(decoder: D) -> Result<Mix, D::Error> {
     let wire = BTreeMap::<String, f64>::deserialize(decoder)?;
     let mut out = Vec::new();
     for (name, weight) in wire {
@@ -2100,7 +1988,8 @@ fn mix<'de, D: serde::Deserializer<'de>>(decoder: D) -> Result<Mix, D::Error> {
     Ok(out)
 }
 
-/// Extracted generation policy. The initial values preserve the existing plan.
+/// How the ends of roads and streets are closed against each other and the
+/// map's edge (`joints`): joined, covered, squared or cut back.
 #[derive(Clone, Copy, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct JointPolicy {
@@ -2138,7 +2027,7 @@ pub struct JointPolicy {
     pub shortest_run_m: f64,
 }
 
-/// Extracted generation policy. The initial values preserve the existing plan.
+/// How a settlement's roads and cuts divide its ground into blocks.
 #[derive(Clone, Copy, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TownGeometry {
@@ -2156,7 +2045,8 @@ pub struct TownGeometry {
     pub avenue_slant_sin: f64,
 }
 
-/// Extracted generation policy. The initial values preserve the existing plan.
+/// How a district's streets are lined up, meet carriageways and each
+/// other, and end.
 #[derive(Clone, Copy, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct StreetGeometry {
@@ -2176,9 +2066,9 @@ pub struct StreetGeometry {
     pub in_line_cos: f64,
     /// A street that stops in the open looks this far to either side of its line for the carriageway it stops short of (20 degrees).
     pub ahead_spread: f64,
-    /// How much an edge of a district counts for when the district picks the line of its streets: twice its length where a road runs along it, a quarter where no carriageway does.
+    /// How much an edge of a district counts for, per metre, when the district picks the line of its streets, where a road runs along it; an edge along a street counts its length once.
     pub road_edge: f64,
-    /// See the owning source for its geometric use.
+    /// And where no carriageway runs along it.
     pub open_edge: f64,
     /// A bowed street's wave is this many times its district's length, or the preset's wavelength where that is longer: one bend or less from end to end, never a ripple.
     pub bow_lengths: [f64; 2],

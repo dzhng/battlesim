@@ -179,6 +179,32 @@ pub(crate) fn reserve(
     }
     Ok(Some(sites))
 }
+/// Ground kept beyond a reserved objective's clearance, so what stands round
+/// it does not crowd its edge.
+const CLEARANCE_MARGIN_M: f64 = 10.0;
+/// The most of the primary junction's capture circle that is kept clear: it
+/// stands in the main town's square, and clearing all of it would hollow the
+/// town out. The capture radius itself stays the objective's.
+const JUNCTION_CLEARANCE_M: f64 = 28.0;
+
+/// The ground every generation pass keeps clear about each reserved objective
+/// of `sites` (forests, parcels, the open country and street furniture
+/// alike): its centre and how far from it nothing stands.
+pub(crate) fn objective_clearances(
+    sites: Option<&SkirmishSites>,
+) -> impl Iterator<Item = ([f64; 2], f64)> + '_ {
+    sites
+        .into_iter()
+        .flat_map(SkirmishSites::all_reserved_objectives)
+        .map(|o| {
+            let kept = match o.kind {
+                ObjectiveSiteKind::Junction => o.radius_m.min(JUNCTION_CLEARANCE_M),
+                _ => o.radius_m,
+            };
+            (o.center, kept + CLEARANCE_MARGIN_M)
+        })
+}
+
 fn distance(a: [f64; 2], b: [f64; 2]) -> f64 {
     libm::hypot(a[0] - b[0], a[1] - b[1])
 }

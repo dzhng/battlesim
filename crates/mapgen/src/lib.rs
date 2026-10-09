@@ -406,14 +406,8 @@ fn generate(
     let mut plan = open_country::cover(plan, &request, &catalogue, &presets, &physics)?;
     // Courts and gardens last: the cover's sight certificate needs open
     // ground in the towns to stand copses on, and they give way to it.
-    let dressing = street_props::place_courts_and_gardens(
-        &plan,
-        &request,
-        &catalogue,
-        &physics.catalog,
-        &presets,
-        physics.forests.rule.trunk_clearance_m,
-    )?;
+    let dressing =
+        street_props::place_courts_and_gardens(&plan, &request, &catalogue, &physics, &presets)?;
     plan.props.extend(dressing);
     let hash = physics.hash().map_err(|error| {
         vec![Diagnostic {
@@ -504,10 +498,11 @@ pub fn generate_with_plan(
         )?;
     let profile = request.profile;
     let request = CompileRequest::generated(&request, plan);
-    let mut compiled = lower(&request, &catalogue).map_err(|diagnostics| GenerationFailure {
+    let compile_failure = |diagnostics| GenerationFailure {
         stage: GenerationStage::Compile,
         diagnostics,
-    })?;
+    };
+    let compiled = materialize(&request, &catalogue).map_err(compile_failure)?;
     // Borrow the large plan rather than materializing a second JSON tree.
     #[derive(Serialize)]
     struct GeneratedConfiguration<'a> {
@@ -515,20 +510,21 @@ pub fn generate_with_plan(
         physical_inputs_hash: &'a str,
         plan: &'a MapPlan,
     }
-    compiled.identity.config_hash = contract::identity::json_hash(&GeneratedConfiguration {
+    let config_hash = contract::identity::json_hash(&GeneratedConfiguration {
         profile,
         physical_inputs_hash: &physical_inputs_hash,
         plan: &request.plan,
     })
-    .map_err(|error| GenerationFailure {
-        stage: GenerationStage::Compile,
-        diagnostics: vec![Diagnostic {
+    .map_err(|error| {
+        compile_failure(vec![Diagnostic {
             code: DiagnosticCode::InvalidPhysicalRules,
             feature: None,
             location: "$.rules".into(),
             message: error.to_string(),
-        }],
+        }])
     })?;
+    let compiled =
+        identified(&request, &catalogue, compiled, config_hash).map_err(compile_failure)?;
     Ok((request.plan, compiled))
 }
 
@@ -665,10 +661,30 @@ pub fn validate_plan(plan: &MapPlan) -> Result<(), Vec<Diagnostic>> {
     }
 }
 
+/// Compile a plan, authored or generated, into the physical map; its
+/// configuration hash is the plan's own.
 pub fn lower(
     request: &CompileRequest,
     catalogue: &TemplateGeometryCatalog,
 ) -> Result<GeneratedMap, Vec<Diagnostic>> {
+    let compiled = materialize(request, catalogue)?;
+    let config_hash = contract::identity::json_hash(&request.plan).map_err(|error| {
+        vec![Diagnostic {
+            code: DiagnosticCode::InvalidRequest,
+            feature: None,
+            location: "$.plan".into(),
+            message: error.to_string(),
+        }]
+    })?;
+    identified(request, catalogue, compiled, config_hash)
+}
+
+/// The physical map a plan compiles to and what it cost, without its
+/// identity: every admission check `lower` makes.
+pub(crate) fn materialize(
+    request: &CompileRequest,
+    catalogue: &TemplateGeometryCatalog,
+) -> Result<(MapDefinition, CompileReport), Vec<Diagnostic>> {
     let diagnostics: Vec<_> = [
         ("generator_version", &request.generator_version),
         ("preset_revision", &request.preset_revision),
@@ -846,18 +862,29 @@ pub fn lower(
             return Err(refuse("physical body extends outside the map bounds"));
         }
     }
+    let report = CompileReport {
+        authored_parts: authored_parts as u32,
+        bay_positions,
+        ground_points,
+        limits: request.limits,
+    };
+    Ok((map, report))
+}
+
+/// The compiled map of `request` under the identity whose configuration hash
+/// is `config_hash`: the plan's own for an authored plan, the generation
+/// configuration's for a generated one (`generate_with_plan`).
+fn identified(
+    request: &CompileRequest,
+    catalogue: &TemplateGeometryCatalog,
+    (map, report): (MapDefinition, CompileReport),
+    config_hash: String,
+) -> Result<GeneratedMap, Vec<Diagnostic>> {
     let identity = GenerationIdentity {
         generator_version: request.generator_version.clone(),
         preset_revision: request.preset_revision.clone(),
         seed: request.seed,
-        config_hash: contract::identity::json_hash(&request.plan).map_err(|error| {
-            vec![Diagnostic {
-                code: DiagnosticCode::InvalidRequest,
-                feature: None,
-                location: "$.plan".into(),
-                message: error.to_string(),
-            }]
-        })?,
+        config_hash,
         template_catalog_hash: catalogue.hash().into(),
         map_hash: contract::identity::json_hash(&map).map_err(|error| {
             vec![Diagnostic {
@@ -871,12 +898,7 @@ pub fn lower(
     Ok(GeneratedMap {
         map,
         identity,
-        report: CompileReport {
-            authored_parts: authored_parts as u32,
-            bay_positions,
-            ground_points,
-            limits: request.limits,
-        },
+        report,
         sites: request.plan.sites(),
     })
 }

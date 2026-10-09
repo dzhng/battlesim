@@ -9,6 +9,7 @@ mod limits;
 mod parallel;
 use contract::catalog::Catalog;
 use contract::encounter::EncounterRecipes;
+use contract::generation_physics::GenerationPhysics;
 use contract::ground::{polygon_contains, GroundShape};
 use contract::map::{AuthoredPropDefinition, MapDefinition, PropDefinition, SurfaceKind};
 use contract::scenario::{Rules, WeightClass};
@@ -222,16 +223,14 @@ fn dressed(
         place_street_props(plan, request, &catalogue(), &rules.catalog, presets).unwrap();
     let mut furnished = plan.clone();
     furnished.props.extend(props.iter().cloned());
+    let physics = GenerationPhysics {
+        catalog: rules.catalog.clone(),
+        forests: rules.forests.clone(),
+        infantry_eye_m: rules.physics.infantry_eye_m,
+        fog_target_height_m: rules.sensors.fog_target_height_m,
+    };
     props.extend(
-        place_courts_and_gardens(
-            &furnished,
-            request,
-            &catalogue(),
-            &rules.catalog,
-            presets,
-            rules.forests.rule.trunk_clearance_m,
-        )
-        .unwrap(),
+        place_courts_and_gardens(&furnished, request, &catalogue(), &physics, presets).unwrap(),
     );
     props
 }
