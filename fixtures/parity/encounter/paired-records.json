@@ -2,31 +2,31 @@
   "cases": [
     {
       "name": "mixed medium, the lab's map",
-      "request_json": "{\"generator_version\":\"layout-16\",\"preset_revision\":\"layout-presets-19\",\"seed\":\"1\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"mixed\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000},\"profile\":\"skirmish\"}",
+      "request_json": "{\"generator_version\":\"layout-17\",\"preset_revision\":\"layout-presets-19\",\"seed\":\"1\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"mixed\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000},\"profile\":\"skirmish\"}",
       "recipe": "assault",
       "encounter_seed": "1",
-      "native_sha256": "5ded6ca82e77adaa69a7e6961c44e1539b88b70a2539674ee6d8f7f6d78e1e4d",
+      "native_sha256": "27f16792b7f297d976d8983bb8400efd209094d5808707244a6192affe128b22",
       "status": "ok"
     },
     {
       "name": "open medium with a river",
-      "request_json": "{\"generator_version\":\"layout-16\",\"preset_revision\":\"layout-presets-19\",\"seed\":\"2\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"open\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000},\"profile\":\"skirmish\"}",
+      "request_json": "{\"generator_version\":\"layout-17\",\"preset_revision\":\"layout-presets-19\",\"seed\":\"2\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"open\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000},\"profile\":\"skirmish\"}",
       "recipe": "assault",
       "encounter_seed": "1",
-      "native_sha256": "053ea685428b640ec3094a7482f9e87fc5ff58a832494ba13346d4bce3ed16b6",
+      "native_sha256": "b8b26c78f04309212c33b9dd23a0d9394c771aa45cfac476d98068b44d45af7a",
       "status": "ok"
     },
     {
       "name": "metro medium with a river, an encounter seed above the JavaScript integer range",
-      "request_json": "{\"generator_version\":\"layout-16\",\"preset_revision\":\"layout-presets-19\",\"seed\":\"3\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"metro\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000},\"profile\":\"skirmish\"}",
+      "request_json": "{\"generator_version\":\"layout-17\",\"preset_revision\":\"layout-presets-19\",\"seed\":\"3\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"metro\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000},\"profile\":\"skirmish\"}",
       "recipe": "assault",
       "encounter_seed": "18446744073709551615",
-      "native_sha256": "7f38298e846a7a9ae9740f21de84335bf29eaa39539daaefa389f4bc1e02fd24",
+      "native_sha256": "e2111186f69cd0c8b7aab87b778a42c4f721cf05e003efe4b6179320b5df9b25",
       "status": "ok"
     },
     {
       "name": "no building within reach of the objective",
-      "request_json": "{\"generator_version\":\"layout-16\",\"preset_revision\":\"layout-presets-19\",\"seed\":\"1\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"mixed\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000},\"profile\":\"skirmish\"}",
+      "request_json": "{\"generator_version\":\"layout-17\",\"preset_revision\":\"layout-presets-19\",\"seed\":\"1\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"mixed\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000},\"profile\":\"skirmish\"}",
       "recipe": "assault",
       "recipe_patch": {
         "garrison": {
@@ -39,7 +39,7 @@
     },
     {
       "name": "a start that cannot be made fair",
-      "request_json": "{\"generator_version\":\"layout-16\",\"preset_revision\":\"layout-presets-19\",\"seed\":\"3\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"metro\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000},\"profile\":\"skirmish\"}",
+      "request_json": "{\"generator_version\":\"layout-17\",\"preset_revision\":\"layout-presets-19\",\"seed\":\"3\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"metro\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000},\"profile\":\"skirmish\"}",
       "recipe": "assault",
       "recipe_patch": {
         "deployment": {
@@ -53,7 +53,7 @@
     },
     {
       "name": "a seed that is not canonical decimal text",
-      "request_json": "{\"generator_version\":\"layout-16\",\"preset_revision\":\"layout-presets-19\",\"seed\":\"1\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"mixed\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000},\"profile\":\"skirmish\"}",
+      "request_json": "{\"generator_version\":\"layout-17\",\"preset_revision\":\"layout-presets-19\",\"seed\":\"1\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"mixed\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000},\"profile\":\"skirmish\"}",
       "recipe": "assault",
       "encounter_seed": "01",
       "native_sha256": "f9f2d069d0c30be88ec5162ae9172c0e0f7b3ca2fe2d52c5dc78b744e248fdf1",
