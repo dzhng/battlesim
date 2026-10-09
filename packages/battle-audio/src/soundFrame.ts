@@ -41,7 +41,12 @@ import { hashString } from "@packages/renderer-core/src/math";
 import { impactAfter, type CookOffFeel } from "@packages/battle-renderer/src/effects/cookOff";
 import { LaunchTracker } from "@packages/battle-renderer/src/effects/launches";
 import { pick } from "@packages/renderer-core/src/kindTable";
-import { validateAudio, type AudioPresentation, type Bus } from "./audioPresentation";
+import {
+  validateAudio,
+  type AudioPresentation,
+  type Bus,
+  type VehicleSound,
+} from "./audioPresentation";
 import { firingCadence, resolveEffect, resolveShot, type SoundCatalog } from "./catalog";
 import { GLANCE } from "./contacts";
 import { gameSounds } from "./shippedSounds";
@@ -250,6 +255,56 @@ export function sectorPan(sector: number, forward: P3): number {
   const rx = forward[1] / len;
   const ry = -forward[0] / len;
   return Math.max(-1, Math.min(1, Math.cos(a) * rx + Math.sin(a) * ry));
+}
+
+/** One of a vehicle's sounding loops. */
+export interface VehicleLoop {
+  slot: "engine" | "running" | "turret" | "reverse";
+  sound: string;
+  gain: number;
+  rate: number;
+}
+
+/** The loops a vehicle of `row` sounds: its engine from idle to full `load`
+ *  (a share of `full_speed_mps`), running gear rising with it, a turret's
+ *  whine by `traverse` (a share of `full_traverse_rps`) and, `reversing`,
+ *  the reverse whine. A layer below audibility is left out. */
+export function vehicleLoops(
+  row: VehicleSound,
+  load: number,
+  traverse: number,
+  reversing: boolean,
+): VehicleLoop[] {
+  const loops: VehicleLoop[] = [
+    {
+      slot: "engine",
+      sound: row.engine,
+      gain: lerp(row.idle_gain, row.load_gain, load),
+      rate: lerp(row.idle_rate, row.load_rate, load),
+    },
+  ];
+  if (row.running && load > 0.02)
+    loops.push({
+      slot: "running",
+      sound: row.running,
+      gain: row.running_gain * Math.sqrt(load),
+      rate: 0.5 + load,
+    });
+  if (row.turret && traverse > 0.05)
+    loops.push({
+      slot: "turret",
+      sound: row.turret,
+      gain: row.turret_gain * traverse,
+      rate: 0.9 + 0.2 * traverse,
+    });
+  if (row.reverse && reversing && load > 0.02)
+    loops.push({
+      slot: "reverse",
+      sound: row.reverse,
+      gain: row.reverse_gain * load,
+      rate: 0.8 + 0.4 * load,
+    });
+  return loops;
 }
 
 /** Pending transients held at most; past it the oldest go. */
@@ -711,44 +766,14 @@ export class SoundFrame {
       m.travel = travel;
       m.turret = v.turret;
       const load = clamp(m.speed / row.full_speed_mps, 0, 1);
-      const key = `v${v.key}`;
-      wants.push({
-        key: `${key}:engine`,
-        sound: row.engine,
-        bus: "units",
-        gain: lerp(row.idle_gain, row.load_gain, load),
-        rate: lerp(row.idle_rate, row.load_rate, load),
-        position: v.position,
-        priority: 0,
-      });
-      if (row.running && load > 0.02)
-        wants.push({
-          key: `${key}:running`,
-          sound: row.running,
-          bus: "units",
-          gain: row.running_gain * Math.sqrt(load),
-          rate: 0.5 + load,
-          position: v.position,
-          priority: 0,
-        });
       const traverse = clamp(m.traverse / row.full_traverse_rps, 0, 1);
-      if (row.turret && traverse > 0.05)
+      for (const layer of vehicleLoops(row, load, traverse, !!v.reverse))
         wants.push({
-          key: `${key}:turret`,
-          sound: row.turret,
+          key: `v${v.key}:${layer.slot}`,
+          sound: layer.sound,
           bus: "units",
-          gain: row.turret_gain * traverse,
-          rate: 0.9 + 0.2 * traverse,
-          position: v.position,
-          priority: 0,
-        });
-      if (row.reverse && v.reverse && load > 0.02)
-        wants.push({
-          key: `${key}:reverse`,
-          sound: row.reverse,
-          bus: "units",
-          gain: row.reverse_gain * load,
-          rate: 0.8 + 0.4 * load,
+          gain: layer.gain,
+          rate: layer.rate,
           position: v.position,
           priority: 0,
         });

@@ -5,7 +5,7 @@ import { afterEach, expect, test, vi } from "vitest";
 import { SOUNDS } from "@packages/battle-audio/src/synth";
 import { SoundWorkbench } from "../../apps/sound-workbench/src/SoundWorkbench";
 import type { WorkbenchAPI, Snapshot } from "../../apps/sound-workbench/src/protocol";
-import type { Auditioner } from "../../apps/sound-workbench/src/audition";
+import type { Auditioner, LiveMix } from "../../apps/sound-workbench/src/audition";
 
 afterEach(cleanup);
 const VEHICLE: Snapshot["vehicles"][string] = {
@@ -83,6 +83,8 @@ function fixture() {
       default: VEHICLE,
       tracked_heavy: { ...VEHICLE, engine: "engine_diesel", turret: "turret" },
     },
+    footsteps: { sound: "footstep", gain: 0.07, stride_m: 0.8, max_step_m: 2 },
+    runMps: 2,
     materials: ["ground", "hull"],
   };
   let saved = snapshot;
@@ -101,11 +103,17 @@ function fixture() {
     })),
     save: vi.fn(async () => saved),
   };
-  const audition: Auditioner = { play: vi.fn(async () => {}), stop: vi.fn() };
+  const mix: LiveMix = { loops: vi.fn(), hit: vi.fn() };
+  const audition: Auditioner = {
+    play: vi.fn(async () => {}),
+    live: vi.fn(async () => mix),
+    stop: vi.fn(),
+  };
   return {
     snapshot,
     api,
     audition,
+    mix,
     publish(catalog: Snapshot["catalog"]) {
       saved = { ...snapshot, revision: "new", catalog };
     },
@@ -147,7 +155,7 @@ test("library selection, filtering and view changes stay usable when scrolling c
     fireEvent.change(screen.getByLabelText("Library filter"), { target: { value: "baselines" } });
     fireEvent.click(screen.getByRole("button", { name: "Synth · hmg" }));
     expect(screen.getByRole("heading", { name: "Synth · hmg" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Vehicle classes" }));
+    fireEvent.click(screen.getByRole("button", { name: "Movement" }));
     expect(screen.getByRole("heading", { name: "tracked_heavy" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Library & recipes" }));
     expect(screen.getByRole("heading", { name: "Synth · hmg" })).toBeTruthy();
@@ -256,13 +264,76 @@ test("a vehicle class auditions the loops the battle plays for it, replacements 
   const f = fixture();
   f.snapshot.catalog.effects.engine_diesel = "engine_small";
   render(<SoundWorkbench api={f.api} audition={f.audition} />, { wrapper: MemoryRouter });
-  fireEvent.click(await screen.findByRole("button", { name: "Vehicle classes" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Movement" }));
   fireEvent.click(screen.getByRole("button", { name: "Play tracked_heavy engine" }));
   await waitFor(() => expect(f.audition.play).toHaveBeenCalled());
   const [, kind, id] = vi.mocked(f.audition.play).mock.calls[0];
   expect([kind, id]).toEqual(["sound", "engine_small"]);
   // A class without a turret has nothing to play for it.
   expect(screen.queryByRole("button", { name: "Play default turret" })).toBeNull();
+});
+
+test("driving a vehicle class mixes its loops as the battle does at that speed", async () => {
+  const f = fixture();
+  f.snapshot.catalog.effects.engine_diesel = "engine_small";
+  render(<SoundWorkbench api={f.api} audition={f.audition} />, { wrapper: MemoryRouter });
+  fireEvent.click(await screen.findByRole("button", { name: "Movement" }));
+  fireEvent.change(screen.getByLabelText("tracked_heavy speed"), { target: { value: "12" } });
+  fireEvent.click(screen.getByRole("button", { name: "Drive tracked_heavy" }));
+  await waitFor(() => expect(f.mix.loops).toHaveBeenCalled());
+  // Full speed: the engine at its load rate and level, running gear at full.
+  const layers = vi.mocked(f.mix.loops).mock.lastCall![0];
+  expect(layers.map(({ sound, gain, rate }) => ({ sound, gain, rate }))).toEqual([
+    { sound: "engine_small", gain: 0.4, rate: 1.4 },
+    { sound: "wheels", gain: 0.3, rate: 1.5 },
+  ]);
+  // Stopped, the engine idles and the running gear falls silent.
+  fireEvent.change(screen.getByLabelText("tracked_heavy speed"), { target: { value: "0" } });
+  expect(vi.mocked(f.mix.loops).mock.lastCall![0].map((l) => [l.sound, l.rate])).toEqual([
+    ["engine_small", 0.8],
+  ]);
+});
+
+test("the footstep is chosen among footstep recordings and walks with the choice", async () => {
+  const f = fixture();
+  f.snapshot.catalog.clips.step = {
+    ...f.snapshot.catalog.clips.reload,
+    label: "Boot on dirt",
+    category: "footstep",
+    role: "other",
+  };
+  f.snapshot.catalog.sounds.boots = {
+    label: "Boots on dirt",
+    clips: ["step"],
+    synth: null,
+    synth_gain: 0,
+    gain: 1,
+    loop: false,
+  };
+  render(<SoundWorkbench api={f.api} audition={f.audition} />, { wrapper: MemoryRouter });
+  fireEvent.click(await screen.findByRole("button", { name: "Movement" }));
+  const choice = screen.getByLabelText("Footstep sound") as HTMLSelectElement;
+  // Only footstep recordings are offered, beside the original synthesis.
+  expect([...choice.options].map((o) => o.text)).toEqual(["Original synthesis", "Boots on dirt"]);
+  fireEvent.change(choice, { target: { value: "boots" } });
+  fireEvent.click(screen.getByRole("button", { name: "Play footsteps" }));
+  await waitFor(() => expect(f.mix.hit).toHaveBeenCalled());
+  expect(vi.mocked(f.audition.live).mock.lastCall![1]).toEqual(["boots"]);
+  expect(vi.mocked(f.mix.hit).mock.calls[0][0]).toBe("boots");
+});
+
+test("footsteps fall once a stride at the chosen pace", async () => {
+  const f = fixture();
+  render(<SoundWorkbench api={f.api} audition={f.audition} />, { wrapper: MemoryRouter });
+  fireEvent.click(await screen.findByRole("button", { name: "Movement" }));
+  fireEvent.click(screen.getByRole("button", { name: "Play footsteps" }));
+  await waitFor(() => expect(vi.mocked(f.mix.hit).mock.calls.length).toBeGreaterThan(1));
+  const delays = vi.mocked(f.mix.hit).mock.calls.map(([sound, , delay]) => {
+    expect(sound).toBe("footstep");
+    return delay;
+  });
+  // One soldier at 2 m/s with a 0.8 m stride: a step each 0.4 s.
+  expect(delays[1] - delays[0]).toBeCloseTo(0.4);
 });
 
 test("an edit after preview invalidates review, and a stale-save error retains the draft", async () => {

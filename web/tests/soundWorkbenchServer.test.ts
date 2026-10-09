@@ -62,7 +62,9 @@ async function fixture() {
             hull: { sound: "impact_hull", gain: 0.4 },
           },
           vehicles: {},
+          footsteps: { sound: "footstep", gain: 0.07, stride_m: 0.8, max_step_m: 2 },
         },
+        pose: { gait: { run_mps: 2.2 } },
       },
     }),
   );

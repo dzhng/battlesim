@@ -1,52 +1,8 @@
 import { SOUNDS } from "../../../packages/battle-audio/src/synth";
-import { resolveEffect, resolveShot } from "../../../packages/battle-audio/src/catalog";
+import { resolveShot } from "../../../packages/battle-audio/src/catalog";
 import { inheritRows } from "../../../packages/renderer-core/src/kindTable";
 import { Choices } from "./controls";
 import type { EditorProps } from "./editorProps";
-
-/** Each vehicle class's loops, as the battle plays them: read only here,
- *  since the classes and their rows live in `presentation.audio.vehicles`. */
-export function VehicleClasses({ snapshot, draft, play }: EditorProps) {
-  return (
-    <section className="sw-detail sw-global">
-      <h2>Vehicle classes</h2>
-      <p>
-        A vehicle sounds as its class: how it moves, its hull&apos;s weight and whether it hauls
-        supply. Classes and their levels live in the game&apos;s presentation; replace a loop for
-        every class under Defaults &amp; effects.
-      </p>
-      {Object.entries(snapshot.vehicles).map(([cls, row]) => (
-        <div className="sw-assignment" key={cls}>
-          <h3>{cls}</h3>
-          {(
-            [
-              ["engine", row.engine],
-              ["running gear", row.running],
-              ["turret", row.turret],
-              ["reverse", row.reverse],
-            ] as const
-          ).map(([slot, baseline]) => {
-            if (!baseline) return null;
-            const sound = resolveEffect(draft, baseline);
-            return (
-              <div className="sw-effect-row" key={slot}>
-                <span>
-                  {slot} · {draft.sounds[sound]?.label ?? sound}
-                </span>
-                <button
-                  aria-label={`Play ${cls} ${slot}`}
-                  onClick={() => void play("sound", sound)}
-                >
-                  Play
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      ))}
-    </section>
-  );
-}
 
 export function GlobalAssignments({ snapshot, draft, edit, play }: EditorProps) {
   const rows = Object.keys(snapshot.weapons);
