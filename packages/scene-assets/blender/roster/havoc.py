@@ -1,4 +1,4 @@
-"""Mi-28NM, from assets/references/mi_28_havoc/. A disabled card.
+"""Mi-28NM, from assets/references/mi_28_havoc/.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/havoc.py -- [--wreck]
 
@@ -10,9 +10,12 @@ wing-tip launchers, the tail with its X-shaped tail rotor on the right and
 the stabilator, the NM's radar dome over the rotor head; fixed main wheels
 and tail wheel. Dark grey.
 
-Dimensions stated from published figures (rotorcraft rule: fuselage length
-without blades, width over the wing tips, height to the top of the mast
-radar): 17.01 x 4.88 x 4.7 m.
+Built to the catalog frame, from published figures (rotorcraft rule:
+fuselage length without blades, width over the wing tips, height to the top
+of the mast radar): 17.01 x 4.88 x 4.7 m.
+
+The 30 mm cannon is the `chin` mount's rig; the missiles are fixed in the
+hull (the `missiles` mount's muzzle is the right rack's upper tube).
 """
 import math
 import os
@@ -21,10 +24,12 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
 from parts import box, cyl  # noqa: E402
-from vehicle_export import run_disabled  # noqa: E402
+from vehicle_export import rig, run  # noqa: E402
 from vehicle_parts import MID  # noqa: E402
 
-CARDS = {"eastern_mi_28_havoc_mi_28nm": (17.01, 4.88, 4.7)}
+# The 2A42's elevation in its chin mount, degrees, and its stroke.
+GUN_PITCH_DEG = (-40.0, 13.0)
+GUN_STROKE_M = 0.08
 SPEC = dict(
     fuselage=[(8.2, 0.0, 1.35, 1.35), (7.9, 0.5, 1.0, 1.8, 1.35, 2.4), (6.6, 0.64, 0.85, 2.05, 1.45, 3.0),
               (4.8, 0.7, 0.85, 2.45, 1.6, 3.0), (2.4, 0.82, 0.9, 2.66, 1.65, 3.4), (0.0, 0.78, 0.95, 2.6, 1.7, 3.4),
@@ -39,6 +44,9 @@ SPEC = dict(
     pylons=[((1.3, 1.25, 1.9), 0.8, 0.2), ((1.25, 1.95, 1.78), 0.8, 0.2)],
     stores=[("pod", (1.2, 1.25, 1.45), 1.7, 0.25), ("missile", (1.1, 2.32, 1.72), 1.8, 0.1)],
 )
+# How far forward the airframe's parts (placed in their drawing's frame)
+# move to centre on the hull box.
+AFT_M = 0.064
 
 
 def build(variant, v):
@@ -48,8 +56,7 @@ def build(variant, v):
     A.canopy("canopy", 7.8, 6.25, 1.62, 2.45, 0.6, m, hull, bows=(7.3, 6.8), peak=0.6, tail=0.75)
     A.canopy("canopy_glass_rear", 6.25, 4.55, 1.95, 2.98, 0.64, m, hull, bows=(5.7, 5.1), peak=0.5, tail=0.8)
     A.sensor_ball("sensor", (8.15, 0, 1.1), 0.32, m, hull)
-    cyl("gun_mount", 0.2, 0.4, (6.6, 0, 0.72), "Z", m["dark"], hull, seg=12)
-    cyl("gun_barrel", 0.06, 1.8, (7.4, 0, 0.62), "X", m["steel"], hull, seg=8, lods=MID)
+    A.chin_gun(v, rig(v.frame, v.root), m, GUN_PITCH_DEG, GUN_STROKE_M, drum=0.28)
     for side, k in ((1, "L"), (-1, "R")):
         A.body(f"nacelle_{k}", [(2.3, 0.0, 2.4, 2.4), (2.0, 0.34, 2.06, 2.74, 2.4), (-0.6, 0.34, 2.06, 2.74, 2.4),
                                 (-1.0, 0.24, 2.16, 2.64, 2.4)], m["paint"], hull, seg=14, loc=(0, side * 0.95, 0))
@@ -71,9 +78,13 @@ def build(variant, v):
         ("insignia", dict(kind="ru_star", centre=(-5.5, 1.2, 1.95), normal=(0, 1, 0), up=(0, 0, 1), size=0.28, onto=("fuselage",))),
         ("text", dict(text="45", height=0.42, centre=(5.8, 1.2, 1.55), normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",), colour="red")),
     ])
+    # The airframe as drawn runs off the frame's middle; the frame (and the
+    # mounts' pivots in it) is centred on the hull box.
+    v.hull.location.x += AFT_M
+
 
 def wreck(variant, v):
-    A.crash(v, tail_x=-2.8, tail_yaw=0.42, tail_drop=0.1, blades_broken=(("main", 2),), seed=28)
+    A.rotorcraft_crash(v, tail_x=-2.8, tail_yaw=0.42, tail_drop=0.1, seed=28)
 
 
-run_disabled("havoc", CARDS, "russian_air_grey", build, wreck, skip=("dressing_", "blade_"))
+run("havoc", "russian_air_grey", build, wreck, references="assets/references/mi_28_havoc/references.json")

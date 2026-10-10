@@ -122,6 +122,23 @@
       }
     },
     {
+      "cost": 360,
+      "description": "Ka-52M",
+      "disabled_reason": null,
+      "family": "ka_52_alligator",
+      "id": "eastern_ka_52_alligator_ka_52m",
+      "name": "Ka-52M",
+      "planned_weapons": [],
+      "roster": {
+        "category": "hel",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "Ka-52 Alligator",
+        "variant": "Ka-52M"
+      }
+    },
+    {
       "cost": 110,
       "description": "SVD-equipped longer-range infantry",
       "disabled_reason": null,
@@ -136,6 +153,57 @@
         ],
         "family_name": "Marksman Squad",
         "variant": "SVD-equipped longer-range infantry"
+      }
+    },
+    {
+      "cost": 270,
+      "description": "Mi-35M",
+      "disabled_reason": null,
+      "family": "mi_24_mi_35_hind",
+      "id": "eastern_mi_24_mi_35_hind_mi_35m",
+      "name": "Mi-35M",
+      "planned_weapons": [],
+      "roster": {
+        "category": "hel",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "Mi-24 Hind",
+        "variant": "Mi-35M"
+      }
+    },
+    {
+      "cost": 330,
+      "description": "Mi-28NM",
+      "disabled_reason": null,
+      "family": "mi_28_havoc",
+      "id": "eastern_mi_28_havoc_mi_28nm",
+      "name": "Mi-28NM",
+      "planned_weapons": [],
+      "roster": {
+        "category": "hel",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "Mi-28 Havoc",
+        "variant": "Mi-28NM"
+      }
+    },
+    {
+      "cost": 170,
+      "description": "Mi-8AMTSh",
+      "disabled_reason": null,
+      "family": "mi_8_hip",
+      "id": "eastern_mi_8_hip_mi_8amtsh",
+      "name": "Mi-8AMTSh",
+      "planned_weapons": [],
+      "roster": {
+        "category": "hel",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "Mi-8 Hip",
+        "variant": "Mi-8AMTSh"
       }
     },
     {
@@ -326,6 +394,40 @@
       }
     },
     {
+      "cost": 300,
+      "description": "Attack helicopter",
+      "disabled_reason": null,
+      "family": "z_10",
+      "id": "eastern_z_10_attack_helicopter",
+      "name": "Z-10",
+      "planned_weapons": [],
+      "roster": {
+        "category": "hel",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "Z-10",
+        "variant": "Attack helicopter"
+      }
+    },
+    {
+      "cost": 180,
+      "description": "Utility transport",
+      "disabled_reason": null,
+      "family": "z_20",
+      "id": "eastern_z_20_utility_transport",
+      "name": "Z-20",
+      "planned_weapons": [],
+      "roster": {
+        "category": "hel",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "Z-20",
+        "variant": "Utility transport"
+      }
+    },
+    {
       "cost": 190,
       "description": "Wheeled IFV; ground combat platform, passenger carriage not implemented",
       "disabled_reason": null,
@@ -377,6 +479,40 @@
       }
     },
     {
+      "cost": 230,
+      "description": "HC4",
+      "disabled_reason": null,
+      "family": "aw101_merlin",
+      "id": "europe_aw101_merlin_hc4",
+      "name": "Merlin HC4",
+      "planned_weapons": [],
+      "roster": {
+        "category": "hel",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "AW101 Merlin",
+        "variant": "HC4"
+      }
+    },
+    {
+      "cost": 170,
+      "description": "AH1",
+      "disabled_reason": null,
+      "family": "aw159_wildcat",
+      "id": "europe_aw159_wildcat_ah1",
+      "name": "Wildcat AH1",
+      "planned_weapons": [],
+      "roster": {
+        "category": "hel",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "AW159 Wildcat",
+        "variant": "AH1"
+      }
+    },
+    {
       "cost": 170,
       "description": "APC; ground combat platform, passenger carriage not implemented",
       "disabled_reason": null,
@@ -425,6 +561,23 @@
         ],
         "family_name": "Centauro II",
         "variant": "Tank destroyer"
+      }
+    },
+    {
+      "cost": 240,
+      "description": "HC6",
+      "disabled_reason": null,
+      "family": "ch_47_chinook",
+      "id": "europe_ch_47_chinook_hc6",
+      "name": "Chinook HC6",
+      "planned_weapons": [],
+      "roster": {
+        "category": "hel",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "CH-47 Chinook",
+        "variant": "HC6"
       }
     },
     {
@@ -510,6 +663,40 @@
         ],
         "family_name": "CV90",
         "variant": "Mk IV"
+      }
+    },
+    {
+      "cost": 350,
+      "description": "HAD",
+      "disabled_reason": null,
+      "family": "ec665_tiger",
+      "id": "europe_ec665_tiger_had",
+      "name": "Tiger HAD",
+      "planned_weapons": [],
+      "roster": {
+        "category": "hel",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "EC665 Tiger",
+        "variant": "HAD"
+      }
+    },
+    {
+      "cost": 330,
+      "description": "UHT",
+      "disabled_reason": null,
+      "family": "ec665_tiger",
+      "id": "europe_ec665_tiger_uht",
+      "name": "Tiger UHT",
+      "planned_weapons": [],
+      "roster": {
+        "category": "hel",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "EC665 Tiger",
+        "variant": "UHT"
       }
     },
     {
@@ -649,6 +836,23 @@
       }
     },
     {
+      "cost": 190,
+      "description": "TTH",
+      "disabled_reason": null,
+      "family": "nh90",
+      "id": "europe_nh90_tth",
+      "name": "NH90 TTH",
+      "planned_weapons": [],
+      "roster": {
+        "category": "hel",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "NH90",
+        "variant": "TTH"
+      }
+    },
+    {
       "cost": 260,
       "description": "Level C; ground combat platform, passenger carriage not implemented; direct optical guidance only, no top attack or fire-and-forget",
       "disabled_reason": null,
@@ -771,6 +975,57 @@
       }
     },
     {
+      "cost": 320,
+      "description": "Attack helicopter",
+      "disabled_reason": null,
+      "family": "ah_1z_viper",
+      "id": "us_ah_1z_viper_attack_helicopter",
+      "name": "AH-1Z Viper",
+      "planned_weapons": [],
+      "roster": {
+        "category": "hel",
+        "factions": [
+          "us"
+        ],
+        "family_name": "AH-1Z Viper",
+        "variant": "Attack helicopter"
+      }
+    },
+    {
+      "cost": 180,
+      "description": "AH-6M",
+      "disabled_reason": null,
+      "family": "ah_6_mh_6_little_bird",
+      "id": "us_ah_6_mh_6_little_bird_ah_6m",
+      "name": "AH-6M Little Bird",
+      "planned_weapons": [],
+      "roster": {
+        "category": "hel",
+        "factions": [
+          "us"
+        ],
+        "family_name": "Little Bird",
+        "variant": "AH-6M"
+      }
+    },
+    {
+      "cost": 120,
+      "description": "MH-6M",
+      "disabled_reason": null,
+      "family": "ah_6_mh_6_little_bird",
+      "id": "us_ah_6_mh_6_little_bird_mh_6m",
+      "name": "MH-6M Little Bird",
+      "planned_weapons": [],
+      "roster": {
+        "category": "hel",
+        "factions": [
+          "us"
+        ],
+        "family_name": "Little Bird",
+        "variant": "MH-6M"
+      }
+    },
+    {
       "cost": 80,
       "description": "Light patrol",
       "disabled_reason": null,
@@ -802,6 +1057,23 @@
         ],
         "family_name": "ATGM Team",
         "variant": "BGM-71 TOW 2A"
+      }
+    },
+    {
+      "cost": 240,
+      "description": "CH-47F",
+      "disabled_reason": null,
+      "family": "ch_47_chinook",
+      "id": "us_ch_47_chinook_ch_47f",
+      "name": "CH-47F Chinook",
+      "planned_weapons": [],
+      "roster": {
+        "category": "hel",
+        "factions": [
+          "us"
+        ],
+        "family_name": "CH-47 Chinook",
+        "variant": "CH-47F"
       }
     },
     {
@@ -1128,6 +1400,40 @@
       }
     },
     {
+      "cost": 160,
+      "description": "Utility transport",
+      "disabled_reason": null,
+      "family": "uh_1y_venom",
+      "id": "us_uh_1y_venom_utility_transport",
+      "name": "UH-1Y Venom",
+      "planned_weapons": [],
+      "roster": {
+        "category": "hel",
+        "factions": [
+          "us"
+        ],
+        "family_name": "UH-1Y Venom",
+        "variant": "Utility transport"
+      }
+    },
+    {
+      "cost": 180,
+      "description": "UH-60M",
+      "disabled_reason": null,
+      "family": "uh_60_black_hawk",
+      "id": "us_uh_60_black_hawk_uh_60m",
+      "name": "UH-60M Black Hawk",
+      "planned_weapons": [],
+      "roster": {
+        "category": "hel",
+        "factions": [
+          "us"
+        ],
+        "family_name": "UH-60 Black Hawk",
+        "variant": "UH-60M"
+      }
+    },
+    {
       "cost": 270,
       "description": "2S19M2",
       "disabled_reason": "Artillery and indirect-support mechanics deferred",
@@ -1316,32 +1622,6 @@
       }
     },
     {
-      "cost": 360,
-      "description": "Ka-52M",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
-      "family": "ka_52_alligator",
-      "id": "eastern_ka_52_alligator_ka_52m",
-      "name": "Ka-52M",
-      "planned_weapons": [
-        {
-          "icon": "autocannon",
-          "name": "Chain Gun"
-        },
-        {
-          "icon": "atgm",
-          "name": "AT Missile"
-        }
-      ],
-      "roster": {
-        "category": "hel",
-        "factions": [
-          "eastern"
-        ],
-        "family_name": "Ka-52 Alligator",
-        "variant": "Ka-52M"
-      }
-    },
-    {
       "cost": 90,
       "description": "Anti-armor",
       "disabled_reason": "Drone movement, sensing and mission mechanics deferred",
@@ -1383,80 +1663,6 @@
         ],
         "family_name": "Kamikaze Drone",
         "variant": "Anti-personnel"
-      }
-    },
-    {
-      "cost": 270,
-      "description": "Mi-35M",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
-      "family": "mi_24_mi_35_hind",
-      "id": "eastern_mi_24_mi_35_hind_mi_35m",
-      "name": "Mi-35M",
-      "planned_weapons": [
-        {
-          "icon": "autocannon",
-          "name": "Chain Gun"
-        },
-        {
-          "icon": "atgm",
-          "name": "AT Missile"
-        }
-      ],
-      "roster": {
-        "category": "hel",
-        "factions": [
-          "eastern"
-        ],
-        "family_name": "Mi-24 Hind",
-        "variant": "Mi-35M"
-      }
-    },
-    {
-      "cost": 330,
-      "description": "Mi-28NM",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
-      "family": "mi_28_havoc",
-      "id": "eastern_mi_28_havoc_mi_28nm",
-      "name": "Mi-28NM",
-      "planned_weapons": [
-        {
-          "icon": "autocannon",
-          "name": "Chain Gun"
-        },
-        {
-          "icon": "atgm",
-          "name": "AT Missile"
-        }
-      ],
-      "roster": {
-        "category": "hel",
-        "factions": [
-          "eastern"
-        ],
-        "family_name": "Mi-28 Havoc",
-        "variant": "Mi-28NM"
-      }
-    },
-    {
-      "cost": 170,
-      "description": "Mi-8AMTSh",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
-      "family": "mi_8_hip",
-      "id": "eastern_mi_8_hip_mi_8amtsh",
-      "name": "Mi-8AMTSh",
-      "planned_weapons": [
-        {
-          "icon": "hmg",
-          "name": "HMG"
-        }
-      ],
-      "roster": {
-        "category": "hel",
-        "factions": [
-          "eastern"
-        ],
-        "family_name": "Mi-8 Hip",
-        "variant": "Mi-8AMTSh"
       }
     },
     {
@@ -1822,98 +2028,6 @@
       }
     },
     {
-      "cost": 300,
-      "description": "Attack helicopter",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
-      "family": "z_10",
-      "id": "eastern_z_10_attack_helicopter",
-      "name": "Z-10",
-      "planned_weapons": [
-        {
-          "icon": "autocannon",
-          "name": "Chain Gun"
-        },
-        {
-          "icon": "atgm",
-          "name": "AT Missile"
-        }
-      ],
-      "roster": {
-        "category": "hel",
-        "factions": [
-          "eastern"
-        ],
-        "family_name": "Z-10",
-        "variant": "Attack helicopter"
-      }
-    },
-    {
-      "cost": 180,
-      "description": "Utility transport",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
-      "family": "z_20",
-      "id": "eastern_z_20_utility_transport",
-      "name": "Z-20",
-      "planned_weapons": [
-        {
-          "icon": "hmg",
-          "name": "HMG"
-        }
-      ],
-      "roster": {
-        "category": "hel",
-        "factions": [
-          "eastern"
-        ],
-        "family_name": "Z-20",
-        "variant": "Utility transport"
-      }
-    },
-    {
-      "cost": 230,
-      "description": "HC4",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
-      "family": "aw101_merlin",
-      "id": "europe_aw101_merlin_hc4",
-      "name": "Merlin HC4",
-      "planned_weapons": [
-        {
-          "icon": "hmg",
-          "name": "HMG"
-        }
-      ],
-      "roster": {
-        "category": "hel",
-        "factions": [
-          "europe"
-        ],
-        "family_name": "AW101 Merlin",
-        "variant": "HC4"
-      }
-    },
-    {
-      "cost": 170,
-      "description": "AH1",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
-      "family": "aw159_wildcat",
-      "id": "europe_aw159_wildcat_ah1",
-      "name": "Wildcat AH1",
-      "planned_weapons": [
-        {
-          "icon": "hmg",
-          "name": "HMG"
-        }
-      ],
-      "roster": {
-        "category": "hel",
-        "factions": [
-          "europe"
-        ],
-        "family_name": "AW159 Wildcat",
-        "variant": "AH1"
-      }
-    },
-    {
       "cost": 250,
       "description": "Gun-and-missile air defense; ground combat platform, passenger carriage not implemented",
       "disabled_reason": "Air-defense targeting and airborne targets deferred",
@@ -1962,28 +2076,6 @@
       }
     },
     {
-      "cost": 240,
-      "description": "HC6",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
-      "family": "ch_47_chinook",
-      "id": "europe_ch_47_chinook_hc6",
-      "name": "Chinook HC6",
-      "planned_weapons": [
-        {
-          "icon": "hmg",
-          "name": "HMG"
-        }
-      ],
-      "roster": {
-        "category": "hel",
-        "factions": [
-          "europe"
-        ],
-        "family_name": "CH-47 Chinook",
-        "variant": "HC6"
-      }
-    },
-    {
       "cost": 230,
       "description": "Armed reconnaissance vehicle",
       "disabled_reason": "Ground profile and model admission pending",
@@ -2007,58 +2099,6 @@
         ],
         "family_name": "EBRC Jaguar",
         "variant": "Armed reconnaissance vehicle"
-      }
-    },
-    {
-      "cost": 350,
-      "description": "HAD",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
-      "family": "ec665_tiger",
-      "id": "europe_ec665_tiger_had",
-      "name": "Tiger HAD",
-      "planned_weapons": [
-        {
-          "icon": "autocannon",
-          "name": "Chain Gun"
-        },
-        {
-          "icon": "atgm",
-          "name": "AT Missile"
-        }
-      ],
-      "roster": {
-        "category": "hel",
-        "factions": [
-          "europe"
-        ],
-        "family_name": "EC665 Tiger",
-        "variant": "HAD"
-      }
-    },
-    {
-      "cost": 330,
-      "description": "UHT",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
-      "family": "ec665_tiger",
-      "id": "europe_ec665_tiger_uht",
-      "name": "Tiger UHT",
-      "planned_weapons": [
-        {
-          "icon": "atgm",
-          "name": "AT Missile"
-        },
-        {
-          "icon": "rockets",
-          "name": "Rocket Pods"
-        }
-      ],
-      "roster": {
-        "category": "hel",
-        "factions": [
-          "europe"
-        ],
-        "family_name": "EC665 Tiger",
-        "variant": "UHT"
       }
     },
     {
@@ -2259,28 +2299,6 @@
         ],
         "family_name": "NASAMS",
         "variant": "NASAMS 3"
-      }
-    },
-    {
-      "cost": 190,
-      "description": "TTH",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
-      "family": "nh90",
-      "id": "europe_nh90_tth",
-      "name": "NH90 TTH",
-      "planned_weapons": [
-        {
-          "icon": "hmg",
-          "name": "HMG"
-        }
-      ],
-      "roster": {
-        "category": "hel",
-        "factions": [
-          "europe"
-        ],
-        "family_name": "NH90",
-        "variant": "TTH"
       }
     },
     {
@@ -2534,102 +2552,6 @@
         ],
         "family_name": "A-10 Warthog",
         "variant": "A-10C"
-      }
-    },
-    {
-      "cost": 320,
-      "description": "Attack helicopter",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
-      "family": "ah_1z_viper",
-      "id": "us_ah_1z_viper_attack_helicopter",
-      "name": "AH-1Z Viper",
-      "planned_weapons": [
-        {
-          "icon": "autocannon",
-          "name": "Chain Gun"
-        },
-        {
-          "icon": "atgm",
-          "name": "AT Missile"
-        }
-      ],
-      "roster": {
-        "category": "hel",
-        "factions": [
-          "us"
-        ],
-        "family_name": "AH-1Z Viper",
-        "variant": "Attack helicopter"
-      }
-    },
-    {
-      "cost": 180,
-      "description": "AH-6M",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
-      "family": "ah_6_mh_6_little_bird",
-      "id": "us_ah_6_mh_6_little_bird_ah_6m",
-      "name": "AH-6M Little Bird",
-      "planned_weapons": [
-        {
-          "icon": "autocannon",
-          "name": "Chain Gun"
-        },
-        {
-          "icon": "rockets",
-          "name": "Rocket Pods"
-        }
-      ],
-      "roster": {
-        "category": "hel",
-        "factions": [
-          "us"
-        ],
-        "family_name": "Little Bird",
-        "variant": "AH-6M"
-      }
-    },
-    {
-      "cost": 120,
-      "description": "MH-6M",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
-      "family": "ah_6_mh_6_little_bird",
-      "id": "us_ah_6_mh_6_little_bird_mh_6m",
-      "name": "MH-6M Little Bird",
-      "planned_weapons": [
-        {
-          "icon": "hmg",
-          "name": "HMG"
-        }
-      ],
-      "roster": {
-        "category": "hel",
-        "factions": [
-          "us"
-        ],
-        "family_name": "Little Bird",
-        "variant": "MH-6M"
-      }
-    },
-    {
-      "cost": 240,
-      "description": "CH-47F",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
-      "family": "ch_47_chinook",
-      "id": "us_ch_47_chinook_ch_47f",
-      "name": "CH-47F Chinook",
-      "planned_weapons": [
-        {
-          "icon": "hmg",
-          "name": "HMG"
-        }
-      ],
-      "roster": {
-        "category": "hel",
-        "factions": [
-          "us"
-        ],
-        "family_name": "CH-47 Chinook",
-        "variant": "CH-47F"
       }
     },
     {
@@ -3034,50 +2956,6 @@
         ],
         "family_name": "Stryker M-SHORAD",
         "variant": "Gun-and-missile air-defense vehicle"
-      }
-    },
-    {
-      "cost": 160,
-      "description": "Utility transport",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
-      "family": "uh_1y_venom",
-      "id": "us_uh_1y_venom_utility_transport",
-      "name": "UH-1Y Venom",
-      "planned_weapons": [
-        {
-          "icon": "hmg",
-          "name": "HMG"
-        }
-      ],
-      "roster": {
-        "category": "hel",
-        "factions": [
-          "us"
-        ],
-        "family_name": "UH-1Y Venom",
-        "variant": "Utility transport"
-      }
-    },
-    {
-      "cost": 180,
-      "description": "UH-60M",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
-      "family": "uh_60_black_hawk",
-      "id": "us_uh_60_black_hawk_uh_60m",
-      "name": "UH-60M Black Hawk",
-      "planned_weapons": [
-        {
-          "icon": "hmg",
-          "name": "HMG"
-        }
-      ],
-      "roster": {
-        "category": "hel",
-        "factions": [
-          "us"
-        ],
-        "family_name": "UH-60 Black Hawk",
-        "variant": "UH-60M"
       }
     }
   ],
@@ -6892,26 +6770,93 @@
           }
         },
         "eastern_ka_52_alligator_ka_52m": {
+          "appearance": "eastern_ka_52_alligator_ka_52m",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 25.0,
+                "rear": 15.0,
+                "ricochet": {
+                  "front": 0.1,
+                  "rear": 0.1,
+                  "roof": 0.1,
+                  "side": 0.1
+                },
+                "roof": 10.0,
+                "side": 15.0
+              },
+              "eye_m": 2.2,
+              "half_extents_m": [
+                6.825,
+                3.65,
+                2.425
+              ],
+              "hp": 250.0,
+              "push_class": "none",
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {},
           "cost": 360,
           "description": "Ka-52M",
           "faction": "eastern",
           "family": "ka_52_alligator",
-          "name": "Ka-52M",
-          "planned": {
-            "profile": "attack-helicopter",
-            "reason": "Helicopter movement, combat and transport mechanics deferred",
-            "weapons": [
-              {
-                "icon": "autocannon",
-                "name": "Chain Gun"
-              },
-              {
-                "icon": "atgm",
-                "name": "AT Missile"
-              }
-            ]
+          "mobility": {
+            "air": {
+              "climb_mps": 8.0,
+              "cruise_kmh": 240.0,
+              "turn_deg_s": 80.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "cannon",
+              "muzzle_m": [
+                2.0,
+                0.0,
+                0.0
+              ],
+              "name": "Chain Gun",
+              "on": null,
+              "pivot_m": [
+                2.575,
+                -1.05,
+                1.15
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "autocannon"
+              ]
+            },
+            {
+              "id": "missiles",
+              "muzzle_m": [
+                1.0,
+                0.0,
+                0.0
+              ],
+              "name": "AT Missile",
+              "on": null,
+              "pivot_m": [
+                0.925,
+                -2.4,
+                1.45
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "heli_atgm"
+              ]
+            }
+          ],
+          "name": "Ka-52M",
+          "roles": [
+            "helicopter"
+          ],
           "roster": {
             "category": "hel",
             "factions": [
@@ -6919,6 +6864,18 @@
             ],
             "family_name": "Ka-52 Alligator",
             "variant": "Ka-52M"
+          },
+          "sensors": {
+            "ground_m": 900.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.6
+            }
+          },
+          "sound": {
+            "loudness_m": 900.0,
+            "profile": "vehicle"
           }
         },
         "eastern_kamikaze_drone_anti_armor": {
@@ -7023,26 +6980,93 @@
           }
         },
         "eastern_mi_24_mi_35_hind_mi_35m": {
+          "appearance": "eastern_mi_24_mi_35_hind_mi_35m",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 30.0,
+                "rear": 20.0,
+                "ricochet": {
+                  "front": 0.1,
+                  "rear": 0.1,
+                  "roof": 0.1,
+                  "side": 0.1
+                },
+                "roof": 15.0,
+                "side": 25.0
+              },
+              "eye_m": 1.9,
+              "half_extents_m": [
+                8.75,
+                2.635,
+                1.95
+              ],
+              "hp": 300.0,
+              "push_class": "none",
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {},
           "cost": 270,
           "description": "Mi-35M",
           "faction": "eastern",
           "family": "mi_24_mi_35_hind",
-          "name": "Mi-35M",
-          "planned": {
-            "profile": "armored-helicopter",
-            "reason": "Helicopter movement, combat and transport mechanics deferred",
-            "weapons": [
-              {
-                "icon": "autocannon",
-                "name": "Chain Gun"
-              },
-              {
-                "icon": "atgm",
-                "name": "AT Missile"
-              }
-            ]
+          "mobility": {
+            "air": {
+              "climb_mps": 7.0,
+              "cruise_kmh": 220.0,
+              "turn_deg_s": 70.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "chin",
+              "muzzle_m": [
+                0.7,
+                0.0,
+                -0.05
+              ],
+              "name": "Chain Gun",
+              "on": null,
+              "pivot_m": [
+                8.0,
+                -0.3,
+                0.7
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "autocannon"
+              ]
+            },
+            {
+              "id": "missiles",
+              "muzzle_m": [
+                0.9,
+                0.0,
+                0.0
+              ],
+              "name": "AT Missile",
+              "on": null,
+              "pivot_m": [
+                0.7,
+                -2.46,
+                1.61
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "heli_atgm"
+              ]
+            }
+          ],
+          "name": "Mi-35M",
+          "roles": [
+            "helicopter"
+          ],
           "roster": {
             "category": "hel",
             "factions": [
@@ -7050,29 +7074,108 @@
             ],
             "family_name": "Mi-24 Hind",
             "variant": "Mi-35M"
+          },
+          "sensors": {
+            "ground_m": 850.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.6
+            }
+          },
+          "sound": {
+            "loudness_m": 900.0,
+            "profile": "vehicle"
           }
         },
         "eastern_mi_28_havoc_mi_28nm": {
+          "appearance": "eastern_mi_28_havoc_mi_28nm",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 30.0,
+                "rear": 20.0,
+                "ricochet": {
+                  "front": 0.1,
+                  "rear": 0.1,
+                  "roof": 0.1,
+                  "side": 0.1
+                },
+                "roof": 15.0,
+                "side": 25.0
+              },
+              "eye_m": 2.0,
+              "half_extents_m": [
+                8.536,
+                2.495,
+                2.355
+              ],
+              "hp": 300.0,
+              "push_class": "none",
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {},
           "cost": 330,
           "description": "Mi-28NM",
           "faction": "eastern",
           "family": "mi_28_havoc",
-          "name": "Mi-28NM",
-          "planned": {
-            "profile": "armored-helicopter",
-            "reason": "Helicopter movement, combat and transport mechanics deferred",
-            "weapons": [
-              {
-                "icon": "autocannon",
-                "name": "Chain Gun"
-              },
-              {
-                "icon": "atgm",
-                "name": "AT Missile"
-              }
-            ]
+          "mobility": {
+            "air": {
+              "climb_mps": 7.0,
+              "cruise_kmh": 220.0,
+              "turn_deg_s": 70.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "chin",
+              "muzzle_m": [
+                1.7,
+                0.0,
+                -0.1
+              ],
+              "name": "Chain Gun",
+              "on": null,
+              "pivot_m": [
+                6.664,
+                0.0,
+                0.72
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "autocannon"
+              ]
+            },
+            {
+              "id": "missiles",
+              "muzzle_m": [
+                0.9,
+                0.0,
+                0.0
+              ],
+              "name": "AT Missile",
+              "on": null,
+              "pivot_m": [
+                1.214,
+                -2.01,
+                1.61
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "heli_atgm"
+              ]
+            }
+          ],
+          "name": "Mi-28NM",
+          "roles": [
+            "helicopter"
+          ],
           "roster": {
             "category": "hel",
             "factions": [
@@ -7080,25 +7183,87 @@
             ],
             "family_name": "Mi-28 Havoc",
             "variant": "Mi-28NM"
+          },
+          "sensors": {
+            "ground_m": 850.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.6
+            }
+          },
+          "sound": {
+            "loudness_m": 900.0,
+            "profile": "vehicle"
           }
         },
         "eastern_mi_8_hip_mi_8amtsh": {
+          "appearance": "eastern_mi_8_hip_mi_8amtsh",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 15.0,
+                "rear": 15.0,
+                "ricochet": {
+                  "front": 0.1,
+                  "rear": 0.1,
+                  "roof": 0.1,
+                  "side": 0.1
+                },
+                "roof": 15.0,
+                "side": 15.0
+              },
+              "eye_m": 2.0,
+              "half_extents_m": [
+                9.127,
+                2.7,
+                2.2
+              ],
+              "hp": 200.0,
+              "push_class": "none",
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {},
           "cost": 170,
           "description": "Mi-8AMTSh",
           "faction": "eastern",
           "family": "mi_8_hip",
-          "name": "Mi-8AMTSh",
-          "planned": {
-            "profile": "utility-helicopter",
-            "reason": "Helicopter movement, combat and transport mechanics deferred",
-            "weapons": [
-              {
-                "icon": "hmg",
-                "name": "HMG"
-              }
-            ]
+          "mobility": {
+            "air": {
+              "climb_mps": 7.0,
+              "cruise_kmh": 220.0,
+              "turn_deg_s": 70.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "door",
+              "muzzle_m": [
+                1.15,
+                0.0,
+                0.0
+              ],
+              "name": "HMG",
+              "on": null,
+              "pivot_m": [
+                5.647,
+                1.3,
+                1.65
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "hmg"
+              ]
+            }
+          ],
+          "name": "Mi-8AMTSh",
+          "roles": [
+            "helicopter"
+          ],
           "roster": {
             "category": "hel",
             "factions": [
@@ -7106,6 +7271,18 @@
             ],
             "family_name": "Mi-8 Hip",
             "variant": "Mi-8AMTSh"
+          },
+          "sensors": {
+            "ground_m": 700.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.6
+            }
+          },
+          "sound": {
+            "loudness_m": 900.0,
+            "profile": "vehicle"
           }
         },
         "eastern_mig_29_fulcrum_mig_29smt": {
@@ -8438,26 +8615,93 @@
           }
         },
         "eastern_z_10_attack_helicopter": {
+          "appearance": "eastern_z_10_attack_helicopter",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 25.0,
+                "rear": 15.0,
+                "ricochet": {
+                  "front": 0.1,
+                  "rear": 0.1,
+                  "roof": 0.1,
+                  "side": 0.1
+                },
+                "roof": 10.0,
+                "side": 15.0
+              },
+              "eye_m": 1.95,
+              "half_extents_m": [
+                7.088,
+                2.175,
+                1.75
+              ],
+              "hp": 250.0,
+              "push_class": "none",
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {},
           "cost": 300,
           "description": "Attack helicopter",
           "faction": "eastern",
           "family": "z_10",
-          "name": "Z-10",
-          "planned": {
-            "profile": "attack-helicopter",
-            "reason": "Helicopter movement, combat and transport mechanics deferred",
-            "weapons": [
-              {
-                "icon": "autocannon",
-                "name": "Chain Gun"
-              },
-              {
-                "icon": "atgm",
-                "name": "AT Missile"
-              }
-            ]
+          "mobility": {
+            "air": {
+              "climb_mps": 8.0,
+              "cruise_kmh": 240.0,
+              "turn_deg_s": 80.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "chin",
+              "muzzle_m": [
+                1.2,
+                0.0,
+                -0.08
+              ],
+              "name": "Chain Gun",
+              "on": null,
+              "pivot_m": [
+                5.592,
+                0.0,
+                0.66
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "autocannon"
+              ]
+            },
+            {
+              "id": "missiles",
+              "muzzle_m": [
+                0.85,
+                0.0,
+                0.0
+              ],
+              "name": "AT Missile",
+              "on": null,
+              "pivot_m": [
+                1.092,
+                -2.0,
+                1.32
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "heli_atgm"
+              ]
+            }
+          ],
+          "name": "Z-10",
+          "roles": [
+            "helicopter"
+          ],
           "roster": {
             "category": "hel",
             "factions": [
@@ -8465,25 +8709,87 @@
             ],
             "family_name": "Z-10",
             "variant": "Attack helicopter"
+          },
+          "sensors": {
+            "ground_m": 900.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.6
+            }
+          },
+          "sound": {
+            "loudness_m": 900.0,
+            "profile": "vehicle"
           }
         },
         "eastern_z_20_utility_transport": {
+          "appearance": "eastern_z_20_utility_transport",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 15.0,
+                "rear": 15.0,
+                "ricochet": {
+                  "front": 0.1,
+                  "rear": 0.1,
+                  "roof": 0.1,
+                  "side": 0.1
+                },
+                "roof": 15.0,
+                "side": 15.0
+              },
+              "eye_m": 1.8,
+              "half_extents_m": [
+                7.975,
+                2.19,
+                1.875
+              ],
+              "hp": 200.0,
+              "push_class": "none",
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {},
           "cost": 180,
           "description": "Utility transport",
           "faction": "eastern",
           "family": "z_20",
-          "name": "Z-20",
-          "planned": {
-            "profile": "utility-helicopter",
-            "reason": "Helicopter movement, combat and transport mechanics deferred",
-            "weapons": [
-              {
-                "icon": "hmg",
-                "name": "HMG"
-              }
-            ]
+          "mobility": {
+            "air": {
+              "climb_mps": 7.0,
+              "cruise_kmh": 220.0,
+              "turn_deg_s": 70.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "door",
+              "muzzle_m": [
+                1.1,
+                0.0,
+                0.0
+              ],
+              "name": "HMG",
+              "on": null,
+              "pivot_m": [
+                2.025,
+                1.2,
+                1.5
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "hmg"
+              ]
+            }
+          ],
+          "name": "Z-20",
+          "roles": [
+            "helicopter"
+          ],
           "roster": {
             "category": "hel",
             "factions": [
@@ -8491,6 +8797,18 @@
             ],
             "family_name": "Z-20",
             "variant": "Utility transport"
+          },
+          "sensors": {
+            "ground_m": 700.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.6
+            }
+          },
+          "sound": {
+            "loudness_m": 900.0,
+            "profile": "vehicle"
           }
         },
         "eastern_zbl_08_wheeled_ifv": {
@@ -8722,22 +9040,72 @@
           }
         },
         "europe_aw101_merlin_hc4": {
+          "appearance": "europe_aw101_merlin_hc4",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 15.0,
+                "rear": 15.0,
+                "ricochet": {
+                  "front": 0.1,
+                  "rear": 0.1,
+                  "roof": 0.1,
+                  "side": 0.1
+                },
+                "roof": 15.0,
+                "side": 15.0
+              },
+              "eye_m": 2.0,
+              "half_extents_m": [
+                9.935,
+                2.2,
+                2.31
+              ],
+              "hp": 250.0,
+              "push_class": "none",
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {},
           "cost": 230,
           "description": "HC4",
           "faction": "europe",
           "family": "aw101_merlin",
-          "name": "Merlin HC4",
-          "planned": {
-            "profile": "heavy-helicopter",
-            "reason": "Helicopter movement, combat and transport mechanics deferred",
-            "weapons": [
-              {
-                "icon": "hmg",
-                "name": "HMG"
-              }
-            ]
+          "mobility": {
+            "air": {
+              "climb_mps": 6.0,
+              "cruise_kmh": 230.0,
+              "turn_deg_s": 50.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "door",
+              "muzzle_m": [
+                1.2,
+                0.0,
+                0.0
+              ],
+              "name": "HMG",
+              "on": null,
+              "pivot_m": [
+                2.165,
+                1.33,
+                1.6
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "hmg"
+              ]
+            }
+          ],
+          "name": "Merlin HC4",
+          "roles": [
+            "helicopter"
+          ],
           "roster": {
             "category": "hel",
             "factions": [
@@ -8745,25 +9113,87 @@
             ],
             "family_name": "AW101 Merlin",
             "variant": "HC4"
+          },
+          "sensors": {
+            "ground_m": 700.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.6
+            }
+          },
+          "sound": {
+            "loudness_m": 1000.0,
+            "profile": "vehicle"
           }
         },
         "europe_aw159_wildcat_ah1": {
+          "appearance": "europe_aw159_wildcat_ah1",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 15.0,
+                "rear": 15.0,
+                "ricochet": {
+                  "front": 0.1,
+                  "rear": 0.1,
+                  "roof": 0.1,
+                  "side": 0.1
+                },
+                "roof": 15.0,
+                "side": 15.0
+              },
+              "eye_m": 1.55,
+              "half_extents_m": [
+                6.525,
+                1.515,
+                1.7
+              ],
+              "hp": 150.0,
+              "push_class": "none",
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {},
           "cost": 170,
           "description": "AH1",
           "faction": "europe",
           "family": "aw159_wildcat",
-          "name": "Wildcat AH1",
-          "planned": {
-            "profile": "light-helicopter",
-            "reason": "Helicopter movement, combat and transport mechanics deferred",
-            "weapons": [
-              {
-                "icon": "hmg",
-                "name": "HMG"
-              }
-            ]
+          "mobility": {
+            "air": {
+              "climb_mps": 9.0,
+              "cruise_kmh": 180.0,
+              "turn_deg_s": 100.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "door",
+              "muzzle_m": [
+                1.1,
+                0.0,
+                0.0
+              ],
+              "name": "HMG",
+              "on": null,
+              "pivot_m": [
+                1.925,
+                1.02,
+                1.45
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "hmg"
+              ]
+            }
+          ],
+          "name": "Wildcat AH1",
+          "roles": [
+            "helicopter"
+          ],
           "roster": {
             "category": "hel",
             "factions": [
@@ -8771,6 +9201,18 @@
             ],
             "family_name": "AW159 Wildcat",
             "variant": "AH1"
+          },
+          "sensors": {
+            "ground_m": 700.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.6
+            }
+          },
+          "sound": {
+            "loudness_m": 800.0,
+            "profile": "vehicle"
           }
         },
         "europe_boxer_apc": {
@@ -9125,22 +9567,72 @@
           }
         },
         "europe_ch_47_chinook_hc6": {
+          "appearance": "europe_ch_47_chinook_hc6",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 15.0,
+                "rear": 15.0,
+                "ricochet": {
+                  "front": 0.1,
+                  "rear": 0.1,
+                  "roof": 0.1,
+                  "side": 0.1
+                },
+                "roof": 15.0,
+                "side": 15.0
+              },
+              "eye_m": 2.2,
+              "half_extents_m": [
+                8.137,
+                1.945,
+                2.713
+              ],
+              "hp": 250.0,
+              "push_class": "none",
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {},
           "cost": 240,
           "description": "HC6",
           "faction": "europe",
           "family": "ch_47_chinook",
-          "name": "Chinook HC6",
-          "planned": {
-            "profile": "heavy-helicopter",
-            "reason": "Helicopter movement, combat and transport mechanics deferred",
-            "weapons": [
-              {
-                "icon": "hmg",
-                "name": "HMG"
-              }
-            ]
+          "mobility": {
+            "air": {
+              "climb_mps": 6.0,
+              "cruise_kmh": 230.0,
+              "turn_deg_s": 50.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "door",
+              "muzzle_m": [
+                1.2,
+                0.0,
+                0.0
+              ],
+              "name": "HMG",
+              "on": null,
+              "pivot_m": [
+                5.207,
+                1.33,
+                1.8
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "hmg"
+              ]
+            }
+          ],
+          "name": "Chinook HC6",
+          "roles": [
+            "helicopter"
+          ],
           "roster": {
             "category": "hel",
             "factions": [
@@ -9148,6 +9640,18 @@
             ],
             "family_name": "CH-47 Chinook",
             "variant": "HC6"
+          },
+          "sensors": {
+            "ground_m": 700.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.6
+            }
+          },
+          "sound": {
+            "loudness_m": 1000.0,
+            "profile": "vehicle"
           }
         },
         "europe_challenger_challenger_2_tes": {
@@ -9710,26 +10214,93 @@
           }
         },
         "europe_ec665_tiger_had": {
+          "appearance": "europe_ec665_tiger_had",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 25.0,
+                "rear": 15.0,
+                "ricochet": {
+                  "front": 0.1,
+                  "rear": 0.1,
+                  "roof": 0.1,
+                  "side": 0.1
+                },
+                "roof": 10.0,
+                "side": 15.0
+              },
+              "eye_m": 1.9,
+              "half_extents_m": [
+                7.04,
+                2.158,
+                1.75
+              ],
+              "hp": 250.0,
+              "push_class": "none",
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {},
           "cost": 350,
           "description": "HAD",
           "faction": "europe",
           "family": "ec665_tiger",
-          "name": "Tiger HAD",
-          "planned": {
-            "profile": "attack-helicopter",
-            "reason": "Helicopter movement, combat and transport mechanics deferred",
-            "weapons": [
-              {
-                "icon": "autocannon",
-                "name": "Chain Gun"
-              },
-              {
-                "icon": "atgm",
-                "name": "AT Missile"
-              }
-            ]
+          "mobility": {
+            "air": {
+              "climb_mps": 8.0,
+              "cruise_kmh": 240.0,
+              "turn_deg_s": 80.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "chin",
+              "muzzle_m": [
+                1.35,
+                0.0,
+                -0.07
+              ],
+              "name": "Chain Gun",
+              "on": null,
+              "pivot_m": [
+                5.6,
+                0.0,
+                0.62
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "autocannon"
+              ]
+            },
+            {
+              "id": "missiles",
+              "muzzle_m": [
+                0.8,
+                0.0,
+                0.0
+              ],
+              "name": "AT Missile",
+              "on": null,
+              "pivot_m": [
+                1.1,
+                -2.0,
+                1.22
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "heli_atgm"
+              ]
+            }
+          ],
+          "name": "Tiger HAD",
+          "roles": [
+            "helicopter"
+          ],
           "roster": {
             "category": "hel",
             "factions": [
@@ -9737,29 +10308,108 @@
             ],
             "family_name": "EC665 Tiger",
             "variant": "HAD"
+          },
+          "sensors": {
+            "ground_m": 900.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.6
+            }
+          },
+          "sound": {
+            "loudness_m": 900.0,
+            "profile": "vehicle"
           }
         },
         "europe_ec665_tiger_uht": {
+          "appearance": "europe_ec665_tiger_uht",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 25.0,
+                "rear": 15.0,
+                "ricochet": {
+                  "front": 0.1,
+                  "rear": 0.1,
+                  "roof": 0.1,
+                  "side": 0.1
+                },
+                "roof": 10.0,
+                "side": 15.0
+              },
+              "eye_m": 1.9,
+              "half_extents_m": [
+                7.04,
+                2.226,
+                2.16
+              ],
+              "hp": 250.0,
+              "push_class": "none",
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {},
           "cost": 330,
           "description": "UHT",
           "faction": "europe",
           "family": "ec665_tiger",
-          "name": "Tiger UHT",
-          "planned": {
-            "profile": "attack-helicopter",
-            "reason": "Helicopter movement, combat and transport mechanics deferred",
-            "weapons": [
-              {
-                "icon": "atgm",
-                "name": "AT Missile"
-              },
-              {
-                "icon": "rockets",
-                "name": "Rocket Pods"
-              }
-            ]
+          "mobility": {
+            "air": {
+              "climb_mps": 8.0,
+              "cruise_kmh": 240.0,
+              "turn_deg_s": 80.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "missiles",
+              "muzzle_m": [
+                0.8,
+                0.0,
+                0.0
+              ],
+              "name": "AT Missile",
+              "on": null,
+              "pivot_m": [
+                1.1,
+                -2.0,
+                1.22
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "heli_atgm"
+              ]
+            },
+            {
+              "id": "rockets",
+              "muzzle_m": [
+                0.8,
+                0.0,
+                0.0
+              ],
+              "name": "Rockets",
+              "on": null,
+              "pivot_m": [
+                1.2,
+                1.05,
+                1.0
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "rocket_pod"
+              ]
+            }
+          ],
+          "name": "Tiger UHT",
+          "roles": [
+            "helicopter"
+          ],
           "roster": {
             "category": "hel",
             "factions": [
@@ -9767,6 +10417,18 @@
             ],
             "family_name": "EC665 Tiger",
             "variant": "UHT"
+          },
+          "sensors": {
+            "ground_m": 900.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.6
+            }
+          },
+          "sound": {
+            "loudness_m": 900.0,
+            "profile": "vehicle"
           }
         },
         "europe_eurofighter_typhoon_tranche_3": {
@@ -10791,22 +11453,72 @@
           }
         },
         "europe_nh90_tth": {
+          "appearance": "europe_nh90_tth",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 15.0,
+                "rear": 15.0,
+                "ricochet": {
+                  "front": 0.1,
+                  "rear": 0.1,
+                  "roof": 0.1,
+                  "side": 0.1
+                },
+                "roof": 15.0,
+                "side": 15.0
+              },
+              "eye_m": 1.9,
+              "half_extents_m": [
+                8.285,
+                1.8,
+                2.0
+              ],
+              "hp": 200.0,
+              "push_class": "none",
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {},
           "cost": 190,
           "description": "TTH",
           "faction": "europe",
           "family": "nh90",
-          "name": "NH90 TTH",
-          "planned": {
-            "profile": "utility-helicopter",
-            "reason": "Helicopter movement, combat and transport mechanics deferred",
-            "weapons": [
-              {
-                "icon": "hmg",
-                "name": "HMG"
-              }
-            ]
+          "mobility": {
+            "air": {
+              "climb_mps": 7.0,
+              "cruise_kmh": 220.0,
+              "turn_deg_s": 70.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "door",
+              "muzzle_m": [
+                1.15,
+                0.0,
+                0.0
+              ],
+              "name": "HMG",
+              "on": null,
+              "pivot_m": [
+                2.215,
+                1.2,
+                1.55
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "hmg"
+              ]
+            }
+          ],
+          "name": "NH90 TTH",
+          "roles": [
+            "helicopter"
+          ],
           "roster": {
             "category": "hel",
             "factions": [
@@ -10814,6 +11526,18 @@
             ],
             "family_name": "NH90",
             "variant": "TTH"
+          },
+          "sensors": {
+            "ground_m": 700.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.6
+            }
+          },
+          "sound": {
+            "loudness_m": 900.0,
+            "profile": "vehicle"
           }
         },
         "europe_puma_level_c": {
@@ -11642,26 +12366,93 @@
           }
         },
         "us_ah_1z_viper_attack_helicopter": {
+          "appearance": "us_ah_1z_viper_attack_helicopter",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 25.0,
+                "rear": 15.0,
+                "ricochet": {
+                  "front": 0.1,
+                  "rear": 0.1,
+                  "roof": 0.1,
+                  "side": 0.1
+                },
+                "roof": 10.0,
+                "side": 15.0
+              },
+              "eye_m": 2.1,
+              "half_extents_m": [
+                6.851,
+                2.066,
+                1.725
+              ],
+              "hp": 250.0,
+              "push_class": "none",
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {},
           "cost": 320,
           "description": "Attack helicopter",
           "faction": "us",
           "family": "ah_1z_viper",
-          "name": "AH-1Z Viper",
-          "planned": {
-            "profile": "attack-helicopter",
-            "reason": "Helicopter movement, combat and transport mechanics deferred",
-            "weapons": [
-              {
-                "icon": "autocannon",
-                "name": "Chain Gun"
-              },
-              {
-                "icon": "atgm",
-                "name": "AT Missile"
-              }
-            ]
+          "mobility": {
+            "air": {
+              "climb_mps": 8.0,
+              "cruise_kmh": 240.0,
+              "turn_deg_s": 80.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "chin",
+              "muzzle_m": [
+                1.3,
+                0.0,
+                -0.09
+              ],
+              "name": "Chain Gun",
+              "on": null,
+              "pivot_m": [
+                5.189,
+                0.0,
+                0.75
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "autocannon"
+              ]
+            },
+            {
+              "id": "missiles",
+              "muzzle_m": [
+                0.82,
+                0.0,
+                0.0
+              ],
+              "name": "AT Missile",
+              "on": null,
+              "pivot_m": [
+                0.959,
+                -1.5,
+                1.46
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "heli_atgm"
+              ]
+            }
+          ],
+          "name": "AH-1Z Viper",
+          "roles": [
+            "helicopter"
+          ],
           "roster": {
             "category": "hel",
             "factions": [
@@ -11669,29 +12460,108 @@
             ],
             "family_name": "AH-1Z Viper",
             "variant": "Attack helicopter"
+          },
+          "sensors": {
+            "ground_m": 900.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.6
+            }
+          },
+          "sound": {
+            "loudness_m": 900.0,
+            "profile": "vehicle"
           }
         },
         "us_ah_6_mh_6_little_bird_ah_6m": {
+          "appearance": "us_ah_6_mh_6_little_bird_ah_6m",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 15.0,
+                "rear": 15.0,
+                "ricochet": {
+                  "front": 0.1,
+                  "rear": 0.1,
+                  "roof": 0.1,
+                  "side": 0.1
+                },
+                "roof": 15.0,
+                "side": 15.0
+              },
+              "eye_m": 1.4,
+              "half_extents_m": [
+                3.75,
+                1.64,
+                1.213
+              ],
+              "hp": 150.0,
+              "push_class": "none",
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {},
           "cost": 180,
           "description": "AH-6M",
           "faction": "us",
           "family": "ah_6_mh_6_little_bird",
-          "name": "AH-6M Little Bird",
-          "planned": {
-            "profile": "light-helicopter",
-            "reason": "Helicopter movement, combat and transport mechanics deferred",
-            "weapons": [
-              {
-                "icon": "autocannon",
-                "name": "Chain Gun"
-              },
-              {
-                "icon": "rockets",
-                "name": "Rocket Pods"
-              }
-            ]
+          "mobility": {
+            "air": {
+              "climb_mps": 9.0,
+              "cruise_kmh": 180.0,
+              "turn_deg_s": 100.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "guns",
+              "muzzle_m": [
+                0.45,
+                0.0,
+                0.0
+              ],
+              "name": "Chain Gun",
+              "on": null,
+              "pivot_m": [
+                1.75,
+                1.15,
+                0.52
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "autocannon"
+              ]
+            },
+            {
+              "id": "rockets",
+              "muzzle_m": [
+                0.7,
+                0.0,
+                0.0
+              ],
+              "name": "Rockets",
+              "on": null,
+              "pivot_m": [
+                1.75,
+                -1.45,
+                0.58
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "rocket_pod"
+              ]
+            }
+          ],
+          "name": "AH-6M Little Bird",
+          "roles": [
+            "helicopter"
+          ],
           "roster": {
             "category": "hel",
             "factions": [
@@ -11699,25 +12569,87 @@
             ],
             "family_name": "Little Bird",
             "variant": "AH-6M"
+          },
+          "sensors": {
+            "ground_m": 700.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.6
+            }
+          },
+          "sound": {
+            "loudness_m": 800.0,
+            "profile": "vehicle"
           }
         },
         "us_ah_6_mh_6_little_bird_mh_6m": {
+          "appearance": "us_ah_6_mh_6_little_bird_mh_6m",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 15.0,
+                "rear": 15.0,
+                "ricochet": {
+                  "front": 0.1,
+                  "rear": 0.1,
+                  "roof": 0.1,
+                  "side": 0.1
+                },
+                "roof": 15.0,
+                "side": 15.0
+              },
+              "eye_m": 1.4,
+              "half_extents_m": [
+                3.75,
+                1.475,
+                1.213
+              ],
+              "hp": 150.0,
+              "push_class": "none",
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {},
           "cost": 120,
           "description": "MH-6M",
           "faction": "us",
           "family": "ah_6_mh_6_little_bird",
-          "name": "MH-6M Little Bird",
-          "planned": {
-            "profile": "light-helicopter",
-            "reason": "Helicopter movement, combat and transport mechanics deferred",
-            "weapons": [
-              {
-                "icon": "hmg",
-                "name": "HMG"
-              }
-            ]
+          "mobility": {
+            "air": {
+              "climb_mps": 9.0,
+              "cruise_kmh": 180.0,
+              "turn_deg_s": 100.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "door",
+              "muzzle_m": [
+                1.15,
+                0.0,
+                0.0
+              ],
+              "name": "HMG",
+              "on": null,
+              "pivot_m": [
+                2.35,
+                1.25,
+                1.05
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "hmg"
+              ]
+            }
+          ],
+          "name": "MH-6M Little Bird",
+          "roles": [
+            "helicopter"
+          ],
           "roster": {
             "category": "hel",
             "factions": [
@@ -11725,6 +12657,18 @@
             ],
             "family_name": "Little Bird",
             "variant": "MH-6M"
+          },
+          "sensors": {
+            "ground_m": 700.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.6
+            }
+          },
+          "sound": {
+            "loudness_m": 800.0,
+            "profile": "vehicle"
           }
         },
         "us_army_scouts_light_patrol": {
@@ -11822,22 +12766,72 @@
           }
         },
         "us_ch_47_chinook_ch_47f": {
+          "appearance": "us_ch_47_chinook_ch_47f",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 15.0,
+                "rear": 15.0,
+                "ricochet": {
+                  "front": 0.1,
+                  "rear": 0.1,
+                  "roof": 0.1,
+                  "side": 0.1
+                },
+                "roof": 15.0,
+                "side": 15.0
+              },
+              "eye_m": 2.2,
+              "half_extents_m": [
+                8.137,
+                1.945,
+                2.713
+              ],
+              "hp": 250.0,
+              "push_class": "none",
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {},
           "cost": 240,
           "description": "CH-47F",
           "faction": "us",
           "family": "ch_47_chinook",
-          "name": "CH-47F Chinook",
-          "planned": {
-            "profile": "heavy-helicopter",
-            "reason": "Helicopter movement, combat and transport mechanics deferred",
-            "weapons": [
-              {
-                "icon": "hmg",
-                "name": "HMG"
-              }
-            ]
+          "mobility": {
+            "air": {
+              "climb_mps": 6.0,
+              "cruise_kmh": 230.0,
+              "turn_deg_s": 50.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "door",
+              "muzzle_m": [
+                1.2,
+                0.0,
+                0.0
+              ],
+              "name": "HMG",
+              "on": null,
+              "pivot_m": [
+                5.207,
+                1.33,
+                1.8
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "hmg"
+              ]
+            }
+          ],
+          "name": "CH-47F Chinook",
+          "roles": [
+            "helicopter"
+          ],
           "roster": {
             "category": "hel",
             "factions": [
@@ -11845,6 +12839,18 @@
             ],
             "family_name": "CH-47 Chinook",
             "variant": "CH-47F"
+          },
+          "sensors": {
+            "ground_m": 700.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.6
+            }
+          },
+          "sound": {
+            "loudness_m": 1000.0,
+            "profile": "vehicle"
           }
         },
         "us_ea_18g_growler_electronic_warfare_aircraft": {
@@ -14048,22 +15054,72 @@
           }
         },
         "us_uh_1y_venom_utility_transport": {
+          "appearance": "us_uh_1y_venom_utility_transport",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 15.0,
+                "rear": 15.0,
+                "ricochet": {
+                  "front": 0.1,
+                  "rear": 0.1,
+                  "roof": 0.1,
+                  "side": 0.1
+                },
+                "roof": 15.0,
+                "side": 15.0
+              },
+              "eye_m": 1.8,
+              "half_extents_m": [
+                6.7,
+                1.45,
+                1.8
+              ],
+              "hp": 200.0,
+              "push_class": "none",
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {},
           "cost": 160,
           "description": "Utility transport",
           "faction": "us",
           "family": "uh_1y_venom",
-          "name": "UH-1Y Venom",
-          "planned": {
-            "profile": "utility-helicopter",
-            "reason": "Helicopter movement, combat and transport mechanics deferred",
-            "weapons": [
-              {
-                "icon": "hmg",
-                "name": "HMG"
-              }
-            ]
+          "mobility": {
+            "air": {
+              "climb_mps": 7.0,
+              "cruise_kmh": 220.0,
+              "turn_deg_s": 70.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "door",
+              "muzzle_m": [
+                1.0,
+                0.0,
+                0.0
+              ],
+              "name": "HMG",
+              "on": null,
+              "pivot_m": [
+                2.45,
+                1.4,
+                1.45
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "hmg"
+              ]
+            }
+          ],
+          "name": "UH-1Y Venom",
+          "roles": [
+            "helicopter"
+          ],
           "roster": {
             "category": "hel",
             "factions": [
@@ -14071,25 +15127,87 @@
             ],
             "family_name": "UH-1Y Venom",
             "variant": "Utility transport"
+          },
+          "sensors": {
+            "ground_m": 700.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.6
+            }
+          },
+          "sound": {
+            "loudness_m": 900.0,
+            "profile": "vehicle"
           }
         },
         "us_uh_60_black_hawk_uh_60m": {
+          "appearance": "us_uh_60_black_hawk_uh_60m",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 15.0,
+                "rear": 15.0,
+                "ricochet": {
+                  "front": 0.1,
+                  "rear": 0.1,
+                  "roof": 0.1,
+                  "side": 0.1
+                },
+                "roof": 15.0,
+                "side": 15.0
+              },
+              "eye_m": 1.8,
+              "half_extents_m": [
+                7.905,
+                2.19,
+                1.825
+              ],
+              "hp": 200.0,
+              "push_class": "none",
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {},
           "cost": 180,
           "description": "UH-60M",
           "faction": "us",
           "family": "uh_60_black_hawk",
-          "name": "UH-60M Black Hawk",
-          "planned": {
-            "profile": "utility-helicopter",
-            "reason": "Helicopter movement, combat and transport mechanics deferred",
-            "weapons": [
-              {
-                "icon": "hmg",
-                "name": "HMG"
-              }
-            ]
+          "mobility": {
+            "air": {
+              "climb_mps": 7.0,
+              "cruise_kmh": 220.0,
+              "turn_deg_s": 70.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "door",
+              "muzzle_m": [
+                1.1,
+                0.0,
+                0.0
+              ],
+              "name": "HMG",
+              "on": null,
+              "pivot_m": [
+                2.025,
+                1.2,
+                1.5
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "hmg"
+              ]
+            }
+          ],
+          "name": "UH-60M Black Hawk",
+          "roles": [
+            "helicopter"
+          ],
           "roster": {
             "category": "hel",
             "factions": [
@@ -14097,6 +15215,18 @@
             ],
             "family_name": "UH-60 Black Hawk",
             "variant": "UH-60M"
+          },
+          "sensors": {
+            "ground_m": 700.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.6
+            }
+          },
+          "sound": {
+            "loudness_m": 900.0,
+            "profile": "vehicle"
           }
         }
       }
@@ -17800,6 +18930,118 @@
       }
     },
     {
+      "appearance": "eastern_ka_52_alligator_ka_52m",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 25.0,
+            "rear": 15.0,
+            "ricochet": {
+              "front": 0.1,
+              "rear": 0.1,
+              "roof": 0.1,
+              "side": 0.1
+            },
+            "roof": 10.0,
+            "side": 15.0
+          },
+          "eye_m": 2.2,
+          "half_extents_m": [
+            6.825,
+            3.65,
+            2.425
+          ],
+          "hp": 250.0,
+          "push_class": "none",
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {},
+      "cost": 360,
+      "description": "Ka-52M",
+      "faction": "eastern",
+      "family": "ka_52_alligator",
+      "id": "eastern_ka_52_alligator_ka_52m",
+      "mobility": {
+        "air": {
+          "climb_mps": 8.0,
+          "cruise_kmh": 240.0,
+          "turn_deg_s": 80.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "cannon",
+          "muzzle_m": [
+            2.0,
+            0.0,
+            0.0
+          ],
+          "name": "Chain Gun",
+          "on": null,
+          "pivot_m": [
+            2.575,
+            -1.05,
+            1.15
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "autocannon"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "missiles",
+          "muzzle_m": [
+            1.0,
+            0.0,
+            0.0
+          ],
+          "name": "AT Missile",
+          "on": null,
+          "pivot_m": [
+            0.925,
+            -2.4,
+            1.45
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "heli_atgm"
+          ]
+        }
+      ],
+      "name": "Ka-52M",
+      "roles": [
+        "helicopter"
+      ],
+      "roster": {
+        "category": "hel",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "Ka-52 Alligator",
+        "variant": "Ka-52M"
+      },
+      "sensors": {
+        "ground_m": 900.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.6
+        }
+      },
+      "sound": {
+        "loudness_m": 900.0,
+        "profile": "vehicle"
+      }
+    },
+    {
       "body": {
         "squad": {
           "slots": [
@@ -17969,6 +19211,320 @@
       "sound": {
         "loudness_m": 200.0,
         "profile": "infantry"
+      }
+    },
+    {
+      "appearance": "eastern_mi_24_mi_35_hind_mi_35m",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 30.0,
+            "rear": 20.0,
+            "ricochet": {
+              "front": 0.1,
+              "rear": 0.1,
+              "roof": 0.1,
+              "side": 0.1
+            },
+            "roof": 15.0,
+            "side": 25.0
+          },
+          "eye_m": 1.9,
+          "half_extents_m": [
+            8.75,
+            2.635,
+            1.95
+          ],
+          "hp": 300.0,
+          "push_class": "none",
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {},
+      "cost": 270,
+      "description": "Mi-35M",
+      "faction": "eastern",
+      "family": "mi_24_mi_35_hind",
+      "id": "eastern_mi_24_mi_35_hind_mi_35m",
+      "mobility": {
+        "air": {
+          "climb_mps": 7.0,
+          "cruise_kmh": 220.0,
+          "turn_deg_s": 70.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "chin",
+          "muzzle_m": [
+            0.7,
+            0.0,
+            -0.05
+          ],
+          "name": "Chain Gun",
+          "on": null,
+          "pivot_m": [
+            8.0,
+            -0.3,
+            0.7
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "autocannon"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "missiles",
+          "muzzle_m": [
+            0.9,
+            0.0,
+            0.0
+          ],
+          "name": "AT Missile",
+          "on": null,
+          "pivot_m": [
+            0.7,
+            -2.46,
+            1.61
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "heli_atgm"
+          ]
+        }
+      ],
+      "name": "Mi-35M",
+      "roles": [
+        "helicopter"
+      ],
+      "roster": {
+        "category": "hel",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "Mi-24 Hind",
+        "variant": "Mi-35M"
+      },
+      "sensors": {
+        "ground_m": 850.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.6
+        }
+      },
+      "sound": {
+        "loudness_m": 900.0,
+        "profile": "vehicle"
+      }
+    },
+    {
+      "appearance": "eastern_mi_28_havoc_mi_28nm",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 30.0,
+            "rear": 20.0,
+            "ricochet": {
+              "front": 0.1,
+              "rear": 0.1,
+              "roof": 0.1,
+              "side": 0.1
+            },
+            "roof": 15.0,
+            "side": 25.0
+          },
+          "eye_m": 2.0,
+          "half_extents_m": [
+            8.536,
+            2.495,
+            2.355
+          ],
+          "hp": 300.0,
+          "push_class": "none",
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {},
+      "cost": 330,
+      "description": "Mi-28NM",
+      "faction": "eastern",
+      "family": "mi_28_havoc",
+      "id": "eastern_mi_28_havoc_mi_28nm",
+      "mobility": {
+        "air": {
+          "climb_mps": 7.0,
+          "cruise_kmh": 220.0,
+          "turn_deg_s": 70.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "chin",
+          "muzzle_m": [
+            1.7,
+            0.0,
+            -0.1
+          ],
+          "name": "Chain Gun",
+          "on": null,
+          "pivot_m": [
+            6.664,
+            0.0,
+            0.72
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "autocannon"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "missiles",
+          "muzzle_m": [
+            0.9,
+            0.0,
+            0.0
+          ],
+          "name": "AT Missile",
+          "on": null,
+          "pivot_m": [
+            1.214,
+            -2.01,
+            1.61
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "heli_atgm"
+          ]
+        }
+      ],
+      "name": "Mi-28NM",
+      "roles": [
+        "helicopter"
+      ],
+      "roster": {
+        "category": "hel",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "Mi-28 Havoc",
+        "variant": "Mi-28NM"
+      },
+      "sensors": {
+        "ground_m": 850.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.6
+        }
+      },
+      "sound": {
+        "loudness_m": 900.0,
+        "profile": "vehicle"
+      }
+    },
+    {
+      "appearance": "eastern_mi_8_hip_mi_8amtsh",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 15.0,
+            "rear": 15.0,
+            "ricochet": {
+              "front": 0.1,
+              "rear": 0.1,
+              "roof": 0.1,
+              "side": 0.1
+            },
+            "roof": 15.0,
+            "side": 15.0
+          },
+          "eye_m": 2.0,
+          "half_extents_m": [
+            9.127,
+            2.7,
+            2.2
+          ],
+          "hp": 200.0,
+          "push_class": "none",
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {},
+      "cost": 170,
+      "description": "Mi-8AMTSh",
+      "faction": "eastern",
+      "family": "mi_8_hip",
+      "id": "eastern_mi_8_hip_mi_8amtsh",
+      "mobility": {
+        "air": {
+          "climb_mps": 7.0,
+          "cruise_kmh": 220.0,
+          "turn_deg_s": 70.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "door",
+          "muzzle_m": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "name": "HMG",
+          "on": null,
+          "pivot_m": [
+            5.647,
+            1.3,
+            1.65
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "hmg"
+          ]
+        }
+      ],
+      "name": "Mi-8AMTSh",
+      "roles": [
+        "helicopter"
+      ],
+      "roster": {
+        "category": "hel",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "Mi-8 Hip",
+        "variant": "Mi-8AMTSh"
+      },
+      "sensors": {
+        "ground_m": 700.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.6
+        }
+      },
+      "sound": {
+        "loudness_m": 900.0,
+        "profile": "vehicle"
       }
     },
     {
@@ -19093,6 +20649,208 @@
       }
     },
     {
+      "appearance": "eastern_z_10_attack_helicopter",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 25.0,
+            "rear": 15.0,
+            "ricochet": {
+              "front": 0.1,
+              "rear": 0.1,
+              "roof": 0.1,
+              "side": 0.1
+            },
+            "roof": 10.0,
+            "side": 15.0
+          },
+          "eye_m": 1.95,
+          "half_extents_m": [
+            7.088,
+            2.175,
+            1.75
+          ],
+          "hp": 250.0,
+          "push_class": "none",
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {},
+      "cost": 300,
+      "description": "Attack helicopter",
+      "faction": "eastern",
+      "family": "z_10",
+      "id": "eastern_z_10_attack_helicopter",
+      "mobility": {
+        "air": {
+          "climb_mps": 8.0,
+          "cruise_kmh": 240.0,
+          "turn_deg_s": 80.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "chin",
+          "muzzle_m": [
+            1.2,
+            0.0,
+            -0.08
+          ],
+          "name": "Chain Gun",
+          "on": null,
+          "pivot_m": [
+            5.592,
+            0.0,
+            0.66
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "autocannon"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "missiles",
+          "muzzle_m": [
+            0.85,
+            0.0,
+            0.0
+          ],
+          "name": "AT Missile",
+          "on": null,
+          "pivot_m": [
+            1.092,
+            -2.0,
+            1.32
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "heli_atgm"
+          ]
+        }
+      ],
+      "name": "Z-10",
+      "roles": [
+        "helicopter"
+      ],
+      "roster": {
+        "category": "hel",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "Z-10",
+        "variant": "Attack helicopter"
+      },
+      "sensors": {
+        "ground_m": 900.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.6
+        }
+      },
+      "sound": {
+        "loudness_m": 900.0,
+        "profile": "vehicle"
+      }
+    },
+    {
+      "appearance": "eastern_z_20_utility_transport",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 15.0,
+            "rear": 15.0,
+            "ricochet": {
+              "front": 0.1,
+              "rear": 0.1,
+              "roof": 0.1,
+              "side": 0.1
+            },
+            "roof": 15.0,
+            "side": 15.0
+          },
+          "eye_m": 1.8,
+          "half_extents_m": [
+            7.975,
+            2.19,
+            1.875
+          ],
+          "hp": 200.0,
+          "push_class": "none",
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {},
+      "cost": 180,
+      "description": "Utility transport",
+      "faction": "eastern",
+      "family": "z_20",
+      "id": "eastern_z_20_utility_transport",
+      "mobility": {
+        "air": {
+          "climb_mps": 7.0,
+          "cruise_kmh": 220.0,
+          "turn_deg_s": 70.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "door",
+          "muzzle_m": [
+            1.1,
+            0.0,
+            0.0
+          ],
+          "name": "HMG",
+          "on": null,
+          "pivot_m": [
+            2.025,
+            1.2,
+            1.5
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "hmg"
+          ]
+        }
+      ],
+      "name": "Z-20",
+      "roles": [
+        "helicopter"
+      ],
+      "roster": {
+        "category": "hel",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "Z-20",
+        "variant": "Utility transport"
+      },
+      "sensors": {
+        "ground_m": 700.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.6
+        }
+      },
+      "sound": {
+        "loudness_m": 900.0,
+        "profile": "vehicle"
+      }
+    },
+    {
       "appearance": "eastern_zbl_08_wheeled_ifv",
       "body": {
         "hull": {
@@ -19383,6 +21141,186 @@
       "sound": {
         "loudness_m": 200.0,
         "profile": "infantry"
+      }
+    },
+    {
+      "appearance": "europe_aw101_merlin_hc4",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 15.0,
+            "rear": 15.0,
+            "ricochet": {
+              "front": 0.1,
+              "rear": 0.1,
+              "roof": 0.1,
+              "side": 0.1
+            },
+            "roof": 15.0,
+            "side": 15.0
+          },
+          "eye_m": 2.0,
+          "half_extents_m": [
+            9.935,
+            2.2,
+            2.31
+          ],
+          "hp": 250.0,
+          "push_class": "none",
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {},
+      "cost": 230,
+      "description": "HC4",
+      "faction": "europe",
+      "family": "aw101_merlin",
+      "id": "europe_aw101_merlin_hc4",
+      "mobility": {
+        "air": {
+          "climb_mps": 6.0,
+          "cruise_kmh": 230.0,
+          "turn_deg_s": 50.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "door",
+          "muzzle_m": [
+            1.2,
+            0.0,
+            0.0
+          ],
+          "name": "HMG",
+          "on": null,
+          "pivot_m": [
+            2.165,
+            1.33,
+            1.6
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "hmg"
+          ]
+        }
+      ],
+      "name": "Merlin HC4",
+      "roles": [
+        "helicopter"
+      ],
+      "roster": {
+        "category": "hel",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "AW101 Merlin",
+        "variant": "HC4"
+      },
+      "sensors": {
+        "ground_m": 700.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.6
+        }
+      },
+      "sound": {
+        "loudness_m": 1000.0,
+        "profile": "vehicle"
+      }
+    },
+    {
+      "appearance": "europe_aw159_wildcat_ah1",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 15.0,
+            "rear": 15.0,
+            "ricochet": {
+              "front": 0.1,
+              "rear": 0.1,
+              "roof": 0.1,
+              "side": 0.1
+            },
+            "roof": 15.0,
+            "side": 15.0
+          },
+          "eye_m": 1.55,
+          "half_extents_m": [
+            6.525,
+            1.515,
+            1.7
+          ],
+          "hp": 150.0,
+          "push_class": "none",
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {},
+      "cost": 170,
+      "description": "AH1",
+      "faction": "europe",
+      "family": "aw159_wildcat",
+      "id": "europe_aw159_wildcat_ah1",
+      "mobility": {
+        "air": {
+          "climb_mps": 9.0,
+          "cruise_kmh": 180.0,
+          "turn_deg_s": 100.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "door",
+          "muzzle_m": [
+            1.1,
+            0.0,
+            0.0
+          ],
+          "name": "HMG",
+          "on": null,
+          "pivot_m": [
+            1.925,
+            1.02,
+            1.45
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "hmg"
+          ]
+        }
+      ],
+      "name": "Wildcat AH1",
+      "roles": [
+        "helicopter"
+      ],
+      "roster": {
+        "category": "hel",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "AW159 Wildcat",
+        "variant": "AH1"
+      },
+      "sensors": {
+        "ground_m": 700.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.6
+        }
+      },
+      "sound": {
+        "loudness_m": 800.0,
+        "profile": "vehicle"
       }
     },
     {
@@ -19684,6 +21622,96 @@
       },
       "sound": {
         "loudness_m": 650.0,
+        "profile": "vehicle"
+      }
+    },
+    {
+      "appearance": "europe_ch_47_chinook_hc6",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 15.0,
+            "rear": 15.0,
+            "ricochet": {
+              "front": 0.1,
+              "rear": 0.1,
+              "roof": 0.1,
+              "side": 0.1
+            },
+            "roof": 15.0,
+            "side": 15.0
+          },
+          "eye_m": 2.2,
+          "half_extents_m": [
+            8.137,
+            1.945,
+            2.713
+          ],
+          "hp": 250.0,
+          "push_class": "none",
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {},
+      "cost": 240,
+      "description": "HC6",
+      "faction": "europe",
+      "family": "ch_47_chinook",
+      "id": "europe_ch_47_chinook_hc6",
+      "mobility": {
+        "air": {
+          "climb_mps": 6.0,
+          "cruise_kmh": 230.0,
+          "turn_deg_s": 50.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "door",
+          "muzzle_m": [
+            1.2,
+            0.0,
+            0.0
+          ],
+          "name": "HMG",
+          "on": null,
+          "pivot_m": [
+            5.207,
+            1.33,
+            1.8
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "hmg"
+          ]
+        }
+      ],
+      "name": "Chinook HC6",
+      "roles": [
+        "helicopter"
+      ],
+      "roster": {
+        "category": "hel",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "CH-47 Chinook",
+        "variant": "HC6"
+      },
+      "sensors": {
+        "ground_m": 700.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.6
+        }
+      },
+      "sound": {
+        "loudness_m": 1000.0,
         "profile": "vehicle"
       }
     },
@@ -20226,6 +22254,230 @@
       },
       "sound": {
         "loudness_m": 650.0,
+        "profile": "vehicle"
+      }
+    },
+    {
+      "appearance": "europe_ec665_tiger_had",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 25.0,
+            "rear": 15.0,
+            "ricochet": {
+              "front": 0.1,
+              "rear": 0.1,
+              "roof": 0.1,
+              "side": 0.1
+            },
+            "roof": 10.0,
+            "side": 15.0
+          },
+          "eye_m": 1.9,
+          "half_extents_m": [
+            7.04,
+            2.158,
+            1.75
+          ],
+          "hp": 250.0,
+          "push_class": "none",
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {},
+      "cost": 350,
+      "description": "HAD",
+      "faction": "europe",
+      "family": "ec665_tiger",
+      "id": "europe_ec665_tiger_had",
+      "mobility": {
+        "air": {
+          "climb_mps": 8.0,
+          "cruise_kmh": 240.0,
+          "turn_deg_s": 80.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "chin",
+          "muzzle_m": [
+            1.35,
+            0.0,
+            -0.07
+          ],
+          "name": "Chain Gun",
+          "on": null,
+          "pivot_m": [
+            5.6,
+            0.0,
+            0.62
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "autocannon"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "missiles",
+          "muzzle_m": [
+            0.8,
+            0.0,
+            0.0
+          ],
+          "name": "AT Missile",
+          "on": null,
+          "pivot_m": [
+            1.1,
+            -2.0,
+            1.22
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "heli_atgm"
+          ]
+        }
+      ],
+      "name": "Tiger HAD",
+      "roles": [
+        "helicopter"
+      ],
+      "roster": {
+        "category": "hel",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "EC665 Tiger",
+        "variant": "HAD"
+      },
+      "sensors": {
+        "ground_m": 900.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.6
+        }
+      },
+      "sound": {
+        "loudness_m": 900.0,
+        "profile": "vehicle"
+      }
+    },
+    {
+      "appearance": "europe_ec665_tiger_uht",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 25.0,
+            "rear": 15.0,
+            "ricochet": {
+              "front": 0.1,
+              "rear": 0.1,
+              "roof": 0.1,
+              "side": 0.1
+            },
+            "roof": 10.0,
+            "side": 15.0
+          },
+          "eye_m": 1.9,
+          "half_extents_m": [
+            7.04,
+            2.226,
+            2.16
+          ],
+          "hp": 250.0,
+          "push_class": "none",
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {},
+      "cost": 330,
+      "description": "UHT",
+      "faction": "europe",
+      "family": "ec665_tiger",
+      "id": "europe_ec665_tiger_uht",
+      "mobility": {
+        "air": {
+          "climb_mps": 8.0,
+          "cruise_kmh": 240.0,
+          "turn_deg_s": 80.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "missiles",
+          "muzzle_m": [
+            0.8,
+            0.0,
+            0.0
+          ],
+          "name": "AT Missile",
+          "on": null,
+          "pivot_m": [
+            1.1,
+            -2.0,
+            1.22
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "heli_atgm"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "rockets",
+          "muzzle_m": [
+            0.8,
+            0.0,
+            0.0
+          ],
+          "name": "Rockets",
+          "on": null,
+          "pivot_m": [
+            1.2,
+            1.05,
+            1.0
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "rocket_pod"
+          ]
+        }
+      ],
+      "name": "Tiger UHT",
+      "roles": [
+        "helicopter"
+      ],
+      "roster": {
+        "category": "hel",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "EC665 Tiger",
+        "variant": "UHT"
+      },
+      "sensors": {
+        "ground_m": 900.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.6
+        }
+      },
+      "sound": {
+        "loudness_m": 900.0,
         "profile": "vehicle"
       }
     },
@@ -21161,6 +23413,96 @@
       }
     },
     {
+      "appearance": "europe_nh90_tth",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 15.0,
+            "rear": 15.0,
+            "ricochet": {
+              "front": 0.1,
+              "rear": 0.1,
+              "roof": 0.1,
+              "side": 0.1
+            },
+            "roof": 15.0,
+            "side": 15.0
+          },
+          "eye_m": 1.9,
+          "half_extents_m": [
+            8.285,
+            1.8,
+            2.0
+          ],
+          "hp": 200.0,
+          "push_class": "none",
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {},
+      "cost": 190,
+      "description": "TTH",
+      "faction": "europe",
+      "family": "nh90",
+      "id": "europe_nh90_tth",
+      "mobility": {
+        "air": {
+          "climb_mps": 7.0,
+          "cruise_kmh": 220.0,
+          "turn_deg_s": 70.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "door",
+          "muzzle_m": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "name": "HMG",
+          "on": null,
+          "pivot_m": [
+            2.215,
+            1.2,
+            1.55
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "hmg"
+          ]
+        }
+      ],
+      "name": "NH90 TTH",
+      "roles": [
+        "helicopter"
+      ],
+      "roster": {
+        "category": "hel",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "NH90",
+        "variant": "TTH"
+      },
+      "sensors": {
+        "ground_m": 700.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.6
+        }
+      },
+      "sound": {
+        "loudness_m": 900.0,
+        "profile": "vehicle"
+      }
+    },
+    {
       "appearance": "europe_puma_level_c",
       "body": {
         "hull": {
@@ -21839,6 +24181,320 @@
       }
     },
     {
+      "appearance": "us_ah_1z_viper_attack_helicopter",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 25.0,
+            "rear": 15.0,
+            "ricochet": {
+              "front": 0.1,
+              "rear": 0.1,
+              "roof": 0.1,
+              "side": 0.1
+            },
+            "roof": 10.0,
+            "side": 15.0
+          },
+          "eye_m": 2.1,
+          "half_extents_m": [
+            6.851,
+            2.066,
+            1.725
+          ],
+          "hp": 250.0,
+          "push_class": "none",
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {},
+      "cost": 320,
+      "description": "Attack helicopter",
+      "faction": "us",
+      "family": "ah_1z_viper",
+      "id": "us_ah_1z_viper_attack_helicopter",
+      "mobility": {
+        "air": {
+          "climb_mps": 8.0,
+          "cruise_kmh": 240.0,
+          "turn_deg_s": 80.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "chin",
+          "muzzle_m": [
+            1.3,
+            0.0,
+            -0.09
+          ],
+          "name": "Chain Gun",
+          "on": null,
+          "pivot_m": [
+            5.189,
+            0.0,
+            0.75
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "autocannon"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "missiles",
+          "muzzle_m": [
+            0.82,
+            0.0,
+            0.0
+          ],
+          "name": "AT Missile",
+          "on": null,
+          "pivot_m": [
+            0.959,
+            -1.5,
+            1.46
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "heli_atgm"
+          ]
+        }
+      ],
+      "name": "AH-1Z Viper",
+      "roles": [
+        "helicopter"
+      ],
+      "roster": {
+        "category": "hel",
+        "factions": [
+          "us"
+        ],
+        "family_name": "AH-1Z Viper",
+        "variant": "Attack helicopter"
+      },
+      "sensors": {
+        "ground_m": 900.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.6
+        }
+      },
+      "sound": {
+        "loudness_m": 900.0,
+        "profile": "vehicle"
+      }
+    },
+    {
+      "appearance": "us_ah_6_mh_6_little_bird_ah_6m",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 15.0,
+            "rear": 15.0,
+            "ricochet": {
+              "front": 0.1,
+              "rear": 0.1,
+              "roof": 0.1,
+              "side": 0.1
+            },
+            "roof": 15.0,
+            "side": 15.0
+          },
+          "eye_m": 1.4,
+          "half_extents_m": [
+            3.75,
+            1.64,
+            1.213
+          ],
+          "hp": 150.0,
+          "push_class": "none",
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {},
+      "cost": 180,
+      "description": "AH-6M",
+      "faction": "us",
+      "family": "ah_6_mh_6_little_bird",
+      "id": "us_ah_6_mh_6_little_bird_ah_6m",
+      "mobility": {
+        "air": {
+          "climb_mps": 9.0,
+          "cruise_kmh": 180.0,
+          "turn_deg_s": 100.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "guns",
+          "muzzle_m": [
+            0.45,
+            0.0,
+            0.0
+          ],
+          "name": "Chain Gun",
+          "on": null,
+          "pivot_m": [
+            1.75,
+            1.15,
+            0.52
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "autocannon"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "rockets",
+          "muzzle_m": [
+            0.7,
+            0.0,
+            0.0
+          ],
+          "name": "Rockets",
+          "on": null,
+          "pivot_m": [
+            1.75,
+            -1.45,
+            0.58
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "rocket_pod"
+          ]
+        }
+      ],
+      "name": "AH-6M Little Bird",
+      "roles": [
+        "helicopter"
+      ],
+      "roster": {
+        "category": "hel",
+        "factions": [
+          "us"
+        ],
+        "family_name": "Little Bird",
+        "variant": "AH-6M"
+      },
+      "sensors": {
+        "ground_m": 700.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.6
+        }
+      },
+      "sound": {
+        "loudness_m": 800.0,
+        "profile": "vehicle"
+      }
+    },
+    {
+      "appearance": "us_ah_6_mh_6_little_bird_mh_6m",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 15.0,
+            "rear": 15.0,
+            "ricochet": {
+              "front": 0.1,
+              "rear": 0.1,
+              "roof": 0.1,
+              "side": 0.1
+            },
+            "roof": 15.0,
+            "side": 15.0
+          },
+          "eye_m": 1.4,
+          "half_extents_m": [
+            3.75,
+            1.475,
+            1.213
+          ],
+          "hp": 150.0,
+          "push_class": "none",
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {},
+      "cost": 120,
+      "description": "MH-6M",
+      "faction": "us",
+      "family": "ah_6_mh_6_little_bird",
+      "id": "us_ah_6_mh_6_little_bird_mh_6m",
+      "mobility": {
+        "air": {
+          "climb_mps": 9.0,
+          "cruise_kmh": 180.0,
+          "turn_deg_s": 100.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "door",
+          "muzzle_m": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "name": "HMG",
+          "on": null,
+          "pivot_m": [
+            2.35,
+            1.25,
+            1.05
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "hmg"
+          ]
+        }
+      ],
+      "name": "MH-6M Little Bird",
+      "roles": [
+        "helicopter"
+      ],
+      "roster": {
+        "category": "hel",
+        "factions": [
+          "us"
+        ],
+        "family_name": "Little Bird",
+        "variant": "MH-6M"
+      },
+      "sensors": {
+        "ground_m": 700.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.6
+        }
+      },
+      "sound": {
+        "loudness_m": 800.0,
+        "profile": "vehicle"
+      }
+    },
+    {
       "body": {
         "squad": {
           "slots": [
@@ -22021,6 +24677,96 @@
       "sound": {
         "loudness_m": 200.0,
         "profile": "infantry"
+      }
+    },
+    {
+      "appearance": "us_ch_47_chinook_ch_47f",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 15.0,
+            "rear": 15.0,
+            "ricochet": {
+              "front": 0.1,
+              "rear": 0.1,
+              "roof": 0.1,
+              "side": 0.1
+            },
+            "roof": 15.0,
+            "side": 15.0
+          },
+          "eye_m": 2.2,
+          "half_extents_m": [
+            8.137,
+            1.945,
+            2.713
+          ],
+          "hp": 250.0,
+          "push_class": "none",
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {},
+      "cost": 240,
+      "description": "CH-47F",
+      "faction": "us",
+      "family": "ch_47_chinook",
+      "id": "us_ch_47_chinook_ch_47f",
+      "mobility": {
+        "air": {
+          "climb_mps": 6.0,
+          "cruise_kmh": 230.0,
+          "turn_deg_s": 50.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "door",
+          "muzzle_m": [
+            1.2,
+            0.0,
+            0.0
+          ],
+          "name": "HMG",
+          "on": null,
+          "pivot_m": [
+            5.207,
+            1.33,
+            1.8
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "hmg"
+          ]
+        }
+      ],
+      "name": "CH-47F Chinook",
+      "roles": [
+        "helicopter"
+      ],
+      "roster": {
+        "category": "hel",
+        "factions": [
+          "us"
+        ],
+        "family_name": "CH-47 Chinook",
+        "variant": "CH-47F"
+      },
+      "sensors": {
+        "ground_m": 700.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.6
+        }
+      },
+      "sound": {
+        "loudness_m": 1000.0,
+        "profile": "vehicle"
       }
     },
     {
@@ -24027,6 +26773,186 @@
       },
       "sound": {
         "loudness_m": 650.0,
+        "profile": "vehicle"
+      }
+    },
+    {
+      "appearance": "us_uh_1y_venom_utility_transport",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 15.0,
+            "rear": 15.0,
+            "ricochet": {
+              "front": 0.1,
+              "rear": 0.1,
+              "roof": 0.1,
+              "side": 0.1
+            },
+            "roof": 15.0,
+            "side": 15.0
+          },
+          "eye_m": 1.8,
+          "half_extents_m": [
+            6.7,
+            1.45,
+            1.8
+          ],
+          "hp": 200.0,
+          "push_class": "none",
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {},
+      "cost": 160,
+      "description": "Utility transport",
+      "faction": "us",
+      "family": "uh_1y_venom",
+      "id": "us_uh_1y_venom_utility_transport",
+      "mobility": {
+        "air": {
+          "climb_mps": 7.0,
+          "cruise_kmh": 220.0,
+          "turn_deg_s": 70.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "door",
+          "muzzle_m": [
+            1.0,
+            0.0,
+            0.0
+          ],
+          "name": "HMG",
+          "on": null,
+          "pivot_m": [
+            2.45,
+            1.4,
+            1.45
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "hmg"
+          ]
+        }
+      ],
+      "name": "UH-1Y Venom",
+      "roles": [
+        "helicopter"
+      ],
+      "roster": {
+        "category": "hel",
+        "factions": [
+          "us"
+        ],
+        "family_name": "UH-1Y Venom",
+        "variant": "Utility transport"
+      },
+      "sensors": {
+        "ground_m": 700.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.6
+        }
+      },
+      "sound": {
+        "loudness_m": 900.0,
+        "profile": "vehicle"
+      }
+    },
+    {
+      "appearance": "us_uh_60_black_hawk_uh_60m",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 15.0,
+            "rear": 15.0,
+            "ricochet": {
+              "front": 0.1,
+              "rear": 0.1,
+              "roof": 0.1,
+              "side": 0.1
+            },
+            "roof": 15.0,
+            "side": 15.0
+          },
+          "eye_m": 1.8,
+          "half_extents_m": [
+            7.905,
+            2.19,
+            1.825
+          ],
+          "hp": 200.0,
+          "push_class": "none",
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {},
+      "cost": 180,
+      "description": "UH-60M",
+      "faction": "us",
+      "family": "uh_60_black_hawk",
+      "id": "us_uh_60_black_hawk_uh_60m",
+      "mobility": {
+        "air": {
+          "climb_mps": 7.0,
+          "cruise_kmh": 220.0,
+          "turn_deg_s": 70.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "door",
+          "muzzle_m": [
+            1.1,
+            0.0,
+            0.0
+          ],
+          "name": "HMG",
+          "on": null,
+          "pivot_m": [
+            2.025,
+            1.2,
+            1.5
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "hmg"
+          ]
+        }
+      ],
+      "name": "UH-60M Black Hawk",
+      "roles": [
+        "helicopter"
+      ],
+      "roster": {
+        "category": "hel",
+        "factions": [
+          "us"
+        ],
+        "family_name": "UH-60 Black Hawk",
+        "variant": "UH-60M"
+      },
+      "sensors": {
+        "ground_m": 700.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.6
+        }
+      },
+      "sound": {
+        "loudness_m": 900.0,
         "profile": "vehicle"
       }
     }

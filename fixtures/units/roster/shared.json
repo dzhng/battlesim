@@ -18,6 +18,7 @@
         "variant": "AH-64E Guardian",
         "family_name": "AH-64 Apache"
       },
+      "extends": "roster_profile_attack_helicopter",
       "body": {
         "hull": {
           "half_extents_m": [
@@ -25,38 +26,7 @@
             2.615,
             2.36
           ],
-          "eye_m": 1.9,
-          "hp": 250,
-          "armor": {
-            "front": 25,
-            "side": 15,
-            "rear": 15,
-            "roof": 10,
-            "ricochet": {
-              "front": 0.1,
-              "side": 0.1,
-              "rear": 0.1,
-              "roof": 0.1
-            }
-          },
-          "weight_class": "light",
-          "push_class": "none",
-          "wreck": "light_wreck"
-        }
-      },
-      "mobility": {
-        "air": {
-          "cruise_kmh": 240,
-          "turn_deg_s": 80,
-          "climb_mps": 8
-        }
-      },
-      "sensors": {
-        "ground_m": 900,
-        "sight_shape": {
-          "front": 1,
-          "side": 0.6,
-          "rear": 0.3
+          "eye_m": 1.9
         }
       },
       "mounts": [
@@ -115,10 +85,6 @@
           ]
         }
       ],
-      "sound": {
-        "profile": "vehicle",
-        "loudness_m": 900
-      },
       "appearance": "ah_64e_guardian"
     },
     "assault_squad": {

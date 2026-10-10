@@ -33,9 +33,15 @@ pub enum CatalogSet {
     Menu,
 }
 
-/// The game's roots under `fixtures/`: the roster, its profiles and roles,
-/// and the props. Never the test or menu units.
-const GAME_ROOTS: [&str; 4] = ["units/ground", "units/roles.json", "units/roster", "props"];
+/// The game's roots under `fixtures/`: the roster, its ground and air
+/// profiles and roles, and the props. Never the test or menu units.
+const GAME_ROOTS: [&str; 5] = [
+    "units/air",
+    "units/ground",
+    "units/roles.json",
+    "units/roster",
+    "props",
+];
 
 impl CatalogSet {
     /// The folders under `fixtures/` a set adds to the game's; an absent one
