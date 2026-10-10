@@ -76,5 +76,4 @@ Before/after crops against the reference photos are in
 ## Left as found
 
 - Several turrets are lower and simpler than their photos (the Centauro II most clearly).
-- The T-14's barrel is short, and its turret front is about 0.3 m long.
 - The ICV station's base cuts about 14 cm into the commander's ring, as it did before the move.
