@@ -8,6 +8,6 @@
   "tags": ["building"],
   "source": "authored",
   "seed": null,
-  "encounters": ["crossfire", "late", "prompt"],
+  "encounters": ["crossfire", "late", "prompt", "top-attack"],
   "benchmarks": []
 }
