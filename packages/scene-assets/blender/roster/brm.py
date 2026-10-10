@@ -14,7 +14,8 @@ folded housing on the turret's rear. The model wears Russian green (the 2013
 car's desert scheme was an exhibition finish).
 
 Built to the catalog frame, the BMP-3 hull's (7.14 x 3.2 x 2.4 m, gun pivot
-1.56 m).
+1.56 m up and 0.3 m ahead of amidships, as on the BMP-3); the driver's and
+bow gunners' hatches are placed from the ring, just ahead of the turret.
 """
 import math
 import os
@@ -45,19 +46,27 @@ def hull(v):
     prism("hull_lower", [(-half + 0.30, 0.42), (half - 0.65, 0.42), (half - 0.05, 0.82), (-half, 0.82),
                          (-half, 0.65)], 2.30, mat=m["paint"], parent=h, bevel=0.04)
     slope = math.atan((ROOF - nose) / 1.90)
+
+    def glacis(x):
+        return ROOF - max(0.0, x - (half - 1.90)) * math.tan(slope)
+
     # The folded trim vane across the nose, its ribbed face up.
     VP.bolted_panel("trim_vane", (half - 0.45, 0, nose + (ROOF - nose) * 0.2), (0.60, 2.70, 0.06), m, h, bolts=(2, 6),
                     bevel=0.02, rot=(0, slope, 0), lods=VP.ALL)
     for k in range(5):
         box(f"vane_rib_{k}", (0.55, 0.04, 0.05), (half - 0.45, -1.1 + k * 0.55, nose + (ROOF - nose) * 0.2 + 0.08),
             m["paint"], h, rot=(0, slope, 0), lods=NEAR)
-    VP.hatch("driver_hatch", (half - 2.10, 0, ROOF), m, h, radius=0.25)
+    # The driver's hatch on the glacis just ahead of the turret, his
+    # periscopes ahead of it, the bow gunners' hatches either side.
+    ring = v.frame["mounts"][0]["pivot_m"][0]
+    VP.hatch("driver_hatch", (ring + 1.62, 0, glacis(ring + 1.62)), m, h, radius=0.25, rot=(0, slope, 0))
     for k in range(3):
-        VP.periscope(f"driver_periscope_{k}", (half - 1.80, -0.25 + k * 0.25, ROOF - 0.04), m, h,
+        x = ring + 1.92
+        VP.periscope(f"driver_periscope_{k}", (x, -0.25 + k * 0.25, glacis(x) - 0.01), m, h,
                      size=(0.11, 0.16, 0.08), rot=(0, slope, 0))
     for side, s in ((1, "L"), (-1, "R")):
         VP.light_with_guard(f"headlight_{s}", (half - 1.30, side * 1.25, nose + 0.45), 0.06, m, h)
-        VP.hatch(f"bow_gunner_hatch_{s}", (half - 2.10, side * 0.85, ROOF), m, h, radius=0.22)
+        VP.hatch(f"bow_gunner_hatch_{s}", (ring + 1.25, side * 0.85, ROOF), m, h, radius=0.22)
         VP.tow_hook(f"front_tow_{s}", (half - 0.14, side * 0.65, 0.75), m, h, size=0.12)
         # The rubber skirt over the track's top run, in sections.
         for k in range(5):
