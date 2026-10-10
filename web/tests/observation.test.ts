@@ -528,6 +528,10 @@ test("every frozen animation field and ground value decodes, integers exact past
   expect(o.identified[0].memberActiveMounts).toEqual([]);
   expect(o.identified[0].weaponPoses.map((p) => p.shots)).toEqual([9, big + 6]);
   expect(o.identified[0].reversing).toBe(true);
+  // A damaged enemy's coarse smoke bit, and nothing of its health, crosses the wire.
+  expect(o.identified[0].smoking).toBe(true);
+  expect(o.identified[0]).not.toHaveProperty("hp");
+  expect(o.own[0].smoking).toBe(false);
   expect(o.projectiles).toEqual([
     {
       path: [

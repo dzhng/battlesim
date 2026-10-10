@@ -92,7 +92,7 @@
   {
     "id": "air-crash",
     "route": "/lab/air-crash",
-    "describe": "A test helicopter, one hit from death, flies across the field past a gun jeep and is shot down: it falls on in a spinning arc, nose down, keeping its momentum, bursts where it strikes the ground and leaves its wreck there. It never vanishes in mid-air or brews up like a ground hull.",
+    "describe": "A test helicopter, one hit from death, flies across the field past a gun jeep, trailing smoke, and is shot down: it falls on in a spinning arc, nose down, keeping its momentum, bursts where it strikes the ground and leaves its wreck there. It never vanishes in mid-air or brews up like a ground hull.",
     "map": "air"
   },
   {

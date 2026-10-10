@@ -86,6 +86,7 @@ const squad = (
   mounts: [],
   weaponPoses: [{ mount: 0, operator: null, bearing, elevation: 0, shots }],
   hp: 100,
+  smoking: false,
   memberHp: soldiers.map(() => 10),
   suppression,
   concealed: false,
@@ -110,6 +111,7 @@ const enemy = (id: number, soldiers: Soldier[], shots = 0): IdentifiedView => ({
   memberLeans: soldiers.map((s) => (s.lean ? { side: "right", at: s.lean } : null)),
   weaponPoses: [{ mount: 0, operator: null, bearing: Math.PI, elevation: 0, shots }],
   reversing: false,
+  smoking: false,
 });
 
 /** A stretch of soldier `shooter`'s round this tick, from `from` 5 m east. */

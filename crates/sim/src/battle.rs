@@ -3465,6 +3465,7 @@ impl Battle {
                         weapon_poses: u.mounts.iter().map(weapons::pose).collect(),
                         deployment: deployment::state(u),
                         hp: u.hp,
+                        smoking: u.smoking(&self.rules),
                         member_hp: u
                             .members
                             .iter()

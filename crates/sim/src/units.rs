@@ -15,6 +15,9 @@ use crate::navigation::Mobility;
 use crate::weapons::{Mount, Target};
 use crate::world::PropId;
 
+/// An aircraft smokes below this share of its health (D34).
+const SMOKING_HP_SHARE: f64 = 0.5;
+
 /// One soldier: a body of his own (L4–L6). He stands on the ground at his
 /// own position, or at his building slot while garrisoned; nothing places
 /// him relative to his squad.
@@ -444,6 +447,14 @@ impl Unit {
     /// concealment) reaches it.
     pub fn airborne(&self) -> bool {
         matches!(self.motion, Motion::Air(_))
+    }
+
+    /// It trails smoke (D19, D34): an aircraft below half its health. What a
+    /// viewer sees of its damage, own or enemy; never its health itself.
+    pub fn smoking(&self, rules: &Rules) -> bool {
+        self.airborne()
+            && self.alive()
+            && (self.unit_type(rules).hull()).is_some_and(|h| self.hp < SMOKING_HP_SHARE * h.hp)
     }
 
     /// The height band it occupies, which decides what can engage it.

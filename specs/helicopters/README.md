@@ -1,12 +1,12 @@
 # Helicopters
 
-**Status:** in progress: slices 01–06, 10 and 14 done, and slice 07's weapon layers. **Updated:** 2026-10-10.
+**Status:** in progress: slices 01–06, 10, 11 and 14 done, and slice 07's weapon layers. **Updated:** 2026-10-10.
 
 ## Next Agent Prompt
 
 You are implementing helicopters. Read [decisions](decisions.md) first. Its D1–D43 are givens, and you don't reopen them inside a slice. Then read [landmines](landmines.md) and the slice you're picking up. Load [tweak-mechanics](../../.agents/skills/tweak-mechanics/SKILL.md) before any rule change, [write-tests](../../.agents/skills/write-tests/SKILL.md) before any behaviour change, and [renderer](../../.agents/skills/renderer/SKILL.md) or [game-ui](../../.agents/skills/game-ui/SKILL.md) for slices that draw.
 
-**Next pickup:** slice [07](slices/07-first-checkpoint.md)'s browser scene, the first checkpoint, on the `air` map from slice 06. Then slice 08 (hull-mount facing), and slices 11 and 12 (damage smoke, drop line) in parallel.
+**Next pickup:** slice [07](slices/07-first-checkpoint.md)'s browser scene, the first checkpoint, on the `air` map from slice 06. Then slice 08 (hull-mount facing), and slice 12 (drop line).
 
 **Done so far:**
 - **01:** `units::Motion { Ground, Air }`, `Unit::airborne`, `ground_footprint` (`None` in the air), `Mobility::Air` with its own limits, the `air` rules block, and XY-only `moved`. Ground digests and parity records are unchanged.
@@ -17,6 +17,7 @@ You are implementing helicopters. Read [decisions](decisions.md) first. Its D1�
 - **07 (rules):** `targets` on weapon rows, read only by `weapons::reaches`; the heard mask spans 48 rows.
 - **02:** variant D, the keyed disc, was picked at the checkpoint ([result](slices/02-contact-sign-spike.md#result)).
 - **10:** the `crashes` publication group (`id, own, kind, x, y, z, yaw, pitch, roll`, header `crashCount`), seen by the sides in `Crash.knowing`; the pose feed draws the falling airframe as the vehicle it was, tilted by `ArticulatedModelPose.motion`; cook-offs skip airframes; `/lab/air-crash`.
+- **11:** `Unit::smoking` (an aircraft under half its HP) published as `smoking` on own and identified rows; `presentation.effects.damage_smoke` and `EffectShooter.smoking` draw the trail, falling airframes included.
 - **06:** `test_heli` (`fixtures/units/test/aircraft.json`, art by `test_heli.py`) hovers on `/lab/air-hover` (the `air` test map). Rotors turn by the articulation's `rotor` input (tip metres swept) over each rotor's reach; hull fit leaves `rotor_*`/`blade_*` out; culling sweeps the disc and keeps an airframe whose shadow is in view; air hulls raise no dust and roll nothing; `vehicleClass` is `air_<weight>`.
 
 **Warnings:**
@@ -38,7 +39,7 @@ You are implementing helicopters. Read [decisions](decisions.md) first. Its D1�
 - [ ] [08 — Hull-mount facing for every unit](slices/08-hull-mount-facing.md)
 - [ ] [09 — Helicopter missile and rocket rows](slices/09-heli-weapon-rows.md)
 - [x] [10 — Drawing the fall](slices/10-fall-draw.md)
-- [ ] [11 — Damage smoke trail](slices/11-damage-smoke.md)
+- [x] [11 — Damage smoke trail](slices/11-damage-smoke.md)
 - [ ] [12 — Drop line, ground ring and ghosts](slices/12-drop-line-ring.md)
 - [ ] [13 — The airborne contact sign, built](slices/13-contact-sign.md)
 - [x] [14 — Resupply sink](slices/14-resupply-sink.md)
@@ -83,7 +84,7 @@ It replaces [battle-foundation slice 18](../battle-foundation/slices/18-air-move
 | Unit digest | `Unit.air: Option<AirState { velocity, agl_target, aim_yaw }>`. | 03 |
 | Battle digest and publication | Falling airframes are digested (04) and published as a new `crashes` group (10). | 04, 10 |
 | Observation and publication | Contacts gain `z` and `layer`. **The digest layout changes; parity is re-recorded.** | 05 |
-| Observation and publication | Identified units gain a coarse `smoking` bit. | 11 |
+| Observation and publication | Identified (and own) units gain a coarse `smoking` bit. | 11 |
 | Sim rule, every unit | `moved` compares XY only. Ground digests are unchanged. | 01 |
 | Sim rule, every unit | Hull-mounted weapons fire only when the body faces the target. Ground digests are unchanged. | 08 |
 | Weapon rows | Guided rows state `guidance: "stationary" \| "on_the_move"` (D38). Today's ATGMs author `"stationary"`, so their digests are unchanged. | 09 |

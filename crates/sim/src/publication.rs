@@ -276,7 +276,7 @@ const KNOWN_PROP_FIELDS: [&str; 20] = [
     "authoredPropHi",
     "wreckOf",
 ];
-const OWN_FIELDS: [&str; 47] = [
+const OWN_FIELDS: [&str; 48] = [
     "id",
     "kind",
     "x",
@@ -324,8 +324,9 @@ const OWN_FIELDS: [&str; 47] = [
     "withdrawing",
     "protectionCharges",
     "protectionCooldownProgress",
+    "smoking",
 ];
-const IDENTIFIED_FIELDS: [&str; 12] = [
+const IDENTIFIED_FIELDS: [&str; 13] = [
     "id",
     "kind",
     "cost",
@@ -338,6 +339,7 @@ const IDENTIFIED_FIELDS: [&str; 12] = [
     "memberCount",
     "poseCount",
     "reversing",
+    "smoking",
 ];
 
 /// An integer as its two exact 16-bit limbs.
@@ -573,6 +575,8 @@ pub fn layout_json(battle: &Battle) -> String {
         // Mount ammo is rounds left per kind: -1 unlimited, -2 no such kind.
         // goalX/goalY are NaN without a movement order; policy, direction and blocker are -1 when absent.
         // reversing is 1 while the unit drives backwards this tick, else 0.
+        // smoking is 1 while it trails smoke (an aircraft below half its
+        // health), own or identified alike, else 0.
         // finalFacing is the bearing the unit ends its move at (its yaw
         // without one). A member order is the soldier's spot (his post while
         // holding, where he stands without either); coverNow and coverThere
@@ -964,6 +968,7 @@ fn pack_record(
             u.protection
                 .and_then(|p| p.cooldown)
                 .map_or(-1.0, |p| p as f32),
+            u.smoking as u8 as f32,
         ]);
     }
     for u in &frame.own {
@@ -1044,6 +1049,7 @@ fn pack_record(
             e.members.len() as f32,
             e.weapon_poses.len() as f32,
             e.reversing as u8 as f32,
+            e.smoking as u8 as f32,
         ]);
     }
     for e in &frame.identified {

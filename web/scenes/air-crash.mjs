@@ -1,17 +1,20 @@
 // A helicopter shot down: the side sees it fall from where it was hit, along
 // its spinning arc, to the ground where its wreck then lies, and the
-// airframe is drawn all the way down. The simulation's tests own the arc and
-// the publication's tests its fields; this judges the drawn fall, and leaves
-// a contact sheet from the hit to the wreck at rest.
+// airframe is drawn all the way down, trailing smoke as it did while it flew
+// damaged. The simulation's tests own the arc and the publication's tests its
+// fields; this judges the drawn fall and trail, and leaves a contact sheet
+// from the hit to the wreck at rest and a crop of the trail.
 import { writeFile } from "node:fs/promises";
 import { decode, mostChanged, writeCrop } from "./_png.mjs";
-import { lab, obs, advance, presented, openBattle, gpuWarnings, hideHud } from "./_lab.mjs";
+import { lab, obs, advance, presented, openBattle, gpuWarnings, hideHud, aim } from "./_lab.mjs";
 import { writeSheet } from "./_sheet.mjs";
 
 const HELI = "test_heli";
 /** Ticks between the sheet's frames, and how long it runs on after landing. */
 const EVERY = 6;
 const AFTER = 36;
+/** A tick it has flown its first 25 m or so, just before the jeep hits it. */
+const SMOKE_TICK = 55;
 
 export async function run(ctx) {
   const page = await openBattle(ctx);
@@ -29,13 +32,46 @@ export async function run(ctx) {
     return shot;
   };
 
-  // Fly until it is hit: the last tick it is a unit.
+  // Fly until it is hit: the last tick it is a unit. One hit from death, it
+  // trails smoke all the way: shot once it is flying fast, with a crop round
+  // the airframe and the 30 m of air behind it.
   let o = await obs(page);
   let alive = null;
+  let trail = null;
   for (let k = 0; k < 600 && (alive = o.own.find((u) => u.kind === HELI)); k++) {
+    if (!trail && o.tick >= SMOKE_TICK) {
+      // Framed on the stretch of air it has just flown, then back.
+      const [x, y, z] = alive.position;
+      const view = await lab(page, () => window.__lab.camera());
+      await aim(page, [x - 15, y, z], { distance: 60 }, { onGround: false });
+      const shot = decode(await shoot("smoke"));
+      // It flies east (the encounter's order): the air behind it is west.
+      const a = await css([x, y, z + 1.5]);
+      const b = await css([x - 30, y, z + 1.5]);
+      const pad = 150;
+      const [x0, x1] = [Math.min(a[0], b[0]) - pad, Math.max(a[0], b[0]) + pad];
+      const [y0, y1] = [Math.min(a[1], b[1]) - pad, Math.max(a[1], b[1]) + pad];
+      await writeCrop(
+        shot,
+        ctx.evidencePath("crop-smoke-trail-2x.png"),
+        (x0 + x1) / 2,
+        (y0 + y1) / 2,
+        (x1 - x0) / 2,
+        (y1 - y0) / 2,
+        2,
+      );
+      const effects = await lab(page, () => window.__lab.stats().effects);
+      trail = { smoking: alive.smoking, effects };
+      await lab(page, (v) => window.__lab.setCamera(v), view);
+    }
     await advance(page, 1);
     o = await obs(page);
   }
+  ctx.check(
+    "one hit from death, it publishes that it smokes, and smoke is drawn",
+    trail?.smoking === true && trail.effects.instances > 0,
+    JSON.stringify(trail),
+  );
   ctx.check("the gun jeep shoots the helicopter down", !alive, JSON.stringify(o.own));
   if (alive) return;
   const hit = o.tick;

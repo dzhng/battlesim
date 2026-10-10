@@ -40,6 +40,9 @@ pub struct IdentifiedUnit {
     /// Driving backwards this tick, seen as plainly as its position (the
     /// reverse beeper's cue for a seen enemy vehicle).
     pub reversing: bool,
+    /// It trails smoke (D34): a coarse sign of damage, never its health.
+    #[serde(default)]
+    pub smoking: bool,
     /// Each seen soldier's lean, in `members` order: out past his cover's
     /// edge, where rounds meet him, while he fires. His `members`
     /// position stays where he tucks in.
@@ -449,6 +452,9 @@ pub struct OwnUnit {
     pub deployment: Option<DeploymentState>,
     /// Vehicle health (0 for infantry, whose health is per soldier).
     pub hp: f64,
+    /// It trails smoke (D34), by the same rule an enemy's is published.
+    #[serde(default)]
+    pub smoking: bool,
     /// Health of each living soldier, in `members` order.
     pub member_hp: Vec<f64>,
     /// The squad's suppression tier (P14), from its hidden level by the

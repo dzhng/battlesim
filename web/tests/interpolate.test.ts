@@ -31,6 +31,7 @@ const unit = (id: number, x: number, yaw = 0): OwnUnitView => ({
   mounts: [],
   weaponPoses: [],
   hp: 100,
+  smoking: false,
   memberHp: [],
   suppression: "none",
   concealed: false,

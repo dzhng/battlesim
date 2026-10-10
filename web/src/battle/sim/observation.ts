@@ -130,6 +130,8 @@ export interface OwnUnitView {
   weaponPoses: WeaponPoseView[];
   /** Vehicle health (0 for infantry). */
   hp: number;
+  /** It trails smoke, by the rule an enemy's is published (`IdentifiedView`). */
+  smoking: boolean;
   /** Health of each living soldier, in `members` order. */
   memberHp: number[];
   /** How suppressed the squad is, by the rules' thresholds (the sim owns
@@ -367,6 +369,9 @@ export interface IdentifiedView {
   weaponPoses: WeaponPoseView[];
   /** Driving backwards this tick (a seen vehicle's reverse beeper). */
   reversing: boolean;
+  /** It trails smoke: a coarse sign of damage (an aircraft below half its
+   *  health), never its health. */
+  smoking: boolean;
 }
 
 /** Uncertain evidence: an area, never an exact position, strength or
@@ -1061,6 +1066,7 @@ function decodeFrame(
       mounts: sections.mounts.map((m) => decodeMount(layout, ownMount(m))),
       weaponPoses: poses(sections.weaponPoses, ownPoses),
       hp: f("hp"),
+      smoking: f("smoking") === 1,
       memberHp: sections.memberHp.map((p) => p[0]),
       suppression: layout.suppressionTiers[f("suppression")],
       concealed: f("concealed") === 1,
@@ -1115,6 +1121,7 @@ function decodeFrame(
       memberLeans: leans(sections.memberLeans, seenLeans),
       weaponPoses: poses(sections.weaponPoses, seenPoses),
       reversing: f("reversing") === 1,
+      smoking: f("smoking") === 1,
     }),
   );
   const contacts = groups.contacts.map(

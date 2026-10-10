@@ -1080,6 +1080,45 @@ test("an aircraft flying over the ground raises no dust", () => {
   expect(puffs(drawn(f, 2 * HZ * DT))).toEqual([]);
 });
 
+test("a smoking aircraft trails smoke behind it as it flies, and a sound one none", () => {
+  const half: EffectShooter["half"] = [7, 1.2, 1.6];
+  const speed = 30;
+  /** Smoke drawn after `seconds` of an aircraft flying east at 20 m. */
+  const trail = (smoking: boolean, seconds = 2) => {
+    const f = frame();
+    const last = seconds * HZ;
+    const x = (t: number) => speed * t * DT;
+    run(f, 1, last, (t) =>
+      pub(t, {
+        shooters: [{ ...tank(3, 0), position: [x(t), 0, 20], half, airborne: true, smoking }],
+      }),
+    );
+    return { puffs: puffs(drawn(f, last * DT)), at: x(last) };
+  };
+  expect(trail(false).puffs).toEqual([]);
+  const { puffs: smoke, at } = trail(true);
+  // A thin trail: a few puffs a second, not a column.
+  expect(smoke.length).toBeGreaterThan(4);
+  expect(smoke.length).toBeLessThan(60);
+  // Strung out behind it along its path, up at its height, not left where it started.
+  const xs = smoke.map((i) => i.a[0]);
+  expect(Math.max(...xs)).toBeGreaterThan(at - 6);
+  expect(Math.min(...xs)).toBeLessThan(at - 30);
+  for (const i of smoke) expect(i.a[2]).toBeGreaterThan(15);
+});
+
+test("a hovering smoking aircraft still smokes, by time, not by distance", () => {
+  const f = frame();
+  run(f, 1, 2 * HZ, (t) =>
+    pub(t, {
+      shooters: [
+        { ...tank(3, 0), position: [0, 0, 20], half: [7, 1.2, 1.6], airborne: true, smoking: true },
+      ],
+    }),
+  );
+  expect(puffs(drawn(f, 2)).length).toBeGreaterThan(4);
+});
+
 test("a blast throws up a dirt column and smoke that outlast its fire", () => {
   const f = frame();
   f.note(pub(1));
