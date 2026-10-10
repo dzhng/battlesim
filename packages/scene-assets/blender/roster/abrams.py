@@ -14,8 +14,8 @@ boxes, the GPS doghouse on the right front roof, the CITV on the left, the
 commander under a CROWS on the right and the loader's hatch on the left.
 SEPv3: the auxiliary power unit's armoured box on the left rear deck, CROWS-LP
 and the ammunition data link over the muzzle. Trophy: a radar and launcher
-housing on each turret side over the side stowage, its launcher head on top
-(from the SEPv2 Trophy photos; no licensable photo shows a SEPv3 with it).
+housing high on each rear corner of the bustle, ahead of it a shortened side
+bin, its launcher head on top (from the SEPv2 Trophy photos; no licensable photo shows a SEPv3 with it).
 
 Built to the catalog frame (hull 7.93 x 3.66 x 2.44 m; turret pivot 0.25 m
 ahead of the hull's middle, 1.464 m up, as the side photos show; cannon muzzle
@@ -65,6 +65,10 @@ SIDE_LEAN = 0.04  # how far the flat sides lean in from the foot's top to the ro
 BUSTLE_FOOT = -0.80
 BUSTLE_FLOOR = 0.32
 COMMANDER = (-0.84, -0.62)  # the commander's hatch (turret frame)
+# Trophy's radar housing (left side, turret frame): hung high on the bustle's
+# rear corner, its top at the roof and the launcher over it (photos: SEPv2
+# Trophy side and three-quarter rear).
+TROPHY_AT = (-2.20, 1.58, ROOF - 0.22)
 # The skirts hang flush with the sponsons' sides: the hull's upper half is as
 # wide as their inner faces (the thicker front panels sink into it).
 SKIRT_FACE = SKIRT_Y + 0.035  # their outer face
@@ -295,21 +299,23 @@ def turret_body(v, turret, trophy):
         # The cheek's side face: a bolted armour plate lying on the flat side.
         loc, rot = VP.on_side(1.15, (BUSTLE_FLOOR + ROOF) / 2, side, (1.60, BUSTLE_FLOOR), (1.60 - SIDE_LEAN, ROOF))
         VP.bolted_panel(f"cheek_plate_{s}", loc, (0.90, 0.52, 0.04), m, turret, bolts=(2, 2), rot=rot, bevel=0.015)
-        # Side stowage along the bustle sides, a rail over it.
-        box_y = side * 1.65
-        VP.stowage_box(f"side_bin_{s}", (-1.15, box_y, 0.26), (1.55, 0.22, 0.42), m, turret,
+        # Side stowage along the bustle sides, a rail over it; Trophy's
+        # housing takes the rear corner, so the bin stops short of it.
+        front, rear = -0.375, TROPHY_AT[0] + 0.55 if trophy else -1.925
+        mid, length = (front + rear) / 2, front - rear
+        VP.stowage_box(f"side_bin_{s}", (mid, side * 1.65, 0.26), (length, 0.22, 0.42), m, turret,
                        rot=(0, 0, 0 if side > 0 else math.pi))
-        box(f"side_rail_{s}", (1.6, 0.03, 0.03), (-1.15, side * 1.74, 0.78), m["steel"], turret, lods=NEAR)
+        box(f"side_rail_{s}", (length + 0.05, 0.03, 0.03), (mid, side * 1.74, 0.78), m["steel"], turret, lods=NEAR)
         for j in range(4):
-            box(f"side_rail_post_{s}_{j}", (0.03, 0.03, 0.12), (-1.85 + j * 0.47, side * 1.74, 0.72), m["steel"],
-                turret, lods=FINE)
+            x = rear + 0.075 + j * (length - 0.14) / 3
+            box(f"side_rail_post_{s}_{j}", (0.03, 0.03, 0.12), (x, side * 1.74, 0.72), m["steel"], turret, lods=FINE)
         # Six-tube smoke banks ahead of the side bins, fanned forward and out.
         for row in range(2):
             VP.smoke_discharger_bank(f"smoke_{s}_{row}", (0.22, side * 1.55, 0.42 + row * 0.13), m, turret, count=3,
                                      tube_radius=0.055, tube_length=0.32, elevation=0.35, spread=0.30,
                                      rot=(0, 0, side * 0.55))
         if trophy:
-            trophy_station(v, turret, side, s)
+            trophy_station(v, turret, side, s, TROPHY_AT)
     bustle_rack(v, turret)
 
 
@@ -328,9 +334,9 @@ def commander_hatch(v, turret):
     box("commander_lid_stop", (0.06, 0.30, 0.10), (x - 0.42, y, ROOF + 0.05), m["dark"], turret, lods=NEAR)
 
 
-def trophy_station(v, turret, side, s, at=(-1.45, 1.64, 0.74)):
-    """Trophy on one turret side: the radar housing at `at` (the left side's;
-    over the side bin on the Abrams), its flat panels facing out and forward,
+def trophy_station(v, turret, side, s, at):
+    """Trophy on one turret side: the radar housing at `at` (the left side's),
+    its flat panels facing out and forward,
     and the launcher head on top at its front. Its nodes (`trophy_radar_*`,
     `trophy_launcher_*`) are the part's."""
     m = v.mats
