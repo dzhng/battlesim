@@ -1,6 +1,6 @@
 # 08 — Hull-mount facing for every unit
 
-**Status:** planned. **Depends on:** 03, 07. **Owns:** D8, D28, D42, L4.
+**Status:** done. **Depends on:** 03, 07. **Owns:** D8, D28, D42, L4.
 
 ## Contract
 

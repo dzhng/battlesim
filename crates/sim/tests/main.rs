@@ -33,6 +33,7 @@ mod garrison;
 mod ground;
 mod ground_delivery;
 mod guidance;
+mod hull_guns;
 mod kerbside;
 mod lean;
 mod maps;

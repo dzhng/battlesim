@@ -672,6 +672,10 @@ impl Unit {
         d.u64(self.engagement as u64)
             .u64(self.reach.can_engage as u64)
             .u64(self.reach.needs_closer as u64);
+        // Only a gun fixed in a hull sets it, so other units keep their digests.
+        if let Some(face) = self.reach.face {
+            d.f64(face);
+        }
         d.u64(self.attackers.len() as u64);
         for a in &self.attackers {
             d.u64(a.0 as u64);

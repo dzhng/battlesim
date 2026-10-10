@@ -558,9 +558,18 @@ fn point_mount(unit: &Unit, mount: &mut Mount, spec: &MountSpec, point: V3, turr
     mount.bearing = if spec.turret {
         let err = wrap_angle(desired - mount.bearing);
         mount.bearing + err.clamp(-turret_step, turret_step)
+    } else if hull_fixed(unit, spec) {
+        unit.yaw
     } else {
         desired
     };
+}
+
+/// A gun fixed in its hull (D8): it bears where the body faces, so the body
+/// turns to aim it. A soldier's weapon turns with him, and a mount on a
+/// turret with its turret.
+fn hull_fixed(unit: &Unit, spec: &MountSpec) -> bool {
+    unit.is_vehicle() && !spec.turret && spec.on.is_none()
 }
 
 fn placed_muzzle(position: V3, pivot: V3, muzzle: V3, carried: f64, bearing: f64) -> V3 {
@@ -1230,6 +1239,8 @@ pub struct Reach {
     /// The attack order's target is out of reach of every mount that can hurt
     /// it (the attack pursues, W17).
     pub needs_closer: bool,
+    /// The heading a gun fixed in the hull needs the body to turn to (D8).
+    pub face: Option<f64>,
 }
 
 /// Candidate targeting, assessed before any soldier works a gun this tick.
@@ -1368,6 +1379,8 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
         }
         let ordered = units[i].attack_target();
         let mut can_engage = false;
+        // Where a gun fixed in the hull needs the body to face.
+        let mut face = None;
         let mut leaned: Vec<u32> = Vec::new();
         // Ordered target: some compatible mount can shoot it / none can reach it.
         let (mut ordered_ok, mut ordered_far) = (false, false);
@@ -1560,9 +1573,12 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                         .any(|c| active(c) && c.ready() == Some(k))
                     {
                         ActionReason::Reloading
-                    } else if spec.turret
+                    } else if (spec.turret || hull_fixed(unit, spec))
                         && wrap_angle(bearing_from(unit, r.point) - mount.bearing).abs() > tolerance
                     {
+                        if hull_fixed(unit, spec) {
+                            face.get_or_insert(bearing_from(unit, r.point));
+                        }
                         ActionReason::TurretTraversing
                     } else if mount.support.is_some() {
                         // One missile guided at a time: the next waits, loaded and aimed.
@@ -1633,6 +1649,7 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
         units[i].reach = Reach {
             can_engage,
             needs_closer: ordered_far && !ordered_ok,
+            face,
         };
     }
     shots

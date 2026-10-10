@@ -192,9 +192,12 @@ fn separation(ctx: &MovementContext, units: &[Unit], i: usize) -> V2 {
     push
 }
 
-/// Face the way it flies; hovering, face as ordered.
+/// Face where a gun fixed in its hull must bear (D8), whichever way it flies;
+/// otherwise the way it flies, or hovering, as ordered.
 fn turn(unit: &mut Unit, flight: Flight, velocity: V2, dt: f64) {
-    let wanted = if velocity.length() > HOVER_MPS {
+    let wanted = if let Some(face) = unit.reach.face {
+        face
+    } else if velocity.length() > HOVER_MPS {
         libm::atan2(velocity.y, velocity.x)
     } else if let Some(f) = unit.turn_to {
         f

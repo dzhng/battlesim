@@ -15,6 +15,7 @@ You are implementing helicopters. Read [decisions](decisions.md) first. Its D1�
 - **14:** `movement::air::low_hover` (5.63 m today) and the idle-at-a-truck sink.
 - **05:** contacts carry `z` and `layer` (`ApproximateContact`, the packed contact group, `ContactView`); area fire refuses air contacts (`SideKnowledge::ground_contact`).
 - **07 (rules):** `targets` on weapon rows, read only by `weapons::reaches`; the heard mask spans 48 rows.
+- **08:** `weapons::hull_fixed` and `Reach.face`: hull guns fire only when the body faces the target; aircraft turn to aim while flying, idle tracks pivot, wheels hold fire.
 - **02:** variant D, the keyed disc, was picked at the checkpoint ([result](slices/02-contact-sign-spike.md#result)).
 - **06:** `test_heli` (`fixtures/units/test/aircraft.json`, art by `test_heli.py`) hovers on `/lab/air-hover` (the `air` test map). Rotors turn by the articulation's `rotor` input (tip metres swept) over each rotor's reach; hull fit leaves `rotor_*`/`blade_*` out; culling sweeps the disc and keeps an airframe whose shadow is in view; air hulls raise no dust and roll nothing; `vehicleClass` is `air_<weight>`.
 
@@ -34,7 +35,7 @@ You are implementing helicopters. Read [decisions](decisions.md) first. Its D1�
 - [x] [05 — Contacts carry height](slices/05-contact-height.md)
 - [x] [06 — Test airframe art and rotor pipeline](slices/06-airframe-art.md)
 - [ ] [07 — First browser checkpoint: air-aware weapons](slices/07-first-checkpoint.md)
-- [ ] [08 — Hull-mount facing for every unit](slices/08-hull-mount-facing.md)
+- [x] [08 — Hull-mount facing for every unit](slices/08-hull-mount-facing.md)
 - [ ] [09 — Helicopter missile and rocket rows](slices/09-heli-weapon-rows.md)
 - [ ] [10 — Drawing the fall](slices/10-fall-draw.md)
 - [ ] [11 — Damage smoke trail](slices/11-damage-smoke.md)
