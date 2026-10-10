@@ -593,7 +593,12 @@ async function sheet(args) {
             ...(values.type ? { type: values.type } : {}),
             ...(values.yaw !== undefined ? { yaw: Number(values.yaw) } : {}),
             ...(values.clips
-              ? { clips: { path: repoPath(values.clips), bytes: Array.from(readFileSync(values.clips)) } }
+              ? {
+                  clips: {
+                    path: repoPath(values.clips),
+                    bytes: Array.from(readFileSync(values.clips)),
+                  },
+                }
               : {}),
           },
         ],
