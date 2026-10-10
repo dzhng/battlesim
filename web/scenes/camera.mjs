@@ -338,4 +338,25 @@ export async function run(ctx) {
     paired,
     cost,
   });
+  await page.close();
+
+  // A high-density (Retina) display: the battle is drawn at the window's own
+  // size, one pixel per CSS pixel, and the screen scales it up. The HUD is
+  // the page's, drawn at the display's density.
+  const dense = await ctx.newPage({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 2 });
+  await ctx.openLab(dense);
+  await dense.evaluate(() => window.__lab.frame());
+  const drawn = await dense.evaluate(() => {
+    const canvas = document.querySelector("canvas");
+    return {
+      pixels: [canvas.width, canvas.height],
+      css: [canvas.clientWidth, canvas.clientHeight],
+    };
+  });
+  ctx.check(
+    "on a 2x display the battle draws one pixel per CSS pixel",
+    drawn.pixels.join() === drawn.css.join(),
+    JSON.stringify(drawn),
+  );
+  await dense.close();
 }

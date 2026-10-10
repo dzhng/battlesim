@@ -209,7 +209,6 @@ export function diagnosticsReport(build: Record<string, unknown>): string {
   const span = intervals.reduce((a, b) => a + b, 0);
   const long = longFrames.values;
   const nav = navigator as Navigator & { deviceMemory?: number };
-  const memory = (performance as Performance & { memory?: { usedJSHeapSize: number } }).memory;
   const live: Record<string, unknown> = {};
   for (const [name, read] of sources) {
     try {
@@ -232,7 +231,6 @@ export function diagnosticsReport(build: Record<string, unknown>): string {
         screen: [screen.width, screen.height],
         window: [innerWidth, innerHeight],
         devicePixelRatio,
-        jsHeapMb: memory ? Math.round(memory.usedJSHeapSize / 2 ** 20) : null,
       },
       collecting: enabled,
       frames: enabled && {
