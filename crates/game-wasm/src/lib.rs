@@ -903,17 +903,23 @@ impl PreparedWorld {
     }
 }
 
-#[wasm_bindgen]
+#[wasm_bindgen(inline_js = "export function report_panic(message) {
+  console.error(message);
+  setTimeout(() => {
+    throw new Error(message);
+  });
+}")]
 extern "C" {
-    #[wasm_bindgen(js_namespace = console, js_name = error)]
-    fn console_error(message: &str);
+    fn report_panic(message: &str);
 }
 
 /// A panic names itself before the trap: otherwise the page sees only the
-/// trap, then "recursive use of an object" on every later call.
+/// trap, then "recursive use of an object" on every later call. It is
+/// thrown again, uncaught, on its own turn, so whichever page hosts the
+/// worker hears it as an error (the diagnostics report collects those).
 #[wasm_bindgen(start)]
 pub fn report_panics() {
     std::panic::set_hook(Box::new(|info| {
-        console_error(&format!("simulation panic: {info}"))
+        report_panic(&format!("simulation panic: {info}"))
     }));
 }
