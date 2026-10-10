@@ -64,3 +64,12 @@ the [README](README.md#decisions).
   off the back; the carried Akeron tube looks tan in strong light.
 - **Tooling:** `asset sheet --clips` sheets a loose skinned GLB; `infantry_equipment.py <kit> --receipt`
   writes a kit's receipt once every look is exported.
+
+## 2026-10-10 — slice 11 (publication contract change)
+
+- **A contact's `heard` weapon-row bitmask is published as an exact limb pair, and the weapon-row
+  cap rises from 24 to 32.** `heard` went out as one f32, exact only to 2^24, so rules refused a 25th
+  row; `javelin` and `akeron_mp` make 25. The contacts group gains one field (`heardLo`/`heardHi`,
+  the encoding body ids already use). Digests are unchanged (`heard` was already hashed as a u32).
+  Rejected: one shared top-attack row for both teams, which would make the Akeron a copy of the
+  Javelin and leave no headroom (the helicopter spec adds rows next).
