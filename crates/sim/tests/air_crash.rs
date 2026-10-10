@@ -156,6 +156,23 @@ fn its_crash_fells_the_trees_it_lands_on() {
 }
 
 #[test]
+fn the_side_that_saw_it_go_down_sees_the_trees_it_felled() {
+    // Blue's only unit was the helicopter: with no eyes left on the wood,
+    // blue still saw it come down there, so it knows the trees its crash
+    // felled as it knows its wreck, and no longer plans with them standing.
+    let forest = json!([{ "shape": { "kind": "polygon",
+        "ring": [[120, 140], [420, 140], [420, 260], [120, 260]] } }]);
+    let (b, _, _) = shoot_down(open(json!([]), forest), [300.0, 40.0], json!([]));
+    assert!(b.unit(UnitId(0)).is_some_and(|u| !u.alive()));
+    let (at, _, _) = wreck(&b);
+    let felled: Vec<[f64; 2]> = (b.observe(Side::Blue).fallen_bodies.iter())
+        .filter(|f| (f.at[0] - at.x).hypot(f.at[1] - at.y) < 9.0)
+        .map(|f| f.at)
+        .collect();
+    assert!(!felled.is_empty(), "blue sees no tree felled by its wreck at {at:?}");
+}
+
+#[test]
 fn it_glances_off_a_building_it_falls_against() {
     // Falling at 20 m toward a wall 24 m tall whose face is 10 m ahead.
     let world = crate::common::flat(

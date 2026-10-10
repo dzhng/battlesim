@@ -2017,9 +2017,22 @@ impl Battle {
                 kind: weapon,
             },
         ));
+        let fallen_before: BTreeSet<PropId> = self.fallen.keys().copied().collect();
         self.consequences(outcome);
         self.ground
             .burst(&self.world, at, def.blast_radius_m, &self.rules.ground);
+        // The sides that saw it go down see it come down: the trees its
+        // crash felled fall in their sight, as its wreck lands there.
+        let felled: Vec<PropId> = (self.fallen.keys())
+            .filter(|id| !fallen_before.contains(id))
+            .copied()
+            .collect();
+        for &(side, _) in &crash.knowing {
+            for &prop in &felled {
+                self.sides[side.index()].saw_fallen(prop);
+                self.knowledge[side.index()].learn_fallen(prop);
+            }
+        }
         let unit = &self.units[crash.unit.0 as usize];
         let half = unit.hull.expect("an airframe's hull");
         let kind = (unit.unit_type(&self.rules).hull())
