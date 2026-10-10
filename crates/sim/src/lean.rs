@@ -162,7 +162,7 @@ pub fn hulls<'a>(units: impl IntoIterator<Item = &'a Unit>, rules: &Rules) -> Ve
         .filter_map(|u| {
             let h = u.hull?;
             Some(Hull {
-                rect: u.hull_box()?,
+                rect: u.ground_footprint()?,
                 base: u.position.z,
                 top: u.position.z + 2.0 * h.z,
                 unit: u.id,

@@ -434,7 +434,7 @@ pub(crate) fn advance(
 ) -> Vec<Shove> {
     let mut footprints: Vec<Option<Obb2>> = units
         .iter()
-        .map(|u| u.hull_box().filter(|_| u.alive()))
+        .map(|u| u.ground_footprint().filter(|_| u.alive()))
         .collect();
     let field = take_cover::Field::gather(ctx, units);
     completed(crate::battle::TickPhase::Movement);
@@ -442,6 +442,9 @@ pub(crate) fn advance(
         // The destroyed stay put; a wreck is an obstacle prop, not traffic.
         if !unit.alive() {
             planner.cancel(unit.id);
+            continue;
+        }
+        if unit.airborne() {
             continue;
         }
         let s = unit.side.index();
@@ -467,9 +470,14 @@ pub(crate) fn advance(
         if !units[i].alive() {
             continue;
         }
+        if units[i].airborne() {
+            // Aircraft fly in `air`, from slice 03 of the helicopter plan;
+            // until then they hold where they are.
+            continue;
+        }
         if units[i].is_vehicle() {
             step_vehicle(ctx, units, i, sides, &mut shoves, &footprints);
-            footprints[i] = units[i].hull_box().filter(|_| units[i].alive());
+            footprints[i] = units[i].ground_footprint().filter(|_| units[i].alive());
             soldier::shove(ctx, units, i, &mut crowd);
         } else {
             let unit = &mut units[i];
@@ -574,7 +582,7 @@ fn request_route(
             // pushed through.
             let swerve = unit.hull.map_or(0.0, |h| h.x)
                 + unit
-                    .mobility
+                    .ground()
                     .drive
                     .filter(|d| !d.tracked)
                     .map_or(0.0, |d| d.radius_m);
@@ -588,8 +596,8 @@ fn request_route(
                     )
                     && {
                         let grid = side.grid(ctx.world, ctx.authored);
-                        !grid.route_fits(from, route, &unit.mobility)
-                            || grid.route_pushes(from, route, &unit.mobility, swerve)
+                        !grid.route_fits(from, route, unit.ground())
+                            || grid.route_pushes(from, route, unit.ground(), swerve)
                     })
         }
     };
@@ -604,7 +612,7 @@ fn request_route(
     unit.state = MoveState::Planning;
     let from = {
         let grid = side.grid(ctx.world, ctx.authored);
-        route_start(unit, |p| grid.placement_fits(p, &unit.mobility))
+        route_start(unit, |p| grid.placement_fits(p, unit.ground()))
     };
     planner.submit(
         unit.id,
@@ -612,7 +620,7 @@ fn request_route(
             side: unit.side,
             from,
             goal,
-            mobility: unit.mobility,
+            mobility: *unit.ground(),
             policy,
             detour,
             kept,
@@ -685,7 +693,7 @@ fn plan_routes(
 /// forward one ([`drive::lead_in`]). Without room for it, the vehicle keeps
 /// the route it has.
 fn line_up(unit: &mut Unit, grid: &NavGrid) {
-    let Some(drive) = unit.mobility.drive.filter(|d| !d.tracked) else {
+    let Some(drive) = unit.ground().drive.filter(|d| !d.tracked) else {
         return;
     };
     let Some(order) = unit.orders.front().and_then(|o| o.movement()) else {
@@ -710,7 +718,7 @@ fn line_up(unit: &mut Unit, grid: &NavGrid) {
     let lead = drive::lead_in(end, heading, &drive, unit.hull.map_or(0.0, |h| h.x));
     let mut lined = route[..route.len() - 1].to_vec();
     lined.extend([lead, end]);
-    if grid.placement_fits(lead, &unit.mobility) && grid.route_fits(here, &lined, &unit.mobility) {
+    if grid.placement_fits(lead, unit.ground()) && grid.route_fits(here, &lined, unit.ground()) {
         unit.route = Some(lined);
     }
 }
@@ -868,7 +876,7 @@ fn arrive(unit: &mut Unit) {
         // at rest; wheels drove in along it as far as they could (`line_up`).
         match m.facing {
             Some(f) if !unit.is_vehicle() => unit.yaw = f,
-            Some(f) if unit.mobility.drive.is_some_and(|d| d.tracked) => unit.turn_to = Some(f),
+            Some(f) if unit.ground().drive.is_some_and(|d| d.tracked) => unit.turn_to = Some(f),
             _ => {}
         }
         unit.orders.pop_front();
@@ -903,7 +911,10 @@ fn step_vehicle(
             let unit = &units[i];
             let here = unit.position.xy();
             if units.iter().enumerate().any(|(j, o)| {
-                j != i && o.is_vehicle() && o.alive() && vehicle_conflict(unit, here, unit.yaw, o)
+                j != i
+                    && o.ground_footprint().is_some()
+                    && o.alive()
+                    && vehicle_conflict(unit, here, unit.yaw, o)
             }) {
                 units[i].yaw = before;
                 units[i].turn_to = None;
@@ -920,7 +931,7 @@ fn step_vehicle(
     let here = unit.position.xy();
     let surface = ctx.world.surface_at(here.x, here.y);
     let speed = surface.map_or(0.0, |s| {
-        unit.mobility.speed(s.road_factor, s.forest, s.slope_deg)
+        unit.ground().speed(s.road_factor, s.forest, s.slope_deg)
     });
     // Craters under the hull slow it slightly; never to a stop (Q8).
     let speed = speed * ctx.ground.vehicle_speed(here.x, here.y, &ctx.rules.ground);
@@ -934,7 +945,7 @@ fn step_vehicle(
         yaw: unit.yaw,
         half,
     };
-    let push = unit.mobility.push;
+    let push = unit.ground().push;
     // Box against box (L8): a body it cannot shove stops it; the bodies it
     // can shove slow it by the heaviest's class ratio and slide aside (Q2).
     let hull_at = |center: V2, yaw: f64| Obb2 { center, yaw, half };
@@ -966,7 +977,7 @@ fn step_vehicle(
     let mut blocker = motion.blocker.or_else(|| {
         units.iter().enumerate().find_map(|(j, other)| {
             (j != i
-                && other.is_vehicle()
+                && other.ground_footprint().is_some()
                 && other.alive()
                 && vehicle_conflict(unit, next, motion.yaw, other))
             .then_some(other.id)
@@ -978,7 +989,7 @@ fn step_vehicle(
     // deadlocking nose-to-nose: against a body, only when backing off by
     // what its corners swing out past its nose would free the turn.
     let back = drive::give_space(unit, speed, dt);
-    if unit.mobility.drive.is_some_and(|d| d.tracked)
+    if unit.ground().drive.is_some_and(|d| d.tracked)
         && motion.yaw != unit.yaw
         && (blocker.is_some()
             || (motion.step == 0.0
@@ -990,7 +1001,7 @@ fn step_vehicle(
         let behind = push::meet(ctx.world, &hull_at(at, back.yaw), &current, push);
         let traffic = units.iter().enumerate().any(|(j, other)| {
             j != i
-                && other.is_vehicle()
+                && other.ground_footprint().is_some()
                 && other.alive()
                 && vehicle_conflict(unit, at, back.yaw, other)
         });
@@ -1085,21 +1096,21 @@ fn step_vehicle(
 /// A rejected step may still let tracks pivot, but only into a clear pose.
 fn stationary_yaw(world: &WorldGeometry, units: &[Unit], i: usize, yaw: f64) -> f64 {
     let unit = &units[i];
-    if yaw == unit.yaw || !unit.mobility.drive.is_some_and(|d| d.tracked) {
+    if yaw == unit.yaw || !unit.ground().drive.is_some_and(|d| d.tracked) {
         return unit.yaw;
     }
-    let here = unit.hull_box().expect("a vehicle has a hull");
+    let here = unit.ground_footprint().expect("a vehicle has a hull");
     let turned = Obb2 { yaw, ..here };
-    let met = push::meet(world, &turned, &here, unit.mobility.push);
+    let met = push::meet(world, &turned, &here, unit.ground().push);
     // A stationary pivot checks true hulls; translation's traffic buffer
     // would forbid using the clearance reserved by the stopped approach.
     let occupied = met.solid.is_some()
         || !met.shoved.is_empty()
         || units.iter().enumerate().any(|(j, other)| {
             j != i
-                && other.is_vehicle()
+                && other.ground_footprint().is_some()
                 && other.alive()
-                && turned.overlaps(&other.hull_box().expect("a vehicle has a hull"))
+                && turned.overlaps(&other.ground_footprint().expect("a vehicle has a hull"))
         });
     if occupied {
         unit.yaw
@@ -1113,13 +1124,13 @@ fn stationary_yaw(world: &WorldGeometry, units: &[Unit], i: usize, yaw: f64) -> 
 /// past its nose (half its diagonal less half its length). Squeezed side
 /// to side, backing frees nothing, and it does not back away.
 fn backing_frees_pivot(world: &WorldGeometry, unit: &Unit, away: V2, yaw: f64) -> bool {
-    let here = unit.hull_box().expect("a vehicle has a hull");
+    let here = unit.ground_footprint().expect("a vehicle has a hull");
     let backed = Obb2 {
         center: here.center + away * (here.half.length() - here.half.x),
         ..here
     };
     let turned = Obb2 { yaw, ..backed };
-    push::meet(world, &turned, &backed, unit.mobility.push)
+    push::meet(world, &turned, &backed, unit.ground().push)
         .solid
         .is_none()
 }
@@ -1127,13 +1138,13 @@ fn backing_frees_pivot(world: &WorldGeometry, unit: &Unit, away: V2, yaw: f64) -
 /// Would this vehicle, moved to `next`, run into the vehicle `other`? Only a move that
 /// makes an existing overlap no worse is allowed, so touching units can part.
 fn vehicle_conflict(unit: &Unit, next: V2, yaw: f64, other: &Unit) -> bool {
-    let before = unit.hull_box().expect("a vehicle has a hull");
+    let before = unit.ground_footprint().expect("a vehicle has a hull");
     let after = Obb2 {
         center: next,
         yaw,
         ..before
     };
-    let other = other.hull_box().expect("a vehicle has a hull");
+    let other = other.ground_footprint().expect("a vehicle has a hull");
     hull_conflict(before, after, other)
 }
 

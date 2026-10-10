@@ -179,7 +179,7 @@ Add one entry. A mechanic comes from the body's columns, so a new obstacle needs
 
 ## Surface speeds
 
-Every mover states its own two top speeds in its `mobility` row, in km/h: `offroad_kmh` on open ground and `road_kmh` on a full road (validated against its off-road speed and the catalog's limits). `game.json`'s `surfaces` table has one row per surface kind a map may pave (`road`, `country_road`, `dirt_track`, and `paving`, hard ground that is no way through: a yard, a court). A row's `speed_factor` scales each unit type's own road speed on that surface, never below its off-road speed: 1 is a full road, 0 is no road at all. A new surface kind is a new row plus its variant in `contract::map::SurfaceKind`.
+Every mover states its own two top speeds in its `mobility` row, in km/h: `offroad_kmh` on open ground and `road_kmh` on a full road (validated against its off-road speed and the catalog's limits). An aircraft (`"air"`) states one `cruise_kmh` instead, with its turn and climb rates; the heights every aircraft flies at are one rule, `game.json`'s `air` section. `game.json`'s `surfaces` table has one row per surface kind a map may pave (`road`, `country_road`, `dirt_track`, and `paving`, hard ground that is no way through: a yard, a court). A row's `speed_factor` scales each unit type's own road speed on that surface, never below its off-road speed: 1 is a full road, 0 is no road at all. A new surface kind is a new row plus its variant in `contract::map::SurfaceKind`.
 
 A paved area's authored kind also selects its appearance. A map names a rural road `country_road` and a town street `road`; the renderer does not infer a different kind from the other surfaces present. The biome owns a country road's local appearance through built ground.
 

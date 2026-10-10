@@ -48,4 +48,7 @@ Audio source credits, licenses and pinned hashes live in
 its source and exact frame crop there. Preview-quality downloads and designed Foley
 are labeled rather than passed off as lossless live weapon recordings.
 
-Outside this folder, the PBR, PMREM, DFG lookup and AgX shader code in `packages/battle-renderer/src/shaders/` is derived from three.js (MIT); its licence is `LICENSE.three` beside it.
+Outside this folder, the wordmark's face `web/src/fonts/barlow-condensed-500-latin.woff2`
+is Barlow Condensed Medium's Latin subset as Google Fonts serves it
+(<https://fonts.google.com/specimen/Barlow+Condensed>), under the SIL Open Font
+License 1.1; its licence is `OFL.txt` beside it. The PBR, PMREM, DFG lookup and AgX shader code in `packages/battle-renderer/src/shaders/` is derived from three.js (MIT); its licence is `LICENSE.three` beside it.

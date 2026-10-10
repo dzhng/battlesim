@@ -329,6 +329,17 @@ impl<'a> Planner<'a> {
                     continue;
                 };
                 let t = rules.catalog.get(kind);
+                let Some(mobility) = crate::units::ground_mobility(t, rules) else {
+                    problems.push(diagnostic(
+                        Code::InvalidRecipe,
+                        feature,
+                        format!(
+                            "{:?} is an aircraft: encounters place ground units",
+                            row.kind
+                        ),
+                    ));
+                    continue;
+                };
                 if row.post == Post::Garrison && t.hull().is_some() {
                     problems.push(diagnostic(
                         Code::InvalidRecipe,
@@ -345,16 +356,22 @@ impl<'a> Planner<'a> {
                     index,
                     kind,
                     post: row.post,
-                    mobility: crate::units::mobility(t, rules),
+                    mobility,
                 });
             }
         }
-        let pace = rules.catalog.index(&recipe.deployment.pace);
+        let pace = rules
+            .catalog
+            .index(&recipe.deployment.pace)
+            .and_then(|pace| crate::units::ground_mobility(rules.catalog.get(pace), rules));
         if pace.is_none() {
             problems.push(diagnostic(
                 Code::InvalidRecipe,
                 Some("deployment.pace".to_string()),
-                format!("no unit type {:?} in the catalog", recipe.deployment.pace),
+                format!(
+                    "no ground unit type {:?} in the catalog",
+                    recipe.deployment.pace
+                ),
             ));
         }
         match pace {
@@ -364,7 +381,7 @@ impl<'a> Planner<'a> {
                 recipe,
                 seed,
                 rows,
-                pace: crate::units::mobility(rules.catalog.get(pace), rules),
+                pace,
                 attempts: 0,
             }),
             _ => Err(problems),

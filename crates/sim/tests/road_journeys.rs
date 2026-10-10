@@ -330,9 +330,9 @@ fn head_on(map: Value) -> u64 {
         assert!(
             !b.unit(UnitId(0))
                 .unwrap()
-                .hull_box()
+                .ground_footprint()
                 .unwrap()
-                .overlaps(&b.unit(UnitId(1)).unwrap().hull_box().unwrap()),
+                .overlaps(&b.unit(UnitId(1)).unwrap().ground_footprint().unwrap()),
             "opposing vehicles keep their hulls separate at tick {}",
             b.tick()
         );
@@ -411,10 +411,10 @@ fn two_columns_meeting_on_a_narrow_track_all_get_past() {
     for _ in 0..400 * hz {
         b.step();
         for i in 0..4 {
-            let hull = b.unit(UnitId(i)).unwrap().hull_box().unwrap();
+            let hull = b.unit(UnitId(i)).unwrap().ground_footprint().unwrap();
             for j in i + 1..4 {
                 assert!(
-                    !hull.overlaps(&b.unit(UnitId(j)).unwrap().hull_box().unwrap()),
+                    !hull.overlaps(&b.unit(UnitId(j)).unwrap().ground_footprint().unwrap()),
                     "opposing columns keep hulls separate at tick {}",
                     b.tick()
                 );
@@ -733,7 +733,7 @@ fn a_truck_moves_over_round_a_car_abandoned_in_its_lane_wherever_it_stands() {
         .indices()
         .find(|u| rules.catalog.id(*u) == "test_supply")
         .unwrap();
-    let m = sim::units::mobility(rules.catalog.get(supply), rules);
+    let m = sim::units::ground_mobility(rules.catalog.get(supply), rules).unwrap();
     let car = |at: [f64; 2], yaw: f64| json!({ "kind": "parked_car", "center": at, "yaw": yaw, "half_extents": [2.1, 0.9, 0.75] });
     for (turn, lift) in [
         (0.0, 0.0),

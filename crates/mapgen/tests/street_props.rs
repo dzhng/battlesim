@@ -290,7 +290,7 @@ fn vehicles(rules: &Rules) -> Vec<(String, Mobility)> {
         .map(|unit| {
             (
                 catalog.id(unit).to_string(),
-                sim::units::mobility(catalog.get(unit), rules),
+                sim::units::ground_mobility(catalog.get(unit), rules).unwrap(),
             )
         })
         .collect();
@@ -2623,7 +2623,7 @@ fn routes_survive_the_furniture_on_every_type_and_size_of_map() {
         .filter(|unit| unit.hull().is_none())
         .max_by_key(|unit| unit.squad_size())
         .unwrap();
-    let on_foot = sim::units::mobility(squad, &rules);
+    let on_foot = sim::units::ground_mobility(squad, &rules).unwrap();
     let hull_way = mapgen::street_props::hull_way(&rules.catalog, &presets);
     let cells: Vec<(MapType, MapSize)> = MapType::ALL
         .into_iter()

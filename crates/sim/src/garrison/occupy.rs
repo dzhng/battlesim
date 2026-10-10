@@ -330,7 +330,7 @@ pub(crate) fn occupy(
                 if !crate::arrangement::standing_room(
                     ctx.world,
                     entry.at,
-                    u.mobility.half_width_m,
+                    u.ground().half_width_m,
                     &super::solid,
                 ) {
                     continue;
@@ -340,7 +340,7 @@ pub(crate) fn occupy(
                     Leg {
                         from,
                         goal: entry.at,
-                        m: &u.mobility,
+                        m: u.ground(),
                         policy: RoutePolicy::Shortest,
                         avoid: &[],
                     },
@@ -546,7 +546,7 @@ fn gather(
             let u = &origins[id.0 as usize];
             let point = grid.destination_point(
                 point,
-                &u.mobility,
+                u.ground(),
                 u.hull.map(|h| crate::navigation::Parking {
                     half: h.xy(),
                     facing: None,
@@ -554,12 +554,12 @@ fn gather(
                 u.position.xy(),
                 &pockets,
             )?;
-            if (point - entry.at).dot(outward) < u.mobility.half_width_m {
+            if (point - entry.at).dot(outward) < u.ground().half_width_m {
                 return None;
             }
             if let Some(c) = candidate {
                 let radius = member(ctx, u).radius
-                    + origins[c.unit.0 as usize].mobility.half_width_m
+                    + origins[c.unit.0 as usize].ground().half_width_m
                     + ctx.rules.formation.spacing_m;
                 let mut left = 0.0;
                 for w in c.route.windows(2).rev() {

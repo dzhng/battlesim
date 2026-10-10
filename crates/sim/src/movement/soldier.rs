@@ -178,7 +178,7 @@ pub struct Threat {
 impl Threat {
     /// The threat a moving vehicle poses, or `None` for one standing still.
     pub fn of(ctx: &MovementContext, unit: &Unit) -> Option<Threat> {
-        let hull = unit.hull_box()?;
+        let hull = unit.ground_footprint()?;
         let route = unit.route.as_ref().filter(|r| !r.is_empty())?;
         if unit.halted() || !unit.may_translate() {
             return None;
@@ -725,7 +725,7 @@ pub(super) fn step_squad(
             .map_or(0.0, |t| t.move_penalty);
     let personal = ctx.rules.infantry_movement.personal_space_m;
     let every = (REJOIN_EVERY_S * ctx.rules.tick_hz as f64) as u64;
-    let (unit_id, mobility) = (unit.id.0, unit.mobility);
+    let (unit_id, mobility) = (unit.id.0, *unit.ground());
     let mut arrived = true;
     for k in 0..unit.members.len() {
         if !unit.members[k].alive() {
@@ -1023,7 +1023,7 @@ fn keep_apart(
 /// covers out through its nearest side, unhurt, and out of any solid that
 /// leaves him in (Q23): vehicles never stop for soldiers.
 pub(super) fn shove(ctx: &MovementContext, units: &mut [Unit], vehicle: usize, crowd: &mut Crowd) {
-    let Some(hull) = units[vehicle].hull_box() else {
+    let Some(hull) = units[vehicle].ground_footprint() else {
         return;
     };
     let r = ctx.rules.physics.soldier_radius_m;

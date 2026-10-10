@@ -171,13 +171,26 @@ pub struct Hull {
     pub wreck: String,
 }
 
-/// No mover's top speed may exceed this (light wheeled vehicles do 110).
+/// No ground mover's top speed may exceed this (light wheeled vehicles do 110).
 pub const MAX_SPEED_KMH: f64 = 130.0;
 
-/// How a unit moves (Q29, Q30). Open to new variants (rotor, air). Every
-/// mover has its own two top speeds, in km/h: `offroad_kmh` on open ground
-/// and `road_kmh` on a full road. A surface kind's `speed_factor` scales the
-/// road speed, never below the off-road one (`Rules::surfaces`).
+/// No aircraft's cruise may exceed this (attack helicopters cruise at 240).
+pub const MAX_AIR_SPEED_KMH: f64 = 320.0;
+
+/// The height band a unit occupies, which decides what can engage it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AltitudeLayer {
+    Ground,
+    /// Helicopters: below every building's obstacle height plus clearance.
+    LowAir,
+}
+
+/// How a unit moves (Q29, Q30). A ground mover has its own two top speeds,
+/// in km/h: `offroad_kmh` on open ground and `road_kmh` on a full road. A
+/// surface kind's `speed_factor` scales the road speed, never below the
+/// off-road one (`Rules::surfaces`). An aircraft ignores the ground and
+/// cruises at one speed, at the heights the rules' `air` section sets.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case", deny_unknown_fields)]
 pub enum Mobility {
@@ -201,10 +214,24 @@ pub enum Mobility {
         turning_radius_m: f64,
         reverse_fraction: f64,
     },
+    /// Flies in the low-air layer and turns on the spot when hovering.
+    Air {
+        cruise_kmh: f64,
+        turn_deg_s: f64,
+        /// How fast it climbs or sinks toward its target height.
+        climb_mps: f64,
+    },
 }
 
 impl Mobility {
-    /// `(offroad_kmh, road_kmh)`.
+    pub fn layer(&self) -> AltitudeLayer {
+        match self {
+            Mobility::Air { .. } => AltitudeLayer::LowAir,
+            _ => AltitudeLayer::Ground,
+        }
+    }
+
+    /// `(offroad_kmh, road_kmh)`; an aircraft's cruise is both.
     pub fn speeds_kmh(&self) -> (f64, f64) {
         match *self {
             Mobility::Foot {
@@ -221,6 +248,7 @@ impl Mobility {
                 road_kmh,
                 ..
             } => (offroad_kmh, road_kmh),
+            Mobility::Air { cruise_kmh, .. } => (cruise_kmh, cruise_kmh),
         }
     }
 
@@ -1484,11 +1512,23 @@ fn check(
 fn ranges(t: &UnitType) -> Option<&'static str> {
     let s = t.sensors.sight_shape;
     let (offroad_kmh, road_kmh) = t.mobility.speeds_kmh();
-    if !(offroad_kmh > 0.0 && road_kmh >= offroad_kmh && road_kmh <= MAX_SPEED_KMH) {
+    if let Mobility::Air {
+        cruise_kmh,
+        turn_deg_s,
+        climb_mps,
+    } = t.mobility
+    {
+        if !(cruise_kmh > 0.0 && cruise_kmh <= MAX_AIR_SPEED_KMH) {
+            return Some("mobility: cruise_kmh must lie in (0, 320]");
+        }
+        if !positive(turn_deg_s) || !positive(climb_mps) {
+            return Some("mobility: an aircraft's turn_deg_s and climb_mps must be positive");
+        }
+    } else if !(offroad_kmh > 0.0 && road_kmh >= offroad_kmh && road_kmh <= MAX_SPEED_KMH) {
         return Some("mobility: speeds must satisfy 0 < offroad_kmh <= road_kmh <= 130");
     }
     let bad = match t.mobility {
-        Mobility::Foot { .. } => None,
+        Mobility::Foot { .. } | Mobility::Air { .. } => None,
         Mobility::Tracked {
             turn_deg_s,
             reverse_fraction,

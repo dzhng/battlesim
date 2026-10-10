@@ -1,6 +1,6 @@
 # 01 — An airborne hull
 
-**Status:** planned. **Depends on:** nothing. **Owns:** L1, L6, L7, D17 (concealment), D20, D37.
+**Status:** done. **Depends on:** nothing. **Owns:** L1, L6, L7, D17 (concealment), D20, D37.
 
 ## Contract
 

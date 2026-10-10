@@ -84,7 +84,7 @@ fn carry(
     let others = || units.iter().filter(|o| o.id != unit.id && o.alive());
     let radius = unit.footprint_radius(ctx.rules.physics.soldier_radius_m);
     let mut stop = reach;
-    for other in others().filter(|o| o.is_vehicle() && o.orders.is_empty()) {
+    for other in others().filter(|o| o.ground_footprint().is_some() && o.orders.is_empty()) {
         let c = other.position.xy();
         let near =
             radius + other.footprint_radius(ctx.rules.physics.soldier_radius_m) + TRAFFIC_MARGIN_M;
@@ -130,7 +130,7 @@ fn carry(
             stop = stop.max(met + reach);
         }
     }
-    if let Some(hull) = unit.hull_box() {
+    if let Some(hull) = unit.ground_footprint() {
         // Navigation proves standing clearance, not steering. Rehearse each
         // bend even when terrain, rather than a prop, constrains its turn.
         for (k, w) in way.windows(3).enumerate() {
@@ -184,10 +184,10 @@ fn carry(
     let mut tries = (0..=reach as usize)
         .map(|n| stop + n as f64)
         .take_while(|e| e + 1.0 < left[0]);
-    let hulls: Vec<Obb2> = others().filter_map(|o| o.hull_box()).collect();
+    let hulls: Vec<Obb2> = others().filter_map(|o| o.ground_footprint()).collect();
     // Each body's place, its heading, and the first waypoint after it.
     let mut places = Vec::new();
-    if let Some(hull) = unit.hull_box() {
+    if let Some(hull) = unit.ground_footprint() {
         let travel = (way[1] - way[0]).normalized();
         let backwards = v2(libm::cos(unit.yaw), libm::sin(unit.yaw)).dot(travel) < 0.0;
         places.extend(tries.find_map(|e| {
@@ -488,12 +488,12 @@ pub(crate) fn certify_orders(
                 if !unit.orders.is_empty() || unit.turn_to.is_some() {
                     continue;
                 }
-                let fits = unit.hull_box().is_none_or(|h| {
+                let fits = unit.ground_footprint().is_none_or(|h| {
                     h.contains(slot.point.unwrap(), 0.0)
                         && units.iter().all(|other| {
                             other.id == unit.id
                                 || !other.alive()
-                                || other.hull_box().is_none_or(|o| !h.overlaps(&o))
+                                || other.ground_footprint().is_none_or(|o| !h.overlaps(&o))
                         })
                         && world.props_near(h.center, h.half.length()).iter().all(|p| {
                             !p.blocks(contract::map::MoverClass::Vehicle)
