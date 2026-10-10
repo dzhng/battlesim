@@ -311,7 +311,7 @@ export function MainMenu() {
     );
   return (
     <>
-      <main className="menu" inert={loading}>
+      <main className="menu" data-open={page ?? undefined} inert={loading}>
         <LoadingTasks report={report}>
           <MenuBackdrop plate={plate} shown={shown.promise} />
         </LoadingTasks>
