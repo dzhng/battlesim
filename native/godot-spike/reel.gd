@@ -52,6 +52,8 @@ var unit_nodes: Array[Node3D] = []
 var fog_rendered_cells: Dictionary = {}
 var fog_nodes: Dictionary = {}
 var fog_cell_nodes: Dictionary = {}
+var native_asset_cache: Dictionary = {}
+var native_asset_instances := {"street_tree": 0, "parked_car": 0, "grass": 0}
 
 func _ready() -> void:
 	startup_started_usec = Time.get_ticks_usec()
@@ -82,10 +84,12 @@ func _exit_after_ready() -> void:
 	print(JSON.stringify({
 		"map_geometry": map_geometry_counts,
 		"semantic_scenes": semantic_results.size(),
+		"native_asset_instances": native_asset_instances,
 		"authored_asset_loaded": authored_asset_loaded,
 		"authored_building_count": authored_building_count,
 		"authored_map_scene_count": authored_map_scene_count,
 		"authored_unresolved_templates": authored_unresolved_templates,
+		"native_asset_instances": native_asset_instances,
 		"capture_scene_count": capture_results.size(),
 		"capture_layout_valid": capture_layout_valid,
 		"capture_publication_words": capture_word_count,
@@ -249,6 +253,7 @@ func _build_map_geometry() -> void:
 		var building_transforms: Array[Transform3D] = []
 		var prop_transforms: Array[Transform3D] = []
 		var tree_transforms: Array[Transform3D] = []
+		var authored_props: Array[Node3D] = []
 		var render_centers := _map_render_centers(map_name)
 		var size: Array = map.get("size", [100.0, 100.0])
 		var ground := MeshInstance3D.new()
@@ -263,6 +268,7 @@ func _build_map_geometry() -> void:
 		holder.add_child(ground)
 		if String(map.get("regional_family", "")) == "china":
 			_add_field_strips(holder, Vector2(float(size[0]), float(size[1])))
+			_add_native_grass(holder, render_centers)
 		counts.terrain = 1
 		for surface in map.get("surfaces", []):
 			if typeof(surface) != TYPE_DICTIONARY or typeof(surface.get("shape")) != TYPE_DICTIONARY:
@@ -340,7 +346,14 @@ func _build_map_geometry() -> void:
 			var half: Array = prop.get("half_extents", [1.0, 1.0, 0.5])
 			var prop_position := Vector2(float(center[0]), float(center[1]))
 			if _near_render_center(prop_position, render_centers):
-				if String(prop.get("kind", "")) == "street_tree":
+				var prop_kind := String(prop.get("kind", ""))
+				var authored_prop := _instantiate_native_prop(prop_kind)
+				if authored_prop != null and (prop_kind == "street_tree" or prop_kind == "parked_car") and native_asset_instances.get(prop_kind, 0) < (256 if prop_kind == "street_tree" else 128):
+					authored_prop.position = Vector3(prop_position.x, float(prop.get("base_z", 0.0) if prop.get("base_z") != null else 0.0), prop_position.y)
+					authored_prop.rotation.y = float(prop.get("yaw", 0.0))
+					authored_props.append(authored_prop)
+					native_asset_instances[prop_kind] = int(native_asset_instances.get(prop_kind, 0)) + 1
+				elif prop_kind == "street_tree":
 					var tree_basis := Basis(Vector3.UP, float(prop.get("yaw", 0.0))).scaled(Vector3(1.4, 1.0, 1.4))
 					tree_transforms.append(Transform3D(tree_basis, Vector3(prop_position.x, 2.5, prop_position.y)))
 				else:
@@ -349,6 +362,8 @@ func _build_map_geometry() -> void:
 			counts.props += 1
 		_add_box_batch(holder, prop_transforms, Color("7d6a50"), 0.55)
 		_add_tree_batch(holder, tree_transforms)
+		for authored_prop in authored_props:
+			holder.add_child(authored_prop)
 		counts["rendered_roads"] = road_transforms.size()
 		counts["rendered_buildings"] = building_transforms.size()
 		counts["rendered_props"] = prop_transforms.size()
@@ -357,6 +372,28 @@ func _build_map_geometry() -> void:
 		counts["prop_limit"] = prop_limit
 		counts["road_limit"] = road_limit
 		map_geometry_counts[map_name] = counts
+
+func _instantiate_native_prop(kind: String) -> Node3D:
+	var relative := ""
+	if kind == "street_tree":
+		relative = "assets/source/trees/tree_broadleaf.glb"
+	elif kind == "parked_car":
+		relative = "assets/source/street/parked_car.glb"
+	else:
+		return null
+	var scene: PackedScene = native_asset_cache.get(relative)
+	if scene == null:
+		var path := _native_asset_root().path_join(relative)
+		var loaded = load(path)
+		if not loaded is PackedScene:
+			return null
+		scene = loaded
+		native_asset_cache[relative] = scene
+	return scene.instantiate() as Node3D
+
+func _native_asset_root() -> String:
+	var configured := OS.get_environment("GODOT_NATIVE_ASSET_ROOT")
+	return _resolve_path(configured) if not configured.is_empty() else ProjectSettings.globalize_path("res://../../")
 
 func _map_limit(environment_name: String) -> int:
 	var value := OS.get_environment(environment_name)
@@ -441,6 +478,28 @@ func _add_field_strips(holder: Node3D, size: Vector2) -> void:
 		var basis := Basis.IDENTITY.scaled(Vector3(size.x, 0.025, 6.0))
 		strips.append(Transform3D(basis, position))
 	_add_box_batch(holder, strips, Color("5d6b4f"), 1.0)
+
+func _add_native_grass(holder: Node3D, centers: Array) -> void:
+	var relative := "assets/source/grass/grass_meadow.glb"
+	var scene: PackedScene = native_asset_cache.get(relative)
+	if scene == null:
+		var loaded = load(_native_asset_root().path_join(relative))
+		if not loaded is PackedScene:
+			return
+		scene = loaded
+		native_asset_cache[relative] = scene
+	var added := 0
+	for center in centers:
+		for offset in [Vector2(-90, -60), Vector2(-30, -30), Vector2(30, 20), Vector2(90, 60)]:
+			if added >= 128:
+				return
+			var grass := scene.instantiate() as Node3D
+			grass.position = Vector3(center.x + offset.x, 0.0, center.y + offset.y)
+			grass.rotation.y = float((added * 37) % 360) * PI / 180.0
+			grass.scale = Vector3.ONE * 2.0
+			holder.add_child(grass)
+			added += 1
+		native_asset_instances["grass"] = int(native_asset_instances.get("grass", 0)) + added
 
 func _build_fog_layers() -> void:
 	for scene_name in semantic_results:
@@ -705,19 +764,25 @@ func _update_observed_units() -> void:
 	_update_fog_layer(scene.map, chosen.get("fog", {}))
 	while unit_nodes.size() < units.size():
 		var holder := Node3D.new()
-		var mesh := MeshInstance3D.new()
-		var capsule := CapsuleMesh.new()
-		capsule.radius = 0.5
-		capsule.height = 2.0
-		mesh.mesh = capsule
+		var authored_unit := _instantiate_native_unit()
 		var material := StandardMaterial3D.new()
 		material.albedo_color = unit_color
 		material.emission_enabled = true
 		material.emission = unit_color
 		material.emission_energy_multiplier = 0.25
-		mesh.material_override = material
-		mesh.position.y = 0.7
-		holder.add_child(mesh)
+		if authored_unit != null:
+			authored_unit.scale = Vector3.ONE * 1.8
+			authored_unit.position.y = 0.0
+			holder.add_child(authored_unit)
+		else:
+			var mesh := MeshInstance3D.new()
+			var capsule := CapsuleMesh.new()
+			capsule.radius = 0.5
+			capsule.height = 2.0
+			mesh.mesh = capsule
+			mesh.material_override = material
+			mesh.position.y = 0.7
+			holder.add_child(mesh)
 		var contact := MeshInstance3D.new()
 		var contact_mesh := CylinderMesh.new()
 		contact_mesh.top_radius = 0.95
@@ -742,6 +807,17 @@ func _update_observed_units() -> void:
 		var position: Array = pose.position
 		node.position = Vector3(float(position[0]), max(0.0, float(position[2])), float(position[1]))
 		node.rotation.y = float(pose.yaw)
+
+func _instantiate_native_unit() -> Node3D:
+	var relative := "assets/source/infantry/clips_rifle.glb"
+	var scene: PackedScene = native_asset_cache.get(relative)
+	if scene == null:
+		var loaded = load(_native_asset_root().path_join(relative))
+		if not loaded is PackedScene:
+			return null
+		scene = loaded
+		native_asset_cache[relative] = scene
+	return scene.instantiate() as Node3D
 
 func _show_scene() -> void:
 	for map_name in fog_nodes:
