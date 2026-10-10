@@ -293,9 +293,10 @@ pub struct LaunchProfile {
     pub loft: Option<Loft>,
 }
 
-/// A top-attack path, validated: climb toward `height_m` above the
-/// commanded point until it lies below the round by at least `slope` (the
-/// tangent of the dive angle) times their horizontal distance, then dive.
+/// A top-attack path, validated: climb at the dive angle to `height_m`
+/// above the commanded point and hold it until the point lies below the
+/// round by at least `slope` (the tangent of the dive angle) times their
+/// horizontal distance, then dive.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Loft {
     pub height_m: f64,
@@ -370,18 +371,31 @@ pub struct Guidance {
 
 impl Guidance {
     /// Where a round at `position` steers. A supported top-attack round
-    /// climbs toward the lofted point above its commanded point until the
-    /// point lies inside its dive cone, then dives onto it; any other, and a
-    /// released one, flies at its point.
+    /// shoots up toward its loft height, as steeply as it will dive, holds
+    /// that height until its commanded point lies inside its dive cone, then
+    /// dives onto it; any other, and a released one, flies at its point.
+    ///
+    /// The climb aims at the loft height one climb's run (`height_m /
+    /// slope`) ahead, never past the point: the missile rises at the dive
+    /// angle and levels off as it nears the loft. That run is also where the
+    /// cone opens at the loft height, so the hold ends exactly as the dive
+    /// begins, and a shot shorter than the run climbs straight at the lofted
+    /// point above its target.
     pub fn aim(&self, position: V3) -> V3 {
         match self.loft {
             Some(loft) if self.supported => {
-                let across = (self.point.xy() - position.xy()).length();
+                let toward = self.point.xy() - position.xy();
+                let across = toward.length();
                 if position.z - self.point.z >= loft.slope * across {
-                    self.point
-                } else {
-                    self.point + v3(0.0, 0.0, loft.height_m)
+                    return self.point;
                 }
+                let run = (loft.height_m / loft.slope).min(across);
+                let ahead = if across > 0.0 {
+                    position.xy() + toward * (run / across)
+                } else {
+                    self.point.xy()
+                };
+                v3(ahead.x, ahead.y, self.point.z + loft.height_m)
             }
             _ => self.point,
         }

@@ -31,7 +31,7 @@ fn top_attack_row() -> WeaponBallistics {
 }
 
 #[test]
-fn the_aim_is_the_lofted_point_until_the_dive_cone_then_the_point_and_never_once_released() {
+fn the_aim_climbs_to_the_loft_holds_it_until_the_dive_cone_and_never_once_released() {
     let point = v3(500.0, 200.0, 1.0);
     let guidance = Guidance {
         point,
@@ -43,9 +43,12 @@ fn the_aim_is_the_lofted_point_until_the_dive_cone_then_the_point_and_never_once
         }),
     };
     let lofted = point + v3(0.0, 0.0, 60.0);
-    // Far out and low: the point is well above the dive cone.
-    assert_eq!(guidance.aim(v3(100.0, 200.0, 2.0)), lofted);
-    // 40 m out and 30 m above: still shallower than 45°.
+    // Far out and low: the loft height one climb's run (60 m at 45°) ahead.
+    assert_eq!(guidance.aim(v3(100.0, 200.0, 2.0)), v3(160.0, 200.0, 61.0));
+    // At the loft, far out: still level, a run ahead.
+    assert_eq!(guidance.aim(v3(300.0, 200.0, 61.0)), v3(360.0, 200.0, 61.0));
+    // Nearer than one run, 30 m above: shallower than 45°, so the lofted
+    // point itself, never past it.
     assert_eq!(guidance.aim(v3(460.0, 200.0, 31.0)), lofted);
     // 40 m out and 41 m above: inside the cone, dive onto the point.
     assert_eq!(guidance.aim(v3(460.0, 200.0, 42.0)), point);
@@ -190,6 +193,21 @@ fn a_top_attack_missile_climbs_well_above_the_line_of_sight_and_dives_onto_the_r
     for p in &shot.path {
         println!("{:7.1} {:6.1}", p.x - shot.origin.x, p.z);
     }
+    // It shoots up off the launcher, as steeply as it will come down: by
+    // the time it has flown one loft's climb at the dive angle, it is past
+    // half its loft, not on a ramp towards a point above the far target.
+    let climb_m = loft_m / dive_deg.to_radians().tan();
+    let risen = shot
+        .path
+        .iter()
+        .find(|p| p.x - shot.origin.x >= climb_m)
+        .expect("it flew past its climb")
+        .z
+        - shot.origin.z;
+    assert!(
+        risen >= 0.5 * loft_m,
+        "{risen:.1} m up after {climb_m:.0} m; loft {loft_m} m"
+    );
     let sight = shot.origin.z.max(shot.target.z);
     assert!(
         shot.apex() - sight >= 0.75 * loft_m,
