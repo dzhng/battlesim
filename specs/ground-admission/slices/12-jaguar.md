@@ -10,6 +10,26 @@ Depends on 05 (recipe) and 11 (the `akeron_mp` row).
 Open with one art-fix commit before admission: sheet → fix → one unprimed critique.
 Jaguar: make the hull a tall, flat-sided box on big wheels (not a low pointed VBCI nose); enlarge the turret and the `akeron_box` launcher pod; edge wear 0.6, then check whether the pale patches remain. Only these ranked fixes; dropped findings stay dropped.
 
+### Art pass (2026-10-10)
+
+Done in `jaguar.py`; evidence in [`../assets/12/`](../assets/12/).
+
+- **Hull.** It is now a tall box with upright upper sides: the belt is at 1.45 m and the flat roof at 1.95 m, up from 1.25 m and 1.86 m. The nose is blunt, with a short glacis down from x 2.95 m. The tyres are bigger, radius 0.66 m, on the axle spacing the photos show.
+- **Turret.** The turret is 0.68 m tall on the roof, 2.7 m long and as wide as the hull. The
+  Akeron pod is 1.9 × 0.48 × 0.85 m and forms its left flank, standing 0.2 m above the turret roof. The RWS
+  sits on a pedestal under `dressing_rws`, 0.4 m above the turret, inside the 0.3 m bulky-dressing allowance.
+- **Frame.** The size stays 7.1 × 2.99 × 2.8 m, and the mounts moved to fit the art. `autocannon` pivots at
+  z 1.95 m with its muzzle at (2.982, 0, 0.38). `launcher` pivots at (0, 1.28, 2.40) with its muzzle 1.25 m ahead.
+- **Fit.** Measured the way `fit.hull_extents` measures, the export is 7.17 × 3.04 × 2.73 m and no face is
+  more than 0.04 m off. Slice 01's 0.15 m rear gap is closed by tucking in the rear hooks and the jerrycans.
+- **Edge wear.** Edge wear is now 0.6. That removed the pale washed patches on the turret and side plates,
+  so the patches came from chip wear
+  ([before](../assets/triage/jaguar-surface.png), [after](../assets/12/jaguar-surface-after.png)).
+- **Critique.** The unprimed critique of the first fix ranked two problems: the turret was too low and flat,
+  and the launcher read as a stowage bin. Both were fixed (taller, shorter turret, proud pod, raised RWS),
+  and then we stopped. Dropped as below the bar: the gun is slightly short, the rear face is dark, and the
+  grey smoke-discharger discs are visible only without textures.
+
 ## Seam
 
 [Admission recipe](../README.md#admission-recipe):
