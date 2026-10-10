@@ -117,7 +117,9 @@
       "description": "HC4",
       "faction": "europe",
       "family": "aw101_merlin",
-      "roles": [],
+      "roles": [
+        "helicopter"
+      ],
       "cost": 230,
       "roster": {
         "factions": [
@@ -127,23 +129,47 @@
         "variant": "HC4",
         "family_name": "AW101 Merlin"
       },
-      "planned": {
-        "reason": "Helicopter movement, combat and transport mechanics deferred",
-        "profile": "heavy-helicopter",
-        "weapons": [
-          {
-            "name": "HMG",
-            "icon": "hmg"
-          }
-        ]
-      }
+      "extends": "roster_profile_heavy_helicopter",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            9.935,
+            2.2,
+            2.31
+          ],
+          "eye_m": 2.0
+        }
+      },
+      "mounts": [
+        {
+          "id": "door",
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            2.165,
+            1.33,
+            1.6
+          ],
+          "muzzle_m": [
+            1.2,
+            0,
+            0
+          ]
+        }
+      ],
+      "appearance": "europe_aw101_merlin_hc4"
     },
     "europe_aw159_wildcat_ah1": {
       "name": "Wildcat AH1",
       "description": "AH1",
       "faction": "europe",
       "family": "aw159_wildcat",
-      "roles": [],
+      "roles": [
+        "helicopter"
+      ],
       "cost": 170,
       "roster": {
         "factions": [
@@ -153,16 +179,38 @@
         "variant": "AH1",
         "family_name": "AW159 Wildcat"
       },
-      "planned": {
-        "reason": "Helicopter movement, combat and transport mechanics deferred",
-        "profile": "light-helicopter",
-        "weapons": [
-          {
-            "name": "HMG",
-            "icon": "hmg"
-          }
-        ]
-      }
+      "extends": "roster_profile_light_helicopter",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            6.525,
+            1.515,
+            1.7
+          ],
+          "eye_m": 1.55
+        }
+      },
+      "mounts": [
+        {
+          "id": "door",
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            1.925,
+            1.02,
+            1.45
+          ],
+          "muzzle_m": [
+            1.1,
+            0,
+            0
+          ]
+        }
+      ],
+      "appearance": "europe_aw159_wildcat_ah1"
     },
     "europe_boxer_apc": {
       "name": "Boxer APC",
@@ -491,7 +539,9 @@
       "description": "HC6",
       "faction": "europe",
       "family": "ch_47_chinook",
-      "roles": [],
+      "roles": [
+        "helicopter"
+      ],
       "cost": 240,
       "roster": {
         "factions": [
@@ -501,16 +551,38 @@
         "variant": "HC6",
         "family_name": "CH-47 Chinook"
       },
-      "planned": {
-        "reason": "Helicopter movement, combat and transport mechanics deferred",
-        "profile": "heavy-helicopter",
-        "weapons": [
-          {
-            "name": "HMG",
-            "icon": "hmg"
-          }
-        ]
-      }
+      "extends": "roster_profile_heavy_helicopter",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            8.137,
+            1.945,
+            2.713
+          ],
+          "eye_m": 2.2
+        }
+      },
+      "mounts": [
+        {
+          "id": "door",
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            5.207,
+            1.33,
+            1.8
+          ],
+          "muzzle_m": [
+            1.2,
+            0,
+            0
+          ]
+        }
+      ],
+      "appearance": "europe_ch_47_chinook_hc6"
     },
     "europe_challenger_challenger_2_tes": {
       "name": "Challenger 2 TES",
@@ -1025,7 +1097,9 @@
       "description": "HAD",
       "faction": "europe",
       "family": "ec665_tiger",
-      "roles": [],
+      "roles": [
+        "helicopter"
+      ],
       "cost": 350,
       "roster": {
         "factions": [
@@ -1035,27 +1109,65 @@
         "variant": "HAD",
         "family_name": "EC665 Tiger"
       },
-      "planned": {
-        "reason": "Helicopter movement, combat and transport mechanics deferred",
-        "profile": "attack-helicopter",
-        "weapons": [
-          {
-            "name": "Chain Gun",
-            "icon": "autocannon"
-          },
-          {
-            "name": "AT Missile",
-            "icon": "atgm"
-          }
-        ]
-      }
+      "extends": "roster_profile_attack_helicopter",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            7.04,
+            2.158,
+            1.75
+          ],
+          "eye_m": 1.9
+        }
+      },
+      "mounts": [
+        {
+          "id": "chin",
+          "name": "Chain Gun",
+          "weapons": [
+            "autocannon"
+          ],
+          "turret": true,
+          "pivot_m": [
+            5.6,
+            0,
+            0.62
+          ],
+          "muzzle_m": [
+            1.35,
+            0,
+            -0.07
+          ]
+        },
+        {
+          "id": "missiles",
+          "name": "AT Missile",
+          "weapons": [
+            "heli_atgm"
+          ],
+          "turret": false,
+          "pivot_m": [
+            1.1,
+            -2.0,
+            1.22
+          ],
+          "muzzle_m": [
+            0.8,
+            0,
+            0
+          ]
+        }
+      ],
+      "appearance": "europe_ec665_tiger_had"
     },
     "europe_ec665_tiger_uht": {
       "name": "Tiger UHT",
       "description": "UHT",
       "faction": "europe",
       "family": "ec665_tiger",
-      "roles": [],
+      "roles": [
+        "helicopter"
+      ],
       "cost": 330,
       "roster": {
         "factions": [
@@ -1065,20 +1177,56 @@
         "variant": "UHT",
         "family_name": "EC665 Tiger"
       },
-      "planned": {
-        "reason": "Helicopter movement, combat and transport mechanics deferred",
-        "profile": "attack-helicopter",
-        "weapons": [
-          {
-            "name": "AT Missile",
-            "icon": "atgm"
-          },
-          {
-            "name": "Rocket Pods",
-            "icon": "rockets"
-          }
-        ]
-      }
+      "extends": "roster_profile_attack_helicopter",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            7.04,
+            2.226,
+            2.16
+          ],
+          "eye_m": 1.9
+        }
+      },
+      "mounts": [
+        {
+          "id": "missiles",
+          "name": "AT Missile",
+          "weapons": [
+            "heli_atgm"
+          ],
+          "turret": false,
+          "pivot_m": [
+            1.1,
+            -2.0,
+            1.22
+          ],
+          "muzzle_m": [
+            0.8,
+            0,
+            0
+          ]
+        },
+        {
+          "id": "rockets",
+          "name": "Rockets",
+          "weapons": [
+            "rocket_pod"
+          ],
+          "turret": false,
+          "pivot_m": [
+            1.2,
+            1.05,
+            1.0
+          ],
+          "muzzle_m": [
+            0.8,
+            0,
+            0
+          ]
+        }
+      ],
+      "appearance": "europe_ec665_tiger_uht"
     },
     "europe_eurofighter_typhoon_tranche_3": {
       "name": "Typhoon Tranche 3",
@@ -1986,7 +2134,9 @@
       "description": "TTH",
       "faction": "europe",
       "family": "nh90",
-      "roles": [],
+      "roles": [
+        "helicopter"
+      ],
       "cost": 190,
       "roster": {
         "factions": [
@@ -1996,16 +2146,38 @@
         "variant": "TTH",
         "family_name": "NH90"
       },
-      "planned": {
-        "reason": "Helicopter movement, combat and transport mechanics deferred",
-        "profile": "utility-helicopter",
-        "weapons": [
-          {
-            "name": "HMG",
-            "icon": "hmg"
-          }
-        ]
-      }
+      "extends": "roster_profile_utility_helicopter",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            8.285,
+            1.8,
+            2.0
+          ],
+          "eye_m": 1.9
+        }
+      },
+      "mounts": [
+        {
+          "id": "door",
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            2.215,
+            1.2,
+            1.55
+          ],
+          "muzzle_m": [
+            1.15,
+            0,
+            0
+          ]
+        }
+      ],
+      "appearance": "europe_nh90_tth"
     },
     "europe_puma_level_c": {
       "name": "Puma Level C",

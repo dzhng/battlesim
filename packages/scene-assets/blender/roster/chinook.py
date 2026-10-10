@@ -1,4 +1,4 @@
-"""CH-47F Chinook and Chinook HC6, from assets/references/ch_47_chinook/. Disabled cards.
+"""CH-47F Chinook and Chinook HC6, from assets/references/ch_47_chinook/.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/chinook.py -- [--variant=<card>] [--wreck]
 
@@ -9,9 +9,12 @@ the lower sides, the loading ramp under the tail, two three-blade rotors
 turning in tandem, four wheels (twin forward, single aft). The CH-47F in
 the Army's tan, as its photos show; the RAF's HC6 in its dark green.
 
-Dimensions stated from published figures (rotorcraft rule: fuselage length
-without blades, width over the sponsons, height to the top of the rear rotor
-head): 15.87 x 3.78 x 5.68 m, both.
+Built to the catalog frame, from published figures (rotorcraft rule:
+fuselage length without blades, width over the sponsons, height to the top
+of the rear rotor head): 15.87 x 3.78 x 5.68 m, both.
+
+The gun in the forward left cabin door, swung out on its pintle, is the
+`door` mount's HMG rig.
 """
 import os
 import sys
@@ -19,11 +22,12 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
 from parts import box, cyl  # noqa: E402
-from vehicle_export import run_disabled  # noqa: E402
+from vehicle_export import rig, run  # noqa: E402
 from vehicle_parts import MID, NEAR  # noqa: E402
 
 F, HC6 = "us_ch_47_chinook_ch_47f", "europe_ch_47_chinook_hc6"
-CARDS = {F: (15.87, 3.78, 5.68), HC6: (15.87, 3.78, 5.68)}
+# The door gun's elevation on its pintle, degrees.
+DOOR_PITCH_DEG = (-60.0, 20.0)
 SCHEME = {F: "us_desert_tan", HC6: "nato_helicopter_green"}
 SPEC = dict(
     fuselage=[(7.93, 0.0, 1.4, 1.4), (7.65, 0.8, 0.75, 2.3, 1.5, 2.4), (6.7, 1.15, 0.6, 2.9, 1.6, 3.0),
@@ -40,6 +44,9 @@ SPEC = dict(
           dict(name="rear_L", x=-3.8, y=1.55, top=0.95, radius=0.44, width=0.24),
           dict(name="rear_R", x=-3.8, y=-1.55, top=0.95, radius=0.44, width=0.24)],
 )
+# How far forward the airframe's parts (placed in their drawing's frame)
+# move to centre on the hull box.
+AFT_M = 0.207
 
 
 def build(variant, v):
@@ -67,6 +74,7 @@ def build(variant, v):
     A.rotor("rear", (-6.0, 0, 5.43), 9.14, 3, 0.8, m, hull, hub=0.44, mast=0.0, droop=0.03, phase=0.3 + 1.047)
     A.mirrored(lambda side, k: box(f"step_{k}", (0.4, 0.2, 0.04), (6.2, side * 1.25, 0.7), m["dark"], hull,
                                    lods=NEAR))
+    A.door_gun(v, rig(v.frame, v.root), m, DOOR_PITCH_DEG, inboard=0.2)
 
     # The Army's black lettering on the F; the RAF's roundel, title and
     # serial on the HC6.
@@ -81,9 +89,13 @@ def build(variant, v):
             ("text", dict(text="ROYAL AIR FORCE", height=0.22, centre=(2.0, 1.2, 2.5), normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",), colour="black")),
             ("text", dict(text="ZK558", height=0.3, centre=(-6.0, 1.2, 2.0), normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",), colour="black")),
         ])
+    # The airframe as drawn runs off the frame's middle; the frame (and the
+    # mounts' pivots in it) is centred on the hull box.
+    v.hull.location.x += AFT_M
+
 
 def wreck(variant, v):
-    A.crash(v, tail_x=-4.6, tail_yaw=0.12, tail_drop=0.05, blades_broken=(("front", 0), ("rear", 1)), seed=47)
+    A.rotorcraft_crash(v, lifting=("front", "rear"), tail_x=-4.6, tail_yaw=0.12, tail_drop=0.05, seed=47)
 
 
-run_disabled("chinook", CARDS, SCHEME, build, wreck, skip=("dressing_", "blade_"))
+run("chinook", SCHEME, build, wreck, references="assets/references/ch_47_chinook/references.json")

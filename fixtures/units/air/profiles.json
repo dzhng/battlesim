@@ -1,0 +1,214 @@
+{
+  "units": {
+    "roster_profile_light_helicopter": {
+      "abstract": true,
+      "body": {
+        "hull": {
+          "hp": 150,
+          "armor": {
+            "front": 15,
+            "side": 15,
+            "rear": 15,
+            "roof": 15,
+            "ricochet": {
+              "front": 0.1,
+              "side": 0.1,
+              "rear": 0.1,
+              "roof": 0.1
+            }
+          },
+          "weight_class": "light",
+          "push_class": "none",
+          "wreck": "light_wreck"
+        }
+      },
+      "mobility": {
+        "air": {
+          "cruise_kmh": 180,
+          "turn_deg_s": 100,
+          "climb_mps": 9
+        }
+      },
+      "sensors": {
+        "ground_m": 700,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.6,
+          "rear": 0.3
+        }
+      },
+      "sound": {
+        "profile": "vehicle",
+        "loudness_m": 800
+      }
+    },
+    "roster_profile_utility_helicopter": {
+      "abstract": true,
+      "body": {
+        "hull": {
+          "hp": 200,
+          "armor": {
+            "front": 15,
+            "side": 15,
+            "rear": 15,
+            "roof": 15,
+            "ricochet": {
+              "front": 0.1,
+              "side": 0.1,
+              "rear": 0.1,
+              "roof": 0.1
+            }
+          },
+          "weight_class": "light",
+          "push_class": "none",
+          "wreck": "light_wreck"
+        }
+      },
+      "mobility": {
+        "air": {
+          "cruise_kmh": 220,
+          "turn_deg_s": 70,
+          "climb_mps": 7
+        }
+      },
+      "sensors": {
+        "ground_m": 700,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.6,
+          "rear": 0.3
+        }
+      },
+      "sound": {
+        "profile": "vehicle",
+        "loudness_m": 900
+      }
+    },
+    "roster_profile_heavy_helicopter": {
+      "abstract": true,
+      "body": {
+        "hull": {
+          "hp": 250,
+          "armor": {
+            "front": 15,
+            "side": 15,
+            "rear": 15,
+            "roof": 15,
+            "ricochet": {
+              "front": 0.1,
+              "side": 0.1,
+              "rear": 0.1,
+              "roof": 0.1
+            }
+          },
+          "weight_class": "light",
+          "push_class": "none",
+          "wreck": "light_wreck"
+        }
+      },
+      "mobility": {
+        "air": {
+          "cruise_kmh": 230,
+          "turn_deg_s": 50,
+          "climb_mps": 6
+        }
+      },
+      "sensors": {
+        "ground_m": 700,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.6,
+          "rear": 0.3
+        }
+      },
+      "sound": {
+        "profile": "vehicle",
+        "loudness_m": 1000
+      }
+    },
+    "roster_profile_attack_helicopter": {
+      "abstract": true,
+      "body": {
+        "hull": {
+          "hp": 250,
+          "armor": {
+            "front": 25,
+            "side": 15,
+            "rear": 15,
+            "roof": 10,
+            "ricochet": {
+              "front": 0.1,
+              "side": 0.1,
+              "rear": 0.1,
+              "roof": 0.1
+            }
+          },
+          "weight_class": "light",
+          "push_class": "none",
+          "wreck": "light_wreck"
+        }
+      },
+      "mobility": {
+        "air": {
+          "cruise_kmh": 240,
+          "turn_deg_s": 80,
+          "climb_mps": 8
+        }
+      },
+      "sensors": {
+        "ground_m": 900,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.6,
+          "rear": 0.3
+        }
+      },
+      "sound": {
+        "profile": "vehicle",
+        "loudness_m": 900
+      }
+    },
+    "roster_profile_armoured_helicopter": {
+      "abstract": true,
+      "body": {
+        "hull": {
+          "hp": 300,
+          "armor": {
+            "front": 30,
+            "side": 25,
+            "rear": 20,
+            "roof": 15,
+            "ricochet": {
+              "front": 0.1,
+              "side": 0.1,
+              "rear": 0.1,
+              "roof": 0.1
+            }
+          },
+          "weight_class": "light",
+          "push_class": "none",
+          "wreck": "light_wreck"
+        }
+      },
+      "mobility": {
+        "air": {
+          "cruise_kmh": 220,
+          "turn_deg_s": 70,
+          "climb_mps": 7
+        }
+      },
+      "sensors": {
+        "ground_m": 850,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.6,
+          "rear": 0.3
+        }
+      },
+      "sound": {
+        "profile": "vehicle",
+        "loudness_m": 900
+      }
+    }
+  }
+}

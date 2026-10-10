@@ -195,11 +195,15 @@ fn an_identified_enemy_helicopter_below_half_hp_publishes_smoking() {
 #[test]
 fn an_air_hull_past_its_limits_is_refused() {
     let mut fixture = fixture();
+    let past = fixture["hull_limits"]["air"]["half_length_m"]
+        .as_f64()
+        .unwrap()
+        + 0.5;
     sim::fixtures::patch_catalog(
         &mut fixture,
         "units",
         "test_heli",
-        json!({ "body": { "hull": { "half_extents_m": [9.0, 1.2, 1.6] } } }),
+        json!({ "body": { "hull": { "half_extents_m": [past, 1.2, 1.6] } } }),
     );
     let error = serde_json::from_value::<Rules>(fixture).expect_err("past the air limit");
     assert!(error.to_string().contains("air half length"), "{error}");

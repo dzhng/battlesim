@@ -27,11 +27,8 @@ import math
 import os
 import sys
 
-import bpy
-
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
-import parts as P  # noqa: E402
 from parts import box, cyl  # noqa: E402
 from vehicle_export import rig, run  # noqa: E402
 from vehicle_parts import MID  # noqa: E402
@@ -73,18 +70,7 @@ def build(variant, v):
     box("pnvs", (0.4, 0.3, 0.3), (6.51, 0, 1.78), m["dark"], hull, bevel=0.03, lods=MID)
     # The M230 under the chin, on the chin mount's rig: its turret at the
     # pivot, the cradle and barrel on the bore out to the muzzle.
-    turret, gun, _muzzle, _pivot = rig(v.frame, v.root)["chin"]
-    gun["pitch_min_deg"], gun["pitch_max_deg"] = GUN_PITCH_DEG
-    gun["recoil_max_m"] = GUN_STROKE_M
-    reach = next(mt for mt in v.frame["mounts"] if mt["name"] == "chin")["muzzle_m"][0]
-    # The turret drum under the belly, its yoke arms down either side of the
-    # gun, and the gun's receiver between them.
-    cyl("gun_turret", 0.27, 0.3, (0, 0, 0.06), "Z", m["dark"], turret, seg=16)
-    for side in (1, -1):
-        box(f"gun_yoke_{'L' if side > 0 else 'R'}", (0.22, 0.05, 0.22), (0, side * 0.16, -0.06), m["dark"], turret,
-            bevel=0.01, lods=MID)
-    box("gun_cradle", (0.5, 0.22, 0.2), (0.1, 0, 0), m["dark"], gun, bevel=0.02)
-    cyl("gun_barrel", 0.05, reach - 0.05, ((reach + 0.05) / 2, 0, 0), "X", m["steel"], gun, seg=8, lods=MID)
+    A.chin_gun(v, rig(v.frame, v.root), m, GUN_PITCH_DEG, GUN_STROKE_M)
     # Engines on the flanks with their exhaust suppressors, and the rotor
     # mast's fairing.
     for side, k in ((1, "L"), (-1, "R")):
@@ -125,18 +111,9 @@ def build(variant, v):
 
 
 def wreck(variant, v):
-    # The chin gun stays bolted under the wreck's nose: no turret to throw,
-    # so its rig's nodes become plain parts of the airframe.
-    for name in ("turret", "gun", "muzzle"):
-        bpy.data.objects[name].name = f"chin_{name}"
-    # Every main blade snapped off against the ground; they lie thrown clear,
-    # past the box the simulation keeps as cover: the wreck's debris.
-    A.crash(v, tail_x=-2.6, tail_yaw=-0.4, tail_drop=0.1, blades_broken=tuple(("main", k) for k in range(4)),
-            seed=64)
-    thrown = P.empty("debris_blades", parent=v.root)
-    for o in list(bpy.data.objects):
-        if o.name.startswith("litter_blade_") and o.parent == v.root:
-            o.parent = thrown
+    # The chin gun stays bolted under the wreck's nose; every main blade
+    # snapped off and lies thrown clear.
+    A.rotorcraft_crash(v, tail_x=-2.6, tail_yaw=-0.4, tail_drop=0.1, seed=64)
 
 
 run("apache", "us_army_aviation", build, wreck, references="assets/references/ah_64_apache/references.json")
