@@ -37,6 +37,7 @@ func run() -> void:
 	root.add_child(reel)
 	reel.set_process(false)
 	check(reel._viewport_image() == null, "headless lifecycle runs must not attempt a drawable viewport readback")
+	check(reel._resolve_path("throwaway") == ProjectSettings.globalize_path("res://../../throwaway"), "relative renderer paths must resolve from the repository root")
 	check(reel._authored_map_directory() == directory, "authored map override must be the shared map directory")
 	check(reel._comparison_blocker().contains("authored model catalog"), "missing authored assets must name the catalog blocker")
 	check(not reel.proxy_field_used, "map composition must not fall back to the synthetic cube field")

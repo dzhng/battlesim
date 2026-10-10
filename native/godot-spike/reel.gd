@@ -71,7 +71,7 @@ func _ready() -> void:
 	_load_presentation_captures()
 	_consume_capture_words()
 	_decode_semantic_captures()
-	cut_dir = OS.get_environment("GODOT_REEL_CUTS")
+	cut_dir = _resolve_path(OS.get_environment("GODOT_REEL_CUTS"))
 	_build_world()
 	startup_ms = float(Time.get_ticks_usec() - startup_started_usec) / 1000.0
 	started = true
@@ -86,6 +86,7 @@ func _load_presentation_captures() -> void:
 	var configured := OS.get_environment("GODOT_PRESENTATION_CAPTURE")
 	var directory := OS.get_environment("GODOT_PRESENTATION_CAPTURE_DIR")
 	if not directory.is_empty():
+		directory = _resolve_path(directory)
 		for scene in scenes:
 			var path := directory.path_join(String(scene.map) + ".json")
 			var result := _read_capture(path)
@@ -95,7 +96,7 @@ func _load_presentation_captures() -> void:
 				capture_errors[scene.map] = result.get("comparison_blocker", "invalid capture")
 		return
 	if not configured.is_empty():
-		capture_result = _read_capture(configured)
+		capture_result = _read_capture(_resolve_path(configured))
 		if capture_result.valid:
 			capture_results[capture_result.capture.workload.scene] = capture_result
 		else:
@@ -351,7 +352,14 @@ func _map_limit(environment_name: String) -> int:
 
 func _authored_map_directory() -> String:
 	var configured := OS.get_environment("GODOT_AUTHORED_MAP_DIR")
-	return configured if not configured.is_empty() else ProjectSettings.globalize_path("res://../../fixtures/maps")
+	return _resolve_path(configured) if not configured.is_empty() else ProjectSettings.globalize_path("res://../../fixtures/maps")
+
+func _resolve_path(path: String) -> String:
+	if path.is_empty():
+		return ""
+	if path.begins_with("res://") or path.is_absolute_path():
+		return ProjectSettings.globalize_path(path)
+	return ProjectSettings.globalize_path("res://../../" + path)
 
 func _map_render_centers(map_name: String) -> Array:
 	var result: Dictionary = capture_results.get(map_name, {})
