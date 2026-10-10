@@ -89,6 +89,20 @@ pub struct WeaponBallistics {
     /// commanded point no faster than this (P05, P06).
     #[serde(default)]
     pub turn_deg_s: Option<f64>,
+    /// A guided round that climbs above its point, then dives onto it from
+    /// above (absent: it flies straight at its point).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub top_attack: Option<TopAttack>,
+}
+
+/// A top-attack path: while its launcher supports it, a guided round steers
+/// at a point `loft_m` above its commanded point until that point lies at
+/// least `dive_deg` below its horizon, then dives onto it.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TopAttack {
+    pub loft_m: f64,
+    pub dive_deg: f64,
 }
 
 fn full_gravity() -> f64 {

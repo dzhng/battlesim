@@ -626,6 +626,7 @@ fn launch_along(
                 point: intended.intercept,
                 turn_rad_s,
                 supported: true,
+                loft: profile.loft,
             }),
             motor: profile.motor,
             fall,
