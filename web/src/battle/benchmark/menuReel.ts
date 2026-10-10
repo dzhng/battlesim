@@ -14,9 +14,27 @@ export const MENU_REEL_WORKLOAD = {
   })),
 } as const;
 
-/** Stable hash of the complete menu-reel workload identity. */
-export function menuReelFingerprint(): string {
-  const text = JSON.stringify(MENU_REEL_WORKLOAD);
+export type MenuReelWorkload = Omit<typeof MENU_REEL_WORKLOAD, "scenes"> & {
+  scenes: readonly (typeof MENU_REEL_WORKLOAD.scenes)[number][];
+};
+
+/** The workload a run that filmed `maps`, in that order, measured: the whole
+ *  menu reel without them. A map the reel does not film is refused. */
+export function menuReelWorkload(maps?: readonly string[]): MenuReelWorkload {
+  if (!maps) return MENU_REEL_WORKLOAD;
+  return {
+    ...MENU_REEL_WORKLOAD,
+    scenes: maps.map((map) => {
+      const scene = MENU_REEL_WORKLOAD.scenes.find((s) => s.map === map);
+      if (!scene) throw new Error(`the menu reel films no ${map}`);
+      return scene;
+    }),
+  };
+}
+
+/** Stable hash of a menu-reel workload's identity (the complete reel by default). */
+export function menuReelFingerprint(workload: MenuReelWorkload = MENU_REEL_WORKLOAD): string {
+  const text = JSON.stringify(workload);
   let hash = 0x811c9dc5;
   for (let i = 0; i < text.length; i++) {
     hash ^= text.charCodeAt(i);

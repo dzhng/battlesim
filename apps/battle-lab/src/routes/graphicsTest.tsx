@@ -77,7 +77,7 @@ export default function GraphicsTest() {
   const run = typeof chosen === "string" ? [] : chosen;
   const reportOf = (done: readonly ReelResult[], reason: string | null) =>
     createReelReport(done, {
-      scenes: run,
+      maps: run.map((s) => s.map),
       plates,
       layers: REEL_LAYERS,
       interruption: reason ? { status: "failed", reason } : undefined,

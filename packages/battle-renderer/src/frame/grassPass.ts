@@ -1001,17 +1001,8 @@ export async function createGrassPass(
     /** What `rebuild` uploaded, the params as last written, the kinds and
      *  tier capacities, and each tier's index count; null with no field. */
     uploaded() {
-      return (
-        ready &&
-        packedTables &&
-        frameParams && {
-          ...packedTables,
-          params: frameParams,
-          kinds: kindNames,
-          capacity,
-          indexCounts,
-        }
-      );
+      if (!ready || !packedTables || !frameParams) return null;
+      return { ...packedTables, params: frameParams, kinds: kindNames, capacity, indexCounts };
     },
     /** Lab probes (debug readbacks, never in a frame). */
     probes: {

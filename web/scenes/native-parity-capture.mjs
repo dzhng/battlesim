@@ -7,19 +7,14 @@
 //     terrain-<table>.u32, grass-<table>.u32}
 //
 // the capture and its frame records, the `native-visual-presentation`
-// manifest (with each plate's grass counts), the plates read back from the
-// canvas in their own frames with each frame's ground-class view and its
-// lit frame without grass, and the
-// ground's and grass's GPU tables the manifest hashes.
+// manifest (with each plate's grass counts), the plates read back in their
+// own frames with each frame's ground-class view and its lit frame without
+// grass, and the ground's and grass's GPU tables the manifest hashes.
 // PARITY_SCENES=<map,…> films only those scenes (`?scenes=`). Run it under
 // the GPU lock; it waits on the route's stage, never on a timer.
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import { classPlateFile, plainPlateFile } from "../src/battle/benchmark/presentationCapture.ts";
-import {
-  readTableArtifact,
-  tableFile,
-  writeVisualPresentation,
-} from "../src/battle/benchmark/visualPresentation.ts";
+import { writeVisualPresentation } from "../src/battle/benchmark/visualPresentation.ts";
 
 const ROOT = new URL("../../", import.meta.url);
 const OUT = new URL("throwaway/native-parity/", ROOT);
@@ -188,17 +183,6 @@ export async function run(ctx) {
         sizes.every((s) => s === `${VIEWPORT.width}×${VIEWPORT.height}`),
       `viewport ${viewport.width}×${viewport.height}; plates ${[...new Set(sizes)].join(", ")}`,
     );
-    // The files on disk read back as the manifest hashed them.
-    for (const [group, entries] of [
-      ["terrain", parsed.terrain],
-      ["grass", parsed.grass.tables],
-    ])
-      for (const entry of entries)
-        await readTableArtifact(
-          group,
-          entry,
-          await readFile(new URL(tableFile(group, entry.name), dir)),
-        );
     const heights = parsed.terrain.find((t) => t.name === "heights").layout;
     const shapes = parsed.grass.tables.find((t) => t.name === "shapes").layout;
     const grown = parsed.grassCounts.map((g) => g.cells.reduce((a, b) => a + b, 0));

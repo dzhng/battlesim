@@ -16,7 +16,7 @@ import type {
   WordLayout,
   WordTable,
 } from "@packages/battle-renderer/src/frame/wordTables";
-import { decodePresentationCapture } from "./presentationCapture.ts";
+import { decodePresentationCapture, finite, hasKeys, isRecord } from "./presentationCapture.ts";
 
 /** The presentation layers a frame can draw. */
 export const PRESENTATION_LAYERS = [
@@ -57,12 +57,12 @@ export interface Omission {
  *  (`sunDirection`): a unit vector toward the sun in sim space, z up. */
 export type ManifestLight = LightPresentation & { sunDirection: [number, number, number] };
 
-/** What the page knows of its own drawing; the files give the rest. */
 /** Nested tuning numbers: `terrainTuning` or `grassTuning` as the shaders read them. */
 export interface TuningTable {
   readonly [key: string]: number | readonly number[] | TuningTable;
 }
 
+/** What the page knows of its own drawing; the files give the rest. */
 export interface DrawnPresentation {
   lens: Lens;
   light: ManifestLight;
@@ -143,7 +143,7 @@ export interface TableArtifact<Name extends string = string> {
 }
 
 /** The file a group's table is written to, beside the manifest. */
-export const tableFile = (group: TableGroup, name: string) => `${group}-${name}.u32`;
+const tableFile = (group: TableGroup, name: string) => `${group}-${name}.u32`;
 
 /** The screen grid grass is counted over: columns, rows. */
 export const GRASS_CELLS = [4, 3] as const;
@@ -178,16 +178,9 @@ const LAYOUT_KEYS: Record<WordLayout["kind"], readonly string[]> = {
   "prop-cells": ["kind", "count"],
 };
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
-
-const hasKeys = (value: unknown, keys: readonly string[]): value is Record<string, unknown> =>
-  isRecord(value) && Object.keys(value).length === keys.length && keys.every((k) => k in value);
-
 const text = (value: unknown) => typeof value === "string" && value.length > 0;
 const isHash = (value: unknown) => typeof value === "string" && /^[0-9a-f]{64}$/.test(value);
 
-const finite = (v: unknown) => typeof v === "number" && Number.isFinite(v);
 const isTuning = (value: unknown): boolean =>
   isRecord(value) &&
   Object.values(value).every((v) =>
@@ -202,7 +195,7 @@ function validateManifestLight(value: unknown): ManifestLight {
   if (
     !Array.isArray(sun) ||
     sun.length !== 3 ||
-    !sun.every((v) => typeof v === "number" && Number.isFinite(v)) ||
+    !sun.every(finite) ||
     Math.abs(Math.hypot(...(sun as number[])) - 1) > 1e-6
   )
     throw new Error("visual presentation light needs a unit sunDirection");
@@ -210,9 +203,8 @@ function validateManifestLight(value: unknown): ManifestLight {
 }
 
 const count = (value: unknown) => Number.isInteger(value) && (value as number) >= 0;
-const length = (value: unknown) =>
-  typeof value === "number" && Number.isFinite(value) && value >= 0;
-const positive = (value: unknown) => typeof value === "number" && value > 0;
+const length = (value: unknown) => finite(value) && value >= 0;
+const positive = (value: unknown) => finite(value) && value > 0;
 
 /** Whether `value` is a word layout a reader can follow. */
 function isLayout(value: unknown): boolean {
@@ -291,8 +283,8 @@ export function validateVisualPresentation(value: unknown): VisualPresentation {
   const lens = value.lens;
   if (
     !hasKeys(lens, ["fovY", "near", "depth", "far"]) ||
-    !(typeof lens.fovY === "number" && lens.fovY > 0 && lens.fovY < Math.PI) ||
-    !(typeof lens.near === "number" && lens.near > 0) ||
+    !(positive(lens.fovY) && (lens.fovY as number) < Math.PI) ||
+    !positive(lens.near) ||
     lens.depth !== "reverse-z" ||
     lens.far !== "infinite"
   )
@@ -373,21 +365,6 @@ function littleEndian(words: Uint32Array): Uint8Array {
   const view = new DataView(bytes.buffer);
   words.forEach((w, i) => view.setUint32(i * 4, w, true));
   return bytes;
-}
-
-/** The words of `group`'s artifact `entry`, from its file's `bytes`;
- *  refused unless the bytes are the ones the manifest hashed. */
-export async function readTableArtifact(
-  group: TableGroup,
-  entry: TableArtifact,
-  bytes: Uint8Array,
-): Promise<Uint32Array> {
-  const file = tableFile(group, entry.name);
-  if (bytes.length !== entry.words * 4)
-    throw new Error(`${file} holds ${bytes.length / 4} words, not ${entry.words}`);
-  if ((await sha256(bytes)) !== entry.sha256) throw new Error(`${file} does not match its sha256`);
-  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  return Uint32Array.from({ length: entry.words }, (_, i) => view.getUint32(i * 4, true));
 }
 
 /** The manifest JSON for a capture file's text `captureJson` drawn on the

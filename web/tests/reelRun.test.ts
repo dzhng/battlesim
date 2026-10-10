@@ -1,8 +1,9 @@
 // @vitest-environment node
 import { expect, test } from "vitest";
-import { createReelRun, grassCells } from "@apps/battle-lab/src/benchmark/reelRun";
+import { createReelRun, grassCells, type ReelPlate } from "@apps/battle-lab/src/benchmark/reelRun";
 import type { UploadedTables } from "@packages/battle-renderer/src/frame/wordTables";
 import type { BackdropScene } from "@apps/battle-lab/src/menuReel";
+import type { FramePlate } from "@apps/battle-lab/src/LabViewport";
 
 const pose = { target: [0, 0] as [number, number], distance: 40, yaw: 0, pitch: 0.2 };
 const scene: BackdropScene = {
@@ -19,29 +20,24 @@ const camera = {
   aspect: 1,
   near: 0.1,
 };
-const blank = () => Promise.resolve(new Blob());
-const noProbe = () => {
-  throw new Error("a probe ran outside plate mode");
-};
-/** A drawn frame at `now`, sim time `simTime`. */
-const drawn = (
-  now: number,
-  simTime = 2,
-  readback: () => Promise<Blob> = blank,
-  grassClumps: () => Promise<{ root: [number, number, number] }[]> = noProbe,
-  readbackClasses: () => Promise<Blob> = noProbe,
-  readbackPlain: () => Promise<Blob> = noProbe,
-) => ({
+/** A drawn frame at `now`, sim time `simTime`, that can be read back with `plate`. */
+const drawn = (now: number, simTime = 2, plate?: () => FramePlate) => ({
   now,
   cpuMs: 1,
   camera,
   simTime,
   canvas: [1280, 720] as const,
-  readback,
-  grassClumps,
-  readbackClasses,
-  readbackPlain,
+  plate,
 });
+/** A frame's read-back, each picture naming the frame it came from. */
+const platesOf =
+  (now: number, roots: [number, number, number][] = []) =>
+  (): FramePlate => ({
+    png: Promise.resolve(new Blob([`lit at ${now}`])),
+    clumps: Promise.resolve(roots.map((root) => ({ root }))),
+    classes: Promise.resolve(new Blob([`classes at ${now}`])),
+    plain: Promise.resolve(new Blob([`plain at ${now}`])),
+  });
 /** A level camera 40 m east of (5, 6, 1), looking west: screen right is +y, up is +z. */
 const level = { ...camera, target: [5, 6, 1] as [number, number, number], yaw: 0, pitch: 0 };
 
@@ -92,30 +88,20 @@ test("cancelling during preparation cannot later publish a complete result", () 
 });
 
 test("each drawn frame records the view it drew in sim space, and a plate from each shot's middle", async () => {
-  type Result = {
-    frames: unknown[];
-    plates: { file: string; png: Promise<Blob>; classes: Promise<Blob>; plain: Promise<Blob> }[];
-  };
+  type Result = { frames: unknown[]; plates: ReelPlate[] };
   const results: Result[] = [];
   const run = createReelRun(scene, 30, (r) => results.push(r as unknown as Result), {
     plates: true,
   });
+  expect(run.pilot.plates).toBe(true);
   run.scripted.onWarm();
   run.pilot.frame!(drawn(1000));
   run.scripted.onTick({ tick: 61, stepMs: 2, bytes: 100 });
   const reads: number[] = [];
-  const read = (now: number) => () => {
-    reads.push(now);
-    return Promise.resolve(new Blob([String(now)]));
-  };
+  const read = (now: number) => () => (reads.push(now), platesOf(now)());
   // Frames 0.5 s and 1.1 s into the 2 s shot: the second is the first past its middle.
   run.pilot.frame!({ ...drawn(1500, 2.0, read(1500)), camera: level });
-  const classes = () => Promise.resolve(new Blob(["classes at 2100"]));
-  const plain = () => Promise.resolve(new Blob(["plain at 2100"]));
-  run.pilot.frame!({
-    ...drawn(2100, 2.6, read(2100), () => Promise.resolve([]), classes, plain),
-    camera: level,
-  });
+  run.pilot.frame!({ ...drawn(2100, 2.6, read(2100)), camera: level });
   run.pilot.frame!(drawn(3000, 3.5, read(3000)));
   expect(reads).toEqual([2100]);
   const [result] = results;
@@ -135,11 +121,10 @@ test("each drawn frame records the view it drew in sim space, and a plate from e
     expect.objectContaining({ index: 1, reelMs: 1100, simTime: 2.6, plate: "plate-1.png" }),
   ]);
   expect(result.plates.map((p) => p.file)).toEqual(["plate-1.png"]);
-  // The plate frame's ground-class view, drawn in the same task.
-  expect(await (await result.plates[0].classes).text()).toBe("classes at 2100");
-  // And the same frame lit without its grass.
-  expect(await (await result.plates[0].plain).text()).toBe("plain at 2100");
-  expect(await (await result.plates[0].png).text()).toBe("2100");
+  const [plate] = result.plates;
+  expect(await (await plate.png).text()).toBe("lit at 2100");
+  expect(await (await plate.classes).text()).toBe("classes at 2100");
+  expect(await (await plate.plain).text()).toBe("plain at 2100");
 });
 
 test("grass is counted by the screen cell its roots project into, row-major from the top-left", () => {
@@ -159,10 +144,7 @@ test("grass is counted by the screen cell its roots project into, row-major from
 });
 
 test("a plate frame counts the grass its own frame grew and keeps the tables it drew with", async () => {
-  type Result = {
-    plates: { file: string; grass: Promise<number[]> }[];
-    tables: UploadedTables | null;
-  };
+  type Result = { plates: ReelPlate[]; tables: UploadedTables | null };
   const results: Result[] = [];
   const run = createReelRun(scene, 30, (r) => results.push(r as unknown as Result), {
     plates: true,
@@ -177,27 +159,8 @@ test("a plate frame counts the grass its own frame grew and keeps the tables it 
   });
   run.scripted.onWarm();
   run.pilot.frame!(drawn(1000));
-  // Only the plate frame (1.1 s into the 2 s shot) reads the grass back.
-  const grown = () => Promise.resolve([{ root: [5, 7, 1.5] as [number, number, number] }]);
-  run.pilot.frame!({ ...drawn(1500), camera: level });
-  // The offscreen draws change the frame (the plain one takes the grass
-  // away), so the grass is read before them.
-  const order: string[] = [];
-  const step = (name: string) => () => (order.push(name), Promise.resolve(new Blob()));
-  run.pilot.frame!({
-    ...drawn(
-      2100,
-      2.6,
-      step("lit"),
-      () => (order.push("grass"), grown()),
-      step("classes"),
-      step("plain"),
-    ),
-    camera: level,
-  });
-  expect(order.indexOf("grass")).toBeLessThan(
-    Math.min(order.indexOf("classes"), order.indexOf("plain")),
-  );
+  run.pilot.frame!({ ...drawn(1500, 2, platesOf(1500, [[5, 60, 1]])), camera: level });
+  run.pilot.frame!({ ...drawn(2100, 2.6, platesOf(2100, [[5, 7, 1.5]])), camera: level });
   run.pilot.frame!(drawn(3000));
   const [result] = results;
   expect(await result.plates[0].grass).toEqual([0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0]);
@@ -205,16 +168,20 @@ test("a plate frame counts the grass its own frame grew and keeps the tables it 
   expect(exported).toBe(1);
 });
 
-test("without plates the run reads nothing back", () => {
-  const results: { tables: UploadedTables | null }[] = [];
+test("without plates the run asks the viewport for no read-back and exports nothing", () => {
+  const results: { plates: readonly ReelPlate[]; tables: UploadedTables | null }[] = [];
   const run = createReelRun(scene, 30, (r) => results.push(r));
+  expect(run.pilot.plates).toBe(false);
   run.pilot.attach!({
     adapter: "test",
     light: {} as never,
     stats: () => ({}) as never,
-    tables: noProbe,
+    tables: () => {
+      throw new Error("tables exported without plates");
+    },
   });
   run.scripted.onWarm();
   for (const now of [1000, 1500, 2100, 3000]) run.pilot.frame!({ ...drawn(now), camera: level });
+  expect(results[0].plates).toEqual([]);
   expect(results[0].tables).toBeNull();
 });

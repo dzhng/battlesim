@@ -13,7 +13,7 @@ import {
 import { liveCamera } from "@packages/renderer-core/src/cameraUniform";
 import { plateShot, sampleReel, type BackdropScene } from "../menuReel";
 import type { ScriptedSim } from "../useSimSession";
-import type { ViewportPilot } from "../LabViewport";
+import type { FramePlate, ViewportPilot } from "../LabViewport";
 import {
   plateFile,
   type PresentationFrame,
@@ -23,15 +23,10 @@ import { GRASS_CELLS, type Lens } from "@web/battle/benchmark/visualPresentation
 import type { LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
 import type { UploadedTables } from "@packages/battle-renderer/src/frame/wordTables";
 
-/** A control plate: the PNG read back from the canvas in the frame it names,
- *  the same frame's ground-class view (`classPlateFile`) and its lit frame
- *  without grass (`plainPlateFile`), and the grass clumps that frame grew
- *  per screen cell (`grassCells`). */
-export interface ReelPlate {
+/** A control plate: the frame it names read back (`FramePlate`), with the
+ *  grass clumps that frame grew counted per screen cell (`grassCells`). */
+export interface ReelPlate extends Omit<FramePlate, "clumps"> {
   file: string;
-  png: Promise<Blob>;
-  classes: Promise<Blob>;
-  plain: Promise<Blob>;
   grass: Promise<number[]>;
 }
 
@@ -93,7 +88,7 @@ export function createReelRun(
   scene: BackdropScene,
   tickHz: number,
   onDone: (result: ReelResult) => void,
-  { plates: platesWanted = false }: { plates?: boolean } = {},
+  { plates = false }: { plates?: boolean } = {},
 ) {
   const durationMs = scene.reel.shots.reduce((sum, shot) => sum + shot.seconds * 1000, 0);
   const recording = new BenchmarkRecording(durationMs);
@@ -110,7 +105,7 @@ export function createReelRun(
   let tracked: { follow: number; at: [number, number]; now: number } | null = null;
   const capture: PresentationSample[] = [];
   const frames: PresentationFrame[] = [];
-  const plates: ReelPlate[] = [];
+  const plated: ReelPlate[] = [];
   let lens: Lens | null = null;
   let light: LightPresentation | null = null;
   let exportTables: (() => UploadedTables) | null = null;
@@ -143,12 +138,13 @@ export function createReelRun(
       frames,
       lens,
       light,
-      plates,
+      plates: plated,
       tables,
     });
   };
   const sample = (now: number) => sampleReel(scene.reel, recording.elapsed(now) / 1000);
   const pilot: ViewportPilot = {
+    plates,
     attach(frame) {
       stats = frame.stats;
       adapter = frame.adapter;
@@ -164,17 +160,7 @@ export function createReelRun(
         target: [lastSubject[0] + s.pose.target[0], lastSubject[1] + s.pose.target[1]],
       };
     },
-    frame({
-      now,
-      cpuMs,
-      camera,
-      simTime,
-      canvas,
-      readback,
-      grassClumps,
-      readbackClasses,
-      readbackPlain,
-    }) {
+    frame({ now, cpuMs, camera, simTime, canvas, plate: readPlate }) {
       if (!warm || finished) return;
       if (!recording.started) {
         recording.start(now);
@@ -191,30 +177,22 @@ export function createReelRun(
       recording.frame({ now, cpuMs, camera: pose, intended: pilot.pose(now)!, phase: scene.map });
       const index = frames.length;
       const previousMs = frames.at(-1)?.reelMs ?? 0;
-      const plate =
-        platesWanted && plateShot(scene.reel, previousMs / 1000, reelMs / 1000) !== null
-          ? plateFile(index)
-          : null;
       // Read back now, in the task that drew it, before the canvas presents.
-      if (plate) {
-        // What the frame drew is read first: the offscreen draws after it
-        // change the frame (the plain one takes the grass away) before
-        // putting it back.
-        const png = readback();
-        const grass = grassClumps().then((clumps) =>
-          grassCells(
-            clumps.map((c) => c.root),
-            camera,
-            canvas,
-          ),
-        );
+      let plate: string | null = null;
+      if (readPlate && plateShot(scene.reel, previousMs / 1000, reelMs / 1000) !== null) {
+        plate = plateFile(index);
+        const { clumps, ...pictures } = readPlate();
         tables ??= exportTables?.() ?? null;
-        plates.push({
+        plated.push({
           file: plate,
-          png,
-          grass,
-          classes: readbackClasses(),
-          plain: readbackPlain(),
+          ...pictures,
+          grass: clumps.then((rows) =>
+            grassCells(
+              rows.map((c) => c.root),
+              camera,
+              canvas,
+            ),
+          ),
         });
       }
       lens ??= { fovY: camera.fovY, near: camera.near, depth: "reverse-z", far: "infinite" };

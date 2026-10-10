@@ -326,7 +326,10 @@ export async function createWorldPass(
       sun,
       eye,
     );
-    const shaded = std.add(std.mul(lit.xyz, std.mix(terrainTuning.water.shadow, 1, sun)), paintGlow(paint));
+    const shaded = std.add(
+      std.mul(lit.xyz, std.mix(terrainTuning.water.shadow, 1, sun)),
+      paintGlow(paint),
+    );
     const seen = paintedSeen(fogTerm(v.world, n, v.clip.xy, fogIsGround()), paint);
     const alpha = std.max(surface.w, paint.w);
     return { color: d.vec4f(shaded, alpha), fog: fogCoverage(seen, alpha) };

@@ -66,6 +66,14 @@ postprocessing, so grading and fog cannot change their information colors.
 room and glass geometry; alpha cannot silently acquire a second meaning in a pass.
 Numeric layouts and pipeline formats belong to their source owners, not this guide.
 
+The ground's and the grass's look numbers that are not the biome's live in one
+tuning table each ([terrain](src/terrain/terrainTuning.ts),
+[grass](src/terrain/grassTuning.ts)), spliced into the WGSL as constants; hash
+multipliers, decorrelation offsets and lattice turns stay in the shader as part of
+the formula. A second client reads the same tables, and the frame's
+`uploadedTables` hands it the ground's and grass's GPU tables word for word, each
+with a layout derived from its struct ([word tables](src/frame/wordTables.ts)).
+
 Placement and order previews (a unit being placed, a held facing drag, every
 ordered destination with Space held) name the same installed appearances and pose
 as a real unit, one per soldier for a squad.

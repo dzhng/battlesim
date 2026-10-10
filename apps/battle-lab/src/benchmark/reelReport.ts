@@ -2,7 +2,11 @@ import { sunDirection } from "@packages/battle-renderer/src/light/sceneLight";
 import { terrainTuning } from "@packages/battle-renderer/src/terrain/terrainTuning";
 import { grassTuning } from "@packages/battle-renderer/src/terrain/grassTuning";
 import { BenchmarkRecording } from "@web/battle/benchmark/recording";
-import { MENU_REEL_WORKLOAD, menuReelFingerprint } from "@web/battle/benchmark/menuReel";
+import {
+  MENU_REEL_WORKLOAD,
+  menuReelFingerprint,
+  menuReelWorkload,
+} from "@web/battle/benchmark/menuReel";
 import { APP_COMMIT } from "../buildIdentity";
 import type { BenchmarkOutcome } from "@web/battle/benchmark/report";
 import type { ReelResult } from "./reelRun";
@@ -15,29 +19,31 @@ import type {
   PresentationLayer,
 } from "@web/battle/benchmark/visualPresentation";
 
-/** A scene as the report times it. */
-type TimedScene = { map: string; reel: { shots: readonly { seconds: number }[] } };
-
-const reelMs = (scene: TimedScene) =>
+const reelMs = (scene: { reel: { shots: readonly { seconds: number }[] } }) =>
   scene.reel.shots.reduce((sum, shot) => sum + shot.seconds * 1000, 0);
 
-/** The report of a run of `scenes` (the whole workload by default) that
- *  drew `layers`; `plates` read control plates back, which costs those
- *  frames their timing. */
+/** The report of a run that filmed `maps`' scenes (the whole reel by
+ *  default) and drew `layers`; `plates` read control plates back, which
+ *  costs those frames their timing. The report's workload is what ran, so a
+ *  run of some scenes never stands for the whole reel; each capture names
+ *  its scene within the whole reel. */
 export function createReelReport(
   results: readonly ReelResult[],
   {
-    scenes = MENU_REEL_WORKLOAD.scenes,
+    maps,
     plates = false,
     layers = [],
     interruption,
   }: {
-    scenes?: readonly TimedScene[];
+    maps?: readonly string[];
     plates?: boolean;
     layers?: readonly PresentationLayer[];
     interruption?: BenchmarkOutcome;
   } = {},
 ) {
+  const workload = menuReelWorkload(maps);
+  const fingerprint = menuReelFingerprint(workload);
+  const { scenes } = workload;
   const durationMs = scenes.reduce((sum, s) => sum + reelMs(s), 0);
   const merged = new BenchmarkRecording(durationMs);
   let offset = 0;
@@ -99,12 +105,12 @@ export function createReelReport(
   return {
     kind: "graphics-test" as const,
     canonical: {
-      workloadId: MENU_REEL_WORKLOAD.id,
-      workloadVersion: MENU_REEL_WORKLOAD.version,
-      fingerprint: menuReelFingerprint(),
+      workloadId: workload.id,
+      workloadVersion: workload.version,
+      fingerprint,
       subjectTrackingLagSeconds: 0.5,
       plateComposition: "standalone_center" as const,
-      sceneIds: MENU_REEL_WORKLOAD.scenes.map((scene) => scene.map),
+      sceneIds: scenes.map((scene) => scene.map),
     },
     identity: {
       userAgent: host?.userAgent ?? "unknown",
@@ -128,8 +134,8 @@ export function createReelReport(
       /** Reading a plate back stalls its frame, so a run with plates measures nothing. */
       frameTimingComparable: !plates,
     },
-    workload: MENU_REEL_WORKLOAD,
-    fingerprint: menuReelFingerprint(),
+    workload,
+    fingerprint,
     durationMs,
     recordedMs: offset,
     outcome:

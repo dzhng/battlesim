@@ -7,7 +7,6 @@ import {
   type PresentationFrame,
 } from "@web/battle/benchmark/presentationCapture";
 import {
-  readTableArtifact,
   validateVisualPresentation,
   writeVisualPresentation,
   type DrawnPresentation,
@@ -136,6 +135,11 @@ async function written(captureJson: string, counts: GrassCount[] = []) {
   return { manifest: JSON.parse(manifest) as VisualPresentation, artifacts };
 }
 const sha256 = (bytes: Uint8Array | string) => createHash("sha256").update(bytes).digest("hex");
+/** An artifact file's bytes read back as little-endian u32 words. */
+const wordsOf = (bytes: Uint8Array) => {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  return Uint32Array.from({ length: bytes.length / 4 }, (_, i) => view.getUint32(i * 4, true));
+};
 
 test("the manifest names its battle by the capture's workload and the hashes of both files", async () => {
   const captureJson = encodePresentationCapture(capture([frame(0), frame(1)]));
@@ -213,24 +217,12 @@ test("each terrain table is an artifact of its words, little-endian, named by th
       words: table.words.length,
       layout: table.layout,
     });
-    expect(await readTableArtifact("terrain", entry, bytes)).toEqual(table.words);
+    expect(wordsOf(bytes)).toEqual(table.words);
   }
   // Little-endian: the first height's f32 1.5 lies low byte first.
   const heights = artifacts[0].bytes;
   expect(new DataView(heights.buffer, heights.byteOffset).getFloat32(16, true)).toBe(1.5);
   expect(Array.from(heights.subarray(16, 20))).toEqual([0, 0, 0xc0, 0x3f]);
-});
-
-test("an artifact whose bytes are not the ones the manifest hashed is refused", async () => {
-  const { manifest, artifacts } = await written(platedCapture(), grassCounts);
-  const [entry] = manifest.terrain;
-  const bytes = artifacts[0].bytes;
-  const tampered = bytes.slice();
-  tampered[20] ^= 1;
-  await expect(readTableArtifact("terrain", entry, tampered)).rejects.toThrow(/sha256/);
-  await expect(
-    readTableArtifact("terrain", entry, bytes.subarray(0, bytes.length - 4)),
-  ).rejects.toThrow(/words/);
 });
 
 test("grass counts hold one row of twelve cells for each plate the capture drew, and only those", async () => {
@@ -304,9 +296,7 @@ test("the grass tables are artifacts beside the terrain's, with the field's cons
     expect(files[i].file).toBe(`grass-${entry.name}.u32`);
     expect(entry.sha256).toBe(sha256(files[i].bytes));
     expect(entry.layout).toEqual(grass.tables[entry.name].layout);
-    expect(await readTableArtifact("grass", entry, files[i].bytes)).toEqual(
-      grass.tables[entry.name].words,
-    );
+    expect(wordsOf(files[i].bytes)).toEqual(grass.tables[entry.name].words);
   }
 });
 
@@ -330,7 +320,9 @@ test("the validator refuses a grass section with a missing table, a stray consta
   const { edgeM: _edge, ...noEdge } = manifest.grass.constants;
   expect(reject({ constants: noEdge })).toThrow(/grass/);
   expect(reject({ constants: { ...manifest.grass.constants, edgeM: -1 } })).toThrow(/grass/);
-  expect(reject({ constants: { ...manifest.grass.constants, heightVariation: [0.8] } })).toThrow(/grass/);
+  expect(reject({ constants: { ...manifest.grass.constants, heightVariation: [0.8] } })).toThrow(
+    /grass/,
+  );
   expect(reject({ kinds: [] })).toThrow(/grass/);
   expect(reject({ kinds: ["wheat", "wheat"] })).toThrow(/grass/);
   expect(reject({ seed: 1 })).toThrow(/grass/);

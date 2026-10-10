@@ -37,8 +37,10 @@ async function mount(
   const { LoadingTasks } = await import("@apps/battle-lab/src/LabLoading");
   gpu.resolve = null;
   gpu.destroyed = false;
+  const configure = vi.fn();
+  vi.stubGlobal("GPUTextureUsage", { COPY_SRC: 1, RENDER_ATTACHMENT: 16 });
   vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
-    configure() {},
+    configure,
     getCurrentTexture: () => ({ createView: () => ({}) }),
     unconfigure: vi.fn(),
   } as unknown as GPUCanvasContext);
@@ -55,7 +57,7 @@ async function mount(
   const view = render(<LabViewport {...props} />, {
     wrapper: ({ children }) => <LoadingTasks report={report}>{children}</LoadingTasks>,
   });
-  return { view, props, frames, Viewport: LabViewport };
+  return { view, props, frames, configure, Viewport: LabViewport };
 }
 
 afterEach(() => {
@@ -216,4 +218,17 @@ test("a covered viewport ignores camera keys and resumes steering when uncovered
   expect(window.__lab!.camera!().target).not.toEqual(before);
   fireEvent.keyUp(window, { code: "KeyW" });
   view.unmount();
+});
+
+test("only a pilot that reads plates back makes the canvas copyable", async () => {
+  const usage = async (pilot?: ComponentProps<typeof LabViewport>["pilot"]) => {
+    const { view, configure } = await mount({ pilot });
+    await act(async () => {});
+    view.unmount();
+    return configure.mock.calls[0][0].usage;
+  };
+  const pose = () => null;
+  expect(await usage()).toBe(16);
+  expect(await usage({ pose })).toBe(16);
+  expect(await usage({ pose, plates: true })).toBe(16 | 1);
 });

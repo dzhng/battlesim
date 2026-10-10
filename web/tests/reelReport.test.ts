@@ -2,6 +2,7 @@
 import { expect, test } from "vitest";
 import { BenchmarkRecording } from "@web/battle/benchmark/recording";
 import { createReelReport } from "@apps/battle-lab/src/benchmark/reelReport";
+import { MENU_REEL_WORKLOAD, menuReelFingerprint } from "@web/battle/benchmark/menuReel";
 import type { ReelResult } from "@apps/battle-lab/src/benchmark/reelRun";
 import { gameLight } from "@apps/battle-lab/src/gameLight";
 import { sunDirection } from "@packages/battle-renderer/src/light/sceneLight";
@@ -96,12 +97,28 @@ test("exports each scene's capture with the frames it drew and what it drew them
   expect(report.capture.frameTimingComparable).toBe(true);
 });
 
-test("a run of chosen scenes is complete when they are; reading plates back makes its timing incomparable", () => {
-  const chosen = result("chosen", 1000, [10]);
-  const report = createReelReport([chosen], { scenes: [chosen.scene], plates: true });
+test("a run of some scenes reports their workload, never the whole reel's", () => {
+  const whole = createReelReport([]);
+  expect(whole.workload).toEqual(MENU_REEL_WORKLOAD);
+  expect(whole.fingerprint).toBe(menuReelFingerprint());
+  const last = MENU_REEL_WORKLOAD.scenes.at(-1)!;
+  const report = createReelReport([result(last.map, 1000, [10])], {
+    maps: [last.map],
+    plates: true,
+  });
   expect(report.outcome.status).toBe("complete");
-  expect(report.tour.phases.map((p) => p.name)).toEqual(["chosen"]);
+  expect(report.workload.scenes).toEqual([last]);
+  expect(report.canonical.sceneIds).toEqual([last.map]);
+  expect(report.fingerprint).not.toBe(menuReelFingerprint());
+  expect(report.canonical.fingerprint).toBe(report.fingerprint);
+  expect(report.tour.phases.map((p) => p.name)).toEqual([last.map]);
+  expect(report.durationMs).toBe(last.reel.shots.reduce((ms, shot) => ms + shot.seconds * 1000, 0));
   expect(report.capture.frameTimingComparable).toBe(false);
+  // Its capture still names the scene within the whole reel.
+  expect(JSON.parse(report.presentationCaptureJson[0]).workload.fingerprint).toBe(
+    menuReelFingerprint(),
+  );
+  expect(() => createReelReport([], { maps: ["nowhere"] })).toThrow(/nowhere/);
 });
 
 test("a preparation failure stays failed in the exported report even before a scene can start", () => {

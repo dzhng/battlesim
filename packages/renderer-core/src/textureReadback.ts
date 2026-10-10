@@ -1,19 +1,20 @@
-/** The canvas texture `texture`, drawn in this task and not yet presented,
- *  as a PNG of what the player saw: its colour bytes in RGBA order, opaque.
- *  The copy is queued at once, so it reads this frame; mapping and encoding
- *  finish later. The canvas must be configured with `COPY_SRC` usage. */
-export function readCanvasPng(device: GPUDevice, texture: GPUTexture): Promise<Blob> {
+/** The 8-bit colour texture `texture` (the canvas's, or one drawn like it)
+ *  as an opaque PNG, its bytes in RGBA order. The copy is queued at once,
+ *  so it reads what was drawn into the texture so far (for the canvas: this
+ *  task's frame, before it presents); mapping and encoding finish later.
+ *  The texture needs `COPY_SRC` usage. */
+export function readTexturePng(device: GPUDevice, texture: GPUTexture): Promise<Blob> {
   const { width, height, format } = texture;
   if (format !== "bgra8unorm" && format !== "rgba8unorm")
-    return Promise.reject(new Error(`cannot read back a ${format} canvas`));
+    return Promise.reject(new Error(`cannot read back a ${format} texture`));
   // Copies to a buffer lay rows out at a multiple of 256 bytes.
   const stride = Math.ceil((width * 4) / 256) * 256;
   const buffer = device.createBuffer({
-    label: "canvas-readback",
+    label: "texture-readback",
     size: stride * height,
     usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
   });
-  const encoder = device.createCommandEncoder({ label: "canvas-readback" });
+  const encoder = device.createCommandEncoder({ label: "texture-readback" });
   encoder.copyTextureToBuffer({ texture }, { buffer, bytesPerRow: stride }, { width, height });
   device.queue.submit([encoder.finish()]);
   return (async () => {

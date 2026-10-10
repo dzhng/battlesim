@@ -66,14 +66,18 @@ export const plainPlateFile = (plate: string) => plate.replace(/^plate-/, "plain
 const SAMPLE_KEYS = ["tick", "digest", "publication"];
 const FRAME_KEYS = ["index", "reelMs", "tick", "simTime", "eye", "target", "up", "canvas", "plate"];
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null;
+/** The strict readers of both parity formats share these. */
+export const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
 
-/** Exactly `keys`: an old or foreign shape is refused, not read in part. */
-const hasKeys = (value: unknown, keys: readonly string[]): value is Record<string, unknown> =>
+/** An object with exactly `keys`: an old or foreign shape is refused, not read in part. */
+export const hasKeys = (
+  value: unknown,
+  keys: readonly string[],
+): value is Record<string, unknown> =>
   isRecord(value) && Object.keys(value).length === keys.length && keys.every((key) => key in value);
 
-const finite = (value: unknown): value is number =>
+export const finite = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value);
 
 const isPoint = (value: unknown): boolean =>

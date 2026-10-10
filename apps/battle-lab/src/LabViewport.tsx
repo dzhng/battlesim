@@ -21,7 +21,7 @@ import {
   type WorldRay,
 } from "@packages/renderer-core/src/camera3d";
 import { liveCamera, type ViewportCamera } from "@packages/renderer-core/src/cameraUniform";
-import { readCanvasPng } from "@packages/renderer-core/src/canvasReadback";
+import { readTexturePng } from "@packages/renderer-core/src/textureReadback";
 import {
   CAMERA_KEYS,
   CameraController,
@@ -184,8 +184,22 @@ export interface ViewportFrame {
   ground?: GroundMarks | null;
 }
 
+/** A drawn frame read back for a second client to draw against: the canvas
+ *  as the player saw it, the grass clumps the frame grew, and the same frame
+ *  drawn again offscreen as its ground-class view and lit without its grass.
+ *  The canvas and the next frame are untouched. */
+export interface FramePlate {
+  png: Promise<Blob>;
+  clumps: Promise<readonly Pick<GrassClumpRow, "root">[]>;
+  classes: Promise<Blob>;
+  plain: Promise<Blob>;
+}
+
 /** A script's hold on the viewport's camera. */
 export interface ViewportPilot {
+  /** The pilot reads drawn frames back (`frame`'s `plate`). Only then may
+   *  the canvas be copied from, so no other frame pays for it. */
+  plates?: boolean;
   /** The battle frame is up: the adapter, the light it was built with, the
    *  frame's own statistics (its rolling GPU frame time from
    *  `timestamp-query`, and live memory), and its ground's and grass's GPU
@@ -201,22 +215,16 @@ export interface ViewportPilot {
    *  Null leaves the camera to the player for that frame. */
   pose(now: number): CameraPose | null;
   /** A drawn frame: its main-thread cost, the camera drawn, the sim time
-   *  it drew (the presentation clock) and the canvas size in pixels.
-   *  `readback` reads this frame's canvas as a PNG, `grassClumps` the grass
-   *  it grew; `readbackClasses` and `readbackPlain` draw the same frame
-   *  again offscreen, as its ground-class view and lit without its grass,
-   *  and read it as a PNG (debug readbacks). Called during `frame`, the task
-   *  that drew it, each reads exactly that frame. */
+   *  it drew (the presentation clock) and the canvas size in pixels. With
+   *  `plates`, `plate` reads this frame back; called during `frame`, the
+   *  task that drew it, it reads exactly that frame. */
   frame?(f: {
     now: number;
     cpuMs: number;
     camera: Camera3DParams;
     simTime: number;
     canvas: readonly [number, number];
-    readback: () => Promise<Blob>;
-    grassClumps: () => Promise<readonly Pick<GrassClumpRow, "root">[]>;
-    readbackClasses: () => Promise<Blob>;
-    readbackPlain: () => Promise<Blob>;
+    plate?: () => FramePlate;
   }): void;
 }
 
@@ -658,12 +666,12 @@ export function LabViewport({
         const context = canvas.getContext("webgpu");
         if (!context) throw new Error("Canvas refused a WebGPU context.");
         canvasContext = context;
+        const plates = pilot?.plates === true;
         context.configure({
           device,
           format: info.format,
           alphaMode: "opaque",
-          // A pilot may read a drawn frame back (`readback`).
-          usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
+          usage: GPUTextureUsage.RENDER_ATTACHMENT | (plates ? GPUTextureUsage.COPY_SRC : 0),
         });
         // One pixel per CSS pixel, on any display: a high-density screen
         // scales the battle up rather than drawing it at its own density.
@@ -755,15 +763,13 @@ export function LabViewport({
           dirty = false;
           scene.render(context.getCurrentTexture().createView(), snapshot());
         };
-        const readback = () => readCanvasPng(device!, context.getCurrentTexture());
-        const grassClumps = () => scene.grassProbes.clumps();
         /** The view the lab chose (`setFrameView`), and whether it took the grass away. */
         let frameView: FrameView = "final";
         let grassSuppressed = false;
         /** The frame just drawn again with `change` on, into a texture of the
          *  canvas's size and format, read back; `change(false)` puts the
          *  frame back, so the canvas and the next frame are as they were. */
-        const readbackDrawn = (change: (on: boolean) => void) => {
+        const readDrawn = (change: (on: boolean) => void) => {
           const texture = device!.createTexture({
             label: "plate-readback",
             size: [canvas.width, canvas.height],
@@ -773,12 +779,16 @@ export function LabViewport({
           change(true);
           scene.render(texture.createView(), snapshot());
           change(false);
-          return readCanvasPng(device!, texture).finally(() => texture.destroy());
+          return readTexturePng(device!, texture).finally(() => texture.destroy());
         };
-        const readbackClasses = () =>
-          readbackDrawn((on) => scene.setView(on ? "ground-classes" : frameView));
-        const readbackPlain = () =>
-          readbackDrawn((on) => scene.grassProbes.suppress(on || grassSuppressed));
+        // What the frame drew is read first: the offscreen draws change the
+        // frame (the plain one takes the grass away) before putting it back.
+        const plate = (): FramePlate => ({
+          png: readTexturePng(device!, context.getCurrentTexture()),
+          clumps: scene.grassProbes.clumps(),
+          classes: readDrawn((on) => scene.setView(on ? "ground-classes" : frameView)),
+          plain: readDrawn((on) => scene.grassProbes.suppress(on || grassSuppressed)),
+        });
         redrawRef.current = () => (dirty = true);
         let pointer: { x: number; y: number } | null = null;
         let modifiers = { ctrl: false, shift: false };
@@ -882,10 +892,7 @@ export function LabViewport({
             camera,
             simTime: clock,
             canvas: [canvas.width, canvas.height],
-            readback,
-            grassClumps,
-            readbackClasses,
-            readbackPlain,
+            plate: plates ? plate : undefined,
           });
           raf = requestAnimationFrame(loop);
         };
