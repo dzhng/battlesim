@@ -37,6 +37,7 @@ func run() -> void:
 	root.add_child(reel)
 	reel.set_process(false)
 	check(reel._viewport_image() == null, "headless lifecycle runs must not attempt a drawable viewport readback")
+	check(not reel._display_backed(), "headless lifecycle runs must disclose that no display backend is active")
 	check(reel._resolve_path("throwaway") == ProjectSettings.globalize_path("res://../../throwaway"), "relative renderer paths must resolve from the repository root")
 	check(reel._resolve_path("throwaway/report.json") == ProjectSettings.globalize_path("res://../../throwaway/report.json"), "relative report paths must resolve from the repository root")
 	check(reel._authored_map_directory() == directory, "authored map override must be the shared map directory")

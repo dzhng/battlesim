@@ -839,12 +839,15 @@ func _save_cut(scene_to_save: int, shot_to_save: int) -> void:
 			cuts_saved += 1
 
 func _viewport_image() -> Image:
-	if DisplayServer.get_name() == "headless":
+	if not _display_backed():
 		return null
 	var texture := get_viewport().get_texture()
 	if texture == null:
 		return null
 	return texture.get_image()
+
+func _display_backed() -> bool:
+	return DisplayServer.get_name() != "headless"
 
 func _write_report() -> void:
 	if intervals.is_empty():
@@ -869,7 +872,7 @@ func _write_report() -> void:
 		expected_cuts += scene.reel.shots.size()
 	var report := {
 		"schema": "godot-render-report/v1",
-		"identity": {"client": "godot", "renderer": ProjectSettings.get_setting("rendering/renderer/rendering_method", "unknown"), "viewport": [ProjectSettings.get_setting("display/window/size/viewport_width", 0), ProjectSettings.get_setting("display/window/size/viewport_height", 0)], "quality": "current-project-settings"},
+		"identity": {"client": "godot", "renderer": ProjectSettings.get_setting("rendering/renderer/rendering_method", "unknown"), "display_server": DisplayServer.get_name(), "display_backed": _display_backed(), "viewport": [ProjectSettings.get_setting("display/window/size/viewport_width", 0), ProjectSettings.get_setting("display/window/size/viewport_height", 0)], "quality": "current-project-settings"},
 		"candidate": "godot-menu-reel-camera-probe",
 		"comparison_ready": false,
 		"comparison_blocker": _comparison_blocker(),
