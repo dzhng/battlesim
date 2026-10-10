@@ -278,26 +278,6 @@
       "source_path": "assets/source/roster/disabled/eastern_sukhoi_flanker_family_su_35s.glb"
     },
     {
-      "id": "eastern_t_14_armata_main_battle_tank",
-      "family": "t_14_armata",
-      "category": "veh",
-      "model_status": "reference_built",
-      "source_family": "t14",
-      "source_kind": "ground_vehicle",
-      "disabled_reason": "Ground profile and model admission pending",
-      "source_path": "assets/source/roster/t14/eastern_t_14_armata_main_battle_tank.glb"
-    },
-    {
-      "id": "eastern_t_15_armata_heavy_ifv",
-      "family": "t_15_armata",
-      "category": "veh",
-      "model_status": "reference_built",
-      "source_family": "t15",
-      "source_kind": "ground_vehicle",
-      "disabled_reason": "Ground profile and model admission pending",
-      "source_path": "assets/source/roster/t15/eastern_t_15_armata_heavy_ifv.glb"
-    },
-    {
       "id": "eastern_z_10_attack_helicopter",
       "family": "z_10",
       "category": "hel",

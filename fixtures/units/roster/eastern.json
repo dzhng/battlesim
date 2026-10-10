@@ -1294,7 +1294,9 @@
       "description": "Main battle tank",
       "faction": "eastern",
       "family": "t_14_armata",
-      "roles": [],
+      "roles": [
+        "mbt"
+      ],
       "cost": 440,
       "roster": {
         "factions": [
@@ -1304,19 +1306,84 @@
         "variant": "Main battle tank",
         "family_name": "T-14 Armata"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "advanced-mbt",
-        "weapons": [
-          {
-            "name": "Main Gun",
-            "icon": "ap_shell"
+      "extends": "roster_profile_advanced_mbt",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            4.35,
+            1.75,
+            1.65
+          ],
+          "eye_m": 3.1,
+          "hp": 135,
+          "armor": {
+            "front": 260,
+            "side": 130,
+            "rear": 70,
+            "roof": 45,
+            "ricochet": {
+              "front": 0.5,
+              "side": 0.35,
+              "rear": 0.2,
+              "roof": 0.6
+            }
           },
-          {
-            "name": "HMG",
-            "icon": "hmg"
-          }
-        ]
+          "weight_class": "heavy",
+          "push_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 28,
+          "road_kmh": 65,
+          "turn_deg_s": 45,
+          "reverse_fraction": 0.4
+        }
+      },
+      "mounts": [
+        {
+          "id": "cannon",
+          "name": "Main Gun",
+          "weapons": [
+            "advanced_tank_ap",
+            "advanced_tank_he"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            1.98
+          ],
+          "muzzle_m": [
+            5.36,
+            0,
+            0.594
+          ]
+        },
+        {
+          "id": "HMG",
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            -0.25,
+            -0.58,
+            3.102
+          ],
+          "muzzle_m": [
+            1.43,
+            0,
+            0.32
+          ],
+          "on": "cannon"
+        }
+      ],
+      "appearance": "eastern_t_14_armata_main_battle_tank",
+      "sensors": {
+        "on": "cannon"
       }
     },
     "eastern_t_15_armata_heavy_ifv": {
@@ -1324,7 +1391,9 @@
       "description": "Heavy IFV; ground combat platform, passenger carriage not implemented",
       "faction": "eastern",
       "family": "t_15_armata",
-      "roles": [],
+      "roles": [
+        "mbt"
+      ],
       "cost": 300,
       "roster": {
         "factions": [
@@ -1334,19 +1403,83 @@
         "variant": "Heavy IFV",
         "family_name": "T-15 Armata"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "heavy-ifv",
-        "weapons": [
-          {
-            "name": "Autocannon",
-            "icon": "autocannon"
+      "extends": "roster_profile_heavy_ifv",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            4.75,
+            1.75,
+            1.6
+          ],
+          "eye_m": 3.2,
+          "hp": 120,
+          "armor": {
+            "front": 130,
+            "side": 75,
+            "rear": 40,
+            "roof": 30,
+            "ricochet": {
+              "front": 0.5,
+              "side": 0.35,
+              "rear": 0.2,
+              "roof": 0.6
+            }
           },
-          {
-            "name": "Kornet",
-            "icon": "atgm"
-          }
-        ]
+          "weight_class": "heavy",
+          "push_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 25,
+          "road_kmh": 60,
+          "turn_deg_s": 45,
+          "reverse_fraction": 0.4
+        }
+      },
+      "mounts": [
+        {
+          "id": "autocannon",
+          "name": "Autocannon",
+          "weapons": [
+            "autocannon"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            2.22
+          ],
+          "muzzle_m": [
+            2.94,
+            0,
+            0.504
+          ]
+        },
+        {
+          "id": "launcher",
+          "name": "Kornet",
+          "weapons": [
+            "kornet"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            1.3,
+            2.696
+          ],
+          "muzzle_m": [
+            1.05,
+            0,
+            0
+          ],
+          "on": "autocannon"
+        }
+      ],
+      "appearance": "eastern_t_15_armata_heavy_ifv",
+      "sensors": {
+        "on": "autocannon"
       }
     },
     "eastern_t_72_t_72b3_2016": {
