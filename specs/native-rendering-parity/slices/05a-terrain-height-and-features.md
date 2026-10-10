@@ -11,7 +11,7 @@
   - `terrain/ground.gdshaderinc` holds the ground-class formulas. Slice 06a includes it.
   - `terrain/terrain_layer.gd` builds the ground mesh.
 - The flat ground plane, the centimetre layer offsets and the `max(0, z)` unit clamp are deleted (`reel.gd:291-404, 1168`).
-- **Class view:** both clients draw a ground-class view of the same frames. The browser uses its existing class view (`battleFrame.ts:345-348`, decoded by `groundClasses.ts`); native adds a class branch to its terrain shader.
+- **Class view:** both clients draw a ground-class view of the same frames. The browser side is built (`42d558f6`): `class-<index>.png` sits beside each plate, and its byte encoding is documented in `web/src/battle/benchmark/README.md`. Agreement is measured over pixels that are non-black on both sides, away from edges. The browser uses its existing class view (`battleFrame.ts:345-348`, decoded by `groundClasses.ts`); native adds a class branch to its terrain shader.
 
 **Runnable artifact:** lit plate pairs plus class-view plate pairs from the same frames.
 
