@@ -293,8 +293,18 @@ pub struct Unit {
     pub reversing: bool,
     /// Actual accepted hull speed; negative while reversing.
     pub drive_speed_mps: f64,
-    /// A tracked vehicle's ordered facing (Q9), still to pivot to at rest.
+    /// A tracked vehicle's or an aircraft's ordered facing (Q9), still to
+    /// turn to at rest.
     pub turn_to: Option<f64>,
+    /// An aircraft's flight; `None` on the ground.
+    pub air: Option<AirState>,
+}
+
+/// What an aircraft carries from tick to tick.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct AirState {
+    /// Over the ground, metres a second.
+    pub velocity: V2,
 }
 
 /// How a unit moves: over the ground, planned on the navigation grid, or
@@ -532,6 +542,9 @@ impl Unit {
             d.f64(self.drive_speed_mps);
         }
         d.opt_f64(self.turn_to);
+        if let Some(a) = self.air {
+            d.f64(a.velocity.x).f64(a.velocity.y);
+        }
         match self.manoeuvre {
             Some(m) => d.u64(1).f64(m.turn).f64(m.driven_m),
             None => d.u64(0),

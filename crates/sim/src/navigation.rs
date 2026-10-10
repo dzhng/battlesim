@@ -39,6 +39,7 @@ use contract::scenario::PushClass;
 use crate::math::{v2, Obb2, V2};
 use crate::world::PropId;
 
+pub mod air;
 mod base;
 mod cells;
 mod check;

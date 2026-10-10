@@ -461,6 +461,8 @@ fn spawn_unit(
         pursuit: None,
         planned_goal: None,
         engagement: u.engagement.unwrap_or(Engagement::FireAtWill),
+        air: (t.mobility.layer() == contract::catalog::AltitudeLayer::LowAir)
+            .then(units::AirState::default),
         mounts,
         attackers: BTreeSet::new(),
         reach: Default::default(),
