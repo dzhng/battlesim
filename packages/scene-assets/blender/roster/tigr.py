@@ -13,7 +13,8 @@ door carrying the spare wheel; the roof hatch. The walk-around vehicle is
 unarmed; the roster's Tigr carries a Kord on the roof hatch ring, its gunner
 standing in the hatch (reference gap noted).
 
-Built to the catalog frame (hull 5.67 x 2.2 x 2.0 m, HMG pivot 1.82 m): the
+Built to the catalog frame (hull 5.67 x 2.2 x 2.0 m, HMG pivot 1.82 m up and
+0.15 m behind amidships, over the roof hatch the photos show): the
 photos put the roof near 2.45 m. Nothing here moves the frame: the wheels
 are drawn true and the cab lower, so the body reads squat
 (specs/done/unit-models/choices.md).
@@ -148,9 +149,10 @@ def kord(v, station, pitch, pivot):
     cyl("kord_brake", 0.035, 0.10, (reach - 0.05, 0, 0), "X", m["dark"], pitch, seg=10, lods=MID)
     box("kord_ammo", (0.26, 0.10, 0.18), (0.10, -0.13, -0.06), m["dark"], pitch, bevel=0.01, lods=MID)
     if not v.wreck:
-        v.crew.append(("gunner", station, (-0.40, 0.0, ROOF - 0.20),
-                       ((-0.18, 0.12, pivot.z + 0.28), (-0.18, -0.12, pivot.z + 0.28)),
-                       ((-0.42, 0.12, ROOF - 1.05), (-0.42, -0.12, ROOF - 1.05))))
+        x = pivot.x
+        v.crew.append(("gunner", station, (x - 0.40, 0.0, ROOF - 0.20),
+                       ((x - 0.18, 0.12, pivot.z + 0.28), (x - 0.18, -0.12, pivot.z + 0.28)),
+                       ((x - 0.42, 0.12, ROOF - 1.05), (x - 0.42, -0.12, ROOF - 1.05))))
 
 
 def wreck(variant, v):
