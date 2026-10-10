@@ -5,7 +5,7 @@ import { expect, test } from "vitest";
 import { vec3 } from "math";
 import { mountMuzzles, muzzleOffset } from "@packages/scene-assets/src/mountMuzzle";
 
-const [cannon, hmg] = mountMuzzles([
+const [, hmg] = mountMuzzles([
   { id: "cannon", on: null, pivot_m: [-1, 0, 1.45], muzzle_m: [5.9, 0, 0.55] },
   { id: "HMG", on: "cannon", pivot_m: [-1.25, -0.58, 2.35], muzzle_m: [1.43, 0, 0.32] },
 ]);
