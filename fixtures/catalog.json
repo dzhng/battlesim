@@ -11811,7 +11811,7 @@
               "name": "Autocannon",
               "on": null,
               "pivot_m": [
-                0.0,
+                -0.45,
                 0.0,
                 2.55
               ],
@@ -11832,7 +11832,7 @@
               "name": "Spike",
               "on": "autocannon",
               "pivot_m": [
-                0.0,
+                -0.45,
                 1.08,
                 2.95
               ],
@@ -24120,7 +24120,7 @@
           "name": "Autocannon",
           "on": null,
           "pivot_m": [
-            0.0,
+            -0.45,
             0.0,
             2.55
           ],
@@ -24142,7 +24142,7 @@
           "name": "Spike",
           "on": "autocannon",
           "pivot_m": [
-            0.0,
+            -0.45,
             1.08,
             2.95
           ],
