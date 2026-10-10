@@ -17,7 +17,8 @@ on a pintle ahead of the commander's hatch on the left, a mast behind; the
 hull's right rear. US desert tan (the Yuma photos; the unveiling vehicles
 are green).
 
-Built to the catalog frame (hull 7.0 x 3.4 x 2.98 m, gun axis 2.10 m up):
+Built to the catalog frame (hull 7.0 x 3.4 x 2.98 m, gun axis 2.10 m up,
+turret pivot 0.3 m behind the hull's middle):
 the hull's length over its towing lugs (the published 6.85 m hull is the
 plates), its width over the skirts and headlight boxes, and its height to
 the top of the commander's sight, the highest fixed part (the M2 aside). The
