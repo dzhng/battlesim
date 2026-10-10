@@ -142,6 +142,10 @@ export async function run(ctx) {
   ctx.check("blue saw the IFV that downed it before it fell", !!ifv, JSON.stringify(o.identified));
   ctx.check("blue saw the IFV's rounds climb at the Apache", fired, "no enemy round seen");
   if (!downed) return;
+  // Close on the airframe the tick it is hit, from the south, low: it hangs
+  // against the sky over the wood it will fall into.
+  const hitAt = o.crashes?.[0]?.position ?? downed.at;
+  await aim(page, hitAt, { distance: 55, pitch: 0.12, yaw: -Math.PI / 2 }, { onGround: false });
   await shoot("shoot-down", `shoot-down, tick ${o.tick}: hit, it falls on toward the wood`);
 
   // Its fall, then its wreck at rest in the wood, among the trees it felled.
@@ -153,6 +157,14 @@ export async function run(ctx) {
     const falling = o.crashes?.[0];
     if (falling && !midFall && falling.position[2] < downed.at[2] - 8) {
       midFall = true;
+      await aim(
+        page,
+        falling.position,
+        { distance: 70, pitch: 0.18, yaw: -Math.PI / 2 },
+        {
+          onGround: false,
+        },
+      );
       await shoot("falling", `falling, tick ${o.tick}: z ${falling.position[2].toFixed(1)} m`);
     }
     const wreck = o.knownProps.find((p) => p.wreckOf === APACHE);
@@ -167,8 +179,10 @@ export async function run(ctx) {
   const at = wreck.center;
   ctx.check("its wreck lies in the wood", inWood(at), JSON.stringify(at));
   const felled = o.fallenBodies.filter((f) => Math.hypot(f.at[0] - at[0], f.at[1] - at[1]) < 12);
-  // The wreck at rest, in the game's view from the south-east.
-  await aim(page, at, { distance: 75, pitch: 0.75, yaw: -1.25 });
+  // The wreck at rest, from nearly overhead (lower, the crowns round the
+  // gap hide it): the airframe burning in the gap its crash tore, the
+  // stumps of the trees it felled.
+  await aim(page, at, { distance: 48, pitch: 1.2, yaw: -1.25 });
   const rest = decode(await shoot("wreck", `wreck at rest, tick ${o.tick}: in the felled wood`));
   const scenery = await lab(page, () => window.__lab.stats().scenery.felled);
   ctx.check(
