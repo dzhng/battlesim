@@ -56,7 +56,7 @@ var fog_cell_nodes: Dictionary = {}
 func _ready() -> void:
 	startup_started_usec = Time.get_ticks_usec()
 	var configured := OS.get_environment("GODOT_REEL_SOURCE")
-	source_path = configured if not configured.is_empty() else ProjectSettings.globalize_path(DEFAULT_SOURCE)
+	source_path = _resolve_path(configured) if not configured.is_empty() else ProjectSettings.globalize_path(DEFAULT_SOURCE)
 	var file := FileAccess.open(source_path, FileAccess.READ)
 	if file == null:
 		push_error("unable to read menu reel source: " + source_path)
@@ -916,6 +916,8 @@ func _write_report() -> void:
 	var output_path := OS.get_environment("GODOT_REEL_REPORT")
 	if output_path.is_empty():
 		output_path = "user://godot-menu-reel-probe.json"
+	elif not output_path.begins_with("user://"):
+		output_path = _resolve_path(output_path)
 	var file := FileAccess.open(output_path, FileAccess.WRITE)
 	if file:
 		file.store_string(JSON.stringify(report, "  "))
