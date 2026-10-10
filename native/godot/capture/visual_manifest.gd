@@ -3,17 +3,22 @@ extends RefCounted
 ## Reader for one scene's `native-visual-presentation` manifest, written by the
 ## browser capture run beside its capture. The manifest names the battle (map,
 ## encounter, seed and the sha256 of the map and capture bytes), the viewport,
-## the lens and the layers the browser drew. Native renders only a battle whose
-## files match that identity exactly.
+## the lens, the light, the shader tuning tables, the layers the browser drew,
+## the terrain and grass tables (as hashed artifacts beside the manifest) and
+## the grass counts per plate.
+## Native renders only a battle whose files match that identity exactly.
 
 const Capture = preload("res://capture/presentation_capture.gd")
 
 const SCHEMA := "native-visual-presentation"
-const ROOT_KEYS := ["schema", "identity", "viewport", "lens", "layers", "omissions"]
+const ROOT_KEYS := ["schema", "identity", "viewport", "lens", "light", "tuning", "layers", "omissions", "terrain", "grass", "grassCounts"]
 const IDENTITY_KEYS := ["scene", "map", "encounter", "seed", "mapHash", "captureHash"]
 const VIEWPORT_KEYS := ["width", "height", "scale"]
 const LENS_KEYS := ["fovY", "near", "depth", "far"]
 const OMISSION_KEYS := ["owner", "reason", "sourceId"]
+const ARTIFACT_KEYS := ["name", "sha256", "words", "layout"]
+const GRASS_KEYS := ["tables", "constants", "kinds"]
+const GRASS_COUNT_KEYS := ["plate", "cells"]
 
 ## Reads `<dir>/manifest.json` and `<dir>/capture.json`, and the map named by
 ## the manifest from `<maps_dir>/<map>/map.json`.
@@ -88,6 +93,13 @@ static func _manifest_error(manifest: Variant) -> String:
 		return "lens.near must be a positive number"
 	if not (typeof(lens.depth) == TYPE_STRING and lens.depth == "reverse-z" and typeof(lens.far) == TYPE_STRING and lens.far == "infinite"):
 		return "lens must be reverse-z with an infinite far plane"
+	# The light is the browser's validated `presentation.light`; native reads
+	# only the sun direction and the backdrop reach so far.
+	var light = manifest.light
+	if typeof(light) != TYPE_DICTIONARY or not Capture.is_vector(light.get("sunDirection"), 3) or Capture.vector3(light.sunDirection).is_zero_approx():
+		return "light.sunDirection must be three finite numbers toward the sun"
+	if typeof(light.get("backdrop")) != TYPE_DICTIONARY or not Capture.is_number(light.backdrop.get("reach_m")) or float(light.backdrop.reach_m) < 0.0:
+		return "light.backdrop.reach_m must be a non-negative number"
 	if typeof(manifest.layers) != TYPE_ARRAY:
 		return "layers must be an array"
 	for at in manifest.layers.size():
@@ -103,6 +115,47 @@ static func _manifest_error(manifest: Variant) -> String:
 		for field in OMISSION_KEYS:
 			if not Capture.is_name(omission[field]):
 				return "omission.%s must be a non-empty string" % field
+	# Tuning, terrain and grass are checked for shape only until the slices
+	# that read them (05a to 06b) decode them.
+	shape = Capture.exact_keys(manifest.tuning, ["terrain", "grass"], "tuning")
+	if not shape.is_empty():
+		return shape
+	if typeof(manifest.tuning.terrain) != TYPE_DICTIONARY or typeof(manifest.tuning.grass) != TYPE_DICTIONARY:
+		return "tuning.terrain and tuning.grass must be objects"
+	shape = _artifacts_error(manifest.terrain, "terrain")
+	if not shape.is_empty():
+		return shape
+	shape = Capture.exact_keys(manifest.grass, GRASS_KEYS, "grass")
+	if not shape.is_empty():
+		return shape
+	shape = _artifacts_error(manifest.grass.tables, "grass.tables")
+	if not shape.is_empty():
+		return shape
+	if typeof(manifest.grass.constants) != TYPE_DICTIONARY:
+		return "grass.constants must be an object"
+	if typeof(manifest.grass.kinds) != TYPE_ARRAY or manifest.grass.kinds.is_empty() or not manifest.grass.kinds.all(func(kind): return Capture.is_name(kind)):
+		return "grass.kinds must be a non-empty list of names"
+	if typeof(manifest.grassCounts) != TYPE_ARRAY:
+		return "grassCounts must be an array"
+	for count in manifest.grassCounts:
+		shape = Capture.exact_keys(count, GRASS_COUNT_KEYS, "grass count")
+		if not shape.is_empty():
+			return shape
+		if not Capture.is_name(count.plate) or typeof(count.cells) != TYPE_ARRAY or not count.cells.all(func(cell): return Capture.is_integer(cell) and int(cell) >= 0):
+			return "grass count %s needs a plate and non-negative cell counts" % count.plate
+	return ""
+
+## An empty string when `artifacts` is a list of hashed-artifact records
+## `{name, sha256, words, layout}`.
+static func _artifacts_error(artifacts: Variant, what: String) -> String:
+	if typeof(artifacts) != TYPE_ARRAY:
+		return "%s must be an array" % what
+	for artifact in artifacts:
+		var shape := Capture.exact_keys(artifact, ARTIFACT_KEYS, what + " artifact")
+		if not shape.is_empty():
+			return shape
+		if not Capture.is_name(artifact.name) or not _is_sha256(artifact.sha256) or not Capture.is_integer(artifact.words) or int(artifact.words) < 0 or typeof(artifact.layout) != TYPE_DICTIONARY:
+			return "%s artifact %s needs a name, a sha256, a word count and a layout" % [what, artifact.name]
 	return ""
 
 static func _is_sha256(value: Variant) -> bool:

@@ -5,7 +5,8 @@ extends SceneTree
 
 const FIXTURE_RUN := "res://tests/fixtures/run"
 const FIXTURE_MAPS := "res://tests/fixtures/maps"
-const FIXTURE_SCENE := "fixture-town"
+## A trimmed real browser capture: paris-corner through its first plate frame.
+const FIXTURE_SCENE := "paris-corner"
 
 var failures: Array[String] = []
 

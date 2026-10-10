@@ -89,11 +89,11 @@ static func _frame_error(value: Variant, at: int, previous: Dictionary) -> Strin
 	if not previous.is_empty() and (float(value.reelMs) < float(previous.reelMs) or int(value.tick) < int(previous.tick) or float(value.simTime) < float(previous.simTime)):
 		return "reelMs, tick and simTime must not decrease"
 	for field in ["eye", "target", "up"]:
-		if not _is_vector(value[field], 3):
+		if not is_vector(value[field], 3):
 			return "%s must be three finite numbers" % field
-	if _vector3(value.up).is_zero_approx() or _vector3(value.eye).is_equal_approx(_vector3(value.target)):
+	if vector3(value.up).is_zero_approx() or vector3(value.eye).is_equal_approx(vector3(value.target)):
 		return "view is degenerate: up is zero or eye equals target"
-	if not _is_vector(value.canvas, 2) or not is_integer(value.canvas[0]) or not is_integer(value.canvas[1]) or int(value.canvas[0]) <= 0 or int(value.canvas[1]) <= 0:
+	if not is_vector(value.canvas, 2) or not is_integer(value.canvas[0]) or not is_integer(value.canvas[1]) or int(value.canvas[0]) <= 0 or int(value.canvas[1]) <= 0:
 		return "canvas must be two positive integers"
 	if value.plate != null and value.plate != "plate-%d.png" % at:
 		return "plate must be plate-%d.png or null" % at
@@ -114,10 +114,10 @@ static func exact_keys(value: Variant, keys: Array, what: String) -> String:
 			return "%s has unknown field %s" % [what, key]
 	return ""
 
-static func _vector3(value: Array) -> Vector3:
+static func vector3(value: Array) -> Vector3:
 	return Vector3(float(value[0]), float(value[1]), float(value[2]))
 
-static func _is_vector(value: Variant, size: int) -> bool:
+static func is_vector(value: Variant, size: int) -> bool:
 	if typeof(value) != TYPE_ARRAY or value.size() != size:
 		return false
 	for item in value:

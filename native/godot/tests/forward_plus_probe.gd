@@ -11,6 +11,7 @@ const ParityRun = preload("res://parity_run.gd")
 const PlateWriter = preload("res://reel/plate_writer.gd")
 const RenderReport = preload("res://report/render_report.gd")
 const Staging = preload("res://assets/staging.gd")
+const CameraRig = preload("res://reel/camera_rig.gd")
 
 const TEMPLATE := "china-home-10x8-1f"
 const OUT := "throwaway/native-runner/forward-plus-probe"
@@ -26,14 +27,13 @@ func run() -> bool:
 	var report := RenderReport.new()
 	var world := Node3D.new()
 	root.add_child(world)
-	ParityRun.compose(world, ["sky", "terrain", "grass", "buildings"], [], one_building, [at], "blue", report)
+	ParityRun.compose(world, {"layers": ["sky", "terrain", "grass", "buildings"], "light": {"sunDirection": [0.71, -0.26, 0.64], "backdrop": {"reach_m": 40000}}}, [], one_building, [at], "blue", report)
 	var camera := Camera3D.new()
-	camera.fov = rad_to_deg(0.8)
 	world.add_child(camera)
-	camera.look_at_from_position(Vector3(at.x - 22.0, 9.0, at.y - 22.0), Vector3(at.x, 2.0, at.y))
+	var record := {"index": 0, "canvas": [1280, 720], "eye": [at.x - 22.0, at.y - 22.0, 9.0], "target": [at.x, at.y, 2.0], "up": [0.0, 0.0, 1.0]}
+	CameraRig.apply(camera, record, {"fovY": 0.8, "near": 1.0})
 	camera.make_current()
 
-	var record := {"index": 0, "canvas": [1280, 720]}
 	var plate: Dictionary = {"ok": false}
 	if report.ok():
 		plate = await PlateWriter.write(root, record, Staging.repo_path(OUT).path_join("plate-0.png"))

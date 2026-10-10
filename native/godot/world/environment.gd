@@ -1,10 +1,14 @@
 extends Node3D
 
-## The light the parity run draws under: a sun with shadows, a sky (when the
-## manifest lists the `sky` layer) and the ambient term. The values are the
-## native approximation the light slices replace.
+## The light the parity run draws under: a sun with shadows from the
+## manifest's sun direction, a sky (when the manifest lists the `sky` layer)
+## and the ambient term. The colours and energies are the native approximation
+## the light slices replace.
 
-func _init(sky_listed: bool) -> void:
+const Coords = preload("res://core/coords.gd")
+
+## `sun_direction` points toward the sun in sim space.
+func _init(sky_listed: bool, sun_direction: Vector3) -> void:
 	name = "Environment"
 	var env := Environment.new()
 	if sky_listed:
@@ -30,7 +34,8 @@ func _init(sky_listed: bool) -> void:
 	add_child(world)
 	var sun := DirectionalLight3D.new()
 	sun.name = "Sun"
-	sun.rotation_degrees = Vector3(-42.0, 20.0, 0.0)
+	# A directional light shines along its -Z, away from the sun.
+	sun.basis = Basis.looking_at(Coords.sim_to_godot(-sun_direction))
 	sun.light_color = Color("fff0d0")
 	sun.light_energy = 2.2
 	sun.shadow_enabled = true
@@ -78,7 +83,8 @@ void sky() {
     // softness .05 and opacity .95. The projection is view-direction based
     // because the native sky has no terrain plot texture to anchor clouds.
     float cloud_band = smoothstep(0.10, 0.72, direction.y) * (1.0 - smoothstep(0.80, 0.98, direction.y));
-    vec2 cloud_uv = direction.xz / max(direction.y + 0.08, 0.18) * 0.92;
+    // Sim (x, y) from Godot (x, -z), so the clouds lie in the sim plane.
+    vec2 cloud_uv = vec2(direction.x, -direction.z) / max(direction.y + 0.08, 0.18) * 0.92;
     float cloud = cloud_fbm(cloud_uv * 1.65 + vec2(4.2, -2.7));
     float cloud_mask = smoothstep(0.53, 0.61, cloud) * cloud_band;
     vec3 cloud_color = vec3(0.96, 0.95, 0.88);

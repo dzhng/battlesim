@@ -4,12 +4,12 @@ const Stepper = preload("res://reel/frame_stepper.gd")
 
 func run() -> bool:
 	var frames: Array = read_json(FIXTURE_RUN.path_join(FIXTURE_SCENE).path_join("capture.json")).frames
-	check(_visited(frames, "all") == [0, 1, 2], "all visits every index once, in order")
-	check(_visited(frames, "plates") == [1, 2], "plates visits only the records the browser shot")
+	check(_visited(frames, "all") == range(frames.size()), "all visits every index once, in order")
+	check(_visited(frames, "plates") == [frames.size() - 1], "plates visits only the records the browser shot")
 	check(_visited(frames, "2,0") == [0, 2], "a list visits its indices once each, in record order")
 	check(_visited(frames, "1,1") == [1], "a repeated index is visited once")
 
-	for spec in ["3", "x", "", "1,,2"]:
+	for spec in [str(frames.size()), "x", "", "1,,2"]:
 		var refused := Stepper.select(frames, spec)
 		check(not refused.ok and not refused.blocker.detail.is_empty(), "refuses frames '%s' with a reason" % spec)
 

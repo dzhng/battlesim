@@ -1,5 +1,7 @@
 extends MultiMeshInstance3D
 
+const Coords = preload("res://core/coords.gd")
+
 ## The fog overlay, drawn only when the manifest lists the `fog` layer: one dark
 ## translucent tile over every cell the observed side cannot see, from the fog
 ## bits of the publication being shown. Every cell is drawn; there is no cap.
@@ -27,4 +29,4 @@ func show_fog(fog: Dictionary) -> void:
 	multimesh.instance_count = hidden.size()
 	var basis := Basis.from_scale(Vector3(cell, 0.03, cell))
 	for i in hidden.size():
-		multimesh.set_instance_transform(i, Transform3D(basis, Vector3((hidden[i].x + 0.5) * cell, 0.02, (hidden[i].y + 0.5) * cell)))
+		multimesh.set_instance_transform(i, Transform3D(basis, Coords.sim_to_godot(Vector3((hidden[i].x + 0.5) * cell, (hidden[i].y + 0.5) * cell, 0.02))))

@@ -5,9 +5,10 @@ extends Node3D
 ## patches (`terrain`), catalog grass tufts (`grass`), buildings (`buildings`),
 ## props (`props`) and observed units (`models`). Every category is reported as
 ## a budget that names its approximation and how many rows it drew and dropped.
-## Positions use the mirrored (x, z, y) mapping that slice 03 replaces.
+## Every position and yaw goes through `Coords`.
 
 const Staging = preload("res://assets/staging.gd")
+const Coords = preload("res://core/coords.gd")
 
 const OWNER := "native/legacy_map_layer"
 ## Map rows farther than this from every frame target are not drawn.
@@ -98,7 +99,7 @@ func show_units(units: Array) -> void:
 			node = _unit_node(unit.kindName)
 			_units_holder.add_child(node)
 			_unit_nodes[unit.id] = node
-		node.position = Vector3(float(unit.position[0]), maxf(0.0, float(unit.position[2])), float(unit.position[1]))
+		node.position = Coords.sim_to_godot(Vector3(float(unit.position[0]), float(unit.position[1]), maxf(0.0, float(unit.position[2]))))
 		node.rotation.y = float(unit.yaw)
 		seen[unit.id] = true
 	for id in _unit_nodes:
@@ -114,7 +115,7 @@ func _build_terrain(report) -> void:
 	plane.size = size
 	plane.material = _terrain_material()
 	ground.mesh = plane
-	ground.position = Vector3(size.x * 0.5, -0.08, size.y * 0.5)
+	ground.position = Coords.sim_to_godot(Vector3(size.x * 0.5, size.y * 0.5, -0.08))
 	holder.add_child(ground)
 	report.add_budget(OWNER, "approximation: one flat plane with a %s field shader" % ("noise" if _region == "china" else "flat"), "map.size", 1, 1, 0)
 
@@ -134,8 +135,8 @@ func _build_terrain(report) -> void:
 				var end := Vector2(float(points[i + 1][0]), float(points[i + 1][1]))
 				counts.segments += 1
 				if _near((start + end) * 0.5) and start.distance_to(end) > 0.01:
-					var basis := Basis(Vector3.UP, -atan2(end.y - start.y, end.x - start.x)).scaled(Vector3(start.distance_to(end), 0.035, float(shape.get("width_m", 8.0))))
-					roads.append(Transform3D(basis, Vector3((start.x + end.x) * 0.5, 0.0, (start.y + end.y) * 0.5)))
+					var basis := Coords.yaw_basis(atan2(end.y - start.y, end.x - start.x)).scaled_local(Vector3(start.distance_to(end), 0.035, float(shape.get("width_m", 8.0))))
+					roads.append(Transform3D(basis, _ground_point((start + end) * 0.5, 0.0)))
 		else:
 			counts.malformed += 1
 	var paving := _polygon_mesh(rings)
@@ -179,13 +180,16 @@ func _terrain_material() -> Material:
 
 func _build_grass(report) -> void:
 	var source := _prop_source("grass")
+	if _grass.is_empty():
+		report.add_budget(OWNER, "no forest ring lies near a frame target", "grass", 0, 0, 0)
+		return
 	if source.is_empty():
 		report.add_budget(OWNER, "the catalog has no grass appearance", "grass", _grass.size(), 0, _grass.size())
 		return
 	var placements: Array[Transform3D] = []
 	for i in _grass.size():
-		var basis := Basis(Vector3.UP, deg_to_rad(float((i * 37) % 360))).scaled(Vector3.ONE * 8.0)
-		placements.append(Transform3D(basis, Vector3(_grass[i].x, 0.0, _grass[i].y)))
+		var basis := Coords.yaw_basis(deg_to_rad(float((i * 37) % 360))).scaled_local(Vector3.ONE * 8.0)
+		placements.append(Transform3D(basis, _ground_point(_grass[i], 0.0)))
 	_add_instances(_holder("Grass"), _mesh_parts(source), placements, _material(Color("55743a"), 0.98))
 	report.add_budget(OWNER, "approximation: %s tufts scaled 8x on a fixed grid in forest rings%s" % [source, " and around frame targets" if _region == "china" else ""], "grass", _grass.size(), _grass.size(), 0)
 
@@ -242,11 +246,10 @@ func _build_buildings(report) -> void:
 		var yaw := float(building.frame.get("yaw", 0.0))
 		var shell := _shell(String(building.template_id))
 		if shell != null:
-			shell.position = Vector3(position.x, float(translation[2]), position.y)
-			shell.rotation.y = yaw
+			shell.transform = Transform3D(Coords.yaw_basis(yaw), _ground_point(position, float(translation[2])))
 			holder.add_child(shell)
 		else:
-			boxes.append(Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3(18.0, 8.0, 18.0)), Vector3(position.x, 4.0 + float(translation[2]), position.y)))
+			boxes.append(Transform3D(Coords.yaw_basis(yaw).scaled_local(Vector3(18.0, 8.0, 18.0)), _ground_point(position, 4.0 + float(translation[2]))))
 	_add_instances(holder, [_box_part(Color("7b7d7b"), 0.8)], boxes)
 	report.add_budget(OWNER, "approximation: kit shells picked by template token (until slice 07), within %d m of a frame target" % REACH_M, "map.buildings", admitted, near, admitted - near)
 	if not boxes.is_empty():
@@ -340,18 +343,20 @@ func _build_props(report) -> void:
 		var half: Array = prop.half_extents
 		if not entry.source.is_empty():
 			var base := float(prop.base_z) if prop.get("base_z") != null else 0.0
-			entry.placements.append(Transform3D(Basis(Vector3.UP, yaw), Vector3(position.x, base, position.y)))
+			entry.placements.append(Transform3D(Coords.yaw_basis(yaw), _ground_point(position, base)))
 		elif kind == "street_tree":
-			entry.placements.append(Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3(1.4, 1.0, 1.4)), Vector3(position.x, 2.5, position.y)))
+			entry.placements.append(Transform3D(Coords.yaw_basis(yaw).scaled_local(Vector3(1.4, 1.0, 1.4)), _ground_point(position, 2.5)))
 		else:
+			# Godot's local axes are sim x, up and -y, so the sim extents reorder.
 			var scale := Vector3(maxf(0.2, float(half[0]) * 2.0), maxf(0.2, float(half[2]) * 2.0), maxf(0.2, float(half[1]) * 2.0))
-			entry.placements.append(Transform3D(Basis(Vector3.UP, yaw).scaled(scale), Vector3(position.x, float(half[2]), position.y)))
+			entry.placements.append(Transform3D(Coords.yaw_basis(yaw).scaled_local(scale), _ground_point(position, float(half[2]))))
 	for kind in kinds:
 		var entry: Dictionary = kinds[kind]
 		var parts: Array
 		var reason: String
 		if not entry.source.is_empty():
-			parts = _mesh_parts(entry.source)
+			# Only a kind with rows in reach was staged.
+			parts = _mesh_parts(entry.source) if not entry.placements.is_empty() else []
 			reason = "catalog model %s at its saved position" % entry.source
 		elif kind == "street_tree":
 			parts = [_tree_part()]
@@ -407,7 +412,7 @@ func _build_units(side: String, report) -> void:
 	_contact_mesh.material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	for kind in _unit_kinds:
 		var source := _unit_source(kind)
-		var reason := "catalog model %s at the legacy 1.8x scale" % source if not source.is_empty() else "approximation: a capsule; the unit kind has no catalog appearance"
+		var reason := "catalog model %s at its authored size, unposed" % source if not source.is_empty() else "approximation: a capsule; the unit kind has no catalog appearance"
 		report.add_budget(OWNER, reason, "unit:" + kind, _unit_kinds[kind], _unit_kinds[kind], 0)
 
 func _unit_node(kind: String) -> Node3D:
@@ -415,9 +420,7 @@ func _unit_node(kind: String) -> Node3D:
 	holder.set_meta("kind", kind)
 	var source := _unit_source(kind)
 	if _staged.has(source):
-		var model := _scene(source).instantiate() as Node3D
-		model.scale = Vector3.ONE * 1.8
-		holder.add_child(model)
+		holder.add_child(_scene(source).instantiate())
 	else:
 		var capsule := MeshInstance3D.new()
 		capsule.mesh = CapsuleMesh.new()
@@ -592,7 +595,12 @@ static func _ring_center(ring: Array) -> Vector2:
 		bounds = bounds.expand(point)
 	return bounds.get_center()
 
-## One mesh of every ring's triangulation, flat at height zero.
+## A Godot point on flat ground at sim `(x, y)`, raised `height` metres.
+static func _ground_point(position: Vector2, height: float) -> Vector3:
+	return Coords.sim_to_godot(Vector3(position.x, position.y, height))
+
+## One mesh of every ring's triangulation, flat at height zero and facing up
+## whichever way the ring winds.
 static func _polygon_mesh(rings: Array) -> ArrayMesh:
 	var vertices := PackedVector3Array()
 	var indices := PackedInt32Array()
@@ -601,14 +609,25 @@ static func _polygon_mesh(rings: Array) -> ArrayMesh:
 		var triangles := Geometry2D.triangulate_polygon(polygon)
 		var base := vertices.size()
 		for point in polygon:
-			vertices.append(Vector3(point.x, 0.0, point.y))
-		for index in triangles:
-			indices.append(base + index)
+			vertices.append(_ground_point(point, 0.0))
+		for i in range(0, triangles.size(), 3):
+			var a := vertices[base + triangles[i]]
+			var b := vertices[base + triangles[i + 1]]
+			var c := vertices[base + triangles[i + 2]]
+			# Godot's front faces wind clockwise seen from the front, so an
+			# up-facing triangle's (b - a) x (c - a) points down.
+			var order := [0, 1, 2] if (b - a).cross(c - a).y < 0.0 else [0, 2, 1]
+			for corner in order:
+				indices.append(base + triangles[i + corner])
 	if indices.is_empty():
 		return null
+	var normals := PackedVector3Array()
+	normals.resize(vertices.size())
+	normals.fill(Vector3.UP)
 	var arrays := []
 	arrays.resize(Mesh.ARRAY_MAX)
 	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_NORMAL] = normals
 	arrays[Mesh.ARRAY_INDEX] = indices
 	var mesh := ArrayMesh.new()
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
@@ -642,7 +661,8 @@ void vertex() {
 }
 
 void fragment() {
-    vec2 p = world_pos.xz;
+    // Sim (x, y) from Godot (x, -z), so the pattern lies in the sim plane.
+    vec2 p = vec2(world_pos.x, -world_pos.z);
     float broad = value_noise(p * 0.018);
     float fine = value_noise(p * 0.35);
     float rows = 0.5 + 0.5 * sin(p.x * 0.17 + p.y * 0.043 + broad * 2.0);

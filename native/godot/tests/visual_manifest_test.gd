@@ -6,7 +6,7 @@ func run() -> bool:
 	var fixture_dir := FIXTURE_RUN.path_join(FIXTURE_SCENE)
 	var loaded := Manifest.load(fixture_dir, FIXTURE_MAPS)
 	check(loaded.ok, "the fixture manifest is admitted: %s" % loaded.get("blocker"))
-	check(loaded.get("manifest", {}).get("layers", []) == ["sky", "terrain", "buildings", "props", "models"], "the admitted manifest carries its drawn layers")
+	check(loaded.get("manifest", {}).get("layers", []).has("buildings") and not loaded.manifest.layers.has("fog"), "the admitted manifest carries the layers the browser drew")
 	check(loaded.get("capture", {}).get("valid", false), "the admitted run carries its parsed capture")
 
 	# Each identity mismatch is refused with a blocker that names it.
@@ -38,6 +38,19 @@ func run() -> bool:
 	_write(run.path_join("manifest.json"), JSON.stringify(manifest))
 	var stale := Manifest.load(run, maps)
 	check(not stale.ok and stale.blocker.name == "manifest", "a manifest with a finite far plane is not this format")
+
+	_copy_fixture(scratch_root, maps)
+	manifest = read_json(run.path_join("manifest.json"))
+	manifest.erase("light")
+	_write(run.path_join("manifest.json"), JSON.stringify(manifest))
+	check(not Manifest.load(run, maps).ok, "a manifest without the light it was drawn under is not this format")
+
+	for broken in [func(m): m.erase("terrain"), func(m): m.terrain[0].erase("sha256"), func(m): m.erase("tuning"), func(m): m.tuning.erase("grass"), func(m): m.grass.tables[0].erase("layout"), func(m): m.grass.kinds = [], func(m): m.grassCounts = [{"plate": "plate-1.png"}], func(m): m.grassCounts[0].cells = [-1]]:
+		_copy_fixture(scratch_root, maps)
+		manifest = read_json(run.path_join("manifest.json"))
+		broken.call(manifest)
+		_write(run.path_join("manifest.json"), JSON.stringify(manifest))
+		check(not Manifest.load(run, maps).ok, "a manifest with malformed tuning, terrain, grass or grass counts is refused")
 
 	_copy_fixture(scratch_root, maps)
 	DirAccess.remove_absolute(maps.path_join(FIXTURE_SCENE).path_join("map.json"))

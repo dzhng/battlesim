@@ -26,13 +26,15 @@ lockf -k <main checkout>/throwaway/gpu.lock \
   match the manifest's sha256, or whose scene, map, encounter or seed differ
   from the capture's.
 - **Stepping.** The run steps frame records by index: `plates` (the records the
-  browser shot), `all`, or a list. There is no wall clock. Each record sets
-  the camera from its eye, target and up, and shows the latest publication
-  at or before its tick.
+  browser shot), `all`, or a list. There is no wall clock. Each record places
+  the camera at its eye, looking at its target with its screen up, through the
+  manifest's lens. It shows the latest publication at or before its tick.
 - **Output.** For each record, the run writes `plate-<index>.png`, exactly the
   record's canvas. It also writes a `godot-render-report`. Both go to `--out`,
   by default `<dir>/<name>/native/`, which belongs in scratch.
-- **Report.** It names every blocker that stopped the run. Each budget row
+- **Report.** It names every blocker that stopped the run, including any
+  error Godot logged: a GDScript runtime error returns null to its caller and
+  lets the run go on, so the run collects errors through a logger. Each budget row
   gives the owner, the reason, the source, and the counts admitted, rendered
   and dropped. A plate row carries its measured GPU time, which is null on
   Metal: Godot's Metal driver records no GPU timestamps.
@@ -41,6 +43,20 @@ lockf -k <main checkout>/throwaway/gpu.lock \
 Rendering needs a display. `--headless` uses Godot's dummy renderer, which
 never draws, so a headless run stops at a `display` blocker. The window is
 placed off screen, which still needs a logged-in macOS session.
+
+## Coordinates and camera
+
+The sim is Z-up and right-handed; Godot is Y-up and right-handed. One
+conversion, `core/coords.gd`, maps sim `(x, y, z)` to Godot `(x, z, −y)`. It
+is a rotation, not a mirror. Every placement, the sun and the camera go
+through it, and a sim yaw becomes the same angle about Godot's +y.
+
+The camera takes the browser's vertical field of view (`KEEP_HEIGHT`) and near
+plane from the manifest's lens. Godot has no infinite far plane, so the far
+plane is the map's diagonal plus the backdrop's reach from the manifest's
+light, and the report records it as a budget.
+
+## Layers
 
 Only the layers the manifest lists are drawn, under the browser's layer names.
 A listed layer that native can't draw is reported as dropped. Fog is decoded
@@ -63,21 +79,24 @@ Until phase 2 ports the browser's model owners, the map is drawn roughly:
 - catalog grass tufts;
 - building shells picked from a catalog kit by template token;
 - catalog props or boxes;
-- units as catalog models or capsules.
+- units as unposed catalog models at their authored size, or capsules.
 
-Its coordinates are mirrored. Every category is reported as an approximation,
-and rows farther than 1 km from every frame target are reported as dropped.
+Every category is reported as an approximation, and rows farther than 1 km
+from every frame target are reported as dropped.
 
 ## Checks
 
 - `native/godot/tests/run.sh [tests/<name>_test.gd ...]` runs the headless
-  tests. A test passes only when Godot exits 0 and prints its result line,
-  because a GDScript parse error also exits 0. Script-mode tests can't use
+  tests. A test passes only when Godot exits 0, prints its result line and logs
+  no script error, because a parse error also exits 0 and a runtime error in a
+  called function doesn't stop the test. Script-mode tests can't use
   `assert`, because a failing assert hangs the run.
 - The fixture run is the runner's display-backed check. It renders the
-  hand-written capture under `tests/fixtures/`:
-  `--run native/godot/tests/fixtures/run --scene fixture-town --maps native/godot/tests/fixtures/maps --out throwaway/native-runner/fixture`.
-  A fixture edit changes its bytes, so update the hashes in its manifest.
+  real browser capture under `tests/fixtures/`, trimmed to paris-corner up to
+  its first plate frame, with a frozen copy of its map:
+  `--run native/godot/tests/fixtures/run --scene paris-corner --maps native/godot/tests/fixtures/maps --out throwaway/native-runner/fixture`.
+  A trimmed capture changes its bytes, so its manifest's `captureHash` is
+  recomputed.
 - `tests/forward_plus_probe.gd` is the backend's display-backed probe. It
   renders a real market-town building from its staged kit, a grass MultiMesh,
   a shadowed sun and the sky. Run it with
