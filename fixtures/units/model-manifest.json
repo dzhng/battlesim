@@ -781,16 +781,6 @@
       "source_path": "assets/source/roster/m109_paladin/us_m109_paladin_m109a7.glb"
     },
     {
-      "id": "us_m10_booker",
-      "family": "m10_booker",
-      "category": "veh",
-      "model_status": "reference_built",
-      "source_family": "m10",
-      "source_kind": "ground_vehicle",
-      "disabled_reason": "Ground profile and model admission pending",
-      "source_path": "assets/source/roster/disabled/us_m10_booker.glb"
-    },
-    {
       "id": "us_m1129_stryker_mortar_120_mm_mortar_carrier",
       "family": "m1129_stryker_mortar",
       "category": "sup",

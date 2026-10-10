@@ -735,6 +735,23 @@
       }
     },
     {
+      "cost": 240,
+      "description": "Light tank",
+      "disabled_reason": null,
+      "family": "m10_booker",
+      "id": "us_m10_booker",
+      "name": "M10 Booker",
+      "planned_weapons": [],
+      "roster": {
+        "category": "veh",
+        "factions": [
+          "us"
+        ],
+        "family_name": "M10 Booker",
+        "variant": "Light tank"
+      }
+    },
+    {
       "cost": 130,
       "description": "Reconnaissance vehicle",
       "disabled_reason": null,
@@ -2881,32 +2898,6 @@
         ],
         "family_name": "M109 Paladin",
         "variant": "M109A7"
-      }
-    },
-    {
-      "cost": 240,
-      "description": "Light tank",
-      "disabled_reason": "Ground profile and model admission pending",
-      "family": "m10_booker",
-      "id": "us_m10_booker",
-      "name": "M10 Booker",
-      "planned_weapons": [
-        {
-          "icon": "ap_shell",
-          "name": "Main Gun"
-        },
-        {
-          "icon": "hmg",
-          "name": "HMG"
-        }
-      ],
-      "roster": {
-        "category": "veh",
-        "factions": [
-          "us"
-        ],
-        "family_name": "M10 Booker",
-        "variant": "Light tank"
       }
     },
     {
@@ -11780,26 +11771,95 @@
           }
         },
         "us_m10_booker": {
+          "appearance": "us_m10_booker",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 120.0,
+                "rear": 35.0,
+                "ricochet": {
+                  "front": 0.3,
+                  "rear": 0.1,
+                  "roof": 0.4,
+                  "side": 0.2
+                },
+                "roof": 20.0,
+                "side": 55.0
+              },
+              "eye_m": 2.75,
+              "half_extents_m": [
+                3.5,
+                1.7,
+                1.49
+              ],
+              "hp": 95.0,
+              "push_class": "medium",
+              "weight_class": "medium",
+              "wreck": "medium_wreck"
+            }
+          },
+          "capabilities": {},
           "cost": 240,
           "description": "Light tank",
           "faction": "us",
           "family": "m10_booker",
-          "name": "M10 Booker",
-          "planned": {
-            "profile": "light-tank",
-            "reason": "Ground profile and model admission pending",
-            "weapons": [
-              {
-                "icon": "ap_shell",
-                "name": "Main Gun"
-              },
-              {
-                "icon": "hmg",
-                "name": "HMG"
-              }
-            ]
+          "mobility": {
+            "tracked": {
+              "offroad_kmh": 30.0,
+              "reverse_fraction": 0.4,
+              "road_kmh": 64.0,
+              "turn_deg_s": 50.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "cannon",
+              "muzzle_m": [
+                4.95,
+                0.0,
+                0.32
+              ],
+              "name": "Main Gun",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.78
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "light_tank_ap",
+                "light_tank_he"
+              ]
+            },
+            {
+              "id": "HMG",
+              "muzzle_m": [
+                1.2,
+                0.0,
+                0.22
+              ],
+              "name": "HMG",
+              "on": "cannon",
+              "pivot_m": [
+                -0.1,
+                0.62,
+                2.8
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "hmg"
+              ]
+            }
+          ],
+          "name": "M10 Booker",
+          "roles": [
+            "mbt"
+          ],
           "roster": {
             "category": "veh",
             "factions": [
@@ -11807,6 +11867,19 @@
             ],
             "family_name": "M10 Booker",
             "variant": "Light tank"
+          },
+          "sensors": {
+            "ground_m": 550.0,
+            "on": "cannon",
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.5
+            }
+          },
+          "sound": {
+            "loudness_m": 650.0,
+            "profile": "vehicle"
           }
         },
         "us_m1127_stryker_rv_reconnaissance_vehicle": {
@@ -20573,6 +20646,121 @@
       "sensors": {
         "ground_m": 650.0,
         "on": "launcher",
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.5
+        }
+      },
+      "sound": {
+        "loudness_m": 650.0,
+        "profile": "vehicle"
+      }
+    },
+    {
+      "appearance": "us_m10_booker",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 120.0,
+            "rear": 35.0,
+            "ricochet": {
+              "front": 0.3,
+              "rear": 0.1,
+              "roof": 0.4,
+              "side": 0.2
+            },
+            "roof": 20.0,
+            "side": 55.0
+          },
+          "eye_m": 2.75,
+          "half_extents_m": [
+            3.5,
+            1.7,
+            1.49
+          ],
+          "hp": 95.0,
+          "push_class": "medium",
+          "weight_class": "medium",
+          "wreck": "medium_wreck"
+        }
+      },
+      "capabilities": {},
+      "cost": 240,
+      "description": "Light tank",
+      "faction": "us",
+      "family": "m10_booker",
+      "id": "us_m10_booker",
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 30.0,
+          "reverse_fraction": 0.4,
+          "road_kmh": 64.0,
+          "turn_deg_s": 50.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "cannon",
+          "muzzle_m": [
+            4.95,
+            0.0,
+            0.32
+          ],
+          "name": "Main Gun",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.78
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "light_tank_ap",
+            "light_tank_he"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "HMG",
+          "muzzle_m": [
+            1.2,
+            0.0,
+            0.22
+          ],
+          "name": "HMG",
+          "on": "cannon",
+          "pivot_m": [
+            -0.1,
+            0.62,
+            2.8
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "hmg"
+          ]
+        }
+      ],
+      "name": "M10 Booker",
+      "roles": [
+        "mbt"
+      ],
+      "roster": {
+        "category": "veh",
+        "factions": [
+          "us"
+        ],
+        "family_name": "M10 Booker",
+        "variant": "Light tank"
+      },
+      "sensors": {
+        "ground_m": 550.0,
+        "on": "cannon",
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,

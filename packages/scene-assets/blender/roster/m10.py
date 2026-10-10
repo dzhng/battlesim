@@ -1,4 +1,4 @@
-"""M10 Booker light tank (disabled card), from assets/references/m10/.
+"""M10 Booker light tank, from assets/references/m10/.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/m10.py -- [--wreck]
 
@@ -17,15 +17,14 @@ on a pintle ahead of the commander's hatch on the left, a mast behind; the
 hull's right rear. US desert tan (the Yuma photos; the unveiling vehicles
 are green).
 
-The frame is the hull's length over its towing lugs (the published 6.85 m
-hull is the plates), its width over the skirts and headlight boxes, and its
-height to the top of the commander's sight, the highest fixed part (the M2
-aside). The published figures disagree (references gaps); these are the
-middle of them, and everything along and up the vehicle (road-wheel pitch
-and size, deck, turret, gun axis, sight) is laid out in proportion to that
-length off the left-side photo. The turret and gun articulate on mounts
-stated here from the photos, so its wreck throws the turret; nothing in the
-simulation reads them.
+Built to the catalog frame (hull 7.0 x 3.4 x 2.98 m, gun axis 2.10 m up):
+the hull's length over its towing lugs (the published 6.85 m hull is the
+plates), its width over the skirts and headlight boxes, and its height to
+the top of the commander's sight, the highest fixed part (the M2 aside). The
+published figures disagree (references gaps); these are the middle of them,
+and everything along and up the vehicle (road-wheel pitch and size, deck,
+turret, gun axis, sight) is laid out in proportion to that length off the
+left-side photo.
 """
 import math
 import os
@@ -34,18 +33,10 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft, prism, stencil  # noqa: E402
-from vehicle_export import rig, run_disabled  # noqa: E402
+from vehicle_export import rig, run  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 
-CARD = "us_m10_booker"
-DIMENSIONS = (7.00, 3.40, 2.98)
-# The gun axis 2.10 m up and the muzzle 1.45 m past the nose at rest (about
-# 8.5 m gun forward), as the side photo has them.
-MOUNTS = [
-    dict(name="cannon", role="gun", on=None, pivot_m=[-0.15, 0.0, 1.78], muzzle_m=[5.10, 0.0, 0.32]),
-    dict(name="HMG", role="hmg", on="cannon", pivot_m=[-0.25, 0.62, 2.80], muzzle_m=[1.20, 0.0, 0.22]),
-]
 TRUNNION = 1.00
 TRACK_Y = 1.32
 TRACK_W = 0.50
@@ -154,7 +145,7 @@ def turret_plan(front, side):
 
 def turret_body(v, turret):
     m = v.mats
-    base = DECK - MOUNTS[0]["pivot_m"][2]
+    base = DECK - v.frame["mounts"][0]["pivot_m"][2]
     cyl("turret_ring_guard", 1.00, 0.08, (0, 0, base + 0.02), "Z", m["dark"], turret, seg=36, lods=MID)
     loft("turret_shell", [(base + 0.03, turret_plan(PROW[0] - 0.22, TURRET_SIDE - 0.02)),
                           (PROW[1], turret_plan(PROW[0], TURRET_SIDE)),
@@ -195,7 +186,7 @@ def gun_105(v, gun):
     """The 105 mm: a squared gun shield, the barrel with its bore evacuator
     mid-way and a plain muzzle."""
     m = v.mats
-    reach = MOUNTS[0]["muzzle_m"][0] - TRUNNION
+    reach = v.frame["mounts"][0]["muzzle_m"][0] - TRUNNION
     box("gun_shield", (0.50, 0.66, 0.50), (0.05, 0, 0.0), m["paint"], gun, bevel=0.05)
     cyl("barrel_root", 0.11, 0.40, (0.45, 0, 0), "X", m["paint"], gun, seg=24)
     evac = 1.70
@@ -217,8 +208,9 @@ def build(variant, v):
     turret_body(v, turret)
     gun_105(v, gun)
     cyl("pintle", 0.04, 0.24, (0, 0, -0.10), "Z", v.mats["dark"], hmg, seg=10)
-    VP.browning_m2(hmg_gun, MOUNTS[1]["muzzle_m"][0], v.mats, grips=True)
-    v.head_out("commander", turret, MOUNTS[0]["pivot_m"][0] + CUPOLA[0], CUPOLA[1], MOUNTS[0]["pivot_m"][2] + ROOF)
+    gun_mount, hmg_mount = v.frame["mounts"]
+    VP.browning_m2(hmg_gun, hmg_mount["muzzle_m"][0], v.mats, grips=True)
+    v.head_out("commander", turret, gun_mount["pivot_m"][0] + CUPOLA[0], CUPOLA[1], gun_mount["pivot_m"][2] + ROOF)
 
 
 def wreck(variant, v):
@@ -247,6 +239,4 @@ def wreck(variant, v):
     rest_on_ground(0.004)
 
 
-if __name__ == "__main__":
-    run_disabled("m10", {CARD: DIMENSIONS}, "us_desert_tan", build, wreck, mounts={CARD: MOUNTS},
-                 skip=("dressing_", "gun", "hmg", "muzzle"), chip=1.0)
+run("m10", "us_desert_tan", build, wreck, chip=1.0)
