@@ -106,3 +106,8 @@ Findings, recorded:
 - the ring around a roofed house (finding 4).
 
 **Not done.** The right-drag move preview and the purchase placement ghost for aircraft are lifted to cruise height, but carry no drop line.
+
+### Checkpoint resolution (2026-10-10)
+
+The before/after and the map-zoom roof and enemy frames were shown to the user (non-blocking). With no reply, both open calls are kept as built: (a) the possible "map pin" reading, and (b) the ring circling a house while a helicopter hovers over its roof. Slice 13 revisits them alongside the contact sign, which shares this family.
+
