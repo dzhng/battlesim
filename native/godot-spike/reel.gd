@@ -191,8 +191,8 @@ func _build_world() -> void:
 	env.fog_enabled = true
 	env.fog_light_color = Color("8a9b99")
 	env.fog_light_energy = 0.45
-	env.fog_density = 0.0025
-	env.fog_sky_affect = 0.45
+	env.fog_density = 0.0015
+	env.fog_sky_affect = 1.0
 	environment.environment = env
 	add_child(environment)
 	var sun := DirectionalLight3D.new()
@@ -285,8 +285,6 @@ func _build_map_geometry() -> void:
 		holder.add_child(ground)
 		var grass_centers := _grass_centers_for_map(map, render_centers)
 		var rendered_grass := _add_native_grass(holder, grass_centers)
-		if String(map.get("regional_family", "")) == "china":
-			_add_field_strips(holder, Vector2(float(size[0]), float(size[1])))
 		counts.terrain = 1
 		counts["rendered_grass"] = rendered_grass
 		for surface in map.get("surfaces", []):
@@ -588,14 +586,6 @@ func _add_tree_batch(holder: Node3D, transforms: Array[Transform3D]) -> void:
 	batch.multimesh = multi
 	holder.add_child(batch)
 
-func _add_field_strips(holder: Node3D, size: Vector2) -> void:
-	var strips: Array[Transform3D] = []
-	for index in range(0, int(size.y / 12.0) + 1):
-		var position := Vector3(size.x * 0.5, -0.02, float(index) * 12.0)
-		var basis := Basis.IDENTITY.scaled(Vector3(size.x, 0.025, 6.0))
-		strips.append(Transform3D(basis, position))
-	_add_box_batch(holder, strips, Color("5d6b4f"), 1.0)
-
 func _grass_centers_for_map(map: Dictionary, render_centers: Array) -> Array:
 	var centers: Array = []
 	var seen: Dictionary = {}
@@ -671,7 +661,7 @@ func _add_native_grass(holder: Node3D, centers: Array) -> int:
 		var grass := scene.instantiate() as Node3D
 		grass.position = Vector3(center.x, 0.0, center.y)
 		grass.rotation.y = float((added * 37) % 360) * PI / 180.0
-		grass.scale = Vector3.ONE * 2.0
+		grass.scale = Vector3.ONE * 5.0
 		holder.add_child(grass)
 		added += 1
 		native_asset_instances["grass"] = int(native_asset_instances.get("grass", 0)) + 1
