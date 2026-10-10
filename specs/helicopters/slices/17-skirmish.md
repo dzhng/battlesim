@@ -1,6 +1,6 @@
 # 17 — Skirmish: entry and AI
 
-**Status:** planned. **Depends on:** 14, 16. **Owns:** D12, D15, D16, D35, D36.
+**Status:** done (AI rotation, entry at cruise height, objectives pinned). **Depends on:** 14, 16. **Owns:** D12, D15, D16, D35, D36.
 
 ## Contract
 

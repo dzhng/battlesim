@@ -508,7 +508,13 @@ fn preparation_timeout_starts_combat_without_granting_preparation_income() {
 /// A match against the basic opponent on red, whose deck holds squads, a
 /// launcher team and a truck.
 fn against_the_basic_opponent() -> contract::scenario::ScenarioDefinition {
+    against_an_opponent_with(json!({ "units": {} }))
+}
+
+/// The basic opponent, its deck also holding the catalog document `extra`.
+fn against_an_opponent_with(extra: serde_json::Value) -> contract::scenario::ScenarioDefinition {
     let mut rules = deck();
+    rules["catalog"].as_array_mut().unwrap().push(extra);
     for (id, category) in [
         ("test_rifle", "inf"),
         ("test_at", "inf"),
@@ -522,6 +528,47 @@ fn against_the_basic_opponent() -> contract::scenario::ScenarioDefinition {
     let mut setup = match_on(rules);
     setup.skirmish.as_mut().unwrap().ai_side = Some(Side::Red);
     setup
+}
+
+/// The basic opponent whose deck also holds a helicopter.
+fn against_an_opponent_with_a_helicopter() -> contract::scenario::ScenarioDefinition {
+    against_an_opponent_with(json!({ "units": { "red_test_heli": {
+        "extends": "test_heli",
+        "roles": ["helicopter"],
+        "roster": { "factions": ["eastern"], "category": "hel", "family_name": "Test", "variant": "Test" }
+    } } }))
+}
+
+/// The opponent buys a helicopter in its reinforcements; it enters at its
+/// base already at cruise height, never waiting for clear ground, and sets off
+/// for an objective.
+#[test]
+fn the_skirmish_ai_buys_and_flies_a_helicopter() {
+    let setup = against_an_opponent_with_a_helicopter();
+    let mut battle = Battle::new(&setup, 3);
+    battle.accept(command(Side::Blue, 1, Order::Ready));
+    let heli = battle.rules().catalog.index("red_test_heli").unwrap();
+    let cruise = battle.rules().air.cruise_agl_m;
+    let mut flown = false;
+    for _ in 0..600 * battle.rules().tick_hz {
+        battle.step();
+        let red = battle.observe(Side::Red);
+        if let Some(u) = red.own.iter().find(|u| u.kind == heli) {
+            let ground = battle
+                .world()
+                .height_at(u.position[0], u.position[1])
+                .unwrap();
+            assert!(
+                u.position[2] >= ground + cruise - 1e-6,
+                "it entered on the ground"
+            );
+            if battle.unit(u.id).unwrap().route.is_some() {
+                flown = true;
+                break;
+            }
+        }
+    }
+    assert!(flown, "the opponent never bought and flew a helicopter");
 }
 
 #[test]
