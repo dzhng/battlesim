@@ -1,4 +1,4 @@
-"""AH-64E Apache Guardian, from assets/references/ah_64_apache/. A disabled card.
+"""AH-64E Apache Guardian, from assets/references/ah_64_apache/.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/apache.py -- [--wreck]
 
@@ -10,22 +10,41 @@ racks and rocket pods, the Longbow radar dome over the rotor head, four
 blades, the tail fin with the scissor tail rotor on its left and the
 stabilator at its foot; trailing-arm main wheels and a tail wheel. Army green.
 
-Dimensions stated from published figures (rule: fuselage length without
+Built to the catalog frame, from published figures (fuselage length without
 blades, width over the stub wings' stores, height to the top of the Longbow
 dome): 14.7 x 5.23 x 4.72 m, Boeing's length and height (the sources are in
 the library's gaps).
+
+The chain gun is the `chin` mount's rig: the turret yaws under the chin at
+the mount's pivot, the gun pitches on the bore, which the model lets fall to
+60 degrees below the airframe (the M230's own depression) and rise to 11
+(`pitch_min_deg`/`pitch_max_deg` on the gun node), and the muzzle is at the
+barrel's tip. The rockets and missiles are fixed in the hull, so the hull
+draws them: the rocket mount's muzzle is the left inboard pod's mouth, the
+missile mount's the right outboard rack's front.
 """
 import math
 import os
 import sys
 
+import bpy
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
+import parts as P  # noqa: E402
 from parts import box, cyl  # noqa: E402
-from vehicle_export import run_disabled  # noqa: E402
+from vehicle_export import rig, run  # noqa: E402
 from vehicle_parts import MID  # noqa: E402
 
-CARDS = {"ah_64e_guardian": (14.7, 5.23, 4.72)}
+# The M230's elevation, degrees: the gun node's custom properties, which the
+# renderer's rig clamps the drawn gun to.
+GUN_PITCH_DEG = (-60.0, 11.0)
+# How far the chain gun's barrel runs back on a shot: a short stroke, not a
+# tank gun's.
+GUN_STROKE_M = 0.06
+# How far forward the airframe's parts (placed in their drawing's frame)
+# move to centre on the hull box.
+AFT_M = 0.305
 SPEC = dict(
     fuselage=[(6.65, 0.0, 1.42, 1.42), (6.38, 0.44, 1.05, 1.86, 1.4, 2.4), (5.36, 0.56, 0.95, 2.04, 1.45, 3.0),
               (3.7, 0.62, 0.95, 2.3, 1.55, 3.0), (1.85, 0.75, 0.95, 2.62, 1.6, 3.5), (0.0, 0.7, 1.0, 2.52, 1.65, 3.5),
@@ -52,9 +71,20 @@ def build(variant, v):
     # TADS/PNVS on the nose: the turret and its sensor windows.
     A.sensor_ball("tads", (6.7, 0, 1.25), 0.36, m, hull)
     box("pnvs", (0.4, 0.3, 0.3), (6.51, 0, 1.78), m["dark"], hull, bevel=0.03, lods=MID)
-    # The M230 under the chin.
-    cyl("gun_turret", 0.2, 0.3, (4.34, 0, 0.82), "Z", m["dark"], hull, seg=12)
-    cyl("gun_barrel", 0.05, 1.39, (5.08, 0, 0.72), "X", m["steel"], hull, seg=8, lods=MID)
+    # The M230 under the chin, on the chin mount's rig: its turret at the
+    # pivot, the cradle and barrel on the bore out to the muzzle.
+    turret, gun, _muzzle, _pivot = rig(v.frame, v.root)["chin"]
+    gun["pitch_min_deg"], gun["pitch_max_deg"] = GUN_PITCH_DEG
+    gun["recoil_max_m"] = GUN_STROKE_M
+    reach = next(mt for mt in v.frame["mounts"] if mt["name"] == "chin")["muzzle_m"][0]
+    # The turret drum under the belly, its yoke arms down either side of the
+    # gun, and the gun's receiver between them.
+    cyl("gun_turret", 0.27, 0.3, (0, 0, 0.06), "Z", m["dark"], turret, seg=16)
+    for side in (1, -1):
+        box(f"gun_yoke_{'L' if side > 0 else 'R'}", (0.22, 0.05, 0.22), (0, side * 0.16, -0.06), m["dark"], turret,
+            bevel=0.01, lods=MID)
+    box("gun_cradle", (0.5, 0.22, 0.2), (0.1, 0, 0), m["dark"], gun, bevel=0.02)
+    cyl("gun_barrel", 0.05, reach - 0.05, ((reach + 0.05) / 2, 0, 0), "X", m["steel"], gun, seg=8, lods=MID)
     # Engines on the flanks with their exhaust suppressors, and the rotor
     # mast's fairing.
     for side, k in ((1, "L"), (-1, "R")):
@@ -89,10 +119,24 @@ def build(variant, v):
         ("text", dict(text="53", height=0.32, centre=(0.6, 1.5, 2.4), normal=(0, 1, 0), up=(0, 0, 1),
                       onto=("nacelle_",), colour="lowvis_light")),
     ])
+    # The airframe as drawn above runs 0.3 m aft of the frame's middle; the
+    # frame (and the mounts' pivots in it) is centred on the hull box.
+    hull.location.x += AFT_M
 
 
 def wreck(variant, v):
-    A.crash(v, tail_x=-2.6, tail_yaw=-0.4, tail_drop=0.1, blades_broken=(("main", 0), ("main", 2)), seed=64)
+    # The chin gun stays bolted under the wreck's nose: no turret to throw,
+    # so its rig's nodes become plain parts of the airframe.
+    for name in ("turret", "gun", "muzzle"):
+        bpy.data.objects[name].name = f"chin_{name}"
+    # Every main blade snapped off against the ground; they lie thrown clear,
+    # past the box the simulation keeps as cover: the wreck's debris.
+    A.crash(v, tail_x=-2.6, tail_yaw=-0.4, tail_drop=0.1, blades_broken=tuple(("main", k) for k in range(4)),
+            seed=64)
+    thrown = P.empty("debris_blades", parent=v.root)
+    for o in list(bpy.data.objects):
+        if o.name.startswith("litter_blade_") and o.parent == v.root:
+            o.parent = thrown
 
 
-run_disabled("apache", CARDS, "us_army_aviation", build, wreck, skip=("dressing_", "blade_"))
+run("apache", "us_army_aviation", build, wreck, references="assets/references/ah_64_apache/references.json")

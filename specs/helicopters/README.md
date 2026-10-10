@@ -8,7 +8,7 @@ You are implementing helicopters. Read [decisions](decisions.md) first. Its D1�
 
 **Next pickup, in priority order:**
 1. Integrate the running worktrees: 07's scene, and 10 and 11. (12 and 17b are merged.) Merge each, rerun its narrow checks on the merged tree, and remove its worktree.
-2. Slice 15 (the Apache on real art). It depends on 07, 09 and 10.
+2. Slice 15 is done (its wreck art is in; its fall waits on slice 10). Slice 16 builds on it: hull-fixed mounts need no rig, and each model states its own gun pitch limits and stroke.
 3. Slice 13 (the contact sign), after 12. Slice 16, after 15. Slice 17, after 16. Slice 18 last.
 
 **What the simulation now owns:**
@@ -45,7 +45,7 @@ The record of each slice lives in its slice file and in [choices](choices.md).
 - [x] [12 — Drop line, ground ring and ghosts](slices/12-drop-line-ring.md)
 - [ ] [13 — The airborne contact sign, built](slices/13-contact-sign.md)
 - [x] [14 — Resupply sink](slices/14-resupply-sink.md)
-- [ ] [15 — The Apache, on real art](slices/15-apache.md)
+- [x] [15 — The Apache, on real art](slices/15-apache.md)
 - [ ] [16 — The other 18 helicopters](slices/16-roster.md)
 - [ ] [17 — Skirmish: entry and AI](slices/17-skirmish.md)
 - [x] [17b — Rotor sound](slices/17b-rotor-sound.md)

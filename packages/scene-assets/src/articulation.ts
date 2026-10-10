@@ -4,7 +4,9 @@
 // bake's posed bounds and the validator's deploy check alike.
 //
 // - The turret yaws about its local +Z; the gun pitches about its local +Y
-//   and recoils back along its own bore (local −X).
+//   and recoils back along its own bore (local −X). A model states its own
+//   pitch limits and stroke on the gun node (`pitch_min_deg`,
+//   `pitch_max_deg`, `recoil_max_m`).
 // - The HMG yaws and pitches the same way, on its own, relative to the turret.
 // - Wheels roll about their local +Y (the axle) by travel over radius, each
 //   side by its own travel, so a tank turning in place counter-rotates them.
@@ -53,12 +55,34 @@ export const REST_ARTICULATION: Readonly<Articulation> = {
 
 const DEG = Math.PI / 180;
 
-/** Presentation limits on the mounts' pitch; the pose driver clamps into them
- *  and the bake's posed bounds sweep them. */
-export const PITCH_LIMITS = {
+/** How far a rig's gun and HMG pitch, radians [down, up]. `articulate`
+ *  stops the drawn guns at them and the bake's posed bounds sweep them. */
+export interface PitchLimits {
+  gun: readonly [number, number];
+  hmg: readonly [number, number];
+}
+
+/** The pitch of a gun whose model states no limits of its own: a turret gun's
+ *  and a roof HMG's. A model states its own on the pitching node, as custom
+ *  properties `pitch_min_deg` and `pitch_max_deg` (a helicopter's chin gun
+ *  depresses far below a tank gun). */
+export const DEFAULT_PITCH_LIMITS: Readonly<PitchLimits> = {
   gun: [-10 * DEG, 20 * DEG],
   hmg: [-10 * DEG, 45 * DEG],
-} as const;
+};
+
+/** A pitching node's own limits, else `fallback`. */
+function pitchOf(
+  node: ArticulatedNode | undefined,
+  fallback: readonly [number, number],
+): readonly [number, number] {
+  const e = node?.extras;
+  if (e?.pitch_min_deg === undefined && e?.pitch_max_deg === undefined) return fallback;
+  return [
+    (e.pitch_min_deg ?? fallback[0] / DEG) * DEG,
+    (e.pitch_max_deg ?? fallback[1] / DEG) * DEG,
+  ];
+}
 
 /**
  * A deploying node's custom properties (numbers, exported from Blender):
@@ -93,6 +117,11 @@ export interface ArticulationRig {
   gun: number;
   hmg: number;
   hmgGun: number;
+  /** How far its gun and HMG pitch: their models' own limits, else the defaults. */
+  pitch: PitchLimits;
+  /** How far its gun can run back, metres: its node's `recoil_max_m` (an
+   *  autocannon's short stroke), else unbounded. */
+  stroke: number;
   wheels: { node: number; radius: number; left: boolean }[];
   tracks: { node: number; left: boolean; linkPitch: number }[];
   /** Each rotor and the reach of its blade tips from its axis. */
@@ -118,11 +147,17 @@ function reach(node: ArticulatedNode, axis: 1 | 2): number {
 
 export function articulationRig(nodes: readonly ArticulatedNode[]): ArticulationRig {
   const find = (name: string) => nodes.findIndex((n) => n.name === name);
+  const [gun, hmgGun] = [find("gun"), find("hmg_gun")];
   const rig: ArticulationRig = {
     turret: find("turret"),
-    gun: find("gun"),
+    gun,
     hmg: find("hmg"),
-    hmgGun: find("hmg_gun"),
+    hmgGun,
+    pitch: {
+      gun: pitchOf(nodes[gun], DEFAULT_PITCH_LIMITS.gun),
+      hmg: pitchOf(nodes[hmgGun], DEFAULT_PITCH_LIMITS.hmg),
+    },
+    stroke: nodes[gun]?.extras.recoil_max_m ?? Infinity,
     wheels: [],
     tracks: [],
     rotors: [],
@@ -168,6 +203,8 @@ function turned(out: Trs, bind: Trs, axis: Vec3, angle: number): Trs {
   return out;
 }
 
+const clampTo = (v: number, [lo, hi]: readonly [number, number]) => Math.min(hi, Math.max(lo, v));
+
 /** Fresh locals, one per node, holding each node's bind. */
 export function restLocals(nodes: readonly ArticulatedNode[]): Trs[] {
   return nodes.map((n) => ({
@@ -192,14 +229,21 @@ export function articulate(
   }
   if (rig.turret >= 0) turned(out[rig.turret], nodes[rig.turret].bind, AXIS_Z, input.turret_yaw);
   if (rig.gun >= 0) {
-    const gun = turned(out[rig.gun], nodes[rig.gun].bind, AXIS_Y, -input.gun_pitch);
+    const pitch = clampTo(input.gun_pitch, rig.pitch.gun);
+    const gun = turned(out[rig.gun], nodes[rig.gun].bind, AXIS_Y, -pitch);
     // Recoil runs the gun back along its own bore, pitched with it.
-    vec3.set(_articulate_bore, -input.recoil, 0, 0);
+    vec3.set(_articulate_bore, -Math.min(input.recoil, rig.stroke), 0, 0);
     vec3.transformQuat(_articulate_bore, _articulate_bore, gun.r);
     vec3.add(gun.t, gun.t, _articulate_bore);
   }
   if (rig.hmg >= 0) turned(out[rig.hmg], nodes[rig.hmg].bind, AXIS_Z, input.hmg_yaw);
-  if (rig.hmgGun >= 0) turned(out[rig.hmgGun], nodes[rig.hmgGun].bind, AXIS_Y, -input.hmg_pitch);
+  if (rig.hmgGun >= 0)
+    turned(
+      out[rig.hmgGun],
+      nodes[rig.hmgGun].bind,
+      AXIS_Y,
+      -clampTo(input.hmg_pitch, rig.pitch.hmg),
+    );
   for (const wheel of rig.wheels) {
     const travel = wheel.left ? input.travel_l : input.travel_r;
     turned(out[wheel.node], nodes[wheel.node].bind, AXIS_Y, travel / wheel.radius);
@@ -239,22 +283,22 @@ export function trackScroll(
 export const SWEEP_BEARINGS = { turret: 32, hmg: 16 } as const;
 
 /**
- * Articulations the posed bounds sweep: deploy progress in quarters, and at
- * packed and deployed every sampled turret and HMG bearing at both pitch
- * limits and level. Wheels and rotors are discs about their axis, whose
- * boxes `posedBounds` widens to hold every turn, so none is swept here. A sampled turn misses at most a sagitta between
- * bearings; `SWEEP_PAD` covers it.
+ * Articulations a rig's posed bounds sweep: deploy progress in quarters, and
+ * at packed and deployed every sampled turret and HMG bearing at both of the
+ * rig's pitch limits and level. Wheels and rotors are discs about their axis,
+ * whose boxes `posedBounds` widens to hold every turn, so none is swept here.
+ * A sampled turn misses at most a sagitta between bearings; `SWEEP_PAD` covers it.
  */
-export function sweepArticulations(): Articulation[] {
+export function sweepArticulations(pitch: PitchLimits): Articulation[] {
   const out: Articulation[] = [];
   const turn = (n: number) => Array.from({ length: n }, (_, k) => (2 * Math.PI * k) / n);
   const rest = { ...REST_ARTICULATION };
   for (const deploy of [0.25, 0.5, 0.75]) out.push({ ...rest, deploy });
   for (const deploy of [0, 1])
     for (const turret_yaw of turn(SWEEP_BEARINGS.turret))
-      for (const gun_pitch of [PITCH_LIMITS.gun[0], 0, PITCH_LIMITS.gun[1]])
+      for (const gun_pitch of [pitch.gun[0], 0, pitch.gun[1]])
         for (const hmg_yaw of turn(SWEEP_BEARINGS.hmg))
-          for (const hmg_pitch of [PITCH_LIMITS.hmg[0], 0, PITCH_LIMITS.hmg[1]])
+          for (const hmg_pitch of [pitch.hmg[0], 0, pitch.hmg[1]])
             out.push({ ...rest, turret_yaw, gun_pitch, hmg_yaw, hmg_pitch, deploy });
   return out;
 }
