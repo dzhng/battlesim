@@ -7,7 +7,8 @@ spaced axles well back from a long bow; a narrow lower hull, and over it the
 tall upper hull flaring out over the wheels and leaning back in to the roof;
 the wedge prow, an upper and a lower plate meeting at a sharp edge, with
 lights recessed in its corners; the roof's hatches, the remote station with
-its heavy machine gun forward of centre, stowage tubes racked on the rear
+its heavy machine gun behind amidships between the forward pair (the side
+photo; specs/off-centre-turrets.md), stowage tubes racked on the rear
 right, antennas at the rear corners; the rear: the ramp with its door
 between two flared corner housings, and under each a propeller in its
 shroud; tail lights in the housings.
@@ -105,8 +106,9 @@ def fittings(v):
     box("rear_ramp", (0.06, 1.10, ROOF - 0.90), (-4.58, 0, (ROOF + 0.90) / 2), m["paint"], hull, bevel=0.02)
     box("ramp_door", (0.03, 0.62, 1.15), (-4.62, 0.0, 1.85), m["paint"], hull, bevel=0.012, lods=NEAR)
     cyl("ramp_hinge", 0.05, 1.00, (-4.60, 0, 0.92), "Y", m["steel"], hull, seg=10, lods=NEAR)
-    # Roof: hatches, the vents, the stowage tubes, antennas.
-    for k, (x, y) in enumerate(((-1.20, 0.65), (-1.20, -0.65), (-2.40, 0.65))):
+    # Roof: hatches outboard of the remote station, the vents, the stowage
+    # tubes, antennas.
+    for k, (x, y) in enumerate(((-1.20, 0.74), (-1.20, -0.74), (-2.40, 0.74))):
         VP.hatch(f"roof_hatch_{k}", (x, y, ROOF), m, hull, size=(0.85, 0.66))
     VP.hatch("driver_hatch", (2.55, 0.70, ROOF), m, hull, radius=0.30)
     for k, y in enumerate((0.45, 0.70, 0.95)):
