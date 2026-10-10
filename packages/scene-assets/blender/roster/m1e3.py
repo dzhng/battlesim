@@ -19,9 +19,9 @@ The photographed prototype shows no protection system; the card fields
 Trophy, so the Abrams' Trophy stations (`abrams.trophy_station`) stand on
 the flat turret sides, back from the smoke banks, as on the SEPv3.
 
-Built to the catalog frame, the SEPv3 Trophy's box (hull 7.93 x 3.66 x
-2.44 m, gun pivot 1.464 m), with the remote station's mount on its pedestal
-mid-roof.
+Built to the catalog frame, the SEPv3 Trophy's box and turret pivot (hull
+7.93 x 3.66 x 2.44 m, pivot 0.25 m ahead of the hull's middle and 1.464 m
+up), with the remote station's mount on its pedestal mid-roof.
 """
 import math
 import os
