@@ -259,7 +259,7 @@ export async function run(ctx) {
   const enemy = r.identified.find((u) => u.kind === "test_heli");
   const house = await lab(page, () => window.__lab.route.buildings()[0]);
   const roofTop = Math.max(...house.authored.map((p) => p.baseZ + 2 * p.half[2]));
-  await aim(page, [255, 90, 12], { distance: 110, pitch: 0.72, yaw: -1.25 }, { onGround: false });
+  await aim(page, [155, 470, 12], { distance: 110, pitch: 0.72, yaw: -1.25 }, { onGround: false });
   await advance(page, 1);
   await capture("roof", roofHeli);
   await capture("enemy", enemy);
@@ -289,7 +289,7 @@ export async function run(ctx) {
 
   // From the map's zoom: the airframes are small and the marks still say
   // where each is over the ground.
-  await aim(page, [256, 97], { distance: 350, pitch: 0.85, yaw: -1.25 });
+  await aim(page, [156, 477], { distance: 350, pitch: 0.85, yaw: -1.25 });
   await advance(page, 1);
   await capture("map-roof", roofHeli);
   const mapOverlays = await overlaysOnly(page);
