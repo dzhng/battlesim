@@ -35,3 +35,18 @@ the [README](README.md#decisions).
   export failed; it now keys mounts by id (Challenger 2 TES re-export byte-identical).
 - **Trophy hardware became named nodes with meshes beneath,** as on the Abrams: plain named boxes
   merged into the turret in tiering and failed `fit.part_nodes`.
+
+## 2026-10-10 — slice 04 (top-attack view)
+
+- **The climb aims one climb's run ahead at the loft height,** so the missile rises at the dive
+  angle (39° at dive 40), holds, then dives. The first aim climbed on a ~7° ramp at 500 m and
+  read as a flat shot at play camera (`assets/top-attack/view-flat-before-after.png`). Rejected:
+  a higher loft (180 m still gave 11° at 900 m) and storing the launch origin (not needed).
+  Every range 100–900 m still strikes the roof at 45° or steeper.
+- **Starting rows for slice 11:** turn 360°/s, loft 60 m, dive 40° (never below 300°/s at dive 40).
+- **The lab guidance line stays straight to the commanded point** (game-ui): drawing the flown
+  path would copy the dive geometry into the renderer.
+- **Open, not this feature's:** at the play camera nothing shows height (no missile shadow or
+  drop line), so the rise reads mainly through the hook onto the tank. That is missile art.
+- **The ambush lab gained a "Top attack" variant** (saved encounter with pinned rules) rather
+  than a new route.

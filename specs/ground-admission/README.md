@@ -29,7 +29,7 @@ Checklist:
 - [ ] 01 model triage — ranked fix list and three art decisions ([slice](slices/01-model-triage.md))
 - [ ] 02 top-attack flight — row property, admission, dive steering ([slice](slices/02-top-attack-flight.md))
 - [ ] 03 top attack in battle — sight, release, APS, roof payoff, overhead launch ([slice](slices/03-top-attack-in-battle.md))
-- [ ] 04 top-attack view — side-on capture of the arc ([slice](slices/04-top-attack-view.md))
+- [x] 04 top-attack view — side-on capture of the arc ([slice](slices/04-top-attack-view.md))
 - [ ] 05 pilot: Challenger 3 + the two new profiles; writes the recipe's evidence ([slice](slices/05-pilot-challenger-3.md))
 - [ ] 06 T-14 and T-15 Armata ([slice](slices/06-armata.md))
 - [ ] 07 BRM-3K and Type 15 ([slice](slices/07-brm-type15.md))
@@ -140,11 +140,13 @@ TopAttack { loft_m: f64, dive_deg: f64 }          // deny_unknown_fields
   `loft_m`, and `dive_deg` outside (0, 90). It resolves to `LaunchProfile.loft:
   Option<Loft { height_m, slope }>` with `slope = tan(dive)` computed once.
 - **Steering:** `Guidance` gains `loft: Option<Loft>`. One pure method,
-  `Guidance::aim(position) -> V3`, owns the geometry: while supported and lofted, aim at
-  `point + up·height_m` until the commanded point lies at least `dive_deg` below the
-  missile's horizon (`position.z − point.z ≥ slope · horizontal distance`), then at `point`.
-  A released missile ignores the loft. `Flight::acceleration` calls `aim`, so flight and the
-  APS look-ahead see the same path.
+  `Guidance::aim(position) -> V3`, owns the geometry: while supported and lofted, aim at the
+  loft height one climb's run (`height_m / slope`) ahead, never past the point — so the missile
+  shoots up at the dive angle, holds the loft, and dives once the commanded point lies at least
+  `dive_deg` below its horizon (`position.z − point.z ≥ slope · horizontal distance`). A
+  released missile ignores the loft. `Flight::acceleration` calls `aim`, so flight and the APS
+  look-ahead see the same path. (Slice 04 replaced the first form, aiming at the loft above the
+  far target, which climbed on a ~7° ramp that read as a flat shot.)
 - **Unchanged:** `Battle::guide` still renews `point`; `guidance_clear`, `release`,
   `release_coast_s`, APS, damage and face selection are untouched. The publication layout
   does not change: `GuidedMissile.point` stays the commanded point (its doc says
