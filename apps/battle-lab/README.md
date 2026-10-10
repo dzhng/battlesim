@@ -26,7 +26,10 @@ address updates the current entry without restarting that visit. Queued async
 continuations stop when history leaves their visit, before React necessarily
 finishes unmounting the previous page.
 
-The main menu starts fresh generated skirmishes and opens replays. It is
+The main menu starts fresh generated skirmishes, opens replays and teaches the
+game: [the tutorial](src/Tutorial.tsx) reads its economy and keys from the
+skirmish rules and command bindings, and its prose must follow the simulation's
+rules when they change. It is
 one plate over its backdrop, with title-only entries over generated military art.
 Opening a page replaces the plate's contents under a
 Back button, and Escape is Back, so the film behind never changes. A menu address asking for a battle opens on the

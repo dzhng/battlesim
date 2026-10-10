@@ -283,7 +283,7 @@ export async function run(ctx) {
   const body = page.locator("main.menu .menu-body");
   await ctx.matchBaseline(body, "menu", { style: MENU_UNPINNED });
   // The developer page lists every lab: it changes as labs come and go.
-  for (const entry of ["skirmish", "replay", "settings"]) {
+  for (const entry of ["skirmish", "replay", "tutorial", "settings"]) {
     await page.locator(`[data-page="${entry}"]`).click();
     await pointerAway(page);
     await contained(ctx, page, `menu ${entry}`);

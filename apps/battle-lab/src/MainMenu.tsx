@@ -1,6 +1,6 @@
 // The game's front door at `/`, in the HUD's look: start a battle on a
 // generated map (its type, its size and, if the player cares, its region),
-// watch a saved battle, and
+// watch a saved battle, read how to play, and
 // the sound settings. The benchmark and the labs are developer tools, behind
 // the developer link (kept in production builds: its audience is technical).
 //
@@ -17,6 +17,7 @@ import { FACTIONS } from "@packages/scene-assets/src/units";
 import { askedChoice, battleHref, playHref, REGIONS, spoken } from "./battleLinks";
 import { ReplayImport, useSavedReplay, REPLAY_ROUTE, type ReplayFile } from "./replayFile";
 import { SoundControls } from "./SoundControls";
+import { Tutorial } from "./Tutorial";
 import { MenuBackdrop } from "./MenuBackdrop";
 import { LOADING_STAGES, LoadingTasks, useLoadingTasks } from "./LabLoading";
 import { LoadingScreen } from "./LoadingScreen";
@@ -189,6 +190,7 @@ function ReplayPage({ saved }: { saved: ReplayFile | null | undefined }) {
 const PAGES = {
   skirmish: { title: "Skirmish" },
   replay: { title: "Watch replay" },
+  tutorial: { title: "Tutorial" },
   settings: { title: "Settings" },
   // Opened by the quiet developer link, not a tile.
   developer: { title: "Developer" },
@@ -284,6 +286,7 @@ export function MainMenu() {
           <ul>
             <PageEntry page="skirmish" open={setPage} />
             <PageEntry page="replay" open={setPage} />
+            <PageEntry page="tutorial" open={setPage} />
             <PageEntry page="settings" open={setPage} />
           </ul>
         </nav>
@@ -301,6 +304,7 @@ export function MainMenu() {
       <PageView key={page} page={page} back={back}>
         {page === "skirmish" && <NewBattle asked={asked} />}
         {page === "replay" && <ReplayPage saved={savedReplay.file} />}
+        {page === "tutorial" && <Tutorial />}
         {page === "settings" && <SoundControls />}
         {page === "developer" && <Entries label="Developer" entries={DEVELOPER} />}
       </PageView>

@@ -226,6 +226,69 @@
 .hud-panel a.menu-card[aria-disabled="true"] .menu-card-label {
   opacity: 0.32;
 }
+/* The tutorial: a briefing read in the plate, scrolling under its Back
+   button, its sections headed in the plate's tracked caps and its keys drawn
+   as small holo keycaps. */
+.menu-tutorial {
+  display: grid;
+  gap: 18px;
+  max-height: min(60vh, 640px);
+  overflow-y: auto;
+  margin-right: -12px;
+  padding: 10px 12px 28px 0;
+  /* Lines fade into the scroll's edges rather than being cut off. */
+  mask-image: linear-gradient(transparent, #000 18px, #000 calc(100% - 36px), transparent);
+  font-size: 13px;
+  line-height: 1.55;
+  /* Body a step under full brightness, so key terms and keys stand out. */
+  color: rgb(var(--hud-text) / 0.82);
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--hud-accent) / 0.5) transparent;
+}
+.menu-tutorial section {
+  display: grid;
+  gap: 8px;
+}
+.menu-tutorial h3 {
+  margin: 0;
+  font: 700 13px var(--hud-font);
+  letter-spacing: 0.22em;
+  text-shadow: var(--hud-text-halo);
+  text-transform: uppercase;
+  color: rgb(var(--hud-accent));
+}
+.menu-tutorial p {
+  margin: 0;
+}
+.menu-tutorial ul {
+  gap: 6px;
+}
+.menu-tutorial li {
+  position: relative;
+  padding-left: 14px;
+}
+.menu-tutorial li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.7em;
+  width: 6px;
+  height: 2px;
+  background: rgb(var(--hud-accent));
+}
+.menu-tutorial strong {
+  color: #fff;
+}
+.menu-tutorial kbd {
+  display: inline-block;
+  padding: 0 5px;
+  font: 700 10.5px var(--hud-font);
+  letter-spacing: 0.06em;
+  line-height: 16px;
+  color: #fff;
+  background: rgb(var(--hud-accent) / 0.12);
+  border: 1px solid rgb(var(--hud-accent) / 0.55);
+}
 .menu .sound-controls {
   display: flex;
   gap: 16px;
@@ -747,6 +810,9 @@
 }
 .menu-card[data-art="replay"] {
   --menu-art: url("/menu/replay.jpg");
+}
+.menu-card[data-art="tutorial"] {
+  --menu-art: url("/menu/tutorial.jpg");
 }
 .menu-card[data-art="settings"] {
   --menu-art: url("/menu/settings.jpg");
