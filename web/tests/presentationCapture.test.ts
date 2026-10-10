@@ -69,6 +69,21 @@ test("rejects publication values that cannot be lossless u32 carriers", () => {
   ).toThrow(/u32/);
 });
 
+test("rejects samples without publication arrays or camera poses", () => {
+  expect(() =>
+    validatePresentationCapture({
+      ...capture,
+      samples: [{ ...capture.samples[0], publication: null as unknown as number[] }],
+    }),
+  ).toThrow(/publication/);
+  expect(() =>
+    validatePresentationCapture({
+      ...capture,
+      samples: [{ ...capture.samples[0], camera: null as unknown as typeof pose }],
+    }),
+  ).toThrow(/camera/);
+});
+
 test("rejects a malformed displayed camera frame", () => {
   expect(() =>
     validatePresentationCapture({

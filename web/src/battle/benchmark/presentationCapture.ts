@@ -36,6 +36,23 @@ export interface PresentationFrame {
   camera: CameraPose;
 }
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+function isCameraPose(value: unknown): value is CameraPose {
+  if (!isRecord(value) || !Array.isArray(value.target) || value.target.length !== 2)
+    return false;
+  return (
+    value.target.every((coordinate) => typeof coordinate === "number" && Number.isFinite(coordinate)) &&
+    typeof value.distance === "number" &&
+    Number.isFinite(value.distance) &&
+    typeof value.yaw === "number" &&
+    Number.isFinite(value.yaw) &&
+    typeof value.pitch === "number" &&
+    Number.isFinite(value.pitch)
+  );
+}
+
 /** Reject malformed or reordered captures before a renderer can benchmark it. */
 export function validatePresentationCapture(capture: PresentationCapture): PresentationCapture {
   if (capture.schema !== "battle-presentation-capture/v1")
@@ -49,32 +66,41 @@ export function validatePresentationCapture(capture: PresentationCapture): Prese
   if (!Array.isArray(capture.frames)) throw new Error("capture frames must be an array");
   let previousFrame = -1;
   for (const frame of capture.frames) {
-    if (!Number.isFinite(frame.elapsedMs) || frame.elapsedMs < previousFrame)
-      throw new Error("capture frame times must be increasing");
-    if (!Number.isInteger(frame.tick) || frame.tick < 0)
-      throw new Error("capture frame tick must be non-negative");
+    if (!isRecord(frame)) throw new Error("capture frame is malformed");
+    const elapsedMs = frame.elapsedMs;
     if (
-      !Number.isFinite(frame.camera.distance) ||
-      !Number.isFinite(frame.camera.yaw) ||
-      !Number.isFinite(frame.camera.pitch) ||
-      !Array.isArray(frame.camera.target) ||
-      frame.camera.target.length !== 2 ||
-      !frame.camera.target.every(Number.isFinite)
+      typeof elapsedMs !== "number" ||
+      !Number.isFinite(elapsedMs) ||
+      elapsedMs < previousFrame
     )
+      throw new Error("capture frame times must be increasing");
+    const tick = frame.tick;
+    if (typeof tick !== "number" || !Number.isInteger(tick) || tick < 0)
+      throw new Error("capture frame tick must be non-negative");
+    if (!isCameraPose(frame.camera))
       throw new Error("capture frame camera is malformed");
-    previousFrame = frame.elapsedMs;
+    previousFrame = elapsedMs;
   }
+  if (!Array.isArray(capture.samples)) throw new Error("capture samples must be an array");
   let previous = -1;
   for (const sample of capture.samples) {
-    if (!Number.isInteger(sample.tick) || sample.tick < 0 || sample.tick <= previous)
+    if (!isRecord(sample)) throw new Error("capture sample is malformed");
+    const tick = sample.tick;
+    if (typeof tick !== "number" || !Number.isInteger(tick) || tick < 0 || tick <= previous)
       throw new Error("capture samples must increase by non-negative tick");
-    if (!/^[0-9a-f]{16}$/i.test(sample.digest))
+    const digest = sample.digest;
+    if (typeof digest !== "string" || !/^[0-9a-f]{16}$/i.test(digest))
       throw new Error("capture digest must be a 16-digit hex value");
+    const publication = sample.publication;
     if (
-      !sample.publication.every((word) => Number.isInteger(word) && word >= 0 && word <= 0xffffffff)
+      !Array.isArray(publication) ||
+      !publication.every(
+        (word) => typeof word === "number" && Number.isInteger(word) && word >= 0 && word <= 0xffffffff,
+      )
     )
       throw new Error("capture publication contains an invalid u32 word");
-    previous = sample.tick;
+    if (!isCameraPose(sample.camera)) throw new Error("capture sample camera is malformed");
+    previous = tick;
   }
   return capture;
 }
