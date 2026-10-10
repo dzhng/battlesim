@@ -35,7 +35,6 @@ const platesOf =
   (): FramePlate => ({
     png: Promise.resolve(new Blob([`lit at ${now}`])),
     clumps: Promise.resolve(roots.map((root) => ({ root }))),
-    classes: Promise.resolve(new Blob([`classes at ${now}`])),
     plain: Promise.resolve(new Blob([`plain at ${now}`])),
   });
 /** A level camera 40 m east of (5, 6, 1), looking west: screen right is +y, up is +z. */
@@ -123,7 +122,6 @@ test("each drawn frame records the view it drew in sim space, and a plate from e
   expect(result.plates.map((p) => p.file)).toEqual(["plate-1.png"]);
   const [plate] = result.plates;
   expect(await (await plate.png).text()).toBe("lit at 2100");
-  expect(await (await plate.classes).text()).toBe("classes at 2100");
   expect(await (await plate.plain).text()).toBe("plain at 2100");
 });
 

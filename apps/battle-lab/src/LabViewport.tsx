@@ -186,12 +186,11 @@ export interface ViewportFrame {
 
 /** A drawn frame read back for a second client to draw against: the canvas
  *  as the player saw it, the grass clumps the frame grew, and the same frame
- *  drawn again offscreen as its ground-class view and lit without its grass.
- *  The canvas and the next frame are untouched. */
+ *  drawn again offscreen lit without its grass. The canvas and the next
+ *  frame are untouched. */
 export interface FramePlate {
   png: Promise<Blob>;
   clumps: Promise<readonly Pick<GrassClumpRow, "root">[]>;
-  classes: Promise<Blob>;
   plain: Promise<Blob>;
 }
 
@@ -763,31 +762,28 @@ export function LabViewport({
           dirty = false;
           scene.render(context.getCurrentTexture().createView(), snapshot());
         };
-        /** The view the lab chose (`setFrameView`), and whether it took the grass away. */
-        let frameView: FrameView = "final";
+        /** Whether the lab took the grass away (`suppressGrass`). */
         let grassSuppressed = false;
-        /** The frame just drawn again with `change` on, into a texture of the
-         *  canvas's size and format, read back; `change(false)` puts the
-         *  frame back, so the canvas and the next frame are as they were. */
-        const readDrawn = (change: (on: boolean) => void) => {
+        /** The frame just drawn again without its grass, into a texture of
+         *  the canvas's size and format, read back; the grass is put back,
+         *  so the canvas and the next frame are as they were. */
+        const readPlain = () => {
           const texture = device!.createTexture({
             label: "plate-readback",
             size: [canvas.width, canvas.height],
             format: info.format,
             usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
           });
-          change(true);
+          scene.grassProbes.suppress(true);
           scene.render(texture.createView(), snapshot());
-          change(false);
+          scene.grassProbes.suppress(grassSuppressed);
           return readTexturePng(device!, texture).finally(() => texture.destroy());
         };
-        // What the frame drew is read first: the offscreen draws change the
-        // frame (the plain one takes the grass away) before putting it back.
+        // What the frame drew is read first: the grass-less draw changes the frame.
         const plate = (): FramePlate => ({
           png: readTexturePng(device!, context.getCurrentTexture()),
           clumps: scene.grassProbes.clumps(),
-          classes: readDrawn((on) => scene.setView(on ? "ground-classes" : frameView)),
-          plain: readDrawn((on) => scene.grassProbes.suppress(on || grassSuppressed)),
+          plain: readPlain(),
         });
         redrawRef.current = () => (dirty = true);
         let pointer: { x: number; y: number } | null = null;
@@ -1005,7 +1001,6 @@ export function LabViewport({
           },
           frame: nextFrame,
           async setFrameView(view: FrameView) {
-            frameView = view;
             scene.setView(view);
             await nextFrame();
           },
