@@ -17,20 +17,20 @@
   "captures": [
     {
       "scene": "market-town",
-      "path": "throwaway/current-captures/market-town.json",
-      "sha256": "12f3b5e7753f67bf7e92aedc2131ec0ebd003124d1242ed023e5b8ee2659570d",
+      "path": "throwaway/browser-captures-current/market-town.json",
+      "sha256": "f9e90a894ba5caa59555f7172c1fa7657b7d0623d0276062aeac68721ecd6750",
       "samples": 3541,
-      "frames": 8330
+      "frames": 8493
     },
     {
       "scene": "paris-corner",
-      "path": "throwaway/current-captures/paris-corner.json",
-      "sha256": "3cb26929d2f5920455a9c3d00c4e1257897493a598ac88744ece5f16d6fd3e70",
-      "samples": 1291,
-      "frames": 4417
+      "path": "throwaway/browser-captures-current/paris-corner.json",
+      "sha256": "cb6039b2c8da70b781c9a591ece613e7377f03fbc6088b91d73497d99a29989d",
+      "samples": 1290,
+      "frames": 4296
     }
   ],
-  "browserReport": "throwaway/browser-graphics-report.json",
+  "browserReport": "throwaway/browser-graphics-report-current.json",
   "nativeReport": "throwaway/native/authored-report-current.json",
   "notes": "Ignored reports and captures are local evidence; this manifest pins their hashes and identity for review."
 }
