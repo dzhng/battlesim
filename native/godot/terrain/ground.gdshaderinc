@@ -846,16 +846,92 @@ vec4 ground_roads(vec2 xy, float footprint, GroundPaved paved, vec4 under) {
 
 // The plot's own ground ----------------------------------------------------------
 
-// The painterly variation `(value, dry)` of a plot's ground (`mottle`); the
-// field character (slice 05b) ports it.
+// The painterly variation of a plot's ground, `(value, dry)` (`mottle`):
+// dry patches drawn afresh in every plot along its rows, with edges a pixel
+// wide, and fine value noise that fades below a pixel.
 vec2 ground_mottle(vec2 xy, float footprint, vec2 across, float plot, vec2 reach) {
-	return vec2(0.0);
+	vec4 shape = ground_params[PARAMS_shape];
+	vec2 along = vec2(-across.y, across.x);
+	vec2 lane = vec2(dot(xy, along) * reach.x, dot(xy, across) * reach.y);
+	vec2 seed = vec2(fract(plot * 0.6180339) * 997.0, fract(plot * 0.7548776) * 991.0);
+	vec2 at = lane + seed;
+	float streak = value_noise(at);
+	vec2 slope = vec2(
+		(value_noise(at + vec2(TUNING_mottle_slopeStep, 0.0)) - streak) / TUNING_mottle_slopeStep * reach.x,
+		(value_noise(at + vec2(0.0, TUNING_mottle_slopeStep)) - streak) / TUNING_mottle_slopeStep * reach.y);
+	float inside = (streak - TUNING_mottle_patchCut) / max(length(slope), 1e-4);
+	float edge = max(footprint, TUNING_mottle_patchEdgeM) * 0.5;
+	float parched = ss(-edge, edge, inside);
+	float fine = value_noise(xy * shape.z + vec2(37.1, 11.3)) - 0.5;
+	float fine_shown = 1.0 - ss(TUNING_mottle_fineFade_0, TUNING_mottle_fineFade_1, footprint * shape.z);
+	return vec2(fine * TUNING_mottle_fineValue * fine_shown, parched * TUNING_mottle_patchHue + max(fine, 0.0) * TUNING_mottle_fineHue * fine_shown);
+}
+
+// How much of a pixel a wheeling of plot `plot` covers: two furrows bare in
+// every `tram.x` (`groundWheeling`).
+float ground_wheeling(vec2 xy, float footprint, int plot) {
+	vec4 rows = plot_field(plot, PLOTS_rows);
+	vec4 tram = plot_field(plot, PLOTS_tram);
+	if (tram.x <= 0.0 || rows.z <= 0.0) {
+		return 0.0;
+	}
+	float phase = dot(xy, rows.xy) / rows.z;
+	float furrow = roundEven(phase);
+	float nth = furrow - tram.x * floor(furrow / tram.x);
+	if (nth != 0.0 && nth != TUNING_wheeling_gaugeRows) {
+		return 0.0;
+	}
+	float off = abs(phase - furrow) * rows.z;
+	float pixel = max(footprint, TUNING_wheeling_leastPixelM);
+	return clamp((tram.y - off) / pixel + 0.5, 0.0, 1.0) * min(1.0, 2.0 * tram.y / pixel);
 }
 
 // What a plot's rows, wheelings and grain do to its albedo, as a factor
-// (`fieldTexture`); the field character (slice 05b) ports it.
+// (`fieldTexture`). Every term fades to its mean below a pixel.
 float field_texture(vec2 xy, float footprint, int plot) {
-	return 1.0;
+	vec4 rows = plot_field(plot, PLOTS_rows);
+	vec4 grain = plot_field(plot, PLOTS_grain);
+	float breaks = plot_field(plot, PLOTS_detail).z;
+	float u = dot(xy, vec2(-rows.y, rows.x));
+	float v = dot(xy, rows.xy);
+	float value = 1.0;
+	if (rows.z > 0.0) {
+		float phase = v / rows.z;
+		float shown = 1.0 - ss(TUNING_rows_fade_0, TUNING_rows_fade_1, footprint / rows.z);
+		float stripe = 0.5 + 0.5 * cos(phase * 6.2831853);
+		float furrow = stripe * stripe * stripe;
+		float along = grain.x * grain.z / TUNING_rows_breakGrains;
+		float seen = shown * (1.0 - ss(TUNING_grain_fade_0, TUNING_grain_fade_1, footprint * along));
+		if (breaks > 0.0 && seen > 0.0) {
+			// Each furrow has its own noise along its length; two meet on the
+			// bed between them, where neither darkens anything.
+			float gap = value_noise(vec2(u * along, floor(phase + 0.5) * 7.31 + 0.5));
+			furrow *= 1.0 + breaks * (gap * 2.0 - 1.0) * seen;
+		}
+		float bare = plot_field(plot, PLOTS_tram).z * ground_wheeling(xy, footprint, plot);
+		value = (1.0 - rows.w * (0.5 + (furrow - TUNING_rows_mean) * shown)) * (1.0 - bare);
+	}
+	if (grain.y > 0.0) {
+		float size = grain.x / (TUNING_grain_octave * TUNING_grain_octave);
+		float sum = 0.0;
+		vec2 push = vec2(0.0);
+		float weights[4] = float[4](TUNING_grain_weights_0, TUNING_grain_weights_1, TUNING_grain_weights_2, TUNING_grain_weights_3);
+		float turns[4] = float[4](TUNING_grain_turns_0, TUNING_grain_turns_1, TUNING_grain_turns_2, TUNING_grain_turns_3);
+		for (int i = 0; i < 4; i++) {
+			float shown = 1.0 - ss(TUNING_grain_fade_0, TUNING_grain_fade_1, footprint * size);
+			if (shown > 0.0) {
+				vec2 turn = vec2(cos(turns[i]), sin(turns[i]));
+				vec2 p = vec2(u * grain.z, v) * size;
+				vec2 seed = vec2(float(i) * 17.31 + 3.7, float(plot % 64) * 1.37);
+				float n = value_noise(vec2(dot(p, turn), dot(p, vec2(-turn.y, turn.x))) + seed + push);
+				sum += weights[i] * shown * clamp((n - 0.5) * (2.0 * TUNING_grain_crisp), -1.0, 1.0);
+				push = vec2(cos(n * 6.2831853), sin(n * 6.2831853)) * TUNING_grain_warp;
+			}
+			size *= TUNING_grain_octave;
+		}
+		value *= 1.0 + grain.y * sum;
+	}
+	return value;
 }
 
 // `albedo` toward ochre by `dry` at its own luminance (`groundTint`).
