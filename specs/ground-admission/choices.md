@@ -100,3 +100,24 @@ the [README](README.md#decisions).
 - **Planning error corrected:** the recipe named the catalog smoke test as each card's proof, but it
   walks test units only by design. Closeout runs it over the twelve as a scratch check.
 - **Sample:** at 450 m the Type 15 kills IFVs and dies to MBTs head-on (`assets/07/duels.txt`).
+
+## 2026-10-10 — slice 08 (M10, CV90120, Centauro II)
+
+- **Accepted: the M10 still reads as a small Abrams at play camera** after the nose/turret pass. The
+  real M10's turret follows Abrams styling and slice 01 kept the faction tan; two more critiques
+  pulled in opposite directions (turret too tall vs slice 01's "taller"), so iteration stopped.
+- **Roles:** M10 and CV90120 `mbt` (AT teams target them, they fall back when hurt); Centauro
+  `light_vehicle`. No new role.
+- **Centauro fires `ground_tank_ap/he`** (its 120/45 takes tank ammunition), not the light-tank rows.
+- **Costs stay per faction** (M10 240, CV90120 250, Centauro 240). Stats are guesses for closeout:
+  M10 hp 95, 120/55/35/20, 30/64 km/h; CV90120 hp 90, 110/50/30/20, 32/70; Centauro hp 90,
+  70/40/25/15, 30/90 km/h, turning radius 6 m (the wheeled hull limit refuses 7).
+- **Turret guns moved onto the hull origin** (M10 +0.15 m, CV90120 −0.10 m, Centauro +0.70 m, the
+  last further forward than the photos): the simulation turns a carried mount about the hull origin,
+  so an off-centre carrier gun fails the muzzle check. Rule left alone; it is a shared mechanic and
+  any future off-centre turret with a second mount meets the same limit.
+- **CV90120 gained an M2 HMG** by the gunner's hatch (the card listed one; the model had none).
+- **Frames take the art's measure:** CV90120 box 2.65 m tall; Centauro 8.12 × 3.16 × 2.97 m (sight
+  mast shortened); M10 2.98 m to its sight drum. Wreck footprints 1.6 m (CV90120), 1.4 m (Centauro).
+- **CV90120 references:** three CC-BY-SA-3.0 photos of the CV90120-T replace the CV90 IFV side and
+  rear; no licensable side or rear photo exists, recorded as a gap.
