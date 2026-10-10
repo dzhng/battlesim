@@ -7,12 +7,35 @@ import {
   encodePresentationCapture,
   type PresentationCapture,
 } from "@web/battle/benchmark/presentationCapture";
+import type {
+  DrawnPresentation,
+  PresentationLayer,
+} from "@web/battle/benchmark/visualPresentation";
 
-export function createReelReport(results: readonly ReelResult[], interruption?: BenchmarkOutcome) {
-  const durationMs = MENU_REEL_WORKLOAD.scenes.reduce(
-    (sum, s) => sum + s.reel.shots.reduce((n, shot) => n + shot.seconds * 1000, 0),
-    0,
-  );
+/** A scene as the report times it. */
+type TimedScene = { map: string; reel: { shots: readonly { seconds: number }[] } };
+
+const reelMs = (scene: TimedScene) =>
+  scene.reel.shots.reduce((sum, shot) => sum + shot.seconds * 1000, 0);
+
+/** The report of a run of `scenes` (the whole workload by default) that
+ *  drew `layers`; `plates` read control plates back, which costs those
+ *  frames their timing. */
+export function createReelReport(
+  results: readonly ReelResult[],
+  {
+    scenes = MENU_REEL_WORKLOAD.scenes,
+    plates = false,
+    layers = [],
+    interruption,
+  }: {
+    scenes?: readonly TimedScene[];
+    plates?: boolean;
+    layers?: readonly PresentationLayer[];
+    interruption?: BenchmarkOutcome;
+  } = {},
+) {
+  const durationMs = scenes.reduce((sum, s) => sum + reelMs(s), 0);
   const merged = new BenchmarkRecording(durationMs);
   let offset = 0;
   for (const result of results) {
@@ -26,16 +49,15 @@ export function createReelReport(results: readonly ReelResult[], interruption?: 
     offset += result.recording.frames.at(-1)?.elapsedMs ?? 0;
   }
   let phaseStart = 0;
-  const phases = MENU_REEL_WORKLOAD.scenes.map((s) => {
+  const phases = scenes.map((s) => {
     const from = phaseStart / durationMs;
-    phaseStart += s.reel.shots.reduce((sum, shot) => sum + shot.seconds * 1000, 0);
+    phaseStart += reelMs(s);
     return { name: s.map, from, to: phaseStart / durationMs };
   });
   const complete =
-    results.length === MENU_REEL_WORKLOAD.scenes.length &&
-    results.every((r) => r.outcome.status === "complete");
+    results.length === scenes.length && results.every((r) => r.outcome.status === "complete");
   const presentationCaptures: PresentationCapture[] = results.map((r) => ({
-    schema: "battle-presentation-capture/v1",
+    schema: "battle-presentation-capture",
     workload: {
       id: MENU_REEL_WORKLOAD.id,
       fingerprint: menuReelFingerprint(),
@@ -49,19 +71,12 @@ export function createReelReport(results: readonly ReelResult[], interruption?: 
     side: "blue",
     layout: r.layout,
     samples: r.capture,
-    frames: (Array.isArray(r.frames) && r.frames.length > 0 ? r.frames : r.recording.frames).map(
-      (frame) => ({
-        elapsedMs: frame.elapsedMs,
-        tick: "tick" in frame ? frame.tick : r.endTick,
-        camera: {
-          target: [frame.camera.target[0], frame.camera.target[1]],
-          distance: frame.camera.distance,
-          yaw: frame.camera.yaw,
-          pitch: frame.camera.pitch,
-        },
-      }),
-    ),
+    frames: r.frames,
   }));
+  // What each scene drew its frames with; null for a scene that drew none.
+  const drawnPresentations: (DrawnPresentation | null)[] = results.map(
+    (r) => r.lens && { lens: r.lens, layers, omissions: [] },
+  );
   const host = typeof navigator === "undefined" ? null : navigator;
   const viewport =
     typeof window === "undefined"
@@ -96,6 +111,8 @@ export function createReelReport(results: readonly ReelResult[], interruption?: 
         subjectTrackingLagSeconds: 0.5,
         plateComposition: "standalone_center" as const,
       },
+      /** Reading a plate back stalls its frame, so a run with plates measures nothing. */
+      frameTimingComparable: !plates,
     },
     workload: MENU_REEL_WORKLOAD,
     fingerprint: menuReelFingerprint(),
@@ -104,7 +121,7 @@ export function createReelReport(results: readonly ReelResult[], interruption?: 
     outcome:
       interruption ??
       (complete
-        ? { status: "complete" as const, reason: "Full reel complete" }
+        ? { status: "complete" as const, reason: "Every scene complete" }
         : results.at(-1)?.outcome.status === "failed"
           ? results.at(-1)!.outcome
           : { status: "cancelled" as const, reason: "Partial reel" }),
@@ -118,8 +135,8 @@ export function createReelReport(results: readonly ReelResult[], interruption?: 
       adapter: r.adapter,
       ...r.recording.report([r.scene.map]),
     })),
-    presentationCaptures,
     presentationCaptureJson: presentationCaptures.map(encodePresentationCapture),
+    drawnPresentations,
     ...merged.report(phases.map((p) => p.name)),
     tour: { phases },
     samples: { frames: merged.frames, stats: merged.stats },

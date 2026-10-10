@@ -1,12 +1,22 @@
+import { vec3 } from "math";
 import { BenchmarkRecording } from "@web/battle/benchmark/recording";
 import type { BenchmarkOutcome } from "@web/battle/benchmark/report";
-import { sampleReel, type BackdropScene } from "../menuReel";
+import { eyePosition, screenAxes } from "@packages/renderer-core/src/camera3d";
+import { plateShot, sampleReel, type BackdropScene } from "../menuReel";
 import type { ScriptedSim } from "../useSimSession";
 import type { ViewportPilot } from "../LabViewport";
-import type {
-  PresentationFrame,
-  PresentationSample,
+import {
+  plateFile,
+  type PresentationFrame,
+  type PresentationSample,
 } from "@web/battle/benchmark/presentationCapture";
+import type { Lens } from "@web/battle/benchmark/visualPresentation";
+
+/** A control plate: the PNG read back from the canvas in the frame it names. */
+export interface ReelPlate {
+  file: string;
+  png: Promise<Blob>;
+}
 
 export interface ReelResult {
   scene: BackdropScene;
@@ -19,13 +29,19 @@ export interface ReelResult {
   adapter: string | null;
   capture: readonly PresentationSample[];
   frames: readonly PresentationFrame[];
+  /** The lens the frames drew through; null before the first frame. */
+  lens: Lens | null;
+  plates: readonly ReelPlate[];
 }
 
-/** One complete scene; preparation and inter-scene loading have no frame samples. */
+/** One complete scene; preparation and inter-scene loading have no frame
+ *  samples. With `plates`, each shot's middle frame is read back as a
+ *  control plate (which costs that frame its timing). */
 export function createReelRun(
   scene: BackdropScene,
   tickHz: number,
   onDone: (result: ReelResult) => void,
+  { plates: platesWanted = false }: { plates?: boolean } = {},
 ) {
   const durationMs = scene.reel.shots.reduce((sum, shot) => sum + shot.seconds * 1000, 0);
   const recording = new BenchmarkRecording(durationMs);
@@ -42,6 +58,8 @@ export function createReelRun(
   let tracked: { follow: number; at: [number, number]; now: number } | null = null;
   const capture: PresentationSample[] = [];
   const frames: PresentationFrame[] = [];
+  const plates: ReelPlate[] = [];
+  let lens: Lens | null = null;
   const track = (follow: number, now: number): readonly number[] => {
     const live = subject.unitAt(follow);
     if (tracked?.follow !== follow) tracked = live && { follow, at: [live[0], live[1]], now };
@@ -68,6 +86,8 @@ export function createReelRun(
       adapter,
       capture,
       frames,
+      lens,
+      plates,
     });
   };
   const sample = (now: number) => sampleReel(scene.reel, recording.elapsed(now) / 1000);
@@ -85,7 +105,7 @@ export function createReelRun(
         target: [lastSubject[0] + s.pose.target[0], lastSubject[1] + s.pose.target[1]],
       };
     },
-    frame({ now, cpuMs, camera }) {
+    frame({ now, cpuMs, camera, simTime, canvas, readback }) {
       if (!warm || finished) return;
       if (!recording.started) {
         recording.start(now);
@@ -98,8 +118,28 @@ export function createReelRun(
         yaw: camera.yaw,
         pitch: camera.pitch,
       };
+      const reelMs = recording.elapsed(now);
       recording.frame({ now, cpuMs, camera: pose, intended: pilot.pose(now)!, phase: scene.map });
-      frames.push({ elapsedMs: recording.elapsed(now), tick: endTick, camera: pose });
+      const index = frames.length;
+      const previousMs = frames.at(-1)?.reelMs ?? 0;
+      const plate =
+        platesWanted && plateShot(scene.reel, previousMs / 1000, reelMs / 1000) !== null
+          ? plateFile(index)
+          : null;
+      // Read back now, in the task that drew it, before the canvas presents.
+      if (plate) plates.push({ file: plate, png: readback() });
+      lens ??= { fovY: camera.fovY, near: camera.near, depth: "reverse-z", far: "infinite" };
+      frames.push({
+        index,
+        reelMs,
+        tick: endTick,
+        simTime,
+        eye: eyePosition(vec3.create(), camera),
+        target: [camera.target[0], camera.target[1], camera.target[2]],
+        up: screenAxes(camera).up,
+        canvas: [canvas[0], canvas[1]],
+        plate,
+      });
       if (stats && now - lastStats >= 2000) {
         const s = stats();
         recording.sample({
@@ -128,10 +168,7 @@ export function createReelRun(
       recording.tick(t);
     },
     onPublication(p) {
-      if (finished) return;
-      const pose = pilot.pose(performance.now());
-      if (pose)
-        capture.push({ tick: p.tick, digest: p.digest, publication: p.packed, camera: pose });
+      if (!finished) capture.push({ tick: p.tick, digest: p.digest, publication: p.packed });
     },
   };
   return {

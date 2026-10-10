@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import { MENU_REEL_WORKLOAD } from "@web/battle/benchmark/menuReel";
+import type { PresentationLayer } from "@web/battle/benchmark/visualPresentation";
 import { listMaps } from "@web/maps/catalogue";
 import game from "@fixtures/game.json";
 import { filmCamera, validateBackdrop, type BackdropScene } from "../menuReel";
@@ -12,34 +13,92 @@ import { useFeed } from "../feed";
 import { gameCamera } from "../gameCamera";
 import { LabViewport } from "../LabViewport";
 import { useLabLoading } from "../LabLoading";
-import { createReelRun, type ReelResult } from "../benchmark/reelRun";
+import { appResources } from "../appResources";
+import { createReelRun, type ReelPlate, type ReelResult } from "../benchmark/reelRun";
 import { createReelReport, type ReelReport } from "../benchmark/reelReport";
 import { FrameChart } from "../benchmark/FrameChart";
 
 const scenes = validateBackdrop(MENU_REEL_WORKLOAD, listMaps()).scenes;
+// The rig films every scene's closest framing, however few scenes run.
 const cameraConfig = filmCamera(
   gameCamera.config,
   scenes.map((s) => s.reel),
 );
+/** What the reel's viewport is handed: the battle, with no fog overlay and no orders. */
+const REEL_LAYERS: readonly PresentationLayer[] = [
+  "sky",
+  "terrain",
+  "water",
+  "grass",
+  "scenery",
+  "props",
+  "structures",
+  "buildings",
+  "models",
+  "effects",
+  "scars",
+];
+
+/** The scenes `?scenes=<map,…>` names, in that order (every scene without
+ *  it), or the refusal naming a map the reel does not film. */
+function chooseScenes(names: string | null): readonly BackdropScene[] | string {
+  if (names === null) return scenes;
+  const chosen = names.split(",").map((name) => scenes.find((s) => s.map === name) ?? name);
+  const unknown = chosen.filter((s) => typeof s === "string");
+  if (unknown.length > 0 || chosen.length === 0)
+    return `The graphics test films ${scenes.map((s) => s.map).join(", ")}; not ${unknown.join(", ")}.`;
+  return chosen as BackdropScene[];
+}
+
+/** The page's state for scripted runs. */
+interface GraphicsTestState {
+  stage: "ready" | "running" | "results" | "refused";
+  report: ReelReport | null;
+  /** Each scene's control plates (`?plates=1`), in run order. */
+  plates: readonly (ReelPlate & { scene: string })[];
+}
 
 declare global {
   interface Window {
-    __graphicsTest?: { stage: string; report: ReelReport | null };
+    __graphicsTest?: GraphicsTestState;
   }
 }
 
 export default function GraphicsTest() {
+  const [params] = useSearchParams();
+  const [chosen] = useState(() => chooseScenes(params.get("scenes")));
+  const [plates] = useState(() => params.get("plates") === "1");
   const [stage, setStage] = useState<"ready" | "running" | "results">("ready");
   const [results, setResults] = useState<ReelResult[]>([]);
   const [failure, setFailure] = useState<string | null>(null);
-  const report =
-    stage === "results"
-      ? createReelReport(results, failure ? { status: "failed", reason: failure } : undefined)
-      : null;
+  const run = typeof chosen === "string" ? [] : chosen;
+  const reportOf = (done: readonly ReelResult[], reason: string | null) =>
+    createReelReport(done, {
+      scenes: run,
+      plates,
+      layers: REEL_LAYERS,
+      interruption: reason ? { status: "failed", reason } : undefined,
+    });
+  const report = stage === "results" ? reportOf(results, failure) : null;
+  const publish = (state: Omit<GraphicsTestState, "plates">, done: readonly ReelResult[]) => {
+    window.__graphicsTest = {
+      ...state,
+      plates: done.flatMap((r) => r.plates.map((p) => ({ ...p, scene: r.scene.map }))),
+    };
+  };
   useLabLoading("renderer", stage !== "running" ? true : null);
   useEffect(() => {
-    window.__graphicsTest = { stage, report };
-  }, [stage, report]);
+    publish({ stage: typeof chosen === "string" ? "refused" : stage, report }, results);
+  });
+  // A resource refusal replaces this page with the app's failure screen
+  // before it can render again: the run's failure is published as it lands.
+  useEffect(() => {
+    const unsubscribe = appResources.subscribe(() => {
+      const reason = appResources.error();
+      if (reason) publish({ stage: "results", report: reportOf(results, reason) }, results);
+    });
+    return () => void unsubscribe();
+  });
   const start = () => {
     setResults([]);
     setFailure(null);
@@ -48,13 +107,14 @@ export default function GraphicsTest() {
   const done = (result: ReelResult) => {
     const next = [...results, result];
     setResults(next);
-    if (result.outcome.status !== "complete" || next.length === scenes.length) setStage("results");
+    if (result.outcome.status !== "complete" || next.length === run.length) setStage("results");
   };
   if (stage === "running")
     return (
       <ReelScene
         key={results.length}
-        scene={scenes[results.length]}
+        scene={run[results.length]}
+        plates={plates}
         onDone={done}
         onFailure={(reason) => {
           setFailure(reason);
@@ -80,6 +140,7 @@ export default function GraphicsTest() {
           Play the complete main-menu battle sequence at your current resolution. Loading between
           scenes is excluded.
         </p>
+        {typeof chosen === "string" && <p role="alert">{chosen}</p>}
         {failure && <p role="alert">{failure}</p>}
         {report && (
           <>
@@ -107,9 +168,11 @@ export default function GraphicsTest() {
         )}
       </div>
       <nav className="bench-actions" aria-label="Graphics test actions">
-        <button type="button" onClick={start}>
-          {report ? "Run again" : "Run graphics test"}
-        </button>
+        {typeof chosen !== "string" && (
+          <button type="button" onClick={start}>
+            {report ? "Run again" : "Run graphics test"}
+          </button>
+        )}
         <Link to="/">Main menu</Link>
       </nav>
     </main>
@@ -118,10 +181,12 @@ export default function GraphicsTest() {
 
 function ReelScene({
   scene,
+  plates,
   onDone,
   onFailure,
 }: {
   scene: BackdropScene;
+  plates: boolean;
   onDone: (r: ReelResult) => void;
   onFailure: (reason: string) => void;
 }) {
@@ -135,20 +200,22 @@ function ReelScene({
     if (error) onFailure(error);
   }, [error, onFailure]);
   if (!built || buildFailed(built)) return null;
-  return <ReelBattle scene={scene} scenario={built} onDone={onDone} />;
+  return <ReelBattle scene={scene} scenario={built} plates={plates} onDone={onDone} />;
 }
 
 function ReelBattle({
   scene,
   scenario,
+  plates,
   onDone,
 }: {
   scene: BackdropScene;
   scenario: string;
+  plates: boolean;
   onDone: (r: ReelResult) => void;
 }) {
   const veil = useRef<HTMLDivElement>(null);
-  const [run] = useState(() => createReelRun(scene, game.tick_hz, onDone));
+  const [run] = useState(() => createReelRun(scene, game.tick_hz, onDone, { plates }));
   const session = useBattleSession({
     scenario,
     seed: scene.seed,

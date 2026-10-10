@@ -21,6 +21,7 @@ import {
   type WorldRay,
 } from "@packages/renderer-core/src/camera3d";
 import { liveCamera, type ViewportCamera } from "@packages/renderer-core/src/cameraUniform";
+import { readCanvasPng } from "@packages/renderer-core/src/canvasReadback";
 import {
   CAMERA_KEYS,
   CameraController,
@@ -191,8 +192,18 @@ export interface ViewportPilot {
    *  (`CameraController.place`) and draws it clear of obstacles (`resolve`).
    *  Null leaves the camera to the player for that frame. */
   pose(now: number): CameraPose | null;
-  /** A drawn frame: its main-thread cost and the camera drawn. */
-  frame?(f: { now: number; cpuMs: number; camera: Camera3DParams }): void;
+  /** A drawn frame: its main-thread cost, the camera drawn, the sim time
+   *  it drew (the presentation clock) and the canvas size in pixels.
+   *  `readback` reads this frame's canvas as a PNG; called during `frame`,
+   *  the task that drew it, it reads exactly what was drawn. */
+  frame?(f: {
+    now: number;
+    cpuMs: number;
+    camera: Camera3DParams;
+    simTime: number;
+    canvas: readonly [number, number];
+    readback: () => Promise<Blob>;
+  }): void;
 }
 
 /** What the viewport's device reports once it is up. */
@@ -633,7 +644,13 @@ export function LabViewport({
         const context = canvas.getContext("webgpu");
         if (!context) throw new Error("Canvas refused a WebGPU context.");
         canvasContext = context;
-        context.configure({ device, format: info.format, alphaMode: "opaque" });
+        context.configure({
+          device,
+          format: info.format,
+          alphaMode: "opaque",
+          // A pilot may read a drawn frame back (`readback`).
+          usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
+        });
         // One pixel per CSS pixel, on any display: a high-density screen
         // scales the battle up rather than drawing it at its own density.
         // The page's HUD keeps the display's density.
@@ -721,6 +738,7 @@ export function LabViewport({
           dirty = false;
           scene.render(context.getCurrentTexture().createView(), snapshot());
         };
+        const readback = () => readCanvasPng(device!, context.getCurrentTexture());
         redrawRef.current = () => (dirty = true);
         let pointer: { x: number; y: number } | null = null;
         let modifiers = { ctrl: false, shift: false };
@@ -818,7 +836,14 @@ export function LabViewport({
           // The app cursor always shows; the battle only chooses its action.
           const active = surface && !orbit && !pilot;
           setCursorAction((active && action) || "default");
-          pilot?.frame?.({ now, cpuMs: performance.now() - started, camera });
+          pilot?.frame?.({
+            now,
+            cpuMs: performance.now() - started,
+            camera,
+            simTime: clock,
+            canvas: [canvas.width, canvas.height],
+            readback,
+          });
           raf = requestAnimationFrame(loop);
         };
         raf = requestAnimationFrame(loop);

@@ -1,6 +1,7 @@
 import { expect, test } from "vitest";
 import {
   sampleReel,
+  plateShot,
   filmCamera,
   validateBackdrop,
   validateReel,
@@ -60,6 +61,19 @@ test("the picture dips to black across each cut and opens on the next shot", () 
   expect(next.black).toBe(1);
   expect(next.pose).toEqual(at(500, 500));
   expect(sampleReel(REEL, 15).pose).toEqual(at(500, 550));
+});
+
+test("a control plate is the first frame at or past each shot's middle, where the battle is unveiled", () => {
+  // A frame every 0.4 s from the reel's start, with a hitch over the second middle.
+  const times = [0, 0.4, 4.8, 5.2, 9.6, 10, 14.4, 16, 16.4, 20];
+  const plates = times.map((now, i) => [now, plateShot(REEL, i === 0 ? 0 : times[i - 1], now)]);
+  expect(plates.filter(([, shot]) => shot !== null)).toEqual([
+    [5.2, 0],
+    [16, 1],
+  ]);
+  for (const [now] of plates.filter(([, shot]) => shot !== null))
+    expect(sampleReel(REEL, now!).black).toBe(0);
+  expect(plateShot(REEL, 4, 5)).toBe(0);
 });
 
 test("a tracking shot names the unit it follows and frames by an offset from it", () => {

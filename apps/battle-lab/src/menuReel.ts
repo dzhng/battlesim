@@ -82,6 +82,20 @@ export function sampleReel(reel: MenuReel, elapsed: number): ReelSample {
   return { pose: last.to, follow: last.follow ?? null, black: 1, done: true };
 }
 
+/** The shot whose middle a frame `now` seconds into the reel is the first to
+ *  reach, after a frame at `previous`; null if it reaches none. A shot's
+ *  middle is always unveiled (`validateReel` fits both dips inside it), so
+ *  that frame is a clean picture of the battle: a control plate. */
+export function plateShot(reel: MenuReel, previous: number, now: number): number | null {
+  let start = 0;
+  for (const [i, shot] of reel.shots.entries()) {
+    const middle = start + shot.seconds / 2;
+    if (previous < middle && middle <= now) return i;
+    start += shot.seconds;
+  }
+  return null;
+}
+
 function between(a: CameraPose, b: CameraPose, s: number): CameraPose {
   const at = (u: number, v: number) => u + (v - u) * s;
   return {

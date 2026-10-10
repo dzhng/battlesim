@@ -30,7 +30,21 @@ function result(map: string, started: number, intervals: number[]): ReelResult {
     layout: '{"schema":"test"}',
     adapter: "fake",
     capture: [],
-    frames: [],
+    frames: [
+      {
+        index: 0,
+        reelMs: 10,
+        tick: 61,
+        simTime: 2,
+        eye: [40, 0, 8],
+        target: [0, 0, 0],
+        up: [0, 0, 1],
+        canvas: [1280, 720],
+        plate: null,
+      },
+    ],
+    lens: { fovY: 0.8, near: 1, depth: "reverse-z", far: "infinite" },
+    plates: [],
   };
 }
 
@@ -54,28 +68,38 @@ test("the reel combines measured work without counting preparation gaps or losin
   });
 });
 
-test("exports each completed scene as a native presentation capture", () => {
-  const report = createReelReport([result("first", 1000, [10])]);
-  expect(report.presentationCaptures[0]).toMatchObject({
-    schema: "battle-presentation-capture/v1",
+test("exports each scene's capture with the frames it drew and what it drew them with", () => {
+  const report = createReelReport([result("first", 1000, [10])], { layers: ["sky", "terrain"] });
+  const capture = JSON.parse(report.presentationCaptureJson[0]);
+  expect(capture).toMatchObject({
+    schema: "battle-presentation-capture",
     workload: { id: "menu-reel", scene: "first" },
     tickHz: 30,
     warmTick: 60,
+    frames: [{ index: 0, plate: null }],
   });
-  expect(JSON.parse(report.presentationCaptureJson[0]).schema).toBe(
-    "battle-presentation-capture/v1",
-  );
-  expect(JSON.parse(report.presentationCaptureJson[0]).frames).toHaveLength(1);
+  expect(report.drawnPresentations).toEqual([
+    {
+      lens: { fovY: 0.8, near: 1, depth: "reverse-z", far: "infinite" },
+      layers: ["sky", "terrain"],
+      omissions: [],
+    },
+  ]);
+  expect(report.capture.frameTimingComparable).toBe(true);
 });
 
-test("repairs a legacy reel result that lacks its displayed-frame array", () => {
-  const { frames: _frames, ...legacy } = result("first", 1000, [10]);
-  const report = createReelReport([legacy as unknown as ReelResult]);
-  expect(JSON.parse(report.presentationCaptureJson[0]).frames).toHaveLength(1);
+test("a run of chosen scenes is complete when they are; reading plates back makes its timing incomparable", () => {
+  const chosen = result("chosen", 1000, [10]);
+  const report = createReelReport([chosen], { scenes: [chosen.scene], plates: true });
+  expect(report.outcome.status).toBe("complete");
+  expect(report.tour.phases.map((p) => p.name)).toEqual(["chosen"]);
+  expect(report.capture.frameTimingComparable).toBe(false);
 });
 
 test("a preparation failure stays failed in the exported report even before a scene can start", () => {
-  const report = createReelReport([], { status: "failed", reason: "Map download failed" });
+  const report = createReelReport([], {
+    interruption: { status: "failed", reason: "Map download failed" },
+  });
   expect(report.outcome).toEqual({ status: "failed", reason: "Map download failed" });
   expect(report.frameRate).toBeNull();
 });

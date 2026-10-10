@@ -7,6 +7,13 @@
     "timeout_s": 300
   },
   {
+    "id": "native-parity-capture",
+    "route": "/graphics-test?plates=1",
+    "describe": "The native client's control run: the graphics-test reel at 1280×720 with control plates read back from the canvas at each shot's middle; writes each scene's capture, visual presentation manifest and plates to throwaway/native-parity/. PARITY_SCENES=<map,…> films only those scenes.",
+    "map": null,
+    "timeout_s": 600
+  },
+  {
     "id": "cursor-orders",
     "route": "/lab/cursor-orders",
     "describe": "The production pointer over a reachable squad and a vehicle enclosed by known walls: combined entry, partial gathering refusal and readable callouts.",
