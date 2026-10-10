@@ -10372,7 +10372,7 @@
               "name": "Autocannon",
               "on": null,
               "pivot_m": [
-                0.0,
+                0.2,
                 0.0,
                 1.95
               ],
@@ -10393,7 +10393,7 @@
               "name": "Akeron MP",
               "on": "autocannon",
               "pivot_m": [
-                0.0,
+                0.2,
                 1.32,
                 2.52
               ],
@@ -22760,7 +22760,7 @@
           "name": "Autocannon",
           "on": null,
           "pivot_m": [
-            0.0,
+            0.2,
             0.0,
             1.95
           ],
@@ -22782,7 +22782,7 @@
           "name": "Akeron MP",
           "on": "autocannon",
           "pivot_m": [
-            0.0,
+            0.2,
             1.32,
             2.52
           ],
