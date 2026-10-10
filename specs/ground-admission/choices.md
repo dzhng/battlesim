@@ -182,3 +182,23 @@ the [README](README.md#decisions).
 - **Found:** the disabled-card exporter skips nodes by name prefix, so `"gun"` also skipped
   `gunner_sight`, and slice 01's fit numbers for turreted cards could read low. No disabled ground card
   remains, so it is left for whoever next exports a disabled card.
+
+## 2026-10-10 — T-90M second pass (user review)
+
+- **Only the turret changed;** the photos put the real skirt line at or above the model's, so the
+  suggested hull lowering was rejected. The turret now steps out over a narrow ring base (a dark
+  band under it), rises near-vertical to 2.21 m, and has forward-pointing wedge cheeks sloping about
+  26° from the roof edge (`assets/06/t90-pass2-*.png`). Roof fittings lowered 4–8 cm to stay in the
+  frame's dressing allowance. Frame, T-72 and T-80 unchanged.
+- **Accepted after one pass:** cheeks blunter than the real ones; less side overhang; turret ring
+  position fixed by the frame.
+
+## 2026-10-10 — closeout (slice 13)
+
+- **The repo's battle sweep fields only test units,** so it cannot judge roster balance; it ran once
+  (115 of 120 complete; four map-generation refusals and one refused assault command on mixed large
+  seed 7, none involving roster cards or top attack). Balance evidence for the twelve cards is each
+  slice's battle sample. No general parameter was retuned.
+- **Scratch roster smoke:** all twelve cards set up, fire every mount and reach their move goal.
+  Javelin and Akeron stall in Aiming at a 280–320 m target parameter exactly as the live TOW and
+  Kornet do — pre-existing AT-team behaviour, not top attack.
