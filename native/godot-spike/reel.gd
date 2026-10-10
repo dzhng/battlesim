@@ -86,6 +86,11 @@ func _exit_after_ready() -> void:
 		"authored_building_count": authored_building_count,
 		"authored_map_scene_count": authored_map_scene_count,
 		"authored_unresolved_templates": authored_unresolved_templates,
+		"capture_scene_count": capture_results.size(),
+		"capture_layout_valid": capture_layout_valid,
+		"capture_publication_words": capture_word_count,
+		"display_server": DisplayServer.get_name(),
+		"display_backed": _display_backed(),
 	}))
 	get_tree().quit()
 
