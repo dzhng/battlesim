@@ -503,14 +503,9 @@ export class ObservationDecoder {
 
   decode(data: Float32Array): ObservationView | null {
     const layout = this.layout;
-    if (
-      data.byteLength > layout.ground.maxRecordBytes ||
-      data.length < layout.header.length
-    )
+    if (data.byteLength > layout.ground.maxRecordBytes || data.length < layout.header.length)
       throw new Error("publication exceeds its admitted record bound");
-    const header = Object.fromEntries(
-      layout.header.map((f, i) => [f, data[i]]),
-    );
+    const header = Object.fromEntries(layout.header.map((f, i) => [f, data[i]]));
     const epoch = header.groundEpoch;
     if (!Number.isInteger(epoch) || epoch <= 0)
       throw new Error("publication epoch must be positive");
@@ -546,21 +541,11 @@ export class ObservationDecoder {
       groundRevision >= 2 ** 24 ||
       (fresh
         ? header.groundFull !== 1 || groundBase !== 0
-        : header.groundFull !== 0 ||
-          groundBase !== this.groundRevision ||
-          side !== this.side)
+        : header.groundFull !== 0 || groundBase !== this.groundRevision || side !== this.side)
     )
-      throw new Error(
-        "ground publication does not follow its side/epoch/revision baseline",
-      );
-    if (
-      fresh
-        ? header.fogFull !== 1 || base !== 0
-        : side !== this.side || base !== this.revision
-    )
-      throw new Error(
-        "fog publication does not follow its side/epoch/revision baseline",
-      );
+      throw new Error("ground publication does not follow its side/epoch/revision baseline");
+    if (fresh ? header.fogFull !== 1 || base !== 0 : side !== this.side || base !== this.revision)
+      throw new Error("fog publication does not follow its side/epoch/revision baseline");
     if (!Number.isSafeInteger(revision) || revision <= base)
       throw new Error("fog publication revision must advance");
     const reconstructed = reconstructGroups(
@@ -624,29 +609,17 @@ function reconstructGroups(
     const end = cursor + payload;
     let values: Float32Array;
     if (mode === "packed") {
-      values = unpackGroup(
-        layout,
-        g,
-        encoded,
-        cursor,
-        payload,
-        size,
-        previous?.[g] ?? null,
-      );
+      values = unpackGroup(layout, g, encoded, cursor, payload, size, previous?.[g] ?? null);
       cursor = end;
     } else if (mode === "snapshot") {
-      if (payload !== size)
-        throw new Error("observation group snapshot length mismatch");
+      if (payload !== size) throw new Error("observation group snapshot length mismatch");
       values = encoded.slice(cursor, end);
       cursor = end;
     } else if (mode === "copies") {
       const old = previous![g];
       const group = layout.groups[g];
       const stride = layout.groupDelivery.copyAlignments[g];
-      if (
-        stride !== (group.sections.length === 0 ? group.fields.length : 1) ||
-        size % stride !== 0
-      )
+      if (stride !== (group.sections.length === 0 ? group.fields.length : 1) || size % stride !== 0)
         throw new Error("observation copy alignment disagrees with its group");
       values = new Float32Array(size);
       let at = 0;
@@ -662,9 +635,7 @@ function reconstructGroups(
           at + count > size ||
           (source === -1
             ? cursor + count > end
-            : !integer(source) ||
-              source % stride !== 0 ||
-              source + count > old.length)
+            : !integer(source) || source % stride !== 0 || source + count > old.length)
         )
           throw new Error("invalid observation row copy");
         values.set(
@@ -711,15 +682,11 @@ function reconstructGroups(
     groups.push(values);
     length += size;
     if (length > layout.ground.maxRecordBytes / 4)
-      throw new Error(
-        "reconstructed observation exceeds its admitted record bound",
-      );
+      throw new Error("reconstructed observation exceeds its admitted record bound");
   }
   length += encoded.length - cursor;
   if (length > layout.ground.maxRecordBytes / 4)
-    throw new Error(
-      "reconstructed observation exceeds its admitted record bound",
-    );
+    throw new Error("reconstructed observation exceeds its admitted record bound");
   return { tailOffset: cursor, groups };
 }
 
@@ -731,8 +698,7 @@ class PackedReader {
     this.words = new Uint32Array(data.buffer, data.byteOffset, data.length);
   }
   read(count: number): number {
-    if (this.bit + count > this.words.length * 32)
-      throw new Error("truncated packed publication");
+    if (this.bit + count > this.words.length * 32) throw new Error("truncated packed publication");
     const index = Math.floor(this.bit / 32),
       shift = this.bit % 32;
     let value = this.words[index] >>> shift;
@@ -746,8 +712,7 @@ class PackedReader {
       const part = this.read(8);
       value += (part & 127) * 2 ** (byte * 7);
       if (part < 128) {
-        if (byte !== 0 && part === 0)
-          throw new Error("noncanonical packed publication integer");
+        if (byte !== 0 && part === 0) throw new Error("noncanonical packed publication integer");
         return value;
       }
     }
@@ -757,8 +722,7 @@ class PackedReader {
     if (this.words.length * 32 - this.bit > 31)
       throw new Error("excess packed publication padding");
     while (this.bit < this.words.length * 32)
-      if (this.read(1) !== 0)
-        throw new Error("nonzero packed publication padding");
+      if (this.read(1) !== 0) throw new Error("nonzero packed publication padding");
   }
 }
 
@@ -775,10 +739,7 @@ function unpackGroup(
   const form = reader.read(8);
   if (form > 2 || (old === null && form !== 1))
     throw new Error("packed observation group requires its baseline");
-  const baseline =
-    old === null
-      ? null
-      : new Uint32Array(old.buffer, old.byteOffset, old.length);
+  const baseline = old === null ? null : new Uint32Array(old.buffer, old.byteOffset, old.length);
   const values = new Float32Array(size);
   const result = new Uint32Array(values.buffer);
   const literal = (at: number): void => {
@@ -794,8 +755,7 @@ function unpackGroup(
   } else if (form === 0) {
     result.set(baseline!.subarray(0, size));
     const operations = reader.integer();
-    if (operations > size)
-      throw new Error("invalid packed observation replacement count");
+    if (operations > size) throw new Error("invalid packed observation replacement count");
     let last = 0;
     for (let operation = 0; operation < operations; operation++) {
       const start = reader.integer();
@@ -815,13 +775,8 @@ function unpackGroup(
   } else {
     const group = layout.groups[groupIndex];
     const stride = layout.groupDelivery.copyAlignments[groupIndex];
-    if (
-      stride !== (group.sections.length === 0 ? group.fields.length : 1) ||
-      size % stride !== 0
-    )
-      throw new Error(
-        "packed observation copy alignment disagrees with its group",
-      );
+    if (stride !== (group.sections.length === 0 ? group.fields.length : 1) || size % stride !== 0)
+      throw new Error("packed observation copy alignment disagrees with its group");
     let at = 0;
     while (at < size) {
       const sourcePlusOne = reader.integer();
@@ -831,8 +786,7 @@ function unpackGroup(
         count === 0 ||
         count % stride !== 0 ||
         at + count > size ||
-        (sourcePlusOne !== 0 &&
-          (source % stride !== 0 || source + count > baseline!.length))
+        (sourcePlusOne !== 0 && (source % stride !== 0 || source + count > baseline!.length))
       )
         throw new Error("invalid packed observation source copy");
       if (sourcePlusOne === 0) {
@@ -885,11 +839,7 @@ function decodeFrame(
     }
     const at = Object.fromEntries(group.fields.map((f, i) => [f, i]));
     const rows: Row[] = [];
-    for (
-      let n = 0;
-      n < header[group.count];
-      n++, offset += group.fields.length
-    ) {
+    for (let n = 0; n < header[group.count]; n++, offset += group.fields.length) {
       const base = offset;
       rows.push({ field: (name) => payload[base + at[name]], sections: {} });
     }
@@ -903,9 +853,7 @@ function decodeFrame(
           row.field(section.count) < 0 ||
           offset + row.field(section.count) * width > payload.length
         )
-          throw new Error(
-            "observation group section count exceeds its payload",
-          );
+          throw new Error("observation group section count exceeds its payload");
         for (let k = 0; k < row.field(section.count); k++, offset += width) {
           points.push(Array.from(payload.subarray(offset, offset + width)));
         }
@@ -932,8 +880,7 @@ function decodeFrame(
     throw new Error("fog field dimensions exceed the admitted delivery bound");
   const count = header[layout.fog.count];
   const full = header.fogFull === 1;
-  if (header.fogFull !== 0 && !full)
-    throw new Error("unknown fog payload encoding");
+  if (header.fogFull !== 0 && !full) throw new Error("unknown fog payload encoding");
   if (
     !Number.isSafeInteger(count) ||
     count < 0 ||
@@ -942,8 +889,7 @@ function decodeFrame(
     throw new Error("fog payload does not match its encoding");
   if (
     (!full && !previous) ||
-    (previous &&
-      (previous.nx !== nx || previous.ny !== ny || previous.cellM !== cellM))
+    (previous && (previous.nx !== nx || previous.ny !== ny || previous.cellM !== cellM))
   )
     throw new Error("fog delta has no matching field baseline");
   const groundRuns = header[layout.ground.count];
@@ -955,10 +901,7 @@ function decodeFrame(
     payloads.reduce((sum, group) => sum + group.length, 0) +
     count +
     groundFloats;
-  if (
-    cursor + count > data.length ||
-    logicalWords > layout.ground.maxRecordBytes / 4
-  )
+  if (cursor + count > data.length || logicalWords > layout.ground.maxRecordBytes / 4)
     throw new Error("publication length does not match its layout");
   const bits = full
     ? new Uint32Array(words)
@@ -986,9 +929,7 @@ function decodeFrame(
     for (let at = cursor; at < cursor + count; at += 3) {
       const index = data[at];
       if (!Number.isInteger(index) || index <= last || index >= words)
-        throw new Error(
-          "fog delta word indices must be ordered and inside the field",
-        );
+        throw new Error("fog delta word indices must be ordered and inside the field");
       bits[index] = readWord(at + 1);
       last = index;
     }
@@ -996,12 +937,7 @@ function decodeFrame(
   if (cells % 32 && bits[words - 1] >>> (cells % 32))
     throw new Error("fog padding bits must be zero");
   cursor += count;
-  const groundPatch = decodeGroundPatch(
-    layout,
-    header,
-    data.subarray(cursor),
-    groundRuns,
-  );
+  const groundPatch = decodeGroundPatch(layout, header, data.subarray(cursor), groundRuns);
 
   // An exact integer from its limbs; null when absent.
   const limbs = (f: (name: string) => number, name: string): number | null => {
@@ -1035,10 +971,7 @@ function decodeFrame(
         operator: limbs(f, "operator"),
       };
     });
-  const [ownIds, ownPoses] = [
-    reader("own", "memberIds"),
-    reader("own", "weaponPoses"),
-  ];
+  const [ownIds, ownPoses] = [reader("own", "memberIds"), reader("own", "weaponPoses")];
   const [seenIds, seenPoses] = [
     reader("identified", "memberIds"),
     reader("identified", "weaponPoses"),
@@ -1054,10 +987,7 @@ function decodeFrame(
             at: [f("x"), f("y")],
           };
     });
-  const [ownLeans, seenLeans] = [
-    reader("own", "memberLeans"),
-    reader("identified", "memberLeans"),
-  ];
+  const [ownLeans, seenLeans] = [reader("own", "memberLeans"), reader("identified", "memberLeans")];
   const own = groups.own.map(({ field: f, sections }): OwnUnitView => {
     const policy = f("policy");
     const direction = f("direction");
@@ -1071,8 +1001,7 @@ function decodeFrame(
       yaw: f("yaw"),
       goal: Number.isNaN(f("goalX")) ? null : [f("goalX"), f("goalY")],
       policy: policy < 0 ? null : layout.policies[policy],
-      direction:
-        direction < 0 ? null : (layout.directions[direction] as MoveDirection),
+      direction: direction < 0 ? null : (layout.directions[direction] as MoveDirection),
       reversing: f("reversing") === 1,
       withdrawing: f("withdrawing") === 1,
       protection:
@@ -1081,9 +1010,7 @@ function decodeFrame(
           : {
               charges: f("protectionCharges"),
               cooldown:
-                f("protectionCooldownProgress") < 0
-                  ? null
-                  : f("protectionCooldownProgress"),
+                f("protectionCooldownProgress") < 0 ? null : f("protectionCooldownProgress"),
             },
       state: layout.moveStates[f("state")],
       blocker: blocker < 0 ? null : blocker,
@@ -1171,91 +1098,103 @@ function decodeFrame(
       reversing: f("reversing") === 1,
     }),
   );
-  const contacts = groups.contacts.map(({ field: f }): ContactView => ({
-    id: f("id"),
-    source: layout.contactSources[f("source")],
-    center: [f("x"), f("y"), f("z")],
-    layer: layout.layers[f("layer")],
-    radius: f("radius"),
-    evidenceTick: f("evidenceTick"),
-    expiresTick: f("expiresTick"),
-    kind: f("kind") < 0 ? null : layout.unitKinds[f("kind")],
-    heard: layout.roundKinds.filter((_, k) =>
-      k < HEARD_WORD_BITS
-        ? (f("heardLow") >> k) & 1
-        : (f("heardHigh") >> (k - HEARD_WORD_BITS)) & 1,
-    ),
-  }));
-  const audible = groups.audible.map(({ field: f }): SoundCueView => ({
-    listener: f("listener"),
-    category: layout.soundCategories[f("category")],
-    sector: f("sector"),
-    band: layout.soundBands[f("band")],
-    moving: f("moving") === 1,
-  }));
+  const contacts = groups.contacts.map(
+    ({ field: f }): ContactView => ({
+      id: f("id"),
+      source: layout.contactSources[f("source")],
+      center: [f("x"), f("y"), f("z")],
+      layer: layout.layers[f("layer")],
+      radius: f("radius"),
+      evidenceTick: f("evidenceTick"),
+      expiresTick: f("expiresTick"),
+      kind: f("kind") < 0 ? null : layout.unitKinds[f("kind")],
+      heard: layout.roundKinds.filter((_, k) =>
+        k < HEARD_WORD_BITS
+          ? (f("heardLow") >> k) & 1
+          : (f("heardHigh") >> (k - HEARD_WORD_BITS)) & 1,
+      ),
+    }),
+  );
+  const audible = groups.audible.map(
+    ({ field: f }): SoundCueView => ({
+      listener: f("listener"),
+      category: layout.soundCategories[f("category")],
+      sector: f("sector"),
+      band: layout.soundBands[f("band")],
+      moving: f("moving") === 1,
+    }),
+  );
   const knownProps = reuse.knownProps
     ? baseline!.staticViews.knownProps
-    : groups.knownProps.map(({ field: f }): KnownPropView => ({
-        kind: layout.propKinds[f("kind")],
-        center: [f("x"), f("y")],
-        yaw: f("yaw"),
-        half: [f("hx"), f("hy"), f("hz")],
-        baseZ: f("baseZ"),
-        replaces: limbs(f, "replaces"),
-        id: limbs(f, "id")!,
-        building: limbs(f, "building"),
-        structureOwner: limbs(f, "structureOwner"),
-        authoredProp: limbs(f, "authoredProp"),
-        destroyed: f("destroyed") === 1,
-        wreckOf: f("wreckOf") < 0 ? null : layout.unitKinds[f("wreckOf")],
-      }));
-  const bounce = reader("projectiles", "ricochets");
-  const projectiles = groups.projectiles.map(
-    ({ field: f, sections }): ProjectileView => {
-      const hit = layout.hitKinds[f("hit")];
-      return {
-        path: sections.path as Point3[],
-        ricochets: sections.ricochets.map((p) => {
-          const r = bounce(p);
-          return { point: r("point"), normal: [r("nx"), r("ny"), r("nz")] };
+    : groups.knownProps.map(
+        ({ field: f }): KnownPropView => ({
+          kind: layout.propKinds[f("kind")],
+          center: [f("x"), f("y")],
+          yaw: f("yaw"),
+          half: [f("hx"), f("hy"), f("hz")],
+          baseZ: f("baseZ"),
+          replaces: limbs(f, "replaces"),
+          id: limbs(f, "id")!,
+          building: limbs(f, "building"),
+          structureOwner: limbs(f, "structureOwner"),
+          authoredProp: limbs(f, "authoredProp"),
+          destroyed: f("destroyed") === 1,
+          wreckOf: f("wreckOf") < 0 ? null : layout.unitKinds[f("wreckOf")],
         }),
-        own: f("own") === 1,
-        kind: layout.roundKinds[f("kind")],
-        shooterMember: limbs(f, "shooter"),
-        hit,
-        impactNormal: hit === "none" ? null : [f("nx"), f("ny"), f("nz")],
-      };
-    },
+      );
+  const bounce = reader("projectiles", "ricochets");
+  const projectiles = groups.projectiles.map(({ field: f, sections }): ProjectileView => {
+    const hit = layout.hitKinds[f("hit")];
+    return {
+      path: sections.path as Point3[],
+      ricochets: sections.ricochets.map((p) => {
+        const r = bounce(p);
+        return { point: r("point"), normal: [r("nx"), r("ny"), r("nz")] };
+      }),
+      own: f("own") === 1,
+      kind: layout.roundKinds[f("kind")],
+      shooterMember: limbs(f, "shooter"),
+      hit,
+      impactNormal: hit === "none" ? null : [f("nx"), f("ny"), f("nz")],
+    };
+  });
+  const blasts = groups.blasts.map(
+    ({ field: f }): BlastView => ({
+      point: [f("x"), f("y"), f("z")],
+      radius: f("radius"),
+      kind: layout.roundKinds[f("kind")],
+    }),
   );
-  const blasts = groups.blasts.map(({ field: f }): BlastView => ({
-    point: [f("x"), f("y"), f("z")],
-    radius: f("radius"),
-    kind: layout.roundKinds[f("kind")],
-  }));
-  const guided = groups.guided.map(({ field: f }): GuidedView => ({
-    id: limbs(f, "id")!,
-    position: [f("x"), f("y"), f("z")],
-    point: [f("px"), f("py"), f("pz")],
-    supported: f("supported") === 1,
-  }));
+  const guided = groups.guided.map(
+    ({ field: f }): GuidedView => ({
+      id: limbs(f, "id")!,
+      position: [f("x"), f("y"), f("z")],
+      point: [f("px"), f("py"), f("pz")],
+      supported: f("supported") === 1,
+    }),
+  );
   const corpses = reuse.corpses
     ? baseline!.staticViews.corpses
-    : groups.corpses.map(({ field: f }): CorpseView => ({
-        position: [f("x"), f("y"), f("z")],
-        own: f("own") === 1,
-        soldier: limbs(f, "soldier")!,
-        kind: layout.unitKinds[f("kind")],
-        slot: f("slot"),
-        yaw: f("yaw"),
-      }));
+    : groups.corpses.map(
+        ({ field: f }): CorpseView => ({
+          position: [f("x"), f("y"), f("z")],
+          own: f("own") === 1,
+          soldier: limbs(f, "soldier")!,
+          kind: layout.unitKinds[f("kind")],
+          slot: f("slot"),
+          yaw: f("yaw"),
+        }),
+      );
   const fallenBodies = reuse.fallenBodies
     ? baseline!.staticViews.fallenBodies
-    : groups.fallenBodies.map(({ field: f }): FallenBodyView => ({
-        prop: limbs(f, "prop")!,
-        at: [f("x"), f("y")],
-        toward: [f("towardX"), f("towardY")],
-        tick: f("tick"),
-      }));
+    : groups.fallenBodies.map(
+        ({ field: f }): FallenBodyView => ({
+          prop: limbs(f, "prop")!,
+          at: [f("x"), f("y")],
+          toward: [f("towardX"), f("towardY")],
+          tick: f("tick"),
+        }),
+      );
   return {
     tick: header.tick,
     own,
@@ -1279,9 +1218,7 @@ function decodeFrame(
       header.skirmishPhase < 0
         ? null
         : {
-            phase: (["preparation", "active", "finished"] as const)[
-              header.skirmishPhase
-            ],
+            phase: (["preparation", "active", "finished"] as const)[header.skirmishPhase],
             ready: [header.readyBlue !== 0, header.readyRed !== 0],
             preparationRemainingS: header.preparationRemainingS,
             credits: header.credits,
@@ -1294,12 +1231,8 @@ function decodeFrame(
               id: layout.objectiveIds[f("id")],
               center: [f("x"), f("y")],
               radiusM: f("radius"),
-              owner:
-                f("owner") < 0 ? null : (["blue", "red"] as const)[f("owner")],
-              capturing:
-                f("capturing") < 0
-                  ? null
-                  : (["blue", "red"] as const)[f("capturing")],
+              owner: f("owner") < 0 ? null : (["blue", "red"] as const)[f("owner")],
+              capturing: f("capturing") < 0 ? null : (["blue", "red"] as const)[f("capturing")],
               captureProgress: f("captureProgress"),
               contested: f("contested") !== 0,
             })),
@@ -1309,8 +1242,7 @@ function decodeFrame(
               id: f("idLo") + f("idHi") * 2 ** layout.limbBits,
               kind: layout.unitKinds[f("kind")],
               destination: [f("x"), f("y")],
-              confirmedTick:
-                f("confirmedLo") + f("confirmedHi") * 2 ** layout.limbBits,
+              confirmedTick: f("confirmedLo") + f("confirmedHi") * 2 ** layout.limbBits,
               blocked: f("blocked") !== 0,
             })),
           },
@@ -1337,10 +1269,7 @@ function decodeGroundPatch(
   )
     throw new Error("ground grid does not match its admitted tile codec");
   const at = Object.fromEntries(fields.map((f, i) => [f, i]));
-  if (
-    n * fields.length > layout.ground.maxRecordBytes / 4 ||
-    n * 29 > data.length * 32
-  )
+  if (n * fields.length > layout.ground.maxRecordBytes / 4 || n * 29 > data.length * 32)
     throw new Error("ground runs do not match their count");
   // Count and minimum 29 bits/run admission precede the only run allocation.
   const reader = new PackedReader(data);
@@ -1356,13 +1285,11 @@ function decodeGroundPatch(
     for (let mark = 0; mark < 5; mark++) {
       if ((mask & (1 << mark)) === 0) continue;
       const value = reader.read(8);
-      if (value === 0)
-        throw new Error("ground mark presence must encode a nonzero byte");
+      if (value === 0) throw new Error("ground mark presence must encode a nonzero byte");
       if (mark < 2) a += value * 2 ** (mark * 8);
       else b += value * 2 ** ((mark - 2) * 8);
     }
-    if (tile >= 2 ** 24)
-      throw new Error("ground tile exceeds its exact address range");
+    if (tile >= 2 ** 24) throw new Error("ground tile exceeds its exact address range");
     runs[row] = tile;
     runs[row + 1] = start + len * 256;
     runs[row + 2] = a;
@@ -1394,17 +1321,14 @@ function decodeGroundPatch(
       tile < prior ||
       (tile === prior && start < end)
     )
-      throw new Error(
-        "ground run is unordered, overlapping or outside its exact encoding",
-      );
+      throw new Error("ground run is unordered, overlapping or outside its exact encoding");
     const x = (tile % tilesX) * tileSize,
       y = Math.floor(tile / tilesX) * tileSize;
     if (
       y + Math.floor((start + len - 1) / tileSize) >= rows ||
       x + (start % tileSize) >= cols ||
       (x + tileSize > cols &&
-        (Math.floor(start / tileSize) !==
-          Math.floor((start + len - 1) / tileSize) ||
+        (Math.floor(start / tileSize) !== Math.floor((start + len - 1) / tileSize) ||
           x + ((start + len - 1) % tileSize) >= cols))
     )
       throw new Error("ground run crosses unused cells in a partial edge tile");
@@ -1423,15 +1347,10 @@ function decodeGroundPatch(
   };
 }
 
-function decodeMount(
-  layout: ObservationLayout,
-  f: (name: string) => number,
-): MountView {
+function decodeMount(layout: ObservationLayout, f: (name: string) => number): MountView {
   const loaded = f("loaded");
   // Ammo per kind: -1 unlimited, -2 no such kind on this mount.
-  const ammo = [f("ammo0"), f("ammo1")]
-    .slice(0, f("kinds"))
-    .map((n) => (n === -1 ? null : n));
+  const ammo = [f("ammo0"), f("ammo1")].slice(0, f("kinds")).map((n) => (n === -1 ? null : n));
   const kind = layout.targetKinds[f("targetKind")];
   const target: MountTargetView | null =
     kind === "none"

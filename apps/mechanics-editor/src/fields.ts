@@ -613,16 +613,11 @@ const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
 };
 
 /** A single allowlist shared by the UI and dev server. Mount selectors are names. */
-export function gameplayField(
-  section: Section,
-  path: readonly string[],
-): GameplayField | null {
+export function gameplayField(section: Section, path: readonly string[]): GameplayField | null {
   const descriptor = GAMEPLAY_FIELDS[section]?.find(
     (f) =>
       f.path.length === path.length &&
-      f.path.every(
-        (p, i) => p === path[i] || (p === "*" && path[i].length > 0),
-      ),
+      f.path.every((p, i) => p === path[i] || (p === "*" && path[i].length > 0)),
   );
   return descriptor ? { ...descriptor, path: [...path] } : null;
 }
@@ -632,10 +627,7 @@ export function isObject(value: Json | undefined): value is JsonObject {
 }
 
 /** Read nested values; mounts use stable ids, never inherited array indices. */
-export function valueAt(
-  value: Json | undefined,
-  path: readonly string[],
-): Json | undefined {
+export function valueAt(value: Json | undefined, path: readonly string[]): Json | undefined {
   let cursor = value;
   for (const part of path) {
     cursor = Array.isArray(cursor)
@@ -657,16 +649,12 @@ export function displayFieldValue(
   if (f.kind === "vector" && Array.isArray(value))
     return value
       .map((n) =>
-        typeof n === "number"
-          ? numericText(f.conversion === "dimensions" ? n * 2 : n)
-          : String(n),
+        typeof n === "number" ? numericText(f.conversion === "dimensions" ? n * 2 : n) : String(n),
       )
       .join(", ");
   if (f.kind === "strings" && Array.isArray(value)) return value.join(", ");
   if (typeof value !== "number")
-    return typeof value === "object"
-      ? JSON.stringify(value, null, 2)
-      : String(value);
+    return typeof value === "object" ? JSON.stringify(value, null, 2) : String(value);
   const range = typeof entry.range_m === "number" ? entry.range_m : 0;
   const display =
     f.conversion === "spread"
@@ -687,11 +675,8 @@ export function validateGameplayValue(
   const f = gameplayField(section, path);
   if (!f) return "This path is outside gameplay editing.";
   if (value === null)
-    return f.optional && f.kind !== "strings"
-      ? undefined
-      : "A value is required.";
-  if (f.kind === "boolean")
-    return typeof value === "boolean" ? undefined : "Choose on or off.";
+    return f.optional && f.kind !== "strings" ? undefined : "A value is required.";
+  if (f.kind === "boolean") return typeof value === "boolean" ? undefined : "Choose on or off.";
   if (f.kind === "enum")
     return typeof value === "string" && f.choices?.includes(value)
       ? undefined
@@ -701,8 +686,7 @@ export function validateGameplayValue(
       ? undefined
       : "Choose an existing reference.";
   if (f.kind === "strings")
-    return Array.isArray(value) &&
-      value.every((v) => typeof v === "string" && v.length > 0)
+    return Array.isArray(value) && value.every((v) => typeof v === "string" && v.length > 0)
       ? undefined
       : "Use a comma-separated list of reference ids.";
   if (f.kind === "object") {
@@ -714,26 +698,16 @@ export function validateGameplayValue(
     return undefined;
   }
   if (f.kind === "mounts") {
-    if (!Array.isArray(value))
-      return "Expected a list of mounts, each with an id.";
+    if (!Array.isArray(value)) return "Expected a list of mounts, each with an id.";
     const ids = new Set<string>();
     for (const row of value) {
-      if (
-        !isObject(row) ||
-        typeof row.id !== "string" ||
-        !row.id.trim() ||
-        ids.has(row.id)
-      )
+      if (!isObject(row) || typeof row.id !== "string" || !row.id.trim() || ids.has(row.id))
         return "Every mount needs a unique id.";
       ids.add(row.id);
       // Its label is the catalog's to judge (`contract::labels`), on preview.
       for (const [key, child] of Object.entries(row)) {
         if (key === "id" || key === "name") continue;
-        const error = validateGameplayValue(
-          section,
-          [...path, row.id, key],
-          child,
-        );
+        const error = validateGameplayValue(section, [...path, row.id, key], child);
         if (error) return `${row.id}.${key}: ${error}`;
       }
     }
@@ -744,11 +718,9 @@ export function validateGameplayValue(
     return "Enter three numbers: forward, left, up (or length, width, height).";
   if (f.kind === "ammo" && value === "unlimited") return undefined;
   for (const n of numbers) {
-    if (typeof n !== "number" || !Number.isFinite(n))
-      return "Enter a finite number.";
+    if (typeof n !== "number" || !Number.isFinite(n)) return "Enter a finite number.";
     if (f.integer && !Number.isInteger(n)) return "Enter a whole number.";
-    if (f.min !== undefined && n < f.min)
-      return `Stored value must be at least ${f.min}.`;
+    if (f.min !== undefined && n < f.min) return `Stored value must be at least ${f.min}.`;
     if (f.max !== undefined && n > f.max)
       return f.conversion === "percent"
         ? `Enter no more than ${f.max * 100}%.`
@@ -757,13 +729,8 @@ export function validateGameplayValue(
   return undefined;
 }
 
-export type ParsedField =
-  { value: Json; error?: never } | { error: string; value?: never };
-export function parseFieldValue(
-  f: GameplayField,
-  text: string,
-  entry: JsonObject,
-): ParsedField {
+export type ParsedField = { value: Json; error?: never } | { error: string; value?: never };
+export function parseFieldValue(f: GameplayField, text: string, entry: JsonObject): ParsedField {
   const trimmed = text.trim();
   if (!trimmed)
     return f.kind === "strings"
@@ -797,11 +764,8 @@ export function parseFieldValue(
     }
   } else if (f.kind === "vector") {
     const parts = trimmed.split(",");
-    if (parts.some((v) => !v.trim()))
-      return { error: "Enter all three numbers." };
-    value = parts.map(
-      (v) => Number(v.trim()) / (f.conversion === "dimensions" ? 2 : 1),
-    );
+    if (parts.some((v) => !v.trim())) return { error: "Enter all three numbers." };
+    value = parts.map((v) => Number(v.trim()) / (f.conversion === "dimensions" ? 2 : 1));
   } else {
     const number = Number(trimmed);
     const range = entry.range_m;
@@ -820,17 +784,12 @@ export function parseFieldValue(
   const section = (Object.keys(GAMEPLAY_FIELDS) as Section[]).find(
     (s) => gameplayField(s, f.path)?.label === f.label,
   );
-  const error = section
-    ? validateGameplayValue(section, f.path, value)
-    : "Unknown gameplay field.";
+  const error = section ? validateGameplayValue(section, f.path, value) : "Unknown gameplay field.";
   return error ? { error } : { value };
 }
 
 /** Expand only the entry's active body/mobility; absent optional values remain editable. */
-export function entryFields(
-  section: Section,
-  entry: JsonObject,
-): GameplayField[] {
+export function entryFields(section: Section, entry: JsonObject): GameplayField[] {
   return GAMEPLAY_FIELDS[section].flatMap((f) => {
     if (f.path.includes("*")) {
       const rows = entry.mounts;
@@ -847,10 +806,8 @@ export function entryFields(
           )
         : [];
     }
-    if (f.path.length > 1 && valueAt(entry, f.path.slice(0, -1)) === undefined)
-      return [];
-    if (f.path.length > 1 && valueAt(entry, f.path.slice(0, -1)) === null)
-      return [];
+    if (f.path.length > 1 && valueAt(entry, f.path.slice(0, -1)) === undefined) return [];
+    if (f.path.length > 1 && valueAt(entry, f.path.slice(0, -1)) === null) return [];
     if (valueAt(entry, f.path) === undefined && !f.optional) return [];
     return [f];
   });
