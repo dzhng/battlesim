@@ -37,7 +37,9 @@
 // colour alpha carries how far; the vertex stage leans and sinks it). The
 // field regrows when the scars change, as when the view moves.
 //
-// Grass casts no sun shadow (cost); it receives the cascades.
+// Grass casts no sun shadow (cost); it receives the cascades. Every number
+// here that sets the look and is not the biome's lives in
+// `terrain/grassTuning.ts`, spliced into the WGSL as a constant.
 import { tgpu, d, std, type TgpuBindGroup, type TgpuRenderPass } from "typegpu";
 import { pcgHash } from "../shaders/pcgHash";
 import { vec3, type Mat4 } from "math";
@@ -69,6 +71,7 @@ import {
   GRASS_EDGE_M,
 } from "../terrain/grassField";
 import { GRASS_MIX_MAX, type GrassRules } from "../terrain/biome";
+import { grassTuning as tuning } from "../terrain/grassTuning";
 import {
   fogCoverage,
   fogIsGround,
@@ -223,18 +226,6 @@ export const grassDrawLayout = tgpu.bindGroupLayout({
 });
 
 const BUILD_WORKGROUP = 64;
-/** A crop leaves its rows this near its plot's verge and any bare margin:
- *  the headland, where the drill turned. */
-const ROW_HEADLAND_M = 0.3;
-/** A grass that keeps wholly to its drifts is this many times its share
- *  inside one, and absent outside. */
-const DRIFT_GATHER = 3;
-/** A clump laid flat (tracks, trampling) leans this far over, as a fraction
- *  of its height, and sinks by this much of it. */
-const FLAT_LEAN = 1.1;
-const FLAT_SINK = 0.6;
-/** How far a clump strays from its sequence point, either way. */
-const GRASS_JITTER_M = 0.4;
 /** R2's generator: the plastic number's reciprocals. */
 const R2 = [0.7548776662466927, 0.5698402909980532] as const;
 
@@ -277,7 +268,7 @@ const grassDensity = tgpu
     d.f32,
   )(/* wgsl */ `(dist: f32, drop: f32) -> f32 {
   let P = &grassBuildLayout.$.params;
-  let facing = clamp(drop / dist, 0.15, 1.0);
+  let facing = clamp(drop / dist, ${tuning.density.leastFacing}, 1.0);
   let footprint = (*P).eye.w * dist;
   return min((*P).density.y, facing / ((*P).density.x * footprint * footprint));
 }`)
@@ -325,10 +316,6 @@ const grassHash = tgpu
 }`)
   .$uses({ pcgHash });
 
-/** No clump grows where the roads have worn the ground more than this
- *  (`groundShoulder`): a road's own surface, and the foot of its shoulder. */
-const GRASS_BARE_WEAR = 0.9;
-
 const buildFn = tgpu
   .computeFn({
     in: { wg: d.builtin.workgroupId, li: d.builtin.localInvocationIndex },
@@ -352,8 +339,8 @@ const buildFn = tgpu
   }
   zlo -= 1.0;
   zhi += 1.0 + (*P).window.w;
-  let lo2 = lo - vec2f(${GRASS_JITTER_M} + (*P).clear.y);
-  let hi2 = hi + vec2f(${GRASS_JITTER_M} + (*P).clear.y);
+  let lo2 = lo - vec2f(${tuning.placement.jitterM} + (*P).clear.y);
+  let hi2 = hi + vec2f(${tuning.placement.jitterM} + (*P).clear.y);
   for (var i = 0u; i < 4u; i++) {
     let pl = (*P).planes[i];
     let pv = vec3f(select(lo2.x, hi2.x, pl.x >= 0.0), select(lo2.y, hi2.y, pl.y >= 0.0), select(zlo, zhi, pl.z >= 0.0));
@@ -371,7 +358,7 @@ const buildFn = tgpu
     // The sequence's point, jittered by a fixed amount so a sparse field
     // shows no lattice; both depend on the tile and j alone.
     let h = grassHash(bitcast<u32>(cell.x) ^ (j * 2654435761u), bitcast<u32>(cell.y) + j);
-    let jitter = (vec2f(fract(h.z * 7.13), fract(h.x * 5.31)) - 0.5) * ${2 * GRASS_JITTER_M};
+    let jitter = (vec2f(fract(h.z * 7.13), fract(h.x * 5.31)) - 0.5) * ${2 * tuning.placement.jitterM};
     let fell = lo + T * fract(offset + f32(j + 1u) * vec2f(${R2[0]}, ${R2[1]})) + jitter;
     let fellZ = grassGround(fell);
     let dist = max(distance(eye, vec3f(fell, fellZ)), 0.5);
@@ -405,7 +392,7 @@ const buildFn = tgpu
     let worn = groundShoulder(fell, footprint, paved);
     // Bare on a road's own surface and at the foot of its shoulder, but for
     // a track's centre strip.
-    if (worn.x > ${GRASS_BARE_WEAR}) { continue; }
+    if (worn.x > ${tuning.stand.bareWear}) { continue; }
     let edge = smoothstep(0.0, ${GRASS_EDGE_M}, min(margin, abs(site.z))) * (1.0 - worn.x);
     var grows = min(u32(terrainLayout.$.plots[i32(site.x)].detail.y), ${GRASS_GROWTH_ROWS - 2}u);
     if (groundVerge(site, footprint) > 0.5 || line.y > 0.0) { grows = ${GRASS_GROWTH_ROWS - 1}u; }
@@ -419,7 +406,7 @@ const buildFn = tgpu
     if (g.w > 0.0 && plot.rows.z > 0.0) {
       let across = dot(fell, plot.rows.xy) / plot.rows.z;
       let toRow = (floor(across) + 0.5 - across) * plot.rows.z * g.w;
-      let room = max(0.0, min(site.y - terrainLayout.$.params.verge.w, margin) - ${ROW_HEADLAND_M});
+      let room = max(0.0, min(site.y - terrainLayout.$.params.verge.w, margin) - ${tuning.placement.headlandM});
       p = fell + plot.rows.xy * clamp(toRow, -room, room);
     }
     // A wheeling stays bare.
@@ -430,13 +417,13 @@ const buildFn = tgpu
     let S = terrainLayout.$.scarParams.grass;
     let bare = max(max(scar.weights.x, scar.weights.y), scar.weights.z * S.y) * S.x;
     // Sparse patches: the stand thins there and nowhere thickens.
-    let sparse = 1.0 - smoothstep(0.3, 0.55, valueNoise(p * (*P).patchScales.y + vec2f(41.7, 13.1)));
-    let keep = rho * g.x * (1.0 - stand.z * sparse) * mix(0.5, 1.0, edge) * (1.0 - bare) * (1.0 - shore) * groundShoulderGrass(worn);
+    let sparse = 1.0 - smoothstep(${tuning.stand.sparseCut[0]}, ${tuning.stand.sparseCut[1]}, valueNoise(p * (*P).patchScales.y + vec2f(41.7, 13.1)));
+    let keep = rho * g.x * (1.0 - stand.z * sparse) * mix(${tuning.stand.edgeDensity}, 1.0, edge) * (1.0 - bare) * (1.0 - shore) * groundShoulderGrass(worn);
     if (rank >= keep) { continue; }
     if (grassUnderProp(p)) { continue; }
     // A clump nearing its rank's threshold is small: it grows as the
     // density passes it, and shrinks away as the fade takes it.
-    let grow = 1.0 - smoothstep(0.7 * keep, keep, rank);
+    let grow = 1.0 - smoothstep(${tuning.stand.growFrom} * keep, keep, rank);
     let fade = 1.0 - smoothstep((*P).density.z, (*P).density.w, footprint);
     // Which of the row's grasses this clump is: its hash against their
     // shares, a drifting grass weighted up inside its drifts and down to
@@ -448,8 +435,8 @@ const buildFn = tgpu
       let entry = (*P).mixes[grows * ${GRASS_MIX_MAX}u + i];
       var share = entry.y;
       if (entry.z > 0.0) {
-        let drift = smoothstep(0.4, 0.65, valueNoise(p * (*P).patchScales.w + vec2f(f32(i) * 17.3 + 3.1, f32(grows) * 7.9)));
-        share *= mix(1.0, ${DRIFT_GATHER} * drift, entry.z);
+        let drift = smoothstep(${tuning.mix.driftCut[0]}, ${tuning.mix.driftCut[1]}, valueNoise(p * (*P).patchScales.w + vec2f(f32(i) * 17.3 + 3.1, f32(grows) * 7.9)));
+        share *= mix(1.0, ${tuning.mix.driftGather} * drift, entry.z);
       }
       shares[i] = share;
       total += share;
@@ -468,8 +455,8 @@ const buildFn = tgpu
     let row = (*P).kinds[kind];
     // Patches a few metres across stand taller or lower, as uneven grass does.
     let tall = valueNoise(p * (*P).patchScales.x);
-    let height = row.x * g.y * grow * fade * mix(${GRASS_HEIGHT_VARIATION[0]}, ${GRASS_HEIGHT_VARIATION[1]}, h.x) * mix(stand.x, stand.y, tall) * mix(0.35, 1.0, edge);
-    if (height < 0.02) { continue; }
+    let height = row.x * g.y * grow * fade * mix(${GRASS_HEIGHT_VARIATION[0]}, ${GRASS_HEIGHT_VARIATION[1]}, h.x) * mix(stand.x, stand.y, tall) * mix(${tuning.stand.edgeHeight}, 1.0, edge);
+    if (height < ${tuning.stand.leastHeightM}) { continue; }
     let centre = root + vec3f(0.0, 0.0, height * 0.5);
     let radius = height * 0.8 + 0.4;
     var shown = true;
@@ -479,11 +466,11 @@ const buildFn = tgpu
     }
     if (!shown) { continue; }
     var tier = 1u;
-    if (height / footprint > (*P).tiers.x * mix(0.85, 1.15, h.y)) { tier = 0u; }
+    if (height / footprint > (*P).tiers.x * mix(${tuning.tierJitter[0]}, ${tuning.tierJitter[1]}, h.y)) { tier = 0u; }
     let width = max(1.0, (*P).tiers.y * footprint / max(row.z, 1e-4));
     // Dry patches, and a grass drier than its neighbours: toward straw at
     // the ground's own luminance, so no patch is darker than its field.
-    let parched = smoothstep(0.55, 0.8, valueNoise(p * (*P).patchScales.z + vec2f(9.3, 77.1)));
+    let parched = smoothstep(${tuning.stand.parchedCut[0]}, ${tuning.stand.parchedCut[1]}, valueNoise(p * (*P).patchScales.z + vec2f(9.3, 77.1)));
     // What sets a clump apart from the ground under it (how dry it is, its
     // grain) goes with the clump as the fade takes it, so the field's far
     // edge meets the painted ground with the ground's own colour.
@@ -585,8 +572,8 @@ const grassVertexOf = tgpu
   let dir = (*P).wind.xy;
   let along = dot(c.root.xy, dir);
   let front = sin(6.2831853 * (along - t * (*P).gusts.y) * (*P).gusts.x);
-  let gust = smoothstep(0.2, 1.0, front);
-  let flutter = (*P).gusts.z * sin((*P).gusts.w * t + s.side.w * 6.2831853 + along * 0.35);
+  let gust = smoothstep(${tuning.wind.gustFrom}, 1.0, front);
+  let flutter = (*P).gusts.z * sin((*P).gusts.w * t + s.side.w * 6.2831853 + along * ${tuning.wind.flutterPhase});
   let bend = s.spine.w * s.spine.w;
   let packed = unpack4x8unorm(c.colour);
   // Laid over by tracks or trampling: the clump sinks and its blades lean
@@ -595,9 +582,9 @@ const grassVertexOf = tgpu
   let flat = 1.0 - packed.w;
   let answer = s.tint.w * (1.0 - flat);
   let lean = ((*P).wind.z + (*P).wind.w * gust + flutter) * answer;
-  let push = dir * lean + vec2f(-dir.y, dir.x) * flutter * 0.5 * answer;
-  let laid = vec2f(cs, sn) * flat * ${FLAT_LEAN};
-  var world = c.root + vec3f(spine.xy, spine.z * (1.0 - flat * ${FLAT_SINK})) + side + vec3f((push + laid) * c.height * bend, 0.0);
+  let push = dir * lean + vec2f(-dir.y, dir.x) * flutter * ${tuning.wind.flutterAcross} * answer;
+  let laid = vec2f(cs, sn) * flat * ${tuning.laid.lean};
+  var world = c.root + vec3f(spine.xy, spine.z * (1.0 - flat * ${tuning.laid.sink})) + side + vec3f((push + laid) * c.height * bend, 0.0);
   world.z -= 0.5 * dot(push, push) * c.height * bend;
   let n = s.normal.xyz;
   let colour = packed.xyz;
@@ -644,8 +631,6 @@ const grassVertex = tgpu.vertexFn({
     ground: g.ground,
   };
 });
-
-const BLADE_ROUGHNESS = 0.9;
 
 export interface GrassStats {
   /** Whether grass is drawn: the terrain grows it and its kinds are installed. */
@@ -722,7 +707,7 @@ export async function createGrassPass(
     const lit = environment.shade(
       v.albedo,
       d.vec3f(0),
-      BLADE_ROUGHNESS,
+      tuning.blade.roughness,
       0,
       0,
       1,
@@ -1013,28 +998,31 @@ export async function createGrassPass(
         const words = new Uint32Array(await readback(args, ARGS_WORDS * 4));
         return { near: words[1], far: words[6], nearFound: words[10], farFound: words[11] };
       },
-      /** The last frame's clumps, both tiers. */
+      /** The clumps of the frame submitted last before the call, both tiers.
+       *  Both copies are queued in the calling task, so a call in the task
+       *  that drew a frame reads that frame's clumps. */
       async clumps(): Promise<GrassClumpRow[]> {
-        if (!drawn) return [];
-        const counts = new Uint32Array(await readback(args, ARGS_WORDS * 4));
-        if (!slots.clumps.current) return [];
-        const bytes = await readback(
-          slots.clumps.current,
-          (capacity[0] + capacity[1]) * CLUMP_BYTES,
-        );
+        if (!drawn || !slots.clumps.current) return [];
+        const [near] = capacity;
+        const names = kindNames;
+        const [countBytes, bytes] = await Promise.all([
+          readback(args, ARGS_WORDS * 4),
+          readback(slots.clumps.current, (capacity[0] + capacity[1]) * CLUMP_BYTES),
+        ]);
+        const counts = new Uint32Array(countBytes);
         const f = new Float32Array(bytes);
         const u = new Uint32Array(bytes);
         const rows: GrassClumpRow[] = [];
         for (const [tier, start, count] of [
           [0, 0, counts[1]],
-          [1, capacity[0], counts[6]],
+          [1, near, counts[6]],
         ] as const)
           for (let i = 0; i < count; i++) {
             const o = ((start + i) * CLUMP_BYTES) / 4;
             rows.push({
               root: [f[o], f[o + 1], f[o + 2]],
               height: f[o + 3],
-              kind: kindNames[u[o + 5]] ?? "?",
+              kind: names[u[o + 5]] ?? "?",
               colour: [0, 8, 16].map((shift) => (((u[o + 4] >>> shift) & 255) / 255) ** 2) as [
                 number,
                 number,
