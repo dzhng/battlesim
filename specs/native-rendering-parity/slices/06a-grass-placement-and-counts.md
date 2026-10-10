@@ -1,6 +1,6 @@
 # 06a — Grass: placement and counts
 
-**Contract:** native grows grass where the browser does. Hashed sample positions are bit-exact for fixed tiles, and clumps per screen cell are within about 10% of the browser's count for the same frame.
+**Contract:** native grows grass where the browser does. Hash words and admission decisions are exact for fixed tiles, and fall points agree within a few ulps (the shader compilers round float maths differently), and clumps per screen cell are within about 10% of the browser's count for the same frame.
 
 **Seam:**
 - Lift `grassPass.ts`'s constants (`GRASS_JITTER_M`, the lean/sink/wear constants, `BLADE_ROUGHNESS` and the gust/flutter terms) into `packages/battle-renderer/src/terrain/grassTuning.ts`. The generated WGSL stays byte-identical.
@@ -19,7 +19,7 @@
 **Visual variable:** coverage, judged by the counts first, then by eye.
 
 **Focused gates:**
-- Display-backed (a local rendering device needs a display): hash words and admission decisions for fixed tiles equal vectors exported from TS.
+- Display-backed (a local rendering device needs a display): hash words and admission decisions for fixed tiles equal vectors from the browser's own WGSL run in Chromium; fall points within 16 ulps.
 - Clump counts within about 10% in every cell, counted the same way: root on screen, occlusion ignored.
 - The WGSL byte-identity scratch check for the lift.
 - Run `compare-screenshots`, then unprimed `screenshot-critique` as the last check, then `preview-shots` (non-blocking).
