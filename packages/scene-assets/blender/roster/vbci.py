@@ -120,7 +120,7 @@ def fittings(v):
         VP.antenna(f"antenna_{s}", (-3.50, side * 1.25, ROOF), m, whip, height=2.8)
     # The commander's hatch beside the turret's ring, crewed in the parade
     # photo.
-    x, y, z = v.frame["mounts"][0]["pivot_m"][0] + 0.50, -1.05, ROOF
+    x, y, z = v.frame["mounts"][0]["pivot_m"][0] + 0.10, -1.05, ROOF
     VP.hatch("commander_hatch", (x, y, z), m, hull, radius=0.28)
     if not v.wreck:
         seat = empty("dressing_commander", parent=hull)
