@@ -1,4 +1,14 @@
 /* The main menu, the benchmark's start page and its results screen. */
+
+/* The wordmark's face, bundled so it reads the same on every platform: Barlow
+   Condensed Medium, Latin subset (OFL, `fonts/OFL.txt`). Blocked rather than
+   swapped, so the boot screen never flashes the name in a fallback face. */
+@font-face {
+  font-family: "Barlow Condensed";
+  font-weight: 500;
+  font-display: block;
+  src: url("./fonts/barlow-condensed-500-latin.woff2") format("woff2");
+}
 .menu,
 .bench-results {
   height: 100%;
@@ -92,13 +102,7 @@
   display: inline-block;
   line-height: 1;
   padding: 4px 0 9px;
-  font:
-    600 34px "Avenir Next Condensed",
-    "DIN Condensed",
-    "Bahnschrift",
-    "Arial Narrow",
-    sans-serif;
-  font-stretch: condensed;
+  font: 500 36px "Barlow Condensed", sans-serif;
   text-transform: uppercase;
   letter-spacing: 0.34em;
   margin-right: -0.34em;
