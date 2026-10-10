@@ -98,16 +98,15 @@ export interface OrderStyle {
   /** An aircraft's drop line (D18), dots rising from its marker's centre
    *  on the ground toward its airframe: a dot's size on screen, by the
    *  stroke rule like every mark's; the pitch from one dot to the next, in
-   *  dot sizes; its opacity at the ground, whatever its marker's; how far
-   *  its colour is lightened (the marker's hue at full brightness, mixed
-   *  toward white by this share) to read as pale as the marker's glowing
-   *  paint, which the dots, unlit by the world, can't match otherwise; and
-   *  the share of the height it fades out by, short of the airframe, so it
-   *  points up at it rather than tying on. */
+   *  dot sizes; its opacity at the ground, whatever its marker's; the
+   *  share of the height it holds that opacity to; and the share it has
+   *  faded out by, short of the airframe, so it points up at it rather than
+   *  tying on. Its colour is the marker's at full brightness, so it reads
+   *  as the ring's glowing paint does. */
   drop_line_px: number;
   drop_line_spacing: number;
   drop_line_alpha: number;
-  drop_line_lighten: number;
+  drop_line_hold: number;
   drop_line_reach: number;
 }
 
@@ -133,14 +132,14 @@ export function validateOrderStyle(style: OrderStyle): OrderStyle {
     style.drop_line_px > 0 &&
     style.drop_line_spacing > 1 &&
     unit(style.drop_line_alpha) &&
-    style.drop_line_lighten >= 0 &&
-    style.drop_line_lighten <= 1 &&
     unit(style.drop_line_reach) &&
+    style.drop_line_hold >= 0 &&
+    style.drop_line_hold < style.drop_line_reach &&
     (["light", "medium", "heavy"] as const).every((k) => isRgba(style.cover?.[k])) &&
     [style.color, style.blocked, style.selected].every(isRgba);
   if (!ok)
     throw new Error(
-      `presentation.overlay.orders: positive widths, alphas in (0, 1], rgba color, blocked, selected and cover.{light, medium, heavy}, march.{cycles_per_s ≥ 0, amplitude in [0, 1]}, area_draw_scale in (0, 1], glow.{order, selected} in (0, 2], cover_glow in [1, 2], vehicle_marker_margin_m, building_marker_margin_m and drop_line_px > 0, drop_line_spacing > 1, drop_line_lighten in [0, 1], drop_line_alpha and drop_line_reach in (0, 1]`,
+      `presentation.overlay.orders: positive widths, alphas in (0, 1], rgba color, blocked, selected and cover.{light, medium, heavy}, march.{cycles_per_s ≥ 0, amplitude in [0, 1]}, area_draw_scale in (0, 1], glow.{order, selected} in (0, 2], cover_glow in [1, 2], vehicle_marker_margin_m, building_marker_margin_m and drop_line_px > 0, drop_line_spacing > 1, drop_line_alpha and drop_line_reach in (0, 1], drop_line_hold in [0, drop_line_reach)`,
     );
   return style;
 }
@@ -387,18 +386,16 @@ function aircraftMarker(
   dropLine(line, pen, top, color);
 }
 
-/** `color` at full brightness (its brightest channel at 1, its hue kept),
- *  mixed toward white by `share`. */
-export function lightened(color: Rgba, share: number): [number, number, number] {
+/** `color` at full brightness: its brightest channel at 1, its hue kept. */
+export function fullBright(color: Rgba): [number, number, number] {
   const k = 1 / Math.max(color[0], color[1], color[2], 1e-6);
-  const up = (c: number) => c * k + (1 - c * k) * share;
-  return [up(color[0]), up(color[1]), up(color[2])];
+  return [color[0] * k, color[1] * k, color[2] * k];
 }
 
 /** A drop line of dots rising from the ground under `top` toward it, in
- *  `color`'s hue lightened by `drop_line_lighten`: `drop_line_alpha` at the
- *  ground, fading out by `drop_line_reach` of the height. Under an
- *  airframe or its ghost. */
+ *  `color` at full brightness: `drop_line_alpha` from the ground up to
+ *  `drop_line_hold` of the height, then fading out by `drop_line_reach` of
+ *  it. Under an airframe or its ghost. */
 function dropLine(
   line: MeshBuilder,
   pen: Pen,
@@ -408,16 +405,20 @@ function dropLine(
   const ground = pen.z(top[0], top[1]);
   const height = top[2] - ground;
   if (height < DROP_MIN_M) return;
-  const { drop_line_alpha: alpha, drop_line_lighten: lighten, drop_line_reach: reach } = pen.style;
+  const { drop_line_alpha: alpha, drop_line_hold: hold, drop_line_reach: reach } = pen.style;
   const span = height * reach;
   const dot = Math.min(pen.drop, span / 2);
   const pitch = Math.max(dot * pen.style.drop_line_spacing, span / DROP_MAX_DOTS);
   const dots = Math.max(2, Math.floor((span - dot) / pitch) + 1);
-  const [r, g, b] = lightened(color, lighten);
+  const [r, g, b] = fullBright(color);
+  // Past the hold, each dot fades by how far it stands toward the reach;
+  // the last is the faintest, never quite gone: the next would be.
+  const fadeFrom = height * hold;
+  const fadeOver = span - fadeFrom + pitch;
   for (let i = 0; i < dots; i++) {
-    // The last dot is the faintest, never quite gone: the next would be.
     const z = ground + dot / 2 + (i / (dots - 1)) * (span - dot);
-    line.mark([top[0], top[1], z], dot / 2, [r, g, b, alpha * (1 - i / dots)]);
+    const fade = Math.min(1, 1 - (z - ground - fadeFrom) / fadeOver);
+    line.mark([top[0], top[1], z], dot / 2, [r, g, b, alpha * fade]);
   }
 }
 

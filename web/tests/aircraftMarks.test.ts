@@ -8,7 +8,7 @@ import { expect, test } from "vitest";
 import { VERTEX_FLOATS, type Mesh, type Rgba } from "@packages/battle-renderer/src/mesh";
 import type { ObservationView, OwnUnitView, IdentifiedView } from "@web/battle/sim/observation";
 import { aircraftLayer, orderLayer } from "@apps/battle-lab/src/battleOverlay";
-import { lightened } from "@packages/battle-renderer/src/orderOverlay";
+import { fullBright } from "@packages/battle-renderer/src/orderOverlay";
 import {
   gameOrderStyle as STYLE,
   gameStroke,
@@ -59,17 +59,22 @@ const vertices = (mesh: Mesh | undefined) => {
     });
   return out;
 };
-/** `c` lightened as the dots are, by the overlay's own rule. */
-const asDots = (c: Rgba): Rgba => [...lightened(c, STYLE.drop_line_lighten), c[3]];
+/** `c` as the dots draw it, by the overlay's own rule. */
+const asDots = (c: Rgba): Rgba => [...fullBright(c), c[3]];
 const sameRgb = (a: readonly number[], b: readonly number[]) =>
   [0, 1, 2].every((k) => Math.abs(a[k] - b[k]) < 1e-5);
 
 /** The drop line's dots, bottom up: each one's height span and opacity. */
 function dotsOf(line: { p: number[]; c: number[] }[]) {
-  // Each dot fades by its own height, so its opacity names it.
-  const groups = new Map<number, typeof line>();
-  for (const v of line) groups.set(v.c[3], [...(groups.get(v.c[3]) ?? []), v]);
-  return [...groups.values()]
+  // Dots are drawn bottom up, each from its top: a vertex above the dot
+  // being read starts the next one.
+  const groups: (typeof line)[] = [];
+  for (const v of line) {
+    const last = groups.at(-1);
+    if (last && v.p[2] <= Math.max(...last.map((u) => u.p[2])) + 1e-6) last.push(v);
+    else groups.push([v]);
+  }
+  return groups
     .map((g) => {
       const z = g.map((v) => v.p[2]);
       const centre = [0, 1, 2].map(
@@ -117,26 +122,27 @@ test("an own aircraft, neither selected nor ordered, still shows its ground mark
   const dots = dotsOf(m.line);
   expect(dots.length).toBeGreaterThan(3);
   for (let i = 1; i < dots.length; i++) expect(dots[i].from).toBeGreaterThan(dots[i - 1].to);
-  // Full at the ground, fading out as it rises: the marker is quiet, the
-  // dots keep their own opacity over pale ground.
-  expect(dots[0].alpha).toBeCloseTo(STYLE.drop_line_alpha, 5);
+  // Full from the ground up to the hold, then fading out as it rises: the
+  // marker is quiet, the dots keep their own opacity over pale ground.
+  const held = dots.filter((d) => (d.from + d.to) / 2 <= HEIGHT * STYLE.drop_line_hold);
+  expect(held.length).toBeGreaterThan(1);
+  for (const d of held) expect(d.alpha).toBeCloseTo(STYLE.drop_line_alpha, 5);
+  const fading = dots.slice(held.length);
+  expect(fading.length).toBeGreaterThan(1);
+  for (const [i, d] of fading.entries())
+    expect(d.alpha).toBeLessThan(i === 0 ? STYLE.drop_line_alpha : fading[i - 1].alpha);
   expect(dots.at(-1)!.alpha).toBeLessThan(STYLE.drop_line_alpha * 0.25);
-  for (let i = 1; i < dots.length; i++) expect(dots[i].alpha).toBeLessThan(dots[i - 1].alpha);
 });
 
-test("the dots are the marker's hue at full brightness, lightened toward white", () => {
+test("the dots are the marker's own colour, at full brightness: the ring's yellow", () => {
   const m = marks(orderLayer(UNITS, view({ own: [own({})] }), [], new Map(), flat));
   const quiet = glow(STYLE.color, STYLE.glow.order);
   const [r, g, b] = m.line[0].c;
-  // Paler than the quiet marker's colour, never another hue: each channel
-  // sits the style's share of the way from the hue at full brightness to
-  // white, so the channels keep their order.
+  // Its brightest channel full, the others in the marker's proportion:
+  // the same hue as the ring, never paler or another.
   const k = 1 / Math.max(quiet[0], quiet[1], quiet[2]);
-  const w = STYLE.drop_line_lighten;
-  for (const [i, c] of [r, g, b].entries())
-    expect(c).toBeCloseTo(quiet[i] * k + (1 - quiet[i] * k) * w, 5);
   expect(Math.max(r, g, b)).toBeCloseTo(1, 5);
-  expect(r + g + b).toBeGreaterThan(quiet[0] + quiet[1] + quiet[2]);
+  for (const [i, c] of [r, g, b].entries()) expect(c).toBeCloseTo(quiet[i] * k, 5);
 });
 
 test("the drop line's dots are lit as marks on the ground, not as solids", () => {
