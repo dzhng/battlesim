@@ -240,8 +240,9 @@ pub struct Unit {
     pub planned_goal: Option<V2>,
     /// Remaining waypoints of the current order, once planned.
     pub route: Option<Vec<V2>>,
-    /// Where a squad's corridor runs from to its first remaining waypoint:
-    /// the planning start, then the last waypoint every soldier passed.
+    /// Where a squad's corridor or an aircraft's leg runs from to its first
+    /// remaining waypoint: the planning start, then the last waypoint passed
+    /// (by every soldier, for a squad).
     pub route_from: V2,
     pub state: MoveState,
     pub blocker: Option<UnitId>,

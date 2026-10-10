@@ -90,6 +90,12 @@
     "map": "air"
   },
   {
+    "id": "air",
+    "route": "/lab/air",
+    "describe": "The first helicopter checkpoint: the test helicopter flies one move order across a village at cruise height, climbs over the roofs taller than its clearance allows, routes round the 61 m tower in its way and crosses a wood; a red rifle squad's rounds spark off it without hurting it, a red tank's main gun never selects it, and the gun jeep's autocannon, freed once it hovers at its goal, damages it.",
+    "map": "air"
+  },
+  {
     "id": "ambush",
     "route": "/lab/ambush",
     "describe": "Supported AT guidance: an AT team acquires shared identified targets only with its own clear line of sight, guides one missile at a time, and releases it at once on moving, Stop or losing sight; the released missile flies on to its fixed last point. Variants: late escape, prompt escape, prepared crossfire.",

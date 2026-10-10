@@ -1,13 +1,64 @@
 {
-  "size": [300, 200],
+  "size": [640, 520],
   "fog_cell_m": 8,
   "height_grid_m": 4,
   "slope_cutoff_deg": 35,
   "surfaces": [
     {
       "kind": "country_road",
-      "shape": { "kind": "stroke", "points": [[0, 100], [300, 100]], "width_m": 10 }
+      "shape": { "kind": "stroke", "points": [[0, 100], [640, 100]], "width_m": 10 }
     }
   ],
-  "props": []
+  "forests": [
+    {
+      "shape": { "kind": "polygon", "ring": [[440, 425], [510, 425], [510, 495], [440, 495]] }
+    }
+  ],
+  "props": [],
+  "buildings": [
+    {
+      "owner": 0,
+      "kind": "building",
+      "template_id": "china-home-12x9-2f",
+      "frame": { "translation": [150.0, 488.0, 0.0], "yaw": 0.0 },
+      "parts": [{ "part": "body", "prop": 0 }]
+    },
+    {
+      "owner": 1,
+      "kind": "building",
+      "template_id": "china-home-9x9-2f",
+      "frame": { "translation": [172.0, 436.0, 0.0], "yaw": 0.0 },
+      "parts": [{ "part": "body", "prop": 1 }]
+    },
+    {
+      "owner": 2,
+      "kind": "building",
+      "template_id": "china-apartment-point-20x20-7f",
+      "frame": { "translation": [205.0, 472.0, 0.0], "yaw": 0.0 },
+      "parts": [{ "part": "body", "prop": 2 }]
+    },
+    {
+      "owner": 3,
+      "kind": "building",
+      "template_id": "china-corner-shop-3f",
+      "frame": { "translation": [250.0, 479.0, 0.0], "yaw": 0.0 },
+      "parts": [{ "part": "body", "prop": 3 }]
+    },
+    {
+      "owner": 4,
+      "kind": "building",
+      "template_id": "china-townhouse-2f",
+      "frame": { "translation": [252.0, 432.0, 0.0], "yaw": 1.5707963267948966 },
+      "parts": [{ "part": "body", "prop": 4 }]
+    },
+    {
+      "owner": 5,
+      "kind": "building",
+      "template_id": "china-tower-20f",
+      "frame": { "translation": [360.0, 460.0, 0.0], "yaw": 0.0 },
+      "parts": [{ "part": "body", "prop": 5 }]
+    }
+  ],
+  "template_catalog_hash": "a7f1169ec5919f8e2203f349a3a01b984e4e427548128782104fe3b624d19067",
+  "regional_family": "china"
 }
