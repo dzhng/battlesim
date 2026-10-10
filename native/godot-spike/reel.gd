@@ -816,6 +816,21 @@ func _maybe_finish_reel() -> void:
 	if not reel_finished or pending_cut_saves > 0:
 		return
 	_write_report()
+	call_deferred("_shutdown_renderer")
+
+func _shutdown_renderer() -> void:
+	# Shell prototypes are detached from the scene tree while being cached. Free
+	# them explicitly before Godot tears down the renderer; otherwise a complete
+	# authored catalog leaves thousands of imported mesh/material RIDs alive.
+	for prototype in authored_shell_prototypes.values():
+		if is_instance_valid(prototype):
+			prototype.free()
+	authored_shell_prototypes.clear()
+	for child in get_children():
+		if is_instance_valid(child):
+			child.queue_free()
+	await get_tree().process_frame
+	await get_tree().process_frame
 	get_tree().quit()
 
 func _save_cut_after_frame(scene_to_save: int, shot_to_save: int) -> void:
