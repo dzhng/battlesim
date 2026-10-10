@@ -169,7 +169,10 @@ fn the_side_that_saw_it_go_down_sees_the_trees_it_felled() {
         .filter(|f| (f.at[0] - at.x).hypot(f.at[1] - at.y) < 9.0)
         .map(|f| f.at)
         .collect();
-    assert!(!felled.is_empty(), "blue sees no tree felled by its wreck at {at:?}");
+    assert!(
+        !felled.is_empty(),
+        "blue sees no tree felled by its wreck at {at:?}"
+    );
 }
 
 #[test]
