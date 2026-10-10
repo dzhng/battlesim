@@ -1,0 +1,13 @@
+{
+  "category": "test",
+  "status": "released",
+  "label": "Air lab",
+  "character": "arena",
+  "biome": "summer",
+  "size_m": [300, 200],
+  "tags": ["road"],
+  "source": "authored",
+  "seed": null,
+  "encounters": ["hover"],
+  "benchmarks": []
+}

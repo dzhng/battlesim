@@ -12,48 +12,10 @@ use contract::scenario::Rules;
 use serde_json::{json, Value};
 use sim::battle::Battle;
 
-/// A test helicopter: a utility airframe with a turreted HMG.
-fn heli() -> Value {
-    json!({
-        "units": {
-            "test_heli": {
-                "name": "Helicopter",
-                "description": "Test only: a utility helicopter with a door HMG.",
-                "faction": "generic",
-                "family": "aircraft",
-                "roles": ["light_vehicle"],
-                "cost": 180,
-                "body": {
-                    "hull": {
-                        "half_extents_m": [7.0, 1.2, 1.6],
-                        "eye_m": 2.0,
-                        "hp": 200,
-                        "armor": {
-                            "front": 15, "side": 15, "rear": 15, "roof": 15,
-                            "ricochet": { "front": 0.1, "side": 0.1, "rear": 0.1, "roof": 0.1 }
-                        },
-                        "weight_class": "light",
-                        "push_class": "none",
-                        "wreck": "light_wreck"
-                    }
-                },
-                "mobility": { "air": { "cruise_kmh": 220, "turn_deg_s": 90, "climb_mps": 6 } },
-                "sensors": { "ground_m": 700, "sight_shape": { "front": 1.0, "side": 1.0, "rear": 1.0 } },
-                "mounts": [
-                    { "id": "HMG", "name": "HMG", "weapons": ["hmg"], "turret": true,
-                      "pivot_m": [2.0, 0, 0.4], "muzzle_m": [1.0, 0, 0] }
-                ],
-                "sound": { "profile": "vehicle", "loudness_m": 900 },
-                "appearance": "test_jeep"
-            }
-        }
-    })
-}
-
+/// The test rules, whose catalog holds the test helicopter (`test_heli`,
+/// `fixtures/units/test/aircraft.json`).
 pub(crate) fn fixture() -> Value {
-    let mut fixture = sim::fixtures::test_game();
-    fixture["catalog"].as_array_mut().unwrap().push(heli());
-    fixture
+    sim::fixtures::test_game()
 }
 
 pub(crate) fn battle_with(fixture: &Value, map: Value, units: Value) -> Battle {

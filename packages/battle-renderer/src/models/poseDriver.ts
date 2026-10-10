@@ -30,7 +30,12 @@ import {
   type Articulation,
 } from "@packages/scene-assets/src/articulation";
 import type { Side } from "@packages/scene-assets/src/schema";
-import { vehicleClass, type MountRole, type UnitCatalog } from "@packages/scene-assets/src/units";
+import {
+  airborne,
+  vehicleClass,
+  type MountRole,
+  type UnitCatalog,
+} from "@packages/scene-assets/src/units";
 import { sideKey } from "../sideKey";
 
 export type Posture = "stand" | "kneel" | "prone";
@@ -135,6 +140,8 @@ export interface VehiclePose {
   side: Side;
   position: Vec3;
   yaw: number;
+  /** It flies (`airborne`): its rotors turn, and nothing it has rolls. */
+  airborne: boolean;
   articulation: Articulation;
 }
 
@@ -227,6 +234,10 @@ export interface PoseFeel {
   /** Each vehicle class's (`vehicleClass`) running-gear half gauge, as a
    *  share of its hull's half width; 1 when absent. */
   gauge: Partial<Record<string, number>>;
+  /** How fast a drawn rotor's blade tips run, metres a second: every rotor
+   *  turns at this over its reach. A drawing speed, slower than a real
+   *  rotor's, so the blades read as turning rather than strobing. */
+  rotor: { tip_mps: number };
   /** How many of the fallen lie drawn at once. Past `max` the oldest sinks
    *  `sink_m` into the ground over `fade_s` seconds, easing in, and is then
    *  gone for good. A presentation cap: the simulation keeps every one. */
@@ -242,8 +253,9 @@ export function validatePoseFeel(p: PoseFeel): PoseFeel {
   const positive = (path: string, v: number) => {
     if (!(v > 0)) fail(path, "must be positive");
   };
-  const { gait, rest, stance, lean, mount, gauge, corpses } = p;
+  const { gait, rest, stance, lean, mount, gauge, rotor, corpses } = p;
   positive("gait.walk_mps", gait.walk_mps);
+  positive("rotor.tip_mps", rotor.tip_mps);
   if (!(gait.run_mps > gait.walk_mps)) fail("gait.run_mps", "must exceed walk_mps");
   positive("gait.fade_s", gait.fade_s);
   if (!(gait.facing_mps >= 0)) fail("gait.facing_mps", "must be ≥ 0");
@@ -830,6 +842,7 @@ export class PoseDriver {
           side: unit.side,
           position: vec3.clone(unit.position),
           yaw: unit.yaw,
+          airborne: airborne(this.options.units.type(unit.kind)),
           articulation: { ...REST_ARTICULATION, gun_pitch: gunTarget, hmg_pitch: hmgTarget },
         },
         seen: generation,
@@ -839,14 +852,19 @@ export class PoseDriver {
     state.seen = generation;
     const pose = state.pose;
     const a = pose.articulation;
-    // Ground covered along the hull, plus each side's share of the turn.
-    const forward =
-      (unit.position[0] - pose.position[0]) * Math.cos(unit.yaw) +
-      (unit.position[1] - pose.position[1]) * Math.sin(unit.yaw);
-    const turned = deltaAngle(pose.yaw, unit.yaw);
-    const half = this.halfTrack(unit.kind);
-    a.travel_l += forward - turned * half;
-    a.travel_r += forward + turned * half;
+    if (pose.airborne) {
+      // In the air its rotors turn and nothing rolls.
+      a.rotor += this.options.feel.rotor.tip_mps * dt;
+    } else {
+      // Ground covered along the hull, plus each side's share of the turn.
+      const forward =
+        (unit.position[0] - pose.position[0]) * Math.cos(unit.yaw) +
+        (unit.position[1] - pose.position[1]) * Math.sin(unit.yaw);
+      const turned = deltaAngle(pose.yaw, unit.yaw);
+      const half = this.halfTrack(unit.kind);
+      a.travel_l += forward - turned * half;
+      a.travel_r += forward + turned * half;
+    }
     vec3.copy(pose.position, unit.position);
     pose.yaw = unit.yaw;
     a.deploy = unit.deployment ?? 0;

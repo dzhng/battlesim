@@ -84,7 +84,7 @@ import {
   sameReveal,
   type RevealedOrders,
 } from "@web/battle/present/orderReveal";
-import type { Faction } from "@packages/scene-assets/src/units";
+import { topSpeedKmh, type Faction } from "@packages/scene-assets/src/units";
 import {
   DEFAULT_PLACEMENT_FACING,
   PurchasePlacementControl,
@@ -271,12 +271,10 @@ export function useBattleSession({
   // its ammunition goes, and only then as its moving wreck.
   const lastHulls = useMemo(
     () =>
-      new LastSeenHulls((kind) => {
-        const m = units.type(kind).mobility;
-        const road = "tracked" in m ? m.tracked : "wheeled" in m ? m.wheeled : m.foot;
-        // As the simulation stops a dead hull: full road speed lost in `wreck_stop_s`.
-        return road.road_kmh / 3.6 / rules.movement.drive.wreck_stop_s;
-      }),
+      new LastSeenHulls(
+        // As the simulation stops a dead hull: full top speed lost in `wreck_stop_s`.
+        (kind) => topSpeedKmh(units.type(kind).mobility) / 3.6 / rules.movement.drive.wreck_stop_s,
+      ),
     [units, rules],
   );
   // Each cook-off's hull, as last seen, found once as it starts.
@@ -732,7 +730,13 @@ export function useBattleSession({
         };
       }
       indoorUnits.of(published.own);
-      const posed = poseFrameInstances(posing.models, poses, posing.resolve, xrayOf.current);
+      const posed = poseFrameInstances(
+        posing.models,
+        poses,
+        posing.resolve,
+        xrayOf.current,
+        surfaceZ,
+      );
       lastHulls.note(poses.vehicles, time);
       // Each cooking-off hull: whole until its ammunition goes, then its
       // moving wreck until a moment after it lies still, when the static
