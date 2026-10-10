@@ -1,6 +1,6 @@
 # 18 — Helicopters and layered observation
 
-**Status:** superseded on 2026-10-10 by [specs/helicopters](../../helicopters/README.md).
+**Status:** superseded on 2026-10-10 by [the helicopters spec](../../done/helicopters/README.md).
 
 The user replaced this slice's design. Don't implement it.
 - **Was:** two flight modes, normal at 60 m and low at 15 m, with low flight trading sight for stealth.

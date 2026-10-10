@@ -6,6 +6,7 @@ import { expect, test } from "vitest";
 import { gameAudio } from "@apps/battle-lab/src/soundFeed";
 import { gamePose } from "@apps/battle-lab/src/poseFeed";
 import {
+  topSpeedKmh,
   vehicleClass,
   type Hull,
   type UnitType,
@@ -31,6 +32,23 @@ test("a vehicle's class is its mobility, its hull's weight and whether it hauls 
   expect(vehicleClass(fake("wheeled", "medium", ["logistics"]))).toBe("wheeled_medium_logistics");
 });
 
+test("an aircraft's class is air and its hull's weight; it has no running gear", () => {
+  const heli: Physics = {
+    body: { hull: { weight_class: "light" } as Hull },
+    mobility: { air: { cruise_kmh: 220, turn_deg_s: 90, climb_mps: 6 } },
+    roles: ["light_vehicle"],
+  };
+  expect(vehicleClass(heli)).toBe("air_light");
+});
+
+test("a mover's top speed is its road speed, an aircraft's its cruise", () => {
+  const drive = { offroad_kmh: 30, road_kmh: 60, turn_deg_s: 30, reverse_fraction: 0.3 };
+  expect(topSpeedKmh({ foot: { offroad_kmh: 4, road_kmh: 6 } })).toBe(6);
+  expect(topSpeedKmh({ tracked: drive })).toBe(60);
+  expect(topSpeedKmh({ wheeled: { ...drive, turning_radius_m: 8 } })).toBe(60);
+  expect(topSpeedKmh({ air: { cruise_kmh: 220, turn_deg_s: 90, climb_mps: 6 } })).toBe(220);
+});
+
 test("a squad has no vehicle class", () => {
   const squad: Physics = {
     body: { squad: { slots: ["test_rifleman"] } },
@@ -52,5 +70,16 @@ test("each kind of hull the game fields has its own engine sound and track gauge
     const cls = vehicleClass(kind)!;
     expect(gameAudio.vehicles[cls], cls).toBeDefined();
     expect(gamePose.gauge[cls], cls).toBeDefined();
+  }
+});
+
+test("each weight of airframe has its own rotor sound row", () => {
+  for (const weight of ["light", "medium", "heavy"] as const) {
+    const cls = vehicleClass({
+      body: { hull: { weight_class: weight } as Hull },
+      mobility: { air: { cruise_kmh: 220, turn_deg_s: 90, climb_mps: 6 } },
+      roles: ["light_vehicle"],
+    })!;
+    expect(gameAudio.vehicles[cls], cls).toBeDefined();
   }
 });

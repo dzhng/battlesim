@@ -705,6 +705,31 @@ test("the turret's landing clang is the catalog's tank shell striking armour", (
   expect(last.sound).toBe(gameSounds.impacts.hull.tank_ap);
 });
 
+test("a hovering helicopter keeps sounding its rotor, never a ground vehicle's engine or running gear", () => {
+  const { sink, frame } = setup();
+  // Airborne, nothing rolls: its travel never moves, whether it hovers or flies.
+  const heli = {
+    key: 1,
+    vehicleClass: "air_light",
+    position: [20, 20, 30],
+    travelL: 0,
+    travelR: 0,
+    turret: 0,
+  };
+  const ground = Object.entries(AUDIO.vehicles).filter(([cls]) => !cls.startsWith("air_"));
+  const groundSounds = new Set(ground.flatMap(([, row]) => [row.engine, row.running]));
+  for (let tick = 1; tick <= 60; tick++) {
+    sink.time = tick * DT;
+    frame.update(tick * DT, tick * DT, { vehicles: [heli], soldiers: [] }, LISTENER);
+    const rotor = sink.live(true).filter((v) => near(v.spec, heli.position, 1));
+    expect(rotor.length, `tick ${tick}`).toBeGreaterThan(0);
+    for (const v of rotor) {
+      expect(groundSounds.has(v.spec.sound), v.spec.sound).toBe(false);
+      expect(v.spec.gain).toBeGreaterThan(0);
+    }
+  }
+});
+
 test("a reversing vehicle beeps at a steady rate and level, whatever its speed", () => {
   const row = AUDIO.vehicles.tracked_heavy;
   const beeper = (load: number) =>

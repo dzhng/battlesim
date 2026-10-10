@@ -92,10 +92,10 @@ test("an icon the generator cannot draw is refused, naming it", () => {
 });
 
 test("a disabled soldier card's silhouette is its soldier posed aiming, not its bind pose", () => {
-  // The Javelin team's source is a skinned soldier on the launcher clips
+  // The Stinger team's source is a skinned soldier on the launcher clips
   // (its manifest entry names the skeleton): posed at the clips' aim
   // reference he stands a man's height, the launcher out ahead of him.
-  const solids = disabled("fgm_148_javelin_team");
+  const solids = disabled("fim_92_stinger_team");
   expect(solids?.length).toBeGreaterThan(0);
   let [x0, x1, y0, y1, z0, z1] = [Infinity, -Infinity, Infinity, -Infinity, Infinity, -Infinity];
   for (const s of solids!)

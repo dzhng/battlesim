@@ -84,7 +84,7 @@ import {
   sameReveal,
   type RevealedOrders,
 } from "@web/battle/present/orderReveal";
-import type { Faction } from "@packages/scene-assets/src/units";
+import { topSpeedKmh, type Faction } from "@packages/scene-assets/src/units";
 import {
   DEFAULT_PLACEMENT_FACING,
   PurchasePlacementControl,
@@ -135,6 +135,7 @@ import type { FelledTree } from "@packages/battle-renderer/src/scenery/felled";
 import { orderView } from "./battleOverlay";
 import {
   fieldedSoldiers,
+  ghostAloft,
   orderedGhost,
   ownSoldiers,
   pushGhostModels,
@@ -207,6 +208,8 @@ export interface ScenarioRules extends PoseRules, PanelRules, RulerRules {
   physics: SoldierBody & RulerRules["physics"];
   service: { radius_m: number };
   sensors: FogSensorRules;
+  /** An aircraft's ghost flies at its cruise height. */
+  air: { cruise_agl_m: number };
 }
 
 export function useBattleSession({
@@ -271,12 +274,10 @@ export function useBattleSession({
   // its ammunition goes, and only then as its moving wreck.
   const lastHulls = useMemo(
     () =>
-      new LastSeenHulls((kind) => {
-        const m = units.type(kind).mobility;
-        const road = "tracked" in m ? m.tracked : "wheeled" in m ? m.wheeled : m.foot;
-        // As the simulation stops a dead hull: full road speed lost in `wreck_stop_s`.
-        return road.road_kmh / 3.6 / rules.movement.drive.wreck_stop_s;
-      }),
+      new LastSeenHulls(
+        // As the simulation stops a dead hull: full top speed lost in `wreck_stop_s`.
+        (kind) => topSpeedKmh(units.type(kind).mobility) / 3.6 / rules.movement.drive.wreck_stop_s,
+      ),
     [units, rules],
   );
   // Each cook-off's hull, as last seen, found once as it starts.
@@ -732,7 +733,13 @@ export function useBattleSession({
         };
       }
       indoorUnits.of(published.own);
-      const posed = poseFrameInstances(posing.models, poses, posing.resolve, xrayOf.current);
+      const posed = poseFrameInstances(
+        posing.models,
+        poses,
+        posing.resolve,
+        xrayOf.current,
+        surfaceZ,
+      );
       lastHulls.note(poses.vehicles, time);
       // Each cooking-off hull: whole until its ammunition goes, then its
       // moving wreck until a moment after it lies still, when the static
@@ -791,6 +798,7 @@ export function useBattleSession({
         posing.appearances,
         surfaceZ,
         (kind) => Boolean(units.hull(kind)),
+        ghostAloft(units, rules.air.cruise_agl_m),
       );
       return {
         picks: d.picks,
@@ -1149,6 +1157,13 @@ export function useBattleSession({
       ),
     /** The soldiers the last drawn frame lays as static corpses. */
     lying: () => posing?.corpses.soldiers ?? [],
+    /** Where the last drawn frame draws the muzzle of the shown side's
+     *  vehicle `id`'s mount `mount`, where its flash goes; null when no rig
+     *  draws it. */
+    drawnMuzzle: (id: number, mount: number): Vec3 | null => {
+      const at: Vec3 = [0, 0, 0];
+      return posing?.muzzles.vehicle(side, id, mount, at) ? at : null;
+    },
     digest: () => sim.digest.current,
     error: () => sim.error,
     status: () => sim.status,

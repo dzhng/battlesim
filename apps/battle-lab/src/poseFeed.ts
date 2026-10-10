@@ -1,7 +1,7 @@
 // The observation, as the pose driver reads it. A side's decoded observation
 // and its interpolated poses become a `FeedFrame`: every own unit and every
-// identified enemy with its soldiers by member id, its weapon poses, and the
-// fallen the side knows of. Each soldier's position is his own, blended by
+// identified enemy with its soldiers by member id, its weapon poses, every
+// downed airframe still falling, and the fallen the side knows of. Each soldier's position is his own, blended by
 // his id between ticks, so a soldier's velocity is his own and never a
 // formation slot's (README firewalls).
 //
@@ -117,7 +117,7 @@ export class ObservationFeed {
   /** The frame for one drawn sample: its poses and the publication they
    *  blend toward, never an older one, so a soldier who has left the poses
    *  is already among the fallen and plays his death. */
-  frame({ observation, own, identified, time }: FrameSample): FeedFrame {
+  frame({ observation, own, identified, crashes, time }: FrameSample): FeedFrame {
     const enemy: SideName = this.side === "blue" ? "red" : "blue";
     if (observation !== this.observation) {
       this.observation = observation;
@@ -159,6 +159,23 @@ export class ObservationFeed {
       const e = enemies.get(pose.id);
       // The side cannot know an enemy's suppression.
       if (e) units.push(this.unit(pose, e.kind, enemy, e, false));
+    }
+    // A downed airframe falls on as the vehicle it was (its id is the one the
+    // side knew it by), crewless, its turret as last seen, tipping into the fall.
+    for (const c of crashes) {
+      const side = c.own ? this.side : enemy;
+      units.push({
+        id: c.id,
+        kind: c.kind,
+        side,
+        position: c.position,
+        yaw: c.yaw,
+        soldiers: [],
+        mounts: this.mounts.get(sideKey(c.id, side, "blue")) ?? [],
+        deployment: null,
+        pinned: false,
+        attitude: { pitch: c.pitch, roll: c.roll },
+      });
     }
     return { time, units, fallen: this.fallen };
   }

@@ -169,9 +169,9 @@ fn the_same_boxed_vehicle_can_depart_with_its_blocker_in_a_group() {
         let blocker = battle.unit(UnitId(1)).unwrap();
         assert!(
             !jeep
-                .hull_box()
+                .ground_footprint()
                 .unwrap()
-                .overlaps(&blocker.hull_box().unwrap()),
+                .overlaps(&blocker.ground_footprint().unwrap()),
             "group departure preserves physical hull separation at tick {}",
             battle.tick()
         );
@@ -324,9 +324,9 @@ fn opposing_groups_keep_their_markers_when_traffic_requires_a_detour() {
             );
             for j in i + 1..8 {
                 assert!(!unit
-                    .hull_box()
+                    .ground_footprint()
                     .unwrap()
-                    .overlaps(&battle.unit(UnitId(j)).unwrap().hull_box().unwrap()));
+                    .overlaps(&battle.unit(UnitId(j)).unwrap().ground_footprint().unwrap()));
             }
         }
         for (side, lead, rear) in [(0, 2, 0), (1, 6, 4)] {
@@ -917,11 +917,11 @@ fn settle(battle: &mut Battle, id: u32, seconds: u64) -> contract::observation::
     for _ in 0..seconds * battle.rules().tick_hz as u64 {
         battle.step();
         let unit = battle.unit(UnitId(id)).unwrap();
-        if let Some(hull) = unit.hull_box() {
+        if let Some(hull) = unit.ground_footprint() {
             for prop in battle.world().props_near(hull.center, hull.half.length()) {
                 assert!(
                     !prop.blocks(MoverClass::Vehicle)
-                        || unit.mobility.push.pushes(prop.body.weight_class)
+                        || unit.ground().push.pushes(prop.body.weight_class)
                         || !hull.overlaps(&prop.footprint()),
                     "unit {id} runs into a {:?} at tick {}",
                     prop.kind,
@@ -1054,7 +1054,8 @@ fn a_vehicle_boxed_by_a_parked_one_never_drives_through_it() {
     assert_eq!(ack.error, None);
     for _ in 0..60 * battle.rules().tick_hz as u64 {
         battle.step();
-        let [jeep, truck] = [0, 1].map(|id| battle.unit(UnitId(id)).unwrap().hull_box().unwrap());
+        let [jeep, truck] =
+            [0, 1].map(|id| battle.unit(UnitId(id)).unwrap().ground_footprint().unwrap());
         assert!(
             !jeep.overlaps(&truck),
             "the jeep runs into the truck at tick {}",

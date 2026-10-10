@@ -171,7 +171,7 @@ fn drive(kind: &str, bearing: f64, cars: bool, forward: bool) -> f64 {
                 <= b.rules().navigation.work_per_tick as u64 + sim::navigation::LARGEST_STEP
         );
         let unit = own(&b, 0);
-        let hull = b.unit(UnitId(0)).unwrap().hull_box().unwrap();
+        let hull = b.unit(UnitId(0)).unwrap().ground_footprint().unwrap();
         assert!(
             b.world()
                 .props()
@@ -263,7 +263,7 @@ fn two_vehicles_sent_through_a_parked_street_from_opposite_ends_both_arrive() {
             let hz = b.rules().tick_hz as u64;
             for _ in 0..300 * hz {
                 b.step();
-                let hull = |id| b.unit(UnitId(id)).unwrap().hull_box().unwrap();
+                let hull = |id| b.unit(UnitId(id)).unwrap().ground_footprint().unwrap();
                 assert!(
                     !hull(0).overlaps(&hull(1)),
                     "{what}: their hulls overlap at tick {}",
@@ -315,7 +315,9 @@ fn lane_refinement_yields_without_changing_the_route() {
             setup.rules.physics.soldier_radius_m,
         ));
         let roads = RoadNet::build(&world);
-        let mobility = sim::units::mobility(setup.rules.catalog.by_id("test_tank"), &setup.rules);
+        let mobility =
+            sim::units::ground_mobility(setup.rules.catalog.by_id("test_tank"), &setup.rules)
+                .unwrap();
         let from = at(bearing, -END_M, 0.0);
         let to = at(bearing, END_M, 0.0);
         let leg = Leg {
@@ -365,7 +367,9 @@ fn a_dense_roadside_body_query_yields_without_changing_the_route() {
         setup.rules.physics.soldier_radius_m,
     ));
     let roads = RoadNet::build(&world);
-    let mobility = sim::units::mobility(setup.rules.catalog.by_id("test_supply"), &setup.rules);
+    let mobility =
+        sim::units::ground_mobility(setup.rules.catalog.by_id("test_supply"), &setup.rules)
+            .unwrap();
     let avoid = [sim::math::Obb2 {
         center: v2(200.0, 20.0),
         yaw: 0.0,

@@ -1,7 +1,7 @@
 //! The one battle authority: commands in, fixed ticks, side observations out.
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
-use contract::catalog::Destroyed;
+use contract::catalog::{AltitudeLayer, Destroyed};
 use contract::command::{
     BuildingPlacement, BuildingPreviewRequest, CommandAck, CommandEnvelope, Engagement,
     MovePlacement, MovePreviewRequest, Order, OrderError, RoutePolicy, TargetRef,
@@ -9,9 +9,9 @@ use contract::command::{
 use contract::ids::{Side, Tick, UnitId};
 use contract::map::{MoverClass, PropDefinition};
 use contract::observation::{
-    Blast, Corpse, EncounterStatus, FallenBody, GuidedMissile, KnownProp, MemberOrder, MoveState,
-    ObservationFrame, OwnUnit, Posture, SegmentHit, SegmentRicochet, ServiceStatus, SoundCue,
-    SquadArea, UnitSight, VisibilityField, VisibleSegment,
+    Blast, Corpse, EncounterStatus, FallenBody, FallingAirframe, GuidedMissile, KnownProp,
+    MemberOrder, MoveState, ObservationFrame, OwnUnit, Posture, SegmentHit, SegmentRicochet,
+    ServiceStatus, SoundCue, SquadArea, UnitSight, VisibilityField, VisibleSegment,
 };
 use contract::scenario::{
     EncounterRules, EventAction, Opponent, Rules, ScenarioDefinition, ScenarioEvent, ScriptedOrder,
@@ -285,6 +285,8 @@ pub struct Battle {
     /// Every toppling body that went down: where, which way and when. Each
     /// side publishes those it knocked down or has seen where they stood.
     fallen: BTreeMap<PropId, FallenBody>,
+    /// Downed aircraft still falling, in the order they went down.
+    crashes: Vec<crate::crash::Crash>,
 }
 
 /// The parts of a round's flight over ground `fog` shows as seen, leg by leg
@@ -431,13 +433,21 @@ fn spawn_unit(
     })
     .collect();
     let mounts = arsenal.mounts_for(kind, u.yaw, &members);
+    // An aircraft enters at cruise height over the ground beneath it.
+    let motion = units::motion(t, rules);
+    let airborne = matches!(motion, units::Motion::Air(_));
+    let lift = if airborne {
+        rules.air.cruise_agl_m
+    } else {
+        0.0
+    };
     Unit {
         id: UnitId(i as u32),
         side: u.side,
         kind,
-        position: xy.with_z(world.surface_at(xy.x, xy.y).map_or(0.0, |s| s.z)),
+        position: xy.with_z(world.surface_at(xy.x, xy.y).map_or(0.0, |s| s.z) + lift),
         yaw: u.yaw,
-        mobility: units::mobility(t, rules),
+        motion,
         hull: t.hull().map(|h| {
             let [x, y, z] = h.half_extents_m;
             crate::math::v3(x, y, z)
@@ -454,6 +464,7 @@ fn spawn_unit(
         pursuit: None,
         planned_goal: None,
         engagement: u.engagement.unwrap_or(Engagement::FireAtWill),
+        air: airborne.then(units::AirState::default),
         mounts,
         attackers: BTreeSet::new(),
         reach: Default::default(),
@@ -527,30 +538,39 @@ impl Battle {
             let entry = &skirmish.setup.sites.entries[index];
             let at = v2(entry.center[0], entry.center[1]);
             let t = self.rules.catalog.get(reservation.data.kind);
-            let mobility = units::mobility(t, &self.rules);
-            let candidate = footprint(t, &self.rules, at, entry.yaw);
-            let clear = stands_on(
-                &self.world,
-                self.sides[index].grid(&self.world, self.authored_props),
-                &self.rules,
-                t,
-                &mobility,
-                at,
-                entry.yaw,
-            )
-            .is_ok()
-                && self.units.iter().filter(|u| u.alive()).all(|u| {
-                    apart(
-                        &candidate,
-                        &footprint(
-                            self.rules.catalog.get(u.kind),
-                            &self.rules,
-                            u.position.xy(),
-                            u.yaw,
-                        ),
-                        0.0,
+            // An aircraft flies in at cruise height over whatever stands there.
+            let clear = match units::ground_mobility(t, &self.rules) {
+                None => true,
+                Some(mobility) => {
+                    let candidate = footprint(t, &self.rules, at, entry.yaw);
+                    stands_on(
+                        &self.world,
+                        self.sides[index].grid(&self.world, self.authored_props),
+                        &self.rules,
+                        t,
+                        &mobility,
+                        at,
+                        entry.yaw,
                     )
-                });
+                    .is_ok()
+                        && self
+                            .units
+                            .iter()
+                            .filter(|u| u.alive() && !u.airborne())
+                            .all(|u| {
+                                apart(
+                                    &candidate,
+                                    &footprint(
+                                        self.rules.catalog.get(u.kind),
+                                        &self.rules,
+                                        u.position.xy(),
+                                        u.yaw,
+                                    ),
+                                    0.0,
+                                )
+                            })
+                }
+            };
             reservation.data.blocked = !clear;
             if !clear {
                 continue;
@@ -776,6 +796,7 @@ impl Battle {
             config_digest: config_digest(setup),
             expiries: BTreeMap::new(),
             fallen: BTreeMap::new(),
+            crashes: Vec::new(),
         };
         let authored: Vec<PropId> = battle.world.props().map(|p| p.id).collect();
         for id in authored {
@@ -995,12 +1016,14 @@ impl Battle {
     }
 
     /// A side-scoped target reference as the sim's own target, if the side
-    /// holds it right now.
+    /// holds it right now and can aim at it (never an air contact, D22).
     fn resolve_target(&self, side: Side, target: &TargetRef) -> Option<Target> {
         let knowledge = &self.knowledge[side.index()];
         match *target {
             TargetRef::Identified { id } => knowledge.unit_for(id).map(Target::Unit),
-            TargetRef::Contact { id } => knowledge.contact(id).map(|c| Target::Contact(c.id)),
+            TargetRef::Contact { id } => {
+                knowledge.ground_contact(id).map(|c| Target::Contact(c.id))
+            }
             // The aim point sits on the public terrain, whatever height the client sent.
             TargetRef::Ground { point } => self
                 .world
@@ -1044,6 +1067,12 @@ impl Battle {
                 units
             }
             Order::Attack { units, target } => {
+                if let TargetRef::Contact { id } = *target {
+                    let held = self.knowledge[command.side.index()].contact(id);
+                    if held.is_some_and(|c| c.layer != AltitudeLayer::Ground) {
+                        return Err(OrderError::AirContact);
+                    }
+                }
                 if self.resolve_target(command.side, target).is_none() {
                     return Err(OrderError::UnknownTarget);
                 }
@@ -1242,15 +1271,19 @@ impl Battle {
             self.ground.wear(from, to, channel, &self.rules.ground);
         }
         let after = self.poses();
+        // Moving is changing place on the map: an aircraft climbing or sinking
+        // over one spot stands still, and a ground unit cannot change height
+        // without changing place.
         let moved: Vec<bool> = before
             .units
             .iter()
             .zip(&after.units)
-            .map(|(a, b)| (a.base - b.base).length() > 1e-9)
+            .map(|(a, b)| (a.base - b.base).xy().length() > 1e-9)
             .collect();
         completed(TickPhase::Movement);
         self.guide(&moved);
         self.fly(&before, &after);
+        self.fall_crashes();
         // Where each unit looks, before this tick's fire turns any turret.
         completed(TickPhase::Flight);
         sight::snapshot(&mut self.units, &self.arsenal);
@@ -1557,13 +1590,13 @@ impl Battle {
         // A forest is its trees: what knocks them down is its tree's weight.
         let tree = self.world.types().by_id(&self.rules.forests.tree).body;
         for (u, was) in self.units.iter().zip(&before.units) {
-            let knocks = tree.topples && u.mobility.push.pushes(tree.weight_class);
+            let (Some(hull), Some(h)) = (u.ground_footprint(), u.hull) else {
+                continue;
+            };
+            let knocks = tree.topples && u.ground().push.pushes(tree.weight_class);
             if !u.alive() || !knocks || (was.base - u.position).length() <= 1e-9 {
                 continue;
             }
-            let (Some(hull), Some(h)) = (u.hull_box(), u.hull) else {
-                continue;
-            };
             if !self.world.forest_near(
                 hull.center,
                 hull.half.length() + self.rules.ground.lane_margin_m,
@@ -1612,7 +1645,11 @@ impl Battle {
     /// in unit order: the same list before and after movement.
     fn treads(&self) -> Vec<(V2, Wear)> {
         let mut out = Vec::new();
-        for unit in self.units.iter().filter(|u| u.alive() && !u.garrisoned()) {
+        for unit in self
+            .units
+            .iter()
+            .filter(|u| u.alive() && !u.garrisoned() && !u.airborne())
+        {
             match unit.hull {
                 Some(half) => {
                     let side = v2(0.0, half.y * self.rules.ground.track_gauge).rotated(unit.yaw);
@@ -1675,9 +1712,15 @@ impl Battle {
                 &self.rules,
                 |id, destination| {
                     let own = frame.own.iter().find(|u| u.id == id)?;
-                    let mobility = units::mobility(self.rules.catalog.get(own.kind), &self.rules);
                     let from = v2(own.position[0], own.position[1]);
                     let goal = v2(destination[0], destination[1]);
+                    let kind = self.rules.catalog.get(own.kind);
+                    let mobility = match units::motion(kind, &self.rules) {
+                        units::Motion::Ground(m) => m,
+                        units::Motion::Air(f) => {
+                            return Some((goal - from).length() / f.cruise_mps)
+                        }
+                    };
                     let (plan, _) = crate::navigation::plan(
                         grid,
                         &self.roads,
@@ -1715,13 +1758,13 @@ impl Battle {
     /// may hear the shot, sounding like the weapon rows in `heard` (the lab
     /// emitter's shot is of no weapon: 0). Weapons and the lab emitter share
     /// this seam.
-    fn record_fire(&mut self, unit: UnitId, heard: u32) {
+    fn record_fire(&mut self, unit: UnitId, heard: u64) {
         let Some(shooter) = self.units.get(unit.0 as usize) else {
             return;
         };
-        let (side, at) = (shooter.side, shooter.position.xy());
+        let (side, at, layer) = (shooter.side, shooter.position, shooter.layer());
         for other in Side::ALL.into_iter().filter(|s| *s != side) {
-            self.knowledge[other.index()].note_fire(unit, at, heard);
+            self.knowledge[other.index()].note_fire(unit, at, layer, heard);
         }
         self.fired.insert(unit);
     }
@@ -1905,6 +1948,122 @@ impl Battle {
         self.suppressed.retain(|(id, _), _| live.contains(id));
     }
 
+    /// Downed aircraft still falling.
+    pub fn crashes(&self) -> &[crate::crash::Crash] {
+        &self.crashes
+    }
+
+    /// Downed aircraft fall; each that meets the ground bursts there and
+    /// leaves its wreck.
+    fn fall_crashes(&mut self) {
+        if self.crashes.is_empty() {
+            return;
+        }
+        let dt = 1.0 / self.rules.tick_hz as f64;
+        let gravity = self.projectiles.gravity();
+        let mut landed = Vec::new();
+        for mut crash in std::mem::take(&mut self.crashes) {
+            let half = self.units[crash.unit.0 as usize]
+                .hull
+                .expect("an airframe's hull");
+            if crash.fall(&self.world, gravity, half, dt) {
+                landed.push(crash);
+            } else {
+                self.crashes.push(crash);
+            }
+        }
+        for crash in landed {
+            self.land(crash);
+        }
+    }
+
+    /// A downed aircraft meets the ground (D3, D31): it bursts as the crash
+    /// row, credited to whoever brought it down, then its wreck comes to rest
+    /// on the nearest ground clear of live hulls and buildings.
+    fn land(&mut self, crash: crate::crash::Crash) {
+        let weapon = (self.arsenal.weapons.iter())
+            .position(|w| w.id == crate::crash::CRASH_WEAPON)
+            .expect("the rules' crash row");
+        let def = self.arsenal.weapons[weapon].def.clone();
+        let at = crate::crash::burst_point(crash.position);
+        let ctx = DamageContext {
+            world: &self.world,
+            ground: &self.ground,
+            arsenal: &self.arsenal,
+            rules: &self.rules,
+            tick: self.tick,
+        };
+        let outcome = damage::detonate(
+            &ctx,
+            &def,
+            at,
+            crash.source,
+            &mut self.units,
+            &mut self.damage_rng,
+        );
+        let side = self.units[crash.unit.0 as usize].side;
+        self.blasts.push((
+            side,
+            Blast {
+                point: xyz(at),
+                radius: def.blast_radius_m,
+                kind: weapon,
+            },
+        ));
+        let fallen_before: BTreeSet<PropId> = self.fallen.keys().copied().collect();
+        self.consequences(outcome);
+        self.ground
+            .burst(&self.world, at, def.blast_radius_m, &self.rules.ground);
+        // The sides that saw it go down see it come down: the trees its
+        // crash felled fall in their sight, as its wreck lands there.
+        let felled: Vec<PropId> = (self.fallen.keys())
+            .filter(|id| !fallen_before.contains(id))
+            .copied()
+            .collect();
+        for &(side, _) in &crash.knowing {
+            for &prop in &felled {
+                self.sides[side.index()].saw_fallen(prop);
+                self.knowledge[side.index()].learn_fallen(prop);
+            }
+        }
+        let unit = &self.units[crash.unit.0 as usize];
+        let half = unit.hull.expect("an airframe's hull");
+        let kind = (unit.unit_type(&self.rules).hull())
+            .expect("an airframe's hull row")
+            .wreck
+            .clone();
+        let wreck_of = self.rules.catalog.id(unit.kind).to_string();
+        let hulls: Vec<Obb2> = (self.units.iter())
+            .filter(|o| o.alive())
+            .filter_map(|o| o.ground_footprint())
+            .collect();
+        let rest = crate::crash::resting_place(
+            &self.world,
+            crash.position.xy(),
+            crash.yaw,
+            half.xy(),
+            &hulls,
+        );
+        let wreck = self.add_prop(&PropDefinition {
+            kind,
+            center: [rest.x, rest.y],
+            yaw: crash.yaw,
+            half_extents: [half.x, half.y, half.z],
+            base_z: None,
+            wreck_of: Some(wreck_of),
+        });
+        if let Some(prop) = self.world.prop(wreck) {
+            for (side, _) in crash.knowing {
+                self.sides[side.index()].learn(
+                    prop,
+                    self.authored_props,
+                    self.rules.pushing.relearn_m,
+                    true,
+                );
+            }
+        }
+    }
+
     /// Hostile damage or suppression grants return fire; a destroyed vehicle
     /// leaves a permanent wreck (M06, M07); a death a side was watching ends
     /// its track, while an unseen death discloses nothing. The vehicle's own
@@ -1952,12 +2111,34 @@ impl Battle {
             let id = death.victim;
             let unit = &self.units[id.0 as usize];
             let own = unit.side;
+            // Each side that saw it die, with the id it knew it by.
+            let mut knowing = vec![(own, id.0)];
+            for side in Side::ALL.into_iter().filter(|&s| s != own) {
+                let knowledge = &mut self.knowledge[side.index()];
+                if knowledge.identifies(id, self.tick - 1) {
+                    let handle = knowledge.track(id).expect("an identified track").id;
+                    knowledge.saw_destroyed(id);
+                    knowing.push((side, handle.0));
+                }
+            }
+            // A downed aircraft falls first; its wreck lies where it lands.
+            if let Some(air) = unit.air {
+                self.crashes.push(crate::crash::Crash::new(
+                    id,
+                    unit.position,
+                    air.velocity,
+                    unit.yaw,
+                    death.source,
+                    knowing,
+                ));
+                continue;
+            }
             let wreck = unit.unit_type(&self.rules).hull().map(|h| h.wreck.clone());
             let hulls: Vec<Obb2> = self
                 .units
                 .iter()
                 .filter(|o| o.id != id && o.alive())
-                .filter_map(|o| o.hull_box())
+                .filter_map(|o| o.ground_footprint())
                 .collect();
             let soldiers: Vec<V2> = self
                 .units
@@ -1983,16 +2164,8 @@ impl Battle {
                 })),
                 _ => None,
             };
-            let mut knowing = vec![own];
-            for side in Side::ALL.into_iter().filter(|&s| s != own) {
-                let knowledge = &mut self.knowledge[side.index()];
-                if knowledge.identifies(id, self.tick - 1) {
-                    knowledge.saw_destroyed(id);
-                    knowing.push(side);
-                }
-            }
             if let Some(prop) = wreck.and_then(|w| self.world.prop(w)) {
-                for side in knowing {
+                for (side, _) in knowing {
                     self.sides[side.index()].learn(
                         prop,
                         self.authored_props,
@@ -2044,7 +2217,7 @@ impl Battle {
                         _ => true,
                     },
                 },
-                Target::Contact(c) => knowledge.contact(c).is_none(),
+                Target::Contact(c) => knowledge.ground_contact(c).is_none(),
                 Target::Ground(_) => false,
             };
             if done {
@@ -2109,7 +2282,12 @@ impl Battle {
                     .garrison
                     .as_ref()
                     .is_none_or(|g| matches!(g.phase, garrison::Phase::Inside));
-                let keep = !moved[i]
+                // A launcher that guides only standing still lets go as it moves.
+                let on_the_move = self.rounds.get(&s.projectile).is_some_and(|r| {
+                    self.arsenal.weapons[r.weapon].def.ballistics.guidance
+                        == Some(contract::ballistics::Guidance::OnTheMove)
+                });
+                let keep = (!moved[i] || on_the_move)
                     && alive[i]
                     && settled
                     && (unit.hull.is_some() || mount.operator.is_some())
@@ -2789,12 +2967,14 @@ impl Battle {
         {
             return Err(OrderError::OutOfBounds);
         }
-        let mobility = units::mobility(self.rules.catalog.get(kind), &self.rules);
         let mut known = self.sides[side.index()].clone();
-        if !known
-            .grid(&self.world, self.authored_props)
-            .placement_fits(v2(destination[0], destination[1]), &mobility)
-        {
+        let fits = |mobility| {
+            known
+                .grid(&self.world, self.authored_props)
+                .placement_fits(v2(destination[0], destination[1]), &mobility)
+        };
+        // An aircraft's destination is any point it can fly over.
+        if !units::ground_mobility(self.rules.catalog.get(kind), &self.rules).is_none_or(fits) {
             return Err(OrderError::NoValidDestination);
         }
         let t = self.rules.catalog.get(kind);
@@ -2912,16 +3092,21 @@ impl Battle {
             libm::hypot(self.world.width(), self.world.depth()),
             |id, p| {
                 let u = &self.units[id.0 as usize];
+                // An aircraft hovers over its point, whatever stands there.
+                if u.airborne() {
+                    shorts.borrow_mut().insert(id, (p, None));
+                    return Some(p);
+                }
                 // A hull that turns on the spot parks facing as ordered.
-                let pivots = u.mobility.drive.is_some_and(|d| d.tracked);
+                let pivots = u.ground().drive.is_some_and(|d| d.tracked);
                 let hull = u.hull.map(|h| crate::navigation::Parking {
                     half: h.xy(),
                     facing: request.facing.filter(|_| pivots),
                 });
-                let placed = grid.destination_point(p, &u.mobility, hull, from(u), &pockets)?;
+                let placed = grid.destination_point(p, u.ground(), hull, from(u), &pockets)?;
                 let short = hull
                     .filter(|_| placed != p)
-                    .and_then(|hull| grid.room_on_the_way(p, &u.mobility, hull, from(u), &pockets))
+                    .and_then(|hull| grid.room_on_the_way(p, u.ground(), hull, from(u), &pockets))
                     .filter(|&at| at != placed)
                     .map(|at| crate::units::StopShort {
                         at,
@@ -2958,9 +3143,10 @@ impl Battle {
                         .orders
                         .iter()
                         .any(|o| matches!(o, UnitOrder::Attack { .. }));
-                let slot_point = slot
-                    .point
-                    .filter(|p| !after_attack && grid.reaches(from(u), *p, &u.mobility, &pockets));
+                let slot_point = slot.point.filter(|p| {
+                    !after_attack
+                        && (u.airborne() || grid.reaches(from(u), *p, u.ground(), &pockets))
+                });
                 let goal = slot_point.unwrap_or(u.position.xy());
                 let facing =
                     movement::final_yaw(u, request.facing, from(u), goal, request.direction);
@@ -3096,6 +3282,7 @@ impl Battle {
     fn observe_all(&mut self) {
         // Every live hull a soldier's current cover may lie behind (D2+).
         let hulls = cover::hull_bodies(&crate::lean::hulls(&self.units, &self.rules));
+        let low_hover = crate::movement::air::low_hover(&self.rules);
         for side in Side::ALL {
             let knowledge = &self.knowledge[side.index()];
             let spotted_by_visible_enemy: BTreeSet<UnitId> = self.sightings[1 - side.index()]
@@ -3116,7 +3303,14 @@ impl Battle {
                 .extend(knowledge.identified(self.tick, &self.units, &self.rules));
             frame.ground_visibility.clone_from(fog);
             frame.contacts.clear();
-            frame.contacts.extend(knowledge.contacts());
+            // An area hangs in the air when its cause flew higher over the
+            // ground than the low hover (D33).
+            let world = &self.world;
+            frame.contacts.extend(knowledge.contacts(|c| {
+                c.layer != AltitudeLayer::Ground
+                    && c.center.z - world.height_at(c.center.x, c.center.y).unwrap_or(0.0)
+                        > low_hover
+            }));
             frame.audible.clone_from(&self.audible[side.index()]);
             frame.known_props.clear();
             let known = &self.sides[side.index()];
@@ -3297,6 +3491,7 @@ impl Battle {
                         weapon_poses: u.mounts.iter().map(weapons::pose).collect(),
                         deployment: deployment::state(u),
                         hp: u.hp,
+                        smoking: u.smoking(&self.rules),
                         member_hp: u
                             .members
                             .iter()
@@ -3384,6 +3579,23 @@ impl Battle {
                     .filter(|f| knowledge.knows_fallen(f.prop))
                     .cloned(),
             );
+            // A falling airframe, to the sides that saw it go down: the
+            // same sides that learn its wreck.
+            frame.crashes.clear();
+            frame.crashes.extend(self.crashes.iter().filter_map(|c| {
+                let &(_, id) = c.knowing.iter().find(|(s, _)| *s == side)?;
+                let unit = &self.units[c.unit.0 as usize];
+                let (pitch, roll) = c.attitude();
+                Some(FallingAirframe {
+                    id,
+                    own: unit.side == side,
+                    kind: unit.kind,
+                    position: [c.position.x, c.position.y, c.position.z],
+                    yaw: c.yaw,
+                    pitch,
+                    roll,
+                })
+            }));
         }
     }
 
@@ -3438,6 +3650,14 @@ impl Battle {
             d.u64(*id as u64).u64(*t);
         }
         self.structures.digest(&mut d);
+        // Only a battle with an aircraft going down folds crashes in, so
+        // ground battles keep their digests.
+        if !self.crashes.is_empty() {
+            d.u64(self.crashes.len() as u64);
+            for crash in &self.crashes {
+                crash.digest(&mut d);
+            }
+        }
         // An empty fall log folds nothing: a battle where nothing topples
         // digests as if there were no log.
         if !self.fallen.is_empty() {

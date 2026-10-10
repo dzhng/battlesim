@@ -5,7 +5,7 @@
 import { expect, test } from "vitest";
 import { vec3, type Vec3 } from "math";
 import {
-  PITCH_LIMITS,
+  DEFAULT_PITCH_LIMITS,
   REST_ARTICULATION,
   articulate,
   articulationRig,
@@ -22,9 +22,21 @@ import {
 import { pointAt } from "@packages/scene-assets/src/trs.ts";
 import type { ArticulatedBundle } from "@packages/scene-assets/src/schema.ts";
 import { validateAppearance } from "@packages/scene-assets/src/validate.ts";
-import { AUTHORITY, TANK_DRAWS, TOLERANCES, tankGlb, truckGlb } from "./synthetic";
+import {
+  AUTHORITY,
+  HELI_AUTHORITY,
+  HELI_ROTORS,
+  TANK_DRAWS,
+  TOLERANCES,
+  heliGlb,
+  tankGlb,
+  truckGlb,
+} from "./synthetic";
 
-async function built(unit: "tank" | "supply", bytes: Uint8Array): Promise<ArticulatedBundle> {
+async function built(
+  unit: "tank" | "supply" | "heli",
+  bytes: Uint8Array,
+): Promise<ArticulatedBundle> {
   const result = await validateAppearance(
     {
       name: unit,
@@ -36,7 +48,7 @@ async function built(unit: "tank" | "supply", bytes: Uint8Array): Promise<Articu
       },
       files: { "a.glb": bytes },
     },
-    { authority: AUTHORITY, tolerances: TOLERANCES },
+    { authority: unit === "heli" ? HELI_AUTHORITY : AUTHORITY, tolerances: TOLERANCES },
   );
   return result.preview as ArticulatedBundle;
 }
@@ -93,6 +105,15 @@ test("recoil runs the gun back along its own bore, level or raised", async () =>
     // The turret and the HMG on it stay put.
     expect(back.at("hmg_muzzle")).toEqual(battery.at("hmg_muzzle"));
   }
+});
+
+test("a gun whose model states a short stroke runs back no further than it", async () => {
+  // An autocannon's short recoil, against a tank gun's long one.
+  const chin = await built("tank", tankGlb({ gunStrokeM: 0.08 }));
+  const ran = (recoil: number) =>
+    vec3.distance(posed(chin, { recoil }).at("muzzle"), posed(chin, {}).at("muzzle"));
+  expect(ran(0.05)).toBeCloseTo(0.05, 5);
+  expect(ran(0.4)).toBeCloseTo(0.08, 5);
 });
 
 test("each side's wheels roll by that side's travel over their radius", async () => {
@@ -155,14 +176,17 @@ test("posed bounds hold every reachable pose, the rest pose among them", async (
       const input: Articulation = {
         turret_yaw: k * 0.37,
         gun_pitch:
-          PITCH_LIMITS.gun[0] + ((k * 0.13) % 1) * (PITCH_LIMITS.gun[1] - PITCH_LIMITS.gun[0]),
+          DEFAULT_PITCH_LIMITS.gun[0] +
+          ((k * 0.13) % 1) * (DEFAULT_PITCH_LIMITS.gun[1] - DEFAULT_PITCH_LIMITS.gun[0]),
         recoil: (k % 3) * 0.2,
         hmg_yaw: -k * 0.61,
         hmg_pitch:
-          PITCH_LIMITS.hmg[0] + ((k * 0.29) % 1) * (PITCH_LIMITS.hmg[1] - PITCH_LIMITS.hmg[0]),
+          DEFAULT_PITCH_LIMITS.hmg[0] +
+          ((k * 0.29) % 1) * (DEFAULT_PITCH_LIMITS.hmg[1] - DEFAULT_PITCH_LIMITS.hmg[0]),
         travel_l: k * 0.11,
         travel_r: -k * 0.07,
         deploy: (k % 11) / 10,
+        rotor: k * 1.3,
       };
       const { worlds } = posed(bundle, input);
       positionsBounds(articulatedPositions(bundle.nodes, worlds, 0), reached as never);
@@ -179,4 +203,65 @@ test("posed bounds hold every reachable pose, the rest pose among them", async (
       expect(bounds.max[2]).toBeGreaterThan(5);
     }
   }
+});
+
+test("every rotor turns about its own axis by the distance its blade tips sweep over their reach", async () => {
+  const heli = await built("heli", heliGlb());
+  const node = (name: string) => heli.nodes.findIndex((n) => n.name === name);
+  const tipOf = (p: ReturnType<typeof posed>, rotor: string, reach: number) =>
+    vec3.transformMat4(vec3.create(), [reach, 0, 0], p.worlds[node(rotor)]);
+  // A quarter turn of the main rotor swings its tip from +X to +Y about the mast.
+  const quarter = (HELI_ROTORS.main * Math.PI) / 2;
+  const rest = posed(heli, {});
+  const turned = posed(heli, { rotor: quarter });
+  expect([...tipOf(rest, "rotor_main", 5)].map((v) => +v.toFixed(4))).toEqual([5.5, 0, 2.4]);
+  expect([...tipOf(turned, "rotor_main", 5)].map((v) => +v.toFixed(4))).toEqual([0.5, 5, 2.4]);
+  // The tail rotor's tips sweep as far, so the smaller rotor turns faster,
+  // about its own axis (across the boom), never out of its plane.
+  const hub = rest.at("rotor_tail");
+  const [from, to] = [rest, turned].map((p) =>
+    vec3.sub(vec3.create(), tipOf(p, "rotor_tail", 0.7), hub),
+  );
+  const swung = Math.acos(vec3.dot(from, to) / (vec3.length(from) * vec3.length(to)));
+  const expected = (quarter / HELI_ROTORS.tail) % (2 * Math.PI);
+  expect(swung).toBeCloseTo(Math.min(expected, 2 * Math.PI - expected), 4);
+  expect(to[1]).toBeCloseTo(0, 5);
+});
+
+test("a rotor's whole disc is inside the culling bounds, whatever its angle", async () => {
+  const heli = await built("heli", heliGlb());
+  const bounds = posedBounds(heli.nodes);
+  expect(heli.bounds).toEqual(bounds);
+  for (let k = 0; k < 24; k++) {
+    const { worlds } = posed(heli, { rotor: k * 0.83 });
+    const b = positionsBounds(articulatedPositions(heli.nodes, worlds, 0));
+    for (let c = 0; c < 3; c++) {
+      expect(b.min[c]).toBeGreaterThanOrEqual(bounds.min[c] - 1e-4);
+      expect(b.max[c]).toBeLessThanOrEqual(bounds.max[c] + 1e-4);
+    }
+  }
+  // The disc, not the blade at rest along +X, sets the sides.
+  expect(bounds.max[1]).toBeGreaterThan(5);
+});
+
+test("a gun whose model states its own pitch limits is drawn to them, and its bounds hold them", async () => {
+  // A chin gun firing down from the air: its model lets it depress to -60°.
+  const chin = await built("tank", tankGlb({ muzzleX: 5.9, gunPitchDeg: [-60, 11] }));
+  const plain = await built("tank", tankGlb({ muzzleX: 5.9 }));
+  const DEG = Math.PI / 180;
+  // The drawn bore's elevation when the gun is asked for `pitch`.
+  const drawn = (bundle: ArticulatedBundle, pitch: number) => {
+    const p = posed(bundle, { gun_pitch: pitch });
+    const d = vec3.sub(vec3.create(), p.at("muzzle"), p.at("gun"));
+    return Math.atan2(d[2], Math.hypot(d[0], d[1]));
+  };
+  // Within its limits it goes where it is asked; past them, each gun stops at its own.
+  expect(drawn(chin, -50 * DEG)).toBeCloseTo(-50 * DEG, 5);
+  expect(drawn(chin, -80 * DEG)).toBeCloseTo(-60 * DEG, 5);
+  expect(drawn(chin, 30 * DEG)).toBeCloseTo(11 * DEG, 5);
+  expect(drawn(plain, -50 * DEG)).toBeCloseTo(DEFAULT_PITCH_LIMITS.gun[0], 5);
+  // The bake's bounds reach the depressed muzzle on the gun that can depress that far.
+  const low = posed(chin, { gun_pitch: -60 * DEG }).at("muzzle")[2];
+  expect(posedBounds(chin.nodes).min[2]).toBeLessThanOrEqual(low + 1e-4);
+  expect(posedBounds(plain.nodes).min[2]).toBeGreaterThan(low);
 });

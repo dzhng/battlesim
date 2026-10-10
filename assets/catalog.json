@@ -434,6 +434,32 @@
       },
       "wreck": "test_jeep_wreck"
     },
+    "test_heli": {
+      "unit": "vehicle",
+      "source": "assets/source/test/heli.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "HMG": "hmg"
+      },
+      "wreck": "test_heli_wreck"
+    },
+    "test_heli_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/test/heli_wreck.glb",
+        "debris": "assets/source/test/heli_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        7,
+        1.2,
+        1.6
+      ],
+      "tolerances": {
+        "footprint_m": 1.5
+      }
+    },
     "test_tank_wreck": {
       "unit": "scenery",
       "scenery": "wreck",
@@ -2190,6 +2216,35 @@
         "footprint_m": 2.3
       }
     },
+    "europe_ebrc_jaguar_armed_reconnaissance_vehicle": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/jaguar/europe_ebrc_jaguar_armed_reconnaissance_vehicle.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "autocannon": "gun",
+        "launcher": "hmg"
+      },
+      "wreck": "europe_ebrc_jaguar_armed_reconnaissance_vehicle_wreck"
+    },
+    "europe_ebrc_jaguar_armed_reconnaissance_vehicle_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/jaguar/europe_ebrc_jaguar_armed_reconnaissance_vehicle_wreck.glb",
+        "hull": "assets/source/roster/jaguar/europe_ebrc_jaguar_armed_reconnaissance_vehicle_wreck_hull.glb",
+        "turret": "assets/source/roster/jaguar/europe_ebrc_jaguar_armed_reconnaissance_vehicle_wreck_turret.glb",
+        "debris": "assets/source/roster/jaguar/europe_ebrc_jaguar_armed_reconnaissance_vehicle_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        3.55,
+        1.52,
+        1.4
+      ],
+      "tolerances": {
+        "footprint_m": 1.3
+      }
+    },
     "europe_fennek_reconnaissance_vehicle": {
       "unit": "vehicle",
       "source": "assets/source/roster/fennek/europe_fennek_reconnaissance_vehicle.glb",
@@ -2523,6 +2578,35 @@
         "footprint_m": 1.2
       }
     },
+    "us_m1e3_abrams": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/m1e3/us_m1e3_abrams.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "cannon": "gun",
+        "HMG": "hmg"
+      },
+      "wreck": "us_m1e3_abrams_wreck"
+    },
+    "us_m1e3_abrams_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/m1e3/us_m1e3_abrams_wreck.glb",
+        "hull": "assets/source/roster/m1e3/us_m1e3_abrams_wreck_hull.glb",
+        "turret": "assets/source/roster/m1e3/us_m1e3_abrams_wreck_turret.glb",
+        "debris": "assets/source/roster/m1e3/us_m1e3_abrams_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        3.965,
+        1.83,
+        1.22
+      ],
+      "tolerances": {
+        "footprint_m": 1.2
+      }
+    },
     "europe_cv90_cv9040c": {
       "unit": "vehicle",
       "source": "assets/source/roster/cv90/europe_cv90_cv9040c.glb",
@@ -2712,6 +2796,35 @@
         "footprint_m": 2.7
       }
     },
+    "eastern_type_15_ztq_15_light_tank": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/type15/eastern_type_15_ztq_15_light_tank.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "cannon": "gun",
+        "HMG": "hmg"
+      },
+      "wreck": "eastern_type_15_ztq_15_light_tank_wreck"
+    },
+    "eastern_type_15_ztq_15_light_tank_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/type15/eastern_type_15_ztq_15_light_tank_wreck.glb",
+        "hull": "assets/source/roster/type15/eastern_type_15_ztq_15_light_tank_wreck_hull.glb",
+        "turret": "assets/source/roster/type15/eastern_type_15_ztq_15_light_tank_wreck_turret.glb",
+        "debris": "assets/source/roster/type15/eastern_type_15_ztq_15_light_tank_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        3.65,
+        1.675,
+        1.25
+      ],
+      "tolerances": {
+        "footprint_m": 1.0
+      }
+    },
     "us_m1127_stryker_rv_reconnaissance_vehicle": {
       "unit": "vehicle",
       "source": "assets/source/roster/stryker/us_m1127_stryker_rv_reconnaissance_vehicle.glb",
@@ -2873,6 +2986,35 @@
         "footprint_m": 0.8
       }
     },
+    "us_m10_booker": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/m10/us_m10_booker.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "cannon": "gun",
+        "HMG": "hmg"
+      },
+      "wreck": "us_m10_booker_wreck"
+    },
+    "us_m10_booker_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/m10/us_m10_booker_wreck.glb",
+        "hull": "assets/source/roster/m10/us_m10_booker_wreck_hull.glb",
+        "turret": "assets/source/roster/m10/us_m10_booker_wreck_turret.glb",
+        "debris": "assets/source/roster/m10/us_m10_booker_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        3.5,
+        1.7,
+        1.49
+      ],
+      "tolerances": {
+        "footprint_m": 1.2
+      }
+    },
     "europe_vbl_machine_gun_scout": {
       "unit": "vehicle",
       "source": "assets/source/roster/vbl/europe_vbl_machine_gun_scout.glb",
@@ -2957,6 +3099,34 @@
         "footprint_m": 0.5
       }
     },
+    "eastern_brm_brm_3k": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/brm/eastern_brm_brm_3k.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "autocannon": "gun"
+      },
+      "wreck": "eastern_brm_brm_3k_wreck"
+    },
+    "eastern_brm_brm_3k_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/brm/eastern_brm_brm_3k_wreck.glb",
+        "hull": "assets/source/roster/brm/eastern_brm_brm_3k_wreck_hull.glb",
+        "turret": "assets/source/roster/brm/eastern_brm_brm_3k_wreck_turret.glb",
+        "debris": "assets/source/roster/brm/eastern_brm_brm_3k_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        3.57,
+        1.6,
+        1.2
+      ],
+      "tolerances": {
+        "footprint_m": 0.8
+      }
+    },
     "europe_vbci_infantry_fighting_vehicle": {
       "unit": "vehicle",
       "source": "assets/source/roster/vbci/europe_vbci_infantry_fighting_vehicle.glb",
@@ -3030,6 +3200,64 @@
       ],
       "tolerances": {
         "footprint_m": 2.1
+      }
+    },
+    "eastern_t_14_armata_main_battle_tank": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/t14/eastern_t_14_armata_main_battle_tank.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "cannon": "gun",
+        "HMG": "hmg"
+      },
+      "wreck": "eastern_t_14_armata_main_battle_tank_wreck"
+    },
+    "eastern_t_14_armata_main_battle_tank_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/t14/eastern_t_14_armata_main_battle_tank_wreck.glb",
+        "hull": "assets/source/roster/t14/eastern_t_14_armata_main_battle_tank_wreck_hull.glb",
+        "turret": "assets/source/roster/t14/eastern_t_14_armata_main_battle_tank_wreck_turret.glb",
+        "debris": "assets/source/roster/t14/eastern_t_14_armata_main_battle_tank_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        4.35,
+        1.75,
+        1.65
+      ],
+      "tolerances": {
+        "footprint_m": 1.9
+      }
+    },
+    "eastern_t_15_armata_heavy_ifv": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/t15/eastern_t_15_armata_heavy_ifv.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "autocannon": "gun",
+        "launcher": "hmg"
+      },
+      "wreck": "eastern_t_15_armata_heavy_ifv_wreck"
+    },
+    "eastern_t_15_armata_heavy_ifv_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/t15/eastern_t_15_armata_heavy_ifv_wreck.glb",
+        "hull": "assets/source/roster/t15/eastern_t_15_armata_heavy_ifv_wreck_hull.glb",
+        "turret": "assets/source/roster/t15/eastern_t_15_armata_heavy_ifv_wreck_turret.glb",
+        "debris": "assets/source/roster/t15/eastern_t_15_armata_heavy_ifv_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        4.75,
+        1.75,
+        1.6
+      ],
+      "tolerances": {
+        "footprint_m": 1.9
       }
     },
     "europe_boxer_apc": {
@@ -3113,6 +3341,549 @@
       ],
       "tolerances": {
         "footprint_m": 1.6
+      }
+    },
+    "europe_cv90120_light_tank": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/cv90120/europe_cv90120_light_tank.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "cannon": "gun",
+        "HMG": "hmg"
+      },
+      "wreck": "europe_cv90120_light_tank_wreck"
+    },
+    "europe_cv90120_light_tank_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/cv90120/europe_cv90120_light_tank_wreck.glb",
+        "hull": "assets/source/roster/cv90120/europe_cv90120_light_tank_wreck_hull.glb",
+        "turret": "assets/source/roster/cv90120/europe_cv90120_light_tank_wreck_turret.glb",
+        "debris": "assets/source/roster/cv90120/europe_cv90120_light_tank_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        3.475,
+        1.65,
+        1.325
+      ],
+      "tolerances": {
+        "footprint_m": 1.6
+      }
+    },
+    "ah_64e_guardian": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/apache/ah_64e_guardian.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "chin": "gun"
+      },
+      "wreck": "ah_64e_guardian_wreck"
+    },
+    "ah_64e_guardian_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/apache/ah_64e_guardian_wreck.glb",
+        "debris": "assets/source/roster/apache/ah_64e_guardian_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        7.35,
+        2.615,
+        2.36
+      ],
+      "tolerances": {
+        "footprint_m": 1.5
+      }
+    },
+    "us_ch_47_chinook_ch_47f": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/chinook/us_ch_47_chinook_ch_47f.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "door": "hmg"
+      },
+      "wreck": "us_ch_47_chinook_ch_47f_wreck"
+    },
+    "us_ch_47_chinook_ch_47f_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/chinook/us_ch_47_chinook_ch_47f_wreck.glb",
+        "debris": "assets/source/roster/chinook/us_ch_47_chinook_ch_47f_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        8.137,
+        1.945,
+        2.713
+      ],
+      "tolerances": {
+        "footprint_m": 1.5
+      }
+    },
+    "europe_ch_47_chinook_hc6": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/chinook/europe_ch_47_chinook_hc6.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "door": "hmg"
+      },
+      "wreck": "europe_ch_47_chinook_hc6_wreck"
+    },
+    "europe_ch_47_chinook_hc6_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/chinook/europe_ch_47_chinook_hc6_wreck.glb",
+        "debris": "assets/source/roster/chinook/europe_ch_47_chinook_hc6_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        8.137,
+        1.945,
+        2.713
+      ],
+      "tolerances": {
+        "footprint_m": 1.5
+      }
+    },
+    "us_ah_1z_viper_attack_helicopter": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/h1/us_ah_1z_viper_attack_helicopter.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "chin": "gun"
+      },
+      "wreck": "us_ah_1z_viper_attack_helicopter_wreck"
+    },
+    "us_ah_1z_viper_attack_helicopter_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/h1/us_ah_1z_viper_attack_helicopter_wreck.glb",
+        "debris": "assets/source/roster/h1/us_ah_1z_viper_attack_helicopter_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        6.851,
+        2.066,
+        1.725
+      ],
+      "tolerances": {
+        "footprint_m": 1.5
+      }
+    },
+    "us_uh_1y_venom_utility_transport": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/h1/us_uh_1y_venom_utility_transport.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "door": "hmg"
+      },
+      "wreck": "us_uh_1y_venom_utility_transport_wreck"
+    },
+    "us_uh_1y_venom_utility_transport_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/h1/us_uh_1y_venom_utility_transport_wreck.glb",
+        "debris": "assets/source/roster/h1/us_uh_1y_venom_utility_transport_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        6.7,
+        1.45,
+        1.8
+      ],
+      "tolerances": {
+        "footprint_m": 1.5
+      }
+    },
+    "eastern_mi_28_havoc_mi_28nm": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/havoc/eastern_mi_28_havoc_mi_28nm.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "chin": "gun"
+      },
+      "wreck": "eastern_mi_28_havoc_mi_28nm_wreck"
+    },
+    "eastern_mi_28_havoc_mi_28nm_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/havoc/eastern_mi_28_havoc_mi_28nm_wreck.glb",
+        "debris": "assets/source/roster/havoc/eastern_mi_28_havoc_mi_28nm_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        8.536,
+        2.495,
+        2.355
+      ],
+      "tolerances": {
+        "footprint_m": 1.5
+      }
+    },
+    "eastern_mi_24_mi_35_hind_mi_35m": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/hind/eastern_mi_24_mi_35_hind_mi_35m.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "chin": "gun"
+      },
+      "wreck": "eastern_mi_24_mi_35_hind_mi_35m_wreck"
+    },
+    "eastern_mi_24_mi_35_hind_mi_35m_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/hind/eastern_mi_24_mi_35_hind_mi_35m_wreck.glb",
+        "debris": "assets/source/roster/hind/eastern_mi_24_mi_35_hind_mi_35m_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        8.75,
+        2.635,
+        1.95
+      ],
+      "tolerances": {
+        "footprint_m": 1.5
+      }
+    },
+    "eastern_mi_8_hip_mi_8amtsh": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/hip/eastern_mi_8_hip_mi_8amtsh.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "door": "hmg"
+      },
+      "wreck": "eastern_mi_8_hip_mi_8amtsh_wreck"
+    },
+    "eastern_mi_8_hip_mi_8amtsh_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/hip/eastern_mi_8_hip_mi_8amtsh_wreck.glb",
+        "debris": "assets/source/roster/hip/eastern_mi_8_hip_mi_8amtsh_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        9.127,
+        2.7,
+        2.2
+      ],
+      "tolerances": {
+        "footprint_m": 1.5
+      }
+    },
+    "eastern_ka_52_alligator_ka_52m": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/ka52/eastern_ka_52_alligator_ka_52m.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "eastern_ka_52_alligator_ka_52m_wreck"
+    },
+    "eastern_ka_52_alligator_ka_52m_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/ka52/eastern_ka_52_alligator_ka_52m_wreck.glb",
+        "debris": "assets/source/roster/ka52/eastern_ka_52_alligator_ka_52m_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        6.825,
+        3.65,
+        2.425
+      ],
+      "tolerances": {
+        "footprint_m": 1.6
+      }
+    },
+    "us_ah_6_mh_6_little_bird_ah_6m": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/little_bird/us_ah_6_mh_6_little_bird_ah_6m.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "us_ah_6_mh_6_little_bird_ah_6m_wreck"
+    },
+    "us_ah_6_mh_6_little_bird_ah_6m_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/little_bird/us_ah_6_mh_6_little_bird_ah_6m_wreck.glb",
+        "debris": "assets/source/roster/little_bird/us_ah_6_mh_6_little_bird_ah_6m_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        3.75,
+        1.64,
+        1.213
+      ],
+      "tolerances": {
+        "footprint_m": 1.5
+      }
+    },
+    "us_ah_6_mh_6_little_bird_mh_6m": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/little_bird/us_ah_6_mh_6_little_bird_mh_6m.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "door": "hmg"
+      },
+      "wreck": "us_ah_6_mh_6_little_bird_mh_6m_wreck"
+    },
+    "us_ah_6_mh_6_little_bird_mh_6m_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/little_bird/us_ah_6_mh_6_little_bird_mh_6m_wreck.glb",
+        "debris": "assets/source/roster/little_bird/us_ah_6_mh_6_little_bird_mh_6m_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        3.75,
+        1.475,
+        1.213
+      ],
+      "tolerances": {
+        "footprint_m": 1.5
+      }
+    },
+    "europe_ec665_tiger_had": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/tiger/europe_ec665_tiger_had.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "chin": "gun"
+      },
+      "wreck": "europe_ec665_tiger_had_wreck"
+    },
+    "europe_ec665_tiger_had_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/tiger/europe_ec665_tiger_had_wreck.glb",
+        "debris": "assets/source/roster/tiger/europe_ec665_tiger_had_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        7.04,
+        2.158,
+        1.75
+      ],
+      "tolerances": {
+        "footprint_m": 1.5
+      }
+    },
+    "europe_ec665_tiger_uht": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/tiger/europe_ec665_tiger_uht.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "europe_ec665_tiger_uht_wreck"
+    },
+    "europe_ec665_tiger_uht_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/tiger/europe_ec665_tiger_uht_wreck.glb",
+        "debris": "assets/source/roster/tiger/europe_ec665_tiger_uht_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        7.04,
+        2.226,
+        2.16
+      ],
+      "tolerances": {
+        "footprint_m": 1.5
+      }
+    },
+    "europe_nh90_tth": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/utility_helis/europe_nh90_tth.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "door": "hmg"
+      },
+      "wreck": "europe_nh90_tth_wreck"
+    },
+    "europe_nh90_tth_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/utility_helis/europe_nh90_tth_wreck.glb",
+        "debris": "assets/source/roster/utility_helis/europe_nh90_tth_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        8.285,
+        1.8,
+        2.0
+      ],
+      "tolerances": {
+        "footprint_m": 1.5
+      }
+    },
+    "europe_aw101_merlin_hc4": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/utility_helis/europe_aw101_merlin_hc4.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "door": "hmg"
+      },
+      "wreck": "europe_aw101_merlin_hc4_wreck"
+    },
+    "europe_aw101_merlin_hc4_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/utility_helis/europe_aw101_merlin_hc4_wreck.glb",
+        "debris": "assets/source/roster/utility_helis/europe_aw101_merlin_hc4_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        9.935,
+        2.2,
+        2.31
+      ],
+      "tolerances": {
+        "footprint_m": 1.5
+      }
+    },
+    "europe_aw159_wildcat_ah1": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/utility_helis/europe_aw159_wildcat_ah1.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "door": "hmg"
+      },
+      "wreck": "europe_aw159_wildcat_ah1_wreck"
+    },
+    "europe_aw159_wildcat_ah1_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/utility_helis/europe_aw159_wildcat_ah1_wreck.glb",
+        "debris": "assets/source/roster/utility_helis/europe_aw159_wildcat_ah1_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        6.525,
+        1.515,
+        1.7
+      ],
+      "tolerances": {
+        "footprint_m": 1.5
+      }
+    },
+    "eastern_z_10_attack_helicopter": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/z10/eastern_z_10_attack_helicopter.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "chin": "gun"
+      },
+      "wreck": "eastern_z_10_attack_helicopter_wreck"
+    },
+    "eastern_z_10_attack_helicopter_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/z10/eastern_z_10_attack_helicopter_wreck.glb",
+        "debris": "assets/source/roster/z10/eastern_z_10_attack_helicopter_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        7.088,
+        2.175,
+        1.75
+      ],
+      "tolerances": {
+        "footprint_m": 1.5
+      }
+    },
+    "us_uh_60_black_hawk_uh_60m": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/hawk/us_uh_60_black_hawk_uh_60m.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "door": "hmg"
+      },
+      "wreck": "us_uh_60_black_hawk_uh_60m_wreck"
+    },
+    "us_uh_60_black_hawk_uh_60m_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/hawk/us_uh_60_black_hawk_uh_60m_wreck.glb",
+        "debris": "assets/source/roster/hawk/us_uh_60_black_hawk_uh_60m_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        7.905,
+        2.19,
+        1.825
+      ],
+      "tolerances": {
+        "footprint_m": 1.5
+      }
+    },
+    "eastern_z_20_utility_transport": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/hawk/eastern_z_20_utility_transport.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "door": "hmg"
+      },
+      "wreck": "eastern_z_20_utility_transport_wreck"
+    },
+    "eastern_z_20_utility_transport_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/hawk/eastern_z_20_utility_transport_wreck.glb",
+        "debris": "assets/source/roster/hawk/eastern_z_20_utility_transport_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        7.975,
+        2.19,
+        1.875
+      ],
+      "tolerances": {
+        "footprint_m": 1.5
+      }
+    },
+    "europe_centauro_ii": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/centauro/europe_centauro_ii.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "cannon": "gun",
+        "RWS": "hmg"
+      },
+      "wreck": "europe_centauro_ii_wreck"
+    },
+    "europe_centauro_ii_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/centauro/europe_centauro_ii_wreck.glb",
+        "hull": "assets/source/roster/centauro/europe_centauro_ii_wreck_hull.glb",
+        "turret": "assets/source/roster/centauro/europe_centauro_ii_wreck_turret.glb",
+        "debris": "assets/source/roster/centauro/europe_centauro_ii_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        4.06,
+        1.58,
+        1.485
+      ],
+      "tolerances": {
+        "footprint_m": 1.4
       }
     },
     "eastern_t_72_t_72b3_2016": {
@@ -3850,6 +4621,396 @@
       "corpse_pose": {
         "clip": "death",
         "phase": 1
+      }
+    },
+    "europe_atgm_team_akeron_mp_active_a": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/europe_atgm_team_akeron_mp/active_a.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-launcher",
+      "tolerances": {
+        "muzzle_m": 0.2
+      },
+      "far_pose": {
+        "clip": "stand_aim",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "europe_atgm_team_akeron_mp_active_b": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/europe_atgm_team_akeron_mp/active_b.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-launcher",
+      "tolerances": {
+        "muzzle_m": 0.2
+      },
+      "far_pose": {
+        "clip": "stand_aim",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "europe_atgm_team_akeron_mp_active_c": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/europe_atgm_team_akeron_mp/active_c.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-launcher",
+      "tolerances": {
+        "muzzle_m": 0.2
+      },
+      "far_pose": {
+        "clip": "stand_aim",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "europe_atgm_team_akeron_mp_carried_a": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/europe_atgm_team_akeron_mp/carried_a.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "europe_atgm_team_akeron_mp_carried_b": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/europe_atgm_team_akeron_mp/carried_b.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "europe_atgm_team_akeron_mp_carried_c": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/europe_atgm_team_akeron_mp/carried_c.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "europe_atgm_team_akeron_mp_guard_a": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/europe_recon_patrol_light_patrol/active_a.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "europe_atgm_team_akeron_mp_guard_b": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/europe_recon_patrol_light_patrol/active_b.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "europe_atgm_team_akeron_mp_guard_c": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/europe_recon_patrol_light_patrol/active_c.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "fgm_148_javelin_team_active_a": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/fgm_148_javelin_team/active_a.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-launcher",
+      "tolerances": {
+        "muzzle_m": 0.2
+      },
+      "far_pose": {
+        "clip": "stand_aim",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      },
+      "factions": {
+        "europe": "fgm_148_javelin_team_europe_active_a"
+      }
+    },
+    "fgm_148_javelin_team_active_b": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/fgm_148_javelin_team/active_b.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-launcher",
+      "tolerances": {
+        "muzzle_m": 0.2
+      },
+      "far_pose": {
+        "clip": "stand_aim",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      },
+      "factions": {
+        "europe": "fgm_148_javelin_team_europe_active_b"
+      }
+    },
+    "fgm_148_javelin_team_active_c": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/fgm_148_javelin_team/active_c.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-launcher",
+      "tolerances": {
+        "muzzle_m": 0.2
+      },
+      "far_pose": {
+        "clip": "stand_aim",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      },
+      "factions": {
+        "europe": "fgm_148_javelin_team_europe_active_c"
+      }
+    },
+    "fgm_148_javelin_team_carried_a": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/fgm_148_javelin_team/carried_a.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      },
+      "factions": {
+        "europe": "fgm_148_javelin_team_europe_carried_a"
+      }
+    },
+    "fgm_148_javelin_team_carried_b": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/fgm_148_javelin_team/carried_b.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      },
+      "factions": {
+        "europe": "fgm_148_javelin_team_europe_carried_b"
+      }
+    },
+    "fgm_148_javelin_team_carried_c": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/fgm_148_javelin_team/carried_c.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      },
+      "factions": {
+        "europe": "fgm_148_javelin_team_europe_carried_c"
+      }
+    },
+    "fgm_148_javelin_team_europe_active_a": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/fgm_148_javelin_team/europe_active_a.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-launcher",
+      "tolerances": {
+        "muzzle_m": 0.2
+      },
+      "far_pose": {
+        "clip": "stand_aim",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "fgm_148_javelin_team_europe_active_b": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/fgm_148_javelin_team/europe_active_b.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-launcher",
+      "tolerances": {
+        "muzzle_m": 0.2
+      },
+      "far_pose": {
+        "clip": "stand_aim",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "fgm_148_javelin_team_europe_active_c": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/fgm_148_javelin_team/europe_active_c.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-launcher",
+      "tolerances": {
+        "muzzle_m": 0.2
+      },
+      "far_pose": {
+        "clip": "stand_aim",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "fgm_148_javelin_team_europe_carried_a": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/fgm_148_javelin_team/europe_carried_a.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "fgm_148_javelin_team_europe_carried_b": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/fgm_148_javelin_team/europe_carried_b.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "fgm_148_javelin_team_europe_carried_c": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/fgm_148_javelin_team/europe_carried_c.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "fgm_148_javelin_team_guard_a": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/us_army_scouts_light_patrol/active_a.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      },
+      "factions": {
+        "europe": "europe_recon_patrol_light_patrol_active_a"
+      }
+    },
+    "fgm_148_javelin_team_guard_b": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/us_army_scouts_light_patrol/active_b.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      },
+      "factions": {
+        "europe": "europe_recon_patrol_light_patrol_active_b"
+      }
+    },
+    "fgm_148_javelin_team_guard_c": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/us_army_scouts_light_patrol/active_c.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      },
+      "factions": {
+        "europe": "europe_recon_patrol_light_patrol_active_c"
       }
     },
     "us_force_recon_recon_patrol_active_a": {

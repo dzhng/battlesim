@@ -102,7 +102,9 @@
   display: inline-block;
   line-height: 1;
   padding: 4px 0 9px;
-  font: 500 36px "Barlow Condensed", sans-serif;
+  font:
+    500 36px "Barlow Condensed",
+    sans-serif;
   text-transform: uppercase;
   letter-spacing: 0.34em;
   margin-right: -0.34em;

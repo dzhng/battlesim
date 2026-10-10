@@ -6,16 +6,6 @@
   },
   "entries": [
     {
-      "id": "ah_64e_guardian",
-      "family": "ah_64_apache",
-      "category": "hel",
-      "model_status": "reference_built",
-      "source_family": "ah_64_apache",
-      "source_kind": "rotorcraft",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
-      "source_path": "assets/source/roster/disabled/ah_64e_guardian.glb"
-    },
-    {
       "id": "eastern_2s19_msta_s_2s19m2",
       "family": "2s19_msta_s",
       "category": "sup",
@@ -68,16 +58,6 @@
       "source_path": "assets/source/roster/bm_21_grad/eastern_bm_21_grad_bm_21_rocket_artillery.glb"
     },
     {
-      "id": "eastern_brm_brm_3k",
-      "family": "brm",
-      "category": "rec",
-      "model_status": "reference_built",
-      "source_family": "brm",
-      "source_kind": "ground_vehicle",
-      "disabled_reason": "Ground profile and model admission pending",
-      "source_path": "assets/source/roster/brm/eastern_brm_brm_3k.glb"
-    },
-    {
       "id": "eastern_buk_buk_m3_medium_range_air_defense",
       "family": "buk",
       "category": "sup",
@@ -108,16 +88,6 @@
       "source_path": "assets/source/roster/disabled/eastern_j_20_mighty_dragon_stealth_fighter.glb"
     },
     {
-      "id": "eastern_ka_52_alligator_ka_52m",
-      "family": "ka_52_alligator",
-      "category": "hel",
-      "model_status": "reference_built",
-      "source_family": "ka_52_alligator",
-      "source_kind": "rotorcraft",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
-      "source_path": "assets/source/roster/disabled/eastern_ka_52_alligator_ka_52m.glb"
-    },
-    {
       "id": "eastern_kamikaze_drone_anti_armor",
       "family": "kamikaze_drone",
       "category": "sup",
@@ -136,36 +106,6 @@
       "source_kind": "support",
       "disabled_reason": "Drone movement, sensing and mission mechanics deferred",
       "source_path": "assets/source/roster/kamikaze_drone/eastern_kamikaze_drone_anti_personnel.glb"
-    },
-    {
-      "id": "eastern_mi_24_mi_35_hind_mi_35m",
-      "family": "mi_24_mi_35_hind",
-      "category": "hel",
-      "model_status": "reference_built",
-      "source_family": "mi_24_mi_35_hind",
-      "source_kind": "rotorcraft",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
-      "source_path": "assets/source/roster/disabled/eastern_mi_24_mi_35_hind_mi_35m.glb"
-    },
-    {
-      "id": "eastern_mi_28_havoc_mi_28nm",
-      "family": "mi_28_havoc",
-      "category": "hel",
-      "model_status": "reference_built",
-      "source_family": "mi_28_havoc",
-      "source_kind": "rotorcraft",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
-      "source_path": "assets/source/roster/disabled/eastern_mi_28_havoc_mi_28nm.glb"
-    },
-    {
-      "id": "eastern_mi_8_hip_mi_8amtsh",
-      "family": "mi_8_hip",
-      "category": "hel",
-      "model_status": "reference_built",
-      "source_family": "mi_8_hip",
-      "source_kind": "rotorcraft",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
-      "source_path": "assets/source/roster/disabled/eastern_mi_8_hip_mi_8amtsh.glb"
     },
     {
       "id": "eastern_mig_29_fulcrum_mig_29smt",
@@ -288,87 +228,6 @@
       "source_path": "assets/source/roster/disabled/eastern_sukhoi_flanker_family_su_35s.glb"
     },
     {
-      "id": "eastern_t_14_armata_main_battle_tank",
-      "family": "t_14_armata",
-      "category": "veh",
-      "model_status": "reference_built",
-      "source_family": "t14",
-      "source_kind": "ground_vehicle",
-      "disabled_reason": "Ground profile and model admission pending",
-      "source_path": "assets/source/roster/t14/eastern_t_14_armata_main_battle_tank.glb"
-    },
-    {
-      "id": "eastern_t_15_armata_heavy_ifv",
-      "family": "t_15_armata",
-      "category": "veh",
-      "model_status": "reference_built",
-      "source_family": "t15",
-      "source_kind": "ground_vehicle",
-      "disabled_reason": "Ground profile and model admission pending",
-      "source_path": "assets/source/roster/t15/eastern_t_15_armata_heavy_ifv.glb"
-    },
-    {
-      "id": "eastern_type_15_ztq_15_light_tank",
-      "family": "type_15",
-      "category": "veh",
-      "model_status": "reference_built",
-      "source_family": "type15",
-      "source_kind": "ground_vehicle",
-      "disabled_reason": "Ground profile and model admission pending",
-      "source_path": "assets/source/roster/type15/eastern_type_15_ztq_15_light_tank.glb"
-    },
-    {
-      "id": "eastern_z_10_attack_helicopter",
-      "family": "z_10",
-      "category": "hel",
-      "model_status": "reference_built",
-      "source_family": "z_10",
-      "source_kind": "rotorcraft",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
-      "source_path": "assets/source/roster/disabled/eastern_z_10_attack_helicopter.glb"
-    },
-    {
-      "id": "eastern_z_20_utility_transport",
-      "family": "z_20",
-      "category": "hel",
-      "model_status": "reference_built",
-      "source_family": "z_20",
-      "source_kind": "rotorcraft",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
-      "source_path": "assets/source/roster/disabled/eastern_z_20_utility_transport.glb"
-    },
-    {
-      "id": "europe_atgm_team_akeron_mp",
-      "family": "atgm_team",
-      "category": "inf",
-      "model_status": "reference_built",
-      "source_family": "europe_atgm_team_akeron_mp",
-      "source_kind": "infantry",
-      "disabled_reason": "Ground profile and model admission pending",
-      "source_path": "assets/source/roster/infantry/europe_atgm_team_akeron_mp/active_a.glb",
-      "skeleton": "quaternius-ubc-launcher"
-    },
-    {
-      "id": "europe_aw101_merlin_hc4",
-      "family": "aw101_merlin",
-      "category": "hel",
-      "model_status": "reference_built",
-      "source_family": "aw101_merlin",
-      "source_kind": "rotorcraft",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
-      "source_path": "assets/source/roster/disabled/europe_aw101_merlin_hc4.glb"
-    },
-    {
-      "id": "europe_aw159_wildcat_ah1",
-      "family": "aw159_wildcat",
-      "category": "hel",
-      "model_status": "reference_built",
-      "source_family": "aw159_wildcat",
-      "source_kind": "rotorcraft",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
-      "source_path": "assets/source/roster/disabled/europe_aw159_wildcat_ah1.glb"
-    },
-    {
       "id": "europe_boxer_skyranger_30_gun_and_missile_air_defense",
       "family": "boxer_skyranger_30",
       "category": "sup",
@@ -387,66 +246,6 @@
       "source_kind": "support",
       "disabled_reason": "Artillery and indirect-support mechanics deferred",
       "source_path": "assets/source/roster/caesar/europe_caesar_88.glb"
-    },
-    {
-      "id": "europe_centauro_ii",
-      "family": "centauro_ii",
-      "category": "veh",
-      "model_status": "reference_built",
-      "source_family": "centauro",
-      "source_kind": "ground_vehicle",
-      "disabled_reason": "Ground profile and model admission pending",
-      "source_path": "assets/source/roster/disabled/europe_centauro_ii.glb"
-    },
-    {
-      "id": "europe_ch_47_chinook_hc6",
-      "family": "ch_47_chinook",
-      "category": "hel",
-      "model_status": "reference_built",
-      "source_family": "ch_47_chinook",
-      "source_kind": "rotorcraft",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
-      "source_path": "assets/source/roster/disabled/europe_ch_47_chinook_hc6.glb"
-    },
-    {
-      "id": "europe_cv90120_light_tank",
-      "family": "cv90120",
-      "category": "veh",
-      "model_status": "reference_built",
-      "source_family": "cv90120",
-      "source_kind": "ground_vehicle",
-      "disabled_reason": "Ground profile and model admission pending",
-      "source_path": "assets/source/roster/disabled/europe_cv90120_light_tank.glb"
-    },
-    {
-      "id": "europe_ebrc_jaguar_armed_reconnaissance_vehicle",
-      "family": "ebrc_jaguar",
-      "category": "rec",
-      "model_status": "reference_built",
-      "source_family": "jaguar",
-      "source_kind": "ground_vehicle",
-      "disabled_reason": "Ground profile and model admission pending",
-      "source_path": "assets/source/roster/jaguar/europe_ebrc_jaguar_armed_reconnaissance_vehicle.glb"
-    },
-    {
-      "id": "europe_ec665_tiger_had",
-      "family": "ec665_tiger",
-      "category": "hel",
-      "model_status": "reference_built",
-      "source_family": "ec665_tiger",
-      "source_kind": "rotorcraft",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
-      "source_path": "assets/source/roster/disabled/europe_ec665_tiger_had.glb"
-    },
-    {
-      "id": "europe_ec665_tiger_uht",
-      "family": "ec665_tiger",
-      "category": "hel",
-      "model_status": "reference_built",
-      "source_family": "ec665_tiger",
-      "source_kind": "rotorcraft",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
-      "source_path": "assets/source/roster/disabled/europe_ec665_tiger_uht.glb"
     },
     {
       "id": "europe_eurofighter_typhoon_tranche_3",
@@ -529,16 +328,6 @@
       "source_path": "assets/source/roster/nasams/europe_nasams_nasams_3.glb"
     },
     {
-      "id": "europe_nh90_tth",
-      "family": "nh90",
-      "category": "hel",
-      "model_status": "reference_built",
-      "source_family": "nh90",
-      "source_kind": "rotorcraft",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
-      "source_path": "assets/source/roster/disabled/europe_nh90_tth.glb"
-    },
-    {
       "id": "europe_pzh_2000_tracked_155_mm_howitzer",
       "family": "pzh_2000",
       "category": "sup",
@@ -619,17 +408,6 @@
       "source_path": "assets/source/roster/disabled/f_35a.glb"
     },
     {
-      "id": "fgm_148_javelin_team",
-      "family": "atgm_team",
-      "category": "inf",
-      "model_status": "reference_built",
-      "source_family": "fgm_148_javelin_team",
-      "source_kind": "infantry",
-      "disabled_reason": "Ground profile and model admission pending",
-      "source_path": "assets/source/roster/infantry/fgm_148_javelin_team/active_a.glb",
-      "skeleton": "quaternius-ubc-launcher"
-    },
-    {
       "id": "fim_92_stinger_team",
       "family": "air_defense_team",
       "category": "inf",
@@ -649,46 +427,6 @@
       "source_kind": "aircraft",
       "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
       "source_path": "assets/source/roster/disabled/us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed.glb"
-    },
-    {
-      "id": "us_ah_1z_viper_attack_helicopter",
-      "family": "ah_1z_viper",
-      "category": "hel",
-      "model_status": "reference_built",
-      "source_family": "ah_1z_viper",
-      "source_kind": "rotorcraft",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
-      "source_path": "assets/source/roster/disabled/us_ah_1z_viper_attack_helicopter.glb"
-    },
-    {
-      "id": "us_ah_6_mh_6_little_bird_ah_6m",
-      "family": "ah_6_mh_6_little_bird",
-      "category": "hel",
-      "model_status": "reference_built",
-      "source_family": "ah_6_mh_6_little_bird",
-      "source_kind": "rotorcraft",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
-      "source_path": "assets/source/roster/disabled/us_ah_6_mh_6_little_bird_ah_6m.glb"
-    },
-    {
-      "id": "us_ah_6_mh_6_little_bird_mh_6m",
-      "family": "ah_6_mh_6_little_bird",
-      "category": "hel",
-      "model_status": "reference_built",
-      "source_family": "ah_6_mh_6_little_bird",
-      "source_kind": "rotorcraft",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
-      "source_path": "assets/source/roster/disabled/us_ah_6_mh_6_little_bird_mh_6m.glb"
-    },
-    {
-      "id": "us_ch_47_chinook_ch_47f",
-      "family": "ch_47_chinook",
-      "category": "hel",
-      "model_status": "reference_built",
-      "source_family": "ch_47_chinook",
-      "source_kind": "rotorcraft",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
-      "source_path": "assets/source/roster/disabled/us_ch_47_chinook_ch_47f.glb"
     },
     {
       "id": "us_ea_18g_growler_electronic_warfare_aircraft",
@@ -781,16 +519,6 @@
       "source_path": "assets/source/roster/m109_paladin/us_m109_paladin_m109a7.glb"
     },
     {
-      "id": "us_m10_booker",
-      "family": "m10_booker",
-      "category": "veh",
-      "model_status": "reference_built",
-      "source_family": "m10",
-      "source_kind": "ground_vehicle",
-      "disabled_reason": "Ground profile and model admission pending",
-      "source_path": "assets/source/roster/disabled/us_m10_booker.glb"
-    },
-    {
       "id": "us_m1129_stryker_mortar_120_mm_mortar_carrier",
       "family": "m1129_stryker_mortar",
       "category": "sup",
@@ -819,16 +547,6 @@
       "source_kind": "support",
       "disabled_reason": "Artillery and indirect-support mechanics deferred",
       "source_path": "assets/source/roster/m142_himars/us_m142_himars_prsm.glb"
-    },
-    {
-      "id": "us_m1e3_abrams",
-      "family": "m1_abrams",
-      "category": "veh",
-      "model_status": "reference_built",
-      "source_family": "m1e3",
-      "source_kind": "ground_vehicle",
-      "disabled_reason": "Ground profile and model admission pending",
-      "source_path": "assets/source/roster/disabled/us_m1e3_abrams.glb"
     },
     {
       "id": "us_m270_mlrs_m270a2",
@@ -879,26 +597,6 @@
       "source_kind": "support",
       "disabled_reason": "Air-defense targeting and airborne targets deferred",
       "source_path": "assets/source/roster/stryker_m_shorad/us_stryker_m_shorad_gun_and_missile_air_defense_vehicle.glb"
-    },
-    {
-      "id": "us_uh_1y_venom_utility_transport",
-      "family": "uh_1y_venom",
-      "category": "hel",
-      "model_status": "reference_built",
-      "source_family": "uh_1y_venom",
-      "source_kind": "rotorcraft",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
-      "source_path": "assets/source/roster/disabled/us_uh_1y_venom_utility_transport.glb"
-    },
-    {
-      "id": "us_uh_60_black_hawk_uh_60m",
-      "family": "uh_60_black_hawk",
-      "category": "hel",
-      "model_status": "reference_built",
-      "source_family": "uh_60_black_hawk",
-      "source_kind": "rotorcraft",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
-      "source_path": "assets/source/roster/disabled/us_uh_60_black_hawk_uh_60m.glb"
     }
   ]
 }

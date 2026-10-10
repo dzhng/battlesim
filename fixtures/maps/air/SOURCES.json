@@ -1,0 +1,25 @@
+{
+  "identity": {
+    "kind": "authored",
+    "map_hash": "a95db7f407bd4c79c22c78dcec99270739e79c91cc4f57e27b2ad1be6ddc26ca",
+    "template_catalog_hash": "a7f1169ec5919f8e2203f349a3a01b984e4e427548128782104fe3b624d19067"
+  },
+  "catalogue": {
+    "library": "prototype-building-templates.json",
+    "template_ids": [
+      "china-apartment-point-20x20-7f",
+      "china-corner-shop-3f",
+      "china-home-12x9-2f",
+      "china-home-9x9-2f",
+      "china-tower-20f",
+      "china-townhouse-2f"
+    ]
+  },
+  "inputs": [
+    {
+      "kind": "supplied",
+      "label": "map.json, authored by hand for the helicopter labs",
+      "sha256": "a2a477ba568a395943d5659673724f97a0fbf68929515890b46451c724a8635e"
+    }
+  ]
+}

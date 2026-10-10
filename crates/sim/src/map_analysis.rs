@@ -171,8 +171,10 @@ pub fn admit_skirmish(
             Mobility::Foot { .. } => 0,
             Mobility::Tracked { .. } => 1,
             Mobility::Wheeled { .. } => 2,
+            // Aircraft need no route across the ground.
+            Mobility::Air { .. } => continue,
         };
-        let width = crate::units::mobility(unit, rules).half_width_m;
+        let width = ground(unit, rules).half_width_m;
         if representatives[class].is_none_or(|(old, _)| width > old) {
             representatives[class] = Some((width, kind));
         }
@@ -187,7 +189,7 @@ pub fn admit_skirmish(
         .collect();
     for &kind in &representatives {
         let unit = rules.catalog.get(kind);
-        let mobility = crate::units::mobility(unit, rules);
+        let mobility = ground(unit, rules);
         for entry in &sites.entries {
             crate::encounter::legality::stands(
                 q,
@@ -217,7 +219,7 @@ pub fn admit_skirmish(
             }
             let mut journeys = Vec::new();
             for &kind in &representatives {
-                let mobility = crate::units::mobility(rules.catalog.get(kind), rules);
+                let mobility = ground(rules.catalog.get(kind), rules);
                 for entry in &sites.entries {
                     let from = v2(entry.center[0], entry.center[1]);
                     let goal = v2(objective.center[0], objective.center[1]);
@@ -432,6 +434,11 @@ pub fn admit_skirmish(
         sites: admitted,
         journeys,
     })
+}
+
+/// A representative's ground mobility; representatives are ground movers.
+fn ground(unit: &contract::catalog::UnitType, rules: &Rules) -> crate::navigation::Mobility {
+    crate::units::ground_mobility(unit, rules).expect("a representative moves on the ground")
 }
 
 #[cfg(test)]

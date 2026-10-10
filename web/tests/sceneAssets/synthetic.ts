@@ -134,6 +134,22 @@ export const AUTHORITY: Authority = {
   collapse: { min_height_m: 2, height_fraction: 0.25, max_height_m: 6, max_floors: 6 },
 };
 
+/** `AUTHORITY` with a helicopter type too, `heli` (drawn by "heli", hull
+ *  [4, 0.8, 1.2], flying), which `heliGlb` fits: its own, so the synthetic
+ *  catalog's coverage checks need no helicopter art. */
+export const HELI_AUTHORITY: Authority = {
+  ...AUTHORITY,
+  units: new UnitCatalog({
+    ...AUTHORITY.units.view,
+    units: [
+      ...AUTHORITY.units.view.units,
+      hullType("heli", "heli", [4, 0.8, 1.2], {
+        air: { cruise_kmh: 1, turn_deg_s: 1, climb_mps: 1 },
+      }),
+    ],
+  }),
+};
+
 export const TOLERANCES: Tolerances = {
   ground_m: 0.01,
   soldier_height_m: 0.05,
@@ -594,6 +610,10 @@ export interface TankOptions {
   /** Draw reactive armour tiles, `era_L` and `era_R`, on the hull sides. */
   era?: boolean;
   turretX?: number; // turret pivot off the hull origin (breaks the arc)
+  /** The gun's own pitch limits, degrees (its node's `pitch_min_deg`/`pitch_max_deg`). */
+  gunPitchDeg?: [number, number];
+  /** How far the gun runs back at most, metres (its node's `recoil_max_m`). */
+  gunStrokeM?: number;
   hullHalfY?: number;
   omit?: string;
   muzzleUnderTurret?: boolean;
@@ -659,7 +679,10 @@ export function tankGlb(o: TankOptions = {}): Uint8Array {
   // the finest two, and the HMG's barrel and the stowage in the finest alone.
   const muzzle = empty("muzzle", [reach - 1, 0, 0]);
   const barrel = part("barrel", [0, -0.08, -0.08], [reach - 1, 0.08, 0.08], 3);
-  const gun = empty("gun", [1 - turretX, 0, gunZ], [barrel, o.muzzleUnderTurret ? -1 : muzzle]);
+  const gun = empty("gun", [1 - turretX, 0, gunZ], [barrel, o.muzzleUnderTurret ? -1 : muzzle], {
+    ...(o.gunPitchDeg && { pitch_min_deg: o.gunPitchDeg[0], pitch_max_deg: o.gunPitchDeg[1] }),
+    ...(o.gunStrokeM !== undefined && { recoil_max_m: o.gunStrokeM }),
+  });
   // The HMG's ring on the turret roof, its gun 0.1 m up and forward.
   const [hx, hy, hz] = roofGun.muzzle_m!;
   const hmgMuzzle = empty("hmg_muzzle", [hx - 0.1, hy, hz - 0.1]);
@@ -1107,6 +1130,48 @@ export function skidGlb(): Uint8Array {
     return tieredPart(b, `rail_${s}`, gBox(b, [-2, y - 0.05, 0], [2, y + 0.05, 0.1]), LODS.length);
   });
   b.roots(b.node({ name: "heli", children: [body, ...rails] }));
+  return b.glb();
+}
+
+/** The synthetic helicopter's main rotor and tail rotor radii (blade tip
+ *  from the hub, measured as the renderer does: the box corner's reach). */
+export const HELI_ROTORS = { main: Math.hypot(5, 0.15), tail: Math.hypot(0.7, 0.08) };
+
+/** A helicopter in engine space, fitting the synthetic `heli` type's hull
+ *  [4, 0.8, 1.2]: a fuselage block on skid rails, a mast to the rotor head
+ *  at z 2.4, and its rotors, each a `rotor_*` node turning about its local
+ *  Z: the main rotor's blade 10 m tip to tip along +X at rest (far past the
+ *  hull), the tail rotor's 1.4 m on the boom's left, turned on its side. */
+export function heliGlb(): Uint8Array {
+  const b = new GltfBuilder();
+  // Boxes per tier, 12 triangles each: 6, 4, 3, 2.
+  const part = (name: string, min: Vec3, max: Vec3, tiers = LODS.length) =>
+    tieredPart(b, name, gBox(b, min, max), tiers);
+  const main = b.node({
+    name: "rotor_main",
+    t: g3([0.5, 0, 2.4]),
+    children: [part("blade_main_0", [-5, -0.15, -0.03], [5, 0.15, 0.03])],
+  });
+  const tail = b.node({
+    name: "rotor_tail",
+    t: g3([-3.8, 0.9, 1.6]),
+    r: qx(-90),
+    children: [part("blade_tail_0", [-0.7, -0.08, -0.02], [0.7, 0.08, 0.02], 3)],
+  });
+  const hull = b.node({
+    name: "hull",
+    children: [
+      part("fuselage", [-4, -0.8, 0.3], [4, 0.8, 2.2]),
+      part("mast", [0.4, -0.1, 2.2], [0.6, 0.1, 2.4], 2),
+      ...["L", "R"].map((s, k) => {
+        const y = k === 0 ? 0.75 : -0.75;
+        return part(`rail_${s}`, [-2, y - 0.05, 0], [2, y + 0.05, 0.1], 1);
+      }),
+      main,
+      tail,
+    ],
+  });
+  b.roots(b.node({ name: "heli", children: [hull] }));
   return b.glb();
 }
 

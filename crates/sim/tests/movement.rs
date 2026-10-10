@@ -111,7 +111,7 @@ fn idle_soldiers_yield_to_nearby_traffic_and_far_squads_keep_their_centroid() {
     let mut before_contact = true;
     for _ in 0..240 {
         battle.step();
-        let hull = battle.unit(UnitId(0)).unwrap().hull_box().unwrap();
+        let hull = battle.unit(UnitId(0)).unwrap().ground_footprint().unwrap();
         before_contact &= near
             .iter()
             .all(|p| !hull.contains(p.xy(), setup.rules.physics.soldier_radius_m));
@@ -187,8 +187,8 @@ fn a_truck_can_park_in_clear_space_behind_a_stationary_tank() {
     let mut orders = Orders { seq: 0 };
     orders.go(&mut b, &[0], [60.0, 60.0], 1, RoutePolicy::Shortest, false);
     let end = run(&mut b, &[0], 1800, |b| {
-        let truck = b.unit(UnitId(0)).unwrap().hull_box().unwrap();
-        let tank = b.unit(UnitId(1)).unwrap().hull_box().unwrap();
+        let truck = b.unit(UnitId(0)).unwrap().ground_footprint().unwrap();
+        let tank = b.unit(UnitId(1)).unwrap().ground_footprint().unwrap();
         assert!(!truck.overlaps(&tank), "truck stays clear of the tank");
     });
     assert!(
@@ -252,10 +252,10 @@ fn a_group_moves_a_truck_surrounded_by_its_other_members() {
     );
     let end = run(&mut b, &[0, 1, 2, 3, 4], 1800, |b| {
         for (i, id) in ids.iter().enumerate() {
-            let hull = b.unit(*id).unwrap().hull_box().unwrap();
+            let hull = b.unit(*id).unwrap().ground_footprint().unwrap();
             for other in &ids[i + 1..] {
                 assert!(
-                    !hull.overlaps(&b.unit(*other).unwrap().hull_box().unwrap()),
+                    !hull.overlaps(&b.unit(*other).unwrap().ground_footprint().unwrap()),
                     "group hulls stay separate at tick {}",
                     b.tick()
                 );
@@ -510,7 +510,7 @@ fn a_tank_nosed_up_to_a_wall_backs_off_to_turn_and_drives_round_it() {
     );
     let limit = 60 * b.rules().tick_hz;
     let ticks = run(&mut b, &[0], limit, |b| {
-        let hull = b.unit(UnitId(0)).unwrap().hull_box().unwrap();
+        let hull = b.unit(UnitId(0)).unwrap().ground_footprint().unwrap();
         assert!(
             !b.world()
                 .props()
@@ -646,8 +646,8 @@ fn head_on_vehicles_pass_without_overlapping() {
     o.go(&mut b, &[1], [20.0, 25.0], 2, RoutePolicy::Shortest, false);
     let end = run(&mut b, &[0, 1], 3000, |b| {
         let (a, c) = (own(b, 0), own(b, 1));
-        let first = b.unit(UnitId(0)).unwrap().hull_box().unwrap();
-        let second = b.unit(UnitId(1)).unwrap().hull_box().unwrap();
+        let first = b.unit(UnitId(0)).unwrap().ground_footprint().unwrap();
+        let second = b.unit(UnitId(1)).unwrap().ground_footprint().unwrap();
         assert!(
             !first.overlaps(&second),
             "hulls overlapping at tick {}",
@@ -682,7 +682,7 @@ fn a_squad_walks_around_a_parked_tank() {
     let mut b = Battle::new(&scenario(units, serde_json::json!([])), 1);
     let mut o = Orders { seq: 0 };
     o.go(&mut b, &[1], [140.0, 25.0], 1, RoutePolicy::Shortest, false);
-    let hull = b.unit(UnitId(0)).unwrap().hull_box().unwrap();
+    let hull = b.unit(UnitId(0)).unwrap().ground_footprint().unwrap();
     let radius = common::physics("soldier_radius_m");
     let end = run(&mut b, &[1], 3000, |b| {
         // No soldier's body ever enters the tank's hull.

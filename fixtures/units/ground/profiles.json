@@ -539,6 +539,42 @@
         }
       ]
     },
+    "roster_javelin_gunner": {
+      "abstract": true,
+      "extends": "roster_at_rifleman",
+      "name": "Javelin gunner",
+      "description": "One shoulder-fired top-attack launcher with ordinary guards.",
+      "mounts": [
+        {
+          "id": "launcher",
+          "name": "Javelin",
+          "weapons": [
+            "javelin"
+          ],
+          "special": true,
+          "operator_appearance": {
+            "active_pose": {
+              "clip": "stand_aim",
+              "phase": 0
+            }
+          }
+        }
+      ]
+    },
+    "roster_akeron_gunner": {
+      "abstract": true,
+      "extends": "roster_javelin_gunner",
+      "name": "Akeron gunner",
+      "mounts": [
+        {
+          "id": "launcher",
+          "name": "Akeron MP",
+          "weapons": [
+            "akeron_mp"
+          ]
+        }
+      ]
+    },
     "roster_rpg_light_gunner": {
       "abstract": true,
       "extends": "roster_at_rifleman",

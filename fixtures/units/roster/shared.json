@@ -5,7 +5,9 @@
       "description": "AH-64E Guardian",
       "faction": "us",
       "family": "ah_64_apache",
-      "roles": [],
+      "roles": [
+        "helicopter"
+      ],
       "cost": 360,
       "roster": {
         "factions": [
@@ -16,20 +18,74 @@
         "variant": "AH-64E Guardian",
         "family_name": "AH-64 Apache"
       },
-      "planned": {
-        "reason": "Helicopter movement, combat and transport mechanics deferred",
-        "profile": "attack-helicopter",
-        "weapons": [
-          {
-            "name": "Chain Gun",
-            "icon": "autocannon"
-          },
-          {
-            "name": "AT Missile",
-            "icon": "atgm"
-          }
-        ]
-      }
+      "extends": "roster_profile_attack_helicopter",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            7.35,
+            2.615,
+            2.36
+          ],
+          "eye_m": 1.9
+        }
+      },
+      "mounts": [
+        {
+          "id": "chin",
+          "name": "Chain Gun",
+          "weapons": [
+            "autocannon"
+          ],
+          "turret": true,
+          "pivot_m": [
+            5.1,
+            0,
+            0.78
+          ],
+          "muzzle_m": [
+            1.44,
+            0,
+            -0.06
+          ]
+        },
+        {
+          "id": "rockets",
+          "name": "Rockets",
+          "weapons": [
+            "rocket_pod"
+          ],
+          "turret": false,
+          "pivot_m": [
+            1.505,
+            1.35,
+            1.32
+          ],
+          "muzzle_m": [
+            0.8,
+            0,
+            0
+          ]
+        },
+        {
+          "id": "missiles",
+          "name": "AT Missile",
+          "weapons": [
+            "heli_atgm"
+          ],
+          "turret": false,
+          "pivot_m": [
+            1.505,
+            -2.15,
+            1.39
+          ],
+          "muzzle_m": [
+            0.82,
+            0,
+            0
+          ]
+        }
+      ],
+      "appearance": "ah_64e_guardian"
     },
     "assault_squad": {
       "name": "Assault Squad",
@@ -137,10 +193,12 @@
     },
     "fgm_148_javelin_team": {
       "name": "Javelin Team",
-      "description": "FGM-148 Javelin",
+      "description": "FGM-148 Javelin; top attack, the gunner must keep sight",
       "faction": "us",
       "family": "atgm_team",
-      "roles": [],
+      "roles": [
+        "at"
+      ],
       "cost": 150,
       "roster": {
         "factions": [
@@ -151,15 +209,15 @@
         "variant": "FGM-148 Javelin",
         "family_name": "ATGM Team"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "at-team",
-        "weapons": [
-          {
-            "name": "Javelin",
-            "icon": "atgm"
-          }
-        ]
+      "extends": "roster_profile_at_team",
+      "body": {
+        "squad": {
+          "slots": [
+            "fgm_148_javelin_team__roster_javelin_gunner",
+            "fgm_148_javelin_team__at_rifleman",
+            "fgm_148_javelin_team__at_rifleman"
+          ]
+        }
       }
     },
     "fim_92_stinger_team": {

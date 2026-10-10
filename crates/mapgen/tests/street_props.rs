@@ -280,18 +280,17 @@ fn compiled(
     .map
 }
 
-/// The hulls of [`rules`] (the test tank, truck and jeep, and a hull
-/// at each drive's limits) as movers, the widest first.
+/// The ground hulls of [`rules`] (the test tank, truck and jeep, and a hull
+/// at each drive's limits) as movers, the widest first. An aircraft has a
+/// hull but no ground mobility, and drives no street.
 fn vehicles(rules: &Rules) -> Vec<(String, Mobility)> {
     let catalog = &rules.catalog;
     let mut hulls: Vec<(String, Mobility)> = catalog
         .indices()
         .filter(|unit| catalog.get(*unit).hull().is_some())
-        .map(|unit| {
-            (
-                catalog.id(unit).to_string(),
-                sim::units::mobility(catalog.get(unit), rules),
-            )
+        .filter_map(|unit| {
+            let mobility = sim::units::ground_mobility(catalog.get(unit), rules)?;
+            Some((catalog.id(unit).to_string(), mobility))
         })
         .collect();
     hulls.sort_by(|a, b| b.1.half_width_m.total_cmp(&a.1.half_width_m));
@@ -2623,7 +2622,7 @@ fn routes_survive_the_furniture_on_every_type_and_size_of_map() {
         .filter(|unit| unit.hull().is_none())
         .max_by_key(|unit| unit.squad_size())
         .unwrap();
-    let on_foot = sim::units::mobility(squad, &rules);
+    let on_foot = sim::units::ground_mobility(squad, &rules).unwrap();
     let hull_way = mapgen::street_props::hull_way(&rules.catalog, &presets);
     let cells: Vec<(MapType, MapSize)> = MapType::ALL
         .into_iter()

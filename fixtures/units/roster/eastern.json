@@ -371,10 +371,12 @@
     },
     "eastern_brm_brm_3k": {
       "name": "BRM-3K",
-      "description": "BRM-3K",
+      "description": "BRM-3K Rys tracked reconnaissance vehicle; 30 mm autocannon",
       "faction": "eastern",
       "family": "brm",
-      "roles": [],
+      "roles": [
+        "recon"
+      ],
       "cost": 180,
       "roster": {
         "factions": [
@@ -384,15 +386,64 @@
         "variant": "BRM-3K",
         "family_name": "BRM"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "tracked-recon",
-        "weapons": [
-          {
-            "name": "Autocannon",
-            "icon": "autocannon"
-          }
-        ]
+      "extends": "roster_profile_tracked_recon",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.57,
+            1.6,
+            1.2
+          ],
+          "eye_m": 2.3,
+          "hp": 90,
+          "armor": {
+            "front": 75,
+            "side": 40,
+            "rear": 25,
+            "roof": 20,
+            "ricochet": {
+              "front": 0.1,
+              "side": 0.1,
+              "rear": 0.05,
+              "roof": 0.15
+            }
+          },
+          "weight_class": "medium",
+          "push_class": "medium",
+          "wreck": "medium_wreck"
+        }
+      },
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 28,
+          "road_kmh": 65,
+          "turn_deg_s": 45,
+          "reverse_fraction": 0.4
+        }
+      },
+      "mounts": [
+        {
+          "id": "autocannon",
+          "name": "Autocannon",
+          "weapons": [
+            "autocannon"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            1.56
+          ],
+          "muzzle_m": [
+            2.999,
+            0,
+            0.432
+          ]
+        }
+      ],
+      "appearance": "eastern_brm_brm_3k",
+      "sensors": {
+        "on": "autocannon"
       }
     },
     "eastern_btr_btr_82a": {
@@ -574,7 +625,9 @@
       "description": "Ka-52M",
       "faction": "eastern",
       "family": "ka_52_alligator",
-      "roles": [],
+      "roles": [
+        "helicopter"
+      ],
       "cost": 360,
       "roster": {
         "factions": [
@@ -584,20 +637,56 @@
         "variant": "Ka-52M",
         "family_name": "Ka-52 Alligator"
       },
-      "planned": {
-        "reason": "Helicopter movement, combat and transport mechanics deferred",
-        "profile": "attack-helicopter",
-        "weapons": [
-          {
-            "name": "Chain Gun",
-            "icon": "autocannon"
-          },
-          {
-            "name": "AT Missile",
-            "icon": "atgm"
-          }
-        ]
-      }
+      "extends": "roster_profile_attack_helicopter",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            6.825,
+            3.65,
+            2.425
+          ],
+          "eye_m": 2.2
+        }
+      },
+      "mounts": [
+        {
+          "id": "cannon",
+          "name": "Chain Gun",
+          "weapons": [
+            "autocannon"
+          ],
+          "turret": false,
+          "pivot_m": [
+            2.575,
+            -1.05,
+            1.15
+          ],
+          "muzzle_m": [
+            2.0,
+            0,
+            0
+          ]
+        },
+        {
+          "id": "missiles",
+          "name": "AT Missile",
+          "weapons": [
+            "heli_atgm"
+          ],
+          "turret": false,
+          "pivot_m": [
+            0.925,
+            -2.4,
+            1.45
+          ],
+          "muzzle_m": [
+            1.0,
+            0,
+            0
+          ]
+        }
+      ],
+      "appearance": "eastern_ka_52_alligator_ka_52m"
     },
     "eastern_kamikaze_drone_anti_armor": {
       "name": "Kamikaze Drone AT",
@@ -687,7 +776,9 @@
       "description": "Mi-35M",
       "faction": "eastern",
       "family": "mi_24_mi_35_hind",
-      "roles": [],
+      "roles": [
+        "helicopter"
+      ],
       "cost": 270,
       "roster": {
         "factions": [
@@ -697,27 +788,65 @@
         "variant": "Mi-35M",
         "family_name": "Mi-24 Hind"
       },
-      "planned": {
-        "reason": "Helicopter movement, combat and transport mechanics deferred",
-        "profile": "armored-helicopter",
-        "weapons": [
-          {
-            "name": "Chain Gun",
-            "icon": "autocannon"
-          },
-          {
-            "name": "AT Missile",
-            "icon": "atgm"
-          }
-        ]
-      }
+      "extends": "roster_profile_armoured_helicopter",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            8.75,
+            2.635,
+            1.95
+          ],
+          "eye_m": 1.9
+        }
+      },
+      "mounts": [
+        {
+          "id": "chin",
+          "name": "Chain Gun",
+          "weapons": [
+            "autocannon"
+          ],
+          "turret": true,
+          "pivot_m": [
+            8.0,
+            -0.3,
+            0.7
+          ],
+          "muzzle_m": [
+            0.7,
+            0,
+            -0.05
+          ]
+        },
+        {
+          "id": "missiles",
+          "name": "AT Missile",
+          "weapons": [
+            "heli_atgm"
+          ],
+          "turret": false,
+          "pivot_m": [
+            0.7,
+            -2.46,
+            1.61
+          ],
+          "muzzle_m": [
+            0.9,
+            0,
+            0
+          ]
+        }
+      ],
+      "appearance": "eastern_mi_24_mi_35_hind_mi_35m"
     },
     "eastern_mi_28_havoc_mi_28nm": {
       "name": "Mi-28NM",
       "description": "Mi-28NM",
       "faction": "eastern",
       "family": "mi_28_havoc",
-      "roles": [],
+      "roles": [
+        "helicopter"
+      ],
       "cost": 330,
       "roster": {
         "factions": [
@@ -727,27 +856,65 @@
         "variant": "Mi-28NM",
         "family_name": "Mi-28 Havoc"
       },
-      "planned": {
-        "reason": "Helicopter movement, combat and transport mechanics deferred",
-        "profile": "armored-helicopter",
-        "weapons": [
-          {
-            "name": "Chain Gun",
-            "icon": "autocannon"
-          },
-          {
-            "name": "AT Missile",
-            "icon": "atgm"
-          }
-        ]
-      }
+      "extends": "roster_profile_armoured_helicopter",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            8.536,
+            2.495,
+            2.355
+          ],
+          "eye_m": 2.0
+        }
+      },
+      "mounts": [
+        {
+          "id": "chin",
+          "name": "Chain Gun",
+          "weapons": [
+            "autocannon"
+          ],
+          "turret": true,
+          "pivot_m": [
+            6.664,
+            0,
+            0.72
+          ],
+          "muzzle_m": [
+            1.7,
+            0,
+            -0.1
+          ]
+        },
+        {
+          "id": "missiles",
+          "name": "AT Missile",
+          "weapons": [
+            "heli_atgm"
+          ],
+          "turret": false,
+          "pivot_m": [
+            1.214,
+            -2.01,
+            1.61
+          ],
+          "muzzle_m": [
+            0.9,
+            0,
+            0
+          ]
+        }
+      ],
+      "appearance": "eastern_mi_28_havoc_mi_28nm"
     },
     "eastern_mi_8_hip_mi_8amtsh": {
       "name": "Mi-8AMTSh",
       "description": "Mi-8AMTSh",
       "faction": "eastern",
       "family": "mi_8_hip",
-      "roles": [],
+      "roles": [
+        "helicopter"
+      ],
       "cost": 170,
       "roster": {
         "factions": [
@@ -757,16 +924,38 @@
         "variant": "Mi-8AMTSh",
         "family_name": "Mi-8 Hip"
       },
-      "planned": {
-        "reason": "Helicopter movement, combat and transport mechanics deferred",
-        "profile": "utility-helicopter",
-        "weapons": [
-          {
-            "name": "HMG",
-            "icon": "hmg"
-          }
-        ]
-      }
+      "extends": "roster_profile_utility_helicopter",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            9.127,
+            2.7,
+            2.2
+          ],
+          "eye_m": 2.0
+        }
+      },
+      "mounts": [
+        {
+          "id": "door",
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            5.647,
+            1.3,
+            1.65
+          ],
+          "muzzle_m": [
+            1.15,
+            0,
+            0
+          ]
+        }
+      ],
+      "appearance": "eastern_mi_8_hip_mi_8amtsh"
     },
     "eastern_mig_29_fulcrum_mig_29smt": {
       "name": "MiG-29SMT",
@@ -1243,7 +1432,9 @@
       "description": "Main battle tank",
       "faction": "eastern",
       "family": "t_14_armata",
-      "roles": [],
+      "roles": [
+        "mbt"
+      ],
       "cost": 440,
       "roster": {
         "factions": [
@@ -1253,19 +1444,84 @@
         "variant": "Main battle tank",
         "family_name": "T-14 Armata"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "advanced-mbt",
-        "weapons": [
-          {
-            "name": "Main Gun",
-            "icon": "ap_shell"
+      "extends": "roster_profile_advanced_mbt",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            4.35,
+            1.75,
+            1.65
+          ],
+          "eye_m": 3.1,
+          "hp": 135,
+          "armor": {
+            "front": 260,
+            "side": 130,
+            "rear": 70,
+            "roof": 45,
+            "ricochet": {
+              "front": 0.5,
+              "side": 0.35,
+              "rear": 0.2,
+              "roof": 0.6
+            }
           },
-          {
-            "name": "HMG",
-            "icon": "hmg"
-          }
-        ]
+          "weight_class": "heavy",
+          "push_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 28,
+          "road_kmh": 65,
+          "turn_deg_s": 45,
+          "reverse_fraction": 0.4
+        }
+      },
+      "mounts": [
+        {
+          "id": "cannon",
+          "name": "Main Gun",
+          "weapons": [
+            "advanced_tank_ap",
+            "advanced_tank_he"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            1.98
+          ],
+          "muzzle_m": [
+            5.36,
+            0,
+            0.594
+          ]
+        },
+        {
+          "id": "HMG",
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            -0.25,
+            -0.58,
+            3.102
+          ],
+          "muzzle_m": [
+            1.43,
+            0,
+            0.32
+          ],
+          "on": "cannon"
+        }
+      ],
+      "appearance": "eastern_t_14_armata_main_battle_tank",
+      "sensors": {
+        "on": "cannon"
       }
     },
     "eastern_t_15_armata_heavy_ifv": {
@@ -1273,7 +1529,9 @@
       "description": "Heavy IFV; ground combat platform, passenger carriage not implemented",
       "faction": "eastern",
       "family": "t_15_armata",
-      "roles": [],
+      "roles": [
+        "mbt"
+      ],
       "cost": 300,
       "roster": {
         "factions": [
@@ -1283,19 +1541,83 @@
         "variant": "Heavy IFV",
         "family_name": "T-15 Armata"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "heavy-ifv",
-        "weapons": [
-          {
-            "name": "Autocannon",
-            "icon": "autocannon"
+      "extends": "roster_profile_heavy_ifv",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            4.75,
+            1.75,
+            1.6
+          ],
+          "eye_m": 3.2,
+          "hp": 120,
+          "armor": {
+            "front": 130,
+            "side": 75,
+            "rear": 40,
+            "roof": 30,
+            "ricochet": {
+              "front": 0.5,
+              "side": 0.35,
+              "rear": 0.2,
+              "roof": 0.6
+            }
           },
-          {
-            "name": "Kornet",
-            "icon": "atgm"
-          }
-        ]
+          "weight_class": "heavy",
+          "push_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 25,
+          "road_kmh": 60,
+          "turn_deg_s": 45,
+          "reverse_fraction": 0.4
+        }
+      },
+      "mounts": [
+        {
+          "id": "autocannon",
+          "name": "Autocannon",
+          "weapons": [
+            "autocannon"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            2.22
+          ],
+          "muzzle_m": [
+            2.94,
+            0,
+            0.504
+          ]
+        },
+        {
+          "id": "launcher",
+          "name": "Kornet",
+          "weapons": [
+            "kornet"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            1.3,
+            2.696
+          ],
+          "muzzle_m": [
+            1.05,
+            0,
+            0
+          ],
+          "on": "autocannon"
+        }
+      ],
+      "appearance": "eastern_t_15_armata_heavy_ifv",
+      "sensors": {
+        "on": "autocannon"
       }
     },
     "eastern_t_72_t_72b3_2016": {
@@ -1696,7 +2018,9 @@
       "description": "ZTQ-15 light tank",
       "faction": "eastern",
       "family": "type_15",
-      "roles": [],
+      "roles": [
+        "mbt"
+      ],
       "cost": 230,
       "roster": {
         "factions": [
@@ -1706,19 +2030,84 @@
         "variant": "ZTQ-15 light tank",
         "family_name": "Type 15"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "light-tank",
-        "weapons": [
-          {
-            "name": "Main Gun",
-            "icon": "ap_shell"
+      "extends": "roster_profile_light_tank",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.65,
+            1.675,
+            1.25
+          ],
+          "eye_m": 2.44,
+          "hp": 100,
+          "armor": {
+            "front": 110,
+            "side": 60,
+            "rear": 35,
+            "roof": 25,
+            "ricochet": {
+              "front": 0.3,
+              "side": 0.2,
+              "rear": 0.1,
+              "roof": 0.35
+            }
           },
-          {
-            "name": "HMG",
-            "icon": "hmg"
-          }
-        ]
+          "weight_class": "medium",
+          "push_class": "medium",
+          "wreck": "medium_wreck"
+        }
+      },
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 30,
+          "road_kmh": 70,
+          "turn_deg_s": 50,
+          "reverse_fraction": 0.4
+        }
+      },
+      "mounts": [
+        {
+          "id": "cannon",
+          "name": "Main Gun",
+          "weapons": [
+            "light_tank_ap",
+            "light_tank_he"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            1.68
+          ],
+          "muzzle_m": [
+            5.36,
+            0,
+            0.504
+          ]
+        },
+        {
+          "id": "HMG",
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            -0.25,
+            -0.58,
+            2.44
+          ],
+          "muzzle_m": [
+            1.43,
+            0,
+            0.32
+          ],
+          "on": "cannon"
+        }
+      ],
+      "appearance": "eastern_type_15_ztq_15_light_tank",
+      "sensors": {
+        "on": "cannon"
       }
     },
     "eastern_type_99_ztz_99a": {
@@ -1894,7 +2283,9 @@
       "description": "Attack helicopter",
       "faction": "eastern",
       "family": "z_10",
-      "roles": [],
+      "roles": [
+        "helicopter"
+      ],
       "cost": 300,
       "roster": {
         "factions": [
@@ -1904,27 +2295,65 @@
         "variant": "Attack helicopter",
         "family_name": "Z-10"
       },
-      "planned": {
-        "reason": "Helicopter movement, combat and transport mechanics deferred",
-        "profile": "attack-helicopter",
-        "weapons": [
-          {
-            "name": "Chain Gun",
-            "icon": "autocannon"
-          },
-          {
-            "name": "AT Missile",
-            "icon": "atgm"
-          }
-        ]
-      }
+      "extends": "roster_profile_attack_helicopter",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            7.088,
+            2.175,
+            1.75
+          ],
+          "eye_m": 1.95
+        }
+      },
+      "mounts": [
+        {
+          "id": "chin",
+          "name": "Chain Gun",
+          "weapons": [
+            "autocannon"
+          ],
+          "turret": true,
+          "pivot_m": [
+            5.592,
+            0,
+            0.66
+          ],
+          "muzzle_m": [
+            1.2,
+            0,
+            -0.08
+          ]
+        },
+        {
+          "id": "missiles",
+          "name": "AT Missile",
+          "weapons": [
+            "heli_atgm"
+          ],
+          "turret": false,
+          "pivot_m": [
+            1.092,
+            -2.0,
+            1.32
+          ],
+          "muzzle_m": [
+            0.85,
+            0,
+            0
+          ]
+        }
+      ],
+      "appearance": "eastern_z_10_attack_helicopter"
     },
     "eastern_z_20_utility_transport": {
       "name": "Z-20",
       "description": "Utility transport",
       "faction": "eastern",
       "family": "z_20",
-      "roles": [],
+      "roles": [
+        "helicopter"
+      ],
       "cost": 180,
       "roster": {
         "factions": [
@@ -1934,16 +2363,38 @@
         "variant": "Utility transport",
         "family_name": "Z-20"
       },
-      "planned": {
-        "reason": "Helicopter movement, combat and transport mechanics deferred",
-        "profile": "utility-helicopter",
-        "weapons": [
-          {
-            "name": "HMG",
-            "icon": "hmg"
-          }
-        ]
-      }
+      "extends": "roster_profile_utility_helicopter",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            7.975,
+            2.19,
+            1.875
+          ],
+          "eye_m": 1.8
+        }
+      },
+      "mounts": [
+        {
+          "id": "door",
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            2.025,
+            1.2,
+            1.5
+          ],
+          "muzzle_m": [
+            1.1,
+            0,
+            0
+          ]
+        }
+      ],
+      "appearance": "eastern_z_20_utility_transport"
     },
     "eastern_zbl_08_wheeled_ifv": {
       "name": "ZBL-08",

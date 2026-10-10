@@ -1,4 +1,4 @@
-"""Z-10, from assets/references/z_10/. A disabled card.
+"""Z-10, from assets/references/z_10/.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/z10.py -- [--wreck]
 
@@ -9,9 +9,12 @@ the gearbox with exhausts turned out, stub wings with two stations each, the
 tail with the fin, a stabilator and the tail rotor on the right; fixed main
 wheels and a tail wheel. Grey.
 
-Dimensions stated from published figures (rotorcraft rule: fuselage length
-without blades, width over the stub wings' stores, height to the top of the
-rotor head): 14.15 x 4.32 x 3.85 m.
+Built to the catalog frame, from published figures (rotorcraft rule:
+fuselage length without blades, width over the stub wings' stores, height to
+the top of the rotor head): 14.15 x 4.32 x 3.85 m.
+
+The cannon is the `chin` mount's rig; the missiles are fixed in the hull
+(the `missiles` mount's muzzle is the right outer station's missile front).
 """
 import math
 import os
@@ -20,10 +23,12 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
 from parts import box, cyl  # noqa: E402
-from vehicle_export import run_disabled  # noqa: E402
+from vehicle_export import rig, run  # noqa: E402
 from vehicle_parts import MID  # noqa: E402
 
-CARDS = {"eastern_z_10_attack_helicopter": (14.15, 4.32, 3.85)}
+# The chin cannon's elevation in its turret, degrees, and its stroke.
+GUN_PITCH_DEG = (-50.0, 12.0)
+GUN_STROKE_M = 0.06
 SPEC = dict(
     fuselage=[(7.07, 0.0, 1.3, 1.3), (6.7, 0.42, 0.95, 1.64, 1.3, 1.8), (5.7, 0.54, 0.8, 1.8, 1.35, 2.4),
               (4.1, 0.58, 0.8, 2.1, 1.45, 2.6), (2.4, 0.62, 0.85, 2.38, 1.5, 3.0), (0.4, 0.6, 0.9, 2.28, 1.55, 3.0),
@@ -38,6 +43,9 @@ SPEC = dict(
     pylons=[((1.3, 1.1, 1.52), 0.8, 0.22), ((1.25, 1.85, 1.48), 0.8, 0.22)],
     stores=[("pod", (1.2, 1.1, 1.08), 1.6, 0.22), ("missile", (1.1, 2.0, 1.1), 1.7, 0.1)],
 )
+# How far forward the airframe's parts (placed in their drawing's frame)
+# move to centre on the hull box.
+AFT_M = -0.008
 
 
 def build(variant, v):
@@ -47,8 +55,7 @@ def build(variant, v):
     A.canopy("canopy", 6.45, 4.95, 1.55, 2.35, 0.52, m, hull, bows=(6.0, 5.5), peak=0.6, tail=0.75)
     A.canopy("canopy_glass_rear", 4.95, 3.35, 1.85, 2.82, 0.56, m, hull, bows=(4.45, 3.85), peak=0.5, tail=0.8)
     A.sensor_ball("sensor", (6.85, 0, 1.12), 0.24, m, hull)
-    cyl("gun_turret", 0.2, 0.3, (5.6, 0, 0.66), "Z", m["dark"], hull, seg=12)
-    cyl("gun_barrel", 0.05, 1.2, (6.2, 0, 0.58), "X", m["steel"], hull, seg=8, lods=MID)
+    A.chin_gun(v, rig(v.frame, v.root), m, GUN_PITCH_DEG, GUN_STROKE_M, drum=0.24)
     for side, k in ((1, "L"), (-1, "R")):
         A.body(f"nacelle_{k}", [(1.9, 0.0, 2.3, 2.3), (1.6, 0.3, 2.02, 2.58, 2.3), (-0.9, 0.3, 2.02, 2.56, 2.3),
                                 (-1.4, 0.15, 2.14, 2.46, 2.3)], m["paint"], hull, seg=14, loc=(0, side * 0.62, 0))
@@ -65,9 +72,13 @@ def build(variant, v):
         ("insignia", dict(kind="cn_star", centre=(-3.5, 1.2, 1.68), normal=(0, 1, 0), up=(0, 0, 1), size=0.3, onto=("fuselage",))),
         ("text", dict(text="07", height=0.36, centre=(4.2, 1.2, 1.4), normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",), colour="red")),
     ])
+    # The airframe as drawn runs off the frame's middle; the frame (and the
+    # mounts' pivots in it) is centred on the hull box.
+    v.hull.location.x += AFT_M
+
 
 def wreck(variant, v):
-    A.crash(v, tail_x=-2.4, tail_yaw=-0.42, tail_drop=0.1, blades_broken=(("main", 3),), seed=10)
+    A.rotorcraft_crash(v, tail_x=-2.4, tail_yaw=-0.42, tail_drop=0.1, seed=10)
 
 
-run_disabled("z10", CARDS, "chinese_air_grey", build, wreck, skip=("dressing_", "blade_"))
+run("z10", "chinese_air_grey", build, wreck, references="assets/references/z_10/references.json")

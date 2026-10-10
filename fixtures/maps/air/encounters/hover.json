@@ -1,0 +1,6 @@
+{
+  "units": [
+    {"side":"blue","kind":"test_heli","position":[150,82]},
+    {"side":"blue","kind":"test_jeep","position":[140,100]}
+  ]
+}

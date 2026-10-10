@@ -105,6 +105,11 @@ What the roster must satisfy is refused where the rules load
 ([catalog resolution](../contract/src/catalog.rs) and the rules' cross-section
 checks), so loading it is its check.
 
+An aircraft is a hull with no ground footprint (`Unit::ground_footprint` is
+`None`): traffic, shoving, cover, treads, forest lanes and forest concealment
+never see it. Its motion (`units::Motion::Air`) never reaches ground
+navigation; a site that only a ground mover reaches asks `Unit::ground`.
+
 Where a mechanic depends on how big or how extreme a unit can be, the extreme
 is data: the rules' `hull_limits` bound every hull a battle may field, loading
 refuses a unit past them, and the mechanic is proven against fake units built

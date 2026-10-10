@@ -118,11 +118,7 @@ fn a_new_body_during_infantry_refinement_replans_without_panicking() {
         setup.rules.physics.soldier_radius_m,
     )));
     let unit = battle.unit(UnitId(0)).unwrap();
-    assert!(grid.route_fits(
-        unit.route_from,
-        unit.route.as_ref().unwrap(),
-        &unit.mobility
-    ));
+    assert!(grid.route_fits(unit.route_from, unit.route.as_ref().unwrap(), unit.ground()));
     let replay = serde_json::from_str(&serde_json::to_string(&battle.replay()).unwrap()).unwrap();
     let mut copy = Battle::from_replay(&setup, &replay).unwrap();
     for expected in digests {
@@ -208,7 +204,9 @@ fn a_search_gives_up_at_its_limit_and_reports_the_route_blocked() {
             setup.rules.physics.soldier_radius_m,
         )));
         let roads = RoadNet::build(&world);
-        let mobility = sim::units::mobility(setup.rules.catalog.by_id("test_tank"), &setup.rules);
+        let mobility =
+            sim::units::ground_mobility(setup.rules.catalog.by_id("test_tank"), &setup.rules)
+                .unwrap();
         let before = grid.work();
         let mut journey = Journey::new(
             None,
@@ -442,7 +440,8 @@ fn an_enclosed_road_goal_finishes_its_counted_proof_and_the_tank_parks_outside_o
         setup.rules.physics.soldier_radius_m,
     )));
     let roads = RoadNet::build(&world);
-    let mobility = sim::units::mobility(setup.rules.catalog.by_id("test_tank"), &setup.rules);
+    let mobility =
+        sim::units::ground_mobility(setup.rules.catalog.by_id("test_tank"), &setup.rules).unwrap();
     let mut journey = Journey::new(
         None,
         Leg {
@@ -522,7 +521,7 @@ fn a_route_searched_while_the_side_learns_of_a_body_fits_what_it_now_knows() {
     let both = format!("{wall},{closed}");
     let ((_, before), (_, after)) = (picture(wall), picture(&both));
     let rules = common::rules();
-    let tank = sim::units::mobility(rules.catalog.by_id("test_tank"), &rules);
+    let tank = sim::units::ground_mobility(rules.catalog.by_id("test_tank"), &rules).unwrap();
     let (from, goal) = (v2(100.0, 100.0), v2(300.0, 100.0));
     let request = || Request {
         side: Side::Blue,
@@ -709,7 +708,8 @@ fn checking_a_long_route_after_learning_stays_inside_the_tick_allowance() {
         0.3,
     )));
     let mut planner = RoutePlanner::default();
-    let m: Mobility = sim::units::mobility(rules.catalog.by_id("test_tank"), &rules);
+    let m: Mobility =
+        sim::units::ground_mobility(rules.catalog.by_id("test_tank"), &rules).unwrap();
     let (from, goal) = (v2(100.0, 100.0), v2(9900.0, 100.0));
     let slow = contract::scenario::NavigationRules {
         work_per_tick: 40,
@@ -767,7 +767,7 @@ fn initial_long_open_orders_do_not_sample_every_half_metre() {
         world.props(),
         0.3,
     )));
-    let m = sim::units::mobility(rules.catalog.by_id("test_tank"), &rules);
+    let m = sim::units::ground_mobility(rules.catalog.by_id("test_tank"), &rules).unwrap();
     let budget = contract::scenario::NavigationRules {
         work_per_tick: 1,
         ..rules.navigation
@@ -822,7 +822,7 @@ fn an_irregular_diagonal_terrain_probe_yields_within_a_tiny_allowance() {
         world.props(),
         0.3,
     )));
-    let m = sim::units::mobility(rules.catalog.by_id("test_tank"), &rules);
+    let m = sim::units::ground_mobility(rules.catalog.by_id("test_tank"), &rules).unwrap();
     let budget = contract::scenario::NavigationRules {
         work_per_tick: 1,
         ..rules.navigation

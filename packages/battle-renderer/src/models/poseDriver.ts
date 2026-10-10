@@ -21,16 +21,17 @@
 // it the oldest corpse sinks into the ground (`fading`, posed every frame)
 // and is gone, though the simulation still lists him.
 
-import { clamp, deltaAngle, vec3, type Vec2, type Vec3 } from "math";
+import { clamp, deltaAngle, mat4, vec3, type Mat4, type Vec2, type Vec3 } from "math";
 import { mulberry32 } from "math/random";
 import { easing } from "math/time";
-import {
-  PITCH_LIMITS,
-  REST_ARTICULATION,
-  type Articulation,
-} from "@packages/scene-assets/src/articulation";
+import { REST_ARTICULATION, type Articulation } from "@packages/scene-assets/src/articulation";
 import type { Side } from "@packages/scene-assets/src/schema";
-import { vehicleClass, type MountRole, type UnitCatalog } from "@packages/scene-assets/src/units";
+import {
+  airborne,
+  vehicleClass,
+  type MountRole,
+  type UnitCatalog,
+} from "@packages/scene-assets/src/units";
 import { sideKey } from "../sideKey";
 
 export type Posture = "stand" | "kneel" | "prone";
@@ -81,6 +82,9 @@ export interface FeedUnit {
   /** The squad is pinned, by the sim's published tier: its soldiers with
    *  no posture of their own go prone (false where the side cannot know it). */
   pinned: boolean;
+  /** A downed airframe's attitude as it falls (`crashes`), radians: nose up
+   *  and right side down. None: level, a live unit. */
+  attitude?: { pitch: number; roll: number };
 }
 
 export interface FeedFallen {
@@ -135,7 +139,12 @@ export interface VehiclePose {
   side: Side;
   position: Vec3;
   yaw: number;
+  /** It flies (`airborne`): its rotors turn, and nothing it has rolls. */
+  airborne: boolean;
   articulation: Articulation;
+  /** Its rigid tilt in its own frame, about its foot (a falling airframe's
+   *  nose drop and lean, `FeedUnit.attitude`); null while level. */
+  tilt: Mat4 | null;
 }
 
 /** A fallen soldier whose death has played out (or was never seen): drawn
@@ -227,6 +236,10 @@ export interface PoseFeel {
   /** Each vehicle class's (`vehicleClass`) running-gear half gauge, as a
    *  share of its hull's half width; 1 when absent. */
   gauge: Partial<Record<string, number>>;
+  /** How fast a drawn rotor's blade tips run, metres a second: every rotor
+   *  turns at this over its reach. A drawing speed, slower than a real
+   *  rotor's, so the blades read as turning rather than strobing. */
+  rotor: { tip_mps: number };
   /** How many of the fallen lie drawn at once. Past `max` the oldest sinks
    *  `sink_m` into the ground over `fade_s` seconds, easing in, and is then
    *  gone for good. A presentation cap: the simulation keeps every one. */
@@ -242,8 +255,9 @@ export function validatePoseFeel(p: PoseFeel): PoseFeel {
   const positive = (path: string, v: number) => {
     if (!(v > 0)) fail(path, "must be positive");
   };
-  const { gait, rest, stance, lean, mount, gauge, corpses } = p;
+  const { gait, rest, stance, lean, mount, gauge, rotor, corpses } = p;
   positive("gait.walk_mps", gait.walk_mps);
+  positive("rotor.tip_mps", rotor.tip_mps);
   if (!(gait.run_mps > gait.walk_mps)) fail("gait.run_mps", "must exceed walk_mps");
   positive("gait.fade_s", gait.fade_s);
   if (!(gait.facing_mps >= 0)) fail("gait.facing_mps", "must be ≥ 0");
@@ -811,12 +825,10 @@ export class PoseDriver {
     const hmg = roles.indexOf("hmg");
     const gunMount = gun >= 0 ? unit.mounts[gun] : undefined;
     const hmgMount = hmg >= 0 ? unit.mounts[hmg] : undefined;
-    const gunTarget = gunMount
-      ? clamp(gunMount.elevation, PITCH_LIMITS.gun[0], PITCH_LIMITS.gun[1])
-      : 0;
-    const hmgTarget = hmgMount
-      ? clamp(hmgMount.elevation, PITCH_LIMITS.hmg[0], PITCH_LIMITS.hmg[1])
-      : 0;
+    // The published elevations; each model's rig stops its guns at its own
+    // pitch limits (`articulate`).
+    const gunTarget = gunMount ? gunMount.elevation : 0;
+    const hmgTarget = hmgMount ? hmgMount.elevation : 0;
     const key = sideKey(unit.id, unit.side, "blue");
     let state = this.vehicles.get(key);
     if (!state) {
@@ -830,7 +842,9 @@ export class PoseDriver {
           side: unit.side,
           position: vec3.clone(unit.position),
           yaw: unit.yaw,
+          airborne: airborne(this.options.units.type(unit.kind)),
           articulation: { ...REST_ARTICULATION, gun_pitch: gunTarget, hmg_pitch: hmgTarget },
+          tilt: null,
         },
         seen: generation,
       };
@@ -839,16 +853,27 @@ export class PoseDriver {
     state.seen = generation;
     const pose = state.pose;
     const a = pose.articulation;
-    // Ground covered along the hull, plus each side's share of the turn.
-    const forward =
-      (unit.position[0] - pose.position[0]) * Math.cos(unit.yaw) +
-      (unit.position[1] - pose.position[1]) * Math.sin(unit.yaw);
-    const turned = deltaAngle(pose.yaw, unit.yaw);
-    const half = this.halfTrack(unit.kind);
-    a.travel_l += forward - turned * half;
-    a.travel_r += forward + turned * half;
+    if (pose.airborne) {
+      // In the air its rotors turn and nothing rolls.
+      a.rotor += this.options.feel.rotor.tip_mps * dt;
+    } else {
+      // Ground covered along the hull, plus each side's share of the turn.
+      const forward =
+        (unit.position[0] - pose.position[0]) * Math.cos(unit.yaw) +
+        (unit.position[1] - pose.position[1]) * Math.sin(unit.yaw);
+      const turned = deltaAngle(pose.yaw, unit.yaw);
+      const half = this.halfTrack(unit.kind);
+      a.travel_l += forward - turned * half;
+      a.travel_r += forward + turned * half;
+    }
     vec3.copy(pose.position, unit.position);
     pose.yaw = unit.yaw;
+    if (unit.attitude) {
+      // Nose up about its +Y, then right side down about its +X.
+      const tilt = (pose.tilt ??= mat4.create());
+      mat4.fromYRotation(tilt, -unit.attitude.pitch);
+      mat4.rotateX(tilt, tilt, unit.attitude.roll);
+    } else pose.tilt = null;
     a.deploy = unit.deployment ?? 0;
 
     // The turret on the cannon's bearing, the HMG relative to what its

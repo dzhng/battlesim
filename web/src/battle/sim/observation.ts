@@ -60,6 +60,8 @@ export interface ObservationLayout {
   policies: string[];
   directions: string[];
   contactSources: string[];
+  /** Height bands a contact's cause can occupy: ground, low_air. */
+  layers: string[];
   soundCategories: string[];
   soundBands: string[];
   propKinds: string[];
@@ -128,6 +130,8 @@ export interface OwnUnitView {
   weaponPoses: WeaponPoseView[];
   /** Vehicle health (0 for infantry). */
   hp: number;
+  /** It trails smoke, by the rule an enemy's is published (`IdentifiedView`). */
+  smoking: boolean;
   /** Health of each living soldier, in `members` order. */
   memberHp: number[];
   /** How suppressed the squad is, by the rules' thresholds (the sim owns
@@ -244,6 +248,23 @@ export interface FallenBodyView {
   tick: number;
 }
 
+/** A downed airframe still falling, seen by a side that saw it go down. Its
+ *  wreck takes over where it lands. */
+export interface FallingAirframeView {
+  /** The id the side knew it by: an own unit's id, else its identified handle. */
+  id: number;
+  own: boolean;
+  /** Its unit type, so it is drawn as itself. */
+  kind: string;
+  /** Its foot. */
+  position: Point3;
+  yaw: number;
+  /** Nose up, radians: negative as its nose drops into the fall. */
+  pitch: number;
+  /** Right side down, radians: it leans into its spin. */
+  roll: number;
+}
+
 /**
  * What a weapon mount is doing, for posing its model (the renderer derives
  * the pose; the simulation never names an animation).
@@ -293,11 +314,13 @@ export interface MountView {
   reloading: number | null;
 }
 
-/** One of this side's own guided missiles and the point it steers to. */
+/** One of this side's own guided missiles and its commanded point. */
 export interface GuidedView {
   /** Stable while it flies. */
   id: number;
   position: Point3;
+  /** Its commanded point; a top-attack missile climbs above it before
+   *  diving onto it, so this is not where it is heading now. */
   point: Point3;
   /** Its launcher still guides it; once false, the point is fixed for good. */
   supported: boolean;
@@ -348,6 +371,9 @@ export interface IdentifiedView {
   weaponPoses: WeaponPoseView[];
   /** Driving backwards this tick (a seen vehicle's reverse beeper). */
   reversing: boolean;
+  /** It trails smoke: a coarse sign of damage (an aircraft below half its
+   *  health), never its health. */
+  smoking: boolean;
 }
 
 /** Uncertain evidence: an area, never an exact position, strength or
@@ -355,7 +381,15 @@ export interface IdentifiedView {
 export interface ContactView {
   id: number;
   source: string;
-  center: Point2;
+  /** The area's centre, at its cause's height when the evidence came. */
+  center: Point3;
+  /** The height band its cause occupied (`layers`): an air contact takes
+   *  no area fire. */
+  layer: string;
+  /** The area hangs in the air at `center`'s height: its cause flew more
+   *  than the low hover over the ground (D33). Every other area lies on the
+   *  ground, a low-hovering helicopter's too. */
+  aloft: boolean;
   radius: number;
   evidenceTick: number;
   expiresTick: number;
@@ -365,6 +399,10 @@ export interface ContactView {
    *  every row: a report doesn't say which round); empty for a last sighting. */
   heard: string[];
 }
+
+/** Weapon rows a word of a firing report's heard mask carries: a float holds
+ *  an integer exactly below 2^24 (`publication::MAX_WEAPON_ROWS`). */
+const HEARD_WORD_BITS = 24;
 
 /** A sound a friendly listener heard from an unseen enemy. */
 export interface SoundCueView {
@@ -444,6 +482,8 @@ export interface ObservationView {
   blasts: BlastView[];
   corpses: readonly CorpseView[];
   fallenBodies: readonly FallenBodyView[];
+  /** Downed airframes still falling that this side saw go down. */
+  crashes: FallingAirframeView[];
   guided: GuidedView[];
   /** The fixture's completion condition, when it has one. */
   encounter: { heldS: number; result: string } | null;
@@ -1032,6 +1072,7 @@ function decodeFrame(
       mounts: sections.mounts.map((m) => decodeMount(layout, ownMount(m))),
       weaponPoses: poses(sections.weaponPoses, ownPoses),
       hp: f("hp"),
+      smoking: f("smoking") === 1,
       memberHp: sections.memberHp.map((p) => p[0]),
       suppression: layout.suppressionTiers[f("suppression")],
       concealed: f("concealed") === 1,
@@ -1086,18 +1127,25 @@ function decodeFrame(
       memberLeans: leans(sections.memberLeans, seenLeans),
       weaponPoses: poses(sections.weaponPoses, seenPoses),
       reversing: f("reversing") === 1,
+      smoking: f("smoking") === 1,
     }),
   );
   const contacts = groups.contacts.map(
     ({ field: f }): ContactView => ({
       id: f("id"),
       source: layout.contactSources[f("source")],
-      center: [f("x"), f("y")],
+      center: [f("x"), f("y"), f("z")],
+      layer: layout.layers[f("layer")],
+      aloft: f("aloft") === 1,
       radius: f("radius"),
       evidenceTick: f("evidenceTick"),
       expiresTick: f("expiresTick"),
       kind: f("kind") < 0 ? null : layout.unitKinds[f("kind")],
-      heard: layout.roundKinds.filter((_, k) => (f("heard") >> k) & 1),
+      heard: layout.roundKinds.filter((_, k) =>
+        k < HEARD_WORD_BITS
+          ? (f("heardLow") >> k) & 1
+          : (f("heardHigh") >> (k - HEARD_WORD_BITS)) & 1,
+      ),
     }),
   );
   const audible = groups.audible.map(
@@ -1180,6 +1228,17 @@ function decodeFrame(
           tick: f("tick"),
         }),
       );
+  const crashes = groups.crashes.map(
+    ({ field: f }): FallingAirframeView => ({
+      id: f("id"),
+      own: f("own") === 1,
+      kind: layout.unitKinds[f("kind")],
+      position: [f("x"), f("y"), f("z")],
+      yaw: f("yaw"),
+      pitch: f("pitch"),
+      roll: f("roll"),
+    }),
+  );
   return {
     tick: header.tick,
     own,
@@ -1191,6 +1250,7 @@ function decodeFrame(
     blasts,
     corpses,
     fallenBodies,
+    crashes,
     guided,
     encounter:
       header.encounterResult < 0

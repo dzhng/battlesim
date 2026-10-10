@@ -123,7 +123,9 @@
       "description": "Attack helicopter",
       "faction": "us",
       "family": "ah_1z_viper",
-      "roles": [],
+      "roles": [
+        "helicopter"
+      ],
       "cost": 320,
       "roster": {
         "factions": [
@@ -133,27 +135,65 @@
         "variant": "Attack helicopter",
         "family_name": "AH-1Z Viper"
       },
-      "planned": {
-        "reason": "Helicopter movement, combat and transport mechanics deferred",
-        "profile": "attack-helicopter",
-        "weapons": [
-          {
-            "name": "Chain Gun",
-            "icon": "autocannon"
-          },
-          {
-            "name": "AT Missile",
-            "icon": "atgm"
-          }
-        ]
-      }
+      "extends": "roster_profile_attack_helicopter",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            6.851,
+            2.066,
+            1.725
+          ],
+          "eye_m": 2.1
+        }
+      },
+      "mounts": [
+        {
+          "id": "chin",
+          "name": "Chain Gun",
+          "weapons": [
+            "autocannon"
+          ],
+          "turret": true,
+          "pivot_m": [
+            5.189,
+            0,
+            0.75
+          ],
+          "muzzle_m": [
+            1.3,
+            0,
+            -0.09
+          ]
+        },
+        {
+          "id": "missiles",
+          "name": "AT Missile",
+          "weapons": [
+            "heli_atgm"
+          ],
+          "turret": false,
+          "pivot_m": [
+            0.959,
+            -1.5,
+            1.46
+          ],
+          "muzzle_m": [
+            0.82,
+            0,
+            0
+          ]
+        }
+      ],
+      "appearance": "us_ah_1z_viper_attack_helicopter"
     },
     "us_ah_6_mh_6_little_bird_ah_6m": {
       "name": "AH-6M Little Bird",
       "description": "AH-6M",
       "faction": "us",
       "family": "ah_6_mh_6_little_bird",
-      "roles": [],
+      "roles": [
+        "helicopter"
+      ],
       "cost": 180,
       "roster": {
         "factions": [
@@ -163,27 +203,65 @@
         "variant": "AH-6M",
         "family_name": "Little Bird"
       },
-      "planned": {
-        "reason": "Helicopter movement, combat and transport mechanics deferred",
-        "profile": "light-helicopter",
-        "weapons": [
-          {
-            "name": "Chain Gun",
-            "icon": "autocannon"
-          },
-          {
-            "name": "Rocket Pods",
-            "icon": "rockets"
-          }
-        ]
-      }
+      "extends": "roster_profile_light_helicopter",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.75,
+            1.64,
+            1.213
+          ],
+          "eye_m": 1.4
+        }
+      },
+      "mounts": [
+        {
+          "id": "guns",
+          "name": "Chain Gun",
+          "weapons": [
+            "autocannon"
+          ],
+          "turret": false,
+          "pivot_m": [
+            1.75,
+            1.15,
+            0.52
+          ],
+          "muzzle_m": [
+            0.45,
+            0,
+            0
+          ]
+        },
+        {
+          "id": "rockets",
+          "name": "Rockets",
+          "weapons": [
+            "rocket_pod"
+          ],
+          "turret": false,
+          "pivot_m": [
+            1.75,
+            -1.45,
+            0.58
+          ],
+          "muzzle_m": [
+            0.7,
+            0,
+            0
+          ]
+        }
+      ],
+      "appearance": "us_ah_6_mh_6_little_bird_ah_6m"
     },
     "us_ah_6_mh_6_little_bird_mh_6m": {
       "name": "MH-6M Little Bird",
       "description": "MH-6M",
       "faction": "us",
       "family": "ah_6_mh_6_little_bird",
-      "roles": [],
+      "roles": [
+        "helicopter"
+      ],
       "cost": 120,
       "roster": {
         "factions": [
@@ -193,16 +271,38 @@
         "variant": "MH-6M",
         "family_name": "Little Bird"
       },
-      "planned": {
-        "reason": "Helicopter movement, combat and transport mechanics deferred",
-        "profile": "light-helicopter",
-        "weapons": [
-          {
-            "name": "HMG",
-            "icon": "hmg"
-          }
-        ]
-      }
+      "extends": "roster_profile_light_helicopter",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.75,
+            1.475,
+            1.213
+          ],
+          "eye_m": 1.4
+        }
+      },
+      "mounts": [
+        {
+          "id": "door",
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            2.35,
+            1.25,
+            1.05
+          ],
+          "muzzle_m": [
+            1.15,
+            0,
+            0
+          ]
+        }
+      ],
+      "appearance": "us_ah_6_mh_6_little_bird_mh_6m"
     },
     "us_army_scouts_light_patrol": {
       "name": "Army Scouts",
@@ -266,7 +366,9 @@
       "description": "CH-47F",
       "faction": "us",
       "family": "ch_47_chinook",
-      "roles": [],
+      "roles": [
+        "helicopter"
+      ],
       "cost": 240,
       "roster": {
         "factions": [
@@ -276,16 +378,38 @@
         "variant": "CH-47F",
         "family_name": "CH-47 Chinook"
       },
-      "planned": {
-        "reason": "Helicopter movement, combat and transport mechanics deferred",
-        "profile": "heavy-helicopter",
-        "weapons": [
-          {
-            "name": "HMG",
-            "icon": "hmg"
-          }
-        ]
-      }
+      "extends": "roster_profile_heavy_helicopter",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            8.137,
+            1.945,
+            2.713
+          ],
+          "eye_m": 2.2
+        }
+      },
+      "mounts": [
+        {
+          "id": "door",
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            5.207,
+            1.33,
+            1.8
+          ],
+          "muzzle_m": [
+            1.2,
+            0,
+            0
+          ]
+        }
+      ],
+      "appearance": "us_ch_47_chinook_ch_47f"
     },
     "us_ea_18g_growler_electronic_warfare_aircraft": {
       "name": "EA-18G Growler",
@@ -759,7 +883,9 @@
       "description": "Light tank",
       "faction": "us",
       "family": "m10_booker",
-      "roles": [],
+      "roles": [
+        "mbt"
+      ],
       "cost": 240,
       "roster": {
         "factions": [
@@ -769,19 +895,84 @@
         "variant": "Light tank",
         "family_name": "M10 Booker"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "light-tank",
-        "weapons": [
-          {
-            "name": "Main Gun",
-            "icon": "ap_shell"
+      "extends": "roster_profile_light_tank",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.5,
+            1.7,
+            1.49
+          ],
+          "eye_m": 2.75,
+          "hp": 95,
+          "armor": {
+            "front": 120,
+            "side": 55,
+            "rear": 35,
+            "roof": 20,
+            "ricochet": {
+              "front": 0.3,
+              "side": 0.2,
+              "rear": 0.1,
+              "roof": 0.4
+            }
           },
-          {
-            "name": "HMG",
-            "icon": "hmg"
-          }
-        ]
+          "weight_class": "medium",
+          "push_class": "medium",
+          "wreck": "medium_wreck"
+        }
+      },
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 30,
+          "road_kmh": 64,
+          "turn_deg_s": 50,
+          "reverse_fraction": 0.4
+        }
+      },
+      "mounts": [
+        {
+          "id": "cannon",
+          "name": "Main Gun",
+          "weapons": [
+            "light_tank_ap",
+            "light_tank_he"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            1.78
+          ],
+          "muzzle_m": [
+            4.95,
+            0,
+            0.32
+          ]
+        },
+        {
+          "id": "HMG",
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            -0.1,
+            0.62,
+            2.8
+          ],
+          "muzzle_m": [
+            1.2,
+            0,
+            0.22
+          ],
+          "on": "cannon"
+        }
+      ],
+      "appearance": "us_m10_booker",
+      "sensors": {
+        "on": "cannon"
       }
     },
     "us_m1127_stryker_rv_reconnaissance_vehicle": {
@@ -1288,7 +1479,9 @@
       "description": "M1E3 prototype main battle tank",
       "faction": "us",
       "family": "m1_abrams",
-      "roles": [],
+      "roles": [
+        "mbt"
+      ],
       "cost": 460,
       "roster": {
         "factions": [
@@ -1298,24 +1491,28 @@
         "variant": "M1E3",
         "family_name": "M1 Abrams"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "advanced-mbt",
-        "weapons": [
-          {
-            "name": "Main Gun",
-            "icon": "ap_shell"
-          },
-          {
-            "name": "HMG",
-            "icon": "hmg"
-          },
-          {
-            "name": "Trophy",
-            "icon": "trophy"
-          }
-        ]
-      }
+      "extends": "us_m1_abrams_sep_v3_trophy",
+      "appearance": "us_m1e3_abrams",
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 30
+        }
+      },
+      "mounts": [
+        {
+          "id": "HMG",
+          "pivot_m": [
+            -0.45,
+            0.3,
+            2.42
+          ],
+          "muzzle_m": [
+            1.3,
+            0,
+            0.3
+          ]
+        }
+      ]
     },
     "us_m270_mlrs_m270a2": {
       "name": "M270A2 MLRS",
@@ -2059,7 +2256,9 @@
       "description": "Utility transport",
       "faction": "us",
       "family": "uh_1y_venom",
-      "roles": [],
+      "roles": [
+        "helicopter"
+      ],
       "cost": 160,
       "roster": {
         "factions": [
@@ -2069,23 +2268,47 @@
         "variant": "Utility transport",
         "family_name": "UH-1Y Venom"
       },
-      "planned": {
-        "reason": "Helicopter movement, combat and transport mechanics deferred",
-        "profile": "utility-helicopter",
-        "weapons": [
-          {
-            "name": "HMG",
-            "icon": "hmg"
-          }
-        ]
-      }
+      "extends": "roster_profile_utility_helicopter",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            6.7,
+            1.45,
+            1.8
+          ],
+          "eye_m": 1.8
+        }
+      },
+      "mounts": [
+        {
+          "id": "door",
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            2.45,
+            1.4,
+            1.45
+          ],
+          "muzzle_m": [
+            1.0,
+            0,
+            0
+          ]
+        }
+      ],
+      "appearance": "us_uh_1y_venom_utility_transport"
     },
     "us_uh_60_black_hawk_uh_60m": {
       "name": "UH-60M Black Hawk",
       "description": "UH-60M",
       "faction": "us",
       "family": "uh_60_black_hawk",
-      "roles": [],
+      "roles": [
+        "helicopter"
+      ],
       "cost": 180,
       "roster": {
         "factions": [
@@ -2095,16 +2318,38 @@
         "variant": "UH-60M",
         "family_name": "UH-60 Black Hawk"
       },
-      "planned": {
-        "reason": "Helicopter movement, combat and transport mechanics deferred",
-        "profile": "utility-helicopter",
-        "weapons": [
-          {
-            "name": "HMG",
-            "icon": "hmg"
-          }
-        ]
-      }
+      "extends": "roster_profile_utility_helicopter",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            7.905,
+            2.19,
+            1.825
+          ],
+          "eye_m": 1.8
+        }
+      },
+      "mounts": [
+        {
+          "id": "door",
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            2.025,
+            1.2,
+            1.5
+          ],
+          "muzzle_m": [
+            1.1,
+            0,
+            0
+          ]
+        }
+      ],
+      "appearance": "us_uh_60_black_hawk_uh_60m"
     }
   }
 }

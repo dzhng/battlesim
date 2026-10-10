@@ -345,7 +345,8 @@ test("a tank's turret and HMG are posed relative to what carries them", () => {
   const a = out.vehicles[0].articulation;
   expect(a.turret_yaw).toBeCloseTo(1, 6);
   expect(a.hmg_yaw).toBeCloseTo(-0.5, 6);
-  expect(a.gun_pitch).toBeCloseTo((20 * Math.PI) / 180, 6); // clamped to the gun's limit
+  // The published elevation; the model's rig stops the drawn gun at its own limit.
+  expect(a.gun_pitch).toBeCloseTo(0.9, 6);
   expect(a.hmg_pitch).toBeCloseTo(0.2, 6);
 });
 
@@ -357,6 +358,32 @@ test("driving rolls both tracks; turning in place counter-rotates them", () => {
   const turned = d.update(frame(2, [tank(4, 0.2, 0, 0)])).vehicles[0].articulation;
   expect(turned.travel_l).toBeCloseTo(4 - 0.2 * HALF_TRACK, 6);
   expect(turned.travel_r).toBeCloseTo(4 + 0.2 * HALF_TRACK, 6);
+});
+
+test("an aircraft's rotors turn while it lives, and nothing it has rolls as it flies", () => {
+  const heli = (x: number, yaw: number): FeedUnit => ({
+    ...tank(x, yaw, 0, 0),
+    kind: "test_heli",
+    position: [x, 0, 20],
+    mounts: [{ bearing: 0, elevation: 0, shots: 0 }],
+  });
+  const d = driver();
+  d.update(frame(0, [heli(0, 0)]));
+  // Hovering, its blade tips sweep at the drawn tip speed.
+  const hover = d.update(frame(0.5, [heli(0, 0)])).vehicles[0];
+  expect(hover.airborne).toBe(true);
+  expect(hover.articulation.rotor).toBeCloseTo(0.5 * FEEL.rotor.tip_mps, 6);
+  // Flying on and turning, its tips sweep on at the same speed, and it rolls
+  // on nothing.
+  const flown = d.update(frame(1.5, [heli(60, 0.4)])).vehicles[0].articulation;
+  expect(flown.rotor).toBeCloseTo(1.5 * FEEL.rotor.tip_mps, 6);
+  expect([flown.travel_l, flown.travel_r]).toEqual([0, 0]);
+  // A ground vehicle has no rotor to turn.
+  const t = driver();
+  t.update(frame(0, [tank(0, 0, 0, 0)]));
+  const ground = t.update(frame(1, [tank(4, 0, 0, 0)])).vehicles[0];
+  expect(ground.airborne).toBe(false);
+  expect(ground.articulation.rotor).toBe(0);
 });
 
 test("a supply vehicle's deploy progress is its articulation's", () => {

@@ -6,21 +6,23 @@
 // border (built by the view per zoom step, passed in). Ground marks are for
 // selection and movement and extents; every unit state is its info panel's
 // (`readouts.tsx`).
-// The battle view composes the contacts, supply, orders, zone and border:
+// The battle view composes the contacts, supply, orders, aircraft, zone and
+// border (an aircraft's ground marker and drop line, own or enemy, D18):
 // combat effects (`effects/`) draw the flight, the flashes, the impacts and a
 // missile's flare and smoke trail, and a garrisoned squad's circle says where
 // it holds. Labs compose the layers their fixture exercises, the rest among
 // them as diagnostics.
 import { gameHud } from "@web/battle/present/hudTheme";
 import game from "@fixtures/game.json";
-import type { UnitCatalog } from "@packages/scene-assets/src/units";
-import { buildContactGlyphs } from "@packages/battle-renderer/src/contactGlyph";
+import { airborne, type UnitCatalog } from "@packages/scene-assets/src/units";
+import { buildContactGlyphs, type ContactFacing } from "@packages/battle-renderer/src/contactGlyph";
 import { buildFlightOverlay } from "@packages/battle-renderer/src/flightMesh";
 import { buildConsequenceOverlay } from "@packages/battle-renderer/src/consequenceOverlay";
 import { buildGarrisonOverlay } from "@packages/battle-renderer/src/garrisonOverlay";
 import { buildGuidanceOverlay } from "@packages/battle-renderer/src/guidanceOverlay";
 import { buildSupplyOverlay } from "@packages/battle-renderer/src/supplyOverlay";
 import {
+  buildAircraftMarks,
   buildOrderOverlay,
   buildDeploymentMarker,
   deploymentOverlayMarker,
@@ -34,6 +36,7 @@ import type { PresentedContact } from "@web/battle/present/contactPresentation";
 import type { ObservationView, OwnUnitView } from "@web/battle/sim/observation";
 import type { RevealedOrders } from "@web/battle/present/orderReveal";
 import { gameContactStyle } from "./gameFog";
+import { ghostAloft } from "./unitGhosts";
 import {
   OPENING_METRES_PER_PX,
   gameOrderStyle,
@@ -90,9 +93,14 @@ export class BattleMemory {
   }
 }
 
-/** Glyphs consume the same presented reports as their labels. */
-export function contactLayer(contacts: readonly PresentedContact[], z: SurfaceHeight): WorldMeshes {
-  return buildContactGlyphs(contacts, z, gameContactStyle);
+/** Glyphs consume the same presented reports as their labels; an aloft
+ *  one's sign faces the camera as `facing` says (`useContactFacing`). */
+export function contactLayer(
+  contacts: readonly PresentedContact[],
+  z: SurfaceHeight,
+  facing: ContactFacing,
+): WorldMeshes {
+  return buildContactGlyphs(contacts, z, gameContactStyle, facing);
 }
 
 /** This tick's visible flight, own and enemy rounds tinted apart (or all in
@@ -183,17 +191,21 @@ export function orderView(
     // Its footprint sizes its marker: a hull's half length, 0 for a squad;
     // a garrisoned squad's, its building's (inside or leaving, not entering).
     hullHalfLength: units.hull(u.kind)?.half_extents_m[0] ?? 0,
+    aircraft: airborne(units.type(u.kind)),
     building: g && g.phase !== "entering" ? { center: g.center, half: g.half } : null,
     selected,
     reveal,
   };
 }
 
-/** The selection's markers under the units in `selected`, and the order
+/** The selection's markers under the units in `selected`, the order
  *  marks (the Space view) of each unit `reveal` shows, at its opacity
- *  (`OrderReveal`). Lines are the style's pixel widths at `metresPerPx` by
- *  the stroke rule (the opening camera's scale for a view that doesn't
- *  follow its camera). */
+ *  (`OrderReveal`), and every own aircraft's marker and drop line. With
+ *  `ghosts` (Space held: each revealed unit's ghost stands where its orders
+ *  end) an aircraft's ghost is joined to that end's marker by its drop
+ *  line too. Lines are the style's pixel widths at `metresPerPx` by the
+ *  stroke rule (the opening camera's scale for a view that doesn't follow
+ *  its camera). */
 export function orderLayer(
   units: UnitCatalog,
   o: ObservationView,
@@ -201,11 +213,39 @@ export function orderLayer(
   reveal: RevealedOrders,
   z: SurfaceHeight,
   metresPerPx = OPENING_METRES_PER_PX,
+  ghosts = false,
 ): WorldMeshes {
+  const aloft = ghostAloft(units, game.air.cruise_agl_m);
   return buildOrderOverlay(
     o.own
-      .filter((u) => selected.includes(u.id) || reveal.has(u.id))
-      .map((u) => orderView(units, u, selected.includes(u.id), reveal.get(u.id))),
+      .filter((u) => selected.includes(u.id) || reveal.has(u.id) || airborne(units.type(u.kind)))
+      .map((u) => ({
+        ...orderView(units, u, selected.includes(u.id), reveal.get(u.id)),
+        ghostAloft: ghosts && reveal.has(u.id) ? aloft(u.kind) : 0,
+      })),
+    z,
+    gameOrderStyle,
+    { stroke: gameStroke(metresPerPx) },
+  );
+}
+
+/** Every identified enemy aircraft's ground marker and drop line, in the
+ *  enemy's colour, as an own aircraft's are drawn. */
+export function aircraftLayer(
+  units: UnitCatalog,
+  o: ObservationView,
+  z: SurfaceHeight,
+  metresPerPx = OPENING_METRES_PER_PX,
+): WorldMeshes {
+  return buildAircraftMarks(
+    o.identified
+      .filter((u) => airborne(units.type(u.kind)))
+      .map((u) => ({
+        position: u.position,
+        yaw: u.yaw,
+        hullHalfLength: units.hull(u.kind)?.half_extents_m[0] ?? 0,
+      })),
+    [...gameHud.enemy, 1],
     z,
     gameOrderStyle,
     { stroke: gameStroke(metresPerPx) },
@@ -222,13 +262,20 @@ export function buildBattleOverlay(
     showOrders,
     reveal,
     contacts,
-  }: { showOrders: boolean; reveal: RevealedOrders; contacts: readonly PresentedContact[] },
+    facing,
+  }: {
+    showOrders: boolean;
+    reveal: RevealedOrders;
+    contacts: readonly PresentedContact[];
+    facing: ContactFacing;
+  },
   border: Mesh | null = null,
   metresPerPx = OPENING_METRES_PER_PX,
 ): WorldMeshes {
-  const contactMarks = contactLayer(contacts, z);
+  const contactMarks = contactLayer(contacts, z, facing);
   const supply = supplyLayer(o, scenario.supplyRadius, z, selected, metresPerPx, showOrders);
-  const orders = orderLayer(units, o, selected, reveal, z, metresPerPx);
+  const orders = orderLayer(units, o, selected, reveal, z, metresPerPx, showOrders);
+  const aircraft = aircraftLayer(units, o, z, metresPerPx);
   const deployment = scenario.deployment
     ? buildDeploymentMarker(
         scenario.deployment.center,
@@ -276,6 +323,7 @@ export function buildBattleOverlay(
     contactMarks,
     supply,
     orders,
+    aircraft,
     ...(deployment
       ? [
           {

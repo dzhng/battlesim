@@ -553,6 +553,49 @@ pub fn resolve(
             outcome.attacked.push((units[i].id, shooter.unit));
         }
     }
+    outcome.destroyed = casualties(ctx, units, &was_alive, &lethal);
+    outcome
+}
+
+/// A burst of `def` at `at` that no round carried (a downed airframe's crash):
+/// its blast on units and on destroyable bodies, credited to `source`.
+pub fn detonate(
+    ctx: &DamageContext,
+    def: &WeaponDefinition,
+    at: V3,
+    source: Option<LethalSource>,
+    units: &mut [Unit],
+    rng: &mut Rng,
+) -> Outcome {
+    let was_alive: Vec<bool> = units.iter().map(|u| u.alive()).collect();
+    let mut structural = Vec::new();
+    blast_props(ctx.world, def, at, None, source, &mut structural);
+    let mut hit = Vec::new();
+    blast(ctx, def, at, None, units, rng, |i, _| hit.push(i));
+    let lethal: Vec<Option<LethalSource>> = (0..units.len())
+        .map(|i| source.filter(|_| was_alive[i] && !units[i].alive()))
+        .collect();
+    let attacked = source.map_or(Vec::new(), |s| {
+        hit.iter()
+            .filter(|&&i| units[i].side != s.side)
+            .map(|&i| (units[i].id, s.unit))
+            .collect()
+    });
+    Outcome {
+        destroyed: casualties(ctx, units, &was_alive, &lethal),
+        attacked,
+        structural,
+    }
+}
+
+/// Lay down this tick's fallen soldiers, and clear and report every unit
+/// that died, with what killed it.
+fn casualties(
+    ctx: &DamageContext,
+    units: &mut [Unit],
+    was_alive: &[bool],
+    lethal: &[Option<LethalSource>],
+) -> Vec<UnitDeath> {
     // The fallen stay where they fell (a soldier is down once its hp is gone,
     // so later events this tick already passed it by).
     for unit in units.iter_mut() {
@@ -573,18 +616,19 @@ pub fn resolve(
             }
         }
     }
+    let mut destroyed = Vec::new();
     for (i, unit) in units.iter_mut().enumerate() {
         if was_alive[i] && !unit.alive() {
             unit.orders.clear();
             unit.route = None;
             unit.garrison = None;
-            outcome.destroyed.push(UnitDeath {
+            destroyed.push(UnitDeath {
                 victim: unit.id,
                 source: lethal[i],
             });
         }
     }
-    outcome
+    destroyed
 }
 
 /// A round's damage to the hull it struck, judged on the face it met at

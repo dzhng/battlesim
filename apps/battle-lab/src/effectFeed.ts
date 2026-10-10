@@ -1,7 +1,8 @@
 // The observation, as combat effects read it: one side's decoded
 // publication, under the battle's rules, becomes an `EffectPublication`
 // (visible flight, blasts, the shot counters and hulls of every unit the
-// side sees, and the wrecks and destroyed buildings it knows, which smoke),
+// side sees, which of them trail smoke (a damaged aircraft, and one falling
+// shot down), and the wrecks and destroyed buildings it knows, which smoke),
 // and an `EffectFrame` for a battle's tick rate, from the fixture's
 // `presentation.effects`. The unit catalog gives each type's hull, mounts
 // and wreck, and what a destroyed building's parts become.
@@ -19,7 +20,7 @@ import { fromSideKey, sideKey } from "@packages/battle-renderer/src/sideKey";
 import { inheritRows } from "@packages/renderer-core/src/kindTable";
 import { buildingRemains } from "@packages/scene-assets/src/authority";
 import { mountMuzzles, type MountMuzzle } from "@packages/scene-assets/src/mountMuzzle";
-import type { UnitCatalog, UnitType } from "@packages/scene-assets/src/units";
+import { airborne, type UnitCatalog, type UnitType } from "@packages/scene-assets/src/units";
 import type { SideName } from "@web/battle/sim/protocol";
 import type { ObservationView, WeaponPoseView } from "@web/battle/sim/observation";
 
@@ -75,6 +76,7 @@ function shooter(
   yaw: number,
   members: readonly number[],
   poses: readonly WeaponPoseView[],
+  smoking: boolean,
   units: UnitCatalog,
 ): EffectShooter {
   const mounts = units.type(kind).mounts;
@@ -84,6 +86,8 @@ function shooter(
     key,
     position,
     half,
+    airborne: airborne(units.type(kind)),
+    smoking,
     yaw,
     members,
     mounts: poses.map((p) => ({
@@ -139,6 +143,7 @@ export function effectPublication(
           u.yaw,
           u.memberIds,
           u.weaponPoses,
+          u.smoking,
           units,
         ),
       ),
@@ -150,6 +155,21 @@ export function effectPublication(
           e.yaw,
           e.memberIds,
           e.weaponPoses,
+          e.smoking,
+          units,
+        ),
+      ),
+      // A downed airframe smokes all the way down, keyed as it was alive so
+      // its trail runs on unbroken.
+      ...o.crashes.map((c) =>
+        shooter(
+          sideKey(c.id, c.own ? side : enemy, side),
+          c.kind,
+          c.position,
+          c.yaw,
+          [],
+          [],
+          true,
           units,
         ),
       ),

@@ -3,6 +3,13 @@
 //! time). One file: `cargo test -p sim --test sim maps::`.
 mod common;
 
+mod air;
+mod air_closing;
+mod air_crash;
+mod air_flight;
+mod air_missiles;
+mod air_supply;
+mod air_weapons;
 mod animation_feed;
 mod battle_authority;
 mod bodies;
@@ -28,6 +35,7 @@ mod garrison;
 mod ground;
 mod ground_delivery;
 mod guidance;
+mod hull_guns;
 mod kerbside;
 mod lean;
 mod maps;

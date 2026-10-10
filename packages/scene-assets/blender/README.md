@@ -69,10 +69,8 @@ variants and frames, materials by role, mount rigs, crew, tiers, wreck and
 export.
 
 A disabled card has no unit type, so it has no catalog frame: its family
-script states one from its references, the length, width and height and, for
-a turreted card, the pivots and muzzles it rigs for the art alone (its turret
-traverses and its wreck throws it; nothing in the simulation reads them until
-the card's mechanics land). `vehicle_export.run_disabled` builds it to that
+script states one from its references: the length, width and height.
+`vehicle_export.run_disabled` builds it to that
 frame (`catalog_frames.disabled_variant`), refuses a model that strays from it
 (leaving out what `skip` names: dressing, guns, rotor blades), and writes the
 family's receipt beside the cards' GLBs (in `assets/source/roster/disabled/`,
@@ -81,7 +79,8 @@ export loaded and names the reference library of its source's folder (a
 manifest entry's `source_family`).
 The support cards' trucks stand on [one chassis](roster/truck_chassis.py)
 (rails, axles, fenders and the cab shapes their references show). A disabled
-infantry card is a kit in `KITS` like any roster kit. Aircraft and rotorcraft parts (fuselages,
+infantry card is a kit in `KITS` like any roster kit; each look is its own
+export, so the kit's receipt is written once all are (`--receipt`). Aircraft and rotorcraft parts (fuselages,
 flying surfaces, canopies, intakes, nozzles, gear, stores, rotors, skids) and
 the crash every airframe's wreck starts from have [their own
 owner](aircraft_parts.py) beside the vehicle parts. A rotorcraft's frame leaves

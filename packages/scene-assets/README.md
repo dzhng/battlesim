@@ -37,6 +37,9 @@ Articulated vehicles preserve moving-node frames and mount ownership. A mount's
 catalog binding selects its drawn rig; its name cannot infer a pivot or muzzle.
 [Unit bindings](src/units.ts) and [articulation](src/articulation.ts) own that mapping.
 Bounds cover all reachable poses, while physical fit remains measured at rest.
+A rotor (`rotor_*`, its `blade_*` under it) turns about its own axis and
+sweeps its whole disc into the bounds; its disc is not the airframe's size,
+so hull fit leaves it out.
 
 Stationary supply service is a simulation capability, not evidence of deployment
 hardware. Sources may remain ordinary cargo vehicles. A source that declares

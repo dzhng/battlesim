@@ -46,7 +46,24 @@ export type Mobility =
         turning_radius_m: number;
         reverse_fraction: number;
       };
+    }
+  | {
+      /** Flies in the low-air layer at the heights the rules' `air` section sets. */
+      air: { cruise_kmh: number; turn_deg_s: number; climb_mps: number };
     };
+
+/** Whether a type flies (`contract::catalog::Mobility::Air`): its hull is
+ *  in the air, so it rolls on nothing and raises no dust. */
+export const airborne = (type: Pick<UnitType, "mobility">): boolean => "air" in type.mobility;
+
+/** A mover's top speed, km/h: its road speed, or an aircraft's cruise
+ *  (`Mobility::speeds_kmh`). */
+export function topSpeedKmh(m: Mobility): number {
+  if ("air" in m) return m.air.cruise_kmh;
+  if ("tracked" in m) return m.tracked.road_kmh;
+  if ("wheeled" in m) return m.wheeled.road_kmh;
+  return m.foot.road_kmh;
+}
 
 /** A mount row, as a hull lists it or a soldier kind carries it. */
 export interface MountRow {
@@ -233,9 +250,16 @@ export interface CatalogView {
  *  (`assets/catalog.json` `appearances.<name>.mounts`). */
 export type Articulation = "gun" | "hmg";
 
-/** How a model draws a mount: by one of its rigs, or by hand (a soldier's
- *  weapon, drawn with him). */
-export type MountRole = Articulation | "hand";
+/** How a model draws a mount: by one of its rigs; by its hull, for a mount
+ *  fixed in the hull (neither a turret nor carried by one: a helicopter's
+ *  rocket pod), which never turns apart from the body, so its muzzle is the
+ *  published one; or by hand (a soldier's weapon, drawn with him). */
+export type MountRole = Articulation | "hull" | "hand";
+
+/** A vehicle mount fixed in its hull: not a turret, and carried by none
+ *  (the simulation's `weapons::hull_fixed`). */
+export const hullFixed = (m: Pick<MountRow, "turret" | "on">): boolean =>
+  !m.turret && m.on === null;
 
 /** An appearance's mount declarations: mount id to the rig that draws it. */
 export type MountDraws = Readonly<Record<string, Articulation>>;
@@ -250,24 +274,26 @@ export const isArticulation = (name: string): name is Articulation =>
   Object.hasOwn(MOUNT_NODES, name);
 
 /** How a model declaring `draws` draws each of `type`'s mounts, in mount
- *  order: the rig it names for the mount, else by hand. A squad's mounts
- *  are always by hand: its soldiers carry them. The validator refuses a
- *  hull model that leaves a mount undeclared (`fit.mount_draw`). */
+ *  order: the rig it names for the mount, else by its hull for a mount fixed
+ *  in it, else by hand. A squad's mounts are always by hand: its soldiers
+ *  carry them. The validator refuses a hull model that leaves a turning
+ *  mount undeclared (`fit.mount_draw`). */
 export function mountRoles(
   type: Pick<UnitType, "mounts" | "body">,
   draws: MountDraws | null | undefined,
 ): MountRole[] {
-  const hull = "hull" in type.body;
-  return type.mounts.map((m) => (hull && draws?.[m.id]) || "hand");
+  if (!("hull" in type.body)) return type.mounts.map(() => "hand");
+  return type.mounts.map((m) => draws?.[m.id] || (hullFixed(m) ? "hull" : "hand"));
 }
 
-/** A vehicle's presentation class, derived from its physics: how it moves,
- *  its hull's weight class, and `_logistics` for a supply hauler (a truck),
- *  as `tracked_heavy` or `wheeled_medium_logistics`. Vehicle sound and
- *  track gauge are keyed by it, never by unit id. Null for a squad. */
+/** A vehicle's presentation class, derived from its physics: how it moves
+ *  (tracked, wheeled or air), its hull's weight class, and `_logistics` for
+ *  a supply hauler (a truck), as `tracked_heavy`, `air_light` or
+ *  `wheeled_medium_logistics`. Vehicle sound and track gauge are keyed by
+ *  it, never by unit id. Null for a squad. */
 export function vehicleClass(type: Pick<UnitType, "body" | "mobility" | "roles">): string | null {
   if (!("hull" in type.body) || "foot" in type.mobility) return null;
-  const moves = "tracked" in type.mobility ? "tracked" : "wheeled";
+  const moves = airborne(type) ? "air" : "tracked" in type.mobility ? "tracked" : "wheeled";
   const hauls = type.roles.includes("logistics") ? "_logistics" : "";
   return `${moves}_${type.body.hull.weight_class}${hauls}`;
 }

@@ -650,7 +650,7 @@ fn frame(
         }
     }
     for u in &units {
-        if let Some(hull) = u.hull_box() {
+        if let Some(hull) = u.ground_footprint() {
             let r = view.obb(&hull);
             cv.obb(&r, if u.alive() { HULL } else { MUTED });
             let nose = hull.center + v2(hull.half.x * 0.9, 0.0).rotated(hull.yaw);
