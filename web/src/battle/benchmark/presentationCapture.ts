@@ -59,6 +59,10 @@ export const plateFile = (index: number) => `plate-${index}.png`;
  *  beside it: `plate-<index>.png` → `class-<index>.png`. */
 export const classPlateFile = (plate: string) => plate.replace(/^plate-/, "class-");
 
+/** The file a plate's frame lit without its grass is written to, beside it:
+ *  `plate-<index>.png` → `plain-<index>.png`. */
+export const plainPlateFile = (plate: string) => plate.replace(/^plate-/, "plain-");
+
 const SAMPLE_KEYS = ["tick", "digest", "publication"];
 const FRAME_KEYS = ["index", "reelMs", "tick", "simTime", "eye", "target", "up", "canvas", "plate"];
 

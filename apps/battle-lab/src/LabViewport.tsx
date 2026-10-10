@@ -203,9 +203,10 @@ export interface ViewportPilot {
   /** A drawn frame: its main-thread cost, the camera drawn, the sim time
    *  it drew (the presentation clock) and the canvas size in pixels.
    *  `readback` reads this frame's canvas as a PNG, `grassClumps` the grass
-   *  it grew, and `readbackClasses` draws the same frame's ground-class view
-   *  offscreen and reads it as a PNG (debug readbacks); called during
-   *  `frame`, the task that drew it, each reads exactly that frame. */
+   *  it grew; `readbackClasses` and `readbackPlain` draw the same frame
+   *  again offscreen, as its ground-class view and lit without its grass,
+   *  and read it as a PNG (debug readbacks). Called during `frame`, the task
+   *  that drew it, each reads exactly that frame. */
   frame?(f: {
     now: number;
     cpuMs: number;
@@ -215,6 +216,7 @@ export interface ViewportPilot {
     readback: () => Promise<Blob>;
     grassClumps: () => Promise<readonly Pick<GrassClumpRow, "root">[]>;
     readbackClasses: () => Promise<Blob>;
+    readbackPlain: () => Promise<Blob>;
   }): void;
 }
 
@@ -755,23 +757,28 @@ export function LabViewport({
         };
         const readback = () => readCanvasPng(device!, context.getCurrentTexture());
         const grassClumps = () => scene.grassProbes.clumps();
-        /** The view the lab chose (`setFrameView`). */
+        /** The view the lab chose (`setFrameView`), and whether it took the grass away. */
         let frameView: FrameView = "final";
-        /** The frame just drawn again as its ground classes, into a texture of
-         *  the canvas's size and format, read back; the canvas and the view
-         *  the next frame draws are left as they were. */
-        const readbackClasses = () => {
+        let grassSuppressed = false;
+        /** The frame just drawn again with `change` on, into a texture of the
+         *  canvas's size and format, read back; `change(false)` puts the
+         *  frame back, so the canvas and the next frame are as they were. */
+        const readbackDrawn = (change: (on: boolean) => void) => {
           const texture = device!.createTexture({
-            label: "ground-classes-readback",
+            label: "plate-readback",
             size: [canvas.width, canvas.height],
             format: info.format,
             usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
           });
-          scene.setView("ground-classes");
+          change(true);
           scene.render(texture.createView(), snapshot());
-          scene.setView(frameView);
+          change(false);
           return readCanvasPng(device!, texture).finally(() => texture.destroy());
         };
+        const readbackClasses = () =>
+          readbackDrawn((on) => scene.setView(on ? "ground-classes" : frameView));
+        const readbackPlain = () =>
+          readbackDrawn((on) => scene.grassProbes.suppress(on || grassSuppressed));
         redrawRef.current = () => (dirty = true);
         let pointer: { x: number; y: number } | null = null;
         let modifiers = { ctrl: false, shift: false };
@@ -878,6 +885,7 @@ export function LabViewport({
             readback,
             grassClumps,
             readbackClasses,
+            readbackPlain,
           });
           raf = requestAnimationFrame(loop);
         };
@@ -997,6 +1005,7 @@ export function LabViewport({
           fog: () => scene.fogProbes,
           grass: () => scene.grassProbes,
           async suppressGrass(on: boolean) {
+            grassSuppressed = on;
             scene.grassProbes.suppress(on);
             await nextFrame();
           },

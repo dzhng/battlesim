@@ -3,16 +3,18 @@
 // For each scene it writes
 //
 //   throwaway/native-parity/<run>/<scene>/{capture.json, manifest.json,
-//     plate-<index>.png, class-<index>.png, terrain-<table>.u32, grass-<table>.u32}
+//     plate-<index>.png, class-<index>.png, plain-<index>.png,
+//     terrain-<table>.u32, grass-<table>.u32}
 //
 // the capture and its frame records, the `native-visual-presentation`
 // manifest (with each plate's grass counts), the plates read back from the
-// canvas in their own frames with each frame's ground-class view, and the
+// canvas in their own frames with each frame's ground-class view and its
+// lit frame without grass, and the
 // ground's and grass's GPU tables the manifest hashes.
 // PARITY_SCENES=<map,…> films only those scenes (`?scenes=`). Run it under
 // the GPU lock; it waits on the route's stage, never on a timer.
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
-import { classPlateFile } from "../src/battle/benchmark/presentationCapture.ts";
+import { classPlateFile, plainPlateFile } from "../src/battle/benchmark/presentationCapture.ts";
 import {
   readTableArtifact,
   tableFile,
@@ -110,11 +112,12 @@ export async function run(ctx) {
     const state = window.__graphicsTest;
     return {
       plates: await Promise.all(
-        state.plates.map(async ({ scene, file, png, classes, grass }) => ({
+        state.plates.map(async ({ scene, file, png, classes, plain, grass }) => ({
           scene,
           file,
           base64: await base64(await png),
           classes: await base64(await classes),
+          plain: await base64(await plain),
           cells: await grass,
         })),
       ),
@@ -163,6 +166,7 @@ export async function run(ctx) {
       for (const [file, base64] of [
         [plate.file, plate.base64],
         [classPlateFile(plate.file), plate.classes],
+        [plainPlateFile(plate.file), plate.plain],
       ]) {
         const bytes = Buffer.from(base64, "base64");
         sizes.push(pngSize(bytes).join("×"));
@@ -178,7 +182,7 @@ export async function run(ctx) {
     const parsed = JSON.parse(manifest);
     const { viewport } = parsed;
     ctx.check(
-      `${map}: frames, plates and class plates are ${VIEWPORT.width}×${VIEWPORT.height}`,
+      `${map}: frames, plates, class and plain plates are ${VIEWPORT.width}×${VIEWPORT.height}`,
       viewport.width === VIEWPORT.width &&
         viewport.height === VIEWPORT.height &&
         sizes.every((s) => s === `${VIEWPORT.width}×${VIEWPORT.height}`),

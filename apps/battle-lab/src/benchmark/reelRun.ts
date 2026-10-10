@@ -24,12 +24,14 @@ import type { LightPresentation } from "@packages/battle-renderer/src/light/scen
 import type { UploadedTables } from "@packages/battle-renderer/src/frame/wordTables";
 
 /** A control plate: the PNG read back from the canvas in the frame it names,
- *  the same frame's ground-class view (`classPlateFile`), and the grass
- *  clumps that frame grew per screen cell (`grassCells`). */
+ *  the same frame's ground-class view (`classPlateFile`) and its lit frame
+ *  without grass (`plainPlateFile`), and the grass clumps that frame grew
+ *  per screen cell (`grassCells`). */
 export interface ReelPlate {
   file: string;
   png: Promise<Blob>;
   classes: Promise<Blob>;
+  plain: Promise<Blob>;
   grass: Promise<number[]>;
 }
 
@@ -162,7 +164,17 @@ export function createReelRun(
         target: [lastSubject[0] + s.pose.target[0], lastSubject[1] + s.pose.target[1]],
       };
     },
-    frame({ now, cpuMs, camera, simTime, canvas, readback, grassClumps, readbackClasses }) {
+    frame({
+      now,
+      cpuMs,
+      camera,
+      simTime,
+      canvas,
+      readback,
+      grassClumps,
+      readbackClasses,
+      readbackPlain,
+    }) {
       if (!warm || finished) return;
       if (!recording.started) {
         recording.start(now);
@@ -185,19 +197,25 @@ export function createReelRun(
           : null;
       // Read back now, in the task that drew it, before the canvas presents.
       if (plate) {
+        // What the frame drew is read first: the offscreen draws after it
+        // change the frame (the plain one takes the grass away) before
+        // putting it back.
+        const png = readback();
+        const grass = grassClumps().then((clumps) =>
+          grassCells(
+            clumps.map((c) => c.root),
+            camera,
+            canvas,
+          ),
+        );
+        tables ??= exportTables?.() ?? null;
         plates.push({
           file: plate,
-          png: readback(),
+          png,
+          grass,
           classes: readbackClasses(),
-          grass: grassClumps().then((clumps) =>
-            grassCells(
-              clumps.map((c) => c.root),
-              camera,
-              canvas,
-            ),
-          ),
+          plain: readbackPlain(),
         });
-        tables ??= exportTables?.() ?? null;
       }
       lens ??= { fovY: camera.fovY, near: camera.near, depth: "reverse-z", far: "infinite" };
       frames.push({
