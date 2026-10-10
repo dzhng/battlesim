@@ -124,10 +124,35 @@ browser's ground material uploads. Native ports only the formulas.
   no grass, and everything else is black. It is the measured check that features
   lie in the same places, and it is scaffolding for phase 1.
 
+## Grass
+
+Native grows the browser's grass field the way the browser does, from the
+browser's own tables (`manifest.grass`), anew for every frame record.
+
+- **Build.** `grass/grass_build.compute` is the browser's build ported as text
+  to a GLSL compute shader. It includes the ground formulas
+  (`terrain/ground.gdshaderinc`), whose uniforms it rebinds to compute bindings.
+  Each frame's view fields (side planes, eye, window, tiles) are recomputed
+  from the record; the rest of the browser's params are used as written.
+- **Tiers.** Each tier (near, far) is a MultiMesh whose buffer the build writes
+  and whose indirect draw command it counts. This mirrors the browser's clump
+  buffer and indirect args. A compute-written MultiMesh renders on 4.7.2 as
+  long as it has a custom AABB. Godot leaks an indirect MultiMesh's command
+  buffer when the MultiMesh is freed, which shows as a warning at exit.
+- **Draw.** `grass/grass.gdshader` places each blade vertex of the clump's kind
+  from the browser's shape table.
+- **Counts.** For each plate the report puts native's clumps per screen cell,
+  counted as the browser counts them (root on screen, occlusion ignored),
+  beside the browser's `grassCounts`.
+- **Agreement.** The hash words, tile offsets and admission decisions equal the
+  browser's WGSL on WebGPU exactly. The two GPU compilers round the fall
+  point's arithmetic differently, by a few ulps.
+- **Scars.** Native has no seam yet for the side's learned scars, which in the
+  browser leave clumps out and lay them flat. Their omission is reported.
+
 ## Legacy map layer
 
 Until phase 2 ports the browser's model owners, the map is drawn roughly:
-- catalog grass tufts;
 - building shells picked from a catalog kit by template token;
 - catalog props or boxes;
 - units as unposed catalog models at their authored size, or capsules.
@@ -137,8 +162,9 @@ from every frame target are reported as dropped.
 
 ## Checks
 
-- `native/godot/tests/run.sh [tests/<name>_test.gd ...]` runs the headless
-  tests. A test passes only when Godot exits 0, prints its result line and logs
+- `native/godot/tests/run.sh [tests/<name>_test.gd ...]` runs the tests:
+  headless, except a `*_display_test.gd`, which renders in an off-screen
+  window. Take the GPU lock around the run. A test passes only when Godot exits 0, prints its result line and logs
   no script error, because a parse error also exits 0 and a runtime error in a
   called function doesn't stop the test. Script-mode tests can't use
   `assert`, because a failing assert hangs the run.
@@ -149,11 +175,10 @@ from every frame target are reported as dropped.
   A trimmed capture changes its bytes, so its manifest's `captureHash` is
   recomputed.
 - `tests/forward_plus_probe.gd` is the backend's display-backed probe. It
-  renders a real market-town building from its staged kit, a grass MultiMesh,
-  a shadowed sun and the sky. Run it with
+  renders a real market-town building from its staged kit, the grass build's
+  MultiMeshes, a shadowed sun and the sky. Run it with
   `godot --path native/godot --window-position 10000,10000 --script res://tests/forward_plus_probe.gd`.
-  It needs `assets/source/city/homes/kit.glb` and
-  `assets/source/grass/grass_meadow.glb` from Git LFS.
+  It needs `assets/source/city/homes/kit.glb` from Git LFS.
 - The [binding smoke](binding_smoke/) checks the Rust GDExtension against the
   offline `native_binding_probe` in a scratch project. It has its own
   `.gdignore`d folder, so this project never loads the binding:

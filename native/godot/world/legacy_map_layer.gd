@@ -1,8 +1,8 @@
 extends Node3D
 
 ## A rough native drawing of the saved map, kept until each layer's slice ports
-## the browser's owner: catalog grass tufts (`grass`), buildings (`buildings`),
-## props (`props`) and observed units (`models`). Every category is reported as
+## the browser's owner: buildings (`buildings`), props (`props`) and observed
+## units (`models`). Every category is reported as
 ## a budget that names its approximation and how many rows it drew and dropped.
 ## Every position and yaw goes through `Coords`; what has no height of its own
 ## stands on the ground's height field.
@@ -28,7 +28,6 @@ var _soldiers := {}
 var _staged := {}
 var _scenes := {}
 var _shell_prototypes := {}
-var _grass: Array = []
 var _units_holder: Node3D
 ## Unit id -> its node, so a unit keeps its node however the rows are ordered.
 var _unit_nodes := {}
@@ -47,7 +46,6 @@ func _init(map: Dictionary, targets: Array, unit_kinds: Dictionary, heights) -> 
 	for target in targets:
 		if not _centers.any(func(center): return center.distance_to(target) < TARGET_SPACING_M):
 			_centers.append(target)
-	_grass = _grass_centers()
 	_load_catalogs()
 
 func _notification(what: int) -> void:
@@ -59,8 +57,6 @@ func _notification(what: int) -> void:
 ## The repository assets the listed layers draw.
 func required_assets(layers: Array) -> Array:
 	var needed := {}
-	if layers.has("grass") and not _grass.is_empty():
-		needed[_prop_source("grass")] = true
 	if layers.has("buildings"):
 		for building in _rows("buildings"):
 			if _valid_building(building) and _near(_building_position(building)) and not _shell_token(String(building.template_id)).is_empty():
@@ -78,8 +74,6 @@ func required_assets(layers: Array) -> Array:
 ## Builds the listed layers from staged assets, reporting every category.
 func build(layers: Array, staged: Dictionary, side: String, report) -> void:
 	_staged = staged
-	if layers.has("grass"):
-		_build_grass(report)
 	if layers.has("buildings"):
 		_build_buildings(report)
 	if layers.has("props"):
@@ -105,55 +99,6 @@ func show_units(units: Array) -> void:
 		seen[unit.id] = true
 	for id in _unit_nodes:
 		_unit_nodes[id].visible = seen.has(id)
-
-# Grass ------------------------------------------------------------------------
-
-func _build_grass(report) -> void:
-	var source := _prop_source("grass")
-	if _grass.is_empty():
-		report.add_budget(OWNER, "no forest ring lies near a frame target", "grass", 0, 0, 0)
-		return
-	if source.is_empty():
-		report.add_budget(OWNER, "the catalog has no grass appearance", "grass", _grass.size(), 0, _grass.size())
-		return
-	var placements: Array[Transform3D] = []
-	for i in _grass.size():
-		var basis := Coords.yaw_basis(deg_to_rad(float((i * 37) % 360))).scaled_local(Vector3.ONE * 8.0)
-		placements.append(Transform3D(basis, _seated(_grass[i], 0.0)))
-	_add_instances(_holder("Grass"), _mesh_parts(source), placements, _material(Color("55743a"), 0.98))
-	report.add_budget(OWNER, "approximation: %s tufts scaled 8x on a fixed grid in forest rings%s" % [source, " and around frame targets" if _region == "china" else ""], "grass", _grass.size(), _grass.size(), 0)
-
-## Tuft positions: a 3x3 grid inside each forest ring near a frame target and,
-## for China, a 7x7 meadow grid at 8 m spacing around each frame target.
-func _grass_centers() -> Array:
-	var centers: Array = []
-	var seen := {}
-	for forest in _rows("forests"):
-		if typeof(forest) != TYPE_DICTIONARY or typeof(forest.get("shape")) != TYPE_DICTIONARY or not _is_ring(forest.shape.get("ring")):
-			continue
-		var polygon := _polygon(forest.shape.ring)
-		var bounds := Rect2(polygon[0], Vector2.ZERO)
-		for point in polygon:
-			bounds = bounds.expand(point)
-		if bounds.size.x <= 0.0 or bounds.size.y <= 0.0 or not _near(bounds.get_center()):
-			continue
-		for y in 3:
-			for x in 3:
-				var candidate := bounds.get_center() + bounds.size * 0.35 * Vector2(float(x - 1), float(y - 1))
-				if Geometry2D.is_point_in_polygon(candidate, polygon) and _near(candidate):
-					_add_once(centers, seen, candidate)
-	if _region == "china":
-		for center in _centers:
-			for y in range(-3, 4):
-				for x in range(-3, 4):
-					_add_once(centers, seen, center + Vector2(float(x * 8), float(y * 8)))
-	return centers
-
-static func _add_once(points: Array, seen: Dictionary, point: Vector2) -> void:
-	var key := "%0.2f:%0.2f" % [point.x, point.y]
-	if not seen.has(key):
-		seen[key] = true
-		points.append(point)
 
 # Buildings --------------------------------------------------------------------
 
@@ -302,8 +247,6 @@ func _prop_source(kind: String) -> String:
 	var preferred: Array[String] = []
 	if kind == "street_tree":
 		preferred = ["tree_broadleaf"]
-	elif kind == "grass":
-		preferred = ["grass_meadow"]
 	else:
 		if not _region.is_empty():
 			preferred.append("%s_%s" % [kind, _region])
@@ -508,15 +451,6 @@ static func _is_numbers(value: Variant, size: int) -> bool:
 	if typeof(value) != TYPE_ARRAY or value.size() != size:
 		return false
 	return value.all(func(item): return typeof(item) == TYPE_INT or typeof(item) == TYPE_FLOAT)
-
-static func _is_ring(value: Variant) -> bool:
-	return typeof(value) == TYPE_ARRAY and value.size() >= 3 and value.all(func(point): return _is_numbers(point, 2))
-
-static func _polygon(ring: Array) -> PackedVector2Array:
-	var polygon := PackedVector2Array()
-	for point in ring:
-		polygon.append(Vector2(float(point[0]), float(point[1])))
-	return polygon
 
 ## A Godot point `above` metres over the ground at sim `(x, y)`.
 func _seated(position: Vector2, above: float) -> Vector3:

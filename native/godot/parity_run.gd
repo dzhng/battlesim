@@ -25,6 +25,7 @@ const Staging = preload("res://assets/staging.gd")
 const EnvironmentAdapter = preload("res://environment/environment_adapter.gd")
 const LegacyMapLayer = preload("res://world/legacy_map_layer.gd")
 const TerrainLayer = preload("res://terrain/terrain_layer.gd")
+const GrassLayer = preload("res://grass/grass_layer.gd")
 const HeightField = preload("res://terrain/height_field.gd")
 const FogLayer = preload("res://world/fog_layer.gd")
 const CameraRig = preload("res://reel/camera_rig.gd")
@@ -137,6 +138,8 @@ func _render(options: Dictionary) -> void:
 			_report.add_blocker("publication", "frame %d at tick %d precedes the first sample" % [record.index, record.tick])
 			return
 		CameraRig.apply(camera, record, manifest.lens)
+		if world.grass != null:
+			world.grass.grow(record)
 		if world.environment != null:
 			world.environment.prepare(camera, Vector2(get_window().size), Capture.vector3(record.target))
 		world.layer.show_units(sample.units)
@@ -151,24 +154,34 @@ func _render(options: Dictionary) -> void:
 			_report.add_blocker(plate.blocker.name, plate.blocker.detail)
 			return
 		_report.add_plate(int(record.index), path, plate.gpu_ms)
+		if world.grass != null:
+			var counts: Dictionary = world.grass.counts(camera, Vector2(get_window().size))
+			var browser: Array = manifest.grassCounts.filter(func(row): return row.plate == record.plate)
+			_report.add_grass(int(record.index), browser[0].cells if not browser.is_empty() else null, counts)
 		record = stepper.step()
+	if world.grass != null:
+		world.grass.report_budget(_report)
 
-## The ground's tables beside the manifest and its decoded height field:
-## `{ok: true, tables, heights}` or `{ok: false, blocker}`.
+## The ground's tables beside the manifest, its decoded height field and the
+## tables of the grass growing on it:
+## `{ok: true, tables, heights, grass}` or `{ok: false, blocker}`.
 static func read_ground(scene_dir: String, manifest: Dictionary) -> Dictionary:
 	var read := Manifest.read_tables(scene_dir, manifest.terrain, "terrain")
 	if not read.ok:
 		return read
+	var grass := Manifest.read_tables(scene_dir, manifest.grass.tables, "grass")
+	if not grass.ok:
+		return grass
 	if not read.tables.has("heights"):
 		return {"ok": false, "blocker": {"name": "terrain", "detail": "the manifest has no terrain heights"}}
 	var heights := HeightField.decode(read.tables.heights.words, read.tables.heights.layout)
 	if not heights.ok:
 		return {"ok": false, "blocker": {"name": "terrain", "detail": heights.detail}}
-	return {"ok": true, "tables": read.tables, "heights": heights.heights}
+	return {"ok": true, "tables": read.tables, "heights": heights.heights, "grass": grass.tables}
 
 ## Builds the light and every layer the manifest lists under `root`, staging the
 ## assets the layers draw, everything seated on `ground.heights`. Returns
-## `{environment, layer, fog}`; `fog` is null unless listed. The class view
+## `{environment, layer, grass, fog}`; `grass` and `fog` are null unless listed. The class view
 ## (`classes`) draws the ground's classes under no light, leaves out what the
 ## browser's class view leaves out (grass) and draws every other layer black,
 ## "not ground"; its `environment` is null.
@@ -203,6 +216,11 @@ static func compose(root: Node3D, manifest: Dictionary, ground: Dictionary, samp
 		var terrain := TerrainLayer.new(ground.tables, ground.heights, manifest.tuning.terrain, float(manifest.light.backdrop.reach_m), classes)
 		root.add_child(terrain)
 		terrain.build(report)
+	var grass: Node3D = null
+	if layers.has("grass") and report.ok():
+		grass = GrassLayer.new(ground, manifest.grass, manifest.tuning, manifest.lens)
+		root.add_child(grass)
+		grass.build(report)
 	var layer := LegacyMapLayer.new(map, targets, unit_kinds, ground.heights)
 	var staged := Staging.stage(layer.required_assets(layers), report)
 	root.add_child(layer)
@@ -214,7 +232,7 @@ static func compose(root: Node3D, manifest: Dictionary, ground: Dictionary, samp
 			root.add_child(fog)
 	if classes:
 		_blacken(layer)
-	return {"environment": environment, "layer": layer, "fog": fog}
+	return {"environment": environment, "layer": layer, "grass": grass, "fog": fog}
 
 ## Every model under `node` drawn black and unlit: the class view's "not
 ## ground".

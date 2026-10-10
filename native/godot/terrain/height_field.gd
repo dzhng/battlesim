@@ -54,6 +54,15 @@ func sample(i: int, j: int) -> float:
 		return 0.0
 	return _heights[(page - 1) * _page_size * _page_size + (j % _page_size) * _page_size + i % _page_size]
 
+## The lowest vertex height: an absent page is flat at zero.
+func lowest() -> float:
+	var low := INF
+	for height in _heights:
+		low = minf(low, height)
+	if _directory.is_empty() or _directory.has(0):
+		low = minf(low, 0.0)
+	return low
+
 ## Whether any page holds relief in the vertex rectangle `[i0, j0]` to
 ## `[i1, j1]` (inclusive): elsewhere the ground is flat at zero.
 func has_relief(i0: int, j0: int, i1: int, j1: int) -> bool:

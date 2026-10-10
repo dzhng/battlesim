@@ -26,7 +26,7 @@ Graph: `01 ∥ 02 → 03 → 04a → 04b → 04c → 05a → 05b → 06a → 06b
 - [x] 04c — Light: output transform (tone), a formula port of the browser's post chain. [slice](slices/04c-light-output-transform.md)
 - [x] 05a — Terrain: height and features (`48c3ab7a`): class agreement 100.00% with a 2 px edge mask (gate 99.5%). [slice](slices/05a-terrain-height-and-features.md)
 - [x] 05b — Terrain: field character (`89481000`): furrows, wheelings, grain and mottle match the browser's grass-off `plain-<index>.png` plates at broad and close cuts. [slice](slices/05b-terrain-field-character.md)
-- [ ] 06a — Grass: bit-exact placement and per-region counts. [slice](slices/06a-grass-placement-and-counts.md)
+- [x] 06a — Grass: placement and per-region counts. [slice](slices/06a-grass-placement-and-counts.md)
 - [ ] 06b — Grass: look and wind. [slice](slices/06b-grass-look-and-wind.md)
 - [ ] Closeout: run [`review`](../../.agents/skills/review/SKILL.md) over phase 1's whole diff, remove the class-view scaffolding unless phase 2 adopts it, update this handoff, and plan phase 2 with a fresh discovery walk.
 

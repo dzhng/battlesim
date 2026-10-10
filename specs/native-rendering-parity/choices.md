@@ -251,3 +251,19 @@ Overall tone matches: the mean luminance over the plates is 115.6 against the br
 | The effect writes AgX's linear display colour, and Godot's output step applies the sRGB transfer | Godot's linear tone mapper ends with the same piecewise sRGB curve as the browser's `outputSrgb`; writing sRGB in the effect would encode it twice |
 | The manifest's post settings are the light's own `exposure`, `grade` and `bloom` (the browser's `postSettings`), not a separate `light.post` | The light is the whole `presentation.light`; `postSettings` only picks those three fields |
 | `environment_adapter.gd` builds the post effect inline rather than exposing `build_post(light)` | The adapter owns the compositor; a second entry point would have no caller |
+
+### Slice 06a, by the implementing agent
+
+Native grows the grass where the browser does. On market-town, against the control run `2026-10-10T22-39-26-895Z`, the first three plates (393, 1037, 1522) match the browser's clump count exactly in every cell. Over all 18 plates, 211 of 216 cells are within 10%. The other five, in plates 2562, 6366, 7139 and 7849, run 13–16% over. Native never counts fewer than the browser. The excess cells inspected (2562, 7139) lie on a tank's track, where the browser lays its grass flat and leaves clumps out. That is the side's learned scars, which native has no seam for until phase 2. The sampling test runs the browser's own WGSL on WebGPU against the native build's functions over 108 candidates. Hash words, tile offsets and admission decisions are equal, and fall points are within 8 ulps. Evidence: `throwaway/native-parity/slice06a/` (`counts.txt`, sheets, crops, `diff/`).
+
+| Decision | Why |
+| --- | --- |
+| The build is a GLSL compute shader writing each tier's MultiMesh buffer and counting its indirect draw command (`multimesh_get_command_buffer_rd_rid`) | The probe rendered compute-written instances on 4.7.2 once the MultiMesh had a custom AABB; the indirect command is the browser's args, so the draw count stays on the GPU. The vertex-stage fallback was not needed. |
+| The build includes `ground.gdshaderinc` as written, with its five uniforms stripped and redeclared as compute bindings | One copy of the ground formulas; a changed uniform list fails by name |
+| A tier counts every clump found and draws the first up to its capacity, so no finish pass | The browser's finish pass clamps the same count |
+| `GRASS_EDGE_M` and `GRASS_HEIGHT_VARIATION` are hand-ported constants in the build | The manifest does not carry them; they belong in `grass.constants` |
+| Fall points are tested within 16 ulps, not bit for bit | Each GPU compiler (Tint's MSL, and glslang through SPIRV-Cross) leaves strict f32 at different candidates, measured up to 8 ulps (0.1 mm at 250 m). The hashes and admissions they come from are exact. |
+| The vectors come from the browser's WGSL run in Chromium's WebGPU, not a TS model of the arithmetic | A strict-f32 TS model disagreed with the browser's own GPU in 13 rows |
+| `*_display_test.gd` tests run in an off-screen window under `tests/run.sh` | The sampling test needs a rendering device |
+| Native clumps per cell are counted from the tiers' buffers after the plate draws, with the browser's projection rule, and reported beside the browser's | The same count, the same frame |
+| The legacy grass tufts, their target-near grid and the grass appearance pick are deleted | Replaced by the field |

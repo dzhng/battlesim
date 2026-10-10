@@ -14,6 +14,7 @@ var frames := ""
 var _budgets: Array = []
 var _blockers: Array = []
 var _plates: Array = []
+var _grass: Array = []
 
 func add_budget(owner: String, reason: String, source_id: String, admitted: int, rendered: int, dropped: int) -> void:
 	_budgets.append({"owner": owner, "reason": reason, "sourceId": source_id, "admitted": admitted, "rendered": rendered, "dropped": dropped})
@@ -24,6 +25,15 @@ func add_blocker(name: String, detail: String) -> void:
 ## `gpu_ms` is null when the renderer measured no GPU time.
 func add_plate(index: int, path: String, gpu_ms: Variant) -> void:
 	_plates.append({"index": index, "path": path, "gpuMs": gpu_ms})
+
+## The grass a plate's frame grew: the browser's clumps per screen cell (null
+## when the manifest has none for it) beside native's `counts`
+## (`grass_layer.gd`).
+func add_grass(index: int, browser: Variant, counts: Dictionary) -> void:
+	var row := counts.duplicate()
+	row.index = index
+	row.browserCells = browser
+	_grass.append(row)
 
 func ok() -> bool:
 	return _blockers.is_empty()
@@ -41,6 +51,7 @@ func to_dictionary() -> Dictionary:
 		"budgets": _budgets,
 		"blockers": _blockers,
 		"plates": _plates,
+		"grass": _grass,
 	}
 
 func write(path: String) -> Error:

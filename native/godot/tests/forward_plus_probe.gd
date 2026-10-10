@@ -1,11 +1,11 @@
 extends "res://tests/check.gd"
 
 ## Display-backed backend probe: one real market-town building from its staged
-## kit, a grass MultiMesh, a shadowed sun and the sky, composed by the parity
+## kit, the grass build's compute-written MultiMeshes, a shadowed sun and the sky, composed by the parity
 ## run and read back as a plate. Run it with a display (it is not a headless
 ## test):
 ##   godot --path native/godot --window-position 10000,10000 --script res://tests/forward_plus_probe.gd
-## It needs the homes kit and the meadow grass from Git LFS.
+## It needs the homes kit from Git LFS.
 
 const ParityRun = preload("res://parity_run.gd")
 const PlateWriter = preload("res://reel/plate_writer.gd")
@@ -31,13 +31,15 @@ func run() -> bool:
 	# proves the backend, not the scene.
 	var fixture: Dictionary = read_json(FIXTURE_RUN.path_join(FIXTURE_SCENE).path_join("manifest.json"))
 	var ground := ParityRun.read_ground(FIXTURE_RUN.path_join(FIXTURE_SCENE), fixture)
-	var manifest := {"layers": ["sky", "terrain", "grass", "buildings"], "light": fixture.light, "tuning": fixture.tuning}
-	ParityRun.compose(world, manifest, ground, [], one_building, [at], "blue", false, report)
+	var manifest := {"layers": ["sky", "terrain", "grass", "buildings"], "light": fixture.light, "tuning": fixture.tuning, "grass": fixture.grass, "lens": fixture.lens}
+	var composed := ParityRun.compose(world, manifest, ground, [], one_building, [at], "blue", false, report)
 	var camera := Camera3D.new()
 	world.add_child(camera)
 	var record := {"index": 0, "canvas": [1280, 720], "eye": [at.x - 22.0, at.y - 22.0, 9.0], "target": [at.x, at.y, 2.0], "up": [0.0, 0.0, 1.0]}
 	CameraRig.apply(camera, record, {"fovY": 0.8, "near": 1.0})
 	camera.make_current()
+	if composed.grass != null:
+		composed.grass.grow(record)
 
 	var plate: Dictionary = {"ok": false}
 	if report.ok():
@@ -52,7 +54,7 @@ func run() -> bool:
 	check(report.ok(), "the probe renders without a blocker: %s" % JSON.stringify(summary.blockers))
 	check(summary.budgets.any(func(row): return row.sourceId == "map.buildings" and row.rendered == 1), "the building is drawn")
 	check(not summary.budgets.any(func(row): return row.sourceId == "map.buildings/boxes"), "the building is the kit's shell, not a box")
-	check(summary.budgets.any(func(row): return row.sourceId == "grass" and row.rendered > 0), "the grass MultiMesh is drawn")
+	check(composed.grass != null and composed.grass.counts(camera, Vector2(1280, 720)).cells.size() == 12, "the grass build runs and its clumps read back")
 	check(world.find_child("Sun", true, false).shadow_enabled, "the sun casts shadows")
 	check(summary.renderer.driver == "metal", "the probe renders on Metal")
 	world.free()

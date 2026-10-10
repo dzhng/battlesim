@@ -51,9 +51,11 @@ func run() -> bool:
 	check(environment.environment.ambient_light_source == Environment.AMBIENT_SOURCE_SKY, "the sky lights the scene even when it is not shown")
 	without_sky.root.free()
 
-	var bare := _compose(["grass"])
-	check(bare.report.to_dictionary().budgets.any(func(row): return row.sourceId == "grass" and row.admitted == 0), "a listed grass layer with no tufts near a frame target draws nothing and says so")
-	bare.root.free()
+	# The grass is grown on the GPU: without a display, a listed grass layer
+	# stops the run by name rather than being left out.
+	var grass := _compose(["terrain", "grass"])
+	check(grass.report.to_dictionary().blockers.any(func(row): return row.name == "grass" and row.detail.contains("rendering device")), "a listed grass layer that cannot grow is a named blocker")
+	grass.root.free()
 
 	var fogged := _compose(["fog", "scars"])
 	var fog: MultiMeshInstance3D = fogged.root.find_child("Fog", true, false)
@@ -86,7 +88,7 @@ func _compose(layers: Array, classes := false) -> Dictionary:
 	var fixture: Dictionary = read_json(FIXTURE_RUN.path_join(FIXTURE_SCENE).path_join("manifest.json"))
 	var light: Dictionary = fixture.light
 	light.sunDirection = [1.0, 0.0, 1.0]
-	var manifest := {"layers": layers, "light": light, "tuning": fixture.tuning}
+	var manifest := {"layers": layers, "light": light, "tuning": fixture.tuning, "grass": fixture.grass, "lens": fixture.lens}
 	var ground := ParityRun.read_ground(FIXTURE_RUN.path_join(FIXTURE_SCENE), fixture)
 	var world := ParityRun.compose(root, manifest, ground, SAMPLES, MAP, [Vector2(24, 24)], "blue", classes, report)
 	return {"root": root, "report": report, "world": world}
