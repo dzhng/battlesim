@@ -9605,11 +9605,11 @@
                 "roof": 15.0,
                 "side": 40.0
               },
-              "eye_m": 2.88,
+              "eye_m": 3.16,
               "half_extents_m": [
                 4.06,
                 1.58,
-                1.485
+                1.6
               ],
               "hp": 90.0,
               "push_class": "medium",
@@ -9644,7 +9644,7 @@
               "pivot_m": [
                 -0.95,
                 0.0,
-                2.02
+                2.1
               ],
               "special": false,
               "squad": false,
@@ -9666,7 +9666,7 @@
               "pivot_m": [
                 -1.5,
                 0.62,
-                2.88
+                3.16
               ],
               "special": false,
               "squad": false,
@@ -21973,11 +21973,11 @@
             "roof": 15.0,
             "side": 40.0
           },
-          "eye_m": 2.88,
+          "eye_m": 3.16,
           "half_extents_m": [
             4.06,
             1.58,
-            1.485
+            1.6
           ],
           "hp": 90.0,
           "push_class": "medium",
@@ -22014,7 +22014,7 @@
           "pivot_m": [
             -0.95,
             0.0,
-            2.02
+            2.1
           ],
           "special": false,
           "squad": false,
@@ -22037,7 +22037,7 @@
           "pivot_m": [
             -1.5,
             0.62,
-            2.88
+            3.16
           ],
           "special": false,
           "squad": false,
