@@ -104,7 +104,7 @@ Each landmine is either decided (closed by the agent on the user's behalf unless
 | L11 | Flat-ground assumptions | Centimetre layer offsets at `reel.gd:291-404`; `max(0,z)` at `:1168` | Sharp edge, slice 05a. Seat everything on one height function; no stacking by offsets. |
 | L12 | Harness defaults | `web/scene.mjs:185-186`, `web/scenes/graphics-test.mjs:5` (800 high); a hidden tab fails (`graphicsTest.tsx:167`); preparation can saturate the GPU for minutes | Sharp edge, slice 01. Pass 720, keep the page visible, take the GPU lock, wait on readiness. |
 | L13 | Building tiers depend on canvas pixels | `buildingTier.ts` (`ace81f81`) | Sharp edge, slice 07. The manifest records the chosen tier. |
-| L14 | Slice 04b shadow cuts use unported buildings | Token-picked shells until slice 07 | Sharp edge, slice 04b. Judge shadow direction and softness, not shapes. |
+| L14 | Slice 04a shadow cuts use unported buildings | Token-picked shells until slice 07 | Sharp edge, slice 04a. Judge shadow direction and softness, not shapes. |
 | L15 | Small leaks | A material per unit per frame (`reel.gd:1159`); units reused by index rather than id (`:1165`) | Sharp edge, slice 02. Fix in passing. |
 
 ## Confirm before coding
@@ -124,7 +124,7 @@ Four independent drafts produced the cut, each with a different bias: fewest sli
 | No separate wind-clock field | Wind reads the interpolated sim time (`useBattleSession.ts:714`, `grassPass.ts:584`), so a second field would duplicate one owner | Two equal fields with a test that they're equal |
 | `samples[].camera` is dropped | Nothing reads it | Keep it |
 | Plates come from the existing `/graphics-test` route with `?plates=1` and `?scenes=`, driven by a new `native-parity-capture` scene | Reuses the reel run. Readback cost lands only in plate mode, which marks frame timing as not comparable. | A separate route that duplicates the reel page |
-| Light splits into 04a tone, 04b sun/shadow and 04c sky/haze | The taste row "same time of day and weather" hides three variables, and tone must match before the others can be judged | One light slice (fewest-slices draft) |
+| Light splits into 04a sun/shadow, 04b sky/haze and 04c tone | The taste row "same time of day and weather" hides three variables. Tone comes last, because it can only be judged once scene radiance matches. (The first cut put tone first; corrected while reading `post.ts`.) | One light slice (fewest-slices draft) |
 | Terrain splits into 05a features (with a measured class-agreement gate) and 05b field character | Two variables. The browser already has a class view, so features can be measured. | Height as its own slice. Neither reel map has relief, so a TS-vector test suffices. |
 | Terrain ships the browser's packed buffers as hashed artifacts, uploaded through `R32_UINT` `Texture2DRD` | Avoids porting about 2,300 lines of plot, biome and surface logic. Godot spatial shaders have no storage buffers, and `Image` has no u32 format. | Port the resolvers |
 | Fog constants are not lifted in phase 1 | Phase 1 paints no fog overlay, so nothing would read the table. This amends L1's scope. | Lift them now |

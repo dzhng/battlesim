@@ -1,4 +1,4 @@
-# 04b — Light: sun, ambient and shadows
+# 04a — Light: sun, ambient and shadows
 
 **Contract:** native lights the scene with the browser's sun and fill. Shadows fall in the same direction with the same softness.
 
@@ -17,6 +17,6 @@
 - Native parses it with no defaults.
 - Run `compare-screenshots`, then unprimed `screenshot-critique` as the last check, then `preview-shots` (non-blocking).
 
-**Out of scope:** sky, haze, tone (04a) and terrain colour.
+**Out of scope:** sky and haze (04b), tone (04c) and terrain colour. Until 04c, native shows linear radiance through Godot's own linear tonemap, so judge direction and softness, not brightness.
 
 **Delegated:** how Godot's shadow softness is set (angular size or PCSS) to match the browser's look.
