@@ -106,12 +106,18 @@ func build(report) -> void:
 	report.add_budget(OWNER, "omitted: the side's learned scars, which leave clumps out and lay them over (phase 2)", "grass.scars", 1, 0, 1)
 
 ## Grows the field for one frame record: its view fields, then the build,
-## on the rendering device before the frame draws.
+## on the rendering device before the frame draws; and sets the draw's wind
+## clock.
 func grow(record: Dictionary) -> void:
 	if _build.is_valid():
 		var fields := frame_fields(record, float(_lens.fovY), _lowest, _density().w, float(_constants.tileM))
 		_tiles = fields.grid
 		_write_fields(fields)
+		# The wind's clock is the frame's interpolated sim time.
+		for mesh in _meshes:
+			var material: ShaderMaterial = mesh.surface_get_material(0)
+			material.set_shader_parameter("sim_time", float(record.simTime))
+			material.set_shader_parameter("pixel_scale", fields.eye.w)
 		RenderingServer.call_on_render_thread(_dispatch)
 
 ## The clumps each tier drew and found (before its capacity), and the

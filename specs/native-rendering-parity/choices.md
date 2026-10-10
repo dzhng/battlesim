@@ -267,3 +267,14 @@ Native grows the grass where the browser does. On market-town, against the contr
 | `*_display_test.gd` tests run in an off-screen window under `tests/run.sh` | The sampling test needs a rendering device |
 | Native clumps per cell are counted from the tiers' buffers after the plate draws, with the browser's projection rule, and reported beside the browser's | The same count, the same frame |
 | The legacy grass tufts, their target-near grid and the grass appearance pick are deleted | Replaced by the field |
+
+### Slice 06b, by the implementing agent
+
+Native grass reads like the browser's. Over the 18 market-town plates, the mean distance from the browser falls from 0.386 to 0.097, the grayscale MAE from 22.2 to 6.5, and the luminance from 117.8 against 133.4 to 134.2 against 133.4. The counts are unchanged from 06a. The unprimed critique judged the grass the same overall. Its remaining notes (thinner, speckled, more upright near blades) are aliasing: a throwaway render at 4× MSAA, which the browser's frame uses, matches the browser blade for blade (grass-region MAE 0.76 and 0.46 on plates 4789 and 393). The wind follows the record's clock: the true `simTime` is closer to the browser's plate than a clock shifted 0.35 s or 1.5 s, on each of three plates. Evidence: `throwaway/native-parity/slice06b/`.
+
+| Decision | Why |
+| --- | --- |
+| The draw places, bends and lights blades in sim metres and hands Godot world-space vertices (`world_vertex_coords`) and its own clip position, so the browser's depth tie applies | The browser's vertex stage, formula for formula |
+| The fragment sets the browser's shading normal (facing the eye, leaned to the ground's by `shading.y` and the far fade) and leaves the light to Godot's | The light is 04a–c's; the browser's `environment.shade` is the same sun and sky fill |
+| The ground-paint glow and the fog term are not ported | The menu reel draws no ground paint and no fog overlay |
+| MSAA is not turned on here | It is the whole frame's, owned by the frame and light lane; reported to the orchestrator with the evidence above |

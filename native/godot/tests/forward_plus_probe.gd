@@ -35,7 +35,7 @@ func run() -> bool:
 	var composed := ParityRun.compose(world, manifest, ground, [], one_building, [at], "blue", false, report)
 	var camera := Camera3D.new()
 	world.add_child(camera)
-	var record := {"index": 0, "canvas": [1280, 720], "eye": [at.x - 22.0, at.y - 22.0, 9.0], "target": [at.x, at.y, 2.0], "up": [0.0, 0.0, 1.0]}
+	var record := {"index": 0, "simTime": 0.0, "canvas": [1280, 720], "eye": [at.x - 22.0, at.y - 22.0, 9.0], "target": [at.x, at.y, 2.0], "up": [0.0, 0.0, 1.0]}
 	CameraRig.apply(camera, record, {"fovY": 0.8, "near": 1.0})
 	camera.make_current()
 	if composed.grass != null:

@@ -139,8 +139,11 @@ browser's own tables (`manifest.grass`), anew for every frame record.
   buffer and indirect args. A compute-written MultiMesh renders on 4.7.2 as
   long as it has a custom AABB. Godot leaks an indirect MultiMesh's command
   buffer when the MultiMesh is freed, which shows as a warning at exit.
-- **Draw.** `grass/grass.gdshader` places each blade vertex of the clump's kind
-  from the browser's shape table.
+- **Draw.** `grass/grass.gdshader` is the browser's blade vertex and fragment.
+  It places each blade vertex of the clump's kind from the browser's shape
+  table, and bends it in the one wind on the record's interpolated sim time.
+  A far clump's tint and light give way to the ground's. Native has no MSAA,
+  while the browser draws its frame at 4×, so native's blade edges alias.
 - **Counts.** For each plate the report puts native's clumps per screen cell,
   counted as the browser counts them (root on screen, occlusion ignored),
   beside the browser's `grassCounts`.
