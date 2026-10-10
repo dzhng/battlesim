@@ -276,6 +276,7 @@ fn a_lost_helicopter_leaves_an_airborne_contact() {
                 [heli.x, heli.y, heli.z],
                 "the area is where it hovered"
             );
+            assert!(c.aloft, "at cruise, well over the low hover: it floats");
             return;
         }
     }
@@ -316,6 +317,7 @@ fn a_heard_helicopter_report_is_airborne() {
     assert_eq!(c.source, ContactSource::Firing);
     assert_eq!(c.layer, AltitudeLayer::LowAir);
     assert_eq!(c.center[2], heli.z, "heard at the airframe's height");
+    assert!(c.aloft, "heard from cruise: it floats");
     let off = (c.center[0] - heli.x).hypot(c.center[1] - heli.y);
     assert!(
         off <= c.radius,
@@ -386,6 +388,44 @@ fn area_fire_refuses_an_air_contact() {
         Some(OrderError::AirContact),
         "an attack order on an air contact is refused"
     );
-    let area = ground.observe(Side::Blue).contacts[0].id;
-    assert_eq!(ground.accept(attack(area)).error, None);
+    let area = &ground.observe(Side::Blue).contacts[0];
+    assert!(!area.aloft, "a ground report lies on the ground");
+    assert_eq!(ground.accept(attack(area.id)).error, None);
+}
+
+#[test]
+fn a_report_from_the_low_hover_lies_on_the_ground() {
+    // A helicopter idle at its supply truck sinks to the low hover, just over
+    // the tallest ground hull. A shot it fires from there is heard at that
+    // height, in the air band, but no higher than a tank's roof: its report
+    // lies on the ground (D33), where one heard from cruise floats.
+    let fixture = fixture();
+    let fire = 30 * fixture["tick_hz"].as_u64().unwrap();
+    let mut b = scripted(
+        &fixture,
+        strip(),
+        json!([
+            { "side": "blue", "kind": "test_rifle", "position": [100, 200] },
+            { "side": "red", "kind": "test_supply", "position": [900, 200] },
+            { "side": "red", "kind": "test_heli", "position": [910, 200], "engagement": "return_fire_only" },
+        ]),
+        json!([{ "tick": fire, "fire": { "unit": 2 } }]),
+        json!([]),
+    );
+    for _ in 0..=fire {
+        b.step();
+    }
+    let heli = b.unit(UnitId(2)).unwrap().position;
+    assert!(
+        heli.z < b.rules().air.cruise_agl_m / 2.0,
+        "sank to the low hover before firing: {:.1} m",
+        heli.z
+    );
+    let blue = b.observe(Side::Blue);
+    assert!(blue.identified.is_empty(), "the helicopter is out of sight");
+    let [c] = blue.contacts.as_slice() else {
+        panic!("one report: {:?}", blue.contacts);
+    };
+    assert_eq!(c.layer, AltitudeLayer::LowAir);
+    assert!(!c.aloft, "heard from the low hover: on the ground");
 }

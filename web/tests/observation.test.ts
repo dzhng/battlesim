@@ -474,6 +474,7 @@ test("every frozen animation field and ground value decodes, integers exact past
       source: "firing",
       center: [120.5, 64.25, 31.5],
       layer: "low_air",
+      aloft: true,
       radius: 30,
       evidenceTick: 4,
       expiresTick: 900,

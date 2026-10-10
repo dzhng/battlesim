@@ -15,7 +15,7 @@
 import { gameHud } from "@web/battle/present/hudTheme";
 import game from "@fixtures/game.json";
 import { airborne, type UnitCatalog } from "@packages/scene-assets/src/units";
-import { buildContactGlyphs } from "@packages/battle-renderer/src/contactGlyph";
+import { buildContactGlyphs, type ContactFacing } from "@packages/battle-renderer/src/contactGlyph";
 import { buildFlightOverlay } from "@packages/battle-renderer/src/flightMesh";
 import { buildConsequenceOverlay } from "@packages/battle-renderer/src/consequenceOverlay";
 import { buildGarrisonOverlay } from "@packages/battle-renderer/src/garrisonOverlay";
@@ -93,9 +93,14 @@ export class BattleMemory {
   }
 }
 
-/** Glyphs consume the same presented reports as their labels. */
-export function contactLayer(contacts: readonly PresentedContact[], z: SurfaceHeight): WorldMeshes {
-  return buildContactGlyphs(contacts, z, gameContactStyle);
+/** Glyphs consume the same presented reports as their labels; an aloft
+ *  one's sign faces the camera as `facing` says (`useContactFacing`). */
+export function contactLayer(
+  contacts: readonly PresentedContact[],
+  z: SurfaceHeight,
+  facing: ContactFacing,
+): WorldMeshes {
+  return buildContactGlyphs(contacts, z, gameContactStyle, facing);
 }
 
 /** This tick's visible flight, own and enemy rounds tinted apart (or all in
@@ -257,11 +262,17 @@ export function buildBattleOverlay(
     showOrders,
     reveal,
     contacts,
-  }: { showOrders: boolean; reveal: RevealedOrders; contacts: readonly PresentedContact[] },
+    facing,
+  }: {
+    showOrders: boolean;
+    reveal: RevealedOrders;
+    contacts: readonly PresentedContact[];
+    facing: ContactFacing;
+  },
   border: Mesh | null = null,
   metresPerPx = OPENING_METRES_PER_PX,
 ): WorldMeshes {
-  const contactMarks = contactLayer(contacts, z);
+  const contactMarks = contactLayer(contacts, z, facing);
   const supply = supplyLayer(o, scenario.supplyRadius, z, selected, metresPerPx, showOrders);
   const orders = orderLayer(units, o, selected, reveal, z, metresPerPx, showOrders);
   const aircraft = aircraftLayer(units, o, z, metresPerPx);

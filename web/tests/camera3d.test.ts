@@ -10,6 +10,7 @@ import {
   invViewProj,
   projectPoint,
   projMatrix,
+  screenAxes,
   screenRay,
   screenRayFrom,
   viewMatrix,
@@ -70,6 +71,23 @@ test("camera3d: the target projects to the screen centre", () => {
   const { ndc, clipW } = project(CAM, CAM.target);
   assert.ok(clipW > 0);
   assert.ok(Math.abs(ndc[0]) < 1e-5 && Math.abs(ndc[1]) < 1e-5, `target ndc ${ndc}`);
+});
+
+test("camera3d: the screen axes point along the screen's right and up", () => {
+  for (const [yaw, pitch] of [
+    [0.2, 0.55],
+    [-1.25, 0.72],
+    [2.9, 1.4],
+  ]) {
+    const cam = { ...CAM, yaw, pitch };
+    const { right, up } = screenAxes(cam);
+    const at = (dir: readonly number[]) =>
+      project(cam, [cam.target[0] + dir[0] * 5, cam.target[1] + dir[1] * 5, dir[2] * 5]).ndc;
+    const [rx, ry] = at(right);
+    const [ux, uy] = at(up);
+    assert.ok(rx > 0 && Math.abs(ry) < 1e-4, `right at ${yaw},${pitch}: ${rx},${ry}`);
+    assert.ok(uy > 0 && Math.abs(ux) < 1e-4, `up at ${yaw},${pitch}: ${ux},${uy}`);
+  }
 });
 
 test("camera3d: view rotation is orthonormal", () => {

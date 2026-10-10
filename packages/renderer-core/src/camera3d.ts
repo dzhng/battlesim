@@ -87,6 +87,20 @@ export function viewMatrix(out: Mat4, p: Camera3DParams): Mat4 {
   return mat4.lookAt(out, _view_eye, p.target, _view_up);
 }
 
+/** The screen's right and up in the world, unit vectors: what a sign that
+ *  faces the camera is drawn in. They depend on the orbit's yaw and pitch
+ *  alone, and match `viewMatrix`'s axes. */
+export function screenAxes(p: Pick<Camera3DParams, "yaw" | "pitch">): {
+  right: [number, number, number];
+  up: [number, number, number];
+} {
+  const s = Math.sin(p.pitch);
+  return {
+    right: [-Math.sin(p.yaw), Math.cos(p.yaw), 0],
+    up: [-s * Math.cos(p.yaw), -s * Math.sin(p.yaw), Math.cos(p.pitch)],
+  };
+}
+
 export function projMatrix(out: Mat4, p: Camera3DParams): Mat4 {
   return perspectiveReverseZ(out, p.fovY, p.aspect, p.near, p.far);
 }

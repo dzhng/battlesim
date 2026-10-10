@@ -7,8 +7,9 @@ import { useFeed } from "../feed";
 import { gameCamera } from "../gameCamera";
 import { TickStatus } from "../TickStatus";
 import { buildBattleOverlay } from "../battleOverlay";
+import { useContactFacing } from "../contactFacing";
 import type { ViewportPointer } from "../LabViewport";
-import type { Project } from "@web/battle/present/readouts";
+import { ReadoutLayer, type Project } from "@web/battle/present/readouts";
 
 // Test helicopters hovering at cruise height, drawn as the battle draws
 // them: each with its ground marker and drop line (D18), its rotors turning
@@ -18,12 +19,16 @@ import type { Project } from "@web/battle/present/readouts";
 // house's roof and an identified enemy one over the field across the road;
 // `fog`, an enemy one over the ground the house hides from blue's jeep, seen
 // over the fog (V02); `apache`, the AH-64E on its real art over the verge,
-// its chin gun firing down at an enemy tank on the road.
+// its chin gun firing down at an enemy tank on the road; `lost`, an enemy one
+// blue's jeep sees across the field, then loses as it flies on behind a block
+// of flats: its last sighting hangs in the air where it was seen last (the
+// airborne contact sign, D11).
 const VARIANTS = {
   hover: { label: "Over open ground", target: [142, 90, 8] },
   roof: { label: "Over a roof, enemy beyond", target: [256, 97, 10] },
   fog: { label: "Enemy over fog", target: [270, 60, 8] },
   apache: { label: "Apache firing down", target: [128, 112, 12] },
+  lost: { label: "Enemy lost behind the flats", target: [205, 470, 10] },
 } as const;
 type Variant = keyof typeof VARIANTS;
 const VARIANT_NAMES = Object.keys(VARIANTS) as Variant[];
@@ -67,13 +72,16 @@ function AirHoverLab({ battles }: { battles: Record<Variant, SavedBattle> }) {
   const [metresPerPx, setMetresPerPx] = useState(() =>
     zoomStep(metresPerPxAt(initial.distance, initial.fovY, window.innerHeight)),
   );
+  const contactFacing = useContactFacing(initial, metresPerPx);
   const { placePanels } = session;
+  const { follow } = contactFacing;
   const onFrame = useCallback(
     (project: Project, view: Camera3DParams, pointer: ViewportPointer) => {
       placePanels(project, view, pointer);
+      follow(view);
       setMetresPerPx(zoomStep(metresPerPxAt(view.distance, view.fovY, window.innerHeight)));
     },
-    [placePanels],
+    [placePanels, follow],
   );
   const overlay = useMemo(
     () =>
@@ -84,12 +92,19 @@ function AirHoverLab({ battles }: { battles: Record<Variant, SavedBattle> }) {
             control.selected,
             surfaceZ,
             { supplyRadius: 0, zone: null, deployment: null },
-            { showOrders: control.showOrders, reveal: session.revealed, contacts: [] },
+            {
+              showOrders: control.showOrders,
+              reveal: session.revealed,
+              contacts: session.contacts,
+              facing: contactFacing.facing,
+            },
             null,
             metresPerPx,
           )
         : undefined,
     [
+      session.contacts,
+      contactFacing.facing,
       world,
       observation,
       session.units,
@@ -131,6 +146,14 @@ function AirHoverLab({ battles }: { battles: Record<Variant, SavedBattle> }) {
         onReady={session.onReady}
         onFrame={onFrame}
         diagnostics={{ ...session.probes, variant: (v: Variant) => chooseVariant(v) }}
+      />
+      <ReadoutLayer
+        own={[]}
+        contacts={session.contacts}
+        tick={observation?.tick}
+        rules={session.rules}
+        selected={[]}
+        handle={session.readouts}
       />
       <aside className="hud-panel lab-panel" data-occludes-readouts data-testid="air-hover-panel">
         <strong>Air hover</strong>
