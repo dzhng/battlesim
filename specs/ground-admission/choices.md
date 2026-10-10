@@ -167,3 +167,18 @@ the [README](README.md#decisions).
 - **Sights above the hull box are dressing** on all three (T-15 box 3.2 m to the module roof).
   Wreck footprint tolerance 1.9 m for both (thrown skirts land 1.8 m clear).
 - **Scripts:** `armata.py` holds the shared platform; `t14.py` and `t15.py` export one folder each.
+
+## 2026-10-10 — slice 12 (EBRC Jaguar)
+
+- **Accepted: the turret could stand taller.** Three critiques; each ranked fix applied (taller hull,
+  bigger turret, launcher pod raised on a dark arm, thicker gun, wheels outboard). The last wants a
+  taller turret, which means growing the 2.8 m frame toward the real ~2.9 m. Left for a later art pass;
+  at play camera it is told from the Fennek, and from the VBCI mainly by six wheels against eight.
+- **Numbers between the Fennek and the VBCI:** hp 80, armour 50/30/20/15, 32/90 km/h, role `recon`;
+  the Akeron keeps the row's 4 rounds. Frame sized to the measured art (7.1 × 3.04 × 2.8 m).
+- **Edge wear 0.6 removed the pale patches,** so they came from the chip setting.
+- **Sample:** Akerons kill a T-90M from 700–840 m before it sees the Jaguar; at 400 m the tank shoots
+  back; Trophy stops every missile (`assets/12/battle-sample.txt`).
+- **Found:** the disabled-card exporter skips nodes by name prefix, so `"gun"` also skipped
+  `gunner_sight`, and slice 01's fit numbers for turreted cards could read low. No disabled ground card
+  remains, so it is left for whoever next exports a disabled card.
