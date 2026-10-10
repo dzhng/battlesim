@@ -1,4 +1,4 @@
-"""BRM-3K Rys reconnaissance vehicle (disabled card), from assets/references/brm/.
+"""BRM-3K Rys reconnaissance vehicle, from assets/references/brm/.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/brm.py -- [--wreck]
 
@@ -13,7 +13,8 @@ box each side of the gun, smoke tubes on the cheeks and the 1RL-133 radar's
 folded housing on the turret's rear. The model wears Russian green (the 2013
 car's desert scheme was an exhibition finish).
 
-Frame 7.14 x 3.2 x 2.4 m, gun pivot 1.56 m (`DIMENSIONS`, `MOUNTS`).
+Built to the catalog frame, the BMP-3 hull's (7.14 x 3.2 x 2.4 m, gun pivot
+1.56 m).
 """
 import math
 import os
@@ -22,17 +23,10 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft, prism  # noqa: E402
-from vehicle_export import rig, run_disabled  # noqa: E402
+from vehicle_export import rig, run  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 
-CARD = "eastern_brm_brm_3k"
-# The frame its references give (a disabled card has no unit type): the
-# hull box, and the mounts its turret and guns are rigged on for the art.
-DIMENSIONS = (7.14, 3.2, 2.4)
-MOUNTS = [
-    dict(name="autocannon", role="gun", on=None, pivot_m=[0.0, 0.0, 1.56], muzzle_m=[2.999, 0.0, 0.432]),
-]
 TRACK_Y = 1.30
 TRACK_W = 0.38
 ROAD_R = 0.34
@@ -64,14 +58,14 @@ def hull(v):
     for side, s in ((1, "L"), (-1, "R")):
         VP.light_with_guard(f"headlight_{s}", (half - 1.30, side * 1.25, nose + 0.45), 0.06, m, h)
         VP.hatch(f"bow_gunner_hatch_{s}", (half - 2.10, side * 0.85, ROOF), m, h, radius=0.22)
-        VP.tow_hook(f"front_tow_{s}", (half - 0.02, side * 0.65, 0.75), m, h, size=0.12)
+        VP.tow_hook(f"front_tow_{s}", (half - 0.14, side * 0.65, 0.75), m, h, size=0.12)
         # The rubber skirt over the track's top run, in sections.
         for k in range(5):
             x = half - 0.80 - k * 1.15
             box(f"rubber_skirt_{s}_{k}", (1.10, 0.03, 0.30), (x, side * 1.52, 0.86), m["rubber"], h, lods=MID)
         box(f"fender_{s}", (v.length - 0.5, 0.40, 0.04), (-0.1, side * 1.38, 0.99), m["paint"], h, bevel=0.01,
             lods=MID)
-        VP.stowage_box(f"rear_box_{s}", (-half + 0.35, side * 1.15, DECK), (0.50, 0.40, 0.30), m, h)
+        VP.stowage_box(f"rear_box_{s}", (-half + 0.45, side * 1.15, DECK), (0.70, 0.40, 0.16), m, h)
         VP.cable(f"tow_cable_{s}", [(-half + 0.8, side * 1.45, 1.05), (-1.0, side * 1.47, 1.05),
                                     (0.8, side * 1.45, 1.05)], m, h, radius=0.018)
     VP.grille("engine_grille", (-2.30, 0.45, DECK), (1.0, 0.75), m, h, slats=8)
@@ -91,10 +85,10 @@ def hull(v):
     for k in range(4):
         cyl(f"spare_link_{k}", 0.045, 0.52, (half - 0.12, -0.85 + k * 0.57, 0.86), "Y", m["track"], h, seg=8,
             lods=NEAR)
-    cyl("unditching_log", 0.11, 2.30, (-half - 0.12, 0, DECK - 0.18), "Y", m["canvas"], h,
+    cyl("unditching_log", 0.10, 1.40, (-half + 0.08, 0, DECK + 0.10), "Y", m["canvas"], h,
         seg=12, bevel=0.02)
     for side in (-1, 1):
-        box(f"log_strap_{side}", (0.04, 0.05, 0.26), (-half - 0.12, side * 0.80, DECK - 0.18), m["dark"], h,
+        box(f"log_strap_{side}", (0.22, 0.05, 0.04), (-half + 0.08, side * 0.50, DECK + 0.19), m["dark"], h,
             lods=NEAR)
     box("shovel_blade", (0.24, 0.02, 0.18), (1.80, -1.53, 1.10), m["steel"], h, lods=NEAR)
     box("shovel_handle", (0.60, 0.025, 0.035), (1.40, -1.53, 1.10), m["canvas"], h, lods=NEAR)
@@ -103,7 +97,7 @@ def hull(v):
     for side, sd in ((1, "L"), (-1, "R")):
         VP.light_with_guard(f"tail_light_{sd}", (-v.length / 2 - 0.02, side * (v.width / 2 - 0.45), ROOF - 0.25), 0.05,
                             dict(v.mats, lamp=v.mats["tail"]), v.hull, rot=(0, 0, math.pi))
-        VP.tow_hook(f"rear_tow_{sd}", (-v.length / 2 + 0.02, side * 0.75, 0.85), v.mats, v.hull, size=0.13,
+        VP.tow_hook(f"rear_tow_{sd}", (-v.length / 2 + 0.12, side * 0.75, 0.85), v.mats, v.hull, size=0.12,
                     rot=(0, 0, math.pi))
 
 def running_gear(v):
@@ -117,30 +111,34 @@ def running_gear(v):
 def turret(v, turret, gun):
     m = v.mats
     base = ROOF - v.frame["mounts"][0]["pivot_m"][2]
-    top = base + 0.62
-    foot = [(1.05, 0.40), (0.85, 0.98), (-0.90, 1.02), (-1.10, 0.75), (-1.10, -0.75), (-0.90, -1.02), (0.85, -0.98),
-            (1.05, -0.40)]
-    crown = [(0.75, 0.36), (0.55, 0.85), (-0.80, 0.90), (-1.00, 0.66), (-1.00, -0.66), (-0.80, -0.90), (0.55, -0.85),
-             (0.75, -0.36)]
-    cyl("turret_ring_guard", 0.95, 0.08, (0, 0, base + 0.02), "Z", m["dark"], turret, seg=36, lods=MID)
-    loft("turret_shell", [(base + 0.04, foot), (top, crown)], mat=m["paint"], parent=turret, bevel=0.035)
-    VP.roof_fittings("roof", crown, top, m, turret, periscopes=((0.30, 0.45, 0.3), (0.30, -0.45, -0.3)))
+    # A broad, near-upright two-man turret on the BMP-3's ring, a tall sight
+    # box standing on each flank: the mass that tells it from the BMP-3's
+    # low cone at play camera.
+    top = base + 0.74
+    foot = [(1.10, 0.45), (0.90, 1.08), (-1.00, 1.12), (-1.20, 0.85), (-1.20, -0.85), (-1.00, -1.12), (0.90, -1.08),
+            (1.10, -0.45)]
+    crown = [(0.95, 0.42), (0.78, 1.00), (-0.95, 1.04), (-1.14, 0.80), (-1.14, -0.80), (-0.95, -1.04), (0.78, -1.00),
+             (0.95, -0.42)]
+    cyl("turret_ring_guard", 1.05, 0.08, (0, 0, base + 0.02), "Z", m["dark"], turret, seg=36, lods=MID)
+    loft("turret_shell", [(base + 0.04, foot), (base + 0.40, [(x * 0.98, y * 0.98) for x, y in foot]), (top, crown)],
+         mat=m["paint"], parent=turret, bevel=0.035)
+    VP.roof_fittings("roof", crown, top, m, turret, periscopes=((0.35, 0.45, 0.3), (0.35, -0.45, -0.3)))
     for side, s in ((1, "L"), (-1, "R")):
-        VP.sight_housing(f"sight_{s}", (0.45, side * 0.62, top - 0.02), m, turret, size=(0.38, 0.28, 0.30))
-        VP.smoke_discharger_bank(f"smoke_{s}", (0.55, side * 0.90, base + 0.30), m, turret, count=3,
+        VP.sight_housing(f"sight_{s}", (0.30, side * 1.20, base + 0.04), m, turret, size=(0.60, 0.34, 0.68))
+        VP.smoke_discharger_bank(f"smoke_{s}", (0.80, side * 0.80, base + 0.42), m, turret, count=3,
                                  tube_radius=0.045, tube_length=0.20, elevation=0.4, spread=0.3,
                                  rot=(0, 0, side * 0.9))
-        VP.hatch(f"turret_hatch_{s}", (-0.30, side * 0.45, top), m, turret, radius=0.24)
-        VP.stowage_box(f"turret_bin_{s}", (-0.55, side * 1.02, base + 0.12), (0.60, 0.22, 0.36), m, turret,
+        VP.hatch(f"turret_hatch_{s}", (-0.30, side * 0.48, top), m, turret, radius=0.24)
+        VP.stowage_box(f"turret_bin_{s}", (-0.60, side * 1.15, base + 0.12), (0.60, 0.24, 0.40), m, turret,
                        rot=(0, 0, 0 if side > 0 else math.pi))
         whip = empty(f"dressing_antenna_{s}", parent=turret)
-        VP.antenna(f"antenna_{s}", (-0.85, side * 0.62, top), m, whip, height=2.2)
-    # The IR searchlight in its guard on the turret's left front.
-    VP.light_with_guard("ir_searchlight", (0.75, 0.82, top + 0.10), 0.11, dict(m, lamp=m["glass"]), turret)
+        VP.antenna(f"antenna_{s}", (-0.95, side * 0.62, top), m, whip, height=2.2)
+    # The IR searchlight in its guard on the left sight box's front.
+    VP.light_with_guard("ir_searchlight", (0.62, 1.20, base + 0.52), 0.11, dict(m, lamp=m["glass"]), turret)
     # The 1RL-133 radar folded in its housing on the turret rear.
     radar = empty("dressing_radar", parent=turret)
-    box("radar_housing", (0.45, 1.00, 0.30), (-1.10, 0, top - 0.05), m["paint"], radar, bevel=0.04)
-    box("radar_face", (0.02, 0.90, 0.22), (-1.33, 0, top - 0.05), m["dark"], radar, lods=MID)
+    box("radar_housing", (0.45, 1.00, 0.30), (-1.25, 0, top - 0.05), m["paint"], radar, bevel=0.04)
+    box("radar_face", (0.02, 0.90, 0.22), (-1.48, 0, top - 0.05), m["dark"], radar, lods=MID)
     reach = v.frame["mounts"][0]["muzzle_m"][0]
     box("gun_mantlet", (0.50, 0.40, 0.32), (0.55, 0, 0), m["paint"], gun, bevel=0.04)
     cyl("cannon_sleeve", 0.07, 0.55, (1.05, 0, 0), "X", m["dark"], gun, seg=16)
@@ -176,6 +174,4 @@ def wreck(variant, v):
     rest_on_ground(0.004)
 
 
-if __name__ == "__main__":
-    run_disabled("brm", {CARD: DIMENSIONS}, "russian_green", build, wreck, mounts={CARD: MOUNTS},
-                 skip=("dressing_", "gun", "hmg"), chip=1.0)
+run("brm", "russian_green", build, wreck, chip=1.0)

@@ -70,6 +70,23 @@
       }
     },
     {
+      "cost": 180,
+      "description": "BRM-3K Rys tracked reconnaissance vehicle; 30 mm autocannon",
+      "disabled_reason": null,
+      "family": "brm",
+      "id": "eastern_brm_brm_3k",
+      "name": "BRM-3K",
+      "planned_weapons": [],
+      "roster": {
+        "category": "rec",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "BRM",
+        "variant": "BRM-3K"
+      }
+    },
+    {
       "cost": 140,
       "description": "BTR-82A; ground combat platform, passenger carriage not implemented",
       "disabled_reason": null,
@@ -237,6 +254,23 @@
         ],
         "family_name": "Tigr",
         "variant": "Tigr-M"
+      }
+    },
+    {
+      "cost": 230,
+      "description": "ZTQ-15 light tank",
+      "disabled_reason": null,
+      "family": "type_15",
+      "id": "eastern_type_15_ztq_15_light_tank",
+      "name": "ZTQ-15",
+      "planned_weapons": [],
+      "roster": {
+        "category": "veh",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "Type 15",
+        "variant": "ZTQ-15 light tank"
       }
     },
     {
@@ -1127,28 +1161,6 @@
       }
     },
     {
-      "cost": 180,
-      "description": "BRM-3K",
-      "disabled_reason": "Ground profile and model admission pending",
-      "family": "brm",
-      "id": "eastern_brm_brm_3k",
-      "name": "BRM-3K",
-      "planned_weapons": [
-        {
-          "icon": "autocannon",
-          "name": "Autocannon"
-        }
-      ],
-      "roster": {
-        "category": "rec",
-        "factions": [
-          "eastern"
-        ],
-        "family_name": "BRM",
-        "variant": "BRM-3K"
-      }
-    },
-    {
       "cost": 300,
       "description": "Buk-M3 medium-range air defense",
       "disabled_reason": "Air-defense targeting and airborne targets deferred",
@@ -1730,32 +1742,6 @@
         ],
         "family_name": "T-15 Armata",
         "variant": "Heavy IFV"
-      }
-    },
-    {
-      "cost": 230,
-      "description": "ZTQ-15 light tank",
-      "disabled_reason": "Ground profile and model admission pending",
-      "family": "type_15",
-      "id": "eastern_type_15_ztq_15_light_tank",
-      "name": "ZTQ-15",
-      "planned_weapons": [
-        {
-          "icon": "ap_shell",
-          "name": "Main Gun"
-        },
-        {
-          "icon": "hmg",
-          "name": "HMG"
-        }
-      ],
-      "roster": {
-        "category": "veh",
-        "factions": [
-          "eastern"
-        ],
-        "family_name": "Type 15",
-        "variant": "ZTQ-15 light tank"
       }
     },
     {
@@ -6391,22 +6377,73 @@
           }
         },
         "eastern_brm_brm_3k": {
+          "appearance": "eastern_brm_brm_3k",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 75.0,
+                "rear": 25.0,
+                "ricochet": {
+                  "front": 0.1,
+                  "rear": 0.05,
+                  "roof": 0.15,
+                  "side": 0.1
+                },
+                "roof": 20.0,
+                "side": 40.0
+              },
+              "eye_m": 2.3,
+              "half_extents_m": [
+                3.57,
+                1.6,
+                1.2
+              ],
+              "hp": 90.0,
+              "push_class": "medium",
+              "weight_class": "medium",
+              "wreck": "medium_wreck"
+            }
+          },
+          "capabilities": {},
           "cost": 180,
-          "description": "BRM-3K",
+          "description": "BRM-3K Rys tracked reconnaissance vehicle; 30 mm autocannon",
           "faction": "eastern",
           "family": "brm",
-          "name": "BRM-3K",
-          "planned": {
-            "profile": "tracked-recon",
-            "reason": "Ground profile and model admission pending",
-            "weapons": [
-              {
-                "icon": "autocannon",
-                "name": "Autocannon"
-              }
-            ]
+          "mobility": {
+            "tracked": {
+              "offroad_kmh": 28.0,
+              "reverse_fraction": 0.4,
+              "road_kmh": 65.0,
+              "turn_deg_s": 45.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "autocannon",
+              "muzzle_m": [
+                2.999,
+                0.0,
+                0.432
+              ],
+              "name": "Autocannon",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.56
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "autocannon"
+              ]
+            }
+          ],
+          "name": "BRM-3K",
+          "roles": [
+            "recon"
+          ],
           "roster": {
             "category": "rec",
             "factions": [
@@ -6414,6 +6451,20 @@
             ],
             "family_name": "BRM",
             "variant": "BRM-3K"
+          },
+          "sensors": {
+            "concealed_range_multiplier": 1.5,
+            "ground_m": 850.0,
+            "on": "autocannon",
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 1.0,
+              "side": 1.0
+            }
+          },
+          "sound": {
+            "loudness_m": 650.0,
+            "profile": "vehicle"
           }
         },
         "eastern_btr_btr_82a": {
@@ -7845,26 +7896,95 @@
           }
         },
         "eastern_type_15_ztq_15_light_tank": {
+          "appearance": "eastern_type_15_ztq_15_light_tank",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 110.0,
+                "rear": 35.0,
+                "ricochet": {
+                  "front": 0.3,
+                  "rear": 0.1,
+                  "roof": 0.35,
+                  "side": 0.2
+                },
+                "roof": 25.0,
+                "side": 60.0
+              },
+              "eye_m": 2.44,
+              "half_extents_m": [
+                3.65,
+                1.675,
+                1.25
+              ],
+              "hp": 100.0,
+              "push_class": "medium",
+              "weight_class": "medium",
+              "wreck": "medium_wreck"
+            }
+          },
+          "capabilities": {},
           "cost": 230,
           "description": "ZTQ-15 light tank",
           "faction": "eastern",
           "family": "type_15",
-          "name": "ZTQ-15",
-          "planned": {
-            "profile": "light-tank",
-            "reason": "Ground profile and model admission pending",
-            "weapons": [
-              {
-                "icon": "ap_shell",
-                "name": "Main Gun"
-              },
-              {
-                "icon": "hmg",
-                "name": "HMG"
-              }
-            ]
+          "mobility": {
+            "tracked": {
+              "offroad_kmh": 30.0,
+              "reverse_fraction": 0.4,
+              "road_kmh": 70.0,
+              "turn_deg_s": 50.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "cannon",
+              "muzzle_m": [
+                5.36,
+                0.0,
+                0.504
+              ],
+              "name": "Main Gun",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.68
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "light_tank_ap",
+                "light_tank_he"
+              ]
+            },
+            {
+              "id": "HMG",
+              "muzzle_m": [
+                1.43,
+                0.0,
+                0.32
+              ],
+              "name": "HMG",
+              "on": "cannon",
+              "pivot_m": [
+                -0.25,
+                -0.58,
+                2.44
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "hmg"
+              ]
+            }
+          ],
+          "name": "ZTQ-15",
+          "roles": [
+            "mbt"
+          ],
           "roster": {
             "category": "veh",
             "factions": [
@@ -7872,6 +7992,19 @@
             ],
             "family_name": "Type 15",
             "variant": "ZTQ-15 light tank"
+          },
+          "sensors": {
+            "ground_m": 550.0,
+            "on": "cannon",
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.5
+            }
+          },
+          "sound": {
+            "loudness_m": 650.0,
+            "profile": "vehicle"
           }
         },
         "eastern_type_99_ztz_99a": {
@@ -16627,6 +16760,99 @@
       }
     },
     {
+      "appearance": "eastern_brm_brm_3k",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 75.0,
+            "rear": 25.0,
+            "ricochet": {
+              "front": 0.1,
+              "rear": 0.05,
+              "roof": 0.15,
+              "side": 0.1
+            },
+            "roof": 20.0,
+            "side": 40.0
+          },
+          "eye_m": 2.3,
+          "half_extents_m": [
+            3.57,
+            1.6,
+            1.2
+          ],
+          "hp": 90.0,
+          "push_class": "medium",
+          "weight_class": "medium",
+          "wreck": "medium_wreck"
+        }
+      },
+      "capabilities": {},
+      "cost": 180,
+      "description": "BRM-3K Rys tracked reconnaissance vehicle; 30 mm autocannon",
+      "faction": "eastern",
+      "family": "brm",
+      "id": "eastern_brm_brm_3k",
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 28.0,
+          "reverse_fraction": 0.4,
+          "road_kmh": 65.0,
+          "turn_deg_s": 45.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "autocannon",
+          "muzzle_m": [
+            2.999,
+            0.0,
+            0.432
+          ],
+          "name": "Autocannon",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.56
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "autocannon"
+          ]
+        }
+      ],
+      "name": "BRM-3K",
+      "roles": [
+        "recon"
+      ],
+      "roster": {
+        "category": "rec",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "BRM",
+        "variant": "BRM-3K"
+      },
+      "sensors": {
+        "concealed_range_multiplier": 1.5,
+        "ground_m": 850.0,
+        "on": "autocannon",
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 1.0,
+          "side": 1.0
+        }
+      },
+      "sound": {
+        "loudness_m": 650.0,
+        "profile": "vehicle"
+      }
+    },
+    {
       "appearance": "eastern_btr_btr_82a",
       "body": {
         "hull": {
@@ -17694,6 +17920,121 @@
       "sensors": {
         "ground_m": 700.0,
         "on": "HMG",
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.5
+        }
+      },
+      "sound": {
+        "loudness_m": 650.0,
+        "profile": "vehicle"
+      }
+    },
+    {
+      "appearance": "eastern_type_15_ztq_15_light_tank",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 110.0,
+            "rear": 35.0,
+            "ricochet": {
+              "front": 0.3,
+              "rear": 0.1,
+              "roof": 0.35,
+              "side": 0.2
+            },
+            "roof": 25.0,
+            "side": 60.0
+          },
+          "eye_m": 2.44,
+          "half_extents_m": [
+            3.65,
+            1.675,
+            1.25
+          ],
+          "hp": 100.0,
+          "push_class": "medium",
+          "weight_class": "medium",
+          "wreck": "medium_wreck"
+        }
+      },
+      "capabilities": {},
+      "cost": 230,
+      "description": "ZTQ-15 light tank",
+      "faction": "eastern",
+      "family": "type_15",
+      "id": "eastern_type_15_ztq_15_light_tank",
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 30.0,
+          "reverse_fraction": 0.4,
+          "road_kmh": 70.0,
+          "turn_deg_s": 50.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "cannon",
+          "muzzle_m": [
+            5.36,
+            0.0,
+            0.504
+          ],
+          "name": "Main Gun",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.68
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "light_tank_ap",
+            "light_tank_he"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "HMG",
+          "muzzle_m": [
+            1.43,
+            0.0,
+            0.32
+          ],
+          "name": "HMG",
+          "on": "cannon",
+          "pivot_m": [
+            -0.25,
+            -0.58,
+            2.44
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "hmg"
+          ]
+        }
+      ],
+      "name": "ZTQ-15",
+      "roles": [
+        "mbt"
+      ],
+      "roster": {
+        "category": "veh",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "Type 15",
+        "variant": "ZTQ-15 light tank"
+      },
+      "sensors": {
+        "ground_m": 550.0,
+        "on": "cannon",
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,

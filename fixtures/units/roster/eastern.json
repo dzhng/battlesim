@@ -371,10 +371,12 @@
     },
     "eastern_brm_brm_3k": {
       "name": "BRM-3K",
-      "description": "BRM-3K",
+      "description": "BRM-3K Rys tracked reconnaissance vehicle; 30 mm autocannon",
       "faction": "eastern",
       "family": "brm",
-      "roles": [],
+      "roles": [
+        "recon"
+      ],
       "cost": 180,
       "roster": {
         "factions": [
@@ -384,15 +386,64 @@
         "variant": "BRM-3K",
         "family_name": "BRM"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "tracked-recon",
-        "weapons": [
-          {
-            "name": "Autocannon",
-            "icon": "autocannon"
-          }
-        ]
+      "extends": "roster_profile_tracked_recon",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.57,
+            1.6,
+            1.2
+          ],
+          "eye_m": 2.3,
+          "hp": 90,
+          "armor": {
+            "front": 75,
+            "side": 40,
+            "rear": 25,
+            "roof": 20,
+            "ricochet": {
+              "front": 0.1,
+              "side": 0.1,
+              "rear": 0.05,
+              "roof": 0.15
+            }
+          },
+          "weight_class": "medium",
+          "push_class": "medium",
+          "wreck": "medium_wreck"
+        }
+      },
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 28,
+          "road_kmh": 65,
+          "turn_deg_s": 45,
+          "reverse_fraction": 0.4
+        }
+      },
+      "mounts": [
+        {
+          "id": "autocannon",
+          "name": "Autocannon",
+          "weapons": [
+            "autocannon"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            1.56
+          ],
+          "muzzle_m": [
+            2.999,
+            0,
+            0.432
+          ]
+        }
+      ],
+      "appearance": "eastern_brm_brm_3k",
+      "sensors": {
+        "on": "autocannon"
       }
     },
     "eastern_btr_btr_82a": {
@@ -1696,7 +1747,9 @@
       "description": "ZTQ-15 light tank",
       "faction": "eastern",
       "family": "type_15",
-      "roles": [],
+      "roles": [
+        "mbt"
+      ],
       "cost": 230,
       "roster": {
         "factions": [
@@ -1706,19 +1759,84 @@
         "variant": "ZTQ-15 light tank",
         "family_name": "Type 15"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "light-tank",
-        "weapons": [
-          {
-            "name": "Main Gun",
-            "icon": "ap_shell"
+      "extends": "roster_profile_light_tank",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.65,
+            1.675,
+            1.25
+          ],
+          "eye_m": 2.44,
+          "hp": 100,
+          "armor": {
+            "front": 110,
+            "side": 60,
+            "rear": 35,
+            "roof": 25,
+            "ricochet": {
+              "front": 0.3,
+              "side": 0.2,
+              "rear": 0.1,
+              "roof": 0.35
+            }
           },
-          {
-            "name": "HMG",
-            "icon": "hmg"
-          }
-        ]
+          "weight_class": "medium",
+          "push_class": "medium",
+          "wreck": "medium_wreck"
+        }
+      },
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 30,
+          "road_kmh": 70,
+          "turn_deg_s": 50,
+          "reverse_fraction": 0.4
+        }
+      },
+      "mounts": [
+        {
+          "id": "cannon",
+          "name": "Main Gun",
+          "weapons": [
+            "light_tank_ap",
+            "light_tank_he"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            1.68
+          ],
+          "muzzle_m": [
+            5.36,
+            0,
+            0.504
+          ]
+        },
+        {
+          "id": "HMG",
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            -0.25,
+            -0.58,
+            2.44
+          ],
+          "muzzle_m": [
+            1.43,
+            0,
+            0.32
+          ],
+          "on": "cannon"
+        }
+      ],
+      "appearance": "eastern_type_15_ztq_15_light_tank",
+      "sensors": {
+        "on": "cannon"
       }
     },
     "eastern_type_99_ztz_99a": {

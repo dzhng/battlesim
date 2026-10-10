@@ -68,16 +68,6 @@
       "source_path": "assets/source/roster/bm_21_grad/eastern_bm_21_grad_bm_21_rocket_artillery.glb"
     },
     {
-      "id": "eastern_brm_brm_3k",
-      "family": "brm",
-      "category": "rec",
-      "model_status": "reference_built",
-      "source_family": "brm",
-      "source_kind": "ground_vehicle",
-      "disabled_reason": "Ground profile and model admission pending",
-      "source_path": "assets/source/roster/brm/eastern_brm_brm_3k.glb"
-    },
-    {
       "id": "eastern_buk_buk_m3_medium_range_air_defense",
       "family": "buk",
       "category": "sup",
@@ -306,16 +296,6 @@
       "source_kind": "ground_vehicle",
       "disabled_reason": "Ground profile and model admission pending",
       "source_path": "assets/source/roster/t15/eastern_t_15_armata_heavy_ifv.glb"
-    },
-    {
-      "id": "eastern_type_15_ztq_15_light_tank",
-      "family": "type_15",
-      "category": "veh",
-      "model_status": "reference_built",
-      "source_family": "type15",
-      "source_kind": "ground_vehicle",
-      "disabled_reason": "Ground profile and model admission pending",
-      "source_path": "assets/source/roster/type15/eastern_type_15_ztq_15_light_tank.glb"
     },
     {
       "id": "eastern_z_10_attack_helicopter",

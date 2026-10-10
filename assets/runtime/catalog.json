@@ -463,6 +463,26 @@
       "scenery": "wreck",
       "unit": "scenery"
     },
+    "eastern_brm_brm_3k": {
+      "bundle": "99538f653136f2b05d4f862461d1a783a714300e985be90ed2293c0035a98467",
+      "kind": "articulated",
+      "mounts": {
+        "autocannon": "gun"
+      },
+      "unit": "vehicle",
+      "wreck": "eastern_brm_brm_3k_wreck"
+    },
+    "eastern_brm_brm_3k_wreck": {
+      "bundle": "e4332b066017cc9259f700409836afd876b42d731d6b3573217abac78ada8806",
+      "footprint_half_m": [
+        3.57,
+        1.6,
+        1.2
+      ],
+      "kind": "static",
+      "scenery": "wreck",
+      "unit": "scenery"
+    },
     "eastern_btr_btr_82a": {
       "bundle": "1ede0d6606e6fe5e6c01468dfbc67902bd85460be5e06faa56958ac64b0afd2d",
       "kind": "articulated",
@@ -723,6 +743,27 @@
         2.835,
         1.1,
         1
+      ],
+      "kind": "static",
+      "scenery": "wreck",
+      "unit": "scenery"
+    },
+    "eastern_type_15_ztq_15_light_tank": {
+      "bundle": "a669b60f7a000264cb2d4f69078ecfc333dd24a23ed0b4ab290608cf6f2bb9f4",
+      "kind": "articulated",
+      "mounts": {
+        "HMG": "hmg",
+        "cannon": "gun"
+      },
+      "unit": "vehicle",
+      "wreck": "eastern_type_15_ztq_15_light_tank_wreck"
+    },
+    "eastern_type_15_ztq_15_light_tank_wreck": {
+      "bundle": "8e3560f71382ab526d2012c1bc9a21cfb47fb5434ee795ef5e1bb312da70d4ac",
+      "footprint_half_m": [
+        3.65,
+        1.675,
+        1.25
       ],
       "kind": "static",
       "scenery": "wreck",
@@ -4195,6 +4236,11 @@
       "hash": "e0a3a145bba26238b457230ad0afdd6e3afcfacaf45340f64743d62171084d61",
       "raw_bytes": 207536
     },
+    "8e3560f71382ab526d2012c1bc9a21cfb47fb5434ee795ef5e1bb312da70d4ac": {
+      "bytes": 3892024,
+      "hash": "141a0eae08e354a0483f2686370e8240c3149c8db8f7e49563db8ca6241fce38",
+      "raw_bytes": 11743088
+    },
     "8f50d58527d1b98d99e107c6187b9f406ead29b25316ca21db2124526416a070": {
       "bytes": 69761,
       "hash": "4d36dfdf37186307f4412b21b060e22029ed6e762ae51f4ee0763ff429f871a5",
@@ -4345,6 +4391,11 @@
       "hash": "91f60278632a4d2ab2f9a8baab19f135afcd9037935470b94c214c5d1f237384",
       "raw_bytes": 349543
     },
+    "99538f653136f2b05d4f862461d1a783a714300e985be90ed2293c0035a98467": {
+      "bytes": 916258,
+      "hash": "9811451c105b97a92b2c8f0c2ee5e4ef678328f1a21a428f011df0ee14fa766f",
+      "raw_bytes": 3539920
+    },
     "99b951c9a3ae15833baa5ba0d5a731c01d5fe0cd0b03a76ee062376ce8ae0186": {
       "bytes": 1156558,
       "hash": "f95c1dc1e41ea24a852d4674fcd2b5f95adaef868972eab56c840f4f88d15a19",
@@ -4469,6 +4520,11 @@
       "bytes": 128586,
       "hash": "90b183a26d9242667733c154ec8c9d90d04f5c877cf76b952f9fd055497e1663",
       "raw_bytes": 349543
+    },
+    "a669b60f7a000264cb2d4f69078ecfc333dd24a23ed0b4ab290608cf6f2bb9f4": {
+      "bytes": 1137330,
+      "hash": "69bb6abbb0631e150edfe155509fbcc073c7acea3046c42b65c3470dd08d1a61",
+      "raw_bytes": 4630096
     },
     "a6ac2c17025b6c6c39970fbf97533b513ee079ad6e3d5daa1e4e7648cb9d848b": {
       "bytes": 3609,
@@ -5294,6 +5350,11 @@
       "bytes": 23655,
       "hash": "b08bdd0fd5327d344206daaf2b8f281299ee26b70f17bdb422edeba341790c93",
       "raw_bytes": 349548
+    },
+    "e4332b066017cc9259f700409836afd876b42d731d6b3573217abac78ada8806": {
+      "bytes": 2880948,
+      "hash": "7a84c5d40fd146180b6ecfa996c7e851b377799b15fe821eb10f455004dbfed4",
+      "raw_bytes": 9244740
     },
     "e44c7d34e98b53e166f7ec44d5d3e9d022141dd46a756e2697c968ef2d699a07": {
       "bytes": 2169879,
@@ -8223,6 +8284,11 @@
       "66383bcc8ce4e690aca3c0da16396fa816a9c104af1b5c6dd096bbeaf32bec04",
       "8683221860689e7fd97f5d76be02dfb68306996628ac06ad4b9e5ad7ade57c60"
     ],
+    "8e3560f71382ab526d2012c1bc9a21cfb47fb5434ee795ef5e1bb312da70d4ac": [
+      "3e7541badb88d4024f735ede729a604b0e354a6f55becb300f78259c0fe7fa32",
+      "5d654d5b70f78056a9c0a0801decd296f43e0eecd2e2541a1894977562723ed0",
+      "0342cd8bad2bc7b6010152d51d20dcd69ad42b48aad28ec93e99f1ef7a10984f"
+    ],
     "90852d1e926c8273888802832388ad335e8cb3e9b11cd01c922113db69a780b0": [
       "4ad9c172f2f0c8aad916682eeb6ebc6ac7a2257e9b1a652957d535564937e877",
       "1c5e8e39f675ea07268a0cffb4ca0a4eba653f5fd1c44a3bd75b12981e6b5baf",
@@ -8268,6 +8334,26 @@
       "087219d353cd73893d2c04390121c07418235fe68fb8954d53c3a2cb1c5db5a8",
       "a871b2fb818adb9ab89c2346e934fac6c8fd592501482e44528b5ba1bd42bb07",
       "38bdeb001570a11747d4a67a94e73f983bb001334da467e07dd71c500b659e04"
+    ],
+    "99538f653136f2b05d4f862461d1a783a714300e985be90ed2293c0035a98467": [
+      "99e72fa5e816eeba222cef10032b608c9601750bfbb671cdd5e87ba507678df2",
+      "b87acefc989f1c6d00dd515ba5d5b65d8d5713473b15d959511184bba289cd85",
+      "40cb261ca785706abc1d3e372d7f813f8bf96a5b2e17d87508fbe8614670c335",
+      "fddec6a58146cf10a591a6334897a5883b62347137a18527ed768bce2f201eb5",
+      "a709cdfa5560c3c67fafe25b84a28ea82a647555b6fe901e407a4a4a4a8a8050",
+      "8bf93135986ef9934a48839bbbee7f82616707f39af89f6bd750da0f169dbb42",
+      "7745e08d0a0c9264ae2b31193383a3a2055143d7fee49163d062accd92207fe5",
+      "9d317b300663e15ca727661967963945d97b4bfb348fd98bb62e05de613a6731",
+      "af14b08eb7a44841662da908915bdedeb53d8d80791bc945b8661c5b2cf4841a",
+      "d80275a3741e14d16c14051bd87625757afa5f7aaffd39945608e7b37eab0869",
+      "dfeb7007009b0d5d9677d9b766395e57b0a97782537a47d40545f00e11acef5d",
+      "7206f987efe738d86374ab7cc4bbf91fe2c157eb95c09b0edd5dadd136410bbf",
+      "2a9fcbdc85487c46eafafe5f96f7cd873b8eab89e4ab645838b7e00361463a37",
+      "19db117c522c11f9faf22d2069e91c667e006c3660d752ee040066a3ccbd7af8",
+      "7244c58873887ced8a950572331849ed29d2e230c2548c22f64c0bd2fbf7e21a",
+      "05ec6d4be6dd148600f3c961a4836b20edab876800b0a56cf42e26ed3553b867",
+      "7b15df61a70b6511169062d073d5fc36ad0d233bfe85436d704aa00295c7cab2",
+      "9b653ab49bea90d5f8fabbcb2cfff8d5ee9fe7110d8a135f3f9dcdb657441656"
     ],
     "99b951c9a3ae15833baa5ba0d5a731c01d5fe0cd0b03a76ee062376ce8ae0186": [
       "f3b90c0a45fe66e8735fdfb8d0f9c62d9c5034e3a74e5bf23f8ce1bc2dff8282",
@@ -8464,6 +8550,23 @@
       "7d07e5aef00f49154e03757876ede4c5d316131cbf2992a1150529eef37d1e69",
       "a871b2fb818adb9ab89c2346e934fac6c8fd592501482e44528b5ba1bd42bb07",
       "38bdeb001570a11747d4a67a94e73f983bb001334da467e07dd71c500b659e04"
+    ],
+    "a669b60f7a000264cb2d4f69078ecfc333dd24a23ed0b4ab290608cf6f2bb9f4": [
+      "c79577d581a30590646bcfa92bffd9b9ca20e1c84151abfefbfeeb81060fd073",
+      "f2e4eabac5f94b8cd4c6aaf17a41a99844ddb4be8045984a30820ad97fe2ca39",
+      "b90349a4de3fa2e0aab1821dfb394c17b05a42e7fe865db64eef6b698bde1cdc",
+      "fddec6a58146cf10a591a6334897a5883b62347137a18527ed768bce2f201eb5",
+      "a709cdfa5560c3c67fafe25b84a28ea82a647555b6fe901e407a4a4a4a8a8050",
+      "8bf93135986ef9934a48839bbbee7f82616707f39af89f6bd750da0f169dbb42",
+      "7745e08d0a0c9264ae2b31193383a3a2055143d7fee49163d062accd92207fe5",
+      "9d317b300663e15ca727661967963945d97b4bfb348fd98bb62e05de613a6731",
+      "af14b08eb7a44841662da908915bdedeb53d8d80791bc945b8661c5b2cf4841a",
+      "05ec6d4be6dd148600f3c961a4836b20edab876800b0a56cf42e26ed3553b867",
+      "7b15df61a70b6511169062d073d5fc36ad0d233bfe85436d704aa00295c7cab2",
+      "9b653ab49bea90d5f8fabbcb2cfff8d5ee9fe7110d8a135f3f9dcdb657441656",
+      "d80275a3741e14d16c14051bd87625757afa5f7aaffd39945608e7b37eab0869",
+      "dfeb7007009b0d5d9677d9b766395e57b0a97782537a47d40545f00e11acef5d",
+      "7206f987efe738d86374ab7cc4bbf91fe2c157eb95c09b0edd5dadd136410bbf"
     ],
     "a6d8d33945e7bd6c0ce2a1a9481b24e25b75980f6aa9c091df7b57be00fdd947": [
       "ec0bf34bbee41632c97e46bdbe70764be7fccad1951562580c399462811b43ea",
@@ -9400,6 +9503,11 @@
       "6c87299d612ba7208dca985a8ea85de5bcc8758f875dcf530a7f48b495b51f67"
     ],
     "db1bb9ce381b9b046eb86137dee7da3951c638ff24bbe4e05b25e20248092ea8": [
+      "3e7541badb88d4024f735ede729a604b0e354a6f55becb300f78259c0fe7fa32",
+      "5d654d5b70f78056a9c0a0801decd296f43e0eecd2e2541a1894977562723ed0",
+      "0342cd8bad2bc7b6010152d51d20dcd69ad42b48aad28ec93e99f1ef7a10984f"
+    ],
+    "e4332b066017cc9259f700409836afd876b42d731d6b3573217abac78ada8806": [
       "3e7541badb88d4024f735ede729a604b0e354a6f55becb300f78259c0fe7fa32",
       "5d654d5b70f78056a9c0a0801decd296f43e0eecd2e2541a1894977562723ed0",
       "0342cd8bad2bc7b6010152d51d20dcd69ad42b48aad28ec93e99f1ef7a10984f"
