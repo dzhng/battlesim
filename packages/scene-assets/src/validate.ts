@@ -1123,7 +1123,7 @@ function muzzleFindings(
     if (!m || muzzle === undefined) return;
     const what = `${rule.name}[${i}] (${m.id})`;
     const rest = pointAt(worlds[muzzle], [0, 0, 0]);
-    muzzleOffset(expected, m, 0, 0);
+    muzzleOffset(expected, m, 0, 0, 0);
     const error = vec3.distance(rest, expected);
     if (error > tolerances.vehicle_muzzle_m)
       out.push(
@@ -1145,7 +1145,7 @@ function muzzleFindings(
         const yaws = new Map([[yaw, own]]);
         if (carrier !== undefined) yaws.set(carrier, carried);
         const at = pointAt(yawed(yaws)[muzzle], [0, 0, 0]);
-        muzzleOffset(expected, m, carried, carried + own);
+        muzzleOffset(expected, m, 0, carried, carried + own);
         worst = Math.max(worst, vec3.distance(at, expected));
       }
     }
@@ -1154,7 +1154,7 @@ function muzzleFindings(
         finding(
           "fit.muzzle_arc",
           `${label}: as ${mount.yaw} turns, ${mount.muzzle} leaves the arc ${what} swings it through by up to ${fmt(worst)} m`,
-          `put the ${mount.yaw}'s yaw pivot on the row's pivot_m, as the simulation's muzzle model does`,
+          `put the ${mount.yaw}'s yaw pivot on the row's pivot_m, under its carrier's ring as the simulation's muzzle model turns it`,
         ),
       );
   });
