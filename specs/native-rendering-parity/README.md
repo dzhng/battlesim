@@ -4,7 +4,7 @@
 
 **Status:** phase 1 discovery is closed. Every decision is in [`choices.md`](choices.md), which holds the full map: settled ground, the decision ledger, the extracted taste and the landmines. No implementation slice is accepted yet.
 
-**Next pickup:** 04a. Read `choices.md` first. Its decisions are givens, not suggestions.
+**Next pickup:** 04b, 05b and 06a are in flight. Read `choices.md` first. Its decisions are givens, not suggestions.
 
 **Goal:** make the native Godot client visually equivalent to the browser renderer for the authored menu reel, as a maintained second client beside the browser. Rust stays the only gameplay, observation, visibility, replay and digest authority. The browser remains shipped.
 
@@ -118,7 +118,7 @@ Counters never prove pixels. Headless Godot proves lifecycle only. Every pass ke
 
 ## Next Agent Prompt
 
-*Updated 2026-10-10.* You are implementing phase 1 of the native visual-parity spec. Slices 01–03 are built, along with every browser-side manifest input for phase 1. The next pickup is 04a (light: sun and shadows) on the native side, plus the browser half of 05a's class view.
+*Updated 2026-10-10.* You are implementing phase 1 of the native visual-parity spec. Slices 01–03, 04a and 05a are built, along with every browser-side input for phase 1 (manifest keys plus class and plain plates). In flight: 04b (sky), 05b (field character) and 06a (grass placement). The current control run is `throwaway/native-parity/2026-10-10T22-39-26-895Z/`.
 
 - **Control run:** `PARITY_SCENES=paris-corner lockf -k <main>/throwaway/gpu.lock bun run --cwd web scene -- native-parity-capture` takes about 55 s; both scenes take about 3 minutes.
 - **Native run:** `godot --path native/godot --window-position 10000,10000 -- --run <dir> --scene <map>`.
