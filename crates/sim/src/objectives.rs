@@ -215,6 +215,14 @@ impl Objectives {
     }
 }
 
+/// Whether units of type `t` can capture and contest an objective: ground
+/// combat units (recon, infantry, vehicles), never supply or aircraft (D20).
+pub fn can_hold(t: &contract::catalog::UnitType) -> bool {
+    t.roster
+        .as_ref()
+        .is_some_and(|r| matches!(r.category, Category::Rec | Category::Inf | Category::Veh))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -318,12 +326,4 @@ mod tests {
             "later crossing does not grant a false tie"
         );
     }
-}
-
-/// Whether units of type `t` can capture and contest an objective: ground
-/// combat units (recon, infantry, vehicles), never supply or aircraft (D20).
-pub fn can_hold(t: &contract::catalog::UnitType) -> bool {
-    t.roster
-        .as_ref()
-        .is_some_and(|r| matches!(r.category, Category::Rec | Category::Inf | Category::Veh))
 }
