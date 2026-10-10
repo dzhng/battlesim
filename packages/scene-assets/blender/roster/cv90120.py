@@ -6,7 +6,7 @@ The CV90 hull is the CV90 family's (`cv90.py`): its seven road wheels with no
 return rollers and the front drive, the nose, glacis, bolted side armour,
 rear door and hatches; its side and rear are the CV90's own references
 (`assets/references/cv90/`). What the CV90120-T photos change: a low, wide
-wedge turret set over the hull's middle, its faceted cheeks running out from
+wedge turret set just behind the hull's middle, its faceted cheeks running out from
 a narrow gun shield to nearly the hull's width, then flat sides and a deep
 bustle; the long 120 mm smoothbore with a thermal sleeve in sections, no
 fume extractor, and a perforated muzzle brake; the commander's sight ball on
@@ -16,7 +16,9 @@ Swedish splinter scheme (the CV90 family's home army; the photos' exhibition
 finishes are not followed).
 
 Built to the catalog frame: the CV90 hull's length and width and the turret
-roof's height, measured off the photos against the road wheels.
+roof's height, measured off the photos against the road wheels. The turret,
+and the commander in his hatch, are built at the frame's pivot, 0.3 m behind
+the hull's middle.
 """
 import math
 import os

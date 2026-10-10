@@ -16,8 +16,10 @@ faceted turret, the commander's panoramic sight on its mast, a Spike
 launcher on the left and an independent viewer on the right. No rear or top
 view of the Mk IV (gaps): its hull rear is the C's.
 
-Built to the catalog frame (hull 6.8 x 3.2 x 2.8 m, turret pivot 1.82 m,
-autocannon muzzle 3.9 m ahead): nothing here moves it.
+Built to the catalog frame (hull 6.8 x 3.2 x 2.8 m, turret pivot 0.35 m
+behind the hull's middle and 1.82 m up, autocannon muzzle 3.9 m ahead):
+nothing here moves it. The turret, and the commander in its hatch, are built
+at the frame's pivot.
 """
 import math
 import os
@@ -156,11 +158,11 @@ def build(variant, v):
                             bolts=6, teeth=11, arm=(0.40, 0.40), pitch=0.15)
     hull_sides(v, mk4)
     mounts = rig(v.frame, v.root)
-    turret, gun, _, _ = mounts["autocannon"]
+    turret, gun, _, pivot = mounts["autocannon"]
     turret_body(v, turret, mk4)
     bofors(v, gun)
     if not mk4:
-        v.head_out("commander", turret, -0.35, -0.45, 1.82 + ROOF - 0.03)
+        v.head_out("commander", turret, pivot.x - 0.35, -0.45, pivot.z + ROOF - 0.03)
 
 
 def wreck(variant, v):

@@ -21,9 +21,9 @@ it. The roof is drawn at its real 2.30 m; the remote station's fixed base
 rises to the frame's top. The Dragoon's frame puts its gun axis at 2.19 m,
 below the real hull roof, so its hull is drawn lower (specs/done/unit-models/choices.md).
 Each weapon stands on its frame's pivot, where the photos put it
-(specs/off-centre-turrets.md): the remote station ahead of amidships, the
+(specs/done/off-centre-turrets.md): the remote station ahead of amidships, the
 TOW launcher on the rear left, the Dragoon's turret behind amidships. A
-squad hatch the weapon's base stands on is left off.
+squad hatch inside the weapon's swept footprint is left off.
 """
 import math
 import os

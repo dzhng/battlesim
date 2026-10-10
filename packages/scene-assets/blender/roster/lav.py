@@ -20,7 +20,7 @@ the sight.
 Built to the catalog frames (hull 6.39 x 2.5 m; 2.69 m for the LAV-25 with
 its turret, 2.0 m for the LAV-AT): nothing here moves them. Each turret is
 drawn on its frame's pivot, behind amidships as the drawings and photos put
-it (specs/off-centre-turrets.md), and the troop hatches lie behind it.
+it (specs/done/off-centre-turrets.md), and the troop hatches lie behind it.
 """
 import math
 import os

@@ -2679,16 +2679,24 @@ fn a_roof_hmg_on_an_off_centre_turret_rides_the_turret_round_its_ring() {
         serde_json::to_value(&rules.catalog.by_id("test_tank").mounts[1]).unwrap(),
     );
     // The turret turns onto a tank off to the left of the hull; the roof gun
-    // takes a squad ahead, behind or to the right.
-    for deg in [-90.0f64, 90.0, 180.0] {
-        let a = (deg + 90.0f64).to_radians();
-        let squad = [300.0 + 80.0 * a.cos(), 300.0 + 80.0 * a.sin()];
+    // takes a squad ahead, behind or to the right. The whole scene is laid
+    // out for a hull heading east and again for one heading north, so the
+    // ring is seen to turn with the hull too.
+    let cases = [0.0f64, 90.0]
+        .into_iter()
+        .flat_map(|hull| [-90.0f64, 90.0, 180.0].map(|deg| (hull, deg)));
+    for (hull, deg) in cases {
+        let yaw = hull.to_radians();
+        let at = |r: f64, rel_deg: f64| {
+            let a = yaw + rel_deg.to_radians();
+            [300.0 + r * a.cos(), 300.0 + r * a.sin()]
+        };
         let mut setup = scenario_with(
             &map(json!([])),
             json!([
-                { "side": "blue", "kind": "test_tank", "position": [300, 300] },
-                { "side": "red", "kind": "test_tank", "position": [300, 440], "yaw": -std::f64::consts::FRAC_PI_2, "engagement": "return_fire_only" },
-                { "side": "red", "kind": "test_rifle", "position": squad, "engagement": "return_fire_only" },
+                { "side": "blue", "kind": "test_tank", "position": [300, 300], "yaw": yaw },
+                { "side": "red", "kind": "test_tank", "position": at(140.0, 90.0), "yaw": yaw - std::f64::consts::FRAC_PI_2, "engagement": "return_fire_only" },
+                { "side": "red", "kind": "test_rifle", "position": at(80.0, deg + 90.0), "engagement": "return_fire_only" },
             ]),
             json!([]),
             json!([]),
@@ -2719,7 +2727,7 @@ fn a_roof_hmg_on_an_off_centre_turret_rides_the_turret_round_its_ring() {
             &cannon,
             &hmg,
             [300.0, 300.0],
-            0.0,
+            yaw,
             (bearings[0], bearings[1]),
         );
         let off = (0..3)
@@ -2728,7 +2736,7 @@ fn a_roof_hmg_on_an_off_centre_turret_rides_the_turret_round_its_ring() {
             .sqrt();
         assert!(
             off < 0.05,
-            "{deg}°: launched at {origin:?}, riding the turret round its ring puts the muzzle at {expected:?}"
+            "hull {hull}°, {deg}°: launched at {origin:?}, riding the turret round its ring puts the muzzle at {expected:?}"
         );
     }
 }

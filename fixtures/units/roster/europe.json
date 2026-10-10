@@ -61,7 +61,7 @@
           ],
           "turret": true,
           "pivot_m": [
-            0,
+            -0.4,
             0,
             1.95
           ],
@@ -646,7 +646,7 @@
           ],
           "turret": true,
           "pivot_m": [
-            0,
+            0.2,
             0,
             1.494
           ],
@@ -664,7 +664,7 @@
           ],
           "turret": true,
           "pivot_m": [
-            -0.25,
+            -0.05,
             -0.58,
             2.341
           ],
@@ -794,7 +794,7 @@
           ],
           "turret": true,
           "pivot_m": [
-            0,
+            -0.3,
             0,
             1.82
           ],
@@ -812,7 +812,7 @@
           ],
           "turret": true,
           "pivot_m": [
-            -0.3,
+            -0.6,
             -0.55,
             2.52
           ],
@@ -890,7 +890,7 @@
           ],
           "turret": true,
           "pivot_m": [
-            0,
+            -0.35,
             0,
             1.82
           ],
@@ -973,7 +973,7 @@
           ],
           "turret": true,
           "pivot_m": [
-            0,
+            -0.35,
             0,
             1.82
           ],
@@ -1521,7 +1521,7 @@
           ],
           "turret": true,
           "pivot_m": [
-            0,
+            0.3,
             0,
             1.5
           ],
@@ -1539,7 +1539,7 @@
           ],
           "turret": true,
           "pivot_m": [
-            -0.25,
+            0.05,
             -0.58,
             2.35
           ],
@@ -1727,7 +1727,7 @@
           ],
           "turret": true,
           "pivot_m": [
-            0,
+            0.3,
             0,
             1.8
           ],
@@ -1745,7 +1745,7 @@
           ],
           "turret": true,
           "pivot_m": [
-            -0.25,
+            0.05,
             -0.58,
             2.82
           ],
@@ -1830,7 +1830,7 @@
           ],
           "turret": true,
           "pivot_m": [
-            0,
+            0.3,
             0,
             1.8
           ],
@@ -1848,7 +1848,7 @@
           ],
           "turret": true,
           "pivot_m": [
-            -0.25,
+            0.05,
             -0.58,
             2.82
           ],
@@ -1893,54 +1893,13 @@
       "parts": [
         "trophy_aps"
       ],
-      "body": {
-        "hull": {
-          "half_extents_m": [
-            3.85,
-            1.875,
-            1.5
-          ],
-          "eye_m": 2.82
-        }
-      },
       "mounts": [
         {
           "id": "cannon",
-          "name": "Main Gun",
           "weapons": [
             "advanced_tank_ap",
             "advanced_tank_he"
-          ],
-          "turret": true,
-          "pivot_m": [
-            0,
-            0,
-            1.8
-          ],
-          "muzzle_m": [
-            7.12,
-            0,
-            0.54
           ]
-        },
-        {
-          "id": "HMG",
-          "name": "HMG",
-          "weapons": [
-            "hmg"
-          ],
-          "turret": true,
-          "pivot_m": [
-            -0.25,
-            -0.58,
-            2.82
-          ],
-          "muzzle_m": [
-            1.43,
-            0,
-            0.32
-          ],
-          "on": "cannon"
         }
       ],
       "sensors": {
@@ -2240,7 +2199,7 @@
           ],
           "turret": true,
           "pivot_m": [
-            0,
+            -0.45,
             0,
             2.55
           ],
@@ -2258,7 +2217,7 @@
           ],
           "turret": true,
           "pivot_m": [
-            0,
+            -0.45,
             1.08,
             2.95
           ],

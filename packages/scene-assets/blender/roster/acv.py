@@ -8,7 +8,7 @@ tall upper hull flaring out over the wheels and leaning back in to the roof;
 the wedge prow, an upper and a lower plate meeting at a sharp edge, with
 lights recessed in its corners; the roof's hatches, the remote station with
 its heavy machine gun behind amidships between the forward pair (the side
-photo; specs/off-centre-turrets.md), stowage tubes racked on the rear
+photo; specs/done/off-centre-turrets.md), stowage tubes racked on the rear
 right, antennas at the rear corners; the rear: the ramp with its door
 between two flared corner housings, and under each a propeller in its
 shroud; tail lights in the housings.
