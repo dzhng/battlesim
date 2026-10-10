@@ -1,4 +1,4 @@
-"""ZTQ-15 (Type 15) light tank (disabled card), from assets/references/type15/.
+"""ZTQ-15 (Type 15) light tank, from assets/references/type15/.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/type15.py -- [--wreck]
 
@@ -12,7 +12,8 @@ has a thermal sleeve and a fume extractor; the commander's panoramic sight
 on the right rear roof, the remote heavy machine gun station beside it, four
 smoke tubes a side. Its paint is the PLA's digital desert pattern.
 
-Frame 7.3 x 3.35 x 2.5 m, gun pivot 1.68 m (`DIMENSIONS`, `MOUNTS`).
+Built to the catalog frame (hull 7.3 x 3.35 x 2.5 m, gun pivot 1.68 m, the
+remote HMG on the turret roof at 2.44 m).
 """
 import math
 import os
@@ -21,18 +22,10 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft, prism  # noqa: E402
-from vehicle_export import rig, run_disabled  # noqa: E402
+from vehicle_export import rig, run  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 
-CARD = "eastern_type_15_ztq_15_light_tank"
-# The frame its references give (a disabled card has no unit type): the
-# hull box, and the mounts its turret and guns are rigged on for the art.
-DIMENSIONS = (7.3, 3.35, 2.5)
-MOUNTS = [
-    dict(name="cannon", role="gun", on=None, pivot_m=[0.0, 0.0, 1.68], muzzle_m=[5.36, 0.0, 0.504]),
-    dict(name="HMG", role="hmg", on="cannon", pivot_m=[-0.25, -0.58, 2.44], muzzle_m=[1.43, 0.0, 0.32]),
-]
 TRACK_Y = 1.30
 TRACK_W = 0.48
 ROAD_R = 0.33
@@ -131,8 +124,8 @@ def turret(v, turret, gun, hmg, hmg_gun):
     sight = empty("dressing_gunner_sight", parent=turret)
     VP.sight_housing("gunner_sight", (0.45, 0.55, top - 0.02), m, sight, size=(0.42, 0.30, 0.24))
     mast = empty("dressing_commander_sight", parent=turret)
-    cyl("panorama_post", 0.09, 0.22, (-0.55, -0.55, top + 0.11), "Z", m["dark"], mast, seg=12)
-    VP.sight_housing("panorama_head", (-0.55, -0.55, top + 0.20), m, mast, size=(0.32, 0.30, 0.28))
+    cyl("panorama_post", 0.09, 0.04, (-0.55, -0.55, top + 0.02), "Z", m["dark"], mast, seg=12)
+    VP.sight_housing("panorama_head", (-0.55, -0.55, top + 0.02), m, mast, size=(0.32, 0.30, 0.26))
     VP.hatch("loader_hatch", (-0.45, 0.50, top), m, turret, radius=0.26)
     # The 105 mm: mantlet, sleeve, fume extractor, muzzle.
     reach = v.frame["mounts"][0]["muzzle_m"][0] - TRUNNION
@@ -183,6 +176,4 @@ def wreck(variant, v):
     rest_on_ground(0.004)
 
 
-if __name__ == "__main__":
-    run_disabled("type15", {CARD: DIMENSIONS}, "chinese_digital", build, wreck, mounts={CARD: MOUNTS},
-                 skip=("dressing_", "gun", "hmg"), chip=1.0)
+run("type15", "chinese_digital", build, wreck, chip=1.0)
