@@ -5,6 +5,8 @@ import { createReelReport } from "@apps/battle-lab/src/benchmark/reelReport";
 import type { ReelResult } from "@apps/battle-lab/src/benchmark/reelRun";
 import { gameLight } from "@apps/battle-lab/src/gameLight";
 import { sunDirection } from "@packages/battle-renderer/src/light/sceneLight";
+import { terrainTuning } from "@packages/battle-renderer/src/terrain/terrainTuning";
+import { grassTuning } from "@packages/battle-renderer/src/terrain/grassTuning";
 
 const pose = { target: [0, 0] as const, distance: 40, yaw: 0, pitch: 0.2 };
 function result(map: string, started: number, intervals: number[]): ReelResult {
@@ -86,6 +88,7 @@ test("exports each scene's capture with the frames it drew and what it drew them
     {
       lens: { fovY: 0.8, near: 1, depth: "reverse-z", far: "infinite" },
       light: { ...gameLight, sunDirection: Array.from(sunDirection(gameLight)) },
+      tuning: { terrain: terrainTuning, grass: grassTuning },
       layers: ["sky", "terrain"],
       omissions: [],
     },

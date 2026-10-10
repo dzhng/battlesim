@@ -16,6 +16,8 @@ import {
 } from "@web/battle/benchmark/visualPresentation";
 import type { TerrainTables, WordTable } from "@packages/battle-renderer/src/frame/terrainTables";
 import { sunDirection } from "@packages/battle-renderer/src/light/sceneLight";
+import { terrainTuning } from "@packages/battle-renderer/src/terrain/terrainTuning";
+import { grassTuning } from "@packages/battle-renderer/src/terrain/grassTuning";
 import { gameLight } from "@apps/battle-lab/src/gameLight";
 
 const frame = (
@@ -58,6 +60,7 @@ const drawn: DrawnPresentation = {
     ...gameLight,
     sunDirection: Array.from(sunDirection(gameLight)) as [number, number, number],
   },
+  tuning: { terrain: terrainTuning, grass: grassTuning },
   layers: ["sky", "terrain", "grass"],
   omissions: [],
 };
@@ -121,6 +124,7 @@ test("the manifest names its battle by the capture's workload and the hashes of 
     viewport: { width: 1280, height: 720, scale: 1 },
     lens: drawn.lens,
     light: drawn.light,
+    tuning: drawn.tuning,
     layers: drawn.layers,
     omissions: [],
     terrain: expect.any(Array),
@@ -242,4 +246,15 @@ test("the validator refuses a missing, unknown or stale terrain artifact entry",
       ],
     }),
   ).toThrow(/terrain/);
+});
+
+test("the manifest carries the terrain and grass tuning tables the shaders were built from", async () => {
+  const { manifest } = await written(encodePresentationCapture(capture([frame(0)])));
+  expect(manifest.tuning).toEqual({ terrain: terrainTuning, grass: grassTuning });
+  const reject = (tuning: unknown) => () => validateVisualPresentation({ ...manifest, tuning });
+  expect(reject({ terrain: terrainTuning })).toThrow(/tuning/);
+  expect(reject({ terrain: { mottle: { scale: "4" } }, grass: grassTuning })).toThrow(/tuning/);
+  expect(reject({ terrain: { mottle: { scale: Number.NaN } }, grass: grassTuning })).toThrow(
+    /tuning/,
+  );
 });

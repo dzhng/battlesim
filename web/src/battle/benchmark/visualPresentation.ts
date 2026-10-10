@@ -53,9 +53,16 @@ export interface Omission {
 export type ManifestLight = LightPresentation & { sunDirection: [number, number, number] };
 
 /** What the page knows of its own drawing; the files give the rest. */
+/** Nested tuning numbers: `terrainTuning` or `grassTuning` as the shaders read them. */
+export interface TuningTable {
+  readonly [key: string]: number | readonly number[] | TuningTable;
+}
+
 export interface DrawnPresentation {
   lens: Lens;
   light: ManifestLight;
+  /** The tuning tables the terrain and grass shaders were built from. */
+  tuning: { terrain: TuningTable; grass: TuningTable };
   layers: readonly PresentationLayer[];
   omissions: readonly Omission[];
 }
@@ -120,6 +127,7 @@ const MANIFEST_KEYS = [
   "viewport",
   "lens",
   "light",
+  "tuning",
   "layers",
   "omissions",
   "terrain",
@@ -139,6 +147,13 @@ const hasKeys = (value: unknown, keys: readonly string[]): value is Record<strin
 
 const text = (value: unknown) => typeof value === "string" && value.length > 0;
 const isHash = (value: unknown) => typeof value === "string" && /^[0-9a-f]{64}$/.test(value);
+
+const finite = (v: unknown) => typeof v === "number" && Number.isFinite(v);
+const isTuning = (value: unknown): boolean =>
+  isRecord(value) &&
+  Object.values(value).every((v) =>
+    Array.isArray(v) ? v.length > 0 && v.every(finite) : finite(v) || isTuning(v),
+  );
 
 /** `value` as the manifest's light: an object with a unit sun direction.
  *  The page admitted its numbers (`validateLight`) and derived the direction. */
@@ -226,6 +241,13 @@ export function validateVisualPresentation(value: unknown): VisualPresentation {
   )
     throw new Error("visual presentation lens is malformed");
   validateManifestLight(value.light);
+  const tuning = value.tuning;
+  if (
+    !hasKeys(tuning, ["terrain", "grass"]) ||
+    !isTuning(tuning.terrain) ||
+    !isTuning(tuning.grass)
+  )
+    throw new Error("visual presentation tuning needs terrain and grass tables of finite numbers");
   const layers = value.layers;
   if (
     !Array.isArray(layers) ||
@@ -364,6 +386,7 @@ export async function writeVisualPresentation({
     viewport: { width, height, scale: 1 },
     lens: drawn.lens,
     light: drawn.light,
+    tuning: drawn.tuning,
     layers: drawn.layers,
     omissions: drawn.omissions,
     terrain: await Promise.all(
