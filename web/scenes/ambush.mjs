@@ -1,6 +1,6 @@
 // Slice 10: supported AT guidance, release and escape, through real orders.
 import { decode, writeCrop } from "./_png.mjs";
-import { lab, obs, advance, until, snapshot } from "./_lab.mjs";
+import { lab, obs, advance, until, snapshot, hideHud, presented } from "./_lab.mjs";
 
 /** Switch variant (a fresh battle), paused at its start. */
 async function begin(page, variant) {
@@ -53,6 +53,52 @@ async function frame(ctx, page, name, focus) {
       2,
     );
   }
+}
+
+/** The west launcher's shot at the near tank, side-on at the play camera's
+ *  pitch: launch, apex and impact frames, and one frame every other tick
+ *  (`<name>-flight-NNN.png`, for a GIF). With `enemy`, also the same moment
+ *  of the climb as red sees it. Returns the missile's apex height. */
+async function sideOn(ctx, page, variant, name, enemy = false) {
+  await begin(page, variant);
+  const hud = await hideHud(page);
+  await lab(page, () =>
+    window.__lab.setCamera({
+      ...window.__lab.camera(),
+      target: [330, 280, 25],
+      distance: 520,
+      pitch: 0.85,
+      yaw: -1.74,
+    }),
+  );
+  let o = await until(page, (f) => f.guided.length > 0, 300, 1);
+  await presented(page);
+  await snapshot(ctx, page, `${name}-launch.png`);
+  let apex = { z: -Infinity, frame: 0 };
+  let frame = 0;
+  while (o.guided.length > 0) {
+    const z = o.guided[0].position[2];
+    if (z > apex.z) apex = { z, frame };
+    if (frame % 2 === 0) {
+      await presented(page);
+      await snapshot(ctx, page, `${name}-flight-${String(frame).padStart(3, "0")}.png`);
+    }
+    if (enemy && frame === 16) {
+      await lab(page, () => window.__lab.route.observeAs("red"));
+      await advance(page, 1);
+      await presented(page);
+      await snapshot(ctx, page, `${name}-red-view.png`);
+      await lab(page, () => window.__lab.route.observeAs("blue"));
+      frame++;
+    }
+    await advance(page, 1);
+    o = await obs(page);
+    frame++;
+  }
+  await presented(page);
+  await snapshot(ctx, page, `${name}-impact.png`);
+  await hud.evaluate((node) => node.remove());
+  return apex;
 }
 
 export async function run(ctx) {
@@ -136,4 +182,15 @@ export async function run(ctx) {
   const crossfire = await redTankHp(page);
   ctx.check("a prompt escape does not beat a crossfire", crossfire < 100, `hp ${crossfire}`);
   await frame(ctx, page, "crossfire-outcome");
+
+  // Top attack, side-on beside the same shot flown flat (the late escape's).
+  const flat = await sideOn(ctx, page, "late", "direct");
+  const lofted = await sideOn(ctx, page, "top-attack", "top-attack", true);
+  ctx.check(
+    "the top-attack missile shoots up far above the flat shot",
+    lofted.z > flat.z + 40,
+    JSON.stringify({ flat, lofted }),
+  );
+  const struck = await redTankHp(page);
+  ctx.check("the top-attack missile strikes the tank", struck < 100, `hp ${struck}`);
 }
