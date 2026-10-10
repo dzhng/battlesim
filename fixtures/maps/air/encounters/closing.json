@@ -1,0 +1,12 @@
+{
+  "units": [
+    {"side":"blue","kind":"ah_64e_guardian","position":[10,470],"condition":{"hp":90}},
+    {"side":"red","kind":"eastern_t_72_t_72b3_2016","position":[300,470],"yaw":3.14159,"engagement":"return_fire_only"},
+    {"side":"red","kind":"eastern_bmp_ifv_family_bmp_2m_berezhok","position":[575,456],"yaw":3.14159}
+  ],
+  "scripts": [
+    {"tick":1,"side":"blue","order":{"kind":"move","units":[0],"gesture":1,"goal":[205,472],"route":"shortest"}},
+    {"tick":300,"side":"blue","order":{"kind":"set_engagement","units":[0],"policy":"return_fire_only"}},
+    {"tick":300,"side":"blue","order":{"kind":"move","units":[0],"gesture":2,"goal":[455,465],"route":"shortest"}}
+  ]
+}
