@@ -86,7 +86,7 @@
   {
     "id": "air-hover",
     "route": "/lab/air-hover",
-    "describe": "Test helicopters hovering at cruise height, each with its ground marker and drop line: ?variant=hover (default) over open ground, a jeep on the road below for scale (its rotors turn, its shadow lies on the ground off to the side, nothing under it raises dust or rolls; selected, its marker and line take the selection's colour; ordered away with Space held, its ghost flies at cruise height); ?variant=roof over a house, the line cut by the roof, an identified enemy one over the field beyond; ?variant=fog an enemy one seen over the ground the house hides from blue's jeep.",
+    "describe": "Test helicopters hovering at cruise height, each with its ground marker and drop line: ?variant=hover (default) over open ground, a jeep on the road below for scale (its rotors turn, its shadow lies on the ground off to the side, nothing under it raises dust or rolls; selected, its marker and line take the selection's colour; ordered away with Space held, its ghost flies at cruise height); ?variant=roof over a house, the line cut by the roof, an identified enemy one over the field beyond; ?variant=fog an enemy one seen over the ground the house hides from blue's jeep; ?variant=lost an enemy one blue's jeep loses behind the house, its last sighting a red sign facing the camera at its height, with a thin stem to the ground under it.",
     "map": "air"
   },
   {

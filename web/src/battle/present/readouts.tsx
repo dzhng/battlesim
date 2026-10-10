@@ -88,7 +88,7 @@ interface DrawnAnchors {
   own?: ReadonlyMap<number, Point3>;
   enemies?: ReadonlyMap<number, Point3>;
   /** The ground height a ground contact's panel hangs from; 0 without one.
-   *  An air contact's hangs at its reported height. */
+   *  An aloft contact's hangs at its reported height. */
   ground?: (x: number, y: number) => number;
 }
 
@@ -118,7 +118,7 @@ interface Callout {
   id: number;
   /** The published anchor point, before the drawn position replaces it. */
   at: Point3;
-  /** Hang from the drawn ground under `at` (a ground contact), not its z. */
+  /** Hang from the drawn ground under `at` (a contact not aloft), not its z. */
   onGround?: boolean;
   selected: boolean;
   content: ReactNode;
@@ -197,7 +197,7 @@ export function ReadoutLayer({
         owner: "contact",
         id: c.id,
         at: c.center,
-        onGround: c.layer === "ground",
+        onGround: !c.aloft,
         selected: false,
         content: <InfoPanel panel={contactPanel(units, c, tick, rules)} />,
       }),

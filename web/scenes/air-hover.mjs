@@ -334,20 +334,144 @@ export async function run(ctx) {
     );
   }
 
+  await lostSign(ctx, page, surface, css);
+
   ctx.check("no GPU validation warnings", warnings.length === 0, warnings.join("\n"));
 }
 
+/** How far the overlay's marks reach from `p` along (dx, dy) on the
+ *  overlays-on-black shot: until 8 dark pixels in a row (the sign's dark
+ *  keyline is narrower than that). */
+function extent(png, p, dx, dy) {
+  let dark = 0;
+  let last = 0;
+  for (let k = 1; k < 600; k++) {
+    const [x, y] = [p[0] + dx * k, p[1] + dy * k];
+    if (x < 0 || y < 0 || x >= png.width || y >= png.height) break;
+    if (sum(pixel(png, x, y)) > 60) {
+      dark = 0;
+      last = k;
+    } else if (++dark >= 8) break;
+  }
+  return last;
+}
+
+/** An enemy helicopter blue's jeep saw across the field and lost behind the
+ *  house (D11, slice 13): its last sighting hangs in the air where it was
+ *  last seen, a red disc facing the camera at the airframe's height, over
+ *  fogged ground and, seen from beyond, over the house's roof. */
+async function lostSign(ctx, page, surface, css) {
+  const o = await begin(page, "lost", "aloft");
+  const sign = o.contacts.find((c) => c.aloft);
+  ctx.check(
+    "the lost helicopter leaves an aloft contact at its height, out of sight",
+    !!sign &&
+      sign.layer === "low_air" &&
+      Math.abs(sign.center[2] - (await surface(sign.center)) - game.air.cruise_agl_m) < 1 &&
+      !o.identified.some((u) => u.kind === "test_heli"),
+    JSON.stringify({ contacts: o.contacts, identified: o.identified.map((u) => u.kind) }),
+  );
+  if (!sign) return;
+  const at = sign.center;
+  const house = await lab(page, () => window.__lab.route.buildings()[0]);
+  const roofTop = Math.max(...house.authored.map((p) => p.baseZ + 2 * p.half[2]));
+  const footprint = house.authored[0];
+  const { min_radius_px: smallest, max_radius_px: largest } = game.presentation.contacts.air;
+  // Strokes thin to this share of their width as the camera pulls out.
+  const thin = game.presentation.overlay.stroke.thin_scale;
+  // From the south-east the sign hangs over the fogged field beyond the
+  // house; from the north-east, low, the house's roof lies behind it. Close
+  // in and from the map's zoom.
+  const southEast = { pitch: 0.72, yaw: -1.25 };
+  const northEast = { pitch: 0.4, yaw: 0.77 };
+  for (const [name, view] of [
+    ["lost-fog", { distance: 90, ...southEast }],
+    ["lost-roof", { distance: 90, ...northEast }],
+    ["lost-map-fog", { distance: 350, ...southEast }],
+    ["lost-map-roof", { distance: 350, ...northEast }],
+  ]) {
+    await aim(page, at, view, { onGround: false });
+    await advance(page, 1);
+    await presented(page);
+    const shot = decode(await snapshot(ctx, page, `frame-${name}-1280x800.png`));
+    const c = await css(at);
+    const overlays = await overlaysOnly(page);
+    // Across, and twice upward: below it the stem carries on down.
+    const [w, h] = [
+      extent(overlays, c, 1, 0) + extent(overlays, c, -1, 0),
+      2 * extent(overlays, c, 0, -1),
+    ];
+    // The sign and three times its size round it, enlarged 3×.
+    const r = Math.min(w, h) / 2;
+    await writeCrop(shot, ctx.evidencePath(`crop-sign-${name}-3x.png`), c[0], c[1], 3 * r, 3 * r);
+    const middle = brightest(overlays, c, 2);
+    ctx.check(
+      `${name}: the sign is a red disc round the contact's centre, a circle on screen, held between its smallest and largest`,
+      middle[0] > 100 &&
+        middle[0] > 1.6 * middle[1] &&
+        Math.abs(w / h - 1) < 0.12 &&
+        w > 2 * smallest * thin &&
+        w < 2 * largest + 24,
+      JSON.stringify({ middle, w, h }),
+    );
+    const under = await css([at[0], at[1], await surface(at)]);
+    if (under[1] - c[1] > r + 20) {
+      const stem = brightest(overlays, [c[0], (c[1] + r + under[1]) / 2], 2);
+      ctx.check(
+        `${name}: a pale stem stands from the ground under the sign up to it`,
+        Math.min(...stem) > 100,
+        JSON.stringify({ stem, c, under, r }),
+      );
+    }
+    if (name === "lost-fog") {
+      await page.evaluate(() => window.__lab.setFrameView("fog-mask"));
+      await page.evaluate(() => window.__lab.frame());
+      const mask = decode(await page.screenshot());
+      await page.evaluate(() => window.__lab.setFrameView("final"));
+      ctx.check(
+        "lost-fog: the ground under the sign is unseen",
+        sum(pixel(mask, under[0], under[1])) < 60,
+        JSON.stringify({ under }),
+      );
+    }
+    if (name.endsWith("roof")) {
+      // The eye's line through the sign's centre carries on down to the
+      // roof's height inside the house's footprint.
+      const t = (at[2] - roofTop) / Math.tan(view.pitch);
+      const behind = [at[0] - t * Math.cos(view.yaw), at[1] - t * Math.sin(view.yaw)];
+      const [dx, dy] = [behind[0] - footprint.center[0], behind[1] - footprint.center[1]];
+      const inside = [footprint.half[0], footprint.half[1]].map((half, k) => {
+        const axis =
+          k === 0
+            ? [Math.cos(footprint.yaw), Math.sin(footprint.yaw)]
+            : [-Math.sin(footprint.yaw), Math.cos(footprint.yaw)];
+        return Math.abs(dx * axis[0] + dy * axis[1]) <= half;
+      });
+      ctx.check(
+        `${name}: the house's roof lies behind the sign`,
+        inside.every(Boolean),
+        JSON.stringify({ behind, footprint }),
+      );
+    }
+  }
+}
+
 /** Switch to `variant` (a fresh battle), let it run until blue identifies
- *  an enemy helicopter (at most 30 s), pause it and return its observation. */
-async function begin(page, variant) {
+ *  an enemy helicopter, or with `until` "aloft" holds an aloft contact (at
+ *  most 30 s), pause it and return its observation. */
+async function begin(page, variant, until = "identified") {
   await lab(page, (v) => window.__lab.route.variant(v), variant);
   await page.waitForFunction(() => window.__lab.route?.reset);
   await lab(page, () => window.__lab.route.reset());
   await page.waitForFunction(
-    () =>
-      window.__lab.route?.tick() > 3 &&
-      window.__lab.route.observation()?.identified.some((u) => u.kind === "test_heli"),
-    undefined,
+    (until) => {
+      const o = window.__lab.route?.observation();
+      if (!(window.__lab.route?.tick() > 3 && o)) return false;
+      return until === "aloft"
+        ? o.contacts.some((c) => c.aloft)
+        : o.identified.some((u) => u.kind === "test_heli");
+    },
+    until,
     { timeout: 30000 },
   );
   await lab(page, () => window.__lab.route.pause());

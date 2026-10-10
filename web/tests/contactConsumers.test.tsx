@@ -36,6 +36,7 @@ const report: ContactView = {
   source: "firing",
   center: [400, 300, 0],
   layer: "ground",
+  aloft: false,
   radius: 20,
   evidenceTick: 5,
   expiresTick: 20,

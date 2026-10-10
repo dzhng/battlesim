@@ -98,6 +98,10 @@ pub struct ApproximateContact {
     /// The height band the cause occupied: an air contact has no ground
     /// point to aim at, so area fire refuses it (D22).
     pub layer: AltitudeLayer,
+    /// The area hangs in the air: its cause was in the air band and more
+    /// than the low hover over the ground under it (D33). One heard from a
+    /// helicopter sitting at the low hover lies on the ground like any other.
+    pub aloft: bool,
     pub radius: f64,
     pub evidence_tick: Tick,
     pub expires_tick: Tick,

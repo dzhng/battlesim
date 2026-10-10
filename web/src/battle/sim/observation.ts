@@ -359,9 +359,13 @@ export interface ContactView {
   source: string;
   /** The area's centre, at its cause's height when the evidence came. */
   center: Point3;
-  /** The height band its cause occupied (`layers`): an air contact floats
-   *  and takes no area fire. */
+  /** The height band its cause occupied (`layers`): an air contact takes
+   *  no area fire. */
   layer: string;
+  /** The area hangs in the air at `center`'s height: its cause flew more
+   *  than the low hover over the ground (D33). Every other area lies on the
+   *  ground, a low-hovering helicopter's too. */
+  aloft: boolean;
   radius: number;
   evidenceTick: number;
   expiresTick: number;
@@ -1104,6 +1108,7 @@ function decodeFrame(
       source: layout.contactSources[f("source")],
       center: [f("x"), f("y"), f("z")],
       layer: layout.layers[f("layer")],
+      aloft: f("aloft") === 1,
       radius: f("radius"),
       evidenceTick: f("evidenceTick"),
       expiresTick: f("expiresTick"),

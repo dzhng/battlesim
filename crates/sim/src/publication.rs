@@ -211,13 +211,14 @@ const PENDING_FIELDS: [&str; 8] = [
     "blocked",
 ];
 const GROUND_FIELDS: [&str; 4] = ["tile", "span", "craterScorch", "tracksTrampledCleared"];
-const CONTACT_FIELDS: [&str; 12] = [
+const CONTACT_FIELDS: [&str; 13] = [
     "id",
     "source",
     "x",
     "y",
     "z",
     "layer",
+    "aloft",
     "radius",
     "evidenceTick",
     "expiresTick",
@@ -591,7 +592,8 @@ pub fn layout_json(battle: &Battle) -> String {
         // heardLow and heardHigh are a bitmask over roundKinds, 24 rows a
         // word (bit k of heardLow for row k < 24, bit k - 24 of heardHigh
         // otherwise; both 0 for a last sighting). Its z is its cause's height when the evidence came, and
-        // its layer indexes layers.
+        // its layer indexes layers; aloft is 1 when the area hangs in the air
+        // (more than the low hover over the ground), else 0.
         // A projectile's or blast's kind indexes roundKinds; a segment's
         // shooter is absent (-1) for a vehicle's gun, and nx, ny, nz are 0
         // when hit is none. A segment's path is a polyline of at least two
@@ -1063,6 +1065,7 @@ fn pack_record(
             c.center[1] as f32,
             c.center[2] as f32,
             tag(&LAYERS, &c.layer),
+            if c.aloft { 1.0 } else { 0.0 },
             c.radius as f32,
             c.evidence_tick as f32,
             c.expires_tick as f32,

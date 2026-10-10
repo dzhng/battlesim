@@ -997,7 +997,20 @@
       "hatch_alpha": 0.5,
       "glow_alpha": 0.3,
       "fill_alpha": 0.3,
-      "lift_m": 0.4
+      "lift_m": 0.4,
+      "air": {
+        "fill_alpha": 0.55,
+        "hatch_alpha": 1,
+        "glow_alpha": 0.6,
+        "hatch_px": 2.5,
+        "rim_px": 3,
+        "keyline_px": 1.5,
+        "keyline_alpha": 0.55,
+        "min_radius_px": 20,
+        "max_radius_px": 44,
+        "stem_px": 2,
+        "stem_alpha": 0.8
+      }
     },
     "models": {
       "lod_px": [150, 60, 24],

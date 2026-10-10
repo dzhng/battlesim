@@ -272,12 +272,18 @@ impl SideKnowledge {
         identified
     }
 
-    pub fn contacts(&self) -> impl Iterator<Item = ApproximateContact> + '_ {
-        self.all_contacts().map(|c| ApproximateContact {
+    /// The side's live contacts; `aloft` says which centres hang in the air
+    /// (`ApproximateContact::aloft`).
+    pub fn contacts<'a>(
+        &'a self,
+        aloft: impl Fn(&Contact) -> bool + 'a,
+    ) -> impl Iterator<Item = ApproximateContact> + 'a {
+        self.all_contacts().map(move |c| ApproximateContact {
             id: c.id,
             source: c.source,
             center: [c.center.x, c.center.y, c.center.z],
             layer: c.layer,
+            aloft: aloft(c),
             radius: c.radius,
             evidence_tick: c.evidence_tick,
             expires_tick: c.expires_tick,

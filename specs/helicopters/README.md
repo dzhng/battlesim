@@ -107,6 +107,7 @@ Every slice must keep these invariants. A slice that adds a second owner is wron
 | Crash damage | The `helicopter_crash` weapon row through `damage::blast`, not a new damage path |
 | Low hover | `air::low_hover`, shared by resupply now and transport later |
 | Contact height | `knowledge::Contact`. The renderer and picking read the published z. |
+| Whether a contact floats | The published `aloft` (D33), decided by the sim from the contact's layer, z and the low hover. The sign, its panel's anchor and picking all read it. |
 
 **Removed, not wrapped:**
 - the flat `units::Mobility`, replaced by `Motion`;
