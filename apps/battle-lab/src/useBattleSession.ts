@@ -129,10 +129,7 @@ import { useAppAudio } from "./AppAudio";
 import { useFeed } from "./feed";
 import { posedSockets } from "./workbench/benchWorld";
 import type { Vec3 } from "math";
-import type { Pose } from "@web/battle/present/interpolate";
-import { circleContains, unitCircle } from "@packages/battle-renderer/src/orderOverlay";
 import type { FelledTree } from "@packages/battle-renderer/src/scenery/felled";
-import { orderView } from "./battleOverlay";
 import {
   fieldedSoldiers,
   ghostAloft,
@@ -578,9 +575,8 @@ export function useBattleSession({
 
   // What the last frame drew: which unit or enemy each pick box is, and each
   // own unit's drawn (interpolated) position.
-  const drawn = useRef<DrawnInstances>({ picks: [], owners: [], enemies: [] });
+  const drawn = useRef<DrawnInstances>({ picks: [], owners: [], enemies: [], rings: [] });
   const drawnAt = useRef(new Map<number, Readonly<Vec3>>());
-  const drawnPoses = useRef<readonly Pose[]>([]);
   const drawnEnemyAt = useRef(new Map<number, Readonly<Vec3>>());
   const readouts = useRef<ReadoutLayerHandle>(null);
   // The last frame's clock and drawn motion, which sound hears at the camera.
@@ -692,7 +688,6 @@ export function useBattleSession({
         return null;
       }
       const { time, own, identified, observation: published } = sample;
-      drawnPoses.current = own;
       const d = sideInstances(own, identified, published, rules.physics, units);
       drawn.current = d;
       drawnAt.current = new Map(own.map((p) => [p.id, p.position]));
@@ -847,26 +842,6 @@ export function useBattleSession({
       if (!world) return null;
       const pointer = pickToPointer(world, drawn.current, pick, observation?.contacts);
       const panel = readouts.current?.pick(pick.x, pick.y);
-      if (!panel && pick.button === "left" && pointer.unit === null && pointer.enemy === null) {
-        const ground = groundUnderRay(world.view, pick.ray);
-        if (ground) {
-          // The units the last frame drew, at their drawn poses.
-          for (const u of drawnObservation.current?.own ?? []) {
-            if (units.hull(u.kind)) continue;
-            const pose = orderView(units, u, true);
-            const drawnPose = drawnPoses.current.find((p) => p.id === u.id);
-            if (drawnPose) {
-              pose.position = drawnPose.position;
-              pose.members = drawnPose.members;
-            }
-            const circle = unitCircle(pose, gameOrderStyle);
-            if (circle && circleContains(circle, [ground[0], ground[1]])) {
-              pointer.unit = u.id;
-              break;
-            }
-          }
-        }
-      }
       return panel ? { ...pointer, ...panel } : pointer;
     },
     [world, observation, units],

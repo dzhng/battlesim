@@ -838,6 +838,19 @@ export interface AircraftView {
   hullHalfLength: number;
 }
 
+/** An identified aircraft's marker circle, on the ground under it: its
+ *  hull's half length plus `vehicle_marker_margin_m`, as an own vehicle's. */
+export function aircraftCircle(
+  a: AircraftView,
+  style: Pick<OrderStyle, "vehicle_marker_margin_m">,
+): UnitCircle {
+  return {
+    c: [a.position[0], a.position[1]],
+    r: a.hullHalfLength + style.vehicle_marker_margin_m,
+    facing: a.yaw,
+  };
+}
+
 /** Every one of `aircraft` as its ground marker and drop line
  *  (`aircraftMarker`), in `color` (its role's, glowing by the orders'). */
 export function buildAircraftMarks(
@@ -852,17 +865,6 @@ export function buildAircraftMarks(
   const lines = new MeshBuilder();
   const glow = glowing(color, style.glow.order);
   for (const a of aircraft)
-    aircraftMarker(
-      paint,
-      lines,
-      pen,
-      a.position,
-      {
-        c: [a.position[0], a.position[1]],
-        r: a.hullHalfLength + style.vehicle_marker_margin_m,
-        facing: a.yaw,
-      },
-      glow,
-    );
+    aircraftMarker(paint, lines, pen, a.position, aircraftCircle(a, style), glow);
   return { ...paintOnly(paint.build()), opaque: lines.build() };
 }

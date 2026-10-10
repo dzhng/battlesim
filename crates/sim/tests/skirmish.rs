@@ -1004,3 +1004,43 @@ fn an_occupied_base_keeps_the_returning_unit_and_its_slot_without_payment() {
     let passive = (battle.tick() - start) as f64 / f64::from(battle.rules().tick_hz) * 200.0 / 60.0;
     assert!((status.skirmish.as_ref().unwrap().credits - before - passive).abs() < 0.00001);
 }
+
+/// The player buys a helicopter as a reinforcement: the preview places it,
+/// it enters at its base, and the battle plays on while it flies to the
+/// destination the player chose.
+#[test]
+fn a_helicopter_the_player_buys_enters_and_flies_to_its_destination() {
+    let mut rules = deck();
+    rules["catalog"].as_array_mut().unwrap().push(json!({ "units": { "blue_test_heli": {
+        "extends": "test_heli",
+        "roster": { "factions": ["us"], "category": "hel", "family_name": "Test", "variant": "Test" }
+    } } }));
+    let mut battle = Battle::new(&match_on(rules), 1);
+    battle
+        .preview_purchase(Side::Blue, "blue_test_heli", [400.0, 300.0])
+        .unwrap();
+    let ack = battle.accept(command(
+        Side::Blue,
+        1,
+        Order::ConfirmPurchase {
+            variant: "blue_test_heli".into(),
+            destination: [400.0, 300.0],
+        },
+    ));
+    assert!(ack.error.is_none(), "{ack:?}");
+    battle.accept(command(Side::Blue, 2, Order::Ready));
+    battle.accept(command(Side::Red, 1, Order::Ready));
+    for _ in 0..60 * battle.rules().tick_hz {
+        battle.step();
+        for side in Side::ALL {
+            battle.observe(side);
+        }
+    }
+    let frame = battle.observe(Side::Blue);
+    assert_eq!(frame.own.len(), 1);
+    let p = frame.own[0].position;
+    assert!(
+        (p[0] - 400.0).hypot(p[1] - 300.0) < 5.0,
+        "it ended at {p:?}"
+    );
+}
