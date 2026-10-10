@@ -315,19 +315,21 @@ def commander_hatch(v, turret):
     box("commander_lid_stop", (0.06, 0.30, 0.10), (x - 0.42, y, ROOF + 0.05), m["dark"], turret, lods=NEAR)
 
 
-def trophy_station(v, turret, side, s):
-    """Trophy on one turret side: the radar housing over the side bin, its
-    flat panels facing out and forward, and the launcher head on top at its
-    front. Its nodes (`trophy_radar_*`, `trophy_launcher_*`) are the part's."""
+def trophy_station(v, turret, side, s, at=(-1.45, 1.70, 0.74)):
+    """Trophy on one turret side: the radar housing at `at` (the left side's;
+    over the side bin on the Abrams), its flat panels facing out and forward,
+    and the launcher head on top at its front. Its nodes (`trophy_radar_*`,
+    `trophy_launcher_*`) are the part's."""
     m = v.mats
+    x, y, z = at
     holder = empty(f"dressing_trophy_{s}", parent=turret)
-    radar = empty(f"trophy_radar_{s}", (-1.45, side * 1.70, 0.74), holder)
+    radar = empty(f"trophy_radar_{s}", (x, side * y, z), holder)
     box(f"trophy_housing_{s}", (1.05, 0.30, 0.46), (0, 0, 0), m["paint"], radar, bevel=0.04)
     box(f"trophy_panel_side_{s}", (0.70, 0.02, 0.32), (-0.05, side * 0.16, 0.0), m["dark"], radar, bevel=0.01,
         lods=MID)
     box(f"trophy_panel_front_{s}", (0.02, 0.24, 0.32), (0.535, 0, 0.0), m["dark"], radar, lods=MID)
     box(f"trophy_bracket_{s}", (0.70, 0.12, 0.14), (0, -side * 0.18, -0.20), m["dark"], radar, lods=NEAR)
-    launcher = empty(f"trophy_launcher_{s}", (-1.12, side * 1.70, 1.02), holder)
+    launcher = empty(f"trophy_launcher_{s}", (x + 0.33, side * y, z + 0.28), holder)
     box(f"trophy_pedestal_{s}", (0.20, 0.20, 0.12), (0, 0, -0.03), m["dark"], launcher, bevel=0.01)
     cyl(f"trophy_head_{s}", 0.13, 0.38, (0.02, 0, 0.12), "X", m["paint"], launcher, seg=16, bevel=0.015)
     cyl(f"trophy_head_face_{s}", 0.10, 0.01, (0.215, 0, 0.12), "X", m["dark"], launcher, seg=14, lods=NEAR)

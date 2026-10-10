@@ -1,4 +1,4 @@
-"""M1E3 Abrams prototype (disabled card), from assets/references/m1e3/.
+"""M1E3 Abrams prototype, from assets/references/m1e3/.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/m1e3.py -- [--wreck]
 
@@ -15,11 +15,13 @@ cable harness), and an independent
 sight box stands behind it on the left. The prototype is green; the model
 wears US desert tan like every US roster vehicle.
 
-The frame is the M1 hull's length and width (the SEPv3's catalog box) and
-the turret roof's height, measured off the photo level with the SEPv3's. The
-turret and gun articulate on mounts stated here from the photo (the SEPv3's
-pivot and muzzle), so its wreck throws the turret; nothing in the simulation
-reads them until the card's mechanics land.
+The photographed prototype shows no protection system; the card fields
+Trophy, so the Abrams' Trophy stations (`abrams.trophy_station`) stand on
+the flat turret sides, back from the smoke banks, as on the SEPv3.
+
+Built to the catalog frame, the SEPv3 Trophy's box (hull 7.93 x 3.66 x
+2.44 m, gun pivot 1.464 m), with the remote station's mount on its pedestal
+mid-roof.
 """
 import math
 import os
@@ -30,18 +32,10 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import abrams as A  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft, prism, stencil  # noqa: E402
-from vehicle_export import rig, run_disabled  # noqa: E402
+from vehicle_export import rig, run  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 
-CARD = "us_m1e3_abrams"
-DIMENSIONS = (7.93, 3.66, 2.30)
-# The articulation the photo shows: the SEPv3's gun pivot and muzzle; the
-# remote station on its pedestal mid-roof.
-MOUNTS = [
-    dict(name="cannon", role="gun", on=None, pivot_m=[0.0, 0.0, 1.464], muzzle_m=[5.805, 0.0, 0.439]),
-    dict(name="RWS", role="hmg", on="cannon", pivot_m=[-0.45, 0.30, 2.42], muzzle_m=[1.30, 0.0, 0.30]),
-]
 ROOF = 0.80
 # The turret's foot, front to rear, left half: the gun shield's recess, the
 # faceted cheek, the flat side and the short rear.
@@ -84,20 +78,17 @@ def turret_body(v, turret):
         VP.smoke_discharger_bank(f"smoke_{s}", (0.70, side * 1.50, ROOF - 0.10), m, turret, count=4,
                                  tube_radius=0.05, tube_length=0.26, elevation=0.35, spread=0.3,
                                  rot=(0, 0, side * 0.6))
-        # The protection system's sensor panels on each side's rear corner.
-        holder = empty(f"dressing_aps_{s}", parent=turret)
-        box(f"aps_panel_{s}", (0.42, 0.10, 0.34), (-1.55, side * 1.52, ROOF - 0.12), m["paint"], holder, bevel=0.03,
-            rot=(0, 0, side * 0.5))
-        box(f"aps_face_{s}", (0.30, 0.02, 0.24), (-1.52, side * 1.58, ROOF - 0.12), m["dark"], holder,
-            rot=(0, 0, side * 0.5), lods=MID)
+        # Trophy: the radar housing against the flat side, its top as far
+        # above the roof as the SEPv3's, the launcher on it.
+        A.trophy_station(v, turret, side, s, at=(-1.10, 1.70, ROOF - 0.12))
         whip = empty(f"dressing_antenna_{s}", parent=turret)
         VP.antenna(f"antenna_{s}", (-1.75, side * 1.05, ROOF), m, whip, height=2.2)
     # Roof: the gunner's sight ahead on the right, the independent sight box
     # behind the station on the left, access plates and lifting eyes.
     VP.sight_housing("gunner_sight", (1.05, -0.62, ROOF - 0.05), m, turret, size=(0.52, 0.42, 0.26))
     mast = empty("dressing_sight_box", parent=turret)
-    box("sight_box_post", (0.20, 0.20, 0.16), (-1.05, 0.62, ROOF + 0.08), m["dark"], mast, lods=MID)
-    VP.sight_housing("sight_box", (-1.05, 0.62, ROOF + 0.16), m, mast, size=(0.40, 0.38, 0.30))
+    box("sight_box_post", (0.20, 0.20, 0.12), (-1.05, 0.62, ROOF + 0.06), m["dark"], mast, lods=MID)
+    VP.sight_housing("sight_box", (-1.05, 0.62, ROOF + 0.12), m, mast, size=(0.40, 0.38, 0.30))
     # The cheeks' sensor windows (the protection system's and the
     # situational-awareness cameras), and the gun shield's bolt rows.
     for side, s in ((1, "L"), (-1, "R")):
@@ -109,14 +100,14 @@ def turret_body(v, turret):
             cyl(f"shield_bolt_{s}_{k}", 0.022, 0.03, (1.415, side * 0.42, 0.12 + k * 0.17), "X", m["steel"], turret,
                 seg=6, lods=FINE)
         cyl(f"camera_{s}", 0.03, 0.06, (-1.90, side * 0.9, ROOF - 0.12), "X", m["dark"], turret, seg=10, lods=NEAR)
-    box("sight_box_window_2", (0.01, 0.16, 0.10), (-0.84, 0.70, ROOF + 0.34), m["glass"], mast, lods=NEAR)
+    box("sight_box_window_2", (0.01, 0.16, 0.10), (-0.84, 0.70, ROOF + 0.30), m["glass"], mast, lods=NEAR)
     for k, (x, y) in enumerate(((-0.30, -0.70), (-1.20, -0.55))):
         box(f"roof_plate_{k}", (0.70, 0.55, 0.025), (x, y, ROOF + 0.01), m["paint"], turret, bevel=0.008, lods=MID)
     for k, (x, y) in enumerate(((1.20, 0.95), (1.20, -0.95), (-1.80, 1.1), (-1.80, -1.1))):
         box(f"lift_eye_{k}", (0.12, 0.035, 0.09), (x, y, ROOF + 0.04), m["steel"], turret, lods=FINE)
 
 
-def remote_station(v, rws, rws_gun):
+def remote_station(v, rws, rws_gun, mount):
     """The remote weapon station high on its pedestal: a column off the roof
     on its bolted flange with the cable harness running down it, the bearing
     and the traverse drive's housing, the cradle with its elevation drive,
@@ -124,8 +115,8 @@ def remote_station(v, rws, rws_gun):
     windows under an armoured hood), the ammunition can on the left with its
     latches and the feed chute arcing over to the gun's tray."""
     m = v.mats
-    lift = MOUNTS[1]["muzzle_m"][2]
-    drop = MOUNTS[1]["pivot_m"][2] - (1.464 + ROOF)
+    lift = mount["muzzle_m"][2]
+    drop = mount["pivot_m"][2] - (v.frame["mounts"][0]["pivot_m"][2] + ROOF)
     cyl("rws_pedestal", 0.16, drop, (0, 0, -drop / 2), "Z", m["dark"], rws, seg=20, lods=MID)
     cyl("rws_flange", 0.26, 0.04, (0, 0, -drop + 0.02), "Z", m["dark"], rws, seg=20, bevel=0.01, lods=MID)
     for k in range(6):
@@ -155,7 +146,7 @@ def remote_station(v, rws, rws_gun):
              eyes=False)
     box("rws_feed_tray", (0.14, 0.10, 0.03), (0.06, 0.07, 0.085), m["dark"], rws_gun, lods=NEAR)
     box("rws_charger", (0.12, 0.05, 0.05), (-0.18, -0.08, 0.02), m["dark"], rws_gun, bevel=0.01, lods=NEAR)
-    VP.browning_m2(rws_gun, MOUNTS[1]["muzzle_m"][0], m)
+    VP.browning_m2(rws_gun, mount["muzzle_m"][0], m)
 
 
 def skirts(v):
@@ -192,20 +183,19 @@ def build(variant, v):
     skirts(v)
     mounts = rig(v.frame, v.root, trunnion={"cannon": A.TRUNNION})
     turret, gun, _, _ = mounts["cannon"]
-    rws, rws_gun, _, _ = mounts["RWS"]
+    rws, rws_gun, _, _ = mounts["HMG"]
     turret_body(v, turret)
     A.main_gun(v, gun, sep_v3=True)
-    remote_station(v, rws, rws_gun)
+    remote_station(v, rws, rws_gun, next(mt for mt in v.frame["mounts"] if mt["name"] == "HMG"))
 
 
 def wreck(variant, v):
     """The Abrams' damage on this hull (`abrams.wreck`): the right track
     thrown with road wheels gone, two long skirt panels torn away, warped
-    plates, a dented glacis and debris; the sensor panels burn off with the
-    dressing, and `wreckage.burn` heaves the turret."""
+    plates, a dented glacis and debris; Trophy burns off with the dressing,
+    and `wreckage.burn` heaves the turret."""
     A.wreck(variant, v)
 
 
 if __name__ == "__main__":
-    run_disabled("m1e3", {CARD: DIMENSIONS}, "us_desert_tan", build, wreck, mounts={CARD: MOUNTS},
-                 skip=("dressing_", "gun", "hmg", "muzzle"), chip=1.0)
+    run("m1e3", "us_desert_tan", build, wreck, chip=1.0)
