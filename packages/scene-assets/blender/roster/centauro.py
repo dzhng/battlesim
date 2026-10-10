@@ -107,12 +107,13 @@ def turret_body(v, turret):
         left = [notch, nose, cheek, flank, rear]
         return left + [(x, -y) for x, y in reversed(left)]
 
-    # Undercut foot, the nose's edge just under the gun, the brow where the
-    # slot closes over the mantlet, and the roof.
-    foot = ring((1.40, 0.36), (1.60, 0.48), (0.80, 1.30), (-1.30, 1.38), (-2.40, 1.22))
-    edge = ring((1.75, 0.36), (2.00, 0.46), (0.85, 1.52), (-1.40, 1.54), (-2.60, 1.38))
-    brow = ring((1.85, 0.36), (1.85, 0.46), (0.65, 1.48), (-1.40, 1.50), (-2.60, 1.36))
-    crown = ring((1.25, 0.36), (1.25, 0.44), (0.30, 1.36), (-1.40, 1.42), (-2.55, 1.28))
+    # Undercut foot, the nose's edge just under the gun, the brow over the
+    # mantlet, and the roof; the flanks lean in from the edge to the roof.
+    # Each ring's sides run parallel to the edge's, so every face is flat.
+    foot = ring((1.30, 0.36), (1.60, 0.48), (0.71, 1.30), (-1.30, 1.30), (-2.40, 1.17))
+    edge = ring((1.75, 0.36), (2.00, 0.46), (0.85, 1.52), (-1.40, 1.52), (-2.60, 1.38))
+    brow = ring((1.60, 0.36), (1.85, 0.46), (0.81, 1.42), (-1.40, 1.42), (-2.60, 1.28))
+    crown = ring((1.05, 0.36), (1.25, 0.44), (0.32, 1.30), (-1.40, 1.30), (-2.60, 1.16))
     cyl("turret_ring_guard", 1.00, 0.08, (0, 0, base + 0.02), "Z", m["dark"], turret, seg=36, lods=MID)
     loft("turret_shell", [(base + 0.03, foot), (0.28, edge), (0.60, brow), (ROOF, crown)], mat=m["paint"],
          parent=turret, bevel=0.05)
@@ -121,7 +122,7 @@ def turret_body(v, turret):
     # Big armour modules down each flank, stowage under the bustle's
     # overhang, a box and a basket behind it.
     for side, s in ((1, "L"), (-1, "R")):
-        loc, rot = VP.on_side(-0.45, 0.60, side, (1.54, 0.28), (1.42, ROOF))
+        loc, rot = VP.on_side(-0.45, 0.60, side, (1.52, 0.28), (1.30, ROOF))
         VP.armour_tiles(f"flank_armour_{s}", loc, (2.30, 0.54), (3, 1), 0.08, m, turret, rot=rot)
         VP.weld_line(f"cheek_weld_{s}", [(1.92, side * 0.50, 0.28), (0.88, side * 1.48, 0.28)], m, turret)
         VP.smoke_discharger_bank(f"smoke_{s}", (0.55, side * 1.02, ROOF - 0.02), m, turret, count=4,
