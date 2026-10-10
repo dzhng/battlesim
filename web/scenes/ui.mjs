@@ -23,6 +23,45 @@ async function contained(ctx, page, name) {
   );
 }
 
+/** A picture of a page whose art never loaded (an unfetched LFS pointer
+ *  decodes to nothing) approves a broken page: every image and video the page
+ *  names must decode, whether or not it has scrolled into view. */
+async function mediaDecodes(ctx, page, name) {
+  const undecoded = await page.evaluate(async () => {
+    // <img>s, and every CSS background (pseudo-elements too, where the
+    // menu's card art lives).
+    const urls = new Set([...document.images].map((i) => i.src));
+    for (const e of document.querySelectorAll("*"))
+      for (const pseudo of [null, "::before", "::after"])
+        for (const [, url] of getComputedStyle(e, pseudo).backgroundImage.matchAll(
+          /url\("?([^")]+)"?\)/g,
+        ))
+          urls.add(url);
+    const failed = [];
+    for (const url of urls) {
+      const image = new Image();
+      image.src = url;
+      await image.decode().catch(() => failed.push(url.split("/").pop()));
+    }
+    for (const { src } of document.querySelectorAll("video")) {
+      const video = document.createElement("video");
+      video.muted = true;
+      video.src = src;
+      const loaded = await new Promise((resolve) => {
+        video.onloadeddata = () => resolve(true);
+        video.onerror = () => resolve(false);
+      });
+      if (!loaded) failed.push(src.split("/").pop());
+    }
+    return failed;
+  });
+  ctx.check(
+    `${name}: every image and video decodes (fetched, not an LFS pointer)`,
+    undecoded.length === 0,
+    undecoded.join(", "),
+  );
+}
+
 /** The picker's states on one gallery shot, each pinned. */
 async function picker(ctx, page, shot) {
   await page.getByRole("button", { name: "Reinforcements" }).click();
@@ -255,37 +294,18 @@ export async function run(ctx) {
   await page.waitForFunction(() => document.querySelectorAll(".menu-body").length === 1);
   await page.evaluate(() => document.fonts.ready);
   await pointerAway(page);
-  // A picture of a page whose art never loaded (an unfetched LFS pointer
-  // decodes to nothing) approves a broken page: every image must decode.
-  const undecoded = await page.evaluate(async () => {
-    // <img>s, and every CSS background (pseudo-elements too, where the
-    // menu's card art lives).
-    const urls = new Set([...document.images].map((i) => i.src));
-    for (const e of document.querySelectorAll("*"))
-      for (const pseudo of [null, "::before", "::after"])
-        for (const [, url] of getComputedStyle(e, pseudo).backgroundImage.matchAll(
-          /url\("?([^")]+)"?\)/g,
-        ))
-          urls.add(url);
-    const failed = [];
-    for (const url of urls) {
-      const image = new Image();
-      image.src = url;
-      await image.decode().catch(() => failed.push(url.split("/").pop()));
-    }
-    return failed;
-  });
-  ctx.check(
-    "every menu image decodes (art fetched, not an LFS pointer)",
-    undecoded.length === 0,
-    undecoded.join(", "),
-  );
+  await mediaDecodes(ctx, page, "menu");
   const body = page.locator("main.menu .menu-body");
   await ctx.matchBaseline(body, "menu", { style: MENU_UNPINNED });
   // The developer page lists every lab: it changes as labs come and go.
   for (const entry of ["skirmish", "replay", "tutorial", "settings"]) {
     await page.locator(`[data-page="${entry}"]`).click();
     await pointerAway(page);
+    await mediaDecodes(ctx, page, `menu ${entry}`);
+    // The page's pictures, drawn before the picture of the page is taken.
+    await page.waitForFunction(() =>
+      [...document.querySelectorAll(".menu-body img")].every((i) => i.complete),
+    );
     await contained(ctx, page, `menu ${entry}`);
     await ctx.matchBaseline(body, `menu-${entry}`, { style: MENU_UNPINNED });
     await page.keyboard.press("Escape");

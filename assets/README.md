@@ -9,6 +9,7 @@ Sound inputs and prepared clips belong to [`battle-audio`](../packages/battle-au
 - `source/city/<set>/`: a city set, the kit of modules and the templates that place them ([the city kit readme](../packages/scene-assets/blender/city/README.md)). `catalog.json` lists the sets under `city_sets`; together they dress the one physical catalogue every map's buildings come from. No building is an appearance of its own.
 - `review/`: accepted model sheets (`asset sheet --accept`), one folder per appearance.
 - `source/menu/` and `runtime/menu/`: generated blue-toned menu art and its compact served images; the runtime provenance records the model and prompts.
+- `runtime/tutorial/`: the main menu tutorial's stills and loops, captured from a real battle by [the tutorial shots tool](../web/tutorial-shots.mjs), whose header says when to draw them again.
 - `runtime/`: the bake's output. Binary files are LFS and their directories identify the bytes actually served. `catalog.json` keeps art identities separate from the gzip transport of kits and the template library ([transport contract](../packages/scene-assets/README.md#transport-and-budgets)). It is Vite's `publicDir`, served at the site root and copied into production builds.
 
 [The asset CLI](../web/asset.mjs), invoked with `bun run --cwd web asset`, owns

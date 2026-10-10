@@ -50,6 +50,7 @@ mod skirmish;
 mod soldier_bodies;
 mod supply;
 mod suppression;
+mod top_attack;
 mod weapons;
 mod world_geometry;
 

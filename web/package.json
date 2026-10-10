@@ -11,6 +11,7 @@
     "build:wasm": "RUSTFLAGS='-C target-feature=+simd128' wasm-pack build ../crates/game-wasm --target web --release --out-dir ../../web/src/wasm",
     "scene": "node scene.mjs",
     "asset": "node asset.mjs",
+    "tutorial-shots": "node tutorial-shots.mjs",
     "verify": "node scene.mjs",
     "visual": "node scene.mjs --visual"
   },

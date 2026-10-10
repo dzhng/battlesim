@@ -1478,6 +1478,61 @@ fn an_atgm_gunner_trades_windows_with_a_rifleman_to_face_armour() {
 }
 
 #[test]
+fn a_garrisoned_top_attack_launcher_climbs_out_past_its_own_building() {
+    // The AT team holds the point block; a tank waits 250 m north. Its
+    // missile leaves the window and climbs at once, well off the straight
+    // line the launch checked, up the face of its own seven storeys: it
+    // clears them as its straight shots do, and dives onto the tank.
+    let mut game = rules();
+    game["weapons"]["atgm"]["turn_deg_s"] = json!(360);
+    game["weapons"]["atgm"]["top_attack"] = json!({ "loft_m": 60, "dive_deg": 40 });
+    let mut setup = common::scenario_with(
+        &map(json!([])),
+        json!([
+            { "side": "blue", "kind": "test_at", "position": [350.0, 300.0], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_tank", "position": [CENTRE[0], CENTRE[1] + 250.0], "engagement": "return_fire_only" },
+        ]),
+        json!([]),
+        json!([]),
+    );
+    setup.rules = serde_json::from_value(game).unwrap();
+    setup.rules.buildings.capacity_soldiers = 4;
+    let mut b = Battle::new(&setup, 1);
+    let mut c = Commander::new();
+    c.ok(&mut b, Side::Blue, garrison(&[0]));
+    until(&mut b, 1200, "inside", |b| inside(b, 0));
+    c.ok(
+        &mut b,
+        Side::Blue,
+        Order::SetEngagement {
+            units: vec![UnitId(0)],
+            policy: Engagement::FireAtWill,
+        },
+    );
+    let mut owners = BTreeMap::new();
+    let (mut apex, mut struck) = (f64::MIN, None);
+    for _ in 0..900 {
+        b.step();
+        remember_rounds(&b, &mut owners);
+        for (p, _) in b.rounds() {
+            if owners[&p.id].1 == "atgm" {
+                apex = apex.max(p.position.z);
+            }
+        }
+        struck = b.flight_events().iter().find_map(|e| match e {
+            FlightEvent::Impact(i) if owners[&i.projectile].1 == "atgm" => Some(i.struck),
+            _ => None,
+        });
+        if struck.is_some() {
+            break;
+        }
+    }
+    let tank = sim::weapons::VEHICLE_BODY_BASE + 1;
+    assert_eq!(struck, Some(Struck::Body(sim::flight::BodyId(tank))));
+    assert!(apex > 30.0, "it climbed: apex {apex:.1} m");
+}
+
+#[test]
 fn a_squad_faces_armour_with_its_launcher_and_infantry_with_its_rifles() {
     // Leave an extra free rifle-facing window: it must not pull the gunner
     // away from the tank once his assigned launcher has its north window.
