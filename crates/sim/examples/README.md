@@ -54,7 +54,7 @@ inputs and retains artifacts; manually changing those artifacts cannot alter a
 reviewed server-held save candidate.
 # Native binding probe
 
-`native_binding_probe` is the offline control for the native-client spike. It
+`native_binding_probe` is the offline control for the native Godot binding. It
 loads a scenario JSON, advances a fixed number of ticks, copies a side-filtered
 publication, and verifies that the recorded replay reproduces the final digest.
 It deliberately has no window or renderer dependency; a Godot binding must

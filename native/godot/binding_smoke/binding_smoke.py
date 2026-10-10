@@ -12,7 +12,8 @@ import subprocess
 import sys
 import tempfile
 
-root = Path(__file__).resolve().parents[2]
+here = Path(__file__).resolve().parent
+root = here.parents[2]
 target = Path(os.environ.get("CARGO_TARGET_DIR", root / "throwaway/target")).resolve()
 godot, scenario = map(lambda p: str(Path(p).resolve()), sys.argv[1:3])
 (root / "throwaway").mkdir(exist_ok=True)
@@ -20,12 +21,12 @@ with tempfile.TemporaryDirectory(prefix="binding-parity-", dir=root / "throwaway
     scratch = Path(tmp)
     project = scratch / "project"
     project.mkdir()
-    (project / "project.godot").write_text('[application]\nconfig/name="Binding parity"\n[rendering]\nrenderer/rendering_method="gl_compatibility"\n')
+    (project / "project.godot").write_text('[application]\nconfig/name="Binding parity"\n')
     for name in ["binding_smoke.gd", "binding_smoke.tscn"]:
-        shutil.copy(root / "native/godot-spike" / name, project / name)
+        shutil.copy(here / name, project / name)
     addon = project / "addons/battle_binding"
     addon.mkdir(parents=True)
-    shutil.copy(root / "native/godot-spike/addons/battle_binding/godot_binding.gdextension", addon)
+    shutil.copy(here / "godot_binding.gdextension", addon)
     shutil.copy(target / "debug/libgodot_binding.dylib", addon)
     cache = project / ".godot"
     cache.mkdir()

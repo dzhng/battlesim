@@ -1,146 +1,166 @@
-class_name BattlePresentationCapture
 extends RefCounted
 
-## Decoder for the renderer-only battle-presentation-capture/v1 boundary.
-##
-## This artifact is an observation stream owned by Rust.  The decoder never
-## advances a simulation and never turns malformed input into benchmark data.
-## Callers receive an explicit result so a report can distinguish a valid
-## capture from a synthetic or incomplete renderer probe.
+## Strict parser for one scene's `battle-presentation-capture`, written by the
+## browser capture run. The capture is an observation stream owned by Rust and
+## a list of frame records owned by the browser; native draws each record and
+## never advances a simulation. Any other shape, including a stale one, is
+## rejected with a reason.
 
-const SCHEMA := "battle-presentation-capture/v1"
+const SCHEMA := "battle-presentation-capture"
+const ROOT_KEYS := ["schema", "workload", "tickHz", "warmTick", "side", "layout", "samples", "frames"]
+const WORKLOAD_KEYS := ["id", "fingerprint", "scene", "map", "encounter", "seed"]
+const SAMPLE_KEYS := ["tick", "digest", "publication"]
+const FRAME_KEYS := ["index", "reelMs", "tick", "simTime", "eye", "target", "up", "canvas", "plate"]
 
-static func decode_json(text: String) -> Dictionary:
+## Returns `{valid: true, capture, layout}` or `{valid: false, reason}`.
+static func parse(text: String) -> Dictionary:
 	var parser := JSON.new()
 	if parser.parse(text) != OK:
 		return _invalid("capture is not valid JSON")
 	return validate(parser.data)
 
 static func validate(value: Variant) -> Dictionary:
-	if typeof(value) != TYPE_DICTIONARY:
-		return _invalid("capture root must be an object")
+	var shape := exact_keys(value, ROOT_KEYS, "capture")
+	if not shape.is_empty():
+		return _invalid(shape)
 	var capture: Dictionary = value
-	if capture.get("schema", "") != SCHEMA:
-		return _invalid("unsupported presentation capture schema")
-	if typeof(capture.get("workload")) != TYPE_DICTIONARY:
-		return _invalid("capture workload must be an object")
-	var workload: Dictionary = capture.workload
+	if typeof(capture.schema) != TYPE_STRING or capture.schema != SCHEMA:
+		return _invalid("capture schema must be %s, not %s" % [SCHEMA, capture.schema])
+	shape = exact_keys(capture.workload, WORKLOAD_KEYS, "capture workload")
+	if not shape.is_empty():
+		return _invalid(shape)
 	for field in ["id", "fingerprint", "scene", "map", "encounter"]:
-		if typeof(workload.get(field)) != TYPE_STRING or String(workload[field]).is_empty():
+		if not is_name(capture.workload[field]):
 			return _invalid("capture workload.%s must be a non-empty string" % field)
-	if not _is_integer(workload.get("seed")):
+	if not is_integer(capture.workload.seed):
 		return _invalid("capture workload.seed must be an integer")
-	if not _is_positive_integer(capture.get("tickHz")):
-		return _invalid("capture tickHz must be positive")
-	if not _is_non_negative_integer(capture.get("warmTick")):
-		return _invalid("capture warmTick must be non-negative")
-	if typeof(capture.get("layout")) != TYPE_STRING or String(capture.layout).is_empty():
+	if not is_integer(capture.tickHz) or int(capture.tickHz) <= 0:
+		return _invalid("capture tickHz must be a positive integer")
+	if not is_integer(capture.warmTick) or int(capture.warmTick) < 0:
+		return _invalid("capture warmTick must be a non-negative integer")
+	if not capture.side in ["blue", "red"]:
+		return _invalid("capture side must be blue or red")
+	if not is_name(capture.layout):
 		return _invalid("capture layout must be a non-empty JSON string")
 	var layout = JSON.parse_string(String(capture.layout))
 	if typeof(layout) != TYPE_DICTIONARY:
 		return _invalid("capture layout must decode to an object")
-	if capture.get("side") != "blue" and capture.get("side") != "red":
-		return _invalid("capture side must be blue or red")
-	if typeof(capture.get("samples")) != TYPE_ARRAY:
+	if typeof(capture.samples) != TYPE_ARRAY:
 		return _invalid("capture samples must be an array")
-	if typeof(capture.get("frames")) != TYPE_ARRAY:
-		return _invalid("capture frames must be an array")
-	var previous_frame := -1.0
-	for raw_frame in capture.frames:
-		if typeof(raw_frame) != TYPE_DICTIONARY or not _is_finite_number(raw_frame.get("elapsedMs")) or float(raw_frame.elapsedMs) < previous_frame:
-			return _invalid("capture frame times must be increasing")
-		if not _is_non_negative_integer(raw_frame.get("tick")) or not _valid_camera(raw_frame.get("camera")):
-			return _invalid("capture frame is malformed")
-		previous_frame = float(raw_frame.elapsedMs)
-
 	var previous_tick := -1
-	var sample_index := 0
-	for raw_sample in capture.samples:
-		if typeof(raw_sample) != TYPE_DICTIONARY:
-			return _invalid("capture sample %d must be an object" % sample_index)
-		var sample: Dictionary = raw_sample
-		if not _is_integer(sample.get("tick")) or int(sample.tick) < 0 or int(sample.tick) <= previous_tick:
-			return _invalid("capture samples must increase by non-negative tick")
-		if not _is_digest(sample.get("digest")):
-			return _invalid("capture sample %d digest must be a 16-digit hex value" % sample_index)
-		if typeof(sample.get("publication")) != TYPE_ARRAY:
-			return _invalid("capture sample %d publication must be an array" % sample_index)
-		for item in sample.publication:
-			if not _is_u32(item):
-				return _invalid("capture sample %d publication contains an invalid u32 word" % sample_index)
-		var camera = sample.get("camera")
-		if not _valid_camera(camera):
-			return _invalid("capture sample %d camera pose is malformed" % sample_index)
-		previous_tick = int(sample.tick)
-		sample_index += 1
+	for at in capture.samples.size():
+		var reason := _sample_error(capture.samples[at], previous_tick)
+		if not reason.is_empty():
+			return _invalid("capture sample %d %s" % [at, reason])
+		previous_tick = int(capture.samples[at].tick)
+	if typeof(capture.frames) != TYPE_ARRAY or capture.frames.is_empty():
+		return _invalid("capture frames must be a non-empty array")
+	var previous: Dictionary = {}
+	for at in capture.frames.size():
+		var reason := _frame_error(capture.frames[at], at, previous)
+		if not reason.is_empty():
+			return _invalid("capture frame %d %s" % [at, reason])
+		previous = capture.frames[at]
+	return {"valid": true, "capture": capture, "layout": layout}
 
-	return {
-		"valid": true,
-		"comparison_ready": true,
-		"comparison_blocker": "",
-		"capture": capture,
-		"sample_count": sample_index,
-		"publication_words": _publication_count(capture.samples),
-		"layout": layout,
-	}
+static func _sample_error(value: Variant, previous_tick: int) -> String:
+	var shape := exact_keys(value, SAMPLE_KEYS, "sample")
+	if not shape.is_empty():
+		return "has the wrong shape: " + shape
+	if not is_integer(value.tick) or int(value.tick) <= previous_tick:
+		return "tick must be a non-negative integer above the previous sample's"
+	if not _is_digest(value.digest):
+		return "digest must be a 16-digit hex value"
+	if typeof(value.publication) != TYPE_ARRAY:
+		return "publication must be an array"
+	for word in value.publication:
+		if not is_integer(word) or float(word) < 0.0 or float(word) > 4294967295.0:
+			return "publication contains an invalid u32 word"
+	return ""
+
+static func _frame_error(value: Variant, at: int, previous: Dictionary) -> String:
+	var shape := exact_keys(value, FRAME_KEYS, "frame")
+	if not shape.is_empty():
+		return "has the wrong shape: " + shape
+	if not is_integer(value.index) or int(value.index) != at:
+		return "index must equal its position"
+	if not is_number(value.reelMs) or not is_number(value.simTime) or not is_integer(value.tick) or int(value.tick) < 0:
+		return "reelMs and simTime must be finite and tick a non-negative integer"
+	if not previous.is_empty() and (float(value.reelMs) < float(previous.reelMs) or int(value.tick) < int(previous.tick) or float(value.simTime) < float(previous.simTime)):
+		return "reelMs, tick and simTime must not decrease"
+	for field in ["eye", "target", "up"]:
+		if not _is_vector(value[field], 3):
+			return "%s must be three finite numbers" % field
+	if _vector3(value.up).is_zero_approx() or _vector3(value.eye).is_equal_approx(_vector3(value.target)):
+		return "view is degenerate: up is zero or eye equals target"
+	if not _is_vector(value.canvas, 2) or not is_integer(value.canvas[0]) or not is_integer(value.canvas[1]) or int(value.canvas[0]) <= 0 or int(value.canvas[1]) <= 0:
+		return "canvas must be two positive integers"
+	if value.plate != null and value.plate != "plate-%d.png" % at:
+		return "plate must be plate-%d.png or null" % at
+	return ""
 
 static func _invalid(reason: String) -> Dictionary:
-	return {
-		"valid": false,
-		"comparison_ready": false,
-		"comparison_blocker": reason,
-	}
+	return {"valid": false, "reason": reason}
 
-static func _publication_count(samples: Array) -> int:
-	var count := 0
-	for sample in samples:
-		if typeof(sample) == TYPE_DICTIONARY and typeof(sample.get("publication")) == TYPE_ARRAY:
-			count += sample.publication.size()
-	return count
+## An empty string when `value` is an object with exactly `keys`.
+static func exact_keys(value: Variant, keys: Array, what: String) -> String:
+	if typeof(value) != TYPE_DICTIONARY:
+		return "%s must be an object" % what
+	for key in keys:
+		if not value.has(key):
+			return "%s is missing %s" % [what, key]
+	for key in value:
+		if not keys.has(key):
+			return "%s has unknown field %s" % [what, key]
+	return ""
 
-static func _is_integer(value: Variant) -> bool:
-	return (typeof(value) == TYPE_INT or typeof(value) == TYPE_FLOAT) and is_finite(float(value)) and float(value) == floor(float(value))
+static func _vector3(value: Array) -> Vector3:
+	return Vector3(float(value[0]), float(value[1]), float(value[2]))
 
-static func _is_positive_integer(value: Variant) -> bool:
-	return _is_integer(value) and int(value) > 0
+static func _is_vector(value: Variant, size: int) -> bool:
+	if typeof(value) != TYPE_ARRAY or value.size() != size:
+		return false
+	for item in value:
+		if not is_number(item):
+			return false
+	return true
 
-static func _is_non_negative_integer(value: Variant) -> bool:
-	return _is_integer(value) and int(value) >= 0
+static func is_name(value: Variant) -> bool:
+	return typeof(value) == TYPE_STRING and not String(value).is_empty()
 
-static func _is_finite_number(value: Variant) -> bool:
+static func is_number(value: Variant) -> bool:
 	return (typeof(value) == TYPE_INT or typeof(value) == TYPE_FLOAT) and is_finite(float(value))
 
-static func _is_u32(value: Variant) -> bool:
-	return _is_integer(value) and float(value) >= 0.0 and float(value) <= 4294967295.0
+static func is_integer(value: Variant) -> bool:
+	return is_number(value) and float(value) == floor(float(value))
 
 static func _is_digest(value: Variant) -> bool:
-	if typeof(value) != TYPE_STRING:
+	if typeof(value) != TYPE_STRING or String(value).length() != 16:
 		return false
-	var text := String(value)
-	if text.length() != 16:
-		return false
-	for character in text:
-		if not (character >= "0" and character <= "9") and not (character.to_lower() >= "a" and character.to_lower() <= "f"):
+	for character in String(value).to_lower():
+		if not "0123456789abcdef".contains(character):
 			return false
 	return true
 
-static func _valid_camera(value: Variant) -> bool:
-	if typeof(value) != TYPE_DICTIONARY:
-		return false
-	var camera: Dictionary = value
-	var target = camera.get("target")
-	if typeof(target) != TYPE_ARRAY or target.size() != 2:
-		return false
-	for coordinate in target:
-		if not _is_finite_number(coordinate):
-			return false
-	for field in ["distance", "yaw", "pitch"]:
-		if not _is_finite_number(camera.get(field)):
-			return false
-	return true
+## Decodes every sample of a parsed capture in tick order, carrying group and
+## fog baselines from one publication to the next. Returns
+## `{ok: true, samples: [{tick, units, fog}]}` or `{ok: false, blocker}`: one
+## sample that fails to decode breaks every later baseline, so it stops the run.
+static func decode_samples(capture_result: Dictionary) -> Dictionary:
+	var baselines: Array = []
+	var fog_bits: Array = []
+	var samples: Array = []
+	for sample in capture_result.capture.samples:
+		var decoded := decode_publication(capture_result, sample.publication, baselines, fog_bits)
+		if not decoded.valid:
+			return {"ok": false, "blocker": {"name": "publication", "detail": "the sample at tick %d does not decode: %s" % [sample.tick, decoded.get("error", "malformed carrier")]}}
+		baselines = decoded.baselines
+		fog_bits = decoded.fog.bits
+		samples.append({"tick": int(sample.tick), "units": decoded.units, "fog": decoded.fog})
+	return {"ok": true, "samples": samples}
 
 ## Reconstruct the Rust-owned publication groups from raw carrier words.
-## This intentionally returns only the presentation fields needed by the reel;
+## This intentionally returns only the presentation fields native draws;
 ## all packing, baselines and field offsets still come from the published layout.
 static func decode_publication(capture_result: Dictionary, words: Array, baselines: Array, previous_fog: Array = []) -> Dictionary:
 	if not capture_result.get("valid", false):
@@ -260,9 +280,6 @@ static func _decode_ground(layout: Dictionary, header: Dictionary, words: Array,
 		rows.append({"tile": tile, "start": start, "length": length, "craterScorch": crater, "tracksTrampledCleared": tracks})
 	reader.finish()
 	return {"valid": true, "count": count, "rows": rows, "full": int(header.get("groundFull", 0.0)) == 1, "packedValid": reader.valid}
-
-static func mini(a: int, b: int) -> int:
-	return a if a < b else b
 
 static func _decode_group(layout: Dictionary, group_index: int, encoding: int, packed: Array, size: int, old: Variant) -> Array:
 	var modes: Array = layout.groupDelivery.encodings

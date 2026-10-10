@@ -12,18 +12,20 @@ Build a macOS extension with Godot 4.7's API:
 cargo build -p godot-binding --release
 ```
 
-The checked-in descriptor and `native/godot-spike/binding_smoke.tscn` target the Godot 4.2+
-GDExtension ABI and the arm64 Mac library. Copy the built
-`target/release/libgodot_binding.dylib` into the project's
-`addons/battle_binding/` directory before attaching it to a Godot project. The
-generated library is intentionally not committed; the target checkout owns its
-build output.
+The descriptor in [`native/godot/binding_smoke/`](../godot/binding_smoke/)
+targets the arm64 Mac library and Godot 4.7's GDExtension API. The library is
+build output and is never committed.
 
-The live smoke command is:
+The smoke runs the offline `native_binding_probe` and this extension on the
+same scenario, inside a scratch Godot project under `throwaway/`, and requires
+the same digest, publication and replay from both. It needs the debug
+`godot-binding` library and the `native_binding_probe` example built in
+`CARGO_TARGET_DIR`:
 
 ```text
-cargo build -p godot-binding --release
-cp target/release/libgodot_binding.dylib native/godot-spike/addons/battle_binding/
-Godot --headless --path native/godot-spike --scene res://binding_smoke.tscn --quit-after 60 --no-header
+cargo build -p godot-binding
+cargo build -p sim --example native_binding_probe
+native/godot/binding_smoke/binding_smoke.sh <godot> <scenario.json>
 ```
 
+`native_binding_probe --write-fixture <path>` writes a small scenario for it.

@@ -1,0 +1,30 @@
+{
+ "schema": "native-visual-presentation",
+ "identity": {
+  "scene": "fixture-town",
+  "map": "fixture-town",
+  "encounter": "menu",
+  "seed": 1,
+  "mapHash": "911675e3219c0a1f5c4186f8df369213d421c86341f0b38a869db1ee0edfdc3b",
+  "captureHash": "d64536352a19b48d72f5fc5f36efa389e162aebe0cab6bf1a1aa59ddb146859f"
+ },
+ "viewport": {
+  "width": 1280,
+  "height": 720,
+  "scale": 1
+ },
+ "lens": {
+  "fovY": 0.8,
+  "near": 1.0,
+  "depth": "reverse-z",
+  "far": "infinite"
+ },
+ "layers": [
+  "sky",
+  "terrain",
+  "buildings",
+  "props",
+  "models"
+ ],
+ "omissions": []
+}
