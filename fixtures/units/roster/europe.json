@@ -928,7 +928,9 @@
       "description": "Armed reconnaissance vehicle",
       "faction": "europe",
       "family": "ebrc_jaguar",
-      "roles": [],
+      "roles": [
+        "recon"
+      ],
       "cost": 230,
       "roster": {
         "factions": [
@@ -938,19 +940,84 @@
         "variant": "Armed reconnaissance vehicle",
         "family_name": "EBRC Jaguar"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "wheeled-recon",
-        "weapons": [
-          {
-            "name": "Autocannon",
-            "icon": "autocannon"
+      "extends": "roster_profile_wheeled_recon",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.55,
+            1.52,
+            1.4
+          ],
+          "eye_m": 2.75,
+          "hp": 80,
+          "armor": {
+            "front": 50,
+            "side": 30,
+            "rear": 20,
+            "roof": 15,
+            "ricochet": {
+              "front": 0.1,
+              "side": 0.1,
+              "rear": 0.05,
+              "roof": 0.15
+            }
           },
-          {
-            "name": "Akeron MP",
-            "icon": "atgm"
-          }
-        ]
+          "weight_class": "medium",
+          "push_class": "medium",
+          "wreck": "medium_wreck"
+        }
+      },
+      "mobility": {
+        "wheeled": {
+          "offroad_kmh": 32,
+          "road_kmh": 90,
+          "turn_deg_s": 40,
+          "reverse_fraction": 0.35,
+          "turning_radius_m": 6
+        }
+      },
+      "mounts": [
+        {
+          "id": "autocannon",
+          "name": "Autocannon",
+          "weapons": [
+            "autocannon"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            1.95
+          ],
+          "muzzle_m": [
+            2.982,
+            0,
+            0.38
+          ]
+        },
+        {
+          "id": "launcher",
+          "name": "Akeron MP",
+          "weapons": [
+            "akeron_mp"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            1.32,
+            2.52
+          ],
+          "muzzle_m": [
+            1.25,
+            0,
+            0
+          ],
+          "on": "autocannon"
+        }
+      ],
+      "appearance": "europe_ebrc_jaguar_armed_reconnaissance_vehicle",
+      "sensors": {
+        "on": "autocannon"
       }
     },
     "europe_ec665_tiger_had": {

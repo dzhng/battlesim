@@ -146,3 +146,39 @@ the [README](README.md#decisions).
   backblast (TOW shares it).
 - **Unrelated fix while integrating:** the `mechanics_validate` accuracy-ceiling test patched the
   rifle, which the heavy sniper inherits and trips first; it now patches a row nothing extends.
+
+## 2026-10-10 — slice 06 (T-14, T-15, T-90M turret)
+
+- **Named rule change: the longest tracked hull rises from 8.4 m to 9.6 m** (half length 4.2 → 4.8 m,
+  `fixtures/game.json` `hull_limits`). The T-15 is 9.5 m and the T-14 8.7 m; the limits are written to
+  sit at the roster's extremes, rounded up. Rejected: a T-15 1.1 m shorter than the real one. Every
+  test driving a hull at the limits passes at 4.8 m; no battle digest moves.
+- **T-90M turret (user review):** now compact and forward over an exposed engine deck, with forward
+  wedge cheeks and a sight drum (`assets/06/t90-turret-*.png`). Only `t90.py` changed, so the T-72 and
+  T-80 are untouched. Accepted: it still sits a little low, at the live frame's 2.22 m top.
+- **T-15 rear (user review):** the rear compartment rises to full height to the tail, so the side
+  armour no longer stands above the back; the module is raised to 2.22 m and broadened.
+  Accepted after one enlargement: the Kornet tubes still don't read at battle-near.
+- **T-14:** turret longer and taller (1.1 m). Accepted: still hull-dominated (tall skirts, a dropped
+  finding; turret at the 3.3 m frame top); T-14 and T-15 look alike at battle-near, as the real
+  shared Armata platform does.
+- **Numbers:** T-14 from the KF51, T-15 from the Puma (role `mbt`); the T-15's Kornet rides on its
+  autocannon mount (as the Bradley's TOW) at y 1.30 m. No Afganit part: the game has no such part.
+- **Sights above the hull box are dressing** on all three (T-15 box 3.2 m to the module roof).
+  Wreck footprint tolerance 1.9 m for both (thrown skirts land 1.8 m clear).
+- **Scripts:** `armata.py` holds the shared platform; `t14.py` and `t15.py` export one folder each.
+
+## 2026-10-10 — slice 12 (EBRC Jaguar)
+
+- **Accepted: the turret could stand taller.** Three critiques; each ranked fix applied (taller hull,
+  bigger turret, launcher pod raised on a dark arm, thicker gun, wheels outboard). The last wants a
+  taller turret, which means growing the 2.8 m frame toward the real ~2.9 m. Left for a later art pass;
+  at play camera it is told from the Fennek, and from the VBCI mainly by six wheels against eight.
+- **Numbers between the Fennek and the VBCI:** hp 80, armour 50/30/20/15, 32/90 km/h, role `recon`;
+  the Akeron keeps the row's 4 rounds. Frame sized to the measured art (7.1 × 3.04 × 2.8 m).
+- **Edge wear 0.6 removed the pale patches,** so they came from the chip setting.
+- **Sample:** Akerons kill a T-90M from 700–840 m before it sees the Jaguar; at 400 m the tank shoots
+  back; Trophy stops every missile (`assets/12/battle-sample.txt`).
+- **Found:** the disabled-card exporter skips nodes by name prefix, so `"gun"` also skipped
+  `gunner_sight`, and slice 01's fit numbers for turreted cards could read low. No disabled ground card
+  remains, so it is left for whoever next exports a disabled card.

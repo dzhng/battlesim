@@ -268,26 +268,6 @@
       "source_path": "assets/source/roster/disabled/eastern_sukhoi_flanker_family_su_35s.glb"
     },
     {
-      "id": "eastern_t_14_armata_main_battle_tank",
-      "family": "t_14_armata",
-      "category": "veh",
-      "model_status": "reference_built",
-      "source_family": "t14",
-      "source_kind": "ground_vehicle",
-      "disabled_reason": "Ground profile and model admission pending",
-      "source_path": "assets/source/roster/t14/eastern_t_14_armata_main_battle_tank.glb"
-    },
-    {
-      "id": "eastern_t_15_armata_heavy_ifv",
-      "family": "t_15_armata",
-      "category": "veh",
-      "model_status": "reference_built",
-      "source_family": "t15",
-      "source_kind": "ground_vehicle",
-      "disabled_reason": "Ground profile and model admission pending",
-      "source_path": "assets/source/roster/t15/eastern_t_15_armata_heavy_ifv.glb"
-    },
-    {
       "id": "eastern_z_10_attack_helicopter",
       "family": "z_10",
       "category": "hel",
@@ -356,16 +336,6 @@
       "source_kind": "rotorcraft",
       "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
       "source_path": "assets/source/roster/disabled/europe_ch_47_chinook_hc6.glb"
-    },
-    {
-      "id": "europe_ebrc_jaguar_armed_reconnaissance_vehicle",
-      "family": "ebrc_jaguar",
-      "category": "rec",
-      "model_status": "reference_built",
-      "source_family": "jaguar",
-      "source_kind": "ground_vehicle",
-      "disabled_reason": "Ground profile and model admission pending",
-      "source_path": "assets/source/roster/jaguar/europe_ebrc_jaguar_armed_reconnaissance_vehicle.glb"
     },
     {
       "id": "europe_ec665_tiger_had",

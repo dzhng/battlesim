@@ -207,6 +207,40 @@
       }
     },
     {
+      "cost": 440,
+      "description": "Main battle tank",
+      "disabled_reason": null,
+      "family": "t_14_armata",
+      "id": "eastern_t_14_armata_main_battle_tank",
+      "name": "T-14 Armata",
+      "planned_weapons": [],
+      "roster": {
+        "category": "veh",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "T-14 Armata",
+        "variant": "Main battle tank"
+      }
+    },
+    {
+      "cost": 300,
+      "description": "Heavy IFV; ground combat platform, passenger carriage not implemented",
+      "disabled_reason": null,
+      "family": "t_15_armata",
+      "id": "eastern_t_15_armata_heavy_ifv",
+      "name": "T-15 Armata",
+      "planned_weapons": [],
+      "roster": {
+        "category": "veh",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "T-15 Armata",
+        "variant": "Heavy IFV"
+      }
+    },
+    {
       "cost": 280,
       "description": "T-72B3 (2016)",
       "disabled_reason": null,
@@ -510,6 +544,23 @@
         ],
         "family_name": "CV90",
         "variant": "Mk IV"
+      }
+    },
+    {
+      "cost": 230,
+      "description": "Armed reconnaissance vehicle",
+      "disabled_reason": null,
+      "family": "ebrc_jaguar",
+      "id": "europe_ebrc_jaguar_armed_reconnaissance_vehicle",
+      "name": "Jaguar",
+      "planned_weapons": [],
+      "roster": {
+        "category": "rec",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "EBRC Jaguar",
+        "variant": "Armed reconnaissance vehicle"
       }
     },
     {
@@ -1770,58 +1821,6 @@
       }
     },
     {
-      "cost": 440,
-      "description": "Main battle tank",
-      "disabled_reason": "Ground profile and model admission pending",
-      "family": "t_14_armata",
-      "id": "eastern_t_14_armata_main_battle_tank",
-      "name": "T-14 Armata",
-      "planned_weapons": [
-        {
-          "icon": "ap_shell",
-          "name": "Main Gun"
-        },
-        {
-          "icon": "hmg",
-          "name": "HMG"
-        }
-      ],
-      "roster": {
-        "category": "veh",
-        "factions": [
-          "eastern"
-        ],
-        "family_name": "T-14 Armata",
-        "variant": "Main battle tank"
-      }
-    },
-    {
-      "cost": 300,
-      "description": "Heavy IFV; ground combat platform, passenger carriage not implemented",
-      "disabled_reason": "Ground profile and model admission pending",
-      "family": "t_15_armata",
-      "id": "eastern_t_15_armata_heavy_ifv",
-      "name": "T-15 Armata",
-      "planned_weapons": [
-        {
-          "icon": "autocannon",
-          "name": "Autocannon"
-        },
-        {
-          "icon": "atgm",
-          "name": "Kornet"
-        }
-      ],
-      "roster": {
-        "category": "veh",
-        "factions": [
-          "eastern"
-        ],
-        "family_name": "T-15 Armata",
-        "variant": "Heavy IFV"
-      }
-    },
-    {
       "cost": 300,
       "description": "Attack helicopter",
       "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
@@ -1981,32 +1980,6 @@
         ],
         "family_name": "CH-47 Chinook",
         "variant": "HC6"
-      }
-    },
-    {
-      "cost": 230,
-      "description": "Armed reconnaissance vehicle",
-      "disabled_reason": "Ground profile and model admission pending",
-      "family": "ebrc_jaguar",
-      "id": "europe_ebrc_jaguar_armed_reconnaissance_vehicle",
-      "name": "Jaguar",
-      "planned_weapons": [
-        {
-          "icon": "autocannon",
-          "name": "Autocannon"
-        },
-        {
-          "icon": "atgm",
-          "name": "Akeron MP"
-        }
-      ],
-      "roster": {
-        "category": "rec",
-        "factions": [
-          "europe"
-        ],
-        "family_name": "EBRC Jaguar",
-        "variant": "Armed reconnaissance vehicle"
       }
     },
     {
@@ -7652,26 +7625,95 @@
           }
         },
         "eastern_t_14_armata_main_battle_tank": {
+          "appearance": "eastern_t_14_armata_main_battle_tank",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 260.0,
+                "rear": 70.0,
+                "ricochet": {
+                  "front": 0.5,
+                  "rear": 0.2,
+                  "roof": 0.6,
+                  "side": 0.35
+                },
+                "roof": 45.0,
+                "side": 130.0
+              },
+              "eye_m": 3.1,
+              "half_extents_m": [
+                4.35,
+                1.75,
+                1.65
+              ],
+              "hp": 135.0,
+              "push_class": "heavy",
+              "weight_class": "heavy",
+              "wreck": "heavy_wreck"
+            }
+          },
+          "capabilities": {},
           "cost": 440,
           "description": "Main battle tank",
           "faction": "eastern",
           "family": "t_14_armata",
-          "name": "T-14 Armata",
-          "planned": {
-            "profile": "advanced-mbt",
-            "reason": "Ground profile and model admission pending",
-            "weapons": [
-              {
-                "icon": "ap_shell",
-                "name": "Main Gun"
-              },
-              {
-                "icon": "hmg",
-                "name": "HMG"
-              }
-            ]
+          "mobility": {
+            "tracked": {
+              "offroad_kmh": 28.0,
+              "reverse_fraction": 0.4,
+              "road_kmh": 65.0,
+              "turn_deg_s": 45.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "cannon",
+              "muzzle_m": [
+                5.36,
+                0.0,
+                0.594
+              ],
+              "name": "Main Gun",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.98
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "advanced_tank_ap",
+                "advanced_tank_he"
+              ]
+            },
+            {
+              "id": "HMG",
+              "muzzle_m": [
+                1.43,
+                0.0,
+                0.32
+              ],
+              "name": "HMG",
+              "on": "cannon",
+              "pivot_m": [
+                -0.25,
+                -0.58,
+                3.102
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "hmg"
+              ]
+            }
+          ],
+          "name": "T-14 Armata",
+          "roles": [
+            "mbt"
+          ],
           "roster": {
             "category": "veh",
             "factions": [
@@ -7679,29 +7721,110 @@
             ],
             "family_name": "T-14 Armata",
             "variant": "Main battle tank"
+          },
+          "sensors": {
+            "ground_m": 600.0,
+            "on": "cannon",
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.5
+            }
+          },
+          "sound": {
+            "loudness_m": 650.0,
+            "profile": "vehicle"
           }
         },
         "eastern_t_15_armata_heavy_ifv": {
+          "appearance": "eastern_t_15_armata_heavy_ifv",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 130.0,
+                "rear": 40.0,
+                "ricochet": {
+                  "front": 0.5,
+                  "rear": 0.2,
+                  "roof": 0.6,
+                  "side": 0.35
+                },
+                "roof": 30.0,
+                "side": 75.0
+              },
+              "eye_m": 3.2,
+              "half_extents_m": [
+                4.75,
+                1.75,
+                1.6
+              ],
+              "hp": 120.0,
+              "push_class": "heavy",
+              "weight_class": "heavy",
+              "wreck": "heavy_wreck"
+            }
+          },
+          "capabilities": {},
           "cost": 300,
           "description": "Heavy IFV; ground combat platform, passenger carriage not implemented",
           "faction": "eastern",
           "family": "t_15_armata",
-          "name": "T-15 Armata",
-          "planned": {
-            "profile": "heavy-ifv",
-            "reason": "Ground profile and model admission pending",
-            "weapons": [
-              {
-                "icon": "autocannon",
-                "name": "Autocannon"
-              },
-              {
-                "icon": "atgm",
-                "name": "Kornet"
-              }
-            ]
+          "mobility": {
+            "tracked": {
+              "offroad_kmh": 25.0,
+              "reverse_fraction": 0.4,
+              "road_kmh": 60.0,
+              "turn_deg_s": 45.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "autocannon",
+              "muzzle_m": [
+                2.94,
+                0.0,
+                0.504
+              ],
+              "name": "Autocannon",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                2.22
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "autocannon"
+              ]
+            },
+            {
+              "id": "launcher",
+              "muzzle_m": [
+                1.05,
+                0.0,
+                0.0
+              ],
+              "name": "Kornet",
+              "on": "autocannon",
+              "pivot_m": [
+                0.0,
+                1.3,
+                2.696
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "kornet"
+              ]
+            }
+          ],
+          "name": "T-15 Armata",
+          "roles": [
+            "mbt"
+          ],
           "roster": {
             "category": "veh",
             "factions": [
@@ -7709,6 +7832,19 @@
             ],
             "family_name": "T-15 Armata",
             "variant": "Heavy IFV"
+          },
+          "sensors": {
+            "ground_m": 550.0,
+            "on": "autocannon",
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.5
+            }
+          },
+          "sound": {
+            "loudness_m": 650.0,
+            "profile": "vehicle"
           }
         },
         "eastern_t_72_t_72b3_2016": {
@@ -9680,26 +9816,95 @@
           }
         },
         "europe_ebrc_jaguar_armed_reconnaissance_vehicle": {
+          "appearance": "europe_ebrc_jaguar_armed_reconnaissance_vehicle",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 50.0,
+                "rear": 20.0,
+                "ricochet": {
+                  "front": 0.1,
+                  "rear": 0.05,
+                  "roof": 0.15,
+                  "side": 0.1
+                },
+                "roof": 15.0,
+                "side": 30.0
+              },
+              "eye_m": 2.75,
+              "half_extents_m": [
+                3.55,
+                1.52,
+                1.4
+              ],
+              "hp": 80.0,
+              "push_class": "medium",
+              "weight_class": "medium",
+              "wreck": "medium_wreck"
+            }
+          },
+          "capabilities": {},
           "cost": 230,
           "description": "Armed reconnaissance vehicle",
           "faction": "europe",
           "family": "ebrc_jaguar",
-          "name": "Jaguar",
-          "planned": {
-            "profile": "wheeled-recon",
-            "reason": "Ground profile and model admission pending",
-            "weapons": [
-              {
-                "icon": "autocannon",
-                "name": "Autocannon"
-              },
-              {
-                "icon": "atgm",
-                "name": "Akeron MP"
-              }
-            ]
+          "mobility": {
+            "wheeled": {
+              "offroad_kmh": 32.0,
+              "reverse_fraction": 0.35,
+              "road_kmh": 90.0,
+              "turn_deg_s": 40.0,
+              "turning_radius_m": 6.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "autocannon",
+              "muzzle_m": [
+                2.982,
+                0.0,
+                0.38
+              ],
+              "name": "Autocannon",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.95
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "autocannon"
+              ]
+            },
+            {
+              "id": "launcher",
+              "muzzle_m": [
+                1.25,
+                0.0,
+                0.0
+              ],
+              "name": "Akeron MP",
+              "on": "autocannon",
+              "pivot_m": [
+                0.0,
+                1.32,
+                2.52
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "akeron_mp"
+              ]
+            }
+          ],
+          "name": "Jaguar",
+          "roles": [
+            "recon"
+          ],
           "roster": {
             "category": "rec",
             "factions": [
@@ -9707,6 +9912,20 @@
             ],
             "family_name": "EBRC Jaguar",
             "variant": "Armed reconnaissance vehicle"
+          },
+          "sensors": {
+            "concealed_range_multiplier": 1.5,
+            "ground_m": 850.0,
+            "on": "autocannon",
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 1.0,
+              "side": 1.0
+            }
+          },
+          "sound": {
+            "loudness_m": 650.0,
+            "profile": "vehicle"
           }
         },
         "europe_ec665_tiger_had": {
@@ -18348,6 +18567,235 @@
       }
     },
     {
+      "appearance": "eastern_t_14_armata_main_battle_tank",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 260.0,
+            "rear": 70.0,
+            "ricochet": {
+              "front": 0.5,
+              "rear": 0.2,
+              "roof": 0.6,
+              "side": 0.35
+            },
+            "roof": 45.0,
+            "side": 130.0
+          },
+          "eye_m": 3.1,
+          "half_extents_m": [
+            4.35,
+            1.75,
+            1.65
+          ],
+          "hp": 135.0,
+          "push_class": "heavy",
+          "weight_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "capabilities": {},
+      "cost": 440,
+      "description": "Main battle tank",
+      "faction": "eastern",
+      "family": "t_14_armata",
+      "id": "eastern_t_14_armata_main_battle_tank",
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 28.0,
+          "reverse_fraction": 0.4,
+          "road_kmh": 65.0,
+          "turn_deg_s": 45.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "cannon",
+          "muzzle_m": [
+            5.36,
+            0.0,
+            0.594
+          ],
+          "name": "Main Gun",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.98
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "advanced_tank_ap",
+            "advanced_tank_he"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "HMG",
+          "muzzle_m": [
+            1.43,
+            0.0,
+            0.32
+          ],
+          "name": "HMG",
+          "on": "cannon",
+          "pivot_m": [
+            -0.25,
+            -0.58,
+            3.102
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "hmg"
+          ]
+        }
+      ],
+      "name": "T-14 Armata",
+      "roles": [
+        "mbt"
+      ],
+      "roster": {
+        "category": "veh",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "T-14 Armata",
+        "variant": "Main battle tank"
+      },
+      "sensors": {
+        "ground_m": 600.0,
+        "on": "cannon",
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.5
+        }
+      },
+      "sound": {
+        "loudness_m": 650.0,
+        "profile": "vehicle"
+      }
+    },
+    {
+      "appearance": "eastern_t_15_armata_heavy_ifv",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 130.0,
+            "rear": 40.0,
+            "ricochet": {
+              "front": 0.5,
+              "rear": 0.2,
+              "roof": 0.6,
+              "side": 0.35
+            },
+            "roof": 30.0,
+            "side": 75.0
+          },
+          "eye_m": 3.2,
+          "half_extents_m": [
+            4.75,
+            1.75,
+            1.6
+          ],
+          "hp": 120.0,
+          "push_class": "heavy",
+          "weight_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "capabilities": {},
+      "cost": 300,
+      "description": "Heavy IFV; ground combat platform, passenger carriage not implemented",
+      "faction": "eastern",
+      "family": "t_15_armata",
+      "id": "eastern_t_15_armata_heavy_ifv",
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 25.0,
+          "reverse_fraction": 0.4,
+          "road_kmh": 60.0,
+          "turn_deg_s": 45.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "autocannon",
+          "muzzle_m": [
+            2.94,
+            0.0,
+            0.504
+          ],
+          "name": "Autocannon",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            2.22
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "autocannon"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "launcher",
+          "muzzle_m": [
+            1.05,
+            0.0,
+            0.0
+          ],
+          "name": "Kornet",
+          "on": "autocannon",
+          "pivot_m": [
+            0.0,
+            1.3,
+            2.696
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "kornet"
+          ]
+        }
+      ],
+      "name": "T-15 Armata",
+      "roles": [
+        "mbt"
+      ],
+      "roster": {
+        "category": "veh",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "T-15 Armata",
+        "variant": "Heavy IFV"
+      },
+      "sensors": {
+        "ground_m": 550.0,
+        "on": "autocannon",
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.5
+        }
+      },
+      "sound": {
+        "loudness_m": 650.0,
+        "profile": "vehicle"
+      }
+    },
+    {
       "appearance": "eastern_t_72_t_72b3_2016",
       "body": {
         "hull": {
@@ -20222,6 +20670,122 @@
           "front": 1.0,
           "rear": 0.3,
           "side": 0.5
+        }
+      },
+      "sound": {
+        "loudness_m": 650.0,
+        "profile": "vehicle"
+      }
+    },
+    {
+      "appearance": "europe_ebrc_jaguar_armed_reconnaissance_vehicle",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 50.0,
+            "rear": 20.0,
+            "ricochet": {
+              "front": 0.1,
+              "rear": 0.05,
+              "roof": 0.15,
+              "side": 0.1
+            },
+            "roof": 15.0,
+            "side": 30.0
+          },
+          "eye_m": 2.75,
+          "half_extents_m": [
+            3.55,
+            1.52,
+            1.4
+          ],
+          "hp": 80.0,
+          "push_class": "medium",
+          "weight_class": "medium",
+          "wreck": "medium_wreck"
+        }
+      },
+      "capabilities": {},
+      "cost": 230,
+      "description": "Armed reconnaissance vehicle",
+      "faction": "europe",
+      "family": "ebrc_jaguar",
+      "id": "europe_ebrc_jaguar_armed_reconnaissance_vehicle",
+      "mobility": {
+        "wheeled": {
+          "offroad_kmh": 32.0,
+          "reverse_fraction": 0.35,
+          "road_kmh": 90.0,
+          "turn_deg_s": 40.0,
+          "turning_radius_m": 6.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "autocannon",
+          "muzzle_m": [
+            2.982,
+            0.0,
+            0.38
+          ],
+          "name": "Autocannon",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.95
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "autocannon"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "launcher",
+          "muzzle_m": [
+            1.25,
+            0.0,
+            0.0
+          ],
+          "name": "Akeron MP",
+          "on": "autocannon",
+          "pivot_m": [
+            0.0,
+            1.32,
+            2.52
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "akeron_mp"
+          ]
+        }
+      ],
+      "name": "Jaguar",
+      "roles": [
+        "recon"
+      ],
+      "roster": {
+        "category": "rec",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "EBRC Jaguar",
+        "variant": "Armed reconnaissance vehicle"
+      },
+      "sensors": {
+        "concealed_range_multiplier": 1.5,
+        "ground_m": 850.0,
+        "on": "autocannon",
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {

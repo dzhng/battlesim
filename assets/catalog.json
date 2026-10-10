@@ -2216,6 +2216,35 @@
         "footprint_m": 2.3
       }
     },
+    "europe_ebrc_jaguar_armed_reconnaissance_vehicle": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/jaguar/europe_ebrc_jaguar_armed_reconnaissance_vehicle.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "autocannon": "gun",
+        "launcher": "hmg"
+      },
+      "wreck": "europe_ebrc_jaguar_armed_reconnaissance_vehicle_wreck"
+    },
+    "europe_ebrc_jaguar_armed_reconnaissance_vehicle_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/jaguar/europe_ebrc_jaguar_armed_reconnaissance_vehicle_wreck.glb",
+        "hull": "assets/source/roster/jaguar/europe_ebrc_jaguar_armed_reconnaissance_vehicle_wreck_hull.glb",
+        "turret": "assets/source/roster/jaguar/europe_ebrc_jaguar_armed_reconnaissance_vehicle_wreck_turret.glb",
+        "debris": "assets/source/roster/jaguar/europe_ebrc_jaguar_armed_reconnaissance_vehicle_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        3.55,
+        1.52,
+        1.4
+      ],
+      "tolerances": {
+        "footprint_m": 1.3
+      }
+    },
     "europe_fennek_reconnaissance_vehicle": {
       "unit": "vehicle",
       "source": "assets/source/roster/fennek/europe_fennek_reconnaissance_vehicle.glb",
@@ -3171,6 +3200,64 @@
       ],
       "tolerances": {
         "footprint_m": 2.1
+      }
+    },
+    "eastern_t_14_armata_main_battle_tank": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/t14/eastern_t_14_armata_main_battle_tank.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "cannon": "gun",
+        "HMG": "hmg"
+      },
+      "wreck": "eastern_t_14_armata_main_battle_tank_wreck"
+    },
+    "eastern_t_14_armata_main_battle_tank_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/t14/eastern_t_14_armata_main_battle_tank_wreck.glb",
+        "hull": "assets/source/roster/t14/eastern_t_14_armata_main_battle_tank_wreck_hull.glb",
+        "turret": "assets/source/roster/t14/eastern_t_14_armata_main_battle_tank_wreck_turret.glb",
+        "debris": "assets/source/roster/t14/eastern_t_14_armata_main_battle_tank_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        4.35,
+        1.75,
+        1.65
+      ],
+      "tolerances": {
+        "footprint_m": 1.9
+      }
+    },
+    "eastern_t_15_armata_heavy_ifv": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/t15/eastern_t_15_armata_heavy_ifv.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "autocannon": "gun",
+        "launcher": "hmg"
+      },
+      "wreck": "eastern_t_15_armata_heavy_ifv_wreck"
+    },
+    "eastern_t_15_armata_heavy_ifv_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/t15/eastern_t_15_armata_heavy_ifv_wreck.glb",
+        "hull": "assets/source/roster/t15/eastern_t_15_armata_heavy_ifv_wreck_hull.glb",
+        "turret": "assets/source/roster/t15/eastern_t_15_armata_heavy_ifv_wreck_turret.glb",
+        "debris": "assets/source/roster/t15/eastern_t_15_armata_heavy_ifv_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        4.75,
+        1.75,
+        1.6
+      ],
+      "tolerances": {
+        "footprint_m": 1.9
       }
     },
     "europe_boxer_apc": {
