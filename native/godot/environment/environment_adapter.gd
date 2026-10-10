@@ -21,6 +21,9 @@ const SHADOW_FILTER_RADIUS := 2.0
 ## The browser's camera far when its own is infinite; it only enters the
 ## cascade extent's fade margin.
 const FINITE_CAMERA_FAR := 1e7
+## The browser draws its lit world at 4× MSAA (`FRAME_MSAA`), shades and hazes
+## each sample, and resolves before post.
+const FRAME_MSAA := Viewport.MSAA_4X
 
 var _light: Dictionary
 var _receivers: AABB
@@ -60,6 +63,9 @@ func _init(light: Dictionary, sky_listed: bool, receivers: AABB) -> void:
 	add_child(world)
 	_sun = build_sun(light)
 	add_child(_sun)
+
+func _enter_tree() -> void:
+	get_viewport().msaa_3d = FRAME_MSAA
 
 ## The browser's sun as a Godot light: its direction through the one
 ## conversion, its colour from the sky model and its intensity, keeping

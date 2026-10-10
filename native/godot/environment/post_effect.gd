@@ -27,6 +27,8 @@ var _levels: Array = []
 
 func _init(light: Dictionary) -> void:
 	effect_callback_type = EFFECT_CALLBACK_TYPE_POST_TRANSPARENT
+	# Under MSAA, read the resolved colour.
+	access_resolved_color = true
 	_light = light
 
 func _notification(what: int) -> void:

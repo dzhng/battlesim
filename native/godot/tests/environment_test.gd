@@ -15,6 +15,7 @@ func run() -> bool:
 	var environment := EnvironmentAdapter.new(light, true, receivers)
 	root.add_child(environment)
 	var sun: DirectionalLight3D = environment.find_child("Sun", true, false)
+	check(root.msaa_3d == Viewport.MSAA_4X, "the world is drawn at the browser's 4x MSAA")
 	check(is_equal_approx(sun.shadow_opacity, 1.0 - float(light.shadow_floor)), "a sun-shadowed surface keeps the shadow floor's share of the sun")
 
 	var camera := Camera3D.new()

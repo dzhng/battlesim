@@ -278,3 +278,12 @@ Native grass reads like the browser's. Over the 18 market-town plates, the mean 
 | The fragment sets the browser's shading normal (facing the eye, leaned to the ground's by `shading.y` and the far fade) and leaves the light to Godot's | The light is 04a–c's; the browser's `environment.shade` is the same sun and sky fill |
 | The ground-paint glow and the fog term are not ported | The menu reel draws no ground paint and no fog overlay |
 | MSAA is not turned on here | It is the whole frame's, owned by the frame and light lane; reported to the orchestrator with the evidence above |
+
+### 04c follow-up: 4× MSAA, by the implementing agent
+
+The browser draws its lit world at 4× MSAA (`FRAME_MSAA` in `frame/targets.ts`), shades and hazes each sample, resolves into `lit`, and runs post on the resolved image. Native now sets its viewport's `msaa_3d` to 4× in the environment adapter, and both compositor effects ask Godot for the resolved colour (and the haze for the resolved depth). Against the browser, on the same HEAD with and without MSAA: market-town mean grey difference 6.5 → 5.1 and distance 0.097 → 0.065, with mean luminance 134.2 → 134.5 (browser 133.4); paris-corner 20.6 → 20.4, luminance 115.6 → 115.8 (browser 114.6). Skyline crops show smoother edges and no haze halo against the sky; the bloom is unchanged. `tests/environment_test.gd` pins the level. Evidence: `throwaway/native-parity/slice04c-msaa/`.
+
+| Decision | Why |
+| --- | --- |
+| The environment adapter owns the MSAA level, setting the viewport's `msaa_3d` when it enters the tree | It is the frame the light is drawn through, and the browser's light owner shades per sample; one owner beside the effects that must read the resolve |
+| The haze reads Godot's resolved depth, one value per pixel, where the browser hazes each sample | A Godot compositor effect sees only the resolved buffers; edge pixels against the sky show no halo at 1× crops |

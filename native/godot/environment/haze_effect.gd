@@ -22,6 +22,9 @@ var _nearest: RID
 
 func _init(light: Dictionary) -> void:
 	effect_callback_type = EFFECT_CALLBACK_TYPE_POST_TRANSPARENT
+	# Under MSAA, read the resolved colour and depth.
+	access_resolved_color = true
+	access_resolved_depth = true
 	_source = SHADER.replace("{sky}", SkyModel.radiance_function(light)).replace("{aerial}", Aerial.function(light))
 
 func _notification(what: int) -> void:
