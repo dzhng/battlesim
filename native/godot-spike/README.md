@@ -6,8 +6,8 @@ through `MultiMeshInstance3D`, move a camera over them, and emit the same basic
 average/minimum/maximum/1%-low frame-rate fields used by the browser report.
 
 It is not the battle renderer and it does not claim simulation or visual parity.
-The Rust binding and full menu-reel comparison remain the later slices in
-[`specs/native-rendering`](../../specs/native-rendering/README.md).
+The Rust binding and full menu-reel comparison are documented in
+[`specs/done/native-rendering`](../../specs/done/native-rendering/README.md).
 
 Run it with the pinned local binary:
 
@@ -51,8 +51,9 @@ The capture directory contains one browser-exported JSON file per scene, named
 after the menu map. The copied asset is local evidence and stays outside the
 committed spike. The report records `authored_asset_loaded`, the number of
 capture scenes consumed, the number of map placements and the authored scene
-path; `comparison_ready` remains false until the terrain, props and observed
-units are composed with the actual menu-world asset catalog. Set
+path; this lifecycle invocation remains `comparison_ready=false`, while a
+display-backed comparison also requires the actual menu-world asset catalog,
+matched cuts and material review. Set
 `GODOT_AUTHORED_BUILDING_LIMIT` to a positive value for a deliberately bounded
 diagnostic run; an unset value or `0` loads every admitted building.
 
