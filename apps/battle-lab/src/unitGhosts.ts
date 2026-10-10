@@ -10,7 +10,16 @@ import {
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import type { SurfaceHeight } from "@packages/battle-renderer/src/orderOverlay";
 import type { Side } from "@packages/scene-assets/src/schema";
+import { airborne, type UnitCatalog } from "@packages/scene-assets/src/units";
 import type { OwnUnitView } from "@web/battle/sim/observation";
+
+/** How high over the ground a kind's ghost stands: an aircraft's at its
+ *  cruise height (`air.cruise_agl_m`), flying where it will be, anything
+ *  else on the ground. */
+export const ghostAloft =
+  (units: UnitCatalog, cruiseAglM: number) =>
+  (kind: string): number =>
+    airborne(units.type(kind)) ? cruiseAglM : 0;
 
 export interface UnitGhost {
   kind: string;
@@ -56,7 +65,8 @@ export function orderedGhost(unit: OwnUnitView, colour: Rgba): UnitGhost | null 
 }
 
 /** Appends each ghost's models to `out`: one per soldier for a squad, one
- *  hull for a vehicle. A squad with no soldiers placed yet draws nothing. */
+ *  hull for a vehicle, standing `aloft(kind)` over the surface
+ *  (`ghostAloft`). A squad with no soldiers placed yet draws nothing. */
 export function pushGhostModels(
   out: ModelInstance[],
   ghosts: readonly UnitGhost[],
@@ -65,9 +75,11 @@ export function pushGhostModels(
   appearances: InstalledAppearances,
   z: SurfaceHeight,
   hull: (kind: string) => boolean,
+  aloft: (kind: string) => number,
 ) {
   for (const ghost of ghosts) {
     const bodies = hull(ghost.kind) ? [{ at: ghost.at, slot: 0, id: 0 }] : ghost.soldiers;
+    const lift = aloft(ghost.kind);
     for (const { at, slot, id } of bodies) {
       const resolved = resolve(ghost.kind, side, id, slot);
       const bundle = resolved && appearances.appearances.get(resolved.appearance)?.bundle;
@@ -76,7 +88,7 @@ export function pushGhostModels(
         appearance: resolved.appearance,
         x: at[0],
         y: at[1],
-        z: z(at[0], at[1]),
+        z: z(at[0], at[1]) + lift,
         yaw: ghost.yaw,
         pose: restingModelPose(bundle),
         ghost: ghost.colour,

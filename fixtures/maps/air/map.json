@@ -9,5 +9,16 @@
       "shape": { "kind": "stroke", "points": [[0, 100], [300, 100]], "width_m": 10 }
     }
   ],
-  "props": []
+  "props": [],
+  "buildings": [
+    {
+      "owner": 0,
+      "kind": "building",
+      "template_id": "paris-home-12x9-2f",
+      "frame": { "translation": [250, 60, 0], "yaw": 1.5707963267948966 },
+      "parts": [{ "part": "body", "prop": 0 }]
+    }
+  ],
+  "template_catalog_hash": "a07043603993191819ab715a24dba9f43836f96a7184b369198cdf236ea31ffc",
+  "regional_family": "paris"
 }

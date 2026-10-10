@@ -13,7 +13,8 @@
 // It is drawn as a holo-tactical projection: thin lines sized on screen
 // (`OrderStyle.line_px` at the camera's target, thinned as the camera pulls
 // out by the one stroke rule, `strokeWidth.ts`), no filled discs, all of it
-// paint on the ground (`frame/paintedMarks.ts`), glowing past its colour's
+// paint on the ground (`frame/paintedMarks.ts`) but for an aircraft's drop
+// line, which stands in the air in the overlay (D18), glowing past its colour's
 // full value by its role's `OrderStyle.glow`. Every ground unit's circle, under it or at
 // its destination, is one marker, "the unit plus its facing" (`unitMarker`):
 // a circle with a small filled arrowhead on its rim (the user's pick). A
@@ -37,6 +38,7 @@ import {
   MeshBuilder,
   VERTEX_FLOATS,
   paintOnly,
+  rgbA,
   type Mesh,
   type Rgba,
 } from "./mesh";
@@ -93,6 +95,12 @@ export interface OrderStyle {
   /** How far a garrisoned squad's circle reaches past its building's
    *  corners (`OrderView.building`): the ring encloses the whole house. */
   building_marker_margin_m: number;
+  /** An aircraft's drop line, from its airframe down to its marker on the
+   *  ground (D18): its width on screen, by the stroke rule like every
+   *  mark's, and its opacity, whatever its marker's: the marker's hue, so
+   *  a quiet marker's line still reads over pale ground. */
+  drop_line_px: number;
+  drop_line_alpha: number;
 }
 
 export function validateOrderStyle(style: OrderStyle): OrderStyle {
@@ -114,11 +122,13 @@ export function validateOrderStyle(style: OrderStyle): OrderStyle {
     style.cover_glow <= 2 &&
     style.vehicle_marker_margin_m > 0 &&
     style.building_marker_margin_m > 0 &&
+    style.drop_line_px > 0 &&
+    unit(style.drop_line_alpha) &&
     (["light", "medium", "heavy"] as const).every((k) => isRgba(style.cover?.[k])) &&
     [style.color, style.blocked, style.selected].every(isRgba);
   if (!ok)
     throw new Error(
-      `presentation.overlay.orders: positive widths, alphas in (0, 1], rgba color, blocked, selected and cover.{light, medium, heavy}, march.{cycles_per_s ≥ 0, amplitude in [0, 1]}, area_draw_scale in (0, 1], glow.{order, selected} in (0, 2], cover_glow in [1, 2], vehicle_marker_margin_m and building_marker_margin_m > 0`,
+      `presentation.overlay.orders: positive widths, alphas in (0, 1], rgba color, blocked, selected and cover.{light, medium, heavy}, march.{cycles_per_s ≥ 0, amplitude in [0, 1]}, area_draw_scale in (0, 1], glow.{order, selected} in (0, 2], cover_glow in [1, 2], vehicle_marker_margin_m, building_marker_margin_m and drop_line_px > 0, drop_line_alpha in (0, 1]`,
     );
   return style;
 }
@@ -156,6 +166,14 @@ export interface OrderView {
    *  footprint's centre and half extents; null otherwise. The squad's circle
    *  encloses it, `building_marker_margin_m` past its corners. */
   building: { center: readonly [number, number]; half: readonly [number, number] } | null;
+  /** An aircraft: its marker stays on the ground under it whatever it is
+   *  doing, joined to the airframe (its `position`) by a drop line. */
+  aircraft?: boolean;
+  /** How high its ghost stands over where its orders end while one shows
+   *  (an aircraft's cruise height, Space held): a drop line joins the ghost
+   *  to that end's marker, as one joins the airframe to its own. 0 or
+   *  absent: no ghost, no line. */
+  ghostAloft?: number;
   /** In the player's selection: the marker under it is `selected`'s. */
   selected?: boolean;
   /** The opacity its order marks (the Space view) draw at, in [0, 1]: 0 or
@@ -202,6 +220,8 @@ interface Pen {
   /** A soldier's marker's width, and a selected soldier's. */
   soldier: number;
   soldierSelected: number;
+  /** An aircraft's drop line's width. */
+  drop: number;
 }
 
 /** A route's or a mark's straight line, `width` wide. */
@@ -329,6 +349,41 @@ function unitMarker(
  *  facing, if it has one (`unitMarker`), in the route's line weight. */
 function circleMarker(mesh: MeshBuilder, pen: Pen, m: UnitCircle, color: Rgba) {
   unitMarker(mesh, pen, m.c, m.facing, m.r, color, { width: pen.line });
+}
+
+/** An airframe this close to the ground under it draws no drop line. */
+const DROP_MIN_M = 0.5;
+
+/** Where an aircraft is over the ground (D18): its marker on the ground
+ *  under it (paint, in `paint`), and a drop line straight down from the
+ *  airframe (`top`, its published position) to the marker's centre. The
+ *  line stands in the air, so it is an overlay segment (in `line`),
+ *  depth-tested like every overlay: a roof under the airframe cuts it where
+ *  it meets the roof, and the marker hides under the roof as paint on the
+ *  ground does. The line is the marker's hue at `drop_line_alpha`. */
+function aircraftMarker(
+  paint: MeshBuilder,
+  line: MeshBuilder,
+  pen: Pen,
+  top: readonly [number, number, number],
+  marker: UnitCircle,
+  color: Rgba,
+) {
+  circleMarker(paint, pen, marker, color);
+  dropLine(line, pen, top, color);
+}
+
+/** A drop line from `top` straight down to the ground under it, in
+ *  `color`'s hue at `drop_line_alpha`: under an airframe or its ghost. */
+function dropLine(
+  line: MeshBuilder,
+  pen: Pen,
+  top: readonly [number, number, number],
+  color: Rgba,
+) {
+  const ground = pen.z(top[0], top[1]);
+  if (top[2] - ground < DROP_MIN_M) return;
+  line.segment([top[0], top[1], ground], top, pen.drop / 2, rgbA(color, pen.style.drop_line_alpha));
 }
 
 /** A route from the unit's own circle to a destination circle, clipped at
@@ -493,7 +548,8 @@ export function circleContains(circle: UnitCircle, point: readonly [number, numb
 
 /** The circle the orders draw round a unit where it stands, or null where
  *  they draw none, one marker for every ground unit: a vehicle's under its
- *  hull (moving, selected or revealed), a moving squad's round its soldiers,
+ *  hull (moving, selected or revealed; an aircraft's always, on the ground
+ *  under it), a moving squad's round its soldiers,
  *  and, selected or revealed, a holding squad's area ring round its anchor,
  *  each with its arrowhead at the unit's facing (a moving squad's heading, a
  *  holding one's facing). A garrisoned squad's circle, moving (leaving on an
@@ -512,6 +568,7 @@ export function unitCircle(
     | "yaw"
     | "selected"
     | "reveal"
+    | "aircraft"
   >,
   style: Pick<
     OrderStyle,
@@ -530,7 +587,7 @@ export function unitCircle(
   // movement area itself is the simulation's).
   const drawn = (radius: number) => radius * style.area_draw_scale;
   if (u.members.length === 0)
-    return moving || shown || u.selected
+    return moving || shown || u.selected || u.aircraft
       ? { c: here, r: u.hullHalfLength + style.vehicle_marker_margin_m, facing: u.yaw }
       : null;
   if (moving) return { c: here, r: drawn(squadNow(u, here)), facing: u.yaw };
@@ -559,6 +616,7 @@ function orderPen(z: SurfaceHeight, style: OrderStyle, stroke: StrokeWidth): Pen
     stroke: stroke(style.mark_px),
     soldier: stroke(style.soldier_mark_px),
     soldierSelected: stroke(style.soldier_line_px),
+    drop: stroke(style.drop_line_px),
   };
 }
 
@@ -649,6 +707,8 @@ export function buildOrderOverlay(
   const paint = new MeshBuilder();
   const soldiers = new MeshBuilder();
   const animated = new MeshBuilder();
+  // Aircraft drop lines: overlay, the one mark standing in the air.
+  const lines = new MeshBuilder();
   const order = glowing(style.color, style.glow.order);
   const selected = glowing(style.selected, style.glow.selected);
   const cannot = glowing(style.blocked, style.glow.order);
@@ -657,7 +717,7 @@ export function buildOrderOverlay(
     // selection's own markers either way.
     const reveal = u.reveal ?? 0;
     const shown = reveal > 0;
-    if (!shown && !u.selected) continue;
+    if (!shown && !u.selected && !u.aircraft) continue;
     const fade = (c: Rgba): Rgba => fadeAlpha(c, reveal);
     const color = fade(order);
     const current = fade(fadeAlpha(order, style.current_alpha));
@@ -677,7 +737,23 @@ export function buildOrderOverlay(
     // A squad with no circle to draw (no area) still shows its soldiers'
     // markers when the unit's marker would.
     if (circle || shown || u.selected) {
-      if (circle)
+      if (circle && u.aircraft)
+        // An aircraft's marker shows whatever the reveal: at the current
+        // markers' alpha, brighter only while a shown order moves it.
+        aircraftMarker(
+          paint,
+          lines,
+          pen,
+          u.position,
+          circle,
+          u.selected
+            ? selected
+            : fadeAlpha(
+                order,
+                moving ? Math.max(reveal, style.current_alpha) : style.current_alpha,
+              ),
+        );
+      else if (circle)
         circleMarker(paint, pen, circle, u.selected ? selected : moving ? color : current);
       // Each soldier's marker, with his cover now when shown.
       const mark = u.selected ? selected : current;
@@ -741,6 +817,52 @@ export function buildOrderOverlay(
       ring(paint, pen, q, QUEUED_R, queued);
       prev = next;
     }
+    // Its ghost over where its orders end, joined to that end's marker.
+    if (u.ghostAloft) {
+      const end = u.queue.at(-1) ?? u.goal;
+      const top = [end[0], end[1], pen.z(end[0], end[1]) + u.ghostAloft] as const;
+      dropLine(lines, pen, top, blocked ? blockedColor : u.queue.length ? queued : color);
+    }
   }
-  return paintOnly(concatMeshes([paint.build(), soldiers.build()]), animated.build());
+  return {
+    ...paintOnly(concatMeshes([paint.build(), soldiers.build()]), animated.build()),
+    opaque: lines.build(),
+  };
+}
+
+/** The side's view of an aircraft that isn't its own (an identified enemy):
+ *  where it is, its facing and its hull's half length. */
+export interface AircraftView {
+  position: readonly [number, number, number];
+  yaw: number;
+  hullHalfLength: number;
+}
+
+/** Every one of `aircraft` as its ground marker and drop line
+ *  (`aircraftMarker`), in `color` (its role's, glowing by the orders'). */
+export function buildAircraftMarks(
+  aircraft: readonly AircraftView[],
+  color: Rgba,
+  z: SurfaceHeight,
+  style: OrderStyle,
+  { stroke }: OrderOverlayOptions,
+): WorldMeshes {
+  const pen = orderPen(z, style, stroke);
+  const paint = new MeshBuilder();
+  const lines = new MeshBuilder();
+  const glow = glowing(color, style.glow.order);
+  for (const a of aircraft)
+    aircraftMarker(
+      paint,
+      lines,
+      pen,
+      a.position,
+      {
+        c: [a.position[0], a.position[1]],
+        r: a.hullHalfLength + style.vehicle_marker_margin_m,
+        facing: a.yaw,
+      },
+      glow,
+    );
+  return { ...paintOnly(paint.build()), opaque: lines.build() };
 }

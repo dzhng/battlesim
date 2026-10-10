@@ -5,9 +5,9 @@
   "character": "arena",
   "biome": "summer",
   "size_m": [300, 200],
-  "tags": ["road"],
+  "tags": ["road", "building"],
   "source": "authored",
   "seed": null,
-  "encounters": ["hover"],
+  "encounters": ["fog", "hover", "roof"],
   "benchmarks": []
 }

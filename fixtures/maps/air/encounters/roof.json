@@ -1,0 +1,6 @@
+{
+  "units": [
+    {"side":"blue","kind":"test_heli","position":[250,60],"engagement":"return_fire_only"},
+    {"side":"red","kind":"test_heli","position":[262,135],"yaw":3.14159,"engagement":"return_fire_only"}
+  ]
+}
