@@ -1,6 +1,6 @@
 {
   "units": [
-    {"side":"blue","kind":"test_heli","position":[150,488],"engagement":"return_fire_only"},
-    {"side":"red","kind":"test_heli","position":[165,400],"yaw":3.14159,"engagement":"return_fire_only"}
+    {"side":"blue","kind":"test_heli","position":[252,432],"engagement":"return_fire_only"},
+    {"side":"red","kind":"test_heli","position":[264,507],"yaw":3.14159,"engagement":"return_fire_only"}
   ]
 }

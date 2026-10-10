@@ -1,6 +1,6 @@
 {
   "units": [
-    {"side":"blue","kind":"test_jeep","position":[150,60],"engagement":"return_fire_only"},
-    {"side":"red","kind":"test_heli","position":[290,60],"yaw":3.14159,"engagement":"return_fire_only"}
+    {"side":"blue","kind":"test_jeep","position":[150,420],"yaw":1.5708,"engagement":"return_fire_only"},
+    {"side":"red","kind":"test_heli","position":[150,512],"yaw":3.14159,"engagement":"return_fire_only"}
   ]
 }

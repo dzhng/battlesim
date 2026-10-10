@@ -257,9 +257,17 @@ export async function run(ctx) {
   const r = await begin(page, "roof");
   const roofHeli = r.own.find((u) => u.kind === "test_heli");
   const enemy = r.identified.find((u) => u.kind === "test_heli");
-  const house = await lab(page, () => window.__lab.route.buildings()[0]);
+  // The house it hovers over: the building whose parts centre nearest it.
+  const houses = await lab(page, () => window.__lab.route.buildings());
+  const near = (b) =>
+    Math.min(
+      ...b.authored.map((p) =>
+        Math.hypot(p.center[0] - roofHeli.position[0], p.center[1] - roofHeli.position[1]),
+      ),
+    );
+  const house = houses.reduce((a, b) => (near(b) < near(a) ? b : a));
   const roofTop = Math.max(...house.authored.map((p) => p.baseZ + 2 * p.half[2]));
-  await aim(page, [155, 470, 12], { distance: 110, pitch: 0.72, yaw: -1.25 }, { onGround: false });
+  await aim(page, [257, 462, 12], { distance: 110, pitch: 0.72, yaw: -1.25 }, { onGround: false });
   await advance(page, 1);
   await capture("roof", roofHeli);
   await capture("enemy", enemy);
@@ -289,7 +297,7 @@ export async function run(ctx) {
 
   // From the map's zoom: the airframes are small and the marks still say
   // where each is over the ground.
-  await aim(page, [156, 477], { distance: 350, pitch: 0.85, yaw: -1.25 });
+  await aim(page, [258, 469], { distance: 350, pitch: 0.85, yaw: -1.25 });
   await advance(page, 1);
   await capture("map-roof", roofHeli);
   const mapOverlays = await overlaysOnly(page);
@@ -300,7 +308,7 @@ export async function run(ctx) {
     JSON.stringify({ mapMid }),
   );
 
-  // An enemy over ground blue cannot see: the house hides the ground behind
+  // An enemy over ground blue cannot see: a low house hides the ground behind
   // it from blue's jeep, not the airframe above it (V02). Its marker lies on
   // the fogged ground and its drop line stands over it.
   const f = await begin(page, "fog");
@@ -316,7 +324,7 @@ export async function run(ctx) {
     ["fog", { distance: 75, pitch: 0.72, yaw: -1.25 }],
     ["map-fog", { distance: 350, pitch: 0.85, yaw: -1.25 }],
   ]) {
-    await aim(page, [270, 60], view);
+    await aim(page, [hidden.position[0] - 20, hidden.position[1]], view);
     await advance(page, 1);
     await capture(name, hidden);
     const underCss = await css([hidden.position[0], hidden.position[1], hiddenGround]);
