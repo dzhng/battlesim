@@ -373,6 +373,9 @@ test("an aircraft's rotors turn while it lives, and nothing it has rolls as it f
   const hover = d.update(frame(0.5, [heli(0, 0)])).vehicles[0];
   expect(hover.airborne).toBe(true);
   expect(hover.articulation.rotor).toBeCloseTo(0.5 * FEEL.rotor.tip_mps, 6);
+  // In battle its rotors are drawn as a camera's shutter sees them turn,
+  // not by their geometry.
+  expect(hover.articulation.rotor_blur).toBe(1);
   // Flying on and turning, its tips sweep on at the same speed, and it rolls
   // on nothing.
   const flown = d.update(frame(1.5, [heli(60, 0.4)])).vehicles[0].articulation;
@@ -384,6 +387,7 @@ test("an aircraft's rotors turn while it lives, and nothing it has rolls as it f
   const ground = t.update(frame(1, [tank(4, 0, 0, 0)])).vehicles[0];
   expect(ground.airborne).toBe(false);
   expect(ground.articulation.rotor).toBe(0);
+  expect(ground.articulation.rotor_blur).toBe(0);
 });
 
 test("a supply vehicle's deploy progress is its articulation's", () => {

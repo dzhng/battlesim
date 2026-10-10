@@ -25,6 +25,8 @@ import {
   type EffectShooter,
   type EffectSmokeSource,
   type MuzzleSource,
+  type RotorSource,
+  validateEffects,
 } from "@packages/battle-renderer/src/effects/effectFrame";
 import { impactAfter } from "@packages/battle-renderer/src/effects/cookOff";
 
@@ -1215,4 +1217,76 @@ test("a hull watched die cooks off a beat after the hit, and its turret lands in
   expect(landingDust(hit + impactAfter(c) - 0.05)).toEqual([]);
   expect(landingDust(hit + impactAfter(c) + 0.3).length).toBeGreaterThan(0);
   expect(drawn(f, hit + LONGEST + 1)).toEqual([]);
+});
+
+/** A rotor source drawing `rotors` (hub, axis, blade along +Y, 7.3 m). */
+const rotorsOf = (...turned: number[]): RotorSource => ({
+  rotors(visit) {
+    for (const t of turned)
+      visit({
+        hub: [10, 20, 22],
+        axis: [0, 0, 1],
+        blade: [0, 1, 0],
+        radius: 7.3,
+        blades: 4,
+        chord: 0.5,
+        turned: t,
+        mast: { base: [10, 20, 21.2], top: [10, 20, 22.3] },
+        mastRadius: 0.15,
+      });
+  },
+});
+/** Each instance `rotors` draws: 16 floats. */
+function rotorInstances(f: EffectFrame, rotors: RotorSource) {
+  const batch = f.build(0, createEffectBatch(PRESENTATION.capacity), null, rotors);
+  return Array.from({ length: batch.count }, (_, i) =>
+    Array.from(batch.data.subarray(i * EFFECT_FLOATS, (i + 1) * EFFECT_FLOATS)),
+  );
+}
+
+test("a rotor is drawn as its blades over the angle the shutter saw them sweep, and its hub", () => {
+  const blur = PRESENTATION.rotor_blur;
+  const [blades, hub, mast, ...rest] = rotorInstances(frame(), rotorsOf(0.8));
+  expect(rest).toEqual([]);
+  // Its mast and head: a solid rod from the top of the head down to the
+  // airframe, as thick as the model's mast.
+  expect(mast[12]).toBe(SHAPE.streak);
+  expect([...mast.slice(0, 3), ...mast.slice(4, 7)]).toEqual([
+    10,
+    20,
+    expect.closeTo(22.3, 5),
+    10,
+    20,
+    expect.closeTo(21.2, 5),
+  ]);
+  expect(mast[3]).toBeCloseTo(0.3, 6);
+  expect(mast[11]).toBe(1);
+  for (const i of [blades, hub]) expect(i[12]).toBe(SHAPE.rotor);
+  // On its hub, across its axis, its first blade where the model's points.
+  expect(blades.slice(0, 7)).toEqual([10, 20, 22, expect.closeTo(7.3, 5), 0, 0, 1]);
+  expect(blades.slice(8, 11)).toEqual([0, 1, 0]);
+  // The shutter is open for its share of the frame: the blades sweep that
+  // share of the angle they turned.
+  expect(blades[7]).toBeCloseTo(0.8 * blur.shutter, 6);
+  expect(blades.slice(13, 15)).toEqual([expect.closeTo(0.5 / 7.3, 6), 4]);
+  // The hub: a solid disc, no blades, its share of the reach.
+  expect(hub[3]).toBeCloseTo(7.3 * blur.hub_share, 5);
+  expect(hub[14]).toBe(0);
+});
+
+test("a still rotor shows its blades; a fast one smears them round, never past a turn", () => {
+  const still = rotorInstances(frame(), rotorsOf(0))[0];
+  expect(still[7]).toBe(0);
+  const fast = rotorInstances(frame(), rotorsOf(100))[0];
+  expect(fast[7]).toBeCloseTo(2 * Math.PI, 6);
+  // Nothing drawn, no rotor.
+  expect(frame().build(0, createEffectBatch(PRESENTATION.capacity), null, null).count).toBe(0);
+});
+
+test("a rotor style with no shutter, or a hub as wide as the rotor, is refused", () => {
+  const blur = PRESENTATION.rotor_blur;
+  for (const bad of [{ shutter: 0 }, { shutter: 1.5 }, { hub_share: 1 }, { albedo: 2 }])
+    expect(() => validateEffects({ ...PRESENTATION, rotor_blur: { ...blur, ...bad } })).toThrow(
+      /rotor_blur/,
+    );
 });

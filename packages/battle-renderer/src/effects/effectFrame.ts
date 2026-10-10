@@ -22,7 +22,10 @@
 //   burning, then smouldering, then out;
 // - a hull the side watched die cooks off (`cookOff.ts`): fireballs out of
 //   its turret ring a beat after the hit, and sparks and dust where its
-//   thrown turret lands.
+//   thrown turret lands;
+// - every drawn rotor (a `RotorSource`) as a film camera's shutter sees it
+//   turn: each blade smeared over the angle it swept while the shutter was
+//   open, so a fast rotor blurs and a still one shows its blades.
 //
 // Every effect has a published cause, and nothing else: no rule, no
 // simulation state (enemy stretches arrive already clipped to seen ground).
@@ -41,6 +44,7 @@ import type { MountMuzzle } from "@packages/scene-assets/src/mountMuzzle";
 import { LaunchTracker, type Launch } from "./launches";
 import { createCastLightList, offerCastLight, type CastLightList } from "../light/castLights";
 import { GRAVITY, impactAfter, validateCookOff, type CookOffFeel } from "./cookOff";
+import type { DrawnRotor } from "../models/drawnModels";
 
 type P3 = readonly [number, number, number] | readonly number[];
 
@@ -133,6 +137,12 @@ export interface MuzzleSource {
    *  `mount`, or of its soldier `soldier` when set, into `at`; false when
    *  nothing of it is drawn. */
   muzzle(shooter: number, mount: number, soldier: number | null, at: Vec3): boolean;
+}
+
+/** Where every rotor is drawn at this frame, with its blades and the angle
+ *  it turned since the last drawn frame. */
+export interface RotorSource {
+  rotors(visit: (rotor: DrawnRotor) => void): void;
 }
 
 /** One publication, as the effects read it. */
@@ -338,6 +348,17 @@ export interface DamageSmokeStyle extends PuffStyle {
   rate_hz: number;
 }
 
+/** A rotor as a camera's shutter sees it turn: each blade smeared over the
+ *  angle it swept while the shutter was open, the hub at its middle. */
+export interface RotorBlurStyle {
+  /** The blades' and hub's grey, lit as smoke. */
+  albedo: number;
+  /** The share of a frame the shutter stays open: a film camera's is half. */
+  shutter: number;
+  /** The hub's radius, a share of the blades' reach. */
+  hub_share: number;
+}
+
 export interface DustStyle extends PuffStyle {
   spacing_m: number;
   min_speed_mps: number;
@@ -365,6 +386,7 @@ export interface EffectPresentation {
   cook_off: CookOffFeel;
   dust: DustStyle;
   damage_smoke: DamageSmokeStyle;
+  rotor_blur: RotorBlurStyle;
   /** Smoke sources' looks by kind; a kind without one draws nothing. */
   smoke: Record<string, SmokeSourceStyle>;
   /** Instances every smoke source together may hold at once. Past it each
@@ -425,6 +447,11 @@ export function validateEffects(p: EffectPresentation): EffectPresentation {
   validateCookOff(p.cook_off);
   if (!(p.damage_smoke.rate_hz > 0))
     throw new Error("presentation.effects.damage_smoke.rate_hz must be positive");
+  const blur = p.rotor_blur;
+  if (!(blur.albedo >= 0 && blur.albedo <= 1 && blur.shutter > 0 && blur.shutter <= 1))
+    throw new Error("presentation.effects.rotor_blur: albedo in [0, 1], shutter in (0, 1]");
+  if (!(blur.hub_share > 0 && blur.hub_share < 1))
+    throw new Error("presentation.effects.rotor_blur.hub_share must be in (0, 1)");
   if (!Number.isFinite(maxEffectLifetime(p)))
     throw new Error("presentation.effects: every life must be finite");
   return p;
@@ -522,7 +549,7 @@ export const EFFECT_FLOATS = 16;
 /** Instance shapes (misc.x): a camera-facing streak from a to b (a lit
  *  smoke ribbon when its colour carries an opacity), a glow sprite at a (a
  *  solid disc when its colour carries an opacity), a flipbook sprite at a. */
-export const SHAPE = { streak: 0, glow: 1, flipbook: 2 } as const;
+export const SHAPE = { streak: 0, glow: 1, flipbook: 2, rotor: 3 } as const;
 /** Flipbook layers in the effect atlas (`flipbooks.ts`). */
 export const LAYER = { fire: 0, dust: 1 } as const;
 /** Frames in each layer, in `LAYER` order. */
@@ -1174,12 +1201,19 @@ export class EffectFrame {
   /** Every running effect at presentation time `clock` (seconds), into
    *  `batch`; effects that have run their course are dropped. `muzzles` says
    *  where the models are drawn at `clock`, for the flashes to sit on. */
-  build(clock: number, batch: EffectBatch, muzzles: MuzzleSource | null = null): EffectBatch {
+  build(
+    clock: number,
+    batch: EffectBatch,
+    muzzles: MuzzleSource | null = null,
+    rotors: RotorSource | null = null,
+  ): EffectBatch {
     batch.count = 0;
     batch.dropped = 0;
     batch.lights.count = 0;
     batch.lights.dropped = 0;
     batch.lights.wrap = this.p.cast_wrap;
+    // Rotor blurs first, under every puff: smoke drifts across them.
+    if (rotors) this.drawRotors(batch, rotors);
     let kept = 0;
     const list = this.effects;
     // Trails' ribbons first, under every puff: drawn in their turn, a later
@@ -1623,6 +1657,59 @@ export class EffectFrame {
         e.tracer?.zoom_boost,
       );
     }
+  }
+
+  private drawRotors(batch: EffectBatch, rotors: RotorSource) {
+    const { albedo, shutter, hub_share } = this.p.rotor_blur;
+    const grey: Vec3 = [albedo, albedo, albedo];
+    rotors.rotors(({ hub, axis, blade, radius, blades, chord, turned, mast, mastRadius }) => {
+      // The angle each blade swept while the shutter was open: past a whole
+      // turn every blade covers the whole disc alike.
+      const sweep = Math.min(2 * Math.PI, Math.abs(turned) * shutter);
+      const [h0, h1, h2] = hub;
+      const [a0, a1, a2] = axis;
+      const [b0, b1, b2] = blade;
+      put(
+        batch,
+        h0,
+        h1,
+        h2,
+        radius,
+        a0,
+        a1,
+        a2,
+        sweep,
+        b0,
+        b1,
+        b2,
+        albedo,
+        SHAPE.rotor,
+        chord / radius,
+        blades,
+        0,
+      );
+      // The hub: a disc with no blades; and its mast and head, a solid rod.
+      put(
+        batch,
+        h0,
+        h1,
+        h2,
+        radius * hub_share,
+        a0,
+        a1,
+        a2,
+        0,
+        b0,
+        b1,
+        b2,
+        albedo,
+        SHAPE.rotor,
+        0,
+        0,
+        0,
+      );
+      if (mast) ribbon(batch, mast.top, mast.base, 2 * mastRadius, 1, grey, 1);
+    });
   }
 
   private drawFlash(e: Effect, age: number, batch: EffectBatch, muzzles: MuzzleSource | null) {

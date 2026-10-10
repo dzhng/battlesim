@@ -1,11 +1,15 @@
-// Where each posed model's muzzles are drawn: a vehicle mount's muzzle node
-// under its articulation (turret yaw, gun pitch, recoil; the HMG on its own
-// mount), and a soldier's weapon `muzzle` socket in his clip. Read from the
-// same pose frame the models are drawn from, so a muzzle flash put here sits
-// on the drawn barrel however the simulation's own muzzle model differs.
+// Where parts of each posed model are drawn, read from the same pose frame
+// the models are drawn from, so an effect put there sits on the drawn model
+// however the simulation's own model differs:
 //
-// Computed on demand, only for the muzzles asked after (a frame's live
-// flashes), and remembered for the rest of the frame.
+// - its muzzles: a vehicle mount's muzzle node under its articulation
+//   (turret yaw, gun pitch, recoil; the HMG on its own mount), and a
+//   soldier's weapon `muzzle` socket in his clip. Computed on demand, only
+//   for the muzzles asked after (a frame's live flashes), and remembered for
+//   the rest of the frame;
+// - its rotors: each rotor's hub, axis, blades and the angle it turned
+//   since the last drawn frame, from which the effects draw it as a
+//   camera's shutter sees it turn.
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import {
   articulate,
@@ -16,7 +20,7 @@ import {
 import { poseWorlds, worldTransforms } from "@packages/scene-assets/src/pose";
 import { mul, trsMatrix, type Trs } from "@packages/scene-assets/src/trs";
 import type { ArticulatedBundle, Side } from "@packages/scene-assets/src/schema";
-import { vec3, type Vec3 } from "math";
+import { mat4, vec3, type Mat4, type Vec3 } from "math";
 import type { ResolveAppearance } from "./modelInstances";
 import {
   MOUNT_NODES,
@@ -37,12 +41,37 @@ interface Rig {
 /** One key per (side, id): blue and red ids never collide. */
 const keyOf = (side: Side, id: number) => sideKey(id, side, "blue");
 
-export class DrawnMuzzles {
+/** One drawn rotor, as the effects draw it (`DrawnModels.rotors`). */
+export interface DrawnRotor {
+  hub: Vec3;
+  /** The axis it turns about, its local +Z. */
+  axis: Vec3;
+  /** The direction one of its blades points, across the axis. */
+  blade: Vec3;
+  /** Its blades' reach, metres. */
+  radius: number;
+  blades: number;
+  /** A blade's width across, metres. */
+  chord: number;
+  /** The angle it turned since the last drawn frame, radians. */
+  turned: number;
+  /** Its mast and head, from where the mast meets the airframe up its
+   *  axis to the top of the head, and the mast's thickness; null where it
+   *  has none. */
+  mast: { base: Vec3; top: Vec3 } | null;
+  mastRadius: number;
+}
+
+export class DrawnModels {
   private readonly vehicles = new Map<number, VehiclePose>();
   private readonly soldiers = new Map<number, SoldierPose>();
   private readonly rigs = new Map<ArticulatedBundle, Rig>();
   /** This frame's answers: muzzle point (or null, nothing drawn) by query. */
   private readonly memo = new Map<string, Vec3 | null>();
+  /** Each vehicle's rotor tip travel as last drawn, and how far it moved
+   *  since the frame before. */
+  private readonly rotorAt = new Map<number, number>();
+  private readonly rotorTurned = new Map<number, number>();
 
   constructor(
     private readonly installed: InstalledAppearances,
@@ -56,7 +85,15 @@ export class DrawnMuzzles {
     this.vehicles.clear();
     this.soldiers.clear();
     this.memo.clear();
-    for (const v of frame.vehicles) this.vehicles.set(keyOf(v.side, v.unit), v);
+    this.rotorTurned.clear();
+    for (const v of frame.vehicles) {
+      const key = keyOf(v.side, v.unit);
+      this.vehicles.set(key, v);
+      const was = this.rotorAt.get(key);
+      this.rotorTurned.set(key, was === undefined ? 0 : v.articulation.rotor - was);
+    }
+    this.rotorAt.clear();
+    for (const [key, v] of this.vehicles) this.rotorAt.set(key, v.articulation.rotor);
     for (const s of frame.soldiers) this.soldiers.set(keyOf(s.side, s.soldier), s);
   }
 
@@ -99,6 +136,51 @@ export class DrawnMuzzles {
     });
   }
 
+  /** Each drawn rotor of this frame's aircraft, posed as the model is. */
+  rotors(visit: (rotor: DrawnRotor) => void): void {
+    for (const [key, v] of this.vehicles) {
+      if (!v.airborne) continue;
+      const resolved = this.resolve(v.kind, v.side, v.unit, 0);
+      const bundle = resolved && this.installed.appearances.get(resolved.appearance)?.bundle;
+      if (bundle?.kind !== "articulated") continue;
+      const r = this.rig(bundle);
+      if (r.rig.rotors.length === 0) continue;
+      // Posed with its rotors shown: the blur hides them, not their place.
+      articulate(r.locals, bundle.nodes, r.rig, { ...v.articulation, rotor_blur: 0 });
+      const worlds = worldTransforms(r.parents, r.locals);
+      const tipTravel = this.rotorTurned.get(key) ?? 0;
+      for (const rotor of r.rig.rotors) {
+        // A falling airframe's tilt carries the whole model, as it is drawn.
+        const m = v.tilt ? mat4.multiply(scratch, v.tilt, worlds[rotor.node]) : worlds[rotor.node];
+        const [c, s] = [Math.cos(rotor.rest), Math.sin(rotor.rest)];
+        const axis = placed([0, 0, 0], v.yaw, m[8], m[9], m[10]);
+        const blade = placed(
+          [0, 0, 0],
+          v.yaw,
+          m[0] * c + m[4] * s,
+          m[1] * c + m[5] * s,
+          m[2] * c + m[6] * s,
+        );
+        const along = (d: number) =>
+          placed(v.position, v.yaw, m[12] + m[8] * d, m[13] + m[9] * d, m[14] + m[10] * d);
+        visit({
+          hub: placed(v.position, v.yaw, m[12], m[13], m[14]),
+          mast:
+            rotor.mast_radius > 0
+              ? { base: along(-rotor.mast_below), top: along(rotor.mast_above) }
+              : null,
+          mastRadius: rotor.mast_radius,
+          axis: vec3.normalize(axis, axis),
+          blade: vec3.normalize(blade, blade),
+          radius: rotor.radius,
+          blades: rotor.blades,
+          chord: rotor.chord,
+          turned: tipTravel / rotor.radius,
+        });
+      }
+    }
+  }
+
   private answer(key: string, at: Vec3, find: () => Vec3 | null): boolean {
     let p = this.memo.get(key);
     if (p === undefined) this.memo.set(key, (p = find()));
@@ -132,6 +214,8 @@ export class DrawnMuzzles {
     return r;
   }
 }
+
+const scratch: Mat4 = mat4.create();
 
 /** A model-space point placed at `position`, turned by `yaw` about +Z. */
 function placed(position: Vec3, yaw: number, x: number, y: number, z: number): Vec3 {

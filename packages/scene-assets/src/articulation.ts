@@ -39,6 +39,9 @@ export interface Articulation {
   /** Metres every rotor's blade tips have swept: an accumulated angle times
    *  each rotor's reach. */
   rotor: number;
+  /** 1: every rotor is drawn by its blur (as a camera's shutter sees it
+   *  turn), not by its own geometry, which draws nothing; 0: by its geometry. */
+  rotor_blur: number;
 }
 
 export const REST_ARTICULATION: Readonly<Articulation> = {
@@ -51,6 +54,7 @@ export const REST_ARTICULATION: Readonly<Articulation> = {
   travel_r: 0,
   deploy: 0,
   rotor: 0,
+  rotor_blur: 0,
 };
 
 const DEG = Math.PI / 180;
@@ -124,8 +128,9 @@ export interface ArticulationRig {
   stroke: number;
   wheels: { node: number; radius: number; left: boolean }[];
   tracks: { node: number; left: boolean; linkPitch: number }[];
-  /** Each rotor and the reach of its blade tips from its axis. */
-  rotors: { node: number; radius: number }[];
+  /** Each rotor, the reach of its blade tips from its axis, and its blades
+   *  and mast as its geometry has them (`rotorShape`). */
+  rotors: ({ node: number; radius: number } & RotorShape)[];
   deploy: DeployMotion[];
 }
 
@@ -144,6 +149,82 @@ function reach(node: ArticulatedNode, axis: 1 | 2): number {
     r2 = Math.max(r2, p[v + a] * p[v + a] + p[v + b] * p[v + b]);
   return Math.sqrt(r2);
 }
+
+/** A rotor's blades: how many, their width across (metres), and the angle
+ *  one of them rests at about the rotor's +Z from its +X; and its mast and
+ *  head: how far they run down and up its axis from the hub, and how thick
+ *  the mast is (0: none). */
+export interface RotorShape {
+  blades: number;
+  chord: number;
+  rest: number;
+  mast_below: number;
+  mast_above: number;
+  mast_radius: number;
+}
+
+/** The blades and mast in a rotor's geometry: its vertices out past
+ *  `OUTER` of its reach (its blades, not its hub), grouped by angle round
+ *  its axis, a group's width across its chord; and those near its axis
+ *  below its hub, its mast. */
+function rotorShape(node: ArticulatedNode, radius: number): RotorShape {
+  const p = node.tiers[0]?.positions ?? [];
+  // Its mast and head: what stands near its axis, from the lowest to the
+  // highest, and its thickness halfway down.
+  let [low, high] = [Infinity, -Infinity];
+  for (let v = 0; v < p.length; v += 3)
+    if (Math.hypot(p[v], p[v + 1]) < MAST_REACH * radius)
+      [low, high] = [Math.min(low, p[v + 2]), Math.max(high, p[v + 2])];
+  let mast_radius = 0;
+  for (let v = 0; v < p.length; v += 3)
+    if (p[v + 2] < low / 2 && Math.hypot(p[v], p[v + 1]) < MAST_REACH * radius)
+      mast_radius = Math.max(mast_radius, Math.hypot(p[v], p[v + 1]));
+  const mast =
+    mast_radius > 0
+      ? { mast_below: -low, mast_above: Math.max(0, high), mast_radius }
+      : { mast_below: 0, mast_above: 0, mast_radius: 0 };
+  const at: { a: number; x: number; y: number }[] = [];
+  for (let v = 0; v < p.length; v += 3)
+    if (Math.hypot(p[v], p[v + 1]) > OUTER * radius)
+      at.push({ a: Math.atan2(p[v + 1], p[v]), x: p[v], y: p[v + 1] });
+  if (at.length === 0) return { blades: 0, chord: 0, rest: 0, ...mast };
+  at.sort((m, n) => m.a - n.a);
+  // Start a group after the widest gap, so none straddles the wrap.
+  let start = 0;
+  let widest = at[0].a + 2 * Math.PI - at[at.length - 1].a;
+  for (let i = 1; i < at.length; i++)
+    if (at[i].a - at[i - 1].a > widest) [widest, start] = [at[i].a - at[i - 1].a, i];
+  const groups: (typeof at)[] = [];
+  for (let k = 0; k < at.length; k++) {
+    const v = at[(start + k) % at.length];
+    const last = groups.at(-1);
+    const prev = last?.at(-1);
+    const gap = prev ? (v.a - prev.a + 2 * Math.PI) % (2 * Math.PI) : Infinity;
+    if (last && gap < BLADE_GAP) last.push(v);
+    else groups.push([v]);
+  }
+  const centre = (g: typeof at) =>
+    Math.atan2(
+      sum(g, (v) => v.y),
+      sum(g, (v) => v.x),
+    );
+  const chord = Math.max(
+    ...groups.map((g) => {
+      const c = centre(g);
+      const across = g.map((v) => -v.x * Math.sin(c) + v.y * Math.cos(c));
+      return Math.max(...across) - Math.min(...across);
+    }),
+  );
+  return { blades: groups.length, chord, rest: centre(groups[0]), ...mast };
+}
+
+const sum = <T>(xs: readonly T[], f: (x: T) => number) => xs.reduce((a, x) => a + f(x), 0);
+/** How far out a rotor's vertices count as blade, a share of its reach. */
+const OUTER = 0.6;
+/** How near its axis a rotor's vertices count as mast, a share of its reach. */
+const MAST_REACH = 0.05;
+/** The least angle between two blades round a hub. */
+const BLADE_GAP = (20 * Math.PI) / 180;
 
 export function articulationRig(nodes: readonly ArticulatedNode[]): ArticulationRig {
   const find = (name: string) => nodes.findIndex((n) => n.name === name);
@@ -170,7 +251,7 @@ export function articulationRig(nodes: readonly ArticulatedNode[]): Articulation
     }
     if (node.name.startsWith("rotor_")) {
       const radius = node.extras.radius_m ?? reach(node, 2);
-      if (radius > 0) rig.rotors.push({ node: i, radius });
+      if (radius > 0) rig.rotors.push({ node: i, radius, ...rotorShape(node, radius) });
     }
     if (/^track_[LR]$/.test(node.name) && node.extras.link_pitch_m > 0)
       rig.tracks.push({
@@ -248,8 +329,10 @@ export function articulate(
     const travel = wheel.left ? input.travel_l : input.travel_r;
     turned(out[wheel.node], nodes[wheel.node].bind, AXIS_Y, travel / wheel.radius);
   }
-  for (const rotor of rig.rotors)
+  for (const rotor of rig.rotors) {
     turned(out[rotor.node], nodes[rotor.node].bind, AXIS_Z, input.rotor / rotor.radius);
+    if (input.rotor_blur > 0) vec3.set(out[rotor.node].s, 0, 0, 0);
+  }
   for (const motion of rig.deploy) {
     const s = Math.min(1, Math.max(0, (input.deploy - motion.start) / (motion.end - motion.start)));
     if (s === 0) continue;

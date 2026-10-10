@@ -1106,7 +1106,7 @@
         "wheeled_medium": 0.75,
         "wheeled_medium_logistics": 0.75
       },
-      "rotor": { "tip_mps": 45 },
+      "rotor": { "tip_mps": 200 },
       "corpses": { "max": 1000, "fade_s": 3, "sink_m": 0.6 }
     },
     "effects": {
@@ -1259,6 +1259,7 @@
         "min_speed_mps": 1.0,
         "full_speed_mps": 8
       },
+      "rotor_blur": { "albedo": 0.1, "shutter": 0.4, "hub_share": 0.07 },
       "damage_smoke": {
         "albedo": [0.08, 0.078, 0.075],
         "opacity": 0.45,

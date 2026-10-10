@@ -1139,7 +1139,7 @@ export const HELI_ROTORS = { main: Math.hypot(5, 0.15), tail: Math.hypot(0.7, 0.
 
 /** A helicopter in engine space, fitting the synthetic `heli` type's hull
  *  [4, 0.8, 1.2]: a fuselage block on skid rails, a mast to the rotor head
- *  at z 2.4, and its rotors, each a `rotor_*` node turning about its local
+ *  at z 2.4 (its top 0.2 m the rotor's own), and its rotors, each a `rotor_*` node turning about its local
  *  Z: the main rotor's blade 10 m tip to tip along +X at rest (far past the
  *  hull), the tail rotor's 1.4 m on the boom's left, turned on its side. */
 export function heliGlb(): Uint8Array {
@@ -1150,7 +1150,11 @@ export function heliGlb(): Uint8Array {
   const main = b.node({
     name: "rotor_main",
     t: g3([0.5, 0, 2.4]),
-    children: [part("blade_main_0", [-5, -0.15, -0.03], [5, 0.15, 0.03])],
+    children: [
+      part("blade_main_0", [-5, -0.15, -0.03], [5, 0.15, 0.03]),
+      // Its mast, down from the hub to the hull's, as an exporter builds one.
+      part("rotor_main_mast", [-0.08, -0.08, -0.2], [0.08, 0.08, 0], 2),
+    ],
   });
   const tail = b.node({
     name: "rotor_tail",

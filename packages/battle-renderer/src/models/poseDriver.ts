@@ -237,8 +237,9 @@ export interface PoseFeel {
    *  share of its hull's half width; 1 when absent. */
   gauge: Partial<Record<string, number>>;
   /** How fast a drawn rotor's blade tips run, metres a second: every rotor
-   *  turns at this over its reach. A drawing speed, slower than a real
-   *  rotor's, so the blades read as turning rather than strobing. */
+   *  turns at this over its reach. Near a real rotor's: faster than a frame
+   *  can show, so the blur drawn over it (`presentation.effects.rotor_blur`)
+   *  carries the turn. */
   rotor: { tip_mps: number };
   /** How many of the fallen lie drawn at once. Past `max` the oldest sinks
    *  `sink_m` into the ground over `fade_s` seconds, easing in, and is then
@@ -832,6 +833,7 @@ export class PoseDriver {
     const key = sideKey(unit.id, unit.side, "blue");
     let state = this.vehicles.get(key);
     if (!state) {
+      const flies = airborne(this.options.units.type(unit.kind));
       // First seen: posed as published, with no shot to recoil from.
       state = {
         gunShots: gunMount?.shots ?? 0,
@@ -842,8 +844,14 @@ export class PoseDriver {
           side: unit.side,
           position: vec3.clone(unit.position),
           yaw: unit.yaw,
-          airborne: airborne(this.options.units.type(unit.kind)),
-          articulation: { ...REST_ARTICULATION, gun_pitch: gunTarget, hmg_pitch: hmgTarget },
+          airborne: flies,
+          // Its rotors as a camera's shutter sees them turn, not as geometry.
+          articulation: {
+            ...REST_ARTICULATION,
+            gun_pitch: gunTarget,
+            hmg_pitch: hmgTarget,
+            rotor_blur: flies ? 1 : 0,
+          },
           tilt: null,
         },
         seen: generation,

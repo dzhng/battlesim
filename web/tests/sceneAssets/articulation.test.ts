@@ -187,6 +187,7 @@ test("posed bounds hold every reachable pose, the rest pose among them", async (
         travel_r: -k * 0.07,
         deploy: (k % 11) / 10,
         rotor: k * 1.3,
+        rotor_blur: 0,
       };
       const { worlds } = posed(bundle, input);
       positionsBounds(articulatedPositions(bundle.nodes, worlds, 0), reached as never);
@@ -264,4 +265,32 @@ test("a gun whose model states its own pitch limits is drawn to them, and its bo
   const low = posed(chin, { gun_pitch: -60 * DEG }).at("muzzle")[2];
   expect(posedBounds(chin.nodes).min[2]).toBeLessThanOrEqual(low + 1e-4);
   expect(posedBounds(plain.nodes).min[2]).toBeGreaterThan(low);
+});
+
+test("a rotor knows its blades from its own geometry: how many, how wide, and where they rest", async () => {
+  const heli = await built("heli", heliGlb());
+  const rig = articulationRig(heli.nodes);
+  const rotor = (name: string) => rig.rotors.find((r) => heli.nodes[r.node].name === name)!;
+  // The main rotor is one bar through its hub: two blades, 0.3 m wide,
+  // resting along its +X and -X.
+  const main = rotor("rotor_main");
+  expect(main.blades).toBe(2);
+  expect(main.chord).toBeCloseTo(0.3, 2);
+  expect(Math.abs(Math.cos(main.rest))).toBeCloseTo(1, 4);
+  // Its mast runs 0.2 m down from the hub, 0.16 m thick.
+  expect(main.mast_below).toBeCloseTo(0.2, 4);
+  expect(main.mast_radius).toBeCloseTo(Math.hypot(0.08, 0.08), 4);
+  // The tail rotor has none.
+  expect(rotor("rotor_tail").mast_radius).toBe(0);
+  expect(rotor("rotor_tail").blades).toBe(2);
+});
+
+test("a rotor drawn by its blur draws none of its own geometry", async () => {
+  const heli = await built("heli", heliGlb());
+  const nodes = heli.nodes;
+  const rig = articulationRig(nodes);
+  const locals = articulate(restLocals(nodes), nodes, rig, { ...REST_ARTICULATION, rotor_blur: 1 });
+  for (const r of rig.rotors) expect([...locals[r.node].s]).toEqual([0, 0, 0]);
+  const shown = articulate(restLocals(nodes), nodes, rig, REST_ARTICULATION);
+  for (const r of rig.rotors) expect([...shown[r.node].s]).not.toEqual([0, 0, 0]);
 });
