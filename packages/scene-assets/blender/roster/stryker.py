@@ -20,6 +20,10 @@ Built to the catalog frame (hull 6.95 x 2.72 x 2.64 m): nothing here moves
 it. The roof is drawn at its real 2.30 m; the remote station's fixed base
 rises to the frame's top. The Dragoon's frame puts its gun axis at 2.19 m,
 below the real hull roof, so its hull is drawn lower (specs/done/unit-models/choices.md).
+Each weapon stands on its frame's pivot, where the photos put it
+(specs/off-centre-turrets.md): the remote station ahead of amidships, the
+TOW launcher on the rear left, the Dragoon's turret behind amidships. A
+squad hatch the weapon's base stands on is left off.
 """
 import math
 import os
@@ -49,6 +53,10 @@ DRAGOON_ROOF = 1.95
 SIDE_LEAN = math.radians(14)
 GLACIS = math.radians(25)  # the upper glacis, from the nose's point up to the roof
 COMMANDER_Y = -0.55
+# How far each weapon's base reaches over the roof from its pivot: the
+# remote station's fixed adapter, and the MCT-30 out to its bustle rack.
+STATION_RADIUS = 0.34
+MCT30_REACH = 1.27
 
 
 def side_face(roof):
@@ -97,7 +105,8 @@ def build(variant, v):
     m, hull = v.mats, v.hull
     loft("stryker_hull", hull_rings(roof), mat=m["paint"], parent=hull, bevel=0.05)
     wheels(v)
-    fittings(v, roof, dragoon)
+    px, py, _ = v.frame["mounts"][0]["pivot_m"]
+    fittings(v, roof, dragoon, base=(px, py, MCT30_REACH if dragoon else STATION_RADIUS))
     if dragoon:
         mounts = rig(v.frame, v.root)
         turret, gun, _, _ = mounts["autocannon"]
@@ -172,7 +181,9 @@ def side_tiles(v, roof, side, s):
                             bolts=(3, 3 if tall > 0.5 else 2), rot=rot, bevel=0.015)
 
 
-def fittings(v, roof, dragoon):
+def fittings(v, roof, dragoon, base=None):
+    """The hull's fittings. `base` is the roof weapon's footprint, (x, y,
+    radius): a squad hatch it would stand on is left off."""
     m, hull = v.mats, v.hull
     top = glacis_top(roof)
     face = side_face(roof)
@@ -183,9 +194,10 @@ def fittings(v, roof, dragoon):
 
     slope = GLACIS
     # The engine's grille on the right of the glacis, the driver's hatch and
-    # periscopes on its left.
+    # periscopes on its left, the hatch outboard, clear of the remote
+    # station behind it.
     VP.grille("engine_grille", (2.30, -0.55, glacis(2.30)), (0.80, 0.85), m, hull, slats=8, rot=(0, slope, 0))
-    VP.hatch("driver_hatch", (top - 0.35, 0.60, roof), m, hull, radius=0.30)
+    VP.hatch("driver_hatch", (top - 0.35, 0.66, roof), m, hull, radius=0.30)
     for k, y in enumerate((0.38, 0.60, 0.82)):
         x = top + 0.12
         VP.periscope(f"driver_periscope_{k}", (x, y, glacis(x) - 0.01), m, hull, size=(0.12, 0.17, 0.08),
@@ -237,9 +249,17 @@ def fittings(v, roof, dragoon):
                          m, hull, size=(0.10, 0.13, 0.07), rot=(0, 0, a))
         cyl("commander_lid", 0.32, 0.05, (-0.42, COMMANDER_Y, roof + 0.06), "Z", m["paint"], hull, seg=24, bevel=0.01,
             rot=(0, -0.08, 0), lods=MID)
-    # Squad hatches on the rear roof.
+    # Squad hatches on the rear roof, where the weapon's base leaves room
+    # (with their coaming rings).
     for k, y in enumerate((0.50, -0.50)):
-        VP.hatch(f"squad_hatch_{k}", (-2.10, y, roof), m, hull, size=(1.00, 0.72))
+        x, size = -2.10, (1.00, 0.72)
+        if base is not None:
+            bx, by, reach = base
+            near = (min(max(bx, x - size[0] / 2 - 0.04), x + size[0] / 2 + 0.04),
+                    min(max(by, y - size[1] / 2 - 0.04), y + size[1] / 2 + 0.04))
+            if math.dist(near, (bx, by)) < reach:
+                continue
+        VP.hatch(f"squad_hatch_{k}", (x, y, roof), m, hull, size=size)
     # The rear plate: the ramp with its door, hinged along its foot, and
     # jerrycans in racks either side of it.
     foot, head = knuckle - 0.12, roof - 0.15
@@ -267,8 +287,8 @@ def station_base(v, pivot, height):
     (hull frame): part of the hull, under the turning station."""
     m = v.mats
     base = v.roof
-    cyl("station_adapter", 0.34, height - base, (pivot.x, pivot.y, (height + base) / 2), "Z", m["paint"], v.hull,
-        seg=24, bevel=0.012)
+    cyl("station_adapter", STATION_RADIUS, height - base, (pivot.x, pivot.y, (height + base) / 2), "Z", m["paint"],
+        v.hull, seg=24, bevel=0.012)
     cyl("station_bearing", 0.30, 0.06, (pivot.x, pivot.y, height + 0.03), "Z", m["dark"], v.hull, seg=24, lods=MID)
 
 
@@ -366,7 +386,7 @@ def wreck(variant, v):
     warp(shell, heat(0.02, 0.8, seed=6.0), dent(VP.on_side(1.1, KNUCKLE[0] + 0.50, 1, *face)[0], 0.5, 0.12, (0, -1, -0.2)))
     for k, (loc, rot, size) in enumerate((((1.4, 1.62, 0.03), (0.03, 0.04, 0.9), 0.30),
                                           ((1.0, -1.62, 0.03), (-0.04, 0.02, 2.2), 0.28),
-                                          ((-2.0, 0.55, v.roof + 0.04), (0.02, 0.04, 0.3), 0.36))):
+                                          ((-2.5, -0.45, v.roof + 0.04), (0.02, 0.04, 0.3), 0.36))):
         plate(f"litter_{k}", [(-size, -size * 0.6), (size * 0.9, -size * 0.7), (size, size * 0.5),
                               (-size * 0.7, size * 0.8)], 0.03, loc, rot, m["paint"], v.hull, curl=0.12, seed=31 + k)
     # With its front left wheels gone it settled onto that corner.
