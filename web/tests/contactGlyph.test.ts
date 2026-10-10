@@ -95,7 +95,8 @@ test("a glyph stays inside its area, whatever the contact's radius", () => {
 const report: PresentedContact = {
   id: 7,
   source: "last_seen",
-  center: [400, 300],
+  center: [400, 300, 0],
+  layer: "ground",
   radius: 100,
   evidenceTick: 150,
   expiresTick: 390,

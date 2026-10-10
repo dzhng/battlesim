@@ -1,4 +1,5 @@
 //! Uncertain evidence: firing areas, last-seen areas, sound cues, known props.
+use contract::catalog::AltitudeLayer;
 use contract::ids::Side;
 use contract::observation::{ContactSource, ObservationFrame, SoundBand, SoundCategory};
 use serde_json::{json, Value};
@@ -215,10 +216,11 @@ fn losing_and_regaining_sight_reuses_one_fixed_last_seen_slot() {
             .find(|c| c.source == ContactSource::LastSeen)
         {
             let at = last.expect("seen before lost");
+            assert_eq!(c.center, at, "centred on the last sighting, never moved");
             assert_eq!(
-                c.center,
-                [at[0], at[1]],
-                "centred on the last sighting, never moved"
+                c.layer,
+                AltitudeLayer::Ground,
+                "a tank's area is on the ground"
             );
             assert_eq!(
                 (c.kind, c.heard),

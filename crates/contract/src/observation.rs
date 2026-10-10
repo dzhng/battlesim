@@ -1,6 +1,6 @@
 //! What one side is allowed to know at a completed tick. Presentation, audio,
 //! picking and controllers consume only this.
-use crate::catalog::{PropKind, TypeIndex};
+use crate::catalog::{AltitudeLayer, PropKind, TypeIndex};
 use crate::command::{Engagement, RoutePolicy, TargetRef};
 use crate::ids::{Tick, UnitId};
 use serde::{Deserialize, Serialize};
@@ -84,7 +84,7 @@ pub enum ContactSource {
     LastSeen,
 }
 
-/// Uncertain evidence: a ground area where something is or was. It carries no
+/// Uncertain evidence: an area where something is or was. It carries no
 /// velocity, cost, strength or exact position, and never moves by itself. It
 /// carries only what the side learned when the evidence came: a last
 /// sighting, the type it identified; a firing report, the weapons it heard.
@@ -92,7 +92,12 @@ pub enum ContactSource {
 pub struct ApproximateContact {
     pub id: ContactId,
     pub source: ContactSource,
-    pub center: [f64; 2],
+    /// The area's centre; `z` is the cause's height when the evidence came
+    /// (a helicopter's in the air, a ground unit's on the ground).
+    pub center: [f64; 3],
+    /// The height band the cause occupied: an air contact has no ground
+    /// point to aim at, so area fire refuses it (D22).
+    pub layer: AltitudeLayer,
     pub radius: f64,
     pub evidence_tick: Tick,
     pub expires_tick: Tick,

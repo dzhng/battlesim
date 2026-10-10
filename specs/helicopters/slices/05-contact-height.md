@@ -1,6 +1,8 @@
 # 05 — Contacts carry height
 
-**Status:** planned. **Depends on:** 01. **Owns:** D33, L9 (contract and data).
+**Status:** done (2026-10-10). **Depends on:** 01. **Owns:** D33, L9 (contract and data).
+
+**Evidence.** `air::a_lost_helicopter_leaves_an_airborne_contact`, `air::a_heard_helicopter_report_is_airborne` and `air::area_fire_refuses_an_air_contact` (refused order is `OrderError::AirContact`; a ground report from the same spot still draws HE) went red, then green; `publication::a_contact_publishes_its_height_and_layer` reads both fields back by the layout alone; `web/tests/observation.test.ts` decodes an air contact from the codec-vector record the Rust encoder packs. Before the digest and layout gained the fields, every pinned battle digest (publication streams, menu reel, skirmish and objective records) was unchanged, so ground behaviour is untouched. Then re-recorded with `BLESS_PARITY=1`: `codec-vectors.json` (layout and an air contact in `base`), `combat.json` (digests only, from the first contact) and `contact-lifecycle.json`; Wasm matches (`fogDelivery`, `groupDelivery`, `observation` tests).
 
 ## Contract
 

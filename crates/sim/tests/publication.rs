@@ -222,6 +222,66 @@ fn ids_and_shot_counters_stay_exact_past_two_to_the_twenty_four() {
 }
 
 #[test]
+fn a_contact_publishes_its_height_and_layer() {
+    // A ground area and an air area: each is read back, by the layout alone,
+    // at its cause's height and in its band.
+    use contract::catalog::AltitudeLayer;
+    use contract::observation::{ApproximateContact, ContactId, ContactSource};
+    let map =
+        json!({ "size": [400, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 });
+    let b = Battle::new(
+        &common::scenario(
+            &map.to_string(),
+            json!([{ "side": "blue", "kind": "test_rifle", "position": [100, 100] }]),
+            json!([]),
+        ),
+        1,
+    );
+    let mut frame = b.observe(Side::Blue).clone();
+    let area = |id, center, layer| ApproximateContact {
+        id: ContactId(id),
+        source: ContactSource::Firing,
+        center,
+        layer,
+        radius: 30.0,
+        evidence_tick: 4,
+        expires_tick: 900,
+        kind: None,
+        heard: 1,
+    };
+    frame.contacts = vec![
+        area(1, [120.0, 80.0, 2.5], AltitudeLayer::Ground),
+        area(2, [300.0, 250.0, 22.5], AltitudeLayer::LowAir),
+    ];
+    let layout: Value = serde_json::from_str(&publication::layout_json(&b)).unwrap();
+    let patch = publication::GroundHeader {
+        epoch: 1,
+        side: Side::Blue,
+        base: 0,
+        revision: 0,
+        full: false,
+        count: 0,
+    };
+    let mut data = Vec::new();
+    publication::pack_logical(&frame, &patch, &full_fog(), std::iter::empty(), &mut data).unwrap();
+    let read: Vec<([f32; 3], &str)> = decode(&layout, &data)["contacts"]
+        .iter()
+        .map(|c| {
+            let f = &c.fields;
+            let layer = layout["layers"][f["layer"] as usize].as_str().unwrap();
+            ([f["x"], f["y"], f["z"]], layer)
+        })
+        .collect();
+    assert_eq!(
+        read,
+        [
+            ([120.0, 80.0, 2.5], "ground"),
+            ([300.0, 250.0, 22.5], "low_air")
+        ]
+    );
+}
+
+#[test]
 fn unchanged_visibility_is_not_retransmitted() {
     let setup = common::scenario(
         &json!({"size":[128,128],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35})
@@ -794,7 +854,13 @@ fn the_encoder_packs_the_codec_vectors_the_web_decoder_reads() {
     );
     let current: Value = serde_json::from_str(&publication::layout_json(&probe)).unwrap();
     let mut blessed = record.clone();
-    for key in ["header", "groups", "groupDelivery", "objectiveIds"] {
+    for key in [
+        "header",
+        "groups",
+        "groupDelivery",
+        "objectiveIds",
+        "layers",
+    ] {
         blessed["layout"][key] = current[key].clone();
     }
     blessed["layout"]["ground"]["packed"] = current["ground"]["packed"].clone();

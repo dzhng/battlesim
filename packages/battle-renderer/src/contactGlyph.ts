@@ -55,9 +55,11 @@ export function validateContactGlyphStyle(s: ContactGlyphStyle): ContactGlyphSty
   return s;
 }
 
-/** What a glyph is drawn from: an approximate contact's area and presentation opacity. */
+/** What a glyph is drawn from: an approximate contact's area and presentation
+ *  opacity. The glyph lies on the ground at the centre's XY; a contact's
+ *  height, when it carries one, is not read here. */
 export interface ContactShape {
-  center: readonly [number, number];
+  center: readonly [number, number, ...number[]];
   radius: number;
   /** Opacity in (0, 1]; at 0 the glyph is gone. */
   opacity: number;
@@ -111,6 +113,7 @@ function glyph(mesh: MeshBuilder, c: ContactShape, s: ContactGlyphStyle, z: Surf
   if (!(c.opacity > 0) || !(c.radius > 0)) return;
   const life = Math.min(1, c.opacity);
   const glow = s.glow_alpha * life;
+  const at: readonly [number, number] = [c.center[0], c.center[1]];
   const band = (
     inner: number,
     outer: number,
@@ -119,7 +122,7 @@ function glyph(mesh: MeshBuilder, c: ContactShape, s: ContactGlyphStyle, z: Surf
     a1: number,
     segments = SEGMENTS,
   ) =>
-    groundAnnulus(mesh, c.center, inner, outer, {
+    groundAnnulus(mesh, at, inner, outer, {
       z,
       lift: s.lift_m,
       segments,

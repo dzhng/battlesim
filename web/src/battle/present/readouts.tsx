@@ -87,7 +87,8 @@ interface DrawnAnchors {
    *  panels move with meshes; the published ones stand in for any missing. */
   own?: ReadonlyMap<number, Point3>;
   enemies?: ReadonlyMap<number, Point3>;
-  /** The ground height a contact's panel hangs from; 0 without one. */
+  /** The ground height a ground contact's panel hangs from; 0 without one.
+   *  An air contact's hangs at its reported height. */
   ground?: (x: number, y: number) => number;
 }
 
@@ -117,6 +118,8 @@ interface Callout {
   id: number;
   /** The published anchor point, before the drawn position replaces it. */
   at: Point3;
+  /** Hang from the drawn ground under `at` (a ground contact), not its z. */
+  onGround?: boolean;
   selected: boolean;
   content: ReactNode;
   opacity?: number;
@@ -193,7 +196,8 @@ export function ReadoutLayer({
         retiring: c.retiring,
         owner: "contact",
         id: c.id,
-        at: [c.center[0], c.center[1], 0],
+        at: c.center,
+        onGround: c.layer === "ground",
         selected: false,
         content: <InfoPanel panel={contactPanel(units, c, tick, rules)} />,
       }),
@@ -275,7 +279,9 @@ export function ReadoutLayer({
             ? (drawn.own?.get(c.id) ?? c.at)
             : c.owner === "enemy"
               ? (drawn.enemies?.get(c.id) ?? c.at)
-              : [c.at[0], c.at[1], drawn.ground?.(c.at[0], c.at[1]) ?? 0];
+              : c.onGround
+                ? [c.at[0], c.at[1], drawn.ground?.(c.at[0], c.at[1]) ?? 0]
+                : c.at;
         // A panel hangs off a unit in view; one whose anchor is off screen hides.
         const q = project(p[0], p[1], p[2] + (c.owner === "contact" ? 0 : HEAD_M));
         const edge = gameHud.panel_edge_hide_px;
