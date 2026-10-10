@@ -1128,6 +1128,27 @@
       "scenery": "wreck",
       "unit": "scenery"
     },
+    "europe_ebrc_jaguar_armed_reconnaissance_vehicle": {
+      "bundle": "9ff48704c0b60d2e63841ff19d3a2aee32148b74750df4311431ad7762f97b03",
+      "kind": "articulated",
+      "mounts": {
+        "autocannon": "gun",
+        "launcher": "hmg"
+      },
+      "unit": "vehicle",
+      "wreck": "europe_ebrc_jaguar_armed_reconnaissance_vehicle_wreck"
+    },
+    "europe_ebrc_jaguar_armed_reconnaissance_vehicle_wreck": {
+      "bundle": "d53a0a9b3164eb94ea99074352db81aa66d2a5e2ce6dfdcd5ecaff1d8645b8c6",
+      "footprint_half_m": [
+        3.55,
+        1.52,
+        1.4
+      ],
+      "kind": "static",
+      "scenery": "wreck",
+      "unit": "scenery"
+    },
     "europe_fennek_reconnaissance_vehicle": {
       "bundle": "f4e762bf8441d3c3b97f981ae3bfcdf399b1db8a51aec4e07f2c7ff64f859152",
       "kind": "articulated",
@@ -4907,6 +4928,11 @@
       "hash": "0e340fc5c591e66df556084955bfa99066013c7b6c558718dc6e012a21d3f025",
       "raw_bytes": 11365284
     },
+    "9ff48704c0b60d2e63841ff19d3a2aee32148b74750df4311431ad7762f97b03": {
+      "bytes": 753293,
+      "hash": "ead02d74c1dea46ca8a194aa2814398cd792a764646787174ae8e45a5825d1a0",
+      "raw_bytes": 2839136
+    },
     "a0fd592b8dbfd5097526b13a9e5379e2d4898acd085273754f39204c3775a3f6": {
       "bytes": 1220789,
       "hash": "b2d590dba49cb0323bf0d18baf7e821f3fb567cc0fc61ee4784fd0409ec337ef",
@@ -5686,6 +5712,11 @@
       "bytes": 12436,
       "hash": "fd6c58cea4c08d0e3b7396189f28f6dfde1480e00653840a46b301af40986a3a",
       "raw_bytes": 87399
+    },
+    "d53a0a9b3164eb94ea99074352db81aa66d2a5e2ce6dfdcd5ecaff1d8645b8c6": {
+      "bytes": 2604792,
+      "hash": "251ef3c42affae6933321744e40bc507f05a31a5c3891fbeb5ba8f8a98905b9e",
+      "raw_bytes": 7089864
     },
     "d56ef2c3b9a488ec24f49f69526cb232e9529d9d0677c919fb6615176f127466": {
       "bytes": 61840,
@@ -9427,6 +9458,23 @@
       "5d654d5b70f78056a9c0a0801decd296f43e0eecd2e2541a1894977562723ed0",
       "0342cd8bad2bc7b6010152d51d20dcd69ad42b48aad28ec93e99f1ef7a10984f"
     ],
+    "9ff48704c0b60d2e63841ff19d3a2aee32148b74750df4311431ad7762f97b03": [
+      "7745e08d0a0c9264ae2b31193383a3a2055143d7fee49163d062accd92207fe5",
+      "9d317b300663e15ca727661967963945d97b4bfb348fd98bb62e05de613a6731",
+      "af14b08eb7a44841662da908915bdedeb53d8d80791bc945b8661c5b2cf4841a",
+      "57f780aed9ea54530e755b563b906406ac76c790c653da8f2b767e3d80bc6c70",
+      "df0d0693fdaab26d0a370cefbc63afc051a0a4835af2638cfd026e5c5171bf55",
+      "4d33086c2df943d49a68f058d34ce0e5e822461cb208d67164e66ae016284205",
+      "fddec6a58146cf10a591a6334897a5883b62347137a18527ed768bce2f201eb5",
+      "a709cdfa5560c3c67fafe25b84a28ea82a647555b6fe901e407a4a4a4a8a8050",
+      "8bf93135986ef9934a48839bbbee7f82616707f39af89f6bd750da0f169dbb42",
+      "d80275a3741e14d16c14051bd87625757afa5f7aaffd39945608e7b37eab0869",
+      "dfeb7007009b0d5d9677d9b766395e57b0a97782537a47d40545f00e11acef5d",
+      "7206f987efe738d86374ab7cc4bbf91fe2c157eb95c09b0edd5dadd136410bbf",
+      "2a9fcbdc85487c46eafafe5f96f7cd873b8eab89e4ab645838b7e00361463a37",
+      "19db117c522c11f9faf22d2069e91c667e006c3660d752ee040066a3ccbd7af8",
+      "7244c58873887ced8a950572331849ed29d2e230c2548c22f64c0bd2fbf7e21a"
+    ],
     "a0fd592b8dbfd5097526b13a9e5379e2d4898acd085273754f39204c3775a3f6": [
       "ab81a6ec5b54a9e72c2533935a2f3df285b4c8ed0d2fd78963fe201cc0c81062",
       "bda32ec1aefe2307d6e0270f8ad2ee85ca706d81382cb8fbd0ad128cb1b759c4",
@@ -10316,6 +10364,11 @@
       "8d0c56a841d1bf6b5d0e17be28f8aea6d37aa8a277b96197065e4cf203aa2817"
     ],
     "d515382c8eb42e897699aad3dd71b4a5156e1f0d82ec028f00e31ef531d12e72": [
+      "3e7541badb88d4024f735ede729a604b0e354a6f55becb300f78259c0fe7fa32",
+      "5d654d5b70f78056a9c0a0801decd296f43e0eecd2e2541a1894977562723ed0",
+      "0342cd8bad2bc7b6010152d51d20dcd69ad42b48aad28ec93e99f1ef7a10984f"
+    ],
+    "d53a0a9b3164eb94ea99074352db81aa66d2a5e2ce6dfdcd5ecaff1d8645b8c6": [
       "3e7541badb88d4024f735ede729a604b0e354a6f55becb300f78259c0fe7fa32",
       "5d654d5b70f78056a9c0a0801decd296f43e0eecd2e2541a1894977562723ed0",
       "0342cd8bad2bc7b6010152d51d20dcd69ad42b48aad28ec93e99f1ef7a10984f"

@@ -1,4 +1,4 @@
-"""EBRC Jaguar armed reconnaissance vehicle (disabled card), from assets/references/jaguar/.
+"""EBRC Jaguar armed reconnaissance vehicle, from assets/references/jaguar/.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/jaguar.py -- [--wreck]
 
@@ -9,12 +9,13 @@ flat roof (the roof about four fifths of the turret's height), a blunt nose
 sloping down to headlights at the belt, stowage bags on the sides, a rear
 door between the lights. The T40 turret is a long, wide faceted box behind
 the cab, a third of the hull long, with the 40 mm CTA gun on the centre line
-and the twin Akeron MP launcher box forming its left flank (it raises to
-fire), the remote machine gun station on its roof, Galix smoke launchers on
+and the twin Akeron MP launcher pod on an arm off its left flank, standing
+above its roof (it raises to fire), the remote machine gun station on its roof, Galix smoke launchers on
 its rear corners, the commander's sight mast. French three-tone paint, as on
 the 2023 parade car.
 
-Frame 7.1 x 2.99 x 2.8 m, turret on the roof at 1.95 m (`DIMENSIONS`, `MOUNTS`).
+Built to the catalog frame: the turret turns on the roof at the hull's
+middle, the Akeron pod carried on it (the launcher arm stays stowed).
 """
 import math
 import os
@@ -23,22 +24,14 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft  # noqa: E402
-from vehicle_export import rig, run_disabled  # noqa: E402
+from vehicle_export import rig, run  # noqa: E402
 
-FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
+NEAR, MID = VP.NEAR, VP.MID
 
-CARD = "europe_ebrc_jaguar_armed_reconnaissance_vehicle"
-# The frame its references give (a disabled card has no unit type): the
-# hull box, and the mounts its turret and guns are rigged on for the art.
-DIMENSIONS = (7.1, 2.99, 2.8)
-MOUNTS = [
-    dict(name="autocannon", role="gun", on=None, pivot_m=[0.0, 0.0, 1.95], muzzle_m=[2.982, 0.0, 0.38]),
-    dict(name="launcher", role="hmg", on="autocannon", pivot_m=[0.0, 1.28, 2.40], muzzle_m=[1.25, 0.0, 0.0]),
-]
 WHEEL_X = [2.15, -0.65, -2.25]
 WHEEL_R = 0.66
 WHEEL_W = 0.46
-WHEEL_Y = 1.16
+WHEEL_Y = 1.22
 BELT = 1.45
 ROOF = 1.95
 TURRET_H = 0.68
@@ -117,10 +110,10 @@ def turret(v, t, gun, launcher, launcher_pitch):
     loft("t40_shell", [(base + 0.04, foot), (top, crown)], mat=m["paint"], parent=t, bevel=0.035)
     VP.roof_fittings("roof", crown, top, m, t, periscopes=((0.30, 0.50, 0.3),))
     VP.laser_warners("laser_warner", crown, top, m, t)
-    VP.sight_housing("gunner_sight", (0.55, -0.60, top - 0.02), m, t, size=(0.40, 0.30, 0.28))
+    VP.sight_housing("gunner_sight", (0.55, -0.60, top - 0.12), m, t, size=(0.40, 0.30, 0.28))
     mast = empty("dressing_commander_sight", parent=t)
-    cyl("commander_mast", 0.08, 0.30, (-0.60, -0.55, top + 0.15), "Z", m["dark"], mast, seg=12)
-    VP.sight_housing("commander_head", (-0.60, -0.55, top + 0.28), m, mast, size=(0.32, 0.28, 0.26))
+    cyl("commander_mast", 0.08, 0.14, (-0.60, -0.55, top + 0.07), "Z", m["dark"], mast, seg=12)
+    VP.sight_housing("commander_head", (-0.60, -0.55, top + 0.12), m, mast, size=(0.32, 0.28, 0.26))
     # The roof RWS on its pedestal, stacked above the turret as the photos
     # show (fixed here: it is not a frame mount).
     rws = empty("dressing_rws", parent=t)
@@ -133,19 +126,20 @@ def turret(v, t, gun, launcher, launcher_pitch):
                 seg=10, rot=(0, -0.35, side * 2.6), lods=MID)
     reach = v.frame["mounts"][0]["muzzle_m"][0]
     box("cta_mantlet", (0.40, 0.56, 0.44), (1.20, 0, 0), m["paint"], gun, bevel=0.04)
-    cyl("cta_sleeve", 0.09, 0.60, (1.70, 0, 0), "X", m["paint"], gun, seg=16)
-    cyl("cta_barrel", 0.045, reach - 2.00, ((reach + 2.00) / 2, 0, 0), "X", m["steel"], gun, seg=14)
-    cyl("cta_muzzle", 0.060, 0.20, (reach - 0.10, 0, 0), "X", m["dark"], gun, seg=14)
-    cyl("cta_bore", 0.028, 0.01, (reach, 0, 0), "X", m["black"], gun, seg=10, lods=NEAR)
-    # The twin Akeron MP launcher box on its arm: the turret's whole left
-    # flank, standing proud of the turret roof and outboard of the hull side,
-    # two tube mouths in front.
+    cyl("cta_sleeve", 0.11, 0.70, (1.75, 0, 0), "X", m["paint"], gun, seg=16)
+    cyl("cta_barrel", 0.06, reach - 2.00, ((reach + 2.00) / 2, 0, 0), "X", m["steel"], gun, seg=14)
+    cyl("cta_muzzle", 0.085, 0.24, (reach - 0.10, 0, 0), "X", m["dark"], gun, seg=14)
+    cyl("cta_bore", 0.04, 0.01, (reach, 0, 0), "X", m["black"], gun, seg=10, lods=NEAR)
+    # The twin Akeron MP launcher pod on its dark arm, stood off the turret's
+    # left flank and raised well above its roof, two rimmed tube mouths in
+    # front.
     lreach = v.frame["mounts"][1]["muzzle_m"][0]
-    box("akeron_arm", (0.30, 0.10, 0.30), (-0.15, -0.28, -0.15), m["dark"], launcher, bevel=0.02)
-    box("akeron_box", (lreach + 0.65, 0.48, TURRET_H + 0.17), ((lreach - 0.65) / 2, 0, 0), m["paint"], launcher_pitch,
+    box("akeron_arm", (0.50, 0.40, 0.14), (-0.20, -0.16, -0.45), m["dark"], launcher, bevel=0.02)
+    box("akeron_box", (lreach + 0.65, 0.48, 0.80), ((lreach - 0.65) / 2, 0, 0), m["paint"], launcher_pitch,
         bevel=0.03)
     for k, y in enumerate((-0.12, 0.12)):
-        cyl(f"akeron_mouth_{k}", 0.12, 0.01, (lreach + 0.005, y, 0), "X", m["black"], launcher_pitch, seg=14,
+        cyl(f"akeron_rim_{k}", 0.15, 0.06, (lreach + 0.03, y, 0), "X", m["dark"], launcher_pitch, seg=14)
+        cyl(f"akeron_mouth_{k}", 0.12, 0.01, (lreach + 0.065, y, 0), "X", m["black"], launcher_pitch, seg=14,
             lods=MID)
 
 def build(variant, v):
@@ -164,8 +158,8 @@ def wreck(variant, v):
     from parts import box as solid, rest_on_ground
     from wreckage import bend, densify, dent, heat, parts, remove, warp
     m = v.mats
-    remove("wheel_R_1_", "side_bag_", "akeron_box", "akeron_mouth_", "mudflap_R")
-    solid("fallen_akeron", (1.9, 0.48, 0.85), (1.4, -2.3, 0.36), m["paint"], v.hull, rot=(0.1, 0.05, 0.5),
+    remove("wheel_R_1_", "side_bag_", "akeron_box", "akeron_rim_", "akeron_mouth_", "mudflap_R")
+    solid("fallen_akeron", (1.9, 0.48, 0.80), (1.4, -2.05, 0.36), m["paint"], v.hull, rot=(0.1, 0.05, 0.5),
           bevel=0.03)
     bend(parts("rear_door"), (-3.53, 0.43, 1.25), (0, 0, 1), (1, 0, 0), 1.0)
     shell = parts("jaguar_hull", "t40_shell")
@@ -177,5 +171,5 @@ def wreck(variant, v):
 
 
 if __name__ == "__main__":
-    run_disabled("jaguar", {CARD: DIMENSIONS}, "french_three_tone", build, wreck, mounts={CARD: MOUNTS},
-                 skip=("dressing_", "gun", "hmg"), chip=0.6)
+    # Edge wear 0.6, as every live wheeled family has.
+    run("jaguar", "french_three_tone", build, wreck, chip=0.6)

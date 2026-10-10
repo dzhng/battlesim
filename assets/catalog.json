@@ -2216,6 +2216,35 @@
         "footprint_m": 2.3
       }
     },
+    "europe_ebrc_jaguar_armed_reconnaissance_vehicle": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/jaguar/europe_ebrc_jaguar_armed_reconnaissance_vehicle.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "autocannon": "gun",
+        "launcher": "hmg"
+      },
+      "wreck": "europe_ebrc_jaguar_armed_reconnaissance_vehicle_wreck"
+    },
+    "europe_ebrc_jaguar_armed_reconnaissance_vehicle_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/jaguar/europe_ebrc_jaguar_armed_reconnaissance_vehicle_wreck.glb",
+        "hull": "assets/source/roster/jaguar/europe_ebrc_jaguar_armed_reconnaissance_vehicle_wreck_hull.glb",
+        "turret": "assets/source/roster/jaguar/europe_ebrc_jaguar_armed_reconnaissance_vehicle_wreck_turret.glb",
+        "debris": "assets/source/roster/jaguar/europe_ebrc_jaguar_armed_reconnaissance_vehicle_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        3.55,
+        1.52,
+        1.4
+      ],
+      "tolerances": {
+        "footprint_m": 1.3
+      }
+    },
     "europe_fennek_reconnaissance_vehicle": {
       "unit": "vehicle",
       "source": "assets/source/roster/fennek/europe_fennek_reconnaissance_vehicle.glb",

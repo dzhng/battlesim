@@ -547,6 +547,23 @@
       }
     },
     {
+      "cost": 230,
+      "description": "Armed reconnaissance vehicle",
+      "disabled_reason": null,
+      "family": "ebrc_jaguar",
+      "id": "europe_ebrc_jaguar_armed_reconnaissance_vehicle",
+      "name": "Jaguar",
+      "planned_weapons": [],
+      "roster": {
+        "category": "rec",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "EBRC Jaguar",
+        "variant": "Armed reconnaissance vehicle"
+      }
+    },
+    {
       "cost": 130,
       "description": "Reconnaissance vehicle",
       "disabled_reason": null,
@@ -1963,32 +1980,6 @@
         ],
         "family_name": "CH-47 Chinook",
         "variant": "HC6"
-      }
-    },
-    {
-      "cost": 230,
-      "description": "Armed reconnaissance vehicle",
-      "disabled_reason": "Ground profile and model admission pending",
-      "family": "ebrc_jaguar",
-      "id": "europe_ebrc_jaguar_armed_reconnaissance_vehicle",
-      "name": "Jaguar",
-      "planned_weapons": [
-        {
-          "icon": "autocannon",
-          "name": "Autocannon"
-        },
-        {
-          "icon": "atgm",
-          "name": "Akeron MP"
-        }
-      ],
-      "roster": {
-        "category": "rec",
-        "factions": [
-          "europe"
-        ],
-        "family_name": "EBRC Jaguar",
-        "variant": "Armed reconnaissance vehicle"
       }
     },
     {
@@ -9825,26 +9816,95 @@
           }
         },
         "europe_ebrc_jaguar_armed_reconnaissance_vehicle": {
+          "appearance": "europe_ebrc_jaguar_armed_reconnaissance_vehicle",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 50.0,
+                "rear": 20.0,
+                "ricochet": {
+                  "front": 0.1,
+                  "rear": 0.05,
+                  "roof": 0.15,
+                  "side": 0.1
+                },
+                "roof": 15.0,
+                "side": 30.0
+              },
+              "eye_m": 2.75,
+              "half_extents_m": [
+                3.55,
+                1.52,
+                1.4
+              ],
+              "hp": 80.0,
+              "push_class": "medium",
+              "weight_class": "medium",
+              "wreck": "medium_wreck"
+            }
+          },
+          "capabilities": {},
           "cost": 230,
           "description": "Armed reconnaissance vehicle",
           "faction": "europe",
           "family": "ebrc_jaguar",
-          "name": "Jaguar",
-          "planned": {
-            "profile": "wheeled-recon",
-            "reason": "Ground profile and model admission pending",
-            "weapons": [
-              {
-                "icon": "autocannon",
-                "name": "Autocannon"
-              },
-              {
-                "icon": "atgm",
-                "name": "Akeron MP"
-              }
-            ]
+          "mobility": {
+            "wheeled": {
+              "offroad_kmh": 32.0,
+              "reverse_fraction": 0.35,
+              "road_kmh": 90.0,
+              "turn_deg_s": 40.0,
+              "turning_radius_m": 6.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "autocannon",
+              "muzzle_m": [
+                2.982,
+                0.0,
+                0.38
+              ],
+              "name": "Autocannon",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.95
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "autocannon"
+              ]
+            },
+            {
+              "id": "launcher",
+              "muzzle_m": [
+                1.25,
+                0.0,
+                0.0
+              ],
+              "name": "Akeron MP",
+              "on": "autocannon",
+              "pivot_m": [
+                0.0,
+                1.32,
+                2.52
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "akeron_mp"
+              ]
+            }
+          ],
+          "name": "Jaguar",
+          "roles": [
+            "recon"
+          ],
           "roster": {
             "category": "rec",
             "factions": [
@@ -9852,6 +9912,20 @@
             ],
             "family_name": "EBRC Jaguar",
             "variant": "Armed reconnaissance vehicle"
+          },
+          "sensors": {
+            "concealed_range_multiplier": 1.5,
+            "ground_m": 850.0,
+            "on": "autocannon",
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 1.0,
+              "side": 1.0
+            }
+          },
+          "sound": {
+            "loudness_m": 650.0,
+            "profile": "vehicle"
           }
         },
         "europe_ec665_tiger_had": {
@@ -20596,6 +20670,122 @@
           "front": 1.0,
           "rear": 0.3,
           "side": 0.5
+        }
+      },
+      "sound": {
+        "loudness_m": 650.0,
+        "profile": "vehicle"
+      }
+    },
+    {
+      "appearance": "europe_ebrc_jaguar_armed_reconnaissance_vehicle",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 50.0,
+            "rear": 20.0,
+            "ricochet": {
+              "front": 0.1,
+              "rear": 0.05,
+              "roof": 0.15,
+              "side": 0.1
+            },
+            "roof": 15.0,
+            "side": 30.0
+          },
+          "eye_m": 2.75,
+          "half_extents_m": [
+            3.55,
+            1.52,
+            1.4
+          ],
+          "hp": 80.0,
+          "push_class": "medium",
+          "weight_class": "medium",
+          "wreck": "medium_wreck"
+        }
+      },
+      "capabilities": {},
+      "cost": 230,
+      "description": "Armed reconnaissance vehicle",
+      "faction": "europe",
+      "family": "ebrc_jaguar",
+      "id": "europe_ebrc_jaguar_armed_reconnaissance_vehicle",
+      "mobility": {
+        "wheeled": {
+          "offroad_kmh": 32.0,
+          "reverse_fraction": 0.35,
+          "road_kmh": 90.0,
+          "turn_deg_s": 40.0,
+          "turning_radius_m": 6.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "autocannon",
+          "muzzle_m": [
+            2.982,
+            0.0,
+            0.38
+          ],
+          "name": "Autocannon",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.95
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "autocannon"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "launcher",
+          "muzzle_m": [
+            1.25,
+            0.0,
+            0.0
+          ],
+          "name": "Akeron MP",
+          "on": "autocannon",
+          "pivot_m": [
+            0.0,
+            1.32,
+            2.52
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "akeron_mp"
+          ]
+        }
+      ],
+      "name": "Jaguar",
+      "roles": [
+        "recon"
+      ],
+      "roster": {
+        "category": "rec",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "EBRC Jaguar",
+        "variant": "Armed reconnaissance vehicle"
+      },
+      "sensors": {
+        "concealed_range_multiplier": 1.5,
+        "ground_m": 850.0,
+        "on": "autocannon",
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 1.0,
+          "side": 1.0
         }
       },
       "sound": {

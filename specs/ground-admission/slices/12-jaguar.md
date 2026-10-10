@@ -30,6 +30,29 @@ Done in `jaguar.py`; evidence in [`../assets/12/`](../assets/12/).
   and then we stopped. Dropped as below the bar: the gun is slightly short, the rear face is dark, and the
   grey smoke-discharger discs are visible only without textures.
 
+### Admission (2026-10-10)
+
+- **Type.** The Jaguar extends `roster_profile_wheeled_recon`, so it gets 850 m sight and recon concealment.
+  It has role `recon`, hp 80, armour 50/30/20/15 (between the Fennek and the VBCI), medium weight and wreck,
+  and 32/90 km/h wheeled with a 6 m turning radius. Cost stays 230. Akeron ammunition is the row's 4 rounds.
+  All of these numbers are guesses for the closeout report.
+- **Frame.** The hull box is 7.1 × 3.04 × 2.8 m, the width taken from the art. `autocannon` pivots at
+  (0, 0, 1.95). `launcher` fires `akeron_mp` and is carried on the autocannon at (0, 1.32, 2.52), with its
+  muzzle 1.25 m ahead.
+- **Correction to the art-pass fit above.** The disabled exporter's `skip=("gun", …)` is a name-prefix match,
+  so it also skipped `gunner_sight`. The true top was 2.92 m. The live `fit.hull_extents` caught it, and the
+  gunner sight now sits lower and the commander's mast is shorter.
+- **Wreck.** The fallen Akeron pod lies 1.23 m clear of the hull, so the wreck's footprint tolerance is 1.3 m.
+- **Last critique.** The final art fix raised the pod 0.3 m above the turret roof on a dark arm, stood it off
+  the turret, gave it rimmed tube mouths, thickened the 40 mm gun and moved the wheels outboard.
+  The final unprimed critique ([live montage](../assets/12/jaguar-live.png)) found no hard defects. At the game
+  camera it tells the Jaguar from the Fennek easily, but from the VBCI mostly by its 6 wheels to the VBCI's 8. It still asks for
+  a taller turret. Accepted and stopped there, as in slice 08: a taller turret means growing the 2.8 m frame,
+  and the real hull and turret stand about 2.9 m tall.
+- **Sample** ([battle-sample.txt](../assets/12/battle-sample.txt)): from 700–840 m, unseen, the Jaguar kills a
+  still T-90M with three roof dives (45°, apex 62 m) in 25 s, head-on or flank. At 400 m the tank sees it and
+  wins two of three. Against the SEP v3, Trophy stops all four rounds.
+
 ## Seam
 
 [Admission recipe](../README.md#admission-recipe):
