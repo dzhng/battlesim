@@ -17,7 +17,8 @@ on a pintle ahead of the commander's hatch on the left, a mast behind; the
 hull's right rear. US desert tan (the Yuma photos; the unveiling vehicles
 are green).
 
-Built to the catalog frame (hull 7.0 x 3.4 x 2.98 m, gun axis 2.10 m up):
+Built to the catalog frame (hull 7.0 x 3.4 x 2.98 m, gun axis 2.10 m up,
+turret pivot 0.3 m behind the hull's middle):
 the hull's length over its towing lugs (the published 6.85 m hull is the
 plates), its width over the skirts and headlight boxes, and its height to
 the top of the commander's sight, the highest fixed part (the M2 aside). The
@@ -81,7 +82,9 @@ def hull(v):
         VP.tow_hook(f"rear_tow_{s}", (-half + 0.02, side * 0.85, 0.82), m, h, size=0.13, rot=(0, 0, math.pi))
         VP.cable(f"tow_cable_{s}", [(-half + 0.3, side * 1.45, DECK + 0.02), (-1.0, side * 1.48, DECK + 0.02),
                                     (0.5, side * 1.45, DECK + 0.02)], m, h, radius=0.022)
-        VP.stowage_box(f"deck_bin_{s}", (-2.88, side * 1.30, DECK), (0.80, 0.36, 0.30), m, h,
+        # Deck bins at the rear corners, clear of the turret's bustle bins
+        # as it traverses.
+        VP.stowage_box(f"deck_bin_{s}", (-3.03, side * 1.30, DECK), (0.60, 0.36, 0.30), m, h,
                        rot=(0, 0, 0 if side > 0 else math.pi))
     slope = math.atan((DECK - NOSE_TOP) / GLACIS)
     VP.hatch("driver_hatch", (half - 0.85, 0.0, DECK), m, h, radius=0.28)
