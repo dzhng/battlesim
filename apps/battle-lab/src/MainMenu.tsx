@@ -16,6 +16,7 @@ import { MAP_SIZES, MAP_TYPES, type MapSize, type MapType } from "@web/maps/sour
 import { FACTIONS } from "@packages/scene-assets/src/units";
 import { askedChoice, battleHref, playHref, REGIONS, spoken } from "./battleLinks";
 import { ReplayImport, useSavedReplay, REPLAY_ROUTE, type ReplayFile } from "./replayFile";
+import { DiagnosticsControls } from "./DiagnosticsControls";
 import { SoundControls } from "./SoundControls";
 import { Tutorial } from "./Tutorial";
 import { MenuBackdrop } from "./MenuBackdrop";
@@ -308,7 +309,12 @@ export function MainMenu() {
         {page === "skirmish" && <NewBattle asked={asked} />}
         {page === "replay" && <ReplayPage saved={savedReplay.file} />}
         {page === "tutorial" && <Tutorial />}
-        {page === "settings" && <SoundControls />}
+        {page === "settings" && (
+          <>
+            <SoundControls />
+            <DiagnosticsControls />
+          </>
+        )}
         {page === "developer" && <Entries label="Developer" entries={DEVELOPER} />}
       </PageView>
     );
