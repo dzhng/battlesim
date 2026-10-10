@@ -182,8 +182,12 @@ export async function run(fixtures) {
           );
           if (!ok) failures.push(`${fixture.id}: ${name}`);
         },
-        async newPage({ viewport = { width: 1280, height: 800 }, allowErrors = false } = {}) {
-          const context = await browser.newContext({ viewport, deviceScaleFactor: 1 });
+        async newPage({
+          viewport = { width: 1280, height: 800 },
+          deviceScaleFactor = 1,
+          allowErrors = false,
+        } = {}) {
+          const context = await browser.newContext({ viewport, deviceScaleFactor });
           // The app declares an empty icon (index.html); a bare document a
           // scene opens (a JSON file, for its origin) has none, so the
           // browser asks for /favicon.ico itself, and its 404 would read as

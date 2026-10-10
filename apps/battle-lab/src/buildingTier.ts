@@ -46,9 +46,9 @@ export function askedTier(search: string): number | null {
 /** How far off a building changes to tier 1, 2 and 3 in this window, metres
  *  from the eye to its chunk. */
 export function tierBoundaries(): [number, number, number] {
-  const heightPx = window.innerHeight * (window.devicePixelRatio || 1);
+  // The battle is drawn one pixel per CSS pixel (LabViewport), on any display.
   const at = (boundary: 1 | 2 | 3) =>
-    boundaryRange(gameBuildingStyle, boundary, gameCamera.lens.fovY, heightPx);
+    boundaryRange(gameBuildingStyle, boundary, gameCamera.lens.fovY, window.innerHeight);
   return [at(1), at(2), at(3)];
 }
 
