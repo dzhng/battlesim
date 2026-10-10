@@ -37,6 +37,7 @@ func run() -> bool:
 	var sun: DirectionalLight3D = without_sky.root.find_child("Sun", true, false)
 	# The manifest's sun is toward +x and up in sim space: light travels down and west.
 	check((-sun.basis.z).is_equal_approx(Vector3(-1, -1, 0).normalized()), "the sun shines away from the manifest's sun direction: %s" % -sun.basis.z)
+	check(environment.environment.ambient_light_source == Environment.AMBIENT_SOURCE_SKY, "the sky lights the scene even when it is not shown")
 	without_sky.root.free()
 
 	var bare := _compose(["grass"])
@@ -70,6 +71,8 @@ func run() -> bool:
 func _compose(layers: Array) -> Dictionary:
 	var root := Node3D.new()
 	var report := RenderReport.new()
-	var manifest := {"layers": layers, "light": {"sunDirection": [1.0, 0.0, 1.0], "backdrop": {"reach_m": 40000}}}
+	var light: Dictionary = read_json(FIXTURE_RUN.path_join(FIXTURE_SCENE).path_join("manifest.json")).light
+	light.sunDirection = [1.0, 0.0, 1.0]
+	var manifest := {"layers": layers, "light": light}
 	var world := ParityRun.compose(root, manifest, SAMPLES, MAP, [Vector2(24, 24)], "blue", report)
 	return {"root": root, "report": report, "world": world}

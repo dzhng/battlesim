@@ -19,10 +19,11 @@ const Stepper = preload("res://reel/frame_stepper.gd")
 const PlateWriter = preload("res://reel/plate_writer.gd")
 const RenderReport = preload("res://report/render_report.gd")
 const Staging = preload("res://assets/staging.gd")
-const Environment3D = preload("res://world/environment.gd")
+const EnvironmentAdapter = preload("res://environment/environment_adapter.gd")
 const LegacyMapLayer = preload("res://world/legacy_map_layer.gd")
 const FogLayer = preload("res://world/fog_layer.gd")
 const CameraRig = preload("res://reel/camera_rig.gd")
+const Light = preload("res://environment/light.gd")
 const ErrorLog = preload("res://report/error_log.gd")
 
 const OWNER := "native/parity_run"
@@ -122,6 +123,7 @@ func _render(options: Dictionary) -> void:
 			_report.add_blocker("publication", "frame %d at tick %d precedes the first sample" % [record.index, record.tick])
 			return
 		CameraRig.apply(camera, record, manifest.lens)
+		world.environment.fit(camera, Vector2(get_window().size))
 		world.layer.show_units(sample.units)
 		if world.fog != null:
 			world.fog.show_fog(sample.fog)
@@ -134,14 +136,20 @@ func _render(options: Dictionary) -> void:
 		record = stepper.step()
 
 ## Builds the light and every layer the manifest lists under `root`, staging the
-## assets the layers draw. Returns `{layer, fog}`; `fog` is null unless listed.
+## assets the layers draw. Returns `{environment, layer, fog}`; `fog` is null
+## unless listed.
 ## Blockers and budgets go to `report`.
 static func compose(root: Node3D, manifest: Dictionary, samples: Array, map: Dictionary, targets: Array, side: String, report) -> Dictionary:
 	var layers: Array = manifest.layers
 	for layer in layers:
 		if not LAYERS.has(layer):
 			report.add_budget(OWNER, "the browser drew this layer; native does not draw it", "layer:" + layer, 1, 0, 1)
-	root.add_child(Environment3D.new(layers.has("sky"), Capture.vector3(manifest.light.sunDirection)))
+	# Shadows fall on the map, flat until terrain heights are drawn (05a), and
+	# on what stands on it.
+	var size := Vector2(float(map.size[0]), float(map.size[1]))
+	var receivers := AABB(Vector3(0.0, -1.0, -size.y), Vector3(size.x, 1.0 + Light.STANDING_M, size.y))
+	var environment := EnvironmentAdapter.new(manifest.light, layers.has("sky"), receivers)
+	root.add_child(environment)
 	var unit_ids := {}
 	for sample in samples:
 		for unit in sample.units:
@@ -160,7 +168,7 @@ static func compose(root: Node3D, manifest: Dictionary, samples: Array, map: Dic
 		if layers.has("fog"):
 			fog = FogLayer.new()
 			root.add_child(fog)
-	return {"layer": layer, "fog": fog}
+	return {"environment": environment, "layer": layer, "fog": fog}
 
 ## The latest decoded sample at or before `tick`, or empty.
 static func _sample_at(samples: Array, tick: int) -> Dictionary:

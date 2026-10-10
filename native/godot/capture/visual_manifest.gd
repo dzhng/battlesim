@@ -9,6 +9,7 @@ extends RefCounted
 ## Native renders only a battle whose files match that identity exactly.
 
 const Capture = preload("res://capture/presentation_capture.gd")
+const Light = preload("res://environment/light.gd")
 
 const SCHEMA := "native-visual-presentation"
 const ROOT_KEYS := ["schema", "identity", "viewport", "lens", "light", "tuning", "layers", "omissions", "terrain", "grass", "grassCounts"]
@@ -93,13 +94,9 @@ static func _manifest_error(manifest: Variant) -> String:
 		return "lens.near must be a positive number"
 	if not (typeof(lens.depth) == TYPE_STRING and lens.depth == "reverse-z" and typeof(lens.far) == TYPE_STRING and lens.far == "infinite"):
 		return "lens must be reverse-z with an infinite far plane"
-	# The light is the browser's validated `presentation.light`; native reads
-	# only the sun direction and the backdrop reach so far.
-	var light = manifest.light
-	if typeof(light) != TYPE_DICTIONARY or not Capture.is_vector(light.get("sunDirection"), 3) or Capture.vector3(light.sunDirection).is_zero_approx():
-		return "light.sunDirection must be three finite numbers toward the sun"
-	if typeof(light.get("backdrop")) != TYPE_DICTIONARY or not Capture.is_number(light.backdrop.get("reach_m")) or float(light.backdrop.reach_m) < 0.0:
-		return "light.backdrop.reach_m must be a non-negative number"
+	shape = Light.error(manifest.light)
+	if not shape.is_empty():
+		return shape
 	if typeof(manifest.layers) != TYPE_ARRAY:
 		return "layers must be an array"
 	for at in manifest.layers.size():
