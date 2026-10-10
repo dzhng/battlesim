@@ -31,7 +31,7 @@ Checklist:
 - [ ] 03 top attack in battle — sight, release, APS, roof payoff, overhead launch ([slice](slices/03-top-attack-in-battle.md))
 - [x] 04 top-attack view — side-on capture of the arc ([slice](slices/04-top-attack-view.md))
 - [ ] 05 pilot: Challenger 3 + the two new profiles; writes the recipe's evidence ([slice](slices/05-pilot-challenger-3.md))
-- [ ] 06 T-14 and T-15 Armata ([slice](slices/06-armata.md))
+- [x] 06 T-14 and T-15 Armata ([slice](slices/06-armata.md))
 - [x] 07 BRM-3K and Type 15 ([slice](slices/07-brm-type15.md))
 - [x] 08 M10 Booker, CV90120, Centauro II ([slice](slices/08-m10-cv90120-centauro.md))
 - [x] 09 M1E3 with Trophy hardware ([slice](slices/09-m1e3.md))
