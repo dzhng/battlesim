@@ -131,20 +131,31 @@ fn flies_on_past_a_tower_without_turning_back() {
         let tower = block(0, [300.0, 200.0 + 2.5 * offset as f64], 14.5, 61.0);
         let (b, track) = fly(map(json!([tower]), json!([])));
         assert!(
-            arrived(&b) < 1.0,
-            "tower {offset}: {:.1} m short",
+            arrived(&b) < 0.05,
+            "tower {offset}: {:.2} m short",
             arrived(&b)
         );
-        // A grid corner a cell short of the goal may still settle it a
-        // metre past and back; a skimmed corner turned it back 100 m.
+        // It never turns back. Closing on its goal round a last corner, the
+        // momentum it carries out of the turn may bow its path a few
+        // centimetres wide, never more than a tenth of a metre.
         let mut furthest = f64::NEG_INFINITY;
+        let mut nearest = f64::INFINITY;
         for p in &track {
             furthest = furthest.max(p.x);
             assert!(
-                p.x > furthest - 2.0,
-                "tower {offset}: turned back from x {furthest:.1} to {:.1}",
+                p.x > furthest - 0.1,
+                "tower {offset}: turned back from x {furthest:.2} to {:.2}",
                 p.x
             );
+            let d = (p.xy() - v2(500.0, 200.0)).length();
+            if d < 30.0 {
+                assert!(
+                    d <= nearest + 0.1,
+                    "tower {offset}: swung {:.2} m away from its goal",
+                    d - nearest
+                );
+                nearest = nearest.min(d);
+            }
         }
     }
 }

@@ -1,104 +1,414 @@
-# Helicopters: choices ledger
+# Helicopters: choices ledger (final)
 
-Record every decision an implementing pass makes where the plan is silent: the
-slice, the choice, the alternatives and why. Choices that change a given in
-[decisions](decisions.md) need the user first.
+This ledger lists the choices the implementing agent made where the plan said nothing. It was rewritten at closeout against the shipped code, not against the pass where each choice first landed. Choices that later passes overturned are gone. Duplicates are merged. Each "deferred to slice N" entry now states how it ended up. A choice that only restated a given in [decisions](decisions.md) (D1–D43) was dropped. If you want to change a decision, change it there.
 
-| Date | Slice | Choice | Alternatives | Why |
-|---|---|---|---|---|
-| 2026-10-10 | 01 | `units::Motion { Ground(Mobility), Air(Flight) }` on `Unit.motion`. Ground-only sites read `Unit::ground()`, which panics for an aircraft, and catalog-level callers use `units::ground_mobility(t, rules) -> Option<Mobility>`. | A separate ground-only `GroundMobility` type with every navigation signature changed | Same guarantee (an aircraft can't reach ground rules) for about 40 lines instead of a signature change across navigation. The compiler forced every catalog-level caller to decide what an aircraft does. |
-| 2026-10-10 | 01 | Objective eligibility stays owned by roster category (`Hel` excluded, `objectives.rs`); no `airborne()` check is added there. Its test moves to slice 17, where a roster helicopter exists. | Adding `!airborne()` to objectives | A second owner for one rule. |
-| 2026-10-10 | 01 | Until slice 03, an aircraft takes move orders (any in-bounds point, facing kept) but holds where it is. The tests for forest lanes, treads and altitude-is-not-moving need a flying helicopter, so they move to slice 03. | Shipping a stub flight in slice 01 | Slice 03 owns flight. |
-| 2026-10-10 | 01 | **D35 corrected:** physical units must carry at least one role (only `planned` cards have `roles: []`). Helicopters get a real role, and the AI's role picker finds them through it (slice 17). Until then, the test helicopter uses `light_vehicle`. | Category rotation entries (the old D35) | The code already picks by role. |
-| 2026-10-10 | 02 | The spike's mockups are drawn over real game captures by a canvas script that read captures from the main checkout. The script isn't shipped because it only runs on that machine; the images are the record. | Shipping `compose.mjs` | A file with no durable purpose. |
-| 2026-10-10 | 03 | The air grid has 4 m cells. Every wall is widened by `hull_limits.air.half_length_m`, so one grid per side serves every airframe. Routes are A* with eight neighbours and no corner cutting, then string-pulled. A straight clear line skips the search. | A grid per airframe size; a visibility graph | One grid per side (D25). The search runs only when a tower is in the way. |
-| 2026-10-10 | 03 | The flight model: a ground velocity eased by `cruise / drive.acceleration_s`. It brakes on 80% of that, and slows for each corner to `cruise × cos(turn)`. It passes a waypoint within 1 m and arrives within 0.05 m, stopping dead. Separation pushes up to 4 m/s at full overlap. The yaw follows the travel direction above 1 m/s, otherwise the ordered facing, at the type's turn rate. | A full aerodynamic model | Out of scope (slice 18 of the old plan). Without the corner braking, the helicopter drifted wide into a tower it had routed around. |
-| 2026-10-10 | 03 | The climb lookahead runs along the velocity for `(ceiling − cruise) / climb_mps` seconds, sampling every 8 m. It reads every prop top within the hull's half length, plus forest canopy (D24), capped at the ceiling over the current point. | Lookahead along the whole route | Enough time to climb the whole band before any roof. |
-| 2026-10-10 | 03 | Not yet tested: a tower destroyed out of a side's sight still walls its routes (D32), a bound on the search's expanded cells, and crossing water or slope. D32 holds by construction, since the grid reads `SideGeometry::belief` over the props it remembers standing. The grid has no ground input. `air_cells_searched` is kept per side for a later bound test. | Writing them now | No test prop is both destructible and taller than 30 m; slice 18's full check covers integration. **Open:** add the D32 test once a destructible tower fixture exists. |
-| 2026-10-10 | 04 | The crash is a digested `Battle.crashes` list folded into the digest only while a crash is falling, so ground digests are unchanged. It falls under the flight config's gravity, spins at π rad/s (direction fixed by unit id), glances off immovable bodies at 0.3 restitution, and slides off a roof at 4 m/s. On impact it bursts through the new `damage::detonate`, which shares `damage::casualties` with `resolve`. The wreck rests on the nearest clear ground, searched ring by ring up to 30 m. | Making the falling airframe a body that rounds can hit | D31. |
-| 2026-10-10 | 04 | `helicopter_crash` is a weapon row: it extends `tank_he` with damage 50, penetration 25, blast radius 9 m, structural damage 300 (every trunk within about 6 m falls), and unlimited ammo so it needs no resupply price. | A dedicated crash rule section | Data, not code (Confirmed 5). |
-| 2026-10-10 | 04 | **Deferred to slice 10:** publishing falling airframes (the `crashes` group). The sim exposes `Battle::crashes()`. Until slice 10, the browser shows the helicopter vanish where it died and its wreck appear where it lands. Not tested: credit to the shooter (by construction, the crash carries `death.source` into `detonate`) and sliding off a roof. | Publishing in slice 04 | Slice 05 was changing the publication layout at the same time; one owner per pass. |
-| 2026-10-10 | 14 | The sink holds when the aircraft has no order at all (`orders` empty), no engaged weapon, and last tick's `service` is `Serving`, `NoStock` or `Full`. Last tick's, because supply serves after movement; a fresh order or engagement lifts it the same tick, before the status catches up. | `movement_goal().is_none()` only (an `Attack` on a target in reach has no goal and would stay low) | "Any order" read literally. |
-| 2026-10-10 | 14 | Sink and climb rates are both the type's `climb_mps`. | A separate, slower sink rate | One rate per airframe; nothing a viewer would read as wrong. |
-| 2026-10-10 | 14 | At the low hover the airframe still clears anything under it by the same 2 m: a prop top within its hull half length, or forest canopy, lifts the hover target as `clearance_m` does at cruise. The 2 m is `LOW_HOVER_CLEARANCE_M` in `movement/air.rs`, not rules data, since D27 fixes it. | Ground + low hover only, sinking into a roof or the trees beside the truck | A helicopter in the roof is the silly moment D27 exists to rule out. Not yet tested. |
-| 2026-10-10 | 14 | `low_hover(rules)` is the ground hull tops' maximum over the whole catalog, recomputed when needed (a scan of the catalog's types per sinking aircraft per tick). `movement::air` became `pub(crate)` so transport can reach it. | Caching it on the rules or `Battle` | The scan is tens of types; no cache needed until it shows. |
-| 2026-10-10 | 05 | A contact's `z` is its cause's height when the evidence came: the track's observed position for a last sighting, and the shooter's z for a firing report, which keeps that z when its centre is scattered across the ground. Its layer is `Unit::layer()` (`LowAir` for any aircraft). The packed contact group is `id, source, x, y, z, layer, radius, …`, and the layout's `layers` table names the band. | Sampling the terrain under a scattered ground report's centre | The sim's knowledge has no world access there, and ground fire never reads that z: it aims at the terrain under the centre, as before. |
-| 2026-10-10 | 05 | Area fire refuses an air contact through one owner, `SideKnowledge::ground_contact`: an Attack order on one is refused with a new `OrderError::AirContact` (the web shows its fallback text, "AIR CONTACT"), automatic area fire skips it, and an order whose contact became airborne would end. | Reusing `UnknownTarget`; also filtering the automatic area list | A distinct refusal says why. The aim-point resolver is already where areas without a ground point drop out. Not offering the attack cursor on an air contact at all is left to slice 13, which draws the sign. |
-| 2026-10-10 | 05 | A ground contact's panel still hangs from the drawn ground under its XY; an air contact's hangs at its z. Air contacts are picked by the pointer's ray passing through a sphere of the contact's radius round its centre (`contactUnder(contacts, ground, ray)`), ground ones by the ground disc, as before. | Anchoring every contact at its published z | Ground readouts keep their exact behaviour; a scattered report's z can be off the terrain by the slope across its radius. |
-| 2026-10-10 | 05 | Five publication stream records were already stale at 2a1d452a (digests and fog matched, and only the published-words hash differed after catalog growth on main). They were re-recorded in their own commit before the layout change, so this slice's re-record shows only its own effect. | Folding the drift into the slice's re-record | Keeps the named digest change separate from drift. |
-| 2026-10-10 | 07 | `weapons::reaches(def, layer)` is the one reader of `targets`. It gates a mount's usable kinds (`preferred_kind`), explicit orders (`compatible`), the return-fire threat ranking, and the area-fire hold (`enemy_in_reach` counts only kinds that reach the enemy's layer). The hold's distance stays flat; actual fire (`engage`) was already 3D. | 3D distance in the hold too | Under 1 m of difference at 20 m; it would shift ground replays on slopes. |
-| 2026-10-10 | 07 | A firing report's heard mask now travels as two 24-bit words (`heardLow`, `heardHigh`), so `MAX_WEAPON_ROWS` is 48. The game had just reached 24 rows with `helicopter_crash`, and slice 09 adds two more. | Dropping the crash row; a smaller mask | Publication layout change: codec vectors, the combat and contact-lifecycle records, and the two skirmish records were re-recorded. Their battle digests are unchanged, except `combat.json`. |
-| 2026-10-10 | 04 → 07 | **Named digest change:** adding `helicopter_crash` renumbers the weapon rows sorted after it, and rounds digest their row index, so `combat.json`'s digests moved from row 27 on. Renaming the row to sort last reproduced the old record exactly, which proves no behaviour changed. | — | Re-recorded. |
-| 2026-10-10 | 07 | Not tested: a stray ground round physically striking a helicopter. Flight sweeps every body, and nothing in flight reads `targets`, so it holds by construction; a low flat shell is hard to stage at a 20 m airframe. | A contrived low-flight scene | — |
-| 2026-10-10 | 06 | Rotor spin is one articulation input, `rotor`: metres every blade tip has swept, accumulated by the pose driver at `presentation.pose.rotor.tip_mps` (45) while the unit is airborne. Each `rotor_*` node turns by it over its own reach (measured, or `radius_m`), as a wheel turns by travel over its radius, so every rotor's tips run at one speed and the tail rotor turns faster. No blade blur. | An angle per rotor; a gear-ratio custom property on the tail rotor; real tip speed (~220 m/s) | One physical rule and no authoring. 45 m/s keeps the test tail rotor under a quarter-turn of its 4-blade symmetry per 60 Hz frame (no backwards strobing) and the main rotor near 60 rpm, visibly turning. A drawing speed, renderer-only to retune. |
-| 2026-10-10 | 06 | Hull fit leaves out every node named `rotor_*` or `blade_*` and what hangs under it (`articulation.isRotor`); posed bounds widen each rotor node's box to its disc's square, as they do a wheel's. | Sweeping the rotor angle in `sweepArticulations` | The disc is a closed form: no sampled sweep or sagitta pad needed. |
-| 2026-10-10 | 06 | An airframe's shadow keeps it drawn: a `ModelInstance.lift` (its foot's height over the ground under it, from the session's `surfaceZ`, for airborne vehicles only) places its shadow along the sun's fall, and `modelDetail` culls it only when both it and that shadow are out of view. | A wider fixed margin for air units from the rules' ceiling | Exact at any altitude and no new constant; ground units are untouched. |
-| 2026-10-10 | 06 | Track dust is gated on `EffectShooter.airborne` (absent: on the ground), set from the catalog by the effect feed. `vehicleClass` is `air_<weight>`; there is no `presentation.audio.vehicles` row for it yet, so a helicopter sounds as the default vehicle until slice 17b. | A placeholder rotor sound row | Sound is slice 17b's. |
-| 2026-10-10 | 06 | The test helicopter's wreck: every main blade snaps off and lies thrown clear as the wreck's `debris` (it sinks away, never cover); the slewed tail overhangs the hull box, so `test_heli_wreck` takes a 1.5 m footprint tolerance. Built by `test_heli.py` through `vehicle_export`'s `Vehicle`, `materials` and `rig`, not `run` (a test unit has no roster family). | Drooping blades left on the wreck (they reach 5.7 m sideways); a separate debris script | A crashed rotor shatters on the ground on film; the debris state already owns presentation that lies past the box. |
-| 2026-10-10 | 06 | `/lab/air-hover` stands on a new saved test map, `air` (300 × 200 m, one country road, no props), with the helicopter at cruise height over the verge and the test jeep on the road beside it. | Reusing another lab's map | A lab gets its own copy of the ground it needs (fixtures README); slice 07's `/lab/air` can grow this map. |
-| 2026-10-10 | 10 | **Publication contract:** a new last header word `crashCount` and a last group `crashes` with fields `id, own, kind, x, y, z, yaw, pitch, roll` (`contract::observation::FallingAirframe`, `ObservationFrame.crashes`). `id` is the id the side knew it by: its unit id when `own`, else the identified handle it had as it died (`Crash.knowing` became `Vec<(Side, u32)>`, filled where the death is seen). `kind` was added beyond the slice's field list so a side draws the airframe as itself without having to remember it. | Publishing the raw unit id to every side (leaks identity); no `kind` (the renderer would need the last-seen unit) | The handle is what the side's pose driver already keys the live airframe by, so the falling one continues as the same drawn vehicle: same rotor phase, no pop. |
-| 2026-10-10 | 10 | `pitch` and `roll` are derived in the sim from the crash's state (`Crash::attitude`, not digested): the nose drops and the body leans into its spin in proportion to the sink rate, reaching 0.35 rad pitch and 0.25 rad roll at 15 m/s of sink. Level at the moment of death. | Zero pitch/roll (an upright spinning airframe reads as a lift, not a crash); a renderer-side guess (a second owner) | `sim::crash` stays the one owner of the falling airframe; the renderer only draws what is published. Digests are unchanged since the attitude is a function of digested velocity and spin. |
-| 2026-10-10 | 10 | The fall is drawn through the pose feed: `TickInterpolator` blends `crashes` by `(own, id)` like bodies, `ObservationFeed` passes each as a `FeedUnit` with an `attitude`, and the pose driver keeps its vehicle state (rotor still turning) and gives `VehiclePose.tilt`, which `poseFrameInstances` hands the model layer as `ArticulatedModelPose.motion`: a rigid motion about the foot applied to every root node, like the static pose's `motion`. A tilted model is never drawn as an impostor card. | A separate crash-model path in the session (a second vehicle-posing owner); tilt in the GPU record | One posing path; the CPU already builds articulated node worlds per instance. |
-| 2026-10-10 | 10 | `CookOffWatch` ignores airborne types (`airborne(type)`), so an airframe never brews up; its death is its fall. The impact fireball is the sim's existing `helicopter_crash` blast at the impact point, drawn by the ordinary blast style (radius 9 m, default `blast_scale`); no extra fireball timing or size. | A dedicated crash fireball style | The before/after comparison shows the impact frames pixel-identical to before, and the burst already covers the swap to the wreck. |
-| 2026-10-10 | 10 | `/lab/air-crash` is a second saved encounter (`crash`) on the `air` map, through the one registry; `routes/air.tsx` owns both air labs (`AIR_LABS`), `airCrash.tsx` is its entry. The helicopter starts with `condition.hp: 1` so the gun jeep's first hit downs it in frame. | A third lab file duplicating the hover lab | One lab body, one map. |
-| 2026-10-10 | 10 | **Re-recorded with `BLESS_PARITY=1`:** `publication/{stream, combat, arrangement, cover-facing, contact-lifecycle, codec-vectors}.json`. Every row's `publication_sha256` moved (the header gained a word); every battle digest, initial digest and fog hash is unchanged. The codec vectors' `base` frame gained a falling airframe the web decoder reads. | — | Named layout change; no behaviour change. |
-| 2026-10-10 | 06 | `topSpeedKmh(mobility)` in `scene-assets/units.ts` is the one TypeScript read of a mover's top speed, exhaustive over mobility like `Mobility::speeds_kmh`; the cook-off hull's stopping speed reads it. The catalog test skips the move check for airborne types until slice 03 (an aircraft holds where it is). | Special-casing air in the session | Fixes the crash at its owner. |
-| 2026-10-10 | 08 | "Hull-fixed" means a vehicle mount that is not a turret and rides none (`weapons::hull_fixed`). Its bearing is the body's yaw. The existing on-target tolerance now covers it, reusing the `TurretTraversing` reason. A mount riding a turret still aims as before. | A new action reason | No publication change; the player reads "traversing" either way. |
-| 2026-10-10 | 08 | `Reach.face` is the bearing the first hull-fixed mount needs. It's folded into the digest only when set, so units without hull guns keep their digests. Aircraft turn to it ahead of their travel heading. A tracked vehicle with no orders gets it as `turn_to` and pivots. Wheeled vehicles hold fire. | Overriding an ordered move | D8: a ground vehicle never leaves its route to aim. |
-| 2026-10-10 | 09 | `guidance` is an optional `Guidance { Stationary, OnTheMove }` beside `turn_deg_s`, and loading refuses a guided row without it, or an unguided row with it. Only `atgm` states it; every ground missile extends `atgm`. `heli_atgm` extends `atgm` with `stationary: false`, `guidance: "on_the_move"`, 1200 m range and 8 rounds. | Deriving it from `stationary` (the agent's first D38) | The user's rule: an explicit, extensible property. |
-| 2026-10-10 | 09 | `rocket_pod` extends `tank_he`: ground only, interceptable, 900 m, 450 m/s, gravity ×1, 12 mrad scatter, salvos of 8 at 0.12 s, 38 rounds, 60 damage, 30 penetration, 7 m blast, 80 structural. Resupply prices are `heli_atgm` 20 and `rocket_pod` 2. | A guided rocket | First-pass values; balance is out of scope. |
-| 2026-10-10 | 09 | **Named digest change:** the two new rows renumber the rows after them, so `combat.json`'s digests moved again. Renaming them to sort last reproduced the old record exactly. | — | Re-recorded. |
-| 2026-10-10 | 01/07/09 | The mechanics editor gained fields for `mobility.air.*`, `targets` and `guidance`. | Leaving them hand-edited only | One surface per authored value. |
-| 2026-10-10 | 17b | The rotor sounds in each `air_*` row's `engine` slot, and `running` is null. Idle and load are equal (gain and rate). | `running` set to the rotor, as the slice text says | `running` follows rolled ground travel (√load, silent under 2 %), and the pose driver never adds travel for an airborne unit, so a rotor in `running` would be silent while hovering and while flying. The engine slot always sounds at its idle level. A real rotor runs at governed rpm, and load never moves in flight anyway. |
-| 2026-10-10 | 17b | A synthesized `rotor` baseline (low-passed air slapped 17 times a second) is replaced by `recorded-rotor-uh60` through `effects.rotor`, as `tracks` and `motor` are. | The row naming the recorded recipe directly | Effect slots must be synthesized baselines, and a battle prepares only baselines and assigned or replacing recipes, so a directly named recipe would never be prepared. The workbench offers the slot under Defaults & effects. |
-| 2026-10-10 | 17b | Loop crop is 19.8–22.8 s (frames 950400–1094400), not the stretch before the first cut. | 0.2–3.9 s (there is another cut at 4.0 s) | Only the 18–23 s stretch carries the blade beat, at 17.2 Hz (a UH-60's 4 blades × 258 rpm); the earlier stretches read as rushing air. The loop is exactly 50 blade passes, so its seam keeps the beat. Audition notes are in the slice. |
-| 2026-10-10 | 17b | Rows for `air_light`, `air_medium` and `air_heavy`: gain 0.45, 0.55 and 0.65, rate 1.1, 1.0 and 0.9. There is no turret whine and no reverse beeper. Processing reuses the `running-gear` profile (high-pass 50 Hz, low-pass 5 kHz). There is no near/far split: a vehicle row has one loop, and distance colouring is the battle's. | Only `air_light`, the one class fielded today; a new `rotor` processing profile | Every weight class gets a row, so a roster helicopter needs no presentation edit (fixtures README). The existing profile keeps the slap's body and tames a high-frequency flare in the crop. |
-| 2026-10-10 | 12 | An aircraft's ground mark is the vehicle's own unit marker (a circle with its facing arrowhead, the hull's half length plus `vehicle_marker_margin_m`). It shows whatever the aircraft does, for own and identified enemy aircraft. Own and unselected, it is in the orders' colour at `current_alpha`; while a shown order moves it, in the full order colour; selected, in the selection's colour. An enemy's is in `hud.enemy`, through the same builder (`buildAircraftMarks`). | A new ring or glyph for aircraft; showing it only while the aircraft is selected | One concept, one component. A height above the ground makes the ground position unreadable at any moment (D18), so the marker is not contextual. |
-| 2026-10-10 | 12 | The drop line keeps its own opacity (`orders.drop_line_alpha`, 1) and takes only its marker's hue. Its width is `orders.drop_line_px` (4) by the one stroke rule. It runs from the published position (the airframe's foot) to the ground at the marker's centre, and none is drawn under 0.5 m. | The marker's alpha (0.55 unselected), which went faint over the pale road; 3 px, which the first critique found nearly lost at map zoom | Slice 02 and the critique both asked for more weight. The second critique called 4 px heavy at map zoom: "too busy" feedback lowers `drop_line_alpha`, not the rule. |
-| 2026-10-10 | 12 | Over a roof the marker stays on the ground, so the roof hides it, and the depth-tested line ends where it meets the roof. | Painting the marker onto the roof | The contract says the ring stays ground paint, and paint lands only on painted ground layers. **Open for the user:** the critique reads a ring round a house as "the house is selected". |
-| 2026-10-10 | 12 | Ghosts are lifted by `ghostAloft(units, cruise)` (`unitGhosts.ts`): an aircraft's ghost stands `air.cruise_agl_m` over the ground. The session reads cruise from its scenario rules; the overlay reads it from `game.json`, as it does `tick_hz`. With Space held (`orderLayer(..., ghosts)`, the same condition the session uses to show ghosts), a drop line joins an aircraft's ghost to the marker where its orders end. | No ghost line | The first critique's top finding: the ghost floated unanchored. **Not done:** drop lines under the right-drag preview ghost and the purchase placement ghost. |
-| 2026-10-10 | 12 | The `air` map gained one house (`paris-home-12x9-2f`, at 250, 60, turned a quarter) and so names the `paris` region. That changed its hash and its field dressing. It also gained two encounters, `roof` and `fog`, which are `/lab/air-hover` variants. | A second saved map | A lab keeps one map and its variants are encounters. Only this lab reads the map. |
-| 2026-10-10 | 07 | The `air` test map grows to 640 × 520 m: a village of six templates (two 2-floor homes and a townhouse under cruise height, a 3-floor corner shop and a 7-floor point block on the route, which lift it), one `china-tower-20f` across the straight line, and a 70 m wood. `/lab/air` plays its new `flight` encounter: the helicopter is ordered 540 m east; red's rifle squad stands 80 m off the route by the village; the gun jeep and the tank stand together 440 m south of it. | A separate map for the checkpoint; the tank beside the rifles | One test map for the helicopter labs (`air-hover` still stands in its open south-west). At 440 m the jeep and tank are beyond the helicopter's own HMG (400 m), so it never fires back at them, but inside the autocannon's 650 m and the tank gun's 800 m: the tank gun is in range and still never fires. |
-| 2026-10-10 | 07 | The rifle phase and the jeep's are separated by scripted engagement: the jeep starts on return fire, is set to fire at will at tick 540 (the helicopter hovering at its goal) and back to return fire at 590, after its first round. One 100-damage hit halves the helicopter and it keeps hovering. The helicopter fires at will and shoots back at the rifles. | Letting the jeep kill it; starting the helicopter with extra health | The fall is slice 10's: until then a killed helicopter vanishes, which the checkpoint shouldn't show. A second round, already in flight by tick 615, killed it. |
-| 2026-10-10 | 07 | The scene proves its claims from blue's observation: heights from `own` against `surfaceZ` and the resolved map's building parts; rifle and autocannon strikes from enemy `projectiles` ending on a hull at the helicopter; the tank's main gun from its identified `weaponPoses[0].shots` (cumulative), staying 0 while it is seen. | Switching the observing side to red | The helicopter sees both red vehicles all battle, and a shot counter can't miss a shot between samples. |
-| 2026-10-10 | 03 → 07 | **Flight fix found by the scene:** a waypoint on the way is passed once the aircraft is beyond it along the leg that led there (`route_from` now tracks an aircraft's last passed waypoint, as a squad's), not only within 1 m; and a corner is taken no faster than the aircraft can stop from in the rest of the route. Before, at cruise it skimmed the tower's corner waypoint 1–2 m wide and flew 130 m on before turning back for it, and overshot a goal close behind a corner by 9 m. Test: `flies_on_past_a_tower_without_turning_back` (tower offsets across the line). Aircraft only; ground digests can't move. | A wider waypoint radius | A radius only moves the miss distance; a step at cruise is 2 m. **Still open:** a grid corner one cell short of the goal can still settle it about a metre past and back (the string-pulled route keeps a 45° kink there); the test allows 2 m. |
-| 2026-10-10 | 11 | The smoking rule has one owner, `Unit::smoking` in the sim (an aircraft, alive, under `SMOKING_HP_SHARE` = 0.5 of its hull HP, D34), and both rows publish it: `identified` (the coarse bit, never HP) and `own`. The web reads one bit for both. | The web deriving own smoking from published HP and the catalog (the slice's seam wording) | That needs a second copy of the 50% threshold in TypeScript. "Smoking from HP" holds: the sim derives it from HP for every unit. |
-| 2026-10-10 | 11 | Only aircraft smoke (D19, D34). A falling airframe always smokes, keyed as it was alive, so the trail runs on unbroken into the fall. | Every damaged hull | The slice's feedback note: generalise only if the user asks. |
-| 2026-10-10 | 11 | The trail is `EffectFrame.noteSmokers`: a puff every 1/`rate_hz` s of the presentation clock (fixed birth times, seeded by key and index), born where the hull was at that moment along its tick's stretch, from the hull's top. Moving, the puffs string out behind it; hovering, they make a thin column. `damage_smoke`: albedo 0.08, opacity 0.45, 0.8 → 4.5 m over 2.5 s, 20 Hz. | Emission by distance like dust (a hovering helicopter would not smoke); a ribbon like a missile's trail | Time-based births hold at any speed; the puff machinery is the one smoke already uses. At 8 Hz the trail read as beads. |
-| 2026-10-10 | 11 | **Re-recorded with `BLESS_PARITY=1`:** the same six publication records (both rows gained a field). Every battle digest, initial digest and fog hash is unchanged; the codec vectors' enemy is now smoking. | — | Named layout change; no behaviour change. |
-| 2026-10-10 | 15 | The AH-64E row: D5 attack (hp 250, 25/15/15/10, ricochet 0.1), D26 cruise 240, turn 80°/s and climb 8 m/s (test_heli is 90 and 6), hull [7.35, 2.615, 2.36] from the art's frame, light weight, push none, `light_wreck`, sight 900 m (the starter-balance attack-helicopter profile) with a 1/0.6/0.3 shape, sound 900 m. Inline on the card, no `roster_profile_attack_helicopter`. | A shared air profile now | One card; slice 16 lifts a profile when several share it. `fixtures/units/ground/profiles.json` is named for the ground. |
-| 2026-10-10 | 15 | `hull_limits.air.half_width_m` 2.5 → 2.7. The Apache is 5.23 m over its stub wings' stores. | Leaving the stores out of the frame's width | Only admission reads it (the air grid widens by the half length). A loose tripwire, raised when real art outgrows it. |
-| 2026-10-10 | 15 | Three mounts: `chin` (autocannon, turret, the `gun` rig), `rockets` (`rocket_pod`, hull-fixed, muzzle at the left inboard pod's mouth) and `missiles` (`heli_atgm`, hull-fixed, muzzle at the right outboard rack's front). One mount each, so each row's ammo is the aircraft's whole load (38 rockets, 8 missiles) and every rocket leaves the left pod. | A mount per side for each store (two muzzles, ammo split); one combined `pylons` mount firing both rows | The rows' ammo is already the whole load. Firing rockets and missiles at once needs two mounts. |
-| 2026-10-10 | 15 | **A mount fixed in the hull is drawn by the hull** (`MountRole` `"hull"`, `units.hullFixed`): no rig, no declaration in the appearance's `mounts`, and its flash at the published muzzle, which turns only with the body. `fit.mount_draw` still refuses an undeclared turning mount. `vehicle_export.rig` skips a mount no rig draws. | A third rig kind (only two rigs exist, gun and HMG, and the Apache has three mounts) | It never articulates, so a rig would add nodes that never move. Slice 16's rocket and missile carriers need no new rig. **Not checked:** that the art puts a pod at a hull-fixed muzzle (no `fit.*` for it). |
-| 2026-10-10 | 15 | **Per-rig pitch limits** are custom properties on the pitching node (`pitch_min_deg`, `pitch_max_deg`), read into `ArticulationRig.pitch`. `DEFAULT_PITCH_LIMITS` (the old global: gun -10..20, HMG -10..45) holds for a model that states none, so no existing art is re-exported. `articulate` clamps; the pose driver now eases toward the published elevation unclamped; posed bounds sweep each rig's own limits; the workbench sliders read the shown model's. The Apache's chin gun is -60..+11 (the M230's). | Limits in the appearance catalog entry; the pose driver clamping through a new per-kind option | Like `radius_m` and the deploy properties: the model owns how its parts move, and one owner (`articulate`) applies it wherever it is posed. **Side effect:** a gun asked past its limit eases back from the published value, so it can lag a moment before it moves again. Not seen in any scene. |
-| 2026-10-10 | 15 | A gun's recoil stroke, `recoil_max_m` on its node (the Apache's 0.06 m), caps the shared `presentation.pose.mount.recoil_m` (0.45 m). | Leaving the tank gun's 0.45 m | The first critique saw the flash float ahead of the barrel: the chain gun ran 0.42 m back into its turret on every round. |
-| 2026-10-10 | 15 | The art's airframe ran 0.3 m aft of the frame's centre: its parts move forward under `hull` (`AFT_M`), and the mount pivots are in the centred frame. Its sources move from `disabled/` to `apache/`, and `apache.py` exports through `run`, its receipt naming `ah_64_apache`'s library (`run(references=…)`). The chin turret, yoke and receiver are bigger than the disabled card's static gun, and the turret sits 0.45 m further forward (pivot x 5.1), under the gunner rather than over the main wheels, which the second critique read as too far aft. The wreck keeps the chin gun (its rig nodes renamed, so no turret piece is thrown) and throws all four main blades clear as debris, as test_heli's does; footprint tolerance 1.5 m. | Keeping two blades drooping on the wreck (they reach 6.8 m sideways) | Same reasons as slice 06's wreck. |
-| 2026-10-10 | 15 | A `helicopter` role (symbol: the aviation bow tie, `rotary_wing`) on the Apache. The AI picks no `helicopter` role yet, so skirmishes are unchanged until slice 17 wires it. `test_heli` keeps `light_vehicle`. | `light_vehicle`, which the AI already buys | D35. An Apache bought as the opening light vehicle would change every US and Europe skirmish now. |
-| 2026-10-10 | 15 | **Named publication change:** a new unit type changes the published unit-kind list, so the five publication stream records were re-recorded. Their digests and fog hashes are unchanged; only `publication_sha256` moved, on snapshot rows. | — | Catalog growth, as in slice 05. |
-| 2026-10-10 | 15 | `/lab/air-hover?variant=apache` (encounter `apache`): the Apache at cruise over the verge, and three test tanks on the road 45–67 m off. Tanks, not a jeep: one rocket killed the jeep before the chin gun's first round. The scene judges the chin gun's second round (a drawn gun is level until its first round, then eases down): the drawn muzzle on the shot's bore within 0.1 m, and the flash at its tip, through a new `drawnMuzzle(id, mount)` lab probe. | A scene of its own | One lab per map; a variant is an encounter. |
-| 2026-10-10 | 17 | The skirmish AI buys helicopters only in its reinforcement rotation, through the `helicopter` role, not in its opening. It orders them like every non-logistics purchase, to an objective. A deck with no helicopter skips that turn, so other decks buy exactly as before. Not tested: an empty helicopter not flying home. There is no return-to-base code (D16), so it holds by construction. | Buying one in the opening | The opening stays a ground screen; helicopters arrive as reinforcements, as in WARNO. |
-| 2026-10-10 | 13 | Whether a contact floats is the sim's call, published as `ApproximateContact.aloft`: in the air band and more than `air::low_hover` over the ground under its centre (D33). It is packed after `layer`, and the glyph, the panel's anchor and picking read it instead of `layer`. | Each web consumer testing `layer` and the height itself | The low hover is derived from the catalog in Rust, and the web has no copy of it. One owner keeps the three consumers agreeing, so a helicopter heard at its supply truck lies on the ground in all three. No battle digest moved; the codec vectors and the five stream records were re-recorded for their published words. |
-| 2026-10-10 | 13 | The airborne sign is a camera-facing stance of the one contact glyph (`buildContactGlyphs(..., facing)`, with a ground pen and a facing pen). It is lit with the ground's normal. The camera's screen axes come from `screenAxes` in `camera3d.ts`, followed in 2° steps by `useContactFacing`. | A second glyph module; GPU billboarding (a new vertex attribute) | One concept, one component. The overlay is already rebuilt every published tick, so rebuilding at a 2° step costs nothing new. Lit like the ground glyph, the two reds match. |
-| 2026-10-10 | 13 | **Sizing:** the sign spans the contact's uncertainty radius, held between 20 and 44 px of radius, both sized through the marks' stroke rule (Ø≈50 px from the map's zoom, Ø≈90 px close). Above the bounds the hatch spacing scales with the sign. Hatch lines (2.5 px), rim (3 px) and keyline (1.5 px) are strokes. | The full area with only an on-screen minimum (slice 02's carry); D's fixed Ø26/44 px | The full area is 21 m for the test helicopter, about 480 px across close in. The unprimed critique found that it hid the ground it marked and swallowed its stem, so it read as a decal. Fixed pixel sizes would ignore the area entirely. **Deviation from slice 02's note, for the user to confirm.** |
-| 2026-10-10 | 13 | **Drop line:** a thin pale stem (`stem_px` 2, the rim's colour at 0.8) from the ground under the sign to where it meets the rim on screen (a drop of `radius / up.z`), as a depth-tested overlay segment. There is no ground ring, and no stem from straight above or when the sign covers its own ground point. | No line (my first call: at area size, the ground point was inside the disc); the live aircraft's 4 px red line | Two critique rounds read the sign without a stem as lying on the ground. It keeps the slice-12 family (segment, depth test, stroke rule), but thinner and pale for an uncertain position: form before colour. With no ring, slice 12's pin and roof-ring questions don't arise here; they stay open for the identified marker. |
-| 2026-10-10 | 13 | Sign data lives in `presentation.contacts.air`: fill 0.55, hatch 1, glow 0.6. These differ from D's 0.5 and 0.75. | D's exact alphas | Close in at Ø90, D's alphas read as a pink film (critique, high, twice), while a 0.7 fill erased the hatch. 0.55 with a full-strength 2.5 px hatch keeps D's stripes and reads mostly solid. The rim stays the shared grey-blue `outline_color` under the overlays' fixed light, where D showed it unlit white. The third critique still calls the disc partly see-through and the rim and glow weak; recorded in the slice. |
-| 2026-10-10 | 13 | `/lab/air-hover?variant=lost`: a new `air` encounter. The jeep sits just south of the house, and a red helicopter it sees across the field is scripted to fly behind the house. | Adding a tower to the map (the slice text's "behind the tower") | The house hides a 20 m airframe from an eye just behind it, and the map, its hash and its other variants stay as they are. |
-| 2026-10-10 | 13 | On the enlarged `air` map, the `lost` encounter loses the enemy behind the corner shop, with the jeep 0.8 m from its front wall. A 12.65 m roof hides a helicopter at 20 m only from an eye that close, and the check needs a roof below the sign. The roof framing is computed from the sign and the building rather than a fixed angle. | Losing it behind the 22 m block | The block's roof stands above a sign at 20 m, so no eye-line through the sign can come down onto it. |
-| 2026-10-10 | 16 | **Air profiles:** `fixtures/units/air/profiles.json` holds `roster_profile_{light,utility,heavy,attack,armoured}_helicopter`, a new game root (`units/air` in `sim::fixtures` `GAME_ROOTS`). Each states D5 hp and armour (ricochet 0.1), D26 cruise, the starter-balance sight (700, 700, 700, 900, 850 m) with a 1/0.6/0.3 shape, push none and `light_wreck`. Turn and climb: light 100°/s and 9 m/s, utility 70 and 7, heavy 50 and 6, attack 80 and 8 (the Apache's), armoured 70 and 7. Loudness: light 800 m, heavy 1000 m, the rest 900 m. The Apache now extends the attack profile and resolves exactly as before. | Inline rows on every card; profiles in `fixtures/units/ground/profiles.json` | Slice 15's note: lift a profile once several cards share it. The ground file is named for the ground. Turn, climb and loudness are first-pass values that only order the classes (a Little Bird turns faster and is quieter than a Chinook); balance is out of scope. |
-| 2026-10-10 | 16 | **Every helicopter's `weight_class` is `light`.** | Medium for utility and armoured, heavy for heavy | D3 gives every helicopter a `light_wreck`, and the catalog refuses a wreck whose cover differs from its weight's (Q24). So every helicopter sounds as `air_light`; 17b's `air_medium` and `air_heavy` rows have no user yet. **Open for the user:** a Chinook that sounds like a Little Bird. Changing it needs D3 or Q24 reopened. |
-| 2026-10-10 | 16 | **The hull box is measured from the art**, not the published figures. The hull fit leaves the rotors out, so each box stops at the airframe's top, under the rotor head (the AH-1Z's is 3.45 m, not the 3.76 m published to the head). Each airframe is centred on its box by a forward shift in its exporter (`AFT_M`, as the Apache's): the Little Birds 1.15 m (the art was drawn nose-at-the-origin-plus-2.6), the rest 0.28 m or less. The mounts' pivots moved with it. The published dimensions stay in the exporters as what the art is drawn to (`PUBLISHED_M` where a script reads them). | Raising the fit tolerance; boxes to the published figures | The simulation is the authority on fit, and a box taller than the airframe would give cover that isn't there. |
-| 2026-10-10 | 16 | `hull_limits.air`: half width 2.7 → 3.65 m (the Ka-52 over its wing-tip pods), half length 8.0 → 9.94 m (the Merlin's art). Every air grid wall widens by 1.94 m for every aircraft. `air::an_air_hull_past_its_limits_is_refused` now reads the limit instead of a fixed 9 m. | Leaving the Ka-52's pods and the Merlin's tail out of the box | Only admission and the air grid read it; the air tests stay green. |
-| 2026-10-10 | 16 | **Chin guns** (`chin`, the `gun` rig, autocannon) on the AH-1Z, Tiger HAD, Mi-35M (two barrels), Mi-28NM and Z-10. Each gun node states its own elevation: AH-1Z −50..+18° (M197), Tiger HAD −28..+28° (THL-30), Mi-35M and Mi-28NM −40..+13°, Z-10 −50..+12°. Strokes 0.05–0.08 m. The Mi-35M, Mi-28NM and Z-10 figures are approximate (no source in their libraries). | One limit for every chin gun | The model owns how its parts move (slice 15). The limit only bounds the drawn gun; the simulation's rounds are unaffected. |
-| 2026-10-10 | 16 | **The Ka-52's cannon and the AH-6M's guns are fixed in the hull**, with the missiles and rockets: the airframe turns to aim them. | Turrets, as D28's chin guns | Neither is a chin gun. The Ka-52's 2A42 traverses a few degrees on its flank mount; the Little Bird's guns are fixed to its planks. A turret would swing them through the fuselage. |
-| 2026-10-10 | 16 | **Door guns** (`door`, the `hmg` rig, `hmg`): one per transport, swung out of the left (+Y) door on a pintle, elevation −60..+20°. M2s for the US and Europe, Kords for the Mi-8 and Z-20. The UH-1Y's and UH-60M's modelled right door guns stay as stowed hull art. The MH-6M's sits on a pintle at the front of its left bench. The Mi-8's modelled outrigger pods stay art: its card fields only the gun. | A mount per side (two guns, ammo split); the right door | The card has one HMG. Left, so every transport reads the same. |
-| 2026-10-10 | 16 | **A door gun traverses all the way round**, so it is drawn swinging through the cabin when it fires at the far side. The simulation has no traverse arc for any mount. | A traverse arc on mounts | A new mechanic, out of this slice. **Open:** an arc rule (fire only within it, or the airframe turns) if the user wants it. |
-| 2026-10-10 | 16 | Missiles: one mount on the right outer station (each row's ammo is the whole load). Rockets: the AH-6M's right launcher and the Tiger UHT's left inboard one. A new store kind, `rockets` (a blunt launcher, its tubes' mouths in a dark front face), on those two; the Tiger UHT's inboard sensor-pod stores become launchers. Labels "Chain Gun", "AT Missile", "Rockets", "HMG" (the Apache's "Rockets", not the cards' planned "Rocket Pods"). The Apache keeps its `pod`-kind rocket pods. | Rocket pods drawn as sensor pods with a window | Confirmed 2: the Tiger UHT has no rocket pods. The Apache is slice 15's art. |
-| 2026-10-10 | 16 | One owner for rotorcraft guns and wrecks in `aircraft_parts.py`: `chin_gun`, `door_gun` and `rotorcraft_crash` (every blade of the lifting rotors thrown clear as `debris_blades`, the guns' rig nodes renamed `<mount>_<node>` so no turret is thrown). Each rotor's thrown blades lie in their own stretch, so the Chinook's and Ka-52's don't overlap. The Apache moved onto them, and its GLBs re-export byte-identical (only its receipt's script hashes moved). | Each family repeating the Apache's code | Nineteen airframes, one rule each. |
-| 2026-10-10 | 16 | Eye heights by canopy: 1.4 m (Little Birds) to 2.2 m (Chinook, Ka-52). | — | The sensor origin a viewer would expect. |
-| 2026-10-10 | 16 | **Named publication change:** the unit-kind list grew by 18, so the five publication stream records were re-recorded (`BLESS_PARITY=1`). Only `publication_sha256` moved; every battle digest, initial digest and fog hash is unchanged. | — | Catalog growth, as in slice 15. |
-| 2026-10-10 | 16 | Wrecks take a 1.5 m footprint tolerance, as the Apache's; the Ka-52's is 1.6 m. `crash` lays a thin litter plate at 1.3 times the half width, and the Ka-52's 7.3 m width puts it 0.003 m past 1.5. The UH-60M's and Z-20's tails slew 0.35 rad, down from 0.45, to stay inside theirs. | Moving the shared litter (it would change the Apache's wreck) | A 3 cm plate of rubble, not cover. |
-| 2026-10-10 | 18 | The closing encounter fields the real roster red units: an `eastern_t_72_t_72b3_2016` as the tank and an `eastern_bmp_ifv_family_bmp_2m_berezhok` as the IFV. They are placed in the encounter, not bought. | `test_tank` and `test_gun_jeep` (D40's stand-ins); buying them through `ConfirmPurchase` (D40) | The labs' test set already holds the roster, and the BMP-2M carries the same `autocannon` row as the gun jeep, so the beat played to the tick either way. Real art reads as D14. A saved encounter has no skirmish economy, since purchases exist only in a skirmish, so "bought" applies only to the skirmish replay. **Cost:** retuning either roster card retimes the scene, and `air_closing` catches that by name. |
-| 2026-10-10 | 18 | The beat is directed by two engagement settings and two moves, with no starting damage. The tank holds fire (return fire only). The Apache's second move, at tick 300, also sets it to return fire only, so the hidden BMP fires first. Its goal (455, 465) lies over the wood, so it is still flying when hit and carries about 60 m into the trees. | `condition.hp: 90` so one round downs it (the brief's suggestion); a second wood where it fell at speed; an IFV that drives out of cover | Starting at hp 90 is under the 50 % smoking share, so it trailed smoke from the first frame. At full health the BMP's burst still downs it over the wood. Aiming the second move at the existing wood kept the map, and the other `air` scenes, unchanged. A goal past the wood landed the wreck 5 m outside it; a goal beyond the map's edge landed it off the map. |
-| 2026-10-10 | 18 | **Rule:** the sides that saw an airframe go down learn the trees its crash felled, as they learn its wreck (`Battle::land`: the props the crash newly felled are marked seen-fallen for each side in `crash.knowing`). | Leaving fallen-tree knowledge to sight alone; a blue observer in the encounter | The scene showed a lone Apache's buyer its wreck under standing crowns: the felled trees were invisible to the side that watched it fall. It is the same knowledge as the wreck's. Only crash landings among toppling props move a digest. |
-| 2026-10-10 | 18 | `every_saved_encounter_makes_a_battle_on_its_map` runs test maps' encounters on `CatalogSet::Test` (the game's units plus the test units), which is what their labs run. | `test_game()` (test units only) | It had failed since slice 15 on the `apache` encounter, which fields the AH-64E. |
-| 2026-10-10 | 18 | No pinned skirmish seed. The deterministic lab is the D14 proof. | A seed search | Two 8-minute probe battles with a bought Apache gave a Tigr kill and no shoot-down: the AI's tanks and IFVs arrive late in its rotation. A natural D14 needs four things in one battle (a tank and an IFV on the Apache's path, the IFV winning, the wreck in trees). That is a long search for what the lab pins exactly. |
+The entries are grouped by verdict: **needs-user** (decide; each one has a provisional call already taken), **unsound** (redo, starting from the corrected decision), and **sound** (the architecture you now own). Within each group, the least confident entry comes first. Confidence means how sure the audit is that you would have made the same call.
+
+**Review these first:** N1 (every helicopter sounds like a Little Bird), N2 (the airborne contact sign is capped in size on screen), and U1 (the last corner of a route can overshoot the goal and come back).
+
+---
+
+## Needs-user
+
+### N1. Every helicopter is weight class `light`, so a Chinook sounds like a Little Bird
+- **When:** slice 16 (the air sound rows came in 17b).
+- **The choice:** every unit has a `weight_class`, and the class decides two things: what its wreck is, and which engine sound loop it plays. D3 says every downed helicopter leaves a `light_wreck`. The catalog loader also refuses a wreck that doesn't match its unit's weight class. So the agent gave all 19 helicopters `weight_class: "light"` in `fixtures/units/air/profiles.json`. The cost: slice 17b authored three rotor rows (`air_light`, `air_medium`, `air_heavy`), and a CH-47 Chinook and an MH-6 Little Bird both play `air_light`. The medium and heavy rows have no user. The alternative was medium for utility and armoured types and heavy for heavy types. That would sound right, but under today's rules it would also give a Chinook a heavy wreck, which contradicts D3.
+- **The gap:** D3 fixed the wreck and the sound design wanted weight, and nothing said which one wins.
+- **The reach:** any later rule that keys on weight class, such as pushing, ramming or which wreck is left, treats every helicopter as light.
+- **Verdict:** needs-user. Provisional call: all light; the unused rows stay ready. To reverse it, reopen D3 (heavier helicopters leave heavier wrecks), or let an air unit name its sound class apart from its weight. Either way, one data edit per profile then gives each class its own sound.
+- **Confidence:** low.
+
+### N2. The airborne contact sign is held between 20 and 44 px of radius instead of covering the whole uncertainty area
+- **When:** slice 13.
+- **The choice:** suppose blue loses sight of a red helicopter, or only hears it. Blue then has a *contact*: a guess at where the helicopter is, with an uncertainty radius. On the ground that guess is drawn as a disc covering the whole area. Slice 02's spike carried that rule into the air. For the test helicopter the area is 21 m, which is about 480 px across at close zoom. An unprimed critique said a floating disc that size hid the ground it marked and read as a decal. The shipped sign follows the area but is clamped to a radius of 20–44 px (`presentation.contacts.air.min_radius_px` / `max_radius_px`), with the hatching rescaled to match. Up close, the sign is therefore *smaller* than the area the enemy might be in.
+- **The gap:** slice 02 fixed the look but not how large the sign gets on screen.
+- **The reach:** a player can't read the true uncertainty of an air contact from the sign when zoomed in. Picking still uses the full radius (N2 changes only drawing).
+- **Verdict:** needs-user. This deviates from slice 02's note. Provisional call: bounded size. To reverse, raise `max_radius_px` in `fixtures/game.json`; no code changes.
+- **Confidence:** low.
+
+### N3. The closing scene's climax plays under fog
+- **When:** slice 18.
+- **The choice:** the closing lab (`/lab/air-closing`, encounter `fixtures/maps/air/encounters/closing.json`) is drawn from blue's point of view. Blue fields only the Apache. Once the BMP shoots it down, blue has no eyes left, so the fall and the wreck are drawn under fog hatching, and the fogged tree crowns read as grey smoke. That is honest: a side sees only what its units see. The alternative was a blue ground observer parked within sight of the wood, which would keep the climax in full colour at the cost of one more unit in the scene.
+- **The gap:** D14 describes the beat but not who watches it.
+- **The reach:** this is the D14 showcase, so it's the shot people will look at.
+- **Verdict:** needs-user (taste). Provisional call: no observer, so the climax stays under fog. To reverse, add one blue unit to `closing.json`. Check first that the observer doesn't change the beat: it could become a target or a spotter.
+- **Confidence:** low.
+
+### N4. Door guns rest pointing forward along the cabin, so they barely read when idle
+- **When:** slice 16.
+- **The choice:** each transport carries one door gun (mount `door`, the `hmg` rig) on a pintle in the left door (`door_gun` in `packages/scene-assets/blender/aircraft_parts.py`). At rest its yaw is zero, so the barrel lies forward along the fuselage side. At workbench zoom, the UH-1Y's and UH-60M's guns read as thin rods on the skin, and the MH-6M's bench gun can't be seen at all. The alternatives were a stowed rest yaw pointing outward, or a heavier mount. Either would make the gun read as a gun while the helicopter is idle.
+- **The gap:** nothing specified a rest pose for a turreted gun on an aircraft.
+- **The reach:** it only matters until the gun fires, since firing swings it onto the target.
+- **Verdict:** needs-user (taste). Provisional call: forward rest, as built. To reverse, give each door gun's rig a rest yaw in `door_gun`; it's art only.
+- **Confidence:** low-medium.
+
+### N5. The closing scene fields the real T-72B3 and BMP-2M, placed by hand rather than bought
+- **When:** slice 18.
+- **The choice:** D40 planned test stand-ins (`test_tank`, and `test_gun_jeep` as the "IFV") bought through the normal purchase commands. The shipped encounter places a roster `eastern_t_72_t_72b3_2016` and an `eastern_bmp_ifv_family_bmp_2m_berezhok` directly. Real art reads as D14 ("an IFV shoots it down"). The BMP-2M's gun is the same `autocannon` row as the jeep's, so the beat plays to the tick either way. Purchases exist only inside a skirmish, so a saved encounter can't buy anything.
+- **The gap:** D40 assumed tests couldn't field roster units; by slice 18 they could.
+- **The reach:** retuning either roster card (hp, armour, gun) retimes the scene. The native `air_closing` tests catch that by name.
+- **Verdict:** needs-user (it changes the D40 given). Provisional call: roster units, placed. To reverse, swap the two `kind`s back to the test units in `closing.json`.
+- **Confidence:** medium.
+
+### N6. No recorded skirmish at a pinned seed: the lab alone is D14's proof
+- **When:** slice 18.
+- **The choice:** D40 also planned a recorded skirmish at a pinned seed, with the real Apache doing the D14 beat in a real AI battle. Two 8-minute probe battles produced a Tigr kill and no shoot-down, because the AI's tanks and IFVs come late in its rotation. A natural D14 needs four things in one battle: a tank and an IFV on the Apache's path, the IFV winning, and the wreck landing in trees. The agent stopped searching and let the deterministic closing lab stand as the proof.
+- **The gap:** D40 assumed such a seed was cheap to find.
+- **The reach:** nothing shows the D14 beat emerging from a real skirmish rather than a directed encounter.
+- **Verdict:** needs-user (it changes a D40 given). Provisional call: lab only. To reverse, run a seed search in the background and record the first hit.
+- **Confidence:** medium.
+
+### N7. Over a roof, the aircraft's ground marker circles the house, and the drop line stops on the roof
+- **When:** slice 12 (kept at its checkpoint, seen again in slice 18).
+- **The choice:** an aircraft's ground marker (S7 below) is ground paint, and its drop line is depth-tested. So when a helicopter hovers over a house, the roof hides the marker except where the ring passes round the house's sides, and the line ends at the roof. Critiques read the ring as "the house is selected", and in slice 18 the Apache looked perched on a block. The alternative was to paint the marker onto whatever surface lies under the aircraft, roof included.
+- **The gap:** the contract says the ring is ground paint, and ground paint lands only on painted ground layers.
+- **The reach:** this affects every aircraft over every building.
+- **Verdict:** needs-user (taste). It was shown at the slice 12 checkpoint with no reply. Provisional call: kept as built. To reverse, decide whether the marker should follow the roof (a renderer change to paint on roof layers) or stay on the ground.
+- **Confidence:** medium.
+
+### N8. A door gun can traverse all the way round, through its own cabin
+- **When:** slice 16.
+- **The choice:** the simulation has no traverse arc for any mount. A left-door gun told to fire at something on the right swings through the fuselage and fires. In a war film it would either refuse, or the pilot would turn the airframe. The alternative was a traverse arc on mounts, so a gun only fires inside its arc, or the airframe turns to bring the target into it, as hull-fixed weapons already make it do (S20).
+- **The gap:** D28 made door guns turrets without limiting them.
+- **The reach:** it affects every turret that sits on one side of a hull, which today means door guns.
+- **Verdict:** needs-user (a new mechanic). Provisional call: full traverse. To reverse, add an arc to the mount row and route "outside arc" to the same `Reach.face` turn the hull-fixed rule uses.
+- **Confidence:** medium.
+
+---
+
+## Unsound
+
+### U1. An aircraft closing on its goal round a last corner can bow a few centimetres wide
+- **When:** slices 03 → 07, re-checked at closeout (`crates/sim/src/movement/air.rs`, `crates/sim/src/navigation/air.rs`).
+- **The choice:** an air route comes from A* over 4 m cells and is string-pulled to the corners the flight needs. When the goal lies just past a corner, the aircraft turns onto the final leg still carrying sideways momentum. Its acceleration-limited steering bleeds that off on the way in, so its path bows slightly wide of the goal before it settles.
+- **What the closeout found:** the "metre past and back" the build recorded is gone after later flight fixes. The largest swing away from the goal, across twelve tower positions, measures 0.06 m. The test `flies_on_past_a_tower_without_turning_back` now asserts that the aircraft never turns back by more than 0.1 m, and that within 30 m of its goal it never swings more than 0.1 m away from it. Two attempts to remove the bow entirely failed: a step-crossing snap, and settling within 0.25 m. The bow happens about 1 m out, where the leftover sideways momentum is still bleeding off.
+- **The reach:** invisible at 20 m up. A precise landing (transport, D13) will need an exact stop.
+- **Verdict:** unsound, partly redone. **Corrected decision:** before transport needs a precise hover over a landing point, give the final leg a steering law that cancels sideways velocity first (or plans its braking from the turn into the leg), and tighten the test to no swing at all.
+- **Confidence:** medium.
+
+---
+
+## Sound
+
+### S1. An airborne contact that sits at the low hover lies on the ground but still can't be area-fired
+- **When:** slices 05, 13, closeout.
+- **The choice:** two rules meet here. Area fire means firing at a contact's ground point. The sim refuses it for any contact in the air layer, through one owner, `SideKnowledge::ground_contact` in `crates/sim/src/knowledge.rs`: an Attack order on such a contact fails with `OrderError::AirContact` ("AIR CONTACT"), and automatic area fire skips it. Since closeout, the cursor offers no attack on it either (`PointerPick.contactAirborne` in `web/src/battle/input/pointerIntent.ts`, set from `layer` in `apps/battle-lab/src/sideInstances.ts`). Separately, the sign *floats* only when the contact is `aloft` (S9). Take a helicopter heard while it sits at the low hover over its supply truck. Its sign lies on the ground, but you can't attack it. The alternative was to key the refusal on `aloft` too, so anything drawn on the ground can be shelled.
+- **The gap:** D22 says "airborne" and D33 says "floats above the low hover"; the two lines differ by a few metres.
+- **The reach:** a player may see a ground-drawn contact the cursor refuses.
+- **Verdict:** sound. It is D22 read literally, and both sim and web agree. If the case shows up in play, the switch is a one-word change in both owners.
+- **Confidence:** low-medium.
+
+### S2. A gun's pitch limit and recoil live on the model's gun node, and the drawn gun can lag briefly
+- **When:** slice 15, extended in slice 16 (`packages/scene-assets/src/articulation.ts`, `aircraft_parts.py`).
+- **The choice:** a gun's elevation limits are custom properties on its pitching node in the exported model (`pitch_min_deg`, `pitch_max_deg`). The Apache's chin gun is -60..+11°. `articulate` clamps to them wherever the model is posed. A model that states none keeps the old global defaults (`DEFAULT_PITCH_LIMITS`), so no existing art had to be re-exported. In the same way, a node's `recoil_max_m` caps the shared 0.45 m recoil stroke: the Apache's chain gun used to slide 0.42 m back into its turret on every round. Side effect: the pose driver eases toward the *published* elevation without clamping, so when the sim asks for an angle past the limit, the drawn gun can hang a moment before it moves again. No scene showed it. The alternative was to put limits in the appearance catalog entry, which would be a second owner of "how the part moves".
+- **The gap:** only global pitch limits existed.
+- **The reach:** every future model states its own limits. The limits are drawing-only: the sim's rounds don't read them.
+- **Verdict:** sound. Watch for the lag.
+- **Confidence:** medium-low.
+
+### S3. Sign stem and sign colours differ from the spike's picture
+- **When:** slice 13 (`presentation.contacts.air` in `fixtures/game.json`).
+- **The choice:** the floating sign got a thin pale stem down to the ground under it. The stem is 2 px, `stem_alpha` 0.8, a depth-tested segment, with no ground ring and no stem when seen from straight above. Without it, two critique rounds read the sign as lying on the ground. The alphas were also raised from spike D's 0.5/0.75: fill is now 0.55 and hatch 1. Up close, D's values read as a pink film, and 0.7 erased the hatching. The rim stays the shared grey-blue outline colour, not D's unlit white. The last critique still called the disc partly see-through and the rim weak.
+- **The gap:** the spike fixed a still picture, not how the sign reads in a moving 3D view.
+- **The reach:** it's all data. Any "too busy" or "too faint" note is a number in `game.json`.
+- **Verdict:** sound.
+- **Confidence:** medium-low.
+
+### S4. First-pass helicopter weapon numbers
+- **When:** slice 09 (`fixtures/game.json` weapon rows).
+- **The choice:** `heli_atgm` extends the ground `atgm` with `stationary: false`, `guidance: "on_the_move"` (D38's property), 1200 m range and 8 rounds. `rocket_pod` extends `tank_he` as an unguided ground-only salvo weapon: 900 m, 450 m/s, 12 mrad scatter, salvos of 8 at 0.12 s, 38 rounds, damage 60, penetration 30, 7 m blast, structural 80. Resupply prices are 20 and 2 per round. The alternative was a guided rocket. These are placeholder values: balance was out of scope.
+- **The gap:** D9 named the rows but not their numbers.
+- **The reach:** every helicopter that carries them inherits these numbers until the balance spec.
+- **Verdict:** sound (the user said "not clearly broken" is the bar).
+- **Confidence:** medium-low.
+
+### S5. Mounts: one per weapon kind, so a helicopter fires every rocket from one pod
+- **When:** slices 15–16 (unit cards; art in `aircraft_parts.py`).
+- **The choice:** a mount is one aimed weapon position, and a weapon row's `ammo` is its whole load. The Apache has three mounts: `chin` (autocannon, turret), `rockets` (`rocket_pod`, hull-fixed, muzzle at the left inboard pod) and `missiles` (`heli_atgm`, hull-fixed, right outboard rack). So all 38 rockets leave the left pod. The roster follows the same rule. Missiles come off the right outer station. Rockets on the AH-6M come from its right launcher, and on the Tiger UHT from its left inboard launcher. A new blunt `rockets` store kind replaced the Tiger UHT's sensor-pod stores. Labels are "Chain Gun", "AT Missile", "Rockets" and "HMG". The alternatives were a mount per side, which would split the ammo and need two muzzles, or one combined pylon mount, which couldn't fire rockets and missiles at the same time.
+- **The gap:** the cards list one weapon row per store type.
+- **The reach:** symmetric launch from both sides would need a muzzle-alternation feature, not a second mount.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### S6. The air grid: 4 m cells, walls widened by the largest air hull, built from what the side knows
+- **When:** slice 03, limits raised in slices 15–16 (`crates/sim/src/navigation/air.rs`, `hull_limits.air` in `fixtures/game.json`).
+- **The choice:** each side keeps one 2D air grid of 4 m cells. Its only walls are footprints whose roof is over 30 m (D21). Every wall is widened by `hull_limits.air.half_length_m`, so one grid serves every airframe. That limit grew to 9.94 m (the Merlin's art), and half width to 3.65 m (the Ka-52 over its wing-tip pods). So a Little Bird now keeps almost 10 m off a tower, like a Merlin. A route is a straight line when that line is clear. Otherwise it's an 8-neighbour A* with no corner cutting, then string-pulled. The grid reads the side's *beliefs* about standing props (D32), so a tower destroyed out of sight still walls routes. That holds by construction, and no test covers it, because no destructible test prop is over 30 m. The closeout deleted a cell-expansion counter that had been kept for a bound test nobody wrote. The alternatives were a grid per airframe size (a wall margin fitted to each hull) or a visibility graph.
+- **The gap:** D21 said "simple grid" and nothing more.
+- **The reach:** a bigger future airframe widens every aircraft's margin. The search runs only when a tower is in the way.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### S7. The aircraft's ground marker is the vehicle's own unit marker, always shown, joined by a 4 px drop line
+- **When:** slice 12 (`buildAircraftMarks` in `packages/battle-renderer/src/orderOverlay.ts`; `orders.drop_line_*` in `fixtures/game.json`).
+- **The choice:** to show where an aircraft is over the ground (D18), every own or identified-enemy aircraft gets the existing vehicle unit marker painted on the ground beneath it: a circle with a facing arrowhead. It's shown all the time, not only when selected, because at 20 m up the ground position is unreadable at any moment. Colours follow the ground vehicles' rules: orders' colour at `current_alpha` when idle, full order colour while an order moves it, selection colour when selected, `hud.enemy` for enemies. A drop line runs from the airframe's foot to the marker's centre. Its width is `drop_line_px` 4 under the shared stroke rule, at its own opacity of 1 rather than the marker's 0.55, which went faint over pale roads. No line is drawn under 0.5 m. The alternative was a new ring or glyph just for aircraft.
+- **The gap:** D18 asked for "a drop line plus a ground ring", designed through game-ui.
+- **The reach:** one marker concept for every vehicle. A critique called 4 px heavy at map zoom; the fix for that is `drop_line_alpha`, not the stroke rule.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### S8. Ghosts of aircraft fly at cruise height; with Space held, the end-of-orders ghost gets a drop line
+- **When:** slice 12 (`ghostAloft` in `apps/battle-lab/src/unitGhosts.ts`).
+- **The choice:** a ghost is the faint preview of where a unit will be: the end of its orders, a right-drag move, a purchase placement. An aircraft's ghost now stands `air.cruise_agl_m` above the ground, not landed. With Space held (the same condition that shows ghosts), a drop line joins the end-of-orders ghost to its ground marker. The first critique's top finding was that the ghost floated unanchored. The right-drag preview and purchase-placement ghosts are lifted but carry no drop line.
+- **The gap:** the slice asked for lifted ghosts; anchoring them was a critique outcome.
+- **The reach:** two ghost kinds still float unanchored.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### S9. Contacts carry a height, and the sim decides whether a contact floats (`aloft`)
+- **When:** slices 05 and 13 (`crates/sim/src/knowledge.rs`, `ApproximateContact` in `crates/contract/src/observation.rs`, `web/src/battle/input/contactPick.ts`).
+- **The choice:** a contact's `z` is the height of the evidence that made it. For a lost sighting, that's where the track was last seen. For a firing report, it's the shooter's height, kept even when the report's centre is scattered across the ground. Its `layer` is the unit's band (`LowAir` for any aircraft). On top of that, the sim publishes `aloft`: in the air band and more than `air::low_hover` above the ground under its centre (D33). The web reads `aloft` for three things: whether the glyph floats, where its panel hangs, and how the pointer picks it (a ray through a sphere of the contact's radius when aloft, the ground disc otherwise). The alternative was for each web consumer to test `layer` and height itself. That would need a TypeScript copy of the low-hover height, which Rust derives from the catalog.
+- **The gap:** D33 named the threshold but not its owner.
+- **The reach:** a published contact field. Ground fire never reads `z` (it aims at the terrain under the centre), so ground behaviour is unchanged.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### S10. How the closing beat is directed
+- **When:** slice 18 (`fixtures/maps/air/encounters/closing.json`).
+- **The choice:** the D14 beat is a fly-in, a pop-up over the village, a tank kill, the IFV's shoot-down, and a wreck in the trees. It's produced by two moves and two engagement settings, with no starting damage. The tank holds fire unless fired on. At tick 300 the Apache is set to return fire only and sent on to (455, 465), over the wood, so the hidden BMP fires first and the Apache is still flying when hit. It carries about 60 m into the trees. The brief suggested starting the Apache at hp 90 so one round downs it. But that's below the 50% smoking share, so it trailed smoke from the first frame. A goal past the wood landed the wreck 5 m outside it, and a goal beyond the edge landed it off the map.
+- **The gap:** D14 describes the beat; making it happen deterministically was left open.
+- **The reach:** the beat depends on the BMP-2M's autocannon numbers and on the Apache's hp. The `air_closing` tests name each beat.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### S11. The lab scenes are directed with scripted engagement settings
+- **When:** slices 07, 10, 13, 15 (`fixtures/maps/air/encounters/*.json`).
+- **The choice:** each lab stages its claim with orders and engagement settings rather than special code.
+  - `flight` (`/lab/air`): the gun jeep is set to fire at will at tick 540 and back to return fire at 590. Its one hit halves the helicopter, which keeps hovering. The tank stands 440 m off: inside its own gun's range, outside the helicopter's HMG range, and its gun never fires.
+  - `crash`: the test helicopter starts at `hp: 1`, so the jeep's first hit downs it in frame.
+  - `apache`: three test tanks instead of a jeep. One rocket killed the jeep before the chin gun's first round.
+  - `lost`: the red helicopter is scripted behind the corner shop, with the jeep 0.8 m from its wall. A 12.65 m roof hides a 20 m airframe only from that close, and the 22 m block's roof would stand above the sign.
+
+  The alternatives were starting damage, extra helicopter health, or more map.
+- **The gap:** the slices named what each scene must show, not how to stage it.
+- **The reach:** retuning the test units retimes these scenes.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### S12. The crash: a digested list of falling airframes with a fixed little physics
+- **When:** slice 04, closeout (`crates/sim/src/crash.rs`, `Battle::land` in `crates/sim/src/battle.rs`).
+- **The choice:** when a helicopter dies, its unit is replaced by a `Crash` in `Battle.crashes`. The crash keeps the airframe's momentum and falls under the flight config's gravity. It spins at π rad/s, with the direction set by unit id. It glances off immovable bodies at 0.3 restitution, slides off a roof at 4 m/s, and is clamped inside the map edges (closeout). On impact it bursts through `damage::detonate`, which shares its casualty code with ordinary hits. The wreck then rests at the nearest clear spot on the map, searched ring by ring out to 30 m. The crash is folded into the battle digest only while falling, so battles without one keep their digests. Since closeout the digest also includes who shot it down and which sides saw it go down. The falling airframe is not a body, so rounds pass through it (D31). Credit to the shooter holds by construction, since the crash carries the death's source into the blast. No test asserts it, and no test covers the roof slide.
+- **The gap:** D3 and D31 described the image; every number and the falling model are the agent's.
+- **The reach:** this is the one owner of a falling airframe. Publication (S13) and drawing read it.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### S13. Witnesses of a crash learn the trees it felled
+- **When:** slice 18 (`Battle::land`).
+- **The choice:** this is a knowledge rule. A side learns the state of the world only through what its units see. In the closing scene the Apache was blue's only unit, so after it died blue saw its wreck (already a rule) but drew the trees it had flattened as still standing. Now the props a crash newly fells are marked seen-fallen for every side that saw the airframe go down, as the wreck is. The alternative was to leave fallen trees to sight alone, or to add a blue observer (N3).
+- **The gap:** D3 said the wreck fells trees; nothing said who knows.
+- **The reach:** this is a general rule about knowledge. It can move the digest only for crash landings among toppling props.
+- **Verdict:** sound. It is the same knowledge as the wreck's, and keeps D14's "the wreck flattens trees" visible.
+- **Confidence:** medium.
+
+### S14. The resupply sink: when it holds, how fast, and how low
+- **When:** slice 14 (`sinks`, `low_hover`, `height_target` in `crates/sim/src/movement/air.rs`).
+- **The choice:** an idle helicopter in a deployed supply truck's zone sinks to the low hover (D10). "Idle" means no orders at all, no engaged weapon, and *last* tick's supply status Serving, NoStock or Full. Supply runs after movement, so a fresh order or engagement lifts it the same tick, before the status catches up. The sink rate equals the type's climb rate. At the low hover it still clears anything under it by 2 m: a roof within its hull's half length, or forest canopy, lifts the hover target. That case is untested. The 2 m is the code constant `LOW_HOVER_CLEARANCE_M`, because D27 fixes it. `low_hover(rules)` rescans the catalog (tens of types) each time it's needed, without a cache. The alternatives were "no movement goal" as the idle test (an Attack on a target in reach has no goal, so it would stay low), a slower separate sink rate, and a cached height.
+- **The gap:** D10 and D27 set the rule but not its edge cases.
+- **The reach:** transport (D13) will land at the same height through the same function.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### S15. The flight model
+- **When:** slice 03, fixed in slice 07 (`step_aircraft`, `turn`, `separation` in `crates/sim/src/movement/air.rs`).
+- **The choice:** an aircraft has a ground velocity that eases toward the speed it wants, at `cruise / drive.acceleration_s` (the ground vehicles' acceleration time). It takes each corner no faster than `cruise × cos(turn angle)` and no faster than it could stop from in the rest of the route, braking on 80% of its acceleration. A waypoint on the way counts as passed within 1 m, or once the aircraft is beyond it along the leg that led there. The slice 07 lab found it skimming a tower's corner 1–2 m wide and flying 130 m on before turning back. Overlapping aircraft drift apart at up to 4 m/s. Above 1 m/s it faces where it flies; below that, its ordered facing, at the type's turn rate. The alternatives were a full aerodynamic model (out of scope) or a wider waypoint radius (which only moves the miss).
+- **The gap:** D4, D6 and D7 gave the feel, not the model.
+- **The reach:** every aircraft flies through it. The aircraft-only constants are at the top of the file.
+- **Verdict:** sound. U1 is its one remaining defect.
+- **Confidence:** medium.
+
+### S16. The skirmish AI buys helicopters only as reinforcements, and they never count toward holding a flag
+- **When:** slices 15, 17, closeout (`crates/sim/src/skirmish_ai.rs`, `objectives::can_hold` in `crates/sim/src/objectives.rs`, `fixtures/units/roles.json`).
+- **The choice:** every roster helicopter carries a new `helicopter` role (symbol: rotary wing). The AI's reinforcement rotation gained it as a fifth role, after infantry, recon, AT and light vehicle. A deck without a helicopter buys the next role in turn, so other decks buy as before. The opening is never a helicopter: it stays a ground screen, as in WARNO. A bought helicopter is ordered to an objective like any combat purchase. Since closeout, when the AI weighs how many of its units already head to each objective, only units that can hold one count. That's one owner, `objectives::can_hold`, shared with capture itself (D20). The test helicopter keeps `light_vehicle`. The alternative was buying one in the opening, which would change every US and Europe skirmish.
+- **The gap:** D12/D35 said the AI buys and flies them, not when.
+- **The reach:** helicopters appear only mid-battle in AI skirmishes. There's no return-to-base code (D16).
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### S17. The rotor sound plays in the vehicle row's engine slot, through a replaced effect
+- **When:** slice 17b (`air_*` rows and `effects.rotor` in `fixtures/game.json`, `fixtures/sounds.json`).
+- **The choice:** a vehicle sound row has an `engine` loop, which always plays at least at idle level, and a `running` loop that follows rolled ground travel and is silent under 2% load. The rotor went in `engine`, and `running` is null. The slice text said `running`, but an aircraft never adds ground travel, so the rotor would have been silent even in flight. Idle and load are set equal, as a governed rotor is. The recording reaches the row through a synthesized `rotor` baseline that `recorded-rotor-uh60` replaces, the way `tracks` and `motor` are replaced. A row naming the recorded recipe directly would never be prepared, since a battle prepares only baselines and their replacements.
+- **The gap:** the slice named the wrong slot, and the audio pipeline's rule about baselines wasn't in the plan.
+- **The reach:** the sound workbench offers the rotor under Defaults & effects. Any future aircraft sound follows the same path.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### S18. Rotor sound rows: the loop crop and three weight classes
+- **When:** slice 17b.
+- **The choice:** the loop is cut from 19.8–22.8 s of the UH-60 recording. Only the 18–23 s stretch carries the blade beat, 17.2 Hz (4 blades × 258 rpm); earlier stretches sound like rushing air. The cut is exactly 50 blade passes, so the seam keeps the beat. There are rows for `air_light`, `air_medium` and `air_heavy`: gain 0.45/0.55/0.65, rate 1.1/1.0/0.9, no turret whine, no reverse beeper. They reuse the `running-gear` processing (high-pass 50 Hz, low-pass 5 kHz). The alternatives were the 0.2–3.9 s stretch, a single `air_light` row, or a new processing profile.
+- **The gap:** D23 named the recording, not the cut or the rows.
+- **The reach:** because of N1, only `air_light` is heard today.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### S19. Air profiles: shared data for the five helicopter classes
+- **When:** slices 15–16 (`fixtures/units/air/profiles.json`, a new game root in `sim::fixtures`).
+- **The choice:** `roster_profile_{light,utility,heavy,attack,armoured}_helicopter` each state D5's hp and armour (ricochet 0.1), D26's cruise speed, the starter-balance sight (700/700/700/900/850 m) with a 1/0.6/0.3 shape, no push, and `light_wreck`. Turn and climb are light 100°/s and 9 m/s, utility 70/7, heavy 50/6, attack 80/8, armoured 70/7. Loudness is light 800 m, heavy 1000 m, the rest 900 m. Eye heights follow each canopy, from 1.4 m (Little Birds) to 2.2 m (Chinook, Ka-52). The Apache started inline and now extends the attack profile, resolving exactly as before. The alternatives were inline rows on all 19 cards, or putting them in the ground profiles file.
+- **The gap:** D5 and D26 covered hp, armour and speed; turn, climb, loudness and eyes were open.
+- **The reach:** these are first-pass values that only order the classes (a Little Bird turns faster and is quieter than a Chinook). The balance spec owns them.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### S20. "Hull-fixed" guns turn the whole body, and keep it on target through every burst
+- **When:** slice 08, closeout (`hull_fixed`, `Reach.face` in `crates/sim/src/weapons.rs`; consumers in `movement/air.rs` and `movement/mod.rs`).
+- **The choice:** a mount is hull-fixed when it's on a vehicle, isn't a turret, and rides none. Its bearing is the body's yaw. While it has a target it can fire on, it asks the body to face it through `Reach.face`. Since closeout that request holds through every aim, burst and reload, not only while turning onto the target, so a strafing gunship no longer swings back between bursts. An aircraft turns to that bearing ahead of its travel heading. A tracked vehicle pivots only when it has no orders, and a wheeled one holds fire (D8, D42). While it's off target, the mount reports the existing `TurretTraversing` reason. `face` enters the digest only when set, so units without hull guns keep their digests. The alternative was a new action reason, which the player would read the same way.
+- **The gap:** D8 set the rule but not the mechanism or its timing.
+- **The reach:** every future fixed-gun vehicle uses this path.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### S21. `weapons::reaches` is the one reader of `targets`; the hold-fire distance stays flat
+- **When:** slice 07 (`crates/sim/src/weapons.rs`).
+- **The choice:** `targets` lists the altitude layers a weapon can hit (D1). Exactly one function reads it, and it gates which kinds a mount uses, which explicit orders are valid, the return-fire threat ranking, and the area-fire hold, which now counts only enemies the weapon can reach. Actual fire was already 3D (D22). But the hold's "is an enemy in reach" distance stays horizontal. The alternative, 3D there too, differs by under 1 m at 20 m height and would have shifted ground replays on slopes.
+- **The gap:** D22 said engagement is 3D, without naming every check.
+- **The reach:** a future high-air layer goes through the same function.
+- **Verdict:** sound.
+- **Confidence:** medium-high.
+
+### S22. Rotor spin is metres swept by the blade tip, at a drawing speed of 45 m/s
+- **When:** slice 06 (`presentation.pose.rotor.tip_mps` in `fixtures/game.json`; `packages/battle-renderer/src/models/poseDriver.ts`).
+- **The choice:** all rotors spin from one articulation input, `rotor`: the distance every blade tip has swept, which grows at 45 m/s while the unit is airborne. Each `rotor_*` node turns by that distance over its own radius, as a wheel turns by distance over its radius. So every tip runs at one speed and small tail rotors turn faster, with no per-rotor authoring. A real tip runs about 220 m/s. 45 keeps the tail rotor under a quarter turn per 60 Hz frame (no backwards strobing) and the main rotor near 60 rpm, so you can see it turn. There is no blade blur. The alternatives were an angle per rotor, or a gear ratio on the tail rotor.
+- **The gap:** nothing said how rotors move.
+- **The reach:** one renderer-only number to retune.
+- **Verdict:** sound.
+- **Confidence:** medium-high.
+
+### S23. Hull boxes are measured from the art, under the rotor head
+- **When:** slices 15–16 (each exporter's `AFT_M` and `PUBLISHED_M`).
+- **The choice:** a hull box is the sim's shape for a unit: what blocks rounds and what gives cover. Each helicopter's box is fitted to its exported airframe, not its published dimensions, and rotors are left out (S24). So the box stops under the rotor head: the AH-1Z's is 3.45 m tall, not the published 3.76 m. Airframes drawn off-centre were shifted forward to sit centred on their box: the Little Birds by 1.15 m, the rest by 0.28 m or less, the Apache by 0.3 m. Mount pivots moved with them. Published figures stay in the exporters as the size the art is drawn to. The alternatives were raising the fit tolerance, or boxes at published size, which would give cover where there's no airframe.
+- **The gap:** the hull fit check refuses boxes that don't match their art.
+- **The reach:** this is the rule for every future airframe: the art decides the box.
+- **Verdict:** sound.
+- **Confidence:** medium-high.
+
+### S24. Hull fit ignores rotors; posed bounds treat a rotor as its disc
+- **When:** slice 06 (`isRotor` in `packages/scene-assets/src/articulation.ts`, `validate.ts`).
+- **The choice:** every node named `rotor_*` or `blade_*`, and everything under it, is left out of the hull fit. A rotor isn't solid, and the box shouldn't grow to its sweep. For culling and framing, each rotor's bounding box widens to the square around its disc, in closed form, the way a wheel's does. The alternative was to sample rotor angles in `sweepArticulations`, which would add a sampled sweep and padding.
+- **The gap:** none; the fit rules predated rotors.
+- **The reach:** a rotor never blocks a round, and a rotor sticking out of its box (as on the Mi-35M's tail) isn't a defect.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### S25. Wrecks throw every main blade clear; one owner for rotorcraft guns and wrecks
+- **When:** slices 06, 15, 16 (`chin_gun`, `door_gun`, `rotorcraft_crash` in `packages/scene-assets/blender/aircraft_parts.py`).
+- **The choice:** a helicopter wreck snaps every lifting-rotor blade off and lays it thrown clear as the wreck's `debris`, which sinks away and is never cover. The guns' rig nodes are renamed so no turret piece is thrown. Each rotor's blades land in their own stretch, so the Chinook's and Ka-52's two rotors don't overlap. Wrecks get a 1.5 m footprint tolerance (the Ka-52 gets 1.6 m, because a shared rubble plate passes its 7.3 m width by 3 mm). The UH-60M's and Z-20's tails slew 0.35 rad instead of 0.45 to stay inside. One module owns this for all 19 airframes, and the Apache's art re-exported byte-identical onto it. The alternative was drooping blades left on the wreck, which reach 5.7–6.8 m sideways past any box.
+- **The gap:** D41 said to reuse the existing wreck art; the source wrecks didn't fit the box rule.
+- **The reach:** every new rotorcraft calls these three functions.
+- **Verdict:** sound.
+- **Confidence:** medium-high.
+
+### S26. Where chin guns aim, and which guns are not chin guns
+- **When:** slice 16.
+- **The choice:** chin guns (`chin`, the `gun` rig, autocannon) on the AH-1Z, Tiger HAD, Mi-35M, Mi-28NM and Z-10 each carry their own elevation limits (S2): AH-1Z −50..+18°, Tiger HAD −28..+28°, Mi-35M and Mi-28NM −40..+13°, Z-10 −50..+12°. The last three are approximate, since their source libraries give no figure. The Ka-52's cannon and the AH-6M's guns are hull-fixed, not turrets: the Ka-52's 2A42 traverses only a few degrees, and the Little Bird's guns are fixed to its planks, so a turret would swing them through the fuselage. The airframe turns to aim them (S20). The alternative was one limit for every chin gun, and turrets for all guns as D28's wording might suggest.
+- **The gap:** D28 assumed every gun was a chin gun.
+- **The reach:** the limits are drawing-only. Being hull-fixed changes how the Ka-52 and AH-6M fight: they must turn to shoot.
+- **Verdict:** sound.
+- **Confidence:** medium-high.
+
+### S27. Door guns: one per transport, in the left door
+- **When:** slice 16.
+- **The choice:** the cards list one HMG per transport, so each gets one door gun (`door`, the `hmg` rig) on a pintle in the left (+Y) door, elevation −60..+20°. US and Europe types get M2s, and the Mi-8 and Z-20 get Kords. The UH-1Y's and UH-60M's modelled right-door guns stay as stowed art. The Mi-8's outrigger pods stay art: its card fields only the gun. The MH-6M's gun sits at the front of its left bench. The alternative was a gun per side, which would split ammo across two mounts.
+- **The gap:** the cards gave a weapon count, not a position.
+- **The reach:** every transport reads the same. See N4 (rest pose) and N8 (traverse).
+- **Verdict:** sound.
+- **Confidence:** medium-high.
+
+### S28. A hull-fixed weapon is drawn by the hull, with no rig
+- **When:** slice 15 (`MountRole` `"hull"`, `hullFixed` in `packages/scene-assets/src/units.ts`; `validate.ts`; `vehicle_export.rig`).
+- **The choice:** a rig is the set of articulated nodes that let a drawn turret or gun turn and pitch, and only two exist (`gun`, `hmg`). A hull-fixed weapon never articulates, so it's drawn by the hull itself. It needs no rig and no entry in the appearance's `mounts`, and its muzzle flash appears at the published muzzle, turning only with the body. The fit check still refuses an undeclared *turning* mount. The alternative was a third rig kind for rockets and missiles, which would add nodes that never move. Not checked: that the art actually puts a pod at each hull-fixed muzzle, since no fit check exists for that.
+- **The gap:** the Apache had three mounts and the rig system had two kinds.
+- **The reach:** all rocket and missile carriers, and the Ka-52 and AH-6M guns, use this path.
+- **Verdict:** sound.
+- **Confidence:** medium-high.
+
+### S29. A falling airframe is published to each side under the name that side knew it by
+- **When:** slice 10 (`FallingAirframe` in `crates/contract/src/observation.rs`; `crashCount` header word, `crashes` group).
+- **The choice:** the observation every side receives gained a `crashes` group: `id, own, kind, x, y, z, yaw, pitch, roll`. For its own side, `id` is the unit id. For the enemy, it's the identified handle that side had for it as it died, stored in `Crash.knowing` where each side's sighting of the death is recorded. So the renderer continues the same drawn vehicle into the fall: same rotor phase, no pop. `kind` was added beyond the slice's field list so a side can draw the airframe without remembering it. The alternatives were the raw unit id for everyone, which leaks identity, or no `kind`.
+- **The gap:** the slice listed fields; identity under fog was open.
+- **The reach:** a publication contract that the web decoder and every replay read.
+- **Verdict:** sound.
+- **Confidence:** medium-high.
+
+### S30. The fall's tilt is derived in the sim and drawn through the one posing path
+- **When:** slice 10 (`Crash::attitude` in `crates/sim/src/crash.rs`; `web/src/battle/present/interpolate.ts`; `poseDriver.ts`).
+- **The choice:** the nose drops and the body leans into its spin in proportion to how fast it's sinking, up to 0.35 rad pitch and 0.25 rad roll at 15 m/s of sink. It's level at the moment of death. `Crash::attitude` computes this from digested state, so the attitude adds nothing to the digest. On the web, the falling airframe flows through the same interpolator and pose driver as a live vehicle (rotor still turning), with the tilt applied as a rigid motion about its foot. A tilted model is never drawn as a flat impostor card. The alternatives were zero tilt (an upright spinning airframe reads as a lift), a renderer-side guess (a second owner), or a separate crash-model path.
+- **The gap:** the slice published pitch and roll without saying where they come from.
+- **The reach:** the sim stays the only authority on the fall.
+- **Verdict:** sound.
+- **Confidence:** medium-high.
+
+### S31. Only aircraft smoke when hurt, and the sim owns the rule
+- **When:** slice 11 (`Unit::smoking` in `crates/sim/src/units.rs`).
+- **The choice:** a unit smokes when it is an aircraft, alive, and under `SMOKING_HP_SHARE` (0.5) of its hull HP (D34). Both the identified-enemy row (one coarse bit, never HP) and the own-unit row publish that same bit, so the web reads one bit for both. A falling airframe always smokes, keyed as it was alive, so the trail runs straight into the fall. The alternatives were for the web to derive own smoking from HP, which needs a TypeScript copy of the 50% threshold, or for every damaged hull to smoke.
+- **The gap:** the slice's wording put own smoking on the web.
+- **The reach:** extending smoke to ground vehicles is a one-line change at the owner, if you ask for it.
+- **Verdict:** sound.
+- **Confidence:** medium-high.
+
+### S32. The smoke trail is timed puffs
+- **When:** slice 11 (`noteSmokers` in `packages/battle-renderer/src/effects/effectFrame.ts`; `damage_smoke` in `fixtures/game.json`).
+- **The choice:** a smoker emits a puff every 1/20 s of presentation time, at fixed seeded birth times. Each puff is born where the hull was at that instant within its tick, from the hull's top. Moving, the puffs string out behind it. Hovering, they stack into a thin column. Albedo is 0.08 and opacity 0.45, growing 0.8 → 4.5 m over 2.5 s. At 8 Hz the trail looked like beads. The alternatives were emission by distance, as dust works (a hovering helicopter wouldn't smoke), or a ribbon like a missile trail.
+- **The gap:** D19 asked for minimal smoke.
+- **The reach:** it reuses the existing puff machinery.
+- **Verdict:** sound.
+- **Confidence:** medium-high.
+
+### S33. The airborne sign is the same contact glyph, turned to face the camera
+- **When:** slice 13 (`buildContactGlyphs` in `packages/battle-renderer/src/contactGlyph.ts`; `screenAxes` in `packages/renderer-core/src/camera3d.ts`; `apps/battle-lab/src/contactFacing.ts`).
+- **The choice:** the floating sign is a camera-facing pose of the one contact glyph, built from a ground pen and a facing pen. It's lit with the ground's normal so its red matches the ground glyph's. It follows the camera in 2° steps. The overlay is rebuilt every published tick anyway, so rebuilding it at a step costs nothing new. The alternatives were a second glyph module, or GPU billboarding with a new vertex attribute.
+- **The gap:** slice 02 picked a look, not a mechanism.
+- **The reach:** one glyph concept for every contact.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### S34. Lifted airframes stay drawn while their shadow is on screen; flying raises no dust
+- **When:** slice 06 (`ModelInstance.lift`, `packages/battle-renderer/src/models/modelDetail.ts`; `EffectShooter.airborne`).
+- **The choice:** an aircraft's instance carries `lift`, its foot's height above the ground. That places its shadow along the sun's fall, and culling removes the model only when both the model and its shadow are off screen. Track dust is skipped for airborne units. An aircraft's sound class is `air_<weight>` (S17, N1). The alternative was a wider fixed culling margin for aircraft, based on the ceiling.
+- **The gap:** none; culling and dust assumed ground units.
+- **The reach:** this is exact at any altitude and leaves ground units untouched.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### S35. The crash is a weapon row, and its fireball is that row's blast
+- **When:** slices 04, 10 (`helicopter_crash` in `fixtures/game.json`; `apps/battle-lab/src/cookOffs.ts`).
+- **The choice:** the impact is the weapon row `helicopter_crash`, extending `tank_he`: damage 50, penetration 25, 9 m blast, structural 300 (every trunk within about 6 m falls), and unlimited ammo, so it needs no resupply price. On screen the impact is that blast, drawn by the ordinary blast style. An airframe never "brews up" with a cook-off (`CookOffWatch` skips airborne types), because its death is the fall. The alternatives were a dedicated crash rule section, or a separate crash fireball.
+- **The gap:** confirmed item 5 settled that it's data; the numbers were open.
+- **The reach:** tune crash damage in data.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### S36. A firing report's heard mask is two 24-bit words, capping the game at 48 weapon rows
+- **When:** slice 07 (`heardLow`/`heardHigh` in `crates/sim/src/publication.rs`).
+- **The choice:** a firing report tells the listener which weapon rows it heard, as a bit mask. The game hit 24 rows with `helicopter_crash`, and slice 09 added two more, so the mask became two 24-bit words: `MAX_WEAPON_ROWS` is 48. The alternative was dropping the crash row or shrinking the mask.
+- **The gap:** a publication limit nobody had hit before.
+- **The reach:** a loose tripwire. Row 49 will need a third word.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### S37. `Motion` splits ground units from aircraft at the type level
+- **When:** slice 01 (`units::Motion`, `Unit::ground`, `units::ground_mobility` in `crates/sim/src/units.rs`).
+- **The choice:** a unit's `motion` is `Ground(Mobility)` or `Air(Flight)`. Code that only makes sense for ground units calls `Unit::ground()`, which panics for an aircraft. Catalog-level callers get `ground_mobility(...) -> Option`, so the compiler forced each of them to decide what an aircraft does. The alternative was a separate ground-only type threaded through every navigation signature.
+- **The gap:** D21 forbade a third `MoverClass` without saying what to use instead.
+- **The reach:** every new movement or navigation site must pick a branch.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### S38. One test map, `air`, for every helicopter lab
+- **When:** slices 06, 07, 10, 12, 13, 15, 18 (`fixtures/maps/air/`; `apps/battle-lab/src/routes/air.tsx`, `airHover.tsx`, `airCrash.tsx`, `airClosing.tsx`; `apps/battle-lab/src/labOverlay.ts`).
+- **The choice:** all helicopter labs stand on one saved test map, `air`, at 640 × 520 m. It has a country road, a village of six templates (low homes under cruise height, a corner shop and a 7-floor block that lift the flight), a 20-floor tower across the flight line, a 70 m wood, and a Paris house for the roof checks. Each scene is a saved encounter of the map. There are four lab routes:
+  - `/lab/air` (`flight`);
+  - `/lab/air-hover`, with variants `hover`, `roof`, `fog`, `apache`, `lost`;
+  - `/lab/air-crash` (`crash`);
+  - `/lab/air-closing` (`closing`).
+
+  The hover and closing labs share one overlay hook, `useLabOverlay`, which draws markers, drop lines and camera-facing contact signs. The flight and crash labs draw no overlay. The alternative was a map per lab.
+- **The gap:** the slices named scenes, not maps.
+- **The reach:** editing the map changes its hash and can retime every air scene. Only these labs read it.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Trivial discretion (5, sound)
+- **Workbench fields:** the mechanics editor gained `mobility.air.*`, `targets` and `guidance` fields, so every authored value has one editing surface (slices 01/07/09).
+- **Encounter test catalog:** `every_saved_encounter_makes_a_battle_on_its_map` (`crates/sim/tests/maps.rs`) runs test maps on `CatalogSet::Test`, the set their labs run (slice 18).
+- **Top speed reader:** `topSpeedKmh` in `packages/scene-assets/src/units.ts` is the one TypeScript read of a mover's top speed (slice 06).
+- **Spike script not shipped:** the slice 02 mockups are drawn over real game captures by a canvas script that only runs on one machine, so it isn't shipped. The images are the record.
+- **Module visibility:** `movement::air` is `pub(crate)` so the battle's observation step can call `low_hover` when it decides a contact's `aloft` (S9).
