@@ -202,9 +202,10 @@ export interface ViewportPilot {
   pose(now: number): CameraPose | null;
   /** A drawn frame: its main-thread cost, the camera drawn, the sim time
    *  it drew (the presentation clock) and the canvas size in pixels.
-   *  `readback` reads this frame's canvas as a PNG, and `grassClumps` the
-   *  grass it grew (debug readbacks); called during `frame`, the task that
-   *  drew it, each reads exactly what was drawn. */
+   *  `readback` reads this frame's canvas as a PNG, `grassClumps` the grass
+   *  it grew, and `readbackClasses` draws the same frame's ground-class view
+   *  offscreen and reads it as a PNG (debug readbacks); called during
+   *  `frame`, the task that drew it, each reads exactly that frame. */
   frame?(f: {
     now: number;
     cpuMs: number;
@@ -213,6 +214,7 @@ export interface ViewportPilot {
     canvas: readonly [number, number];
     readback: () => Promise<Blob>;
     grassClumps: () => Promise<readonly Pick<GrassClumpRow, "root">[]>;
+    readbackClasses: () => Promise<Blob>;
   }): void;
 }
 
@@ -753,6 +755,23 @@ export function LabViewport({
         };
         const readback = () => readCanvasPng(device!, context.getCurrentTexture());
         const grassClumps = () => scene.grassProbes.clumps();
+        /** The view the lab chose (`setFrameView`). */
+        let frameView: FrameView = "final";
+        /** The frame just drawn again as its ground classes, into a texture of
+         *  the canvas's size and format, read back; the canvas and the view
+         *  the next frame draws are left as they were. */
+        const readbackClasses = () => {
+          const texture = device!.createTexture({
+            label: "ground-classes-readback",
+            size: [canvas.width, canvas.height],
+            format: info.format,
+            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
+          });
+          scene.setView("ground-classes");
+          scene.render(texture.createView(), snapshot());
+          scene.setView(frameView);
+          return readCanvasPng(device!, texture).finally(() => texture.destroy());
+        };
         redrawRef.current = () => (dirty = true);
         let pointer: { x: number; y: number } | null = null;
         let modifiers = { ctrl: false, shift: false };
@@ -858,6 +877,7 @@ export function LabViewport({
             canvas: [canvas.width, canvas.height],
             readback,
             grassClumps,
+            readbackClasses,
           });
           raf = requestAnimationFrame(loop);
         };
@@ -970,6 +990,7 @@ export function LabViewport({
           },
           frame: nextFrame,
           async setFrameView(view: FrameView) {
+            frameView = view;
             scene.setView(view);
             await nextFrame();
           },

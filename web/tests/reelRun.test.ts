@@ -29,6 +29,7 @@ const drawn = (
   simTime = 2,
   readback: () => Promise<Blob> = blank,
   grassClumps: () => Promise<{ root: [number, number, number] }[]> = noProbe,
+  readbackClasses: () => Promise<Blob> = noProbe,
 ) => ({
   now,
   cpuMs: 1,
@@ -37,6 +38,7 @@ const drawn = (
   canvas: [1280, 720] as const,
   readback,
   grassClumps,
+  readbackClasses,
 });
 /** A level camera 40 m east of (5, 6, 1), looking west: screen right is +y, up is +z. */
 const level = { ...camera, target: [5, 6, 1] as [number, number, number], yaw: 0, pitch: 0 };
@@ -88,7 +90,10 @@ test("cancelling during preparation cannot later publish a complete result", () 
 });
 
 test("each drawn frame records the view it drew in sim space, and a plate from each shot's middle", async () => {
-  type Result = { frames: unknown[]; plates: { file: string; png: Promise<Blob> }[] };
+  type Result = {
+    frames: unknown[];
+    plates: { file: string; png: Promise<Blob>; classes: Promise<Blob> }[];
+  };
   const results: Result[] = [];
   const run = createReelRun(scene, 30, (r) => results.push(r as unknown as Result), {
     plates: true,
@@ -103,7 +108,11 @@ test("each drawn frame records the view it drew in sim space, and a plate from e
   };
   // Frames 0.5 s and 1.1 s into the 2 s shot: the second is the first past its middle.
   run.pilot.frame!({ ...drawn(1500, 2.0, read(1500)), camera: level });
-  run.pilot.frame!({ ...drawn(2100, 2.6, read(2100), () => Promise.resolve([])), camera: level });
+  const classes = () => Promise.resolve(new Blob(["classes at 2100"]));
+  run.pilot.frame!({
+    ...drawn(2100, 2.6, read(2100), () => Promise.resolve([]), classes),
+    camera: level,
+  });
   run.pilot.frame!(drawn(3000, 3.5, read(3000)));
   expect(reads).toEqual([2100]);
   const [result] = results;
@@ -123,6 +132,8 @@ test("each drawn frame records the view it drew in sim space, and a plate from e
     expect.objectContaining({ index: 1, reelMs: 1100, simTime: 2.6, plate: "plate-1.png" }),
   ]);
   expect(result.plates.map((p) => p.file)).toEqual(["plate-1.png"]);
+  // The plate frame's ground-class view, drawn in the same task.
+  expect(await (await result.plates[0].classes).text()).toBe("classes at 2100");
   expect(await (await result.plates[0].png).text()).toBe("2100");
 });
 
@@ -164,7 +175,7 @@ test("a plate frame counts the grass its own frame grew and keeps the tables it 
   // Only the plate frame (1.1 s into the 2 s shot) reads the grass back.
   const grown = () => Promise.resolve([{ root: [5, 7, 1.5] as [number, number, number] }]);
   run.pilot.frame!({ ...drawn(1500), camera: level });
-  run.pilot.frame!({ ...drawn(2100, 2.6, blank, grown), camera: level });
+  run.pilot.frame!({ ...drawn(2100, 2.6, blank, grown, blank), camera: level });
   run.pilot.frame!(drawn(3000));
   const [result] = results;
   expect(await result.plates[0].grass).toEqual([0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0]);

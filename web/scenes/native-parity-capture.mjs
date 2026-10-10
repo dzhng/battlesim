@@ -3,15 +3,16 @@
 // For each scene it writes
 //
 //   throwaway/native-parity/<run>/<scene>/{capture.json, manifest.json,
-//     plate-<index>.png, terrain-<table>.u32, grass-<table>.u32}
+//     plate-<index>.png, class-<index>.png, terrain-<table>.u32, grass-<table>.u32}
 //
 // the capture and its frame records, the `native-visual-presentation`
 // manifest (with each plate's grass counts), the plates read back from the
-// canvas in their own frames, and the ground's and grass's GPU tables the
-// manifest hashes.
+// canvas in their own frames with each frame's ground-class view, and the
+// ground's and grass's GPU tables the manifest hashes.
 // PARITY_SCENES=<map,…> films only those scenes (`?scenes=`). Run it under
 // the GPU lock; it waits on the route's stage, never on a timer.
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
+import { classPlateFile } from "../src/battle/benchmark/presentationCapture.ts";
 import {
   readTableArtifact,
   tableFile,
@@ -109,10 +110,11 @@ export async function run(ctx) {
     const state = window.__graphicsTest;
     return {
       plates: await Promise.all(
-        state.plates.map(async ({ scene, file, png, grass }) => ({
+        state.plates.map(async ({ scene, file, png, classes, grass }) => ({
           scene,
           file,
           base64: await base64(await png),
+          classes: await base64(await classes),
           cells: await grass,
         })),
       ),
@@ -157,11 +159,15 @@ export async function run(ctx) {
     await writeFile(new URL("manifest.json", dir), manifest);
     for (const { file, bytes } of artifacts) await writeFile(new URL(file, dir), bytes);
     const sizes = [];
-    for (const plate of own) {
-      const bytes = Buffer.from(plate.base64, "base64");
-      sizes.push(pngSize(bytes).join("×"));
-      await writeFile(new URL(plate.file, dir), bytes);
-    }
+    for (const plate of own)
+      for (const [file, base64] of [
+        [plate.file, plate.base64],
+        [classPlateFile(plate.file), plate.classes],
+      ]) {
+        const bytes = Buffer.from(base64, "base64");
+        sizes.push(pngSize(bytes).join("×"));
+        await writeFile(new URL(file, dir), bytes);
+      }
     const frames = JSON.parse(captureJson).frames;
     const named = frames.filter((f) => f.plate !== null).map((f) => f.plate);
     ctx.check(
@@ -172,7 +178,7 @@ export async function run(ctx) {
     const parsed = JSON.parse(manifest);
     const { viewport } = parsed;
     ctx.check(
-      `${map}: frames and plates are ${VIEWPORT.width}×${VIEWPORT.height}`,
+      `${map}: frames, plates and class plates are ${VIEWPORT.width}×${VIEWPORT.height}`,
       viewport.width === VIEWPORT.width &&
         viewport.height === VIEWPORT.height &&
         sizes.every((s) => s === `${VIEWPORT.width}×${VIEWPORT.height}`),

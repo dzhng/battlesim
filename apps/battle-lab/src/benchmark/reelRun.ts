@@ -24,10 +24,12 @@ import type { LightPresentation } from "@packages/battle-renderer/src/light/scen
 import type { UploadedTables } from "@packages/battle-renderer/src/frame/wordTables";
 
 /** A control plate: the PNG read back from the canvas in the frame it names,
- *  and the grass clumps that frame grew per screen cell (`grassCells`). */
+ *  the same frame's ground-class view (`classPlateFile`), and the grass
+ *  clumps that frame grew per screen cell (`grassCells`). */
 export interface ReelPlate {
   file: string;
   png: Promise<Blob>;
+  classes: Promise<Blob>;
   grass: Promise<number[]>;
 }
 
@@ -160,7 +162,7 @@ export function createReelRun(
         target: [lastSubject[0] + s.pose.target[0], lastSubject[1] + s.pose.target[1]],
       };
     },
-    frame({ now, cpuMs, camera, simTime, canvas, readback, grassClumps }) {
+    frame({ now, cpuMs, camera, simTime, canvas, readback, grassClumps, readbackClasses }) {
       if (!warm || finished) return;
       if (!recording.started) {
         recording.start(now);
@@ -186,6 +188,7 @@ export function createReelRun(
         plates.push({
           file: plate,
           png: readback(),
+          classes: readbackClasses(),
           grass: grassClumps().then((clumps) =>
             grassCells(
               clumps.map((c) => c.root),

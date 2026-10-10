@@ -55,6 +55,10 @@ export interface PresentationFrame {
 /** The file a frame's control plate is written to. */
 export const plateFile = (index: number) => `plate-${index}.png`;
 
+/** The file a plate's ground-class view of the same frame is written to,
+ *  beside it: `plate-<index>.png` → `class-<index>.png`. */
+export const classPlateFile = (plate: string) => plate.replace(/^plate-/, "class-");
+
 const SAMPLE_KEYS = ["tick", "digest", "publication"];
 const FRAME_KEYS = ["index", "reelMs", "tick", "simTime", "eye", "target", "up", "canvas", "plate"];
 
