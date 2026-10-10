@@ -376,6 +376,23 @@
       }
     },
     {
+      "cost": 250,
+      "description": "Light tank",
+      "disabled_reason": null,
+      "family": "cv90120",
+      "id": "europe_cv90120_light_tank",
+      "name": "CV90120",
+      "planned_weapons": [],
+      "roster": {
+        "category": "veh",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "CV90120",
+        "variant": "Light tank"
+      }
+    },
+    {
       "cost": 220,
       "description": "CV9040C; ground combat platform, passenger carriage not implemented",
       "disabled_reason": null,
@@ -1966,32 +1983,6 @@
         ],
         "family_name": "CH-47 Chinook",
         "variant": "HC6"
-      }
-    },
-    {
-      "cost": 250,
-      "description": "Light tank",
-      "disabled_reason": "Ground profile and model admission pending",
-      "family": "cv90120",
-      "id": "europe_cv90120_light_tank",
-      "name": "CV90120",
-      "planned_weapons": [
-        {
-          "icon": "ap_shell",
-          "name": "Main Gun"
-        },
-        {
-          "icon": "hmg",
-          "name": "HMG"
-        }
-      ],
-      "roster": {
-        "category": "veh",
-        "factions": [
-          "europe"
-        ],
-        "family_name": "CV90120",
-        "variant": "Light tank"
       }
     },
     {
@@ -8913,26 +8904,95 @@
           }
         },
         "europe_cv90120_light_tank": {
+          "appearance": "europe_cv90120_light_tank",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 110.0,
+                "rear": 30.0,
+                "ricochet": {
+                  "front": 0.3,
+                  "rear": 0.1,
+                  "roof": 0.4,
+                  "side": 0.2
+                },
+                "roof": 20.0,
+                "side": 50.0
+              },
+              "eye_m": 2.52,
+              "half_extents_m": [
+                3.475,
+                1.65,
+                1.325
+              ],
+              "hp": 90.0,
+              "push_class": "medium",
+              "weight_class": "medium",
+              "wreck": "medium_wreck"
+            }
+          },
+          "capabilities": {},
           "cost": 250,
           "description": "Light tank",
           "faction": "europe",
           "family": "cv90120",
-          "name": "CV90120",
-          "planned": {
-            "profile": "light-tank",
-            "reason": "Ground profile and model admission pending",
-            "weapons": [
-              {
-                "icon": "ap_shell",
-                "name": "Main Gun"
-              },
-              {
-                "icon": "hmg",
-                "name": "HMG"
-              }
-            ]
+          "mobility": {
+            "tracked": {
+              "offroad_kmh": 32.0,
+              "reverse_fraction": 0.4,
+              "road_kmh": 70.0,
+              "turn_deg_s": 50.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "cannon",
+              "muzzle_m": [
+                5.8,
+                0.0,
+                0.36
+              ],
+              "name": "Main Gun",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.82
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "light_tank_ap",
+                "light_tank_he"
+              ]
+            },
+            {
+              "id": "HMG",
+              "muzzle_m": [
+                1.0,
+                0.0,
+                0.15
+              ],
+              "name": "HMG",
+              "on": "cannon",
+              "pivot_m": [
+                -0.3,
+                -0.55,
+                2.52
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "hmg"
+              ]
+            }
+          ],
+          "name": "CV90120",
+          "roles": [
+            "mbt"
+          ],
           "roster": {
             "category": "veh",
             "factions": [
@@ -8940,6 +9000,19 @@
             ],
             "family_name": "CV90120",
             "variant": "Light tank"
+          },
+          "sensors": {
+            "ground_m": 550.0,
+            "on": "cannon",
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.5
+            }
+          },
+          "sound": {
+            "loudness_m": 650.0,
+            "profile": "vehicle"
           }
         },
         "europe_cv90_cv9040c": {
@@ -18495,6 +18568,121 @@
       },
       "sensors": {
         "ground_m": 600.0,
+        "on": "cannon",
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.5
+        }
+      },
+      "sound": {
+        "loudness_m": 650.0,
+        "profile": "vehicle"
+      }
+    },
+    {
+      "appearance": "europe_cv90120_light_tank",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 110.0,
+            "rear": 30.0,
+            "ricochet": {
+              "front": 0.3,
+              "rear": 0.1,
+              "roof": 0.4,
+              "side": 0.2
+            },
+            "roof": 20.0,
+            "side": 50.0
+          },
+          "eye_m": 2.52,
+          "half_extents_m": [
+            3.475,
+            1.65,
+            1.325
+          ],
+          "hp": 90.0,
+          "push_class": "medium",
+          "weight_class": "medium",
+          "wreck": "medium_wreck"
+        }
+      },
+      "capabilities": {},
+      "cost": 250,
+      "description": "Light tank",
+      "faction": "europe",
+      "family": "cv90120",
+      "id": "europe_cv90120_light_tank",
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 32.0,
+          "reverse_fraction": 0.4,
+          "road_kmh": 70.0,
+          "turn_deg_s": 50.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "cannon",
+          "muzzle_m": [
+            5.8,
+            0.0,
+            0.36
+          ],
+          "name": "Main Gun",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.82
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "light_tank_ap",
+            "light_tank_he"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "HMG",
+          "muzzle_m": [
+            1.0,
+            0.0,
+            0.15
+          ],
+          "name": "HMG",
+          "on": "cannon",
+          "pivot_m": [
+            -0.3,
+            -0.55,
+            2.52
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "hmg"
+          ]
+        }
+      ],
+      "name": "CV90120",
+      "roles": [
+        "mbt"
+      ],
+      "roster": {
+        "category": "veh",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "CV90120",
+        "variant": "Light tank"
+      },
+      "sensors": {
+        "ground_m": 550.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,

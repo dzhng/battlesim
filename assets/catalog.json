@@ -3144,6 +3144,35 @@
         "footprint_m": 1.6
       }
     },
+    "europe_cv90120_light_tank": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/cv90120/europe_cv90120_light_tank.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "cannon": "gun",
+        "HMG": "hmg"
+      },
+      "wreck": "europe_cv90120_light_tank_wreck"
+    },
+    "europe_cv90120_light_tank_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/cv90120/europe_cv90120_light_tank_wreck.glb",
+        "hull": "assets/source/roster/cv90120/europe_cv90120_light_tank_wreck_hull.glb",
+        "turret": "assets/source/roster/cv90120/europe_cv90120_light_tank_wreck_turret.glb",
+        "debris": "assets/source/roster/cv90120/europe_cv90120_light_tank_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        3.475,
+        1.65,
+        1.325
+      ],
+      "tolerances": {
+        "footprint_m": 1.6
+      }
+    },
     "eastern_t_72_t_72b3_2016": {
       "unit": "vehicle",
       "source": "assets/source/roster/t72/eastern_t_72_t_72b3_2016.glb",
