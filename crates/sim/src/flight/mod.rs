@@ -724,6 +724,11 @@ impl Projectiles {
         &self.config
     }
 
+    /// The world's gravity, before any round's own share of it.
+    pub fn gravity(&self) -> V3 {
+        self.config.gravity
+    }
+
     /// Rounds launched now fly from the start of the next advance.
     pub fn launch(&mut self, launch: Launch) -> ProjectileId {
         let id = ProjectileId(self.next_id);

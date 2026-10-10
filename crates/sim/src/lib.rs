@@ -4,6 +4,7 @@ pub mod arrangement;
 pub mod battle;
 mod cell_page;
 pub mod cover;
+pub mod crash;
 pub mod damage;
 pub mod deployment;
 pub mod digest;

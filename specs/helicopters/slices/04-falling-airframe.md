@@ -1,6 +1,6 @@
 # 04 — Falling airframe (simulation)
 
-**Status:** planned. **Depends on:** 01, 03. **Owns:** D3, D31, L2 (simulation).
+**Status:** done in the sim (publication deferred to slice 10; see choices). **Depends on:** 01, 03. **Owns:** D3, D31, L2 (simulation).
 
 ## Contract
 

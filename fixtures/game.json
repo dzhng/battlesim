@@ -349,6 +349,16 @@
       "ammo": 4,
       "reload_s": 10
     },
+    "helicopter_crash": {
+      "extends": "tank_he",
+      "name": "Crash",
+      "description": "A downed airframe striking the ground: no gun fires it. It fells the trees beneath and hurts what lies there, less than a shell.",
+      "damage": 50,
+      "penetration": 25,
+      "blast_radius_m": 9,
+      "ammo": "unlimited",
+      "structural_damage": 300
+    },
     "ifv_he": {
       "extends": "tank_he",
       "name": "HE Shell",
