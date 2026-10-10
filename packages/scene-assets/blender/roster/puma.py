@@ -15,9 +15,12 @@ sight in the turret front, smoke discharger banks on the rear corners and
 the MUSS sensors on the corners. No running-gear close-up (gap): the wheel
 count is from the side photos.
 
-Built to the catalog frame (hull 7.4 x 4.0 x 3.6 m, turret pivot 2.55 m,
-autocannon muzzle 4.1 m ahead, launcher on the left at 1.08 m): nothing here
-moves it.
+Built to the catalog frame (hull 7.4 x 4.0 x 3.6 m, turret pivot 0.45 m
+behind the hull's middle and 2.55 m up, autocannon muzzle 4.1 m ahead,
+launcher on the left at 1.08 m): nothing here moves it; the turret is built
+at the frame's pivot. The square-on side photo (side-2) puts the turret
+box's middle about 0.45 m behind the hull's; the front-quarter one (side)
+exaggerates the setback.
 """
 import math
 import os

@@ -16,8 +16,10 @@ cupola behind it, the loader's hatch on the left, the remote weapon station
 on the commander's side and the electronic countermeasures table on posts at
 the rear of the roof. Commander and loader stand in their hatches.
 
-Built to the catalog frame (hull 8.3 x 4.2 x 2.49 m, turret pivot 1.494 m,
-cannon muzzle 5.561 m ahead): nothing here moves it.
+Built to the catalog frame (hull 8.3 x 4.2 x 2.49 m, turret pivot 0.2 m ahead
+of the hull's middle and 1.494 m up, cannon muzzle 5.561 m ahead): nothing
+here moves it; the turret and the crew in its hatches are built at the
+frame's pivot.
 """
 import math
 import os
@@ -57,13 +59,13 @@ def build(variant, v):
                             RETURNS, bolts=8, teeth=12, arm=(0.55, -0.35), pitch=0.17)
     side_armour(v)
     mounts = rig(v.frame, v.root, trunnion={"cannon": TRUNNION})
-    turret, gun, _, _ = mounts["cannon"]
+    turret, gun, _, pivot = mounts["cannon"]
     hmg, hmg_gun, _, _ = mounts["HMG"]
     turret_body(v, turret)
     main_gun(v, gun)
     weapon_station(v, hmg, hmg_gun)
-    v.head_out("commander", turret, -0.95, -0.72, 1.494 + ROOF - 0.04)
-    v.head_out("loader", turret, -0.45, 0.68, 1.494 + ROOF - 0.04, facing=0.4)
+    v.head_out("commander", turret, pivot.x - 0.95, -0.72, pivot.z + ROOF - 0.04)
+    v.head_out("loader", turret, pivot.x - 0.45, 0.68, pivot.z + ROOF - 0.04, facing=0.4)
 
 
 # ---------------------------------------------------------------- hull
@@ -227,7 +229,12 @@ def wreck(variant, v):
     loader's lid on the deck. `wreckage.burn` then heaves the turret."""
     from parts import box as solid, rest_on_ground
     from wreckage import bend, densify, dent, heat, parts, plate, remove, warp
+    import bpy
     m = v.mats
+    # The turret died traversed to the right: with the ring ahead of the
+    # hull's middle, the gun laid near the bow would reach past the ground
+    # the wreck may cover (its footprint allowance).
+    bpy.data.objects["turret"].rotation_euler.z -= math.radians(54.0)
     remove("track_R_band", "wheel_R_3_", "wheel_R_4_", "side_pack_R_2", "side_pack_R_3", "side_pack_handle_R_2",
            "side_pack_handle_R_3", "loader_cupola_lid", "side_net_", "rear_jerrycan_", "pack_number_R")
     thrown = solid("thrown_track", (4.6, TRACK_W, 0.05), (0.2, -2.40, 0.03), m["track"], v.hull, rot=(0, 0, 0.05),
