@@ -44,31 +44,43 @@ IDLER = (3.33, 0.56, 0.30)
 RETURNS = [(1.25, 0.86, 0.10), (-1.05, 0.88, 0.10)]
 SKIRT_Y = 1.765
 SKIRT_TOP, SKIRT_FOOT = 1.38, 0.66
-DECK = 1.48
-# Turret (its own frame, origin at the pivot 1.464 m up).
-ROOF = 0.86
+# Turret (its own frame, origin at the pivot 1.464 m up). Its roof is 2.34 m
+# up (photos: side), so its fittings stay under the hull box's 2.44 m top.
+ROOF = 0.88
 TRUNNION = 1.55
-# The turret's foot, front to rear, left half: the gun shield's recess, the
+# The turret's plan, front to rear, left half: the gun shield's recess, the
 # cheek's broad flat face angled back 15 degrees (photos: front, three-quarter
-# front), its outer corner cut, the side and the bustle.
-CHEEK = [(1.95, 0.44), (1.70, 1.38), (1.48, 1.58)]
-TURRET_PLAN = [(1.45, 0.0), (1.45, 0.40), *CHEEK, (0.55, 1.60), (-1.80, 1.60), (-2.05, 1.48), (-2.62, 1.36),
-               (-2.62, 0.0)]
-CHEEK_CHAMFER = 0.22  # how far the cheeks' top edge sits back of their face
+# front), its outer corner cut, the side narrowing toward the bustle, and the
+# bustle's rear plate. The side photos put the cheeks' foot 2.4 m ahead of the
+# hull's middle, over the glacis' head, and the bustle's rear 2.4 m behind it,
+# with its rack overhanging the engine deck to 3.2 m.
+CHEEK = [(2.15, 0.44), (1.90, 1.38), (1.68, 1.58)]
+TURRET_PLAN = [(1.45, 0.0), (1.45, 0.40), *CHEEK, (0.55, 1.60), (-1.80, 1.52), (-2.25, 1.40), (-2.70, 1.28),
+               (-2.70, 0.0)]
+CHEEK_CHAMFER = 0.32  # how far the cheeks' top edge sits back of their face (photos: side, about 25 degrees)
+SIDE_LEAN = 0.04  # how far the flat sides lean in from the foot's top to the roof
+# The bustle's floor: the turret is full depth over its ring, then its floor
+# rises from BUSTLE_FOOT to BUSTLE_FLOOR at the rear plate, clear of the
+# raised engine deck (photos: side).
+BUSTLE_FOOT = -0.80
+BUSTLE_FLOOR = 0.32
 COMMANDER = (-0.84, -0.62)  # the commander's hatch (turret frame)
 # The skirts hang flush with the sponsons' sides: the hull's upper half is as
 # wide as their inner faces (the thicker front panels sink into it).
 SKIRT_FACE = SKIRT_Y + 0.035  # their outer face
 SPONSON = SKIRT_FACE - 0.07
 # The hull's roof line (x, z): the deck, its head under the turret's front,
-# and the nose. The upper glacis between the head and the nose is long and
-# shallow, about 7 degrees (photos: side, three-quarter front); the steep
-# lower plate under the nose leans back 0.55 m per metre down.
-DECK_REAR = (-3.80, DECK)
+# and the nose. The deck rises 0.18 m from its head to the engine deck's rear
+# (photos: side, the hull's top edge climbing over the skirts toward the
+# back). The upper glacis between the head and the nose is long and shallow,
+# about 7 degrees (photos: side, three-quarter front); the steep lower plate
+# under the nose leans back 0.55 m per metre down.
+DECK_REAR = (-3.80, 1.62)
 GLACIS_HEAD = (2.25, 1.44)
 NOSE = (3.965, 1.22)  # the hull's front edge, at its half length
 NOSE_LEAN = 0.55
 SLOPE = math.atan2(GLACIS_HEAD[1] - NOSE[1], NOSE[0] - GLACIS_HEAD[0])
+DECK_TILT = math.atan2(DECK_REAR[1] - GLACIS_HEAD[1], GLACIS_HEAD[0] - DECK_REAR[0])
 # The skirts' tops run this far under the hull's top edge.
 SKIRT_UNDER = 0.06
 
@@ -122,7 +134,7 @@ def hull_body(v, sep_v3):
     m, hull = v.mats, v.hull
     half = v.length / 2
     assert abs(NOSE[0] - half) < 1e-6, "the nose is the hull's front edge"
-    prism("hull_upper", [(-half, 0.98), (nose_x(0.98), 0.98), NOSE, GLACIS_HEAD, DECK_REAR, (-half, 1.40)],
+    prism("hull_upper", [(-half, 0.98), (nose_x(0.98), 0.98), NOSE, GLACIS_HEAD, DECK_REAR, (-half, 1.52)],
           2 * SPONSON, mat=m["paint"], parent=hull, bevel=0.035)
     prism("hull_lower", [(-3.80, 0.46), (nose_x(0.46), 0.46), (nose_x(1.0), 1.0), (-3.95, 1.0)], 2.10,
           mat=m["paint"], parent=hull, bevel=0.03)
@@ -146,20 +158,23 @@ def hull_body(v, sep_v3):
         VP.light_with_guard(f"tail_light_{s}", (-3.92, side * 1.52, 1.30), 0.05, dict(m, lamp=m["tail"]), hull,
                             rot=(0, 0, math.pi))
         # Tow cables along the sponson deck, under the turret's overhang.
-        VP.cable(f"tow_cable_{s}", [(-3.55, side * 1.58, DECK + 0.025), (-2.0, side * 1.60, DECK + 0.025),
-                                    (-0.4, side * 1.60, DECK + 0.02), (1.0, side * 1.58, DECK + 0.01)], m, hull,
-                 radius=0.022)
-        cyl(f"fuel_cap_{s}", 0.09, 0.035, (-1.95, side * 1.36, DECK + 0.015), "Z", m["steel"], hull, seg=12, lods=NEAR)
+        VP.cable(f"tow_cable_{s}", [(x, side * y, glacis_z(x) + 0.022) for x, y in
+                                    ((-3.55, 1.58), (-2.0, 1.60), (-0.4, 1.60), (1.0, 1.58))], m, hull, radius=0.022)
+        cyl(f"fuel_cap_{s}", 0.09, 0.035, (-1.95, side * 1.36, glacis_z(-1.95) + 0.015), "Z", m["steel"], hull, seg=12,
+            rot=(0, DECK_TILT, 0), lods=NEAR)
         for k, x in enumerate((2.0, -3.7)):
             box(f"lift_eye_{s}_{k}", (0.12, 0.035, 0.09), (x, side * 1.62, glacis_z(x) + 0.04), m["steel"], hull,
                 lods=FINE)
     # Engine deck: two grille doors over the turbine, an access plate ahead.
+    tilt = (0, DECK_TILT, 0)
     for k, y in enumerate((0.60, -0.60)):
-        VP.grille(f"engine_grille_{k}", (-2.95, y, DECK - 0.005), (1.40, 1.0), m, hull, slats=10)
-    box("deck_access", (1.0, 2.2, 0.025), (-1.55, 0, DECK + 0.008), m["paint"], hull, bevel=0.008, lods=MID)
+        VP.grille(f"engine_grille_{k}", (-2.95, y, glacis_z(-2.95) - 0.005), (1.40, 1.0), m, hull, slats=10, rot=tilt)
+    box("deck_access", (1.0, 2.2, 0.025), (-1.55, 0, glacis_z(-1.55) + 0.008), m["paint"], hull, bevel=0.008,
+        rot=tilt, lods=MID)
     for k in range(6):
-        cyl(f"deck_bolt_{k}", 0.02, 0.02, (-1.55 + (k % 3 - 1) * 0.45, (k // 3 - 0.5) * 2.0, DECK + 0.025), "Z",
-            m["steel"], hull, seg=6, lods=FINE)
+        x = -1.55 + (k % 3 - 1) * 0.45
+        cyl(f"deck_bolt_{k}", 0.02, 0.02, (x, (k // 3 - 0.5) * 2.0, glacis_z(x) + 0.025), "Z", m["steel"], hull, seg=6,
+            lods=FINE)
     # The rear plate: one wide exhaust grille between two smaller ones.
     face = (0, -math.pi / 2, 0)
     VP.grille("exhaust_grille", (-v.length / 2, 0, 1.02), (0.58, 1.30), m, v.hull, slats=9, rot=face)
@@ -167,7 +182,7 @@ def hull_body(v, sep_v3):
         VP.grille(f"rear_grille_{k}", (-v.length / 2, y, 1.10), (0.42, 0.62), m, v.hull, slats=6, rot=face)
     if sep_v3:
         # The auxiliary power unit's armoured box on the left rear deck.
-        VP.stowage_box("sepv3_uapu", (-3.30, 1.16, DECK), (0.72, 0.56, 0.32), m, hull)
+        VP.stowage_box("sepv3_uapu", (-3.30, 1.16, glacis_z(-3.30)), (0.72, 0.56, 0.32), m, hull, rot=tilt)
 
 
 def running_gear(v):
@@ -225,29 +240,29 @@ def skirts(v):
 
 # ---------------------------------------------------------------- turret
 def turret_shell():
-    plan = TURRET_PLAN
-    left = plan
-    right = [(x, -y) for x, y in reversed(plan) if y > 0]
-    outline = left + right
+    """The turret's rings: the undercut foot, whose rear stops at the
+    bustle's foot so the bustle's floor slopes up behind it; the plan at the
+    bustle floor's height; and the roof, its cheeks swept back and its flat
+    sides leaning in a little."""
+    left = TURRET_PLAN
+    outline = left + [(x, -y) for x, y in reversed(left) if y > 0]
 
     def ring(z):
         out = []
         for x, y in outline:
             a = abs(y)
-            if z == 0.0:  # the undercut foot
-                yy = y * 0.93 if a > 0.6 else y
-                xx = x - 0.04 if x > 1.0 and a > 0.42 else x
-            elif z == ROOF:  # the roof: cheeks swept back, sides leaning in
-                xx = x - (CHEEK_CHAMFER if x > 1.0 and a > 0.42 else 0.05 if x > -2.0 else -0.02)
-                yy = y if a <= 0.44 else math.copysign(a - 0.10, y)
-                if x < -2.5:
-                    xx = x + 0.06
+            cheek = x > 1.0 and a > 0.42
+            if z == 0.0:
+                xx, yy = (x - 0.04 if cheek else max(x, BUSTLE_FOOT)), (y * 0.93 if a > 0.6 else y)
+            elif z == ROOF:
+                xx = x - CHEEK_CHAMFER if cheek else x + 0.06 if x < -2.5 else x - 0.05 if x > -2.0 else x
+                yy = y if a <= 0.44 else math.copysign(a - SIDE_LEAN, y)
             else:
                 xx, yy = x, y
             out.append((xx, yy))
         return out
 
-    return [(0.0, ring(0.0)), (0.16, ring(0.16)), (ROOF, ring(ROOF))]
+    return [(z, ring(z)) for z in (0.0, BUSTLE_FLOOR, ROOF)]
 
 
 def turret_body(v, turret, trophy):
@@ -256,20 +271,20 @@ def turret_body(v, turret, trophy):
     cyl("turret_ring_guard", 1.05, 0.10, (0, 0, -0.02), "Z", m["dark"], turret, seg=40, lods=MID)
     # Roof: GPS doghouse (right front), loader's and commander's hatches, the
     # CITV (left front) and the wind sensor; blow-out panels over the bustle.
-    VP.sight_housing("gps", (1.10, -0.72, ROOF - 0.06), m, turret, size=(0.56, 0.46, 0.24))
+    VP.sight_housing("gps", (1.25, -0.72, ROOF - 0.09), m, turret, size=(0.56, 0.46, 0.24))
     VP.hatch("loader_hatch", (-0.55, 0.66, ROOF), m, turret, radius=0.32)
     commander_hatch(v, turret)
     citv = empty("dressing_citv", parent=turret)
-    cyl("citv_pedestal", 0.14, 0.16, (0.95, 0.78, ROOF + 0.08), "Z", m["dark"], citv, seg=16, lods=MID)
-    VP.sight_housing("citv_head", (0.95, 0.78, ROOF + 0.12), m, citv, size=(0.36, 0.34, 0.24))
+    cyl("citv_pedestal", 0.14, 0.16, (1.10, 0.78, ROOF + 0.08), "Z", m["dark"], citv, seg=16, lods=MID)
+    VP.sight_housing("citv_head", (1.10, 0.78, ROOF + 0.12), m, citv, size=(0.36, 0.34, 0.24))
     mast = empty("dressing_wind_sensor", parent=turret)
     cyl("wind_sensor_mast", 0.018, 0.42, (-1.62, 0.0, ROOF + 0.21), "Z", m["dark"], mast, seg=8, lods=NEAR)
     box("wind_sensor_vane", (0.12, 0.03, 0.05), (-1.62, 0.0, ROOF + 0.44), m["dark"], mast, lods=FINE)
     for k, y in enumerate((0.55, -0.55)):
-        box(f"blowout_panel_{k}", (0.85, 0.75, 0.02), (-2.02, y, ROOF + 0.005), m["paint"], turret, bevel=0.006,
+        box(f"blowout_panel_{k}", (0.85, 0.75, 0.02), (-2.10, y, ROOF + 0.005), m["paint"], turret, bevel=0.006,
             lods=MID)
         for j in range(4):
-            cyl(f"blowout_bolt_{k}_{j}", 0.018, 0.015, (-2.02 + (j % 2 - 0.5) * 0.72, y + (j // 2 - 0.5) * 0.62,
+            cyl(f"blowout_bolt_{k}_{j}", 0.018, 0.015, (-2.10 + (j % 2 - 0.5) * 0.72, y + (j // 2 - 0.5) * 0.62,
                                                        ROOF + 0.02), "Z", m["steel"], turret, seg=6, lods=FINE)
     for side, s in ((1, "L"), (-1, "R")):
         whip = empty(f"dressing_antenna_{s}", parent=turret)
@@ -277,17 +292,16 @@ def turret_body(v, turret, trophy):
         (x0, y0), (x1, y1) = CHEEK[0], CHEEK[1]
         VP.weld_line(f"cheek_weld_{s}", [(x0 - CHEEK_CHAMFER, side * (y0 + 0.02), ROOF + 0.002),
                                          (x1 - CHEEK_CHAMFER, side * (y1 - 0.06), ROOF + 0.002)], m, turret)
-        # The cheek's side face: a bolted armour plate lying on the side,
-        # which leans in from the foot's top to the roof.
-        loc, rot = VP.on_side(0.99, 0.42, side, (1.60, 0.16), (1.50, ROOF))
-        VP.bolted_panel(f"cheek_plate_{s}", loc, (0.72, 0.48, 0.04), m, turret, bolts=(2, 2), rot=rot, bevel=0.015)
+        # The cheek's side face: a bolted armour plate lying on the flat side.
+        loc, rot = VP.on_side(1.15, (BUSTLE_FLOOR + ROOF) / 2, side, (1.60, BUSTLE_FLOOR), (1.60 - SIDE_LEAN, ROOF))
+        VP.bolted_panel(f"cheek_plate_{s}", loc, (0.90, 0.52, 0.04), m, turret, bolts=(2, 2), rot=rot, bevel=0.015)
         # Side stowage along the bustle sides, a rail over it.
-        box_y = side * 1.71
+        box_y = side * 1.65
         VP.stowage_box(f"side_bin_{s}", (-1.15, box_y, 0.26), (1.55, 0.22, 0.42), m, turret,
                        rot=(0, 0, 0 if side > 0 else math.pi))
-        box(f"side_rail_{s}", (1.6, 0.03, 0.03), (-1.15, side * 1.80, 0.78), m["steel"], turret, lods=NEAR)
+        box(f"side_rail_{s}", (1.6, 0.03, 0.03), (-1.15, side * 1.74, 0.78), m["steel"], turret, lods=NEAR)
         for j in range(4):
-            box(f"side_rail_post_{s}_{j}", (0.03, 0.03, 0.12), (-1.85 + j * 0.47, side * 1.80, 0.72), m["steel"],
+            box(f"side_rail_post_{s}_{j}", (0.03, 0.03, 0.12), (-1.85 + j * 0.47, side * 1.74, 0.72), m["steel"],
                 turret, lods=FINE)
         # Six-tube smoke banks ahead of the side bins, fanned forward and out.
         for row in range(2):
@@ -314,7 +328,7 @@ def commander_hatch(v, turret):
     box("commander_lid_stop", (0.06, 0.30, 0.10), (x - 0.42, y, ROOF + 0.05), m["dark"], turret, lods=NEAR)
 
 
-def trophy_station(v, turret, side, s, at=(-1.45, 1.70, 0.74)):
+def trophy_station(v, turret, side, s, at=(-1.45, 1.64, 0.74)):
     """Trophy on one turret side: the radar housing at `at` (the left side's;
     over the side bin on the Abrams), its flat panels facing out and forward,
     and the launcher head on top at its front. Its nodes (`trophy_radar_*`,
@@ -338,7 +352,7 @@ def bustle_rack(v, turret):
     """The open rack behind the bustle, with its load: a tarp roll, a bin,
     jerrycans and a kit bag."""
     m = v.mats
-    x0, x1, wy, foot, top = -2.62, -3.28, 1.42, 0.28, 0.76
+    x0, x1, wy, foot, top = TURRET_PLAN[-1][0], -3.42, 1.36, BUSTLE_FLOOR + 0.02, 0.90
     box("bustle_floor", (x0 - x1, 2 * wy, 0.03), ((x0 + x1) / 2, 0, foot), m["steel"], turret, lods=MID)
     box("bustle_rail_rear", (0.035, 2 * wy, 0.035), (x1, 0, top), m["steel"], turret, lods=MID)
     for side in (-1, 1):
@@ -351,12 +365,12 @@ def bustle_rack(v, turret):
     for side in (-1, 1):
         box(f"bustle_post_side_{side}", (0.03, 0.03, top - foot), ((x0 + x1) / 2, side * wy, (top + foot) / 2),
             m["steel"], turret, lods=NEAR)
-    VP.tarp_roll("bustle_tarp", (-2.95, 0.55, foot + 0.17), 1.30, 0.16, m, turret, straps=3)
-    VP.stowage_box("bustle_bin", (-2.92, -0.80, foot + 0.015), (0.52, 0.66, 0.38), m, turret)
+    VP.tarp_roll("bustle_tarp", (-3.08, 0.55, foot + 0.17), 1.30, 0.16, m, turret, straps=3)
+    VP.stowage_box("bustle_bin", (-3.06, -0.80, foot + 0.015), (0.52, 0.66, 0.38), m, turret)
     for k in range(2):
-        VP.jerrycan(f"bustle_jerrycan_{k}", (-3.12, -0.25 + k * 0.20, foot + 0.015), dict(m, paint=m["dark"]),
+        VP.jerrycan(f"bustle_jerrycan_{k}", (-3.26, -0.25 + k * 0.20, foot + 0.015), dict(m, paint=m["dark"]),
                     turret, rot=(0, 0, math.pi / 2))
-    box("bustle_bag", (0.46, 0.52, 0.30), (-2.92, 1.05, foot + 0.17), m["canvas"], turret, bevel=0.07, lods=MID)
+    box("bustle_bag", (0.46, 0.52, 0.30), (-3.06, 1.05, foot + 0.17), m["canvas"], turret, bevel=0.07, lods=MID)
 
 
 # ---------------------------------------------------------------- weapons
@@ -389,20 +403,23 @@ def crows(v, hmg, hmg_gun, sep_v3):
     """The commander's CROWS remote station with its M2: a bearing on the
     roof, a cradle, the sight block on its right and the ammunition box on
     its left. The SEPv3's CROWS-LP sits lower and squarer than the SEPv2's
-    CROWS II, which carries an armour shield."""
+    CROWS II, which carries an armour shield. The bearing stands on the roof,
+    which is above the mount's pivot."""
     m = v.mats
-    muzzle = v.frame["mounts"][1]["muzzle_m"]
-    lift = muzzle[2]
-    cyl("crows_bearing", 0.26, 0.10, (0, 0, 0.02), "Z", m["dark"], hmg, seg=24, bevel=0.01)
-    box("crows_base", (0.42, 0.36, 0.10), (-0.02, 0, 0.11), m["paint"], hmg, bevel=0.015)
+    cannon, mount = v.frame["mounts"][0], v.frame["mounts"][1]
+    lift = mount["muzzle_m"][2]
+    roof = cannon["pivot_m"][2] + ROOF - mount["pivot_m"][2]
+    cyl("crows_bearing", 0.26, 0.10, (0, 0, roof + 0.02), "Z", m["dark"], hmg, seg=24, bevel=0.01)
+    box("crows_base", (0.42, 0.36, 0.10), (-0.02, 0, roof + 0.11), m["paint"], hmg, bevel=0.015)
     for side in (-1, 1):
-        box(f"crows_cradle_{side}", (0.30, 0.05, lift + 0.06), (0.02, side * 0.15, (lift + 0.06) / 2 + 0.10),
+        cradle = lift + 0.16 - (roof + 0.10)
+        box(f"crows_cradle_{side}", (0.30, 0.05, cradle), (0.02, side * 0.15, roof + 0.10 + cradle / 2),
             m["paint"], hmg, bevel=0.012)
     VP.sight_housing("crows_sight", (0.10, -0.29, -0.12), m, hmg_gun, size=(0.30, 0.16, 0.22))
     box("crows_ammo", (0.30, 0.14, 0.26), (-0.05, 0.27, -0.08), m["paint"], hmg_gun, bevel=0.015, lods=MID)
     if not sep_v3:
         box("crows_shield", (0.06, 0.62, 0.34), (0.32, 0, -0.03), m["paint"], hmg_gun, bevel=0.012, lods=MID)
-    VP.browning_m2(hmg_gun, muzzle[0], m)
+    VP.browning_m2(hmg_gun, mount["muzzle_m"][0], m)
 
 
 # ---------------------------------------------------------------- wreck
@@ -440,7 +457,7 @@ def wreck(variant, v):
     shell = parts("hull_upper", "hull_lower", "skirt_", "turret_shell")
     densify(shell, scale=2.0)
     warp(shell, heat(0.022, 0.9, seed=5.0), dent((3.35, 0.55, glacis_z(3.35)), 0.55, 0.10, (-0.6, 0, -1)))
-    plate("loader_lid", [(-0.3, -0.25), (0.3, -0.28), (0.32, 0.26), (-0.28, 0.3)], 0.05, (-2.5, 0.75, DECK + 0.05),
+    plate("loader_lid", [(-0.3, -0.25), (0.3, -0.28), (0.32, 0.26), (-0.28, 0.3)], 0.05, (-2.5, 0.75, glacis_z(-2.5) + 0.05),
           (0.05, -0.1, 0.7), m["paint"], v.hull, seed=11)
     for k, (loc, rot, size) in enumerate((((2.2, -2.2, 0.03), (0.04, 0.02, 0.4), 0.45),
                                           ((-2.8, 2.15, 0.03), (-0.03, 0.05, 1.9), 0.38),
