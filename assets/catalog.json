@@ -2407,6 +2407,35 @@
         "footprint_m": 0.8
       }
     },
+    "europe_challenger_challenger_3": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/challenger_3/europe_challenger_challenger_3.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "cannon": "gun",
+        "HMG": "hmg"
+      },
+      "wreck": "europe_challenger_challenger_3_wreck"
+    },
+    "europe_challenger_challenger_3_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/challenger_3/europe_challenger_challenger_3_wreck.glb",
+        "hull": "assets/source/roster/challenger_3/europe_challenger_challenger_3_wreck_hull.glb",
+        "turret": "assets/source/roster/challenger_3/europe_challenger_challenger_3_wreck_turret.glb",
+        "debris": "assets/source/roster/challenger_3/europe_challenger_challenger_3_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        4.15,
+        2.1,
+        1.245
+      ],
+      "tolerances": {
+        "footprint_m": 1.7
+      }
+    },
     "us_m1_abrams_sep_v2": {
       "unit": "vehicle",
       "source": "assets/source/roster/abrams/us_m1_abrams_sep_v2.glb",

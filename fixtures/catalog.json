@@ -359,6 +359,23 @@
       }
     },
     {
+      "cost": 450,
+      "description": "Challenger 3",
+      "disabled_reason": null,
+      "family": "challenger",
+      "id": "europe_challenger_challenger_3",
+      "name": "Challenger 3",
+      "planned_weapons": [],
+      "roster": {
+        "category": "veh",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "Challenger",
+        "variant": "Challenger 3"
+      }
+    },
+    {
       "cost": 220,
       "description": "CV9040C; ground combat platform, passenger carriage not implemented",
       "disabled_reason": null,
@@ -1932,36 +1949,6 @@
         ],
         "family_name": "CH-47 Chinook",
         "variant": "HC6"
-      }
-    },
-    {
-      "cost": 450,
-      "description": "Challenger 3",
-      "disabled_reason": "Ground profile and model admission pending",
-      "family": "challenger",
-      "id": "europe_challenger_challenger_3",
-      "name": "Challenger 3",
-      "planned_weapons": [
-        {
-          "icon": "ap_shell",
-          "name": "Main Gun"
-        },
-        {
-          "icon": "hmg",
-          "name": "HMG"
-        },
-        {
-          "icon": "trophy",
-          "name": "Trophy"
-        }
-      ],
-      "roster": {
-        "category": "veh",
-        "factions": [
-          "europe"
-        ],
-        "family_name": "Challenger",
-        "variant": "Challenger 3"
       }
     },
     {
@@ -8810,30 +8797,108 @@
           }
         },
         "europe_challenger_challenger_3": {
+          "appearance": "europe_challenger_challenger_3",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 250.0,
+                "rear": 65.0,
+                "ricochet": {
+                  "front": 0.5,
+                  "rear": 0.2,
+                  "roof": 0.6,
+                  "side": 0.35
+                },
+                "roof": 45.0,
+                "side": 125.0
+              },
+              "eye_m": 2.341,
+              "half_extents_m": [
+                4.15,
+                2.1,
+                1.245
+              ],
+              "hp": 135.0,
+              "push_class": "heavy",
+              "weight_class": "heavy",
+              "wreck": "heavy_wreck"
+            }
+          },
+          "capabilities": {
+            "active_protection": {
+              "capacity": 4,
+              "cooldown_s": 3.0,
+              "icon": "trophy",
+              "name": "Trophy",
+              "service_s": 10.0,
+              "standoff_m": 8.0,
+              "stock_per_charge": 20
+            }
+          },
           "cost": 450,
           "description": "Challenger 3",
           "faction": "europe",
           "family": "challenger",
-          "name": "Challenger 3",
-          "planned": {
-            "profile": "advanced-mbt",
-            "reason": "Ground profile and model admission pending",
-            "weapons": [
-              {
-                "icon": "ap_shell",
-                "name": "Main Gun"
-              },
-              {
-                "icon": "hmg",
-                "name": "HMG"
-              },
-              {
-                "icon": "trophy",
-                "name": "Trophy"
-              }
-            ]
+          "mobility": {
+            "tracked": {
+              "offroad_kmh": 24.0,
+              "reverse_fraction": 0.4,
+              "road_kmh": 55.0,
+              "turn_deg_s": 45.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "cannon",
+              "muzzle_m": [
+                5.561,
+                0.0,
+                0.448
+              ],
+              "name": "Main Gun",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.494
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "advanced_tank_ap",
+                "advanced_tank_he"
+              ]
+            },
+            {
+              "id": "HMG",
+              "muzzle_m": [
+                1.43,
+                0.0,
+                0.32
+              ],
+              "name": "HMG",
+              "on": "cannon",
+              "pivot_m": [
+                -0.25,
+                -0.58,
+                2.341
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "hmg"
+              ]
+            }
+          ],
+          "name": "Challenger 3",
+          "parts": [
+            "trophy_aps"
+          ],
+          "roles": [
+            "mbt"
+          ],
           "roster": {
             "category": "veh",
             "factions": [
@@ -8841,6 +8906,19 @@
             ],
             "family_name": "Challenger",
             "variant": "Challenger 3"
+          },
+          "sensors": {
+            "ground_m": 600.0,
+            "on": "cannon",
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.5
+            }
+          },
+          "sound": {
+            "loudness_m": 650.0,
+            "profile": "vehicle"
           }
         },
         "europe_cv90120_light_tank": {
@@ -18216,6 +18294,134 @@
       },
       "sensors": {
         "ground_m": 500.0,
+        "on": "cannon",
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.5
+        }
+      },
+      "sound": {
+        "loudness_m": 650.0,
+        "profile": "vehicle"
+      }
+    },
+    {
+      "appearance": "europe_challenger_challenger_3",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 250.0,
+            "rear": 65.0,
+            "ricochet": {
+              "front": 0.5,
+              "rear": 0.2,
+              "roof": 0.6,
+              "side": 0.35
+            },
+            "roof": 45.0,
+            "side": 125.0
+          },
+          "eye_m": 2.341,
+          "half_extents_m": [
+            4.15,
+            2.1,
+            1.245
+          ],
+          "hp": 135.0,
+          "push_class": "heavy",
+          "weight_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "capabilities": {
+        "active_protection": {
+          "capacity": 4,
+          "cooldown_s": 3.0,
+          "icon": "trophy",
+          "name": "Trophy",
+          "service_s": 10.0,
+          "standoff_m": 8.0,
+          "stock_per_charge": 20
+        }
+      },
+      "cost": 450,
+      "description": "Challenger 3",
+      "faction": "europe",
+      "family": "challenger",
+      "id": "europe_challenger_challenger_3",
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 24.0,
+          "reverse_fraction": 0.4,
+          "road_kmh": 55.0,
+          "turn_deg_s": 45.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "cannon",
+          "muzzle_m": [
+            5.561,
+            0.0,
+            0.448
+          ],
+          "name": "Main Gun",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.494
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "advanced_tank_ap",
+            "advanced_tank_he"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "HMG",
+          "muzzle_m": [
+            1.43,
+            0.0,
+            0.32
+          ],
+          "name": "HMG",
+          "on": "cannon",
+          "pivot_m": [
+            -0.25,
+            -0.58,
+            2.341
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "hmg"
+          ]
+        }
+      ],
+      "name": "Challenger 3",
+      "parts": [
+        "trophy_aps"
+      ],
+      "roles": [
+        "mbt"
+      ],
+      "roster": {
+        "category": "veh",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "Challenger",
+        "variant": "Challenger 3"
+      },
+      "sensors": {
+        "ground_m": 600.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,

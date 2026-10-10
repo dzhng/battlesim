@@ -550,7 +550,9 @@
       "description": "Challenger 3",
       "faction": "europe",
       "family": "challenger",
-      "roles": [],
+      "roles": [
+        "mbt"
+      ],
       "cost": 450,
       "roster": {
         "factions": [
@@ -560,23 +562,32 @@
         "variant": "Challenger 3",
         "family_name": "Challenger"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "advanced-mbt",
-        "weapons": [
-          {
-            "name": "Main Gun",
-            "icon": "ap_shell"
-          },
-          {
-            "name": "HMG",
-            "icon": "hmg"
-          },
-          {
-            "name": "Trophy",
-            "icon": "trophy"
+      "extends": "europe_challenger_challenger_2_tes",
+      "appearance": "europe_challenger_challenger_3",
+      "parts": [
+        "trophy_aps"
+      ],
+      "body": {
+        "hull": {
+          "hp": 135,
+          "armor": {
+            "front": 250,
+            "side": 125,
+            "roof": 45
           }
-        ]
+        }
+      },
+      "mounts": [
+        {
+          "id": "cannon",
+          "weapons": [
+            "advanced_tank_ap",
+            "advanced_tank_he"
+          ]
+        }
+      ],
+      "sensors": {
+        "ground_m": 600
       }
     },
     "europe_cv90120_light_tank": {
