@@ -70,10 +70,13 @@ def rig(frame, root, trunnion=None):
     pivot (in the hull frame) and muzzle (from the pivot along the bore). A
     mount carried by another (`on`) yaws on that one's yaw node. `trunnion`
     (by mount id) puts the pitch node that far ahead of the pivot, along the
-    bore, as a tank gun's trunnions are; else it is at the pivot. Returns, by
-    mount id, (yaw, pitch, muzzle, pivot)."""
+    bore, as a tank gun's trunnions are; else it is at the pivot. A mount no
+    rig draws (one fixed in the hull: its art is the hull's) gets no nodes.
+    Returns, by mount id, (yaw, pitch, muzzle, pivot)."""
     made = {}
     for mount in frame["mounts"]:
+        if mount["role"] is None:
+            continue
         yaw_name, pitch_name, muzzle_name = RIG_NODES[mount["role"]]
         pivot = Vector(mount["pivot_m"])
         carrier, at = (root, Vector((0, 0, 0))) if mount["on"] is None else (made[mount["on"]][0], made[mount["on"]][3])
@@ -190,13 +193,16 @@ def _receipt(path, script, variants, frames, references=None):
     }, indent=2) + "\n")
 
 
-def run(family, scheme, build, wreck, ao_distance=1.0, ao_rays=8, **looks):
+def run(family, scheme, build, wreck, ao_distance=1.0, ao_rays=8, references=None, **looks):
     """Export every variant of `family` (or `--variant=<id>`), live or with
     `--wreck` its wreck, through `build` and `wreck` (see the module doc).
-    `looks` are `materials` keywords (a family's fittings, canvas or chip)."""
+    `references` is its reference library's `references.json` where that is
+    not `assets/references/<family>/`. `looks` are `materials` keywords (a
+    family's fittings, canvas or chip)."""
     receipt = _export(family_variants(family), scheme, build, wreck, ao_distance, ao_rays, looks=looks)
     if receipt is not None:
-        _receipt(f"assets/source/roster/{family}/source-receipt.json", f"{family}.py", receipt, "fixtures/catalog.json")
+        _receipt(f"assets/source/roster/{family}/source-receipt.json", f"{family}.py", receipt, "fixtures/catalog.json",
+                 references)
 
 
 # How far a disabled card's built model may stray from the dimensions its

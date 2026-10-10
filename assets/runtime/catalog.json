@@ -1,5 +1,25 @@
 {
   "appearances": {
+    "ah_64e_guardian": {
+      "bundle": "370d81485e357eafa08b624ec44c5422ffdd7e7d629909f28ad67c554d7d63ce",
+      "kind": "articulated",
+      "mounts": {
+        "chin": "gun"
+      },
+      "unit": "vehicle",
+      "wreck": "ah_64e_guardian_wreck"
+    },
+    "ah_64e_guardian_wreck": {
+      "bundle": "712dfe2f5d59ca62974d162d072060cb59557fdb0f6a9aa4975608cf9d5f9a69",
+      "footprint_half_m": [
+        7.35,
+        2.615,
+        2.36
+      ],
+      "kind": "static",
+      "scenery": "wreck",
+      "unit": "scenery"
+    },
     "assault_squad_active_a": {
       "bundle": "fee9bbbb88aa4869bb601c2ccb8d79d374837fe19abc5ac139f486a9f3ec693e",
       "factions": {
@@ -3445,6 +3465,11 @@
       "hash": "4e39dc8cf578c69bc103a489b558b9398718d4fa33b3701a8e9a553adae1013e",
       "raw_bytes": 5142348
     },
+    "370d81485e357eafa08b624ec44c5422ffdd7e7d629909f28ad67c554d7d63ce": {
+      "bytes": 549193,
+      "hash": "a4f075f7187e1847f2f5efc0cb6c568a52c5eac9716771a5f2caccbb1cd6c24e",
+      "raw_bytes": 1718048
+    },
     "378e2aacf52d93847fcf110fbab8546bc08894634866f620d302294eb0d8c0ec": {
       "bytes": 12172,
       "hash": "4fbd2c07d989d62081f688fc0bfd7c00877e3490eda47f901948b01792a62355",
@@ -4170,6 +4195,11 @@
       "hash": "7ebeb1941f7bd11eb5c9270afb09e521a1e09ba337ecd8a0b5c98bbbd826e0f3",
       "raw_bytes": 4019156
     },
+    "712dfe2f5d59ca62974d162d072060cb59557fdb0f6a9aa4975608cf9d5f9a69": {
+      "bytes": 1017987,
+      "hash": "803b45f30cddaa84ce8060ab16401102bdc4fa979b67294fe72097180c9416b4",
+      "raw_bytes": 2244964
+    },
     "71802f1bbbd7c1814249b014fba12f02a2a2bb9d5068173416834057c2c9e978": {
       "bytes": 22238,
       "hash": "e119bb6142b042d38f7020b64e9129e6ef90db3f3d6143aae40d37b309483abd",
@@ -4254,6 +4284,11 @@
       "bytes": 171434,
       "hash": "6dda561226d63bff8317dba5cd3f1b176e40f4b34982994e2a37ecf5f6048746",
       "raw_bytes": 349548
+    },
+    "779a358f3b7652718488e0a9f3040119bd134bc00da39e7acea559a2fb283558": {
+      "bytes": 80807,
+      "hash": "90d7df5abab53f25b6398177b9ebc7cb30f2818d2ce7adfb83648e4b0898a0a3",
+      "raw_bytes": 349543
     },
     "799ce39ab400d445b07ef461ef1fc867af6ac8196d0ad627a069f0f205918ad6": {
       "bytes": 179314,
@@ -4940,6 +4975,11 @@
       "hash": "3fd07d47d959f34fc989efab42b78c5c941cd043e4ec1a1769854e2f9f5c1deb",
       "raw_bytes": 349543
     },
+    "ab1019af171c3de24d97820ea37eb2d05428ec21d0281a1a9c2e87c8175a8a01": {
+      "bytes": 68175,
+      "hash": "806706b0d9a28fa6c1cd0726d2a22627c34a4cf1b93c2e165438aef0948b9258",
+      "raw_bytes": 349543
+    },
     "ab1ab0b2660a2ef5a0d3208ca94b7e275ec8f5d72c2d162106fbf2fa1a3e5df1": {
       "bytes": 5750,
       "hash": "d8a5f64c8477f5af19dc6ac7f4448f14b8c7e9b2dfef47e80c1ba815652a9286",
@@ -5048,6 +5088,11 @@
     "b1d845a27e9cae78b22377d252552779ed21710b9e5656fd8774e3d99bc940bf": {
       "bytes": 63385,
       "hash": "293de014e1e1f04d7dbf8b01add2880d5080a5d9093af846edddcfd7a65b1705",
+      "raw_bytes": 349548
+    },
+    "b20a873aa2b5913c0ec23a2071851e6bfa6cb3135ee275e96e2665c7617e2535": {
+      "bytes": 170958,
+      "hash": "5b3b850c640c475ddc63c5f5bfb4f252b3459fea7485e4829f375963a2cad1a1",
       "raw_bytes": 349548
     },
     "b2c35a6937343783b21216e853945797b2a6d92b98abf9592990a204a62ef022": {
@@ -7545,6 +7590,26 @@
       "0c279e94c4ae0cc36cf18601598f9c19ffc6fd12ba03b548fdd6ef480517c8fc",
       "6c87299d612ba7208dca985a8ea85de5bcc8758f875dcf530a7f48b495b51f67"
     ],
+    "370d81485e357eafa08b624ec44c5422ffdd7e7d629909f28ad67c554d7d63ce": [
+      "7745e08d0a0c9264ae2b31193383a3a2055143d7fee49163d062accd92207fe5",
+      "9d317b300663e15ca727661967963945d97b4bfb348fd98bb62e05de613a6731",
+      "af14b08eb7a44841662da908915bdedeb53d8d80791bc945b8661c5b2cf4841a",
+      "b20a873aa2b5913c0ec23a2071851e6bfa6cb3135ee275e96e2665c7617e2535",
+      "ab1019af171c3de24d97820ea37eb2d05428ec21d0281a1a9c2e87c8175a8a01",
+      "779a358f3b7652718488e0a9f3040119bd134bc00da39e7acea559a2fb283558",
+      "fddec6a58146cf10a591a6334897a5883b62347137a18527ed768bce2f201eb5",
+      "a709cdfa5560c3c67fafe25b84a28ea82a647555b6fe901e407a4a4a4a8a8050",
+      "8bf93135986ef9934a48839bbbee7f82616707f39af89f6bd750da0f169dbb42",
+      "e5c67c18b50e8c7620db2020de57c101342f3e3d4bd2e33ccf254814ea37827d",
+      "7ff523c30b5cc4255396e6660919c60c3bc03b2f67204d3859884aaf0a94174e",
+      "e65b114a93e55184c201091d98d751c3dbdf22a777b81763ee434e783d6371c7",
+      "d80275a3741e14d16c14051bd87625757afa5f7aaffd39945608e7b37eab0869",
+      "dfeb7007009b0d5d9677d9b766395e57b0a97782537a47d40545f00e11acef5d",
+      "7206f987efe738d86374ab7cc4bbf91fe2c157eb95c09b0edd5dadd136410bbf",
+      "9ada61942b3254158cf29cf4873d00f11a3043ae8858a97d86e96a53a3dffe8c",
+      "4849728f8be4ff3e8c554a5613cc6b6e8fd9b6fce0bc846ecd6f075d96bddeae",
+      "c23b44c40de2151f15fe64885725a47ffe371d82b131c7e15a931a75c5f80336"
+    ],
     "378e2aacf52d93847fcf110fbab8546bc08894634866f620d302294eb0d8c0ec": [
       "4ad9c172f2f0c8aad916682eeb6ebc6ac7a2257e9b1a652957d535564937e877",
       "1c5e8e39f675ea07268a0cffb4ca0a4eba653f5fd1c44a3bd75b12981e6b5baf",
@@ -8619,6 +8684,11 @@
       "f2bccac564ae3d0e5bf998a78924a6321375b471ff4431a90c4824b49f5bf11a",
       "0c279e94c4ae0cc36cf18601598f9c19ffc6fd12ba03b548fdd6ef480517c8fc",
       "6c87299d612ba7208dca985a8ea85de5bcc8758f875dcf530a7f48b495b51f67"
+    ],
+    "712dfe2f5d59ca62974d162d072060cb59557fdb0f6a9aa4975608cf9d5f9a69": [
+      "3e7541badb88d4024f735ede729a604b0e354a6f55becb300f78259c0fe7fa32",
+      "5d654d5b70f78056a9c0a0801decd296f43e0eecd2e2541a1894977562723ed0",
+      "0342cd8bad2bc7b6010152d51d20dcd69ad42b48aad28ec93e99f1ef7a10984f"
     ],
     "71802f1bbbd7c1814249b014fba12f02a2a2bb9d5068173416834057c2c9e978": [
       "e5c67c18b50e8c7620db2020de57c101342f3e3d4bd2e33ccf254814ea37827d",

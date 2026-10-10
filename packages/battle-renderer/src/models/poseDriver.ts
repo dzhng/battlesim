@@ -24,11 +24,7 @@
 import { clamp, deltaAngle, mat4, vec3, type Mat4, type Vec2, type Vec3 } from "math";
 import { mulberry32 } from "math/random";
 import { easing } from "math/time";
-import {
-  PITCH_LIMITS,
-  REST_ARTICULATION,
-  type Articulation,
-} from "@packages/scene-assets/src/articulation";
+import { REST_ARTICULATION, type Articulation } from "@packages/scene-assets/src/articulation";
 import type { Side } from "@packages/scene-assets/src/schema";
 import {
   airborne,
@@ -829,12 +825,10 @@ export class PoseDriver {
     const hmg = roles.indexOf("hmg");
     const gunMount = gun >= 0 ? unit.mounts[gun] : undefined;
     const hmgMount = hmg >= 0 ? unit.mounts[hmg] : undefined;
-    const gunTarget = gunMount
-      ? clamp(gunMount.elevation, PITCH_LIMITS.gun[0], PITCH_LIMITS.gun[1])
-      : 0;
-    const hmgTarget = hmgMount
-      ? clamp(hmgMount.elevation, PITCH_LIMITS.hmg[0], PITCH_LIMITS.hmg[1])
-      : 0;
+    // The published elevations; each model's rig stops its guns at its own
+    // pitch limits (`articulate`).
+    const gunTarget = gunMount ? gunMount.elevation : 0;
+    const hmgTarget = hmgMount ? hmgMount.elevation : 0;
     const key = sideKey(unit.id, unit.side, "blue");
     let state = this.vehicles.get(key);
     if (!state) {

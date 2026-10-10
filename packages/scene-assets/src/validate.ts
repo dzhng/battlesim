@@ -19,6 +19,7 @@ import { mountMuzzles, muzzleOffset, type MountMuzzle } from "./mountMuzzle.ts";
 import {
   FACTIONS,
   MOUNT_NODES,
+  hullFixed,
   isArticulation,
   mountRoles,
   vehicleClass,
@@ -1074,8 +1075,9 @@ function mountDrawFindings(label: string, type: UnitType, draws: MountDraws | nu
       );
     else rigs.set(rig, mount);
   }
+  // A mount fixed in the hull is drawn by it; every mount that turns needs a rig.
   for (const m of type.mounts)
-    if (m.muzzle_m && !draws?.[m.id])
+    if (m.muzzle_m && !draws?.[m.id] && !hullFixed(m))
       out.push(
         finding("fit.mount_draw", `${label}: mount "${m.id}" is not drawn by any rig`, fix(m.id)),
       );

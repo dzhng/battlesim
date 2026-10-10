@@ -247,8 +247,8 @@ export function nodeBoxes(nodes: readonly ArticulatedNode[]): (Bounds | null)[] 
 }
 
 /**
- * Culling bounds of an articulated bundle over every pose the pose driver can
- * reach (`sweepArticulations`): each node's box corners placed by the posed
+ * Culling bounds of an articulated bundle over every pose its rig can reach
+ * (`sweepArticulations`, at the rig's own pitch limits): each node's box corners placed by the posed
  * node worlds, padded horizontally for the turns between sampled bearings.
  * Conservative by construction — a box's corners bound anything inside it —
  * and cheap, since only eight points per node move.
@@ -282,7 +282,7 @@ export function posedBounds(nodes: readonly ArticulatedNode[]): Bounds {
   };
   const corner = vec3.create();
   let reach = 0;
-  for (const input of sweepArticulations()) {
+  for (const input of sweepArticulations(rig.pitch)) {
     const worlds = worldTransforms(parents, articulate(locals, nodes, rig, input));
     boxes.forEach((box, i) => {
       if (!box) return;
