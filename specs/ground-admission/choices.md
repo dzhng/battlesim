@@ -18,3 +18,20 @@ the [README](README.md#decisions).
   straight launch line clears (tests in `garrison.rs`, `guidance.rs`). If a lofted launch check is
   ever added, the loft must join the launch-solve cache key (`solve_launch_past`).
 - **Refusal tests live in `top_attack.rs`**, not `flight_load.rs` (that file is the load report).
+
+## 2026-10-10 — slice 05 (Challenger 3 pilot)
+
+- **Challenger 3 extends the Challenger 2 TES record,** not the advanced-MBT profile: fewer overrides
+  (frame, mounts, mobility, HMG inherited). Sets hp 135, armour 250/125/45 (front/side/roof),
+  advanced tank rounds, 600 m sight, `trophy_aps`; mobility stays 24/55 km/h (same powerpack).
+  Numbers are guesses for the closeout balance report.
+- **Accepted: at mid range the Challenger 3 reads nearly as a Challenger 2.** Two critique passes
+  ranked "turret too low"; the turret is already raised to the shared 2.49 m box top. The real
+  vehicle is the same hull and turret with Trophy and a new gun, so a taller turret would mean
+  changing a frame the two share for a difference the real tanks don't have.
+- **Wreck footprint 1.7 m** (fallen skirts lie 1.63 m beside the hull; the KF51 uses 1.6).
+- **Paint stays British green** like its live peer, though the photos show grey and sand.
+- **Shared helper fix:** `catalog_frames._variant` read mount labels as ids, so every live `run`
+  export failed; it now keys mounts by id (Challenger 2 TES re-export byte-identical).
+- **Trophy hardware became named nodes with meshes beneath,** as on the Abrams: plain named boxes
+  merged into the turret in tiering and failed `fit.part_nodes`.
