@@ -177,8 +177,10 @@ func _build_world() -> void:
 	var sky_material := ProceduralSkyMaterial.new()
 	sky_material.sky_top_color = Color("456e91")
 	sky_material.sky_horizon_color = Color("b9d3d2")
-	sky_material.ground_bottom_color = Color("4d5148")
-	sky_material.ground_horizon_color = Color("8e927e")
+	# Keep the procedural sky's lower hemisphere close to the terrain palette;
+	# a dark ground-horizon band reads as a hard seam at broad city angles.
+	sky_material.ground_bottom_color = Color("667468")
+	sky_material.ground_horizon_color = Color("a1b0a4")
 	sky_material.sun_angle_max = 18.0
 	sky_material.sun_curve = 0.08
 	sky.sky_material = sky_material
@@ -187,10 +189,10 @@ func _build_world() -> void:
 	env.ambient_light_color = Color("8aa4bc")
 	env.ambient_light_energy = 0.8
 	env.fog_enabled = true
-	env.fog_light_color = Color("6f7e85")
-	env.fog_light_energy = 0.35
-	env.fog_density = 0.004
-	env.fog_sky_affect = 0.25
+	env.fog_light_color = Color("8a9b99")
+	env.fog_light_energy = 0.45
+	env.fog_density = 0.0025
+	env.fog_sky_affect = 0.45
 	environment.environment = env
 	add_child(environment)
 	var sun := DirectionalLight3D.new()
@@ -625,13 +627,13 @@ func _grass_centers_for_map(map: Dictionary, render_centers: Array) -> Array:
 		var center := Vector2((min_x + max_x) * 0.5, (min_y + max_y) * 0.5)
 		if not _near_render_center(center, render_centers):
 			continue
-		var offsets := [
-			Vector2.ZERO,
-			Vector2((max_x - min_x) * 0.25, 0.0),
-			Vector2(-(max_x - min_x) * 0.25, 0.0),
-			Vector2(0.0, (max_y - min_y) * 0.25),
-			Vector2(0.0, -(max_y - min_y) * 0.25),
-		]
+		var offsets: Array[Vector2] = []
+		for y in range(3):
+			for x in range(3):
+				offsets.append(Vector2(
+					lerpf(-(max_x - min_x) * 0.35, (max_x - min_x) * 0.35, float(x) / 2.0),
+					lerpf(-(max_y - min_y) * 0.35, (max_y - min_y) * 0.35, float(y) / 2.0),
+				))
 		for offset in offsets:
 			var candidate: Vector2 = center + offset
 			if not Geometry2D.is_point_in_polygon(candidate, polygon):
