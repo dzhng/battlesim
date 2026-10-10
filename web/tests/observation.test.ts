@@ -601,8 +601,20 @@ test("every frozen animation field and ground value decodes, integers exact past
       replaces: big + 8,
     },
   ]);
-  // Frozen vectors carry their own weapon vocabulary and index meanings.
-  expect(layout.roundKinds).toEqual(["atgm", "grenade", "hmg", "rifle", "tank_ap", "tank_he"]);
+  // A firing report heard from rows on both sides of a mask word's 24 bits
+  // keeps every bit.
+  expect(wide.contacts.map((c) => c.heard)).toEqual([["atgm", "row_23", "row_24", "row_47"]]);
+  // Frozen vectors carry their own weapon vocabulary and index meanings, as
+  // wide as the heard mask.
+  expect(layout.roundKinds.slice(0, 6)).toEqual([
+    "atgm",
+    "grenade",
+    "hmg",
+    "rifle",
+    "tank_ap",
+    "tank_he",
+  ]);
+  expect(layout.roundKinds).toHaveLength(48);
 });
 
 test("a live battle publishes poses, soldier ids, tracer kinds and blasts", () => {
