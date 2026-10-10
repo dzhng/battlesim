@@ -75,6 +75,8 @@ Before/after crops against the reference photos are in
 
 ## Left as found
 
-- Several turrets are lower and simpler than their photos (the Centauro II most clearly).
+- Several turrets are lower and simpler than their photos. The Centauro II's, the clearest
+  case, has since been rebuilt to its photos' size, on a frame raised to the real vehicle's
+  height ([before, after and reference](../assets/turret-shapes/centauro/)).
 - The T-14's barrel is short, and its turret front is about 0.3 m long.
 - The ICV station's base cuts about 14 cm into the commander's ring, as it did before the move.
