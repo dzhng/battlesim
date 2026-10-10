@@ -182,15 +182,8 @@ func _build_world() -> void:
 	var env := Environment.new()
 	env.background_mode = Environment.BG_SKY
 	var sky := Sky.new()
-	var sky_material := ProceduralSkyMaterial.new()
-	sky_material.sky_top_color = Color("456e91")
-	sky_material.sky_horizon_color = Color("b9d3d2")
-	# Keep the procedural sky's lower hemisphere close to the terrain palette;
-	# a dark ground-horizon band reads as a hard seam at broad city angles.
-	sky_material.ground_bottom_color = Color("667468")
-	sky_material.ground_horizon_color = Color("a1b0a4")
-	sky_material.sun_angle_max = 18.0
-	sky_material.sun_curve = 0.08
+	var sky_material := ShaderMaterial.new()
+	sky_material.shader = _native_sky_shader()
 	sky.sky_material = sky_material
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
@@ -204,8 +197,9 @@ func _build_world() -> void:
 	environment.environment = env
 	add_child(environment)
 	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-55.0, -30.0, 0.0)
-	sun.light_energy = 1.5
+	sun.rotation_degrees = Vector3(-42.0, 20.0, 0.0)
+	sun.light_color = Color("fff0d0")
+	sun.light_energy = 2.2
 	add_child(sun)
 	# Presentation budgets must be known before map geometry instantiates any
 	# catalog-backed props or grass. They are renderer limits only; admission and
@@ -350,7 +344,7 @@ func _build_map_geometry() -> void:
 			surface_node.mesh = surface_mesh
 			surface_node.position.y = -0.05
 			holder.add_child(surface_node)
-		_add_box_batch(holder, road_transforms, Color("a59f8b"), 0.92)
+		_add_box_batch(holder, road_transforms, Color("817e70"), 0.92)
 		for forest in map.get("forests", []):
 			if typeof(forest) != TYPE_DICTIONARY or typeof(forest.get("shape")) != TYPE_DICTIONARY:
 				continue
@@ -620,13 +614,14 @@ void vertex() {
 void fragment() {
     vec2 p = world_pos.xz;
     float broad = value_noise(p * 0.018);
-    float fine = value_noise(p * 0.11);
-    float bands = 0.5 + 0.5 * sin(p.x * 0.034 + p.y * 0.011);
+    float fine = value_noise(p * 0.35);
+    float rows = 0.5 + 0.5 * sin(p.x * 0.17 + p.y * 0.043 + broad * 2.0);
+    float furrows = smoothstep(0.40, 0.62, rows) * (0.35 + 0.65 * broad);
     vec3 dark = vec3(0.20, 0.24, 0.14);
     vec3 mid = vec3(0.31, 0.34, 0.18);
     vec3 light = vec3(0.43, 0.39, 0.22);
     vec3 field = mix(dark, mid, broad);
-    field = mix(field, light, fine * 0.24 + bands * 0.08);
+    field = mix(field, light, fine * 0.18 + furrows * 0.16);
     ALBEDO = field;
     ROUGHNESS = 0.96;
 }
@@ -634,6 +629,60 @@ void fragment() {
 	var material := ShaderMaterial.new()
 	material.shader = shader
 	return material
+
+func _native_sky_shader() -> Shader:
+	var shader := Shader.new()
+	shader.code = """
+shader_type sky;
+render_mode use_debanding;
+
+float hash21(vec2 p) {
+    p = fract(p * vec2(123.34, 456.21));
+    p += dot(p, p + 45.32);
+    return fract(p.x * p.y);
+}
+
+float cloud_noise(vec2 p) {
+    vec2 cell = floor(p);
+    vec2 local = fract(p);
+    local = local * local * (3.0 - 2.0 * local);
+    float a = hash21(cell);
+    float b = hash21(cell + vec2(1.0, 0.0));
+    float c = hash21(cell + vec2(0.0, 1.0));
+    float d = hash21(cell + vec2(1.0, 1.0));
+    return mix(mix(a, b, local.x), mix(c, d, local.x), local.y);
+}
+
+float cloud_fbm(vec2 p) {
+    float value = 0.0;
+    float weight = 0.58;
+    for (int i = 0; i < 4; i++) {
+        value += cloud_noise(p) * weight;
+        p = p * 2.03 + vec2(17.0, 9.0);
+        weight *= 0.5;
+    }
+    return value;
+}
+
+void sky() {
+    vec3 direction = normalize(EYEDIR);
+    float horizon = smoothstep(-0.10, 0.58, direction.y);
+    vec3 horizon_color = vec3(0.71, 0.82, 0.80);
+    vec3 zenith_color = vec3(0.17, 0.42, 0.62);
+    vec3 clear = mix(horizon_color, zenith_color, horizon);
+    // Browser fixture: coverage .42, height 1600 m, scale 600 m,
+    // softness .05 and opacity .95. The projection is view-direction based
+    // because the native sky has no terrain plot texture to anchor clouds.
+    float cloud_band = smoothstep(0.10, 0.72, direction.y) * (1.0 - smoothstep(0.80, 0.98, direction.y));
+    vec2 cloud_uv = direction.xz / max(direction.y + 0.08, 0.18) * 0.92;
+    float cloud = cloud_fbm(cloud_uv * 1.65 + vec2(4.2, -2.7));
+    float cloud_mask = smoothstep(0.53, 0.61, cloud) * cloud_band;
+    vec3 cloud_color = vec3(0.96, 0.95, 0.88);
+    clear = mix(clear, cloud_color, cloud_mask * 0.95);
+    COLOR = clear;
+}
+"""
+	return shader
 
 func _add_tree_batch(holder: Node3D, transforms: Array[Transform3D]) -> void:
 	if transforms.is_empty():
@@ -757,14 +806,19 @@ func _grass_centers_for_map(map: Dictionary, render_centers: Array) -> Array:
 			if not seen.has(key):
 				seen[key] = true
 				centers.append(candidate)
-	if centers.is_empty() and String(map.get("regional_family", "")) == "china":
+	if String(map.get("regional_family", "")) == "china":
+		# The saved forest rings describe woodland membership, but the menu reel's
+		# broad agricultural shots also need the authored meadow layer close to the
+		# captured camera target. Keep this bounded and deterministic; it changes
+		# only presentation density, never Rust visibility or map membership.
 		for center in render_centers:
-			for offset in [Vector2(-90, -60), Vector2(-30, -30), Vector2(30, 20), Vector2(90, 60)]:
-				var candidate: Vector2 = center + offset
-				var key := "%0.2f:%0.2f" % [candidate.x, candidate.y]
-				if not seen.has(key):
-					seen[key] = true
-					centers.append(candidate)
+			for y in range(-3, 4):
+				for x in range(-3, 4):
+					var candidate: Vector2 = center + Vector2(float(x * 8), float(y * 8))
+					var key := "%0.2f:%0.2f" % [candidate.x, candidate.y]
+					if not seen.has(key):
+						seen[key] = true
+						centers.append(candidate)
 	return centers
 
 func _add_native_grass(holder: Node3D, centers: Array) -> int:
@@ -784,11 +838,22 @@ func _add_native_grass(holder: Node3D, centers: Array) -> int:
 		var grass := scene.instantiate() as Node3D
 		grass.position = Vector3(center.x, 0.0, center.y)
 		grass.rotation.y = float((added * 37) % 360) * PI / 180.0
-		grass.scale = Vector3.ONE * 5.0
+		grass.scale = Vector3.ONE * 8.0
+		_apply_grass_material(grass)
 		holder.add_child(grass)
 		added += 1
 		native_asset_instances["grass"] = int(native_asset_instances.get("grass", 0)) + 1
 	return added
+
+func _apply_grass_material(root: Node) -> void:
+	var mesh := root as MeshInstance3D
+	if mesh != null:
+		var material := StandardMaterial3D.new()
+		material.albedo_color = Color("55743a")
+		material.roughness = 0.98
+		mesh.material_override = material
+	for child in root.get_children():
+		_apply_grass_material(child)
 
 func _build_fog_layers() -> void:
 	for scene_name in semantic_results:
@@ -1312,6 +1377,7 @@ func _write_report() -> void:
 		"candidate": "godot-menu-reel-camera-probe",
 		"comparison_ready": false,
 		"comparison_gates": _comparison_gates(expected_cuts),
+		"authored_materials_reviewed": _authored_materials_reviewed(),
 		"comparison_blocker": _comparison_blocker(),
 		"authored_asset_loaded": authored_asset_loaded,
 		"authored_catalog_complete": authored_asset_loaded and authored_unresolved_templates.is_empty(),
@@ -1374,6 +1440,8 @@ func _comparison_blocker() -> String:
 		return "authored model catalog is not loaded; map geometry and sampled units are rendered"
 	if not authored_unresolved_templates.is_empty():
 		return "authored template modules are unresolved; map geometry and sampled units are rendered"
+	if _authored_materials_reviewed():
+		return "authored materials were reviewed; display-backed visual equivalence remains unproven"
 	return "authored materials and display-backed visual equivalence remain unproven"
 
 func _comparison_gates(expected_cuts: int) -> Dictionary:
@@ -1384,5 +1452,9 @@ func _comparison_gates(expected_cuts: int) -> Dictionary:
 		"named_cuts_complete": cuts_saved == expected_cuts,
 		"display_backed": _display_backed(),
 		"fog_samples_consumed": semantic_fog_publications > 0,
-		"authored_materials_reviewed": false,
+		"authored_materials_reviewed": _authored_materials_reviewed(),
 	}
+
+func _authored_materials_reviewed() -> bool:
+	var value := OS.get_environment("GODOT_AUTHORED_MATERIALS_REVIEWED").strip_edges().to_lower()
+	return value in ["1", "true", "yes"]

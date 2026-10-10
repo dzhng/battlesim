@@ -31,6 +31,6 @@
     }
   ],
   "browserReport": "throwaway/browser-graphics-report-current.json",
-  "nativeReport": "throwaway/native/authored-report-terrain.json",
-  "notes": "Ignored reports and captures are local evidence; this manifest pins the latest Apple Metal browser report, capture hashes, workload fingerprint, viewport and the final display-backed native report."
+  "nativeReport": "throwaway/native/authored-report-reviewed.json",
+  "notes": "Ignored reports and captures are local evidence; this manifest pins the latest Apple Metal browser report, capture hashes, workload fingerprint, viewport and the final display-backed native report. The authored-material review attestation was recorded after the complete unprimed visual critique; comparison_ready remains false."
 }

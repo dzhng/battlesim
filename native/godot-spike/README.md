@@ -76,4 +76,8 @@ the report leaves an asset instance at zero when a source is only a repository
 file or an unfetched Git-LFS pointer. `GODOT_NATIVE_ASSET_INSTANCE_LIMIT`
 controls authored props, and `GODOT_NATIVE_GRASS_INSTANCE_LIMIT` controls the
 separate grass budget. Grass samples follow admitted forest polygons from the
-saved map and are presentation geometry only.
+saved map and are presentation geometry only. After a human has inspected the
+display-backed cuts, set `GODOT_AUTHORED_MATERIALS_REVIEWED=1` on the evidence
+run. The report records that attestation separately from `comparison_ready`:
+the former says the authored materials were inspected, while the latter stays
+false when the visual comparison still rejects parity.
