@@ -30,7 +30,8 @@ test("contact leaders stay on the reported ground center as radius and camera ch
   const handle = createRef<ReadoutLayerHandle>();
   const contact: ContactView = {
     id: 7,
-    center: [200, 300],
+    center: [200, 300, 0],
+    layer: "ground",
     radius: 80,
     source: "firing",
     evidenceTick: 0,
@@ -53,10 +54,32 @@ test("contact leaders stay on the reported ground center as radius and camera ch
   }
 });
 
+test("an air contact's leader hangs at its reported height, not the ground under it", () => {
+  const handle = createRef<ReadoutLayerHandle>();
+  const contact: ContactView = {
+    id: 7,
+    center: [200, 300, 34],
+    layer: "low_air",
+    radius: 30,
+    source: "firing",
+    evidenceTick: 0,
+    expiresTick: 300,
+    kind: null,
+    heard: ["hmg"],
+  };
+  const props = { own: [], selected: [], handle, rules: game as unknown as PanelRules };
+  const view = render(<ReadoutLayer {...props} contacts={present([contact])} />);
+  handle.current!.place((x, y, z) => [x + 50, y - z], camera, { ground: () => 12 });
+  const path = view.container.querySelector(".ro-leader.ro-contact")!.getAttribute("d")!;
+  const line = [...path.matchAll(/M ([\d.-]+) ([\d.-]+)/g)][1];
+  expect([Number(line[1]), Number(line[2])]).toEqual([250, 300 - 34]);
+});
+
 test("every live report gets a truthful label, including never-identified firing", () => {
   const base: ContactView = {
     id: 1,
-    center: [200, 300],
+    center: [200, 300, 0],
+    layer: "ground",
     radius: 20,
     source: "last_seen",
     kind: "test_at",
@@ -247,7 +270,8 @@ test("retiring contact panels fade together with their leader and cannot be pick
   const contact: ContactView = {
     id: 7,
     source: "last_seen",
-    center: [200, 300],
+    center: [200, 300, 0],
+    layer: "ground",
     radius: 20,
     evidenceTick: 0,
     expiresTick: 300,

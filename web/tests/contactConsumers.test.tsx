@@ -34,7 +34,8 @@ afterEach(cleanup);
 const report: ContactView = {
   id: 7,
   source: "firing",
-  center: [400, 300],
+  center: [400, 300, 0],
+  layer: "ground",
   radius: 20,
   evidenceTick: 5,
   expiresTick: 20,

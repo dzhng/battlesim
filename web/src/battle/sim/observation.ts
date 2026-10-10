@@ -60,6 +60,8 @@ export interface ObservationLayout {
   policies: string[];
   directions: string[];
   contactSources: string[];
+  /** Height bands a contact's cause can occupy: ground, low_air. */
+  layers: string[];
   soundCategories: string[];
   soundBands: string[];
   propKinds: string[];
@@ -355,7 +357,11 @@ export interface IdentifiedView {
 export interface ContactView {
   id: number;
   source: string;
-  center: Point2;
+  /** The area's centre, at its cause's height when the evidence came. */
+  center: Point3;
+  /** The height band its cause occupied (`layers`): an air contact floats
+   *  and takes no area fire. */
+  layer: string;
   radius: number;
   evidenceTick: number;
   expiresTick: number;
@@ -1092,7 +1098,8 @@ function decodeFrame(
     ({ field: f }): ContactView => ({
       id: f("id"),
       source: layout.contactSources[f("source")],
-      center: [f("x"), f("y")],
+      center: [f("x"), f("y"), f("z")],
+      layer: layout.layers[f("layer")],
       radius: f("radius"),
       evidenceTick: f("evidenceTick"),
       expiresTick: f("expiresTick"),

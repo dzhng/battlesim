@@ -1,7 +1,7 @@
 //! Units as the authority holds them: bodies, squads, orders and movement state.
 use std::collections::{BTreeSet, VecDeque};
 
-use contract::catalog::{Mobility as Moves, TypeIndex, UnitType};
+use contract::catalog::{AltitudeLayer, Mobility as Moves, TypeIndex, UnitType};
 use contract::command::{Engagement, MoveDirection, RoutePolicy};
 use contract::ids::{Side, UnitId};
 use contract::map::MoverClass;
@@ -434,6 +434,15 @@ impl Unit {
     /// concealment) reaches it.
     pub fn airborne(&self) -> bool {
         matches!(self.motion, Motion::Air(_))
+    }
+
+    /// The height band it occupies, which decides what can engage it.
+    pub fn layer(&self) -> AltitudeLayer {
+        if self.airborne() {
+            AltitudeLayer::LowAir
+        } else {
+            AltitudeLayer::Ground
+        }
     }
 
     /// How it moves over the ground. Only ground movement, routing and

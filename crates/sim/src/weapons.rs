@@ -444,10 +444,13 @@ fn resolve(ctx: &FireContext, side: Side, target: Target, units: &[Unit]) -> Opt
             })
         }
         Target::Contact(c) => {
-            let contact = knowledge.contact(c)?;
+            let contact = knowledge.ground_contact(c)?;
             let z = ctx.world.height_at(contact.center.x, contact.center.y)?;
             Some(Resolved {
-                point: contact.center.with_z(z + ctx.rules.physics.infantry_aim_m),
+                point: contact
+                    .center
+                    .xy()
+                    .with_z(z + ctx.rules.physics.infantry_aim_m),
                 velocity: v3(0.0, 0.0, 0.0),
                 current: true,
                 armor: None,
@@ -1005,7 +1008,7 @@ fn select(
     } else {
         knowledge
             .all_contacts()
-            .map(|c| ((c.center - here).length(), c.id))
+            .map(|c| ((c.center.xy() - here).length(), c.id))
             .collect()
     };
     areas.sort_by(|a, b| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)));
@@ -1017,7 +1020,7 @@ fn select(
         .chain(areas.iter().map(|&(_, c)| (Target::Contact(c), true)));
     let mut reason = None;
     for (target, must_damage) in stages {
-        // An area centred off the map has no ground to aim at.
+        // An area centred off the map, or an air contact, has no ground to aim at.
         let Some(r) = resolve(ctx, unit.side, target, units) else {
             continue;
         };
@@ -1705,10 +1708,10 @@ fn fire(
         }
         let point = match target {
             Target::Contact(c) => {
-                let contact = knowledge.contact(c)?;
+                let contact = knowledge.ground_contact(c)?;
                 let radius = contact.radius * rng.unit().sqrt();
                 let angle = std::f64::consts::TAU * rng.unit();
-                let p = contact.center + v2(libm::cos(angle), libm::sin(angle)) * radius;
+                let p = contact.center.xy() + v2(libm::cos(angle), libm::sin(angle)) * radius;
                 p.with_z(
                     ctx.world.height_at(p.x, p.y).unwrap_or(0.0) + ctx.rules.physics.infantry_aim_m,
                 )

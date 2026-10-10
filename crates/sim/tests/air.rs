@@ -2,8 +2,12 @@
 //! soldiers neither step out of it nor lean on it, forest ground does not hide
 //! it, and it is admitted against its own hull limits.
 
-use contract::command::{CommandEnvelope, MoveDirection, Order, RoutePolicy};
+use contract::catalog::AltitudeLayer;
+use contract::command::{
+    CommandEnvelope, MoveDirection, Order, OrderError, RoutePolicy, TargetRef,
+};
 use contract::ids::{Side, UnitId};
+use contract::observation::ContactSource;
 use contract::scenario::Rules;
 use serde_json::{json, Value};
 use sim::battle::Battle;
@@ -53,8 +57,12 @@ fn fixture() -> Value {
 }
 
 fn battle_with(fixture: &Value, map: Value, units: Value) -> Battle {
+    scripted(fixture, map, units, json!([]), json!([]))
+}
+
+fn scripted(fixture: &Value, map: Value, units: Value, events: Value, scripts: Value) -> Battle {
     let setup = serde_json::from_value(json!({
-        "map": map, "rules": fixture, "units": units, "events": [], "scripts": [],
+        "map": map, "rules": fixture, "units": units, "events": events, "scripts": scripts,
     }))
     .unwrap();
     Battle::new(&setup, 1)
@@ -217,4 +225,156 @@ fn a_battle_with_a_helicopter_replays_to_the_same_digest() {
         b.digest()
     };
     assert_eq!(run(), run());
+}
+
+/// A long strip: an observer at one end loses sight of what stands past its
+/// sensor range at the other.
+fn strip() -> Value {
+    json!({ "size": [1600, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 })
+}
+
+#[test]
+fn a_lost_helicopter_leaves_an_airborne_contact() {
+    // Red's squad sees the hovering helicopter 550 m off, then walks out of
+    // its 600 m sight: the area it leaves hangs where the airframe was, in
+    // the air, not on the ground below it.
+    let fixture = fixture();
+    let mut b = scripted(
+        &fixture,
+        strip(),
+        json!([
+            { "side": "red", "kind": "test_rifle", "position": [200, 200], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_heli", "position": [750, 200], "engagement": "return_fire_only" },
+        ]),
+        json!([]),
+        json!([{ "tick": 20, "side": "red", "order":
+            { "kind": "move", "units": [0], "gesture": 1, "goal": [20, 200], "route": "shortest" } }]),
+    );
+    let heli = b.unit(UnitId(1)).unwrap().position;
+    let mut seen = false;
+    for _ in 0..240 * b.rules().tick_hz {
+        b.step();
+        let red = b.observe(Side::Red);
+        seen |= !red.identified.is_empty();
+        if let Some(c) = red.contacts.first() {
+            assert!(seen, "the helicopter was identified before it was lost");
+            assert_eq!(c.source, ContactSource::LastSeen);
+            assert_eq!(c.layer, AltitudeLayer::LowAir);
+            assert_eq!(
+                c.center,
+                [heli.x, heli.y, heli.z],
+                "the area is where it hovered"
+            );
+            return;
+        }
+    }
+    panic!("the squad never lost the helicopter (seen: {seen})");
+}
+
+/// Blue's squad and, 800 m off and out of its sight, red's helicopter,
+/// which fires once at tick 5.
+fn heard_helicopter(fixture: &Value) -> Battle {
+    let mut b = scripted(
+        fixture,
+        strip(),
+        json!([
+            { "side": "blue", "kind": "test_rifle", "position": [100, 200] },
+            { "side": "red", "kind": "test_heli", "position": [900, 200], "engagement": "return_fire_only" },
+        ]),
+        json!([{ "tick": 5, "fire": { "unit": 1 } }]),
+        json!([]),
+    );
+    for _ in 0..5 {
+        b.step();
+    }
+    b
+}
+
+#[test]
+fn a_heard_helicopter_report_is_airborne() {
+    // A shot from an unseen helicopter is heard overhead: the report's area
+    // is at the airframe's height, in the air band.
+    let fixture = fixture();
+    let b = heard_helicopter(&fixture);
+    let heli = b.unit(UnitId(1)).unwrap().position;
+    let blue = b.observe(Side::Blue);
+    assert!(blue.identified.is_empty(), "the helicopter is out of sight");
+    let [c] = blue.contacts.as_slice() else {
+        panic!("one report: {:?}", blue.contacts);
+    };
+    assert_eq!(c.source, ContactSource::Firing);
+    assert_eq!(c.layer, AltitudeLayer::LowAir);
+    assert_eq!(c.center[2], heli.z, "heard at the airframe's height");
+    let off = (c.center[0] - heli.x).hypot(c.center[1] - heli.y);
+    assert!(
+        off <= c.radius,
+        "the airframe lies inside its area: {off:.1} m"
+    );
+}
+
+/// Blue's tank and, 720 m off and beyond each other's sight, a red `kind`
+/// that fires every second: blue holds only its firing area.
+fn hidden_fire_at_a_tank(fixture: &Value, kind: &str) -> Battle {
+    let fire: Vec<Value> = (0..20)
+        .map(|k| json!({ "tick": 5 + k * 30, "fire": { "unit": 1 } }))
+        .collect();
+    scripted(
+        fixture,
+        strip(),
+        json!([
+            { "side": "blue", "kind": "test_tank", "position": [100, 200] },
+            { "side": "red", "kind": kind, "position": [820, 200], "engagement": "return_fire_only" },
+        ]),
+        json!(fire),
+        json!([]),
+    )
+}
+
+/// Rounds blue's tank launches over `ticks`.
+fn blue_rounds(b: &mut Battle, ticks: u64) -> usize {
+    let mut fired = std::collections::BTreeSet::new();
+    for _ in 0..ticks {
+        b.step();
+        fired.extend(
+            b.rounds()
+                .filter(|(_, r)| r.unit == UnitId(0))
+                .map(|(p, _)| p.id),
+        );
+    }
+    fired.len()
+}
+
+#[test]
+fn area_fire_refuses_an_air_contact() {
+    // A tank crew hears a helicopter's gun but can't see it: shelling the
+    // field under where the sound came from would be silly, so neither the
+    // player's attack order nor the crew's own fire aims at the report. A
+    // squad's report from the same place draws HE as before.
+    let fixture = fixture();
+    let mut b = hidden_fire_at_a_tank(&fixture, "test_heli");
+    let mut ground = hidden_fire_at_a_tank(&fixture, "test_rifle");
+    let (air_rounds, ground_rounds) = (blue_rounds(&mut b, 600), blue_rounds(&mut ground, 600));
+    assert!(b.observe(Side::Blue).identified.is_empty(), "never seen");
+    let [c] = b.observe(Side::Blue).contacts.as_slice() else {
+        panic!("one report: {:?}", b.observe(Side::Blue).contacts);
+    };
+    assert_eq!(c.layer, AltitudeLayer::LowAir);
+    assert_eq!(air_rounds, 0, "the crew never shells an air contact");
+    assert!(ground_rounds > 0, "a ground report still draws area fire");
+    let attack = |id| CommandEnvelope {
+        side: Side::Blue,
+        seq: 1,
+        order: Order::Attack {
+            units: vec![UnitId(0)],
+            target: TargetRef::Contact { id },
+        },
+        queued: false,
+    };
+    assert_eq!(
+        b.accept(attack(c.id)).error,
+        Some(OrderError::AirContact),
+        "an attack order on an air contact is refused"
+    );
+    let area = ground.observe(Side::Blue).contacts[0].id;
+    assert_eq!(ground.accept(attack(area)).error, None);
 }

@@ -1,7 +1,7 @@
 //! The one battle authority: commands in, fixed ticks, side observations out.
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
-use contract::catalog::Destroyed;
+use contract::catalog::{AltitudeLayer, Destroyed};
 use contract::command::{
     BuildingPlacement, BuildingPreviewRequest, CommandAck, CommandEnvelope, Engagement,
     MovePlacement, MovePreviewRequest, Order, OrderError, RoutePolicy, TargetRef,
@@ -1011,12 +1011,14 @@ impl Battle {
     }
 
     /// A side-scoped target reference as the sim's own target, if the side
-    /// holds it right now.
+    /// holds it right now and can aim at it (never an air contact, D22).
     fn resolve_target(&self, side: Side, target: &TargetRef) -> Option<Target> {
         let knowledge = &self.knowledge[side.index()];
         match *target {
             TargetRef::Identified { id } => knowledge.unit_for(id).map(Target::Unit),
-            TargetRef::Contact { id } => knowledge.contact(id).map(|c| Target::Contact(c.id)),
+            TargetRef::Contact { id } => {
+                knowledge.ground_contact(id).map(|c| Target::Contact(c.id))
+            }
             // The aim point sits on the public terrain, whatever height the client sent.
             TargetRef::Ground { point } => self
                 .world
@@ -1060,6 +1062,12 @@ impl Battle {
                 units
             }
             Order::Attack { units, target } => {
+                if let TargetRef::Contact { id } = *target {
+                    let held = self.knowledge[command.side.index()].contact(id);
+                    if held.is_some_and(|c| c.layer != AltitudeLayer::Ground) {
+                        return Err(OrderError::AirContact);
+                    }
+                }
                 if self.resolve_target(command.side, target).is_none() {
                     return Err(OrderError::UnknownTarget);
                 }
@@ -1749,9 +1757,9 @@ impl Battle {
         let Some(shooter) = self.units.get(unit.0 as usize) else {
             return;
         };
-        let (side, at) = (shooter.side, shooter.position.xy());
+        let (side, at, layer) = (shooter.side, shooter.position, shooter.layer());
         for other in Side::ALL.into_iter().filter(|s| *s != side) {
-            self.knowledge[other.index()].note_fire(unit, at, heard);
+            self.knowledge[other.index()].note_fire(unit, at, layer, heard);
         }
         self.fired.insert(unit);
     }
@@ -2074,7 +2082,7 @@ impl Battle {
                         _ => true,
                     },
                 },
-                Target::Contact(c) => knowledge.contact(c).is_none(),
+                Target::Contact(c) => knowledge.ground_contact(c).is_none(),
                 Target::Ground(_) => false,
             };
             if done {
