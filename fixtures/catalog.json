@@ -7965,7 +7965,7 @@
               "name": "Autocannon",
               "on": null,
               "pivot_m": [
-                0.0,
+                -1.2,
                 0.0,
                 2.22
               ],
@@ -7986,7 +7986,7 @@
               "name": "Kornet",
               "on": "autocannon",
               "pivot_m": [
-                0.0,
+                -1.2,
                 1.3,
                 2.696
               ],
@@ -20291,7 +20291,7 @@
           "name": "Autocannon",
           "on": null,
           "pivot_m": [
-            0.0,
+            -1.2,
             0.0,
             2.22
           ],
@@ -20313,7 +20313,7 @@
           "name": "Kornet",
           "on": "autocannon",
           "pivot_m": [
-            0.0,
+            -1.2,
             1.3,
             2.696
           ],

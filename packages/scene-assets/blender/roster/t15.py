@@ -11,7 +11,8 @@ the glacis; a tall rear door with stowage hung high either side.
 
 Built to the catalog frame (hull 9.5 x 3.5 x 3.2 m, module pivot 2.22 m on
 the troop compartment's roof, so the 30 mm's axis is at about 2.72 m, as on
-the real module).
+the real module). The module's ring is 1.2 m behind amidships, over the
+fifth road wheel, where the photos put it; the troop hatches are behind it.
 """
 import math
 import os
@@ -46,7 +47,7 @@ def build(variant, v):
     prism("troop_compartment", [(-half, DECK - 0.02), (TROOP_FRONT + 0.30, DECK - 0.02), (TROOP_FRONT, TROOP_ROOF),
                                 (-half, TROOP_ROOF)], 2 * edge, mat=m["paint"], parent=h, bevel=0.04)
     for k, y in enumerate((0.62, -0.62)):
-        VP.hatch(f"troop_hatch_{k}", (-2.95, y, TROOP_ROOF), m, h, size=(0.90, 0.62))
+        VP.hatch(f"troop_hatch_{k}", (-3.70, y, TROOP_ROOF), m, h, size=(0.90, 0.62))
     box("rear_door", (0.08, 1.00, 1.30), (-half - 0.03, 0, 1.00), m["paint"], h, bevel=0.02)
     stowage = empty("dressing_rear_stowage", parent=h)
     for side in (-1, 1):
