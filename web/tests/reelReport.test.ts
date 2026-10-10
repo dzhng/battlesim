@@ -65,6 +65,13 @@ test("exports each completed scene as a native presentation capture", () => {
   expect(JSON.parse(report.presentationCaptureJson[0]).schema).toBe(
     "battle-presentation-capture/v1",
   );
+  expect(JSON.parse(report.presentationCaptureJson[0]).frames).toHaveLength(1);
+});
+
+test("repairs a legacy reel result that lacks its displayed-frame array", () => {
+  const { frames: _frames, ...legacy } = result("first", 1000, [10]);
+  const report = createReelReport([legacy as unknown as ReelResult]);
+  expect(JSON.parse(report.presentationCaptureJson[0]).frames).toHaveLength(1);
 });
 
 test("a preparation failure stays failed in the exported report even before a scene can start", () => {

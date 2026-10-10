@@ -49,7 +49,18 @@ export function createReelReport(results: readonly ReelResult[], interruption?: 
     side: "blue",
     layout: r.layout,
     samples: r.capture,
-    frames: r.frames,
+    frames: (Array.isArray(r.frames) && r.frames.length > 0 ? r.frames : r.recording.frames).map(
+      (frame) => ({
+        elapsedMs: frame.elapsedMs,
+        tick: "tick" in frame ? frame.tick : r.endTick,
+        camera: {
+          target: [frame.camera.target[0], frame.camera.target[1]],
+          distance: frame.camera.distance,
+          yaw: frame.camera.yaw,
+          pitch: frame.camera.pitch,
+        },
+      }),
+    ),
   }));
   const host = typeof navigator === "undefined" ? null : navigator;
   const viewport =
