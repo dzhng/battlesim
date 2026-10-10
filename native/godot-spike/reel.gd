@@ -79,7 +79,14 @@ func _ready() -> void:
 		call_deferred("_exit_after_ready")
 
 func _exit_after_ready() -> void:
-	print(JSON.stringify({"map_geometry": map_geometry_counts, "semantic_scenes": semantic_results.size()}))
+	print(JSON.stringify({
+		"map_geometry": map_geometry_counts,
+		"semantic_scenes": semantic_results.size(),
+		"authored_asset_loaded": authored_asset_loaded,
+		"authored_building_count": authored_building_count,
+		"authored_map_scene_count": authored_map_scene_count,
+		"authored_unresolved_templates": authored_unresolved_templates,
+	}))
 	get_tree().quit()
 
 func _load_presentation_captures() -> void:
