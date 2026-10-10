@@ -2268,7 +2268,12 @@ impl Battle {
                     .garrison
                     .as_ref()
                     .is_none_or(|g| matches!(g.phase, garrison::Phase::Inside));
-                let keep = !moved[i]
+                // A launcher that guides only standing still lets go as it moves.
+                let on_the_move = self.rounds.get(&s.projectile).is_some_and(|r| {
+                    self.arsenal.weapons[r.weapon].def.ballistics.guidance
+                        == Some(contract::ballistics::Guidance::OnTheMove)
+                });
+                let keep = (!moved[i] || on_the_move)
                     && alive[i]
                     && settled
                     && (unit.hull.is_some() || mount.operator.is_some())

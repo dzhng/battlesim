@@ -89,10 +89,23 @@ pub struct WeaponBallistics {
     /// commanded point no faster than this (P05, P06).
     #[serde(default)]
     pub turn_deg_s: Option<f64>,
+    /// How a guided round's launcher steers it (D38); every guided row says.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub guidance: Option<Guidance>,
     /// A guided round that climbs above its point, then dives onto it from
     /// above (absent: it flies straight at its point).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub top_attack: Option<TopAttack>,
+}
+
+/// When a guided round's launcher can steer it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Guidance {
+    /// Only while the launcher holds still (a ground crew's wire-guided missile).
+    Stationary,
+    /// While the launcher moves too (a helicopter's missile).
+    OnTheMove,
 }
 
 /// A top-attack path: while its launcher supports it, a guided round steers

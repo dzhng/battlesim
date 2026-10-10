@@ -6,6 +6,7 @@ mod common;
 mod air;
 mod air_crash;
 mod air_flight;
+mod air_missiles;
 mod air_supply;
 mod air_weapons;
 mod animation_feed;
