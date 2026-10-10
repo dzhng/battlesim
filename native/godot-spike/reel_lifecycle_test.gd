@@ -50,6 +50,8 @@ func run() -> void:
 	check(reel.map_geometry_counts["first"].forests == 1, "map composition must consume forest regions from the saved export")
 	check(reel.map_geometry_counts["first"].rendered_surface_polygons == 1, "map composition must consume polygon surface material")
 	check(reel.map_geometry_counts["first"].rendered_buildings == 1, "map report must expose submitted building geometry separately from admitted rows")
+	var forest_patch: ArrayMesh = reel._forest_patch_mesh([[2, 2], [8, 2], [8, 7], [2, 7]])
+	check(forest_patch != null and forest_patch.get_surface_count() == 1, "forest polygons must produce a triangulated surface instead of a bounding box")
 	var grass_centers: Array = reel._grass_centers_for_map({
 		"regional_family": "china",
 		"forests": [{"shape": {"kind": "polygon", "ring": [[2, 2], [8, 2], [8, 7], [2, 7]]}}],

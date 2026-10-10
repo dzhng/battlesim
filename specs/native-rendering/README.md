@@ -39,6 +39,7 @@ The fresh unprimed read of that cut remains red: a hard horizontal sky/fog seam,
 The follow-up probe softens the lower procedural-sky palette/fog transition and increases forest sampling to a 3×3 in-polygon grid per admitted forest, still bounded by the explicit grass budget. Focused lifecycle and capture-decoder checks remain green; no new visual verdict is claimed until another display-backed cut is reviewed.
 The next candidate removes the repeated China field stripes that read as scanlines, lowers fog density while applying it to the sky, and scales imported grass clumps for broad-shot readability. This remains a reversible visual probe; the prior critique's material, framing, shadow and aliasing defects are still open.
 That candidate removes the striping artifact and preserves the imported forest patches, but the full frame remains a sparse, fogged city composition with no browser control. It is retained as evidence only; a fresh critique is still required before any gate can move.
+The fresh read also found that forest bounds were still being drawn as a solid rectangle. The native pass now triangulates each saved forest ring, preserving polygon membership instead of rendering a bounding-box tile; the focused lifecycle test pins this contract. Materials, atmosphere, framing and full-reel coverage remain open.
 
 ## Goal
 

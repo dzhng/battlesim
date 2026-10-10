@@ -337,30 +337,16 @@ func _build_map_geometry() -> void:
 			if forest_shape.get("kind") != "polygon" or typeof(forest_shape.get("ring")) != TYPE_ARRAY:
 				continue
 			var ring: Array = forest_shape.ring
-			if ring.size() < 3:
-				continue
-			var min_x := INF
-			var max_x := -INF
-			var min_y := INF
-			var max_y := -INF
-			for point in ring:
-				if typeof(point) != TYPE_ARRAY or point.size() < 2:
-					continue
-				min_x = minf(min_x, float(point[0]))
-				max_x = maxf(max_x, float(point[0]))
-				min_y = minf(min_y, float(point[1]))
-				max_y = maxf(max_y, float(point[1]))
-			if not is_finite(min_x) or max_x <= min_x or max_y <= min_y:
+			var forest_mesh := _forest_patch_mesh(ring)
+			if forest_mesh == null:
 				continue
 			var forest_node := MeshInstance3D.new()
-			var forest_mesh := BoxMesh.new()
-			forest_mesh.size = Vector3(max_x - min_x, 0.04, max_y - min_y)
 			var forest_material := StandardMaterial3D.new()
 			forest_material.albedo_color = Color("304b3b")
 			forest_material.roughness = 1.0
-			forest_mesh.material = forest_material
+			forest_node.material_override = forest_material
 			forest_node.mesh = forest_mesh
-			forest_node.position = Vector3((min_x + max_x) * 0.5, -0.01, (min_y + max_y) * 0.5)
+			forest_node.position.y = -0.01
 			holder.add_child(forest_node)
 			counts.forests += 1
 		for building in map.get("buildings", []):
@@ -585,6 +571,28 @@ func _add_tree_batch(holder: Node3D, transforms: Array[Transform3D]) -> void:
 	var batch := MultiMeshInstance3D.new()
 	batch.multimesh = multi
 	holder.add_child(batch)
+
+func _forest_patch_mesh(ring: Array) -> ArrayMesh:
+	var polygon := PackedVector2Array()
+	for point in ring:
+		if typeof(point) != TYPE_ARRAY or point.size() < 2:
+			continue
+		polygon.append(Vector2(float(point[0]), float(point[1])))
+	if polygon.size() < 3:
+		return null
+	var triangles := Geometry2D.triangulate_polygon(polygon)
+	if triangles.is_empty():
+		return null
+	var vertices := PackedVector3Array()
+	for point in polygon:
+		vertices.append(Vector3(point.x, 0.0, point.y))
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_INDEX] = triangles
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	return mesh
 
 func _grass_centers_for_map(map: Dictionary, render_centers: Array) -> Array:
 	var centers: Array = []
