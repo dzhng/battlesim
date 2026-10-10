@@ -18,10 +18,9 @@ low cupola with the TOW hammerhead raised on its arm, two tube mouths beside
 the sight.
 
 Built to the catalog frames (hull 6.39 x 2.5 m; 2.69 m for the LAV-25 with
-its turret, 2.0 m for the LAV-AT): nothing here moves them. The LAV-25's
-frame puts the turret ring amidships (x 0) and the muzzle 3.65 m ahead of
-it; the drawings put the ring about 0.85 m further back and the muzzle 1.5 m
-behind the bow. The turret is drawn on the frame's pivot (specs/done/unit-models/choices.md).
+its turret, 2.0 m for the LAV-AT): nothing here moves them. Each turret is
+drawn on its frame's pivot, behind amidships as the drawings and photos put
+it (specs/off-centre-turrets.md), and the troop hatches lie behind it.
 """
 import math
 import os
@@ -128,13 +127,14 @@ def fittings(v):
     for k, x in enumerate((-0.80, -0.10)):
         box(f"silencer_strap_{k}", (0.05, 0.10, 0.34), (x, -1.20, 1.42), m["paint"], hull, lods=NEAR)
     VP.exhaust("exhaust", (-1.00, -1.18, 1.30), 0.06, 0.35, m, hull, rot=(0, 0.4, math.pi))
-    # Troop compartment: two roof hatches, the stowage rails and a tarp.
+    # Troop compartment: two roof hatches behind the turret, the stowage
+    # rails and a tarp strapped across the hatches.
     for k, y in enumerate((0.45, -0.45)):
-        VP.hatch(f"troop_hatch_{k}", (-2.15, y, ROOF), m, hull, size=(0.95, 0.66))
+        VP.hatch(f"troop_hatch_{k}", (-2.58, y, ROOF), m, hull, size=(0.75, 0.66))
     for side in (-1, 1):
         box(f"roof_rail_{side}", (1.70, 0.04, 0.10), (-2.10, side * 0.88, ROOF + 0.05), m["steel"], hull, lods=NEAR)
     tarp = empty("dressing_roof_tarp", parent=hull)
-    VP.tarp_roll("roof_tarp", (-2.80, 0, ROOF + 0.13), 1.40, 0.13, m, tarp, straps=3)
+    VP.tarp_roll("roof_tarp", (-2.80, 0, ROOF + 0.22), 1.40, 0.13, m, tarp, straps=3)
     # Twin doors in the leaning upper rear plate, hinged at the sides, with
     # vision blocks and handles.
     tilt = math.atan(0.20 / (ROOF - CHINE - 0.05))
@@ -159,7 +159,7 @@ def lav_turret(v, turret, gun):
     smoke banks on each cheek, the gunner's and commander's sight heads and
     hatches, and the commander up in his hatch."""
     m = v.mats
-    pz = v.frame["mounts"][0]["pivot_m"][2]
+    px, py, pz = v.frame["mounts"][0]["pivot_m"]
     base = ROOF - pz
     top = 2.45 - pz
     cyl("turret_ring", 0.90, 0.07, (0, 0, base + 0.035), "Z", m["dark"], turret, seg=32, lods=MID)
@@ -200,10 +200,11 @@ def lav_turret(v, turret, gun):
     cyl("coax_barrel", 0.02, 0.40, (1.25, -0.20, -0.03), "X", m["steel"], gun, seg=8, lods=NEAR)
     whip = empty("dressing_turret_antenna", parent=turret)
     VP.antenna("turret_antenna", (-1.05, 0.62, top), m, whip, height=2.4)
-    # The commander stands in his hatch, head and shoulders out (photos).
+    # The commander stands in his hatch, head and shoulders out (photos):
+    # posed in the hull frame, at his ring on the turret.
     if not v.wreck:
         seat = empty("dressing_commander", parent=turret)
-        x, y, z = -0.55, -0.32, top + pz
+        x, y, z = px - 0.55, py - 0.32, top + pz
         v.crew.append(("commander", seat, (x - 0.05, y, z - 0.42),
                        ((x + 0.22, y + 0.20, z + 0.04), (x + 0.22, y - 0.20, z + 0.04)),
                        ((x, y + 0.12, z - 1.25), (x, y - 0.12, z - 1.25))))
@@ -260,7 +261,7 @@ def wreck(variant, v):
     warp(shell, heat(0.02, 0.8, seed=12.0), dent((2.4, -0.4, 1.60), 0.5, 0.12, (-0.4, 0, -1)))
     for k, (loc, rot, size) in enumerate((((1.6, -1.70, 0.03), (0.03, 0.04, 0.9), 0.30),
                                           ((-1.2, 1.65, 0.03), (-0.04, 0.02, 2.2), 0.26),
-                                          ((-2.2, 0.2, ROOF + 0.04), (0.02, 0.04, 0.3), 0.32))):
+                                          ((-2.6, 0.2, ROOF + 0.04), (0.02, 0.04, 0.3), 0.32))):
         plate(f"litter_{k}", [(-size, -size * 0.6), (size * 0.9, -size * 0.7), (size, size * 0.5),
                               (-size * 0.7, size * 0.8)], 0.03, loc, rot, m["paint"], v.hull, curl=0.12, seed=81 + k)
     v.root.rotation_euler = (0.045, 0.04, 0)
