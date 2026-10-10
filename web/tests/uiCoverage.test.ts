@@ -24,6 +24,7 @@ const PLAYER_FACING = [
     .map((f) => `web/src/battle/present/${f}`),
   "apps/battle-lab/src/PauseMenu.tsx",
   "apps/battle-lab/src/LoadingScreen.tsx",
+  "apps/battle-lab/src/Wordmark.tsx",
   "apps/battle-lab/src/battleStatus.tsx",
   "apps/battle-lab/src/SoundControls.tsx",
 ];
