@@ -21,7 +21,10 @@ fn block(id: u32, center: [f64; 2], half: f64, height: f64) -> Value {
         "half_extents": [half, half, height / 2.0] })
 }
 
-/// Fly the helicopter (unit 0, at [100, 200]) to [500, 200]; each tick's
+/// Where every flight here is ordered.
+const GOAL: [f64; 2] = [500.0, 200.0];
+
+/// Fly the helicopter (unit 0, at [100, 200]) to `GOAL`; each tick's
 /// position, then whether it arrived.
 fn fly(map: Value) -> (Battle, Vec<sim::math::V3>) {
     let fixture = fixture();
@@ -30,7 +33,7 @@ fn fly(map: Value) -> (Battle, Vec<sim::math::V3>) {
         map,
         json!([{ "side": "blue", "kind": "test_heli", "position": [100, 200] }]),
     );
-    assert_eq!(b.accept(order(&[0], [500.0, 200.0])).error, None);
+    assert_eq!(b.accept(order(&[0], GOAL)).error, None);
     let mut track = Vec::new();
     for _ in 0..40 * b.rules().tick_hz {
         b.step();
@@ -40,7 +43,7 @@ fn fly(map: Value) -> (Battle, Vec<sim::math::V3>) {
 }
 
 fn arrived(b: &Battle) -> f64 {
-    (b.unit(UnitId(0)).unwrap().position.xy() - v2(500.0, 200.0)).length()
+    (b.unit(UnitId(0)).unwrap().position.xy() - v2(GOAL[0], GOAL[1])).length()
 }
 
 /// The highest it flew within `reach` of `x` along the track.
@@ -137,10 +140,9 @@ fn flies_on_past_a_tower_without_turning_back() {
         );
         // It never turns back: a skimmed corner once turned it back 100 m;
         // curving onto its goal it may cross the goal's line by a metre or so.
-        // Closing on its goal round a last corner, the
-        // momentum it carries out of the turn may bow its path a few
-        // centimetres wide (0.18 m at worst, U1 in the choices ledger), never more than
-        // 0.2 m.
+        // Closing on its goal round a last corner, the momentum it carries out
+        // of the turn may bow its path up to 0.18 m wide (U1 in the choices
+        // ledger), never more than 0.2 m.
         let mut furthest = f64::NEG_INFINITY;
         let mut nearest = f64::INFINITY;
         for p in &track {
@@ -150,7 +152,7 @@ fn flies_on_past_a_tower_without_turning_back() {
                 "tower {offset}: turned back from x {furthest:.2} to {:.2}",
                 p.x
             );
-            let d = (p.xy() - v2(500.0, 200.0)).length();
+            let d = (p.xy() - v2(GOAL[0], GOAL[1])).length();
             if d < 30.0 {
                 assert!(
                     d <= nearest + 0.2,
