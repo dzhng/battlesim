@@ -1,4 +1,4 @@
-"""M10 Booker light tank (disabled card), from assets/references/m10/.
+"""M10 Booker light tank, from assets/references/m10/.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/m10.py -- [--wreck]
 
@@ -17,15 +17,14 @@ on a pintle ahead of the commander's hatch on the left, a mast behind; the
 hull's right rear. US desert tan (the Yuma photos; the unveiling vehicles
 are green).
 
-The frame is the hull's length over its towing lugs (the published 6.85 m
-hull is the plates), its width over the skirts and headlight boxes, and its
-height to the top of the commander's sight, the highest fixed part (the M2
-aside). The published figures disagree (references gaps); these are the
-middle of them, and everything along and up the vehicle (road-wheel pitch
-and size, deck, turret, gun axis, sight) is laid out in proportion to that
-length off the left-side photo. The turret and gun articulate on mounts
-stated here from the photos, so its wreck throws the turret; nothing in the
-simulation reads them.
+Built to the catalog frame (hull 7.0 x 3.4 x 2.98 m, gun axis 2.10 m up):
+the hull's length over its towing lugs (the published 6.85 m hull is the
+plates), its width over the skirts and headlight boxes, and its height to
+the top of the commander's sight, the highest fixed part (the M2 aside). The
+published figures disagree (references gaps); these are the middle of them,
+and everything along and up the vehicle (road-wheel pitch and size, deck,
+turret, gun axis, sight) is laid out in proportion to that length off the
+left-side photo.
 """
 import math
 import os
@@ -34,18 +33,10 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft, prism, stencil  # noqa: E402
-from vehicle_export import rig, run_disabled  # noqa: E402
+from vehicle_export import rig, run  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 
-CARD = "us_m10_booker"
-DIMENSIONS = (7.00, 3.40, 2.90)
-# The gun axis 2.10 m up and the muzzle 1.45 m past the nose at rest (about
-# 8.5 m gun forward), as the side photo has them.
-MOUNTS = [
-    dict(name="cannon", role="gun", on=None, pivot_m=[-0.15, 0.0, 1.78], muzzle_m=[5.10, 0.0, 0.32]),
-    dict(name="HMG", role="hmg", on="cannon", pivot_m=[-0.25, 0.62, 2.72], muzzle_m=[1.20, 0.0, 0.22]),
-]
 TRUNNION = 1.00
 TRACK_Y = 1.32
 TRACK_W = 0.50
@@ -58,9 +49,12 @@ SPROCKET = (2.90, 0.66, 0.26)  # front drive
 IDLER = (-2.95, 0.62, 0.26)
 RETURNS = [(1.2, 0.84, 0.08), (-0.2, 0.85, 0.08), (-1.6, 0.84, 0.08)]
 DECK = 1.62
+# The nose: one tall blunt plate to 1.42 m, then a short glacis to the deck.
+NOSE_TOP = 1.42
+GLACIS = 0.55
 SKIRT_Y = 1.60
 SKIRT_TOP, SKIRT_FOOT = 1.24, 0.66
-ROOF = 0.78  # the turret roof above the pivot, 2.56 m up: high and flat, as the side photos show
+ROOF = 0.82  # the turret roof above the pivot, 2.60 m up: high and flat, as the side photos show
 CUPOLA = (-0.70, 0.62)  # the commander's hatch, behind the M2 (turret frame)
 
 
@@ -68,20 +62,20 @@ def hull(v):
     m, h = v.mats, v.hull
     half = v.length / 2 - 0.165  # the length counts the towing lugs and hooks
     # The tall blunt nose, a short upper glacis, then the long flat deck.
-    prism("hull_upper", [(-half, 0.92), (half - 0.10, 0.92), (half, 1.06), (half, 1.30), (half - 0.85, DECK),
+    prism("hull_upper", [(-half, 0.92), (half - 0.10, 0.92), (half, 1.06), (half, NOSE_TOP), (half - GLACIS, DECK),
                          (-half + 0.08, DECK), (-half, DECK - 0.12)], 3.10, mat=m["paint"], parent=h, bevel=0.06)
     prism("hull_lower", [(-half + 0.40, 0.46), (half - 0.55, 0.46), (half - 0.08, 0.94), (-half, 0.94),
                          (-half, 0.72)], 2.12, mat=m["paint"], parent=h, bevel=0.04)
     # The nose's one big bolted plate, its two towing lugs.
-    VP.bolted_panel("nose_plate", (half + 0.005, 0, 1.02), (0.50, 2.70, 0.06), m, h, bolts=(3, 6),
+    VP.bolted_panel("nose_plate", (half + 0.005, 0, 1.10), (0.64, 2.70, 0.06), m, h, bolts=(3, 6),
                     rot=(0, math.pi / 2, 0), bevel=0.02, lods=VP.ALL)
     for side, s in ((1, "L"), (-1, "R")):
         box(f"nose_lug_{s}", (0.16, 0.14, 0.30), (half + 0.12, side * 0.62, 1.00), m["paint"], h, bevel=0.03,
             lods=MID)
         VP.shackle(f"front_shackle_{s}", (half + 0.12, side * 0.62, 0.82), m, h, size=0.13, rot=(0, 0, math.pi / 2))
         # Headlights in armoured boxes on the front corners.
-        box(f"light_box_{s}", (0.28, 0.42, 0.24), (half - 0.20, side * 1.48, 1.42), m["paint"], h, bevel=0.03)
-        VP.light_with_guard(f"headlight_{s}", (half - 0.05, side * 1.42, 1.42), 0.06, m, h)
+        box(f"light_box_{s}", (0.28, 0.42, 0.24), (half - 0.20, side * 1.48, NOSE_TOP + 0.04), m["paint"], h, bevel=0.03)
+        VP.light_with_guard(f"headlight_{s}", (half - 0.05, side * 1.42, NOSE_TOP + 0.04), 0.06, m, h)
         VP.light_with_guard(f"tail_light_{s}", (-half - 0.01, side * 1.40, 1.45), 0.05, dict(m, lamp=m["tail"]), h,
                             rot=(0, 0, math.pi))
         VP.tow_hook(f"rear_tow_{s}", (-half + 0.02, side * 0.85, 0.82), m, h, size=0.13, rot=(0, 0, math.pi))
@@ -89,10 +83,10 @@ def hull(v):
                                     (0.5, side * 1.45, DECK + 0.02)], m, h, radius=0.022)
         VP.stowage_box(f"deck_bin_{s}", (-2.88, side * 1.30, DECK), (0.80, 0.36, 0.30), m, h,
                        rot=(0, 0, 0 if side > 0 else math.pi))
-    slope = math.atan((DECK - 1.30) / 0.85)
-    VP.hatch("driver_hatch", (half - 0.95, 0.0, DECK), m, h, radius=0.28)
+    slope = math.atan((DECK - NOSE_TOP) / GLACIS)
+    VP.hatch("driver_hatch", (half - 0.85, 0.0, DECK), m, h, radius=0.28)
     for k, y in enumerate((-0.22, 0.0, 0.22)):
-        VP.periscope(f"driver_periscope_{k}", (half - 0.62, y, 1.30 + 0.62 * math.tan(slope) - 0.01), m, h,
+        VP.periscope(f"driver_periscope_{k}", (half - 0.40, y, NOSE_TOP + 0.40 * math.tan(slope) - 0.01), m, h,
                      size=(0.12, 0.16, 0.08), rot=(0, slope, 0))
     VP.grille("engine_grille_L", (-2.85, 0.55, DECK), (0.80, 0.80), m, h, slats=7)
     VP.grille("engine_grille_R", (-2.85, -0.55, DECK), (0.80, 0.80), m, h, slats=7)
@@ -131,24 +125,27 @@ def skirts(v):
 # The turret's shape (turret frame, from the photos): upright slab sides
 # nearly the hull's width, a broad blunt front of two flat cheeks either side
 # of the mantlet's slot with chamfered outer corners, coming to a prow a
-# little above the gun axis; under it the front falls back to the ring, over
-# it a long chamfer runs back to the high flat roof.
+# well above the gun axis; under it the front falls back to the ring, over
+# it a short chamfer runs back to the high flat roof. The front stands near
+# upright and the bustle is short, so the turret reads as a tall box and not
+# the Abrams' long low wedge.
 TURRET_SIDE = 1.48
-PROW = (1.40, 0.24)  # (x, z): the cheeks' most forward line
-UPPER_FRONT = 0.55  # where the upper chamfer meets the roof (x)
+PROW = (1.30, 0.36)  # (x, z): the cheeks' most forward line
+UPPER_FRONT = 1.02  # where the upper chamfer meets the roof (x)
+BACK = -2.00  # the bustle's back (x)
 
 
 def turret_plan(front, side):
     """One ring of the turret: the mantlet's slot, the flat cheeks, their
     chamfered corners, the upright sides and the bustle's back."""
     left = [(front - 0.25, 0.38), (front, 0.50), (front, side - 0.30), (front - 0.26, side), (-1.30, side),
-            (-2.20, side - 0.10)]
+            (BACK, side - 0.10)]
     return left + [(x, -y) for x, y in reversed(left)]
 
 
 def turret_body(v, turret):
     m = v.mats
-    base = DECK - MOUNTS[0]["pivot_m"][2]
+    base = DECK - v.frame["mounts"][0]["pivot_m"][2]
     cyl("turret_ring_guard", 1.00, 0.08, (0, 0, base + 0.02), "Z", m["dark"], turret, seg=36, lods=MID)
     loft("turret_shell", [(base + 0.03, turret_plan(PROW[0] - 0.22, TURRET_SIDE - 0.02)),
                           (PROW[1], turret_plan(PROW[0], TURRET_SIDE)),
@@ -165,31 +162,31 @@ def turret_body(v, turret):
         loc, rot = VP.on_side(0.30, (PROW[1] + ROOF) / 2, side, *side_face)
         VP.bolted_panel(f"cheek_plate_{s}", loc, (1.30, ROOF - PROW[1] - 0.12, 0.05), m, turret, bolts=(4, 2),
                         bevel=0.02, lods=VP.ALL, rot=rot)
-        VP.stowage_box(f"bustle_bin_{s}", (-1.76, side * (TURRET_SIDE - 0.08), base + 0.28), (0.85, 0.24, 0.40), m,
+        VP.stowage_box(f"bustle_bin_{s}", (-1.60, side * (TURRET_SIDE - 0.08), base + 0.28), (0.85, 0.24, 0.40), m,
                        turret, rot=(0, 0, 0 if side > 0 else math.pi))
         whip = empty(f"dressing_antenna_{s}", parent=turret)
-        VP.antenna(f"antenna_{s}", (-1.98, side * 0.95, ROOF), m, whip, height=2.2)
+        VP.antenna(f"antenna_{s}", (BACK + 0.22, side * 0.95, ROOF), m, whip, height=2.2)
     # Roof: the gunner's sight behind the chamfer on the right, the
     # commander's dome on a short collar at the right, top of the frame
     # (fixed armour, not dressing), the loader's hatch and the mast.
     VP.sight_housing("gunner_sight", (UPPER_FRONT - 0.10, -0.62, ROOF - 0.04), m, turret, size=(0.46, 0.38, 0.26))
     dome = empty("commander_sight", parent=turret)
     cyl("dome_post", 0.14, 0.08, (-0.25, -0.70, ROOF + 0.04), "Z", m["dark"], dome, seg=16, lods=MID)
-    cyl("dome_head", 0.22, 0.30, (-0.25, -0.70, ROOF + 0.23), "Z", m["paint"], dome, seg=24, bevel=0.07)
-    box("dome_window", (0.03, 0.22, 0.12), (-0.03, -0.70, ROOF + 0.23), m["glass"], dome, lods=MID)
+    cyl("dome_head", 0.24, 0.30, (-0.25, -0.70, ROOF + 0.23), "Z", m["paint"], dome, seg=24, bevel=0.07)
+    box("dome_window", (0.03, 0.22, 0.12), (-0.01, -0.70, ROOF + 0.23), m["glass"], dome, lods=MID)
     VP.cupola("commander_cupola", (*CUPOLA, ROOF), m, turret, radius=0.34, periscopes=5)
     VP.hatch("loader_hatch", (-0.95, -0.15, ROOF), m, turret, radius=0.26)
     mast = empty("dressing_mast", parent=turret)
-    cyl("mast_pole", 0.03, 0.90, (-1.85, 0.30, ROOF + 0.45), "Z", m["dark"], mast, seg=8, lods=NEAR)
-    box("mast_head", (0.14, 0.14, 0.12), (-1.85, 0.30, ROOF + 0.92), m["dark"], mast, bevel=0.02, lods=NEAR)
-    VP.stowage_box("bustle_box", (-1.94, 0, base + 0.25), (0.50, 2.10, 0.55), m, turret)
+    cyl("mast_pole", 0.03, 0.90, (BACK + 0.25, 0.30, ROOF + 0.45), "Z", m["dark"], mast, seg=8, lods=NEAR)
+    box("mast_head", (0.14, 0.14, 0.12), (BACK + 0.25, 0.30, ROOF + 0.92), m["dark"], mast, bevel=0.02, lods=NEAR)
+    VP.stowage_box("bustle_box", (BACK + 0.26, 0, base + 0.25), (0.50, 2.10, 0.55), m, turret)
 
 
 def gun_105(v, gun):
     """The 105 mm: a squared gun shield, the barrel with its bore evacuator
     mid-way and a plain muzzle."""
     m = v.mats
-    reach = MOUNTS[0]["muzzle_m"][0] - TRUNNION
+    reach = v.frame["mounts"][0]["muzzle_m"][0] - TRUNNION
     box("gun_shield", (0.50, 0.66, 0.50), (0.05, 0, 0.0), m["paint"], gun, bevel=0.05)
     cyl("barrel_root", 0.11, 0.40, (0.45, 0, 0), "X", m["paint"], gun, seg=24)
     evac = 1.70
@@ -211,8 +208,9 @@ def build(variant, v):
     turret_body(v, turret)
     gun_105(v, gun)
     cyl("pintle", 0.04, 0.24, (0, 0, -0.10), "Z", v.mats["dark"], hmg, seg=10)
-    VP.browning_m2(hmg_gun, MOUNTS[1]["muzzle_m"][0], v.mats, grips=True)
-    v.head_out("commander", turret, MOUNTS[0]["pivot_m"][0] + CUPOLA[0], CUPOLA[1], MOUNTS[0]["pivot_m"][2] + ROOF)
+    gun_mount, hmg_mount = v.frame["mounts"]
+    VP.browning_m2(hmg_gun, hmg_mount["muzzle_m"][0], v.mats, grips=True)
+    v.head_out("commander", turret, gun_mount["pivot_m"][0] + CUPOLA[0], CUPOLA[1], gun_mount["pivot_m"][2] + ROOF)
 
 
 def wreck(variant, v):
@@ -241,6 +239,4 @@ def wreck(variant, v):
     rest_on_ground(0.004)
 
 
-if __name__ == "__main__":
-    run_disabled("m10", {CARD: DIMENSIONS}, "us_desert_tan", build, wreck, mounts={CARD: MOUNTS},
-                 skip=("dressing_", "gun", "hmg", "muzzle"), chip=1.0)
+run("m10", "us_desert_tan", build, wreck, chip=1.0)
