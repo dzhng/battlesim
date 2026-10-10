@@ -1,6 +1,7 @@
 // @vitest-environment node
 // One outlined, filled and hatched glyph for every source, using only the
 // report's area and shared presented opacity.
+import { vec3, type Vec3 } from "math";
 import { expect, test } from "vitest";
 import { buildContactGlyphs, type ContactShape } from "@packages/battle-renderer/src/contactGlyph";
 import { VERTEX_FLOATS } from "@packages/battle-renderer/src/mesh";
@@ -126,7 +127,6 @@ function vertices3(mesh: Float32Array) {
   return out;
 }
 const off = (p: number[]) => [p[0] - 400, p[1] - 300, p[2] - 30];
-const dot = (a: number[], b: readonly number[]) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 type V3 = { p: number[]; n: number[]; rgba: number[] };
 /** The stem is the rim's pale colour at the stem's alpha; the rest is the sign. */
 const isStem = (v: V3) =>
@@ -146,7 +146,8 @@ test("an aloft contact floats at its height as a disc facing the camera", () => 
   expect(verts.length).toBeGreaterThan(0);
   // Every vertex lies in the plane through the centre facing the eye: a
   // perfect circle on screen, at the contact's height, not on the ground.
-  for (const v of verts) expect(Math.abs(dot(off(v.p), toEye))).toBeLessThan(1e-3);
+  for (const v of verts)
+    expect(Math.abs(vec3.dot(off(v.p) as Vec3, toEye as Vec3))).toBeLessThan(1e-3);
   expect(Math.min(...verts.map((v) => v.p[2]))).toBeGreaterThan(30 - 20 * 1.2);
   // Lit as the ground glyph is (its normal is the ground's), so the two
   // read as one red.
@@ -216,7 +217,10 @@ test("the sign keeps the ground glyph's recipe and adds a dark keyline outside i
   );
   const across = (v: { p: number[] }) => {
     const o = off(v.p);
-    const [x, y] = [dot(o, facing().right), dot(o, facing().up)];
+    const [x, y] = [
+      vec3.dot(o as Vec3, facing().right as Vec3),
+      vec3.dot(o as Vec3, facing().up as Vec3),
+    ];
     return (y - x) / Math.SQRT2;
   };
   const lines = new Set(hatched.map((v) => Math.round(across(v) / style.hatch_spacing_m)));
