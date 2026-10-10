@@ -8,6 +8,16 @@ heavy IFV.
 Open with one art-fix commit before admission: sheet → fix → one unprimed critique.
 T-14: enlarge the turret against the tall hull so it reads as a tank, not an Armata IFV. T-15: raise the module pivot about 0.4 m (to about 2.22 m), shorten the mast or grow the frame height, then check the 30 mm and Kornet pair read at battle-near. Only these ranked fixes; dropped findings stay dropped.
 
+User review (2026-10-10), also in this slice:
+- **T-15 rear:** the back must rise to full hull height, so the side armour panels are not
+  above the back ([zoom](../assets/triage/t15-rear-zoom.png); reference
+  `assets/references/t15/*three_quarter_rear.jpg`).
+- **T-90M turret (live unit):** the turret reads as a flat slab over nearly the whole hull, like
+  a casemate gun ([zoom](../assets/triage/t90-turret-zoom.png)). The real turret is compact and
+  forward of centre: forward-angled wedge ERA cheeks, a slat-cage bustle at the rear, the engine
+  deck exposed behind it (`assets/references/t90/`). `t90.py` imports `t72.py`; if the fix touches
+  shared code, re-export and re-check the T-72 (and T-80 if it shares it) in this slice.
+
 ## Seam
 
 Run the [admission recipe](../README.md#admission-recipe) for both cards.
