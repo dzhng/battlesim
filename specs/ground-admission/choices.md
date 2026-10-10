@@ -73,3 +73,16 @@ the [README](README.md#decisions).
   the encoding body ids already use). Digests are unchanged (`heard` was already hashed as a u32).
   Rejected: one shared top-attack row for both teams, which would make the Akeron a copy of the
   Javelin and leave no headroom (the helicopter spec adds rows next).
+
+## 2026-10-10 — slice 09 (M1E3)
+
+- **Extends the SEP v3 Trophy record** (two overrides: the HMG pivot on its mid-roof pedestal, and
+  30 km/h off road against 27, as the M1E3 is meant to be lighter; a guess). Armour stays at SEP v3
+  level (front 190), below the Challenger 3's 250; the closeout balance report tunes it.
+- **Kept the inherited 2.44 m hull box,** not the old 2.30 m: the art fits it without moving roof
+  gear under dressing.
+- **Mount id stays `HMG`** (not `RWS`) so the appearance mount map matches its peers.
+- **Trophy sits on the flat turret sides** (radar at x −1.10, y ±1.70), via a new `at` argument on
+  `abrams.trophy_station`; the old rear-corner spot would overhang the short turret. The Abrams family
+  re-exports byte-identical.
+- **Dropped:** the critique's smoke-rack bracket and lighter turret face (outside slice 01's ranking).
