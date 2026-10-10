@@ -333,6 +333,15 @@ export function MainMenu() {
           <>
             <SoundControls />
             <DiagnosticsControls />
+            <nav aria-label="Graphics">
+              <ul>
+                <li>
+                  <Link className="menu-card" to="/graphics-test">
+                    <span className="menu-card-label">Graphics test</span>
+                  </Link>
+                </li>
+              </ul>
+            </nav>
           </>
         )}
         {page === "developer" && <Entries label="Developer" entries={DEVELOPER} />}

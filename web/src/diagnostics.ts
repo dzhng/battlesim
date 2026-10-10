@@ -45,7 +45,28 @@ interface LongFrame {
 const frames = new Ring<number>(WINDOW);
 const inputDelays = new Ring<number>(WINDOW);
 const longFrames = new Ring<LongFrame>(WINDOW);
-const errors = new Ring<string>(ERRORS);
+/** Errors in the order first seen. A repeat (a failure every frame) counts on
+ *  its first entry, so a flood cannot push out the error that started it. */
+const errors = {
+  entries: [] as { at: string; last: string; count: number; text: string }[],
+  push(text: string) {
+    const now = new Date().toISOString();
+    const known = this.entries.find((e) => e.text === text.slice(0, 2000));
+    if (known) {
+      known.count++;
+      known.last = now;
+      return;
+    }
+    this.entries.push({ at: now, last: now, count: 1, text: text.slice(0, 2000) });
+    if (this.entries.length > ERRORS) this.entries.splice(0, this.entries.length - ERRORS);
+  },
+  get values() {
+    return this.entries;
+  },
+  clear() {
+    this.entries = [];
+  },
+};
 const sources = new Map<string, () => unknown>();
 const listeners = new Set<() => void>();
 let enabled = load();
@@ -70,20 +91,18 @@ function start() {
     passive: true,
     signal,
   });
-  window.addEventListener(
-    "error",
-    (e) => errors.push(`${new Date().toISOString()} ${e.message} (${e.filename}:${e.lineno})`),
-    { signal },
-  );
+  window.addEventListener("error", (e) => errors.push(`${e.message} (${e.filename}:${e.lineno})`), {
+    signal,
+  });
   window.addEventListener(
     "unhandledrejection",
-    (e) => errors.push(`${new Date().toISOString()} unhandled: ${String(e.reason)}`),
+    (e) => errors.push(`unhandled: ${String(e.reason)}`),
     { signal },
   );
   // The app reports its own failures (a battle's aborted resources) here.
   const consoleError = console.error;
   console.error = (...args: unknown[]) => {
-    errors.push(`${new Date().toISOString()} ${args.map(String).join(" ")}`.slice(0, 2000));
+    errors.push(args.map(String).join(" "));
     consoleError.apply(console, args);
   };
   let observer: PerformanceObserver | null = null;
@@ -149,6 +168,12 @@ export const diagnostics = {
     if (enabled) start();
   },
 };
+
+/** A failure the player was shown (a loading screen's plate): its message
+ *  and the details behind it, which the console never saw. */
+export function diagnosticsFailure(message: string, details: readonly string[]) {
+  if (stop) errors.push(`shown: ${[message, ...details].join(" | ")}`);
+}
 
 /** Add `name`'s live section to the report while the page shows it; returns
  *  its removal. A section that throws reports its error instead. */
