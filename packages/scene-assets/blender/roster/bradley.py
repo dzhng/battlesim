@@ -19,9 +19,10 @@ stowage on the rear sponsons.
 Paint: US desert tan (`us_desert_tan`), as the M3A3 photos and the Abrams;
 the M2A4 photos in Europe show green, a scheme `textures.SCHEMES` lacks.
 
-Built to the catalog frame (hull 6.55 x 3.6 x 2.98 m, turret pivot 1.937 m,
-autocannon muzzle 3.6 m ahead, launcher on the left at 0.972 m): nothing here
-moves it.
+Built to the catalog frame (hull 6.55 x 3.6 x 2.98 m; turret pivot 0.5 m
+behind the hull's middle and 0.2 m right of it, 1.937 m up, as the side and
+head-on photos show; autocannon muzzle 3.6 m ahead, launcher 0.972 m left of
+the pivot): nothing here moves it.
 """
 import math
 import os

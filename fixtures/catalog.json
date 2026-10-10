@@ -14510,8 +14510,8 @@
               "name": "Autocannon",
               "on": null,
               "pivot_m": [
-                0.0,
-                0.0,
+                -0.5,
+                -0.2,
                 1.937
               ],
               "special": false,
@@ -14531,8 +14531,8 @@
               "name": "TOW 2A",
               "on": "autocannon",
               "pivot_m": [
-                0.0,
-                0.972,
+                -0.5,
+                0.772,
                 2.444
               ],
               "special": false,
@@ -14621,8 +14621,8 @@
               "name": "Autocannon",
               "on": null,
               "pivot_m": [
-                0.0,
-                0.0,
+                -0.5,
+                -0.2,
                 1.937
               ],
               "special": false,
@@ -14642,8 +14642,8 @@
               "name": "TOW 2A",
               "on": "autocannon",
               "pivot_m": [
-                0.0,
-                0.972,
+                -0.5,
+                0.772,
                 2.444
               ],
               "special": false,
@@ -26468,8 +26468,8 @@
           "name": "Autocannon",
           "on": null,
           "pivot_m": [
-            0.0,
-            0.0,
+            -0.5,
+            -0.2,
             1.937
           ],
           "special": false,
@@ -26490,8 +26490,8 @@
           "name": "TOW 2A",
           "on": "autocannon",
           "pivot_m": [
-            0.0,
-            0.972,
+            -0.5,
+            0.772,
             2.444
           ],
           "special": false,
@@ -26582,8 +26582,8 @@
           "name": "Autocannon",
           "on": null,
           "pivot_m": [
-            0.0,
-            0.0,
+            -0.5,
+            -0.2,
             1.937
           ],
           "special": false,
@@ -26604,8 +26604,8 @@
           "name": "TOW 2A",
           "on": "autocannon",
           "pivot_m": [
-            0.0,
-            0.972,
+            -0.5,
+            0.772,
             2.444
           ],
           "special": false,
