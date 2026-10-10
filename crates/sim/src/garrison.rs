@@ -469,8 +469,8 @@ fn want(unit: &Unit) -> Want {
 /// Advance every squad's garrison one tick: start entering beside the
 /// ordered building, seat the squad when the timer ends unless another holds it,
 /// leave after the exit timer. Transitions are stationary: a squad with a
-/// building has no movement goal. `seed` and `tick` fix the arrangement a
-/// leaving squad spreads into.
+/// building has no movement goal. `seed`, the squad and where it heads
+/// fix the arrangement a leaving squad spreads into.
 pub fn advance(
     world: &WorldGeometry,
     sides: &[crate::movement::SideGeometry; 2],
@@ -478,7 +478,6 @@ pub fn advance(
     units: &mut [Unit],
     rules: &Rules,
     seed: u64,
-    tick: Tick,
 ) {
     let timer = ticks(rules.garrison.enter_exit_s, rules);
     for i in 0..units.len() {
@@ -593,7 +592,7 @@ pub fn advance(
                     None => entry,
                 };
                 // No room outside: the squad stays inside and tries again.
-                let mut draws = arrangement::rng(seed, unit.id.0, tick);
+                let mut draws = arrangement::rng(seed, unit.id.0, arrangement::arrival(preferred));
                 if let Some(spots) = exit_spots(world, prop, unit, preferred, rules, &mut draws) {
                     let unit = &mut units[i];
                     let living = unit.members.iter_mut().filter(|s| s.alive());

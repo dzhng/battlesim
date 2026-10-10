@@ -1233,7 +1233,6 @@ impl Battle {
             &mut self.units,
             &self.rules,
             self.seed,
-            self.tick,
         );
         self.update_pursuit();
         damage::recover(&mut self.units, &self.rules, self.tick);
@@ -2992,8 +2991,8 @@ impl Battle {
     }
 
     /// Where `count` soldiers stand round `centre` as a squad arriving there
-    /// spreads out on the ground `side` knows, before cover moves them. A
-    /// fresh seeded draw: it changes no state.
+    /// spreads out on the ground `side` knows, before cover moves them. The
+    /// draw an order there makes ([`arrangement::arrival`]); it changes no state.
     fn arrival_spots(
         &self,
         side: Side,
@@ -3008,10 +3007,11 @@ impl Battle {
         let solid = |p: &crate::world::Prop| {
             p.blocks(MoverClass::Infantry) && known.knows(p, self.authored_props)
         };
-        let mut draws = arrangement::rng(self.seed, unit, self.tick);
+        let centre = v2(centre[0], centre[1]);
+        let mut draws = arrangement::rng(self.seed, unit, arrangement::arrival(centre));
         arrangement::squad_spots(
             &self.world,
-            v2(centre[0], centre[1]),
+            centre,
             count,
             &self.rules.infantry_movement,
             self.rules.physics.soldier_radius_m,

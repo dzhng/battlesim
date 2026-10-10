@@ -1214,7 +1214,7 @@ fn spread_out(
 ) {
     let solid = |p: &Prop| p.blocks(MoverClass::Infantry) && side.knows(p, ctx.authored);
     let living = unit.members.iter().filter(|s| s.alive()).count();
-    let mut draws = arrangement::rng(ctx.seed, unit.id.0, ctx.tick);
+    let mut draws = arrangement::rng(ctx.seed, unit.id.0, arrangement::arrival(end));
     let spots = arrangement::squad_spots(
         ctx.world,
         end,
