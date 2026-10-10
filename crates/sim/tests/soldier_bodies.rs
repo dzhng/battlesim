@@ -173,14 +173,14 @@ fn shape(b: &Battle, unit: u32) -> Vec<V2> {
 }
 
 fn walk_twice(seed: u64) -> (Vec<V2>, Vec<V2>, Battle) {
-    // Out to a point, away, and back to it by a third order: two arrivals there.
+    // Out to a point, away, and on to a new point by a third order.
     let s = setup(
         json!({}),
         json!([rifle([20.0, 40.0])]),
         json!([
             go(1, 0, 1, [60.0, 40.0]),
             go(600, 0, 2, [30.0, 40.0]),
-            go(900, 0, 3, [60.0, 40.0]),
+            go(900, 0, 3, [60.0, 50.0]),
         ]),
     );
     let mut b = Battle::new(&s, seed);
@@ -195,7 +195,7 @@ fn walk_twice(seed: u64) -> (Vec<V2>, Vec<V2>, Battle) {
 }
 
 #[test]
-fn every_move_ends_in_a_fresh_seeded_arrangement() {
+fn every_new_goal_ends_in_a_fresh_seeded_arrangement() {
     let (first, second, b) = walk_twice(1);
     let u = b.unit(UnitId(0)).unwrap();
     assert!(u.orders.is_empty(), "every walk arrived");
@@ -203,7 +203,7 @@ fn every_move_ends_in_a_fresh_seeded_arrangement() {
     let im = &common::game()["infantry_movement"];
     let spacing = im["spacing_m"].as_f64().unwrap();
     let spread = im["spread_m"].as_f64().unwrap();
-    assert!((u.position.xy() - sim::math::v2(60.0, 40.0)).length() < 1.0);
+    assert!((u.position.xy() - sim::math::v2(60.0, 50.0)).length() < 1.0);
     for arrangement in [&first, &second] {
         for (i, p) in arrangement.iter().enumerate() {
             assert!(p.length() <= spread, "a soldier {:.1} m out", p.length());
@@ -212,7 +212,7 @@ fn every_move_ends_in_a_fresh_seeded_arrangement() {
             }
         }
     }
-    // The same order twice ends in two different arrangements.
+    // Two goals end in two different arrangements.
     let moved = first
         .iter()
         .zip(&second)

@@ -417,7 +417,6 @@ pub(crate) fn certify_orders(
                 &mut units,
                 ctx.rules,
                 ctx.seed,
-                tick,
             );
             crate::deployment::advance_all(&mut units);
             let local = MovementContext {

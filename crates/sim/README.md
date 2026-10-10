@@ -15,6 +15,13 @@ the same. Seeded randomness and iteration order are part of that contract. A bod
 still where the map authored it is held by one digest of the authored props, taken
 when the world is built, so a tick's digest costs what changed, not the map's size.
 
+Seed a draw by what it decides, never by when it is asked. A draw that settles a
+decision (where a squad stands at its goal, where it steps out of a building) is
+keyed by the unit and that decision, not by the tick. Then the decision lands the
+same whenever it applies, and a preview queried every tick shows what the order
+will do instead of reshuffling. The tick belongs only in a draw for an event that
+happens on that tick, such as one shot's dispersion.
+
 [Publication](src/publication.rs) exposes only the selected side's observation.
 Geometry, sensing, hearing and knowledge owners decide what that observation may
 contain; the renderer and audio engine do not grant visibility or reveal identities.

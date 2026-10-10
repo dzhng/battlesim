@@ -287,11 +287,14 @@ fn a_building_entry_can_use_the_rest_of_a_facade_when_its_nearest_projection_is_
     until(&mut b, 1400, "arrival at the exposed entry", |b| {
         phase(b, Side::Blue, 0) == Some(GarrisonPhase::Entering)
     });
+    // The squad's middle starts in when it comes within reach of the wall,
+    // which its drawn arrangement shifts: near the accepted approach, well
+    // clear of the blocked projection.
+    let at = b.unit(UnitId(0)).unwrap().position.xy();
     assert!(
-        (b.unit(UnitId(0)).unwrap().position.xy() - v2(entry.approach[0], entry.approach[1]))
-            .length()
-            < 1.0,
-        "entry starts at its accepted approach"
+        (at - v2(entry.approach[0], entry.approach[1])).length() < 2.5
+            && (at.y - 300.0).abs() > 4.0,
+        "entry starts at its accepted approach: {at:?} vs {entry:?}"
     );
     until(&mut b, 1400, "entry beyond the blocked projection", |b| {
         inside(b, 0)
