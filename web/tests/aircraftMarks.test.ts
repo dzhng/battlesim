@@ -66,13 +66,25 @@ const sameRgb = (a: readonly number[], b: readonly number[]) =>
 
 /** The drop line's dots, bottom up: each one's height span and opacity. */
 function dotsOf(line: { p: number[]; c: number[] }[]) {
-  const dots: { from: number; to: number; alpha: number }[] = [];
-  // A dot is a closed tube: six quads, two triangles each.
-  for (let i = 0; i < line.length; i += 36) {
-    const z = line.slice(i, i + 36).map((v) => v.p[2]);
-    dots.push({ from: Math.min(...z), to: Math.max(...z), alpha: line[i].c[3] });
-  }
-  return dots.sort((a, b) => a.from - b.from);
+  // Each dot fades by its own height, so its opacity names it.
+  const groups = new Map<number, typeof line>();
+  for (const v of line) groups.set(v.c[3], [...(groups.get(v.c[3]) ?? []), v]);
+  return [...groups.values()]
+    .map((g) => {
+      const z = g.map((v) => v.p[2]);
+      const centre = [0, 1, 2].map(
+        (k) => (Math.min(...g.map((v) => v.p[k])) + Math.max(...g.map((v) => v.p[k]))) / 2,
+      );
+      return {
+        from: Math.min(...z),
+        to: Math.max(...z),
+        alpha: g[0].c[3],
+        reach: g.map((v) => Math.hypot(v.p[0] - centre[0], v.p[1] - centre[1], v.p[2] - centre[2])),
+        // Points straight over or under its centre.
+        poles: g.filter((v) => Math.hypot(v.p[0] - centre[0], v.p[1] - centre[1]) < 1e-6).length,
+      };
+    })
+    .sort((a, b) => a.from - b.from);
 }
 
 /** The ground ring's radius span round `c`, and the drop line's extent. */
@@ -135,6 +147,17 @@ test("the drop line's dots are lit as marks on the ground, not as solids", () =>
   expect([...normals]).toEqual(["0,0,1"]);
 });
 
+test("each dot is round: a ball, a circle on screen from any side", () => {
+  const dots = dotsOf(marks(orderLayer(UNITS, view({ own: [own({})] }), [], new Map(), flat)).line);
+  for (const d of dots) {
+    // Every point of it as far from its centre as every other, and some
+    // straight over and under it: a ball, not a box's corners.
+    const r = Math.max(...d.reach);
+    for (const x of d.reach) expect(x).toBeGreaterThan(r * 0.97);
+    expect(d.poles).toBeGreaterThan(0);
+  }
+});
+
 test("however close the camera, an aircraft's dots stay few", () => {
   const close = orderLayer(UNITS, view({ own: [own({})] }), [], new Map(), flat, 0.001);
   expect(dotsOf(marks(close).line).length).toBeLessThanOrEqual(64);
@@ -174,13 +197,10 @@ test("the drop line keeps its weight on screen as the camera pulls out, thinning
     const layer = orderLayer(UNITS, view({ own: [own({})] }), [], new Map(), flat, metresPerPx);
     return 2 * Math.max(...marks(layer).lineOff);
   };
-  // A square tube: its diagonal is √2 × its width. Every mark's stroke
-  // comes from the one rule, the drop line's too.
+  // A ball: as wide as its diameter (the mesh is float32). Every mark's stroke comes from the
+  // one rule, the drop line's dots too.
   for (const metresPerPx of [OPENING_METRES_PER_PX, 0.4])
-    expect(width(metresPerPx) / Math.SQRT2).toBeCloseTo(
-      gameStroke(metresPerPx)(STYLE.drop_line_px),
-      5,
-    );
+    expect(width(metresPerPx)).toBeCloseTo(gameStroke(metresPerPx)(STYLE.drop_line_px), 4);
   // Pulled out to the map, it is still wider on the ground than close up.
   expect(width(0.4)).toBeGreaterThan(width(OPENING_METRES_PER_PX));
 });
