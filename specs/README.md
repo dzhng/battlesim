@@ -12,6 +12,10 @@ ladder with parallel named-model production.
 
 [Helicopters](done/helicopters/README.md) (shipped) made the roster's 19 helicopters playable in a low-air layer. [Transport](transport/README.md) is a placeholder for passenger carriage by trucks and helicopters.
 
+[Performance](performance/README.md) is a placeholder for measured, deferred
+optimizations (GPU memory, model packing, loading), kept until a player-visible
+problem calls for one.
+
 [Finished features](done/) retain the rationale and accepted scope after shipping.
 Their README explains why the design works and points to current owners. Choices,
 measurements, references and rejected experiments beneath each feature retain their
