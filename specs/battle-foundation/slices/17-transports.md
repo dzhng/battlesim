@@ -1,6 +1,6 @@
 # 17 — Transport lifecycle
 
-**Status:** planned, not implemented. **Dependencies:** 04, 08, 09, 11, 12, 16. **Milestone:** Deferred continuation — implement only after village checkpoint and explicit continuation scope.
+**Status:** moved on 2026-10-10 to the [transport placeholder](../../transport/README.md), which covers trucks and helicopters together; that plan carries the checks below. Previously: planned, not implemented. **Dependencies:** 04, 08, 09, 11, 12, 16. **Milestone:** Deferred continuation — implement only after village checkpoint and explicit continuation scope.
 
 ## Contract and question
 
