@@ -17,7 +17,7 @@ wears US desert tan like every US roster vehicle.
 
 The photographed prototype shows no protection system; the card fields
 Trophy, so the Abrams' Trophy stations (`abrams.trophy_station`) stand on
-the flat turret sides, back from the smoke banks, as on the SEPv3.
+the flat turret sides, back from the smoke banks.
 
 Built to the catalog frame, the SEPv3 Trophy's box and turret pivot (hull
 7.93 x 3.66 x 2.44 m, pivot 0.25 m ahead of the hull's middle and 1.464 m
@@ -78,9 +78,9 @@ def turret_body(v, turret):
         VP.smoke_discharger_bank(f"smoke_{s}", (0.70, side * 1.50, ROOF - 0.10), m, turret, count=4,
                                  tube_radius=0.05, tube_length=0.26, elevation=0.35, spread=0.3,
                                  rot=(0, 0, side * 0.6))
-        # Trophy: the radar housing against the flat side, its top as far
-        # above the roof as the SEPv3's, the launcher on it.
-        A.trophy_station(v, turret, side, s, at=(-1.10, 1.70, ROOF - 0.12))
+        # Trophy: the radar housing against the flat side, its top just
+        # above the roof, the launcher on it.
+        A.trophy_station(v, turret, side, s, at=(-1.10, 1.70, ROOF + 0.11))
         whip = empty(f"dressing_antenna_{s}", parent=turret)
         VP.antenna(f"antenna_{s}", (-1.75, side * 1.05, ROOF), m, whip, height=2.2)
     # Roof: the gunner's sight ahead on the right, the independent sight box
