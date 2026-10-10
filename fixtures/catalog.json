@@ -342,6 +342,23 @@
       }
     },
     {
+      "cost": 240,
+      "description": "Wheeled 120 mm tank destroyer",
+      "disabled_reason": null,
+      "family": "centauro_ii",
+      "id": "europe_centauro_ii",
+      "name": "Centauro II",
+      "planned_weapons": [],
+      "roster": {
+        "category": "veh",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "Centauro II",
+        "variant": "Tank destroyer"
+      }
+    },
+    {
       "cost": 390,
       "description": "Challenger 2 TES",
       "disabled_reason": null,
@@ -1935,32 +1952,6 @@
         ],
         "family_name": "CAESAR",
         "variant": "8×8"
-      }
-    },
-    {
-      "cost": 240,
-      "description": "Wheeled 120 mm tank destroyer",
-      "disabled_reason": "Ground profile and model admission pending",
-      "family": "centauro_ii",
-      "id": "europe_centauro_ii",
-      "name": "Centauro II",
-      "planned_weapons": [
-        {
-          "icon": "ap_shell",
-          "name": "Main Gun"
-        },
-        {
-          "icon": "hmg",
-          "name": "HMG"
-        }
-      ],
-      "roster": {
-        "category": "veh",
-        "factions": [
-          "europe"
-        ],
-        "family_name": "Centauro II",
-        "variant": "Tank destroyer"
       }
     },
     {
@@ -8611,26 +8602,96 @@
           }
         },
         "europe_centauro_ii": {
+          "appearance": "europe_centauro_ii",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 70.0,
+                "rear": 25.0,
+                "ricochet": {
+                  "front": 0.1,
+                  "rear": 0.05,
+                  "roof": 0.15,
+                  "side": 0.1
+                },
+                "roof": 15.0,
+                "side": 40.0
+              },
+              "eye_m": 2.88,
+              "half_extents_m": [
+                4.06,
+                1.58,
+                1.485
+              ],
+              "hp": 90.0,
+              "push_class": "medium",
+              "weight_class": "medium",
+              "wreck": "medium_wreck"
+            }
+          },
+          "capabilities": {},
           "cost": 240,
           "description": "Wheeled 120 mm tank destroyer",
           "faction": "europe",
           "family": "centauro_ii",
-          "name": "Centauro II",
-          "planned": {
-            "profile": "wheeled-tank-destroyer",
-            "reason": "Ground profile and model admission pending",
-            "weapons": [
-              {
-                "icon": "ap_shell",
-                "name": "Main Gun"
-              },
-              {
-                "icon": "hmg",
-                "name": "HMG"
-              }
-            ]
+          "mobility": {
+            "wheeled": {
+              "offroad_kmh": 30.0,
+              "reverse_fraction": 0.35,
+              "road_kmh": 90.0,
+              "turn_deg_s": 40.0,
+              "turning_radius_m": 6.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "cannon",
+              "muzzle_m": [
+                6.1,
+                0.0,
+                0.34
+              ],
+              "name": "Main Gun",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                2.02
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "ground_tank_ap",
+                "ground_tank_he"
+              ]
+            },
+            {
+              "id": "RWS",
+              "muzzle_m": [
+                1.05,
+                0.0,
+                0.2
+              ],
+              "name": "HMG",
+              "on": "cannon",
+              "pivot_m": [
+                -0.55,
+                0.62,
+                2.88
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "hmg"
+              ]
+            }
+          ],
+          "name": "Centauro II",
+          "roles": [
+            "light_vehicle"
+          ],
           "roster": {
             "category": "veh",
             "factions": [
@@ -8638,6 +8699,19 @@
             ],
             "family_name": "Centauro II",
             "variant": "Tank destroyer"
+          },
+          "sensors": {
+            "ground_m": 550.0,
+            "on": "cannon",
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.5
+            }
+          },
+          "sound": {
+            "loudness_m": 650.0,
+            "profile": "vehicle"
           }
         },
         "europe_ch_47_chinook_hc6": {
@@ -18326,6 +18400,122 @@
       "sensors": {
         "ground_m": 550.0,
         "on": "autocannon",
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.5
+        }
+      },
+      "sound": {
+        "loudness_m": 650.0,
+        "profile": "vehicle"
+      }
+    },
+    {
+      "appearance": "europe_centauro_ii",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 70.0,
+            "rear": 25.0,
+            "ricochet": {
+              "front": 0.1,
+              "rear": 0.05,
+              "roof": 0.15,
+              "side": 0.1
+            },
+            "roof": 15.0,
+            "side": 40.0
+          },
+          "eye_m": 2.88,
+          "half_extents_m": [
+            4.06,
+            1.58,
+            1.485
+          ],
+          "hp": 90.0,
+          "push_class": "medium",
+          "weight_class": "medium",
+          "wreck": "medium_wreck"
+        }
+      },
+      "capabilities": {},
+      "cost": 240,
+      "description": "Wheeled 120 mm tank destroyer",
+      "faction": "europe",
+      "family": "centauro_ii",
+      "id": "europe_centauro_ii",
+      "mobility": {
+        "wheeled": {
+          "offroad_kmh": 30.0,
+          "reverse_fraction": 0.35,
+          "road_kmh": 90.0,
+          "turn_deg_s": 40.0,
+          "turning_radius_m": 6.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "cannon",
+          "muzzle_m": [
+            6.1,
+            0.0,
+            0.34
+          ],
+          "name": "Main Gun",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            2.02
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "ground_tank_ap",
+            "ground_tank_he"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "RWS",
+          "muzzle_m": [
+            1.05,
+            0.0,
+            0.2
+          ],
+          "name": "HMG",
+          "on": "cannon",
+          "pivot_m": [
+            -0.55,
+            0.62,
+            2.88
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "hmg"
+          ]
+        }
+      ],
+      "name": "Centauro II",
+      "roles": [
+        "light_vehicle"
+      ],
+      "roster": {
+        "category": "veh",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "Centauro II",
+        "variant": "Tank destroyer"
+      },
+      "sensors": {
+        "ground_m": 550.0,
+        "on": "cannon",
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,

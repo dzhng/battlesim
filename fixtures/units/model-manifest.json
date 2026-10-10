@@ -389,16 +389,6 @@
       "source_path": "assets/source/roster/caesar/europe_caesar_88.glb"
     },
     {
-      "id": "europe_centauro_ii",
-      "family": "centauro_ii",
-      "category": "veh",
-      "model_status": "reference_built",
-      "source_family": "centauro",
-      "source_kind": "ground_vehicle",
-      "disabled_reason": "Ground profile and model admission pending",
-      "source_path": "assets/source/roster/disabled/europe_centauro_ii.glb"
-    },
-    {
       "id": "europe_ch_47_chinook_hc6",
       "family": "ch_47_chinook",
       "category": "hel",
