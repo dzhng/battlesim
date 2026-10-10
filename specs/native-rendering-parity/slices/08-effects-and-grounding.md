@@ -1,4 +1,4 @@
-# 07 — Effects, scars, and grounding
+# 08 — Effects, scars, and grounding
 
 **Contract:** native renders observed effect causes from the Rust-owned publication stream without inferring gameplay or visibility.
 

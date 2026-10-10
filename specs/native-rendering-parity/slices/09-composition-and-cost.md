@@ -1,4 +1,4 @@
-# 08 — Composition, occlusion, LOD, and performance
+# 09 — Composition, occlusion, LOD, and performance
 
 **Contract:** the complete native frame keeps the browser's readable subject scale, occlusion order, authored density, and bounded work while exposing real cost.
 
