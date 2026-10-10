@@ -86,6 +86,14 @@ The entries are grouped by verdict: **needs-user** (decide; each one has a provi
 - **Verdict:** unsound, partly redone. **Corrected decision:** before transport needs a precise hover over a landing point, give the final leg a steering law that cancels sideways velocity first (or plans its braking from the turn into the leg), and tighten the test to no swing at all.
 - **Confidence:** medium.
 
+### U2. The Apache's wreck under fog keeps only 84% of its look as a static ghost
+- **When:** the closeout's `verify` (`web/scenes/_modelGhost.mjs`).
+- **The choice:** the placement-ghost check samples one static model, which used to be the first one in catalog order. The Apache's wreck now sorts first, and only 434 of its 514 covered pixels hold their colour under fog; the check requires 90%. The scene now names its static sample (`basketball_court`, the model it judged before helicopters existed), so a model added to the catalog can't silently change what it judges.
+- **The gap:** nothing measured whether thin wreck debris holds its look as a fogged ghost.
+- **The reach:** the Apache's wreck, and likely every helicopter wreck with thrown blades, may shift colour at its thin edges when drawn as a fogged ghost.
+- **Verdict:** unsound, recorded for the renderer owner. **Corrected decision:** either judge every static model in the ghost check, or find why thin debris loses its fog look, and fix that.
+- **Confidence:** medium.
+
 ---
 
 ## Sound
