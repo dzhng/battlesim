@@ -24,7 +24,7 @@ use crate::route_planner::{Request, RoutePlanner};
 use crate::units::Unit;
 use crate::world::{Prop, PropId, PropIndex, WorldGeometry, PROP_BUCKET_M};
 
-mod air;
+pub(crate) mod air;
 mod certify;
 pub(crate) mod drive;
 mod final_leg;

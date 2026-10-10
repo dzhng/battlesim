@@ -5,12 +5,15 @@
 //! `clearance_m` over anything taller on its way, never above
 //! `ceiling_agl_m`. It turns on the spot toward where it flies, or to its
 //! ordered facing at rest. Aircraft never collide; ones closer than
-//! `separation_m` drift apart.
+//! `separation_m` drift apart. Idle at a set-up supply truck it sinks to the
+//! low hover (D10) and is served there; any order or engagement lifts it back.
 
 use super::{arrive, may_advance, MovementContext, SideGeometry, GOAL_REPLAN_M};
 use crate::math::{v2, V2};
 use crate::units::{Flight, Motion, Unit};
-use contract::observation::MoveState;
+use contract::catalog::AltitudeLayer;
+use contract::observation::{MoveState, ServiceStatus};
+use contract::scenario::Rules;
 
 /// Within this of a waypoint on the way it counts as passed.
 const WAYPOINT_M: f64 = 1.0;
@@ -24,6 +27,9 @@ const SEPARATION_MPS: f64 = 4.0;
 const BRAKING_SHARE: f64 = 0.8;
 /// Below this ground speed an aircraft is hovering, and faces as ordered.
 const HOVER_MPS: f64 = 1.0;
+/// How far the low hover clears the tallest ground hull, and anything else
+/// under the airframe while it holds there (D27).
+const LOW_HOVER_CLEARANCE_M: f64 = 2.0;
 
 /// Fly unit `i` one tick.
 pub(super) fn step_aircraft(
@@ -73,7 +79,8 @@ pub(super) fn step_aircraft(
     let velocity = air.velocity;
     let next = here + velocity * dt + drift * dt;
     let reach = unit.hull.map_or(0.0, |h| h.x);
-    let target = cruise_height(ctx, next, velocity, flight, reach);
+    let target = height_target(ctx, next, velocity, flight, reach, sinks(unit));
+    // It sinks as fast as it climbs.
     let climb = (target - unit.position.z).clamp(-flight.climb_mps * dt, flight.climb_mps * dt);
     unit.position = next.with_z(unit.position.z + climb);
     unit.drive_speed_mps = velocity.length();
@@ -101,6 +108,35 @@ pub(super) fn step_aircraft(
                 .velocity = v2(0.0, 0.0);
         }
     }
+}
+
+/// The resupply sink (D10): with no order and no target, inside a set-up
+/// supply truck's zone, it holds the low hover. `service` is last tick's,
+/// since supply serves after movement; an order or an engagement since then
+/// lifts it this tick. Its height alone never counts as moving (D37), so
+/// sinking never turns that status to `Moving`.
+fn sinks(unit: &Unit) -> bool {
+    unit.orders.is_empty()
+        && !crate::weapons::engaged(unit)
+        && matches!(
+            unit.service,
+            ServiceStatus::Serving | ServiceStatus::NoStock | ServiceStatus::Full
+        )
+}
+
+/// The low hover's height over the ground (D27): just over the top of the
+/// tallest ground hull in the catalog, so it clears any ground unit under it
+/// whatever the roster. The resupply sink holds it, and transport lands at it.
+pub(crate) fn low_hover(rules: &Rules) -> f64 {
+    let catalog = &rules.catalog;
+    let tallest = catalog
+        .indices()
+        .map(|i| catalog.get(i))
+        .filter(|t| t.mobility.layer() == AltitudeLayer::Ground)
+        .filter_map(|t| t.hull())
+        .map(|h| 2.0 * h.half_extents_m[2])
+        .fold(0.0, f64::max);
+    tallest + LOW_HOVER_CLEARANCE_M
 }
 
 /// Plan a route when the goal is new or moved, or the side's knowledge changed.
@@ -174,17 +210,23 @@ fn turn(unit: &mut Unit, flight: Flight, velocity: V2, dt: f64) {
 }
 
 /// The height an aircraft over `at` wants (D4, D24): cruise above the
-/// ground, and clearance over any body top or forest canopy it will pass
-/// within `reach` of before it could climb the whole band; never above the
-/// ceiling over `at`.
-pub fn cruise_height(
+/// ground, or the low hover when `low`, and clearance over any body top or
+/// forest canopy it will pass within `reach` of before it could climb the
+/// whole band; never above the ceiling over `at`.
+fn height_target(
     ctx: &MovementContext,
     at: V2,
     velocity: V2,
     flight: Flight,
     reach: f64,
+    low: bool,
 ) -> f64 {
     let air = &ctx.rules.air;
+    let (agl, clearance) = if low {
+        (low_hover(ctx.rules), LOW_HOVER_CLEARANCE_M)
+    } else {
+        (air.cruise_agl_m, air.clearance_m)
+    };
     let world = ctx.world;
     let ground = |p: V2| world.height_at(p.x, p.y).unwrap_or(0.0);
     let ahead = velocity.length() * (air.ceiling_agl_m - air.cruise_agl_m) / flight.climb_mps;
@@ -199,13 +241,13 @@ pub fn cruise_height(
     for k in 0..=steps {
         let p = at + dir * (k as f64 * LOOKAHEAD_STEP_M).min(ahead);
         let g = ground(p);
-        wanted = wanted.max(g + air.cruise_agl_m);
+        wanted = wanted.max(g + agl);
         if world.forest_ground(p.x, p.y) {
-            wanted = wanted.max(g + canopy + air.clearance_m);
+            wanted = wanted.max(g + canopy + clearance);
         }
         for prop in world.props_near(p, reach) {
             if prop.footprint().distance(p) <= reach {
-                wanted = wanted.max(prop.top_z() + air.clearance_m);
+                wanted = wanted.max(prop.top_z() + clearance);
             }
         }
     }
