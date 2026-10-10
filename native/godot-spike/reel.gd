@@ -843,20 +843,28 @@ func _save_cut_after_frame(scene_to_save: int, shot_to_save: int) -> void:
 		await get_tree().process_frame
 	if not drawn:
 		cut_frame_timeouts += 1
-	_save_cut(scene_to_save, shot_to_save)
+	var saved := false
+	for attempt in 10:
+		if attempt > 0:
+			await get_tree().process_frame
+		saved = _save_cut(scene_to_save, shot_to_save)
+		if saved:
+			break
 	pending_cut_saves -= 1
 	call_deferred("_maybe_finish_reel")
 
-func _save_cut(scene_to_save: int, shot_to_save: int) -> void:
+func _save_cut(scene_to_save: int, shot_to_save: int) -> bool:
 	DirAccess.make_dir_recursive_absolute(cut_dir)
 	var image := _viewport_image()
 	if image == null:
-		return
+		return false
 	var path := cut_dir.path_join("scene-%02d-shot-%02d.png" % [scene_to_save, shot_to_save])
 	if image.save_png(path) == OK:
 		if not saved_cut_paths.has(path):
 			saved_cut_paths[path] = true
 			cuts_saved += 1
+		return true
+	return false
 
 func _viewport_image() -> Image:
 	if not _display_backed():
