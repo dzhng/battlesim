@@ -59,6 +59,23 @@ static func load(dir: String, maps_dir: String) -> Dictionary:
 		return _refuse("identity", "; ".join(mismatches))
 	return {"ok": true, "manifest": manifest, "capture": capture, "map_path": map_path}
 
+## Reads a group's hashed artifacts (`<dir>/<group>-<name>.u32`), each
+## refused unless its bytes match its sha256 and word count. Returns
+## `{ok: true, tables: {name: {words, layout}}}` or `{ok: false, blocker}`.
+static func read_tables(dir: String, artifacts: Array, group: String) -> Dictionary:
+	var tables := {}
+	for artifact in artifacts:
+		var path := dir.path_join("%s-%s.u32" % [group, artifact.name])
+		if not FileAccess.file_exists(path):
+			return _refuse("artifact", "missing " + path)
+		if FileAccess.get_sha256(path) != artifact.sha256:
+			return _refuse("artifact", "%s differs from its manifest sha256" % path)
+		var words := FileAccess.get_file_as_bytes(path)
+		if words.size() != int(artifact.words) * 4:
+			return _refuse("artifact", "%s holds %d bytes, not %d words" % [path, words.size(), int(artifact.words)])
+		tables[artifact.name] = {"words": words, "layout": artifact.layout}
+	return {"ok": true, "tables": tables}
+
 static func _refuse(name: String, detail: String) -> Dictionary:
 	return {"ok": false, "blocker": {"name": name, "detail": detail}}
 

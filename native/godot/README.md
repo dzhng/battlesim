@@ -16,6 +16,7 @@ One run renders one scene that the browser's capture run wrote:
 lockf -k <main checkout>/throwaway/gpu.lock \
   godot --path native/godot --window-position 10000,10000 -- \
   --run <dir> --scene <name> [--frames plates|all|<i,j,...>] [--maps <dir>] [--out <dir>]
+  [--view lit|classes]
 ```
 
 - **Input.** `<dir>/<name>/` holds the browser's `capture.json`
@@ -72,10 +73,31 @@ files into the real `assets/` tree.
 A missing file, a Git LFS pointer or a failed import is a named blocker, never
 a stand-in. Fetch what a scene needs with `git lfs pull --include=<path>`.
 
+## Terrain
+
+Native draws the browser's ground from the browser's own tables, not from the
+map: the manifest's hashed `terrain` artifacts are the exact words the
+browser's ground material uploads. Native ports only the formulas.
+
+- **Height.** `terrain/height_field.gd` reads the paged height grid with the
+  simulation's triangle rule. The ground mesh, and everything that stands on the
+  ground without a height of its own, seats on it.
+- **Tables.** `core/data_texture.gd` is the one owner of table uploads. Godot 4.7
+  can't wrap an `R32_UINT` device texture, so each word is one RGBA8 texel,
+  and the shader puts it back together exactly.
+- **Formulas.** `terrain/ground.gdshaderinc` is the browser's
+  `terrainMaterial.ts`, ported as text. The terrain layer compiles it with
+  defines generated from the manifest: each table field's offset from its
+  layout, and every number from `tuning.terrain`. A layout or tuning change
+  reaches native without a code change, and a renamed field fails to compile.
+- **Class view.** `--view classes` draws the ground's classes as exact bytes
+  (`class-<index>.png`), as the browser's class view does. It uses no light and
+  no grass, and everything else is black. It is the measured check that features
+  lie in the same places, and it is scaffolding for phase 1.
+
 ## Legacy map layer
 
 Until phase 2 ports the browser's model owners, the map is drawn roughly:
-- a flat ground with surfaces, road boxes and forest patches;
 - catalog grass tufts;
 - building shells picked from a catalog kit by template token;
 - catalog props or boxes;

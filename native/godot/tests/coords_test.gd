@@ -33,21 +33,4 @@ func run() -> bool:
 	check(is_equal_approx(camera.fov, rad_to_deg(0.8)) and camera.keep_aspect == Camera3D.KEEP_HEIGHT, "the lens fovY is the vertical field of view")
 	check(camera.near == 1.0, "the near plane is the lens near")
 	root_node.free()
-
-	# A flat ring is wound to face up, with up normals, whatever its input order.
-	var LegacyMapLayer = load("res://world/legacy_map_layer.gd")
-	for ring in [[[0, 0], [4, 0], [4, 3], [0, 3]], [[0, 0], [0, 3], [4, 3], [4, 0]]]:
-		var mesh: ArrayMesh = LegacyMapLayer._polygon_mesh([ring])
-		var arrays := mesh.surface_get_arrays(0)
-		var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
-		var indices: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
-		var facing_up := true
-		for i in range(0, indices.size(), 3):
-			var a := vertices[indices[i]]
-			# Godot draws clockwise triangles as front faces: seen from above,
-			# an up-facing triangle's (b - a) x (c - a) points down.
-			facing_up = facing_up and (vertices[indices[i + 1]] - a).cross(vertices[indices[i + 2]] - a).y < 0.0
-		check(facing_up, "every ring triangle faces up for %s" % [ring])
-		check(Array(arrays[Mesh.ARRAY_NORMAL]).all(func(n): return n.dot(Vector3.UP) > 0.9999), "ring normals point up")
-		check(vertices.has(Vector3(4, 0, -3)), "ring corners are converted points")
 	return true

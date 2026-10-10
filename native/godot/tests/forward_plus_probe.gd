@@ -27,7 +27,12 @@ func run() -> bool:
 	var report := RenderReport.new()
 	var world := Node3D.new()
 	root.add_child(world)
-	ParityRun.compose(world, {"layers": ["sky", "terrain", "grass", "buildings"], "light": {"sunDirection": [0.71, -0.26, 0.64], "backdrop": {"reach_m": 40000}}}, [], one_building, [at], "blue", report)
+	# The fixture run's light and ground stand in for market-town's: the probe
+	# proves the backend, not the scene.
+	var fixture: Dictionary = read_json(FIXTURE_RUN.path_join(FIXTURE_SCENE).path_join("manifest.json"))
+	var ground := ParityRun.read_ground(FIXTURE_RUN.path_join(FIXTURE_SCENE), fixture)
+	var manifest := {"layers": ["sky", "terrain", "grass", "buildings"], "light": fixture.light, "tuning": fixture.tuning}
+	ParityRun.compose(world, manifest, ground, [], one_building, [at], "blue", false, report)
 	var camera := Camera3D.new()
 	world.add_child(camera)
 	var record := {"index": 0, "canvas": [1280, 720], "eye": [at.x - 22.0, at.y - 22.0, 9.0], "target": [at.x, at.y, 2.0], "up": [0.0, 0.0, 1.0]}
