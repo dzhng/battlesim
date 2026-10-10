@@ -21,6 +21,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import vehicle_parts as VP  # noqa: E402
+from mathutils import Matrix, Vector  # noqa: E402
 from parts import box, cyl, loft, prism, stencil  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
@@ -37,13 +38,20 @@ DECK = 1.92
 TROOP_ROOF = DECK + 0.30
 TROOP_FRONT = 0.65
 SKIRT_Y = 1.72
-# The nose's edge, where the glacis meets the lower plate.
-NOSE_Z = {T14: 1.22, T15: 1.05}
-# How much further the nose reaches past the running gear than the T-14's:
-# the T-15's long lower plate and the skirts' rising front ends make its
-# pointed beak (photos: side, three-quarter front).
-OVERHANG = {T14: 0.0, T15: 0.45}
-SKIRT_FOOT = 0.41
+# The nose's edge, where the glacis meets the lower plate: both low, under
+# a glacis raked at about 23 degrees on the T-14 (photos: side) and 16 on
+# the T-15's longer one.
+NOSE_Z = {T14: 1.02, T15: 1.05}
+# How far the T-14's glacis runs back from the nose (the T-15's runs up to
+# its troop compartment's roof: `glacis_top`).
+T14_GLACIS_RUN = 2.10
+# How much further the nose reaches past the front wheel (sprocket or
+# idler) than the base 0.19 m: the long lower plate and the skirts' rising
+# front ends make a pointed beak (photos: side, three-quarter front).
+OVERHANG = {T14: 0.20, T15: 0.45}
+# The skirts' bottom: the T-14's hang to the road wheels' tops, the wheels
+# showing below (photos: side, three-quarter front); the T-15's cover them.
+SKIRT_FOOT = {T14: 0.90, T15: 0.41}
 LIP_TOP = 0.91
 # The lower plate's rise toward the nose, which the skirts' front ends follow.
 LOWER_RISE = 0.53
@@ -56,8 +64,9 @@ BAND_LEAN = {T14: math.radians(45), T15: math.radians(40)}
 SHOULDER_Y = 1.70
 # Toward the nose the skirts' tops follow the glacis down, this far under
 # it: the T-14's stand just proud of it, the T-15's leave the slab band
-# room above them.
-UNDER_GLACIS = {T14: -0.06, T15: 0.42}
+# room above them, the band's full depth, so the band is even from the nose
+# back to the glacis' head.
+UNDER_GLACIS = {T14: -0.06, T15: DECK - SHOULDER[T15]}
 SLAB = 0.12
 
 
@@ -78,8 +87,10 @@ def overhang(v):
 
 
 def skirt_foot(v, x):
-    """The skirts' bottom at `x`: level, rising ahead of the running gear."""
-    return SKIRT_FOOT + LOWER_RISE * max(0.0, x - (v.length / 2 - 0.30 - overhang(v)))
+    """The skirts' bottom at `x`: level, rising ahead of the running gear,
+    and always a little under their top."""
+    rise = LOWER_RISE * max(0.0, x - (v.length / 2 - 0.30 - overhang(v)))
+    return min(SKIRT_FOOT[v.variant["id"]] + rise, skirt_top(v, x) - 0.12)
 
 
 def glacis_top(v):
@@ -88,7 +99,7 @@ def glacis_top(v):
     leaning front carries on up (photos: side, three-quarter front)."""
     half = v.length / 2
     if not front_engine(v):
-        return half - 2.40
+        return half - T14_GLACIS_RUN
     nose = nose_z(v)
     return half - (DECK - nose) * (half - TROOP_FRONT) / (TROOP_ROOF - nose)
 
@@ -178,12 +189,14 @@ def hull(v):
     return top
 
 def running_gear(v):
+    """Seven road wheels close together, set back 1.18 m from the front
+    wheel and 0.96 m from the rear one (photos: side), the drive sprocket at
+    the engine end."""
     half = v.length / 2
-    span = v.length - 2.0
-    ahead = overhang(v)
-    road_x = [half - 1.25 - ahead - (span - ahead) * k / 6 * 0.93 for k in range(7)]
     rear = (-half + 0.45, 0.62, 0.33)
-    front = (half - 0.50 - ahead, 0.66, 0.31)
+    front = (half - 0.50 - overhang(v), 0.66, 0.31)
+    pitch = (front[0] - rear[0] - 1.18 - 0.96) / 6
+    road_x = [front[0] - 1.18 - pitch * k for k in range(7)]
     sprocket, idler = (front, rear) if front_engine(v) else (rear, front)
     returns = [(road_x[1] + 0.3, 1.10, 0.10), (road_x[3], 1.12, 0.10), (road_x[5] - 0.3, 1.10, 0.10)]
     VP.tracked_running_gear(v.mats, v.hull, TRACK_Y, TRACK_W, road_x, ROAD_Z, ROAD_R, 0.24, sprocket, idler,
@@ -191,10 +204,12 @@ def running_gear(v):
 
 
 def skirts(v, slab=False):
-    """Deep skirts in bolted sections up to the shoulder, their tops
-    following the glacis down to the nose, with a rubber lip over the road
-    wheels. The T-15 hangs its slab modules angled on the band beside the
-    glacis, and tall upright modules on its rear half."""
+    """Skirts in bolted sections up to the shoulder, their tops following
+    the glacis down to the nose, with a rubber lip over the road wheels. The
+    T-15 hangs its slab modules on the band beside the glacis, leaning in
+    with it and falling with the glacis to the nose, and tall upright modules
+    from the glacis' head to the tail, the first one's front carrying the
+    glacis' line on up to the roof (photos: side, three-quarter front)."""
     m, h = v.mats, v.hull
     half = v.length / 2
     face = side_face(v)
@@ -220,32 +235,38 @@ def skirts(v, slab=False):
             box(f"skirt_lip_{s}_{k}", (length - 0.05 - cut, 0.03, 0.18),
                 ((x0 + x1) / 2 - cut / 2, side * (SKIRT_Y - 0.08), 0.82), m["rubber"], h, lods=MID)
         if slab:
-            # Each slab stands on the skirt's top, leaning in with the band up
-            # to the deck or the glacis; where the skirt's top follows the
-            # glacis down, the slab falls with both, so the band runs on down
-            # to the nose.
+            # Each slab stands on the skirt's top, which runs the band's depth
+            # under the glacis, so every slab spans the band from the skirt to
+            # the glacis' edge, falling with both toward the nose.
             lean = BAND_LEAN[ident]
-            knee = glacis_x(v, shoulder + UNDER_GLACIS[ident])
-            fall = (DECK - nose_z(v)) / (half - glacis_top(v))
-            for k in range(5):
-                x = 3.60 - k * 0.66
-                sloped = x > knee
-                foot = skirt_top(v, x if sloped else x + 0.31)
-                rise = UNDER_GLACIS[ident] if sloped else min(DECK, glacis_z(v, x + 0.31)) - foot
-                low = (SHOULDER_Y, foot)
-                loc, rot = VP.on_side(x, foot + rise / 2, side, low, (SHOULDER_Y - math.tan(lean), foot + 1.0),
-                                      fall=fall if sloped else 0.0)
-                VP.bolted_panel(f"slab_module_{s}_{k}", loc, (0.62, rise / math.cos(lean) - 0.04, SLAB), m, h,
-                                bolts=(2, 2), rot=rot, bevel=0.03, lods=VP.ALL)
-            # Tall modules from the compartment's front to the tail, their
-            # tops level with its roof.
-            tall = TROOP_ROOF - shoulder
-            pitch = (TROOP_FRONT + half) / 4
+            top = glacis_top(v)
+            fall = (DECK - nose_z(v)) / (half - top)
+            rise = UNDER_GLACIS[ident]
+            # The band they lie on is one plane: along the hull it falls
+            # with the glacis, across it leans in.
+            along = Vector((1, 0, -fall)).normalized()
+            up = Vector((0, -side * math.sin(lean), math.cos(lean)))
+            up = (up - along * along.dot(up)).normalized()
+            rot = tuple(Matrix((along, -side * up, along.cross(-side * up))).transposed().to_euler("XYZ"))
             for k in range(4):
-                VP.bolted_panel(f"rear_module_{s}_{k}", (TROOP_FRONT - pitch * (k + 0.5), side * edge,
-                                                         shoulder + tall / 2),
-                                (pitch - 0.04, tall, SKIRT_Y + 0.01 - edge), m, h, bolts=(3, 2),
-                                rot=(-side * math.pi / 2, 0, 0), bevel=0.03, lods=VP.ALL)
+                x = top + 0.34 + k * 0.66
+                loc = (x, side * (SHOULDER_Y - rise / 2 * math.tan(lean)), skirt_top(v, x) + rise / 2)
+                size = (0.66 / along.x - 0.06, rise / math.cos(lean) - 0.04, SLAB)
+                VP.bolted_panel(f"slab_module_{s}_{k}", loc, size, m, h, bolts=(2, 2), rot=rot, bevel=0.03,
+                                lods=VP.ALL)
+            # Tall modules from the glacis' head to the tail, their tops level
+            # with the roof; the first one's front rises along the glacis'
+            # line from the deck to the roof's front.
+            depth = SKIRT_Y + 0.01 - edge
+            pitch = (top + half) / 5
+            prism(f"rear_module_{s}_0", [(top - pitch + 0.02, shoulder), (top - 0.02, shoulder), (top - 0.02, DECK),
+                                          (TROOP_FRONT, TROOP_ROOF), (top - pitch + 0.02, TROOP_ROOF)], depth,
+                  loc=(0, side * (edge + depth / 2), 0), mat=m["paint"], parent=h, bevel=0.03, lods=VP.ALL)
+            tall = TROOP_ROOF - shoulder
+            for k in range(1, 5):
+                VP.bolted_panel(f"rear_module_{s}_{k}", (top - pitch * (k + 0.5), side * edge, shoulder + tall / 2),
+                                (pitch - 0.04, tall, depth), m, h, bolts=(3, 2), rot=(-side * math.pi / 2, 0, 0),
+                                bevel=0.03, lods=VP.ALL)
         # The parade stripe on the skirts' front half, the number behind it.
         for j, (colour, z) in enumerate(((m["tail"], 0.16), (m["marking"], 0.08), (m["tail"], 0.0))):
             box(f"victory_stripe_{s}_{j}", (1.30, 0.008, 0.06), (0.9, side * (SKIRT_Y + 0.004), shoulder - 0.24 + z),
@@ -269,13 +290,16 @@ def armour_kit(v):
     if not front_engine(v):
         x = top + run * 0.52
         VP.armour_tiles("glacis_era", (x, 0, glacis_z(v, x) + 0.005), (math.hypot(run, rise) * 0.72, 2.50), (2, 6),
-                        0.08, m, h, rot=(0, slope, 0))
+                        0.04, m, h, rot=(0, slope, 0))
     for k in range(4):
         cyl(f"spare_link_{k}", 0.05, 0.62, (half - 0.30, -0.95 + k * 0.63, nose_z(v) + 0.05), "Y", m["track"], h,
             seg=8, lods=NEAR)
+    # The skirt boxes fill the skirts' depth at their front end.
+    foot = skirt_foot(v, half - 1.75)
+    deep = min(0.62, skirt_top(v, half - 0.55) - foot - 0.06)
     for side, s in ((1, "L"), (-1, "R")):
-        VP.armour_tiles(f"skirt_era_{s}", (half - 1.75, side * (SKIRT_Y - 0.01), 0.95), (2.40, 0.62), (4, 2), 0.07,
-                        m, h, rot=(-side * math.pi / 2, 0, 0))
+        VP.armour_tiles(f"skirt_era_{s}", (half - 1.75, side * (SKIRT_Y - 0.01), foot + 0.03 + deep / 2),
+                        (2.40, deep), (4, 2 if deep > 0.45 else 1), 0.07, m, h, rot=(-side * math.pi / 2, 0, 0))
     if not front_engine(v):
         for side, s in ((1, "L"), (-1, "R")):
             VP.jerrycan(f"jerrycan_{s}", (-half + 0.45, side * 1.25, DECK), dict(m, paint=m["dark"]), h,
@@ -307,9 +331,11 @@ def engine_deck(v, x0, x1):
     VP.grille("radiator_grille", (mid, -0.55, z), (length, 1.0), m, h, slats=12, rot=rot)
     VP.bolted_panel("engine_access", (mid, 0, z), (length + 0.1, 0.12, 0.03), m, h, bolts=(4, 1), bevel=0.01,
                     rot=rot, lods=MID)
-    # The exhaust out of the right band (through the T-15's slab there).
+    # The exhaust out of the right band, behind the grilles on the deck or
+    # ahead of them through the T-15's slab.
     face = side_face(v)
-    loc, _ = VP.on_side(x0 - 0.10, (face[0][1] + DECK) / 2, -1, *face, proud=(SLAB if front_engine(v) else 0) + 0.03)
+    at = x0 + 0.30 if on_glacis else x0 - 0.10
+    loc, _ = VP.on_side(at, (face[0][1] + DECK) / 2, -1, *face, proud=(SLAB if front_engine(v) else 0) + 0.03)
     VP.exhaust("exhaust", loc, 0.11, 0.30, m, h, rot=(0, 0, -math.pi / 2))
 
 
