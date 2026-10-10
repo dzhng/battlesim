@@ -2,9 +2,9 @@
 
 ## Status and next pickup
 
-**Status:** phase 1 discovery is closed. Every decision is in [`choices.md`](choices.md), which holds the full map: settled ground, the decision ledger, the extracted taste and the landmines. No implementation slice is accepted yet.
+**Status:** phase 1 is built and closed (2026-10-10). Native draws the menu reel from the browser's frame records with the same camera, light, terrain and grass, and every slice passed its one-variable gate. [`choices.md`](choices.md) holds the discovery map and the consolidated phase 1 ledger. Phase 2 is unplanned.
 
-**Next pickup:** 05b and 06a are in flight. Read `choices.md` first. Its decisions are givens, not suggestions.
+**Next pickup:** a discovery walk with the user to plan phase 2 (slices 07–10). Read `choices.md` first; its decisions are givens.
 
 **Goal:** make the native Godot client visually equivalent to the browser renderer for the authored menu reel, as a maintained second client beside the browser. Rust stays the only gameplay, observation, visibility, replay and digest authority. The browser remains shipped.
 
@@ -28,7 +28,8 @@ Graph: `01 ∥ 02 → 03 → 04a → 04b → 04c → 05a → 05b → 06a → 06b
 - [x] 05b — Terrain: field character (`89481000`): furrows, wheelings, grain and mottle match the browser's grass-off `plain-<index>.png` plates at broad and close cuts. [slice](slices/05b-terrain-field-character.md)
 - [x] 06a — Grass: placement and per-region counts. [slice](slices/06a-grass-placement-and-counts.md)
 - [x] 06b — Grass: look and wind. [slice](slices/06b-grass-look-and-wind.md)
-- [ ] Closeout: run [`review`](../../.agents/skills/review/SKILL.md) over phase 1's whole diff, remove the class-view scaffolding unless phase 2 adopts it, update this handoff, and plan phase 2 with a fresh discovery walk.
+- [x] Closeout: [`review`](../../.agents/skills/review/SKILL.md) over phase 1's whole diff, plus an independent Codex review (`ed268e8b`, `bcaa8fff`, `ef730416`). The class-view scaffolding is removed, and the ledger is consolidated.
+- [ ] Plan phase 2 with a fresh discovery walk with the user.
 
 ### Phase 2: same models and events, then promotion (placeholders)
 
@@ -45,8 +46,7 @@ Graph: `01 ∥ 02 → 03 → 04a → 04b → 04c → 05a → 05b → 06a → 06b
 | Scaffolding | Removed |
 | --- | --- |
 | `legacy_map_layer.gd` | Slice 07 |
-| The class-view capture and the native class branch | Phase 1 closeout |
-| The cube probe in `throwaway/` | Scratch; never committed |
+| The grass count gate's `scar-omission` allowance | Slice 08, when native draws learned scars |
 
 Update this section before ending every implementation pass. Record the current slice, evidence, unresolved decisions, and the next exact pickup.
 
@@ -89,7 +89,7 @@ Native must not choose a building shell by family/token heuristics (removed in s
 - Terrain and grass: `packages/battle-renderer/src/terrain/{terrainSurface.ts,terrainGrid.ts,biome.ts,grassField.ts}` and `packages/battle-renderer/src/frame/{terrainHeights.ts,terrainMaterial.ts,grassPass.ts}`.
 - Models and authored content (phase 2): `packages/scene-assets/src/{loader.ts,schema.ts,templateLibrary.ts,appearanceCatalog.ts}`, `packages/battle-renderer/src/models/*`, `apps/battle-lab/src/buildingTier.ts`.
 - Effects and scars (phase 2): `packages/battle-renderer/src/effects/{effectFrame.ts,effectPass.ts}` and `packages/battle-renderer/src/frame/scarTexture.ts`.
-- Native client: `native/godot/` (see its README). `parity_run.gd` is the entry point. Capture, manifest, stepping, plates and the report are separate modules. The pre-parity buildings, props and units live in `world/legacy_map_layer.gd` until slice 07.
+- Native client: `native/godot/` (see its README). `parity_run.gd` is the entry point. Capture, manifest, stepping, plates and the report are separate modules, and `core/` owns the concepts they share (strict JSON, coordinates, word tables, compute passes, shader text). The pre-parity buildings, props and units live in `world/legacy_map_layer.gd` until slice 07.
 
 ## Known evidence and risks
 
@@ -114,29 +114,34 @@ Each side has one command, and neither needs a human.
 - **Browser control.** A headless-browser scene runs `/graphics-test` at 1280×720, passing the viewport explicitly because the harness defaults to 800 high. The page must stay visible, and the run takes the GPU lock and waits on scene readiness, not on timeouts. On chosen capture frames (shot midpoints, outside fades), the page reads back the canvas texture right after submitting that frame. That excludes the DOM HUD and the fade veil. It hands the PNG and that frame's record to the harness. One run writes, per scene, the capture, the manifest and the plates into scratch.
 - **Native plates.** Godot's dummy renderer under `--headless` draws nothing and never signals `frame_post_draw`, so it cannot produce screenshots. The agent launches the normal display server with the window off-screen (`--window-position 10000,10000`). Run that way, Forward+ on Metal renders and reads back an exact 1280×720 PNG in about 6 s. Native steps the frame records by index, setting camera and sim time from each record, and writes the plate for each capture frame. `--write-movie <dir>/f.png --fixed-fps 30` is available for fixed-step sequences. It needs a logged-in macOS session and takes the same GPU lock as the browser scenes. This is display-backed evidence, not headless evidence.
 
+Native grass plates differ by one or two pixels of at most 2 levels between reruns of unchanged code, so byte comparisons of native plates need that floor.
+
 Counters never prove pixels. Headless Godot proves lifecycle only. Every pass keeps the Rust digest/replay tests, the capture parser tests, the native lifecycle tests and the browser scenes it touches green. The full repository check and verification suite run once, at slice 10.
 
 ## Next Agent Prompt
 
-*Updated 2026-10-10.* You are implementing phase 1 of the native visual-parity spec. Slices 01–03, 04a–c and 05a are built, along with every browser-side input for phase 1 (manifest keys plus class and plain plates). In flight: 05b (field character) and 06a (grass placement). The current control run is `throwaway/native-parity/2026-10-10T22-39-26-895Z/`.
+*Updated 2026-10-10.* Phase 1 is built and closed. The next work is phase 2, which is not planned. **Don't start building it.** Run a discovery walk with the user ([`explore-unknowns`](../../.agents/skills/explore-unknowns/SKILL.md)), then slice it with [`write-spec`](../../.agents/skills/write-spec/SKILL.md) into this README and `slices/07`–`10`.
 
-- **Control run:** `PARITY_SCENES=paris-corner lockf -k <main>/throwaway/gpu.lock bun run --cwd web scene -- native-parity-capture` takes about 55 s; both scenes take about 3 minutes.
-- **Native run:** `godot --path native/godot --window-position 10000,10000 -- --run <dir> --scene <map>`.
+**Known gaps phase 2 inherits** (`choices.md`, "Known gaps"):
+- infantry decoding (own side only, one model per unit)
+- missing models (tree lines, wrecks, railings, short lamp posts)
+- scars, decals and effects, plus the grass gate's scar allowance
+- unmeasured water and relief paths
+- building tiers recorded in the manifest (L13)
+- performance (Godot has no Metal GPU timestamps)
 
-1. **Read first.** This README, then `choices.md` (its decisions are givens), then the slice file.
-2. **Load skills.** `renderer`, `write-tests` and `refactor-clean` before coding.
-3. **Build each slice as a small committed pass:**
-   - Write the behaviour test first.
-   - Run only the focused tests and the one or two scenes the slice touches.
-   - Produce the browser/native pair from one automated run, and reuse the latest control run across native iterations.
-   - Run both visual gates.
-   - Update this section and `choices.md`'s build log before ending the pass.
-4. **Worktree prerequisites:**
-   - Symlink `web/node_modules` to the main checkout's.
-   - Set `CARGO_TARGET_DIR=throwaway/target`.
-   - Build wasm and the mechanics validator.
-   - `git lfs pull --include` the runtime bundles the menu maps use. The control run aborts on an LFS pointer.
-5. **Hard rules:**
-   - Never compare against the archived plates.
-   - Never let native fall back, cap or skip anything silently.
-   - Keep the browser shipped and Rust authoritative.
+**Commands:**
+- Control run: `PARITY_SCENES=paris-corner lockf -k <main>/throwaway/gpu.lock bun run --cwd web scene -- native-parity-capture`. One scene takes about 55 s; both take about 3 minutes.
+- Native run: `godot --path native/godot --window-position 10000,10000 -- --run <dir> --scene <map>`, under the same lock.
+- Native tests: `native/godot/tests/run.sh`, under the lock, because display tests open a window.
+
+**Worktree prerequisites:**
+- Symlink `web/node_modules` to the main checkout's.
+- Set `CARGO_TARGET_DIR=throwaway/target`.
+- Build wasm and the mechanics validator.
+- `git lfs pull --include="assets/runtime/**" --include="assets/third-party/effects/**"`.
+
+**Hard rules, unchanged:**
+- Never compare against the archived plates.
+- Never let native fall back, cap or skip anything silently.
+- Keep the browser shipped and Rust authoritative.

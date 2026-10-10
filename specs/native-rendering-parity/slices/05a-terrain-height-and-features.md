@@ -26,4 +26,4 @@
 
 **Delegated:** the agreement threshold and edge-mask width (recorded), and how the terrain mesh is tiled.
 
-**Scaffolding:** the class-view capture and the native class branch are removed at the phase 1 closeout, unless phase 2 adopts them.
+**Scaffolding:** the class-view capture and the native class branch were removed at the phase 1 closeout (`bcaa8fff`, `d1d7535e`). The renderer's own class view stays; restore the parity plates from history if a terrain regression check needs them.

@@ -89,6 +89,8 @@ Nothing is OPEN.
 
 Each landmine is either decided (closed by the agent on the user's behalf unless marked otherwise) or a sharp edge.
 
+At the phase 1 closeout, every landmine except L13 is built as decided. L13 (building tiers) belongs to slice 07. One partial: the legacy buildings-and-props layer still measures its 1 km reach from frame targets rather than from the eye (L4), until slice 07 replaces it.
+
 | # | Landmine | Evidence | Status and decision |
 | --- | --- | --- | --- |
 | L1 | The browser's look lives in shader literals | `terrainMaterial.ts:267-326`, `grassPass.ts:228-237,583-597`, `fogTerm.ts` | Decided by the user; see the ledger |
@@ -107,200 +109,163 @@ Each landmine is either decided (closed by the agent on the user's behalf unless
 | L14 | Slice 04a shadow cuts use unported buildings | Token-picked shells until slice 07 | Sharp edge, slice 04a. Judge shadow direction and softness, not shapes. |
 | L15 | Small leaks | A material per unit per frame (`reel.gd:1159`); units reused by index rather than id (`:1165`) | Sharp edge, slice 02. Fix in passing. |
 
-## Confirm before coding
+## Confirm before coding: resolved
 
-- The slice 02 Forward+ probe has to pass on the real market-town content, not just the cube probe in `throwaway/godot-shot-probe`.
-- WebGPU canvas readback needs `COPY_SRC` usage on the canvas configuration. Check that `LabViewport` can add it without changing the shipped frame.
-- Check whether Godot imports symlinked GLBs under `res://`. If it doesn't, stage copies into the ignored folder instead.
+- **The Forward+ probe on real market-town content passed.** `tests/forward_plus_probe.gd` renders a real building, the grass field, a shadowed sun and the sky with no blocker.
+- **WebGPU canvas readback works without changing the shipped frame.** Only a plate-reading pilot configures the canvas with `COPY_SRC`; every other frame is configured as before, and a viewport test pins that.
+- **Godot imports symlinked models when each file is linked separately.** A symlinked directory makes Godot write `.import` files into the real `assets/`, so staging links one file at a time.
 
-## Plan synthesis (`write-spec`)
+## Phase 1 ledger
 
-Four independent drafts produced the cut, each with a different bias: fewest slices (Claude), risk first (Codex), seam quality (Claude) and feedback speed (Claude). The decisions below were taken from them. All were closed by the agent on the user's behalf.
+This replaces the walk's plan synthesis and the per-slice build logs. Every entry was checked against the code at the phase 1 closeout. Slice evidence lives in each slice's commit messages and in `throwaway/native-parity/`.
 
-| Decision | Why | Alternative not taken |
-| --- | --- | --- |
-| Slices 01 (browser) and 02 (native) run in parallel and join at 03 | They share no files. A native runner can be built against a hand-written capture. | One merged "same shot" slice (fewest-slices draft): fewer rungs, but it serialises two independent lanes |
-| The frame record is complete in 01 | Later slices change only the manifest, so nothing changes the capture format twice | Grow the record per slice |
-| No separate wind-clock field | Wind reads the interpolated sim time (`useBattleSession.ts:714`, `grassPass.ts:584`), so a second field would duplicate one owner | Two equal fields with a test that they're equal |
-| `samples[].camera` is dropped | Nothing reads it | Keep it |
-| Plates come from the existing `/graphics-test` route with `?plates=1` and `?scenes=`, driven by a new `native-parity-capture` scene | Reuses the reel run. Readback cost lands only in plate mode, which marks frame timing as not comparable. | A separate route that duplicates the reel page |
-| Light splits into 04a sun/shadow, 04b sky/haze and 04c tone | The taste row "same time of day and weather" hides three variables. Tone comes last, because it can only be judged once scene radiance matches. (The first cut put tone first; corrected while reading `post.ts`.) | One light slice (fewest-slices draft) |
-| Terrain splits into 05a features (with a measured class-agreement gate) and 05b field character | Two variables. The browser already has a class view, so features can be measured. | Height as its own slice. Neither reel map has relief, so a TS-vector test suffices. |
-| Terrain ships the browser's packed buffers as hashed artifacts, uploaded through `R32_UINT` `Texture2DRD` | Avoids porting about 2,300 lines of plot, biome and surface logic. Godot spatial shaders have no storage buffers, and `Image` has no u32 format. | Port the resolvers |
-| Fog constants are not lifted in phase 1 | Phase 1 paints no fog overlay, so nothing would read the table. This amends L1's scope. | Lift them now |
-| The grass build path is decided by a probe at the start of 06a: compute writing the MultiMesh, or the browser's vertex-stage cull | Compute-written MultiMesh rendering had bugs in Godot 4.4 (godotengine/godot#105100) | Pick one now |
-| The far plane is finite: the map diagonal plus `backdrop.reach_m`, reported as a budget | Godot `Camera3D` has no infinite far plane or custom projection. Reverse-Z has been built in since 4.3. | — |
-| Tests call `quit(1)` rather than `assert`; staging links one file at a time | Verified on 4.7.2: a failing `assert` hangs script mode, and directory symlinks write `.import` files into `assets/` | — |
-| The capture run fails fast on a resource abort | Measured: it hung in `running` on an LFS-pointer bundle | — |
-| Phase 2 renumbers to 07–10 | Phase 1 now has sub-slices | — |
+**Review these first:**
+1. **Hash equality for grass, not bit-exact positions** (needs-user).
+2. **Scar cells exempted by name from the grass count gate** (sound, medium confidence).
+3. **The light enters the manifest raw, and native ports the derivations** (sound, medium confidence).
 
-## Build log
+### Needs you
 
-Append decisions made during the build here, with their attribution.
+**Grass placement is exact in its integers, and within 16 ulps in its float positions.** *Slice 06a, `68a07659`.*
+- **The plan said:** "grass sampling is ported bit-exact" (L1).
+- **What happens:** a clump's identity, whether it grows, and which tile it belongs to come from integer hashes, and those match the browser exactly on 108 test candidates. Where it stands, a float position, comes out of two different shader compilers: Chrome's WGSL→Metal and Godot's GLSL→SPIR-V→Metal. They round differently, by up to 8 ulps (about 0.1 mm at 250 m).
+- **The alternative:** force strict float maths in both clients, which neither compiler offers, or ship every clump position in the manifest, which is tens of megabytes per frame.
+- **Reach:** any later slice that compares grass compares identity exactly and position within a tolerance.
+- **Provisional call:** accept the ulp tolerance; it is invisible at any distance the camera reaches. To reverse it, change the test's 16-ulp bound to 0, and it will fail.
+- **Confidence that you'd agree:** medium.
 
-### Slice 01 (`0b8ac2a9`), by the implementing agent; reviewed by the orchestrator
+### Sound
 
-| Decision | Why |
-| --- | --- |
-| The scene hashes the written `capture.json` and `map.json` bytes from disk; the page supplies only lens, layers and omissions | Identity is the bytes native will read |
-| Plates are held in the page as PNG blobs and pulled by the scene at the end | Avoids coupling the route to a harness binding |
-| A plate frame is the first frame at or past each shot's middle | `validateReel` already fits both fades inside a shot, so the middle is never veiled |
-| The layer vocabulary is a fixed list of 13 names, of which the reel draws 11 (no `fog`, no `overlays`) | Native filters on the same names |
-| `?scenes=` refuses an unknown name; a single-scene run films the same camera rig as a full run | No silent subset; the same framing either way |
-| The route listens to `appResources` to report a resource abort | The app's error boundary unmounts the route, which used to leave it hanging in `running` |
-| The worktree pulls `assets/runtime/**` and `assets/third-party/effects/**` (about 417 MB) | The reel needs 321 of 337 bundles |
-| The lens records `far: "infinite"` without checking it against the drawn camera | Today's camera never sets a far plane |
+Within each group, least confident first.
 
-### Slice 03 (`0d264eb5`), by the implementing agent; reviewed by the orchestrator
+**Gates and evidence**
 
-Framing passes: 18 of 18 market-town pairs and 5 of 6 paris-corner pairs (the sixth is all explosion). Edge maps align within 4 px apart from grass-dominated frames, and the unprimed critique agreed.
+- **A scar cell is exempt from the 10% grass count gate only when native's excess is covered by its clumps on bare scars.** *06 closeout, `58931e34`.*
+  - Picture a tank that crossed a wheat field earlier in the battle. The browser knows that side's learned scars (craters, scorch and tracks), so it leaves the grass out on them. Native has no scars layer until slice 08, so it grows grass there, and a screen cell over the track counts 13–16% more clumps than the browser.
+  - The run replays the learned ground (`capture/learned_ground.gd`, tested against the browser's own replay), counts native clumps standing on bare scars per cell, and names a cell `scar-omission` only if the excess is no larger than that.
+  - Every other cell must be within 10%. Five of 216 cells are named, and removing the allowance makes the run block.
+  - Reach: slice 08 deletes the allowance when scars arrive.
+  - Confidence: medium. The gate is unchanged, but it carries a named exception.
 
-| Decision | Why |
-| --- | --- |
-| The far plane is the map diagonal plus the manifest's `light.backdrop.reach_m`; the sun comes from `light.sunDirection` | The manifest is the seam; no second fixture read |
-| Legacy terrain and sky shaders read sim (x, y) world coordinates | One conversion owner |
-| Rotated boxes scale in their own axes | `scaled()` skewed them |
-| Units draw at their authored size (the legacy 1.8× scale is gone) | It doubled every vehicle and misframed subjects |
-| A `Logger` turns every logged script error into a blocker, and `tests/run.sh` fails any test that logs one | GDScript runtime errors return null and carry on silently. This exposed two load-skipped-model bugs. |
-| The test fixture is paris-corner trimmed through its first plate (580 KB, artifacts included), with a frozen map copy | A real capture replaces the hand-written one |
-| Infantry is mostly missing because only the own-side group is decoded, one model per unit | Phase 2 (07) owns squads, enemies and corpses |
+- **The terrain feature gate is a measured class agreement, not a judgement by eye.** *05a, `48c3ab7a`.*
+  - Both clients drew the same frame as bytes: is this pixel paving, water, forest, or plot kind K? The two were compared over ground both drew, away from edges.
+  - It came out at 100.00% on both maps, against a 99.5% gate. A one-digit hash change drops plot agreement to 18%, so the measure can fail.
+  - The native class branch and the browser's parity class plates were removed at the closeout, as the plan said. A future terrain regression check would need them back.
+  - Confidence: medium. It's a strong check that now exists only in history.
 
-Defects found for later slices: tree lines and forests drawn as flat bands (vegetation is phase 2 unless 06 adopts it); wrecks, infantry and a T-posed soldier (07); balcony railings and lamp-post height (07); road markings and decals (05a/05b surfaces, or 08 for scars); effects (08); oversized grass (06).
+- **Godot's Metal GPU time is null rather than measured.** *Slice 02.*
+  - Godot 4.7.2 records no GPU timestamps on Metal, so the report writes null rather than a false 0.
+  - Performance was "record, don't gate", so nothing blocks. Slice 09 needs a real measure.
+  - Confidence: high.
 
-### Browser lanes built ahead of their native slices (`8209a90b`, `449e9d8e`, `8b101db5`, `5d6898ad`)
+- **Native renders at the browser's 4× MSAA, and post reads the resolved image.** *`11404057`.*
+  - The browser shades, hazes and resolves 4 samples per pixel before post; native now does the same.
+  - Grass MAE against the browser fell from 7.04 to 0.76 on one plate.
+  - One difference remains: native hazes the resolved pixel, because Godot's compositor sees only resolved buffers. No halo shows.
+  - Confidence: high.
 
-The orchestrator built the browser halves of 04, 05 and 06a early, in parallel with slice 03. This bends Q4 ("each slice adds only what native reads") in timing only: every field has a phase 1 reader.
+**Contracts and formats**
 
-| Decision | Why |
-| --- | --- |
-| The manifest's `light` is the light the battle frame was built with, plus a page-derived unit `sunDirection`. The Node writer checks shape only. | The scene harness runs the writer under plain Node, which can't import the renderer (`449e9d8e` fixed the break `8209a90b` introduced) |
-| Tuning numbers (scales, frequencies, weights, thresholds, colours) are lifted; hash multipliers, decorrelation offsets, lattice rotations, Rec. 709 weights and the rut profile's derived constants stay inline | The latter are part of the formula, which native ports as text |
-| `WATER_ROUGHNESS` and `WATER_SHADOW` remain as aliases of `terrainTuning.water` | `worldPass.ts` imports them. Collapse them at the phase 1 review. |
-| Terrain artifacts are the exact buffers the material uploads, with layouts generated from the GPU struct definitions | One packer; the layout can't drift |
-| Grass counts are clumps whose root projects on screen (occlusion ignored), in 4×3 cells, read in the plate's own frame. `grassPass.probes.clumps()` now queues both copies at the call. | A later frame could slip in between the old copy and its wait |
-| Readbacks run only in plate mode; terrain tables are taken once, at the first plate | Debug readbacks cost frame time |
-| Both reel maps are flat (the height grid has no pages); non-flat terrain is covered only by tests | It's the territory |
-| `tuning: {terrain, grass}` is passed by the page; the validator checks only that the values are finite numbers or tuples | The Node writer can't import the renderer |
-| Grass tables come from one frame accessor, `uploadedTables() → {terrain, grass}`, read at the first plate. `params` keeps the view fields from the last regrow, and native overwrites them per frame. The index strips are exported as uploaded (padded u16). | One packer; exactly what the GPU read |
-| Generic word-table code lives in `wordTables.ts`, shared by terrain and grass | One owner for artifact layouts |
+- **The manifest carries the raw `presentation.light` plus `sunDirection`; native ports every derivation.** *04a.*
+  - The derivations are the sun colour, overcast, extinction, cascade splits, sky radiance, haze and post. The alternative was for the browser to export resolved values (`light.sun`, `light.post` and so on).
+  - Native refuses a missing or extra field and a non-unit sun direction, and a headless test checks each ported derivation against values computed by the TS code.
+  - Reach: a browser change to the light formulas needs a native port; a change to the light data needs nothing.
+  - Confidence: medium. It duplicates formulas by design (L1), and the tests catch drift.
 
-### Slice 02 (`ae645e7a`), by the implementing agent; reviewed by the orchestrator
+- **The browser's packed terrain and grass buffers ship as hashed artifacts, and their layouts are generated from the GPU struct definitions.** *`5d6898ad`, `b726a9ca`.*
+  - Native reads exactly the words the browser uploaded, rather than porting about 2,300 lines of plot, biome and surface logic. A struct change regenerates the layout and can't drift.
+  - Reach: these binary layouts are now a contract between the clients.
+  - Confidence: high.
 
-| Decision | Why |
-| --- | --- |
-| A plate's `gpuMs` is null on Metal | Godot 4.7.2's Metal driver records no GPU timestamps, and a false 0 would lie. Perf was "record, don't gate", so nothing blocks. |
-| `tests/run.sh` requires each test's result line, and the runner clears the environment | A GDScript parse error exits 0, and a failing `assert` hangs |
-| The binding smoke moved to `native/godot/binding_smoke/` with `.gdignore` | Otherwise the imported project tries to load the binding's dylib on every run |
-| `.gitignore` adds `*.uid` | Godot 4.7 writes them, and everything here loads by path |
-| Building kits come from catalog `city_kit_*` keys; a unit with no catalog model becomes a reported capsule | Removes environment-driven selection and the hard-coded GLB fallback |
-| Fog is drawn uncapped as one MultiMesh, only when the manifest lists it | Phase 1 menu manifests don't list it |
-| The far plane stays at Godot's default 4000 m, reported as a budget, until slice 03 sets it | Camera work is slice 03 |
-| The legacy layer's 1 km reach is measured from frame targets | Pre-parity code, replaced in slice 07 |
+- **Tables reach the GPU as RGBA8 textures, one texel per word.** *05a.*
+  - Godot 4.7.2's `Texture2DRD` refuses `R32_UINT`, which the plan named.
+  - The shader reassembles each word exactly, and a probe confirmed every byte round-trips.
+  - Confidence: high.
 
-### Slice 04a (`ec10b1c8`, final pass below), by the implementing agent
+- **Terrain layout offsets and tuning reach the shader as generated defines, not uniforms.** *05a/05b.*
+  - The browser splices the same numbers into WGSL. A renamed field fails to compile, and that failure is a logged blocker.
+  - The plan said "uniforms".
+  - Confidence: high.
 
-Shadow direction matches on every pair, and softness reads the same at mid range; the unprimed critique agreed on direction (high confidence) and found the edges roughly equal, with the candidate's near-tank shadow softer. Evidence: `throwaway/native-parity/slice04a/`.
+- **The light and the tuning tables are passed in by the page, and the Node manifest writer checks only their shape.** *`449e9d8e`, `948dc7fd`.*
+  - The scene harness runs the writer under plain Node, which can't import the renderer.
+  - The page validates the light with the renderer's `validateLight` and derives `sunDirection` with `sunDirection()`. Native re-checks strictly.
+  - Confidence: high.
 
-| Decision | Why |
-| --- | --- |
-| The manifest's light stays the raw `presentation.light` plus `sunDirection`; native ports the derivations (transmittance, overcast, sun colour, cascade breaks, receiver range) rather than reading resolved `light.sun`, `light.fill` and `light.cascades` | The browser lane had already shipped this shape; resolved values would duplicate the owner the formulas read. A TS-evaluated oracle pins the ports in `tests/light_test.gd`. |
-| `environment/light.gd` checks the whole light shape at once (every field, nothing extra, finite numbers) | One strict schema; a stale file fails at the reader, not at the slice that first reads a field |
-| The sun's energy is `sun_intensity / pi` and its colour is passed through `linear_to_srgb` | Godot multiplies a directional light's energy by pi and reads light colours as sRGB |
-| `shadow_floor` is Godot's `shadow_opacity = 1 - shadow_floor` | The same mix: a shadowed surface keeps that share of the sun |
-| Ambient and reflections come from the sky: the sky shader's cubemap pass writes the ported physical sky times `sky.fill` | The browser's environment light is its sky LUT times the fill, for diffuse and specular alike. This amends the slice's "not from Godot's sky": the light is the browser's sky, not Godot's procedural one. |
-| Cascades split per frame over the receiver range the camera sees (the browser's 13×13 ray grid against the map box, flat until 05a), mapped onto Godot's camera-relative split fractions | Godot's splits start at the camera, the browser's at the receivers |
-| Soft shadows are PCF (`SOFT_LOW`, four Vogel taps), not PCSS; `shadow_blur` matches the browser's penumbra in metres in the second cascade | The browser's penumbra is a fixed world width; Godot has one radius per light in each split's texels, so near shadows are slightly sharper and far ones softer. PCSS would widen with blocker distance, which the browser doesn't. |
-| Godot's shadow biases stay at their defaults | The browser's biases belong to its own depth contract; no acne or peter-panning showed in the pairs |
+- **No separate wind clock; `samples[].camera` dropped.** *Slice 01.*
+  - Grass wind reads the interpolated sim time, which the frame record already holds. The per-sample camera had no reader.
+  - Confidence: high.
 
-### Slices 05a (`48c3ab7a`) and 05b (`89481000`), by the implementing agent
+- **A `?scenes=` subset run reports its own workload.** *Browser review.*
+  - It used to embed the whole reel's workload, so a partial capture could pass for the complete one. Found by the Codex review.
+  - Confidence: high.
 
-05a's class agreement over ground both clients drew, with a 2 px edge mask, is 100.00% on both reel maps: about 9.9 M px on market-town and 1.7 M px on paris-corner. With no mask it is 99.98%. The gate is 99.5%, with both clients drawing at least 97% of the browser's ground; measured coverage is 98.1% to 100%. A one-digit hash change drops plot-hash agreement to 18%, so the measure can fail. The lit pairs put roads, walks, slab joints, dashes, kerbs, plot edges and verges in the same places, and the unprimed critique agreed. Neither reel map has water, and forest covers about 19 k class pixels on market-town. 05b is judged against the browser's `plain-<index>.png` plates (lit, grass off; run `2026-10-10T22-39-26-895Z`), with native's grass also left out in a scratch manifest copy. Wheelings, row direction and spacing, streaked grain and meadow mottle match at broad and close cuts. Native's ground reads paler and less saturated, which is tone and belongs to the light slices. An unprimed critique of the plain pairs, run by the orchestrator because the builder's never arrived, judged every pair and crop the same kind of field. Its one recurring note: native's grain streaks are slightly shorter and blotchier, and its wheel tracks slightly softer. Evidence: `throwaway/native-05a/`, `throwaway/native-05b/`.
+**Rendering choices that make native match**
 
-Cross-lane sharp edge: the light lane's shadow-receiver box still assumes flat ground. That's harmless on both flat reel maps, but it must grow with real relief before any relief map is judged.
+- **Shadow softness is PCF matched in the second cascade, and Godot's shadow biases stay at default.** *04a.*
+  - Godot has one blur radius per light; the browser has a fixed penumbra in metres. So native's near shadows are slightly sharper and its far shadows softer.
+  - Confidence: medium.
 
-| Decision | Why |
-| --- | --- |
-| Tables upload as RGBA8 `ImageTexture`s, one texel per word, reassembled exactly in the shader. This amends the plan's `R32_UINT` `Texture2DRD`. | Godot 4.7.2's `Texture2DRD` refuses `R32_UINT` (no matching `Image` format). A float format would carry NaN payloads in the plot tree's negative children. |
-| `params` is a `vec4` uniform array decoded per field type. The other tables are textures. | It is one small record; uniforms avoid a fetch per field |
-| The shader reads layout offsets and `tuning.terrain` as defines generated from the manifest, not as uniforms | The browser splices the same numbers into WGSL as constants. A missing or renamed field fails to compile, and that compile failure is a logged blocker. |
-| Formula constants stay as shader text: hashes, lattice turns, `CUT_A`/`CUT_B`, `MAX_PLOT_DEPTH` and the class encoding (8 steps a metre, edge at 128) | The same rule as the tuning lift: they are part of the formula |
-| A WGSL-exact `smoothstep` (`ss`) and `roundEven` replace GLSL's `smoothstep` and `round` | GLSL leaves `smoothstep` undefined for `low >= high` and `round` at .5; WGSL defines both |
-| The ground mesh is the simulation's: the grid is split in halves until a rectangle holds no relief page, with flat-shaded SW→NE triangles. The backdrop is four flat bands at the lowest ground out to the backdrop reach, unshadowed. | It is `World::terrain_mesh` and `backdrop.ts`; a flat reel map is two triangles |
-| Buildings, units and props with a published or saved height use it. Only things without one sit on `height_at`. | Seat on the one height function; don't re-seat sim-placed bodies |
-| `--view classes` writes `class-<index>.png`. It has no environment, a black clear colour and no grass, and draws every other geometry black (units re-blackened each frame). | It is the browser's class view, whose bytes are data. Exact sRGB round-trip was probed for all 256 bytes. |
-| Sun flecks (`groundDapple`) are omitted and reported as a budget; scars are the reported-dropped `scars` layer | Native has no crowns until 07; scars are phase 2 |
-| Height vectors come from `throwaway/native-05a/height-vectors.ts` (the browser's packer and `groundHeight`) into `tests/fixtures/height_vectors.json` | As the slice delegated; the generator is scratch, and the vectors are the contract |
+- **The sky's radiance is evaluated per pixel instead of baking the browser's 384×192 lookup texture.** *04b.*
+  - No bake pass or texture lifetime to manage. The only difference is the browser's bilinear filtering.
+  - Confidence: high.
 
-### Slice 04b, by the implementing agent
+- **The post chain is a formula port: bloom, grade and AgX as one CompositorEffect, with Godot's tonemap linear.** *04c.*
+  - Godot's built-in AgX can't express the grade's split tone and lift.
+  - Mean brightness is within 1–4 levels of the browser's.
+  - Confidence: high.
 
-The sky gradient and cloud cover match on every pair; the clouds land in the same places at the same size, since the cloud field is a function of view direction alone. Distance haze reads alike on far buildings and fields. The unprimed critique agreed on clouds and gradient (high confidence) and saw native's clouds slightly flatter, its horizon band cooler, and the far-ground horizon edge a little sharper; those are judged again after 04c, since AgX and the grade move hue and highlight shading. Evidence: `throwaway/native-parity/slice04b/`.
+- **Sun energy is `sun_intensity / π`, its colour is converted to sRGB, and shadow opacity is `1 − shadow_floor`.** *04a.*
+  - These are Godot's unit conventions mapped to the browser's.
+  - Confidence: high.
 
-| Decision | Why |
-| --- | --- |
-| Native evaluates the sky radiance per pixel (background, cubemap pass and haze) instead of baking the browser's 384×192 LUT | One shader function and no bake pass or texture lifetime; the cost is well inside a plate's budget. The browser's bilinear LUT filtering is the only difference. |
-| The haze reads its near and far planes from the camera, not from the scene's `Projection` | Godot's reverse-Z projection doesn't report its planes (`get_z_near()` returned 0 in a probe) |
-| `core/coords.gd` gains `godot_to_sim`, its inverse | The haze turns the rendered camera back into sim space; one conversion owner |
-| `prepare(camera, viewport, focus)` replaces `fit`, mirroring the browser environment frame's `prepare` | The haze needs the frame record's ground focus as well as the camera |
-| The pre-parity Godot fog is gone | The browser's haze replaces it |
+- **The grass build is a compute shader writing the MultiMesh and its indirect draw count.** *06a.*
+  - The 4.4-era bug (godotengine/godot#105100) didn't reproduce on 4.7.2 once each MultiMesh had a custom bounding box. Godot leaks the indirect command buffer at exit (godotengine/godot#108148), which shows as a 2-RID warning.
+  - Confidence: high.
 
-### Slice 04c, by the implementing agent
+- **WGSL-exact `smoothstep` and `roundEven` live in one shared include.** *05a, closeout.*
+  - GLSL leaves both undefined at their edges.
+  - Confidence: high.
 
-Overall tone matches: the mean luminance over the plates is 115.6 against the browser's 114.6 on paris-corner and 129.7 against 133.4 on market-town (it was 127.4 and 144.7 under Godot's linear tone map), and the mean grey difference halves (paris-corner 28.2 → 20.6, market-town 21.0 → 11.5). A 20× bloom-strength probe glows the clouds, so the bloom is wired. The unprimed critique measured the sky and clouds within 0.4/255 of the browser's, roads and lit walks within 1 to 4 levels and the same top percentile, and judged the same time of day, weather and grade; that settles 04b's open horizon-hue and cloud-shading notes as tone. The remaining differences are models: the grass blades' saturation (06b) and missing dust and smoke (08). Evidence: `throwaway/native-parity/slice04c/`.
+- **Units draw at their authored size; the legacy 1.8× scale is gone.** *03.*
+  - It doubled every vehicle and misframed subjects.
+  - Confidence: high.
 
-| Decision | Why |
-| --- | --- |
-| The post chain is one `CompositorEffect` of four compute passes (high-pass, a separable blur run per level and axis, composite, grade and AgX), after the haze effect at `POST_TRANSPARENT` | The browser's chain, pass for pass; one blur pipeline computes its Gaussian weights from the radius in a push constant instead of compiling one per radius |
-| The effect writes AgX's linear display colour, and Godot's output step applies the sRGB transfer | Godot's linear tone mapper ends with the same piecewise sRGB curve as the browser's `outputSrgb`; writing sRGB in the effect would encode it twice |
-| The manifest's post settings are the light's own `exposure`, `grade` and `bloom` (the browser's `postSettings`), not a separate `light.post` | The light is the whole `presentation.light`; `postSettings` only picks those three fields |
-| `environment_adapter.gd` builds the post effect inline rather than exposing `build_post(light)` | The adapter owns the compositor; a second entry point would have no caller |
+**Tooling and project shape**
 
-### Slice 06a, by the implementing agent
+- **A logged GDScript error becomes a blocker, and tests fail on any logged error.** *03.*
+  - GDScript runtime errors return null and carry on, so a broken model load looked like success. This exposed two bugs.
+  - Confidence: high.
 
-Native grows the grass where the browser does. On market-town, against the control run `2026-10-10T22-39-26-895Z`, the first three plates (393, 1037, 1522) match the browser's clump count exactly in every cell. Over all 18 plates, 211 of 216 cells are within 10%. The other five, in plates 2562, 6366, 7139 and 7849, run 13–16% over. Native never counts fewer than the browser. The excess cells inspected (2562, 7139) lie on a tank's track, where the browser lays its grass flat and leaves clumps out. That is the side's learned scars, which native has no seam for until phase 2. The sampling test runs the browser's own WGSL on WebGPU against the native build's functions over 108 candidates. Hash words, tile offsets and admission decisions are equal, and fall points are within 8 ulps. Evidence: `throwaway/native-parity/slice06a/` (`counts.txt`, sheets, crops, `diff/`).
+- **Tests call `quit(code)` rather than `assert`, and `tests/run.sh` requires each test's result line.** *02.*
+  - A failing `assert` hangs script-mode Godot, and a parse error exits 0.
+  - Confidence: high.
 
-| Decision | Why |
-| --- | --- |
-| The build is a GLSL compute shader writing each tier's MultiMesh buffer and counting its indirect draw command (`multimesh_get_command_buffer_rd_rid`) | The probe rendered compute-written instances on 4.7.2 once the MultiMesh had a custom AABB; the indirect command is the browser's args, so the draw count stays on the GPU. The vertex-stage fallback was not needed. |
-| The build includes `ground.gdshaderinc` as written, with its five uniforms stripped and redeclared as compute bindings | One copy of the ground formulas; a changed uniform list fails by name |
-| A tier counts every clump found and draws the first up to its capacity, so no finish pass | The browser's finish pass clamps the same count |
-| `GRASS_EDGE_M` and `GRASS_HEIGHT_VARIATION` are hand-ported constants in the build | The manifest does not carry them; they belong in `grass.constants` |
-| Fall points are tested within 16 ulps, not bit for bit | Each GPU compiler (Tint's MSL, and glslang through SPIRV-Cross) leaves strict f32 at different candidates, measured up to 8 ulps (0.1 mm at 250 m). The hashes and admissions they come from are exact. |
-| The vectors come from the browser's WGSL run in Chromium's WebGPU, not a TS model of the arithmetic | A strict-f32 TS model disagreed with the browser's own GPU in 13 rows |
-| `*_display_test.gd` tests run in an off-screen window under `tests/run.sh` | The sampling test needs a rendering device |
-| Native clumps per cell are counted from the tiers' buffers after the plate draws, with the browser's projection rule, and reported beside the browser's | The same count, the same frame |
-| The legacy grass tufts, their target-near grid and the grass appearance pick are deleted | Replaced by the field |
+- **One owner per native concept in `core/`.** *Closeout, `bcaa8fff`.*
+  - Strict JSON checks, shader number text, compute-pass and word-table helpers, and the shader includes for word reading, coordinates and smoothstep. Parallel builders had copied each of these.
+  - Confidence: high.
 
-### Slice 06b, by the implementing agent
+- **Plates come from the existing `/graphics-test` route in plate mode.** *01, browser review.*
+  - Only a plate-reading pilot makes the canvas copyable, so the shipped game is configured as before.
+  - The alternative was a separate route duplicating the reel page.
+  - Confidence: high.
 
-Native grass reads like the browser's. Over the 18 market-town plates, the mean distance from the browser falls from 0.386 to 0.097, the grayscale MAE from 22.2 to 6.5, and the luminance from 117.8 against 133.4 to 134.2 against 133.4. The counts are unchanged from 06a. The unprimed critique judged the grass the same overall. Its remaining notes (thinner, speckled, more upright near blades) are aliasing: a throwaway render at 4× MSAA, which the browser's frame uses, matches the browser blade for blade (grass-region MAE 0.76 and 0.46 on plates 4789 and 393). The wind follows the record's clock: the true `simTime` is closer to the browser's plate than a clock shifted 0.35 s or 1.5 s, on each of three plates. Evidence: `throwaway/native-parity/slice06b/`.
+- **The test fixture is a trimmed real paris-corner capture (580 KB, artifacts included) with a frozen map copy.** *03.*
+  - Confidence: high.
 
-| Decision | Why |
-| --- | --- |
-| The draw places, bends and lights blades in sim metres and hands Godot world-space vertices (`world_vertex_coords`) and its own clip position, so the browser's depth tie applies | The browser's vertex stage, formula for formula |
-| The fragment sets the browser's shading normal (facing the eye, leaned to the ground's by `shading.y` and the far fade) and leaves the light to Godot's | The light is 04a–c's; the browser's `environment.shade` is the same sun and sky fill |
-| The ground-paint glow and the fog term are not ported | The menu reel draws no ground paint and no fog overlay |
-| MSAA is not turned on here | It is the whole frame's, owned by the frame and light lane; reported to the orchestrator with the evidence above |
+**Delegated discretion,** not audited: PNG encoding, plate-frame choice (each shot's middle), module layout below the named files, and contact-sheet layout.
 
-### 04c follow-up: 4× MSAA, by the implementing agent
+### Unsound
 
-The browser draws its lit world at 4× MSAA (`FRAME_MSAA` in `frame/targets.ts`), shades and hazes each sample, resolves into `lit`, and runs post on the resolved image. Native now sets its viewport's `msaa_3d` to 4× in the environment adapter, and both compositor effects ask Godot for the resolved colour (and the haze for the resolved depth). Against the browser, on the same HEAD with and without MSAA: market-town mean grey difference 6.5 → 5.1 and distance 0.097 → 0.065, with mean luminance 134.2 → 134.5 (browser 133.4); paris-corner 20.6 → 20.4, luminance 115.6 → 115.8 (browser 114.6). Skyline crops show smoother edges and no haze halo against the sky; the bloom is unchanged. `tests/environment_test.gd` pins the level. Evidence: `throwaway/native-parity/slice04c-msaa/`.
+None found at the closeout. Two earlier choices were corrected during the build and are already fixed:
+- the manifest writer importing the renderer under Node (`8209a90b`, fixed by `449e9d8e`);
+- the first light order, tone before sun and sky (fixed in the spec before any light code).
 
-| Decision | Why |
-| --- | --- |
-| The environment adapter owns the MSAA level, setting the viewport's `msaa_3d` when it enters the tree | It is the frame the light is drawn through, and the browser's light owner shades per sample; one owner beside the effects that must read the resolve |
-| The haze reads Godot's resolved depth, one value per pixel, where the browser hazes each sample | A Godot compositor effect sees only the resolved buffers; edge pixels against the sky show no halo at 1× crops |
+### Known gaps carried into phase 2
 
-### Grass 06 closeout, by the implementing agent
-
-Control run `2026-10-10T23-18-11-999Z` (both scenes, with `grass.constants` now carrying `edgeM` and `heightVariation`), native at HEAD with the browser's 4× MSAA (`11404057`). Evidence: `throwaway/native-parity/slice06b/head-*`.
-
-- **06b with MSAA.** Over 18 market-town plates, mean distance from the browser is 0.065 (0.097 without MSAA), grayscale MAE 5.1, luminance 134.5 against 133.4, edge density 0.350 against 0.360. The grass-region MAE (the lower 300 rows) is 0.39 to 4.3 per plate; the high ones hold dust, smoke and tracks. The unprimed critique judged the grass the same, almost blade for blade in every crop. Its remaining notes are flattened grass and darker lines along vehicle tracks (scars, slice 08), slightly sparser and thinner dry grass in one crop, slightly smoother far grass in another, and a crop marginally paler, within noise. Paris-corner grows no grass and renders with no blocker.
-- **The count gate.** The parity run gates every screen cell at 10% of the browser's count. 211 of 216 market-town cells pass outright. The other five run 13–16% over, each by about half its native clumps that stand on a crater, scorch or tracks of the side's learned ground: 2573:10 (+273, 577 on scars), 6402:11 (+45, 108), 7171:8 (+127, 263), 7171:9 (+105, 202), 7892:9 (+250, 503). Every cell with no such clumps is within one clump; trampled-only cells, which the browser lays flat but keeps, match. Those five are `scar-omission` budget rows; any other off cell is a blocker.
-
-| Decision | Why |
-| --- | --- |
-| Native replays the capture side's learned ground (`capture/learned_ground.gd`), as the browser's `GroundView` does, tested against `GroundView`'s own replay of the fixture capture | The gate needs the browser's scars to name a scar cell; it is also slice 08's input |
-| A cell is a scar omission only when native is over by no more than its clumps on bare scars | A deficit, or an excess the scars cannot cover, is a real difference |
-| `edgeM` and `heightVariation` are `grass.constants`, validated by kind (count, or non-negative length) | They were the build's last hand-copied numbers |
-| The exit-time StorageBuffer warning stays, with a comment linking godotengine/godot#108148 | Without the layer's own frees, ten RD resources leak; with them two remain, and freeing each tier's indirect command buffer by hand clears it without error: the engine's leak |
-| The Forward+ probe installs the run's error logger | A script error now fails it |
+- **Infantry.** Only the own-side unit group is decoded, one model per unit, so squad members, enemies and corpses are missing, and one soldier is T-posed. Slice 07.
+- **Missing models.** Tree lines and forests are drawn as flat bands, there are no wrecks, Paris balcony railings are missing, and lamp posts are 15–20% short. Slice 07.
+- **Scars, decals, dust, smoke and fire.** Slice 08. This also removes the grass gate's scar allowance.
+- **Unexercised paths.** The water formulas are ported but unmeasured, because neither reel map has water. Relief is tested only against a synthetic grid.
+- **Run-to-run noise.** Native grass plates differ by one or two pixels between reruns, probably GPU append order. Byte comparisons need that floor.
+- **Git history.** The two closeout reviewers shared one git index, so their commits were rewritten into `ed268e8b`, `bcaa8fff` and `ef730416`, with a tree identical to the pre-rewrite HEAD. Nothing had been pushed.
