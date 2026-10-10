@@ -109,7 +109,7 @@ pub struct ApproximateContact {
     /// `roundKinds`), set for every row of each mount heard firing, since a
     /// gun's report doesn't say which round it loaded (a cannon's AP and HE
     /// sound alike). 0 for a last sighting.
-    pub heard: u32,
+    pub heard: u64,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]

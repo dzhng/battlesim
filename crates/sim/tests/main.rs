@@ -7,6 +7,7 @@ mod air;
 mod air_crash;
 mod air_flight;
 mod air_supply;
+mod air_weapons;
 mod animation_feed;
 mod battle_authority;
 mod bodies;

@@ -69,6 +69,10 @@ pub struct WeaponDefinition {
     /// Armour-piercing: preferred against identified vehicles, never at contacts.
     #[serde(default)]
     pub armor_piercing: bool,
+    /// The altitude layers it can engage (D1): what its crew can bring it to
+    /// bear on. A rifle, a machine gun or an autocannon swings up at a
+    /// helicopter; a tank gun, a grenade or a ground missile cannot.
+    pub targets: Vec<crate::catalog::AltitudeLayer>,
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]

@@ -46,7 +46,7 @@ pub struct Contact {
     /// The previously identified type; absent for a never-identified cause.
     pub kind: Option<TypeIndex>,
     /// A firing report's weapons as heard (`ApproximateContact::heard`).
-    pub heard: u32,
+    pub heard: u64,
     pub(crate) emitter: UnitId,
     /// Retired slots preserve their handle, but are never published or targeted.
     live: bool,
@@ -61,7 +61,7 @@ pub struct SideKnowledge {
     contacts: Vec<Contact>,
     /// Enemy shots heard of this tick: (shooter, where it was and its band,
     /// the rows its report sounds like).
-    pending_fire: Vec<(UnitId, V3, AltitudeLayer, u32)>,
+    pending_fire: Vec<(UnitId, V3, AltitudeLayer, u64)>,
     /// Observation-uncertainty stream: where inside its area a contact is reported.
     rng: Rng,
     /// Enemies this side watched die: their attacks are complete (W17).
@@ -143,7 +143,7 @@ impl SideKnowledge {
 
     /// An enemy fired: firing is disclosed map-wide, whatever the line of
     /// sight, with the weapon rows its report sounds like (`heard`).
-    pub fn note_fire(&mut self, shooter: UnitId, at: V3, layer: AltitudeLayer, heard: u32) {
+    pub fn note_fire(&mut self, shooter: UnitId, at: V3, layer: AltitudeLayer, heard: u64) {
         self.pending_fire.push((shooter, at, layer, heard));
     }
 
@@ -486,7 +486,7 @@ impl SideKnowledge {
                 .u64(c.evidence_tick)
                 .u64(c.expires_tick)
                 .u64(c.kind.map_or(u64::MAX, |k| k.0 as u64))
-                .u64(c.heard as u64)
+                .u64(c.heard)
                 .u64(c.emitter.0 as u64);
         }
         d.u64(self.pending_fire.len() as u64);
@@ -496,7 +496,7 @@ impl SideKnowledge {
                 .f64(at.y)
                 .f64(at.z)
                 .u64(*layer as u64)
-                .u64(*heard as u64);
+                .u64(*heard);
         }
         d.u64(self.destroyed.len() as u64);
         for u in &self.destroyed {

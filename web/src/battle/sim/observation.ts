@@ -372,6 +372,10 @@ export interface ContactView {
   heard: string[];
 }
 
+/** Weapon rows a word of a firing report's heard mask carries: a float holds
+ *  an integer exactly below 2^24 (`publication::MAX_WEAPON_ROWS`). */
+const HEARD_WORD_BITS = 24;
+
 /** A sound a friendly listener heard from an unseen enemy. */
 export interface SoundCueView {
   listener: number;
@@ -1104,7 +1108,11 @@ function decodeFrame(
       evidenceTick: f("evidenceTick"),
       expiresTick: f("expiresTick"),
       kind: f("kind") < 0 ? null : layout.unitKinds[f("kind")],
-      heard: layout.roundKinds.filter((_, k) => (f("heard") >> k) & 1),
+      heard: layout.roundKinds.filter((_, k) =>
+        k < HEARD_WORD_BITS
+          ? (f("heardLow") >> k) & 1
+          : (f("heardHigh") >> (k - HEARD_WORD_BITS)) & 1,
+      ),
     }),
   );
   const audible = groups.audible.map(

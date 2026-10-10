@@ -1759,7 +1759,7 @@ impl Battle {
     /// may hear the shot, sounding like the weapon rows in `heard` (the lab
     /// emitter's shot is of no weapon: 0). Weapons and the lab emitter share
     /// this seam.
-    fn record_fire(&mut self, unit: UnitId, heard: u32) {
+    fn record_fire(&mut self, unit: UnitId, heard: u64) {
         let Some(shooter) = self.units.get(unit.0 as usize) else {
             return;
         };

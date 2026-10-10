@@ -1,6 +1,6 @@
 //! Mounts choose targets from their side's knowledge (W06, W10).
 //! Physical guns own aim and cycles (W01–W02); rounds leave only through flight.
-use contract::catalog::TypeIndex;
+use contract::catalog::{AltitudeLayer, TypeIndex};
 use contract::command::{Engagement, TargetRef};
 use contract::ids::{Side, Tick, UnitId};
 use contract::observation::{ActionReason, ContactId, MountReadiness, WeaponPose};
@@ -163,11 +163,11 @@ impl Arsenal {
 
     /// A mount's report as a firing report hears it: a bit for every row it
     /// fires (the layout's `roundKinds`), since its sound doesn't say which.
-    pub fn heard(&self, kind: TypeIndex, mount: usize) -> u32 {
+    pub fn heard(&self, kind: TypeIndex, mount: usize) -> u64 {
         self.mounts[kind.0 as usize][mount]
             .kinds
             .iter()
-            .fold(0, |m, &k| m | 1 << k)
+            .fold(0, |m, &k| m | 1u64 << k)
     }
 
     pub fn specs(&self, kind: TypeIndex) -> &[MountSpec] {
@@ -343,6 +343,8 @@ struct Resolved {
     /// The target's armour if the side knows its type (identified units
     /// only): `Some(None)` for a soldier.
     armor: Option<Option<Armor>>,
+    /// The height band it is in; an area or a ground point is on the ground.
+    layer: AltitudeLayer,
 }
 
 /// One weapon's shot this tick: its rounds and who it was aimed at.
@@ -383,6 +385,12 @@ pub fn squad_range(arsenal: &Arsenal, kind: TypeIndex) -> f64 {
 fn reach(arsenal: &Arsenal, rows: impl Iterator<Item = usize>) -> f64 {
     rows.map(|k| arsenal.weapons[k].def.ballistics.range_m)
         .fold(0.0, f64::max)
+}
+
+/// Whether a weapon's crew can bring it to bear on a target in `layer` at
+/// all (D1). The one place a weapon's `targets` is read.
+pub fn reaches(def: &WeaponDefinition, layer: AltitudeLayer) -> bool {
+    def.targets.contains(&layer)
 }
 
 /// Whether a weapon can hurt a target with this hull armour (`None`: a
@@ -441,6 +449,7 @@ fn resolve(ctx: &FireContext, side: Side, target: Target, units: &[Unit]) -> Opt
                 velocity: track.velocity.with_z(0.0),
                 current: track.last_seen == ctx.tick,
                 armor: Some(unit.armor(ctx.rules).copied()),
+                layer: unit.layer(),
             })
         }
         Target::Contact(c) => {
@@ -454,6 +463,7 @@ fn resolve(ctx: &FireContext, side: Side, target: Target, units: &[Unit]) -> Opt
                 velocity: v3(0.0, 0.0, 0.0),
                 current: true,
                 armor: None,
+                layer: AltitudeLayer::Ground,
             })
         }
         Target::Ground(p) => Some(Resolved {
@@ -461,6 +471,7 @@ fn resolve(ctx: &FireContext, side: Side, target: Target, units: &[Unit]) -> Opt
             velocity: v3(0.0, 0.0, 0.0),
             current: true,
             armor: None,
+            layer: AltitudeLayer::Ground,
         }),
     }
 }
@@ -478,6 +489,7 @@ fn preferred_kind(
     let usable = |k: usize, want_ap: Option<bool>| {
         let def = &weapons[spec.kinds[k]].def;
         mount.has_rounds(k)
+            && reaches(def, resolved.layer)
             && want_ap.is_none_or(|ap| def.armor_piercing == ap)
             && (effective(def, resolved.armor)
                 || (resolved.armor.is_some() && fires_regardless(def)))
@@ -881,18 +893,30 @@ pub fn guidance_clear(
 /// never fires at an area on its own (W10): a crew shoots at the enemy it can
 /// see, not at an unknown in a treeline. The hold ends when that enemy dies,
 /// leaves reach or drops out of sight.
-fn enemy_in_reach(ctx: &FireContext, unit: &Unit, mount: &Mount, spec: &MountSpec) -> bool {
-    let reach = reach(
-        ctx.arsenal,
-        (0..spec.kinds.len())
-            .filter(|&k| mount.has_rounds(k))
-            .map(|k| spec.kinds[k]),
-    );
+fn enemy_in_reach(
+    ctx: &FireContext,
+    unit: &Unit,
+    units: &[Unit],
+    mount: &Mount,
+    spec: &MountSpec,
+) -> bool {
+    // Only kinds that can be brought to bear on the enemy's height band hold
+    // the mount: a helicopter overhead does not stop a tank shelling a treeline.
+    let reach = |layer| {
+        reach(
+            ctx.arsenal,
+            (0..spec.kinds.len())
+                .filter(|&k| mount.has_rounds(k))
+                .map(|k| spec.kinds[k])
+                .filter(|&w| reaches(&ctx.arsenal.weapons[w].def, layer)),
+        )
+    };
     let here = unit.position.xy();
     ctx.knowledge[unit.side.index()]
         .identified_now(ctx.tick)
         .any(|(u, t)| {
-            (t.position.xy() - here).length() <= reach && permitted(ctx, unit, Target::Unit(u))
+            (t.position.xy() - here).length() <= reach(units[u.0 as usize].layer())
+                && permitted(ctx, unit, Target::Unit(u))
         })
 }
 
@@ -940,6 +964,7 @@ fn return_fire_threat(
             let weapon = &ctx.arsenal.weapons[k];
             let distance = (target - origin).length();
             can_damage(&weapon.def, shooter.armor(ctx.rules))
+                && reaches(&weapon.def, shooter.layer())
                 && distance >= weapon.def.min_range_m
                 && distance <= weapon.def.ballistics.range_m
                 && (weapon.profile.turn_rad_s.is_none()
@@ -1003,7 +1028,7 @@ fn select(
     let mut by_distance: Vec<(f64, u32, UnitId)> =
         ranked.iter().map(|&(_, _, d, id, u)| (d, id, u)).collect();
     by_distance.sort_by(|a, b| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)));
-    let mut areas: Vec<(f64, ContactId)> = if enemy_in_reach(ctx, unit, mount, spec) {
+    let mut areas: Vec<(f64, ContactId)> = if enemy_in_reach(ctx, unit, units, mount, spec) {
         Vec::new()
     } else {
         knowledge
@@ -1050,12 +1075,17 @@ fn compatible(
     target: Target,
     units: &[Unit],
 ) -> bool {
-    let armor = match target {
-        Target::Unit(u) => Some(units[u.0 as usize].armor(ctx.rules).copied()),
-        _ => None,
+    let (armor, layer) = match target {
+        Target::Unit(u) => {
+            let unit = &units[u.0 as usize];
+            (Some(unit.armor(ctx.rules).copied()), unit.layer())
+        }
+        _ => (None, AltitudeLayer::Ground),
     };
-    (0..spec.kinds.len())
-        .any(|k| mount.has_rounds(k) && effective(&ctx.arsenal.weapons[spec.kinds[k]].def, armor))
+    (0..spec.kinds.len()).any(|k| {
+        let def = &ctx.arsenal.weapons[spec.kinds[k]].def;
+        mount.has_rounds(k) && reaches(def, layer) && effective(def, armor)
+    })
 }
 
 /// What `choose_lock` concluded: the reason to show if the mount ends with
@@ -1152,7 +1182,7 @@ fn automatic_lock(
         .lock
         .as_ref()
         .is_some_and(|l| matches!(l.target, Target::Contact(_)))
-        && enemy_in_reach(ctx, unit, mount, spec)
+        && enemy_in_reach(ctx, unit, units, mount, spec)
     {
         mount.lock = None;
     }

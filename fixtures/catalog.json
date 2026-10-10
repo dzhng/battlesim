@@ -22303,6 +22303,9 @@
       "stationary": false,
       "structural_damage": 10.0,
       "suppression_radius_m": 8.0,
+      "targets": [
+        "ground"
+      ],
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -22334,6 +22337,9 @@
       "stationary": false,
       "structural_damage": 100.0,
       "suppression_radius_m": 15.0,
+      "targets": [
+        "ground"
+      ],
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -22372,6 +22378,10 @@
       "stationary": false,
       "structural_damage": 0.25,
       "suppression_radius_m": 3.0,
+      "targets": [
+        "ground",
+        "low_air"
+      ],
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -22403,6 +22413,9 @@
       "stationary": true,
       "structural_damage": 100.0,
       "suppression_radius_m": 10.0,
+      "targets": [
+        "ground"
+      ],
       "top_speed_mps": 200.0,
       "trajectory": "direct",
       "turn_deg_s": 60.0
@@ -22441,6 +22454,10 @@
       "stationary": false,
       "structural_damage": 8.0,
       "suppression_radius_m": 6.0,
+      "targets": [
+        "ground",
+        "low_air"
+      ],
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -22472,6 +22489,9 @@
       "stationary": true,
       "structural_damage": 100.0,
       "suppression_radius_m": 10.0,
+      "targets": [
+        "ground"
+      ],
       "top_speed_mps": 200.0,
       "trajectory": "direct",
       "turn_deg_s": 60.0
@@ -22503,6 +22523,9 @@
       "stationary": false,
       "structural_damage": 10.0,
       "suppression_radius_m": 8.0,
+      "targets": [
+        "ground"
+      ],
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -22534,6 +22557,9 @@
       "stationary": false,
       "structural_damage": 10.0,
       "suppression_radius_m": 8.0,
+      "targets": [
+        "ground"
+      ],
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -22565,6 +22591,9 @@
       "stationary": false,
       "structural_damage": 100.0,
       "suppression_radius_m": 15.0,
+      "targets": [
+        "ground"
+      ],
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -22596,6 +22625,44 @@
       "stationary": false,
       "structural_damage": 0.25,
       "suppression_radius_m": 3.0,
+      "targets": [
+        "ground",
+        "low_air"
+      ],
+      "top_speed_mps": null,
+      "trajectory": "direct",
+      "turn_deg_s": null
+    },
+    "helicopter_crash": {
+      "accel_mps2": null,
+      "aim_s": 2.0,
+      "ammo": "unlimited",
+      "anti_armor": false,
+      "armor_fraction": 0.15,
+      "armor_piercing": false,
+      "blast_radius_m": 9.0,
+      "damage": 50.0,
+      "default": false,
+      "description": "A downed airframe striking the ground: no gun fires it. It fells the trees beneath and hurts what lies there, less than a shell.",
+      "gravity_scale": 1.7651,
+      "icon": "he_shell",
+      "interceptable": false,
+      "lifetime_s": null,
+      "magazine": null,
+      "min_range_m": 0.0,
+      "name": "Crash",
+      "near_miss_suppression": 0.4,
+      "penetration": 25.0,
+      "range_m": 800.0,
+      "reload_s": 6.0,
+      "scatter_mrad": 3.43,
+      "speed_mps": 400.0,
+      "stationary": false,
+      "structural_damage": 300.0,
+      "suppression_radius_m": 15.0,
+      "targets": [
+        "ground"
+      ],
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -22634,6 +22701,10 @@
       "stationary": false,
       "structural_damage": 4.0,
       "suppression_radius_m": 4.0,
+      "targets": [
+        "ground",
+        "low_air"
+      ],
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -22665,6 +22736,9 @@
       "stationary": false,
       "structural_damage": 100.0,
       "suppression_radius_m": 15.0,
+      "targets": [
+        "ground"
+      ],
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -22696,6 +22770,9 @@
       "stationary": true,
       "structural_damage": 100.0,
       "suppression_radius_m": 10.0,
+      "targets": [
+        "ground"
+      ],
       "top_speed_mps": 200.0,
       "trajectory": "direct",
       "turn_deg_s": 60.0
@@ -22727,6 +22804,9 @@
       "stationary": false,
       "structural_damage": 10.0,
       "suppression_radius_m": 8.0,
+      "targets": [
+        "ground"
+      ],
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -22758,6 +22838,9 @@
       "stationary": false,
       "structural_damage": 100.0,
       "suppression_radius_m": 15.0,
+      "targets": [
+        "ground"
+      ],
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -22793,6 +22876,10 @@
       "stationary": false,
       "structural_damage": 0.25,
       "suppression_radius_m": 3.0,
+      "targets": [
+        "ground",
+        "low_air"
+      ],
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -22831,6 +22918,10 @@
       "stationary": false,
       "structural_damage": 0.25,
       "suppression_radius_m": 3.0,
+      "targets": [
+        "ground",
+        "low_air"
+      ],
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -22862,6 +22953,9 @@
       "stationary": false,
       "structural_damage": 10.0,
       "suppression_radius_m": 8.0,
+      "targets": [
+        "ground"
+      ],
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -22893,6 +22987,9 @@
       "stationary": false,
       "structural_damage": 10.0,
       "suppression_radius_m": 8.0,
+      "targets": [
+        "ground"
+      ],
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -22924,6 +23021,9 @@
       "stationary": true,
       "structural_damage": 100.0,
       "suppression_radius_m": 10.0,
+      "targets": [
+        "ground"
+      ],
       "top_speed_mps": 200.0,
       "trajectory": "direct",
       "turn_deg_s": 60.0
@@ -22955,6 +23055,9 @@
       "stationary": false,
       "structural_damage": 10.0,
       "suppression_radius_m": 8.0,
+      "targets": [
+        "ground"
+      ],
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -22986,6 +23089,9 @@
       "stationary": false,
       "structural_damage": 100.0,
       "suppression_radius_m": 15.0,
+      "targets": [
+        "ground"
+      ],
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -23017,6 +23123,9 @@
       "stationary": true,
       "structural_damage": 100.0,
       "suppression_radius_m": 10.0,
+      "targets": [
+        "ground"
+      ],
       "top_speed_mps": 200.0,
       "trajectory": "direct",
       "turn_deg_s": 60.0
