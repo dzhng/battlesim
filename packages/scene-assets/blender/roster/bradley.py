@@ -78,8 +78,9 @@ def hull_body(v, m3):
     cyl("ramp_door", 0.42, 0.04, (-half - 0.05, 0.35, 1.30), "X", m["paint"], hull, seg=24, bevel=0.012, lods=MID)
     VP.cable("ramp_cable", [(-half - 0.055, 0.80, 1.60), (-half - 0.055, 0.80, 0.92), (-half - 0.055, -0.40, 0.84),
                             (-half - 0.055, -0.75, 1.40)], m, hull, radius=0.018, eyes=False)
-    # Roof: the squad's cargo hatch behind the turret, the engine grille ahead.
-    VP.hatch("cargo_hatch", (-2.45, 0.0, ROOF_Z), m, hull, size=(1.10, 1.20))
+    # Roof: the squad's cargo hatch behind the turret's bustle basket, at the
+    # roof's rear edge; the engine grille ahead.
+    VP.hatch("cargo_hatch", (-2.65, 0.0, ROOF_Z), m, hull, size=(1.10, 1.20))
     VP.grille("engine_grille", (1.55, -0.72, ROOF_Z), (0.80, 0.80), m, hull, slats=7)
     VP.exhaust("exhaust", (1.30, -1.62, 1.75), 0.08, 0.30, m, hull, rot=(0, 0, -math.pi / 2))
     if m3:
