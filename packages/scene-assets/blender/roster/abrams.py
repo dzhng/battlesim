@@ -14,8 +14,9 @@ boxes, the GPS doghouse on the right front roof, the CITV on the left, the
 commander under a CROWS on the right and the loader's hatch on the left.
 SEPv3: the auxiliary power unit's armoured box on the left rear deck, CROWS-LP
 and the ammunition data link over the muzzle. Trophy: a radar and launcher
-housing high on each rear corner of the bustle, ahead of it a shortened side
-bin, its launcher head on top (from the SEPv2 Trophy photos; no licensable photo shows a SEPv3 with it).
+housing along each side of the bustle in place of the side bin, standing
+proud of the roof, its launcher head on top (from the SEPv2 Trophy photos;
+no licensable photo shows a SEPv3 with it).
 
 Built to the catalog frame (hull 7.93 x 3.66 x 2.44 m; turret pivot 0.25 m
 ahead of the hull's middle, 1.464 m up, as the side photos show; cannon muzzle
@@ -65,10 +66,16 @@ SIDE_LEAN = 0.04  # how far the flat sides lean in from the foot's top to the ro
 BUSTLE_FOOT = -0.80
 BUSTLE_FLOOR = 0.32
 COMMANDER = (-0.84, -0.62)  # the commander's hatch (turret frame)
-# Trophy's radar housing (left side, turret frame): hung high on the bustle's
-# rear corner, its top at the roof and the launcher over it (photos: SEPv2
-# Trophy side and three-quarter rear).
-TROPHY_AT = (-2.20, 1.58, ROOF - 0.22)
+# Trophy on each bustle side (turret frame, left side), measured on the SEPv2
+# Trophy side photo: a housing 2.16 m long from the bustle's rear plate to
+# 0.54 m behind the pivot, standing out from the bustle's side on brackets and
+# proud of the roof, its floor falling from 0.47 m under its top at the front
+# to the bustle's floor at the rear, its top rear corner cut; the launcher
+# 0.40 m behind its front. The photo has housing and launcher 0.48 m over the
+# roof; the dressing allowance's top (0.30 m over the hull box) holds them to
+# 0.39 m, so the housing stands 0.10 m proud, not 0.24 m.
+TROPHY = dict(at=(-1.62, 1.72, ROOF + 0.10), size=(2.16, 0.40, 0.47), rear_drop=0.22, rear_cut=(0.38, 0.24),
+              launcher_back=0.40)
 # The skirts hang flush with the sponsons' sides: the hull's upper half is as
 # wide as their inner faces (the thicker front panels sink into it).
 SKIRT_FACE = SKIRT_Y + 0.035  # their outer face
@@ -299,23 +306,22 @@ def turret_body(v, turret, trophy):
         # The cheek's side face: a bolted armour plate lying on the flat side.
         loc, rot = VP.on_side(1.15, (BUSTLE_FLOOR + ROOF) / 2, side, (1.60, BUSTLE_FLOOR), (1.60 - SIDE_LEAN, ROOF))
         VP.bolted_panel(f"cheek_plate_{s}", loc, (0.90, 0.52, 0.04), m, turret, bolts=(2, 2), rot=rot, bevel=0.015)
-        # Side stowage along the bustle sides, a rail over it; Trophy's
-        # housing takes the rear corner, so the bin stops short of it.
-        front, rear = -0.375, TROPHY_AT[0] + 0.55 if trophy else -1.925
-        mid, length = (front + rear) / 2, front - rear
-        VP.stowage_box(f"side_bin_{s}", (mid, side * 1.65, 0.26), (length, 0.22, 0.42), m, turret,
-                       rot=(0, 0, 0 if side > 0 else math.pi))
-        box(f"side_rail_{s}", (length + 0.05, 0.03, 0.03), (mid, side * 1.74, 0.78), m["steel"], turret, lods=NEAR)
-        for j in range(4):
-            x = rear + 0.075 + j * (length - 0.14) / 3
-            box(f"side_rail_post_{s}_{j}", (0.03, 0.03, 0.12), (x, side * 1.74, 0.72), m["steel"], turret, lods=FINE)
+        # Side stowage along the bustle sides, a rail over it, where Trophy's
+        # housing does not take the bustle's side.
+        if trophy:
+            trophy_station(v, turret, side, s, **TROPHY)
+        else:
+            VP.stowage_box(f"side_bin_{s}", (-1.15, side * 1.65, 0.26), (1.55, 0.22, 0.42), m, turret,
+                           rot=(0, 0, 0 if side > 0 else math.pi))
+            box(f"side_rail_{s}", (1.6, 0.03, 0.03), (-1.15, side * 1.74, 0.78), m["steel"], turret, lods=NEAR)
+            for j in range(4):
+                box(f"side_rail_post_{s}_{j}", (0.03, 0.03, 0.12), (-1.85 + j * 0.47, side * 1.74, 0.72),
+                    m["steel"], turret, lods=FINE)
         # Six-tube smoke banks ahead of the side bins, fanned forward and out.
         for row in range(2):
             VP.smoke_discharger_bank(f"smoke_{s}_{row}", (0.22, side * 1.55, 0.42 + row * 0.13), m, turret, count=3,
                                      tube_radius=0.055, tube_length=0.32, elevation=0.35, spread=0.30,
                                      rot=(0, 0, side * 0.55))
-        if trophy:
-            trophy_station(v, turret, side, s, TROPHY_AT)
     bustle_rack(v, turret)
 
 
@@ -334,24 +340,40 @@ def commander_hatch(v, turret):
     box("commander_lid_stop", (0.06, 0.30, 0.10), (x - 0.42, y, ROOF + 0.05), m["dark"], turret, lods=NEAR)
 
 
-def trophy_station(v, turret, side, s, at):
-    """Trophy on one turret side: the radar housing at `at` (the left side's),
-    its flat panels facing out and forward,
-    and the launcher head on top at its front. Its nodes (`trophy_radar_*`,
+def trophy_station(v, turret, side, s, at, size=(1.05, 0.30, 0.46), rear_drop=0.0, rear_cut=(0.0, 0.0),
+                   launcher_back=0.20):
+    """Trophy on one turret side (the left side's `at`: the housing's middle
+    fore and aft and across, and its top). The housing is `size` (length,
+    width, height at its front); its floor falls `rear_drop` further at the
+    rear and its top rear corner is cut back by `rear_cut` (x, z). The flat
+    radar panels face out and forward, and the launcher head stands on top
+    `launcher_back` behind the front. Its nodes (`trophy_radar_*`,
     `trophy_launcher_*`) are the part's."""
     m = v.mats
-    x, y, z = at
+    x, y, top = at
+    length, width, height = size
+    front, rear = length / 2, -length / 2
+    cut_x, cut_z = rear_cut
+    # Its front's upper edge slopes back, as the radar faces' hood does.
+    profile = [(front - 0.12, 0.0), (front, -0.12), (front, -height), (rear, -height - rear_drop), (rear, -cut_z)]
+    if cut_x:
+        profile.append((rear + cut_x, 0.0))
     holder = empty(f"dressing_trophy_{s}", parent=turret)
-    radar = empty(f"trophy_radar_{s}", (x, side * y, z), holder)
-    box(f"trophy_housing_{s}", (1.05, 0.30, 0.46), (0, 0, 0), m["paint"], radar, bevel=0.04)
-    box(f"trophy_panel_side_{s}", (0.70, 0.02, 0.32), (-0.05, side * 0.16, 0.0), m["dark"], radar, bevel=0.01,
+    radar = empty(f"trophy_radar_{s}", (x, side * y, top), holder)
+    prism(f"trophy_housing_{s}", profile, width, mat=m["paint"], parent=radar, bevel=0.04)
+    panel = min(0.32, height * 0.7)
+    box(f"trophy_panel_side_{s}", (0.70, 0.02, panel), (front - 0.45, side * (width / 2 + 0.01), -height / 2),
+        m["dark"], radar, bevel=0.01, lods=MID)
+    box(f"trophy_panel_front_{s}", (0.02, width - 0.06, panel), (front + 0.01, 0, -height / 2), m["dark"], radar,
         lods=MID)
-    box(f"trophy_panel_front_{s}", (0.02, 0.24, 0.32), (0.535, 0, 0.0), m["dark"], radar, lods=MID)
-    box(f"trophy_bracket_{s}", (0.70, 0.12, 0.14), (0, -side * 0.18, -0.20), m["dark"], radar, lods=NEAR)
-    launcher = empty(f"trophy_launcher_{s}", (x + 0.33, side * y, z + 0.28), holder)
-    box(f"trophy_pedestal_{s}", (0.20, 0.20, 0.12), (0, 0, -0.03), m["dark"], launcher, bevel=0.01)
-    cyl(f"trophy_head_{s}", 0.13, 0.38, (0.02, 0, 0.12), "X", m["paint"], launcher, seg=16, bevel=0.015)
-    cyl(f"trophy_head_face_{s}", 0.10, 0.01, (0.215, 0, 0.12), "X", m["dark"], launcher, seg=14, lods=NEAR)
+    # The brackets it stands out on, back to the turret's side under its floor.
+    box(f"trophy_bracket_{s}", (min(0.70, length * 0.6), 0.30, 0.10),
+        (0, -side * (width / 2 + 0.10), -height - rear_drop / 2 - 0.05), m["dark"], radar, lods=NEAR)
+    # The launcher: a block on a plinth, its dark face forward.
+    launcher = empty(f"trophy_launcher_{s}", (x + front - launcher_back, side * y, top), holder)
+    box(f"trophy_pedestal_{s}", (0.24, 0.22, 0.10), (0, 0, 0.05), m["dark"], launcher, bevel=0.01)
+    box(f"trophy_head_{s}", (0.34, 0.24, 0.19), (0.02, 0, 0.195), m["paint"], launcher, bevel=0.02)
+    box(f"trophy_head_face_{s}", (0.01, 0.18, 0.13), (0.195, 0, 0.195), m["dark"], launcher, lods=NEAR)
 
 
 def bustle_rack(v, turret):
