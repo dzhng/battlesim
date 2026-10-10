@@ -297,6 +297,19 @@ export async function run(ctx) {
   await mediaDecodes(ctx, page, "menu");
   const body = page.locator("main.menu .menu-body");
   await ctx.matchBaseline(body, "menu", { style: MENU_UNPINNED });
+  // The pages open in the plate's place: its top edge stays where the main
+  // page's is, except the tutorial's, a plate as tall as the screen.
+  const homeTop = (await body.boundingBox())?.y;
+  for (const entry of ["skirmish", "replay", "settings", "developer"]) {
+    await page.locator(`[data-page="${entry}"]`).click();
+    const top = (await body.boundingBox())?.y;
+    ctx.check(
+      `menu ${entry}: the plate's top stays where the main page's is`,
+      top !== undefined && homeTop !== undefined && Math.abs(top - homeTop) < 0.5,
+      JSON.stringify({ homeTop, top }),
+    );
+    await page.keyboard.press("Escape");
+  }
   // The developer page lists every lab: it changes as labs come and go.
   for (const entry of ["skirmish", "replay", "tutorial", "settings"]) {
     await page.locator(`[data-page="${entry}"]`).click();

@@ -9,7 +9,15 @@
 // never changes; a loading screen stands in the plate's place until that
 // battle is ready to film.
 import { Link } from "react-router";
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import { hudIcon } from "@packages/scene-assets/src/icons";
 import { Icon } from "@web/battle/present/icons";
 import { MAP_SIZES, MAP_TYPES, type MapSize, type MapType } from "@web/maps/source";
@@ -274,6 +282,18 @@ export function MainMenu() {
     plate.current?.querySelector<HTMLElement>(`[data-page="${left.current}"]`)?.focus();
     left.current = null;
   }, [page]);
+  // The main page's height, kept while another page is open, for the slot
+  // that keeps a page's top edge where the main page's was (`menu.css`).
+  const [homeHeight, setHomeHeight] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    const el = plate.current;
+    if (page !== null || !el) return;
+    const observer = new ResizeObserver(([entry]) =>
+      setHomeHeight(entry.borderBoxSize[0].blockSize),
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [page]);
   useEffect(() => {
     if (page === null) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && back();
@@ -324,8 +344,17 @@ export function MainMenu() {
         <LoadingTasks report={report}>
           <MenuBackdrop plate={plate} shown={shown.promise} />
         </LoadingTasks>
-        <div className="hud-panel menu-body" ref={plate}>
-          {content}
+        <div
+          className="menu-slot"
+          style={
+            homeHeight === null
+              ? undefined
+              : ({ "--menu-home-height": `${homeHeight}px` } as CSSProperties)
+          }
+        >
+          <div className="hud-panel menu-body" ref={plate}>
+            {content}
+          </div>
         </div>
       </main>
       {loading && (

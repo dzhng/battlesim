@@ -18,9 +18,11 @@
 .bench-results {
   background: radial-gradient(ellipse at 30% 0%, #1f242c 0%, #15171c 60%);
 }
+/* The plate stands vertically centred at every size; "safe" keeps a plate
+   taller than the screen scrolling from its top instead of clipping it. */
 .menu {
   display: grid;
-  place-items: center;
+  place-items: safe center;
   padding: 48px 24px;
 }
 /* The plain ground, and the veil the backdrop fades through at its cuts:
@@ -65,15 +67,25 @@
   inset: 0;
 }
 /* With room beside it, the plate stands at the left and the battle plays
-   across the rest of the screen. Its top edge stays put, so the plate grows
-   and shrinks downward as its pages change instead of jumping. */
+   across the rest of the screen. */
 @media (min-width: 1100px) {
   .menu {
     justify-items: start;
-    align-items: start;
     padding-left: max(48px, 7vw);
-    padding-top: 22vh;
   }
+}
+/* What the menu centres: the plate at the slot's top. An open page's slot is
+   as tall as the main page (`--menu-home-height`, measured while it shows),
+   so a shorter page keeps the main page's top edge. The tutorial, as tall as
+   the screen, centres by its own height. */
+.menu-slot {
+  display: grid;
+  width: 100%;
+  justify-items: inherit;
+  align-content: start;
+}
+.menu[data-open]:not([data-open="tutorial"]) .menu-slot {
+  min-height: var(--menu-home-height, 0px);
 }
 .menu-body {
   width: min(560px, 100%);
@@ -261,7 +273,6 @@
    scrolls inside it under the Back button. */
 .menu[data-open="tutorial"] {
   overflow: hidden;
-  align-items: center;
   padding-block: 32px;
 }
 .menu[data-open="tutorial"] .hud-panel.menu-body {
