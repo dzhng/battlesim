@@ -68,6 +68,7 @@ import type {
 } from "@packages/battle-renderer/src/models/buildingReferences";
 import type { SurfaceClass } from "@packages/battle-renderer/src/models/surfaceParts";
 import { createBattleFrame } from "@packages/battle-renderer/src/frame/battleFrame";
+import type { GrassClumpRow } from "@packages/battle-renderer/src/frame/grassPass";
 import { PassInspector } from "./PassInspector";
 import type { FeedSource } from "./feed";
 import {
@@ -185,13 +186,14 @@ export interface ViewportFrame {
 
 /** A script's hold on the viewport's camera. */
 export interface ViewportPilot {
-  /** The battle frame is up: the adapter, the light it was built with, and
-   *  the frame's own statistics (its rolling GPU frame time from
-   *  `timestamp-query`, and live memory). */
+  /** The battle frame is up: the adapter, the light it was built with, the
+   *  frame's own statistics (its rolling GPU frame time from
+   *  `timestamp-query`, and live memory), and its ground's GPU tables. */
   attach?(frame: {
     adapter: string;
     light: LightPresentation;
     stats: () => ReturnType<BattleFrame["stats"]>;
+    terrain: () => ReturnType<BattleFrame["terrainTables"]>;
   }): void;
   /** The framing for the frame at `now`; the rig places it
    *  (`CameraController.place`) and draws it clear of obstacles (`resolve`).
@@ -199,8 +201,9 @@ export interface ViewportPilot {
   pose(now: number): CameraPose | null;
   /** A drawn frame: its main-thread cost, the camera drawn, the sim time
    *  it drew (the presentation clock) and the canvas size in pixels.
-   *  `readback` reads this frame's canvas as a PNG; called during `frame`,
-   *  the task that drew it, it reads exactly what was drawn. */
+   *  `readback` reads this frame's canvas as a PNG, and `grassClumps` the
+   *  grass it grew (debug readbacks); called during `frame`, the task that
+   *  drew it, each reads exactly what was drawn. */
   frame?(f: {
     now: number;
     cpuMs: number;
@@ -208,6 +211,7 @@ export interface ViewportPilot {
     simTime: number;
     canvas: readonly [number, number];
     readback: () => Promise<Blob>;
+    grassClumps: () => Promise<readonly Pick<GrassClumpRow, "root">[]>;
   }): void;
 }
 
@@ -727,6 +731,7 @@ export function LabViewport({
           adapter,
           light: light(),
           stats: () => scene.stats(),
+          terrain: () => scene.terrainTables(),
         });
         // What the battle draws, for a player's diagnostics report.
         signal.addEventListener(
@@ -746,6 +751,7 @@ export function LabViewport({
           scene.render(context.getCurrentTexture().createView(), snapshot());
         };
         const readback = () => readCanvasPng(device!, context.getCurrentTexture());
+        const grassClumps = () => scene.grassProbes.clumps();
         redrawRef.current = () => (dirty = true);
         let pointer: { x: number; y: number } | null = null;
         let modifiers = { ctrl: false, shift: false };
@@ -850,6 +856,7 @@ export function LabViewport({
             simTime: clock,
             canvas: [canvas.width, canvas.height],
             readback,
+            grassClumps,
           });
           raf = requestAnimationFrame(loop);
         };

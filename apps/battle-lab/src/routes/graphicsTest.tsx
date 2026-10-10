@@ -14,6 +14,7 @@ import { gameCamera } from "../gameCamera";
 import { LabViewport } from "../LabViewport";
 import { useLabLoading } from "../LabLoading";
 import { appResources } from "../appResources";
+import type { TerrainTables } from "@packages/battle-renderer/src/frame/terrainTables";
 import { createReelRun, type ReelPlate, type ReelResult } from "../benchmark/reelRun";
 import { createReelReport, type ReelReport } from "../benchmark/reelReport";
 import { FrameChart } from "../benchmark/FrameChart";
@@ -56,6 +57,8 @@ interface GraphicsTestState {
   report: ReelReport | null;
   /** Each scene's control plates (`?plates=1`), in run order. */
   plates: readonly (ReelPlate & { scene: string })[];
+  /** Each plated scene's ground tables, in run order. */
+  terrain: readonly { scene: string; tables: TerrainTables }[];
 }
 
 declare global {
@@ -80,10 +83,14 @@ export default function GraphicsTest() {
       interruption: reason ? { status: "failed", reason } : undefined,
     });
   const report = stage === "results" ? reportOf(results, failure) : null;
-  const publish = (state: Omit<GraphicsTestState, "plates">, done: readonly ReelResult[]) => {
+  const publish = (
+    state: Omit<GraphicsTestState, "plates" | "terrain">,
+    done: readonly ReelResult[],
+  ) => {
     window.__graphicsTest = {
       ...state,
       plates: done.flatMap((r) => r.plates.map((p) => ({ ...p, scene: r.scene.map }))),
+      terrain: done.flatMap((r) => (r.terrain ? [{ scene: r.scene.map, tables: r.terrain }] : [])),
     };
   };
   useLabLoading("renderer", stage !== "running" ? true : null);

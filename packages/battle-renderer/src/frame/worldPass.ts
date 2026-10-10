@@ -81,6 +81,7 @@ import {
 } from "./fogTerm";
 import { createGrassPass } from "./grassPass";
 import { createTerrainHeights } from "./terrainHeights";
+import { terrainTables } from "./terrainTables";
 import { createFogVisibility, type FogTiles } from "./fogVisibility";
 import {
   createTerrainSource,
@@ -721,6 +722,8 @@ export async function createWorldPass(
     },
     fog,
     grassProbes: grass.probes,
+    /** The ground's GPU tables as last uploaded (`terrainTables.ts`). */
+    terrainTables: () => terrainTables(terrain),
     /** Pose the environment and the cascades for this frame's camera, choose
      *  the trees' detail and fit the grass for a viewport `height` pixels tall. */
     prepare(

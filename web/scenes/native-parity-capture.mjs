@@ -2,14 +2,20 @@
 // (`/graphics-test?plates=1`), at 1280×720 on a visible page, unattended.
 // For each scene it writes
 //
-//   throwaway/native-parity/<run>/<scene>/{capture.json, manifest.json, plate-<index>.png}
+//   throwaway/native-parity/<run>/<scene>/{capture.json, manifest.json,
+//     plate-<index>.png, terrain-<table>.u32}
 //
 // the capture and its frame records, the `native-visual-presentation`
-// manifest, and the plates read back from the canvas in their own frames.
+// manifest (with each plate's grass counts), the plates read back from the
+// canvas in their own frames, and the ground's GPU tables the manifest hashes.
 // PARITY_SCENES=<map,…> films only those scenes (`?scenes=`). Run it under
 // the GPU lock; it waits on the route's stage, never on a timer.
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
-import { writeVisualPresentation } from "../src/battle/benchmark/visualPresentation.ts";
+import {
+  readTerrainArtifact,
+  terrainFile,
+  writeVisualPresentation,
+} from "../src/battle/benchmark/visualPresentation.ts";
 
 const ROOT = new URL("../../", import.meta.url);
 const OUT = new URL("throwaway/native-parity/", ROOT);
@@ -78,20 +84,43 @@ export async function run(ctx) {
   );
   if (report.outcome.status !== "complete") return;
 
-  const plates = await page.evaluate(() =>
-    Promise.all(
-      window.__graphicsTest.plates.map(async ({ scene, file, png }) => {
-        const blob = await png;
-        const data = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = () => reject(reader.error);
-          reader.readAsDataURL(blob);
-        });
-        return { scene, file, base64: data.slice(data.indexOf(",") + 1) };
-      }),
-    ),
-  );
+  // Bytes cross from the page as base64: plates as PNGs, terrain tables as
+  // their words (little-endian, as the page holds them).
+  const { plates, terrain } = await page.evaluate(async () => {
+    const base64 = async (blob) => {
+      const data = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(blob);
+      });
+      return data.slice(data.indexOf(",") + 1);
+    };
+    const state = window.__graphicsTest;
+    return {
+      plates: await Promise.all(
+        state.plates.map(async ({ scene, file, png, grass }) => ({
+          scene,
+          file,
+          base64: await base64(await png),
+          cells: await grass,
+        })),
+      ),
+      terrain: await Promise.all(
+        state.terrain.map(async ({ scene, tables }) => ({
+          scene,
+          tables: Object.fromEntries(
+            await Promise.all(
+              Object.entries(tables).map(async ([name, { words, layout }]) => [
+                name,
+                { base64: await base64(new Blob([words])), layout },
+              ]),
+            ),
+          ),
+        })),
+      ),
+    };
+  });
   const runDir = new URL(`${new Date().toISOString().replace(/[:.]/g, "-")}/`, OUT);
   for (const [i, result] of report.scenes.entries()) {
     const { map, reel } = result.scene;
@@ -100,13 +129,24 @@ export async function run(ctx) {
     const captureJson = report.presentationCaptureJson[i];
     await writeFile(new URL("capture.json", dir), captureJson);
     const mapBytes = await readFile(new URL(`fixtures/maps/${map}/map.json`, ROOT));
-    const manifest = await writeVisualPresentation({
+    const own = plates.filter((p) => p.scene === map);
+    const tables = terrain.find((t) => t.scene === map)?.tables;
+    if (!tables) throw new Error(`${map}: the page exported no terrain tables`);
+    const { manifest, artifacts } = await writeVisualPresentation({
       captureJson,
       mapBytes,
       drawn: report.drawnPresentations[i],
+      terrain: Object.fromEntries(
+        Object.entries(tables).map(([name, { base64, layout }]) => {
+          const bytes = Buffer.from(base64, "base64");
+          // A copy: a Buffer's bytes need not start on a word boundary.
+          return [name, { words: new Uint32Array(new Uint8Array(bytes).buffer), layout }];
+        }),
+      ),
+      grassCounts: own.map(({ file, cells }) => ({ plate: file, cells })),
     });
     await writeFile(new URL("manifest.json", dir), manifest);
-    const own = plates.filter((p) => p.scene === map);
+    for (const { file, bytes } of artifacts) await writeFile(new URL(file, dir), bytes);
     const sizes = [];
     for (const plate of own) {
       const bytes = Buffer.from(plate.base64, "base64");
@@ -120,7 +160,8 @@ export async function run(ctx) {
       own.length === reel.shots.length && named.join() === own.map((p) => p.file).join(),
       `${own.length} plates for ${reel.shots.length} shots; frames name ${named.join(", ")}`,
     );
-    const { viewport } = JSON.parse(manifest);
+    const parsed = JSON.parse(manifest);
+    const { viewport } = parsed;
     ctx.check(
       `${map}: frames and plates are ${VIEWPORT.width}×${VIEWPORT.height}`,
       viewport.width === VIEWPORT.width &&
@@ -128,8 +169,13 @@ export async function run(ctx) {
         sizes.every((s) => s === `${VIEWPORT.width}×${VIEWPORT.height}`),
       `viewport ${viewport.width}×${viewport.height}; plates ${[...new Set(sizes)].join(", ")}`,
     );
+    // The files on disk read back as the manifest hashed them.
+    for (const entry of parsed.terrain)
+      await readTerrainArtifact(entry, await readFile(new URL(terrainFile(entry.name), dir)));
+    const heights = parsed.terrain.find((t) => t.name === "heights").layout;
+    const grown = parsed.grassCounts.map((g) => g.cells.reduce((a, b) => a + b, 0));
     console.log(
-      `METRIC native-parity-capture ${map}: ${frames.length} frames, ${own.length} plates → ${dir.pathname}`,
+      `METRIC native-parity-capture ${map}: ${frames.length} frames, ${own.length} plates, heights ${heights.nx}×${heights.ny} at ${heights.spacing} m, grass per plate ${grown.join(", ")} → ${dir.pathname}`,
     );
   }
   console.log(

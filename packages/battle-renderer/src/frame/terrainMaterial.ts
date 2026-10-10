@@ -134,7 +134,7 @@ const RoadLook = d.struct({
   stones: d.vec4f,
 });
 
-const TerrainParams = d.struct({
+export const TerrainParams = d.struct({
   /** The plot region: minX, minY, maxX, maxY. */
   region: d.vec4f,
   /** The surface field's grid (`terrain/surfaceField.ts`): its low corner,
@@ -216,8 +216,8 @@ const ScarParams = d.struct({
   /** Grass: thin, tracks' share of it, flatten; 0. */
   grass: d.vec4f,
 });
-const PlotNode = d.struct({ line: d.vec4f, children: d.vec4i });
-const PlotRecord = d.struct({
+export const PlotNode = d.struct({ line: d.vec4f, children: d.vec4i });
+export const PlotRecord = d.struct({
   /** Linear rgb, roughness. */
   colour: d.vec4f,
   /** Across the rows (unit), row period metres, row contrast. */
@@ -234,7 +234,7 @@ const PlotRecord = d.struct({
    *  metres, how far it darkens. */
   tram: d.vec4f,
 });
-const SurfaceRecord = d.struct({ ends: d.vec4f, detail: d.vec4f });
+export const SurfaceRecord = d.struct({ ends: d.vec4f, detail: d.vec4f });
 
 export const terrainLayout = tgpu.bindGroupLayout({
   params: { uniform: TerrainParams, visibility: ["fragment", "compute"] },
@@ -2003,8 +2003,19 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
   /** The plots `set` last packed, and whether they carry their texture. */
   let fields: PlotLook | null = null;
   let textured = true;
+  /** The tables as last uploaded (`terrainTables.ts` reads them). */
+  let packed: {
+    grid: TerrainSurface["grid"];
+    nodes: ArrayBuffer;
+    plots: ArrayBuffer;
+    surfaces: ArrayBuffer;
+    surfaceIndex: ArrayBuffer;
+  } | null = null;
+  const paramsNow = () =>
+    look && { ...look, view: d.vec4u(classView ? 1 : 0, roadWear ? 0 : 1, 0, 0) };
   const writeParams = () => {
-    if (look) params.write({ ...look, view: d.vec4u(classView ? 1 : 0, roadWear ? 0 : 1, 0, 0) });
+    const now = paramsNow();
+    if (now) params.write(now);
   };
 
   const source = {
@@ -2029,8 +2040,16 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
     setFieldTexture(on: boolean): boolean {
       if (on === textured) return false;
       textured = on;
-      if (fields) plots.current!.write(packPlots(fields, textured));
+      if (fields && packed) {
+        packed.plots = packPlots(fields, textured);
+        plots.current!.write(packed.plots);
+      }
       return true;
+    },
+    /** The words `set` uploaded and the params as last written; null before `set`. */
+    uploaded: () => {
+      const now = paramsNow();
+      return packed && now && { ...packed, params: now };
     },
     ready: () => groundFilterReady(root, registry, scarSampler),
     group: null as unknown as ReturnType<typeof groupOf>,
@@ -2072,13 +2091,18 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
     set(surface: TerrainSurface) {
       const { plots: tree, site, biome } = surface;
       fields = { plots: tree, biome };
-      nodes.set(nodeBuffer(tree.nodes.length / NODE_FLOATS)).write(packNodes(tree));
-      plots.set(plotBuffer(tree.plots.length)).write(packPlots(fields, textured));
       const field = terrainField(surface);
-      surfaces
-        .set(surfaceBuffer(field.records.length / SURFACE_FLOATS))
-        .write(field.records.buffer as ArrayBuffer);
-      surfaceIndex.set(indexBuffer(field.index.length)).write(field.index.buffer as ArrayBuffer);
+      packed = {
+        grid: surface.grid,
+        nodes: packNodes(tree),
+        plots: packPlots(fields, textured),
+        surfaces: field.records.buffer as ArrayBuffer,
+        surfaceIndex: field.index.buffer as ArrayBuffer,
+      };
+      nodes.set(nodeBuffer(tree.nodes.length / NODE_FLOATS)).write(packed.nodes);
+      plots.set(plotBuffer(tree.plots.length)).write(packed.plots);
+      surfaces.set(surfaceBuffer(field.records.length / SURFACE_FLOATS)).write(packed.surfaces);
+      surfaceIndex.set(indexBuffer(field.index.length)).write(packed.surfaceIndex);
       const rules = biome.field_rules;
       const one = (key: string) => linearRgb(biome.palettes[key][0]);
       const bank = biome.palettes[biome.shore.palette];

@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { expect, test } from "vitest";
-import { createReelRun } from "@apps/battle-lab/src/benchmark/reelRun";
+import { createReelRun, grassCells } from "@apps/battle-lab/src/benchmark/reelRun";
+import type { TerrainTables } from "@packages/battle-renderer/src/frame/terrainTables";
 import type { BackdropScene } from "@apps/battle-lab/src/menuReel";
 
 const pose = { target: [0, 0] as [number, number], distance: 40, yaw: 0, pitch: 0.2 };
@@ -19,15 +20,26 @@ const camera = {
   near: 0.1,
 };
 const blank = () => Promise.resolve(new Blob());
+const noProbe = () => {
+  throw new Error("a probe ran outside plate mode");
+};
 /** A drawn frame at `now`, sim time `simTime`. */
-const drawn = (now: number, simTime = 2, readback: () => Promise<Blob> = blank) => ({
+const drawn = (
+  now: number,
+  simTime = 2,
+  readback: () => Promise<Blob> = blank,
+  grassClumps: () => Promise<{ root: [number, number, number] }[]> = noProbe,
+) => ({
   now,
   cpuMs: 1,
   camera,
   simTime,
   canvas: [1280, 720] as const,
   readback,
+  grassClumps,
 });
+/** A level camera 40 m east of (5, 6, 1), looking west: screen right is +y, up is +z. */
+const level = { ...camera, target: [5, 6, 1] as [number, number, number], yaw: 0, pitch: 0 };
 
 test("a reel records only drawn intervals after warm-up, finishes once, and uses wall time for the camera", () => {
   const results: unknown[] = [];
@@ -90,9 +102,8 @@ test("each drawn frame records the view it drew in sim space, and a plate from e
     return Promise.resolve(new Blob([String(now)]));
   };
   // Frames 0.5 s and 1.1 s into the 2 s shot: the second is the first past its middle.
-  const level = { ...camera, target: [5, 6, 1] as [number, number, number], yaw: 0, pitch: 0 };
   run.pilot.frame!({ ...drawn(1500, 2.0, read(1500)), camera: level });
-  run.pilot.frame!({ ...drawn(2100, 2.6, read(2100)), camera: level });
+  run.pilot.frame!({ ...drawn(2100, 2.6, read(2100), () => Promise.resolve([])), camera: level });
   run.pilot.frame!(drawn(3000, 3.5, read(3000)));
   expect(reads).toEqual([2100]);
   const [result] = results;
@@ -113,4 +124,64 @@ test("each drawn frame records the view it drew in sim space, and a plate from e
   ]);
   expect(result.plates.map((p) => p.file)).toEqual(["plate-1.png"]);
   expect(await (await result.plates[0].png).text()).toBe("2100");
+});
+
+test("grass is counted by the screen cell its roots project into, row-major from the top-left", () => {
+  const cells = grassCells(
+    [
+      [5, 7, 1.5], // just right of and above the middle: second row, third column
+      [5, 7, 1.5],
+      [5, -24, 19], // up and to the left
+      [5, 36, -17], // down and to the right
+      [60, 6, 1], // behind the eye
+      [5, 200, 1], // off the side of the screen
+    ],
+    level,
+    [1280, 720],
+  );
+  expect(cells).toEqual([1, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1]);
+});
+
+test("a plate frame counts the grass its own frame grew and keeps the terrain it drew on", async () => {
+  type Result = {
+    plates: { file: string; grass: Promise<number[]> }[];
+    terrain: TerrainTables | null;
+  };
+  const results: Result[] = [];
+  const run = createReelRun(scene, 30, (r) => results.push(r as unknown as Result), {
+    plates: true,
+  });
+  const tables = { heights: { words: new Uint32Array(3) } } as unknown as TerrainTables;
+  let exported = 0;
+  run.pilot.attach!({
+    adapter: "test",
+    light: {} as never,
+    stats: () => ({}) as never,
+    terrain: () => (exported++, tables),
+  });
+  run.scripted.onWarm();
+  run.pilot.frame!(drawn(1000));
+  // Only the plate frame (1.1 s into the 2 s shot) reads the grass back.
+  const grown = () => Promise.resolve([{ root: [5, 7, 1.5] as [number, number, number] }]);
+  run.pilot.frame!({ ...drawn(1500), camera: level });
+  run.pilot.frame!({ ...drawn(2100, 2.6, blank, grown), camera: level });
+  run.pilot.frame!(drawn(3000));
+  const [result] = results;
+  expect(await result.plates[0].grass).toEqual([0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0]);
+  expect(result.terrain).toBe(tables);
+  expect(exported).toBe(1);
+});
+
+test("without plates the run reads nothing back", () => {
+  const results: { terrain: TerrainTables | null }[] = [];
+  const run = createReelRun(scene, 30, (r) => results.push(r));
+  run.pilot.attach!({
+    adapter: "test",
+    light: {} as never,
+    stats: () => ({}) as never,
+    terrain: noProbe,
+  });
+  run.scripted.onWarm();
+  for (const now of [1000, 1500, 2100, 3000]) run.pilot.frame!({ ...drawn(now), camera: level });
+  expect(results[0].terrain).toBeNull();
 });

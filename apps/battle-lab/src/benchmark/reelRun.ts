@@ -1,7 +1,16 @@
 import { vec3 } from "math";
 import { BenchmarkRecording } from "@web/battle/benchmark/recording";
 import type { BenchmarkOutcome } from "@web/battle/benchmark/report";
-import { eyePosition, screenAxes } from "@packages/renderer-core/src/camera3d";
+import {
+  createGpuMat4,
+  createProjectedPoint,
+  eyePosition,
+  projectPoint,
+  screenAxes,
+  viewProjMatrix,
+  type Camera3DParams,
+} from "@packages/renderer-core/src/camera3d";
+import { liveCamera } from "@packages/renderer-core/src/cameraUniform";
 import { plateShot, sampleReel, type BackdropScene } from "../menuReel";
 import type { ScriptedSim } from "../useSimSession";
 import type { ViewportPilot } from "../LabViewport";
@@ -10,13 +19,45 @@ import {
   type PresentationFrame,
   type PresentationSample,
 } from "@web/battle/benchmark/presentationCapture";
-import type { Lens } from "@web/battle/benchmark/visualPresentation";
+import { GRASS_CELLS, type Lens } from "@web/battle/benchmark/visualPresentation";
 import type { LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
+import type { TerrainTables } from "@packages/battle-renderer/src/frame/terrainTables";
 
-/** A control plate: the PNG read back from the canvas in the frame it names. */
+/** A control plate: the PNG read back from the canvas in the frame it names,
+ *  and the grass clumps that frame grew per screen cell (`grassCells`). */
 export interface ReelPlate {
   file: string;
   png: Promise<Blob>;
+  grass: Promise<number[]>;
+}
+
+const _cellProjection = createGpuMat4();
+const _cellPoint = createProjectedPoint();
+const _cellRoot = vec3.create();
+
+/** How many of `roots` fall in each cell of the `GRASS_CELLS` screen grid
+ *  as `camera` draws a `canvas`-sized frame, row-major from the top-left;
+ *  a root behind the eye or off the screen is in none. */
+export function grassCells(
+  roots: readonly (readonly [number, number, number])[],
+  camera: Camera3DParams,
+  [width, height]: readonly [number, number],
+): number[] {
+  const [cols, rows] = GRASS_CELLS;
+  const cells = Array.from({ length: cols * rows }, () => 0);
+  viewProjMatrix(_cellProjection, liveCamera({ camera3d: camera, width, height }));
+  for (const root of roots) {
+    const { ndc, clipW } = projectPoint(
+      _cellPoint,
+      _cellProjection,
+      vec3.set(_cellRoot, root[0], root[1], root[2]),
+    );
+    const x = (ndc[0] + 1) / 2;
+    const y = (1 - ndc[1]) / 2;
+    if (clipW <= 0 || x < 0 || x >= 1 || y < 0 || y >= 1) continue;
+    cells[Math.floor(y * rows) * cols + Math.floor(x * cols)]++;
+  }
+  return cells;
 }
 
 export interface ReelResult {
@@ -35,11 +76,14 @@ export interface ReelResult {
   /** The light the battle was built with; null before it was up. */
   light: LightPresentation | null;
   plates: readonly ReelPlate[];
+  /** The ground's GPU tables the first plate drew on; null without plates. */
+  terrain: TerrainTables | null;
 }
 
 /** One complete scene; preparation and inter-scene loading have no frame
  *  samples. With `plates`, each shot's middle frame is read back as a
- *  control plate (which costs that frame its timing). */
+ *  control plate with its grass, and the terrain's tables are exported
+ *  (which costs those frames their timing); without, nothing is read back. */
 export function createReelRun(
   scene: BackdropScene,
   tickHz: number,
@@ -64,6 +108,8 @@ export function createReelRun(
   const plates: ReelPlate[] = [];
   let lens: Lens | null = null;
   let light: LightPresentation | null = null;
+  let exportTerrain: (() => TerrainTables) | null = null;
+  let terrain: TerrainTables | null = null;
   const track = (follow: number, now: number): readonly number[] => {
     const live = subject.unitAt(follow);
     if (tracked?.follow !== follow) tracked = live && { follow, at: [live[0], live[1]], now };
@@ -93,6 +139,7 @@ export function createReelRun(
       lens,
       light,
       plates,
+      terrain,
     });
   };
   const sample = (now: number) => sampleReel(scene.reel, recording.elapsed(now) / 1000);
@@ -101,6 +148,7 @@ export function createReelRun(
       stats = frame.stats;
       adapter = frame.adapter;
       light = frame.light;
+      exportTerrain = frame.terrain;
     },
     pose(now) {
       const s = sample(now);
@@ -111,7 +159,7 @@ export function createReelRun(
         target: [lastSubject[0] + s.pose.target[0], lastSubject[1] + s.pose.target[1]],
       };
     },
-    frame({ now, cpuMs, camera, simTime, canvas, readback }) {
+    frame({ now, cpuMs, camera, simTime, canvas, readback, grassClumps }) {
       if (!warm || finished) return;
       if (!recording.started) {
         recording.start(now);
@@ -133,7 +181,20 @@ export function createReelRun(
           ? plateFile(index)
           : null;
       // Read back now, in the task that drew it, before the canvas presents.
-      if (plate) plates.push({ file: plate, png: readback() });
+      if (plate) {
+        plates.push({
+          file: plate,
+          png: readback(),
+          grass: grassClumps().then((clumps) =>
+            grassCells(
+              clumps.map((c) => c.root),
+              camera,
+              canvas,
+            ),
+          ),
+        });
+        terrain ??= exportTerrain?.() ?? null;
+      }
       lens ??= { fovY: camera.fovY, near: camera.near, depth: "reverse-z", far: "infinite" };
       frames.push({
         index,
