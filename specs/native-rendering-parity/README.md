@@ -19,7 +19,7 @@ Schema ids carry no version suffix. A format change updates its writer, reader a
 Graph: `01 ∥ 02 → 03 → 04a → 04b → 04c → 05a → 05b → 06a → 06b → closeout`. Slices 01 (browser) and 02 (native) share no files and run in parallel. Each later slice judges one visual variable.
 
 - [ ] 01 — Browser capture run: the complete frame record, the base manifest, same-frame plates, and the `native-parity-capture` scene. [slice](slices/01-browser-capture-run.md)
-- [ ] 02 — Native runner: rename to `native/godot`, Forward+, the strict reader, stepping by index, the report, per-file staging, and silent fallbacks and caps deleted. [slice](slices/02-native-runner.md)
+- [x] 02 — Native runner (`ae645e7a`): rename to `native/godot`, Forward+, the strict reader, stepping by index, the report, per-file staging, and silent fallbacks and caps deleted. [slice](slices/02-native-runner.md)
 - [ ] 03 — Coordinates and camera: the first real pair; the same shot. [slice](slices/03-coordinates-and-camera.md)
 - [ ] 04a — Light: sun, fill and shadows (direction and softness). [slice](slices/04a-light-sun-and-shadow.md)
 - [ ] 04b — Light: sky, clouds and distance haze. [slice](slices/04b-light-sky-and-haze.md)
@@ -90,7 +90,7 @@ Native must not choose a building shell by family/token heuristics (removed in s
 - Terrain and grass: `packages/battle-renderer/src/terrain/{terrainSurface.ts,terrainGrid.ts,biome.ts,grassField.ts}` and `packages/battle-renderer/src/frame/{terrainHeights.ts,terrainMaterial.ts,grassPass.ts}`.
 - Models and authored content (phase 2): `packages/scene-assets/src/{loader.ts,schema.ts,templateLibrary.ts,appearanceCatalog.ts}`, `packages/battle-renderer/src/models/*`, `apps/battle-lab/src/buildingTier.ts`.
 - Effects and scars (phase 2): `packages/battle-renderer/src/effects/{effectFrame.ts,effectPass.ts}` and `packages/battle-renderer/src/frame/scarTexture.ts`.
-- Native consumer to reshape: `native/godot-spike/` (renamed `native/godot` in slice 02). `reel.gd` is a 1,460-line monolith that is split by concern as each slice touches it.
+- Native client: `native/godot/` (see its README). `parity_run.gd` is the entry point. Capture, manifest, stepping, plates and the report are separate modules. The pre-parity buildings, props and units live in `world/legacy_map_layer.gd` until slice 07.
 
 ## Known evidence and risks
 
@@ -106,7 +106,7 @@ Effects require a real publication seam (phase 2). Native must extend the browse
 
 Every visual slice produces a browser/native pair from the same frame records, judged on its one variable. Run [`compare-screenshots`](../../.agents/skills/compare-screenshots/SKILL.md) against the fresh control, then [`screenshot-critique`](../../.agents/skills/screenshot-critique/SKILL.md) with an unprimed reviewer as the last visual check. Open shots with [`preview-shots`](../../.agents/skills/preview-shots/SKILL.md) at the non-blocking human checkpoint. The agent accepts the slice; if no response arrives, record the evidence-based decision and continue.
 
-Each native report records GPU frame time (Godot's measured viewport render time) as information. It is not a gate before slice 09. Only macOS with Metal is verified.
+Each native report records GPU frame time as information, not as a gate before slice 09. Godot 4.7.2 records no GPU timestamps on Metal, so the field is null today. Only macOS with Metal is verified.
 
 ### Unattended capture loop
 

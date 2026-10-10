@@ -83,7 +83,7 @@ Nothing is OPEN.
 | Endgame | A second client, both maintained | Native code is long-lived: rename to `native/godot`, split `reel.gd` by concern, write behaviour tests |
 | Platform | macOS only for now | Only Forward+ on Metal is verified |
 | Who accepts | The agent, non-blocking | As the verification contract says |
-| Performance | Record GPU frame time, don't gate | Every native report from slice 02 on |
+| Performance | Record GPU frame time, don't gate | Every native report from slice 02 on. Godot 4.7.2 has no Metal GPU timestamps, so the field is null (build log). |
 
 ## Unknown unknowns: landmines
 
@@ -137,3 +137,16 @@ Four independent drafts produced the cut, each with a different bias: fewest sli
 ## Build log
 
 Append decisions made during the build here, with their attribution.
+
+### Slice 02 (`ae645e7a`), by the implementing agent; reviewed by the orchestrator
+
+| Decision | Why |
+| --- | --- |
+| A plate's `gpuMs` is null on Metal | Godot 4.7.2's Metal driver records no GPU timestamps, and a false 0 would lie. Perf was "record, don't gate", so nothing blocks. |
+| `tests/run.sh` requires each test's result line, and the runner clears the environment | A GDScript parse error exits 0, and a failing `assert` hangs |
+| The binding smoke moved to `native/godot/binding_smoke/` with `.gdignore` | Otherwise the imported project tries to load the binding's dylib on every run |
+| `.gitignore` adds `*.uid` | Godot 4.7 writes them, and everything here loads by path |
+| Building kits come from catalog `city_kit_*` keys; a unit with no catalog model becomes a reported capsule | Removes environment-driven selection and the hard-coded GLB fallback |
+| Fog is drawn uncapped as one MultiMesh, only when the manifest lists it | Phase 1 menu manifests don't list it |
+| The far plane stays at Godot's default 4000 m, reported as a budget, until slice 03 sets it | Camera work is slice 03 |
+| The legacy layer's 1 km reach is measured from frame targets | Pre-parity code, replaced in slice 07 |
