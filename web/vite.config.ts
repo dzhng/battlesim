@@ -6,6 +6,7 @@ import react from "@vitejs/plugin-react";
 import { mechanicsPlugin } from "../apps/mechanics-editor/server";
 import { mapWorkbenchPlugin } from "../apps/map-workbench/server";
 import { soundWorkbenchPlugin } from "../apps/sound-workbench/server";
+import { GAME_NAME } from "../apps/battle-lab/src/gameName";
 
 // packages/* and apps/* are source-only directories outside this vite root.
 // Their bare imports resolve to web/node_modules through explicit aliases, so
@@ -96,6 +97,11 @@ export default defineConfig({
     react(),
     typegpu(),
     assetWatch(),
+    // The page's title is the game's public name.
+    {
+      name: "game-name",
+      transformIndexHtml: (html) => html.replaceAll("%GAME_NAME%", GAME_NAME),
+    },
     mechanicsPlugin(fileURLToPath(new URL("..", import.meta.url))),
     mapWorkbenchPlugin(fileURLToPath(new URL("..", import.meta.url))),
     soundWorkbenchPlugin(fileURLToPath(new URL("..", import.meta.url))),

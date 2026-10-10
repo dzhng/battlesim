@@ -85,6 +85,30 @@
   color: rgb(var(--hud-accent));
   text-shadow: var(--hud-text-halo);
 }
+/* The game's name: wide-tracked near-white letters glowing in the accent over
+   a short rule, centred under the letters and fading out at both ends. The
+   plate's corner brackets frame it. */
+.wordmark {
+  display: inline-block;
+  line-height: 1;
+  padding: 4px 0 9px;
+  font:
+    600 34px "Avenir Next Condensed",
+    "DIN Condensed",
+    "Bahnschrift",
+    "Arial Narrow",
+    sans-serif;
+  font-stretch: condensed;
+  text-transform: uppercase;
+  letter-spacing: 0.34em;
+  margin-right: -0.34em;
+  color: rgb(var(--hud-text));
+  text-shadow:
+    0 0 6px rgb(var(--hud-accent) / 0.9),
+    0 0 22px rgb(var(--hud-accent) / 0.5);
+  background: linear-gradient(90deg, transparent, rgb(var(--hud-accent) / 0.7) 50%, transparent)
+    calc(50% - 0.17em) bottom / 60% 1px no-repeat;
+}
 .menu ul {
   list-style: none;
   margin: 0;

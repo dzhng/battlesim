@@ -54,7 +54,7 @@ export function LoadingScreen({
   recovery,
   back = "/",
 }: {
-  title: string;
+  title: ReactNode;
   /** What is loading, e.g. the map's type, size and seed. */
   subject?: string;
   stages: readonly LoadingStage[];

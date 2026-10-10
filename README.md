@@ -2,6 +2,8 @@
 
 A browser real-time tactics game, built around reconnaissance, physical fire and positioning. Every round is a flown projectile, and every side sees only what its own units can see. Players fight on fresh seeded generated maps with the faction roster. The full design lives in [`specs/`](specs/).
 
+Players know the game by a public name that may change at any time, owned by [`gameName.ts`](apps/battle-lab/src/gameName.ts); code, packages and the repo keep their working names and never take it.
+
 Content has three owners, and none reaches another's place. Game battles are generated and field the roster's units. Test units (`test_*`) and `test` maps are the tests', labs' and benchmarks' own; menu units and `menu` maps are the menu backdrop's own. A saved map's `meta.json` says which it is ([saved maps](fixtures/README.md#saved-maps)). The developer menu's entries are tools, labelled as such, and stay in production builds.
 
 ## How it fits together

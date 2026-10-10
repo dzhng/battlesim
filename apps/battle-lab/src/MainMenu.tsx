@@ -21,6 +21,7 @@ import { Tutorial } from "./Tutorial";
 import { MenuBackdrop } from "./MenuBackdrop";
 import { LOADING_STAGES, LoadingTasks, useLoadingTasks } from "./LabLoading";
 import { LoadingScreen } from "./LoadingScreen";
+import { Wordmark } from "./Wordmark";
 import { APP_COMMIT, simFingerprint } from "./buildIdentity";
 
 interface Entry {
@@ -281,7 +282,9 @@ export function MainMenu() {
   const content =
     page === null ? (
       <>
-        <h1>Battle</h1>
+        <h1>
+          <Wordmark />
+        </h1>
         <nav aria-label="Main menu">
           <ul>
             <PageEntry page="skirmish" open={setPage} />
@@ -321,7 +324,7 @@ export function MainMenu() {
       </main>
       {loading && (
         <LoadingScreen
-          title="Battle"
+          title={<Wordmark />}
           stages={LOADING_STAGES}
           current={progress.current}
           back={null}

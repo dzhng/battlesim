@@ -4,6 +4,7 @@ import { BrowserRouter, Link, useLocation, useNavigate } from "react-router";
 import { afterEach, expect, test, vi } from "vitest";
 import { usePublishBattleAddress } from "@apps/battle-lab/src/navigation";
 import { LabRouter, screenForPath } from "@apps/battle-lab/src/router";
+import { GAME_NAME } from "@apps/battle-lab/src/gameName";
 import { renderSettled } from "./support/router";
 
 const delayed = vi.hoisted(() => ({ resume: null as null | (() => void) }));
@@ -69,7 +70,7 @@ test("Deploy changes the actual route without replacing the document", async () 
     "/battle?play=1&type=mixed&size=small&faction=us",
   );
   expect(document.documentElement).toBe(documentElement);
-  expect(view.queryByRole("heading", { name: "Battle" })).toBeNull();
+  expect(view.queryByRole("heading", { name: GAME_NAME })).toBeNull();
 });
 
 test("publishing the admitted address preserves progress and unrelated history state", async () => {
@@ -115,7 +116,7 @@ test("same-path navigation and Back/Forward prepare fresh requested visits", asy
   await act(async () => {
     window.history.back();
   });
-  await screen.findByRole("heading", { name: "Battle" });
+  await screen.findByRole("heading", { name: GAME_NAME });
   await act(async () => {
     window.history.forward();
   });
