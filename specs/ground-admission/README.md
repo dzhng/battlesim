@@ -7,10 +7,9 @@ roof.
 
 ## Next Agent Prompt
 
-**Status (2026-10-10):** planned, nothing implemented. **Next pickup:** slices
-[01-model-triage](slices/01-model-triage.md) and
-[02-top-attack-flight](slices/02-top-attack-flight.md) — independent; run them in
-parallel worktrees, or 02 first if you work alone (01 is scratch evidence only).
+**Status (2026-10-10):** in progress. Wave 1 is being built in parallel: 01, 02+03, 05
+and 10. **Next pickup:** whichever of those has no commit on main yet; then wave 2 (04,
+06–09, 11) once 05 has corrected the recipe and 03 has landed.
 
 You are implementing this spec. Read this README, then the slice you pick up, then the
 readmes of the folders it touches. Follow the [admission recipe](#admission-recipe) for
