@@ -57,6 +57,26 @@ plane from the manifest's lens. Godot has no infinite far plane, so the far
 plane is the map's diagonal plus the backdrop's reach from the manifest's
 light, and the report records it as a budget.
 
+## Light
+
+The manifest's `light` is the browser's `presentation.light`, exactly as the
+battle was drawn with it, plus the unit `sunDirection`. `environment/light.gd`
+reads it strictly: every field, nothing extra and no defaults. Native ports
+only the browser's formulas (`packages/battle-renderer/src/light/` and its
+shaders) and writes the manifest's numbers into them:
+
+- **Sun.** Its colour is the sky model's transmittance toward the sun, its
+  intensity the fixture's, and a shadowed surface keeps `shadow_floor` of it.
+  Godot's directional energy differs from the browser's radiance by a factor
+  of pi, which the adapter divides out.
+- **Cascades.** Each frame the four splits run over the part of the map the
+  camera sees, as the browser's do. Godot has one penumbra radius per light in
+  each split's own texels, so the penumbra matches the browser's in the
+  second cascade and widens beyond it.
+- **Sky light.** The ambient and reflected light is the ported physical sky
+  times the fill: the sky shader writes that product into the radiance
+  cubemap Godot lights with, whether or not the sky is shown.
+
 ## Layers
 
 Only the layers the manifest lists are drawn, under the browser's layer names.

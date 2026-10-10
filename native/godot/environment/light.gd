@@ -58,9 +58,9 @@ static func error(light: Variant) -> String:
 		return shape
 	if vector(light.sunDirection).is_zero_approx():
 		return "light.sunDirection must point toward the sun"
-	if int(light.cascades.count) != CASCADES or float(light.cascades.count) != CASCADES:
+	if float(light.cascades.count) != CASCADES:
 		return "light.cascades.count must be %d" % CASCADES
-	if not int(light.cascades.map_size) in [512, 1024, 2048, 4096] or float(light.cascades.map_size) != int(light.cascades.map_size):
+	if not float(light.cascades.map_size) in [512.0, 1024.0, 2048.0, 4096.0]:
 		return "light.cascades.map_size must be 512, 1024, 2048 or 4096"
 	if float(light.backdrop.reach_m) < 0.0:
 		return "light.backdrop.reach_m must not be negative"

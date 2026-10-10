@@ -196,3 +196,18 @@ The orchestrator built the browser halves of 04, 05 and 06a early, in parallel w
 | Fog is drawn uncapped as one MultiMesh, only when the manifest lists it | Phase 1 menu manifests don't list it |
 | The far plane stays at Godot's default 4000 m, reported as a budget, until slice 03 sets it | Camera work is slice 03 |
 | The legacy layer's 1 km reach is measured from frame targets | Pre-parity code, replaced in slice 07 |
+
+### Slice 04a (`ec10b1c8`, final pass below), by the implementing agent
+
+Shadow direction matches on every pair, and softness reads the same at mid range; the unprimed critique agreed on direction (high confidence) and found the edges roughly equal, with the candidate's near-tank shadow softer. Evidence: `throwaway/native-parity/slice04a/`.
+
+| Decision | Why |
+| --- | --- |
+| The manifest's light stays the raw `presentation.light` plus `sunDirection`; native ports the derivations (transmittance, overcast, sun colour, cascade breaks, receiver range) rather than reading resolved `light.sun`, `light.fill` and `light.cascades` | The browser lane had already shipped this shape; resolved values would duplicate the owner the formulas read. A TS-evaluated oracle pins the ports in `tests/light_test.gd`. |
+| `environment/light.gd` checks the whole light shape at once (every field, nothing extra, finite numbers) | One strict schema; a stale file fails at the reader, not at the slice that first reads a field |
+| The sun's energy is `sun_intensity / pi` and its colour is passed through `linear_to_srgb` | Godot multiplies a directional light's energy by pi and reads light colours as sRGB |
+| `shadow_floor` is Godot's `shadow_opacity = 1 - shadow_floor` | The same mix: a shadowed surface keeps that share of the sun |
+| Ambient and reflections come from the sky: the sky shader's cubemap pass writes the ported physical sky times `sky.fill` | The browser's environment light is its sky LUT times the fill, for diffuse and specular alike. This amends the slice's "not from Godot's sky": the light is the browser's sky, not Godot's procedural one. |
+| Cascades split per frame over the receiver range the camera sees (the browser's 13×13 ray grid against the map box, flat until 05a), mapped onto Godot's camera-relative split fractions | Godot's splits start at the camera, the browser's at the receivers |
+| Soft shadows are PCF (`SOFT_LOW`, four Vogel taps), not PCSS; `shadow_blur` matches the browser's penumbra in metres in the second cascade | The browser's penumbra is a fixed world width; Godot has one radius per light in each split's texels, so near shadows are slightly sharper and far ones softer. PCSS would widen with blocker distance, which the browser doesn't. |
+| Godot's shadow biases stay at their defaults | The browser's biases belong to its own depth contract; no acne or peter-panning showed in the pairs |

@@ -96,12 +96,15 @@ func fit(camera: Camera3D, viewport: Vector2) -> void:
 	# The browser's last cascade fades to unshadowed over the last quarter of
 	# the receiver range.
 	_sun.directional_shadow_fade_start = (far - 0.25 * (far - near)) / far
-	# Godot has one PCF radius per light, in its own split's texels; the
-	# penumbra is the browser's nearest cascade's, in metres.
+	# The browser's penumbra is the same width in metres in every cascade
+	# (a texel at least); Godot's is one radius in each split's own texels, so
+	# it widens with distance. The two agree in the second cascade, where the
+	# reel's subjects mostly stand: the first is slightly sharper, the last two
+	# softer.
 	var aspect := viewport.x / viewport.y
-	var texel := browser_extent(near, depths[0], far, camera.fov, aspect) / float(cascades.map_size)
+	var texel := browser_extent(depths[0], depths[1], far, camera.fov, aspect) / float(cascades.map_size)
 	var penumbra_m := Light.pcf_radius_texels(cascades, texel) * texel
-	var godot_texel := godot_extent(camera.near, depths[0], camera.fov, aspect) / float(cascades.map_size)
+	var godot_texel := godot_extent(depths[0], depths[1], camera.fov, aspect) / float(cascades.map_size)
 	_sun.shadow_blur = penumbra_m / godot_texel / SHADOW_FILTER_RADIUS
 
 ## The browser's square cascade extent for the slice between view depths
