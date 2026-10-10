@@ -1,9 +1,9 @@
 {
   "units": [
-    {"side":"blue","kind":"test_jeep","position":[205,405],"yaw":1.5708,"engagement":"return_fire_only"},
-    {"side":"red","kind":"test_heli","position":[250,405],"yaw":3.14159,"engagement":"return_fire_only"}
+    {"side":"blue","kind":"test_jeep","position":[250,470],"yaw":1.5708,"engagement":"return_fire_only"},
+    {"side":"red","kind":"test_heli","position":[320,470],"yaw":3.14159,"engagement":"return_fire_only"}
   ],
   "scripts": [
-    {"tick":60,"side":"red","order":{"kind":"move","units":[1],"gesture":1,"goal":[205,505],"route":"shortest"}}
+    {"tick":60,"side":"red","order":{"kind":"move","units":[1],"gesture":1,"goal":[250,505],"route":"shortest"}}
   ]
 }

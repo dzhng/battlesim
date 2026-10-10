@@ -7,7 +7,7 @@
 You are implementing helicopters. Read [decisions](decisions.md) first. Its D1–D43 are givens, and you don't reopen them inside a slice. Then read [landmines](landmines.md) and the slice you're picking up. Load [tweak-mechanics](../../.agents/skills/tweak-mechanics/SKILL.md) before any rule change, [write-tests](../../.agents/skills/write-tests/SKILL.md) before any behaviour change, and [renderer](../../.agents/skills/renderer/SKILL.md) or [game-ui](../../.agents/skills/game-ui/SKILL.md) for slices that draw.
 
 **Next pickup, in priority order:**
-1. Integrate slice 13's worktree. (07, 10, 11, 12, 15 and 17b are merged.) Merge each, rerun its narrow checks on the merged tree, and remove its worktree.
+1. Integrate slice 16's worktree (the other 18 helicopters). Everything else through 17b is merged. Merge each, rerun its narrow checks on the merged tree, and remove its worktree.
 2. Slice 15 (the Apache on real art). It depends on 07, 09 and 10.
 3. Slice 13 (the contact sign), after 12. Slice 16, after 15. Slice 17, after 16. Slice 18 last.
 
@@ -43,7 +43,7 @@ The record of each slice lives in its slice file and in [choices](choices.md).
 - [x] [10 — Drawing the fall](slices/10-fall-draw.md)
 - [x] [11 — Damage smoke trail](slices/11-damage-smoke.md)
 - [x] [12 — Drop line, ground ring and ghosts](slices/12-drop-line-ring.md)
-- [ ] [13 — The airborne contact sign, built](slices/13-contact-sign.md)
+- [x] [13 — The airborne contact sign, built](slices/13-contact-sign.md)
 - [x] [14 — Resupply sink](slices/14-resupply-sink.md)
 - [x] [15 — The Apache, on real art](slices/15-apache.md)
 - [ ] [16 — The other 18 helicopters](slices/16-roster.md)

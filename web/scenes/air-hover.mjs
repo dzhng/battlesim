@@ -522,15 +522,21 @@ async function lostSign(ctx, page, surface, css) {
   // Strokes thin to this share of their width as the camera pulls out.
   const thin = game.presentation.overlay.stroke.thin_scale;
   // From the south-east the sign hangs over the fogged field beyond the
-  // house; from the north-east, low, the house's roof lies behind it. Close
+  // house; from across the sign, low, the shop the jeep stands against lies behind it. Close
   // in and from the map's zoom.
   const southEast = { pitch: 0.72, yaw: -1.25 };
-  const northEast = { pitch: 0.4, yaw: 0.77 };
+  // Facing the building across the sign, low enough that the eye's line
+  // through the sign comes down onto its roof.
+  const away = [at[0] - footprint.center[0], at[1] - footprint.center[1]];
+  const facing = {
+    pitch: Math.atan2(at[2] - roofTop, Math.hypot(away[0], away[1])),
+    yaw: Math.atan2(away[1], away[0]),
+  };
   for (const [name, view] of [
     ["lost-fog", { distance: 90, ...southEast }],
-    ["lost-roof", { distance: 90, ...northEast }],
+    ["lost-roof", { distance: 90, ...facing }],
     ["lost-map-fog", { distance: 350, ...southEast }],
-    ["lost-map-roof", { distance: 350, ...northEast }],
+    ["lost-map-roof", { distance: 350, ...facing }],
   ]) {
     await aim(page, at, view, { onGround: false });
     await advance(page, 1);

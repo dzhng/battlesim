@@ -20,15 +20,15 @@ import { ReadoutLayer, type Project } from "@web/battle/present/readouts";
 // `fog`, an enemy one over the ground the house hides from blue's jeep, seen
 // over the fog (V02); `apache`, the AH-64E on its real art over the verge,
 // its chin gun firing down at an enemy tank on the road; `lost`, an enemy one
-// blue's jeep sees across the field, then loses as it flies on behind a block
-// of flats: its last sighting hangs in the air where it was seen last (the
+// blue's jeep sees across the field, then loses as it flies on behind the shop
+// the jeep stands against: its last sighting hangs in the air where it was seen last (the
 // airborne contact sign, D11).
 const VARIANTS = {
   hover: { label: "Over open ground", target: [142, 90, 8] },
   roof: { label: "Over a roof, enemy beyond", target: [256, 97, 10] },
   fog: { label: "Enemy over fog", target: [270, 60, 8] },
   apache: { label: "Apache firing down", target: [128, 112, 12] },
-  lost: { label: "Enemy lost behind the flats", target: [205, 470, 10] },
+  lost: { label: "Enemy lost behind the shop", target: [255, 495, 10] },
 } as const;
 type Variant = keyof typeof VARIANTS;
 const VARIANT_NAMES = Object.keys(VARIANTS) as Variant[];
