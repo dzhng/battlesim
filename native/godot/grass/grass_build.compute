@@ -6,17 +6,14 @@
 //
 // `grass_layer.gd` compiles it after a generated header: the bindings, the
 // ground's defines (`terrain_layer.gd` `shader_header`), the grass params'
-// field vec4s (`GRASS_<field>`), `TUNING_<path>` for `tuning.grass`, and the
+// field vec4s (`GRASS_<field>`), `TUNING_<path>` for `tuning.grass`,
+// `CONSTANT_<name>` for the build's numbers in `grass.constants`, and the
 // browser's ground formulas (`terrain/ground.gdshaderinc`) with its uniforms
 // rebound to compute bindings. Numbers that are part of a formula (hashes,
 // R2's generator, decorrelation offsets) stay here as text, as in the browser.
 
 // The plastic number's reciprocals: R2's generator.
 #define R2 vec2(0.7548776662466927, 0.5698402909980532)
-// `grassField.ts` GRASS_EDGE_M and `scene-assets/grass.ts`
-// GRASS_HEIGHT_VARIATION: the manifest does not carry them yet.
-#define GRASS_EDGE_M 1.2
-#define HEIGHT_VARIATION vec2(0.8, 1.2)
 
 vec4 gp(int at) {
 	return uintBitsToFloat(grass_params[at]);
@@ -189,7 +186,7 @@ void main() {
 		// Bare within the margins, thinner and lower for a metre beyond them.
 		float wood = max(site.w, forest_verge_inside(fell, site.w));
 		vec2 line = vec2(0.0, -1e9);
-		if (wood > -(gp(GRASS_clear).x + GRASS_EDGE_M)) {
+		if (wood > -(gp(GRASS_clear).x + CONSTANT_edgeM)) {
 			line = ground_line_band(fell, cell, site.w);
 			if (line.x > 0.5) { wood = -1e9; }
 		}
@@ -199,7 +196,7 @@ void main() {
 		if (shore >= 1.0) { continue; }
 		vec2 worn = ground_shoulder(fell, footprint, paved);
 		if (worn.x > TUNING_stand_bareWear) { continue; }
-		float edge = ss(0.0, GRASS_EDGE_M, min(margin, abs(site.z))) * (1.0 - worn.x);
+		float edge = ss(0.0, CONSTANT_edgeM, min(margin, abs(site.z))) * (1.0 - worn.x);
 		int plot_index = int(site.x);
 		uint grows = min(uint(plot_field(plot_index, PLOTS_detail).y), uint(GROWTH_ROWS - 2));
 		if (ground_verge(site, footprint) > 0.5 || line.y > 0.0) { grows = uint(GROWTH_ROWS - 1); }
@@ -253,7 +250,7 @@ void main() {
 		vec4 row = gp(GRASS_kinds + int(kind));
 		// Patches a few metres across stand taller or lower.
 		float tall = value_noise(p * gp(GRASS_patchScales).x);
-		float height = row.x * g.y * grow * fade * mix(HEIGHT_VARIATION.x, HEIGHT_VARIATION.y, h.x) * mix(stand.x, stand.y, tall) * mix(TUNING_stand_edgeHeight, 1.0, edge);
+		float height = row.x * g.y * grow * fade * mix(CONSTANT_heightVariation_0, CONSTANT_heightVariation_1, h.x) * mix(stand.x, stand.y, tall) * mix(TUNING_stand_edgeHeight, 1.0, edge);
 		if (height < TUNING_stand_leastHeightM) { continue; }
 		vec3 centre = root + vec3(0.0, 0.0, height * 0.5);
 		float radius = height * 0.8 + 0.4;

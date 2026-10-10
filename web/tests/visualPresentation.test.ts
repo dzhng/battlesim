@@ -115,6 +115,8 @@ const grass: GrassTables = {
     firstClump: [0, 100],
     indexCount: [3, 2],
     maxBlades: 1,
+    edgeM: 1.2,
+    heightVariation: [0.8, 1.2],
   },
   kinds: ["meadow_grass", "wheat"],
 };
@@ -325,6 +327,10 @@ test("the validator refuses a grass section with a missing table, a stray consta
   expect(reject({ constants: short })).toThrow(/grass/);
   expect(reject({ constants: { ...manifest.grass.constants, lod: 0 } })).toThrow(/grass/);
   expect(reject({ constants: { ...manifest.grass.constants, tileM: "4" } })).toThrow(/grass/);
+  const { edgeM: _edge, ...noEdge } = manifest.grass.constants;
+  expect(reject({ constants: noEdge })).toThrow(/grass/);
+  expect(reject({ constants: { ...manifest.grass.constants, edgeM: -1 } })).toThrow(/grass/);
+  expect(reject({ constants: { ...manifest.grass.constants, heightVariation: [0.8] } })).toThrow(/grass/);
   expect(reject({ kinds: [] })).toThrow(/grass/);
   expect(reject({ kinds: ["wheat", "wheat"] })).toThrow(/grass/);
   expect(reject({ seed: 1 })).toThrow(/grass/);

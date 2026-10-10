@@ -4,8 +4,8 @@
 // (`planes`, `eye`, `window.xy`, `grid.xy`) belong to the frame that wrote
 // them, and a second client recomputes them from each frame record; the rest
 // is fixed for the map.
-import { GRASS_SEGMENTS } from "@packages/scene-assets/src/grass.ts";
-import { FIELD_LODS, GRASS_TILE_M } from "../terrain/grassField";
+import { GRASS_HEIGHT_VARIATION, GRASS_SEGMENTS } from "@packages/scene-assets/src/grass.ts";
+import { FIELD_LODS, GRASS_EDGE_M, GRASS_TILE_M } from "../terrain/grassField";
 import { GrassParams, ShapeVertex, type GrassPass } from "./grassPass";
 import { recordTable, structTable, u16Table, type WordTable } from "./wordTables";
 
@@ -26,6 +26,10 @@ export interface GrassConstants {
   indexCount: number[];
   /** Blades a clump's index strips cover: every kind is padded to the most. */
   maxBlades: number;
+  /** Metres past a bare margin over which the stand thins and lowers. */
+  edgeM: number;
+  /** The least and most a clump's own hash scales its height by. */
+  heightVariation: number[];
 }
 
 export interface GrassTables {
@@ -60,6 +64,8 @@ export function grassTables(grass: GrassPass): GrassTables {
       firstClump: up.tiers.map((t) => t.y),
       indexCount: [...up.indexCounts],
       maxBlades: up.maxBlades,
+      edgeM: GRASS_EDGE_M,
+      heightVariation: [...GRASS_HEIGHT_VARIATION],
     },
     kinds: [...up.kinds],
   };

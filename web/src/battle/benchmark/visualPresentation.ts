@@ -119,15 +119,19 @@ export const TABLES = {
 };
 export type TableGroup = keyof typeof TABLES;
 
-const GRASS_CONSTANTS = [
-  "tileM",
-  "segments",
-  "bladeVertices",
-  "capacity",
-  "firstClump",
-  "indexCount",
-  "maxBlades",
-] as const satisfies readonly (keyof GrassConstants)[];
+/** Each grass constant and whether it is a count or a length (metres or a
+ *  scale); a list holds a pair. */
+const GRASS_CONSTANTS = {
+  tileM: "count",
+  segments: "count",
+  bladeVertices: "count",
+  capacity: "count",
+  firstClump: "count",
+  indexCount: "count",
+  maxBlades: "count",
+  edgeM: "length",
+  heightVariation: "length",
+} as const satisfies Record<keyof GrassConstants, "count" | "length">;
 
 /** A table written beside the manifest: `words` little-endian u32 words in
  *  `tableFile(group, name)`, whose bytes hash to `sha256`, read by `layout`. */
@@ -206,6 +210,8 @@ function validateManifestLight(value: unknown): ManifestLight {
 }
 
 const count = (value: unknown) => Number.isInteger(value) && (value as number) >= 0;
+const length = (value: unknown) =>
+  typeof value === "number" && Number.isFinite(value) && value >= 0;
 const positive = (value: unknown) => typeof value === "number" && value > 0;
 
 /** Whether `value` is a word layout a reader can follow. */
@@ -323,10 +329,12 @@ export function validateVisualPresentation(value: unknown): VisualPresentation {
   if (
     !hasKeys(field, ["tables", "constants", "kinds"]) ||
     !isTableList(field.tables, TABLES.grass) ||
-    !hasKeys(field.constants, GRASS_CONSTANTS) ||
-    !Object.values(field.constants).every((c) =>
-      Array.isArray(c) ? c.length === 2 && c.every(count) : count(c),
-    ) ||
+    !hasKeys(field.constants, Object.keys(GRASS_CONSTANTS)) ||
+    !Object.entries(GRASS_CONSTANTS).every(([key, kind]) => {
+      const valid = kind === "count" ? count : length;
+      const c = (field.constants as Record<string, unknown>)[key];
+      return Array.isArray(c) ? c.length === 2 && c.every(valid) : valid(c);
+    }) ||
     !Array.isArray(field.kinds) ||
     field.kinds.length === 0 ||
     !field.kinds.every(text) ||

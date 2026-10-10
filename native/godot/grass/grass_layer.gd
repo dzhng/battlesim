@@ -273,12 +273,17 @@ func build_source() -> Dictionary:
 	var params: Dictionary = _tables.params.layout
 	if params.get("kind") != "records" or int(params.get("count", 0)) != 1:
 		return {"ok": false, "detail": "grass table params is not one record"}
+	var edge = _constants.get("edgeM")
+	var variation = _constants.get("heightVariation")
+	if not (edge is float or edge is int) or not (variation is Array and variation.size() == 2):
+		return {"ok": false, "detail": "grass.constants needs edgeM and a heightVariation pair"}
 	var ground := TerrainLayer.shader_header(_terrain.tables, _terrain_tuning)
 	if not ground.ok:
 		return ground
 	var lines: Array[String] = ["#version 450"]
 	lines.append(ground.defines)
 	lines.append_array(_field_defines())
+	TerrainLayer._tuning_defines({"edgeM": edge, "heightVariation": variation}, "CONSTANT", lines)
 	var growth_rows := _field_count(_tables.params.layout, "growth")
 	lines.append("#define GROWTH_ROWS %d" % growth_rows)
 	lines.append("#define MIX_MAX %d" % (_field_count(_tables.params.layout, "mixes") / growth_rows))
