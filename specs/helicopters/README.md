@@ -1,15 +1,18 @@
 # Helicopters
 
-**Status:** in progress: slices 01 and 02 done. **Updated:** 2026-10-10.
+**Status:** in progress: slices 01, 02 and 03 done. **Updated:** 2026-10-10.
 
 ## Next Agent Prompt
 
 You are implementing helicopters. Read [decisions](decisions.md) first. Its D1–D43 are givens, and you don't reopen them inside a slice. Then read [landmines](landmines.md) and the slice you're picking up. Load [tweak-mechanics](../../.agents/skills/tweak-mechanics/SKILL.md) before any rule change, [write-tests](../../.agents/skills/write-tests/SKILL.md) before any behaviour change, and [renderer](../../.agents/skills/renderer/SKILL.md) or [game-ui](../../.agents/skills/game-ui/SKILL.md) for slices that draw.
 
-**Next pickup:** slice [03 — Flight](slices/03-flight.md). Slices [05](slices/05-contact-height.md) and [06](slices/06-airframe-art.md) also depend only on 01, so run them alongside 03.
+**Next pickup:** slice [04 — Falling airframe](slices/04-falling-airframe.md) and slice [14 — Resupply sink](slices/14-resupply-sink.md). Slices [05](slices/05-contact-height.md) and [06](slices/06-airframe-art.md) are in flight on their own worktrees.
+
+**Warning:** five `publication::` parity tests are already red on `main`. They come from another session's top-attack and roster commits, not from this plan (confirmed by running them at `2929f724`). Leave those records to their owner.
 
 **Done so far:**
 - **01:** `units::Motion { Ground, Air }`, `Unit::airborne`, `ground_footprint` (`None` in the air), `Mobility::Air` with its own limits, the `air` rules block, and XY-only `moved`. Ground digests and parity records are unchanged.
+- **03:** `movement::air::step_aircraft` and `navigation::air::AirGrid` (cached per side as `SideGeometry::air_grid`), with digested `Unit.air: AirState { velocity }`.
 - **02:** variant D, the keyed disc, was picked at the checkpoint ([result](slices/02-contact-sign-spike.md#result)).
 
 **Warnings:**
@@ -23,7 +26,7 @@ You are implementing helicopters. Read [decisions](decisions.md) first. Its D1�
 ### Checklist
 - [x] [01 — An airborne hull](slices/01-air-hull.md)
 - [x] [02 — Design spike: the airborne lost-contact sign](slices/02-contact-sign-spike.md)
-- [ ] [03 — Flight: route, altitude, separation](slices/03-flight.md)
+- [x] [03 — Flight: route, altitude, separation](slices/03-flight.md)
 - [ ] [04 — Falling airframe (simulation)](slices/04-falling-airframe.md)
 - [ ] [05 — Contacts carry height](slices/05-contact-height.md)
 - [ ] [06 — Test airframe art and rotor pipeline](slices/06-airframe-art.md)

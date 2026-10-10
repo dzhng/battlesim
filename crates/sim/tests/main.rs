@@ -4,6 +4,7 @@
 mod common;
 
 mod air;
+mod air_flight;
 mod animation_feed;
 mod battle_authority;
 mod bodies;

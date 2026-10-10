@@ -46,13 +46,13 @@ fn heli() -> Value {
     })
 }
 
-fn fixture() -> Value {
+pub(crate) fn fixture() -> Value {
     let mut fixture = sim::fixtures::test_game();
     fixture["catalog"].as_array_mut().unwrap().push(heli());
     fixture
 }
 
-fn battle_with(fixture: &Value, map: Value, units: Value) -> Battle {
+pub(crate) fn battle_with(fixture: &Value, map: Value, units: Value) -> Battle {
     let setup = serde_json::from_value(json!({
         "map": map, "rules": fixture, "units": units, "events": [], "scripts": [],
     }))
@@ -60,11 +60,11 @@ fn battle_with(fixture: &Value, map: Value, units: Value) -> Battle {
     Battle::new(&setup, 1)
 }
 
-fn open_map() -> Value {
+pub(crate) fn open_map() -> Value {
     json!({ "size": [600, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 })
 }
 
-fn order(units: &[u32], goal: [f64; 2]) -> CommandEnvelope {
+pub(crate) fn order(units: &[u32], goal: [f64; 2]) -> CommandEnvelope {
     CommandEnvelope {
         side: Side::Blue,
         seq: 1,

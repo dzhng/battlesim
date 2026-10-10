@@ -24,6 +24,7 @@ use crate::route_planner::{Request, RoutePlanner};
 use crate::units::Unit;
 use crate::world::{Prop, PropId, PropIndex, WorldGeometry, PROP_BUCKET_M};
 
+mod air;
 mod certify;
 pub(crate) mod drive;
 mod final_leg;
@@ -120,6 +121,11 @@ pub struct SideGeometry {
     cleared_taken: usize,
     /// Route searches run for this side (the no-per-frame-search contract).
     pub searches: u64,
+    /// Where this side's aircraft may fly, and the side and world revisions
+    /// it was built at; built when an aircraft first asks.
+    air: Option<(u64, u64, Arc<crate::navigation::air::AirGrid>)>,
+    /// Cells the air route searches expanded (the bounded-search contract).
+    pub air_cells_searched: u64,
 }
 
 /// A change farther than this from a unit's route cannot put a body in
@@ -148,7 +154,36 @@ impl SideGeometry {
             stale: BTreeSet::new(),
             cleared_taken: 0,
             searches: 0,
+            air: None,
+            air_cells_searched: 0,
         }
+    }
+
+    /// The side's air grid: walls are the bodies it believes stand taller
+    /// than the obstacle height, where it believes they stand (D32).
+    pub fn air_grid(
+        &mut self,
+        world: &WorldGeometry,
+        rules: &contract::scenario::Rules,
+        authored: PropId,
+    ) -> Arc<crate::navigation::air::AirGrid> {
+        use crate::navigation::air::{walls_aircraft, AirGrid};
+        let stamp = (self.revision, world.obstacle_revision());
+        if let Some((side, at, grid)) = &self.air {
+            if (*side, *at) == stamp {
+                return grid.clone();
+            }
+        }
+        let walls: Vec<Prop> = world
+            .props()
+            .chain(self.standing.values())
+            .filter(|p| walls_aircraft(world, rules, p))
+            .filter_map(|p| self.belief(p, authored))
+            .filter(|p| walls_aircraft(world, rules, p))
+            .collect();
+        let grid = Arc::new(AirGrid::build(world, rules, walls.iter()));
+        self.air = Some((stamp.0, stamp.1, grid.clone()));
+        grid
     }
 
     /// Cells the side's grid has worked out again as the side learned.
@@ -444,6 +479,7 @@ pub(crate) fn advance(
             planner.cancel(unit.id);
             continue;
         }
+        // Aircraft plan their own routes as they fly (`air`).
         if unit.airborne() {
             continue;
         }
@@ -471,8 +507,7 @@ pub(crate) fn advance(
             continue;
         }
         if units[i].airborne() {
-            // Aircraft fly in `air`, from slice 03 of the helicopter plan;
-            // until then they hold where they are.
+            air::step_aircraft(ctx, units, i, sides);
             continue;
         }
         if units[i].is_vehicle() {
@@ -876,7 +911,9 @@ fn arrive(unit: &mut Unit) {
         // at rest; wheels drove in along it as far as they could (`line_up`).
         match m.facing {
             Some(f) if !unit.is_vehicle() => unit.yaw = f,
-            Some(f) if unit.ground().drive.is_some_and(|d| d.tracked) => unit.turn_to = Some(f),
+            Some(f) if unit.airborne() || unit.ground().drive.is_some_and(|d| d.tracked) => {
+                unit.turn_to = Some(f)
+            }
             _ => {}
         }
         unit.orders.pop_front();

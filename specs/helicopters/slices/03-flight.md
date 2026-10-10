@@ -1,6 +1,6 @@
 # 03 — Flight: route, altitude, separation
 
-**Status:** planned. **Depends on:** 01. **Owns:** D4, D6, D7, D21, D24, D25, D26, D32, L5, L8 (catalog test), L11.
+**Status:** done (see choices for the deferred D32 test). **Depends on:** 01. **Owns:** D4, D6, D7, D21, D24, D25, D26, D32, L5, L8 (catalog test), L11.
 
 ## Contract
 
