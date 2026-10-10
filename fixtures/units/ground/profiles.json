@@ -337,6 +337,36 @@
         "loudness_m": 650
       }
     },
+    "roster_profile_light_tank": {
+      "abstract": true,
+      "sensors": {
+        "ground_m": 550,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        }
+      },
+      "sound": {
+        "profile": "vehicle",
+        "loudness_m": 650
+      }
+    },
+    "roster_profile_wheeled_tank_destroyer": {
+      "abstract": true,
+      "sensors": {
+        "ground_m": 550,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        }
+      },
+      "sound": {
+        "profile": "vehicle",
+        "loudness_m": 650
+      }
+    },
     "roster_profile_older_mbt": {
       "abstract": true,
       "sensors": {
