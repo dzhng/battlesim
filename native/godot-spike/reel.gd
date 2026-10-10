@@ -29,6 +29,10 @@ var authored_map_scene_count := 0
 var authored_building_limit := 0
 var authored_cull_radius := 900.0
 var authored_render_instance_limit := 256
+## Once an authored kit is requested, its shell instances own building
+## presentation. The saved-map box batch remains available for the proxy path,
+## but must not compete with real shells in the authored run.
+var authored_buildings_active := false
 var map_render_radius := 1000.0
 var authored_scene_nodes: Dictionary = {}
 var authored_scene_by_family: Dictionary = {}
@@ -221,6 +225,9 @@ func _build_world() -> void:
 	var grass_limit_text := OS.get_environment("GODOT_NATIVE_GRASS_INSTANCE_LIMIT")
 	if not grass_limit_text.is_empty():
 		native_grass_instance_limit = maxi(0, int(grass_limit_text))
+	var authored_path := OS.get_environment("GODOT_AUTHORED_SCENE")
+	var authored_paths := OS.get_environment("GODOT_AUTHORED_SCENES")
+	authored_buildings_active = _authored_buildings_active(authored_path, authored_paths)
 	camera = Camera3D.new()
 	add_child(camera)
 	_build_map_geometry()
@@ -228,8 +235,6 @@ func _build_world() -> void:
 	var unit_holder := Node3D.new()
 	unit_holder.name = "ObservedUnits"
 	add_child(unit_holder)
-	var authored_path := OS.get_environment("GODOT_AUTHORED_SCENE")
-	var authored_paths := OS.get_environment("GODOT_AUTHORED_SCENES")
 	var limit_text := OS.get_environment("GODOT_AUTHORED_BUILDING_LIMIT")
 	if not limit_text.is_empty():
 		authored_building_limit = maxi(0, int(limit_text))
@@ -286,9 +291,7 @@ func _build_map_geometry() -> void:
 		var ground := MeshInstance3D.new()
 		var ground_mesh := PlaneMesh.new()
 		ground_mesh.size = Vector2(float(size[0]), float(size[1]))
-		var ground_material := StandardMaterial3D.new()
-		ground_material.albedo_color = Color("817b63") if String(map.get("regional_family", "")) == "china" else Color("6d7378")
-		ground_material.roughness = 0.96
+		var ground_material := _terrain_material(String(map.get("regional_family", "")))
 		ground_mesh.material = ground_material
 		ground.mesh = ground_mesh
 		ground.position = Vector3(float(size[0]) * 0.5, -0.08, float(size[1]) * 0.5)
@@ -347,7 +350,7 @@ func _build_map_geometry() -> void:
 			surface_node.mesh = surface_mesh
 			surface_node.position.y = -0.05
 			holder.add_child(surface_node)
-		_add_box_batch(holder, road_transforms, Color("30383b"), 0.85)
+		_add_box_batch(holder, road_transforms, Color("a59f8b"), 0.92)
 		for forest in map.get("forests", []):
 			if typeof(forest) != TYPE_DICTIONARY or typeof(forest.get("shape")) != TYPE_DICTIONARY:
 				continue
@@ -375,7 +378,7 @@ func _build_map_geometry() -> void:
 			var frame: Dictionary = building.get("frame", {})
 			var translation: Array = frame.get("translation", [0.0, 0.0, 0.0])
 			var building_position := Vector2(float(translation[0]), float(translation[1]))
-			if _near_render_center(building_position, render_centers):
+			if _near_render_center(building_position, render_centers) and not authored_buildings_active:
 				var building_basis := Basis(Vector3.UP, float(frame.get("yaw", 0.0))).scaled(Vector3(18.0, 8.0, 18.0))
 				building_transforms.append(Transform3D(building_basis, Vector3(building_position.x, 4.0 + float(translation[2]), building_position.y)))
 			counts.buildings += 1
@@ -509,6 +512,9 @@ func _map_limit(environment_name: String) -> int:
 	var value := OS.get_environment(environment_name)
 	return int(value) if not value.is_empty() else 0
 
+func _authored_buildings_active(authored_path: String, authored_paths: String) -> bool:
+	return not authored_path.strip_edges().is_empty() or not authored_paths.strip_edges().is_empty()
+
 func _authored_map_directory() -> String:
 	var configured := OS.get_environment("GODOT_AUTHORED_MAP_DIR")
 	return _resolve_path(configured) if not configured.is_empty() else ProjectSettings.globalize_path("res://../../fixtures/maps")
@@ -573,6 +579,61 @@ func _add_box_batch(holder: Node3D, transforms: Array[Transform3D], color: Color
 	var batch := MultiMeshInstance3D.new()
 	batch.multimesh = multi
 	holder.add_child(batch)
+
+func _terrain_material(regional_family: String) -> Material:
+	if regional_family != "china":
+		var simple := StandardMaterial3D.new()
+		simple.roughness = 0.96
+		simple.albedo_color = Color("6d7378")
+		return simple
+	# The browser terrain is a continuous field, not a single flat swatch. Keep
+	# this variation presentation-only: saved surfaces, forest rings and Rust
+	# visibility still own all membership and gameplay semantics.
+	var shader := Shader.new()
+	shader.code = """
+shader_type spatial;
+render_mode diffuse_burley;
+
+varying vec3 world_pos;
+
+float hash21(vec2 p) {
+    p = fract(p * vec2(123.34, 456.21));
+    p += dot(p, p + 45.32);
+    return fract(p.x * p.y);
+}
+
+float value_noise(vec2 p) {
+    vec2 cell = floor(p);
+    vec2 local = fract(p);
+    local = local * local * (3.0 - 2.0 * local);
+    float a = hash21(cell);
+    float b = hash21(cell + vec2(1.0, 0.0));
+    float c = hash21(cell + vec2(0.0, 1.0));
+    float d = hash21(cell + vec2(1.0, 1.0));
+    return mix(mix(a, b, local.x), mix(c, d, local.x), local.y);
+}
+
+void vertex() {
+    world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+}
+
+void fragment() {
+    vec2 p = world_pos.xz;
+    float broad = value_noise(p * 0.018);
+    float fine = value_noise(p * 0.11);
+    float bands = 0.5 + 0.5 * sin(p.x * 0.034 + p.y * 0.011);
+    vec3 dark = vec3(0.20, 0.24, 0.14);
+    vec3 mid = vec3(0.31, 0.34, 0.18);
+    vec3 light = vec3(0.43, 0.39, 0.22);
+    vec3 field = mix(dark, mid, broad);
+    field = mix(field, light, fine * 0.24 + bands * 0.08);
+    ALBEDO = field;
+    ROUGHNESS = 0.96;
+}
+"""
+	var material := ShaderMaterial.new()
+	material.shader = shader
+	return material
 
 func _add_tree_batch(holder: Node3D, transforms: Array[Transform3D]) -> void:
 	if transforms.is_empty():

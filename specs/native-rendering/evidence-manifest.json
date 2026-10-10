@@ -18,19 +18,19 @@
     {
       "scene": "market-town",
       "path": "throwaway/browser-captures-current/market-town.json",
-      "sha256": "54aeef976afb2642c6404be1fd6a078da42c0359263690c5e6fa368fc8b4427e",
-      "samples": 3570,
+      "sha256": "1f039a59c86ebbbefb7e7c218bcea6da694b00dc00094a3140dbcdf0207cc273",
+      "samples": 3582,
       "frames": 115
     },
     {
       "scene": "paris-corner",
       "path": "throwaway/browser-captures-current/paris-corner.json",
-      "sha256": "830419cd519f31c0bdb93248f7f9bd2878004d8527f01e55b5509b7ae3f4cccf",
-      "samples": 1327,
+      "sha256": "6111b00218508416fa0fc5e094c65e80aacf65f91ee733a3f4ae821b3b539ce2",
+      "samples": 1325,
       "frames": 41
     }
   ],
   "browserReport": "throwaway/browser-graphics-report-current.json",
-  "nativeReport": "throwaway/native/authored-report-final2.json",
-  "notes": "Ignored reports and captures are local evidence; this manifest pins the current browser report, capture hashes, workload fingerprint, viewport and the final display-backed native report."
+  "nativeReport": "throwaway/native/authored-report-terrain.json",
+  "notes": "Ignored reports and captures are local evidence; this manifest pins the latest Apple Metal browser report, capture hashes, workload fingerprint, viewport and the final display-backed native report."
 }

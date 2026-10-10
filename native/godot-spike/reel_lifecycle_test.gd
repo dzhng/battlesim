@@ -67,6 +67,8 @@ func run() -> void:
 	check(reel._authored_shell_token("home-10x8-1f") == "home_10x8_1f_shell", "home template must select its authored shell token")
 	check(reel._catalog_prop_source("parked_car", "china") == "assets/source/street/parked_car.glb", "catalog resolver must expose the authored parked-car source")
 	check(reel._native_unit_source("menu_rifle") == "assets/source/roster/infantry/rifle_squad/active_a.glb", "catalog resolver must expose the menu infantry appearance source")
+	check(reel._authored_buildings_active("", "res://authoring/homes-kit.glb"), "authored kit lists must make real building shells the map presentation owner")
+	check(not reel._authored_buildings_active("", ""), "without authored kits the map geometry fallback must remain available")
 	reel.authored_scene_by_family.clear()
 	reel.authored_unresolved_templates.clear()
 	reel._build_authored_maps(null)
