@@ -58,6 +58,7 @@ var native_catalog: Dictionary = {}
 var native_unit_catalog: Dictionary = {}
 var native_soldier_catalog: Dictionary = {}
 var native_asset_instance_limit := 2048
+var native_grass_instance_limit := 512
 
 func _ready() -> void:
 	startup_started_usec = Time.get_ticks_usec()
@@ -95,6 +96,8 @@ func _exit_after_ready() -> void:
 		"authored_unresolved_templates": authored_unresolved_templates,
 		"native_catalog_loaded": not native_catalog.is_empty(),
 		"native_asset_instances": native_asset_instances,
+		"native_asset_instance_limit": native_asset_instance_limit,
+		"native_grass_instance_limit": native_grass_instance_limit,
 		"capture_scene_count": capture_results.size(),
 		"capture_layout_valid": capture_layout_valid,
 		"capture_publication_words": capture_word_count,
@@ -215,6 +218,9 @@ func _build_world() -> void:
 	var asset_limit_text := OS.get_environment("GODOT_NATIVE_ASSET_INSTANCE_LIMIT")
 	if not asset_limit_text.is_empty():
 		native_asset_instance_limit = maxi(0, int(asset_limit_text))
+	var grass_limit_text := OS.get_environment("GODOT_NATIVE_GRASS_INSTANCE_LIMIT")
+	if not grass_limit_text.is_empty():
+		native_grass_instance_limit = maxi(0, int(grass_limit_text))
 	if not authored_paths.is_empty():
 		for path in authored_paths.split(","):
 			var clean_path := path.strip_edges()
@@ -275,10 +281,12 @@ func _build_map_geometry() -> void:
 		ground.mesh = ground_mesh
 		ground.position = Vector3(float(size[0]) * 0.5, -0.08, float(size[1]) * 0.5)
 		holder.add_child(ground)
+		var grass_centers := _grass_centers_for_map(map, render_centers)
+		var rendered_grass := _add_native_grass(holder, grass_centers)
 		if String(map.get("regional_family", "")) == "china":
 			_add_field_strips(holder, Vector2(float(size[0]), float(size[1])))
-			_add_native_grass(holder, render_centers)
 		counts.terrain = 1
+		counts["rendered_grass"] = rendered_grass
 		for surface in map.get("surfaces", []):
 			if typeof(surface) != TYPE_DICTIONARY or typeof(surface.get("shape")) != TYPE_DICTIONARY:
 				continue
@@ -478,11 +486,9 @@ func _instantiate_native_prop(kind: String, regional_family: String = "") -> Nod
 		return null
 	var scene: PackedScene = native_asset_cache.get(relative)
 	if scene == null:
-		var path := _native_asset_root().path_join(relative)
-		var loaded = load(path)
-		if not loaded is PackedScene:
+		scene = _load_native_scene(relative)
+		if scene == null:
 			return null
-		scene = loaded
 		native_asset_cache[relative] = scene
 	return scene.instantiate() as Node3D
 
@@ -504,6 +510,20 @@ func _resolve_path(path: String) -> String:
 	if path.begins_with("res://") or path.is_absolute_path():
 		return ProjectSettings.globalize_path(path)
 	return ProjectSettings.globalize_path("res://../../" + path)
+
+func _load_native_scene(relative: String) -> PackedScene:
+	var path := _native_asset_root().path_join(relative)
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return null
+	var prefix := file.get_buffer(mini(file.get_length(), 128)).get_string_from_utf8()
+	if prefix.begins_with("version https://git-lfs.github.com"):
+		return null
+	var resource_path := ProjectSettings.localize_path(path)
+	if not resource_path.begins_with("res://") or not ResourceLoader.exists(resource_path):
+		return null
+	var loaded = load(resource_path)
+	return loaded as PackedScene
 
 func _map_render_centers(map_name: String) -> Array:
 	var result: Dictionary = capture_results.get(map_name, {})
@@ -574,29 +594,86 @@ func _add_field_strips(holder: Node3D, size: Vector2) -> void:
 		strips.append(Transform3D(basis, position))
 	_add_box_batch(holder, strips, Color("5d6b4f"), 1.0)
 
-func _add_native_grass(holder: Node3D, centers: Array) -> void:
+func _grass_centers_for_map(map: Dictionary, render_centers: Array) -> Array:
+	var centers: Array = []
+	var seen: Dictionary = {}
+	for forest in map.get("forests", []):
+		if typeof(forest) != TYPE_DICTIONARY or typeof(forest.get("shape")) != TYPE_DICTIONARY:
+			continue
+		var shape: Dictionary = forest.shape
+		if shape.get("kind") != "polygon" or typeof(shape.get("ring")) != TYPE_ARRAY:
+			continue
+		var ring: Array = shape.ring
+		if ring.size() < 3:
+			continue
+		var polygon := PackedVector2Array()
+		var min_x := INF
+		var max_x := -INF
+		var min_y := INF
+		var max_y := -INF
+		for point in ring:
+			if typeof(point) != TYPE_ARRAY or point.size() < 2:
+				continue
+			var vertex := Vector2(float(point[0]), float(point[1]))
+			polygon.append(vertex)
+			min_x = minf(min_x, vertex.x)
+			max_x = maxf(max_x, vertex.x)
+			min_y = minf(min_y, vertex.y)
+			max_y = maxf(max_y, vertex.y)
+		if not is_finite(min_x) or max_x <= min_x or max_y <= min_y:
+			continue
+		var center := Vector2((min_x + max_x) * 0.5, (min_y + max_y) * 0.5)
+		if not _near_render_center(center, render_centers):
+			continue
+		var offsets := [
+			Vector2.ZERO,
+			Vector2((max_x - min_x) * 0.25, 0.0),
+			Vector2(-(max_x - min_x) * 0.25, 0.0),
+			Vector2(0.0, (max_y - min_y) * 0.25),
+			Vector2(0.0, -(max_y - min_y) * 0.25),
+		]
+		for offset in offsets:
+			var candidate: Vector2 = center + offset
+			if not Geometry2D.is_point_in_polygon(candidate, polygon):
+				continue
+			if not _near_render_center(candidate, render_centers):
+				continue
+			var key := "%0.2f:%0.2f" % [candidate.x, candidate.y]
+			if not seen.has(key):
+				seen[key] = true
+				centers.append(candidate)
+	if centers.is_empty() and String(map.get("regional_family", "")) == "china":
+		for center in render_centers:
+			for offset in [Vector2(-90, -60), Vector2(-30, -30), Vector2(30, 20), Vector2(90, 60)]:
+				var candidate: Vector2 = center + offset
+				var key := "%0.2f:%0.2f" % [candidate.x, candidate.y]
+				if not seen.has(key):
+					seen[key] = true
+					centers.append(candidate)
+	return centers
+
+func _add_native_grass(holder: Node3D, centers: Array) -> int:
 	var relative := _catalog_prop_source("grass")
 	if relative.is_empty():
-		return
+		return 0
 	var scene: PackedScene = native_asset_cache.get(relative)
 	if scene == null:
-		var loaded = load(_native_asset_root().path_join(relative))
-		if not loaded is PackedScene:
-			return
-		scene = loaded
+		scene = _load_native_scene(relative)
+		if scene == null:
+			return 0
 		native_asset_cache[relative] = scene
 	var added := 0
 	for center in centers:
-		for offset in [Vector2(-90, -60), Vector2(-30, -30), Vector2(30, 20), Vector2(90, 60)]:
-			if added >= 128:
-				return
-			var grass := scene.instantiate() as Node3D
-			grass.position = Vector3(center.x + offset.x, 0.0, center.y + offset.y)
-			grass.rotation.y = float((added * 37) % 360) * PI / 180.0
-			grass.scale = Vector3.ONE * 2.0
-			holder.add_child(grass)
-			added += 1
-			native_asset_instances["grass"] = int(native_asset_instances.get("grass", 0)) + 1
+		if added >= native_grass_instance_limit:
+			break
+		var grass := scene.instantiate() as Node3D
+		grass.position = Vector3(center.x, 0.0, center.y)
+		grass.rotation.y = float((added * 37) % 360) * PI / 180.0
+		grass.scale = Vector3.ONE * 2.0
+		holder.add_child(grass)
+		added += 1
+		native_asset_instances["grass"] = int(native_asset_instances.get("grass", 0)) + 1
+	return added
 
 func _build_fog_layers() -> void:
 	for scene_name in semantic_results:
@@ -697,9 +774,9 @@ func _authored_family_key(path: String) -> String:
 		family = family.trim_suffix("-kit")
 	elif family.ends_with("_kit"):
 		family = family.trim_suffix("_kit")
-	if family.contains("paris-apartment"):
+	if family.contains("paris-apartment") or family.contains("paris_apartment") or family.contains("apartments_paris"):
 		return "paris_apartments"
-	if family.contains("china-apartment"):
+	if family.contains("china-apartment") or family.contains("china_apartment") or family.contains("china_apartments"):
 		return "china_apartments"
 	return family.replace("-", "_")
 
@@ -942,10 +1019,9 @@ func _instantiate_native_unit(kind: String = "") -> Node3D:
 	var relative := _native_unit_source(kind)
 	var scene: PackedScene = native_asset_cache.get(relative)
 	if scene == null:
-		var loaded = load(_native_asset_root().path_join(relative))
-		if not loaded is PackedScene:
+		scene = _load_native_scene(relative)
+		if scene == null:
 			return null
-		scene = loaded
 		native_asset_cache[relative] = scene
 	return scene.instantiate() as Node3D
 
@@ -1122,6 +1198,8 @@ func _write_report() -> void:
 		"map_geometry": map_geometry_counts,
 		"native_catalog_loaded": not native_catalog.is_empty(),
 		"native_asset_instances": native_asset_instances,
+		"native_asset_instance_limit": native_asset_instance_limit,
+		"native_grass_instance_limit": native_grass_instance_limit,
 		"fog_rendered_cells": fog_rendered_cells,
 		"proxy_field_used": proxy_field_used,
 		"cuts_saved": cuts_saved,

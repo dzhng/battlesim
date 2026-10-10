@@ -50,9 +50,16 @@ func run() -> void:
 	check(reel.map_geometry_counts["first"].forests == 1, "map composition must consume forest regions from the saved export")
 	check(reel.map_geometry_counts["first"].rendered_surface_polygons == 1, "map composition must consume polygon surface material")
 	check(reel.map_geometry_counts["first"].rendered_buildings == 1, "map report must expose submitted building geometry separately from admitted rows")
+	var grass_centers: Array = reel._grass_centers_for_map({
+		"regional_family": "china",
+		"forests": [{"shape": {"kind": "polygon", "ring": [[2, 2], [8, 2], [8, 7], [2, 7]]}}],
+	}, [Vector2(5, 4.5)])
+	check(grass_centers.has(Vector2(5, 4.5)), "catalog grass placement must follow an admitted forest near the captured camera target")
 	check(reel.authored_building_limit == 7, "authored building cap must apply before selecting a single or multi-kit scene")
 	check(reel._authored_scene_for_template("china-home-10x8-1f", "china") == null, "template catalog lookup must disclose absent authored kits")
 	check(reel._authored_family_key("res://authoring/homes-kit.glb") == "homes", "authored kit family must come from the resource path")
+	check(reel._authored_family_key("res://authoring/apartments_paris/kit.glb") == "paris_apartments", "Paris apartment kit must map to the regional apartment family")
+	check(reel._authored_family_key("res://authoring/china_apartments/kit.glb") == "china_apartments", "China apartment kit must map to the regional apartment family")
 	check(reel._authored_shell_token("home-10x8-1f") == "home_10x8_1f_shell", "home template must select its authored shell token")
 	check(reel._catalog_prop_source("parked_car", "china") == "assets/source/street/parked_car.glb", "catalog resolver must expose the authored parked-car source")
 	check(reel._native_unit_source("menu_rifle") == "assets/source/roster/infantry/rifle_squad/active_a.glb", "catalog resolver must expose the menu infantry appearance source")

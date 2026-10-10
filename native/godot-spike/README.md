@@ -68,3 +68,12 @@ are composition evidence, not authored-material or visual-parity evidence.
 For menu composition, pass `GODOT_AUTHORED_SCENES` with the apartment, homes,
 farmsteads, industry, and towers kits. The loader selects a shell from the
 template id, so one kit is never instantiated wholesale at every building.
+
+Catalog scenery and unit GLBs must be staged under the Godot project so its
+importer can turn them into `PackedScene` resources. Set
+`GODOT_NATIVE_ASSET_ROOT=res://native-assets` when using that staged tree;
+the report leaves an asset instance at zero when a source is only a repository
+file or an unfetched Git-LFS pointer. `GODOT_NATIVE_ASSET_INSTANCE_LIMIT`
+controls authored props, and `GODOT_NATIVE_GRASS_INSTANCE_LIMIT` controls the
+separate grass budget. Grass samples follow admitted forest polygons from the
+saved map and are presentation geometry only.
