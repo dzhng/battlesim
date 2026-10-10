@@ -56,8 +56,10 @@ static func error(light: Variant) -> String:
 	var shape := _shape_error(light, SCHEMA, "light")
 	if not shape.is_empty():
 		return shape
-	if vector(light.sunDirection).is_zero_approx():
-		return "light.sunDirection must point toward the sun"
+	# The browser's contract (`validateManifestLight`): a unit vector to 1e-6.
+	var sun: Array = light.sunDirection
+	if absf(sqrt(float(sun[0]) ** 2 + float(sun[1]) ** 2 + float(sun[2]) ** 2) - 1.0) > 1e-6:
+		return "light.sunDirection must be a unit vector"
 	if float(light.cascades.count) != CASCADES:
 		return "light.cascades.count must be %d" % CASCADES
 	if not float(light.cascades.map_size) in [512.0, 1024.0, 2048.0, 4096.0]:
@@ -96,7 +98,7 @@ static func vector(values: Array) -> Vector3:
 
 ## The unit vector toward the sun, sim space (z up).
 static func sun_direction(light: Dictionary) -> Vector3:
-	return vector(light.sunDirection).normalized()
+	return vector(light.sunDirection)
 
 # Sky model (`light/skyParameters.ts`) -----------------------------------------
 # Earth atmosphere constants (Hillaire, EGSR 2020), km units, z up. These are

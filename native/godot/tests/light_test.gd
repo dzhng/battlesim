@@ -29,6 +29,13 @@ func run() -> bool:
 	wrong = light.duplicate(true)
 	wrong.cascades.count = 3
 	check(Light.error(wrong).contains("cascades.count"), "a cascade count other than the receiver layout's four is refused")
+	# The sun direction is the browser's unit vector, drawn as written: one of
+	# any other length is a different light, refused rather than normalised.
+	wrong = light.duplicate(true)
+	wrong.sunDirection = [0.0, 0.0, 2.0]
+	check(Light.error(wrong).contains("sunDirection"), "a sun direction that is not a unit vector is refused")
+	wrong.sunDirection = [0.0, 0.0, 1.0 + 5e-7]
+	check(Light.error(wrong).is_empty(), "a sun direction within the browser's 1e-6 of unit is admitted")
 
 	# The sun's colour is the browser's: a clear noon-ish sun is warm white, a
 	# low sun in thicker air is orange and partly greyed by overcast.
