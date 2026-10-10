@@ -1435,9 +1435,18 @@ fn check(
     // its own muzzle, and neither a squad's weapon nor a soldier's.
     for (i, m) in t.mounts.iter().enumerate() {
         if let Some(on) = &m.on {
-            if !t.mounts[..i].iter().any(|c| &c.id == on && c.turret) {
+            let Some(carrier) = t.mounts[..i].iter().find(|c| &c.id == on && c.turret) else {
                 return rule(&format!(
                     "mount {:?} is on {on:?}, which is not an earlier turret mount",
+                    m.id
+                ));
+            };
+            // A carried mount swings round its carrier's ring, which turns
+            // with the hull: one level of carriage, never a mount on a mount
+            // on a turret.
+            if carrier.on.is_some() {
+                return rule(&format!(
+                    "mount {:?} is on {on:?}, which is itself carried by a turret",
                     m.id
                 ));
             }

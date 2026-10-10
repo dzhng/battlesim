@@ -337,6 +337,17 @@ fn a_structurally_broken_type_fails_at_load_naming_it() {
         error(json!({ "t": t })),
         rule("mount \"HMG\" is on \"roof\", which is not an earlier turret mount")
     );
+    // A gun on the roof gun that rides the turret: one level of carriage only.
+    let mut t = base_tank();
+    t.as_object_mut().unwrap().remove("abstract");
+    let mut stacked = t["mounts"][1].clone();
+    stacked["id"] = json!("stacked");
+    stacked["on"] = json!("HMG");
+    t["mounts"].as_array_mut().unwrap().push(stacked);
+    assert_eq!(
+        error(json!({ "t": t })),
+        rule("mount \"stacked\" is on \"HMG\", which is itself carried by a turret")
+    );
     let mut t = base_tank();
     t.as_object_mut().unwrap().remove("abstract");
     t["mounts"].as_array_mut().unwrap().reverse();

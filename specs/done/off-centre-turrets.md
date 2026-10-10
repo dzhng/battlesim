@@ -17,7 +17,11 @@ A hull mount's ring is the hull's middle, so a centred turret behaves exactly as
 ## Invariants
 
 - `pivot_m` is in the hull's frame at rest, for every mount. The roster record owns it, and the
-  family script builds the turret, its ring and turret-keyed hull features at it.
+  family script builds the turret and its ring at it. Hatch and deck clearances round a turret
+  were placed by hand in some scripts (Bradley, LAV, T-15, ZBL-08, M10, ACV), so moving a pivot
+  again means checking them.
+- One level of carriage: a mount `on` a turret must sit on a turret that is itself on the hull
+  (refused at load otherwise), because the ring turns with the hull.
 - A mount `on` a turret keeps its place on the turret: moving a turret moves its carried mounts
   by the same delta.
 - The simulation and its mirror agree. Tests:
