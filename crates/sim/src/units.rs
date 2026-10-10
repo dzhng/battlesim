@@ -229,7 +229,7 @@ pub struct Unit {
     pub withdrawing: bool,
     pub position: V3,
     pub yaw: f64,
-    pub mobility: Mobility,
+    pub motion: Motion,
     /// Vehicle hull half extents (length, width, height); infantry use members.
     pub hull: Option<V3>,
     pub members: Vec<Soldier>,
@@ -297,8 +297,41 @@ pub struct Unit {
     pub turn_to: Option<f64>,
 }
 
-/// How a unit of type `t` moves: on foot, or by its drive (Q29, Q30).
-pub fn mobility(t: &UnitType, rules: &Rules) -> Mobility {
+/// How a unit moves: over the ground, planned on the navigation grid, or
+/// through the air, where no ground rule reaches it.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Motion {
+    Ground(Mobility),
+    Air(Flight),
+}
+
+/// An aircraft's own numbers; its heights are the rules' `air` section.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Flight {
+    pub cruise_mps: f64,
+    pub turn_rad_s: f64,
+    pub climb_mps: f64,
+}
+
+/// How a unit of type `t` moves.
+pub fn motion(t: &UnitType, rules: &Rules) -> Motion {
+    match t.mobility {
+        Moves::Air {
+            cruise_kmh,
+            turn_deg_s,
+            climb_mps,
+        } => Motion::Air(Flight {
+            cruise_mps: cruise_kmh / 3.6,
+            turn_rad_s: turn_deg_s.to_radians(),
+            climb_mps,
+        }),
+        _ => Motion::Ground(ground_mobility(t, rules).expect("a ground mover")),
+    }
+}
+
+/// How a ground unit of type `t` moves: on foot, or by its drive (Q29, Q30);
+/// `None` for an aircraft, which never touches ground navigation.
+pub fn ground_mobility(t: &UnitType, rules: &Rules) -> Option<Mobility> {
     let m = &rules.movement;
     let (off_road_mps, road_mps) = t.mobility.speeds_mps();
     let vehicle = |drive| Mobility {
@@ -310,7 +343,8 @@ pub fn mobility(t: &UnitType, rules: &Rules) -> Mobility {
         push: t.hull().expect("a vehicle has a hull").push_class,
         drive: Some(drive),
     };
-    match t.mobility {
+    Some(match t.mobility {
+        Moves::Air { .. } => return None,
         Moves::Foot { .. } => Mobility {
             off_road_mps,
             road_mps,
@@ -343,7 +377,7 @@ pub fn mobility(t: &UnitType, rules: &Rules) -> Mobility {
             reverse_fraction,
             feel: m.drive,
         }),
-    }
+    })
 }
 
 /// Driving rules the vehicle motion model divides and eases by. (Each unit
@@ -394,6 +428,21 @@ impl Unit {
     }
     pub fn is_vehicle(&self) -> bool {
         self.hull.is_some()
+    }
+
+    /// Flies: no ground rule (traffic, shoving, cover, treads, forest lanes,
+    /// concealment) reaches it.
+    pub fn airborne(&self) -> bool {
+        matches!(self.motion, Motion::Air(_))
+    }
+
+    /// How it moves over the ground. Only ground movement, routing and
+    /// placement ask, and an aircraft never reaches them.
+    pub fn ground(&self) -> &Mobility {
+        match &self.motion {
+            Motion::Ground(m) => m,
+            Motion::Air(_) => panic!("an aircraft never reaches ground movement"),
+        }
     }
 
     /// A squad stands where its living soldiers stand: their centroid. Called
@@ -620,9 +669,11 @@ impl Unit {
         }
     }
 
-    /// The hull's ground footprint, for vehicles.
-    pub fn hull_box(&self) -> Option<Obb2> {
-        self.hull.map(|h| Obb2 {
+    /// The hull's footprint on the ground: what traffic waits for, soldiers
+    /// step out of and lean on. `None` for a squad and for an aircraft, which
+    /// stands on nothing.
+    pub fn ground_footprint(&self) -> Option<Obb2> {
+        self.hull.filter(|_| !self.airborne()).map(|h| Obb2 {
             center: self.position.xy(),
             yaw: self.yaw,
             half: h.xy(),

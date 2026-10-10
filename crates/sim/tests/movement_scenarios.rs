@@ -2427,7 +2427,9 @@ impl Judge {
             }
             CheckKind::VehiclesClearOfProps => {
                 for u in units(b).filter(|u| u.alive()) {
-                    let Some(hull) = u.hull_box() else { continue };
+                    let Some(hull) = u.ground_footprint() else {
+                        continue;
+                    };
                     for q in b.world().props_near(hull.center, 12.0) {
                         if q.blocks(contract::map::MoverClass::Vehicle)
                             && hull.overlaps(&q.footprint())
@@ -2446,7 +2448,7 @@ impl Judge {
                         .is_none_or(|s| s.kind == sim::world::SurfaceKind::Water)
                 };
                 for u in units(b).filter(|u| u.alive() && !u.garrisoned()) {
-                    let points: Vec<V2> = match u.hull_box() {
+                    let points: Vec<V2> = match u.ground_footprint() {
                         Some(hull) => vec![hull.center],
                         None => u.member_positions().map(|p| p.xy()).collect(),
                     };
@@ -2462,7 +2464,9 @@ impl Judge {
             }
             CheckKind::HullsOverWater { max_m } => {
                 for u in units(b).filter(|u| u.alive()) {
-                    let Some(hull) = u.hull_box() else { continue };
+                    let Some(hull) = u.ground_footprint() else {
+                        continue;
+                    };
                     for (x, y) in [(1.0, 1.0), (1.0, -1.0), (-1.0, 1.0), (-1.0, -1.0)] {
                         let p =
                             hull.center + v2(hull.half.x * x, hull.half.y * y).rotated(hull.yaw);
@@ -2515,7 +2519,7 @@ impl Judge {
             }
             CheckKind::SoldiersClearOfHulls => {
                 let hulls: Vec<_> = units(b)
-                    .filter_map(|u| u.hull_box().filter(|_| u.alive()))
+                    .filter_map(|u| u.ground_footprint().filter(|_| u.alive()))
                     .collect();
                 for u in units(b).filter(|u| !u.is_vehicle() && !u.garrisoned()) {
                     for p in u.member_positions() {
@@ -2534,7 +2538,11 @@ impl Judge {
             }
             CheckKind::VehiclesNeverOverlap => {
                 let hulls: Vec<_> = units(b)
-                    .filter_map(|u| u.hull_box().filter(|_| u.alive()).map(|h| (u.id.0, h)))
+                    .filter_map(|u| {
+                        u.ground_footprint()
+                            .filter(|_| u.alive())
+                            .map(|h| (u.id.0, h))
+                    })
                     .collect();
                 for (i, (a, ha)) in hulls.iter().enumerate() {
                     for (c, hc) in &hulls[i + 1..] {
@@ -2562,7 +2570,7 @@ impl Judge {
             }
             CheckKind::WithinRadius { unit } => {
                 let u = b.unit(UnitId(*unit)).unwrap();
-                let radius = u.mobility.drive.unwrap().radius_m;
+                let radius = u.ground().drive.unwrap().radius_m;
                 let now = (u.position.xy(), u.yaw);
                 if let Some((at, yaw)) = self.last {
                     let rolled = (now.0 - at).length();

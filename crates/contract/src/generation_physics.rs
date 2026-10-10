@@ -1,6 +1,6 @@
 //! Physical inputs needed to construct a generated battlefield. The battle's
 //! existing rules supply them; generation never owns a second settings file.
-use crate::catalog::{Catalog, Mobility};
+use crate::catalog::{AltitudeLayer, Catalog};
 use crate::scenario::{BodyRules, ForestRules};
 use serde::{Deserialize, Serialize};
 
@@ -93,17 +93,14 @@ impl GenerationPhysics {
             })
     }
 
-    /// Ground observers with an actual circular sight shape. Future aerial
-    /// mobility never participates in ground furnishing coverage.
+    /// Ground observers with an actual circular sight shape. Aircraft never
+    /// participate in ground furnishing coverage.
     pub fn circular_ground_observers(&self) -> impl Iterator<Item = &crate::catalog::UnitType> {
         self.catalog
             .indices()
             .map(|i| self.catalog.get(i))
             .filter(|unit| {
-                let ground = matches!(
-                    unit.mobility,
-                    Mobility::Foot { .. } | Mobility::Tracked { .. } | Mobility::Wheeled { .. }
-                );
+                let ground = unit.mobility.layer() == AltitudeLayer::Ground;
                 let shape = unit.sensors.sight_shape;
                 ground && shape.front == shape.side && shape.side == shape.rear
             })

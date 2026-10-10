@@ -3,6 +3,7 @@
 //! time). One file: `cargo test -p sim --test sim maps::`.
 mod common;
 
+mod air;
 mod animation_feed;
 mod battle_authority;
 mod bodies;

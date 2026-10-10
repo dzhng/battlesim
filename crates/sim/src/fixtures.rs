@@ -115,7 +115,7 @@ pub fn with_units_at_limits(fixture: &mut Value) {
 pub fn lift_hull_limits(fixture: &mut Value) {
     let far =
         serde_json::json!({ "half_width_m": 1e6, "half_length_m": 1e6, "turning_radius_m": 1e6 });
-    fixture["hull_limits"] = serde_json::json!({ "tracked": far, "wheeled": far });
+    fixture["hull_limits"] = serde_json::json!({ "tracked": far, "wheeled": far, "air": far });
 }
 
 /// The catalog documents at `roots` under `fixtures/` (a directory, walked,

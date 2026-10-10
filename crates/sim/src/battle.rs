@@ -435,9 +435,16 @@ fn spawn_unit(
         id: UnitId(i as u32),
         side: u.side,
         kind,
-        position: xy.with_z(world.surface_at(xy.x, xy.y).map_or(0.0, |s| s.z)),
+        position: xy.with_z(
+            world.surface_at(xy.x, xy.y).map_or(0.0, |s| s.z)
+                + if t.mobility.layer() == contract::catalog::AltitudeLayer::LowAir {
+                    rules.air.cruise_agl_m
+                } else {
+                    0.0
+                },
+        ),
         yaw: u.yaw,
-        mobility: units::mobility(t, rules),
+        motion: units::motion(t, rules),
         hull: t.hull().map(|h| {
             let [x, y, z] = h.half_extents_m;
             crate::math::v3(x, y, z)
@@ -527,30 +534,39 @@ impl Battle {
             let entry = &skirmish.setup.sites.entries[index];
             let at = v2(entry.center[0], entry.center[1]);
             let t = self.rules.catalog.get(reservation.data.kind);
-            let mobility = units::mobility(t, &self.rules);
-            let candidate = footprint(t, &self.rules, at, entry.yaw);
-            let clear = stands_on(
-                &self.world,
-                self.sides[index].grid(&self.world, self.authored_props),
-                &self.rules,
-                t,
-                &mobility,
-                at,
-                entry.yaw,
-            )
-            .is_ok()
-                && self.units.iter().filter(|u| u.alive()).all(|u| {
-                    apart(
-                        &candidate,
-                        &footprint(
-                            self.rules.catalog.get(u.kind),
-                            &self.rules,
-                            u.position.xy(),
-                            u.yaw,
-                        ),
-                        0.0,
+            // An aircraft flies in at cruise height over whatever stands there.
+            let clear = match units::ground_mobility(t, &self.rules) {
+                None => true,
+                Some(mobility) => {
+                    let candidate = footprint(t, &self.rules, at, entry.yaw);
+                    stands_on(
+                        &self.world,
+                        self.sides[index].grid(&self.world, self.authored_props),
+                        &self.rules,
+                        t,
+                        &mobility,
+                        at,
+                        entry.yaw,
                     )
-                });
+                    .is_ok()
+                        && self
+                            .units
+                            .iter()
+                            .filter(|u| u.alive() && !u.airborne())
+                            .all(|u| {
+                                apart(
+                                    &candidate,
+                                    &footprint(
+                                        self.rules.catalog.get(u.kind),
+                                        &self.rules,
+                                        u.position.xy(),
+                                        u.yaw,
+                                    ),
+                                    0.0,
+                                )
+                            })
+                }
+            };
             reservation.data.blocked = !clear;
             if !clear {
                 continue;
@@ -1243,11 +1259,14 @@ impl Battle {
             self.ground.wear(from, to, channel, &self.rules.ground);
         }
         let after = self.poses();
+        // Moving is changing place on the map: an aircraft climbing or sinking
+        // over one spot stands still, and a ground unit cannot change height
+        // without changing place.
         let moved: Vec<bool> = before
             .units
             .iter()
             .zip(&after.units)
-            .map(|(a, b)| (a.base - b.base).length() > 1e-9)
+            .map(|(a, b)| (a.base - b.base).xy().length() > 1e-9)
             .collect();
         completed(TickPhase::Movement);
         self.guide(&moved);
@@ -1558,13 +1577,13 @@ impl Battle {
         // A forest is its trees: what knocks them down is its tree's weight.
         let tree = self.world.types().by_id(&self.rules.forests.tree).body;
         for (u, was) in self.units.iter().zip(&before.units) {
-            let knocks = tree.topples && u.mobility.push.pushes(tree.weight_class);
+            let (Some(hull), Some(h)) = (u.ground_footprint(), u.hull) else {
+                continue;
+            };
+            let knocks = tree.topples && u.ground().push.pushes(tree.weight_class);
             if !u.alive() || !knocks || (was.base - u.position).length() <= 1e-9 {
                 continue;
             }
-            let (Some(hull), Some(h)) = (u.hull_box(), u.hull) else {
-                continue;
-            };
             if !self.world.forest_near(
                 hull.center,
                 hull.half.length() + self.rules.ground.lane_margin_m,
@@ -1613,7 +1632,11 @@ impl Battle {
     /// in unit order: the same list before and after movement.
     fn treads(&self) -> Vec<(V2, Wear)> {
         let mut out = Vec::new();
-        for unit in self.units.iter().filter(|u| u.alive() && !u.garrisoned()) {
+        for unit in self
+            .units
+            .iter()
+            .filter(|u| u.alive() && !u.garrisoned() && !u.airborne())
+        {
             match unit.hull {
                 Some(half) => {
                     let side = v2(0.0, half.y * self.rules.ground.track_gauge).rotated(unit.yaw);
@@ -1676,9 +1699,15 @@ impl Battle {
                 &self.rules,
                 |id, destination| {
                     let own = frame.own.iter().find(|u| u.id == id)?;
-                    let mobility = units::mobility(self.rules.catalog.get(own.kind), &self.rules);
                     let from = v2(own.position[0], own.position[1]);
                     let goal = v2(destination[0], destination[1]);
+                    let kind = self.rules.catalog.get(own.kind);
+                    let mobility = match units::motion(kind, &self.rules) {
+                        units::Motion::Ground(m) => m,
+                        units::Motion::Air(f) => {
+                            return Some((goal - from).length() / f.cruise_mps)
+                        }
+                    };
                     let (plan, _) = crate::navigation::plan(
                         grid,
                         &self.roads,
@@ -1958,7 +1987,7 @@ impl Battle {
                 .units
                 .iter()
                 .filter(|o| o.id != id && o.alive())
-                .filter_map(|o| o.hull_box())
+                .filter_map(|o| o.ground_footprint())
                 .collect();
             let soldiers: Vec<V2> = self
                 .units
@@ -2790,12 +2819,14 @@ impl Battle {
         {
             return Err(OrderError::OutOfBounds);
         }
-        let mobility = units::mobility(self.rules.catalog.get(kind), &self.rules);
         let mut known = self.sides[side.index()].clone();
-        if !known
-            .grid(&self.world, self.authored_props)
-            .placement_fits(v2(destination[0], destination[1]), &mobility)
-        {
+        let fits = |mobility| {
+            known
+                .grid(&self.world, self.authored_props)
+                .placement_fits(v2(destination[0], destination[1]), &mobility)
+        };
+        // An aircraft's destination is any point it can fly over.
+        if !units::ground_mobility(self.rules.catalog.get(kind), &self.rules).is_none_or(fits) {
             return Err(OrderError::NoValidDestination);
         }
         let t = self.rules.catalog.get(kind);
@@ -2912,16 +2943,21 @@ impl Battle {
             libm::hypot(self.world.width(), self.world.depth()),
             |id, p| {
                 let u = &self.units[id.0 as usize];
+                // An aircraft hovers over its point, whatever stands there.
+                if u.airborne() {
+                    shorts.borrow_mut().insert(id, (p, None));
+                    return Some(p);
+                }
                 // A hull that turns on the spot parks facing as ordered.
-                let pivots = u.mobility.drive.is_some_and(|d| d.tracked);
+                let pivots = u.ground().drive.is_some_and(|d| d.tracked);
                 let hull = u.hull.map(|h| crate::navigation::Parking {
                     half: h.xy(),
                     facing: request.facing.filter(|_| pivots),
                 });
-                let placed = grid.destination_point(p, &u.mobility, hull, from(u), &pockets)?;
+                let placed = grid.destination_point(p, u.ground(), hull, from(u), &pockets)?;
                 let short = hull
                     .filter(|_| placed != p)
-                    .and_then(|hull| grid.room_on_the_way(p, &u.mobility, hull, from(u), &pockets))
+                    .and_then(|hull| grid.room_on_the_way(p, u.ground(), hull, from(u), &pockets))
                     .filter(|&at| at != placed)
                     .map(|at| crate::units::StopShort {
                         at,
@@ -2958,9 +2994,10 @@ impl Battle {
                         .orders
                         .iter()
                         .any(|o| matches!(o, UnitOrder::Attack { .. }));
-                let slot_point = slot
-                    .point
-                    .filter(|p| !after_attack && grid.reaches(from(u), *p, &u.mobility, &pockets));
+                let slot_point = slot.point.filter(|p| {
+                    !after_attack
+                        && (u.airborne() || grid.reaches(from(u), *p, u.ground(), &pockets))
+                });
                 let goal = slot_point.unwrap_or(u.position.xy());
                 let facing =
                     movement::final_yaw(u, request.facing, from(u), goal, request.direction);

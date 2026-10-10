@@ -1,12 +1,16 @@
 # Helicopters
 
-**Status:** planned; no slice has started. **Updated:** 2026-10-10.
+**Status:** in progress: slices 01 and 02 done. **Updated:** 2026-10-10.
 
 ## Next Agent Prompt
 
 You are implementing helicopters. Read [decisions](decisions.md) first. Its D1–D43 are givens, and you don't reopen them inside a slice. Then read [landmines](landmines.md) and the slice you're picking up. Load [tweak-mechanics](../../.agents/skills/tweak-mechanics/SKILL.md) before any rule change, [write-tests](../../.agents/skills/write-tests/SKILL.md) before any behaviour change, and [renderer](../../.agents/skills/renderer/SKILL.md) or [game-ui](../../.agents/skills/game-ui/SKILL.md) for slices that draw.
 
-**Next pickup:** slice [01 — An airborne hull](slices/01-air-hull.md). Slice [02 — the design spike](slices/02-contact-sign-spike.md) has no dependencies, so run it alongside 01.
+**Next pickup:** slice [03 — Flight](slices/03-flight.md). Slices [05](slices/05-contact-height.md) and [06](slices/06-airframe-art.md) also depend only on 01, so run them alongside 03.
+
+**Done so far:**
+- **01:** `units::Motion { Ground, Air }`, `Unit::airborne`, `ground_footprint` (`None` in the air), `Mobility::Air` with its own limits, the `air` rules block, and XY-only `moved`. Ground digests and parity records are unchanged.
+- **02:** variant D, the keyed disc, was picked at the checkpoint ([result](slices/02-contact-sign-spike.md#result)).
 
 **Warnings:**
 - **Harmless plinking is a feature.** Rifles and MGs fire at helicopters they can't hurt (D2). Never gate it.
@@ -17,8 +21,8 @@ You are implementing helicopters. Read [decisions](decisions.md) first. Its D1�
 **Before you end each pass,** update this section: the status, the next pickup, the checklist below, and any decision you made where the plan was silent (recorded in [choices](choices.md)).
 
 ### Checklist
-- [ ] [01 — An airborne hull](slices/01-air-hull.md)
-- [ ] [02 — Design spike: the airborne lost-contact sign](slices/02-contact-sign-spike.md)
+- [x] [01 — An airborne hull](slices/01-air-hull.md)
+- [x] [02 — Design spike: the airborne lost-contact sign](slices/02-contact-sign-spike.md)
 - [ ] [03 — Flight: route, altitude, separation](slices/03-flight.md)
 - [ ] [04 — Falling airframe (simulation)](slices/04-falling-airframe.md)
 - [ ] [05 — Contacts carry height](slices/05-contact-height.md)
@@ -75,7 +79,7 @@ It replaces [battle-foundation slice 18](../battle-foundation/slices/18-air-move
 | Observation and publication | Identified units gain a coarse `smoking` bit. | 11 |
 | Sim rule, every unit | `moved` compares XY only. Ground digests are unchanged. | 01 |
 | Sim rule, every unit | Hull-mounted weapons fire only when the body faces the target. Ground digests are unchanged. | 08 |
-| Sim rule, every unit | Guidance keeps steering when `!moved \|\| !def.stationary`. Infantry digests are unchanged. | 09 |
+| Weapon rows | Guided rows state `guidance: "stationary" \| "on_the_move"` (D38). Today's ATGMs author `"stationary"`, so their digests are unchanged. | 09 |
 
 ## One owner per concept
 

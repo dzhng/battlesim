@@ -8,8 +8,8 @@ Helicopters fire guided missiles and rocket salvos on the move. Missiles keep gu
 
 ## API seam
 
-- New rows in `fixtures/game.json`: `heli_atgm` (extends `atgm`, `stationary: false`) and `rocket_pod` (unguided salvo, `targets: [ground]`).
-- Guidance keep becomes `!moved || !def.stationary` (`battle.rs`, D38).
+- New rows in `fixtures/game.json`: `heli_atgm` (extends `atgm`, `stationary: false`, `guidance: "on_the_move"`) and `rocket_pod` (unguided salvo, `targets: [ground]`).
+- A new `guidance: "stationary" | "on_the_move"` property on guided rows (`contract::ballistics`, beside `turn_deg_s`), required whenever `turn_deg_s` is set. `atgm` authors `"stationary"`. Guidance keep (`battle.rs`) becomes "not moved, or the row guides on the move" (D38).
 - Validate both rows against the flight rules, per the tweak-mechanics admission rule. Regenerate the browser's derived catalog.
 
 ## What you can run or see
@@ -19,7 +19,9 @@ Helicopters fire guided missiles and rocket salvos on the move. Missiles keep gu
 ## Verification
 
 Tests:
-- `a_non_stationary_launcher_keeps_guiding_while_it_moves`
+- `an_on_the_move_launcher_keeps_guiding_while_it_moves`
+- `a_stationary_guidance_launcher_releases_when_it_moves` (today's ATGM, unchanged)
+- `a_guided_row_without_guidance_is_refused_at_load`
 - `rockets_never_target_air`
 - `test_attack_heli_kills_a_test_tank_on_the_move`
 - infantry missile digests unchanged

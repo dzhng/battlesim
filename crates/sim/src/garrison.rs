@@ -354,7 +354,7 @@ fn exit_spots(
     // place and every soldier's spot keep the squad's path clearance (its
     // navigation half width) from walls, not merely a soldier's radius, so
     // the routes it plans from there start on open ground.
-    let radius = unit.mobility.half_width_m;
+    let radius = unit.ground().half_width_m;
     let reach = radius + EXIT_CLEARANCE_M;
     let mut candidates = Vec::new();
     for prop in world
