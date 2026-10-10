@@ -50,3 +50,17 @@ the [README](README.md#decisions).
   drop line), so the rise reads mainly through the hook onto the tank. That is missile art.
 - **The ambush lab gained a "Top attack" variant** (saved encounter with pinned rules) rather
   than a new route.
+
+## 2026-10-10 — slice 10 (infantry kits)
+
+- **The Javelin's European look is Flecktarn** (the only European look; Europe's kits wear it).
+- **Flagged: the Akeron team wears Flecktarn, not a French uniform.** `infantry-appearances.json` has
+  no French look and there is no French uniform print. A French look is its own art task.
+- **Guard looks are the army's recon patrol,** following the TOW and Kornet teams.
+- **Carried kits show the launcher slung on the back;** a rifle-only carried look read as a rifleman.
+- **The Javelin sight unit is dark,** not tan: tan vanished against the tan uniform.
+- **Accepted after the last critique:** at game distance the Javelin, Akeron and the two Javelin
+  uniforms are hard to tell apart (TOW and Kornet share that limit); the slung tube's lower end stands
+  off the back; the carried Akeron tube looks tan in strong light.
+- **Tooling:** `asset sheet --clips` sheets a loose skinned GLB; `infantry_equipment.py <kit> --receipt`
+  writes a kit's receipt once every look is exported.
