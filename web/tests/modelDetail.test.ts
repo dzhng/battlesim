@@ -121,6 +121,7 @@ test("an airborne vehicle's model knows how high its foot is above the ground un
         yaw: 0,
         airborne: true,
         articulation: { ...REST_ARTICULATION },
+        tilt: null,
       },
       {
         unit: 2,
@@ -130,6 +131,7 @@ test("an airborne vehicle's model knows how high its foot is above the ground un
         yaw: 0,
         airborne: false,
         articulation: { ...REST_ARTICULATION },
+        tilt: null,
       },
     ],
     corpses: [],

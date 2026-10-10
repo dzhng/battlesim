@@ -25,6 +25,9 @@ export interface SkinnedModelPose {
 export interface ArticulatedModelPose {
   kind: "articulated";
   articulation: Articulation;
+  /** A rigid motion of the whole model in its own frame, before its yaw (a
+   *  falling airframe's tilt, `VehiclePose.tilt`); none: upright. */
+  motion?: Mat4;
 }
 
 export interface StaticModelPose {
@@ -188,6 +191,7 @@ export function poseFrameInstances(
         ? m.pose
         : (m.pose = { kind: "articulated", articulation: v.articulation });
     pose.articulation = v.articulation;
+    pose.motion = v.tilt ?? undefined;
     m.xray = xrayOf(v.side, v.unit);
   }
   // Corpses the cap has pushed out, sinking: posed per frame until gone.

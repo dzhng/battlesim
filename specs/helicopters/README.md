@@ -7,7 +7,7 @@
 You are implementing helicopters. Read [decisions](decisions.md) first. Its D1–D43 are givens, and you don't reopen them inside a slice. Then read [landmines](landmines.md) and the slice you're picking up. Load [tweak-mechanics](../../.agents/skills/tweak-mechanics/SKILL.md) before any rule change, [write-tests](../../.agents/skills/write-tests/SKILL.md) before any behaviour change, and [renderer](../../.agents/skills/renderer/SKILL.md) or [game-ui](../../.agents/skills/game-ui/SKILL.md) for slices that draw.
 
 **Next pickup, in priority order:**
-1. Integrate the running worktrees: 10 and 11, 13, and 15. (07, 12 and 17b are merged.) Merge each, rerun its narrow checks on the merged tree, and remove its worktree.
+1. Integrate the running worktrees: 13 and 15. (07, 10, 11, 12 and 17b are merged.) Merge each, rerun its narrow checks on the merged tree, and remove its worktree.
 2. Slice 15 (the Apache on real art). It depends on 07, 09 and 10.
 3. Slice 13 (the contact sign), after 12. Slice 16, after 15. Slice 17, after 16. Slice 18 last.
 
@@ -40,8 +40,8 @@ The record of each slice lives in its slice file and in [choices](choices.md).
 - [x] [07 — First browser checkpoint: air-aware weapons](slices/07-first-checkpoint.md)
 - [x] [08 — Hull-mount facing for every unit](slices/08-hull-mount-facing.md)
 - [x] [09 — Helicopter missile and rocket rows](slices/09-heli-weapon-rows.md)
-- [ ] [10 — Drawing the fall](slices/10-fall-draw.md)
-- [ ] [11 — Damage smoke trail](slices/11-damage-smoke.md)
+- [x] [10 — Drawing the fall](slices/10-fall-draw.md)
+- [x] [11 — Damage smoke trail](slices/11-damage-smoke.md)
 - [x] [12 — Drop line, ground ring and ghosts](slices/12-drop-line-ring.md)
 - [ ] [13 — The airborne contact sign, built](slices/13-contact-sign.md)
 - [x] [14 — Resupply sink](slices/14-resupply-sink.md)
@@ -84,9 +84,9 @@ It replaces [battle-foundation slice 18](../battle-foundation/slices/18-air-move
 | Weapon rows | `targets: [ground \| low_air]` (`high_air` comes with jets or AA, D43), authored on root rows and inherited through `extends`. | 07 |
 | Weapon rows | New `heli_atgm`, `rocket_pod` and `helicopter_crash`. | 09, 04 |
 | Unit digest | `Unit.air: Option<AirState { velocity, agl_target, aim_yaw }>`. | 03 |
-| Battle digest and publication | A new `crashes` group for falling airframes. | 04 |
+| Battle digest and publication | Falling airframes are digested (04) and published as a new `crashes` group (10). | 04, 10 |
 | Observation and publication | Contacts gain `z` and `layer`. **The digest layout changes; parity is re-recorded.** | 05 |
-| Observation and publication | Identified units gain a coarse `smoking` bit. | 11 |
+| Observation and publication | Identified (and own) units gain a coarse `smoking` bit. | 11 |
 | Sim rule, every unit | `moved` compares XY only. Ground digests are unchanged. | 01 |
 | Sim rule, every unit | Hull-mounted weapons fire only when the body faces the target. Ground digests are unchanged. | 08 |
 | Weapon rows | Guided rows state `guidance: "stationary" \| "on_the_move"` (D38). Today's ATGMs author `"stationary"`, so their digests are unchanged. | 09 |

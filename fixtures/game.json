@@ -1224,6 +1224,15 @@
         "min_speed_mps": 1.0,
         "full_speed_mps": 8
       },
+      "damage_smoke": {
+        "albedo": [0.08, 0.078, 0.075],
+        "opacity": 0.45,
+        "size_m": [0.8, 4.5],
+        "life_s": 2.5,
+        "rise_mps": 0.8,
+        "spread_mps": 0.4,
+        "rate_hz": 20
+      },
       "smoke": {
         "wreck": {
           "burn_s": 60,

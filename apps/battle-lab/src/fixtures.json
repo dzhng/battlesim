@@ -96,6 +96,12 @@
     "map": "air"
   },
   {
+    "id": "air-crash",
+    "route": "/lab/air-crash",
+    "describe": "A test helicopter, one hit from death, flies across the field past a gun jeep, trailing smoke, and is shot down: it falls on in a spinning arc, nose down, keeping its momentum, bursts where it strikes the ground and leaves its wreck there. It never vanishes in mid-air or brews up like a ground hull.",
+    "map": "air"
+  },
+  {
     "id": "ambush",
     "route": "/lab/ambush",
     "describe": "Supported AT guidance: an AT team acquires shared identified targets only with its own clear line of sight, guides one missile at a time, and releases it at once on moving, Stop or losing sight; the released missile flies on to its fixed last point. Variants: late escape, prompt escape, prepared crossfire.",

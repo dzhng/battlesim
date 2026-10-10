@@ -1,10 +1,11 @@
 /** Presentation between completed ticks: units drawn a fraction of a tick
  * behind the latest publication, blended from the previous one. Only units
  * present in both frames blend, and a soldier blends only with himself (by
- * member id); nothing is extrapolated. Own units and identified enemies blend
+ * member id); nothing is extrapolated. A falling airframe blends with itself
+ * likewise. Own units and identified enemies blend
  * alike, so an enemy squad walks as smoothly as one's own. */
 import { deltaAngle, lerp, vec3 } from "math";
-import type { ObservationView, Point3 } from "../sim/observation";
+import type { FallingAirframeView, ObservationView, Point3 } from "../sim/observation";
 
 export interface Pose {
   id: number;
@@ -25,6 +26,8 @@ export interface FrameSample {
   observation: ObservationView;
   own: Pose[];
   identified: Pose[];
+  /** Downed airframes still falling, blended as bodies are (by own and id). */
+  crashes: FallingAirframeView[];
 }
 
 /** What both own units and identified enemies publish about their bodies. */
@@ -125,6 +128,17 @@ export class TickInterpolator {
         );
       }),
       identified: observation.identified.map((u) => blendBody(identified.get(u.id), u, t, null)),
+      crashes: observation.crashes.map((c) => {
+        const p = this.previous?.crashes.find((q) => q.id === c.id && q.own === c.own);
+        if (!p) return c;
+        return {
+          ...c,
+          position: vec3.lerp(vec3.create(), p.position, c.position, t),
+          yaw: lerpAngle(p.yaw, c.yaw, t),
+          pitch: lerp(p.pitch, c.pitch, t),
+          roll: lerp(p.roll, c.roll, t),
+        };
+      }),
     };
   }
 }

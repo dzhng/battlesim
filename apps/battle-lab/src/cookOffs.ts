@@ -5,7 +5,8 @@
 // wreck that tick, so a side that saw the hull alive within `window` ticks
 // of learning its wreck saw it die. A wreck found later,
 // scouted onto, was no one's to watch: it is simply there, burning as the
-// effects have it.
+// effects have it. An airframe shot down falls first (the published
+// `crashes`, drawn by the pose feed) and never brews up.
 //
 // Presentation only: the effects blow the hull up (fireballs out of the
 // turret ring, and sparks and dust where its turret lands) and, where its
@@ -32,7 +33,7 @@ import type { PropAppearances } from "@packages/battle-renderer/src/models/propA
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import type { Bounds } from "@packages/scene-assets/src/schema";
 import { SCENERY_KINDS, WRECK_PIECES } from "@packages/scene-assets/src/scenery";
-import type { UnitCatalog } from "@packages/scene-assets/src/units";
+import { airborne, type UnitCatalog } from "@packages/scene-assets/src/units";
 import type { KnownPropView, ObservationView } from "@web/battle/sim/observation";
 
 /** The wreck state its thrown debris is drawn from (`SceneryRule.debris`). */
@@ -92,7 +93,9 @@ export class CookOffWatch {
       ] as const
     ).flatMap(([who, us]) =>
       us.flatMap((u) => {
-        const hull = this.units.hull(u.kind);
+        // An airframe's death is its fall, drawn from the published crash
+        // until its wreck lands: it never brews up.
+        const hull = airborne(this.units.type(u.kind)) ? null : this.units.hull(u.kind);
         return hull
           ? [
               [

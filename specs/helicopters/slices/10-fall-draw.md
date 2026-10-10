@@ -1,6 +1,20 @@
 # 10 — Drawing the fall
 
-**Status:** planned. **Depends on:** 04, 06. **Owns:** L2 (renderer).
+**Status:** done. **Depends on:** 04, 06. **Owns:** L2 (renderer).
+
+## Result
+
+- **Contract:** the publication gained the `crashes` group (`id, own, kind, x, y, z, yaw, pitch, roll`) and the header word `crashCount`; the web's `ObservationView.crashes` decodes it. Choices record the id rule, the derived attitude and the drawing path.
+- **Tests:** `air_crash::both_sides_that_saw_it_go_down_see_it_fall_to_its_wreck`, `publication::a_falling_airframe_publishes_its_place_and_attitude`, the codec vectors (web `observation.test.ts` decodes a falling airframe), `poseFeed.test.ts` (a helicopter shot down falls as itself, rotors turning, tipped), `cookOffs.test.ts` (it never brews up).
+- **Parity:** six publication records re-recorded; only their publication hashes moved, no digest.
+- **Scene:** `/lab/air-crash` (`web/scenes/air-crash.mjs`): all checks pass, no GPU warnings; `air-hover` still passes after the shared route.
+- **Evidence:** `throwaway/evidence/air-crash/` — `fall-sheet.png` (hit to wreck at rest), frames, `crop-mid-fall-2x.png`, `crop-wreck-2x.png`; `before/` holds the same scene on 9c8867f3; `compare/` the metrics.
+- **compare-screenshots:** before, the airframe vanishes at the hit and its wreck appears 2 s later with a burst; after, it falls in a spinning, nose-down arc to the same impact. Distances 0.003–0.005 on the falling frames (only the airframe differs), 0 on the impact and wreck frames (identical). Verdict: the candidate is less wrong.
+- **screenshot-critique (unprimed), actionable findings:**
+  - The airframe stops dead on impact, and pops from a pitched, painted airframe to a level grey wreck with no rotor: the wreck art (slice 15) and its thrown blades (the wreck's `debris` state is drawn only by a cook-off today) are the follow-up; the impact burst hides most of the swap. A slide on landing would be a slice 04 rule change.
+  - It falls without smoke or fire: slice 11's trail covers a falling airframe.
+  - The autocannon's mid-air hit puff hangs for 3 s and the crash smoke stays fire-lit: existing effect styles, not this slice's.
+  - Diagonal stripes over the frame are the fog hatch (blue has no unit left to see with); fog style, not a defect.
 
 ## Contract
 

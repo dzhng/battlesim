@@ -8,6 +8,6 @@
   "tags": ["road", "forest", "building"],
   "source": "authored",
   "seed": null,
-  "encounters": ["flight", "fog", "hover", "roof"],
+  "encounters": ["crash", "flight", "fog", "hover", "roof"],
   "benchmarks": []
 }

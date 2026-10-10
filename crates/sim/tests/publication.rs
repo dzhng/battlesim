@@ -282,6 +282,52 @@ fn a_contact_publishes_its_height_and_layer() {
 }
 
 #[test]
+fn a_falling_airframe_publishes_its_place_and_attitude() {
+    // Read back by the layout alone: who it is to this side, its type, and
+    // how it hangs where it falls.
+    use contract::observation::FallingAirframe;
+    let map =
+        json!({ "size": [400, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 });
+    let b = Battle::new(
+        &common::scenario(
+            &map.to_string(),
+            json!([{ "side": "blue", "kind": "test_rifle", "position": [100, 100] }]),
+            json!([]),
+        ),
+        1,
+    );
+    let mut frame = b.observe(Side::Blue).clone();
+    frame.crashes = vec![FallingAirframe {
+        id: 7,
+        own: false,
+        kind: common::unit_kind("test_heli"),
+        position: [120.5, 80.25, 14.5],
+        yaw: 1.25,
+        pitch: -0.25,
+        roll: 0.125,
+    }];
+    let layout: Value = serde_json::from_str(&publication::layout_json(&b)).unwrap();
+    let patch = publication::GroundHeader {
+        epoch: 1,
+        side: Side::Blue,
+        base: 0,
+        revision: 0,
+        full: false,
+        count: 0,
+    };
+    let mut data = Vec::new();
+    publication::pack_logical(&frame, &patch, &full_fog(), std::iter::empty(), &mut data).unwrap();
+    let crashes = &decode(&layout, &data)["crashes"];
+    assert_eq!(crashes.len(), 1);
+    let f = &crashes[0].fields;
+    assert_eq!(layout["unitKinds"][f["kind"] as usize], "test_heli");
+    assert_eq!(
+        [f["id"], f["own"], f["x"], f["y"], f["z"], f["yaw"], f["pitch"], f["roll"]],
+        [7.0, 0.0, 120.5, 80.25, 14.5, 1.25, -0.25, 0.125]
+    );
+}
+
+#[test]
 fn unchanged_visibility_is_not_retransmitted() {
     let setup = common::scenario(
         &json!({"size":[128,128],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35})
