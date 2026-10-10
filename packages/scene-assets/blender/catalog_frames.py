@@ -37,8 +37,8 @@ def _variant(appearance_id, appearance, units):
     roles = appearance.get("mounts", {})
     mounts = [
         dict(
-            name=mount["name"],
-            role=roles.get(mount["name"]),
+            name=mount["id"],
+            role=roles.get(mount["id"]),
             on=mount["on"],
             pivot_m=mount["pivot_m"],
             muzzle_m=mount["muzzle_m"],

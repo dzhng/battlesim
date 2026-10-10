@@ -409,16 +409,6 @@
       "source_path": "assets/source/roster/disabled/europe_ch_47_chinook_hc6.glb"
     },
     {
-      "id": "europe_challenger_challenger_3",
-      "family": "challenger",
-      "category": "veh",
-      "model_status": "reference_built",
-      "source_family": "challenger_3",
-      "source_kind": "ground_vehicle",
-      "disabled_reason": "Ground profile and model admission pending",
-      "source_path": "assets/source/roster/challenger_3/europe_challenger_challenger_3.glb"
-    },
-    {
       "id": "europe_cv90120_light_tank",
       "family": "cv90120",
       "category": "veh",

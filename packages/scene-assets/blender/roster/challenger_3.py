@@ -1,6 +1,6 @@
-"""Challenger 3 (disabled card), from assets/references/challenger_3/.
+"""Challenger 3, from assets/references/challenger_3/.
 
-    bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/challenger3.py -- [--wreck]
+    bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/challenger_3.py -- [--wreck]
 
 No Challenger 3 photo is under an allowed licence, so the library is the
 Challenger 2 TES photos of the hull it keeps and two generated views of the
@@ -13,8 +13,8 @@ extractor, a Trophy radar panel and launcher on each side, the commander's
 panoramic sight on its right, a remote machine gun station, a slatted
 bustle cage. British green.
 
-Frame 8.3 x 4.2 x 2.49 m, gun pivot 1.494 m (`DIMENSIONS`, `MOUNTS`), the
-Challenger 2's: the generated views put the turret roof near 2.5 m too.
+Built to the catalog frame, the Challenger 2's (hull 8.3 x 4.2 x 2.49 m, gun
+pivot 1.494 m): the generated views put the turret roof near 2.5 m too.
 """
 import math
 import os
@@ -23,18 +23,10 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft, prism, stencil  # noqa: E402
-from vehicle_export import rig, run_disabled  # noqa: E402
+from vehicle_export import rig, run  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 
-CARD = "europe_challenger_challenger_3"
-# The frame its references give (a disabled card has no unit type): the
-# hull box, and the mounts its turret and guns are rigged on for the art.
-DIMENSIONS = (8.3, 4.2, 2.49)
-MOUNTS = [
-    dict(name="cannon", role="gun", on=None, pivot_m=[0.0, 0.0, 1.494], muzzle_m=[5.561, 0.0, 0.448]),
-    dict(name="HMG", role="hmg", on="cannon", pivot_m=[-0.25, -0.58, 2.341], muzzle_m=[1.43, 0.0, 0.32]),
-]
 TRACK_Y = 1.55
 TRACK_W = 0.62
 ROAD_R = 0.39
@@ -58,8 +50,8 @@ def hull(v):
     VP.periscope("driver_periscope", (half - 1.25, 0, DECK), m, h, size=(0.12, 0.28, 0.09))
     for side, s in ((1, "L"), (-1, "R")):
         VP.light_with_guard(f"headlight_{s}", (half - 1.10, side * 1.45, DECK + 0.08), 0.07, m, h)
-        VP.tow_hook(f"front_tow_{s}", (half - 0.02, side * 0.75, 0.85), m, h, size=0.14)
-        VP.tow_hook(f"rear_tow_{s}", (-half + 0.02, side * 0.85, 0.85), m, h, size=0.13, rot=(0, 0, math.pi))
+        VP.tow_hook(f"front_tow_{s}", (half - 0.18, side * 0.75, 0.85), m, h, size=0.14)
+        VP.tow_hook(f"rear_tow_{s}", (-half + 0.02, side * 0.85, 0.85), m, h, size=0.08, rot=(0, 0, math.pi))
         # Deep skirts of bolted appliqué panels.
         for k in range(6):
             length = (v.length - 0.5) / 6
@@ -104,13 +96,15 @@ def running_gear(v):
 def turret(v, t, gun, hmg, hmg_gun):
     m = v.mats
     base = DECK - v.frame["mounts"][0]["pivot_m"][2]
-    top = base + 0.86
+    # The tall slab-sided turret: its roof at the hull box's top.
+    top = base + 0.98
     foot = [(1.85, 0.55), (1.45, 1.55), (-1.70, 1.60), (-2.10, 1.30), (-2.10, -1.30), (-1.70, -1.60), (1.45, -1.55),
             (1.85, -0.55)]
-    crown = [(1.05, 0.50), (0.80, 1.38), (-1.62, 1.44), (-2.00, 1.18), (-2.00, -1.18), (-1.62, -1.44), (0.80, -1.38),
-             (1.05, -0.50)]
+    # Slab sides near vertical; only the front wedge slopes back.
+    crown = [(1.20, 0.50), (1.00, 1.48), (-1.66, 1.54), (-2.06, 1.26), (-2.06, -1.26), (-1.66, -1.54), (1.00, -1.48),
+             (1.20, -0.50)]
     cyl("turret_ring_guard", 1.15, 0.08, (0, 0, base + 0.02), "Z", m["dark"], t, seg=40, lods=MID)
-    loft("turret_shell", [(base + 0.04, foot), (base + 0.40, [(x * 0.99, y) for x, y in foot]), (top, crown)],
+    loft("turret_shell", [(base + 0.04, foot), (base + 0.55, [(x * 0.99, y) for x, y in foot]), (top, crown)],
          mat=m["paint"], parent=t, bevel=0.04)
     VP.roof_fittings("roof", crown, top, m, t, periscopes=((0.10, -1.05, -0.4),))
     VP.laser_warners("laser_warner", crown, top, m, t)
@@ -122,25 +116,29 @@ def turret(v, t, gun, hmg, hmg_gun):
             VP.stowage_box(f"turret_bin_{s}_{k}", (-1.25 - k * 0.62, side * 1.56, base + 0.20), (0.58, 0.30, 0.48), m,
                            t, rot=(0, 0, 0 if side > 0 else math.pi))
     for side, s in ((1, "L"), (-1, "R")):
-        # Trophy: the radar panel and the launcher housing on each side.
-        box(f"trophy_radar_{s}", (0.50, 0.08, 0.40), (0.20, side * 1.58, base + 0.55), m["dark"], t, bevel=0.02,
-            rot=(0, 0, side * -0.25))
-        box(f"trophy_launcher_{s}", (0.40, 0.36, 0.30), (-0.70, side * 1.48, top + 0.10), m["paint"], t, bevel=0.04)
+        # Trophy: the radar panel and the launcher housing on each side. Their
+        # nodes (`trophy_radar_*`, `trophy_launcher_*`) are the part's.
+        radar = empty(f"trophy_radar_{s}", (0.20, side * 1.58, base + 0.55), t, rot=(0, 0, side * -0.25))
+        box(f"trophy_panel_{s}", (0.50, 0.08, 0.40), (0, 0, 0), m["dark"], radar, bevel=0.02)
+        holder = empty(f"dressing_trophy_{s}", parent=t)
+        launcher = empty(f"trophy_launcher_{s}", (-0.70, side * 1.48, top + 0.05), holder)
+        box(f"trophy_housing_{s}", (0.40, 0.36, 0.30), (0, 0, 0), m["paint"], launcher, bevel=0.04)
         VP.bolted_panel(f"side_applique_{s}", (-0.60, side * 1.58, base + 0.15), (1.60, 0.10, 0.55), m, t,
                         bolts=(4, 1), bevel=0.02, lods=VP.ALL)
         VP.smoke_discharger_bank(f"smoke_{s}", (0.55, side * 1.30, top - 0.08), m, t, count=5, tube_radius=0.045,
                                  tube_length=0.20, elevation=0.35, spread=0.5, rot=(0, 0, side * 0.9))
         whip = empty(f"dressing_antenna_{s}", parent=t)
         VP.antenna(f"antenna_{s}", (-1.75, side * 0.95, top), m, whip, height=2.2)
-    VP.sight_housing("gunner_sight", (0.55, 0.75, top - 0.02), m, t, size=(0.45, 0.34, 0.30))
+    sight = empty("dressing_gunner_sight", parent=t)
+    VP.sight_housing("gunner_sight", (0.55, 0.75, top - 0.02), m, sight, size=(0.45, 0.34, 0.24))
     mast = empty("dressing_commander_sight", parent=t)
-    cyl("panorama_post", 0.10, 0.22, (-0.35, 0.55, top + 0.11), "Z", m["dark"], mast, seg=12)
-    VP.sight_housing("panorama_head", (-0.35, 0.55, top + 0.20), m, mast, size=(0.36, 0.34, 0.32))
+    cyl("panorama_post", 0.10, 0.04, (-0.35, 0.55, top + 0.02), "Z", m["dark"], mast, seg=12)
+    VP.sight_housing("panorama_head", (-0.35, 0.55, top + 0.02), m, mast, size=(0.36, 0.34, 0.26))
     VP.hatch("loader_hatch", (-0.60, -0.55, top), m, t, radius=0.28)
     VP.slat_armour("bustle_cage", (-2.35, 0, base + 0.15), (2.40, 0.62), m, t, rot=(0, 0, math.pi / 2))
     for side, s in ((1, "L"), (-1, "R")):
         VP.slat_armour(f"bustle_cage_{s}", (-2.05, side * 1.20, base + 0.15), (0.60, 0.62), m, t)
-    VP.tarp_roll("bustle_roll", (-2.05, 0, top - 0.05), 1.6, 0.16, m, t, straps=3)
+    VP.tarp_roll("bustle_roll", (-2.05, 0, top - 0.14), 1.6, 0.16, m, t, straps=3)
     # The L55A1: mantlet, plain sleeve with clamps, no fume extractor.
     reach = v.frame["mounts"][0]["muzzle_m"][0] - TRUNNION
     box("mantlet", (0.75, 0.62, 0.46), (0.35, 0, 0), m["paint"], gun, bevel=0.06)
@@ -192,6 +190,4 @@ def wreck(variant, v):
     rest_on_ground(0.004)
 
 
-if __name__ == "__main__":
-    run_disabled("challenger3", {CARD: DIMENSIONS}, "british_green", build, wreck, mounts={CARD: MOUNTS},
-                 skip=("dressing_", "gun", "hmg"), chip=1.0)
+run("challenger_3", "british_green", build, wreck, chip=1.0)

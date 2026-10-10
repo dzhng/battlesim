@@ -106,7 +106,8 @@ export function SavedMap({
 
 /** The fixture's saved map with its encounters `encounters`, each as a
  *  battle. `rules` are the session catalog's unless a lab pins an
- *  experiment control; they are fixed for the route. */
+ *  experiment control, for every encounter or per encounter; they are fixed
+ *  for the route. */
 export function SavedEncounters<Name extends string>({
   fixture,
   encounters,
@@ -115,14 +116,17 @@ export function SavedEncounters<Name extends string>({
 }: {
   fixture: string;
   encounters: readonly Name[];
-  rules?: GameRules;
+  rules?: GameRules | ((encounter: Name) => GameRules);
   children: (battles: Record<Name, SavedBattle>) => ReactNode;
 }) {
   const catalog = useSessionCatalog();
-  const rules = pinned ?? catalog.rules;
+  const rules = (name: Name) =>
+    typeof pinned === "function" ? pinned(name) : (pinned ?? catalog.rules);
   const map = fixtureMap(fixture);
   const battles = useBuiltScenario({ map, encounters }, async (_, o) => {
-    const loaded = await Promise.all(o.encounters.map((name) => savedBattle(o.map, name, rules)));
+    const loaded = await Promise.all(
+      o.encounters.map((name) => savedBattle(o.map, name, rules(name))),
+    );
     return Object.fromEntries(o.encounters.map((name, k) => [name, loaded[k]])) as Record<
       Name,
       SavedBattle

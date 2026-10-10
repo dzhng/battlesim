@@ -1,0 +1,7 @@
+{
+  "units": [
+    {"side":"red","kind":"test_tank","position":[600,248],"yaw":1.5707963267948966,"engagement":"return_fire_only"},
+    {"side":"blue","kind":"test_at","position":[60,340]}
+  ],
+  "scripts": []
+}

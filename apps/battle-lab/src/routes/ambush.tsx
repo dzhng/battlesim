@@ -21,7 +21,8 @@ import { TickStatus } from "../TickStatus";
 // The AT team launches at 3 s; the missile needs about 3 s to arrive. Each
 // variant is a saved encounter of the ambush map
 // (`fixtures/maps/ambush/encounters/<variant>.json`) under the same weapon
-// data: only red's timing and blue's positions differ.
+// data: only red's timing and blue's positions differ. The top-attack
+// variant alone pins a top-attack `atgm`, to show its flight side-on.
 const VARIANTS = {
   late: {
     label: "Late escape",
@@ -37,6 +38,11 @@ const VARIANTS = {
     describe:
       "The same prompt escape against two AT teams: the south-east team still sees the tank behind the building.",
   },
+  "top-attack": {
+    label: "Top attack",
+    describe:
+      "The west team fires a top-attack missile at the still tank: it shoots up, holds its height, then dives onto the roof.",
+  },
 } as const;
 type Variant = keyof typeof VARIANTS;
 const VARIANT_NAMES = Object.keys(VARIANTS) as Variant[];
@@ -49,6 +55,21 @@ const ambushRules = (rules: GameRules): GameRules => ({
     drive: { ...rules.movement.drive, acceleration_s: 1e-6, braking_s: 1e-6 },
   },
 });
+/** The top-attack variant's missile: the generic `atgm` row with an agile
+ *  seeker and a loft, the starting values the Javelin and Akeron rows tune
+ *  from (`specs/ground-admission/assets/top-attack/`). */
+const topAttackRules = (rules: GameRules): GameRules => ({
+  ...rules,
+  weapons: {
+    ...rules.weapons,
+    atgm: Object.assign({}, rules.weapons.atgm, {
+      turn_deg_s: 360,
+      top_attack: { loft_m: 60, dive_deg: 40 },
+    }),
+  },
+});
+const variantRules = (rules: GameRules, variant: Variant): GameRules =>
+  variant === "top-attack" ? topAttackRules(rules) : rules;
 
 const AMBUSH_CAMERA: Camera3DParams = {
   target: [300, 290, 0],
@@ -63,7 +84,10 @@ const SCOUT_MARK = [0.55, 0.75, 1.0, 1] as const;
 
 export default function Ambush() {
   const { rules } = useSessionCatalog();
-  const pinned = useMemo(() => ambushRules(rules), [rules]);
+  const pinned = useMemo(() => {
+    const ambush = ambushRules(rules);
+    return (variant: Variant) => variantRules(ambush, variant);
+  }, [rules]);
   return (
     <SavedEncounters fixture="ambush" encounters={VARIANT_NAMES} rules={pinned}>
       {(battles) => <AmbushLab battles={battles} />}
@@ -143,9 +167,10 @@ function AmbushLab({ battles }: { battles: Record<Variant, SavedBattle> }) {
     },
     [control],
   );
+  const west = launchers.find((u) => u.position[0] < 400)?.id ?? -1;
   const moveLauncher = () =>
-    command({ kind: "move", units: [2], gesture: 9301, goal: [60, 400], route: "shortest" });
-  const stopLauncher = () => command({ kind: "stop", units: [2] });
+    command({ kind: "move", units: [west], gesture: 9301, goal: [60, 400], route: "shortest" });
+  const stopLauncher = () => command({ kind: "stop", units: [west] });
 
   // Lab-only probes for the scene harness; rebuilt each render.
   const diagnostics = {
