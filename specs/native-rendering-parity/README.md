@@ -122,7 +122,6 @@ Counters never prove pixels. Headless Godot proves lifecycle only. Every pass ke
 
 - **Control run:** `PARITY_SCENES=paris-corner lockf -k <main>/throwaway/gpu.lock bun run --cwd web scene -- native-parity-capture` takes about 55 s; both scenes take about 3 minutes.
 - **Native run:** `godot --path native/godot --window-position 10000,10000 -- --run <dir> --scene <map>`.
-- **Known red outside this spec:** `web/tests/router.test.ts` (2 tests, `ResizeObserver is not defined`) already fails before slice 01.
 
 1. **Read first.** This README, then `choices.md` (its decisions are givens), then the slice file.
 2. **Load skills.** `renderer`, `write-tests` and `refactor-clean` before coding.
