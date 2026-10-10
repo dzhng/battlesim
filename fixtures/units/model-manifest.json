@@ -821,16 +821,6 @@
       "source_path": "assets/source/roster/m142_himars/us_m142_himars_prsm.glb"
     },
     {
-      "id": "us_m1e3_abrams",
-      "family": "m1_abrams",
-      "category": "veh",
-      "model_status": "reference_built",
-      "source_family": "m1e3",
-      "source_kind": "ground_vehicle",
-      "disabled_reason": "Ground profile and model admission pending",
-      "source_path": "assets/source/roster/disabled/us_m1e3_abrams.glb"
-    },
-    {
       "id": "us_m270_mlrs_m270a2",
       "family": "m270_mlrs",
       "category": "sup",

@@ -2523,6 +2523,35 @@
         "footprint_m": 1.2
       }
     },
+    "us_m1e3_abrams": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/m1e3/us_m1e3_abrams.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "cannon": "gun",
+        "HMG": "hmg"
+      },
+      "wreck": "us_m1e3_abrams_wreck"
+    },
+    "us_m1e3_abrams_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/m1e3/us_m1e3_abrams_wreck.glb",
+        "hull": "assets/source/roster/m1e3/us_m1e3_abrams_wreck_hull.glb",
+        "turret": "assets/source/roster/m1e3/us_m1e3_abrams_wreck_turret.glb",
+        "debris": "assets/source/roster/m1e3/us_m1e3_abrams_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        3.965,
+        1.83,
+        1.22
+      ],
+      "tolerances": {
+        "footprint_m": 1.2
+      }
+    },
     "europe_cv90_cv9040c": {
       "unit": "vehicle",
       "source": "assets/source/roster/cv90/europe_cv90_cv9040c.glb",
