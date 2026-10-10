@@ -1,18 +1,20 @@
 # Helicopters
 
-**Status:** in progress: slices 01, 02 and 03 done. **Updated:** 2026-10-10.
+**Status:** in progress: slices 01, 02, 03, 04 (sim) and 14 done. **Updated:** 2026-10-10.
 
 ## Next Agent Prompt
 
 You are implementing helicopters. Read [decisions](decisions.md) first. Its D1–D43 are givens, and you don't reopen them inside a slice. Then read [landmines](landmines.md) and the slice you're picking up. Load [tweak-mechanics](../../.agents/skills/tweak-mechanics/SKILL.md) before any rule change, [write-tests](../../.agents/skills/write-tests/SKILL.md) before any behaviour change, and [renderer](../../.agents/skills/renderer/SKILL.md) or [game-ui](../../.agents/skills/game-ui/SKILL.md) for slices that draw.
 
-**Next pickup:** slice [04 — Falling airframe](slices/04-falling-airframe.md) and slice [14 — Resupply sink](slices/14-resupply-sink.md). Slices [05](slices/05-contact-height.md) and [06](slices/06-airframe-art.md) are in flight on their own worktrees.
+**Next pickup:** slice [07](slices/07-first-checkpoint.md): its weapon layers first, then its scene once slice 06's test art lands. Slices 05 and 06 are running on their own worktrees.
 
 **Warning:** five `publication::` parity tests are already red on `main`. They come from another session's top-attack and roster commits, not from this plan (confirmed by running them at `2929f724`). Leave those records to their owner.
 
 **Done so far:**
 - **01:** `units::Motion { Ground, Air }`, `Unit::airborne`, `ground_footprint` (`None` in the air), `Mobility::Air` with its own limits, the `air` rules block, and XY-only `moved`. Ground digests and parity records are unchanged.
 - **03:** `movement::air::step_aircraft` and `navigation::air::AirGrid` (cached per side as `SideGeometry::air_grid`), with digested `Unit.air: AirState { velocity }`.
+- **04:** `sim::crash` (falling, glancing, sliding off roofs) and `damage::detonate` with the `helicopter_crash` row. Publication is deferred to slice 10.
+- **14:** `movement::air::low_hover` (5.63 m today) and the idle-at-a-truck sink.
 - **02:** variant D, the keyed disc, was picked at the checkpoint ([result](slices/02-contact-sign-spike.md#result)).
 
 **Warnings:**
@@ -27,7 +29,7 @@ You are implementing helicopters. Read [decisions](decisions.md) first. Its D1�
 - [x] [01 — An airborne hull](slices/01-air-hull.md)
 - [x] [02 — Design spike: the airborne lost-contact sign](slices/02-contact-sign-spike.md)
 - [x] [03 — Flight: route, altitude, separation](slices/03-flight.md)
-- [ ] [04 — Falling airframe (simulation)](slices/04-falling-airframe.md)
+- [x] [04 — Falling airframe (simulation)](slices/04-falling-airframe.md)
 - [ ] [05 — Contacts carry height](slices/05-contact-height.md)
 - [ ] [06 — Test airframe art and rotor pipeline](slices/06-airframe-art.md)
 - [ ] [07 — First browser checkpoint: air-aware weapons](slices/07-first-checkpoint.md)
@@ -37,7 +39,7 @@ You are implementing helicopters. Read [decisions](decisions.md) first. Its D1�
 - [ ] [11 — Damage smoke trail](slices/11-damage-smoke.md)
 - [ ] [12 — Drop line, ground ring and ghosts](slices/12-drop-line-ring.md)
 - [ ] [13 — The airborne contact sign, built](slices/13-contact-sign.md)
-- [ ] [14 — Resupply sink](slices/14-resupply-sink.md)
+- [x] [14 — Resupply sink](slices/14-resupply-sink.md)
 - [ ] [15 — The Apache, on real art](slices/15-apache.md)
 - [ ] [16 — The other 18 helicopters](slices/16-roster.md)
 - [ ] [17 — Skirmish: entry and AI](slices/17-skirmish.md)
