@@ -63,6 +63,11 @@ function brightestAlong(png, a, b, r) {
 /** How far either side of a sampled height a drop line is looked for, metres:
  *  past the pitch of its dots at every zoom the scene views it from. */
 const DROP_SPAN_M = 3;
+/** The share of an airframe's height its drop line's dots fade out by. */
+const DROP_REACH = game.presentation.overlay.orders.drop_line_reach;
+/** Where along the height a drop line is looked for: low, where its dots
+ *  are strongest. */
+const DROP_LOW = 0.2;
 
 /** The overlays alone over black, the DOM hidden: what the overlay pass
  *  lays down (the drop lines; the ground markers are paint in the world). */
@@ -205,14 +210,15 @@ export async function run(ctx) {
       r,
     );
   const overlays = await overlaysOnly(page);
-  const [mid, side] = [
-    await lineNear(overlays, heli, 0.5, ground, 3),
+  const [low, side, high] = [
+    await lineNear(overlays, heli, DROP_LOW, ground, 3),
     brightest(overlays, await css([heli.position[0] + 4, heli.position[1], ground + lift / 2]), 3),
+    await lineNear(overlays, heli, (DROP_REACH + 1) / 2 + 0.1, ground, 3),
   ];
   ctx.check(
-    "a drop line joins the airframe to the ground under it",
-    sum(mid) > 120 && sum(side) < 20,
-    JSON.stringify({ mid, side }),
+    "a dotted drop line rises from the ground under the airframe, and fades out short of it",
+    sum(low) > 120 && sum(side) < 20 && sum(high) < 20,
+    JSON.stringify({ low, side, high }),
   );
 
   // Selected, its marker on the ground takes the selection's colour: its
@@ -272,8 +278,8 @@ export async function run(ctx) {
   );
   const ghostLine = brightestAlong(
     ghostLines,
-    await css([goal[0], goal[1], goalGround + cruise / 2 - DROP_SPAN_M]),
-    await css([goal[0], goal[1], goalGround + cruise / 2 + DROP_SPAN_M]),
+    await css([goal[0], goal[1], goalGround + cruise * DROP_LOW - DROP_SPAN_M]),
+    await css([goal[0], goal[1], goalGround + cruise * DROP_LOW + DROP_SPAN_M]),
     3,
   );
   ctx.check(
@@ -306,8 +312,9 @@ export async function run(ctx) {
   const [above, below] = [
     brightestAlong(
       roofOverlays,
-      await onLine(roofHeli, (roofTop + roofHeli.position[2]) / 2 - DROP_SPAN_M),
-      await onLine(roofHeli, (roofTop + roofHeli.position[2]) / 2 + DROP_SPAN_M),
+      // Its dots between the roof and where they fade out.
+      await onLine(roofHeli, roofTop + 0.2),
+      await onLine(roofHeli, roofGround + (roofHeli.position[2] - roofGround) * DROP_REACH),
       2,
     ),
     brightest(roofOverlays, await onLine(roofHeli, (roofGround + roofTop) / 2), 2),
@@ -318,7 +325,7 @@ export async function run(ctx) {
     JSON.stringify({ above, below, roofTop }),
   );
   const red = (c) => c[0] > 100 && c[0] > 1.6 * c[1];
-  const enemyMid = await lineNear(roofOverlays, enemy, 0.5, await surface(enemy.position), 3);
+  const enemyMid = await lineNear(roofOverlays, enemy, DROP_LOW, await surface(enemy.position), 3);
   ctx.check(
     "an identified enemy helicopter's drop line is drawn, red",
     red(enemyMid),
@@ -331,7 +338,13 @@ export async function run(ctx) {
   await advance(page, 1);
   await capture("map-roof", roofHeli);
   const mapOverlays = await overlaysOnly(page);
-  const mapMid = await lineNear(mapOverlays, roofHeli, 0.85, roofGround, 2);
+  // Its dots that show, over the roof: from the roof up to where they fade out.
+  const mapMid = brightestAlong(
+    mapOverlays,
+    await onLine(roofHeli, roofTop + 0.2),
+    await onLine(roofHeli, roofGround + (roofHeli.position[2] - roofGround) * DROP_REACH),
+    2,
+  );
   ctx.check(
     "from the map's zoom the drop line is still drawn",
     sum(mapMid) > 120,
@@ -367,7 +380,7 @@ export async function run(ctx) {
     await page.evaluate(() => window.__lab.setFrameView("final"));
     const fogged = sum(pixel(mask, underCss[0], underCss[1])) < 60;
     const fogOverlays = await overlaysOnly(page);
-    const mid = await lineNear(fogOverlays, hidden, 0.85, hiddenGround, 2);
+    const mid = await lineNear(fogOverlays, hidden, DROP_LOW, hiddenGround, 2);
     ctx.check(
       `${name}: over unseen ground, the enemy's drop line is drawn, red`,
       fogged && red(mid),
