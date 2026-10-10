@@ -240,3 +240,14 @@ The sky gradient and cloud cover match on every pair; the clouds land in the sam
 | `core/coords.gd` gains `godot_to_sim`, its inverse | The haze turns the rendered camera back into sim space; one conversion owner |
 | `prepare(camera, viewport, focus)` replaces `fit`, mirroring the browser environment frame's `prepare` | The haze needs the frame record's ground focus as well as the camera |
 | The pre-parity Godot fog is gone | The browser's haze replaces it |
+
+### Slice 04c, by the implementing agent
+
+Overall tone matches: the mean luminance over the plates is 115.6 against the browser's 114.6 on paris-corner and 129.7 against 133.4 on market-town (it was 127.4 and 144.7 under Godot's linear tone map), and the mean grey difference halves (paris-corner 28.2 → 20.6, market-town 21.0 → 11.5). A 20× bloom-strength probe glows the clouds, so the bloom is wired. The unprimed critique measured the sky and clouds within 0.4/255 of the browser's, roads and lit walks within 1 to 4 levels and the same top percentile, and judged the same time of day, weather and grade; that settles 04b's open horizon-hue and cloud-shading notes as tone. The remaining differences are models: the grass blades' saturation (06b) and missing dust and smoke (08). Evidence: `throwaway/native-parity/slice04c/`.
+
+| Decision | Why |
+| --- | --- |
+| The post chain is one `CompositorEffect` of four compute passes (high-pass, a separable blur run per level and axis, composite, grade and AgX), after the haze effect at `POST_TRANSPARENT` | The browser's chain, pass for pass; one blur pipeline computes its Gaussian weights from the radius in a push constant instead of compiling one per radius |
+| The effect writes AgX's linear display colour, and Godot's output step applies the sRGB transfer | Godot's linear tone mapper ends with the same piecewise sRGB curve as the browser's `outputSrgb`; writing sRGB in the effect would encode it twice |
+| The manifest's post settings are the light's own `exposure`, `grade` and `bloom` (the browser's `postSettings`), not a separate `light.post` | The light is the whole `presentation.light`; `postSettings` only picks those three fields |
+| `environment_adapter.gd` builds the post effect inline rather than exposing `build_post(light)` | The adapter owns the compositor; a second entry point would have no caller |

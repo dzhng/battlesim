@@ -3,14 +3,15 @@ extends Node3D
 ## The light the parity run draws under, built from the manifest's light: the
 ## browser's sun with its cascaded shadows, its sky (shown when the manifest
 ## lists `sky`) whose light scaled by the fill is the ambient and reflected
-## light, and its aerial haze. Each frame, `prepare` splits the cascades over
-## the part of the map the camera sees and focuses the haze, as the browser's
-## environment frame does.
+## light, its aerial haze and its post chain (bloom, grade, AgX). Each frame,
+## `prepare` splits the cascades over the part of the map the camera sees and
+## focuses the haze, as the browser's environment frame does.
 
 const Coords = preload("res://core/coords.gd")
 const Light = preload("res://environment/light.gd")
 const SkyModel = preload("res://environment/sky_model.gd")
 const HazeEffect = preload("res://environment/haze_effect.gd")
+const PostEffect = preload("res://environment/post_effect.gd")
 
 ## Godot's PCF filter whose four Vogel taps are closest to the browser's five,
 ## and its kernel radius in shadow-atlas texels per unit of `shadow_blur`
@@ -50,7 +51,12 @@ func _init(light: Dictionary, sky_listed: bool, receivers: AABB) -> void:
 	world.environment = env
 	_haze = HazeEffect.new(light)
 	world.compositor = Compositor.new()
-	world.compositor.compositor_effects = [_haze]
+	world.compositor.compositor_effects = [_haze, PostEffect.new(light)]
+	# The post chain tone maps; Godot's output step only applies the sRGB
+	# transfer the browser's post ends with.
+	env.tonemap_mode = Environment.TONE_MAPPER_LINEAR
+	env.tonemap_exposure = 1.0
+	env.glow_enabled = false
 	add_child(world)
 	_sun = build_sun(light)
 	add_child(_sun)

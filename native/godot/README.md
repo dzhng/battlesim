@@ -81,6 +81,10 @@ shaders) and writes the manifest's numbers into them:
 - **Haze.** A compositor effect hazes every surface once, from the depth
   buffer, toward the frame record's ground focus, before the post chain. It
   evaluates the sky radiance directly where the browser samples its sky LUT.
+- **Tone.** A second compositor effect is the browser's post chain: bloom,
+  grade and AgX at the manifest's exposure. Godot's tone mapper is linear and
+  its glow off, so its output step only adds the sRGB transfer the browser's
+  post ends with.
 
 ## Layers
 

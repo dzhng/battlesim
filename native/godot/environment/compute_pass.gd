@@ -28,7 +28,7 @@ func ready() -> bool:
 
 ## Runs the pass over `size` texels with `uniforms` in set 0 and `push` as its
 ## push constant (a multiple of 16 bytes).
-func dispatch(rd: RenderingDevice, uniforms: Array[RDUniform], push: PackedFloat32Array, size: Vector2i) -> void:
+func dispatch(rd: RenderingDevice, uniforms: Array, push: PackedFloat32Array, size: Vector2i) -> void:
 	var list := rd.compute_list_begin()
 	rd.compute_list_bind_compute_pipeline(list, pipeline)
 	rd.compute_list_bind_uniform_set(list, UniformSetCacheRD.get_cache(shader, 0, uniforms), 0)

@@ -46,7 +46,7 @@ func _render_callback(_type: int, render_data: RenderData) -> void:
 	for row in [[Coords.godot_to_sim(view.origin), near], [observer, far], [Coords.godot_to_sim(view.basis.x), 1.0 / projection.x.x], [Coords.godot_to_sim(view.basis.y), 1.0 / projection.y.y], [Coords.godot_to_sim(-view.basis.z), 0.0]]:
 		push.append_array([row[0].x, row[0].y, row[0].z, row[1]])
 	for view_index in buffers.get_view_count():
-		var uniforms: Array[RDUniform] = [
+		var uniforms := [
 			ComputePass.image(0, buffers.get_color_layer(view_index)),
 			ComputePass.sampled(1, _nearest, buffers.get_depth_layer(view_index)),
 		]
