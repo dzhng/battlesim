@@ -1,4 +1,4 @@
-"""Ka-52M Alligator, from assets/references/ka_52_alligator/. A disabled card.
+"""Ka-52M Alligator, from assets/references/ka_52_alligator/.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/ka52.py -- [--wreck]
 
@@ -10,9 +10,14 @@ gearbox, broad stub wings with three stations each and wing-tip pods, the
 tail with a horizontal stabiliser carrying two end-plate fins and a
 central fin; retractable tricycle gear. Dark grey.
 
-Dimensions stated from published figures (rotorcraft rule: fuselage length
-without blades, width over the wing-tip pods, height to the top of the upper
-rotor head): 13.53 x 7.3 x 4.93 m.
+Built to the catalog frame, from published figures (rotorcraft rule:
+fuselage length without blades, width over the wing-tip pods, height to the
+top of the upper rotor head): 13.53 x 7.3 x 4.93 m.
+
+The cannon on the right flank barely traverses, so it is fixed in the hull
+with the missiles: the `cannon` mount's muzzle is the barrel's tip, the
+`missiles` mount's the right middle station's missile front. The airframe
+turns to bring them to bear.
 """
 import os
 import sys
@@ -20,10 +25,9 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
 from parts import box, cyl  # noqa: E402
-from vehicle_export import run_disabled  # noqa: E402
+from vehicle_export import run  # noqa: E402
 from vehicle_parts import MID  # noqa: E402
 
-CARDS = {"eastern_ka_52_alligator_ka_52m": (13.53, 7.3, 4.93)}
 SPEC = dict(
     fuselage=[(6.77, 0.0, 1.45, 1.45), (6.4, 0.55, 1.0, 1.9, 1.45, 2.2), (5.3, 0.9, 0.82, 2.1, 1.5, 3.0),
               (3.6, 1.0, 0.8, 2.55, 1.6, 3.2), (1.2, 1.0, 0.85, 2.6, 1.65, 3.4), (-1.0, 0.82, 1.0, 2.5, 1.75, 3.2),
@@ -42,6 +46,9 @@ SPEC = dict(
     stores=[("pod", (1.0, 1.6, 1.38), 1.7, 0.25), ("missile", (0.95, 2.4, 1.45), 2.0, 0.12),
             ("pod", (0.9, 3.1, 1.38), 1.7, 0.25), ("pod", (0.6, 3.56, 1.86), 1.8, 0.09)],
 )
+# How far forward the airframe's parts (placed in their drawing's frame)
+# move to centre on the hull box.
+AFT_M = -0.025
 
 
 def build(variant, v):
@@ -67,9 +74,13 @@ def build(variant, v):
         ("insignia", dict(kind="ru_star", centre=(-4.5, 1.2, 1.92), normal=(0, 1, 0), up=(0, 0, 1), size=0.28, onto=("fuselage",))),
         ("text", dict(text="12", height=0.42, centre=(4.0, 1.2, 1.55), normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",), colour="red")),
     ])
+    # The airframe as drawn runs off the frame's middle; the frame (and the
+    # mounts' pivots in it) is centred on the hull box.
+    v.hull.location.x += AFT_M
+
 
 def wreck(variant, v):
-    A.crash(v, tail_x=-2.8, tail_yaw=0.35, tail_drop=0.1, blades_broken=(("upper", 1), ("lower", 2)), seed=52)
+    A.rotorcraft_crash(v, lifting=("upper", "lower"), tail_x=-2.8, tail_yaw=0.35, tail_drop=0.1, seed=52)
 
 
-run_disabled("ka52", CARDS, "russian_air_grey", build, wreck, skip=("dressing_", "blade_"))
+run("ka52", "russian_air_grey", build, wreck, references="assets/references/ka_52_alligator/references.json")

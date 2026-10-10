@@ -1,6 +1,6 @@
 """NH90 TTH, AW101 Merlin HC4 and AW159 Wildcat AH1, from
 assets/references/nh90/, assets/references/aw101_merlin/ and
-assets/references/aw159_wildcat/. Disabled cards.
+assets/references/aw159_wildcat/.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/utility_helis.py -- [--variant=<card>] [--wreck]
 
@@ -20,10 +20,13 @@ variant; they share only the parts library). What the photos settle:
   the long tail boom and swept tail pylon with a half-span stabiliser on top,
   the four BERP-tipped blades, the main gear legs splayed out; Army grey.
 
-Dimensions stated from published figures (rotorcraft rule: fuselage length
-without blades, width over the widest fixed part, height to the top of the
-rotor head): NH90 16.13 x 3.6 x 4.33 m; Merlin 19.53 x 4.52 x 4.95 m;
-Wildcat 13.0 x 3.0 x 3.73 m.
+Built to the catalog frame, from published figures (rotorcraft rule:
+fuselage length without blades, width over the widest fixed part, height to
+the top of the rotor head): NH90 16.13 x 3.6 x 4.33 m; Merlin 19.53 x 4.52 x
+4.95 m; Wildcat 13.0 x 3.0 x 3.73 m.
+
+Each carries a heavy machine gun swung out of its left cabin door on a
+pintle: the `door` mount's HMG rig.
 """
 import math
 import os
@@ -32,11 +35,16 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
 from parts import box, cyl  # noqa: E402
-from vehicle_export import run_disabled  # noqa: E402
+from vehicle_export import rig, run  # noqa: E402
 from vehicle_parts import MID  # noqa: E402
 
 NH90, MERLIN, WILDCAT = "europe_nh90_tth", "europe_aw101_merlin_hc4", "europe_aw159_wildcat_ah1"
-CARDS = {NH90: (16.13, 3.6, 4.33), MERLIN: (19.53, 4.52, 4.95), WILDCAT: (13.0, 3.0, 3.73)}
+# The door gun's elevation on its pintle, degrees.
+DOOR_PITCH_DEG = (-60.0, 20.0)
+# The published length, width and height to the top of the rotor head,
+# metres, that the art is drawn to (the hull's box is the airframe's, under
+# the rotor).
+PUBLISHED_M = {NH90: (16.13, 3.6, 4.33), MERLIN: (19.53, 4.52, 4.95), WILDCAT: (13.0, 3.0, 3.73)}
 
 SPECS = {
     NH90: dict(
@@ -86,14 +94,16 @@ SPECS = {
 }
 ROTOR = {NH90: (8.15, 4, 0.6, 4.05), MERLIN: (9.3, 5, 0.65, 4.67), WILDCAT: (6.4, 4, 0.5, 3.45)}
 TAIL_ROTOR = {NH90: ((-7.7, 0.3, 3.3), 1.6), MERLIN: ((-9.4, 0.35, 3.9), 2.0), WILDCAT: ((-6.2, 0.25, 2.6), 1.1)}
+# How far forward the airframe's parts (placed in their drawing's frame)
+# move to centre on the hull box.
+AFT_M = {NH90: 0.215, MERLIN: 0.165, WILDCAT: 0.025}
 
 
 def build(variant, v):
     vid = variant["id"]
     m = A.jet(v, SPECS[vid])
     hull = v.hull
-    length = CARDS[vid][0]
-    nose = length / 2
+    nose = PUBLISHED_M[vid][0] / 2
     if vid != WILDCAT:
         # Sponsons carrying the main wheels.
         sy = 1.35 if vid == NH90 else 1.75
@@ -127,6 +137,7 @@ def build(variant, v):
     at, r = TAIL_ROTOR[vid]
     A.rotor("tail", at, r, 4, 0.26, m, hull, hub=0.15, mast=0.0, droop=0.0, rot=(-math.pi / 2, 0, 0), thick=0.12)
     A.blade_antenna("antenna_belly", (-0.8, 0, 0.5), 0.25, m, hull, down=True)
+    A.door_gun(v, rig(v.frame, v.root), m, DOOR_PITCH_DEG, inboard=0.15)
 
     # The Esercito's roundel and title on the NH90 (the photo is Italian); the Royal Navy's roundel and
     # title on the Merlin; the Army Air Corps' on the Wildcat.
@@ -147,13 +158,17 @@ def build(variant, v):
             ("text", dict(text="ARMY", height=0.22, centre=(-4.6, 1.2, 1.55), normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",), colour="black")),
             ("text", dict(text="ZZ387", height=0.18, centre=(-1.0, 1.2, 1.4), normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",), colour="black")),
         ])
+    # The airframe as drawn runs off the frame's middle; the frame (and the
+    # mounts' pivots in it) is centred on the hull box.
+    v.hull.location.x += AFT_M[variant["id"]]
+
 
 def wreck(variant, v):
-    A.crash(v, tail_x=-3.6 if variant["id"] != WILDCAT else -2.2, tail_yaw=0.4, tail_drop=0.08,
-            blades_broken=(("main", 1),), seed=90)
+    A.rotorcraft_crash(v, tail_x=-3.6 if variant["id"] != WILDCAT else -2.2, tail_yaw=0.4, tail_drop=0.08, seed=90)
 
 
 # The Army's Wildcats fly in grey, as their photos show; NH90 and Merlin in green.
 SCHEME = {NH90: "nato_helicopter_green", MERLIN: "nato_helicopter_green", WILDCAT: "nato_air_grey"}
 
-run_disabled("utility_helis", CARDS, SCHEME, build, wreck, skip=("dressing_", "blade_"))
+run("utility_helis", SCHEME, build, wreck,
+    references=[f"assets/references/{f}/references.json" for f in ("nh90", "aw101_merlin", "aw159_wildcat")])

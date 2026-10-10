@@ -3398,6 +3398,465 @@
         "footprint_m": 1.5
       }
     },
+    "us_ch_47_chinook_ch_47f": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/chinook/us_ch_47_chinook_ch_47f.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "door": "hmg"
+      },
+      "wreck": "us_ch_47_chinook_ch_47f_wreck"
+    },
+    "us_ch_47_chinook_ch_47f_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/chinook/us_ch_47_chinook_ch_47f_wreck.glb",
+        "debris": "assets/source/roster/chinook/us_ch_47_chinook_ch_47f_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        8.137,
+        1.945,
+        2.713
+      ],
+      "tolerances": {
+        "footprint_m": 1.5
+      }
+    },
+    "europe_ch_47_chinook_hc6": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/chinook/europe_ch_47_chinook_hc6.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "door": "hmg"
+      },
+      "wreck": "europe_ch_47_chinook_hc6_wreck"
+    },
+    "europe_ch_47_chinook_hc6_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/chinook/europe_ch_47_chinook_hc6_wreck.glb",
+        "debris": "assets/source/roster/chinook/europe_ch_47_chinook_hc6_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        8.137,
+        1.945,
+        2.713
+      ],
+      "tolerances": {
+        "footprint_m": 1.5
+      }
+    },
+    "us_ah_1z_viper_attack_helicopter": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/h1/us_ah_1z_viper_attack_helicopter.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "chin": "gun"
+      },
+      "wreck": "us_ah_1z_viper_attack_helicopter_wreck"
+    },
+    "us_ah_1z_viper_attack_helicopter_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/h1/us_ah_1z_viper_attack_helicopter_wreck.glb",
+        "debris": "assets/source/roster/h1/us_ah_1z_viper_attack_helicopter_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        6.851,
+        2.066,
+        1.725
+      ],
+      "tolerances": {
+        "footprint_m": 1.5
+      }
+    },
+    "us_uh_1y_venom_utility_transport": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/h1/us_uh_1y_venom_utility_transport.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "door": "hmg"
+      },
+      "wreck": "us_uh_1y_venom_utility_transport_wreck"
+    },
+    "us_uh_1y_venom_utility_transport_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/h1/us_uh_1y_venom_utility_transport_wreck.glb",
+        "debris": "assets/source/roster/h1/us_uh_1y_venom_utility_transport_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        6.7,
+        1.45,
+        1.8
+      ],
+      "tolerances": {
+        "footprint_m": 1.5
+      }
+    },
+    "eastern_mi_28_havoc_mi_28nm": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/havoc/eastern_mi_28_havoc_mi_28nm.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "chin": "gun"
+      },
+      "wreck": "eastern_mi_28_havoc_mi_28nm_wreck"
+    },
+    "eastern_mi_28_havoc_mi_28nm_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/havoc/eastern_mi_28_havoc_mi_28nm_wreck.glb",
+        "debris": "assets/source/roster/havoc/eastern_mi_28_havoc_mi_28nm_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        8.536,
+        2.495,
+        2.355
+      ],
+      "tolerances": {
+        "footprint_m": 1.5
+      }
+    },
+    "eastern_mi_24_mi_35_hind_mi_35m": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/hind/eastern_mi_24_mi_35_hind_mi_35m.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "chin": "gun"
+      },
+      "wreck": "eastern_mi_24_mi_35_hind_mi_35m_wreck"
+    },
+    "eastern_mi_24_mi_35_hind_mi_35m_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/hind/eastern_mi_24_mi_35_hind_mi_35m_wreck.glb",
+        "debris": "assets/source/roster/hind/eastern_mi_24_mi_35_hind_mi_35m_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        8.75,
+        2.635,
+        1.95
+      ],
+      "tolerances": {
+        "footprint_m": 1.5
+      }
+    },
+    "eastern_mi_8_hip_mi_8amtsh": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/hip/eastern_mi_8_hip_mi_8amtsh.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "door": "hmg"
+      },
+      "wreck": "eastern_mi_8_hip_mi_8amtsh_wreck"
+    },
+    "eastern_mi_8_hip_mi_8amtsh_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/hip/eastern_mi_8_hip_mi_8amtsh_wreck.glb",
+        "debris": "assets/source/roster/hip/eastern_mi_8_hip_mi_8amtsh_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        9.127,
+        2.7,
+        2.2
+      ],
+      "tolerances": {
+        "footprint_m": 1.5
+      }
+    },
+    "eastern_ka_52_alligator_ka_52m": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/ka52/eastern_ka_52_alligator_ka_52m.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "eastern_ka_52_alligator_ka_52m_wreck"
+    },
+    "eastern_ka_52_alligator_ka_52m_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/ka52/eastern_ka_52_alligator_ka_52m_wreck.glb",
+        "debris": "assets/source/roster/ka52/eastern_ka_52_alligator_ka_52m_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        6.825,
+        3.65,
+        2.425
+      ],
+      "tolerances": {
+        "footprint_m": 1.6
+      }
+    },
+    "us_ah_6_mh_6_little_bird_ah_6m": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/little_bird/us_ah_6_mh_6_little_bird_ah_6m.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "us_ah_6_mh_6_little_bird_ah_6m_wreck"
+    },
+    "us_ah_6_mh_6_little_bird_ah_6m_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/little_bird/us_ah_6_mh_6_little_bird_ah_6m_wreck.glb",
+        "debris": "assets/source/roster/little_bird/us_ah_6_mh_6_little_bird_ah_6m_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        3.75,
+        1.64,
+        1.213
+      ],
+      "tolerances": {
+        "footprint_m": 1.5
+      }
+    },
+    "us_ah_6_mh_6_little_bird_mh_6m": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/little_bird/us_ah_6_mh_6_little_bird_mh_6m.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "door": "hmg"
+      },
+      "wreck": "us_ah_6_mh_6_little_bird_mh_6m_wreck"
+    },
+    "us_ah_6_mh_6_little_bird_mh_6m_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/little_bird/us_ah_6_mh_6_little_bird_mh_6m_wreck.glb",
+        "debris": "assets/source/roster/little_bird/us_ah_6_mh_6_little_bird_mh_6m_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        3.75,
+        1.475,
+        1.213
+      ],
+      "tolerances": {
+        "footprint_m": 1.5
+      }
+    },
+    "europe_ec665_tiger_had": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/tiger/europe_ec665_tiger_had.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "chin": "gun"
+      },
+      "wreck": "europe_ec665_tiger_had_wreck"
+    },
+    "europe_ec665_tiger_had_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/tiger/europe_ec665_tiger_had_wreck.glb",
+        "debris": "assets/source/roster/tiger/europe_ec665_tiger_had_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        7.04,
+        2.158,
+        1.75
+      ],
+      "tolerances": {
+        "footprint_m": 1.5
+      }
+    },
+    "europe_ec665_tiger_uht": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/tiger/europe_ec665_tiger_uht.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "europe_ec665_tiger_uht_wreck"
+    },
+    "europe_ec665_tiger_uht_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/tiger/europe_ec665_tiger_uht_wreck.glb",
+        "debris": "assets/source/roster/tiger/europe_ec665_tiger_uht_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        7.04,
+        2.226,
+        2.16
+      ],
+      "tolerances": {
+        "footprint_m": 1.5
+      }
+    },
+    "europe_nh90_tth": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/utility_helis/europe_nh90_tth.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "door": "hmg"
+      },
+      "wreck": "europe_nh90_tth_wreck"
+    },
+    "europe_nh90_tth_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/utility_helis/europe_nh90_tth_wreck.glb",
+        "debris": "assets/source/roster/utility_helis/europe_nh90_tth_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        8.285,
+        1.8,
+        2.0
+      ],
+      "tolerances": {
+        "footprint_m": 1.5
+      }
+    },
+    "europe_aw101_merlin_hc4": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/utility_helis/europe_aw101_merlin_hc4.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "door": "hmg"
+      },
+      "wreck": "europe_aw101_merlin_hc4_wreck"
+    },
+    "europe_aw101_merlin_hc4_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/utility_helis/europe_aw101_merlin_hc4_wreck.glb",
+        "debris": "assets/source/roster/utility_helis/europe_aw101_merlin_hc4_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        9.935,
+        2.2,
+        2.31
+      ],
+      "tolerances": {
+        "footprint_m": 1.5
+      }
+    },
+    "europe_aw159_wildcat_ah1": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/utility_helis/europe_aw159_wildcat_ah1.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "door": "hmg"
+      },
+      "wreck": "europe_aw159_wildcat_ah1_wreck"
+    },
+    "europe_aw159_wildcat_ah1_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/utility_helis/europe_aw159_wildcat_ah1_wreck.glb",
+        "debris": "assets/source/roster/utility_helis/europe_aw159_wildcat_ah1_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        6.525,
+        1.515,
+        1.7
+      ],
+      "tolerances": {
+        "footprint_m": 1.5
+      }
+    },
+    "eastern_z_10_attack_helicopter": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/z10/eastern_z_10_attack_helicopter.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "chin": "gun"
+      },
+      "wreck": "eastern_z_10_attack_helicopter_wreck"
+    },
+    "eastern_z_10_attack_helicopter_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/z10/eastern_z_10_attack_helicopter_wreck.glb",
+        "debris": "assets/source/roster/z10/eastern_z_10_attack_helicopter_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        7.088,
+        2.175,
+        1.75
+      ],
+      "tolerances": {
+        "footprint_m": 1.5
+      }
+    },
+    "us_uh_60_black_hawk_uh_60m": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/hawk/us_uh_60_black_hawk_uh_60m.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "door": "hmg"
+      },
+      "wreck": "us_uh_60_black_hawk_uh_60m_wreck"
+    },
+    "us_uh_60_black_hawk_uh_60m_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/hawk/us_uh_60_black_hawk_uh_60m_wreck.glb",
+        "debris": "assets/source/roster/hawk/us_uh_60_black_hawk_uh_60m_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        7.905,
+        2.19,
+        1.825
+      ],
+      "tolerances": {
+        "footprint_m": 1.5
+      }
+    },
+    "eastern_z_20_utility_transport": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/hawk/eastern_z_20_utility_transport.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "door": "hmg"
+      },
+      "wreck": "eastern_z_20_utility_transport_wreck"
+    },
+    "eastern_z_20_utility_transport_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/hawk/eastern_z_20_utility_transport_wreck.glb",
+        "debris": "assets/source/roster/hawk/eastern_z_20_utility_transport_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        7.975,
+        2.19,
+        1.875
+      ],
+      "tolerances": {
+        "footprint_m": 1.5
+      }
+    },
     "europe_centauro_ii": {
       "unit": "vehicle",
       "source": "assets/source/roster/centauro/europe_centauro_ii.glb",

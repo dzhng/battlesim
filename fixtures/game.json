@@ -1379,7 +1379,7 @@
   "hull_limits": {
     "tracked": { "half_width_m": 2.1, "half_length_m": 4.8 },
     "wheeled": { "half_width_m": 1.6, "half_length_m": 5.2, "turning_radius_m": 6.0 },
-    "air": { "half_width_m": 2.7, "half_length_m": 8.0 }
+    "air": { "half_width_m": 3.65, "half_length_m": 9.94 }
   },
   "air": { "cruise_agl_m": 20, "clearance_m": 10, "ceiling_agl_m": 40, "obstacle_m": 30, "separation_m": 14 }
 }

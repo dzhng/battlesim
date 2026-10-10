@@ -29,6 +29,7 @@ const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
   deployment: lazy(() => import("./routes/deployment")),
   "air-hover": lazy(() => import("./routes/airHover")),
   "air-crash": lazy(() => import("./routes/airCrash")),
+  "air-closing": lazy(() => import("./routes/airClosing")),
   air: lazy(() => import("./routes/air")),
   ambush: lazy(() => import("./routes/ambush")),
   garrison: lazy(() => import("./routes/garrison")),

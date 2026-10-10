@@ -1,4 +1,4 @@
-"""Mi-35M, from assets/references/mi_24_mi_35_hind/. A disabled card.
+"""Mi-35M, from assets/references/mi_24_mi_35_hind/.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/hind.py -- [--wreck]
 
@@ -10,10 +10,14 @@ three stations each plus wing-tip launchers, the long boom with the tail
 fin and the tail rotor on its left; the 35M's fixed tricycle gear and
 shortened wings. Grey.
 
-Dimensions stated from published figures (rotorcraft rule: fuselage length
-without blades, width over the wing-tip launchers, height to the top of the
-rotor head): 17.5 x 5.27 x 3.97 m, the Mi-24VM's (the sources are in the
-library's gaps).
+Built to the catalog frame, from published figures (rotorcraft rule:
+fuselage length without blades, width over the wing-tip launchers, height to
+the top of the rotor head): 17.5 x 5.27 x 3.97 m, the Mi-24VM's (the sources
+are in the library's gaps).
+
+The twin-barrel gun is the `chin` mount's rig, under the nose beside the
+sensor turret; the missiles on the wing-tip launchers are fixed in the hull
+(the `missiles` mount's muzzle is the right launcher's front).
 """
 import math
 import os
@@ -22,10 +26,12 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
 from parts import box, cyl  # noqa: E402
-from vehicle_export import run_disabled  # noqa: E402
+from vehicle_export import rig, run  # noqa: E402
 from vehicle_parts import MID  # noqa: E402
 
-CARDS = {"eastern_mi_24_mi_35_hind_mi_35m": (17.5, 5.27, 3.97)}
+# The GSh-23V's elevation in its chin turret, degrees, and its stroke.
+GUN_PITCH_DEG = (-40.0, 13.0)
+GUN_STROKE_M = 0.05
 SPEC = dict(
     fuselage=[(8.75, 0.0, 1.2, 1.2), (8.4, 0.5, 0.8, 1.7, 1.2, 2.2), (7.2, 0.72, 0.6, 1.95, 1.3, 2.8),
               (5.0, 0.95, 0.55, 2.35, 1.45, 3.2), (1.0, 1.0, 0.6, 2.6, 1.5, 3.4), (-1.6, 0.85, 0.85, 2.55, 1.65, 3.0),
@@ -51,9 +57,7 @@ def build(variant, v):
     A.canopy("canopy", 8.4, 7.05, 1.4, 2.25, 0.58, m, hull, bows=(8.0, 7.6), peak=0.6, tail=0.75)
     A.canopy("canopy_glass_rear", 7.05, 5.35, 1.8, 2.85, 0.68, m, hull, bows=(6.5, 5.9), peak=0.5, tail=0.8)
     A.sensor_ball("sensor", (8.35, 0.35, 0.78), 0.24, m, hull)
-    cyl("gun_turret", 0.26, 0.35, (8.0, -0.3, 0.7), "Z", m["dark"], hull, seg=12)
-    for j in (-1, 1):
-        cyl(f"gun_barrel_{j}", 0.045, 1.0, (8.2, -0.3 + j * 0.07, 0.65), "X", m["steel"], hull, seg=8, lods=MID)
+    A.chin_gun(v, rig(v.frame, v.root), m, GUN_PITCH_DEG, GUN_STROKE_M, drum=0.26, barrels=(0.07, -0.07))
     for side, k in ((1, "L"), (-1, "R")):
         cyl(f"nacelle_{k}_intake", 0.32, 0.12, (3.85, side * 0.48, 2.85), "X", m["black"], hull, seg=14, lods=MID)
         box(f"exhaust_{k}", (0.9, 0.45, 0.45), (-0.6, side * 0.95, 2.85), m["nozzle"], hull, rot=(0, 0, side * 0.5),
@@ -75,7 +79,7 @@ def build(variant, v):
     ])
 
 def wreck(variant, v):
-    A.crash(v, tail_x=-3.4, tail_yaw=-0.38, tail_drop=0.08, blades_broken=(("main", 0), ("main", 3)), seed=24)
+    A.rotorcraft_crash(v, tail_x=-3.4, tail_yaw=-0.38, tail_drop=0.08, seed=24)
 
 
-run_disabled("hind", CARDS, "russian_air_grey", build, wreck, skip=("dressing_", "blade_"))
+run("hind", "russian_air_grey", build, wreck, references="assets/references/mi_24_mi_35_hind/references.json")
