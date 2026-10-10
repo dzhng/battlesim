@@ -146,7 +146,12 @@ browser's own tables (`manifest.grass`), anew for every frame record.
   while the browser draws its frame at 4×, so native's blade edges alias.
 - **Counts.** For each plate the report puts native's clumps per screen cell,
   counted as the browser counts them (root on screen, occlusion ignored),
-  beside the browser's `grassCounts`.
+  beside the browser's `grassCounts`. Every cell must be within 10% of the
+  browser's, or the run stops at a blocker. The one exception is a cell native
+  overgrows by no more than its clumps on a crater, scorch or tracks of the
+  side's learned ground (`capture/learned_ground.gd`). The browser leaves
+  clumps out there, and native can't until slice 08, so such a cell is a
+  `scar-omission` budget row.
 - **Agreement.** The hash words, tile offsets and admission decisions equal the
   browser's WGSL on WebGPU exactly. The two GPU compilers round the fall
   point's arithmetic differently, by a few ulps.

@@ -26,14 +26,10 @@ func add_blocker(name: String, detail: String) -> void:
 func add_plate(index: int, path: String, gpu_ms: Variant) -> void:
 	_plates.append({"index": index, "path": path, "gpuMs": gpu_ms})
 
-## The grass a plate's frame grew: the browser's clumps per screen cell (null
-## when the manifest has none for it) beside native's `counts`
-## (`grass_layer.gd`).
-func add_grass(index: int, browser: Variant, counts: Dictionary) -> void:
-	var row := counts.duplicate()
-	row.index = index
-	row.browserCells = browser
-	_grass.append(row)
+## The grass a plate's frame grew: native's clumps per screen cell beside the
+## browser's (`grass_layer.gd` `counts`).
+func add_grass(counts: Dictionary) -> void:
+	_grass.append(counts)
 
 func ok() -> bool:
 	return _blockers.is_empty()

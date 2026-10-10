@@ -144,7 +144,7 @@ static func _is_digest(value: Variant) -> bool:
 
 ## Decodes every sample of a parsed capture in tick order, carrying group and
 ## fog baselines from one publication to the next. Returns
-## `{ok: true, samples: [{tick, units, fog}]}` or `{ok: false, blocker}`: one
+## `{ok: true, samples: [{tick, units, fog, ground}]}` or `{ok: false, blocker}`: one
 ## sample that fails to decode breaks every later baseline, so it stops the run.
 static func decode_samples(capture_result: Dictionary) -> Dictionary:
 	var baselines: Array = []
@@ -156,7 +156,7 @@ static func decode_samples(capture_result: Dictionary) -> Dictionary:
 			return {"ok": false, "blocker": {"name": "publication", "detail": "the sample at tick %d does not decode: %s" % [sample.tick, decoded.get("error", "malformed carrier")]}}
 		baselines = decoded.baselines
 		fog_bits = decoded.fog.bits
-		samples.append({"tick": int(sample.tick), "units": decoded.units, "fog": decoded.fog})
+		samples.append({"tick": int(sample.tick), "units": decoded.units, "fog": decoded.fog, "ground": decoded.ground})
 	return {"ok": true, "samples": samples}
 
 ## Reconstruct the Rust-owned publication groups from raw carrier words.

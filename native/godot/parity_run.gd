@@ -31,6 +31,7 @@ const FogLayer = preload("res://world/fog_layer.gd")
 const CameraRig = preload("res://reel/camera_rig.gd")
 const Light = preload("res://environment/light.gd")
 const ErrorLog = preload("res://report/error_log.gd")
+const LearnedGround = preload("res://capture/learned_ground.gd")
 
 const OWNER := "native/parity_run"
 ## The browser's presentation layers native can draw; the manifest decides
@@ -131,6 +132,9 @@ func _render(options: Dictionary) -> void:
 	camera.far = CameraRig.far_plane(map.size, float(manifest.light.backdrop.reach_m))
 	_report.add_budget(OWNER, "approximation: a finite far plane at %d m (the map's diagonal plus the backdrop reach); the browser's is infinite" % camera.far, "lens.far", 1, 1, 0)
 
+	# The side's learned ground, replayed as the records pass its ticks: the
+	# grass count gate reads its scars.
+	var learned := LearnedGround.new(admitted.capture.layout.ground)
 	var record = stepper.step()
 	while record != null:
 		var sample := _sample_at(decoded.samples, int(record.tick))
@@ -155,12 +159,12 @@ func _render(options: Dictionary) -> void:
 			return
 		_report.add_plate(int(record.index), path, plate.gpu_ms)
 		if world.grass != null:
-			var counts: Dictionary = world.grass.counts(camera, Vector2(get_window().size))
+			learned.advance_to(decoded.samples, int(record.tick))
 			var browser: Array = manifest.grassCounts.filter(func(row): return row.plate == record.plate)
-			_report.add_grass(int(record.index), browser[0].cells if not browser.is_empty() else null, counts)
+			_report.add_grass(world.grass.counts(int(record.index), camera, Vector2(get_window().size), learned, browser[0].cells if not browser.is_empty() else null))
 		record = stepper.step()
 	if world.grass != null:
-		world.grass.report_budget(_report)
+		world.grass.report_counts(_report)
 
 ## The ground's tables beside the manifest, its decoded height field and the
 ## tables of the grass growing on it:

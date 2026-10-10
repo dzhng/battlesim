@@ -12,11 +12,17 @@ const PlateWriter = preload("res://reel/plate_writer.gd")
 const RenderReport = preload("res://report/render_report.gd")
 const Staging = preload("res://assets/staging.gd")
 const CameraRig = preload("res://reel/camera_rig.gd")
+const ErrorLog = preload("res://report/error_log.gd")
+const LearnedGround = preload("res://capture/learned_ground.gd")
 
 const TEMPLATE := "china-home-10x8-1f"
 const OUT := "throwaway/native-runner/forward-plus-probe"
 
 func run() -> bool:
+	# As in the parity run, an error Godot logs fails the probe: a script
+	# error returns null and lets the probe go on.
+	var errors := ErrorLog.new()
+	OS.add_logger(errors)
 	check(DisplayServer.get_name() != "headless", "the probe needs a display")
 	check(ProjectSettings.get_setting("rendering/renderer/rendering_method") == "forward_plus", "the project renders with Forward+")
 	var map: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(Staging.repo_path("fixtures/maps/market-town/map.json")))
@@ -54,8 +60,10 @@ func run() -> bool:
 	check(report.ok(), "the probe renders without a blocker: %s" % JSON.stringify(summary.blockers))
 	check(summary.budgets.any(func(row): return row.sourceId == "map.buildings" and row.rendered == 1), "the building is drawn")
 	check(not summary.budgets.any(func(row): return row.sourceId == "map.buildings/boxes"), "the building is the kit's shell, not a box")
-	check(composed.grass != null and composed.grass.counts(camera, Vector2(1280, 720)).cells.size() == 12, "the grass build runs and its clumps read back")
+	check(composed.grass != null and composed.grass.counts(0, camera, Vector2(1280, 720), LearnedGround.new({"cellM": 1.0, "cols": 1, "rows": 1, "tileSize": 16}), null).cells.size() == 12, "the grass build runs and its clumps read back")
 	check(world.find_child("Sun", true, false).shadow_enabled, "the sun casts shadows")
 	check(summary.renderer.driver == "metal", "the probe renders on Metal")
 	world.free()
+	OS.remove_logger(errors)
+	check(errors.errors().is_empty(), "the probe logs no error: %s" % errors.errors())
 	return true

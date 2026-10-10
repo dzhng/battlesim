@@ -28,6 +28,8 @@ const MAX_TILES := 256
 const CLUMP_FLOATS := 12
 ## The screen grid clumps are counted over: columns, rows (`GRASS_CELLS`).
 const CELLS := Vector2i(4, 3)
+## How far apart native's and the browser's clumps in a cell may be.
+const COUNT_GATE := 0.1
 
 var _tables: Dictionary
 var _terrain: Dictionary
@@ -79,6 +81,8 @@ func _notification(what: int) -> void:
 	if what == NOTIFICATION_PREDELETE:
 		for instance in _instances:
 			RenderingServer.free_rid(instance)
+		# Godot 4.7.2 leaks each indirect MultiMesh's command buffer here (a
+		# warning at exit): https://github.com/godotengine/godot/pull/108148
 		for multimesh in _multimeshes:
 			RenderingServer.free_rid(multimesh)
 		if _rd != null:
@@ -120,16 +124,21 @@ func grow(record: Dictionary) -> void:
 			material.set_shader_parameter("pixel_scale", fields.eye.w)
 		RenderingServer.call_on_render_thread(_dispatch)
 
-## The clumps each tier drew and found (before its capacity), and the
-## clumps per cell of the screen grid whose root `camera` projects on screen,
-## occlusion ignored, as the browser counts them (`reelRun.ts` `grassCells`).
-## Call after the frame has drawn.
-func counts(camera: Camera3D, canvas: Vector2) -> Dictionary:
+## Frame `index`'s clumps: each tier's drawn and found (before its
+## capacity), and per cell of the screen grid the clumps whose root `camera`
+## projects on screen, occlusion ignored, as the browser counts them
+## (`reelRun.ts` `grassCells`), beside `browser`'s cells (null when the
+## manifest has none for the frame). `scarClumps` counts, per cell, those
+## standing where the side's learned `ground` (`learned_ground.gd`) holds a
+## crater, scorch or tracks: where the browser leaves clumps out and native
+## does not yet. Call after the frame has drawn.
+func counts(index: int, camera: Camera3D, canvas: Vector2, ground, browser: Variant) -> Dictionary:
 	var found := _rd.buffer_get_data(_found).to_int32_array()
 	var drawn := []
 	var cells := []
 	cells.resize(CELLS.x * CELLS.y)
 	cells.fill(0)
+	var scars := cells.duplicate()
 	for tier in 2:
 		var count := _rd.buffer_get_data(RenderingServer.multimesh_get_command_buffer_rd_rid(_multimeshes[tier])).to_int32_array()[1]
 		drawn.append(count)
@@ -144,14 +153,33 @@ func counts(camera: Camera3D, canvas: Vector2) -> Dictionary:
 			var at := camera.unproject_position(root) / canvas
 			if at.x < 0.0 or at.x >= 1.0 or at.y < 0.0 or at.y >= 1.0:
 				continue
-			cells[floori(at.y * CELLS.y) * CELLS.x + floori(at.x * CELLS.x)] += 1
-	var result := {"near": drawn[0], "far": drawn[1], "nearFound": found[0], "farFound": found[1], "cells": cells}
+			var cell := floori(at.y * CELLS.y) * CELLS.x + floori(at.x * CELLS.x)
+			cells[cell] += 1
+			if ground.bare_at(clumps[o], clumps[o + 1]):
+				scars[cell] += 1
+	var result := {"index": index, "near": drawn[0], "far": drawn[1], "nearFound": found[0], "farFound": found[1], "cells": cells, "browserCells": browser, "scarClumps": scars}
 	_counted.append(result)
 	return result
 
-## The tiers' capacities against the most clumps a counted frame found, and
-## every clump dropped past them, as a budget row (call after the last frame).
-func report_budget(report) -> void:
+## Call after the last frame. The tiers' capacities against the most clumps a
+## counted frame found, and every clump dropped past them, as a budget row.
+## Then the count gate: every cell within `COUNT_GATE` of the browser's. A
+## cell over it by no more than its scar clumps is a `scar-omission` budget
+## row; any other is a blocker.
+func report_counts(report) -> void:
+	for frame in _counted:
+		if frame.browserCells == null:
+			continue
+		for cell in frame.cells.size():
+			var browser := int(frame.browserCells[cell])
+			var native: int = frame.cells[cell]
+			if absf(native - browser) <= COUNT_GATE * browser:
+				continue
+			var source := "plate-%d:%d" % [frame.index, cell]
+			if native > browser and native - browser <= frame.scarClumps[cell]:
+				report.add_budget(OWNER, "scar-omission: learned scars arrive in slice 08 (the browser grows %d clumps here, native %d, %d of them on a crater, scorch or tracks)" % [browser, native, frame.scarClumps[cell]], source, browser, native, 0)
+			else:
+				report.add_blocker("grass", "%s: native grows %d clumps where the browser grows %d, more than %d%% apart, and the learned scars do not explain it" % [source, native, browser, roundi(COUNT_GATE * 100.0)])
 	var near_found := 0
 	var far_found := 0
 	var dropped := 0
