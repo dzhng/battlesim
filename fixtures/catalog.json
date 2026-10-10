@@ -6299,7 +6299,7 @@
               "name": "Autocannon",
               "on": null,
               "pivot_m": [
-                0.0,
+                0.3,
                 0.0,
                 1.593
               ],
@@ -6320,7 +6320,7 @@
               "name": "Kornet",
               "on": "autocannon",
               "pivot_m": [
-                0.0,
+                0.3,
                 0.851,
                 2.009
               ],
@@ -6410,7 +6410,7 @@
               "name": "Main Gun",
               "on": null,
               "pivot_m": [
-                0.0,
+                0.3,
                 0.0,
                 1.6
               ],
@@ -6432,7 +6432,7 @@
               "name": "Autocannon",
               "on": "main_gun",
               "pivot_m": [
-                0.0,
+                0.3,
                 -0.22,
                 1.6
               ],
@@ -18787,7 +18787,7 @@
           "name": "Autocannon",
           "on": null,
           "pivot_m": [
-            0.0,
+            0.3,
             0.0,
             1.593
           ],
@@ -18809,7 +18809,7 @@
           "name": "Kornet",
           "on": "autocannon",
           "pivot_m": [
-            0.0,
+            0.3,
             0.851,
             2.009
           ],
@@ -18901,7 +18901,7 @@
           "name": "Main Gun",
           "on": null,
           "pivot_m": [
-            0.0,
+            0.3,
             0.0,
             1.6
           ],
@@ -18924,7 +18924,7 @@
           "name": "Autocannon",
           "on": "main_gun",
           "pivot_m": [
-            0.0,
+            0.3,
             -0.22,
             1.6
           ],

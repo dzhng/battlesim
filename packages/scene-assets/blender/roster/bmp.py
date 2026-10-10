@@ -22,7 +22,8 @@ out (photo: side).
 Built to the catalog frames (BMP-2M hull 6.735 x 3.15 x 2.45 m, turret pivot
 1.593 m, 30 mm muzzle 2.829 m ahead, launcher on the left at 0.851 m;
 BMP-3 7.14 x 3.2 x 2.4 m, pivot 1.6 m, 100 mm muzzle 3.8 m ahead, 30 mm on
-the right at 0.22 m): nothing here moves them.
+the right at 0.22 m; both rings 0.3 m ahead of amidships, as the photos put
+them): nothing here moves them.
 """
 import math
 import os
@@ -80,8 +81,10 @@ def bmp2_hull(v):
         box(f"glacis_rib_{k}", (0.05, 2.40, 0.04), (x, 0, glacis(x) + 0.03), m["paint"], hull, rot=(0, slope, 0),
             bevel=0.01, lods=MID)
     VP.grille("engine_grille", (1.55, -0.75, glacis(1.55)), (0.90, 1.00), m, hull, slats=7, rot=(0, slope, 0))
-    VP.hatch("driver_hatch", (0.95, 0.75, glacis(0.95)), m, hull, radius=0.28, rot=(0, slope, 0))
-    VP.hatch("commander_hatch", (0.30, 0.75, g.ROOF_Z), m, hull, radius=0.28)
+    # The driver's and commander's hatches on the left, placed from the turret ring.
+    ring = v.frame["mounts"][0]["pivot_m"][0]
+    VP.hatch("driver_hatch", (ring + 0.95, 0.75, glacis(ring + 0.95)), m, hull, radius=0.28, rot=(0, slope, 0))
+    VP.hatch("commander_hatch", (ring + 0.30, 0.75, g.ROOF_Z), m, hull, radius=0.28)
     for side, s in ((1, "L"), (-1, "R")):
         VP.light_with_guard(f"headlight_{s}", (1.95, side * 1.20, glacis(1.95) + 0.10), 0.07, m, hull)
         VP.tow_hook(f"front_tow_{s}", (3.20, side * 0.62, 0.86), m, hull, size=0.12)
@@ -215,10 +218,11 @@ def build(variant, v):
                             g.IDLER, g.RETURNS, dual=False, bolts=6, ribs=6, teeth=12, arm=(0.40, 0.40), pitch=0.15)
     mounts = rig(v.frame, v.root)
     if three:
-        turret, gun, _, _ = mounts["main_gun"]
+        turret, gun, _, pivot = mounts["main_gun"]
         _, coax_gun, _, _ = mounts["autocannon"]
         bmp3_turret(v, turret, gun, coax_gun)
-        v.head_out("commander", turret, -0.20, 0.45, 1.6 + 0.50 + 0.06)
+        # In the cupola (turret frame (-0.20, 0.45), its roof 0.56 up).
+        v.head_out("commander", turret, pivot.x - 0.20, pivot.y + 0.45, pivot.z + 0.56)
     else:
         turret, gun, _, _ = mounts["autocannon"]
         launcher, tube, _, _ = mounts["launcher"]
