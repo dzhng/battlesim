@@ -88,7 +88,7 @@ Research behind the rules:
   - Weapon rows `heli_atgm`, `rocket_pod` and `helicopter_crash` in `fixtures/game.json`.
   - The rotor sound `uh60-b-roll` in `fixtures/sounds.json`.
 - **Browser:**
-  - Rotor articulation (`packages/scene-assets/src/articulation.ts`, the `rotor` input).
+  - Rotor articulation (`packages/scene-assets/src/articulation.ts`, the `rotor` and `rotor_blur` inputs, and the blades and mast each rotor's geometry has), drawn in flight as a shutter sees it (`effects/effectFrame.ts`, `rotor_blur`).
   - Drop line and ground marker (`packages/battle-renderer/src/orderOverlay.ts`, `buildAircraftMarks`).
   - The fall and the smoke trail (`packages/battle-renderer/src/models/poseDriver.ts`, `effects/effectFrame.ts`; the lab's `poseFeed.ts` and `effectFeed.ts`).
   - The contact sign (`packages/battle-renderer/src/contactGlyph.ts`).

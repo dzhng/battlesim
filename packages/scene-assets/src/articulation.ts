@@ -165,8 +165,8 @@ export interface RotorShape {
 
 /** The blades and mast in a rotor's geometry: its vertices out past
  *  `OUTER` of its reach (its blades, not its hub), grouped by angle round
- *  its axis, a group's width across its chord; and those near its axis
- *  below its hub, its mast. */
+ *  its axis, a group's width across its chord; and those near its axis,
+ *  above and below its hub, its mast and head. */
 function rotorShape(node: ArticulatedNode, radius: number): RotorShape {
   const p = node.tiers[0]?.positions ?? [];
   // Its mast and head: what stands near its axis, from the lowest to the
