@@ -86,6 +86,9 @@ export interface EffectShooter {
   /** A hull's half extents (length, width, height): its shots leave its
    *  mounts' muzzles and it raises dust. Null for infantry (a soldier's rifle). */
   half: P3 | null;
+  /** Its hull flies (an aircraft): it raises no dust as it moves. None: on
+   *  the ground. */
+  airborne?: boolean;
   /** The hull's heading (world radians), which turns a hull-carried pivot. */
   yaw: number;
   /** Its soldiers' ids (infantry). */
@@ -960,14 +963,14 @@ export class EffectFrame {
     this.noteSources(pub, t0, t1);
   }
 
-  /** Dust behind every hull the side sees move: a puff off each track for
+  /** Dust behind every hull the side sees move on the ground: a puff off each track for
    *  every `spacing_m` it covers, at the time and place it passed. A hull
    *  first seen, or seen again after a gap, starts without dust. */
   private noteMovers(pub: EffectPublication, gap: boolean, t0: number) {
     const style = this.p.dust;
     for (const m of this.movers.values()) m.seen = false;
     for (const u of pub.shooters) {
-      if (!u.half) continue;
+      if (!u.half || u.airborne) continue;
       const [x, y, z] = u.position;
       const m = this.movers.get(u.key);
       if (!m) {

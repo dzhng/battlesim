@@ -19,7 +19,7 @@ import { fromSideKey, sideKey } from "@packages/battle-renderer/src/sideKey";
 import { inheritRows } from "@packages/renderer-core/src/kindTable";
 import { buildingRemains } from "@packages/scene-assets/src/authority";
 import { mountMuzzles, type MountMuzzle } from "@packages/scene-assets/src/mountMuzzle";
-import type { UnitCatalog, UnitType } from "@packages/scene-assets/src/units";
+import { airborne, type UnitCatalog, type UnitType } from "@packages/scene-assets/src/units";
 import type { SideName } from "@web/battle/sim/protocol";
 import type { ObservationView, WeaponPoseView } from "@web/battle/sim/observation";
 
@@ -84,6 +84,7 @@ function shooter(
     key,
     position,
     half,
+    airborne: airborne(units.type(kind)),
     yaw,
     members,
     mounts: poses.map((p) => ({

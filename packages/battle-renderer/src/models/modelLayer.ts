@@ -39,7 +39,7 @@
 // any static model, with their own record buffers and draw ranges.
 
 import { tgpu, d, std } from "typegpu";
-import { mat4, type Mat4 } from "math";
+import { mat4, vec3, type Mat4 } from "math";
 import type {
   ArticulatedBundle,
   Bounds,
@@ -698,6 +698,9 @@ export interface CardAtlas {
   which: "far" | "corpse";
   atlas: ImpostorAtlas;
 }
+
+/** Where an airframe's shadow lands, as `pack` tests it. */
+const _pack_shadow = vec3.create();
 
 /** A corpse population, chunked when it changes (`setCorpses`). */
 interface Corpses {
@@ -1359,7 +1362,16 @@ export async function createModelLayer(
             gpu.bundle.kind === "static" &&
             inst.pose.state === gpu.bundle.states[0]?.name));
       if (inst.tier !== undefined || !view) tier = Math.min(tiers - 1, Math.max(0, inst.tier ?? 0));
-      else
+      else {
+        // An airframe's shadow lands its lift along the sun's fall.
+        const lift = inst.lift ?? 0;
+        if (lift > 0)
+          vec3.set(
+            _pack_shadow,
+            inst.x + shadowFall[0] * lift,
+            inst.y + shadowFall[1] * lift,
+            inst.z - lift,
+          );
         tier = modelDetail(
           detail,
           view,
@@ -1369,7 +1381,9 @@ export async function createModelLayer(
           (lying ? gpu.corpseSize : gpu.size) * grow,
           (lying ? gpu.corpseRadius : gpu.radius) * grow + moved,
           carded,
+          lift > 0 ? _pack_shadow : null,
         );
+      }
       if (tier === CULLED) {
         culled++;
         if (inst.pose.kind === "skinned") culledBodies++;
@@ -1680,6 +1694,9 @@ export async function createModelLayer(
   let viewKey = "";
   /** The detail view the last frame packed at (null, exact, before any frame). */
   let lastView: DetailView | null = null;
+  /** Where the sun's shadows fall, metres across the ground per metre of
+   *  height, as the last frame was prepared. */
+  const shadowFall: [number, number] = [0, 0];
 
   /** Pose the last packing's skinned models: the kernel writes their palette. */
   function encodePose(raw: GPUCommandEncoder) {
@@ -1785,6 +1802,8 @@ export async function createModelLayer(
      *  shadows fall for it), when anything changed. */
     prepare(view: DetailView, key: string, shadow: SunShadow) {
       buildings.prepare(view, key, shadow);
+      shadowFall[0] = shadow.fall[0];
+      shadowFall[1] = shadow.fall[1];
       if (!dirty && key === viewKey) return;
       viewKey = key;
       lastView = view;

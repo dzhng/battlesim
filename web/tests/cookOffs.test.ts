@@ -255,6 +255,7 @@ const tankPose = (at: readonly [number, number], turret: number) => ({
   side: "red" as const,
   position: [at[0], at[1], 0] as [number, number, number],
   yaw: 0.5,
+  airborne: false,
   articulation: { ...REST_ARTICULATION, turret_yaw: turret },
 });
 

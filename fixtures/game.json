@@ -976,6 +976,7 @@
         "wheeled_medium": 0.75,
         "wheeled_medium_logistics": 0.75
       },
+      "rotor": { "tip_mps": 45 },
       "corpses": { "max": 1000, "fade_s": 3, "sink_m": 0.6 }
     },
     "effects": {

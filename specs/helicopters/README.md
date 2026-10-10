@@ -1,16 +1,17 @@
 # Helicopters
 
-**Status:** in progress: slices 01 and 02 done. **Updated:** 2026-10-10.
+**Status:** in progress: slices 01, 02 and 06 done. **Updated:** 2026-10-10.
 
 ## Next Agent Prompt
 
 You are implementing helicopters. Read [decisions](decisions.md) first. Its D1–D43 are givens, and you don't reopen them inside a slice. Then read [landmines](landmines.md) and the slice you're picking up. Load [tweak-mechanics](../../.agents/skills/tweak-mechanics/SKILL.md) before any rule change, [write-tests](../../.agents/skills/write-tests/SKILL.md) before any behaviour change, and [renderer](../../.agents/skills/renderer/SKILL.md) or [game-ui](../../.agents/skills/game-ui/SKILL.md) for slices that draw.
 
-**Next pickup:** slice [03 — Flight](slices/03-flight.md). Slices [05](slices/05-contact-height.md) and [06](slices/06-airframe-art.md) also depend only on 01, so run them alongside 03.
+**Next pickup:** slice [03 — Flight](slices/03-flight.md). Slice [05](slices/05-contact-height.md) also depends only on 01, so run it alongside 03.
 
 **Done so far:**
 - **01:** `units::Motion { Ground, Air }`, `Unit::airborne`, `ground_footprint` (`None` in the air), `Mobility::Air` with its own limits, the `air` rules block, and XY-only `moved`. Ground digests and parity records are unchanged.
 - **02:** variant D, the keyed disc, was picked at the checkpoint ([result](slices/02-contact-sign-spike.md#result)).
+- **06:** `test_heli` (`fixtures/units/test/aircraft.json`, art by `test_heli.py`) hovers on `/lab/air-hover` (the `air` test map). Rotors turn by the articulation's `rotor` input (tip metres swept) over each rotor's reach; hull fit leaves `rotor_*`/`blade_*` out; culling sweeps the disc and keeps an airframe whose shadow is in view; air hulls raise no dust and roll nothing; `vehicleClass` is `air_<weight>`.
 
 **Warnings:**
 - **Harmless plinking is a feature.** Rifles and MGs fire at helicopters they can't hurt (D2). Never gate it.
@@ -26,7 +27,7 @@ You are implementing helicopters. Read [decisions](decisions.md) first. Its D1�
 - [ ] [03 — Flight: route, altitude, separation](slices/03-flight.md)
 - [ ] [04 — Falling airframe (simulation)](slices/04-falling-airframe.md)
 - [ ] [05 — Contacts carry height](slices/05-contact-height.md)
-- [ ] [06 — Test airframe art and rotor pipeline](slices/06-airframe-art.md)
+- [x] [06 — Test airframe art and rotor pipeline](slices/06-airframe-art.md)
 - [ ] [07 — First browser checkpoint: air-aware weapons](slices/07-first-checkpoint.md)
 - [ ] [08 — Hull-mount facing for every unit](slices/08-hull-mount-facing.md)
 - [ ] [09 — Helicopter missile and rocket rows](slices/09-heli-weapon-rows.md)

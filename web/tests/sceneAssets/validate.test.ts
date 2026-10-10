@@ -53,6 +53,8 @@ import {
   panelGlb,
   skidGlb,
   cartGlb,
+  heliGlb,
+  HELI_AUTHORITY,
   soldierGlb,
   syntheticUnits,
   tankGlb,
@@ -757,4 +759,18 @@ test("what rolls on the ground must spin: tyres under wheel nodes; skids or a be
   expect(await judged(skidGlb())).not.toContain("nodes.missing");
   expect(await judged(cartGlb(true))).not.toContain("nodes.missing");
   expect(await judged(cartGlb(false))).toContain("nodes.missing");
+});
+
+test("a helicopter fits its hull without its rotors: their disc is not its airframe's size", async () => {
+  const findings = (
+    await validateAppearance(
+      {
+        name: "heli",
+        entry: { unit: "vehicle", source: "heli.glb", basis_yaw_deg: 0 },
+        files: { "heli.glb": heliGlb() },
+      },
+      { ...context, authority: HELI_AUTHORITY },
+    )
+  ).findings;
+  expect(findings.map((f) => f.message)).toEqual([]);
 });

@@ -1781,6 +1781,26 @@
       "skeleton": "quaternius-ubc-rifle",
       "unit": "soldier"
     },
+    "test_heli": {
+      "bundle": "21a286be8f32968e2aa8ab3dafce9a1ecc1cf25624b9e22e6ba6a52aea03109a",
+      "kind": "articulated",
+      "mounts": {
+        "HMG": "hmg"
+      },
+      "unit": "vehicle",
+      "wreck": "test_heli_wreck"
+    },
+    "test_heli_wreck": {
+      "bundle": "6d7bb6cc1a03f7fb9f274e891ee0d5c612e486f8f039a239596e31f13fcef0e0",
+      "footprint_half_m": [
+        7,
+        1.2,
+        1.6
+      ],
+      "kind": "static",
+      "scenery": "wreck",
+      "unit": "scenery"
+    },
     "test_jeep": {
       "bundle": "124c78794623e85886295daf90536781a081b7dccffa4bba7807176e75c2abd9",
       "kind": "articulated",
@@ -2819,6 +2839,11 @@
       "hash": "d365a2d1f33afcddbb64759ce7452fc9ab32ed4fd4098e3a0ae260d1cfdd4dac",
       "raw_bytes": 349543
     },
+    "21a286be8f32968e2aa8ab3dafce9a1ecc1cf25624b9e22e6ba6a52aea03109a": {
+      "bytes": 335780,
+      "hash": "b37387128e71a48147460630457c5d6ba455a99a1faa14d05366a042ca46608a",
+      "raw_bytes": 958492
+    },
     "21b14196d3af93bca52f102105e16f637d62c4cdd6274fecc73efbc4ac3ff12c": {
       "bytes": 978634,
       "hash": "a32f7311cd7573eb584b2f66125a12a9f7fbb35ebf7406141b1ce04fddefbb43",
@@ -3198,6 +3223,11 @@
       "bytes": 85381,
       "hash": "802a4c21ed0053b71163c07260577cb008e490436a9d1d0a356c151e324da4dd",
       "raw_bytes": 349548
+    },
+    "41ecb7666d4561b05de0ea892595daa5961f857fe2a90ccec7112a60fd31beca": {
+      "bytes": 80658,
+      "hash": "bc577e269eac65129d57f3b1e826dd5b2dd5dbd95bb17c9c93c94e4ec0e5217d",
+      "raw_bytes": 349543
     },
     "423d3b4b1cfb92ddcb7f816196fffd9f07e377aedd84a16889702c68db228ea2": {
       "bytes": 159413,
@@ -3739,6 +3769,11 @@
       "hash": "04150182e40d108f9a83ded1e546fc3e050a177fa4910db119148a3090a03774",
       "raw_bytes": 3906676
     },
+    "6d7bb6cc1a03f7fb9f274e891ee0d5c612e486f8f039a239596e31f13fcef0e0": {
+      "bytes": 870165,
+      "hash": "be9b973c74aea0284b058f80b3aafe04ecabface4a68f362907b412813f45d4c",
+      "raw_bytes": 1858660
+    },
     "6d874bb0019b7e5a398b7d6e9f207ed22a805aa8e2c5ed68f8ab44c9d911b913": {
       "bytes": 144791,
       "hash": "779704ff52aa699ef7330d4a8e2314825fef677daacbba7060dad0760582ad5c",
@@ -3997,6 +4032,11 @@
     "812f80d385babc0db68e87769a2afec1fd59e9bc20f2ef83dc899cd9f0a2f920": {
       "bytes": 93793,
       "hash": "4ee38acd10ee1a2a26088056e9b9a781f39ddec1fc170baa8e7f9b81a3e2d9aa",
+      "raw_bytes": 349543
+    },
+    "8171ca64160605acfc04680ed2596e3f601684988068c7fcfd65238246af8182": {
+      "bytes": 69910,
+      "hash": "2a5986d1f038a983e3cf9572b846529035683545cc237df81271778e97801d80",
       "raw_bytes": 349543
     },
     "8217e968b66af0866cf1e0d11e0cb1e472717faa53fd666af1869d9dcec9fc5c": {
@@ -4533,6 +4573,11 @@
       "bytes": 14025,
       "hash": "8ce4d66058f46fbfe67f16a7c0fe3a70027215400a1bba71135924ac07928010",
       "raw_bytes": 86168
+    },
+    "ace1a74444208b1a6790411c9624977fb921520a5850c9b4b4731fac259aefae": {
+      "bytes": 172641,
+      "hash": "f1dbef8ed40a711e0fa028f1923d8ccd7e76bdd0e68bc4356ca12032d5bc5f50",
+      "raw_bytes": 349548
     },
     "ad10dd18465dd4e69621da2f41860a73f33a7b0aad8e9639d1b521307610a8c6": {
       "bytes": 1170975,
@@ -6498,6 +6543,23 @@
       "0c279e94c4ae0cc36cf18601598f9c19ffc6fd12ba03b548fdd6ef480517c8fc",
       "6c87299d612ba7208dca985a8ea85de5bcc8758f875dcf530a7f48b495b51f67"
     ],
+    "21a286be8f32968e2aa8ab3dafce9a1ecc1cf25624b9e22e6ba6a52aea03109a": [
+      "7745e08d0a0c9264ae2b31193383a3a2055143d7fee49163d062accd92207fe5",
+      "9d317b300663e15ca727661967963945d97b4bfb348fd98bb62e05de613a6731",
+      "af14b08eb7a44841662da908915bdedeb53d8d80791bc945b8661c5b2cf4841a",
+      "ace1a74444208b1a6790411c9624977fb921520a5850c9b4b4731fac259aefae",
+      "8171ca64160605acfc04680ed2596e3f601684988068c7fcfd65238246af8182",
+      "41ecb7666d4561b05de0ea892595daa5961f857fe2a90ccec7112a60fd31beca",
+      "fddec6a58146cf10a591a6334897a5883b62347137a18527ed768bce2f201eb5",
+      "a709cdfa5560c3c67fafe25b84a28ea82a647555b6fe901e407a4a4a4a8a8050",
+      "8bf93135986ef9934a48839bbbee7f82616707f39af89f6bd750da0f169dbb42",
+      "e5c67c18b50e8c7620db2020de57c101342f3e3d4bd2e33ccf254814ea37827d",
+      "7ff523c30b5cc4255396e6660919c60c3bc03b2f67204d3859884aaf0a94174e",
+      "e65b114a93e55184c201091d98d751c3dbdf22a777b81763ee434e783d6371c7",
+      "9ada61942b3254158cf29cf4873d00f11a3043ae8858a97d86e96a53a3dffe8c",
+      "4849728f8be4ff3e8c554a5613cc6b6e8fd9b6fce0bc846ecd6f075d96bddeae",
+      "c23b44c40de2151f15fe64885725a47ffe371d82b131c7e15a931a75c5f80336"
+    ],
     "21b14196d3af93bca52f102105e16f637d62c4cdd6274fecc73efbc4ac3ff12c": [
       "3e7541badb88d4024f735ede729a604b0e354a6f55becb300f78259c0fe7fa32",
       "5d654d5b70f78056a9c0a0801decd296f43e0eecd2e2541a1894977562723ed0",
@@ -7704,6 +7766,11 @@
       "883cbdb381ea730139bbd29572a0170dfea6eb2fb58bf375a588d778923fcea7",
       "2348de16edcd48491b95a85cebfb156b01c205e2a1be00df38e7913cce2d143a",
       "a871b2fb818adb9ab89c2346e934fac6c8fd592501482e44528b5ba1bd42bb07"
+    ],
+    "6d7bb6cc1a03f7fb9f274e891ee0d5c612e486f8f039a239596e31f13fcef0e0": [
+      "3e7541badb88d4024f735ede729a604b0e354a6f55becb300f78259c0fe7fa32",
+      "5d654d5b70f78056a9c0a0801decd296f43e0eecd2e2541a1894977562723ed0",
+      "0342cd8bad2bc7b6010152d51d20dcd69ad42b48aad28ec93e99f1ef7a10984f"
     ],
     "6d874bb0019b7e5a398b7d6e9f207ed22a805aa8e2c5ed68f8ab44c9d911b913": [
       "55a62694b9e2be6bdf4f16874458450c3202dd680f98a8a20a90d0dc651f32b4",

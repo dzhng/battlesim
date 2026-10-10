@@ -434,6 +434,32 @@
       },
       "wreck": "test_jeep_wreck"
     },
+    "test_heli": {
+      "unit": "vehicle",
+      "source": "assets/source/test/heli.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "HMG": "hmg"
+      },
+      "wreck": "test_heli_wreck"
+    },
+    "test_heli_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/test/heli_wreck.glb",
+        "debris": "assets/source/test/heli_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        7,
+        1.2,
+        1.6
+      ],
+      "tolerances": {
+        "footprint_m": 1.5
+      }
+    },
     "test_tank_wreck": {
       "unit": "scenery",
       "scenery": "wreck",

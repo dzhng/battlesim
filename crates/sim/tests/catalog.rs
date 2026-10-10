@@ -511,6 +511,11 @@ fn every_unit_type_sets_up_fires_each_mount_and_moves() {
             queued: false,
         });
         assert_eq!(ack.error, None, "{id}: {ack:?}");
+        // An aircraft takes the order but holds where it is until flight
+        // lands (helicopters slice 03), which then holds it to its goal here.
+        if b.unit(UnitId(0)).unwrap().airborne() {
+            continue;
+        }
         for _ in 0..90 * rules.tick_hz {
             b.step();
         }

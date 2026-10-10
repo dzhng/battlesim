@@ -1071,6 +1071,15 @@ test("a moving hull raises dust behind it, by the distance it covers", () => {
   expect(fast.puffs.some((i) => i.a[1] < -0.5)).toBe(true);
 });
 
+test("an aircraft flying over the ground raises no dust", () => {
+  const f = frame();
+  const half: EffectShooter["half"] = [7, 1.2, 1.6];
+  run(f, 1, 2 * HZ, (t) =>
+    pub(t, { shooters: [{ ...tank(3, 0), position: [60 * t * DT, 0, 20], half, airborne: true }] }),
+  );
+  expect(puffs(drawn(f, 2 * HZ * DT))).toEqual([]);
+});
+
 test("a blast throws up a dirt column and smoke that outlast its fire", () => {
   const f = frame();
   f.note(pub(1));

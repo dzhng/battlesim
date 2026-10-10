@@ -22,9 +22,21 @@ import {
 import { pointAt } from "@packages/scene-assets/src/trs.ts";
 import type { ArticulatedBundle } from "@packages/scene-assets/src/schema.ts";
 import { validateAppearance } from "@packages/scene-assets/src/validate.ts";
-import { AUTHORITY, TANK_DRAWS, TOLERANCES, tankGlb, truckGlb } from "./synthetic";
+import {
+  AUTHORITY,
+  HELI_AUTHORITY,
+  HELI_ROTORS,
+  TANK_DRAWS,
+  TOLERANCES,
+  heliGlb,
+  tankGlb,
+  truckGlb,
+} from "./synthetic";
 
-async function built(unit: "tank" | "supply", bytes: Uint8Array): Promise<ArticulatedBundle> {
+async function built(
+  unit: "tank" | "supply" | "heli",
+  bytes: Uint8Array,
+): Promise<ArticulatedBundle> {
   const result = await validateAppearance(
     {
       name: unit,
@@ -36,7 +48,7 @@ async function built(unit: "tank" | "supply", bytes: Uint8Array): Promise<Articu
       },
       files: { "a.glb": bytes },
     },
-    { authority: AUTHORITY, tolerances: TOLERANCES },
+    { authority: unit === "heli" ? HELI_AUTHORITY : AUTHORITY, tolerances: TOLERANCES },
   );
   return result.preview as ArticulatedBundle;
 }
@@ -163,6 +175,7 @@ test("posed bounds hold every reachable pose, the rest pose among them", async (
         travel_l: k * 0.11,
         travel_r: -k * 0.07,
         deploy: (k % 11) / 10,
+        rotor: k * 1.3,
       };
       const { worlds } = posed(bundle, input);
       positionsBounds(articulatedPositions(bundle.nodes, worlds, 0), reached as never);
@@ -179,4 +192,43 @@ test("posed bounds hold every reachable pose, the rest pose among them", async (
       expect(bounds.max[2]).toBeGreaterThan(5);
     }
   }
+});
+
+test("every rotor turns about its own axis by the distance its blade tips sweep over their reach", async () => {
+  const heli = await built("heli", heliGlb());
+  const node = (name: string) => heli.nodes.findIndex((n) => n.name === name);
+  const tipOf = (p: ReturnType<typeof posed>, rotor: string, reach: number) =>
+    vec3.transformMat4(vec3.create(), [reach, 0, 0], p.worlds[node(rotor)]);
+  // A quarter turn of the main rotor swings its tip from +X to +Y about the mast.
+  const quarter = (HELI_ROTORS.main * Math.PI) / 2;
+  const rest = posed(heli, {});
+  const turned = posed(heli, { rotor: quarter });
+  expect([...tipOf(rest, "rotor_main", 5)].map((v) => +v.toFixed(4))).toEqual([5.5, 0, 2.4]);
+  expect([...tipOf(turned, "rotor_main", 5)].map((v) => +v.toFixed(4))).toEqual([0.5, 5, 2.4]);
+  // The tail rotor's tips sweep as far, so the smaller rotor turns faster,
+  // about its own axis (across the boom), never out of its plane.
+  const hub = rest.at("rotor_tail");
+  const [from, to] = [rest, turned].map((p) =>
+    vec3.sub(vec3.create(), tipOf(p, "rotor_tail", 0.7), hub),
+  );
+  const swung = Math.acos(vec3.dot(from, to) / (vec3.length(from) * vec3.length(to)));
+  const expected = (quarter / HELI_ROTORS.tail) % (2 * Math.PI);
+  expect(swung).toBeCloseTo(Math.min(expected, 2 * Math.PI - expected), 4);
+  expect(to[1]).toBeCloseTo(0, 5);
+});
+
+test("a rotor's whole disc is inside the culling bounds, whatever its angle", async () => {
+  const heli = await built("heli", heliGlb());
+  const bounds = posedBounds(heli.nodes);
+  expect(heli.bounds).toEqual(bounds);
+  for (let k = 0; k < 24; k++) {
+    const { worlds } = posed(heli, { rotor: k * 0.83 });
+    const b = positionsBounds(articulatedPositions(heli.nodes, worlds, 0));
+    for (let c = 0; c < 3; c++) {
+      expect(b.min[c]).toBeGreaterThanOrEqual(bounds.min[c] - 1e-4);
+      expect(b.max[c]).toBeLessThanOrEqual(bounds.max[c] + 1e-4);
+    }
+  }
+  // The disc, not the blade at rest along +X, sets the sides.
+  expect(bounds.max[1]).toBeGreaterThan(5);
 });

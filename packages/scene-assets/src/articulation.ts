@@ -9,6 +9,9 @@
 // - Wheels roll about their local +Y (the axle) by travel over radius, each
 //   side by its own travel, so a tank turning in place counter-rotates them.
 // - Tracks scroll their links by travel over link pitch (a material offset).
+// - Rotors (`rotor_*`) turn about their local +Z by the distance their blade
+//   tips have swept over their reach, so every rotor's tips run at one speed
+//   and a small tail rotor turns faster than the main rotor.
 // - Deploying parts move by their authored custom properties, over their own
 //   window of deploy progress (see `DEPLOY_EXTRAS`).
 
@@ -31,6 +34,9 @@ export interface Articulation {
   travel_r: number;
   /** Deployment progress: 0 packed, 1 deployed. */
   deploy: number;
+  /** Metres every rotor's blade tips have swept: an accumulated angle times
+   *  each rotor's reach. */
+  rotor: number;
 }
 
 export const REST_ARTICULATION: Readonly<Articulation> = {
@@ -42,6 +48,7 @@ export const REST_ARTICULATION: Readonly<Articulation> = {
   travel_l: 0,
   travel_r: 0,
   deploy: 0,
+  rotor: 0,
 };
 
 const DEG = Math.PI / 180;
@@ -88,14 +95,24 @@ export interface ArticulationRig {
   hmgGun: number;
   wheels: { node: number; radius: number; left: boolean }[];
   tracks: { node: number; left: boolean; linkPitch: number }[];
+  /** Each rotor and the reach of its blade tips from its axis. */
+  rotors: { node: number; radius: number }[];
   deploy: DeployMotion[];
 }
 
-/** Largest distance of a node's finest-tier vertex from its axle (local +Y). */
-function wheelRadius(node: ArticulatedNode): number {
+/** A rotor: a node the renderer turns about its local +Z, with its blades
+ *  (`blade_*` meshes) under it. Its disc is not its airframe's size, so the
+ *  hull fit leaves it out. */
+export const isRotor = (name: string): boolean => /^(rotor|blade)_/.test(name);
+
+/** Largest distance of a node's finest-tier vertex from its local axis
+ *  through the origin along `axis` (1: +Y, a wheel's axle; 2: +Z, a rotor's mast). */
+function reach(node: ArticulatedNode, axis: 1 | 2): number {
   const p = node.tiers[0].positions;
+  const [a, b] = axis === 1 ? [0, 2] : [0, 1];
   let r2 = 0;
-  for (let v = 0; v < p.length; v += 3) r2 = Math.max(r2, p[v] * p[v] + p[v + 2] * p[v + 2]);
+  for (let v = 0; v < p.length; v += 3)
+    r2 = Math.max(r2, p[v + a] * p[v + a] + p[v + b] * p[v + b]);
   return Math.sqrt(r2);
 }
 
@@ -108,12 +125,17 @@ export function articulationRig(nodes: readonly ArticulatedNode[]): Articulation
     hmgGun: find("hmg_gun"),
     wheels: [],
     tracks: [],
+    rotors: [],
     deploy: [],
   };
   nodes.forEach((node, i) => {
     if (node.name.startsWith("wheel_")) {
-      const radius = node.extras.radius_m ?? wheelRadius(node);
+      const radius = node.extras.radius_m ?? reach(node, 1);
       if (radius > 0) rig.wheels.push({ node: i, radius, left: node.pivot[1] >= 0 });
+    }
+    if (node.name.startsWith("rotor_")) {
+      const radius = node.extras.radius_m ?? reach(node, 2);
+      if (radius > 0) rig.rotors.push({ node: i, radius });
     }
     if (/^track_[LR]$/.test(node.name) && node.extras.link_pitch_m > 0)
       rig.tracks.push({
@@ -182,6 +204,8 @@ export function articulate(
     const travel = wheel.left ? input.travel_l : input.travel_r;
     turned(out[wheel.node], nodes[wheel.node].bind, AXIS_Y, travel / wheel.radius);
   }
+  for (const rotor of rig.rotors)
+    turned(out[rotor.node], nodes[rotor.node].bind, AXIS_Z, input.rotor / rotor.radius);
   for (const motion of rig.deploy) {
     const s = Math.min(1, Math.max(0, (input.deploy - motion.start) / (motion.end - motion.start)));
     if (s === 0) continue;
@@ -217,8 +241,8 @@ export const SWEEP_BEARINGS = { turret: 32, hmg: 16 } as const;
 /**
  * Articulations the posed bounds sweep: deploy progress in quarters, and at
  * packed and deployed every sampled turret and HMG bearing at both pitch
- * limits and level. Wheels are discs about their axle, so their rest box
- * already holds every roll. A sampled turn misses at most a sagitta between
+ * limits and level. Wheels and rotors are discs about their axis, whose
+ * boxes `posedBounds` widens to hold every turn, so none is swept here. A sampled turn misses at most a sagitta between
  * bearings; `SWEEP_PAD` covers it.
  */
 export function sweepArticulations(): Articulation[] {
