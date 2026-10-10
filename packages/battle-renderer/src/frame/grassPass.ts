@@ -112,7 +112,7 @@ type Root = ReturnType<typeof tgpu.initFromDevice>;
 /** The field's numbers, kilobytes of them: a shader reads them through a
  *  pointer (`let P = &….params`). A `let` of the struct itself is copied whole
  *  by every invocation: per blade vertex, that cost 8 to 12 ms a frame. */
-const GrassParams = d
+export const GrassParams = d
   .struct({
     /** The view's side planes: inward normal, offset. */
     planes: d.arrayOf(d.vec4f, 4),
@@ -176,7 +176,7 @@ const Clump = d
   .$name("GrassClump");
 const CLUMP_BYTES = 32;
 
-const ShapeVertex = d
+export const ShapeVertex = d
   .struct({ spine: d.vec4f, side: d.vec4f, normal: d.vec4f, tint: d.vec4f })
   .$name("GrassShapeVertex");
 
@@ -778,6 +778,14 @@ export async function createGrassPass(
   const sides = frustum.create();
   const eye = vec3.create();
   let frameParams: d.Infer<typeof GrassParams> | null = null;
+  /** What `rebuild` uploaded (`grassTables.ts` reads it). */
+  let packedTables: {
+    props: Float32Array;
+    shapes: Float32Array;
+    indices: Uint16Array[];
+    tiers: d.v4u[];
+    maxBlades: number;
+  } | null = null;
 
   function makeBuildGroup() {
     return root.createBindGroup(grassBuildLayout, {
@@ -815,6 +823,13 @@ export async function createGrassPass(
     slots.clumps.set(storage("grass-clumps", (capacity[0] + capacity[1]) * CLUMP_BYTES, COPY_SRC));
     slots.shapes.set(storage("grass-shapes", packed.shapes.byteLength));
     device.queue.writeBuffer(slots.shapes.current!, 0, packed.shapes);
+    const uploaded = {
+      props,
+      shapes: packed.shapes,
+      indices: [] as Uint16Array[],
+      tiers: [] as d.v4u[],
+      maxBlades: packed.maxBlades,
+    };
     FIELD_LODS.forEach((lod, t) => {
       const segments = GRASS_SEGMENTS[lod];
       const indices = grassStripIndices(packed.maxBlades, segments);
@@ -828,8 +843,12 @@ export async function createGrassPass(
       const padded = new Uint16Array(buffer.size / 2);
       padded.set(indices);
       device.queue.writeBuffer(buffer, 0, padded);
-      tierUniforms[t].write(d.vec4u(t, t === 0 ? 0 : capacity[0], grassBladeVertices(segments), 0));
+      const tier = d.vec4u(t, t === 0 ? 0 : capacity[0], grassBladeVertices(segments), 0);
+      tierUniforms[t].write(tier);
+      uploaded.indices.push(padded);
+      uploaded.tiers.push(tier);
     });
+    packedTables = uploaded;
     const wind = rules.wind;
     const vec4s = <V>(
       data: Float32Array | Uint32Array,
@@ -978,6 +997,21 @@ export async function createGrassPass(
         clumpBytes: ready ? (capacity[0] + capacity[1]) * CLUMP_BYTES : 0,
         kinds: kindNames,
       };
+    },
+    /** What `rebuild` uploaded, the params as last written, the kinds and
+     *  tier capacities, and each tier's index count; null with no field. */
+    uploaded() {
+      return (
+        ready &&
+        packedTables &&
+        frameParams && {
+          ...packedTables,
+          params: frameParams,
+          kinds: kindNames,
+          capacity,
+          indexCounts,
+        }
+      );
     },
     /** Lab probes (debug readbacks, never in a frame). */
     probes: {

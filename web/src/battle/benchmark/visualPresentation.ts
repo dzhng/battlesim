@@ -6,11 +6,16 @@
 // Plain Node runs the writer (the scene harness), so it imports nothing the
 // renderer owns; the page validates and derives the light before handing it over.
 import type { LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
+import type { TerrainTableName } from "@packages/battle-renderer/src/frame/terrainTables";
 import type {
-  TerrainTableName,
-  TerrainTables,
+  GrassConstants,
+  GrassTableName,
+} from "@packages/battle-renderer/src/frame/grassTables";
+import type {
+  UploadedTables,
   WordLayout,
-} from "@packages/battle-renderer/src/frame/terrainTables";
+  WordTable,
+} from "@packages/battle-renderer/src/frame/wordTables";
 import { decodePresentationCapture } from "./presentationCapture.ts";
 
 /** The presentation layers a frame can draw. */
@@ -81,33 +86,60 @@ export interface VisualPresentation extends DrawnPresentation {
   };
   /** The canvas every frame drew, at one pixel per CSS pixel. */
   viewport: { width: number; height: number; scale: 1 };
-  /** The ground's GPU tables, each in its own file (`terrainFile`). */
-  terrain: TerrainArtifact[];
+  /** The ground's GPU tables, each in its own file (`tableFile`). */
+  terrain: TableArtifact<TerrainTableName>[];
+  /** The grass pass's GPU tables, the numbers its draws read from uniforms,
+   *  and the grass kinds it draws, in kind order. */
+  grass: {
+    tables: TableArtifact<GrassTableName>[];
+    constants: GrassConstants;
+    kinds: string[];
+  };
   /** The grass clumps each plate's frame grew, per screen cell. */
   grassCounts: GrassCount[];
 }
 
-/** The terrain tables, in the manifest's order. */
-export const TERRAIN_TABLES = [
-  "heights",
-  "nodes",
-  "plots",
-  "surfaces",
-  "surfaceIndex",
-  "params",
-] as const satisfies readonly TerrainTableName[];
+/** Each group's tables, in the manifest's order. */
+export const TABLES = {
+  terrain: [
+    "heights",
+    "nodes",
+    "plots",
+    "surfaces",
+    "surfaceIndex",
+    "params",
+  ] as const satisfies readonly TerrainTableName[],
+  grass: [
+    "params",
+    "props",
+    "shapes",
+    "indicesNear",
+    "indicesFar",
+  ] as const satisfies readonly GrassTableName[],
+};
+export type TableGroup = keyof typeof TABLES;
 
-/** A terrain table written beside the manifest: `words` little-endian u32
- *  words in `terrainFile(name)`, whose bytes hash to `sha256`, read by `layout`. */
-export interface TerrainArtifact {
-  name: TerrainTableName;
+const GRASS_CONSTANTS = [
+  "tileM",
+  "segments",
+  "bladeVertices",
+  "capacity",
+  "firstClump",
+  "indexCount",
+  "maxBlades",
+] as const satisfies readonly (keyof GrassConstants)[];
+
+/** A table written beside the manifest: `words` little-endian u32 words in
+ *  `tableFile(group, name)`, whose bytes hash to `sha256`, read by `layout`. */
+export interface TableArtifact<Name extends string = string> {
+  name: Name;
   sha256: string;
   words: number;
   layout: WordLayout;
 }
 
-/** The file a terrain table is written to, beside the manifest. */
-export const terrainFile = (name: TerrainTableName) => `terrain-${name}.u32`;
+/** The file a group's table is written to, beside the manifest. */
+export const tableFile = (group: TableGroup, name: string) => `${group}-${name}.u32`;
 
 /** The screen grid grass is counted over: columns, rows. */
 export const GRASS_CELLS = [4, 3] as const;
@@ -131,12 +163,15 @@ const MANIFEST_KEYS = [
   "layers",
   "omissions",
   "terrain",
+  "grass",
   "grassCounts",
 ];
 const LAYOUT_KEYS: Record<WordLayout["kind"], readonly string[]> = {
   records: ["kind", "stride", "count", "fields"],
   words: ["kind", "count", "constants"],
+  u16: ["kind", "count"],
   "height-pages": ["kind", "nx", "ny", "spacing", "pageSize"],
+  "prop-cells": ["kind", "count"],
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -202,10 +237,26 @@ function isLayout(value: unknown): boolean {
         isRecord(v.constants) &&
         Object.values(v.constants).every((c) => Number.isInteger(c))
       );
+    case "u16":
+    case "prop-cells":
+      return count(v.count);
     case "height-pages":
       return [v.nx, v.ny, v.pageSize].every((n) => positive(n) && count(n)) && positive(v.spacing);
   }
 }
+
+/** Whether `value` lists exactly `names`' tables, in order, each hashed and laid out. */
+const isTableList = (value: unknown, names: readonly string[]) =>
+  Array.isArray(value) &&
+  value.length === names.length &&
+  value.every(
+    (t, i) =>
+      hasKeys(t, ["name", "sha256", "words", "layout"]) &&
+      t.name === names[i] &&
+      isHash(t.sha256) &&
+      count(t.words) &&
+      isLayout(t.layout),
+  );
 
 /** `value` as a manifest, or a refusal naming the part at fault. */
 export function validateVisualPresentation(value: unknown): VisualPresentation {
@@ -264,21 +315,25 @@ export function validateVisualPresentation(value: unknown): VisualPresentation {
     )
   )
     throw new Error("visual presentation omission rows need an owner, reason and sourceId");
-  const terrain = value.terrain;
+  if (!isTableList(value.terrain, TABLES.terrain))
+    throw new Error(
+      `visual presentation terrain must list ${TABLES.terrain.join(", ")}, each with its sha256, words and layout`,
+    );
+  const field = value.grass;
   if (
-    !Array.isArray(terrain) ||
-    terrain.length !== TERRAIN_TABLES.length ||
-    !terrain.every(
-      (t, i) =>
-        hasKeys(t, ["name", "sha256", "words", "layout"]) &&
-        t.name === TERRAIN_TABLES[i] &&
-        isHash(t.sha256) &&
-        count(t.words) &&
-        isLayout(t.layout),
-    )
+    !hasKeys(field, ["tables", "constants", "kinds"]) ||
+    !isTableList(field.tables, TABLES.grass) ||
+    !hasKeys(field.constants, GRASS_CONSTANTS) ||
+    !Object.values(field.constants).every((c) =>
+      Array.isArray(c) ? c.length === 2 && c.every(count) : count(c),
+    ) ||
+    !Array.isArray(field.kinds) ||
+    field.kinds.length === 0 ||
+    !field.kinds.every(text) ||
+    new Set(field.kinds).size !== field.kinds.length
   )
     throw new Error(
-      `visual presentation terrain must list ${TERRAIN_TABLES.join(", ")}, each with its sha256, words and layout`,
+      `visual presentation grass needs tables ${TABLES.grass.join(", ")}, its constants and its distinct kinds`,
     );
   const grass = value.grassCounts;
   if (
@@ -312,18 +367,17 @@ function littleEndian(words: Uint32Array): Uint8Array {
   return bytes;
 }
 
-/** The words of the artifact `entry` names, from its file's `bytes`; refused
- *  unless the bytes are the ones the manifest hashed. */
-export async function readTerrainArtifact(
-  entry: TerrainArtifact,
+/** The words of `group`'s artifact `entry`, from its file's `bytes`;
+ *  refused unless the bytes are the ones the manifest hashed. */
+export async function readTableArtifact(
+  group: TableGroup,
+  entry: TableArtifact,
   bytes: Uint8Array,
 ): Promise<Uint32Array> {
+  const file = tableFile(group, entry.name);
   if (bytes.length !== entry.words * 4)
-    throw new Error(
-      `${terrainFile(entry.name)} holds ${bytes.length / 4} words, not ${entry.words}`,
-    );
-  if ((await sha256(bytes)) !== entry.sha256)
-    throw new Error(`${terrainFile(entry.name)} does not match its sha256`);
+    throw new Error(`${file} holds ${bytes.length / 4} words, not ${entry.words}`);
+  if ((await sha256(bytes)) !== entry.sha256) throw new Error(`${file} does not match its sha256`);
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   return Uint32Array.from({ length: entry.words }, (_, i) => view.getUint32(i * 4, true));
 }
@@ -331,19 +385,20 @@ export async function readTerrainArtifact(
 /** The manifest JSON for a capture file's text `captureJson` drawn on the
  *  map whose `map.json` is `mapBytes`, and the artifact files beside it: the
  *  identity is the capture's workload and both files' hashes, the viewport
- *  the canvas every frame drew. `terrain` holds the ground's tables as the
- *  page uploaded them; `grassCounts` one row per plate the capture names. */
+ *  the canvas every frame drew. `tables` holds the ground's and the grass's
+ *  tables as the page uploaded them; `grassCounts` one row per plate the
+ *  capture names. */
 export async function writeVisualPresentation({
   captureJson,
   mapBytes,
   drawn,
-  terrain,
+  tables,
   grassCounts,
 }: {
   captureJson: string;
   mapBytes: Uint8Array;
   drawn: DrawnPresentation;
-  terrain: TerrainTables;
+  tables: UploadedTables;
   grassCounts: readonly GrassCount[];
 }): Promise<{ manifest: string; artifacts: { file: string; bytes: Uint8Array }[] }> {
   const capture = decodePresentationCapture(captureJson);
@@ -363,15 +418,32 @@ export async function writeVisualPresentation({
     throw new Error(
       `grass counts must be one per plate: none for ${uncounted.join(", ") || "-"}; no plate ${stray.join(", ") || "-"}`,
     );
-  const unknown = Object.keys(terrain).filter(
-    (name) => !(TERRAIN_TABLES as readonly string[]).includes(name),
-  );
-  if (unknown.length) throw new Error(`unknown terrain tables ${unknown.join(", ")}`);
-  const artifacts = TERRAIN_TABLES.map((name) => ({
-    name,
-    file: terrainFile(name),
-    bytes: littleEndian(terrain[name].words),
-  }));
+  const groups: Record<TableGroup, Record<string, WordTable>> = {
+    terrain: tables.terrain,
+    grass: tables.grass.tables,
+  };
+  const files = (group: TableGroup) => {
+    const names: readonly string[] = TABLES[group];
+    const unknown = Object.keys(groups[group]).filter((name) => !names.includes(name));
+    if (unknown.length) throw new Error(`unknown ${group} tables ${unknown.join(", ")}`);
+    return names.map((name) => ({
+      name,
+      file: tableFile(group, name),
+      bytes: littleEndian(groups[group][name].words),
+      layout: groups[group][name].layout,
+    }));
+  };
+  const terrain = files("terrain");
+  const grass = files("grass");
+  const entries = <Name extends string>(list: ReturnType<typeof files>) =>
+    Promise.all(
+      list.map(async ({ name, bytes, layout }) => ({
+        name: name as Name,
+        sha256: await sha256(bytes),
+        words: bytes.length / 4,
+        layout,
+      })),
+    );
   const { scene, map, encounter, seed } = capture.workload;
   const manifest: VisualPresentation = {
     schema: "native-visual-presentation",
@@ -389,18 +461,16 @@ export async function writeVisualPresentation({
     tuning: drawn.tuning,
     layers: drawn.layers,
     omissions: drawn.omissions,
-    terrain: await Promise.all(
-      artifacts.map(async ({ name, bytes }) => ({
-        name,
-        sha256: await sha256(bytes),
-        words: bytes.length / 4,
-        layout: terrain[name].layout,
-      })),
-    ),
+    terrain: await entries<TerrainTableName>(terrain),
+    grass: {
+      tables: await entries<GrassTableName>(grass),
+      constants: tables.grass.constants,
+      kinds: tables.grass.kinds,
+    },
     grassCounts: plates.map((plate) => grassCounts.find((g) => g.plate === plate)!),
   };
   return {
     manifest: JSON.stringify(validateVisualPresentation(manifest)),
-    artifacts: artifacts.map(({ file, bytes }) => ({ file, bytes })),
+    artifacts: [...terrain, ...grass].map(({ file, bytes }) => ({ file, bytes })),
   };
 }

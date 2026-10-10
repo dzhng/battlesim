@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { expect, test } from "vitest";
 import { createReelRun, grassCells } from "@apps/battle-lab/src/benchmark/reelRun";
-import type { TerrainTables } from "@packages/battle-renderer/src/frame/terrainTables";
+import type { UploadedTables } from "@packages/battle-renderer/src/frame/wordTables";
 import type { BackdropScene } from "@apps/battle-lab/src/menuReel";
 
 const pose = { target: [0, 0] as [number, number], distance: 40, yaw: 0, pitch: 0.2 };
@@ -142,22 +142,22 @@ test("grass is counted by the screen cell its roots project into, row-major from
   expect(cells).toEqual([1, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1]);
 });
 
-test("a plate frame counts the grass its own frame grew and keeps the terrain it drew on", async () => {
+test("a plate frame counts the grass its own frame grew and keeps the tables it drew with", async () => {
   type Result = {
     plates: { file: string; grass: Promise<number[]> }[];
-    terrain: TerrainTables | null;
+    tables: UploadedTables | null;
   };
   const results: Result[] = [];
   const run = createReelRun(scene, 30, (r) => results.push(r as unknown as Result), {
     plates: true,
   });
-  const tables = { heights: { words: new Uint32Array(3) } } as unknown as TerrainTables;
+  const tables = { terrain: {}, grass: {} } as unknown as UploadedTables;
   let exported = 0;
   run.pilot.attach!({
     adapter: "test",
     light: {} as never,
     stats: () => ({}) as never,
-    terrain: () => (exported++, tables),
+    tables: () => (exported++, tables),
   });
   run.scripted.onWarm();
   run.pilot.frame!(drawn(1000));
@@ -168,20 +168,20 @@ test("a plate frame counts the grass its own frame grew and keeps the terrain it
   run.pilot.frame!(drawn(3000));
   const [result] = results;
   expect(await result.plates[0].grass).toEqual([0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0]);
-  expect(result.terrain).toBe(tables);
+  expect(result.tables).toBe(tables);
   expect(exported).toBe(1);
 });
 
 test("without plates the run reads nothing back", () => {
-  const results: { terrain: TerrainTables | null }[] = [];
+  const results: { tables: UploadedTables | null }[] = [];
   const run = createReelRun(scene, 30, (r) => results.push(r));
   run.pilot.attach!({
     adapter: "test",
     light: {} as never,
     stats: () => ({}) as never,
-    terrain: noProbe,
+    tables: noProbe,
   });
   run.scripted.onWarm();
   for (const now of [1000, 1500, 2100, 3000]) run.pilot.frame!({ ...drawn(now), camera: level });
-  expect(results[0].terrain).toBeNull();
+  expect(results[0].tables).toBeNull();
 });

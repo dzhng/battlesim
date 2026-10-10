@@ -1,8 +1,9 @@
 // @vitest-environment node
 import { expect, test } from "vitest";
 import { d, writeToArrayBuffer } from "typegpu";
-import { schemaFields } from "@packages/battle-renderer/src/frame/terrainTables";
+import { schemaFields, u16Table } from "@packages/battle-renderer/src/frame/wordTables";
 import { PlotNode, TerrainParams } from "@packages/battle-renderer/src/frame/terrainMaterial";
+import { GrassParams, ShapeVertex } from "@packages/battle-renderer/src/frame/grassPass";
 
 test("a reader following the layout gets back every value the GPU write serialised", () => {
   const Look = d.struct({ core: d.vec4f, row: d.vec4u });
@@ -38,13 +39,21 @@ test("a reader following the layout gets back every value the GPU write serialis
   });
 });
 
-test("the terrain's own records are laid out word for word, with nothing unnamed", () => {
+test("the terrain's and grass's own records are laid out word for word, with nothing unnamed", () => {
   expect(schemaFields(PlotNode)).toEqual([
     { name: "line", word: 0, type: "f32", count: 4 },
     { name: "children", word: 4, type: "i32", count: 4 },
   ]);
-  const fields = schemaFields(TerrainParams);
-  const covered = fields.reduce((words, f) => words + f.count, 0);
-  expect(covered).toBe(d.sizeOf(TerrainParams) / 4);
-  expect(new Set(fields.map((f) => f.word)).size).toBe(fields.length);
+  for (const schema of [TerrainParams, GrassParams, ShapeVertex]) {
+    const fields = schemaFields(schema);
+    const covered = fields.reduce((words, f) => words + f.count, 0);
+    expect(covered).toBe(d.sizeOf(schema) / 4);
+    expect(new Set(fields.map((f) => f.word)).size).toBe(fields.length);
+  }
+});
+
+test("u16 values lie two to a word, the first in the low half", () => {
+  const { words, layout } = u16Table(Uint16Array.from([1, 2, 3, 0]), 3);
+  expect(Array.from(words)).toEqual([0x00020001, 0x00000003]);
+  expect(layout).toEqual({ kind: "u16", count: 3 });
 });

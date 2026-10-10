@@ -25,7 +25,7 @@ import type { FelledTree } from "./scenery/felled";
 import type { FelledRules } from "./terrain/biome";
 import type { SceneryStats } from "./frame/sceneryLayer";
 import type { GrassProbes, GrassStats } from "./frame/grassPass";
-import type { TerrainTables } from "./frame/terrainTables";
+import type { UploadedTables } from "./frame/wordTables";
 import type { GrassAppearances } from "./terrain/grassField";
 import type { EffectBatch } from "./effects/effectFrame";
 import type { GroundMarks, ScarStats } from "./frame/scarTexture";
@@ -298,9 +298,9 @@ export interface BattleFrame {
   readonly fogProbes: FogProbes;
   /** Lab probes of the grass field (debug readbacks, never in a frame). */
   readonly grassProbes: GrassProbes;
-  /** The ground's GPU tables as last uploaded, in words with their
-   *  layouts: what a second client draws the same ground from. */
-  terrainTables(): TerrainTables;
+  /** The ground's and the grass's GPU tables as last uploaded, in words
+   *  with their layouts: what a second client draws the same field from. */
+  uploadedTables(): UploadedTables;
   /** Resolves once no target rebuild is pending; true if one was. */
   settled(): Promise<boolean>;
   stats(): FrameStats;

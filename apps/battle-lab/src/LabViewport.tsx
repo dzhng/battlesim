@@ -188,12 +188,13 @@ export interface ViewportFrame {
 export interface ViewportPilot {
   /** The battle frame is up: the adapter, the light it was built with, the
    *  frame's own statistics (its rolling GPU frame time from
-   *  `timestamp-query`, and live memory), and its ground's GPU tables. */
+   *  `timestamp-query`, and live memory), and its ground's and grass's GPU
+   *  tables as last uploaded. */
   attach?(frame: {
     adapter: string;
     light: LightPresentation;
     stats: () => ReturnType<BattleFrame["stats"]>;
-    terrain: () => ReturnType<BattleFrame["terrainTables"]>;
+    tables: () => ReturnType<BattleFrame["uploadedTables"]>;
   }): void;
   /** The framing for the frame at `now`; the rig places it
    *  (`CameraController.place`) and draws it clear of obstacles (`resolve`).
@@ -731,7 +732,7 @@ export function LabViewport({
           adapter,
           light: light(),
           stats: () => scene.stats(),
-          terrain: () => scene.terrainTables(),
+          tables: () => scene.uploadedTables(),
         });
         // What the battle draws, for a player's diagnostics report.
         signal.addEventListener(

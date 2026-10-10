@@ -3,17 +3,18 @@
 // For each scene it writes
 //
 //   throwaway/native-parity/<run>/<scene>/{capture.json, manifest.json,
-//     plate-<index>.png, terrain-<table>.u32}
+//     plate-<index>.png, terrain-<table>.u32, grass-<table>.u32}
 //
 // the capture and its frame records, the `native-visual-presentation`
 // manifest (with each plate's grass counts), the plates read back from the
-// canvas in their own frames, and the ground's GPU tables the manifest hashes.
+// canvas in their own frames, and the ground's and grass's GPU tables the
+// manifest hashes.
 // PARITY_SCENES=<map,…> films only those scenes (`?scenes=`). Run it under
 // the GPU lock; it waits on the route's stage, never on a timer.
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import {
-  readTerrainArtifact,
-  terrainFile,
+  readTableArtifact,
+  tableFile,
   writeVisualPresentation,
 } from "../src/battle/benchmark/visualPresentation.ts";
 
@@ -84,9 +85,9 @@ export async function run(ctx) {
   );
   if (report.outcome.status !== "complete") return;
 
-  // Bytes cross from the page as base64: plates as PNGs, terrain tables as
+  // Bytes cross from the page as base64: plates as PNGs, GPU tables as
   // their words (little-endian, as the page holds them).
-  const { plates, terrain } = await page.evaluate(async () => {
+  const { plates, uploaded } = await page.evaluate(async () => {
     const base64 = async (blob) => {
       const data = await new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -96,6 +97,15 @@ export async function run(ctx) {
       });
       return data.slice(data.indexOf(",") + 1);
     };
+    const encode = async (group) =>
+      Object.fromEntries(
+        await Promise.all(
+          Object.entries(group).map(async ([name, { words, layout }]) => [
+            name,
+            { base64: await base64(new Blob([words])), layout },
+          ]),
+        ),
+      );
     const state = window.__graphicsTest;
     return {
       plates: await Promise.all(
@@ -106,17 +116,11 @@ export async function run(ctx) {
           cells: await grass,
         })),
       ),
-      terrain: await Promise.all(
-        state.terrain.map(async ({ scene, tables }) => ({
+      uploaded: await Promise.all(
+        state.tables.map(async ({ scene, tables: { terrain, grass } }) => ({
           scene,
-          tables: Object.fromEntries(
-            await Promise.all(
-              Object.entries(tables).map(async ([name, { words, layout }]) => [
-                name,
-                { base64: await base64(new Blob([words])), layout },
-              ]),
-            ),
-          ),
+          terrain: await encode(terrain),
+          grass: { ...grass, tables: await encode(grass.tables) },
         })),
       ),
     };
@@ -130,19 +134,24 @@ export async function run(ctx) {
     await writeFile(new URL("capture.json", dir), captureJson);
     const mapBytes = await readFile(new URL(`fixtures/maps/${map}/map.json`, ROOT));
     const own = plates.filter((p) => p.scene === map);
-    const tables = terrain.find((t) => t.scene === map)?.tables;
-    if (!tables) throw new Error(`${map}: the page exported no terrain tables`);
-    const { manifest, artifacts } = await writeVisualPresentation({
-      captureJson,
-      mapBytes,
-      drawn: report.drawnPresentations[i],
-      terrain: Object.fromEntries(
-        Object.entries(tables).map(([name, { base64, layout }]) => {
+    const tables = uploaded.find((t) => t.scene === map);
+    if (!tables) throw new Error(`${map}: the page exported no GPU tables`);
+    const decode = (group) =>
+      Object.fromEntries(
+        Object.entries(group).map(([name, { base64, layout }]) => {
           const bytes = Buffer.from(base64, "base64");
           // A copy: a Buffer's bytes need not start on a word boundary.
           return [name, { words: new Uint32Array(new Uint8Array(bytes).buffer), layout }];
         }),
-      ),
+      );
+    const { manifest, artifacts } = await writeVisualPresentation({
+      captureJson,
+      mapBytes,
+      drawn: report.drawnPresentations[i],
+      tables: {
+        terrain: decode(tables.terrain),
+        grass: { ...tables.grass, tables: decode(tables.grass.tables) },
+      },
       grassCounts: own.map(({ file, cells }) => ({ plate: file, cells })),
     });
     await writeFile(new URL("manifest.json", dir), manifest);
@@ -170,12 +179,21 @@ export async function run(ctx) {
       `viewport ${viewport.width}×${viewport.height}; plates ${[...new Set(sizes)].join(", ")}`,
     );
     // The files on disk read back as the manifest hashed them.
-    for (const entry of parsed.terrain)
-      await readTerrainArtifact(entry, await readFile(new URL(terrainFile(entry.name), dir)));
+    for (const [group, entries] of [
+      ["terrain", parsed.terrain],
+      ["grass", parsed.grass.tables],
+    ])
+      for (const entry of entries)
+        await readTableArtifact(
+          group,
+          entry,
+          await readFile(new URL(tableFile(group, entry.name), dir)),
+        );
     const heights = parsed.terrain.find((t) => t.name === "heights").layout;
+    const shapes = parsed.grass.tables.find((t) => t.name === "shapes").layout;
     const grown = parsed.grassCounts.map((g) => g.cells.reduce((a, b) => a + b, 0));
     console.log(
-      `METRIC native-parity-capture ${map}: ${frames.length} frames, ${own.length} plates, heights ${heights.nx}×${heights.ny} at ${heights.spacing} m, grass per plate ${grown.join(", ")} → ${dir.pathname}`,
+      `METRIC native-parity-capture ${map}: ${frames.length} frames, ${own.length} plates, heights ${heights.nx}×${heights.ny} at ${heights.spacing} m, grass kinds ${parsed.grass.kinds.join(", ")}, ${shapes.count} shape vertices, grass per plate ${grown.join(", ")} → ${dir.pathname}`,
     );
   }
   console.log(

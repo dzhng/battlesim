@@ -21,7 +21,7 @@ import {
 } from "@web/battle/benchmark/presentationCapture";
 import { GRASS_CELLS, type Lens } from "@web/battle/benchmark/visualPresentation";
 import type { LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
-import type { TerrainTables } from "@packages/battle-renderer/src/frame/terrainTables";
+import type { UploadedTables } from "@packages/battle-renderer/src/frame/wordTables";
 
 /** A control plate: the PNG read back from the canvas in the frame it names,
  *  and the grass clumps that frame grew per screen cell (`grassCells`). */
@@ -76,13 +76,14 @@ export interface ReelResult {
   /** The light the battle was built with; null before it was up. */
   light: LightPresentation | null;
   plates: readonly ReelPlate[];
-  /** The ground's GPU tables the first plate drew on; null without plates. */
-  terrain: TerrainTables | null;
+  /** The ground's and grass's GPU tables the first plate drew with; null
+   *  without plates. */
+  tables: UploadedTables | null;
 }
 
 /** One complete scene; preparation and inter-scene loading have no frame
  *  samples. With `plates`, each shot's middle frame is read back as a
- *  control plate with its grass, and the terrain's tables are exported
+ *  control plate with its grass, and the frame's tables are exported
  *  (which costs those frames their timing); without, nothing is read back. */
 export function createReelRun(
   scene: BackdropScene,
@@ -108,8 +109,8 @@ export function createReelRun(
   const plates: ReelPlate[] = [];
   let lens: Lens | null = null;
   let light: LightPresentation | null = null;
-  let exportTerrain: (() => TerrainTables) | null = null;
-  let terrain: TerrainTables | null = null;
+  let exportTables: (() => UploadedTables) | null = null;
+  let tables: UploadedTables | null = null;
   const track = (follow: number, now: number): readonly number[] => {
     const live = subject.unitAt(follow);
     if (tracked?.follow !== follow) tracked = live && { follow, at: [live[0], live[1]], now };
@@ -139,7 +140,7 @@ export function createReelRun(
       lens,
       light,
       plates,
-      terrain,
+      tables,
     });
   };
   const sample = (now: number) => sampleReel(scene.reel, recording.elapsed(now) / 1000);
@@ -148,7 +149,7 @@ export function createReelRun(
       stats = frame.stats;
       adapter = frame.adapter;
       light = frame.light;
-      exportTerrain = frame.terrain;
+      exportTables = frame.tables;
     },
     pose(now) {
       const s = sample(now);
@@ -193,7 +194,7 @@ export function createReelRun(
             ),
           ),
         });
-        terrain ??= exportTerrain?.() ?? null;
+        tables ??= exportTables?.() ?? null;
       }
       lens ??= { fovY: camera.fovY, near: camera.near, depth: "reverse-z", far: "infinite" };
       frames.push({

@@ -7,14 +7,16 @@ import {
   type PresentationFrame,
 } from "@web/battle/benchmark/presentationCapture";
 import {
-  readTerrainArtifact,
+  readTableArtifact,
   validateVisualPresentation,
   writeVisualPresentation,
   type DrawnPresentation,
   type GrassCount,
   type VisualPresentation,
 } from "@web/battle/benchmark/visualPresentation";
-import type { TerrainTables, WordTable } from "@packages/battle-renderer/src/frame/terrainTables";
+import type { TerrainTables } from "@packages/battle-renderer/src/frame/terrainTables";
+import type { GrassTables } from "@packages/battle-renderer/src/frame/grassTables";
+import type { WordTable } from "@packages/battle-renderer/src/frame/wordTables";
 import { sunDirection } from "@packages/battle-renderer/src/light/sceneLight";
 import { terrainTuning } from "@packages/battle-renderer/src/terrain/terrainTuning";
 import { grassTuning } from "@packages/battle-renderer/src/terrain/grassTuning";
@@ -90,6 +92,32 @@ const terrain: TerrainTables = {
   },
   params: records([13, 14, 15, 16]),
 };
+/** A small grass field: two u16 strips, an empty prop grid, two kinds. */
+const grass: GrassTables = {
+  tables: {
+    params: records([1, 2, 3, 4]),
+    props: {
+      words: Uint32Array.from([0, 0, 0x41000000, 0, 0, 0, 0, 0]),
+      layout: { kind: "prop-cells", count: 2 },
+    },
+    shapes: records([0x3f800000, 0, 0, 0]),
+    indicesNear: {
+      words: Uint32Array.from([0x00010000, 0x00000002]),
+      layout: { kind: "u16", count: 3 },
+    },
+    indicesFar: { words: Uint32Array.from([0x00010000]), layout: { kind: "u16", count: 2 } },
+  },
+  constants: {
+    tileM: 4,
+    segments: [4, 2],
+    bladeVertices: [9, 5],
+    capacity: [100, 200],
+    firstClump: [0, 100],
+    indexCount: [3, 2],
+    maxBlades: 1,
+  },
+  kinds: ["meadow_grass", "wheat"],
+};
 const cells = (n: number) => Array.from({ length: 12 }, (_, i) => i * n);
 const grassCounts: GrassCount[] = [{ plate: "plate-1.png", cells: cells(3) }];
 const platedCapture = () =>
@@ -100,7 +128,7 @@ async function written(captureJson: string, counts: GrassCount[] = []) {
     captureJson,
     mapBytes,
     drawn,
-    terrain,
+    tables: { terrain, grass },
     grassCounts: counts,
   });
   return { manifest: JSON.parse(manifest) as VisualPresentation, artifacts };
@@ -128,6 +156,7 @@ test("the manifest names its battle by the capture's workload and the hashes of 
     layers: drawn.layers,
     omissions: [],
     terrain: expect.any(Array),
+    grass: expect.any(Object),
     grassCounts: [],
   });
 });
@@ -172,10 +201,8 @@ test("each terrain table is an artifact of its words, little-endian, named by th
     "surfaceIndex",
     "params",
   ]);
-  expect(artifacts.map((a) => a.file)).toEqual(
-    manifest.terrain.map((t) => `terrain-${t.name}.u32`),
-  );
   for (const [i, entry] of manifest.terrain.entries()) {
+    expect(artifacts[i].file).toBe(`terrain-${entry.name}.u32`);
     const { bytes } = artifacts[i];
     const table = terrain[entry.name];
     expect(entry).toEqual({
@@ -184,7 +211,7 @@ test("each terrain table is an artifact of its words, little-endian, named by th
       words: table.words.length,
       layout: table.layout,
     });
-    expect(await readTerrainArtifact(entry, bytes)).toEqual(table.words);
+    expect(await readTableArtifact("terrain", entry, bytes)).toEqual(table.words);
   }
   // Little-endian: the first height's f32 1.5 lies low byte first.
   const heights = artifacts[0].bytes;
@@ -198,10 +225,10 @@ test("an artifact whose bytes are not the ones the manifest hashed is refused", 
   const bytes = artifacts[0].bytes;
   const tampered = bytes.slice();
   tampered[20] ^= 1;
-  await expect(readTerrainArtifact(entry, tampered)).rejects.toThrow(/sha256/);
-  await expect(readTerrainArtifact(entry, bytes.subarray(0, bytes.length - 4))).rejects.toThrow(
-    /words/,
-  );
+  await expect(readTableArtifact("terrain", entry, tampered)).rejects.toThrow(/sha256/);
+  await expect(
+    readTableArtifact("terrain", entry, bytes.subarray(0, bytes.length - 4)),
+  ).rejects.toThrow(/words/);
 });
 
 test("grass counts hold one row of twelve cells for each plate the capture drew, and only those", async () => {
@@ -257,4 +284,48 @@ test("the manifest carries the terrain and grass tuning tables the shaders were 
   expect(reject({ terrain: { mottle: { scale: Number.NaN } }, grass: grassTuning })).toThrow(
     /tuning/,
   );
+});
+
+test("the grass tables are artifacts beside the terrain's, with the field's constants and kinds", async () => {
+  const { manifest, artifacts } = await written(platedCapture(), grassCounts);
+  expect(manifest.grass.tables.map((t) => t.name)).toEqual([
+    "params",
+    "props",
+    "shapes",
+    "indicesNear",
+    "indicesFar",
+  ]);
+  expect(manifest.grass.constants).toEqual(grass.constants);
+  expect(manifest.grass.kinds).toEqual(grass.kinds);
+  const files = artifacts.slice(manifest.terrain.length);
+  for (const [i, entry] of manifest.grass.tables.entries()) {
+    expect(files[i].file).toBe(`grass-${entry.name}.u32`);
+    expect(entry.sha256).toBe(sha256(files[i].bytes));
+    expect(entry.layout).toEqual(grass.tables[entry.name].layout);
+    expect(await readTableArtifact("grass", entry, files[i].bytes)).toEqual(
+      grass.tables[entry.name].words,
+    );
+  }
+});
+
+test("the validator refuses a grass section with a missing table, a stray constant or no kinds", async () => {
+  const { manifest } = await written(platedCapture(), grassCounts);
+  const reject = (change: object) => () =>
+    validateVisualPresentation({ ...manifest, grass: { ...manifest.grass, ...change } });
+  const { grass: _, ...bare } = manifest;
+  expect(() => validateVisualPresentation(bare)).toThrow(/malformed/);
+  expect(reject({ tables: manifest.grass.tables.slice(1) })).toThrow(/grass/);
+  const [params, props, ...rest] = manifest.grass.tables;
+  expect(
+    reject({
+      tables: [params, { ...props, layout: { kind: "prop-cells", count: 2, cell: 8 } }, ...rest],
+    }),
+  ).toThrow(/grass/);
+  const { maxBlades: _blades, ...short } = manifest.grass.constants;
+  expect(reject({ constants: short })).toThrow(/grass/);
+  expect(reject({ constants: { ...manifest.grass.constants, lod: 0 } })).toThrow(/grass/);
+  expect(reject({ constants: { ...manifest.grass.constants, tileM: "4" } })).toThrow(/grass/);
+  expect(reject({ kinds: [] })).toThrow(/grass/);
+  expect(reject({ kinds: ["wheat", "wheat"] })).toThrow(/grass/);
+  expect(reject({ seed: 1 })).toThrow(/grass/);
 });
