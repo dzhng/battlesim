@@ -95,12 +95,16 @@ export interface OrderStyle {
   /** How far a garrisoned squad's circle reaches past its building's
    *  corners (`OrderView.building`): the ring encloses the whole house. */
   building_marker_margin_m: number;
-  /** An aircraft's drop line, from its airframe down to its marker on the
-   *  ground (D18): its width on screen, by the stroke rule like every
-   *  mark's, and its opacity, whatever its marker's: the marker's hue, so
-   *  a quiet marker's line still reads over pale ground. */
+  /** An aircraft's drop line (D18), dots rising from its marker's centre
+   *  on the ground to its airframe: a dot's size on screen, by the stroke
+   *  rule like every mark's; the pitch from one dot to the next, in dot
+   *  sizes; its opacity at the ground, whatever its marker's (the marker's
+   *  hue, so a quiet marker's dots still read over pale ground); and the
+   *  share of that it fades to at the airframe. */
   drop_line_px: number;
+  drop_line_spacing: number;
   drop_line_alpha: number;
+  drop_line_fade: number;
 }
 
 export function validateOrderStyle(style: OrderStyle): OrderStyle {
@@ -123,12 +127,14 @@ export function validateOrderStyle(style: OrderStyle): OrderStyle {
     style.vehicle_marker_margin_m > 0 &&
     style.building_marker_margin_m > 0 &&
     style.drop_line_px > 0 &&
+    style.drop_line_spacing > 1 &&
     unit(style.drop_line_alpha) &&
+    unit(style.drop_line_fade) &&
     (["light", "medium", "heavy"] as const).every((k) => isRgba(style.cover?.[k])) &&
     [style.color, style.blocked, style.selected].every(isRgba);
   if (!ok)
     throw new Error(
-      `presentation.overlay.orders: positive widths, alphas in (0, 1], rgba color, blocked, selected and cover.{light, medium, heavy}, march.{cycles_per_s ≥ 0, amplitude in [0, 1]}, area_draw_scale in (0, 1], glow.{order, selected} in (0, 2], cover_glow in [1, 2], vehicle_marker_margin_m, building_marker_margin_m and drop_line_px > 0, drop_line_alpha in (0, 1]`,
+      `presentation.overlay.orders: positive widths, alphas in (0, 1], rgba color, blocked, selected and cover.{light, medium, heavy}, march.{cycles_per_s ≥ 0, amplitude in [0, 1]}, area_draw_scale in (0, 1], glow.{order, selected} in (0, 2], cover_glow in [1, 2], vehicle_marker_margin_m, building_marker_margin_m and drop_line_px > 0, drop_line_spacing > 1, drop_line_alpha and drop_line_fade in (0, 1]`,
     );
   return style;
 }
@@ -353,14 +359,16 @@ function circleMarker(mesh: MeshBuilder, pen: Pen, m: UnitCircle, color: Rgba) {
 
 /** An airframe this close to the ground under it draws no drop line. */
 const DROP_MIN_M = 0.5;
+/** The most dots a drop line draws: past it, a close camera spaces them wider. */
+const DROP_MAX_DOTS = 48;
 
 /** Where an aircraft is over the ground (D18): its marker on the ground
- *  under it (paint, in `paint`), and a drop line straight down from the
- *  airframe (`top`, its published position) to the marker's centre. The
- *  line stands in the air, so it is an overlay segment (in `line`),
- *  depth-tested like every overlay: a roof under the airframe cuts it where
- *  it meets the roof, and the marker hides under the roof as paint on the
- *  ground does. The line is the marker's hue at `drop_line_alpha`. */
+ *  under it (paint, in `paint`), and a dotted drop line rising from the
+ *  marker's centre to the airframe (`top`, its published position). The
+ *  dots stand in the air, so they are overlay geometry (in `line`),
+ *  depth-tested like every overlay: a roof under the airframe hides the
+ *  ones below it, and the marker hides under the roof as paint on the
+ *  ground does. */
 function aircraftMarker(
   paint: MeshBuilder,
   line: MeshBuilder,
@@ -373,8 +381,9 @@ function aircraftMarker(
   dropLine(line, pen, top, color);
 }
 
-/** A drop line from `top` straight down to the ground under it, in
- *  `color`'s hue at `drop_line_alpha`: under an airframe or its ghost. */
+/** A drop line of dots from the ground under `top` up to `top`, in
+ *  `color`'s hue: `drop_line_alpha` at the ground, fading to its
+ *  `drop_line_fade` share at the top. Under an airframe or its ghost. */
 function dropLine(
   line: MeshBuilder,
   pen: Pen,
@@ -382,8 +391,18 @@ function dropLine(
   color: Rgba,
 ) {
   const ground = pen.z(top[0], top[1]);
-  if (top[2] - ground < DROP_MIN_M) return;
-  line.segment([top[0], top[1], ground], top, pen.drop / 2, rgbA(color, pen.style.drop_line_alpha));
+  const height = top[2] - ground;
+  if (height < DROP_MIN_M) return;
+  const dot = Math.min(pen.drop, height / 2);
+  const pitch = Math.max(dot * pen.style.drop_line_spacing, height / DROP_MAX_DOTS);
+  // The first dot sits on the ground and the last ends at the top.
+  const gaps = Math.max(1, Math.floor((height - dot) / pitch));
+  const { drop_line_alpha: alpha, drop_line_fade: fade } = pen.style;
+  for (let i = 0; i <= gaps; i++) {
+    const t = i / gaps;
+    const z = ground + dot / 2 + t * (height - dot);
+    line.mark([top[0], top[1], z], dot / 2, rgbA(color, alpha * (1 - t * (1 - fade))));
+  }
 }
 
 /** A route from the unit's own circle to a destination circle, clipped at

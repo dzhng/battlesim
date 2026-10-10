@@ -48,6 +48,22 @@ function brightest(png, p, r) {
 }
 const sum = (c) => c[0] + c[1] + c[2];
 
+/** The brightest pixel within `r` of the screen segment `a`–`b`, sampled
+ *  every pixel along it: a dotted line is found wherever a dot falls. */
+function brightestAlong(png, a, b, r) {
+  const steps = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1])));
+  let best = [0, 0, 0];
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const c = brightest(png, [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t], r);
+    if (sum(c) > sum(best)) best = c;
+  }
+  return best;
+}
+/** How far either side of a sampled height a drop line is looked for, metres:
+ *  past the pitch of its dots at every zoom the scene views it from. */
+const DROP_SPAN_M = 3;
+
 /** The overlays alone over black, the DOM hidden: what the overlay pass
  *  lays down (the drop lines; the ground markers are paint in the world). */
 async function overlaysOnly(page) {
@@ -175,10 +191,22 @@ export async function run(ctx) {
 
   // Its drop line stands in the overlay from the ground under it up to the
   // airframe: drawn halfway up, and nowhere a few metres to its side.
-  const lineAt = (u, k, g) => [u.position[0], u.position[1], g + (u.position[2] - g) * k];
+  const lineAt = (u, k, g, dz = 0) => [
+    u.position[0],
+    u.position[1],
+    g + (u.position[2] - g) * k + dz,
+  ];
+  /** The brightest of `u`'s drop line round height share `k` over ground `g`. */
+  const lineNear = async (png, u, k, g, r) =>
+    brightestAlong(
+      png,
+      await css(lineAt(u, k, g, -DROP_SPAN_M)),
+      await css(lineAt(u, k, g, DROP_SPAN_M)),
+      r,
+    );
   const overlays = await overlaysOnly(page);
   const [mid, side] = [
-    brightest(overlays, await css(lineAt(heli, 0.5, ground)), 3),
+    await lineNear(overlays, heli, 0.5, ground, 3),
     brightest(overlays, await css([heli.position[0] + 4, heli.position[1], ground + lift / 2]), 3),
   ];
   ctx.check(
@@ -242,9 +270,10 @@ export async function run(ctx) {
     aloft > 60 && landed < aloft / 2,
     JSON.stringify({ aloft, landed }),
   );
-  const ghostLine = brightest(
+  const ghostLine = brightestAlong(
     ghostLines,
-    await css([goal[0], goal[1], goalGround + cruise / 2]),
+    await css([goal[0], goal[1], goalGround + cruise / 2 - DROP_SPAN_M]),
+    await css([goal[0], goal[1], goalGround + cruise / 2 + DROP_SPAN_M]),
     3,
   );
   ctx.check(
@@ -275,7 +304,12 @@ export async function run(ctx) {
   const roofGround = await surface(roofHeli.position);
   const onLine = (u, z) => css([u.position[0], u.position[1], z]);
   const [above, below] = [
-    brightest(roofOverlays, await onLine(roofHeli, (roofTop + roofHeli.position[2]) / 2), 2),
+    brightestAlong(
+      roofOverlays,
+      await onLine(roofHeli, (roofTop + roofHeli.position[2]) / 2 - DROP_SPAN_M),
+      await onLine(roofHeli, (roofTop + roofHeli.position[2]) / 2 + DROP_SPAN_M),
+      2,
+    ),
     brightest(roofOverlays, await onLine(roofHeli, (roofGround + roofTop) / 2), 2),
   ];
   ctx.check(
@@ -284,11 +318,7 @@ export async function run(ctx) {
     JSON.stringify({ above, below, roofTop }),
   );
   const red = (c) => c[0] > 100 && c[0] > 1.6 * c[1];
-  const enemyMid = brightest(
-    roofOverlays,
-    await css(lineAt(enemy, 0.5, await surface(enemy.position))),
-    3,
-  );
+  const enemyMid = await lineNear(roofOverlays, enemy, 0.5, await surface(enemy.position), 3);
   ctx.check(
     "an identified enemy helicopter's drop line is drawn, red",
     red(enemyMid),
@@ -301,7 +331,7 @@ export async function run(ctx) {
   await advance(page, 1);
   await capture("map-roof", roofHeli);
   const mapOverlays = await overlaysOnly(page);
-  const mapMid = brightest(mapOverlays, await css(lineAt(roofHeli, 0.85, roofGround)), 2);
+  const mapMid = await lineNear(mapOverlays, roofHeli, 0.85, roofGround, 2);
   ctx.check(
     "from the map's zoom the drop line is still drawn",
     sum(mapMid) > 120,
@@ -337,7 +367,7 @@ export async function run(ctx) {
     await page.evaluate(() => window.__lab.setFrameView("final"));
     const fogged = sum(pixel(mask, underCss[0], underCss[1])) < 60;
     const fogOverlays = await overlaysOnly(page);
-    const mid = brightest(fogOverlays, await css(lineAt(hidden, 0.85, hiddenGround)), 2);
+    const mid = await lineNear(fogOverlays, hidden, 0.85, hiddenGround, 2);
     ctx.check(
       `${name}: over unseen ground, the enemy's drop line is drawn, red`,
       fogged && red(mid),

@@ -61,6 +61,17 @@ const vertices = (mesh: Mesh | undefined) => {
 const sameRgb = (a: readonly number[], b: readonly number[]) =>
   [0, 1, 2].every((k) => Math.abs(a[k] - b[k]) < 1e-5);
 
+/** The drop line's dots, bottom up: each one's height span and opacity. */
+function dotsOf(line: { p: number[]; c: number[] }[]) {
+  const dots: { from: number; to: number; alpha: number }[] = [];
+  // A dot is a closed tube: six quads, two triangles each.
+  for (let i = 0; i < line.length; i += 36) {
+    const z = line.slice(i, i + 36).map((v) => v.p[2]);
+    dots.push({ from: Math.min(...z), to: Math.max(...z), alpha: line[i].c[3] });
+  }
+  return dots.sort((a, b) => a.from - b.from);
+}
+
 /** The ground ring's radius span round `c`, and the drop line's extent. */
 function marks(layer: { painted?: Mesh; opaque: Mesh }, c = AT) {
   const ring = vertices(layer.painted).map((v) => Math.hypot(v.p[0] - c[0], v.p[1] - c[1]));
@@ -81,13 +92,32 @@ test("an own aircraft, neither selected nor ordered, still shows its ground mark
   expect(m.ring.length).toBeGreaterThan(0);
   expect(Math.max(...m.ringZ)).toBeLessThan(0.05);
   expect(Math.max(...m.ring)).toBeGreaterThan(HULL);
-  // The drop line runs from the ground to the airframe, straight down.
+  // The drop line rises from the ring's centre to the airframe, straight up.
   expect(Math.min(...m.lineZ)).toBeCloseTo(0, 5);
   expect(Math.max(...m.lineZ)).toBeCloseTo(HEIGHT, 5);
   expect(Math.max(...m.lineOff)).toBeLessThan(0.5);
-  // The marker is quiet, the line keeps its own opacity: it still reads
-  // over pale ground.
-  for (const v of m.line) expect(v.c[3]).toBeCloseTo(STYLE.drop_line_alpha, 5);
+  // It is dotted: separate dots with gaps between them, not one stroke.
+  const dots = dotsOf(m.line);
+  expect(dots.length).toBeGreaterThan(3);
+  for (let i = 1; i < dots.length; i++) expect(dots[i].from).toBeGreaterThan(dots[i - 1].to);
+  // Full at the ground, fading toward the airframe to the style's share:
+  // the marker is quiet, the dots keep their own opacity over pale ground.
+  expect(dots[0].alpha).toBeCloseTo(STYLE.drop_line_alpha, 5);
+  expect(dots.at(-1)!.alpha).toBeCloseTo(STYLE.drop_line_alpha * STYLE.drop_line_fade, 5);
+  for (let i = 1; i < dots.length; i++) expect(dots[i].alpha).toBeLessThan(dots[i - 1].alpha);
+});
+
+test("the drop line's dots are lit as marks on the ground, not as solids", () => {
+  const layer = orderLayer(UNITS, view({ own: [own({})] }), [], new Map(), flat);
+  const normals = new Set<string>();
+  for (let i = 0; i < layer.opaque.length; i += VERTEX_FLOATS)
+    normals.add(Array.from(layer.opaque.slice(i + 3, i + 6)).join());
+  expect([...normals]).toEqual(["0,0,1"]);
+});
+
+test("however close the camera, an aircraft's dots stay few", () => {
+  const close = orderLayer(UNITS, view({ own: [own({})] }), [], new Map(), flat, 0.001);
+  expect(dotsOf(marks(close).line).length).toBeLessThanOrEqual(64);
 });
 
 test("a ground vehicle neither selected nor ordered still shows nothing", () => {

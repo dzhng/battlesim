@@ -103,6 +103,30 @@ export class MeshBuilder {
     return this;
   }
 
+  /** A cube of half size `half` round `c` that reads as a mark, not a
+   *  solid: every face takes the ground's normal, so the overlays' light
+   *  shades it as it shades paint on the ground, whichever face shows. */
+  mark(c: P3, half: number, color: Rgba) {
+    const at = (x: number, y: number, z: number): P3 => [
+      c[0] + x * half,
+      c[1] + y * half,
+      c[2] + z * half,
+    ];
+    const face = (a: P3, b: P3, cc: P3, d: P3) =>
+      this.vertex(a, AXIS_Z, color)
+        .vertex(b, AXIS_Z, color)
+        .vertex(cc, AXIS_Z, color)
+        .vertex(a, AXIS_Z, color)
+        .vertex(cc, AXIS_Z, color)
+        .vertex(d, AXIS_Z, color);
+    for (const s of [-1, 1]) {
+      face(at(s, -1, -1), at(s, 1, -1), at(s, 1, 1), at(s, -1, 1));
+      face(at(-1, s, -1), at(1, s, -1), at(1, s, 1), at(-1, s, 1));
+      face(at(-1, -1, s), at(1, -1, s), at(1, 1, s), at(-1, 1, s));
+    }
+    return this;
+  }
+
   /** Square tube of half width `half` from `a` to `b` (a line with thickness). */
   segment(a: P3, b: P3, half: number, color: Rgba) {
     const f = vec3.subtract(_segment_forward, b as Vec3, a as Vec3);
