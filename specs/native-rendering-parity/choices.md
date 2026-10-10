@@ -164,6 +164,9 @@ The orchestrator built the browser halves of 04, 05 and 06a early, in parallel w
 | Grass counts are clumps whose root projects on screen (occlusion ignored), in 4×3 cells, read in the plate's own frame. `grassPass.probes.clumps()` now queues both copies at the call. | A later frame could slip in between the old copy and its wait |
 | Readbacks run only in plate mode; terrain tables are taken once, at the first plate | Debug readbacks cost frame time |
 | Both reel maps are flat (the height grid has no pages); non-flat terrain is covered only by tests | It's the territory |
+| `tuning: {terrain, grass}` is passed by the page; the validator checks only that the values are finite numbers or tuples | The Node writer can't import the renderer |
+| Grass tables come from one frame accessor, `uploadedTables() → {terrain, grass}`, read at the first plate. `params` keeps the view fields from the last regrow, and native overwrites them per frame. The index strips are exported as uploaded (padded u16). | One packer; exactly what the GPU read |
+| Generic word-table code lives in `wordTables.ts`, shared by terrain and grass | One owner for artifact layouts |
 
 ### Slice 02 (`ae645e7a`), by the implementing agent; reviewed by the orchestrator
 

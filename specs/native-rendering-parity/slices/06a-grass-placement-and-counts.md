@@ -4,7 +4,8 @@
 
 **Seam:**
 - Lift `grassPass.ts`'s constants (`GRASS_JITTER_M`, the lean/sink/wear constants, `BLADE_ROUGHNESS` and the gust/flutter terms) into `packages/battle-renderer/src/terrain/grassTuning.ts`. The generated WGSL stays byte-identical.
-- The manifest gains `grass`: rules, kinds, packed shapes (`packGrassShapes`), tuning and per-region counts.
+- Already built (`b726a9ca`, `948dc7fd`): the manifest's `grass` holds `{tables, constants, kinds}`. The tables are `params`, `props`, `shapes`, `indicesNear` and `indicesFar`, as hashed `grass-<name>.u32` artifacts, exactly as the pass uploads them. `tuning.grass` is the tuning table.
+  - Native recomputes `params.planes[0..3]`, `eye` (w = 2·tan(fovY/2)/canvas height), `window.xy` and `grid.xy` from each frame record. The rest of `params` is fixed for the map.
   - Already built (`5d6898ad`): `grassCounts: [{plate, cells:[12]}]`, a 4×3 screen grid, row-major from the top-left. Each cell counts the clumps whose root projects onto the screen, occlusion ignored, read from the browser's probe in the same frame as the plate.
   - The grass tuning table already exists (`8b101db5`).
 - **Native:** a GLSL build shader includes `terrain/ground.gdshaderinc` and ports the tile/clump sampling and `pcgHash` with 32-bit integer maths.
