@@ -4,10 +4,10 @@
   "label": "Air lab",
   "character": "arena",
   "biome": "summer",
-  "size_m": [300, 200],
-  "tags": ["road", "building"],
+  "size_m": [640, 520],
+  "tags": ["road", "forest", "building"],
   "source": "authored",
   "seed": null,
-  "encounters": ["fog", "hover", "roof"],
+  "encounters": ["apache", "crash", "flight", "fog", "hover", "roof"],
   "benchmarks": []
 }

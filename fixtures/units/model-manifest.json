@@ -6,16 +6,6 @@
   },
   "entries": [
     {
-      "id": "ah_64e_guardian",
-      "family": "ah_64_apache",
-      "category": "hel",
-      "model_status": "reference_built",
-      "source_family": "ah_64_apache",
-      "source_kind": "rotorcraft",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
-      "source_path": "assets/source/roster/disabled/ah_64e_guardian.glb"
-    },
-    {
       "id": "eastern_2s19_msta_s_2s19m2",
       "family": "2s19_msta_s",
       "category": "sup",

@@ -50,14 +50,16 @@ pub(super) fn step_aircraft(
     let accel = flight.cruise_mps / ctx.rules.movement.drive.acceleration_s;
     let wanted = if may_advance(ctx, unit) {
         let route = unit.route.as_ref().expect("a route to fly");
-        // It takes the next waypoint no faster than the turn there allows:
-        // straight on at cruise, a right angle or more at a stop, and its
-        // destination at a stop. It brakes on a little less than it can.
+        // It takes the next waypoint no faster than the turn there allows
+        // (straight on at cruise, a right angle or more at a stop) nor than
+        // it can stop from in the rest of the route, and its destination at a
+        // stop. It brakes on a little less than it can.
         let leg = route[0] - here;
         let corner = match route.get(1) {
             Some(&after) => {
                 let turn = leg.normalized().dot((after - route[0]).normalized());
-                flight.cruise_mps * turn.max(0.0)
+                let rest: f64 = route.windows(2).map(|w| (w[1] - w[0]).length()).sum();
+                (flight.cruise_mps * turn.max(0.0)).min((2.0 * BRAKING_SHARE * accel * rest).sqrt())
             }
             None => 0.0,
         };
@@ -85,20 +87,20 @@ pub(super) fn step_aircraft(
     unit.position = next.with_z(unit.position.z + climb);
     unit.drive_speed_mps = velocity.length();
     turn(unit, flight, velocity, dt);
-    // Reached waypoints fall away; the last one completes the move.
+    // Reached waypoints fall away; the last one completes the move. A
+    // waypoint on the way is also passed once the aircraft is beyond it along
+    // the leg that led there: one skimmed by a metre or two wide at cruise
+    // would otherwise be turned back for.
     if let Some(route) = unit.route.as_mut() {
-        let passed = |route: &Vec<V2>| {
-            let reach = if route.len() > 1 {
-                WAYPOINT_M
-            } else {
-                ARRIVAL_M
-            };
-            route
-                .first()
-                .is_some_and(|w| (*w - next).inside_radius(reach))
+        let passed = |route: &Vec<V2>, from: V2| match route.first() {
+            Some(&w) if route.len() > 1 => {
+                (w - next).inside_radius(WAYPOINT_M) || (next - w).dot(w - from) >= 0.0
+            }
+            Some(&w) => (w - next).inside_radius(ARRIVAL_M),
+            None => false,
         };
-        while passed(route) {
-            route.remove(0);
+        while passed(route, unit.route_from) {
+            unit.route_from = route.remove(0);
         }
         if route.is_empty() {
             arrive(unit);

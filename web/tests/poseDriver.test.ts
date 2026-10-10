@@ -345,7 +345,8 @@ test("a tank's turret and HMG are posed relative to what carries them", () => {
   const a = out.vehicles[0].articulation;
   expect(a.turret_yaw).toBeCloseTo(1, 6);
   expect(a.hmg_yaw).toBeCloseTo(-0.5, 6);
-  expect(a.gun_pitch).toBeCloseTo((20 * Math.PI) / 180, 6); // clamped to the gun's limit
+  // The published elevation; the model's rig stops the drawn gun at its own limit.
+  expect(a.gun_pitch).toBeCloseTo(0.9, 6);
   expect(a.hmg_pitch).toBeCloseTo(0.2, 6);
 });
 

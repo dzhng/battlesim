@@ -250,9 +250,16 @@ export interface CatalogView {
  *  (`assets/catalog.json` `appearances.<name>.mounts`). */
 export type Articulation = "gun" | "hmg";
 
-/** How a model draws a mount: by one of its rigs, or by hand (a soldier's
- *  weapon, drawn with him). */
-export type MountRole = Articulation | "hand";
+/** How a model draws a mount: by one of its rigs; by its hull, for a mount
+ *  fixed in the hull (neither a turret nor carried by one: a helicopter's
+ *  rocket pod), which never turns apart from the body, so its muzzle is the
+ *  published one; or by hand (a soldier's weapon, drawn with him). */
+export type MountRole = Articulation | "hull" | "hand";
+
+/** A vehicle mount fixed in its hull: not a turret, and carried by none
+ *  (the simulation's `weapons::hull_fixed`). */
+export const hullFixed = (m: Pick<MountRow, "turret" | "on">): boolean =>
+  !m.turret && m.on === null;
 
 /** An appearance's mount declarations: mount id to the rig that draws it. */
 export type MountDraws = Readonly<Record<string, Articulation>>;
@@ -267,15 +274,16 @@ export const isArticulation = (name: string): name is Articulation =>
   Object.hasOwn(MOUNT_NODES, name);
 
 /** How a model declaring `draws` draws each of `type`'s mounts, in mount
- *  order: the rig it names for the mount, else by hand. A squad's mounts
- *  are always by hand: its soldiers carry them. The validator refuses a
- *  hull model that leaves a mount undeclared (`fit.mount_draw`). */
+ *  order: the rig it names for the mount, else by its hull for a mount fixed
+ *  in it, else by hand. A squad's mounts are always by hand: its soldiers
+ *  carry them. The validator refuses a hull model that leaves a turning
+ *  mount undeclared (`fit.mount_draw`). */
 export function mountRoles(
   type: Pick<UnitType, "mounts" | "body">,
   draws: MountDraws | null | undefined,
 ): MountRole[] {
-  const hull = "hull" in type.body;
-  return type.mounts.map((m) => (hull && draws?.[m.id]) || "hand");
+  if (!("hull" in type.body)) return type.mounts.map(() => "hand");
+  return type.mounts.map((m) => draws?.[m.id] || (hullFixed(m) ? "hull" : "hand"));
 }
 
 /** A vehicle's presentation class, derived from its physics: how it moves

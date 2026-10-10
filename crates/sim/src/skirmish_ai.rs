@@ -128,11 +128,14 @@ impl SkirmishAi {
                 {
                     truck.filter(|&k| f64::from(rules.catalog.get(k).cost) <= view.credits)
                 } else {
+                    // Helicopters reinforce, ordered like light vehicles (D35);
+                    // a deck without one skips the turn.
                     let roles = [
                         ("infantry", Category::Inf),
                         ("recon", Category::Rec),
                         ("at", Category::Inf),
                         ("light_vehicle", Category::Veh),
+                        ("helicopter", Category::Hel),
                     ];
                     let selected = (0..roles.len()).find_map(|offset| {
                         let index = (self.reinforcement + offset) % roles.len();

@@ -1,18 +1,25 @@
 {
   "identity": {
     "kind": "authored",
-    "map_hash": "4ec4f002d8f6a8302ecca25b3ac03fe75485cad9a1832e8fe5bdc9f18e10db45",
-    "template_catalog_hash": "a07043603993191819ab715a24dba9f43836f96a7184b369198cdf236ea31ffc"
+    "map_hash": "a95db7f407bd4c79c22c78dcec99270739e79c91cc4f57e27b2ad1be6ddc26ca",
+    "template_catalog_hash": "a7f1169ec5919f8e2203f349a3a01b984e4e427548128782104fe3b624d19067"
   },
   "catalogue": {
     "library": "prototype-building-templates.json",
-    "template_ids": ["paris-home-12x9-2f"]
+    "template_ids": [
+      "china-apartment-point-20x20-7f",
+      "china-corner-shop-3f",
+      "china-home-12x9-2f",
+      "china-home-9x9-2f",
+      "china-tower-20f",
+      "china-townhouse-2f"
+    ]
   },
   "inputs": [
     {
       "kind": "supplied",
       "label": "map.json, authored by hand for the helicopter labs",
-      "sha256": "9b5de937cde147081d18659dc136d91a549c33f0b295e094efc392c3ca23a5b1"
+      "sha256": "a2a477ba568a395943d5659673724f97a0fbf68929515890b46451c724a8635e"
     }
   ]
 }

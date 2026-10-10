@@ -1250,6 +1250,15 @@
         "min_speed_mps": 1.0,
         "full_speed_mps": 8
       },
+      "damage_smoke": {
+        "albedo": [0.08, 0.078, 0.075],
+        "opacity": 0.45,
+        "size_m": [0.8, 4.5],
+        "life_s": 2.5,
+        "rise_mps": 0.8,
+        "spread_mps": 0.4,
+        "rate_hz": 20
+      },
       "smoke": {
         "wreck": {
           "burn_s": 60,
@@ -1357,7 +1366,7 @@
   "hull_limits": {
     "tracked": { "half_width_m": 2.1, "half_length_m": 4.8 },
     "wheeled": { "half_width_m": 1.6, "half_length_m": 5.2, "turning_radius_m": 6.0 },
-    "air": { "half_width_m": 2.5, "half_length_m": 8.0 }
+    "air": { "half_width_m": 2.7, "half_length_m": 8.0 }
   },
   "air": { "cruise_agl_m": 20, "clearance_m": 10, "ceiling_agl_m": 40, "obstacle_m": 30, "separation_m": 14 }
 }

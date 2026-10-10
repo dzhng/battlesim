@@ -144,6 +144,55 @@ fn a_helicopter_over_forest_is_not_concealed() {
 }
 
 #[test]
+fn an_identified_enemy_helicopter_below_half_hp_publishes_smoking() {
+    // Two blue helicopters in red's plain sight, one under half its health
+    // and one just above, and a tank as damaged: red sees which helicopter
+    // smokes (a coarse bit, never its health), and blue sees its own alike.
+    let fixture = fixture();
+    let hp = |kind: &str| {
+        let rules: Rules = serde_json::from_value(fixture.clone()).unwrap();
+        let kind = rules.catalog.index(kind).unwrap();
+        rules.catalog.get(kind).hull().unwrap().hp
+    };
+    let (heli, tank) = (hp("test_heli"), hp("test_tank"));
+    let mut b = battle_with(
+        &fixture,
+        open_map(),
+        json!([
+            { "side": "blue", "kind": "test_heli", "position": [300, 200], "engagement": "return_fire_only",
+                "condition": { "hp": heli * 0.49 } },
+            { "side": "blue", "kind": "test_heli", "position": [300, 230], "engagement": "return_fire_only",
+                "condition": { "hp": heli * 0.51 } },
+            { "side": "blue", "kind": "test_tank", "position": [300, 170], "engagement": "return_fire_only",
+                "condition": { "hp": tank * 0.2 } },
+            { "side": "red", "kind": "test_recon", "position": [330, 215], "engagement": "return_fire_only" },
+        ]),
+    );
+    for _ in 0..30 {
+        b.step();
+    }
+    let red = b.observe(Side::Red);
+    let mut seen: Vec<(f64, bool)> = red
+        .identified
+        .iter()
+        .map(|e| (e.position[1], e.smoking))
+        .collect();
+    seen.sort_by(|a, b| a.0.total_cmp(&b.0));
+    assert_eq!(
+        seen.iter().map(|s| s.1).collect::<Vec<_>>(),
+        [false, true, false],
+        "the tank at y 170, the damaged helicopter at 200, the other at 230: {seen:?}"
+    );
+    let own: Vec<bool> = b
+        .observe(Side::Blue)
+        .own
+        .iter()
+        .map(|u| u.smoking)
+        .collect();
+    assert_eq!(own, [true, false, false]);
+}
+
+#[test]
 fn an_air_hull_past_its_limits_is_refused() {
     let mut fixture = fixture();
     sim::fixtures::patch_catalog(

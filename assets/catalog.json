@@ -3343,6 +3343,32 @@
         "footprint_m": 1.6
       }
     },
+    "ah_64e_guardian": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/apache/ah_64e_guardian.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "chin": "gun"
+      },
+      "wreck": "ah_64e_guardian_wreck"
+    },
+    "ah_64e_guardian_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/apache/ah_64e_guardian_wreck.glb",
+        "debris": "assets/source/roster/apache/ah_64e_guardian_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        7.35,
+        2.615,
+        2.36
+      ],
+      "tolerances": {
+        "footprint_m": 1.5
+      }
+    },
     "europe_centauro_ii": {
       "unit": "vehicle",
       "source": "assets/source/roster/centauro/europe_centauro_ii.glb",

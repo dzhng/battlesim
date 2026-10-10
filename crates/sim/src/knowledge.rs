@@ -456,6 +456,7 @@ impl SideKnowledge {
                         })
                         .collect(),
                     reversing: unit.reversing,
+                    smoking: unit.smoking(rules),
                 }
             })
     }

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import {
+  DEFAULT_PITCH_LIMITS,
   REST_ARTICULATION,
-  PITCH_LIMITS,
+  articulationRig,
   type Articulation,
 } from "@packages/scene-assets/src/articulation";
 import {
@@ -677,6 +678,9 @@ export default function Workbench() {
   );
 
   const articulation = pose?.kind === "articulated" ? pose.articulation : REST_ARTICULATION;
+  // The shown model's own pitch limits for its gun and HMG sliders.
+  const pitch =
+    bundle?.kind === "articulated" ? articulationRig(bundle.nodes).pitch : DEFAULT_PITCH_LIMITS;
   const setArticulation = (patch: Partial<Articulation>) =>
     setPose({ kind: "articulated", articulation: { ...articulation, ...patch } });
   const tiers = bundle
@@ -1002,19 +1006,9 @@ export default function Workbench() {
                 {(
                   [
                     ["turret_yaw", -180, 180, "turret yaw"],
-                    [
-                      "gun_pitch",
-                      PITCH_LIMITS.gun[0] / DEG,
-                      PITCH_LIMITS.gun[1] / DEG,
-                      "gun pitch",
-                    ],
+                    ["gun_pitch", pitch.gun[0] / DEG, pitch.gun[1] / DEG, "gun pitch"],
                     ["hmg_yaw", -180, 180, "HMG yaw"],
-                    [
-                      "hmg_pitch",
-                      PITCH_LIMITS.hmg[0] / DEG,
-                      PITCH_LIMITS.hmg[1] / DEG,
-                      "HMG pitch",
-                    ],
+                    ["hmg_pitch", pitch.hmg[0] / DEG, pitch.hmg[1] / DEG, "HMG pitch"],
                   ] as const
                 ).map(([key, lo, hi, label]) => (
                   <label key={key}>

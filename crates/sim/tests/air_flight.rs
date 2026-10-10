@@ -122,6 +122,33 @@ fn routes_around_a_tower_over_30m_and_never_passes_the_ceiling() {
     assert!(track.iter().all(|p| p.z <= ceiling + 1e-9));
 }
 
+/// Wherever the tower stands across its line, the helicopter flies past it
+/// and on to its goal without turning back for a corner it skimmed by at
+/// cruise, or overshooting a goal too near that corner to stop for.
+#[test]
+fn flies_on_past_a_tower_without_turning_back() {
+    for offset in 0..12 {
+        let tower = block(0, [300.0, 200.0 + 2.5 * offset as f64], 14.5, 61.0);
+        let (b, track) = fly(map(json!([tower]), json!([])));
+        assert!(
+            arrived(&b) < 1.0,
+            "tower {offset}: {:.1} m short",
+            arrived(&b)
+        );
+        // A grid corner a cell short of the goal may still settle it a
+        // metre past and back; a skimmed corner turned it back 100 m.
+        let mut furthest = f64::NEG_INFINITY;
+        for p in &track {
+            furthest = furthest.max(p.x);
+            assert!(
+                p.x > furthest - 2.0,
+                "tower {offset}: turned back from x {furthest:.1} to {:.1}",
+                p.x
+            );
+        }
+    }
+}
+
 #[test]
 fn turns_on_the_spot_to_an_ordered_facing() {
     let fixture = fixture();

@@ -18,7 +18,12 @@ import { mul, trsMatrix, type Trs } from "@packages/scene-assets/src/trs";
 import type { ArticulatedBundle, Side } from "@packages/scene-assets/src/schema";
 import { vec3, type Vec3 } from "math";
 import type { ResolveAppearance } from "./modelInstances";
-import { MOUNT_NODES, mountRoles, type UnitCatalog } from "@packages/scene-assets/src/units";
+import {
+  MOUNT_NODES,
+  isArticulation,
+  mountRoles,
+  type UnitCatalog,
+} from "@packages/scene-assets/src/units";
 import type { PoseFrame, SoldierPose, VehiclePose } from "./poseDriver";
 import { sideKey } from "../sideKey";
 
@@ -63,7 +68,7 @@ export class DrawnMuzzles {
       const resolved = v && this.resolve(v.kind, v.side, v.unit, 0);
       const entry = resolved && this.installed.appearances.get(resolved.appearance);
       const role = entry && mountRoles(this.units.type(v.kind), entry.mounts)[mount];
-      const name = role && role !== "hand" ? MOUNT_NODES[role].muzzle : null;
+      const name = role && isArticulation(role) ? MOUNT_NODES[role].muzzle : null;
       const bundle = name ? (entry?.bundle ?? null) : null;
       if (!v || !name || bundle?.kind !== "articulated") return null;
       const node = bundle.nodes.findIndex((n) => n.name === name);

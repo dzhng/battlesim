@@ -86,7 +86,19 @@
   {
     "id": "air-hover",
     "route": "/lab/air-hover",
-    "describe": "Test helicopters hovering at cruise height, each with its ground marker and drop line: ?variant=hover (default) over open ground, a jeep on the road below for scale (its rotors turn, its shadow lies on the ground off to the side, nothing under it raises dust or rolls; selected, its marker and line take the selection's colour; ordered away with Space held, its ghost flies at cruise height); ?variant=roof over a house, the line cut by the roof, an identified enemy one over the field beyond; ?variant=fog an enemy one seen over the ground the house hides from blue's jeep.",
+    "describe": "Test helicopters hovering at cruise height, each with its ground marker and drop line: ?variant=hover (default) over open ground, a jeep on the road below for scale (its rotors turn, its shadow lies on the ground off to the side, nothing under it raises dust or rolls; selected, its marker and line take the selection's colour; ordered away with Space held, its ghost flies at cruise height); ?variant=roof over a house, the line cut by the roof, an identified enemy one over the field beyond; ?variant=fog an enemy one seen over the ground the house hides from blue's jeep; ?variant=apache the AH-64E on its real art, its chin gun firing down at an enemy tank on the road with its flash at the barrel's tip.",
+    "map": "air"
+  },
+  {
+    "id": "air",
+    "route": "/lab/air",
+    "describe": "The first helicopter checkpoint: the test helicopter flies one move order across a village at cruise height, climbs over the roofs taller than its clearance allows, routes round the 61 m tower in its way and crosses a wood; a red rifle squad's rounds spark off it without hurting it, a red tank's main gun never selects it, and the gun jeep's autocannon, freed once it hovers at its goal, damages it.",
+    "map": "air"
+  },
+  {
+    "id": "air-crash",
+    "route": "/lab/air-crash",
+    "describe": "A test helicopter, one hit from death, flies across the field past a gun jeep, trailing smoke, and is shot down: it falls on in a spinning arc, nose down, keeping its momentum, bursts where it strikes the ground and leaves its wreck there. It never vanishes in mid-air or brews up like a ground hull.",
     "map": "air"
   },
   {

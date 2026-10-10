@@ -17,11 +17,13 @@ import type { Project } from "@web/battle/present/readouts";
 // road below it for scale, and nothing else moving; `roof`, one over the
 // house's roof and an identified enemy one over the field across the road;
 // `fog`, an enemy one over the ground the house hides from blue's jeep, seen
-// over the fog (V02).
+// over the fog (V02); `apache`, the AH-64E on its real art over the verge,
+// its chin gun firing down at an enemy tank on the road.
 const VARIANTS = {
   hover: { label: "Over open ground", target: [142, 90, 8] },
   roof: { label: "Over a roof, enemy beyond", target: [256, 97, 10] },
   fog: { label: "Enemy over fog", target: [270, 60, 8] },
+  apache: { label: "Apache firing down", target: [128, 112, 12] },
 } as const;
 type Variant = keyof typeof VARIANTS;
 const VARIANT_NAMES = Object.keys(VARIANTS) as Variant[];

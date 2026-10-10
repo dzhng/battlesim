@@ -1,6 +1,24 @@
 {
   "cards": [
     {
+      "cost": 360,
+      "description": "AH-64E Guardian",
+      "disabled_reason": null,
+      "family": "ah_64_apache",
+      "id": "ah_64e_guardian",
+      "name": "AH-64E Apache",
+      "planned_weapons": [],
+      "roster": {
+        "category": "hel",
+        "factions": [
+          "us",
+          "europe"
+        ],
+        "family_name": "AH-64 Apache",
+        "variant": "AH-64E Guardian"
+      }
+    },
+    {
       "cost": 110,
       "description": "Close-quarters infantry",
       "disabled_reason": null,
@@ -1141,33 +1159,6 @@
         ],
         "family_name": "Stryker",
         "variant": "M1296 Dragoon"
-      }
-    },
-    {
-      "cost": 360,
-      "description": "AH-64E Guardian",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
-      "family": "ah_64_apache",
-      "id": "ah_64e_guardian",
-      "name": "AH-64E Apache",
-      "planned_weapons": [
-        {
-          "icon": "autocannon",
-          "name": "Chain Gun"
-        },
-        {
-          "icon": "atgm",
-          "name": "AT Missile"
-        }
-      ],
-      "roster": {
-        "category": "hel",
-        "factions": [
-          "us",
-          "europe"
-        ],
-        "family_name": "AH-64 Apache",
-        "variant": "AH-64E Guardian"
       }
     },
     {
@@ -4489,6 +4480,13 @@
             "anti_armour"
           ]
         },
+        "helicopter": {
+          "description": "Fast, fragile airframes that fly low and strike from the air.",
+          "name": "Helicopter",
+          "symbol": [
+            "rotary_wing"
+          ]
+        },
         "infantry": {
           "description": "Rifle squads that take and hold ground.",
           "name": "Infantry",
@@ -6017,26 +6015,114 @@
       },
       "units": {
         "ah_64e_guardian": {
+          "appearance": "ah_64e_guardian",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 25.0,
+                "rear": 15.0,
+                "ricochet": {
+                  "front": 0.1,
+                  "rear": 0.1,
+                  "roof": 0.1,
+                  "side": 0.1
+                },
+                "roof": 10.0,
+                "side": 15.0
+              },
+              "eye_m": 1.9,
+              "half_extents_m": [
+                7.35,
+                2.615,
+                2.36
+              ],
+              "hp": 250.0,
+              "push_class": "none",
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {},
           "cost": 360,
           "description": "AH-64E Guardian",
           "faction": "us",
           "family": "ah_64_apache",
-          "name": "AH-64E Apache",
-          "planned": {
-            "profile": "attack-helicopter",
-            "reason": "Helicopter movement, combat and transport mechanics deferred",
-            "weapons": [
-              {
-                "icon": "autocannon",
-                "name": "Chain Gun"
-              },
-              {
-                "icon": "atgm",
-                "name": "AT Missile"
-              }
-            ]
+          "mobility": {
+            "air": {
+              "climb_mps": 8.0,
+              "cruise_kmh": 240.0,
+              "turn_deg_s": 80.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "chin",
+              "muzzle_m": [
+                1.44,
+                0.0,
+                -0.06
+              ],
+              "name": "Chain Gun",
+              "on": null,
+              "pivot_m": [
+                5.1,
+                0.0,
+                0.78
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "autocannon"
+              ]
+            },
+            {
+              "id": "rockets",
+              "muzzle_m": [
+                0.8,
+                0.0,
+                0.0
+              ],
+              "name": "Rockets",
+              "on": null,
+              "pivot_m": [
+                1.505,
+                1.35,
+                1.32
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "rocket_pod"
+              ]
+            },
+            {
+              "id": "missiles",
+              "muzzle_m": [
+                0.82,
+                0.0,
+                0.0
+              ],
+              "name": "AT Missile",
+              "on": null,
+              "pivot_m": [
+                1.505,
+                -2.15,
+                1.39
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "heli_atgm"
+              ]
+            }
+          ],
+          "name": "AH-64E Apache",
+          "roles": [
+            "helicopter"
+          ],
           "roster": {
             "category": "hel",
             "factions": [
@@ -6045,6 +6131,18 @@
             ],
             "family_name": "AH-64 Apache",
             "variant": "AH-64E Guardian"
+          },
+          "sensors": {
+            "ground_m": 900.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.6
+            }
+          },
+          "sound": {
+            "loudness_m": 900.0,
+            "profile": "vehicle"
           }
         },
         "assault_squad": {
@@ -15564,6 +15662,13 @@
         "anti_armour"
       ]
     },
+    "helicopter": {
+      "description": "Fast, fragile airframes that fly low and strike from the air.",
+      "name": "Helicopter",
+      "symbol": [
+        "rotary_wing"
+      ]
+    },
     "infantry": {
       "description": "Rifle squads that take and hold ground.",
       "name": "Infantry",
@@ -17091,6 +17196,141 @@
     }
   },
   "units": [
+    {
+      "appearance": "ah_64e_guardian",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 25.0,
+            "rear": 15.0,
+            "ricochet": {
+              "front": 0.1,
+              "rear": 0.1,
+              "roof": 0.1,
+              "side": 0.1
+            },
+            "roof": 10.0,
+            "side": 15.0
+          },
+          "eye_m": 1.9,
+          "half_extents_m": [
+            7.35,
+            2.615,
+            2.36
+          ],
+          "hp": 250.0,
+          "push_class": "none",
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {},
+      "cost": 360,
+      "description": "AH-64E Guardian",
+      "faction": "us",
+      "family": "ah_64_apache",
+      "id": "ah_64e_guardian",
+      "mobility": {
+        "air": {
+          "climb_mps": 8.0,
+          "cruise_kmh": 240.0,
+          "turn_deg_s": 80.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "chin",
+          "muzzle_m": [
+            1.44,
+            0.0,
+            -0.06
+          ],
+          "name": "Chain Gun",
+          "on": null,
+          "pivot_m": [
+            5.1,
+            0.0,
+            0.78
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "autocannon"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "rockets",
+          "muzzle_m": [
+            0.8,
+            0.0,
+            0.0
+          ],
+          "name": "Rockets",
+          "on": null,
+          "pivot_m": [
+            1.505,
+            1.35,
+            1.32
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "rocket_pod"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "missiles",
+          "muzzle_m": [
+            0.82,
+            0.0,
+            0.0
+          ],
+          "name": "AT Missile",
+          "on": null,
+          "pivot_m": [
+            1.505,
+            -2.15,
+            1.39
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "heli_atgm"
+          ]
+        }
+      ],
+      "name": "AH-64E Apache",
+      "roles": [
+        "helicopter"
+      ],
+      "roster": {
+        "category": "hel",
+        "factions": [
+          "us",
+          "europe"
+        ],
+        "family_name": "AH-64 Apache",
+        "variant": "AH-64E Guardian"
+      },
+      "sensors": {
+        "ground_m": 900.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.6
+        }
+      },
+      "sound": {
+        "loudness_m": 900.0,
+        "profile": "vehicle"
+      }
+    },
     {
       "body": {
         "squad": {

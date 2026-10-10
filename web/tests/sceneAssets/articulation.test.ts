@@ -5,7 +5,7 @@
 import { expect, test } from "vitest";
 import { vec3, type Vec3 } from "math";
 import {
-  PITCH_LIMITS,
+  DEFAULT_PITCH_LIMITS,
   REST_ARTICULATION,
   articulate,
   articulationRig,
@@ -107,6 +107,15 @@ test("recoil runs the gun back along its own bore, level or raised", async () =>
   }
 });
 
+test("a gun whose model states a short stroke runs back no further than it", async () => {
+  // An autocannon's short recoil, against a tank gun's long one.
+  const chin = await built("tank", tankGlb({ gunStrokeM: 0.08 }));
+  const ran = (recoil: number) =>
+    vec3.distance(posed(chin, { recoil }).at("muzzle"), posed(chin, {}).at("muzzle"));
+  expect(ran(0.05)).toBeCloseTo(0.05, 5);
+  expect(ran(0.4)).toBeCloseTo(0.08, 5);
+});
+
 test("each side's wheels roll by that side's travel over their radius", async () => {
   const tank = await built("tank", tankGlb());
   const rig = articulationRig(tank.nodes);
@@ -167,11 +176,13 @@ test("posed bounds hold every reachable pose, the rest pose among them", async (
       const input: Articulation = {
         turret_yaw: k * 0.37,
         gun_pitch:
-          PITCH_LIMITS.gun[0] + ((k * 0.13) % 1) * (PITCH_LIMITS.gun[1] - PITCH_LIMITS.gun[0]),
+          DEFAULT_PITCH_LIMITS.gun[0] +
+          ((k * 0.13) % 1) * (DEFAULT_PITCH_LIMITS.gun[1] - DEFAULT_PITCH_LIMITS.gun[0]),
         recoil: (k % 3) * 0.2,
         hmg_yaw: -k * 0.61,
         hmg_pitch:
-          PITCH_LIMITS.hmg[0] + ((k * 0.29) % 1) * (PITCH_LIMITS.hmg[1] - PITCH_LIMITS.hmg[0]),
+          DEFAULT_PITCH_LIMITS.hmg[0] +
+          ((k * 0.29) % 1) * (DEFAULT_PITCH_LIMITS.hmg[1] - DEFAULT_PITCH_LIMITS.hmg[0]),
         travel_l: k * 0.11,
         travel_r: -k * 0.07,
         deploy: (k % 11) / 10,
@@ -231,4 +242,26 @@ test("a rotor's whole disc is inside the culling bounds, whatever its angle", as
   }
   // The disc, not the blade at rest along +X, sets the sides.
   expect(bounds.max[1]).toBeGreaterThan(5);
+});
+
+test("a gun whose model states its own pitch limits is drawn to them, and its bounds hold them", async () => {
+  // A chin gun firing down from the air: its model lets it depress to -60°.
+  const chin = await built("tank", tankGlb({ muzzleX: 5.9, gunPitchDeg: [-60, 11] }));
+  const plain = await built("tank", tankGlb({ muzzleX: 5.9 }));
+  const DEG = Math.PI / 180;
+  // The drawn bore's elevation when the gun is asked for `pitch`.
+  const drawn = (bundle: ArticulatedBundle, pitch: number) => {
+    const p = posed(bundle, { gun_pitch: pitch });
+    const d = vec3.sub(vec3.create(), p.at("muzzle"), p.at("gun"));
+    return Math.atan2(d[2], Math.hypot(d[0], d[1]));
+  };
+  // Within its limits it goes where it is asked; past them, each gun stops at its own.
+  expect(drawn(chin, -50 * DEG)).toBeCloseTo(-50 * DEG, 5);
+  expect(drawn(chin, -80 * DEG)).toBeCloseTo(-60 * DEG, 5);
+  expect(drawn(chin, 30 * DEG)).toBeCloseTo(11 * DEG, 5);
+  expect(drawn(plain, -50 * DEG)).toBeCloseTo(DEFAULT_PITCH_LIMITS.gun[0], 5);
+  // The bake's bounds reach the depressed muzzle on the gun that can depress that far.
+  const low = posed(chin, { gun_pitch: -60 * DEG }).at("muzzle")[2];
+  expect(posedBounds(chin.nodes).min[2]).toBeLessThanOrEqual(low + 1e-4);
+  expect(posedBounds(plain.nodes).min[2]).toBeGreaterThan(low);
 });

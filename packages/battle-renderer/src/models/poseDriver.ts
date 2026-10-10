@@ -21,14 +21,10 @@
 // it the oldest corpse sinks into the ground (`fading`, posed every frame)
 // and is gone, though the simulation still lists him.
 
-import { clamp, deltaAngle, vec3, type Vec2, type Vec3 } from "math";
+import { clamp, deltaAngle, mat4, vec3, type Mat4, type Vec2, type Vec3 } from "math";
 import { mulberry32 } from "math/random";
 import { easing } from "math/time";
-import {
-  PITCH_LIMITS,
-  REST_ARTICULATION,
-  type Articulation,
-} from "@packages/scene-assets/src/articulation";
+import { REST_ARTICULATION, type Articulation } from "@packages/scene-assets/src/articulation";
 import type { Side } from "@packages/scene-assets/src/schema";
 import {
   airborne,
@@ -86,6 +82,9 @@ export interface FeedUnit {
   /** The squad is pinned, by the sim's published tier: its soldiers with
    *  no posture of their own go prone (false where the side cannot know it). */
   pinned: boolean;
+  /** A downed airframe's attitude as it falls (`crashes`), radians: nose up
+   *  and right side down. None: level, a live unit. */
+  attitude?: { pitch: number; roll: number };
 }
 
 export interface FeedFallen {
@@ -143,6 +142,9 @@ export interface VehiclePose {
   /** It flies (`airborne`): its rotors turn, and nothing it has rolls. */
   airborne: boolean;
   articulation: Articulation;
+  /** Its rigid tilt in its own frame, about its foot (a falling airframe's
+   *  nose drop and lean, `FeedUnit.attitude`); null while level. */
+  tilt: Mat4 | null;
 }
 
 /** A fallen soldier whose death has played out (or was never seen): drawn
@@ -823,12 +825,10 @@ export class PoseDriver {
     const hmg = roles.indexOf("hmg");
     const gunMount = gun >= 0 ? unit.mounts[gun] : undefined;
     const hmgMount = hmg >= 0 ? unit.mounts[hmg] : undefined;
-    const gunTarget = gunMount
-      ? clamp(gunMount.elevation, PITCH_LIMITS.gun[0], PITCH_LIMITS.gun[1])
-      : 0;
-    const hmgTarget = hmgMount
-      ? clamp(hmgMount.elevation, PITCH_LIMITS.hmg[0], PITCH_LIMITS.hmg[1])
-      : 0;
+    // The published elevations; each model's rig stops its guns at its own
+    // pitch limits (`articulate`).
+    const gunTarget = gunMount ? gunMount.elevation : 0;
+    const hmgTarget = hmgMount ? hmgMount.elevation : 0;
     const key = sideKey(unit.id, unit.side, "blue");
     let state = this.vehicles.get(key);
     if (!state) {
@@ -844,6 +844,7 @@ export class PoseDriver {
           yaw: unit.yaw,
           airborne: airborne(this.options.units.type(unit.kind)),
           articulation: { ...REST_ARTICULATION, gun_pitch: gunTarget, hmg_pitch: hmgTarget },
+          tilt: null,
         },
         seen: generation,
       };
@@ -867,6 +868,12 @@ export class PoseDriver {
     }
     vec3.copy(pose.position, unit.position);
     pose.yaw = unit.yaw;
+    if (unit.attitude) {
+      // Nose up about its +Y, then right side down about its +X.
+      const tilt = (pose.tilt ??= mat4.create());
+      mat4.fromYRotation(tilt, -unit.attitude.pitch);
+      mat4.rotateX(tilt, tilt, unit.attitude.roll);
+    } else pose.tilt = null;
     a.deploy = unit.deployment ?? 0;
 
     // The turret on the cannon's bearing, the HMG relative to what its

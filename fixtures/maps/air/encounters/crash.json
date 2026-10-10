@@ -1,0 +1,9 @@
+{
+  "units": [
+    {"side":"blue","kind":"test_heli","position":[30,150],"engagement":"return_fire_only","condition":{"hp":1}},
+    {"side":"red","kind":"test_gun_jeep","position":[130,60],"yaw":1.5707963267948966}
+  ],
+  "scripts": [
+    {"tick":1,"side":"blue","order":{"kind":"move","units":[0],"gesture":1,"goal":[150,150],"route":"shortest"}}
+  ]
+}

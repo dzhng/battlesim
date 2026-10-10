@@ -1350,17 +1350,19 @@ export async function createModelLayer(
       // A fitted prop's reach grows with its largest scale, and a moving
       // piece's by how far it has moved.
       const grow = inst.scale ? Math.max(inst.scale[0], inst.scale[1], inst.scale[2]) : 1;
-      const motion = inst.pose.kind === "static" ? inst.pose.motion : undefined;
+      const motion =
+        inst.pose.kind === "static" || inst.pose.kind === "articulated"
+          ? inst.pose.motion
+          : undefined;
       const moved = motion ? grow * Math.hypot(motion[12], motion[13], motion[14]) : 0;
-      // A card shows its bundle's first state, at rest: a piece of it, or one
-      // in motion, is drawn as a mesh however far.
+      // A card shows its bundle's first state, at rest: a piece of it, or a
+      // model in motion, is drawn as a mesh however far.
       const carded =
         !inst.ghost &&
         card >= 0 &&
+        !motion &&
         (inst.pose.kind !== "static" ||
-          (!motion &&
-            gpu.bundle.kind === "static" &&
-            inst.pose.state === gpu.bundle.states[0]?.name));
+          (gpu.bundle.kind === "static" && inst.pose.state === gpu.bundle.states[0]?.name));
       if (inst.tier !== undefined || !view) tier = Math.min(tiers - 1, Math.max(0, inst.tier ?? 0));
       else {
         // An airframe's shadow lands its lift along the sun's fall.
@@ -1544,11 +1546,14 @@ export async function createModelLayer(
         const nodes = (bundle as ArticulatedBundle).nodes;
         const locals = articulate(gpu.locals, nodes, gpu.rig!, input);
         // Node worlds in place (parents precede children), into the palette.
+        // A whole-model motion (a falling airframe's tilt) carries every root.
         const { parents, worlds } = gpu;
+        const motion = inst.pose.kind === "articulated" ? inst.pose.motion : undefined;
         for (let j = 0; j < parents.length; j++) {
           const w = worlds[j];
           mat4.fromRotationTranslationScale(w, locals[j].r, locals[j].t, locals[j].s);
           if (parents[j] >= 0) mat4.multiply(w, worlds[parents[j]], w);
+          else if (motion) mat4.multiply(w, motion, w);
           paletteStaging.set(w, (base + j) * 16);
         }
         const scroll = trackScroll(gpu.rig!, input);

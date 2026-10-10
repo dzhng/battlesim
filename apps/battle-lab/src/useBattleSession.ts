@@ -1157,6 +1157,13 @@ export function useBattleSession({
       ),
     /** The soldiers the last drawn frame lays as static corpses. */
     lying: () => posing?.corpses.soldiers ?? [],
+    /** Where the last drawn frame draws the muzzle of the shown side's
+     *  vehicle `id`'s mount `mount`, where its flash goes; null when no rig
+     *  draws it. */
+    drawnMuzzle: (id: number, mount: number): Vec3 | null => {
+      const at: Vec3 = [0, 0, 0];
+      return posing?.muzzles.vehicle(side, id, mount, at) ? at : null;
+    },
     digest: () => sim.digest.current,
     error: () => sim.error,
     status: () => sim.status,

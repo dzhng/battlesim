@@ -610,6 +610,10 @@ export interface TankOptions {
   /** Draw reactive armour tiles, `era_L` and `era_R`, on the hull sides. */
   era?: boolean;
   turretX?: number; // turret pivot off the hull origin (breaks the arc)
+  /** The gun's own pitch limits, degrees (its node's `pitch_min_deg`/`pitch_max_deg`). */
+  gunPitchDeg?: [number, number];
+  /** How far the gun runs back at most, metres (its node's `recoil_max_m`). */
+  gunStrokeM?: number;
   hullHalfY?: number;
   omit?: string;
   muzzleUnderTurret?: boolean;
@@ -675,7 +679,10 @@ export function tankGlb(o: TankOptions = {}): Uint8Array {
   // the finest two, and the HMG's barrel and the stowage in the finest alone.
   const muzzle = empty("muzzle", [reach - 1, 0, 0]);
   const barrel = part("barrel", [0, -0.08, -0.08], [reach - 1, 0.08, 0.08], 3);
-  const gun = empty("gun", [1 - turretX, 0, gunZ], [barrel, o.muzzleUnderTurret ? -1 : muzzle]);
+  const gun = empty("gun", [1 - turretX, 0, gunZ], [barrel, o.muzzleUnderTurret ? -1 : muzzle], {
+    ...(o.gunPitchDeg && { pitch_min_deg: o.gunPitchDeg[0], pitch_max_deg: o.gunPitchDeg[1] }),
+    ...(o.gunStrokeM !== undefined && { recoil_max_m: o.gunStrokeM }),
+  });
   // The HMG's ring on the turret roof, its gun 0.1 m up and forward.
   const [hx, hy, hz] = roofGun.muzzle_m!;
   const hmgMuzzle = empty("hmg_muzzle", [hx - 0.1, hy, hz - 0.1]);

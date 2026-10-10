@@ -3,16 +3,16 @@
 //! and hurts what lies there before its wreck comes to rest on the ground.
 
 use super::air::{battle_with, fixture, order};
-use contract::ids::UnitId;
+use contract::ids::{Side, UnitId};
+use contract::observation::FallingAirframe;
 use serde_json::{json, Value};
 use sim::battle::Battle;
 use sim::math::{V2, V3};
 
 /// The helicopter at [100, 200] flying east toward [500, 200], one hit from
 /// death, and a gun jeep at `jeep` to bring it down; plus `others`. Returns
-/// the battle once it has settled, where it died, and its crash's yaw each
-/// tick it fell.
-fn shoot_down(map: Value, jeep: [f64; 2], others: Value) -> (Battle, V3, Vec<f64>) {
+/// the battle once it has settled, where it died, and each tick it fell.
+fn shoot_down(map: Value, jeep: [f64; 2], others: Value) -> (Battle, V3, Vec<Fell>) {
     let mut fixture = fixture();
     sim::fixtures::patch_catalog(
         &mut fixture,
@@ -33,16 +33,25 @@ fn shoot_down(map: Value, jeep: [f64; 2], others: Value) -> (Battle, V3, Vec<f64
         let heli = b.unit(UnitId(0)).unwrap();
         if !heli.alive() {
             // Let it fall and settle.
-            let mut spin = Vec::new();
+            let mut fell = Vec::new();
             for _ in 0..10 * b.rules().tick_hz {
-                spin.extend(b.crashes().iter().map(|c| c.yaw));
+                fell.extend(b.crashes().iter().map(|c| Fell {
+                    yaw: c.yaw,
+                    seen: Side::ALL.map(|s| b.observe(s).crashes.clone()),
+                }));
                 b.step();
             }
-            return (b, last, spin);
+            return (b, last, fell);
         }
         last = heli.position;
     }
     panic!("the helicopter was never brought down");
+}
+
+/// A tick its crash fell: its yaw, and what each side's observation showed.
+struct Fell {
+    yaw: f64,
+    seen: [Vec<FallingAirframe>; 2],
 }
 
 /// The helicopter's wreck: (centre, base z, yaw).
@@ -63,7 +72,8 @@ fn open(props: Value, forests: Value) -> Value {
 
 #[test]
 fn a_shot_down_helicopter_falls_forward_spinning_onto_the_ground() {
-    let (b, died, spin) = shoot_down(open(json!([]), json!([])), [300.0, 80.0], json!([]));
+    let (b, died, fell) = shoot_down(open(json!([]), json!([])), [300.0, 80.0], json!([]));
+    let spin: Vec<f64> = fell.iter().map(|f| f.yaw).collect();
     assert!(died.z > 15.0, "it died in the air ({:.1} m)", died.z);
     let (at, base, _) = wreck(&b);
     assert!(
@@ -81,6 +91,52 @@ fn a_shot_down_helicopter_falls_forward_spinning_onto_the_ground() {
         .map(|w| sim::math::wrap_angle(w[1] - w[0]).abs())
         .sum();
     assert!(turned > 3.0, "it turned only {turned:.2} rad as it fell");
+}
+
+#[test]
+fn both_sides_that_saw_it_go_down_see_it_fall_to_its_wreck() {
+    // Blue flew it and red shot it: each sees the airframe fall, blue as its
+    // own unit 0, red as the enemy it had identified, from where it died
+    // down to the ground where its wreck then lies.
+    let (b, died, fell) = shoot_down(open(json!([]), json!([])), [300.0, 80.0], json!([]));
+    let kind = b.rules().catalog.index("test_heli").unwrap();
+    let (at, base, _) = wreck(&b);
+    for (side, own) in [(Side::Blue, true), (Side::Red, false)] {
+        let path: Vec<&FallingAirframe> = fell
+            .iter()
+            .map(|f| {
+                let seen = &f.seen[side.index()];
+                assert_eq!(seen.len(), 1, "{side:?} sees the one falling airframe");
+                &seen[0]
+            })
+            .collect();
+        assert!(path.iter().all(|c| c.own == own && c.kind == kind));
+        if own {
+            assert!(path.iter().all(|c| c.id == 0), "blue knows it as unit 0");
+        }
+        let (first, last) = (path[0], path[path.len() - 1]);
+        assert!(
+            (first.position[2] - died.z).abs() < 2.0,
+            "{side:?} sees it start falling where it died: {:.1} vs {:.1}",
+            first.position[2],
+            died.z
+        );
+        assert!(
+            last.position[2] - base < 2.0,
+            "{side:?} sees it fall to the ground, last at {:.1} m",
+            last.position[2]
+        );
+        assert!(
+            (last.position[0] - at.x).hypot(last.position[1] - at.y) < 3.0,
+            "{side:?} sees it land where its wreck lies"
+        );
+        // Its nose drops and it leans into its spin as it falls.
+        assert!(last.pitch < -0.1 && last.roll.abs() > 0.1, "{last:?}");
+    }
+    assert!(
+        b.observe(Side::Blue).crashes.is_empty(),
+        "a landed airframe is its wreck"
+    );
 }
 
 #[test]

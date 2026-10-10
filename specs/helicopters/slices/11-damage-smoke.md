@@ -1,6 +1,17 @@
 # 11 — Damage smoke trail
 
-**Status:** planned. **Depends on:** 04, 06. **Owns:** D19, D34.
+**Status:** done. **Depends on:** 04, 06. **Owns:** D19, D34.
+
+## Result
+
+- **Contract:** `IdentifiedUnit.smoking` and `OwnUnit.smoking` (published as a last `smoking` field in the `identified` and `own` rows; web `IdentifiedView.smoking`, `OwnUnitView.smoking`). The rule is `Unit::smoking`: an aircraft below half its hull HP. The enemy's row carries the bit, never HP. A falling airframe always smokes. New data row `presentation.effects.damage_smoke` (a puff style plus `rate_hz`), and `EffectShooter.smoking`.
+- **Tests:** `air::an_identified_enemy_helicopter_below_half_hp_publishes_smoking` (falsified at a 0.52 share: red), web `observation.test.ts` (the codec vector's enemy decodes `smoking`, no `hp`), `effectFrame.test.ts` (a smoking aircraft trails smoke behind it, a sound one none; a hovering one still smokes).
+- **Parity:** six publication records re-recorded again; only their publication hashes moved, no digest.
+- **Scene:** `/lab/air-crash` checks that the helicopter publishes that it smokes and draws smoke; all checks pass. Evidence: `throwaway/evidence/air-crash/frame-smoke-1280x800.png`, `crop-smoke-trail-2x.png` (airframe and 30 m behind), and the fall sheet, now with the trail.
+- **compare-screenshots:** no before shot of a smoking airframe exists (D19 is new); single-image judgement. The trail starts thin at the airframe and widens behind it; in the visible area it is dark grey-brown.
+- **screenshot-critique (unprimed, run twice, the second last):**
+  - Fixed after the first pass: the trail read as a string of tan beads (8 Hz, pale albedo). It is now 20 Hz, darker and wider at its end.
+  - Recorded, not fixed: once blue has no unit left to see with, the frame takes the fog look (grey, hatched) while effects and the airframe keep their colour, so the trail reads ochre against it. That is the fog style, the same for the wreck's smoke. The trail is a smooth ribbon that rises and spreads little (minimal by the slice's brief); the hit point's autocannon puff hangs in the air (an existing effect); the wreck reads undamaged (slice 15's art).
 
 ## Contract
 

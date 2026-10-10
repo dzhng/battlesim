@@ -130,6 +130,8 @@ export interface OwnUnitView {
   weaponPoses: WeaponPoseView[];
   /** Vehicle health (0 for infantry). */
   hp: number;
+  /** It trails smoke, by the rule an enemy's is published (`IdentifiedView`). */
+  smoking: boolean;
   /** Health of each living soldier, in `members` order. */
   memberHp: number[];
   /** How suppressed the squad is, by the rules' thresholds (the sim owns
@@ -246,6 +248,23 @@ export interface FallenBodyView {
   tick: number;
 }
 
+/** A downed airframe still falling, seen by a side that saw it go down. Its
+ *  wreck takes over where it lands. */
+export interface FallingAirframeView {
+  /** The id the side knew it by: an own unit's id, else its identified handle. */
+  id: number;
+  own: boolean;
+  /** Its unit type, so it is drawn as itself. */
+  kind: string;
+  /** Its foot. */
+  position: Point3;
+  yaw: number;
+  /** Nose up, radians: negative as its nose drops into the fall. */
+  pitch: number;
+  /** Right side down, radians: it leans into its spin. */
+  roll: number;
+}
+
 /**
  * What a weapon mount is doing, for posing its model (the renderer derives
  * the pose; the simulation never names an animation).
@@ -350,6 +369,9 @@ export interface IdentifiedView {
   weaponPoses: WeaponPoseView[];
   /** Driving backwards this tick (a seen vehicle's reverse beeper). */
   reversing: boolean;
+  /** It trails smoke: a coarse sign of damage (an aircraft below half its
+   *  health), never its health. */
+  smoking: boolean;
 }
 
 /** Uncertain evidence: an area, never an exact position, strength or
@@ -454,6 +476,8 @@ export interface ObservationView {
   blasts: BlastView[];
   corpses: readonly CorpseView[];
   fallenBodies: readonly FallenBodyView[];
+  /** Downed airframes still falling that this side saw go down. */
+  crashes: FallingAirframeView[];
   guided: GuidedView[];
   /** The fixture's completion condition, when it has one. */
   encounter: { heldS: number; result: string } | null;
@@ -1042,6 +1066,7 @@ function decodeFrame(
       mounts: sections.mounts.map((m) => decodeMount(layout, ownMount(m))),
       weaponPoses: poses(sections.weaponPoses, ownPoses),
       hp: f("hp"),
+      smoking: f("smoking") === 1,
       memberHp: sections.memberHp.map((p) => p[0]),
       suppression: layout.suppressionTiers[f("suppression")],
       concealed: f("concealed") === 1,
@@ -1096,6 +1121,7 @@ function decodeFrame(
       memberLeans: leans(sections.memberLeans, seenLeans),
       weaponPoses: poses(sections.weaponPoses, seenPoses),
       reversing: f("reversing") === 1,
+      smoking: f("smoking") === 1,
     }),
   );
   const contacts = groups.contacts.map(
@@ -1195,6 +1221,17 @@ function decodeFrame(
           tick: f("tick"),
         }),
       );
+  const crashes = groups.crashes.map(
+    ({ field: f }): FallingAirframeView => ({
+      id: f("id"),
+      own: f("own") === 1,
+      kind: layout.unitKinds[f("kind")],
+      position: [f("x"), f("y"), f("z")],
+      yaw: f("yaw"),
+      pitch: f("pitch"),
+      roll: f("roll"),
+    }),
+  );
   return {
     tick: header.tick,
     own,
@@ -1206,6 +1243,7 @@ function decodeFrame(
     blasts,
     corpses,
     fallenBodies,
+    crashes,
     guided,
     encounter:
       header.encounterResult < 0

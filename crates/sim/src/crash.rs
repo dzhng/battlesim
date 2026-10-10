@@ -19,6 +19,11 @@ pub const CRASH_WEAPON: &str = "helicopter_crash";
 const SPIN_RAD_S: f64 = std::f64::consts::PI;
 /// The share of its speed into a wall an airframe keeps, glancing off it.
 const RESTITUTION: f64 = 0.3;
+/// Its attitude in the fall: the nose drop and the lean into the spin it
+/// reaches by this sink rate (D3's war-film tumble, not an aerodynamic one).
+const TIP_SINK_MPS: f64 = 15.0;
+const MAX_PITCH_RAD: f64 = 0.35;
+const MAX_ROLL_RAD: f64 = 0.25;
 /// How fast it slides off a roof it fell on.
 const SLIDE_MPS: f64 = 4.0;
 /// The wreck's search for clear ground: rings this far apart, this far out.
@@ -34,8 +39,9 @@ pub struct Crash {
     pub spin_rad_s: f64,
     /// Who brought it down: the kill, and every casualty of its crash.
     pub source: Option<LethalSource>,
-    /// The sides that saw it go down, and so learn where its wreck lies.
-    pub knowing: Vec<Side>,
+    /// The sides that saw it go down, and so see it fall and learn where its
+    /// wreck lies, each with the id it knew the airframe by.
+    pub knowing: Vec<(Side, u32)>,
 }
 
 impl Crash {
@@ -46,7 +52,7 @@ impl Crash {
         velocity: V2,
         yaw: f64,
         source: Option<LethalSource>,
-        knowing: Vec<Side>,
+        knowing: Vec<(Side, u32)>,
     ) -> Self {
         // Which way it spins is fixed by the unit, so a replay matches.
         let spin = if unit.0.is_multiple_of(2) {
@@ -110,6 +116,17 @@ impl Crash {
             return true;
         }
         false
+    }
+
+    /// How it hangs in the air, (pitch, roll): level the moment it dies, its
+    /// nose dropping and its body leaning into its spin as its sink builds.
+    /// Derived from its fall, so it adds nothing to the digest.
+    pub fn attitude(&self) -> (f64, f64) {
+        let tip = (-self.velocity.z / TIP_SINK_MPS).clamp(0.0, 1.0);
+        (
+            -MAX_PITCH_RAD * tip,
+            MAX_ROLL_RAD * tip * self.spin_rad_s.signum(),
+        )
     }
 
     pub fn digest(&self, d: &mut Digest) {

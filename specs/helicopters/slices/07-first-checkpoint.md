@@ -1,6 +1,6 @@
 # 07 — First browser checkpoint: air-aware weapons and the `air` scene
 
-**Status:** planned. **Depends on:** 03, 06. **Owns:** D1, D2, D22, D29, L3, L12 (record).
+**Status:** done: the rules and the scene ([evidence](#evidence)); the human checkpoint is open. **Depends on:** 03, 06. **Owns:** D1, D2, D22, D29, L3, L12 (record).
 
 ## Contract
 
@@ -53,3 +53,26 @@ Existing replay digests and `menu_reel` stay unchanged unless this slice names a
 ## Feedback that would change this slice
 
 Anything about how the flight reads: too high, too low, too floaty. That changes the D25 numbers, and needs the user.
+
+## Evidence
+
+- **Contract.** `/lab/air` (fixture `air`) plays the `air` test map's new `flight` encounter; scene `web/scenes/air.mjs`. The map grew to 640 × 520 m: a village of six building templates (two of them, a 3-floor shop and a 7-floor point block, on the route and tall enough to lift it), one `china-tower-20f` (61 m) across the straight line, and a 70 m wood. `air-hover` still passes on it.
+- **The scene passes** (no page errors, no GPU warnings), asserting from blue's observation, sampled every tick:
+  - 20 m over open ground before its order and hovering at its goal; never above ground + 40 m (highest 32.3 m);
+  - over each roof whose top + 10 m passes cruise, at least 10 m over that roof and above cruise (16 samples, lowest 10.0 m over the 7-floor roof);
+  - its track never inside the tower's footprint, passing beside it, and never turning back (it fell back 0 m);
+  - 150 rifle rounds strike its hull in the rifle phase while its health stays 200;
+  - the gun jeep, set to fire at tick 540 and held at 590, hits it once (200 → 100), and it still hovers 10 s later;
+  - the tank, seen throughout (870 samples), never fires its main gun (`weaponPoses[0].shots` stays 0).
+- **Found and fixed by the scene** ([choices](../choices.md)): at cruise the helicopter skimmed the tower-corner waypoint a metre or two wide, flew 130 m on and turned back for it. A waypoint now counts as passed once the aircraft is beyond it along the leg that led there, and a corner is taken no faster than the aircraft can stop in the rest of the route. Test: `air_flight::flies_on_past_a_tower_without_turning_back`; all 39 `air*` tests pass. This is aircraft only, so no ground digest can move; `menu_reel` fields no aircraft and was not rerun.
+- **Shots** (`throwaway/evidence/air/`): the route side on and from above, each with a strobe of the helicopter every 20 ticks; the roof pop and tower detour with 2× crops; a rifle strike, the jeep firing and the jeep's hit, with crops; `sheet-flight-profile.png`. Single-image metrics flag none as empty, flat or transparent.
+- **L12** (camera through the helicopter) did not show in any shot.
+- **Unprimed screenshot critique** (last check, run three times as the framing changed). The final pass's actionable findings:
+  - **The tower detour reads as a near miss** (high). The helicopter's centre passes about 12 m from the tower's north wall, a little more than its 7 m half length, so from above its rotor seems to graze the roof outline. The clearance is slice 03's (walls widened by the hull's half length). If it reads wrong in play, it is flight feedback for the user, and this slice leaves it as it is.
+  - **Height is hard to read in the wide views** (high). The side strobe shows the climb over the block only as a 25 px rise at 420 m, and no wide shot has a height cue under the airframe. That is slice 12's drop line and ring. The roof-pop shot, taken from under the roof edge, shows the gap.
+  - **A pale see-through copy on the tower** (medium). This is the game's x-ray of an own unit hidden behind a building, by design.
+  - **Sparks hang in the air behind the airframe** (medium). Seen in both the earlier pass and the final one. Rifle sparks stay where the round struck while the helicopter flies on at 61 m/s. A renderer effects question (whether sparks should inherit the target's velocity); no change here.
+  - **Weak or odd effects** (medium). The rifle tracer reads as a hairline laser from fog, the spark is small, the jeep's muzzle bloom is large and lights the wheat, and the autocannon hit shows a flash but no tracer. These belong to the effects owner, unchanged here.
+  - **Strobe artifacts** (medium). Tracers pasted in with the copies, and a smear where the copies overlap at the slow start. Scratch composite only.
+  - Earlier passes flagged the roof-pop height, the missing helicopter in the end frame and the fog discs in the plan strobe. These were fixed by reframing: the eye under the roof edge, the frame widened to the goal, and each copy taken against the next frame.
+- **Human checkpoint:** open. The shots are ready for [preview-shots](../../../.agents/skills/preview-shots/SKILL.md). This pass did not open Preview.

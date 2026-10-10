@@ -40,6 +40,9 @@ pub struct IdentifiedUnit {
     /// Driving backwards this tick, seen as plainly as its position (the
     /// reverse beeper's cue for a seen enemy vehicle).
     pub reversing: bool,
+    /// It trails smoke (D34): a coarse sign of damage, never its health.
+    #[serde(default)]
+    pub smoking: bool,
     /// Each seen soldier's lean, in `members` order: out past his cover's
     /// edge, where rounds meet him, while he fires. His `members`
     /// position stays where he tucks in.
@@ -449,6 +452,9 @@ pub struct OwnUnit {
     pub deployment: Option<DeploymentState>,
     /// Vehicle health (0 for infantry, whose health is per soldier).
     pub hp: f64,
+    /// It trails smoke (D34), by the same rule an enemy's is published.
+    #[serde(default)]
+    pub smoking: bool,
     /// Health of each living soldier, in `members` order.
     pub member_hp: Vec<f64>,
     /// The squad's suppression tier (P14), from its hidden level by the
@@ -579,6 +585,25 @@ pub struct FallenBody {
     pub tick: Tick,
 }
 
+/// A downed airframe still falling (D3), seen by a side that saw it go down:
+/// the side that flew it and any side that identified it as it died. It is
+/// no unit and no body; where it lands, its wreck takes over.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct FallingAirframe {
+    /// The id the side knew it by: its unit id when its own, the identified
+    /// handle (`ObservedTargetId`) it last had otherwise.
+    pub id: u32,
+    pub own: bool,
+    /// Its unit type, so it is drawn as itself.
+    pub kind: TypeIndex,
+    pub position: [f64; 3],
+    pub yaw: f64,
+    /// Nose up, radians: negative as its nose drops into the fall.
+    pub pitch: f64,
+    /// Right side down, radians: it leans into its spin.
+    pub roll: f64,
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct ObservationFrame {
     pub skirmish: Option<crate::skirmish::SkirmishView>,
@@ -601,6 +626,9 @@ pub struct ObservationFrame {
     pub corpses: Vec<Corpse>,
     /// Toppled bodies this side knocked down or has seen where they stood.
     pub fallen_bodies: Vec<FallenBody>,
+    /// Downed airframes still falling that this side saw go down.
+    #[serde(default)]
+    pub crashes: Vec<FallingAirframe>,
     /// This side's own guided missiles in flight.
     pub guided: Vec<GuidedMissile>,
     /// The fixture's completion condition, when it has one.
