@@ -24,8 +24,8 @@ Graph: `01 ∥ 02 → 03 → 04a → 04b → 04c → 05a → 05b → 06a → 06b
 - [x] 04a — Light: sun, fill and shadows (direction and softness). [slice](slices/04a-light-sun-and-shadow.md)
 - [ ] 04b — Light: sky, clouds and distance haze. [slice](slices/04b-light-sky-and-haze.md)
 - [ ] 04c — Light: output transform (tone), a formula port of the browser's post chain. [slice](slices/04c-light-output-transform.md)
-- [ ] 05a — Terrain: height and features, with a measured class-agreement gate. [slice](slices/05a-terrain-height-and-features.md)
-- [ ] 05b — Terrain: field character, after lifting the tuning table. [slice](slices/05b-terrain-field-character.md)
+- [x] 05a — Terrain: height and features (`48c3ab7a`): class agreement 100.00% with a 2 px edge mask (gate 99.5%). [slice](slices/05a-terrain-height-and-features.md)
+- [ ] 05b — Terrain: field character. The formulas are ported, and the broad cut and bare plots match; the close cut waits on browser plates with the grass off (`plain-<index>.png`). [slice](slices/05b-terrain-field-character.md)
 - [ ] 06a — Grass: bit-exact placement and per-region counts. [slice](slices/06a-grass-placement-and-counts.md)
 - [ ] 06b — Grass: look and wind. [slice](slices/06b-grass-look-and-wind.md)
 - [ ] Closeout: run [`review`](../../.agents/skills/review/SKILL.md) over phase 1's whole diff, remove the class-view scaffolding unless phase 2 adopts it, update this handoff, and plan phase 2 with a fresh discovery walk.

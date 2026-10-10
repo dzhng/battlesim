@@ -211,3 +211,20 @@ Shadow direction matches on every pair, and softness reads the same at mid range
 | Cascades split per frame over the receiver range the camera sees (the browser's 13×13 ray grid against the map box, flat until 05a), mapped onto Godot's camera-relative split fractions | Godot's splits start at the camera, the browser's at the receivers |
 | Soft shadows are PCF (`SOFT_LOW`, four Vogel taps), not PCSS; `shadow_blur` matches the browser's penumbra in metres in the second cascade | The browser's penumbra is a fixed world width; Godot has one radius per light in each split's texels, so near shadows are slightly sharper and far ones softer. PCSS would widen with blocker distance, which the browser doesn't. |
 | Godot's shadow biases stay at their defaults | The browser's biases belong to its own depth contract; no acne or peter-panning showed in the pairs |
+
+### Slices 05a (`48c3ab7a`) and 05b, by the implementing agent
+
+05a's class agreement over ground both clients drew, with a 2 px edge mask, is 100.00% on both reel maps: about 9.9 M px on market-town and 1.7 M px on paris-corner. With no mask it is 99.98%. The gate is 99.5%, with both clients drawing at least 97% of the browser's ground; measured coverage is 98.1% to 100%. A one-digit hash change drops plot-hash agreement to 18%, so the measure can fail. The lit pairs put roads, walks, slab joints, dashes, kerbs, plot edges and verges in the same places, and the unprimed critique agreed. Neither reel map has water, and forest covers about 19 k class pixels on market-town. Evidence: `throwaway/native-05a/`, `throwaway/native-05b/`.
+
+| Decision | Why |
+| --- | --- |
+| Tables upload as RGBA8 `ImageTexture`s, one texel per word, reassembled exactly in the shader. This amends the plan's `R32_UINT` `Texture2DRD`. | Godot 4.7.2's `Texture2DRD` refuses `R32_UINT` (no matching `Image` format). A float format would carry NaN payloads in the plot tree's negative children. |
+| `params` is a `vec4` uniform array decoded per field type. The other tables are textures. | It is one small record; uniforms avoid a fetch per field |
+| The shader reads layout offsets and `tuning.terrain` as defines generated from the manifest, not as uniforms | The browser splices the same numbers into WGSL as constants. A missing or renamed field fails to compile, and that compile failure is a logged blocker. |
+| Formula constants stay as shader text: hashes, lattice turns, `CUT_A`/`CUT_B`, `MAX_PLOT_DEPTH` and the class encoding (8 steps a metre, edge at 128) | The same rule as the tuning lift: they are part of the formula |
+| A WGSL-exact `smoothstep` (`ss`) and `roundEven` replace GLSL's `smoothstep` and `round` | GLSL leaves `smoothstep` undefined for `low >= high` and `round` at .5; WGSL defines both |
+| The ground mesh is the simulation's: the grid is split in halves until a rectangle holds no relief page, with flat-shaded SW→NE triangles. The backdrop is four flat bands at the lowest ground out to the backdrop reach, unshadowed. | It is `World::terrain_mesh` and `backdrop.ts`; a flat reel map is two triangles |
+| Buildings, units and props with a published or saved height use it. Only things without one sit on `height_at`. | Seat on the one height function; don't re-seat sim-placed bodies |
+| `--view classes` writes `class-<index>.png`. It has no environment, a black clear colour and no grass, and draws every other geometry black (units re-blackened each frame). | It is the browser's class view, whose bytes are data. Exact sRGB round-trip was probed for all 256 bytes. |
+| Sun flecks (`groundDapple`) are omitted and reported as a budget; scars are the reported-dropped `scars` layer | Native has no crowns until 07; scars are phase 2 |
+| Height vectors come from `throwaway/native-05a/height-vectors.ts` (the browser's packer and `groundHeight`) into `tests/fixtures/height_vectors.json` | As the slice delegated; the generator is scratch, and the vectors are the contract |

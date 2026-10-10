@@ -7,7 +7,7 @@
   - The browser shader and the manifest both read it.
   - The values are interpolated into WGSL as constants, so the generated shader text must stay byte-identical.
 - Already built (`948dc7fd`): the manifest's `tuning.terrain` is the table.
-- Native `terrain.gdshader` ports the formulas and reads the tuning as uniforms.
+- Native `terrain/ground.gdshaderinc` ports the formulas and reads the tuning as defines generated from the manifest (build log).
 
 **Runnable artifact:** a close and a broad plate pair over crop fields and meadow.
 
