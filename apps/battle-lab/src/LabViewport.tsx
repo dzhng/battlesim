@@ -697,15 +697,16 @@ export function LabViewport({
         };
         let scene = await build();
         if (signal.aborted) return;
+        const adapter = info.description || `${info.vendor} ${info.architecture}`.trim();
         pilot?.attach?.({
-          adapter: info.description || `${info.vendor} ${info.architecture}`.trim(),
+          adapter,
           stats: () => scene.stats(),
         });
         // What the battle draws, for a player's diagnostics report.
         signal.addEventListener(
           "abort",
           diagnosticsSource("battle view", () => ({
-            adapter: info.description || `${info.vendor} ${info.architecture}`.trim(),
+            adapter,
             format: info.format,
             canvas: [canvas.width, canvas.height],
             gpu: scene.stats().gpu,

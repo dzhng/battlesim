@@ -20,7 +20,6 @@ const LABELS: Record<CursorAction, string> = {
   reverse_move: "Reverse move",
   blocked: "Blocked",
 };
-const actions = CURSOR_ACTIONS;
 const surfaces = ["grass", "road", "fog"] as const;
 
 export default function CursorLab() {
@@ -43,7 +42,7 @@ export default function CursorLab() {
         <section key={surface} className={`cursor-surface cursor-${surface}`}>
           <h2>{surface}</h2>
           <div className="cursor-grid">
-            {actions.map((action) => {
+            {CURSOR_ACTIONS.map((action) => {
               const id = `${surface}-${action}`;
               return (
                 <figure key={action} data-specimen={id} data-action={action}>
@@ -60,7 +59,7 @@ export default function CursorLab() {
       <section className="cursor-demo">
         <h2>Move across the ground to try the cursor</h2>
         <div className="cursor-choices">
-          {actions.map((name) => (
+          {CURSOR_ACTIONS.map((name) => (
             <button
               key={name}
               onClick={() => {

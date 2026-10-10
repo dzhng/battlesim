@@ -102,12 +102,6 @@
   .cursor-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
-  /* Each specimen's arrow tip. */
-  .cursor-tip {
-    position: absolute;
-    left: calc(50% - 16px);
-    top: 14px;
-  }
   .cursor-grid figcaption {
     font-size: 10px;
   }
