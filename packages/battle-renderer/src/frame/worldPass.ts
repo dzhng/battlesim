@@ -103,9 +103,8 @@ import {
   scarredSurface,
   waterNormal,
   waterSurface,
-  WATER_ROUGHNESS,
-  WATER_SHADOW,
 } from "./terrainMaterial";
+import { terrainTuning } from "../terrain/terrainTuning";
 import { createSceneryLayer } from "./sceneryLayer";
 import type { FelledTree } from "../scenery/felled";
 import { createPaintedMarks, validatePaintStyle, type PaintStyle } from "./paintedMarks";
@@ -318,7 +317,7 @@ export async function createWorldPass(
     const lit = environment.shade(
       paintedAlbedo(surface.xyz, paint),
       d.vec3f(0),
-      WATER_ROUGHNESS,
+      terrainTuning.water.roughness,
       0,
       0,
       1,
@@ -327,7 +326,7 @@ export async function createWorldPass(
       sun,
       eye,
     );
-    const shaded = std.add(std.mul(lit.xyz, std.mix(WATER_SHADOW, 1, sun)), paintGlow(paint));
+    const shaded = std.add(std.mul(lit.xyz, std.mix(terrainTuning.water.shadow, 1, sun)), paintGlow(paint));
     const seen = paintedSeen(fogTerm(v.world, n, v.clip.xy, fogIsGround()), paint);
     const alpha = std.max(surface.w, paint.w);
     return { color: d.vec4f(shaded, alpha), fog: fogCoverage(seen, alpha) };

@@ -1571,9 +1571,7 @@ export const groundClasses = tgpu.fn(
 // sun reflect in it, broken by two octaves of ripples. The surface ends on the
 // simulation's water edge, feathered over a pixel: the ground meets the
 // surface there, so nothing hides it and nothing steps. Its numbers are
-// `terrainTuning.water`; the world pass reads these two.
-export const WATER_ROUGHNESS = tuning.water.roughness;
-export const WATER_SHADOW = tuning.water.shadow;
+// `terrainTuning.water`, which the world pass reads too.
 
 /** Ripple height at `xy`: two octaves of value noise, in about [0, 1.5]. */
 const rippleHeight = tgpu.fn(
