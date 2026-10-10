@@ -19,8 +19,11 @@ def unit(type_id, appearance, half, eye, mounts):
     )
 
 
-GUN = dict(name="cannon", on=None, pivot_m=[0.0, 0.0, 1.5], muzzle_m=[5.0, 0.0, 0.4], weapons=["ap"])
-ROOF = dict(name="HMG", on="cannon", pivot_m=[-0.2, 0.5, 2.3], muzzle_m=[1.4, 0.0, 0.3], weapons=["hmg"])
+# A resolved mount, as fixtures/catalog.json writes it: its id, which
+# appearances rig it by, and the label its card shows.
+GUN = dict(id="cannon", name="Main Gun", on=None, pivot_m=[0.0, 0.0, 1.5], muzzle_m=[5.0, 0.0, 0.4], weapons=["ap"])
+ROOF = dict(id="HMG", name="Roof MG", on="cannon", pivot_m=[-0.2, 0.5, 2.3], muzzle_m=[1.4, 0.0, 0.3],
+            weapons=["hmg"])
 
 
 class CatalogFramesTest(unittest.TestCase):
