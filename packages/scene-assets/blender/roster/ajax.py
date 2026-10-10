@@ -14,8 +14,11 @@ right front, the commander's ORION sight box on the right rear and the
 two crew hatches, commander and gunner riding head out. The frame gives the
 turret one mount; the remote weapon station is drawn fixed to the turret.
 
-Built to the catalog frame (hull 7.62 x 3.35 x 3.0 m, turret pivot 1.95 m,
-autocannon muzzle 2.65 m ahead): nothing here moves it.
+Built to the catalog frame (hull 7.62 x 3.35 x 3.0 m, turret pivot 0.4 m
+behind the hull's middle and 1.95 m up, autocannon muzzle 2.65 m ahead):
+nothing here moves it. The turret sits behind the front engine and driver,
+its rear about one wheel pitch ahead of the last road wheel (side photo);
+it, and the crew in its hatches, are built at the frame's pivot.
 """
 import math
 import os
@@ -143,11 +146,11 @@ def build(variant, v):
                             RETURNS, bolts=6, teeth=11, arm=(0.42, 0.40), pitch=0.15)
     side_modules(v)
     mounts = rig(v.frame, v.root)
-    turret, gun, _, _ = mounts["autocannon"]
+    turret, gun, _, pivot = mounts["autocannon"]
     turret_body(v, turret)
     cta40(v, gun)
-    v.head_out("commander", turret, -0.25, 0.55, 1.95 + ROOF + 0.06)
-    v.head_out("gunner", turret, 0.15, -0.15, 1.95 + ROOF + 0.04)
+    v.head_out("commander", turret, pivot.x - 0.25, 0.55, pivot.z + ROOF + 0.06)
+    v.head_out("gunner", turret, pivot.x + 0.15, -0.15, pivot.z + ROOF + 0.04)
 
 
 def wreck(variant, v):

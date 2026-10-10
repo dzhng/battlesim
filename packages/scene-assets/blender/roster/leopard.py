@@ -17,8 +17,10 @@ bolted roof armour, the bustle's auxiliary unit and the FLW 100 weapon station.
 with its heavy machine gun, and the turret front plates (from the Eurosatory
 2022 demonstrator; no licensable photo of a series 2A8's turret roof).
 
-Built to the catalog frame (hull 7.7 x 3.75 x 3.0 m, turret pivot 1.8 m,
-cannon muzzle 7.12 m ahead and 0.54 m up): nothing here moves it. The frame's
+Built to the catalog frame (hull 7.7 x 3.75 x 3.0 m, turret pivot 0.3 m ahead
+of the hull's middle and 1.8 m up, cannon muzzle 7.12 m ahead and 0.54 m up):
+nothing here moves it; the turret and the commander in his hatch are built at
+the frame's pivot. The frame's
 3.0 m box is taller than the hull and turret roof the photos show (about
 2.6 m); the art stands at its real height inside it (specs/done/unit-models/choices.md). The wreck is cut into hull and turret pieces (wreckage.export_wreck).
 """
@@ -45,7 +47,7 @@ RETURNS = [(1.98, 0.88, 0.10), (0.38, 0.89, 0.10), (-1.02, 0.89, 0.10), (-2.24, 
 SKIRT_Y = 1.84  # the skirt's outer face
 SKIRT_TOP, SKIRT_FOOT = 1.52, 0.80
 DECK = 1.62
-# Turret (its own frame, origin at the pivot 1.8 m up).
+# Turret (its own frame, origin at the pivot).
 FOOT = -0.14
 ROOF = 0.81
 TRUNNION = 1.10
@@ -67,14 +69,14 @@ def build(variant, v):
                             RETURNS, bolts=8, teeth=12, arm=(0.50, 0.40), pitch=0.18)
     skirts(v)
     mounts = rig(v.frame, v.root, trunnion={"cannon": TRUNNION})
-    turret, gun, _, _ = mounts["cannon"]
+    turret, gun, _, pivot = mounts["cannon"]
     hmg, hmg_gun, _, _ = mounts["HMG"]
     turret_body(v, turret, a7v, a8)
     main_gun(v, gun)
     weapon_station(v, hmg, hmg_gun, a7v, a8)
     # The 2A6's commander rides head and shoulders out (photos: side).
     if not a7v:
-        v.head_out("commander", turret, -0.95, -0.78, 1.8 + ROOF)
+        v.head_out("commander", turret, pivot.x - 0.95, -0.78, pivot.z + ROOF)
 
 
 # ---------------------------------------------------------------- hull
@@ -367,6 +369,10 @@ def wreck(variant, v):
     for o in bpy.data.objects:
         if o.name.startswith("dressing_trophy_"):
             o.name = o.name.replace("dressing_", "", 1)
+    # The turret died traversed a little left of the bow: with the ring ahead
+    # of the hull's middle, the long L55 laid dead ahead would reach past the
+    # ground the wreck may cover (its footprint allowance).
+    bpy.data.objects["turret"].rotation_euler.z += math.radians(7.0)
     remove("track_L_band", "wheel_L_5_", "wheel_L_6_", "skirt_L_5", "skirt_L_6", "skirt_handle_L_5",
            "skirt_handle_L_6", "skirt_bolt_L_5", "skirt_bolt_L_6", "loader_hatch", "basket_tarp", "basket_bag",
            "skirt_cross_L")
