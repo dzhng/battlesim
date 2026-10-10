@@ -1256,3 +1256,156 @@ fn a_seen_team_does_not_publish_its_unseen_launcher_operator() {
         "activity is aligned only with the visible member identities"
     );
 }
+
+/// The generic missile flown top-attack, tuned as the flight tests tune it
+/// (`top_attack.rs`): an agile seeker, a 60 m loft and a 40° dive.
+fn top_attack(r: &mut Value) {
+    r["weapons"]["atgm"]["turn_deg_s"] = json!(360);
+    r["weapons"]["atgm"]["top_attack"] = json!({ "loft_m": 60, "dive_deg": 40 });
+}
+
+/// The battle once its first missile has ended, and that missile's flown
+/// path as blue saw it.
+fn first_missile(mut b: Battle) -> (Battle, Vec<[f64; 3]>) {
+    until_launch(&mut b);
+    let mut path = Vec::new();
+    while let Some(m) = missile(&b) {
+        path.push(m.position);
+        b.step();
+    }
+    (b, path)
+}
+
+/// Blue's AT team 560 m from a red tank facing it.
+fn facing_tank() -> Value {
+    json!([
+        { "side": "blue", "kind": "test_at", "position": [40, 300] },
+        { "side": "red", "kind": "test_tank", "position": [600, 300], "yaw": std::f64::consts::PI, "engagement": "return_fire_only" },
+    ])
+}
+
+fn apex(path: &[[f64; 3]]) -> f64 {
+    path.iter().map(|p| p[2]).fold(f64::MIN, f64::max)
+}
+
+#[test]
+fn a_top_attack_missile_kills_through_the_roof_a_tank_whose_front_it_cannot_pierce() {
+    // A missile between the tank's roof and front armour, lethal when it
+    // pierces: diving onto the roof kills; the same row flown at the front
+    // does not get through.
+    let hull = common::hull("test_tank");
+    let lethal = |r: &mut Value| {
+        r["weapons"]["atgm"]["penetration"] = json!((hull.armor.roof + hull.armor.front) / 2.0);
+        r["weapons"]["atgm"]["damage"] = json!(hull.hp);
+        top_attack(r);
+    };
+    let (dived, path) = first_missile(quick(json!([]), facing_tank(), 1, lethal));
+    assert!(apex(&path) > 30.0, "it climbed: apex {:.1} m", apex(&path));
+    assert_eq!(
+        own(&dived, Side::Red, 1).map_or(0.0, |u| u.hp),
+        0.0,
+        "the roof hit kills"
+    );
+    let (direct, path) = first_missile(quick(json!([]), facing_tank(), 1, |r| {
+        lethal(r);
+        r["weapons"]["atgm"]
+            .as_object_mut()
+            .unwrap()
+            .remove("top_attack");
+    }));
+    assert!(apex(&path) < 5.0, "flown direct: apex {:.1} m", apex(&path));
+    assert_eq!(
+        own(&direct, Side::Red, 1).map(|u| u.hp),
+        Some(hull.hp),
+        "the front holds"
+    );
+}
+
+#[test]
+fn a_top_attack_launcher_under_tree_crowns_climbs_out_through_them_and_dives_onto_its_target() {
+    // The team fires from the edge of a wood, under the crowns overhanging
+    // it. Crowns hide what stands beneath them but stop no round, so the
+    // climb leaves through them; trunks stand upright, so a climb in the
+    // vertical plane of the line the launch checked passes them as that line
+    // does.
+    let mut rules = common::game();
+    top_attack(&mut rules);
+    let map = json!({ "size": [1200, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": [],
+        "forests": [{ "shape": { "kind": "polygon", "ring": [[0, 303], [60, 303], [60, 340], [0, 340]] } }] });
+    let setup = serde_json::from_value(json!({ "map": map, "rules": rules, "units": [
+        { "side": "blue", "kind": "test_at", "position": [40, 300] },
+        { "side": "red", "kind": "test_tank", "position": [400, 300], "yaw": std::f64::consts::PI, "engagement": "return_fire_only" },
+    ], "events": [], "scripts": [] }))
+    .unwrap();
+    let mut b = Battle::new(&setup, 1);
+    let launched = until_launch(&mut b);
+    let leaving = missile(&b).unwrap().position;
+    let canopy = b.world().foliage_at(leaving[0], leaving[1]).canopy_m;
+    assert!(
+        leaving[2] < canopy,
+        "launched beneath the crowns: {leaving:?}, canopy {canopy} m"
+    );
+    let (b, path) = first_missile(b);
+    assert!(apex(&path) > 30.0, "it climbed: apex {:.1} m", apex(&path));
+    assert!(
+        own(&b, Side::Red, 1).unwrap().hp < common::hull("test_tank").hp,
+        "it struck the tank, {} ticks after launch",
+        b.tick() - launched
+    );
+}
+
+#[test]
+fn a_released_top_attack_missile_drops_its_climb_and_goes_to_ground_at_its_fixed_point() {
+    // Blue's team 500 m from a red tank, a wall just north of the line of
+    // fire (as `ambush`). Either the tank drives behind the wall as the
+    // missile leaves, or the team moves off once it is climbing: both end
+    // support, and the missile goes to ground at the point its release fixed,
+    // short of the tank.
+    let wall =
+        json!([{ "kind": "wall", "center": [560, 336], "yaw": 0, "half_extents": [0.5, 30, 4] }]);
+    let units = json!([
+        { "side": "blue", "kind": "test_at", "position": [100, 300], "engagement": "fire_at_will" },
+        { "side": "red", "kind": "test_tank", "position": [600, 300], "yaw": std::f64::consts::FRAC_PI_2, "engagement": "return_fire_only" }
+    ]);
+    let full = common::hull("test_tank").hp;
+    for (case, side, unit, goal, after) in [
+        ("the tank hides", Side::Red, 1, [600.0, 345.0], 0),
+        ("the team moves", Side::Blue, 0, [100.0, 200.0], 40),
+    ] {
+        let mut b = quick(wall.clone(), units.clone(), 6, |r| {
+            top_attack(r);
+            r["movement"]["drive"]["acceleration_s"] = json!(1e-6);
+            r["movement"]["drive"]["braking_s"] = json!(1e-6);
+        });
+        until_launch(&mut b);
+        for _ in 0..after {
+            b.step();
+        }
+        Commander::new().ok(&mut b, side, move_to(unit, goal));
+        let (mut released, mut burst) = (None, None);
+        for _ in 0..300 {
+            b.step();
+            let view = b.observe(Side::Blue);
+            match view.guided.first() {
+                Some(m) if !m.supported => {
+                    let (point, _) = *released.get_or_insert((m.point, m.position));
+                    assert_eq!(m.point, point, "{case}: the point stays put");
+                }
+                Some(_) => {}
+                None => {
+                    burst = view.blasts.first().map(|x| x.point);
+                    break;
+                }
+            }
+        }
+        let (point, at) = released.unwrap_or_else(|| panic!("{case}: released"));
+        let burst = burst.unwrap_or_else(|| panic!("{case}: it burst"));
+        assert!(at[2] > 10.0, "{case}: released while climbing: {at:?}");
+        assert!(
+            horizontal(burst, point) < 1.0 && burst[2].abs() < 0.05,
+            "{case}: burst {burst:?} at its point {point:?}"
+        );
+        assert!(burst[0] < 560.0, "{case}: short of the tank: {burst:?}");
+        assert_eq!(own(&b, Side::Red, 1).unwrap().hp, full, "{case}: untouched");
+    }
+}

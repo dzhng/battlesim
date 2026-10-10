@@ -343,6 +343,64 @@ fn supply_restores_one_charge_per_ten_seconds_with_finite_stock_and_unchanged_co
 }
 
 #[test]
+fn active_protection_intercepts_a_top_attack_missile_in_its_dive() {
+    // Top attack beats thin roof armour, not active protection: a Trophy
+    // hull meets a missile diving onto it as it meets a flat one, at its
+    // standoff above the roof.
+    use contract::ids::Side;
+    use serde_json::json;
+    use sim::battle::Battle;
+    let mut rules = sim::fixtures::test_game();
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_tank",
+        json!({"capabilities":{"active_protection":capability()}}),
+    );
+    let dive_deg = 40.0;
+    rules["weapons"]["atgm"]["turn_deg_s"] = json!(360);
+    rules["weapons"]["atgm"]["top_attack"] = json!({ "loft_m": 60, "dive_deg": dive_deg });
+    let setup = serde_json::from_value(json!({"rules":rules,"map":{"size":[1200,600],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},"units":[
+        {"side":"blue","kind":"test_at","position":[40,300]},
+        {"side":"red","kind":"test_tank","position":[600,300],"engagement":"return_fire_only"}
+    ]}))
+    .unwrap();
+    let mut b = Battle::new(&setup, 7);
+    let mut path: Vec<[f64; 3]> = Vec::new();
+    let mut burst = None;
+    for _ in 0..900 {
+        b.step();
+        let view = b.observe(Side::Blue);
+        match view.guided.first() {
+            Some(m) => path.push(m.position),
+            None if !path.is_empty() => {
+                burst = view.blasts.first().map(|x| x.point);
+                break;
+            }
+            None => {}
+        }
+    }
+    let burst = burst.expect("the missile burst");
+    let tank = b.unit(UnitId(1)).unwrap();
+    assert_eq!(tank.protection.unwrap().charges, capability().capacity - 1);
+    assert_eq!(
+        tank.hp,
+        crate::common::hull("test_tank").hp,
+        "intercepted short of the hull"
+    );
+    let [.., a, c] = path[..] else {
+        panic!("it flew")
+    };
+    let (run, drop) = ((c[0] - a[0]).hypot(c[1] - a[1]), a[2] - c[2]);
+    assert!(
+        drop.atan2(run).to_degrees() >= dive_deg,
+        "diving when met: {a:?} → {c:?}"
+    );
+    let roof = 2.0 * crate::common::hull("test_tank").half_extents_m[2];
+    assert!(burst[2] > roof + 1.0, "met above the roof: {burst:?}");
+}
+
+#[test]
 fn ordinary_tank_shell_metadata_bypasses_active_protection() {
     let rules = sim::fixtures::test_game();
     for id in [

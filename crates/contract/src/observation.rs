@@ -238,6 +238,8 @@ pub struct GuidedMissile {
     /// Stable while it flies: this side's own round, so no disclosure.
     pub id: u64,
     pub position: [f64; 3],
+    /// Its commanded point; a top-attack missile climbs above it before
+    /// diving onto it, so this is not where it is heading now.
     pub point: [f64; 3],
     pub supported: bool,
 }

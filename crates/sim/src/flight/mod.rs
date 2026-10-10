@@ -65,6 +65,9 @@ pub enum FlightConfigError {
     /// `accel_mps2` and `top_speed_mps` come together, on a guided row (a
     /// motor round flies without gravity), with a top speed above launch.
     Motor(&'static str),
+    /// `top_attack` belongs on a guided row, with a positive loft and a dive
+    /// between level and vertical.
+    TopAttack(&'static str),
     /// An unguided row more accurate at its range than
     /// `physics.min_spread_at_max_range_m` allows.
     TighterThanCeiling {
@@ -86,6 +89,7 @@ impl std::fmt::Display for FlightConfigError {
                 "Projectile lifetime must be at most {max_s} s; entered {lifetime_s} s"
             ),
             Self::Motor(reason) => write!(f, "Invalid missile motor: {reason}"),
+            Self::TopAttack(reason) => write!(f, "Invalid top attack: {reason}"),
             Self::TighterThanCeiling { spread_m, min_m } => write!(
                 f,
                 "Landing spread must be at least {min_m} m at maximum range; entered {spread_m} m"
@@ -221,6 +225,24 @@ impl FlightConfig {
                 ))
             }
         };
+        let loft = match weapon.top_attack {
+            None => None,
+            Some(_) if weapon.turn_deg_s.is_none() => {
+                return Err(FlightConfigError::TopAttack("it needs a guided row"))
+            }
+            Some(t) if !(t.loft_m > 0.0 && t.loft_m.is_finite()) => {
+                return Err(FlightConfigError::TopAttack("loft_m must be positive"))
+            }
+            Some(t) if !(t.dive_deg > 0.0 && t.dive_deg < 90.0) => {
+                return Err(FlightConfigError::TopAttack(
+                    "dive_deg must lie between 0 and 90",
+                ))
+            }
+            Some(t) => Some(Loft {
+                height_m: t.loft_m,
+                slope: t.dive_deg.to_radians().tan(),
+            }),
+        };
         let spread_m = weapon.scatter_mrad * 1e-3 * weapon.range_m;
         if weapon.turn_deg_s.is_none() && spread_m < self.min_spread_at_max_range_m {
             return Err(FlightConfigError::TighterThanCeiling {
@@ -247,6 +269,7 @@ impl FlightConfig {
             suppression_radius_m: weapon.suppression_radius_m,
             turn_rad_s: weapon.turn_deg_s.map(f64::to_radians),
             motor,
+            loft,
         })
     }
 }
@@ -266,6 +289,17 @@ pub struct LaunchProfile {
     pub turn_rad_s: Option<f64>,
     /// A rocket motor speeding the round up along its heading.
     pub motor: Option<Motor>,
+    /// A guided round's top-attack path.
+    pub loft: Option<Loft>,
+}
+
+/// A top-attack path, validated: climb toward `height_m` above the
+/// commanded point until it lies below the round by at least `slope` (the
+/// tangent of the dive angle) times their horizontal distance, then dive.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Loft {
+    pub height_m: f64,
+    pub slope: f64,
 }
 
 /// A rocket motor: from its launch speed the round speeds up at
@@ -330,6 +364,28 @@ pub struct Guidance {
     pub point: V3,
     pub turn_rad_s: f64,
     pub supported: bool,
+    /// A top-attack round's path above its point.
+    pub loft: Option<Loft>,
+}
+
+impl Guidance {
+    /// Where a round at `position` steers. A supported top-attack round
+    /// climbs toward the lofted point above its commanded point until the
+    /// point lies inside its dive cone, then dives onto it; any other, and a
+    /// released one, flies at its point.
+    pub fn aim(&self, position: V3) -> V3 {
+        match self.loft {
+            Some(loft) if self.supported => {
+                let across = (self.point.xy() - position.xy()).length();
+                if position.z - self.point.z >= loft.slope * across {
+                    self.point
+                } else {
+                    self.point + v3(0.0, 0.0, loft.height_m)
+                }
+            }
+            _ => self.point,
+        }
+    }
 }
 
 /// Stable collider id of a moving body (a soldier or a vehicle hull).
@@ -754,6 +810,11 @@ impl Projectiles {
                     .f64(g.point.z)
                     .f64(g.turn_rad_s)
                     .u64(g.supported as u64);
+                // Hashed only when present: a battle firing no top-attack
+                // round keeps its digest.
+                if let Some(loft) = g.loft {
+                    d.u64(0x4c4f4654).f64(loft.height_m).f64(loft.slope);
+                }
             }
             if let Some(fall) = p.fall {
                 d.u64(0x4c414e44).f64(fall.gravity_scale).f64(fall.after_s);
@@ -896,7 +957,11 @@ impl Flight<'_> {
     fn acceleration(&self, p: &mut Projectile, span: f64) -> V3 {
         let gravity = match p.guidance {
             Some(g) => {
-                p.velocity = steer(p.velocity, g.point - p.position, g.turn_rad_s * span);
+                p.velocity = steer(
+                    p.velocity,
+                    g.aim(p.position) - p.position,
+                    g.turn_rad_s * span,
+                );
                 V3::default()
             }
             None => self.config.gravity * p.gravity_scale,

@@ -133,6 +133,8 @@ Each physical weapon owns its targeting, ammunition and firing cycle. Identical 
 
 A replacement soldier brings a fresh default gun; a transferable special weapon keeps its identity, rounds and reload progress across handoffs. Living original carriers operate their own guns, survivors retain recovered assignments, and free soldiers take up remaining stocked weapons. One soldier operates one special weapon at a time. Additional recovered weapons remain spares: their reload pauses until an operator is available, while movement still interrupts stationary weapons. An empty launcher's operator finishes guiding its last missile before taking up a stocked spare. Guidance belongs to the physical launcher, so an eligible survivor can continue an in-flight missile; loss of support, movement, Stop or lost sight still releases it.
 
+A guided row's `top_attack` changes only the path its supported missile flies: it climbs toward `loft_m` above the commanded point, then dives once that point lies `dive_deg` below its horizon, so geometry, not a rule, puts the hit on the roof. Guidance, release and active protection are unchanged; a released missile flies straight at its fixed point. The dive must fit the row's turn rate: a slow-turning missile overshoots a steep pitch-over, so a top-attack row turns far faster than a direct one ([traces](../specs/ground-admission/assets/top-attack/)).
+
 ## Adding a unit type (a tank variant, a vehicle, an infantry type)
 
 Add one entry. A variant is an `extends` and what differs. Code learns nothing about the type, and changes only where a genuinely new behaviour appears, as a new component or capability. Each rule has a guard; if you add a type that the guard doesn't cover, extend the guard.

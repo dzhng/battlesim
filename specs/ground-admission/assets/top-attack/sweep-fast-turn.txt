@@ -1,0 +1,50 @@
+# as sweep-slow-turn.txt, ranges 100..900 m every 50 m. fails = ranges not striking the roof;
+# min descent over roof hits; apex-loft max <= 0: never climbed past its loft (no loop).
+turn 240 loft  50 dive 30: fails [100.0] min descent 35 apex-loft max 0 t max 5.0
+turn 240 loft  50 dive 35: fails [100.0, 150.0] min descent 45 apex-loft max 0 t max 5.0
+turn 240 loft  50 dive 40: fails [100.0, 150.0, 200.0, 250.0, 300.0, 350.0] min descent 58 apex-loft max 0 t max 5.0
+turn 240 loft  60 dive 30: fails [100.0, 150.0] min descent 35 apex-loft max 0 t max 5.0
+turn 240 loft  60 dive 35: fails [100.0, 150.0, 200.0] min descent 44 apex-loft max 0 t max 5.0
+turn 240 loft  60 dive 40: fails [100.0, 150.0, 200.0, 250.0] min descent 53 apex-loft max 0 t max 5.0
+turn 240 loft  70 dive 30: fails [100.0] min descent 35 apex-loft max 0 t max 5.0
+turn 240 loft  70 dive 35: fails [100.0, 150.0] min descent 42 apex-loft max 0 t max 5.0
+turn 240 loft  70 dive 40: fails [100.0, 150.0, 200.0] min descent 50 apex-loft max 0 t max 5.0
+turn 240 loft  80 dive 30: fails [100.0] min descent 34 apex-loft max 0 t max 5.0
+turn 240 loft  80 dive 35: fails [100.0, 150.0] min descent 41 apex-loft max 0 t max 5.0
+turn 240 loft  80 dive 40: fails [100.0, 150.0] min descent 50 apex-loft max 0 t max 5.1
+turn 270 loft  50 dive 30: fails [100.0] min descent 34 apex-loft max 0 t max 5.0
+turn 270 loft  50 dive 35: fails [100.0] min descent 43 apex-loft max 0 t max 5.0
+turn 270 loft  50 dive 40: fails [100.0, 150.0, 200.0] min descent 53 apex-loft max 0 t max 5.0
+turn 270 loft  60 dive 30: fails [] min descent 34 apex-loft max 0 t max 5.0
+turn 270 loft  60 dive 35: fails [100.0, 150.0] min descent 42 apex-loft max 0 t max 5.0
+turn 270 loft  60 dive 40: fails [100.0, 150.0, 200.0] min descent 50 apex-loft max 0 t max 5.0
+turn 270 loft  70 dive 30: fails [] min descent 34 apex-loft max 0 t max 5.0
+turn 270 loft  70 dive 35: fails [100.0] min descent 40 apex-loft max 0 t max 5.0
+turn 270 loft  70 dive 40: fails [100.0, 150.0] min descent 48 apex-loft max 0 t max 5.0
+turn 270 loft  80 dive 30: fails [] min descent 33 apex-loft max 0 t max 5.0
+turn 270 loft  80 dive 35: fails [100.0] min descent 40 apex-loft max 0 t max 5.0
+turn 270 loft  80 dive 40: fails [100.0] min descent 48 apex-loft max 0 t max 5.1
+turn 300 loft  50 dive 30: fails [] min descent 34 apex-loft max 0 t max 5.0
+turn 300 loft  50 dive 35: fails [100.0] min descent 42 apex-loft max 0 t max 5.0
+turn 300 loft  50 dive 40: fails [100.0, 150.0] min descent 51 apex-loft max 0 t max 5.0
+turn 300 loft  60 dive 30: fails [] min descent 33 apex-loft max 0 t max 5.0
+turn 300 loft  60 dive 35: fails [] min descent 41 apex-loft max 0 t max 5.0
+turn 300 loft  60 dive 40: fails [100.0, 150.0] min descent 48 apex-loft max 0 t max 5.0
+turn 300 loft  70 dive 30: fails [] min descent 34 apex-loft max 0 t max 5.0
+turn 300 loft  70 dive 35: fails [] min descent 40 apex-loft max 0 t max 5.0
+turn 300 loft  70 dive 40: fails [100.0] min descent 47 apex-loft max 0 t max 5.0
+turn 300 loft  80 dive 30: fails [] min descent 33 apex-loft max 0 t max 5.0
+turn 300 loft  80 dive 35: fails [] min descent 39 apex-loft max 0 t max 5.0
+turn 300 loft  80 dive 40: fails [100.0] min descent 47 apex-loft max 0 t max 5.1
+turn 360 loft  50 dive 30: fails [] min descent 33 apex-loft max 0 t max 5.0
+turn 360 loft  50 dive 35: fails [] min descent 40 apex-loft max 0 t max 5.0
+turn 360 loft  50 dive 40: fails [] min descent 48 apex-loft max 0 t max 5.0
+turn 360 loft  60 dive 30: fails [] min descent 32 apex-loft max 0 t max 5.0
+turn 360 loft  60 dive 35: fails [] min descent 39 apex-loft max 0 t max 5.0
+turn 360 loft  60 dive 40: fails [] min descent 46 apex-loft max 0 t max 5.0
+turn 360 loft  70 dive 30: fails [] min descent 33 apex-loft max 0 t max 5.0
+turn 360 loft  70 dive 35: fails [] min descent 38 apex-loft max 0 t max 5.0
+turn 360 loft  70 dive 40: fails [] min descent 45 apex-loft max 0 t max 5.0
+turn 360 loft  80 dive 30: fails [] min descent 32 apex-loft max 0 t max 5.0
+turn 360 loft  80 dive 35: fails [] min descent 38 apex-loft max 0 t max 5.0
+turn 360 loft  80 dive 40: fails [] min descent 45 apex-loft max 0 t max 5.1

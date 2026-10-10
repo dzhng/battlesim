@@ -399,6 +399,27 @@ const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
       { unit: "m/s", optional: true },
     ),
     field(
+      "top_attack",
+      "Top attack",
+      "Flight & accuracy",
+      "A guided missile that climbs above its target, then dives onto the roof while the launcher supports it. Requires a guidance turn rate; released missiles fly straight at their fixed point.",
+      { kind: "object", optional: true, initial: { loft_m: 60, dive_deg: 40 } },
+    ),
+    field(
+      "top_attack.loft_m",
+      "Loft height",
+      "Flight & accuracy",
+      "Height above the target the missile climbs toward before its dive.",
+      { unit: "m", min: Number.MIN_VALUE },
+    ),
+    field(
+      "top_attack.dive_deg",
+      "Dive angle",
+      "Flight & accuracy",
+      "The missile pitches over once its target lies this far below its horizon, so it strikes at least this steeply. A low turn rate cannot pull through a steep dive.",
+      { unit: "°", min: Number.MIN_VALUE, max: 90 },
+    ),
+    field(
       "lifetime_s",
       "Flight lifetime",
       "Flight & accuracy",
