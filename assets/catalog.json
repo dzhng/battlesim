@@ -2957,6 +2957,35 @@
         "footprint_m": 0.8
       }
     },
+    "us_m10_booker": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/m10/us_m10_booker.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "cannon": "gun",
+        "HMG": "hmg"
+      },
+      "wreck": "us_m10_booker_wreck"
+    },
+    "us_m10_booker_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/m10/us_m10_booker_wreck.glb",
+        "hull": "assets/source/roster/m10/us_m10_booker_wreck_hull.glb",
+        "turret": "assets/source/roster/m10/us_m10_booker_wreck_turret.glb",
+        "debris": "assets/source/roster/m10/us_m10_booker_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        3.5,
+        1.7,
+        1.49
+      ],
+      "tolerances": {
+        "footprint_m": 1.2
+      }
+    },
     "europe_vbl_machine_gun_scout": {
       "unit": "vehicle",
       "source": "assets/source/roster/vbl/europe_vbl_machine_gun_scout.glb",
@@ -3225,6 +3254,64 @@
       ],
       "tolerances": {
         "footprint_m": 1.6
+      }
+    },
+    "europe_cv90120_light_tank": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/cv90120/europe_cv90120_light_tank.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "cannon": "gun",
+        "HMG": "hmg"
+      },
+      "wreck": "europe_cv90120_light_tank_wreck"
+    },
+    "europe_cv90120_light_tank_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/cv90120/europe_cv90120_light_tank_wreck.glb",
+        "hull": "assets/source/roster/cv90120/europe_cv90120_light_tank_wreck_hull.glb",
+        "turret": "assets/source/roster/cv90120/europe_cv90120_light_tank_wreck_turret.glb",
+        "debris": "assets/source/roster/cv90120/europe_cv90120_light_tank_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        3.475,
+        1.65,
+        1.325
+      ],
+      "tolerances": {
+        "footprint_m": 1.6
+      }
+    },
+    "europe_centauro_ii": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/centauro/europe_centauro_ii.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "cannon": "gun",
+        "RWS": "hmg"
+      },
+      "wreck": "europe_centauro_ii_wreck"
+    },
+    "europe_centauro_ii_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/centauro/europe_centauro_ii_wreck.glb",
+        "hull": "assets/source/roster/centauro/europe_centauro_ii_wreck_hull.glb",
+        "turret": "assets/source/roster/centauro/europe_centauro_ii_wreck_turret.glb",
+        "debris": "assets/source/roster/centauro/europe_centauro_ii_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        4.06,
+        1.58,
+        1.485
+      ],
+      "tolerances": {
+        "footprint_m": 1.4
       }
     },
     "eastern_t_72_t_72b3_2016": {

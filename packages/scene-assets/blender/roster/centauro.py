@@ -1,4 +1,4 @@
-"""Centauro II wheeled tank destroyer (disabled card), from assets/references/centauro/.
+"""Centauro II wheeled tank destroyer, from assets/references/centauro/.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/centauro.py -- [--wreck]
 
@@ -14,10 +14,11 @@ on its mast at the right rear of the roof, the remote weapon station on the
 left, smoke banks on the cheeks, antennas behind. Italian vegetata
 camouflage.
 
-The frame is the published hull length and width and the height to the
-turret roof (references gaps). The turret and gun articulate on mounts stated
-here from the photos, so its wreck throws the turret; nothing in the
-simulation reads them.
+Built to the catalog frame: the published hull length, the width over the
+wheels and the height over the turret roof's fittings (references gaps). The
+turret turns on the hull's middle, as every carried mount's carrier does in
+the simulation (its remote weapon station swings about the hull origin), so
+it sits a little further forward than the photos' turret.
 """
 import math
 import os
@@ -26,16 +27,10 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft  # noqa: E402
-from vehicle_export import rig, run_disabled  # noqa: E402
+from vehicle_export import rig, run  # noqa: E402
 
 NEAR, MID = VP.NEAR, VP.MID
 
-CARD = "europe_centauro_ii"
-DIMENSIONS = (8.20, 3.12, 2.75)
-MOUNTS = [
-    dict(name="cannon", role="gun", on=None, pivot_m=[-0.70, 0.0, 2.02], muzzle_m=[6.10, 0.0, 0.34]),
-    dict(name="RWS", role="hmg", on="cannon", pivot_m=[-1.25, 0.62, 2.88], muzzle_m=[1.05, 0.0, 0.20]),
-]
 TRUNNION = 1.05
 WHEEL_X = [2.70, 1.25, -0.65, -2.10]
 WHEEL_R = 0.62
@@ -48,7 +43,7 @@ ROOF = 0.72  # the turret roof above the pivot
 
 def hull(v):
     m, h = v.mats, v.hull
-    half = v.length / 2 - 0.10
+    half = v.length / 2 - 0.06  # the length counts the rear tow hooks and lights
     dark = dict(m, paint=m["dark"])
     # The narrow lower hull between the wheels, its boat nose rising forward.
     loft("hull_lower", [(0.50, VP.hull_plan(-half + 0.40, half - 0.70, 0.78, 0.30)),
@@ -102,7 +97,7 @@ def hull(v):
 
 def turret_body(v, turret):
     m = v.mats
-    base = DECK - MOUNTS[0]["pivot_m"][2]
+    base = DECK - v.frame["mounts"][0]["pivot_m"][2]
     foot = [(1.35, 0.40), (1.70, 0.50), (0.85, 1.40), (-1.30, 1.45), (-2.35, 1.25), (-2.35, -1.25), (-1.30, -1.45),
             (0.85, -1.40), (1.70, -0.50), (1.35, -0.40)]
     crown = [(1.25, 0.40), (1.35, 0.48), (0.55, 1.25), (-1.30, 1.32), (-2.30, 1.15), (-2.30, -1.15), (-1.30, -1.32),
@@ -131,8 +126,8 @@ def turret_body(v, turret):
     VP.stowage_box("bustle_box", (-2.10, 0, base + 0.22), (0.45, 2.10, 0.45), m, turret)
     VP.sight_housing("gunner_sight", (0.75, 0.62, ROOF - 0.04), m, turret, size=(0.42, 0.34, 0.24))
     mast = empty("dressing_commander_sight", parent=turret)
-    cyl("panorama_post", 0.10, 0.36, (-0.80, -0.62, ROOF + 0.18), "Z", m["dark"], mast, seg=14, lods=MID)
-    VP.sight_housing("panorama_head", (-0.80, -0.62, ROOF + 0.34), m, mast, size=(0.36, 0.32, 0.30))
+    cyl("panorama_post", 0.10, 0.16, (-0.80, -0.62, ROOF + 0.08), "Z", m["dark"], mast, seg=14, lods=MID)
+    VP.sight_housing("panorama_head", (-0.80, -0.62, ROOF + 0.14), m, mast, size=(0.36, 0.32, 0.30))
     VP.hatch("commander_hatch", (-0.25, -0.55, ROOF), m, turret, radius=0.28)
     VP.hatch("loader_hatch", (-0.10, 0.55, ROOF), m, turret, radius=0.26)
 
@@ -142,7 +137,7 @@ def gun_120(v, gun):
     sections, the fume extractor two thirds out and a plain muzzle with its
     reference sensor."""
     m = v.mats
-    reach = MOUNTS[0]["muzzle_m"][0] - TRUNNION
+    reach = v.frame["mounts"][0]["muzzle_m"][0] - TRUNNION
     box("gun_shield", (0.50, 0.68, 0.48), (0.05, 0, 0.0), m["paint"], gun, bevel=0.05)
     cyl("barrel_root", 0.12, 0.40, (0.45, 0, 0), "X", m["paint"], gun, seg=24)
     evac = 2.9
@@ -162,7 +157,7 @@ def remote_station(v, rws, rws_gun):
     box("rws_body", (0.42, 0.34, 0.22), (-0.06, 0, 0.08), m["paint"], rws, bevel=0.03)
     VP.sight_housing("rws_sight", (0.06, -0.24, -0.10), m, rws_gun, size=(0.26, 0.14, 0.20))
     box("rws_ammo", (0.30, 0.14, 0.24), (-0.08, 0.26, -0.08), m["paint"], rws_gun, bevel=0.02, lods=MID)
-    VP.browning_m2(rws_gun, MOUNTS[1]["muzzle_m"][0], m)
+    VP.browning_m2(rws_gun, v.frame["mounts"][1]["muzzle_m"][0], m)
 
 
 def build(variant, v):
@@ -173,7 +168,7 @@ def build(variant, v):
     turret_body(v, turret)
     gun_120(v, gun)
     remote_station(v, rws, rws_gun)
-    pivot = MOUNTS[0]["pivot_m"]
+    pivot = v.frame["mounts"][0]["pivot_m"]
     v.head_out("commander", turret, pivot[0] - 0.25, -0.55, pivot[2] + ROOF)
 
 
@@ -202,6 +197,5 @@ def wreck(variant, v):
     rest_on_ground(0.004)
 
 
-if __name__ == "__main__":
-    run_disabled("centauro", {CARD: DIMENSIONS}, "italian_vegetata", build, wreck, mounts={CARD: MOUNTS},
-                 skip=("dressing_", "gun", "hmg", "muzzle"), chip=1.0)
+# Edge wear 0.6, as every live wheeled family has.
+run("centauro", "italian_vegetata", build, wreck, chip=0.6)

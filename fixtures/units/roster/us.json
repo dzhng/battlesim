@@ -759,7 +759,9 @@
       "description": "Light tank",
       "faction": "us",
       "family": "m10_booker",
-      "roles": [],
+      "roles": [
+        "mbt"
+      ],
       "cost": 240,
       "roster": {
         "factions": [
@@ -769,19 +771,84 @@
         "variant": "Light tank",
         "family_name": "M10 Booker"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "light-tank",
-        "weapons": [
-          {
-            "name": "Main Gun",
-            "icon": "ap_shell"
+      "extends": "roster_profile_light_tank",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.5,
+            1.7,
+            1.49
+          ],
+          "eye_m": 2.75,
+          "hp": 95,
+          "armor": {
+            "front": 120,
+            "side": 55,
+            "rear": 35,
+            "roof": 20,
+            "ricochet": {
+              "front": 0.3,
+              "side": 0.2,
+              "rear": 0.1,
+              "roof": 0.4
+            }
           },
-          {
-            "name": "HMG",
-            "icon": "hmg"
-          }
-        ]
+          "weight_class": "medium",
+          "push_class": "medium",
+          "wreck": "medium_wreck"
+        }
+      },
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 30,
+          "road_kmh": 64,
+          "turn_deg_s": 50,
+          "reverse_fraction": 0.4
+        }
+      },
+      "mounts": [
+        {
+          "id": "cannon",
+          "name": "Main Gun",
+          "weapons": [
+            "light_tank_ap",
+            "light_tank_he"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            1.78
+          ],
+          "muzzle_m": [
+            4.95,
+            0,
+            0.32
+          ]
+        },
+        {
+          "id": "HMG",
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            -0.1,
+            0.62,
+            2.8
+          ],
+          "muzzle_m": [
+            1.2,
+            0,
+            0.22
+          ],
+          "on": "cannon"
+        }
+      ],
+      "appearance": "us_m10_booker",
+      "sensors": {
+        "on": "cannon"
       }
     },
     "us_m1127_stryker_rv_reconnaissance_vehicle": {

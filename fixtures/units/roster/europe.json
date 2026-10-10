@@ -361,8 +361,8 @@
       }
     },
     "europe_caesar_88": {
-      "name": "CAESAR 8\u00d78",
-      "description": "8\u00d78",
+      "name": "CAESAR 8×8",
+      "description": "8×8",
       "faction": "europe",
       "family": "caesar",
       "roles": [],
@@ -372,7 +372,7 @@
           "europe"
         ],
         "category": "sup",
-        "variant": "8\u00d78",
+        "variant": "8×8",
         "family_name": "CAESAR"
       },
       "planned": {
@@ -391,7 +391,9 @@
       "description": "Wheeled 120 mm tank destroyer",
       "faction": "europe",
       "family": "centauro_ii",
-      "roles": [],
+      "roles": [
+        "light_vehicle"
+      ],
       "cost": 240,
       "roster": {
         "factions": [
@@ -401,19 +403,85 @@
         "variant": "Tank destroyer",
         "family_name": "Centauro II"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "wheeled-tank-destroyer",
-        "weapons": [
-          {
-            "name": "Main Gun",
-            "icon": "ap_shell"
+      "extends": "roster_profile_wheeled_tank_destroyer",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            4.06,
+            1.58,
+            1.485
+          ],
+          "eye_m": 2.88,
+          "hp": 90,
+          "armor": {
+            "front": 70,
+            "side": 40,
+            "rear": 25,
+            "roof": 15,
+            "ricochet": {
+              "front": 0.1,
+              "side": 0.1,
+              "rear": 0.05,
+              "roof": 0.15
+            }
           },
-          {
-            "name": "HMG",
-            "icon": "hmg"
-          }
-        ]
+          "weight_class": "medium",
+          "push_class": "medium",
+          "wreck": "medium_wreck"
+        }
+      },
+      "mobility": {
+        "wheeled": {
+          "offroad_kmh": 30,
+          "road_kmh": 90,
+          "turn_deg_s": 40,
+          "reverse_fraction": 0.35,
+          "turning_radius_m": 6
+        }
+      },
+      "mounts": [
+        {
+          "id": "cannon",
+          "name": "Main Gun",
+          "weapons": [
+            "ground_tank_ap",
+            "ground_tank_he"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            2.02
+          ],
+          "muzzle_m": [
+            6.1,
+            0,
+            0.34
+          ]
+        },
+        {
+          "id": "RWS",
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            -0.55,
+            0.62,
+            2.88
+          ],
+          "muzzle_m": [
+            1.05,
+            0,
+            0.2
+          ],
+          "on": "cannon"
+        }
+      ],
+      "appearance": "europe_centauro_ii",
+      "sensors": {
+        "on": "cannon"
       }
     },
     "europe_ch_47_chinook_hc6": {
@@ -595,7 +663,9 @@
       "description": "Light tank",
       "faction": "europe",
       "family": "cv90120",
-      "roles": [],
+      "roles": [
+        "mbt"
+      ],
       "cost": 250,
       "roster": {
         "factions": [
@@ -605,19 +675,84 @@
         "variant": "Light tank",
         "family_name": "CV90120"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "light-tank",
-        "weapons": [
-          {
-            "name": "Main Gun",
-            "icon": "ap_shell"
+      "extends": "roster_profile_light_tank",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.475,
+            1.65,
+            1.325
+          ],
+          "eye_m": 2.52,
+          "hp": 90,
+          "armor": {
+            "front": 110,
+            "side": 50,
+            "rear": 30,
+            "roof": 20,
+            "ricochet": {
+              "front": 0.3,
+              "side": 0.2,
+              "rear": 0.1,
+              "roof": 0.4
+            }
           },
-          {
-            "name": "HMG",
-            "icon": "hmg"
-          }
-        ]
+          "weight_class": "medium",
+          "push_class": "medium",
+          "wreck": "medium_wreck"
+        }
+      },
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 32,
+          "road_kmh": 70,
+          "turn_deg_s": 50,
+          "reverse_fraction": 0.4
+        }
+      },
+      "mounts": [
+        {
+          "id": "cannon",
+          "name": "Main Gun",
+          "weapons": [
+            "light_tank_ap",
+            "light_tank_he"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            1.82
+          ],
+          "muzzle_m": [
+            5.8,
+            0,
+            0.36
+          ]
+        },
+        {
+          "id": "HMG",
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            -0.3,
+            -0.55,
+            2.52
+          ],
+          "muzzle_m": [
+            1.0,
+            0,
+            0.15
+          ],
+          "on": "cannon"
+        }
+      ],
+      "appearance": "europe_cv90120_light_tank",
+      "sensors": {
+        "on": "cannon"
       }
     },
     "europe_cv90_cv9040c": {
