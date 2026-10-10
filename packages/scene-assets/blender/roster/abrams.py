@@ -17,8 +17,9 @@ and the ammunition data link over the muzzle. Trophy: a radar and launcher
 housing on each turret side over the side stowage, its launcher head on top
 (from the SEPv2 Trophy photos; no licensable photo shows a SEPv3 with it).
 
-Built to the catalog frame (hull 7.93 x 3.66 x 2.44 m, turret pivot 1.464 m,
-cannon muzzle 5.805 m ahead): nothing here moves it. The wreck is cut into
+Built to the catalog frame (hull 7.93 x 3.66 x 2.44 m; turret pivot 0.25 m
+ahead of the hull's middle, 1.464 m up, as the side photos show; cannon muzzle
+5.805 m ahead of it): nothing here moves it. The wreck is cut into
 hull and turret pieces (wreckage.export_wreck).
 """
 import math
@@ -54,6 +55,7 @@ CHEEK = [(1.95, 0.44), (1.70, 1.38), (1.48, 1.58)]
 TURRET_PLAN = [(1.45, 0.0), (1.45, 0.40), *CHEEK, (0.55, 1.60), (-1.80, 1.60), (-2.05, 1.48), (-2.62, 1.36),
                (-2.62, 0.0)]
 CHEEK_CHAMFER = 0.22  # how far the cheeks' top edge sits back of their face
+COMMANDER = (-0.84, -0.62)  # the commander's hatch (turret frame)
 # The skirts hang flush with the sponsons' sides: the hull's upper half is as
 # wide as their inner faces (the thicker front panels sink into it).
 SKIRT_FACE = SKIRT_Y + 0.035  # their outer face
@@ -110,12 +112,9 @@ def build(variant, v):
     crows(v, hmg, hmg_gun, sep_v3)
     # The commander head and shoulders out of his open hatch (photos: SEPv3
     # three-quarter front).
-    if not v.wreck:
-        seat = empty("dressing_commander", parent=turret)
-        z = 1.464 + ROOF
-        v.crew.append(("commander", seat, (-0.84, -0.62, z - 0.43),
-                       ((-0.62, -0.40, z + 0.06), (-0.62, -0.84, z + 0.06)),
-                       ((-0.70, -0.52, z - 1.25), (-0.70, -0.74, z - 1.25))))
+    px, py, pz = v.frame["mounts"][0]["pivot_m"]
+    hx, hy = COMMANDER
+    v.head_out("commander", turret, px + hx, py + hy, pz + ROOF)
 
 
 # ---------------------------------------------------------------- hull
@@ -303,7 +302,7 @@ def turret_body(v, turret, trophy):
 def commander_hatch(v, turret):
     """The commander's hatch ring with its periscopes, the lid thrown open."""
     m = v.mats
-    x, y = -0.84, -0.62
+    x, y = COMMANDER
     cyl("commander_ring", 0.40, 0.08, (x, y, ROOF + 0.04), "Z", m["paint"], turret, seg=28, bevel=0.012, lods=MID)
     for k in range(5):
         a = -1.0 + k * 0.5
@@ -407,6 +406,9 @@ def crows(v, hmg, hmg_gun, sep_v3):
 
 
 # ---------------------------------------------------------------- wreck
+GUN_DROOP_DEG = 10.0
+
+
 def wreck(variant, v):
     """The tank after its cook-off: the right track thrown flat beside it with
     three road wheels torn off, two right skirt panels gone and a left one
@@ -424,6 +426,9 @@ def wreck(variant, v):
     for o in bpy.data.objects:
         if o.name.startswith("dressing_trophy_"):
             o.name = o.name.replace("dressing_", "", 1)
+    # The long 120 mm droops further than the burn's sag, down towards the
+    # glacis, so the heaved turret's gun stays over the wreck's ground.
+    bpy.data.objects["gun"].rotation_euler.y += math.radians(GUN_DROOP_DEG)
     remove("track_R_band", "wheel_R_2_", "wheel_R_3_", "wheel_R_6_", "skirt_R_3", "skirt_R_4",
            "skirt_handle_R_3", "skirt_handle_R_4", "skirt_bolt_R_3", "skirt_bolt_R_4", "loader_hatch",
            "bustle_tarp", "bustle_bag", "bustle_jerrycan_", "skirt_number_R")

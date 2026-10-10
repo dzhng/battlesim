@@ -118,11 +118,12 @@ def fittings(v):
     for side, s in ((1, "L"), (-1, "R")):
         whip = empty(f"dressing_antenna_{s}", parent=hull)
         VP.antenna(f"antenna_{s}", (-3.50, side * 1.25, ROOF), m, whip, height=2.8)
-    # The commander's hatch beside the turret, crewed in the parade photo.
-    VP.hatch("commander_hatch", (0.10, -1.05, ROOF), m, hull, radius=0.28)
+    # The commander's hatch beside the turret's ring, crewed in the parade
+    # photo.
+    x, y, z = v.frame["mounts"][0]["pivot_m"][0] + 0.10, -1.05, ROOF
+    VP.hatch("commander_hatch", (x, y, z), m, hull, radius=0.28)
     if not v.wreck:
         seat = empty("dressing_commander", parent=hull)
-        x, y, z = 0.10, -1.05, ROOF
         v.crew.append(("commander", seat, (x - 0.05, y, z - 0.30),
                        ((x + 0.22, y + 0.20, z + 0.08), (x + 0.22, y - 0.20, z + 0.08)),
                        ((x, y + 0.12, z - 1.15), (x, y - 0.12, z - 1.15))))
@@ -161,21 +162,24 @@ def dragar(v, turret, gun):
 
 def wreck(variant, v):
     """The VBCI after its fire: the front right wheel pair blown off and the
-    bow down on that side, the rear door blown open and thrown onto the roof, the
-    stowage cage burnt away, troop hatches gone, the slab sides warped and
-    holed by a dent, torn plate on the ground. It throws its turret."""
+    bow down on that side, the rear door blown open and thrown onto the roof
+    behind the turret, the stowage cage burnt away, troop hatches and the
+    gunner's sight gone, the slab sides warped and holed by a dent, torn
+    plate on the ground. It throws its turret."""
     from parts import rest_on_ground
     from wreckage import densify, dent, heat, parts, plate, remove, warp
     m = v.mats
-    remove("wheel_R_1_", "wheel_R_2_", "rear_door", "troop_hatch_", "dressing_rear_cage", "cage_")
-    plate("door_lying", [(-0.66, -0.52), (0.67, -0.53), (0.66, 0.52), (-0.67, 0.51)], 0.05, (-2.0, 0.25, ROOF + 0.06),
+    remove("wheel_R_1_", "wheel_R_2_", "rear_door", "troop_hatch_", "dressing_rear_cage", "cage_", "gunner_sight")
+    # The door and a torn plate lie on the roof behind the turret's bustle.
+    behind = v.frame["mounts"][0]["pivot_m"][0] - 1.80
+    plate("door_lying", [(-0.66, -0.52), (0.67, -0.53), (0.66, 0.52), (-0.67, 0.51)], 0.05, (behind, 0.25, ROOF + 0.06),
           (0.03, 0.02, 0.1), m["paint"], v.root, seed=111)
     shell = parts("vbci_upper", "vbci_lower", "side_hatch_", "bow_plate_")
     densify(shell, scale=2.0)
     warp(shell, heat(0.02, 0.8, seed=16.0), dent((0.6, -1.49, 1.95), 0.55, 0.14, (0, 1, -0.1)))
     for k, (loc, rot, size) in enumerate((((-0.05, -1.30, 0.03), (0.03, 0.04, 0.9), 0.17),
                                           ((-0.05, 1.30, 0.03), (-0.04, 0.02, 2.2), 0.16),
-                                          ((-1.8, 0.3, ROOF + 0.04), (0.02, 0.04, 0.3), 0.34))):
+                                          ((behind + 0.30, -0.60, ROOF + 0.04), (0.02, 0.04, 0.3), 0.34))):
         plate(f"litter_{k}", [(-size, -size * 0.6), (size * 0.9, -size * 0.7), (size, size * 0.5),
                               (-size * 0.7, size * 0.8)], 0.03, loc, rot, m["paint"], v.hull, curl=0.12,
               seed=121 + k)

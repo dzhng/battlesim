@@ -14,8 +14,9 @@ above its roof (it raises to fire), the remote machine gun station on its roof, 
 its rear corners, the commander's sight mast. French three-tone paint, as on
 the 2023 parade car.
 
-Built to the catalog frame: the turret turns on the roof at the hull's
-middle, the Akeron pod carried on it (the launcher arm stays stowed).
+Built to the catalog frame: the turret turns on the roof at the frame's
+turret pivot, a little ahead of the hull's middle where the photos put it,
+the Akeron pod carried round its ring (the launcher arm stays stowed).
 """
 import math
 import os
