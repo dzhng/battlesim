@@ -25,6 +25,7 @@ owner of the thing you want to change:
 | [Battle audio](packages/battle-audio/README.md) | Recorded and synthetic sound preparation, source calibration and playback from observed causes. |
 | [Fixtures](fixtures/README.md) | Authored rules, unit/prop catalogs, generator presets, saved maps and sound assignments. |
 | [Assets](assets/README.md) | Source media, prepared runtime files, review sheets and third-party provenance. |
+| [Native Godot client](native/godot/README.md) | A second client that renders the browser's recorded frames for side-by-side parity; its [Rust binding](native/godot-binding/README.md). |
 
 Development tools edit those existing owners: the [mechanics editor](apps/mechanics-editor/README.md),
 [map workbench](apps/map-workbench/README.md) and [sound workbench](apps/sound-workbench/README.md).

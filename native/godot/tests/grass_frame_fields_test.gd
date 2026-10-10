@@ -6,7 +6,7 @@ extends "res://tests/check.gd"
 
 const GrassLayer = preload("res://grass/grass_layer.gd")
 const ParityRun = preload("res://parity_run.gd")
-const TerrainLayer = preload("res://terrain/terrain_layer.gd")
+const WordTables = preload("res://core/word_tables.gd")
 
 func run() -> bool:
 	var dir := FIXTURE_RUN.path_join(FIXTURE_SCENE)
@@ -15,7 +15,7 @@ func run() -> bool:
 	var ground := ParityRun.read_ground(dir, fixture)
 	var params: Dictionary = ground.grass.params
 	var at := GrassLayer.field_vec4s(params.layout)
-	var vectors := TerrainLayer.params_vectors(params)
+	var vectors := WordTables.vec4s(params)
 	var words: PackedByteArray = params.words
 	var plate: Dictionary = capture.frames.filter(func(frame): return frame.plate != null)[0]
 	var fields := GrassLayer.frame_fields(plate, float(fixture.lens.fovY), ground.heights.lowest(), vectors[at.density].w, float(fixture.grass.constants.tileM))

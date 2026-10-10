@@ -23,13 +23,16 @@ func run() -> bool:
 	# The browser reads f32 heights in f64 arithmetic; so does GDScript.
 	check(worst < 1e-9, "every sample matches the browser's height, worst error %s m" % worst)
 	check(vectors.samples.any(func(sample): return absf(float(sample[2])) > 1.0), "the grid has relief to match")
+	# The ground's range bounds every height on it (shadow receivers, the grass window).
+	var heights: Array = vectors.samples.map(func(sample): return float(sample[2]))
+	check(field.heights.lowest() <= heights.min() and field.heights.highest() >= heights.max(), "the ground's range %s..%s holds every sample" % [field.heights.lowest(), field.heights.highest()])
 
 	var flat := PackedByteArray()
 	flat.resize(12)
 	for at in 3:
 		flat.encode_u32(at * 4, [16, 1, 0][at])
 	var empty := HeightField.decode(flat, {"kind": "height-pages", "nx": 11, "ny": 11, "spacing": 4, "pageSize": 16})
-	check(empty.ok and empty.heights.height_at(13.0, 27.0) == 0.0, "ground with no pages is flat at zero")
+	check(empty.ok and empty.heights.height_at(13.0, 27.0) == 0.0 and empty.heights.lowest() == 0.0 and empty.heights.highest() == 0.0, "ground with no pages is flat at zero")
 	var short := HeightField.decode(words.slice(0, 40), vectors.layout)
 	check(not short.ok, "a table shorter than its directory says is refused")
 	return true

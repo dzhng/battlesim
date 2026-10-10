@@ -38,7 +38,7 @@ func run() -> bool:
 	var fixture: Dictionary = read_json(FIXTURE_RUN.path_join(FIXTURE_SCENE).path_join("manifest.json"))
 	var ground := ParityRun.read_ground(FIXTURE_RUN.path_join(FIXTURE_SCENE), fixture)
 	var manifest := {"layers": ["sky", "terrain", "grass", "buildings"], "light": fixture.light, "tuning": fixture.tuning, "grass": fixture.grass, "lens": fixture.lens}
-	var composed := ParityRun.compose(world, manifest, ground, [], one_building, [at], "blue", false, report)
+	var composed := ParityRun.compose(world, manifest, ground, [], one_building, [at], "blue", report)
 	var camera := Camera3D.new()
 	world.add_child(camera)
 	var record := {"index": 0, "simTime": 0.0, "canvas": [1280, 720], "eye": [at.x - 22.0, at.y - 22.0, 9.0], "target": [at.x, at.y, 2.0], "up": [0.0, 0.0, 1.0]}
@@ -65,5 +65,5 @@ func run() -> bool:
 	check(summary.renderer.driver == "metal", "the probe renders on Metal")
 	world.free()
 	OS.remove_logger(errors)
-	check(errors.errors().is_empty(), "the probe logs no error: %s" % errors.errors())
+	check(errors.errors().is_empty(), "the probe logs no error: %s" % [errors.errors()])
 	return true

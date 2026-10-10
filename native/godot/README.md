@@ -16,13 +16,13 @@ One run renders one scene that the browser's capture run wrote:
 lockf -k <main checkout>/throwaway/gpu.lock \
   godot --path native/godot --window-position 10000,10000 -- \
   --run <dir> --scene <name> [--frames plates|all|<i,j,...>] [--maps <dir>] [--out <dir>]
-  [--view lit|classes]
 ```
 
 - **Input.** `<dir>/<name>/` holds the browser's `capture.json`
   (`battle-presentation-capture`) and `manifest.json`
-  (`native-visual-presentation`). The map comes from `--maps`, by default
-  `fixtures/maps`. Relative paths resolve from the repository root.
+  (`native-visual-presentation`), with the manifest's hashed table artifacts
+  beside them. The map comes from `--maps`, by default `fixtures/maps`.
+  Relative paths resolve from the repository root.
 - **Identity.** The run refuses a battle whose capture or map bytes don't
   match the manifest's sha256, or whose scene, map, encounter or seed differ
   from the capture's.
@@ -35,22 +35,42 @@ lockf -k <main checkout>/throwaway/gpu.lock \
   by default `<dir>/<name>/native/`, which belongs in scratch.
 - **Report.** It names every blocker that stopped the run, including any
   error Godot logged: a GDScript runtime error returns null to its caller and
-  lets the run go on, so the run collects errors through a logger. Each budget row
-  gives the owner, the reason, the source, and the counts admitted, rendered
-  and dropped. A plate row carries its measured GPU time, which is null on
-  Metal: Godot's Metal driver records no GPU timestamps.
+  lets the run go on, so the run collects errors through a logger. Each budget
+  row gives the owner, the reason, the source, and the counts admitted,
+  rendered and dropped. A plate row carries its measured GPU time, which is
+  null on Metal: Godot's Metal driver records no GPU timestamps.
 - **Exit codes.** 0 means no blocker, 1 means a blocker, 2 means bad arguments.
 
 Rendering needs a display. `--headless` uses Godot's dummy renderer, which
 never draws, so a headless run stops at a `display` blocker. The window is
 placed off screen, which still needs a logged-in macOS session.
 
+## Layout
+
+Each folder owns one kind of thing; `parity_run.gd` is the entry point, and
+composes the layers the manifest lists.
+
+- `capture/` reads the browser's files strictly (no defaults, no unknown
+  fields, no stale shapes) and replays what the capture implies, such as the
+  side's learned ground.
+- `environment/`, `terrain/` and `grass/` each port one browser owner by
+  formula: light and atmosphere, the ground, the grass field.
+- `world/` holds what native still draws its own way, each piece reported as
+  an approximation until a later slice ports its browser owner.
+- `reel/` places the camera, steps the records and writes plates; `report/`
+  owns the report and the error logger; `assets/` stages repository assets.
+- `core/` holds the concepts more than one of those needs, each with one
+  owner: the coordinate conversion, word tables, strict JSON checks, numbers
+  written into shader text, and compute passes. A concept's shader-text half
+  sits beside it as a `.gdshaderinc`.
+
 ## Coordinates and camera
 
 The sim is Z-up and right-handed; Godot is Y-up and right-handed. One
-conversion, `core/coords.gd`, maps sim `(x, y, z)` to Godot `(x, z, −y)`. It
-is a rotation, not a mirror. Every placement, the sun and the camera go
-through it, and a sim yaw becomes the same angle about Godot's +y.
+conversion, `core/coords.gd`, maps sim `(x, y, z)` to Godot `(x, z, −y)`, and
+`core/coords.gdshaderinc` is the same conversion for shaders. It is a
+rotation, not a mirror. Every placement, the sun and the camera go through it,
+and a sim yaw becomes the same angle about Godot's +y.
 
 The camera takes the browser's vertical field of view (`KEEP_HEIGHT`) and near
 plane from the manifest's lens. Godot has no infinite far plane, so the far
@@ -69,15 +89,18 @@ shaders) and writes the manifest's numbers into them:
   intensity the fixture's, and a shadowed surface keeps `shadow_floor` of it.
   Godot's directional energy differs from the browser's radiance by a factor
   of pi, which the adapter divides out.
-- **Cascades.** Each frame the four splits run over the part of the map the
-  camera sees, as the browser's do. Godot has one penumbra radius per light in
-  each split's own texels, so the penumbra matches the browser's in the
-  second cascade and widens beyond it.
+- **Cascades.** Each frame the four splits run over the part of the ground
+  the camera sees, as the browser's do. Godot has one penumbra radius per
+  light in each split's own texels, so the penumbra matches the browser's in
+  the second cascade and widens beyond it.
 - **Sky light.** The ambient and reflected light is the ported physical sky
   times the fill: the sky shader writes that product into the radiance
   cubemap Godot lights with, whether or not the sky is shown.
 - **Sky.** The shown sky is the same physical sky, with the horizon's
   radiance below the horizon, the sun's disc and the cloud layer over it.
+- **Samples.** The world is drawn at the browser's 4× MSAA, and both effects
+  below read Godot's resolved colour (and depth), as the browser's post reads
+  its resolve.
 - **Haze.** A compositor effect hazes every surface once, from the depth
   buffer, toward the frame record's ground focus, before the post chain. It
   evaluates the sky radiance directly where the browser samples its sky LUT.
@@ -102,27 +125,30 @@ files into the real `assets/` tree.
 A missing file, a Git LFS pointer or a failed import is a named blocker, never
 a stand-in. Fetch what a scene needs with `git lfs pull --include=<path>`.
 
-## Terrain
+## Word tables
 
-Native draws the browser's ground from the browser's own tables, not from the
-map: the manifest's hashed `terrain` artifacts are the exact words the
-browser's ground material uploads. Native ports only the formulas.
+Native draws the ground and grass from the browser's own tables, not from the
+map: the manifest's hashed artifacts are the exact words the browser's GPU
+read. `core/word_tables.gd` uploads them. Godot 4.7 can't wrap an `R32_UINT`
+device texture, so each word is one RGBA8 texel, and
+`core/word_tables.gdshaderinc` puts it back together exactly. A one-record
+`params` table is uniform vec4s instead.
+
+Each shader compiles with defines generated from the manifest: each table
+field's offset from its layout, and every number from `tuning`
+(`core/shader_text.gd` writes them so they read back as the same f32). A
+layout or tuning change reaches native without a code change, and a renamed
+field fails to compile, which is a logged blocker.
+
+## Terrain
 
 - **Height.** `terrain/height_field.gd` reads the paged height grid with the
   simulation's triangle rule. The ground mesh, and everything that stands on the
   ground without a height of its own, seats on it.
-- **Tables.** `core/data_texture.gd` is the one owner of table uploads. Godot 4.7
-  can't wrap an `R32_UINT` device texture, so each word is one RGBA8 texel,
-  and the shader puts it back together exactly.
 - **Formulas.** `terrain/ground.gdshaderinc` is the browser's
-  `terrainMaterial.ts`, ported as text. The terrain layer compiles it with
-  defines generated from the manifest: each table field's offset from its
-  layout, and every number from `tuning.terrain`. A layout or tuning change
-  reaches native without a code change, and a renamed field fails to compile.
-- **Class view.** `--view classes` draws the ground's classes as exact bytes
-  (`class-<index>.png`), as the browser's class view does. It uses no light and
-  no grass, and everything else is black. It is the measured check that features
-  lie in the same places, and it is scaffolding for phase 1.
+  `terrainMaterial.ts`, ported as text. Numbers that are part of a formula
+  (hashes, lattice turns, decorrelation offsets) stay in the text, as they do
+  in the browser.
 
 ## Grass
 
@@ -142,21 +168,21 @@ browser's own tables (`manifest.grass`), anew for every frame record.
 - **Draw.** `grass/grass.gdshader` is the browser's blade vertex and fragment.
   It places each blade vertex of the clump's kind from the browser's shape
   table, and bends it in the one wind on the record's interpolated sim time.
-  A far clump's tint and light give way to the ground's. Native has no MSAA,
-  while the browser draws its frame at 4×, so native's blade edges alias.
-- **Counts.** For each plate the report puts native's clumps per screen cell,
-  counted as the browser counts them (root on screen, occlusion ignored),
-  beside the browser's `grassCounts`. Every cell must be within 10% of the
-  browser's, or the run stops at a blocker. The one exception is a cell native
-  overgrows by no more than its clumps on a crater, scorch or tracks of the
-  side's learned ground (`capture/learned_ground.gd`). The browser leaves
-  clumps out there, and native can't until slice 08, so such a cell is a
-  `scar-omission` budget row.
+  A far clump's tint and light give way to the ground's.
 - **Agreement.** The hash words, tile offsets and admission decisions equal the
   browser's WGSL on WebGPU exactly. The two GPU compilers round the fall
   point's arithmetic differently, by a few ulps.
-- **Scars.** Native has no seam yet for the side's learned scars, which in the
-  browser leave clumps out and lay them flat. Their omission is reported.
+- **Counts.** For each plate the report puts native's clumps per screen cell,
+  counted as the browser counts them (root on screen, occlusion ignored),
+  beside the browser's `grassCounts`. Every cell must be within 10% of the
+  browser's, or the run stops at a blocker. The browser leaves clumps out on
+  the side's learned scars (craters, scorch and tracks) and lays them flat;
+  native replays those scars (`capture/learned_ground.gd`) but doesn't draw
+  them yet. So a cell native overgrows by no more than its clumps on such a
+  scar is a `scar-omission` budget row instead.
+- **Reruns.** The build appends clumps in whatever order the GPU finishes
+  them, so two runs of the same plate can differ in a few pixels where blades
+  overlap. Compare plates against that floor, not against zero.
 
 ## Legacy map layer
 
@@ -172,10 +198,11 @@ from every frame target are reported as dropped.
 
 - `native/godot/tests/run.sh [tests/<name>_test.gd ...]` runs the tests:
   headless, except a `*_display_test.gd`, which renders in an off-screen
-  window. Take the GPU lock around the run. A test passes only when Godot exits 0, prints its result line and logs
-  no script error, because a parse error also exits 0 and a runtime error in a
-  called function doesn't stop the test. Script-mode tests can't use
-  `assert`, because a failing assert hangs the run.
+  window, so take the GPU lock around the run. A test passes only when Godot
+  exits 0, prints its result line and logs no script error, because a parse
+  error also exits 0 and a runtime error in a called function doesn't stop
+  the test. Script-mode tests can't use `assert`, because a failing assert
+  hangs the run.
 - The fixture run is the runner's display-backed check. It renders the
   real browser capture under `tests/fixtures/`, trimmed to paris-corner up to
   its first plate frame, with a frozen copy of its map:

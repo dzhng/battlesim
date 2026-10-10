@@ -23,30 +23,13 @@ varying vec3 world_position;
 // How far the fragment is lit as the ground under it, not as a blade.
 varying float ground;
 
-// Word `i` of a table (`core/data_texture.gd`).
-uint shape_word(int i) {
-	int width = textureSize(grass_shapes, 0).x;
-	uvec4 b = uvec4(round(texelFetch(grass_shapes, ivec2(i % width, i / width), 0) * 255.0));
-	return b.r | (b.g << 8u) | (b.b << 16u) | (b.a << 24u);
-}
+#include "res://core/word_tables.gdshaderinc"
+#include "res://core/coords.gdshaderinc"
+#include "res://core/wgsl.gdshaderinc"
 
+// Field `field` (a vec4) of shape vertex `vertex`.
 vec4 shape_vec4(int vertex, int field) {
-	int at = vertex * 16 + field * 4;
-	return vec4(uintBitsToFloat(shape_word(at)), uintBitsToFloat(shape_word(at + 1)), uintBitsToFloat(shape_word(at + 2)), uintBitsToFloat(shape_word(at + 3)));
-}
-
-vec3 sim_to_godot(vec3 v) {
-	return vec3(v.x, v.z, -v.y);
-}
-
-vec3 godot_to_sim(vec3 v) {
-	return vec3(v.x, -v.z, v.y);
-}
-
-// WGSL's smoothstep, defined for any edges.
-float ss(float low, float high, float x) {
-	float t = clamp((x - low) / (high - low), 0.0, 1.0);
-	return t * t * (3.0 - 2.0 * t);
+	return table_vec4(grass_shapes, vertex * 16 + field * 4);
 }
 
 void vertex() {

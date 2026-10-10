@@ -9,6 +9,7 @@ extends Node3D
 
 const Staging = preload("res://assets/staging.gd")
 const Coords = preload("res://core/coords.gd")
+const StrictJson = preload("res://core/strict_json.gd")
 
 const OWNER := "native/legacy_map_layer"
 ## Map rows farther than this from every frame target are not drawn.
@@ -20,7 +21,7 @@ var _map: Dictionary
 var _region := ""
 var _centers: Array[Vector2] = []
 ## Kind name -> number of distinct units of that kind in the capture.
-var _unit_kinds: Dictionary
+var _unit_kinds := {}
 var _appearances := {}
 var _units_catalog := {}
 var _soldiers := {}
@@ -36,13 +37,21 @@ var _contact_mesh: CylinderMesh
 ## The ground's `height_field.gd`.
 var _heights
 
-## `targets` are the sim-space (x, y) frame targets the run draws.
-func _init(map: Dictionary, targets: Array, unit_kinds: Dictionary, heights) -> void:
+## `targets` are the sim-space (x, y) frame targets the run draws; `samples`
+## the capture's decoded samples, whose units it draws.
+func _init(map: Dictionary, targets: Array, samples: Array, heights) -> void:
 	name = "LegacyMapLayer"
 	_map = map
 	_heights = heights
 	_region = String(map.get("regional_family", "")).to_lower()
-	_unit_kinds = unit_kinds
+	var ids := {}
+	for sample in samples:
+		for unit in sample.units:
+			if not ids.has(unit.kindName):
+				ids[unit.kindName] = {}
+			ids[unit.kindName][unit.id] = true
+	for kind in ids:
+		_unit_kinds[kind] = ids[kind].size()
 	for target in targets:
 		if not _centers.any(func(center): return center.distance_to(target) < TARGET_SPACING_M):
 			_centers.append(target)
@@ -380,7 +389,7 @@ static func _collect_meshes(node: Node, parent: Transform3D, parts: Array) -> vo
 		_collect_meshes(child, transform, parts)
 
 ## One MultiMesh per part, each instance placed at a placement.
-static func _add_instances(holder: Node3D, parts: Array, placements: Array[Transform3D], material: Material = null) -> void:
+static func _add_instances(holder: Node3D, parts: Array, placements: Array[Transform3D]) -> void:
 	if placements.is_empty():
 		return
 	for part in parts:
@@ -393,7 +402,6 @@ static func _add_instances(holder: Node3D, parts: Array, placements: Array[Trans
 			multi.set_instance_transform(i, placements[i] * offset)
 		var batch := MultiMeshInstance3D.new()
 		batch.multimesh = multi
-		batch.material_override = material
 		holder.add_child(batch)
 
 static func _box_part(color: Color, roughness: float) -> Dictionary:
@@ -436,21 +444,16 @@ static func _report_malformed(report, source_id: String, count: int) -> void:
 		report.add_budget(OWNER, "malformed rows skipped", source_id, count, 0, count)
 
 static func _valid_building(building: Variant) -> bool:
-	return typeof(building) == TYPE_DICTIONARY and typeof(building.get("template_id")) == TYPE_STRING and typeof(building.get("frame")) == TYPE_DICTIONARY and _is_numbers(building.frame.get("translation"), 3)
+	return typeof(building) == TYPE_DICTIONARY and typeof(building.get("template_id")) == TYPE_STRING and typeof(building.get("frame")) == TYPE_DICTIONARY and StrictJson.is_vector(building.frame.get("translation"), 3)
 
 static func _valid_prop(prop: Variant) -> bool:
-	return typeof(prop) == TYPE_DICTIONARY and typeof(prop.get("kind")) == TYPE_STRING and _is_numbers(prop.get("center"), 2) and _is_numbers(prop.get("half_extents"), 3)
+	return typeof(prop) == TYPE_DICTIONARY and typeof(prop.get("kind")) == TYPE_STRING and StrictJson.is_vector(prop.get("center"), 2) and StrictJson.is_vector(prop.get("half_extents"), 3)
 
 static func _building_position(building: Dictionary) -> Vector2:
 	return Vector2(float(building.frame.translation[0]), float(building.frame.translation[1]))
 
 static func _prop_position(prop: Dictionary) -> Vector2:
 	return Vector2(float(prop.center[0]), float(prop.center[1]))
-
-static func _is_numbers(value: Variant, size: int) -> bool:
-	if typeof(value) != TYPE_ARRAY or value.size() != size:
-		return false
-	return value.all(func(item): return typeof(item) == TYPE_INT or typeof(item) == TYPE_FLOAT)
 
 ## A Godot point `above` metres over the ground at sim `(x, y)`.
 func _seated(position: Vector2, above: float) -> Vector3:

@@ -6,6 +6,8 @@ extends RefCounted
 ## never advances a simulation. Any other shape, including a stale one, is
 ## rejected with a reason.
 
+const StrictJson = preload("res://core/strict_json.gd")
+
 const SCHEMA := "battle-presentation-capture"
 const ROOT_KEYS := ["schema", "workload", "tickHz", "warmTick", "side", "layout", "samples", "frames"]
 const WORKLOAD_KEYS := ["id", "fingerprint", "scene", "map", "encounter", "seed"]
@@ -20,27 +22,27 @@ static func parse(text: String) -> Dictionary:
 	return validate(parser.data)
 
 static func validate(value: Variant) -> Dictionary:
-	var shape := exact_keys(value, ROOT_KEYS, "capture")
+	var shape := StrictJson.exact_keys(value, ROOT_KEYS, "capture")
 	if not shape.is_empty():
 		return _invalid(shape)
 	var capture: Dictionary = value
 	if typeof(capture.schema) != TYPE_STRING or capture.schema != SCHEMA:
 		return _invalid("capture schema must be %s, not %s" % [SCHEMA, capture.schema])
-	shape = exact_keys(capture.workload, WORKLOAD_KEYS, "capture workload")
+	shape = StrictJson.exact_keys(capture.workload, WORKLOAD_KEYS, "capture workload")
 	if not shape.is_empty():
 		return _invalid(shape)
 	for field in ["id", "fingerprint", "scene", "map", "encounter"]:
-		if not is_name(capture.workload[field]):
+		if not StrictJson.is_name(capture.workload[field]):
 			return _invalid("capture workload.%s must be a non-empty string" % field)
-	if not is_integer(capture.workload.seed):
+	if not StrictJson.is_integer(capture.workload.seed):
 		return _invalid("capture workload.seed must be an integer")
-	if not is_integer(capture.tickHz) or int(capture.tickHz) <= 0:
+	if not StrictJson.is_integer(capture.tickHz) or int(capture.tickHz) <= 0:
 		return _invalid("capture tickHz must be a positive integer")
-	if not is_integer(capture.warmTick) or int(capture.warmTick) < 0:
+	if not StrictJson.is_integer(capture.warmTick) or int(capture.warmTick) < 0:
 		return _invalid("capture warmTick must be a non-negative integer")
 	if not capture.side in ["blue", "red"]:
 		return _invalid("capture side must be blue or red")
-	if not is_name(capture.layout):
+	if not StrictJson.is_name(capture.layout):
 		return _invalid("capture layout must be a non-empty JSON string")
 	var layout = JSON.parse_string(String(capture.layout))
 	if typeof(layout) != TYPE_DICTIONARY:
@@ -64,36 +66,36 @@ static func validate(value: Variant) -> Dictionary:
 	return {"valid": true, "capture": capture, "layout": layout}
 
 static func _sample_error(value: Variant, previous_tick: int) -> String:
-	var shape := exact_keys(value, SAMPLE_KEYS, "sample")
+	var shape := StrictJson.exact_keys(value, SAMPLE_KEYS, "sample")
 	if not shape.is_empty():
 		return "has the wrong shape: " + shape
-	if not is_integer(value.tick) or int(value.tick) <= previous_tick:
+	if not StrictJson.is_integer(value.tick) or int(value.tick) <= previous_tick:
 		return "tick must be a non-negative integer above the previous sample's"
-	if not _is_digest(value.digest):
+	if not StrictJson.is_hex(value.digest, 16):
 		return "digest must be a 16-digit hex value"
 	if typeof(value.publication) != TYPE_ARRAY:
 		return "publication must be an array"
 	for word in value.publication:
-		if not is_integer(word) or float(word) < 0.0 or float(word) > 4294967295.0:
+		if not StrictJson.is_integer(word) or float(word) < 0.0 or float(word) > 4294967295.0:
 			return "publication contains an invalid u32 word"
 	return ""
 
 static func _frame_error(value: Variant, at: int, previous: Dictionary) -> String:
-	var shape := exact_keys(value, FRAME_KEYS, "frame")
+	var shape := StrictJson.exact_keys(value, FRAME_KEYS, "frame")
 	if not shape.is_empty():
 		return "has the wrong shape: " + shape
-	if not is_integer(value.index) or int(value.index) != at:
+	if not StrictJson.is_integer(value.index) or int(value.index) != at:
 		return "index must equal its position"
-	if not is_number(value.reelMs) or not is_number(value.simTime) or not is_integer(value.tick) or int(value.tick) < 0:
+	if not StrictJson.is_number(value.reelMs) or not StrictJson.is_number(value.simTime) or not StrictJson.is_integer(value.tick) or int(value.tick) < 0:
 		return "reelMs and simTime must be finite and tick a non-negative integer"
 	if not previous.is_empty() and (float(value.reelMs) < float(previous.reelMs) or int(value.tick) < int(previous.tick) or float(value.simTime) < float(previous.simTime)):
 		return "reelMs, tick and simTime must not decrease"
 	for field in ["eye", "target", "up"]:
-		if not is_vector(value[field], 3):
+		if not StrictJson.is_vector(value[field], 3):
 			return "%s must be three finite numbers" % field
-	if vector3(value.up).is_zero_approx() or vector3(value.eye).is_equal_approx(vector3(value.target)):
+	if StrictJson.vector3(value.up).is_zero_approx() or StrictJson.vector3(value.eye).is_equal_approx(StrictJson.vector3(value.target)):
 		return "view is degenerate: up is zero or eye equals target"
-	if not is_vector(value.canvas, 2) or not is_integer(value.canvas[0]) or not is_integer(value.canvas[1]) or int(value.canvas[0]) <= 0 or int(value.canvas[1]) <= 0:
+	if not StrictJson.is_vector(value.canvas, 2) or not StrictJson.is_integer(value.canvas[0]) or not StrictJson.is_integer(value.canvas[1]) or int(value.canvas[0]) <= 0 or int(value.canvas[1]) <= 0:
 		return "canvas must be two positive integers"
 	if value.plate != null and value.plate != "plate-%d.png" % at:
 		return "plate must be plate-%d.png or null" % at
@@ -101,46 +103,6 @@ static func _frame_error(value: Variant, at: int, previous: Dictionary) -> Strin
 
 static func _invalid(reason: String) -> Dictionary:
 	return {"valid": false, "reason": reason}
-
-## An empty string when `value` is an object with exactly `keys`.
-static func exact_keys(value: Variant, keys: Array, what: String) -> String:
-	if typeof(value) != TYPE_DICTIONARY:
-		return "%s must be an object" % what
-	for key in keys:
-		if not value.has(key):
-			return "%s is missing %s" % [what, key]
-	for key in value:
-		if not keys.has(key):
-			return "%s has unknown field %s" % [what, key]
-	return ""
-
-static func vector3(value: Array) -> Vector3:
-	return Vector3(float(value[0]), float(value[1]), float(value[2]))
-
-static func is_vector(value: Variant, size: int) -> bool:
-	if typeof(value) != TYPE_ARRAY or value.size() != size:
-		return false
-	for item in value:
-		if not is_number(item):
-			return false
-	return true
-
-static func is_name(value: Variant) -> bool:
-	return typeof(value) == TYPE_STRING and not String(value).is_empty()
-
-static func is_number(value: Variant) -> bool:
-	return (typeof(value) == TYPE_INT or typeof(value) == TYPE_FLOAT) and is_finite(float(value))
-
-static func is_integer(value: Variant) -> bool:
-	return is_number(value) and float(value) == floor(float(value))
-
-static func _is_digest(value: Variant) -> bool:
-	if typeof(value) != TYPE_STRING or String(value).length() != 16:
-		return false
-	for character in String(value).to_lower():
-		if not "0123456789abcdef".contains(character):
-			return false
-	return true
 
 ## Decodes every sample of a parsed capture in tick order, carrying group and
 ## fog baselines from one publication to the next. Returns
@@ -151,7 +113,7 @@ static func decode_samples(capture_result: Dictionary) -> Dictionary:
 	var fog_bits: Array = []
 	var samples: Array = []
 	for sample in capture_result.capture.samples:
-		var decoded := decode_publication(capture_result, sample.publication, baselines, fog_bits)
+		var decoded := _decode_publication(capture_result.layout, sample.publication, baselines, fog_bits)
 		if not decoded.valid:
 			return {"ok": false, "blocker": {"name": "publication", "detail": "the sample at tick %d does not decode: %s" % [sample.tick, decoded.get("error", "malformed carrier")]}}
 		baselines = decoded.baselines
@@ -159,13 +121,10 @@ static func decode_samples(capture_result: Dictionary) -> Dictionary:
 		samples.append({"tick": int(sample.tick), "units": decoded.units, "fog": decoded.fog, "ground": decoded.ground})
 	return {"ok": true, "samples": samples}
 
-## Reconstruct the Rust-owned publication groups from raw carrier words.
-## This intentionally returns only the presentation fields native draws;
-## all packing, baselines and field offsets still come from the published layout.
-static func decode_publication(capture_result: Dictionary, words: Array, baselines: Array, previous_fog: Array = []) -> Dictionary:
-	if not capture_result.get("valid", false):
-		return {"valid": false, "units": [], "baselines": baselines}
-	var layout: Dictionary = capture_result.layout
+## Reconstructs the Rust-owned publication groups from raw carrier words,
+## returning only the presentation fields native draws; all packing,
+## baselines and field offsets come from the published layout.
+static func _decode_publication(layout: Dictionary, words: Array, baselines: Array, previous_fog: Array) -> Dictionary:
 	var header: Array = layout.get("header", [])
 	if words.size() < header.size():
 		return {"valid": false, "units": [], "baselines": baselines}
@@ -221,7 +180,7 @@ static func decode_publication(capture_result: Dictionary, words: Array, baselin
 				return {"valid": false, "units": [], "baselines": baselines}
 			fog_bits[index] = (int(_carrier_float(words[cursor + at + 1])) & 65535) | ((int(_carrier_float(words[cursor + at + 2])) & 65535) << 16)
 	cursor += fog_count
-	var fog := {"full": fog_full, "nx": fog_nx, "ny": fog_ny, "cellM": float(header_values.get("fogCellM", 0.0)), "words": fog_words, "payloadWords": fog_count, "bits": fog_bits}
+	var fog := {"nx": fog_nx, "ny": fog_ny, "cellM": float(header_values.get("fogCellM", 0.0)), "bits": fog_bits}
 	var ground := _decode_ground(layout, header_values, words, cursor)
 	if not ground.valid:
 		return {"valid": false, "units": [], "baselines": baselines, "error": "ground"}
@@ -279,7 +238,9 @@ static func _decode_ground(layout: Dictionary, header: Dictionary, words: Array,
 				tracks += value * (2 ** ((mark - 2) * 8))
 		rows.append({"tile": tile, "start": start, "length": length, "craterScorch": crater, "tracksTrampledCleared": tracks})
 	reader.finish()
-	return {"valid": true, "count": count, "rows": rows, "full": int(header.get("groundFull", 0.0)) == 1, "packedValid": reader.valid}
+	if not reader.valid:
+		return {"valid": false}
+	return {"valid": true, "rows": rows, "full": int(header.get("groundFull", 0.0)) == 1}
 
 static func _decode_group(layout: Dictionary, group_index: int, encoding: int, packed: Array, size: int, old: Variant) -> Array:
 	var modes: Array = layout.groupDelivery.encodings

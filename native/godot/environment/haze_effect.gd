@@ -8,7 +8,7 @@ extends CompositorEffect
 const Coords = preload("res://core/coords.gd")
 const Aerial = preload("res://environment/aerial.gd")
 const SkyModel = preload("res://environment/sky_model.gd")
-const ComputePass = preload("res://environment/compute_pass.gd")
+const ComputePass = preload("res://core/compute_pass.gd")
 
 ## The camera's ground focus in sim space, and its near and far planes, set
 ## each frame. (A reverse-Z `Projection` doesn't report its planes.)

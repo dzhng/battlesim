@@ -12,9 +12,11 @@ extends Node3D
 ## fields of `params` (side planes, eye, window, grid) are recomputed from each
 ## frame record (`frame_fields`).
 
-const DataTexture = preload("res://core/data_texture.gd")
+const WordTables = preload("res://core/word_tables.gd")
+const ComputePass = preload("res://core/compute_pass.gd")
 const Coords = preload("res://core/coords.gd")
 const TerrainLayer = preload("res://terrain/terrain_layer.gd")
+const ShaderText = preload("res://core/shader_text.gd")
 
 const OWNER := "native/grass"
 const TABLES := ["params", "props", "shapes", "indicesNear", "indicesFar"]
@@ -101,7 +103,7 @@ func build(report) -> void:
 	if _rd == null:
 		report.add_blocker("grass", "the grass build needs a rendering device, which only a display-backed run has")
 		return
-	_build_shader = _own(compile(_rd, source.source, "grass build"))
+	_build_shader = _own(ComputePass.compile(_rd, source.source, "grass build"))
 	if not _build_shader.is_valid():
 		report.add_blocker("grass", "the grass build does not compile")
 		return
@@ -237,7 +239,7 @@ static func field_vec4s(layout: Dictionary) -> Dictionary:
 	return at
 
 func _density() -> Vector4:
-	return TerrainLayer.params_vectors(_tables.params)[_vec4s.density]
+	return WordTables.vec4s(_tables.params)[_vec4s.density]
 
 ## The params fields' vec4s (`GRASS_<field>`) and `TUNING_<path>` for the
 ## grass tuning, as shader defines.
@@ -245,7 +247,7 @@ func _field_defines() -> Array[String]:
 	var lines: Array[String] = ["#define GRASS_vec4s %d" % (int(_tables.params.layout.stride) / 4)]
 	for name in _vec4s:
 		lines.append("#define GRASS_%s %d" % [name, _vec4s[name]])
-	TerrainLayer._tuning_defines(_tuning, "TUNING", lines)
+	ShaderText.defines(_tuning, "TUNING", lines)
 	return lines
 
 func _write_fields(fields: Dictionary) -> void:
@@ -283,7 +285,7 @@ func build_source() -> Dictionary:
 	var lines: Array[String] = ["#version 450"]
 	lines.append(ground.defines)
 	lines.append_array(_field_defines())
-	TerrainLayer._tuning_defines({"edgeM": edge, "heightVariation": variation}, "CONSTANT", lines)
+	ShaderText.defines({"edgeM": edge, "heightVariation": variation}, "CONSTANT", lines)
 	var growth_rows := _field_count(_tables.params.layout, "growth")
 	lines.append("#define GROWTH_ROWS %d" % growth_rows)
 	lines.append("#define MIX_MAX %d" % (_field_count(_tables.params.layout, "mixes") / growth_rows))
@@ -303,8 +305,12 @@ layout(set = 0, binding = 11, std430) restrict readonly buffer GroundParams { ve
 layout(set = 0, binding = 12, std430) restrict buffer Found { uint found[]; };
 """)
 	# The ground formulas, as written for the ground's spatial shader: their
-	# uniforms are the bindings above.
+	# uniforms are the bindings above, and the shared shader text they include
+	# is inlined, as glslang reads no includes.
 	var formulas := FileAccess.get_file_as_string(GROUND_PATH)
+	var include := RegEx.create_from_string("(?m)^#include \"(res://[^\"]+)\"$")
+	for found in include.search_all(formulas):
+		formulas = formulas.replace(found.get_string(), FileAccess.get_file_as_string(found.get_string(1)))
 	var uniform := RegEx.create_from_string("(?m)^uniform [^;]*;\\n")
 	if uniform.search_all(formulas).size() != 5:
 		return {"ok": false, "detail": "%s no longer declares the four ground tables and the ground params as uniforms" % GROUND_PATH}
@@ -313,16 +319,6 @@ layout(set = 0, binding = 12, std430) restrict buffer Found { uint found[]; };
 
 static func _field_count(layout: Dictionary, name: String) -> int:
 	return layout.fields.filter(func(field): return String(field.name).begins_with(name + "[")).size()
-
-## Compiles a compute shader on `rd`; a compile error is logged (a blocker).
-static func compile(rd: RenderingDevice, source: String, label: String) -> RID:
-	var shader_source := RDShaderSource.new()
-	shader_source.source_compute = source
-	var spirv := rd.shader_compile_spirv_from_source(shader_source)
-	if not spirv.compile_error_compute.is_empty():
-		push_error("%s does not compile: %s" % [label, spirv.compile_error_compute])
-		return RID()
-	return rd.shader_create_from_spirv(spirv, label)
 
 func _own(rid: RID) -> RID:
 	_owned.append(rid)
@@ -335,10 +331,10 @@ func _storage(words: PackedByteArray) -> RID:
 ## The two tiers: a MultiMesh each, its buffer and indirect command written by
 ## the build, drawing the tier's index strips with the grass material.
 func _build_tiers() -> void:
-	var shapes := DataTexture.words_texture(_tables.shapes.words)
+	var shapes := WordTables.texture(_tables.shapes.words)
 	_material = ShaderMaterial.new()
 	_material.shader = _draw_shader()
-	var vectors := TerrainLayer.params_vectors(_tables.params)
+	var vectors := WordTables.vec4s(_tables.params)
 	_material.set_shader_parameter("grass_params", vectors)
 	_material.set_shader_parameter("grass_shapes", shapes)
 	var heights = _terrain.heights
@@ -360,7 +356,7 @@ func _build_tiers() -> void:
 		_instances.append(instance)
 	_params = _storage(_params_words)
 	_found = _storage(PackedByteArray([0, 0, 0, 0, 0, 0, 0, 0]))
-	var sampler := _own(_sampler())
+	var sampler := _own(ComputePass.sampler(_rd, RenderingDevice.SAMPLER_FILTER_NEAREST))
 	var buffers: Array[RID] = [
 		_params,
 		_storage(_terrain.tables.heights.words),
@@ -371,34 +367,16 @@ func _build_tiers() -> void:
 		RenderingServer.multimesh_get_command_buffer_rd_rid(_multimeshes[1]),
 	]
 	for binding in buffers.size():
-		_uniforms.append(_buffer_uniform(binding, buffers[binding]))
+		_uniforms.append(ComputePass.storage(binding, buffers[binding]))
 	var binding := buffers.size()
 	for table in ["nodes", "plots", "surfaces", "surfaceIndex"]:
-		var texture := DataTexture.words_texture(_terrain.tables[table].words)
+		var texture := WordTables.texture(_terrain.tables[table].words)
 		_ground_textures.append(texture)
-		var uniform := RDUniform.new()
-		uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_SAMPLER_WITH_TEXTURE
-		uniform.binding = binding
-		uniform.add_id(sampler)
-		uniform.add_id(RenderingServer.texture_get_rd_texture(texture.get_rid()))
-		_uniforms.append(uniform)
+		_uniforms.append(ComputePass.sampled(binding, sampler, RenderingServer.texture_get_rd_texture(texture.get_rid())))
 		binding += 1
-	var ground_params := TerrainLayer.params_vectors(_terrain.tables.params)
-	_uniforms.append(_buffer_uniform(11, _storage(ground_params.to_byte_array())))
-	_uniforms.append(_buffer_uniform(12, _found))
-
-static func _buffer_uniform(binding: int, buffer: RID) -> RDUniform:
-	var uniform := RDUniform.new()
-	uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
-	uniform.binding = binding
-	uniform.add_id(buffer)
-	return uniform
-
-func _sampler() -> RID:
-	var state := RDSamplerState.new()
-	state.min_filter = RenderingDevice.SAMPLER_FILTER_NEAREST
-	state.mag_filter = RenderingDevice.SAMPLER_FILTER_NEAREST
-	return _rd.sampler_create(state)
+	var ground_params := WordTables.vec4s(_terrain.tables.params)
+	_uniforms.append(ComputePass.storage(11, _storage(ground_params.to_byte_array())))
+	_uniforms.append(ComputePass.storage(12, _found))
 
 ## A tier's mesh: `maxBlades` blade strips of the tier's vertices, indexed by
 ## the browser's strip indices. The vertex stage places every vertex from its

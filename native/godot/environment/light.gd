@@ -7,6 +7,8 @@ extends RefCounted
 ## browser derives from it (`packages/battle-renderer/src/light/`). Only the
 ## formulas live here; every tuning number is read from the manifest.
 
+const StrictJson = preload("res://core/strict_json.gd")
+
 ## The shape of `light`. A number is `0`, an rgb or a pair is its length, and a
 ## dictionary is a nested section.
 const RGB := 3
@@ -84,21 +86,14 @@ static func _shape_error(value: Variant, schema: Variant, path: String) -> Strin
 				return inner
 		return ""
 	if int(schema) == 0:
-		return "" if _finite(value) else "%s must be a finite number" % path
-	if typeof(value) != TYPE_ARRAY or value.size() != int(schema) or not value.all(_finite):
+		return "" if StrictJson.is_number(value) else "%s must be a finite number" % path
+	if not StrictJson.is_vector(value, int(schema)):
 		return "%s must be %d finite numbers" % [path, int(schema)]
 	return ""
 
-static func _finite(value: Variant) -> bool:
-	return (typeof(value) == TYPE_FLOAT or typeof(value) == TYPE_INT) and is_finite(float(value))
-
-## A JSON triple as a vector, in whatever space it was written in.
-static func vector(values: Array) -> Vector3:
-	return Vector3(float(values[0]), float(values[1]), float(values[2]))
-
 ## The unit vector toward the sun, sim space (z up).
 static func sun_direction(light: Dictionary) -> Vector3:
-	return vector(light.sunDirection)
+	return StrictJson.vector3(light.sunDirection)
 
 # Sky model (`light/skyParameters.ts`) -----------------------------------------
 # Earth atmosphere constants (Hillaire, EGSR 2020), km units, z up. These are

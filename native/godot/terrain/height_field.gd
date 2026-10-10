@@ -7,6 +7,8 @@ extends RefCounted
 ## point past the grid's edge takes the edge's height. Everything native seats
 ## on the ground seats on this.
 
+const StrictJson = preload("res://core/strict_json.gd")
+
 var nx: int
 var ny: int
 var spacing: float
@@ -20,7 +22,7 @@ var _heights: PackedFloat32Array
 ## `{ok: false, detail}`.
 static func decode(words: PackedByteArray, layout: Dictionary) -> Dictionary:
 	for key in ["nx", "ny", "spacing", "pageSize"]:
-		if not (layout.get(key) is float or layout.get(key) is int) or float(layout[key]) <= 0.0:
+		if not StrictJson.is_number(layout.get(key)) or float(layout[key]) <= 0.0:
 			return {"ok": false, "detail": "height-pages layout needs a positive %s" % key}
 	if words.size() < 12 or words.size() % 4 != 0:
 		return {"ok": false, "detail": "height pages need three header words"}
@@ -59,9 +61,14 @@ func lowest() -> float:
 	var low := INF
 	for height in _heights:
 		low = minf(low, height)
-	if _directory.is_empty() or _directory.has(0):
-		low = minf(low, 0.0)
-	return low
+	return minf(low, 0.0) if _directory.is_empty() or _directory.has(0) else low
+
+## The highest vertex height: an absent page is flat at zero.
+func highest() -> float:
+	var high := -INF
+	for height in _heights:
+		high = maxf(high, height)
+	return maxf(high, 0.0) if _directory.is_empty() or _directory.has(0) else high
 
 ## Whether any page holds relief in the vertex rectangle `[i0, j0]` to
 ## `[i1, j1]` (inclusive): elsewhere the ground is flat at zero.

@@ -5,16 +5,13 @@ extends Node3D
 ##
 ##   godot --path native/godot --window-position 10000,10000 -- \
 ##     --run <dir> --scene <name> [--frames plates|all|<i,j,...>] [--maps <dir>] [--out <dir>]
-##     [--view lit|classes]
 ##
 ## `<dir>/<name>/` holds the browser's `capture.json` and `manifest.json`.
 ## Relative paths resolve from the repository root. Plates and `report.json` go
-## to `--out`, by default `<dir>/<name>/native/`. `--view classes` draws the
-## ground's classes (`class-<index>.png`, the browser's class view) in place of
-## the lit frame (`plate-<index>.png`). Rendering needs a display:
+## to `--out`, by default `<dir>/<name>/native/`. Rendering needs a display:
 ## under `--headless` the run stops at a blocker. Any error Godot logs during
-## the run is a blocker too. Exits 0 with no blocker,
-## 1 with a blocker (named in the report), 2 on bad arguments.
+## the run is a blocker too. Exits 0 with no blocker, 1 with a blocker (named
+## in the report), 2 on bad arguments.
 
 const Capture = preload("res://capture/presentation_capture.gd")
 const Manifest = preload("res://capture/visual_manifest.gd")
@@ -32,16 +29,15 @@ const CameraRig = preload("res://reel/camera_rig.gd")
 const Light = preload("res://environment/light.gd")
 const ErrorLog = preload("res://report/error_log.gd")
 const LearnedGround = preload("res://capture/learned_ground.gd")
+const StrictJson = preload("res://core/strict_json.gd")
 
 const OWNER := "native/parity_run"
 ## The browser's presentation layers native can draw; the manifest decides
 ## which are drawn. `models` is the observed units.
 const LAYERS := ["sky", "terrain", "grass", "buildings", "props", "models", "fog"]
-const USAGE := "usage: godot --path native/godot --window-position 10000,10000 -- --run <dir> --scene <name> [--frames plates|all|<i,j,...>] [--maps <dir>] [--out <dir>] [--view lit|classes]"
+const USAGE := "usage: godot --path native/godot --window-position 10000,10000 -- --run <dir> --scene <name> [--frames plates|all|<i,j,...>] [--maps <dir>] [--out <dir>]"
 
 var _report := RenderReport.new()
-## The class view's "not ground" material (`_blacken`).
-static var _black: StandardMaterial3D
 
 func _ready() -> void:
 	get_tree().quit(await _run(OS.get_cmdline_user_args()))
@@ -68,18 +64,16 @@ func _run(args: PackedStringArray) -> int:
 
 ## Options from the user arguments, or `{error}`.
 static func parse_args(args: PackedStringArray) -> Dictionary:
-	var values := {"--frames": "plates", "--maps": "fixtures/maps", "--view": "lit"}
+	var values := {"--frames": "plates", "--maps": "fixtures/maps"}
 	var at := 0
 	while at < args.size():
-		if not args[at] in ["--run", "--scene", "--frames", "--maps", "--out", "--view"] or at + 1 >= args.size():
+		if not args[at] in ["--run", "--scene", "--frames", "--maps", "--out"] or at + 1 >= args.size():
 			return {"error": "unexpected argument %s" % args[at]}
 		values[args[at]] = args[at + 1]
 		at += 2
 	for required in ["--run", "--scene"]:
 		if not values.has(required):
 			return {"error": "%s is required" % required}
-	if not values["--view"] in ["lit", "classes"]:
-		return {"error": "--view must be lit or classes"}
 	var scene_dir := Staging.repo_path(values["--run"]).path_join(values["--scene"])
 	return {
 		"scene_dir": scene_dir,
@@ -87,7 +81,6 @@ static func parse_args(args: PackedStringArray) -> Dictionary:
 		"frames": values["--frames"],
 		"maps": Staging.repo_path(values["--maps"]),
 		"out": Staging.repo_path(values["--out"]) if values.has("--out") else scene_dir.path_join("native"),
-		"classes": values["--view"] == "classes",
 	}
 
 func _render(options: Dictionary) -> void:
@@ -121,7 +114,7 @@ func _render(options: Dictionary) -> void:
 
 	var stepper = selected.stepper
 	var targets: Array = stepper.records().map(func(record): return Vector2(float(record.target[0]), float(record.target[1])))
-	var world := compose(self, manifest, ground, decoded.samples, map, targets, capture.side, options.classes, _report)
+	var world := compose(self, manifest, ground, decoded.samples, map, targets, capture.side, _report)
 	if not _report.ok():
 		return
 
@@ -144,15 +137,11 @@ func _render(options: Dictionary) -> void:
 		CameraRig.apply(camera, record, manifest.lens)
 		if world.grass != null:
 			world.grass.grow(record)
-		if world.environment != null:
-			world.environment.prepare(camera, Vector2(get_window().size), Capture.vector3(record.target))
+		world.environment.prepare(camera, Vector2(get_window().size), StrictJson.vector3(record.target))
 		world.layer.show_units(sample.units)
-		if options.classes:
-			# Units appear as their publications do: black them too.
-			_blacken(world.layer)
 		if world.fog != null:
 			world.fog.show_fog(sample.fog)
-		var path: String = options.out.path_join("%s-%d.png" % ["class" if options.classes else "plate", record.index])
+		var path: String = options.out.path_join("plate-%d.png" % record.index)
 		var plate: Dictionary = await PlateWriter.write(get_viewport(), record, path)
 		if not plate.ok:
 			_report.add_blocker(plate.blocker.name, plate.blocker.detail)
@@ -185,39 +174,17 @@ static func read_ground(scene_dir: String, manifest: Dictionary) -> Dictionary:
 
 ## Builds the light and every layer the manifest lists under `root`, staging the
 ## assets the layers draw, everything seated on `ground.heights`. Returns
-## `{environment, layer, grass, fog}`; `grass` and `fog` are null unless listed. The class view
-## (`classes`) draws the ground's classes under no light, leaves out what the
-## browser's class view leaves out (grass) and draws every other layer black,
-## "not ground"; its `environment` is null.
+## `{environment, layer, grass, fog}`; `grass` and `fog` are null unless listed.
 ## Blockers and budgets go to `report`.
-static func compose(root: Node3D, manifest: Dictionary, ground: Dictionary, samples: Array, map: Dictionary, targets: Array, side: String, classes: bool, report) -> Dictionary:
+static func compose(root: Node3D, manifest: Dictionary, ground: Dictionary, samples: Array, map: Dictionary, targets: Array, side: String, report) -> Dictionary:
 	var layers: Array = manifest.layers
 	for layer in layers:
 		if not LAYERS.has(layer):
 			report.add_budget(OWNER, "the browser drew this layer; native does not draw it", "layer:" + layer, 1, 0, 1)
-	if classes:
-		layers = layers.filter(func(layer): return layer != "grass")
-		# The sky is "not ground" too.
-		RenderingServer.set_default_clear_color(Color.BLACK)
-	# Shadows fall on the map, flat until terrain heights are drawn (05a), and
-	# on what stands on it.
-	var size := Vector2(float(map.size[0]), float(map.size[1]))
-	var receivers := AABB(Vector3(0.0, -1.0, -size.y), Vector3(size.x, 1.0 + Light.STANDING_M, size.y))
-	var environment: Node3D = null
-	if not classes:
-		environment = EnvironmentAdapter.new(manifest.light, layers.has("sky"), receivers)
-		root.add_child(environment)
-	var unit_ids := {}
-	for sample in samples:
-		for unit in sample.units:
-			if not unit_ids.has(unit.kindName):
-				unit_ids[unit.kindName] = {}
-			unit_ids[unit.kindName][unit.id] = true
-	var unit_kinds := {}
-	for kind in unit_ids:
-		unit_kinds[kind] = unit_ids[kind].size()
+	var environment := EnvironmentAdapter.new(manifest.light, layers.has("sky"), _receivers(ground.heights))
+	root.add_child(environment)
 	if layers.has("terrain"):
-		var terrain := TerrainLayer.new(ground.tables, ground.heights, manifest.tuning.terrain, float(manifest.light.backdrop.reach_m), classes)
+		var terrain := TerrainLayer.new(ground.tables, ground.heights, manifest.tuning.terrain, float(manifest.light.backdrop.reach_m))
 		root.add_child(terrain)
 		terrain.build(report)
 	var grass: Node3D = null
@@ -225,7 +192,7 @@ static func compose(root: Node3D, manifest: Dictionary, ground: Dictionary, samp
 		grass = GrassLayer.new(ground, manifest.grass, manifest.tuning, manifest.lens)
 		root.add_child(grass)
 		grass.build(report)
-	var layer := LegacyMapLayer.new(map, targets, unit_kinds, ground.heights)
+	var layer := LegacyMapLayer.new(map, targets, samples, ground.heights)
 	var staged := Staging.stage(layer.required_assets(layers), report)
 	root.add_child(layer)
 	var fog: Node3D = null
@@ -234,19 +201,16 @@ static func compose(root: Node3D, manifest: Dictionary, ground: Dictionary, samp
 		if layers.has("fog"):
 			fog = FogLayer.new()
 			root.add_child(fog)
-	if classes:
-		_blacken(layer)
 	return {"environment": environment, "layer": layer, "grass": grass, "fog": fog}
 
-## Every model under `node` drawn black and unlit: the class view's "not
-## ground".
-static func _blacken(node: Node) -> void:
-	if _black == null:
-		_black = StandardMaterial3D.new()
-		_black.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		_black.albedo_color = Color.BLACK
-	for geometry in node.find_children("*", "GeometryInstance3D", true, false):
-		geometry.material_override = _black
+## The box shadows fall in, in Godot space: the ground grid, from a metre
+## below its lowest ground to `Light.STANDING_M` above its highest, for what
+## stands on it (the browser's `mapBox`).
+static func _receivers(heights) -> AABB:
+	var size := Vector2((heights.nx - 1) * heights.spacing, (heights.ny - 1) * heights.spacing)
+	var low: float = heights.lowest() - 1.0
+	var high: float = heights.highest() + Light.STANDING_M
+	return AABB(Vector3(0.0, low, -size.y), Vector3(size.x, high - low, size.y))
 
 ## The latest decoded sample at or before `tick`, or empty.
 static func _sample_at(samples: Array, tick: int) -> Dictionary:

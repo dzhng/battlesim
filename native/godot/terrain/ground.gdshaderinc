@@ -1,9 +1,9 @@
 // The browser's ground formulas (`packages/battle-renderer/src/frame/
 // terrainMaterial.ts`), ported as text: where a point lies in the plots,
-// paving, forests and water, what colour and roughness the ground has there,
-// and the class view's bytes. Every point is in sim metres (x east, y north).
+// paving, forests and water, and what colour and roughness the ground has
+// there. Every point is in sim metres (x east, y north).
 //
-// The tables are the browser's uploaded words (`core/data_texture.gd`), and
+// The tables are the browser's uploaded words (`core/word_tables.gd`), and
 // the shader that includes this defines, from the manifest (`terrain_layer.gd`
 // `shader_header`): each record field's word (`PLOTS_rows`), each record's
 // stride, the surface index's constants (`SURFACEINDEX_kindShift`), each
@@ -19,6 +19,9 @@ uniform sampler2D ground_surfaces : filter_nearest;
 uniform sampler2D ground_index : filter_nearest;
 uniform vec4 ground_params[PARAMS_vec4s];
 
+#include "res://core/word_tables.gdshaderinc"
+#include "res://core/wgsl.gdshaderinc"
+
 #define ROAD_KINDS uint(PARAMS_roads_count)
 #define MAX_PLOT_DEPTH 64
 #define CUT_A 1u
@@ -26,16 +29,6 @@ uniform vec4 ground_params[PARAMS_vec4s];
 #define LUMA vec3(0.2126, 0.7152, 0.0722)
 
 // Tables ------------------------------------------------------------------------
-
-uint table_word(sampler2D table, int i) {
-	int width = textureSize(table, 0).x;
-	uvec4 b = uvec4(round(texelFetch(table, ivec2(i % width, i / width), 0) * 255.0));
-	return b.r | (b.g << 8u) | (b.b << 16u) | (b.a << 24u);
-}
-
-vec4 table_vec4(sampler2D table, int i) {
-	return vec4(uintBitsToFloat(table_word(table, i)), uintBitsToFloat(table_word(table, i + 1)), uintBitsToFloat(table_word(table, i + 2)), uintBitsToFloat(table_word(table, i + 3)));
-}
 
 uint index_word(uint i) {
 	return table_word(ground_index, int(i));
@@ -54,22 +47,6 @@ vec4 road(uint kind, int field) {
 }
 
 // Shared math --------------------------------------------------------------------
-
-// WGSL's smoothstep, defined for any edges (GLSL's is not when low >= high).
-float ss(float low, float high, float x) {
-	float t = clamp((x - low) / (high - low), 0.0, 1.0);
-	return t * t * (3.0 - 2.0 * t);
-}
-
-vec2 ss2(vec2 low, vec2 high, vec2 x) {
-	vec2 t = clamp((x - low) / (high - low), 0.0, 1.0);
-	return t * t * (3.0 - 2.0 * t);
-}
-
-vec4 ss4(vec4 low, vec4 high, vec4 x) {
-	vec4 t = clamp((x - low) / (high - low), 0.0, 1.0);
-	return t * t * (3.0 - 2.0 * t);
-}
 
 float saturate1(float x) {
 	return clamp(x, 0.0, 1.0);
@@ -989,30 +966,4 @@ vec4 ground_colour(vec2 xy, float footprint, vec4 site, GroundPaved paved, float
 	float bed = ss(-aa, max(aa, TUNING_shore_bedEaseM), water);
 	albedo = mix(paving.xyz, ground_params[PARAMS_waterBed].xyz, bed);
 	return vec4(max(albedo, vec3(0.0)), paving.w);
-}
-
-// The class view -----------------------------------------------------------------
-
-// A distance byte over 255, `inside` metres inside an edge
-// (`groundClasses.ts`: 8 steps a metre, the edge at 128).
-float class_distance(float inside) {
-	return clamp(roundEven(128.0 - inside * 8.0), 1.0, 255.0) / 255.0;
-}
-
-// The class view's three bytes over 255 (`groundClasses`): outside the
-// paving, outside the water, then forest << 6 | kind << 2 | hash & 3.
-vec3 ground_classes(vec2 xy, float footprint, vec4 site, float water) {
-	uint forest = 0u;
-	if (site.w >= 0.0) {
-		forest = 2u;
-	} else {
-		vec2 floor_weight = ground_floor(xy, footprint, site.w);
-		if (max(floor_weight.x, floor_weight.y) > 0.5) {
-			forest = 1u;
-		}
-	}
-	uint kind = min(uint(plot_field(int(site.x), PLOTS_detail).y), 15u);
-	uint hash = pcg_hash(uint(site.x)) & 3u;
-	uint packed = (forest << 6u) | (kind << 2u) | hash;
-	return vec3(class_distance(site.z), class_distance(water), float(packed) / 255.0);
 }

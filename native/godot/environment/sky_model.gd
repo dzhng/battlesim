@@ -7,6 +7,8 @@ extends RefCounted
 ## compute shaders accept.
 
 const Light = preload("res://environment/light.gd")
+const ShaderText = preload("res://core/shader_text.gd")
+const StrictJson = preload("res://core/strict_json.gd")
 
 ## Multiple-scattering floor and its sky-blue tint, the low-sun aureole, the
 ## below-horizon ground bounce, the overcast dome and the sun disc: the sky
@@ -21,12 +23,6 @@ const OVERCAST_ZENITH_RADIANCE := Vector3(1.02, 1.05, 1.1)
 const SUN_DISC_COS_INNER := 0.99985
 const SUN_DISC_COS_OUTER := 0.99955
 const SUN_DISC_RADIANCE := 2.5
-
-static func f(value: float) -> String:
-	return "%.12f" % value
-
-static func rgb(value: Vector3) -> String:
-	return "vec3(%s, %s, %s)" % [f(value.x), f(value.y), f(value.z)]
 
 static func low_sun_aureole_strength(sun_z: float, overcast: float) -> float:
 	return pow(1.0 - overcast, 2.0) * (1.0 - smoothstep(0.25, 0.85, sun_z)) * LOW_SUN_AUREOLE_RADIANCE
@@ -101,32 +97,32 @@ vec3 sky_radiance(vec3 dir_in) {
 	return mix(result, result * {bounce}, ground);
 }
 """.format({
-		"beta_r": rgb(Light.BETA_RAYLEIGH),
-		"beta_m_scatter": f(Light.BETA_MIE_SCATTER * mie),
-		"beta_m_extinction": f(Light.BETA_MIE_EXTINCTION * mie),
-		"sun": rgb(sun),
-		"r0": f(r0),
-		"r0_2": f(r0 * r0),
-		"top2": f(top2),
-		"phase_r": f(3.0 / (16.0 * PI)),
-		"phase_m": f((1.0 - g2) / (4.0 * PI)),
-		"one_g2": f(1.0 + g2),
-		"two_g": f(2.0 * Light.MIE_G),
-		"planet": f(Light.PLANET_RADIUS_KM),
-		"planet2": f(Light.PLANET_RADIUS_KM * Light.PLANET_RADIUS_KM),
-		"neg_rayleigh": f(-Light.RAYLEIGH_SCALE_KM),
-		"neg_mie": f(-Light.MIE_SCALE_KM),
-		"ms_tint": rgb(MS_TINT),
-		"ms": f(MS_FLOOR * sqrt(maxf(sun.z, 0.0)) / (4.0 * PI)),
-		"aureole_outer": f(LOW_SUN_AUREOLE_COS_OUTER),
-		"aureole_inner": f(LOW_SUN_AUREOLE_COS_INNER),
-		"aureole": f(low_sun_aureole_strength(sun.z, overcast)),
-		"radiance_scale": f(float(light.sky.radiance)),
-		"transmit": rgb(transmit),
-		"overcast_zenith": rgb(OVERCAST_ZENITH_RADIANCE),
-		"overcast_sun": f(sqrt(maxf(sun.z, 0.05))),
-		"overcast": f(overcast),
-		"bounce": rgb(bounce),
+		"beta_r": ShaderText.rgb(Light.BETA_RAYLEIGH),
+		"beta_m_scatter": ShaderText.number(Light.BETA_MIE_SCATTER * mie),
+		"beta_m_extinction": ShaderText.number(Light.BETA_MIE_EXTINCTION * mie),
+		"sun": ShaderText.rgb(sun),
+		"r0": ShaderText.number(r0),
+		"r0_2": ShaderText.number(r0 * r0),
+		"top2": ShaderText.number(top2),
+		"phase_r": ShaderText.number(3.0 / (16.0 * PI)),
+		"phase_m": ShaderText.number((1.0 - g2) / (4.0 * PI)),
+		"one_g2": ShaderText.number(1.0 + g2),
+		"two_g": ShaderText.number(2.0 * Light.MIE_G),
+		"planet": ShaderText.number(Light.PLANET_RADIUS_KM),
+		"planet2": ShaderText.number(Light.PLANET_RADIUS_KM * Light.PLANET_RADIUS_KM),
+		"neg_rayleigh": ShaderText.number(-Light.RAYLEIGH_SCALE_KM),
+		"neg_mie": ShaderText.number(-Light.MIE_SCALE_KM),
+		"ms_tint": ShaderText.rgb(MS_TINT),
+		"ms": ShaderText.number(MS_FLOOR * sqrt(maxf(sun.z, 0.0)) / (4.0 * PI)),
+		"aureole_outer": ShaderText.number(LOW_SUN_AUREOLE_COS_OUTER),
+		"aureole_inner": ShaderText.number(LOW_SUN_AUREOLE_COS_INNER),
+		"aureole": ShaderText.number(low_sun_aureole_strength(sun.z, overcast)),
+		"radiance_scale": ShaderText.number(float(light.sky.radiance)),
+		"transmit": ShaderText.rgb(transmit),
+		"overcast_zenith": ShaderText.rgb(OVERCAST_ZENITH_RADIANCE),
+		"overcast_sun": ShaderText.number(sqrt(maxf(sun.z, 0.05))),
+		"overcast": ShaderText.number(overcast),
+		"bounce": ShaderText.rgb(bounce),
 	})
 
 ## `vec3 sky_disc(vec3 dir)`: the sun's disc, added to the shown sky only.
@@ -139,11 +135,11 @@ vec3 sky_disc(vec3 dir) {
 	return {transmit} * disc;
 }
 """.format({
-		"outer": f(SUN_DISC_COS_OUTER),
-		"inner": f(SUN_DISC_COS_INNER),
-		"sun": rgb(sun),
-		"radiance": f(SUN_DISC_RADIANCE * (1.0 - overcast)),
-		"transmit": rgb(Light.transmittance_to_sun(sun, float(light.sky.turbidity))),
+		"outer": ShaderText.number(SUN_DISC_COS_OUTER),
+		"inner": ShaderText.number(SUN_DISC_COS_INNER),
+		"sun": ShaderText.rgb(sun),
+		"radiance": ShaderText.number(SUN_DISC_RADIANCE * (1.0 - overcast)),
+		"transmit": ShaderText.rgb(Light.transmittance_to_sun(sun, float(light.sky.turbidity))),
 	})
 
 ## `vec3 sky_clouds(vec3 dir, vec3 sky)`: the view's cumulus layer over the
@@ -219,19 +215,19 @@ vec3 sky_clouds(vec3 dir, vec3 sky) {
 	return mix(sky, cloud, alpha);
 }
 """.format({
-		"height_over_scale": f(float(clouds.height_m) / float(clouds.scale_m)),
-		"lo_minus": f(lo - softness),
-		"lo_plus": f(lo + softness),
-		"sun": rgb(sun),
-		"to_sun_x": f(to_sun.x * 0.07),
-		"to_sun_y": f(to_sun.y * 0.07),
-		"lo": f(lo),
-		"lo_shadow": f(lo + 0.3),
-		"lo_core": f(lo + 0.35),
-		"transmit": rgb(Light.transmittance_to_sun(sun, turbidity)),
-		"radiance": f(radiance),
-		"shade": rgb(Light.vector(clouds.shade)),
-		"base_radiance": f(radiance * 0.7),
-		"silver_radiance": f(radiance * 0.6),
-		"opacity": f(opacity),
+		"height_over_scale": ShaderText.number(float(clouds.height_m) / float(clouds.scale_m)),
+		"lo_minus": ShaderText.number(lo - softness),
+		"lo_plus": ShaderText.number(lo + softness),
+		"sun": ShaderText.rgb(sun),
+		"to_sun_x": ShaderText.number(to_sun.x * 0.07),
+		"to_sun_y": ShaderText.number(to_sun.y * 0.07),
+		"lo": ShaderText.number(lo),
+		"lo_shadow": ShaderText.number(lo + 0.3),
+		"lo_core": ShaderText.number(lo + 0.35),
+		"transmit": ShaderText.rgb(Light.transmittance_to_sun(sun, turbidity)),
+		"radiance": ShaderText.number(radiance),
+		"shade": ShaderText.rgb(StrictJson.vector3(clouds.shade)),
+		"base_radiance": ShaderText.number(radiance * 0.7),
+		"silver_radiance": ShaderText.number(radiance * 0.6),
+		"opacity": ShaderText.number(opacity),
 	})

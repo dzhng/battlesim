@@ -10,6 +10,7 @@ extends RefCounted
 
 const Capture = preload("res://capture/presentation_capture.gd")
 const Light = preload("res://environment/light.gd")
+const StrictJson = preload("res://core/strict_json.gd")
 
 const SCHEMA := "native-visual-presentation"
 const ROOT_KEYS := ["schema", "identity", "viewport", "lens", "light", "tuning", "layers", "omissions", "terrain", "grass", "grassCounts"]
@@ -80,34 +81,34 @@ static func _refuse(name: String, detail: String) -> Dictionary:
 	return {"ok": false, "blocker": {"name": name, "detail": detail}}
 
 static func _manifest_error(manifest: Variant) -> String:
-	var shape := Capture.exact_keys(manifest, ROOT_KEYS, "manifest")
+	var shape := StrictJson.exact_keys(manifest, ROOT_KEYS, "manifest")
 	if not shape.is_empty():
 		return shape
 	if typeof(manifest.schema) != TYPE_STRING or manifest.schema != SCHEMA:
 		return "schema must be %s, not %s" % [SCHEMA, manifest.schema]
 	for section in [["identity", IDENTITY_KEYS], ["viewport", VIEWPORT_KEYS], ["lens", LENS_KEYS]]:
-		shape = Capture.exact_keys(manifest[section[0]], section[1], section[0])
+		shape = StrictJson.exact_keys(manifest[section[0]], section[1], section[0])
 		if not shape.is_empty():
 			return shape
 	var identity: Dictionary = manifest.identity
 	for field in ["scene", "map", "encounter"]:
-		if not Capture.is_name(identity[field]):
+		if not StrictJson.is_name(identity[field]):
 			return "identity.%s must be a non-empty string" % field
-	if not Capture.is_integer(identity.seed):
+	if not StrictJson.is_integer(identity.seed):
 		return "identity.seed must be an integer"
 	for field in ["mapHash", "captureHash"]:
-		if not _is_sha256(identity[field]):
-			return "identity.%s must be a lowercase hex sha256" % field
+		if not StrictJson.is_hex(identity[field], 64):
+			return "identity.%s must be a hex sha256" % field
 	var viewport: Dictionary = manifest.viewport
 	for field in ["width", "height"]:
-		if not Capture.is_integer(viewport[field]) or int(viewport[field]) <= 0:
+		if not StrictJson.is_integer(viewport[field]) or int(viewport[field]) <= 0:
 			return "viewport.%s must be a positive integer" % field
-	if not Capture.is_number(viewport.scale) or float(viewport.scale) != 1.0:
+	if not StrictJson.is_number(viewport.scale) or float(viewport.scale) != 1.0:
 		return "viewport.scale must be 1"
 	var lens: Dictionary = manifest.lens
-	if not Capture.is_number(lens.fovY) or float(lens.fovY) <= 0.0 or float(lens.fovY) >= PI:
+	if not StrictJson.is_number(lens.fovY) or float(lens.fovY) <= 0.0 or float(lens.fovY) >= PI:
 		return "lens.fovY must be an angle between 0 and pi"
-	if not Capture.is_number(lens.near) or float(lens.near) <= 0.0:
+	if not StrictJson.is_number(lens.near) or float(lens.near) <= 0.0:
 		return "lens.near must be a positive number"
 	if not (typeof(lens.depth) == TYPE_STRING and lens.depth == "reverse-z" and typeof(lens.far) == TYPE_STRING and lens.far == "infinite"):
 		return "lens must be reverse-z with an infinite far plane"
@@ -118,20 +119,20 @@ static func _manifest_error(manifest: Variant) -> String:
 		return "layers must be an array"
 	for at in manifest.layers.size():
 		var layer = manifest.layers[at]
-		if not Capture.is_name(layer) or manifest.layers.find(layer) != at:
+		if not StrictJson.is_name(layer) or manifest.layers.find(layer) != at:
 			return "layers must be unique non-empty names"
 	if typeof(manifest.omissions) != TYPE_ARRAY:
 		return "omissions must be an array"
 	for omission in manifest.omissions:
-		shape = Capture.exact_keys(omission, OMISSION_KEYS, "omission")
+		shape = StrictJson.exact_keys(omission, OMISSION_KEYS, "omission")
 		if not shape.is_empty():
 			return shape
 		for field in OMISSION_KEYS:
-			if not Capture.is_name(omission[field]):
+			if not StrictJson.is_name(omission[field]):
 				return "omission.%s must be a non-empty string" % field
-	# Tuning, terrain and grass are checked for shape only until the slices
-	# that read them (05a to 06b) decode them.
-	shape = Capture.exact_keys(manifest.tuning, ["terrain", "grass"], "tuning")
+	# Tuning, terrain and grass are checked for shape here; the layers that
+	# read them decode them, and refuse what they cannot use.
+	shape = StrictJson.exact_keys(manifest.tuning, ["terrain", "grass"], "tuning")
 	if not shape.is_empty():
 		return shape
 	if typeof(manifest.tuning.terrain) != TYPE_DICTIONARY or typeof(manifest.tuning.grass) != TYPE_DICTIONARY:
@@ -139,7 +140,7 @@ static func _manifest_error(manifest: Variant) -> String:
 	shape = _artifacts_error(manifest.terrain, "terrain")
 	if not shape.is_empty():
 		return shape
-	shape = Capture.exact_keys(manifest.grass, GRASS_KEYS, "grass")
+	shape = StrictJson.exact_keys(manifest.grass, GRASS_KEYS, "grass")
 	if not shape.is_empty():
 		return shape
 	shape = _artifacts_error(manifest.grass.tables, "grass.tables")
@@ -147,15 +148,15 @@ static func _manifest_error(manifest: Variant) -> String:
 		return shape
 	if typeof(manifest.grass.constants) != TYPE_DICTIONARY:
 		return "grass.constants must be an object"
-	if typeof(manifest.grass.kinds) != TYPE_ARRAY or manifest.grass.kinds.is_empty() or not manifest.grass.kinds.all(func(kind): return Capture.is_name(kind)):
+	if typeof(manifest.grass.kinds) != TYPE_ARRAY or manifest.grass.kinds.is_empty() or not manifest.grass.kinds.all(func(kind): return StrictJson.is_name(kind)):
 		return "grass.kinds must be a non-empty list of names"
 	if typeof(manifest.grassCounts) != TYPE_ARRAY:
 		return "grassCounts must be an array"
 	for count in manifest.grassCounts:
-		shape = Capture.exact_keys(count, GRASS_COUNT_KEYS, "grass count")
+		shape = StrictJson.exact_keys(count, GRASS_COUNT_KEYS, "grass count")
 		if not shape.is_empty():
 			return shape
-		if not Capture.is_name(count.plate) or typeof(count.cells) != TYPE_ARRAY or not count.cells.all(func(cell): return Capture.is_integer(cell) and int(cell) >= 0):
+		if not StrictJson.is_name(count.plate) or typeof(count.cells) != TYPE_ARRAY or not count.cells.all(func(cell): return StrictJson.is_integer(cell) and int(cell) >= 0):
 			return "grass count %s needs a plate and non-negative cell counts" % count.plate
 	return ""
 
@@ -165,17 +166,9 @@ static func _artifacts_error(artifacts: Variant, what: String) -> String:
 	if typeof(artifacts) != TYPE_ARRAY:
 		return "%s must be an array" % what
 	for artifact in artifacts:
-		var shape := Capture.exact_keys(artifact, ARTIFACT_KEYS, what + " artifact")
+		var shape := StrictJson.exact_keys(artifact, ARTIFACT_KEYS, what + " artifact")
 		if not shape.is_empty():
 			return shape
-		if not Capture.is_name(artifact.name) or not _is_sha256(artifact.sha256) or not Capture.is_integer(artifact.words) or int(artifact.words) < 0 or typeof(artifact.layout) != TYPE_DICTIONARY:
+		if not StrictJson.is_name(artifact.name) or not StrictJson.is_hex(artifact.sha256, 64) or not StrictJson.is_integer(artifact.words) or int(artifact.words) < 0 or typeof(artifact.layout) != TYPE_DICTIONARY:
 			return "%s artifact %s needs a name, a sha256, a word count and a layout" % [what, artifact.name]
 	return ""
-
-static func _is_sha256(value: Variant) -> bool:
-	if typeof(value) != TYPE_STRING or String(value).length() != 64:
-		return false
-	for character in String(value):
-		if not "0123456789abcdef".contains(character):
-			return false
-	return true

@@ -30,16 +30,6 @@ func run() -> bool:
 	check(budgets.any(func(row): return row.sourceId == "terrain.heights" and row.rendered > 0), "the ground is drawn from the run's terrain tables")
 	listed.root.free()
 
-	# The class view draws the ground's classes and nothing else as ground.
-	var classes := _compose(["sky", "terrain", "grass", "buildings", "props", "models"], true)
-	check(classes.report.ok(), "the class view composes without a blocker: %s" % JSON.stringify(classes.report.to_dictionary().blockers))
-	check(classes.world.environment == null and classes.root.find_child("Sun", true, false) == null, "the class view draws under no light, so its bytes are exact")
-	check(classes.root.find_child("Grass", true, false) == null, "the class view leaves the grass out, as the browser's does")
-	var terrain: Node = classes.root.find_child("Terrain", true, false)
-	var others: Array = classes.root.find_children("*", "GeometryInstance3D", true, false).filter(func(node): return not terrain.is_ancestor_of(node))
-	check(not others.is_empty() and others.all(func(node): return node.material_override is StandardMaterial3D and node.material_override.albedo_color == Color.BLACK), "everything but the ground is black, not ground")
-	classes.root.free()
-
 	var without_sky := _compose(["terrain"])
 	var environment: WorldEnvironment = without_sky.root.find_child("Environment", true, false).get_child(0)
 	check(environment.environment.background_mode != Environment.BG_SKY, "an unlisted sky is not drawn")
@@ -82,7 +72,7 @@ func run() -> bool:
 	return true
 
 ## The fixture run's light (its sun turned) and ground under `MAP`.
-func _compose(layers: Array, classes := false) -> Dictionary:
+func _compose(layers: Array) -> Dictionary:
 	var root := Node3D.new()
 	var report := RenderReport.new()
 	var fixture: Dictionary = read_json(FIXTURE_RUN.path_join(FIXTURE_SCENE).path_join("manifest.json"))
@@ -90,5 +80,5 @@ func _compose(layers: Array, classes := false) -> Dictionary:
 	light.sunDirection = [sqrt(0.5), 0.0, sqrt(0.5)]
 	var manifest := {"layers": layers, "light": light, "tuning": fixture.tuning, "grass": fixture.grass, "lens": fixture.lens}
 	var ground := ParityRun.read_ground(FIXTURE_RUN.path_join(FIXTURE_SCENE), fixture)
-	var world := ParityRun.compose(root, manifest, ground, SAMPLES, MAP, [Vector2(24, 24)], "blue", classes, report)
+	var world := ParityRun.compose(root, manifest, ground, SAMPLES, MAP, [Vector2(24, 24)], "blue", report)
 	return {"root": root, "report": report, "world": world}

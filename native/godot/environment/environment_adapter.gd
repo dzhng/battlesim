@@ -9,7 +9,9 @@ extends Node3D
 
 const Coords = preload("res://core/coords.gd")
 const Light = preload("res://environment/light.gd")
+const StrictJson = preload("res://core/strict_json.gd")
 const SkyModel = preload("res://environment/sky_model.gd")
+const ShaderText = preload("res://core/shader_text.gd")
 const HazeEffect = preload("res://environment/haze_effect.gd")
 const PostEffect = preload("res://environment/post_effect.gd")
 
@@ -159,18 +161,18 @@ static func godot_extent(near: float, far: float, fov_degrees: float, aspect: fl
 ## lights with what the shader writes in its cubemap pass: the sky radiance
 ## (with its ground bounce, without clouds or disc) times the fill.
 static func sky_shader(light: Dictionary) -> String:
-	return SKY_SHADER.replace("{functions}", SkyModel.radiance_function(light) + SkyModel.disc_function(light) + SkyModel.clouds_function(light)).replace("{fill}", SkyModel.rgb(Light.vector(light.sky.fill)))
+	return SKY_SHADER.replace("{functions}", SkyModel.radiance_function(light) + SkyModel.disc_function(light) + SkyModel.clouds_function(light)).replace("{fill}", ShaderText.rgb(StrictJson.vector3(light.sky.fill)))
 
 const SKY_SHADER := """
 shader_type sky;
 render_mode use_debanding;
 
+#include "res://core/coords.gdshaderinc"
+
 {functions}
 
 void sky() {
-	vec3 godot = normalize(EYEDIR);
-	// Sim (x, y, z) from Godot (x, y, z) is (x, -z, y).
-	vec3 dir = vec3(godot.x, -godot.z, godot.y);
+	vec3 dir = godot_to_sim(normalize(EYEDIR));
 	if (AT_CUBEMAP_PASS) {
 		COLOR = max(sky_radiance(dir), vec3(0.0)) * {fill};
 	} else {

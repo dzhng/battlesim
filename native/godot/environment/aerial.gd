@@ -7,7 +7,8 @@ extends RefCounted
 ## `light.haze`; turbidity drives the physical extinction.
 
 const Light = preload("res://environment/light.gd")
-const SkyModel = preload("res://environment/sky_model.gd")
+const StrictJson = preload("res://core/strict_json.gd")
+const ShaderText = preload("res://core/shader_text.gd")
 
 ## Neutral ground-fog extinction (km^-1) per (turbidity - onset)^2, and the
 ## horizon blend's shape: the haze formula's own constants.
@@ -46,8 +47,8 @@ static func horizon_fade(light: Dictionary) -> Vector2:
 static func function(light: Dictionary) -> String:
 	var h: Dictionary = light.haze
 	var fade := horizon_fade(light)
-	var f := SkyModel.f
-	var rgb := SkyModel.rgb
+	var f := ShaderText.number
+	var rgb := ShaderText.rgb
 	return """
 vec3 apply_aerial(vec3 surface, vec3 position, vec3 camera, vec3 observer) {
 	vec3 reach = position - observer;
@@ -87,7 +88,7 @@ vec3 apply_aerial(vec3 surface, vec3 position, vec3 camera, vec3 observer) {
 		"sun": rgb.call(Light.sun_direction(light)),
 		"sun_power": f.call(float(h.sun_power)),
 		"sun_strength": f.call(float(h.sun_strength)),
-		"sun_tint": rgb.call(Light.vector(h.sun_tint)),
-		"mist_color": rgb.call(Light.vector(h.mist_color)),
+		"sun_tint": rgb.call(StrictJson.vector3(h.sun_tint)),
+		"mist_color": rgb.call(StrictJson.vector3(h.mist_color)),
 		"mist_color_strength": f.call(float(h.mist_color_strength)),
 	})

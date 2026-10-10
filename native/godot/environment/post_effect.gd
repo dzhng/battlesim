@@ -7,9 +7,10 @@ extends CompositorEffect
 ## its linear tone mapper, applies the same sRGB transfer the browser's post
 ## ends with. It runs last, after the haze.
 
-const ComputePass = preload("res://environment/compute_pass.gd")
-const SkyModel = preload("res://environment/sky_model.gd")
+const ComputePass = preload("res://core/compute_pass.gd")
+const ShaderText = preload("res://core/shader_text.gd")
 const Light = preload("res://environment/light.gd")
+const StrictJson = preload("res://core/strict_json.gd")
 
 ## The bloom's blur radius, in texels of its level, per level (`BLOOM_KERNEL_RADII`).
 const BLOOM_KERNEL_RADII := [6, 10, 14, 18, 22]
@@ -130,7 +131,7 @@ void main() {
 	float weight = smoothstep({threshold}, {threshold_end}, dot(c.rgb, vec3(0.2126, 0.7152, 0.0722)));
 	imageStore(target, pixel, mix(vec4(0.0), c, weight));
 }
-""".format({"threshold": SkyModel.f(float(bloom.threshold)), "threshold_end": SkyModel.f(float(bloom.threshold) + float(bloom.smooth_width))})
+""".format({"threshold": ShaderText.number(float(bloom.threshold)), "threshold_end": ShaderText.number(float(bloom.threshold) + float(bloom.smooth_width))})
 
 ## A separable Gaussian with sigma a third of the radius, one axis at a time.
 const BLUR_SOURCE := TARGET + """
@@ -161,7 +162,7 @@ static func composite_source(light: Dictionary) -> String:
 	var terms: Array[String] = []
 	for i in BLOOM_LEVEL_WEIGHTS.size():
 		var weight: float = BLOOM_LEVEL_WEIGHTS[i]
-		terms.append("textureLod(level%d, uv, 0.0) * %s" % [i, SkyModel.f(weight * (1.0 - radius) + (1.2 - weight) * radius)])
+		terms.append("textureLod(level%d, uv, 0.0) * %s" % [i, ShaderText.number(weight * (1.0 - radius) + (1.2 - weight) * radius)])
 	var bindings := ""
 	for i in BLOOM_LEVEL_WEIGHTS.size():
 		bindings += "layout(set = 0, binding = %d) uniform sampler2D level%d;\n" % [i + 1, i]
@@ -175,7 +176,7 @@ void main() {
 	vec2 uv = (vec2(pixel) + 0.5) / frame.size.xy;
 	imageStore(target, pixel, ({terms}) * {strength});
 }
-""".format({"terms": " + ".join(terms), "strength": SkyModel.f(float(bloom.strength))})
+""".format({"terms": " + ".join(terms), "strength": ShaderText.number(float(bloom.strength))})
 
 ## The scene plus its bloom, graded and tone mapped by AgX at the exposure,
 ## in place. Linear display colour out.
@@ -229,12 +230,12 @@ void main() {
 	imageStore(scene, pixel, vec4(agx(grade_color(hdr.rgb)), clamp(hdr.a, 0.0, 1.0)));
 }
 """.format({
-		"contrast": SkyModel.f(float(grade.contrast)),
-		"shadow_tint": SkyModel.rgb(Light.vector(grade.shadow_tint)),
-		"highlight_tint": SkyModel.rgb(Light.vector(grade.highlight_tint)),
-		"split_tone": SkyModel.f(float(grade.split_tone)),
-		"lift": SkyModel.rgb(Light.vector(grade.lift)),
-		"shadow_lift": SkyModel.f(float(grade.shadow_lift)),
-		"saturation": SkyModel.f(float(grade.saturation)),
-		"exposure": SkyModel.f(float(light.exposure)),
+		"contrast": ShaderText.number(float(grade.contrast)),
+		"shadow_tint": ShaderText.rgb(StrictJson.vector3(grade.shadow_tint)),
+		"highlight_tint": ShaderText.rgb(StrictJson.vector3(grade.highlight_tint)),
+		"split_tone": ShaderText.number(float(grade.split_tone)),
+		"lift": ShaderText.rgb(StrictJson.vector3(grade.lift)),
+		"shadow_lift": ShaderText.number(float(grade.shadow_lift)),
+		"saturation": ShaderText.number(float(grade.saturation)),
+		"exposure": ShaderText.number(float(light.exposure)),
 	})

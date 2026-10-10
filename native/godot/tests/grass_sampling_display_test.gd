@@ -10,6 +10,7 @@ extends "res://tests/check.gd"
 
 const ParityRun = preload("res://parity_run.gd")
 const GrassLayer = preload("res://grass/grass_layer.gd")
+const ComputePass = preload("res://core/compute_pass.gd")
 
 ## Where the build's entry point starts: the probe below replaces it.
 const ENTRY := "layout(local_size_x = 64) in;"
@@ -66,7 +67,7 @@ void main() {
 }
 """ % WORDS_PER_ROW
 	var rd := RenderingServer.create_local_rendering_device()
-	var shader := GrassLayer.compile(rd, source, "grass sampling probe")
+	var shader := ComputePass.compile(rd, source, "grass sampling probe")
 	check(shader.is_valid(), "the probe compiles against the build's functions")
 	if not shader.is_valid():
 		rd.free()
@@ -86,18 +87,9 @@ void main() {
 	var sampler := rd.sampler_create(RDSamplerState.new())
 	var uniforms: Array[RDUniform] = []
 	for binding in [7, 8, 9, 10]:
-		var table := RDUniform.new()
-		table.uniform_type = RenderingDevice.UNIFORM_TYPE_SAMPLER_WITH_TEXTURE
-		table.binding = binding
-		table.add_id(sampler)
-		table.add_id(texture)
-		uniforms.append(table)
+		uniforms.append(ComputePass.sampled(binding, sampler, texture))
 	for binding in buffers:
-		var uniform := RDUniform.new()
-		uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
-		uniform.binding = binding
-		uniform.add_id(buffers[binding])
-		uniforms.append(uniform)
+		uniforms.append(ComputePass.storage(binding, buffers[binding]))
 	var pipeline := rd.compute_pipeline_create(shader)
 	var set := rd.uniform_set_create(uniforms, shader, 0)
 	var list := rd.compute_list_begin()

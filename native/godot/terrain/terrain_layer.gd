@@ -3,11 +3,11 @@ extends Node3D
 ## The ground the browser draws (`terrain`): the simulation's triangles seated
 ## on the height field, and the flat backdrop past the map's edge out to the
 ## light's backdrop reach, both painted by the browser's ground material
-## (`terrain.gdshader`) from the browser's own tables. In the class view the
-## ground draws its classes instead and the backdrop is black.
+## (`terrain.gdshader`) from the browser's own tables.
 
-const DataTexture = preload("res://core/data_texture.gd")
+const WordTables = preload("res://core/word_tables.gd")
 const Coords = preload("res://core/coords.gd")
+const ShaderText = preload("res://core/shader_text.gd")
 
 const OWNER := "native/terrain"
 const TABLES := ["heights", "nodes", "plots", "surfaces", "surfaceIndex", "params"]
@@ -21,16 +21,14 @@ var _heights
 ## `shader_header`'s result for the tables and tuning.
 var _header: Dictionary
 var _reach_m: float
-var _class_view: bool
 
 ## `tables` maps each terrain table's name to `{words, layout}`; `heights` is
 ## its decoded `height_field.gd`; `tuning` is the manifest's `tuning.terrain`.
-func _init(tables: Dictionary, heights, tuning: Dictionary, reach_m: float, class_view: bool) -> void:
+func _init(tables: Dictionary, heights, tuning: Dictionary, reach_m: float) -> void:
 	name = "Terrain"
 	_tables = tables
 	_heights = heights
 	_reach_m = reach_m
-	_class_view = class_view
 	_header = shader_header(tables, tuning)
 
 ## Builds the ground and the backdrop. A table the material cannot read is a
@@ -40,9 +38,9 @@ func build(report) -> void:
 		report.add_blocker("terrain", _header.detail)
 		return
 	# One upload of each table, shared by the ground and the backdrop.
-	var uniforms := {"ground_params": params_vectors(_tables.params)}
+	var uniforms := {"ground_params": WordTables.vec4s(_tables.params)}
 	for table in SAMPLERS:
-		uniforms[SAMPLERS[table]] = DataTexture.words_texture(_tables[table].words)
+		uniforms[SAMPLERS[table]] = WordTables.texture(_tables[table].words)
 	var mesh := ground_mesh(_heights)
 	var ground := MeshInstance3D.new()
 	ground.name = "Ground"
@@ -56,8 +54,7 @@ func build(report) -> void:
 	backdrop.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(backdrop)
 	report.add_budget(OWNER, "the simulation's ground triangles, all-flat rectangles coalesced, painted by the browser's ground material", "terrain.heights", mesh.triangles, mesh.triangles, 0)
-	if not _class_view:
-		report.add_budget(OWNER, "omitted: sun flecks under the forest's crowns (groundDapple); native draws no crowns yet", "terrain.dapple", 1, 0, 1)
+	report.add_budget(OWNER, "omitted: sun flecks under the forest's crowns (groundDapple); native draws no crowns yet", "terrain.dapple", 1, 0, 1)
 
 ## The defines `ground.gdshaderinc` reads, from the tables' layouts and the
 ## tuning table: `{ok: true, defines}` or `{ok: false, detail}`.
@@ -101,7 +98,7 @@ static func shader_header(tables: Dictionary, tuning: Dictionary) -> Dictionary:
 			lines.append("#define PARAMS_%s_stride %d" % [array, int(field.word) / 4 - _field_word(params, "%s[0].core" % array) / 4])
 	for array in roads:
 		lines.append("#define PARAMS_%s_count %d" % [array, roads[array]])
-	_tuning_defines(tuning, "TUNING", lines)
+	ShaderText.defines(tuning, "TUNING", lines)
 	return {"ok": true, "defines": "\n".join(lines)}
 
 static func _field_word(layout: Dictionary, field_name: String) -> int:
@@ -110,34 +107,11 @@ static func _field_word(layout: Dictionary, field_name: String) -> int:
 			return int(field.word)
 	return -1
 
-static func _tuning_defines(value: Variant, path: String, lines: Array[String]) -> void:
-	if value is Dictionary:
-		for key in value:
-			_tuning_defines(value[key], "%s_%s" % [path, key], lines)
-	elif value is Array:
-		for at in value.size():
-			_tuning_defines(value[at], "%s_%d" % [path, at], lines)
-	else:
-		lines.append("#define %s %s" % [path, _float_literal(float(value))])
-
-## A float as shader text that reads back as the same f32.
-static func _float_literal(value: float) -> String:
-	var text := var_to_str(value)
-	return text if text.contains(".") or text.contains("e") else text + ".0"
-
 func _material(backdrop: bool, uniforms: Dictionary) -> ShaderMaterial:
-	var modes: Array[String] = []
-	var defines: Array[String] = []
-	if _class_view:
-		modes.append("unshaded")
-		defines.append("#define CLASS_VIEW")
+	var header: String = _header.defines
 	if backdrop:
-		modes.append("shadows_disabled")
-		defines.append("#define BACKDROP")
+		header = "render_mode shadows_disabled;\n#define BACKDROP\n" + header
 	var code := FileAccess.get_file_as_string(SHADER_PATH)
-	var header: String = "\n".join(defines) + "\n" + _header.defines
-	if not modes.is_empty():
-		header = "render_mode %s;\n%s" % [", ".join(modes), header]
 	var shader := Shader.new()
 	shader.code = code.replace(MARKER, header)
 	var material := ShaderMaterial.new()
@@ -145,26 +119,6 @@ func _material(backdrop: bool, uniforms: Dictionary) -> ShaderMaterial:
 	for uniform in uniforms:
 		material.set_shader_parameter(uniform, uniforms[uniform])
 	return material
-
-## The params record as the vec4s the shader reads, each field decoded by its
-## type.
-static func params_vectors(table: Dictionary) -> PackedVector4Array:
-	var words: PackedByteArray = table.words
-	var vectors := PackedVector4Array()
-	vectors.resize(int(table.layout.stride) / 4)
-	for field in table.layout.fields:
-		var at := int(field.word)
-		var values := []
-		for k in 4:
-			match String(field.type):
-				"f32":
-					values.append(words.decode_float((at + k) * 4))
-				"i32":
-					values.append(float(words.decode_s32((at + k) * 4)))
-				_:
-					values.append(float(words.decode_u32((at + k) * 4)))
-		vectors[at / 4] = Vector4(values[0], values[1], values[2], values[3])
-	return vectors
 
 ## The simulation's ground mesh (`World::terrain_mesh`): the vertex grid split
 ## in halves until a rectangle holds no relief page or is one cell, each
