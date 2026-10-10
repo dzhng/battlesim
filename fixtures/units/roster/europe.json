@@ -86,10 +86,12 @@
     },
     "europe_atgm_team_akeron_mp": {
       "name": "Akeron MP Team",
-      "description": "Akeron MP",
+      "description": "Akeron MP; top attack, the gunner must keep sight",
       "faction": "europe",
       "family": "atgm_team",
-      "roles": [],
+      "roles": [
+        "at"
+      ],
       "cost": 150,
       "roster": {
         "factions": [
@@ -99,15 +101,15 @@
         "variant": "Akeron MP",
         "family_name": "ATGM Team"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "at-team",
-        "weapons": [
-          {
-            "name": "Akeron MP",
-            "icon": "atgm"
-          }
-        ]
+      "extends": "roster_profile_at_team",
+      "body": {
+        "squad": {
+          "slots": [
+            "europe_atgm_team_akeron_mp__roster_akeron_gunner",
+            "europe_atgm_team_akeron_mp__at_rifleman",
+            "europe_atgm_team_akeron_mp__at_rifleman"
+          ]
+        }
       }
     },
     "europe_aw101_merlin_hc4": {

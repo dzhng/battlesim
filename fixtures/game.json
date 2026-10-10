@@ -345,6 +345,30 @@
       "ammo": 4,
       "reload_s": 10
     },
+    "javelin": {
+      "interceptable": true,
+      "extends": "atgm",
+      "name": "Javelin",
+      "description": "Top-attack anti-tank missile: it climbs, then dives onto the roof; the gunner must keep sight.",
+      "range_m": 800,
+      "min_range_m": 100,
+      "damage": 55,
+      "penetration": 200,
+      "turn_deg_s": 360,
+      "top_attack": { "loft_m": 60, "dive_deg": 40 }
+    },
+    "akeron_mp": {
+      "interceptable": true,
+      "extends": "atgm",
+      "name": "Akeron MP",
+      "description": "Top-attack anti-tank missile: it climbs, then dives onto the roof; the gunner must keep sight.",
+      "range_m": 900,
+      "min_range_m": 100,
+      "damage": 55,
+      "penetration": 200,
+      "turn_deg_s": 360,
+      "top_attack": { "loft_m": 60, "dive_deg": 40 }
+    },
     "bastion": {
       "interceptable": true,
       "extends": "atgm",
@@ -503,6 +527,8 @@
       "tow": 20,
       "kornet": 20,
       "spike": 20,
+      "javelin": 20,
+      "akeron_mp": 20,
       "bastion": 20,
       "ifv_he": 5,
       "rpg_light": 10,
