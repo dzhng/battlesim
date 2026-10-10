@@ -27,6 +27,7 @@ import { sideKey } from "@packages/battle-renderer/src/sideKey";
 import { TickInterpolator } from "../src/battle/present/interpolate";
 import type {
   CorpseView,
+  FallingAirframeView,
   IdentifiedView,
   ObservationView,
   OwnUnitView,
@@ -129,6 +130,7 @@ const observation = (
     identified = [] as IdentifiedView[],
     corpses = [] as CorpseView[],
     projectiles = [] as ProjectileView[],
+    crashes = [] as FallingAirframeView[],
   } = {},
 ): ObservationView => ({
   tick,
@@ -141,6 +143,7 @@ const observation = (
   blasts: [],
   corpses,
   fallenBodies: [],
+  crashes,
   guided: [],
   encounter: null,
   skirmish: null,
@@ -540,11 +543,55 @@ test("an own tank and an identified enemy with the same id keep their own mounts
     memberIds: [],
     deployment: null,
   });
-  const frame = feed.frame({ observation: o, own: [pose(3)], identified: [pose(3)], time: 0 });
+  const frame = feed.frame({
+    observation: o,
+    own: [pose(3)],
+    identified: [pose(3)],
+    crashes: [],
+    time: 0,
+  });
   expect(frame.units.map((u) => [u.side, u.mounts[0].bearing, u.mounts[0].shots])).toEqual([
     ["blue", 0.4, 1],
     ["red", 2, 7],
   ]);
+});
+
+test("a helicopter shot down falls as itself, rotors still turning, tipping into its fall", () => {
+  const b = battle();
+  const heli: OwnUnitView = {
+    ...squad(4, []),
+    kind: "test_heli",
+    position: [50, 60, 20],
+    yaw: 0,
+    weaponPoses: [],
+  };
+  const flying = play(b, 0, 5, (tick) => observation(tick, [heli])).vehicles;
+  expect(flying.map((v) => [v.unit, v.tilt])).toEqual([[4, null]]);
+  const spun = flying[0].articulation.rotor;
+  // Shot down: no longer a unit, its airframe falls nose down, leaning.
+  const falling = (tick: number): FallingAirframeView => ({
+    id: 4,
+    own: true,
+    kind: "test_heli",
+    position: [50 + (tick - 5), 60, 20 - (tick - 5) * 0.5],
+    yaw: 0.1 * (tick - 5),
+    pitch: -0.3,
+    roll: 0.2,
+  });
+  const fell = play(b, 6, 9, (tick) => observation(tick, [], { crashes: [falling(tick)] }));
+  expect(fell.vehicles).toHaveLength(1);
+  const v = fell.vehicles[0];
+  expect([v.unit, v.side, v.kind]).toEqual([4, "blue", "test_heli"]);
+  // Drawn between its last two published places, as a unit is.
+  expect(v.position[0]).toBeGreaterThan(52);
+  expect(v.position[0]).toBeLessThanOrEqual(54);
+  expect(v.articulation.rotor).toBeGreaterThan(spun);
+  // Its nose (+X) drops below its foot, and its right side (-Y) dips.
+  const tilt = v.tilt!;
+  expect(tilt[2]).toBeCloseTo(-Math.sin(0.3), 6);
+  expect(-tilt[6]).toBeLessThan(0);
+  // Landed: its wreck takes over and the airframe is gone.
+  expect(play(b, 10, 11, (tick) => observation(tick, [])).vehicles).toEqual([]);
 });
 
 test("a rise no launch explains poses no one: no flash, no sound, no kneel", () => {
@@ -655,6 +702,7 @@ const still = (observation: ObservationView, time: number) => ({
   observation,
   own: [],
   identified: [],
+  crashes: [],
   time,
 });
 

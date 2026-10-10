@@ -240,6 +240,38 @@ test("a wreck found later, or one no watched hull stood on, does not brew up", (
   expect(new CookOffWatch(UNITS, 30).note(seen(5, null, [{ id: 4, at: [40, 30] }]))).toEqual([]);
 });
 
+test("a helicopter watched going down does not brew up: its fall is drawn instead", () => {
+  // Shot down over the spot its wreck then lands on, right after: a hull
+  // there would brew up, but an airframe's death is its fall (`crashes`).
+  const heli = (tick: number, alive: boolean, wreck: boolean) =>
+    ({
+      tick,
+      own: [],
+      identified: alive
+        ? [{ id: 7, kind: "test_heli", position: [40, 30, 20], yaw: 0, weaponPoses: [] }]
+        : [],
+      knownProps: wreck
+        ? [
+            {
+              id: 3,
+              kind: UNITS.hull("test_heli")!.wreck,
+              center: [40, 30],
+              yaw: 0,
+              half: [5, 1.2, 1.4],
+              baseZ: 0,
+              replaces: null,
+              authoredProp: null,
+              destroyed: false,
+              wreckOf: "test_heli",
+            },
+          ]
+        : [],
+    }) as unknown as ObservationView;
+  const watch = new CookOffWatch(UNITS, 30);
+  watch.note(heli(10, true, false));
+  expect(watch.note(heli(11, false, true))).toEqual([]);
+});
+
 test("an earlier tick is a new battle: the watch starts over", () => {
   const watch = new CookOffWatch(UNITS, 30);
   watch.note(seen(10, [40, 30], []));
@@ -257,6 +289,7 @@ const tankPose = (at: readonly [number, number], turret: number) => ({
   yaw: 0.5,
   airborne: false,
   articulation: { ...REST_ARTICULATION, turret_yaw: turret },
+  tilt: null,
 });
 
 test("a Jeep death retains its own hull when another vehicle disappeared nearby", () => {

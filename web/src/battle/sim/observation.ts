@@ -246,6 +246,23 @@ export interface FallenBodyView {
   tick: number;
 }
 
+/** A downed airframe still falling, seen by a side that saw it go down. Its
+ *  wreck takes over where it lands. */
+export interface FallingAirframeView {
+  /** The id the side knew it by: an own unit's id, else its identified handle. */
+  id: number;
+  own: boolean;
+  /** Its unit type, so it is drawn as itself. */
+  kind: string;
+  /** Its foot. */
+  position: Point3;
+  yaw: number;
+  /** Nose up, radians: negative as its nose drops into the fall. */
+  pitch: number;
+  /** Right side down, radians: it leans into its spin. */
+  roll: number;
+}
+
 /**
  * What a weapon mount is doing, for posing its model (the renderer derives
  * the pose; the simulation never names an animation).
@@ -454,6 +471,8 @@ export interface ObservationView {
   blasts: BlastView[];
   corpses: readonly CorpseView[];
   fallenBodies: readonly FallenBodyView[];
+  /** Downed airframes still falling that this side saw go down. */
+  crashes: FallingAirframeView[];
   guided: GuidedView[];
   /** The fixture's completion condition, when it has one. */
   encounter: { heldS: number; result: string } | null;
@@ -1195,6 +1214,17 @@ function decodeFrame(
           tick: f("tick"),
         }),
       );
+  const crashes = groups.crashes.map(
+    ({ field: f }): FallingAirframeView => ({
+      id: f("id"),
+      own: f("own") === 1,
+      kind: layout.unitKinds[f("kind")],
+      position: [f("x"), f("y"), f("z")],
+      yaw: f("yaw"),
+      pitch: f("pitch"),
+      roll: f("roll"),
+    }),
+  );
   return {
     tick: header.tick,
     own,
@@ -1206,6 +1236,7 @@ function decodeFrame(
     blasts,
     corpses,
     fallenBodies,
+    crashes,
     guided,
     encounter:
       header.encounterResult < 0

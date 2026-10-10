@@ -8,6 +8,6 @@
   "tags": ["road"],
   "source": "authored",
   "seed": null,
-  "encounters": ["hover"],
+  "encounters": ["crash", "hover"],
   "benchmarks": []
 }

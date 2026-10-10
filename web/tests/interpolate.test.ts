@@ -44,6 +44,7 @@ const frame = (tick: number, own: OwnUnitView[]): ObservationView => ({
   tick,
   own,
   identified: [],
+  crashes: [],
   contacts: [],
   audible: [],
   projectiles: [],

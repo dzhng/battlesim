@@ -9,9 +9,9 @@ use contract::command::{
 use contract::ids::{Side, Tick, UnitId};
 use contract::map::{MoverClass, PropDefinition};
 use contract::observation::{
-    Blast, Corpse, EncounterStatus, FallenBody, GuidedMissile, KnownProp, MemberOrder, MoveState,
-    ObservationFrame, OwnUnit, Posture, SegmentHit, SegmentRicochet, ServiceStatus, SoundCue,
-    SquadArea, UnitSight, VisibilityField, VisibleSegment,
+    Blast, Corpse, EncounterStatus, FallenBody, FallingAirframe, GuidedMissile, KnownProp,
+    MemberOrder, MoveState, ObservationFrame, OwnUnit, Posture, SegmentHit, SegmentRicochet,
+    ServiceStatus, SoundCue, SquadArea, UnitSight, VisibilityField, VisibleSegment,
 };
 use contract::scenario::{
     EncounterRules, EventAction, Opponent, Rules, ScenarioDefinition, ScenarioEvent, ScriptedOrder,
@@ -2047,7 +2047,7 @@ impl Battle {
             wreck_of: Some(wreck_of),
         });
         if let Some(prop) = self.world.prop(wreck) {
-            for side in crash.knowing {
+            for (side, _) in crash.knowing {
                 self.sides[side.index()].learn(
                     prop,
                     self.authored_props,
@@ -2099,12 +2099,14 @@ impl Battle {
             let id = death.victim;
             let unit = &self.units[id.0 as usize];
             let own = unit.side;
-            let mut knowing = vec![own];
+            // Each side that saw it die, with the id it knew it by.
+            let mut knowing = vec![(own, id.0)];
             for side in Side::ALL.into_iter().filter(|&s| s != own) {
                 let knowledge = &mut self.knowledge[side.index()];
                 if knowledge.identifies(id, self.tick - 1) {
+                    let handle = knowledge.track(id).expect("an identified track").id;
                     knowledge.saw_destroyed(id);
-                    knowing.push(side);
+                    knowing.push((side, handle.0));
                 }
             }
             // A downed aircraft falls first; its wreck lies where it lands.
@@ -2151,7 +2153,7 @@ impl Battle {
                 _ => None,
             };
             if let Some(prop) = wreck.and_then(|w| self.world.prop(w)) {
-                for side in knowing {
+                for (side, _) in knowing {
                     self.sides[side.index()].learn(
                         prop,
                         self.authored_props,
@@ -3550,6 +3552,23 @@ impl Battle {
                     .filter(|f| knowledge.knows_fallen(f.prop))
                     .cloned(),
             );
+            // A falling airframe, to the sides that saw it go down: the
+            // same sides that learn its wreck.
+            frame.crashes.clear();
+            frame.crashes.extend(self.crashes.iter().filter_map(|c| {
+                let &(_, id) = c.knowing.iter().find(|(s, _)| *s == side)?;
+                let unit = &self.units[c.unit.0 as usize];
+                let (pitch, roll) = c.attitude();
+                Some(FallingAirframe {
+                    id,
+                    own: unit.side == side,
+                    kind: unit.kind,
+                    position: [c.position.x, c.position.y, c.position.z],
+                    yaw: c.yaw,
+                    pitch,
+                    roll,
+                })
+            }));
         }
     }
 

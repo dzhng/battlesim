@@ -485,6 +485,18 @@ test("every frozen animation field and ground value decodes, integers exact past
   expect(o.fallenBodies).toEqual([
     { prop: 16777300, at: [120.5, 64.25], toward: [0, -1], tick: 7 },
   ]);
+  // A downed airframe falls through the wire as itself, where and how it hangs.
+  expect(o.crashes).toEqual([
+    {
+      id: 9,
+      own: false,
+      kind: "test_jeep",
+      position: [140.5, 60.25, 12.5],
+      yaw: 0.75,
+      pitch: -0.25,
+      roll: 0.125,
+    },
+  ]);
   const ground = new GroundView(layout.ground);
   ground.applyRuns(o.groundPatch);
   const cell = big + 12;

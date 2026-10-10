@@ -148,7 +148,7 @@ const POSE_FIELDS: [&str; 7] = [
 
 /// Header words; the non-map groups' delivery metadata starts here.
 pub const HEADER_WORDS: usize = HEADER.len();
-const HEADER: [&str; 40] = [
+const HEADER: [&str; 41] = [
     "tick",
     "ownCount",
     "identifiedCount",
@@ -189,6 +189,7 @@ const HEADER: [&str; 40] = [
     "scoreBlue",
     "scoreRed",
     "matchResult",
+    "crashCount",
 ];
 const OBJECTIVE_FIELDS: [&str; 8] = [
     "id",
@@ -252,6 +253,7 @@ const CORPSE_FIELDS: [&str; 9] = [
     "yaw",
 ];
 const FALLEN_BODY_FIELDS: [&str; 7] = ["propLo", "propHi", "x", "y", "towardX", "towardY", "tick"];
+const CRASH_FIELDS: [&str; 9] = ["id", "own", "kind", "x", "y", "z", "yaw", "pitch", "roll"];
 const KNOWN_PROP_FIELDS: [&str; 20] = [
     "kind",
     "x",
@@ -510,6 +512,7 @@ pub fn layout_json(battle: &Battle) -> String {
             },
             { "name": "pendingPurchases", "count": "pendingCount", "fields": PENDING_FIELDS, "sections": [] },
             { "name": "objectives", "count": "objectiveCount", "fields": OBJECTIVE_FIELDS, "sections": [] },
+            { "name": "crashes", "count": "crashCount", "fields": CRASH_FIELDS, "sections": [] },
         ],
         "groupDelivery": { "fields": ["length", "encoding", "floats"], "range": ["start", "length"], "copy": ["source", "length"], "copyAlignments": (0..GROUPS).map(|g| fixed_row_width(g).max(1)).collect::<Vec<_>>(), "encodings": GROUP_ENCODINGS,
             "packed": {
@@ -598,6 +601,10 @@ pub fn layout_json(battle: &Battle) -> String {
         // points; each ricochet names the path point where the round glanced
         // off a hull, with the outward normal there, and hit is at the path's
         // last point. A pose's shots rise by one per round launched.
+        // A crash is a downed airframe still falling: its id is the side's
+        // own unit id when own is 1, else the handle it was identified by;
+        // its kind indexes unitKinds; x, y, z is its foot, and yaw, pitch
+        // (nose up) and roll (right side down) its attitude, in radians.
     })
     .to_string()
 }
@@ -902,6 +909,7 @@ fn pack_record(
                 contract::skirmish::MatchResult::Winner { side } => side.index() as f32,
                 contract::skirmish::MatchResult::Draw => 2.0,
             }),
+        frame.crashes.len() as f32,
     ]);
     for u in &frame.own {
         let [garrison_lo, garrison_hi] = limbs_or_absent(u.garrison.map(|g| g.building));
@@ -1250,6 +1258,22 @@ fn pack_record(
             ]);
         }
     }
+    if let Some(ends) = ends.as_mut() {
+        ends.push(out.len());
+    }
+    for c in &frame.crashes {
+        out.extend([
+            c.id as f32,
+            c.own as u8 as f32,
+            c.kind.0 as f32,
+            c.position[0] as f32,
+            c.position[1] as f32,
+            c.position[2] as f32,
+            c.yaw as f32,
+            c.pitch as f32,
+            c.roll as f32,
+        ]);
+    }
     let word = |i: usize| {
         let value = fog.bits[i];
         if i + 1 == words && !cells.is_multiple_of(32) {
@@ -1362,6 +1386,7 @@ fn packed_len(frame: &ObservationFrame, fog: usize, runs: usize) -> Result<usize
     add(frame.corpses.len(), CORPSE_FIELDS.len())?;
     add(frame.known_props.len(), KNOWN_PROP_FIELDS.len())?;
     add(frame.fallen_bodies.len(), FALLEN_BODY_FIELDS.len())?;
+    add(frame.crashes.len(), CRASH_FIELDS.len())?;
     add(fog, 1)?;
     add(runs, GROUND_FIELDS.len())?;
     Ok(length)
@@ -1683,7 +1708,7 @@ const VARIABLE_ANCHOR_WORDS: usize = 3;
 
 /// Each non-map group's fixed row width, in record order; 0 where variable
 /// sections leave no one width to address complete rows by.
-const GROUP_ROW_WIDTHS: [usize; 12] = [
+const GROUP_ROW_WIDTHS: [usize; 13] = [
     0,
     0,
     CONTACT_FIELDS.len(),
@@ -1696,6 +1721,7 @@ const GROUP_ROW_WIDTHS: [usize; 12] = [
     FALLEN_BODY_FIELDS.len(),
     PENDING_FIELDS.len(),
     OBJECTIVE_FIELDS.len(),
+    CRASH_FIELDS.len(),
 ];
 
 /// Non-map groups, in record order.
