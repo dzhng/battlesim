@@ -32,7 +32,7 @@ from vehicle_export import rig, run  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 FOOT = -0.02
-ROOF = 0.80
+ROOF = 0.88  # 2.21 m: the roof reaches the frame's top
 
 
 # The turret's plan, its left half from the gun slot back to the bustle's
@@ -40,16 +40,20 @@ ROOF = 0.80
 # bustle that leaves the engine deck bare behind it.
 TURRET_HALF = [(1.40, 0.40), (1.35, 1.26), (0.40, 1.34), (-0.55, 1.20), (-1.15, 1.00), (-1.30, 0.84)]
 UNDERCUT = 0.20  # the shadowed band under the turret's walls, over its ring
+WALL = FOOT + UNDERCUT  # where the walls start, overhanging the ring
+WEDGE_TIP = 0.48  # the cheek wedges' forward tip, a third of the way up the wall
 
 
 def turret_rings():
-    """The welded turret: tucked in over its ring, flat sides leaning in,
-    narrowing to the bustle."""
-    def ring(inset, lean):
+    """The welded turret: a narrow neck over its ring, the walls jutting out
+    over it and standing near-vertical to a flat roof, narrowing to the
+    bustle. The overhang casts the dark band that sets the turret apart from
+    the hull."""
+    def ring(inset, lean=0.0):
         left = [(x - inset if x > 0 else x + inset, y - inset - lean) for x, y in TURRET_HALF]
         return left + [(x, -y) for x, y in reversed(left)]
 
-    return [(FOOT, ring(0.22, 0.0)), (FOOT + UNDERCUT, ring(0.0, 0.0)), (ROOF, ring(0.10, 0.16))]
+    return [(FOOT, ring(0.30)), (WALL - 0.03, ring(0.30)), (WALL, ring(0.0)), (ROOF, ring(0.02, 0.04))]
 
 
 def turret_body(v, turret):
@@ -58,31 +62,38 @@ def turret_body(v, turret):
     cyl("turret_ring_guard", 1.12, 0.10, (0, 0, FOOT - 0.05), "Z", m["dark"], turret, seg=40, lods=MID)
     side_yaw = math.atan2(TURRET_HALF[2][1] - TURRET_HALF[4][1], TURRET_HALF[2][0] - TURRET_HALF[4][0])
     for side, s in ((1, "L"), (-1, "R")):
-        # The Relikt wedge on each cheek: pointing forward beside the gun,
-        # its steep face and the roof behind it tiled.
-        lo = [(1.30, 0.44), (2.20, 0.46), (1.75, 1.44), (1.25, 1.44)]
-        hi = [(1.30, 0.44), (1.95, 0.46), (1.60, 1.30), (1.20, 1.30)]
+        # The Relikt wedge on each cheek, an arrowhead pointing forward
+        # beside the gun: its tiled top slopes down from the roof to a tip
+        # a third of the way up, its underside tucks back to the wall foot.
+        # The slope starts at the roof's front edge, so the wedge reads as
+        # the turret's own nose, not a block bolted on.
+        head, nose = 1.42, 2.30  # where the slope leaves the roof, and its tip
+        foot = [(1.30, 0.44), (nose - 0.35, 0.46), (1.60, 1.40), (1.25, 1.40)]
+        tip = [(1.30, 0.44), (nose, 0.46), (1.80, 1.44), (1.25, 1.44)]
+        top = [(1.25, 0.44), (head, 0.46), (head - 0.10, 1.32), (1.20, 1.32)]
         rings = []
-        for z, pts in ((FOOT + UNDERCUT, lo), (ROOF - 0.04, hi)):
+        for z, pts in ((WALL, foot), (WEDGE_TIP, tip), (ROOF - 0.02, top)):
             p = [(x, side * y) for x, y in pts]
             rings.append((z, p if side > 0 else p[::-1]))
         loft(f"cheek_wedge_{s}", rings, mat=m["paint"], parent=turret, bevel=0.04)
-        VP.armour_tiles(f"cheek_face_{s}", (1.86, side * 0.92, 0.48), (0.56, 0.90), (2, 3), 0.07, m, turret,
-                        rot=(0, 1.21, side * 0.43))
+        slope = math.atan2(ROOF - 0.02 - WEDGE_TIP, nose - head)
+        face_x = head + 0.32
+        VP.armour_tiles(f"cheek_face_{s}", (face_x, side * 0.85, ROOF - 0.02 - (face_x - head) * math.tan(slope)),
+                        (0.56, 0.70), (2, 3), 0.06, m, turret, rot=(0, slope, 0))
         VP.armour_tiles(f"cheek_tiles_{s}", (1.10, side * 0.92, ROOF - 0.02), (0.44, 0.88), (1, 3), 0.06, m, turret)
         # Net screens hung along the turret's flank, the cage round the bustle.
         # Both stand clear of the undercut, so the turret sits apart from the hull.
-        VP.slat_armour(f"net_screen_{s}", (-0.15, side * 1.38, FOOT + UNDERCUT + 0.02), (1.30, 0.44), m, turret,
+        VP.slat_armour(f"net_screen_{s}", (-0.15, side * 1.38, WALL + 0.02), (1.30, 0.50), m, turret,
                        spacing=0.10, bar=0.012, rot=(0, 0, side * side_yaw))
-        VP.slat_armour(f"bustle_cage_{s}", (-1.12, side * 1.06, FOOT + 0.16), (0.50, 0.50), m, turret, spacing=0.10,
+        VP.slat_armour(f"bustle_cage_{s}", (-1.12, side * 1.06, FOOT + 0.16), (0.50, 0.58), m, turret, spacing=0.10,
                        bar=0.014)
-        VP.smoke_discharger_bank(f"smoke_{s}", (0.90, side * 1.16, ROOF), m, turret, count=6, tube_radius=0.045,
+        VP.smoke_discharger_bank(f"smoke_{s}", (0.90, side * 1.16, ROOF - 0.08), m, turret, count=6, tube_radius=0.045,
                                  tube_length=0.22, elevation=0.30, spread=0.6, rot=(0, 0, side * 0.60))
-        VP.stowage_box(f"bustle_bin_{s}", (-0.95, side * 0.62, ROOF - 0.02), (0.55, 0.28, 0.12), m, turret,
+        VP.stowage_box(f"bustle_bin_{s}", (-0.95, side * 0.62, ROOF - 0.06), (0.55, 0.28, 0.12), m, turret,
                        rot=(0, 0, 0 if side > 0 else math.pi))
         whip = empty(f"dressing_antenna_{s}", parent=turret)
         VP.antenna(f"antenna_{s}", (-1.00, side * 0.85, ROOF), m, whip, height=2.2)
-    VP.slat_armour("bustle_cage_rear", (-1.45, 0, FOOT + 0.16), (2.00, 0.50), m, turret, spacing=0.10, bar=0.014,
+    VP.slat_armour("bustle_cage_rear", (-1.45, 0, FOOT + 0.16), (2.00, 0.58), m, turret, spacing=0.10, bar=0.014,
                    rot=(0, 0, math.pi / 2))
     # Roof: the gunner's sight box on the left, the commander's tall
     # panoramic sight drum on the right (both stand over the frame's top, so
@@ -93,8 +104,8 @@ def turret_body(v, turret):
     cyl("commander_sight_drum", 0.24, 0.20, (0.25, -0.88, ROOF + 0.08), "Z", m["paint"], sights, seg=20,
         bevel=0.02, lods=MID)
     VP.sight_housing("commander_sight", (0.25, -0.88, ROOF + 0.18), m, sights, size=(0.40, 0.40, 0.10))
-    VP.cupola("commander_cupola", (-0.75, -0.58, ROOF), m, turret, radius=0.30, periscopes=4, lid_open=False)
-    VP.hatch("gunner_hatch", (-0.45, 0.58, ROOF), m, turret, radius=0.30)
+    VP.cupola("commander_cupola", (-0.75, -0.58, ROOF - 0.06), m, turret, radius=0.30, periscopes=4, lid_open=False)
+    VP.hatch("gunner_hatch", (-0.45, 0.58, ROOF - 0.04), m, turret, radius=0.30)
 
 
 def rear_drums(v):
