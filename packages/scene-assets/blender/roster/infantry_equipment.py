@@ -1,7 +1,9 @@
 """Named roster equipment on the unchanged Quaternius infantry rig.
 
 Usage: infantry_equipment.py <kit> [a|b|c] [active|carried] [--army=<army>] [--preview=<dir>]
-Add --preview-only to inspect the existing source without rebuilding it.
+       infantry_equipment.py <kit> --receipt
+Add --preview-only to inspect the existing source without rebuilding it;
+--receipt writes the kit's receipt once every look is exported.
 Writes into the kit's own directory, `assets/source/roster/infantry/<kit>/`.
 A kit is built in one of its armies' looks (`KITS`, its first by default):
 `<mode>_<look>.glb` for the first, `<faction>_<mode>_<look>.glb` for the
@@ -10,6 +12,7 @@ shared clips. Lengths are world metres; geometry compensates for the shared
 hold and soldier scales, never the rig. Tripod ATGMs use a root-weighted kit
 and the coordinator's frozen active pose.
 """
+import hashlib
 import json
 import math
 import os
@@ -19,8 +22,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import bpy
 import bmesh
 from mathutils import Matrix, Vector
-from common import REPO, box, cyl, empty, export_glb, script_args, texture_uvs, obj_from_bm
-from infantry_kit import COYOTE, RANGER, Kit, look_of, bone_of
+from common import REPO, box, cyl, empty, export_glb, fbm, script_args, texture_uvs, obj_from_bm
+from infantry_kit import COYOTE, RANGER, Kit, look_of, bone_of, scale3
 from textures import UNIFORMS
 from infantry_rig import Rig, SCALE
 from mesh_lods import canonical, make_tiers, triangle_count
@@ -90,10 +93,10 @@ KITS = {
     "eastern_atgm_team_kornet": dict(weapon="kornet", armies=("eastern_emr",)),
     "eastern_rpg_team_rpg_7": dict(weapon="rpg7", armies=("eastern_emr",)),
     "eastern_rpg_team_rpg_29": dict(weapon="rpg29", armies=("eastern_emr",)),
-    # Disabled cards (slice 18): one look each, their army's. The FN-6 team
-    # wears the Eastern army's EMR, as every Eastern kit does; there is no
-    # Chinese uniform print yet.
-    "fgm_148_javelin_team": dict(weapon="javelin", armies=("us_army_ocp",)),
+    # The FN-6 team wears the Eastern army's EMR, as every Eastern kit does;
+    # there is no Chinese uniform print yet. The Akeron is French, but Europe's
+    # kits all wear the Bundeswehr's look; there is no French uniform print.
+    "fgm_148_javelin_team": dict(weapon="javelin", armies=("us_army_ocp", "german_flecktarn")),
     "fim_92_stinger_team": dict(weapon="stinger", armies=("us_army_ocp",)),
     "eastern_air_defense_team_igla_s": dict(weapon="igla", armies=("eastern_emr",)),
     "eastern_air_defense_team_fn_6": dict(weapon="fn6", armies=("eastern_emr",)),
@@ -115,6 +118,9 @@ LENGTHS = {
 }
 # Launchers fired from the shoulder (the launcher hold), and those on a tripod.
 SHOULDER = ("rpg7", "rpg29", "javelin", "stinger", "igla", "fn6", "akeron")
+# A launch tube painted other than the kit's launcher olive: the Akeron's is
+# a light olive between its black caps (references: assets/references/<kit>/).
+TUBE_PAINT = {"akeron": (0.24, 0.25, 0.16)}
 LAUNCHERS = ("tow", "kornet", *SHOULDER)
 
 
@@ -276,24 +282,31 @@ def rpg_equipment(mats, model, socket=True):
     return root
 
 
-def shoulder_tube_equipment(mats, model):
+def shoulder_tube_equipment(mats, model, socket=True):
     """A shoulder-fired missile on the launcher hold's grip and support
     points: its launch tube, end caps, the grip under it and its sight on the
     left (the hold's sight side) -- the Javelin's command launch unit, the
     Akeron's sight block, a MANPADS' gripstock, folding sight frame and IFF
-    antenna. Each is drawn after its references' silhouette."""
+    antenna. Each is drawn after its references' silhouette. Packed (no
+    socket) it is the same launcher, slung."""
     root = empty(model, (0, 0, 0))
-    black, tube, fde = mats['gun_black'], mats['launcher'], mats['gun_fde']
+    black, tube = mats['gun_black'], mats['launcher']
     frame = LENGTHS[model]
     length = frame['length_m'] / SCALE
     r = frame['radius_m']
     heavy = model in ('javelin', 'akeron')
-    rear = .55 if heavy else .45
+    # A heavy tube (Javelin, Akeron) rides centred on the shoulder, half of
+    # it behind; a MANPADS mostly ahead.
+    rear = .80 if heavy else .45
     front = rear-length
     axis = .10  # the bore on the hold's aim line, as the RPG's is
     cyl(model+'_tube', r, length, (0,(front+rear)/2,axis), 'Y', tube, root, seg=20)
-    for k,y in enumerate((rear-.05, front+.05)):
-        cyl(model+'_end_cap_'+str(k), r*(1.25 if heavy else 1.15), .10 if heavy else .06, (0,y,axis), 'Y', black, root, seg=20)
+    # End caps: the Akeron's oversized black shock absorbers, the Javelin's
+    # bulbous caps, a MANPADS' slim ones.
+    cap_r, cap_l = {'akeron': (1.6, .16), 'javelin': (1.25, .10)}.get(model, (1.15, .06))
+    inset = max(.05, cap_l/2)
+    for k,y in enumerate((rear-inset, front+inset)):
+        cyl(model+'_end_cap_'+str(k), r*cap_r, cap_l, (0,y,axis), 'Y', black, root, seg=20)
     box(model+'_trigger_grip', (.032,.04,.15), (0,.06,.025), black, root, bevel_=.005)
     box(model+'_support_grip', (.035,.045,.11), (.0,-.25,.0), black, root, bevel_=.005)
     # Every tube: its carrying sling's two swivels, and the ribbed rings
@@ -303,11 +316,12 @@ def shoulder_tube_equipment(mats, model):
     for k,y in enumerate((.18, -.38)):
         cyl(model+'_band_'+str(k), r*1.06, .025, (0,y,axis), 'Y', black, root, seg=20)
     if model == 'javelin':
-        # The command launch unit clamped to the tube's left: its body, two
-        # handles, the eyepiece's rubber eyecup, the day sight's and the
-        # thermal sight's windows on its front, the display controls; the
-        # battery coolant unit under the tube's rear.
-        box('javelin_clu', (.20,.26,.20), (.14,.0,axis+.02), fde, root, bevel_=.02)
+        # The command launch unit clamped to the tube's left, its eyepiece at
+        # the gunner's face: its dark body (it must not melt into a tan
+        # uniform), two handles, the eyepiece's rubber eyecup, the day
+        # sight's and the thermal sight's windows on its front, the display
+        # controls; the battery coolant unit under the tube's rear.
+        box('javelin_clu', (.20,.26,.20), (.14,.0,axis+.02), black, root, bevel_=.02)
         for k,y in enumerate((.09,-.09)):
             box('javelin_clu_handle_'+str(k), (.03,.03,.14), (.25,y,axis+.0), black, root, bevel_=.006)
         box('javelin_clu_eyepiece', (.07,.06,.06), (.14,.15,axis+.06), black, root, bevel_=.01)
@@ -321,13 +335,13 @@ def shoulder_tube_equipment(mats, model):
         muzzle = front
     elif model == 'akeron':
         # The firing post's sight block on the left, its hood and the
-        # thermal channel's window, the shoulder rest under the rear.
+        # thermal channel's window, the shoulder rest under the shoulder.
         box('akeron_sight', (.16,.22,.16), (.13,-.05,axis+.02), black, root, bevel_=.015)
         box('akeron_sight_hood', (.17,.06,.03), (.13,-.15,axis+.11), black, root)
         cyl('akeron_sight_lens', .04, .02, (.13,-.17,axis+.04), 'Y', mats['lens'], root, seg=14)
         box('akeron_thermal_window', (.05,.012,.05), (.08,-.165,axis-.02), mats['lens'], root)
         cyl('akeron_eyecup', .03, .04, (.13,.07,axis+.06), 'Y', black, root, seg=14)
-        box('akeron_shoulder_rest', (.05,.16,.09), (0,rear-.12,axis-r-.03), black, root, bevel_=.01)
+        box('akeron_shoulder_rest', (.05,.16,.09), (0,.30,axis-r-.03), black, root, bevel_=.01)
         muzzle = front
     else:
         # MANPADS: the gripstock under the tube with its battery/coolant
@@ -349,7 +363,8 @@ def shoulder_tube_equipment(mats, model):
         cap = .07 if model == 'igla' else .05
         cyl(model+'_nose_cap', r*1.2, cap, (0,front-cap/2,axis), 'Y', black, root, seg=16)
         muzzle = front-cap
-    empty('muzzle',(0,muzzle,axis),root,.02)
+    if socket:
+        empty('muzzle',(0,muzzle,axis),root,.02)
     return root
 
 
@@ -476,19 +491,25 @@ def build(unit, variant, mode, army=None):
             kit.rigid(neck,'pelvis')
             lever=box('grenade_safety_lever_'+str(j),(.011,.017,.070),centre+Vector((.033,0,.015)),kit.m['gun_black'],rot=(0,math.radians(-12),0))
             kit.rigid(lever,'pelvis')
-    if model.startswith('rpg') and mode=='carried':
-        root=rpg_equipment(kit.m,model,False)
-        # A rifle in the hands and the actual launcher slung behind the pack.
+    if model in SHOULDER and mode=='carried':
+        rpg=model.startswith('rpg')
+        root=rpg_equipment(kit.m,model,False) if rpg else shoulder_tube_equipment(kit.m,model,False)
+        # A rifle in the hands and the actual launcher slung behind the pack:
+        # an RPG muzzle down; a missile tube muzzle up, with its sight (the
+        # Javelin's CLU) facing out rather than into the pack.
         back=max((o.matrix_world@Vector(c)).y for o in kit.parts if bone_of(o)=='spine_03' for c in o.bound_box)
-        rotation=Matrix.Rotation(math.radians(30),4,'Y')@Matrix.Rotation(math.pi/2,4,'X')
-        root.matrix_world=Matrix.Translation((0,back+.13,1.1))@rotation
+        rotation=Matrix.Rotation(math.radians(30),4,'Y')@Matrix.Rotation((1 if rpg else -1)*math.pi/2,4,'X')
+        # A tube's middle at 1.12 m, whatever length rides behind its grip:
+        # its upper cap stays under the soldier's height.
+        lift=1.1 if rpg else 1.12+bpy.data.objects[model+'_tube'].location.y
+        root.matrix_world=Matrix.Translation((0,back+(.13 if rpg else -.02),lift))@rotation
         rig.bone_parent(root,'spine_03')
         kit.parts.extend(c for c in root.children_recursive if c.type=='MESH')
         for j,along in enumerate((-.20,.30)):
             lug=root.matrix_world@Vector((-.045,along,.10))
             anchor=Vector((-.09 if j==0 else .09,back,1.1-along*.85))
             reach=lug-anchor
-            strap=box('packed_rpg_retention_'+str(j),(.035,.014,reach.length),(anchor+lug)/2,kit.m['webbing'],rot=reach.to_track_quat('Z','Y').to_euler())
+            strap=box('packed_'+('rpg' if rpg else model)+'_retention_'+str(j),(.035,.014,reach.length),(anchor+lug)/2,kit.m['webbing'],rot=reach.to_track_quat('Z','Y').to_euler())
             kit.rigid(strap,'spine_03')
     if ground:tripod_equipment(kit,model,mode=='carried')
     if not ground or mode=='carried':
@@ -498,6 +519,9 @@ def build(unit, variant, mode, army=None):
                      else (lambda m:weapons.RIFLES[kit.look['rifle']](m)) if model=='rifle' or mode=='carried'
                      else (lambda m:rifle_equipment(m,model)))
         kit.weapon({'hold':hold,'build':constructor})
+    if model in TUBE_PAINT:
+        rgb=TUBE_PAINT[model]
+        kit.painters[model+'_tube']=lambda p,n:(scale3(rgb,.9+.2*fbm(p,40,97)),.3+.2*fbm(p,12,98))
     kit.eye();kit.paint_all()
     soldier=kit.join();kit.bake_ao(soldier)
     tiers=make_tiers(soldier,'soldier')
@@ -511,6 +535,39 @@ def build(unit, variant, mode, army=None):
     export_glb(path,[rig.arm,*tiers,bpy.data.objects['eye'],bpy.data.objects['muzzle']])
     print('ROSTER_INFANTRY',json.dumps({'id':unit,'army':army,'equipment':model,'variant':variant,'mode':mode,'skeleton':'quaternius-ubc-'+hold['family'],'tris':[triangle_count(t) for t in tiers],'path':path}))
     return path,hold
+
+
+def receipt(unit):
+    """Write a kit's receipt beside its sources (`source-receipt.json`): the
+    hash of every script of this directory the export loads, its reference
+    library, and each of its exported looks' bytes. Every look must already be
+    exported (each export is its own Blender run)."""
+    blender=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    loaded={os.path.abspath(__file__)}|{os.path.abspath(m.__file__) for m in list(sys.modules.values())
+                                         if getattr(m,'__file__',None) and os.path.abspath(m.__file__).startswith(blender+os.sep)}
+    spec=KITS[unit]
+    modes=('active','carried') if spec['weapon'] in LAUNCHERS else ('active',)
+    variants=[]
+    for army in spec['armies']:
+        for mode in modes:
+            for look in 'abc':
+                path=source_path(unit,look,mode,army)
+                data=open(path,'rb').read() if os.path.exists(path) else b''
+                if data[:4]!=b'glTF':
+                    raise SystemExit('Export every look before its receipt; missing or not fetched: '+path)
+                variants.append({'army':army,'mode':mode,'look':look,'source':os.path.relpath(path,REPO),
+                                 'sha256':hashlib.sha256(data).hexdigest(),'bytes':len(data)})
+    sha=lambda p:hashlib.sha256(open(p,'rb').read()).hexdigest()
+    out=os.path.join(REPO,'assets/source/roster/infantry',unit,'source-receipt.json')
+    with open(out,'w') as f:
+        f.write(json.dumps({
+            'blender_version':bpy.app.version_string,
+            'source_sha256':{os.path.relpath(p,REPO):sha(p) for p in sorted(loaded)},
+            'references':f'assets/references/{unit}/references.json',
+            'authoring':'Original procedural kit on the shared Quaternius rig, built from the committed references; photos are visual reference only.',
+            'variants':variants,
+        },indent=2)+'\n')
+    print('ROSTER_INFANTRY_RECEIPT',out)
 
 
 def preview(path,hold,directory):
@@ -552,6 +609,8 @@ if __name__=='__main__':
     args=script_args();unit=args[0];variant=args[1] if len(args)>1 and not args[1].startswith('--') else 'a';mode=args[2] if len(args)>2 and not args[2].startswith('--') else 'active'
     target=next((a.split('=',1)[1] for a in args if a.startswith('--preview=')),None)
     army=next((a.split('=',1)[1] for a in args if a.startswith('--army=')),None)
+    if '--receipt' in args:
+        receipt(unit);sys.exit(0)
     if '--preview-only' in args:
         path=source_path(unit,variant,mode,army)
         hold=hold_of(unit,mode)
