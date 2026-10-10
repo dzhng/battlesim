@@ -956,6 +956,8 @@
         "area_draw_scale": 0.8,
         "vehicle_marker_margin_m": 0.7,
         "building_marker_margin_m": 3,
+        "drop_line_px": 4,
+        "drop_line_alpha": 1,
         "flash": { "hold_s": 1, "fade_s": 0.4 }
       },
       "supply": { "reach": [0.95, 0.95, 0.98, 1] },
