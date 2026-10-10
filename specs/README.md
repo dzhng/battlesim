@@ -13,6 +13,8 @@ ladder with parallel named-model production.
 [Ground admission](ground-admission/README.md) brings the twelve disabled ground cards
 that need no new movement layer into play, and adds top-attack missiles.
 
+[Helicopters](helicopters/README.md) make the roster's 19 helicopters playable in a low-air layer. [Transport](transport/README.md) is a placeholder for passenger carriage by trucks and helicopters.
+
 [Finished features](done/) retain the rationale and accepted scope after shipping.
 Their README explains why the design works and points to current owners. Choices,
 measurements, references and rejected experiments beneath each feature retain their

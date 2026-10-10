@@ -149,7 +149,8 @@ pub fn service(
             status = if ready.is_empty() {
                 ServiceStatus::SourceNotDeployed
             } else if moved[r] || unit.movement_goal().is_some() {
-                // Standing still means no movement at all, turning included.
+                // Standing still means the unit's position did not change;
+                // turning in place still counts as standing.
                 ServiceStatus::Moving
             } else if fired.contains(&unit.id) || weapons::engaged(unit) {
                 ServiceStatus::Firing

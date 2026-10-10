@@ -128,6 +128,8 @@ The original brief is retained in [assets/original-brief.txt](assets/original-br
 
 **Decision:** Camo, anti-radar properties, and low helicopter flight can reduce detection; precise modifiers remain open.
 
+**Partly superseded 2026-10-10:** "low helicopter flight" no longer exists as a mode ([helicopters](../helicopters/README.md)). Camo and anti-radar remain open.
+
 **Why:** Support different ways to evade sensors.
 
 **Owner:** slices 18,19. **Authority:** user brief/interview.
@@ -605,6 +607,8 @@ The original brief is retained in [assets/original-brief.txt](assets/original-br
 **Why:** Make low flight interact with terrain.
 
 **Owner:** slices 18. **Authority:** user brief/interview.
+
+**Superseded 2026-10-10:** helicopters have no low-flight mode. They always fly the low-air layer; see [helicopters](../helicopters/README.md).
 
 ## A02
 
