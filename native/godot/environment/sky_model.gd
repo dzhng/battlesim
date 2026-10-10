@@ -18,6 +18,9 @@ const LOW_SUN_AUREOLE_COS_OUTER := -0.12
 const LOW_SUN_AUREOLE_COS_INNER := 0.76
 const GROUND_BOUNCE_TINT := Vector3(0.34, 0.3, 0.25)
 const OVERCAST_ZENITH_RADIANCE := Vector3(1.02, 1.05, 1.1)
+const SUN_DISC_COS_INNER := 0.99985
+const SUN_DISC_COS_OUTER := 0.99955
+const SUN_DISC_RADIANCE := 2.5
 
 static func f(value: float) -> String:
 	return "%.12f" % value
@@ -124,4 +127,111 @@ vec3 sky_radiance(vec3 dir_in) {
 		"overcast_sun": f(sqrt(maxf(sun.z, 0.05))),
 		"overcast": f(overcast),
 		"bounce": rgb(bounce),
+	})
+
+## `vec3 sky_disc(vec3 dir)`: the sun's disc, added to the shown sky only.
+static func disc_function(light: Dictionary) -> String:
+	var sun := Light.sun_direction(light)
+	var overcast := Light.overcast(float(light.sky.turbidity))
+	return """
+vec3 sky_disc(vec3 dir) {
+	float disc = smoothstep({outer}, {inner}, dot(dir, {sun})) * smoothstep(-0.015, 0.01, dir.z) * {radiance};
+	return {transmit} * disc;
+}
+""".format({
+		"outer": f(SUN_DISC_COS_OUTER),
+		"inner": f(SUN_DISC_COS_INNER),
+		"sun": rgb(sun),
+		"radiance": f(SUN_DISC_RADIANCE * (1.0 - overcast)),
+		"transmit": rgb(Light.transmittance_to_sun(sun, float(light.sky.turbidity))),
+	})
+
+## `vec3 sky_clouds(vec3 dir, vec3 sky)`: the view's cumulus layer over the
+## shown sky `sky`, a warped value-noise fBm thresholded to the coverage and
+## lit as if its thickness were height. Its opacity gives way to the overcast
+## dome. Never part of the light the sky casts.
+static func clouds_function(light: Dictionary) -> String:
+	var sun := Light.sun_direction(light)
+	var clouds: Dictionary = light.sky.clouds
+	var turbidity := float(light.sky.turbidity)
+	var opacity := float(clouds.opacity) * (1.0 - Light.overcast(turbidity))
+	var across := Vector2(sun.x, sun.y).length()
+	var to_sun := Vector2(sun.x, sun.y) / across if across > 1e-6 else Vector2(1, 0)
+	var lo := 1.0 - float(clouds.coverage)
+	var softness := float(clouds.softness)
+	var radiance := float(clouds.radiance)
+	return """
+float cloud_hash(ivec2 i) {
+	uint h = (uint(i.x) * 0x8da6b343u) ^ (uint(i.y) * 0xd8163841u);
+	h = h ^ (h >> 13u);
+	h = h * 0x5bd1e995u;
+	h = h ^ (h >> 15u);
+	return float(h & 0xffffffu) / 16777216.0;
+}
+
+float cloud_noise(vec2 p) {
+	ivec2 i = ivec2(floor(p));
+	vec2 f = fract(p);
+	vec2 u = f * f * (3.0 - 2.0 * f);
+	return mix(mix(cloud_hash(i), cloud_hash(i + ivec2(1, 0)), u.x), mix(cloud_hash(i + ivec2(0, 1)), cloud_hash(i + ivec2(1, 1)), u.x), u.y);
+}
+
+float cloud_fbm(vec2 p0) {
+	// Warped, so masses round into heaps rather than streaks.
+	vec2 p = p0 + vec2(cloud_noise(p0 * 0.5), cloud_noise(p0 * 0.5 + vec2(5.2, 1.3))) * 0.9;
+	float sum = 0.0;
+	float amp = 0.55;
+	float norm = 0.0;
+	for (int k = 0; k < 5; k++) {
+		sum += amp * cloud_noise(p);
+		norm += amp;
+		p = vec2(p.x * 1.7 - p.y * 1.1, p.x * 1.1 + p.y * 1.7) + vec2(17.3, 9.1);
+		amp *= 0.45;
+	}
+	return sum / norm;
+}
+
+vec3 sky_clouds(vec3 dir, vec3 sky) {
+	if (dir.z < 0.012) {
+		return sky;
+	}
+	// A dome, not a plane: far clouds keep their bulk.
+	vec2 at = dir.xy * ({height_over_scale} / (dir.z + 0.12));
+	float n = cloud_fbm(at);
+	float density = smoothstep({lo_minus}, {lo_plus}, n);
+	float e = 0.02;
+	vec2 slope = vec2(cloud_fbm(at + vec2(e, 0.0)) - n, cloud_fbm(at + vec2(0.0, e)) - n) / e;
+	vec3 normal = normalize(vec3(-slope * 0.35, 1.0));
+	float facing = clamp(dot(normal, {sun}) * 0.5 + 0.5, 0.0, 1.0);
+	float toward_sun = cloud_fbm(at + vec2({to_sun_x}, {to_sun_y}));
+	float shadow = smoothstep({lo}, {lo_shadow}, toward_sun) * (1.0 - facing);
+	float core = smoothstep({lo}, {lo_core}, n);
+	vec3 lit = {transmit} * {radiance};
+	vec3 base = {shade} * {base_radiance} + sky * 0.25;
+	vec3 cloud = mix(base, lit, clamp(facing * 1.2 - shadow * 0.5 - core * 0.3, 0.0, 1.0));
+	// Thin edges toward the sun glow (forward scattering).
+	float silver = pow(max(dot(dir, {sun}), 0.0), 6.0) * (1.0 - core);
+	cloud += {transmit} * silver * {silver_radiance};
+	// Far clouds pile toward the horizon and take its haze.
+	float near = smoothstep(0.0, 0.3, dir.z);
+	cloud = mix(mix(sky, cloud, 0.55), cloud, near);
+	float alpha = density * {opacity} * smoothstep(0.012, 0.04, dir.z);
+	return mix(sky, cloud, alpha);
+}
+""".format({
+		"height_over_scale": f(float(clouds.height_m) / float(clouds.scale_m)),
+		"lo_minus": f(lo - softness),
+		"lo_plus": f(lo + softness),
+		"sun": rgb(sun),
+		"to_sun_x": f(to_sun.x * 0.07),
+		"to_sun_y": f(to_sun.y * 0.07),
+		"lo": f(lo),
+		"lo_shadow": f(lo + 0.3),
+		"lo_core": f(lo + 0.35),
+		"transmit": rgb(Light.transmittance_to_sun(sun, turbidity)),
+		"radiance": f(radiance),
+		"shade": rgb(Light.vector(clouds.shade)),
+		"base_radiance": f(radiance * 0.7),
+		"silver_radiance": f(radiance * 0.6),
+		"opacity": f(opacity),
 	})

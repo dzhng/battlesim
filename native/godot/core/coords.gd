@@ -8,6 +8,10 @@ extends RefCounted
 static func sim_to_godot(point: Vector3) -> Vector3:
 	return Vector3(point.x, point.z, -point.y)
 
+## The inverse of `sim_to_godot`.
+static func godot_to_sim(point: Vector3) -> Vector3:
+	return Vector3(point.x, -point.z, point.y)
+
 ## `sim_to_godot` of a JSON point `[x, y, z]`.
 static func sim_array_to_godot(point: Array) -> Vector3:
 	return sim_to_godot(Vector3(float(point[0]), float(point[1]), float(point[2])))

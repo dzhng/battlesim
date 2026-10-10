@@ -138,7 +138,7 @@ func _render(options: Dictionary) -> void:
 			return
 		CameraRig.apply(camera, record, manifest.lens)
 		if world.environment != null:
-			world.environment.fit(camera, Vector2(get_window().size))
+			world.environment.prepare(camera, Vector2(get_window().size), Capture.vector3(record.target))
 		world.layer.show_units(sample.units)
 		if options.classes:
 			# Units appear as their publications do: black them too.

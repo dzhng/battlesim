@@ -24,7 +24,7 @@ func run() -> bool:
 
 	# Straight down from 1 km: the map's top is 975 m away.
 	camera.look_at_from_position(Coords.sim_to_godot(Vector3(500, 500, 1000)), Coords.sim_to_godot(Vector3(500, 500, 0)), Coords.sim_to_godot(Vector3(0, 1, 0)))
-	environment.fit(camera, VIEWPORT)
+	environment.prepare(camera, VIEWPORT, Vector3.ZERO)
 	var first_split := sun.directional_shadow_split_1 * sun.directional_shadow_max_distance
 	check(first_split > 975.0, "a camera 1 km up starts its first cascade at the map, not the near plane: it ends at %.1f m" % first_split)
 	# The browser keeps the range at least half again its start.
@@ -32,7 +32,7 @@ func run() -> bool:
 
 	# A low oblique view past the shadow reach is cut at the reach.
 	camera.look_at_from_position(Coords.sim_to_godot(Vector3(0, 0, 30)), Coords.sim_to_godot(Vector3(1000, 1000, 0)), Coords.sim_to_godot(Vector3(0, 0, 1)))
-	environment.fit(camera, VIEWPORT)
+	environment.prepare(camera, VIEWPORT, Vector3.ZERO)
 	check(sun.directional_shadow_max_distance <= float(light.cascades.max_far_m), "no shadow past the reach: %.1f m" % sun.directional_shadow_max_distance)
 	var splits := [sun.directional_shadow_split_1, sun.directional_shadow_split_2, sun.directional_shadow_split_3, 1.0]
 	for i in 3:

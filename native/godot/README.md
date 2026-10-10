@@ -76,6 +76,11 @@ shaders) and writes the manifest's numbers into them:
 - **Sky light.** The ambient and reflected light is the ported physical sky
   times the fill: the sky shader writes that product into the radiance
   cubemap Godot lights with, whether or not the sky is shown.
+- **Sky.** The shown sky is the same physical sky, with the horizon's
+  radiance below the horizon, the sun's disc and the cloud layer over it.
+- **Haze.** A compositor effect hazes every surface once, from the depth
+  buffer, toward the frame record's ground focus, before the post chain. It
+  evaluates the sky radiance directly where the browser samples its sky LUT.
 
 ## Layers
 

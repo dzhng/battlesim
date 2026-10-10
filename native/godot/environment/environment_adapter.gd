@@ -1,13 +1,16 @@
 extends Node3D
 
 ## The light the parity run draws under, built from the manifest's light: the
-## browser's sun with its cascaded shadows, and the sky's light scaled by the
-## fill as the ambient and reflected light. Each frame, `fit(camera)` splits
-## the cascades over the part of the map the camera sees, as the browser does.
+## browser's sun with its cascaded shadows, its sky (shown when the manifest
+## lists `sky`) whose light scaled by the fill is the ambient and reflected
+## light, and its aerial haze. Each frame, `prepare` splits the cascades over
+## the part of the map the camera sees and focuses the haze, as the browser's
+## environment frame does.
 
 const Coords = preload("res://core/coords.gd")
 const Light = preload("res://environment/light.gd")
 const SkyModel = preload("res://environment/sky_model.gd")
+const HazeEffect = preload("res://environment/haze_effect.gd")
 
 ## Godot's PCF filter whose four Vogel taps are closest to the browser's five,
 ## and its kernel radius in shadow-atlas texels per unit of `shadow_blur`
@@ -21,6 +24,7 @@ const FINITE_CAMERA_FAR := 1e7
 var _light: Dictionary
 var _receivers: AABB
 var _sun: DirectionalLight3D
+var _haze: CompositorEffect
 
 ## `receivers` is the box the map's shadow receivers lie in, in Godot space.
 func _init(light: Dictionary, sky_listed: bool, receivers: AABB) -> void:
@@ -42,13 +46,11 @@ func _init(light: Dictionary, sky_listed: bool, receivers: AABB) -> void:
 	env.ambient_light_sky_contribution = 1.0
 	env.ambient_light_energy = 1.0
 	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
-	env.fog_enabled = true
-	env.fog_light_color = Color("a9b7b0")
-	env.fog_light_energy = 0.32
-	env.fog_density = 0.00065
-	env.fog_sky_affect = 0.28
 	var world := WorldEnvironment.new()
 	world.environment = env
+	_haze = HazeEffect.new(light)
+	world.compositor = Compositor.new()
+	world.compositor.compositor_effects = [_haze]
 	add_child(world)
 	_sun = build_sun(light)
 	add_child(_sun)
@@ -76,9 +78,13 @@ static func build_sun(light: Dictionary) -> DirectionalLight3D:
 	RenderingServer.directional_soft_shadow_filter_set_quality(SHADOW_FILTER)
 	return sun
 
-## Splits the cascades over the receivers `camera` sees and sets the penumbra,
-## as the browser's cascade fit does for the frame it is about to draw.
-func fit(camera: Camera3D, viewport: Vector2) -> void:
+## Poses the light for the frame `camera` is about to draw: the cascades split
+## over the receivers it sees, with the browser's penumbra, and the haze
+## measured from `focus`, the camera's ground focus in sim space.
+func prepare(camera: Camera3D, viewport: Vector2, focus: Vector3) -> void:
+	_haze.observer = focus
+	_haze.near = camera.near
+	_haze.far = camera.far
 	var cascades: Dictionary = _light.cascades
 	var seen := Light.receiver_range(camera, viewport, _receivers)
 	var near := maxf(camera.near, seen.x)
@@ -136,59 +142,28 @@ static func godot_extent(near: float, far: float, fov_degrees: float, aspect: fl
 		radius = maxf(radius, corner.distance_to(centre))
 	return 2.0 * radius
 
-## The sky shader. Godot lights with what the shader writes in its cubemap
-## pass: the browser's sky radiance times the fill. The shown background stays
-## the pre-parity sky until slice 04b ports the browser's.
+## The sky shader. The shown sky is the browser's: its sky radiance with the
+## horizon's haze below the horizon, the sun's disc and the cloud layer. Godot
+## lights with what the shader writes in its cubemap pass: the sky radiance
+## (with its ground bounce, without clouds or disc) times the fill.
 static func sky_shader(light: Dictionary) -> String:
-	return SKY_SHADER.replace("{radiance}", SkyModel.radiance_function(light)).replace("{fill}", SkyModel.rgb(Light.vector(light.sky.fill)))
+	return SKY_SHADER.replace("{functions}", SkyModel.radiance_function(light) + SkyModel.disc_function(light) + SkyModel.clouds_function(light)).replace("{fill}", SkyModel.rgb(Light.vector(light.sky.fill)))
 
 const SKY_SHADER := """
 shader_type sky;
 render_mode use_debanding;
 
-{radiance}
-
-float hash21(vec2 p) {
-	p = fract(p * vec2(123.34, 456.21));
-	p += dot(p, p + 45.32);
-	return fract(p.x * p.y);
-}
-
-float cloud_noise(vec2 p) {
-	vec2 cell = floor(p);
-	vec2 local = fract(p);
-	local = local * local * (3.0 - 2.0 * local);
-	float a = hash21(cell);
-	float b = hash21(cell + vec2(1.0, 0.0));
-	float c = hash21(cell + vec2(0.0, 1.0));
-	float d = hash21(cell + vec2(1.0, 1.0));
-	return mix(mix(a, b, local.x), mix(c, d, local.x), local.y);
-}
-
-float cloud_fbm(vec2 p) {
-	float value = 0.0;
-	float weight = 0.58;
-	for (int i = 0; i < 4; i++) {
-		value += cloud_noise(p) * weight;
-		p = p * 2.03 + vec2(17.0, 9.0);
-		weight *= 0.5;
-	}
-	return value;
-}
+{functions}
 
 void sky() {
-	vec3 direction = normalize(EYEDIR);
+	vec3 godot = normalize(EYEDIR);
 	// Sim (x, y, z) from Godot (x, y, z) is (x, -z, y).
-	vec3 sim = vec3(direction.x, -direction.z, direction.y);
+	vec3 dir = vec3(godot.x, -godot.z, godot.y);
 	if (AT_CUBEMAP_PASS) {
-		COLOR = max(sky_radiance(sim), vec3(0.0)) * {fill};
+		COLOR = max(sky_radiance(dir), vec3(0.0)) * {fill};
 	} else {
-		float horizon = smoothstep(-0.10, 0.58, direction.y);
-		vec3 clear = mix(vec3(0.71, 0.82, 0.80), vec3(0.17, 0.42, 0.62), horizon);
-		float cloud_band = smoothstep(0.10, 0.72, direction.y) * (1.0 - smoothstep(0.80, 0.98, direction.y));
-		vec2 cloud_uv = sim.xy / max(direction.y + 0.08, 0.18) * 0.92;
-		float cloud = cloud_fbm(cloud_uv * 1.65 + vec2(4.2, -2.7));
-		COLOR = mix(clear, vec3(0.96, 0.95, 0.88), smoothstep(0.53, 0.61, cloud) * cloud_band * 0.95);
+		vec3 shown = normalize(vec3(dir.xy, max(dir.z, 0.004)));
+		COLOR = max(sky_clouds(dir, sky_radiance(shown) + sky_disc(dir)), vec3(0.0));
 	}
 }
 """

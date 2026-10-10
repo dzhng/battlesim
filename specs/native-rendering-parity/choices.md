@@ -228,3 +228,15 @@ Shadow direction matches on every pair, and softness reads the same at mid range
 | `--view classes` writes `class-<index>.png`. It has no environment, a black clear colour and no grass, and draws every other geometry black (units re-blackened each frame). | It is the browser's class view, whose bytes are data. Exact sRGB round-trip was probed for all 256 bytes. |
 | Sun flecks (`groundDapple`) are omitted and reported as a budget; scars are the reported-dropped `scars` layer | Native has no crowns until 07; scars are phase 2 |
 | Height vectors come from `throwaway/native-05a/height-vectors.ts` (the browser's packer and `groundHeight`) into `tests/fixtures/height_vectors.json` | As the slice delegated; the generator is scratch, and the vectors are the contract |
+
+### Slice 04b, by the implementing agent
+
+The sky gradient and cloud cover match on every pair; the clouds land in the same places at the same size, since the cloud field is a function of view direction alone. Distance haze reads alike on far buildings and fields. The unprimed critique agreed on clouds and gradient (high confidence) and saw native's clouds slightly flatter, its horizon band cooler, and the far-ground horizon edge a little sharper; those are judged again after 04c, since AgX and the grade move hue and highlight shading. Evidence: `throwaway/native-parity/slice04b/`.
+
+| Decision | Why |
+| --- | --- |
+| Native evaluates the sky radiance per pixel (background, cubemap pass and haze) instead of baking the browser's 384×192 LUT | One shader function and no bake pass or texture lifetime; the cost is well inside a plate's budget. The browser's bilinear LUT filtering is the only difference. |
+| The haze reads its near and far planes from the camera, not from the scene's `Projection` | Godot's reverse-Z projection doesn't report its planes (`get_z_near()` returned 0 in a probe) |
+| `core/coords.gd` gains `godot_to_sim`, its inverse | The haze turns the rendered camera back into sim space; one conversion owner |
+| `prepare(camera, viewport, focus)` replaces `fit`, mirroring the browser environment frame's `prepare` | The haze needs the frame record's ground focus as well as the camera |
+| The pre-parity Godot fog is gone | The browser's haze replaces it |

@@ -22,7 +22,7 @@ Graph: `01 ∥ 02 → 03 → 04a → 04b → 04c → 05a → 05b → 06a → 06b
 - [x] 02 — Native runner (`ae645e7a`): rename to `native/godot`, Forward+, the strict reader, stepping by index, the report, per-file staging, and silent fallbacks and caps deleted. [slice](slices/02-native-runner.md)
 - [x] 03 — Coordinates and camera (`0d264eb5`): the first real pair; the same shot. [slice](slices/03-coordinates-and-camera.md)
 - [x] 04a — Light: sun, fill and shadows (direction and softness). [slice](slices/04a-light-sun-and-shadow.md)
-- [ ] 04b — Light: sky, clouds and distance haze. [slice](slices/04b-light-sky-and-haze.md)
+- [x] 04b — Light: sky, clouds and distance haze. [slice](slices/04b-light-sky-and-haze.md)
 - [ ] 04c — Light: output transform (tone), a formula port of the browser's post chain. [slice](slices/04c-light-output-transform.md)
 - [x] 05a — Terrain: height and features (`48c3ab7a`): class agreement 100.00% with a 2 px edge mask (gate 99.5%). [slice](slices/05a-terrain-height-and-features.md)
 - [ ] 05b — Terrain: field character. The formulas are ported, and the broad cut and bare plots match; the close cut waits on browser plates with the grass off (`plain-<index>.png`). [slice](slices/05b-terrain-field-character.md)
