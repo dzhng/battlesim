@@ -108,6 +108,9 @@ impl Crash {
                 self.position = out.with_z(self.position.z);
             }
         }
+        // The map's edge stops it: what goes down near it lands on the map.
+        self.position.x = self.position.x.clamp(half.x, world.width() - half.x);
+        self.position.y = self.position.y.clamp(half.x, world.depth() - half.x);
         let ground = world
             .height_at(self.position.x, self.position.y)
             .unwrap_or(0.0);
@@ -138,6 +141,14 @@ impl Crash {
             .f64(self.velocity.y)
             .f64(self.velocity.z)
             .f64(self.yaw);
+        match self.source {
+            Some(s) => d.u64(1).u64(s.unit.0 as u64).u64(s.side.index() as u64),
+            None => d.u64(0),
+        };
+        d.u64(self.knowing.len() as u64);
+        for (side, id) in &self.knowing {
+            d.u64(side.index() as u64).u64(*id as u64);
+        }
     }
 }
 
@@ -152,6 +163,10 @@ pub fn resting_place(world: &WorldGeometry, at: V2, yaw: f64, half: V2, hulls: &
                 p.body.weight_class != WeightClass::Immovable || !wreck.overlaps(&p.footprint())
             })
     };
+    let reach = half.length();
+    let on_map = |p: V2| {
+        p.x >= reach && p.y >= reach && p.x <= world.width() - reach && p.y <= world.depth() - reach
+    };
     let rings = (CLEAR_REACH_M / CLEAR_STEP_M) as i32;
     for ring in 0..=rings {
         let r = ring as f64 * CLEAR_STEP_M;
@@ -159,7 +174,7 @@ pub fn resting_place(world: &WorldGeometry, at: V2, yaw: f64, half: V2, hulls: &
         for k in 0..points {
             let angle = std::f64::consts::TAU * k as f64 / points as f64;
             let p = at + v2(libm::cos(angle), libm::sin(angle)) * r;
-            if clear(p) {
+            if on_map(p) && clear(p) {
                 return p;
             }
         }

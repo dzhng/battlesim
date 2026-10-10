@@ -1,15 +1,13 @@
-import { useCallback, useMemo, useState } from "react";
-import { metresPerPxAt, type Camera3DParams } from "@packages/renderer-core/src/camera3d";
+import { useState } from "react";
+import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { SavedEncounters, type SavedBattle } from "../savedMaps";
 import { useFeed } from "../feed";
+import { useLabOverlay } from "../labOverlay";
 import { gameCamera } from "../gameCamera";
 import { TickStatus } from "../TickStatus";
-import { buildBattleOverlay } from "../battleOverlay";
-import { useContactFacing } from "../contactFacing";
-import type { ViewportPointer } from "../LabViewport";
-import { ReadoutLayer, type Project } from "@web/battle/present/readouts";
+import { ReadoutLayer } from "@web/battle/present/readouts";
 
 // Test helicopters hovering at cruise height, drawn as the battle draws
 // them: each with its ground marker and drop line (D18), its rotors turning
@@ -44,11 +42,6 @@ const camera = (variant: Variant): Camera3DParams => ({
   ...gameCamera.lens,
 });
 
-/** The overlay's strokes are sized for the camera's zoom, as the battle
- *  view's are; the zoom is kept in eighths of a doubling so a camera move
- *  rebuilds them only when they would visibly change. */
-const zoomStep = (metresPerPx: number) => 2 ** (Math.round(Math.log2(metresPerPx) * 8) / 8);
-
 export default function AirHover() {
   return (
     <SavedEncounters fixture="air-hover" encounters={VARIANT_NAMES}>
@@ -63,59 +56,13 @@ function AirHoverLab({ battles }: { battles: Record<Variant, SavedBattle> }) {
     return VARIANT_NAMES.find((name) => name === requested) ?? "hover";
   });
   const session = useBattleSession({ ...battles[variant], seed: SEED });
-  const { world, meshes, sim, control, surfaceZ } = session;
+  const { meshes, sim } = session;
   const worldFeed = useFeed(meshes);
   const { observation } = sim;
   // The camera opens on the variant the address asks for, and stays put
   // when another is chosen.
   const [initial] = useState(() => camera(variant));
-  const [metresPerPx, setMetresPerPx] = useState(() =>
-    zoomStep(metresPerPxAt(initial.distance, initial.fovY, window.innerHeight)),
-  );
-  const contactFacing = useContactFacing(initial, metresPerPx);
-  const { placePanels } = session;
-  const { follow } = contactFacing;
-  const onFrame = useCallback(
-    (project: Project, view: Camera3DParams, pointer: ViewportPointer) => {
-      placePanels(project, view, pointer);
-      follow(view);
-      setMetresPerPx(zoomStep(metresPerPxAt(view.distance, view.fovY, window.innerHeight)));
-    },
-    [placePanels, follow],
-  );
-  const overlay = useMemo(
-    () =>
-      world && observation
-        ? buildBattleOverlay(
-            session.units,
-            observation,
-            control.selected,
-            surfaceZ,
-            { supplyRadius: 0, zone: null, deployment: null },
-            {
-              showOrders: control.showOrders,
-              reveal: session.revealed,
-              contacts: session.contacts,
-              facing: contactFacing.facing,
-            },
-            null,
-            metresPerPx,
-          )
-        : undefined,
-    [
-      session.contacts,
-      contactFacing.facing,
-      world,
-      observation,
-      session.units,
-      control.selected,
-      control.showOrders,
-      session.revealed,
-      surfaceZ,
-      metresPerPx,
-    ],
-  );
-  const overlayFeed = useFeed(overlay);
+  const { overlayFeed, onFrame } = useLabOverlay(session, initial);
   const chooseVariant = (next: Variant) => {
     if (next === variant) return;
     const url = new URL(window.location.href);

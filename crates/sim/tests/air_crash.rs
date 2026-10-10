@@ -231,3 +231,30 @@ fn a_downed_helicopter_replays_to_the_same_digest() {
     };
     assert_eq!(run(), run());
 }
+
+/// An airframe going down at speed beside the map's edge lands on the map.
+#[test]
+fn a_crash_at_the_map_edge_lands_on_the_map() {
+    let world = crate::common::flat([400.0, 400.0], "");
+    let mut crash = sim::crash::Crash::new(
+        UnitId(0),
+        sim::math::v3(390.0, 200.0, 20.0),
+        sim::math::v2(60.0, 0.0),
+        0.0,
+        None,
+        vec![],
+    );
+    let half = sim::math::v3(7.0, 1.2, 1.6);
+    let gravity = sim::math::v3(0.0, 0.0, -9.81);
+    while !crash.fall(&world, gravity, half, 1.0 / 30.0) {}
+    assert!(
+        crash.position.x <= 400.0 - half.x,
+        "it landed off the map at {:?}",
+        crash.position
+    );
+    let rest = sim::crash::resting_place(&world, crash.position.xy(), crash.yaw, half.xy(), &[]);
+    assert!(
+        rest.x <= 400.0 - half.xy().length(),
+        "its wreck rests off the map at {rest:?}"
+    );
+}

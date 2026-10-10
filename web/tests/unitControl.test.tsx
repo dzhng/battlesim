@@ -99,6 +99,12 @@ test("right-clicking a contact attacks it with the armed units; Shift queues", a
   ]);
 });
 
+test("right-clicking an airborne contact offers no attack: area fire cannot reach the air", async () => {
+  const { sent, click } = await control();
+  await click({ contact: 7, contactAirborne: true });
+  expect(sent.map((s) => s.order.kind)).toEqual(["move"]);
+});
+
 test("an identified enemy under the cursor wins over a contact", async () => {
   const { sent, click } = await control();
   await click({ contact: 7, enemy: 3 });

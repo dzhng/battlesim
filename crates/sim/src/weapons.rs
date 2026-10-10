@@ -1553,6 +1553,13 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                 }
             }
 
+            // A gun fixed in the hull keeps the body on its target through
+            // every aim, burst and reload, not only while it turns onto it.
+            if let (Some(_), Some(r), Some(Ok(_))) = (&mount.lock, &resolved, assessment) {
+                if hull_fixed(unit, spec) {
+                    face.get_or_insert(bearing_from(unit, r.point));
+                }
+            }
             // Fire when everything lines up.
             let mut engaging = false;
             mount.reason = match (&mount.lock, &resolved, assessment) {
@@ -1576,9 +1583,6 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                     } else if (spec.turret || hull_fixed(unit, spec))
                         && wrap_angle(bearing_from(unit, r.point) - mount.bearing).abs() > tolerance
                     {
-                        if hull_fixed(unit, spec) {
-                            face.get_or_insert(bearing_from(unit, r.point));
-                        }
                         ActionReason::TurretTraversing
                     } else if mount.support.is_some() {
                         // One missile guided at a time: the next waits, loaded and aimed.

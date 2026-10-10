@@ -187,3 +187,57 @@ fn a_helicopter_turns_its_airframe_to_aim_while_it_flies_on() {
     }
     assert!(fired_flying, "it never fired while flying a different way");
 }
+
+/// Once on target, a gunship flying past keeps its fixed gun on it through
+/// every aim, burst and reload: it never swings back to its heading between
+/// shots.
+#[test]
+fn a_gunship_flying_past_holds_its_aim_through_its_bursts_and_reloads() {
+    let mut b = battle(json!([
+        { "side": "blue", "kind": "test_hull_gun_heli", "position": [300, 100], "yaw": std::f64::consts::FRAC_PI_2 },
+        { "side": "red", "kind": "test_tank", "position": [550, 250], "yaw": 0.0,
+          "engagement": "return_fire_only" },
+    ]));
+    let ack = b.accept(CommandEnvelope {
+        side: Side::Blue,
+        seq: 1,
+        order: Order::Move {
+            units: vec![UnitId(0)],
+            gesture: 1,
+            goal: [300.0, 500.0],
+            route: RoutePolicy::Shortest,
+            direction: MoveDirection::Forward,
+            facing: None,
+        },
+        queued: false,
+    });
+    assert_eq!(ack.error, None);
+    let tol = tolerance(&b);
+    let mut on_target = false;
+    let mut checked = 0;
+    for _ in 0..12 * b.rules().tick_hz {
+        let before = gun_shots(&b);
+        b.step();
+        let heli = b.unit(UnitId(0)).unwrap();
+        if !b.unit(UnitId(1)).unwrap().alive() {
+            break;
+        }
+        on_target |= gun_shots(&b) > before;
+        // Only on the way past: hovering, it keeps whatever heading it has.
+        if heli.air.unwrap().velocity.length() < 5.0 {
+            continue;
+        }
+        if on_target {
+            let to = sim::math::v2(550.0, 250.0) - heli.position.xy();
+            let bearing = libm::atan2(to.y, to.x);
+            // The target's bearing drifts as it flies; one tick's turn more.
+            assert!(
+                off(heli.yaw, bearing) <= tol + 0.05,
+                "it swung {:.3} rad off its target between shots",
+                off(heli.yaw, bearing)
+            );
+            checked += 1;
+        }
+    }
+    assert!(checked > 10, "it held its aim only {checked} ticks");
+}

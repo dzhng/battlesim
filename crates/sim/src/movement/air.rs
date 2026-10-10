@@ -158,9 +158,7 @@ fn plan(ctx: &MovementContext, unit: &mut Unit, side: &mut SideGeometry) {
     }
     let here = unit.position.xy();
     let grid = side.air_grid(ctx.world, ctx.rules, ctx.authored);
-    let mut searched = 0;
-    unit.route = Some(grid.route(here, goal, &mut searched));
-    side.air_cells_searched += searched;
+    unit.route = Some(grid.route(here, goal));
     unit.planned_goal = Some(goal);
     unit.planned_revision = side.revision;
     unit.route_from = here;

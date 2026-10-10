@@ -57,11 +57,7 @@ impl Objectives {
                 let inside = |p: crate::math::V2| (p - center).within_radius(site.radius_m);
                 let mut present = [false; 2];
                 for unit in units.iter().filter(|u| u.alive()) {
-                    let kind = rules.catalog.get(unit.kind);
-                    let eligible = kind.roster.as_ref().is_some_and(|r| {
-                        matches!(r.category, Category::Rec | Category::Inf | Category::Veh)
-                    });
-                    if !eligible {
+                    if !can_hold(rules.catalog.get(unit.kind)) {
                         continue;
                     }
                     let holds = if unit.hull.is_some() {
@@ -322,4 +318,12 @@ mod tests {
             "later crossing does not grant a false tie"
         );
     }
+}
+
+/// Whether units of type `t` can capture and contest an objective: ground
+/// combat units (recon, infantry, vehicles), never supply or aircraft (D20).
+pub fn can_hold(t: &contract::catalog::UnitType) -> bool {
+    t.roster
+        .as_ref()
+        .is_some_and(|r| matches!(r.category, Category::Rec | Category::Inf | Category::Veh))
 }

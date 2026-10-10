@@ -124,8 +124,6 @@ pub struct SideGeometry {
     /// Where this side's aircraft may fly, and the side and world revisions
     /// it was built at; built when an aircraft first asks.
     air: Option<(u64, u64, Arc<crate::navigation::air::AirGrid>)>,
-    /// Cells the air route searches expanded (the bounded-search contract).
-    pub air_cells_searched: u64,
 }
 
 /// A change farther than this from a unit's route cannot put a body in
@@ -155,7 +153,6 @@ impl SideGeometry {
             cleared_taken: 0,
             searches: 0,
             air: None,
-            air_cells_searched: 0,
         }
     }
 

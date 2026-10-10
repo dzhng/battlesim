@@ -82,8 +82,8 @@ impl AirGrid {
 
     /// Waypoints from `from` to `to`, ending at `to`, or at the open point
     /// nearest it when `to` stands inside a wall. A flight starting inside a
-    /// wall leaves it first. `searched` counts the cells the search expanded.
-    pub fn route(&self, from: V2, to: V2, searched: &mut u64) -> Vec<V2> {
+    /// wall leaves it first.
+    pub fn route(&self, from: V2, to: V2) -> Vec<V2> {
         let goal_cell = self.nearest_open(self.cell(to));
         let goal = if self.open(self.cell(to)) {
             to
@@ -94,7 +94,7 @@ impl AirGrid {
             return vec![goal];
         }
         let start = self.nearest_open(self.cell(from));
-        let cells = self.search(start, goal_cell, searched);
+        let cells = self.search(start, goal_cell);
         // Pull the string: keep only the corners the straight flight needs.
         let mut points: Vec<V2> = cells.into_iter().map(|c| self.centre(c)).collect();
         if let Some(last) = points.last_mut() {
@@ -146,12 +146,7 @@ impl AirGrid {
     }
 
     /// A* over the eight neighbours, octile distances.
-    fn search(
-        &self,
-        start: (usize, usize),
-        goal: (usize, usize),
-        searched: &mut u64,
-    ) -> Vec<(usize, usize)> {
+    fn search(&self, start: (usize, usize), goal: (usize, usize)) -> Vec<(usize, usize)> {
         let index = |(c, r): (usize, usize)| r * self.cols + c;
         let octile = |a: (usize, usize), b: (usize, usize)| {
             let (dx, dy) = (a.0.abs_diff(b.0) as f64, a.1.abs_diff(b.1) as f64);
@@ -173,7 +168,6 @@ impl AirGrid {
             if estimate > here + octile(cell, goal) + 1e-9 {
                 continue;
             }
-            *searched += 1;
             for (dx, dy) in [
                 (1, 0),
                 (-1, 0),

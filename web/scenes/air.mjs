@@ -24,7 +24,7 @@ const goal = encounter.scripts.find((s) => s.side === "blue").order.goal;
 const jeepAt = encounter.units.find((u) => u.kind === "test_gun_jeep").position;
 // The ticks red's gun jeep is told to fire at will, ending the rifle phase,
 // and to hold its fire again after its first round, so one hit hurts the
-// helicopter and the next does not bring it down (its fall is a later slice's).
+// helicopter and the next does not bring it down (the air-crash lab shows a fall).
 const [jeepFree, jeepHeld] = encounter.scripts
   .filter((s) => s.order.kind === "set_engagement")
   .map((s) => s.tick);

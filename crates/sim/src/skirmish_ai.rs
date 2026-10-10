@@ -92,6 +92,15 @@ impl SkirmishAi {
             .filter_map(|&(role, category, ordinal)| pick(role, category, ordinal))
             .collect();
         let mut orders = Vec::new();
+        // Only units that can take an objective count toward its load: a
+        // helicopter sent to fight over a flag never holds it (D20).
+        let holds = |id: UnitId| {
+            frame
+                .own
+                .iter()
+                .find(|u| u.id == id)
+                .is_some_and(|u| crate::objectives::can_hold(rules.catalog.get(u.kind)))
+        };
         // The whole opening is bought in one decision, so the opponent is
         // ready at once and the player's own readiness starts the battle.
         let purchases: Vec<TypeIndex> = if view.phase == Phase::Preparation {
@@ -129,7 +138,7 @@ impl SkirmishAi {
                     truck.filter(|&k| f64::from(rules.catalog.get(k).cost) <= view.credits)
                 } else {
                     // Helicopters reinforce, ordered like light vehicles (D35);
-                    // a deck without one skips the turn.
+                    // a deck without one buys the next role in turn instead.
                     let roles = [
                         ("infantry", Category::Inf),
                         ("recon", Category::Rec),
@@ -170,7 +179,11 @@ impl SkirmishAi {
                                 .chain(bought.iter().copied())
                                 .filter(|d| *d == o.center)
                                 .count()
-                                + self.assigned.values().filter(|id| *id == &o.id).count()
+                                + self
+                                    .assigned
+                                    .iter()
+                                    .filter(|(u, id)| *id == &o.id && holds(**u))
+                                    .count()
                         };
                         load(a)
                             .cmp(&load(b))
@@ -225,7 +238,7 @@ impl SkirmishAi {
                             self.assigned
                                 .iter()
                                 .filter(|(unit_id, goal)| {
-                                    **unit_id != unit.id && goal.as_str() == id
+                                    **unit_id != unit.id && goal.as_str() == id && holds(**unit_id)
                                 })
                                 .count()
                         };

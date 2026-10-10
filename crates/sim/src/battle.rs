@@ -433,20 +433,21 @@ fn spawn_unit(
     })
     .collect();
     let mounts = arsenal.mounts_for(kind, u.yaw, &members);
+    // An aircraft enters at cruise height over the ground beneath it.
+    let motion = units::motion(t, rules);
+    let airborne = matches!(motion, units::Motion::Air(_));
+    let lift = if airborne {
+        rules.air.cruise_agl_m
+    } else {
+        0.0
+    };
     Unit {
         id: UnitId(i as u32),
         side: u.side,
         kind,
-        position: xy.with_z(
-            world.surface_at(xy.x, xy.y).map_or(0.0, |s| s.z)
-                + if t.mobility.layer() == contract::catalog::AltitudeLayer::LowAir {
-                    rules.air.cruise_agl_m
-                } else {
-                    0.0
-                },
-        ),
+        position: xy.with_z(world.surface_at(xy.x, xy.y).map_or(0.0, |s| s.z) + lift),
         yaw: u.yaw,
-        motion: units::motion(t, rules),
+        motion,
         hull: t.hull().map(|h| {
             let [x, y, z] = h.half_extents_m;
             crate::math::v3(x, y, z)
@@ -463,8 +464,7 @@ fn spawn_unit(
         pursuit: None,
         planned_goal: None,
         engagement: u.engagement.unwrap_or(Engagement::FireAtWill),
-        air: (t.mobility.layer() == contract::catalog::AltitudeLayer::LowAir)
-            .then(units::AirState::default),
+        air: airborne.then(units::AirState::default),
         mounts,
         attackers: BTreeSet::new(),
         reach: Default::default(),
@@ -1949,12 +1949,6 @@ impl Battle {
         self.suppressed.retain(|(id, _), _| live.contains(id));
     }
 
-    /// Hostile damage or suppression grants return fire; a destroyed vehicle
-    /// leaves a permanent wreck (M06, M07); a death a side was watching ends
-    /// its track, while an unseen death discloses nothing. The vehicle's own
-    /// side knows where it died, and a side that watched it die saw the wreck
-    /// appear: both learn the wreck at once, so a vehicle never vanishes from
-    /// the picture of a side that knew where it stood.
     /// Downed aircraft still falling.
     pub fn crashes(&self) -> &[crate::crash::Crash] {
         &self.crashes
@@ -2071,6 +2065,12 @@ impl Battle {
         }
     }
 
+    /// Hostile damage or suppression grants return fire; a destroyed vehicle
+    /// leaves a permanent wreck (M06, M07); a death a side was watching ends
+    /// its track, while an unseen death discloses nothing. The vehicle's own
+    /// side knows where it died, and a side that watched it die saw the wreck
+    /// appear: both learn the wreck at once, so a vehicle never vanishes from
+    /// the picture of a side that knew where it stood.
     fn consequences(&mut self, outcome: damage::Outcome) {
         for (victim, shooter) in outcome.attacked {
             self.units[victim.0 as usize].attackers.insert(shooter);
