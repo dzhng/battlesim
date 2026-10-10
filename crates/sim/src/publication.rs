@@ -15,6 +15,7 @@
 //! exactness in one float past 2²⁴, so they travel as two 16-bit limbs: a
 //! field pair `<name>Lo`, `<name>Hi` holding `lo + hi · 2^limbBits`, both -1
 //! when absent.
+use contract::catalog::AltitudeLayer;
 use contract::command::{Engagement, MoveDirection, RoutePolicy, TargetRef};
 use contract::ids::Side;
 use contract::observation::{
@@ -46,6 +47,7 @@ const POSTURES: [Posture; 2] = [Posture::Packed, Posture::Deployed];
 const POLICIES: [RoutePolicy; 2] = [RoutePolicy::Shortest, RoutePolicy::Fastest];
 const DIRECTIONS: [MoveDirection; 2] = [MoveDirection::Forward, MoveDirection::Reverse];
 const CONTACT_SOURCES: [ContactSource; 2] = [ContactSource::Firing, ContactSource::LastSeen];
+const LAYERS: [AltitudeLayer; 2] = [AltitudeLayer::Ground, AltitudeLayer::LowAir];
 const SOUND_CATEGORIES: [SoundCategory; 3] = [
     SoundCategory::Infantry,
     SoundCategory::Vehicle,
@@ -111,9 +113,11 @@ const REASONS: [ActionReason; 16] = [
 const TARGET_KINDS: [&str; 4] = ["none", "identified", "contact", "ground"];
 /// Ammunition kinds per mount the record carries (the cannon's AP and HE).
 pub const MAX_AMMO_KINDS: usize = 2;
-/// Weapon rows a firing report's `heard` mask can name: a float holds an
-/// integer exactly below 2^24.
-pub const MAX_WEAPON_ROWS: usize = 24;
+/// Weapon rows a firing report's heard mask can name. It travels as two
+/// words of `HEARD_WORD_BITS` each, since a float holds an integer exactly
+/// below 2^24.
+pub const MAX_WEAPON_ROWS: usize = 2 * HEARD_WORD_BITS;
+const HEARD_WORD_BITS: usize = 24;
 const MOUNT_FIELDS: [&str; 15] = [
     "mount",
     "loaded",
@@ -207,16 +211,19 @@ const PENDING_FIELDS: [&str; 8] = [
     "blocked",
 ];
 const GROUND_FIELDS: [&str; 4] = ["tile", "span", "craterScorch", "tracksTrampledCleared"];
-const CONTACT_FIELDS: [&str; 9] = [
+const CONTACT_FIELDS: [&str; 12] = [
     "id",
     "source",
     "x",
     "y",
+    "z",
+    "layer",
     "radius",
     "evidenceTick",
     "expiresTick",
     "kind",
-    "heard",
+    "heardLow",
+    "heardHigh",
 ];
 const AUDIBLE_FIELDS: [&str; 5] = ["listener", "category", "sector", "band", "moving"];
 const PROJECTILE_FIELDS: [&str; 10] = [
@@ -545,6 +552,7 @@ pub fn layout_json(battle: &Battle) -> String {
         "policies": names(&POLICIES),
         "directions": names(&DIRECTIONS),
         "contactSources": names(&CONTACT_SOURCES),
+        "layers": names(&LAYERS),
         "soundCategories": names(&SOUND_CATEGORIES),
         "soundBands": names(&SOUND_BANDS),
         "propKinds": battle.world().types().ids(),
@@ -580,8 +588,10 @@ pub fn layout_json(battle: &Battle) -> String {
         // interpolated); reach toward bearing b is sightRange * m, with
         // c = cos(b - sightForward), m = side·(1 − c²) + (c ≥ 0 ? front : rear)·c².
         // A contact's kind indexes unitKinds (-1 for a firing report); its
-        // heard is a bitmask over roundKinds (bit k for row k; 0 for a last
-        // sighting).
+        // heardLow and heardHigh are a bitmask over roundKinds, 24 rows a
+        // word (bit k of heardLow for row k < 24, bit k - 24 of heardHigh
+        // otherwise; both 0 for a last sighting). Its z is its cause's height when the evidence came, and
+        // its layer indexes layers.
         // A projectile's or blast's kind indexes roundKinds; a segment's
         // shooter is absent (-1) for a vehicle's gun, and nx, ny, nz are 0
         // when hit is none. A segment's path is a polyline of at least two
@@ -1051,11 +1061,14 @@ fn pack_record(
             tag(&CONTACT_SOURCES, &c.source),
             c.center[0] as f32,
             c.center[1] as f32,
+            c.center[2] as f32,
+            tag(&LAYERS, &c.layer),
             c.radius as f32,
             c.evidence_tick as f32,
             c.expires_tick as f32,
             c.kind.map_or(-1.0, |k| k.0 as f32),
-            c.heard as f32,
+            (c.heard & ((1 << HEARD_WORD_BITS) - 1)) as f32,
+            (c.heard >> HEARD_WORD_BITS) as f32,
         ]);
     }
     if let Some(ends) = ends.as_mut() {

@@ -86,6 +86,7 @@
   },
   "weapons": {
     "rifle": {
+      "targets": ["ground", "low_air"],
       "name": "Rifle",
       "description": "An assault rifle: every soldier carries one.",
       "icon": "rifle",
@@ -107,6 +108,7 @@
       "structural_damage": 0.25
     },
     "grenade": {
+      "targets": ["ground"],
       "name": "Grenade",
       "description": "Rifle grenades lobbed at troops behind cover.",
       "icon": "grenade",
@@ -127,6 +129,7 @@
       "structural_damage": 10
     },
     "tank_ap": {
+      "targets": ["ground"],
       "name": "AP Shell",
       "description": "Armour-piercing sabot: the tank gun's answer to armour.",
       "icon": "ap_shell",
@@ -147,6 +150,7 @@
       "armor_piercing": true
     },
     "tank_he": {
+      "targets": ["ground"],
       "name": "HE Shell",
       "description": "High-explosive shell for troops, cover and buildings.",
       "icon": "he_shell",
@@ -167,6 +171,7 @@
       "structural_damage": 100
     },
     "hmg": {
+      "targets": ["ground", "low_air"],
       "name": "HMG",
       "description": "A heavy machine gun for troops and light vehicles.",
       "icon": "hmg",
@@ -188,6 +193,7 @@
       "structural_damage": 4
     },
     "atgm": {
+      "targets": ["ground"],
       "interceptable": true,
       "name": "ATGM",
       "description": "A wire-guided anti-tank missile, steered onto its target.",
@@ -205,6 +211,7 @@
       "damage": 45,
       "scatter_mrad": 0.5,
       "turn_deg_s": 60,
+      "guidance": "stationary",
       "lifetime_s": 12,
       "near_miss_suppression": 0.3,
       "suppression_radius_m": 10,
@@ -349,6 +356,45 @@
       "ammo": 4,
       "reload_s": 10
     },
+    "heli_atgm": {
+      "extends": "atgm",
+      "name": "Air ATGM",
+      "description": "A helicopter's anti-tank missile: fired and steered on the move.",
+      "stationary": false,
+      "guidance": "on_the_move",
+      "range_m": 1200,
+      "ammo": 8
+    },
+    "rocket_pod": {
+      "extends": "tank_he",
+      "targets": ["ground"],
+      "name": "Rocket Pod",
+      "description": "Unguided rockets in salvos, for troops, light vehicles and cover.",
+      "icon": "rockets",
+      "interceptable": true,
+      "range_m": 900,
+      "speed_mps": 450,
+      "gravity_scale": 1.0,
+      "scatter_mrad": 12,
+      "aim_s": 1.5,
+      "reload_s": 12,
+      "magazine": { "rounds": 8, "shot_interval_s": 0.12 },
+      "ammo": 38,
+      "penetration": 30,
+      "damage": 60,
+      "blast_radius_m": 7,
+      "structural_damage": 80
+    },
+    "helicopter_crash": {
+      "extends": "tank_he",
+      "name": "Crash",
+      "description": "A downed airframe striking the ground: no gun fires it. It fells the trees beneath and hurts what lies there, less than a shell.",
+      "damage": 50,
+      "penetration": 25,
+      "blast_radius_m": 9,
+      "ammo": "unlimited",
+      "structural_damage": 300
+    },
     "ifv_he": {
       "extends": "tank_he",
       "name": "HE Shell",
@@ -443,6 +489,8 @@
       "tank_ap": 5,
       "tank_he": 5,
       "atgm": 20,
+      "heli_atgm": 20,
+      "rocket_pod": 2,
       "marksman_rifle": 1,
       "heavy_sniper": 2,
       "autocannon": 1,
@@ -976,6 +1024,7 @@
         "wheeled_medium": 0.75,
         "wheeled_medium_logistics": 0.75
       },
+      "rotor": { "tip_mps": 45 },
       "corpses": { "max": 1000, "fade_s": 3, "sink_m": 0.6 }
     },
     "effects": {

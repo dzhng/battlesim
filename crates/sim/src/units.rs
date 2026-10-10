@@ -1,7 +1,7 @@
 //! Units as the authority holds them: bodies, squads, orders and movement state.
 use std::collections::{BTreeSet, VecDeque};
 
-use contract::catalog::{Mobility as Moves, TypeIndex, UnitType};
+use contract::catalog::{AltitudeLayer, Mobility as Moves, TypeIndex, UnitType};
 use contract::command::{Engagement, MoveDirection, RoutePolicy};
 use contract::ids::{Side, UnitId};
 use contract::map::MoverClass;
@@ -446,6 +446,15 @@ impl Unit {
         matches!(self.motion, Motion::Air(_))
     }
 
+    /// The height band it occupies, which decides what can engage it.
+    pub fn layer(&self) -> AltitudeLayer {
+        if self.airborne() {
+            AltitudeLayer::LowAir
+        } else {
+            AltitudeLayer::Ground
+        }
+    }
+
     /// How it moves over the ground. Only ground movement, routing and
     /// placement ask, and an aircraft never reaches them.
     pub fn ground(&self) -> &Mobility {
@@ -663,6 +672,10 @@ impl Unit {
         d.u64(self.engagement as u64)
             .u64(self.reach.can_engage as u64)
             .u64(self.reach.needs_closer as u64);
+        // Only a gun fixed in a hull sets it, so other units keep their digests.
+        if let Some(face) = self.reach.face {
+            d.f64(face);
+        }
         d.u64(self.attackers.len() as u64);
         for a in &self.attackers {
             d.u64(a.0 as u64);

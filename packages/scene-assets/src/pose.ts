@@ -265,6 +265,15 @@ export function posedBounds(nodes: readonly ArticulatedNode[]): Bounds {
       box.max[c] = Math.max(box.max[c], wheel.radius);
     }
   }
+  // A rotor turns about its mast (local +Z): its box becomes its disc's square.
+  for (const rotor of rig.rotors) {
+    const box = boxes[rotor.node];
+    if (!box) continue;
+    for (const c of [0, 1]) {
+      box.min[c] = Math.min(box.min[c], -rotor.radius);
+      box.max[c] = Math.max(box.max[c], rotor.radius);
+    }
+  }
   const locals = restLocals(nodes);
   const parents = nodes.map((n) => n.parent);
   const bounds: Bounds = {

@@ -1,0 +1,18 @@
+{
+  "identity": {
+    "kind": "authored",
+    "map_hash": "baf2e641488b3bbb4520ec84f30b7462f9c205610d958e20dd02f94229d5602d",
+    "template_catalog_hash": null
+  },
+  "catalogue": {
+    "library": "prototype-building-templates.json",
+    "template_ids": []
+  },
+  "inputs": [
+    {
+      "kind": "supplied",
+      "label": "map.json, authored by hand for the helicopter labs",
+      "sha256": "a27992602569e73a6fd9da3e4a188ac41ec0992b5816b5c172002f75eaf3afd4"
+    }
+  ]
+}

@@ -2,7 +2,7 @@
 //! team shares identification; each own unit's own-sensor list stays separate.
 use std::collections::{BTreeMap, BTreeSet};
 
-use contract::catalog::TypeIndex;
+use contract::catalog::{AltitudeLayer, TypeIndex};
 use contract::ids::{Tick, UnitId};
 use contract::observation::{
     ApproximateContact, ContactId, ContactSource, IdentifiedUnit, ObservedTargetId,
@@ -34,7 +34,10 @@ pub struct Track {
 pub struct Contact {
     pub id: ContactId,
     pub source: ContactSource,
-    pub center: V2,
+    /// The area's centre, at its cause's height when the evidence came.
+    pub center: V3,
+    /// The height band its cause occupied (`ApproximateContact::layer`).
+    pub layer: AltitudeLayer,
     /// The area's radius: its cause's footprint scaled (see
     /// [`Unit::contact_radius`]).
     pub radius: f64,
@@ -43,7 +46,7 @@ pub struct Contact {
     /// The previously identified type; absent for a never-identified cause.
     pub kind: Option<TypeIndex>,
     /// A firing report's weapons as heard (`ApproximateContact::heard`).
-    pub heard: u32,
+    pub heard: u64,
     pub(crate) emitter: UnitId,
     /// Retired slots preserve their handle, but are never published or targeted.
     live: bool,
@@ -56,9 +59,9 @@ pub struct SideKnowledge {
     /// Own unit → enemies its own sensors identify this tick.
     own_sensors: BTreeMap<UnitId, Vec<UnitId>>,
     contacts: Vec<Contact>,
-    /// Enemy shots heard of this tick: (shooter, where it stood, the rows
-    /// its report sounds like).
-    pending_fire: Vec<(UnitId, V2, u32)>,
+    /// Enemy shots heard of this tick: (shooter, where it was and its band,
+    /// the rows its report sounds like).
+    pending_fire: Vec<(UnitId, V3, AltitudeLayer, u64)>,
     /// Observation-uncertainty stream: where inside its area a contact is reported.
     rng: Rng,
     /// Enemies this side watched die: their attacks are complete (W17).
@@ -140,8 +143,15 @@ impl SideKnowledge {
 
     /// An enemy fired: firing is disclosed map-wide, whatever the line of
     /// sight, with the weapon rows its report sounds like (`heard`).
-    pub fn note_fire(&mut self, shooter: UnitId, at: V2, heard: u32) {
-        self.pending_fire.push((shooter, at, heard));
+    pub fn note_fire(&mut self, shooter: UnitId, at: V3, layer: AltitudeLayer, heard: u64) {
+        self.pending_fire.push((shooter, at, layer, heard));
+    }
+
+    /// The live contact `id`, if area fire can aim at it: an air contact
+    /// has no point on the ground to aim at (D22).
+    pub fn ground_contact(&self, id: ContactId) -> Option<&Contact> {
+        self.contact(id)
+            .filter(|c| c.layer == AltitudeLayer::Ground)
     }
 
     /// Renew the cause's one opaque slot, or allocate it on first evidence.
@@ -173,10 +183,11 @@ impl SideKnowledge {
         let s = &rules.sensors;
         let lifetime = (s.contact_lifetime_s * rules.tick_hz as f64).round() as Tick;
         let radius = |u: UnitId| units[u.0 as usize].contact_radius(rules);
-        let area = |source, center, emitter: UnitId, kind, heard| Contact {
+        let area = |source, center, layer, emitter: UnitId, kind, heard| Contact {
             id: ContactId(0),
             source,
             center,
+            layer,
             radius: radius(emitter),
             evidence_tick: tick,
             expires_tick: tick + lifetime,
@@ -187,15 +198,22 @@ impl SideKnowledge {
         };
         // Losing identification leaves a fixed area around the last
         // sighting, which remembers the type the side identified there.
-        let lost: Vec<(UnitId, V2)> = self
+        let lost: Vec<(UnitId, V3)> = self
             .tracks
             .iter()
             .filter(|(_, t)| t.last_seen + 1 == tick)
-            .map(|(u, t)| (*u, t.position.xy()))
+            .map(|(u, t)| (*u, t.position))
             .collect();
         for (unit, at) in lost {
-            let kind = units[unit.0 as usize].kind;
-            self.new_contact(area(ContactSource::LastSeen, at, unit, Some(kind), 0));
+            let u = &units[unit.0 as usize];
+            self.new_contact(area(
+                ContactSource::LastSeen,
+                at,
+                u.layer(),
+                unit,
+                Some(u.kind),
+                0,
+            ));
         }
         // Identification replaces any area linked to what is now seen.
         let seen: Vec<UnitId> = self
@@ -213,21 +231,24 @@ impl SideKnowledge {
                 (c.id, c.emitter)
             })
             .collect();
-        for (shooter, at, heard) in std::mem::take(&mut self.pending_fire) {
+        for (shooter, at, layer, heard) in std::mem::take(&mut self.pending_fire) {
             if seen.contains(&shooter) || self.destroyed.contains(&shooter) {
                 continue;
             }
             // Fresh firing replaces the cause's evidence, never adds another
             // area. Hidden movement alone cannot change its reported place.
+            // The report is placed across the ground; it is heard at the
+            // shooter's height.
             if let Some(c) = self
                 .contacts
                 .iter_mut()
                 .find(|c| c.live && c.emitter == shooter)
             {
-                if (c.center - at).length() > c.radius {
+                if (c.center.xy() - at.xy()).length() > c.radius {
                     let r = radius(shooter) * self.rng.unit().sqrt();
                     let a = std::f64::consts::TAU * self.rng.unit();
-                    c.center = at + v2(libm::cos(a), libm::sin(a)) * r;
+                    c.center = (at.xy() + v2(libm::cos(a), libm::sin(a)) * r).with_z(at.z);
+                    c.layer = layer;
                     c.radius = radius(shooter);
                 }
                 c.source = ContactSource::Firing;
@@ -238,8 +259,15 @@ impl SideKnowledge {
             }
             let r = radius(shooter) * self.rng.unit().sqrt();
             let a = std::f64::consts::TAU * self.rng.unit();
-            let center = at + v2(libm::cos(a), libm::sin(a)) * r;
-            self.new_contact(area(ContactSource::Firing, center, shooter, None, heard));
+            let center = (at.xy() + v2(libm::cos(a), libm::sin(a)) * r).with_z(at.z);
+            self.new_contact(area(
+                ContactSource::Firing,
+                center,
+                layer,
+                shooter,
+                None,
+                heard,
+            ));
         }
         identified
     }
@@ -248,7 +276,8 @@ impl SideKnowledge {
         self.all_contacts().map(|c| ApproximateContact {
             id: c.id,
             source: c.source,
-            center: [c.center.x, c.center.y],
+            center: [c.center.x, c.center.y, c.center.z],
+            layer: c.layer,
             radius: c.radius,
             evidence_tick: c.evidence_tick,
             expires_tick: c.expires_tick,
@@ -451,19 +480,23 @@ impl SideKnowledge {
                 .u64(c.source as u64)
                 .f64(c.center.x)
                 .f64(c.center.y)
+                .f64(c.center.z)
+                .u64(c.layer as u64)
                 .f64(c.radius)
                 .u64(c.evidence_tick)
                 .u64(c.expires_tick)
                 .u64(c.kind.map_or(u64::MAX, |k| k.0 as u64))
-                .u64(c.heard as u64)
+                .u64(c.heard)
                 .u64(c.emitter.0 as u64);
         }
         d.u64(self.pending_fire.len() as u64);
-        for (shooter, at, heard) in &self.pending_fire {
+        for (shooter, at, layer, heard) in &self.pending_fire {
             d.u64(shooter.0 as u64)
                 .f64(at.x)
                 .f64(at.y)
-                .u64(*heard as u64);
+                .f64(at.z)
+                .u64(*layer as u64)
+                .u64(*heard);
         }
         d.u64(self.destroyed.len() as u64);
         for u in &self.destroyed {

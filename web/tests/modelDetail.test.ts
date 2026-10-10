@@ -28,6 +28,7 @@ import {
   type ModelInstance,
 } from "@packages/battle-renderer/src/models/modelInstances";
 import type { PoseFrame } from "@packages/battle-renderer/src/models/poseDriver";
+import { REST_ARTICULATION } from "@packages/scene-assets/src/articulation";
 
 const DETAIL = validateModelDetail(game.presentation.models as ModelDetailPresentation);
 const HEIGHT = 1080;
@@ -80,6 +81,64 @@ test("models off screen are culled, but not those whose shadow can reach into vi
   while (frustum.sidesIntersectsSphere(v.sides, { center: [bare, 0, SOLDIER / 2], radius: 1 }))
     bare += 0.25;
   expect(edge - bare).toBeGreaterThanOrEqual(SHADOW_MARGIN_M * 0.9);
+});
+
+test("an airframe off screen still draws while its shadow, cast far below it, is in view", () => {
+  const v = view(65);
+  const sun = {
+    azimuth: game.presentation.light.sun_azimuth,
+    elevation: game.presentation.light.sun_elevation,
+  };
+  const fall = (lift: number) => [
+    (-Math.cos(sun.azimuth) * lift) / Math.tan(sun.elevation),
+    (-Math.sin(sun.azimuth) * lift) / Math.tan(sun.elevation),
+  ];
+  // 20 m up, it throws its shadow this far across the ground.
+  const [fx, fy] = fall(20);
+  expect(Math.hypot(fx, fy)).toBeGreaterThan(4 * SHADOW_MARGIN_M);
+  // An airframe just far enough out of view that its own sphere is culled,
+  // on the side its shadow falls back toward the view's centre from.
+  const at = (k: number): [number, number, number] => [-fx * k, -fy * k, 20];
+  let k = 0;
+  while (modelDetail(DETAIL, v, ...at(k), 3.2, 8, true) !== CULLED) k += 0.05;
+  const [x, y, z] = at(k);
+  expect(modelDetail(DETAIL, v, x, y, z, 3.2, 8, true, [x + fx, y + fy, 0])).not.toBe(CULLED);
+  // Its tier is still its own size at its own distance, not its shadow's.
+  expect(modelDetail(DETAIL, v, x, y, z, 3.2, 8, true, [x + fx, y + fy, 0])).toBe(
+    detailAt(DETAIL, v, 3.2, Math.hypot(x - v.eye[0], y - v.eye[1], z + 1.6 - v.eye[2]), true),
+  );
+});
+
+test("an airborne vehicle's model knows how high its foot is above the ground under it", () => {
+  const frame: PoseFrame = {
+    soldiers: [],
+    vehicles: [
+      {
+        unit: 1,
+        kind: "test_heli",
+        side: "blue",
+        position: [10, 20, 25],
+        yaw: 0,
+        airborne: true,
+        articulation: { ...REST_ARTICULATION },
+      },
+      {
+        unit: 2,
+        kind: "test_tank",
+        side: "blue",
+        position: [30, 20, 5],
+        yaw: 0,
+        airborne: false,
+        articulation: { ...REST_ARTICULATION },
+      },
+    ],
+    corpses: [],
+    corpsesVersion: 0,
+    fading: [],
+  };
+  const resolve = (kind: string) => ({ appearance: kind, tint: [1, 1, 1] as const });
+  const models = poseFrameInstances([] as ModelInstance[], frame, resolve, undefined, () => 5);
+  expect(models.map((m) => m.lift ?? 0)).toEqual([20, 0]);
 });
 
 test("posed soldiers are units, never fogged; corpses take the ground's fog, buildings their faces'", () => {

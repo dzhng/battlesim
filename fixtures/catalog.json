@@ -22644,6 +22644,9 @@
       "stationary": false,
       "structural_damage": 10.0,
       "suppression_radius_m": 8.0,
+      "targets": [
+        "ground"
+      ],
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -22675,6 +22678,9 @@
       "stationary": false,
       "structural_damage": 100.0,
       "suppression_radius_m": 15.0,
+      "targets": [
+        "ground"
+      ],
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -22713,6 +22719,10 @@
       "stationary": false,
       "structural_damage": 0.25,
       "suppression_radius_m": 3.0,
+      "targets": [
+        "ground",
+        "low_air"
+      ],
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -22729,6 +22739,7 @@
       "default": false,
       "description": "A wire-guided anti-tank missile, steered onto its target.",
       "gravity_scale": 1.0,
+      "guidance": "stationary",
       "icon": "atgm",
       "interceptable": true,
       "lifetime_s": 12.0,
@@ -22744,6 +22755,9 @@
       "stationary": true,
       "structural_damage": 100.0,
       "suppression_radius_m": 10.0,
+      "targets": [
+        "ground"
+      ],
       "top_speed_mps": 200.0,
       "trajectory": "direct",
       "turn_deg_s": 60.0
@@ -22782,6 +22796,10 @@
       "stationary": false,
       "structural_damage": 8.0,
       "suppression_radius_m": 6.0,
+      "targets": [
+        "ground",
+        "low_air"
+      ],
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -22798,6 +22816,7 @@
       "default": false,
       "description": "Optically supported direct anti-tank missile; no top-attack or fire-and-forget behavior.",
       "gravity_scale": 1.0,
+      "guidance": "stationary",
       "icon": "atgm",
       "interceptable": true,
       "lifetime_s": 12.0,
@@ -22813,6 +22832,9 @@
       "stationary": true,
       "structural_damage": 100.0,
       "suppression_radius_m": 10.0,
+      "targets": [
+        "ground"
+      ],
       "top_speed_mps": 200.0,
       "trajectory": "direct",
       "turn_deg_s": 60.0
@@ -22844,6 +22866,9 @@
       "stationary": false,
       "structural_damage": 10.0,
       "suppression_radius_m": 8.0,
+      "targets": [
+        "ground"
+      ],
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -22875,6 +22900,9 @@
       "stationary": false,
       "structural_damage": 10.0,
       "suppression_radius_m": 8.0,
+      "targets": [
+        "ground"
+      ],
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -22906,6 +22934,9 @@
       "stationary": false,
       "structural_damage": 100.0,
       "suppression_radius_m": 15.0,
+      "targets": [
+        "ground"
+      ],
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -22937,6 +22968,79 @@
       "stationary": false,
       "structural_damage": 0.25,
       "suppression_radius_m": 3.0,
+      "targets": [
+        "ground",
+        "low_air"
+      ],
+      "top_speed_mps": null,
+      "trajectory": "direct",
+      "turn_deg_s": null
+    },
+    "heli_atgm": {
+      "accel_mps2": 140.0,
+      "aim_s": 3.0,
+      "ammo": 8,
+      "anti_armor": true,
+      "armor_fraction": 0.0,
+      "armor_piercing": false,
+      "blast_radius_m": 4.0,
+      "damage": 45.0,
+      "default": false,
+      "description": "A helicopter's anti-tank missile: fired and steered on the move.",
+      "gravity_scale": 1.0,
+      "guidance": "on_the_move",
+      "icon": "atgm",
+      "interceptable": true,
+      "lifetime_s": 12.0,
+      "magazine": null,
+      "min_range_m": 5.0,
+      "name": "Air ATGM",
+      "near_miss_suppression": 0.3,
+      "penetration": 300.0,
+      "range_m": 1200.0,
+      "reload_s": 9.0,
+      "scatter_mrad": 0.5,
+      "speed_mps": 50.0,
+      "stationary": false,
+      "structural_damage": 100.0,
+      "suppression_radius_m": 10.0,
+      "targets": [
+        "ground"
+      ],
+      "top_speed_mps": 200.0,
+      "trajectory": "direct",
+      "turn_deg_s": 60.0
+    },
+    "helicopter_crash": {
+      "accel_mps2": null,
+      "aim_s": 2.0,
+      "ammo": "unlimited",
+      "anti_armor": false,
+      "armor_fraction": 0.15,
+      "armor_piercing": false,
+      "blast_radius_m": 9.0,
+      "damage": 50.0,
+      "default": false,
+      "description": "A downed airframe striking the ground: no gun fires it. It fells the trees beneath and hurts what lies there, less than a shell.",
+      "gravity_scale": 1.7651,
+      "icon": "he_shell",
+      "interceptable": false,
+      "lifetime_s": null,
+      "magazine": null,
+      "min_range_m": 0.0,
+      "name": "Crash",
+      "near_miss_suppression": 0.4,
+      "penetration": 25.0,
+      "range_m": 800.0,
+      "reload_s": 6.0,
+      "scatter_mrad": 3.43,
+      "speed_mps": 400.0,
+      "stationary": false,
+      "structural_damage": 300.0,
+      "suppression_radius_m": 15.0,
+      "targets": [
+        "ground"
+      ],
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -22975,6 +23079,10 @@
       "stationary": false,
       "structural_damage": 4.0,
       "suppression_radius_m": 4.0,
+      "targets": [
+        "ground",
+        "low_air"
+      ],
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -23006,6 +23114,9 @@
       "stationary": false,
       "structural_damage": 100.0,
       "suppression_radius_m": 15.0,
+      "targets": [
+        "ground"
+      ],
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -23022,6 +23133,7 @@
       "default": false,
       "description": "Optically supported direct anti-tank missile; no top-attack or fire-and-forget behavior.",
       "gravity_scale": 1.0,
+      "guidance": "stationary",
       "icon": "atgm",
       "interceptable": true,
       "lifetime_s": 12.0,
@@ -23037,6 +23149,9 @@
       "stationary": true,
       "structural_damage": 100.0,
       "suppression_radius_m": 10.0,
+      "targets": [
+        "ground"
+      ],
       "top_speed_mps": 200.0,
       "trajectory": "direct",
       "turn_deg_s": 60.0
@@ -23068,6 +23183,9 @@
       "stationary": false,
       "structural_damage": 10.0,
       "suppression_radius_m": 8.0,
+      "targets": [
+        "ground"
+      ],
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -23099,6 +23217,9 @@
       "stationary": false,
       "structural_damage": 100.0,
       "suppression_radius_m": 15.0,
+      "targets": [
+        "ground"
+      ],
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -23134,6 +23255,10 @@
       "stationary": false,
       "structural_damage": 0.25,
       "suppression_radius_m": 3.0,
+      "targets": [
+        "ground",
+        "low_air"
+      ],
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -23172,6 +23297,48 @@
       "stationary": false,
       "structural_damage": 0.25,
       "suppression_radius_m": 3.0,
+      "targets": [
+        "ground",
+        "low_air"
+      ],
+      "top_speed_mps": null,
+      "trajectory": "direct",
+      "turn_deg_s": null
+    },
+    "rocket_pod": {
+      "accel_mps2": null,
+      "aim_s": 1.5,
+      "ammo": 38,
+      "anti_armor": false,
+      "armor_fraction": 0.15,
+      "armor_piercing": false,
+      "blast_radius_m": 7.0,
+      "damage": 60.0,
+      "default": false,
+      "description": "Unguided rockets in salvos, for troops, light vehicles and cover.",
+      "gravity_scale": 1.0,
+      "icon": "rockets",
+      "interceptable": true,
+      "lifetime_s": null,
+      "magazine": {
+        "burst": null,
+        "rounds": 8,
+        "shot_interval_s": 0.12
+      },
+      "min_range_m": 0.0,
+      "name": "Rocket Pod",
+      "near_miss_suppression": 0.4,
+      "penetration": 30.0,
+      "range_m": 900.0,
+      "reload_s": 12.0,
+      "scatter_mrad": 12.0,
+      "speed_mps": 450.0,
+      "stationary": false,
+      "structural_damage": 80.0,
+      "suppression_radius_m": 15.0,
+      "targets": [
+        "ground"
+      ],
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -23203,6 +23370,9 @@
       "stationary": false,
       "structural_damage": 10.0,
       "suppression_radius_m": 8.0,
+      "targets": [
+        "ground"
+      ],
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -23234,6 +23404,9 @@
       "stationary": false,
       "structural_damage": 10.0,
       "suppression_radius_m": 8.0,
+      "targets": [
+        "ground"
+      ],
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -23250,6 +23423,7 @@
       "default": false,
       "description": "Optically supported direct anti-tank missile; no top-attack or fire-and-forget behavior.",
       "gravity_scale": 1.0,
+      "guidance": "stationary",
       "icon": "atgm",
       "interceptable": true,
       "lifetime_s": 12.0,
@@ -23265,6 +23439,9 @@
       "stationary": true,
       "structural_damage": 100.0,
       "suppression_radius_m": 10.0,
+      "targets": [
+        "ground"
+      ],
       "top_speed_mps": 200.0,
       "trajectory": "direct",
       "turn_deg_s": 60.0
@@ -23296,6 +23473,9 @@
       "stationary": false,
       "structural_damage": 10.0,
       "suppression_radius_m": 8.0,
+      "targets": [
+        "ground"
+      ],
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -23327,6 +23507,9 @@
       "stationary": false,
       "structural_damage": 100.0,
       "suppression_radius_m": 15.0,
+      "targets": [
+        "ground"
+      ],
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -23343,6 +23526,7 @@
       "default": false,
       "description": "Optically supported direct anti-tank missile; launcher line of sight is required.",
       "gravity_scale": 1.0,
+      "guidance": "stationary",
       "icon": "atgm",
       "interceptable": true,
       "lifetime_s": 12.0,
@@ -23358,6 +23542,9 @@
       "stationary": true,
       "structural_damage": 100.0,
       "suppression_radius_m": 10.0,
+      "targets": [
+        "ground"
+      ],
       "top_speed_mps": 200.0,
       "trajectory": "direct",
       "turn_deg_s": 60.0

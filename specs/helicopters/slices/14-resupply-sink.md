@@ -1,6 +1,6 @@
 # 14 — Resupply sink
 
-**Status:** planned. **Depends on:** 03. **Owns:** D10, D13 (hook), D27.
+**Status:** done (simulation; the four tests in `crates/sim/tests/air_supply.rs` pass with `air::`, `air_flight::` and `supply::`; the low hover is 5.63 m with today's catalog; the 2× crop and screenshot-critique wait for a browser `air` scene with a truck). **Depends on:** 03. **Owns:** D10, D13 (hook), D27.
 
 ## Contract
 

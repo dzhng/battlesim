@@ -60,6 +60,8 @@ export interface ObservationLayout {
   policies: string[];
   directions: string[];
   contactSources: string[];
+  /** Height bands a contact's cause can occupy: ground, low_air. */
+  layers: string[];
   soundCategories: string[];
   soundBands: string[];
   propKinds: string[];
@@ -355,7 +357,11 @@ export interface IdentifiedView {
 export interface ContactView {
   id: number;
   source: string;
-  center: Point2;
+  /** The area's centre, at its cause's height when the evidence came. */
+  center: Point3;
+  /** The height band its cause occupied (`layers`): an air contact floats
+   *  and takes no area fire. */
+  layer: string;
   radius: number;
   evidenceTick: number;
   expiresTick: number;
@@ -365,6 +371,10 @@ export interface ContactView {
    *  every row: a report doesn't say which round); empty for a last sighting. */
   heard: string[];
 }
+
+/** Weapon rows a word of a firing report's heard mask carries: a float holds
+ *  an integer exactly below 2^24 (`publication::MAX_WEAPON_ROWS`). */
+const HEARD_WORD_BITS = 24;
 
 /** A sound a friendly listener heard from an unseen enemy. */
 export interface SoundCueView {
@@ -1092,12 +1102,17 @@ function decodeFrame(
     ({ field: f }): ContactView => ({
       id: f("id"),
       source: layout.contactSources[f("source")],
-      center: [f("x"), f("y")],
+      center: [f("x"), f("y"), f("z")],
+      layer: layout.layers[f("layer")],
       radius: f("radius"),
       evidenceTick: f("evidenceTick"),
       expiresTick: f("expiresTick"),
       kind: f("kind") < 0 ? null : layout.unitKinds[f("kind")],
-      heard: layout.roundKinds.filter((_, k) => (f("heard") >> k) & 1),
+      heard: layout.roundKinds.filter((_, k) =>
+        k < HEARD_WORD_BITS
+          ? (f("heardLow") >> k) & 1
+          : (f("heardHigh") >> (k - HEARD_WORD_BITS)) & 1,
+      ),
     }),
   );
   const audible = groups.audible.map(

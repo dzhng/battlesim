@@ -84,6 +84,12 @@
     "map": "deployment"
   },
   {
+    "id": "air-hover",
+    "route": "/lab/air-hover",
+    "describe": "A test helicopter hovering at cruise height over open ground, a jeep on the road below for scale: its rotors turn, its shadow lies on the ground below and off to the side, and nothing under it raises dust or rolls.",
+    "map": "air"
+  },
+  {
     "id": "ambush",
     "route": "/lab/ambush",
     "describe": "Supported AT guidance: an AT team acquires shared identified targets only with its own clear line of sight, guides one missile at a time, and releases it at once on moving, Stop or losing sight; the released missile flies on to its fixed last point. Variants: late escape, prompt escape, prepared crossfire.",

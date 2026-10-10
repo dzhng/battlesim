@@ -1,6 +1,6 @@
 # 09 — Helicopter missile and rocket rows
 
-**Status:** planned. **Depends on:** 07, 08. **Owns:** D9, D38.
+**Status:** done. **Depends on:** 07, 08. **Owns:** D9, D38.
 
 ## Contract
 

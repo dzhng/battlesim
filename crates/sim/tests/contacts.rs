@@ -1,4 +1,5 @@
 //! Uncertain evidence: firing areas, last-seen areas, sound cues, known props.
+use contract::catalog::AltitudeLayer;
 use contract::ids::Side;
 use contract::observation::{ContactSource, ObservationFrame, SoundBand, SoundCategory};
 use serde_json::{json, Value};
@@ -215,10 +216,11 @@ fn losing_and_regaining_sight_reuses_one_fixed_last_seen_slot() {
             .find(|c| c.source == ContactSource::LastSeen)
         {
             let at = last.expect("seen before lost");
+            assert_eq!(c.center, at, "centred on the last sighting, never moved");
             assert_eq!(
-                c.center,
-                [at[0], at[1]],
-                "centred on the last sighting, never moved"
+                c.layer,
+                AltitudeLayer::Ground,
+                "a tank's area is on the ground"
             );
             assert_eq!(
                 (c.kind, c.heard),
@@ -238,7 +240,7 @@ fn losing_and_regaining_sight_reuses_one_fixed_last_seen_slot() {
 
 /// Each weapon row's bit in a firing report's `heard`: the rules' rows in
 /// name order (the layout's `roundKinds`).
-fn row_bit(row: &str) -> u32 {
+fn row_bit(row: &str) -> u64 {
     let rows: Vec<String> = common::game()["weapons"]
         .as_object()
         .unwrap()
@@ -247,7 +249,7 @@ fn row_bit(row: &str) -> u32 {
         .collect::<std::collections::BTreeSet<_>>()
         .into_iter()
         .collect();
-    1 << rows.iter().position(|r| r == row).unwrap()
+    1u64 << rows.iter().position(|r| r == row).unwrap()
 }
 
 #[test]
@@ -264,7 +266,7 @@ fn a_firing_report_hears_whole_mounts_and_never_names_the_shooter() {
     let mut b = battle(units, json!([]), scripts);
     let rules = common::rules();
     let tank = rules.catalog.index("test_tank").unwrap();
-    let mounts: Vec<u32> = rules
+    let mounts: Vec<u64> = rules
         .catalog
         .mounts(tank)
         .iter()

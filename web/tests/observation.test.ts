@@ -467,6 +467,20 @@ test("every frozen animation field and ground value decodes, integers exact past
     "test_at",
   ]);
   expect(o.knownProps.map((p) => p.kind)).toEqual(["tank_wreck"]);
+  // A heard helicopter's report keeps its height and band through the wire.
+  expect(o.contacts).toEqual([
+    {
+      id: 3,
+      source: "firing",
+      center: [120.5, 64.25, 31.5],
+      layer: "low_air",
+      radius: 30,
+      evidenceTick: 4,
+      expiresTick: 900,
+      kind: null,
+      heard: [layout.roundKinds[2]],
+    },
+  ]);
   // A prop id past 2^24 survives as two limbs.
   expect(o.fallenBodies).toEqual([
     { prop: 16777300, at: [120.5, 64.25], toward: [0, -1], tick: 7 },

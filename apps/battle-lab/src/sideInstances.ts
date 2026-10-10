@@ -71,7 +71,7 @@ export function pickToPointer(
     ...pickedUnit(drawn, pick.instance),
     building: right ? buildingUnderRay(world, pick.ray) : null,
     ground: ground && [ground[0], ground[1]],
-    contact: ground ? contactUnder(contacts, [ground[0], ground[1]]) : null,
+    contact: contactUnder(contacts, ground && [ground[0], ground[1]], pick.ray),
     facingTo: faced && [faced[0], faced[1]],
   };
 }

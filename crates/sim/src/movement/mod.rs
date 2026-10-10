@@ -24,7 +24,7 @@ use crate::route_planner::{Request, RoutePlanner};
 use crate::units::Unit;
 use crate::world::{Prop, PropId, PropIndex, WorldGeometry, PROP_BUCKET_M};
 
-mod air;
+pub(crate) mod air;
 mod certify;
 pub(crate) mod drive;
 mod final_leg;
@@ -942,6 +942,14 @@ fn step_vehicle(
     if !may_advance(ctx, &mut units[i]) {
         units[i].drive_speed_mps = 0.0;
         units[i].manoeuvre = None;
+        // With no orders, tracks pivot a gun fixed in the hull onto its
+        // target (D8); wheels cannot turn on the spot, so they hold fire.
+        let unit = &mut units[i];
+        if let Some(face) = unit.reach.face {
+            if unit.orders.is_empty() && unit.ground().drive.is_some_and(|d| d.tracked) {
+                unit.turn_to = Some(face);
+            }
+        }
         if units[i].route.is_none() && units[i].turn_to.is_some() {
             let before = units[i].yaw;
             drive::pivot(ctx.world, &mut units[i], dt);
