@@ -185,9 +185,14 @@ export interface ViewportFrame {
 
 /** A script's hold on the viewport's camera. */
 export interface ViewportPilot {
-  /** The battle frame is up: the adapter, and the frame's own statistics
-   *  (its rolling GPU frame time from `timestamp-query`, and live memory). */
-  attach?(frame: { adapter: string; stats: () => ReturnType<BattleFrame["stats"]> }): void;
+  /** The battle frame is up: the adapter, the light it was built with, and
+   *  the frame's own statistics (its rolling GPU frame time from
+   *  `timestamp-query`, and live memory). */
+  attach?(frame: {
+    adapter: string;
+    light: LightPresentation;
+    stats: () => ReturnType<BattleFrame["stats"]>;
+  }): void;
   /** The framing for the frame at `now`; the rig places it
    *  (`CameraController.place`) and draws it clear of obstacles (`resolve`).
    *  Null leaves the camera to the player for that frame. */
@@ -665,10 +670,11 @@ export function LabViewport({
         };
         syncSize();
         let clock = 0;
+        // A route's own light, else the fixture's (a lab URL's `?sun=` sets it lower).
+        const light = () => lightRef.current ?? gameLightFor(window.location.search);
         const build = async () => {
           const next = await createBattleFrame(device!, info.format, {
-            // A route's own light, else the fixture's (a lab URL's `?sun=` sets it lower).
-            light: lightRef.current ?? gameLightFor(window.location.search),
+            light: light(),
             fogGeometry: gameFogGeometry,
             fogStyle: fogStyleRef.current ?? gameFogStyle,
             overlayGlow: gameOverlayGlow,
@@ -719,6 +725,7 @@ export function LabViewport({
         const adapter = info.description || `${info.vendor} ${info.architecture}`.trim();
         pilot?.attach?.({
           adapter,
+          light: light(),
           stats: () => scene.stats(),
         });
         // What the battle draws, for a player's diagnostics report.

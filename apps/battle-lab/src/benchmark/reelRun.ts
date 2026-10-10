@@ -11,6 +11,7 @@ import {
   type PresentationSample,
 } from "@web/battle/benchmark/presentationCapture";
 import type { Lens } from "@web/battle/benchmark/visualPresentation";
+import type { LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
 
 /** A control plate: the PNG read back from the canvas in the frame it names. */
 export interface ReelPlate {
@@ -31,6 +32,8 @@ export interface ReelResult {
   frames: readonly PresentationFrame[];
   /** The lens the frames drew through; null before the first frame. */
   lens: Lens | null;
+  /** The light the battle was built with; null before it was up. */
+  light: LightPresentation | null;
   plates: readonly ReelPlate[];
 }
 
@@ -60,6 +63,7 @@ export function createReelRun(
   const frames: PresentationFrame[] = [];
   const plates: ReelPlate[] = [];
   let lens: Lens | null = null;
+  let light: LightPresentation | null = null;
   const track = (follow: number, now: number): readonly number[] => {
     const live = subject.unitAt(follow);
     if (tracked?.follow !== follow) tracked = live && { follow, at: [live[0], live[1]], now };
@@ -87,6 +91,7 @@ export function createReelRun(
       capture,
       frames,
       lens,
+      light,
       plates,
     });
   };
@@ -95,6 +100,7 @@ export function createReelRun(
     attach(frame) {
       stats = frame.stats;
       adapter = frame.adapter;
+      light = frame.light;
     },
     pose(now) {
       const s = sample(now);

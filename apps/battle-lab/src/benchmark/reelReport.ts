@@ -75,7 +75,7 @@ export function createReelReport(
   }));
   // What each scene drew its frames with; null for a scene that drew none.
   const drawnPresentations: (DrawnPresentation | null)[] = results.map(
-    (r) => r.lens && { lens: r.lens, layers, omissions: [] },
+    (r) => r.lens && r.light && { lens: r.lens, light: r.light, layers, omissions: [] },
   );
   const host = typeof navigator === "undefined" ? null : navigator;
   const viewport =
