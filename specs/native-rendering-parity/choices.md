@@ -138,6 +138,19 @@ Four independent drafts produced the cut, each with a different bias: fewest sli
 
 Append decisions made during the build here, with their attribution.
 
+### Slice 01 (`0b8ac2a9`), by the implementing agent; reviewed by the orchestrator
+
+| Decision | Why |
+| --- | --- |
+| The scene hashes the written `capture.json` and `map.json` bytes from disk; the page supplies only lens, layers and omissions | Identity is the bytes native will read |
+| Plates are held in the page as PNG blobs and pulled by the scene at the end | Avoids coupling the route to a harness binding |
+| A plate frame is the first frame at or past each shot's middle | `validateReel` already fits both fades inside a shot, so the middle is never veiled |
+| The layer vocabulary is a fixed list of 13 names, of which the reel draws 11 (no `fog`, no `overlays`) | Native filters on the same names |
+| `?scenes=` refuses an unknown name; a single-scene run films the same camera rig as a full run | No silent subset; the same framing either way |
+| The route listens to `appResources` to report a resource abort | The app's error boundary unmounts the route, which used to leave it hanging in `running` |
+| The worktree pulls `assets/runtime/**` and `assets/third-party/effects/**` (about 417 MB) | The reel needs 321 of 337 bundles |
+| The lens records `far: "infinite"` without checking it against the drawn camera | Today's camera never sets a far plane |
+
 ### Slice 02 (`ae645e7a`), by the implementing agent; reviewed by the orchestrator
 
 | Decision | Why |

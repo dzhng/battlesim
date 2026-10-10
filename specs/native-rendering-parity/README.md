@@ -4,7 +4,7 @@
 
 **Status:** phase 1 discovery is closed. Every decision is in [`choices.md`](choices.md), which holds the full map: settled ground, the decision ledger, the extracted taste and the landmines. No implementation slice is accepted yet.
 
-**Next pickup:** slices 01 and 02, in parallel. Read `choices.md` first. Its decisions are givens, not suggestions.
+**Next pickup:** slice 03. Read `choices.md` first. Its decisions are givens, not suggestions.
 
 **Goal:** make the native Godot client visually equivalent to the browser renderer for the authored menu reel, as a maintained second client beside the browser. Rust stays the only gameplay, observation, visibility, replay and digest authority. The browser remains shipped.
 
@@ -18,7 +18,7 @@ Schema ids carry no version suffix. A format change updates its writer, reader a
 
 Graph: `01 ∥ 02 → 03 → 04a → 04b → 04c → 05a → 05b → 06a → 06b → closeout`. Slices 01 (browser) and 02 (native) share no files and run in parallel. Each later slice judges one visual variable.
 
-- [ ] 01 — Browser capture run: the complete frame record, the base manifest, same-frame plates, and the `native-parity-capture` scene. [slice](slices/01-browser-capture-run.md)
+- [x] 01 — Browser capture run (`0b8ac2a9`): the complete frame record, the base manifest, same-frame plates, and the `native-parity-capture` scene. [slice](slices/01-browser-capture-run.md)
 - [x] 02 — Native runner (`ae645e7a`): rename to `native/godot`, Forward+, the strict reader, stepping by index, the report, per-file staging, and silent fallbacks and caps deleted. [slice](slices/02-native-runner.md)
 - [ ] 03 — Coordinates and camera: the first real pair; the same shot. [slice](slices/03-coordinates-and-camera.md)
 - [ ] 04a — Light: sun, fill and shadows (direction and softness). [slice](slices/04a-light-sun-and-shadow.md)
@@ -119,7 +119,11 @@ Counters never prove pixels. Headless Godot proves lifecycle only. Every pass ke
 
 ## Next Agent Prompt
 
-*Updated 2026-10-10.* You are implementing phase 1 of the native visual-parity spec. Nothing is built yet. The next pickup is slices 01 and 02, in parallel: they share no files.
+*Updated 2026-10-10.* You are implementing phase 1 of the native visual-parity spec. Slices 01 and 02 are built. The next pickup is slice 03, the first real pair.
+
+- **Control run:** `PARITY_SCENES=paris-corner lockf -k <main>/throwaway/gpu.lock bun run --cwd web scene -- native-parity-capture` takes about 55 s; both scenes take about 3 minutes.
+- **Native run:** `godot --path native/godot --window-position 10000,10000 -- --run <dir> --scene <map>`.
+- **Known red outside this spec:** `web/tests/router.test.ts` (2 tests, `ResizeObserver is not defined`) already fails before slice 01.
 
 1. **Read first.** This README, then `choices.md` (its decisions are givens), then the slice file.
 2. **Load skills.** `renderer`, `write-tests` and `refactor-clean` before coding.
