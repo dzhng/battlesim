@@ -52,6 +52,8 @@ func run() -> void:
 	check(reel.map_geometry_counts["first"].rendered_buildings == 1, "map report must expose submitted building geometry separately from admitted rows")
 	var forest_patch: ArrayMesh = reel._forest_patch_mesh([[2, 2], [8, 2], [8, 7], [2, 7]])
 	check(forest_patch != null and forest_patch.get_surface_count() == 1, "forest polygons must produce a triangulated surface instead of a bounding box")
+	var surface_patch: ArrayMesh = reel._polygon_batch_mesh([[[2, 2], [8, 2], [8, 7], [2, 7]]])
+	check(surface_patch != null and surface_patch.get_surface_count() == 1, "saved surface polygons must retain their outline instead of becoming bounding boxes")
 	var grass_centers: Array = reel._grass_centers_for_map({
 		"regional_family": "china",
 		"forests": [{"shape": {"kind": "polygon", "ring": [[2, 2], [8, 2], [8, 7], [2, 7]]}}],

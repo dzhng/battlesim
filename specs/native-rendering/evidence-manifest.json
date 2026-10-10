@@ -18,19 +18,19 @@
     {
       "scene": "market-town",
       "path": "throwaway/browser-captures-current/market-town.json",
-      "sha256": "f9e90a894ba5caa59555f7172c1fa7657b7d0623d0276062aeac68721ecd6750",
-      "samples": 3541,
-      "frames": 8493
+      "sha256": "54aeef976afb2642c6404be1fd6a078da42c0359263690c5e6fa368fc8b4427e",
+      "samples": 3570,
+      "frames": 115
     },
     {
       "scene": "paris-corner",
       "path": "throwaway/browser-captures-current/paris-corner.json",
-      "sha256": "cb6039b2c8da70b781c9a591ece613e7377f03fbc6088b91d73497d99a29989d",
-      "samples": 1290,
-      "frames": 4296
+      "sha256": "830419cd519f31c0bdb93248f7f9bd2878004d8527f01e55b5509b7ae3f4cccf",
+      "samples": 1327,
+      "frames": 41
     }
   ],
   "browserReport": "throwaway/browser-graphics-report-current.json",
-  "nativeReport": "throwaway/native/authored-report-current.json",
-  "notes": "Ignored reports and captures are local evidence; this manifest pins their hashes and identity for review."
+  "nativeReport": "throwaway/native/authored-report-final2.json",
+  "notes": "Ignored reports and captures are local evidence; this manifest pins the current browser report, capture hashes, workload fingerprint, viewport and the final display-backed native report."
 }

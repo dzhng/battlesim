@@ -22,11 +22,13 @@ var capture_results: Dictionary = {}
 var capture_errors: Dictionary = {}
 var authored_asset_loaded := false
 var authored_building_count := 0
+var authored_rendered_building_count := 0
 var authored_map_scene_count := 0
 ## A non-positive limit means the authored catalog is complete.  A positive
 ## value is an explicit diagnostic cap, never an implicit production default.
 var authored_building_limit := 0
 var authored_cull_radius := 900.0
+var authored_render_instance_limit := 256
 var map_render_radius := 1000.0
 var authored_scene_nodes: Dictionary = {}
 var authored_scene_by_family: Dictionary = {}
@@ -92,6 +94,8 @@ func _exit_after_ready() -> void:
 		"semantic_scenes": semantic_results.size(),
 		"authored_asset_loaded": authored_asset_loaded,
 		"authored_building_count": authored_building_count,
+		"authored_rendered_building_count": authored_rendered_building_count,
+		"authored_render_instance_limit": authored_render_instance_limit,
 		"authored_map_scene_count": authored_map_scene_count,
 		"authored_unresolved_templates": authored_unresolved_templates,
 		"native_catalog_loaded": not native_catalog.is_empty(),
@@ -189,16 +193,34 @@ func _build_world() -> void:
 	env.ambient_light_color = Color("8aa4bc")
 	env.ambient_light_energy = 0.8
 	env.fog_enabled = true
-	env.fog_light_color = Color("8a9b99")
-	env.fog_light_energy = 0.45
-	env.fog_density = 0.0015
-	env.fog_sky_affect = 1.0
+	env.fog_light_color = Color("a9b7b0")
+	env.fog_light_energy = 0.32
+	env.fog_density = 0.00065
+	env.fog_sky_affect = 0.28
 	environment.environment = env
 	add_child(environment)
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-55.0, -30.0, 0.0)
 	sun.light_energy = 1.5
 	add_child(sun)
+	# Presentation budgets must be known before map geometry instantiates any
+	# catalog-backed props or grass. They are renderer limits only; admission and
+	# saved-map counts remain uncapped and authoritative.
+	var cull_text := OS.get_environment("GODOT_AUTHORED_CULL_RADIUS")
+	if not cull_text.is_empty() and float(cull_text) > 0.0:
+		authored_cull_radius = float(cull_text)
+	var map_cull_text := OS.get_environment("GODOT_MAP_RENDER_RADIUS")
+	if not map_cull_text.is_empty() and float(map_cull_text) > 0.0:
+		map_render_radius = float(map_cull_text)
+	var asset_limit_text := OS.get_environment("GODOT_NATIVE_ASSET_INSTANCE_LIMIT")
+	if not asset_limit_text.is_empty():
+		native_asset_instance_limit = maxi(0, int(asset_limit_text))
+	var authored_render_limit_text := OS.get_environment("GODOT_AUTHORED_RENDER_INSTANCE_LIMIT")
+	if not authored_render_limit_text.is_empty():
+		authored_render_instance_limit = maxi(0, int(authored_render_limit_text))
+	var grass_limit_text := OS.get_environment("GODOT_NATIVE_GRASS_INSTANCE_LIMIT")
+	if not grass_limit_text.is_empty():
+		native_grass_instance_limit = maxi(0, int(grass_limit_text))
 	camera = Camera3D.new()
 	add_child(camera)
 	_build_map_geometry()
@@ -211,18 +233,6 @@ func _build_world() -> void:
 	var limit_text := OS.get_environment("GODOT_AUTHORED_BUILDING_LIMIT")
 	if not limit_text.is_empty():
 		authored_building_limit = maxi(0, int(limit_text))
-	var cull_text := OS.get_environment("GODOT_AUTHORED_CULL_RADIUS")
-	if not cull_text.is_empty() and float(cull_text) > 0.0:
-		authored_cull_radius = float(cull_text)
-	var map_cull_text := OS.get_environment("GODOT_MAP_RENDER_RADIUS")
-	if not map_cull_text.is_empty() and float(map_cull_text) > 0.0:
-		map_render_radius = float(map_cull_text)
-	var asset_limit_text := OS.get_environment("GODOT_NATIVE_ASSET_INSTANCE_LIMIT")
-	if not asset_limit_text.is_empty():
-		native_asset_instance_limit = maxi(0, int(asset_limit_text))
-	var grass_limit_text := OS.get_environment("GODOT_NATIVE_GRASS_INSTANCE_LIMIT")
-	if not grass_limit_text.is_empty():
-		native_grass_instance_limit = maxi(0, int(grass_limit_text))
 	if not authored_paths.is_empty():
 		for path in authored_paths.split(","):
 			var clean_path := path.strip_edges()
@@ -266,7 +276,7 @@ func _build_map_geometry() -> void:
 		add_child(holder)
 		var counts := {"terrain": 0, "forests": 0, "roads": 0, "props": 0, "buildings": 0}
 		var road_transforms: Array[Transform3D] = []
-		var surface_transforms: Array[Transform3D] = []
+		var surface_rings: Array = []
 		var building_transforms: Array[Transform3D] = []
 		var prop_transforms: Array[Transform3D] = []
 		var tree_transforms: Array[Transform3D] = []
@@ -277,8 +287,8 @@ func _build_map_geometry() -> void:
 		var ground_mesh := PlaneMesh.new()
 		ground_mesh.size = Vector2(float(size[0]), float(size[1]))
 		var ground_material := StandardMaterial3D.new()
-		ground_material.albedo_color = Color("756c56") if String(map.get("regional_family", "")) == "china" else Color("62666b")
-		ground_material.roughness = 0.92
+		ground_material.albedo_color = Color("817b63") if String(map.get("regional_family", "")) == "china" else Color("6d7378")
+		ground_material.roughness = 0.96
 		ground_mesh.material = ground_material
 		ground.mesh = ground_mesh
 		ground.position = Vector3(float(size[0]) * 0.5, -0.08, float(size[1]) * 0.5)
@@ -307,8 +317,7 @@ func _build_map_geometry() -> void:
 				if is_finite(min_x) and max_x > min_x and max_y > min_y:
 					var midpoint := Vector2((min_x + max_x) * 0.5, (min_y + max_y) * 0.5)
 					if _near_render_center(midpoint, render_centers):
-						var basis := Basis.IDENTITY.scaled(Vector3(max_x - min_x, 0.03, max_y - min_y))
-						surface_transforms.append(Transform3D(basis, Vector3(midpoint.x, -0.05, midpoint.y)))
+						surface_rings.append(ring)
 				continue
 			if shape.get("kind") != "stroke" or typeof(shape.get("points")) != TYPE_ARRAY:
 				continue
@@ -328,7 +337,16 @@ func _build_map_geometry() -> void:
 					basis = basis.scaled(Vector3(length, 0.035, float(shape.get("width_m", 8.0))))
 					road_transforms.append(Transform3D(basis, Vector3(midpoint.x, 0.0, midpoint.y)))
 				counts.roads += 1
-		_add_box_batch(holder, surface_transforms, Color("a8a69e"), 0.96)
+		var surface_mesh := _polygon_batch_mesh(surface_rings)
+		if surface_mesh != null:
+			var surface_node := MeshInstance3D.new()
+			var surface_material := StandardMaterial3D.new()
+			surface_material.albedo_color = Color("a8a69e")
+			surface_material.roughness = 0.96
+			surface_node.material_override = surface_material
+			surface_node.mesh = surface_mesh
+			surface_node.position.y = -0.05
+			holder.add_child(surface_node)
 		_add_box_batch(holder, road_transforms, Color("30383b"), 0.85)
 		for forest in map.get("forests", []):
 			if typeof(forest) != TYPE_DICTIONARY or typeof(forest.get("shape")) != TYPE_DICTIONARY:
@@ -370,8 +388,13 @@ func _build_map_geometry() -> void:
 			var prop_position := Vector2(float(center[0]), float(center[1]))
 			if _near_render_center(prop_position, render_centers):
 				var prop_kind := String(prop.get("kind", ""))
-				var authored_prop := _instantiate_native_prop(prop_kind, String(map.get("regional_family", "")))
-				if authored_prop != null and int(native_asset_instances.get(prop_kind, 0)) < native_asset_instance_limit:
+				var authored_prop: Node3D = null
+				# Check the explicit budget before instantiating a GLB. Instantiating
+				# and then discarding over-budget nodes retains thousands of imported
+				# meshes until shutdown and makes the foreground reel unbounded.
+				if int(native_asset_instances.get(prop_kind, 0)) < native_asset_instance_limit:
+					authored_prop = _instantiate_native_prop(prop_kind, String(map.get("regional_family", "")))
+				if authored_prop != null:
 					authored_prop.position = Vector3(prop_position.x, float(prop.get("base_z", 0.0) if prop.get("base_z") != null else 0.0), prop_position.y)
 					authored_prop.rotation.y = float(prop.get("yaw", 0.0))
 					authored_props.append(authored_prop)
@@ -388,7 +411,7 @@ func _build_map_geometry() -> void:
 		for authored_prop in authored_props:
 			holder.add_child(authored_prop)
 		counts["rendered_roads"] = road_transforms.size()
-		counts["rendered_surface_polygons"] = surface_transforms.size()
+		counts["rendered_surface_polygons"] = surface_rings.size()
 		counts["rendered_buildings"] = building_transforms.size()
 		counts["rendered_props"] = prop_transforms.size()
 		counts["rendered_trees"] = tree_transforms.size()
@@ -594,6 +617,37 @@ func _forest_patch_mesh(ring: Array) -> ArrayMesh:
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 	return mesh
 
+func _polygon_batch_mesh(rings: Array) -> ArrayMesh:
+	var vertices := PackedVector3Array()
+	var indices := PackedInt32Array()
+	for ring in rings:
+		if typeof(ring) != TYPE_ARRAY or ring.size() < 3:
+			continue
+		var polygon := PackedVector2Array()
+		for point in ring:
+			if typeof(point) != TYPE_ARRAY or point.size() < 2:
+				continue
+			polygon.append(Vector2(float(point[0]), float(point[1])))
+		if polygon.size() < 3:
+			continue
+		var triangles := Geometry2D.triangulate_polygon(polygon)
+		if triangles.is_empty():
+			continue
+		var base := vertices.size()
+		for point in polygon:
+			vertices.append(Vector3(point.x, 0.0, point.y))
+		for index in triangles:
+			indices.append(base + int(index))
+	if vertices.is_empty() or indices.is_empty():
+		return null
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_INDEX] = indices
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	return mesh
+
 func _grass_centers_for_map(map: Dictionary, render_centers: Array) -> Array:
 	var centers: Array = []
 	var seen: Dictionary = {}
@@ -739,12 +793,22 @@ func _build_authored_maps(authored: PackedScene) -> bool:
 		holder.visible = scene.map == scenes[0].map
 		add_child(holder)
 		authored_scene_nodes[scene.map] = holder
-		var count := 0
+		var admitted_count := 0
+		var rendered_count := 0
+		var render_centers := _map_render_centers(String(scene.map))
 		for building in map.buildings:
-			if authored_building_limit > 0 and count >= authored_building_limit:
+			if authored_building_limit > 0 and admitted_count >= authored_building_limit:
 				break
+			admitted_count += 1
 			var frame: Dictionary = building.get("frame", {})
 			var translation: Array = frame.get("translation", [0.0, 0.0, 0.0])
+			var building_position := Vector2(float(translation[0]), float(translation[1]))
+			# The catalog is admitted uncapped, but only buildings that can appear
+			# in the captured camera-target union are instantiated. This keeps the
+			# foreground probe bounded without changing the authoritative admission
+			# count or the captured map placement.
+			if not _near_render_center(building_position, render_centers) or (authored_render_instance_limit > 0 and rendered_count >= authored_render_instance_limit):
+				continue
 			var building_scene: PackedScene = authored
 			if building_scene == null:
 				building_scene = _authored_scene_for_template(String(building.get("template_id", "")), String(map.get("regional_family", "")).to_lower())
@@ -760,8 +824,9 @@ func _build_authored_maps(authored: PackedScene) -> bool:
 			instance.position = Vector3(float(translation[0]), float(translation[2]), float(translation[1]))
 			instance.rotation.y = float(frame.get("yaw", 0.0))
 			holder.add_child(instance)
-			count += 1
-		authored_building_count += count
+			rendered_count += 1
+		authored_building_count += admitted_count
+		authored_rendered_building_count += rendered_count
 		authored_map_scene_count += 1
 	return authored_map_scene_count > 0
 
@@ -1190,8 +1255,10 @@ func _write_report() -> void:
 		"authored_asset_loaded": authored_asset_loaded,
 		"authored_catalog_complete": authored_asset_loaded and authored_unresolved_templates.is_empty(),
 		"authored_building_count": authored_building_count,
+		"authored_rendered_building_count": authored_rendered_building_count,
 		"authored_map_scene_count": authored_map_scene_count,
 		"authored_building_limit": authored_building_limit,
+		"authored_render_instance_limit": authored_render_instance_limit,
 		"authored_cull_radius": authored_cull_radius,
 		"map_render_radius": map_render_radius,
 		"authored_unresolved_templates": authored_unresolved_templates,
