@@ -108,9 +108,10 @@ pub enum Guidance {
     OnTheMove,
 }
 
-/// A top-attack path: while its launcher supports it, a guided round steers
-/// at a point `loft_m` above its commanded point until that point lies at
-/// least `dive_deg` below its horizon, then dives onto it.
+/// A top-attack path: while its launcher supports it, a guided round climbs
+/// at `dive_deg` to `loft_m` above its commanded point, holds that height
+/// until the point lies at least `dive_deg` below its horizon, then dives
+/// onto it.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TopAttack {

@@ -197,5 +197,5 @@ def wreck(variant, v):
     rest_on_ground(0.004)
 
 
-# Edge wear 0.6, as every live wheeled family has.
+# Edge wear 0.6, as the wheeled IFVs (VBCI, Boxer) have.
 run("centauro", "italian_vegetata", build, wreck, chip=0.6)

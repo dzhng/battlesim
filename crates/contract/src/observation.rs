@@ -243,8 +243,8 @@ pub struct MountReadiness {
     pub guiding: bool,
 }
 
-/// One of this side's own guided missiles: where it is and the point it is
-/// steering to; `supported` while its launcher still guides it.
+/// One of this side's own guided missiles: where it is and its commanded
+/// point; `supported` while its launcher still guides it.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct GuidedMissile {
     /// Stable while it flies: this side's own round, so no disclosure.

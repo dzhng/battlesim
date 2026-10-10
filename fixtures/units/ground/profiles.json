@@ -563,23 +563,15 @@
     },
     "roster_akeron_gunner": {
       "abstract": true,
-      "extends": "roster_at_rifleman",
+      "extends": "roster_javelin_gunner",
       "name": "Akeron gunner",
-      "description": "One shoulder-fired top-attack launcher with ordinary guards.",
       "mounts": [
         {
           "id": "launcher",
           "name": "Akeron MP",
           "weapons": [
             "akeron_mp"
-          ],
-          "special": true,
-          "operator_appearance": {
-            "active_pose": {
-              "clip": "stand_aim",
-              "phase": 0
-            }
-          }
+          ]
         }
       ]
     },

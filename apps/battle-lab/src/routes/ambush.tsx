@@ -55,16 +55,15 @@ const ambushRules = (rules: GameRules): GameRules => ({
     drive: { ...rules.movement.drive, acceleration_s: 1e-6, braking_s: 1e-6 },
   },
 });
-/** The top-attack variant's missile: the generic `atgm` row with an agile
- *  seeker and a loft, the starting values the Javelin and Akeron rows tune
- *  from (`specs/ground-admission/assets/top-attack/`). */
+/** The top-attack variant's missile: the generic `atgm` row flown as the
+ *  Javelin flies, so the lab shows the game's own loft and dive. */
 const topAttackRules = (rules: GameRules): GameRules => ({
   ...rules,
   weapons: {
     ...rules.weapons,
     atgm: Object.assign({}, rules.weapons.atgm, {
-      turn_deg_s: 360,
-      top_attack: { loft_m: 60, dive_deg: 40 },
+      turn_deg_s: rules.weapons.javelin.turn_deg_s,
+      top_attack: rules.weapons.javelin.top_attack,
     }),
   },
 });

@@ -8,8 +8,8 @@ does the rest, the same way for every family:
 - each variant's frame from the resolved catalogs (`catalog_frames`), one
   appearance with `--variant=<appearance id>` or all of them; a disabled
   card family (`run_disabled`) takes each card's frame from the dimensions
-  and mounts its script states from its references, and the built model must
-  measure it;
+  its script states from its references, and the built model must measure
+  it;
 - the materials, one per role (`materials`), in the family's real scheme;
 - each mount's articulation nodes at its frame's pivot and muzzle (`rig`);
 - `--wreck`: the family's damage, then debris thrown clear from what it
@@ -233,13 +233,10 @@ def _measured(skip):
     return hi - lo, lo
 
 
-def run_disabled(family, cards, scheme, build, wreck, mounts=None, skip=("dressing_",), ao_distance=1.0, ao_rays=8,
-                 **looks):
+def run_disabled(family, cards, scheme, build, wreck, skip=("dressing_",), ao_distance=1.0, ao_rays=8, **looks):
     """Export a disabled card family: `cards` maps each card id to the
-    (length, width, height) its script states from its references, and
-    `mounts` a turreted card's id to the mounts it rigs for its art (nothing
-    in the simulation reads them); together its frame
-    (`catalog_frames.disabled_variant`). `scheme` is the family's, or one
+    (length, width, height) its script states from its references, its
+    frame (`catalog_frames.disabled_variant`). `scheme` is the family's, or one
     per card id. The built model must measure that
     frame within `FRAME_TOLERANCE`, leaving out the nodes `skip` names (a
     rotor disc, dressing). Each card writes its `source_path`; the family's
@@ -256,7 +253,7 @@ def run_disabled(family, cards, scheme, build, wreck, mounts=None, skip=("dressi
             raise SystemExit(f"{variant['id']}: built {[round(s, 2) for s in size]} m, lowest {low.z:.2f} m; "
                              f"its references state {want} m on the ground")
 
-    variants = [disabled_variant(card, dims, (mounts or {}).get(card, ())) for card, dims in cards.items()]
+    variants = [disabled_variant(card, dims) for card, dims in cards.items()]
     receipt = _export(variants, scheme, build, wreck, ao_distance, ao_rays, check, looks)
     if receipt is not None:
         entries = json.loads((REPO / "fixtures/units/model-manifest.json").read_text())["entries"]

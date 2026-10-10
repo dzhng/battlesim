@@ -171,5 +171,5 @@ def wreck(variant, v):
 
 
 if __name__ == "__main__":
-    # Edge wear 0.6, as every live wheeled family has.
+    # Edge wear 0.6, as the wheeled IFVs (VBCI, Boxer) have.
     run("jaguar", "french_three_tone", build, wreck, chip=0.6)

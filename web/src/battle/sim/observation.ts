@@ -314,11 +314,13 @@ export interface MountView {
   reloading: number | null;
 }
 
-/** One of this side's own guided missiles and the point it steers to. */
+/** One of this side's own guided missiles and its commanded point. */
 export interface GuidedView {
   /** Stable while it flies. */
   id: number;
   position: Point3;
+  /** Its commanded point; a top-attack missile climbs above it before
+   *  diving onto it, so this is not where it is heading now. */
   point: Point3;
   /** Its launcher still guides it; once false, the point is fixed for good. */
   supported: boolean;

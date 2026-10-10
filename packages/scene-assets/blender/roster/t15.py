@@ -11,7 +11,7 @@ the glacis; a tall rear door with stowage hung high either side.
 
 Built to the catalog frame (hull 9.5 x 3.5 x 3.2 m, module pivot 2.22 m on
 the troop compartment's roof, so the 30 mm's axis is at about 2.72 m, as on
-the real module: specs/ground-admission/slices/01-model-triage.md).
+the real module).
 """
 import math
 import os
