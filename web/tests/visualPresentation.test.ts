@@ -47,7 +47,10 @@ const capture = (frames: PresentationFrame[]): PresentationCapture => ({
 
 const drawn: DrawnPresentation = {
   lens: { fovY: 0.8, near: 1, depth: "reverse-z", far: "infinite" },
-  light: gameLight,
+  light: {
+    ...gameLight,
+    sunDirection: Array.from(sunDirection(gameLight)) as [number, number, number],
+  },
   layers: ["sky", "terrain", "grass"],
   omissions: [],
 };
@@ -72,7 +75,7 @@ test("the manifest names its battle by the capture's workload and the hashes of 
     },
     viewport: { width: 1280, height: 720, scale: 1 },
     lens: drawn.lens,
-    light: { ...gameLight, sunDirection: Array.from(sunDirection(gameLight)) },
+    light: drawn.light,
     layers: drawn.layers,
     omissions: [],
   });
@@ -103,7 +106,7 @@ test("the validator refuses a versioned id, the hashless identity and an unknown
   expect(reject({ omissions: [{ owner: "grass", reason: "" }] })).toThrow(/omission/);
 });
 
-test("the manifest carries the light the frames were drawn under, refusing one the renderer would refuse", async () => {
+test("the manifest carries the light the frames were drawn under, with a unit sun direction", async () => {
   const captureJson = encodePresentationCapture(capture([frame(0)]));
   const manifest = JSON.parse(
     await writeVisualPresentation({ captureJson, mapBytes, drawn }),
@@ -111,7 +114,7 @@ test("the manifest carries the light the frames were drawn under, refusing one t
   const reject = (change: object) => () => validateVisualPresentation({ ...manifest, ...change });
   const { light: _, ...unlit } = manifest;
   expect(() => validateVisualPresentation(unlit)).toThrow(/malformed/);
-  expect(reject({ light: { ...manifest.light, exposure: Number.NaN } })).toThrow(/exposure/);
-  // The sun direction is derived from the angles: a stale one is refused.
-  expect(reject({ light: { ...manifest.light, sunDirection: [0, 0, 1] } })).toThrow(/sun/);
+  expect(reject({ light: { ...manifest.light, sunDirection: [0, 0, 2] } })).toThrow(/sun/);
+  const { sunDirection: _sun, ...sunless } = manifest.light;
+  expect(reject({ light: sunless })).toThrow(/sun/);
 });

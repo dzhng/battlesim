@@ -3,11 +3,9 @@
 // draws the same battle through the same lens and the same layers. The
 // browser run is its one writer; it grows only by what native reads, and
 // changes in place (a stale file is refused, never migrated).
-import {
-  sunDirection,
-  validateLight,
-  type LightPresentation,
-} from "@packages/battle-renderer/src/light/sceneLight";
+// Plain Node runs the writer (the scene harness), so it imports nothing the
+// renderer owns; the page validates and derives the light before handing it over.
+import type { LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
 import { decodePresentationCapture } from "./presentationCapture.ts";
 
 /** The presentation layers a frame can draw. */
@@ -44,20 +42,20 @@ export interface Omission {
   sourceId: string;
 }
 
+/** The light the battle frame was built with (`presentation.light`, as
+ *  `validateLight` admits it), with the one sun direction its angles give
+ *  (`sunDirection`): a unit vector toward the sun in sim space, z up. */
+export type ManifestLight = LightPresentation & { sunDirection: [number, number, number] };
+
 /** What the page knows of its own drawing; the files give the rest. */
 export interface DrawnPresentation {
   lens: Lens;
-  /** The light the battle frame was built with (`presentation.light`). */
-  light: LightPresentation;
+  light: ManifestLight;
   layers: readonly PresentationLayer[];
   omissions: readonly Omission[];
 }
 
-/** The drawn light with the one sun direction derived from its angles: a
- *  unit vector toward the sun in sim space (z up), as `sunDirection` gives. */
-export type ManifestLight = LightPresentation & { sunDirection: [number, number, number] };
-
-export interface VisualPresentation extends Omit<DrawnPresentation, "light"> {
+export interface VisualPresentation extends DrawnPresentation {
   schema: "native-visual-presentation";
   identity: {
     scene: string;
@@ -71,7 +69,6 @@ export interface VisualPresentation extends Omit<DrawnPresentation, "light"> {
   };
   /** The canvas every frame drew, at one pixel per CSS pixel. */
   viewport: { width: number; height: number; scale: 1 };
-  light: ManifestLight;
 }
 
 const IDENTITY_KEYS = ["scene", "map", "encounter", "seed", "mapHash", "captureHash"];
@@ -86,23 +83,18 @@ const hasKeys = (value: unknown, keys: readonly string[]): value is Record<strin
 const text = (value: unknown) => typeof value === "string" && value.length > 0;
 const isHash = (value: unknown) => typeof value === "string" && /^[0-9a-f]{64}$/.test(value);
 
-const withSun = (light: LightPresentation): ManifestLight => {
-  const [x, y, z] = sunDirection(light);
-  return { ...light, sunDirection: [x, y, z] };
-};
-
-/** `value` as the manifest's light: the renderer's own light validation, and
- *  a sun direction that is the one its angles give. */
+/** `value` as the manifest's light: an object with a unit sun direction.
+ *  The page admitted its numbers (`validateLight`) and derived the direction. */
 function validateManifestLight(value: unknown): ManifestLight {
   if (!isRecord(value)) throw new Error("visual presentation light is malformed");
-  const { sunDirection: sun, ...light } = value;
-  const expected = withSun(validateLight(light as unknown as LightPresentation)).sunDirection;
+  const sun = value.sunDirection;
   if (
     !Array.isArray(sun) ||
     sun.length !== 3 ||
-    !sun.every((v, i) => typeof v === "number" && Math.abs(v - expected[i]) < 1e-9)
+    !sun.every((v) => typeof v === "number" && Number.isFinite(v)) ||
+    Math.abs(Math.hypot(...(sun as number[])) - 1) > 1e-6
   )
-    throw new Error("visual presentation sunDirection disagrees with the sun's angles");
+    throw new Error("visual presentation light needs a unit sunDirection");
   return value as unknown as ManifestLight;
 }
 
@@ -198,7 +190,7 @@ export async function writeVisualPresentation({
     },
     viewport: { width, height, scale: 1 },
     lens: drawn.lens,
-    light: withSun(drawn.light),
+    light: drawn.light,
     layers: drawn.layers,
     omissions: drawn.omissions,
   };

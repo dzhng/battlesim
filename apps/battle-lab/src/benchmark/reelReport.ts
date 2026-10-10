@@ -1,3 +1,4 @@
+import { sunDirection } from "@packages/battle-renderer/src/light/sceneLight";
 import { BenchmarkRecording } from "@web/battle/benchmark/recording";
 import { MENU_REEL_WORKLOAD, menuReelFingerprint } from "@web/battle/benchmark/menuReel";
 import { APP_COMMIT } from "../buildIdentity";
@@ -75,7 +76,17 @@ export function createReelReport(
   }));
   // What each scene drew its frames with; null for a scene that drew none.
   const drawnPresentations: (DrawnPresentation | null)[] = results.map(
-    (r) => r.lens && r.light && { lens: r.lens, light: r.light, layers, omissions: [] },
+    (r) =>
+      r.lens &&
+      r.light && {
+        lens: r.lens,
+        light: {
+          ...r.light,
+          sunDirection: Array.from(sunDirection(r.light)) as [number, number, number],
+        },
+        layers,
+        omissions: [],
+      },
   );
   const host = typeof navigator === "undefined" ? null : navigator;
   const viewport =

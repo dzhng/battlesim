@@ -4,6 +4,7 @@ import { BenchmarkRecording } from "@web/battle/benchmark/recording";
 import { createReelReport } from "@apps/battle-lab/src/benchmark/reelReport";
 import type { ReelResult } from "@apps/battle-lab/src/benchmark/reelRun";
 import { gameLight } from "@apps/battle-lab/src/gameLight";
+import { sunDirection } from "@packages/battle-renderer/src/light/sceneLight";
 
 const pose = { target: [0, 0] as const, distance: 40, yaw: 0, pitch: 0.2 };
 function result(map: string, started: number, intervals: number[]): ReelResult {
@@ -83,7 +84,7 @@ test("exports each scene's capture with the frames it drew and what it drew them
   expect(report.drawnPresentations).toEqual([
     {
       lens: { fovY: 0.8, near: 1, depth: "reverse-z", far: "infinite" },
-      light: gameLight,
+      light: { ...gameLight, sunDirection: Array.from(sunDirection(gameLight)) },
       layers: ["sky", "terrain"],
       omissions: [],
     },
