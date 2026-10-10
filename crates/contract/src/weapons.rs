@@ -143,9 +143,10 @@ pub struct MountDefinition {
     /// roof gun on the cannon's turret). Absent, the hull carries it.
     #[serde(default)]
     pub on: Option<String>,
-    /// Where this mount turns, in its carrier's frame (forward, left, up
-    /// from the hull or infantry operator origin), turned by the carrier's bearing (or the
-    /// hull's yaw).
+    /// Where this mount turns, in the hull's frame at rest (forward, left, up
+    /// from the hull or infantry operator origin). A mount `on` a turret
+    /// swings round that turret's pivot with its bearing; a hull mount turns
+    /// with the hull's yaw.
     #[serde(default)]
     pub pivot_m: [f64; 3],
     /// Its muzzle from the pivot (forward, left, up), turned by this
