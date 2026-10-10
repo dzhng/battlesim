@@ -287,3 +287,18 @@ The browser draws its lit world at 4× MSAA (`FRAME_MSAA` in `frame/targets.ts`)
 | --- | --- |
 | The environment adapter owns the MSAA level, setting the viewport's `msaa_3d` when it enters the tree | It is the frame the light is drawn through, and the browser's light owner shades per sample; one owner beside the effects that must read the resolve |
 | The haze reads Godot's resolved depth, one value per pixel, where the browser hazes each sample | A Godot compositor effect sees only the resolved buffers; edge pixels against the sky show no halo at 1× crops |
+
+### Grass 06 closeout, by the implementing agent
+
+Control run `2026-10-10T23-18-11-999Z` (both scenes, with `grass.constants` now carrying `edgeM` and `heightVariation`), native at HEAD with the browser's 4× MSAA (`11404057`). Evidence: `throwaway/native-parity/slice06b/head-*`.
+
+- **06b with MSAA.** Over 18 market-town plates, mean distance from the browser is 0.065 (0.097 without MSAA), grayscale MAE 5.1, luminance 134.5 against 133.4, edge density 0.350 against 0.360. The grass-region MAE (the lower 300 rows) is 0.39 to 4.3 per plate; the high ones hold dust, smoke and tracks. The unprimed critique judged the grass the same, almost blade for blade in every crop. Its remaining notes are flattened grass and darker lines along vehicle tracks (scars, slice 08), slightly sparser and thinner dry grass in one crop, slightly smoother far grass in another, and a crop marginally paler, within noise. Paris-corner grows no grass and renders with no blocker.
+- **The count gate.** The parity run gates every screen cell at 10% of the browser's count. 211 of 216 market-town cells pass outright. The other five run 13–16% over, each by about half its native clumps that stand on a crater, scorch or tracks of the side's learned ground: 2573:10 (+273, 577 on scars), 6402:11 (+45, 108), 7171:8 (+127, 263), 7171:9 (+105, 202), 7892:9 (+250, 503). Every cell with no such clumps is within one clump; trampled-only cells, which the browser lays flat but keeps, match. Those five are `scar-omission` budget rows; any other off cell is a blocker.
+
+| Decision | Why |
+| --- | --- |
+| Native replays the capture side's learned ground (`capture/learned_ground.gd`), as the browser's `GroundView` does, tested against `GroundView`'s own replay of the fixture capture | The gate needs the browser's scars to name a scar cell; it is also slice 08's input |
+| A cell is a scar omission only when native is over by no more than its clumps on bare scars | A deficit, or an excess the scars cannot cover, is a real difference |
+| `edgeM` and `heightVariation` are `grass.constants`, validated by kind (count, or non-negative length) | They were the build's last hand-copied numbers |
+| The exit-time StorageBuffer warning stays, with a comment linking godotengine/godot#108148 | Without the layer's own frees, ten RD resources leak; with them two remain, and freeing each tier's indirect command buffer by hand clears it without error: the engine's leak |
+| The Forward+ probe installs the run's error logger | A script error now fails it |
