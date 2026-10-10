@@ -1,5 +1,6 @@
 import { FrameRate, type FrameRateHandle } from "@web/battle/present/frameRate";
 import { useLabLoading } from "./LabLoading";
+import { diagnosticsSource } from "@web/diagnostics";
 import { useCursorAction, type CursorAction } from "@web/battle/present/gameCursor";
 import { useEffect, useRef, useState } from "react";
 import { gpuFailureMessage } from "@packages/renderer-core/src/device";
@@ -696,10 +697,22 @@ export function LabViewport({
         };
         let scene = await build();
         if (signal.aborted) return;
+        const adapter = info.description || `${info.vendor} ${info.architecture}`.trim();
         pilot?.attach?.({
-          adapter: info.description || `${info.vendor} ${info.architecture}`.trim(),
+          adapter,
           stats: () => scene.stats(),
         });
+        // What the battle draws, for a player's diagnostics report.
+        signal.addEventListener(
+          "abort",
+          diagnosticsSource("battle view", () => ({
+            adapter,
+            format: info.format,
+            canvas: [canvas.width, canvas.height],
+            gpu: scene.stats().gpu,
+            gpuAllocations: allocations(),
+          })),
+        );
         const draw = () => {
           syncSize();
           // Cleared first: a frame may ask to be drawn again (`requestRedraw`).

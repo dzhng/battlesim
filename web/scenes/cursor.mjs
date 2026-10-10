@@ -1,32 +1,37 @@
-// Native-size presentation contract, using the component's real moving-pointer surface.
+// Native-size presentation contract: the lab's pictures of each action's
+// cursor, and the image the system draws over the real moving pointer.
 import { pointerAway } from "./_baseline.mjs";
-import { decode, writeCrop, mostChanged } from "./_png.mjs";
+import { decode, writeCrop } from "./_png.mjs";
 
 const geometry = (page) =>
   page.evaluate(() =>
     [...document.querySelectorAll("[data-specimen]")].map((sample) => {
-      const cursor = sample.querySelector(".game-cursor");
-      const svg = cursor.querySelector(".game-cursor-arrow svg");
-      const point = svg.createSVGPoint();
-      point.x = 2;
-      point.y = 2;
-      const tip = point.matrixTransform(svg.getScreenCTM());
+      const picture = sample.querySelector(".game-cursor-picture");
       const box = sample.getBoundingClientRect();
-      const badge = cursor.querySelector(".game-cursor-badge");
-      const b = badge.getBoundingClientRect();
-      const icon = svg.getBoundingClientRect();
+      const image = picture.getBoundingClientRect();
+      // The image's hotspot, as the system places it.
+      const tip = [image.left + 2, image.top + 2];
       return {
         id: sample.dataset.specimen,
         action: sample.dataset.action,
-        tip: [tip.x, tip.y],
-        tipError: Math.hypot(tip.x - (box.left + box.width / 2 - 16), tip.y - (box.top + 14)),
-        arrowSize: [icon.width, icon.height],
-        badge: badge.hidden ? null : [b.x - tip.x, b.y - tip.y, b.width, b.height],
-        icons: [...badge.children]
-          .filter((node) => node.getClientRects().length)
-          .map((node) => node.dataset.action),
+        shows: picture.dataset.action,
+        loaded: picture.complete && picture.naturalWidth > 0,
+        tip,
+        tipError: Math.hypot(tip[0] - (box.left + box.width / 2 - 16), tip[1] - (box.top + 14)),
+        size: [image.width, image.height],
       };
     }),
+  );
+
+/** What the system is asked to draw at `at`: the document's action, and the
+ *  cursor the element there resolves to. */
+const pointerAt = (page, at) =>
+  page.evaluate(
+    ({ x, y }) => ({
+      action: document.documentElement.dataset.cursor,
+      cursor: getComputedStyle(document.elementFromPoint(x, y)).cursor,
+    }),
+    at,
   );
 
 export async function run(ctx) {
@@ -34,21 +39,12 @@ export async function run(ctx) {
   await ctx.openLab(page);
   const desktop = await geometry(page);
   ctx.check(
-    "every action keeps the arrow tip at the same pointer anchor",
+    "every action's picture loads, at native size, its tip at the same pointer anchor",
     desktop.length === 24 &&
       desktop.every(
-        (s) => s.tipError < 0.01 && s.arrowSize.every((v) => Math.abs(v - 22.4) < 0.01),
+        (s) => s.loaded && s.shows === s.action && s.tipError < 0.01 && s.size.join() === "32,32",
       ),
     JSON.stringify(desktop),
-  );
-  ctx.check(
-    "default has no badge; all other actions show exactly their one icon at the approved offset",
-    desktop.every((s) =>
-      s.action === "default"
-        ? s.badge === null && !s.icons.length
-        : s.badge.every((v, i) => Math.abs(v - [15.4, 13.3, 13.3, 13.3][i]) < 0.01) &&
-          s.icons.join() === s.action,
-    ),
   );
   const matrix = decode(await ctx.matchBaseline(page, "matrix-native-1280x800"));
   for (const s of desktop) {
@@ -74,37 +70,35 @@ export async function run(ctx) {
   const playfield = page.getByTestId("cursor-playfield");
   const box = await playfield.boundingBox();
   const at = { x: Math.round(box.x + 160), y: Math.round(box.y + 80) };
-  const before = decode(await page.screenshot({ path: ctx.evidencePath("pointer-absent.png") }));
   await page.mouse.move(at.x, at.y);
-  // The app cursor is mounted after the page, so it is the last one.
-  const moving = page.getByTestId("game-cursor").last();
+  const plain = await pointerAt(page, at);
   ctx.check(
-    "pointer motion places the real default cursor",
-    (await moving.isVisible()) && (await moving.locator(".game-cursor-badge").isHidden()),
-  );
-  const after = decode(await page.screenshot({ path: ctx.evidencePath("pointer-default.png") }));
-  ctx.check(
-    "the cursor actually changes the captured frame at the pointer",
-    mostChanged(before, after, [at.x + 10, at.y + 10], 24) > 100,
+    "the system draws the game's default arrow over the playfield, tip on the pointer",
+    plain.action === "default" &&
+      /^image-set\(url\("data:image\/svg\+xml,.*"\) 1(x|dppx), url\(".*"\) 2(x|dppx)\) 2 2, default$/.test(
+        plain.cursor,
+      ),
+    plain.cursor.slice(0, 80),
   );
   await page.getByRole("button", { name: "Garrison", exact: true }).click();
   await page.mouse.move(at.x + 80, at.y);
+  const garrison = await pointerAt(page, { x: at.x + 80, y: at.y });
   ctx.check(
-    "changing action and moving updates the one mounted cursor",
-    await moving.locator('[data-action="garrison"]').isVisible(),
+    "changing action and moving gives the system that action's own image",
+    garrison.action === "garrison" && garrison.cursor !== plain.cursor,
   );
-  await ctx.matchBaseline(page, "pointer-garrison");
   await page.mouse.move(30, 25);
+  const away = await pointerAt(page, { x: 30, y: 25 });
   ctx.check(
     "leaving the playfield keeps the arrow and drops its action",
-    (await moving.isVisible()) && (await moving.locator(".game-cursor-badge").isHidden()),
+    away.action === "default" && away.cursor === plain.cursor,
   );
   await page.setViewportSize({ width: 430, height: 1000 });
   await page.evaluate(() => window.__lab.frame());
   const narrow = await geometry(page);
   ctx.check(
     "narrow layout preserves native scale and has no horizontal overflow",
-    narrow.every((s) => s.tipError < 0.01 && s.arrowSize.every((v) => Math.abs(v - 22.4) < 0.01)) &&
+    narrow.every((s) => s.tipError < 0.01 && s.size.join() === "32,32") &&
       (await page.evaluate(() => document.querySelector(".cursor-lab").scrollWidth <= innerWidth)),
   );
   await pointerAway(page);

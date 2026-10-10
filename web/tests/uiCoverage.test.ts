@@ -34,7 +34,7 @@ const UNPINNED: Record<string, string> = {
   ReadoutLayer:
     "callouts placed over the live 3D battlefield; their panels are pinned by the panel workbench, their placement checked by scenes/readouts.mjs",
   AppCursor:
-    "the app shell's pointer: it draws GameCursor, pinned by the cursor lab, wherever the pointer is, as every hovered shot captures",
+    "the app shell's pointer: the system draws it, so no screenshot shows it; the cursor lab pins each action's image",
 };
 
 const ALIASES: [string, string][] = [
