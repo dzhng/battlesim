@@ -342,6 +342,23 @@
       }
     },
     {
+      "cost": 150,
+      "description": "Akeron MP; top attack, the gunner must keep sight",
+      "disabled_reason": null,
+      "family": "atgm_team",
+      "id": "europe_atgm_team_akeron_mp",
+      "name": "Akeron MP Team",
+      "planned_weapons": [],
+      "roster": {
+        "category": "inf",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "ATGM Team",
+        "variant": "Akeron MP"
+      }
+    },
+    {
       "cost": 170,
       "description": "APC; ground combat platform, passenger carriage not implemented",
       "disabled_reason": null,
@@ -645,6 +662,24 @@
         ],
         "family_name": "VBL",
         "variant": "Machine-gun scout"
+      }
+    },
+    {
+      "cost": 150,
+      "description": "FGM-148 Javelin; top attack, the gunner must keep sight",
+      "disabled_reason": null,
+      "family": "atgm_team",
+      "id": "fgm_148_javelin_team",
+      "name": "Javelin Team",
+      "planned_weapons": [],
+      "roster": {
+        "category": "inf",
+        "factions": [
+          "us",
+          "europe"
+        ],
+        "family_name": "ATGM Team",
+        "variant": "FGM-148 Javelin"
       }
     },
     {
@@ -1793,28 +1828,6 @@
       }
     },
     {
-      "cost": 150,
-      "description": "Akeron MP",
-      "disabled_reason": "Ground profile and model admission pending",
-      "family": "atgm_team",
-      "id": "europe_atgm_team_akeron_mp",
-      "name": "Akeron MP Team",
-      "planned_weapons": [
-        {
-          "icon": "atgm",
-          "name": "Akeron MP"
-        }
-      ],
-      "roster": {
-        "category": "inf",
-        "factions": [
-          "europe"
-        ],
-        "family_name": "ATGM Team",
-        "variant": "Akeron MP"
-      }
-    },
-    {
       "cost": 230,
       "description": "HC4",
       "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
@@ -2478,29 +2491,6 @@
         ],
         "family_name": "F-35 Lightning II",
         "variant": "F-35A"
-      }
-    },
-    {
-      "cost": 150,
-      "description": "FGM-148 Javelin",
-      "disabled_reason": "Ground profile and model admission pending",
-      "family": "atgm_team",
-      "id": "fgm_148_javelin_team",
-      "name": "Javelin Team",
-      "planned_weapons": [
-        {
-          "icon": "atgm",
-          "name": "Javelin"
-        }
-      ],
-      "roster": {
-        "category": "inf",
-        "factions": [
-          "us",
-          "europe"
-        ],
-        "family_name": "ATGM Team",
-        "variant": "FGM-148 Javelin"
       }
     },
     {
@@ -5149,6 +5139,97 @@
           ],
           "name": "Heavy Sniper"
         },
+        "europe_atgm_team_akeron_mp__at_rifleman": {
+          "appearance": [
+            "europe_atgm_team_akeron_mp_guard_a",
+            "europe_atgm_team_akeron_mp_guard_b",
+            "europe_atgm_team_akeron_mp_guard_c"
+          ],
+          "description": "A rifleman of an anti-tank team.",
+          "hp": 100.0,
+          "mounts": [
+            {
+              "id": "rifles",
+              "muzzle_m": null,
+              "name": "Rifle",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": false,
+              "squad": true,
+              "turret": false,
+              "weapons": [
+                "rifle"
+              ]
+            }
+          ],
+          "name": "AT rifleman"
+        },
+        "europe_atgm_team_akeron_mp__roster_akeron_gunner": {
+          "appearance": [
+            "europe_atgm_team_akeron_mp_guard_a",
+            "europe_atgm_team_akeron_mp_guard_b",
+            "europe_atgm_team_akeron_mp_guard_c"
+          ],
+          "description": "One shoulder-fired top-attack launcher with ordinary guards.",
+          "hp": 100.0,
+          "mounts": [
+            {
+              "id": "rifles",
+              "muzzle_m": null,
+              "name": "Rifle",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": false,
+              "squad": true,
+              "turret": false,
+              "weapons": [
+                "rifle"
+              ]
+            },
+            {
+              "id": "launcher",
+              "muzzle_m": null,
+              "name": "Akeron MP",
+              "on": null,
+              "operator_appearance": {
+                "active": [
+                  "europe_atgm_team_akeron_mp_active_a",
+                  "europe_atgm_team_akeron_mp_active_b",
+                  "europe_atgm_team_akeron_mp_active_c"
+                ],
+                "active_pose": {
+                  "clip": "stand_aim",
+                  "phase": 0.0
+                },
+                "carried": [
+                  "europe_atgm_team_akeron_mp_carried_a",
+                  "europe_atgm_team_akeron_mp_carried_b",
+                  "europe_atgm_team_akeron_mp_carried_c"
+                ]
+              },
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": true,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "akeron_mp"
+              ]
+            }
+          ],
+          "name": "Akeron gunner"
+        },
         "europe_marksman_squad_longer_range_infantry__roster_marksman_rifle_1": {
           "appearance": [
             "europe_marksman_squad_longer_range_infantry_active_a",
@@ -5351,6 +5432,97 @@
             }
           ],
           "name": "Scout"
+        },
+        "fgm_148_javelin_team__at_rifleman": {
+          "appearance": [
+            "fgm_148_javelin_team_guard_a",
+            "fgm_148_javelin_team_guard_b",
+            "fgm_148_javelin_team_guard_c"
+          ],
+          "description": "A rifleman of an anti-tank team.",
+          "hp": 100.0,
+          "mounts": [
+            {
+              "id": "rifles",
+              "muzzle_m": null,
+              "name": "Rifle",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": false,
+              "squad": true,
+              "turret": false,
+              "weapons": [
+                "rifle"
+              ]
+            }
+          ],
+          "name": "AT rifleman"
+        },
+        "fgm_148_javelin_team__roster_javelin_gunner": {
+          "appearance": [
+            "fgm_148_javelin_team_guard_a",
+            "fgm_148_javelin_team_guard_b",
+            "fgm_148_javelin_team_guard_c"
+          ],
+          "description": "One shoulder-fired top-attack launcher with ordinary guards.",
+          "hp": 100.0,
+          "mounts": [
+            {
+              "id": "rifles",
+              "muzzle_m": null,
+              "name": "Rifle",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": false,
+              "squad": true,
+              "turret": false,
+              "weapons": [
+                "rifle"
+              ]
+            },
+            {
+              "id": "launcher",
+              "muzzle_m": null,
+              "name": "Javelin",
+              "on": null,
+              "operator_appearance": {
+                "active": [
+                  "fgm_148_javelin_team_active_a",
+                  "fgm_148_javelin_team_active_b",
+                  "fgm_148_javelin_team_active_c"
+                ],
+                "active_pose": {
+                  "clip": "stand_aim",
+                  "phase": 0.0
+                },
+                "carried": [
+                  "fgm_148_javelin_team_carried_a",
+                  "fgm_148_javelin_team_carried_b",
+                  "fgm_148_javelin_team_carried_c"
+                ]
+              },
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": true,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "javelin"
+              ]
+            }
+          ],
+          "name": "Javelin gunner"
         },
         "rifle_squad__grenadier": {
           "appearance": [
@@ -8433,22 +8605,30 @@
           }
         },
         "europe_atgm_team_akeron_mp": {
+          "body": {
+            "squad": {
+              "slots": [
+                "europe_atgm_team_akeron_mp__roster_akeron_gunner",
+                "europe_atgm_team_akeron_mp__at_rifleman",
+                "europe_atgm_team_akeron_mp__at_rifleman"
+              ]
+            }
+          },
+          "capabilities": {},
           "cost": 150,
-          "description": "Akeron MP",
+          "description": "Akeron MP; top attack, the gunner must keep sight",
           "faction": "europe",
           "family": "atgm_team",
-          "name": "Akeron MP Team",
-          "planned": {
-            "profile": "at-team",
-            "reason": "Ground profile and model admission pending",
-            "weapons": [
-              {
-                "icon": "atgm",
-                "name": "Akeron MP"
-              }
-            ]
+          "mobility": {
+            "foot": {
+              "offroad_kmh": 10.0,
+              "road_kmh": 12.0
+            }
           },
-          "roles": [],
+          "name": "Akeron MP Team",
+          "roles": [
+            "at"
+          ],
           "roster": {
             "category": "inf",
             "factions": [
@@ -8456,6 +8636,18 @@
             ],
             "family_name": "ATGM Team",
             "variant": "Akeron MP"
+          },
+          "sensors": {
+            "ground_m": 600.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 1.0,
+              "side": 1.0
+            }
+          },
+          "sound": {
+            "loudness_m": 200.0,
+            "profile": "infantry"
           }
         },
         "europe_aw101_merlin_hc4": {
@@ -10962,22 +11154,30 @@
           }
         },
         "fgm_148_javelin_team": {
+          "body": {
+            "squad": {
+              "slots": [
+                "fgm_148_javelin_team__roster_javelin_gunner",
+                "fgm_148_javelin_team__at_rifleman",
+                "fgm_148_javelin_team__at_rifleman"
+              ]
+            }
+          },
+          "capabilities": {},
           "cost": 150,
-          "description": "FGM-148 Javelin",
+          "description": "FGM-148 Javelin; top attack, the gunner must keep sight",
           "faction": "us",
           "family": "atgm_team",
-          "name": "Javelin Team",
-          "planned": {
-            "profile": "at-team",
-            "reason": "Ground profile and model admission pending",
-            "weapons": [
-              {
-                "icon": "atgm",
-                "name": "Javelin"
-              }
-            ]
+          "mobility": {
+            "foot": {
+              "offroad_kmh": 10.0,
+              "road_kmh": 12.0
+            }
           },
-          "roles": [],
+          "name": "Javelin Team",
+          "roles": [
+            "at"
+          ],
           "roster": {
             "category": "inf",
             "factions": [
@@ -10986,6 +11186,18 @@
             ],
             "family_name": "ATGM Team",
             "variant": "FGM-148 Javelin"
+          },
+          "sensors": {
+            "ground_m": 600.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 1.0,
+              "side": 1.0
+            }
+          },
+          "sound": {
+            "loudness_m": 200.0,
+            "profile": "infantry"
           }
         },
         "fim_92_stinger_team": {
@@ -15592,6 +15804,97 @@
       ],
       "name": "Heavy Sniper"
     },
+    "europe_atgm_team_akeron_mp__at_rifleman": {
+      "appearance": [
+        "europe_atgm_team_akeron_mp_guard_a",
+        "europe_atgm_team_akeron_mp_guard_b",
+        "europe_atgm_team_akeron_mp_guard_c"
+      ],
+      "description": "A rifleman of an anti-tank team.",
+      "hp": 100.0,
+      "mounts": [
+        {
+          "id": "rifles",
+          "muzzle_m": null,
+          "name": "Rifle",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": false,
+          "squad": true,
+          "turret": false,
+          "weapons": [
+            "rifle"
+          ]
+        }
+      ],
+      "name": "AT rifleman"
+    },
+    "europe_atgm_team_akeron_mp__roster_akeron_gunner": {
+      "appearance": [
+        "europe_atgm_team_akeron_mp_guard_a",
+        "europe_atgm_team_akeron_mp_guard_b",
+        "europe_atgm_team_akeron_mp_guard_c"
+      ],
+      "description": "One shoulder-fired top-attack launcher with ordinary guards.",
+      "hp": 100.0,
+      "mounts": [
+        {
+          "id": "rifles",
+          "muzzle_m": null,
+          "name": "Rifle",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": false,
+          "squad": true,
+          "turret": false,
+          "weapons": [
+            "rifle"
+          ]
+        },
+        {
+          "id": "launcher",
+          "muzzle_m": null,
+          "name": "Akeron MP",
+          "on": null,
+          "operator_appearance": {
+            "active": [
+              "europe_atgm_team_akeron_mp_active_a",
+              "europe_atgm_team_akeron_mp_active_b",
+              "europe_atgm_team_akeron_mp_active_c"
+            ],
+            "active_pose": {
+              "clip": "stand_aim",
+              "phase": 0.0
+            },
+            "carried": [
+              "europe_atgm_team_akeron_mp_carried_a",
+              "europe_atgm_team_akeron_mp_carried_b",
+              "europe_atgm_team_akeron_mp_carried_c"
+            ]
+          },
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "akeron_mp"
+          ]
+        }
+      ],
+      "name": "Akeron gunner"
+    },
     "europe_marksman_squad_longer_range_infantry__roster_marksman_rifle_1": {
       "appearance": [
         "europe_marksman_squad_longer_range_infantry_active_a",
@@ -15794,6 +16097,97 @@
         }
       ],
       "name": "Scout"
+    },
+    "fgm_148_javelin_team__at_rifleman": {
+      "appearance": [
+        "fgm_148_javelin_team_guard_a",
+        "fgm_148_javelin_team_guard_b",
+        "fgm_148_javelin_team_guard_c"
+      ],
+      "description": "A rifleman of an anti-tank team.",
+      "hp": 100.0,
+      "mounts": [
+        {
+          "id": "rifles",
+          "muzzle_m": null,
+          "name": "Rifle",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": false,
+          "squad": true,
+          "turret": false,
+          "weapons": [
+            "rifle"
+          ]
+        }
+      ],
+      "name": "AT rifleman"
+    },
+    "fgm_148_javelin_team__roster_javelin_gunner": {
+      "appearance": [
+        "fgm_148_javelin_team_guard_a",
+        "fgm_148_javelin_team_guard_b",
+        "fgm_148_javelin_team_guard_c"
+      ],
+      "description": "One shoulder-fired top-attack launcher with ordinary guards.",
+      "hp": 100.0,
+      "mounts": [
+        {
+          "id": "rifles",
+          "muzzle_m": null,
+          "name": "Rifle",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": false,
+          "squad": true,
+          "turret": false,
+          "weapons": [
+            "rifle"
+          ]
+        },
+        {
+          "id": "launcher",
+          "muzzle_m": null,
+          "name": "Javelin",
+          "on": null,
+          "operator_appearance": {
+            "active": [
+              "fgm_148_javelin_team_active_a",
+              "fgm_148_javelin_team_active_b",
+              "fgm_148_javelin_team_active_c"
+            ],
+            "active_pose": {
+              "clip": "stand_aim",
+              "phase": 0.0
+            },
+            "carried": [
+              "fgm_148_javelin_team_carried_a",
+              "fgm_148_javelin_team_carried_b",
+              "fgm_148_javelin_team_carried_c"
+            ]
+          },
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "javelin"
+          ]
+        }
+      ],
+      "name": "Javelin gunner"
     },
     "rifle_squad__grenadier": {
       "appearance": [
@@ -18425,6 +18819,113 @@
       }
     },
     {
+      "body": {
+        "squad": {
+          "slots": [
+            "europe_atgm_team_akeron_mp__roster_akeron_gunner",
+            "europe_atgm_team_akeron_mp__at_rifleman",
+            "europe_atgm_team_akeron_mp__at_rifleman"
+          ]
+        }
+      },
+      "capabilities": {},
+      "cost": 150,
+      "description": "Akeron MP; top attack, the gunner must keep sight",
+      "faction": "europe",
+      "family": "atgm_team",
+      "id": "europe_atgm_team_akeron_mp",
+      "mobility": {
+        "foot": {
+          "offroad_kmh": 10.0,
+          "road_kmh": 12.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [
+            0,
+            1,
+            2
+          ],
+          "id": "rifles",
+          "muzzle_m": null,
+          "name": "Rifle",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": false,
+          "squad": true,
+          "turret": false,
+          "weapons": [
+            "rifle"
+          ]
+        },
+        {
+          "carriers": [
+            0
+          ],
+          "id": "launcher",
+          "muzzle_m": null,
+          "name": "Akeron MP",
+          "on": null,
+          "operator_appearance": {
+            "active": [
+              "europe_atgm_team_akeron_mp_active_a",
+              "europe_atgm_team_akeron_mp_active_b",
+              "europe_atgm_team_akeron_mp_active_c"
+            ],
+            "active_pose": {
+              "clip": "stand_aim",
+              "phase": 0.0
+            },
+            "carried": [
+              "europe_atgm_team_akeron_mp_carried_a",
+              "europe_atgm_team_akeron_mp_carried_b",
+              "europe_atgm_team_akeron_mp_carried_c"
+            ]
+          },
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "akeron_mp"
+          ]
+        }
+      ],
+      "name": "Akeron MP Team",
+      "roles": [
+        "at"
+      ],
+      "roster": {
+        "category": "inf",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "ATGM Team",
+        "variant": "Akeron MP"
+      },
+      "sensors": {
+        "ground_m": 600.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 1.0,
+          "side": 1.0
+        }
+      },
+      "sound": {
+        "loudness_m": 200.0,
+        "profile": "infantry"
+      }
+    },
+    {
       "appearance": "europe_boxer_apc",
       "body": {
         "hull": {
@@ -20340,6 +20841,114 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
+      }
+    },
+    {
+      "body": {
+        "squad": {
+          "slots": [
+            "fgm_148_javelin_team__roster_javelin_gunner",
+            "fgm_148_javelin_team__at_rifleman",
+            "fgm_148_javelin_team__at_rifleman"
+          ]
+        }
+      },
+      "capabilities": {},
+      "cost": 150,
+      "description": "FGM-148 Javelin; top attack, the gunner must keep sight",
+      "faction": "us",
+      "family": "atgm_team",
+      "id": "fgm_148_javelin_team",
+      "mobility": {
+        "foot": {
+          "offroad_kmh": 10.0,
+          "road_kmh": 12.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [
+            0,
+            1,
+            2
+          ],
+          "id": "rifles",
+          "muzzle_m": null,
+          "name": "Rifle",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": false,
+          "squad": true,
+          "turret": false,
+          "weapons": [
+            "rifle"
+          ]
+        },
+        {
+          "carriers": [
+            0
+          ],
+          "id": "launcher",
+          "muzzle_m": null,
+          "name": "Javelin",
+          "on": null,
+          "operator_appearance": {
+            "active": [
+              "fgm_148_javelin_team_active_a",
+              "fgm_148_javelin_team_active_b",
+              "fgm_148_javelin_team_active_c"
+            ],
+            "active_pose": {
+              "clip": "stand_aim",
+              "phase": 0.0
+            },
+            "carried": [
+              "fgm_148_javelin_team_carried_a",
+              "fgm_148_javelin_team_carried_b",
+              "fgm_148_javelin_team_carried_c"
+            ]
+          },
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "javelin"
+          ]
+        }
+      ],
+      "name": "Javelin Team",
+      "roles": [
+        "at"
+      ],
+      "roster": {
+        "category": "inf",
+        "factions": [
+          "us",
+          "europe"
+        ],
+        "family_name": "ATGM Team",
+        "variant": "FGM-148 Javelin"
+      },
+      "sensors": {
+        "ground_m": 600.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 1.0,
+          "side": 1.0
+        }
+      },
+      "sound": {
+        "loudness_m": 200.0,
+        "profile": "infantry"
       }
     },
     {
@@ -22685,6 +23294,45 @@
       "trajectory": "direct",
       "turn_deg_s": null
     },
+    "akeron_mp": {
+      "accel_mps2": 140.0,
+      "aim_s": 3.0,
+      "ammo": 4,
+      "anti_armor": true,
+      "armor_fraction": 0.0,
+      "armor_piercing": false,
+      "blast_radius_m": 4.0,
+      "damage": 55.0,
+      "default": false,
+      "description": "Top-attack anti-tank missile: it climbs, then dives onto the roof; the gunner must keep sight.",
+      "gravity_scale": 1.0,
+      "guidance": "stationary",
+      "icon": "atgm",
+      "interceptable": true,
+      "lifetime_s": 12.0,
+      "magazine": null,
+      "min_range_m": 100.0,
+      "name": "Akeron MP",
+      "near_miss_suppression": 0.3,
+      "penetration": 200.0,
+      "range_m": 900.0,
+      "reload_s": 9.0,
+      "scatter_mrad": 0.5,
+      "speed_mps": 50.0,
+      "stationary": true,
+      "structural_damage": 100.0,
+      "suppression_radius_m": 10.0,
+      "targets": [
+        "ground"
+      ],
+      "top_attack": {
+        "dive_deg": 40.0,
+        "loft_m": 60.0
+      },
+      "top_speed_mps": 200.0,
+      "trajectory": "direct",
+      "turn_deg_s": 360.0
+    },
     "assault_rifle": {
       "accel_mps2": null,
       "aim_s": 0.8,
@@ -23120,6 +23768,45 @@
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
+    },
+    "javelin": {
+      "accel_mps2": 140.0,
+      "aim_s": 3.0,
+      "ammo": 4,
+      "anti_armor": true,
+      "armor_fraction": 0.0,
+      "armor_piercing": false,
+      "blast_radius_m": 4.0,
+      "damage": 55.0,
+      "default": false,
+      "description": "Top-attack anti-tank missile: it climbs, then dives onto the roof; the gunner must keep sight.",
+      "gravity_scale": 1.0,
+      "guidance": "stationary",
+      "icon": "atgm",
+      "interceptable": true,
+      "lifetime_s": 12.0,
+      "magazine": null,
+      "min_range_m": 100.0,
+      "name": "Javelin",
+      "near_miss_suppression": 0.3,
+      "penetration": 200.0,
+      "range_m": 800.0,
+      "reload_s": 9.0,
+      "scatter_mrad": 0.5,
+      "speed_mps": 50.0,
+      "stationary": true,
+      "structural_damage": 100.0,
+      "suppression_radius_m": 10.0,
+      "targets": [
+        "ground"
+      ],
+      "top_attack": {
+        "dive_deg": 40.0,
+        "loft_m": 60.0
+      },
+      "top_speed_mps": 200.0,
+      "trajectory": "direct",
+      "turn_deg_s": 360.0
     },
     "kornet": {
       "accel_mps2": 140.0,

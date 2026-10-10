@@ -137,10 +137,12 @@
     },
     "fgm_148_javelin_team": {
       "name": "Javelin Team",
-      "description": "FGM-148 Javelin",
+      "description": "FGM-148 Javelin; top attack, the gunner must keep sight",
       "faction": "us",
       "family": "atgm_team",
-      "roles": [],
+      "roles": [
+        "at"
+      ],
       "cost": 150,
       "roster": {
         "factions": [
@@ -151,15 +153,15 @@
         "variant": "FGM-148 Javelin",
         "family_name": "ATGM Team"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "at-team",
-        "weapons": [
-          {
-            "name": "Javelin",
-            "icon": "atgm"
-          }
-        ]
+      "extends": "roster_profile_at_team",
+      "body": {
+        "squad": {
+          "slots": [
+            "fgm_148_javelin_team__roster_javelin_gunner",
+            "fgm_148_javelin_team__at_rifleman",
+            "fgm_148_javelin_team__at_rifleman"
+          ]
+        }
       }
     },
     "fim_92_stinger_team": {

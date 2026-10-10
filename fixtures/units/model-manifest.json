@@ -318,17 +318,6 @@
       "source_path": "assets/source/roster/disabled/eastern_z_20_utility_transport.glb"
     },
     {
-      "id": "europe_atgm_team_akeron_mp",
-      "family": "atgm_team",
-      "category": "inf",
-      "model_status": "reference_built",
-      "source_family": "europe_atgm_team_akeron_mp",
-      "source_kind": "infantry",
-      "disabled_reason": "Ground profile and model admission pending",
-      "source_path": "assets/source/roster/infantry/europe_atgm_team_akeron_mp/active_a.glb",
-      "skeleton": "quaternius-ubc-launcher"
-    },
-    {
       "id": "europe_aw101_merlin_hc4",
       "family": "aw101_merlin",
       "category": "hel",
@@ -597,17 +586,6 @@
       "source_kind": "aircraft",
       "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
       "source_path": "assets/source/roster/disabled/f_35a.glb"
-    },
-    {
-      "id": "fgm_148_javelin_team",
-      "family": "atgm_team",
-      "category": "inf",
-      "model_status": "reference_built",
-      "source_family": "fgm_148_javelin_team",
-      "source_kind": "infantry",
-      "disabled_reason": "Ground profile and model admission pending",
-      "source_path": "assets/source/roster/infantry/fgm_148_javelin_team/active_a.glb",
-      "skeleton": "quaternius-ubc-launcher"
     },
     {
       "id": "fim_92_stinger_team",
