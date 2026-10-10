@@ -12,11 +12,11 @@ its 30 mm, smoke tubes in two banks of four on its cheeks, the sight head
 and hatches on its roof; the grab rails, roof hatches over the troop
 compartment, rear door and the two water-jet housings low on the rear.
 
-Built to the catalog frame (hull 8.0 x 3.0 x 2.8 m): the photos put the
-turret ring about 1 m behind amidships and its muzzle about 2.5 m ahead of
-it; the frame puts the ring amidships and the muzzle 4.25 m out (past the
-bow). Nothing here moves it: the turret is drawn on the frame's pivot and
-the barrel to its muzzle (specs/done/unit-models/choices.md).
+Built to the catalog frame (hull 8.0 x 3.0 x 2.8 m): the turret ring 0.9 m
+behind amidships, where the photos put it, the troop hatches behind it. The
+photos put the muzzle about 2.5 m ahead of the ring; the frame puts it
+4.25 m out, and the barrel is drawn to the frame's muzzle
+(specs/done/unit-models/choices.md).
 """
 import math
 import os
@@ -114,8 +114,8 @@ def fittings(v):
                             bevel=0.012)
         box(f"grab_rail_{s}", (2.40, 0.04, 0.04), (-1.60, side * 1.38, ROOF + 0.10), m["steel"], hull, lods=NEAR)
     VP.exhaust("exhaust", (2.10, -1.52, 2.00), 0.07, 0.35, m, hull, rot=(0, 0, -math.pi / 2))
-    for k, (x, y) in enumerate(((-1.95, 0.60), (-1.95, -0.60), (-3.05, 0.60), (-3.05, -0.60))):
-        VP.hatch(f"troop_hatch_{k}", (x, y, ROOF), m, hull, size=(0.80, 0.62))
+    for k, (x, y) in enumerate(((-2.85, 0.60), (-2.85, -0.60), (-3.55, 0.60), (-3.55, -0.60))):
+        VP.hatch(f"troop_hatch_{k}", (x, y, ROOF), m, hull, size=(0.66, 0.62))
     box("rear_door", (0.05, 1.10, 1.10), (-3.99, 0, 1.70), m["paint"], hull, bevel=0.02)
     box("rear_door_glass", (0.02, 0.16, 0.08), (-4.01, 0, 2.05), m["glass"], hull, lods=NEAR)
     for side, s in ((1, "L"), (-1, "R")):
