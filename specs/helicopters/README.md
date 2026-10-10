@@ -1,6 +1,6 @@
 # Helicopters
 
-**Status:** in progress: slices 01–06 and 14 done, and slice 07's weapon layers. **Updated:** 2026-10-10.
+**Status:** in progress: slices 01–06, 14 and 17b done, and slice 07's weapon layers. **Updated:** 2026-10-10.
 
 ## Next Agent Prompt
 
@@ -19,6 +19,7 @@ You are implementing helicopters. Read [decisions](decisions.md) first. Its D1�
 - **09:** `heli_atgm` (guides on the move, by its row's `guidance`) and `rocket_pod`; guided rows must state `guidance`.
 - **02:** variant D, the keyed disc, was picked at the checkpoint ([result](slices/02-contact-sign-spike.md#result)).
 - **06:** `test_heli` (`fixtures/units/test/aircraft.json`, art by `test_heli.py`) hovers on `/lab/air-hover` (the `air` test map). Rotors turn by the articulation's `rotor` input (tip metres swept) over each rotor's reach; hull fit leaves `rotor_*`/`blade_*` out; culling sweeps the disc and keeps an airframe whose shadow is in view; air hulls raise no dust and roll nothing; `vehicleClass` is `air_<weight>`.
+- **17b:** helicopters sound their rotor (`effects.rotor` → `recorded-rotor-uh60`, a 50-blade-pass loop of US Army UH-60 B-roll) from the `engine` slot of the `air_light`/`air_medium`/`air_heavy` rows, so a hovering helicopter still sounds; levels still to be confirmed by ear.
 
 **Warnings:**
 - **Harmless plinking is a feature.** Rifles and MGs fire at helicopters they can't hurt (D2). Never gate it.
@@ -46,7 +47,7 @@ You are implementing helicopters. Read [decisions](decisions.md) first. Its D1�
 - [ ] [15 — The Apache, on real art](slices/15-apache.md)
 - [ ] [16 — The other 18 helicopters](slices/16-roster.md)
 - [ ] [17 — Skirmish: entry and AI](slices/17-skirmish.md)
-- [ ] [17b — Rotor sound](slices/17b-rotor-sound.md)
+- [x] [17b — Rotor sound](slices/17b-rotor-sound.md)
 - [ ] [18 — Closing scene (D14) and closeout](slices/18-closing-scene.md)
 
 ## Goal

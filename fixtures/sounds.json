@@ -521,6 +521,15 @@
       "path": "assets/third-party/audio/freesound-438120-tracks-craigsmith-m4-squeaky.mp3",
       "sha256": "0b6df2f8b199a55153c744446f863754dff7194483cb66808d770865e7e62d30",
       "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login."
+    },
+    "uh60-b-roll": {
+      "label": "UH-60 Blackhawk B-Roll",
+      "author": "Master Sgt. Jason Stadel / U.S. Army",
+      "license": "Public-Domain-US-Gov",
+      "url": "https://www.youtube.com/watch?v=vvB-8c9KX-c",
+      "path": "assets/third-party/audio/uh60-blackhawk-b-roll.flac",
+      "sha256": "8af59d49b12878a2e3c56b52e72eed2dbb9a8ad6d1d4756f255ef8ca735b9384",
+      "notes": "Government field footage credited to Master Sgt. Jason Stadel (taken 2017-08-01), rehosted by Bridget Bosch. YouTube audio decoded to 48 kHz stereo FLAC. No voices or music. Edited B-roll: picture and sound cut near 4.0, 8.9, 17.5 and 23.0 s."
     }
   },
   "clips": {
@@ -4297,6 +4306,24 @@
       "frames": 139200,
       "loop": true,
       "notes": "Hollywood optical effect (1930s-60s, USC transfer): M-4 pass by, squeaky clacking treads. Its steadiest 3 s, crossfaded into a loop."
+    },
+    "rotor-uh60": {
+      "label": "UH-60 rotor · running loop",
+      "category": "rotor",
+      "role": "loop",
+      "source": "uh60-b-roll",
+      "source_rate": 48000,
+      "source_frames": [
+        950400,
+        1094400
+      ],
+      "processing": "running-gear",
+      "url": "/audio/clips/rotor-uh60.wav",
+      "sha256": "1ba52497c58249870aad73e3bab269d448bd9ceaf85e13c19452389d1a4e554e",
+      "sample_rate": 48000,
+      "frames": 139200,
+      "loop": true,
+      "notes": "The take's steadiest stretch with a clear blade pass (17.2 Hz: four blades at 258 rpm). Its loop is exactly 50 blade passes, so the crossfaded seam keeps the beat."
     }
   },
   "sounds": {
@@ -5597,6 +5624,24 @@
       "synth_gain": 0,
       "gain": 1,
       "loop": true
+    },
+    "rotor": {
+      "label": "Synth · rotor",
+      "clips": [],
+      "synth": "rotor",
+      "synth_gain": 1,
+      "gain": 1,
+      "loop": true
+    },
+    "recorded-rotor-uh60": {
+      "label": "Rotor · UH-60 Blackhawk B-Roll (US Army)",
+      "clips": [
+        "rotor-uh60"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 1,
+      "loop": true
     }
   },
   "defaults": {
@@ -5674,6 +5719,7 @@
     "explosion_far": "recorded-explosion",
     "motor": "recorded-motor",
     "footstep": "recorded-footstep-boots-gravel-fission9",
-    "tracks": "recorded-tracks-craigsmith-tanks-close"
+    "tracks": "recorded-tracks-craigsmith-tanks-close",
+    "rotor": "recorded-rotor-uh60"
   }
 }

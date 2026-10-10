@@ -72,3 +72,14 @@ test("each kind of hull the game fields has its own engine sound and track gauge
     expect(gamePose.gauge[cls], cls).toBeDefined();
   }
 });
+
+test("each weight of airframe has its own rotor sound row", () => {
+  for (const weight of ["light", "medium", "heavy"] as const) {
+    const cls = vehicleClass({
+      body: { hull: { weight_class: weight } as Hull },
+      mobility: { air: { cruise_kmh: 220, turn_deg_s: 90, climb_mps: 6 } },
+      roles: ["light_vehicle"],
+    })!;
+    expect(gameAudio.vehicles[cls], cls).toBeDefined();
+  }
+});
