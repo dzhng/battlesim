@@ -29,7 +29,14 @@ finishes unmounting the previous page.
 The main menu starts fresh generated skirmishes, opens replays and teaches the
 game: [the tutorial](src/Tutorial.tsx) reads its economy and command keys from
 the skirmish rules and command bindings, and its prose must follow the simulation's
-rules when they change. It is
+rules when they change. Its pictures are not hand-shot: [the tutorial shots
+tool](../../web/tutorial-shots.mjs) plays one seeded skirmish with the faction roster
+through the ordinary picker, cursor and orders, finds each moment by what the
+observation shows, and writes stills and gesture loops to the served
+`assets/runtime/tutorial/`. They show the game as it was drawn, so a change to
+the look, the HUD, the generator or the rules is followed by rerunning it and
+reviewing the pictures; the tool's header says how. A moment the battle no
+longer reaches fails by name rather than shooting something else. It is
 one plate over its backdrop, with title-only entries over generated military art.
 Opening a page replaces the plate's contents under a
 Back button, and Escape is Back, so the film behind never changes. A menu address asking for a battle opens on the

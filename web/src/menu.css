@@ -226,14 +226,28 @@
 .hud-panel a.menu-card[aria-disabled="true"] .menu-card-label {
   opacity: 0.32;
 }
+/* The tutorial's plate is wider, for its pictures, and stands centred in a
+   screen that never scrolls: it is never taller than the screen, and the guide
+   scrolls inside it under the Back button. */
+.menu[data-open="tutorial"] {
+  overflow: hidden;
+  align-items: center;
+  padding-block: 32px;
+}
+.menu[data-open="tutorial"] .hud-panel.menu-body {
+  width: min(760px, 100%);
+  max-height: calc(100dvh - 64px);
+  grid-template-rows: auto minmax(0, 1fr);
+}
 /* The tutorial: a briefing read in the plate, scrolling under its Back
    button, its sections headed in the plate's tracked caps and its keys drawn
    as small holo keycaps. */
 .menu-tutorial {
   display: grid;
   gap: 18px;
-  max-height: min(60vh, 640px);
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
   margin-right: -12px;
   padding: 10px 12px 28px 0;
   /* Lines fade into the scroll's edges rather than being cut off. */
@@ -275,6 +289,30 @@
   width: 6px;
   height: 2px;
   background: rgb(var(--hud-accent));
+}
+/* A picture of the moment, its caption small and dim beneath it. */
+.menu-tutorial figure {
+  display: grid;
+  gap: 7px;
+  margin: 6px 0 12px;
+}
+/* The picture in the HUD's own projected frame (`.hud-panel`). A still keeps
+   the shape of what it shows; a loop is a fixed 16:9, set before it loads. */
+.menu-shot {
+  position: relative;
+}
+.menu-shot :is(img, video) {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.menu-shot video {
+  aspect-ratio: 16 / 9;
+}
+.menu-tutorial figcaption {
+  font-size: 12px;
+  line-height: 1.45;
+  color: rgb(var(--hud-text) / 0.66);
 }
 .menu-tutorial strong {
   color: #fff;

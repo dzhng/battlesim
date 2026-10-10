@@ -2,7 +2,8 @@
 // before the first shot to the last flag. The economy's numbers are read from
 // the skirmish rules and the command keys from their bindings, so the
 // guide says what the game does; the rest describes rules owned by the
-// simulation (objectives, preparation, purchases) and must follow them.
+// simulation (objectives, preparation, purchases) and must follow them. Its
+// pictures are drawn from a real skirmish by `web/tutorial-shots.mjs`.
 import type { ReactNode } from "react";
 import skirmish from "@fixtures/skirmish.json";
 import {
@@ -24,6 +25,31 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
+/** A picture of the moment the text describes: a still, or a gesture's
+ *  silent loop. The caption says what it shows. */
+function Shot({
+  name,
+  loop = false,
+  children,
+}: {
+  name: string;
+  loop?: boolean;
+  children: string;
+}) {
+  return (
+    <figure>
+      <div className="hud-panel menu-shot">
+        {loop ? (
+          <video src={`/tutorial/${name}.mp4`} autoPlay loop muted playsInline />
+        ) : (
+          <img src={`/tutorial/${name}.jpg`} alt="" />
+        )}
+      </div>
+      <figcaption>{children}</figcaption>
+    </figure>
+  );
+}
+
 export function Tutorial() {
   return (
     <article className="menu-tutorial" aria-label="How to play" tabIndex={0}>
@@ -34,6 +60,10 @@ export function Tutorial() {
           ones). Take them, hold them, and your <strong>victory score</strong> climbs towards{" "}
           <strong>1,000</strong>. The first side to reach it wins.
         </p>
+        <Shot name="overview">
+          A battle opening: the town and its three numbered objectives, under the preparation
+          countdown and the order to start.
+        </Shot>
         <p>
           Your opponent is a computer commander with the same rules, the same income and the same
           shop as you. Destroying its forces does not win by itself; it wins you the ground.
@@ -143,6 +173,14 @@ export function Tutorial() {
             to where you placed it, so place reinforcements where the road can bring them.
           </li>
         </ul>
+        <Shot name="buy">
+          The vehicles tab, the M1 Abrams family fanned out above its card: each variant&apos;s
+          weapons, ammunition and price.
+        </Shot>
+        <Shot name="place" loop>
+          Placing a rifle squad: its ghost shows where each soldier will stand. Over a building the
+          squad can&apos;t stand in, the ghost turns orange and a small red cross marks the cursor.
+        </Shot>
         <p>
           Spend for a balanced force. Cheap reconnaissance finds the enemy, infantry holds towns and
           woods, armour wins open ground, and one or two supply trucks keep everything fighting.
@@ -204,6 +242,10 @@ export function Tutorial() {
             <kbd>{CommandBindings.stop.label}</kbd> stops the selection where it stands.
           </li>
         </ul>
+        <Shot name="move" loop>
+          A right-drag: press where the tank should go, drag the way it should face, and its ghost
+          shows both. Release, and it drives there.
+        </Shot>
       </Section>
 
       <Section title="Fighting">
@@ -284,6 +326,10 @@ export function Tutorial() {
             shows only what your side knows.
           </li>
         </ul>
+        <Shot name="contact">
+          Identified enemies, named in red, and a contact: a red area where an enemy was heard or
+          last seen.
+        </Shot>
       </Section>
 
       <Section title="Staying alive">
@@ -337,6 +383,9 @@ export function Tutorial() {
             <strong>Draw</strong> when the battle ends.
           </li>
         </ul>
+        <Shot name="capture">
+          Your unit alone in an objective&apos;s ring: its flag counts the capture up.
+        </Shot>
         <p>
           Grab the nearest objectives early with fast units, then hold more than half. Scout ahead
           so you find the enemy before it finds you, keep your score ticking, and strike at the
