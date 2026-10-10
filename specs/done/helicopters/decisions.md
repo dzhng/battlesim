@@ -1,8 +1,7 @@
 # Helicopters: decision ledger
 
-Givens for every slice. They come from the 2026-10-10 walk with the user
-(`explore-unknowns`) and from the plan synthesis. Don't reopen them inside a slice; a
-change needs the user and an update here.
+The rules the build held to. They came from the 2026-10-10 walk with the user
+(`explore-unknowns`) and from the plan synthesis. Changing one needs the user.
 
 Who closed each one: **U** the user, **T** the code and data, **A** the agent on the
 user's behalf under the delegation below.
@@ -18,7 +17,7 @@ user's behalf under the delegation below.
 | D5 | Every armour face is at least 10. Light/utility/heavy are 15 on every face; attack is 25/15/15/10; armoured is 30/25/20/15. HP: light 150, utility 200, heavy 250, attack 250, armoured 300. | U | Autocannon kills in 2–3 hits, HMG in 8–13, rifles do nothing. First pass; balance comes in a later spec. |
 | D6 | No collisions in the air. Overlapping helicopters get a soft separation push. | U | Looks better than clipping; avoids complexity. |
 | D7 | It turns on the spot when hovering. Cruise is about 2–3 times wheeled road speed. | A | WARNO feel. |
-| D8 | **Every hull-mounted weapon (any unit) fires only when the body faces the target** (bearing tolerance, `weapons.rs:1530`). A helicopter turns its whole airframe to aim while it keeps flying its route. A ground vehicle turns toward a target only when it has no move order. Infantry are unchanged. | U (general) + A (scope) | `point_mount` (`weapons.rs:541`) aims non-turret mounts instantly. That's a bug for every unit. As far as checked, the current roster has only turret mounts. |
+| D8 | **Every hull-mounted weapon (any unit) fires only when the body faces the target** (the turrets' bearing tolerance). A helicopter turns its whole airframe to aim while it keeps flying its route. A ground vehicle turns toward a target only when it has no move order. Infantry are unchanged. | U (general) + A (scope) | `weapons::point_mount` aimed non-turret mounts instantly. That's a bug for every unit. As far as checked, the current roster has only turret mounts. |
 | D9 | Helicopters fire missiles **and** rockets on the move. A helicopter ATGM row extends `atgm` with `stationary: false`, and its guidance survives the helicopter's own movement. Ground ATGMs are unchanged. Rocket pods are a new unguided row that can only target the ground. | U + A (separate row, guidance) | The user called it realistic. Changing the shared `atgm` row would change infantry teams. |
 | D10 | A helicopter sinks to a low hover while idle inside a deployed supply truck's zone (status Serving, NoStock or Full). It climbs back on any order or engagement. Resupply logic is unchanged. **A change of altitude alone does not count as moving.** | U + A (stays low when Full) | Prevents a sink → `Moving` → climb loop. |
 | D11 | Airborne lost-contact marker: a red, perfectly circular sign floating in the air. It goes through a **design spike** (`design-with-images`, then `game-ui`), and the user picks. Contacts gain a height. | U + A (height) | `ContactView.center` is 2D today. |
@@ -69,10 +68,10 @@ The three drafts left these open. Each answer follows the preferences above.
 | D34 | Smoke (D19) starts below **50% HP**. Identified enemy airframes publish a coarse **smoking** bit, never exact HP. | A viewer sees an enemy smoking; nobody sees its health bar. |
 | D35 | Helicopters get a real role in `fixtures/units/roles.json`, and the skirmish AI's role picker (`skirmish_ai.rs`) buys and orders them through it, like light vehicles (attack-move). *(Corrected in slice 01: physical units must carry a role; only `planned` cards have `roles: []`.)* | Uses the policy that exists. |
 | D36 | Entry (D15) is at the entry site's XY, at cruise altitude, with no footprint check. | Concrete version of D15. |
-| D37 | `moved` compares **XY for every unit**. Ground units can't change z without changing XY, so their digests stay unchanged, and a test proves it. | A general rule, not a helicopter case (L6). |
+| D37 | `moved` compares **XY for every unit**. Ground units can't change z without changing XY, so their digests stay unchanged, and a test proves it. | A general rule, not a helicopter case (an altitude change alone would otherwise count as moving). |
 | D38 | **Guidance is its own property of a guided row**, separate from the `stationary` firing rule. A guided row (one with `turn_deg_s`) must state `guidance`: `"stationary"` means the launcher guides only while it holds still (today's ATGMs, so their behaviour is unchanged), and `"on_the_move"` means the launcher keeps guiding while it moves (`heli_atgm`). The enum leaves room for a future `"fire_and_forget"` self-guided missile for any unit; it isn't added until a weapon uses it (D43's rule). | **U** (2026-10-10, during implementation): "We shouldn't hardcode missile behavior like this… we need flexibility." This replaces the agent's derived rule `!moved \|\| !def.stationary`. |
-| D39 | Any hover bob is drawn only. The sim's altitude moves only toward its target. | Keeps L6 out of the digest. |
-| D40 | Test stand-ins:<br>• `test_gun_jeep`, with an autocannon on a turret, is the "IFV" in the first checkpoint.<br>• The closing scene (D14) is a deterministic encounter on the test map, followed by a recorded skirmish at a pinned seed with the real Apache.<br>• The red force in the closing scene is bought through the normal purchase commands. | Tests can't field roster units, and the AI won't reliably buy a tank and an IFV. |
+| D39 | Any hover bob is drawn only. The sim's altitude moves only toward its target. | Keeps a hover bob out of the digest. |
+| D40 | Test stand-ins:<br>• `test_gun_jeep`, with an autocannon on a turret, is the "IFV" in the first checkpoint.<br>• The closing scene (D14) is a deterministic encounter on the test map, followed by a recorded skirmish at a pinned seed with the real Apache.<br>• The red force in the closing scene is bought through the normal purchase commands. *(Overturned at closeout: see choices N5, N6.)* | Tests can't field roster units, and the AI won't reliably buy a tank and an IFV. |
 | D41 | Helicopter wrecks use their existing `_wreck.glb` art (`assets/source/roster/disabled/`). | The art already exists. |
 | D42 | A wheeled vehicle with a hull mount and no move order holds fire when it can't line up. Latent: no such unit exists. | Completes D8. |
 | D43 | The layer enum ships as `AltitudeLayer { Ground, LowAir }`, and weapon rows author `targets` from those two. `HighAir` is added with the first jet or anti-air weapon that reaches it, so the column keeps the shape the user asked for. | Model only what production writes (refactor-clean). Nothing flies high yet. |

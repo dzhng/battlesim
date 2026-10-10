@@ -4,7 +4,7 @@ This ledger lists the choices the implementing agent made where the plan said no
 
 The entries are grouped by verdict: **needs-user** (decide; each one has a provisional call already taken), **unsound** (redo, starting from the corrected decision), and **sound** (the architecture you now own). Within each group, the least confident entry comes first. Confidence means how sure the audit is that you would have made the same call.
 
-**Review these first:** N1 (every helicopter sounds like a Little Bird), N2 (the airborne contact sign is capped in size on screen), and U1 (the last corner of a route can overshoot the goal and come back).
+**Review these first:** N1 (every helicopter sounds like a Little Bird), N2 (the airborne contact sign is capped in size on screen), and U1 (closing on its goal round a last corner, an aircraft's path bows up to 0.18 m wide).
 
 ---
 
@@ -20,7 +20,7 @@ The entries are grouped by verdict: **needs-user** (decide; each one has a provi
 
 ### N2. The airborne contact sign is held between 20 and 44 px of radius instead of covering the whole uncertainty area
 - **When:** slice 13.
-- **The choice:** suppose blue loses sight of a red helicopter, or only hears it. Blue then has a *contact*: a guess at where the helicopter is, with an uncertainty radius. On the ground that guess is drawn as a disc covering the whole area. Slice 02's spike carried that rule into the air. For the test helicopter the area is 21 m, which is about 480 px across at close zoom. An unprimed critique said a floating disc that size hid the ground it marked and read as a decal. The shipped sign follows the area but is clamped to a radius of 20–44 px (`presentation.contacts.air.min_radius_px` / `max_radius_px`), with the hatching rescaled to match. Up close, the sign is therefore *smaller* than the area the enemy might be in.
+- **The choice:** suppose blue loses sight of a red helicopter, or only hears it. Blue then has a *contact*: a guess at where the helicopter is, with an uncertainty radius. On the ground that guess is drawn as a disc covering the whole area. Slice 02's checkpoint asked for uncertainty sizing with an on-screen minimum. For the test helicopter the area is 21 m, which is about 480 px across at close zoom. An unprimed critique said a floating disc that size hid the ground it marked and read as a decal. The shipped sign follows the area but is clamped to a radius of 20–44 px (`presentation.contacts.air.min_radius_px` / `max_radius_px`), with the hatching rescaled to match. Up close, the sign is therefore *smaller* than the area the enemy might be in.
 - **The gap:** slice 02 fixed the look but not how large the sign gets on screen.
 - **The reach:** a player can't read the true uncertainty of an air contact from the sign when zoomed in. Picking still uses the full radius (N2 changes only drawing).
 - **Verdict:** needs-user. This deviates from slice 02's note. Provisional call: bounded size. To reverse, raise `max_radius_px` in `fixtures/game.json`; no code changes.
@@ -78,7 +78,7 @@ The entries are grouped by verdict: **needs-user** (decide; each one has a provi
 
 ## Unsound
 
-### U1. An aircraft closing on its goal round a last corner can bow a few centimetres wide
+### U1. An aircraft closing on its goal round a last corner can bow up to 0.18 m wide
 - **When:** slices 03 → 07, re-checked at closeout (`crates/sim/src/movement/air.rs`, `crates/sim/src/navigation/air.rs`).
 - **The choice:** an air route comes from A* over 4 m cells and is string-pulled to the corners the flight needs. When the goal lies just past a corner, the aircraft turns onto the final leg still carrying sideways momentum. Its acceleration-limited steering bleeds that off on the way in, so its path bows slightly wide of the goal before it settles.
 - **What the closeout found:** the "metre past and back" the build recorded is gone after later flight fixes. The largest swing away from the goal, across twelve tower positions, measures 0.18 m, at two of the twelve positions (zero at the other ten). The test `flies_on_past_a_tower_without_turning_back` now asserts that the aircraft never turns back by more than 2 m (it curves about 1.2 m across the goal's line), and that within 30 m of its goal it never swings more than 0.2 m away from it. Two attempts to remove the bow entirely failed: a step-crossing snap, and settling within 0.25 m. The bow happens about 1 m out, where the leftover sideways momentum is still bleeding off.
