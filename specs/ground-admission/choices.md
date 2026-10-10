@@ -86,3 +86,17 @@ the [README](README.md#decisions).
   `abrams.trophy_station`; the old rear-corner spot would overhang the short turret. The Abrams family
   re-exports byte-identical.
 - **Dropped:** the critique's smoke-rack bracket and lighter turret face (outside slice 01's ranking).
+
+## 2026-10-10 — slice 07 (BRM-3K, Type 15)
+
+- **Type 15: deck lowered 1.56 → 1.42 m, turret raised to about 2.42 m;** reshaping the turret alone
+  still read as a CV90120. Accepted: it reads as a mid-size MBT, not clearly lighter than a T-90M —
+  its real hull is the T-90's length, so a smaller model would mean a false frame.
+- **Type 15 numbers:** 100 hp, armour 110/60/35/25, 30/70 km/h, medium weight, eye 2.44 m. Role
+  `mbt`: no light-tank role exists and nothing in the simulation reads roles.
+- **BRM-3K takes the BMP-3's hull numbers** (90 hp, 75/40/25/20, 28/65 km/h), eye 2.3 m, role
+  `recon`, cost 180 unchanged.
+- **Wreck footprint tolerances** 0.8 m (BRM-3K) and 1.0 m (Type 15), from thrown tracks and turrets.
+- **Planning error corrected:** the recipe named the catalog smoke test as each card's proof, but it
+  walks test units only by design. Closeout runs it over the twelve as a scratch check.
+- **Sample:** at 450 m the Type 15 kills IFVs and dies to MBTs head-on (`assets/07/duels.txt`).

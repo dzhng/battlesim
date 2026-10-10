@@ -2767,6 +2767,35 @@
         "footprint_m": 2.7
       }
     },
+    "eastern_type_15_ztq_15_light_tank": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/type15/eastern_type_15_ztq_15_light_tank.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "cannon": "gun",
+        "HMG": "hmg"
+      },
+      "wreck": "eastern_type_15_ztq_15_light_tank_wreck"
+    },
+    "eastern_type_15_ztq_15_light_tank_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/type15/eastern_type_15_ztq_15_light_tank_wreck.glb",
+        "hull": "assets/source/roster/type15/eastern_type_15_ztq_15_light_tank_wreck_hull.glb",
+        "turret": "assets/source/roster/type15/eastern_type_15_ztq_15_light_tank_wreck_turret.glb",
+        "debris": "assets/source/roster/type15/eastern_type_15_ztq_15_light_tank_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        3.65,
+        1.675,
+        1.25
+      ],
+      "tolerances": {
+        "footprint_m": 1.0
+      }
+    },
     "us_m1127_stryker_rv_reconnaissance_vehicle": {
       "unit": "vehicle",
       "source": "assets/source/roster/stryker/us_m1127_stryker_rv_reconnaissance_vehicle.glb",
@@ -3010,6 +3039,34 @@
       ],
       "tolerances": {
         "footprint_m": 0.5
+      }
+    },
+    "eastern_brm_brm_3k": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/brm/eastern_brm_brm_3k.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "autocannon": "gun"
+      },
+      "wreck": "eastern_brm_brm_3k_wreck"
+    },
+    "eastern_brm_brm_3k_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/brm/eastern_brm_brm_3k_wreck.glb",
+        "hull": "assets/source/roster/brm/eastern_brm_brm_3k_wreck_hull.glb",
+        "turret": "assets/source/roster/brm/eastern_brm_brm_3k_wreck_turret.glb",
+        "debris": "assets/source/roster/brm/eastern_brm_brm_3k_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        3.57,
+        1.6,
+        1.2
+      ],
+      "tolerances": {
+        "footprint_m": 0.8
       }
     },
     "europe_vbci_infantry_fighting_vehicle": {
