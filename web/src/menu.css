@@ -74,6 +74,19 @@
     padding-left: max(48px, 7vw);
   }
 }
+/* What the menu centres: the plate at the slot's top. An open page's slot is
+   as tall as the main page (`--menu-home-height`, measured while it shows),
+   so a shorter page keeps the main page's top edge. The tutorial, as tall as
+   the screen, centres by its own height. */
+.menu-slot {
+  display: grid;
+  width: 100%;
+  justify-items: inherit;
+  align-content: start;
+}
+.menu[data-open]:not([data-open="tutorial"]) .menu-slot {
+  min-height: var(--menu-home-height, 0px);
+}
 .menu-body {
   width: min(560px, 100%);
 }
