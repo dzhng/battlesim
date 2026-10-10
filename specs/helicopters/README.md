@@ -1,30 +1,32 @@
 # Helicopters
 
-**Status:** in progress: slices 01–06 and 14 done, and slice 07's weapon layers. **Updated:** 2026-10-10.
+**Status:** in progress. The simulation is done through slice 09, with 14 too; the browser slices are running. **Updated:** 2026-10-10.
 
 ## Next Agent Prompt
 
 You are implementing helicopters. Read [decisions](decisions.md) first. Its D1–D43 are givens, and you don't reopen them inside a slice. Then read [landmines](landmines.md) and the slice you're picking up. Load [tweak-mechanics](../../.agents/skills/tweak-mechanics/SKILL.md) before any rule change, [write-tests](../../.agents/skills/write-tests/SKILL.md) before any behaviour change, and [renderer](../../.agents/skills/renderer/SKILL.md) or [game-ui](../../.agents/skills/game-ui/SKILL.md) for slices that draw.
 
-**Next pickup:** slice [07](slices/07-first-checkpoint.md)'s browser scene, the first checkpoint, on the `air` map from slice 06. Then slice 08 (hull-mount facing), and slices 10 and 12 (fall draw, drop line) in parallel.
+**Next pickup, in priority order:**
+1. Integrate the running worktrees: 07's scene, 10 and 11, and 12. (17b is merged.) Merge each, rerun its narrow checks on the merged tree, and remove its worktree.
+2. Slice 15 (the Apache on real art). It depends on 07, 09 and 10.
+3. Slice 13 (the contact sign), after 12. Slice 16, after 15. Slice 17, after 16. Slice 18 last.
 
-**Done so far:**
-- **01:** `units::Motion { Ground, Air }`, `Unit::airborne`, `ground_footprint` (`None` in the air), `Mobility::Air` with its own limits, the `air` rules block, and XY-only `moved`. Ground digests and parity records are unchanged.
-- **03:** `movement::air::step_aircraft` and `navigation::air::AirGrid` (cached per side as `SideGeometry::air_grid`), with digested `Unit.air: AirState { velocity }`.
-- **04:** `sim::crash` (falling, glancing, sliding off roofs) and `damage::detonate` with the `helicopter_crash` row. Publication is deferred to slice 10.
-- **14:** `movement::air::low_hover` (5.63 m today) and the idle-at-a-truck sink.
-- **05:** contacts carry `z` and `layer` (`ApproximateContact`, the packed contact group, `ContactView`); area fire refuses air contacts (`SideKnowledge::ground_contact`).
-- **07 (rules):** `targets` on weapon rows, read only by `weapons::reaches`; the heard mask spans 48 rows.
-- **08:** `weapons::hull_fixed` and `Reach.face`: hull guns fire only when the body faces the target; aircraft turn to aim while flying, idle tracks pivot, wheels hold fire.
-- **09:** `heli_atgm` (guides on the move, by its row's `guidance`) and `rocket_pod`; guided rows must state `guidance`.
-- **02:** variant D, the keyed disc, was picked at the checkpoint ([result](slices/02-contact-sign-spike.md#result)).
-- **06:** `test_heli` (`fixtures/units/test/aircraft.json`, art by `test_heli.py`) hovers on `/lab/air-hover` (the `air` test map). Rotors turn by the articulation's `rotor` input (tip metres swept) over each rotor's reach; hull fit leaves `rotor_*`/`blade_*` out; culling sweeps the disc and keeps an airframe whose shadow is in view; air hulls raise no dust and roll nothing; `vehicleClass` is `air_<weight>`.
+**What the simulation now owns:**
+- **Motion:** `units::Motion { Ground, Air }`. `Unit::airborne()` and `Unit::layer()`. `ground_footprint` is `None` in the air, and ground-only sites call `Unit::ground()`.
+- **Flight:** `movement::air` (`step_aircraft`, `low_hover`) and `navigation::air::AirGrid`, one per side.
+- **Crashes:** `sim::crash`, plus `damage::detonate` and the `helicopter_crash` row. The browser does not see the falling airframe until slice 10.
+- **Fire:** `weapons::reaches` reads `targets`, `weapons::hull_fixed` together with `Reach.face` aims hull guns, and the `guidance` property is required on guided rows.
+- **Contacts:** they carry `z` and `layer`. A heard mask spans two 24-bit words, so up to 48 weapon rows.
+
+The record of each slice lives in its slice file and in [choices](choices.md).
 
 **Warnings:**
 - **Harmless plinking is a feature.** Rifles and MGs fire at helicopters they can't hurt (D2). Never gate it.
 - **Balance is out of scope.** The numbers are first-pass and must not be "clearly unbalanced". Don't tune them; tuning every unit is a later spec.
 - **The user doesn't read code.** Confirm code facts yourself and ask only about intent or taste.
 - Fetch only the LFS files a slice needs. The helicopter models are under `assets/source/roster/disabled/`.
+- Format TypeScript with oxfmt (`bun run fmt`), never Prettier.
+- Adding a weapon row renumbers the rows sorted after it. `combat.json`'s digests then move with no change in behaviour; prove that by renaming the new row to sort last before you re-record.
 
 **Before you end each pass,** update this section: the status, the next pickup, the checklist below, and any decision you made where the plan was silent (recorded in [choices](choices.md)).
 
@@ -46,7 +48,7 @@ You are implementing helicopters. Read [decisions](decisions.md) first. Its D1�
 - [ ] [15 — The Apache, on real art](slices/15-apache.md)
 - [ ] [16 — The other 18 helicopters](slices/16-roster.md)
 - [ ] [17 — Skirmish: entry and AI](slices/17-skirmish.md)
-- [ ] [17b — Rotor sound](slices/17b-rotor-sound.md)
+- [x] [17b — Rotor sound](slices/17b-rotor-sound.md)
 - [ ] [18 — Closing scene (D14) and closeout](slices/18-closing-scene.md)
 
 ## Goal
