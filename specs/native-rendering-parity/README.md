@@ -12,13 +12,15 @@
 
 - [ ] Decide the admitted Godot backend and its material/shadow/compute capabilities — slice 01.
 - [ ] Freeze a matched 1280×720 browser/native comparison viewport and projection contract — slice 02.
-- [ ] Export a browser-owned `native-visual-presentation/v1` manifest instead of making native re-derive presentation policy — slice 03.
-- [ ] Port height, relief, roads, field surfaces, forest floor, and terrain material layers — slice 04.
-- [ ] Port the browser grass/vegetation field, including density, crop rows, LOD, exclusion, wind, scars, and stable sampling — slice 05.
-- [ ] Preserve authored model identity, material roles, pivots, fit, LOD, buildings, roads, and props — slice 06.
-- [ ] Port fixture-owned lighting, shadows, color management, sky, haze, fog, and post-processing — slice 07.
-- [ ] Port observed dust, smoke, muzzle/tracer, blast, scar, and grounding effects from published causes — slice 08.
-- [ ] Compose all layers, instrument performance, and decide promotion — slice 09.
+- [ ] Export a browser-owned `native-visual-presentation/v1` manifest instead of making native re-derive presentation policy — slice 01.
+- [ ] Freeze camera, projection, viewport, and framing parity — slice 02.
+- [ ] Port height, relief, roads, field surfaces, forest floor, and terrain material layers — slice 03.
+- [ ] Port the browser grass/vegetation field, including density, crop rows, LOD, exclusion, wind, scars, and stable sampling — slice 04.
+- [ ] Preserve authored model identity, material roles, pivots, fit, LOD, buildings, roads, and props — slice 05.
+- [ ] Port fixture-owned lighting, shadows, color management, sky, haze, fog, and post-processing — slice 06.
+- [ ] Port observed dust, smoke, muzzle/tracer, blast, scar, and grounding effects from published causes — slice 07.
+- [ ] Compose all layers, instrument performance, and decide promotion — slice 08.
+- [ ] Run the promotion gate and close the spec only when every contract is green — slice 09.
 
 Update this section before ending every implementation pass. Record the current slice, evidence, unresolved decisions, and the next exact pickup.
 
