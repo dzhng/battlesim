@@ -3,10 +3,10 @@ import { useLabLoading } from "../LabLoading";
 // The real cursor at native screen size, isolated from picking and simulation.
 import { useLayoutEffect, useRef } from "react";
 import {
-  GameCursor,
+  CURSOR_ACTIONS,
+  CursorPicture,
   useCursorAction,
   type CursorAction,
-  type GameCursorHandle,
 } from "@web/battle/present/gameCursor";
 import "./cursor.css";
 
@@ -20,43 +20,21 @@ const LABELS: Record<CursorAction, string> = {
   reverse_move: "Reverse move",
   blocked: "Blocked",
 };
-const actions = Object.keys(LABELS) as CursorAction[];
+const actions = CURSOR_ACTIONS;
 const surfaces = ["grass", "road", "fog"] as const;
 
 export default function CursorLab() {
   useLabLoading("renderer", true);
-  const sheet = useRef<HTMLElement>(null);
-  const handles = useRef(new Map<string, GameCursorHandle>());
   const setCursorAction = useCursorAction();
   const action = useRef<CursorAction>("default");
   useLayoutEffect(() => {
-    const place = () => {
-      for (const specimen of sheet.current!.querySelectorAll<HTMLElement>("[data-specimen]")) {
-        const box = specimen.getBoundingClientRect();
-        handles.current
-          .get(specimen.dataset.specimen!)
-          ?.place(
-            { x: box.left + box.width / 2 - 16, y: box.top + 14 },
-            specimen.dataset.action as CursorAction,
-          );
-      }
-    };
-    place();
-    window.addEventListener("resize", place);
-    window.addEventListener("scroll", place, true);
-    window.__lab = {
-      ready: true,
-      error: null,
-      frame: async () => place(),
-    };
+    window.__lab = { ready: true, error: null, frame: async () => {} };
     return () => {
-      window.removeEventListener("resize", place);
-      window.removeEventListener("scroll", place, true);
       delete window.__lab;
     };
   }, []);
   return (
-    <main ref={sheet} className="cursor-lab">
+    <main className="cursor-lab">
       <header>
         <strong>Arrow + action</strong>
         <Link to="/labs">Battle lab</Link>
@@ -69,12 +47,9 @@ export default function CursorLab() {
               const id = `${surface}-${action}`;
               return (
                 <figure key={action} data-specimen={id} data-action={action}>
-                  <GameCursor
-                    handle={(handle) => {
-                      if (handle) handles.current.set(id, handle);
-                      else handles.current.delete(id);
-                    }}
-                  />
+                  <span className="cursor-tip">
+                    <CursorPicture action={action} x={0} y={0} />
+                  </span>
                   <figcaption>{LABELS[action]}</figcaption>
                 </figure>
               );

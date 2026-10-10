@@ -9,6 +9,10 @@ const SVG = import.meta.glob("../../../../assets/icons/**/*.svg", {
 /** Paths already reported missing: one report each, not one per frame. */
 const reported = new Set<string>();
 
+/** The markup of the icon at `path` under `assets/icons/`, or undefined. */
+export const iconSvg = (path: string): string | undefined =>
+  SVG[`../../../../assets/icons/${path}`];
+
 /** The icon at `path` under `assets/icons/` (e.g. `weapons/rifle.svg`), an
  *  `ro-icon` plus any `className`. A missing one draws nothing and says so:
  *  a path made at runtime (a weapon row's icon field) can name a file no
@@ -22,7 +26,7 @@ export function Icon({
   className?: string;
   title?: string;
 }) {
-  const svg = SVG[`../../../../assets/icons/${path}`];
+  const svg = iconSvg(path);
   if (!svg && !reported.has(path)) {
     reported.add(path);
     console.error(`missing icon: assets/icons/${path}`);

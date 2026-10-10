@@ -46,6 +46,12 @@
   margin: 0;
   height: 82px;
 }
+/* Each specimen's arrow tip. */
+.cursor-tip {
+  position: absolute;
+  left: calc(50% - 16px);
+  top: 14px;
+}
 .cursor-grid figcaption {
   position: absolute;
   top: 58px;
@@ -95,6 +101,12 @@
   }
   .cursor-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  /* Each specimen's arrow tip. */
+  .cursor-tip {
+    position: absolute;
+    left: calc(50% - 16px);
+    top: 14px;
   }
   .cursor-grid figcaption {
     font-size: 10px;

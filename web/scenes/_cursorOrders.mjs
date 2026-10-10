@@ -11,13 +11,22 @@ const select = async (page, ids) => {
   );
 };
 const project = (page, at) => lab(page, (p) => window.__lab.projectToCss(...p), at);
-const action = (page) => page.locator('[data-testid="game-cursor"]').getAttribute("data-action");
+/** The action the system's pointer shows (AppCursor names it on the document). */
+const action = (page) => page.evaluate(() => document.documentElement.dataset.cursor);
+/** In the page: does `element` show the game's arrow, the cursor the
+ *  document resolves to, rather than its own (a hand, a text caret)? */
+function showsGameArrow(element) {
+  const game = getComputedStyle(document.documentElement).cursor;
+  return game.startsWith("image-set(") && getComputedStyle(element).cursor === game;
+}
+const gameArrowOn = (locator) =>
+  locator.evaluate(
+    (element, source) => new Function(`return ${source}`)()(element),
+    String(showsGameArrow),
+  );
 async function expects(page, expected) {
   await page.waitForFunction(
-    (expected) => {
-      const cursor = document.querySelector('[data-testid="game-cursor"]');
-      return cursor && !cursor.hidden && cursor.dataset.action === expected;
-    },
+    (expected) => document.documentElement.dataset.cursor === expected,
     expected,
     { timeout: 10000 },
   );
@@ -83,41 +92,40 @@ async function onBuilding(page, center, height) {
 }
 
 async function infoCardCursor(ctx, page) {
-  await page.evaluate(() => {
+  await page.evaluate((source) => {
     const samples = [];
+    const arrow = new Function(`return ${source}`)();
     const record = (event) => {
       if (!(event.target instanceof Element) || !event.target.closest(".ro-layer .ro-unit")) return;
-      samples.push({
-        event: event.type,
-        native: getComputedStyle(event.target).cursor,
-        visible: !document.querySelector('[data-testid="game-cursor"]').hidden,
-      });
+      samples.push({ event: event.type, game: arrow(event.target) });
     };
-    window.__cardCursorProbe = { samples, record };
+    window.__cardCursorProbe = { samples, record, arrow };
     window.addEventListener("pointerover", record, true);
     window.addEventListener("pointermove", record, true);
-  });
+  }, String(showsGameArrow));
   try {
     for (const id of [0, 2]) {
-      await page.locator(`.ro-unit[data-unit="${id}"] .ro-name-word`).hover();
-      await page.evaluate(async () => {
-        for (let i = 0; i < 12; i++) {
-          await new Promise(requestAnimationFrame);
-          const cursor = document.querySelector('[data-testid="game-cursor"]');
-          const matrix = new DOMMatrix(getComputedStyle(cursor).transform);
-          const hit = document.elementFromPoint(matrix.e, matrix.f);
-          window.__cardCursorProbe.samples.push({
-            event: "frame",
-            native: hit && getComputedStyle(hit).cursor,
-            visible: !cursor.hidden,
-          });
-        }
-      });
+      const word = page.locator(`.ro-unit[data-unit="${id}"] .ro-name-word`);
+      await word.hover();
+      const box = await word.boundingBox();
+      await page.evaluate(
+        async ({ x, y }) => {
+          for (let i = 0; i < 12; i++) {
+            await new Promise(requestAnimationFrame);
+            const hit = document.elementFromPoint(x, y);
+            window.__cardCursorProbe.samples.push({
+              event: "frame",
+              game: !!hit && window.__cardCursorProbe.arrow(hit),
+            });
+          }
+        },
+        { x: box.x + box.width / 2, y: box.y + box.height / 2 },
+      );
     }
     const samples = await page.evaluate(() => window.__cardCursorProbe.samples);
     ctx.check(
-      "info-card handoffs and resting hover keep only the game cursor visible",
-      samples.length >= 24 && samples.every((s) => s.visible && s.native === "none"),
+      "info-card handoffs and resting hover keep the game cursor, never a hand",
+      samples.length >= 24 && samples.every((s) => s.game),
       JSON.stringify(samples),
     );
     await page.screenshot({ path: ctx.evidencePath("cursor-info-card-hover.png") });
@@ -125,13 +133,9 @@ async function infoCardCursor(ctx, page) {
     await page.mouse.down({ button: "middle" });
     try {
       await expects(page, "default");
-      const fallback = await page
-        .locator('.ro-unit[data-unit="2"] .ro-name-word')
-        .evaluate((card) => getComputedStyle(card).cursor);
       ctx.check(
-        "info cards show no native pointer during camera control",
-        fallback === "none",
-        fallback,
+        "info cards show the game arrow during camera control",
+        await gameArrowOn(page.locator('.ro-unit[data-unit="2"] .ro-name-word')),
       );
     } finally {
       await page.mouse.up({ button: "middle" });
@@ -141,9 +145,7 @@ async function infoCardCursor(ctx, page) {
     await expects(page, "default");
     ctx.check(
       "HUD buttons show the plain game arrow and never the native hand",
-      (await page
-        .getByRole("button", { name: "Reset", exact: true })
-        .evaluate((button) => getComputedStyle(button).cursor)) === "none",
+      await gameArrowOn(page.getByRole("button", { name: "Reset", exact: true })),
     );
   } finally {
     await page.evaluate(() => {
@@ -548,9 +550,7 @@ export async function battleCursor(ctx) {
   await snapshot(ctx, page, "cursor-menu-1280x800.png");
   ctx.check(
     "the pause menu shows the game arrow and no native pointer",
-    (await page
-      .getByRole("button", { name: "Resume", exact: true })
-      .evaluate((button) => getComputedStyle(button).cursor)) === "none",
+    await gameArrowOn(page.getByRole("button", { name: "Resume", exact: true })),
   );
   await page.getByRole("button", { name: "Resume", exact: true }).click();
   await lab(page, () => window.__lab.route.pause());
@@ -733,7 +733,7 @@ export async function partialBuildingCursor(ctx) {
     );
     ctx.check(
       "partial refusal stays fully visible and clear of the composite cursor",
-      await calloutFits(page),
+      await calloutFits(page, p),
     );
     const arrived = await until(
       page,
@@ -758,10 +758,12 @@ export async function partialBuildingCursor(ctx) {
   }
 }
 
-async function calloutFits(page) {
-  return page.getByTestId("rejected-order").evaluate((el) => {
+/** The refusal callout lies inside the viewport and clear of the cursor the
+ *  system draws at `pointer`: its arrow and badge, `GAME_CURSOR_SIZE` from the tip. */
+async function calloutFits(page, pointer) {
+  return page.getByTestId("rejected-order").evaluate((el, [x, y]) => {
     const r = el.getBoundingClientRect();
-    const c = document.querySelector('[data-testid="game-cursor"]').getBoundingClientRect();
+    const c = { left: x - 2, top: y - 2, right: x + 41 * 0.7, bottom: y + 38 * 0.7 };
     return (
       r.left >= 8 &&
       r.right <= innerWidth - 8 &&
@@ -769,7 +771,7 @@ async function calloutFits(page) {
       r.bottom <= innerHeight - 8 &&
       (r.right <= c.left || r.left >= c.right || r.bottom <= c.top || r.top >= c.bottom)
     );
-  });
+  }, pointer);
 }
 
 export async function narrowRefusal(ctx) {
@@ -787,7 +789,7 @@ export async function narrowRefusal(ctx) {
   await capture(ctx, page, "refused-callout-narrow", p, true);
   ctx.check(
     "the complete refusal stays inside the narrow viewport and clear of the cursor",
-    await calloutFits(page),
+    await calloutFits(page, p),
   );
   await page.close();
 }
