@@ -29,7 +29,14 @@ const own = (u: Partial<OwnUnitView>) =>
     ...u,
   }) as OwnUnitView;
 const seen = (u: Partial<IdentifiedView>) =>
-  ({ id: 9, kind: "test_heli", position: [300, 50, 20], yaw: 0, members: [], ...u }) as IdentifiedView;
+  ({
+    id: 9,
+    kind: "test_heli",
+    position: [300, 50, 20],
+    yaw: 0,
+    members: [],
+    ...u,
+  }) as IdentifiedView;
 const pose = (u: { id: number; position: readonly number[] }): Pose => ({
   id: u.id,
   position: [u.position[0], u.position[1], u.position[2]],

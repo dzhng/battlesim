@@ -1,5 +1,7 @@
+import { vec2, type Vec2 } from "math";
 import { bodyBox, type PickBox, type SoldierBody } from "@packages/battle-renderer/src/picking";
 import {
+  aircraftCircle,
   circleContains,
   unitCircle,
   type UnitCircle,
@@ -11,7 +13,7 @@ import { contactUnder } from "@web/battle/input/contactPick";
 import type { ContactView, ObservationView } from "@web/battle/sim/observation";
 import type { LabPick } from "./LabViewport";
 import { buildingUnderRay, groundUnderRay, type StaticWorld } from "./useStaticWorld";
-import { orderView } from "./battleOverlay";
+import { aircraftView, orderView } from "./battleOverlay";
 import { gameOrderStyle } from "./gameOverlay";
 
 export interface DrawnInstances {
@@ -80,40 +82,26 @@ export function sideInstances(
   const enemyPoses = new Map(identified.map((p) => [p.id, p]));
   for (const e of observation.identified) {
     const pose = enemyPoses.get(e.id);
-    const hull = units.hull(e.kind);
-    if (!pose || !hull || !airborne(units.type(e.kind))) continue;
-    const circle = unitCircle(
-      {
-        position: pose.position,
-        members: [],
-        hullHalfLength: hull.half_extents_m[0],
-        aircraft: true,
-        goal: null,
-        state: "idle",
-        yaw: pose.yaw,
-        area: null,
-        building: null,
-      },
-      gameOrderStyle,
-    );
-    if (circle) drawn.rings.push({ circle, unit: null, enemy: e.id });
+    if (!pose || !airborne(units.type(e.kind))) continue;
+    const circle = aircraftCircle(aircraftView(units, { ...e, ...pose }), gameOrderStyle);
+    drawn.rings.push({ circle, unit: null, enemy: e.id });
   }
   return drawn;
 }
 
 /** The unit whose ring `point` lies in (the nearest centre where rings
- *  overlap): an own unit's only for `own` (a left click selects it; a right
- *  click there still moves), an enemy aircraft's always. */
+ *  overlap): an own unit's only with `includeOwn` (a left click selects it;
+ *  a right click there still moves), an enemy aircraft's always. */
 export function ringUnder(
   rings: readonly PickRing[],
   point: readonly [number, number],
-  own: boolean,
+  includeOwn: boolean,
 ): { unit: number | null; enemy: number | null } | null {
   let best: PickRing | null = null;
   let bestD = Infinity;
   for (const ring of rings) {
-    if ((ring.unit !== null && !own) || !circleContains(ring.circle, point)) continue;
-    const d = Math.hypot(ring.circle.c[0] - point[0], ring.circle.c[1] - point[1]);
+    if ((ring.unit !== null && !includeOwn) || !circleContains(ring.circle, point)) continue;
+    const d = vec2.squaredDistance(ring.circle.c as Vec2, point as Vec2);
     if (d < bestD) [best, bestD] = [ring, d];
   }
   return best && { unit: best.unit, enemy: best.enemy };

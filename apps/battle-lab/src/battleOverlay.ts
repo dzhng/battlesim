@@ -26,6 +26,7 @@ import {
   buildOrderOverlay,
   buildDeploymentMarker,
   deploymentOverlayMarker,
+  type AircraftView,
   type OrderView,
   type SurfaceHeight,
 } from "@packages/battle-renderer/src/orderOverlay";
@@ -33,7 +34,7 @@ import { combineWorldMeshes, type Mesh } from "@packages/battle-renderer/src/mes
 import { buildZoneRing } from "@packages/battle-renderer/src/playAreaOverlay";
 import type { WorldMeshes } from "@packages/battle-renderer/src/scene";
 import type { PresentedContact } from "@web/battle/present/contactPresentation";
-import type { ObservationView, OwnUnitView } from "@web/battle/sim/observation";
+import type { IdentifiedView, ObservationView, OwnUnitView } from "@web/battle/sim/observation";
 import type { RevealedOrders } from "@web/battle/present/orderReveal";
 import { gameContactStyle } from "./gameFog";
 import { ghostAloft } from "./unitGhosts";
@@ -229,6 +230,18 @@ export function orderLayer(
   );
 }
 
+/** An identified enemy aircraft as its marker reads it. */
+export function aircraftView(
+  units: UnitCatalog,
+  u: Pick<IdentifiedView, "kind" | "position" | "yaw">,
+): AircraftView {
+  return {
+    position: u.position,
+    yaw: u.yaw,
+    hullHalfLength: units.hull(u.kind)?.half_extents_m[0] ?? 0,
+  };
+}
+
 /** Every identified enemy aircraft's ground marker and drop line, in the
  *  enemy's colour, as an own aircraft's are drawn. */
 export function aircraftLayer(
@@ -238,13 +251,7 @@ export function aircraftLayer(
   metresPerPx = OPENING_METRES_PER_PX,
 ): WorldMeshes {
   return buildAircraftMarks(
-    o.identified
-      .filter((u) => airborne(units.type(u.kind)))
-      .map((u) => ({
-        position: u.position,
-        yaw: u.yaw,
-        hullHalfLength: units.hull(u.kind)?.half_extents_m[0] ?? 0,
-      })),
+    o.identified.filter((u) => airborne(units.type(u.kind))).map((u) => aircraftView(units, u)),
     [...gameHud.enemy, 1],
     z,
     gameOrderStyle,
