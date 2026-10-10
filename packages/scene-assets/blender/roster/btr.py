@@ -15,10 +15,10 @@ the right and the louvres; the small conical BPPU turret with its 30 mm
 each side.
 
 Built to the catalog frame (hull 7.7 x 2.9 x 2.41 m, gun axis 2.0 m): the
-photos put the roof near 2.1 m and the turret's top near 2.6 m, and the
-frame's turret ring 1.0 m behind where the photos show it. Nothing here moves
-it: the roof is drawn at 1.90 m under a low turret, and the turret on the
-frame's pivot (specs/done/unit-models/choices.md).
+photos put the roof near 2.1 m and the turret's top near 2.6 m. The roof is
+drawn at 1.90 m under a low turret (specs/done/unit-models/choices.md); the
+turret ring is 0.85 m ahead of amidships, over the second axle, where the
+photos put it.
 """
 import math
 import os
