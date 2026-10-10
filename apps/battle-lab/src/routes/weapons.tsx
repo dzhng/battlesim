@@ -9,6 +9,8 @@ import { useSessionCatalog } from "@web/battle/catalog/context";
 import { AckLog } from "../AckLog";
 import { FeedInspector } from "../FeedInspector";
 import { contactLayer, tracerLayer } from "../battleOverlay";
+import { useContactFacing } from "../contactFacing";
+import { OPENING_METRES_PER_PX } from "../gameOverlay";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { SavedEncounter, type SavedBattle } from "../savedMaps";
@@ -72,17 +74,18 @@ function WeaponsLab({ battle }: { battle: SavedBattle }) {
   const { world, meshes, sim, control, surfaceZ } = session;
   const worldFeed = useFeed(meshes);
   const { observation } = sim;
+  const contactFacing = useContactFacing(WEAPONS_CAMERA, OPENING_METRES_PER_PX);
 
   const overlay = useMemo(() => {
     if (!world || !observation) return undefined;
-    const contacts = contactLayer(session.contacts, surfaceZ);
+    const contacts = contactLayer(session.contacts, surfaceZ, contactFacing.facing);
     // This tick's visible flight: own rounds whole, enemy rounds only over seen ground.
     const tracers = tracerLayer(observation, { sideColors: false });
     return {
       opaque: concatMeshes([contacts.opaque, tracers.opaque]),
       translucent: concatMeshes([contacts.translucent, tracers.translucent]),
     };
-  }, [world, observation, surfaceZ, session.contacts]);
+  }, [world, observation, surfaceZ, session.contacts, contactFacing.facing]);
   const overlayFeed = useFeed(overlay);
 
   const runDemo = useCallback(
@@ -121,7 +124,10 @@ function WeaponsLab({ battle }: { battle: SavedBattle }) {
         onCursor={session.onCursor}
         pointerMarks={session.pointerPaint.feed}
         onBox={session.onBox}
-        onFrame={session.placePanels}
+        onFrame={(project, view, pointer) => {
+          session.placePanels(project, view, pointer);
+          contactFacing.follow(view);
+        }}
         onReady={session.onReady}
         diagnostics={diagnostics}
       />

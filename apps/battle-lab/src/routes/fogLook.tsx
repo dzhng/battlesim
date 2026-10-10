@@ -23,6 +23,8 @@ import type { LightPresentation } from "@packages/battle-renderer/src/light/scen
 import game from "@fixtures/game.json";
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import { contactLayer } from "../battleOverlay";
+import { useContactFacing } from "../contactFacing";
+import { OPENING_METRES_PER_PX } from "../gameOverlay";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { STREET_CAMERA, STREET_SEED, useStreetScenario } from "../streetScenario";
@@ -63,11 +65,13 @@ const specimensOf = (units: UnitCatalog): ContactShape[] => [
     center: [1120, 930],
     radius: contactRadius(units, "test_rifle"),
     opacity: 1,
+    aloft: false,
   },
   {
     center: [1260, 700],
     radius: contactRadius(units, "test_tank"),
     opacity: 0.6,
+    aloft: false,
   },
 ];
 
@@ -119,6 +123,8 @@ function FogLookLab({ scenario }: { scenario: string }) {
   const { meshes, sim, surfaceZ } = session;
   const specimenShapes = useMemo(() => specimensOf(session.units), [session.units]);
   const { observation } = sim;
+  const contactFacing = useContactFacing(STREET_CAMERA, OPENING_METRES_PER_PX);
+  const { facing } = contactFacing;
   const [styles, setStyles] = useState<FogPresentation["styles"]>(() =>
     structuredClone(gameFogPresentation.styles),
   );
@@ -152,15 +158,17 @@ function FogLookLab({ scenario }: { scenario: string }) {
   }, [fogOn, reconOnly, eyes, session.fog, observation]);
   const fogFeed = useFeed(fog);
   const overlay = useMemo(() => {
-    const battle = contactLayer(session.contacts, surfaceZ);
-    const shown = specimens ? buildContactGlyphs(specimenShapes, surfaceZ, gameContactStyle) : null;
+    const battle = contactLayer(session.contacts, surfaceZ, facing);
+    const shown = specimens
+      ? buildContactGlyphs(specimenShapes, surfaceZ, gameContactStyle, facing)
+      : null;
     return {
       opaque: battle.opaque,
       translucent: concatMeshes(
         shown ? [battle.translucent, shown.translucent] : [battle.translucent],
       ),
     };
-  }, [surfaceZ, specimens, specimenShapes, session.contacts]);
+  }, [surfaceZ, specimens, specimenShapes, session.contacts, facing]);
   const overlayFeed = useFeed(overlay);
 
   const show = (next: FrameView) => {
@@ -239,7 +247,10 @@ function FogLookLab({ scenario }: { scenario: string }) {
         appearances={session.appearances}
         initialCamera={STREET_CAMERA}
         groundAt={surfaceZ}
-        onFrame={session.placePanels}
+        onFrame={(project, view, pointer) => {
+          session.placePanels(project, view, pointer);
+          contactFacing.follow(view);
+        }}
         onReady={session.onReady}
         diagnostics={diagnostics}
       />

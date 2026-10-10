@@ -3269,6 +3269,7 @@ impl Battle {
     fn observe_all(&mut self) {
         // Every live hull a soldier's current cover may lie behind (D2+).
         let hulls = cover::hull_bodies(&crate::lean::hulls(&self.units, &self.rules));
+        let low_hover = crate::movement::air::low_hover(&self.rules);
         for side in Side::ALL {
             let knowledge = &self.knowledge[side.index()];
             let spotted_by_visible_enemy: BTreeSet<UnitId> = self.sightings[1 - side.index()]
@@ -3289,7 +3290,14 @@ impl Battle {
                 .extend(knowledge.identified(self.tick, &self.units, &self.rules));
             frame.ground_visibility.clone_from(fog);
             frame.contacts.clear();
-            frame.contacts.extend(knowledge.contacts());
+            // An area hangs in the air when its cause flew higher over the
+            // ground than the low hover (D33).
+            let world = &self.world;
+            frame.contacts.extend(knowledge.contacts(|c| {
+                c.layer != AltitudeLayer::Ground
+                    && c.center.z - world.height_at(c.center.x, c.center.y).unwrap_or(0.0)
+                        > low_hover
+            }));
             frame.audible.clone_from(&self.audible[side.index()]);
             frame.known_props.clear();
             let known = &self.sides[side.index()];

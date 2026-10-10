@@ -8,6 +8,7 @@ const contact: ContactView = {
   source: "last_seen",
   center: [100, 200, 0],
   layer: "ground",
+  aloft: false,
   radius: 20,
   evidenceTick: 0,
   expiresTick: 300,

@@ -1,8 +1,8 @@
-/** Which contact the pointer picks. A ground contact is an area on the ground
+/** Which contact the pointer picks. A contact not aloft is an area on the ground
  *  (its centre and radius, `ContactView`): the pointer picks it wherever its
- *  ground point falls inside that disc. An air contact hangs at its height:
- *  the pointer's ray picks it where it passes through the sphere of that
- *  radius round its centre, whatever ground lies beneath. Where areas
+ *  ground point falls inside that disc. An aloft contact hangs at its
+ *  height: the pointer's ray picks it where it passes through the sphere of
+ *  that radius round its centre, whatever ground lies beneath. Where areas
  *  overlap, the one whose centre is nearest the pointer wins. */
 import type { ContactView } from "../sim/observation";
 
@@ -13,15 +13,14 @@ export interface PickRay {
 }
 
 export function contactUnder(
-  contacts: readonly Pick<ContactView, "id" | "center" | "radius" | "layer">[],
+  contacts: readonly Pick<ContactView, "id" | "center" | "radius" | "aloft">[],
   ground: readonly [number, number] | null,
   ray: PickRay | null = null,
 ): number | null {
   let best: number | null = null;
   let bestD2 = Infinity;
   for (const c of contacts) {
-    const d2 =
-      c.layer === "ground" ? groundDistance2(c.center, ground) : rayDistance2(c.center, ray);
+    const d2 = c.aloft ? rayDistance2(c.center, ray) : groundDistance2(c.center, ground);
     if (d2 <= c.radius * c.radius && d2 < bestD2) {
       bestD2 = d2;
       best = c.id;

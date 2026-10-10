@@ -18,6 +18,7 @@ import { PurchasePicker } from "@web/battle/present/purchasePicker";
 import { ArmyDeck } from "@web/battle/present/armyDeck";
 import { CaptionList, useCaptions } from "@web/battle/present/captions";
 import { buildBattleOverlay, type BattleOverlayScenario } from "./battleOverlay";
+import { useContactFacing } from "./contactFacing";
 import { borderWidthM, buildMapBorder } from "@packages/battle-renderer/src/playAreaOverlay";
 import { metresPerPxAt } from "@packages/renderer-core/src/camera3d";
 import { gameMapBorder } from "./gameFog";
@@ -116,6 +117,7 @@ export function BattleView({
   const [zoom, setZoom] = useState(() => zoomStep(camera.distance));
   const zoomRef = useRef(zoom);
   const metresPerPx = metresPerPxAt(ZOOM_BASE ** zoom, camera.fovY, window.innerHeight);
+  const contactFacing = useContactFacing(camera, metresPerPx);
   const cues = useCaptions();
   const { note: noteCues } = cues;
   const [menuOpen, setMenuOpen] = useState(false);
@@ -168,12 +170,18 @@ export function BattleView({
             control.selected,
             surfaceZ,
             parsed.drawn,
-            { showOrders: control.showOrders, reveal: session.revealed, contacts },
+            {
+              showOrders: control.showOrders,
+              reveal: session.revealed,
+              contacts,
+              facing: contactFacing.facing,
+            },
             border,
             metresPerPx,
           )
         : undefined,
     [
+      contactFacing.facing,
       session.units,
       world,
       observation,
@@ -246,6 +254,7 @@ export function BattleView({
           pilot={scripted?.pilot}
           onFrame={(project, view, pointer) => {
             session.hear(view);
+            contactFacing.follow(view);
             const step = zoomStep(view.distance);
             if (step !== zoomRef.current) {
               zoomRef.current = step;

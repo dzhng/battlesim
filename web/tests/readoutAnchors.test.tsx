@@ -32,6 +32,7 @@ test("contact leaders stay on the reported ground center as radius and camera ch
     id: 7,
     center: [200, 300, 0],
     layer: "ground",
+    aloft: false,
     radius: 80,
     source: "firing",
     evidenceTick: 0,
@@ -54,12 +55,13 @@ test("contact leaders stay on the reported ground center as radius and camera ch
   }
 });
 
-test("an air contact's leader hangs at its reported height, not the ground under it", () => {
+test("an aloft contact's leader hangs at its reported height, not the ground under it", () => {
   const handle = createRef<ReadoutLayerHandle>();
   const contact: ContactView = {
     id: 7,
     center: [200, 300, 34],
     layer: "low_air",
+    aloft: true,
     radius: 30,
     source: "firing",
     evidenceTick: 0,
@@ -80,6 +82,7 @@ test("every live report gets a truthful label, including never-identified firing
     id: 1,
     center: [200, 300, 0],
     layer: "ground",
+    aloft: false,
     radius: 20,
     source: "last_seen",
     kind: "test_at",
@@ -272,6 +275,7 @@ test("retiring contact panels fade together with their leader and cannot be pick
     source: "last_seen",
     center: [200, 300, 0],
     layer: "ground",
+    aloft: false,
     radius: 20,
     evidenceTick: 0,
     expiresTick: 300,

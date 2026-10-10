@@ -54,6 +54,7 @@ const contact = (
   source: "firing",
   center: [x, y, z],
   layer,
+  aloft: layer !== "ground",
   radius,
   evidenceTick: 0,
   expiresTick: 100,
@@ -190,7 +191,7 @@ test("the contact under a ground point is the one whose area holds it, the neare
   expect(contactUnder(areas, null)).toBe(null);
 });
 
-test("an air contact is picked where the pointer's ray meets it at height, not on the ground below", () => {
+test("an aloft contact is picked where the pointer's ray meets it at height, not on the ground below", () => {
   // A helicopter's report 30 m up over (100, 0); the camera looks down at
   // 45° from the west, so the ray through the report meets the ground 30 m
   // beyond it.
@@ -202,6 +203,10 @@ test("an air contact is picked where the pointer's ray meets it at height, not o
   expect(contactUnder(air, [100, 0], under), "the ground beneath it is empty").toBe(null);
   const behind = { origin: [200, 0, 130], dir: [s, 0, -s] } as const;
   expect(contactUnder(air, [330, 0], behind), "a ray already past it misses").toBe(null);
+  // Heard from the low hover, the report lies on the ground like any other.
+  const low = [{ ...contact(1, [100, 0], 10, 4, "low_air"), aloft: false }];
+  expect(contactUnder(low, [100, 0], under)).toBe(1);
+  expect(contactUnder(low, [130, 0], through)).toBe(null);
 });
 
 test("every order sent is heard as it goes, a queued (Shift) one too", async () => {

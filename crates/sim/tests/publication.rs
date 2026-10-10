@@ -243,6 +243,7 @@ fn a_contact_publishes_its_height_and_layer() {
         source: ContactSource::Firing,
         center,
         layer,
+        aloft: layer == AltitudeLayer::LowAir,
         radius: 30.0,
         evidence_tick: 4,
         expires_tick: 900,
@@ -264,19 +265,19 @@ fn a_contact_publishes_its_height_and_layer() {
     };
     let mut data = Vec::new();
     publication::pack_logical(&frame, &patch, &full_fog(), std::iter::empty(), &mut data).unwrap();
-    let read: Vec<([f32; 3], &str)> = decode(&layout, &data)["contacts"]
+    let read: Vec<([f32; 3], &str, f32)> = decode(&layout, &data)["contacts"]
         .iter()
         .map(|c| {
             let f = &c.fields;
             let layer = layout["layers"][f["layer"] as usize].as_str().unwrap();
-            ([f["x"], f["y"], f["z"]], layer)
+            ([f["x"], f["y"], f["z"]], layer, f["aloft"])
         })
         .collect();
     assert_eq!(
         read,
         [
-            ([120.0, 80.0, 2.5], "ground"),
-            ([300.0, 250.0, 22.5], "low_air")
+            ([120.0, 80.0, 2.5], "ground", 0.0),
+            ([300.0, 250.0, 22.5], "low_air", 1.0)
         ]
     );
 }
