@@ -6614,7 +6614,7 @@
               "name": "Autocannon",
               "on": null,
               "pivot_m": [
-                0.0,
+                0.85,
                 0.0,
                 1.567
               ],
@@ -19110,7 +19110,7 @@
           "name": "Autocannon",
           "on": null,
           "pivot_m": [
-            0.0,
+            0.85,
             0.0,
             1.567
           ],
