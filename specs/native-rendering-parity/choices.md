@@ -151,6 +151,20 @@ Append decisions made during the build here, with their attribution.
 | The worktree pulls `assets/runtime/**` and `assets/third-party/effects/**` (about 417 MB) | The reel needs 321 of 337 bundles |
 | The lens records `far: "infinite"` without checking it against the drawn camera | Today's camera never sets a far plane |
 
+### Browser lanes built ahead of their native slices (`8209a90b`, `449e9d8e`, `8b101db5`, `5d6898ad`)
+
+The orchestrator built the browser halves of 04, 05 and 06a early, in parallel with slice 03. This bends Q4 ("each slice adds only what native reads") in timing only: every field has a phase 1 reader.
+
+| Decision | Why |
+| --- | --- |
+| The manifest's `light` is the light the battle frame was built with, plus a page-derived unit `sunDirection`. The Node writer checks shape only. | The scene harness runs the writer under plain Node, which can't import the renderer (`449e9d8e` fixed the break `8209a90b` introduced) |
+| Tuning numbers (scales, frequencies, weights, thresholds, colours) are lifted; hash multipliers, decorrelation offsets, lattice rotations, Rec. 709 weights and the rut profile's derived constants stay inline | The latter are part of the formula, which native ports as text |
+| `WATER_ROUGHNESS` and `WATER_SHADOW` remain as aliases of `terrainTuning.water` | `worldPass.ts` imports them. Collapse them at the phase 1 review. |
+| Terrain artifacts are the exact buffers the material uploads, with layouts generated from the GPU struct definitions | One packer; the layout can't drift |
+| Grass counts are clumps whose root projects on screen (occlusion ignored), in 4×3 cells, read in the plate's own frame. `grassPass.probes.clumps()` now queues both copies at the call. | A later frame could slip in between the old copy and its wait |
+| Readbacks run only in plate mode; terrain tables are taken once, at the first plate | Debug readbacks cost frame time |
+| Both reel maps are flat (the height grid has no pages); non-flat terrain is covered only by tests | It's the territory |
+
 ### Slice 02 (`ae645e7a`), by the implementing agent; reviewed by the orchestrator
 
 | Decision | Why |

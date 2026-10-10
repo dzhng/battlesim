@@ -3,7 +3,7 @@
 **Contract:** native's ground material has the browser's field character: furrows, broken rows, wheelings, mottle, grain, patchiness and wear, at broad and close cuts.
 
 **Seam:**
-- Before porting, lift `terrainMaterial.ts`'s tuning constants (the `MOTTLE_*`, `GRAIN_*`, `BANK_*` and `DISTANT_FADE_M` families and the other literals spliced into WGSL) into one exported table, `packages/battle-renderer/src/terrain/terrainTuning.ts`.
+- Already built (`8b101db5`): `terrainTuning.ts`, with WGSL byte-identical apart from one comment. Before that, the plan was to lift `terrainMaterial.ts`'s tuning constants (the `MOTTLE_*`, `GRAIN_*`, `BANK_*` and `DISTANT_FADE_M` families and the other literals spliced into WGSL) into one exported table, `packages/battle-renderer/src/terrain/terrainTuning.ts`.
   - The browser shader and the manifest both read it.
   - The values are interpolated into WGSL as constants, so the generated shader text must stay byte-identical.
 - The manifest gains `terrain.tuning`.
