@@ -2,6 +2,7 @@ import { Link } from "react-router";
 // The cover over a battle that is still being prepared: what is being made,
 // how far along it is, and, if it cannot be made, why. In the HUD's look.
 import { useEffect, useState, type ReactNode } from "react";
+import { diagnosticsFailure } from "@web/diagnostics";
 import { downloads, type DownloadProgress } from "@web/downloads";
 
 export interface LoadingStage {
@@ -67,6 +68,10 @@ export function LoadingScreen({
   back?: string | null;
 }) {
   const at = stages.findIndex((s) => s.id === current);
+  const failed = failure && JSON.stringify([failure.message, failure.details]);
+  useEffect(() => {
+    if (failed) diagnosticsFailure(...(JSON.parse(failed) as [string, string[]]));
+  }, [failed]);
   const [details, setDetails] = useState(false);
   return (
     <main className="menu loading" data-testid="loading" aria-busy={!failure}>

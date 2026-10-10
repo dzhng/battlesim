@@ -52,6 +52,8 @@ test("an empty army can inspect one family and purchase its enabled concrete var
   fireEvent.click(view.getByRole("button", { name: "M1 Abrams" }));
   expect(choose).toHaveBeenCalledExactlyOnceWith("base");
   fireEvent.click(view.getByRole("button", { name: "Reinforcements" }));
+  fireEvent.click(view.getByRole("tab", { name: "VEH" }));
+  fireEvent.mouseEnter(view.getByRole("button", { name: "M1 Abrams" }));
   const unavailable = view.getByRole("button", {
     name: "SEP v2 Trophy — 200 credits — Unavailable",
   });
@@ -59,6 +61,36 @@ test("an empty army can inspect one family and purchase its enabled concrete var
   fireEvent.click(unavailable);
   expect(choose).toHaveBeenCalledTimes(1);
   expect(view.queryByLabelText("Unit slots")).toBeNull();
+});
+
+test("the picker opens fresh, however it was last closed", () => {
+  const view = render(
+    <PurchasePicker
+      cards={[card("base", "SEP v2")]}
+      faction="us"
+      match={match}
+      onChoose={vi.fn()}
+      rules={RULES}
+    />,
+  );
+  const toggle = () => fireEvent.click(view.getByRole("button", { name: "Reinforcements" }));
+  const expectFresh = () => {
+    expect(view.getByRole("tab", { name: "REC" }).getAttribute("aria-selected")).toBe("true");
+    expect(view.queryByRole("group", { name: "M1 Abrams variants" })).toBeNull();
+  };
+  // Closed by buying.
+  toggle();
+  fireEvent.click(view.getByRole("tab", { name: "VEH" }));
+  fireEvent.click(view.getByRole("button", { name: "M1 Abrams" }));
+  toggle();
+  expectFresh();
+  // Closed by its button, with a family's info cards open.
+  fireEvent.click(view.getByRole("tab", { name: "VEH" }));
+  fireEvent.mouseEnter(view.getByRole("button", { name: "M1 Abrams" }));
+  expect(view.getByRole("group", { name: "M1 Abrams variants" })).toBeTruthy();
+  toggle();
+  toggle();
+  expectFresh();
 });
 
 test("purchase availability follows observed credits and reserved slots", () => {
