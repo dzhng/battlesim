@@ -2,12 +2,14 @@
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/t15.py -- [--wreck]
 
-Engine at the front. The troop compartment behind the crew's deck rises to
-the full hull height back to the tail, its sides tall upright modules level
-with its roof. The Bumerang-BM module sits on that roof: a broad box turret
-on a dark neck, its 30 mm 2A42 on the centre line and a pair of Kornet tubes
-on the left; big slab applique modules lie on the deep leaning band beside
-the glacis; a tall rear door with stowage hung high either side.
+Engine at the front, under a long smooth glacis that runs from the low,
+sharp nose, well ahead of the tracks, in one line up to the troop
+compartment's roof, the crew's hatches at the roof's front. The compartment
+is the full hull height back to the tail, its sides tall upright modules
+level with its roof. The Bumerang-BM module sits on that roof: a broad box
+turret on a dark neck, its 30 mm 2A42 on the centre line and a pair of
+Kornet tubes on the left; big slab applique modules lie on the deep leaning
+band beside the glacis; a tall rear door with stowage hung high either side.
 
 Built to the catalog frame (hull 9.5 x 3.5 x 3.2 m, module pivot 2.22 m on
 the troop compartment's roof, so the 30 mm's axis is at about 2.72 m, as on
@@ -37,15 +39,17 @@ def build(variant, v):
     skirts(v, slab=True)
     armour_kit(v)
     # The engine is under the long glacis: its grilles at the glacis' head.
-    engine_deck(v, top - 0.2, top + 1.3)
-    VP.hatch("driver_hatch", (top - 0.45, 0.65, DECK), m, h, radius=0.28)
-    VP.periscope("driver_periscope", (top - 0.05, 0.65, DECK), m, h, size=(0.12, 0.30, 0.10))
-    # The troop compartment rising behind the crew's deck to the full hull
-    # height, its front leaning back; troop hatches on its roof, the tall
-    # rear door between stowage boxes hung high on the rear plate.
+    engine_deck(v, top + 0.05, top + 0.85)
+    # The troop compartment over the deck to the full hull height, its front
+    # carrying the glacis on up to its roof; the crew's two hatches at the
+    # roof's front, ahead of the module; troop hatches behind the module, the
+    # tall rear door between stowage boxes hung high on the rear plate.
     edge = side_face(v)[1][0]
-    prism("troop_compartment", [(-half, DECK - 0.02), (TROOP_FRONT + 0.30, DECK - 0.02), (TROOP_FRONT, TROOP_ROOF),
+    prism("troop_compartment", [(-half, DECK - 0.02), (top, DECK - 0.02), (TROOP_FRONT, TROOP_ROOF),
                                 (-half, TROOP_ROOF)], 2 * edge, mat=m["paint"], parent=h, bevel=0.04)
+    for name, y in (("driver", 0.65), ("commander", -0.65)):
+        VP.hatch(f"{name}_hatch", (TROOP_FRONT - 0.32, y, TROOP_ROOF), m, h, radius=0.28)
+        VP.periscope(f"{name}_periscope", (TROOP_FRONT - 0.10, y * 0.3, TROOP_ROOF), m, h, size=(0.12, 0.30, 0.10))
     for k, y in enumerate((0.62, -0.62)):
         VP.hatch(f"troop_hatch_{k}", (-3.70, y, TROOP_ROOF), m, h, size=(0.90, 0.62))
     box("rear_door", (0.08, 1.00, 1.30), (-half - 0.03, 0, 1.00), m["paint"], h, bevel=0.02)

@@ -73,10 +73,16 @@ Before/after crops against the reference photos are in
 - **Battles that field a moved vehicle have new digests,** because the muzzles moved. Test units
   and every recorded publication battle are unchanged.
 
+## Turret shapes since
+
+The Centauro II, Abrams family and Armata pair were reshaped to their photos after the move
+([crops](../assets/turret-shapes/)): the Centauro's turret rebuilt on a frame raised to the
+real height, the Abrams' longer turret with a bustle rising over a climbing rear deck and its
+Trophy housing measured from the photo, the T-14's turret and full-length barrel, and the
+T-15's sloped glacis.
+
 ## Left as found
 
-- Several turrets are lower and simpler than their photos. The Centauro II's, the clearest
-  case, has since been rebuilt to its photos' size, on a frame raised to the real vehicle's
-  height ([before, after and reference](../assets/turret-shapes/centauro/)).
-- The T-14's barrel is short, and its turret front is about 0.3 m long.
 - The ICV station's base cuts about 14 cm into the commander's ring, as it did before the move.
+- Small parts may rise only 0.3 m above the hull box (the dressing allowance), so the Abrams'
+  Trophy housing stands 0.09 m lower than photographed.
