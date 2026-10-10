@@ -16,9 +16,9 @@ camouflage.
 
 Built to the catalog frame: the published hull length, the width over the
 wheels and the height over the turret roof's fittings (references gaps). The
-turret turns on the hull's middle, as every carried mount's carrier does in
-the simulation (its remote weapon station swings about the hull origin), so
-it sits a little further forward than the photos' turret.
+turret, its ring and the commander standing in it are built at the frame's
+turret pivot, set back from the hull's middle where the photos put it; the
+remote weapon station rides round that ring.
 """
 import math
 import os
