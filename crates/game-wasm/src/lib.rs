@@ -902,3 +902,18 @@ impl PreparedWorld {
         Ok(setup)
     }
 }
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = console, js_name = error)]
+    fn console_error(message: &str);
+}
+
+/// A panic names itself before the trap: otherwise the page sees only the
+/// trap, then "recursive use of an object" on every later call.
+#[wasm_bindgen(start)]
+pub fn report_panics() {
+    std::panic::set_hook(Box::new(|info| {
+        console_error(&format!("simulation panic: {info}"))
+    }));
+}

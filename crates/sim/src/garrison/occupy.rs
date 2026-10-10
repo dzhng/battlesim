@@ -544,6 +544,10 @@ fn gather(
                 return None;
             }
             let u = &origins[id.0 as usize];
+            // An aircraft hovers over its point, whatever stands there.
+            if u.airborne() {
+                return Some(point);
+            }
             let point = grid.destination_point(
                 point,
                 u.ground(),
