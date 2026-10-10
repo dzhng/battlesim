@@ -3,6 +3,11 @@
 // the 120/60/30 FPS cadences as guides.
 import type { BenchmarkReport } from "@web/battle/benchmark/report";
 
+type ChartReport = Pick<BenchmarkReport, "durationMs" | "frameMs"> & {
+  samples: Pick<BenchmarkReport["samples"], "frames" | "stats">;
+  tour: Pick<BenchmarkReport["tour"], "phases">;
+};
+
 const W = 1000;
 const H = 240;
 const COLUMNS = 250;
@@ -20,7 +25,7 @@ interface Column {
   mean: number;
 }
 
-function columns(report: BenchmarkReport, span: number): (Column | null)[] {
+function columns(report: ChartReport, span: number): (Column | null)[] {
   const acc = Array.from({ length: COLUMNS }, () => ({
     min: Infinity,
     max: 0,
@@ -37,7 +42,7 @@ function columns(report: BenchmarkReport, span: number): (Column | null)[] {
   return acc.map((c) => (c.n === 0 ? null : { min: c.min, max: c.max, mean: c.sum / c.n }));
 }
 
-export function FrameChart({ report }: { report: BenchmarkReport }) {
+export function FrameChart({ report }: { report: ChartReport }) {
   const span = report.durationMs;
   // The scale fits the run's slow frames with headroom, so the data fills
   // the plot; a guide above it is named in the caption instead.
