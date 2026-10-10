@@ -4,15 +4,15 @@
 
 The CV90 hull is the CV90 family's (`cv90.py`): its seven road wheels with no
 return rollers and the front drive, the nose, glacis, bolted side armour,
-rear door and hatches; its side and rear references are the CV9040C's. What
-the CV90120-T photo changes: a low, wide wedge turret set over the hull's
-middle, its faceted cheeks running back from a narrow gun shield to flat
-sides and a deep bustle; the long 120 mm smoothbore with a thermal sleeve
-in sections, no fume extractor, and a perforated muzzle brake; the
-commander's sight ball on its post at the left front of the roof, the
-gunner's sight box on the right, smoke tubes on the cheeks. Swedish splinter
-scheme (the CV90 family's home army; the photo's exhibition finish is not
-followed).
+rear door and hatches; its side and rear are the CV90's own references
+(`assets/references/cv90/`). What the CV90120-T photos change: a low, wide
+wedge turret set over the hull's middle, its faceted cheeks running out from
+a narrow gun shield to nearly the hull's width, then flat sides and a deep
+bustle; the long 120 mm smoothbore with a thermal sleeve in sections, no
+fume extractor, and a perforated muzzle brake; the commander's sight ball on
+its post at the left front of the roof, the gunner's sight box on the right,
+smoke tubes on the cheeks. Swedish splinter scheme (the CV90 family's home
+army; the photos' exhibition finishes are not followed).
 
 The frame is the CV90 hull's (its catalog box's length and width) and the
 turret roof's height, measured off the photo against the road wheels. The
@@ -36,30 +36,41 @@ CARD = "europe_cv90120_light_tank"
 DIMENSIONS = (6.95, 3.30, 2.75)
 MOUNTS = [dict(name="cannon", role="gun", on=None, pivot_m=[0.10, 0.0, 1.82], muzzle_m=[5.70, 0.0, 0.36])]
 TRUNNION = 0.95
-ROOF = 0.70  # the turret roof above the pivot
+ROOF = 0.58  # the turret roof above the pivot
 FOOT = C.ROOF_Z - MOUNTS[0]["pivot_m"][2]
+WAIST = FOOT + 0.14  # the top of the turret's upright foot
+# The left cheek's line (front, back) at the waist and at the roof: the
+# cheeks lean well back, so the front reads as a low wedge.
+CHEEK_WAIST = ((1.85, 0.52), (1.05, 1.50))
+CHEEK_ROOF = ((1.20, 0.42), (0.45, 1.24))
+SIDE_WAIST, SIDE_ROOF = 1.52, 1.26  # the flanks' half-width, leaning in
 
 
 def turret_body(v, turret):
     m = v.mats
-    foot = [(1.10, 0.36), (1.55, 0.46), (0.75, 1.42), (-1.25, 1.48), (-2.20, 1.30), (-2.20, -1.30), (-1.25, -1.48),
-            (0.75, -1.42), (1.55, -0.46), (1.10, -0.36)]
-    crown = [(1.00, 0.36), (1.10, 0.44), (0.45, 1.25), (-1.25, 1.32), (-2.15, 1.18), (-2.15, -1.18), (-1.25, -1.32),
-             (0.45, -1.25), (1.10, -0.44), (1.00, -0.36)]
+    # A wide wedge: the cheeks run from a prow either side of the gun
+    # shield out to nearly the hull's width well forward, so the turret's
+    # front is broad and low, not a narrow box set back.
+    def plan(cheek, side, nose, back):
+        left = [(nose, 0.36), *cheek, (-1.25, side), (back, side - 0.20)]
+        return left + [(x, -y) for x, y in reversed(left)]
+
+    foot = plan(CHEEK_WAIST, SIDE_WAIST, 1.15, -2.20)
+    crown = plan(CHEEK_ROOF, SIDE_ROOF, 0.95, -2.15)
     cyl("turret_ring_guard", 1.05, 0.08, (0, 0, FOOT - 0.03), "Z", m["dark"], turret, seg=36, lods=MID)
-    loft("turret_shell", [(FOOT, foot), (FOOT + 0.14, foot), (ROOF, crown)], mat=m["paint"], parent=turret,
+    loft("turret_shell", [(FOOT, foot), (WAIST, foot), (ROOF, crown)], mat=m["paint"], parent=turret,
          bevel=0.05)
     VP.roof_fittings("roof", crown, ROOF, m, turret, periscopes=((-0.10, 0.95, 0.5),))
     VP.laser_warners("laser_warner", crown, ROOF, m, turret)
     for side, s in ((1, "L"), (-1, "R")):
-        VP.weld_line(f"cheek_weld_{s}", [(1.45, side * 0.46, FOOT + 0.14), (0.70, side * 1.40, FOOT + 0.14)], m,
+        VP.weld_line(f"cheek_weld_{s}", [(x, side * y, WAIST) for x, y in CHEEK_WAIST], m,
                      turret)
         # On the turret's leaning flank: the shell's side at x -0.55, from
         # the top of its upright foot to its crown.
-        loc, rot = VP.on_side(-0.55, FOOT + 0.32, side, (1.459, FOOT + 0.14), (1.291, ROOF))
+        loc, rot = VP.on_side(-0.55, FOOT + 0.32, side, (SIDE_WAIST, WAIST), (SIDE_ROOF, ROOF))
         VP.bolted_panel(f"turret_side_{s}", loc, (1.30, 0.36, 0.05), m, turret, bolts=(4, 2), bevel=0.02,
                         lods=VP.ALL, rot=rot)
-        VP.smoke_discharger_bank(f"smoke_{s}", (0.55, side * 1.30, ROOF - 0.10), m, turret, count=4,
+        VP.smoke_discharger_bank(f"smoke_{s}", (0.30, side * 1.20, ROOF - 0.08), m, turret, count=4,
                                  tube_radius=0.045, tube_length=0.20, elevation=0.3, spread=0.3,
                                  rot=(0, 0, side * 0.6))
         whip = empty(f"dressing_antenna_{s}", parent=turret)
@@ -74,11 +85,21 @@ def turret_body(v, turret):
     VP.stowage_box("bustle_box", (-1.95, 0, FOOT + 0.08), (0.45, 2.20, 0.42), m, turret)
     VP.tarp_roll("bustle_tarp", (-1.60, 0.0, ROOF + 0.10), 1.70, 0.14, m, turret, straps=3)
     # The photos' add-on armour and stowage: tile packs on the cheeks' faces
-    # and the flanks' rear, a basket round the bustle box.
+    # (lying on the leaning cheek, facing out along its normal) and the
+    # flanks' rear, a basket round the bustle box.
+    (fx, fy), (bx, by) = CHEEK_WAIST
+    facing = math.atan2(fx - bx, by - fy)  # the cheek's outward normal in plan
+    normal = (math.cos(facing), math.sin(facing))
+    mid_waist = ((fx + bx) / 2, (fy + by) / 2)
+    mid_roof = [sum(c) / 2 for c in zip(*CHEEK_ROOF)]
+    setback = (mid_waist[0] - mid_roof[0]) * normal[0] + (mid_waist[1] - mid_roof[1]) * normal[1]
+    lean = math.atan2(setback, ROOF - WAIST)
+    t = 0.12 / (ROOF - WAIST)
+    cheek = [w + (c - w) * t for w, c in zip(mid_waist, mid_roof)]
     for side, s in ((1, "L"), (-1, "R")):
-        VP.armour_tiles(f"cheek_armour_{s}", (1.12, side * 0.93, FOOT + 0.30), (0.62, 0.32), (2, 1), 0.06, m, turret,
-                        rot=(0, math.pi / 2 - 0.15, side * -0.88))
-        loc, rot = VP.on_side(-1.65, FOOT + 0.32, side, (1.459, FOOT + 0.14), (1.291, ROOF))
+        VP.armour_tiles(f"cheek_armour_{s}", (cheek[0], side * cheek[1], WAIST + 0.12), (0.62, 0.26), (2, 1), 0.06, m,
+                        turret, rot=(0, math.pi / 2 - lean, side * facing))
+        loc, rot = VP.on_side(-1.65, FOOT + 0.32, side, (SIDE_WAIST, WAIST), (SIDE_ROOF, ROOF))
         VP.armour_tiles(f"flank_armour_{s}", loc, (0.80, 0.36), (2, 1), 0.06, m, turret, rot=rot)
     VP.slat_armour("bustle_basket", (-2.28, 0, FOOT + 0.05), (2.30, 0.50), m, turret, spacing=0.10, bar=0.014,
                    rot=(0, 0, math.pi / 2))
