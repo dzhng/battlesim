@@ -20,7 +20,9 @@ decision (where a squad stands at its goal, where it steps out of a building) is
 keyed by the unit and that decision, not by the tick. Then the decision lands the
 same whenever it applies, and a preview queried every tick shows what the order
 will do instead of reshuffling. The tick belongs only in a draw for an event that
-happens on that tick, such as one shot's dispersion.
+happens on that tick, such as one shot's dispersion. A ghost drawn while the
+player is still choosing the point (a purchase being placed) decides nothing: it
+keeps one draw, so it slides with the cursor instead of reshuffling under it.
 
 [Publication](src/publication.rs) exposes only the selected side's observation.
 Geometry, sensing, hearing and knowledge owners decide what that observation may

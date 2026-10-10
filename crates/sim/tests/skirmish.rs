@@ -349,6 +349,37 @@ fn a_purchase_preview_spreads_a_squad_round_its_destination_and_a_hull_stands_al
 }
 
 #[test]
+fn a_purchase_ghost_keeps_its_shape_as_the_cursor_moves_over_open_ground() {
+    let mut rules = deck();
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_rifle",
+        json!({
+            "roster": { "factions": ["us"], "category": "inf", "family_name": "Test squad", "variant": "Test" }
+        }),
+    );
+    let mut battle = Battle::new(&match_on(rules), 1);
+    let shape = |battle: &mut Battle, at: [f64; 2]| -> Vec<(i64, i64)> {
+        battle
+            .preview_purchase(Side::Blue, "test_rifle", at)
+            .unwrap()
+            .spots
+            .iter()
+            .map(|s| (((s[0] - at[0]) * 1e6) as i64, ((s[1] - at[1]) * 1e6) as i64))
+            .collect()
+    };
+    let first = shape(&mut battle, [400.0, 300.0]);
+    for at in [[400.5, 300.0], [403.0, 298.0], [410.0, 305.0]] {
+        assert_eq!(
+            shape(&mut battle, at),
+            first,
+            "the ghost slides with the cursor at {at:?}"
+        );
+    }
+}
+
+#[test]
 fn purchase_admission_refuses_unavailable_wrong_faction_and_invalid_destination_atomically() {
     let mut battle = Battle::new(&setup(), 1);
     for (seq, side, variant, destination, error) in [

@@ -2986,19 +2986,22 @@ impl Battle {
         let next = self.units.len() as u32;
         Ok(contract::skirmish::PurchasePreview {
             kind,
-            spots: self.arrival_spots(side, destination, soldiers, next),
+            // A look while it is placed, not where its soldiers will stand: one
+            // draw wherever it is put, so the ghost slides with the cursor.
+            spots: self.arrival_spots(side, destination, soldiers, next, 0),
         })
     }
 
     /// Where `count` soldiers stand round `centre` as a squad arriving there
-    /// spreads out on the ground `side` knows, before cover moves them. The
-    /// draw an order there makes ([`arrangement::arrival`]); it changes no state.
+    /// spreads out on the ground `side` knows, before cover moves them, by
+    /// the arrangement `draw` ([`arrangement::rng`]). It changes no state.
     fn arrival_spots(
         &self,
         side: Side,
         centre: [f64; 2],
         count: usize,
         unit: u32,
+        draw: u64,
     ) -> Vec<[f64; 2]> {
         if count == 0 {
             return vec![];
@@ -3008,7 +3011,7 @@ impl Battle {
             p.blocks(MoverClass::Infantry) && known.knows(p, self.authored_props)
         };
         let centre = v2(centre[0], centre[1]);
-        let mut draws = arrangement::rng(self.seed, unit, arrangement::arrival(centre));
+        let mut draws = arrangement::rng(self.seed, unit, draw);
         arrangement::squad_spots(
             &self.world,
             centre,
@@ -3160,7 +3163,13 @@ impl Battle {
                     goal: [goal.x, goal.y],
                     placed: slot_point.is_some(),
                     facing: facing.unwrap_or(u.yaw),
-                    spots: self.arrival_spots(side, [goal.x, goal.y], living, slot.id.0),
+                    spots: self.arrival_spots(
+                        side,
+                        [goal.x, goal.y],
+                        living,
+                        slot.id.0,
+                        arrangement::arrival(goal),
+                    ),
                 }
             })
             .collect();
