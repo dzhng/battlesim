@@ -3,10 +3,10 @@
 **Contract:** native lights the scene with the browser's sun and fill. Shadows fall in the same direction with the same softness.
 
 **Seam:**
-- The manifest gains `light.sun` (direction in sim space, colour and illuminance), `light.fill` and `light.cascades`. These come from the browser's resolved light (`light/sceneLight.ts`, `physicalEnvironment.ts`, `cascadePolicy.ts`).
-- Native `build_sun(light)` converts the sun through `sim_to_godot`.
+- The manifest carries the browser's raw `presentation.light` plus `sunDirection`; native ports the derivations, and `environment/light.gd` refuses a missing, extra or non-finite field. The sun colour, cascade splits and fill derive as in `light/sceneLight.ts`, `physicalEnvironment.ts` and `cascadePolicy.ts`.
+- `environment/environment_adapter.gd` converts the sun through `sim_to_godot`, and `prepare(camera, viewport, focus)` runs once per frame.
 - PSSM splits come from the cascade policy.
-- Ambient comes from the manifest fill, not from Godot's sky.
+- Ambient is the browser's sky radiance times `fill`, written into Godot's sky slot, as the browser's environment light is.
 
 **Runnable artifact:** one plate frame with shadows falling on open ground, plus a paris-corner street frame.
 

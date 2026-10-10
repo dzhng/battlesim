@@ -4,7 +4,7 @@
 
 **Status:** phase 1 discovery is closed. Every decision is in [`choices.md`](choices.md), which holds the full map: settled ground, the decision ledger, the extracted taste and the landmines. No implementation slice is accepted yet.
 
-**Next pickup:** 04b, 05b and 06a are in flight. Read `choices.md` first. Its decisions are givens, not suggestions.
+**Next pickup:** 05b and 06a are in flight. Read `choices.md` first. Its decisions are givens, not suggestions.
 
 **Goal:** make the native Godot client visually equivalent to the browser renderer for the authored menu reel, as a maintained second client beside the browser. Rust stays the only gameplay, observation, visibility, replay and digest authority. The browser remains shipped.
 
@@ -25,7 +25,7 @@ Graph: `01 ∥ 02 → 03 → 04a → 04b → 04c → 05a → 05b → 06a → 06b
 - [x] 04b — Light: sky, clouds and distance haze. [slice](slices/04b-light-sky-and-haze.md)
 - [x] 04c — Light: output transform (tone), a formula port of the browser's post chain. [slice](slices/04c-light-output-transform.md)
 - [x] 05a — Terrain: height and features (`48c3ab7a`): class agreement 100.00% with a 2 px edge mask (gate 99.5%). [slice](slices/05a-terrain-height-and-features.md)
-- [ ] 05b — Terrain: field character. The formulas are ported, and the broad cut and bare plots match; the close cut waits on browser plates with the grass off (`plain-<index>.png`). [slice](slices/05b-terrain-field-character.md)
+- [x] 05b — Terrain: field character (`89481000`): furrows, wheelings, grain and mottle match the browser's grass-off `plain-<index>.png` plates at broad and close cuts. [slice](slices/05b-terrain-field-character.md)
 - [ ] 06a — Grass: bit-exact placement and per-region counts. [slice](slices/06a-grass-placement-and-counts.md)
 - [ ] 06b — Grass: look and wind. [slice](slices/06b-grass-look-and-wind.md)
 - [ ] Closeout: run [`review`](../../.agents/skills/review/SKILL.md) over phase 1's whole diff, remove the class-view scaffolding unless phase 2 adopts it, update this handoff, and plan phase 2 with a fresh discovery walk.
@@ -118,7 +118,7 @@ Counters never prove pixels. Headless Godot proves lifecycle only. Every pass ke
 
 ## Next Agent Prompt
 
-*Updated 2026-10-10.* You are implementing phase 1 of the native visual-parity spec. Slices 01–03, 04a and 05a are built, along with every browser-side input for phase 1 (manifest keys plus class and plain plates). In flight: 04b (sky), 05b (field character) and 06a (grass placement). The current control run is `throwaway/native-parity/2026-10-10T22-39-26-895Z/`.
+*Updated 2026-10-10.* You are implementing phase 1 of the native visual-parity spec. Slices 01–03, 04a–c and 05a are built, along with every browser-side input for phase 1 (manifest keys plus class and plain plates). In flight: 05b (field character) and 06a (grass placement). The current control run is `throwaway/native-parity/2026-10-10T22-39-26-895Z/`.
 
 - **Control run:** `PARITY_SCENES=paris-corner lockf -k <main>/throwaway/gpu.lock bun run --cwd web scene -- native-parity-capture` takes about 55 s; both scenes take about 3 minutes.
 - **Native run:** `godot --path native/godot --window-position 10000,10000 -- --run <dir> --scene <map>`.

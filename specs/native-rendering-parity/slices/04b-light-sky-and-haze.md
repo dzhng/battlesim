@@ -3,7 +3,7 @@
 **Contract:** native draws the browser's sky, clouds and distance haze, so the horizon reads as the same weather.
 
 **Seam:**
-- The manifest gains `light.sky` and `light.aerial`: the resolved `skyModelParams`, cloud parameters and `aerialParams` (`light/skyParameters.ts`, `aerialParameters.ts`).
+- The manifest carries the browser's raw `presentation.light` plus `sunDirection`; native ports the derivations, and `environment/light.gd` refuses a missing, extra or non-finite field. Native derives `skyModelParams`, the clouds and `aerialParams` as `light/skyParameters.ts` and `aerialParameters.ts` do.
 - Native ports `world/sky.ts`'s formulas into a sky shader that replaces the current procedural one (`reel.gd:635-684`).
 - Haze is depth-based and applied once, in a CompositorEffect that 04c's post chain then follows, so phase 2's imported models inherit it.
 - No fog-term constants are lifted: phase 1 paints no fog overlay, and nothing would read them.
