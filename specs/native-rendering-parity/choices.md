@@ -151,6 +151,22 @@ Append decisions made during the build here, with their attribution.
 | The worktree pulls `assets/runtime/**` and `assets/third-party/effects/**` (about 417 MB) | The reel needs 321 of 337 bundles |
 | The lens records `far: "infinite"` without checking it against the drawn camera | Today's camera never sets a far plane |
 
+### Slice 03 (`0d264eb5`), by the implementing agent; reviewed by the orchestrator
+
+Framing passes: 18 of 18 market-town pairs and 5 of 6 paris-corner pairs (the sixth is all explosion). Edge maps align within 4 px apart from grass-dominated frames, and the unprimed critique agreed.
+
+| Decision | Why |
+| --- | --- |
+| The far plane is the map diagonal plus the manifest's `light.backdrop.reach_m`; the sun comes from `light.sunDirection` | The manifest is the seam; no second fixture read |
+| Legacy terrain and sky shaders read sim (x, y) world coordinates | One conversion owner |
+| Rotated boxes scale in their own axes | `scaled()` skewed them |
+| Units draw at their authored size (the legacy 1.8× scale is gone) | It doubled every vehicle and misframed subjects |
+| A `Logger` turns every logged script error into a blocker, and `tests/run.sh` fails any test that logs one | GDScript runtime errors return null and carry on silently. This exposed two load-skipped-model bugs. |
+| The test fixture is paris-corner trimmed through its first plate (580 KB, artifacts included), with a frozen map copy | A real capture replaces the hand-written one |
+| Infantry is mostly missing because only the own-side group is decoded, one model per unit | Phase 2 (07) owns squads, enemies and corpses |
+
+Defects found for later slices: tree lines and forests drawn as flat bands (vegetation is phase 2 unless 06 adopts it); wrecks, infantry and a T-posed soldier (07); balcony railings and lamp-post height (07); road markings and decals (05a/05b surfaces, or 08 for scars); effects (08); oversized grass (06).
+
 ### Browser lanes built ahead of their native slices (`8209a90b`, `449e9d8e`, `8b101db5`, `5d6898ad`)
 
 The orchestrator built the browser halves of 04, 05 and 06a early, in parallel with slice 03. This bends Q4 ("each slice adds only what native reads") in timing only: every field has a phase 1 reader.

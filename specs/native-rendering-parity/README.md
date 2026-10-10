@@ -4,7 +4,7 @@
 
 **Status:** phase 1 discovery is closed. Every decision is in [`choices.md`](choices.md), which holds the full map: settled ground, the decision ledger, the extracted taste and the landmines. No implementation slice is accepted yet.
 
-**Next pickup:** slice 03. Read `choices.md` first. Its decisions are givens, not suggestions.
+**Next pickup:** 04a. Read `choices.md` first. Its decisions are givens, not suggestions.
 
 **Goal:** make the native Godot client visually equivalent to the browser renderer for the authored menu reel, as a maintained second client beside the browser. Rust stays the only gameplay, observation, visibility, replay and digest authority. The browser remains shipped.
 
@@ -20,7 +20,7 @@ Graph: `01 ∥ 02 → 03 → 04a → 04b → 04c → 05a → 05b → 06a → 06b
 
 - [x] 01 — Browser capture run (`0b8ac2a9`): the complete frame record, the base manifest, same-frame plates, and the `native-parity-capture` scene. [slice](slices/01-browser-capture-run.md)
 - [x] 02 — Native runner (`ae645e7a`): rename to `native/godot`, Forward+, the strict reader, stepping by index, the report, per-file staging, and silent fallbacks and caps deleted. [slice](slices/02-native-runner.md)
-- [ ] 03 — Coordinates and camera: the first real pair; the same shot. [slice](slices/03-coordinates-and-camera.md)
+- [x] 03 — Coordinates and camera (`0d264eb5`): the first real pair; the same shot. [slice](slices/03-coordinates-and-camera.md)
 - [ ] 04a — Light: sun, fill and shadows (direction and softness). [slice](slices/04a-light-sun-and-shadow.md)
 - [ ] 04b — Light: sky, clouds and distance haze. [slice](slices/04b-light-sky-and-haze.md)
 - [ ] 04c — Light: output transform (tone), a formula port of the browser's post chain. [slice](slices/04c-light-output-transform.md)
@@ -44,7 +44,6 @@ Graph: `01 ∥ 02 → 03 → 04a → 04b → 04c → 05a → 05b → 06a → 06b
 
 | Scaffolding | Removed |
 | --- | --- |
-| The hand-written capture fixture | Replaced by a trimmed real capture at slice 03 |
 | `legacy_map_layer.gd` | Slice 07 |
 | The class-view capture and the native class branch | Phase 1 closeout |
 | The cube probe in `throwaway/` | Scratch; never committed |
@@ -119,7 +118,7 @@ Counters never prove pixels. Headless Godot proves lifecycle only. Every pass ke
 
 ## Next Agent Prompt
 
-*Updated 2026-10-10.* You are implementing phase 1 of the native visual-parity spec. Slices 01 and 02 are built. The next pickup is slice 03, the first real pair.
+*Updated 2026-10-10.* You are implementing phase 1 of the native visual-parity spec. Slices 01–03 are built, along with every browser-side manifest input for phase 1. The next pickup is 04a (light: sun and shadows) on the native side, plus the browser half of 05a's class view.
 
 - **Control run:** `PARITY_SCENES=paris-corner lockf -k <main>/throwaway/gpu.lock bun run --cwd web scene -- native-parity-capture` takes about 55 s; both scenes take about 3 minutes.
 - **Native run:** `godot --path native/godot --window-position 10000,10000 -- --run <dir> --scene <map>`.
