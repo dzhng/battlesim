@@ -413,7 +413,7 @@ func _build_map_geometry() -> void:
 		counts["rendered_roads"] = road_transforms.size()
 		counts["rendered_surface_polygons"] = surface_rings.size()
 		counts["rendered_buildings"] = building_transforms.size()
-		counts["rendered_props"] = prop_transforms.size()
+		counts["rendered_props"] = prop_transforms.size() + authored_props.size()
 		counts["rendered_trees"] = tree_transforms.size()
 		counts["building_limit"] = building_limit
 		counts["prop_limit"] = prop_limit
