@@ -135,6 +135,7 @@ import type { FelledTree } from "@packages/battle-renderer/src/scenery/felled";
 import { orderView } from "./battleOverlay";
 import {
   fieldedSoldiers,
+  ghostAloft,
   orderedGhost,
   ownSoldiers,
   pushGhostModels,
@@ -207,6 +208,8 @@ export interface ScenarioRules extends PoseRules, PanelRules, RulerRules {
   physics: SoldierBody & RulerRules["physics"];
   service: { radius_m: number };
   sensors: FogSensorRules;
+  /** An aircraft's ghost flies at its cruise height. */
+  air: { cruise_agl_m: number };
 }
 
 export function useBattleSession({
@@ -795,6 +798,7 @@ export function useBattleSession({
         posing.appearances,
         surfaceZ,
         (kind) => Boolean(units.hull(kind)),
+        ghostAloft(units, rules.air.cruise_agl_m),
       );
       return {
         picks: d.picks,
