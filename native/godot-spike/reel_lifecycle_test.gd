@@ -42,6 +42,7 @@ func run() -> void:
 	check(reel._resolve_path("throwaway/report.json") == ProjectSettings.globalize_path("res://../../throwaway/report.json"), "relative report paths must resolve from the repository root")
 	check(reel._authored_map_directory() == directory, "authored map override must be the shared map directory")
 	check(reel._comparison_blocker().contains("authored model catalog"), "missing authored assets must name the catalog blocker")
+	check(not reel._comparison_gates(0).authored_catalog_complete, "comparison gates must keep missing authored assets red")
 	check(not reel.proxy_field_used, "map composition must not fall back to the synthetic cube field")
 	check(reel.map_geometry_counts["first"].building_limit == 0, "map geometry must default to the complete building export")
 	check(reel.map_geometry_counts["first"].prop_limit == 0, "map geometry must default to the complete prop export")

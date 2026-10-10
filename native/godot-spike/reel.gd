@@ -880,6 +880,7 @@ func _write_report() -> void:
 		"identity": {"client": "godot", "renderer": ProjectSettings.get_setting("rendering/renderer/rendering_method", "unknown"), "display_server": DisplayServer.get_name(), "display_backed": _display_backed(), "viewport": [ProjectSettings.get_setting("display/window/size/viewport_width", 0), ProjectSettings.get_setting("display/window/size/viewport_height", 0)], "quality": "current-project-settings"},
 		"candidate": "godot-menu-reel-camera-probe",
 		"comparison_ready": false,
+		"comparison_gates": _comparison_gates(expected_cuts),
 		"comparison_blocker": _comparison_blocker(),
 		"authored_asset_loaded": authored_asset_loaded,
 		"authored_catalog_complete": authored_asset_loaded and authored_unresolved_templates.is_empty(),
@@ -937,3 +938,14 @@ func _comparison_blocker() -> String:
 	if not authored_unresolved_templates.is_empty():
 		return "authored template modules are unresolved; map geometry and sampled units are rendered"
 	return "authored materials and display-backed visual equivalence remain unproven"
+
+func _comparison_gates(expected_cuts: int) -> Dictionary:
+	return {
+		"capture_scenes_complete": capture_results.size() == scenes.size(),
+		"capture_layout_valid": capture_layout_valid,
+		"authored_catalog_complete": authored_asset_loaded and authored_unresolved_templates.is_empty(),
+		"named_cuts_complete": cuts_saved == expected_cuts,
+		"display_backed": _display_backed(),
+		"fog_samples_consumed": semantic_fog_publications > 0,
+		"authored_materials_reviewed": false,
+	}
