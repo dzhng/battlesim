@@ -46,7 +46,7 @@ The record of each slice lives in its slice file and in [choices](choices.md).
 - [ ] [13 — The airborne contact sign, built](slices/13-contact-sign.md)
 - [x] [14 — Resupply sink](slices/14-resupply-sink.md)
 - [x] [15 — The Apache, on real art](slices/15-apache.md)
-- [ ] [16 — The other 18 helicopters](slices/16-roster.md)
+- [x] [16 — The other 18 helicopters](slices/16-roster.md)
 - [ ] [17 — Skirmish: entry and AI](slices/17-skirmish.md)
 - [x] [17b — Rotor sound](slices/17b-rotor-sound.md)
 - [ ] [18 — Closing scene (D14) and closeout](slices/18-closing-scene.md)
