@@ -121,3 +121,28 @@ the [README](README.md#decisions).
   mast shortened); M10 2.98 m to its sight drum. Wreck footprints 1.6 m (CV90120), 1.4 m (Centauro).
 - **CV90120 references:** three CC-BY-SA-3.0 photos of the CV90120-T replace the CV90 IFV side and
   rear; no licensable side or rear photo exists, recorded as a gap.
+
+## 2026-10-10 — slice 11 (Javelin and Akeron MP teams)
+
+- **Superseded: the heard-bitmask change above was not built by this feature.** The helicopter work
+  landed the same widening first (two 24-bit words, 48 rows); slice 11 dropped its own and added a
+  codec vector heard from rows 0, 23, 24 and 47.
+- **Named decision: digests move from weapon-row renumbering.** Rows are numbered in name order, so
+  adding `javelin` and `akeron_mp` shifts firing reports' heard bits; combat digests and the paired
+  publication records change, fog and the rest do not.
+- **Rows:** `javelin` and `akeron_mp` extend `atgm` with top attack (turn 360°/s, loft 60 m, dive
+  40°), penetration 200, damage 55 (as Kornet and Spike: a T-90M takes three roof hits, an Abrams
+  two), minimum range 100 m (the shortest range at which every shot struck the roof), 4 rounds, 20
+  supply each. Javelin reaches 800 m, Akeron 900 m — past the team's 600 m sight, so the Akeron's
+  reach needs another unit's eyes (vision < range is intended).
+- **Penetration 200 still pierces the plain-MBT fronts (190);** it is below every improved and
+  advanced front, as decided. Every supported shot dives, so it bites only on a released, flat missile.
+- **Teams:** a shoulder-firing gunner (`stand_aim`) and two AT riflemen, as the TOW team; role `at`,
+  cost 150 unchanged.
+- **Sample (6 seeds each, `assets/11-at-teams/battle-sample.txt`):** Javelin vs T-90M flank or
+  head-on, every hit on the roof and every tank killed; vs Abrams SEP v2 Trophy, all 23 missiles
+  intercepted, no kills; TOW control hits the front.
+- **Open, shared art not this feature's:** the ATGM launch-flash sprite has hard edges and no
+  backblast (TOW shares it).
+- **Unrelated fix while integrating:** the `mechanics_validate` accuracy-ceiling test patched the
+  rifle, which the heavy sniper inherits and trips first; it now patches a row nothing extends.
