@@ -1,21 +1,19 @@
 // The main menu's Tutorial page: how a skirmish is played, from the plan
 // before the first shot to the last flag. The economy's numbers are read from
-// the skirmish rules and the order keys from the command bindings, so the
+// the skirmish rules and the command keys from their bindings, so the
 // guide says what the game does; the rest describes rules owned by the
 // simulation (objectives, preparation, purchases) and must follow them.
 import type { ReactNode } from "react";
 import skirmish from "@fixtures/skirmish.json";
-import { CommandBindings, type CommandBinding } from "@web/battle/input/commandBindings";
-
-const STARTING_CREDITS = skirmish.credits_per_minute * skirmish.starting_minutes;
+import {
+  CommandBindings,
+  ShowOrdersBinding,
+  type CommandBinding,
+} from "@web/battle/input/commandBindings";
 
 /** A command's key alone, where its binding's label also names a mouse
  *  alternative the guide words itself. */
 const keyOf = (b: CommandBinding) => b.code.replace(/^Key/, "");
-
-function Key({ children }: { children: ReactNode }) {
-  return <kbd>{children}</kbd>;
-}
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -27,7 +25,6 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 export function Tutorial() {
-  const keys = CommandBindings;
   return (
     <article className="menu-tutorial" aria-label="How to play" tabIndex={0}>
       <Section title="The aim">
@@ -90,7 +87,12 @@ export function Tutorial() {
         </p>
         <ul>
           <li>
-            You start with <strong>{STARTING_CREDITS.toLocaleString("en")} CR</strong>.
+            You start with{" "}
+            <strong>
+              {/* The opening purse is that many minutes of income, as the simulation grants it. */}
+              {(skirmish.credits_per_minute * skirmish.starting_minutes).toLocaleString("en")} CR
+            </strong>
+            .
           </li>
           <li>
             Once the battle starts, both sides earn{" "}
@@ -129,8 +131,8 @@ export function Tutorial() {
           </li>
           <li>
             A ghost of the unit follows the cursor (a squad shows where each soldier will stand).{" "}
-            <Key>Left-click</Key> the ground to confirm, where it fits. <Key>Right-click</Key> or{" "}
-            <Key>Esc</Key> cancels without spending anything.
+            <kbd>Left-click</kbd> the ground to confirm, where it fits. <kbd>Right-click</kbd> or{" "}
+            <kbd>Esc</kbd> cancels without spending anything.
           </li>
           <li>
             The price is paid when you confirm. Each placement buys one unit; open the shop again
@@ -150,23 +152,23 @@ export function Tutorial() {
       <Section title="Selecting units">
         <ul>
           <li>
-            <Key>Left-click</Key> a unit to select it. Left-click empty ground to clear the
+            <kbd>Left-click</kbd> a unit to select it. Left-click empty ground to clear the
             selection.
           </li>
           <li>
-            <Key>Left-drag</Key> a box over the field to select every unit inside it.
+            <kbd>Left-drag</kbd> a box over the field to select every unit inside it.
           </li>
           <li>
-            <Key>Shift</Key> + <Key>Left-click</Key> adds a unit to the selection, or removes it.{" "}
-            <Key>Shift</Key> + <Key>Left-drag</Key> adds a whole box.
+            <kbd>Shift</kbd> + <kbd>Left-click</kbd> adds a unit to the selection, or removes it.{" "}
+            <kbd>Shift</kbd> + <kbd>Left-drag</kbd> adds a whole box.
           </li>
           <li>
-            <Key>Double-click</Key> a unit to select all your units of that type. Double-click it
-            again (or <Key>Ctrl</Key> + double-click) to select every unit sharing its role.
+            <kbd>Double-click</kbd> a unit to select all your units of that type. Double-click it
+            again (or <kbd>Ctrl</kbd> + double-click) to select every unit sharing its role.
           </li>
           <li>
             Every unit you own also has a card in the army bar along the bottom: click it to select
-            that unit, <Key>Shift</Key>-click to add it, hover to see its details.
+            that unit, <kbd>Shift</kbd>-click to add it, hover to see its details.
           </li>
         </ul>
       </Section>
@@ -174,32 +176,32 @@ export function Tutorial() {
       <Section title="Moving">
         <ul>
           <li>
-            <Key>Right-click</Key> the ground to move the selection there by the shortest route.
+            <kbd>Right-click</kbd> the ground to move the selection there by the shortest route.
           </li>
           <li>
-            <Key>Right-drag</Key> to move and set the direction the units face when they arrive:
+            <kbd>Right-drag</kbd> to move and set the direction the units face when they arrive:
             drag from the destination towards where the enemy should be. Wheeled vehicles keep the
             heading they arrive on.
           </li>
           <li>
-            <Key>Double right-click</Key> for a fast move: the units take the quickest route, using
+            <kbd>Double right-click</kbd> for a fast move: the units take the quickest route, using
             roads, rather than the most direct one.
           </li>
           <li>
-            <Key>Shift</Key> + <Key>Right-click</Key> queues a waypoint after the current orders
+            <kbd>Shift</kbd> + <kbd>Right-click</kbd> queues a waypoint after the current orders
             instead of replacing them.
           </li>
           <li>
-            <Key>{keyOf(keys.reverse_move)}</Key>, or a right-click just behind a single selected
-            vehicle, backs it up without turning round.
+            <kbd>{keyOf(CommandBindings.reverse_move)}</kbd>, or a right-click just behind a single
+            selected vehicle, backs it up without turning round.
           </li>
           <li>
-            <Key>Right-click</Key> a building with infantry selected to garrison it: one squad per
+            <kbd>Right-click</kbd> a building with infantry selected to garrison it: one squad per
             building, and the whole squad must fit. <strong>Leave building</strong> on the command
             bar brings them out.
           </li>
           <li>
-            <Key>{keys.stop.label}</Key> stops the selection where it stands.
+            <kbd>{CommandBindings.stop.label}</kbd> stops the selection where it stands.
           </li>
         </ul>
       </Section>
@@ -211,33 +213,34 @@ export function Tutorial() {
         </p>
         <ul>
           <li>
-            <Key>Right-click</Key> an enemy to attack it, or a red contact area to fire into it.
+            <kbd>Right-click</kbd> an enemy to attack it, or a red contact area to fire into it.
           </li>
           <li>
-            <Key>{keyOf(keys.attack_move)}</Key> then right-click (or <Key>Ctrl</Key> +{" "}
-            <Key>Right-click</Key>) for an <strong>attack-move</strong>: the units advance and halt
+            <kbd>{keyOf(CommandBindings.attack_move)}</kbd> then right-click (or <kbd>Ctrl</kbd> +{" "}
+            <kbd>Right-click</kbd>) for an <strong>attack-move</strong>: the units advance and halt
             to fight whenever a weapon has a target.
           </li>
           <li>
-            <Key>{keys.attack_ground.label}</Key> then left-click to fire on a patch of ground, such
-            as a treeline you suspect. Right-click cancels.
+            <kbd>{CommandBindings.attack_ground.label}</kbd> then left-click to fire on a patch of
+            ground, such as a treeline you suspect. Right-click cancels.
           </li>
           <li>
-            <Key>{keys.toggle_fire_policy.label}</Key> switches between{" "}
+            <kbd>{CommandBindings.toggle_fire_policy.label}</kbd> switches between{" "}
             <strong>fire at will</strong> and <strong>return fire only</strong>: hold fire to stay
             hidden in an ambush.
           </li>
           <li>
-            <Key>{keys.toggle_deployment.label}</Key> deploys or packs a unit that must set up
-            before working, such as a supply truck or a heavy missile team. A deployed unit packs up
-            before it can move again.
+            <kbd>{CommandBindings.toggle_deployment.label}</kbd> deploys or packs a unit that must
+            set up before working, such as a supply truck or a heavy missile team. A deployed unit
+            packs up before it can move again.
           </li>
           <li>
-            <Key>{keys.disarm.label}</Key> drops a command you have armed (like attack-move) without
-            using it.
+            <kbd>{CommandBindings.disarm.label}</kbd> drops a command you have armed (like
+            attack-move) without using it.
           </li>
           <li>
-            Hold <Key>Space</Key> to see every unit&apos;s route, destination and cover at once.
+            <kbd>{ShowOrdersBinding.label}</kbd> to see every unit&apos;s route, destination and
+            cover at once.
           </li>
         </ul>
         <p>
@@ -250,11 +253,11 @@ export function Tutorial() {
       <Section title="The camera">
         <ul>
           <li>
-            <Key>W</Key> <Key>A</Key> <Key>S</Key> <Key>D</Key> or the arrow keys pan; hold{" "}
-            <Key>Shift</Key> to pan faster. Resting the pointer at the edge of the screen pans too.
+            <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> or the arrow keys pan; hold{" "}
+            <kbd>Shift</kbd> to pan faster. Resting the pointer at the edge of the screen pans too.
           </li>
           <li>
-            <Key>Q</Key> and <Key>E</Key> rotate the view. <Key>Middle-drag</Key> orbits and tilts.
+            <kbd>Q</kbd> and <kbd>E</kbd> rotate the view. <kbd>Middle-drag</kbd> orbits and tilts.
           </li>
           <li>The mouse wheel zooms, from close over a squad to the whole battlefield.</li>
         </ul>
@@ -344,7 +347,7 @@ export function Tutorial() {
 
       <Section title="Pausing">
         <p>
-          <Key>Esc</Key> (or the menu button at the top) pauses the battle. From the pause menu you
+          <kbd>Esc</kbd> (or the menu button at the top) pauses the battle. From the pause menu you
           can resume, restart, save a replay to watch later, change the sound, or return here.
         </p>
       </Section>
