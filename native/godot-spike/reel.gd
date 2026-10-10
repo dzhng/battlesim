@@ -54,6 +54,10 @@ var fog_nodes: Dictionary = {}
 var fog_cell_nodes: Dictionary = {}
 var native_asset_cache: Dictionary = {}
 var native_asset_instances := {"street_tree": 0, "parked_car": 0, "grass": 0}
+var native_catalog: Dictionary = {}
+var native_unit_catalog: Dictionary = {}
+var native_soldier_catalog: Dictionary = {}
+var native_asset_instance_limit := 2048
 
 func _ready() -> void:
 	startup_started_usec = Time.get_ticks_usec()
@@ -70,6 +74,7 @@ func _ready() -> void:
 		get_tree().quit(2)
 		return
 	scenes = parsed.scenes
+	_load_native_catalog()
 	_load_presentation_captures()
 	_consume_capture_words()
 	_decode_semantic_captures()
@@ -84,11 +89,11 @@ func _exit_after_ready() -> void:
 	print(JSON.stringify({
 		"map_geometry": map_geometry_counts,
 		"semantic_scenes": semantic_results.size(),
-		"native_asset_instances": native_asset_instances,
 		"authored_asset_loaded": authored_asset_loaded,
 		"authored_building_count": authored_building_count,
 		"authored_map_scene_count": authored_map_scene_count,
 		"authored_unresolved_templates": authored_unresolved_templates,
+		"native_catalog_loaded": not native_catalog.is_empty(),
 		"native_asset_instances": native_asset_instances,
 		"capture_scene_count": capture_results.size(),
 		"capture_layout_valid": capture_layout_valid,
@@ -207,6 +212,9 @@ func _build_world() -> void:
 	var map_cull_text := OS.get_environment("GODOT_MAP_RENDER_RADIUS")
 	if not map_cull_text.is_empty() and float(map_cull_text) > 0.0:
 		map_render_radius = float(map_cull_text)
+	var asset_limit_text := OS.get_environment("GODOT_NATIVE_ASSET_INSTANCE_LIMIT")
+	if not asset_limit_text.is_empty():
+		native_asset_instance_limit = maxi(0, int(asset_limit_text))
 	if not authored_paths.is_empty():
 		for path in authored_paths.split(","):
 			var clean_path := path.strip_edges()
@@ -250,6 +258,7 @@ func _build_map_geometry() -> void:
 		add_child(holder)
 		var counts := {"terrain": 0, "forests": 0, "roads": 0, "props": 0, "buildings": 0}
 		var road_transforms: Array[Transform3D] = []
+		var surface_transforms: Array[Transform3D] = []
 		var building_transforms: Array[Transform3D] = []
 		var prop_transforms: Array[Transform3D] = []
 		var tree_transforms: Array[Transform3D] = []
@@ -274,6 +283,25 @@ func _build_map_geometry() -> void:
 			if typeof(surface) != TYPE_DICTIONARY or typeof(surface.get("shape")) != TYPE_DICTIONARY:
 				continue
 			var shape: Dictionary = surface.shape
+			if shape.get("kind") == "polygon" and typeof(shape.get("ring")) == TYPE_ARRAY:
+				var ring: Array = shape.ring
+				var min_x := INF
+				var max_x := -INF
+				var min_y := INF
+				var max_y := -INF
+				for point in ring:
+					if typeof(point) != TYPE_ARRAY or point.size() < 2:
+						continue
+					min_x = minf(min_x, float(point[0]))
+					max_x = maxf(max_x, float(point[0]))
+					min_y = minf(min_y, float(point[1]))
+					max_y = maxf(max_y, float(point[1]))
+				if is_finite(min_x) and max_x > min_x and max_y > min_y:
+					var midpoint := Vector2((min_x + max_x) * 0.5, (min_y + max_y) * 0.5)
+					if _near_render_center(midpoint, render_centers):
+						var basis := Basis.IDENTITY.scaled(Vector3(max_x - min_x, 0.03, max_y - min_y))
+						surface_transforms.append(Transform3D(basis, Vector3(midpoint.x, -0.05, midpoint.y)))
+				continue
 			if shape.get("kind") != "stroke" or typeof(shape.get("points")) != TYPE_ARRAY:
 				continue
 			var points: Array = shape.points
@@ -292,6 +320,7 @@ func _build_map_geometry() -> void:
 					basis = basis.scaled(Vector3(length, 0.035, float(shape.get("width_m", 8.0))))
 					road_transforms.append(Transform3D(basis, Vector3(midpoint.x, 0.0, midpoint.y)))
 				counts.roads += 1
+		_add_box_batch(holder, surface_transforms, Color("a8a69e"), 0.96)
 		_add_box_batch(holder, road_transforms, Color("30383b"), 0.85)
 		for forest in map.get("forests", []):
 			if typeof(forest) != TYPE_DICTIONARY or typeof(forest.get("shape")) != TYPE_DICTIONARY:
@@ -347,8 +376,8 @@ func _build_map_geometry() -> void:
 			var prop_position := Vector2(float(center[0]), float(center[1]))
 			if _near_render_center(prop_position, render_centers):
 				var prop_kind := String(prop.get("kind", ""))
-				var authored_prop := _instantiate_native_prop(prop_kind)
-				if authored_prop != null and (prop_kind == "street_tree" or prop_kind == "parked_car") and native_asset_instances.get(prop_kind, 0) < (256 if prop_kind == "street_tree" else 128):
+				var authored_prop := _instantiate_native_prop(prop_kind, String(map.get("regional_family", "")))
+				if authored_prop != null and int(native_asset_instances.get(prop_kind, 0)) < native_asset_instance_limit:
 					authored_prop.position = Vector3(prop_position.x, float(prop.get("base_z", 0.0) if prop.get("base_z") != null else 0.0), prop_position.y)
 					authored_prop.rotation.y = float(prop.get("yaw", 0.0))
 					authored_props.append(authored_prop)
@@ -365,6 +394,7 @@ func _build_map_geometry() -> void:
 		for authored_prop in authored_props:
 			holder.add_child(authored_prop)
 		counts["rendered_roads"] = road_transforms.size()
+		counts["rendered_surface_polygons"] = surface_transforms.size()
 		counts["rendered_buildings"] = building_transforms.size()
 		counts["rendered_props"] = prop_transforms.size()
 		counts["rendered_trees"] = tree_transforms.size()
@@ -373,13 +403,78 @@ func _build_map_geometry() -> void:
 		counts["road_limit"] = road_limit
 		map_geometry_counts[map_name] = counts
 
-func _instantiate_native_prop(kind: String) -> Node3D:
-	var relative := ""
+func _load_native_catalog() -> void:
+	var catalog_path := _native_asset_root().path_join("assets/catalog.json")
+	var file := FileAccess.open(catalog_path, FileAccess.READ)
+	if file != null:
+		var parsed = JSON.parse_string(file.get_as_text())
+		if typeof(parsed) == TYPE_DICTIONARY:
+			native_catalog = parsed.get("appearances", {})
+	var units_path := _native_asset_root().path_join("fixtures/catalog.json")
+	var units_file := FileAccess.open(units_path, FileAccess.READ)
+	if units_file != null:
+		var parsed_units = JSON.parse_string(units_file.get_as_text())
+		if typeof(parsed_units) == TYPE_DICTIONARY:
+			for unit in parsed_units.get("units", []):
+				if typeof(unit) == TYPE_DICTIONARY and unit.has("id"):
+					native_unit_catalog[String(unit.id)] = unit
+			for soldier_id in parsed_units.get("soldiers", {}):
+				native_soldier_catalog[String(soldier_id)] = parsed_units.soldiers[soldier_id]
+	var menu_path := _native_asset_root().path_join("fixtures/units/menu/units.json")
+	var menu_file := FileAccess.open(menu_path, FileAccess.READ)
+	if menu_file != null:
+		var menu = JSON.parse_string(menu_file.get_as_text())
+		if typeof(menu) == TYPE_DICTIONARY:
+			for unit_id in menu.get("units", {}):
+				native_unit_catalog[String(unit_id)] = menu.units[unit_id]
+			for soldier_id in menu.get("soldiers", {}):
+				native_soldier_catalog[String(soldier_id)] = menu.soldiers[soldier_id]
+
+func _catalog_prop_source(kind: String, regional_family: String = "") -> String:
+	var preferred_keys: Array[String] = []
 	if kind == "street_tree":
-		relative = "assets/source/trees/tree_broadleaf.glb"
-	elif kind == "parked_car":
-		relative = "assets/source/street/parked_car.glb"
+		preferred_keys = ["tree_broadleaf"]
+	elif kind == "grass":
+		preferred_keys = ["grass_meadow"]
 	else:
+		if not regional_family.is_empty():
+			preferred_keys.append("%s_%s" % [kind, regional_family])
+		preferred_keys.append(kind)
+	for key in preferred_keys:
+		var entry: Dictionary = native_catalog.get(key, {})
+		var source := _catalog_entry_source(entry)
+		if not source.is_empty():
+			return source
+	var scenery := kind
+	if kind == "street_tree":
+		scenery = "tree"
+	for key in native_catalog:
+		var entry: Dictionary = native_catalog[key]
+		if typeof(entry) != TYPE_DICTIONARY or String(entry.get("unit", "")) != "scenery" or String(entry.get("scenery", "")) != scenery:
+			continue
+		var entry_region := String(entry.get("regional_family", ""))
+		if not entry_region.is_empty() and entry_region != regional_family:
+			continue
+		var source := _catalog_entry_source(entry)
+		if not source.is_empty():
+			return source
+	return ""
+
+func _catalog_entry_source(entry: Dictionary) -> String:
+	if typeof(entry.get("source")) == TYPE_STRING:
+		return String(entry.source)
+	var states: Dictionary = entry.get("states", {})
+	for key in ["default", "summer"]:
+		if typeof(states.get(key)) == TYPE_STRING:
+			return String(states[key])
+	for value in states.values():
+		if typeof(value) == TYPE_STRING:
+			return String(value)
+	return ""
+
+func _instantiate_native_prop(kind: String, regional_family: String = "") -> Node3D:
+	var relative := _catalog_prop_source(kind, regional_family)
+	if relative.is_empty():
 		return null
 	var scene: PackedScene = native_asset_cache.get(relative)
 	if scene == null:
@@ -480,7 +575,9 @@ func _add_field_strips(holder: Node3D, size: Vector2) -> void:
 	_add_box_batch(holder, strips, Color("5d6b4f"), 1.0)
 
 func _add_native_grass(holder: Node3D, centers: Array) -> void:
-	var relative := "assets/source/grass/grass_meadow.glb"
+	var relative := _catalog_prop_source("grass")
+	if relative.is_empty():
+		return
 	var scene: PackedScene = native_asset_cache.get(relative)
 	if scene == null:
 		var loaded = load(_native_asset_root().path_join(relative))
@@ -499,7 +596,7 @@ func _add_native_grass(holder: Node3D, centers: Array) -> void:
 			grass.scale = Vector3.ONE * 2.0
 			holder.add_child(grass)
 			added += 1
-		native_asset_instances["grass"] = int(native_asset_instances.get("grass", 0)) + added
+			native_asset_instances["grass"] = int(native_asset_instances.get("grass", 0)) + 1
 
 func _build_fog_layers() -> void:
 	for scene_name in semantic_results:
@@ -764,25 +861,12 @@ func _update_observed_units() -> void:
 	_update_fog_layer(scene.map, chosen.get("fog", {}))
 	while unit_nodes.size() < units.size():
 		var holder := Node3D.new()
-		var authored_unit := _instantiate_native_unit()
 		var material := StandardMaterial3D.new()
 		material.albedo_color = unit_color
 		material.emission_enabled = true
 		material.emission = unit_color
 		material.emission_energy_multiplier = 0.25
-		if authored_unit != null:
-			authored_unit.scale = Vector3.ONE * 1.8
-			authored_unit.position.y = 0.0
-			holder.add_child(authored_unit)
-		else:
-			var mesh := MeshInstance3D.new()
-			var capsule := CapsuleMesh.new()
-			capsule.radius = 0.5
-			capsule.height = 2.0
-			mesh.mesh = capsule
-			mesh.material_override = material
-			mesh.position.y = 0.7
-			holder.add_child(mesh)
+		_set_unit_model(holder, String(units[unit_nodes.size()].get("kindName", "")), material)
 		var contact := MeshInstance3D.new()
 		var contact_mesh := CylinderMesh.new()
 		contact_mesh.top_radius = 0.95
@@ -804,12 +888,58 @@ func _update_observed_units() -> void:
 		if i >= units.size():
 			continue
 		var pose: Dictionary = units[i]
+		var material := StandardMaterial3D.new()
+		material.albedo_color = unit_color
+		material.emission_enabled = true
+		material.emission = unit_color
+		material.emission_energy_multiplier = 0.25
+		var kind_name := String(pose.get("kindName", ""))
+		if String(node.get_meta("native_kind", "")) != kind_name:
+			_set_unit_model(node, kind_name, material)
 		var position: Array = pose.position
 		node.position = Vector3(float(position[0]), max(0.0, float(position[2])), float(position[1]))
 		node.rotation.y = float(pose.yaw)
 
-func _instantiate_native_unit() -> Node3D:
-	var relative := "assets/source/infantry/clips_rifle.glb"
+func _native_unit_source(kind: String) -> String:
+	var unit: Dictionary = native_unit_catalog.get(kind, {})
+	var appearance := String(unit.get("appearance", ""))
+	if appearance.is_empty():
+		var body: Dictionary = unit.get("body", {})
+		var squad: Dictionary = body.get("squad", {})
+		var slots: Array = squad.get("slots", [])
+		if not slots.is_empty():
+			var soldier: Dictionary = native_soldier_catalog.get(String(slots[0]), {})
+			var appearances: Array = soldier.get("appearance", [])
+			if not appearances.is_empty():
+				appearance = String(appearances[0])
+	var entry: Dictionary = native_catalog.get(appearance, {})
+	var source := _catalog_entry_source(entry)
+	return source if not source.is_empty() else "assets/source/infantry/clips_rifle.glb"
+
+func _set_unit_model(holder: Node3D, kind: String, material: StandardMaterial3D) -> void:
+	var previous := holder.get_node_or_null("NativeUnitModel")
+	if previous != null:
+		previous.free()
+	var authored_unit := _instantiate_native_unit(kind)
+	if authored_unit != null:
+		authored_unit.name = "NativeUnitModel"
+		authored_unit.scale = Vector3.ONE * 1.8
+		authored_unit.position.y = 0.0
+		holder.add_child(authored_unit)
+	else:
+		var mesh := MeshInstance3D.new()
+		mesh.name = "NativeUnitModel"
+		var capsule := CapsuleMesh.new()
+		capsule.radius = 0.5
+		capsule.height = 2.0
+		mesh.mesh = capsule
+		mesh.material_override = material
+		mesh.position.y = 0.7
+		holder.add_child(mesh)
+	holder.set_meta("native_kind", kind)
+
+func _instantiate_native_unit(kind: String = "") -> Node3D:
+	var relative := _native_unit_source(kind)
 	var scene: PackedScene = native_asset_cache.get(relative)
 	if scene == null:
 		var loaded = load(_native_asset_root().path_join(relative))
@@ -990,6 +1120,8 @@ func _write_report() -> void:
 		"map_render_radius": map_render_radius,
 		"authored_unresolved_templates": authored_unresolved_templates,
 		"map_geometry": map_geometry_counts,
+		"native_catalog_loaded": not native_catalog.is_empty(),
+		"native_asset_instances": native_asset_instances,
 		"fog_rendered_cells": fog_rendered_cells,
 		"proxy_field_used": proxy_field_used,
 		"cuts_saved": cuts_saved,

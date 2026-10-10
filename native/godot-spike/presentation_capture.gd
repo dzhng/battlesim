@@ -224,7 +224,11 @@ static func decode_publication(capture_result: Dictionary, words: Array, baselin
 			var yaw := _carrier_float(own_values[base + fields.find("yaw")])
 			var id := _carrier_float(own_values[base + fields.find("id")])
 			var kind_index := int(_carrier_float(own_values[base + fields.find("kind")]))
-			own.append({"id": id, "kind": kind_index, "position": [x, y, z], "yaw": yaw})
+			var kind_name := ""
+			var unit_kinds: Array = layout.get("unitKinds", [])
+			if kind_index >= 0 and kind_index < unit_kinds.size():
+				kind_name = String(unit_kinds[kind_index])
+			own.append({"id": id, "kind": kind_index, "kindName": kind_name, "position": [x, y, z], "yaw": yaw})
 	return {"valid": true, "units": own, "baselines": next_baselines, "fog": fog, "ground": ground}
 
 static func _decode_ground(layout: Dictionary, header: Dictionary, words: Array, cursor: int) -> Dictionary:
