@@ -3,6 +3,11 @@
 **Unlocks:** the US and European light tanks and Europe's wheeled tank destroyer are
 buyable and fight. Every faction now has a light tank.
 
+## Art first (from [slice 01 findings](01-model-triage.md#findings-2026-10-10))
+
+Open with one art-fix commit before admission: sheet → fix → one unprimed critique.
+M10: raise and blunt the nose, shorten and heighten the turret, keep faction tan. CV90120: first replace the side/rear references (they show CV90 IFVs), then give the turret a wide wedge front so it reads apart from the Type 15. Centauro II: no art fix; settle its 0.22 m height gap; edge wear 0.6. Only these ranked fixes; dropped findings stay dropped.
+
 ## Seam
 
 Run the [admission recipe](../README.md#admission-recipe) for each card.

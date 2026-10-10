@@ -3,6 +3,11 @@
 **Unlocks:** both Armata cards are buyable and fight. Eastern gains an advanced MBT and a
 heavy IFV.
 
+## Art first (from [slice 01 findings](01-model-triage.md#findings-2026-10-10))
+
+Open with one art-fix commit before admission: sheet → fix → one unprimed critique.
+T-14: enlarge the turret against the tall hull so it reads as a tank, not an Armata IFV. T-15: raise the module pivot about 0.4 m (to about 2.22 m), shorten the mast or grow the frame height, then check the 30 mm and Kornet pair read at battle-near. Only these ranked fixes; dropped findings stay dropped.
+
 ## Seam
 
 Run the [admission recipe](../README.md#admission-recipe) for both cards.

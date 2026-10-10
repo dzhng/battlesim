@@ -5,6 +5,11 @@ and top-attack Akeron.
 
 Depends on 05 (recipe) and 11 (the `akeron_mp` row).
 
+## Art first (from [slice 01 findings](01-model-triage.md#findings-2026-10-10))
+
+Open with one art-fix commit before admission: sheet → fix → one unprimed critique.
+Jaguar: make the hull a tall, flat-sided box on big wheels (not a low pointed VBCI nose); enlarge the turret and the `akeron_box` launcher pod; edge wear 0.6, then check whether the pale patches remain. Only these ranked fixes; dropped findings stay dropped.
+
 ## Seam
 
 [Admission recipe](../README.md#admission-recipe):

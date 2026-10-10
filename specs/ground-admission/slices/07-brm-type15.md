@@ -3,6 +3,11 @@
 **Unlocks:** Eastern's tracked recon vehicle and its light tank are buyable and fight. The
 `light_tank` profile is proven on its first card.
 
+## Art first (from [slice 01 findings](01-model-triage.md#findings-2026-10-10))
+
+Open with one art-fix commit before admission: sheet → fix → one unprimed critique.
+BRM-3K: give the recon turret real mass (it is a 0.5 m slab) and tame the tall rear corner boxes; settle the 0.23 m length gap. Type 15: separate the turret from the stepped hull so it no longer matches the CV90120 at battle-near; settle the 0.12 m length gap. Only these ranked fixes; dropped findings stay dropped.
+
 ## Seam
 
 Run the [admission recipe](../README.md#admission-recipe).
