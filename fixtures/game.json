@@ -358,16 +358,9 @@
       "top_attack": { "loft_m": 60, "dive_deg": 40 }
     },
     "akeron_mp": {
-      "interceptable": true,
-      "extends": "atgm",
+      "extends": "javelin",
       "name": "Akeron MP",
-      "description": "Top-attack anti-tank missile: it climbs, then dives onto the roof; the gunner must keep sight.",
-      "range_m": 900,
-      "min_range_m": 100,
-      "damage": 55,
-      "penetration": 200,
-      "turn_deg_s": 360,
-      "top_attack": { "loft_m": 60, "dive_deg": 40 }
+      "range_m": 900
     },
     "bastion": {
       "interceptable": true,

@@ -116,7 +116,7 @@ class CatalogFramesTest(unittest.TestCase):
 
 class DisabledFramesTest(unittest.TestCase):
     """A disabled card has no unit type, so its frame is the one its exporter
-    states from its references: dimensions, and the mounts it rigs."""
+    states from its references: its dimensions."""
 
     def setUp(self):
         self.repo = Path(tempfile.mkdtemp())
@@ -127,11 +127,10 @@ class DisabledFramesTest(unittest.TestCase):
         (self.repo / "fixtures/units/roster/cards.json").write_text(json.dumps(cards))
 
     def test_a_card_takes_the_frame_its_exporter_states(self):
-        cannon = dict(name="cannon", role="gun", on=None, pivot_m=[0, 0, 2], muzzle_m=[5, 0, 0.5])
-        v = disabled_variant("tank_x", [8.0, 3.4, 3.0], [cannon], repo=self.repo)
+        v = disabled_variant("tank_x", [8.0, 3.4, 3.0], repo=self.repo)
         self.assertEqual(v["frame"]["body_dimensions_m"], [8.0, 3.4, 3.0])
         self.assertEqual(v["frame"]["half_extents_m"], [4.0, 1.7, 1.5])
-        self.assertEqual(v["frame"]["mounts"], [cannon])
+        self.assertEqual(v["frame"]["mounts"], [])
         self.assertEqual(v["frame_source"], "references")
         self.assertEqual((v["faction"], v["export"]), ("eastern", "assets/source/roster/disabled/tank_x.glb"))
 
