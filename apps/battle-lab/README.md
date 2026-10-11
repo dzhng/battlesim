@@ -38,6 +38,8 @@ the look, the HUD, the generator or the rules is followed by rerunning it and
 reviewing the pictures; the tool's header says how. A moment the battle no
 longer reaches fails by name rather than shooting something else. It is
 one plate over its backdrop, with title-only entries over generated military art.
+The same tutorial is available from a live battle's pause menu; it opens as a
+modal over the paused battle and closes back to that menu.
 Opening a page replaces the plate's contents under a
 Back button, and Escape is Back, so the film behind never changes. A menu address asking for a battle opens on the
 skirmish page. A
