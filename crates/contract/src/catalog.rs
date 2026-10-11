@@ -1435,9 +1435,11 @@ fn check(
     // its own muzzle, and neither a squad's weapon nor a soldier's.
     for (i, m) in t.mounts.iter().enumerate() {
         if let Some(arc) = m.arc {
-            if !m.turret {
+            // Its arc is measured off the hull's heading, so the hull must
+            // carry the turret that swings through it.
+            if !m.turret || m.on.is_some() {
                 return rule(&format!(
-                    "mount {:?} has an arc but no turret to swing through it",
+                    "mount {:?} has an arc but no turret on the hull to swing through it",
                     m.id
                 ));
             }

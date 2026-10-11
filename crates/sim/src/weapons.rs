@@ -586,7 +586,7 @@ fn bearing_from(unit: &Unit, point: V3) -> f64 {
 
 fn point_mount(unit: &Unit, mount: &mut Mount, spec: &MountSpec, point: V3, turret_step: f64) {
     let desired = bearing_from(unit, point);
-    mount.bearing = if let Some(arc) = spec.arc.filter(|_| spec.turret) {
+    mount.bearing = if let Some(arc) = spec.arc {
         // Within its arc, it turns the way that stays inside it, never
         // round through the cabin; outside, it waits at the arc's edge.
         let at = arc.off(unit.yaw, mount.bearing).clamp(-arc.half, arc.half);
@@ -1618,7 +1618,7 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                 let bearing = bearing_from(unit, r.point);
                 if hull_fixed(unit, spec) {
                     face.get_or_insert(bearing);
-                } else if let Some(arc) = spec.arc.filter(|_| unit.is_vehicle()) {
+                } else if let Some(arc) = spec.arc {
                     let bears = |s: &MountSpec| s.arc.is_none_or(|a| a.holds(unit.yaw, bearing));
                     let covered = unit
                         .mounts
