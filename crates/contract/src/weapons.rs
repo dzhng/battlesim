@@ -112,6 +112,15 @@ pub struct OperatorPose {
     pub phase: f64,
 }
 
+/// A turret's arc: `width_deg` of bearings centred `centre_deg` off the
+/// hull's heading, counter-clockwise (90: its left).
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct MountArc {
+    pub centre_deg: f64,
+    pub width_deg: f64,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct MountDefinition {
@@ -139,6 +148,10 @@ pub struct MountDefinition {
     /// Traverses at the turret rate; fires only within the bearing tolerance.
     #[serde(default)]
     pub turret: bool,
+    /// The bearings a turret can swing through, off the hull's heading (a
+    /// door gun's door); absent, it swings all round.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub arc: Option<MountArc>,
     /// The earlier mount of the same unit whose turret carries this one (a
     /// roof gun on the cannon's turret). Absent, the hull carries it.
     #[serde(default)]

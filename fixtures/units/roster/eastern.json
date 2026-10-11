@@ -952,7 +952,33 @@
             1.15,
             0,
             0
-          ]
+          ],
+          "arc": {
+            "centre_deg": 90,
+            "width_deg": 160
+          }
+        },
+        {
+          "id": "door_right",
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            5.647,
+            -1.3,
+            1.65
+          ],
+          "muzzle_m": [
+            1.15,
+            0,
+            0
+          ],
+          "arc": {
+            "centre_deg": -90,
+            "width_deg": 160
+          }
         }
       ],
       "appearance": "eastern_mi_8_hip_mi_8amtsh"
@@ -2391,7 +2417,33 @@
             1.1,
             0,
             0
-          ]
+          ],
+          "arc": {
+            "centre_deg": 90,
+            "width_deg": 160
+          }
+        },
+        {
+          "id": "door_right",
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            2.025,
+            -1.2,
+            1.5
+          ],
+          "muzzle_m": [
+            1.1,
+            0,
+            0
+          ],
+          "arc": {
+            "centre_deg": -90,
+            "width_deg": 160
+          }
         }
       ],
       "appearance": "eastern_z_20_utility_transport"

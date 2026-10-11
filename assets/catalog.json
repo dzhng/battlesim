@@ -3511,7 +3511,8 @@
       "source": "assets/source/roster/chinook/us_ch_47_chinook_ch_47f.glb",
       "basis_yaw_deg": 0,
       "mounts": {
-        "door": "hmg"
+        "door": "hmg",
+        "door_right": "gun"
       },
       "wreck": "us_ch_47_chinook_ch_47f_wreck"
     },
@@ -3537,7 +3538,8 @@
       "source": "assets/source/roster/chinook/europe_ch_47_chinook_hc6.glb",
       "basis_yaw_deg": 0,
       "mounts": {
-        "door": "hmg"
+        "door": "hmg",
+        "door_right": "gun"
       },
       "wreck": "europe_ch_47_chinook_hc6_wreck"
     },
@@ -3589,7 +3591,8 @@
       "source": "assets/source/roster/h1/us_uh_1y_venom_utility_transport.glb",
       "basis_yaw_deg": 0,
       "mounts": {
-        "door": "hmg"
+        "door": "hmg",
+        "door_right": "gun"
       },
       "wreck": "us_uh_1y_venom_utility_transport_wreck"
     },
@@ -3667,7 +3670,8 @@
       "source": "assets/source/roster/hip/eastern_mi_8_hip_mi_8amtsh.glb",
       "basis_yaw_deg": 0,
       "mounts": {
-        "door": "hmg"
+        "door": "hmg",
+        "door_right": "gun"
       },
       "wreck": "eastern_mi_8_hip_mi_8amtsh_wreck"
     },
@@ -3739,7 +3743,8 @@
       "source": "assets/source/roster/little_bird/us_ah_6_mh_6_little_bird_mh_6m.glb",
       "basis_yaw_deg": 0,
       "mounts": {
-        "door": "hmg"
+        "door": "hmg",
+        "door_right": "gun"
       },
       "wreck": "us_ah_6_mh_6_little_bird_mh_6m_wreck"
     },
@@ -3814,7 +3819,8 @@
       "source": "assets/source/roster/utility_helis/europe_nh90_tth.glb",
       "basis_yaw_deg": 0,
       "mounts": {
-        "door": "hmg"
+        "door": "hmg",
+        "door_right": "gun"
       },
       "wreck": "europe_nh90_tth_wreck"
     },
@@ -3840,7 +3846,8 @@
       "source": "assets/source/roster/utility_helis/europe_aw101_merlin_hc4.glb",
       "basis_yaw_deg": 0,
       "mounts": {
-        "door": "hmg"
+        "door": "hmg",
+        "door_right": "gun"
       },
       "wreck": "europe_aw101_merlin_hc4_wreck"
     },
@@ -3918,7 +3925,8 @@
       "source": "assets/source/roster/hawk/us_uh_60_black_hawk_uh_60m.glb",
       "basis_yaw_deg": 0,
       "mounts": {
-        "door": "hmg"
+        "door": "hmg",
+        "door_right": "gun"
       },
       "wreck": "us_uh_60_black_hawk_uh_60m_wreck"
     },
@@ -3944,7 +3952,8 @@
       "source": "assets/source/roster/hawk/eastern_z_20_utility_transport.glb",
       "basis_yaw_deg": 0,
       "mounts": {
-        "door": "hmg"
+        "door": "hmg",
+        "door_right": "gun"
       },
       "wreck": "eastern_z_20_utility_transport_wreck"
     },
