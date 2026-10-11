@@ -72,11 +72,12 @@ back and writes no PNG.
   (8.3 ms at 120 Hz), on screen or off; below it, compare GPU time from a
   trace. `--pace display` turns vsync on instead, for comparing with a
   browser whose frames the display paces.
-- **Presentation.** A bench asks for a minimised window, as the headless
-  browser it is compared with presents nothing, but macOS restores whatever
-  state the window last had, so a run may be on screen either way; the
-  report's `window` says which. Since slice 10 presenting costs about 0.1 ms
-  a frame.
+- **Presentation.** A bench presents nothing, as the headless browser it is
+  compared with doesn't. The project starts minimised, but macOS can bring
+  the window back on screen before the timing starts, so the bench
+  minimises it again just before timing; the report's `window` says what it
+  was at the end. On screen, presenting costs about 0.1 ms a frame, which at
+  the display's step is enough to move a median.
 - **Timing.** Each frame's interval runs from the end of one frame's draw to
   the next (`Time.get_ticks_usec` after each `force_draw`), and its CPU time is
   the record's step plus Godot's frame setup and viewport render on the CPU.

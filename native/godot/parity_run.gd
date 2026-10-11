@@ -172,6 +172,10 @@ func _render(options: Dictionary) -> void:
 		_refuse_contention("start")
 		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if options.pace == "display" else DisplayServer.VSYNC_DISABLED)
 		Engine.max_fps = 0
+		# The headless browser presents nothing, so neither does a bench. The
+		# project starts minimised, but macOS can bring the window back on
+		# screen before this point; minimise it again before timing.
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_MINIMIZED)
 	var record = stepper.step()
 	while record != null:
 		var stepped := Time.get_ticks_usec()
