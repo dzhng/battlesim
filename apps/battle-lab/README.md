@@ -26,7 +26,7 @@ address updates the current entry without restarting that visit. Queued async
 continuations stop when history leaves their visit, before React necessarily
 finishes unmounting the previous page.
 
-The main menu starts fresh generated skirmishes, opens replays and teaches the
+The main menu starts fresh generated skirmishes and teaches the
 game: [the tutorial](src/Tutorial.tsx) reads its economy and command keys from
 the skirmish rules and command bindings, and its prose must follow the simulation's
 rules when they change. Its pictures are not hand-shot: [the tutorial shots
