@@ -62,7 +62,7 @@ Every slice reports its own pass cost and keeps slice 12's bar.
 Graph: `13 → {14, 15, 16} → 17 → 18`. Slices 14, 15 and 16 share no owners and run in parallel; 17 needs 13's decode and 14's posed muzzles.
 
 - [x] 13 — Full publication decode (`785d7aaf2`): `capture/observation.gd` ports the browser's decoder, and every field of every sample of paris-corner and a seven-sample market-town window equals the browser's decode. Guided missiles, crashes, leans, encounter and skirmish appear in neither fixture (see `choices.md`). [slice](slices/13-publication-decode.md)
-- [ ] 14 — Units, poses, corpses and wrecks: interpolation and pose derivation ported, impostors for posed soldiers, counts equal per plate. [slice](slices/14-units-and-poses.md)
+- [ ] 14 — Units, poses, corpses and aircraft: interpolation and pose derivation ported, impostors for posed soldiers, counts equal per plate. [slice](slices/14-units-and-poses.md)
 - [ ] 15 — Buildings and scenery: module and scenery placement exported by the browser, state from the publication; `legacy_map_layer.gd` deleted. [slice](slices/15-buildings-and-scenery.md)
 - [ ] 16 — Water surface and ground scars; the grass gate's scar allowance deleted. [slice](slices/16-water-and-scars.md)
 - [ ] 17 — Effects from the published causes, same seeds and clock. [slice](slices/17-effects.md)

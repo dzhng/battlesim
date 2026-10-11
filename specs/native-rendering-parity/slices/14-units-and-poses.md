@@ -1,6 +1,6 @@
-# 14 — Units, poses, corpses and wrecks
+# 14 — Units, poses, corpses and aircraft
 
-**Contract:** native draws every soldier and vehicle the browser draws, posed as the browser poses them. That covers own squads member by member, identified enemies, corpses, falling aircraft and wrecks.
+**Contract:** native draws every soldier and vehicle the browser draws, posed as the browser poses them. That covers own squads member by member, identified enemies, corpses and falling aircraft. Wrecks are known props, drawn by slice 15's props path, as in the browser.
 
 **Seam:** a port of the browser's per-frame derivations, on the frame record's `simTime`:
 - `web/src/battle/present/interpolate.ts`: per-soldier blending by id between published ticks;
@@ -20,7 +20,7 @@ Draw through `world/model_batches.gd` (slice 09). Units move per frame, so their
 **Runnable artifact:** plate pairs, especially close infantry and vehicle cuts, and paris-corner 1751 (the T-posed soldier).
 
 **Focused gates:**
-- **Counts.** The browser exports per-plate counts of drawn models by kind: soldiers, vehicles, corpses, wrecks and aircraft, read from its model feed in the plate's frame, like the grass counts. Native's counts must equal them on every plate.
+- **Counts.** The browser exports per-plate counts of drawn models by kind: soldiers, vehicles, corpses and aircraft, read from its model feed in the plate's frame, like the grass counts. Native's counts must equal them on every plate.
 - **Poses.** A test checks articulation values at fixed inputs (turret bearing, hull pitch, gait phase) against vectors exported from the TS.
 - **Visual.** `compare-screenshots`, then an unprimed `screenshot-critique`, then `preview-shots` (non-blocking).
 - **Cost.** Report this layer's pass cost. Re-run slice 12's measurement on market-town and keep native at or below the browser.
