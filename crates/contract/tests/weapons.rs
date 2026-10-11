@@ -26,6 +26,7 @@ fn weapon_values_reject_invalid_scalar_settings() {
         ("rifle", "suppression_radius_m", -1.0),
         ("atgm", "turn_deg_s", 0.0),
         ("grenade", "min_range_m", -1.0),
+        ("grenade", "partial_from", 1.0),
     ] {
         let mut game: Value =
             serde_json::from_str(include_str!("../../../fixtures/game.json")).unwrap();

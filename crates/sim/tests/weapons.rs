@@ -5,6 +5,7 @@ use std::collections::BTreeSet;
 use contract::command::{Engagement, Order, TargetRef};
 use contract::ids::{Side, UnitId};
 use contract::observation::{ActionReason, MountReadiness, MoveState, OwnUnit, SuppressionTier};
+use contract::weapons::WeaponDefinition;
 use serde_json::{json, Value};
 use sim::battle::Battle;
 use sim::flight::{FlightEvent, ProjectileId};
@@ -3320,10 +3321,11 @@ fn an_enemy_entering_range_cancels_a_top_up_but_not_an_empty_reload() {
     assert_eq!(replay.digest(), b.digest());
 }
 
-/// Blue's tank firing into red's front for 20 s with its AP round's
-/// `penetration`: each tick an AP round first met red's hull (the only round
-/// to meet it that tick), the hit points red lost and whether it glanced off.
-fn hits_on_a_tank_front(penetration: f64) -> Vec<(f64, bool)> {
+/// Blue's tank firing into red's front for 20 s with its AP round as
+/// `round` leaves it: each tick an AP round first met red's hull (the only
+/// round to meet it that tick), the hit points red lost and whether it
+/// glanced off.
+fn hits_on_a_tank_front(round: impl Fn(&mut WeaponDefinition)) -> Vec<(f64, bool)> {
     let mut setup = scenario_with(
         &map(json!([])),
         json!([
@@ -3333,7 +3335,7 @@ fn hits_on_a_tank_front(penetration: f64) -> Vec<(f64, bool)> {
         json!([]),
         json!([]),
     );
-    setup.rules.weapons.get_mut("tank_ap").unwrap().penetration = penetration;
+    round(setup.rules.weapons.get_mut("tank_ap").unwrap());
     let mut b = Battle::new(&setup, 5);
     let red = sim::flight::BodyId(sim::weapons::VEHICLE_BODY_BASE + 1);
     let mut ap = BTreeSet::new();
@@ -3372,7 +3374,7 @@ fn a_round_just_short_of_the_armour_does_its_share_of_damage() {
     // reaches 0.9 of the armour: three quarters of the way from the 0.6 where
     // damage starts to the full armour, so three quarters of its damage,
     // whether it stops in the plate or glances off it.
-    let hits = hits_on_a_tank_front(126.0);
+    let hits = hits_on_a_tank_front(|ap| ap.penetration = 126.0);
     for glanced in [false, true] {
         let lost: Vec<f64> = hits
             .iter()
@@ -3417,4 +3419,18 @@ fn a_gun_takes_the_target_it_hurts_most_before_the_costlier_one() {
         mount(&b, Side::Blue, 0, 0).target,
         Some(TargetRef::Identified { id: jeep })
     );
+}
+
+#[test]
+fn a_round_with_a_gentle_falloff_still_shakes_armour_twice_its_penetration() {
+    // The AP round (40 damage) at half the test tank's front (140) gets
+    // nothing through by the rules' 0.6. Its own `partial_from` of 0.2 puts
+    // half the armour 3/8 of the way to piercing: 15 a hit.
+    let hits = hits_on_a_tank_front(|ap| {
+        ap.penetration = 70.0;
+        ap.partial_from = Some(0.2);
+    });
+    let lost: Vec<f64> = hits.iter().map(|h| h.0).collect();
+    assert!(!lost.is_empty(), "no hit landed");
+    assert!(lost.iter().all(|l| (l - 15.0).abs() < 1e-9), "{lost:?}");
 }

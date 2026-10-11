@@ -49,6 +49,13 @@ pub struct WeaponDefinition {
     pub magazine: Option<Magazine>,
     pub ammo: AmmoCapacity,
     pub penetration: f64,
+    /// How gently its damage fades as its penetration falls short of the
+    /// armour: the share of the armour it must reach to do any damage. Absent
+    /// is the rules' `penetration.partial_from`. A shell's blast and
+    /// fragments still shake a hull far beyond what it can pierce, so HE
+    /// fades gently where a kinetic or shaped-charge round cuts off.
+    #[serde(default)]
+    pub partial_from: Option<f64>,
     pub damage: f64,
     pub near_miss_suppression: f64,
     pub blast_radius_m: f64,
@@ -259,6 +266,9 @@ pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponR
                         if !value.is_finite() || value < 0.0 {
                             return Err(serde::de::Error::custom(format!("{field} must be finite and nonnegative")));
                         }
+                    }
+                    if def.partial_from.is_some_and(|p| !(0.0..1.0).contains(&p)) {
+                        return Err(serde::de::Error::custom("partial_from must lie in [0, 1)"));
                     }
                     if def.min_range_m > def.ballistics.range_m {
                         return Err(serde::de::Error::custom("min_range_m must not exceed range_m"));

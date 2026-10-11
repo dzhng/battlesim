@@ -543,8 +543,15 @@ const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
       "penetration",
       "Armour penetration",
       "Impact & suppression",
-      "Compared against protection on the struck face to decide whether a round penetrates.",
+      "Compared against protection on the struck face: at or past it a hit does full damage, and short of it a share that fades to none.",
       { unit: "protection" },
+    ),
+    field(
+      "partial_from",
+      "Damage falloff start",
+      "Impact & suppression",
+      "Share of a face's protection this round's penetration must reach to do any damage; from there its damage rises to full at the protection. None uses the battle rules' value. HE fades gently, chipping armour far beyond what it pierces.",
+      { conversion: "percent", unit: "%", max: 0.99, optional: true },
     ),
     field(
       "damage",

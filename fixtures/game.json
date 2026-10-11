@@ -165,6 +165,7 @@
       "reload_s": 6,
       "ammo": 15,
       "penetration": 30,
+      "partial_from": 0.08,
       "damage": 80,
       "scatter_mrad": 3.43,
       "near_miss_suppression": 0.4,

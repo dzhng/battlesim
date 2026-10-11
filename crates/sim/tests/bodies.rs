@@ -344,7 +344,7 @@ fn a_jeep_sees_all_round_and_only_rifles_partly_hurt_it() {
         .def;
     let a = common::hull("test_jeep").armor;
     let share = |w: &contract::weapons::WeaponDefinition, armor: f64| {
-        sim::damage::pierce_share(w.penetration, 0, &r, armor)
+        sim::damage::pierce_share(w, 0, &r, armor)
     };
     for w in &arsenal.weapons {
         if w.def.penetration > rifle.penetration {

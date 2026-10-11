@@ -430,7 +430,7 @@ fn reach(arsenal: &Arsenal, layer: AltitudeLayer, rows: impl Iterator<Item = usi
 /// dedicated anti-armour never engages infantry).
 pub fn can_damage(def: &WeaponDefinition, armor: Option<&Armor>, rules: &Rules) -> bool {
     match armor {
-        Some(armor) => damage::pierce_share(def.penetration, 0, rules, armor.weakest()) > 0.0,
+        Some(armor) => damage::pierce_share(def, 0, rules, armor.weakest()) > 0.0,
         None => !def.anti_armor,
     }
 }
@@ -1155,7 +1155,7 @@ fn share_through(
         .map(|k| &ctx.arsenal.weapons[spec.kinds[k]].def)
         .filter(|def| def.against(target.layer()).is_some())
         .map(|def| match armor {
-            Some(armor) => damage::pierce_share(def.penetration, 0, ctx.rules, armor),
+            Some(armor) => damage::pierce_share(def, 0, ctx.rules, armor),
             None if def.anti_armor => 0.0,
             None => 1.0,
         })
