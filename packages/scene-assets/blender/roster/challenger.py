@@ -135,11 +135,7 @@ def turret_rings():
     foot = [(1.78, 0.46), (1.34, 1.42), (-1.55, 1.48), (-2.18, 1.30)]
     roof = [(1.10, 0.46), (0.86, 1.22), (-1.55, 1.36), (-2.12, 1.22)]
 
-    def ring(half):
-        left = half
-        right = [(x, -y) for x, y in reversed(half)]
-        return left + right
-
+    ring = VP.mirror_plan
     return [(FOOT, ring(foot)), (FOOT + 0.30, ring([(x - 0.02, y) for x, y in foot])), (ROOF, ring(roof))]
 
 

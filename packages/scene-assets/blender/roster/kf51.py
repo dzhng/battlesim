@@ -123,9 +123,7 @@ def turret_rings():
     edge = [(2.62, 0.48), (1.85, 1.66), (-2.75, 1.66), (-3.00, 1.25)]
     roof = [(1.70, 0.42), (1.20, 1.32), (-2.60, 1.34), (-2.85, 1.00)]
 
-    def ring(half):
-        return half + [(x, -y) for x, y in reversed(half)]
-
+    ring = VP.mirror_plan
     return [(FOOT, ring(foot)), (EDGE, ring(edge)), (EDGE + 0.12, ring([(x - 0.06, y) for x, y in edge])),
             (ROOF, ring(roof))]
 

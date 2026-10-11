@@ -108,7 +108,7 @@ def bmp2_turret(v, turret, gun, launcher, tube):
 
     def ring(pts, lean):
         left = [(x, y - lean) for x, y in pts]
-        return left + [(x, -y) for x, y in reversed(left)]
+        return VP.mirror_plan(left)
 
     loft("turret_shell", [(-0.03, ring(half, 0.0)), (0.62, ring([(x * 0.85, y) for x, y in half], 0.20))],
          mat=m["paint"], parent=turret, bevel=0.05)

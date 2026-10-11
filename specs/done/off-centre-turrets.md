@@ -73,10 +73,30 @@ Before/after crops against the reference photos are in
 - **Battles that field a moved vehicle have new digests,** because the muzzles moved. Test units
   and every recorded publication battle are unchanged.
 
+## Turrets match their photos
+
+A turret in the right place still reads wrong if its shape doesn't match the photos, so the
+Centauro II, Abrams family and Armata pair were reshaped to them
+([crops](../assets/turret-shapes/)). Where the real shape needed more room than the frame
+gave, the frame changed, and battles that field these vehicles get new digests:
+
+- **T-14:** the cannon's muzzle 5.36 → 6.75 m ahead of its pivot (the full-length 2A82); the
+  roof Kord's pivot +0.06 m, onto the raised turret roof (3.16 m); the eye 3.10 → 3.162 m, at
+  that station, where the commander's sight rides.
+- **Centauro II:** the hull's half height 1.485 → 1.60 m; the cannon's pivot +0.08 m; the roof
+  station's pivot and the eye +0.28 m, to 3.16 m. The 3.20 m box covers the turret roof and its
+  fittings. The roof itself is about 3.02 m, read from the photos; the maker's 3.65 m overall
+  also counts the sights and station above the roof, which stand over the box as dressing and
+  as a mount ([references gaps](../../assets/references/centauro/references.json)).
+- **Abrams family and T-15:** the art changed, not the frame.
+
+A vehicle's eye is its commander's sight. On these vehicles that is the roof station's height,
+so the eye moves with the roof.
+
 ## Left as found
 
-- Several turrets are lower and simpler than their photos. The Centauro II's, the clearest
-  case, has since been rebuilt to its photos' size, on a frame raised to the real vehicle's
-  height ([before, after and reference](../assets/turret-shapes/centauro/)).
-- The T-14's barrel is short, and its turret front is about 0.3 m long.
 - The ICV station's base cuts about 14 cm into the commander's ring, as it did before the move.
+- Bulky dressing may stand only a set height above the hull box (the dressing allowance,
+  `DressingAllowance` in [`unitArt.ts`](../../packages/scene-assets/src/unitArt.ts)). So the
+  Abrams' Trophy housing stands 0.10 m proud of the turret roof, not the photo's 0.19 m, and
+  its launcher's top is 0.39 m over the roof, not 0.48 m.

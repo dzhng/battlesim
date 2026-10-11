@@ -51,7 +51,7 @@ def turret_rings():
     the hull."""
     def ring(inset, lean=0.0):
         left = [(x - inset if x > 0 else x + inset, y - inset - lean) for x, y in TURRET_HALF]
-        return left + [(x, -y) for x, y in reversed(left)]
+        return VP.mirror_plan(left)
 
     return [(FOOT, ring(0.30)), (WALL - 0.03, ring(0.30)), (WALL, ring(0.0)), (ROOF, ring(0.02, 0.04))]
 

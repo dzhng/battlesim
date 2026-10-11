@@ -104,8 +104,7 @@ def turret_body(v, turret):
         """A plan ring from the gun's slot round the left side to the rear
         and back down the right: (x, y) of the slot's edge, the nose, the
         cheek's outer corner, the flank's rear end and the bustle's corner."""
-        left = [notch, nose, cheek, flank, rear]
-        return left + [(x, -y) for x, y in reversed(left)]
+        return VP.mirror_plan([notch, nose, cheek, flank, rear])
 
     # Undercut foot, the nose's edge just under the gun, the brow over the
     # mantlet, and the roof; the flanks lean in from the edge to the roof.
@@ -166,12 +165,17 @@ def gun_120(v, gun):
 
 
 def remote_station(v, rws, rws_gun):
+    """The remote weapon station: its bearing on the turret roof, which is
+    under the mount's pivot, its body, sight, ammunition box and M2."""
     m = v.mats
-    cyl("rws_bearing", 0.20, 0.08, (0, 0, -0.04), "Z", m["dark"], rws, seg=20)
-    box("rws_body", (0.55, 0.45, 0.30), (-0.08, 0, 0.12), m["paint"], rws, bevel=0.03)
+    cannon, mount = v.frame["mounts"][0], v.frame["mounts"][1]
+    roof = cannon["pivot_m"][2] + ROOF - mount["pivot_m"][2]
+    cyl("rws_bearing", 0.20, 0.08, (0, 0, roof + 0.04), "Z", m["dark"], rws, seg=20)
+    foot, top = roof + 0.08, 0.27
+    box("rws_body", (0.55, 0.45, top - foot), (-0.08, 0, (top + foot) / 2), m["paint"], rws, bevel=0.03)
     VP.sight_housing("rws_sight", (0.06, -0.30, -0.12), m, rws_gun, size=(0.30, 0.18, 0.26))
     box("rws_ammo", (0.36, 0.16, 0.28), (-0.08, 0.32, -0.08), m["paint"], rws_gun, bevel=0.02, lods=MID)
-    VP.browning_m2(rws_gun, v.frame["mounts"][1]["muzzle_m"][0], m)
+    VP.browning_m2(rws_gun, mount["muzzle_m"][0], m)
 
 
 def build(variant, v):

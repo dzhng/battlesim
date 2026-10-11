@@ -43,8 +43,7 @@ TURRET_PLAN = [(1.40, 0.0), (1.40, 0.42), (2.05, 0.50), (1.05, 1.58), (-1.60, 1.
 
 
 def turret_shell():
-    left = TURRET_PLAN
-    outline = left + [(x, -y) for x, y in reversed(left) if y > 0]
+    outline = VP.mirror_plan(TURRET_PLAN)
 
     def ring(z):
         out = []
@@ -80,7 +79,8 @@ def turret_body(v, turret):
                                  rot=(0, 0, side * 0.6))
         # Trophy: the radar housing against the flat side, its top just
         # above the roof, the launcher on it.
-        A.trophy_station(v, turret, side, s, at=(-1.10, 1.70, ROOF + 0.11))
+        A.trophy_station(v, turret, side, s, at=(-1.10, 1.70, ROOF + 0.11), size=(1.05, 0.30, 0.46),
+                         launcher_back=0.20)
         whip = empty(f"dressing_antenna_{s}", parent=turret)
         VP.antenna(f"antenna_{s}", (-1.75, side * 1.05, ROOF), m, whip, height=2.2)
     # Roof: the gunner's sight ahead on the right, the independent sight box
