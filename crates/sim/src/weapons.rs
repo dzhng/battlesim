@@ -426,12 +426,19 @@ fn reach(arsenal: &Arsenal, layer: AltitudeLayer, rows: impl Iterator<Item = usi
 }
 
 /// Whether a weapon can hurt a target with this hull armour (`None`: a
-/// soldier) at all (P10: some of its damage gets through the weakest face;
-/// dedicated anti-armour never engages infantry).
+/// soldier) at all (P10: some of its damage gets through the weakest face).
 pub fn can_damage(def: &WeaponDefinition, armor: Option<&Armor>, rules: &Rules) -> bool {
+    damage_share(def, armor.map(Armor::weakest), rules) > 0.0
+}
+
+/// The share of a weapon's damage a fresh hit delivers through a hull face
+/// of `armor`, or into a soldier (`None`): all of it, except that dedicated
+/// anti-armour never engages infantry.
+fn damage_share(def: &WeaponDefinition, armor: Option<f64>, rules: &Rules) -> f64 {
     match armor {
-        Some(armor) => damage::pierce_share(def, 0, rules, armor.weakest()) > 0.0,
-        None => !def.anti_armor,
+        Some(armor) => damage::pierce_share(def, 0, rules, armor),
+        None if def.anti_armor => 0.0,
+        None => 1.0,
     }
 }
 
@@ -1154,11 +1161,7 @@ fn share_through(
         .filter(|&k| mount.has_rounds(k))
         .map(|k| &ctx.arsenal.weapons[spec.kinds[k]].def)
         .filter(|def| def.against(target.layer()).is_some())
-        .map(|def| match armor {
-            Some(armor) => damage::pierce_share(def, 0, ctx.rules, armor),
-            None if def.anti_armor => 0.0,
-            None => 1.0,
-        })
+        .map(|def| damage_share(def, armor, ctx.rules))
         .fold(0.0, f64::max)
 }
 

@@ -93,7 +93,7 @@ fn rounds_far_short_of_the_armour_do_nothing() {
         setup.rules.weapons.get_mut("rifle").unwrap().penetration = if penetrates {
             a.front.max(a.side).max(a.rear).max(a.roof) + 1.0
         } else {
-            setup.rules.penetration.partial_from * a.front.min(a.side).min(a.rear).min(a.roof)
+            setup.rules.penetration.partial_from * a.weakest()
         };
         let mut b = Battle::new(&setup, 2);
         let mut hits = 0;
