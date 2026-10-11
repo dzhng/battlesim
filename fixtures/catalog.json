@@ -7212,6 +7212,10 @@
           },
           "mounts": [
             {
+              "arc": {
+                "centre_deg": 90.0,
+                "width_deg": 160.0
+              },
               "id": "door",
               "muzzle_m": [
                 1.15,
@@ -7223,6 +7227,31 @@
               "pivot_m": [
                 5.647,
                 1.3,
+                1.65
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "hmg"
+              ]
+            },
+            {
+              "arc": {
+                "centre_deg": -90.0,
+                "width_deg": 160.0
+              },
+              "id": "door_right",
+              "muzzle_m": [
+                1.15,
+                0.0,
+                0.0
+              ],
+              "name": "HMG",
+              "on": null,
+              "pivot_m": [
+                5.647,
+                -1.3,
                 1.65
               ],
               "special": false,
@@ -8901,6 +8930,10 @@
           },
           "mounts": [
             {
+              "arc": {
+                "centre_deg": 90.0,
+                "width_deg": 160.0
+              },
               "id": "door",
               "muzzle_m": [
                 1.1,
@@ -8912,6 +8945,31 @@
               "pivot_m": [
                 2.025,
                 1.2,
+                1.5
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "hmg"
+              ]
+            },
+            {
+              "arc": {
+                "centre_deg": -90.0,
+                "width_deg": 160.0
+              },
+              "id": "door_right",
+              "muzzle_m": [
+                1.1,
+                0.0,
+                0.0
+              ],
+              "name": "HMG",
+              "on": null,
+              "pivot_m": [
+                2.025,
+                -1.2,
                 1.5
               ],
               "special": false,
@@ -9217,6 +9275,10 @@
           },
           "mounts": [
             {
+              "arc": {
+                "centre_deg": 90.0,
+                "width_deg": 160.0
+              },
               "id": "door",
               "muzzle_m": [
                 1.2,
@@ -9228,6 +9290,31 @@
               "pivot_m": [
                 2.165,
                 1.33,
+                1.6
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "hmg"
+              ]
+            },
+            {
+              "arc": {
+                "centre_deg": -90.0,
+                "width_deg": 160.0
+              },
+              "id": "door_right",
+              "muzzle_m": [
+                1.2,
+                0.0,
+                0.0
+              ],
+              "name": "HMG",
+              "on": null,
+              "pivot_m": [
+                2.165,
+                -1.33,
                 1.6
               ],
               "special": false,
@@ -9305,6 +9392,10 @@
           },
           "mounts": [
             {
+              "arc": {
+                "centre_deg": 90.0,
+                "width_deg": 160.0
+              },
               "id": "door",
               "muzzle_m": [
                 1.1,
@@ -9744,6 +9835,10 @@
           },
           "mounts": [
             {
+              "arc": {
+                "centre_deg": 90.0,
+                "width_deg": 160.0
+              },
               "id": "door",
               "muzzle_m": [
                 1.2,
@@ -9755,6 +9850,31 @@
               "pivot_m": [
                 5.207,
                 1.33,
+                1.8
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "hmg"
+              ]
+            },
+            {
+              "arc": {
+                "centre_deg": -90.0,
+                "width_deg": 160.0
+              },
+              "id": "door_right",
+              "muzzle_m": [
+                1.2,
+                0.0,
+                0.0
+              ],
+              "name": "HMG",
+              "on": null,
+              "pivot_m": [
+                5.207,
+                -1.33,
                 1.8
               ],
               "special": false,
@@ -11713,6 +11833,10 @@
           },
           "mounts": [
             {
+              "arc": {
+                "centre_deg": 90.0,
+                "width_deg": 160.0
+              },
               "id": "door",
               "muzzle_m": [
                 1.15,
@@ -11724,6 +11848,31 @@
               "pivot_m": [
                 2.215,
                 1.2,
+                1.55
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "hmg"
+              ]
+            },
+            {
+              "arc": {
+                "centre_deg": -90.0,
+                "width_deg": 160.0
+              },
+              "id": "door_right",
+              "muzzle_m": [
+                1.15,
+                0.0,
+                0.0
+              ],
+              "name": "HMG",
+              "on": null,
+              "pivot_m": [
+                2.215,
+                -1.2,
                 1.55
               ],
               "special": false,
@@ -12741,7 +12890,7 @@
                 0.0,
                 0.0
               ],
-              "name": "Chain Gun",
+              "name": "HMG",
               "on": null,
               "pivot_m": [
                 1.75,
@@ -12752,7 +12901,7 @@
               "squad": false,
               "turret": false,
               "weapons": [
-                "autocannon"
+                "hmg"
               ]
             },
             {
@@ -12844,6 +12993,10 @@
           },
           "mounts": [
             {
+              "arc": {
+                "centre_deg": 90.0,
+                "width_deg": 160.0
+              },
               "id": "door",
               "muzzle_m": [
                 1.15,
@@ -12855,6 +13008,31 @@
               "pivot_m": [
                 2.35,
                 1.25,
+                1.05
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "hmg"
+              ]
+            },
+            {
+              "arc": {
+                "centre_deg": -90.0,
+                "width_deg": 160.0
+              },
+              "id": "door_right",
+              "muzzle_m": [
+                1.15,
+                0.0,
+                0.0
+              ],
+              "name": "HMG",
+              "on": null,
+              "pivot_m": [
+                2.35,
+                -1.25,
                 1.05
               ],
               "special": false,
@@ -13026,6 +13204,10 @@
           },
           "mounts": [
             {
+              "arc": {
+                "centre_deg": 90.0,
+                "width_deg": 160.0
+              },
               "id": "door",
               "muzzle_m": [
                 1.2,
@@ -13037,6 +13219,31 @@
               "pivot_m": [
                 5.207,
                 1.33,
+                1.8
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "hmg"
+              ]
+            },
+            {
+              "arc": {
+                "centre_deg": -90.0,
+                "width_deg": 160.0
+              },
+              "id": "door_right",
+              "muzzle_m": [
+                1.2,
+                0.0,
+                0.0
+              ],
+              "name": "HMG",
+              "on": null,
+              "pivot_m": [
+                5.207,
+                -1.33,
                 1.8
               ],
               "special": false,
@@ -15314,6 +15521,10 @@
           },
           "mounts": [
             {
+              "arc": {
+                "centre_deg": 90.0,
+                "width_deg": 160.0
+              },
               "id": "door",
               "muzzle_m": [
                 1.0,
@@ -15325,6 +15536,31 @@
               "pivot_m": [
                 2.45,
                 1.4,
+                1.45
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "hmg"
+              ]
+            },
+            {
+              "arc": {
+                "centre_deg": -90.0,
+                "width_deg": 160.0
+              },
+              "id": "door_right",
+              "muzzle_m": [
+                1.0,
+                0.0,
+                0.0
+              ],
+              "name": "HMG",
+              "on": null,
+              "pivot_m": [
+                2.45,
+                -1.4,
                 1.45
               ],
               "special": false,
@@ -15402,6 +15638,10 @@
           },
           "mounts": [
             {
+              "arc": {
+                "centre_deg": 90.0,
+                "width_deg": 160.0
+              },
               "id": "door",
               "muzzle_m": [
                 1.1,
@@ -15413,6 +15653,31 @@
               "pivot_m": [
                 2.025,
                 1.2,
+                1.5
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "hmg"
+              ]
+            },
+            {
+              "arc": {
+                "centre_deg": -90.0,
+                "width_deg": 160.0
+              },
+              "id": "door_right",
+              "muzzle_m": [
+                1.1,
+                0.0,
+                0.0
+              ],
+              "name": "HMG",
+              "on": null,
+              "pivot_m": [
+                2.025,
+                -1.2,
                 1.5
               ],
               "special": false,
@@ -19699,6 +19964,10 @@
       },
       "mounts": [
         {
+          "arc": {
+            "centre_deg": 90.0,
+            "width_deg": 160.0
+          },
           "carriers": [],
           "id": "door",
           "muzzle_m": [
@@ -19711,6 +19980,32 @@
           "pivot_m": [
             5.647,
             1.3,
+            1.65
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "hmg"
+          ]
+        },
+        {
+          "arc": {
+            "centre_deg": -90.0,
+            "width_deg": 160.0
+          },
+          "carriers": [],
+          "id": "door_right",
+          "muzzle_m": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "name": "HMG",
+          "on": null,
+          "pivot_m": [
+            5.647,
+            -1.3,
             1.65
           ],
           "special": false,
@@ -21251,6 +21546,10 @@
       },
       "mounts": [
         {
+          "arc": {
+            "centre_deg": 90.0,
+            "width_deg": 160.0
+          },
           "carriers": [],
           "id": "door",
           "muzzle_m": [
@@ -21263,6 +21562,32 @@
           "pivot_m": [
             2.025,
             1.2,
+            1.5
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "hmg"
+          ]
+        },
+        {
+          "arc": {
+            "centre_deg": -90.0,
+            "width_deg": 160.0
+          },
+          "carriers": [],
+          "id": "door_right",
+          "muzzle_m": [
+            1.1,
+            0.0,
+            0.0
+          ],
+          "name": "HMG",
+          "on": null,
+          "pivot_m": [
+            2.025,
+            -1.2,
             1.5
           ],
           "special": false,
@@ -21634,6 +21959,10 @@
       },
       "mounts": [
         {
+          "arc": {
+            "centre_deg": 90.0,
+            "width_deg": 160.0
+          },
           "carriers": [],
           "id": "door",
           "muzzle_m": [
@@ -21646,6 +21975,32 @@
           "pivot_m": [
             2.165,
             1.33,
+            1.6
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "hmg"
+          ]
+        },
+        {
+          "arc": {
+            "centre_deg": -90.0,
+            "width_deg": 160.0
+          },
+          "carriers": [],
+          "id": "door_right",
+          "muzzle_m": [
+            1.2,
+            0.0,
+            0.0
+          ],
+          "name": "HMG",
+          "on": null,
+          "pivot_m": [
+            2.165,
+            -1.33,
             1.6
           ],
           "special": false,
@@ -21724,6 +22079,10 @@
       },
       "mounts": [
         {
+          "arc": {
+            "centre_deg": 90.0,
+            "width_deg": 160.0
+          },
           "carriers": [],
           "id": "door",
           "muzzle_m": [
@@ -22116,6 +22475,10 @@
       },
       "mounts": [
         {
+          "arc": {
+            "centre_deg": 90.0,
+            "width_deg": 160.0
+          },
           "carriers": [],
           "id": "door",
           "muzzle_m": [
@@ -22128,6 +22491,32 @@
           "pivot_m": [
             5.207,
             1.33,
+            1.8
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "hmg"
+          ]
+        },
+        {
+          "arc": {
+            "centre_deg": -90.0,
+            "width_deg": 160.0
+          },
+          "carriers": [],
+          "id": "door_right",
+          "muzzle_m": [
+            1.2,
+            0.0,
+            0.0
+          ],
+          "name": "HMG",
+          "on": null,
+          "pivot_m": [
+            5.207,
+            -1.33,
             1.8
           ],
           "special": false,
@@ -24019,6 +24408,10 @@
       },
       "mounts": [
         {
+          "arc": {
+            "centre_deg": 90.0,
+            "width_deg": 160.0
+          },
           "carriers": [],
           "id": "door",
           "muzzle_m": [
@@ -24031,6 +24424,32 @@
           "pivot_m": [
             2.215,
             1.2,
+            1.55
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "hmg"
+          ]
+        },
+        {
+          "arc": {
+            "centre_deg": -90.0,
+            "width_deg": 160.0
+          },
+          "carriers": [],
+          "id": "door_right",
+          "muzzle_m": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "name": "HMG",
+          "on": null,
+          "pivot_m": [
+            2.215,
+            -1.2,
             1.55
           ],
           "special": false,
@@ -24906,7 +25325,7 @@
             0.0,
             0.0
           ],
-          "name": "Chain Gun",
+          "name": "HMG",
           "on": null,
           "pivot_m": [
             1.75,
@@ -24917,7 +25336,7 @@
           "squad": false,
           "turret": false,
           "weapons": [
-            "autocannon"
+            "hmg"
           ]
         },
         {
@@ -25011,6 +25430,10 @@
       },
       "mounts": [
         {
+          "arc": {
+            "centre_deg": 90.0,
+            "width_deg": 160.0
+          },
           "carriers": [],
           "id": "door",
           "muzzle_m": [
@@ -25023,6 +25446,32 @@
           "pivot_m": [
             2.35,
             1.25,
+            1.05
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "hmg"
+          ]
+        },
+        {
+          "arc": {
+            "centre_deg": -90.0,
+            "width_deg": 160.0
+          },
+          "carriers": [],
+          "id": "door_right",
+          "muzzle_m": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "name": "HMG",
+          "on": null,
+          "pivot_m": [
+            2.35,
+            -1.25,
             1.05
           ],
           "special": false,
@@ -25286,6 +25735,10 @@
       },
       "mounts": [
         {
+          "arc": {
+            "centre_deg": 90.0,
+            "width_deg": 160.0
+          },
           "carriers": [],
           "id": "door",
           "muzzle_m": [
@@ -25298,6 +25751,32 @@
           "pivot_m": [
             5.207,
             1.33,
+            1.8
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "hmg"
+          ]
+        },
+        {
+          "arc": {
+            "centre_deg": -90.0,
+            "width_deg": 160.0
+          },
+          "carriers": [],
+          "id": "door_right",
+          "muzzle_m": [
+            1.2,
+            0.0,
+            0.0
+          ],
+          "name": "HMG",
+          "on": null,
+          "pivot_m": [
+            5.207,
+            -1.33,
             1.8
           ],
           "special": false,
@@ -27383,6 +27862,10 @@
       },
       "mounts": [
         {
+          "arc": {
+            "centre_deg": 90.0,
+            "width_deg": 160.0
+          },
           "carriers": [],
           "id": "door",
           "muzzle_m": [
@@ -27395,6 +27878,32 @@
           "pivot_m": [
             2.45,
             1.4,
+            1.45
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "hmg"
+          ]
+        },
+        {
+          "arc": {
+            "centre_deg": -90.0,
+            "width_deg": 160.0
+          },
+          "carriers": [],
+          "id": "door_right",
+          "muzzle_m": [
+            1.0,
+            0.0,
+            0.0
+          ],
+          "name": "HMG",
+          "on": null,
+          "pivot_m": [
+            2.45,
+            -1.4,
             1.45
           ],
           "special": false,
@@ -27473,6 +27982,10 @@
       },
       "mounts": [
         {
+          "arc": {
+            "centre_deg": 90.0,
+            "width_deg": 160.0
+          },
           "carriers": [],
           "id": "door",
           "muzzle_m": [
@@ -27485,6 +27998,32 @@
           "pivot_m": [
             2.025,
             1.2,
+            1.5
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "hmg"
+          ]
+        },
+        {
+          "arc": {
+            "centre_deg": -90.0,
+            "width_deg": 160.0
+          },
+          "carriers": [],
+          "id": "door_right",
+          "muzzle_m": [
+            1.1,
+            0.0,
+            0.0
+          ],
+          "name": "HMG",
+          "on": null,
+          "pivot_m": [
+            2.025,
+            -1.2,
             1.5
           ],
           "special": false,

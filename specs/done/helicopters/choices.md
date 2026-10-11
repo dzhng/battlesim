@@ -66,7 +66,7 @@ The entries are grouped by verdict: **needs-user** (decide; each one has a provi
 - **Verdict:** needs-user (taste). It was shown at the slice 12 checkpoint with no reply. Provisional call: kept as built. To reverse, decide whether the marker should follow the roof (a renderer change to paint on roof layers) or stay on the ground.
 - **Confidence:** medium.
 
-### N8. A door gun can traverse all the way round, through its own cabin
+### N8. A door gun can traverse all the way round, through its own cabin *(decided after the closeout: door guns have a 160° arc on their side, transports carry one in each door, and the airframe turns a gun's arc onto a target none bears on; the `arc` of a mount row)*
 - **When:** slice 16.
 - **The choice:** the simulation has no traverse arc for any mount. A left-door gun told to fire at something on the right swings through the fuselage and fires. In a war film it would either refuse, or the pilot would turn the airframe. The alternative was a traverse arc on mounts, so a gun only fires inside its arc, or the airframe turns to bring the target into it, as hull-fixed weapons already make it do (S20).
 - **The gap:** D28 made door guns turrets without limiting them.

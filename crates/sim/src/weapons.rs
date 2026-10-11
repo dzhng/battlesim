@@ -56,6 +56,28 @@ pub struct MountSpec {
     /// Its muzzle from the pivot along its own bearing; `None` is a hand
     /// weapon, fired at the infantry muzzle height.
     pub muzzle: Option<V3>,
+    /// The bearings a turret swings through off the hull's heading; `None`,
+    /// all round.
+    pub arc: Option<Arc>,
+}
+
+/// A turret's arc (`contract::weapons::MountArc`), in radians.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Arc {
+    pub centre: f64,
+    pub half: f64,
+}
+
+impl Arc {
+    /// `bearing` off a hull heading `yaw`, relative to the arc's centre.
+    fn off(self, yaw: f64, bearing: f64) -> f64 {
+        wrap_angle(bearing - yaw - self.centre)
+    }
+
+    /// Whether a hull heading `yaw` brings `bearing` inside the arc.
+    pub fn holds(self, yaw: f64, bearing: f64) -> bool {
+        self.off(yaw, bearing).abs() <= self.half
+    }
 }
 
 /// Every weapon and mount in the battle, fixed at setup.
@@ -150,6 +172,10 @@ impl Arsenal {
                             pivot: v(m.pivot_m),
                             ring,
                             muzzle: m.muzzle_m.map(v),
+                            arc: m.arc.map(|a| Arc {
+                                centre: a.centre_deg.to_radians(),
+                                half: (a.width_deg / 2.0).to_radians(),
+                            }),
                         }
                     })
                     .collect()
@@ -564,7 +590,13 @@ fn bearing_from(unit: &Unit, point: V3) -> f64 {
 
 fn point_mount(unit: &Unit, mount: &mut Mount, spec: &MountSpec, point: V3, turret_step: f64) {
     let desired = bearing_from(unit, point);
-    mount.bearing = if spec.turret {
+    mount.bearing = if let Some(arc) = spec.arc.filter(|_| spec.turret) {
+        // Within its arc, it turns the way that stays inside it, never
+        // round through the cabin; outside, it waits at the arc's edge.
+        let at = arc.off(unit.yaw, mount.bearing).clamp(-arc.half, arc.half);
+        let to = arc.off(unit.yaw, desired).clamp(-arc.half, arc.half);
+        unit.yaw + arc.centre + at + (to - at).clamp(-turret_step, turret_step)
+    } else if spec.turret {
         let err = wrap_angle(desired - mount.bearing);
         mount.bearing + err.clamp(-turret_step, turret_step)
     } else if hull_fixed(unit, spec) {
@@ -1577,9 +1609,23 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
 
             // A gun fixed in the hull keeps the body on its target through
             // every aim, burst and reload, not only while it turns onto it.
+            // A turret whose arc can't reach its target turns the body to
+            // bring the arc's middle onto it, unless a gun with the same
+            // weapons already bears on it.
             if let (Some(_), Some(r), Some(Ok(_))) = (&mount.lock, &resolved, assessment) {
+                let bearing = bearing_from(unit, r.point);
                 if hull_fixed(unit, spec) {
-                    face.get_or_insert(bearing_from(unit, r.point));
+                    face.get_or_insert(bearing);
+                } else if let Some(arc) = spec.arc.filter(|_| unit.is_vehicle()) {
+                    let bears = |s: &MountSpec| s.arc.is_none_or(|a| a.holds(unit.yaw, bearing));
+                    let covered = unit
+                        .mounts
+                        .iter()
+                        .map(|other| &specs[other.spec])
+                        .any(|s| s.kinds == spec.kinds && bears(s));
+                    if !covered {
+                        face.get_or_insert(bearing - arc.centre);
+                    }
                 }
             }
             // Fire when everything lines up.
