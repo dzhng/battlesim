@@ -64,7 +64,7 @@ Taste and intent questions stayed with the user.
 | Q5 | Lighting during phase 1 | Lighting (04a–c) comes before terrain and grass | Judge colour, don't defer it | User |
 | Q6 | Viewport and density | 1280×720 at 1× on both sides, always. This is what players see since `ace81f81`. | Simplest | User; confirmed by the territory |
 | Q7 | Backend | Forward+ (Metal). Delete `gl_compatibility` and keep no fallback path. The slice 02 probe (one building, a grass multimesh, a shadowed sun, the sky shader, captured unattended) must pass; failure is a named blocker. | #2: shadows, AO and fog need it. #1: one backend. The probe already rendered. | Agent on the user's behalf (#1, #2) |
-| Q8 | Phase 1 closeout | Run `review`, update the handoff, then plan phase 2 with a fresh walk. The full repo check runs once, at slice 16. | AGENTS.md: everything runs once at the end of the spec | Agent on the user's behalf (#1); territory |
+| Q8 | Phase 1 closeout | Run `review`, update the handoff, then plan phase 2 with a fresh walk. The full repo check runs once, at slice 18. | AGENTS.md: everything runs once at the end of the spec | Agent on the user's behalf (#1); territory |
 | Q9 | The mirror fix | One conversion function `(x,y,z) → (x,z,−y)`. Every placement, the sun and the camera go through it; one test pins asymmetric known points. Slice 03. | It's a reflection today | Territory |
 | Q10 | Same battle | The manifest carries the map, encounter, seed and capture hashes. Native refuses to render on any mismatch. | The user asked that the menu video use exactly the same map | Agent on the user's behalf (#3) |
 | Q11 | Same layers | The manifest lists the presentation layers the browser drew. For the menu reel the fog overlay is off: native decodes fog but doesn't paint it. | The native fog boxes read as water | Agent on the user's behalf (#3) |
@@ -89,7 +89,7 @@ Nothing is OPEN.
 
 Each landmine is either decided (closed by the agent on the user's behalf unless marked otherwise) or a sharp edge.
 
-At the phase 1 closeout, every landmine except L13 is built as decided. L13 (building tiers) belongs to slice 13. One partial: the legacy buildings-and-props layer still measures its 1 km reach from frame targets rather than from the eye (L4), until slice 13 replaces it.
+At the phase 1 closeout, every landmine except L13 is built as decided. L13 (building tiers) belongs to slice 15. One partial: the legacy buildings-and-props layer still measures its 1 km reach from frame targets rather than from the eye (L4), until slice 15 replaces it.
 
 | # | Landmine | Evidence | Status and decision |
 | --- | --- | --- | --- |
@@ -105,8 +105,8 @@ At the phase 1 closeout, every landmine except L13 is built as decided. L13 (bui
 | L10 | Grass reach is in metres per pixel | `grassField.ts:288-302`, `grassPass.ts:872,922` | Sharp edge, slice 06a. The canvas height must match; the frame record carries it. |
 | L11 | Flat-ground assumptions | Centimetre layer offsets at `reel.gd:291-404`; `max(0,z)` at `:1168` | Sharp edge, slice 05a. Seat everything on one height function; no stacking by offsets. |
 | L12 | Harness defaults | `web/scene.mjs:185-186`, `web/scenes/graphics-test.mjs:5` (800 high); a hidden tab fails (`graphicsTest.tsx:167`); preparation can saturate the GPU for minutes | Sharp edge, slice 01. Pass 720, keep the page visible, take the GPU lock, wait on readiness. |
-| L13 | Building tiers depend on canvas pixels | `buildingTier.ts` (`ace81f81`) | Sharp edge, slice 13. The manifest records the chosen tier. |
-| L14 | Slice 04a shadow cuts use unported buildings | Token-picked shells until slice 13 | Sharp edge, slice 04a. Judge shadow direction and softness, not shapes. |
+| L13 | Building tiers depend on canvas pixels | `buildingTier.ts` (`ace81f81`) | Sharp edge, slice 15. The manifest records the chosen tier. |
+| L14 | Slice 04a shadow cuts use unported buildings | Token-picked shells until slice 15 | Sharp edge, slice 04a. Judge shadow direction and softness, not shapes. |
 | L15 | Small leaks | A material per unit per frame (`reel.gd:1159`); units reused by index rather than id (`:1165`) | Sharp edge, slice 02. Fix in passing. |
 
 ## Confirm before coding: resolved
@@ -141,10 +141,10 @@ Within each group, least confident first.
 **Gates and evidence**
 
 - **A scar cell is exempt from the 10% grass count gate only when native's excess is covered by its clumps on bare scars.** *06 closeout, `58931e34`.*
-  - Picture a tank that crossed a wheat field earlier in the battle. The browser knows that side's learned scars (craters, scorch and tracks), so it leaves the grass out on them. Native has no scars layer until slice 14, so it grows grass there, and a screen cell over the track counts 13–16% more clumps than the browser.
+  - Picture a tank that crossed a wheat field earlier in the battle. The browser knows that side's learned scars (craters, scorch and tracks), so it leaves the grass out on them. Native has no scars layer until slice 16, so it grows grass there, and a screen cell over the track counts 13–16% more clumps than the browser.
   - The run replays the learned ground (`capture/learned_ground.gd`, tested against the browser's own replay), counts native clumps standing on bare scars per cell, and names a cell `scar-omission` only if the excess is no larger than that.
   - Every other cell must be within 10%. Five of 216 cells are named, and removing the allowance makes the run block.
-  - Reach: slice 14 deletes the allowance when scars arrive.
+  - Reach: slice 16 deletes the allowance when scars arrive.
   - Confidence: medium. The gate is unchanged, but it carries a named exception.
 
 - **The terrain feature gate is a measured class agreement, not a judgement by eye.** *05a, `48c3ab7a`.*
@@ -262,8 +262,8 @@ None found at the closeout. Two earlier choices were corrected during the build 
 
 ### Known gaps carried into phase 2
 
-- **Infantry.** Only the own-side unit group is decoded, one model per unit, so squad members, enemies and corpses are missing, and one soldier is T-posed. Slice 13.
-- **Missing models.** Tree lines and forests are drawn as flat bands, there are no wrecks, Paris balcony railings are missing, and lamp posts are 15–20% short. Slice 13.
+- **Infantry.** Only the own-side unit group is decoded, one model per unit, so squad members, enemies and corpses are missing, and one soldier is T-posed. Slice 14 (units) or 15 (models and scenery).
+- **Missing models.** Tree lines and forests are drawn as flat bands, there are no wrecks, Paris balcony railings are missing, and lamp posts are 15–20% short. Slice 14 (units) or 15 (models and scenery).
 - **Scars, decals, dust, smoke and fire.** Slice 14. This also removes the grass gate's scar allowance.
 - **Unexercised paths.** The water formulas are ported but unmeasured, because neither reel map has water. Relief is tested only against a synthetic grid.
 - **Run-to-run noise.** Native grass plates differ by one or two pixels between reruns, probably GPU append order. Byte comparisons need that floor.
@@ -315,7 +315,7 @@ Closed by the agent on the evidence; the user had not reviewed it at the time of
   - Confidence: medium. It is a second reader of `presentation`, with a named removal.
 - **Shadows mirror the browser, not the brief's wording.** A mesh-drawn model casts through a shadow-only batch one tier coarser (`CASTER_COARSER`), the coarsest tier casts as itself, and view batches cast nothing. A chunk out of view whose shadow can land in it casts at the coarsest tier. The brief said far tiers don't cast; the browser's far props do, out to the cascades' 2.6 km, and dropping them would move native away from it.
   - Confidence: high.
-- **Kit shells draw every tier at once.** A shell's finer tiers have openings that facade modules fill, and the legacy layer places no modules, so a single tier showed hollow Paris blocks. Shells are about 1% of draws; slice 13 replaces them.
+- **Kit shells draw every tier at once.** A shell's finer tiers have openings that facade modules fill, and the legacy layer places no modules, so a single tier showed hollow Paris blocks. Shells are about 1% of draws; slice 15 replaces them.
   - Confidence: high.
 - **Skinned parts are posed on the CPU at build** (bind poses times the skeleton's pose), because a MultiMesh draws no skeleton. Without it the soldiers shifted by a few pixels.
   - Confidence: high.
