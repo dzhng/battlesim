@@ -111,7 +111,7 @@
   {
     "id": "air-closing",
     "route": "/lab/air-closing",
-    "describe": "The helicopters' closing scene (D14): the AH-64E flies in from the map's west edge, pops up over the village roofs and kills the T-72 behind them with rockets and its chin gun; ordered on east, holding its fire, it is shot down by the BMP-2M's autocannon from behind the tower, falls on in a spinning arc and its wreck comes down in the wood, flattening the trees there.",
+    "describe": "The helicopters' closing scene (D14): the AH-64E flies in from the map's west edge over the village roofs and kills the T-72 behind them with rockets and its chin gun; ordered on east, holding its fire, it is shot down by the BMP-2M's autocannon from behind the tower, falls on in a spinning arc and its wreck comes down in the wood, flattening the trees there.",
     "map": "air"
   },
   {

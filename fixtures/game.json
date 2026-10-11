@@ -75,6 +75,9 @@
     "fog_target_height_m": 1.0,
     "min_sight_gap_m": 0.5
   },
+  "penetration": {
+    "partial_from": 0.6
+  },
   "ricochet": {
     "speed_kept": 0.6,
     "scatter_deg": 12,
@@ -86,7 +89,7 @@
   },
   "weapons": {
     "rifle": {
-      "targets": ["ground", "low_air"],
+      "targets": { "ground": {}, "low_air": { "range_m": 100, "scatter_mrad": 40 } },
       "name": "Rifle",
       "description": "The standard rifle every soldier carries.",
       "icon": "rifle",
@@ -108,7 +111,7 @@
       "structural_damage": 0.25
     },
     "grenade": {
-      "targets": ["ground"],
+      "targets": { "ground": {} },
       "name": "Grenade",
       "description": "Rifle grenades lobbed at troops behind cover.",
       "icon": "grenade",
@@ -129,7 +132,7 @@
       "structural_damage": 10
     },
     "tank_ap": {
-      "targets": ["ground"],
+      "targets": { "ground": {} },
       "name": "AP Shell",
       "description": "Armour-piercing sabot: the tank gun's answer to armour.",
       "icon": "ap_shell",
@@ -150,11 +153,10 @@
       "armor_piercing": true
     },
     "tank_he": {
-      "targets": ["ground"],
+      "targets": { "ground": {} },
       "name": "HE Shell",
       "description": "High-explosive shell for troops, cover and buildings.",
       "icon": "he_shell",
-      "armor_fraction": 0.15,
       "stationary": false,
       "range_m": 800,
       "speed_mps": 400,
@@ -163,6 +165,7 @@
       "reload_s": 6,
       "ammo": 15,
       "penetration": 30,
+      "partial_from": 0.08,
       "damage": 80,
       "scatter_mrad": 3.43,
       "near_miss_suppression": 0.4,
@@ -171,7 +174,7 @@
       "structural_damage": 100
     },
     "hmg": {
-      "targets": ["ground", "low_air"],
+      "targets": { "ground": {}, "low_air": { "range_m": 200, "scatter_mrad": 24 } },
       "name": "HMG",
       "description": "A heavy machine gun for troops and light vehicles.",
       "icon": "hmg",
@@ -193,7 +196,7 @@
       "structural_damage": 4
     },
     "atgm": {
-      "targets": ["ground"],
+      "targets": { "ground": {} },
       "interceptable": true,
       "name": "ATGM",
       "description": "A wire-guided anti-tank missile, steered onto its target.",
@@ -224,7 +227,8 @@
       "name": "Carbine",
       "description": "A short rifle for close quarters: handier, less accurate at range.",
       "range_m": 240,
-      "scatter_mrad": 10
+      "scatter_mrad": 10,
+      "targets": { "low_air": { "scatter_mrad": 50 } }
     },
     "smg": {
       "extends": "rifle",
@@ -235,6 +239,7 @@
       "damage": 25,
       "penetration": 3,
       "scatter_mrad": 16,
+      "targets": { "low_air": { "scatter_mrad": 60 } },
       "magazine": {
         "rounds": 30,
         "shot_interval_s": 0.07,
@@ -250,6 +255,7 @@
       "damage": 70,
       "penetration": 3,
       "scatter_mrad": 40,
+      "targets": { "low_air": { "range_m": 60, "scatter_mrad": 60 } },
       "magazine": {
         "rounds": 8,
         "shot_interval_s": 0.9,
@@ -266,6 +272,7 @@
       "damage": 30,
       "penetration": 8,
       "scatter_mrad": 9,
+      "targets": { "low_air": { "range_m": 150, "scatter_mrad": 32 } },
       "ammo": 600,
       "reload_s": 6,
       "aim_s": 1,
@@ -308,7 +315,8 @@
       "ammo": 30,
       "reload_s": 2.5,
       "aim_s": 2,
-      "magazine": null
+      "magazine": null,
+      "targets": { "low_air": { "range_m": 150, "scatter_mrad": 48 } }
     },
     "autocannon": {
       "extends": "hmg",
@@ -316,6 +324,7 @@
       "description": "A slow-firing cannon whose small bursting shells tear up troops, cover and light armour.",
       "icon": "autocannon",
       "range_m": 650,
+      "targets": { "low_air": { "range_m": 350, "scatter_mrad": 18 } },
       "speed_mps": 600,
       "gravity_scale": 0.5,
       "damage": 100,
@@ -415,7 +424,7 @@
       "top_attack": { "loft_m": 60, "dive_deg": 40 }
     },
     "stinger": {
-      "targets": ["low_air"],
+      "targets": { "low_air": {} },
       "interceptable": false,
       "name": "Stinger",
       "description": "A shoulder-fired missile that reaches only aircraft; the gunner keeps it in his sight.",
@@ -476,7 +485,7 @@
     },
     "rocket_pod": {
       "extends": "tank_he",
-      "targets": ["ground"],
+      "targets": { "ground": {} },
       "name": "Rocket Pod",
       "description": "Unguided rockets in salvos, for troops, light vehicles and cover.",
       "icon": "rockets",
@@ -1185,9 +1194,9 @@
       }
     },
     "pose": {
-      "gait": { "walk_mps": 0.25, "run_mps": 2.2, "fade_s": 0.25, "facing_mps": 0.3, "turn_rad_s": 6 },
+      "gait": { "walk_mps": 0.25, "run_mps": 2.2, "crawl_mps": 1.4, "fade_s": 0.25, "facing_mps": 0.3, "turn_rad_s": 6 },
       "rest": { "turn_rad": 1.0, "tempo": [0.8, 1.25], "watch_every": 4, "settle_s": [4, 6] },
-      "stance": { "fire_prone": 0.3, "fire_stand": 0.2, "pinned_kneel": 0.25 },
+      "stance": { "fire_prone": 0.3, "fire_stand": 0.2, "pinned_kneel": 0.25, "fall_back": 0.65 },
       "lean": { "out_s": 0.25, "back_s": 0.4 },
       "mount": {
         "gun_elevation_rad_s": 0.6,
@@ -1203,6 +1212,7 @@
         "wheeled_medium_logistics": 0.75
       },
       "rotor": { "tip_mps": 200 },
+      "attitude": { "gain": 1, "max_deg": 18, "smoothing_s": 0.4 },
       "corpses": { "max": 1000, "fade_s": 3, "sink_m": 0.6 }
     },
     "effects": {
@@ -1355,7 +1365,7 @@
         "min_speed_mps": 1.0,
         "full_speed_mps": 8
       },
-      "rotor_blur": { "albedo": 0.1, "shutter": 0.4, "hub_share": 0.07 },
+      "rotor_blur": { "albedo": 0.03, "shutter": 0.2, "hub_share": 0.07, "min_chord_px": 2.5, "disc": 0.1 },
       "damage_smoke": {
         "albedo": [0.08, 0.078, 0.075],
         "opacity": 0.45,
@@ -1474,5 +1484,5 @@
     "wheeled": { "half_width_m": 1.6, "half_length_m": 5.2, "turning_radius_m": 6.0 },
     "air": { "half_width_m": 3.65, "half_length_m": 9.94 }
   },
-  "air": { "cruise_agl_m": 20, "clearance_m": 10, "ceiling_agl_m": 40, "obstacle_m": 30, "separation_m": 14 }
+  "air": { "cruise_agl_m": 30, "clearance_m": 10, "ceiling_agl_m": 40, "obstacle_m": 30, "separation_m": 14, "acceleration_s": 4.5, "settle_share": 0.05, "settle_max_m": 4 }
 }

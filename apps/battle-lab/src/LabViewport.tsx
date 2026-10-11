@@ -1011,7 +1011,7 @@ export function LabViewport({
         // Input: left click selects, left drag box-selects (or, as an action,
         // places at the press and faces toward the release), right click
         // orders (on release: a right-drag also sets the facing); the camera (CameraController) takes held WASD/arrows and the
-        // screen edge to pan, Q/E to turn, middle drag to orbit, the wheel to zoom.
+        // screen edge to pan, Q/E to turn, Z/X to tilt, middle drag to orbit, the wheel to zoom.
         let orbit: { x: number; y: number } | null = null;
         let press: {
           x: number;

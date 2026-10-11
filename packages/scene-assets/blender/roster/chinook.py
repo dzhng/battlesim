@@ -74,7 +74,7 @@ def build(variant, v):
     A.rotor("rear", (-6.0, 0, 5.43), 9.14, 3, 0.8, m, hull, hub=0.44, mast=0.0, droop=0.03, phase=0.3 + 1.047)
     A.mirrored(lambda side, k: box(f"step_{k}", (0.4, 0.2, 0.04), (6.2, side * 1.25, 0.7), m["dark"], hull,
                                    lods=NEAR))
-    A.door_gun(v, rig(v.frame, v.root), m, DOOR_PITCH_DEG, inboard=0.2)
+    A.door_guns(v, rig(v.frame, v.root), m, DOOR_PITCH_DEG, inboard=0.2)
 
     # The Army's black lettering on the F; the RAF's roundel, title and
     # serial on the HC6.

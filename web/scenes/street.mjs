@@ -3685,7 +3685,7 @@ async function playTour(ctx) {
   await page.waitForFunction(() => window.__lab.route.selected().length === 1);
   await lab(page, () => window.__lab.route.resume());
   await page.waitForFunction(() => window.__lab.route.status().status === "running");
-  await page.keyboard.press("x");
+  await page.keyboard.press("c");
   await page.keyboard.press("Escape");
   const disarmed = (await page.getByRole("dialog", { name: "Paused" }).count()) === 0;
   await page.keyboard.press("Escape");

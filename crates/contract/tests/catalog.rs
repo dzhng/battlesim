@@ -348,6 +348,30 @@ fn a_structurally_broken_type_fails_at_load_naming_it() {
         error(json!({ "t": t })),
         rule("mount \"stacked\" is on \"HMG\", which is itself carried by a turret")
     );
+    // An arc limits a turret's swing off the hull's heading: on a gun fixed
+    // in the hull, or on one another turret carries, it means nothing, and
+    // it must leave the gun some swing and not all of it.
+    for (turret, on) in [(json!(false), Value::Null), (json!(true), json!("cannon"))] {
+        let mut t = base_tank();
+        t.as_object_mut().unwrap().remove("abstract");
+        t["mounts"][1]["turret"] = turret;
+        t["mounts"][1]["on"] = on;
+        t["mounts"][1]["arc"] = json!({ "centre_deg": 90, "width_deg": 160 });
+        assert_eq!(
+            error(json!({ "t": t })),
+            rule("mount \"HMG\" has an arc but no turret on the hull to swing through it")
+        );
+    }
+    for width in [0.0, 360.0] {
+        let mut t = base_tank();
+        t.as_object_mut().unwrap().remove("abstract");
+        t["mounts"][1]["on"] = Value::Null;
+        t["mounts"][1]["arc"] = json!({ "centre_deg": 90, "width_deg": width });
+        assert_eq!(
+            error(json!({ "t": t })),
+            rule("mount \"HMG\" arc width must lie between 0 and 360 degrees")
+        );
+    }
     let mut t = base_tank();
     t.as_object_mut().unwrap().remove("abstract");
     t["mounts"].as_array_mut().unwrap().reverse();

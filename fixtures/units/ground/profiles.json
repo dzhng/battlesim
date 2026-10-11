@@ -128,7 +128,7 @@
         }
       }
     },
-    "roster_profile_at_team": {
+    "roster_profile_weapon_team": {
       "abstract": true,
       "sensors": {
         "ground_m": 600,

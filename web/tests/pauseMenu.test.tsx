@@ -16,6 +16,20 @@ test("the paused battle offers a return to the game's main menu", () => {
   view.unmount();
 });
 
+test("the pause menu opens the tutorial above it and closes back to the menu", async () => {
+  const view = render(<PauseMenu onClose={() => {}} />);
+  await act(async () => view.getByRole("button", { name: "Tutorial" }).click());
+  expect(view.getByRole("dialog", { name: "Tutorial" })).toBeTruthy();
+  expect(view.getByRole("button", { name: "Close tutorial" })).toBeTruthy();
+  fireEvent.keyDown(window, { code: "Escape", cancelable: true });
+  expect(view.queryByRole("dialog", { name: "Tutorial" })).toBeNull();
+  await act(async () => view.getByRole("button", { name: "Tutorial" }).click());
+  await act(async () => view.getByRole("button", { name: "Close tutorial" }).click());
+  expect(view.queryByRole("dialog", { name: "Tutorial" })).toBeNull();
+  expect(view.getByRole("dialog", { name: "Paused" })).toBeTruthy();
+  view.unmount();
+});
+
 test("the menu pauses a stalled battle until closed, and preserves an existing pause", () => {
   let paused = false;
   const client = {

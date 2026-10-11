@@ -60,8 +60,9 @@ pub fn fragment_exposure(rules: &Rules, shelter: f64) -> f64 {
     )
 }
 
-/// Ricochet rules the simulation can honour: probabilities in [0, 1], a
-/// deflected round keeps some speed and no more penetration than it had.
+/// Armour rules the simulation can honour: probabilities in [0, 1], a
+/// deflected round keeps some speed and no more penetration than it had, and
+/// partial damage starts short of the full armour.
 pub fn validate(rules: &Rules) {
     let r = &rules.ricochet;
     for hull in rules
@@ -92,6 +93,11 @@ pub fn validate(rules: &Rules) {
         "ricochet scatter_deg {}",
         r.scatter_deg
     );
+    let from = rules.penetration.partial_from;
+    assert!(
+        (0.0..1.0).contains(&from),
+        "penetration partial_from {from}"
+    );
 }
 
 /// The face a hit meets, judged just off the struck surface at the hull's
@@ -100,16 +106,25 @@ pub fn struck_face(half: V3, pose: Pose, point: V3, normal: V3) -> Face {
     hull_face_at(pose.base, pose.yaw, half, point + normal * BLAST_LIFT_M)
 }
 
-/// The one penetration rule: a round of `penetration` pierces `face` once
-/// each ricochet so far has cut it by `penetration_kept`.
-pub fn pierces(
-    penetration: f64,
-    bounces: u8,
-    rules: &RicochetRules,
-    armor: &Armor,
-    face: Face,
-) -> bool {
-    penetration * rules.penetration_kept.powi(bounces as i32) > armor.face(face)
+/// A round's penetration once each ricochet so far has cut it by
+/// `penetration_kept`.
+fn reach(penetration: f64, bounces: u8, rules: &RicochetRules) -> f64 {
+    penetration * rules.penetration_kept.powi(bounces as i32)
+}
+
+/// The one penetration rule: the share of a round's damage that gets
+/// through `armor`, its penetration cut by `penetration_kept` per ricochet
+/// so far. Nothing short of its `partial_from` of the armour (the rules',
+/// unless the weapon fades more gently), all of it at or past the armour,
+/// and in proportion between: a round that nearly gets through still shakes
+/// the hull, glancing off or not.
+pub fn pierce_share(def: &WeaponDefinition, bounces: u8, rules: &Rules, armor: f64) -> f64 {
+    let reach = reach(def.penetration, bounces, &rules.ricochet);
+    if reach >= armor {
+        return 1.0;
+    }
+    let from = def.partial_from.unwrap_or(rules.penetration.partial_from);
+    ((reach / armor - from) / (1.0 - from)).max(0.0)
 }
 
 /// What armour sees of a round: its penetration before any ricochet, and
@@ -147,8 +162,9 @@ pub fn decide(
 }
 
 /// What a round meeting an armoured hull does: a bursting round detonates; a
-/// kinetic round that fails to pierce the face it met glances off with that
-/// face's chance while it has ricochets left, and otherwise stops.
+/// kinetic round that fails to fully pierce the face it met glances off with
+/// that face's chance while it has ricochets left, and otherwise stops.
+/// Whether it glances is only how it flies on: the damage is its share.
 fn meet_hull(
     round: RoundPower,
     hull: StruckHull,
@@ -161,7 +177,7 @@ fn meet_hull(
     }
     let face = struck_face(hull.half, hull.pose, hit.point, hit.normal);
     if hit.bounces >= rules.max_bounces
-        || pierces(round.penetration, hit.bounces, rules, hull.armor, face)
+        || reach(round.penetration, hit.bounces, rules) >= hull.armor.face(face)
         || rng.unit() >= hull.armor.ricochet.face(face)
     {
         return ImpactDecision::Stop;
@@ -476,7 +492,7 @@ pub fn resolve(
                     }
                 }
             }
-            // A glancing round failed to pierce: at most the armour fraction.
+            // A glancing round still does its share.
             FlightEvent::Ricochet(r) => {
                 let Some(round) = rounds.get(&r.projectile) else {
                     continue;
@@ -631,9 +647,8 @@ fn casualties(
     destroyed
 }
 
-/// A round's damage to the hull it struck, judged on the face it met at
-/// `pose` (P10): full damage when it pierces, otherwise the weapon's armour
-/// fraction (HE's partial effect).
+/// A round's damage to the hull it struck: its share through the face it met
+/// at `pose` (P10).
 fn hull_damage(
     ctx: &DamageContext,
     def: &WeaponDefinition,
@@ -645,11 +660,7 @@ fn hull_damage(
 ) -> f64 {
     let armor = unit.armor(ctx.rules).expect("vehicle armour");
     let face = struck_face(unit.hull.expect("vehicle hull"), pose, point, normal);
-    if pierces(def.penetration, bounces, &ctx.rules.ricochet, armor, face) {
-        def.damage
-    } else {
-        def.damage * def.armor_fraction
-    }
+    def.damage * pierce_share(def, bounces, ctx.rules, armor.face(face))
 }
 
 /// Weapon-specific suppression at `distance` from a round's path or impact.
@@ -698,8 +709,9 @@ fn blast(
                 }
                 let armor = unit.armor(ctx.rules).expect("vehicle armour");
                 let face = unit.hull_face(at);
-                if pierces(def.penetration, 0, &ctx.rules.ricochet, armor, face) {
-                    unit.hp -= def.damage * (1.0 - r / radius);
+                let share = pierce_share(def, 0, ctx.rules, armor.face(face));
+                if share > 0.0 {
+                    unit.hp -= def.damage * share * (1.0 - r / radius);
                     hurt(i, !unit.alive());
                 }
             }

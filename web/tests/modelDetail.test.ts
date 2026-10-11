@@ -145,7 +145,7 @@ test("an airborne vehicle's model knows how high its foot is above the ground un
 
 test("posed soldiers are units, never fogged; corpses take the ground's fog, buildings their faces'", () => {
   expect(modelFog({ kind: "skinned", clip: "idle", phase: 0, blend: null })).toBe("units");
-  expect(modelFog({ kind: "corpse" })).toBe("ground");
+  expect(modelFog({ kind: "corpse", lies: 0 })).toBe("ground");
   expect(modelFog({ kind: "static", state: "intact" })).toBe("faces");
 });
 
@@ -168,7 +168,9 @@ test("corpses become static instances: no clip, the side's tint, and never a pos
       },
     ],
     vehicles: [],
-    corpses: [{ soldier: 2, kind: "test_at", slot: 0, side: "red", position: [5, 5, 0], yaw: 1 }],
+    corpses: [
+      { lies: 1, soldier: 2, kind: "test_at", slot: 0, side: "red", position: [5, 5, 0], yaw: 1 },
+    ],
     corpsesVersion: 1,
     fading: [],
   };
@@ -181,12 +183,13 @@ test("corpses become static instances: no clip, the side's tint, and never a pos
   expect(models[0]).toMatchObject({ appearance: "test_rifle", xray: null, yaw: 0.5 });
   expect(models[0].pose).toMatchObject({ kind: "skinned", clip: "walk", phase: 0.25 });
   expect(corpseInstances(frame, resolve)).toEqual([
-    { appearance: "test_at", x: 5, y: 5, z: 0, yaw: 1, tint: [1.18, 1, 0.78] },
+    { appearance: "test_at", lies: 1, x: 5, y: 5, z: 0, yaw: 1, tint: [1.18, 1, 0.78] },
   ]);
 });
 
 test("a fading corpse draws each frame as his corpse, sunk by its fade, never in the static list", () => {
   const corpse = {
+    lies: 0,
     soldier: 4,
     kind: "test_rifle" as const,
     slot: 0,
@@ -217,7 +220,7 @@ test("a fading corpse draws each frame as his corpse, sunk by its fade, never in
     yaw: 0.7,
     xray: null,
   });
-  expect(models[0].pose).toEqual({ kind: "corpse" });
+  expect(models[0].pose).toEqual({ kind: "corpse", lies: 0 });
   expect(corpseInstances(frame, resolve)).toEqual([]);
 });
 
@@ -240,7 +243,15 @@ test("a soldier wears the variant his id resolves to, alive and fallen", () => {
     soldiers: [pose(7), pose(8)],
     vehicles: [],
     corpses: [
-      { soldier: 7, kind: "test_rifle", slot: 0, side: "blue", position: [0, 0, 0], yaw: 0 },
+      {
+        lies: 0,
+        soldier: 7,
+        kind: "test_rifle",
+        slot: 0,
+        side: "blue",
+        position: [0, 0, 0],
+        yaw: 0,
+      },
     ],
     corpsesVersion: 1,
     fading: [],

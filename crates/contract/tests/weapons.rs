@@ -23,10 +23,10 @@ fn weapon_values_reject_invalid_scalar_settings() {
         ("rifle", "blast_radius_m", -1.0),
         ("rifle", "structural_damage", -1.0),
         ("rifle", "near_miss_suppression", -1.0),
-        ("rifle", "armor_fraction", 1.1),
         ("rifle", "suppression_radius_m", -1.0),
         ("atgm", "turn_deg_s", 0.0),
         ("grenade", "min_range_m", -1.0),
+        ("grenade", "partial_from", 1.0),
     ] {
         let mut game: Value =
             serde_json::from_str(include_str!("../../../fixtures/game.json")).unwrap();
@@ -100,6 +100,36 @@ fn a_weapon_row_needs_a_short_label_and_an_icon_id() {
         assert!(
             error.contains("weapons.autocannon") && error.contains("icon"),
             "{icon:?}: {error}"
+        );
+    }
+}
+
+/// A height band's fire profile may only shorten the row's reach: the flight
+/// rules admit a row's range, speed and lifetime together, so a longer reach
+/// at one band would fly rounds the row was never checked for.
+#[test]
+fn a_height_band_cannot_reach_past_the_row() {
+    for (band, named) in [
+        (json!({ "range_m": 701.0 }), "targets.low_air.range_m"),
+        (json!({ "range_m": -1.0 }), "targets.low_air.range_m"),
+        (
+            json!({ "scatter_mrad": -1.0 }),
+            "targets.low_air.scatter_mrad",
+        ),
+        // Only range and spread change with the band: the gun, its
+        // magazine and its round are the same whatever it aims at.
+        (json!({ "aim_s": 1.0 }), "aim_s"),
+    ] {
+        let mut game: Value =
+            serde_json::from_str(include_str!("../../../fixtures/game.json")).unwrap();
+        game["weapons"]["heavy_sniper"]["targets"]["low_air"] = band.clone();
+        let error = contract::weapons::resolve_weapons(game["weapons"].clone())
+            .err()
+            .unwrap_or_else(|| panic!("accepted targets.low_air = {band}"))
+            .to_string();
+        assert!(
+            error.contains("weapons.heavy_sniper") && error.contains(named),
+            "{error}"
         );
     }
 }

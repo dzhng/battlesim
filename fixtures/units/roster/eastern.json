@@ -69,7 +69,7 @@
         "variant": "FN-6",
         "family_name": "Air-Defense Team"
       },
-      "extends": "roster_profile_at_team",
+      "extends": "roster_profile_weapon_team",
       "body": {
         "squad": {
           "slots": [
@@ -97,7 +97,7 @@
         "variant": "Igla-S",
         "family_name": "Air-Defense Team"
       },
-      "extends": "roster_profile_at_team",
+      "extends": "roster_profile_weapon_team",
       "body": {
         "squad": {
           "slots": [
@@ -125,7 +125,7 @@
         "variant": "Kornet",
         "family_name": "ATGM Team"
       },
-      "extends": "roster_profile_at_team",
+      "extends": "roster_profile_weapon_team",
       "capabilities": {
         "deploy": {
           "seconds": 3,
@@ -956,7 +956,33 @@
             1.15,
             0,
             0
-          ]
+          ],
+          "arc": {
+            "centre_deg": 90,
+            "width_deg": 160
+          }
+        },
+        {
+          "id": "door_right",
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            5.647,
+            -1.3,
+            1.65
+          ],
+          "muzzle_m": [
+            1.15,
+            0,
+            0
+          ],
+          "arc": {
+            "centre_deg": -90,
+            "width_deg": 160
+          }
         }
       ],
       "appearance": "eastern_mi_8_hip_mi_8amtsh"
@@ -2395,7 +2421,33 @@
             1.1,
             0,
             0
-          ]
+          ],
+          "arc": {
+            "centre_deg": 90,
+            "width_deg": 160
+          }
+        },
+        {
+          "id": "door_right",
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            2.025,
+            -1.2,
+            1.5
+          ],
+          "muzzle_m": [
+            1.1,
+            0,
+            0
+          ],
+          "arc": {
+            "centre_deg": -90,
+            "width_deg": 160
+          }
         }
       ],
       "appearance": "eastern_z_20_utility_transport"

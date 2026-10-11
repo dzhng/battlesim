@@ -1,5 +1,5 @@
 // The helicopters' closing scene (D14): the Apache flies in from the map's
-// edge, pops up over the village roofs and kills the tank behind them, is
+// edge, flies in over the village roofs and kills the tank behind them, is
 // shot down by the IFV the tower hid, and its wreck comes down in the wood and
 // flattens the trees there. The simulation's test (`air_closing.rs`) owns the
 // beat; this holds blue's observation to the same beat as the lab draws it,
@@ -73,8 +73,8 @@ export async function run(ctx) {
   });
   await shoot("fly-in", `fly-in, tick ${o.tick}: the Apache at the west edge, the village ahead`);
 
-  // The pop-up: blue first identifies the tank once the Apache has climbed
-  // over the roofs, then kills it while the Apache lives.
+  // Over the roofs: blue first identifies the tank from the Apache at its
+  // cruise height over the village, then kills it while the Apache lives.
   let seen = null;
   let killed = null;
   for (let k = 0; k < 900 && !killed; k++) {
@@ -87,8 +87,8 @@ export async function run(ctx) {
       killed = { tick: o.tick, alive: !!heli };
   }
   ctx.check(
-    "blue sees the tank only once the Apache has popped up over the roofs",
-    !!seen && seen.height > cruise + 5,
+    "blue sees the tank from the Apache over the roofs, at its cruise height",
+    !!seen && seen.height >= cruise - 0.5,
     JSON.stringify(seen),
   );
   ctx.check(

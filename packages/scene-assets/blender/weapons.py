@@ -293,13 +293,11 @@ RIFLE_HOLD = {
     "recoil": ((0, 0, 0), (3, 0, 0), (5, 0.06, 7.0), (8, 0.03, 3.5), (14, 0, 0), (36, 0, 0)),
     "prone_butt": (0, 0.39, 0.03),
     "prone_support_back": 0.1,
-    "death_hold": 0.26,
 }
 
 # Launcher family: the tube rides the right shoulder in the carry, level and pointing
 # forward; shouldered, the CLU's sight sits at the eye; the missile's launch jolt is
-# a short push back; he falls with the tube lying across his chest (`death_hold`, its
-# height off the chest in metres; None keeps the carry, as the rifle does).
+# a short push back.
 LAUNCHER_HOLD = {
     "family": "launcher",
     "grip": (0, 0.06, -0.035),
@@ -312,7 +310,6 @@ LAUNCHER_HOLD = {
     "recoil": ((0, 0, 0), (3, 0, 0), (5, 0.03, 2.0), (9, 0.01, 0.8), (16, 0, 0), (36, 0, 0)),
     "prone_butt": None,
     "prone_support_back": 0.0,
-    "death_hold": 0.04,
 }
 
 FAMILIES = {"rifle": RIFLE_HOLD, "launcher": LAUNCHER_HOLD}
