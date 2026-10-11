@@ -196,6 +196,7 @@ function DeckReview({ onBack }: { onBack: () => void }) {
     scores: [0, 0] as [number, number],
     result: null,
     objectives: [],
+    report: null,
   };
   return (
     <main

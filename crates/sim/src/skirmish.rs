@@ -2,7 +2,10 @@
 use contract::catalog::TypeIndex;
 use contract::command::OrderError;
 use contract::ids::{Side, Tick, UnitId};
-use contract::skirmish::{PendingPurchase, Phase, PurchaseId, SkirmishSetup, SkirmishView};
+use contract::skirmish::{
+    MatchEvent, MatchReport, MatchTotals, MatchUnit, PendingPurchase, Phase, PurchaseId,
+    SkirmishSetup, SkirmishView,
+};
 use std::collections::BTreeMap;
 use std::collections::VecDeque;
 
@@ -31,6 +34,7 @@ pub struct Skirmish {
     next_purchase: [u32; 2],
     pub next_dispatch: [Tick; 2],
     pub entered: BTreeMap<UnitId, EnteredUnit>,
+    pub report: MatchReport,
 }
 
 impl Skirmish {
@@ -51,6 +55,10 @@ impl Skirmish {
             next_purchase: [0; 2],
             next_dispatch: [0; 2],
             entered: BTreeMap::new(),
+            report: MatchReport {
+                totals: [MatchTotals::default(); 2],
+                events: Vec::new(),
+            },
         }
     }
 
@@ -90,6 +98,7 @@ impl Skirmish {
             objectives: self.objectives.views(&self.setup.sites.objectives, hz),
             scores: self.objectives.scores(hz),
             result: self.objectives.result,
+            report: (self.phase == Phase::Finished).then(|| self.report.clone()),
             pending: self.reservations[side.index()]
                 .iter()
                 .map(|r| r.data.clone())
@@ -115,6 +124,7 @@ impl Skirmish {
             return Err(OrderError::InsufficientCredits);
         }
         self.wallets[index] -= price_micros;
+        self.report.totals[index].spent = self.report.totals[index].spent.saturating_add(price);
         let id = PurchaseId(self.next_purchase[index]);
         self.next_purchase[index] += 1;
         self.reservations[index].push_back(Reservation {
@@ -128,6 +138,65 @@ impl Skirmish {
             },
         });
         Ok(())
+    }
+
+    pub fn record_spawn(&mut self, side: Side, id: UnitId, kind: TypeIndex, cost: u32, tick: Tick) {
+        self.report.totals[side.index()].spawned =
+            self.report.totals[side.index()].spawned.saturating_add(1);
+        self.report.events.push(MatchEvent::Spawn {
+            tick,
+            unit: MatchUnit { side, id, kind },
+            cost,
+        });
+    }
+
+    pub fn record_refund(
+        &mut self,
+        side: Side,
+        id: UnitId,
+        kind: TypeIndex,
+        credits: f64,
+        tick: Tick,
+    ) {
+        self.report.totals[side.index()].refunded += credits;
+        self.report.events.push(MatchEvent::Refund {
+            tick,
+            unit: MatchUnit { side, id, kind },
+            credits,
+        });
+    }
+
+    pub fn record_kill(
+        &mut self,
+        victim: MatchUnit,
+        victim_cost: u32,
+        killer: Option<MatchUnit>,
+        killer_cost: Option<u32>,
+        tick: Tick,
+    ) {
+        if let Some(killer) = killer {
+            if killer.side != victim.side {
+                self.report.totals[killer.side.index()].killed = self.report.totals
+                    [killer.side.index()]
+                .killed
+                .saturating_add(1);
+            }
+            self.report.events.push(MatchEvent::Kill {
+                tick,
+                victim,
+                victim_cost,
+                killer: Some(killer),
+                killer_cost,
+            });
+        } else {
+            self.report.events.push(MatchEvent::Kill {
+                tick,
+                victim,
+                victim_cost,
+                killer: None,
+                killer_cost: None,
+            });
+        }
     }
 
     pub fn digest(&self, digest: &mut crate::digest::Digest) {
@@ -150,6 +219,65 @@ impl Skirmish {
                 .u64(id.0 as u64)
                 .u64(unit.price as u64)
                 .u64(unit.entered_tick);
+        }
+        for totals in self.report.totals {
+            digest
+                .u64(u64::from(totals.spawned))
+                .u64(u64::from(totals.spent))
+                .u64(u64::from(totals.killed))
+                .u64(totals.refunded.to_bits());
+        }
+        digest.u64(self.report.events.len() as u64);
+        for event in &self.report.events {
+            match event {
+                MatchEvent::Spawn { tick, unit, cost } => {
+                    digest
+                        .u64(0)
+                        .u64(*tick)
+                        .u64(unit.side.index() as u64)
+                        .u64(u64::from(unit.id.0))
+                        .u64(u64::from(unit.kind.0))
+                        .u64(u64::from(*cost));
+                }
+                MatchEvent::Refund {
+                    tick,
+                    unit,
+                    credits,
+                } => {
+                    digest
+                        .u64(1)
+                        .u64(*tick)
+                        .u64(unit.side.index() as u64)
+                        .u64(u64::from(unit.id.0))
+                        .u64(u64::from(unit.kind.0))
+                        .u64(credits.to_bits());
+                }
+                MatchEvent::Kill {
+                    tick,
+                    victim,
+                    victim_cost,
+                    killer,
+                    killer_cost,
+                } => {
+                    digest
+                        .u64(2)
+                        .u64(*tick)
+                        .u64(victim.side.index() as u64)
+                        .u64(u64::from(victim.id.0))
+                        .u64(u64::from(victim.kind.0))
+                        .u64(u64::from(*victim_cost));
+                    if let Some(unit) = killer {
+                        digest
+                            .u64(1)
+                            .u64(unit.side.index() as u64)
+                            .u64(u64::from(unit.id.0))
+                            .u64(u64::from(unit.kind.0))
+                            .u64(u64::from(killer_cost.unwrap_or_default()));
+                    } else {
+                        digest.u64(0);
+                    }
+                }
+            }
         }
         for side in &self.reservations {
             digest.u64(side.len() as u64);
