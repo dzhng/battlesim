@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Native rendering parity — the presentation API</title>
+<style>
+  :root { color-scheme: light; font: 16px/1.55 system-ui, sans-serif; color: #242b2a; background: #f5f3ed; }
+  body { max-width: 1160px; margin: auto; padding: 36px 24px 72px; }
+  h1 { font-size: 2.1rem; line-height: 1.15; margin-bottom: 8px; }
+  h2 { margin-top: 40px; border-bottom: 1px solid #c4cac3; padding-bottom: 8px; }
+  p { max-width: 92ch; }
+  a { color: #235f56; }
+  code { font-size: .88em; }
+  .muted { color: #55615c; }
+  .lead { background: #fffdfa; padding: 14px 18px; border-left: 3px solid #456d5c; margin: 16px 0; }
+  table { border-collapse: collapse; width: 100%; background: #fffdfa; margin: 14px 0; font-size: .94rem; }
+  th, td { text-align: left; vertical-align: top; padding: 9px 11px; border-bottom: 1px solid #dce0d8; }
+  th { font-size: .86rem; background: #e9ede5; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  svg { width: 100%; height: auto; background: #fffdfa; border: 1px solid #dce0d8; }
+  svg text { font-family: system-ui, sans-serif; }
+  .legend { display: flex; flex-wrap: wrap; gap: 18px; font-size: .88rem; margin: 10px 0 0; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: -2px; margin-right: 6px; }
+  .bar { height: 14px; background: #456d5c; border-radius: 2px; }
+  .bar.alt { background: #a57730; }
+</style>
+
+<h1>The presentation API</h1>
+<p class="muted">Slice 18b · native rendering parity, phase 4 · the reference is <a href="../slices/18b-presentation-api.md">18b-presentation-api.md</a>; this page is its picture.</p>
+
+<div class="lead">
+  <strong>The Rust side is as smart as possible; each renderer as dumb as possible.</strong> Rust owns everything per entity (unit, joint, chunk, effect, light, eye). Renderers own everything per vertex, texel and pixel, and draw flat records they are handed. Presentation reads only the side's publication and never the simulation's state, so it can't see past fog of war and never moves a digest.
+</div>
+
+<h2>Data flow</h2>
+<svg viewBox="0 0 1120 660" role="img" aria-label="Simulation to publication to Rust presentation to World and Frame to renderers, with the UI surface beside">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#55615c"/>
+    </marker>
+  </defs>
+  <style>
+    .box { stroke: #55615c; stroke-width: 1.2; rx: 8; }
+    .sim { fill: #e3ecf4; }
+    .rust { fill: #e7efe4; }
+    .rec { fill: #fbf1df; }
+    .gpu { fill: #f1e6ef; }
+    .ui { fill: #ecebf6; }
+    .t { font-size: 15px; font-weight: 650; fill: #242b2a; }
+    .s { font-size: 12.5px; fill: #3d4744; }
+    .k { font-size: 11.5px; fill: #6a5a2f; font-weight: 600; letter-spacing: .03em; }
+    .ln { stroke: #55615c; stroke-width: 1.4; fill: none; marker-end: url(#arr); }
+    .dash { stroke-dasharray: 5 4; }
+    .fence { stroke: #a57730; stroke-width: 1.5; stroke-dasharray: 7 5; fill: none; }
+  </style>
+
+  <!-- Authority -->
+  <rect class="box sim" x="20" y="30" width="230" height="110"/>
+  <text class="t" x="36" y="56">Simulation</text>
+  <text class="s" x="36" y="78">crates/sim · rules, ticks, digest</text>
+  <text class="s" x="36" y="96">worker (browser) · in-process (native)</text>
+  <text class="s" x="36" y="114">the only authority</text>
+
+  <rect class="box sim" x="20" y="190" width="230" height="110"/>
+  <text class="t" x="36" y="216">Side publication</text>
+  <text class="s" x="36" y="238">u32 words, one side, per tick</text>
+  <text class="s" x="36" y="256">delta median 1.5 KB · p95 3.4 KB</text>
+  <text class="s" x="36" y="274">fresh 151 KB (fog 70 KB)</text>
+  <path class="ln" d="M135,140 L135,188"/>
+
+  <rect class="box sim" x="20" y="350" width="230" height="86"/>
+  <text class="t" x="36" y="376">Capture (native replay)</text>
+  <text class="s" x="36" y="398">samples + frame records</text>
+  <text class="s" x="36" y="416">simTime, eye, target, up</text>
+  <path class="ln dash" d="M135,350 L135,302"/>
+
+  <!-- fence: digest -->
+  <path class="fence" d="M272,22 L272,650"/>
+  <text class="k" x="280" y="16">digest fence: nothing right of here touches sim state</text>
+
+  <!-- Rust presentation -->
+  <rect class="box rust" x="300" y="30" width="330" height="406"/>
+  <text class="t" x="318" y="58">Presentation (Rust, one per side)</text>
+  <text class="s" x="318" y="80">crates/presentation · WASM main thread · native core</text>
+  <text class="k" x="318" y="112">CALLS</text>
+  <text class="s" x="318" y="132"><tspan font-weight="650">load_world</tspan>(map, catalogs, tuning, …) → World</text>
+  <text class="s" x="318" y="152"><tspan font-weight="650">push_publication</tspan>(words, arrived_s)</text>
+  <text class="s" x="318" y="172"><tspan font-weight="650">clock</tspan>(wall_s) → sim time (live only)</text>
+  <text class="s" x="318" y="192"><tspan font-weight="650">frame</tspan>(time, camera, ui) → Frame</text>
+  <text class="s" x="318" y="212"><tspan font-weight="650">observation</tspan>() → decoded view (UI only)</text>
+  <text class="k" x="318" y="246">INSIDE (slices 19, 20, 20b)</text>
+  <text class="s" x="318" y="266">publication reader · interpolation</text>
+  <text class="s" x="318" y="284">poses → joint palettes · launches</text>
+  <text class="s" x="318" y="302">effects, cook-offs, cast-light choice</text>
+  <text class="s" x="318" y="320">static placement · tiers, residency, culling</text>
+  <text class="s" x="318" y="338">felled, fallen, cleared · fog eyes</text>
+  <text class="s" x="318" y="356">looks by side and role · picks · emitters</text>
+  <text class="k" x="318" y="390">RULE</text>
+  <text class="s" x="318" y="410">frame() is pure in its inputs: same capture →</text>
+  <text class="s" x="318" y="427">same Frame bytes on both clients</text>
+  <path class="ln" d="M250,245 L298,245"/>
+
+  <!-- UI input into frame -->
+  <path class="ln dash" d="M758,610 L570,610 L570,438"/>
+  <text class="s" x="580" y="630">ui state + camera into frame()</text>
+
+  <!-- Records -->
+  <rect class="box rec" x="660" y="30" width="210" height="150"/>
+  <text class="t" x="676" y="56">World (once)</text>
+  <text class="s" x="676" y="78">appearances (names, tiers)</text>
+  <text class="s" x="676" y="96">looks (side tint × role)</text>
+  <text class="s" x="676" y="114">light</text>
+  <text class="s" x="676" y="132">tables: terrain, grass,</text>
+  <text class="s" x="676" y="150">scars, fog world · ~16 MB</text>
+  <path class="ln" d="M630,100 L658,100"/>
+
+  <rect class="box rec" x="660" y="200" width="210" height="236"/>
+  <text class="t" x="676" y="226">Frame (per draw)</text>
+  <text class="s" x="676" y="248">view (matrices, cascades)</text>
+  <text class="s" x="676" y="266">batches → instances (64 B)</text>
+  <text class="s" x="676" y="284">  changed ones only</text>
+  <text class="s" x="676" y="302">palettes (48 B a joint)</text>
+  <text class="s" x="676" y="320">effects (64 B) · lights ≤ 24</text>
+  <text class="s" x="676" y="338">fog eyes, occluders</text>
+  <text class="s" x="676" y="356">table writes (scars, cleared)</text>
+  <text class="s" x="676" y="374">picks · emitters · counts</text>
+  <text class="s" x="676" y="400" font-weight="650">~230 KB a frame</text>
+  <text class="s" x="676" y="418">+ static batch changes</text>
+  <path class="ln" d="M630,318 L658,318"/>
+
+  <!-- Renderers -->
+  <rect class="box gpu" x="910" y="30" width="190" height="128"/>
+  <text class="t" x="926" y="56">TypeGPU renderer</text>
+  <text class="s" x="926" y="78">load(World)</text>
+  <text class="s" x="926" y="96">draw(Frame, overlay)</text>
+  <text class="s" x="926" y="114">writeBuffer(view) — no copy,</text>
+  <text class="s" x="926" y="132">no JS object per entity</text>
+
+  <rect class="box gpu" x="910" y="180" width="190" height="138"/>
+  <text class="t" x="926" y="206">Godot renderer</text>
+  <text class="s" x="926" y="228">Rust adaptor in the core</text>
+  <text class="s" x="926" y="246">multimesh_set_buffer,</text>
+  <text class="s" x="926" y="264">buffer_update</text>
+  <text class="s" x="926" y="282">(x,y,z) → (x,z,−y) at the root</text>
+  <text class="s" x="926" y="300">GDScript never sees a Frame</text>
+
+  <rect class="box gpu" x="910" y="330" width="190" height="106"/>
+  <text class="t" x="926" y="356">Per vertex / pixel</text>
+  <text class="s" x="926" y="378">skinning, wind, fell bend,</text>
+  <text class="s" x="926" y="396">grass clumps, fog horizons,</text>
+  <text class="s" x="926" y="414">sky bake, cascades fit, post</text>
+
+  <path class="ln" d="M870,100 L908,90"/>
+  <path class="ln" d="M870,110 L908,230"/>
+  <path class="ln" d="M870,300 L908,110"/>
+  <path class="ln" d="M870,310 L908,250"/>
+
+  <!-- UI surface -->
+  <rect class="box ui" x="760" y="470" width="340" height="170"/>
+  <text class="t" x="776" y="496">Game UI and audio (browser)</text>
+  <text class="s" x="776" y="518">HUD, readouts, panels, orders ← observation()</text>
+  <text class="s" x="776" y="536">hit tests ← Frame.picks + Frame.view</text>
+  <text class="s" x="776" y="554">audio ← Frame.emitters</text>
+  <text class="s" x="776" y="580">overlay meshes (order lines, glyphs,</text>
+  <text class="s" x="776" y="598">markers, ruler) → draw(…, overlay)</text>
+  <text class="s" x="776" y="622">outside the Rust API (open question 4)</text>
+  <path class="ln dash" d="M615,436 L615,520 L758,520"/>
+  <text class="s" x="622" y="512">observation()</text>
+  <path class="ln dash" d="M870,420 L890,420 L890,468"/>
+  <path class="ln dash" d="M1100,500 L1112,500 L1112,96 L1102,96"/>
+
+  <!-- Labs -->
+  <rect class="box ui" x="300" y="470" width="230" height="170"/>
+  <text class="t" x="316" y="496">Labs</text>
+  <text class="s" x="316" y="518">battle labs: the same path</text>
+  <text class="s" x="316" y="536">fog-look: edits its World fog</text>
+  <text class="s" x="316" y="554">  record, filters fog_eyes</text>
+  <text class="s" x="316" y="572">no-battle labs: write records</text>
+  <text class="s" x="316" y="590">  with the generated schemas</text>
+  <text class="s" x="316" y="612">no lab-only call</text>
+</svg>
+<div class="legend">
+  <span><span class="sw" style="background:#e3ecf4;border:1px solid #55615c"></span>authority and its output</span>
+  <span><span class="sw" style="background:#e7efe4;border:1px solid #55615c"></span>shared Rust presentation</span>
+  <span><span class="sw" style="background:#fbf1df;border:1px solid #55615c"></span>flat record sets (the API)</span>
+  <span><span class="sw" style="background:#f1e6ef;border:1px solid #55615c"></span>renderers</span>
+  <span><span class="sw" style="background:#ecebf6;border:1px solid #55615c"></span>UI, audio and labs</span>
+  <span>dashed: optional or UI-side flow</span>
+</div>
+
+<h2>One definition, two bindings</h2>
+<table>
+  <tr><th>Where</th><th>What</th></tr>
+  <tr><td><code>crates/presentation/src/records.rs</code></td><td><code>records!</code> macro → <code>#[repr(C)]</code> structs with <code>bytemuck</code> <code>Pod</code>, size assertions, and a field layout (name, offset, type, unit)</td></tr>
+  <tr><td><code>records.gen.ts</code></td><td>TypeGPU schemas and <code>frameViews(memory, ptr)</code>: typed-array views over WASM memory, built from the header</td></tr>
+  <tr><td><code>records.gen.glsl</code></td><td>std430 structs for Godot's compute and raster passes</td></tr>
+  <tr><td>native core</td><td>uses the Rust structs directly; <code>bytemuck::cast_slice</code> → <code>PackedFloat32Array</code> → <code>RenderingServer</code></td></tr>
+  <tr><td><code>records_are_current</code></td><td>regenerates both files and fails on any difference</td></tr>
+</table>
+
+<h2>Frame on market-town, per drawn frame</h2>
+<p class="muted">Control <code>2026-10-11T15-26-04-627Z</code>, 18 plates. The bars are to scale against 230 KB; the static-batch change is shown separately because a still frame sends none of it.</p>
+<table>
+  <tr><th>Set</th><th style="width:38%">Size</th><th class="num">Bytes</th><th>Basis</th></tr>
+  <tr><td>palettes</td><td><div class="bar" style="width:87%"></div></td><td class="num">≈ 200 KB</td><td>68 bodies × 53 joints × 48 B, plus vehicles (est.)</td></tr>
+  <tr><td>effects</td><td><div class="bar" style="width:20%"></div></td><td class="num">16–45 KB</td><td>246–700 instances × 64 B, measured</td></tr>
+  <tr><td>batches</td><td><div class="bar" style="width:6%"></div></td><td class="num">&lt; 16 KB</td><td>a few hundred × 32 B (est.)</td></tr>
+  <tr><td>picks, emitters</td><td><div class="bar" style="width:4%"></div></td><td class="num">≈ 9 KB</td><td>about 95 models × 48 B × 2</td></tr>
+  <tr><td>unit instances</td><td><div class="bar" style="width:3%"></div></td><td class="num">≈ 6 KB</td><td>81–95 models × 64 B, measured</td></tr>
+  <tr><td>lights, view, counts</td><td><div class="bar" style="width:1%"></div></td><td class="num">&lt; 2 KB</td><td>≤ 13 lights on the plates</td></tr>
+  <tr><td>static batch change</td><td><div class="bar alt" style="width:100%"></div></td><td class="num">0 – 4.0 MB</td><td>0 when still; 63,054 × 64 B if everything re-tiers at a cut</td></tr>
+</table>
+<p>For comparison, the browser uploads about 300 KB a frame today. Most of that is palette staging the GPU kernel then overwrites. Native rewrites a 768 KiB vehicle palette whole each frame with a vehicle in view, and a 1 MB scar table on every change. At 120 fps, Frame's 230 KB is 28 MB/s. The cost to watch is Rust's CPU time on the browser's main thread, which slices 19 and 20 measure.</p>
+
+<h2>Open questions</h2>
+<table>
+  <tr><th>#</th><th>Question</th><th>Recommendation</th></tr>
+  <tr><td>1</td><td>Poses on the CPU (Rust palettes) or on the GPU (kernel plus clip tables)?</td><td>CPU: deletes both kernels, and the upload stays at today's size</td></tr>
+  <tr><td>2</td><td>Must the browser's plates stay byte-identical?</td><td>Hold digests, counts and vectors exactly; judge plates within the noise floor in slice 23</td></tr>
+  <tr><td>3</td><td>Static instances in World lists or Frame batches?</td><td>Frame batches, written on change</td></tr>
+  <tr><td>4</td><td>Overlay meshes in Rust?</td><td>No, they stay UI in phase 4</td></tr>
+  <tr><td>5</td><td>Fog's look in Frame or the UI?</td><td>Frame</td></tr>
+  <tr><td>6</td><td><code>ballistics</code> lab effects</td><td>Overlay lines; no lab-only call</td></tr>
+  <tr><td>7</td><td>A separate small presentation WASM module?</td><td>Yes, without the rules</td></tr>
+  <tr><td>8</td><td>Audio through <code>Frame.emitters</code>?</td><td>Yes</td></tr>
+</table>
+</html>
