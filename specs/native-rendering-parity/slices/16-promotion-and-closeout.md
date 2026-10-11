@@ -1,4 +1,4 @@
-# 10 — Promotion gate and closeout
+# 16 — Promotion gate and closeout
 
 **Contract:** native becomes eligible for promotion only when every visual variable and telemetry gate passes together.
 

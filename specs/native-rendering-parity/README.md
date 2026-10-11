@@ -2,15 +2,19 @@
 
 ## Status and next pickup
 
-**Status:** phase 1 is built and closed (2026-10-10). Native draws the menu reel from the browser's frame records with the same camera, light, terrain and grass, and every slice passed its one-variable gate. [`choices.md`](choices.md) holds the discovery map and the consolidated phase 1 ledger. Phase 2 is unplanned.
+**Status:** phase 1 is built and closed (2026-10-10). Native draws the menu reel from the browser's frame records with the same camera, light, terrain and grass, and every slice passed its one-variable gate. [`choices.md`](choices.md) holds the discovery map and the consolidated phase 1 ledger. Phase 2, native performance, is planned (slices 07–12) and comes before any more visual work.
 
-**Next pickup:** a discovery walk with the user to plan phase 2 (slices 07–10). Read `choices.md` first; its decisions are givens.
+**Next pickup:** slice 07 (profiling harness), then 08 (native frame anatomy). Read `choices.md` first; its decisions are givens.
 
-**Goal:** make the native Godot client visually equivalent to the browser renderer for the authored menu reel, as a maintained second client beside the browser. Rust stays the only gameplay, observation, visibility, replay and digest authority. The browser remains shipped.
+**Goal:** make the native Godot client visually equivalent to the browser renderer for the authored menu reel, and at least as fast as it, as a maintained second client beside the browser. Rust stays the only gameplay, observation, visibility, replay and digest authority. The browser remains shipped.
 
 ## Phases
 
-The spec ships in two phases, and slice numbers follow build order. Phase 1 builds the comparison loop and ports the ground under the same camera and the same light. Lighting comes before terrain and grass so that their colour and tone can be judged rather than deferred. Phase 2 ports the authored models and the events, then decides promotion. Phase 2 is not planned in detail until phase 1 closes; its slice files are placeholders.
+The spec ships in three phases, and slice numbers follow build order.
+
+- **Phase 1** built the comparison loop and ported the ground under the same camera and the same light.
+- **Phase 2** makes native fast. Profiling comes first, because the first matched measurement showed native slower than the browser on an idle machine, which points at architecture rather than load.
+- **Phase 3** ports the authored models and the events, then decides promotion. Its slice files are placeholders, planned with the user after phase 2.
 
 Schema ids carry no version suffix. A format change updates its writer, reader and tests together in one change, and the strict parsers reject stale files.
 
@@ -29,14 +33,26 @@ Graph: `01 ∥ 02 → 03 → 04a → 04b → 04c → 05a → 05b → 06a → 06b
 - [x] 06a — Grass: placement and per-region counts. [slice](slices/06a-grass-placement-and-counts.md)
 - [x] 06b — Grass: look and wind. [slice](slices/06b-grass-look-and-wind.md)
 - [x] Closeout: [`review`](../../.agents/skills/review/SKILL.md) over phase 1's whole diff, plus an independent Codex review (`ed268e8b`, `bcaa8fff`, `ef730416`). The class-view scaffolding is removed, and the ledger is consolidated.
-- [ ] Plan phase 2 with a fresh discovery walk with the user.
 
-### Phase 2: same models and events, then promotion (placeholders)
+### Phase 2: native performance, profiling-led
 
-- [ ] 07 — Authored model identity, material roles, pivots, fit, recorded LOD tiers, buildings and props. Replaces `legacy_map_layer.gd`.
-- [ ] 08 — Observed dust, smoke, muzzle/tracer, blast, scar and grounding effects from published causes.
-- [ ] 09 — Compose all layers, instrument performance, and decide promotion. The user pulled the matched FPS measurement forward after phase 1, judging the picture close enough to compare (2026-10-10); it is in progress.
-- [ ] 10 — Promotion gate; the full repository check runs once here.
+The user set this phase on 2026-10-10. Visual parity is de-risked: the method of browser-exported data, ported formulas and a fresh control worked for camera, light, terrain and grass, and models are more of the same. Performance is not. A native Godot run showed 14 FPS with 76.7 ms of GPU time per frame while the machine sat nearly idle (GPU about 62%, CPU idle). That signature is waiting, not work. Native must be at least as fast as the browser, and is expected to be clearly faster.
+
+Graph: `07 → 08 → 09 → 10 → 11 → 12`. Measure first, name the cause, then remove waits before tuning passes. Every slice keeps the picture unchanged, within the native grass noise floor.
+
+- [ ] 07 — Profiling harness: one command per client, one summariser, Metal System Trace and Time Profiler on both. [slice](slices/07-profiling-harness.md)
+- [ ] 08 — Native frame anatomy: pass-by-pass timeline and ablation beside the browser's, naming the cause of the slow frames. [slice](slices/08-native-frame-anatomy.md)
+- [ ] 09 — Pipelined frames: no CPU waits on the GPU and no idle GPU between passes. [slice](slices/09-pipelined-frames.md)
+- [ ] 10 — Per-pass GPU budgets: every native pass at or below the browser's. [slice](slices/10-pass-budgets.md)
+- [ ] 11 — Release build: measure the native release export and the browser's production build. [slice](slices/11-release-build.md)
+- [ ] 12 — Performance gate: native no slower than the browser on any measure, on both scenes, plugged in. [slice](slices/12-performance-gate.md)
+
+### Phase 3: same models and events, then promotion (placeholders)
+
+- [ ] 13 — Authored model identity, material roles, pivots, fit, recorded LOD tiers, buildings and props. Replaces `legacy_map_layer.gd`.
+- [ ] 14 — Observed dust, smoke, muzzle/tracer, blast, scar and grounding effects from published causes. This needs a new publication seam: the capture must carry effect causes.
+- [ ] 15 — Compose all layers within phase 2's budgets.
+- [ ] 16 — Promotion gate; the full repository check runs once here.
 
 ### Firewalls
 
@@ -45,8 +61,8 @@ Graph: `01 ∥ 02 → 03 → 04a → 04b → 04c → 05a → 05b → 06a → 06b
 
 | Scaffolding | Removed |
 | --- | --- |
-| `legacy_map_layer.gd` | Slice 07 |
-| The grass count gate's `scar-omission` allowance | Slice 08, when native draws learned scars |
+| `legacy_map_layer.gd` | Slice 13 |
+| The grass count gate's `scar-omission` allowance | Slice 14, when native draws learned scars |
 
 Update this section before ending every implementation pass. Record the current slice, evidence, unresolved decisions, and the next exact pickup.
 
@@ -62,7 +78,7 @@ Both clients render the same menu-reel workload: the same map, encounter, seed a
 4. **Grass and vegetation:** the same impression (coverage, density, colour mix, crop rows, no tiling or bald patches), and rendered blades per region within about 10% of the browser's count for the same window.
 5. **Models, effects and composition:** phase 2.
 
-A visual slice changes one primary variable. Other visible differences are explicitly out of scope until their slice; whole-frame approval belongs only to slice 10.
+A visual slice changes one primary variable. Other visible differences are explicitly out of scope until their slice; whole-frame approval belongs only to slice 16.
 
 ## Ownership and boundary contract
 
@@ -79,7 +95,7 @@ A visual slice changes one primary variable. Other visible differences are expli
 
 The seam is a `native-visual-presentation` manifest beside each `battle-presentation-capture` file, written by the same browser run. It starts in slice 01 with identity hashes, viewport, lens (`fovY`, near plane, reverse-Z infinite far), drawn layers, and fallback/omission rows. Each later slice adds only the fields native reads in that slice. Large geometry may live in hashed artifacts, but ordering and ownership stay in the manifest.
 
-Native must not choose a building shell by family/token heuristics (removed in slice 07), re-read raw map policy, invent visibility or a presentation layer, replace a missing asset silently, cap anything silently, or add a simulation or wall clock in comparison mode. A parity report names every fallback, omission and budget with owner, reason, source id, admitted, rendered and dropped counts, and cut.
+Native must not choose a building shell by family/token heuristics (removed in slice 13), re-read raw map policy, invent visibility or a presentation layer, replace a missing asset silently, cap anything silently, or add a simulation or wall clock in comparison mode. A parity report names every fallback, omission and budget with owner, reason, source id, admitted, rendered and dropped counts, and cut.
 
 ## Browser owners to port from
 
@@ -89,7 +105,7 @@ Native must not choose a building shell by family/token heuristics (removed in s
 - Terrain and grass: `packages/battle-renderer/src/terrain/{terrainSurface.ts,terrainGrid.ts,biome.ts,grassField.ts}` and `packages/battle-renderer/src/frame/{terrainHeights.ts,terrainMaterial.ts,grassPass.ts}`.
 - Models and authored content (phase 2): `packages/scene-assets/src/{loader.ts,schema.ts,templateLibrary.ts,appearanceCatalog.ts}`, `packages/battle-renderer/src/models/*`, `apps/battle-lab/src/buildingTier.ts`.
 - Effects and scars (phase 2): `packages/battle-renderer/src/effects/{effectFrame.ts,effectPass.ts}` and `packages/battle-renderer/src/frame/scarTexture.ts`.
-- Native client: `native/godot/` (see its README). `parity_run.gd` is the entry point. Capture, manifest, stepping, plates and the report are separate modules, and `core/` owns the concepts they share (strict JSON, coordinates, word tables, compute passes, shader text). The pre-parity buildings, props and units live in `world/legacy_map_layer.gd` until slice 07.
+- Native client: `native/godot/` (see its README). `parity_run.gd` is the entry point. Capture, manifest, stepping, plates and the report are separate modules, and `core/` owns the concepts they share (strict JSON, coordinates, word tables, compute passes, shader text). The pre-parity buildings, props and units live in `world/legacy_map_layer.gd` until slice 13.
 
 ## Known evidence and risks
 
@@ -105,7 +121,7 @@ Effects require a real publication seam (phase 2). Native must extend the browse
 
 Every visual slice produces a browser/native pair from the same frame records, judged on its one variable. Run [`compare-screenshots`](../../.agents/skills/compare-screenshots/SKILL.md) against the fresh control, then [`screenshot-critique`](../../.agents/skills/screenshot-critique/SKILL.md) with an unprimed reviewer as the last visual check. Open shots with [`preview-shots`](../../.agents/skills/preview-shots/SKILL.md) at the non-blocking human checkpoint. The agent accepts the slice; if no response arrives, record the evidence-based decision and continue.
 
-Each native report records GPU frame time as information, not as a gate before slice 09. Godot 4.7.2 records no GPU timestamps on Metal, so the field is null today. Only macOS with Metal is verified.
+Godot 4.7.2 records no GPU timestamps on Metal, so native GPU time comes from Metal System Trace (slice 07). Performance is gated in phase 2 (slice 12). Only macOS with Metal is verified.
 
 ### Unattended capture loop
 
@@ -116,24 +132,28 @@ Each side has one command, and neither needs a human.
 
 Native grass plates differ by one or two pixels of at most 2 levels between reruns of unchanged code, so byte comparisons of native plates need that floor.
 
-Counters never prove pixels. Headless Godot proves lifecycle only. Every pass keeps the Rust digest/replay tests, the capture parser tests, the native lifecycle tests and the browser scenes it touches green. The full repository check and verification suite run once, at slice 10.
+Counters never prove pixels. Headless Godot proves lifecycle only. Every pass keeps the Rust digest/replay tests, the capture parser tests, the native lifecycle tests and the browser scenes it touches green. The full repository check and verification suite run once, at slice 16.
 
 ## Next Agent Prompt
 
-*Updated 2026-10-10.* Phase 1 is built and closed. The next work is phase 2, which is not planned. **Don't start building it.** Run a discovery walk with the user ([`explore-unknowns`](../../.agents/skills/explore-unknowns/SKILL.md)), then slice it with [`write-spec`](../../.agents/skills/write-spec/SKILL.md) into this README and `slices/07`–`10`.
+*Updated 2026-10-10.* Phase 1 is closed. You are implementing **phase 2, native performance**, starting at slice 07.
 
-**Known gaps phase 2 inherits** (`choices.md`, "Known gaps"):
-- infantry decoding (own side only, one model per unit)
-- missing models (tree lines, wrecks, railings, short lamp posts)
-- scars, decals and effects, plus the grass gate's scar allowance
-- unmeasured water and relief paths
-- building tiers recorded in the manifest (L13)
-- performance (Godot has no Metal GPU timestamps)
+1. **Read first:** this README, then `choices.md` (its decisions are givens), then the slice file. Load `audit-performance`, `renderer` and `write-tests`.
+2. **Measure before changing anything.** 07 builds the harness and 08 names the cause.
+   - An FPS-comparison agent has already started 07: a native `--bench` timing mode, raw per-frame intervals summarised by the browser's code, and Metal HUD logging. It was redirected to 08's ablation once the slow frames showed up. Check `throwaway/perf/` and `git log` for what landed.
+3. **Measuring conditions:**
+   - Every comparison is plugged in, at 1280×720.
+   - Both clients are uncapped, or both capped at the display rate.
+   - Each figure is three runs, with the spread shown.
+   - Nothing appears on the user's screen: Godot runs off-screen and Chromium headless.
+   - xctrace lives at `/Applications/Xcode.app/Contents/Developer/usr/bin/xctrace`.
+4. **The picture must not change.** Plates stay byte-identical or within the native grass noise floor (1–2 px, at most 2 levels).
+5. **After each slice,** update this section and add the slice's choices to `choices.md`.
 
 **Commands:**
 - Control run: `PARITY_SCENES=paris-corner lockf -k <main>/throwaway/gpu.lock bun run --cwd web scene -- native-parity-capture`. One scene takes about 55 s; both take about 3 minutes.
 - Native run: `godot --path native/godot --window-position 10000,10000 -- --run <dir> --scene <map>`, under the same lock.
-- Native tests: `native/godot/tests/run.sh`, under the lock, because display tests open a window.
+- Native tests: `native/godot/tests/run.sh`, under the lock.
 
 **Worktree prerequisites:**
 - Symlink `web/node_modules` to the main checkout's.

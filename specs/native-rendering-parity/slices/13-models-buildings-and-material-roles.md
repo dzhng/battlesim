@@ -1,4 +1,4 @@
-# 07 — Authored models, buildings, props, and material roles
+# 13 — Authored models, buildings, props, and material roles
 
 **Contract:** every camera-visible authored subject has the same identity, transform, pivot, LOD tier, material roles, texture channels, alpha semantics, and pose source in both clients.
 
