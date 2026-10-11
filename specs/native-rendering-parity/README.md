@@ -35,7 +35,7 @@ Graph: `01 ∥ 02 → 03 → 04a → 04b → 04c → 05a → 05b → 06a → 06b
 
 - [ ] 07 — Authored model identity, material roles, pivots, fit, recorded LOD tiers, buildings and props. Replaces `legacy_map_layer.gd`.
 - [ ] 08 — Observed dust, smoke, muzzle/tracer, blast, scar and grounding effects from published causes.
-- [ ] 09 — Compose all layers, instrument performance, and decide promotion.
+- [ ] 09 — Compose all layers, instrument performance, and decide promotion. The user pulled the matched FPS measurement forward after phase 1, judging the picture close enough to compare (2026-10-10); it is in progress.
 - [ ] 10 — Promotion gate; the full repository check runs once here.
 
 ### Firewalls
