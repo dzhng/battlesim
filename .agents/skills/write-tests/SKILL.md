@@ -131,8 +131,10 @@ failed, at the screen's edge, at each supported width. A defect lives in the
 state no shot covers. Keep captures deterministic: fixed test content, frozen
 animation, the pointer out of the page unless the shot is of what it points
 at, and nothing hidden except what can never be pinned (a live 3D backdrop, a
-build's identity). Then demand an exact match: an unchanged capture is
-identical to the pixel, so any allowance only hides a real change of its size.
+build's identity). Then demand a match that forgives only where a thing is
+drawn, a pixel or two off, never what is drawn: a new, missing or recoloured
+thing fails however small. Tolerance is a distance, never a share of the
+frame, which only hides a real change of its size.
 When a capture flickers between runs, find the state that leaked into it (a
 stray text selection, a hover the pointer left behind); it is often a product
 defect as well. Hiding a defect to make a picture stable is
