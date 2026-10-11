@@ -232,8 +232,8 @@ function unitAt(replay: ReplayUnit, t: number, soldiers: number): FeedUnit {
           : 0,
     })),
     deployment: null,
-    // Pinned for a while, one man falling where he lies, then recovering.
-    pinned: t >= 12.5 && t < 17,
+    // Pinned for a while, then recovering: back on his feet when he is hit.
+    pinned: t >= 12.5 && t < 15.5,
   };
 }
 
