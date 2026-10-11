@@ -30,6 +30,12 @@
       "name": "ATGM gunner",
       "description": "Carries the team's guided anti-tank missile launcher.",
       "mounts": [{ "id": "ATGM launcher", "name": "ATGM Launcher", "weapons": ["atgm"], "special": true, "operator_appearance": { "active": ["test_at", "test_at_b", "test_at_c"], "carried": ["test_at_carried", "test_at_carried_b", "test_at_carried_c"] } }]
+    },
+    "test_aa_gunner": {
+      "extends": "test_at_rifleman",
+      "name": "AA gunner",
+      "description": "Carries the team's shoulder-fired air-defence missile.",
+      "mounts": [{ "id": "AA launcher", "name": "AA Launcher", "weapons": ["stinger"], "special": true, "operator_appearance": { "active": ["test_at", "test_at_b", "test_at_c"], "carried": ["test_at_carried", "test_at_carried_b", "test_at_carried_c"] } }]
     }
   }
 }

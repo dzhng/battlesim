@@ -2,7 +2,7 @@
 //! autocannons swing up at it; tank guns, grenades and ground missiles never
 //! do. A rifle that cannot hurt it still fires at it, for the sparks.
 
-use super::air::{battle_with, fixture, open_map};
+use super::air::{battle_with, fixture, open_map, order};
 use contract::ids::UnitId;
 use serde_json::json;
 use sim::battle::Battle;
@@ -71,4 +71,69 @@ fn an_autocannon_damages_a_helicopter() {
     let heli = b.unit(UnitId(0)).unwrap();
     let full = b.rules().catalog.get(heli.kind).hull().unwrap().hp;
     assert!(heli.hp < full, "the autocannon never hurt it");
+}
+
+#[test]
+fn an_air_defence_team_brings_down_a_helicopter() {
+    let b = against("test_aa");
+    assert!(shots(&b, "AA launcher") > 0, "the missile never went up");
+    assert!(
+        !b.unit(UnitId(0)).unwrap().alive(),
+        "the helicopter survived"
+    );
+}
+
+#[test]
+fn an_air_defence_team_never_fires_its_missile_at_ground_targets() {
+    let fixture = fixture();
+    let mut b = battle_with(
+        &fixture,
+        open_map(),
+        json!([
+            { "side": "blue", "kind": "test_tank", "position": [200, 180], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_rifle", "position": [200, 220], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_aa", "position": [450, 200], "yaw": std::f64::consts::PI },
+        ]),
+    );
+    for _ in 0..30 * b.rules().tick_hz {
+        b.step();
+    }
+    let red = b.unit(UnitId(2)).unwrap();
+    let specs = b.rules().catalog.mounts(red.kind);
+    let missiles: u32 = (red.mounts.iter().zip(specs))
+        .filter(|(_, spec)| spec.def.id == "AA launcher")
+        .map(|(m, _)| m.shots)
+        .sum();
+    let rifles: u32 = (red.mounts.iter().zip(specs))
+        .filter(|(_, spec)| spec.def.id == "rifles")
+        .map(|(m, _)| m.shots)
+        .sum();
+    assert_eq!(missiles, 0, "the missile went at a ground target");
+    assert!(rifles > 0, "the riflemen never fired");
+}
+
+/// The missile chases a helicopter flying across the team's front: the
+/// gunner tracks it and the missile turns onto it, rather than flying at
+/// where it was.
+#[test]
+fn an_air_defence_missile_runs_down_a_helicopter_crossing_its_front() {
+    let fixture = fixture();
+    let map = json!({ "size": [1600, 1200], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 });
+    let mut b = battle_with(
+        &fixture,
+        map,
+        json!([
+            { "side": "blue", "kind": "test_heli", "position": [100, 300], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_aa", "position": [800, 700], "yaw": -std::f64::consts::FRAC_PI_2 },
+        ]),
+    );
+    assert_eq!(b.accept(order(&[0], [1500.0, 300.0])).error, None);
+    for _ in 0..30 * b.rules().tick_hz {
+        b.step();
+    }
+    assert!(shots(&b, "AA launcher") > 0, "the missile never went up");
+    assert!(
+        !b.unit(UnitId(0)).unwrap().alive(),
+        "the crossing helicopter survived"
+    );
 }

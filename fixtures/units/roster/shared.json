@@ -109,14 +109,14 @@
       "body": {
         "squad": {
           "slots": [
-            "assault_squad__roster_assault_rifle",
-            "assault_squad__roster_assault_rifle",
-            "assault_squad__roster_assault_rifle",
-            "assault_squad__roster_assault_rifle",
-            "assault_squad__roster_assault_rifle",
-            "assault_squad__roster_assault_rifle",
-            "assault_squad__roster_assault_rifle",
-            "assault_squad__roster_assault_rifle"
+            "assault_squad__grenadier",
+            "assault_squad__grenadier",
+            "assault_squad__machine_gunner",
+            "assault_squad__marksman",
+            "assault_squad__rifleman",
+            "assault_squad__rifleman",
+            "assault_squad__rifleman",
+            "assault_squad__rifleman"
           ]
         }
       }
@@ -225,7 +225,9 @@
       "description": "FIM-92 Stinger",
       "faction": "us",
       "family": "air_defense_team",
-      "roles": [],
+      "roles": [
+        "air_defense"
+      ],
       "cost": 100,
       "roster": {
         "factions": [
@@ -236,15 +238,15 @@
         "variant": "FIM-92 Stinger",
         "family_name": "Air-Defense Team"
       },
-      "planned": {
-        "reason": "Air-defense targeting and airborne targets deferred",
-        "profile": "aa-team",
-        "weapons": [
-          {
-            "name": "MANPADS",
-            "icon": "aa_missile"
-          }
-        ]
+      "extends": "roster_profile_at_team",
+      "body": {
+        "squad": {
+          "slots": [
+            "fim_92_stinger_team__gunner",
+            "fim_92_stinger_team__rifleman",
+            "fim_92_stinger_team__rifleman"
+          ]
+        }
       }
     },
     "rifle_squad": {
@@ -271,8 +273,8 @@
         "squad": {
           "slots": [
             "rifle_squad__grenadier",
-            "rifle_squad__rifleman",
-            "rifle_squad__rifleman",
+            "rifle_squad__machine_gunner",
+            "rifle_squad__marksman",
             "rifle_squad__rifleman",
             "rifle_squad__rifleman",
             "rifle_squad__rifleman",
@@ -327,6 +329,114 @@
       "extends": "roster_rifleman",
       "name": "AT rifleman",
       "description": "A rifleman of an anti-tank team."
+    },
+    "roster_carbineer": {
+      "abstract": true,
+      "extends": "roster_rifleman",
+      "name": "Rifleman",
+      "description": "A soldier with a carbine.",
+      "mounts": [
+        {
+          "id": "rifles",
+          "name": "Carbine",
+          "weapons": [
+            "carbine"
+          ]
+        }
+      ]
+    },
+    "roster_marksman": {
+      "abstract": true,
+      "extends": "roster_rifleman",
+      "name": "Marksman",
+      "description": "A rifleman who also carries a designated marksman's rifle.",
+      "mounts": [
+        {
+          "id": "marksman rifle",
+          "name": "Marksman Rifle",
+          "weapons": [
+            "marksman_rifle"
+          ],
+          "special": true
+        }
+      ]
+    },
+    "roster_machine_gunner": {
+      "abstract": true,
+      "extends": "roster_rifleman",
+      "name": "Machine Gunner",
+      "description": "A rifleman who also carries the squad's light machine gun.",
+      "mounts": [
+        {
+          "id": "machine gun",
+          "name": "LMG",
+          "weapons": [
+            "lmg"
+          ],
+          "special": true
+        }
+      ]
+    },
+    "roster_sniper": {
+      "abstract": true,
+      "extends": "roster_scout",
+      "name": "Sniper",
+      "description": "A scout who also carries a heavy sniper rifle.",
+      "mounts": [
+        {
+          "id": "sniper rifle",
+          "name": "Heavy Sniper",
+          "weapons": [
+            "heavy_sniper"
+          ],
+          "special": true
+        }
+      ]
+    },
+    "roster_spotter": {
+      "abstract": true,
+      "extends": "roster_scout",
+      "name": "Spotter",
+      "description": "A scout with a rifle who finds the sniper's targets."
+    },
+    "roster_carbine_grenadier": {
+      "abstract": true,
+      "extends": "roster_grenadier",
+      "mounts": [
+        {
+          "id": "rifles",
+          "name": "Carbine",
+          "weapons": [
+            "carbine"
+          ]
+        }
+      ]
+    },
+    "roster_carbine_machine_gunner": {
+      "abstract": true,
+      "extends": "roster_machine_gunner",
+      "mounts": [
+        {
+          "id": "rifles",
+          "name": "Carbine",
+          "weapons": [
+            "carbine"
+          ]
+        }
+      ]
+    },
+    "roster_carbine_marksman": {
+      "abstract": true,
+      "extends": "roster_marksman",
+      "mounts": [
+        {
+          "id": "rifles",
+          "name": "Carbine",
+          "weapons": [
+            "carbine"
+          ]
+        }
+      ]
     }
   }
 }

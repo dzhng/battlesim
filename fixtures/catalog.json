@@ -37,6 +37,40 @@
       }
     },
     {
+      "cost": 100,
+      "description": "FN-6",
+      "disabled_reason": null,
+      "family": "air_defense_team",
+      "id": "eastern_air_defense_team_fn_6",
+      "name": "FN-6 Team",
+      "planned_weapons": [],
+      "roster": {
+        "category": "inf",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "Air-Defense Team",
+        "variant": "FN-6"
+      }
+    },
+    {
+      "cost": 100,
+      "description": "Igla-S",
+      "disabled_reason": null,
+      "family": "air_defense_team",
+      "id": "eastern_air_defense_team_igla_s",
+      "name": "Igla-S Team",
+      "planned_weapons": [],
+      "roster": {
+        "category": "inf",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "Air-Defense Team",
+        "variant": "Igla-S"
+      }
+    },
+    {
       "cost": 140,
       "description": "Kornet; direct optical guidance only, no top attack or fire-and-forget",
       "disabled_reason": null,
@@ -990,6 +1024,24 @@
       }
     },
     {
+      "cost": 100,
+      "description": "FIM-92 Stinger",
+      "disabled_reason": null,
+      "family": "air_defense_team",
+      "id": "fim_92_stinger_team",
+      "name": "Stinger Team",
+      "planned_weapons": [],
+      "roster": {
+        "category": "inf",
+        "factions": [
+          "us",
+          "europe"
+        ],
+        "family_name": "Air-Defense Team",
+        "variant": "FIM-92 Stinger"
+      }
+    },
+    {
       "cost": 90,
       "description": "Standard infantry",
       "disabled_reason": null,
@@ -1526,50 +1578,6 @@
         ],
         "family_name": "9K515 Tornado-S",
         "variant": "Heavy rocket artillery"
-      }
-    },
-    {
-      "cost": 100,
-      "description": "FN-6",
-      "disabled_reason": "Air-defense targeting and airborne targets deferred",
-      "family": "air_defense_team",
-      "id": "eastern_air_defense_team_fn_6",
-      "name": "FN-6 Team",
-      "planned_weapons": [
-        {
-          "icon": "aa_missile",
-          "name": "MANPADS"
-        }
-      ],
-      "roster": {
-        "category": "inf",
-        "factions": [
-          "eastern"
-        ],
-        "family_name": "Air-Defense Team",
-        "variant": "FN-6"
-      }
-    },
-    {
-      "cost": 100,
-      "description": "Igla-S",
-      "disabled_reason": "Air-defense targeting and airborne targets deferred",
-      "family": "air_defense_team",
-      "id": "eastern_air_defense_team_igla_s",
-      "name": "Igla-S Team",
-      "planned_weapons": [
-        {
-          "icon": "aa_missile",
-          "name": "MANPADS"
-        }
-      ],
-      "roster": {
-        "category": "inf",
-        "factions": [
-          "eastern"
-        ],
-        "family_name": "Air-Defense Team",
-        "variant": "Igla-S"
       }
     },
     {
@@ -2472,29 +2480,6 @@
         ],
         "family_name": "F-35 Lightning II",
         "variant": "F-35A"
-      }
-    },
-    {
-      "cost": 100,
-      "description": "FIM-92 Stinger",
-      "disabled_reason": "Air-defense targeting and airborne targets deferred",
-      "family": "air_defense_team",
-      "id": "fim_92_stinger_team",
-      "name": "Stinger Team",
-      "planned_weapons": [
-        {
-          "icon": "aa_missile",
-          "name": "MANPADS"
-        }
-      ],
-      "roster": {
-        "category": "inf",
-        "factions": [
-          "us",
-          "europe"
-        ],
-        "family_name": "Air-Defense Team",
-        "variant": "FIM-92 Stinger"
       }
     },
     {
@@ -4341,6 +4326,14 @@
         }
       },
       "roles": {
+        "air_defense": {
+          "description": "Teams that shoot down low-flying aircraft.",
+          "name": "Air defence",
+          "symbol": [
+            "infantry",
+            "air_defense"
+          ]
+        },
         "at": {
           "description": "Teams built to kill armour.",
           "name": "Anti-tank",
@@ -4394,19 +4387,19 @@
         }
       },
       "soldiers": {
-        "assault_squad__roster_assault_rifle": {
+        "assault_squad__grenadier": {
           "appearance": [
             "assault_squad_active_a",
             "assault_squad_active_b",
             "assault_squad_active_c"
           ],
-          "description": "Ground weapon profile; named equipment art pending.",
+          "description": "A rifleman who also carries the squad's grenade launcher.",
           "hp": 100.0,
           "mounts": [
             {
               "id": "rifles",
               "muzzle_m": null,
-              "name": "Assault Rifle",
+              "name": "Carbine",
               "on": null,
               "pivot_m": [
                 0.0,
@@ -4417,11 +4410,355 @@
               "squad": true,
               "turret": false,
               "weapons": [
-                "assault_rifle"
+                "carbine"
+              ]
+            },
+            {
+              "id": "grenade launcher",
+              "muzzle_m": null,
+              "name": "Grenade Launcher",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": true,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "grenade"
               ]
             }
           ],
-          "name": "Assault Rifle"
+          "name": "Grenadier"
+        },
+        "assault_squad__machine_gunner": {
+          "appearance": [
+            "assault_squad_active_a",
+            "assault_squad_active_b",
+            "assault_squad_active_c"
+          ],
+          "description": "A rifleman who also carries the squad's light machine gun.",
+          "hp": 100.0,
+          "mounts": [
+            {
+              "id": "rifles",
+              "muzzle_m": null,
+              "name": "Carbine",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": false,
+              "squad": true,
+              "turret": false,
+              "weapons": [
+                "carbine"
+              ]
+            },
+            {
+              "id": "machine gun",
+              "muzzle_m": null,
+              "name": "LMG",
+              "on": null,
+              "operator_appearance": {
+                "active": [
+                  "machine_gunner_active_a",
+                  "machine_gunner_active_b",
+                  "machine_gunner_active_c"
+                ],
+                "carried": [
+                  "assault_squad_active_a",
+                  "assault_squad_active_b",
+                  "assault_squad_active_c"
+                ]
+              },
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": true,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "lmg"
+              ]
+            }
+          ],
+          "name": "Machine Gunner"
+        },
+        "assault_squad__marksman": {
+          "appearance": [
+            "assault_squad_active_a",
+            "assault_squad_active_b",
+            "assault_squad_active_c"
+          ],
+          "description": "A rifleman who also carries a designated marksman's rifle.",
+          "hp": 100.0,
+          "mounts": [
+            {
+              "id": "rifles",
+              "muzzle_m": null,
+              "name": "Carbine",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": false,
+              "squad": true,
+              "turret": false,
+              "weapons": [
+                "carbine"
+              ]
+            },
+            {
+              "id": "marksman rifle",
+              "muzzle_m": null,
+              "name": "Marksman Rifle",
+              "on": null,
+              "operator_appearance": {
+                "active": [
+                  "marksman_active_a",
+                  "marksman_active_b",
+                  "marksman_active_c"
+                ],
+                "carried": [
+                  "assault_squad_active_a",
+                  "assault_squad_active_b",
+                  "assault_squad_active_c"
+                ]
+              },
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": true,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "marksman_rifle"
+              ]
+            }
+          ],
+          "name": "Marksman"
+        },
+        "assault_squad__rifleman": {
+          "appearance": [
+            "assault_squad_active_a",
+            "assault_squad_active_b",
+            "assault_squad_active_c"
+          ],
+          "description": "A soldier with a carbine.",
+          "hp": 100.0,
+          "mounts": [
+            {
+              "id": "rifles",
+              "muzzle_m": null,
+              "name": "Carbine",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": false,
+              "squad": true,
+              "turret": false,
+              "weapons": [
+                "carbine"
+              ]
+            }
+          ],
+          "name": "Rifleman"
+        },
+        "eastern_air_defense_team_fn_6__gunner": {
+          "appearance": [
+            "eastern_atgm_team_kornet_guard_a",
+            "eastern_atgm_team_kornet_guard_b",
+            "eastern_atgm_team_kornet_guard_c"
+          ],
+          "description": "A rifleman who carries the team's shoulder-fired air-defence missile.",
+          "hp": 100.0,
+          "mounts": [
+            {
+              "id": "rifles",
+              "muzzle_m": null,
+              "name": "Rifle",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": false,
+              "squad": true,
+              "turret": false,
+              "weapons": [
+                "rifle"
+              ]
+            },
+            {
+              "id": "launcher",
+              "muzzle_m": null,
+              "name": "FN-6",
+              "on": null,
+              "operator_appearance": {
+                "active": [
+                  "eastern_air_defense_team_fn_6_active_a",
+                  "eastern_air_defense_team_fn_6_active_b",
+                  "eastern_air_defense_team_fn_6_active_c"
+                ],
+                "active_pose": {
+                  "clip": "stand_aim",
+                  "phase": 0.0
+                },
+                "carried": [
+                  "eastern_air_defense_team_fn_6_carried_a",
+                  "eastern_air_defense_team_fn_6_carried_b",
+                  "eastern_air_defense_team_fn_6_carried_c"
+                ]
+              },
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": true,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "fn_6"
+              ]
+            }
+          ],
+          "name": "FN-6 gunner"
+        },
+        "eastern_air_defense_team_fn_6__rifleman": {
+          "appearance": [
+            "eastern_atgm_team_kornet_guard_a",
+            "eastern_atgm_team_kornet_guard_b",
+            "eastern_atgm_team_kornet_guard_c"
+          ],
+          "description": "A soldier with a rifle.",
+          "hp": 100.0,
+          "mounts": [
+            {
+              "id": "rifles",
+              "muzzle_m": null,
+              "name": "Rifle",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": false,
+              "squad": true,
+              "turret": false,
+              "weapons": [
+                "rifle"
+              ]
+            }
+          ],
+          "name": "Rifleman"
+        },
+        "eastern_air_defense_team_igla_s__gunner": {
+          "appearance": [
+            "eastern_atgm_team_kornet_guard_a",
+            "eastern_atgm_team_kornet_guard_b",
+            "eastern_atgm_team_kornet_guard_c"
+          ],
+          "description": "A rifleman who carries the team's shoulder-fired air-defence missile.",
+          "hp": 100.0,
+          "mounts": [
+            {
+              "id": "rifles",
+              "muzzle_m": null,
+              "name": "Rifle",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": false,
+              "squad": true,
+              "turret": false,
+              "weapons": [
+                "rifle"
+              ]
+            },
+            {
+              "id": "launcher",
+              "muzzle_m": null,
+              "name": "Igla-S",
+              "on": null,
+              "operator_appearance": {
+                "active": [
+                  "eastern_air_defense_team_igla_s_active_a",
+                  "eastern_air_defense_team_igla_s_active_b",
+                  "eastern_air_defense_team_igla_s_active_c"
+                ],
+                "active_pose": {
+                  "clip": "stand_aim",
+                  "phase": 0.0
+                },
+                "carried": [
+                  "eastern_air_defense_team_igla_s_carried_a",
+                  "eastern_air_defense_team_igla_s_carried_b",
+                  "eastern_air_defense_team_igla_s_carried_c"
+                ]
+              },
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": true,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "igla_s"
+              ]
+            }
+          ],
+          "name": "Igla-S gunner"
+        },
+        "eastern_air_defense_team_igla_s__rifleman": {
+          "appearance": [
+            "eastern_atgm_team_kornet_guard_a",
+            "eastern_atgm_team_kornet_guard_b",
+            "eastern_atgm_team_kornet_guard_c"
+          ],
+          "description": "A soldier with a rifle.",
+          "hp": 100.0,
+          "mounts": [
+            {
+              "id": "rifles",
+              "muzzle_m": null,
+              "name": "Rifle",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": false,
+              "squad": true,
+              "turret": false,
+              "weapons": [
+                "rifle"
+              ]
+            }
+          ],
+          "name": "Rifleman"
         },
         "eastern_atgm_team_kornet__at_rifleman": {
           "appearance": [
@@ -4518,19 +4855,19 @@
           ],
           "name": "Kornet gunner"
         },
-        "eastern_marksman_squad_svd_equipped_longer_range_infantry__roster_marksman_rifle_1": {
+        "eastern_marksman_squad_svd_equipped_longer_range_infantry__grenadier": {
           "appearance": [
-            "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_a",
-            "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_b",
-            "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_c"
+            "rifle_squad_active_a",
+            "rifle_squad_active_b",
+            "rifle_squad_active_c"
           ],
-          "description": "One finite physical gun; named equipment appearance pending.",
+          "description": "A rifleman who also carries the squad's grenade launcher.",
           "hp": 100.0,
           "mounts": [
             {
-              "id": "marksman_rifle_1",
+              "id": "rifles",
               "muzzle_m": null,
-              "name": "Marksman Rifle",
+              "name": "Rifle",
               "on": null,
               "pivot_m": [
                 0.0,
@@ -4541,25 +4878,42 @@
               "squad": true,
               "turret": false,
               "weapons": [
-                "marksman_rifle"
+                "rifle"
+              ]
+            },
+            {
+              "id": "grenade launcher",
+              "muzzle_m": null,
+              "name": "Grenade Launcher",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": true,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "grenade"
               ]
             }
           ],
-          "name": "Marksman Rifle"
+          "name": "Grenadier"
         },
-        "eastern_marksman_squad_svd_equipped_longer_range_infantry__roster_marksman_rifle_2": {
+        "eastern_marksman_squad_svd_equipped_longer_range_infantry__marksman": {
           "appearance": [
-            "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_a",
-            "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_b",
-            "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_c"
+            "rifle_squad_active_a",
+            "rifle_squad_active_b",
+            "rifle_squad_active_c"
           ],
-          "description": "One finite physical gun; named equipment appearance pending.",
+          "description": "A rifleman who also carries a designated marksman's rifle.",
           "hp": 100.0,
           "mounts": [
             {
-              "id": "marksman_rifle_2",
+              "id": "rifles",
               "muzzle_m": null,
-              "name": "Marksman Rifle",
+              "name": "Rifle",
               "on": null,
               "pivot_m": [
                 0.0,
@@ -4570,25 +4924,54 @@
               "squad": true,
               "turret": false,
               "weapons": [
+                "rifle"
+              ]
+            },
+            {
+              "id": "marksman rifle",
+              "muzzle_m": null,
+              "name": "Marksman Rifle",
+              "on": null,
+              "operator_appearance": {
+                "active": [
+                  "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_a",
+                  "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_b",
+                  "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_c"
+                ],
+                "carried": [
+                  "rifle_squad_active_a",
+                  "rifle_squad_active_b",
+                  "rifle_squad_active_c"
+                ]
+              },
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": true,
+              "squad": false,
+              "turret": false,
+              "weapons": [
                 "marksman_rifle"
               ]
             }
           ],
-          "name": "Marksman Rifle"
+          "name": "Marksman"
         },
-        "eastern_marksman_squad_svd_equipped_longer_range_infantry__roster_marksman_rifle_3": {
+        "eastern_marksman_squad_svd_equipped_longer_range_infantry__rifleman": {
           "appearance": [
-            "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_a",
-            "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_b",
-            "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_c"
+            "rifle_squad_active_a",
+            "rifle_squad_active_b",
+            "rifle_squad_active_c"
           ],
-          "description": "One finite physical gun; named equipment appearance pending.",
+          "description": "A soldier with a rifle.",
           "hp": 100.0,
           "mounts": [
             {
-              "id": "marksman_rifle_3",
+              "id": "rifles",
               "muzzle_m": null,
-              "name": "Marksman Rifle",
+              "name": "Rifle",
               "on": null,
               "pivot_m": [
                 0.0,
@@ -4599,98 +4982,11 @@
               "squad": true,
               "turret": false,
               "weapons": [
-                "marksman_rifle"
+                "rifle"
               ]
             }
           ],
-          "name": "Marksman Rifle"
-        },
-        "eastern_marksman_squad_svd_equipped_longer_range_infantry__roster_marksman_rifle_4": {
-          "appearance": [
-            "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_a",
-            "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_b",
-            "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_c"
-          ],
-          "description": "One finite physical gun; named equipment appearance pending.",
-          "hp": 100.0,
-          "mounts": [
-            {
-              "id": "marksman_rifle_4",
-              "muzzle_m": null,
-              "name": "Marksman Rifle",
-              "on": null,
-              "pivot_m": [
-                0.0,
-                0.0,
-                0.0
-              ],
-              "special": false,
-              "squad": true,
-              "turret": false,
-              "weapons": [
-                "marksman_rifle"
-              ]
-            }
-          ],
-          "name": "Marksman Rifle"
-        },
-        "eastern_marksman_squad_svd_equipped_longer_range_infantry__roster_marksman_rifle_5": {
-          "appearance": [
-            "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_a",
-            "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_b",
-            "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_c"
-          ],
-          "description": "One finite physical gun; named equipment appearance pending.",
-          "hp": 100.0,
-          "mounts": [
-            {
-              "id": "marksman_rifle_5",
-              "muzzle_m": null,
-              "name": "Marksman Rifle",
-              "on": null,
-              "pivot_m": [
-                0.0,
-                0.0,
-                0.0
-              ],
-              "special": false,
-              "squad": true,
-              "turret": false,
-              "weapons": [
-                "marksman_rifle"
-              ]
-            }
-          ],
-          "name": "Marksman Rifle"
-        },
-        "eastern_marksman_squad_svd_equipped_longer_range_infantry__roster_marksman_rifle_6": {
-          "appearance": [
-            "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_a",
-            "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_b",
-            "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_c"
-          ],
-          "description": "One finite physical gun; named equipment appearance pending.",
-          "hp": 100.0,
-          "mounts": [
-            {
-              "id": "marksman_rifle_6",
-              "muzzle_m": null,
-              "name": "Marksman Rifle",
-              "on": null,
-              "pivot_m": [
-                0.0,
-                0.0,
-                0.0
-              ],
-              "special": false,
-              "squad": true,
-              "turret": false,
-              "weapons": [
-                "marksman_rifle"
-              ]
-            }
-          ],
-          "name": "Marksman Rifle"
+          "name": "Rifleman"
         },
         "eastern_rpg_team_rpg_29__at_rifleman": {
           "appearance": [
@@ -4874,6 +5170,64 @@
           ],
           "name": "Rpg Light gunner"
         },
+        "eastern_scouts_light_patrol__marksman": {
+          "appearance": [
+            "eastern_scouts_light_patrol_active_a",
+            "eastern_scouts_light_patrol_active_b",
+            "eastern_scouts_light_patrol_active_c"
+          ],
+          "description": "A rifleman who also carries a designated marksman's rifle.",
+          "hp": 100.0,
+          "mounts": [
+            {
+              "id": "rifles",
+              "muzzle_m": null,
+              "name": "Rifle",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": false,
+              "squad": true,
+              "turret": false,
+              "weapons": [
+                "rifle"
+              ]
+            },
+            {
+              "id": "marksman rifle",
+              "muzzle_m": null,
+              "name": "Marksman Rifle",
+              "on": null,
+              "operator_appearance": {
+                "active": [
+                  "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_a",
+                  "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_b",
+                  "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_c"
+                ],
+                "carried": [
+                  "eastern_scouts_light_patrol_active_a",
+                  "eastern_scouts_light_patrol_active_b",
+                  "eastern_scouts_light_patrol_active_c"
+                ]
+              },
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": true,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "marksman_rifle"
+              ]
+            }
+          ],
+          "name": "Marksman"
+        },
         "eastern_scouts_light_patrol__scout": {
           "appearance": [
             "eastern_scouts_light_patrol_active_a",
@@ -4903,19 +5257,19 @@
           ],
           "name": "Scout"
         },
-        "eastern_sniper_team_asvk_heavy_sniper_team__roster_heavy_sniper_1": {
+        "eastern_sniper_team_asvk_heavy_sniper_team__sniper": {
           "appearance": [
-            "eastern_sniper_team_asvk_heavy_sniper_team_active_a",
-            "eastern_sniper_team_asvk_heavy_sniper_team_active_b",
-            "eastern_sniper_team_asvk_heavy_sniper_team_active_c"
+            "eastern_scouts_light_patrol_active_a",
+            "eastern_scouts_light_patrol_active_b",
+            "eastern_scouts_light_patrol_active_c"
           ],
-          "description": "One finite physical gun; named equipment appearance pending.",
+          "description": "A scout who also carries a heavy sniper rifle.",
           "hp": 100.0,
           "mounts": [
             {
-              "id": "heavy_sniper_1",
+              "id": "rifles",
               "muzzle_m": null,
-              "name": "Heavy Sniper",
+              "name": "Rifle",
               "on": null,
               "pivot_m": [
                 0.0,
@@ -4926,25 +5280,54 @@
               "squad": true,
               "turret": false,
               "weapons": [
+                "rifle"
+              ]
+            },
+            {
+              "id": "sniper rifle",
+              "muzzle_m": null,
+              "name": "Heavy Sniper",
+              "on": null,
+              "operator_appearance": {
+                "active": [
+                  "eastern_sniper_team_asvk_heavy_sniper_team_active_a",
+                  "eastern_sniper_team_asvk_heavy_sniper_team_active_b",
+                  "eastern_sniper_team_asvk_heavy_sniper_team_active_c"
+                ],
+                "carried": [
+                  "eastern_scouts_light_patrol_active_a",
+                  "eastern_scouts_light_patrol_active_b",
+                  "eastern_scouts_light_patrol_active_c"
+                ]
+              },
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": true,
+              "squad": false,
+              "turret": false,
+              "weapons": [
                 "heavy_sniper"
               ]
             }
           ],
-          "name": "Heavy Sniper"
+          "name": "Sniper"
         },
-        "eastern_sniper_team_asvk_heavy_sniper_team__roster_heavy_sniper_2": {
+        "eastern_sniper_team_asvk_heavy_sniper_team__spotter": {
           "appearance": [
-            "eastern_sniper_team_asvk_heavy_sniper_team_active_a",
-            "eastern_sniper_team_asvk_heavy_sniper_team_active_b",
-            "eastern_sniper_team_asvk_heavy_sniper_team_active_c"
+            "eastern_scouts_light_patrol_active_a",
+            "eastern_scouts_light_patrol_active_b",
+            "eastern_scouts_light_patrol_active_c"
           ],
-          "description": "One finite physical gun; named equipment appearance pending.",
+          "description": "A scout with a rifle who finds the sniper's targets.",
           "hp": 100.0,
           "mounts": [
             {
-              "id": "heavy_sniper_2",
+              "id": "rifles",
               "muzzle_m": null,
-              "name": "Heavy Sniper",
+              "name": "Rifle",
               "on": null,
               "pivot_m": [
                 0.0,
@@ -4955,11 +5338,11 @@
               "squad": true,
               "turret": false,
               "weapons": [
-                "heavy_sniper"
+                "rifle"
               ]
             }
           ],
-          "name": "Heavy Sniper"
+          "name": "Spotter"
         },
         "europe_atgm_team_akeron_mp__at_rifleman": {
           "appearance": [
@@ -5052,19 +5435,19 @@
           ],
           "name": "Akeron gunner"
         },
-        "europe_marksman_squad_longer_range_infantry__roster_marksman_rifle_1": {
+        "europe_marksman_squad_longer_range_infantry__grenadier": {
           "appearance": [
-            "europe_marksman_squad_longer_range_infantry_active_a",
-            "europe_marksman_squad_longer_range_infantry_active_b",
-            "europe_marksman_squad_longer_range_infantry_active_c"
+            "rifle_squad_active_a",
+            "rifle_squad_active_b",
+            "rifle_squad_active_c"
           ],
-          "description": "One finite physical gun; named equipment appearance pending.",
+          "description": "A rifleman who also carries the squad's grenade launcher.",
           "hp": 100.0,
           "mounts": [
             {
-              "id": "marksman_rifle_1",
+              "id": "rifles",
               "muzzle_m": null,
-              "name": "Marksman Rifle",
+              "name": "Rifle",
               "on": null,
               "pivot_m": [
                 0.0,
@@ -5075,25 +5458,42 @@
               "squad": true,
               "turret": false,
               "weapons": [
-                "marksman_rifle"
+                "rifle"
+              ]
+            },
+            {
+              "id": "grenade launcher",
+              "muzzle_m": null,
+              "name": "Grenade Launcher",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": true,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "grenade"
               ]
             }
           ],
-          "name": "Marksman Rifle"
+          "name": "Grenadier"
         },
-        "europe_marksman_squad_longer_range_infantry__roster_marksman_rifle_2": {
+        "europe_marksman_squad_longer_range_infantry__marksman": {
           "appearance": [
-            "europe_marksman_squad_longer_range_infantry_active_a",
-            "europe_marksman_squad_longer_range_infantry_active_b",
-            "europe_marksman_squad_longer_range_infantry_active_c"
+            "rifle_squad_active_a",
+            "rifle_squad_active_b",
+            "rifle_squad_active_c"
           ],
-          "description": "One finite physical gun; named equipment appearance pending.",
+          "description": "A rifleman who also carries a designated marksman's rifle.",
           "hp": 100.0,
           "mounts": [
             {
-              "id": "marksman_rifle_2",
+              "id": "rifles",
               "muzzle_m": null,
-              "name": "Marksman Rifle",
+              "name": "Rifle",
               "on": null,
               "pivot_m": [
                 0.0,
@@ -5104,25 +5504,54 @@
               "squad": true,
               "turret": false,
               "weapons": [
+                "rifle"
+              ]
+            },
+            {
+              "id": "marksman rifle",
+              "muzzle_m": null,
+              "name": "Marksman Rifle",
+              "on": null,
+              "operator_appearance": {
+                "active": [
+                  "europe_marksman_squad_longer_range_infantry_active_a",
+                  "europe_marksman_squad_longer_range_infantry_active_b",
+                  "europe_marksman_squad_longer_range_infantry_active_c"
+                ],
+                "carried": [
+                  "rifle_squad_active_a",
+                  "rifle_squad_active_b",
+                  "rifle_squad_active_c"
+                ]
+              },
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": true,
+              "squad": false,
+              "turret": false,
+              "weapons": [
                 "marksman_rifle"
               ]
             }
           ],
-          "name": "Marksman Rifle"
+          "name": "Marksman"
         },
-        "europe_marksman_squad_longer_range_infantry__roster_marksman_rifle_3": {
+        "europe_marksman_squad_longer_range_infantry__rifleman": {
           "appearance": [
-            "europe_marksman_squad_longer_range_infantry_active_a",
-            "europe_marksman_squad_longer_range_infantry_active_b",
-            "europe_marksman_squad_longer_range_infantry_active_c"
+            "rifle_squad_active_a",
+            "rifle_squad_active_b",
+            "rifle_squad_active_c"
           ],
-          "description": "One finite physical gun; named equipment appearance pending.",
+          "description": "A soldier with a rifle.",
           "hp": 100.0,
           "mounts": [
             {
-              "id": "marksman_rifle_3",
+              "id": "rifles",
               "muzzle_m": null,
-              "name": "Marksman Rifle",
+              "name": "Rifle",
               "on": null,
               "pivot_m": [
                 0.0,
@@ -5133,25 +5562,25 @@
               "squad": true,
               "turret": false,
               "weapons": [
-                "marksman_rifle"
+                "rifle"
               ]
             }
           ],
-          "name": "Marksman Rifle"
+          "name": "Rifleman"
         },
-        "europe_marksman_squad_longer_range_infantry__roster_marksman_rifle_4": {
+        "europe_recon_patrol_light_patrol__marksman": {
           "appearance": [
-            "europe_marksman_squad_longer_range_infantry_active_a",
-            "europe_marksman_squad_longer_range_infantry_active_b",
-            "europe_marksman_squad_longer_range_infantry_active_c"
+            "europe_recon_patrol_light_patrol_active_a",
+            "europe_recon_patrol_light_patrol_active_b",
+            "europe_recon_patrol_light_patrol_active_c"
           ],
-          "description": "One finite physical gun; named equipment appearance pending.",
+          "description": "A rifleman who also carries a designated marksman's rifle.",
           "hp": 100.0,
           "mounts": [
             {
-              "id": "marksman_rifle_4",
+              "id": "rifles",
               "muzzle_m": null,
-              "name": "Marksman Rifle",
+              "name": "Rifle",
               "on": null,
               "pivot_m": [
                 0.0,
@@ -5162,69 +5591,40 @@
               "squad": true,
               "turret": false,
               "weapons": [
-                "marksman_rifle"
+                "rifle"
               ]
-            }
-          ],
-          "name": "Marksman Rifle"
-        },
-        "europe_marksman_squad_longer_range_infantry__roster_marksman_rifle_5": {
-          "appearance": [
-            "europe_marksman_squad_longer_range_infantry_active_a",
-            "europe_marksman_squad_longer_range_infantry_active_b",
-            "europe_marksman_squad_longer_range_infantry_active_c"
-          ],
-          "description": "One finite physical gun; named equipment appearance pending.",
-          "hp": 100.0,
-          "mounts": [
+            },
             {
-              "id": "marksman_rifle_5",
+              "id": "marksman rifle",
               "muzzle_m": null,
               "name": "Marksman Rifle",
               "on": null,
+              "operator_appearance": {
+                "active": [
+                  "europe_marksman_squad_longer_range_infantry_active_a",
+                  "europe_marksman_squad_longer_range_infantry_active_b",
+                  "europe_marksman_squad_longer_range_infantry_active_c"
+                ],
+                "carried": [
+                  "europe_recon_patrol_light_patrol_active_a",
+                  "europe_recon_patrol_light_patrol_active_b",
+                  "europe_recon_patrol_light_patrol_active_c"
+                ]
+              },
               "pivot_m": [
                 0.0,
                 0.0,
                 0.0
               ],
-              "special": false,
-              "squad": true,
+              "special": true,
+              "squad": false,
               "turret": false,
               "weapons": [
                 "marksman_rifle"
               ]
             }
           ],
-          "name": "Marksman Rifle"
-        },
-        "europe_marksman_squad_longer_range_infantry__roster_marksman_rifle_6": {
-          "appearance": [
-            "europe_marksman_squad_longer_range_infantry_active_a",
-            "europe_marksman_squad_longer_range_infantry_active_b",
-            "europe_marksman_squad_longer_range_infantry_active_c"
-          ],
-          "description": "One finite physical gun; named equipment appearance pending.",
-          "hp": 100.0,
-          "mounts": [
-            {
-              "id": "marksman_rifle_6",
-              "muzzle_m": null,
-              "name": "Marksman Rifle",
-              "on": null,
-              "pivot_m": [
-                0.0,
-                0.0,
-                0.0
-              ],
-              "special": false,
-              "squad": true,
-              "turret": false,
-              "weapons": [
-                "marksman_rifle"
-              ]
-            }
-          ],
-          "name": "Marksman Rifle"
+          "name": "Marksman"
         },
         "europe_recon_patrol_light_patrol__scout": {
           "appearance": [
@@ -5346,6 +5746,97 @@
           ],
           "name": "Javelin gunner"
         },
+        "fim_92_stinger_team__gunner": {
+          "appearance": [
+            "fgm_148_javelin_team_guard_a",
+            "fgm_148_javelin_team_guard_b",
+            "fgm_148_javelin_team_guard_c"
+          ],
+          "description": "A rifleman who carries the team's shoulder-fired air-defence missile.",
+          "hp": 100.0,
+          "mounts": [
+            {
+              "id": "rifles",
+              "muzzle_m": null,
+              "name": "Rifle",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": false,
+              "squad": true,
+              "turret": false,
+              "weapons": [
+                "rifle"
+              ]
+            },
+            {
+              "id": "launcher",
+              "muzzle_m": null,
+              "name": "Stinger",
+              "on": null,
+              "operator_appearance": {
+                "active": [
+                  "fim_92_stinger_team_active_a",
+                  "fim_92_stinger_team_active_b",
+                  "fim_92_stinger_team_active_c"
+                ],
+                "active_pose": {
+                  "clip": "stand_aim",
+                  "phase": 0.0
+                },
+                "carried": [
+                  "fim_92_stinger_team_carried_a",
+                  "fim_92_stinger_team_carried_b",
+                  "fim_92_stinger_team_carried_c"
+                ]
+              },
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": true,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "stinger"
+              ]
+            }
+          ],
+          "name": "Stinger gunner"
+        },
+        "fim_92_stinger_team__rifleman": {
+          "appearance": [
+            "fgm_148_javelin_team_guard_a",
+            "fgm_148_javelin_team_guard_b",
+            "fgm_148_javelin_team_guard_c"
+          ],
+          "description": "A soldier with a rifle.",
+          "hp": 100.0,
+          "mounts": [
+            {
+              "id": "rifles",
+              "muzzle_m": null,
+              "name": "Rifle",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": false,
+              "squad": true,
+              "turret": false,
+              "weapons": [
+                "rifle"
+              ]
+            }
+          ],
+          "name": "Rifleman"
+        },
         "rifle_squad__grenadier": {
           "appearance": [
             "rifle_squad_active_a",
@@ -5392,6 +5883,122 @@
           ],
           "name": "Grenadier"
         },
+        "rifle_squad__machine_gunner": {
+          "appearance": [
+            "rifle_squad_active_a",
+            "rifle_squad_active_b",
+            "rifle_squad_active_c"
+          ],
+          "description": "A rifleman who also carries the squad's light machine gun.",
+          "hp": 100.0,
+          "mounts": [
+            {
+              "id": "rifles",
+              "muzzle_m": null,
+              "name": "Rifle",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": false,
+              "squad": true,
+              "turret": false,
+              "weapons": [
+                "rifle"
+              ]
+            },
+            {
+              "id": "machine gun",
+              "muzzle_m": null,
+              "name": "LMG",
+              "on": null,
+              "operator_appearance": {
+                "active": [
+                  "machine_gunner_active_a",
+                  "machine_gunner_active_b",
+                  "machine_gunner_active_c"
+                ],
+                "carried": [
+                  "rifle_squad_active_a",
+                  "rifle_squad_active_b",
+                  "rifle_squad_active_c"
+                ]
+              },
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": true,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "lmg"
+              ]
+            }
+          ],
+          "name": "Machine Gunner"
+        },
+        "rifle_squad__marksman": {
+          "appearance": [
+            "rifle_squad_active_a",
+            "rifle_squad_active_b",
+            "rifle_squad_active_c"
+          ],
+          "description": "A rifleman who also carries a designated marksman's rifle.",
+          "hp": 100.0,
+          "mounts": [
+            {
+              "id": "rifles",
+              "muzzle_m": null,
+              "name": "Rifle",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": false,
+              "squad": true,
+              "turret": false,
+              "weapons": [
+                "rifle"
+              ]
+            },
+            {
+              "id": "marksman rifle",
+              "muzzle_m": null,
+              "name": "Marksman Rifle",
+              "on": null,
+              "operator_appearance": {
+                "active": [
+                  "marksman_active_a",
+                  "marksman_active_b",
+                  "marksman_active_c"
+                ],
+                "carried": [
+                  "rifle_squad_active_a",
+                  "rifle_squad_active_b",
+                  "rifle_squad_active_c"
+                ]
+              },
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": true,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "marksman_rifle"
+              ]
+            }
+          ],
+          "name": "Marksman"
+        },
         "rifle_squad__rifleman": {
           "appearance": [
             "rifle_squad_active_a",
@@ -5420,6 +6027,64 @@
             }
           ],
           "name": "Rifleman"
+        },
+        "us_army_scouts_light_patrol__marksman": {
+          "appearance": [
+            "us_army_scouts_light_patrol_active_a",
+            "us_army_scouts_light_patrol_active_b",
+            "us_army_scouts_light_patrol_active_c"
+          ],
+          "description": "A rifleman who also carries a designated marksman's rifle.",
+          "hp": 100.0,
+          "mounts": [
+            {
+              "id": "rifles",
+              "muzzle_m": null,
+              "name": "Rifle",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": false,
+              "squad": true,
+              "turret": false,
+              "weapons": [
+                "rifle"
+              ]
+            },
+            {
+              "id": "marksman rifle",
+              "muzzle_m": null,
+              "name": "Marksman Rifle",
+              "on": null,
+              "operator_appearance": {
+                "active": [
+                  "marksman_active_a",
+                  "marksman_active_b",
+                  "marksman_active_c"
+                ],
+                "carried": [
+                  "us_army_scouts_light_patrol_active_a",
+                  "us_army_scouts_light_patrol_active_b",
+                  "us_army_scouts_light_patrol_active_c"
+                ]
+              },
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": true,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "marksman_rifle"
+              ]
+            }
+          ],
+          "name": "Marksman"
         },
         "us_army_scouts_light_patrol__scout": {
           "appearance": [
@@ -5591,6 +6256,64 @@
           ],
           "name": "Grenadier"
         },
+        "us_force_recon_recon_patrol__marksman": {
+          "appearance": [
+            "us_force_recon_recon_patrol_active_a",
+            "us_force_recon_recon_patrol_active_b",
+            "us_force_recon_recon_patrol_active_c"
+          ],
+          "description": "A rifleman who also carries a designated marksman's rifle.",
+          "hp": 100.0,
+          "mounts": [
+            {
+              "id": "rifles",
+              "muzzle_m": null,
+              "name": "Rifle",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": false,
+              "squad": true,
+              "turret": false,
+              "weapons": [
+                "rifle"
+              ]
+            },
+            {
+              "id": "marksman rifle",
+              "muzzle_m": null,
+              "name": "Marksman Rifle",
+              "on": null,
+              "operator_appearance": {
+                "active": [
+                  "us_marine_marksman_active_a",
+                  "us_marine_marksman_active_b",
+                  "us_marine_marksman_active_c"
+                ],
+                "carried": [
+                  "us_force_recon_recon_patrol_active_a",
+                  "us_force_recon_recon_patrol_active_b",
+                  "us_force_recon_recon_patrol_active_c"
+                ]
+              },
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": true,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "marksman_rifle"
+              ]
+            }
+          ],
+          "name": "Marksman"
+        },
         "us_force_recon_recon_patrol__scout": {
           "appearance": [
             "us_force_recon_recon_patrol_active_a",
@@ -5620,19 +6343,19 @@
           ],
           "name": "Scout"
         },
-        "us_marine_squad_close_quarters_infantry__roster_assault_rifle": {
+        "us_marine_squad_close_quarters_infantry__grenadier": {
           "appearance": [
             "us_marine_squad_close_quarters_infantry_active_a",
             "us_marine_squad_close_quarters_infantry_active_b",
             "us_marine_squad_close_quarters_infantry_active_c"
           ],
-          "description": "Ground weapon profile; named equipment art pending.",
+          "description": "A rifleman who also carries the squad's grenade launcher.",
           "hp": 100.0,
           "mounts": [
             {
               "id": "rifles",
               "muzzle_m": null,
-              "name": "Assault Rifle",
+              "name": "Carbine",
               "on": null,
               "pivot_m": [
                 0.0,
@@ -5643,25 +6366,42 @@
               "squad": true,
               "turret": false,
               "weapons": [
-                "assault_rifle"
+                "carbine"
+              ]
+            },
+            {
+              "id": "grenade launcher",
+              "muzzle_m": null,
+              "name": "Grenade Launcher",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": true,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "grenade"
               ]
             }
           ],
-          "name": "Assault Rifle"
+          "name": "Grenadier"
         },
-        "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_1": {
+        "us_marine_squad_close_quarters_infantry__machine_gunner": {
           "appearance": [
-            "us_marksman_squad_m110_equipped_longer_range_infantry_active_a",
-            "us_marksman_squad_m110_equipped_longer_range_infantry_active_b",
-            "us_marksman_squad_m110_equipped_longer_range_infantry_active_c"
+            "us_marine_squad_close_quarters_infantry_active_a",
+            "us_marine_squad_close_quarters_infantry_active_b",
+            "us_marine_squad_close_quarters_infantry_active_c"
           ],
-          "description": "One finite physical gun; named equipment appearance pending.",
+          "description": "A rifleman who also carries the squad's light machine gun.",
           "hp": 100.0,
           "mounts": [
             {
-              "id": "marksman_rifle_1",
+              "id": "rifles",
               "muzzle_m": null,
-              "name": "Marksman Rifle",
+              "name": "Carbine",
               "on": null,
               "pivot_m": [
                 0.0,
@@ -5670,27 +6410,114 @@
               ],
               "special": false,
               "squad": true,
+              "turret": false,
+              "weapons": [
+                "carbine"
+              ]
+            },
+            {
+              "id": "machine gun",
+              "muzzle_m": null,
+              "name": "LMG",
+              "on": null,
+              "operator_appearance": {
+                "active": [
+                  "us_marine_machine_gunner_active_a",
+                  "us_marine_machine_gunner_active_b",
+                  "us_marine_machine_gunner_active_c"
+                ],
+                "carried": [
+                  "us_marine_squad_close_quarters_infantry_active_a",
+                  "us_marine_squad_close_quarters_infantry_active_b",
+                  "us_marine_squad_close_quarters_infantry_active_c"
+                ]
+              },
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": true,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "lmg"
+              ]
+            }
+          ],
+          "name": "Machine Gunner"
+        },
+        "us_marine_squad_close_quarters_infantry__marksman": {
+          "appearance": [
+            "us_marine_squad_close_quarters_infantry_active_a",
+            "us_marine_squad_close_quarters_infantry_active_b",
+            "us_marine_squad_close_quarters_infantry_active_c"
+          ],
+          "description": "A rifleman who also carries a designated marksman's rifle.",
+          "hp": 100.0,
+          "mounts": [
+            {
+              "id": "rifles",
+              "muzzle_m": null,
+              "name": "Carbine",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": false,
+              "squad": true,
+              "turret": false,
+              "weapons": [
+                "carbine"
+              ]
+            },
+            {
+              "id": "marksman rifle",
+              "muzzle_m": null,
+              "name": "Marksman Rifle",
+              "on": null,
+              "operator_appearance": {
+                "active": [
+                  "us_marine_marksman_active_a",
+                  "us_marine_marksman_active_b",
+                  "us_marine_marksman_active_c"
+                ],
+                "carried": [
+                  "us_marine_squad_close_quarters_infantry_active_a",
+                  "us_marine_squad_close_quarters_infantry_active_b",
+                  "us_marine_squad_close_quarters_infantry_active_c"
+                ]
+              },
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": true,
+              "squad": false,
               "turret": false,
               "weapons": [
                 "marksman_rifle"
               ]
             }
           ],
-          "name": "Marksman Rifle"
+          "name": "Marksman"
         },
-        "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_2": {
+        "us_marine_squad_close_quarters_infantry__rifleman": {
           "appearance": [
-            "us_marksman_squad_m110_equipped_longer_range_infantry_active_a",
-            "us_marksman_squad_m110_equipped_longer_range_infantry_active_b",
-            "us_marksman_squad_m110_equipped_longer_range_infantry_active_c"
+            "us_marine_squad_close_quarters_infantry_active_a",
+            "us_marine_squad_close_quarters_infantry_active_b",
+            "us_marine_squad_close_quarters_infantry_active_c"
           ],
-          "description": "One finite physical gun; named equipment appearance pending.",
+          "description": "A soldier with a carbine.",
           "hp": 100.0,
           "mounts": [
             {
-              "id": "marksman_rifle_2",
+              "id": "rifles",
               "muzzle_m": null,
-              "name": "Marksman Rifle",
+              "name": "Carbine",
               "on": null,
               "pivot_m": [
                 0.0,
@@ -5701,25 +6528,25 @@
               "squad": true,
               "turret": false,
               "weapons": [
-                "marksman_rifle"
+                "carbine"
               ]
             }
           ],
-          "name": "Marksman Rifle"
+          "name": "Rifleman"
         },
-        "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_3": {
+        "us_marksman_squad_m110_equipped_longer_range_infantry__grenadier": {
           "appearance": [
-            "us_marksman_squad_m110_equipped_longer_range_infantry_active_a",
-            "us_marksman_squad_m110_equipped_longer_range_infantry_active_b",
-            "us_marksman_squad_m110_equipped_longer_range_infantry_active_c"
+            "rifle_squad_active_a",
+            "rifle_squad_active_b",
+            "rifle_squad_active_c"
           ],
-          "description": "One finite physical gun; named equipment appearance pending.",
+          "description": "A rifleman who also carries the squad's grenade launcher.",
           "hp": 100.0,
           "mounts": [
             {
-              "id": "marksman_rifle_3",
+              "id": "rifles",
               "muzzle_m": null,
-              "name": "Marksman Rifle",
+              "name": "Rifle",
               "on": null,
               "pivot_m": [
                 0.0,
@@ -5730,25 +6557,42 @@
               "squad": true,
               "turret": false,
               "weapons": [
-                "marksman_rifle"
+                "rifle"
+              ]
+            },
+            {
+              "id": "grenade launcher",
+              "muzzle_m": null,
+              "name": "Grenade Launcher",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": true,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "grenade"
               ]
             }
           ],
-          "name": "Marksman Rifle"
+          "name": "Grenadier"
         },
-        "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_4": {
+        "us_marksman_squad_m110_equipped_longer_range_infantry__marksman": {
           "appearance": [
-            "us_marksman_squad_m110_equipped_longer_range_infantry_active_a",
-            "us_marksman_squad_m110_equipped_longer_range_infantry_active_b",
-            "us_marksman_squad_m110_equipped_longer_range_infantry_active_c"
+            "rifle_squad_active_a",
+            "rifle_squad_active_b",
+            "rifle_squad_active_c"
           ],
-          "description": "One finite physical gun; named equipment appearance pending.",
+          "description": "A rifleman who also carries a designated marksman's rifle.",
           "hp": 100.0,
           "mounts": [
             {
-              "id": "marksman_rifle_4",
+              "id": "rifles",
               "muzzle_m": null,
-              "name": "Marksman Rifle",
+              "name": "Rifle",
               "on": null,
               "pivot_m": [
                 0.0,
@@ -5759,25 +6603,54 @@
               "squad": true,
               "turret": false,
               "weapons": [
+                "rifle"
+              ]
+            },
+            {
+              "id": "marksman rifle",
+              "muzzle_m": null,
+              "name": "Marksman Rifle",
+              "on": null,
+              "operator_appearance": {
+                "active": [
+                  "us_marksman_squad_m110_equipped_longer_range_infantry_active_a",
+                  "us_marksman_squad_m110_equipped_longer_range_infantry_active_b",
+                  "us_marksman_squad_m110_equipped_longer_range_infantry_active_c"
+                ],
+                "carried": [
+                  "rifle_squad_active_a",
+                  "rifle_squad_active_b",
+                  "rifle_squad_active_c"
+                ]
+              },
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": true,
+              "squad": false,
+              "turret": false,
+              "weapons": [
                 "marksman_rifle"
               ]
             }
           ],
-          "name": "Marksman Rifle"
+          "name": "Marksman"
         },
-        "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_5": {
+        "us_marksman_squad_m110_equipped_longer_range_infantry__rifleman": {
           "appearance": [
-            "us_marksman_squad_m110_equipped_longer_range_infantry_active_a",
-            "us_marksman_squad_m110_equipped_longer_range_infantry_active_b",
-            "us_marksman_squad_m110_equipped_longer_range_infantry_active_c"
+            "rifle_squad_active_a",
+            "rifle_squad_active_b",
+            "rifle_squad_active_c"
           ],
-          "description": "One finite physical gun; named equipment appearance pending.",
+          "description": "A soldier with a rifle.",
           "hp": 100.0,
           "mounts": [
             {
-              "id": "marksman_rifle_5",
+              "id": "rifles",
               "muzzle_m": null,
-              "name": "Marksman Rifle",
+              "name": "Rifle",
               "on": null,
               "pivot_m": [
                 0.0,
@@ -5788,25 +6661,25 @@
               "squad": true,
               "turret": false,
               "weapons": [
-                "marksman_rifle"
+                "rifle"
               ]
             }
           ],
-          "name": "Marksman Rifle"
+          "name": "Rifleman"
         },
-        "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_6": {
+        "us_scout_snipers_m107_heavy_sniper_team__sniper": {
           "appearance": [
-            "us_marksman_squad_m110_equipped_longer_range_infantry_active_a",
-            "us_marksman_squad_m110_equipped_longer_range_infantry_active_b",
-            "us_marksman_squad_m110_equipped_longer_range_infantry_active_c"
+            "us_force_recon_recon_patrol_active_a",
+            "us_force_recon_recon_patrol_active_b",
+            "us_force_recon_recon_patrol_active_c"
           ],
-          "description": "One finite physical gun; named equipment appearance pending.",
+          "description": "A scout who also carries a heavy sniper rifle.",
           "hp": 100.0,
           "mounts": [
             {
-              "id": "marksman_rifle_6",
+              "id": "rifles",
               "muzzle_m": null,
-              "name": "Marksman Rifle",
+              "name": "Rifle",
               "on": null,
               "pivot_m": [
                 0.0,
@@ -5817,54 +6690,54 @@
               "squad": true,
               "turret": false,
               "weapons": [
-                "marksman_rifle"
+                "rifle"
               ]
-            }
-          ],
-          "name": "Marksman Rifle"
-        },
-        "us_scout_snipers_m107_heavy_sniper_team__roster_heavy_sniper_1": {
-          "appearance": [
-            "us_scout_snipers_m107_heavy_sniper_team_active_a",
-            "us_scout_snipers_m107_heavy_sniper_team_active_b",
-            "us_scout_snipers_m107_heavy_sniper_team_active_c"
-          ],
-          "description": "One finite physical gun; named equipment appearance pending.",
-          "hp": 100.0,
-          "mounts": [
+            },
             {
-              "id": "heavy_sniper_1",
+              "id": "sniper rifle",
               "muzzle_m": null,
               "name": "Heavy Sniper",
               "on": null,
+              "operator_appearance": {
+                "active": [
+                  "us_scout_snipers_m107_heavy_sniper_team_active_a",
+                  "us_scout_snipers_m107_heavy_sniper_team_active_b",
+                  "us_scout_snipers_m107_heavy_sniper_team_active_c"
+                ],
+                "carried": [
+                  "us_force_recon_recon_patrol_active_a",
+                  "us_force_recon_recon_patrol_active_b",
+                  "us_force_recon_recon_patrol_active_c"
+                ]
+              },
               "pivot_m": [
                 0.0,
                 0.0,
                 0.0
               ],
-              "special": false,
-              "squad": true,
+              "special": true,
+              "squad": false,
               "turret": false,
               "weapons": [
                 "heavy_sniper"
               ]
             }
           ],
-          "name": "Heavy Sniper"
+          "name": "Sniper"
         },
-        "us_scout_snipers_m107_heavy_sniper_team__roster_heavy_sniper_2": {
+        "us_scout_snipers_m107_heavy_sniper_team__spotter": {
           "appearance": [
-            "us_scout_snipers_m107_heavy_sniper_team_active_a",
-            "us_scout_snipers_m107_heavy_sniper_team_active_b",
-            "us_scout_snipers_m107_heavy_sniper_team_active_c"
+            "us_force_recon_recon_patrol_active_a",
+            "us_force_recon_recon_patrol_active_b",
+            "us_force_recon_recon_patrol_active_c"
           ],
-          "description": "One finite physical gun; named equipment appearance pending.",
+          "description": "A scout with a rifle who finds the sniper's targets.",
           "hp": 100.0,
           "mounts": [
             {
-              "id": "heavy_sniper_2",
+              "id": "rifles",
               "muzzle_m": null,
-              "name": "Heavy Sniper",
+              "name": "Rifle",
               "on": null,
               "pivot_m": [
                 0.0,
@@ -5875,11 +6748,11 @@
               "squad": true,
               "turret": false,
               "weapons": [
-                "heavy_sniper"
+                "rifle"
               ]
             }
           ],
-          "name": "Heavy Sniper"
+          "name": "Spotter"
         }
       },
       "units": {
@@ -6018,14 +6891,14 @@
           "body": {
             "squad": {
               "slots": [
-                "assault_squad__roster_assault_rifle",
-                "assault_squad__roster_assault_rifle",
-                "assault_squad__roster_assault_rifle",
-                "assault_squad__roster_assault_rifle",
-                "assault_squad__roster_assault_rifle",
-                "assault_squad__roster_assault_rifle",
-                "assault_squad__roster_assault_rifle",
-                "assault_squad__roster_assault_rifle"
+                "assault_squad__grenadier",
+                "assault_squad__grenadier",
+                "assault_squad__machine_gunner",
+                "assault_squad__marksman",
+                "assault_squad__rifleman",
+                "assault_squad__rifleman",
+                "assault_squad__rifleman",
+                "assault_squad__rifleman"
               ]
             }
           },
@@ -6119,22 +6992,30 @@
           }
         },
         "eastern_air_defense_team_fn_6": {
+          "body": {
+            "squad": {
+              "slots": [
+                "eastern_air_defense_team_fn_6__gunner",
+                "eastern_air_defense_team_fn_6__rifleman",
+                "eastern_air_defense_team_fn_6__rifleman"
+              ]
+            }
+          },
+          "capabilities": {},
           "cost": 100,
           "description": "FN-6",
           "faction": "eastern",
           "family": "air_defense_team",
-          "name": "FN-6 Team",
-          "planned": {
-            "profile": "aa-team",
-            "reason": "Air-defense targeting and airborne targets deferred",
-            "weapons": [
-              {
-                "icon": "aa_missile",
-                "name": "MANPADS"
-              }
-            ]
+          "mobility": {
+            "foot": {
+              "offroad_kmh": 10.0,
+              "road_kmh": 12.0
+            }
           },
-          "roles": [],
+          "name": "FN-6 Team",
+          "roles": [
+            "air_defense"
+          ],
           "roster": {
             "category": "inf",
             "factions": [
@@ -6142,25 +7023,45 @@
             ],
             "family_name": "Air-Defense Team",
             "variant": "FN-6"
+          },
+          "sensors": {
+            "ground_m": 600.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 1.0,
+              "side": 1.0
+            }
+          },
+          "sound": {
+            "loudness_m": 200.0,
+            "profile": "infantry"
           }
         },
         "eastern_air_defense_team_igla_s": {
+          "body": {
+            "squad": {
+              "slots": [
+                "eastern_air_defense_team_igla_s__gunner",
+                "eastern_air_defense_team_igla_s__rifleman",
+                "eastern_air_defense_team_igla_s__rifleman"
+              ]
+            }
+          },
+          "capabilities": {},
           "cost": 100,
           "description": "Igla-S",
           "faction": "eastern",
           "family": "air_defense_team",
-          "name": "Igla-S Team",
-          "planned": {
-            "profile": "aa-team",
-            "reason": "Air-defense targeting and airborne targets deferred",
-            "weapons": [
-              {
-                "icon": "aa_missile",
-                "name": "MANPADS"
-              }
-            ]
+          "mobility": {
+            "foot": {
+              "offroad_kmh": 10.0,
+              "road_kmh": 12.0
+            }
           },
-          "roles": [],
+          "name": "Igla-S Team",
+          "roles": [
+            "air_defense"
+          ],
           "roster": {
             "category": "inf",
             "factions": [
@@ -6168,6 +7069,18 @@
             ],
             "family_name": "Air-Defense Team",
             "variant": "Igla-S"
+          },
+          "sensors": {
+            "ground_m": 600.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 1.0,
+              "side": 1.0
+            }
+          },
+          "sound": {
+            "loudness_m": 200.0,
+            "profile": "infantry"
           }
         },
         "eastern_atgm_team_kornet": {
@@ -6907,12 +7820,12 @@
           "body": {
             "squad": {
               "slots": [
-                "eastern_marksman_squad_svd_equipped_longer_range_infantry__roster_marksman_rifle_1",
-                "eastern_marksman_squad_svd_equipped_longer_range_infantry__roster_marksman_rifle_2",
-                "eastern_marksman_squad_svd_equipped_longer_range_infantry__roster_marksman_rifle_3",
-                "eastern_marksman_squad_svd_equipped_longer_range_infantry__roster_marksman_rifle_4",
-                "eastern_marksman_squad_svd_equipped_longer_range_infantry__roster_marksman_rifle_5",
-                "eastern_marksman_squad_svd_equipped_longer_range_infantry__roster_marksman_rifle_6"
+                "eastern_marksman_squad_svd_equipped_longer_range_infantry__marksman",
+                "eastern_marksman_squad_svd_equipped_longer_range_infantry__marksman",
+                "eastern_marksman_squad_svd_equipped_longer_range_infantry__marksman",
+                "eastern_marksman_squad_svd_equipped_longer_range_infantry__grenadier",
+                "eastern_marksman_squad_svd_equipped_longer_range_infantry__rifleman",
+                "eastern_marksman_squad_svd_equipped_longer_range_infantry__rifleman"
               ]
             }
           },
@@ -7516,7 +8429,7 @@
           "body": {
             "squad": {
               "slots": [
-                "eastern_scouts_light_patrol__scout",
+                "eastern_scouts_light_patrol__marksman",
                 "eastern_scouts_light_patrol__scout",
                 "eastern_scouts_light_patrol__scout",
                 "eastern_scouts_light_patrol__scout"
@@ -7564,8 +8477,8 @@
           "body": {
             "squad": {
               "slots": [
-                "eastern_sniper_team_asvk_heavy_sniper_team__roster_heavy_sniper_1",
-                "eastern_sniper_team_asvk_heavy_sniper_team__roster_heavy_sniper_2"
+                "eastern_sniper_team_asvk_heavy_sniper_team__sniper",
+                "eastern_sniper_team_asvk_heavy_sniper_team__spotter"
               ]
             }
           },
@@ -11540,12 +12453,12 @@
           "body": {
             "squad": {
               "slots": [
-                "europe_marksman_squad_longer_range_infantry__roster_marksman_rifle_1",
-                "europe_marksman_squad_longer_range_infantry__roster_marksman_rifle_2",
-                "europe_marksman_squad_longer_range_infantry__roster_marksman_rifle_3",
-                "europe_marksman_squad_longer_range_infantry__roster_marksman_rifle_4",
-                "europe_marksman_squad_longer_range_infantry__roster_marksman_rifle_5",
-                "europe_marksman_squad_longer_range_infantry__roster_marksman_rifle_6"
+                "europe_marksman_squad_longer_range_infantry__marksman",
+                "europe_marksman_squad_longer_range_infantry__marksman",
+                "europe_marksman_squad_longer_range_infantry__marksman",
+                "europe_marksman_squad_longer_range_infantry__grenadier",
+                "europe_marksman_squad_longer_range_infantry__rifleman",
+                "europe_marksman_squad_longer_range_infantry__rifleman"
               ]
             }
           },
@@ -11934,7 +12847,7 @@
           "body": {
             "squad": {
               "slots": [
-                "europe_recon_patrol_light_patrol__scout",
+                "europe_recon_patrol_light_patrol__marksman",
                 "europe_recon_patrol_light_patrol__scout",
                 "europe_recon_patrol_light_patrol__scout",
                 "europe_recon_patrol_light_patrol__scout"
@@ -12380,22 +13293,30 @@
           }
         },
         "fim_92_stinger_team": {
+          "body": {
+            "squad": {
+              "slots": [
+                "fim_92_stinger_team__gunner",
+                "fim_92_stinger_team__rifleman",
+                "fim_92_stinger_team__rifleman"
+              ]
+            }
+          },
+          "capabilities": {},
           "cost": 100,
           "description": "FIM-92 Stinger",
           "faction": "us",
           "family": "air_defense_team",
-          "name": "Stinger Team",
-          "planned": {
-            "profile": "aa-team",
-            "reason": "Air-defense targeting and airborne targets deferred",
-            "weapons": [
-              {
-                "icon": "aa_missile",
-                "name": "MANPADS"
-              }
-            ]
+          "mobility": {
+            "foot": {
+              "offroad_kmh": 10.0,
+              "road_kmh": 12.0
+            }
           },
-          "roles": [],
+          "name": "Stinger Team",
+          "roles": [
+            "air_defense"
+          ],
           "roster": {
             "category": "inf",
             "factions": [
@@ -12404,6 +13325,18 @@
             ],
             "family_name": "Air-Defense Team",
             "variant": "FIM-92 Stinger"
+          },
+          "sensors": {
+            "ground_m": 600.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 1.0,
+              "side": 1.0
+            }
+          },
+          "sound": {
+            "loudness_m": 200.0,
+            "profile": "infantry"
           }
         },
         "rifle_squad": {
@@ -12411,8 +13344,8 @@
             "squad": {
               "slots": [
                 "rifle_squad__grenadier",
-                "rifle_squad__rifleman",
-                "rifle_squad__rifleman",
+                "rifle_squad__machine_gunner",
+                "rifle_squad__marksman",
                 "rifle_squad__rifleman",
                 "rifle_squad__rifleman",
                 "rifle_squad__rifleman",
@@ -12894,7 +13827,7 @@
           "body": {
             "squad": {
               "slots": [
-                "us_army_scouts_light_patrol__scout",
+                "us_army_scouts_light_patrol__marksman",
                 "us_army_scouts_light_patrol__scout",
                 "us_army_scouts_light_patrol__scout",
                 "us_army_scouts_light_patrol__scout"
@@ -13269,7 +14202,7 @@
             "squad": {
               "slots": [
                 "us_force_recon_recon_patrol__grenadier",
-                "us_force_recon_recon_patrol__scout",
+                "us_force_recon_recon_patrol__marksman",
                 "us_force_recon_recon_patrol__scout",
                 "us_force_recon_recon_patrol__scout"
               ]
@@ -14760,14 +15693,14 @@
           "body": {
             "squad": {
               "slots": [
-                "us_marine_squad_close_quarters_infantry__roster_assault_rifle",
-                "us_marine_squad_close_quarters_infantry__roster_assault_rifle",
-                "us_marine_squad_close_quarters_infantry__roster_assault_rifle",
-                "us_marine_squad_close_quarters_infantry__roster_assault_rifle",
-                "us_marine_squad_close_quarters_infantry__roster_assault_rifle",
-                "us_marine_squad_close_quarters_infantry__roster_assault_rifle",
-                "us_marine_squad_close_quarters_infantry__roster_assault_rifle",
-                "us_marine_squad_close_quarters_infantry__roster_assault_rifle"
+                "us_marine_squad_close_quarters_infantry__grenadier",
+                "us_marine_squad_close_quarters_infantry__grenadier",
+                "us_marine_squad_close_quarters_infantry__machine_gunner",
+                "us_marine_squad_close_quarters_infantry__marksman",
+                "us_marine_squad_close_quarters_infantry__rifleman",
+                "us_marine_squad_close_quarters_infantry__rifleman",
+                "us_marine_squad_close_quarters_infantry__rifleman",
+                "us_marine_squad_close_quarters_infantry__rifleman"
               ]
             }
           },
@@ -14811,12 +15744,12 @@
           "body": {
             "squad": {
               "slots": [
-                "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_1",
-                "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_2",
-                "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_3",
-                "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_4",
-                "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_5",
-                "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_6"
+                "us_marksman_squad_m110_equipped_longer_range_infantry__marksman",
+                "us_marksman_squad_m110_equipped_longer_range_infantry__marksman",
+                "us_marksman_squad_m110_equipped_longer_range_infantry__marksman",
+                "us_marksman_squad_m110_equipped_longer_range_infantry__grenadier",
+                "us_marksman_squad_m110_equipped_longer_range_infantry__rifleman",
+                "us_marksman_squad_m110_equipped_longer_range_infantry__rifleman"
               ]
             }
           },
@@ -14928,8 +15861,8 @@
           "body": {
             "squad": {
               "slots": [
-                "us_scout_snipers_m107_heavy_sniper_team__roster_heavy_sniper_1",
-                "us_scout_snipers_m107_heavy_sniper_team__roster_heavy_sniper_2"
+                "us_scout_snipers_m107_heavy_sniper_team__sniper",
+                "us_scout_snipers_m107_heavy_sniper_team__spotter"
               ]
             }
           },
@@ -16858,6 +17791,14 @@
     }
   },
   "roles": {
+    "air_defense": {
+      "description": "Teams that shoot down low-flying aircraft.",
+      "name": "Air defence",
+      "symbol": [
+        "infantry",
+        "air_defense"
+      ]
+    },
     "at": {
       "description": "Teams built to kill armour.",
       "name": "Anti-tank",
@@ -16911,19 +17852,19 @@
     }
   },
   "soldiers": {
-    "assault_squad__roster_assault_rifle": {
+    "assault_squad__grenadier": {
       "appearance": [
         "assault_squad_active_a",
         "assault_squad_active_b",
         "assault_squad_active_c"
       ],
-      "description": "Ground weapon profile; named equipment art pending.",
+      "description": "A rifleman who also carries the squad's grenade launcher.",
       "hp": 100.0,
       "mounts": [
         {
           "id": "rifles",
           "muzzle_m": null,
-          "name": "Assault Rifle",
+          "name": "Carbine",
           "on": null,
           "pivot_m": [
             0.0,
@@ -16934,11 +17875,355 @@
           "squad": true,
           "turret": false,
           "weapons": [
-            "assault_rifle"
+            "carbine"
+          ]
+        },
+        {
+          "id": "grenade launcher",
+          "muzzle_m": null,
+          "name": "Grenade Launcher",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "grenade"
           ]
         }
       ],
-      "name": "Assault Rifle"
+      "name": "Grenadier"
+    },
+    "assault_squad__machine_gunner": {
+      "appearance": [
+        "assault_squad_active_a",
+        "assault_squad_active_b",
+        "assault_squad_active_c"
+      ],
+      "description": "A rifleman who also carries the squad's light machine gun.",
+      "hp": 100.0,
+      "mounts": [
+        {
+          "id": "rifles",
+          "muzzle_m": null,
+          "name": "Carbine",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": false,
+          "squad": true,
+          "turret": false,
+          "weapons": [
+            "carbine"
+          ]
+        },
+        {
+          "id": "machine gun",
+          "muzzle_m": null,
+          "name": "LMG",
+          "on": null,
+          "operator_appearance": {
+            "active": [
+              "machine_gunner_active_a",
+              "machine_gunner_active_b",
+              "machine_gunner_active_c"
+            ],
+            "carried": [
+              "assault_squad_active_a",
+              "assault_squad_active_b",
+              "assault_squad_active_c"
+            ]
+          },
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "lmg"
+          ]
+        }
+      ],
+      "name": "Machine Gunner"
+    },
+    "assault_squad__marksman": {
+      "appearance": [
+        "assault_squad_active_a",
+        "assault_squad_active_b",
+        "assault_squad_active_c"
+      ],
+      "description": "A rifleman who also carries a designated marksman's rifle.",
+      "hp": 100.0,
+      "mounts": [
+        {
+          "id": "rifles",
+          "muzzle_m": null,
+          "name": "Carbine",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": false,
+          "squad": true,
+          "turret": false,
+          "weapons": [
+            "carbine"
+          ]
+        },
+        {
+          "id": "marksman rifle",
+          "muzzle_m": null,
+          "name": "Marksman Rifle",
+          "on": null,
+          "operator_appearance": {
+            "active": [
+              "marksman_active_a",
+              "marksman_active_b",
+              "marksman_active_c"
+            ],
+            "carried": [
+              "assault_squad_active_a",
+              "assault_squad_active_b",
+              "assault_squad_active_c"
+            ]
+          },
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "marksman_rifle"
+          ]
+        }
+      ],
+      "name": "Marksman"
+    },
+    "assault_squad__rifleman": {
+      "appearance": [
+        "assault_squad_active_a",
+        "assault_squad_active_b",
+        "assault_squad_active_c"
+      ],
+      "description": "A soldier with a carbine.",
+      "hp": 100.0,
+      "mounts": [
+        {
+          "id": "rifles",
+          "muzzle_m": null,
+          "name": "Carbine",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": false,
+          "squad": true,
+          "turret": false,
+          "weapons": [
+            "carbine"
+          ]
+        }
+      ],
+      "name": "Rifleman"
+    },
+    "eastern_air_defense_team_fn_6__gunner": {
+      "appearance": [
+        "eastern_atgm_team_kornet_guard_a",
+        "eastern_atgm_team_kornet_guard_b",
+        "eastern_atgm_team_kornet_guard_c"
+      ],
+      "description": "A rifleman who carries the team's shoulder-fired air-defence missile.",
+      "hp": 100.0,
+      "mounts": [
+        {
+          "id": "rifles",
+          "muzzle_m": null,
+          "name": "Rifle",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": false,
+          "squad": true,
+          "turret": false,
+          "weapons": [
+            "rifle"
+          ]
+        },
+        {
+          "id": "launcher",
+          "muzzle_m": null,
+          "name": "FN-6",
+          "on": null,
+          "operator_appearance": {
+            "active": [
+              "eastern_air_defense_team_fn_6_active_a",
+              "eastern_air_defense_team_fn_6_active_b",
+              "eastern_air_defense_team_fn_6_active_c"
+            ],
+            "active_pose": {
+              "clip": "stand_aim",
+              "phase": 0.0
+            },
+            "carried": [
+              "eastern_air_defense_team_fn_6_carried_a",
+              "eastern_air_defense_team_fn_6_carried_b",
+              "eastern_air_defense_team_fn_6_carried_c"
+            ]
+          },
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "fn_6"
+          ]
+        }
+      ],
+      "name": "FN-6 gunner"
+    },
+    "eastern_air_defense_team_fn_6__rifleman": {
+      "appearance": [
+        "eastern_atgm_team_kornet_guard_a",
+        "eastern_atgm_team_kornet_guard_b",
+        "eastern_atgm_team_kornet_guard_c"
+      ],
+      "description": "A soldier with a rifle.",
+      "hp": 100.0,
+      "mounts": [
+        {
+          "id": "rifles",
+          "muzzle_m": null,
+          "name": "Rifle",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": false,
+          "squad": true,
+          "turret": false,
+          "weapons": [
+            "rifle"
+          ]
+        }
+      ],
+      "name": "Rifleman"
+    },
+    "eastern_air_defense_team_igla_s__gunner": {
+      "appearance": [
+        "eastern_atgm_team_kornet_guard_a",
+        "eastern_atgm_team_kornet_guard_b",
+        "eastern_atgm_team_kornet_guard_c"
+      ],
+      "description": "A rifleman who carries the team's shoulder-fired air-defence missile.",
+      "hp": 100.0,
+      "mounts": [
+        {
+          "id": "rifles",
+          "muzzle_m": null,
+          "name": "Rifle",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": false,
+          "squad": true,
+          "turret": false,
+          "weapons": [
+            "rifle"
+          ]
+        },
+        {
+          "id": "launcher",
+          "muzzle_m": null,
+          "name": "Igla-S",
+          "on": null,
+          "operator_appearance": {
+            "active": [
+              "eastern_air_defense_team_igla_s_active_a",
+              "eastern_air_defense_team_igla_s_active_b",
+              "eastern_air_defense_team_igla_s_active_c"
+            ],
+            "active_pose": {
+              "clip": "stand_aim",
+              "phase": 0.0
+            },
+            "carried": [
+              "eastern_air_defense_team_igla_s_carried_a",
+              "eastern_air_defense_team_igla_s_carried_b",
+              "eastern_air_defense_team_igla_s_carried_c"
+            ]
+          },
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "igla_s"
+          ]
+        }
+      ],
+      "name": "Igla-S gunner"
+    },
+    "eastern_air_defense_team_igla_s__rifleman": {
+      "appearance": [
+        "eastern_atgm_team_kornet_guard_a",
+        "eastern_atgm_team_kornet_guard_b",
+        "eastern_atgm_team_kornet_guard_c"
+      ],
+      "description": "A soldier with a rifle.",
+      "hp": 100.0,
+      "mounts": [
+        {
+          "id": "rifles",
+          "muzzle_m": null,
+          "name": "Rifle",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": false,
+          "squad": true,
+          "turret": false,
+          "weapons": [
+            "rifle"
+          ]
+        }
+      ],
+      "name": "Rifleman"
     },
     "eastern_atgm_team_kornet__at_rifleman": {
       "appearance": [
@@ -17035,19 +18320,19 @@
       ],
       "name": "Kornet gunner"
     },
-    "eastern_marksman_squad_svd_equipped_longer_range_infantry__roster_marksman_rifle_1": {
+    "eastern_marksman_squad_svd_equipped_longer_range_infantry__grenadier": {
       "appearance": [
-        "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_a",
-        "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_b",
-        "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_c"
+        "rifle_squad_active_a",
+        "rifle_squad_active_b",
+        "rifle_squad_active_c"
       ],
-      "description": "One finite physical gun; named equipment appearance pending.",
+      "description": "A rifleman who also carries the squad's grenade launcher.",
       "hp": 100.0,
       "mounts": [
         {
-          "id": "marksman_rifle_1",
+          "id": "rifles",
           "muzzle_m": null,
-          "name": "Marksman Rifle",
+          "name": "Rifle",
           "on": null,
           "pivot_m": [
             0.0,
@@ -17058,25 +18343,42 @@
           "squad": true,
           "turret": false,
           "weapons": [
-            "marksman_rifle"
+            "rifle"
+          ]
+        },
+        {
+          "id": "grenade launcher",
+          "muzzle_m": null,
+          "name": "Grenade Launcher",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "grenade"
           ]
         }
       ],
-      "name": "Marksman Rifle"
+      "name": "Grenadier"
     },
-    "eastern_marksman_squad_svd_equipped_longer_range_infantry__roster_marksman_rifle_2": {
+    "eastern_marksman_squad_svd_equipped_longer_range_infantry__marksman": {
       "appearance": [
-        "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_a",
-        "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_b",
-        "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_c"
+        "rifle_squad_active_a",
+        "rifle_squad_active_b",
+        "rifle_squad_active_c"
       ],
-      "description": "One finite physical gun; named equipment appearance pending.",
+      "description": "A rifleman who also carries a designated marksman's rifle.",
       "hp": 100.0,
       "mounts": [
         {
-          "id": "marksman_rifle_2",
+          "id": "rifles",
           "muzzle_m": null,
-          "name": "Marksman Rifle",
+          "name": "Rifle",
           "on": null,
           "pivot_m": [
             0.0,
@@ -17087,25 +18389,54 @@
           "squad": true,
           "turret": false,
           "weapons": [
+            "rifle"
+          ]
+        },
+        {
+          "id": "marksman rifle",
+          "muzzle_m": null,
+          "name": "Marksman Rifle",
+          "on": null,
+          "operator_appearance": {
+            "active": [
+              "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_a",
+              "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_b",
+              "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_c"
+            ],
+            "carried": [
+              "rifle_squad_active_a",
+              "rifle_squad_active_b",
+              "rifle_squad_active_c"
+            ]
+          },
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
             "marksman_rifle"
           ]
         }
       ],
-      "name": "Marksman Rifle"
+      "name": "Marksman"
     },
-    "eastern_marksman_squad_svd_equipped_longer_range_infantry__roster_marksman_rifle_3": {
+    "eastern_marksman_squad_svd_equipped_longer_range_infantry__rifleman": {
       "appearance": [
-        "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_a",
-        "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_b",
-        "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_c"
+        "rifle_squad_active_a",
+        "rifle_squad_active_b",
+        "rifle_squad_active_c"
       ],
-      "description": "One finite physical gun; named equipment appearance pending.",
+      "description": "A soldier with a rifle.",
       "hp": 100.0,
       "mounts": [
         {
-          "id": "marksman_rifle_3",
+          "id": "rifles",
           "muzzle_m": null,
-          "name": "Marksman Rifle",
+          "name": "Rifle",
           "on": null,
           "pivot_m": [
             0.0,
@@ -17116,98 +18447,11 @@
           "squad": true,
           "turret": false,
           "weapons": [
-            "marksman_rifle"
+            "rifle"
           ]
         }
       ],
-      "name": "Marksman Rifle"
-    },
-    "eastern_marksman_squad_svd_equipped_longer_range_infantry__roster_marksman_rifle_4": {
-      "appearance": [
-        "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_a",
-        "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_b",
-        "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_c"
-      ],
-      "description": "One finite physical gun; named equipment appearance pending.",
-      "hp": 100.0,
-      "mounts": [
-        {
-          "id": "marksman_rifle_4",
-          "muzzle_m": null,
-          "name": "Marksman Rifle",
-          "on": null,
-          "pivot_m": [
-            0.0,
-            0.0,
-            0.0
-          ],
-          "special": false,
-          "squad": true,
-          "turret": false,
-          "weapons": [
-            "marksman_rifle"
-          ]
-        }
-      ],
-      "name": "Marksman Rifle"
-    },
-    "eastern_marksman_squad_svd_equipped_longer_range_infantry__roster_marksman_rifle_5": {
-      "appearance": [
-        "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_a",
-        "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_b",
-        "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_c"
-      ],
-      "description": "One finite physical gun; named equipment appearance pending.",
-      "hp": 100.0,
-      "mounts": [
-        {
-          "id": "marksman_rifle_5",
-          "muzzle_m": null,
-          "name": "Marksman Rifle",
-          "on": null,
-          "pivot_m": [
-            0.0,
-            0.0,
-            0.0
-          ],
-          "special": false,
-          "squad": true,
-          "turret": false,
-          "weapons": [
-            "marksman_rifle"
-          ]
-        }
-      ],
-      "name": "Marksman Rifle"
-    },
-    "eastern_marksman_squad_svd_equipped_longer_range_infantry__roster_marksman_rifle_6": {
-      "appearance": [
-        "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_a",
-        "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_b",
-        "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_c"
-      ],
-      "description": "One finite physical gun; named equipment appearance pending.",
-      "hp": 100.0,
-      "mounts": [
-        {
-          "id": "marksman_rifle_6",
-          "muzzle_m": null,
-          "name": "Marksman Rifle",
-          "on": null,
-          "pivot_m": [
-            0.0,
-            0.0,
-            0.0
-          ],
-          "special": false,
-          "squad": true,
-          "turret": false,
-          "weapons": [
-            "marksman_rifle"
-          ]
-        }
-      ],
-      "name": "Marksman Rifle"
+      "name": "Rifleman"
     },
     "eastern_rpg_team_rpg_29__at_rifleman": {
       "appearance": [
@@ -17391,6 +18635,64 @@
       ],
       "name": "Rpg Light gunner"
     },
+    "eastern_scouts_light_patrol__marksman": {
+      "appearance": [
+        "eastern_scouts_light_patrol_active_a",
+        "eastern_scouts_light_patrol_active_b",
+        "eastern_scouts_light_patrol_active_c"
+      ],
+      "description": "A rifleman who also carries a designated marksman's rifle.",
+      "hp": 100.0,
+      "mounts": [
+        {
+          "id": "rifles",
+          "muzzle_m": null,
+          "name": "Rifle",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": false,
+          "squad": true,
+          "turret": false,
+          "weapons": [
+            "rifle"
+          ]
+        },
+        {
+          "id": "marksman rifle",
+          "muzzle_m": null,
+          "name": "Marksman Rifle",
+          "on": null,
+          "operator_appearance": {
+            "active": [
+              "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_a",
+              "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_b",
+              "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_c"
+            ],
+            "carried": [
+              "eastern_scouts_light_patrol_active_a",
+              "eastern_scouts_light_patrol_active_b",
+              "eastern_scouts_light_patrol_active_c"
+            ]
+          },
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "marksman_rifle"
+          ]
+        }
+      ],
+      "name": "Marksman"
+    },
     "eastern_scouts_light_patrol__scout": {
       "appearance": [
         "eastern_scouts_light_patrol_active_a",
@@ -17420,19 +18722,19 @@
       ],
       "name": "Scout"
     },
-    "eastern_sniper_team_asvk_heavy_sniper_team__roster_heavy_sniper_1": {
+    "eastern_sniper_team_asvk_heavy_sniper_team__sniper": {
       "appearance": [
-        "eastern_sniper_team_asvk_heavy_sniper_team_active_a",
-        "eastern_sniper_team_asvk_heavy_sniper_team_active_b",
-        "eastern_sniper_team_asvk_heavy_sniper_team_active_c"
+        "eastern_scouts_light_patrol_active_a",
+        "eastern_scouts_light_patrol_active_b",
+        "eastern_scouts_light_patrol_active_c"
       ],
-      "description": "One finite physical gun; named equipment appearance pending.",
+      "description": "A scout who also carries a heavy sniper rifle.",
       "hp": 100.0,
       "mounts": [
         {
-          "id": "heavy_sniper_1",
+          "id": "rifles",
           "muzzle_m": null,
-          "name": "Heavy Sniper",
+          "name": "Rifle",
           "on": null,
           "pivot_m": [
             0.0,
@@ -17443,25 +18745,54 @@
           "squad": true,
           "turret": false,
           "weapons": [
+            "rifle"
+          ]
+        },
+        {
+          "id": "sniper rifle",
+          "muzzle_m": null,
+          "name": "Heavy Sniper",
+          "on": null,
+          "operator_appearance": {
+            "active": [
+              "eastern_sniper_team_asvk_heavy_sniper_team_active_a",
+              "eastern_sniper_team_asvk_heavy_sniper_team_active_b",
+              "eastern_sniper_team_asvk_heavy_sniper_team_active_c"
+            ],
+            "carried": [
+              "eastern_scouts_light_patrol_active_a",
+              "eastern_scouts_light_patrol_active_b",
+              "eastern_scouts_light_patrol_active_c"
+            ]
+          },
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
             "heavy_sniper"
           ]
         }
       ],
-      "name": "Heavy Sniper"
+      "name": "Sniper"
     },
-    "eastern_sniper_team_asvk_heavy_sniper_team__roster_heavy_sniper_2": {
+    "eastern_sniper_team_asvk_heavy_sniper_team__spotter": {
       "appearance": [
-        "eastern_sniper_team_asvk_heavy_sniper_team_active_a",
-        "eastern_sniper_team_asvk_heavy_sniper_team_active_b",
-        "eastern_sniper_team_asvk_heavy_sniper_team_active_c"
+        "eastern_scouts_light_patrol_active_a",
+        "eastern_scouts_light_patrol_active_b",
+        "eastern_scouts_light_patrol_active_c"
       ],
-      "description": "One finite physical gun; named equipment appearance pending.",
+      "description": "A scout with a rifle who finds the sniper's targets.",
       "hp": 100.0,
       "mounts": [
         {
-          "id": "heavy_sniper_2",
+          "id": "rifles",
           "muzzle_m": null,
-          "name": "Heavy Sniper",
+          "name": "Rifle",
           "on": null,
           "pivot_m": [
             0.0,
@@ -17472,11 +18803,11 @@
           "squad": true,
           "turret": false,
           "weapons": [
-            "heavy_sniper"
+            "rifle"
           ]
         }
       ],
-      "name": "Heavy Sniper"
+      "name": "Spotter"
     },
     "europe_atgm_team_akeron_mp__at_rifleman": {
       "appearance": [
@@ -17569,19 +18900,19 @@
       ],
       "name": "Akeron gunner"
     },
-    "europe_marksman_squad_longer_range_infantry__roster_marksman_rifle_1": {
+    "europe_marksman_squad_longer_range_infantry__grenadier": {
       "appearance": [
-        "europe_marksman_squad_longer_range_infantry_active_a",
-        "europe_marksman_squad_longer_range_infantry_active_b",
-        "europe_marksman_squad_longer_range_infantry_active_c"
+        "rifle_squad_active_a",
+        "rifle_squad_active_b",
+        "rifle_squad_active_c"
       ],
-      "description": "One finite physical gun; named equipment appearance pending.",
+      "description": "A rifleman who also carries the squad's grenade launcher.",
       "hp": 100.0,
       "mounts": [
         {
-          "id": "marksman_rifle_1",
+          "id": "rifles",
           "muzzle_m": null,
-          "name": "Marksman Rifle",
+          "name": "Rifle",
           "on": null,
           "pivot_m": [
             0.0,
@@ -17592,25 +18923,42 @@
           "squad": true,
           "turret": false,
           "weapons": [
-            "marksman_rifle"
+            "rifle"
+          ]
+        },
+        {
+          "id": "grenade launcher",
+          "muzzle_m": null,
+          "name": "Grenade Launcher",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "grenade"
           ]
         }
       ],
-      "name": "Marksman Rifle"
+      "name": "Grenadier"
     },
-    "europe_marksman_squad_longer_range_infantry__roster_marksman_rifle_2": {
+    "europe_marksman_squad_longer_range_infantry__marksman": {
       "appearance": [
-        "europe_marksman_squad_longer_range_infantry_active_a",
-        "europe_marksman_squad_longer_range_infantry_active_b",
-        "europe_marksman_squad_longer_range_infantry_active_c"
+        "rifle_squad_active_a",
+        "rifle_squad_active_b",
+        "rifle_squad_active_c"
       ],
-      "description": "One finite physical gun; named equipment appearance pending.",
+      "description": "A rifleman who also carries a designated marksman's rifle.",
       "hp": 100.0,
       "mounts": [
         {
-          "id": "marksman_rifle_2",
+          "id": "rifles",
           "muzzle_m": null,
-          "name": "Marksman Rifle",
+          "name": "Rifle",
           "on": null,
           "pivot_m": [
             0.0,
@@ -17621,25 +18969,54 @@
           "squad": true,
           "turret": false,
           "weapons": [
+            "rifle"
+          ]
+        },
+        {
+          "id": "marksman rifle",
+          "muzzle_m": null,
+          "name": "Marksman Rifle",
+          "on": null,
+          "operator_appearance": {
+            "active": [
+              "europe_marksman_squad_longer_range_infantry_active_a",
+              "europe_marksman_squad_longer_range_infantry_active_b",
+              "europe_marksman_squad_longer_range_infantry_active_c"
+            ],
+            "carried": [
+              "rifle_squad_active_a",
+              "rifle_squad_active_b",
+              "rifle_squad_active_c"
+            ]
+          },
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
             "marksman_rifle"
           ]
         }
       ],
-      "name": "Marksman Rifle"
+      "name": "Marksman"
     },
-    "europe_marksman_squad_longer_range_infantry__roster_marksman_rifle_3": {
+    "europe_marksman_squad_longer_range_infantry__rifleman": {
       "appearance": [
-        "europe_marksman_squad_longer_range_infantry_active_a",
-        "europe_marksman_squad_longer_range_infantry_active_b",
-        "europe_marksman_squad_longer_range_infantry_active_c"
+        "rifle_squad_active_a",
+        "rifle_squad_active_b",
+        "rifle_squad_active_c"
       ],
-      "description": "One finite physical gun; named equipment appearance pending.",
+      "description": "A soldier with a rifle.",
       "hp": 100.0,
       "mounts": [
         {
-          "id": "marksman_rifle_3",
+          "id": "rifles",
           "muzzle_m": null,
-          "name": "Marksman Rifle",
+          "name": "Rifle",
           "on": null,
           "pivot_m": [
             0.0,
@@ -17650,25 +19027,25 @@
           "squad": true,
           "turret": false,
           "weapons": [
-            "marksman_rifle"
+            "rifle"
           ]
         }
       ],
-      "name": "Marksman Rifle"
+      "name": "Rifleman"
     },
-    "europe_marksman_squad_longer_range_infantry__roster_marksman_rifle_4": {
+    "europe_recon_patrol_light_patrol__marksman": {
       "appearance": [
-        "europe_marksman_squad_longer_range_infantry_active_a",
-        "europe_marksman_squad_longer_range_infantry_active_b",
-        "europe_marksman_squad_longer_range_infantry_active_c"
+        "europe_recon_patrol_light_patrol_active_a",
+        "europe_recon_patrol_light_patrol_active_b",
+        "europe_recon_patrol_light_patrol_active_c"
       ],
-      "description": "One finite physical gun; named equipment appearance pending.",
+      "description": "A rifleman who also carries a designated marksman's rifle.",
       "hp": 100.0,
       "mounts": [
         {
-          "id": "marksman_rifle_4",
+          "id": "rifles",
           "muzzle_m": null,
-          "name": "Marksman Rifle",
+          "name": "Rifle",
           "on": null,
           "pivot_m": [
             0.0,
@@ -17679,69 +19056,40 @@
           "squad": true,
           "turret": false,
           "weapons": [
-            "marksman_rifle"
+            "rifle"
           ]
-        }
-      ],
-      "name": "Marksman Rifle"
-    },
-    "europe_marksman_squad_longer_range_infantry__roster_marksman_rifle_5": {
-      "appearance": [
-        "europe_marksman_squad_longer_range_infantry_active_a",
-        "europe_marksman_squad_longer_range_infantry_active_b",
-        "europe_marksman_squad_longer_range_infantry_active_c"
-      ],
-      "description": "One finite physical gun; named equipment appearance pending.",
-      "hp": 100.0,
-      "mounts": [
+        },
         {
-          "id": "marksman_rifle_5",
+          "id": "marksman rifle",
           "muzzle_m": null,
           "name": "Marksman Rifle",
           "on": null,
+          "operator_appearance": {
+            "active": [
+              "europe_marksman_squad_longer_range_infantry_active_a",
+              "europe_marksman_squad_longer_range_infantry_active_b",
+              "europe_marksman_squad_longer_range_infantry_active_c"
+            ],
+            "carried": [
+              "europe_recon_patrol_light_patrol_active_a",
+              "europe_recon_patrol_light_patrol_active_b",
+              "europe_recon_patrol_light_patrol_active_c"
+            ]
+          },
           "pivot_m": [
             0.0,
             0.0,
             0.0
           ],
-          "special": false,
-          "squad": true,
+          "special": true,
+          "squad": false,
           "turret": false,
           "weapons": [
             "marksman_rifle"
           ]
         }
       ],
-      "name": "Marksman Rifle"
-    },
-    "europe_marksman_squad_longer_range_infantry__roster_marksman_rifle_6": {
-      "appearance": [
-        "europe_marksman_squad_longer_range_infantry_active_a",
-        "europe_marksman_squad_longer_range_infantry_active_b",
-        "europe_marksman_squad_longer_range_infantry_active_c"
-      ],
-      "description": "One finite physical gun; named equipment appearance pending.",
-      "hp": 100.0,
-      "mounts": [
-        {
-          "id": "marksman_rifle_6",
-          "muzzle_m": null,
-          "name": "Marksman Rifle",
-          "on": null,
-          "pivot_m": [
-            0.0,
-            0.0,
-            0.0
-          ],
-          "special": false,
-          "squad": true,
-          "turret": false,
-          "weapons": [
-            "marksman_rifle"
-          ]
-        }
-      ],
-      "name": "Marksman Rifle"
+      "name": "Marksman"
     },
     "europe_recon_patrol_light_patrol__scout": {
       "appearance": [
@@ -17863,6 +19211,97 @@
       ],
       "name": "Javelin gunner"
     },
+    "fim_92_stinger_team__gunner": {
+      "appearance": [
+        "fgm_148_javelin_team_guard_a",
+        "fgm_148_javelin_team_guard_b",
+        "fgm_148_javelin_team_guard_c"
+      ],
+      "description": "A rifleman who carries the team's shoulder-fired air-defence missile.",
+      "hp": 100.0,
+      "mounts": [
+        {
+          "id": "rifles",
+          "muzzle_m": null,
+          "name": "Rifle",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": false,
+          "squad": true,
+          "turret": false,
+          "weapons": [
+            "rifle"
+          ]
+        },
+        {
+          "id": "launcher",
+          "muzzle_m": null,
+          "name": "Stinger",
+          "on": null,
+          "operator_appearance": {
+            "active": [
+              "fim_92_stinger_team_active_a",
+              "fim_92_stinger_team_active_b",
+              "fim_92_stinger_team_active_c"
+            ],
+            "active_pose": {
+              "clip": "stand_aim",
+              "phase": 0.0
+            },
+            "carried": [
+              "fim_92_stinger_team_carried_a",
+              "fim_92_stinger_team_carried_b",
+              "fim_92_stinger_team_carried_c"
+            ]
+          },
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "stinger"
+          ]
+        }
+      ],
+      "name": "Stinger gunner"
+    },
+    "fim_92_stinger_team__rifleman": {
+      "appearance": [
+        "fgm_148_javelin_team_guard_a",
+        "fgm_148_javelin_team_guard_b",
+        "fgm_148_javelin_team_guard_c"
+      ],
+      "description": "A soldier with a rifle.",
+      "hp": 100.0,
+      "mounts": [
+        {
+          "id": "rifles",
+          "muzzle_m": null,
+          "name": "Rifle",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": false,
+          "squad": true,
+          "turret": false,
+          "weapons": [
+            "rifle"
+          ]
+        }
+      ],
+      "name": "Rifleman"
+    },
     "rifle_squad__grenadier": {
       "appearance": [
         "rifle_squad_active_a",
@@ -17909,6 +19348,122 @@
       ],
       "name": "Grenadier"
     },
+    "rifle_squad__machine_gunner": {
+      "appearance": [
+        "rifle_squad_active_a",
+        "rifle_squad_active_b",
+        "rifle_squad_active_c"
+      ],
+      "description": "A rifleman who also carries the squad's light machine gun.",
+      "hp": 100.0,
+      "mounts": [
+        {
+          "id": "rifles",
+          "muzzle_m": null,
+          "name": "Rifle",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": false,
+          "squad": true,
+          "turret": false,
+          "weapons": [
+            "rifle"
+          ]
+        },
+        {
+          "id": "machine gun",
+          "muzzle_m": null,
+          "name": "LMG",
+          "on": null,
+          "operator_appearance": {
+            "active": [
+              "machine_gunner_active_a",
+              "machine_gunner_active_b",
+              "machine_gunner_active_c"
+            ],
+            "carried": [
+              "rifle_squad_active_a",
+              "rifle_squad_active_b",
+              "rifle_squad_active_c"
+            ]
+          },
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "lmg"
+          ]
+        }
+      ],
+      "name": "Machine Gunner"
+    },
+    "rifle_squad__marksman": {
+      "appearance": [
+        "rifle_squad_active_a",
+        "rifle_squad_active_b",
+        "rifle_squad_active_c"
+      ],
+      "description": "A rifleman who also carries a designated marksman's rifle.",
+      "hp": 100.0,
+      "mounts": [
+        {
+          "id": "rifles",
+          "muzzle_m": null,
+          "name": "Rifle",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": false,
+          "squad": true,
+          "turret": false,
+          "weapons": [
+            "rifle"
+          ]
+        },
+        {
+          "id": "marksman rifle",
+          "muzzle_m": null,
+          "name": "Marksman Rifle",
+          "on": null,
+          "operator_appearance": {
+            "active": [
+              "marksman_active_a",
+              "marksman_active_b",
+              "marksman_active_c"
+            ],
+            "carried": [
+              "rifle_squad_active_a",
+              "rifle_squad_active_b",
+              "rifle_squad_active_c"
+            ]
+          },
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "marksman_rifle"
+          ]
+        }
+      ],
+      "name": "Marksman"
+    },
     "rifle_squad__rifleman": {
       "appearance": [
         "rifle_squad_active_a",
@@ -17937,6 +19492,64 @@
         }
       ],
       "name": "Rifleman"
+    },
+    "us_army_scouts_light_patrol__marksman": {
+      "appearance": [
+        "us_army_scouts_light_patrol_active_a",
+        "us_army_scouts_light_patrol_active_b",
+        "us_army_scouts_light_patrol_active_c"
+      ],
+      "description": "A rifleman who also carries a designated marksman's rifle.",
+      "hp": 100.0,
+      "mounts": [
+        {
+          "id": "rifles",
+          "muzzle_m": null,
+          "name": "Rifle",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": false,
+          "squad": true,
+          "turret": false,
+          "weapons": [
+            "rifle"
+          ]
+        },
+        {
+          "id": "marksman rifle",
+          "muzzle_m": null,
+          "name": "Marksman Rifle",
+          "on": null,
+          "operator_appearance": {
+            "active": [
+              "marksman_active_a",
+              "marksman_active_b",
+              "marksman_active_c"
+            ],
+            "carried": [
+              "us_army_scouts_light_patrol_active_a",
+              "us_army_scouts_light_patrol_active_b",
+              "us_army_scouts_light_patrol_active_c"
+            ]
+          },
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "marksman_rifle"
+          ]
+        }
+      ],
+      "name": "Marksman"
     },
     "us_army_scouts_light_patrol__scout": {
       "appearance": [
@@ -18108,6 +19721,64 @@
       ],
       "name": "Grenadier"
     },
+    "us_force_recon_recon_patrol__marksman": {
+      "appearance": [
+        "us_force_recon_recon_patrol_active_a",
+        "us_force_recon_recon_patrol_active_b",
+        "us_force_recon_recon_patrol_active_c"
+      ],
+      "description": "A rifleman who also carries a designated marksman's rifle.",
+      "hp": 100.0,
+      "mounts": [
+        {
+          "id": "rifles",
+          "muzzle_m": null,
+          "name": "Rifle",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": false,
+          "squad": true,
+          "turret": false,
+          "weapons": [
+            "rifle"
+          ]
+        },
+        {
+          "id": "marksman rifle",
+          "muzzle_m": null,
+          "name": "Marksman Rifle",
+          "on": null,
+          "operator_appearance": {
+            "active": [
+              "us_marine_marksman_active_a",
+              "us_marine_marksman_active_b",
+              "us_marine_marksman_active_c"
+            ],
+            "carried": [
+              "us_force_recon_recon_patrol_active_a",
+              "us_force_recon_recon_patrol_active_b",
+              "us_force_recon_recon_patrol_active_c"
+            ]
+          },
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "marksman_rifle"
+          ]
+        }
+      ],
+      "name": "Marksman"
+    },
     "us_force_recon_recon_patrol__scout": {
       "appearance": [
         "us_force_recon_recon_patrol_active_a",
@@ -18137,19 +19808,19 @@
       ],
       "name": "Scout"
     },
-    "us_marine_squad_close_quarters_infantry__roster_assault_rifle": {
+    "us_marine_squad_close_quarters_infantry__grenadier": {
       "appearance": [
         "us_marine_squad_close_quarters_infantry_active_a",
         "us_marine_squad_close_quarters_infantry_active_b",
         "us_marine_squad_close_quarters_infantry_active_c"
       ],
-      "description": "Ground weapon profile; named equipment art pending.",
+      "description": "A rifleman who also carries the squad's grenade launcher.",
       "hp": 100.0,
       "mounts": [
         {
           "id": "rifles",
           "muzzle_m": null,
-          "name": "Assault Rifle",
+          "name": "Carbine",
           "on": null,
           "pivot_m": [
             0.0,
@@ -18160,25 +19831,42 @@
           "squad": true,
           "turret": false,
           "weapons": [
-            "assault_rifle"
+            "carbine"
+          ]
+        },
+        {
+          "id": "grenade launcher",
+          "muzzle_m": null,
+          "name": "Grenade Launcher",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "grenade"
           ]
         }
       ],
-      "name": "Assault Rifle"
+      "name": "Grenadier"
     },
-    "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_1": {
+    "us_marine_squad_close_quarters_infantry__machine_gunner": {
       "appearance": [
-        "us_marksman_squad_m110_equipped_longer_range_infantry_active_a",
-        "us_marksman_squad_m110_equipped_longer_range_infantry_active_b",
-        "us_marksman_squad_m110_equipped_longer_range_infantry_active_c"
+        "us_marine_squad_close_quarters_infantry_active_a",
+        "us_marine_squad_close_quarters_infantry_active_b",
+        "us_marine_squad_close_quarters_infantry_active_c"
       ],
-      "description": "One finite physical gun; named equipment appearance pending.",
+      "description": "A rifleman who also carries the squad's light machine gun.",
       "hp": 100.0,
       "mounts": [
         {
-          "id": "marksman_rifle_1",
+          "id": "rifles",
           "muzzle_m": null,
-          "name": "Marksman Rifle",
+          "name": "Carbine",
           "on": null,
           "pivot_m": [
             0.0,
@@ -18187,27 +19875,114 @@
           ],
           "special": false,
           "squad": true,
+          "turret": false,
+          "weapons": [
+            "carbine"
+          ]
+        },
+        {
+          "id": "machine gun",
+          "muzzle_m": null,
+          "name": "LMG",
+          "on": null,
+          "operator_appearance": {
+            "active": [
+              "us_marine_machine_gunner_active_a",
+              "us_marine_machine_gunner_active_b",
+              "us_marine_machine_gunner_active_c"
+            ],
+            "carried": [
+              "us_marine_squad_close_quarters_infantry_active_a",
+              "us_marine_squad_close_quarters_infantry_active_b",
+              "us_marine_squad_close_quarters_infantry_active_c"
+            ]
+          },
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "lmg"
+          ]
+        }
+      ],
+      "name": "Machine Gunner"
+    },
+    "us_marine_squad_close_quarters_infantry__marksman": {
+      "appearance": [
+        "us_marine_squad_close_quarters_infantry_active_a",
+        "us_marine_squad_close_quarters_infantry_active_b",
+        "us_marine_squad_close_quarters_infantry_active_c"
+      ],
+      "description": "A rifleman who also carries a designated marksman's rifle.",
+      "hp": 100.0,
+      "mounts": [
+        {
+          "id": "rifles",
+          "muzzle_m": null,
+          "name": "Carbine",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": false,
+          "squad": true,
+          "turret": false,
+          "weapons": [
+            "carbine"
+          ]
+        },
+        {
+          "id": "marksman rifle",
+          "muzzle_m": null,
+          "name": "Marksman Rifle",
+          "on": null,
+          "operator_appearance": {
+            "active": [
+              "us_marine_marksman_active_a",
+              "us_marine_marksman_active_b",
+              "us_marine_marksman_active_c"
+            ],
+            "carried": [
+              "us_marine_squad_close_quarters_infantry_active_a",
+              "us_marine_squad_close_quarters_infantry_active_b",
+              "us_marine_squad_close_quarters_infantry_active_c"
+            ]
+          },
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
           "turret": false,
           "weapons": [
             "marksman_rifle"
           ]
         }
       ],
-      "name": "Marksman Rifle"
+      "name": "Marksman"
     },
-    "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_2": {
+    "us_marine_squad_close_quarters_infantry__rifleman": {
       "appearance": [
-        "us_marksman_squad_m110_equipped_longer_range_infantry_active_a",
-        "us_marksman_squad_m110_equipped_longer_range_infantry_active_b",
-        "us_marksman_squad_m110_equipped_longer_range_infantry_active_c"
+        "us_marine_squad_close_quarters_infantry_active_a",
+        "us_marine_squad_close_quarters_infantry_active_b",
+        "us_marine_squad_close_quarters_infantry_active_c"
       ],
-      "description": "One finite physical gun; named equipment appearance pending.",
+      "description": "A soldier with a carbine.",
       "hp": 100.0,
       "mounts": [
         {
-          "id": "marksman_rifle_2",
+          "id": "rifles",
           "muzzle_m": null,
-          "name": "Marksman Rifle",
+          "name": "Carbine",
           "on": null,
           "pivot_m": [
             0.0,
@@ -18218,25 +19993,25 @@
           "squad": true,
           "turret": false,
           "weapons": [
-            "marksman_rifle"
+            "carbine"
           ]
         }
       ],
-      "name": "Marksman Rifle"
+      "name": "Rifleman"
     },
-    "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_3": {
+    "us_marksman_squad_m110_equipped_longer_range_infantry__grenadier": {
       "appearance": [
-        "us_marksman_squad_m110_equipped_longer_range_infantry_active_a",
-        "us_marksman_squad_m110_equipped_longer_range_infantry_active_b",
-        "us_marksman_squad_m110_equipped_longer_range_infantry_active_c"
+        "rifle_squad_active_a",
+        "rifle_squad_active_b",
+        "rifle_squad_active_c"
       ],
-      "description": "One finite physical gun; named equipment appearance pending.",
+      "description": "A rifleman who also carries the squad's grenade launcher.",
       "hp": 100.0,
       "mounts": [
         {
-          "id": "marksman_rifle_3",
+          "id": "rifles",
           "muzzle_m": null,
-          "name": "Marksman Rifle",
+          "name": "Rifle",
           "on": null,
           "pivot_m": [
             0.0,
@@ -18247,25 +20022,42 @@
           "squad": true,
           "turret": false,
           "weapons": [
-            "marksman_rifle"
+            "rifle"
+          ]
+        },
+        {
+          "id": "grenade launcher",
+          "muzzle_m": null,
+          "name": "Grenade Launcher",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "grenade"
           ]
         }
       ],
-      "name": "Marksman Rifle"
+      "name": "Grenadier"
     },
-    "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_4": {
+    "us_marksman_squad_m110_equipped_longer_range_infantry__marksman": {
       "appearance": [
-        "us_marksman_squad_m110_equipped_longer_range_infantry_active_a",
-        "us_marksman_squad_m110_equipped_longer_range_infantry_active_b",
-        "us_marksman_squad_m110_equipped_longer_range_infantry_active_c"
+        "rifle_squad_active_a",
+        "rifle_squad_active_b",
+        "rifle_squad_active_c"
       ],
-      "description": "One finite physical gun; named equipment appearance pending.",
+      "description": "A rifleman who also carries a designated marksman's rifle.",
       "hp": 100.0,
       "mounts": [
         {
-          "id": "marksman_rifle_4",
+          "id": "rifles",
           "muzzle_m": null,
-          "name": "Marksman Rifle",
+          "name": "Rifle",
           "on": null,
           "pivot_m": [
             0.0,
@@ -18276,25 +20068,54 @@
           "squad": true,
           "turret": false,
           "weapons": [
+            "rifle"
+          ]
+        },
+        {
+          "id": "marksman rifle",
+          "muzzle_m": null,
+          "name": "Marksman Rifle",
+          "on": null,
+          "operator_appearance": {
+            "active": [
+              "us_marksman_squad_m110_equipped_longer_range_infantry_active_a",
+              "us_marksman_squad_m110_equipped_longer_range_infantry_active_b",
+              "us_marksman_squad_m110_equipped_longer_range_infantry_active_c"
+            ],
+            "carried": [
+              "rifle_squad_active_a",
+              "rifle_squad_active_b",
+              "rifle_squad_active_c"
+            ]
+          },
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
             "marksman_rifle"
           ]
         }
       ],
-      "name": "Marksman Rifle"
+      "name": "Marksman"
     },
-    "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_5": {
+    "us_marksman_squad_m110_equipped_longer_range_infantry__rifleman": {
       "appearance": [
-        "us_marksman_squad_m110_equipped_longer_range_infantry_active_a",
-        "us_marksman_squad_m110_equipped_longer_range_infantry_active_b",
-        "us_marksman_squad_m110_equipped_longer_range_infantry_active_c"
+        "rifle_squad_active_a",
+        "rifle_squad_active_b",
+        "rifle_squad_active_c"
       ],
-      "description": "One finite physical gun; named equipment appearance pending.",
+      "description": "A soldier with a rifle.",
       "hp": 100.0,
       "mounts": [
         {
-          "id": "marksman_rifle_5",
+          "id": "rifles",
           "muzzle_m": null,
-          "name": "Marksman Rifle",
+          "name": "Rifle",
           "on": null,
           "pivot_m": [
             0.0,
@@ -18305,25 +20126,25 @@
           "squad": true,
           "turret": false,
           "weapons": [
-            "marksman_rifle"
+            "rifle"
           ]
         }
       ],
-      "name": "Marksman Rifle"
+      "name": "Rifleman"
     },
-    "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_6": {
+    "us_scout_snipers_m107_heavy_sniper_team__sniper": {
       "appearance": [
-        "us_marksman_squad_m110_equipped_longer_range_infantry_active_a",
-        "us_marksman_squad_m110_equipped_longer_range_infantry_active_b",
-        "us_marksman_squad_m110_equipped_longer_range_infantry_active_c"
+        "us_force_recon_recon_patrol_active_a",
+        "us_force_recon_recon_patrol_active_b",
+        "us_force_recon_recon_patrol_active_c"
       ],
-      "description": "One finite physical gun; named equipment appearance pending.",
+      "description": "A scout who also carries a heavy sniper rifle.",
       "hp": 100.0,
       "mounts": [
         {
-          "id": "marksman_rifle_6",
+          "id": "rifles",
           "muzzle_m": null,
-          "name": "Marksman Rifle",
+          "name": "Rifle",
           "on": null,
           "pivot_m": [
             0.0,
@@ -18334,54 +20155,54 @@
           "squad": true,
           "turret": false,
           "weapons": [
-            "marksman_rifle"
+            "rifle"
           ]
-        }
-      ],
-      "name": "Marksman Rifle"
-    },
-    "us_scout_snipers_m107_heavy_sniper_team__roster_heavy_sniper_1": {
-      "appearance": [
-        "us_scout_snipers_m107_heavy_sniper_team_active_a",
-        "us_scout_snipers_m107_heavy_sniper_team_active_b",
-        "us_scout_snipers_m107_heavy_sniper_team_active_c"
-      ],
-      "description": "One finite physical gun; named equipment appearance pending.",
-      "hp": 100.0,
-      "mounts": [
+        },
         {
-          "id": "heavy_sniper_1",
+          "id": "sniper rifle",
           "muzzle_m": null,
           "name": "Heavy Sniper",
           "on": null,
+          "operator_appearance": {
+            "active": [
+              "us_scout_snipers_m107_heavy_sniper_team_active_a",
+              "us_scout_snipers_m107_heavy_sniper_team_active_b",
+              "us_scout_snipers_m107_heavy_sniper_team_active_c"
+            ],
+            "carried": [
+              "us_force_recon_recon_patrol_active_a",
+              "us_force_recon_recon_patrol_active_b",
+              "us_force_recon_recon_patrol_active_c"
+            ]
+          },
           "pivot_m": [
             0.0,
             0.0,
             0.0
           ],
-          "special": false,
-          "squad": true,
+          "special": true,
+          "squad": false,
           "turret": false,
           "weapons": [
             "heavy_sniper"
           ]
         }
       ],
-      "name": "Heavy Sniper"
+      "name": "Sniper"
     },
-    "us_scout_snipers_m107_heavy_sniper_team__roster_heavy_sniper_2": {
+    "us_scout_snipers_m107_heavy_sniper_team__spotter": {
       "appearance": [
-        "us_scout_snipers_m107_heavy_sniper_team_active_a",
-        "us_scout_snipers_m107_heavy_sniper_team_active_b",
-        "us_scout_snipers_m107_heavy_sniper_team_active_c"
+        "us_force_recon_recon_patrol_active_a",
+        "us_force_recon_recon_patrol_active_b",
+        "us_force_recon_recon_patrol_active_c"
       ],
-      "description": "One finite physical gun; named equipment appearance pending.",
+      "description": "A scout with a rifle who finds the sniper's targets.",
       "hp": 100.0,
       "mounts": [
         {
-          "id": "heavy_sniper_2",
+          "id": "rifles",
           "muzzle_m": null,
-          "name": "Heavy Sniper",
+          "name": "Rifle",
           "on": null,
           "pivot_m": [
             0.0,
@@ -18392,11 +20213,11 @@
           "squad": true,
           "turret": false,
           "weapons": [
-            "heavy_sniper"
+            "rifle"
           ]
         }
       ],
-      "name": "Heavy Sniper"
+      "name": "Spotter"
     }
   },
   "units": [
@@ -18539,14 +20360,14 @@
       "body": {
         "squad": {
           "slots": [
-            "assault_squad__roster_assault_rifle",
-            "assault_squad__roster_assault_rifle",
-            "assault_squad__roster_assault_rifle",
-            "assault_squad__roster_assault_rifle",
-            "assault_squad__roster_assault_rifle",
-            "assault_squad__roster_assault_rifle",
-            "assault_squad__roster_assault_rifle",
-            "assault_squad__roster_assault_rifle"
+            "assault_squad__grenadier",
+            "assault_squad__grenadier",
+            "assault_squad__machine_gunner",
+            "assault_squad__marksman",
+            "assault_squad__rifleman",
+            "assault_squad__rifleman",
+            "assault_squad__rifleman",
+            "assault_squad__rifleman"
           ]
         }
       },
@@ -18576,7 +20397,7 @@
           ],
           "id": "rifles",
           "muzzle_m": null,
-          "name": "Assault Rifle",
+          "name": "Carbine",
           "on": null,
           "pivot_m": [
             0.0,
@@ -18587,7 +20408,111 @@
           "squad": true,
           "turret": false,
           "weapons": [
-            "assault_rifle"
+            "carbine"
+          ]
+        },
+        {
+          "carriers": [
+            0
+          ],
+          "id": "grenade launcher",
+          "muzzle_m": null,
+          "name": "Grenade Launcher",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "grenade"
+          ]
+        },
+        {
+          "carriers": [
+            1
+          ],
+          "id": "grenade launcher",
+          "muzzle_m": null,
+          "name": "Grenade Launcher",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "grenade"
+          ]
+        },
+        {
+          "carriers": [
+            2
+          ],
+          "id": "machine gun",
+          "muzzle_m": null,
+          "name": "LMG",
+          "on": null,
+          "operator_appearance": {
+            "active": [
+              "machine_gunner_active_a",
+              "machine_gunner_active_b",
+              "machine_gunner_active_c"
+            ],
+            "carried": [
+              "assault_squad_active_a",
+              "assault_squad_active_b",
+              "assault_squad_active_c"
+            ]
+          },
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "lmg"
+          ]
+        },
+        {
+          "carriers": [
+            3
+          ],
+          "id": "marksman rifle",
+          "muzzle_m": null,
+          "name": "Marksman Rifle",
+          "on": null,
+          "operator_appearance": {
+            "active": [
+              "marksman_active_a",
+              "marksman_active_b",
+              "marksman_active_c"
+            ],
+            "carried": [
+              "assault_squad_active_a",
+              "assault_squad_active_b",
+              "assault_squad_active_c"
+            ]
+          },
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "marksman_rifle"
           ]
         }
       ],
@@ -18606,6 +20531,220 @@
       },
       "sensors": {
         "ground_m": 550.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 1.0,
+          "side": 1.0
+        }
+      },
+      "sound": {
+        "loudness_m": 200.0,
+        "profile": "infantry"
+      }
+    },
+    {
+      "body": {
+        "squad": {
+          "slots": [
+            "eastern_air_defense_team_fn_6__gunner",
+            "eastern_air_defense_team_fn_6__rifleman",
+            "eastern_air_defense_team_fn_6__rifleman"
+          ]
+        }
+      },
+      "capabilities": {},
+      "cost": 100,
+      "description": "FN-6",
+      "faction": "eastern",
+      "family": "air_defense_team",
+      "id": "eastern_air_defense_team_fn_6",
+      "mobility": {
+        "foot": {
+          "offroad_kmh": 10.0,
+          "road_kmh": 12.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [
+            0,
+            1,
+            2
+          ],
+          "id": "rifles",
+          "muzzle_m": null,
+          "name": "Rifle",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": false,
+          "squad": true,
+          "turret": false,
+          "weapons": [
+            "rifle"
+          ]
+        },
+        {
+          "carriers": [
+            0
+          ],
+          "id": "launcher",
+          "muzzle_m": null,
+          "name": "FN-6",
+          "on": null,
+          "operator_appearance": {
+            "active": [
+              "eastern_air_defense_team_fn_6_active_a",
+              "eastern_air_defense_team_fn_6_active_b",
+              "eastern_air_defense_team_fn_6_active_c"
+            ],
+            "active_pose": {
+              "clip": "stand_aim",
+              "phase": 0.0
+            },
+            "carried": [
+              "eastern_air_defense_team_fn_6_carried_a",
+              "eastern_air_defense_team_fn_6_carried_b",
+              "eastern_air_defense_team_fn_6_carried_c"
+            ]
+          },
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "fn_6"
+          ]
+        }
+      ],
+      "name": "FN-6 Team",
+      "roles": [
+        "air_defense"
+      ],
+      "roster": {
+        "category": "inf",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "Air-Defense Team",
+        "variant": "FN-6"
+      },
+      "sensors": {
+        "ground_m": 600.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 1.0,
+          "side": 1.0
+        }
+      },
+      "sound": {
+        "loudness_m": 200.0,
+        "profile": "infantry"
+      }
+    },
+    {
+      "body": {
+        "squad": {
+          "slots": [
+            "eastern_air_defense_team_igla_s__gunner",
+            "eastern_air_defense_team_igla_s__rifleman",
+            "eastern_air_defense_team_igla_s__rifleman"
+          ]
+        }
+      },
+      "capabilities": {},
+      "cost": 100,
+      "description": "Igla-S",
+      "faction": "eastern",
+      "family": "air_defense_team",
+      "id": "eastern_air_defense_team_igla_s",
+      "mobility": {
+        "foot": {
+          "offroad_kmh": 10.0,
+          "road_kmh": 12.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [
+            0,
+            1,
+            2
+          ],
+          "id": "rifles",
+          "muzzle_m": null,
+          "name": "Rifle",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": false,
+          "squad": true,
+          "turret": false,
+          "weapons": [
+            "rifle"
+          ]
+        },
+        {
+          "carriers": [
+            0
+          ],
+          "id": "launcher",
+          "muzzle_m": null,
+          "name": "Igla-S",
+          "on": null,
+          "operator_appearance": {
+            "active": [
+              "eastern_air_defense_team_igla_s_active_a",
+              "eastern_air_defense_team_igla_s_active_b",
+              "eastern_air_defense_team_igla_s_active_c"
+            ],
+            "active_pose": {
+              "clip": "stand_aim",
+              "phase": 0.0
+            },
+            "carried": [
+              "eastern_air_defense_team_igla_s_carried_a",
+              "eastern_air_defense_team_igla_s_carried_b",
+              "eastern_air_defense_team_igla_s_carried_c"
+            ]
+          },
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "igla_s"
+          ]
+        }
+      ],
+      "name": "Igla-S Team",
+      "roles": [
+        "air_defense"
+      ],
+      "roster": {
+        "category": "inf",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "Air-Defense Team",
+        "variant": "Igla-S"
+      },
+      "sensors": {
+        "ground_m": 600.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -19264,12 +21403,12 @@
       "body": {
         "squad": {
           "slots": [
-            "eastern_marksman_squad_svd_equipped_longer_range_infantry__roster_marksman_rifle_1",
-            "eastern_marksman_squad_svd_equipped_longer_range_infantry__roster_marksman_rifle_2",
-            "eastern_marksman_squad_svd_equipped_longer_range_infantry__roster_marksman_rifle_3",
-            "eastern_marksman_squad_svd_equipped_longer_range_infantry__roster_marksman_rifle_4",
-            "eastern_marksman_squad_svd_equipped_longer_range_infantry__roster_marksman_rifle_5",
-            "eastern_marksman_squad_svd_equipped_longer_range_infantry__roster_marksman_rifle_6"
+            "eastern_marksman_squad_svd_equipped_longer_range_infantry__marksman",
+            "eastern_marksman_squad_svd_equipped_longer_range_infantry__marksman",
+            "eastern_marksman_squad_svd_equipped_longer_range_infantry__marksman",
+            "eastern_marksman_squad_svd_equipped_longer_range_infantry__grenadier",
+            "eastern_marksman_squad_svd_equipped_longer_range_infantry__rifleman",
+            "eastern_marksman_squad_svd_equipped_longer_range_infantry__rifleman"
           ]
         }
       },
@@ -19288,11 +21427,16 @@
       "mounts": [
         {
           "carriers": [
-            0
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
           ],
-          "id": "marksman_rifle_1",
+          "id": "rifles",
           "muzzle_m": null,
-          "name": "Marksman Rifle",
+          "name": "Rifle",
           "on": null,
           "pivot_m": [
             0.0,
@@ -19301,6 +21445,38 @@
           ],
           "special": false,
           "squad": true,
+          "turret": false,
+          "weapons": [
+            "rifle"
+          ]
+        },
+        {
+          "carriers": [
+            0
+          ],
+          "id": "marksman rifle",
+          "muzzle_m": null,
+          "name": "Marksman Rifle",
+          "on": null,
+          "operator_appearance": {
+            "active": [
+              "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_a",
+              "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_b",
+              "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_c"
+            ],
+            "carried": [
+              "rifle_squad_active_a",
+              "rifle_squad_active_b",
+              "rifle_squad_active_c"
+            ]
+          },
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
           "turret": false,
           "weapons": [
             "marksman_rifle"
@@ -19310,17 +21486,29 @@
           "carriers": [
             1
           ],
-          "id": "marksman_rifle_2",
+          "id": "marksman rifle",
           "muzzle_m": null,
           "name": "Marksman Rifle",
           "on": null,
+          "operator_appearance": {
+            "active": [
+              "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_a",
+              "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_b",
+              "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_c"
+            ],
+            "carried": [
+              "rifle_squad_active_a",
+              "rifle_squad_active_b",
+              "rifle_squad_active_c"
+            ]
+          },
           "pivot_m": [
             0.0,
             0.0,
             0.0
           ],
-          "special": false,
-          "squad": true,
+          "special": true,
+          "squad": false,
           "turret": false,
           "weapons": [
             "marksman_rifle"
@@ -19330,17 +21518,29 @@
           "carriers": [
             2
           ],
-          "id": "marksman_rifle_3",
+          "id": "marksman rifle",
           "muzzle_m": null,
           "name": "Marksman Rifle",
           "on": null,
+          "operator_appearance": {
+            "active": [
+              "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_a",
+              "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_b",
+              "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_c"
+            ],
+            "carried": [
+              "rifle_squad_active_a",
+              "rifle_squad_active_b",
+              "rifle_squad_active_c"
+            ]
+          },
           "pivot_m": [
             0.0,
             0.0,
             0.0
           ],
-          "special": false,
-          "squad": true,
+          "special": true,
+          "squad": false,
           "turret": false,
           "weapons": [
             "marksman_rifle"
@@ -19350,60 +21550,20 @@
           "carriers": [
             3
           ],
-          "id": "marksman_rifle_4",
+          "id": "grenade launcher",
           "muzzle_m": null,
-          "name": "Marksman Rifle",
+          "name": "Grenade Launcher",
           "on": null,
           "pivot_m": [
             0.0,
             0.0,
             0.0
           ],
-          "special": false,
-          "squad": true,
+          "special": true,
+          "squad": false,
           "turret": false,
           "weapons": [
-            "marksman_rifle"
-          ]
-        },
-        {
-          "carriers": [
-            4
-          ],
-          "id": "marksman_rifle_5",
-          "muzzle_m": null,
-          "name": "Marksman Rifle",
-          "on": null,
-          "pivot_m": [
-            0.0,
-            0.0,
-            0.0
-          ],
-          "special": false,
-          "squad": true,
-          "turret": false,
-          "weapons": [
-            "marksman_rifle"
-          ]
-        },
-        {
-          "carriers": [
-            5
-          ],
-          "id": "marksman_rifle_6",
-          "muzzle_m": null,
-          "name": "Marksman Rifle",
-          "on": null,
-          "pivot_m": [
-            0.0,
-            0.0,
-            0.0
-          ],
-          "special": false,
-          "squad": true,
-          "turret": false,
-          "weapons": [
-            "marksman_rifle"
+            "grenade"
           ]
         }
       ],
@@ -19964,7 +22124,7 @@
       "body": {
         "squad": {
           "slots": [
-            "eastern_scouts_light_patrol__scout",
+            "eastern_scouts_light_patrol__marksman",
             "eastern_scouts_light_patrol__scout",
             "eastern_scouts_light_patrol__scout",
             "eastern_scouts_light_patrol__scout"
@@ -20006,6 +22166,38 @@
           "weapons": [
             "rifle"
           ]
+        },
+        {
+          "carriers": [
+            0
+          ],
+          "id": "marksman rifle",
+          "muzzle_m": null,
+          "name": "Marksman Rifle",
+          "on": null,
+          "operator_appearance": {
+            "active": [
+              "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_a",
+              "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_b",
+              "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_c"
+            ],
+            "carried": [
+              "eastern_scouts_light_patrol_active_a",
+              "eastern_scouts_light_patrol_active_b",
+              "eastern_scouts_light_patrol_active_c"
+            ]
+          },
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "marksman_rifle"
+          ]
         }
       ],
       "name": "Scouts",
@@ -20038,8 +22230,8 @@
       "body": {
         "squad": {
           "slots": [
-            "eastern_sniper_team_asvk_heavy_sniper_team__roster_heavy_sniper_1",
-            "eastern_sniper_team_asvk_heavy_sniper_team__roster_heavy_sniper_2"
+            "eastern_sniper_team_asvk_heavy_sniper_team__sniper",
+            "eastern_sniper_team_asvk_heavy_sniper_team__spotter"
           ]
         }
       },
@@ -20058,11 +22250,12 @@
       "mounts": [
         {
           "carriers": [
-            0
+            0,
+            1
           ],
-          "id": "heavy_sniper_1",
+          "id": "rifles",
           "muzzle_m": null,
-          "name": "Heavy Sniper",
+          "name": "Rifle",
           "on": null,
           "pivot_m": [
             0.0,
@@ -20073,24 +22266,36 @@
           "squad": true,
           "turret": false,
           "weapons": [
-            "heavy_sniper"
+            "rifle"
           ]
         },
         {
           "carriers": [
-            1
+            0
           ],
-          "id": "heavy_sniper_2",
+          "id": "sniper rifle",
           "muzzle_m": null,
           "name": "Heavy Sniper",
           "on": null,
+          "operator_appearance": {
+            "active": [
+              "eastern_sniper_team_asvk_heavy_sniper_team_active_a",
+              "eastern_sniper_team_asvk_heavy_sniper_team_active_b",
+              "eastern_sniper_team_asvk_heavy_sniper_team_active_c"
+            ],
+            "carried": [
+              "eastern_scouts_light_patrol_active_a",
+              "eastern_scouts_light_patrol_active_b",
+              "eastern_scouts_light_patrol_active_c"
+            ]
+          },
           "pivot_m": [
             0.0,
             0.0,
             0.0
           ],
-          "special": false,
-          "squad": true,
+          "special": true,
+          "squad": false,
           "turret": false,
           "weapons": [
             "heavy_sniper"
@@ -23808,12 +26013,12 @@
       "body": {
         "squad": {
           "slots": [
-            "europe_marksman_squad_longer_range_infantry__roster_marksman_rifle_1",
-            "europe_marksman_squad_longer_range_infantry__roster_marksman_rifle_2",
-            "europe_marksman_squad_longer_range_infantry__roster_marksman_rifle_3",
-            "europe_marksman_squad_longer_range_infantry__roster_marksman_rifle_4",
-            "europe_marksman_squad_longer_range_infantry__roster_marksman_rifle_5",
-            "europe_marksman_squad_longer_range_infantry__roster_marksman_rifle_6"
+            "europe_marksman_squad_longer_range_infantry__marksman",
+            "europe_marksman_squad_longer_range_infantry__marksman",
+            "europe_marksman_squad_longer_range_infantry__marksman",
+            "europe_marksman_squad_longer_range_infantry__grenadier",
+            "europe_marksman_squad_longer_range_infantry__rifleman",
+            "europe_marksman_squad_longer_range_infantry__rifleman"
           ]
         }
       },
@@ -23832,11 +26037,16 @@
       "mounts": [
         {
           "carriers": [
-            0
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
           ],
-          "id": "marksman_rifle_1",
+          "id": "rifles",
           "muzzle_m": null,
-          "name": "Marksman Rifle",
+          "name": "Rifle",
           "on": null,
           "pivot_m": [
             0.0,
@@ -23845,6 +26055,38 @@
           ],
           "special": false,
           "squad": true,
+          "turret": false,
+          "weapons": [
+            "rifle"
+          ]
+        },
+        {
+          "carriers": [
+            0
+          ],
+          "id": "marksman rifle",
+          "muzzle_m": null,
+          "name": "Marksman Rifle",
+          "on": null,
+          "operator_appearance": {
+            "active": [
+              "europe_marksman_squad_longer_range_infantry_active_a",
+              "europe_marksman_squad_longer_range_infantry_active_b",
+              "europe_marksman_squad_longer_range_infantry_active_c"
+            ],
+            "carried": [
+              "rifle_squad_active_a",
+              "rifle_squad_active_b",
+              "rifle_squad_active_c"
+            ]
+          },
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
           "turret": false,
           "weapons": [
             "marksman_rifle"
@@ -23854,17 +26096,29 @@
           "carriers": [
             1
           ],
-          "id": "marksman_rifle_2",
+          "id": "marksman rifle",
           "muzzle_m": null,
           "name": "Marksman Rifle",
           "on": null,
+          "operator_appearance": {
+            "active": [
+              "europe_marksman_squad_longer_range_infantry_active_a",
+              "europe_marksman_squad_longer_range_infantry_active_b",
+              "europe_marksman_squad_longer_range_infantry_active_c"
+            ],
+            "carried": [
+              "rifle_squad_active_a",
+              "rifle_squad_active_b",
+              "rifle_squad_active_c"
+            ]
+          },
           "pivot_m": [
             0.0,
             0.0,
             0.0
           ],
-          "special": false,
-          "squad": true,
+          "special": true,
+          "squad": false,
           "turret": false,
           "weapons": [
             "marksman_rifle"
@@ -23874,17 +26128,29 @@
           "carriers": [
             2
           ],
-          "id": "marksman_rifle_3",
+          "id": "marksman rifle",
           "muzzle_m": null,
           "name": "Marksman Rifle",
           "on": null,
+          "operator_appearance": {
+            "active": [
+              "europe_marksman_squad_longer_range_infantry_active_a",
+              "europe_marksman_squad_longer_range_infantry_active_b",
+              "europe_marksman_squad_longer_range_infantry_active_c"
+            ],
+            "carried": [
+              "rifle_squad_active_a",
+              "rifle_squad_active_b",
+              "rifle_squad_active_c"
+            ]
+          },
           "pivot_m": [
             0.0,
             0.0,
             0.0
           ],
-          "special": false,
-          "squad": true,
+          "special": true,
+          "squad": false,
           "turret": false,
           "weapons": [
             "marksman_rifle"
@@ -23894,60 +26160,20 @@
           "carriers": [
             3
           ],
-          "id": "marksman_rifle_4",
+          "id": "grenade launcher",
           "muzzle_m": null,
-          "name": "Marksman Rifle",
+          "name": "Grenade Launcher",
           "on": null,
           "pivot_m": [
             0.0,
             0.0,
             0.0
           ],
-          "special": false,
-          "squad": true,
+          "special": true,
+          "squad": false,
           "turret": false,
           "weapons": [
-            "marksman_rifle"
-          ]
-        },
-        {
-          "carriers": [
-            4
-          ],
-          "id": "marksman_rifle_5",
-          "muzzle_m": null,
-          "name": "Marksman Rifle",
-          "on": null,
-          "pivot_m": [
-            0.0,
-            0.0,
-            0.0
-          ],
-          "special": false,
-          "squad": true,
-          "turret": false,
-          "weapons": [
-            "marksman_rifle"
-          ]
-        },
-        {
-          "carriers": [
-            5
-          ],
-          "id": "marksman_rifle_6",
-          "muzzle_m": null,
-          "name": "Marksman Rifle",
-          "on": null,
-          "pivot_m": [
-            0.0,
-            0.0,
-            0.0
-          ],
-          "special": false,
-          "squad": true,
-          "turret": false,
-          "weapons": [
-            "marksman_rifle"
+            "grenade"
           ]
         }
       ],
@@ -24184,7 +26410,7 @@
       "body": {
         "squad": {
           "slots": [
-            "europe_recon_patrol_light_patrol__scout",
+            "europe_recon_patrol_light_patrol__marksman",
             "europe_recon_patrol_light_patrol__scout",
             "europe_recon_patrol_light_patrol__scout",
             "europe_recon_patrol_light_patrol__scout"
@@ -24225,6 +26451,38 @@
           "turret": false,
           "weapons": [
             "rifle"
+          ]
+        },
+        {
+          "carriers": [
+            0
+          ],
+          "id": "marksman rifle",
+          "muzzle_m": null,
+          "name": "Marksman Rifle",
+          "on": null,
+          "operator_appearance": {
+            "active": [
+              "europe_marksman_squad_longer_range_infantry_active_a",
+              "europe_marksman_squad_longer_range_infantry_active_b",
+              "europe_marksman_squad_longer_range_infantry_active_c"
+            ],
+            "carried": [
+              "europe_recon_patrol_light_patrol_active_a",
+              "europe_recon_patrol_light_patrol_active_b",
+              "europe_recon_patrol_light_patrol_active_c"
+            ]
+          },
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "marksman_rifle"
           ]
         }
       ],
@@ -24552,9 +26810,117 @@
       "body": {
         "squad": {
           "slots": [
+            "fim_92_stinger_team__gunner",
+            "fim_92_stinger_team__rifleman",
+            "fim_92_stinger_team__rifleman"
+          ]
+        }
+      },
+      "capabilities": {},
+      "cost": 100,
+      "description": "FIM-92 Stinger",
+      "faction": "us",
+      "family": "air_defense_team",
+      "id": "fim_92_stinger_team",
+      "mobility": {
+        "foot": {
+          "offroad_kmh": 10.0,
+          "road_kmh": 12.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [
+            0,
+            1,
+            2
+          ],
+          "id": "rifles",
+          "muzzle_m": null,
+          "name": "Rifle",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": false,
+          "squad": true,
+          "turret": false,
+          "weapons": [
+            "rifle"
+          ]
+        },
+        {
+          "carriers": [
+            0
+          ],
+          "id": "launcher",
+          "muzzle_m": null,
+          "name": "Stinger",
+          "on": null,
+          "operator_appearance": {
+            "active": [
+              "fim_92_stinger_team_active_a",
+              "fim_92_stinger_team_active_b",
+              "fim_92_stinger_team_active_c"
+            ],
+            "active_pose": {
+              "clip": "stand_aim",
+              "phase": 0.0
+            },
+            "carried": [
+              "fim_92_stinger_team_carried_a",
+              "fim_92_stinger_team_carried_b",
+              "fim_92_stinger_team_carried_c"
+            ]
+          },
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "stinger"
+          ]
+        }
+      ],
+      "name": "Stinger Team",
+      "roles": [
+        "air_defense"
+      ],
+      "roster": {
+        "category": "inf",
+        "factions": [
+          "us",
+          "europe"
+        ],
+        "family_name": "Air-Defense Team",
+        "variant": "FIM-92 Stinger"
+      },
+      "sensors": {
+        "ground_m": 600.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 1.0,
+          "side": 1.0
+        }
+      },
+      "sound": {
+        "loudness_m": 200.0,
+        "profile": "infantry"
+      }
+    },
+    {
+      "body": {
+        "squad": {
+          "slots": [
             "rifle_squad__grenadier",
-            "rifle_squad__rifleman",
-            "rifle_squad__rifleman",
+            "rifle_squad__machine_gunner",
+            "rifle_squad__marksman",
             "rifle_squad__rifleman",
             "rifle_squad__rifleman",
             "rifle_squad__rifleman",
@@ -24621,6 +26987,70 @@
           "turret": false,
           "weapons": [
             "grenade"
+          ]
+        },
+        {
+          "carriers": [
+            1
+          ],
+          "id": "machine gun",
+          "muzzle_m": null,
+          "name": "LMG",
+          "on": null,
+          "operator_appearance": {
+            "active": [
+              "machine_gunner_active_a",
+              "machine_gunner_active_b",
+              "machine_gunner_active_c"
+            ],
+            "carried": [
+              "rifle_squad_active_a",
+              "rifle_squad_active_b",
+              "rifle_squad_active_c"
+            ]
+          },
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "lmg"
+          ]
+        },
+        {
+          "carriers": [
+            2
+          ],
+          "id": "marksman rifle",
+          "muzzle_m": null,
+          "name": "Marksman Rifle",
+          "on": null,
+          "operator_appearance": {
+            "active": [
+              "marksman_active_a",
+              "marksman_active_b",
+              "marksman_active_c"
+            ],
+            "carried": [
+              "rifle_squad_active_a",
+              "rifle_squad_active_b",
+              "rifle_squad_active_c"
+            ]
+          },
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "marksman_rifle"
           ]
         }
       ],
@@ -25062,7 +27492,7 @@
       "body": {
         "squad": {
           "slots": [
-            "us_army_scouts_light_patrol__scout",
+            "us_army_scouts_light_patrol__marksman",
             "us_army_scouts_light_patrol__scout",
             "us_army_scouts_light_patrol__scout",
             "us_army_scouts_light_patrol__scout"
@@ -25103,6 +27533,38 @@
           "turret": false,
           "weapons": [
             "rifle"
+          ]
+        },
+        {
+          "carriers": [
+            0
+          ],
+          "id": "marksman rifle",
+          "muzzle_m": null,
+          "name": "Marksman Rifle",
+          "on": null,
+          "operator_appearance": {
+            "active": [
+              "marksman_active_a",
+              "marksman_active_b",
+              "marksman_active_c"
+            ],
+            "carried": [
+              "us_army_scouts_light_patrol_active_a",
+              "us_army_scouts_light_patrol_active_b",
+              "us_army_scouts_light_patrol_active_c"
+            ]
+          },
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "marksman_rifle"
           ]
         }
       ],
@@ -25338,7 +27800,7 @@
         "squad": {
           "slots": [
             "us_force_recon_recon_patrol__grenadier",
-            "us_force_recon_recon_patrol__scout",
+            "us_force_recon_recon_patrol__marksman",
             "us_force_recon_recon_patrol__scout",
             "us_force_recon_recon_patrol__scout"
           ]
@@ -25398,6 +27860,38 @@
           "turret": false,
           "weapons": [
             "grenade"
+          ]
+        },
+        {
+          "carriers": [
+            1
+          ],
+          "id": "marksman rifle",
+          "muzzle_m": null,
+          "name": "Marksman Rifle",
+          "on": null,
+          "operator_appearance": {
+            "active": [
+              "us_marine_marksman_active_a",
+              "us_marine_marksman_active_b",
+              "us_marine_marksman_active_c"
+            ],
+            "carried": [
+              "us_force_recon_recon_patrol_active_a",
+              "us_force_recon_recon_patrol_active_b",
+              "us_force_recon_recon_patrol_active_c"
+            ]
+          },
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "marksman_rifle"
           ]
         }
       ],
@@ -26724,14 +29218,14 @@
       "body": {
         "squad": {
           "slots": [
-            "us_marine_squad_close_quarters_infantry__roster_assault_rifle",
-            "us_marine_squad_close_quarters_infantry__roster_assault_rifle",
-            "us_marine_squad_close_quarters_infantry__roster_assault_rifle",
-            "us_marine_squad_close_quarters_infantry__roster_assault_rifle",
-            "us_marine_squad_close_quarters_infantry__roster_assault_rifle",
-            "us_marine_squad_close_quarters_infantry__roster_assault_rifle",
-            "us_marine_squad_close_quarters_infantry__roster_assault_rifle",
-            "us_marine_squad_close_quarters_infantry__roster_assault_rifle"
+            "us_marine_squad_close_quarters_infantry__grenadier",
+            "us_marine_squad_close_quarters_infantry__grenadier",
+            "us_marine_squad_close_quarters_infantry__machine_gunner",
+            "us_marine_squad_close_quarters_infantry__marksman",
+            "us_marine_squad_close_quarters_infantry__rifleman",
+            "us_marine_squad_close_quarters_infantry__rifleman",
+            "us_marine_squad_close_quarters_infantry__rifleman",
+            "us_marine_squad_close_quarters_infantry__rifleman"
           ]
         }
       },
@@ -26761,7 +29255,7 @@
           ],
           "id": "rifles",
           "muzzle_m": null,
-          "name": "Assault Rifle",
+          "name": "Carbine",
           "on": null,
           "pivot_m": [
             0.0,
@@ -26772,7 +29266,111 @@
           "squad": true,
           "turret": false,
           "weapons": [
-            "assault_rifle"
+            "carbine"
+          ]
+        },
+        {
+          "carriers": [
+            0
+          ],
+          "id": "grenade launcher",
+          "muzzle_m": null,
+          "name": "Grenade Launcher",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "grenade"
+          ]
+        },
+        {
+          "carriers": [
+            1
+          ],
+          "id": "grenade launcher",
+          "muzzle_m": null,
+          "name": "Grenade Launcher",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "grenade"
+          ]
+        },
+        {
+          "carriers": [
+            2
+          ],
+          "id": "machine gun",
+          "muzzle_m": null,
+          "name": "LMG",
+          "on": null,
+          "operator_appearance": {
+            "active": [
+              "us_marine_machine_gunner_active_a",
+              "us_marine_machine_gunner_active_b",
+              "us_marine_machine_gunner_active_c"
+            ],
+            "carried": [
+              "us_marine_squad_close_quarters_infantry_active_a",
+              "us_marine_squad_close_quarters_infantry_active_b",
+              "us_marine_squad_close_quarters_infantry_active_c"
+            ]
+          },
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "lmg"
+          ]
+        },
+        {
+          "carriers": [
+            3
+          ],
+          "id": "marksman rifle",
+          "muzzle_m": null,
+          "name": "Marksman Rifle",
+          "on": null,
+          "operator_appearance": {
+            "active": [
+              "us_marine_marksman_active_a",
+              "us_marine_marksman_active_b",
+              "us_marine_marksman_active_c"
+            ],
+            "carried": [
+              "us_marine_squad_close_quarters_infantry_active_a",
+              "us_marine_squad_close_quarters_infantry_active_b",
+              "us_marine_squad_close_quarters_infantry_active_c"
+            ]
+          },
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "marksman_rifle"
           ]
         }
       ],
@@ -26805,12 +29403,12 @@
       "body": {
         "squad": {
           "slots": [
-            "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_1",
-            "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_2",
-            "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_3",
-            "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_4",
-            "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_5",
-            "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_6"
+            "us_marksman_squad_m110_equipped_longer_range_infantry__marksman",
+            "us_marksman_squad_m110_equipped_longer_range_infantry__marksman",
+            "us_marksman_squad_m110_equipped_longer_range_infantry__marksman",
+            "us_marksman_squad_m110_equipped_longer_range_infantry__grenadier",
+            "us_marksman_squad_m110_equipped_longer_range_infantry__rifleman",
+            "us_marksman_squad_m110_equipped_longer_range_infantry__rifleman"
           ]
         }
       },
@@ -26829,11 +29427,16 @@
       "mounts": [
         {
           "carriers": [
-            0
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
           ],
-          "id": "marksman_rifle_1",
+          "id": "rifles",
           "muzzle_m": null,
-          "name": "Marksman Rifle",
+          "name": "Rifle",
           "on": null,
           "pivot_m": [
             0.0,
@@ -26842,6 +29445,38 @@
           ],
           "special": false,
           "squad": true,
+          "turret": false,
+          "weapons": [
+            "rifle"
+          ]
+        },
+        {
+          "carriers": [
+            0
+          ],
+          "id": "marksman rifle",
+          "muzzle_m": null,
+          "name": "Marksman Rifle",
+          "on": null,
+          "operator_appearance": {
+            "active": [
+              "us_marksman_squad_m110_equipped_longer_range_infantry_active_a",
+              "us_marksman_squad_m110_equipped_longer_range_infantry_active_b",
+              "us_marksman_squad_m110_equipped_longer_range_infantry_active_c"
+            ],
+            "carried": [
+              "rifle_squad_active_a",
+              "rifle_squad_active_b",
+              "rifle_squad_active_c"
+            ]
+          },
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
           "turret": false,
           "weapons": [
             "marksman_rifle"
@@ -26851,17 +29486,29 @@
           "carriers": [
             1
           ],
-          "id": "marksman_rifle_2",
+          "id": "marksman rifle",
           "muzzle_m": null,
           "name": "Marksman Rifle",
           "on": null,
+          "operator_appearance": {
+            "active": [
+              "us_marksman_squad_m110_equipped_longer_range_infantry_active_a",
+              "us_marksman_squad_m110_equipped_longer_range_infantry_active_b",
+              "us_marksman_squad_m110_equipped_longer_range_infantry_active_c"
+            ],
+            "carried": [
+              "rifle_squad_active_a",
+              "rifle_squad_active_b",
+              "rifle_squad_active_c"
+            ]
+          },
           "pivot_m": [
             0.0,
             0.0,
             0.0
           ],
-          "special": false,
-          "squad": true,
+          "special": true,
+          "squad": false,
           "turret": false,
           "weapons": [
             "marksman_rifle"
@@ -26871,17 +29518,29 @@
           "carriers": [
             2
           ],
-          "id": "marksman_rifle_3",
+          "id": "marksman rifle",
           "muzzle_m": null,
           "name": "Marksman Rifle",
           "on": null,
+          "operator_appearance": {
+            "active": [
+              "us_marksman_squad_m110_equipped_longer_range_infantry_active_a",
+              "us_marksman_squad_m110_equipped_longer_range_infantry_active_b",
+              "us_marksman_squad_m110_equipped_longer_range_infantry_active_c"
+            ],
+            "carried": [
+              "rifle_squad_active_a",
+              "rifle_squad_active_b",
+              "rifle_squad_active_c"
+            ]
+          },
           "pivot_m": [
             0.0,
             0.0,
             0.0
           ],
-          "special": false,
-          "squad": true,
+          "special": true,
+          "squad": false,
           "turret": false,
           "weapons": [
             "marksman_rifle"
@@ -26891,60 +29550,20 @@
           "carriers": [
             3
           ],
-          "id": "marksman_rifle_4",
+          "id": "grenade launcher",
           "muzzle_m": null,
-          "name": "Marksman Rifle",
+          "name": "Grenade Launcher",
           "on": null,
           "pivot_m": [
             0.0,
             0.0,
             0.0
           ],
-          "special": false,
-          "squad": true,
+          "special": true,
+          "squad": false,
           "turret": false,
           "weapons": [
-            "marksman_rifle"
-          ]
-        },
-        {
-          "carriers": [
-            4
-          ],
-          "id": "marksman_rifle_5",
-          "muzzle_m": null,
-          "name": "Marksman Rifle",
-          "on": null,
-          "pivot_m": [
-            0.0,
-            0.0,
-            0.0
-          ],
-          "special": false,
-          "squad": true,
-          "turret": false,
-          "weapons": [
-            "marksman_rifle"
-          ]
-        },
-        {
-          "carriers": [
-            5
-          ],
-          "id": "marksman_rifle_6",
-          "muzzle_m": null,
-          "name": "Marksman Rifle",
-          "on": null,
-          "pivot_m": [
-            0.0,
-            0.0,
-            0.0
-          ],
-          "special": false,
-          "squad": true,
-          "turret": false,
-          "weapons": [
-            "marksman_rifle"
+            "grenade"
           ]
         }
       ],
@@ -26977,8 +29596,8 @@
       "body": {
         "squad": {
           "slots": [
-            "us_scout_snipers_m107_heavy_sniper_team__roster_heavy_sniper_1",
-            "us_scout_snipers_m107_heavy_sniper_team__roster_heavy_sniper_2"
+            "us_scout_snipers_m107_heavy_sniper_team__sniper",
+            "us_scout_snipers_m107_heavy_sniper_team__spotter"
           ]
         }
       },
@@ -26997,11 +29616,12 @@
       "mounts": [
         {
           "carriers": [
-            0
+            0,
+            1
           ],
-          "id": "heavy_sniper_1",
+          "id": "rifles",
           "muzzle_m": null,
-          "name": "Heavy Sniper",
+          "name": "Rifle",
           "on": null,
           "pivot_m": [
             0.0,
@@ -27012,24 +29632,36 @@
           "squad": true,
           "turret": false,
           "weapons": [
-            "heavy_sniper"
+            "rifle"
           ]
         },
         {
           "carriers": [
-            1
+            0
           ],
-          "id": "heavy_sniper_2",
+          "id": "sniper rifle",
           "muzzle_m": null,
           "name": "Heavy Sniper",
           "on": null,
+          "operator_appearance": {
+            "active": [
+              "us_scout_snipers_m107_heavy_sniper_team_active_a",
+              "us_scout_snipers_m107_heavy_sniper_team_active_b",
+              "us_scout_snipers_m107_heavy_sniper_team_active_c"
+            ],
+            "carried": [
+              "us_force_recon_recon_patrol_active_a",
+              "us_force_recon_recon_patrol_active_b",
+              "us_force_recon_recon_patrol_active_c"
+            ]
+          },
           "pivot_m": [
             0.0,
             0.0,
             0.0
           ],
-          "special": false,
-          "squad": true,
+          "special": true,
+          "squad": false,
           "turret": false,
           "weapons": [
             "heavy_sniper"
@@ -27629,48 +30261,6 @@
       "trajectory": "direct",
       "turn_deg_s": 360.0
     },
-    "assault_rifle": {
-      "accel_mps2": null,
-      "aim_s": 0.8,
-      "ammo": "unlimited",
-      "anti_armor": false,
-      "armor_fraction": 0.0,
-      "armor_piercing": false,
-      "blast_radius_m": 0.0,
-      "damage": 35.0,
-      "default": true,
-      "description": "An assault rifle: every soldier carries one.",
-      "gravity_scale": 0.09,
-      "icon": "rifle",
-      "interceptable": false,
-      "lifetime_s": null,
-      "magazine": {
-        "burst": {
-          "aim_max_s": 1.0,
-          "rounds": 3
-        },
-        "rounds": 30,
-        "shot_interval_s": 0.1
-      },
-      "min_range_m": 0.0,
-      "name": "Assault Rifle",
-      "near_miss_suppression": 0.025,
-      "penetration": 5.0,
-      "range_m": 240.0,
-      "reload_s": 0.0,
-      "scatter_mrad": 10.0,
-      "speed_mps": 800.0,
-      "stationary": false,
-      "structural_damage": 0.25,
-      "suppression_radius_m": 3.0,
-      "targets": [
-        "ground",
-        "low_air"
-      ],
-      "top_speed_mps": null,
-      "trajectory": "direct",
-      "turn_deg_s": null
-    },
     "atgm": {
       "accel_mps2": 140.0,
       "aim_s": 3.0,
@@ -27783,6 +30373,83 @@
       "trajectory": "direct",
       "turn_deg_s": 60.0
     },
+    "carbine": {
+      "accel_mps2": null,
+      "aim_s": 0.8,
+      "ammo": "unlimited",
+      "anti_armor": false,
+      "armor_fraction": 0.0,
+      "armor_piercing": false,
+      "blast_radius_m": 0.0,
+      "damage": 35.0,
+      "default": true,
+      "description": "A short rifle for close quarters: handier, less accurate at range.",
+      "gravity_scale": 0.09,
+      "icon": "rifle",
+      "interceptable": false,
+      "lifetime_s": null,
+      "magazine": {
+        "burst": {
+          "aim_max_s": 1.0,
+          "rounds": 3
+        },
+        "rounds": 30,
+        "shot_interval_s": 0.1
+      },
+      "min_range_m": 0.0,
+      "name": "Carbine",
+      "near_miss_suppression": 0.025,
+      "penetration": 5.0,
+      "range_m": 240.0,
+      "reload_s": 0.0,
+      "scatter_mrad": 10.0,
+      "speed_mps": 800.0,
+      "stationary": false,
+      "structural_damage": 0.25,
+      "suppression_radius_m": 3.0,
+      "targets": [
+        "ground",
+        "low_air"
+      ],
+      "top_speed_mps": null,
+      "trajectory": "direct",
+      "turn_deg_s": null
+    },
+    "fn_6": {
+      "accel_mps2": 400.0,
+      "aim_s": 2.0,
+      "ammo": 3,
+      "anti_armor": true,
+      "armor_fraction": 0.0,
+      "armor_piercing": false,
+      "blast_radius_m": 3.0,
+      "damage": 260.0,
+      "default": false,
+      "description": "A shoulder-fired missile that reaches only aircraft; the gunner keeps it in his sight.",
+      "gravity_scale": 1.0,
+      "guidance": "stationary",
+      "icon": "aa_missile",
+      "interceptable": false,
+      "lifetime_s": 6.0,
+      "magazine": null,
+      "min_range_m": 50.0,
+      "name": "FN-6",
+      "near_miss_suppression": 0.0,
+      "penetration": 300.0,
+      "range_m": 1500.0,
+      "reload_s": 8.0,
+      "scatter_mrad": 0.5,
+      "speed_mps": 100.0,
+      "stationary": true,
+      "structural_damage": 20.0,
+      "suppression_radius_m": 0.0,
+      "targets": [
+        "low_air"
+      ],
+      "top_speed_mps": 600.0,
+      "trajectory": "direct",
+      "turn_deg_s": 180.0
+    },
     "grenade": {
       "accel_mps2": null,
       "aim_s": 1.5,
@@ -27894,8 +30561,8 @@
       "armor_piercing": false,
       "blast_radius_m": 0.0,
       "damage": 100.0,
-      "default": true,
-      "description": "An assault rifle: every soldier carries one.",
+      "default": false,
+      "description": "A .50-calibre rifle: few, heavy, long shots.",
       "gravity_scale": 0.09,
       "icon": "sniper",
       "interceptable": false,
@@ -28065,6 +30732,41 @@
       "trajectory": "direct",
       "turn_deg_s": null
     },
+    "igla_s": {
+      "accel_mps2": 400.0,
+      "aim_s": 2.0,
+      "ammo": 3,
+      "anti_armor": true,
+      "armor_fraction": 0.0,
+      "armor_piercing": false,
+      "blast_radius_m": 3.0,
+      "damage": 260.0,
+      "default": false,
+      "description": "A shoulder-fired missile that reaches only aircraft; the gunner keeps it in his sight.",
+      "gravity_scale": 1.0,
+      "guidance": "stationary",
+      "icon": "aa_missile",
+      "interceptable": false,
+      "lifetime_s": 6.0,
+      "magazine": null,
+      "min_range_m": 50.0,
+      "name": "Igla-S",
+      "near_miss_suppression": 0.0,
+      "penetration": 300.0,
+      "range_m": 1500.0,
+      "reload_s": 8.0,
+      "scatter_mrad": 0.5,
+      "speed_mps": 100.0,
+      "stationary": true,
+      "structural_damage": 20.0,
+      "suppression_radius_m": 0.0,
+      "targets": [
+        "low_air"
+      ],
+      "top_speed_mps": 600.0,
+      "trajectory": "direct",
+      "turn_deg_s": 180.0
+    },
     "javelin": {
       "accel_mps2": 140.0,
       "aim_s": 3.0,
@@ -28207,6 +30909,48 @@
       "trajectory": "direct",
       "turn_deg_s": null
     },
+    "lmg": {
+      "accel_mps2": null,
+      "aim_s": 1.0,
+      "ammo": 600,
+      "anti_armor": false,
+      "armor_fraction": 0.0,
+      "armor_piercing": false,
+      "blast_radius_m": 0.0,
+      "damage": 30.0,
+      "default": false,
+      "description": "A light machine gun: long belts of fire that keep heads down.",
+      "gravity_scale": 0.09,
+      "icon": "lmg",
+      "interceptable": false,
+      "lifetime_s": null,
+      "magazine": {
+        "burst": {
+          "aim_max_s": 1.0,
+          "rounds": 6
+        },
+        "rounds": 100,
+        "shot_interval_s": 0.08
+      },
+      "min_range_m": 0.0,
+      "name": "LMG",
+      "near_miss_suppression": 0.05,
+      "penetration": 8.0,
+      "range_m": 400.0,
+      "reload_s": 6.0,
+      "scatter_mrad": 9.0,
+      "speed_mps": 800.0,
+      "stationary": false,
+      "structural_damage": 1.0,
+      "suppression_radius_m": 4.0,
+      "targets": [
+        "ground",
+        "low_air"
+      ],
+      "top_speed_mps": null,
+      "trajectory": "direct",
+      "turn_deg_s": null
+    },
     "marksman_rifle": {
       "accel_mps2": null,
       "aim_s": 2.0,
@@ -28216,8 +30960,8 @@
       "armor_piercing": false,
       "blast_radius_m": 0.0,
       "damage": 45.0,
-      "default": true,
-      "description": "An assault rifle: every soldier carries one.",
+      "default": false,
+      "description": "A designated marksman's scoped rifle: aimed single shots past rifle range.",
       "gravity_scale": 0.09,
       "icon": "sniper",
       "interceptable": false,
@@ -28256,7 +31000,7 @@
       "blast_radius_m": 0.0,
       "damage": 35.0,
       "default": true,
-      "description": "An assault rifle: every soldier carries one.",
+      "description": "The standard rifle every soldier carries.",
       "gravity_scale": 0.09,
       "icon": "rifle",
       "interceptable": false,
@@ -28394,6 +31138,87 @@
       "trajectory": "direct",
       "turn_deg_s": null
     },
+    "shotgun": {
+      "accel_mps2": null,
+      "aim_s": 0.8,
+      "ammo": "unlimited",
+      "anti_armor": false,
+      "armor_fraction": 0.0,
+      "armor_piercing": false,
+      "blast_radius_m": 0.0,
+      "damage": 70.0,
+      "default": true,
+      "description": "A pump shotgun: one heavy blast at a few metres, nothing at range.",
+      "gravity_scale": 0.09,
+      "icon": "shotgun",
+      "interceptable": false,
+      "lifetime_s": null,
+      "magazine": {
+        "burst": null,
+        "rounds": 8,
+        "shot_interval_s": 0.9
+      },
+      "min_range_m": 0.0,
+      "name": "Shotgun",
+      "near_miss_suppression": 0.025,
+      "penetration": 3.0,
+      "range_m": 60.0,
+      "reload_s": 0.0,
+      "scatter_mrad": 40.0,
+      "speed_mps": 800.0,
+      "stationary": false,
+      "structural_damage": 0.25,
+      "suppression_radius_m": 3.0,
+      "targets": [
+        "ground",
+        "low_air"
+      ],
+      "top_speed_mps": null,
+      "trajectory": "direct",
+      "turn_deg_s": null
+    },
+    "smg": {
+      "accel_mps2": null,
+      "aim_s": 0.8,
+      "ammo": "unlimited",
+      "anti_armor": false,
+      "armor_fraction": 0.0,
+      "armor_piercing": false,
+      "blast_radius_m": 0.0,
+      "damage": 25.0,
+      "default": true,
+      "description": "A submachine gun: fast, short bursts for rooms and streets.",
+      "gravity_scale": 0.09,
+      "icon": "smg",
+      "interceptable": false,
+      "lifetime_s": null,
+      "magazine": {
+        "burst": {
+          "aim_max_s": 1.0,
+          "rounds": 5
+        },
+        "rounds": 30,
+        "shot_interval_s": 0.07
+      },
+      "min_range_m": 0.0,
+      "name": "SMG",
+      "near_miss_suppression": 0.025,
+      "penetration": 3.0,
+      "range_m": 150.0,
+      "reload_s": 0.0,
+      "scatter_mrad": 16.0,
+      "speed_mps": 800.0,
+      "stationary": false,
+      "structural_damage": 0.25,
+      "suppression_radius_m": 3.0,
+      "targets": [
+        "ground",
+        "low_air"
+      ],
+      "top_speed_mps": null,
+      "trajectory": "direct",
+      "turn_deg_s": null
+    },
     "spike": {
       "accel_mps2": 140.0,
       "aim_s": 3.0,
@@ -28428,6 +31253,41 @@
       "top_speed_mps": 200.0,
       "trajectory": "direct",
       "turn_deg_s": 60.0
+    },
+    "stinger": {
+      "accel_mps2": 400.0,
+      "aim_s": 2.0,
+      "ammo": 3,
+      "anti_armor": true,
+      "armor_fraction": 0.0,
+      "armor_piercing": false,
+      "blast_radius_m": 3.0,
+      "damage": 260.0,
+      "default": false,
+      "description": "A shoulder-fired missile that reaches only aircraft; the gunner keeps it in his sight.",
+      "gravity_scale": 1.0,
+      "guidance": "stationary",
+      "icon": "aa_missile",
+      "interceptable": false,
+      "lifetime_s": 6.0,
+      "magazine": null,
+      "min_range_m": 50.0,
+      "name": "Stinger",
+      "near_miss_suppression": 0.0,
+      "penetration": 300.0,
+      "range_m": 1500.0,
+      "reload_s": 8.0,
+      "scatter_mrad": 0.5,
+      "speed_mps": 100.0,
+      "stationary": true,
+      "structural_damage": 20.0,
+      "suppression_radius_m": 0.0,
+      "targets": [
+        "low_air"
+      ],
+      "top_speed_mps": 600.0,
+      "trajectory": "direct",
+      "turn_deg_s": 180.0
     },
     "tank_ap": {
       "accel_mps2": null,

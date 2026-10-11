@@ -57,7 +57,9 @@
       "description": "FN-6",
       "faction": "eastern",
       "family": "air_defense_team",
-      "roles": [],
+      "roles": [
+        "air_defense"
+      ],
       "cost": 100,
       "roster": {
         "factions": [
@@ -67,15 +69,15 @@
         "variant": "FN-6",
         "family_name": "Air-Defense Team"
       },
-      "planned": {
-        "reason": "Air-defense targeting and airborne targets deferred",
-        "profile": "aa-team",
-        "weapons": [
-          {
-            "name": "MANPADS",
-            "icon": "aa_missile"
-          }
-        ]
+      "extends": "roster_profile_at_team",
+      "body": {
+        "squad": {
+          "slots": [
+            "eastern_air_defense_team_fn_6__gunner",
+            "eastern_air_defense_team_fn_6__rifleman",
+            "eastern_air_defense_team_fn_6__rifleman"
+          ]
+        }
       }
     },
     "eastern_air_defense_team_igla_s": {
@@ -83,7 +85,9 @@
       "description": "Igla-S",
       "faction": "eastern",
       "family": "air_defense_team",
-      "roles": [],
+      "roles": [
+        "air_defense"
+      ],
       "cost": 100,
       "roster": {
         "factions": [
@@ -93,15 +97,15 @@
         "variant": "Igla-S",
         "family_name": "Air-Defense Team"
       },
-      "planned": {
-        "reason": "Air-defense targeting and airborne targets deferred",
-        "profile": "aa-team",
-        "weapons": [
-          {
-            "name": "MANPADS",
-            "icon": "aa_missile"
-          }
-        ]
+      "extends": "roster_profile_at_team",
+      "body": {
+        "squad": {
+          "slots": [
+            "eastern_air_defense_team_igla_s__gunner",
+            "eastern_air_defense_team_igla_s__rifleman",
+            "eastern_air_defense_team_igla_s__rifleman"
+          ]
+        }
       }
     },
     "eastern_atgm_team_kornet": {
@@ -761,12 +765,12 @@
       "body": {
         "squad": {
           "slots": [
-            "eastern_marksman_squad_svd_equipped_longer_range_infantry__roster_marksman_rifle_1",
-            "eastern_marksman_squad_svd_equipped_longer_range_infantry__roster_marksman_rifle_2",
-            "eastern_marksman_squad_svd_equipped_longer_range_infantry__roster_marksman_rifle_3",
-            "eastern_marksman_squad_svd_equipped_longer_range_infantry__roster_marksman_rifle_4",
-            "eastern_marksman_squad_svd_equipped_longer_range_infantry__roster_marksman_rifle_5",
-            "eastern_marksman_squad_svd_equipped_longer_range_infantry__roster_marksman_rifle_6"
+            "eastern_marksman_squad_svd_equipped_longer_range_infantry__marksman",
+            "eastern_marksman_squad_svd_equipped_longer_range_infantry__marksman",
+            "eastern_marksman_squad_svd_equipped_longer_range_infantry__marksman",
+            "eastern_marksman_squad_svd_equipped_longer_range_infantry__grenadier",
+            "eastern_marksman_squad_svd_equipped_longer_range_infantry__rifleman",
+            "eastern_marksman_squad_svd_equipped_longer_range_infantry__rifleman"
           ]
         }
       }
@@ -1196,7 +1200,7 @@
       "body": {
         "squad": {
           "slots": [
-            "eastern_scouts_light_patrol__scout",
+            "eastern_scouts_light_patrol__marksman",
             "eastern_scouts_light_patrol__scout",
             "eastern_scouts_light_patrol__scout",
             "eastern_scouts_light_patrol__scout"
@@ -1225,8 +1229,8 @@
       "body": {
         "squad": {
           "slots": [
-            "eastern_sniper_team_asvk_heavy_sniper_team__roster_heavy_sniper_1",
-            "eastern_sniper_team_asvk_heavy_sniper_team__roster_heavy_sniper_2"
+            "eastern_sniper_team_asvk_heavy_sniper_team__sniper",
+            "eastern_sniper_team_asvk_heavy_sniper_team__spotter"
           ]
         }
       }

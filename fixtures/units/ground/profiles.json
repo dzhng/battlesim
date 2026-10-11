@@ -459,22 +459,6 @@
     }
   },
   "soldiers": {
-    "roster_assault_rifle": {
-      "abstract": true,
-      "extends": "roster_rifleman",
-      "name": "Assault Rifle",
-      "description": "Ground weapon profile; named equipment art pending.",
-      "mounts": [
-        {
-          "id": "rifles",
-          "name": "Assault Rifle",
-          "weapons": [
-            "assault_rifle"
-          ],
-          "squad": true
-        }
-      ]
-    },
     "roster_tow_gunner": {
       "abstract": true,
       "extends": "roster_at_rifleman",
@@ -619,139 +603,69 @@
         }
       ]
     },
-    "roster_marksman_rifle_body": {
+    "roster_stinger_gunner": {
       "abstract": true,
-      "hp": 100
-    },
-    "roster_marksman_rifle_1": {
-      "abstract": true,
-      "extends": "roster_marksman_rifle_body",
-      "name": "Marksman Rifle",
-      "description": "One finite physical gun; named equipment appearance pending.",
+      "extends": "roster_rifleman",
+      "name": "Stinger gunner",
+      "description": "A rifleman who carries the team's shoulder-fired air-defence missile.",
       "mounts": [
         {
-          "id": "marksman_rifle_1",
-          "name": "Marksman Rifle",
+          "id": "launcher",
+          "name": "Stinger",
           "weapons": [
-            "marksman_rifle"
+            "stinger"
           ],
-          "squad": true
+          "special": true,
+          "operator_appearance": {
+            "active_pose": {
+              "clip": "stand_aim",
+              "phase": 0
+            }
+          }
         }
       ]
     },
-    "roster_marksman_rifle_2": {
+    "roster_igla_s_gunner": {
       "abstract": true,
-      "extends": "roster_marksman_rifle_body",
-      "name": "Marksman Rifle",
-      "description": "One finite physical gun; named equipment appearance pending.",
+      "extends": "roster_rifleman",
+      "name": "Igla-S gunner",
+      "description": "A rifleman who carries the team's shoulder-fired air-defence missile.",
       "mounts": [
         {
-          "id": "marksman_rifle_2",
-          "name": "Marksman Rifle",
+          "id": "launcher",
+          "name": "Igla-S",
           "weapons": [
-            "marksman_rifle"
+            "igla_s"
           ],
-          "squad": true
+          "special": true,
+          "operator_appearance": {
+            "active_pose": {
+              "clip": "stand_aim",
+              "phase": 0
+            }
+          }
         }
       ]
     },
-    "roster_marksman_rifle_3": {
+    "roster_fn_6_gunner": {
       "abstract": true,
-      "extends": "roster_marksman_rifle_body",
-      "name": "Marksman Rifle",
-      "description": "One finite physical gun; named equipment appearance pending.",
+      "extends": "roster_rifleman",
+      "name": "FN-6 gunner",
+      "description": "A rifleman who carries the team's shoulder-fired air-defence missile.",
       "mounts": [
         {
-          "id": "marksman_rifle_3",
-          "name": "Marksman Rifle",
+          "id": "launcher",
+          "name": "FN-6",
           "weapons": [
-            "marksman_rifle"
+            "fn_6"
           ],
-          "squad": true
-        }
-      ]
-    },
-    "roster_marksman_rifle_4": {
-      "abstract": true,
-      "extends": "roster_marksman_rifle_body",
-      "name": "Marksman Rifle",
-      "description": "One finite physical gun; named equipment appearance pending.",
-      "mounts": [
-        {
-          "id": "marksman_rifle_4",
-          "name": "Marksman Rifle",
-          "weapons": [
-            "marksman_rifle"
-          ],
-          "squad": true
-        }
-      ]
-    },
-    "roster_marksman_rifle_5": {
-      "abstract": true,
-      "extends": "roster_marksman_rifle_body",
-      "name": "Marksman Rifle",
-      "description": "One finite physical gun; named equipment appearance pending.",
-      "mounts": [
-        {
-          "id": "marksman_rifle_5",
-          "name": "Marksman Rifle",
-          "weapons": [
-            "marksman_rifle"
-          ],
-          "squad": true
-        }
-      ]
-    },
-    "roster_marksman_rifle_6": {
-      "abstract": true,
-      "extends": "roster_marksman_rifle_body",
-      "name": "Marksman Rifle",
-      "description": "One finite physical gun; named equipment appearance pending.",
-      "mounts": [
-        {
-          "id": "marksman_rifle_6",
-          "name": "Marksman Rifle",
-          "weapons": [
-            "marksman_rifle"
-          ],
-          "squad": true
-        }
-      ]
-    },
-    "roster_heavy_sniper_body": {
-      "abstract": true,
-      "hp": 100
-    },
-    "roster_heavy_sniper_1": {
-      "abstract": true,
-      "extends": "roster_heavy_sniper_body",
-      "name": "Heavy Sniper",
-      "description": "One finite physical gun; named equipment appearance pending.",
-      "mounts": [
-        {
-          "id": "heavy_sniper_1",
-          "name": "Heavy Sniper",
-          "weapons": [
-            "heavy_sniper"
-          ],
-          "squad": true
-        }
-      ]
-    },
-    "roster_heavy_sniper_2": {
-      "abstract": true,
-      "extends": "roster_heavy_sniper_body",
-      "name": "Heavy Sniper",
-      "description": "One finite physical gun; named equipment appearance pending.",
-      "mounts": [
-        {
-          "id": "heavy_sniper_2",
-          "name": "Heavy Sniper",
-          "weapons": [
-            "heavy_sniper"
-          ],
-          "squad": true
+          "special": true,
+          "operator_appearance": {
+            "active_pose": {
+              "clip": "stand_aim",
+              "phase": 0
+            }
+          }
         }
       ]
     }

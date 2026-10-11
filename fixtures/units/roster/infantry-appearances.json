@@ -33,54 +33,6 @@
         "eastern_atgm_team_kornet_guard_c"
       ]
     },
-    "eastern_marksman_squad_svd_equipped_longer_range_infantry__roster_marksman_rifle_1": {
-      "extends": "roster_marksman_rifle_1",
-      "appearance": [
-        "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_a",
-        "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_b",
-        "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_c"
-      ]
-    },
-    "eastern_marksman_squad_svd_equipped_longer_range_infantry__roster_marksman_rifle_2": {
-      "extends": "roster_marksman_rifle_2",
-      "appearance": [
-        "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_a",
-        "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_b",
-        "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_c"
-      ]
-    },
-    "eastern_marksman_squad_svd_equipped_longer_range_infantry__roster_marksman_rifle_3": {
-      "extends": "roster_marksman_rifle_3",
-      "appearance": [
-        "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_a",
-        "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_b",
-        "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_c"
-      ]
-    },
-    "eastern_marksman_squad_svd_equipped_longer_range_infantry__roster_marksman_rifle_4": {
-      "extends": "roster_marksman_rifle_4",
-      "appearance": [
-        "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_a",
-        "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_b",
-        "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_c"
-      ]
-    },
-    "eastern_marksman_squad_svd_equipped_longer_range_infantry__roster_marksman_rifle_5": {
-      "extends": "roster_marksman_rifle_5",
-      "appearance": [
-        "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_a",
-        "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_b",
-        "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_c"
-      ]
-    },
-    "eastern_marksman_squad_svd_equipped_longer_range_infantry__roster_marksman_rifle_6": {
-      "extends": "roster_marksman_rifle_6",
-      "appearance": [
-        "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_a",
-        "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_b",
-        "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_c"
-      ]
-    },
     "eastern_rpg_team_rpg_29__roster_rpg_heavy_gunner": {
       "extends": "roster_rpg_heavy_gunner",
       "appearance": [
@@ -155,22 +107,6 @@
         "eastern_scouts_light_patrol_active_c"
       ]
     },
-    "eastern_sniper_team_asvk_heavy_sniper_team__roster_heavy_sniper_1": {
-      "extends": "roster_heavy_sniper_1",
-      "appearance": [
-        "eastern_sniper_team_asvk_heavy_sniper_team_active_a",
-        "eastern_sniper_team_asvk_heavy_sniper_team_active_b",
-        "eastern_sniper_team_asvk_heavy_sniper_team_active_c"
-      ]
-    },
-    "eastern_sniper_team_asvk_heavy_sniper_team__roster_heavy_sniper_2": {
-      "extends": "roster_heavy_sniper_2",
-      "appearance": [
-        "eastern_sniper_team_asvk_heavy_sniper_team_active_a",
-        "eastern_sniper_team_asvk_heavy_sniper_team_active_b",
-        "eastern_sniper_team_asvk_heavy_sniper_team_active_c"
-      ]
-    },
     "us_army_scouts_light_patrol__scout": {
       "extends": "roster_scout",
       "appearance": [
@@ -226,86 +162,6 @@
         "us_force_recon_recon_patrol_active_a",
         "us_force_recon_recon_patrol_active_b",
         "us_force_recon_recon_patrol_active_c"
-      ]
-    },
-    "us_marine_squad_close_quarters_infantry__roster_assault_rifle": {
-      "extends": "roster_assault_rifle",
-      "appearance": [
-        "us_marine_squad_close_quarters_infantry_active_a",
-        "us_marine_squad_close_quarters_infantry_active_b",
-        "us_marine_squad_close_quarters_infantry_active_c"
-      ]
-    },
-    "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_1": {
-      "extends": "roster_marksman_rifle_1",
-      "appearance": [
-        "us_marksman_squad_m110_equipped_longer_range_infantry_active_a",
-        "us_marksman_squad_m110_equipped_longer_range_infantry_active_b",
-        "us_marksman_squad_m110_equipped_longer_range_infantry_active_c"
-      ]
-    },
-    "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_2": {
-      "extends": "roster_marksman_rifle_2",
-      "appearance": [
-        "us_marksman_squad_m110_equipped_longer_range_infantry_active_a",
-        "us_marksman_squad_m110_equipped_longer_range_infantry_active_b",
-        "us_marksman_squad_m110_equipped_longer_range_infantry_active_c"
-      ]
-    },
-    "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_3": {
-      "extends": "roster_marksman_rifle_3",
-      "appearance": [
-        "us_marksman_squad_m110_equipped_longer_range_infantry_active_a",
-        "us_marksman_squad_m110_equipped_longer_range_infantry_active_b",
-        "us_marksman_squad_m110_equipped_longer_range_infantry_active_c"
-      ]
-    },
-    "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_4": {
-      "extends": "roster_marksman_rifle_4",
-      "appearance": [
-        "us_marksman_squad_m110_equipped_longer_range_infantry_active_a",
-        "us_marksman_squad_m110_equipped_longer_range_infantry_active_b",
-        "us_marksman_squad_m110_equipped_longer_range_infantry_active_c"
-      ]
-    },
-    "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_5": {
-      "extends": "roster_marksman_rifle_5",
-      "appearance": [
-        "us_marksman_squad_m110_equipped_longer_range_infantry_active_a",
-        "us_marksman_squad_m110_equipped_longer_range_infantry_active_b",
-        "us_marksman_squad_m110_equipped_longer_range_infantry_active_c"
-      ]
-    },
-    "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_6": {
-      "extends": "roster_marksman_rifle_6",
-      "appearance": [
-        "us_marksman_squad_m110_equipped_longer_range_infantry_active_a",
-        "us_marksman_squad_m110_equipped_longer_range_infantry_active_b",
-        "us_marksman_squad_m110_equipped_longer_range_infantry_active_c"
-      ]
-    },
-    "us_scout_snipers_m107_heavy_sniper_team__roster_heavy_sniper_1": {
-      "extends": "roster_heavy_sniper_1",
-      "appearance": [
-        "us_scout_snipers_m107_heavy_sniper_team_active_a",
-        "us_scout_snipers_m107_heavy_sniper_team_active_b",
-        "us_scout_snipers_m107_heavy_sniper_team_active_c"
-      ]
-    },
-    "us_scout_snipers_m107_heavy_sniper_team__roster_heavy_sniper_2": {
-      "extends": "roster_heavy_sniper_2",
-      "appearance": [
-        "us_scout_snipers_m107_heavy_sniper_team_active_a",
-        "us_scout_snipers_m107_heavy_sniper_team_active_b",
-        "us_scout_snipers_m107_heavy_sniper_team_active_c"
-      ]
-    },
-    "assault_squad__roster_assault_rifle": {
-      "extends": "roster_assault_rifle",
-      "appearance": [
-        "assault_squad_active_a",
-        "assault_squad_active_b",
-        "assault_squad_active_c"
       ]
     },
     "rifle_squad__grenadier": {
@@ -390,60 +246,582 @@
         "europe_atgm_team_akeron_mp_guard_c"
       ]
     },
-    "europe_marksman_squad_longer_range_infantry__roster_marksman_rifle_1": {
-      "extends": "roster_marksman_rifle_1",
-      "appearance": [
-        "europe_marksman_squad_longer_range_infantry_active_a",
-        "europe_marksman_squad_longer_range_infantry_active_b",
-        "europe_marksman_squad_longer_range_infantry_active_c"
-      ]
-    },
-    "europe_marksman_squad_longer_range_infantry__roster_marksman_rifle_2": {
-      "extends": "roster_marksman_rifle_2",
-      "appearance": [
-        "europe_marksman_squad_longer_range_infantry_active_a",
-        "europe_marksman_squad_longer_range_infantry_active_b",
-        "europe_marksman_squad_longer_range_infantry_active_c"
-      ]
-    },
-    "europe_marksman_squad_longer_range_infantry__roster_marksman_rifle_3": {
-      "extends": "roster_marksman_rifle_3",
-      "appearance": [
-        "europe_marksman_squad_longer_range_infantry_active_a",
-        "europe_marksman_squad_longer_range_infantry_active_b",
-        "europe_marksman_squad_longer_range_infantry_active_c"
-      ]
-    },
-    "europe_marksman_squad_longer_range_infantry__roster_marksman_rifle_4": {
-      "extends": "roster_marksman_rifle_4",
-      "appearance": [
-        "europe_marksman_squad_longer_range_infantry_active_a",
-        "europe_marksman_squad_longer_range_infantry_active_b",
-        "europe_marksman_squad_longer_range_infantry_active_c"
-      ]
-    },
-    "europe_marksman_squad_longer_range_infantry__roster_marksman_rifle_5": {
-      "extends": "roster_marksman_rifle_5",
-      "appearance": [
-        "europe_marksman_squad_longer_range_infantry_active_a",
-        "europe_marksman_squad_longer_range_infantry_active_b",
-        "europe_marksman_squad_longer_range_infantry_active_c"
-      ]
-    },
-    "europe_marksman_squad_longer_range_infantry__roster_marksman_rifle_6": {
-      "extends": "roster_marksman_rifle_6",
-      "appearance": [
-        "europe_marksman_squad_longer_range_infantry_active_a",
-        "europe_marksman_squad_longer_range_infantry_active_b",
-        "europe_marksman_squad_longer_range_infantry_active_c"
-      ]
-    },
     "europe_recon_patrol_light_patrol__scout": {
       "extends": "roster_scout",
       "appearance": [
         "europe_recon_patrol_light_patrol_active_a",
         "europe_recon_patrol_light_patrol_active_b",
         "europe_recon_patrol_light_patrol_active_c"
+      ]
+    },
+    "rifle_squad__machine_gunner": {
+      "extends": "roster_machine_gunner",
+      "appearance": [
+        "rifle_squad_active_a",
+        "rifle_squad_active_b",
+        "rifle_squad_active_c"
+      ],
+      "mounts": [
+        {
+          "id": "machine gun",
+          "operator_appearance": {
+            "active": [
+              "machine_gunner_active_a",
+              "machine_gunner_active_b",
+              "machine_gunner_active_c"
+            ],
+            "carried": [
+              "rifle_squad_active_a",
+              "rifle_squad_active_b",
+              "rifle_squad_active_c"
+            ]
+          }
+        }
+      ]
+    },
+    "rifle_squad__marksman": {
+      "extends": "roster_marksman",
+      "appearance": [
+        "rifle_squad_active_a",
+        "rifle_squad_active_b",
+        "rifle_squad_active_c"
+      ],
+      "mounts": [
+        {
+          "id": "marksman rifle",
+          "operator_appearance": {
+            "active": [
+              "marksman_active_a",
+              "marksman_active_b",
+              "marksman_active_c"
+            ],
+            "carried": [
+              "rifle_squad_active_a",
+              "rifle_squad_active_b",
+              "rifle_squad_active_c"
+            ]
+          }
+        }
+      ]
+    },
+    "assault_squad__grenadier": {
+      "extends": "roster_carbine_grenadier",
+      "appearance": [
+        "assault_squad_active_a",
+        "assault_squad_active_b",
+        "assault_squad_active_c"
+      ]
+    },
+    "assault_squad__machine_gunner": {
+      "extends": "roster_carbine_machine_gunner",
+      "appearance": [
+        "assault_squad_active_a",
+        "assault_squad_active_b",
+        "assault_squad_active_c"
+      ],
+      "mounts": [
+        {
+          "id": "machine gun",
+          "operator_appearance": {
+            "active": [
+              "machine_gunner_active_a",
+              "machine_gunner_active_b",
+              "machine_gunner_active_c"
+            ],
+            "carried": [
+              "assault_squad_active_a",
+              "assault_squad_active_b",
+              "assault_squad_active_c"
+            ]
+          }
+        }
+      ]
+    },
+    "assault_squad__marksman": {
+      "extends": "roster_carbine_marksman",
+      "appearance": [
+        "assault_squad_active_a",
+        "assault_squad_active_b",
+        "assault_squad_active_c"
+      ],
+      "mounts": [
+        {
+          "id": "marksman rifle",
+          "operator_appearance": {
+            "active": [
+              "marksman_active_a",
+              "marksman_active_b",
+              "marksman_active_c"
+            ],
+            "carried": [
+              "assault_squad_active_a",
+              "assault_squad_active_b",
+              "assault_squad_active_c"
+            ]
+          }
+        }
+      ]
+    },
+    "assault_squad__rifleman": {
+      "extends": "roster_carbineer",
+      "appearance": [
+        "assault_squad_active_a",
+        "assault_squad_active_b",
+        "assault_squad_active_c"
+      ]
+    },
+    "us_marine_squad_close_quarters_infantry__grenadier": {
+      "extends": "roster_carbine_grenadier",
+      "appearance": [
+        "us_marine_squad_close_quarters_infantry_active_a",
+        "us_marine_squad_close_quarters_infantry_active_b",
+        "us_marine_squad_close_quarters_infantry_active_c"
+      ]
+    },
+    "us_marine_squad_close_quarters_infantry__machine_gunner": {
+      "extends": "roster_carbine_machine_gunner",
+      "appearance": [
+        "us_marine_squad_close_quarters_infantry_active_a",
+        "us_marine_squad_close_quarters_infantry_active_b",
+        "us_marine_squad_close_quarters_infantry_active_c"
+      ],
+      "mounts": [
+        {
+          "id": "machine gun",
+          "operator_appearance": {
+            "active": [
+              "us_marine_machine_gunner_active_a",
+              "us_marine_machine_gunner_active_b",
+              "us_marine_machine_gunner_active_c"
+            ],
+            "carried": [
+              "us_marine_squad_close_quarters_infantry_active_a",
+              "us_marine_squad_close_quarters_infantry_active_b",
+              "us_marine_squad_close_quarters_infantry_active_c"
+            ]
+          }
+        }
+      ]
+    },
+    "us_marine_squad_close_quarters_infantry__marksman": {
+      "extends": "roster_carbine_marksman",
+      "appearance": [
+        "us_marine_squad_close_quarters_infantry_active_a",
+        "us_marine_squad_close_quarters_infantry_active_b",
+        "us_marine_squad_close_quarters_infantry_active_c"
+      ],
+      "mounts": [
+        {
+          "id": "marksman rifle",
+          "operator_appearance": {
+            "active": [
+              "us_marine_marksman_active_a",
+              "us_marine_marksman_active_b",
+              "us_marine_marksman_active_c"
+            ],
+            "carried": [
+              "us_marine_squad_close_quarters_infantry_active_a",
+              "us_marine_squad_close_quarters_infantry_active_b",
+              "us_marine_squad_close_quarters_infantry_active_c"
+            ]
+          }
+        }
+      ]
+    },
+    "us_marine_squad_close_quarters_infantry__rifleman": {
+      "extends": "roster_carbineer",
+      "appearance": [
+        "us_marine_squad_close_quarters_infantry_active_a",
+        "us_marine_squad_close_quarters_infantry_active_b",
+        "us_marine_squad_close_quarters_infantry_active_c"
+      ]
+    },
+    "us_marksman_squad_m110_equipped_longer_range_infantry__marksman": {
+      "extends": "roster_marksman",
+      "appearance": [
+        "rifle_squad_active_a",
+        "rifle_squad_active_b",
+        "rifle_squad_active_c"
+      ],
+      "mounts": [
+        {
+          "id": "marksman rifle",
+          "operator_appearance": {
+            "active": [
+              "us_marksman_squad_m110_equipped_longer_range_infantry_active_a",
+              "us_marksman_squad_m110_equipped_longer_range_infantry_active_b",
+              "us_marksman_squad_m110_equipped_longer_range_infantry_active_c"
+            ],
+            "carried": [
+              "rifle_squad_active_a",
+              "rifle_squad_active_b",
+              "rifle_squad_active_c"
+            ]
+          }
+        }
+      ]
+    },
+    "us_marksman_squad_m110_equipped_longer_range_infantry__grenadier": {
+      "extends": "roster_grenadier",
+      "appearance": [
+        "rifle_squad_active_a",
+        "rifle_squad_active_b",
+        "rifle_squad_active_c"
+      ]
+    },
+    "us_marksman_squad_m110_equipped_longer_range_infantry__rifleman": {
+      "extends": "roster_rifleman",
+      "appearance": [
+        "rifle_squad_active_a",
+        "rifle_squad_active_b",
+        "rifle_squad_active_c"
+      ]
+    },
+    "eastern_marksman_squad_svd_equipped_longer_range_infantry__marksman": {
+      "extends": "roster_marksman",
+      "appearance": [
+        "rifle_squad_active_a",
+        "rifle_squad_active_b",
+        "rifle_squad_active_c"
+      ],
+      "mounts": [
+        {
+          "id": "marksman rifle",
+          "operator_appearance": {
+            "active": [
+              "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_a",
+              "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_b",
+              "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_c"
+            ],
+            "carried": [
+              "rifle_squad_active_a",
+              "rifle_squad_active_b",
+              "rifle_squad_active_c"
+            ]
+          }
+        }
+      ]
+    },
+    "eastern_marksman_squad_svd_equipped_longer_range_infantry__grenadier": {
+      "extends": "roster_grenadier",
+      "appearance": [
+        "rifle_squad_active_a",
+        "rifle_squad_active_b",
+        "rifle_squad_active_c"
+      ]
+    },
+    "eastern_marksman_squad_svd_equipped_longer_range_infantry__rifleman": {
+      "extends": "roster_rifleman",
+      "appearance": [
+        "rifle_squad_active_a",
+        "rifle_squad_active_b",
+        "rifle_squad_active_c"
+      ]
+    },
+    "europe_marksman_squad_longer_range_infantry__marksman": {
+      "extends": "roster_marksman",
+      "appearance": [
+        "rifle_squad_active_a",
+        "rifle_squad_active_b",
+        "rifle_squad_active_c"
+      ],
+      "mounts": [
+        {
+          "id": "marksman rifle",
+          "operator_appearance": {
+            "active": [
+              "europe_marksman_squad_longer_range_infantry_active_a",
+              "europe_marksman_squad_longer_range_infantry_active_b",
+              "europe_marksman_squad_longer_range_infantry_active_c"
+            ],
+            "carried": [
+              "rifle_squad_active_a",
+              "rifle_squad_active_b",
+              "rifle_squad_active_c"
+            ]
+          }
+        }
+      ]
+    },
+    "europe_marksman_squad_longer_range_infantry__grenadier": {
+      "extends": "roster_grenadier",
+      "appearance": [
+        "rifle_squad_active_a",
+        "rifle_squad_active_b",
+        "rifle_squad_active_c"
+      ]
+    },
+    "europe_marksman_squad_longer_range_infantry__rifleman": {
+      "extends": "roster_rifleman",
+      "appearance": [
+        "rifle_squad_active_a",
+        "rifle_squad_active_b",
+        "rifle_squad_active_c"
+      ]
+    },
+    "us_scout_snipers_m107_heavy_sniper_team__sniper": {
+      "extends": "roster_sniper",
+      "appearance": [
+        "us_force_recon_recon_patrol_active_a",
+        "us_force_recon_recon_patrol_active_b",
+        "us_force_recon_recon_patrol_active_c"
+      ],
+      "mounts": [
+        {
+          "id": "sniper rifle",
+          "operator_appearance": {
+            "active": [
+              "us_scout_snipers_m107_heavy_sniper_team_active_a",
+              "us_scout_snipers_m107_heavy_sniper_team_active_b",
+              "us_scout_snipers_m107_heavy_sniper_team_active_c"
+            ],
+            "carried": [
+              "us_force_recon_recon_patrol_active_a",
+              "us_force_recon_recon_patrol_active_b",
+              "us_force_recon_recon_patrol_active_c"
+            ]
+          }
+        }
+      ]
+    },
+    "us_scout_snipers_m107_heavy_sniper_team__spotter": {
+      "extends": "roster_spotter",
+      "appearance": [
+        "us_force_recon_recon_patrol_active_a",
+        "us_force_recon_recon_patrol_active_b",
+        "us_force_recon_recon_patrol_active_c"
+      ]
+    },
+    "eastern_sniper_team_asvk_heavy_sniper_team__sniper": {
+      "extends": "roster_sniper",
+      "appearance": [
+        "eastern_scouts_light_patrol_active_a",
+        "eastern_scouts_light_patrol_active_b",
+        "eastern_scouts_light_patrol_active_c"
+      ],
+      "mounts": [
+        {
+          "id": "sniper rifle",
+          "operator_appearance": {
+            "active": [
+              "eastern_sniper_team_asvk_heavy_sniper_team_active_a",
+              "eastern_sniper_team_asvk_heavy_sniper_team_active_b",
+              "eastern_sniper_team_asvk_heavy_sniper_team_active_c"
+            ],
+            "carried": [
+              "eastern_scouts_light_patrol_active_a",
+              "eastern_scouts_light_patrol_active_b",
+              "eastern_scouts_light_patrol_active_c"
+            ]
+          }
+        }
+      ]
+    },
+    "eastern_sniper_team_asvk_heavy_sniper_team__spotter": {
+      "extends": "roster_spotter",
+      "appearance": [
+        "eastern_scouts_light_patrol_active_a",
+        "eastern_scouts_light_patrol_active_b",
+        "eastern_scouts_light_patrol_active_c"
+      ]
+    },
+    "us_army_scouts_light_patrol__marksman": {
+      "extends": "roster_marksman",
+      "appearance": [
+        "us_army_scouts_light_patrol_active_a",
+        "us_army_scouts_light_patrol_active_b",
+        "us_army_scouts_light_patrol_active_c"
+      ],
+      "mounts": [
+        {
+          "id": "marksman rifle",
+          "operator_appearance": {
+            "active": [
+              "marksman_active_a",
+              "marksman_active_b",
+              "marksman_active_c"
+            ],
+            "carried": [
+              "us_army_scouts_light_patrol_active_a",
+              "us_army_scouts_light_patrol_active_b",
+              "us_army_scouts_light_patrol_active_c"
+            ]
+          }
+        }
+      ]
+    },
+    "eastern_scouts_light_patrol__marksman": {
+      "extends": "roster_marksman",
+      "appearance": [
+        "eastern_scouts_light_patrol_active_a",
+        "eastern_scouts_light_patrol_active_b",
+        "eastern_scouts_light_patrol_active_c"
+      ],
+      "mounts": [
+        {
+          "id": "marksman rifle",
+          "operator_appearance": {
+            "active": [
+              "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_a",
+              "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_b",
+              "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_c"
+            ],
+            "carried": [
+              "eastern_scouts_light_patrol_active_a",
+              "eastern_scouts_light_patrol_active_b",
+              "eastern_scouts_light_patrol_active_c"
+            ]
+          }
+        }
+      ]
+    },
+    "europe_recon_patrol_light_patrol__marksman": {
+      "extends": "roster_marksman",
+      "appearance": [
+        "europe_recon_patrol_light_patrol_active_a",
+        "europe_recon_patrol_light_patrol_active_b",
+        "europe_recon_patrol_light_patrol_active_c"
+      ],
+      "mounts": [
+        {
+          "id": "marksman rifle",
+          "operator_appearance": {
+            "active": [
+              "europe_marksman_squad_longer_range_infantry_active_a",
+              "europe_marksman_squad_longer_range_infantry_active_b",
+              "europe_marksman_squad_longer_range_infantry_active_c"
+            ],
+            "carried": [
+              "europe_recon_patrol_light_patrol_active_a",
+              "europe_recon_patrol_light_patrol_active_b",
+              "europe_recon_patrol_light_patrol_active_c"
+            ]
+          }
+        }
+      ]
+    },
+    "us_force_recon_recon_patrol__marksman": {
+      "extends": "roster_marksman",
+      "appearance": [
+        "us_force_recon_recon_patrol_active_a",
+        "us_force_recon_recon_patrol_active_b",
+        "us_force_recon_recon_patrol_active_c"
+      ],
+      "mounts": [
+        {
+          "id": "marksman rifle",
+          "operator_appearance": {
+            "active": [
+              "us_marine_marksman_active_a",
+              "us_marine_marksman_active_b",
+              "us_marine_marksman_active_c"
+            ],
+            "carried": [
+              "us_force_recon_recon_patrol_active_a",
+              "us_force_recon_recon_patrol_active_b",
+              "us_force_recon_recon_patrol_active_c"
+            ]
+          }
+        }
+      ]
+    },
+    "fim_92_stinger_team__gunner": {
+      "extends": "roster_stinger_gunner",
+      "appearance": [
+        "fgm_148_javelin_team_guard_a",
+        "fgm_148_javelin_team_guard_b",
+        "fgm_148_javelin_team_guard_c"
+      ],
+      "mounts": [
+        {
+          "id": "launcher",
+          "operator_appearance": {
+            "active": [
+              "fim_92_stinger_team_active_a",
+              "fim_92_stinger_team_active_b",
+              "fim_92_stinger_team_active_c"
+            ],
+            "carried": [
+              "fim_92_stinger_team_carried_a",
+              "fim_92_stinger_team_carried_b",
+              "fim_92_stinger_team_carried_c"
+            ]
+          }
+        }
+      ]
+    },
+    "fim_92_stinger_team__rifleman": {
+      "extends": "roster_rifleman",
+      "appearance": [
+        "fgm_148_javelin_team_guard_a",
+        "fgm_148_javelin_team_guard_b",
+        "fgm_148_javelin_team_guard_c"
+      ]
+    },
+    "eastern_air_defense_team_igla_s__gunner": {
+      "extends": "roster_igla_s_gunner",
+      "appearance": [
+        "eastern_atgm_team_kornet_guard_a",
+        "eastern_atgm_team_kornet_guard_b",
+        "eastern_atgm_team_kornet_guard_c"
+      ],
+      "mounts": [
+        {
+          "id": "launcher",
+          "operator_appearance": {
+            "active": [
+              "eastern_air_defense_team_igla_s_active_a",
+              "eastern_air_defense_team_igla_s_active_b",
+              "eastern_air_defense_team_igla_s_active_c"
+            ],
+            "carried": [
+              "eastern_air_defense_team_igla_s_carried_a",
+              "eastern_air_defense_team_igla_s_carried_b",
+              "eastern_air_defense_team_igla_s_carried_c"
+            ]
+          }
+        }
+      ]
+    },
+    "eastern_air_defense_team_igla_s__rifleman": {
+      "extends": "roster_rifleman",
+      "appearance": [
+        "eastern_atgm_team_kornet_guard_a",
+        "eastern_atgm_team_kornet_guard_b",
+        "eastern_atgm_team_kornet_guard_c"
+      ]
+    },
+    "eastern_air_defense_team_fn_6__gunner": {
+      "extends": "roster_fn_6_gunner",
+      "appearance": [
+        "eastern_atgm_team_kornet_guard_a",
+        "eastern_atgm_team_kornet_guard_b",
+        "eastern_atgm_team_kornet_guard_c"
+      ],
+      "mounts": [
+        {
+          "id": "launcher",
+          "operator_appearance": {
+            "active": [
+              "eastern_air_defense_team_fn_6_active_a",
+              "eastern_air_defense_team_fn_6_active_b",
+              "eastern_air_defense_team_fn_6_active_c"
+            ],
+            "carried": [
+              "eastern_air_defense_team_fn_6_carried_a",
+              "eastern_air_defense_team_fn_6_carried_b",
+              "eastern_air_defense_team_fn_6_carried_c"
+            ]
+          }
+        }
+      ]
+    },
+    "eastern_air_defense_team_fn_6__rifleman": {
+      "extends": "roster_rifleman",
+      "appearance": [
+        "eastern_atgm_team_kornet_guard_a",
+        "eastern_atgm_team_kornet_guard_b",
+        "eastern_atgm_team_kornet_guard_c"
       ]
     }
   }

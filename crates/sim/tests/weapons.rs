@@ -836,8 +836,10 @@ fn a_default_gun_with_a_finite_supply_keeps_it_for_what_it_can_hurt() {
     let mut rules = rules();
     rules["weapons"]["rifle"]["ammo"] = json!(200);
     rules["service"]["round_costs"]["rifle"] = json!(1);
-    // The assault row inherits this finite supply and needs the same service admission.
-    rules["service"]["round_costs"]["assault_rifle"] = json!(1);
+    // The other squad guns inherit this finite supply and need the same service admission.
+    for row in ["carbine", "smg", "shotgun"] {
+        rules["service"]["round_costs"][row] = json!(1);
+    }
     let map: Value = serde_json::from_str(&map(json!([]))).unwrap();
     let setup = serde_json::from_value(json!({
         "map": map,
