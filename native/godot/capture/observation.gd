@@ -44,6 +44,8 @@ const READS := {
 	"fallenBodies": {"fields": ["propLo", "propHi", "x", "y", "towardX", "towardY", "tick"], "sections": {}},
 	"pendingPurchases": {"fields": ["idLo", "idHi", "kind", "x", "y", "confirmedLo", "confirmedHi", "blocked"], "sections": {}},
 	"objectives": {"fields": ["id", "x", "y", "radius", "owner", "capturing", "captureProgress", "contested"], "sections": {}},
+	"reportTotals": {"fields": ["spawned", "spent", "killed", "refunded"], "sections": {}},
+	"reportEvents": {"fields": ["tickLo", "tickHi", "kind", "side", "unitIdLo", "unitIdHi", "unitKind", "otherSide", "otherIdLo", "otherIdHi", "otherKind", "amount", "otherAmount"], "sections": {}},
 	"crashes": {"fields": ["id", "own", "kind", "x", "y", "z", "yaw", "pitch", "roll"], "sections": {}},
 }
 ## Groups whose unchanged words keep their previous views.
@@ -859,6 +861,9 @@ func _skirmish(header: Dictionary, rows: Dictionary) -> Dictionary:
 			"confirmedTick": row.f("confirmedLo") + row.f("confirmedHi") * _limb,
 			"blocked": row.f("blocked") != 0.0,
 		})
+	var report = null
+	if header.reportTotalsCount > 0.0 or header.reportEventCount > 0.0:
+		report = {"totals": rows.reportTotals.map(_report_totals), "events": rows.reportEvents.map(_report_event)}
 	return {
 		"phase": SKIRMISH_PHASES[int(header.skirmishPhase)],
 		"ready": [header.readyBlue != 0.0, header.readyRed != 0.0],
@@ -870,7 +875,36 @@ func _skirmish(header: Dictionary, rows: Dictionary) -> Dictionary:
 		"occupiedSlots": header.occupiedSlots,
 		"maxUnits": header.maxUnits,
 		"pending": pending,
+		"report": report,
 	}
+
+func _report_totals(row: Row) -> Dictionary:
+	return {"spawned": row.f("spawned"), "spent": row.f("spent"), "killed": row.f("killed"), "refunded": row.f("refunded")}
+
+## A match report event: a spawn, a refund, or a kill with its killer (null
+## when unknown).
+func _report_event(row: Row) -> Dictionary:
+	var kind := row.f("kind")
+	var event := {
+		"tick": _limbs(row, "tick"),
+		"side": _layout.ground.sides[int(row.f("side"))],
+		"unitId": _limbs(row, "unitId"),
+		"unitKind": _word("unitKinds", row.f("unitKind")),
+	}
+	if kind == 0.0 or kind == 1.0:
+		event.kind = "spawn" if kind == 0.0 else "refund"
+		event.amount = row.f("amount")
+		return event
+	event.kind = "kill"
+	event.victimCost = row.f("amount")
+	var other := row.f("otherSide")
+	event.killer = null if other < 0.0 else {
+		"side": _layout.ground.sides[int(other)],
+		"unitId": _limbs(row, "otherId"),
+		"unitKind": _word("unitKinds", row.f("otherKind")),
+		"cost": row.f("otherAmount"),
+	}
+	return event
 
 static func _is_int(value: float) -> bool:
 	return is_finite(value) and value == floorf(value) and absf(value) <= 9007199254740991.0

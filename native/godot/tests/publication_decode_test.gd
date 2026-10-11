@@ -30,6 +30,8 @@ func run() -> bool:
 	var paris := FIXTURE_RUN.path_join(FIXTURE_SCENE).path_join("capture.json")
 	_refuses(paris, "an unknown group", "group mystery is unknown", func(parsed):
 		parsed.layout.groups.append({"name": "mystery", "count": "ownCount", "fields": [], "sections": []}))
+	_refuses(paris, "a layout without the match report", "has no group reportTotals", func(parsed):
+		parsed.layout.groups = parsed.layout.groups.filter(func(g): return g.name != "reportTotals"))
 	_refuses(paris, "a short payload", "group own's payload", func(parsed):
 		var publication: Array = parsed.capture.samples[0].publication
 		publication.resize(parsed.layout.header.size() + parsed.layout.groupDelivery.fields.size() + 1))
