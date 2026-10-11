@@ -14,8 +14,9 @@ One run renders one scene that the browser's capture run wrote:
 
 ```text
 lockf -k <main checkout>/throwaway/gpu.lock \
-  godot --path native/godot --window-position 10000,10000 -- \
+  godot --path native/godot -- \
   --run <dir> --scene <name> [--frames plates|all|<i,j,...>] [--maps <dir>] [--out <dir>]
+  [--bench <warm-up frames> [--pace uncapped|display]]
 ```
 
 - **Input.** `<dir>/<name>/` holds the browser's `capture.json`
@@ -38,12 +39,45 @@ lockf -k <main checkout>/throwaway/gpu.lock \
   lets the run go on, so the run collects errors through a logger. Each budget
   row gives the owner, the reason, the source, and the counts admitted,
   rendered and dropped. A plate row carries its measured GPU time, which is
-  null on Metal: Godot's Metal driver records no GPU timestamps.
+  null on Metal: Godot's Metal driver records no GPU timestamps. A bench run's
+  report has no plates and a `bench` instead.
 - **Exit codes.** 0 means no blocker, 1 means a blocker, 2 means bad arguments.
+- **Time limit.** A run still going after 20 minutes stops at a `timeout`
+  blocker and exits, so a stall frees the GPU lock on its own.
 
 Rendering needs a display. `--headless` uses Godot's dummy renderer, which
-never draws, so a headless run stops at a `display` blocker. The window is
-placed off screen, which still needs a logged-in macOS session.
+never draws, so a headless run stops at a `display` blocker. The project
+starts its window minimised, which still renders and reads back but stays
+out of view; it needs a logged-in macOS session. macOS clamps a window
+placed off screen (`--window-position`) back onto the screen, so that
+doesn't hide it.
+
+## The frame-rate bench
+
+`--bench <warm-up frames>` turns the same run into native's half of the
+frame-rate comparison with the browser (the browser's half is the
+[`graphics-fps` scene](../../web/src/battle/benchmark/README.md#the-frame-rate-comparison)).
+It draws every frame record (or the `--frames` given) once, in order, exactly
+as a plate run composes and steps it, at the same 4× MSAA, but reads nothing
+back and writes no PNG.
+
+- **Pacing.** Uncapped by default: vsync off and no frame-rate limit, so a
+  frame takes as long as it costs. `--pace display` turns vsync on instead,
+  for comparing with a browser whose frames the display paces.
+- **Timing.** Each frame's interval runs from the end of one frame's draw to
+  the next (`Time.get_ticks_usec` at `frame_post_draw`), and its CPU time is
+  the record's step plus Godot's frame setup and viewport render on the CPU.
+  The warm-up frames are drawn but not timed; pass the browser's count (60).
+- **Report.** The report's `bench` holds those raw per-frame intervals and
+  CPU times (`report/frame_timing.gd`), what the timed frames drew by
+  Godot's own count (draw calls, objects, primitives), and the conditions:
+  power source, adapter, refresh rate and window. GPU ms is null, because
+  Godot's Metal driver records no GPU timestamps. Native computes no frame
+  rate itself: the browser's summariser does, for both clients. By default
+  the report goes to `<dir>/<name>/native-bench/`.
+- **What it is not.** Native replays recorded publications with no simulation,
+  and draws only the layers it has ported, so its numbers are a lower bound
+  on a finished native client's cost, never a like-for-like verdict.
 
 ## The release build
 

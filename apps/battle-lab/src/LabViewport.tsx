@@ -199,6 +199,9 @@ export interface ViewportPilot {
   /** The pilot reads drawn frames back (`frame`'s `plate`). Only then may
    *  the canvas be copied from, so no other frame pays for it. */
   plates?: boolean;
+  /** Show the in-game frame-rate counter, which a piloted view otherwise
+   *  hides (the graphics test shows it; the menu's reel does not). */
+  frameRate?: boolean;
   /** The battle frame is up: the adapter, the light it was built with, the
    *  frame's own statistics (its rolling GPU frame time from
    *  `timestamp-query`, and live memory), and its ground's and grass's GPU
@@ -1292,7 +1295,7 @@ export function LabViewport({
   return (
     <div style={{ position: "absolute", inset: 0 }}>
       <canvas ref={canvasRef} style={{ width: "100%", height: "100%", display: "block" }} />
-      {!pilot && <FrameRate handle={frameRate} />}
+      {(!pilot || pilot.frameRate) && <FrameRate handle={frameRate} />}
       {box && (
         <div
           className="lab-box"

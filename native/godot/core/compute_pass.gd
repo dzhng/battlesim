@@ -10,10 +10,14 @@ const GROUP := 8
 
 var shader: RID
 var pipeline: RID
+## The pass's name: its shader's, and the debug group its dispatches sit in,
+## which a GPU trace shows.
+var label: String
 
 ## Compiles `body` (everything after the `#version` and workgroup lines).
-func _init(rd: RenderingDevice, body: String, label: String) -> void:
-	shader = compile(rd, "#version 450\nlayout(local_size_x = %d, local_size_y = %d, local_size_z = 1) in;\n%s" % [GROUP, GROUP, body], label)
+func _init(rd: RenderingDevice, body: String, name: String) -> void:
+	label = name
+	shader = compile(rd, "#version 450\nlayout(local_size_x = %d, local_size_y = %d, local_size_z = 1) in;\n%s" % [GROUP, GROUP, body], name)
 	if shader.is_valid():
 		pipeline = rd.compute_pipeline_create(shader)
 
@@ -23,6 +27,7 @@ func ready() -> bool:
 ## Runs the pass over `size` texels with `uniforms` in set 0 and `push` as its
 ## push constant (a multiple of 16 bytes).
 func dispatch(rd: RenderingDevice, uniforms: Array, push: PackedFloat32Array, size: Vector2i) -> void:
+	rd.draw_command_begin_label(label, Color.WHITE)
 	var list := rd.compute_list_begin()
 	rd.compute_list_bind_compute_pipeline(list, pipeline)
 	rd.compute_list_bind_uniform_set(list, UniformSetCacheRD.get_cache(shader, 0, uniforms), 0)
@@ -30,6 +35,7 @@ func dispatch(rd: RenderingDevice, uniforms: Array, push: PackedFloat32Array, si
 	rd.compute_list_set_push_constant(list, bytes, bytes.size())
 	rd.compute_list_dispatch(list, ceili(size.x / float(GROUP)), ceili(size.y / float(GROUP)), 1)
 	rd.compute_list_end()
+	rd.draw_command_end_label()
 
 func free_on(rd: RenderingDevice) -> void:
 	if shader.is_valid():

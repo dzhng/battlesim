@@ -56,6 +56,24 @@ export function summarizeFrameRate(intervals: readonly number[]): FrameRateSumma
   };
 }
 
+/** What the browser and the native client are compared on
+ *  (`web/fps-compare.mjs`), from either client's raw frame intervals (ms):
+ *  this module's frame-rate summary and nearest-rank frame times, over the
+ *  same intervals. Null for none. */
+export function frameTimeSummary(intervals: readonly number[]) {
+  const rate = summarizeFrameRate(intervals);
+  const ms = summarize(intervals.filter((v) => v > 0));
+  if (!rate || !ms) return null;
+  return {
+    frames: ms.count,
+    averageFps: rate.average,
+    low1Fps: rate.low1,
+    minimumFps: rate.minimum,
+    maximumFps: rate.maximum,
+    frameMs: { p50: ms.p50, p95: ms.p95, p99: ms.p99, max: ms.max },
+  };
+}
+
 export interface FrameSample {
   /** End of the frame, from the start of timing. */
   elapsedMs: number;

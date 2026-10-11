@@ -2,6 +2,7 @@
 import { expect, test } from "vitest";
 import {
   BenchmarkRecording,
+  frameTimeSummary,
   summarize,
   summarizeFrameRate,
 } from "../src/battle/benchmark/recording";
@@ -44,6 +45,26 @@ test("one-percent low uses the mean of the slowest intervals and excludes invali
     minimum: 50,
     maximum: 100,
   });
+});
+
+test("the cross-client frame summary: the frame-rate summary and nearest-rank frame times over the same valid intervals", () => {
+  expect(frameTimeSummary([...Array(198).fill(10), 40, 100])).toEqual({
+    frames: 200,
+    averageFps: (1000 * 200) / 2120,
+    low1Fps: (1000 * 2) / 140,
+    minimumFps: 10,
+    maximumFps: 100,
+    frameMs: { p50: 10, p95: 10, p99: 10, max: 100 },
+  });
+  expect(frameTimeSummary([0, -2, NaN, Infinity, 10, 20])).toEqual({
+    frames: 2,
+    averageFps: 2000 / 30,
+    low1Fps: 50,
+    minimumFps: 50,
+    maximumFps: 100,
+    frameMs: { p50: 10, p95: 20, p99: 20, max: 20 },
+  });
+  expect(frameTimeSummary([])).toBeNull();
 });
 
 test("the first frame interval begins at the explicit recording start", () => {

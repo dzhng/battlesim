@@ -11,6 +11,8 @@ const SCHEMA := "godot-render-report"
 var identity: Dictionary = {}
 ## The frame selection the run was asked for.
 var frames := ""
+## A bench run's frame-rate summary (`frame_timing.gd`), or null for a plate run.
+var bench: Variant = null
 var _budgets: Array = []
 var _blockers: Array = []
 var _plates: Array = []
@@ -45,6 +47,7 @@ func to_dictionary() -> Dictionary:
 			"build": build_kind(),
 		},
 		"frames": frames,
+		"bench": bench,
 		"budgets": _budgets,
 		"blockers": _blockers,
 		"plates": _plates,

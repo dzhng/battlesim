@@ -14,6 +14,14 @@
     "timeout_s": 600
   },
   {
+    "id": "graphics-fps",
+    "route": "/graphics-test?scenes=market-town,paris-corner",
+    "describe": "The browser's half of the frame-rate comparison with the native client: the graphics-test reel without plates, on a production build at 1280×720, paced to the display; writes each scene's frame intervals, CPU and GPU times after the warm-up, and the in-game FPS counter's readings, to throwaway/perf/. FPS_SCENES=<map,…> picks the scenes.",
+    "map": null,
+    "build": "production",
+    "timeout_s": 900
+  },
+  {
     "id": "cursor-orders",
     "route": "/lab/cursor-orders",
     "describe": "The production pointer over a reachable squad and a vehicle enclosed by known walls: combined entry, partial gathering refusal and readable callouts.",

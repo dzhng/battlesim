@@ -18,3 +18,36 @@ Each scene writes two files, each with one strict reader that refuses a stale sh
 - [The manifest](visualPresentation.ts) (`native-visual-presentation`): the battle named by the hashes of the map and capture files, and what the frames were drawn with: lens, light, the terrain and grass tuning tables, the layers drawn, and the ground's and grass's GPU tables as hashed artifacts. An artifact is exactly the words the page uploaded, with a layout derived from the GPU struct it fills ([`wordTables.ts`](../../../../packages/battle-renderer/src/frame/wordTables.ts)), so neither can drift from the shader. The grass params are one frame's; their view fields are recomputed from each frame record. Each plate has a row of grass counts: the clumps that frame grew, by the screen cell their roots project into.
 
 `?plates=1` reads each shot's middle frame back in the task that drew it (the viewport's `FramePlate`): the canvas without the page's HUD or fade veil, the grass it grew, and the same frame drawn again offscreen lit without its grass. That picture is named after the plate by rule (`presentationCapture.ts`), and the canvas and the next frame are untouched. Only a plated run may copy from the canvas or export tables, so other frames pay nothing; a plated run is not a timing measure. The [`native-parity-capture` scene](../../../scenes/native-parity-capture.mjs) runs it unattended and writes each scene's files to `throwaway/native-parity/`.
+
+## The frame-rate comparison
+
+The browser and the native client are compared on the same reel scenes, at
+1280×720, from the same numbers computed by the same code. Each client
+records its frames raw, and [`frameComparison.ts`](frameComparison.ts) (run as
+`node web/fps-compare.mjs <run dir>`) turns every run into average, 1%-low,
+minimum and maximum FPS and p50/p95/p99/max frame time
+(`frameTimeSummary`). It writes one row per client and scene: the median run
+of several, with the spread of their averages. Only the interval clock
+differs between the clients.
+
+- **Browser.** The [`graphics-fps` scene](../../../scenes/graphics-fps.mjs)
+  runs the graphics test without plates on a production build, headless, and
+  writes the test's own recording: each drawn frame's `requestAnimationFrame`
+  interval and main-thread time, the frame's GPU time from `timestamp-query`,
+  and the in-game frame-rate counter's readings, which must agree with the
+  recording's average.
+- **Native.** The [native client's bench](../../../../native/godot/README.md#the-frame-rate-bench)
+  draws a capture run's frame records and writes the same raw frames.
+- **Same pacing.** Both are compared uncapped or both paced to the display.
+  Chromium's `--disable-frame-rate-limit` hangs the graphics test in battle
+  preparation (inside the model layer's appearance install), and
+  `--disable-gpu-vsync` alone leaves `requestAnimationFrame` at the display's
+  rate, so today the browser is paced and native runs with `--pace display`.
+  Under a shared cap, average FPS shows who holds the rate; CPU and GPU time
+  per frame show the headroom.
+- **Conditions.** Every run records its power source, build, adapter and
+  pacing. Compare runs on the same power source; three runs per side, with
+  the spread explained before any comparison.
+- **Same drawing, not yet.** The browser also runs the live simulation
+  worker and the reel's script, while native replays recorded publications.
+  Native draws only the layers it has ported, so its frames hold less.

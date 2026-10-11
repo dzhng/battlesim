@@ -145,6 +145,7 @@ export function createReelRun(
   const sample = (now: number) => sampleReel(scene.reel, recording.elapsed(now) / 1000);
   const pilot: ViewportPilot = {
     plates,
+    frameRate: true,
     attach(frame) {
       stats = frame.stats;
       adapter = frame.adapter;

@@ -5,6 +5,9 @@ run/main_scene="res://parity_run.tscn"
 [display]
 window/size/viewport_width=1280
 window/size/viewport_height=720
+; Minimised from the start: macOS clamps a window placed off screen back
+; onto it, and a minimised window still renders and reads back.
+window/size/mode=1
 
 [rendering]
 renderer/rendering_method="forward_plus"

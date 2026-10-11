@@ -416,8 +416,10 @@ func _dispatch() -> void:
 	_rd.buffer_update(_params, 0, _params_words.size(), _params_words)
 	if _tiles.x == 0 or _tiles.y == 0:
 		return
+	_rd.draw_command_begin_label("grass build", Color.WHITE)
 	var list := _rd.compute_list_begin()
 	_rd.compute_list_bind_compute_pipeline(list, _build)
 	_rd.compute_list_bind_uniform_set(list, UniformSetCacheRD.get_cache(_build_shader, 0, _uniforms), 0)
 	_rd.compute_list_dispatch(list, _tiles.x, _tiles.y, 1)
 	_rd.compute_list_end()
+	_rd.draw_command_end_label()

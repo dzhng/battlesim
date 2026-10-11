@@ -5,10 +5,16 @@ extends Node3D
 ##
 ##   godot --path native/godot --window-position 10000,10000 -- \
 ##     --run <dir> --scene <name> [--frames plates|all|<i,j,...>] [--maps <dir>] [--out <dir>]
+##     [--bench <warm-up frames> [--pace uncapped|display]]
 ##
 ## `<dir>/<name>/` holds the browser's `capture.json` and `manifest.json`.
 ## Relative paths resolve from the repository root. Plates and `report.json` go
-## to `--out`, by default `<dir>/<name>/native/`. Rendering needs a display:
+## to `--out`, by default `<dir>/<name>/native/`. `--bench` times instead of
+## shooting: it draws every record (or `--frames`) once, uncapped or with
+## `--pace display` at the display's rate, reads nothing back, and reports
+## each frame's interval and CPU time after the warm-up
+## (`report/frame_timing.gd`), by default in `<dir>/<name>/native-bench/`.
+## Rendering needs a display:
 ## under `--headless` the run stops at a blocker. Any error Godot logs during
 ## the run is a blocker too. Exits 0 with no blocker, 1 with a blocker (named
 ## in the report), 2 on bad arguments.
@@ -30,12 +36,17 @@ const Light = preload("res://environment/light.gd")
 const ErrorLog = preload("res://report/error_log.gd")
 const LearnedGround = preload("res://capture/learned_ground.gd")
 const StrictJson = preload("res://core/strict_json.gd")
+const FrameTiming = preload("res://report/frame_timing.gd")
 
 const OWNER := "native/parity_run"
 ## The browser's presentation layers native can draw; the manifest decides
 ## which are drawn. `models` is the observed units.
 const LAYERS := ["sky", "terrain", "grass", "buildings", "props", "models", "fog"]
-const USAGE := "usage: godot --path native/godot --window-position 10000,10000 -- --run <dir> --scene <name> [--frames plates|all|<i,j,...>] [--maps <dir>] [--out <dir>]"
+const USAGE := "usage: godot --path native/godot -- --run <dir> --scene <name> [--frames plates|all|<i,j,...>] [--maps <dir>] [--out <dir>] [--bench <warm-up frames> [--pace uncapped|display]]"
+## A run that is still going after this long has stalled: it stops at a
+## `timeout` blocker and frees the GPU lock. A whole scene benched at 80 ms a
+## frame takes about 12 minutes.
+const RUN_LIMIT_S := 1200.0
 
 var _report := RenderReport.new()
 
@@ -47,6 +58,7 @@ func _run(args: PackedStringArray) -> int:
 	if options.has("error"):
 		printerr("%s\n%s" % [options.error, USAGE])
 		return 2
+	get_tree().create_timer(RUN_LIMIT_S, true, false, true).timeout.connect(_out_of_time.bind(options.out.path_join("report.json")))
 	_report.frames = options.frames
 	var errors := ErrorLog.new()
 	OS.add_logger(errors)
@@ -59,28 +71,46 @@ func _run(args: PackedStringArray) -> int:
 		printerr("could not write " + report_path)
 		return 1
 	var summary := _report.to_dictionary()
-	print(JSON.stringify({"report": report_path, "plates": summary.plates.size(), "blockers": summary.blockers}))
+	var timed: int = summary.bench.intervalsMs.size() if summary.bench != null else 0
+	print(JSON.stringify({"report": report_path, "plates": summary.plates.size(), "timedFrames": timed, "blockers": summary.blockers}))
 	return 0 if _report.ok() else 1
 
-## Options from the user arguments, or `{error}`.
+func _out_of_time(report_path: String) -> void:
+	_report.add_blocker("timeout", "the run was still going after %d s" % RUN_LIMIT_S)
+	_report.write(report_path)
+	printerr("timeout: the run was still going after %d s; see %s" % [RUN_LIMIT_S, report_path])
+	get_tree().quit(1)
+
+## Options from the user arguments, or `{error}`. `bench` is the warm-up
+## frame count of a bench run, or -1 for a plate run.
 static func parse_args(args: PackedStringArray) -> Dictionary:
-	var values := {"--frames": "plates", "--maps": "fixtures/maps"}
+	var values := {"--maps": "fixtures/maps"}
 	var at := 0
 	while at < args.size():
-		if not args[at] in ["--run", "--scene", "--frames", "--maps", "--out"] or at + 1 >= args.size():
+		if not args[at] in ["--run", "--scene", "--frames", "--maps", "--out", "--bench", "--pace"] or at + 1 >= args.size():
 			return {"error": "unexpected argument %s" % args[at]}
 		values[args[at]] = args[at + 1]
 		at += 2
 	for required in ["--run", "--scene"]:
 		if not values.has(required):
 			return {"error": "%s is required" % required}
+	var bench := -1
+	if values.has("--bench"):
+		if not values["--bench"].is_valid_int() or int(values["--bench"]) < 0:
+			return {"error": "--bench takes a warm-up frame count, not %s" % values["--bench"]}
+		bench = int(values["--bench"])
+	var pace: String = values.get("--pace", "uncapped")
+	if not pace in ["uncapped", "display"] or (values.has("--pace") and bench < 0):
+		return {"error": "--pace is uncapped or display, and only for --bench"}
 	var scene_dir := Staging.repo_path(values["--run"]).path_join(values["--scene"])
 	return {
 		"scene_dir": scene_dir,
 		"scene": values["--scene"],
-		"frames": values["--frames"],
+		"frames": values.get("--frames", "all" if bench >= 0 else "plates"),
+		"bench": bench,
+		"pace": pace,
 		"maps": Staging.repo_path(values["--maps"]),
-		"out": Staging.repo_path(values["--out"]) if values.has("--out") else scene_dir.path_join("native"),
+		"out": Staging.repo_path(values["--out"]) if values.has("--out") else scene_dir.path_join("native-bench" if bench >= 0 else "native"),
 	}
 
 func _render(options: Dictionary) -> void:
@@ -128,8 +158,17 @@ func _render(options: Dictionary) -> void:
 	# The side's learned ground, replayed as the records pass its ticks: the
 	# grass count gate reads its scars.
 	var learned := LearnedGround.new(admitted.capture.layout.ground)
+	var timing: FrameTiming = null
+	var viewport_rid := get_viewport().get_viewport_rid()
+	if options.bench >= 0:
+		timing = FrameTiming.new(options.bench)
+		_refuse_contention("start")
+		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if options.pace == "display" else DisplayServer.VSYNC_DISABLED)
+		Engine.max_fps = 0
+		RenderingServer.viewport_set_measure_render_time(viewport_rid, true)
 	var record = stepper.step()
 	while record != null:
+		var stepped := Time.get_ticks_usec()
 		var sample := _sample_at(decoded.samples, int(record.tick))
 		if sample.is_empty():
 			_report.add_blocker("publication", "frame %d at tick %d precedes the first sample" % [record.index, record.tick])
@@ -141,6 +180,15 @@ func _render(options: Dictionary) -> void:
 		world.layer.show_units(sample.units)
 		if world.fog != null:
 			world.fog.show_fog(sample.fog)
+		if timing != null:
+			var step_ms := (Time.get_ticks_usec() - stepped) / 1000.0
+			await RenderingServer.frame_post_draw
+			# CPU: this frame's step, Godot's frame setup and the viewport's
+			# render submission, as the browser's is its frame callback.
+			var cpu_ms := step_ms + RenderingServer.get_frame_setup_time_cpu() + RenderingServer.viewport_get_measured_render_time_cpu(viewport_rid)
+			timing.drawn(Time.get_ticks_usec(), cpu_ms, _drawn_in_frame())
+			record = stepper.step()
+			continue
 		var path: String = options.out.path_join("plate-%d.png" % record.index)
 		var plate: Dictionary = await PlateWriter.write(get_viewport(), record, path)
 		if not plate.ok:
@@ -152,8 +200,49 @@ func _render(options: Dictionary) -> void:
 			var browser: Array = manifest.grassCounts.filter(func(row): return row.plate == record.plate)
 			_report.add_grass(world.grass.counts(int(record.index), camera, Vector2(get_window().size), learned, browser[0].cells if not browser.is_empty() else null))
 		record = stepper.step()
+	if timing != null:
+		_refuse_contention("end")
+		_report.bench = timing.to_dictionary()
+		_report.bench.merge({"pace": options.pace, "vsync": DisplayServer.window_get_vsync_mode() != DisplayServer.VSYNC_DISABLED, "maxFps": Engine.max_fps, "conditions": _conditions()})
+		if _report.bench.intervalsMs.is_empty():
+			_report.add_blocker("bench", "no frame was drawn after the %d warm-up frames" % options.bench)
+		return
 	if world.grass != null:
 		world.grass.report_counts(_report)
+
+## A bench measures the GPU alone: a browser drawing at the same time (the
+## scene runner's Chromium, which can outlive its locked command while it tears
+## down) is a `contention` blocker, at the timing's `when`.
+func _refuse_contention(when: String) -> void:
+	var output: Array = []
+	OS.execute("pgrep", ["-fl", "Chrome for Testing"], output)
+	var found := str(output[0]).strip_edges() if not output.is_empty() else ""
+	if not found.is_empty():
+		_report.add_blocker("contention", "a browser was running at the timing's %s: %s" % [when, found.get_slice("\n", 0)])
+
+## What a timing depends on besides the code: the power source (`pmset`),
+## the adapter, the display's refresh rate and the window's mode.
+static func _conditions() -> Dictionary:
+	var output: Array = []
+	OS.execute("pmset", ["-g", "batt"], output)
+	var power := "unknown"
+	var drawing := RegEx.create_from_string("drawing from '([^']+)'").search(str(output[0]) if not output.is_empty() else "")
+	if drawing != null:
+		power = drawing.get_string(1)
+	return {
+		"power": power,
+		"adapter": RenderingServer.get_video_adapter_name(),
+		"refreshHz": DisplayServer.screen_get_refresh_rate(),
+		"window": "minimized" if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_MINIMIZED else "on screen",
+	}
+
+## What the last frame drew, by Godot's count over every viewport and pass.
+static func _drawn_in_frame() -> Dictionary:
+	return {
+		"drawCalls": RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME),
+		"objects": RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_OBJECTS_IN_FRAME),
+		"primitives": RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_PRIMITIVES_IN_FRAME),
+	}
 
 ## The ground's tables beside the manifest, its decoded height field and the
 ## tables of the grass growing on it:
