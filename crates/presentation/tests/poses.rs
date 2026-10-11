@@ -28,6 +28,15 @@ fn read(path: &str) -> Value {
     serde_json::from_str(&std::fs::read_to_string(format!("{FIXTURES}{path}")).unwrap()).unwrap()
 }
 
+/// The units section regenerated with the shot's kick (`tests/fixtures`).
+fn kicked_units() -> Value {
+    let at = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/fixtures/paris-corner-units.json"
+    );
+    serde_json::from_str(&std::fs::read_to_string(at).unwrap()).unwrap()
+}
+
 /// `actual` matches `wanted`, a value the browser rounded to 1e-6.
 fn near(actual: f64, wanted: &Value, what: &str) {
     let wanted = wanted
@@ -130,8 +139,7 @@ fn articulation_fields(a: &Articulation) -> [(&'static str, f64); 10] {
 #[test]
 fn the_browser_s_poses_of_the_fixture_capture() {
     let expected = read("poses/paris-corner-poses.json");
-    let units: UnitsSection =
-        serde_json::from_value(read("poses/paris-corner-units.json")).unwrap();
+    let units: UnitsSection = serde_json::from_value(kicked_units()).unwrap();
     let manifest = read("run/paris-corner/manifest.json");
     let effects: EffectsSection = serde_json::from_value(manifest["effects"].clone()).unwrap();
     let capture = read(expected["capture"].as_str().unwrap());
@@ -280,8 +288,7 @@ fn the_browser_s_poses_of_the_fixture_capture() {
 #[test]
 fn the_tank_articulates_as_the_browser_s() {
     let expected = read("poses/paris-corner-poses.json");
-    let units: UnitsSection =
-        serde_json::from_value(read("poses/paris-corner-units.json")).unwrap();
+    let units: UnitsSection = serde_json::from_value(kicked_units()).unwrap();
     let Some(Appearance::Articulated { nodes, rig, .. }) =
         units.appearances.get(expected["vehicle"].as_str().unwrap())
     else {
@@ -329,8 +336,7 @@ const SAMPLER_TOLERANCE: f64 = 1e-4;
 #[test]
 fn a_body_s_joints_sample_as_the_browser_s() {
     let expected = read("poses/paris-corner-poses.json");
-    let units: UnitsSection =
-        serde_json::from_value(read("poses/paris-corner-units.json")).unwrap();
+    let units: UnitsSection = serde_json::from_value(kicked_units()).unwrap();
     let Some(Appearance::Skinned {
         joints,
         clips,
@@ -368,7 +374,7 @@ fn a_body_s_joints_sample_as_the_browser_s() {
 /// lies at once; past the cap the oldest drawn corpse sinks away and goes.
 #[test]
 fn the_fallen_play_their_death_lie_and_give_way_past_the_cap() {
-    let mut units = read("poses/paris-corner-units.json");
+    let mut units = kicked_units();
     units["pose"]["corpses"]["max"] = 1.into();
     let units: UnitsSection = serde_json::from_value(units).unwrap();
     let mut driver = PoseDriver::new(&units).unwrap();

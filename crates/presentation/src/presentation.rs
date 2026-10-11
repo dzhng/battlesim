@@ -23,7 +23,7 @@ use crate::units::drawn::{ClipTables, DrawnModels};
 use crate::units::driver::PoseDriver;
 use crate::units::feed::ObservationFeed;
 use crate::units::interpolate::{FrameSample, TickInterpolator};
-use crate::units::pose::{Articulation, ClipBlend, PoseFrame};
+use crate::units::pose::{Articulation, ClipBlend, Kick, PoseFrame};
 use crate::units::skin::{self, Mat4};
 use crate::view::{model_detail, Camera, View, CULLED, IMPOSTOR};
 use crate::world::{Appearance, Bounds, Trs, UnitsSection, Vec3, WorldInput};
@@ -634,6 +634,7 @@ impl Loaded {
                     &s.clip,
                     s.phase,
                     s.blend.as_ref(),
+                    s.kick,
                 )
             };
             models.push(model(
@@ -682,7 +683,7 @@ impl Loaded {
                 &mut f.palettes,
                 name,
                 &v.articulation,
-                v.tilt.as_ref(),
+                v.motion.as_ref(),
             );
             models.push(model(
                 row(name, "", NONE),
@@ -828,6 +829,7 @@ impl Loaded {
                         &far_pose.clip,
                         far_pose.phase,
                         None,
+                        Kick::default(),
                     ),
                     [0.0; 2],
                 ),
@@ -895,7 +897,7 @@ fn batches(models: &mut [Model], f: &mut Frame) {
     }
 }
 
-/// A body in a clip at a phase, crossfaded: its palette's first joint.
+/// A body in a clip at a phase, crossfaded and kicked: its palette's first joint.
 #[allow(clippy::too_many_arguments)]
 fn pose_body(
     units: &UnitsSection,
@@ -907,6 +909,7 @@ fn pose_body(
     clip: &str,
     phase: f64,
     blend: Option<&ClipBlend>,
+    kick: Kick,
 ) -> u32 {
     let Some(Appearance::Skinned {
         joints,
@@ -921,6 +924,7 @@ fn pose_body(
         return 0;
     };
     skin::joint_worlds(joints, clips, table, clip, phase, blend, worlds);
+    skin::kick_worlds(joints, kick, worlds);
     let first = palettes.len() as u32;
     let ibs = &inverse_binds[name];
     palettes.extend(
@@ -932,8 +936,8 @@ fn pose_body(
     first
 }
 
-/// A vehicle articulated, its whole model moved by `motion` (a falling
-/// airframe's tilt): its palette's first joint and its track scrolls.
+/// A vehicle articulated, its whole model moved by `motion` (an aircraft's
+/// lean, a hull's kick): its palette's first joint and its track scrolls.
 fn pose_vehicle(
     units: &UnitsSection,
     locals: &mut Vec<Trs>,

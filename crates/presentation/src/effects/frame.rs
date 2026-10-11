@@ -7,7 +7,9 @@
 //!   itself where it is seen as an object, and a smoke trail where its row
 //!   has one), running along the stretch over the tick that flew it;
 //! - a muzzle flash for every launch, on the drawn muzzle that fired (a
-//!   [`MuzzleSource`]), else at the published launch point;
+//!   [`MuzzleSource`]), else at the published launch point; a hull's heavy
+//!   gun also shakes dust off the whole hull and blows it off the ground
+//!   ahead of the muzzle (`FlashStyle::dust`);
 //! - an impact puff where a stretch ends in a hit, and from a tracer, sparks,
 //!   a hot flash and its light; sparks at every ricochet corner;
 //! - a fireball for every blast, and the dirt and smoke it throws up;
@@ -34,12 +36,23 @@ use serde_json::Value;
 use super::cook_off::{CookOffFeel, GRAVITY};
 use super::launches::{Launch, LaunchTracker};
 use super::lights::CastLightList;
-use super::publication::{CookOff, EffectPublication, Segment};
+use super::publication::{CookOff, EffectPublication, Segment, Shooter};
 use super::{DrawnRotor, MuzzleSource};
 use crate::seed::{hash_string, js_hypot, js_number, js_round, to_uint32, Mulberry32};
 use crate::world::Vec3;
 
 // ---- `presentation.effects`: every curve and size. ----
+
+/// `Math.sign`: a zero keeps its sign.
+fn js_sign(v: f64) -> f64 {
+    if v > 0.0 {
+        1.0
+    } else if v < 0.0 {
+        -1.0
+    } else {
+        v
+    }
+}
 
 /// A kind's row, or the table's `default`.
 fn pick<'a, T>(table: &'a HashMap<String, T>, kind: &str) -> &'a T {
@@ -65,6 +78,8 @@ pub struct EffectPresentation {
     pub blast: BlastStyle,
     pub cook_off: CookOffFeel,
     pub dust: DustStyle,
+    /// The dust a heavy gun's shot raises; none where absent.
+    pub shot_dust: Option<ShotDustStyle>,
     pub damage_smoke: DamageSmokeStyle,
     pub rotor_blur: RotorBlurStyle,
     /// Smoke sources' looks by kind; a kind without one draws nothing.
@@ -170,6 +185,22 @@ pub struct DustStyle {
     pub full_speed_mps: f64,
 }
 
+/// The dust a heavy gun's shot raises at full strength (`FlashStyle::dust`):
+/// shaken off the whole hull as it jolts, and blown off the ground by the
+/// muzzle blast, out to `reach_m` ahead of the muzzle where it points.
+#[derive(Clone, Copy, Debug, Deserialize)]
+pub struct ShotDustStyle {
+    pub hull: PuffBurst,
+    pub ground: GroundDust,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize)]
+pub struct GroundDust {
+    #[serde(flatten)]
+    pub burst: PuffBurst,
+    pub reach_m: f64,
+}
+
 /// Smoke a damaged hull trails: a puff `rate_hz` a second where it is.
 #[derive(Clone, Copy, Debug, Deserialize)]
 pub struct DamageSmokeStyle {
@@ -189,6 +220,10 @@ pub struct FlashStyle {
     pub fireball_m: f64,
     pub fireball_s: f64,
     pub cast: Option<CastStyle>,
+    /// How much dust a hull's shot of this kind shakes off the hull and
+    /// blows off the ground, as a share of `shot_dust`'s; none where absent.
+    #[serde(default)]
+    pub dust: f64,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize)]
@@ -365,6 +400,22 @@ impl EffectPresentation {
             "blast.cast outlives its blast".into()
         })?;
         self.cook_off.validate()?;
+        for (k, f) in &self.flashes {
+            ensure(f.dust.is_finite() && f.dust >= 0.0, || {
+                format!("flashes.{k}.dust must be ≥ 0")
+            })?;
+        }
+        if let Some(d) = &self.shot_dust {
+            for (k, b) in [("hull", &d.hull), ("ground", &d.ground.burst)] {
+                ensure(
+                    b.count.fract() == 0.0 && b.count >= 0.0 && b.over_s >= 0.0,
+                    || format!("shot_dust.{k}: a whole count ≥ 0, over_s ≥ 0"),
+                )?;
+            }
+            ensure(d.ground.reach_m >= 0.0, || {
+                "shot_dust.ground.reach_m must be ≥ 0".into()
+            })?;
+        }
         ensure(self.damage_smoke.rate_hz > 0.0, || {
             "damage_smoke.rate_hz must be positive".into()
         })?;
@@ -394,6 +445,10 @@ impl EffectPresentation {
         let c = &self.cook_off;
         let mut longest = fire
             .max(self.dust.puff.life_s)
+            .max(
+                self.shot_dust
+                    .map_or(0.0, |d| burst(&d.hull).max(burst(&d.ground.burst))),
+            )
             .max(self.damage_smoke.puff.life_s)
             .max(self.sparks.duration_s * b.spark_scale.max(1.0).sqrt());
         for f in &c.fireballs {
@@ -829,7 +884,14 @@ impl Pool {
         }
     }
 
-    fn flash(&mut self, p: &EffectPresentation, t0: f64, l: &Launch, rng: &mut Mulberry32) {
+    /// A flash at launch `l`'s muzzle; its look.
+    fn flash(
+        &mut self,
+        p: &EffectPresentation,
+        t0: f64,
+        l: &Launch,
+        rng: &mut Mulberry32,
+    ) -> Arc<FlashStyle> {
         let style = pick(&p.flashes, &l.kind);
         let fireball = if style.fireball_m > 0.0 {
             style.fireball_s
@@ -851,6 +913,70 @@ impl Pool {
         e.p = l.at;
         e.n = l.dir;
         e.rotation = rng.sample() * PI * 2.0;
+        style.clone()
+    }
+
+    /// The dust hull `u`'s shot `l` raises at `strength` of `style`'s, from
+    /// `at`: shaken off the whole hull, from its flanks to its roof, end to
+    /// end, and blown off the ground by the muzzle blast, from just behind
+    /// the muzzle out to `reach_m` ahead of it and as wide as half that.
+    #[allow(clippy::too_many_arguments)]
+    fn shot_dust(
+        &mut self,
+        style: &ShotDustStyle,
+        at: f64,
+        l: &Launch,
+        u: &Shooter,
+        [hl, hw, hh]: Vec3,
+        strength: f64,
+        rng: &mut Mulberry32,
+    ) {
+        let (hull, ground) = (&style.hull, &style.ground);
+        let [x, y, z] = u.position;
+        let (s, c) = (u.yaw.sin(), u.yaw.cos());
+        let shaken = js_round(hull.count * strength);
+        let mut k = 0.0;
+        while k < shaken {
+            let along = (rng.sample() * 2.0 - 1.0) * hl * 0.9;
+            let side = rng.sample() * 2.0 - 1.0;
+            let up = 2.0 * hh * (0.2 + 0.8 * rng.sample());
+            // Low down it comes off a flank; high up, off the roof.
+            let across = if up < 2.0 * hh * 0.6 {
+                js_sign(side) * hw * 0.95
+            } else {
+                side * hw * 0.9
+            };
+            let when = at + hull.over_s * (k / (shaken - 1.0).max(1.0));
+            let p = [
+                x + along * c - across * s,
+                y + along * s + across * c,
+                z + up,
+            ];
+            self.puff(when, p, &hull.puff, 1.0, 1.0, rng);
+            k += 1.0;
+        }
+        // Level along the shot; straight up or down, along the hull.
+        let [dx, dy, _] = l.dir;
+        let level = js_hypot(&[dx, dy]);
+        let (fx, fy) = if level > 1e-3 {
+            (dx / level, dy / level)
+        } else {
+            (c, s)
+        };
+        let blown = js_round(ground.burst.count * strength);
+        let mut k = 0.0;
+        while k < blown {
+            let along = ground.reach_m * (rng.sample().sqrt() * 1.25 - 0.25);
+            let across = (rng.sample() * 2.0 - 1.0) * ground.reach_m * 0.5;
+            let when = at + ground.burst.over_s * (k / (blown - 1.0).max(1.0));
+            let p = [
+                l.at[0] + fx * along - fy * across,
+                l.at[1] + fy * along + fx * across,
+                z + 0.3,
+            ];
+            self.puff(when, p, &ground.burst.puff, 1.0, 1.0, rng);
+            k += 1.0;
+        }
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -1225,8 +1351,18 @@ impl EffectFrame {
         let p = &self.p;
         let chance = |kind: &str| pick(&p.tracers, kind).chance.unwrap_or(1.0);
         let launches = self.launches.note(publication, gap, Some(&chance));
+        // A flash at each, and a hull's heavy gun's dust.
         for l in &launches {
-            self.pool.flash(p, t0, l, &mut rng);
+            let dust = self.pool.flash(p, t0, l, &mut rng).dust;
+            let Some(style) = p.shot_dust.as_ref().filter(|_| l.hull && dust > 0.0) else {
+                continue;
+            };
+            let hull = publication.shooters.iter().find(|u| u.key == l.shooter);
+            if let Some(u) = hull.filter(|u| !u.airborne) {
+                if let Some(half) = u.half {
+                    self.pool.shot_dust(style, t0, l, u, half, dust, &mut rng);
+                }
+            }
         }
         for (index, s) in publication.segments.iter().enumerate() {
             if s.path.len() < 2 {

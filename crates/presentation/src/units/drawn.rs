@@ -1,9 +1,10 @@
 //! Where parts of each posed model are drawn, read from
 //! the pose frame the models are drawn from, so an effect put there sits on
 //! the drawn model however the simulation's own model differs:
-//! - its muzzles: a vehicle mount's muzzle node under its articulation, and
-//!   a soldier's weapon `muzzle` socket in his clip, found only for the
-//!   muzzles asked after (a frame's live flashes) and kept for the frame;
+//! - its muzzles: a vehicle mount's muzzle node under its articulation and
+//!   its whole-model motion, and a soldier's weapon `muzzle` socket in his
+//!   clip and kick, found only for the muzzles asked after (a frame's live
+//!   flashes) and kept for the frame;
 //! - its rotors: each one's hub, axis, blades and the angle it turned since
 //!   the last drawn frame, from which the effects draw its blur.
 use std::collections::HashMap;
@@ -11,7 +12,7 @@ use std::sync::Arc;
 
 use super::articulation::articulate;
 use super::pose::{Articulation, PoseFrame, SoldierPose, VehiclePose};
-use super::skin::{joint_worlds, mul, node_worlds, trs, Mat4};
+use super::skin::{joint_worlds, kick_worlds, mul, node_worlds, trs, Mat4};
 use crate::effects::{DrawnRotor, Mast, MuzzleSource};
 use crate::seed::side_key;
 use crate::world::{Appearance, Trs, UnitsSection, Vec3};
@@ -110,7 +111,8 @@ impl DrawnModels {
     }
 
     /// The drawn muzzle of the vehicle at side key `key`'s mount `mount`:
-    /// its rig's muzzle node for the mount's role, articulated as drawn.
+    /// its rig's muzzle node for the mount's role, articulated and moved
+    /// (a lean, a hull's kick) as drawn.
     fn vehicle_muzzle(&mut self, key: u64, mount: usize) -> Option<Vec3> {
         let v = &self.vehicles[*self.vehicle_at.get(&key)?];
         let name = self
@@ -123,7 +125,7 @@ impl DrawnModels {
         let &node = rig.muzzles.get(role)?;
         self.locals.resize(nodes.len(), nodes.first()?.bind);
         articulate(&mut self.locals, nodes, rig, &v.articulation);
-        node_worlds(nodes, &self.locals, None, &mut self.worlds);
+        node_worlds(nodes, &self.locals, v.motion.as_ref(), &mut self.worlds);
         let m = self.worlds.get(node)?;
         Some(placed(v.position, v.yaw, m[12], m[13], m[14]))
     }
@@ -162,6 +164,7 @@ impl DrawnModels {
             None,
             &mut self.worlds,
         );
+        kick_worlds(joints, s.kick, &mut self.worlds);
         let o = &muzzle.offset;
         let m = mul(self.worlds.get(muzzle.joint)?, &trs(o.t, o.r, o.s));
         Some(placed(s.position, s.facing, m[12], m[13], m[14]))
@@ -191,14 +194,11 @@ impl DrawnModels {
             };
             self.locals.resize(nodes.len(), nodes[0].bind);
             articulate(&mut self.locals, nodes, rig, &input);
-            node_worlds(nodes, &self.locals, None, &mut self.worlds);
+            // Its whole-model motion carries every rotor, as it is drawn.
+            node_worlds(nodes, &self.locals, v.motion.as_ref(), &mut self.worlds);
             let tip_travel = self.rotor_turned.get(&key).copied().unwrap_or(0.0);
             for rotor in &rig.rotors {
-                // A falling airframe's tilt carries the whole model, as it is drawn.
-                let m = match &v.tilt {
-                    Some(tilt) => mul(tilt, &self.worlds[rotor.node]),
-                    None => self.worlds[rotor.node],
-                };
+                let m = self.worlds[rotor.node];
                 let (s, c) = rotor.rest.sin_cos();
                 let along = |d: f64| {
                     placed(

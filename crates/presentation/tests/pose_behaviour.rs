@@ -2,23 +2,29 @@
 //! soldier moves and faces by his own motion, a squad under fire is never a
 //! row of copies, the dying fall from the posture they are in and lie as
 //! they fell, a lean slides out and back, a tank's turret, guns and tracks
-//! follow what carries them, rotors turn, a paused clock holds, and the
-//! corpse cap gives way oldest first. Driven by synthetic feed frames over
+//! follow what carries them, rotors turn, a shot kicks its shooter (a hull
+//! rocks on its springs and settles, a soldier snaps back about his waist,
+//! and the drawn muzzle rides both), a paused clock holds, and the corpse
+//! cap gives way oldest first. Driven by synthetic feed frames over
 //! the fixture's real appearances and pose feel.
 use std::collections::BTreeSet;
 use std::f64::consts::{FRAC_PI_2, PI};
 use std::sync::Arc;
 
+use presentation::effects::MuzzleSource;
+use presentation::seed::side_key;
+use presentation::units::drawn::{ClipTables, DrawnModels};
 use presentation::units::driver::{
     FeedFallen, FeedFrame, FeedMount, FeedSoldier, FeedUnit, PoseDriver,
 };
-use presentation::units::pose::{PoseFrame, SoldierPose};
-use presentation::world::UnitsSection;
-use serde_json::Value;
+use presentation::units::pose::{Kick, PoseFrame, SoldierPose};
+use presentation::units::skin::{joint_worlds, kick_worlds, mul, trs, Mat4};
+use presentation::world::{Appearance, UnitsSection, Vec3};
+use serde_json::{json, Value};
 
 const FIXTURE: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/../../native/godot/tests/fixtures/poses/paris-corner-units.json"
+    "/tests/fixtures/paris-corner-units.json"
 );
 
 /// The fixture's units section, edited by `edit`.
@@ -398,7 +404,7 @@ fn an_aircraft_s_rotors_turn_and_blur_while_nothing_it_has_rolls() {
     at(0.0, 0.0);
     let hover = at(0.5, 0.0);
     assert!(
-        hover.airborne && hover.tilt.is_none(),
+        hover.airborne && hover.motion.is_none(),
         "hovering, it sits level"
     );
     assert_eq!(hover.articulation.rotor, 0.5 * tip);
@@ -412,7 +418,7 @@ fn an_aircraft_s_rotors_turn_and_blur_while_nothing_it_has_rolls() {
         (flown.articulation.travel_l, flown.articulation.travel_r),
         (0.0, 0.0)
     );
-    assert!(flown.tilt.is_some(), "speeding up, it leans into it");
+    assert!(flown.motion.is_some(), "speeding up, it leans into it");
 }
 
 #[test]
@@ -435,4 +441,250 @@ fn past_the_cap_a_battle_joined_lies_its_newest_and_a_reset_forgets_the_gone() {
     assert_eq!(at(10.0, &more), (vec![5.0, 6.0, 7.0], none.clone()));
     // An earlier time is a new battle: the gone may lie again.
     assert_eq!(at(0.0, &[4.0]), (vec![4.0], none));
+}
+
+#[test]
+fn each_of_his_own_shots_kicks_a_soldier_back_by_his_weapon_s_kick_and_he_recovers() {
+    // The test's own kick: a rifle's kicks fully, anything else half as hard.
+    let units = units_with(|v| {
+        v["pose"]["soldier_kick"] = json!({"rounds": {"default": 0.5, "rifle": 1},
+            "pitch_deg": 10, "back_m": 0.06, "return_s": 0.3});
+    });
+    let none = fallen(&[]);
+    let mut driver = PoseDriver::new(&units).unwrap();
+    // Soldier 1 has fired `own` rounds of the squad's `own`, soldier 2 none.
+    let mut at = |time: f64, own: f64| {
+        let mut unit = squad(
+            vec![man(1.0, 0.0, 0.0, own), man(2.0, 3.0, 0.0, 0.0)],
+            false,
+        );
+        unit.mounts[0].shots = own;
+        let poses = driver.update(&frame(time, vec![unit], &none), &units);
+        (pose_of(poses, 1.0).kick, pose_of(poses, 2.0).kick)
+    };
+    let rest = Kick::default();
+    let full = Kick {
+        pitch: 10f64.to_radians(),
+        back: 0.06,
+    };
+    assert_eq!(at(0.0, 0.0), (rest, rest));
+    // His shot snaps him back the full kick at once; his mate never moves.
+    let (shot, mate) = at(1.0, 1.0);
+    assert!((shot.pitch - full.pitch).abs() < 1e-9 && (shot.back - full.back).abs() < 1e-9);
+    assert_eq!(mate, rest);
+    // He comes back, quickly at first, and is at rest by `return_s`.
+    let early = at(1.1, 1.0).0.pitch;
+    let late = at(1.2, 1.0).0.pitch;
+    assert!(early < full.pitch && late > 0.0);
+    assert!(full.pitch - early > early - late, "fast at first");
+    assert_eq!(at(1.31, 1.0).0, rest);
+    // Another shot kicks him again.
+    assert!((at(2.0, 2.0).0.pitch - full.pitch).abs() < 1e-9);
+}
+
+/// A clip table written beside the fixture run's manifest: raw little-endian f32.
+fn clip_table(name: &str) -> Vec<f32> {
+    let at = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../native/godot/tests/fixtures/run/paris-corner/units-"
+    );
+    let bytes = std::fs::read(format!("{at}{name}.u32")).unwrap();
+    bytes
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .map(|&b| f32::from_le_bytes(b))
+        .collect()
+}
+
+fn point(m: &Mat4) -> Vec3 {
+    [m[12], m[13], m[14]]
+}
+
+#[test]
+fn a_kick_turns_his_upper_body_back_about_his_waist_the_muzzle_climbs_the_hips_stay() {
+    let units = units();
+    let Some(Appearance::Skinned {
+        joints,
+        clips,
+        table,
+        muzzle: Some(socket),
+        ..
+    }) = units.appearances.get("rifle_squad_active_a")
+    else {
+        panic!("the fixture's rifleman is skinned, with a muzzle");
+    };
+    let table = clip_table(table);
+    let joint = |name: &str| joints.iter().position(|j| j.name == name).unwrap();
+    let at = |kick: Kick| {
+        let mut worlds = Vec::new();
+        joint_worlds(joints, clips, &table, "stand_aim", 0.0, None, &mut worlds);
+        kick_worlds(joints, kick, &mut worlds);
+        let o = &socket.offset;
+        let muzzle = mul(&worlds[socket.joint], &trs(o.t, o.r, o.s));
+        (
+            point(&muzzle),
+            point(&worlds[joint("Head")]),
+            point(&worlds[joint("pelvis")]),
+        )
+    };
+    let (muzzle, head, pelvis) = at(Kick::default());
+    let kicked = at(Kick {
+        pitch: 0.15,
+        back: 0.05,
+    });
+    // The muzzle (ahead of the waist) climbs; the head (above it) goes back.
+    assert!(kicked.0[2] > muzzle[2] + 0.02, "{kicked:?}");
+    assert!(kicked.1[0] < head[0] - 0.05, "{kicked:?}");
+    // Nothing turns sideways, and the hips and legs never move.
+    assert!((kicked.0[1] - muzzle[1]).abs() < 1e-9);
+    assert_eq!(kicked.2, pelvis);
+    // Thrown back alone, every carried point moves straight back by it.
+    let shoved = at(Kick {
+        pitch: 0.0,
+        back: 0.05,
+    });
+    for (moved, rest) in [(shoved.0, muzzle), (shoved.1, head)] {
+        assert!((moved[0] - (rest[0] - 0.05)).abs() < 1e-9 && (moved[2] - rest[2]).abs() < 1e-9);
+    }
+}
+
+/// The fixture's units with a hull kick of the test's own: a main-gun round
+/// kicks fully, an HMG's not at all.
+fn kicking_units() -> UnitsSection {
+    units_with(|v| {
+        v["pose"]["hull_kick"] = json!({"rounds": {"default": 0, "tank_ap": 1},
+            "rock_deg": 4, "slide_m": 0.2, "hz": 2, "damping": 0.3});
+    })
+}
+
+/// The tank's drawn motion at each of `seconds` at `hz` frames a second,
+/// firing its gun `gun` times along `bearing` (and its HMG `hmg` times) at 1 s.
+fn kicked(bearing: f64, seconds: f64, hz: f64, gun: f64, hmg: f64) -> Vec<(f64, Option<Mat4>)> {
+    let units = kicking_units();
+    let none = fallen(&[]);
+    let mut driver = PoseDriver::new(&units).unwrap();
+    (0..=(seconds * hz) as u32)
+        .map(|k| {
+            let time = f64::from(k) / hz;
+            let fired = if time >= 1.0 { 1.0 } else { 0.0 };
+            let mut unit = tank(0.0, 0.0, (bearing, 0.0, gun * fired), bearing);
+            unit.mounts[1].shots = hmg * fired;
+            let poses = driver.update(&frame(time, vec![unit], &none), &units);
+            (time, poses.vehicles[0].motion)
+        })
+        .collect()
+}
+
+/// Where the hull's point `p` (its own frame) is drawn under `motion`.
+fn moved(motion: Option<Mat4>, p: Vec3) -> Vec3 {
+    motion.map_or(p, |m| {
+        std::array::from_fn(|i| m[i] * p[0] + m[4 + i] * p[1] + m[8 + i] * p[2] + m[12 + i])
+    })
+}
+
+#[test]
+fn a_main_gun_shot_rocks_the_hull_away_from_its_target_on_its_springs_then_it_settles() {
+    let frames = kicked(0.0, 6.0, 60.0, 1.0, 0.0);
+    assert!(
+        frames.iter().filter(|f| f.0 < 1.0).all(|f| f.1.is_none()),
+        "still until it fires"
+    );
+    let roof = [0.0, 0.0, 2.0];
+    let back: Vec<f64> = frames.iter().map(|f| -moved(f.1, roof)[0]).collect();
+    let peak = (0..back.len())
+        .max_by(|&a, &b| back[a].total_cmp(&back[b]))
+        .unwrap();
+    // Fired forward, the roof is thrown back and the nose lifts at once…
+    assert!(frames[peak].0 - 1.0 < 0.25);
+    assert!(moved(frames[peak].1, [4.0, 0.0, 0.0])[2] > 0.0);
+    // …at most the full kick's rock (and slide) away from rest.
+    let full = 2.0 * 4f64.to_radians().sin() + 0.2;
+    assert!(
+        back[peak] > 0.8 * full && back[peak] <= full + 1e-6,
+        "{}",
+        back[peak]
+    );
+    // The springs throw it back past rest, less far, before it settles.
+    let past = back[peak..].iter().copied().fold(f64::INFINITY, f64::min);
+    assert!(past < -0.1 * back[peak] && -past < back[peak], "{past}");
+    assert!(frames.last().unwrap().1.is_none(), "settled, at rest");
+    for f in &frames {
+        assert!(moved(f.1, roof)[1].abs() < 1e-9, "no sideslip firing ahead");
+    }
+}
+
+#[test]
+fn a_shot_over_the_side_rocks_the_hull_away_from_that_side() {
+    // Fired to the left (+Y): the roof is thrown to the right.
+    let frames = kicked(FRAC_PI_2, 2.0, 60.0, 1.0, 0.0);
+    let right: Vec<f64> = frames
+        .iter()
+        .map(|f| -moved(f.1, [0.0, 0.0, 2.0])[1])
+        .collect();
+    let widest = right
+        .iter()
+        .copied()
+        .fold(0.0, |w: f64, r| if r.abs() > w.abs() { r } else { w });
+    assert!(widest > 0.1, "{widest}");
+    for f in &frames {
+        assert!(moved(f.1, [0.0, 0.0, 2.0])[0].abs() < 1e-9);
+    }
+}
+
+#[test]
+fn a_round_with_no_kick_never_moves_the_hull_however_many_fly() {
+    let frames = kicked(0.0, 3.0, 60.0, 0.0, 40.0);
+    assert!(frames.iter().all(|f| f.1.is_none()));
+}
+
+#[test]
+fn the_hull_rocks_the_same_however_often_it_is_drawn() {
+    let fine = kicked(0.0, 3.0, 120.0, 1.0, 0.0);
+    for (time, motion) in kicked(0.0, 3.0, 8.0, 1.0, 0.0) {
+        let f = fine.iter().find(|f| (f.0 - time).abs() < 1e-9).unwrap();
+        let (a, b) = (moved(motion, [0.0, 0.0, 2.0]), moved(f.1, [0.0, 0.0, 2.0]));
+        for i in 0..3 {
+            assert!((a[i] - b[i]).abs() < 1e-9, "at {time}: {a:?} vs {b:?}");
+        }
+    }
+}
+
+#[test]
+fn the_drawn_muzzle_rides_the_rocking_hull_so_the_flash_stays_on_the_barrel() {
+    let units = kicking_units();
+    let motion = kicked(0.0, 1.5, 60.0, 1.0, 0.0)
+        .into_iter()
+        .find(|f| f.0 >= 1.15)
+        .and_then(|f| f.1)
+        .expect("rocking");
+    let none = fallen(&[]);
+    let mut driver = PoseDriver::new(&units).unwrap();
+    let mut poses = driver
+        .update(
+            &frame(0.0, vec![tank(10.0, 0.0, (0.0, 0.0, 0.0), 0.0)], &none),
+            &units,
+        )
+        .clone();
+    let mut drawn = DrawnModels::new(Arc::new(units), Arc::new(ClipTables::new()), "blue");
+    let mut muzzle = |m: Option<Mat4>| {
+        poses.vehicles[0].motion = m;
+        drawn.update(&poses);
+        drawn.muzzle(side_key(5.0, true), 0, None).expect("drawn")
+    };
+    let still = muzzle(None);
+    let rocking = muzzle(Some(motion));
+    // The hull's motion carries the muzzle about the hull's foot.
+    let local = moved(Some(motion), [still[0] - 10.0, still[1], still[2]]);
+    let expected = [local[0] + 10.0, local[1], local[2]];
+    for i in 0..3 {
+        assert!(
+            (rocking[i] - expected[i]).abs() < 1e-6,
+            "{rocking:?} vs {expected:?}"
+        );
+    }
+    assert!(
+        rocking[2] > still[2] + 0.05,
+        "the muzzle lifts with the nose"
+    );
 }

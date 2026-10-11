@@ -2,12 +2,14 @@
 //! without a published cause, a publication taken once, a tracer keeping its
 //! chance through its flight, a wreck that burns, smoulders and goes out, a
 //! paused clock that holds, a long gap that makes only what is still alive,
-//! a smoke budget that thins every wreck alike, dust behind a moving hull,
-//! and rotors that show their blades still and smear when fast. Driven by
+//! a smoke budget that thins every wreck alike, dust behind a moving hull
+//! and off a hull whose heavy gun fires, and rotors that show their blades still and smear when fast. Driven by
 //! synthetic publications over the fixture's presentation.
 use presentation::effects::frame::{EffectBatch, EffectFrame, EffectPresentation, EFFECT_FLOATS};
 use presentation::effects::publication::EffectPublication;
 use presentation::effects::DrawnRotor;
+use std::f64::consts::FRAC_PI_2;
+
 use serde_json::{json, Value};
 
 const HZ: f64 = 30.0;
@@ -19,7 +21,7 @@ const FLIPBOOK: f32 = 2.0;
 fn vectors() -> Value {
     let at = concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/../../native/godot/tests/fixtures/effects/effect-vectors.json"
+        "/tests/fixtures/effect-vectors.json"
     );
     serde_json::from_str(&std::fs::read_to_string(at).unwrap()).unwrap()
 }
@@ -308,4 +310,69 @@ fn a_still_rotor_shows_its_blades_and_a_fast_one_smears_them_never_past_a_turn()
     assert!((f64::from(turning[0][7]) - 0.8 * shutter).abs() < 1e-6);
     let fast = rotor(100.0);
     assert!((f64::from(fast[0][7]) - std::f64::consts::TAU).abs() < 1e-6);
+}
+
+#[test]
+fn a_heavy_gun_s_shot_shakes_dust_off_its_whole_hull_and_blows_it_off_the_ground_under_its_muzzle()
+{
+    // The test's own look: a tank round shakes a full shot's dust, an
+    // autocannon's a third of it, an HMG's none; puffs that stay put.
+    let p = presentation_with(|p| {
+        p["flashes"]["tank_ap"]["dust"] = 1.0.into();
+        p["flashes"]["autocannon"]["dust"] = (1.0 / 3.0).into();
+        p["flashes"]["hmg"]["dust"] = 0.0.into();
+        let mut puff = p["dust"].clone();
+        for (k, v) in [
+            ("rise_mps", json!(0)),
+            ("spread_mps", json!(0)),
+            ("life_s", json!(1.5)),
+        ] {
+            puff[k] = v;
+        }
+        puff["size_m"] = json!([0.5, 1.0]);
+        let (mut hull, mut ground) = (puff.clone(), puff);
+        (hull["count"], hull["over_s"]) = (12.into(), 0.1.into());
+        (ground["count"], ground["over_s"], ground["reach_m"]) = (9.into(), 0.1.into(), 4.into());
+        p["shot_dust"] = json!({"hull": hull, "ground": ground});
+    });
+    // The puffs (x, y, z) drawn just after a hull at (100, 50) facing east
+    // fires its first mount, a `kind`, north.
+    let shot_dust = |kind: &str, airborne: bool| {
+        let mut f = EffectFrame::new(HZ, p.clone());
+        let shooter = |shots: f64| {
+            let mut t = tank(2.0, shots);
+            t["airborne"] = airborne.into();
+            t["mounts"][0]["kind"] = kind.into();
+            t["mounts"][0]["bearing"] = FRAC_PI_2.into();
+            t
+        };
+        f.note(&publ(5.0, json!({"shooters": [shooter(3.0)]})));
+        f.note(&publ(6.0, json!({"shooters": [shooter(4.0)]})));
+        let d = drawn(&mut f, 5.0 * DT + 0.15);
+        layer(&d, 1.0)
+            .iter()
+            .map(|i| [i[0], i[1], i[2]].map(f64::from))
+            .collect::<Vec<_>>()
+    };
+    let dust = shot_dust("tank_ap", false);
+    let (hl, hw, top) = (3.5, 1.8, 2.4);
+    let on_hull = |i: &&[f64; 3]| (i[0] - 100.0).abs() <= hl && (i[1] - 50.0).abs() <= hw;
+    let (over_hull, on_ground): (Vec<&[f64; 3]>, Vec<_>) = dust.iter().partition(on_hull);
+    // Shaken off the whole hull: end to end, off its roof and down its flanks…
+    assert!(!over_hull.is_empty());
+    assert!(over_hull.iter().all(|i| i[2] <= top));
+    assert!(over_hull.iter().any(|i| i[0] > 100.0 + hl / 3.0));
+    assert!(over_hull.iter().any(|i| i[0] < 100.0 - hl / 3.0));
+    assert!(over_hull.iter().any(|i| i[2] > top * 0.7));
+    assert!(over_hull.iter().any(|i| i[2] < top * 0.5));
+    // …and blown off the ground out where the muzzle points, past the hull's side.
+    assert!(!on_ground.is_empty());
+    assert!(on_ground.iter().all(|i| i[2] < top * 0.5 && i[1] > 50.0));
+    let middle = on_ground.iter().map(|i| i[1]).sum::<f64>() / on_ground.len() as f64;
+    assert!(middle > 50.0 + 5.2, "ahead of the muzzle: {middle}");
+    // An autocannon's shot raises less; an HMG's none, nor anything in the air.
+    let light = shot_dust("autocannon", false);
+    assert!(!light.is_empty() && light.len() < dust.len() / 2);
+    assert!(shot_dust("hmg", false).is_empty());
+    assert!(shot_dust("tank_ap", true).is_empty());
 }

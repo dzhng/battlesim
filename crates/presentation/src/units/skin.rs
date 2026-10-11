@@ -9,7 +9,7 @@
 //! [`affine`] of one, its basis rows and origin as float32.
 use std::collections::BTreeMap;
 
-use super::pose::ClipBlend;
+use super::pose::{ClipBlend, Kick};
 use crate::world::{Clip, Node, Quat, Trs, Vec3};
 
 pub type Mat4 = [f64; 16];
@@ -211,6 +211,40 @@ pub fn joint_worlds(
     }
 }
 
+/// The joint a shot's kick turns a soldier's upper body about (his waist),
+/// carrying everything it holds up: head, arms and weapon. A body without
+/// it is never kicked.
+pub const KICK_JOINT: &str = "spine_01";
+
+/// A body's joint `worlds` kicked by `kick`, in place (`kickWorlds`): its
+/// [`KICK_JOINT`] and everything it carries turned back about that joint
+/// (its forward, +X, climbing) and thrown back along −X.
+pub fn kick_worlds(joints: &[Node], kick: Kick, worlds: &mut [Mat4]) {
+    if kick == Kick::default() {
+        return;
+    }
+    let Some(joint) = joints.iter().position(|j| j.name == KICK_JOINT) else {
+        return;
+    };
+    let (ox, oz) = (worlds[joint][12], worlds[joint][14]);
+    // About +Y by −pitch, about the joint, then back.
+    let (s, c) = kick.pitch.sin_cos();
+    #[rustfmt::skip]
+    let turn = [
+        c, 0.0, s, 0.0,
+        0.0, 1.0, 0.0, 0.0,
+        -s, 0.0, c, 0.0,
+        ox - (c * ox - s * oz) - kick.back, 0.0, oz - (s * ox + c * oz), 1.0,
+    ];
+    let mut carried = vec![false; joints.len()];
+    for (j, node) in joints.iter().enumerate() {
+        carried[j] = j == joint || usize::try_from(node.parent).is_ok_and(|p| carried[p]);
+        if carried[j] {
+            worlds[j] = mul(&turn, &worlds[j]);
+        }
+    }
+}
+
 /// Each joint's inverse bind: `given` where the appearance carries them,
 /// else the inverse of its bind world (the chain of bind locals).
 pub fn inverse_binds(joints: &[Node], given: &[Mat4]) -> Vec<Mat4> {
@@ -238,7 +272,7 @@ pub fn palette(worlds: &[Mat4], inverse_binds: &[Mat4], out: &mut Vec<[f32; 12]>
 }
 
 /// An articulated model's node worlds from its locals (parents first), into
-/// `out`. A whole-model motion (a falling airframe's tilt) carries every root.
+/// `out`. A whole-model motion (an aircraft's lean, a hull's kick) carries every root.
 pub fn node_worlds(nodes: &[Node], locals: &[Trs], motion: Option<&Mat4>, out: &mut Vec<Mat4>) {
     out.clear();
     for (node, local) in nodes.iter().zip(locals) {

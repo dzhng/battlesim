@@ -19,7 +19,7 @@ use serde::Deserialize;
 
 use super::delta_angle;
 use super::pose::{
-    Articulation, ClipBlend, CorpsePose, FadingCorpse, PoseFrame, SoldierPose, VehiclePose,
+    Articulation, ClipBlend, CorpsePose, FadingCorpse, Kick, PoseFrame, SoldierPose, VehiclePose,
 };
 use crate::seed::{side_key, Mulberry32};
 use crate::world::{Appearance, Clip, UnitType, UnitsSection, Vec3};
@@ -101,6 +101,10 @@ pub struct PoseFeel {
     pub stance: StanceShares,
     pub lean: Lean,
     pub mount: MountFeel,
+    /// How a shot kicks the hull on the ground that fires it; none: never.
+    pub hull_kick: Option<HullKick>,
+    /// How each of his own shots kicks a soldier; none: never.
+    pub soldier_kick: Option<SoldierKick>,
     pub rotor: RotorFeel,
     pub attitude: AttitudeFeel,
     pub corpses: CorpseCap,
@@ -144,6 +148,42 @@ pub struct MountFeel {
     pub hmg_elevation_rad_s: f64,
     pub recoil_m: f64,
     pub recoil_return_s: f64,
+}
+
+/// A shot's recoil throws the hull back on its springs, away from where the
+/// round went, and it rocks back past rest and settles, never moving off its
+/// spot. `rounds` is each round kind's kick (a `default` row): at 1 the
+/// hull's roof swings back at most `rock_deg` about its base while it slides
+/// `slide_m` back; at 0 it never moves. Its springs ring at `hz`, damped by
+/// `damping` (a share of critical, in (0, 1)).
+#[derive(Clone, Debug, Deserialize)]
+pub struct HullKick {
+    pub rounds: HashMap<String, f64>,
+    pub rock_deg: f64,
+    pub slide_m: f64,
+    pub hz: f64,
+    pub damping: f64,
+}
+
+/// Each of his own shots snaps a soldier's upper body back about his waist
+/// ([`KICK_JOINT`](super::skin::KICK_JOINT)), his muzzle climbing
+/// `pitch_deg` and his shoulders thrown `back_m` back, and he recovers over
+/// `return_s`. `rounds` is each round kind's share of that (a `default` row).
+#[derive(Clone, Debug, Deserialize)]
+pub struct SoldierKick {
+    pub rounds: HashMap<String, f64>,
+    pub pitch_deg: f64,
+    pub back_m: f64,
+    pub return_s: f64,
+}
+
+/// A round kind's kick, or the table's `default` (none without one).
+fn kick_of(rounds: &HashMap<String, f64>, kind: &str) -> f64 {
+    rounds
+        .get(kind)
+        .or_else(|| rounds.get("default"))
+        .copied()
+        .unwrap_or(0.0)
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -314,14 +354,104 @@ fn approach(from: f64, to: f64, step: f64) -> f64 {
     }
 }
 
+/// How much of a kick is left `since` seconds after it, recovering over
+/// `over` seconds: all of it at once, then going, fast at first and settling.
+fn kick_left(since: f64, over: f64) -> f64 {
+    if since.is_nan() || since < 0.0 || since >= over {
+        return 0.0;
+    }
+    let left = 1.0 - since / over;
+    left * left
+}
+
 /// The gun's run-back `since` seconds after a shot: all the way back at
 /// once, then out to battery, fast at first and settling.
 fn recoil_at(since: f64, m: &MountFeel) -> f64 {
-    if since.is_nan() || since < 0.0 || since >= m.recoil_return_s {
-        return 0.0;
+    m.recoil_m * kick_left(since, m.recoil_return_s)
+}
+
+/// A hull's springs (`HullKick`): their decay and ringing rates, and the
+/// speed a full kick starts them at so that they swing out to 1.
+struct Springs {
+    decay: f64,
+    ring: f64,
+    start: f64,
+}
+
+impl Springs {
+    fn of(kick: &HullKick) -> Self {
+        let omega = 2.0 * PI * kick.hz;
+        let decay = kick.damping * omega;
+        let ring = omega * (1.0 - kick.damping * kick.damping).sqrt();
+        // Kicked from rest at speed v, it swings out to (v/ring)·e^(−decay·t)·sin(ring·t),
+        // furthest where tan(ring·t) = ring/decay.
+        let peak = ring.atan2(decay) / ring;
+        let start = ring / ((-decay * peak).exp() * (ring * peak).sin());
+        Self { decay, ring, start }
     }
-    let left = 1.0 - since / m.recoil_return_s;
-    m.recoil_m * left * left
+
+    /// A damped spring's state (`x`, `v`) run on `dt` seconds, exactly: the
+    /// same wherever the frames fall.
+    fn ring_on(&self, x: f64, v: f64, dt: f64) -> (f64, f64) {
+        let e = (-self.decay * dt).exp();
+        let c = (self.ring * dt).cos();
+        let n = (self.ring * dt).sin() / self.ring;
+        (
+            e * (x * c + (v + self.decay * x) * n),
+            e * (v * c
+                - ((self.ring * self.ring + self.decay * self.decay) * x + self.decay * v) * n),
+        )
+    }
+}
+
+/// A hull's swing below which it is at rest, in kicks.
+const KICK_REST: f64 = 1e-4;
+
+/// Ring a hull on the ground on its springs through `dt`, then kick it for
+/// each new round its mounts fired since `shots`, by the round's kick, away
+/// from where the round went: its motion, or None at rest. `k` is its roof's
+/// throw along its own x and y, in kicks, and how fast. The roof swings
+/// along its kick: the hull turns about its base, and slides with it.
+fn kick_hull(
+    k: &mut [f64; 4],
+    shots: &[f64],
+    unit: &FeedUnit,
+    ty: &UnitType,
+    feel: &HullKick,
+    dt: f64,
+) -> Option<[f64; 16]> {
+    let springs = Springs::of(feel);
+    let [x, y, vx, vy] = k;
+    (*x, *vx) = springs.ring_on(*x, *vx, dt);
+    (*y, *vy) = springs.ring_on(*y, *vy, dt);
+    for (i, m) in unit.mounts.iter().enumerate() {
+        let fired = m.shots - shots.get(i).copied().unwrap_or(m.shots);
+        let kick = match ty.mounts.get(i) {
+            Some(row) if fired > 0.0 => fired * kick_of(&feel.rounds, &row.weapon),
+            _ => 0.0,
+        };
+        if kick <= 0.0 {
+            continue;
+        }
+        let rel = m.bearing - unit.yaw;
+        *vx -= rel.cos() * kick * springs.start;
+        *vy -= rel.sin() * kick * springs.start;
+    }
+    let swing = x.hypot(*y);
+    if swing < KICK_REST && vx.hypot(*vy) < KICK_REST * springs.ring {
+        *k = [0.0; 4];
+        return None;
+    }
+    // About the level axis across its swing, the roof thrown along it (just
+    // kicked, it has not swung yet: no turn about any axis).
+    let across = if swing == 0.0 { 1.0 } else { swing };
+    let (s, c) = (feel.rock_deg * PI / 180.0 * swing / 2.0).sin_cos();
+    let q = [-*y / across * s, *x / across * s, 0.0, c];
+    Some(super::skin::trs(
+        [feel.slide_m * *x, feel.slide_m * *y, 0.0],
+        q,
+        [1.0; 3],
+    ))
 }
 
 fn sine_in(x: f64) -> f64 {
@@ -465,9 +595,11 @@ struct Flight {
 
 struct VehicleState {
     pose: VehiclePose,
-    /// The gun's shot counter as last seen, and when its last shot was.
-    gun_shots: f64,
+    /// Each mount's shot counter as last seen, and when the gun's last shot was.
+    shots: Vec<f64>,
     fired_at: f64,
+    /// Its hull on its springs (`kick_hull`).
+    kick: [f64; 4],
     seen: u64,
     flight: Option<Flight>,
 }
@@ -651,6 +783,7 @@ impl PoseDriver {
                             clip: "idle".into(),
                             phase: loop_start(soldier.id),
                             blend: None,
+                            kick: Kick::default(),
                         },
                         at: soldier.position,
                         lean_t: 0.0,
@@ -717,6 +850,21 @@ impl PoseDriver {
             state.last_shots = shots;
             state.own_shots = soldier.shots;
             let firing = time - state.fired_at < self.lean_hold;
+            // His last shot's kick, by the round his selected weapon fires.
+            pose.kick = match (&feel.soldier_kick, soldier.active_mount) {
+                (Some(kick), Some(m)) => {
+                    let round = units.types.get(&*unit.kind).and_then(|t| t.mounts.get(m));
+                    let left = round.map_or(0.0, |r| {
+                        kick_of(&kick.rounds, &r.weapon)
+                            * kick_left(time - state.fired_at, kick.return_s)
+                    });
+                    Kick {
+                        pitch: kick.pitch_deg * PI / 180.0 * left,
+                        back: kick.back_m * left,
+                    }
+                }
+                _ => Kick::default(),
+            };
 
             // Out on his lean he kneels to fire, pinned or not; otherwise,
             // under fire or firing, each man takes his own stance. Lying down
@@ -848,6 +996,7 @@ impl PoseDriver {
                     state.pose.unit = -1.0;
                     let changed_hold = state.pose.operator_mount.is_some();
                     state.pose.active_mount = None;
+                    state.pose.kick = Kick::default();
                     // He falls from the posture he is in, never getting up to die.
                     let fall = fall_of(state.posture, state.stance);
                     if changed_hold {
@@ -954,8 +1103,9 @@ impl PoseDriver {
             .or_insert_with(|| {
                 // First seen: posed as published, with no shot to recoil from.
                 VehicleState {
-                    gun_shots: gun_mount.map_or(0.0, |m| m.shots),
+                    shots: unit.mounts.iter().map(|m| m.shots).collect(),
                     fired_at: f64::NEG_INFINITY,
+                    kick: [0.0; 4],
                     pose: VehiclePose {
                         unit: unit.id,
                         kind: unit.kind.clone(),
@@ -970,7 +1120,7 @@ impl PoseDriver {
                             rotor_blur: if ty.airborne { 1.0 } else { 0.0 },
                             ..Articulation::default()
                         },
-                        tilt: None,
+                        motion: None,
                     },
                     seen: generation,
                     flight: None,
@@ -1000,10 +1150,7 @@ impl PoseDriver {
         };
         pose.position = unit.position;
         pose.yaw = unit.yaw;
-        pose.tilt = unit
-            .attitude
-            .or(flying)
-            .map(|(pitch, roll)| tilt(pitch, roll));
+        let attitude = unit.attitude.or(flying);
         let a = &mut pose.articulation;
         a.deploy = unit.deployment.unwrap_or(0.0);
 
@@ -1018,13 +1165,22 @@ impl PoseDriver {
         a.gun_pitch = approach(a.gun_pitch, gun_target, feel.mount.gun_elevation_rad_s * dt);
         a.hmg_yaw = hmg_mount.map_or(0.0, |m| delta_angle(carrier_bearing, m.bearing));
         a.hmg_pitch = approach(a.hmg_pitch, hmg_target, feel.mount.hmg_elevation_rad_s * dt);
-        if let Some(m) = gun_mount {
-            if m.shots > state.gun_shots {
-                state.fired_at = time;
-            }
-            state.gun_shots = m.shots;
+        let last = |i: usize| state.shots.get(i).copied();
+        if gun_mount.is_some_and(|m| m.shots > gun.and_then(last).unwrap_or(m.shots)) {
+            state.fired_at = time;
         }
         a.recoil = recoil_at(time - state.fired_at, &feel.mount);
+
+        // An aircraft leans; a hull on the ground rocks on its springs.
+        pose.motion = match (attitude, &feel.hull_kick) {
+            (Some((pitch, roll)), _) => Some(tilt(pitch, roll)),
+            (None, Some(kick)) if !pose.airborne => {
+                kick_hull(&mut state.kick, &state.shots, unit, ty, kick, dt)
+            }
+            _ => None,
+        };
+        state.shots.clear();
+        state.shots.extend(unit.mounts.iter().map(|m| m.shots));
         self.out.vehicles.push(pose.clone());
     }
 }

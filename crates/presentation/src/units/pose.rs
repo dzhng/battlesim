@@ -36,6 +36,15 @@ pub struct ClipBlend {
     pub weight: f64,
 }
 
+/// A shot's kick as drawn: the upper body turned back `pitch` radians about
+/// [`KICK_JOINT`](super::skin::KICK_JOINT) (forward, +X, climbing), and
+/// thrown `back` metres along −X. Both 0 at rest.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct Kick {
+    pub pitch: f64,
+    pub back: f64,
+}
+
 #[derive(Clone, Debug)]
 pub struct SoldierPose {
     pub soldier: f64,
@@ -53,6 +62,8 @@ pub struct SoldierPose {
     pub clip: Arc<str>,
     pub phase: f64,
     pub blend: Option<ClipBlend>,
+    /// His last shot's kick as drawn now (`PoseFeel::soldier_kick`).
+    pub kick: Kick,
 }
 
 #[derive(Clone, Debug)]
@@ -65,9 +76,11 @@ pub struct VehiclePose {
     /// It flies: its rotors turn, and nothing it has rolls.
     pub airborne: bool,
     pub articulation: Articulation,
-    /// Its rigid tilt in its own frame about its foot, column-major (a
-    /// falling airframe's); None while level.
-    pub tilt: Option<[f64; 16]>,
+    /// Its rigid motion in its own frame about its foot, column-major: an
+    /// aircraft's lean (`FeedUnit::attitude`, or into its flight), or a hull
+    /// rocking on its springs from a shot's kick (`PoseFeel::hull_kick`);
+    /// None at rest.
+    pub motion: Option<[f64; 16]>,
 }
 
 /// A fallen soldier whose death has played out: drawn lying, never posed.

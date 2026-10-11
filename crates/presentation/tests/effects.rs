@@ -25,6 +25,14 @@ fn fixture(path: &str) -> Value {
     serde_json::from_str(&text).expect("fixture JSON")
 }
 
+/// The browser's vectors regenerated with the shot's kick (`tests/fixtures`).
+fn kicked(name: &str) -> Value {
+    let at = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/fixtures")
+        .join(name);
+    serde_json::from_str(&std::fs::read_to_string(at).unwrap()).expect("fixture JSON")
+}
+
 /// The fixture's rounding: `Math.round(v * 1e6) / 1e6`.
 fn round(v: f32) -> f64 {
     js_round(f64::from(v) * 1e6) / 1e6
@@ -54,7 +62,7 @@ impl MuzzleSource for Muzzles {
 
 #[test]
 fn effects_match_the_browsers_vectors() {
-    let v = fixture("effects/effect-vectors.json");
+    let v = kicked("effect-vectors.json");
     let p = EffectPresentation::from_value(&v["presentation"]).expect("presentation");
     let mut batch = EffectBatch::new(p.capacity);
     let mut frame = EffectFrame::new(v["tickHz"].as_f64().unwrap(), p);
