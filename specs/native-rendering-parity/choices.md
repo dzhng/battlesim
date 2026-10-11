@@ -206,9 +206,8 @@ Within each group, least confident first.
   - Godot has one blur radius per light; the browser has a fixed penumbra in metres. So native's near shadows are slightly sharper and its far shadows softer.
   - Confidence: medium.
 
-- **The sky's radiance is evaluated per pixel instead of baking the browser's 384×192 lookup texture.** *04b.*
-  - No bake pass or texture lifetime to manage. The only difference is the browser's bilinear filtering.
-  - Confidence: high.
+- **The sky's radiance was evaluated per pixel instead of baking the browser's 384×192 lookup texture.** *04b; reversed in slice 10.*
+  - Slice 10 measured it: the sky and the haze (which integrated it twice per pixel) cost 2 ms a frame where the browser's lookup costs almost nothing. Native now bakes the browser's lookup.
 
 - **The post chain is a formula port: bloom, grade and AgX as one CompositorEffect, with Godot's tonemap linear.** *04c.*
   - Godot's built-in AgX can't express the grade's split tone and lift.
@@ -324,6 +323,23 @@ Closed by the agent on the evidence; the user had not reviewed it at the time of
   - Confidence: medium.
 - **The runs use the assets imported on 2026-10-10.** A merge of main during the slice changed the Abrams and both soldier sources; the staging only imports new files, so native kept the earlier imports, which match the browser control. A fresh import (or a new control) brings in main's models.
   - Confidence: high.
+
+### Slice 10: per-pass budgets and presentation
+
+Closed by the agent on the evidence; the user had not reviewed it at the time of writing.
+
+- **A new control, `throwaway/native-parity/2026-10-11T08-56-34-958Z`, with a fresh native import.** Main's merge changed the tank and soldier models; slices 10 and 12 compare against this run. The 10 October control and imports are retired.
+  - Confidence: high.
+- **A kit shell's open tier draws over every coarser tier; its closed tiers draw alone** (`closed_tier: 2` in the legacy layer's building detail, from `OPEN_TIERS = (0, 1)` in `kit.py`). Drawing the chosen tier plus tier 2 left Paris dormers hollow, and the chosen tier plus tiers 1–2 lost a balcony's front: the coarser tiers each fold in part of what the modules supply. Near buildings look as before, and a far one draws one tier instead of four. Slice 13 places the modules and replaces the rule.
+  - Confidence: medium. It is scaffolding read from the kit's build script, not from a manifest field.
+- **Far props keep their coarsest tier out to the horizon.** The browser does the same and has no prop impostors; once the shells were fixed, props were not in the tail.
+  - Confidence: high.
+- **Native bakes the browser's sky lookup once and samples it** in the shown sky, the sky's light and the haze (`environment/sky_lut.gd`). It replaces 04b's per-pixel sky: GPU busy fell from 6.31 to 4.43 ms a frame, and plates moved at most 4 levels, neither toward nor away from the browser.
+  - Confidence: high.
+- **Per-pass costs come from traces of both clients on the same stretch of reel.** The browser's are its labelled encoders, with Dawn's `use_user_defined_labels_in_backend` turned on in a scratch copy of the scene runner's flags for the trace only. Native's are busy time saved by ablation over 100 looped records. The flag isn't committed: traces are occasional evidence, and the scene runner's flags are the shipped browser's.
+  - Confidence: medium. Ablation rows overlap, and single traces carry about ±0.3 ms.
+- **No presentation setting changed.** On screen and off differ by about 0.1 ms now, and swapchain count and frame queue size moved nothing beyond the spread. 08's +17 ms came with a saturated GPU.
+  - Confidence: medium. Each run's on-screen state was read from the window server, because macOS restores the last window state whatever the project or `--windowed` asks.
 
 ### Slice 11: release build
 

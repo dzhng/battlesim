@@ -67,14 +67,15 @@ It draws every frame record (or the `--frames` given) once, in order, exactly
 as a plate run composes and steps it, at the same 4× MSAA, but reads nothing
 back and writes no PNG.
 
-- **Pacing.** Uncapped by default: vsync off and no frame-rate limit, so a
-  frame takes as long as it costs. `--pace display` turns vsync on instead,
+- **Pacing.** Uncapped by default: vsync off and no frame-rate limit. A frame
+  still takes at least the display's refresh interval (8.3 ms at 120 Hz), on
+  screen or off, so below it compare GPU time from a trace. `--pace display` turns vsync on instead,
   for comparing with a browser whose frames the display paces.
-- **Presentation.** A bench runs minimised, like every run, and a minimised
-  window doesn't present its frames, as the headless browser it is compared
-  with doesn't. Presenting is a separate cost: the same 300 market-town
-  records took 25–26 ms a frame minimised and 37–48 ms with the window shown
-  (the project's `window/size/mode` at 0).
+- **Presentation.** A bench asks for a minimised window, as the headless
+  browser it is compared with presents nothing, but macOS restores whatever
+  state the window last had, so a run may be on screen either way; the
+  report's `window` says which. Since slice 10 presenting costs about 0.1 ms
+  a frame.
 - **Timing.** Each frame's interval runs from the end of one frame's draw to
   the next (`Time.get_ticks_usec` after each `force_draw`), and its CPU time is
   the record's step plus Godot's frame setup and viewport render on the CPU.
