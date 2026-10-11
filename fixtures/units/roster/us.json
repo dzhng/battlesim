@@ -206,6 +206,18 @@
       "extends": "roster_profile_light_helicopter",
       "body": {
         "hull": {
+          "armor": {
+            "front": 4,
+            "side": 4,
+            "rear": 4,
+            "roof": 4,
+            "ricochet": {
+              "front": 0.1,
+              "side": 0.1,
+              "rear": 0.1,
+              "roof": 0.1
+            }
+          },
           "half_extents_m": [
             3.75,
             1.64,
@@ -217,9 +229,9 @@
       "mounts": [
         {
           "id": "guns",
-          "name": "Chain Gun",
+          "name": "HMG",
           "weapons": [
-            "autocannon"
+            "hmg"
           ],
           "turret": false,
           "pivot_m": [
@@ -274,6 +286,18 @@
       "extends": "roster_profile_light_helicopter",
       "body": {
         "hull": {
+          "armor": {
+            "front": 4,
+            "side": 4,
+            "rear": 4,
+            "roof": 4,
+            "ricochet": {
+              "front": 0.1,
+              "side": 0.1,
+              "rear": 0.1,
+              "roof": 0.1
+            }
+          },
           "half_extents_m": [
             3.75,
             1.475,
@@ -299,7 +323,33 @@
             1.15,
             0,
             0
-          ]
+          ],
+          "arc": {
+            "centre_deg": 90,
+            "width_deg": 160
+          }
+        },
+        {
+          "id": "door_right",
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            2.35,
+            -1.25,
+            1.05
+          ],
+          "muzzle_m": [
+            1.15,
+            0,
+            0
+          ],
+          "arc": {
+            "centre_deg": -90,
+            "width_deg": 160
+          }
         }
       ],
       "appearance": "us_ah_6_mh_6_little_bird_mh_6m"
@@ -406,7 +456,33 @@
             1.2,
             0,
             0
-          ]
+          ],
+          "arc": {
+            "centre_deg": 90,
+            "width_deg": 160
+          }
+        },
+        {
+          "id": "door_right",
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            5.207,
+            -1.33,
+            1.8
+          ],
+          "muzzle_m": [
+            1.2,
+            0,
+            0
+          ],
+          "arc": {
+            "centre_deg": -90,
+            "width_deg": 160
+          }
         }
       ],
       "appearance": "us_ch_47_chinook_ch_47f"
@@ -2296,7 +2372,33 @@
             1.0,
             0,
             0
-          ]
+          ],
+          "arc": {
+            "centre_deg": 90,
+            "width_deg": 160
+          }
+        },
+        {
+          "id": "door_right",
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            2.45,
+            -1.4,
+            1.45
+          ],
+          "muzzle_m": [
+            1.0,
+            0,
+            0
+          ],
+          "arc": {
+            "centre_deg": -90,
+            "width_deg": 160
+          }
         }
       ],
       "appearance": "us_uh_1y_venom_utility_transport"
@@ -2346,7 +2448,33 @@
             1.1,
             0,
             0
-          ]
+          ],
+          "arc": {
+            "centre_deg": 90,
+            "width_deg": 160
+          }
+        },
+        {
+          "id": "door_right",
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            2.025,
+            -1.2,
+            1.5
+          ],
+          "muzzle_m": [
+            1.1,
+            0,
+            0
+          ],
+          "arc": {
+            "centre_deg": -90,
+            "width_deg": 160
+          }
         }
       ],
       "appearance": "us_uh_60_black_hawk_uh_60m"

@@ -2261,7 +2261,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · In-world UI and HUD · from Post-close review (presentation)*
 
-**The choice.** The player selects a tank and a supply truck and right-clicks an enemy squad. The tank attacks. The truck, which has no weapons, is left out and carries on with what it was doing. `commandReach.ts`, the one owner of which selected units a command reaches (see the mixed-selection entry), counts a unit as able to attack when its type has mounts (weapons). Every attack path goes through that test: right-clicking an enemy, Ctrl+right-click, and an attack-move or attack-ground click. X (attack-move) and G (attack-ground) arm only when an armed unit is selected, and the command bar lights them the same way. With only the truck selected, nothing is sent. The alternative was to give the unarmed unit a plain move to the clicked point in place of the attack-move. It was rejected because the player asked for an attack, not a move. The readouts scene checks it with a tank and a truck.
+**The choice.** The player selects a tank and a supply truck and right-clicks an enemy squad. The tank attacks. The truck, which has no weapons, is left out and carries on with what it was doing. `commandReach.ts`, the one owner of which selected units a command reaches (see the mixed-selection entry), counts a unit as able to attack when its type has mounts (weapons). Every attack path goes through that test: right-clicking an enemy, Ctrl+right-click, and an attack-move or attack-ground click. C (attack-move) and G (attack-ground) arm only when an armed unit is selected, and the command bar lights them the same way. With only the truck selected, nothing is sent. The alternative was to give the unarmed unit a plain move to the clicked point in place of the attack-move. It was rejected because the player asked for an attack, not a move. The readouts scene checks it with a tank and a truck.
 
 **The gap.** The review found attacks sent to units that can't fire. What an unarmed unit should do instead was open.
 
@@ -3593,11 +3593,11 @@ Where the operator fires it from is the operator-muzzle entry.
 
 **Verdict.** sound.
 
-### R arms reverse move, X arms attack-move
+### R arms reverse move, X arms attack-move (superseded)
 
 ***sound** · confidence **high** · Camera and controls · from Slice 39*
 
-**The choice.** A hard cutover: `R` arms reverse move, `X` arms attack-move (Ctrl+right-click still attack-moves). The command bar shows "Reverse (R, or right-click behind one vehicle)"; the acknowledgement log says "reverse move". Bindings live in `web/src/battle/input/commandBindings.ts`.
+**The choice.** A hard cutover: `R` arms reverse move, `X` arms attack-move (Ctrl+right-click still attack-moves). The command bar shows "Reverse (R, or right-click behind one vehicle)"; the acknowledgement log says "reverse move". Bindings live in `web/src/battle/input/commandBindings.ts`. Superseded 2026-10-10: `Z`/`X` tilt the camera and `C` arms attack-move.
 
 **The gap.** Key choice.
 

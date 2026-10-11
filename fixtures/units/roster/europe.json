@@ -157,7 +157,33 @@
             1.2,
             0,
             0
-          ]
+          ],
+          "arc": {
+            "centre_deg": 90,
+            "width_deg": 160
+          }
+        },
+        {
+          "id": "door_right",
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            2.165,
+            -1.33,
+            1.6
+          ],
+          "muzzle_m": [
+            1.2,
+            0,
+            0
+          ],
+          "arc": {
+            "centre_deg": -90,
+            "width_deg": 160
+          }
         }
       ],
       "appearance": "europe_aw101_merlin_hc4"
@@ -207,7 +233,11 @@
             1.1,
             0,
             0
-          ]
+          ],
+          "arc": {
+            "centre_deg": 90,
+            "width_deg": 160
+          }
         }
       ],
       "appearance": "europe_aw159_wildcat_ah1"
@@ -579,7 +609,33 @@
             1.2,
             0,
             0
-          ]
+          ],
+          "arc": {
+            "centre_deg": 90,
+            "width_deg": 160
+          }
+        },
+        {
+          "id": "door_right",
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            5.207,
+            -1.33,
+            1.8
+          ],
+          "muzzle_m": [
+            1.2,
+            0,
+            0
+          ],
+          "arc": {
+            "centre_deg": -90,
+            "width_deg": 160
+          }
         }
       ],
       "appearance": "europe_ch_47_chinook_hc6"
@@ -2133,7 +2189,33 @@
             1.15,
             0,
             0
-          ]
+          ],
+          "arc": {
+            "centre_deg": 90,
+            "width_deg": 160
+          }
+        },
+        {
+          "id": "door_right",
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            2.215,
+            -1.2,
+            1.55
+          ],
+          "muzzle_m": [
+            1.15,
+            0,
+            0
+          ],
+          "arc": {
+            "centre_deg": -90,
+            "width_deg": 160
+          }
         }
       ],
       "appearance": "europe_nh90_tth"

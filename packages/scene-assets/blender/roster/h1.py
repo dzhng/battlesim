@@ -104,11 +104,7 @@ def build(variant, v):
             box(f"cabin_door_{k}", (2.2, 0.03, 1.3), (2.2, side * 0.9, 1.35), m["dark"], hull, lods=MID)
             box(f"cabin_window_{k}", (0.6, 0.03, 0.45), (2.6, side * 0.915, 1.7), m["glass"], hull, lods=MID)
             box(f"cockpit_window_{k}", (0.9, 0.03, 0.5), (4.6, side * 0.88, 1.6), m["glass"], hull, lods=MID)
-            if side < 0:
-                # The right door gun stowed on its mount, swung out.
-                cyl(f"door_gun_{k}", 0.05, 1.1, (2.9, side * 1.4, 1.45), "X", m["steel"], hull, seg=8, lods=MID)
-                box(f"door_gun_mount_{k}", (0.2, 0.55, 0.1), (2.4, side * 1.15, 1.4), m["dark"], hull, lods=NEAR)
-        A.door_gun(v, rigged, m, DOOR_PITCH_DEG, inboard=0.5)
+        A.door_guns(v, rigged, m, DOOR_PITCH_DEG, inboard=0.5)
         A.blade_antenna("antenna_roof", (-0.5, 0, 2.3), 0.3, m, hull)
         cyl("mast", 0.14, 0.7, (0.4, 0, 3.25), "Z", m["dark"], hull, seg=12)
         hub_z = height - 0.27

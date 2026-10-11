@@ -119,3 +119,28 @@ fn a_gun_scatters_wider_at_a_helicopter_than_along_the_ground() {
         heli_loss(&ground)
     );
 }
+
+/// A Little Bird's thin skin stops nothing a rifle fires, so rifles can
+/// bring one down; a Wildcat, sharing its class, shrugs them off.
+#[test]
+fn rifles_can_hurt_a_little_bird_but_not_a_wildcat() {
+    let rules: contract::scenario::Rules = serde_json::from_value(sim::fixtures::game()).unwrap();
+    let rifle = rules.weapons.get("rifle").unwrap();
+    let armor = |id: &str| match &rules.catalog.by_id(id).body {
+        contract::catalog::Body::Hull(hull) => hull.armor,
+        _ => panic!("{id} has no hull"),
+    };
+    for little_bird in [
+        "us_ah_6_mh_6_little_bird_ah_6m",
+        "us_ah_6_mh_6_little_bird_mh_6m",
+    ] {
+        assert!(
+            sim::weapons::can_damage(rifle, Some(&armor(little_bird))),
+            "{little_bird}"
+        );
+    }
+    assert!(!sim::weapons::can_damage(
+        rifle,
+        Some(&armor("europe_aw159_wildcat_ah1"))
+    ));
+}

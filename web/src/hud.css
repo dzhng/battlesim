@@ -1235,7 +1235,7 @@
   bottom: calc(100% + var(--hud-deck-popup-gap) + 1px);
 }
 .hud-purchase-categories {
-  margin-bottom: 12px;
+  margin-top: 12px;
 }
 .hud-purchase-categories [aria-selected="true"] {
   color: rgb(var(--hud-accent));
@@ -1295,7 +1295,7 @@
   color: rgb(var(--hud-text) / 0.7);
 }
 /* A family's info cards, in a hover menu standing on the family's card (its
-   top-left corner is the anchor), over the picker's header if need be. Its
+   top-left corner is the anchor), over the picker's edge if need be. Its
    transparent foot is the bridge the pointer climbs to reach it. */
 .hud-purchase-flyout {
   position: absolute;
@@ -1371,13 +1371,6 @@
   100% {
     color: rgb(var(--hud-warn));
   }
-}
-
-.hud-purchase-faction {
-  color: rgb(var(--hud-accent));
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  margin-bottom: 8px;
 }
 .hud-objective-flags > span {
   display: inline-flex;

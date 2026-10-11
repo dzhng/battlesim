@@ -1,6 +1,8 @@
 //! Flight (D4, D6, D7). An aircraft flies its side's air route at cruise
-//! speed, easing in and out with the vehicles' acceleration time and slowing
-//! for its route's corners. It holds
+//! speed, gathering and shedding it over the air's acceleration time and
+//! slowing for its route's corners. Braking for its goal it runs a little
+//! past, as a pilot flaring a beat late does, then eases back onto the point
+//! without turning round. It holds
 //! `cruise_agl_m` above the ground and climbs early enough to pass
 //! `clearance_m` over anything taller on its way, never above
 //! `ceiling_agl_m`. It turns on the spot toward where it flies, or to its
@@ -10,7 +12,7 @@
 
 use super::{arrive, may_advance, MovementContext, SideGeometry, GOAL_REPLAN_M};
 use crate::math::{v2, V2};
-use crate::units::{Flight, Motion, Unit};
+use crate::units::{Flight, Motion, Settle, Unit};
 use contract::catalog::AltitudeLayer;
 use contract::observation::{MoveState, ServiceStatus};
 use contract::scenario::Rules;
@@ -23,8 +25,10 @@ const ARRIVAL_M: f64 = 0.05;
 const LOOKAHEAD_STEP_M: f64 = 8.0;
 /// How fast two overlapping aircraft drift apart at full overlap.
 const SEPARATION_MPS: f64 = 4.0;
-/// The share of its acceleration an aircraft plans its braking on.
-const BRAKING_SHARE: f64 = 0.8;
+/// The share of its acceleration an aircraft plans its braking on: the rest
+/// straightens it out of a turn onto its last leg as it brakes, which would
+/// otherwise carry it well past its goal.
+const BRAKING_SHARE: f64 = 0.6;
 /// Below this ground speed an aircraft is hovering, and faces as ordered.
 const HOVER_MPS: f64 = 1.0;
 /// How far the low hover clears the tallest ground hull, and anything else
@@ -47,14 +51,42 @@ pub(super) fn step_aircraft(
     let drift = separation(ctx, units, i);
     let unit = &mut units[i];
     let here = unit.position.xy();
-    let accel = flight.cruise_mps / ctx.rules.movement.drive.acceleration_s;
+    let accel = flight.cruise_mps / ctx.rules.air.acceleration_s;
+    let air_rules = &ctx.rules.air;
     let wanted = if may_advance(ctx, unit) {
         let route = unit.route.as_ref().expect("a route to fly");
+        let state = unit.air.as_mut().expect("an aircraft's flight state");
+        // On the leg that ends at its goal it aims past the goal by its
+        // share of the leg; stopped there, it aims at the goal itself.
+        if route.len() == 1 {
+            let goal = route[0];
+            if state.settle.is_none_or(|s| s.goal != goal) {
+                let leg = goal - here;
+                let past = (air_rules.settle_share * leg.length()).min(air_rules.settle_max_m);
+                state.settle = Some(Settle {
+                    goal,
+                    aim: goal + leg.normalized() * past,
+                    back: past < ARRIVAL_M,
+                });
+            }
+        } else {
+            state.settle = None;
+        }
+        if let Some(s) = state.settle.as_mut().filter(|s| !s.back) {
+            if (s.aim - here).inside_radius(ARRIVAL_M) || (here - s.aim).dot(s.aim - s.goal) >= 0.0
+            {
+                s.back = true;
+            }
+        }
+        let target = match state.settle {
+            Some(s) if !s.back => s.aim,
+            _ => route[0],
+        };
         // It takes the next waypoint no faster than the turn there allows
         // (straight on at cruise, a right angle or more at a stop) nor than
         // it can stop from in the rest of the route, and its destination at a
         // stop. It brakes on a little less than it can.
-        let leg = route[0] - here;
+        let leg = target - here;
         let corner = match route.get(1) {
             Some(&after) => {
                 let turn = leg.normalized().dot((after - route[0]).normalized());
@@ -86,7 +118,8 @@ pub(super) fn step_aircraft(
     let climb = (target - unit.position.z).clamp(-flight.climb_mps * dt, flight.climb_mps * dt);
     unit.position = next.with_z(unit.position.z + climb);
     unit.drive_speed_mps = velocity.length();
-    turn(unit, flight, velocity, dt);
+    let back = unit.air.and_then(|a| a.settle).is_some_and(|s| s.back);
+    turn(unit, flight, velocity, back, dt);
     // Reached waypoints fall away; the last one completes the move. A
     // waypoint on the way is also passed once the aircraft is beyond it along
     // the leg that led there: one skimmed by a metre or two wide at cruise
@@ -96,7 +129,8 @@ pub(super) fn step_aircraft(
             Some(&w) if route.len() > 1 => {
                 (w - next).inside_radius(WAYPOINT_M) || (next - w).dot(w - from) >= 0.0
             }
-            Some(&w) => (w - next).inside_radius(ARRIVAL_M),
+            // The goal: only once it has eased back onto it.
+            Some(&w) => back && (w - next).inside_radius(ARRIVAL_M),
             None => false,
         };
         while passed(route, unit.route_from) {
@@ -104,10 +138,9 @@ pub(super) fn step_aircraft(
         }
         if route.is_empty() {
             arrive(unit);
-            unit.air
-                .as_mut()
-                .expect("an aircraft's flight state")
-                .velocity = v2(0.0, 0.0);
+            let air = unit.air.as_mut().expect("an aircraft's flight state");
+            air.velocity = v2(0.0, 0.0);
+            air.settle = None;
         }
     }
 }
@@ -194,9 +227,12 @@ fn separation(ctx: &MovementContext, units: &[Unit], i: usize) -> V2 {
 
 /// Face where a gun fixed in its hull must bear (D8), whichever way it flies;
 /// otherwise the way it flies, or hovering, as ordered.
-fn turn(unit: &mut Unit, flight: Flight, velocity: V2, dt: f64) {
+fn turn(unit: &mut Unit, flight: Flight, velocity: V2, back: bool, dt: f64) {
     let wanted = if let Some(face) = unit.reach.face {
         face
+    } else if back {
+        // Easing back onto its goal it keeps facing as it came.
+        return;
     } else if velocity.length() > HOVER_MPS {
         libm::atan2(velocity.y, velocity.x)
     } else if let Some(f) = unit.turn_to {
