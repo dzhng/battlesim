@@ -22,8 +22,9 @@ pub trait SkirmishPolicy {
     ) -> Vec<Order>;
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum Doctrine {
+    #[default]
     BalancedOpening,
     ReconScreen,
     InfantryPressure,
@@ -31,12 +32,6 @@ pub enum Doctrine {
     AirDenial,
     EmergencyDefense,
     Consolidate,
-}
-
-impl Default for Doctrine {
-    fn default() -> Self {
-        Self::BalancedOpening
-    }
 }
 
 #[derive(Clone, Debug)]

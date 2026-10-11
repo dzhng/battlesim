@@ -77,7 +77,7 @@ import {
   type XrayOf,
 } from "@packages/battle-renderer/src/models/modelInstances";
 import { gameHud } from "@web/battle/present/hudTheme";
-import { gameOrderFlash, gameXray, gameOrderStyle } from "./gameOverlay";
+import { gameOrderFlash, gameXray } from "./gameOverlay";
 import {
   NOTHING_REVEALED,
   OrderReveal,
