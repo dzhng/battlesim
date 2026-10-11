@@ -25,7 +25,17 @@ import { AppearanceLibrary, memoryFetch } from "@packages/scene-assets/src/loade
 import { AUTHORITY, testCatalog, testSources } from "./sceneAssets/synthetic";
 import { sideKey } from "@packages/battle-renderer/src/sideKey";
 import { TickInterpolator } from "../src/battle/present/interpolate";
-import type { CorpseView, FallingAirframeView, IdentifiedView, ObservationView, OwnUnitView, Point2, Point3, ProjectileView, SuppressionTier } from "../src/battle/sim/observationView";
+import type {
+  CorpseView,
+  FallingAirframeView,
+  IdentifiedView,
+  ObservationView,
+  OwnUnitView,
+  Point2,
+  Point3,
+  ProjectileView,
+  SuppressionTier,
+} from "../src/battle/sim/observationView";
 
 const TICK_MS = 1000 / 30;
 const CLIPS: Record<string, { duration: number; loop: boolean; stride_m: number | null }> = {
@@ -558,7 +568,7 @@ test("a helicopter shot down falls as itself, rotors still turning, tipping into
     weaponPoses: [],
   };
   const flying = play(b, 0, 5, (tick) => observation(tick, [heli])).vehicles;
-  expect(flying.map((v) => [v.unit, v.tilt])).toEqual([[4, null]]);
+  expect(flying.map((v) => [v.unit, v.motion])).toEqual([[4, null]]);
   const spun = flying[0].articulation.rotor;
   // Shot down: no longer a unit, its airframe falls nose down, leaning.
   const falling = (tick: number): FallingAirframeView => ({
@@ -579,7 +589,7 @@ test("a helicopter shot down falls as itself, rotors still turning, tipping into
   expect(v.position[0]).toBeLessThanOrEqual(54);
   expect(v.articulation.rotor).toBeGreaterThan(spun);
   // Its nose (+X) drops below its foot, and its right side (-Y) dips.
-  const tilt = v.tilt!;
+  const tilt = v.motion!;
   expect(tilt[2]).toBeCloseTo(-Math.sin(0.3), 6);
   expect(-tilt[6]).toBeLessThan(0);
   // Landed: its wreck takes over and the airframe is gone.

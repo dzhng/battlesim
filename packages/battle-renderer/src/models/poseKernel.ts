@@ -10,14 +10,21 @@
 // over our dense clip table (`clipTable.ts`) instead of the source's
 // snapshot banks and upper-body layer.
 
+import type { Kick } from "@packages/scene-assets/src/schema";
+
 /** Words per instance control record: four vec4u. */
 export const CONTROL_WORDS = 16;
+
+/** A control record's kick joint when its body is not kicked. */
+export const NO_KICK = 0xffffffff;
 
 /**
  * One instance's control record.
  * - `a`: clip A's first float / 4 (vec4 index), frame 0, frame 1, weight bits
  * - `b`: the same for clip B (the crossfade), or copies of A
  * - `c`: blend weight bits, joint count, joint table base, palette base
+ * - `d`: the joint a shot's kick turns about (`NO_KICK`: none), its pitch
+ *   and throw-back bits (`Kick`)
  */
 export function writeControl(
   words: Uint32Array,
@@ -29,6 +36,8 @@ export function writeControl(
   joints: number,
   jointBase: number,
   paletteBase: number,
+  kickJoint: number,
+  kick: Kick | undefined,
 ) {
   const o = at * CONTROL_WORDS;
   words[o] = a.offset / 4;
@@ -43,12 +52,16 @@ export function writeControl(
   words[o + 9] = joints;
   words[o + 10] = jointBase;
   words[o + 11] = paletteBase;
+  const kicked = kick && kickJoint >= 0 && (kick.pitch !== 0 || kick.back !== 0);
+  words[o + 12] = kicked ? kickJoint : NO_KICK;
+  floats[o + 13] = kicked ? kick.pitch : 0;
+  floats[o + 14] = kicked ? kick.back : 0;
 }
 
 /** The kernel's WGSL for bodies of at most `maxJoints` joints. */
 export function poseKernelWgsl(maxJoints: number): string {
   return /* wgsl */ `
-struct Control { a: vec4u, b: vec4u, c: vec4u, pad: vec4u };
+struct Control { a: vec4u, b: vec4u, c: vec4u, d: vec4u };
 struct Local { q: vec4f, t: vec3f, s: f32 };
 
 @group(0) @binding(0) var<storage, read> samples: array<vec4f>;
@@ -124,6 +137,18 @@ fn main(@builtin(global_invocation_id) id: vec3u) {
     var m = trs(local);
     let parent = parents[jointBase + joint];
     if (parent >= 0) { m = world[u32(parent)] * m; }
+    if (joint == control.d.x) {
+      // A shot's kick (scene-assets' kickWorlds): turned back about the
+      // joint, its +X climbing, and thrown back along -X; what it carries
+      // follows through world[joint].
+      let pitch = bitcast<f32>(control.d.y);
+      let c = cos(pitch);
+      let s = sin(pitch);
+      let turned = mat4x4f(
+        vec4f(c, 0.0, s, 0.0), vec4f(0.0, 1.0, 0.0, 0.0), vec4f(-s, 0.0, c, 0.0), vec4f(0.0, 0.0, 0.0, 1.0)
+      ) * m;
+      m = mat4x4f(turned[0], turned[1], turned[2], m[3] - vec4f(bitcast<f32>(control.d.z), 0.0, 0.0, 0.0));
+    }
     world[joint] = m;
     palette[paletteBase + joint] = m * inverseBinds[jointBase + joint];
   }

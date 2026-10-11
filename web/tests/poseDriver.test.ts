@@ -252,6 +252,54 @@ test("a crawl advances its phase by the ground covered over its stride", () => {
   expect((later.phase - phase + 1) % 1).toBeCloseTo(0.5, 5);
 });
 
+test("each of his own shots kicks a soldier back by his weapon's kick, and he recovers", () => {
+  // The test's own kick: a rifle's kicks fully, anything else half as hard.
+  const kick: PoseFeel["soldier_kick"] = {
+    rounds: { default: 0.5, rifle: 1 },
+    pitch_deg: 10,
+    back_m: 0.06,
+    return_s: 0.3,
+  };
+  const d = new PoseDriver({
+    units: UNITS,
+    mounts: shippedMounts,
+    clip: (_kind, name) => CLIPS[name] ?? null,
+    feel: { ...FEEL, soldier_kick: kick },
+    leanHold: game.cover.lean_hold_s,
+  });
+  /** Soldier 1 has fired `own` rounds, soldier 2 none, of the squad's `own`. */
+  const at = (time: number, own: number) => {
+    const unit = squad([
+      { id: 1, x: 0, y: 0 },
+      { id: 2, x: 3, y: 0 },
+    ]);
+    unit.mounts = [{ bearing: 0, elevation: 0, shots: own }];
+    unit.soldiers[0].shots = own;
+    unit.soldiers[1].shots = 0;
+    const out = d.update(frame(time, [unit])).soldiers;
+    return out.map((s) => ({ ...s.kick }));
+  };
+  const full = { pitch: (10 * Math.PI) / 180, back: 0.06 };
+  expect(at(0, 0)).toEqual([
+    { pitch: 0, back: 0 },
+    { pitch: 0, back: 0 },
+  ]);
+  // His shot snaps him back the full kick at once; his mate never moves.
+  const [shot, mate] = at(1, 1);
+  expect(shot.pitch).toBeCloseTo(full.pitch, 9);
+  expect(shot.back).toBeCloseTo(full.back, 9);
+  expect(mate).toEqual({ pitch: 0, back: 0 });
+  // He comes back, quickly at first, and is at rest by `return_s`.
+  const early = at(1.1, 1)[0];
+  const late = at(1.2, 1)[0];
+  expect(early.pitch).toBeLessThan(full.pitch);
+  expect(late.pitch).toBeGreaterThan(0);
+  expect(full.pitch - early.pitch).toBeGreaterThan(early.pitch - late.pitch);
+  expect(at(1.31, 1)[0]).toEqual({ pitch: 0, back: 0 });
+  // Another shot kicks him again.
+  expect(at(2, 2)[0].pitch).toBeCloseTo(full.pitch, 9);
+});
+
 test("a shot kneels a still soldier, suppression pins him, and a soldier's own posture wins", () => {
   const d = driver();
   d.update(
@@ -572,7 +620,7 @@ test("a flying aircraft dips its nose to speed up, flares to brake and banks int
     let v = d.update(frame(0, [heli(...path(0))])).vehicles[0];
     for (let k = 1; k <= seconds * 30; k++)
       v = d.update(frame(k / 30, [heli(...path(k / 30))])).vehicles[0];
-    return v.tilt;
+    return v.motion;
   };
   const noseDown = (m: ReturnType<typeof fly>) => -(m?.[2] ?? 0);
   // Its left (+Y) side's height: a bank to the left lowers it.
@@ -596,9 +644,9 @@ test("a flying aircraft dips its nose to speed up, flares to brake and banks int
   ];
   let held = d.update(frame(0, [heli(...path(0))])).vehicles[0];
   for (let k = 1; k <= 90; k++) held = d.update(frame(k / 30, [heli(...path(k / 30))])).vehicles[0];
-  const banked = leftDown(held.tilt);
+  const banked = leftDown(held.motion);
   for (let k = 0; k < 5; k++) held = d.update(frame(3, [heli(...path(3))])).vehicles[0];
-  expect(leftDown(held.tilt)).toBeCloseTo(banked, 9);
+  expect(leftDown(held.motion)).toBeCloseTo(banked, 9);
   // Hovering still: level.
   expect(noseDown(fly(() => [0, 0, 0], 2))).toBeCloseTo(0, 6);
   // Never past the most it leans, however hard it brakes.

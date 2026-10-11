@@ -22,6 +22,7 @@ import {
   type PoseFeel,
 } from "@packages/battle-renderer/src/models/poseDriver";
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
+import { inheritRows } from "@packages/renderer-core/src/kindTable";
 import { LaunchTracker } from "@packages/battle-renderer/src/effects/launches";
 import { sideKey } from "@packages/battle-renderer/src/sideKey";
 import type { FrameSample, Pose } from "@web/battle/present/interpolate";
@@ -34,8 +35,17 @@ export interface PoseRules {
   cover: { lean_hold_s: number };
 }
 
-/** `presentation.pose`: the pose driver's feel. */
-export const gamePose: PoseFeel = validatePoseFeel(game.presentation.pose as unknown as PoseFeel);
+const pose = game.presentation.pose as unknown as PoseFeel;
+/** `presentation.pose`: the pose driver's feel, each weapon's round kicking
+ *  as its nearest styled ancestor's (`inheritRows`) where it has no row of its own. */
+export const gamePose: PoseFeel = validatePoseFeel({
+  ...pose,
+  hull_kick: { ...pose.hull_kick, rounds: inheritRows(pose.hull_kick.rounds, game.weapons) },
+  soldier_kick: {
+    ...pose.soldier_kick,
+    rounds: inheritRows(pose.soldier_kick.rounds, game.weapons),
+  },
+});
 
 /** A pose driver for `rules` and the unit catalog, reading each type's clips
  *  from its appearance. */

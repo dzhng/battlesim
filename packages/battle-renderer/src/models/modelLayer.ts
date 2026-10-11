@@ -67,6 +67,7 @@ import {
   poseWorlds,
   posedMesh,
   positionsBounds,
+  kickJoint,
 } from "@packages/scene-assets/src/pose";
 import type { Trs } from "@packages/scene-assets/src/trs";
 import { typegpuCameraLayout } from "../world/camera";
@@ -542,6 +543,8 @@ interface GpuAppearance {
   joints: number;
   /** Skinned: the body's rows in the joint table and its clip table. */
   jointBase: number;
+  /** Skinned: the joint a shot's kick turns about (`kickJoint`), or −1. */
+  kickJoint: number;
   clips: ClipTable | null;
   clipBase: number;
   /** Articulated: the rig, and reusable locals, node parents and worlds. */
@@ -966,6 +969,7 @@ export async function createModelLayer(
         corpses: [],
         joints: 1,
         jointBase: 0,
+        kickJoint: -1,
         clips: null,
         clipBase: 0,
         rig: null,
@@ -1089,6 +1093,7 @@ export async function createModelLayer(
       if (bundle.kind === "skinned" && skeleton) {
         gpu.joints = bundle.joints.length;
         gpu.jointBase = parents.length;
+        gpu.kickJoint = kickJoint(bundle);
         for (const joint of bundle.joints) {
           parents.push(joint.parent);
           inverseBinds.push(...joint.inverse_bind);
@@ -1556,6 +1561,8 @@ export async function createModelLayer(
           gpu.joints,
           gpu.jointBase,
           base,
+          gpu.kickJoint,
+          inst.pose.kick,
         );
       } else if (bundle.kind === "articulated") {
         base = cursor;
@@ -1564,7 +1571,7 @@ export async function createModelLayer(
         const nodes = (bundle as ArticulatedBundle).nodes;
         const locals = articulate(gpu.locals, nodes, gpu.rig!, input);
         // Node worlds in place (parents precede children), into the palette.
-        // A whole-model motion (a falling airframe's tilt) carries every root.
+        // A whole-model motion (an aircraft's lean, a hull's kick) carries every root.
         const { parents, worlds } = gpu;
         const motion = inst.pose.kind === "articulated" ? inst.pose.motion : undefined;
         for (let j = 0; j < parents.length; j++) {

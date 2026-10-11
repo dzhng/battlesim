@@ -7,6 +7,7 @@ import type { Mat4 } from "math";
 import {
   INFANTRY_CORPSES,
   type Bundle,
+  type Kick,
   type Side,
   type SkeletonClips,
 } from "@packages/scene-assets/src/schema";
@@ -25,13 +26,15 @@ export interface SkinnedModelPose {
   phase: number;
   /** A second clip mixed over the first by `weight` (a crossfade). */
   blend: { clip: string; phase: number; weight: number } | null;
+  /** A shot's kick over both (`SoldierPose.kick`); none: at rest. */
+  kick?: Kick;
 }
 
 export interface ArticulatedModelPose {
   kind: "articulated";
   articulation: Articulation;
   /** A rigid motion of the whole model in its own frame, before its yaw (a
-   *  falling airframe's tilt, `VehiclePose.tilt`); none: upright. */
+   *  an aircraft's lean or a hull's kick, `VehiclePose.motion`); none: at rest. */
   motion?: Mat4;
 }
 
@@ -182,6 +185,7 @@ export function poseFrameInstances(
     pose.clip = s.clip;
     pose.phase = s.phase;
     pose.blend = s.blend;
+    pose.kick = s.kick;
     m.xray = xrayOf(s.side, s.unit);
   }
   for (const v of frame.vehicles) {
@@ -200,7 +204,7 @@ export function poseFrameInstances(
         ? m.pose
         : (m.pose = { kind: "articulated", articulation: v.articulation });
     pose.articulation = v.articulation;
-    pose.motion = v.tilt ?? undefined;
+    pose.motion = v.motion ?? undefined;
     m.xray = xrayOf(v.side, v.unit);
   }
   // Corpses the cap has pushed out, sinking: posed per frame until gone.

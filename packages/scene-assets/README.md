@@ -29,7 +29,9 @@ per kind; each number there is a loose tripwire, raised when real art
 outgrows it and nothing visibly suffers.
 
 Skinned bodies share one skeleton's clip library. Bone-attached kit is baked into
-that skin, and sockets locate observed effects on the drawn weapon. The fallen
+that skin, and sockets locate observed effects on the drawn weapon. A shot's
+kick turns the upper body about one named joint, so a rig without it is never
+kicked rather than kicked about the wrong bone. The fallen
 body uses a fixed corpse pose instead of retaining a live animation workload.
 [Pose construction](src/pose.ts) owns those transformations.
 

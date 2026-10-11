@@ -289,7 +289,7 @@ const tankPose = (at: readonly [number, number], turret: number) => ({
   yaw: 0.5,
   airborne: false,
   articulation: { ...REST_ARTICULATION, turret_yaw: turret },
-  tilt: null,
+  motion: null,
 });
 
 test("a Jeep death retains its own hull when another vehicle disappeared nearby", () => {

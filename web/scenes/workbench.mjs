@@ -134,9 +134,18 @@ export async function run(ctx) {
   const tankYawed = await shot(ctx, page, "tank-turret-90.png");
   const moved = changed(tankRest, tankYawed);
   ctx.check("turret yaw and gun pitch move the drawn tank", moved > 2000, `${moved} px`);
-  const tankError = await wb(page, () => window.__workbench.paletteError());
+  let tankError = await wb(page, () => window.__workbench.paletteError());
+  // A hull rocked back on its springs by a shot carries every node.
+  const c = Math.cos(0.06);
+  const s = Math.sin(0.06);
+  await wb(page, (p) => window.__workbench.setPose(p), {
+    kind: "articulated",
+    articulation: rest,
+    motion: [c, 0, s, 0, 0, 1, 0, 0, -s, 0, c, 0, -0.15, 0, 0, 1],
+  });
+  tankError = Math.max(tankError, await wb(page, () => window.__workbench.paletteError()));
   ctx.check(
-    "the articulated palette equals the CPU's node worlds",
+    "the articulated palette equals the CPU's node worlds, rocked or at rest",
     tankError < 1e-4,
     `${tankError}`,
   );
@@ -161,16 +170,20 @@ export async function run(ctx) {
     JSON.stringify(soldier.findings.map((f) => f.code)),
   );
   let worst = 0;
-  for (const [clip, phase] of [
+  // A shot's kick turns the upper body back about the waist on the GPU as
+  // on the CPU.
+  for (const [clip, phase, kick] of [
     ["walk", 0.3],
     ["death", 0.7],
     ["run", 0.95],
+    ["stand_aim", 0, { pitch: 0.15, back: 0.05 }],
   ]) {
     await wb(page, (p) => window.__workbench.setPose(p), {
       kind: "skinned",
       clip,
       phase,
       blend: null,
+      kick,
     });
     worst = Math.max(worst, await wb(page, () => window.__workbench.paletteError()));
   }

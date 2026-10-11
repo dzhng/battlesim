@@ -31,7 +31,7 @@ const pose = (p: Partial<VehiclePose>): VehiclePose => ({
   yaw: Math.PI / 2,
   airborne: true,
   articulation: { ...REST_ARTICULATION, rotor: 0, rotor_blur: 1 },
-  tilt: null,
+  motion: null,
   ...p,
 });
 
@@ -106,7 +106,7 @@ test("a rotor reports the angle it turned since the last drawn frame: the shutte
 
 test("a falling airframe's rotor tips with it", async () => {
   const tilt = mat4.fromYRotation(mat4.create(), 0.4);
-  const [main] = await drawnHeli({ yaw: 0, tilt });
+  const [main] = await drawnHeli({ yaw: 0, motion: tilt });
   // Nose up 0.4 rad about its +Y: the mast leans back, toward -X.
   expect(main.axis[0]).toBeCloseTo(Math.sin(0.4), 6);
   expect(main.axis[2]).toBeCloseTo(Math.cos(0.4), 6);

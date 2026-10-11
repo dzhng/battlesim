@@ -246,6 +246,18 @@ export const INFANTRY_CLIPS = [
 ] as const;
 /** Skinned sockets: nodes under a joint, named exactly. */
 export const INFANTRY_SOCKETS = ["eye", "muzzle"] as const;
+/** The joint a shot's kick turns a soldier's upper body about (his waist),
+ *  carrying everything it holds up: head, arms and weapon. A body without
+ *  it is never kicked. */
+export const INFANTRY_KICK_JOINT = "spine_01";
+
+/** A shot's kick as drawn: the upper body turned back `pitch` radians about
+ *  `INFANTRY_KICK_JOINT` (forward, +X, climbing), and thrown `back` metres
+ *  along −X. */
+export interface Kick {
+  pitch: number;
+  back: number;
+}
 
 /** A merged, material-ranged triangle mesh in its owner's space. */
 export interface MeshData {
@@ -404,6 +416,8 @@ export interface Bounds {
 export interface PoseRef {
   clip: string;
   phase: number; // 0..1 of the clip's duration
+  /** A shot's kick over the clip; none: at rest. */
+  kick?: Kick;
 }
 
 export interface Joint {

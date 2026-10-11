@@ -21,7 +21,8 @@
 // it the oldest corpse sinks into the ground (`fading`, posed every frame)
 // and is gone, though the simulation still lists him.
 
-import { clamp, deltaAngle, mat4, vec3, type Mat4, type Vec2, type Vec3 } from "math";
+import { clamp, deltaAngle, mat4, quat, vec3, type Mat4, type Vec2, type Vec3 } from "math";
+import { pick } from "@packages/renderer-core/src/kindTable";
 import { GRAVITY } from "../effects/cookOff";
 import { mulberry32 } from "math/random";
 import { easing } from "math/time";
@@ -32,6 +33,7 @@ import {
   INFANTRY_FALLS,
   INFANTRY_MOVES,
   INFANTRY_WAYS,
+  type Kick,
   type Side,
 } from "@packages/scene-assets/src/schema";
 import {
@@ -139,6 +141,10 @@ export interface SoldierPose {
   phase: number;
   /** The clip being faded out, if a transition is under way. */
   blend: ClipBlend | null;
+  /** His last shot's kick as drawn now (`PoseFeel.soldier_kick`): how far
+   *  his upper body is turned back about his waist, radians (his muzzle
+   *  climbing), and thrown back, metres; both 0 at rest. */
+  kick: Kick;
 }
 
 export interface VehiclePose {
@@ -150,9 +156,10 @@ export interface VehiclePose {
   /** It flies (`airborne`): its rotors turn, and nothing it has rolls. */
   airborne: boolean;
   articulation: Articulation;
-  /** Its rigid tilt in its own frame, about its foot (a falling airframe's
-   *  nose drop and lean, `FeedUnit.attitude`); null while level. */
-  tilt: Mat4 | null;
+  /** Its rigid motion in its own frame, about its foot: an aircraft's lean
+   *  (`FeedUnit.attitude`, or into its flight), or a hull rocking on its
+   *  springs from a shot's kick (`PoseFeel.hull_kick`); null at rest. */
+  motion: Mat4 | null;
 }
 
 /** A fallen soldier whose death has played out (or was never seen): drawn
@@ -247,6 +254,31 @@ export interface PoseFeel {
     recoil_m: number;
     recoil_return_s: number;
   };
+  /** How a shot kicks the hull on the ground that fires it: its recoil
+   *  throws the hull back on its springs, away from where the round went,
+   *  and it rocks back past rest and settles, never moving off its spot.
+   *  `rounds` is each round kind's kick (a `default` row): at 1 the hull's
+   *  roof swings back at most `rock_deg` about its base while it slides
+   *  `slide_m` back, and at 0 it never moves. Its springs ring at `hz`,
+   *  damped by `damping` (a share of critical). */
+  hull_kick: {
+    rounds: Record<string, number>;
+    rock_deg: number;
+    slide_m: number;
+    hz: number;
+    damping: number;
+  };
+  /** How each of his own shots kicks a soldier: his upper body snaps back
+   *  about his waist (`INFANTRY_KICK_JOINT`), his muzzle climbing
+   *  `pitch_deg` and his shoulders thrown `back_m` back, and he recovers
+   *  over `return_s`. `rounds` is each round kind's share of that (a
+   *  `default` row). */
+  soldier_kick: {
+    rounds: Record<string, number>;
+    pitch_deg: number;
+    back_m: number;
+    return_s: number;
+  };
   /** Each vehicle class's (`vehicleClass`) running-gear half gauge, as a
    *  share of its hull's half width; 1 when absent. */
   gauge: Partial<Record<string, number>>;
@@ -312,6 +344,25 @@ export function validatePoseFeel(p: PoseFeel): PoseFeel {
   positive("mount.hmg_elevation_rad_s", mount.hmg_elevation_rad_s);
   if (!(mount.recoil_m >= 0)) fail("mount.recoil_m", "must be ≥ 0");
   positive("mount.recoil_return_s", mount.recoil_return_s);
+  // A kick table: a `default` row, and every row a finite kick ≥ 0.
+  const rounds = (path: string, table: Record<string, number>) => {
+    if (!("default" in table)) fail(`${path}.default`, "is required");
+    for (const [kind, k] of Object.entries(table))
+      if (!(k >= 0 && Number.isFinite(k))) fail(`${path}.${kind}`, "must be ≥ 0");
+  };
+  const kick = p.hull_kick;
+  rounds("hull_kick.rounds", kick.rounds);
+  if (!(kick.rock_deg >= 0 && kick.rock_deg < 45)) fail("hull_kick.rock_deg", "must be in [0, 45)");
+  if (!(kick.slide_m >= 0)) fail("hull_kick.slide_m", "must be ≥ 0");
+  positive("hull_kick.hz", kick.hz);
+  if (!(kick.damping > 0 && kick.damping < 1))
+    fail("hull_kick.damping", "must be in (0, 1): springs that ring");
+  const body = p.soldier_kick;
+  rounds("soldier_kick.rounds", body.rounds);
+  if (!(body.pitch_deg >= 0 && body.pitch_deg < 45))
+    fail("soldier_kick.pitch_deg", "must be in [0, 45)");
+  if (!(body.back_m >= 0)) fail("soldier_kick.back_m", "must be ≥ 0");
+  positive("soldier_kick.return_s", body.return_s);
   for (const [kind, share] of Object.entries(gauge))
     if (!(share! > 0 && share! <= 1)) fail(`gauge.${kind}`, "must be in (0, 1]");
   if (!(Number.isInteger(corpses.max) && corpses.max >= 1))
@@ -464,9 +515,12 @@ interface SoldierState {
 
 interface VehicleState {
   pose: VehiclePose;
-  /** The gun's shot counter as last seen, and when its last shot was. */
-  gunShots: number;
+  /** Each mount's shot counter as last seen, and when the gun's last shot was. */
+  shots: number[];
   firedAt: number;
+  /** Its hull on its springs (`PoseFeel.hull_kick`): which way, and how
+   *  far, its roof is thrown, in kicks along its own x and y, and how fast. */
+  kick: { x: number; y: number; vx: number; vy: number };
   seen: number;
   /** A flying aircraft's drawn ground velocity and acceleration, eased
    *  (`PoseFeel.attitude`), and the attitude they gave it last: what it
@@ -484,13 +538,54 @@ function approach(from: number, to: number, step: number): number {
   return Math.abs(d) <= step ? to : from + Math.sign(d) * step;
 }
 
+/** How much of a kick is left `since` seconds after it, recovering over
+ *  `over` seconds: all of it at once, then going, fast at first and settling. */
+function kickLeft(since: number, over: number): number {
+  if (!(since >= 0) || since >= over) return 0;
+  const left = 1 - since / over;
+  return left * left;
+}
+
 /** The gun's run-back `since` seconds after a shot: all the way back at once,
  *  then out to battery, fast at first and settling. */
 export function recoilAt(since: number, mount: PoseFeel["mount"]): number {
-  if (!(since >= 0) || since >= mount.recoil_return_s) return 0;
-  const left = 1 - since / mount.recoil_return_s;
-  return mount.recoil_m * left * left;
+  return mount.recoil_m * kickLeft(since, mount.recoil_return_s);
 }
+
+/** A hull's springs (`PoseFeel.hull_kick`): their decay and ringing rates,
+ *  and the speed a full kick starts them at so that they swing out to 1. */
+function hullSprings(kick: PoseFeel["hull_kick"]) {
+  const omega = 2 * Math.PI * kick.hz;
+  const decay = kick.damping * omega;
+  const ring = omega * Math.sqrt(1 - kick.damping * kick.damping);
+  // Kicked from rest at speed v, it swings out to (v/ring)·e^(−decay·t)·sin(ring·t),
+  // furthest where tan(ring·t) = ring/decay.
+  const peak = Math.atan2(ring, decay) / ring;
+  return { decay, ring, start: ring / (Math.exp(-decay * peak) * Math.sin(ring * peak)) };
+}
+
+/** Run a damped spring's state (`x`, `v`) on `dt` seconds, exactly: the
+ *  same wherever the frames fall. */
+function ringOn(
+  x: number,
+  v: number,
+  dt: number,
+  s: ReturnType<typeof hullSprings>,
+): [number, number] {
+  const e = Math.exp(-s.decay * dt);
+  const c = Math.cos(s.ring * dt);
+  const n = Math.sin(s.ring * dt) / s.ring;
+  return [
+    e * (x * c + (v + s.decay * x) * n),
+    e * (v * c - ((s.ring * s.ring + s.decay * s.decay) * x + s.decay * v) * n),
+  ];
+}
+
+/** A hull's swing below which it is at rest, in kicks. */
+const KICK_REST = 1e-4;
+const _kick_q = quat.create();
+const _kick_axis = vec3.create();
+const _kick_slide = vec3.create();
 
 /** Keep the entries of `list` that pass `test`, in order, in place. */
 function keepWhere<T>(list: T[], test: (item: T) => boolean) {
@@ -645,6 +740,17 @@ export class PoseDriver {
       state.lastShots = shots;
       state.ownShots = own ?? 0;
       const firing = time - state.firedAt < this.options.leanHold;
+      // His last shot's kick, by the round his selected weapon fires.
+      const kick = this.options.feel.soldier_kick;
+      const round =
+        soldier.activeMount === null
+          ? undefined
+          : this.options.units.type(unit.kind).mounts[soldier.activeMount]?.weapons[0];
+      const left = round
+        ? pick(kick.rounds, round) * kickLeft(time - state.firedAt, kick.return_s)
+        : 0;
+      pose.kick.pitch = ((kick.pitch_deg * Math.PI) / 180) * left;
+      pose.kick.back = kick.back_m * left;
 
       // Out on his lean he kneels to fire, pinned or not: the film's man
       // pops out from behind the tree and drops back. Otherwise, under fire
@@ -738,6 +844,7 @@ export class PoseDriver {
         clip: "idle",
         phase: loopStart(soldier.id),
         blend: null,
+        kick: { pitch: 0, back: 0 },
       },
       at: vec3.clone(soldier.position),
       leanT: 0,
@@ -790,6 +897,7 @@ export class PoseDriver {
         state.pose.unit = -1;
         const changedHold = state.pose.operatorMount !== null;
         state.pose.activeMount = null;
+        state.pose.kick.pitch = state.pose.kick.back = 0;
         // He falls from the posture he is in, never getting up to die.
         const fall = fallOf(state.posture, state.stance);
         if (changedHold) this.resetClip(state, fall);
@@ -964,8 +1072,9 @@ export class PoseDriver {
       const flies = airborne(this.options.units.type(unit.kind));
       // First seen: posed as published, with no shot to recoil from.
       state = {
-        gunShots: gunMount?.shots ?? 0,
+        shots: unit.mounts.map((m) => m.shots),
         firedAt: -Infinity,
+        kick: { x: 0, y: 0, vx: 0, vy: 0 },
         pose: {
           unit: unit.id,
           kind: unit.kind,
@@ -980,7 +1089,7 @@ export class PoseDriver {
             hmg_pitch: hmgTarget,
             rotor_blur: flies ? 1 : 0,
           },
-          tilt: null,
+          motion: null,
         },
         seen: generation,
       };
@@ -1006,12 +1115,6 @@ export class PoseDriver {
     vec3.copy(pose.position, unit.position);
     pose.yaw = unit.yaw;
     const attitude = unit.attitude ?? flying;
-    if (attitude) {
-      // Nose up about its +Y, then right side down about its +X.
-      const tilt = (pose.tilt ??= mat4.create());
-      mat4.fromYRotation(tilt, -attitude.pitch);
-      mat4.rotateX(tilt, tilt, attitude.roll);
-    } else pose.tilt = null;
     a.deploy = unit.deployment ?? 0;
 
     // The turret on the cannon's bearing, the HMG relative to what its
@@ -1026,9 +1129,53 @@ export class PoseDriver {
     a.gun_pitch = approach(a.gun_pitch, gunTarget, feel.gun_elevation_rad_s * dt);
     a.hmg_yaw = hmgMount ? deltaAngle(carrierBearing, hmgMount.bearing) : 0;
     a.hmg_pitch = approach(a.hmg_pitch, hmgTarget, feel.hmg_elevation_rad_s * dt);
-    if (gunMount && gunMount.shots > state.gunShots) state.firedAt = time;
-    if (gunMount) state.gunShots = gunMount.shots;
+    if (gunMount && gunMount.shots > (state.shots[gun] ?? gunMount.shots)) state.firedAt = time;
     a.recoil = recoilAt(time - state.firedAt, feel);
+
+    if (attitude) {
+      // Nose up about its +Y, then right side down about its +X.
+      const m = (pose.motion ??= mat4.create());
+      mat4.fromYRotation(m, -attitude.pitch);
+      mat4.rotateX(m, m, attitude.roll);
+    } else if (pose.airborne) pose.motion = null;
+    else this.kickHull(state, unit, dt);
+    for (let i = 0; i < unit.mounts.length; i++) state.shots[i] = unit.mounts[i].shots;
     return pose;
+  }
+
+  /** Ring a hull on the ground on its springs (`PoseFeel.hull_kick`) through
+   *  `dt`, then kick it for each new round its mounts fired, by the round's
+   *  kick, away from where the round went. Its roof swings along its kick:
+   *  the hull turns about its base, and slides with it. */
+  private kickHull(state: VehicleState, unit: FeedUnit, dt: number) {
+    const feel = this.options.feel.hull_kick;
+    const springs = hullSprings(feel);
+    const k = state.kick;
+    [k.x, k.vx] = ringOn(k.x, k.vx, dt, springs);
+    [k.y, k.vy] = ringOn(k.y, k.vy, dt, springs);
+    const rows = this.options.units.type(unit.kind).mounts;
+    unit.mounts.forEach((m, i) => {
+      const fired = m.shots - (state.shots[i] ?? m.shots);
+      const kind = rows[i]?.weapons[0];
+      const kick = fired > 0 && kind ? fired * pick(feel.rounds, kind) : 0;
+      if (kick <= 0) return;
+      const rel = m.bearing - unit.yaw;
+      k.vx -= Math.cos(rel) * kick * springs.start;
+      k.vy -= Math.sin(rel) * kick * springs.start;
+    });
+    const swing = Math.hypot(k.x, k.y);
+    const pose = state.pose;
+    if (swing < KICK_REST && Math.hypot(k.vx, k.vy) < KICK_REST * springs.ring) {
+      k.x = k.y = k.vx = k.vy = 0;
+      pose.motion = null;
+      return;
+    }
+    // About the level axis across its swing, the roof thrown along it (just
+    // kicked, it has not swung yet: no turn about any axis).
+    const rock = (feel.rock_deg * Math.PI) / 180;
+    const across = swing || 1;
+    quat.setAxisAngle(_kick_q, vec3.set(_kick_axis, -k.y / across, k.x / across, 0), rock * swing);
+    vec3.set(_kick_slide, feel.slide_m * k.x, feel.slide_m * k.y, 0);
+    pose.motion = mat4.fromRotationTranslation(pose.motion ?? mat4.create(), _kick_q, _kick_slide);
   }
 }

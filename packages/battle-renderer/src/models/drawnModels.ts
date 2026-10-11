@@ -3,7 +3,8 @@
 // however the simulation's own model differs:
 //
 // - its muzzles: a vehicle mount's muzzle node under its articulation
-//   (turret yaw, gun pitch, recoil; the HMG on its own mount), and a
+//   (turret yaw, gun pitch, recoil; the HMG on its own mount; the whole
+//   model's motion), and a
 //   soldier's weapon `muzzle` socket in his clip. Computed on demand, only
 //   for the muzzles asked after (a frame's live flashes), and remembered for
 //   the rest of the frame;
@@ -112,7 +113,9 @@ export class DrawnModels {
       if (node < 0) return null;
       const r = this.rig(bundle);
       articulate(r.locals, bundle.nodes, r.rig, v.articulation);
-      const m = worldTransforms(r.parents, r.locals)[node];
+      const w = worldTransforms(r.parents, r.locals)[node];
+      // Its whole-model motion (a lean, a hull's kick) carries the muzzle, as it is drawn.
+      const m = v.motion ? mat4.multiply(scratch, v.motion, w) : w;
       return placed(v.position, v.yaw, m[12], m[13], m[14]);
     });
   }
@@ -150,8 +153,10 @@ export class DrawnModels {
       const worlds = worldTransforms(r.parents, r.locals);
       const tipTravel = this.rotorTurned.get(key) ?? 0;
       for (const rotor of r.rig.rotors) {
-        // A falling airframe's tilt carries the whole model, as it is drawn.
-        const m = v.tilt ? mat4.multiply(scratch, v.tilt, worlds[rotor.node]) : worlds[rotor.node];
+        // Its whole-model motion carries the rotor, as it is drawn.
+        const m = v.motion
+          ? mat4.multiply(scratch, v.motion, worlds[rotor.node])
+          : worlds[rotor.node];
         const [c, s] = [Math.cos(rotor.rest), Math.sin(rotor.rest)];
         const axis = placed([0, 0, 0], v.yaw, m[8], m[9], m[10]);
         const blade = placed(

@@ -6,9 +6,10 @@
 // shot recoils the gun, and the running gear rolls with ground covered.
 import game from "@fixtures/game.json";
 import { expect, test } from "vitest";
-import { vec3, type Vec3 } from "math";
+import { mat4, vec3, type Mat4, type Vec3 } from "math";
 import {
   DEFAULT_PITCH_LIMITS,
+  REST_ARTICULATION,
   articulate,
   articulationRig,
   restLocals,
@@ -22,7 +23,10 @@ import {
   PoseDriver,
   type FeedMount,
   type FeedUnit,
+  type PoseFeel,
 } from "@packages/battle-renderer/src/models/poseDriver.ts";
+import { DrawnModels } from "@packages/battle-renderer/src/models/drawnModels.ts";
+import type { InstalledAppearances } from "@packages/scene-assets/src/loader.ts";
 import { gamePose } from "@apps/battle-lab/src/poseFeed";
 import { UNITS } from "./catalog";
 import { shippedMounts } from "./shippedMounts";
@@ -154,6 +158,134 @@ test("each rise of the gun's shot counter recoils it, and it runs out to battery
     fallen: [],
   });
   expect(burst.vehicles[0].articulation.recoil).toBe(0);
+});
+
+/** A kick feel of the test's own: a main-gun round kicks fully, an HMG's not at all. */
+const KICK: PoseFeel["hull_kick"] = {
+  rounds: { default: 0, tank_ap: 1 },
+  rock_deg: 4,
+  slide_m: 0.2,
+  hz: 2,
+  damping: 0.3,
+};
+
+/** The tank's drawn motion through `seconds` at `hz` frames a second, firing
+ *  its gun along `bearing` (and its HMG `hmgShots` times) at 1 s. */
+function kicked(bearing: number, seconds: number, hz = 60, gunShots = 1, hmgShots = 0) {
+  const d = new PoseDriver({
+    units: UNITS,
+    mounts: shippedMounts,
+    clip: () => null,
+    feel: { ...gamePose, hull_kick: KICK },
+    leanHold: game.cover.lean_hold_s,
+  });
+  const at = (time: number) => {
+    const fired = time >= 1;
+    const gun = { bearing, elevation: 0, shots: fired ? gunShots : 0 };
+    const hmg = { bearing, elevation: 0, shots: fired ? hmgShots : 0 };
+    return d.update({ time, units: [tank(0, 0, gun, hmg)], fallen: [] }).vehicles[0].motion;
+  };
+  const frames: { time: number; motion: Mat4 | null }[] = [];
+  for (let k = 0; k <= seconds * hz; k++) {
+    const m = at(k / hz);
+    frames.push({ time: k / hz, motion: m && mat4.clone(m) });
+  }
+  return frames;
+}
+
+/** Where the hull's point `p` (its own frame) is drawn under `motion`. */
+const moved = (motion: Mat4 | null, p: Vec3): Vec3 =>
+  motion ? vec3.transformMat4(vec3.create(), p, motion) : vec3.clone(p);
+
+test("a main-gun shot rocks the hull away from its target on its springs, then it settles", () => {
+  const frames = kicked(0, 6);
+  // Still until it fires.
+  expect(frames.filter((f) => f.time < 1).every((f) => f.motion === null)).toBe(true);
+  const roof: Vec3 = [0, 0, 2];
+  const back = frames.map((f) => -moved(f.motion, roof)[0]);
+  const nose = frames.map((f) => moved(f.motion, [4, 0, 0])[2]);
+  // Fired forward, the roof is thrown back and the nose lifts at once…
+  const peak = back.indexOf(Math.max(...back));
+  expect(frames[peak].time - 1).toBeLessThan(0.25);
+  expect(nose[peak]).toBeGreaterThan(0);
+  // …at most the full kick's rock (and slide) away from rest.
+  const rock = (KICK.rock_deg * Math.PI) / 180;
+  expect(back[peak]).toBeGreaterThan(0.8 * (2 * Math.sin(rock) + KICK.slide_m));
+  expect(back[peak]).toBeLessThanOrEqual(2 * Math.sin(rock) + KICK.slide_m + 1e-6);
+  // The springs throw it back past rest, less far, before it settles.
+  const after = back.slice(peak);
+  expect(Math.min(...after)).toBeLessThan(-0.1 * back[peak]);
+  expect(-Math.min(...after)).toBeLessThan(back[peak]);
+  // And it settles: drawn as it stood, with no motion left to draw.
+  expect(frames.at(-1)!.motion).toBeNull();
+  // It never sideslips firing straight ahead.
+  for (const f of frames) expect(Math.abs(moved(f.motion, roof)[1])).toBeLessThan(1e-9);
+});
+
+test("a shot over the side rocks the hull away from that side", () => {
+  // Fired to the left (+Y): the roof is thrown to the right.
+  const frames = kicked(Math.PI / 2, 2);
+  const right = frames.map((f) => -moved(f.motion, [0, 0, 2])[1]);
+  // Its widest swing, the first, is to the right.
+  const widest = right.reduce((w, r) => (Math.abs(r) > Math.abs(w) ? r : w), 0);
+  expect(widest).toBeGreaterThan(0.1);
+  expect(Math.max(...frames.map((f) => Math.abs(moved(f.motion, [0, 0, 2])[0])))).toBeLessThan(
+    1e-9,
+  );
+});
+
+test("a round with no kick never moves the hull, however many fly", () => {
+  const frames = kicked(0, 3, 60, 0, 40);
+  expect(frames.every((f) => f.motion === null)).toBe(true);
+});
+
+test("the drawn muzzle rides the rocking hull, so the flash stays on the barrel", async () => {
+  const b = await bundle;
+  const units = syntheticUnits({ mounts: tankMounts(5.9) });
+  const drawn = new DrawnModels(
+    {
+      appearances: new Map([["test_tank", { bundle: b, mounts: TANK_DRAWS }]]),
+    } as unknown as InstalledAppearances,
+    () => ({ appearance: "test_tank", tint: [1, 1, 1] }),
+    units,
+  );
+  const frames = kicked(0, 1.5);
+  const motion = frames.find((f) => f.time >= 1.15)!.motion!;
+  const muzzle = (m: Mat4 | null) => {
+    const v = { unit: 7, kind: "tank", side: "blue" as const, position: [10, 0, 0] as Vec3 };
+    drawn.update({
+      soldiers: [],
+      vehicles: [
+        { ...v, yaw: 0, airborne: false, articulation: { ...REST_ARTICULATION }, motion: m },
+      ],
+      corpses: [],
+      corpsesVersion: 0,
+      fading: [],
+    });
+    const at = vec3.create();
+    expect(drawn.vehicle("blue", 7, 0, at)).toBe(true);
+    return at;
+  };
+  const still = muzzle(null);
+  const rocking = muzzle(motion);
+  // The hull's motion carries the muzzle about the hull's foot.
+  const expected = vec3.add(
+    vec3.create(),
+    moved(motion, vec3.sub(vec3.create(), still, [10, 0, 0])),
+    [10, 0, 0],
+  );
+  for (let i = 0; i < 3; i++) expect(rocking[i]).toBeCloseTo(expected[i], 6);
+  expect(rocking[2]).toBeGreaterThan(still[2] + 0.05);
+});
+
+test("the hull rocks the same however often it is drawn", () => {
+  const fine = kicked(0, 3, 120);
+  const coarse = kicked(0, 3, 8);
+  for (const c of coarse) {
+    const f = fine.find((x) => Math.abs(x.time - c.time) < 1e-9)!;
+    const [a, b] = [moved(c.motion, [0, 0, 2]), moved(f.motion, [0, 0, 2])];
+    for (let i = 0; i < 3; i++) expect(a[i]).toBeCloseTo(b[i], 9);
+  }
 });
 
 test("driving forward rolls every wheel by ground covered over its radius", async () => {
