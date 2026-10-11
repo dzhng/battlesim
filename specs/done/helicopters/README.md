@@ -10,7 +10,7 @@ All 19 roster helicopters are playable for the player and the skirmish AI, and t
 - They strafe: the airframe turns to bring its rockets, missiles and any gun fixed in the hull to bear while it flies on. Chin and door guns are turrets (D28).
 - They fire missiles and rockets on the move.
 - They resupply by sinking to a low hover at a supply truck.
-- They shrug off rifles and fall to autocannons. Heavy snipers and machine guns can hurt them too. The Little Birds are the exception: their skin (armour 4, on their own cards) is under a rifle's penetration, so rifles can bring one down. Both Little Birds fire an HMG: the AH-6M's fixed forward, the MH-6M's from a door each side.
+- They shrug off rifles and fall to autocannons. Heavy snipers and machine guns can hurt them too. The Little Birds are the exception: their skin (armour 7, on their own cards) lets part of a rifle round through, so rifles wear one down. Both Little Birds fire an HMG: the AH-6M's fixed forward, the MH-6M's from a door each side.
 - They come down in a spinning arc, and the wreck flattens the trees it lands on.
 
 The user framed every rule as a war-film moment rather than a ballistics table:

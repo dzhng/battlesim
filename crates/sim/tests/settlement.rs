@@ -287,7 +287,9 @@ fn unseen_purchased_kill_changes_wallet_without_enemy_identity_and_replays() {
         json!({
             "cost":200,
             "roster":{"factions":["us","eastern"],"category":"veh","family_name":"Test tank","variant":"Test"},
-            "body":{"hull":{"hp":0.01}}, "sensors":{"ground_m":1}
+            // A shell anywhere on it kills it: the subject is the wallet.
+            "body":{"hull":{"hp":0.01,"armor":{"front":1,"side":1,"rear":1,"roof":1}}},
+            "sensors":{"ground_m":1}
         }),
     );
     setup.rules = serde_json::from_value(rules).unwrap();

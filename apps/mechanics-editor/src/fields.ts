@@ -554,13 +554,6 @@ const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
       { unit: "HP" },
     ),
     field(
-      "armor_fraction",
-      "Damage through unpenetrated armour",
-      "Impact & suppression",
-      "Percentage of direct damage still dealt to a vehicle when this round fails to penetrate, such as a high-explosive partial effect.",
-      { conversion: "percent", unit: "%", max: 1 },
-    ),
-    field(
       "targets.ground",
       "Engages ground",
       "Impact & suppression",

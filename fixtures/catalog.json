@@ -12847,16 +12847,16 @@
           "body": {
             "hull": {
               "armor": {
-                "front": 4.0,
-                "rear": 4.0,
+                "front": 7.0,
+                "rear": 7.0,
                 "ricochet": {
                   "front": 0.1,
                   "rear": 0.1,
                   "roof": 0.1,
                   "side": 0.1
                 },
-                "roof": 4.0,
-                "side": 4.0
+                "roof": 7.0,
+                "side": 7.0
               },
               "eye_m": 1.4,
               "half_extents_m": [
@@ -12956,16 +12956,16 @@
           "body": {
             "hull": {
               "armor": {
-                "front": 4.0,
-                "rear": 4.0,
+                "front": 7.0,
+                "rear": 7.0,
                 "ricochet": {
                   "front": 0.1,
                   "rear": 0.1,
                   "roof": 0.1,
                   "side": 0.1
                 },
-                "roof": 4.0,
-                "side": 4.0
+                "roof": 7.0,
+                "side": 7.0
               },
               "eye_m": 1.4,
               "half_extents_m": [
@@ -25280,16 +25280,16 @@
       "body": {
         "hull": {
           "armor": {
-            "front": 4.0,
-            "rear": 4.0,
+            "front": 7.0,
+            "rear": 7.0,
             "ricochet": {
               "front": 0.1,
               "rear": 0.1,
               "roof": 0.1,
               "side": 0.1
             },
-            "roof": 4.0,
-            "side": 4.0
+            "roof": 7.0,
+            "side": 7.0
           },
           "eye_m": 1.4,
           "half_extents_m": [
@@ -25392,16 +25392,16 @@
       "body": {
         "hull": {
           "armor": {
-            "front": 4.0,
-            "rear": 4.0,
+            "front": 7.0,
+            "rear": 7.0,
             "ricochet": {
               "front": 0.1,
               "rear": 0.1,
               "roof": 0.1,
               "side": 0.1
             },
-            "roof": 4.0,
-            "side": 4.0
+            "roof": 7.0,
+            "side": 7.0
           },
           "eye_m": 1.4,
           "half_extents_m": [
@@ -28066,7 +28066,6 @@
       "aim_s": 2.0,
       "ammo": 20,
       "anti_armor": false,
-      "armor_fraction": 0.0,
       "armor_piercing": true,
       "blast_radius_m": 0.0,
       "damage": 50.0,
@@ -28100,7 +28099,6 @@
       "aim_s": 2.0,
       "ammo": 15,
       "anti_armor": false,
-      "armor_fraction": 0.15,
       "armor_piercing": false,
       "blast_radius_m": 12.0,
       "damage": 80.0,
@@ -28134,7 +28132,6 @@
       "aim_s": 3.0,
       "ammo": 4,
       "anti_armor": true,
-      "armor_fraction": 0.0,
       "armor_piercing": false,
       "blast_radius_m": 4.0,
       "damage": 55.0,
@@ -28173,7 +28170,6 @@
       "aim_s": 0.8,
       "ammo": "unlimited",
       "anti_armor": false,
-      "armor_fraction": 0.0,
       "armor_piercing": false,
       "blast_radius_m": 0.0,
       "damage": 35.0,
@@ -28218,7 +28214,6 @@
       "aim_s": 3.0,
       "ammo": 4,
       "anti_armor": true,
-      "armor_fraction": 0.0,
       "armor_piercing": false,
       "blast_radius_m": 4.0,
       "damage": 45.0,
@@ -28253,7 +28248,6 @@
       "aim_s": 1.0,
       "ammo": 240,
       "anti_armor": false,
-      "armor_fraction": 0.0,
       "armor_piercing": false,
       "blast_radius_m": 2.0,
       "damage": 100.0,
@@ -28298,7 +28292,6 @@
       "aim_s": 3.0,
       "ammo": 4,
       "anti_armor": true,
-      "armor_fraction": 0.0,
       "armor_piercing": false,
       "blast_radius_m": 4.0,
       "damage": 55.0,
@@ -28333,7 +28326,6 @@
       "aim_s": 1.5,
       "ammo": 8,
       "anti_armor": false,
-      "armor_fraction": 0.0,
       "armor_piercing": false,
       "blast_radius_m": 6.0,
       "damage": 20.0,
@@ -28367,7 +28359,6 @@
       "aim_s": 2.0,
       "ammo": 20,
       "anti_armor": false,
-      "armor_fraction": 0.0,
       "armor_piercing": true,
       "blast_radius_m": 0.0,
       "damage": 45.0,
@@ -28401,7 +28392,6 @@
       "aim_s": 2.0,
       "ammo": 15,
       "anti_armor": false,
-      "armor_fraction": 0.15,
       "armor_piercing": false,
       "blast_radius_m": 12.0,
       "damage": 80.0,
@@ -28435,7 +28425,6 @@
       "aim_s": 2.0,
       "ammo": 30,
       "anti_armor": false,
-      "armor_fraction": 0.0,
       "armor_piercing": false,
       "blast_radius_m": 0.0,
       "damage": 100.0,
@@ -28473,7 +28462,6 @@
       "aim_s": 3.0,
       "ammo": 8,
       "anti_armor": true,
-      "armor_fraction": 0.0,
       "armor_piercing": false,
       "blast_radius_m": 4.0,
       "damage": 45.0,
@@ -28508,7 +28496,6 @@
       "aim_s": 2.0,
       "ammo": "unlimited",
       "anti_armor": false,
-      "armor_fraction": 0.15,
       "armor_piercing": false,
       "blast_radius_m": 9.0,
       "damage": 50.0,
@@ -28542,7 +28529,6 @@
       "aim_s": 1.0,
       "ammo": "unlimited",
       "anti_armor": false,
-      "armor_fraction": 0.0,
       "armor_piercing": false,
       "blast_radius_m": 0.0,
       "damage": 20.0,
@@ -28587,7 +28573,6 @@
       "aim_s": 2.0,
       "ammo": 20,
       "anti_armor": false,
-      "armor_fraction": 0.15,
       "armor_piercing": false,
       "blast_radius_m": 12.0,
       "damage": 65.0,
@@ -28621,7 +28606,6 @@
       "aim_s": 3.0,
       "ammo": 4,
       "anti_armor": true,
-      "armor_fraction": 0.0,
       "armor_piercing": false,
       "blast_radius_m": 4.0,
       "damage": 55.0,
@@ -28660,7 +28644,6 @@
       "aim_s": 3.0,
       "ammo": 4,
       "anti_armor": true,
-      "armor_fraction": 0.0,
       "armor_piercing": false,
       "blast_radius_m": 4.0,
       "damage": 55.0,
@@ -28695,7 +28678,6 @@
       "aim_s": 2.0,
       "ammo": 20,
       "anti_armor": false,
-      "armor_fraction": 0.0,
       "armor_piercing": true,
       "blast_radius_m": 0.0,
       "damage": 40.0,
@@ -28729,7 +28711,6 @@
       "aim_s": 2.0,
       "ammo": 15,
       "anti_armor": false,
-      "armor_fraction": 0.15,
       "armor_piercing": false,
       "blast_radius_m": 12.0,
       "damage": 65.0,
@@ -28763,7 +28744,6 @@
       "aim_s": 2.0,
       "ammo": 120,
       "anti_armor": false,
-      "armor_fraction": 0.0,
       "armor_piercing": false,
       "blast_radius_m": 0.0,
       "damage": 45.0,
@@ -28805,7 +28785,6 @@
       "aim_s": 0.8,
       "ammo": "unlimited",
       "anti_armor": false,
-      "armor_fraction": 0.0,
       "armor_piercing": false,
       "blast_radius_m": 0.0,
       "damage": 35.0,
@@ -28850,7 +28829,6 @@
       "aim_s": 1.5,
       "ammo": 38,
       "anti_armor": false,
-      "armor_fraction": 0.15,
       "armor_piercing": false,
       "blast_radius_m": 7.0,
       "damage": 60.0,
@@ -28888,7 +28866,6 @@
       "aim_s": 2.0,
       "ammo": 3,
       "anti_armor": true,
-      "armor_fraction": 0.0,
       "armor_piercing": false,
       "blast_radius_m": 6.0,
       "damage": 55.0,
@@ -28922,7 +28899,6 @@
       "aim_s": 2.0,
       "ammo": 4,
       "anti_armor": true,
-      "armor_fraction": 0.0,
       "armor_piercing": false,
       "blast_radius_m": 6.0,
       "damage": 45.0,
@@ -28956,7 +28932,6 @@
       "aim_s": 3.0,
       "ammo": 4,
       "anti_armor": true,
-      "armor_fraction": 0.0,
       "armor_piercing": false,
       "blast_radius_m": 4.0,
       "damage": 55.0,
@@ -28991,7 +28966,6 @@
       "aim_s": 2.0,
       "ammo": 20,
       "anti_armor": false,
-      "armor_fraction": 0.0,
       "armor_piercing": true,
       "blast_radius_m": 0.0,
       "damage": 40.0,
@@ -29025,7 +28999,6 @@
       "aim_s": 2.0,
       "ammo": 15,
       "anti_armor": false,
-      "armor_fraction": 0.15,
       "armor_piercing": false,
       "blast_radius_m": 12.0,
       "damage": 80.0,
@@ -29059,7 +29032,6 @@
       "aim_s": 3.0,
       "ammo": 4,
       "anti_armor": true,
-      "armor_fraction": 0.0,
       "armor_piercing": false,
       "blast_radius_m": 4.0,
       "damage": 45.0,

@@ -23,7 +23,6 @@ fn weapon_values_reject_invalid_scalar_settings() {
         ("rifle", "blast_radius_m", -1.0),
         ("rifle", "structural_damage", -1.0),
         ("rifle", "near_miss_suppression", -1.0),
-        ("rifle", "armor_fraction", 1.1),
         ("rifle", "suppression_radius_m", -1.0),
         ("atgm", "turn_deg_s", 0.0),
         ("grenade", "min_range_m", -1.0),

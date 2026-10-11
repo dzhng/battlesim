@@ -61,11 +61,6 @@ pub struct WeaponDefinition {
     /// bullets do not inherit eligibility from penetration or guidance.
     #[serde(default)]
     pub interceptable: bool,
-    /// Share of `damage` a vehicle still takes when this round fails to
-    /// penetrate the struck face: HE's partial effect on armour. Absent
-    /// means none (the round does nothing to armour it cannot pierce).
-    #[serde(default)]
-    pub armor_fraction: f64,
     /// Armour-piercing: preferred against identified vehicles, never at contacts.
     #[serde(default)]
     pub armor_piercing: bool,
@@ -233,16 +228,6 @@ pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponR
                 }
             }
         }
-        if let Some(value) = row
-            .get("armor_fraction")
-            .and_then(serde_json::Value::as_f64)
-        {
-            if !(0.0..=1.0).contains(&value) {
-                return Err(Error::custom(format!(
-                    "weapons.{id}: armor_fraction must lie in [0, 1]"
-                )));
-            }
-        }
         if let Some(value) = row.get("turn_deg_s").and_then(serde_json::Value::as_f64) {
             if !value.is_finite() || value <= 0.0 {
                 return Err(Error::custom(format!(
@@ -292,9 +277,6 @@ pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponR
                                 "targets.{layer}.scatter_mrad must be finite and nonnegative"
                             )));
                         }
-                    }
-                    if !(0.0..=1.0).contains(&def.armor_fraction) {
-                        return Err(serde::de::Error::custom("armor_fraction must lie in [0, 1]"));
                     }
                     if def.ballistics.turn_deg_s.is_some_and(|rate| !rate.is_finite() || rate <= 0.0) {
                         return Err(serde::de::Error::custom("turn_deg_s must be finite and positive"));

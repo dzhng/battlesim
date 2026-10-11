@@ -120,8 +120,8 @@ fn a_gun_scatters_wider_at_a_helicopter_than_along_the_ground() {
     );
 }
 
-/// A Little Bird's thin skin stops nothing a rifle fires, so rifles can
-/// bring one down; a Wildcat, sharing its class, shrugs them off.
+/// A Little Bird's thin skin lets part of a rifle round through, so rifles
+/// can wear one down; a Wildcat, sharing its class, shrugs them off.
 #[test]
 fn rifles_can_hurt_a_little_bird_but_not_a_wildcat() {
     let rules: contract::scenario::Rules = serde_json::from_value(sim::fixtures::game()).unwrap();
@@ -135,12 +135,13 @@ fn rifles_can_hurt_a_little_bird_but_not_a_wildcat() {
         "us_ah_6_mh_6_little_bird_mh_6m",
     ] {
         assert!(
-            sim::weapons::can_damage(rifle, Some(&armor(little_bird))),
+            sim::weapons::can_damage(rifle, Some(&armor(little_bird)), &rules),
             "{little_bird}"
         );
     }
     assert!(!sim::weapons::can_damage(
         rifle,
-        Some(&armor("europe_aw159_wildcat_ah1"))
+        Some(&armor("europe_aw159_wildcat_ah1")),
+        &rules
     ));
 }

@@ -10,6 +10,7 @@ use contract::weapons::{AmmoCapacity, WeaponDefinition};
 mod cycle;
 use cycle::Cycle;
 
+use crate::damage;
 use crate::deployment;
 use crate::digest::Digest;
 use crate::flight::{
@@ -425,11 +426,11 @@ fn reach(arsenal: &Arsenal, layer: AltitudeLayer, rows: impl Iterator<Item = usi
 }
 
 /// Whether a weapon can hurt a target with this hull armour (`None`: a
-/// soldier) at all (P10: penetration beats the weakest face; dedicated
-/// anti-armour never engages infantry).
-pub fn can_damage(def: &WeaponDefinition, armor: Option<&Armor>) -> bool {
+/// soldier) at all (P10: some of its damage gets through the weakest face;
+/// dedicated anti-armour never engages infantry).
+pub fn can_damage(def: &WeaponDefinition, armor: Option<&Armor>, rules: &Rules) -> bool {
     match armor {
-        Some(armor) => def.penetration > armor.weakest() || def.armor_fraction > 0.0,
+        Some(armor) => damage::pierce_share(def.penetration, 0, rules, armor.weakest()) > 0.0,
         None => !def.anti_armor,
     }
 }
@@ -441,6 +442,7 @@ fn hurts(ctx: &FireContext, spec: &MountSpec, k: usize, target: Target, units: &
         Target::Unit(u) => can_damage(
             &ctx.arsenal.weapons[spec.kinds[k]].def,
             units[u.0 as usize].armor(ctx.rules),
+            ctx.rules,
         ),
         _ => true,
     }
@@ -459,9 +461,9 @@ fn area_capable(def: &WeaponDefinition) -> bool {
 }
 
 /// Whether `def` is effective against a target whose type is known, or an area.
-fn effective(def: &WeaponDefinition, armor: Option<Option<Armor>>) -> bool {
+fn effective(def: &WeaponDefinition, armor: Option<Option<Armor>>, rules: &Rules) -> bool {
     match armor {
-        Some(armor) => can_damage(def, armor.as_ref()),
+        Some(armor) => can_damage(def, armor.as_ref(), rules),
         None => area_capable(def),
     }
 }
@@ -522,7 +524,7 @@ fn preferred_kind(
         mount.has_rounds(k)
             && def.against(resolved.layer).is_some()
             && want_ap.is_none_or(|ap| def.armor_piercing == ap)
-            && (effective(def, resolved.armor)
+            && (effective(def, resolved.armor, ctx.rules)
                 || (resolved.armor.is_some() && fires_regardless(def)))
     };
     let n = spec.kinds.len();
@@ -1026,7 +1028,7 @@ fn return_fire_threat(
         spec.kinds.iter().any(|&k| {
             let weapon = &ctx.arsenal.weapons[k];
             let distance = (target - origin).length();
-            can_damage(&weapon.def, shooter.armor(ctx.rules))
+            can_damage(&weapon.def, shooter.armor(ctx.rules), ctx.rules)
                 && distance >= weapon.def.min_range_m
                 && weapon
                     .def
@@ -1053,7 +1055,8 @@ fn return_fire_threat(
 }
 
 /// Automatic choice (W06, W09, W10), in order: an identified target some kind can
-/// damage, ranked by known return-fire threat, then value, distance and observed
+/// damage, ranked by known return-fire threat, then the share of the mount's
+/// damage its facing armour lets through, then value, distance and observed
 /// id; for the unlimited default gun, the nearest
 /// identified target it cannot hurt; and only with no identified enemy in
 /// reach (`enemy_in_reach`), the nearest area for general-purpose kinds. A
@@ -1071,13 +1074,14 @@ fn select(
     let knowledge = &ctx.knowledge[unit.side.index()];
     let here = unit.position.xy();
     let weapons = &ctx.arsenal.weapons;
-    let mut ranked: Vec<(bool, u32, f64, u32, UnitId)> = knowledge
+    let mut ranked: Vec<(bool, f64, u32, f64, u32, UnitId)> = knowledge
         .identified_now(ctx.tick)
         .map(|(u, t)| {
-            let cost = units[u.0 as usize].unit_type(ctx.rules).cost;
+            let target = &units[u.0 as usize];
             (
-                return_fire_threat(ctx, unit, units[u.0 as usize].kind, t),
-                cost,
+                return_fire_threat(ctx, unit, target.kind, t),
+                share_through(ctx, unit, mount, spec, target),
+                target.unit_type(ctx.rules).cost,
                 (t.position.xy() - here).length(),
                 t.id.0,
                 u,
@@ -1086,12 +1090,13 @@ fn select(
         .collect();
     ranked.sort_by(|a, b| {
         b.0.cmp(&a.0)
-            .then(b.1.cmp(&a.1))
-            .then(a.2.total_cmp(&b.2))
-            .then(a.3.cmp(&b.3))
+            .then(b.1.total_cmp(&a.1))
+            .then(b.2.cmp(&a.2))
+            .then(a.3.total_cmp(&b.3))
+            .then(a.4.cmp(&b.4))
     });
     let mut by_distance: Vec<(f64, u32, UnitId)> =
-        ranked.iter().map(|&(_, _, d, id, u)| (d, id, u)).collect();
+        ranked.iter().map(|&(.., d, id, u)| (d, id, u)).collect();
     by_distance.sort_by(|a, b| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)));
     let mut areas: Vec<(f64, ContactId)> = if enemy_in_reach(ctx, unit, units, mount, spec) {
         Vec::new()
@@ -1132,6 +1137,31 @@ fn select(
     (None, reason.unwrap_or(ActionReason::NoCompatibleTarget))
 }
 
+/// The largest share of its damage any of the mount's loaded kinds gets
+/// through `target`: the armour it shows the shooter, or all of it into
+/// soldiers.
+fn share_through(
+    ctx: &FireContext,
+    unit: &Unit,
+    mount: &Mount,
+    spec: &MountSpec,
+    target: &Unit,
+) -> f64 {
+    let armor = target
+        .armor(ctx.rules)
+        .map(|a| a.face(target.hull_face(unit.position)));
+    (0..spec.kinds.len())
+        .filter(|&k| mount.has_rounds(k))
+        .map(|k| &ctx.arsenal.weapons[spec.kinds[k]].def)
+        .filter(|def| def.against(target.layer()).is_some())
+        .map(|def| match armor {
+            Some(armor) => damage::pierce_share(def.penetration, 0, ctx.rules, armor),
+            None if def.anti_armor => 0.0,
+            None => 1.0,
+        })
+        .fold(0.0, f64::max)
+}
+
 /// Whether the mount has a kind that can damage an explicit target (W08).
 fn compatible(
     ctx: &FireContext,
@@ -1149,7 +1179,7 @@ fn compatible(
     };
     (0..spec.kinds.len()).any(|k| {
         let def = &ctx.arsenal.weapons[spec.kinds[k]].def;
-        mount.has_rounds(k) && def.against(layer).is_some() && effective(def, armor)
+        mount.has_rounds(k) && def.against(layer).is_some() && effective(def, armor, ctx.rules)
     })
 }
 
@@ -1313,6 +1343,7 @@ fn preferred_mount(
     member: usize,
     specs: &[MountSpec],
     weapons: &[Weapon],
+    rules: &Rules,
     plans: &[Option<MountPlan>],
     moving: bool,
 ) -> Option<usize> {
@@ -1326,7 +1357,11 @@ fn preferred_mount(
             p.assessment.is_some_and(|a| {
                 a.is_ok_and(|k| {
                     p.resolved.is_some_and(|r| {
-                        effective(&weapons[specs[unit.mounts[m].spec].kinds[k]].def, r.armor)
+                        effective(
+                            &weapons[specs[unit.mounts[m].spec].kinds[k]].def,
+                            r.armor,
+                            rules,
+                        )
                     })
                 })
             })
@@ -1367,6 +1402,7 @@ fn select_active(
     unit: &mut Unit,
     specs: &[MountSpec],
     weapons: &[Weapon],
+    rules: &Rules,
     plans: &[Option<MountPlan>],
     moving: bool,
 ) {
@@ -1389,7 +1425,7 @@ fn select_active(
             unit.members[member].active_mount = None;
             continue;
         }
-        let choice = preferred_mount(unit, member, specs, weapons, plans, moving);
+        let choice = preferred_mount(unit, member, specs, weapons, rules, plans, moving);
         let next = choice.map(|m| unit.mounts[m].spec);
         if unit.members[member].active_mount != next {
             if let Some(m) = choice {
@@ -1516,7 +1552,8 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                     Err(ActionReason::TrackingLastSighting)
                 };
                 if let Ok(k) = a {
-                    can_engage |= effective(&ctx.arsenal.weapons[spec.kinds[k]].def, r.armor);
+                    can_engage |=
+                        effective(&ctx.arsenal.weapons[spec.kinds[k]].def, r.armor, ctx.rules);
                 }
                 a
             });
@@ -1545,7 +1582,14 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
             }));
             units[i].mounts[m] = mount;
         }
-        select_active(&mut units[i], specs, &ctx.arsenal.weapons, &plans, moved[i]);
+        select_active(
+            &mut units[i],
+            specs,
+            &ctx.arsenal.weapons,
+            ctx.rules,
+            &plans,
+            moved[i],
+        );
         for (m, plan) in plans.into_iter().enumerate() {
             let Some(MountPlan {
                 stationary,
@@ -2298,7 +2342,15 @@ pub fn garrison_aims(ctx: &FireContext, units: &[Unit]) -> Vec<(usize, MountAims
                 .collect();
             let choices: Vec<_> = (0..u.members.len())
                 .map(|member| {
-                    preferred_mount(u, member, specs, &ctx.arsenal.weapons, &plans, false)
+                    preferred_mount(
+                        u,
+                        member,
+                        specs,
+                        &ctx.arsenal.weapons,
+                        ctx.rules,
+                        &plans,
+                        false,
+                    )
                 })
                 .collect();
             let aims = plans

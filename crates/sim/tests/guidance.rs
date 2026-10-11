@@ -1318,12 +1318,13 @@ fn apex(path: &[[f64; 3]]) -> f64 {
 
 #[test]
 fn a_top_attack_missile_kills_through_the_roof_a_tank_whose_front_it_cannot_pierce() {
-    // A missile between the tank's roof and front armour, lethal when it
-    // pierces: diving onto the roof kills; the same row flown at the front
-    // does not get through.
+    // A missile past the tank's roof armour but too far short of its front
+    // to get any damage through, lethal when it pierces: diving onto the roof
+    // kills; the same row flown at the front does not get through.
     let hull = common::hull("test_tank");
     let lethal = |r: &mut Value| {
-        r["weapons"]["atgm"]["penetration"] = json!((hull.armor.roof + hull.armor.front) / 2.0);
+        let stops = r["penetration"]["partial_from"].as_f64().unwrap() * hull.armor.front;
+        r["weapons"]["atgm"]["penetration"] = json!((hull.armor.roof + stops) / 2.0);
         r["weapons"]["atgm"]["damage"] = json!(hull.hp);
         top_attack(r);
     };

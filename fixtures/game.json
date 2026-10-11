@@ -75,6 +75,9 @@
     "fog_target_height_m": 1.0,
     "min_sight_gap_m": 0.5
   },
+  "penetration": {
+    "partial_from": 0.6
+  },
   "ricochet": {
     "speed_kept": 0.6,
     "scatter_deg": 12,
@@ -154,7 +157,6 @@
       "name": "HE Shell",
       "description": "High-explosive shell for troops, cover and buildings.",
       "icon": "he_shell",
-      "armor_fraction": 0.15,
       "stationary": false,
       "range_m": 800,
       "speed_mps": 400,

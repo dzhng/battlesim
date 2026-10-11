@@ -207,10 +207,10 @@
       "body": {
         "hull": {
           "armor": {
-            "front": 4,
-            "side": 4,
-            "rear": 4,
-            "roof": 4,
+            "front": 7,
+            "side": 7,
+            "rear": 7,
+            "roof": 7,
             "ricochet": {
               "front": 0.1,
               "side": 0.1,
@@ -287,10 +287,10 @@
       "body": {
         "hull": {
           "armor": {
-            "front": 4,
-            "side": 4,
-            "rear": 4,
-            "roof": 4,
+            "front": 7,
+            "side": 7,
+            "rear": 7,
+            "roof": 7,
             "ricochet": {
               "front": 0.1,
               "side": 0.1,

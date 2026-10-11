@@ -441,6 +441,17 @@ impl FaceChances {
     }
 }
 
+/// How armour meets a round that falls short of piercing it (the fixture's
+/// `penetration` section).
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PenetrationRules {
+    /// The share of a face's armour a round's penetration must reach to do
+    /// any damage there. From there up to the full armour its damage rises
+    /// in proportion; at or past the armour it does all of it.
+    pub partial_from: f64,
+}
+
 /// How a round glancing off a hull flies on (the fixture's `ricochet` section).
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct RicochetRules {
@@ -564,6 +575,7 @@ pub struct Rules {
     /// `fixtures/props/`).
     pub catalog: crate::catalog::Catalog,
     pub pushing: PushingRules,
+    pub penetration: PenetrationRules,
     pub ricochet: RicochetRules,
     pub guided: crate::ballistics::GuidedRules,
     pub sensors: SensorRules,
@@ -701,6 +713,7 @@ struct UncheckedRules {
     physics: BodyRules,
     catalog: crate::catalog::Catalog,
     pushing: PushingRules,
+    penetration: PenetrationRules,
     ricochet: RicochetRules,
     guided: crate::ballistics::GuidedRules,
     sensors: SensorRules,
@@ -748,6 +761,7 @@ impl TryFrom<UncheckedRules> for Rules {
             physics: r.physics,
             catalog: r.catalog,
             pushing: r.pushing,
+            penetration: r.penetration,
             ricochet: r.ricochet,
             guided: r.guided,
             sensors: r.sensors,
