@@ -103,6 +103,14 @@ function PurchaseMenu({ cards, faction, match, onChoose, rules }: PickerProps) {
   }
   const chosen = families.get(family ?? "") ?? [];
   const finished = match.phase === "finished";
+  // A tab is shown as soon as the pointer or focus reaches it; a click does
+  // the same, for touch. Passing back over the shown tab changes nothing.
+  const showCategory = (c: UnitCategory) => {
+    if (c === category) return;
+    setCategory(c);
+    cancelHover();
+    setFamily(null);
+  };
   return (
     <section
       className="hud-panel hud-purchase-picker"
@@ -111,24 +119,6 @@ function PurchaseMenu({ cards, faction, match, onChoose, rules }: PickerProps) {
     >
       <div className="hud-purchase-faction">
         {{ us: "U.S.", europe: "EUROPE", eastern: "EASTERN" }[faction]}
-      </div>
-      <div className="hud-purchase-categories" role="tablist" aria-label="Unit categories">
-        {CATEGORIES.map((c) => (
-          <button
-            key={c}
-            type="button"
-            role="tab"
-            className="hud-menu-choice"
-            aria-selected={c === category}
-            onClick={() => {
-              setCategory(c);
-              cancelHover();
-              setFamily(null);
-            }}
-          >
-            {c.toUpperCase()}
-          </button>
-        ))}
       </div>
       <div className="hud-purchase-families" role="tabpanel" aria-label={category.toUpperCase()}>
         {[...families].map(([id, variants]) => {
@@ -165,6 +155,24 @@ function PurchaseMenu({ cards, faction, match, onChoose, rules }: PickerProps) {
             </button>
           );
         })}
+      </div>
+      {/* The tabs stand under the cards, so a family's info cards, standing
+          on its card, never cover them. */}
+      <div className="hud-purchase-categories" role="tablist" aria-label="Unit categories">
+        {CATEGORIES.map((c) => (
+          <button
+            key={c}
+            type="button"
+            role="tab"
+            className="hud-menu-choice"
+            aria-selected={c === category}
+            onMouseEnter={() => showCategory(c)}
+            onFocus={() => showCategory(c)}
+            onClick={() => showCategory(c)}
+          >
+            {c.toUpperCase()}
+          </button>
+        ))}
       </div>
       {/* The hovered family's info cards, one per variant (one for a
           family of one), stacked in a hover menu standing on its card,

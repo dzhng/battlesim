@@ -1235,7 +1235,7 @@
   bottom: calc(100% + var(--hud-deck-popup-gap) + 1px);
 }
 .hud-purchase-categories {
-  margin-bottom: 12px;
+  margin-top: 12px;
 }
 .hud-purchase-categories [aria-selected="true"] {
   color: rgb(var(--hud-accent));
