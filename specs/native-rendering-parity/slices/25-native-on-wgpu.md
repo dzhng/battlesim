@@ -15,6 +15,15 @@
 - Appearances (glTF) load in Rust (`gltf` crate); audio is decided in research.
 - **Godot's native project is deleted when native's plates and counts match:** `native/godot`, its shaders and GDScript, the Godot-specific parts of the native core, and the parity harness's Godot runner.
 
+**Reference engine** (user, 2026-10-11): [Bevy](https://bevy.org/) is written in Rust on `wgpu` and ships the same renderer to native and to the web (its `wgpu` calls compile to WebGPU in the browser). We keep our own engine, but phase 5 and the later fully shared renderer consult how Bevy handles the same problems before deciding:
+- its render graph and pass structure;
+- instancing and batching;
+- asset loading (glTF);
+- `winit` windowing and frame pacing;
+- one renderer built for both native and WASM.
+
+Cite what Bevy does in the research findings and wherever it shaped a decision. Bevy is an inspiration, not a dependency.
+
 **Research first:**
 - How TypeGPU-generated WGSL can be emitted for `wgpu`: entry points, bind group layouts, pipeline overrides.
 - Which browser-only resources the passes use: canvas formats, timestamp queries.
