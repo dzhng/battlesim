@@ -18,7 +18,8 @@ extends Node3D
 ##   leaves the forest, falls on the clock from `(tick − 1) / tickHz` and lies
 ##   beside its stump; a shrub on ground it saw cleared is gone.
 ##
-## The browser lays a cut's dressing over a few frames; native, stepping
+## The trees' and shrubs' walk is the Rust extension's (`StaticLayer`,
+## `native/godot-binding`). The browser lays a cut's dressing over a few frames; native, stepping
 ## records far apart, lays every wanted cell at once. Not ported: the leaf
 ## clumps' shading and the dressing's shrink as it nears a few pixels.
 
@@ -40,10 +41,9 @@ var _appearances := PackedInt32Array()
 var _lod_px: Array
 var _dressing_rules: Dictionary
 ## Per population: its records (`WordTables.records`) and its id in the walk
-## (`StaticSelection`, `native/godot-binding`), which chunks, culls and tiers
-## the trees and shrubs.
+## (`StaticLayer`); keys past the kinds' are their stumps'.
 var _records := {}
-var _selection
+var _layer
 var _pops := {}
 ## Each forest tree's record, by its trunk's body id.
 var _forest_at := {}
@@ -76,12 +76,11 @@ func _init(tables: Dictionary, scenery: Dictionary, sun: Vector3, max_far_m: flo
 	var tiers: Dictionary = scenery.tiers
 	_lod_px = tiers.lodPx
 	_dressing_rules = tiers.dressing
-	_selection = ClassDB.instantiate("StaticSelection")
-	_selection.set_kinds(_kinds.size())
+	_layer = ClassDB.instantiate("StaticLayer")
+	_layer.set_kinds(_kinds.size(), 2 * _kinds.size())
 	for population in POPULATIONS:
-		var table: Dictionary = tables[population]
-		_records[population] = WordTables.records(table)
-		_pops[population] = _selection.add_scenery(table.words, int(table.layout.stride), _records[population].at, float(tiers.chunkM), PackedFloat64Array(_lod_px), population != "backdrop")
+		_records[population] = WordTables.records(tables[population])
+		_pops[population] = _layer.add_scenery(tables[population], float(tiers.chunkM), _lod_px, population != "backdrop")
 	var forest: Dictionary = _records.forest
 	for r in forest.count:
 		_forest_at[forest.i[r * forest.stride + forest.at.id] & 0xffffffff] = r
@@ -146,7 +145,7 @@ func set_known(fallen_bodies: Array, learned) -> void:
 		felled[int(body.prop)] = true
 	if felled != _fallen_ids:
 		_fallen_ids = felled
-		_selection.hide_keys(_pops.forest, PackedInt64Array(felled.keys()))
+		_layer.hide_keys(_pops.forest, PackedInt64Array(felled.keys()))
 	var version: int = learned.cleared_version if learned != null else 0
 	if learned != _learned or version != _cleared_version:
 		_learned = learned
@@ -157,7 +156,7 @@ func set_known(fallen_bodies: Array, learned) -> void:
 		for r in shrubs.count:
 			var o: int = r * shrubs.stride + shrubs.at.pose
 			hidden[r] = 1 if learned != null and learned.cleared_at(shrubs.f[o], shrubs.f[o + 1]) else 0
-		_selection.set_hidden(_pops.understorey, hidden)
+		_layer.set_hidden(_pops.understorey, hidden)
 	_felled.show(fallen_bodies, _tree)
 
 ## Forest tree `id` as the felled trees read it, or empty.
@@ -174,11 +173,14 @@ func _tree(id: int) -> Dictionary:
 ## Chooses what `view` (`detail_view.gd`) draws and casts at presentation
 ## second `clock`, counts it, and writes what changed.
 func prepare(view, clock: float) -> void:
+	var stumps := _felled.prepare(view, clock, _lod_px, counts.felled, counts.stumps)
+	for kind in stumps:
+		_layer.place((_kinds.size() + kind) * TIERS, stumps[kind])
 	var changed := {}
-	for key in _selection.select(view.eye, view.sides_packed(), view.pixels_per_metre, view.reach, view.fall):
+	for key in _layer.select(view.packed()):
 		changed[key] = true
 	for population in POPULATIONS:
-		counts[population] = _selection.counts(_pops[population])
+		counts[population] = _layer.counts(_pops[population])
 	var dressing := _plan_dressing(view, counts.dressing)
 	var additions := {}
 	for entry in dressing:
@@ -195,12 +197,12 @@ func prepare(view, clock: float) -> void:
 		_dressing_keys = additions
 	for key in changed:
 		var kind: int = key / TIERS
-		if kind < _appearances.size() and _appearances[kind] >= 0:
-			var drawn: PackedFloat32Array = _selection.view(key)
+		var appearance: int = _appearances[kind] if kind < _kinds.size() else _felled.stumps[kind - _kinds.size()]
+		if appearance >= 0:
+			var drawn: PackedFloat32Array = _layer.view(key)
 			if additions.has(key):
 				drawn.append_array(additions[key])
-			_batches.choose(_appearances[kind], key % TIERS, drawn, _selection.cast(key))
-	_felled.prepare(view, clock, _lod_px, counts.felled, counts.stumps)
+			_batches.choose(appearance, key % TIERS, drawn, _layer.cast(key))
 	_batches.write()
 
 ## The tier an instance `height` metres tall draws at from `distance` (`tierFor`).

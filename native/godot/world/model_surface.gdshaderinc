@@ -11,7 +11,8 @@
 // (`CUSTOM0`, weights `CUSTOM1`); a rigid one follows one node, `CUSTOM0.x`
 // being its slot plus 256 times its track side (1 left, 2 right), and on a
 // track scrolls its texture by the palette's first texel, its links' travel
-// (`modelVertex`).
+// (`modelVertex`). A felled tree lies in the pose its instance uniforms carry
+// (`felledPoint` in `scenery/felled.ts`, the browser's vertex stage).
 
 #include "res://effects/cast_lights.gdshaderinc"
 
@@ -45,6 +46,40 @@ mat4 palette_matrix(int index) {
 }
 #endif
 
+#ifdef POSED_FELLED
+// `[toward x, toward y, angle, hinge]`, `[trunk, squash, spread, landed]` and
+// the crown's base (`fellPose`), in metres about the instance's foot.
+instance uniform vec4 fall_a;
+instance uniform vec4 fall_b;
+instance uniform float fall_crown;
+uniform bool foliage = false;
+// A landing tree's foot kicks off its stump this many trunk radii along the fall.
+const float KICK_RADII = 2.0;
+
+float past_trunk(float d, float radius, float k) {
+	return sign(d) * (min(abs(d), radius) + max(abs(d) - radius, 0.0) * k);
+}
+
+// A point `p` of the tree, sim axes, about its foot, as it lies.
+vec3 felled_point(vec3 p) {
+	vec2 toward = fall_a.xy;
+	float core = foliage || p.z > fall_crown ? 0.0 : fall_b.x;
+	float a = dot(p.xy, toward);
+	vec2 side = p.xy - toward * a;
+	float k = length(side) > 0.0 ? past_trunk(length(side), core, fall_b.z) / length(side) : 0.0;
+	float z = max(p.z - fall_a.w, 0.0);
+	float along = a * cos(fall_a.z) + z * sin(fall_a.z) + KICK_RADII * fall_b.x * fall_b.w;
+	float up = z * cos(fall_a.z) - past_trunk(a, core, fall_b.y) * sin(fall_a.z) - (fall_a.w - fall_b.x) * fall_b.w;
+	return vec3(toward * along + side * k, fall_a.w + up);
+}
+
+// A world direction turned with the fall, about the axis across it.
+vec3 fallen(vec3 v) {
+	vec3 axis = normalize(vec3(-fall_a.y, 0.0, -fall_a.x));
+	return v * cos(fall_a.z) + cross(axis, v) * sin(fall_a.z) + axis * dot(axis, v) * (1.0 - cos(fall_a.z));
+}
+#endif
+
 varying vec3 tint;
 
 void vertex() {
@@ -73,6 +108,15 @@ void vertex() {
 		vec4 scroll = texelFetch(palette, ivec2(texel % palette_width, texel / palette_width), 0);
 		UV.x -= track == 1 ? scroll.x : scroll.y;
 	}
+#endif
+#ifdef POSED_FELLED
+	vec3 foot = MODEL_MATRIX[3].xyz;
+	vec3 at = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz - foot;
+	vec3 lies = felled_point(vec3(at.x, -at.z, at.y));
+	VERTEX = (inverse(MODEL_MATRIX) * vec4(foot + vec3(lies.x, lies.z, -lies.y), 1.0)).xyz;
+	mat3 basis = mat3(MODEL_MATRIX);
+	NORMAL = transpose(basis) * fallen(normalize(MODEL_NORMAL_MATRIX * NORMAL));
+	TANGENT = inverse(basis) * fallen(basis * TANGENT);
 #endif
 }
 

@@ -7,7 +7,8 @@ extends RefCounted
 ## takes). A scenery appearance takes its instance's tint whole, as the
 ## browser's scenery layer does. A posed surface (a unit's) moves each vertex
 ## by its instance's palette (`units/unit_layer.gd`): `skinned` by four joints,
-## `rigid` by its node's. Not ported: wear chips and lit interiors.
+## `rigid` by its node's; a felled tree's by its fall (`felled`). Not ported:
+## wear chips and lit interiors.
 
 const INCLUDE := "res://world/model_surface.gdshaderinc"
 
@@ -55,8 +56,23 @@ static func of(material: Material, scenery: bool, posed := "") -> ShaderMaterial
 	out.set_shader_parameter("tint_share", 1.0 if scenery else float(extras.get("tint", 0.0)))
 	out.shader = _shader(modes, defines)
 	out.resource_name = material.resource_name if material != null else ""
+	out.set_meta("variant", [modes, defines])
 	_materials[key] = out
 	return out
+
+## `surface` (one `of` made) posed as a felled tree lies (`world/felled.gd`),
+## its leaves (`foliage`) not held in by the trunk.
+static func felled(surface: ShaderMaterial, foliage: bool) -> ShaderMaterial:
+	var key := [surface, "felled"]
+	if not _materials.has(key):
+		var out: ShaderMaterial = surface.duplicate()
+		var variant: Array = surface.get_meta("variant")
+		var defines: Array[String] = variant[1].duplicate()
+		defines.append("POSED_FELLED")
+		out.shader = _shader(variant[0], defines)
+		out.set_shader_parameter("foliage", foliage)
+		_materials[key] = out
+	return _materials[key]
 
 static func _shader(modes: Array[String], defines: Array[String]) -> Shader:
 	var key := ",".join(modes) + "|" + ",".join(defines)

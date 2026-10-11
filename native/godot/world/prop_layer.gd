@@ -12,10 +12,9 @@ extends Node3D
 ## browser's models layer gives it (`modelDetail.ts`): the map's props are
 ## visited by 64 m chunk in view (`staticsInView`), each culled by its own
 ## sphere, and cast a tier coarser; nothing out of view casts. The walk is the
-## Rust extension's (`StaticSelection`, `native/godot-binding`).
+## Rust extension's (`StaticLayer`, `native/godot-binding`).
 
 const ModelBatches = preload("res://world/model_batches.gd")
-const WordTables = preload("res://core/word_tables.gd")
 const Coords = preload("res://core/coords.gd")
 const Mulberry32 = preload("res://core/mulberry32.gd")
 
@@ -33,8 +32,8 @@ var _sizes := PackedFloat32Array()
 var _radii := PackedFloat32Array()
 ## The map's fitted models (`manifest.props.map`).
 var _map_table: Dictionary
-## The selection (`StaticSelection`): the map's props, and the known ones.
-var _selection
+## The walk (`StaticLayer`): the map's props, and the known ones.
+var _layer
 var _map_pop := -1
 var _known_pop := -1
 ## The map props hidden by what the side knows replaced them, and the known
@@ -83,14 +82,10 @@ func build(catalog, report) -> void:
 		var box := _batches.bounds(_looks[look])
 		_sizes[look] = maxf(box.size.y, maxf(box.size.x, box.size.z))
 		_radii[look] = Vector3(maxf(absf(box.position.x), absf(box.end.x)), maxf(absf(box.position.z), absf(box.end.z)), box.size.y).length()
-	_selection = ClassDB.instantiate("StaticSelection")
-	_selection.set_kinds(_looks.size())
-	var lod := PackedFloat64Array(_props.detail.lod_px)
-	var at := {}
-	for field in _map_table.layout.fields:
-		at[String(field.name)] = int(field.word)
-	_map_pop = _selection.add_props(_map_table.words, int(_map_table.layout.stride), at, _sizes, _radii, CHUNK_M, lod)
-	_known_pop = _selection.add_models(lod)
+	_layer = ClassDB.instantiate("StaticLayer")
+	_layer.set_kinds(_looks.size(), _looks.size())
+	_map_pop = _layer.add_props(_map_table, _sizes, _radii, CHUNK_M, _props.detail.lod_px)
+	_known_pop = _layer.add_models(_props.detail.lod_px)
 	report.add_budget(OWNER, "the browser's fitted map props", "props.map", int(_map_table.layout.count), int(_map_table.layout.count), 0)
 
 ## Follows what the side knows (`knownProps` of the frame's publication).
@@ -106,30 +101,25 @@ func set_known(known: Array) -> void:
 			models.append_array(fit(_props.fit, prop).filter(func(model): return _looks[model[0]] >= 0))
 	if hidden != _hidden:
 		_hidden = hidden
-		_selection.hide_keys(_map_pop, PackedInt64Array(hidden.keys()))
+		_layer.hide_keys(_map_pop, PackedInt64Array(hidden.keys()))
 	if models != _known_models:
 		_known_models = models
 		var packs := PackedFloat32Array()
-		var kinds := PackedInt32Array()
-		var sizes := PackedFloat32Array()
-		var radii := PackedFloat32Array()
 		for model in models:
 			ModelBatches.pack(packs, model[1], model[2])
-			kinds.append(model[0])
-			sizes.append(_sizes[model[0]] * model[3])
-			radii.append(_radii[model[0]] * model[3])
-		_selection.set_models(_known_pop, packs, kinds, sizes, radii)
+			packs.append_array([model[0], _sizes[model[0]] * model[3], _radii[model[0]] * model[3]])
+		_layer.set_models(_known_pop, packs)
 
 ## Chooses what `view` (`detail_view.gd`) draws of the props, each at its own
 ## tier, counts the known ones by appearance, and writes what changed.
 func prepare(view) -> void:
-	for key in _selection.select(view.eye, view.sides_packed(), view.pixels_per_metre, view.reach, view.fall):
+	for key in _layer.select(view.packed()):
 		var look: int = key / TIERS
 		if _looks[look] >= 0:
-			_batches.choose(_looks[look], key % TIERS, _selection.view(key), _selection.cast(key))
+			_batches.choose(_looks[look], key % TIERS, _layer.view(key), _layer.cast(key))
 	_batches.write()
 	counts.clear()
-	var known: PackedInt32Array = _selection.counts(_known_pop)
+	var known: PackedInt32Array = _layer.counts(_known_pop)
 	for k in known.size():
 		if known[k] > 0:
 			var name: String = _props.looks[k / TIERS].appearance

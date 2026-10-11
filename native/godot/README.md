@@ -343,21 +343,22 @@ materials × passes, never placed objects or their parts.
 ## The Rust extension
 
 The project loads the Rust GDExtension (`native/godot-binding`, descriptor
-`binding/battle_binding.gdextension`) for the per-frame work GDScript is too
-slow for. `binding/build.sh` builds the release library into `binding/`
-(build output, never committed); `tests/run.sh` and `release.sh` run it, and
-an editor run needs it run first whenever the crate changed.
+`binding/battle_binding.gdextension`), the native core, for the per-frame
+work. `binding/build.sh` builds the release library into `binding/` (build
+output, never committed); `tests/run.sh` and `release.sh` run it, and an
+editor run needs it run first whenever the crate changed.
 
-- **`StaticSelection`** walks the static world each frame. A layer hands it
-  the browser's word tables once per map (and what the side knows whenever
-  that changes) and the view every frame, and gets back the appearance tiers
-  whose drawn or cast instances changed. The rules are the layers' (below);
-  the walk only runs them.
-- **`FelledPose`** poses a felled tree's tier vertex by vertex (the
-  browser's `felledPoint`).
+- **`StaticLayer`** (`static_layers`) walks a static layer each frame:
+  buildings, the trees and shrubs, the props. A layer hands it the browser's
+  word tables once per map, what the side knows whenever that changes, and
+  the view every frame (`detail_view.gd` `packed`), and gets back the kinds
+  and tiers whose drawn or cast instances changed, with those instances, for
+  its batches (`model_batches.gd`, which the units layer shares). The forest
+  floor's dressing, a few dozen cells a frame, stays in GDScript.
 
-Its rules are tested in Rust (`cargo test -p godot-binding`) and, through the
-layers, by the plate counts.
+The layers' tests (`tests/*_layer_test.gd`) and the plate counts test the
+rules through it; `cargo test -p godot-binding` the casting the layers do
+not reach.
 
 ## Buildings, scenery and props
 
@@ -376,8 +377,8 @@ manifest lists and counts each plate.
   understorey and the backdrop past the map in 128 m chunks, a far chunk whole
   at the coarsest tier and a near one tree by tree; the forest floor's dressing
   a cell at a time. A tree the side saw fall (`fallenBodies`) falls from
-  `(tick − 1) / tickHz` and lies by its stump (`world/felled.gd`, baked on the
-  CPU by `FelledPose`); a shrub or a piece of dressing on ground it saw cleared is gone.
+  `(tick − 1) / tickHz` and lies by its stump (`world/felled.gd`, posed in
+  the model surface's vertex stage as the browser poses it); a shrub or a piece of dressing on ground it saw cleared is gone.
 - **Props** (`world/prop_layer.gd`, `propAppearance.ts`): the map's props as
   the browser fitted them, less those the side knows replaced, and every prop
   it learned (wrecks, shoved bodies, rubble) fitted here from the browser's

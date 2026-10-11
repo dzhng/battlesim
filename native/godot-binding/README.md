@@ -2,10 +2,10 @@
 
 This crate is the native client's GDExtension. Two parts:
 
-- **The render helpers** the Godot project loads (`src/selection.rs`,
-  `src/felled.rs`): the static world's per-frame selection and the felled
-  tree's pose, described in [the project's readme](../godot/README.md#the-rust-extension).
-  `native/godot/binding/build.sh` builds and places them.
+- **The native core** the Godot project loads: so far the static layers'
+  per-frame walk (`src/static_layers`), described in
+  [the project's readme](../godot/README.md#the-rust-extension).
+  `native/godot/binding/build.sh` builds and places it.
 - **The binding smoke** (`src/lib.rs`'s node and version probe), the first
   live seam for the simulation, while the binding architecture is measured.
   The Rust simulation remains in `sim`; later passes add commands, fixed
