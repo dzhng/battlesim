@@ -264,7 +264,7 @@ None found at the closeout. Two earlier choices were corrected during the build 
 
 - **Infantry.** Only the own-side unit group is decoded, one model per unit, so squad members, enemies and corpses are missing, and one soldier is T-posed. Slice 14 (units) or 15 (models and scenery).
 - **Missing models.** Tree lines and forests are drawn as flat bands, there are no wrecks, Paris balcony railings are missing, and lamp posts are 15–20% short. Slice 14 (units) or 15 (models and scenery).
-- **Scars, decals, dust, smoke and fire.** Slice 14. This also removes the grass gate's scar allowance.
+- **Scars, decals, dust, smoke and fire.** Slices 16 (scars) and 17 (effects). The scars slice also removes the grass gate's scar allowance.
 - **Unexercised paths.** The water formulas are ported but unmeasured, because neither reel map has water. Relief is tested only against a synthetic grid.
 - **Run-to-run noise.** Native grass plates differ by one or two pixels between reruns, probably GPU append order. Byte comparisons need that floor.
 - **Git history.** The two closeout reviewers shared one git index, so their commits were rewritten into `ed268e8b`, `bcaa8fff` and `ef730416`, with a tree identical to the pre-rewrite HEAD. Nothing had been pushed.
@@ -319,7 +319,7 @@ Closed by the agent on the evidence; the user had not reviewed it at the time of
   - Confidence: high.
 - **Skinned parts are posed on the CPU at build** (bind poses times the skeleton's pose), because a MultiMesh draws no skeleton. Without it the soldiers shifted by a few pixels.
   - Confidence: high.
-- **No impostor cards yet.** The browser bakes cards only for skinned soldiers, from their far pose. Native has six unposed soldiers in the reel, whose coarsest tier is 755 triangles, and the window runs at 8.5 ms against a 16.7 ms budget. Cards baked from an unposed soldier would show the wrong pose, so they wait for slice 13's articulation. *Agent, against the slice's contract; spending margin on simplicity.*
+- **No impostor cards yet.** The browser bakes cards only for skinned soldiers, from their far pose. Native has six unposed soldiers in the reel, whose coarsest tier is 755 triangles, and the window runs at 8.5 ms against a 16.7 ms budget. Cards baked from an unposed soldier would show the wrong pose, so they wait for slice 14's articulation. *Agent, against the slice's contract; spending margin on simplicity.*
   - Confidence: medium.
 - **The runs use the assets imported on 2026-10-10.** A merge of main during the slice changed the Abrams and both soldier sources; the staging only imports new files, so native kept the earlier imports, which match the browser control. A fresh import (or a new control) brings in main's models.
   - Confidence: high.
@@ -347,7 +347,7 @@ Closed by the agent on the evidence; the user had not reviewed it at the time of
   - It re-exports on every call (10–20 s) rather than tracking staleness.
   - Confidence: high.
 - **An export packs `staging/` as it was at export time; an asset it lacks is a named blocker.** An export can neither link nor import, so `Staging.stage` only looks up packed resources there. An editor run of a scene stages its assets.
-  - The alternatives were runtime glTF loading (a second loading path whose import settings could differ from the editor's) or a headless staging pass that duplicates the run's admission. Both go away or change when slice 13 replaces the legacy map layer.
+  - The alternatives were runtime glTF loading (a second loading path whose import settings could differ from the editor's) or a headless staging pass that duplicates the run's admission. Both go away or change when slice 15 replaces the legacy map layer.
   - Confidence: medium. A fresh checkout needs one editor run per scene before its first export.
 - **The exported app takes the repository root from `BATTLEGAME_REPO`.** The script sets it. The editor still derives the root from `res://`. Deriving it from the executable's path would break under a symlinked `throwaway/`.
   - Confidence: high.
