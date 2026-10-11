@@ -24,7 +24,7 @@ with status, evidence, and the next pickup before ending your pass.
 
 ## Contract
 
-Today `SkirmishAi::decide` receives a side-scoped `ObservationFrame`, faction,
+Today `BalancedDoctrine::decide` receives a side-scoped `ObservationFrame`, faction,
 entry site, rules, and a route-time callback, then emits ordinary `Order`s. The
 battle calls it before a tick and replays accepted commands instead of rerunning
 the policy ([`battle.rs`](../../crates/sim/src/battle.rs:1695),

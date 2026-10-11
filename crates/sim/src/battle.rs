@@ -269,7 +269,7 @@ pub struct Battle {
     order_bucket: [(u64, Tick); 2],
     /// The observation-bound opponent and its memory (off while replaying).
     opponent: Option<(Opponent, Defender)>,
-    skirmish_ai: Option<crate::skirmish_ai::SkirmishAi>,
+    skirmish_ai: Option<crate::skirmish_ai::BalancedDoctrine>,
     /// The fixture's completion referee and its latest verdict.
     referee: Option<(EncounterRules, Referee)>,
     encounter: Option<EncounterStatus>,
@@ -785,7 +785,7 @@ impl Battle {
                 .skirmish
                 .as_ref()
                 .and_then(|s| s.ai_side)
-                .map(|_| crate::skirmish_ai::SkirmishAi::new(seed)),
+                .map(|_| crate::skirmish_ai::BalancedDoctrine::new(seed)),
             referee: setup.encounter.clone().map(|e| (e, Referee::default())),
             encounter: None,
             pending: Vec::new(),

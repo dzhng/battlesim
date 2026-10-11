@@ -23,13 +23,13 @@ pub trait SkirmishPolicy {
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct SkirmishAi {
+pub struct BalancedDoctrine {
     next_decision: Tick,
     assigned: BTreeMap<UnitId, String>,
     reinforcement: usize,
 }
 
-impl SkirmishAi {
+impl BalancedDoctrine {
     pub fn new(seed: u64) -> Self {
         Self {
             reinforcement: (contract::random::mix(seed) as usize) % 5,
@@ -361,7 +361,7 @@ impl SkirmishAi {
     }
 }
 
-impl SkirmishPolicy for SkirmishAi {
+impl SkirmishPolicy for BalancedDoctrine {
     fn decide(
         &mut self,
         side: Side,
@@ -457,7 +457,7 @@ mod tests {
         );
         let rules: Rules = serde_json::from_value(authored).unwrap();
         let orders =
-            SkirmishAi::default().decide(Side::Red, Faction::Us, &entry, &frame, &rules, |_, _| {
+            BalancedDoctrine::default().decide(Side::Red, Faction::Us, &entry, &frame, &rules, |_, _| {
                 Some(1.0)
             });
         let Order::ConfirmPurchase { variant, .. } = &orders[0] else {
@@ -484,7 +484,7 @@ mod tests {
         let view = frame.skirmish.as_mut().unwrap();
         view.phase = Phase::Active;
         view.credits = 0.0;
-        let mut ai = SkirmishAi::default();
+        let mut ai = BalancedDoctrine::default();
         let orders = ai.decide(Side::Red, Faction::Us, &entry, &frame, &rules, |_, _| {
             Some(1.0)
         });
@@ -516,7 +516,7 @@ mod tests {
         let (rules, mut frame, entry) = empty_match();
         let view = frame.skirmish.as_mut().unwrap();
         view.phase = Phase::Active;
-        let mut ai = SkirmishAi::default();
+        let mut ai = BalancedDoctrine::default();
         let orders = ai.decide(Side::Red, Faction::Us, &entry, &frame, &rules, |_, _| {
             Some(1.0)
         });
@@ -560,7 +560,7 @@ mod tests {
     #[test]
     fn opening_is_bought_and_readied_in_the_first_decision_within_budget_pending_and_cap() {
         let (rules, mut frame, entry) = empty_match();
-        let mut ai = SkirmishAi::default();
+        let mut ai = BalancedDoctrine::default();
         let mut ready = false;
         for iteration in 0..10 {
             frame.tick = iteration * 5 * u64::from(rules.tick_hz);
@@ -644,7 +644,7 @@ mod tests {
             (10.0, 1.0, [500.0, 500.0]),
             (1.0, 1.0, [800.0, 800.0]),
         ] {
-            let orders = SkirmishAi::default().decide(
+            let orders = BalancedDoctrine::default().decide(
                 Side::Red,
                 Faction::Us,
                 &entry,
@@ -657,7 +657,7 @@ mod tests {
                 .any(|o| matches!(o,Order::AttackMove{units,goal,..}
                 if units==&vec![UnitId(0)] && *goal==wanted)));
         }
-        assert!(SkirmishAi::default()
+        assert!(BalancedDoctrine::default()
             .decide(Side::Red, Faction::Us, &entry, &frame, &rules, |_, _| None)
             .is_empty());
     }
@@ -666,7 +666,7 @@ mod tests {
     fn zero_unit_opening_uses_an_affordable_admitted_faction_purchase() {
         let (rules, frame, entry) = empty_match();
         let orders =
-            SkirmishAi::default().decide(Side::Red, Faction::Us, &entry, &frame, &rules, |_, _| {
+            BalancedDoctrine::default().decide(Side::Red, Faction::Us, &entry, &frame, &rules, |_, _| {
                 Some(1.0)
             });
         let Order::ConfirmPurchase {
@@ -688,8 +688,8 @@ mod tests {
     #[test]
     fn seeded_policy_instances_repeat_the_same_opening_commands() {
         let (rules, frame, entry) = empty_match();
-        let mut left = SkirmishAi::new(17);
-        let mut right = SkirmishAi::new(17);
+        let mut left = BalancedDoctrine::new(17);
+        let mut right = BalancedDoctrine::new(17);
         let left_orders = left.decide(Side::Red, Faction::Us, &entry, &frame, &rules, |_, _| {
             Some(1.0)
         });

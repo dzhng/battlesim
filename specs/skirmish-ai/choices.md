@@ -41,12 +41,14 @@ evidence, and simplicity when machinery does not earn its cost.
 
 ## Implementation choices — slice 00
 
-- **Policy seam:** `SkirmishPolicy` is a Rust trait over the existing ordinary
-  command output, while `SkirmishAi` keeps the current host-facing convenience
-  method. When the battle reaches its AI turn, the host still validates and
-  records the same orders; a future policy can replace the implementation
-  without inventing a second command or economy path. The spec required an
-  extension seam but left trait versus enum open. **Verdict: sound, high
+- **Policy seam and production name:** `SkirmishPolicy` is a Rust trait over the
+  existing ordinary command output, and the shipped implementation is named
+  `BalancedDoctrine`. The direct rename removes the old generic `SkirmishAi`
+  name instead of leaving an alias: when the battle reaches its AI turn, the
+  host still validates and records the same orders, while a future policy can
+  replace the implementation without inventing a second command or economy
+  path. The spec required an extension seam and one balance policy, but left
+  the concrete name and compatibility treatment open. **Verdict: sound, high
   confidence.**
 - **Seeded first variation:** a seeded controller starts its reinforcement
   rotation at a deterministic role offset. Two battles with the same seed make
