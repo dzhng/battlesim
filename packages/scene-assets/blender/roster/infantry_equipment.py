@@ -125,6 +125,8 @@ LENGTHS = {
 }
 # Launchers fired from the shoulder (the launcher hold), and those on a tripod.
 SHOULDER = ("rpg7", "rpg29", "javelin", "stinger", "igla", "fn6", "akeron")
+# The slim air-defence tubes among them.
+MANPADS = ("stinger", "igla", "fn6")
 # A launch tube painted other than the kit's launcher olive: the Akeron's is
 # a light olive between its black caps (references: assets/references/<kit>/).
 TUBE_PAINT = {"akeron": (0.24, 0.25, 0.16)}
@@ -593,7 +595,13 @@ def build(unit, variant, mode, army=None):
         # cap stays under the soldier's height at the sling's 30° lean.
         overlong=max(0,LENGTHS[model].get('length_m',0)-LENGTHS['stinger']['length_m'])
         lift=1.1 if rpg else 1.12+bpy.data.objects[model+'_tube'].location.y-overlong*math.cos(math.radians(30))/2
-        root.matrix_world=Matrix.Translation((0,back+(.13 if rpg else -.02),lift))@rotation
+        # A slim MANPADS tube lies on the pack by its own radius, its foot
+        # tipped in to follow the soldier's forward lean; the Javelin's and
+        # Akeron's sight blocks fill that gap themselves.
+        slim=model in MANPADS
+        if slim:rotation=Matrix.Rotation(math.radians(10),4,'X')@rotation
+        standoff=.13 if rpg else LENGTHS[model]['radius_m']+.01-.10 if slim else -.02
+        root.matrix_world=Matrix.Translation((0,back+standoff,lift))@rotation
         rig.bone_parent(root,'spine_03')
         kit.parts.extend(c for c in root.children_recursive if c.type=='MESH')
         for j,along in enumerate((-.20,.30)):
