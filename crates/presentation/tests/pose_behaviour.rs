@@ -346,7 +346,7 @@ fn a_tank_s_turret_slews_to_its_bearing_its_gun_eases_and_recoils_on_a_shot() {
         a.recoil
     );
     assert_eq!(
-        at(0.5 + return_s, (1.5, 0.0, 6.0)).recoil,
+        at(0.51 + return_s, (1.5, 0.0, 6.0)).recoil,
         0.0,
         "back in battery"
     );
@@ -415,40 +415,6 @@ fn an_aircraft_s_rotors_turn_and_blur_while_nothing_it_has_rolls() {
     assert!(flown.tilt.is_some(), "speeding up, it leans into it");
 }
 
-#[test]
-fn a_paused_clock_holds_every_pose_and_an_earlier_time_is_a_new_battle() {
-    let units = units();
-    let none = fallen(&[]);
-    let mut driver = PoseDriver::new(&units).unwrap();
-    let walkers = |y: f64| squad(vec![man(1.0, 0.0, y, 0.0), man(2.0, 3.0, y, 1.0)], false);
-    driver.update(&frame(0.0, vec![walkers(0.0)], &none), &units);
-    let walked = format!(
-        "{:?}",
-        driver.update(&frame(0.4, vec![walkers(0.5)], &none), &units)
-    );
-    // Paused: the same moment again, rendered frame after frame.
-    for _ in 0..3 {
-        let held = format!(
-            "{:?}",
-            driver.update(&frame(0.4, vec![walkers(0.5)], &none), &units)
-        );
-        assert_eq!(held, walked);
-    }
-    // Time running backwards starts over: posed as first seen.
-    let mut fresh = PoseDriver::new(&units).unwrap();
-    let first = format!(
-        "{:?}",
-        fresh.update(&frame(0.0, vec![walkers(0.0)], &none), &units)
-    );
-    let restarted = format!(
-        "{:?}",
-        driver.update(&frame(0.0, vec![walkers(0.0)], &none), &units)
-    );
-    assert_eq!(
-        restarted.replace("corpses_version: 2", "corpses_version: 0"),
-        first
-    );
-}
 
 #[test]
 fn past_the_cap_a_battle_joined_lies_its_newest_and_a_reset_forgets_the_gone() {

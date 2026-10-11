@@ -143,7 +143,9 @@ export class ObservationDecoder {
    *  drawables its frames' batches name (`World.appearances`), by row. */
   loadWorld(world: object, tables: ReadonlyMap<string, Float32Array>): PresentedAppearance[] {
     for (const [name, floats] of tables) this.rust.add_clip_table(name, floats);
-    const views = worldViews(buffer(), this.rust.load_world(JSON.stringify(world)));
+    // The call may grow memory: the views are taken after it.
+    const ptr = this.rust.load_world(JSON.stringify(world));
+    const views = worldViews(buffer(), ptr);
     const text = new TextDecoder();
     const rows = views.appearances.u32;
     const name = (at: number, len: number) => text.decode(views.strings.subarray(at, at + len));
