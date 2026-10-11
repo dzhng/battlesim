@@ -1372,13 +1372,6 @@
     color: rgb(var(--hud-warn));
   }
 }
-
-.hud-purchase-faction {
-  color: rgb(var(--hud-accent));
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  margin-bottom: 8px;
-}
 .hud-objective-flags > span {
   display: inline-flex;
   align-items: center;

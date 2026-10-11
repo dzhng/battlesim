@@ -117,9 +117,6 @@ function PurchaseMenu({ cards, faction, match, onChoose, rules }: PickerProps) {
       aria-label="Faction units"
       onMouseLeave={() => hover(null, false)}
     >
-      <div className="hud-purchase-faction">
-        {{ us: "U.S.", europe: "EUROPE", eastern: "EASTERN" }[faction]}
-      </div>
       <div className="hud-purchase-families" role="tabpanel" aria-label={category.toUpperCase()}>
         {[...families].map(([id, variants]) => {
           // Every card has its generated silhouette, keyed by card id: a
