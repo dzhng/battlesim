@@ -54,6 +54,7 @@ import { textureFindings } from "./texture.ts";
 import { grassStripFindings } from "./grass.ts";
 import {
   INFANTRY_CLIPS,
+  INFANTRY_CORPSES,
   INFANTRY_SOCKETS,
   UNIT_BUNDLE_KIND,
   type AppearanceEntry,
@@ -375,19 +376,14 @@ export async function validateAppearance(
   if (!built.built) return { findings, stats: null, bundle: null, preview: null };
   const { joints, tiers, materials, textures, sockets } = built.built;
   const farPose = entry.far_pose ?? { clip: "idle", phase: 0 };
-  const corpsePose = entry.corpse_pose ?? { clip: "death", phase: 1 };
-  for (const [what, pose] of [
-    ["far_pose", farPose],
-    ["corpse_pose", corpsePose],
-  ] as const)
-    if (!skeleton.clips.clips.some((c) => c.name === pose.clip))
-      findings.push(
-        finding(
-          "structure.clips",
-          `${path}: ${what} clip "${pose.clip}" is not on skeleton ${skeleton.clips.id}`,
-          `name a clip of ${skeleton.clips.id} in ${what}`,
-        ),
-      );
+  if (!skeleton.clips.clips.some((c) => c.name === farPose.clip))
+    findings.push(
+      finding(
+        "structure.clips",
+        `${path}: far_pose clip "${farPose.clip}" is not on skeleton ${skeleton.clips.id}`,
+        `name a clip of ${skeleton.clips.id} in far_pose`,
+      ),
+    );
   findings.push(
     ...infantryFindings(
       path,
@@ -418,7 +414,8 @@ export async function validateAppearance(
     textures,
     bounds,
     far_pose: farPose,
-    corpse_pose: corpsePose,
+    // Each fall's end: the skeleton's clip roles (`INFANTRY_CLIPS`) carry them.
+    corpse_poses: INFANTRY_CORPSES.map((clip) => ({ clip, phase: 1 })),
     sockets,
   };
   findings.push(

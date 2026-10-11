@@ -23,7 +23,8 @@ then changed only where its critiques asked:
   tracks (`GAITS`), crawl_* works knees and elbows from the prone pose. Their
   strides, times SCALE, are the catalog's `stride_m`.
 - death, death_kneel and death_prone fall from standing, kneeling and lying,
-  each from that posture's own pose, into the one face-down corpse (`deaths`).
+  each from that posture's own pose, onto his face; death_back throws a standing
+  man onto his back (`deaths`).
 """
 
 import math
@@ -159,7 +160,7 @@ def bake_family(rig, hold):
         rig.release(list(rig.constraints))
         res[role] = make()
     rig.release(list(rig.constraints))
-    # ---- dying from each posture he can die in, every fall ending in one corpse
+    # ---- dying from each posture he can die in, each fall ending face down or face up
     res.update(deaths(rig, hold, res))
     rig.release(list(rig.constraints))
     return res
@@ -445,37 +446,53 @@ def crawl(rig, hold, d):
     return prone(rig, hold, name, CRAWL_FRAMES, pose, weapon)
 
 
-def corpse(rig, hold):
-    """Where every death ends: face down, flat, head turned onto one cheek, a knee drawn
-    up, the left arm by his head and the weapon lying on its side by his right hand."""
+def corpse(rig, hold, up=False):
+    """Where a fall ends. Face down: flat, head turned onto one cheek, a knee drawn up,
+    the left arm by his head and the weapon on its side by his right hand. Face up
+    (`up`): on his back, the pack under him, head rolled aside, a knee raised, the left
+    arm flung out past his head and the weapon on its side by his right hip."""
     P = rig.arm.pose.bones
+    k = CORPSE
+    s = -1 if up else 1  # face up, the body turns the other way over
     rig.set_action(None)
     rig.clear_pose()
-    rig.rot_world(P["pelvis"], "X", 90)  # face down, head toward forward (-Y)
-    rig.move_world(P["pelvis"], (0, 0.02, -0.75))
-    rig.rot_world(P["pelvis"], "Y", CORPSE["roll"])
+    rig.rot_world(P["pelvis"], "X", 90 * s)  # face down head forward (-Y); face up head back (+Y)
+    rig.move_world(P["pelvis"], (0, 0.02, -k["up_z"] if up else -0.75))
+    rig.rot_world(P["pelvis"], "Y", k["roll"] * s)
     rig.rot_world(P["spine_03"], "Z", 8)
-    rig.rot_world(P["neck_01"], "Y", CORPSE["cheek"] * 0.5)
-    rig.rot_world(P["Head"], "Y", CORPSE["cheek"] * 0.5)
-    rig.rot_world(P["thigh_l"], "Z", -CORPSE["knee"])  # the left knee drawn up and out
-    rig.rot_world(P["calf_l"], "Z", CORPSE["knee"] * 1.6)
-    rig.rot_world(P["thigh_r"], "Z", 6)
-    rig.rot_world(P["foot_l"], "X", -35)  # insteps toward the ground, feet turned out
-    rig.rot_world(P["foot_r"], "X", -35)
-    rig.rot_world(P["foot_l"], "Y", 40)
-    rig.rot_world(P["foot_r"], "Y", -40)
-    rig.rot_world(P["upperarm_l"], "Y", 15)  # the arms down onto the ground
-    rig.rot_world(P["upperarm_l"], "Z", -45)  # the left by his head, elbow bent
-    rig.rot_world(P["lowerarm_l"], "Z", -70)
+    rig.rot_world(P["neck_01"], "Y", k["cheek"] * 0.5 * s)
+    rig.rot_world(P["Head"], "Y", k["cheek"] * 0.5 * s)
+    if up:
+        rig.rot_world(P["thigh_l"], "X", -k["knee"])  # the left knee raised
+        rig.rot_world(P["calf_l"], "X", k["knee"] * 1.8)
+        rig.rot_world(P["thigh_l"], "Z", 10)
+        rig.rot_world(P["thigh_r"], "Z", -8)
+        rig.rot_world(P["foot_l"], "Y", -35)  # toes up, falling outward
+        rig.rot_world(P["foot_r"], "Y", 35)
+        rig.rot_world(P["upperarm_l"], "Y", 15)  # the arms down onto the ground
+        rig.rot_world(P["upperarm_l"], "Z", 40)  # the left flung out past his head
+        rig.rot_world(P["lowerarm_l"], "Z", 35)
+    else:
+        rig.rot_world(P["thigh_l"], "Z", -k["knee"])  # the left knee drawn up and out
+        rig.rot_world(P["calf_l"], "Z", k["knee"] * 1.6)
+        rig.rot_world(P["thigh_r"], "Z", 6)
+        rig.rot_world(P["foot_l"], "X", -35)  # insteps toward the ground, feet turned out
+        rig.rot_world(P["foot_r"], "X", -35)
+        rig.rot_world(P["foot_l"], "Y", 40)
+        rig.rot_world(P["foot_r"], "Y", -40)
+        rig.rot_world(P["upperarm_l"], "Y", 15)  # the arms down onto the ground
+        rig.rot_world(P["upperarm_l"], "Z", -45)  # the left by his head, elbow bent
+        rig.rot_world(P["lowerarm_l"], "Z", -70)
     for n, q in rig.fist.items():  # the right hand still grips; the left lies open
         if n.endswith("_r"):
             P[n].rotation_quaternion = q
     # the right arm reaches to the weapon on the ground: solved once by IK, kept as FK
     sh = P["upperarm_r"].head.copy()
-    placed = weapon_matrix((sh.x - 0.16, sh.y - 0.05, CORPSE["weapon_z"]), yaw_deg=-12, roll_deg=-90)
-    _, tr, tl = rig.make_hold("corpse", placed, hold["grip"], hold["support"], spine_follow=False)
-    cons = rig.arm_constraints(tr, tl, rig.world_empty("pole_corpse_r", (sh.x - 0.5, sh.y + 0.2, 0.6)),
-                               rig.world_empty("pole_corpse_l", (0, 0, 0)))
+    at = (sh.x - 0.2, sh.y - 0.3, k["weapon_z"]) if up else (sh.x - 0.16, sh.y - 0.05, k["weapon_z"])
+    placed = weapon_matrix(at, yaw_deg=12 if up else -12, roll_deg=-90)
+    _, tr, tl = rig.make_hold(f"corpse_{int(up)}", placed, hold["grip"], hold["support"], spine_follow=False)
+    cons = rig.arm_constraints(tr, tl, rig.world_empty(f"pole_corpse_{int(up)}_r", (sh.x - 0.5, sh.y + 0.2, 0.6)),
+                               rig.world_empty(f"pole_corpse_{int(up)}_l", (0, 0, 0)))
     rig.only([(pb, c) for pb, c in cons if pb.name.endswith("_r")])
     bpy.context.view_layer.update()
     arm = {n: P[n].matrix.copy() for n in ("upperarm_r", "lowerarm_r", "hand_r")}
@@ -489,18 +506,21 @@ def corpse(rig, hold):
 # A pose's arms, shoulder to fingertip: standing, he folds to his knees still clutching
 # the weapon at the carry, not shouldering it as the kneeling pose does.
 ARM_BONES = ("clavicle", "upperarm", "lowerarm", "hand", "index", "middle", "ring", "pinky", "thumb")
-# The corpse: his hips' roll onto one side and his head's onto a cheek (degrees), how
-# far the left knee is drawn up (degrees), and the weapon's height off the ground (m).
-CORPSE = dict(roll=10, cheek=70, knee=30, weapon_z=0.05)
+# The corpses: the hips' roll onto one side and the head's onto a cheek (degrees), how
+# far the left knee is drawn up (degrees), the weapon's height off the ground (m), and
+# face up, how far the hips sink (m: less than face down, the pack holds him up).
+CORPSE = dict(roll=10, cheek=70, knee=30, weapon_z=0.05, up_z=0.66)
 
 
 def deaths(rig, hold, res):
     """The falls, one from each posture he can die in, each from that posture's own pose
     so he never gets up to die: hit, a jolt; standing, the knees go and he pitches onto
-    his face; kneeling, he slumps forward; lying, he goes slack. Every fall ends in the
-    one corpse the battle lays (the catalog's `corpse_pose`, death at its end)."""
+    his face, or, hit from the front, is thrown back onto his back; kneeling, he slumps
+    forward; lying, he goes slack. Each ends in a corpse the battle lays: face down, or
+    face up (`death_back`), as the schema's `INFANTRY_FALLS` has it."""
     P = rig.arm.pose.bones
     dead = corpse(rig, hold)
+    dead_up = corpse(rig, hold, up=True)
     stand = rig.pose_at(res["idle"][0], 0)
     kneel = rig.pose_at(res["kneel_fire"][0], 0)
     pinned = rig.pose_at(res["prone_pinned"][0], 0)
@@ -514,15 +534,29 @@ def deaths(rig, hold, res):
             rig.rot_world(P[bone], axis, deg)
         return rig.snapshot()
 
+    def sagged(pose, *turns):
+        """`pose` turned by `turns`, the hips dropped and carried back as the knees go."""
+        rig.set_pose(pose)
+        rig.move_world(P["pelvis"], (0, 0.18, -0.32))
+        for bone, axis, deg in turns:
+            rig.rot_world(P[bone], axis, deg)
+        return rig.snapshot()
+
     # the hit throws the chest and head back; then the body folds over the weapon
     hit = (("spine_02", "X", -10), ("Head", "X", -14))
     fold = (("spine_01", "X", 22), ("spine_03", "X", 14), ("Head", "X", 18))
+    # hit from the front: thrown back, the knees go and he drops onto his back
+    thrown = (("spine_01", "X", -14), ("spine_03", "X", -12), ("Head", "X", -22))
+    reel = (("pelvis", "X", -28), ("spine_02", "X", -10), ("Head", "X", -15),
+            ("thigh_l", "X", -35), ("thigh_r", "X", -20), ("calf_l", "X", 60), ("calf_r", "X", 45))
     # lying, the hit lifts his head, and he sinks as he goes
     flinch = (("spine_03", "X", -6), ("Head", "X", -16))
     falls = {
         # (frame, pose, ease into the next key as he drops)
         "death": ((0, stand, False), (3, moved(stand, *hit), False), (13, moved(kneel, *fold, arms=stand), True),
                   (25, dead, False), (32, dead, False)),
+        "death_back": ((0, stand, False), (3, moved(stand, *thrown), False), (11, sagged(stand, *reel), True),
+                       (21, dead_up, False), (28, dead_up, False)),
         "death_kneel": ((0, kneel, False), (3, moved(kneel, *hit), False), (12, moved(kneel, *fold), True),
                         (23, dead, False), (30, dead, False)),
         "death_prone": ((0, pinned, False), (3, moved(pinned, *flinch), False), (16, dead, False),

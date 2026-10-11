@@ -4,7 +4,12 @@
 // `poseFrameInstances` and `corpseInstances` turn a pose frame into these.
 
 import type { Mat4 } from "math";
-import type { Bundle, Side, SkeletonClips } from "@packages/scene-assets/src/schema";
+import {
+  INFANTRY_CORPSES,
+  type Bundle,
+  type Side,
+  type SkeletonClips,
+} from "@packages/scene-assets/src/schema";
 import { REST_ARTICULATION, type Articulation } from "@packages/scene-assets/src/articulation";
 import { isRgba, type Rgba } from "../mesh";
 import type { PoseFrame } from "./poseDriver";
@@ -42,9 +47,11 @@ export interface StaticModelPose {
   ground?: boolean;
 }
 
-/** A skinned appearance lying at its bundle's `corpse_pose`: a static mesh. */
+/** A skinned appearance lying dead at one of its bundle's `corpse_poses`
+ *  (`lies`, its index): a static mesh. */
 export interface CorpseModelPose {
   kind: "corpse";
+  lies: number;
 }
 
 /** `presentation.overlay.xray`: the colours hidden parts are drawn in
@@ -108,9 +115,11 @@ export interface ModelInstance {
 }
 
 /** A fallen soldier at rest: his appearance's static corpse mesh (the end of
- *  its death clip, baked once at install), never skinned. */
+ *  his fall, baked once at install), never skinned. */
 export interface CorpseInstance {
   appearance: string;
+  /** Which way he lies: an index of the bundle's `corpse_poses`. */
+  lies: number;
   x: number;
   y: number;
   z: number;
@@ -207,7 +216,7 @@ export function poseFrameInstances(
     m.z = c.position[2] - f.sink;
     m.yaw = c.yaw;
     m.lift = 0;
-    m.pose = LYING_POSE;
+    m.pose = LYING_POSES[c.lies];
     m.xray = null;
   }
   out.length = n;
@@ -222,6 +231,7 @@ export function corpseInstances(frame: PoseFrame, resolve: ResolveAppearance): C
     if (!resolved) continue;
     out.push({
       appearance: resolved.appearance,
+      lies: c.lies,
       x: c.position[0],
       y: c.position[1],
       z: c.position[2],
@@ -234,4 +244,8 @@ export function corpseInstances(frame: PoseFrame, resolve: ResolveAppearance): C
 
 const NO_XRAY: XrayOf = () => null;
 const REST_POSE: SkinnedModelPose = { kind: "skinned", clip: "", phase: 0, blend: null };
-const LYING_POSE: CorpseModelPose = { kind: "corpse" };
+/** The fading corpses' poses, one per way of lying, shared. */
+const LYING_POSES: CorpseModelPose[] = INFANTRY_CORPSES.map((_, lies) => ({
+  kind: "corpse",
+  lies,
+}));
