@@ -1295,7 +1295,7 @@
   color: rgb(var(--hud-text) / 0.7);
 }
 /* A family's info cards, in a hover menu standing on the family's card (its
-   top-left corner is the anchor), over the picker's header if need be. Its
+   top-left corner is the anchor), over the picker's edge if need be. Its
    transparent foot is the bridge the pointer climbs to reach it. */
 .hud-purchase-flyout {
   position: absolute;
