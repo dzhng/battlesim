@@ -43,7 +43,9 @@ lockf -k <main checkout>/throwaway/gpu.lock \
   report has no plates and a `bench` instead.
 - **Exit codes.** 0 means no blocker, 1 means a blocker, 2 means bad arguments.
 - **Time limit.** A run still going after 20 minutes stops at a `timeout`
-  blocker and exits, so a stall frees the GPU lock on its own.
+  blocker and exits, so a stall frees the GPU lock on its own. A watchdog
+  thread keeps the time, so a main thread stuck inside the engine is stopped
+  too.
 
 Rendering needs a display. `--headless` uses Godot's dummy renderer, which
 never draws, so a headless run stops at a `display` blocker. The project
@@ -332,9 +334,31 @@ materials × passes, never placed objects or their parts.
   only into the cascades. A batch's buffer is written only when its layer
   chose anew, and each layer chooses anew only when what it draws changed.
 - **Culling.** Layers cull and tier against `world/detail_view.gd` (the
-  view's side planes, pixels per metre and shadow reach), chunk by chunk,
-  with chunks gathered in cells (`world/chunk_grid.gd`) so a cell out of view
-  costs one test.
+  view's side planes, pixels per metre and shadow reach), chunk by chunk.
+  The static world's walk (buildings, scenery, props) runs in the Rust
+  extension (below); the units layer's stays in GDScript.
+- **Casters by region.** A static layer's casters are batched per 512 m
+  square region, so each cascade draws only the regions its bounds meet.
+
+## The Rust extension
+
+The project loads the Rust GDExtension (`native/godot-binding`, descriptor
+`binding/battle_binding.gdextension`), the native core, for the per-frame
+work. `binding/build.sh` builds the release library into `binding/` (build
+output, never committed); `tests/run.sh` and `release.sh` run it, and an
+editor run needs it run first whenever the crate changed.
+
+- **`StaticLayer`** (`static_layers`) walks a static layer each frame:
+  buildings, the trees and shrubs, the props. A layer hands it the browser's
+  word tables once per map, what the side knows whenever that changes, and
+  the view every frame (`detail_view.gd` `packed`), and gets back the kinds
+  and tiers whose drawn or cast instances changed, with those instances, for
+  its batches (`model_batches.gd`, which the units layer shares). The forest
+  floor's dressing, a few dozen cells a frame, stays in GDScript.
+
+The layers' tests (`tests/*_layer_test.gd`) and the plate counts test the
+rules through it; `cargo test -p godot-binding` the casting the layers do
+not reach.
 
 ## Buildings, scenery and props
 
@@ -353,8 +377,8 @@ manifest lists and counts each plate.
   understorey and the backdrop past the map in 128 m chunks, a far chunk whole
   at the coarsest tier and a near one tree by tree; the forest floor's dressing
   a cell at a time. A tree the side saw fall (`fallenBodies`) falls from
-  `(tick − 1) / tickHz` and lies by its stump (`world/felled.gd`, baked on the
-  CPU); a shrub or a piece of dressing on ground it saw cleared is gone.
+  `(tick − 1) / tickHz` and lies by its stump (`world/felled.gd`, posed in
+  the model surface's vertex stage as the browser poses it); a shrub or a piece of dressing on ground it saw cleared is gone.
 - **Props** (`world/prop_layer.gd`, `propAppearance.ts`): the map's props as
   the browser fitted them, less those the side knows replaced, and every prop
   it learned (wrecks, shoved bodies, rubble) fitted here from the browser's
@@ -467,6 +491,6 @@ already publishes, on the frame record's clock and with the browser's seeds.
   `godot --path native/godot --window-position 10000,10000 --script res://tests/forward_plus_probe.gd`.
   It needs `assets/source/city/homes/kit.glb` from Git LFS.
 - The [binding smoke](binding_smoke/) checks the Rust GDExtension against the
-  offline `native_binding_probe` in a scratch project. It has its own
-  `.gdignore`d folder, so this project never loads the binding:
+  offline `native_binding_probe` in a scratch project, from its own
+  `.gdignore`d folder and a debug build:
   `binding_smoke/binding_smoke.sh <godot> <scenario.json>`.

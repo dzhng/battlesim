@@ -38,24 +38,22 @@ Control `throwaway/native-parity/2026-10-11T12-59-45-367Z` (browser half `3f14bf
 
 **Visual: pass with two notes.** `compare-screenshots` mean distance over each scene's plates: market-town 0.021 (slice 09's legacy look: 0.064), paris-corner 0.159, dominated by the browser's effects (an explosion fills plate 1199; smoke on 1698), which are slice 17's. The unprimed critique found nothing missing, extra, misplaced or in the wrong state, on both scenes. Its one finding, wrought-iron railings losing their bars at distance, is fixed: a cutout's coverage rides its normal map's alpha, scaled and dithered as the browser's `cutoutCoverage`. Two differences are left. Distant railings dither by pixel where the browser dithers by MSAA sample, so they read slightly stippled. A street lamp's diffuser is grey where the browser's is white (emissive, not ported).
 
-**Cost: fails on market-town.** Release export against the browser's production build, one interleaved round (`throwaway/perf/slice15/timing/`):
+**Cost: fails on market-town.** Release export, whole reel, control `2026-10-11T15-33-53-097Z` (effects drawn), against the browser's production build (`throwaway/perf/slice15/timing/`):
 
-| scene | client | p50 | p95 | p99 | avg FPS |
-| --- | --- | --- | --- | --- | --- |
-| market-town | browser | 15.90 | 18.18 | 25.22 | 74.1 |
-| market-town | native | 22.79 | 35.90 | 38.53 | 43.2 |
-| paris-corner | browser | 8.60 | 17.26 | 18.22 | 90.1 |
-| paris-corner | native | 8.47 | 10.03 | 16.66 | 116.1 |
+| scene | client | p50 | p95 | p99 |
+| --- | --- | --- | --- | --- |
+| market-town | browser | 15.90 | 18.18 | 25.22 |
+| market-town | native, before the levers | 22.79 | 35.90 | 38.53 |
+| market-town | native | 18.09 | 24.61 | 25.60 |
+| paris-corner | browser | 8.60 | 17.26 | 18.22 |
+| paris-corner | native | 8.60 | 9.96 | 18.36 |
 
-Market-town records 1000–1299 (release, `bench.sh`): with the world's layers off, the frame is 8.4 ms with 1.5 ms of CPU and 4.2 M primitives. With them, before the fixes, it was 29.7 ms with 14.9 ms of CPU and 29.9 M primitives. After, it is 24.0 ms with 9.4 ms of CPU and 29.5 M primitives.
-- **CPU** was the layers' GDScript. Each fix and what it saved:
-  - re-tier a chunk model by model only when its nearest and farthest can disagree, and rewrite a chunk's packs only when a tier changed: about 6 ms;
-  - index the forest by trunk id once, not every frame: 5 ms;
-  - cull chunks by cell (`chunk_grid.gd`): 1 ms;
-  - write batches only when the plan changed.
-  
-  What is left is the three layers' chunk walks: buildings 1.4 ms, scenery 2.2 ms, props 2.9 ms. Godot's frame is serial, so CPU adds to the frame.
-- **GPU.** Ablation by layer: props cost about 10 ms, scenery about 4 and buildings about 3. Props are 5.1 M triangles in view at frame 1200 and about 15 M in the cascades: 9,105 parked cars at their coarsest tier (300 triangles) and 15,600 wall modules. That follows the browser's own rule: every static model in view is drawn, and drawn again into every cascade. Native spends about 0.55 ms per million primitives, which looks slower per primitive than the browser's 9.0 ms GPU for its frame. Re-uploading every buffer each frame costs nothing measurable.
-- **Not tried yet:** casters batched by region so Godot culls them per cascade (props' cascades are about 3 ms), moving tier choice for statics into a compute pass as the grass does, and cutting the remaining chunk walks.
+The levers, measured on market-town records 1000–1299 unless noted (p50 frame, CPU p50):
+- **Threads.** `thread_model=2`: no gain. Three frames in flight: 24.2 → 23.7 ms. Kept.
+- **Depth prepass.** Off: 26.9 ms, and 31.8 against 22.8 late in the reel. Kept on: the frame is fragment-bound.
+- **Casters by region.** In GDScript the bucketing cost more CPU than it saved. In Rust, 512 m regions: 23.6 → 18.6 ms (draws 2,638, primitives 29.5 → 16.4 M); 256 m 18.6, 1,024 m 19.6.
+- **The walk in Rust** (`StaticLayer`): CPU 9.7 → 6.4 ms, with every static batch identical to the GDScript's. Felled trees moved to the vertex stage, which removed 10–15 ms of CPU bake late in the reel.
+
+What is left is late in the reel (records 5,000 on), at 21–25 ms a frame, GPU-bound with 8–12 ms of CPU. On records 7,500–7,699: shadows off saves 2.2 ms; props off 6.2 ms (7.4 M of 16.5 M primitives: 7,171 parked cars and 10,521 courtyard walls at their coarsest tier, in view and cast, as the browser's rule draws them); scenery off 2.5 ms. With every world layer off the calm window is 8.6 ms (terrain, grass, sky, haze, post), the display interval. Native draws the browser's instance set, so the remaining gap is Godot's cost per primitive at 4× MSAA with a separate depth prepass, not the layers' choice. Closing it needs a renderer decision (slice 18).
 
 **Not ported:** leaf clumps, the dressing's shrink below a few pixels, wear chips, lit interiors, emissive surfaces. Each is reported as an approximation. Cook-off transitions (a wreck drawn moving while it cooks off) are not ported either; no plate falls inside one.

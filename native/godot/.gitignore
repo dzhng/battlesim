@@ -2,3 +2,4 @@
 *.import
 *.uid
 staging/
+binding/*.dylib

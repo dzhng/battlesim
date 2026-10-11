@@ -54,6 +54,10 @@ const USAGE := "usage: godot --path native/godot -- --run <dir> --scene <name> [
 const RUN_LIMIT_S := 1200.0
 
 var _report := RenderReport.new()
+## Watches the run from its own thread: a main thread blocked inside the
+## engine (a frame that never finishes drawing) runs no timer.
+var _watchdog := Thread.new()
+var _finished := false
 
 func _ready() -> void:
 	get_tree().quit(await _run(OS.get_cmdline_user_args()))
@@ -63,11 +67,13 @@ func _run(args: PackedStringArray) -> int:
 	if options.has("error"):
 		printerr("%s\n%s" % [options.error, USAGE])
 		return 2
-	get_tree().create_timer(RUN_LIMIT_S, true, false, true).timeout.connect(_out_of_time.bind(options.out.path_join("report.json")))
+	_watchdog.start(_watch.bind(options.out.path_join("report.json")))
 	_report.frames = options.frames
 	var errors := ErrorLog.new()
 	OS.add_logger(errors)
 	await _render(options)
+	_finished = true
+	_watchdog.wait_to_finish()
 	OS.remove_logger(errors)
 	for error in errors.errors():
 		_report.add_blocker("error", error)
@@ -80,11 +86,19 @@ func _run(args: PackedStringArray) -> int:
 	print(JSON.stringify({"report": report_path, "plates": summary.plates.size(), "timedFrames": timed, "blockers": summary.blockers}))
 	return 0 if _report.ok() else 1
 
-func _out_of_time(report_path: String) -> void:
-	_report.add_blocker("timeout", "the run was still going after %d s" % RUN_LIMIT_S)
-	_report.write(report_path)
-	printerr("timeout: the run was still going after %d s; see %s" % [RUN_LIMIT_S, report_path])
-	get_tree().quit(1)
+## Until the run finishes, or `RUN_LIMIT_S` passes: then it writes the report
+## with a `timeout` blocker and ends the process, whatever the main thread is
+## doing, so a stalled run frees the GPU lock.
+func _watch(report_path: String) -> void:
+	var deadline := Time.get_ticks_msec() + int(RUN_LIMIT_S * 1000.0)
+	while not _finished:
+		if Time.get_ticks_msec() >= deadline:
+			_report.add_blocker("timeout", "the run was still going after %d s" % RUN_LIMIT_S)
+			_report.write(report_path)
+			printerr("timeout: the run was still going after %d s; see %s" % [RUN_LIMIT_S, report_path])
+			OS.kill(OS.get_process_id())
+			return
+		OS.delay_msec(250)
 
 ## Options from the user arguments, or `{error}`. `bench` is the warm-up
 ## frame count of a bench run, or -1 for a plate run.

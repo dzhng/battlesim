@@ -30,3 +30,6 @@ renderer/rendering_method="forward_plus"
 ; Godot's own simplified meshes are never drawn.
 mesh_lod/lod_change/threshold_pixels=0.0
 textures/vram_compression/import_etc2_astc=true
+; Three frames in flight: a record's CPU step runs while the GPU still draws
+; the ones before it.
+rendering_device/vsync/frame_queue_size=3

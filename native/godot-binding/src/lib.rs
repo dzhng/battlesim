@@ -5,6 +5,8 @@ use serde_json::from_str;
 use sim::battle::{Battle, Replay};
 use sim::publication::Publisher;
 
+mod static_layers;
+
 struct BattleGameExtension;
 
 #[gdextension]

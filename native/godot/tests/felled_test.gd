@@ -2,14 +2,13 @@ extends "res://tests/check.gd"
 
 ## A felled tree's fall (`world/felled.gd`) is the browser's
 ## (`scenery/felled.ts`): the pose a tree 12 m tall takes as it falls, strikes
-## the ground and lies, and where four of its points go, equal to the
-## browser's `fellPose` and `felledPoint` for the same inputs (vectors
-## computed from the TypeScript, to f32-ish precision).
+## the ground and lies, equal to the browser's `fellPose` for the same inputs
+## (vectors computed from the TypeScript). Where its points go is the Rust
+## extension's, tested against the same vectors (`native/godot-binding`).
 
 const Felled = preload("res://world/felled.gd")
 
 const RULES := {"fall_s": 2.6, "settle_s": 0.6, "settle_deg": 4, "rest_height_m": 1, "rest_spread": 0.6, "stump_height_m": 0.4, "cut": [0.26, 0.19, 0.11]}
-const POINTS := [[Vector3(0.1, 0.2, 0.2), false], [Vector3(0.2, -0.1, 3), false], [Vector3(1.5, 0.5, 8), true], [Vector3(-2, 1, 11), true]]
 ## Per age: the pose's angle, squash, spread and landed share, and the four
 ## points (`felled_vec.ts`, the browser's output).
 const BROWSER := {
@@ -23,10 +22,4 @@ func run() -> bool:
 		var want: Array = BROWSER[age]
 		var pose := Felled.fell_pose(RULES, Vector2(0.6, 0.8), age, 12.0, 3.0, 0.3, 4.0)
 		check(is_equal_approx(pose[2], want[0]) and is_equal_approx(pose[5], want[1]) and is_equal_approx(pose[6], want[2]) and is_equal_approx(pose[7], want[3]), "at %s s the pose is the browser's: %s" % [age, pose])
-		for k in POINTS.size():
-			var point := Felled.felled_point(POINTS[k][0], POINTS[k][1], pose)
-			check(point.distance_to(want[4][k]) < 1e-5, "at %s s point %d lies where the browser's does: %s, not %s" % [age, k, point, want[4][k]])
-	# Before it falls a tree stands, every point where it was (above the hinge).
-	var upright := Felled.fell_pose(RULES, Vector2(1, 0), -1.0, 12.0, 3.0, 0.3, 4.0)
-	check(Felled.felled_point(Vector3(1, 2, 6), true, upright).is_equal_approx(Vector3(1, 2, 6)), "a tree yet to fall stands as it grew")
 	return true
