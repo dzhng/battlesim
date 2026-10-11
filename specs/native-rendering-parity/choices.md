@@ -418,3 +418,19 @@ The spec said phase 3 would be planned with the user. Under the implementation g
 | The learned ground keeps the cleared byte (`cleared_at`), with no drawing consumer yet | Slice 15 (felled forest) and 16 (scars) read it | Agent |
 | Decoding every group costs startup: the full market-town capture decodes in 4.1 s, up from 1.2 s | Within the 30 s startup budget | Agent (user's startup budget) |
 | The paris-corner decode fixture is 888 KB (43 KB gzipped) | Every sample of the capture, as the gate asks | Agent |
+
+### Slice 15: buildings and scenery, browser half
+
+| Decision | Why | Closed by |
+| --- | --- | --- |
+| Building and scenery placement rides `UploadedTables` as two more groups (`buildings`, `scenery`), written as `records` artifacts beside the terrain's and grass's; no new layout kind | One export path and one artifact contract; the record layouts come from `d.struct`s through `fillRecords`, so a field change regenerates the layout | Agent (#1) |
+| Buildings are expanded per building and state: tables `intact`, `ruin`, `gutted`, each building's rows in template order, plus a `buildings` table (frame, intact bounds, owner, chunk, row count per state, -1 where the template has none) | Native swaps a building's state by its index without placing anything; a missing state stays refusable by name | Agent (#3) |
+| A module instance names a compact module list (only the modules the map's templates place, in library order), not the library's thousands | Keeps the manifest and the per-plate counts small | Agent |
+| A building's chunk is the browser's coarse-chunk index; native forms chunk boxes as the union of its buildings' exported bounds (the fallen population too) | The browser's chunk box is exactly that union, and the bounds need the installed kits' mesh bounds, which only the browser holds | Agent |
+| Scenery exports the whole placement (forest with trunk ids, understorey, backdrop, and every dressing cell laid whole, with a cell table); felled, cleared and fallen state stay per frame | Placement is static; the dressing's cell order matters to its pool, so cells travel as cells | Agent (#3) |
+| The tier rules are numbers in the manifest (`buildings.tiers`, `scenery.tiers`, including pool and per-view budgets); the formulas are native's to port | Same split as the light: data exported, formulas ported | Agent (phase 1 L1 pattern) |
+| Per-plate counts (`instanceCounts`) count what each layer draws into view, not its draw ranges: hidden coarse records and ranges bridged across chunks out of view are left out; dressing on cleared ground (laid with no size) is left out | Native should match what is seen, not the browser's batching | Agent |
+| Counts are per kit module and tier, per scenery population, appearance and tier, stumps per appearance, and known props (wrecks, shoved bodies, rubble) per appearance at each tier then as a card | A tier mismatch shows as a count mismatch, not just a missing kind; known props are slice 15's (coordinator) | Agent; coordinator for known props |
+| Counts are taken before the plate's grass-less redraw | That redraw may lay more dressing or expand more buildings | Territory |
+| Not exported: a building's part props and the gutted-shell prop types, which native needs to derive fallen state from `knownProps` | They are per-frame derivation inputs, not placement; the native half decides whether they come from the map export or the manifest | Agent; open |
+| New control `throwaway/native-parity/2026-10-11T12-20-57-541Z` (`3f14bf2c9`). It ran with slice 16's uncommitted terrain edits in the shared tree, so its terrain group also lists `scars` and `water`; everything slice 15 reads came from `3f14bf2c9`. Market-town's placement artifacts total about 90 MB, the dressing 43 MB of it | Plate-mode scratch only; costs nothing outside plate mode | Agent (spend margin on simplicity) |
