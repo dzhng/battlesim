@@ -48,7 +48,7 @@ test("icon commands expose the full shortcut on focus and hover, without capabil
   expect(view.queryByRole("tooltip")).toBeNull();
   fireEvent.focus(attack);
   const tip = view.getByRole("tooltip");
-  expect(tip.textContent).toBe("Attack-move (X or Ctrl+right-click)");
+  expect(tip.textContent).toBe("Attack-move (C or Ctrl+right-click)");
   expect(attack.getAttribute("aria-describedby")).toBe(tip.id);
   fireEvent.mouseEnter(attack);
   fireEvent.mouseLeave(attack);
