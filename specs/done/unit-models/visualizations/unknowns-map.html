@@ -46,7 +46,7 @@
   <h2>1 · Known knowns</h2>
   <p class="sub">Settled ground, cited.</p>
   <ul>
-    <li>Purchases already admit only roster cards of the side's faction (<code>crates/sim/src/battle.rs</code> ~2770); the AI filters the same way (<code>skirmish_ai.rs:40-45</code>).</li>
+    <li>Purchases already admit only roster cards of the side's faction (<code>crates/sim/src/battle.rs</code> ~2770); the AI filters the same way (<code>crates/sim/src/skirmish_ai/mod.rs</code>).</li>
     <li>Tests on fake units already landed on main: <code>stand_in_game</code>, <code>stand_in_documents</code> (<code>847c813c</code>).</li>
     <li>The game catalog still ships the generic units (<code>fixtures.rs</code> <code>catalog_documents()</code>); one file, <code>fixtures/catalog.json</code>, kept by <code>crates/sim/tests/catalog.rs:86</code>.</li>
     <li>Vehicle sound and gauge keyed by <code>tank</code>/<code>jeep</code>/<code>supply</code> (<code>soundFrame.ts:695</code>, <code>poseDriver.ts:434</code>): roster vehicles get defaults.</li>

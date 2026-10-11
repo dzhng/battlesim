@@ -35,14 +35,15 @@ of the same policy seam.
 
 ## Invariants and pointers
 
-- Policy seam, doctrine state, procurement, recon orders, and focused behavior
-  tests live in [`crates/sim/src/skirmish_ai.rs`](../../../crates/sim/src/skirmish_ai.rs).
+- Policy seam, doctrine state, procurement, and recon orders live in
+  [`crates/sim/src/skirmish_ai/mod.rs`](../../../crates/sim/src/skirmish_ai/mod.rs);
+  focused behavior tests live beside it in `skirmish_ai/tests.rs`.
 - The live browser AI uses `Battle::skirmish_ai_turn`; external controllers use
   `Battle::observe`, `Battle::route_time`, `Battle::accept`, and `Battle::step`
   in [`crates/sim/src/battle.rs`](../../../crates/sim/src/battle.rs).
 - Generated tournament maps use pinned `GenerationRequest`, `PreparedMap`,
   and `map_analysis::admit_skirmish` in
-  [`crates/mapgen/examples/skirmish_tournament.rs`](../../../crates/mapgen/examples/skirmish_tournament.rs).
+  [`crates/mapgen/examples/skirmish_tournament/`](../../../crates/mapgen/examples/skirmish_tournament/).
 - Corpus rows live in [`fixtures/skirmish-corpus.json`](../../../fixtures/skirmish-corpus.json).
   Reports preserve complete, refused, timeout, and no-progress outcomes,
   admitted map identity/site count, objective ownership, contact/recon

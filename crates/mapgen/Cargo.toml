@@ -23,4 +23,5 @@ test = true
 
 [[example]]
 name = "skirmish_tournament"
+path = "examples/skirmish_tournament/main.rs"
 test = true
