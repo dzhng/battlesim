@@ -67,10 +67,11 @@ It draws every frame record (or the `--frames` given) once, in order, exactly
 as a plate run composes and steps it, at the same 4× MSAA, but reads nothing
 back and writes no PNG.
 
-- **Pacing.** Uncapped by default: vsync off and no frame-rate limit. A frame
-  still takes at least the display's refresh interval (8.3 ms at 120 Hz), on
-  screen or off, so below it compare GPU time from a trace. `--pace display` turns vsync on instead,
-  for comparing with a browser whose frames the display paces.
+- **Pacing.** Uncapped by default: vsync off and no frame-rate limit. Even
+  so, frames cheaper than the display's refresh interval settle near it
+  (8.3 ms at 120 Hz), on screen or off; below it, compare GPU time from a
+  trace. `--pace display` turns vsync on instead, for comparing with a
+  browser whose frames the display paces.
 - **Presentation.** A bench asks for a minimised window, as the headless
   browser it is compared with presents nothing, but macOS restores whatever
   state the window last had, so a run may be on screen either way; the
