@@ -40,7 +40,7 @@ export const gameEffects: EffectPresentation = validateEffects({
  *  destroyed building's parts become, its remains (`ruin`) or its gutted
  *  shell (`gutted`), and every hull's wreck (`wreck`). */
 const smokeLookCache = new WeakMap<UnitCatalog, ReadonlyMap<string, string>>();
-function smokeLooksOf(units: UnitCatalog): ReadonlyMap<string, string> {
+export function smokeLooksOf(units: UnitCatalog): ReadonlyMap<string, string> {
   let looks = smokeLookCache.get(units);
   if (!looks) {
     const byKind = new Map<string, string>();

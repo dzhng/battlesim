@@ -558,6 +558,8 @@ export const EFFECT_FLOATS = 16;
  *  smoke ribbon when its colour carries an opacity), a glow sprite at a (a
  *  solid disc when its colour carries an opacity), a flipbook sprite at a. */
 export const SHAPE = { streak: 0, glow: 1, flipbook: 2, rotor: 3 } as const;
+/** Each shape's name, in `SHAPE` order. */
+export const SHAPE_NAMES = ["streak", "glow", "flipbook", "rotor"] as const;
 /** Flipbook layers in the effect atlas (`flipbooks.ts`). */
 export const LAYER = { fire: 0, dust: 1 } as const;
 /** Frames in each layer, in `LAYER` order. */
@@ -787,6 +789,34 @@ const BLAST = 4;
 const PUFF = 5;
 const FLAME = 6;
 const TRAIL = 7;
+/** Each effect kind's name, by its type. */
+export const EFFECT_KINDS = [
+  "tracer",
+  "flash",
+  "impact",
+  "sparks",
+  "blast",
+  "puff",
+  "flame",
+  "trail",
+] as const;
+export type EffectKind = (typeof EFFECT_KINDS)[number];
+
+/** What a frame draws, as a second client must draw it too: the effects
+ *  running at its clock by kind, the instances it drew by shape, and the
+ *  lights it cast. */
+export interface EffectCounts {
+  running: Record<EffectKind, number>;
+  instances: Record<(typeof SHAPE_NAMES)[number], number>;
+  lights: number;
+}
+
+/** Counts of a frame that drew no effect. */
+export const emptyEffectCounts = (): EffectCounts => ({
+  running: Object.fromEntries(EFFECT_KINDS.map((k) => [k, 0])) as EffectCounts["running"],
+  instances: Object.fromEntries(SHAPE_NAMES.map((k) => [k, 0])) as EffectCounts["instances"],
+  lights: 0,
+});
 
 /** How far off a face sparks start, metres. */
 const SURFACE_LIFT_M = 0.08;
@@ -1269,6 +1299,16 @@ export class EffectFrame {
     this.instances = batch.count;
     this.dropped = batch.dropped;
     return batch;
+  }
+
+  /** What the last `build`, at `clock` into `batch`, drew (`EffectCounts`). */
+  counts(clock: number, batch: EffectBatch): EffectCounts {
+    const out = emptyEffectCounts();
+    for (const e of this.effects) if (e.start <= clock) out.running[EFFECT_KINDS[e.type]]++;
+    for (let i = 0; i < batch.count; i++)
+      out.instances[SHAPE_NAMES[batch.data[i * EFFECT_FLOATS + 12]]]++;
+    out.lights = batch.lights.count;
+    return out;
   }
 
   stats(): EffectStats {

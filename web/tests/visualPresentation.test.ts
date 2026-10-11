@@ -25,6 +25,7 @@ import { grassTuning } from "@packages/battle-renderer/src/terrain/grassTuning";
 import { gameLight } from "@apps/battle-lab/src/gameLight";
 import type { DrawnUnits, ModelCount } from "@web/battle/benchmark/unitManifest";
 import { NO_PROP, PROP_MODEL_WORDS, type DrawnProps } from "@web/battle/benchmark/propManifest";
+import type { EffectCount, EffectsManifest } from "@web/battle/benchmark/effectManifest";
 
 const frame = (
   index: number,
@@ -101,6 +102,7 @@ function units(): DrawnUnits {
         clips: { idle: { offset: 0, frames: 1, duration: 1, rate: 30, loop: true, stride: null } },
         farPose: { clip: "idle", phase: 0 },
         corpsePoses: [{ clip: "idle", phase: 1 }],
+        muzzle: { joint: 1, offset: structuredClone(REST) as never },
       },
       tank: {
         kind: "articulated",
@@ -119,6 +121,7 @@ function units(): DrawnUnits {
           tracks: [],
           rotors: [],
           deploy: [],
+          muzzles: { gun: 1 },
         },
       },
     },
@@ -166,6 +169,20 @@ const props = (): DrawnProps => ({
   buildings: { parts: [[0, 1], [2]], shells: ["gutted_shell"] },
 });
 
+/** The tank's hull and gun muzzle, a wreck that smokes, and its wreck's pieces. */
+const effects = (): EffectsManifest => ({
+  presentation: { capacity: 16, smoke: { wreck: { burn_s: 60 } } },
+  types: {
+    rifle: { half: null, muzzles: [null] },
+    tank: {
+      half: [3.2, 1.8, 1.2],
+      muzzles: [{ on: null, pivot: [0, 0, 2], ring: [0, 0, 0], muzzle: [5, 0, 0] }],
+    },
+  },
+  smokes: { heavy_wreck: "wreck" },
+  wrecks: { abrams_wreck: { lies: [0.1, 0, 2.1], underside: 1.6, debrisTop: 0.5 } },
+});
+
 const drawn: DrawnPresentation = {
   lens: { fovY: 0.8, near: 1, depth: "reverse-z", far: "infinite" },
   light: {
@@ -177,6 +194,7 @@ const drawn: DrawnPresentation = {
   omissions: [],
   units: units(),
   props: props(),
+  effects: effects(),
 };
 const mapBytes = new TextEncoder().encode('{"map":"bytes"}');
 
@@ -314,6 +332,14 @@ const grassCounts: GrassCount[] = [{ plate: "plate-1.png", cells: cells(3) }];
 const modelCounts: ModelCount[] = [
   { plate: "plate-1.png", soldiers: 9, vehicles: 2, aircraft: 0, corpses: 4, fading: 0 },
 ];
+const effectCounts: EffectCount[] = [
+  {
+    plate: "plate-1.png",
+    running: { tracer: 4, flash: 1, puff: 30 },
+    instances: { streak: 8, glow: 2, flipbook: 30, rotor: 0 },
+    lights: 3,
+  },
+];
 const platedCapture = () =>
   encodePresentationCapture(capture([frame(0), frame(1, [1280, 720], "plate-1.png")]));
 /** The manifest and its artifacts for `captureJson`, drawn with the tables and counts above. */
@@ -321,6 +347,7 @@ async function written(
   captureJson: string,
   counts: GrassCount[] = [],
   instances: InstanceCount[] = counts.length ? instanceCounts : [],
+  effected: EffectCount[] = counts.length ? effectCounts : [],
 ) {
   const { manifest, artifacts } = await writeVisualPresentation({
     captureJson,
@@ -330,6 +357,7 @@ async function written(
     grassCounts: counts,
     instanceCounts: instances,
     modelCounts: counts.length ? modelCounts : [],
+    effectCounts: effected,
   });
   return { manifest: JSON.parse(manifest) as VisualPresentation, artifacts };
 }
@@ -369,6 +397,8 @@ test("the manifest names its battle by the capture's workload and the hashes of 
     units: expect.any(Object),
     modelCounts: [],
     props: expect.any(Object),
+    effects: drawn.effects,
+    effectCounts: [],
   });
 });
 
@@ -427,6 +457,7 @@ test("the units' clip tables are artifacts after the scenery's, and each plate's
       grassCounts,
       instanceCounts,
       modelCounts: [],
+      effectCounts,
     }),
   ).rejects.toThrow(/model counts must be one per plate/);
 });
@@ -470,6 +501,7 @@ test("the map's fitted props are an artifact before the units', and the fit, the
       grassCounts,
       instanceCounts,
       modelCounts,
+      effectCounts,
     }),
   ).rejects.toThrow(/3 models/);
 });
@@ -712,4 +744,25 @@ test("the validator refuses building and scenery sections that are missing a tab
   const { fadePx: _fade, ...fadeless } = scenery.tiers.dressing;
   expect(reject("scenery", { tiers: { ...scenery.tiers, dressing: fadeless } })).toThrow(/scenery/);
   expect(reject("scenery", { tiers: { ...scenery.tiers, chunkM: -1 } })).toThrow(/scenery/);
+});
+
+test("the effects ride along as the page described them, and each plate's effect counts beside them", async () => {
+  const { manifest } = await written(platedCapture(), grassCounts);
+  expect(manifest.effects).toEqual(drawn.effects);
+  expect(manifest.effectCounts).toEqual(effectCounts);
+  const reject = (change: object) => () => validateVisualPresentation({ ...manifest, ...change });
+  const { effects: section } = manifest;
+  expect(reject({ effects: { ...section, smokes: { heavy_wreck: "inferno" } } })).toThrow(
+    /smoke looks/,
+  );
+  const tank = { ...section.types.tank, half: [3.2, 1.8] };
+  expect(reject({ effects: { ...section, types: { ...section.types, tank } } })).toThrow(/types/);
+  const { wrecks: _, ...wreckless } = section;
+  expect(reject({ effects: wreckless })).toThrow(/effects/);
+  const [row] = effectCounts;
+  expect(reject({ effectCounts: [{ ...row, lights: -1 }] })).toThrow(/effect counts/);
+  expect(reject({ effectCounts: [row, row] })).toThrow(/effect counts/);
+  await expect(written(platedCapture(), grassCounts, instanceCounts, [])).rejects.toThrow(
+    /effect counts must be one per plate/,
+  );
 });

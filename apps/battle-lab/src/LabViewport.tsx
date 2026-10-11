@@ -75,7 +75,9 @@ import { PassInspector } from "./PassInspector";
 import type { FeedSource } from "./feed";
 import {
   createEffectBatch,
+  emptyEffectCounts,
   type EffectBatch,
+  type EffectCounts,
 } from "@packages/battle-renderer/src/effects/effectFrame";
 import type { Mesh } from "@packages/battle-renderer/src/mesh";
 import { pickBox, proxyPickBox, type PickBox } from "@packages/battle-renderer/src/picking";
@@ -183,6 +185,8 @@ export interface ViewportFrame {
   clock?: number;
   /** Combat effects at that clock (`EffectFrame.build`). */
   effects?: EffectBatch;
+  /** What `effects` holds, by kind and shape (`EffectFrame.counts`). */
+  effectCounts?: EffectCounts;
   /** The observing side's learned ground (the client's `GroundView`), drawn
    *  as scars; the frame uploads only what changed since it last looked. */
   ground?: GroundMarks | null;
@@ -198,6 +202,8 @@ export interface FramePlate {
   drawn: DrawnInstances;
   /** The soldiers, vehicles and corpses the frame posed. */
   models: ModelCounts;
+  /** The combat effects the frame drew. */
+  effects: EffectCounts;
   plain: Promise<Blob>;
 }
 
@@ -452,6 +458,7 @@ export function LabViewport({
     corpses: 0,
     fading: 0,
   });
+  const effectCountsRef = useRef<EffectCounts>(emptyEffectCounts());
   const felledRef = useRef<readonly FelledTree[]>([]);
   const modelsSuppressed = useRef(false);
   const effectsSuppressed = useRef(false);
@@ -803,6 +810,7 @@ export function LabViewport({
           clumps: scene.grassProbes.clumps(),
           drawn: scene.drawnInstances(),
           models: countsRef.current,
+          effects: effectCountsRef.current,
           plain: readPlain(),
         });
         redrawRef.current = () => (dirty = true);
@@ -865,6 +873,7 @@ export function LabViewport({
               if (!modelsSuppressed.current) scene.setModels(animated.models);
             }
             if (animated.counts) countsRef.current = animated.counts;
+            if (animated.effectCounts) effectCountsRef.current = animated.effectCounts;
             if (animated.corpses && animated.corpses !== corpsesRef.current) {
               corpsesRef.current = animated.corpses;
               if (!modelsSuppressed.current) scene.setCorpses(animated.corpses);

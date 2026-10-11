@@ -89,7 +89,8 @@ export function createReelReport(
       r.lens &&
       r.light &&
       r.units &&
-      r.props && {
+      r.props &&
+      r.effects && {
         lens: r.lens,
         light: {
           ...r.light,
@@ -100,6 +101,7 @@ export function createReelReport(
         omissions: [],
         units: r.units,
         props: r.props,
+        effects: r.effects,
       },
   );
   const host = typeof navigator === "undefined" ? null : navigator;

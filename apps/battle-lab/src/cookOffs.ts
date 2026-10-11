@@ -188,21 +188,32 @@ export function transitionOf(
   )[0];
   const bundle = wreck && installed.appearances.get(wreck.appearance)?.bundle;
   const states = bundle?.kind === "static" ? bundle.states : [];
-  const turret = states.find((s) => s.name === WRECK_PIECES.turret);
   const whole = states.find((s) => s.name === "default");
   if (!wreck || !whole) return null;
+  return {
+    cookOff: c,
+    wreck,
+    bounds: whole.bounds,
+    ...wreckPieces(states),
+    hitAt: (c.tick - 1) / tickHz,
+  };
+}
+
+/** What a wreck of `states` throws when it cooks off, in its own frame: its
+ *  turret piece's centre, only where it has both pieces (a tank's; others
+ *  jolt whole), the piece's underside, and its thrown debris's top. */
+export function wreckPieces(
+  states: readonly { name: string; bounds: Bounds }[],
+): Pick<CookOffTransition, "lies" | "underside" | "debrisTop"> {
+  const turret = states.find((s) => s.name === WRECK_PIECES.turret);
   const moving = turret && states.some((s) => s.name === WRECK_PIECES.hull) ? turret : null;
   const debris = states.find((s) => s.name === DEBRIS_STATE);
   const min = moving?.bounds.min;
   const max = moving?.bounds.max;
   return {
-    cookOff: c,
-    wreck,
-    bounds: whole.bounds,
     lies: min && max ? [(min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2] : null,
     underside: min?.[2] ?? 0,
     debrisTop: debris ? debris.bounds.max[2] : null,
-    hitAt: (c.tick - 1) / tickHz,
   };
 }
 

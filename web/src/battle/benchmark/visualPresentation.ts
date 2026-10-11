@@ -28,6 +28,12 @@ import type {
 import type { DrawnInstances } from "@packages/battle-renderer/src/scene";
 import { decodePresentationCapture, finite, hasKeys, isRecord } from "./presentationCapture.ts";
 import {
+  isEffectCount,
+  validateEffects,
+  type EffectCount,
+  type EffectsManifest,
+} from "./effectManifest.ts";
+import {
   propArtifacts,
   validateProps,
   type DrawnProps,
@@ -98,6 +104,8 @@ export interface DrawnPresentation {
   units: DrawnUnits;
   /** What draws the side's props and fallen buildings (`propManifest.ts`). */
   props: DrawnProps;
+  /** What turns the side's publications into combat effects (`effectManifest.ts`). */
+  effects: EffectsManifest;
 }
 
 export interface VisualPresentation extends Omit<DrawnPresentation, "units" | "props"> {
@@ -148,6 +156,8 @@ export interface VisualPresentation extends Omit<DrawnPresentation, "units" | "p
   instanceCounts: InstanceCount[];
   /** The soldiers, vehicles and corpses each plate's frame posed. */
   modelCounts: ModelCount[];
+  /** The combat effects each plate's frame drew. */
+  effectCounts: EffectCount[];
 }
 
 /** Each group's tables, in the manifest's order. */
@@ -257,6 +267,8 @@ const MANIFEST_KEYS = [
   "units",
   "modelCounts",
   "props",
+  "effects",
+  "effectCounts",
 ];
 const LAYOUT_KEYS: Record<WordLayout["kind"], readonly string[]> = {
   records: ["kind", "stride", "count", "fields"],
@@ -572,6 +584,16 @@ export function validateVisualPresentation(value: unknown): VisualPresentation {
     throw new Error(
       "visual presentation model counts need one row per plate of whole soldiers, vehicles, aircraft, corpses and fading corpses",
     );
+  validateEffects(value.effects);
+  const effects = value.effectCounts;
+  if (
+    !Array.isArray(effects) ||
+    !effects.every(isEffectCount) ||
+    !distinct(effects.map((row) => row.plate))
+  )
+    throw new Error(
+      "visual presentation effect counts need one row per plate of whole effects by kind, instances by shape and lights",
+    );
   return value as unknown as VisualPresentation;
 }
 
@@ -602,6 +624,7 @@ export async function writeVisualPresentation({
   grassCounts,
   instanceCounts,
   modelCounts,
+  effectCounts,
 }: {
   captureJson: string;
   mapBytes: Uint8Array;
@@ -610,6 +633,7 @@ export async function writeVisualPresentation({
   grassCounts: readonly GrassCount[];
   instanceCounts: readonly InstanceCount[];
   modelCounts: readonly ModelCount[];
+  effectCounts: readonly EffectCount[];
 }): Promise<{ manifest: string; artifacts: { file: string; bytes: Uint8Array }[] }> {
   const capture = decodePresentationCapture(captureJson);
   const [first] = capture.frames;
@@ -625,6 +649,7 @@ export async function writeVisualPresentation({
     ["grass", grassCounts],
     ["instance", instanceCounts],
     ["model", modelCounts],
+    ["effect", effectCounts],
   ] as const) {
     const counted = rows.map((g) => g.plate);
     const uncounted = plates.filter((p) => !counted.includes(p));
@@ -705,6 +730,8 @@ export async function writeVisualPresentation({
     units: units.units,
     props: props.props,
     modelCounts: plates.map((plate) => modelCounts.find((g) => g.plate === plate)!),
+    effects: drawn.effects,
+    effectCounts: plates.map((plate) => effectCounts.find((g) => g.plate === plate)!),
   };
   return {
     manifest: JSON.stringify(validateVisualPresentation(manifest)),

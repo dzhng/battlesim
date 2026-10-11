@@ -131,6 +131,7 @@ import { useAppAudio } from "./AppAudio";
 import { useFeed } from "./feed";
 import { posedSockets } from "./workbench/benchWorld";
 import { describeProps } from "./benchmark/propPresentation";
+import { describeEffects } from "./benchmark/effectPresentation";
 import type { Vec3 } from "math";
 import type { FelledTree } from "@packages/battle-renderer/src/scenery/felled";
 import {
@@ -722,6 +723,7 @@ export function useBattleSession({
       // frame draws them.
       posing.drawn.update(poses);
       effects.build(time, effectBatch, posing.source, posing.drawn);
+      const effectCounts = effects.counts(time, effectBatch);
       if (audio) {
         const reversing = new Set(published.own.filter((u) => u.reversing).map((u) => u.id));
         const enemyReversing = new Set(
@@ -808,6 +810,7 @@ export function useBattleSession({
         felled: fallenTrees,
         clock: time,
         effects: effectBatch,
+        effectCounts,
         ground,
       };
     },
@@ -1385,6 +1388,12 @@ export function useBattleSession({
         pose: gamePose,
         leanHold: rules.cover.lean_hold_s,
       }),
+    /** What a second client needs to draw this battle's combat effects
+     *  (`describeEffects`); null until the side's props can be fitted. */
+    describeEffects: () =>
+      props && appearances
+        ? describeEffects({ kinds: fielded, units, fit: props.fit, installed: appearances })
+        : null,
     /** Every animation frame's drawn units and presentation clock, for the viewport. */
     frame,
     /** The battle's sound (null unless `sound`), and its per-frame listener. */

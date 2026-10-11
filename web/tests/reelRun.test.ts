@@ -3,6 +3,7 @@ import { expect, test } from "vitest";
 import { createReelRun, grassCells, type ReelPlate } from "@apps/battle-lab/src/benchmark/reelRun";
 import type { UploadedTables } from "@packages/battle-renderer/src/frame/wordTables";
 import type { BackdropScene } from "@apps/battle-lab/src/menuReel";
+import { emptyEffectCounts } from "@packages/battle-renderer/src/effects/effectFrame";
 import type { FramePlate } from "@apps/battle-lab/src/LabViewport";
 import type { DrawnUnits } from "@web/battle/benchmark/unitManifest";
 
@@ -42,6 +43,7 @@ const platesOf =
       knownProps: [],
     },
     models: { soldiers: now, vehicles: 1, aircraft: 0, corpses: 2, fading: 0 },
+    effects: { ...emptyEffectCounts(), lights: now },
     plain: Promise.resolve(new Blob([`plain at ${now}`])),
   });
 /** A level camera 40 m east of (5, 6, 1), looking west: screen right is +y, up is +z. */

@@ -68,9 +68,26 @@ export interface RigRecord {
   stroke: number | null;
   wheels: { node: number; radius: number; left: boolean }[];
   tracks: { node: number; left: boolean; linkPitch: number }[];
-  rotors: { node: number; radius: number }[];
+  /** Each rotor, as the effects draw its blur (`RotorShape`). */
+  rotors: {
+    node: number;
+    radius: number;
+    blades: number;
+    chord: number;
+    rest: number;
+    mast_below: number;
+    mast_above: number;
+    mast_radius: number;
+  }[];
   deploy: { node: number; start: number; end: number; move: Vec3; turn: Vec3 }[];
+  /** Each articulated mount's muzzle node (`MOUNT_NODES`), by role, where
+   *  the model has it: a flash sits on it. */
+  muzzles: Record<string, number>;
 }
+
+/** A body's weapon `muzzle` socket: the joint it hangs from and its offset
+ *  in that joint's space; null where it has none. */
+export type AppearanceMuzzle = { joint: number; offset: TrsRecord } | null;
 
 export type AppearanceRecord =
   | {
@@ -83,6 +100,9 @@ export type AppearanceRecord =
       farPose: PoseRecord;
       /** Each way the body lies dead (`INFANTRY_CORPSES`), in that order. */
       corpsePoses: PoseRecord[];
+      /** Its weapon's `muzzle` socket: the joint it hangs from and its
+       *  offset; null where it has none. A flash sits on it. */
+      muzzle: AppearanceMuzzle;
     }
   | {
       kind: "articulated";
@@ -220,6 +240,7 @@ function isRig(rig: unknown, nodes: number): boolean {
       "tracks",
       "rotors",
       "deploy",
+      "muzzles",
     ])
   )
     return false;
@@ -251,7 +272,23 @@ function isRig(rig: unknown, nodes: number): boolean {
     ) &&
     Array.isArray(rig.rotors) &&
     rig.rotors.every(
-      (r) => hasKeys(r, ["node", "radius"]) && node(r.node) && finite(r.radius) && r.radius > 0,
+      (r) =>
+        hasKeys(r, [
+          "node",
+          "radius",
+          "blades",
+          "chord",
+          "rest",
+          "mast_below",
+          "mast_above",
+          "mast_radius",
+        ]) &&
+        node(r.node) &&
+        finite(r.radius) &&
+        r.radius > 0 &&
+        Number.isInteger(r.blades) &&
+        (r.blades as number) >= 0 &&
+        [r.chord, r.rest, r.mast_below, r.mast_above, r.mast_radius].every(finite),
     ) &&
     Array.isArray(rig.deploy) &&
     rig.deploy.every(
@@ -263,7 +300,9 @@ function isRig(rig: unknown, nodes: number): boolean {
         (m.end as number) > (m.start as number) &&
         vector(m.move, 3) &&
         vector(m.turn, 3),
-    )
+    ) &&
+    isRecord(rig.muzzles) &&
+    Object.values(rig.muzzles).every((n) => node(n) && (n as number) >= 0)
   );
 }
 
@@ -287,14 +326,20 @@ function isAppearance(value: unknown, tables: ReadonlySet<string>): boolean {
   if (!isRecord(value)) return false;
   if (value.kind === "skinned")
     return (
-      hasKeys(value, ["kind", "joints", "table", "clips", "farPose", "corpsePoses"]) &&
+      hasKeys(value, ["kind", "joints", "table", "clips", "farPose", "corpsePoses", "muzzle"]) &&
       isHierarchy(value.joints) &&
       tables.has(value.table as string) &&
       isRecord(value.clips) &&
       Object.values(value.clips).every(isClip) &&
       isPose(value.farPose) &&
       Array.isArray(value.corpsePoses) &&
-      value.corpsePoses.every(isPose)
+      value.corpsePoses.every(isPose) &&
+      (value.muzzle === null ||
+        (hasKeys(value.muzzle, ["joint", "offset"]) &&
+          Number.isInteger(value.muzzle.joint) &&
+          (value.muzzle.joint as number) >= 0 &&
+          (value.muzzle.joint as number) < (value.joints as unknown[]).length &&
+          isTrs(value.muzzle.offset)))
     );
   return (
     value.kind === "articulated" &&

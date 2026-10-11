@@ -9,6 +9,7 @@ import { sunDirection } from "@packages/battle-renderer/src/light/sceneLight";
 import { terrainTuning } from "@packages/battle-renderer/src/terrain/terrainTuning";
 import { grassTuning } from "@packages/battle-renderer/src/terrain/grassTuning";
 import type { DrawnUnits } from "@web/battle/benchmark/unitManifest";
+import type { EffectsManifest } from "@web/battle/benchmark/effectManifest";
 import type { DrawnProps } from "@web/battle/benchmark/propManifest";
 
 const pose = { target: [0, 0] as const, distance: 40, yaw: 0, pitch: 0.2 };
@@ -30,6 +31,8 @@ const props: DrawnProps = {
   fit: { kinds: {}, wrecks: {}, standIn: null },
   buildings: { parts: [], shells: [] },
 };
+/** Its effects, as the page describes them (`describeEffects`). */
+const effects: EffectsManifest = { presentation: { smoke: {} }, types: {}, smokes: {}, wrecks: {} };
 function result(map: string, started: number, intervals: number[]): ReelResult {
   const recording = new BenchmarkRecording(1000);
   recording.start(started);
@@ -74,6 +77,7 @@ function result(map: string, started: number, intervals: number[]): ReelResult {
     tables: null,
     units,
     props,
+    effects,
   };
 }
 
@@ -116,6 +120,7 @@ test("exports each scene's capture with the frames it drew and what it drew them
       omissions: [],
       units,
       props,
+      effects,
     },
   ]);
   expect(report.capture.frameTimingComparable).toBe(true);

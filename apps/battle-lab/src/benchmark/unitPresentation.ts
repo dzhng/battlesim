@@ -10,11 +10,17 @@ import type { SideFactions } from "@packages/scene-assets/src/appearanceCatalog"
 import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog";
 import { articulationRig } from "@packages/scene-assets/src/articulation";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
-import type { Side } from "@packages/scene-assets/src/schema";
-import { airborne, vehicleClass, type UnitCatalog } from "@packages/scene-assets/src/units";
+import type { Side, Socket } from "@packages/scene-assets/src/schema";
+import {
+  airborne,
+  MOUNT_NODES,
+  vehicleClass,
+  type UnitCatalog,
+} from "@packages/scene-assets/src/units";
 import { buildClipTable } from "@packages/battle-renderer/src/models/clipTable";
 import type { PoseFeel } from "@packages/battle-renderer/src/models/poseDriver";
 import type {
+  AppearanceMuzzle,
   AppearanceRecord,
   DrawnUnits,
   TrsRecord,
@@ -143,6 +149,7 @@ export function describeUnits({
         ),
         farPose: { ...bundle.far_pose },
         corpsePoses: bundle.corpse_poses.map((p) => ({ ...p })),
+        muzzle: muzzleSocket(bundle.sockets),
       };
     } else if (bundle.kind === "articulated") {
       const rig = articulationRig(bundle.nodes);
@@ -158,7 +165,16 @@ export function describeUnits({
           stroke: Number.isFinite(rig.stroke) ? rig.stroke : null,
           wheels: rig.wheels.map((w) => ({ ...w })),
           tracks: rig.tracks.map((t) => ({ ...t })),
-          rotors: rig.rotors.map((r) => ({ node: r.node, radius: r.radius })),
+          rotors: rig.rotors.map((r) => ({
+            node: r.node,
+            radius: r.radius,
+            blades: r.blades,
+            chord: r.chord,
+            rest: r.rest,
+            mast_below: r.mast_below,
+            mast_above: r.mast_above,
+            mast_radius: r.mast_radius,
+          })),
           deploy: rig.deploy.map((m) => ({
             node: m.node,
             start: m.start,
@@ -166,6 +182,7 @@ export function describeUnits({
             move: [m.move[0], m.move[1], m.move[2]],
             turn: [m.turn[0], m.turn[1], m.turn[2]],
           })),
+          muzzles: muzzleNodes(bundle.nodes),
         },
       };
     } else throw new Error(`appearance ${name} draws a unit but is a ${bundle.kind} bundle`);
@@ -197,3 +214,21 @@ const trs = (t: {
   r: [t.r[0], t.r[1], t.r[2], t.r[3]],
   s: [t.s[0], t.s[1], t.s[2]],
 });
+
+/** A body's weapon `muzzle` socket, as `DrawnModels.soldier` reads it; null
+ *  where it has none. */
+function muzzleSocket(sockets: readonly Socket[]): AppearanceMuzzle {
+  const socket = sockets.find((k) => k.name === "muzzle");
+  return socket ? { joint: socket.joint, offset: trs(socket.offset) } : null;
+}
+
+/** Each articulated mount's muzzle node by role (`MOUNT_NODES`), as
+ *  `DrawnModels.vehicle` finds it by name, where the model has it. */
+function muzzleNodes(nodes: readonly { name: string }[]): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const [role, { muzzle }] of Object.entries(MOUNT_NODES)) {
+    const node = nodes.findIndex((n) => n.name === muzzle);
+    if (node >= 0) out[role] = node;
+  }
+  return out;
+}
