@@ -170,7 +170,7 @@ Static placement is **not** in World. Market-town places well over a million ins
 
 A batch missing from the list is not drawn this frame; the renderer may keep its buffer for when it returns. Units, ghosts and corpses are batches like any other, and theirs change every frame. Buildings, scenery, dressing, props and stumps change when a chunk changes tier or residency, or the side learns a fall.
 
-**`Instance`** (64 B), *amended 2026-10-11, pending the user's confirmation*: `Instance` is the browser's existing model instance record, `placement (x, y, z, yaw) / data / tint / scale`, as `packages/battle-renderer/src/models/modelLayer.ts` writes it today. The model shader and every static writer already read it, and `wgpu` reads it as is. Tilt, per-axis fit, palette, look and per-appearance params stay where that record carries them today. The record is defined once in `crates/presentation/src/records.rs` and generated for TypeScript.
+**`Instance`** (64 B), *amended 2026-10-11, confirmed by the user*: `Instance` is the browser's existing model instance record, `placement (x, y, z, yaw) / data / tint / scale`, as `packages/battle-renderer/src/models/modelLayer.ts` writes it today. The model shader and every static writer already read it, and `wgpu` reads it as is. Tilt, per-axis fit, palette, look and per-appearance params stay where that record carries them today. The record is defined once in `crates/presentation/src/records.rs` and generated for TypeScript.
 
 The affine form below was chosen only to match Godot's MultiMesh row. Phase 5 removes Godot, so migrating every model shader and writer to it would be churn with no lasting owner. Until phase 5, native's Godot adaptor converts the record. The original definition, kept for the record:
 

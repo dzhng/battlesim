@@ -73,7 +73,9 @@ Graph: `13 → {14, 15, 16} → 17 → 18`. Slices 14, 15 and 16 share no owners
 
 Set by the user on 2026-10-11, after the static world's selection walk cost about 6.5 ms per frame in GDScript. GDScript is the wrong owner for the client's CPU work. Native's CPU side moves to a Rust GDExtension. Per-frame presentation logic moves into one shared Rust crate that the browser runs through WASM and native links, which removes the TypeScript-to-native duplication. Every step keeps plates and counts unchanged and the browser's shipped frame identical. The user's priority (2026-10-11) is lower overall complexity: each shared-code slice must reduce net code, and a small, measured browser performance cost is acceptable for it. A meaningful regression still blocks.
 
-Graph: `18 → 18b (approved 2026-10-11) → 19 → 20 → 20b → 21 → 22 → 23 → 24`.
+Graph: `18 → 18b (approved 2026-10-11) → 19 → 20 ∥ 20b → phase 5 (25, with 22 inside it) → 23 → 24`.
+
+**The Godot spike leaves no tech debt (user, 2026-10-11).** Phase 5 replaces Godot, so nothing Godot-shaped enters shared code. Native's halves of 19, 20 and 20b are the thinnest GDExtension glue over the shared crates, deleted with Godot. Slice 21 (moving native's remaining GDScript into Rust inside Godot) is dropped. Slice 22 (completeness) is built once, on `wgpu`, inside phase 5.
 
 **Web first (user, 2026-10-11).** Each shared-code slice (19, 20, 20b) lands in the browser first, with clean before/after frame-rate numbers from slice 07's harness on the graphics test and a medium battle. Only then does native switch to it. Native's own core work (18, 21) proceeds independently. Slice 15's performance fix is 18's first module.
 
@@ -82,8 +84,8 @@ Graph: `18 → 18b (approved 2026-10-11) → 19 → 20 → 20b → 21 → 22 →
 - [x] 19 — One publication reader in Rust beside its writer (`crates/sim/src/publication/reader.rs`), used by both clients. The page decodes through `crates/presentation-wasm` (18b's `push_publication` and `observation()`), and native through the extension's `PublicationReader`. `observation.ts` and `observation.gd` are deleted. The reader equals the TS decoder on both fixture captures and both whole control streams. The graphics test and the benchmark show no meaningful change, and the slice is net −289 lines (tables in the slice). [slice](slices/19-shared-publication-reader.md)
 - [ ] 20 — Shared presentation crate: interpolation, poses, launches, effects and cook-offs, used by both clients; TS originals and native ports deleted. [slice](slices/20-shared-presentation-crate.md)
 - [ ] 20b — The static world resolved in Rust (building modules, scenery, terrain and grass tables, tier rules) for both clients; the TS resolvers and the manifest's placement artifacts are deleted. [slice](slices/20b-static-world-in-rust.md)
-- [ ] 21 — The rest of native's CPU side in Rust; no GDScript owns logic. [slice](slices/21-remaining-native-cpu.md)
-- [ ] 22 — Completeness: every phase 3 "not ported" item closed. [slice](slices/22-completeness.md)
+- ~~21 — The rest of native's CPU side in Rust~~: dropped (2026-10-11). Phase 5 replaces Godot, so the Godot-side GDScript is deleted with it, not ported.
+- [ ] 22 — Completeness: every phase 3 "not ported" item, closed on `wgpu` inside phase 5. [slice](slices/22-completeness.md)
 - [ ] 23 — The browser on shared code: whole-game check, visual suite and battle frame time. [slice](slices/23-browser-on-shared-code.md)
 - [ ] 24 — Whole-frame verdict, the performance re-gate, promotion, the full repository check and closeout. [slice](slices/24-promotion-and-closeout.md)
 
