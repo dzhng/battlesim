@@ -27,6 +27,10 @@
   `PreparedMap` and `admit_skirmish`; saved rows retain deliberate edge cases.
   Reports preserve refusals, timeouts, no-progress outcomes, map/site identity,
   replay parity, and deterministic digests.
+- **Default self-play is a real fresh match.** The example runs one generated
+  mixed map at the smallest existing skirmish tier with a clock-derived seed;
+  `--seed` makes it reproducible and `--corpus` keeps the deterministic sweep
+  separate from interactive playtesting.
 - **Stall detection follows observable motion.** A tournament run is stagnant
   only when objectives, contacts, unit counts, and published unit
   positions/goals all remain unchanged for the configured window. This keeps a

@@ -243,6 +243,12 @@ over many of them; never over one seed that happens to pass, since every change
 that moves a generated point resamples them all. [The shared test helpers](tests/common/)
 find those seeds.
 
+The `skirmish_tournament` example defaults to one two-controller game on a
+fresh generated `mixed` map at the smallest skirmish tier, using a clock seed
+unless `--seed <u64>` is supplied. Its JSON report includes that seed and the
+replay parity result. Pass `--corpus` to run the deterministic multi-row
+regression corpus instead.
+
 [The generation rationale](../../specs/done/city-maps/README.md) links frozen reports
 and the parameter snapshot used for design feedback. Those historical values are
 evidence; current settings belong to presets and their validators.

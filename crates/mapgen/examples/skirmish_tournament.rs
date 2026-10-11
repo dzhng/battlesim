@@ -1,4 +1,4 @@
-//! Deterministic two-controller skirmish corpus runner.
+//! Two-controller skirmish self-play and corpus runner.
 //!
 //! This stays outside browser setup: each side observes its own frame, asks
 //! the policy for ordinary orders, accepts them through Battle, and advances
@@ -60,6 +60,7 @@ enum Status {
 #[derive(Debug, Serialize)]
 struct Report {
     id: String,
+    seed: u64,
     status: Status,
     ticks: u64,
     battle_digest: u64,
@@ -263,25 +264,62 @@ fn synthetic_sites(map: &contract::map::MapDefinition) -> SkirmishSites {
 }
 
 fn main() {
-    let corpus: Corpus =
-        serde_json::from_str(include_str!("../../../fixtures/skirmish-corpus.json"))
-            .expect("valid skirmish corpus");
-    assert_eq!(corpus.revision, 1, "unsupported corpus revision");
     let inputs = Inputs::load().expect("load generation inputs");
-    for row in corpus.rows {
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    if args.iter().any(|arg| arg == "--corpus") {
+        let corpus: Corpus =
+            serde_json::from_str(include_str!("../../../fixtures/skirmish-corpus.json"))
+                .expect("valid skirmish corpus");
+        assert_eq!(corpus.revision, 1, "unsupported corpus revision");
+        for row in corpus.rows {
+            println!(
+                "{}",
+                serde_json::to_string(&run_safe(&inputs, row)).unwrap()
+            );
+        }
+    } else {
+        let seed = args
+            .iter()
+            .position(|arg| arg == "--seed")
+            .and_then(|index| args.get(index + 1))
+            .map(|value| value.parse::<u64>().expect("--seed must be a u64"))
+            .unwrap_or_else(random_seed);
         println!(
             "{}",
-            serde_json::to_string(&run_safe(&inputs, row)).unwrap()
+            serde_json::to_string(&run_safe(&inputs, self_play_row(seed))).unwrap()
         );
+    }
+}
+
+fn random_seed() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .expect("system clock must be after the Unix epoch")
+        .as_nanos() as u64
+}
+
+fn self_play_row(seed: u64) -> Row {
+    Row {
+        id: format!("self_play_{seed}"),
+        map: MapSource::Generated(GeneratedMap {
+            kind: "generated".into(),
+            map_type: "mixed".into(),
+            size: "small".into(),
+        }),
+        seed,
+        horizon_ticks: 10_800,
+        no_progress_ticks: 1_800,
     }
 }
 
 fn run_safe(inputs: &Inputs, row: Row) -> Report {
     let fallback_id = row.id.clone();
+    let seed = row.seed;
     match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| run(inputs, row))) {
         Ok(report) => report,
         Err(panic) => {
             let mut report = empty_report(fallback_id);
+            report.seed = seed;
             report.diagnostic = Some(
                 panic
                     .downcast_ref::<String>()
@@ -297,6 +335,7 @@ fn run_safe(inputs: &Inputs, row: Row) -> Report {
 fn empty_report(id: String) -> Report {
     Report {
         id,
+        seed: 0,
         status: Status::Refused,
         ticks: 0,
         battle_digest: 0,
@@ -323,6 +362,7 @@ fn empty_report(id: String) -> Report {
 
 fn run(inputs: &Inputs, row: Row) -> Report {
     let mut report = empty_report(row.id.clone());
+    report.seed = row.seed;
     let (setup, prepared, map_identity) = match prepare_row(inputs, &row) {
         Ok(value) => value,
         Err(error) => {
@@ -509,6 +549,21 @@ fn run(inputs: &Inputs, row: Row) -> Report {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn default_self_play_is_a_generated_small_map() {
+        let row = self_play_row(17);
+        assert_eq!(row.seed, 17);
+        assert_eq!(row.horizon_ticks, 10_800);
+        assert!(matches!(
+            row.map,
+            MapSource::Generated(GeneratedMap {
+                kind,
+                map_type,
+                size
+            }) if kind == "generated" && map_type == "mixed" && size == "small"
+        ));
+    }
 
     #[test]
     fn corpus_is_versioned_and_repeatable() {

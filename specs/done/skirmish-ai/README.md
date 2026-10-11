@@ -74,6 +74,9 @@ The tournament host is external and drives two instances of the same policy.
 This avoids changing the browser scenario contract until a second production
 policy or runtime controller needs it. Saved maps remain in the corpus for
 intentional edge cases; generated rows prove map identity and site admission.
+The example's default mode now runs one fresh generated mixed small-map game
+with a clock-derived seed; `--seed` makes that match reproducible and
+`--corpus` retains the deterministic regression sweep.
 
 No visual surface was added, so there is no screenshot provenance for this
 feature.
