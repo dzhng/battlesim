@@ -401,3 +401,20 @@ The spec said phase 3 would be planned with the user. Under the implementation g
 | Each content slice gates on per-plate counts equal to the browser's, plus seeded or vector tests, then the visual gates | The same pattern as grass counts in 06a: load-free, exact, and able to fail | #4 |
 | Each content slice re-runs slice 12's performance bar | Content adds cost, and native must stay no slower than the browser | User (phase 2) |
 | Phase 3 is renumbered 13–18 | Units, buildings and scenery, water and scars, and effects are separate visual variables | — |
+
+## Phase 3 build log
+
+### Slice 13: full publication decode
+
+| Decision | Why | Closed by |
+| --- | --- | --- |
+| The decoder is its own module, `capture/observation.gd`, named for the browser's `observation.ts`; `presentation_capture.gd`'s `decode_samples` drives one stream through it | One owner for decoding a publication; the capture parser stays a parser | Agent (delegated: native's record shapes) |
+| A sample's record is the browser's `ObservationView` exactly: the same keys and nulls, `own[].kind` a name, the ground as the browser's `groundPatch` runs | The fixture compares by deep equality, and later slices port browser code that reads these names | Agent (#3) |
+| Numbers compare at float32 precision; the fixture writes each as its shortest float32 text, and its null stands for the browser's NaN | Both decoders read float32 carriers; JSON holds no NaN | Agent |
+| The fog words compare by SHA-256 digest | The market-town field is 17,579 words a sample | Agent |
+| The market-town fixture is samples 1824–1830 of control `2026-10-11T08-56-34-958Z`, the first re-encoded as a fresh record (snapshot groups, its full fog, an empty learned ground) by a scratch script | A delta needs its baseline, so a window can't be cut out verbatim; the empty ground keeps it at 155 KB (262 KB with the full learned ground). Both decoders decode the same words, so the comparison is unaffected | Agent |
+| Not covered by either fixture: guided missiles, crashes, member leans, encounter, skirmish (objectives, pending purchases). They decode through the same row and section code, but no field is proven against the browser | No menu-reel capture publishes them. The slice that first draws one (17 for crashes and guided) adds a short stream from the WASM battle | Agent; open |
+| Stricter than the browser: a stale record, a word index outside its table, or a layout without a field or section native reads is a blocker, as is an unknown group | A capture is one ordered stream from a known layout; the browser skips stale records and reads missing fields as undefined | Agent (#2) |
+| The learned ground keeps the cleared byte (`cleared_at`), with no drawing consumer yet | Slice 15 (felled forest) and 16 (scars) read it | Agent |
+| Decoding every group costs startup: the full market-town capture decodes in 4.1 s, up from 1.2 s | Within the 30 s startup budget | Agent (user's startup budget) |
+| The paris-corner decode fixture is 888 KB (43 KB gzipped) | Every sample of the capture, as the gate asks | Agent |

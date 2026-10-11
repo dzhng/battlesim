@@ -4,7 +4,7 @@
 
 **Status:** phases 1 and 2 are built and closed (2026-10-10 and 2026-10-11). Native draws the menu reel from the browser's frame records with the same camera, light, terrain and grass. Its release export is no slower than the browser's production build on any measure, on both scenes (slice 12): market-town p95 13.4 ms against 23.9, and GPU busy about half the browser's on both. [`choices.md`](choices.md) holds the discovery map and both phases' ledgers.
 
-**Next pickup:** slice 13 (full publication decode), then 14, 15 and 16 in parallel. Phase 3 was planned on the user's behalf (see Phases). Read `choices.md` first; its decisions are givens.
+**Next pickup:** slices 14, 15 and 16 in parallel; slice 13 (full publication decode) is done. Phase 3 was planned on the user's behalf (see Phases). Read `choices.md` first; its decisions are givens.
 
 **Goal:** make the native Godot client visually equivalent to the browser renderer for the authored menu reel, and at least as fast as it, as a maintained second client beside the browser. Rust stays the only gameplay, observation, visibility, replay and digest authority. The browser remains shipped.
 
@@ -51,7 +51,7 @@ Graph: `07 → 08 → 09 → 10 → 11 → 12`. Measure first and name the cause
 
 Planned 2026-10-11 by the orchestrator on the user's behalf, under the confirmed preferences in `choices.md`. Every call is reversible and recorded there.
 
-A source map found that the capture already carries every effect cause, so no new simulation data path is needed. Native decodes only one publication group today.
+A source map found that the capture already carries every effect cause, so no new simulation data path is needed. Since slice 13, native decodes every publication group.
 
 The rule follows phase 1: the browser exports what is static per map, and native ports what is derived per frame.
 - **Static per map, exported:** building modules with facades, and scenery placement.
@@ -61,7 +61,7 @@ Every slice reports its own pass cost and keeps slice 12's bar.
 
 Graph: `13 → {14, 15, 16} → 17 → 18`. Slices 14, 15 and 16 share no owners and run in parallel; 17 needs 13's decode and 14's posed muzzles.
 
-- [ ] 13 — Full publication decode: every group, matched against the browser's decoder. [slice](slices/13-publication-decode.md)
+- [x] 13 — Full publication decode (`785d7aaf2`): `capture/observation.gd` ports the browser's decoder, and every field of every sample of paris-corner and a seven-sample market-town window equals the browser's decode. Guided missiles, crashes, leans, encounter and skirmish appear in neither fixture (see `choices.md`). [slice](slices/13-publication-decode.md)
 - [ ] 14 — Units, poses, corpses and wrecks: interpolation and pose derivation ported, impostors for posed soldiers, counts equal per plate. [slice](slices/14-units-and-poses.md)
 - [ ] 15 — Buildings and scenery: module and scenery placement exported by the browser, state from the publication; `legacy_map_layer.gd` deleted. [slice](slices/15-buildings-and-scenery.md)
 - [ ] 16 — Water surface and ground scars; the grass gate's scar allowance deleted. [slice](slices/16-water-and-scars.md)
@@ -75,7 +75,7 @@ Graph: `13 → {14, 15, 16} → 17 → 18`. Slices 14, 15 and 16 share no owners
 
 | Scaffolding | Removed |
 | --- | --- |
-| `legacy_map_layer.gd` (placement, its kit shells' open tiers drawn over the coarser ones, its read of `fixtures/game.json` detail thresholds) | Slice 13 |
+| `legacy_map_layer.gd` (placement, its kit shells' open tiers drawn over the coarser ones, its read of `fixtures/game.json` detail thresholds) | Slice 15 |
 | The grass count gate's `scar-omission` allowance | Slice 16, when native draws learned scars |
 
 Update this section before ending every implementation pass. Record the current slice, evidence, unresolved decisions, and the next exact pickup.
