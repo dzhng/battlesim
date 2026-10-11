@@ -85,3 +85,38 @@ evidence, and simplicity when machinery does not earn its cost.
   delayed response but left the exact draw representation open. **Verdict:
   sound, high confidence.**
 
+## Implementation choices — slice 02
+
+- **Recon movement owner:** recon uses the existing ordinary `Move` order and a
+  small sensor-envelope post calculation. The post is chosen on the approach
+  between entry and objective, at a bounded fraction of the unit's published
+  sight range; if the side-scoped route query rejects it, the existing objective
+  order remains the fallback. This keeps movement and legality in the battle
+  authority instead of adding a recon-only command. The slice required a
+  standoff but left the first candidate geometry open. **Verdict: sound, medium
+  confidence; the corpus should decide whether the post needs richer shape and
+  concealment scoring.**
+- **External route seam:** `Battle::route_time` exposes only travel time for an
+  observed own unit and computes it from a clone of that side's planning
+  geometry. The browser's single AI host reuses the same seam, and the native
+  tournament can drive both sides without exposing `Battle` internals or hidden
+  world state. The plan required an external two-controller option but left the
+  exact public query shape open. **Verdict: sound, high confidence.**
+
+## Implementation choices — slice 03
+
+- **Corpus host:** the first native tournament corpus uses fixture-owned saved
+  maps and a two-policy loop, with JSONL rows reporting complete, refused,
+  timeout, or no-progress. This is intentionally a small executable harness
+  that proves deterministic mirrored control before generated-map identity and
+  richer metrics are added. The user allowed an external harness when a
+  two-sided runtime controller became overcomplicated. **Verdict: needs-user,
+  medium confidence; provisional call is to keep this harness and extend rows
+  to generated requests in the closeout pass.**
+- **Evidence over winner fixtures:** tournament rows record no-progress and
+  timeout outcomes explicitly, alongside first contacts, recon sightings,
+  objective ownership, refusals, pivot counts, and the authoritative battle
+  digest. Exact winners remain observations rather than brittle assertions.
+  This keeps a weak policy visible without teaching the harness that a timeout
+  is a zero-cost win. **Verdict: sound, high confidence.**
+

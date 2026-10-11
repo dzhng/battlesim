@@ -1,6 +1,6 @@
 # Hierarchical skirmish doctrine AI
 
-**Status:** slices 00 and 01 complete; slice 02 next. **Last updated:** 2026-10-10.
+**Status:** slices 00 through 03 complete; closeout review next. **Last updated:** 2026-10-11.
 
 **Goal:** replace the fixed skirmish opponent with one shipped, observation-bound
 `BalancedDoctrine` policy. It chooses a force-wide doctrine, deploys recon at
@@ -15,12 +15,12 @@ read hidden health/ammo/orders, or issue an order the authority would reject.
 
 ## Next Agent Prompt
 
-Start with slice 02. Read this README and the slice file, then load `write-tests`
-and `tweak-mechanics` before editing. Add side-scoped sensor-envelope recon
-posts, role/task assignment, and support/recovery orders on top of the doctrine
-state already in `BalancedDoctrine`. Keep transient planner memory out of the
-battle digest, run the focused recon tests first, and update this section with
-status, evidence, and the next pickup before ending your pass.
+Run the whole-spec review and closeout. The native runner now drives both sides
+through public observation, route, accept, and step seams and reports JSONL
+status, contact/recon evidence, objective ownership, refusals, pivots, and the
+battle digest. Before archiving, run the full workspace checks and browser
+smoke, consolidate `choices.md`, and use `close-spec` to move this rationale to
+`specs/done/`.
 
 ## Contract
 
@@ -126,8 +126,8 @@ not brittle fixture expectations.
 |---|---|
 | [00-policy-seam-and-probe](slices/00-policy-seam-and-probe.md) | A pure observation-bound policy seam, seeded bounded choice, and recon/pivot probe with current behavior preserved. |
 | [01-balanced-doctrine](slices/01-balanced-doctrine.md) | One hierarchical balance policy with authored transitions, counter-aware procurement, and evidence-driven pivots. **Complete.** |
-| [02-recon-and-operations](slices/02-recon-and-operations.md) | Sensor-envelope recon posts, role/task assignment, support/recovery, and integration battles showing visible adaptation. |
-| [03-corpus-and-tournament](slices/03-corpus-and-tournament.md) | Fixture-owned scenario corpus and deterministic native AI-vs-AI report; full balance run at closeout. |
+| [02-recon-and-operations](slices/02-recon-and-operations.md) | Sensor-envelope recon posts, role/task assignment, support/recovery, and integration battles showing visible adaptation. **Complete.** |
+| [03-corpus-and-tournament](slices/03-corpus-and-tournament.md) | Fixture-owned scenario corpus and deterministic native AI-vs-AI report; full balance run at closeout. **Complete.** |
 
 No UI or renderer work is planned. A browser battle remains the final smoke
 check; native policy probes and reports own the primary proof.
