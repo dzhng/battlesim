@@ -529,10 +529,11 @@ fn every_unit_type_sets_up_fires_each_mount_and_moves() {
         // A weapon that reaches only aircraft gets a helicopter hovering in
         // reach; the rest never see one, so none takes its return fire.
         let air_only = rules.catalog.mounts(t).iter().any(|m| {
-            m.def
-                .weapons
-                .iter()
-                .all(|w| !rules.weapons[w].targets.contains_key(&AltitudeLayer::Ground))
+            m.def.weapons.iter().all(|w| {
+                !rules.weapons[w]
+                    .targets
+                    .contains_key(&AltitudeLayer::Ground)
+            })
         });
         if air_only {
             others.as_array_mut().unwrap().push(json!(
