@@ -10,7 +10,7 @@ import { airborne, type UnitCatalog } from "@packages/scene-assets/src/units";
 import type { PointerPick } from "@web/battle/input/pointerIntent";
 import type { Pose } from "@web/battle/present/interpolate";
 import { contactUnder } from "@web/battle/input/contactPick";
-import type { ContactView, ObservationView } from "@web/battle/sim/observation";
+import type { ContactView, ObservationView } from "@web/battle/sim/observationView";
 import type { LabPick } from "./LabViewport";
 import { buildingUnderRay, groundUnderRay, type StaticWorld } from "./useStaticWorld";
 import { aircraftView, orderView } from "./battleOverlay";

@@ -3,7 +3,7 @@ import type { PreparedSession } from "@web/battle/prepare/client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createSimClient, type Publication, type SimClient } from "@web/battle/sim/client";
 import type { GroundView } from "@web/battle/sim/ground";
-import type { ObservationView } from "@web/battle/sim/observation";
+import type { ObservationView } from "@web/battle/sim/observationView";
 import type { AuthorityStatus } from "@web/battle/sim/protocol";
 import { TickInterpolator } from "@web/battle/present/interpolate";
 

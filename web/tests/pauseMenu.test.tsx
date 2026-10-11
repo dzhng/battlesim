@@ -4,7 +4,7 @@ import { afterEach, expect, test } from "vitest";
 import { MenuButton, PauseMenu, usePauseMenu } from "@apps/battle-lab/src/PauseMenu";
 import { useState } from "react";
 import { useUnitControl } from "../src/battle/input/useUnitControl";
-import type { ObservationView } from "../src/battle/sim/observation";
+import type { ObservationView } from "../src/battle/sim/observationView";
 import type { Order } from "../src/battle/sim/protocol";
 
 import type { SimClient } from "../src/battle/sim/client";

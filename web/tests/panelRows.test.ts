@@ -15,7 +15,7 @@ import {
   weaponRows,
   type PanelRules,
 } from "../src/battle/present/panelRows";
-import type { MountView, OwnUnitView, SuppressionTier } from "../src/battle/sim/observation";
+import type { MountView, OwnUnitView, SuppressionTier } from "../src/battle/sim/observationView";
 import { UNITS } from "./catalog";
 
 // Fixed names and numbers, so the tests don't move when the fixture is

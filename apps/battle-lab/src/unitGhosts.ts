@@ -11,7 +11,7 @@ import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import type { SurfaceHeight } from "@packages/battle-renderer/src/orderOverlay";
 import type { Side } from "@packages/scene-assets/src/schema";
 import { airborne, type UnitCatalog } from "@packages/scene-assets/src/units";
-import type { OwnUnitView } from "@web/battle/sim/observation";
+import type { OwnUnitView } from "@web/battle/sim/observationView";
 
 /** How high over the ground a kind's ghost stands: an aircraft's at its
  *  cruise height (`air.cruise_agl_m`), flying where it will be, anything

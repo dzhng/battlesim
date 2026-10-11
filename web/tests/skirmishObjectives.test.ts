@@ -3,7 +3,10 @@ import { readFileSync } from "node:fs";
 import { expect, test } from "vitest";
 import { initSync, Battle } from "@wasm/game_wasm.js";
 import record from "@fixtures/parity/skirmish-objectives.json";
-import { ObservationDecoder, type ObservationLayout } from "@web/battle/sim/observation";
+import type { ObservationLayout } from "@web/battle/sim/observationView";
+import { ObservationDecoder, loadPresentation } from "@web/battle/sim/presentation";
+
+await loadPresentation();
 
 test("objective capture and both scores publish exactly the native timeline", () => {
   const memory = initSync({

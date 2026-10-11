@@ -2,7 +2,7 @@ import { RejectedOrder } from "@web/battle/present/rejectedOrder";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
-import type { ObservationView } from "@web/battle/sim/observation";
+import type { ObservationView } from "@web/battle/sim/observationView";
 import { ReadoutLayer } from "@web/battle/present/readouts";
 import type { Order } from "@web/battle/sim/protocol";
 import { AckLog } from "../AckLog";

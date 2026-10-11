@@ -12,7 +12,8 @@ import {
   sight_multiplier_vectors,
   world_layout,
 } from "@wasm/game_wasm.js";
-import { ObservationDecoder, type ObservationLayout } from "../src/battle/sim/observation";
+import type { ObservationLayout } from "../src/battle/sim/observationView";
+import { ObservationDecoder, loadPresentation } from "../src/battle/sim/presentation";
 import { sightMultiplier } from "@packages/battle-renderer/src/sightOverlay";
 import {
   fogEyes,
@@ -35,6 +36,8 @@ import { labScenario } from "./catalog";
 import { type LabEvent } from "@apps/battle-lab/src/scenarios";
 import { loadMap } from "@web/maps/node";
 import game from "@fixtures/game.json";
+
+await loadPresentation();
 
 const sensors = loadMap("sensors").definition;
 const streetMap = loadMap("street").definition;

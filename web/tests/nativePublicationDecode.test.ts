@@ -1,16 +1,15 @@
 // @vitest-environment node
 import { createHash } from "node:crypto";
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { expect, test } from "vitest";
-import {
-  ObservationDecoder,
-  type ObservationLayout,
-  type ObservationView,
-} from "@web/battle/sim/observation";
+import type { ObservationLayout, ObservationView } from "@web/battle/sim/observationView";
+import { ObservationDecoder, loadPresentation } from "@web/battle/sim/presentation";
 
-// Writes the browser's decode of every sample of native's fixture captures, the
-// expectation native's publication decoder (`native/godot/capture/observation.gd`)
-// is compared against field by field (`publication_decode_test.gd`).
+await loadPresentation();
+
+// The page decodes every sample of native's fixture captures to the committed
+// expectation, the last decode of the TS decoder the Rust reader replaced.
+// Native's decoder is compared against the same file (`publication_decode_test.gd`).
 const fixtures = new URL("../../native/godot/tests/fixtures/", import.meta.url);
 const CAPTURES = {
   "paris-corner": "run/paris-corner/capture.json",
@@ -52,7 +51,7 @@ function exported(view: ObservationView): unknown {
   );
 }
 
-test("every sample of native's fixture captures decodes, and the decode is written for native", () => {
+test("every sample of native's fixture captures decodes to the committed expectation", () => {
   const seen = new Map<string, number>();
   const count = (name: string, n: number) => seen.set(name, (seen.get(name) ?? 0) + n);
   for (const [scene, path] of Object.entries(CAPTURES)) {
@@ -84,10 +83,10 @@ test("every sample of native's fixture captures decodes, and the decode is writt
       );
       return exported(view!);
     });
-    writeFileSync(
-      new URL(`publication/${scene}-observations.json`, fixtures),
-      JSON.stringify({ capture: path, observations }) + "\n",
+    const expected = JSON.parse(
+      readFileSync(new URL(`publication/${scene}-observations.json`, fixtures), "utf8"),
     );
+    expect({ capture: path, observations }).toEqual(expected);
   }
   // The fixtures exercise every group the menu reel publishes.
   for (const [group, n] of seen) expect(n, group).toBeGreaterThan(0);

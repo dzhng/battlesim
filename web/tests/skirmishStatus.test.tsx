@@ -1,7 +1,7 @@
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, expect, test } from "vitest";
 import { SkirmishStatus } from "@apps/battle-lab/src/battleStatus";
-import type { SkirmishView } from "@web/battle/sim/observation";
+import type { SkirmishView } from "@web/battle/sim/observationView";
 afterEach(cleanup);
 const match: SkirmishView = {
   phase: "preparation",

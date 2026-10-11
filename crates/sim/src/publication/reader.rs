@@ -8,15 +8,18 @@
 //! fields are checked against the writer's own tables, and only the battle's
 //! name tables and ground grid come from it.
 //!
-//! The view is keyed and shaped as the browser's `ObservationView`, every
-//! number the published float32 widened. Fog bits, ground runs and the
-//! static groups (corpses, known props, fallen bodies) sit beside it, shared
-//! by pointer while unchanged.
+//! An [`Observation`] has the browser's `ObservationView` shape and names
+//! (`web/src/battle/sim/observationView.ts` documents each field). Every
+//! number is the published float32, widened; JSON carries a non-finite one as
+//! null. Its serialized form leaves out what a client takes apart: the fog
+//! bits, the ground runs, and the static groups (corpses, known props, fallen
+//! bodies), which are shared by pointer while unchanged.
 
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use serde_json::{json, Map, Value};
+use serde::Serialize;
+use serde_json::{json, Value};
 
 use super::{
     fixed_row_width, GroupLayout, AUDIBLE_FIELDS, BLAST_FIELDS, CONTACT_FIELDS, COPY_FIELDS,
@@ -27,38 +30,145 @@ use super::{
     REPORT_EVENT_FIELDS, REPORT_TOTAL_FIELDS,
 };
 
-/// One side's observation at a tick.
-#[derive(Clone, Debug)]
-pub struct Observation {
-    /// Every key of the browser's view but the static groups; its `fog`
-    /// lacks `bits` and its `groundPatch` lacks `runs`.
-    pub view: Map<String, Value>,
-    /// The [`STATIC_GROUPS`]' views, in that order.
-    pub statics: [Arc<Value>; 3],
-    /// Visible ground cells, one bit each, row-major.
-    pub fog: Arc<Vec<u32>>,
-    /// The learned ground's changes, four words a run: tile,
-    /// `start + len * 256`, `crater + scorch * 256` and
-    /// `tracks + trampled * 256 + cleared * 65536`.
-    pub runs: Vec<f32>,
+pub type Point2 = [f64; 2];
+pub type Point3 = [f64; 3];
+/// A name from one of the layout's tables.
+pub type Name = Arc<str>;
+pub type Shared<T> = Arc<Vec<T>>;
+
+/// Declares a view struct, serialized under the browser's camelCase names.
+macro_rules! view {
+    ($name:ident { $($(#[$attr:meta])* $field:ident: $ty:ty),* $(,)? }) => {
+        #[derive(Clone, Debug, Serialize)]
+        #[serde(rename_all = "camelCase")]
+        pub struct $name { $($(#[$attr])* pub $field: $ty),* }
+    };
 }
 
-/// Groups whose unchanged words keep their previous view.
-pub const STATIC_GROUPS: [&str; 3] = ["corpses", "knownProps", "fallenBodies"];
+view!(Observation { tick: f64, own: Vec<OwnUnit>, identified: Vec<Identified>, contacts: Vec<Contact>,
+    audible: Vec<SoundCue>, #[serde(skip)] known_props: Shared<KnownProp>, projectiles: Vec<Projectile>,
+    blasts: Vec<Blast>, #[serde(skip)] corpses: Shared<Corpse>, #[serde(skip)] fallen_bodies: Shared<FallenBody>,
+    crashes: Vec<Crash>, guided: Vec<Guided>, encounter: Option<Encounter>, skirmish: Option<Skirmish>,
+    fog: Arc<Fog>, ground_patch: GroundPatch });
+view!(OwnUnit { id: f64, kind: Name, position: Point3, yaw: f64, goal: Option<Point2>, policy: Option<Name>,
+    direction: Option<Name>, reversing: bool, withdrawing: bool, protection: Option<Protection>, state: Name,
+    blocker: Option<f64>, route: Vec<Point2>, queue: Vec<Point2>, members: Vec<Point3>, member_ids: Vec<Option<f64>>,
+    member_slots: Vec<f64>, member_active_mounts: Vec<Option<f64>>, member_orders: Vec<MemberOrder>,
+    member_leans: Vec<Option<MemberLean>>, area: Option<SquadArea>, final_facing: f64, sees: Vec<f64>,
+    engagement: Name, mounts: Vec<Mount>, weapon_poses: Vec<WeaponPose>, hp: f64, smoking: bool,
+    member_hp: Vec<f64>, suppression: Name, concealed: bool, deployment: Option<Deployment>,
+    garrison: Option<Garrison>, stock: Option<f64>, service: Name, sight: Sight });
+view!(Protection { charges: f64, cooldown: Option<f64> });
+view!(MemberOrder { spot: Point2, cover_now: Option<Name>, cover_there: Option<Name> });
+view!(MemberLean {
+    side: Name,
+    at: Point2
+});
+view!(SquadArea {
+    anchor: Point2,
+    radius: f64
+});
+view!(Sight { eyes: Vec<Point3>, forward: f64, shape: SightShape, range: f64 });
+view!(SightShape {
+    front: f64,
+    side: f64,
+    rear: f64
+});
+view!(Garrison { building: Option<f64>, phase: Name, progress: f64, center: Point2, half: Point2 });
+view!(Deployment {
+    progress: f64,
+    target: Name
+});
+view!(WeaponPose { mount: f64, bearing: f64, elevation: f64, shots: Option<f64>, operator: Option<f64> });
+view!(Mount { mount: f64, loaded: Option<f64>, ammo: Vec<Option<f64>>, aim: f64, reload: f64,
+    target: Option<MountTarget>, reason: Name, guiding: bool, reloading: Option<f64> });
+view!(MountTarget { kind: Name, #[serde(skip_serializing_if = "Option::is_none")] id: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")] point: Option<Point3> });
+view!(Identified { id: f64, kind: Name, cost: f64, position: Point3, yaw: f64, velocity: Point2,
+    members: Vec<Point3>, member_ids: Vec<Option<f64>>, member_slots: Vec<f64>,
+    member_active_mounts: Vec<Option<f64>>, member_leans: Vec<Option<MemberLean>>,
+    weapon_poses: Vec<WeaponPose>, reversing: bool, smoking: bool });
+view!(Contact { id: f64, source: Name, center: Point3, layer: Name, aloft: bool, radius: f64,
+    evidence_tick: f64, expires_tick: f64, kind: Option<Name>, heard: Vec<Name> });
+view!(SoundCue {
+    listener: f64,
+    category: Name,
+    sector: f64,
+    band: Name,
+    moving: bool
+});
+view!(KnownProp { kind: Name, center: Point2, yaw: f64, half: Point3, base_z: f64, replaces: Option<f64>,
+    id: Option<f64>, building: Option<f64>, structure_owner: Option<f64>, authored_prop: Option<f64>,
+    destroyed: bool, wreck_of: Option<Name> });
+view!(Projectile { path: Vec<Point3>, ricochets: Vec<Ricochet>, own: bool, kind: Name,
+    shooter_member: Option<f64>, hit: Name, impact_normal: Option<Point3> });
+view!(Ricochet {
+    point: f64,
+    normal: Point3
+});
+view!(Blast {
+    point: Point3,
+    radius: f64,
+    kind: Name
+});
+view!(Guided { id: Option<f64>, position: Point3, point: Point3, supported: bool });
+view!(Corpse { position: Point3, own: bool, soldier: Option<f64>, kind: Name, slot: f64, yaw: f64 });
+view!(FallenBody { prop: Option<f64>, at: Point2, toward: Point2, tick: f64 });
+view!(Crash {
+    id: f64,
+    own: bool,
+    kind: Name,
+    position: Point3,
+    yaw: f64,
+    pitch: f64,
+    roll: f64
+});
+view!(Encounter {
+    held_s: f64,
+    result: Name
+});
+view!(Skirmish { phase: Option<&'static str>, ready: [bool; 2], preparation_remaining_s: f64, credits: f64,
+    scores: [f64; 2], result: Option<&'static str>, objectives: Vec<Objective>, occupied_slots: f64,
+    max_units: f64, pending: Vec<PendingPurchase>, report: Option<Report> });
+view!(Objective { id: Name, center: Point2, radius_m: f64, owner: Option<&'static str>,
+    capturing: Option<&'static str>, capture_progress: f64, contested: bool });
+view!(PendingPurchase {
+    id: f64,
+    kind: Name,
+    destination: Point2,
+    confirmed_tick: f64,
+    blocked: bool
+});
+view!(Report { totals: Vec<ReportTotals>, events: Vec<ReportEvent> });
+view!(ReportTotals {
+    spawned: f64,
+    spent: f64,
+    killed: f64,
+    refunded: f64
+});
+view!(ReportEvent { kind: &'static str, tick: Option<f64>, side: Name, unit_id: Option<f64>, unit_kind: Name,
+    #[serde(skip_serializing_if = "Option::is_none")] amount: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")] victim_cost: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")] killer: Option<Option<Killer>> });
+view!(Killer { side: Name, unit_id: Option<f64>, unit_kind: Name, cost: f64 });
+view!(Fog { cell_m: f64, nx: f64, ny: f64, #[serde(skip)] bits: Vec<u32> });
+// The runs, four words a run: tile, `start + len * 256`,
+// `crater + scorch * 256` and `tracks + trampled * 256 + cleared * 65536`.
+view!(GroundPatch { epoch: f64, side: Name, base_revision: f64, revision: f64, full: bool,
+    #[serde(skip)] runs: Vec<f32> });
 
 /// What the next record of a stream builds on.
 #[derive(Default)]
 struct Baseline {
     groups: Vec<Vec<u32>>,
-    /// The fog grid (`nx`, `ny`, `cellM`) and its bits.
-    fog: Option<([f64; 3], Arc<Vec<u32>>)>,
-    statics: Option<[Arc<Value>; 3]>,
+    fog: Option<Arc<Fog>>,
+    statics: Option<(Shared<Corpse>, Shared<KnownProp>, Shared<FallenBody>)>,
 }
 
 /// One ordered side-publication stream.
 pub struct Reader {
     /// The layout's name tables (`unitKinds`, …) and the ground's `sides`.
-    tables: HashMap<String, Vec<Value>>,
+    tables: HashMap<String, Vec<Name>>,
     max_words: usize,
     max_fog_words: usize,
     grid: (usize, usize),
@@ -103,6 +213,14 @@ const fn at(names: &[&str], name: &str) -> usize {
     i
 }
 
+const fn group(name: &str) -> usize {
+    let mut i = 0;
+    while !same(GROUP_LAYOUTS[i].name, name) {
+        i += 1;
+    }
+    i
+}
+
 /// Field `$name` of `$row` under the writer's `$fields`, widened.
 macro_rules! f {
     ($row:expr, $fields:expr, $name:literal) => {
@@ -110,24 +228,23 @@ macro_rules! f {
     };
 }
 
-const LIMB: f64 = (1u32 << LIMB_BITS) as f64;
-
-/// An exact integer from its limbs; null when absent.
-fn limbs(low: f64, high: f64) -> Value {
-    if low < 0.0 {
-        Value::Null
-    } else {
-        json!(low + high * LIMB)
-    }
+/// Field `$name` of `$row` under the caller's `FIELDS`, widened.
+macro_rules! v {
+    ($row:expr, $name:literal) => {
+        $row[const { at(FIELDS, $name) }] as f64
+    };
 }
 
-/// A value, or null where the writer marks absence with a negative.
-fn present(v: f64) -> Value {
-    if v < 0.0 {
-        Value::Null
-    } else {
-        json!(v)
-    }
+const LIMB: f64 = (1u32 << LIMB_BITS) as f64;
+
+/// An exact integer from its limbs; none when absent.
+fn limbs(low: f64, high: f64) -> Option<f64> {
+    (low >= 0.0).then_some(low + high * LIMB)
+}
+
+/// A value, or none where the writer marks absence with a negative.
+fn present(v: f64) -> Option<f64> {
+    (v >= 0.0).then_some(v)
 }
 
 /// Fixed-width points of a flat section.
@@ -135,10 +252,12 @@ fn each<const N: usize>(flat: &[f32]) -> std::slice::Iter<'_, [f32; N]> {
     flat.as_chunks::<N>().0.iter()
 }
 
-fn points(flat: &[f32], width: usize) -> Value {
-    flat.chunks_exact(width)
-        .map(|p| p.iter().map(|&v| v as f64).collect::<Vec<_>>())
-        .collect()
+fn points<const N: usize>(flat: &[f32]) -> Vec<[f64; N]> {
+    each::<N>(flat).map(|p| p.map(|v| v as f64)).collect()
+}
+
+fn column(flat: &[f32]) -> Vec<f64> {
+    flat.iter().map(|&v| v as f64).collect()
 }
 
 fn same_names(found: &Value, expected: &[&str]) -> bool {
@@ -150,6 +269,16 @@ fn same_names(found: &Value, expected: &[&str]) -> bool {
 /// A copy's row alignment: a whole row for a group without sections, else one word.
 fn stride(group: usize) -> usize {
     fixed_row_width(group).max(1)
+}
+
+/// The name a fixed table gives `i`, if any.
+fn fixed(names: &[&'static str], i: f64) -> Option<&'static str> {
+    names.get(i as usize).filter(|_| whole(i)).copied()
+}
+
+/// The fixed name a negative index leaves out.
+fn optional_fixed(names: &[&'static str], i: f64) -> Option<&'static str> {
+    (i >= 0.0).then(|| fixed(names, i)).flatten()
 }
 
 impl Reader {
@@ -196,16 +325,19 @@ impl Reader {
             grid.0 > 0 && grid.1 > 0 && (grid.0 as u64) * (grid.1 as u64) <= 1 << 32,
             "ground grid does not match its admitted tile codec",
         )?;
-        let mut tables: HashMap<String, Vec<Value>> = layout
+        let names = |v: &Value| -> Option<Vec<Name>> {
+            v.as_array()?
+                .iter()
+                .map(|s| s.as_str().map(Name::from))
+                .collect()
+        };
+        let mut tables: HashMap<String, Vec<Name>> = layout
             .as_object()
             .unwrap()
             .iter()
-            .filter_map(|(k, v)| Some((k.clone(), v.as_array()?.clone())))
+            .filter_map(|(k, v)| Some((k.clone(), names(v)?)))
             .collect();
-        tables.insert(
-            "sides".into(),
-            ground["sides"].as_array().cloned().unwrap_or_default(),
-        );
+        tables.insert("sides".into(), names(&ground["sides"]).unwrap_or_default());
         check(
             tables.get("roundKinds").map_or(0, Vec::len) <= super::MAX_WEAPON_ROWS,
             "the layout names more round kinds than a heard mask carries",
@@ -233,7 +365,7 @@ impl Reader {
             Some(name) => Some(
                 self.tables["sides"]
                     .iter()
-                    .position(|s| s == name)
+                    .position(|s| &**s == name)
                     .ok_or_else(|| format!("the layout has no side {name}"))?,
             ),
         };
@@ -307,14 +439,18 @@ impl Reader {
         let empty = Baseline::default();
         let baseline = if fresh { &empty } else { &self.base };
         let (groups, tail) = self.reconstruct(words, &data, &baseline.groups)?;
-        let (observation, grid) = self.frame(words, &data, &groups, tail, baseline)?;
+        let observation = self.frame(words, &data, &groups, tail, baseline)?;
         // Commit only after the complete record has decoded.
         (self.epoch, self.side, self.revision, self.ground_revision) =
             (epoch, side, revision, ground_revision);
         self.base = Baseline {
             groups,
-            fog: Some((grid, observation.fog.clone())),
-            statics: Some(observation.statics.clone()),
+            fog: Some(observation.fog.clone()),
+            statics: Some((
+                observation.corpses.clone(),
+                observation.known_props.clone(),
+                observation.fallen_bodies.clone(),
+            )),
         };
         Ok(Some(observation))
     }
@@ -449,25 +585,8 @@ impl Reader {
         Ok((groups, cursor))
     }
 
-    /// A name from one of the layout's tables; an index outside it is an error.
-    fn name(&self, table: &str, index: f64) -> Result<Value> {
-        let names = &self.tables[table];
-        (whole(index) && (index as usize) < names.len())
-            .then(|| names[index as usize].clone())
-            .ok_or_else(|| format!("{table} index {index} is outside its table"))
-    }
-
-    /// A name, or null for a negative index.
-    fn optional(&self, table: &str, index: f64) -> Result<Value> {
-        if index < 0.0 {
-            Ok(Value::Null)
-        } else {
-            self.name(table, index)
-        }
-    }
-
     /// Splits the groups into rows, reads the fog and the ground, and maps
-    /// every row to the browser's view. Also returns the fog grid.
+    /// every row to its view.
     fn frame(
         &self,
         words: &[u32],
@@ -475,7 +594,7 @@ impl Reader {
         groups: &[Vec<u32>],
         tail: usize,
         base: &Baseline,
-    ) -> Result<(Observation, [f64; 3])> {
+    ) -> Result<Observation> {
         let h = &data[..HEADER.len()];
         let floats: Vec<Vec<f32>> = groups
             .iter()
@@ -526,7 +645,7 @@ impl Reader {
         )?;
         let previous = base.fog.as_ref();
         check(
-            (full || previous.is_some()) && previous.is_none_or(|(g, _)| *g == grid),
+            (full || previous.is_some()) && previous.is_none_or(|p| [p.nx, p.ny, p.cell_m] == grid),
             "fog delta has no matching field baseline",
         )?;
         let count = count as usize;
@@ -539,12 +658,12 @@ impl Reader {
             "publication length does not match its layout",
         )?;
         let fog = match previous {
-            Some((_, bits)) if !full && count == 0 => bits.clone(),
+            Some(p) if !full && count == 0 => p.clone(),
             _ => {
                 let mut bits = if full {
                     vec![0; fog_words]
                 } else {
-                    previous.unwrap().1.to_vec()
+                    previous.unwrap().bits.clone()
                 };
                 let word = |at: usize| -> Result<u32> {
                     let (lo, hi) = (data[at] as f64, data[at + 1] as f64);
@@ -574,446 +693,430 @@ impl Reader {
                     cells % 32 == 0 || bits[fog_words - 1] >> (cells % 32) == 0,
                     "fog padding bits must be zero",
                 )?;
-                Arc::new(bits)
+                Arc::new(Fog {
+                    cell_m,
+                    nx,
+                    ny,
+                    bits,
+                })
             }
         };
         let runs = self.ground_runs(&words[tail + count..], runs as usize)?;
 
-        let mut view = Map::new();
-        let mut statics = base.statics.clone().unwrap_or_default();
-        for (g, layout) in GROUP_LAYOUTS.iter().enumerate() {
-            let shared = STATIC_GROUPS.iter().position(|&s| s == layout.name);
-            if shared.is_some() && base.statics.is_some() && base.groups.get(g) == Some(&groups[g])
-            {
-                continue;
-            }
-            let value: Vec<Value> = rows[g]
-                .iter()
-                .map(|r| self.row(layout.name, r))
-                .collect::<Result<_>>()?;
-            match shared {
-                Some(s) => statics[s] = Arc::new(Value::Array(value)),
-                None => {
-                    view.insert(layout.name.into(), Value::Array(value));
-                }
-            }
-        }
-        let encounter = f!(h, HEADER, "encounterResult");
-        let encounter = if encounter < 0.0 {
-            Value::Null
-        } else {
-            json!({ "heldS": f!(h, HEADER, "encounterHeldS"), "result": self.name("encounterResults", encounter)? })
-        };
-        let [objectives, pending, totals, events] = [
-            "objectives",
-            "pendingPurchases",
-            "reportTotals",
-            "reportEvents",
-        ]
-        .map(|g| view.remove(g).unwrap());
-        let reported =
-            f!(h, HEADER, "reportTotalsCount") > 0.0 || f!(h, HEADER, "reportEventCount") > 0.0;
-        let fixed =
-            |names: &[&'static str], i: f64| names.get(i as usize).filter(|_| whole(i)).copied();
+        let kept = |g: usize| base.statics.is_some() && base.groups.get(g) == Some(&groups[g]);
+        let statics = base.statics.as_ref();
+        let (corpses, props, fallen) =
+            (group("corpses"), group("knownProps"), group("fallenBodies"));
         let skirmish = if f!(h, HEADER, "skirmishPhase") < 0.0 {
-            Value::Null
+            None
         } else {
-            json!({
-                "phase": fixed(&["preparation", "active", "finished"], f!(h, HEADER, "skirmishPhase")),
-                "ready": [f!(h, HEADER, "readyBlue") != 0.0, f!(h, HEADER, "readyRed") != 0.0],
-                "preparationRemainingS": f!(h, HEADER, "preparationRemainingS"),
-                "credits": f!(h, HEADER, "credits"),
-                "scores": [f!(h, HEADER, "scoreBlue"), f!(h, HEADER, "scoreRed")],
-                "result": fixed(&["blue", "red", "draw"], f!(h, HEADER, "matchResult")),
-                "objectives": objectives,
-                "occupiedSlots": f!(h, HEADER, "occupiedSlots"),
-                "maxUnits": f!(h, HEADER, "maxUnits"),
-                "pending": pending,
-                "report": if reported { json!({ "totals": totals, "events": events }) } else { Value::Null },
+            let reported =
+                f!(h, HEADER, "reportTotalsCount") > 0.0 || f!(h, HEADER, "reportEventCount") > 0.0;
+            Some(Skirmish {
+                phase: fixed(
+                    &["preparation", "active", "finished"],
+                    f!(h, HEADER, "skirmishPhase"),
+                ),
+                ready: [
+                    f!(h, HEADER, "readyBlue") != 0.0,
+                    f!(h, HEADER, "readyRed") != 0.0,
+                ],
+                preparation_remaining_s: f!(h, HEADER, "preparationRemainingS"),
+                credits: f!(h, HEADER, "credits"),
+                scores: [f!(h, HEADER, "scoreBlue"), f!(h, HEADER, "scoreRed")],
+                result: optional_fixed(&["blue", "red", "draw"], f!(h, HEADER, "matchResult")),
+                objectives: map(&rows[group("objectives")], |r| self.objective(r))?,
+                occupied_slots: f!(h, HEADER, "occupiedSlots"),
+                max_units: f!(h, HEADER, "maxUnits"),
+                pending: map(&rows[group("pendingPurchases")], |r| self.pending(r))?,
+                report: if reported {
+                    Some(Report {
+                        totals: map(&rows[group("reportTotals")], |r| Ok(totals(r)))?,
+                        events: map(&rows[group("reportEvents")], |r| self.event(r))?,
+                    })
+                } else {
+                    None
+                },
             })
         };
-        let ground = json!({
-            "epoch": f!(h, HEADER, "groundEpoch"),
-            "side": self.name("sides", f!(h, HEADER, "groundSide"))?,
-            "baseRevision": f!(h, HEADER, "groundBase"),
-            "revision": f!(h, HEADER, "groundRevision"),
-            "full": f!(h, HEADER, "groundFull") == 1.0,
-        });
-        view.insert("tick".into(), json!(f!(h, HEADER, "tick")));
-        view.insert("encounter".into(), encounter);
-        view.insert("skirmish".into(), skirmish);
-        view.insert("fog".into(), json!({ "cellM": cell_m, "nx": nx, "ny": ny }));
-        view.insert("groundPatch".into(), ground);
-        Ok((
-            Observation {
-                view,
-                statics,
-                fog,
+        let encounter = f!(h, HEADER, "encounterResult");
+        Ok(Observation {
+            tick: f!(h, HEADER, "tick"),
+            own: map(&rows[group("own")], |r| self.own(r))?,
+            identified: map(&rows[group("identified")], |r| self.identified(r))?,
+            contacts: map(&rows[group("contacts")], |r| self.contact(r))?,
+            audible: map(&rows[group("audible")], |r| self.cue(r))?,
+            known_props: match statics {
+                Some((_, kept_props, _)) if kept(props) => kept_props.clone(),
+                _ => Arc::new(map(&rows[props], |r| self.known_prop(r))?),
+            },
+            projectiles: map(&rows[group("projectiles")], |r| self.projectile(r))?,
+            blasts: map(&rows[group("blasts")], |r| self.blast(r))?,
+            corpses: match statics {
+                Some((kept_corpses, _, _)) if kept(corpses) => kept_corpses.clone(),
+                _ => Arc::new(map(&rows[corpses], |r| self.corpse(r))?),
+            },
+            fallen_bodies: match statics {
+                Some((_, _, kept_fallen)) if kept(fallen) => kept_fallen.clone(),
+                _ => Arc::new(map(&rows[fallen], |r| Ok(fallen_body(r)))?),
+            },
+            crashes: map(&rows[group("crashes")], |r| self.crash(r))?,
+            guided: map(&rows[group("guided")], |r| Ok(guided(r)))?,
+            encounter: if encounter < 0.0 {
+                None
+            } else {
+                Some(Encounter {
+                    held_s: f!(h, HEADER, "encounterHeldS"),
+                    result: self.name("encounterResults", encounter)?,
+                })
+            },
+            skirmish,
+            fog,
+            ground_patch: GroundPatch {
+                epoch: f!(h, HEADER, "groundEpoch"),
+                side: self.name("sides", f!(h, HEADER, "groundSide"))?,
+                base_revision: f!(h, HEADER, "groundBase"),
+                revision: f!(h, HEADER, "groundRevision"),
+                full: f!(h, HEADER, "groundFull") == 1.0,
                 runs,
             },
-            grid,
-        ))
-    }
-
-    /// One row of group `group` as the browser's view of it.
-    fn row(&self, group: &str, r: &Row) -> Result<Value> {
-        let (f, s) = (r.fields, &r.sections[..]);
-        // A field of this row, under the arm's `FIELDS`.
-        macro_rules! v {
-            ($n:literal) => {
-                f[const { at(FIELDS, $n) }] as f64
-            };
-        }
-        let leans = |flat: &[f32]| -> Result<Value> {
-            each::<{ LEAN_FIELDS.len() }>(flat)
-                .map(|p| {
-                    let side = self.optional("leanSides", f!(p, LEAN_FIELDS, "side"))?;
-                    Ok(if side.is_null() {
-                        side
-                    } else {
-                        json!({ "side": side, "at": [f!(p, LEAN_FIELDS, "x"), f!(p, LEAN_FIELDS, "y")] })
-                    })
-                })
-                .collect()
-        };
-        let per_member = |flat: &[f32], read: fn(&[f32; 4]) -> Value| -> Value {
-            each::<{ MEMBER_ID_FIELDS.len() }>(flat).map(read).collect()
-        };
-        let ids = |p: &[f32; 4]| {
-            limbs(
-                f!(p, MEMBER_ID_FIELDS, "idLo"),
-                f!(p, MEMBER_ID_FIELDS, "idHi"),
-            )
-        };
-        let slots = |p: &[f32; 4]| json!(f!(p, MEMBER_ID_FIELDS, "slot"));
-        let active = |p: &[f32; 4]| present(f!(p, MEMBER_ID_FIELDS, "activeMount"));
-        let poses = |flat: &[f32]| -> Value {
-            each::<{ POSE_FIELDS.len() }>(flat)
-                .map(|p| {
-                    json!({
-                        "mount": f!(p, POSE_FIELDS, "mount"),
-                        "bearing": f!(p, POSE_FIELDS, "bearing"),
-                        "elevation": f!(p, POSE_FIELDS, "elevation"),
-                        "shots": limbs(f!(p, POSE_FIELDS, "shotsLo"), f!(p, POSE_FIELDS, "shotsHi")),
-                        "operator": limbs(f!(p, POSE_FIELDS, "operatorLo"), f!(p, POSE_FIELDS, "operatorHi")),
-                    })
-                })
-                .collect()
-        };
-        let column = |flat: &[f32]| -> Value { flat.iter().map(|&v| v as f64).collect() };
-        Ok(match group {
-            "own" => {
-                const FIELDS: &[&str] = &OWN_FIELDS;
-                // Sections in the writer's order (`GROUP_LAYOUTS`).
-                let [route, queue, members, member_hp, member_ids, orders, member_leans, sees, mounts, weapon_poses, eyes] =
-                    s[..]
-                else {
-                    unreachable!("own rows carry eleven sections")
-                };
-                let mounts: Vec<Value> = each::<{ MOUNT_FIELDS.len() }>(mounts)
-                    .map(|p| self.mount(p))
-                    .collect::<Result<_>>()?;
-                let orders: Vec<Value> = each::<{ MEMBER_ORDER_FIELDS.len() }>(orders)
-                    .map(|p| {
-                        Ok(json!({
-                            "spot": [f!(p, MEMBER_ORDER_FIELDS, "x"), f!(p, MEMBER_ORDER_FIELDS, "y")],
-                            "coverNow": self.optional("coverTiers", f!(p, MEMBER_ORDER_FIELDS, "coverNow"))?,
-                            "coverThere": self.optional("coverTiers", f!(p, MEMBER_ORDER_FIELDS, "coverThere"))?,
-                        }))
-                    })
-                    .collect::<Result<_>>()?;
-                let deployment = self.optional("postures", v!("deployTarget"))?;
-                let garrison = self.optional("garrisonPhases", v!("garrisonPhase"))?;
-                json!({
-                    "id": v!("id"),
-                    "kind": self.name("unitKinds", v!("kind"))?,
-                    "position": [v!("x"), v!("y"), v!("z")],
-                    "yaw": v!("yaw"),
-                    "goal": if v!("goalX").is_nan() { Value::Null } else { json!([v!("goalX"), v!("goalY")]) },
-                    "policy": self.optional("policies", v!("policy"))?,
-                    "direction": self.optional("directions", v!("direction"))?,
-                    "reversing": v!("reversing") == 1.0,
-                    "withdrawing": v!("withdrawing") == 1.0,
-                    "protection": if v!("protectionCharges") < 0.0 { Value::Null } else {
-                        json!({ "charges": v!("protectionCharges"), "cooldown": present(v!("protectionCooldownProgress")) })
-                    },
-                    "state": self.name("moveStates", v!("state"))?,
-                    "blocker": present(v!("blocker")),
-                    "route": points(route, 2),
-                    "queue": points(queue, 2),
-                    "members": points(members, 3),
-                    "memberIds": per_member(member_ids, ids),
-                    "memberSlots": per_member(member_ids, slots),
-                    "memberActiveMounts": per_member(member_ids, active),
-                    "memberOrders": orders,
-                    "memberLeans": leans(member_leans)?,
-                    "area": if v!("areaM").is_nan() { Value::Null } else {
-                        json!({ "anchor": [v!("areaX"), v!("areaY")], "radius": v!("areaM") })
-                    },
-                    "finalFacing": v!("finalFacing"),
-                    "sees": column(sees),
-                    "engagement": self.name("engagements", v!("engagement"))?,
-                    "mounts": mounts,
-                    "weaponPoses": poses(weapon_poses),
-                    "hp": v!("hp"),
-                    "smoking": v!("smoking") == 1.0,
-                    "memberHp": column(member_hp),
-                    "suppression": self.name("suppressionTiers", v!("suppression"))?,
-                    "concealed": v!("concealed") == 1.0,
-                    "deployment": if deployment.is_null() { deployment } else {
-                        json!({ "progress": v!("deployProgress"), "target": deployment })
-                    },
-                    "garrison": if garrison.is_null() { garrison } else {
-                        json!({
-                            "building": limbs(v!("garrisonBuildingLo"), v!("garrisonBuildingHi")),
-                            "phase": garrison,
-                            "progress": v!("garrisonProgress"),
-                            "center": [v!("garrisonX"), v!("garrisonY")],
-                            "half": [v!("garrisonHalfX"), v!("garrisonHalfY")],
-                        })
-                    },
-                    "stock": present(v!("stock")),
-                    "service": self.name("serviceStatuses", v!("service"))?,
-                    "sight": {
-                        "eyes": points(eyes, 3),
-                        "forward": v!("sightForward"),
-                        "shape": { "front": v!("sightFront"), "side": v!("sightSide"), "rear": v!("sightRear") },
-                        "range": v!("sightRange"),
-                    },
-                })
-            }
-            "identified" => {
-                const FIELDS: &[&str] = &IDENTIFIED_FIELDS;
-                let [members, member_ids, member_leans, weapon_poses] = s[..] else {
-                    unreachable!("identified rows carry four sections")
-                };
-                json!({
-                    "id": v!("id"),
-                    "kind": self.name("unitKinds", v!("kind"))?,
-                    "cost": v!("cost"),
-                    "position": [v!("x"), v!("y"), v!("z")],
-                    "yaw": v!("yaw"),
-                    "velocity": [v!("vx"), v!("vy")],
-                    "members": points(members, 3),
-                    "memberIds": per_member(member_ids, ids),
-                    "memberSlots": per_member(member_ids, slots),
-                    "memberActiveMounts": per_member(member_ids, active),
-                    "memberLeans": leans(member_leans)?,
-                    "weaponPoses": poses(weapon_poses),
-                    "reversing": v!("reversing") == 1.0,
-                    "smoking": v!("smoking") == 1.0,
-                })
-            }
-            "contacts" => {
-                const FIELDS: &[&str] = &CONTACT_FIELDS;
-                // Bit k of the heard mask, 24 rows a word.
-                let mask = v!("heardLow") as i64 | (v!("heardHigh") as i64) << HEARD_WORD_BITS;
-                let kinds = &self.tables["roundKinds"];
-                let heard: Vec<&Value> = (0..kinds.len())
-                    .filter(|&k| mask >> k & 1 == 1)
-                    .map(|k| &kinds[k])
-                    .collect();
-                json!({
-                    "id": v!("id"),
-                    "source": self.name("contactSources", v!("source"))?,
-                    "center": [v!("x"), v!("y"), v!("z")],
-                    "layer": self.name("layers", v!("layer"))?,
-                    "aloft": v!("aloft") == 1.0,
-                    "radius": v!("radius"),
-                    "evidenceTick": v!("evidenceTick"),
-                    "expiresTick": v!("expiresTick"),
-                    "kind": self.optional("unitKinds", v!("kind"))?,
-                    "heard": heard,
-                })
-            }
-            "audible" => {
-                const FIELDS: &[&str] = &AUDIBLE_FIELDS;
-                json!({
-                    "listener": v!("listener"),
-                    "category": self.name("soundCategories", v!("category"))?,
-                    "sector": v!("sector"),
-                    "band": self.name("soundBands", v!("band"))?,
-                    "moving": v!("moving") == 1.0,
-                })
-            }
-            "knownProps" => {
-                const FIELDS: &[&str] = &KNOWN_PROP_FIELDS;
-                json!({
-                    "kind": self.name("propKinds", v!("kind"))?,
-                    "center": [v!("x"), v!("y")],
-                    "yaw": v!("yaw"),
-                    "half": [v!("hx"), v!("hy"), v!("hz")],
-                    "baseZ": v!("baseZ"),
-                    "replaces": limbs(v!("replacesLo"), v!("replacesHi")),
-                    "id": limbs(v!("idLo"), v!("idHi")),
-                    "building": limbs(v!("buildingLo"), v!("buildingHi")),
-                    "structureOwner": limbs(v!("structureOwnerLo"), v!("structureOwnerHi")),
-                    "authoredProp": limbs(v!("authoredPropLo"), v!("authoredPropHi")),
-                    "destroyed": v!("destroyed") == 1.0,
-                    "wreckOf": self.optional("unitKinds", v!("wreckOf"))?,
-                })
-            }
-            "projectiles" => {
-                const FIELDS: &[&str] = &PROJECTILE_FIELDS;
-                let hit = self.name("hitKinds", v!("hit"))?;
-                let ricochets: Vec<Value> = each::<4>(s[1])
-                    .map(|p| json!({ "point": p[0] as f64, "normal": [p[1] as f64, p[2] as f64, p[3] as f64] }))
-                    .collect();
-                json!({
-                    "path": points(s[0], 3),
-                    "ricochets": ricochets,
-                    "own": v!("own") == 1.0,
-                    "kind": self.name("roundKinds", v!("kind"))?,
-                    "shooterMember": limbs(v!("shooterLo"), v!("shooterHi")),
-                    "impactNormal": if hit == "none" { Value::Null } else { json!([v!("nx"), v!("ny"), v!("nz")]) },
-                    "hit": hit,
-                })
-            }
-            "blasts" => {
-                const FIELDS: &[&str] = &BLAST_FIELDS;
-                json!({
-                    "point": [v!("x"), v!("y"), v!("z")],
-                    "radius": v!("radius"),
-                    "kind": self.name("roundKinds", v!("kind"))?,
-                })
-            }
-            "guided" => {
-                const FIELDS: &[&str] = &GUIDED_FIELDS;
-                json!({
-                    "id": limbs(v!("idLo"), v!("idHi")),
-                    "position": [v!("x"), v!("y"), v!("z")],
-                    "point": [v!("px"), v!("py"), v!("pz")],
-                    "supported": v!("supported") == 1.0,
-                })
-            }
-            "corpses" => {
-                const FIELDS: &[&str] = &CORPSE_FIELDS;
-                json!({
-                    "position": [v!("x"), v!("y"), v!("z")],
-                    "own": v!("own") == 1.0,
-                    "soldier": limbs(v!("soldierLo"), v!("soldierHi")),
-                    "kind": self.name("unitKinds", v!("kind"))?,
-                    "slot": v!("slot"),
-                    "yaw": v!("yaw"),
-                })
-            }
-            "fallenBodies" => {
-                const FIELDS: &[&str] = &FALLEN_BODY_FIELDS;
-                json!({
-                    "prop": limbs(v!("propLo"), v!("propHi")),
-                    "at": [v!("x"), v!("y")],
-                    "toward": [v!("towardX"), v!("towardY")],
-                    "tick": v!("tick"),
-                })
-            }
-            "crashes" => {
-                const FIELDS: &[&str] = &CRASH_FIELDS;
-                json!({
-                    "id": v!("id"),
-                    "own": v!("own") == 1.0,
-                    "kind": self.name("unitKinds", v!("kind"))?,
-                    "position": [v!("x"), v!("y"), v!("z")],
-                    "yaw": v!("yaw"),
-                    "pitch": v!("pitch"),
-                    "roll": v!("roll"),
-                })
-            }
-            "objectives" => {
-                const FIELDS: &[&str] = &OBJECTIVE_FIELDS;
-                let side = |i: f64| {
-                    (i >= 0.0)
-                        .then(|| ["blue", "red"].get(i as usize))
-                        .flatten()
-                };
-                json!({
-                    "id": self.name("objectiveIds", v!("id"))?,
-                    "center": [v!("x"), v!("y")],
-                    "radiusM": v!("radius"),
-                    "owner": side(v!("owner")),
-                    "capturing": side(v!("capturing")),
-                    "captureProgress": v!("captureProgress"),
-                    "contested": v!("contested") != 0.0,
-                })
-            }
-            "reportTotals" => {
-                const FIELDS: &[&str] = &REPORT_TOTAL_FIELDS;
-                json!({ "spawned": v!("spawned"), "spent": v!("spent"), "killed": v!("killed"), "refunded": v!("refunded") })
-            }
-            "reportEvents" => {
-                const FIELDS: &[&str] = &REPORT_EVENT_FIELDS;
-                let (side, unit_id) = (
-                    self.name("sides", v!("side"))?,
-                    limbs(v!("unitIdLo"), v!("unitIdHi")),
-                );
-                let (unit_kind, tick) = (
-                    self.name("unitKinds", v!("unitKind"))?,
-                    limbs(v!("tickLo"), v!("tickHi")),
-                );
-                match v!("kind") {
-                    0.0 => {
-                        json!({ "kind": "spawn", "tick": tick, "side": side, "unitId": unit_id, "unitKind": unit_kind, "amount": v!("amount") })
-                    }
-                    1.0 => {
-                        json!({ "kind": "refund", "tick": tick, "side": side, "unitId": unit_id, "unitKind": unit_kind, "amount": v!("amount") })
-                    }
-                    _ => json!({
-                        "kind": "kill", "tick": tick, "side": side, "unitId": unit_id, "unitKind": unit_kind,
-                        "victimCost": v!("amount"),
-                        "killer": if v!("otherSide") < 0.0 { Value::Null } else {
-                            json!({
-                                "side": self.name("sides", v!("otherSide"))?,
-                                "unitId": limbs(v!("otherIdLo"), v!("otherIdHi")),
-                                "unitKind": self.name("unitKinds", v!("otherKind"))?,
-                                "cost": v!("otherAmount"),
-                            })
-                        },
-                    }),
-                }
-            }
-            _ => {
-                const FIELDS: &[&str] = &PENDING_FIELDS;
-                json!({
-                    "id": v!("idLo") + v!("idHi") * LIMB,
-                    "kind": self.name("unitKinds", v!("kind"))?,
-                    "destination": [v!("x"), v!("y")],
-                    "confirmedTick": v!("confirmedLo") + v!("confirmedHi") * LIMB,
-                    "blocked": v!("blocked") != 0.0,
-                })
-            }
         })
     }
 
-    fn mount(&self, p: &[f32]) -> Result<Value> {
-        macro_rules! v {
-            ($n:literal) => {
-                f!(p, MOUNT_FIELDS, $n)
-            };
-        }
-        // Ammo per kind: -1 unlimited, -2 no such kind on this mount.
-        let ammo: Vec<Value> = [v!("ammo0"), v!("ammo1")]
-            .into_iter()
-            .take(v!("kinds").max(0.0) as usize)
-            .map(|n| if n == -1.0 { Value::Null } else { json!(n) })
-            .collect();
-        let kind = self.name("targetKinds", v!("targetKind"))?;
-        let target = match kind.as_str() {
-            Some("none") => Value::Null,
-            Some("ground") => {
-                json!({ "kind": kind, "point": [v!("targetX"), v!("targetY"), v!("targetZ")] })
-            }
-            _ => json!({ "kind": kind, "id": v!("targetId") }),
+    /// A name from one of the layout's tables; an index outside it is an error.
+    fn name(&self, table: &str, index: f64) -> Result<Name> {
+        let names = &self.tables[table];
+        (whole(index) && (index as usize) < names.len())
+            .then(|| names[index as usize].clone())
+            .ok_or_else(|| format!("{table} index {index} is outside its table"))
+    }
+
+    /// A name, or none for a negative index.
+    fn optional(&self, table: &str, index: f64) -> Result<Option<Name>> {
+        (index >= 0.0).then(|| self.name(table, index)).transpose()
+    }
+
+    fn leans(&self, flat: &[f32]) -> Result<Vec<Option<MemberLean>>> {
+        const FIELDS: &[&str] = &LEAN_FIELDS;
+        each::<{ LEAN_FIELDS.len() }>(flat)
+            .map(|p| {
+                let side = self.optional("leanSides", v!(p, "side"))?;
+                Ok(side.map(|side| MemberLean {
+                    side,
+                    at: [v!(p, "x"), v!(p, "y")],
+                }))
+            })
+            .collect()
+    }
+
+    fn own(&self, r: &Row) -> Result<OwnUnit> {
+        const FIELDS: &[&str] = &OWN_FIELDS;
+        let f = r.fields;
+        // Sections in the writer's order (`GROUP_LAYOUTS`).
+        let [route, queue, members, member_hp, member_ids, orders, leans, sees, mounts, poses, eyes] =
+            r.sections[..]
+        else {
+            unreachable!("own rows carry eleven sections")
         };
-        Ok(json!({
-            "mount": v!("mount"),
-            "loaded": present(v!("loaded")),
-            "ammo": ammo,
-            "aim": v!("aim"),
-            "reload": v!("reload"),
-            "target": target,
-            "reason": self.name("actionReasons", v!("reason"))?,
-            "guiding": v!("guiding") == 1.0,
-            "reloading": present(v!("reloadKind")),
-        }))
+        let charges = v!(f, "protectionCharges");
+        let orders = each::<{ MEMBER_ORDER_FIELDS.len() }>(orders).map(|p| {
+            const FIELDS: &[&str] = &MEMBER_ORDER_FIELDS;
+            Ok(MemberOrder {
+                spot: [v!(p, "x"), v!(p, "y")],
+                cover_now: self.optional("coverTiers", v!(p, "coverNow"))?,
+                cover_there: self.optional("coverTiers", v!(p, "coverThere"))?,
+            })
+        });
+        Ok(OwnUnit {
+            id: v!(f, "id"),
+            kind: self.name("unitKinds", v!(f, "kind"))?,
+            position: [v!(f, "x"), v!(f, "y"), v!(f, "z")],
+            yaw: v!(f, "yaw"),
+            goal: (!v!(f, "goalX").is_nan()).then(|| [v!(f, "goalX"), v!(f, "goalY")]),
+            policy: self.optional("policies", v!(f, "policy"))?,
+            direction: self.optional("directions", v!(f, "direction"))?,
+            reversing: v!(f, "reversing") == 1.0,
+            withdrawing: v!(f, "withdrawing") == 1.0,
+            protection: (charges >= 0.0).then(|| Protection {
+                charges,
+                cooldown: present(v!(f, "protectionCooldownProgress")),
+            }),
+            state: self.name("moveStates", v!(f, "state"))?,
+            blocker: present(v!(f, "blocker")),
+            route: points(route),
+            queue: points(queue),
+            members: points(members),
+            member_ids: member_column(member_ids, |p| limbs(p[0] as f64, p[1] as f64)),
+            member_slots: member_column(member_ids, |p| p[2] as f64),
+            member_active_mounts: member_column(member_ids, |p| present(p[3] as f64)),
+            member_orders: orders.collect::<Result<_>>()?,
+            member_leans: self.leans(leans)?,
+            area: (!v!(f, "areaM").is_nan()).then(|| SquadArea {
+                anchor: [v!(f, "areaX"), v!(f, "areaY")],
+                radius: v!(f, "areaM"),
+            }),
+            final_facing: v!(f, "finalFacing"),
+            sees: column(sees),
+            engagement: self.name("engagements", v!(f, "engagement"))?,
+            mounts: each::<{ MOUNT_FIELDS.len() }>(mounts)
+                .map(|p| self.mount(p))
+                .collect::<Result<_>>()?,
+            weapon_poses: weapon_poses(poses),
+            hp: v!(f, "hp"),
+            smoking: v!(f, "smoking") == 1.0,
+            member_hp: column(member_hp),
+            suppression: self.name("suppressionTiers", v!(f, "suppression"))?,
+            concealed: v!(f, "concealed") == 1.0,
+            deployment: self
+                .optional("postures", v!(f, "deployTarget"))?
+                .map(|target| Deployment {
+                    progress: v!(f, "deployProgress"),
+                    target,
+                }),
+            garrison: self
+                .optional("garrisonPhases", v!(f, "garrisonPhase"))?
+                .map(|phase| Garrison {
+                    building: limbs(v!(f, "garrisonBuildingLo"), v!(f, "garrisonBuildingHi")),
+                    phase,
+                    progress: v!(f, "garrisonProgress"),
+                    center: [v!(f, "garrisonX"), v!(f, "garrisonY")],
+                    half: [v!(f, "garrisonHalfX"), v!(f, "garrisonHalfY")],
+                }),
+            stock: present(v!(f, "stock")),
+            service: self.name("serviceStatuses", v!(f, "service"))?,
+            sight: Sight {
+                eyes: points(eyes),
+                forward: v!(f, "sightForward"),
+                shape: SightShape {
+                    front: v!(f, "sightFront"),
+                    side: v!(f, "sightSide"),
+                    rear: v!(f, "sightRear"),
+                },
+                range: v!(f, "sightRange"),
+            },
+        })
+    }
+
+    fn mount(&self, p: &[f32; MOUNT_FIELDS.len()]) -> Result<Mount> {
+        const FIELDS: &[&str] = &MOUNT_FIELDS;
+        // Ammo per kind: -1 unlimited, -2 no such kind on this mount.
+        let ammo = [v!(p, "ammo0"), v!(p, "ammo1")]
+            .into_iter()
+            .take(v!(p, "kinds").max(0.0) as usize)
+            .map(|n| (n != -1.0).then_some(n))
+            .collect();
+        let kind = self.name("targetKinds", v!(p, "targetKind"))?;
+        let target = match &*kind {
+            "none" => None,
+            "ground" => Some(MountTarget {
+                kind,
+                id: None,
+                point: Some([v!(p, "targetX"), v!(p, "targetY"), v!(p, "targetZ")]),
+            }),
+            _ => Some(MountTarget {
+                kind,
+                id: Some(v!(p, "targetId")),
+                point: None,
+            }),
+        };
+        Ok(Mount {
+            mount: v!(p, "mount"),
+            loaded: present(v!(p, "loaded")),
+            ammo,
+            aim: v!(p, "aim"),
+            reload: v!(p, "reload"),
+            target,
+            reason: self.name("actionReasons", v!(p, "reason"))?,
+            guiding: v!(p, "guiding") == 1.0,
+            reloading: present(v!(p, "reloadKind")),
+        })
+    }
+
+    fn identified(&self, r: &Row) -> Result<Identified> {
+        const FIELDS: &[&str] = &IDENTIFIED_FIELDS;
+        let f = r.fields;
+        let [members, member_ids, leans, poses] = r.sections[..] else {
+            unreachable!("identified rows carry four sections")
+        };
+        Ok(Identified {
+            id: v!(f, "id"),
+            kind: self.name("unitKinds", v!(f, "kind"))?,
+            cost: v!(f, "cost"),
+            position: [v!(f, "x"), v!(f, "y"), v!(f, "z")],
+            yaw: v!(f, "yaw"),
+            velocity: [v!(f, "vx"), v!(f, "vy")],
+            members: points(members),
+            member_ids: member_column(member_ids, |p| limbs(p[0] as f64, p[1] as f64)),
+            member_slots: member_column(member_ids, |p| p[2] as f64),
+            member_active_mounts: member_column(member_ids, |p| present(p[3] as f64)),
+            member_leans: self.leans(leans)?,
+            weapon_poses: weapon_poses(poses),
+            reversing: v!(f, "reversing") == 1.0,
+            smoking: v!(f, "smoking") == 1.0,
+        })
+    }
+
+    fn contact(&self, r: &Row) -> Result<Contact> {
+        const FIELDS: &[&str] = &CONTACT_FIELDS;
+        let f = r.fields;
+        // Bit k of the heard mask, 24 rows a word.
+        let mask = v!(f, "heardLow") as i64 | (v!(f, "heardHigh") as i64) << HEARD_WORD_BITS;
+        let kinds = &self.tables["roundKinds"];
+        Ok(Contact {
+            id: v!(f, "id"),
+            source: self.name("contactSources", v!(f, "source"))?,
+            center: [v!(f, "x"), v!(f, "y"), v!(f, "z")],
+            layer: self.name("layers", v!(f, "layer"))?,
+            aloft: v!(f, "aloft") == 1.0,
+            radius: v!(f, "radius"),
+            evidence_tick: v!(f, "evidenceTick"),
+            expires_tick: v!(f, "expiresTick"),
+            kind: self.optional("unitKinds", v!(f, "kind"))?,
+            heard: (0..kinds.len())
+                .filter(|&k| mask >> k & 1 == 1)
+                .map(|k| kinds[k].clone())
+                .collect(),
+        })
+    }
+
+    fn cue(&self, r: &Row) -> Result<SoundCue> {
+        const FIELDS: &[&str] = &AUDIBLE_FIELDS;
+        let f = r.fields;
+        Ok(SoundCue {
+            listener: v!(f, "listener"),
+            category: self.name("soundCategories", v!(f, "category"))?,
+            sector: v!(f, "sector"),
+            band: self.name("soundBands", v!(f, "band"))?,
+            moving: v!(f, "moving") == 1.0,
+        })
+    }
+
+    fn known_prop(&self, r: &Row) -> Result<KnownProp> {
+        const FIELDS: &[&str] = &KNOWN_PROP_FIELDS;
+        let f = r.fields;
+        Ok(KnownProp {
+            kind: self.name("propKinds", v!(f, "kind"))?,
+            center: [v!(f, "x"), v!(f, "y")],
+            yaw: v!(f, "yaw"),
+            half: [v!(f, "hx"), v!(f, "hy"), v!(f, "hz")],
+            base_z: v!(f, "baseZ"),
+            replaces: limbs(v!(f, "replacesLo"), v!(f, "replacesHi")),
+            id: limbs(v!(f, "idLo"), v!(f, "idHi")),
+            building: limbs(v!(f, "buildingLo"), v!(f, "buildingHi")),
+            structure_owner: limbs(v!(f, "structureOwnerLo"), v!(f, "structureOwnerHi")),
+            authored_prop: limbs(v!(f, "authoredPropLo"), v!(f, "authoredPropHi")),
+            destroyed: v!(f, "destroyed") == 1.0,
+            wreck_of: self.optional("unitKinds", v!(f, "wreckOf"))?,
+        })
+    }
+
+    fn projectile(&self, r: &Row) -> Result<Projectile> {
+        const FIELDS: &[&str] = &PROJECTILE_FIELDS;
+        let f = r.fields;
+        let hit = self.name("hitKinds", v!(f, "hit"))?;
+        Ok(Projectile {
+            path: points(r.sections[0]),
+            ricochets: each::<4>(r.sections[1])
+                .map(|p| Ricochet {
+                    point: p[0] as f64,
+                    normal: [p[1], p[2], p[3]].map(f64::from),
+                })
+                .collect(),
+            own: v!(f, "own") == 1.0,
+            kind: self.name("roundKinds", v!(f, "kind"))?,
+            shooter_member: limbs(v!(f, "shooterLo"), v!(f, "shooterHi")),
+            impact_normal: (&*hit != "none").then(|| [v!(f, "nx"), v!(f, "ny"), v!(f, "nz")]),
+            hit,
+        })
+    }
+
+    fn blast(&self, r: &Row) -> Result<Blast> {
+        const FIELDS: &[&str] = &BLAST_FIELDS;
+        let f = r.fields;
+        Ok(Blast {
+            point: [v!(f, "x"), v!(f, "y"), v!(f, "z")],
+            radius: v!(f, "radius"),
+            kind: self.name("roundKinds", v!(f, "kind"))?,
+        })
+    }
+
+    fn corpse(&self, r: &Row) -> Result<Corpse> {
+        const FIELDS: &[&str] = &CORPSE_FIELDS;
+        let f = r.fields;
+        Ok(Corpse {
+            position: [v!(f, "x"), v!(f, "y"), v!(f, "z")],
+            own: v!(f, "own") == 1.0,
+            soldier: limbs(v!(f, "soldierLo"), v!(f, "soldierHi")),
+            kind: self.name("unitKinds", v!(f, "kind"))?,
+            slot: v!(f, "slot"),
+            yaw: v!(f, "yaw"),
+        })
+    }
+
+    fn crash(&self, r: &Row) -> Result<Crash> {
+        const FIELDS: &[&str] = &CRASH_FIELDS;
+        let f = r.fields;
+        Ok(Crash {
+            id: v!(f, "id"),
+            own: v!(f, "own") == 1.0,
+            kind: self.name("unitKinds", v!(f, "kind"))?,
+            position: [v!(f, "x"), v!(f, "y"), v!(f, "z")],
+            yaw: v!(f, "yaw"),
+            pitch: v!(f, "pitch"),
+            roll: v!(f, "roll"),
+        })
+    }
+
+    fn objective(&self, r: &Row) -> Result<Objective> {
+        const FIELDS: &[&str] = &OBJECTIVE_FIELDS;
+        let f = r.fields;
+        Ok(Objective {
+            id: self.name("objectiveIds", v!(f, "id"))?,
+            center: [v!(f, "x"), v!(f, "y")],
+            radius_m: v!(f, "radius"),
+            owner: optional_fixed(&["blue", "red"], v!(f, "owner")),
+            capturing: optional_fixed(&["blue", "red"], v!(f, "capturing")),
+            capture_progress: v!(f, "captureProgress"),
+            contested: v!(f, "contested") != 0.0,
+        })
+    }
+
+    fn pending(&self, r: &Row) -> Result<PendingPurchase> {
+        const FIELDS: &[&str] = &PENDING_FIELDS;
+        let f = r.fields;
+        Ok(PendingPurchase {
+            id: v!(f, "idLo") + v!(f, "idHi") * LIMB,
+            kind: self.name("unitKinds", v!(f, "kind"))?,
+            destination: [v!(f, "x"), v!(f, "y")],
+            confirmed_tick: v!(f, "confirmedLo") + v!(f, "confirmedHi") * LIMB,
+            blocked: v!(f, "blocked") != 0.0,
+        })
+    }
+
+    fn event(&self, r: &Row) -> Result<ReportEvent> {
+        const FIELDS: &[&str] = &REPORT_EVENT_FIELDS;
+        let f = r.fields;
+        let killer = if v!(f, "otherSide") < 0.0 {
+            None
+        } else {
+            Some(Killer {
+                side: self.name("sides", v!(f, "otherSide"))?,
+                unit_id: limbs(v!(f, "otherIdLo"), v!(f, "otherIdHi")),
+                unit_kind: self.name("unitKinds", v!(f, "otherKind"))?,
+                cost: v!(f, "otherAmount"),
+            })
+        };
+        let kill = v!(f, "kind") != 0.0 && v!(f, "kind") != 1.0;
+        Ok(ReportEvent {
+            kind: fixed(&["spawn", "refund"], v!(f, "kind")).unwrap_or("kill"),
+            tick: limbs(v!(f, "tickLo"), v!(f, "tickHi")),
+            side: self.name("sides", v!(f, "side"))?,
+            unit_id: limbs(v!(f, "unitIdLo"), v!(f, "unitIdHi")),
+            unit_kind: self.name("unitKinds", v!(f, "unitKind"))?,
+            amount: (!kill).then(|| v!(f, "amount")),
+            victim_cost: kill.then(|| v!(f, "amount")),
+            killer: kill.then_some(killer),
+        })
     }
 
     /// The ground's run tail, admitted and checked against the grid.
@@ -1270,4 +1373,59 @@ fn unpack_group(
     }
     bits.finish()?;
     Ok(result)
+}
+
+fn map<T>(rows: &[Row], read: impl Fn(&Row) -> Result<T>) -> Result<Vec<T>> {
+    rows.iter().map(read).collect()
+}
+
+/// One value per member, from the `memberIds` section (id limbs, slot, mount).
+fn member_column<T>(flat: &[f32], read: impl Fn(&[f32; 4]) -> T) -> Vec<T> {
+    each::<{ MEMBER_ID_FIELDS.len() }>(flat).map(read).collect()
+}
+
+fn weapon_poses(flat: &[f32]) -> Vec<WeaponPose> {
+    const FIELDS: &[&str] = &POSE_FIELDS;
+    each::<{ POSE_FIELDS.len() }>(flat)
+        .map(|p| WeaponPose {
+            mount: v!(p, "mount"),
+            bearing: v!(p, "bearing"),
+            elevation: v!(p, "elevation"),
+            shots: limbs(v!(p, "shotsLo"), v!(p, "shotsHi")),
+            operator: limbs(v!(p, "operatorLo"), v!(p, "operatorHi")),
+        })
+        .collect()
+}
+
+fn guided(r: &Row) -> Guided {
+    const FIELDS: &[&str] = &GUIDED_FIELDS;
+    let f = r.fields;
+    Guided {
+        id: limbs(v!(f, "idLo"), v!(f, "idHi")),
+        position: [v!(f, "x"), v!(f, "y"), v!(f, "z")],
+        point: [v!(f, "px"), v!(f, "py"), v!(f, "pz")],
+        supported: v!(f, "supported") == 1.0,
+    }
+}
+
+fn fallen_body(r: &Row) -> FallenBody {
+    const FIELDS: &[&str] = &FALLEN_BODY_FIELDS;
+    let f = r.fields;
+    FallenBody {
+        prop: limbs(v!(f, "propLo"), v!(f, "propHi")),
+        at: [v!(f, "x"), v!(f, "y")],
+        toward: [v!(f, "towardX"), v!(f, "towardY")],
+        tick: v!(f, "tick"),
+    }
+}
+
+fn totals(r: &Row) -> ReportTotals {
+    const FIELDS: &[&str] = &REPORT_TOTAL_FIELDS;
+    let f = r.fields;
+    ReportTotals {
+        spawned: v!(f, "spawned"),
+        spent: v!(f, "spent"),
+        killed: v!(f, "killed"),
+        refunded: v!(f, "refunded"),
+    }
 }

@@ -1,7 +1,10 @@
 // @vitest-environment node
 import { readFileSync } from "node:fs";
 import { expect, test } from "vitest";
-import { ObservationDecoder, type ObservationLayout } from "../src/battle/sim/observation";
+import type { ObservationLayout } from "../src/battle/sim/observationView";
+import { ObservationDecoder, loadPresentation } from "../src/battle/sim/presentation";
+
+await loadPresentation();
 
 const vectors = JSON.parse(
   readFileSync(
@@ -380,7 +383,8 @@ test("packed snapshots and residuals preserve NaN payload baselines, signed zero
     }
   });
   const before = decoder.decode(compactPacket(1, g, cold))!;
-  expect(Number.isNaN(before.corpses[0].position[0])).toBe(true);
+  // The view crosses from Rust as JSON, which reads a non-finite number as null.
+  expect(before.corpses[0].position[0]).toBeNull();
   expect(Object.is(before.corpses[0].position[2], -0)).toBe(true);
   const delta = compactBits((put) => {
     put(0, 8);
@@ -393,7 +397,7 @@ test("packed snapshots and residuals preserve NaN payload baselines, signed zero
   const after = decoder.decode(compactPacket(2, g, delta))!;
   expect(after.corpses[0].position[0]).toBe(1.5);
   expect(Object.is(after.corpses[0].position[2], -0)).toBe(true);
-  expect(Number.isNaN(before.corpses[0].position[0])).toBe(true);
+  expect(before.corpses[0].position[0]).toBeNull();
 });
 
 test("malformed packed groups roll back atomically and allow the corrected same generation", () => {

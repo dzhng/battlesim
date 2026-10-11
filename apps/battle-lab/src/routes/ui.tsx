@@ -30,7 +30,7 @@ import type { RangeRuler } from "@web/battle/present/rangeRuler";
 import type { Project } from "@web/battle/present/readouts";
 import { RejectedOrder } from "@web/battle/present/rejectedOrder";
 import type { AckEntry } from "@web/battle/input/useUnitControl";
-import type { ObjectiveView, SkirmishView } from "@web/battle/sim/observation";
+import type { ObjectiveView, SkirmishView } from "@web/battle/sim/observationView";
 import { BattleClock, SkirmishStatus } from "../battleStatus";
 import { LoadingScreen } from "../LoadingScreen";
 import { MenuButton, PauseMenu } from "../PauseMenu";

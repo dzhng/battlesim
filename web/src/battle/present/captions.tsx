@@ -8,7 +8,7 @@
 import { useSessionCatalog } from "../catalog/context";
 import { useCallback, useState } from "react";
 import game from "@fixtures/game.json";
-import type { ObservationView, SoundCueView } from "../sim/observation";
+import type { ObservationView, SoundCueView } from "../sim/observationView";
 import { unitName } from "./readouts";
 
 /** Rows shown at most. */

@@ -4,7 +4,8 @@
 import { createAuthority, type AuthorityHost } from "./authority";
 import { loadSimModule } from "./module";
 import { GroundView } from "./ground";
-import { ObservationDecoder, type ObservationLayout, type ObservationView } from "./observation";
+import type { ObservationLayout, ObservationView } from "./observationView";
+import { ObservationDecoder, loadPresentation } from "./presentation";
 import type {
   AuthorityStatus,
   CommandAck,
@@ -159,6 +160,8 @@ export function createSimClient(options: SimClientOptions): SimClient {
   });
   // A failed start must not become an unhandled rejection before anyone awaits it.
   ready.catch(() => {});
+  // The presentation module loads while the authority prepares its battle.
+  loadPresentation().catch(() => {});
 
   const setStatus = (next: AuthorityStatus, nextSlow = slow) => {
     slow = nextSlow;
@@ -208,10 +211,18 @@ export function createSimClient(options: SimClientOptions): SimClient {
       switch (reply.type) {
         case "ready": {
           const layout = JSON.parse(reply.layout) as ObservationLayout;
-          decoder = new ObservationDecoder(layout);
-          decoder.invalidate(observedSide);
           ground = new GroundView(layout.ground);
-          resolveReady({ tickHz: reply.tickHz, tick: reply.tick, layout: reply.layout });
+          // Publications follow `start`, which waits on `ready`.
+          void loadPresentation()
+            .then(() => {
+              if (disposed || failure) return;
+              decoder = new ObservationDecoder(reply.layout);
+              decoder.invalidate(observedSide);
+              resolveReady({ tickHz: reply.tickHz, tick: reply.tick, layout: reply.layout });
+            })
+            .catch((error: unknown) =>
+              fail(error instanceof Error ? error.message : String(error)),
+            );
           break;
         }
         case "status":

@@ -2,7 +2,7 @@
 import { expect, test } from "vitest";
 import type { ModelInstance } from "@packages/battle-renderer/src/models/modelInstances";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
-import type { OwnUnitView } from "@web/battle/sim/observation";
+import type { OwnUnitView } from "@web/battle/sim/observationView";
 import { orderedGhost, pushGhostModels, type UnitGhost } from "@apps/battle-lab/src/unitGhosts";
 
 const COLOUR = [0.2, 0.6, 1, 0.5] as const;

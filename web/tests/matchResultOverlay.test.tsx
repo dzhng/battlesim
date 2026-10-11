@@ -2,7 +2,7 @@ import { cleanup, render } from "@testing-library/react";
 import { afterEach, expect, test } from "vitest";
 import { MatchResultOverlay } from "@apps/battle-lab/src/MatchResultOverlay";
 import { WithTestCatalog } from "./catalog";
-import type { SkirmishView } from "@web/battle/sim/observation";
+import type { SkirmishView } from "@web/battle/sim/observationView";
 
 afterEach(cleanup);
 

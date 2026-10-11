@@ -5,7 +5,7 @@
  *  same unit within the right-click gesture's window and slop; the second
  *  double-click must start within that window too, and before the selection
  *  changes any other way. */
-import type { OwnUnitView } from "../sim/observation";
+import type { OwnUnitView } from "../sim/observationView";
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import { DOUBLE_CLICK_MS, DOUBLE_CLICK_PX } from "./moveGestures";
 

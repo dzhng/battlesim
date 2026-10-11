@@ -10,7 +10,8 @@ import {
   weaponRows,
   type PanelRules,
 } from "../src/battle/present/panelRows";
-import { ObservationDecoder, type ObservationLayout } from "../src/battle/sim/observation";
+import type { ObservationLayout } from "../src/battle/sim/observationView";
+import { ObservationDecoder, loadPresentation } from "../src/battle/sim/presentation";
 import { packedGroundRuns } from "./groundRuns";
 import { GroundView } from "../src/battle/sim/ground";
 import { sightMultiplier } from "@packages/battle-renderer/src/sightOverlay";
@@ -18,6 +19,8 @@ import { labScenario, TEST_RULES } from "./catalog";
 import { loadEncounter, loadMap } from "@web/maps/node";
 import game from "@fixtures/game.json";
 import type { Order } from "../src/battle/sim/protocol";
+
+await loadPresentation();
 
 const sensors = loadMap("sensors").definition;
 const weaponsMap = loadMap("weapons").definition;

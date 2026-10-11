@@ -3,7 +3,7 @@ import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { VERTEX_FLOATS } from "@packages/battle-renderer/src/mesh";
 import { OPEN } from "@packages/battle-renderer/src/terrain/terrainSurface";
 import { buildWorldLayers } from "@packages/battle-renderer/src/worldMesh";
-import type { OwnUnitView } from "@web/battle/sim/observation";
+import type { OwnUnitView } from "@web/battle/sim/observationView";
 import type { Order } from "@web/battle/sim/protocol";
 import { AckLog } from "../AckLog";
 import { orderLayer } from "../battleOverlay";

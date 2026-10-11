@@ -16,7 +16,7 @@ import type {
   ResolveAppearance,
 } from "@packages/battle-renderer/src/models/modelInstances";
 import { UNITS } from "./catalog";
-import type { ObservationView } from "@web/battle/sim/observation";
+import type { ObservationView } from "@web/battle/sim/observationView";
 import { PropAppearances } from "@packages/battle-renderer/src/models/propAppearance";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import { debrisGoneAfter, landedAfter } from "@packages/battle-renderer/src/effects/cookOff";

@@ -22,7 +22,7 @@ import { buildingRemains } from "@packages/scene-assets/src/authority";
 import { mountMuzzles, type MountMuzzle } from "@packages/scene-assets/src/mountMuzzle";
 import { airborne, type UnitCatalog, type UnitType } from "@packages/scene-assets/src/units";
 import type { SideName } from "@web/battle/sim/protocol";
-import type { ObservationView, WeaponPoseView } from "@web/battle/sim/observation";
+import type { ObservationView, WeaponPoseView } from "@web/battle/sim/observationView";
 
 const effects = game.presentation.effects as unknown as EffectPresentation;
 /** The game's effects, each weapon's round looking as its nearest styled

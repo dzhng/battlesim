@@ -7,7 +7,7 @@ import {
   foldCaptions,
   type CaptionLine,
 } from "../src/battle/present/captions";
-import type { SoundCueView } from "../src/battle/sim/observation";
+import type { SoundCueView } from "../src/battle/sim/observationView";
 
 const cue = (c: Partial<SoundCueView>): SoundCueView => ({
   listener: 4,

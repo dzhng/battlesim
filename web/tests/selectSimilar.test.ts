@@ -5,7 +5,7 @@
 import { expect, test } from "vitest";
 import { UNITS } from "./catalog";
 import { reach } from "@web/battle/input/commandReach";
-import type { OwnUnitView } from "@web/battle/sim/observation";
+import type { OwnUnitView } from "@web/battle/sim/observationView";
 import { SelectClicks, similarUnits } from "@web/battle/input/selectSimilar";
 import { syntheticUnits } from "./sceneAssets/synthetic";
 

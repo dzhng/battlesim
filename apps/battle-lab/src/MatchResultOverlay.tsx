@@ -2,7 +2,7 @@ import { cardIcon } from "@packages/scene-assets/src/icons";
 import { hudIcon, stateIcon } from "@packages/scene-assets/src/icons";
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import { Icon } from "@web/battle/present/icons";
-import type { MatchEventView, ObservationView } from "@web/battle/sim/observation";
+import type { MatchEventView, ObservationView } from "@web/battle/sim/observationView";
 import game from "@fixtures/game.json";
 
 type Report = NonNullable<NonNullable<ObservationView["skirmish"]>["report"]>;

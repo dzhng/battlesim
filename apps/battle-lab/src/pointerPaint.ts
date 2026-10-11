@@ -21,7 +21,7 @@ import {
 } from "@web/battle/present/rangeRuler";
 import type { PointerIntent } from "@web/battle/input/pointerIntent";
 import type { CursorAction } from "@web/battle/present/gameCursor";
-import type { OwnUnitView } from "@web/battle/sim/observation";
+import type { OwnUnitView } from "@web/battle/sim/observationView";
 import type { SimClient } from "@web/battle/sim/client";
 import type {
   MovePreviewRequest,

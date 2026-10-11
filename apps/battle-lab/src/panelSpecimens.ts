@@ -19,7 +19,7 @@ import {
   type PanelRules,
 } from "@web/battle/present/panelRows";
 import { REASON_MARK, type PanelOwner, type PanelZoom } from "@web/battle/present/infoPanel";
-import type { MountView, OwnUnitView } from "@web/battle/sim/observation";
+import type { MountView, OwnUnitView } from "@web/battle/sim/observationView";
 
 export interface Specimen {
   /** Unique; the scene's key. */

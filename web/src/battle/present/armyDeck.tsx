@@ -1,5 +1,5 @@
 import { useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import type { SkirmishView, OwnUnitView } from "../sim/observation";
+import type { SkirmishView, OwnUnitView } from "../sim/observationView";
 import { useSessionCatalog } from "../catalog/context";
 import { StrengthMeter, UnitFace } from "./unitFace";
 import { InfoPanel } from "./infoPanel";

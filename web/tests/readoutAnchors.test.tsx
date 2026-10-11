@@ -5,7 +5,7 @@ import { WithTestCatalog } from "./catalog";
 import { afterEach, expect, test } from "vitest";
 import game from "@fixtures/game.json";
 import { ReadoutLayer, type ReadoutLayerHandle } from "../src/battle/present/readouts";
-import type { ContactView } from "../src/battle/sim/observation";
+import type { ContactView } from "../src/battle/sim/observationView";
 import { ContactPresentation } from "../src/battle/present/contactPresentation";
 import type { PanelRules } from "../src/battle/present/panelRows";
 
@@ -122,7 +122,7 @@ test("own callout bounds are selectable, including rectangle overlap, but hidden
     suppression: "none",
     deployment: null,
     garrison: null,
-  } as unknown as import("../src/battle/sim/observation").OwnUnitView;
+  } as unknown as import("../src/battle/sim/observationView").OwnUnitView;
   const view = render(
     <ReadoutLayer
       own={[unit]}
@@ -155,7 +155,7 @@ test("panels show name and health until details are requested", () => {
     suppression: "none",
     deployment: null,
     garrison: null,
-  })) as unknown as import("../src/battle/sim/observation").OwnUnitView[];
+  })) as unknown as import("../src/battle/sim/observationView").OwnUnitView[];
   const view = render(
     <ReadoutLayer
       own={units}
@@ -194,7 +194,7 @@ test("held details reach nearby cards with only one card moved", () => {
     suppression: "none",
     deployment: null,
     garrison: null,
-  })) as unknown as import("../src/battle/sim/observation").OwnUnitView[];
+  })) as unknown as import("../src/battle/sim/observationView").OwnUnitView[];
   const view = render(
     <ReadoutLayer
       own={units}
@@ -238,7 +238,7 @@ test("detail priority follows the actual camera eye rather than its orbit target
     suppression: "none",
     deployment: null,
     garrison: null,
-  })) as unknown as import("../src/battle/sim/observation").OwnUnitView[];
+  })) as unknown as import("../src/battle/sim/observationView").OwnUnitView[];
   const view = render(
     <ReadoutLayer
       own={units}
@@ -322,7 +322,7 @@ test("far panels remain visible, overlap by depth, and pick the front card", () 
     suppression: "none",
     deployment: null,
     garrison: null,
-  })) as unknown as import("../src/battle/sim/observation").OwnUnitView[];
+  })) as unknown as import("../src/battle/sim/observationView").OwnUnitView[];
   const view = render(
     <ReadoutLayer
       own={units}

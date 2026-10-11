@@ -34,7 +34,7 @@ import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import type { Bounds } from "@packages/scene-assets/src/schema";
 import { SCENERY_KINDS, WRECK_PIECES } from "@packages/scene-assets/src/scenery";
 import { airborne, type UnitCatalog } from "@packages/scene-assets/src/units";
-import type { KnownPropView, ObservationView } from "@web/battle/sim/observation";
+import type { KnownPropView, ObservationView } from "@web/battle/sim/observationView";
 
 /** The wreck state its thrown debris is drawn from (`SceneryRule.debris`). */
 const DEBRIS_STATE = SCENERY_KINDS.wreck.debris!.state;

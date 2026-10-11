@@ -3,7 +3,7 @@ import { WithTestCatalog } from "./catalog";
 import { afterEach, expect, test, vi } from "vitest";
 import { PurchasePicker } from "@web/battle/present/purchasePicker";
 import type { UnitCard } from "@packages/scene-assets/src/units";
-import type { SkirmishView } from "@web/battle/sim/observation";
+import type { SkirmishView } from "@web/battle/sim/observationView";
 import type { PanelRules } from "@web/battle/present/panelRows";
 import game from "@fixtures/game.json";
 

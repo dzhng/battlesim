@@ -1,4 +1,4 @@
-import type { ObservationView, WeaponPoseView } from "@web/battle/sim/observation";
+import type { ObservationView, WeaponPoseView } from "@web/battle/sim/observationView";
 
 const deg = (rad: number) => `${((rad * 180) / Math.PI).toFixed(1)}°`;
 

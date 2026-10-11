@@ -25,17 +25,7 @@ import { AppearanceLibrary, memoryFetch } from "@packages/scene-assets/src/loade
 import { AUTHORITY, testCatalog, testSources } from "./sceneAssets/synthetic";
 import { sideKey } from "@packages/battle-renderer/src/sideKey";
 import { TickInterpolator } from "../src/battle/present/interpolate";
-import type {
-  CorpseView,
-  FallingAirframeView,
-  IdentifiedView,
-  ObservationView,
-  OwnUnitView,
-  Point2,
-  Point3,
-  ProjectileView,
-  SuppressionTier,
-} from "../src/battle/sim/observation";
+import type { CorpseView, FallingAirframeView, IdentifiedView, ObservationView, OwnUnitView, Point2, Point3, ProjectileView, SuppressionTier } from "../src/battle/sim/observationView";
 
 const TICK_MS = 1000 / 30;
 const CLIPS: Record<string, { duration: number; loop: boolean; stride_m: number | null }> = {

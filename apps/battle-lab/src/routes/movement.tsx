@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import type { OwnUnitView } from "@web/battle/sim/observation";
+import type { OwnUnitView } from "@web/battle/sim/observationView";
 import type { Order } from "@web/battle/sim/protocol";
 import { AckLog } from "../AckLog";
 import { orderLayer } from "../battleOverlay";

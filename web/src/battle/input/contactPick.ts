@@ -4,7 +4,7 @@
  *  height: the pointer's ray picks it where it passes through the sphere of
  *  that radius round its centre, whatever ground lies beneath. Where areas
  *  overlap, the one whose centre is nearest the pointer wins. */
-import type { ContactView } from "../sim/observation";
+import type { ContactView } from "../sim/observationView";
 
 /** A pointer's world ray: from the eye, along `dir` (any length). */
 export interface PickRay {

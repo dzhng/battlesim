@@ -2,7 +2,7 @@
 //! browser's decoder did (its decode is the fixture `<scene>-observations.json`).
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
-use sim::publication::reader::{Reader, STATIC_GROUPS};
+use sim::publication::reader::Reader;
 
 const FIXTURES: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -75,12 +75,13 @@ fn both_fixture_captures_decode_as_the_browser_decoded_them() {
                 .decode(&words)
                 .unwrap()
                 .expect("a capture is one stream");
-            let mut view = Value::Object(observation.view);
-            for (name, group) in STATIC_GROUPS.iter().zip(&observation.statics) {
-                view[*name] = (**group).clone();
-            }
+            let mut view = serde_json::to_value(&observation).unwrap();
+            view["corpses"] = json!(observation.corpses);
+            view["knownProps"] = json!(observation.known_props);
+            view["fallenBodies"] = json!(observation.fallen_bodies);
             let bytes: Vec<u8> = observation
                 .fog
+                .bits
                 .iter()
                 .flat_map(|w| w.to_le_bytes())
                 .collect();
@@ -89,7 +90,7 @@ fn both_fixture_captures_decode_as_the_browser_decoded_them() {
                 .map(|b| format!("{b:02x}"))
                 .collect();
             view["fog"]["bits"] = json!(format!("sha256:{digest}"));
-            view["groundPatch"]["runs"] = json!(observation.runs);
+            view["groundPatch"]["runs"] = json!(observation.ground_patch.runs);
             same(&view, expected, &format!("{scene} tick {}", sample["tick"]));
         }
     }

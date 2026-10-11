@@ -5,16 +5,15 @@ import { beforeAll, expect, test } from "vitest";
 import { createSimClient } from "../src/battle/sim/client";
 import { GroundView } from "../src/battle/sim/ground";
 import { initSync, Battle } from "@wasm/game_wasm.js";
-import {
-  ObservationDecoder,
-  type ObservationLayout,
-  type ObservationView,
-} from "../src/battle/sim/observation";
+import type { ObservationLayout, ObservationView } from "../src/battle/sim/observationView";
+import { ObservationDecoder, loadPresentation } from "../src/battle/sim/presentation";
 
 import { labScenario } from "./catalog";
 import { type LabEvent, type LabScript, type LabUnit } from "@apps/battle-lab/src/scenarios";
 import { loadMap } from "@web/maps/node";
 import type { MapDefinition } from "@web/maps/resolve";
+
+await loadPresentation();
 
 /** The publication stream record: a small battle with a map input, and what the
  *  native build made of each tick (`crates/sim/tests/publication.rs`). */

@@ -4,14 +4,13 @@ import { beforeAll, expect, test } from "vitest";
 import { initSync, Battle, WorldView } from "@wasm/game_wasm.js";
 import { cellPatchRuns, groundRunCells } from "./groundRuns";
 import { GroundView, type GroundRunsPatch } from "../src/battle/sim/ground";
-import {
-  ObservationDecoder,
-  type GroundLayout,
-  type ObservationLayout,
-} from "../src/battle/sim/observation";
+import type { GroundLayout, ObservationLayout } from "../src/battle/sim/observationView";
+import { ObservationDecoder, loadPresentation } from "../src/battle/sim/presentation";
 import { TEST_RULES, labScenario } from "./catalog";
 import { type LabEvent } from "@apps/battle-lab/src/scenarios";
 import { loadMap } from "@web/maps/node";
+
+await loadPresentation();
 
 const groundMap = loadMap("ground").definition;
 

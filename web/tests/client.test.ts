@@ -3,10 +3,12 @@ import { expect, test, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { initSync, Battle } from "@wasm/game_wasm.js";
 import { createSimClient, type Publication } from "../src/battle/sim/client";
-import { ObservationDecoder } from "../src/battle/sim/observation";
+import { ObservationDecoder, loadPresentation } from "../src/battle/sim/presentation";
 import type { SimReply, SimRequest } from "../src/battle/sim/protocol";
 import { labScenario } from "./catalog";
 import { loadMap } from "@web/maps/node";
+
+await loadPresentation();
 
 test("a direct authority's terminal error rejects ready before its transport closes", async () => {
   const client = createSimClient({ scenario: "{", seed: 1, side: "blue", transport: "direct" });

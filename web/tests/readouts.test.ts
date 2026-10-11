@@ -4,12 +4,12 @@ import { readFileSync } from "node:fs";
 import { initSync, Battle } from "@wasm/game_wasm.js";
 import { labScenario, UNITS } from "./catalog";
 import { loadMap } from "@web/maps/node";
-import type { ObservationLayout } from "../src/battle/sim/observation";
+import type { ObservationLayout } from "../src/battle/sim/observationView";
 import { easeNudge } from "../src/battle/present/readouts";
 import { REASON_MARK } from "../src/battle/present/infoPanel";
 import { REASON_TEXT } from "@apps/battle-lab/src/reasonText";
 import { mountTimers, ownStateRows, type PanelRules } from "../src/battle/present/panelRows";
-import type { MountView, OwnUnitView } from "../src/battle/sim/observation";
+import type { MountView, OwnUnitView } from "../src/battle/sim/observationView";
 
 const geometry = loadMap("geometry").definition;
 

@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { expect, test } from "vitest";
 import { ContactPresentation } from "../src/battle/present/contactPresentation";
-import type { ContactView } from "../src/battle/sim/observation";
+import type { ContactView } from "../src/battle/sim/observationView";
 
 const contact: ContactView = {
   id: 7,

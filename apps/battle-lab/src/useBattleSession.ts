@@ -111,7 +111,7 @@ import {
 } from "./pointerPaint";
 import type { PanelRules } from "@web/battle/present/panelRows";
 import type { RulerRules } from "@web/battle/present/rangeRuler";
-import type { KnownPropView, ObservationView } from "@web/battle/sim/observation";
+import type { KnownPropView, ObservationView } from "@web/battle/sim/observationView";
 import type { Order, SideName } from "@web/battle/sim/protocol";
 import type { LabBox, LabPick, ViewportFrame, ViewportGpu, ViewportPointer } from "./LabViewport";
 import { pickedUnit, pickToPointer, sideInstances, type DrawnInstances } from "./sideInstances";

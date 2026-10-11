@@ -5,7 +5,7 @@
  * likewise. Own units and identified enemies blend
  * alike, so an enemy squad walks as smoothly as one's own. */
 import { deltaAngle, lerp, vec3 } from "math";
-import type { FallingAirframeView, ObservationView, Point3 } from "../sim/observation";
+import type { FallingAirframeView, ObservationView, Point3 } from "../sim/observationView";
 
 export interface Pose {
   id: number;

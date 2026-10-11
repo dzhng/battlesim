@@ -1,5 +1,5 @@
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
-import type { ObservationView, OwnUnitView } from "../sim/observation";
+import type { ObservationView, OwnUnitView } from "../sim/observationView";
 import type { Order } from "../sim/protocol";
 import { isAttackMoveClick } from "./commandBindings";
 import { reach } from "./commandReach";

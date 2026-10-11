@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { expect, test } from "vitest";
 import { TickInterpolator } from "../src/battle/present/interpolate";
-import type { ObservationView, OwnUnitView } from "../src/battle/sim/observation";
+import type { ObservationView, OwnUnitView } from "../src/battle/sim/observationView";
 
 const unit = (id: number, x: number, yaw = 0): OwnUnitView => ({
   id,

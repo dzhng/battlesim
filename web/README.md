@@ -14,7 +14,7 @@ builds a plain geometry world from the same map for drawing, picking and camera
 clearance; it does not run a second battle.
 
 [The simulation adapter](src/battle/sim/README.md) owns ordered commands, worker lifetime,
-bounded publications and packed observation decoding. [Input](src/battle/input/)
+bounded publications and handing them to the Rust publication reader. [Input](src/battle/input/)
 produces commands, and [presentation](src/battle/present/) reads admitted observations.
 [Map adapters](src/maps/) fetch saved documents or resolve a generation request
 through Rust's one admission path. Their listing policy, saved-map identity and

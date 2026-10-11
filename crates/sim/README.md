@@ -24,7 +24,9 @@ happens on that tick, such as one shot's dispersion. A ghost drawn while the
 player is still choosing the point (a purchase being placed) decides nothing: it
 keeps one draw, so it slides with the cursor instead of reshuffling under it.
 
-[Publication](src/publication.rs) exposes only the selected side's observation.
+[Publication](src/publication.rs) exposes only the selected side's observation,
+and [its reader](src/publication/reader.rs), beside it, is the one decoder every
+client uses.
 Geometry, sensing, hearing and knowledge owners decide what that observation may
 contain; the renderer and audio engine do not grant visibility or reveal identities.
 [Weapon origins](src/weapons.rs) follow the actual operator, occupied window or

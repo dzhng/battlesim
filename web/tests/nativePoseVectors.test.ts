@@ -3,7 +3,8 @@ import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { expect, test } from "vitest";
 import game from "@fixtures/game.json";
-import { ObservationDecoder, type ObservationLayout } from "@web/battle/sim/observation";
+import type { ObservationLayout } from "@web/battle/sim/observationView";
+import { ObservationDecoder, loadPresentation } from "@web/battle/sim/presentation";
 import { TickInterpolator } from "@web/battle/present/interpolate";
 import { nodeCatalogSet } from "@web/battle/catalog/node";
 import { unitArtifacts, type UnitsManifest } from "@web/battle/benchmark/unitManifest";
@@ -19,6 +20,8 @@ import { poseWorlds } from "@packages/scene-assets/src/pose.ts";
 import { modelCounts } from "@packages/battle-renderer/src/models/modelInstances";
 import { createPoseDriver, gamePose, ObservationFeed } from "@apps/battle-lab/src/poseFeed";
 import { describeUnits } from "@apps/battle-lab/src/benchmark/unitPresentation";
+
+await loadPresentation();
 
 // Writes the browser's poses for native's fixture capture, the vectors
 // native's port of the per-frame unit derivations (`native/godot/units/`) is

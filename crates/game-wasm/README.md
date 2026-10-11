@@ -15,7 +15,9 @@ Rare control messages cross as JSON. Tick publications use a reusable packed
 buffer and the layout declared by their Rust producer. Read a publication before
 another WebAssembly call can grow memory or replace the buffer; never retain a
 borrowed memory view as a durable frame. [The browser adapter](../../web/src/battle/sim/README.md)
-owns copying, credit transfer, decoding and handle lifetime.
+owns copying, credit transfer and handle lifetime. The page decodes publications
+in a second, smaller module, [the presentation module](../presentation-wasm/README.md),
+which links the publication reader but not the rules.
 
 The build task in [the web manifest](../../web/package.json) owns wasm-pack and
 its target/output settings. Generated bindings under `web/src/wasm/` are rebuildable

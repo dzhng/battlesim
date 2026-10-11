@@ -1,6 +1,6 @@
 /** The side's learned ground. Missing tiles are blank; epochs replace the
  * learned copy, and deltas retain exactly the cells the side last saw. */
-import type { GroundLayout } from "./observation";
+import type { GroundLayout } from "./observationView";
 import { GroundHoles } from "./groundHoles";
 import {
   createGroundPage,

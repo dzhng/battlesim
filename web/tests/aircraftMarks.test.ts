@@ -6,7 +6,7 @@
 // contextual.
 import { expect, test } from "vitest";
 import { VERTEX_FLOATS, type Mesh, type Rgba } from "@packages/battle-renderer/src/mesh";
-import type { ObservationView, OwnUnitView, IdentifiedView } from "@web/battle/sim/observation";
+import type { ObservationView, OwnUnitView, IdentifiedView } from "@web/battle/sim/observationView";
 import { aircraftLayer, orderLayer } from "@apps/battle-lab/src/battleOverlay";
 import { fullBright } from "@packages/battle-renderer/src/orderOverlay";
 import {

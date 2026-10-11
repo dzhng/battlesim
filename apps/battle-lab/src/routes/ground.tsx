@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
 import type { GroundView } from "@web/battle/sim/ground";
-import type { ObservationView } from "@web/battle/sim/observation";
+import type { ObservationView } from "@web/battle/sim/observationView";
 import type { SideName } from "@web/battle/sim/protocol";
 import game from "@fixtures/game.json";
 import { BattleMemory, orderLayer, remainsLayer, tracerLayer } from "../battleOverlay";

@@ -7,7 +7,7 @@ import game from "@fixtures/game.json";
 import type { PanelRules } from "@web/battle/present/panelRows";
 import type { ReadoutLayerHandle } from "@web/battle/present/readouts";
 import { ContactPresentation } from "@web/battle/present/contactPresentation";
-import type { ContactView } from "@web/battle/sim/observation";
+import type { ContactView } from "@web/battle/sim/observationView";
 import Weapons from "@apps/battle-lab/src/routes/weapons";
 import FogLook from "@apps/battle-lab/src/routes/fogLook";
 import { PointerPaint } from "@apps/battle-lab/src/pointerPaint";

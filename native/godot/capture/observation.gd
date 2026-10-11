@@ -1,7 +1,7 @@
 extends RefCounted
 
 ## Decodes one side's publication stream into observations shaped exactly like
-## the browser's (`web/src/battle/sim/observation.ts` `ObservationDecoder`):
+## the Rust reader's (`crates/sim/src/publication/reader.rs`), which the browser decodes with:
 ## the same keys, the same nulls, the same words. Every group, section, the fog
 ## field and the ground runs come out; the published layout
 ## (`crates/sim/src/publication.rs` `layout_json`) owns the packing, the

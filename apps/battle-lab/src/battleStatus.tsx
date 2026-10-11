@@ -3,7 +3,7 @@
 import { hudIcon } from "@packages/scene-assets/src/icons";
 import { Icon } from "@web/battle/present/icons";
 import game from "@fixtures/game.json";
-import type { ObservationView } from "@web/battle/sim/observation";
+import type { ObservationView } from "@web/battle/sim/observationView";
 
 /** The battle's clock, from the published tick. */
 export function BattleClock({ tick }: { tick: number }) {

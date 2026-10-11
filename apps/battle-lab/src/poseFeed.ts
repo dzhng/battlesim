@@ -25,7 +25,7 @@ import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import { LaunchTracker } from "@packages/battle-renderer/src/effects/launches";
 import { sideKey } from "@packages/battle-renderer/src/sideKey";
 import type { FrameSample, Pose } from "@web/battle/present/interpolate";
-import type { ObservationView, WeaponPoseView } from "@web/battle/sim/observation";
+import type { ObservationView, WeaponPoseView } from "@web/battle/sim/observationView";
 import type { SideName } from "@web/battle/sim/protocol";
 import { effectPublication } from "./effectFeed";
 

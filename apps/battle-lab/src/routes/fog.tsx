@@ -9,7 +9,7 @@ import type { FogEye, FogInput } from "@packages/battle-renderer/src/frame/fogIn
 import type { FogProbes } from "@packages/battle-renderer/src/frame/fogVisibility";
 import type { FrameView } from "@packages/battle-renderer/src/scene";
 import { loadWasm } from "@web/battle/sim/module";
-import type { ObservationView } from "@web/battle/sim/observation";
+import type { ObservationView } from "@web/battle/sim/observationView";
 import type { SideName } from "@web/battle/sim/protocol";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";

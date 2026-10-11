@@ -3,7 +3,7 @@
 // click on its body does: every kind of unit, the circle where this frame
 // draws it.
 import { expect, test } from "vitest";
-import type { ObservationView, OwnUnitView, IdentifiedView } from "@web/battle/sim/observation";
+import type { ObservationView, OwnUnitView, IdentifiedView } from "@web/battle/sim/observationView";
 import type { Pose } from "@web/battle/present/interpolate";
 import { ringUnder, sideInstances } from "@apps/battle-lab/src/sideInstances";
 import { gameOrderStyle as STYLE } from "@apps/battle-lab/src/gameOverlay";

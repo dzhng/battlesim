@@ -12,7 +12,7 @@
  * battle route share it; it sends only real commands. */
 import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
 import type { SimClient } from "../sim/client";
-import type { ObservationView, OwnUnitView } from "../sim/observation";
+import type { ObservationView, OwnUnitView } from "../sim/observationView";
 import type { CommandAck, Order } from "../sim/protocol";
 import { commandForKey, ShowOrdersBinding } from "./commandBindings";
 import { useHeldKey } from "./heldKeys";

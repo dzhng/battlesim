@@ -5,7 +5,8 @@ import { initSync, Battle } from "@wasm/game_wasm.js";
 import { GpuRegistry } from "@packages/battle-renderer/src/frame/registry";
 import { cellPatchRuns, groundRunCells } from "./groundRuns";
 import { GroundView } from "../src/battle/sim/ground";
-import { ObservationDecoder, type ObservationLayout } from "../src/battle/sim/observation";
+import type { ObservationLayout } from "../src/battle/sim/observationView";
+import { ObservationDecoder, loadPresentation } from "../src/battle/sim/presentation";
 import {
   SCAR_UNIFORM,
   SCAR_DENSE,
@@ -19,6 +20,8 @@ import {
 import { labScenario } from "./catalog";
 import { type LabEvent } from "@apps/battle-lab/src/scenarios";
 import { loadMap } from "@web/maps/node";
+
+await loadPresentation();
 
 const groundMap = loadMap("ground").definition;
 let memory: WebAssembly.Memory;

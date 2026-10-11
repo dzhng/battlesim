@@ -10,7 +10,7 @@ import { contactUnder } from "../src/battle/input/contactPick";
 import { useUnitControl } from "../src/battle/input/useUnitControl";
 import type { PointerPick } from "../src/battle/input/pointerIntent";
 import type { SimClient } from "../src/battle/sim/client";
-import type { ContactView, ObservationView, OwnUnitView } from "../src/battle/sim/observation";
+import type { ContactView, ObservationView, OwnUnitView } from "../src/battle/sim/observationView";
 import type { Order } from "../src/battle/sim/protocol";
 
 // Distinct types sharing a role make type selection distinguishable from role selection.

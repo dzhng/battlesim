@@ -14,7 +14,7 @@
 import { stateIcon, weaponIcon, type StateIcon } from "@packages/scene-assets/src/icons";
 import type { MountRow, UnitCard, UnitCatalog } from "@packages/scene-assets/src/units";
 import type { SessionCatalog } from "../catalog/compose";
-import type { ContactView, MountView, OwnUnitView } from "../sim/observation";
+import type { ContactView, MountView, OwnUnitView } from "../sim/observationView";
 
 /** The rule blocks the panels read (the scenario's). */
 export interface PanelRules {

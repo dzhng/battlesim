@@ -4,7 +4,7 @@
 // nothing is drawn under the units it serves (their panels say it instead).
 import { expect, test } from "vitest";
 import { VERTEX_FLOATS } from "@packages/battle-renderer/src/mesh";
-import type { ObservationView, OwnUnitView } from "@web/battle/sim/observation";
+import type { ObservationView, OwnUnitView } from "@web/battle/sim/observationView";
 import { supplyLayer } from "@apps/battle-lab/src/battleOverlay";
 import { validateSupplyStyle, type SupplyStyle } from "@packages/battle-renderer/src/supplyOverlay";
 

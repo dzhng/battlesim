@@ -1,6 +1,6 @@
 import { useImperativeHandle, useRef, type Ref } from "react";
 import type { Project } from "./readouts";
-import type { SkirmishView } from "../sim/observation";
+import type { SkirmishView } from "../sim/observationView";
 import { Icon } from "./icons";
 import { hudIcon } from "@packages/scene-assets/src/icons";
 

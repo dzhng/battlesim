@@ -38,27 +38,59 @@ At 30 Hz the TS decode is about 3.3 ms of main-thread time a second on market-to
 
 **Zero-copy views.** These fit draw data (18b's `Frame`: flat instance arrays) and the fog bits and ground runs, which are already typed arrays. They don't fit the UI's observation, whose consumers read JS objects.
 
-**Where the time goes in Rust.** Reconstruction, validation, fog and ground take 13 µs. Building a per-key JSON value view (one allocation per key) is 93% of the cost. That's fine for native's startup decode (0.6 s for the whole stream, against GDScript's 4.1 s) and for tests. It's too slow for the browser's main thread. Under 18b, therefore:
-- `push_publication` should decode only (13 µs).
-- The presentation crate should read the reconstructed rows through the writer's field constants, with no per-entity view.
-- `observation()` should build the UI's view lazily, and only the part the UI reads. Units' members and poses go to `Frame`, not to the UI.
+**Where the time goes in Rust.** Reconstruction, validation, fog and ground take 13 µs. A first view built as JSON values (one allocation per key) cost 412 µs per market-town publication in V8, 3× the TS decoder, so it was replaced by typed views that serde serializes directly.
 
-**Built so far** (18b gates the surfaces):
-- `crates/sim/src/publication/reader.rs` holds the reader: one ordered stream, committed only on success.
-- `layout_json` and the reader now share one group table (`GROUP_LAYOUTS`), and the reader refuses any other layout.
-- `crates/sim/tests/publication_reader.rs` checks that every sample of both fixture captures equals the TS decoder's committed decode, at float32 precision. A one-field mutation fails it.
+## Web half (built 2026-10-11)
 
-The reader needs only the layout tables, `serde_json` and std. If 18b's separate `presentation-wasm` module holds, reader and tables move out of `sim` together, with no rewrite.
+**Contract.** The page's own WASM module, `crates/presentation-wasm` (about 260 KB, against the battle module's 5.8 MB), is 18b's browser binding. It links the reader and no rules. The page side is `web/src/battle/sim/presentation.ts`.
+- `new Presentation(layout)` takes the battle's `observation_layout`.
+- `push_publication(words, arrived_s)` reads one record. It returns false for a stale record (from before a side change), and throws on a malformed one.
+- `observation()` returns the view as JSON in `observationView.ts`'s shape. A static group is included only when it changed.
+- `fog_bits()` returns the bits only when they changed. `ground_runs()` returns the runs as a `Float32Array`.
+- `invalidate(side)` is the lab's side switch.
 
-**Less code, so far** (code lines, excluding comments, blanks and fixtures):
+`ObservationDecoder` keeps its `decode`/`invalidate` contract over these calls, so every consumer and test reads the same `ObservationView` as before. `observation.ts` is deleted. Its types moved, unchanged, into `observationView.ts`.
+
+**Equality** (before deleting the TS decoder):
+- Deep equality (`toEqual`, `Object.is` on numbers) on every sample of both fixture captures.
+- Static groups and fog bits are shared exactly where the TS decoder shared them.
+- `isDeepStrictEqual` holds on every publication of both whole control streams (3,478 market-town, 1,291 paris-corner).
+
+The one deliberate difference: JSON carries a non-finite number as null. The writer publishes NaN only in fields the view turns into null, so no real record differs. `groupDelivery`'s NaN-payload check now expects null; its baseline-XOR proof (1.5 recovered from the NaN's bits) stands.
+
+**Cost per publication** (V8, min of 10 passes, market-town control stream): TS decoder 144 µs, Rust 180 µs. The Rust figure splits into decode 32, serialize 68, and parse with assembly 81. That is +36 µs, about 1 ms a second at 30 Hz.
+
+**Graphics test** (`graphics-fps`, production build, headless, plugged in, before and after interleaved, three runs each). The per-run spread brackets every difference. Market-town's p95 sits on a display step (17.5 or 25 ms) on both sides.
+
+| scene | | avg FPS (median; range) | 1% low | p95 / p99 ms | main-thread CPU ms (mean of runs) | GPU ms |
+| --- | --- | --- | --- | --- | --- | --- |
+| market-town | before | 73.1 (70.2–73.1) | 36.9 | 17.47 / 25.04 | 4.97 | 9.09 |
+| market-town | after | 72.8 (70.8–74.0) | 37.3 | 23.36 / 25.32 | 4.76 | 9.24 |
+| paris-corner | before | 104.4 (104.0–105.1) | 50.5 | 16.70 / 17.59 | 0.82 | 5.37 |
+| paris-corner | after | 103.6 (93.0–104.8) | 55.5 | 16.73 / 17.76 | 1.01 | 5.58 |
+
+Paris-corner's third "after" run was slower in GPU and CPU together (6.36 ms GPU, 93 FPS), which reads as contention, not decode.
+
+**Battle** (the benchmark scene's short run: city contact on Metro Large, a heavy, main-thread-bound stress at 1920×1080; production build; interleaved, three runs each). Every difference sits inside the spread. The 1% low is the worst 9 of about 900 frames.
+
+| | avg FPS (runs) | 1% low (runs) | p95 / p99 ms (median run) | main-thread CPU p50 / p95 ms (median run) | GPU ms (mean of runs) |
+| --- | --- | --- | --- | --- | --- |
+| before | 14.9, 15.1, 15.1 | 4.7, 4.6, 5.2 | 133.6 / 183.3 | 28.0 / 81.9 | 23.31 |
+| after | 15.1, 15.0, 15.3 | 4.1, 4.7, 4.1 | 133.4 / 183.3 | 27.8 / 79.6 | 23.29 |
+
+Every run of both scenes passed its checks (reel complete, timing comparable, no contention; the benchmark's phases, contact and camera keyframes). Evidence: `throwaway/perf/slice19-{before,after}/` and `throwaway/perf-runs.log`.
+
+**Less code, web half** (code lines, excluding comments, blanks and fixtures, against `b25be91dd`):
 
 | | added | deleted | net |
 | --- | --- | --- | --- |
-| Rust (reader, `GROUP_LAYOUTS`, equality test) | 1,332 | 95 | +1,237 |
-| TS, GDScript | 0 | 0 | 0 |
-| Due when the surfaces land | | `observation.ts` 1,197, `observation.gd` 836, `nativePublicationDecode.test.ts` 77, `publication_decode_test.gd` 84 | −2,194 |
+| Rust (reader 1,305, `GROUP_LAYOUTS`, presentation module 81, equality test 89) | 1,609 | 117 | +1,492 |
+| TS (`observation.ts` out; `observationView.ts` 322 and `presentation.ts` 39 in) | 429 | 1,298 | −869 |
+| TS tests | 89 | 84 | +5 |
+| GDScript | 2 | 0 | +2 |
+| Total | 2,129 | 1,499 | **+630** |
 
-That projects about −960 before the binding glue. Two more duplicates could go as well: the Rust tests' own transport decoder (`tests/common/publication_codec.rs`, 140 lines) and the logical-record walker in `tests/publication.rs`.
+The web half alone grows the total. The native half deletes `observation.gd` (836), `publication_decode_test.gd` (84) and the browser's fixture check (`nativePublicationDecode.test.ts`, 77), which brings the slice to about −360 after its glue. Two more duplicates of the reader could then go: the Rust tests' own transport decoder (`tests/common/publication_codec.rs`, 140) and the logical-record walker in `tests/publication.rs`.
 
 **Focused gates:**
 - **Equality.** The Rust reader matches the old TS decoder field for field on both fixture captures, before the TS decoder is deleted (the test from slice 13, reused).

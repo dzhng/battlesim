@@ -1,7 +1,8 @@
 // @vitest-environment node
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { expect, test } from "vitest";
-import { ObservationDecoder, type ObservationLayout } from "@web/battle/sim/observation";
+import type { ObservationLayout } from "@web/battle/sim/observationView";
+import { ObservationDecoder, loadPresentation } from "@web/battle/sim/presentation";
 import { nodeCatalogSet } from "@web/battle/catalog/node";
 import { createEffectFrame, effectPublication, gameEffects } from "@apps/battle-lab/src/effectFeed";
 import {
@@ -12,6 +13,8 @@ import {
 import { offeredCastLights } from "@packages/battle-renderer/src/light/castLights";
 import type { DrawnRotor } from "@packages/battle-renderer/src/models/drawnModels";
 import type { MountMuzzle } from "@packages/scene-assets/src/mountMuzzle";
+
+await loadPresentation();
 
 // Writes the browser's effects for fixed causes, the vectors native's port of
 // the effects (`native/godot/effects/effect_frame.gd`) is compared against

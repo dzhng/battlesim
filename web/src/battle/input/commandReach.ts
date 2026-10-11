@@ -4,7 +4,7 @@
  *  fire policy) are not listed: they reach the whole selection.
  *  The one owner of "can this unit do it", for the bar, the keys and the
  *  right-click alike. */
-import type { OwnUnitView } from "../sim/observation";
+import type { OwnUnitView } from "../sim/observationView";
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
 
 export type ReachCommand = "attack" | "deploy" | "garrison" | "exit_building";

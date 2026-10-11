@@ -5,7 +5,7 @@
 import { vec2, type Vec2 } from "math";
 import game from "@fixtures/game.json";
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
-import type { OwnUnitView } from "../sim/observation";
+import type { OwnUnitView } from "../sim/observationView";
 
 const { reverse_zone_length_m: LENGTH_M, reverse_zone_margin_m: MARGIN_M } = game.controls;
 

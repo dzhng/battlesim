@@ -3,7 +3,7 @@ import { UNITS } from "./catalog";
 import { expect, test } from "vitest";
 import game from "@fixtures/game.json";
 import { inReverseZone } from "../src/battle/input/reverseZone";
-import type { OwnUnitView } from "../src/battle/sim/observation";
+import type { OwnUnitView } from "../src/battle/sim/observationView";
 
 const { reverse_zone_length_m: length, reverse_zone_margin_m: margin } = game.controls;
 const [halfLength, halfWidth] = UNITS.hull("test_tank")!.half_extents_m;

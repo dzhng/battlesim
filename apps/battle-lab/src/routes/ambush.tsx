@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { buildUnitMarks } from "@packages/battle-renderer/src/guidanceOverlay";
 import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
-import type { MountView, ObservationView } from "@web/battle/sim/observation";
+import type { MountView, ObservationView } from "@web/battle/sim/observationView";
 import { REASON_TEXT } from "../reasonText";
 import type { Order } from "@web/battle/sim/protocol";
 import { AckLog } from "../AckLog";

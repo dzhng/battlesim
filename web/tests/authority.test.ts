@@ -11,10 +11,13 @@ import {
 import { simModule } from "../src/battle/sim/module";
 import { MAX_CATCHUP_TICKS, PUBLICATION_POOL } from "../src/battle/sim/timing";
 import type { CommandEnvelope, SimReply } from "../src/battle/sim/protocol";
-import { ObservationDecoder, type ObservationLayout } from "../src/battle/sim/observation";
+import type { ObservationLayout } from "../src/battle/sim/observationView";
+import { ObservationDecoder, loadPresentation } from "../src/battle/sim/presentation";
 import game from "@fixtures/game.json";
 import { loadMap } from "@web/maps/node";
 import { labScenario } from "./catalog";
+
+await loadPresentation();
 
 const geometry = loadMap("geometry").definition;
 

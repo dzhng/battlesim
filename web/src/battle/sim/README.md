@@ -20,11 +20,15 @@ render, and a drawn frame never reads it: everything a frame draws or decides
 comes from the [interpolator's sample](../present/interpolate.ts), the
 publication its poses blend toward, so one frame shows one tick.
 
-[Decoding](observation.ts) follows the layout supplied by [Rust publication](../../../../crates/sim/src/publication.rs).
-Do not copy field offsets, enum rosters or packed bit grammars into another owner.
-Large exact integers use the producer's limb encoding because Float32 cannot carry
-their identity intact. [Learned ground](ground.ts) applies side-local patches to
-one forward-moving view; it does not expose authoritative ground changes a side
+Rust decodes. [The presentation module](presentation.ts) pushes each publication
+into the [publication reader](../../../../crates/sim/src/publication/reader.rs),
+compiled into its own small WebAssembly module, and takes the observation back as
+JSON in [the view's shape](observationView.ts). The fog bits and ground runs come
+back as typed arrays, and unchanged fog and static groups keep their previous
+views. Nothing on the page reads field offsets, enum rosters or packed bit grammars.
+
+[Learned ground](ground.ts) applies side-local patches to one forward-moving
+view; it does not expose authoritative ground changes a side
 has not learned.
 
 Changing the observed side requires a fresh visibility/ground epoch. Old side

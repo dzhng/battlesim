@@ -165,8 +165,9 @@ light, and the report records it as a budget.
 ## Publication
 
 `capture/observation.gd` decodes the capture's publications as one ordered
-stream, the port of the browser's `ObservationDecoder`
-(`web/src/battle/sim/observation.ts`). Each sample becomes one observation
+stream, a port of the Rust reader the browser decodes with
+(`crates/sim/src/publication/reader.rs`), until native calls that reader
+itself (slice 19). Each sample becomes one observation
 with the browser's keys, nulls and float32 values: every group and section,
 the fog field and the ground runs with their cleared byte. The published
 layout owns packing, baselines and offsets. A layout group native doesn't

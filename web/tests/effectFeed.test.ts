@@ -3,7 +3,7 @@ import { expect, test } from "vitest";
 import { effectPublication } from "@apps/battle-lab/src/effectFeed";
 import { LaunchTracker } from "@packages/battle-renderer/src/effects/launches";
 import { UNITS } from "./catalog";
-import type { ObservationView } from "@web/battle/sim/observation";
+import type { ObservationView } from "@web/battle/sim/observationView";
 
 test("the production observed feed launches own and enemy rounds by shooter and weapon row", () => {
   const observation = (tick: number): ObservationView =>

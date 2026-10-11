@@ -1,4 +1,4 @@
-import type { ContactView } from "../sim/observation";
+import type { ContactView } from "../sim/observationView";
 
 /** Visual memory only. Retired reports cannot be selected or commanded. */
 export interface PresentedContact extends ContactView {

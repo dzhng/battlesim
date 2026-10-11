@@ -30,11 +30,10 @@ import { buildingCollapse } from "@packages/scene-assets/src/authority";
 import { UNITS } from "./catalog";
 import { ruinHeight } from "@packages/scene-assets/src/templateSource";
 import { loadEncounter, loadMap } from "@web/maps/node";
-import {
-  ObservationDecoder,
-  type ObservationLayout,
-  type ObservationView,
-} from "../src/battle/sim/observation";
+import type { ObservationLayout, ObservationView } from "../src/battle/sim/observationView";
+import { ObservationDecoder, loadPresentation } from "../src/battle/sim/presentation";
+
+await loadPresentation();
 
 let memory: WebAssembly.Memory;
 beforeAll(() => {

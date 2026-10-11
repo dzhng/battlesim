@@ -4,7 +4,7 @@ import { useSessionCatalog } from "../catalog/context";
 import { InfoPanel } from "./infoPanel";
 import { purchasePanel, type PanelRules } from "./panelRows";
 import { UnitFace } from "./unitFace";
-import type { SkirmishView } from "../sim/observation";
+import type { SkirmishView } from "../sim/observationView";
 interface PickerProps {
   cards: readonly UnitCard[];
   faction: Faction;
