@@ -7,6 +7,8 @@
 # runtime error inside a called function returns null and lets the caller go on.
 set -u
 cd "$(dirname "$0")/.."
+# The world layers walk the static world in the Rust extension.
+binding/build.sh >/dev/null 2>&1 || { echo "FAIL the Rust extension does not build (binding/build.sh)"; exit 1; }
 status=0
 for test in ${@:-tests/*_test.gd}; do
 	name=$(basename "$test")

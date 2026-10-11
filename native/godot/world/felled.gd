@@ -7,7 +7,7 @@ extends RefCounted
 ## narrowed to `rest_spread`; its stump stands where it grew.
 ##
 ## The browser poses a felled tree in its vertex stage; native bakes the same
-## pose (`felled_point`, the port of `felledPoint`) into one mesh per tree and
+## pose (the Rust extension's port of `felledPoint`) into one mesh per tree and
 ## tier, again only when the pose or tier changes. Normals turn with the fall
 ## but are not pressed.
 
@@ -16,8 +16,6 @@ const Coords = preload("res://core/coords.gd")
 
 const TIERS := 4
 const COARSEST := TIERS - 1
-## A landing tree's foot kicks off its stump this many trunk radii along the fall.
-const KICK_RADII := 2.0
 ## The material whose triangles are foliage (`scenery/appearance.ts`).
 const FOLIAGE := "leaves"
 ## Facets round a stump, and how close to its base a trunk's foot ring lies.
@@ -39,8 +37,9 @@ var _stumps := PackedInt32Array()
 ## last baked for.
 var _trees: Array[Dictionary] = []
 var _root: Node3D
-## Where each forest tree is in the forest population, by trunk id.
-var _forest_at := {}
+## Poses vertices (`FelledPose`), and each tier's surfaces as read.
+var _poser = ClassDB.instantiate("FelledPose")
+var _arrays := {}
 
 func _init(rules: Dictionary, tick_hz: float) -> void:
 	_rules = rules
@@ -70,31 +69,25 @@ func build(batches: ModelBatches, appearances: PackedInt32Array, root: Node3D, f
 		_stumps[kind] = batches.add_appearance(holder, true)
 		holder.free()
 
-## The felled trees of `fallen_bodies` (`fallenBodies`) that `forest` (a
-## `scenery_layer.gd` population) stands.
-func show(fallen_bodies: Array, forest) -> void:
-	if _forest_at.is_empty():
-		for i in forest.ids.size():
-			_forest_at[forest.ids[i]] = i
-	var at := _forest_at
+## The felled trees of `fallen_bodies` (`fallenBodies`) the forest stands:
+## `tree_of` gives a trunk id's tree (`{kind, height, reach, pack}`), or
+## nothing for a body the forest does not stand. A tree already shown keeps
+## what it baked.
+func show(fallen_bodies: Array, tree_of: Callable) -> void:
 	var before := {}
 	for tree in _trees:
 		before[tree.prop] = tree
 	var trees: Array[Dictionary] = []
 	for body in fallen_bodies:
-		var i = at.get(int(body.prop))
-		if i == null:
-			continue
-		var tree: Dictionary = before.get(int(body.prop), {"prop": int(body.prop), "nodes": [null, null], "baked": [null, null]})
-		before.erase(int(body.prop))
-		tree.merge({
-			"kind": forest.kinds[i],
-			"height": forest.heights[i],
-			"reach": forest.reaches[i],
-			"toward": Vector2(float(body.toward[0]), float(body.toward[1])),
-			"fell_at": (float(body.tick) - 1.0) / _tick_hz,
-			"pack": forest.packs.slice(i * ModelBatches.INSTANCE_FLOATS, (i + 1) * ModelBatches.INSTANCE_FLOATS),
-		}, true)
+		var prop := int(body.prop)
+		var tree: Dictionary = before.get(prop, {})
+		if tree.is_empty():
+			var found: Dictionary = tree_of.call(prop)
+			if found.is_empty():
+				continue
+			tree = found.merged({"prop": prop, "nodes": [null, null], "baked": [null, null]})
+		before.erase(prop)
+		tree.merge({"toward": Vector2(float(body.toward[0]), float(body.toward[1])), "fell_at": (float(body.tick) - 1.0) / _tick_hz}, true)
 		trees.append(tree)
 	for tree in before.values():
 		for node in tree.nodes:
@@ -201,64 +194,30 @@ static func fell_pose(rules: Dictionary, toward: Vector2, age: float, height: fl
 	var squash := clampf((float(rules.rest_height_m) - axis) / maxf(reach, 1e-3), 0.02, 1.0)
 	return [toward.x, toward.y, angle, hinge, trunk, 1.0 + (squash - 1.0) * landed, 1.0 + (float(rules.rest_spread) - 1.0) * landed, landed, crown]
 
-static func _past_trunk(d: float, radius: float, k: float) -> float:
-	var m := absf(d)
-	return signf(d) * (minf(m, radius) + maxf(m - radius, 0.0) * k)
-
-## A point `p` of the tree, scaled and turned by its yaw, relative to its foot
-## (sim space; leaves when `foliage`), in pose `f` (`felledPoint`).
-static func felled_point(p: Vector3, foliage: bool, f: Array) -> Vector3:
-	var tx: float = f[0]
-	var ty: float = f[1]
-	var hinge: float = f[3]
-	var trunk: float = f[4]
-	var landed: float = f[7]
-	var core := 0.0 if foliage or p.z > float(f[8]) else trunk
-	var a := p.x * tx + p.y * ty
-	var sx := p.x - tx * a
-	var sy := p.y - ty * a
-	var side := sqrt(sx * sx + sy * sy)
-	var k := _past_trunk(side, core, f[6]) / side if side > 0.0 else 0.0
-	var z := maxf(p.z - hinge, 0.0)
-	var c := cos(float(f[2]))
-	var s := sin(float(f[2]))
-	var along := a * c + z * s + KICK_RADII * trunk * landed
-	var up := z * c - _past_trunk(a, core, f[5]) * s - (hinge - trunk) * landed
-	return Vector3(tx * along + sx * k, ty * along + sy * k, hinge + up)
-
 ## `mesh` (an appearance's tier, unscaled) posed as the tree packed in `pack`
-## lies in pose `f`, in world space.
-static func posed_mesh(mesh: ArrayMesh, pack: PackedFloat32Array, f: Array) -> ArrayMesh:
-	var sxy := _scale_xy(pack)
-	var sz := _scale_z(pack)
-	var across := Vector3(pack[0], pack[4], pack[8]) / sxy
-	var yaw := atan2(-across.z, across.x)
-	var foot := Coords.godot_to_sim(Vector3(pack[3], pack[7], pack[11]))
-	var c := cos(yaw)
-	var s := sin(yaw)
-	# Normals turn with the tree: its yaw, then the fall about the axis across it.
-	var turn := Basis(Coords.sim_to_godot(Vector3(-float(f[1]), float(f[0]), 0.0)).normalized(), float(f[2])) * Coords.yaw_basis(yaw)
+## lies in pose `f`, in world space: each vertex by the browser's
+## `felledPoint`, run by the Rust extension (`FelledPose`, `native/godot-binding`).
+func posed_mesh(mesh: ArrayMesh, pack: PackedFloat32Array, f: Array) -> ArrayMesh:
+	var pose := PackedFloat64Array(f)
 	var out := ArrayMesh.new()
 	for surface in mesh.get_surface_count():
-		var arrays := mesh.surface_get_arrays(surface)
+		var arrays: Array = _surface_arrays(mesh, surface)
 		var material := mesh.surface_get_material(surface)
 		var foliage := material != null and material.resource_name == FOLIAGE
-		var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
-		var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL] if arrays[Mesh.ARRAY_NORMAL] != null else PackedVector3Array()
-		for v in vertices.size():
-			var local := Coords.godot_to_sim(vertices[v])
-			var x := local.x * sxy
-			var y := local.y * sxy
-			vertices[v] = Coords.sim_to_godot(foot + felled_point(Vector3(x * c - y * s, x * s + y * c, local.z * sz), foliage, f))
-			if not normals.is_empty():
-				normals[v] = (turn * normals[v]).normalized()
-		arrays[Mesh.ARRAY_VERTEX] = vertices
-		if not normals.is_empty():
-			arrays[Mesh.ARRAY_NORMAL] = normals
+		arrays[Mesh.ARRAY_VERTEX] = _poser.pose(arrays[Mesh.ARRAY_VERTEX], foliage, pack, pose)
+		if arrays[Mesh.ARRAY_NORMAL] != null:
+			arrays[Mesh.ARRAY_NORMAL] = _poser.turn(arrays[Mesh.ARRAY_NORMAL], pack, pose)
 		arrays[Mesh.ARRAY_TANGENT] = null
 		out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 		out.surface_set_material(surface, material)
 	return out
+
+## A surface's arrays, read once per mesh and surface.
+func _surface_arrays(mesh: ArrayMesh, surface: int) -> Array:
+	var key := [mesh, surface]
+	if not _arrays.has(key):
+		_arrays[key] = mesh.surface_get_arrays(surface)
+	return _arrays[key].duplicate()
 
 # A kind's trunk and crown, from its finest tier --------------------------
 

@@ -33,22 +33,24 @@ class Appearance:
 	var meshes: Array[ArrayMesh] = []
 	## Its finest tier's bounds, in its own space.
 	var bounds: AABB
-	## Per tier: what the view draws and what the cascades draw.
+	## Per tier: what the view draws, and per caster region what the
+	## cascades draw.
 	var view: Array[MultiMeshInstance3D] = []
-	var cast: Array[MultiMeshInstance3D] = []
+	var cast: Array[Dictionary] = []
 	## Per tier: the instances chosen (`INSTANCE_FLOATS` each), for the view
-	## and the cascades, and whether they changed since the last write.
+	## and, by region, for the cascades; and whether they changed since the
+	## last write.
 	var chosen_view: Array[PackedFloat32Array] = []
-	var chosen_cast: Array[PackedFloat32Array] = []
+	var chosen_cast: Array[Dictionary] = []
 	var changed := false
 
 	func _init(tier_meshes: Array) -> void:
 		for tier in TIERS:
 			meshes.append(tier_meshes[tier])
 			chosen_view.append(PackedFloat32Array())
-			chosen_cast.append(PackedFloat32Array())
+			chosen_cast.append({})
 			view.append(null)
-			cast.append(null)
+			cast.append({})
 
 var _appearances: Array[Appearance] = []
 ## The direction toward the sun in Godot space, and how far the cascades
@@ -102,11 +104,13 @@ func mesh(appearance: int, tier: int) -> ArrayMesh:
 
 ## Replaces what `appearance` draws at `tier`: `view` into the view and
 ## `cast` into the cascades, `pack`ed. Kept until chosen again; written by
-## the next `write`.
-func choose(appearance: int, tier: int, view: PackedFloat32Array, cast: PackedFloat32Array) -> void:
+## the next `write`. A `cast` given by region (region -> instances) is a
+## batch per region, which each cascade culls by its bounds: a cascade draws
+## only the regions it covers.
+func choose(appearance: int, tier: int, view: PackedFloat32Array, cast: Variant) -> void:
 	var chosen := _appearances[appearance]
 	chosen.chosen_view[tier] = view
-	chosen.chosen_cast[tier] = cast
+	chosen.chosen_cast[tier] = cast if cast is Dictionary else {0: cast}
 	chosen.changed = true
 
 ## The view of `camera` drawing into a viewport `size` pixels big, under
@@ -124,7 +128,10 @@ func write() -> void:
 			if appearance.meshes[tier] == null:
 				continue
 			appearance.view[tier] = _fill(appearance.view[tier], appearance.meshes[tier], GeometryInstance3D.SHADOW_CASTING_SETTING_OFF, appearance.chosen_view[tier])
-			appearance.cast[tier] = _fill(appearance.cast[tier], appearance.meshes[tier], GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY, appearance.chosen_cast[tier])
+			var casts: Dictionary = appearance.cast[tier]
+			var chosen: Dictionary = appearance.chosen_cast[tier]
+			for region in casts.keys() + chosen.keys():
+				casts[region] = _fill(casts.get(region), appearance.meshes[tier], GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY, chosen.get(region, PackedFloat32Array()))
 
 ## `batch` (made on first use) drawing `buffer`'s instances of `mesh`.
 func _fill(batch: MultiMeshInstance3D, mesh: ArrayMesh, shadows: GeometryInstance3D.ShadowCastingSetting, buffer: PackedFloat32Array) -> MultiMeshInstance3D:

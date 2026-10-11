@@ -24,12 +24,9 @@ extends Node3D
 const ModelBatches = preload("res://world/model_batches.gd")
 const DetailView = preload("res://world/detail_view.gd")
 const WordTables = preload("res://core/word_tables.gd")
-const Coords = preload("res://core/coords.gd")
-const ChunkGrid = preload("res://world/chunk_grid.gd")
 
 const OWNER := "native/building_layer"
 const TIERS := 4
-const COARSEST := TIERS - 1
 const STATES := ["intact", "ruin", "gutted"]
 ## The browser's pool refuses a record once packing cannot give every kind a
 ## quarter to spare (`placementPool.ts`): residents past this share of its
@@ -41,41 +38,30 @@ var _batches: ModelBatches
 var _lod_px_per_m: Array
 var _chunk_m: float
 var _pool_records: int
-var _caster_coarser: int
 ## Per exported module: its appearance in `_batches`.
 var _modules: Array = []
 var _module_names: Array = []
+## The manifest's tables: `buildings` and each state's rows.
+var _tables: Dictionary
 ## Per building: its frame (x, y, z, yaw), its bounds in Godot space and its
-## height, its coarse chunk (-1 for none), and per state its first row and
-## row count (-1: its template has none).
+## height, and per state its first row and row count (-1: its template has
+## none).
 var _frames := PackedFloat32Array()
 var _boxes: Array[AABB] = []
 var _heights := PackedFloat32Array()
-var _chunk_of := PackedInt32Array()
 var _first: Array[PackedInt32Array] = []
 var _count: Array[PackedInt32Array] = []
-## Per state: the module instances (`WordTables.records`).
-var _rows: Array[Dictionary] = []
-## Per coarse chunk: its buildings, its box (the union of theirs) and its
-## tallest building.
-var _chunks: Array[PackedInt32Array] = []
-var _chunk_boxes: Array[AABB] = []
-var _chunk_heights := PackedFloat32Array()
-## The chunks gathered for culling (`chunk_grid.gd`).
-var _grid: ChunkGrid
-## Chunk and tier -> module -> instances packed for the batches; dropped when
-## a building of the chunk falls or rises.
-var _packs := {}
+## The walk (`StaticSelection`, `native/godot-binding`): the intact rows by
+## coarse chunk, and the fallen population (-1 until any fall).
+var _selection
+var _coarse := -1
+var _ruins := -1
 ## Building -> the state the side knows it fell in.
 var _fallen := {}
 ## Each building part's prop id -> its building, and the prop kinds a gutted
 ## building's parts become (`manifest.props`); empty until known.
 var _part_building := {}
 var _shells := {}
-## The fallen population: per cell, its buildings, box and tallest building.
-var _ruins: Array[Dictionary] = []
-## What the last frame chose, so an unchanged view writes nothing.
-var _last_choice: Array = []
 ## Per module and tier (`module · 4 + tier`): what the last frame drew.
 var counts := PackedInt32Array()
 ## The most pool records a frame held.
@@ -87,20 +73,18 @@ func _init(tables: Dictionary, buildings: Dictionary, sun: Vector3, max_far_m: f
 	name = "Buildings"
 	_batches = ModelBatches.new("BuildingBatches", sun, max_far_m)
 	add_child(_batches)
+	_tables = tables
 	var tiers: Dictionary = buildings.tiers
 	_lod_px_per_m = tiers.lodPxPerM
 	_chunk_m = float(tiers.chunkM)
 	_pool_records = int(tiers.poolRecords)
-	_caster_coarser = int(tiers.casterCoarser)
 	_module_names = buildings.modules
 	counts.resize(_module_names.size() * TIERS)
 	var placed := WordTables.records(tables.buildings)
 	for state in STATES:
-		_rows.append(WordTables.records(tables[state]))
 		_first.append(PackedInt32Array())
 		_count.append(PackedInt32Array())
 	var at: Dictionary = placed.at
-	var chunk_count := 0
 	for b in placed.count:
 		var o: int = b * placed.stride
 		for k in 4:
@@ -109,25 +93,21 @@ func _init(tables: Dictionary, buildings: Dictionary, sun: Vector3, max_far_m: f
 		var hi := Vector3(placed.f[o + at.max], placed.f[o + at.max + 1], placed.f[o + at.max + 2])
 		_boxes.append(DetailView.sim_box(lo, hi))
 		_heights.append(hi.z - lo.z)
-		_chunk_of.append(placed.i[o + at.chunk])
-		chunk_count = maxi(chunk_count, placed.i[o + at.chunk] + 1)
 		for s in STATES.size():
 			var rows: int = placed.i[o + at.rows + s]
 			var before := _first[s][b - 1] + maxi(_count[s][b - 1], 0) if b > 0 else 0
 			_first[s].append(before)
 			_count[s].append(rows)
-	for c in chunk_count:
-		_chunks.append(PackedInt32Array())
-		_chunk_boxes.append(AABB())
-		_chunk_heights.append(0.0)
-	for b in _chunk_of.size():
-		var c := _chunk_of[b]
-		if c < 0:
-			continue
-		_chunk_boxes[c] = _boxes[b] if _chunks[c].is_empty() else _chunk_boxes[c].merge(_boxes[b])
-		_chunk_heights[c] = maxf(_chunk_heights[c], _heights[b])
-		_chunks[c].append(b)
-	_grid = ChunkGrid.new(_chunk_boxes, _chunk_heights, 8.0 * _chunk_m)
+	_selection = ClassDB.instantiate("StaticSelection")
+	_selection.set_kinds(_module_names.size())
+	_coarse = _selection.add_buildings(tables.buildings.words, int(tables.buildings.layout.stride), _at(tables.buildings), tables.intact.words, int(tables.intact.layout.stride), _at(tables.intact), PackedFloat64Array(_lod_px_per_m), _pool_records)
+
+## A table's fields' first words by name.
+static func _at(table: Dictionary) -> Dictionary:
+	var at := {}
+	for field in table.layout.fields:
+		at[String(field.name)] = int(field.word)
+	return at
 
 ## The kit sources the modules are drawn from (`catalog`'s).
 func required_assets(catalog) -> Array:
@@ -148,8 +128,8 @@ func build(catalog, report) -> void:
 			continue
 		_modules.append(_batches.add_appearance(node))
 	var rows := 0
-	for state in _rows:
-		rows += int(state.count)
+	for state in STATES:
+		rows += int(_tables[state].layout.count)
 	report.add_budget(OWNER, "the browser's module instances, every building in every state its template has", "buildings", _frames.size() / 4, _frames.size() / 4, 0)
 	report.add_budget(OWNER, "module instances over every state", "buildings.rows", rows, rows, 0)
 
@@ -179,157 +159,53 @@ func set_known(known: Array, report) -> void:
 	for b in states:
 		if _count[STATES.find(states[b])][b] < 0:
 			report.add_blocker("buildings", "building %d is known %s, and its template has no %s rows" % [b, states[b], states[b]])
-	var changed := {}
-	for b in states.keys() + _fallen.keys():
-		if states.get(b) != _fallen.get(b):
-			changed[_chunk_of[b]] = true
-	for key in _packs.keys():
-		if changed.has(key[0]):
-			_packs.erase(key)
 	_fallen = states
-	_ruins.clear()
+	_selection.hide_keys(_coarse, PackedInt64Array(states.keys()))
+	# The fallen population, chunked by the cell each stands in: per cell its
+	# buildings' rows in the state each is known in, its box and its tallest.
 	var cells := {}
 	var sorted := states.keys()
 	sorted.sort()
 	for b in sorted:
 		var cell := Vector2i(floori(_frames[b * 4] / _chunk_m), floori(_frames[b * 4 + 1] / _chunk_m))
 		if not cells.has(cell):
-			cells[cell] = _ruins.size()
-			_ruins.append({"buildings": PackedInt32Array(), "box": _boxes[b], "height": 0.0})
-		var ruin: Dictionary = _ruins[cells[cell]]
+			cells[cell] = {"buildings": [], "box": _boxes[b], "height": 0.0}
+		var ruin: Dictionary = cells[cell]
 		ruin.buildings.append(b)
 		ruin.box = ruin.box.merge(_boxes[b])
 		ruin.height = maxf(ruin.height, _heights[b])
-
-## Chooses what `view` (`detail_view.gd`) draws and casts this frame, and
-## counts it. `report` takes a blocker should the pool not hold the residents.
-func prepare(view, report) -> void:
-	var coarse_view := PackedInt32Array()
-	var coarse_cast := PackedInt32Array()
-	var near := []
-	var visit: Array = _grid.visit(view, _chunk_boxes, _chunk_heights, true)
-	for c in visit[0]:
-		var distance: float = view.distance_to(_chunk_boxes[c])
-		var wanted := _level(view, distance)
-		if wanted < COARSEST:
-			near.append([distance, c, wanted])
-		else:
-			coarse_view.append(c)
-			if distance <= view.reach:
-				coarse_cast.append(c)
-	coarse_cast.append_array(visit[1])
-	near.sort_custom(func(a, b): return a[0] < b[0])
-	var residents := []
-	var used := 0
-	var full := false
-	for entry in near:
-		var c: int = entry[1]
-		var rows := _resident_rows(c, entry[2])
-		if not full and used + rows <= _pool_records:
-			used += rows
-			residents.append([c, entry[2]])
-			continue
-		full = true
-		coarse_view.append(c)
-		if entry[0] <= view.reach:
-			coarse_cast.append(c)
-	most_resident = maxi(most_resident, used)
-	if used > POOL_SHARE * _pool_records:
-		report.add_blocker("buildings", "a view holds %d resident module instances; the browser's pool (%d records) refuses past about %d%% of them, which native does not port" % [used, _pool_records, roundi(POOL_SHARE * 100.0)])
-	var ruins := []
-	for r in _ruins.size():
-		var ruin: Dictionary = _ruins[r]
-		if view.box_meets(ruin.box):
-			var distance: float = view.distance_to(ruin.box)
-			ruins.append([r, _level(view, distance), distance <= view.reach])
-		elif view.casts_into_view(ruin.box, ruin.height):
-			ruins.append([r, -1, true])
-	var choice := [coarse_view, coarse_cast, residents, ruins, _fallen.duplicate()]
-	if choice == _last_choice:
-		return
-	_last_choice = choice
-	_choose(coarse_view, coarse_cast, residents, ruins)
-	_batches.write()
-
-## The tier a chunk `distance` metres off draws at (`buildingLevel`).
-func _level(view, distance: float) -> int:
-	var px: float = view.pixels_per_metre / maxf(distance, 1e-3)
-	return 0 if px > float(_lod_px_per_m[0]) else 1 if px > float(_lod_px_per_m[1]) else 2 if px > float(_lod_px_per_m[2]) else COARSEST
-
-## Rows chunk `c`'s standing buildings draw at `tier`.
-func _resident_rows(c: int, tier: int) -> int:
-	var rows := 0
-	for module_rows in _pack(c, tier).values():
-		rows += module_rows.size() / ModelBatches.INSTANCE_FLOATS
-	return rows
-
-func _choose(coarse_view: PackedInt32Array, coarse_cast: PackedInt32Array, residents: Array, ruins: Array) -> void:
-	var view := []
-	var cast := []
-	for k in _module_names.size() * TIERS:
-		view.append(PackedFloat32Array())
-		cast.append(PackedFloat32Array())
-	for c in coarse_view:
-		_add(view, _pack(c, COARSEST), COARSEST)
-	for c in coarse_cast:
-		_add(cast, _pack(c, COARSEST), COARSEST)
-	for resident in residents:
-		var pack := _pack(resident[0], resident[1])
-		_add(view, pack, resident[1])
-		_add(cast, pack, mini(resident[1] + _caster_coarser, COARSEST))
-	for entry in ruins:
-		var ruin: Dictionary = _ruins[entry[0]]
+	var stride: int = int(_tables.ruin.layout.stride)
+	var rows := PackedByteArray()
+	var boxes := PackedFloat32Array()
+	var heights := PackedFloat32Array()
+	var firsts := PackedInt32Array()
+	var sizes := PackedInt32Array()
+	for ruin in cells.values():
+		firsts.append(rows.size() / 4 / stride)
 		for b in ruin.buildings:
-			var state := STATES.find(_fallen[b])
-			if entry[1] >= 0:
-				_add(view, _rows_of(b, state, entry[1]), entry[1])
-			if entry[2]:
-				_add(cast, _rows_of(b, state, COARSEST), COARSEST)
-	for m in _module_names.size():
-		for tier in TIERS:
-			counts[m * TIERS + tier] = view[m * TIERS + tier].size() / ModelBatches.INSTANCE_FLOATS
-			if m < _modules.size() and _modules[m] >= 0:
-				_batches.choose(_modules[m], tier, view[m * TIERS + tier], cast[m * TIERS + tier])
+			var s := STATES.find(states[b])
+			var words: PackedByteArray = _tables[STATES[s]].words
+			rows.append_array(words.slice(_first[s][b] * stride * 4, (_first[s][b] + maxi(_count[s][b], 0)) * stride * 4))
+		sizes.append(rows.size() / 4 / stride - firsts[-1])
+		boxes.append_array([ruin.box.position.x, ruin.box.position.y, ruin.box.position.z, ruin.box.end.x, ruin.box.end.y, ruin.box.end.z])
+		heights.append(ruin.height)
+	_ruins = _selection.set_ruins(_ruins, rows, stride, _at(_tables.ruin), boxes, heights, firsts, sizes, PackedFloat64Array(_lod_px_per_m))
 
-## Appends each module's instances in `pack` to `lists` at `tier`.
-static func _add(lists: Array, pack: Dictionary, tier: int) -> void:
-	for m in pack:
-		lists[m * TIERS + tier].append_array(pack[m])
-
-## Chunk `c`'s standing buildings' intact rows at `tier`, by module (cached).
-func _pack(c: int, tier: int) -> Dictionary:
-	var key := [c, tier]
-	if not _packs.has(key):
-		var pack := {}
-		for b in _chunks[c]:
-			if not _fallen.has(b):
-				_merge(pack, _rows_of(b, 0, tier))
-		_packs[key] = pack
-	return _packs[key]
-
-## Building `b`'s rows in state `s` whose tier mask has `tier`, by module.
-func _rows_of(b: int, s: int, tier: int) -> Dictionary:
-	var out := {}
-	var rows: Dictionary = _rows[s]
-	var at: Dictionary = rows.at
-	var f: PackedFloat32Array = rows.f
-	var i: PackedInt32Array = rows.i
-	for r in range(_first[s][b], _first[s][b] + maxi(_count[s][b], 0)):
-		var o: int = r * rows.stride
-		if not (i[o + at.tiers] & (1 << tier)):
-			continue
-		var module: int = i[o + at.kitModule]
-		if not out.has(module):
-			out[module] = PackedFloat32Array()
-		var basis := Coords.yaw_basis(f[o + at.yaw]).scaled_local(Vector3(f[o + at.scale], f[o + at.scale + 2], f[o + at.scale + 1]))
-		var origin := Coords.sim_to_godot(Vector3(f[o + at.position], f[o + at.position + 1], f[o + at.position + 2]))
-		ModelBatches.pack(out[module], Transform3D(basis, origin), Color(f[o + at.tint], f[o + at.tint + 1], f[o + at.tint + 2]))
-	return out
-
-static func _merge(into: Dictionary, more: Dictionary) -> void:
-	for m in more:
-		if into.has(m):
-			into[m].append_array(more[m])
-		else:
-			into[m] = more[m].duplicate()
-
+## Chooses what `view` (`detail_view.gd`) draws and casts this frame, counts
+## it, and writes what changed. `report` takes a blocker should the pool not
+## hold the residents.
+func prepare(view, report) -> void:
+	for key in _selection.select(view.eye, view.sides_packed(), view.pixels_per_metre, view.reach, view.fall):
+		var module: int = key / TIERS
+		if module < _modules.size() and _modules[module] >= 0:
+			_batches.choose(_modules[module], key % TIERS, _selection.view(key), _selection.cast(key))
+	_batches.write()
+	counts = _selection.counts(_coarse)
+	if _ruins >= 0:
+		var fallen: PackedInt32Array = _selection.counts(_ruins)
+		for k in counts.size():
+			counts[k] += fallen[k]
+	var used: int = _selection.most_resident(_coarse)
+	if used > most_resident and used > POOL_SHARE * _pool_records:
+		report.add_blocker("buildings", "a view holds %d resident module instances; the browser's pool (%d records) refuses past about %d%% of them, which native does not port" % [used, _pool_records, roundi(POOL_SHARE * 100.0)])
+	most_resident = used

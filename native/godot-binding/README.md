@@ -1,12 +1,18 @@
-# Godot binding smoke
+# Godot binding
 
-This crate is the first live GDExtension seam. It intentionally exposes only
-an extension-owned `Node` and version probe while the binding architecture is
-measured. The Rust simulation remains in `sim`; later passes add commands,
-fixed ticks, bulk observations, replay and digest only after the offline probe
-and lifecycle checks agree.
+This crate is the native client's GDExtension. Two parts:
 
-Build a macOS extension with Godot 4.7's API:
+- **The render helpers** the Godot project loads (`src/selection.rs`,
+  `src/felled.rs`): the static world's per-frame selection and the felled
+  tree's pose, described in [the project's readme](../godot/README.md#the-rust-extension).
+  `native/godot/binding/build.sh` builds and places them.
+- **The binding smoke** (`src/lib.rs`'s node and version probe), the first
+  live seam for the simulation, while the binding architecture is measured.
+  The Rust simulation remains in `sim`; later passes add commands, fixed
+  ticks, bulk observations, replay and digest only after the offline probe
+  and lifecycle checks agree.
+
+Build the smoke's macOS extension with Godot 4.7's API:
 
 ```text
 cargo build -p godot-binding --release

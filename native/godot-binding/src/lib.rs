@@ -5,6 +5,9 @@ use serde_json::from_str;
 use sim::battle::{Battle, Replay};
 use sim::publication::Publisher;
 
+mod felled;
+mod selection;
+
 struct BattleGameExtension;
 
 #[gdextension]

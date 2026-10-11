@@ -37,6 +37,14 @@ static func of(camera: Camera3D, size: Vector2, sun: Vector3, max_far_m: float):
 	view.reach = max_far_m * Vector3(1.0, tan_v, tan_h).length()
 	return view
 
+## The side planes as the Rust selection takes them: each plane's normal,
+## then its offset (`StaticSelection.select`).
+func sides_packed() -> PackedFloat32Array:
+	var out := PackedFloat32Array()
+	for plane in sides:
+		out.append_array([plane.normal.x, plane.normal.y, plane.normal.z, plane.d])
+	return out
+
 ## Whether a box meets the view between its side planes: no plane has the
 ## whole box beyond it.
 func box_meets(box: AABB) -> bool:
