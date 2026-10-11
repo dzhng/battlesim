@@ -41,8 +41,6 @@ SKIRT_Y = 1.72
 # The skirts' rubber lip over the road wheels: its top, and its depth.
 LIP_TOP = 0.91
 LIP = 0.18
-# The lower plate's rise toward the nose, which the skirts' front ends follow.
-LOWER_RISE = 0.53
 SHOULDER_Y = 1.70
 SLAB = 0.12
 
@@ -87,10 +85,20 @@ def side_face(shape):
     return (SHOULDER_Y, shoulder), (SHOULDER_Y - (DECK - shoulder) * math.tan(shape.band_lean), DECK)
 
 
+def lower_plate(v, shape):
+    """The lower hull's side outline (x, z): its belly, the plate rising to
+    the nose, and the rear plate."""
+    half = v.length / 2
+    return [(-half + 0.40, 0.44), (half - 0.75 - shape.overhang, 0.44), (half - 0.10, 1.02), (-half, 1.02),
+            (-half, 0.76)]
+
+
 def skirt_foot(v, shape, x):
-    """The skirts' bottom at `x`: level, rising ahead of the running gear,
-    and always a little under their top."""
-    rise = LOWER_RISE * max(0.0, x - (v.length / 2 - 0.30 - shape.overhang))
+    """The skirts' bottom at `x`: level, rising ahead of the running gear as
+    the lower plate does toward the nose, and always a little under their
+    top."""
+    (x0, z0), (x1, z1) = lower_plate(v, shape)[1:3]
+    rise = (z1 - z0) / (x1 - x0) * max(0.0, x - (v.length / 2 - 0.30 - shape.overhang))
     return min(shape.skirt_foot + rise, skirt_top(v, shape, x) - 0.12)
 
 
@@ -153,8 +161,7 @@ def hull(v, shape):
                         (shoulder, plan(-half, front(shoulder), SHOULDER_Y, 0.38)),
                         (DECK - 0.12, plan(-half, front(DECK - 0.12), band(DECK - 0.12), 0.38)),
                         (DECK, plan(-half + 0.10, top, edge, 0.38))], mat=m["paint"], parent=h, bevel=0.05)
-    prism("hull_lower", [(-half + 0.40, 0.44), (half - 0.75 - shape.overhang, 0.44), (half - 0.10, 1.02),
-                         (-half, 1.02), (-half, 0.76)], 2.20, mat=m["paint"], parent=h, bevel=0.04)
+    prism("hull_lower", lower_plate(v, shape), 2.20, mat=m["paint"], parent=h, bevel=0.04)
     slope = glacis_slope(v, shape)
     glacis = partial(glacis_z, v, shape)
 

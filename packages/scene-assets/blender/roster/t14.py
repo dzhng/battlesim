@@ -28,6 +28,8 @@ from vehicle_export import rig, run  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 
+HEIGHT = 1.24  # the turret's roof over the deck
+
 # The T-14 on the Armata platform (photos: side, three-quarter front, front):
 # its nose low under a glacis raked at about 23 degrees that runs 2.10 m
 # back to the deck; the nose 0.20 m further past the idler than the base,
@@ -74,7 +76,7 @@ def t14_turret(v, turret, base):
     m = v.mats
     # The arrowhead's point runs just under the gun's axis.
     nose = v.frame["mounts"][0]["muzzle_m"][2] - 0.094
-    z0, neck, waist, z1 = base + 0.04, base + 0.26, base + 0.32, base + 1.24
+    z0, neck, waist, z1 = base + 0.04, base + 0.26, base + 0.32, base + HEIGHT
 
     def ring(*left):
         return VP.mirror_plan(left)
@@ -145,13 +147,17 @@ def gun_2a82(v, gun):
 
 
 def kord_station(v, hmg, hmg_gun):
-    """The roof's remote Kord station: its bearing, body, sight and gun."""
+    """The roof's remote Kord station: its bearing on the turret roof, which
+    is under the mount's pivot, its body up to the gun, sight and gun."""
     m = v.mats
-    lift = v.frame["mounts"][1]["muzzle_m"][2]
-    cyl("rws_bearing", 0.22, 0.08, (0, 0, -0.04), "Z", m["dark"], hmg, seg=20, bevel=0.01)
-    box("rws_body", (0.46, 0.36, lift), (-0.05, 0, lift / 2), m["paint"], hmg, bevel=0.03)
+    mount = v.frame["mounts"][1]
+    lift = mount["muzzle_m"][2]
+    roof = DECK + HEIGHT - mount["pivot_m"][2]
+    cyl("rws_bearing", 0.22, 0.08, (0, 0, roof + 0.04), "Z", m["dark"], hmg, seg=20, bevel=0.01)
+    foot = roof + 0.08
+    box("rws_body", (0.46, 0.36, lift - foot), (-0.05, 0, (lift + foot) / 2), m["paint"], hmg, bevel=0.03)
     VP.sight_housing("rws_sight", (0.05, -0.26, -0.10), m, hmg_gun, size=(0.26, 0.14, 0.20))
-    VP.kord(hmg_gun, v.frame["mounts"][1]["muzzle_m"][0], m)
+    VP.kord(hmg_gun, mount["muzzle_m"][0], m)
 
 
 run("t14", "russian_green", build, partial(wreck, SHAPE), chip=1.0)
