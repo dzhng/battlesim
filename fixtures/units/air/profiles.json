@@ -4,7 +4,7 @@
       "abstract": true,
       "body": {
         "hull": {
-          "hp": 150,
+          "hp": 80,
           "armor": {
             "front": 15,
             "side": 15,
@@ -46,7 +46,7 @@
       "abstract": true,
       "body": {
         "hull": {
-          "hp": 200,
+          "hp": 100,
           "armor": {
             "front": 15,
             "side": 15,
@@ -88,7 +88,7 @@
       "abstract": true,
       "body": {
         "hull": {
-          "hp": 250,
+          "hp": 120,
           "armor": {
             "front": 15,
             "side": 15,
@@ -130,7 +130,7 @@
       "abstract": true,
       "body": {
         "hull": {
-          "hp": 250,
+          "hp": 120,
           "armor": {
             "front": 25,
             "side": 15,
@@ -172,7 +172,7 @@
       "abstract": true,
       "body": {
         "hull": {
-          "hp": 300,
+          "hp": 150,
           "armor": {
             "front": 30,
             "side": 25,

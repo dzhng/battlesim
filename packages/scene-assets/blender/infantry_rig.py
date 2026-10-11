@@ -160,6 +160,15 @@ class Rig:
         self.constraints.extend(cons)
         return cons
 
+    def release(self, cons):
+        """Remove these constraints for good. Muting is not enough for IK: with two or
+        more muted IK constraints stacked on a bone, the legacy solver misplaces the
+        live one's chain (Blender 5.2)."""
+        gone = {id(c) for _, c in cons}
+        for pb, c in cons:
+            pb.constraints.remove(c)
+        self.constraints = [(pb, c) for pb, c in self.constraints if id(c) not in gone]
+
     def only(self, cons):
         for _, c in self.constraints:
             c.mute = True
@@ -201,10 +210,11 @@ class Rig:
                     if k.co.x not in keep_frames:
                         pts.remove(k)
 
-    def composite(self, role, lib_name, cons, damp=None, layers=(), damp_legs=None):
+    def composite(self, role, lib_name, cons, damp=None, layers=(), damp_legs=None, grounded=False):
         """Library clip for legs and torso + weapon-hold arms (IK) + gripping fingers -> baked FK clip.
         damp: (bones, k) slerps those bones' keyed rotations toward rest by k.
-        layers: (bone, local axis, degrees(t)) rotations added on top, t the loop's 0..1 phase."""
+        layers: (bone, local axis, degrees(t)) rotations added on top, t the loop's 0..1 phase.
+        grounded: every frame his lowest boot sole stands on the ground (`ground`)."""
         src = bpy.data.actions[lib_name]
         work = src.copy()
         work.name = f"_work_{role}"
@@ -221,7 +231,32 @@ class Rig:
         self.only(cons)
         act = self.bake(role, f0, f1)
         self.only([])
+        if grounded:
+            self.ground(f0, f1)
         return act, (f0, f1)
+
+    def lowest_sole(self):
+        """The lowest point of either boot (the body's foot vertices), in rest-space Z."""
+        if not hasattr(self, "_soles"):
+            names = {g.index for g in self.body.vertex_groups if g.name.startswith(("foot_", "ball_"))}
+            self._soles = [v.index for v in self.body.data.vertices
+                           if any(g.group in names and g.weight > 0.5 for g in v.groups)]
+        dg = bpy.context.evaluated_depsgraph_get()
+        e = self.body.evaluated_get(dg)
+        m = e.matrix_world
+        vs = e.data.vertices
+        return min((m @ vs[i].co).z for i in self._soles)
+
+    def ground(self, f0, f1):
+        """Lift or drop the whole body, frame by frame, until the lowest sole touches the
+        ground: no boot sinks through it and none floats (a library run bounds into the
+        air and lands knee-deep). The current action's pelvis keys take the shift."""
+        pelvis = self.arm.pose.bones["pelvis"]
+        for f in range(f0, f1 + 1):
+            self.scn.frame_set(f)
+            bpy.context.view_layer.update()
+            self.move_world(pelvis, (0, 0, -self.lowest_sole()))
+            pelvis.keyframe_insert("location", frame=f)
 
     def rot_world(self, pb, axis, deg, pivot=None):
         """Rotate a pose bone in armature space about its head (or pivot)."""
@@ -243,6 +278,25 @@ class Rig:
             pb = self.arm.pose.bones[n]
             pb.keyframe_insert("rotation_quaternion", frame=frame)
             pb.keyframe_insert("location", frame=frame)
+
+    def snapshot(self):
+        """Every bone's local location and rotation as posed now."""
+        bpy.context.view_layer.update()
+        return {pb.name: (pb.location.copy(), pb.rotation_quaternion.copy()) for pb in self.arm.pose.bones}
+
+    def pose_at(self, act, frame):
+        """A `snapshot` of `act` at `frame`; the rig is left without an action."""
+        self.set_action(act)
+        self.scn.frame_set(frame)
+        pose = self.snapshot()
+        self.set_action(None)
+        return pose
+
+    def set_pose(self, pose):
+        """Pose every bone from a `snapshot`."""
+        for pb in self.arm.pose.bones:
+            pb.location, pb.rotation_quaternion = pose[pb.name]
+        bpy.context.view_layer.update()
 
     def clear_pose(self):
         for pb in self.arm.pose.bones:

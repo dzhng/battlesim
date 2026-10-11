@@ -69,10 +69,45 @@ pub struct WeaponDefinition {
     /// Armour-piercing: preferred against identified vehicles, never at contacts.
     #[serde(default)]
     pub armor_piercing: bool,
-    /// The altitude layers it can engage (D1): what its crew can bring it to
-    /// bear on. A rifle, a machine gun or an autocannon swings up at a
-    /// helicopter; a tank gun, a grenade or a ground missile cannot.
-    pub targets: Vec<crate::catalog::AltitudeLayer>,
+    /// The altitude layers it can engage (D1), each with how it fires there:
+    /// what its crew can bring it to bear on. A rifle, a machine gun or an
+    /// autocannon swings up at a helicopter, from much closer and with a much
+    /// wider spread than along the ground; a tank gun, a grenade or a ground
+    /// missile cannot. A layer it does not list, it never engages.
+    pub targets: BTreeMap<crate::catalog::AltitudeLayer, LayerFire>,
+}
+
+/// How a weapon fires at one altitude layer. Each value it leaves out is
+/// the row's own. Only what changes with the target's height lives here:
+/// the gun, its magazine and its round are the same whatever it aims at.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct LayerFire {
+    /// Its reach at this layer; never past the row's `range_m`, whose flight
+    /// the rules admitted.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub range_m: Option<f64>,
+    /// Its spread at this layer, milliradians.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scatter_mrad: Option<f64>,
+}
+
+/// A weapon's resolved fire at one altitude layer.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Fire {
+    pub range_m: f64,
+    pub scatter_mrad: f64,
+}
+
+impl WeaponDefinition {
+    /// How it fires at `layer`, or `None` when its crew can't bring it to
+    /// bear there. The one place `targets` is read.
+    pub fn against(&self, layer: crate::catalog::AltitudeLayer) -> Option<Fire> {
+        self.targets.get(&layer).map(|fire| Fire {
+            range_m: fire.range_m.unwrap_or(self.ballistics.range_m),
+            scatter_mrad: fire.scatter_mrad.unwrap_or(self.ballistics.scatter_mrad),
+        })
+    }
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
@@ -242,6 +277,21 @@ pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponR
                     }
                     if def.min_range_m > def.ballistics.range_m {
                         return Err(serde::de::Error::custom("min_range_m must not exceed range_m"));
+                    }
+                    for (layer, fire) in &def.targets {
+                        // The layer as authored (`low_air`), not its Rust name.
+                        let layer = serde_json::to_value(layer)?;
+                        let layer = layer.as_str().unwrap_or_default();
+                        if fire.range_m.is_some_and(|r| !(r > 0.0 && r <= def.ballistics.range_m)) {
+                            return Err(serde::de::Error::custom(format!(
+                                "targets.{layer}.range_m must be positive and not exceed range_m"
+                            )));
+                        }
+                        if fire.scatter_mrad.is_some_and(|s| !(s.is_finite() && s >= 0.0)) {
+                            return Err(serde::de::Error::custom(format!(
+                                "targets.{layer}.scatter_mrad must be finite and nonnegative"
+                            )));
+                        }
                     }
                     if !(0.0..=1.0).contains(&def.armor_fraction) {
                         return Err(serde::de::Error::custom("armor_fraction must lie in [0, 1]"));

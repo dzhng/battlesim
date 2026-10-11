@@ -8,7 +8,9 @@
 // machine gun rakes with it.
 //
 // Soldiers move on their own paths (each his own offset, speed and delay),
-// never as a formation, so the replay exercises per-soldier posing.
+// never as a formation, so the replay exercises per-soldier posing. Firing,
+// they edge forward and sidestep; pinned, they shift back and across, so each
+// posture's moves play in every direction.
 
 import { clamp, lerp } from "math";
 import game from "@fixtures/game.json";
@@ -103,12 +105,16 @@ export function replayLength(replay: ReplayUnit): number {
 
 const ramp = (t: number, t0: number, t1: number) => clamp((t - t0) / (t1 - t0), 0, 1);
 
-/** Distance a soldier has covered by `t`: walking 1.4 m/s, then running 4 m/s. */
-function infantryPath(t: number, delay: number): number {
+/** Where a soldier is by `t`, along the squad's way and across it: walking
+ *  1.4 m/s, then running 4 m/s; firing, edging forward and then sidestepping
+ *  (`side`, ±1, which way) at 1 m/s; pinned, backing off and then shifting
+ *  across at 0.6 m/s. */
+function infantryPath(t: number, delay: number, side: number): [number, number] {
   const s = t - delay;
-  const walk = Math.min(Math.max(0, s - 2), 4) * 1.4;
-  const run = Math.min(Math.max(0, s - 6), 3) * 4;
-  return walk + run;
+  const span = (from: number, length: number) => Math.min(Math.max(0, s - from), length);
+  const along = span(2, 4) * 1.4 + span(6, 3) * 4 + span(9.2, 1.5) - span(12.6, 1.5) * 0.6;
+  const across = (span(10.7, 1.6) + span(14.1, 1.6) * 0.6) * side;
+  return [along, across];
 }
 
 /** Each of the type's mounts' poses, from the script's gun and HMG: a hand
@@ -196,12 +202,12 @@ function unitAt(replay: ReplayUnit, t: number, soldiers: number): FeedUnit {
   const members = Array.from({ length: soldiers }, (_, i) => {
     const delay = i * 0.35;
     const lane = (i - (soldiers - 1) / 2) * 1.6;
-    const along = infantryPath(t, delay) * (1 - i * 0.04);
+    const [along, across] = infantryPath(t, delay, i % 2 ? 1 : -1);
     return {
       id: 100 + i,
       slot: i % slots,
       activeMount: 0,
-      position: [along, lane, 0] as [number, number, number],
+      position: [along * (1 - i * 0.04), lane + across, 0] as [number, number, number],
     };
   });
   const firing = t >= 9.2 && t < 12.5;
@@ -226,8 +232,8 @@ function unitAt(replay: ReplayUnit, t: number, soldiers: number): FeedUnit {
           : 0,
     })),
     deployment: null,
-    // Pinned for a while, then recovering.
-    pinned: t >= 12.5 && t < 16,
+    // Pinned for a while, one man falling where he lies, then recovering.
+    pinned: t >= 12.5 && t < 17,
   };
 }
 
