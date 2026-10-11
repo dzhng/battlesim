@@ -951,6 +951,40 @@ impl Battle {
         self.sides[side.index()].searches
     }
 
+    /// Travel time known to one side for one of its observed units. The query
+    /// deliberately uses that side's planning geometry, so external policy
+    /// hosts cannot inspect hidden obstacles or route an enemy unit.
+    pub fn route_time(&mut self, side: Side, id: UnitId, destination: [f64; 2]) -> Option<f64> {
+        let frame = self.observe(side);
+        let own = frame.own.iter().find(|unit| unit.id == id)?;
+        let from = v2(own.position[0], own.position[1]);
+        let goal = v2(destination[0], destination[1]);
+        let kind = self.rules.catalog.get(own.kind);
+        let mobility = match units::motion(kind, &self.rules) {
+            units::Motion::Ground(m) => m,
+            units::Motion::Air(f) => return Some((goal - from).length() / f.cruise_mps),
+        };
+        let mut known = self.sides[side.index()].clone();
+        let grid = known.grid(&self.world, self.authored_props);
+        let (plan, _) = crate::navigation::plan(
+            grid,
+            &self.roads,
+            crate::navigation::Leg {
+                from,
+                goal,
+                m: &mobility,
+                policy: RoutePolicy::Fastest,
+                avoid: &[],
+            },
+            &self.rules.navigation,
+        );
+        let crate::navigation::Plan::Route(route) = plan else {
+            return None;
+        };
+        let time = grid.route_time(from, &route, &mobility);
+        time.is_finite().then_some(time)
+    }
+
     /// Validate and schedule a command for the next step. Every command whose
     /// sequence number is next for its side is recorded for replay, including
     /// ones rejected for their content, so a replay reproduces the same acks.
@@ -1700,46 +1734,19 @@ impl Battle {
         if let Some(mut ai) = self.skirmish_ai.take() {
             let setup = &self.skirmish.as_ref().unwrap().setup;
             let side = setup.ai_side.unwrap();
-            let entry = setup.sites.entries.iter().find(|e| e.side == side).unwrap();
-            let frame = &self.observations[side.index()];
-            let mut known = self.sides[side.index()].clone();
-            let grid = known.grid(&self.world, self.authored_props);
-            let orders = ai.decide(
-                side,
-                setup.factions[side.index()],
-                entry,
-                frame,
-                &self.rules,
-                |id, destination| {
-                    let own = frame.own.iter().find(|u| u.id == id)?;
-                    let from = v2(own.position[0], own.position[1]);
-                    let goal = v2(destination[0], destination[1]);
-                    let kind = self.rules.catalog.get(own.kind);
-                    let mobility = match units::motion(kind, &self.rules) {
-                        units::Motion::Ground(m) => m,
-                        units::Motion::Air(f) => {
-                            return Some((goal - from).length() / f.cruise_mps)
-                        }
-                    };
-                    let (plan, _) = crate::navigation::plan(
-                        grid,
-                        &self.roads,
-                        crate::navigation::Leg {
-                            from,
-                            goal,
-                            m: &mobility,
-                            policy: RoutePolicy::Fastest,
-                            avoid: &[],
-                        },
-                        &self.rules.navigation,
-                    );
-                    let crate::navigation::Plan::Route(route) = plan else {
-                        return None;
-                    };
-                    let time = grid.route_time(from, &route, &mobility);
-                    time.is_finite().then_some(time)
-                },
-            );
+            let faction = setup.factions[side.index()];
+            let entry = setup
+                .sites
+                .entries
+                .iter()
+                .find(|e| e.side == side)
+                .cloned()
+                .unwrap();
+            let frame = self.observations[side.index()].clone();
+            let rules = self.rules.clone();
+            let orders = ai.decide(side, faction, &entry, &frame, &rules, |id, destination| {
+                self.route_time(side, id, destination)
+            });
             self.skirmish_ai = Some(ai);
             commands.extend(orders.into_iter().map(|order| (side, order)));
         }

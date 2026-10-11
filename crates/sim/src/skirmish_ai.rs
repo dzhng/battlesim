@@ -96,9 +96,8 @@ impl BalancedDoctrine {
         if self.response_delay_ticks.is_none() {
             // One fixed draw selects a bounded reaction delay. The delay is a
             // personality trait, not a license to ignore a threat forever.
-            self.response_delay_ticks = Some(
-                1 + (draw_unit * 3.0 * f64::from(rules.tick_hz)) as Tick,
-            );
+            self.response_delay_ticks =
+                Some(1 + (draw_unit * 3.0 * f64::from(rules.tick_hz)) as Tick);
         }
         let low_air = frame_has_layer_threat(frame, rules, AltitudeLayer::LowAir);
         if low_air {
@@ -107,12 +106,12 @@ impl BalancedDoctrine {
         let min_dwell = 20 * u64::from(rules.tick_hz);
         let max_dwell = 180 * u64::from(rules.tick_hz);
         let dwell = frame.tick.saturating_sub(self.doctrine_since);
-        let delayed_air = self
-            .last_air_evidence
-            .is_some_and(|seen| {
-                frame.tick.saturating_sub(seen)
-                    >= self.response_delay_ticks.expect("reaction delay initialized")
-            });
+        let delayed_air = self.last_air_evidence.is_some_and(|seen| {
+            frame.tick.saturating_sub(seen)
+                >= self
+                    .response_delay_ticks
+                    .expect("reaction delay initialized")
+        });
         let next = if delayed_air && dwell >= min_dwell {
             Some(Doctrine::AirDenial)
         } else if dwell >= max_dwell {
@@ -405,6 +404,23 @@ impl BalancedDoctrine {
                     });
                 if let Some((objective, _)) = best {
                     self.assigned.insert(unit.id, objective.id.clone());
+                    if rules.catalog.get(unit.kind).has_role("recon") {
+                        let goal = recon_post(unit, objective.center, entry.center);
+                        if route_time(unit.id, goal).is_some() {
+                            orders.push(Order::Move {
+                                units: vec![unit.id],
+                                gesture: frame.tick,
+                                goal,
+                                route: contract::command::RoutePolicy::Fastest,
+                                direction: contract::command::MoveDirection::Forward,
+                                facing: Some(libm::atan2(
+                                    objective.center[1] - goal[1],
+                                    objective.center[0] - goal[0],
+                                )),
+                            });
+                            continue;
+                        }
+                    }
                     orders.push(Order::AttackMove {
                         units: vec![unit.id],
                         gesture: frame.tick,
@@ -500,6 +516,22 @@ impl SkirmishPolicy for BalancedDoctrine {
 
 fn distance(a: [f64; 2], b: [f64; 2]) -> f64 {
     libm::hypot(a[0] - b[0], a[1] - b[1])
+}
+
+fn recon_post(
+    unit: &contract::observation::OwnUnit,
+    objective: [f64; 2],
+    entry: [f64; 2],
+) -> [f64; 2] {
+    let dx = objective[0] - entry[0];
+    let dy = objective[1] - entry[1];
+    let approach = libm::hypot(dx, dy).max(1.0);
+    let range = unit.sight.range.max(1.0);
+    let standoff = (range * 0.85).min(approach * 0.75);
+    [
+        objective[0] - dx / approach * standoff,
+        objective[1] - dy / approach * standoff,
+    ]
 }
 
 fn unit_can_target_layer(rules: &Rules, kind: TypeIndex, layer: AltitudeLayer) -> bool {
@@ -970,5 +1002,33 @@ mod tests {
         });
         assert_eq!(ai.doctrine(), Doctrine::ReconScreen);
         assert_eq!(ai.pivot_count(), 1);
+    }
+
+    #[test]
+    fn recon_moves_to_a_sensor_standoff_before_objective() {
+        let (rules, mut frame, entry) = empty_match();
+        let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
+            "map":{"size":[1000,1000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
+            "rules":deck(),"units":[{"side":"red","kind":"test_recon","position":[500,100]}],
+            "events":[],"scripts":[]
+        }))
+        .unwrap();
+        let battle = crate::battle::Battle::new(&setup, 1);
+        frame.own = battle.observe(Side::Red).own.clone();
+        frame.skirmish.as_mut().unwrap().phase = Phase::Active;
+        frame.skirmish.as_mut().unwrap().credits = 0.0;
+        let mut ai = BalancedDoctrine::default();
+        let orders = ai.decide(Side::Red, Faction::Us, &entry, &frame, &rules, |_, _| {
+            Some(1.0)
+        });
+        let goal = orders
+            .iter()
+            .find_map(|order| match order {
+                Order::Move { units, goal, .. } if units == &vec![UnitId(0)] => Some(*goal),
+                _ => None,
+            })
+            .expect("recon gets a movement order");
+        assert!(goal[1] < 500.0);
+        assert!(distance(goal, [500.0, 500.0]) > 100.0);
     }
 }
