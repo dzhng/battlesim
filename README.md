@@ -17,6 +17,7 @@ owner of the thing you want to change:
 | [Simulation](crates/sim/README.md) | Deterministic battle rules, replay digests, encounter placement and native reports. |
 | [Map generation](crates/mapgen/README.md) | Seeded layout, physical compilation, admission and generation reports; shared by native tools and WebAssembly. |
 | [WebAssembly boundary](crates/game-wasm/README.md) | Native/browser parity, geometry queries, packed publication memory and binding lifetime. |
+| [Presentation](crates/presentation/README.md) | One side's publications to each drawn frame's records: interpolation, poses, effects, cook-offs, tiers and cast lights, shared by every client. |
 | [Browser application](web/README.md) | Workers, map adapters, player input/readouts, build configuration and browser verification. |
 | [Battle lab](apps/battle-lab/README.md) | Player pages and focused developer fixtures, composed from the same battle view. |
 | [Renderer primitives](packages/renderer-core/README.md) | Shared camera/depth contracts, device admission and GPU allocation accounting. |

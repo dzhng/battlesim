@@ -28,6 +28,9 @@ use crate::units::skin::{self, Mat4};
 use crate::view::{model_detail, Camera, View, CULLED, IMPOSTOR};
 use crate::world::{Appearance, Bounds, Trs, UnitsSection, Vec3, WorldInput};
 
+/// Publications kept for the effects while the world loads: two minutes at 30 Hz.
+const PENDING_MAX: usize = 3600;
+
 /// A batch's pass for a placement preview (18b's passes are 0 view, 1 caster).
 pub const GHOST_PASS: u32 = 2;
 
@@ -216,7 +219,13 @@ impl Presentation {
         self.latest = Some(observation.clone());
         match &mut self.loaded {
             Some(loaded) => loaded.note(&observation),
-            None => self.pending.push(observation),
+            None => {
+                // Older than any effect lives: a battle's appearances load in seconds.
+                if self.pending.len() == PENDING_MAX {
+                    self.pending.remove(0);
+                }
+                self.pending.push(observation);
+            }
         }
         Ok(true)
     }
@@ -570,6 +579,7 @@ impl Loaded {
             world.rows[&(name.to_owned(), state.to_owned(), lies)]
         };
         models.clear();
+        // Soldiers off screen, as the gates count bodies drawn, carded or culled.
         let mut culled = 0;
         let model = |row: u32,
                      tier: i32,
@@ -663,7 +673,6 @@ impl Loaded {
                 &detail, view, v.position, far.size, far.radius, false, shadow,
             );
             if tier == CULLED {
-                culled += 1;
                 continue;
             }
             let (palette, scroll) = pose_vehicle(
@@ -708,7 +717,6 @@ impl Loaded {
             let size = bounds(units, name, 1 + c.lies);
             let tier = model_detail(&detail, view, at, size.size, size.radius, true, None);
             if tier == CULLED {
-                culled += 1;
                 continue;
             }
             models.push(model(
@@ -757,7 +765,6 @@ impl Loaded {
                 None,
             );
             if tier == CULLED {
-                culled += 1;
                 continue;
             }
             let (palette, scroll) = match (&piece.articulation, &piece.motion) {

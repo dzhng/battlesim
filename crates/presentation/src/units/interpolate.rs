@@ -1,4 +1,4 @@
-//! Presentation between completed ticks (`interpolate.ts`): units drawn a
+//! Presentation between completed ticks: units drawn a
 //! fraction of a tick behind the latest publication, blended from the
 //! previous one. Only units present in both blend, and a soldier only with
 //! himself (by member id), so a soldier's motion is his own and never a

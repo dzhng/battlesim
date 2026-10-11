@@ -1,4 +1,4 @@
-//! A pose frame (`poseDriver.ts` `PoseFrame`): one pose per living or dying
+//! A pose frame: one pose per living or dying
 //! soldier, one articulation per vehicle, the static corpses, and the
 //! corpses sinking away. The driver rewrites it in place each frame.
 use std::sync::Arc;

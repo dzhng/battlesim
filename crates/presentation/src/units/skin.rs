@@ -1,7 +1,7 @@
 //! Joint and part transforms for drawing: a skinned body's joints sampled
-//! from its dense clip table as the browser's pose kernel samples them
-//! (`clipTable.ts`, `poseKernel.ts`), and an articulated model's node worlds
-//! from its posed locals (`modelLayer.ts`). A renderer draws a body by its
+//! from its dense clip table (`clipTable.ts` builds it at install), and an
+//! articulated model's node worlds
+//! from its posed locals. A renderer draws a body by its
 //! palette, each joint's `world · inverseBind`, and a vehicle by its node
 //! worlds; neither knows about clips.
 //!

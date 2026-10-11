@@ -1,6 +1,6 @@
 // @vitest-environment node
 // The workbench's CPU seams: a dropped file judged as the CLI judges it and
-// installed through the one loader; the pose kernel's clip table read as
+// installed through the one loader; the dense clip table read as
 // `sampleClip` reads a clip; the impostor atlas's framing and filter.
 import { expect, test } from "vitest";
 import { quat, vec3 } from "math";

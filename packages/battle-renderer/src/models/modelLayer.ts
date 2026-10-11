@@ -659,7 +659,7 @@ export interface ModelStats {
   triangles: number;
   draws: number;
   paletteMatrices: number;
-  /** Bodies the pose kernel posed this frame. */
+  /** Bodies drawn posed by their palettes this frame. */
   skinned: number;
   /** Mesh-drawn models per tier. */
   tiers: number[];

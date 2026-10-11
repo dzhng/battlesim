@@ -18,7 +18,7 @@ pub trait MuzzleSource {
     fn muzzle(&mut self, shooter: f64, mount: usize, soldier: Option<f64>) -> Option<Vec3>;
 }
 
-/// One drawn rotor, as the effects draw its blur (`drawnModels.ts`).
+/// One drawn rotor, as the effects draw its blur.
 #[derive(Clone, Debug, serde::Deserialize)]
 pub struct DrawnRotor {
     pub hub: Vec3,

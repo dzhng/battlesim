@@ -240,7 +240,7 @@ records! {
         lights: u32,
         /// Effect instances past the capacity.
         dropped: u32,
-        /// Models off screen this frame.
+        /// Soldiers off screen this frame.
         culled: u32,
     }
 }

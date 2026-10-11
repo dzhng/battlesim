@@ -4,7 +4,7 @@
 // fielded unit type's facts and the appearance sets `AppearanceCatalog`
 // picks from, and each of those appearances' joints and clips or rig. The
 // browser resolves everything static here; native ports the per-frame
-// derivations (`poseDriver.ts`, `articulation.ts`, `clipTable.ts`).
+// derivations (`crates/presentation/src/units`).
 import game from "@fixtures/game.json";
 import type { SideFactions } from "@packages/scene-assets/src/appearanceCatalog";
 import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog";
@@ -236,7 +236,7 @@ const trs = (t: {
   s: [t.s[0], t.s[1], t.s[2]],
 });
 
-/** A body's weapon `muzzle` socket, as `DrawnModels.soldier` reads it; null
+/** A body's weapon `muzzle` socket, as the drawn muzzles read it; null
  *  where it has none. */
 function muzzleSocket(sockets: readonly Socket[]): AppearanceMuzzle {
   const socket = sockets.find((k) => k.name === "muzzle");
@@ -244,7 +244,7 @@ function muzzleSocket(sockets: readonly Socket[]): AppearanceMuzzle {
 }
 
 /** Each articulated mount's muzzle node by role (`MOUNT_NODES`), as
- *  `DrawnModels.vehicle` finds it by name, where the model has it. */
+ *  the drawn muzzles find it by name, where the model has it. */
 function muzzleNodes(nodes: readonly { name: string }[]): Record<string, number> {
   const out: Record<string, number> = {};
   for (const [role, { muzzle }] of Object.entries(MOUNT_NODES)) {

@@ -1,4 +1,4 @@
-//! Where parts of each posed model are drawn (`drawnModels.ts`), read from
+//! Where parts of each posed model are drawn, read from
 //! the pose frame the models are drawn from, so an effect put there sits on
 //! the drawn model however the simulation's own model differs:
 //! - its muzzles: a vehicle mount's muzzle node under its articulation, and

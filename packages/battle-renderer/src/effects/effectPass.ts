@@ -1,4 +1,5 @@
-// The effect pass: draws `EffectFrame`'s instances into the lit world, after
+// The effect pass: draws the presentation's effect instances (`Frame.effects`,
+// `crates/presentation/src/effects`) into the lit world, after
 // the world pass has resolved it and before the fog mask pass gives unseen
 // pixels their look, so effects take bloom, grade and tone map like any
 // light. Four shapes (`SHAPE`): three camera-facing quads, and a disc lying

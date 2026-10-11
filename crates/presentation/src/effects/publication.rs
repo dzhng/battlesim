@@ -79,7 +79,7 @@ pub struct SmokeSource {
     pub half: Vec3,
 }
 
-/// A hull the side watched die this tick (`cookOff.ts`).
+/// A hull the side watched die this tick.
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub struct CookOff {
     pub center: Vec3,

@@ -180,7 +180,7 @@ export const Counts = {
   lights: 13,
   /** Effect instances past the capacity. (u32) */
   dropped: 14,
-  /** Models off screen this frame. (u32) */
+  /** Soldiers off screen this frame. (u32) */
   culled: 15,
 } as const;
 export const COUNTS_WORDS = 16;

@@ -1,4 +1,4 @@
-//! Combat effects (`effectFrame.ts`): what a side's publications say happened
+//! Combat effects: what a side's publications say happened
 //! becomes short-lived effects, and each frame those become the effect
 //! pass's instances at the presentation clock:
 //!
@@ -41,7 +41,7 @@ use crate::world::Vec3;
 
 // ---- `presentation.effects`: every curve and size. ----
 
-/// A kind's row, or the table's `default` (`kindTable.ts` `pick`).
+/// A kind's row, or the table's `default`.
 fn pick<'a, T>(table: &'a HashMap<String, T>, kind: &str) -> &'a T {
     table.get(kind).unwrap_or_else(|| &table["default"])
 }

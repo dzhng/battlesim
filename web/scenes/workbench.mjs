@@ -55,8 +55,8 @@ async function drop(page, name, bytes, type = "auto", wait = true) {
   if (wait) await drawnOnBench(page, name);
 }
 
-/** Wait until `name` is on the bench, installed on the GPU (meshes, clips,
- *  pose kernel), and drawn. Installing swaps the appearances in between
+/** Wait until `name` is on the bench, installed on the GPU (meshes and
+ *  cards), and drawn. Installing swaps the appearances in between
  *  frames, so the models layer's stats (instances, draws) only count the
  *  model once a frame has packed it: draw one before reading them. */
 async function drawnOnBench(page, name) {
@@ -361,7 +361,7 @@ export async function run(ctx) {
     grassSheet.strips.some((s) => s.name === "states"),
     grassSheet.strips.map((s) => s.name).join(","),
   );
-  // Hold a real GPU pipeline completion while a newer model is requested.
+  // Hold the older model's card readback while a newer model is requested.
   // Both updates must finish in request order, including their card bakes.
   await Promise.all([page.close(), served.close(), grass.close()]);
   const race = await ctx.newPage({ viewport: VIEWPORT });
@@ -382,25 +382,11 @@ export async function run(ctx) {
           }),
       );
     };
-    const original = GPUDevice.prototype.createComputePipelineAsync;
-    GPUDevice.prototype.createComputePipelineAsync = function (descriptor) {
-      const compiled = original.call(this, descriptor);
-      if (descriptor.label !== "pose-kernel") return compiled;
-      GPUDevice.prototype.createComputePipelineAsync = original;
-      return compiled.then(
-        (pipeline) =>
-          new Promise((resolve) => {
-            window.releaseOlderAppearance = () => resolve(pipeline);
-          }),
-      );
-    };
   });
   await drop(race, "older.glb", rifle, "test_rifle", false);
-  await race.waitForFunction(() => window.releaseOlderAppearance);
+  await race.waitForFunction(() => window.releaseOlderCards);
   await drop(race, "latest.glb", tank, "test_tank", false);
   await race.waitForFunction(() => window.__workbench.state().model === "latest.glb");
-  await race.evaluate(() => window.releaseOlderAppearance());
-  await race.waitForFunction(() => window.releaseOlderCards);
   const baking = await race.evaluate(() => window.__lab.stats().models.installed);
   ctx.check(
     "the next appearance waits for the previous model's card readback",

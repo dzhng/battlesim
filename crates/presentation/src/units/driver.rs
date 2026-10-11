@@ -1,4 +1,4 @@
-//! The pose driver (`poseDriver.ts`): the one place a pose is derived from
+//! The pose driver: the one place a pose is derived from
 //! what the simulation published. It reads a feed frame (each unit's
 //! soldiers by id and position, its mounts' bearings, elevations and shot
 //! counts, deployment, suppression, and the fallen) and rewrites a
@@ -24,7 +24,7 @@ use super::pose::{
 use crate::seed::{side_key, Mulberry32};
 use crate::world::{Appearance, Clip, UnitType, UnitsSection, Vec3};
 
-/// `cookOff.ts`'s gravity: what an aircraft's lift tilts against.
+/// The cook-offs' gravity: what an aircraft's lift tilts against.
 const GRAVITY: f64 = 9.81;
 
 #[derive(Clone, Debug, Default)]

@@ -25,7 +25,7 @@ export interface PoseRecord {
 
 /** A unit type as the pose driver and the appearance catalog read it. */
 export interface UnitTypeRecord {
-  /** Half the distance between its tracks or wheel rows (`PoseDriver.halfTrack`); null for a squad. */
+  /** Half the distance between its tracks or wheel rows (the pose driver's); null for a squad. */
   hull: { halfTrack: number } | null;
   /** It flies (`airborne`). */
   airborne: boolean;

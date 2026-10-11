@@ -415,7 +415,6 @@ fn an_aircraft_s_rotors_turn_and_blur_while_nothing_it_has_rolls() {
     assert!(flown.tilt.is_some(), "speeding up, it leans into it");
 }
 
-
 #[test]
 fn past_the_cap_a_battle_joined_lies_its_newest_and_a_reset_forgets_the_gone() {
     let units = units_with(|v| v["pose"]["corpses"]["max"] = 3.into());

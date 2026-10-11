@@ -1,4 +1,4 @@
-//! A cook-off (`cookOff.ts`): a hull the side watched die brews up. A beat
+//! A cook-off: a hull the side watched die brews up. A beat
 //! after the killing hit its ammunition goes: fireballs roar out of the
 //! turret ring, the turret is thrown up tumbling and falls back onto the
 //! deck where the wreck has it, hops once and settles. The hull heaves as

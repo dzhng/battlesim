@@ -1,5 +1,5 @@
 //! Cast lights: the light combat throws on what is round it
-//! (`light/castLights.ts`). The effects offer each frame's burning lights
+//! (the renderer's `light/castLights.ts` holds the light model). The effects offer each frame's burning lights
 //! (a flash, a motor, a tracer, a burst, a fire), each with its cause; of
 //! those reaching into the view, the world's uniform takes every one while
 //! they fit, else the `CAST_LIGHTS_MAX` of most weight as the camera sees them.

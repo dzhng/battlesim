@@ -254,7 +254,7 @@ export interface BattleFrame {
    *  clear. */
   setFog(fog: FogInput | null): void;
   /** Install a catalog generation from `AppearanceLibrary` (the one loader);
-   *  resolves once its meshes, clips, pose kernel and impostor atlases (every
+   *  resolves once its meshes and impostor atlases (every
    *  body's far pose and corpse) are on the GPU. */
   setAppearances(installed: InstalledAppearances | null): Promise<void>;
   /** A lab's models (posed with `posedPalette`), replacing the last list. */

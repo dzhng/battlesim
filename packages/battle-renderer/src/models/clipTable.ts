@@ -1,4 +1,5 @@
-// Skinned clips laid out for the pose kernel: per body, every clip's frames
+// Skinned clips laid out densely for the presentation crate's posing
+// (`crates/presentation/src/units/skin.rs`): per body, every clip's frames
 // sampled densely (joint-major within a frame), each joint as two vec4s —
 // rotation (x, y, z, w) and translation plus uniform scale. Channels a clip
 // leaves absent take the body's bind, so the kernel never branches on them.

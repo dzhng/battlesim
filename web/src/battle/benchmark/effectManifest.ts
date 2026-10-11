@@ -1,7 +1,6 @@
 // The `effects` section of the `native-visual-presentation` manifest: what a
 // second client needs to turn a side's publications into the browser's combat
-// effects (`packages/battle-renderer/src/effects/effectFrame.ts` over
-// `apps/battle-lab/src/effectFeed.ts`): the effects' tuning as the browser
+// effects (`crates/presentation/src/effects`): the effects' tuning as the browser
 // read it, and the catalog rows the effects read (hulls and mount muzzles,
 // which prop kinds smoke, and what a cook-off's wreck throws). Static per
 // battle, so the page resolves it (`benchmark/effectPresentation.ts`); the
@@ -22,7 +21,7 @@ export interface MuzzleRecord {
   muzzle: Vec3;
 }
 
-/** A thrown wreck's pieces, as a cook-off reads them (`cookOffs.ts`
+/** A thrown wreck's pieces, as a cook-off reads them (`cook_offs.rs`
  *  `transitionOf`), in the wreck's own frame: its turret piece's centre
  *  (null: it throws none), how high the piece's underside lies, and how tall
  *  its thrown debris lies (null: it throws none). */
@@ -59,7 +58,7 @@ export interface EffectsManifest {
   wreckLooks: Record<string, WreckLookRecord>;
 }
 
-/** What a plate's frame drew of the effects (`EffectFrame.counts`): those
+/** What a plate's frame drew of the effects (`Frame.counts`): those
  *  running at its clock by kind, its instances by shape, and its lights. */
 export interface EffectCount {
   plate: string;

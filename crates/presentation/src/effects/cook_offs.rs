@@ -1,4 +1,4 @@
-//! Brew-ups a side watched (`apps/battle-lab/src/cookOffs.ts`): a hull it
+//! Brew-ups a side watched: a hull it
 //! saw that is gone, and a wreck of its type near where it stood. The
 //! simulation lays a dead vehicle's wreck where it rolls to a stop, the tick
 //! it dies, and a side that knew the hull learns the wreck that tick; so a

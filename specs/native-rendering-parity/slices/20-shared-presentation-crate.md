@@ -118,3 +118,24 @@ Run 1 of the reel was 6–8% faster in both scenes; the cause wasn't found.
 - The GPU kernel scales far better: at 4,000 bodies it takes 0.08 ms, where CPU Rust would take about 5.7 ms. This matters only if posed meshes reach the thousands.
 
 **For slice 07 and this slice's gates.** On this GPU, `stats().gpu` reads about a third of the GPU's real busy time in the battle. Compare GPU cost with a labelled Metal trace's busy share, not the timestamp mean.
+
+## Research (2026-10-11)
+
+- **Call overhead.** One `frame()` call a drawn frame returns a pointer to a `FrameHeader`; `records.gen.ts`'s `frameViews` builds a `Float32Array`/`Uint32Array` per set over module memory. No JS object per entity crosses; the UI's facts (picks, emitters, counts) are read from the same views. Inputs are a 13-float camera, the selection and, only while ghosts show, a small ghost list as JSON.
+- **Straight into the GPU buffers.** The models layer uploads `Frame.instances` and `Frame.palettes` whole with one `writeBuffer` each, and draws each `Batch` as a run over them; the effect pass and the cast-light uniform take `Frame.effects` and `Frame.lights` the same way. Only impostor-card batches are copied, since the renderer writes its own atlas layer into each card record.
+- **Lifetime.** A view is valid until the next call into the module, which may grow memory; the frame consumes its views before returning to the loop, and `loadWorld` reads the world's rows after the call that built them.
+
+## Web half (built 2026-10-11)
+
+**Contract.** `crates/presentation` owns the per-frame presentation: `units/` (interpolation, the pose feed and driver, articulation, joint palettes, drawn muzzles and rotors), `effects/` (the effect publication, launches, the effect frame, cast-light choice, cook-offs), `view.rs` (the camera's view and the one tier rule, `model_detail`) and `presentation.rs` (18b's `Presentation`: `load_world`, `push_publication`, `clock`, `frame`, `observation`). `records.rs` defines every record once and generates `packages/battle-renderer/src/records.gen.ts`. `crates/presentation-wasm` is the browser binding; `web/src/battle/sim/presentation.ts` is the page's side of it.
+
+`frame(time, camera, ui)` returns:
+- `batches`/`instances`: units, corpses (lying and fading), ghosts and a cook-off's pieces, culled and tiered in Rust, one batch per drawable, tier and pass (2 a ghost). `Instance` is the renderer's 64 B model record (18b amended); `World.appearances` rows name a drawable as (appearance, state, way of lying).
+- `palettes`: `Joint` 3×4 rows, identity first; soldiers' `world · inverseBind`, vehicles' node worlds (a falling airframe's tilt folded in). The model vertex stage dots the rows; the GPU pose kernel and the clip tables' GPU path are deleted.
+- `effects` (the 16-float records unchanged), `lights` (chosen in view, at most 24) and `header.light_wrap`.
+- `picks` (each drawn body's box, and each unit's drawn position), `emitters` (audio's motion), `counts` (models posed, effects running, lights offered, effects dropped, models culled).
+
+**Equality** (before the TypeScript was deleted; the TS output is the committed vectors):
+- `tests/poses.rs`: every written frame of the paris-corner capture (counts, soldiers' clip, phase, facing, position and crossfade, vehicles' articulation, corpses) and the tank's articulations at fixed inputs, to the vectors' 1e-6 rounding. The joint worlds match to 6e-5 m: the browser wrote them from its CPU sampler (`poseWorlds`), and Rust samples the dense table as the GPU kernel did; the CPU sampler's own math over the same table reproduces them to 5e-7.
+- `tests/effects.rs`: every instance float and every cast light of `effect-vectors.json`, exactly after its rounding, and the paris-corner plate's effect counts.
+- 17 behaviour tests (`tests/pose_behaviour.rs`, `tests/effect_behaviour.rs`) cover what the vectors do not reach.

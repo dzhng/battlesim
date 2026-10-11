@@ -1,4 +1,4 @@
-//! The observation as the pose driver reads it (`poseFeed.ts`): a side's
+//! The observation as the pose driver reads it: a side's
 //! interpolated frame becomes a [`FeedFrame`] of every own unit and
 //! identified enemy with its soldiers by member id, its weapon poses, every
 //! downed airframe still falling, and the fallen the side knows of. Each
