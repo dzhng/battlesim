@@ -65,7 +65,7 @@ Research behind the rules:
   - A contact holds its cause's `z` and `layer`, and the simulation publishes `aloft` (in the air, above the low hover).
   - An aloft contact is drawn as the keyed-disc sign facing the camera (`packages/battle-renderer/src/contactGlyph.ts`) and is picked by a sphere (`web/src/battle/input/contactPick.ts`).
   - Any contact in the air layer offers no attack, aloft or not, because area fire can't reach the air (D22). The refusal keys on `layer`, so a report heard from a helicopter at the low hover is drawn on the ground and still can't be attacked.
-- **Objective eligibility has one owner.** `objectives::can_hold` decides it: ground combat units only, never supply or aircraft (D20). The skirmish AI counts only such units toward an objective's load. Helicopters reinforce through the `helicopter` role (`skirmish_ai.rs`).
+- **Objective eligibility has one owner.** `objectives::can_hold` decides it: ground combat units only, never supply or aircraft (D20). The skirmish AI counts only such units toward an objective's load. Helicopters reinforce through the `helicopter` role (`crates/sim/src/skirmish_ai/mod.rs`).
 - **A firing report's heard mask spans two 24-bit words** (`heardLow`, `heardHigh`; `publication::MAX_WEAPON_ROWS` is 48), because a float holds an integer exactly only below 2^24. Adding a weapon row renumbers the rows after it, which moves round digests without changing behaviour. Prove that by renaming the new row to sort last before re-recording.
 
 ## Where it lives

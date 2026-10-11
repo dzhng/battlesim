@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::catalog::{Faction, TypeIndex};
 use crate::encounter::SkirmishSites;
-use crate::ids::{Side, Tick};
+use crate::ids::{Side, Tick, UnitId};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -103,6 +103,52 @@ pub struct SkirmishView {
     pub objectives: Vec<ObjectiveView>,
     pub scores: [f64; 2],
     pub result: Option<MatchResult>,
+    /// The complete match report is revealed once the referee finishes the match.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub report: Option<MatchReport>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct MatchReport {
+    pub totals: [MatchTotals; 2],
+    pub events: Vec<MatchEvent>,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct MatchTotals {
+    pub spawned: u32,
+    pub spent: u32,
+    pub killed: u32,
+    pub refunded: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct MatchUnit {
+    pub side: Side,
+    pub id: UnitId,
+    pub kind: TypeIndex,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum MatchEvent {
+    Spawn {
+        tick: Tick,
+        unit: MatchUnit,
+        cost: u32,
+    },
+    Refund {
+        tick: Tick,
+        unit: MatchUnit,
+        credits: f64,
+    },
+    Kill {
+        tick: Tick,
+        victim: MatchUnit,
+        victim_cost: u32,
+        killer: Option<MatchUnit>,
+        killer_cost: Option<u32>,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

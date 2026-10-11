@@ -49,6 +49,7 @@ const MATCH: SkirmishView = {
   occupiedSlots: 6,
   maxUnits: 30,
   pending: [],
+  report: null,
 };
 
 /** A purchasable card for a test unit (its silhouette is the unit's). */

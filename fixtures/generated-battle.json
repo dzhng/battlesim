@@ -13,7 +13,7 @@
     "min_median_open": 0.5
   },
   "admission": {
-    "max_generated_attempts": 2,
+    "max_generated_attempts": 5,
     "generated_deadline_ms": 8000
   }
 }

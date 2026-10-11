@@ -2,7 +2,9 @@
 //! current, and every test unit type (`fixtures/units/test` and the
 //! test-only M1 family) passes the same generated checks: it sets up, moves,
 //! and fires each of its mounts. The faction roster is data on the same
-//! rules: it is admitted where the view is written, and no test walks it.
+//! rules: it is admitted where the view is written, and no test plays it;
+//! only roster-wide data contracts (no squad runs dry) read its entries.
+use contract::catalog::AltitudeLayer;
 use contract::command::{CommandEnvelope, MoveDirection, Order, RoutePolicy};
 use contract::ids::{Side, UnitId};
 use contract::scenario::Rules;
@@ -301,6 +303,47 @@ fn the_game_catalog_holds_only_what_roster_cards_reach() {
     assert!(stray.is_empty(), "the game catalog ships: {stray:#?}");
 }
 
+/// No roster squad runs dry: every soldier who fills a card's slot carries
+/// an unlimited squad gun, and any finite weapon is a specialist's extra
+/// (`special`) that a comrade takes up when he falls. A sniper whose big
+/// rifle is empty still has his rifle.
+#[test]
+fn every_roster_soldier_carries_an_unlimited_squad_gun() {
+    let rules: Rules = serde_json::from_value(sim::fixtures::game()).unwrap();
+    let c = &rules.catalog;
+    let unlimited = |w: &String| {
+        matches!(
+            rules.weapons[w].ammo,
+            contract::weapons::AmmoCapacity::Unlimited(_)
+        )
+    };
+    let mut dry = Vec::new();
+    for t in c.indices() {
+        for slot in c.get(t).slots().into_iter().flatten() {
+            let kind = c.soldier(slot);
+            for m in &kind.mounts {
+                let finite = m.weapons.iter().any(|w| !unlimited(w));
+                if m.squad && finite {
+                    dry.push(format!("{slot}: its squad gun {:?} runs dry", m.id));
+                }
+                if !m.squad && !m.special {
+                    dry.push(format!("{slot}: {:?} falls with him", m.id));
+                }
+            }
+            if !kind
+                .mounts
+                .iter()
+                .any(|m| m.squad && m.weapons.iter().all(unlimited))
+            {
+                dry.push(format!("{slot}: no unlimited squad gun"));
+            }
+        }
+    }
+    dry.sort();
+    dry.dedup();
+    assert!(dry.is_empty(), "{dry:#?}");
+}
+
 /// The roster is admitted without the test units: no roster kind
 /// inherits from a test one, so editing a test unit changes no roster
 /// squad.
@@ -482,7 +525,22 @@ fn every_unit_type_sets_up_fires_each_mount_and_moves() {
             .flat_map(|m| &m.def.weapons)
             .map(|w| rules.weapons[w].ballistics.range_m)
             .fold(f64::INFINITY, f64::min);
-        let mut b = battle(&fixture, id, targets(range.min(300.0)));
+        let mut others = targets(range.min(300.0));
+        // A weapon that reaches only aircraft gets a helicopter hovering in
+        // reach; the rest never see one, so none takes its return fire.
+        let air_only = rules.catalog.mounts(t).iter().any(|m| {
+            m.def.weapons.iter().all(|w| {
+                !rules.weapons[w]
+                    .targets
+                    .contains_key(&AltitudeLayer::Ground)
+            })
+        });
+        if air_only {
+            others.as_array_mut().unwrap().push(json!(
+                { "side": "red", "kind": "test_heli", "position": [400, 300], "engagement": "return_fire_only" }
+            ));
+        }
+        let mut b = battle(&fixture, id, others);
         for _ in 0..60 * rules.tick_hz {
             b.step();
         }

@@ -57,6 +57,8 @@ fn a_supply_truck_rearms_a_finite_launcher_until_its_stock_runs_out() {
 fn finite_squad_guns_exhaust_independently() {
     let mut fixture = sim::fixtures::test_game();
     fixture["weapons"]["marksman_rifle"]["ammo"] = json!(2);
+    // Carried as a squad gun, it is each soldier's own default gun.
+    fixture["weapons"]["marksman_rifle"]["default"] = json!(true);
     sim::fixtures::patch_catalog(
         &mut fixture,
         "soldiers",

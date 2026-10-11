@@ -269,7 +269,7 @@ pub struct Battle {
     order_bucket: [(u64, Tick); 2],
     /// The observation-bound opponent and its memory (off while replaying).
     opponent: Option<(Opponent, Defender)>,
-    skirmish_ai: Option<crate::skirmish_ai::SkirmishAi>,
+    skirmish_ai: Option<crate::skirmish_ai::BalancedDoctrine>,
     /// The fixture's completion referee and its latest verdict.
     referee: Option<(EncounterRules, Referee)>,
     encounter: Option<EncounterStatus>,
@@ -613,6 +613,7 @@ impl Battle {
                     entered_tick: self.tick,
                 },
             );
+            skirmish.record_spawn(side, unit.id, unit.kind, reservation.price, self.tick);
             skirmish.next_dispatch[index] = self.tick
                 + u64::from(skirmish.setup.rules.dispatch_interval_s)
                     * u64::from(self.rules.tick_hz);
@@ -649,6 +650,13 @@ impl Battle {
                 * crate::skirmish::CREDIT_SCALE as f64)
                 .round() as u64;
             skirmish.wallets[unit.side.index()] += credits;
+            skirmish.record_refund(
+                unit.side,
+                unit.id,
+                unit.kind,
+                credits as f64 / crate::skirmish::CREDIT_SCALE as f64,
+                self.tick,
+            );
             unit.retired = true;
             unit.withdrawing = false;
             unit.orders.clear();
@@ -781,11 +789,15 @@ impl Battle {
                 0,
             ); 2],
             opponent: setup.opponent.clone().map(|o| (o, Defender::default())),
-            skirmish_ai: setup
-                .skirmish
-                .as_ref()
-                .and_then(|s| s.ai_side)
-                .map(|_| crate::skirmish_ai::SkirmishAi::default()),
+            skirmish_ai: setup.skirmish.as_ref().and_then(|s| {
+                s.ai_side.map(|side| {
+                    let stream = contract::random::mix(
+                        seed ^ (side.index() as u64 + 1).wrapping_mul(0x9e37_79b9_7f4a_7c15)
+                            ^ 0x4241_4c41_4e43_4544,
+                    );
+                    crate::skirmish_ai::BalancedDoctrine::new(stream)
+                })
+            }),
             referee: setup.encounter.clone().map(|e| (e, Referee::default())),
             encounter: None,
             pending: Vec::new(),
@@ -799,6 +811,17 @@ impl Battle {
             crashes: Vec::new(),
         };
         let authored: Vec<PropId> = battle.world.props().map(|p| p.id).collect();
+        if let Some(skirmish) = &mut battle.skirmish {
+            for unit in &battle.units {
+                skirmish.record_spawn(
+                    unit.side,
+                    unit.id,
+                    unit.kind,
+                    battle.rules.catalog.get(unit.kind).cost,
+                    0,
+                );
+            }
+        }
         for id in authored {
             battle.schedule_expiry(id);
         }
@@ -949,6 +972,40 @@ impl Battle {
     /// Route searches run so far for `side`.
     pub fn route_searches(&self, side: Side) -> u64 {
         self.sides[side.index()].searches
+    }
+
+    /// Travel time known to one side for one of its observed units. The query
+    /// deliberately uses that side's planning geometry, so external policy
+    /// hosts cannot inspect hidden obstacles or route an enemy unit.
+    pub fn route_time(&mut self, side: Side, id: UnitId, destination: [f64; 2]) -> Option<f64> {
+        let frame = self.observe(side);
+        let own = frame.own.iter().find(|unit| unit.id == id)?;
+        let from = v2(own.position[0], own.position[1]);
+        let goal = v2(destination[0], destination[1]);
+        let kind = self.rules.catalog.get(own.kind);
+        let mobility = match units::motion(kind, &self.rules) {
+            units::Motion::Ground(m) => m,
+            units::Motion::Air(f) => return Some((goal - from).length() / f.cruise_mps),
+        };
+        let mut known = self.sides[side.index()].clone();
+        let grid = known.grid(&self.world, self.authored_props);
+        let (plan, _) = crate::navigation::plan(
+            grid,
+            &self.roads,
+            crate::navigation::Leg {
+                from,
+                goal,
+                m: &mobility,
+                policy: RoutePolicy::Fastest,
+                avoid: &[],
+            },
+            &self.rules.navigation,
+        );
+        let crate::navigation::Plan::Route(route) = plan else {
+            return None;
+        };
+        let time = grid.route_time(from, &route, &mobility);
+        time.is_finite().then_some(time)
     }
 
     /// Validate and schedule a command for the next step. Every command whose
@@ -1700,46 +1757,19 @@ impl Battle {
         if let Some(mut ai) = self.skirmish_ai.take() {
             let setup = &self.skirmish.as_ref().unwrap().setup;
             let side = setup.ai_side.unwrap();
-            let entry = setup.sites.entries.iter().find(|e| e.side == side).unwrap();
-            let frame = &self.observations[side.index()];
-            let mut known = self.sides[side.index()].clone();
-            let grid = known.grid(&self.world, self.authored_props);
-            let orders = ai.decide(
-                side,
-                setup.factions[side.index()],
-                entry,
-                frame,
-                &self.rules,
-                |id, destination| {
-                    let own = frame.own.iter().find(|u| u.id == id)?;
-                    let from = v2(own.position[0], own.position[1]);
-                    let goal = v2(destination[0], destination[1]);
-                    let kind = self.rules.catalog.get(own.kind);
-                    let mobility = match units::motion(kind, &self.rules) {
-                        units::Motion::Ground(m) => m,
-                        units::Motion::Air(f) => {
-                            return Some((goal - from).length() / f.cruise_mps)
-                        }
-                    };
-                    let (plan, _) = crate::navigation::plan(
-                        grid,
-                        &self.roads,
-                        crate::navigation::Leg {
-                            from,
-                            goal,
-                            m: &mobility,
-                            policy: RoutePolicy::Fastest,
-                            avoid: &[],
-                        },
-                        &self.rules.navigation,
-                    );
-                    let crate::navigation::Plan::Route(route) = plan else {
-                        return None;
-                    };
-                    let time = grid.route_time(from, &route, &mobility);
-                    time.is_finite().then_some(time)
-                },
-            );
+            let faction = setup.factions[side.index()];
+            let entry = setup
+                .sites
+                .entries
+                .iter()
+                .find(|e| e.side == side)
+                .cloned()
+                .unwrap();
+            let frame = self.observations[side.index()].clone();
+            let rules = self.rules.clone();
+            let orders = ai.decide(side, faction, &entry, &frame, &rules, |id, destination| {
+                self.route_time(side, id, destination)
+            });
             self.skirmish_ai = Some(ai);
             commands.extend(orders.into_iter().map(|order| (side, order)));
         }
@@ -2087,6 +2117,43 @@ impl Battle {
             }
         }
         if let Some(skirmish) = &mut self.skirmish {
+            for death in &destroyed {
+                let victim = &self.units[death.victim.0 as usize];
+                let killer = death.source.and_then(|source| {
+                    let unit = self.units.get(source.unit.0 as usize)?;
+                    Some(contract::skirmish::MatchUnit {
+                        side: source.side,
+                        id: source.unit,
+                        kind: unit.kind,
+                    })
+                });
+                let victim_cost = skirmish.entered.get(&death.victim).map_or_else(
+                    || self.rules.catalog.get(victim.kind).cost,
+                    |unit| unit.price,
+                );
+                let killer_cost = death.source.and_then(|source| {
+                    skirmish
+                        .entered
+                        .get(&source.unit)
+                        .map(|unit| unit.price)
+                        .or_else(|| {
+                            self.units
+                                .get(source.unit.0 as usize)
+                                .map(|unit| self.rules.catalog.get(unit.kind).cost)
+                        })
+                });
+                skirmish.record_kill(
+                    contract::skirmish::MatchUnit {
+                        side: victim.side,
+                        id: victim.id,
+                        kind: victim.kind,
+                    },
+                    victim_cost,
+                    killer,
+                    killer_cost,
+                    self.tick,
+                );
+            }
             let deaths: Vec<_> = destroyed
                 .iter()
                 .filter_map(|death| {

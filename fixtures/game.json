@@ -91,7 +91,7 @@
     "rifle": {
       "targets": { "ground": {}, "low_air": { "range_m": 100, "scatter_mrad": 40 } },
       "name": "Rifle",
-      "description": "An assault rifle: every soldier carries one.",
+      "description": "The standard rifle every soldier carries.",
       "icon": "rifle",
       "default": true,
       "stationary": false,
@@ -222,17 +222,75 @@
       "structural_damage": 100,
       "anti_armor": true
     },
-    "assault_rifle": {
+    "carbine": {
       "extends": "rifle",
-      "name": "Assault Rifle",
+      "name": "Carbine",
+      "description": "A short rifle for close quarters: handier, less accurate at range.",
       "range_m": 240,
       "scatter_mrad": 10,
       "targets": { "low_air": { "scatter_mrad": 50 } }
     },
+    "smg": {
+      "extends": "rifle",
+      "name": "SMG",
+      "description": "A submachine gun: fast, short bursts for rooms and streets.",
+      "icon": "smg",
+      "range_m": 150,
+      "damage": 25,
+      "penetration": 3,
+      "scatter_mrad": 16,
+      "targets": { "low_air": { "scatter_mrad": 60 } },
+      "magazine": {
+        "rounds": 30,
+        "shot_interval_s": 0.07,
+        "burst": { "rounds": 5, "aim_max_s": 1 }
+      }
+    },
+    "shotgun": {
+      "extends": "rifle",
+      "name": "Shotgun",
+      "description": "A pump shotgun: one heavy blast at a few metres, nothing at range.",
+      "icon": "shotgun",
+      "range_m": 60,
+      "damage": 70,
+      "penetration": 3,
+      "scatter_mrad": 40,
+      "targets": { "low_air": { "range_m": 60, "scatter_mrad": 60 } },
+      "magazine": {
+        "rounds": 8,
+        "shot_interval_s": 0.9,
+        "burst": null
+      }
+    },
+    "lmg": {
+      "extends": "rifle",
+      "name": "LMG",
+      "description": "A light machine gun: long belts of fire that keep heads down.",
+      "icon": "lmg",
+      "default": false,
+      "range_m": 400,
+      "damage": 30,
+      "penetration": 8,
+      "scatter_mrad": 9,
+      "targets": { "low_air": { "range_m": 150, "scatter_mrad": 32 } },
+      "ammo": 600,
+      "reload_s": 6,
+      "aim_s": 1,
+      "magazine": {
+        "rounds": 100,
+        "shot_interval_s": 0.08,
+        "burst": { "rounds": 6, "aim_max_s": 1 }
+      },
+      "near_miss_suppression": 0.05,
+      "suppression_radius_m": 4,
+      "structural_damage": 1
+    },
     "marksman_rifle": {
       "extends": "rifle",
       "name": "Marksman Rifle",
+      "description": "A designated marksman's scoped rifle: aimed single shots past rifle range.",
       "icon": "sniper",
+      "default": false,
       "range_m": 450,
       "damage": 45,
       "penetration": 8,
@@ -248,7 +306,9 @@
     "heavy_sniper": {
       "extends": "rifle",
       "name": "Heavy Sniper",
+      "description": "A .50-calibre rifle: few, heavy, long shots.",
       "icon": "sniper",
+      "default": false,
       "range_m": 700,
       "damage": 100,
       "penetration": 30,
@@ -362,6 +422,41 @@
       "penetration": 200,
       "turn_deg_s": 360,
       "top_attack": { "loft_m": 60, "dive_deg": 40 }
+    },
+    "stinger": {
+      "targets": { "low_air": {} },
+      "interceptable": false,
+      "name": "Stinger",
+      "description": "A shoulder-fired missile that reaches only aircraft; the gunner keeps it in his sight.",
+      "icon": "aa_missile",
+      "stationary": true,
+      "range_m": 1500,
+      "min_range_m": 50,
+      "speed_mps": 100,
+      "accel_mps2": 400,
+      "top_speed_mps": 600,
+      "aim_s": 2,
+      "reload_s": 8,
+      "ammo": 3,
+      "penetration": 300,
+      "damage": 260,
+      "scatter_mrad": 0.5,
+      "turn_deg_s": 180,
+      "guidance": "stationary",
+      "lifetime_s": 6,
+      "near_miss_suppression": 0,
+      "suppression_radius_m": 0,
+      "blast_radius_m": 3,
+      "structural_damage": 20,
+      "anti_armor": true
+    },
+    "igla_s": {
+      "extends": "stinger",
+      "name": "Igla-S"
+    },
+    "fn_6": {
+      "extends": "stinger",
+      "name": "FN-6"
     },
     "akeron_mp": {
       "extends": "javelin",
@@ -516,6 +611,10 @@
       "rocket_pod": 2,
       "marksman_rifle": 1,
       "heavy_sniper": 2,
+      "lmg": 1,
+      "stinger": 30,
+      "igla_s": 30,
+      "fn_6": 30,
       "autocannon": 1,
       "ground_tank_ap": 5,
       "ground_tank_he": 5,

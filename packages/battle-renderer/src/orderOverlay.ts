@@ -38,7 +38,6 @@ import {
   MeshBuilder,
   VERTEX_FLOATS,
   paintOnly,
-  rgbA,
   type Mesh,
   type Rgba,
 } from "./mesh";

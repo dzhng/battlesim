@@ -112,6 +112,51 @@ test("a map whose generated skirmish sites the battle refuses gives way to a fre
   expect(requested).toEqual(["11", "22"]);
 });
 
+test("ordinary Play retries five refused candidates and reports each refusal", async () => {
+  const requested: string[] = [];
+  const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
+  const admission = admitBattle(
+    { candidate, documents, policy: { max_generated_attempts: 5, generated_deadline_ms: 8000 } },
+    () => {},
+    {
+      seed: (() => {
+        let next = 11;
+        return () => String(next++);
+      })(),
+      prepare: (message) => {
+        if (message.type !== "prepare") throw new Error("unexpected replay");
+        const seed =
+          message.request.map_source.kind === "generated"
+            ? message.request.map_source.request.seed
+            : "";
+        requested.push(seed);
+        return {
+          battle: Promise.reject(
+            new PreparationFailed(
+              "refused",
+              [
+                {
+                  code: "invalid_skirmish_sites",
+                  feature: "skirmish_sites",
+                  location: "$.sites.skirmish",
+                  message: "central objective candidates exhausted",
+                },
+              ],
+              "encounter",
+            ),
+          ),
+          cancel: () => {},
+        };
+      },
+    },
+  );
+  await expect(admission.battle).rejects.toThrow("refused");
+  expect(requested).toEqual(["11", "12", "13", "14", "15"]);
+  expect(warning).toHaveBeenCalledTimes(5);
+  expect(warning.mock.calls[0][0]).toMatch(/generated candidate/i);
+  warning.mockRestore();
+});
+
 test("the total generation deadline refuses Play and ignores a late worker reply", async () => {
   let tick!: () => void;
   let late!: (value: PreparedSession) => void;

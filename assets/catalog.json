@@ -5150,6 +5150,672 @@
         "clip": "idle",
         "phase": 0
       }
+    },
+    "machine_gunner_active_a": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/machine_gunner/active_a.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      },
+      "factions": {
+        "eastern": "machine_gunner_eastern_active_a",
+        "europe": "machine_gunner_europe_active_a"
+      }
+    },
+    "machine_gunner_eastern_active_a": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/machine_gunner/eastern_active_a.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "machine_gunner_europe_active_a": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/machine_gunner/europe_active_a.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "us_marine_machine_gunner_active_a": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/us_marine_machine_gunner/active_a.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "us_marine_marksman_active_a": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/us_marine_marksman/active_a.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "marksman_active_a": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/us_marksman_squad_m110_equipped_longer_range_infantry/active_a.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      },
+      "factions": {
+        "eastern": "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_a",
+        "europe": "europe_marksman_squad_longer_range_infantry_active_a"
+      }
+    },
+    "fim_92_stinger_team_active_a": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/fim_92_stinger_team/active_a.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-launcher",
+      "tolerances": {
+        "muzzle_m": 0.2
+      },
+      "far_pose": {
+        "clip": "stand_aim",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      },
+      "factions": {
+        "europe": "fim_92_stinger_team_europe_active_a"
+      }
+    },
+    "fim_92_stinger_team_europe_active_a": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/fim_92_stinger_team/europe_active_a.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-launcher",
+      "tolerances": {
+        "muzzle_m": 0.2
+      },
+      "far_pose": {
+        "clip": "stand_aim",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "eastern_air_defense_team_igla_s_active_a": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/eastern_air_defense_team_igla_s/active_a.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-launcher",
+      "tolerances": {
+        "muzzle_m": 0.2
+      },
+      "far_pose": {
+        "clip": "stand_aim",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "eastern_air_defense_team_fn_6_active_a": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/eastern_air_defense_team_fn_6/active_a.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-launcher",
+      "tolerances": {
+        "muzzle_m": 0.2
+      },
+      "far_pose": {
+        "clip": "stand_aim",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "fim_92_stinger_team_carried_a": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/fim_92_stinger_team/carried_a.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      },
+      "factions": {
+        "europe": "fim_92_stinger_team_europe_carried_a"
+      }
+    },
+    "fim_92_stinger_team_europe_carried_a": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/fim_92_stinger_team/europe_carried_a.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "eastern_air_defense_team_igla_s_carried_a": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/eastern_air_defense_team_igla_s/carried_a.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "eastern_air_defense_team_fn_6_carried_a": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/eastern_air_defense_team_fn_6/carried_a.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "machine_gunner_active_b": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/machine_gunner/active_b.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      },
+      "factions": {
+        "eastern": "machine_gunner_eastern_active_b",
+        "europe": "machine_gunner_europe_active_b"
+      }
+    },
+    "machine_gunner_eastern_active_b": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/machine_gunner/eastern_active_b.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "machine_gunner_europe_active_b": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/machine_gunner/europe_active_b.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "us_marine_machine_gunner_active_b": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/us_marine_machine_gunner/active_b.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "us_marine_marksman_active_b": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/us_marine_marksman/active_b.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "marksman_active_b": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/us_marksman_squad_m110_equipped_longer_range_infantry/active_b.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      },
+      "factions": {
+        "eastern": "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_b",
+        "europe": "europe_marksman_squad_longer_range_infantry_active_b"
+      }
+    },
+    "fim_92_stinger_team_active_b": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/fim_92_stinger_team/active_b.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-launcher",
+      "tolerances": {
+        "muzzle_m": 0.2
+      },
+      "far_pose": {
+        "clip": "stand_aim",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      },
+      "factions": {
+        "europe": "fim_92_stinger_team_europe_active_b"
+      }
+    },
+    "fim_92_stinger_team_europe_active_b": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/fim_92_stinger_team/europe_active_b.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-launcher",
+      "tolerances": {
+        "muzzle_m": 0.2
+      },
+      "far_pose": {
+        "clip": "stand_aim",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "eastern_air_defense_team_igla_s_active_b": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/eastern_air_defense_team_igla_s/active_b.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-launcher",
+      "tolerances": {
+        "muzzle_m": 0.2
+      },
+      "far_pose": {
+        "clip": "stand_aim",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "eastern_air_defense_team_fn_6_active_b": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/eastern_air_defense_team_fn_6/active_b.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-launcher",
+      "tolerances": {
+        "muzzle_m": 0.2
+      },
+      "far_pose": {
+        "clip": "stand_aim",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "fim_92_stinger_team_carried_b": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/fim_92_stinger_team/carried_b.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      },
+      "factions": {
+        "europe": "fim_92_stinger_team_europe_carried_b"
+      }
+    },
+    "fim_92_stinger_team_europe_carried_b": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/fim_92_stinger_team/europe_carried_b.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "eastern_air_defense_team_igla_s_carried_b": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/eastern_air_defense_team_igla_s/carried_b.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "eastern_air_defense_team_fn_6_carried_b": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/eastern_air_defense_team_fn_6/carried_b.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "machine_gunner_active_c": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/machine_gunner/active_c.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      },
+      "factions": {
+        "eastern": "machine_gunner_eastern_active_c",
+        "europe": "machine_gunner_europe_active_c"
+      }
+    },
+    "machine_gunner_eastern_active_c": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/machine_gunner/eastern_active_c.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "machine_gunner_europe_active_c": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/machine_gunner/europe_active_c.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "us_marine_machine_gunner_active_c": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/us_marine_machine_gunner/active_c.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "us_marine_marksman_active_c": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/us_marine_marksman/active_c.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "marksman_active_c": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/us_marksman_squad_m110_equipped_longer_range_infantry/active_c.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      },
+      "factions": {
+        "eastern": "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_c",
+        "europe": "europe_marksman_squad_longer_range_infantry_active_c"
+      }
+    },
+    "fim_92_stinger_team_active_c": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/fim_92_stinger_team/active_c.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-launcher",
+      "tolerances": {
+        "muzzle_m": 0.2
+      },
+      "far_pose": {
+        "clip": "stand_aim",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      },
+      "factions": {
+        "europe": "fim_92_stinger_team_europe_active_c"
+      }
+    },
+    "fim_92_stinger_team_europe_active_c": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/fim_92_stinger_team/europe_active_c.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-launcher",
+      "tolerances": {
+        "muzzle_m": 0.2
+      },
+      "far_pose": {
+        "clip": "stand_aim",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "eastern_air_defense_team_igla_s_active_c": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/eastern_air_defense_team_igla_s/active_c.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-launcher",
+      "tolerances": {
+        "muzzle_m": 0.2
+      },
+      "far_pose": {
+        "clip": "stand_aim",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "eastern_air_defense_team_fn_6_active_c": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/eastern_air_defense_team_fn_6/active_c.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-launcher",
+      "tolerances": {
+        "muzzle_m": 0.2
+      },
+      "far_pose": {
+        "clip": "stand_aim",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "fim_92_stinger_team_carried_c": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/fim_92_stinger_team/carried_c.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      },
+      "factions": {
+        "europe": "fim_92_stinger_team_europe_carried_c"
+      }
+    },
+    "fim_92_stinger_team_europe_carried_c": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/fim_92_stinger_team/europe_carried_c.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "eastern_air_defense_team_igla_s_carried_c": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/eastern_air_defense_team_igla_s/carried_c.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "eastern_air_defense_team_fn_6_carried_c": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/eastern_air_defense_team_fn_6/carried_c.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
     }
   }
 }

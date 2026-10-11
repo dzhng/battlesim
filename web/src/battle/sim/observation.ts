@@ -469,7 +469,26 @@ export interface SkirmishView {
     confirmedTick: number;
     blocked: boolean;
   }[];
+  report: MatchReportView | null;
 }
+
+export interface MatchReportView {
+  totals: { spawned: number; spent: number; killed: number; refunded: number }[];
+  events: MatchEventView[];
+}
+
+export type MatchEventView =
+  | { kind: "spawn"; tick: number; side: "blue" | "red"; unitId: number; unitKind: string; amount: number }
+  | { kind: "refund"; tick: number; side: "blue" | "red"; unitId: number; unitKind: string; amount: number }
+  | {
+      kind: "kill";
+      tick: number;
+      side: "blue" | "red";
+      unitId: number;
+      unitKind: string;
+      victimCost: number;
+      killer: { side: "blue" | "red"; unitId: number; unitKind: string; cost: number } | null;
+    };
 
 export interface ObservationView {
   tick: number;
@@ -1239,6 +1258,41 @@ function decodeFrame(
       roll: f("roll"),
     }),
   );
+  const reportTotals = groups.reportTotals.map(({ field: f }) => ({
+    spawned: f("spawned"),
+    spent: f("spent"),
+    killed: f("killed"),
+    refunded: f("refunded"),
+  }));
+  const reportEvents = groups.reportEvents.map(({ field: f }) => {
+    const kind = f("kind");
+    const side = layout.ground.sides[f("side")] as "blue" | "red";
+    const unitId = limbs(f, "unitId")!;
+    const unitKind = layout.unitKinds[f("unitKind")];
+    const tick = limbs(f, "tick")!;
+    if (kind === 0)
+      return { kind: "spawn" as const, tick, side, unitId, unitKind, amount: f("amount") };
+    if (kind === 1)
+      return { kind: "refund" as const, tick, side, unitId, unitKind, amount: f("amount") };
+    const otherSide = f("otherSide");
+    return {
+      kind: "kill" as const,
+      tick,
+      side,
+      unitId,
+      unitKind,
+      victimCost: f("amount"),
+      killer:
+        otherSide < 0
+          ? null
+          : {
+              side: layout.ground.sides[otherSide] as "blue" | "red",
+              unitId: limbs(f, "otherId")!,
+              unitKind: layout.unitKinds[f("otherKind")],
+              cost: f("otherAmount"),
+            },
+    };
+  });
   return {
     tick: header.tick,
     own,
@@ -1290,6 +1344,10 @@ function decodeFrame(
               confirmedTick: f("confirmedLo") + f("confirmedHi") * 2 ** layout.limbBits,
               blocked: f("blocked") !== 0,
             })),
+            report:
+              header.reportTotalsCount > 0 || header.reportEventCount > 0
+                ? { totals: reportTotals, events: reportEvents }
+                : null,
           },
     fog: { cellM: header.fogCellM, nx: header.fogNx, ny: header.fogNy, bits },
     groundPatch,

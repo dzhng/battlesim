@@ -148,7 +148,7 @@ const POSE_FIELDS: [&str; 7] = [
 
 /// Header words; the non-map groups' delivery metadata starts here.
 pub const HEADER_WORDS: usize = HEADER.len();
-const HEADER: [&str; 41] = [
+const HEADER: [&str; 43] = [
     "tick",
     "ownCount",
     "identifiedCount",
@@ -185,6 +185,8 @@ const HEADER: [&str; 41] = [
     "occupiedSlots",
     "maxUnits",
     "pendingCount",
+    "reportTotalsCount",
+    "reportEventCount",
     "objectiveCount",
     "scoreBlue",
     "scoreRed",
@@ -255,6 +257,22 @@ const CORPSE_FIELDS: [&str; 9] = [
 ];
 const FALLEN_BODY_FIELDS: [&str; 7] = ["propLo", "propHi", "x", "y", "towardX", "towardY", "tick"];
 const CRASH_FIELDS: [&str; 9] = ["id", "own", "kind", "x", "y", "z", "yaw", "pitch", "roll"];
+const REPORT_TOTAL_FIELDS: [&str; 4] = ["spawned", "spent", "killed", "refunded"];
+const REPORT_EVENT_FIELDS: [&str; 13] = [
+    "tickLo",
+    "tickHi",
+    "kind",
+    "side",
+    "unitIdLo",
+    "unitIdHi",
+    "unitKind",
+    "otherSide",
+    "otherIdLo",
+    "otherIdHi",
+    "otherKind",
+    "amount",
+    "otherAmount",
+];
 const KNOWN_PROP_FIELDS: [&str; 20] = [
     "kind",
     "x",
@@ -514,6 +532,8 @@ pub fn layout_json(battle: &Battle) -> String {
                 "sections": [],
             },
             { "name": "pendingPurchases", "count": "pendingCount", "fields": PENDING_FIELDS, "sections": [] },
+            { "name": "reportTotals", "count": "reportTotalsCount", "fields": REPORT_TOTAL_FIELDS, "sections": [] },
+            { "name": "reportEvents", "count": "reportEventCount", "fields": REPORT_EVENT_FIELDS, "sections": [] },
             { "name": "objectives", "count": "objectiveCount", "fields": OBJECTIVE_FIELDS, "sections": [] },
             { "name": "crashes", "count": "crashCount", "fields": CRASH_FIELDS, "sections": [] },
         ],
@@ -901,6 +921,12 @@ fn pack_record(
             .skirmish
             .as_ref()
             .map_or(0.0, |s| s.pending.len() as f32),
+        frame.skirmish.as_ref().map_or(0.0, |s| {
+            s.report.as_ref().map_or(0, |r| r.totals.len()) as f32
+        }),
+        frame.skirmish.as_ref().map_or(0.0, |s| {
+            s.report.as_ref().map_or(0, |r| r.events.len()) as f32
+        }),
         frame
             .skirmish
             .as_ref()
@@ -1253,6 +1279,76 @@ fn pack_record(
     if let Some(ends) = ends.as_mut() {
         ends.push(out.len());
     }
+    if let Some(report) = frame.skirmish.as_ref().and_then(|s| s.report.as_ref()) {
+        for totals in report.totals {
+            out.extend([
+                totals.spawned as f32,
+                totals.spent as f32,
+                totals.killed as f32,
+                totals.refunded as f32,
+            ]);
+        }
+        if let Some(ends) = ends.as_mut() {
+            ends.push(out.len());
+        }
+        for event in &report.events {
+            let (tick, kind, side, unit, other, amount, other_amount) = match event {
+                contract::skirmish::MatchEvent::Spawn { tick, unit, cost } => {
+                    (*tick, 0.0, unit.side, *unit, None, *cost as f32, 0.0)
+                }
+                contract::skirmish::MatchEvent::Refund {
+                    tick,
+                    unit,
+                    credits,
+                } => (*tick, 1.0, unit.side, *unit, None, *credits as f32, 0.0),
+                contract::skirmish::MatchEvent::Kill {
+                    tick,
+                    victim,
+                    victim_cost,
+                    killer,
+                    killer_cost,
+                } => (
+                    *tick,
+                    2.0,
+                    victim.side,
+                    *victim,
+                    *killer,
+                    *victim_cost as f32,
+                    killer_cost.unwrap_or_default() as f32,
+                ),
+            };
+            let [tick_lo, tick_hi] = limbs(
+                tick.try_into()
+                    .map_err(|_| "report tick exceeds publication range")?,
+            );
+            let [id_lo, id_hi] = limbs(unit.id.0);
+            let (other_side, other_id_lo, other_id_hi, other_kind) =
+                other.map_or((-1.0, -1.0, -1.0, -1.0), |u| {
+                    let [lo, hi] = limbs(u.id.0);
+                    (u.side.index() as f32, lo, hi, u.kind.0 as f32)
+                });
+            out.extend([
+                tick_lo,
+                tick_hi,
+                kind,
+                side.index() as f32,
+                id_lo,
+                id_hi,
+                unit.kind.0 as f32,
+                other_side,
+                other_id_lo,
+                other_id_hi,
+                other_kind,
+                amount,
+                other_amount,
+            ]);
+        }
+    } else if let Some(ends) = ends.as_mut() {
+        ends.push(out.len());
+    }
+    if let Some(ends) = ends.as_mut() {
+        ends.push(out.len());
+    }
     if let Some(skirmish) = &frame.skirmish {
         for (i, o) in skirmish.objectives.iter().enumerate() {
             out.extend([
@@ -1345,6 +1441,22 @@ fn packed_len(frame: &ObservationFrame, fog: usize, runs: usize) -> Result<usize
     add(
         frame.skirmish.as_ref().map_or(0, |s| s.pending.len()),
         PENDING_FIELDS.len(),
+    )?;
+    add(
+        frame
+            .skirmish
+            .as_ref()
+            .and_then(|s| s.report.as_ref())
+            .map_or(0, |r| r.totals.len()),
+        REPORT_TOTAL_FIELDS.len(),
+    )?;
+    add(
+        frame
+            .skirmish
+            .as_ref()
+            .and_then(|s| s.report.as_ref())
+            .map_or(0, |r| r.events.len()),
+        REPORT_EVENT_FIELDS.len(),
     )?;
     add(
         frame.skirmish.as_ref().map_or(0, |s| s.objectives.len()),
@@ -1717,7 +1829,7 @@ const VARIABLE_ANCHOR_WORDS: usize = 3;
 
 /// Each non-map group's fixed row width, in record order; 0 where variable
 /// sections leave no one width to address complete rows by.
-const GROUP_ROW_WIDTHS: [usize; 13] = [
+const GROUP_ROW_WIDTHS: [usize; 15] = [
     0,
     0,
     CONTACT_FIELDS.len(),
@@ -1729,6 +1841,8 @@ const GROUP_ROW_WIDTHS: [usize; 13] = [
     KNOWN_PROP_FIELDS.len(),
     FALLEN_BODY_FIELDS.len(),
     PENDING_FIELDS.len(),
+    REPORT_TOTAL_FIELDS.len(),
+    REPORT_EVENT_FIELDS.len(),
     OBJECTIVE_FIELDS.len(),
     CRASH_FIELDS.len(),
 ];

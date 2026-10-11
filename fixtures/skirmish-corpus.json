@@ -1,0 +1,12 @@
+{
+  "revision": 1,
+  "rows": [
+    { "id": "flat_opening", "map": { "kind": "generated", "type": "open", "size": "small" }, "seed": 1, "horizon_ticks": 1800, "no_progress_ticks": 450 },
+    { "id": "town_contact", "map": { "kind": "generated", "type": "mixed", "size": "medium" }, "seed": 2, "horizon_ticks": 1800, "no_progress_ticks": 450 },
+    { "id": "wooded_contact", "map": { "kind": "generated", "type": "open", "size": "large" }, "seed": 3, "horizon_ticks": 1800, "no_progress_ticks": 450 },
+    { "id": "blocked_entry", "map": "movement", "seed": 4, "horizon_ticks": 900, "no_progress_ticks": 300 },
+    { "id": "contested_center", "map": "street", "seed": 5, "horizon_ticks": 1800, "no_progress_ticks": 450 },
+    { "id": "casualty_fallback", "map": "supply", "seed": 6, "horizon_ticks": 1800, "no_progress_ticks": 450 },
+    { "id": "air_reinforcement", "map": "air", "seed": 7, "horizon_ticks": 1800, "no_progress_ticks": 450 }
+  ]
+}

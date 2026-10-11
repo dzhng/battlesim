@@ -15,6 +15,11 @@
       "description": "Teams built to kill armour.",
       "symbol": ["infantry", "anti_armour"]
     },
+    "air_defense": {
+      "name": "Air defence",
+      "description": "Teams that shoot down low-flying aircraft.",
+      "symbol": ["infantry", "air_defense"]
+    },
     "mbt": {
       "name": "Main battle tank",
       "description": "Heavy armour with a turret gun.",

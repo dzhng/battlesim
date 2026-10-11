@@ -169,9 +169,9 @@ test("the menu offers fresh skirmishes without prebuilt battlefields", async () 
   const menu = await visit(createElement(MainMenu));
   expect(menu.queryByRole("button", { name: "Battlefields" })).toBeNull();
   fireEvent.click(menu.getByRole("button", { name: "Skirmish" }));
-  expect(menu.getByRole("link", { name: "Deploy" }).getAttribute("href")).toBe(
-    "/battle?play=1&type=mixed&size=small&faction=us",
-  );
+  const deploy = menu.getByRole("link", { name: "Deploy" });
+  expect(deploy.getAttribute("href")).toBe("/battle?play=1&type=mixed&size=small&faction=us");
+  expect(deploy.getAttribute("target")).toBe("_self");
 });
 
 /** A preparation worker that answers when the test says so. */

@@ -375,7 +375,7 @@
       "body": {
         "squad": {
           "slots": [
-            "us_army_scouts_light_patrol__scout",
+            "us_army_scouts_light_patrol__marksman",
             "us_army_scouts_light_patrol__scout",
             "us_army_scouts_light_patrol__scout",
             "us_army_scouts_light_patrol__scout"
@@ -400,7 +400,7 @@
         "variant": "BGM-71 TOW 2A",
         "family_name": "ATGM Team"
       },
-      "extends": "roster_profile_at_team",
+      "extends": "roster_profile_weapon_team",
       "body": {
         "squad": {
           "slots": [
@@ -701,7 +701,7 @@
         "squad": {
           "slots": [
             "us_force_recon_recon_patrol__grenadier",
-            "us_force_recon_recon_patrol__scout",
+            "us_force_recon_recon_patrol__marksman",
             "us_force_recon_recon_patrol__scout",
             "us_force_recon_recon_patrol__scout"
           ]
@@ -1907,14 +1907,14 @@
       "body": {
         "squad": {
           "slots": [
-            "us_marine_squad_close_quarters_infantry__roster_assault_rifle",
-            "us_marine_squad_close_quarters_infantry__roster_assault_rifle",
-            "us_marine_squad_close_quarters_infantry__roster_assault_rifle",
-            "us_marine_squad_close_quarters_infantry__roster_assault_rifle",
-            "us_marine_squad_close_quarters_infantry__roster_assault_rifle",
-            "us_marine_squad_close_quarters_infantry__roster_assault_rifle",
-            "us_marine_squad_close_quarters_infantry__roster_assault_rifle",
-            "us_marine_squad_close_quarters_infantry__roster_assault_rifle"
+            "us_marine_squad_close_quarters_infantry__grenadier",
+            "us_marine_squad_close_quarters_infantry__grenadier",
+            "us_marine_squad_close_quarters_infantry__machine_gunner",
+            "us_marine_squad_close_quarters_infantry__marksman",
+            "us_marine_squad_close_quarters_infantry__rifleman",
+            "us_marine_squad_close_quarters_infantry__rifleman",
+            "us_marine_squad_close_quarters_infantry__rifleman",
+            "us_marine_squad_close_quarters_infantry__rifleman"
           ]
         }
       }
@@ -1940,12 +1940,12 @@
       "body": {
         "squad": {
           "slots": [
-            "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_1",
-            "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_2",
-            "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_3",
-            "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_4",
-            "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_5",
-            "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_6"
+            "us_marksman_squad_m110_equipped_longer_range_infantry__marksman",
+            "us_marksman_squad_m110_equipped_longer_range_infantry__marksman",
+            "us_marksman_squad_m110_equipped_longer_range_infantry__marksman",
+            "us_marksman_squad_m110_equipped_longer_range_infantry__grenadier",
+            "us_marksman_squad_m110_equipped_longer_range_infantry__rifleman",
+            "us_marksman_squad_m110_equipped_longer_range_infantry__rifleman"
           ]
         }
       }
@@ -2039,8 +2039,8 @@
       "body": {
         "squad": {
           "slots": [
-            "us_scout_snipers_m107_heavy_sniper_team__roster_heavy_sniper_1",
-            "us_scout_snipers_m107_heavy_sniper_team__roster_heavy_sniper_2"
+            "us_scout_snipers_m107_heavy_sniper_team__sniper",
+            "us_scout_snipers_m107_heavy_sniper_team__spotter"
           ]
         }
       }

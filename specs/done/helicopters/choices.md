@@ -225,7 +225,7 @@ The entries are grouped by verdict: **needs-user** (decide; each one has a provi
 - **Confidence:** medium.
 
 ### S16. The skirmish AI buys helicopters only as reinforcements, and they never count toward holding a flag
-- **When:** slices 15, 17, closeout (`crates/sim/src/skirmish_ai.rs`, `objectives::can_hold` in `crates/sim/src/objectives.rs`, `fixtures/units/roles.json`).
+- **When:** slices 15, 17, closeout (`crates/sim/src/skirmish_ai/mod.rs`, `objectives::can_hold` in `crates/sim/src/objectives.rs`, `fixtures/units/roles.json`).
 - **The choice:** every roster helicopter carries a new `helicopter` role (symbol: rotary wing). The AI's reinforcement rotation gained it as a fifth role, after infantry, recon, AT and light vehicle. A deck without a helicopter buys the next role in turn, so other decks buy as before. The opening is never a helicopter: it stays a ground screen, as in WARNO. A bought helicopter is ordered to an objective like any combat purchase. Since closeout, when the AI weighs how many of its units already head to each objective, only units that can hold one count. That's one owner, `objectives::can_hold`, shared with capture itself (D20). The test helicopter keeps `light_vehicle`. The alternative was buying one in the opening, which would change every US and Europe skirmish.
 - **The gap:** D12/D35 said the AI buys and flies them, not when.
 - **The reach:** helicopters appear only mid-battle in AI skirmishes. There's no return-to-base code (D16).

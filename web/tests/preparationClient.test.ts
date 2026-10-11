@@ -44,3 +44,49 @@ test("the prepared worker remains available to play, and cancellation silences l
     vi.unstubAllGlobals();
   }
 });
+
+test("a worker refusal is visible in the browser console with its diagnostics", async () => {
+  const workers: FakeWorker[] = [];
+  class FakeWorker {
+    onmessage: ((event: MessageEvent) => void) | null = null;
+    onerror = null;
+    terminate = vi.fn();
+    postMessage = vi.fn();
+    constructor() {
+      workers.push(this);
+    }
+    deliver(data: unknown) {
+      this.onmessage?.({ data } as MessageEvent);
+    }
+  }
+  const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
+  vi.stubGlobal("Worker", FakeWorker);
+  try {
+    const preparation = prepareBattle({} as PrepareMessage, () => {});
+    workers[0].deliver({
+      type: "refused",
+      stage: "encounter",
+      diagnostics: [
+        {
+          code: "invalid_skirmish_sites",
+          feature: "skirmish_sites",
+          location: "$.sites.skirmish",
+          message: "central objective candidates exhausted",
+        },
+      ],
+    });
+    await expect(preparation.battle).rejects.toThrow("central objective candidates exhausted");
+    expect(warning).toHaveBeenCalledWith(
+      "battle preparation refused",
+      expect.objectContaining({
+        stage: "encounter",
+        diagnostics: expect.arrayContaining([
+          expect.objectContaining({ code: "invalid_skirmish_sites" }),
+        ]),
+      }),
+    );
+  } finally {
+    warning.mockRestore();
+    vi.unstubAllGlobals();
+  }
+});

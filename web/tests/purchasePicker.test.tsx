@@ -34,6 +34,7 @@ const match: SkirmishView = {
   scores: [0, 0],
   result: null,
   objectives: [],
+  report: null,
 };
 test("an empty army can inspect one family and purchase its enabled concrete variant", () => {
   const choose = vi.fn();
