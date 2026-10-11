@@ -9,6 +9,7 @@ export default mergeConfig(
       environment: "jsdom",
       include: ["tests/**/*.test.{ts,tsx}", "scene.test.mjs", "scenes/_*.test.mjs"],
       globals: false,
+      setupFiles: ["tests/support/jsdom.ts"],
       // A test judges what happened, not how long this machine took: the
       // limit only catches a hang, and holds when every core is busy.
       testTimeout: 30_000,
