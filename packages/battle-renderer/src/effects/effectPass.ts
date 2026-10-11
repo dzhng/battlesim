@@ -227,7 +227,8 @@ fn projScale() -> vec2f {
     out.viewDepth = clip.w;
     out.color = vec4f(vec3f(v.color.w), 1.0);
     // Its sweep, a blade's chord over its reach, its blades, and how deep
-    // it fades into what it meets.
+    // it fades into what it meets. misc.w: a bladed disc's narrowest blade,
+    // pixels; a bare disc's cover.
     out.extra = vec4f(v.b.w, v.misc.y, v.misc.z, ROTOR_SOFT_M);
     let l = spriteLight();
     out.sun = l.sun;
@@ -340,13 +341,14 @@ fn cell(tuv: vec2f, frame: f32, cols: f32) -> vec2f {
     // A rotor, from its hub (0) to its blade tips (1). Each blade covers
     // the wedge it swept, back from where it is now, for the share of the
     // exposure it spent over each point of it: its chord's angle over the
-    // wedge's. With no blades, a solid disc (its hub).
+    // wedge's, a blade no thinner than its narrowest pixels. With no blades,
+    // a disc of even cover (its hub, or the faint grey of a spinning disc).
     let r = length(f.offset);
     let ang = atan2(f.offset.y, f.offset.x);
     let aa = length(offsetWidth) / max(r, 1e-3);
     let n = i32(f.extra.z + 0.5);
-    var cover = select(0.0, 1.0, n == 0);
-    let chordAng = f.extra.y / max(r, 1e-3);
+    var cover = select(0.0, f.misc.w, n == 0);
+    let chordAng = max(f.extra.y, f.misc.w * length(offsetWidth)) / max(r, 1e-3);
     let half = (f.extra.x + chordAng) * 0.5;
     let share = chordAng / (f.extra.x + chordAng);
     for (var k = 0; k < n; k++) {

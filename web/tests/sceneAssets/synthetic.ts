@@ -18,6 +18,7 @@ import type {
   SkeletonEntry,
   Tolerances,
 } from "@packages/scene-assets/src/schema.ts";
+import { INFANTRY_CLIPS, INFANTRY_DEATHS } from "@packages/scene-assets/src/schema.ts";
 import {
   UnitCatalog,
   type MountRow,
@@ -436,15 +437,8 @@ export interface SoldierOptions {
   tint?: number; // the side-tint mask weight of its material (extras.tint)
 }
 
-export const SOLDIER_CLIPS = [
-  "idle",
-  "walk",
-  "run",
-  "kneel_fire",
-  "prone_pinned",
-  "death",
-  "stand_aim",
-];
+/** Every role an infantry skeleton carries, and the standing-aim reference pose. */
+export const SOLDIER_CLIPS: string[] = [...INFANTRY_CLIPS, "stand_aim"];
 
 /**
  * A 1.70 m rifleman in glTF Y-up space facing +Z. The armature node scales
@@ -563,7 +557,10 @@ export const SKELETON_ENTRY: SkeletonEntry = {
   sample_hz: 30,
   aim_reference: { clip: "stand_aim", phase: 0 },
   clips: Object.fromEntries(
-    SOLDIER_CLIPS.map((name) => [name, { loop: !["death", "stand_aim"].includes(name) }]),
+    SOLDIER_CLIPS.map((name) => [
+      name,
+      { loop: !["stand_aim", ...Object.values(INFANTRY_DEATHS)].includes(name) },
+    ]),
   ),
 };
 

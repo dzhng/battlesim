@@ -1,0 +1,143 @@
+{
+  "entries": [
+    {
+      "file": "m249-side.jpg",
+      "variant": "m249",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:PEO_M249_Para_ACOG.jpg",
+      "author": "Photo Courtesy of PEO Soldier",
+      "licence": "public-domain",
+      "sha256": "a46e9b8ad47a07bb38dcc04bb8f5b541bc2298ec98df7f50a59b5fa9ff661fc2",
+      "note": "M249 Para, right side profile on white, all matte black: boxy stamped receiver with the charging handle on the right, flat feed cover with top rail and ACOG, folding carry handle over the barrel, side rail on the handguard, slotted flash hider and front sight post, bipod folded down; collapsible stock (the Para's, not the fixed issue stock); a woodland soft pouch hangs from the magazine well under the receiver."
+    },
+    {
+      "file": "m249-side-2.jpg",
+      "variant": "m249",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:201103-A-UQ561-1843_-_M249_qualification_(Image_4_of_12).jpg",
+      "author": "Capt. Daniel Parker",
+      "licence": "public-domain",
+      "sha256": "ef51e1c8f63f7494dc0086ca9ef3e907355c7e12010305925ae951459ca2e333",
+      "note": "US Army infantryman (OCP, helmet, plate carrier) prone, firing an M249 on its bipod, from his right side: the gun's length against the body, optic on the feed cover, carry handle up, vertical foregrip under the handguard, barrel and flash hider beyond the bipod; muzzle flash."
+    },
+    {
+      "file": "m249-three_quarter_front.jpg",
+      "variant": "m249",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:11th_Airborne_Division_Conducts_Combined_Arms_Live_Fire_Exercise_(9584441).jpg",
+      "author": "U.S. Army photo by Sgt. Tyler Wassmer",
+      "licence": "public-domain",
+      "sha256": "0090dec67ff6dc07c262a687ca75bf8a7c7826583d7aad0ba8fd0471c1ff7ab6",
+      "note": "A firing line of US Army M249 gunners, prone in OCP, from their right and slightly ahead: black hard-plastic 200-round ammunition box clipped under the receiver, belt into the feed tray, optics, carry handle, bipods deployed, FDE rail accessories; spare boxes lying beside them shows the box's size against the gun."
+    },
+    {
+      "file": "m249-detail.jpg",
+      "variant": "m249",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:PEO_M249_Soft_Ammo_Pack.jpg",
+      "author": "Photo Courtesy of PEO Soldier",
+      "licence": "public-domain",
+      "sha256": "6af639e2b94922efed0e6e3f54e49901f78811c0a37f1f18ab2509dca282ffe8",
+      "note": "M249 200-round soft ammo pack on white: rounded D-shaped woodland-camouflage cloth pouch with a zip along the bottom, grey plastic clip-on top that latches into the magazine well."
+    },
+    {
+      "file": "mg4-side.jpg",
+      "variant": "mg4",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:HK_MG4_right_noBG.jpg",
+      "author": "Michał Derela (from File:MG4 (2).jpg by KrisfromGermany)",
+      "licence": "CC-BY-SA-3.0",
+      "sha256": "3058e3d5ba0ec29ff8a5c416a326fbaa6f29de5feafb6dfb4d9b9c7c431f3cc1",
+      "note": "MG4 right side profile on white, all black polymer and steel: solid polymer folding buttstock, slim flat receiver, feed cover with rail-mounted sight and the barrel-change carry handle above, short ribbed handguard, thin exposed barrel with a front sight post and slotted flash hider, bipod down; sling hanging below. No ammunition fitted."
+    },
+    {
+      "file": "mg4-side-2.jpg",
+      "variant": "mg4",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Heckler_%26_Koch_MG4_Prenzlau_2025.jpg",
+      "author": "Boevaya mashina",
+      "licence": "CC-BY-SA-3.0-DE",
+      "sha256": "e396bd9b04a80289458a92b5a439861ab01220d49668ef230c1a8246439ac5ca",
+      "note": "Bundeswehr MG4 in current fit, left side on a display table: olive cloth belt pouch hanging under the receiver, tan ZO 4x30 optic on the feed cover, carry handle, push-to-talk pad on the handguard, sling, bipod down; slightly elevated and from the left-front."
+    },
+    {
+      "file": "mg4-three_quarter_front.jpg",
+      "variant": "mg4",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Heckler_%26_Koch_MG4.jpg",
+      "author": "Boevaya mashina",
+      "licence": "CC-BY-SA-3.0",
+      "sha256": "75d608c65f1cc72a4176492edc2ba9c95a29ee7c94f7e23512b61253a67d621d",
+      "note": "Bundeswehr MG4 on its bipod, front-right quarter, on camouflage netting: ribbed handguard, feed-cover sight with carry handle, bipod legs splayed, front sight and flash hider; no ammunition fitted."
+    },
+    {
+      "file": "mg4-three_quarter_rear.jpg",
+      "variant": "mg4",
+      "view": "three_quarter_rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:MG4Sept2006.jpg",
+      "author": "Viborg",
+      "licence": "CC-BY-SA-3.0",
+      "sha256": "d44ed21f92316cc99739fbcada26f1d68bfe05e939a625d044d04a5222c2a497",
+      "note": "Early MG4 at a Bundeswehr weapons show, from behind and left: buttplate and stock comb, top of the receiver with the rail sight, feed cover, carry handle, the olive cloth belt pouch under the receiver and the bipod beyond; portrait, close."
+    },
+    {
+      "file": "pkp-side.jpg",
+      "variant": "pkp",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:PKP_Pecheneg_(1).jpg",
+      "author": "Vitaly V. Kuzmin",
+      "licence": "CC-BY-SA-3.0",
+      "sha256": "731392f99bdaea96316c7df34a946726382ac9a254892c4ed73921c0de91ad2c",
+      "note": "Two PKPs on gravel, the near one in right side profile: black skeleton stock, black receiver and feed cover, pistol grip, olive-green steel 100-round box hung under the receiver, barrel inside a full-length jacket to the muzzle, the long carry handle arching over the barrel, bipod at the muzzle end; tan canvas sling."
+    },
+    {
+      "file": "pkp-side-2.jpg",
+      "variant": "pkp",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:PKP_Pecheneg.jpg",
+      "author": "Vitaly V. Kuzmin",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "d4be4dc180258e329caf1e1d33692b8c77e89ac93521f6c51b1929cc0135f047",
+      "note": "PKP left side on grass, slightly from above: skeleton stock, side scope rail on the receiver, olive-green ribbed ammunition box under the receiver, carry handle over the barrel, cylindrical muzzle with the bipod mounted right behind it, olive sling."
+    },
+    {
+      "file": "pkp-three_quarter_front.jpg",
+      "variant": "pkp",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:ArcticBrigadeTacticalTraining-07.jpg",
+      "author": "Артём Финн (Artyom Finn)",
+      "licence": "CC-BY-4.0",
+      "sha256": "a765e0227d47b7df9bd2f85a09e02d8aa7bf70782621c3947202a66b8f2c5ea2",
+      "note": "Russian soldiers on a vehicle, the front one in Ratnik (digital flora camouflage, green 6B47 helmet, goggles, balaclava) holding a PKP across his body, gun in right side view: stock under his arm, belt entering the feed, ammo box under the receiver, carry handle and barrel to the right. Small image."
+    },
+    {
+      "file": "pkp-three_quarter_rear.jpg",
+      "variant": "pkp",
+      "view": "three_quarter_rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:TacticalExercise2018-08.jpg",
+      "author": "Ministry of Defence of the Russian Federation",
+      "licence": "CC-BY-4.0",
+      "sha256": "b7b6c715c98ced0f9c0dd37c1af726d8346fa459bd2d23b8ab9bd9ef3aa0d37b",
+      "note": "Russian paratrooper in Ratnik firing a PKP from a snow trench, from behind and left: the gun's left side and top with optic on the side rail, green ammunition box under the receiver, belt of rounds, carry handle, bipod in the snow; the gunner's helmet and armour from behind."
+    }
+  ],
+  "gaps": [
+    "m249: no gunner standing or walking with the M249 carried; every soldier photo is prone on the bipod.",
+    "m249: the side profile is the Para with a collapsible stock; no clean public-domain profile of the standard fixed-stock M249 was taken.",
+    "mg4: no Bundeswehr soldier carrying or firing an MG4 under an allowed licence; the MG4 references are all displayed weapons.",
+    "pkp: no clean studio profile on a plain background; the side views are on grass and gravel.",
+    "pkp: no gunner standing or walking with the PKP slung; the carry is seen seated on a vehicle."
+  ]
+}

@@ -15,7 +15,8 @@
     "menu_us_jeep": {
       "extends": "test_jeep",
       "name": "HMMWV",
-      "description": "The menu reel's blue jeep: the test jeep, hull and all, in an HMMWV's look. Menu footage only.",
+      "description": "The menu reel's blue jeep: the test jeep in an HMMWV's look, armoured past what a rifle can chip so the approved reel plays as filmed. Menu footage only.",
+      "body": { "hull": { "armor": { "front": 9, "side": 9, "rear": 9, "roof": 9 } } },
       "appearance": "us_m1151_hmmwv_hmg"
     },
     "menu_rifle": {

@@ -314,7 +314,7 @@ export async function armyJourney(ctx) {
   const truck = own.find((unit) => unit.kind === "test_supply");
   const goal = [truck.position[0] + 50, truck.position[1]];
   await page.evaluate((ids) => window.__lab.route.select(ids), [rifle.id, truck.id]);
-  await page.keyboard.press("x");
+  await page.keyboard.press("c");
   const point = await groundCss(page, goal);
   await page.mouse.click(...point, { button: "right" });
   await page.waitForFunction(() => window.__lab.route.acks()[0]?.order.kind === "attack_move");

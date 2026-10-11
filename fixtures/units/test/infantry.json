@@ -36,6 +36,14 @@
       "roles": ["at"],
       "cost": 120,
       "body": { "squad": { "slots": ["test_atgm_gunner", "test_at_rifleman", "test_at_rifleman"] } }
+    },
+    "test_aa": {
+      "extends": "test_squad",
+      "name": "AA Team",
+      "description": "A shoulder-fired air-defence missile and two riflemen to guard it.",
+      "roles": ["air_defense"],
+      "cost": 100,
+      "body": { "squad": { "slots": ["test_aa_gunner", "test_at_rifleman", "test_at_rifleman"] } }
     }
   }
 }

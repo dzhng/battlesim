@@ -330,9 +330,10 @@ fn a_smoke_row_hides_from_sensing_and_the_fog_until_it_expires() {
 }
 
 /// The jeep (Q3): open-topped, so it sees as far behind as ahead; lightly
-/// armoured, so rifle rounds stop and every heavier row gets through.
+/// armoured, so rifle rounds get only partly through and every heavier row
+/// gets fully through every face.
 #[test]
-fn a_jeep_sees_all_round_and_only_rifles_cannot_hurt_it() {
+fn a_jeep_sees_all_round_and_only_rifles_partly_hurt_it() {
     let r = rules();
     let arsenal = sim::weapons::Arsenal::new(&r);
     let rifle = &arsenal
@@ -341,11 +342,21 @@ fn a_jeep_sees_all_round_and_only_rifles_cannot_hurt_it() {
         .find(|w| w.id == "rifle")
         .unwrap()
         .def;
+    let a = common::hull("test_jeep").armor;
+    let share = |w: &contract::weapons::WeaponDefinition, armor: f64| {
+        sim::damage::pierce_share(w, 0, &r, armor)
+    };
     for w in &arsenal.weapons {
-        let hurts = sim::weapons::can_damage(&w.def, Some(&common::hull("test_jeep").armor));
-        let heavier = w.def.penetration > rifle.penetration;
-        assert_eq!(hurts, heavier, "{}", w.id);
+        if w.def.penetration > rifle.penetration {
+            let thickest = a.front.max(a.side).max(a.rear).max(a.roof);
+            assert_eq!(share(&w.def, thickest), 1.0, "{}", w.id);
+        }
     }
+    let rifle_share = share(rifle, a.weakest());
+    assert!(
+        0.0 < rifle_share && rifle_share < 1.0,
+        "rifle: {rifle_share}"
+    );
     let range = r.catalog.by_id("test_jeep").sensors.ground_m;
     for dx in [-0.9 * range, 0.9 * range] {
         let setup = common::scenario(

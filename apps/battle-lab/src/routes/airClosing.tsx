@@ -8,7 +8,7 @@ import { gameCamera } from "../gameCamera";
 import { TickStatus } from "../TickStatus";
 
 // The helicopters' closing scene (D14), the air map's `closing` encounter:
-// the AH-64E flies in from the west edge, pops up over the village roofs and
+// the AH-64E flies in from the west edge over the village roofs and
 // kills the T-72 waiting behind them with rockets and its chin gun; ordered
 // on east, holding its fire, it is shot down by the BMP-2M the tower hid,
 // and its wreck comes down in the wood and flattens the trees there. Drawn

@@ -10,13 +10,21 @@ owns their composition. That function is the authority on phase order.
 
 [Models](src/models/), [effects](src/effects/) and [fog inputs](src/frame/fogInputs.ts)
 consume immutable identities and published causes. Soldier poses follow actual
-published soldiers rather than formation slots. Building damage follows the
+published soldiers rather than formation slots. A soldier down in a posture, or
+shooting, keeps his weapon toward the threat as he moves and steps, crouches or
+crawls the way he goes, with a clip for every way; otherwise, and at a run, he
+turns to face where he is going. No posture slides along the ground. A soldier
+dies from the posture he is in, never getting up to fall: standing, most are
+thrown onto their backs and the rest pitch onto their faces; kneeling or lying,
+they fall forward. His corpse lies as his fall ended, face up or face down. Building damage follows the
 side's known physical remains, not a renderer guess from height or floor count.
 An effect on a barrel follows [the drawn muzzle](src/models/drawnModels.ts);
 its physical launch remains the simulation's event. A flying aircraft's rotor is
 drawn by the effects from the same drawn pose, as a film camera's shutter sees it:
 each blade smeared over the angle it turned while the shutter was open, so a fast
-rotor blurs at any frame rate and a paused one shows its blades.
+rotor blurs at any frame rate and a paused one shows its blades. A spinning
+disc keeps a faint grey over its whole reach, and no blade draws thinner than a
+few pixels, so a small rotor still reads from the tactical camera.
 
 The app's [observation feeds](../../apps/battle-lab/README.md#observation-feeds)
 translate publications into this boundary. [Scene assets](../scene-assets/README.md)
