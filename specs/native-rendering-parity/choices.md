@@ -290,3 +290,11 @@ None found at the closeout. Two earlier choices were corrected during the build 
   - Confidence: high.
 - **Templates are installed by hand,** from the official `.tpz`, checked against the release's SHA512-SUMS, with only `macos.zip` and `version.txt` copied into the user's Godot data folder.
   - Confidence: high.
+- **First debug against release reading, market-town, one run each.** 1,000 records (385–1384), 60 warm-up frames, uncapped, minimised window, plugged in, M5 Pro. This is a single sample, not a gate; slice 12 takes three runs with the spread shown.
+
+  | Build | Average FPS | Frame p50 | Frame p95 | Frame max | CPU p50 | CPU p95 |
+  | --- | --- | --- | --- | --- | --- | --- |
+  | Editor (debug) | 15.5 | 62.8 ms | 77.0 ms | 94.8 ms | 27.0 ms | 38.6 ms |
+  | Release export | 17.7 | 54.5 ms | 64.8 ms | 75.6 ms | 12.5 ms | 26.3 ms |
+
+  - Release halves the CPU time per frame, but frames stay around 55 ms. Both draw the same counts (about 25k draw calls and 24.5M primitives per frame). The bottleneck is not the debug build; it is what slice 08 is naming.
