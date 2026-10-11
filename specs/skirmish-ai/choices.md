@@ -105,13 +105,14 @@ evidence, and simplicity when machinery does not earn its cost.
 
 ## Implementation choices — slice 03
 
-- **Corpus host:** the first native tournament corpus uses fixture-owned saved
-  maps and two `BalancedDoctrine` controllers, with JSONL rows reporting complete, refused,
-  timeout, or no-progress. This is intentionally a small executable harness
-  that proves deterministic two-sided control. Generated-map identity and
-  richer metrics are intentionally deferred. The user allowed an external
-  harness when a two-sided runtime controller became overcomplicated. **Verdict:
-  sound, high confidence.**
+- **Corpus host:** the native tournament corpus uses generated maps admitted
+  through the same `PreparedMap` and `admit_skirmish` flow as production map
+  preparation, plus saved-map rows for operational edge cases. Two
+  `BalancedDoctrine` controllers run externally through observation, route,
+  accept, and step; JSONL rows preserve complete, refused, timeout, and
+  no-progress outcomes. The user allowed an external harness when a two-sided
+  runtime controller became overcomplicated. **Verdict: sound, high
+  confidence.**
 - **Evidence over winner fixtures:** tournament rows record no-progress and
   timeout outcomes explicitly, alongside first contacts, recon sightings,
   objective ownership, refusals, pivot counts, and the authoritative battle

@@ -107,14 +107,13 @@ procurement; a richer task-group layer remains follow-up work.
 
 ## Scenario corpus and proof
 
-The initial corpus covers named saved-map rows for opening, town, woods,
-route-pressure, contested, supply, and air cases. Generated open/mixed/metro
-request identity remains a follow-up to the native runner.
+The corpus covers generated open/mixed/large cases with 3/5/7 admitted sites,
+plus saved-map rows for route-pressure, contested, supply, and air cases.
 
-Reports measure status/result, objective ownership time, first contact, recon
-sightings, doctrine pivots, refused orders, and the battle digest. Replay digest,
-credit/living-value accounting, and instruction counts remain future harness
-extensions.
+Reports measure status/result, admitted map identity and site count, objective
+ownership time, first contact, recon sightings/range, doctrine pivots, refused
+orders, credit spend, living cost, battle digest, replay digest, and replay
+parity. Instruction counts remain a future measurement extension.
 Qualitative invariants belong in tests; exact winners are tournament evidence,
 not brittle fixture expectations.
 
