@@ -169,17 +169,20 @@ shaders) and writes the manifest's numbers into them:
   the camera sees, as the browser's do. Godot has one penumbra radius per
   light in each split's own texels, so the penumbra matches the browser's in
   the second cascade and widens beyond it.
-- **Sky light.** The ambient and reflected light is the ported physical sky
-  times the fill: the sky shader writes that product into the radiance
+- **Sky lookup.** The clear sky's radiance is integrated once, into the
+  browser's 384×192 equirectangular lookup (`environment/sky_lut.gd`), and
+  everything below reads it with linear filtering, as the browser's sky,
+  environment light and haze read its LUT.
+- **Sky light.** The ambient and reflected light is the looked-up sky times
+  the fill: the sky shader writes that product into the radiance
   cubemap Godot lights with, whether or not the sky is shown.
-- **Sky.** The shown sky is the same physical sky, with the horizon's
+- **Sky.** The shown sky is the looked-up sky, with the horizon's
   radiance below the horizon, the sun's disc and the cloud layer over it.
 - **Samples.** The world is drawn at the browser's 4× MSAA, and both effects
   below read Godot's resolved colour (and depth), as the browser's post reads
   its resolve.
 - **Haze.** A compositor effect hazes every surface once, from the depth
-  buffer, toward the frame record's ground focus, before the post chain. It
-  evaluates the sky radiance directly where the browser samples its sky LUT.
+  buffer, toward the frame record's ground focus, before the post chain.
 - **Tone.** A second compositor effect is the browser's post chain: bloom,
   grade and AgX at the manifest's exposure. Godot's tone mapper is linear and
   its glow off, so its output step only adds the sRGB transfer the browser's

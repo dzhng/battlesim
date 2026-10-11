@@ -125,6 +125,20 @@ vec3 sky_radiance(vec3 dir_in) {
 		"bounce": ShaderText.rgb(bounce),
 	})
 
+## `vec3 sky_radiance(vec3 dir)` read from the baked lookup (`sky_lut.gd`),
+## a `sampler2D sky_lut` the shader declares: the browser's equirectangular
+## coordinates (`equirectUvWgsl`), sampled linearly.
+static func lookup_function() -> String:
+	return """
+vec2 sky_lut_uv(vec3 dir) {
+	return vec2(atan(dir.z, dir.x) * {inv_tau} + 0.5, asin(clamp(dir.y, -1.0, 1.0)) * {inv_pi} + 0.5);
+}
+
+vec3 sky_radiance(vec3 dir) {
+	return textureLod(sky_lut, sky_lut_uv(dir), 0.0).rgb;
+}
+""".format({"inv_tau": ShaderText.number(1.0 / TAU), "inv_pi": ShaderText.number(1.0 / PI)})
+
 ## `vec3 sky_disc(vec3 dir)`: the sun's disc, added to the shown sky only.
 static func disc_function(light: Dictionary) -> String:
 	var sun := Light.sun_direction(light)

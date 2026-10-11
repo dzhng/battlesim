@@ -13,6 +13,7 @@ const StrictJson = preload("res://core/strict_json.gd")
 const SkyModel = preload("res://environment/sky_model.gd")
 const ShaderText = preload("res://core/shader_text.gd")
 const HazeEffect = preload("res://environment/haze_effect.gd")
+const SkyLut = preload("res://environment/sky_lut.gd")
 const PostEffect = preload("res://environment/post_effect.gd")
 
 ## Godot's PCF filter whose four Vogel taps are closest to the browser's five,
@@ -31,6 +32,7 @@ var _light: Dictionary
 var _receivers: AABB
 var _sun: DirectionalLight3D
 var _haze: CompositorEffect
+var _sky_lut: SkyLut
 
 ## `receivers` is the box the map's shadow receivers lie in, in Godot space.
 func _init(light: Dictionary, sky_listed: bool, receivers: AABB) -> void:
@@ -39,9 +41,11 @@ func _init(light: Dictionary, sky_listed: bool, receivers: AABB) -> void:
 	_receivers = receivers
 	var env := Environment.new()
 	var sky := Sky.new()
+	_sky_lut = SkyLut.new(light)
 	var sky_material := ShaderMaterial.new()
 	sky_material.shader = Shader.new()
 	sky_material.shader.code = sky_shader(light)
+	sky_material.set_shader_parameter("sky_lut", _sky_lut.texture)
 	sky.sky_material = sky_material
 	env.sky = sky
 	env.background_mode = Environment.BG_SKY if sky_listed else Environment.BG_CLEAR_COLOR
@@ -54,7 +58,7 @@ func _init(light: Dictionary, sky_listed: bool, receivers: AABB) -> void:
 	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	var world := WorldEnvironment.new()
 	world.environment = env
-	_haze = HazeEffect.new(light)
+	_haze = HazeEffect.new(light, _sky_lut)
 	world.compositor = Compositor.new()
 	world.compositor.compositor_effects = [_haze, PostEffect.new(light)]
 	# The post chain tone maps; Godot's output step only applies the sRGB
@@ -68,6 +72,10 @@ func _init(light: Dictionary, sky_listed: bool, receivers: AABB) -> void:
 
 func _enter_tree() -> void:
 	get_viewport().msaa_3d = FRAME_MSAA
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE:
+		_sky_lut.free_device()
 
 ## The browser's sun as a Godot light: its direction through the one
 ## conversion, its colour from the sky model and its intensity, keeping
@@ -161,7 +169,7 @@ static func godot_extent(near: float, far: float, fov_degrees: float, aspect: fl
 ## lights with what the shader writes in its cubemap pass: the sky radiance
 ## (with its ground bounce, without clouds or disc) times the fill.
 static func sky_shader(light: Dictionary) -> String:
-	return SKY_SHADER.replace("{functions}", SkyModel.radiance_function(light) + SkyModel.disc_function(light) + SkyModel.clouds_function(light)).replace("{fill}", ShaderText.rgb(StrictJson.vector3(light.sky.fill)))
+	return SKY_SHADER.replace("{functions}", SkyModel.lookup_function() + SkyModel.disc_function(light) + SkyModel.clouds_function(light)).replace("{fill}", ShaderText.rgb(StrictJson.vector3(light.sky.fill)))
 
 const SKY_SHADER := """
 shader_type sky;
@@ -169,12 +177,14 @@ render_mode use_debanding;
 
 #include "res://core/coords.gdshaderinc"
 
+uniform sampler2D sky_lut : filter_linear, repeat_disable;
+
 {functions}
 
 void sky() {
 	vec3 dir = godot_to_sim(normalize(EYEDIR));
 	if (AT_CUBEMAP_PASS) {
-		COLOR = max(sky_radiance(dir), vec3(0.0)) * {fill};
+		COLOR = sky_radiance(dir) * {fill};
 	} else {
 		vec3 shown = normalize(vec3(dir.xy, max(dir.z, 0.004)));
 		COLOR = max(sky_clouds(dir, sky_radiance(shown) + sky_disc(dir)), vec3(0.0));

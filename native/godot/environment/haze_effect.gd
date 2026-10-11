@@ -8,6 +8,7 @@ extends CompositorEffect
 const Coords = preload("res://core/coords.gd")
 const Aerial = preload("res://environment/aerial.gd")
 const SkyModel = preload("res://environment/sky_model.gd")
+const SkyLut = preload("res://environment/sky_lut.gd")
 const ComputePass = preload("res://core/compute_pass.gd")
 
 ## The camera's ground focus in sim space, and its near and far planes, set
@@ -19,13 +20,16 @@ var far := 1.0
 var _source: String
 var _pass: ComputePass
 var _nearest: RID
+var _sky_lut: SkyLut
 
-func _init(light: Dictionary) -> void:
+## `sky_lut` is the baked sky the haze tends toward.
+func _init(light: Dictionary, sky_lut: SkyLut) -> void:
+	_sky_lut = sky_lut
 	effect_callback_type = EFFECT_CALLBACK_TYPE_POST_TRANSPARENT
 	# Under MSAA, read the resolved colour and depth.
 	access_resolved_color = true
 	access_resolved_depth = true
-	_source = SHADER.replace("{sky}", SkyModel.radiance_function(light)).replace("{aerial}", Aerial.function(light))
+	_source = SHADER.replace("{sky}", SkyModel.lookup_function()).replace("{aerial}", Aerial.function(light))
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_PREDELETE and _pass != null:
@@ -52,12 +56,14 @@ func _render_callback(_type: int, render_data: RenderData) -> void:
 		var uniforms := [
 			ComputePass.image(0, buffers.get_color_layer(view_index)),
 			ComputePass.sampled(1, _nearest, buffers.get_depth_layer(view_index)),
+			ComputePass.sampled(2, _sky_lut.sampler, _sky_lut.rid),
 		]
 		_pass.dispatch(rd, uniforms, push, size)
 
 const SHADER := """
 layout(rgba16f, set = 0, binding = 0) uniform restrict image2D color;
 layout(set = 0, binding = 1) uniform sampler2D depth;
+layout(set = 0, binding = 2) uniform sampler2D sky_lut;
 layout(push_constant, std430) uniform Frame {
 	vec4 eye;      // sim position, near plane
 	vec4 focus;    // sim ground focus, far plane
