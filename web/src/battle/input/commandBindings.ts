@@ -21,7 +21,7 @@ export interface CommandBinding {
 
 export const CommandBindings: Readonly<Record<KeyCommand, CommandBinding>> = {
   stop: { code: "Backspace", label: "Backspace" },
-  attack_move: { code: "KeyX", label: "X or Ctrl+right-click" },
+  attack_move: { code: "KeyC", label: "C or Ctrl+right-click" },
   reverse_move: { code: "KeyR", label: "R, or right-click behind one vehicle" },
   toggle_fire_policy: { code: "KeyF", label: "F" },
   attack_ground: { code: "KeyG", label: "G" },

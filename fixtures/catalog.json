@@ -12698,16 +12698,16 @@
           "body": {
             "hull": {
               "armor": {
-                "front": 15.0,
-                "rear": 15.0,
+                "front": 4.0,
+                "rear": 4.0,
                 "ricochet": {
                   "front": 0.1,
                   "rear": 0.1,
                   "roof": 0.1,
                   "side": 0.1
                 },
-                "roof": 15.0,
-                "side": 15.0
+                "roof": 4.0,
+                "side": 4.0
               },
               "eye_m": 1.4,
               "half_extents_m": [
@@ -12807,16 +12807,16 @@
           "body": {
             "hull": {
               "armor": {
-                "front": 15.0,
-                "rear": 15.0,
+                "front": 4.0,
+                "rear": 4.0,
                 "ricochet": {
                   "front": 0.1,
                   "rear": 0.1,
                   "roof": 0.1,
                   "side": 0.1
                 },
-                "roof": 15.0,
-                "side": 15.0
+                "roof": 4.0,
+                "side": 4.0
               },
               "eye_m": 1.4,
               "half_extents_m": [
@@ -24861,16 +24861,16 @@
       "body": {
         "hull": {
           "armor": {
-            "front": 15.0,
-            "rear": 15.0,
+            "front": 4.0,
+            "rear": 4.0,
             "ricochet": {
               "front": 0.1,
               "rear": 0.1,
               "roof": 0.1,
               "side": 0.1
             },
-            "roof": 15.0,
-            "side": 15.0
+            "roof": 4.0,
+            "side": 4.0
           },
           "eye_m": 1.4,
           "half_extents_m": [
@@ -24973,16 +24973,16 @@
       "body": {
         "hull": {
           "armor": {
-            "front": 15.0,
-            "rear": 15.0,
+            "front": 4.0,
+            "rear": 4.0,
             "ricochet": {
               "front": 0.1,
               "rear": 0.1,
               "roof": 0.1,
               "side": 0.1
             },
-            "roof": 15.0,
-            "side": 15.0
+            "roof": 4.0,
+            "side": 4.0
           },
           "eye_m": 1.4,
           "half_extents_m": [

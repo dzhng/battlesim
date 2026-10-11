@@ -240,14 +240,21 @@ export async function run(ctx) {
     detourShot !== null && nearestTower < 1.5,
     JSON.stringify({ nearestTower }),
   );
-  // It flies on round the tower: never back for a corner of its route.
+  // It flies on round the tower: never back for a corner of its route. At
+  // its goal it runs a little past and eases back: its settle, no more.
   let furthest = -Infinity;
   let fellBack = 0;
+  let settledBack = 0;
   for (const r of rows) {
     furthest = Math.max(furthest, r.at[0]);
-    fellBack = Math.max(fellBack, furthest - r.at[0]);
+    if (furthest < goal[0]) fellBack = Math.max(fellBack, furthest - r.at[0]);
+    else settledBack = Math.max(settledBack, furthest - r.at[0]);
   }
-  ctx.check("it never turns back on its route", fellBack < 2, JSON.stringify({ fellBack }));
+  ctx.check(
+    "it never turns back on its route, and eases back no more than its overshoot at its goal",
+    fellBack < 2 && settledBack <= air.settle_max_m + 1,
+    JSON.stringify({ fellBack, settledBack }),
+  );
   ctx.check(
     "it arrives at its goal and hovers at cruise height over open ground",
     Math.hypot(arrived.heli.position[0] - goal[0], arrived.heli.position[1] - goal[1]) < 1 &&

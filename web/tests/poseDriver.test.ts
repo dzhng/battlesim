@@ -532,6 +532,55 @@ test("an aircraft's rotors turn while it lives, and nothing it has rolls as it f
   expect(ground.articulation.rotor_blur).toBe(0);
 });
 
+test("a flying aircraft dips its nose to speed up, flares to brake and banks into a turn", () => {
+  const heli = (x: number, y: number, yaw: number): FeedUnit => ({
+    ...tank(x, yaw, 0, 0),
+    kind: "test_heli",
+    position: [x, y, 30],
+    mounts: [{ bearing: 0, elevation: 0, shots: 0 }],
+  });
+  /** The drawn tilt after flying `path` (time, x, y, yaw) at 30 Hz. */
+  const fly = (path: (t: number) => [number, number, number], seconds: number) => {
+    const d = driver();
+    let v = d.update(frame(0, [heli(...path(0))])).vehicles[0];
+    for (let k = 1; k <= seconds * 30; k++)
+      v = d.update(frame(k / 30, [heli(...path(k / 30))])).vehicles[0];
+    return v.tilt;
+  };
+  const noseDown = (m: ReturnType<typeof fly>) => -(m?.[2] ?? 0);
+  // Its left (+Y) side's height: a bank to the left lowers it.
+  const leftDown = (m: ReturnType<typeof fly>) => -(m?.[6] ?? 0);
+  // Gathering speed east at 3 m/s²: its nose dips.
+  const speeding = fly((t) => [1.5 * t * t, 0, 0], 2);
+  expect(noseDown(speeding)).toBeGreaterThan(Math.sin(0.1));
+  // Braking from 20 m/s at 3 m/s²: its nose rises.
+  const braking = fly((t) => [20 * t - 1.5 * t * t, 0, 0], 2);
+  expect(noseDown(braking)).toBeLessThan(-Math.sin(0.1));
+  // Turning left (north) round a 60 m circle at 15 m/s: its left side dips.
+  const w = 15 / 60;
+  const turning = fly((t) => [60 * Math.sin(w * t), 60 - 60 * Math.cos(w * t), w * t], 3);
+  expect(leftDown(turning)).toBeGreaterThan(Math.sin(0.1));
+  // Paused mid-turn (the clock holding still), it holds its bank.
+  const d = driver();
+  const path = (t: number): [number, number, number] => [
+    60 * Math.sin(w * t),
+    60 - 60 * Math.cos(w * t),
+    w * t,
+  ];
+  let held = d.update(frame(0, [heli(...path(0))])).vehicles[0];
+  for (let k = 1; k <= 90; k++) held = d.update(frame(k / 30, [heli(...path(k / 30))])).vehicles[0];
+  const banked = leftDown(held.tilt);
+  for (let k = 0; k < 5; k++) held = d.update(frame(3, [heli(...path(3))])).vehicles[0];
+  expect(leftDown(held.tilt)).toBeCloseTo(banked, 9);
+  // Hovering still: level.
+  expect(noseDown(fly(() => [0, 0, 0], 2))).toBeCloseTo(0, 6);
+  // Never past the most it leans, however hard it brakes.
+  const slam = fly((t) => [Math.min(t, 0.5) * 60, 0, 0], 1);
+  expect(Math.abs(noseDown(slam))).toBeLessThanOrEqual(
+    Math.sin((FEEL.attitude.max_deg * Math.PI) / 180) + 1e-6,
+  );
+});
+
 test("a supply vehicle's deploy progress is its articulation's", () => {
   const out = driver().update(
     frame(0, [{ ...tank(0, 0, 0, 0), kind: "test_supply", mounts: [], deployment: 0.4 }]),

@@ -206,6 +206,18 @@
       "extends": "roster_profile_light_helicopter",
       "body": {
         "hull": {
+          "armor": {
+            "front": 4,
+            "side": 4,
+            "rear": 4,
+            "roof": 4,
+            "ricochet": {
+              "front": 0.1,
+              "side": 0.1,
+              "rear": 0.1,
+              "roof": 0.1
+            }
+          },
           "half_extents_m": [
             3.75,
             1.64,
@@ -274,6 +286,18 @@
       "extends": "roster_profile_light_helicopter",
       "body": {
         "hull": {
+          "armor": {
+            "front": 4,
+            "side": 4,
+            "rear": 4,
+            "roof": 4,
+            "ricochet": {
+              "front": 0.1,
+              "side": 0.1,
+              "rear": 0.1,
+              "roof": 0.1
+            }
+          },
           "half_extents_m": [
             3.75,
             1.475,

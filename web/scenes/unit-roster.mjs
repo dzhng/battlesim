@@ -57,6 +57,8 @@ export async function run(ctx) {
   await page.keyboard.press("Escape");
   assert((await obs(page)).skirmish.credits === 1000, "free placement and Escape spend no credits");
   await page.getByRole("button", { name: "Reinforcements", exact: true }).click();
+  // The picker reopens on its first tab; pointing at a tab switches to it.
+  await page.getByRole("tab", { name: "VEH", exact: true }).hover();
   await page.getByRole("button", { name: "M1 Abrams", exact: true }).hover();
   await page.getByRole("button", { name: /^SEP v2 — \d+ credits$/ }).click();
   await page.mouse.move(640, 340);

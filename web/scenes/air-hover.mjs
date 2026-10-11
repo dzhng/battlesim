@@ -257,7 +257,14 @@ export async function run(ctx) {
     [heli.id, goal],
   );
   await advance(page, 1);
-  await aim(page, goal, { distance: 70, pitch: 0.72, yaw: -1.25 });
+  // Aimed halfway up: the ghost at cruise height and the marker under it
+  // both in frame.
+  await aim(
+    page,
+    [goal[0], goal[1], (await surface(goal)) + cruise / 2],
+    { distance: 70, pitch: 0.72, yaw: -1.25 },
+    { onGround: false },
+  );
   const unheld = decode(await snapshot(ctx, page, "frame-ghost-unheld-1280x800.png"));
   await page.keyboard.down("Space");
   await advance(page, 1);
@@ -619,10 +626,11 @@ async function lostSign(ctx, page, surface, css) {
       await page.evaluate(() => window.__lab.frame());
       const mask = decode(await page.screenshot());
       await page.evaluate(() => window.__lab.setFrameView("final"));
+      // What the eye sees behind the sign: the ground it hangs against.
       ctx.check(
-        "lost-fog: the ground under the sign is unseen",
-        sum(pixel(mask, under[0], under[1])) < 60,
-        JSON.stringify({ under }),
+        "lost-fog: the ground behind the sign is unseen",
+        sum(pixel(mask, c[0], c[1])) < 60,
+        JSON.stringify({ c }),
       );
     }
     if (name.endsWith("roof")) {
