@@ -42,16 +42,17 @@ function watchCounter() {
  *  own (the runner's Chromium can outlive its locked command while it tears
  *  down). Empty when the GPU is this run's alone. */
 function contention() {
-  const running = (pattern) => {
+  const running = (...args) => {
     try {
-      return execFileSync("pgrep", ["-f", pattern], { encoding: "utf8" }).trim().split("\n");
+      return execFileSync("pgrep", args, { encoding: "utf8" }).trim().split("\n");
     } catch {
       return []; // pgrep exits 1 when nothing matches
     }
   };
   const found = [];
-  if (running("[Gg]odot .*--path native/godot").length) found.push("a native run");
-  const browsers = running("Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing( |$)");
+  // By process name: a run still queued on the GPU lock draws nothing.
+  if (running("-ix", "godot").length) found.push("a native run");
+  const browsers = running("-f", "^/[^ ]*Chrome for Testing\\.app/Contents/MacOS/Google Chrome for Testing( |$)");
   if (browsers.length > 1) found.push(`${browsers.length} browsers`);
   return found;
 }

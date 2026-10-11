@@ -160,12 +160,21 @@ func _render(options: Dictionary) -> void:
 	var learned := LearnedGround.new(admitted.capture.layout.ground)
 	var timing: FrameTiming = null
 	var viewport_rid := get_viewport().get_viewport_rid()
+	# The run draws each frame itself: Godot's main loop skips drawing, and
+	# sleeps, while its window is minimised or covered. Each record still
+	# passes one main-loop iteration, which pushes the moved nodes' transforms
+	# to the renderer, with no sleep.
+	RenderingServer.render_loop_enabled = false
+	OS.low_processor_usage_mode_sleep_usec = 0
+	RenderingServer.viewport_set_measure_render_time(viewport_rid, true)
 	if options.bench >= 0:
+		# A bench is timed on screen: a minimised window skips presenting its
+		# frames, which made them a third cheaper than a shown one's.
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
 		timing = FrameTiming.new(options.bench)
 		_refuse_contention("start")
 		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if options.pace == "display" else DisplayServer.VSYNC_DISABLED)
 		Engine.max_fps = 0
-		RenderingServer.viewport_set_measure_render_time(viewport_rid, true)
 	var record = stepper.step()
 	while record != null:
 		var stepped := Time.get_ticks_usec()
@@ -180,25 +189,25 @@ func _render(options: Dictionary) -> void:
 		world.layer.show_units(sample.units)
 		if world.fog != null:
 			world.fog.show_fog(sample.fog)
+		var step_ms := (Time.get_ticks_usec() - stepped) / 1000.0
+		await get_tree().process_frame
+		RenderingServer.force_draw()
 		if timing != null:
-			var step_ms := (Time.get_ticks_usec() - stepped) / 1000.0
-			await RenderingServer.frame_post_draw
 			# CPU: this frame's step, Godot's frame setup and the viewport's
 			# render submission, as the browser's is its frame callback.
 			var cpu_ms := step_ms + RenderingServer.get_frame_setup_time_cpu() + RenderingServer.viewport_get_measured_render_time_cpu(viewport_rid)
 			timing.drawn(Time.get_ticks_usec(), cpu_ms, _drawn_in_frame())
-			record = stepper.step()
-			continue
-		var path: String = options.out.path_join("plate-%d.png" % record.index)
-		var plate: Dictionary = await PlateWriter.write(get_viewport(), record, path)
-		if not plate.ok:
-			_report.add_blocker(plate.blocker.name, plate.blocker.detail)
-			return
-		_report.add_plate(int(record.index), path, plate.gpu_ms)
-		if world.grass != null:
-			learned.advance_to(decoded.samples, int(record.tick))
-			var browser: Array = manifest.grassCounts.filter(func(row): return row.plate == record.plate)
-			_report.add_grass(world.grass.counts(int(record.index), camera, Vector2(get_window().size), learned, browser[0].cells if not browser.is_empty() else null))
+		else:
+			var path: String = options.out.path_join("plate-%d.png" % record.index)
+			var plate: Dictionary = PlateWriter.write(get_viewport(), record, path)
+			if not plate.ok:
+				_report.add_blocker(plate.blocker.name, plate.blocker.detail)
+				return
+			_report.add_plate(int(record.index), path, plate.gpu_ms)
+			if world.grass != null:
+				learned.advance_to(decoded.samples, int(record.tick))
+				var browser: Array = manifest.grassCounts.filter(func(row): return row.plate == record.plate)
+				_report.add_grass(world.grass.counts(int(record.index), camera, Vector2(get_window().size), learned, browser[0].cells if not browser.is_empty() else null))
 		record = stepper.step()
 	if timing != null:
 		_refuse_contention("end")
@@ -215,7 +224,9 @@ func _render(options: Dictionary) -> void:
 ## down) is a `contention` blocker, at the timing's `when`.
 func _refuse_contention(when: String) -> void:
 	var output: Array = []
-	OS.execute("pgrep", ["-fl", "Chrome for Testing"], output)
+	# Anchored on the executable's path, so a command that merely mentions it
+	# (a shell, a queued lockf) doesn't count.
+	OS.execute("pgrep", ["-fl", "^/[^ ]*Chrome for Testing\\.app/"], output)
 	var found := str(output[0]).strip_edges() if not output.is_empty() else ""
 	if not found.is_empty():
 		_report.add_blocker("contention", "a browser was running at the timing's %s: %s" % [when, found.get_slice("\n", 0)])

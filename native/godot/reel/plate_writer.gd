@@ -1,16 +1,15 @@
 extends RefCounted
 
-## Writes the plate for the frame being drawn: it waits for the renderer to
-## finish drawing, reads the viewport back and saves a PNG. The plate must be
-## exactly the record's canvas; any other size is a blocker, never a resize.
+## Writes the plate for the frame just drawn (`RenderingServer.force_draw`):
+## it reads the viewport back and saves a PNG. The plate must be exactly the
+## record's canvas; any other size is a blocker, never a resize.
 
 ## Returns `{ok: true, gpu_ms}` or `{ok: false, blocker: {name, detail}}`.
-## `gpu_ms` is Godot's measured viewport render time, or null when the driver
-## measured none: Godot 4.7's Metal driver records every GPU timestamp as 0.
+## `gpu_ms` is Godot's measured viewport render time (the caller turns the
+## measurement on), or null when the driver measured none: Godot 4.7's Metal
+## driver records every GPU timestamp as 0.
 static func write(viewport: Viewport, record: Dictionary, path: String) -> Dictionary:
 	var rid := viewport.get_viewport_rid()
-	RenderingServer.viewport_set_measure_render_time(rid, true)
-	await RenderingServer.frame_post_draw
 	var image := viewport.get_texture().get_image()
 	var canvas := Vector2i(int(record.canvas[0]), int(record.canvas[1]))
 	if image.get_size() != canvas:

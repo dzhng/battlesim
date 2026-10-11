@@ -47,10 +47,16 @@ lockf -k <main checkout>/throwaway/gpu.lock \
 
 Rendering needs a display. `--headless` uses Godot's dummy renderer, which
 never draws, so a headless run stops at a `display` blocker. The project
-starts its window minimised, which still renders and reads back but stays
-out of view; it needs a logged-in macOS session. macOS clamps a window
-placed off screen (`--window-position`) back onto the screen, so that
-doesn't hide it.
+starts its window minimised, out of view; it needs a logged-in macOS
+session. macOS clamps a window placed off screen (`--window-position`) back
+onto the screen, so that doesn't hide it.
+
+The run draws every frame itself (`RenderingServer.force_draw`, with Godot's
+render loop off). Godot's main loop skips drawing, and sleeps, while its
+window is minimised or covered, so a run that waited on it stalled for as
+long as the window stayed hidden. Each record still passes one main-loop
+iteration, which pushes moved nodes to the renderer; the low-processor sleep
+is zero, so that iteration doesn't sleep.
 
 ## The frame-rate bench
 
@@ -64,8 +70,11 @@ back and writes no PNG.
 - **Pacing.** Uncapped by default: vsync off and no frame-rate limit, so a
   frame takes as long as it costs. `--pace display` turns vsync on instead,
   for comparing with a browser whose frames the display paces.
+- **On screen.** A bench shows its window while it runs, so keep runs short.
+  A minimised window skips presenting its frames: the same 300 records took
+  26 ms a frame minimised and 37–48 ms shown.
 - **Timing.** Each frame's interval runs from the end of one frame's draw to
-  the next (`Time.get_ticks_usec` at `frame_post_draw`), and its CPU time is
+  the next (`Time.get_ticks_usec` after each `force_draw`), and its CPU time is
   the record's step plus Godot's frame setup and viewport render on the CPU.
   The warm-up frames are drawn but not timed; pass the browser's count (60).
 - **Report.** The report's `bench` holds those raw per-frame intervals and
