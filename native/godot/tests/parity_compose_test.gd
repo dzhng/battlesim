@@ -47,13 +47,13 @@ func run() -> bool:
 	check(grass.report.to_dictionary().blockers.any(func(row): return row.name == "grass" and row.detail.contains("rendering device")), "a listed grass layer that cannot grow is a named blocker")
 	grass.root.free()
 
-	var fogged := _compose(["fog", "scars"])
+	var fogged := _compose(["fog", "effects"])
 	var fog: MultiMeshInstance3D = fogged.root.find_child("Fog", true, false)
 	check(fog != null, "a listed fog layer is drawn")
 	if fog != null:
 		fog.show_fog({"nx": 2, "ny": 2, "cellM": 8.0, "bits": [9]})
 		check(fog.multimesh.instance_count == 2, "fog paints exactly the hidden cells (2 of 4)")
-	check(fogged.report.to_dictionary().budgets.any(func(row): return row.sourceId == "layer:scars" and row.dropped == 1), "a listed layer native cannot draw is reported as dropped")
+	check(fogged.report.to_dictionary().budgets.any(func(row): return row.sourceId == "layer:effects" and row.dropped == 1), "a listed layer native cannot draw is reported as dropped")
 	fogged.root.free()
 
 	# Each publication's units are drawn, and no others. (A headless run keeps

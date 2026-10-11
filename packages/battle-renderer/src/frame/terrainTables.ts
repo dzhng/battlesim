@@ -1,6 +1,7 @@
 // The terrain's GPU tables as words with their layouts (`wordTables.ts`):
 // the height pages (`packTerrainHeights`) and the material's tables
-// (`createTerrainSource`), exactly as they were uploaded.
+// (`createTerrainSource`), exactly as they were uploaded, with the water
+// surface's cells (`waterCells`, which its mesh lays).
 import {
   SURFACE_CELL_WORDS,
   SURFACE_EDGE,
@@ -13,7 +14,9 @@ import {
   SURFACE_TRIANGLE,
 } from "../terrain/surfaceField";
 import type { TerrainGrid } from "../terrain/terrainGrid";
-import { PlotNode, PlotRecord, SurfaceRecord, TerrainParams } from "./terrainMaterial";
+import { d } from "typegpu";
+import { waterCells } from "../terrain/rivers";
+import { PlotNode, PlotRecord, ScarParams, SurfaceRecord, TerrainParams } from "./terrainMaterial";
 import type { TerrainSource } from "./terrainMaterial";
 import { packTerrainHeights } from "./terrainHeights";
 import { recordTable, structTable, type WordTable } from "./wordTables";
@@ -24,8 +27,14 @@ export type TerrainTableName =
   | "plots"
   | "surfaces"
   | "surfaceIndex"
-  | "params";
+  | "params"
+  | "scars"
+  | "water";
 export type TerrainTables = Record<TerrainTableName, WordTable>;
+
+/** One square cell of the water surface (`waterCells`): its south-west
+ *  corner, the surface's height and the cell's side, in metres. */
+const WaterCell = d.struct({ corner: d.vec2f, z: d.f32, size: d.f32 });
 
 /** The height grid as `createTerrainHeights` uploads it. */
 export function heightTable(grid: TerrainGrid): WordTable {
@@ -65,5 +74,8 @@ export function terrainTables(terrain: TerrainSource): TerrainTables {
       },
     },
     params: structTable(TerrainParams, uploaded.params),
+    // The grid and the biome's scar look; its cache fields are the browser's.
+    scars: structTable(ScarParams, uploaded.scars),
+    water: recordTable(WaterCell, waterCells(uploaded.rivers).buffer),
   };
 }

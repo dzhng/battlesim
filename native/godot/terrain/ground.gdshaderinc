@@ -8,7 +8,8 @@
 // `shader_header`): each record field's word (`PLOTS_rows`), each record's
 // stride, the surface index's constants (`SURFACEINDEX_kindShift`), each
 // params field's vec4 (`PARAMS_verge`; a road's fields for road 0, with
-// `PARAMS_roads_stride` and `PARAMS_roads_count`) and every tuning number
+// `PARAMS_roads_stride` and `PARAMS_roads_count`), each scar params field's
+// vec4 (`SCARS_grid`) and every tuning number
 // (`TUNING_mottle_patchCut`, `TUNING_grain_weights_0`). Numbers that are part
 // of a formula (hashes, lattice turns, decorrelation offsets, Rec. 709) stay
 // here as text, as they do in the browser.
@@ -18,6 +19,8 @@ uniform sampler2D ground_plots : filter_nearest;
 uniform sampler2D ground_surfaces : filter_nearest;
 uniform sampler2D ground_index : filter_nearest;
 uniform vec4 ground_params[PARAMS_vec4s];
+uniform sampler2D scar_words : filter_nearest;
+uniform vec4 scar_params[SCARS_vec4s];
 
 #include "res://core/word_tables.gdshaderinc"
 #include "res://core/wgsl.gdshaderinc"
@@ -966,4 +969,298 @@ vec4 ground_colour(vec2 xy, float footprint, vec4 site, GroundPaved paved, float
 	float bed = ss(-aa, max(aa, TUNING_shore_bedEaseM), water);
 	albedo = mix(paving.xyz, ground_params[PARAMS_waterBed].xyz, bed);
 	return vec4(max(albedo, vec3(0.0)), paving.w);
+}
+
+// The water surface ----------------------------------------------------------------
+//
+// The water surface's look (`waterSurface`): clear at its edge, where the bed
+// shows through, taking on the channel's colour and opacity over the
+// shallows, broken by two octaves of ripples, with lanes of light along the
+// stream. It ends on the simulation's water edge, feathered over a pixel.
+
+// Ripple height at `xy`: two octaves of value noise (`rippleHeight`).
+float ripple_height(vec2 xy) {
+	return value_noise(xy * (1.0 / TUNING_water_ripple_longM)) + TUNING_water_ripple_shortWeight * value_noise(xy * (1.0 / TUNING_water_ripple_shortM) + vec2(17.3, 5.1));
+}
+
+// The water surface at `xy`, `water` metres inside the water's edge: linear
+// colour and opacity (`waterSurface`, past its `groundWater`).
+vec4 water_look(vec2 xy, float footprint, float water) {
+	float deep = 1.0 - exp(-max(water, 0.0) * ground_params[PARAMS_waterLook].x);
+	float shown = 1.0 - ss(TUNING_water_ripple_fadeM_0, TUNING_water_ripple_fadeM_1, footprint);
+	float drift = TUNING_water_lanes_drift * value_noise(xy * (1.0 / TUNING_water_lanes_driftM));
+	float lane = value_noise(vec2(water / TUNING_water_lanes_m + drift, 3.7));
+	float streak = value_noise(xy * (1.0 / TUNING_water_lanes_streakM) + vec2(63.1, 29.3));
+	float lit = ss(TUNING_water_lanes_lit_0, TUNING_water_lanes_lit_1, TUNING_water_lanes_weights_0 * lane + TUNING_water_lanes_weights_1 * streak);
+	vec3 colour = mix(ground_params[PARAMS_waterEdge].xyz, ground_params[PARAMS_water].xyz, deep) * (1.0 + ground_params[PARAMS_waterLook].y * mix(TUNING_water_lanes_litMean, lit, shown));
+	float edge = ss(-footprint * 0.5, footprint * 0.5, water);
+	return vec4(colour, mix(ground_params[PARAMS_waterEdge].w, ground_params[PARAMS_water].w, deep) * edge);
+}
+
+// The water surface at `xy` (`waterSurface`).
+vec4 water_surface(vec2 xy, float footprint) {
+	return water_look(xy, footprint, ground_water(xy, ground_cell(xy, footprint)));
+}
+
+// The water's normal at `xy`: small ripples, flat where a pixel spans more
+// than a ripple (`waterNormal`).
+vec3 water_normal(vec2 xy, float footprint) {
+	vec2 ex = vec2(TUNING_water_ripple_stepM, 0.0);
+	vec2 ey = vec2(0.0, TUNING_water_ripple_stepM);
+	float dx = ripple_height(xy + ex) - ripple_height(xy - ex);
+	float dy = ripple_height(xy + ey) - ripple_height(xy - ey);
+	float k = (TUNING_water_ripple_slope / (2.0 * TUNING_water_ripple_stepM)) * (1.0 - ss(TUNING_water_ripple_fadeM_0, TUNING_water_ripple_fadeM_1, footprint));
+	return normalize(vec3(-dx * k, -dy * k, 1.0));
+}
+
+// Scars --------------------------------------------------------------------------
+//
+// The side's learned scars (`groundScars`): crater, scorch, tracks and
+// trampled bytes per cell, from `scar_words` (`terrain/scar_texture.gd`
+// lays out its words), filtered exactly as the browser's RGBA8 filter and
+// cut into hard, wandering iso-lines.
+
+#define SCAR_NORMALIZATION 4096u
+
+struct ScarSample {
+	// Crater bowl, soot, tracks, trampled, each in [0, 1].
+	vec4 weights;
+	// The slope crater and rim add (x, y), the soil ring's weight, the
+	// crater's depth over its full.
+	vec4 relief;
+	// Where the scars were read.
+	vec2 at;
+};
+
+// The grid's columns and rows of cells.
+uvec2 scar_axes() {
+	return uvec2(scar_params[SCARS_pages].xy);
+}
+
+float scar_normalized(uint q) {
+	return uintBitsToFloat(table_word(scar_words, int(q)));
+}
+
+// Tile `tile`'s page + 1, or 0 where nothing in it is marked.
+uint scar_page(uvec2 tile) {
+	uint tiles_x = (scar_axes().x + 15u) / 16u;
+	return table_word(scar_words, int(SCAR_NORMALIZATION + tile.y * tiles_x + tile.x));
+}
+
+// The bytes of `cell`, clamped to the grid (`scarCell`).
+uvec4 scar_cell(ivec2 cell) {
+	uvec2 axes = scar_axes();
+	uvec2 c = uvec2(clamp(cell, ivec2(0), ivec2(axes) - 1));
+	uint page = scar_page(c / 16u);
+	if (page == 0u) {
+		return uvec4(0u);
+	}
+	uint tiles = ((axes.x + 15u) / 16u) * ((axes.y + 15u) / 16u);
+	uint local = (c.y % 16u) * 16u + c.x % 16u;
+	uint word = table_word(scar_words, int(SCAR_NORMALIZATION + tiles + (page - 1u) * 256u + local));
+	return uvec4(word & 255u, (word >> 8u) & 255u, (word >> 16u) & 255u, word >> 24u);
+}
+
+// The hardware's texel position along one axis in Q8, from the f32 bits of
+// `uv` (`scarFilterAxis`).
+uint scar_filter_axis(float uv, float size) {
+	uint bits = floatBitsToUint(clamp(uv, 0.0, 1.0)) & 0x7fffffffu;
+	uint exponent = bits >> 23u;
+	uint mantissa = (bits & 0x7fffffu) | (exponent != 0u ? 0x800000u : 0u);
+	uint product = floatBitsToUint(float(mantissa) * size);
+	uint value = (product & 0x7fffffu) | ((product >> 23u) != 0u ? 0x800000u : 0u);
+	int shift = 292 - int(exponent) - int(product >> 23u);
+	if (shift >= 32) {
+		return 0u;
+	}
+	if (shift <= 0) {
+		return value << uint(-shift);
+	}
+	return (value + (1u << uint(shift - 1))) >> uint(shift);
+}
+
+vec2 scar_filter_position(vec2 uv, vec2 size) {
+	vec2 q = vec2(float(scar_filter_axis(uv.x, size.x)), float(scar_filter_axis(uv.y, size.y)));
+	return clamp((q - 128.0) / 256.0, vec2(0.0), size - 1.0);
+}
+
+// The RGBA8 filter's arithmetic, in sixteenths of a byte (`scarFilterQuanta`).
+uvec4 scar_filter_quanta(uvec4 a, uvec4 b, uvec4 c, uvec4 other, vec2 f) {
+	uint wx = uint(floor(f.x * 256.0 + 0.5));
+	uint wy = uint(floor(f.y * 256.0 + 0.5));
+	uvec4 total = a * ((256u - wx) * (256u - wy)) + b * (wx * (256u - wy)) + c * ((256u - wx) * wy) + other * (wx * wy);
+	return (total + uvec4(2048u)) / uvec4(4096u);
+}
+
+// The four channels at `uv`, linearly filtered (`sampleGroundLinear`).
+vec4 sample_ground_linear(vec2 uv) {
+	vec2 size = vec2(scar_axes());
+	vec2 p = scar_filter_position(uv, size);
+	ivec2 cell = ivec2(floor(p));
+	vec2 f = fract(p);
+	// Inside a tile with nothing marked, the filter reads nothing.
+	if (scar_page(uvec2(cell) / 16u) == 0u && all(lessThan(uvec2(cell) % 16u, uvec2(15u)))) {
+		return vec4(scar_normalized(0u));
+	}
+	uvec4 q = scar_filter_quanta(scar_cell(cell), scar_cell(cell + ivec2(1, 0)), scar_cell(cell + ivec2(0, 1)), scar_cell(cell + ivec2(1, 1)), f);
+	return vec4(scar_normalized(q.x), scar_normalized(q.y), scar_normalized(q.z), scar_normalized(q.w));
+}
+
+// The four channels at `uv` by a cubic B-spline over the cells, from four
+// linear taps (`sampleGroundCubic`).
+vec4 sample_ground_cubic(vec2 uv) {
+	vec2 size = vec2(scar_axes());
+	vec2 p = uv * size - 0.5;
+	vec2 i = floor(p);
+	vec2 f = p - i;
+	vec2 f2 = f * f;
+	vec2 f3 = f2 * f;
+	vec2 w0 = (1.0 - 3.0 * f + 3.0 * f2 - f3) / 6.0;
+	vec2 w1 = (4.0 - 6.0 * f2 + 3.0 * f3) / 6.0;
+	vec2 w2 = (1.0 + 3.0 * f + 3.0 * f2 - 3.0 * f3) / 6.0;
+	vec2 w3 = f3 / 6.0;
+	vec2 g0 = w0 + w1;
+	vec2 g1 = w2 + w3;
+	vec2 h0 = (i - 0.5 + w1 / g0) / size;
+	vec2 h1 = (i + 1.5 + w3 / g1) / size;
+	vec4 a = sample_ground_linear(vec2(h0.x, h0.y));
+	vec4 b = sample_ground_linear(vec2(h1.x, h0.y));
+	vec4 c = sample_ground_linear(vec2(h0.x, h1.y));
+	vec4 e = sample_ground_linear(vec2(h1.x, h1.y));
+	return fma(vec4(g0.y), g0.x * a + g1.x * b, g1.y * (g0.x * c + g1.x * e));
+}
+
+// `x` crossing `edge`, anti-aliased over `width` (`crossing`).
+float crossing(float x, float edge, float width) {
+	float w = max(width, 1e-3);
+	return ss(edge - w, edge + w, x);
+}
+
+// The side's learned scars at `xy`, `footprint` the metres a pixel spans
+// (`groundScars`). Zero off the grid and where nothing is marked.
+ScarSample ground_scars(vec2 xy, float footprint) {
+	ScarSample result;
+	result.weights = vec4(0.0);
+	result.relief = vec4(0.0);
+	result.at = xy;
+	vec4 grid = scar_params[SCARS_grid];
+	if (grid.w <= 0.0) {
+		return result;
+	}
+	float cell = grid.z;
+	vec2 uv = xy * grid.xy;
+	if (any(lessThan(uv, vec2(0.0))) || any(greaterThan(uv, vec2(1.0)))) {
+		return result;
+	}
+	vec2 texel = grid.xy * cell;
+	// Cheap reject: nothing marked within reach.
+	float r = TUNING_scars_rimReachCells;
+	vec4 a = sample_ground_linear(uv + texel * vec2(-r, -r));
+	vec4 b = sample_ground_linear(uv + texel * vec2(r, -r));
+	vec4 c = sample_ground_linear(uv + texel * vec2(-r, r));
+	vec4 e = sample_ground_linear(uv + texel * vec2(r, r));
+	vec4 near = max(max(a, b), max(c, e));
+	vec4 s = sample_ground_cubic(uv);
+	if (max(max(s.x, s.y), max(s.z, s.w)) + max(max(near.x, near.y), max(near.z, near.w)) <= 0.0) {
+		return result;
+	}
+	float detail = 1.0 - ss(TUNING_scars_detailFade_0, TUNING_scars_detailFade_1, footprint / cell);
+	vec4 k = scar_params[SCARS_full];
+	float depth = min(s.x * k.x, TUNING_scars_depthCap);
+	float wide = min((a.x + b.x + c.x + e.x) * 0.25 * k.x, TUNING_scars_depthCap);
+	// Slopes per metre of the crater field, from taps either side.
+	float h = TUNING_scars_slopeTapCells;
+	vec4 xp = sample_ground_linear(uv + texel * vec2(h, 0.0));
+	vec4 xm = sample_ground_linear(uv - texel * vec2(h, 0.0));
+	vec4 yp = sample_ground_linear(uv + texel * vec2(0.0, h));
+	vec4 ym = sample_ground_linear(uv - texel * vec2(0.0, h));
+	vec2 bowl_slope = vec2(xp.x - xm.x, yp.x - ym.x) * k.x / (2.0 * h * cell);
+	vec2 wide_slope = vec2((b.x + e.x) - (a.x + c.x), (c.x + e.x) - (a.x + b.x)) * 0.5 * k.x / (2.0 * r * cell);
+	// The height: down into the bowl, up onto the rim just outside it.
+	vec4 relief = scar_params[SCARS_relief];
+	float on_rim = wide > depth ? 1.0 : 0.0;
+	vec2 slope = (relief.y * on_rim * (wide_slope - bowl_slope) - bowl_slope) * relief.x * detail;
+	// Iso-lines, each crossing within a pixel.
+	float grain = value_noise(xy * (1.0 / TUNING_scars_lipWanderM) + vec2(5.7, 2.1)) - 0.5;
+	float pixel_depth = length(bowl_slope) * footprint;
+	float bowl = crossing(depth, TUNING_scars_lip_0 + TUNING_scars_lip_1 * grain, pixel_depth);
+	float skirt = crossing(depth, TUNING_scars_ring_0 + TUNING_scars_ring_1 * grain, pixel_depth) * (1.0 - bowl);
+	// The deepest crater within the taps: a lone pock's skirt is scorched
+	// earth, a real crater's is its thrown soil.
+	float peak = max(max(max(s.x, xp.x), max(xm.x, yp.x)), max(ym.x, near.x)) * k.x;
+	float soil = ss(TUNING_scars_pock_0, TUNING_scars_pock_1, peak);
+	float ring = skirt * soil;
+	float scorched = crossing(depth, TUNING_scars_pockEdge_0 + TUNING_scars_pockEdge_1 * grain, pixel_depth) * (1.0 - bowl);
+	// Darkest at its heart, browner toward its edge, as a burn is.
+	float heart = TUNING_scars_pockEdgeDark + (1.0 - TUNING_scars_pockEdgeDark) * ss(TUNING_scars_pockEdge_0, TUNING_scars_ring_0, depth);
+	float pock = scorched * (1.0 - soil) * TUNING_scars_pockSoot * heart;
+	// Soot: ash in flecks over the scorch, thickest near the burst.
+	float burnt = saturate1(s.y * k.y);
+	float fleck_at = value_noise(xy * TUNING_scars_ash_scale + vec2(8.1, 3.3)) * TUNING_scars_ash_weights_0 + value_noise(xy * (TUNING_scars_ash_scale * TUNING_scars_ash_fine)) * TUNING_scars_ash_weights_1;
+	float ash = crossing(fleck_at, mix(TUNING_scars_ash_edge_0, TUNING_scars_ash_edge_1, burnt), footprint * TUNING_scars_ash_scale) * step(TUNING_scars_ash_least, burnt);
+	float soot = max(ash * (1.0 - bowl) * (1.0 - ring), pock);
+	vec2 worn = clamp(s.zw * k.zw, 0.0, 1.0);
+	vec2 wear = 1.0 - (1.0 - worn) * (1.0 - worn);
+	// Ruts have edges: tracks cross their iso-line within a pixel, ragged.
+	vec2 track_slope = vec2(xp.z - xm.z, yp.z - ym.z) * k.z / (2.0 * h * cell);
+	float rut = crossing(wear.x, TUNING_scars_rut_0 + TUNING_scars_rut_1 * grain, length(track_slope) * footprint);
+	result.weights = vec4(bowl, soot, rut * wear.x, wear.y);
+	result.relief = vec4(slope, ring, depth);
+	return result;
+}
+
+// The scars as seen from `eye` at ground point `world`: a bowl is looked
+// into, not painted on (`groundScarsSeen`).
+ScarSample ground_scars_seen(vec3 world, vec3 eye, float footprint) {
+	ScarSample scar = ground_scars(world.xy, footprint);
+	if (scar.relief.w <= 0.0) {
+		return scar;
+	}
+	vec3 view = normalize(eye - world);
+	vec2 run = -view.xy / max(view.z, TUNING_scars_grazing);
+	float deep = scar_params[SCARS_relief].x;
+	for (int i = 0; i < 2; i++) {
+		vec2 at = world.xy + run * min(scar.relief.w, TUNING_scars_depthCap) * deep * 0.5;
+		scar = ground_scars(at, footprint);
+	}
+	return scar;
+}
+
+// `surface` (linear albedo, roughness) under the scars `scar`
+// (`scarredSurface`).
+vec4 scarred_surface(vec4 surface, ScarSample scar) {
+	vec4 w = scar.weights;
+	vec2 xy = scar.at;
+	vec3 albedo = surface.xyz;
+	float roughness = surface.w;
+	float grain = value_noise(xy * TUNING_scarSurface_grainScale);
+	float fleck = value_noise(xy * TUNING_scarSurface_fleckScale + vec2(2.2, 9.1));
+	vec4 trampled = scar_params[SCARS_trampled];
+	vec4 tracks = scar_params[SCARS_tracks];
+	vec4 scorch = scar_params[SCARS_scorch];
+	vec4 ejecta = scar_params[SCARS_ejecta];
+	vec4 crater = scar_params[SCARS_crater];
+	albedo = mix(albedo, trampled.xyz * mix(TUNING_scarSurface_trampled_0, TUNING_scarSurface_trampled_1, grain), w.w * trampled.w);
+	albedo = mix(albedo, tracks.xyz * mix(TUNING_scarSurface_tracks_0, TUNING_scarSurface_tracks_1, grain), w.z * tracks.w);
+	// Soot is uneven: ash grey and char black in flecks and drifts.
+	float ash = mix(TUNING_scarSurface_ash_0, TUNING_scarSurface_ash_1, fleck * TUNING_scarSurface_ashWeights_0 + value_noise(xy * TUNING_scarSurface_ashDriftScale + vec2(4.4, 0.3)) * TUNING_scarSurface_ashWeights_1);
+	albedo = mix(albedo, scorch.xyz * ash, w.y * scorch.w);
+	float ring = scar.relief.z * ejecta.w;
+	albedo = mix(albedo, ejecta.xyz * mix(TUNING_scarSurface_soil_0, TUNING_scarSurface_soil_1, fleck), ring);
+	float bowl = w.x * crater.w;
+	// The deeper, the darker: the floor sees less sky than the lip.
+	float cavity = mix(1.0, TUNING_scarSurface_cavity, saturate1(scar.relief.w));
+	albedo = mix(albedo, crater.xyz * mix(TUNING_scarSurface_soil_0, TUNING_scarSurface_soil_1, fleck) * cavity, bowl);
+	// Churned soil and ash are fully rough.
+	roughness = mix(roughness, 1.0, max(w.y * scorch.w, max(bowl, ring)));
+	return vec4(albedo, roughness);
+}
+
+// A terrain normal `n` tilted by the scars' slope, at most `maxSlope` of it
+// (`scarredNormal`).
+vec3 scarred_normal(vec3 n, ScarSample scar) {
+	vec2 slope = scar.relief.xy;
+	float steep = length(slope);
+	vec2 capped = slope * min(1.0, TUNING_shading_maxSlope / max(steep, 1e-6));
+	return normalize(n - vec3(capped, 0.0) * n.z);
 }

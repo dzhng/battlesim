@@ -1,6 +1,7 @@
 shader_type spatial;
 // The ground, drawn with the browser's ground material (`ground.gdshaderinc`),
-// as its terrain fragment and its backdrop fragment draw it (`worldPass.ts`).
+// as its terrain fragment and its backdrop fragment draw it (`worldPass.ts`):
+// the terrain under the side's learned scars, the backdrop without them.
 // `terrain_layer.gd` compiles it with the manifest's defines in place of the
 // marker below, and with BACKDROP for the flat land past the map's edge,
 // never shadowed and lit flat.
@@ -24,11 +25,16 @@ void fragment() {
 	vec4 site = ground_site(xy, cell, paved);
 	float water = ground_water(xy, cell);
 	vec4 surface = ground_colour(xy, footprint, site, paved, water);
+#ifndef BACKDROP
+	ScarSample scar = ground_scars_seen(sim_position, godot_to_sim(CAMERA_POSITION_WORLD), footprint);
+	surface = scarred_surface(surface, scar);
+#endif
 	ALBEDO = surface.rgb;
 	ROUGHNESS = surface.a;
 #ifndef BACKDROP
 	// A river's bank is lit as the cross-section it was cut to, and a road's
-	// ruts and curb tilt it (`groundBank`, `groundRoadRelief`).
+	// ruts and curb tilt it, as the scars do (`groundBank`,
+	// `groundRoadRelief`, `scarredNormal`).
 	vec3 n = godot_to_sim(normalize((INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz));
 	vec3 bank = ground_bank(xy, cell, footprint);
 	if (bank.z > 0.0) {
@@ -36,6 +42,7 @@ void fragment() {
 	}
 	vec2 relief = ground_road_relief(xy, footprint, paved);
 	n = normalize(n - vec3(relief, 0.0) * n.z);
+	n = scarred_normal(n, scar);
 	NORMAL = normalize((VIEW_MATRIX * vec4(sim_to_godot(n), 0.0)).xyz);
 #endif
 }

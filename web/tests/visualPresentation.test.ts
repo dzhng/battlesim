@@ -93,6 +93,8 @@ const terrain: TerrainTables = {
     layout: { kind: "words", count: 3, constants: { kindShift: 30 } },
   },
   params: records([13, 14, 15, 16]),
+  scars: records([17, 18, 19, 20]),
+  water: records([]),
 };
 /** A small grass field: two u16 strips, an empty prop grid, two kinds. */
 const grass: GrassTables = {
@@ -283,6 +285,8 @@ test("each terrain table is an artifact of its words, little-endian, named by th
     "surfaces",
     "surfaceIndex",
     "params",
+    "scars",
+    "water",
   ]);
   for (const [i, entry] of manifest.terrain.entries()) {
     expect(artifacts[i].file).toBe(`terrain-${entry.name}.u32`);

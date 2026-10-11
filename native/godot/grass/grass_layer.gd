@@ -10,7 +10,8 @@ extends Node3D
 ##
 ## The tables are the browser's own (`manifest.grass`); the frame's view
 ## fields of `params` (side planes, eye, window, grid) are recomputed from each
-## frame record (`frame_fields`).
+## frame record (`frame_fields`). The side's learned scars leave clumps out
+## and lay them over, read from the ground's scar words (`scar_texture.gd`).
 
 const WordTables = preload("res://core/word_tables.gd")
 const ComputePass = preload("res://core/compute_pass.gd")
@@ -58,6 +59,9 @@ var _material: ShaderMaterial
 ## The ground tables the build samples: their device textures live as long
 ## as these do.
 var _ground_textures: Array[ImageTexture] = []
+## The learned scars' words, replaced in place as the scars change.
+var _scars: Texture2D
+var _sampler: RID
 ## The tiles the last frame's window held.
 var _tiles := Vector2i.ZERO
 ## Each counted frame's tier counts (`counts`).
@@ -65,9 +69,10 @@ var _counted: Array[Dictionary] = []
 
 ## `ground` is `parity_run.gd` `read_ground`'s: the terrain's `{tables,
 ## heights}` and the grass tables (`grass`, each `{words, layout}`); `grass` is
-## the manifest's (`constants`).
-func _init(ground: Dictionary, grass: Dictionary, tuning: Dictionary, lens: Dictionary) -> void:
+## the manifest's (`constants`); `scars` the learned scars' words.
+func _init(ground: Dictionary, grass: Dictionary, tuning: Dictionary, lens: Dictionary, scars: Texture2D) -> void:
 	name = "Grass"
+	_scars = scars
 	_tables = ground.grass
 	_terrain = ground
 	_terrain_tuning = tuning.terrain
@@ -109,7 +114,6 @@ func build(report) -> void:
 		return
 	_build = _own(_rd.compute_pipeline_create(_build_shader))
 	_build_tiers()
-	report.add_budget(OWNER, "omitted: the side's learned scars, which leave clumps out and lay them over (phase 2)", "grass.scars", 1, 0, 1)
 
 ## Grows the field for one frame record: its view fields, then the build,
 ## on the rendering device before the frame draws; and sets the draw's wind
@@ -130,17 +134,13 @@ func grow(record: Dictionary) -> void:
 ## capacity), and per cell of the screen grid the clumps whose root `camera`
 ## projects on screen, occlusion ignored, as the browser counts them
 ## (`reelRun.ts` `grassCells`), beside `browser`'s cells (null when the
-## manifest has none for the frame). `scarClumps` counts, per cell, those
-## standing where the side's learned `ground` (`learned_ground.gd`) holds a
-## crater, scorch or tracks: where the browser leaves clumps out and native
-## does not yet. Call after the frame has drawn.
-func counts(index: int, camera: Camera3D, canvas: Vector2, ground, browser: Variant) -> Dictionary:
+## manifest has none for the frame). Call after the frame has drawn.
+func counts(index: int, camera: Camera3D, canvas: Vector2, browser: Variant) -> Dictionary:
 	var found := _rd.buffer_get_data(_found).to_int32_array()
 	var drawn := []
 	var cells := []
 	cells.resize(CELLS.x * CELLS.y)
 	cells.fill(0)
-	var scars := cells.duplicate()
 	for tier in 2:
 		var count := _rd.buffer_get_data(RenderingServer.multimesh_get_command_buffer_rd_rid(_multimeshes[tier])).to_int32_array()[1]
 		drawn.append(count)
@@ -157,17 +157,14 @@ func counts(index: int, camera: Camera3D, canvas: Vector2, ground, browser: Vari
 				continue
 			var cell := floori(at.y * CELLS.y) * CELLS.x + floori(at.x * CELLS.x)
 			cells[cell] += 1
-			if ground.bare_at(clumps[o], clumps[o + 1]):
-				scars[cell] += 1
-	var result := {"index": index, "near": drawn[0], "far": drawn[1], "nearFound": found[0], "farFound": found[1], "cells": cells, "browserCells": browser, "scarClumps": scars}
+	var result := {"index": index, "near": drawn[0], "far": drawn[1], "nearFound": found[0], "farFound": found[1], "cells": cells, "browserCells": browser}
 	_counted.append(result)
 	return result
 
 ## Call after the last frame. The tiers' capacities against the most clumps a
 ## counted frame found, and every clump dropped past them, as a budget row.
-## Then the count gate: every cell within `COUNT_GATE` of the browser's. A
-## cell over it by no more than its scar clumps is a `scar-omission` budget
-## row; any other is a blocker.
+## Then the count gate: every cell within `COUNT_GATE` of the browser's, or a
+## blocker.
 func report_counts(report) -> void:
 	for frame in _counted:
 		if frame.browserCells == null:
@@ -177,11 +174,7 @@ func report_counts(report) -> void:
 			var native: int = frame.cells[cell]
 			if absf(native - browser) <= COUNT_GATE * browser:
 				continue
-			var source := "plate-%d:%d" % [frame.index, cell]
-			if native > browser and native - browser <= frame.scarClumps[cell]:
-				report.add_budget(OWNER, "scar-omission: learned scars arrive in slice 08 (the browser grows %d clumps here, native %d, %d of them on a crater, scorch or tracks)" % [browser, native, frame.scarClumps[cell]], source, browser, native, 0)
-			else:
-				report.add_blocker("grass", "%s: native grows %d clumps where the browser grows %d, more than %d%% apart, and the learned scars do not explain it" % [source, native, browser, roundi(COUNT_GATE * 100.0)])
+			report.add_blocker("grass", "plate-%d:%d: native grows %d clumps where the browser grows %d, more than %d%% apart" % [frame.index, cell, native, browser, roundi(COUNT_GATE * 100.0)])
 	var near_found := 0
 	var far_found := 0
 	var dropped := 0
@@ -303,6 +296,8 @@ layout(set = 0, binding = 9) uniform sampler2D ground_surfaces;
 layout(set = 0, binding = 10) uniform sampler2D ground_index;
 layout(set = 0, binding = 11, std430) restrict readonly buffer GroundParams { vec4 ground_params[]; };
 layout(set = 0, binding = 12, std430) restrict buffer Found { uint found[]; };
+layout(set = 0, binding = 13) uniform sampler2D scar_words;
+layout(set = 0, binding = 14, std430) restrict readonly buffer ScarParams { vec4 scar_params[]; };
 """)
 	# The ground formulas, as written for the ground's spatial shader: their
 	# uniforms are the bindings above, and the shared shader text they include
@@ -312,8 +307,8 @@ layout(set = 0, binding = 12, std430) restrict buffer Found { uint found[]; };
 	for found in include.search_all(formulas):
 		formulas = formulas.replace(found.get_string(), FileAccess.get_file_as_string(found.get_string(1)))
 	var uniform := RegEx.create_from_string("(?m)^uniform [^;]*;\\n")
-	if uniform.search_all(formulas).size() != 5:
-		return {"ok": false, "detail": "%s no longer declares the four ground tables and the ground params as uniforms" % GROUND_PATH}
+	if uniform.search_all(formulas).size() != 7:
+		return {"ok": false, "detail": "%s no longer declares the four ground tables, the ground params, the scar words and the scar params as uniforms" % GROUND_PATH}
 	formulas = uniform.sub(formulas, "", true)
 	return {"ok": true, "source": "\n".join(lines) + "\n" + formulas + "\n" + FileAccess.get_file_as_string(BUILD_PATH)}
 
@@ -357,6 +352,7 @@ func _build_tiers() -> void:
 	_params = _storage(_params_words)
 	_found = _storage(PackedByteArray([0, 0, 0, 0, 0, 0, 0, 0]))
 	var sampler := _own(ComputePass.sampler(_rd, RenderingDevice.SAMPLER_FILTER_NEAREST))
+	_sampler = sampler
 	var buffers: Array[RID] = [
 		_params,
 		_storage(_terrain.tables.heights.words),
@@ -377,6 +373,8 @@ func _build_tiers() -> void:
 	var ground_params := WordTables.vec4s(_terrain.tables.params)
 	_uniforms.append(ComputePass.storage(11, _storage(ground_params.to_byte_array())))
 	_uniforms.append(ComputePass.storage(12, _found))
+	_uniforms.append(ComputePass.sampled(13, sampler, RenderingServer.texture_get_rd_texture(_scars.get_rid())))
+	_uniforms.append(ComputePass.storage(14, _storage(WordTables.vec4s(_terrain.tables.scars).to_byte_array())))
 
 ## A tier's mesh: `maxBlades` blade strips of the tier's vertices, indexed by
 ## the browser's strip indices. The vertex stage places every vertex from its
@@ -419,6 +417,8 @@ func _dispatch() -> void:
 	_rd.draw_command_begin_label("grass build", Color.WHITE)
 	var list := _rd.compute_list_begin()
 	_rd.compute_list_bind_compute_pipeline(list, _build)
+	# The scar words' device texture: its RID changes when the texture grows.
+	_uniforms[13] = ComputePass.sampled(13, _sampler, RenderingServer.texture_get_rd_texture(_scars.get_rid()))
 	_rd.compute_list_bind_uniform_set(list, UniformSetCacheRD.get_cache(_build_shader, 0, _uniforms), 0)
 	_rd.compute_list_dispatch(list, _tiles.x, _tiles.y, 1)
 	_rd.compute_list_end()

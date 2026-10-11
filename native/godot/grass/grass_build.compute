@@ -113,15 +113,17 @@ float ground_shoulder_grass(vec2 worn) {
 }
 
 // A clump in its tier's MultiMesh buffer, as `grass.gdshader` reads its three
-// transform rows: (root, height), (yaw, width, kind, 1), (colour, 1). A tier
+// transform rows: (root, height), (yaw, width, kind, upright), (colour, 1),
+// `upright` how far tracks and trampling left it standing, kept as a byte as
+// the browser keeps it in its colour's alpha. A tier
 // counts every clump it finds and draws the first of them up to its capacity:
 // its draw command counts those, as the browser's finish pass clamps its args.
-void grass_append(uint tier, vec3 root, float height, vec3 colour, uint kind, float yaw, float width) {
+void grass_append(uint tier, vec3 root, float height, vec3 colour, float upright, uint kind, float yaw, float width) {
 	uint slot = atomicAdd(found[tier], 1u);
 	if (slot >= (tier == 0u ? gpu4(GRASS_grid).z : gpu4(GRASS_grid).w)) { return; }
 	// The browser keeps the colour as sqrt-encoded rgb8; so does this.
-	vec3 stored = unpackUnorm4x8(packUnorm4x8(vec4(sqrt(max(colour, vec3(0.0))), 1.0))).xyz;
-	float row[12] = float[12](root.x, root.y, root.z, height, yaw, width, float(kind), 1.0, stored.x, stored.y, stored.z, 1.0);
+	vec4 stored = unpackUnorm4x8(packUnorm4x8(vec4(sqrt(max(colour, vec3(0.0))), upright)));
+	float row[12] = float[12](root.x, root.y, root.z, height, yaw, width, float(kind), stored.w, stored.x, stored.y, stored.z, 1.0);
 	uint o = slot * 12u;
 	if (tier == 0u) {
 		atomicAdd(near_command[1], 1u);
@@ -214,10 +216,13 @@ void main() {
 		// A wheeling stays bare.
 		if (ground_wheeling(p, 0.0, plot_index) > 0.5) { continue; }
 		vec3 root = vec3(p, grass_ground(p));
-		// Sparse patches: the stand thins there and nowhere thickens. (The
-		// browser's scars, phase 2, would leave more out here.)
+		// The side's learned scars: craters, scorch and tracks leave clumps out.
+		ScarSample scar = ground_scars(p, footprint);
+		vec4 thin = scar_params[SCARS_grass];
+		float bare = max(max(scar.weights.x, scar.weights.y), scar.weights.z * thin.y) * thin.x;
+		// Sparse patches: the stand thins there and nowhere thickens.
 		float sparse = 1.0 - ss(TUNING_stand_sparseCut_0, TUNING_stand_sparseCut_1, value_noise(p * gp(GRASS_patchScales).y + vec2(41.7, 13.1)));
-		float keep = rho * g.x * (1.0 - stand.z * sparse) * mix(TUNING_stand_edgeDensity, 1.0, edge) * (1.0 - shore) * ground_shoulder_grass(worn);
+		float keep = rho * g.x * (1.0 - stand.z * sparse) * mix(TUNING_stand_edgeDensity, 1.0, edge) * (1.0 - bare) * (1.0 - shore) * ground_shoulder_grass(worn);
 		if (rank >= keep) { continue; }
 		if (grass_under_prop(p)) { continue; }
 		float grow = 1.0 - ss(TUNING_stand_growFrom * keep, keep, rank);
@@ -268,7 +273,9 @@ void main() {
 		float dryness = min(1.0, stand.w * parched + grass.w) * fade;
 		float tussock = value_noise(p * gp(GRASS_grain).x + vec2(63.9, 27.4));
 		float value = 1.0 + gp(GRASS_shading).z * fade * (fract(h.y * 57.31) + tussock - 1.0);
-		vec3 colour = value * (1.0 + gp(GRASS_grain).y * dryness) * ground_tint(ground_colour(p, footprint, site, paved, water).xyz, dryness);
-		grass_append(tier, root, height, colour, kind, h.z * 6.2831853, width);
+		vec3 colour = value * (1.0 + gp(GRASS_grain).y * dryness) * ground_tint(scarred_surface(ground_colour(p, footprint, site, paved, water), scar).xyz, dryness);
+		// Tracks and trampling lay the clump over.
+		float flat_share = max(scar.weights.z, scar.weights.w) * thin.z;
+		grass_append(tier, root, height, colour, 1.0 - flat_share, kind, h.z * 6.2831853, width);
 	}
 }

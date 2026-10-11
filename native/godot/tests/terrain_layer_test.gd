@@ -7,6 +7,7 @@ extends "res://tests/check.gd"
 const HeightField = preload("res://terrain/height_field.gd")
 const TerrainLayer = preload("res://terrain/terrain_layer.gd")
 const ParityRun = preload("res://parity_run.gd")
+const Coords = preload("res://core/coords.gd")
 
 func run() -> bool:
 	var vectors: Dictionary = read_json("res://tests/fixtures/height_vectors.json")
@@ -51,4 +52,18 @@ func run() -> bool:
 	var missing: Dictionary = ground.tables.duplicate()
 	missing.erase("plots")
 	check(not TerrainLayer.shader_header(missing, {}).ok, "a missing table is refused")
+	check(header.get("defines", "").contains("#define SCARS_grass 12\n"), "the header names the scar params' fields")
+
+	# The water surface lies flat on each cell the browser laid, at its height.
+	var water_words := PackedFloat32Array([16.0, 24.0, -1.5, 8.0, 24.0, 24.0, -1.5, 8.0]).to_byte_array()
+	var fields := [{"name": "corner", "word": 0, "type": "f32", "count": 2}, {"name": "z", "word": 2, "type": "f32", "count": 1}, {"name": "size", "word": 3, "type": "f32", "count": 1}]
+	var cells := TerrainLayer.water_cells({"words": water_words, "layout": {"kind": "records", "stride": 4, "count": 2, "fields": fields}})
+	check(cells.ok and cells.cells.size() == 2, "the water table reads as two cells")
+	var water := TerrainLayer.water_mesh(cells.cells)
+	var corners: PackedVector3Array = water.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
+	var box := AABB(corners[0], Vector3.ZERO)
+	for corner in corners:
+		box = box.expand(corner)
+	check(box.is_equal_approx(AABB(Coords.sim_to_godot(Vector3(16.0, 32.0, -1.5)), Vector3(16.0, 0.0, 8.0))), "the cells cover 16..32 east, 24..32 north at 1.5 m below datum, not %s" % box)
+	check(corners.size() == 12, "each cell is two triangles")
 	return true

@@ -191,7 +191,7 @@ export const TerrainParams = d.struct({
   view: d.vec4u,
 });
 /** The scar texture's grid and the biome's scar look (`biome.scars`). */
-const ScarParams = d.struct({
+export const ScarParams = d.struct({
   /** 1 / the grid's width and depth in metres, the cell's side, 1 when there
    *  is ground to draw (else 0). */
   grid: d.vec4f,
@@ -1969,18 +1969,21 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
   let clip: ScarRegion = noClip;
   let regions: ScarRegion[] = [];
   let regionGrid = "";
+  /** The scar params as last written (`terrainTables.ts` reads them). */
+  let scarWritten: d.Infer<typeof ScarParams> | null = null;
   const writeScarParams = () => {
     const stats = scars.stats();
     const { cols, rows, cellM, poolWidth, directoryEntries } = stats;
     const on = cols > 0 && rows > 0;
-    scarParams.write({
+    scarWritten = {
       grid: d.vec4f(on ? 1 / (cols * cellM) : 0, on ? 1 / (rows * cellM) : 0, cellM, on ? 1 : 0),
       pages: d.vec4u(cols, rows, directoryEntries - 1, poolWidth),
       clip: d.vec4f(...clip),
       cacheBounds: d.vec4u(...stats.cacheBounds),
       defaultWord: d.vec4u(stats.defaultWord, 0, 0, 0),
       ...scarLook,
-    });
+    };
+    scarParams.write(scarWritten);
   };
   const groupOf = () =>
     root.createBindGroup(terrainLayout, {
@@ -2008,6 +2011,7 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
     plots: ArrayBuffer;
     surfaces: ArrayBuffer;
     surfaceIndex: ArrayBuffer;
+    rivers: Float32Array;
   } | null = null;
   const paramsNow = () =>
     look && { ...look, view: d.vec4u(classView ? 1 : 0, roadWear ? 0 : 1, 0, 0) };
@@ -2044,10 +2048,11 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
       }
       return true;
     },
-    /** The words `set` uploaded and the params as last written; null before `set`. */
+    /** The words `set` uploaded, the params and scar params as last
+     *  written, and the rivers; null before `set`. */
     uploaded: () => {
       const now = paramsNow();
-      return packed && now && { ...packed, params: now };
+      return packed && now && scarWritten && { ...packed, params: now, scars: scarWritten };
     },
     ready: () => groundFilterReady(root, registry, scarSampler),
     group: null as unknown as ReturnType<typeof groupOf>,
@@ -2096,6 +2101,7 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
         plots: packPlots(fields, textured),
         surfaces: field.records.buffer as ArrayBuffer,
         surfaceIndex: field.index.buffer as ArrayBuffer,
+        rivers: site.rivers,
       };
       nodes.set(nodeBuffer(tree.nodes.length / NODE_FLOATS)).write(packed.nodes);
       plots.set(plotBuffer(tree.plots.length)).write(packed.plots);

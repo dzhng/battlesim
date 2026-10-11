@@ -13,7 +13,6 @@ const RenderReport = preload("res://report/render_report.gd")
 const Staging = preload("res://assets/staging.gd")
 const CameraRig = preload("res://reel/camera_rig.gd")
 const ErrorLog = preload("res://report/error_log.gd")
-const LearnedGround = preload("res://capture/learned_ground.gd")
 
 const TEMPLATE := "china-home-10x8-1f"
 const OUT := "throwaway/native-runner/forward-plus-probe"
@@ -60,7 +59,7 @@ func run() -> bool:
 	check(report.ok(), "the probe renders without a blocker: %s" % JSON.stringify(summary.blockers))
 	check(summary.budgets.any(func(row): return row.sourceId == "map.buildings" and row.rendered == 1), "the building is drawn")
 	check(not summary.budgets.any(func(row): return row.sourceId == "map.buildings/boxes"), "the building is the kit's shell, not a box")
-	check(composed.grass != null and composed.grass.counts(0, camera, Vector2(1280, 720), LearnedGround.new({"cellM": 1.0, "cols": 1, "rows": 1, "tileSize": 16}), null).cells.size() == 12, "the grass build runs and its clumps read back")
+	check(composed.grass != null and composed.grass.counts(0, camera, Vector2(1280, 720), null).cells.size() == 12, "the grass build runs and its clumps read back")
 	check(world.find_child("Sun", true, false).shadow_enabled, "the sun casts shadows")
 	check(summary.renderer.driver == "metal", "the probe renders on Metal")
 	world.free()

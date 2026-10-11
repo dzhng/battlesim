@@ -251,6 +251,22 @@ field fails to compile, which is a logged blocker.
   `terrainMaterial.ts`, ported as text. Numbers that are part of a formula
   (hashes, lattice turns, decorrelation offsets) stay in the text, as they do
   in the browser.
+- **Scars.** The side's learned ground (`capture/learned_ground.gd`) is
+  replayed record by record and kept as the browser's scar bytes per cell in
+  one word table (`terrain/scar_texture.gd`): the browser's normalisation
+  words, a directory word per 16-cell tile and a page per marked tile. Only
+  changed tiles are rewritten. The ground reads it with the browser's exact
+  RGBA8 filter arithmetic and cuts craters, scorch, tracks and trampling as
+  the browser does; the biome's scar look is the manifest's terrain table
+  `scars`. The browser's view-sized page cache isn't ported: the whole learned
+  ground fits.
+- **Water.** With the `water` layer, the water surface is drawn over the
+  browser's water cells (terrain table `water`), blended over the ground and
+  reading depth. Neither reel map has water, so the surface formulas are
+  checked against the browser's WGSL on WebGPU
+  (`tests/water_vectors_display_test.gd`), not on a plate. Native keeps
+  Godot's own light on water in shadow rather than the browser's
+  `water.shadow` share of it, a reported approximation.
 
 ## Grass
 
@@ -277,11 +293,10 @@ browser's own tables (`manifest.grass`), anew for every frame record.
 - **Counts.** For each plate the report puts native's clumps per screen cell,
   counted as the browser counts them (root on screen, occlusion ignored),
   beside the browser's `grassCounts`. Every cell must be within 10% of the
-  browser's, or the run stops at a blocker. The browser leaves clumps out on
-  the side's learned scars (craters, scorch and tracks) and lays them flat;
-  native replays those scars (`capture/learned_ground.gd`) but doesn't draw
-  them yet. So a cell native overgrows by no more than its clumps on such a
-  scar is a `scar-omission` budget row instead.
+  browser's, or the run stops at a blocker.
+- **Scars.** The build reads the ground's scars: craters, scorch and tracks
+  leave clumps out, and tracks and trampling lay them over, as the browser's
+  do.
 - **Reruns.** The build appends clumps in whatever order the GPU finishes
   them, so two runs of the same plate can differ in a few pixels where blades
   overlap. Compare plates against that floor, not against zero.

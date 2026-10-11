@@ -35,13 +35,14 @@ const CameraRig = preload("res://reel/camera_rig.gd")
 const Light = preload("res://environment/light.gd")
 const ErrorLog = preload("res://report/error_log.gd")
 const LearnedGround = preload("res://capture/learned_ground.gd")
+const ScarTexture = preload("res://terrain/scar_texture.gd")
 const StrictJson = preload("res://core/strict_json.gd")
 const FrameTiming = preload("res://report/frame_timing.gd")
 
 const OWNER := "native/parity_run"
 ## The browser's presentation layers native can draw; the manifest decides
 ## which are drawn. `models` is the observed units.
-const LAYERS := ["sky", "terrain", "grass", "buildings", "props", "models", "fog"]
+const LAYERS := ["sky", "terrain", "water", "scars", "grass", "buildings", "props", "models", "fog"]
 const USAGE := "usage: godot --path native/godot -- --run <dir> --scene <name> [--frames plates|all|<i,j,...>] [--maps <dir>] [--out <dir>] [--bench <warm-up frames> [--pace uncapped|display]]"
 ## A run that is still going after this long has stalled: it stops at a
 ## `timeout` blocker and frees the GPU lock. A whole scene benched at 80 ms a
@@ -156,8 +157,13 @@ func _render(options: Dictionary) -> void:
 	_report.add_budget(OWNER, "approximation: a finite far plane at %d m (the map's diagonal plus the backdrop reach); the browser's is infinite" % camera.far, "lens.far", 1, 1, 0)
 
 	# The side's learned ground, replayed as the records pass its ticks: the
-	# grass count gate reads its scars.
+	# ground and the grass read its scars.
 	var learned := LearnedGround.new(admitted.capture.layout.ground)
+	var scars_shown: bool = manifest.layers.has("scars")
+	var mismatch: String = world.scars.mismatch(learned) if scars_shown else ""
+	if not mismatch.is_empty():
+		_report.add_blocker("scars", mismatch)
+		return
 	var timing: FrameTiming = null
 	var viewport_rid := get_viewport().get_viewport_rid()
 	# The run draws each frame itself: Godot's main loop skips drawing, and
@@ -184,6 +190,9 @@ func _render(options: Dictionary) -> void:
 			_report.add_blocker("publication", "frame %d at tick %d precedes the first sample" % [record.index, record.tick])
 			return
 		CameraRig.apply(camera, record, manifest.lens)
+		if scars_shown:
+			learned.advance_to(decoded.samples, int(record.tick))
+			world.scars.sync(learned)
 		if world.grass != null:
 			world.grass.grow(record)
 		world.environment.prepare(camera, Vector2(get_window().size), StrictJson.vector3(record.target))
@@ -207,9 +216,8 @@ func _render(options: Dictionary) -> void:
 				return
 			_report.add_plate(int(record.index), path, plate.gpu_ms)
 			if world.grass != null:
-				learned.advance_to(decoded.samples, int(record.tick))
 				var browser: Array = manifest.grassCounts.filter(func(row): return row.plate == record.plate)
-				_report.add_grass(world.grass.counts(int(record.index), camera, Vector2(get_window().size), learned, browser[0].cells if not browser.is_empty() else null))
+				_report.add_grass(world.grass.counts(int(record.index), camera, Vector2(get_window().size), browser[0].cells if not browser.is_empty() else null))
 		record = stepper.step()
 	if timing != null:
 		_refuse_contention("end")
@@ -276,7 +284,8 @@ static func read_ground(scene_dir: String, manifest: Dictionary) -> Dictionary:
 
 ## Builds the light and every layer the manifest lists under `root`, staging the
 ## assets the layers draw, everything seated on `ground.heights`. Returns
-## `{environment, layer, grass, fog}`; `grass` and `fog` are null unless listed.
+## `{environment, layer, grass, fog, scars}`; `grass` and `fog` are null unless
+## listed, and `scars` (`scar_texture.gd`) holds no scars until synced.
 ## Blockers and budgets go to `report`.
 static func compose(root: Node3D, manifest: Dictionary, ground: Dictionary, samples: Array, map: Dictionary, targets: Array, side: String, report) -> Dictionary:
 	var layers: Array = manifest.layers
@@ -285,13 +294,14 @@ static func compose(root: Node3D, manifest: Dictionary, ground: Dictionary, samp
 			report.add_budget(OWNER, "the browser drew this layer; native does not draw it", "layer:" + layer, 1, 0, 1)
 	var environment := EnvironmentAdapter.new(manifest.light, layers.has("sky"), _receivers(ground.heights))
 	root.add_child(environment)
+	var scars := ScarTexture.new(ground.tables.get("scars"))
 	if layers.has("terrain"):
-		var terrain := TerrainLayer.new(ground.tables, ground.heights, manifest.tuning.terrain, float(manifest.light.backdrop.reach_m))
+		var terrain := TerrainLayer.new(ground.tables, ground.heights, manifest.tuning.terrain, float(manifest.light.backdrop.reach_m), scars.texture, layers.has("water"))
 		root.add_child(terrain)
 		terrain.build(report)
 	var grass: Node3D = null
 	if layers.has("grass") and report.ok():
-		grass = GrassLayer.new(ground, manifest.grass, manifest.tuning, manifest.lens)
+		grass = GrassLayer.new(ground, manifest.grass, manifest.tuning, manifest.lens, scars.texture)
 		root.add_child(grass)
 		grass.build(report)
 	var layer := LegacyMapLayer.new(map, targets, samples, ground.heights)
@@ -303,7 +313,7 @@ static func compose(root: Node3D, manifest: Dictionary, ground: Dictionary, samp
 		if layers.has("fog"):
 			fog = FogLayer.new()
 			root.add_child(fog)
-	return {"environment": environment, "layer": layer, "grass": grass, "fog": fog}
+	return {"environment": environment, "layer": layer, "grass": grass, "fog": fog, "scars": scars}
 
 ## The box shadows fall in, in Godot space: the ground grid, from a metre
 ## below its lowest ground to `Light.STANDING_M` above its highest, for what

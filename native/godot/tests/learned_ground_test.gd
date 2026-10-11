@@ -26,7 +26,7 @@ func run() -> bool:
 		for cell in bare:
 			for offset in [Vector2i.ZERO, Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
 				var at: Vector2i = cell + offset
-				var got := ground.bare_at(at.x + 0.5, at.y + 0.5)
+				var got := (ground.marks(at.x, at.y) & 0xffffff) != 0
 				check(got == bare.has(at), "tick %d cell %s: bare is %s, not %s" % [int(expected.tick), at, got, bare.has(at)])
 	check(seen_bare, "the fixture's ground holds bare cells")
 

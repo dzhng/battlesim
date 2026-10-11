@@ -133,6 +133,8 @@ export const TABLES = {
     "surfaces",
     "surfaceIndex",
     "params",
+    "scars",
+    "water",
   ] as const satisfies readonly TerrainTableName[],
   grass: [
     "params",

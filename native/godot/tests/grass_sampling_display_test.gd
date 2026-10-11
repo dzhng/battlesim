@@ -11,6 +11,7 @@ extends "res://tests/check.gd"
 const ParityRun = preload("res://parity_run.gd")
 const GrassLayer = preload("res://grass/grass_layer.gd")
 const ComputePass = preload("res://core/compute_pass.gd")
+const ScarTexture = preload("res://terrain/scar_texture.gd")
 
 ## Where the build's entry point starts: the probe below replaces it.
 const ENTRY := "layout(local_size_x = 64) in;"
@@ -27,7 +28,7 @@ func run() -> bool:
 	var vectors: Dictionary = read_json("res://tests/fixtures/grass_sampling_vectors.json")
 	var fixture: Dictionary = read_json(FIXTURE_RUN.path_join(FIXTURE_SCENE).path_join("manifest.json"))
 	var ground := ParityRun.read_ground(FIXTURE_RUN.path_join(FIXTURE_SCENE), fixture)
-	var layer = GrassLayer.new(ground, fixture.grass, fixture.tuning, fixture.lens)
+	var layer = GrassLayer.new(ground, fixture.grass, fixture.tuning, fixture.lens, ScarTexture.new(ground.tables.scars).texture)
 	var built: Dictionary = layer.build_source()
 	check(built.ok, "the build's source assembles: %s" % built.get("detail", ""))
 	var source: String = built.source
@@ -39,8 +40,8 @@ func run() -> bool:
 		inputs.append_array([int(row.tile[0]), int(row.tile[1]), int(row.j), 0])
 	source = source.substr(0, entry) + """
 layout(local_size_x = 1) in;
-layout(set = 0, binding = 13, std430) restrict readonly buffer Inputs { ivec4 inputs[]; };
-layout(set = 0, binding = 14, std430) restrict writeonly buffer Outputs { uint outputs[]; };
+layout(set = 0, binding = 15, std430) restrict readonly buffer Inputs { ivec4 inputs[]; };
+layout(set = 0, binding = 16, std430) restrict writeonly buffer Outputs { uint outputs[]; };
 void main() {
 	uint at = gl_GlobalInvocationID.x;
 	ivec2 tile = inputs[at].xy;
@@ -74,11 +75,11 @@ void main() {
 		return true
 	var buffers := {
 		0: rd.storage_buffer_create(ground.grass.params.words.size(), ground.grass.params.words),
-		13: rd.storage_buffer_create(inputs.size() * 4, inputs.to_byte_array()),
-		14: rd.storage_buffer_create(rows.size() * WORDS_PER_ROW * 4),
+		15: rd.storage_buffer_create(inputs.size() * 4, inputs.to_byte_array()),
+		16: rd.storage_buffer_create(rows.size() * WORDS_PER_ROW * 4),
 	}
 	# The build's other bindings: the probe reads none of them.
-	for binding in [1, 2, 3, 4, 5, 6, 11, 12]:
+	for binding in [1, 2, 3, 4, 5, 6, 11, 12, 14]:
 		buffers[binding] = rd.storage_buffer_create(16, PackedByteArray([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))
 	var format := RDTextureFormat.new()
 	format.format = RenderingDevice.DATA_FORMAT_R8G8B8A8_UNORM
@@ -86,7 +87,7 @@ void main() {
 	var texture := rd.texture_create(format, RDTextureView.new(), [PackedByteArray([0, 0, 0, 0])])
 	var sampler := rd.sampler_create(RDSamplerState.new())
 	var uniforms: Array[RDUniform] = []
-	for binding in [7, 8, 9, 10]:
+	for binding in [7, 8, 9, 10, 13]:
 		uniforms.append(ComputePass.sampled(binding, sampler, texture))
 	for binding in buffers:
 		uniforms.append(ComputePass.storage(binding, buffers[binding]))
@@ -99,7 +100,7 @@ void main() {
 	rd.compute_list_end()
 	rd.submit()
 	rd.sync()
-	var out := Array(rd.buffer_get_data(buffers[14]).to_int32_array()).map(func(word): return word & 0xFFFFFFFF)
+	var out := Array(rd.buffer_get_data(buffers[16]).to_int32_array()).map(func(word): return word & 0xFFFFFFFF)
 	var admitted := 0
 	var worst := 0
 	for i in rows.size():
