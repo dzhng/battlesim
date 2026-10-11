@@ -27,7 +27,9 @@ Write the findings into this file before building.
 
 **Focused gates:**
 - **Parity with today.** Before any TS module is deleted, the Rust output equals today's TS output on the existing vector tests and on every plate's counts.
-- **The shipped browser is unchanged.** Its plates are byte-identical to before, digest and replay unchanged, and graphics-test frame time and main-thread CPU no worse across three runs.
+- **The shipped browser is unchanged in what it draws.** Its plates are byte-identical to before, and digest and replay unchanged. Graphics-test frame time and main-thread CPU, across three runs, show no meaningful regression; a small measured cost is acceptable for less code.
+- **Less code.** The slice reduces net lines across Rust, TypeScript, GDScript and tests (excluding comments and fixtures), reported as added, deleted and net per language. A slice that grows the total is reworked before it lands. This is the phase's point: one owner instead of an original, a port and a compare test.
+
 - **Native.** Plates and counts unchanged, and CPU per frame reported.
 
 **Delegated:** the crate's internal structure.

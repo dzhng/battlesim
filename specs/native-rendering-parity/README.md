@@ -69,7 +69,7 @@ Graph: `13 → {14, 15, 16} → 17 → 18`. Slices 14, 15 and 16 share no owners
 
 ### Phase 4: Rust native core and one shared presentation crate
 
-Set by the user on 2026-10-11, after the static world's selection walk cost about 6.5 ms per frame in GDScript. GDScript is the wrong owner for the client's CPU work. Native's CPU side moves to a Rust GDExtension. Per-frame presentation logic moves into one shared Rust crate that the browser runs through WASM and native links, which removes the TypeScript-to-native duplication. Every step keeps plates, counts and both clients' performance unchanged or better, and the browser's shipped frame identical.
+Set by the user on 2026-10-11, after the static world's selection walk cost about 6.5 ms per frame in GDScript. GDScript is the wrong owner for the client's CPU work. Native's CPU side moves to a Rust GDExtension. Per-frame presentation logic moves into one shared Rust crate that the browser runs through WASM and native links, which removes the TypeScript-to-native duplication. Every step keeps plates and counts unchanged and the browser's shipped frame identical. The user's priority (2026-10-11) is lower overall complexity: each shared-code slice must reduce net code, and a small, measured browser performance cost is acceptable for it. A meaningful regression still blocks.
 
 Graph: `18 → 19 → 20 → 21 → 22 → 23 → 24`. Slice 15's performance fix is 18's first module.
 

@@ -16,7 +16,9 @@ Write the findings into this file before building.
 
 **Focused gates:**
 - **Equality.** The Rust reader matches the old TS decoder field for field on both fixture captures, before the TS decoder is deleted (the test from slice 13, reused).
-- **The shipped browser is unchanged.** Digest and replay unchanged, the graphics test and battle scenes green, and the browser's frame time and main-thread CPU no worse on the graphics test (slice 07's harness).
+- **The shipped browser is unchanged in what it draws.** Digest and replay unchanged, and the graphics test and battle scenes green. Its frame time and main-thread CPU on the graphics test (slice 07's harness) show no meaningful regression; a small measured cost is acceptable for less code (user, 2026-10-11).
+- **Less code.** The slice reduces net lines across Rust, TypeScript, GDScript and tests (excluding comments and fixtures), reported as added, deleted and net per language. A slice that grows the total is reworked before it lands. This is the phase's point: one owner instead of an original, a port and a compare test.
+
 - **Native.** Plates and counts unchanged.
 
 **Delegated:** the typed observation's Rust shape.

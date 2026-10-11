@@ -25,5 +25,6 @@
 - `tests/run.sh` becomes `cargo test` for logic plus the display tests for GPU paths, and no coverage is lost.
 - Slice 12's performance bar: native at or below the browser on both scenes.
 - CPU per frame reported at each step.
+- **Less code.** Each GDScript module's Rust replacement is no larger than it, net of deleted tests; report added, deleted and net lines per language.
 
 **Delegated:** module layout inside the crate, and godot-rust idioms.
