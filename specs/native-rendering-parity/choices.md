@@ -389,3 +389,15 @@ Closed by the agent on the evidence; the user had not reviewed it at the time of
   - Confidence: high.
 - **CPU ms is reported, not gated.** On paris-corner native's CPU p50 is 1.54 ms against the browser's 0.88. The two clocks cover different work: the browser's simulation runs in a worker and its GPU submission in Chrome's GPU process. Slice 12's measures are frame time, FPS and GPU time.
   - Confidence: medium.
+
+## Phase 3 plan (2026-10-11), by the orchestrator on the user's behalf
+
+The spec said phase 3 would be planned with the user. Under the implementation goal, the orchestrator planned it from the confirmed preferences (#1 no unasked machinery, #2 don't defer fidelity, #3 the browser resolves and native draws, #4 automate evidence). Each call is reversible.
+
+| Decision | Why | Preference |
+| --- | --- | --- |
+| No new simulation-to-capture data path. Effects read causes the capture already carries. | A source map showed every effect cause is in the publication: projectiles, blasts, shot counters, smoke, crashes, `knownProps`, `fallenBodies`, and the ground's scars and `cleared` byte. The only gap was native decoding one group. | #1 |
+| The browser exports static per-map placement (building modules and states, scenery); native ports per-frame derivations (poses, effects, fallen, felled and cleared state) | Placement is a pure function of map plus catalogs, as terrain tables were. A live native client must derive per-frame state itself, so porting it now isn't wasted. | #3, endgame b |
+| Each content slice gates on per-plate counts equal to the browser's, plus seeded or vector tests, then the visual gates | The same pattern as grass counts in 06a: load-free, exact, and able to fail | #4 |
+| Each content slice re-runs slice 12's performance bar | Content adds cost, and native must stay no slower than the browser | User (phase 2) |
+| Phase 3 is renumbered 13–18 | Units, buildings and scenery, water and scars, and effects are separate visual variables | — |

@@ -4,7 +4,7 @@
 
 **Status:** phases 1 and 2 are built and closed (2026-10-10 and 2026-10-11). Native draws the menu reel from the browser's frame records with the same camera, light, terrain and grass. Its release export is no slower than the browser's production build on any measure, on both scenes (slice 12): market-town p95 13.4 ms against 23.9, and GPU busy about half the browser's on both. [`choices.md`](choices.md) holds the discovery map and both phases' ledgers.
 
-**Next pickup:** plan phase 3 (models, effects, promotion) with the user before building any of it. Slices 13–16 are placeholders. Phase 3 content adds native cost: each slice reports its own pass cost, and slice 12's gate re-runs when the phase closes.
+**Next pickup:** slice 13 (full publication decode), then 14, 15 and 16 in parallel. Phase 3 was planned on the user's behalf (see Phases). Read `choices.md` first; its decisions are givens.
 
 **Goal:** make the native Godot client visually equivalent to the browser renderer for the authored menu reel, and at least as fast as it, as a maintained second client beside the browser. Rust stays the only gameplay, observation, visibility, replay and digest authority. The browser remains shipped.
 
@@ -47,12 +47,26 @@ Graph: `07 → 08 → 09 → 10 → 11 → 12`. Measure first and name the cause
 - [x] 11 — Release build: `native/godot/release.sh` exports a macOS release build and runs the parity run from it; its paris-corner and market-town plates match the editor run's within the grass noise floor, and the report states its build kind. The browser's production build and the side-by-side timings are slice 12's. [slice](slices/11-release-build.md)
 - [x] 12 — Performance gate: passed. Release export against the browser's production build, three interleaved runs, plugged in. Market-town averages 115.0 FPS against 71.6, with p99 14.4 ms against 25.4. Paris-corner averages 120.0 against 101.5, with p99 9.6 against 17.8. Traced GPU busy is 5.9 against 10.8 ms and 4.5 against 8.2. The plates are byte-identical to the editor's. On the way, the bench now re-minimises its window before timing: an on-screen window had put paris p50 0.03 ms over the browser's. [slice](slices/12-performance-gate.md)
 
-### Phase 3: same models and events, then promotion (placeholders)
+### Phase 3: same models and events, then promotion
 
-- [ ] 13 — Authored model identity, material roles, pivots, fit, recorded LOD tiers, buildings and props, on slice 09's `model_batches.gd`; posed soldiers and their impostor cards. Replaces `legacy_map_layer.gd`.
-- [ ] 14 — Observed dust, smoke, muzzle/tracer, blast, scar and grounding effects from published causes. This needs a new publication seam: the capture must carry effect causes.
-- [ ] 15 — Compose all layers within phase 2's budgets.
-- [ ] 16 — Promotion gate; the full repository check runs once here.
+Planned 2026-10-11 by the orchestrator on the user's behalf, under the confirmed preferences in `choices.md`. Every call is reversible and recorded there.
+
+A source map found that the capture already carries every effect cause, so no new simulation data path is needed. Native decodes only one publication group today.
+
+The rule follows phase 1: the browser exports what is static per map, and native ports what is derived per frame.
+- **Static per map, exported:** building modules with facades, and scenery placement.
+- **Derived per frame, ported as formulas:** unit poses and gait, effects (seeded, on the recorded sim clock), and fallen, felled or cleared state from the publication. A live native client needs these anyway.
+
+Every slice reports its own pass cost and keeps slice 12's bar.
+
+Graph: `13 → {14, 15, 16} → 17 → 18`. Slices 14, 15 and 16 share no owners and run in parallel; 17 needs 13's decode and 14's posed muzzles.
+
+- [ ] 13 — Full publication decode: every group, matched against the browser's decoder. [slice](slices/13-publication-decode.md)
+- [ ] 14 — Units, poses, corpses and wrecks: interpolation and pose derivation ported, impostors for posed soldiers, counts equal per plate. [slice](slices/14-units-and-poses.md)
+- [ ] 15 — Buildings and scenery: module and scenery placement exported by the browser, state from the publication; `legacy_map_layer.gd` deleted. [slice](slices/15-buildings-and-scenery.md)
+- [ ] 16 — Water surface and ground scars; the grass gate's scar allowance deleted. [slice](slices/16-water-and-scars.md)
+- [ ] 17 — Effects from the published causes, same seeds and clock. [slice](slices/17-effects.md)
+- [ ] 18 — Whole-frame verdict, the performance re-gate, the promotion decision, the full repository check and closeout. [slice](slices/18-promotion-and-closeout.md)
 
 ### Firewalls
 
@@ -62,7 +76,7 @@ Graph: `07 → 08 → 09 → 10 → 11 → 12`. Measure first and name the cause
 | Scaffolding | Removed |
 | --- | --- |
 | `legacy_map_layer.gd` (placement, its kit shells' open tiers drawn over the coarser ones, its read of `fixtures/game.json` detail thresholds) | Slice 13 |
-| The grass count gate's `scar-omission` allowance | Slice 14, when native draws learned scars |
+| The grass count gate's `scar-omission` allowance | Slice 16, when native draws learned scars |
 
 Update this section before ending every implementation pass. Record the current slice, evidence, unresolved decisions, and the next exact pickup.
 
@@ -78,7 +92,7 @@ Both clients render the same menu-reel workload: the same map, encounter, seed a
 4. **Grass and vegetation:** the same impression (coverage, density, colour mix, crop rows, no tiling or bald patches), and rendered blades per region within about 10% of the browser's count for the same window.
 5. **Models, effects and composition:** phase 2.
 
-A visual slice changes one primary variable. Other visible differences are explicitly out of scope until their slice; whole-frame approval belongs only to slice 16.
+A visual slice changes one primary variable. Other visible differences are explicitly out of scope until their slice; whole-frame approval belongs only to slice 18.
 
 ## Ownership and boundary contract
 
@@ -95,7 +109,7 @@ A visual slice changes one primary variable. Other visible differences are expli
 
 The seam is a `native-visual-presentation` manifest beside each `battle-presentation-capture` file, written by the same browser run. It starts in slice 01 with identity hashes, viewport, lens (`fovY`, near plane, reverse-Z infinite far), drawn layers, and fallback/omission rows. Each later slice adds only the fields native reads in that slice. Large geometry may live in hashed artifacts, but ordering and ownership stay in the manifest.
 
-Native must not choose a building shell by family/token heuristics (removed in slice 13), re-read raw map policy, invent visibility or a presentation layer, replace a missing asset silently, cap anything silently, or add a simulation or wall clock in comparison mode. A parity report names every fallback, omission and budget with owner, reason, source id, admitted, rendered and dropped counts, and cut.
+Native must not choose a building shell by family/token heuristics (removed in slice 15), re-read raw map policy, invent visibility or a presentation layer, replace a missing asset silently, cap anything silently, or add a simulation or wall clock in comparison mode. A parity report names every fallback, omission and budget with owner, reason, source id, admitted, rendered and dropped counts, and cut.
 
 ## Browser owners to port from
 
@@ -105,7 +119,7 @@ Native must not choose a building shell by family/token heuristics (removed in s
 - Terrain and grass: `packages/battle-renderer/src/terrain/{terrainSurface.ts,terrainGrid.ts,biome.ts,grassField.ts}` and `packages/battle-renderer/src/frame/{terrainHeights.ts,terrainMaterial.ts,grassPass.ts}`.
 - Models and authored content (phase 2): `packages/scene-assets/src/{loader.ts,schema.ts,templateLibrary.ts,appearanceCatalog.ts}`, `packages/battle-renderer/src/models/*`, `apps/battle-lab/src/buildingTier.ts`.
 - Effects and scars (phase 2): `packages/battle-renderer/src/effects/{effectFrame.ts,effectPass.ts}` and `packages/battle-renderer/src/frame/scarTexture.ts`.
-- Native client: `native/godot/` (see its README). `parity_run.gd` is the entry point. Capture, manifest, stepping, plates and the report are separate modules, and `core/` owns the concepts they share (strict JSON, coordinates, word tables, compute passes, shader text). Models are drawn by `world/model_batches.gd`; the pre-parity placement of buildings, props and units lives in `world/legacy_map_layer.gd` until slice 13.
+- Native client: `native/godot/` (see its README). `parity_run.gd` is the entry point. Capture, manifest, stepping, plates and the report are separate modules, and `core/` owns the concepts they share (strict JSON, coordinates, word tables, compute passes, shader text). Models are drawn by `world/model_batches.gd`; the pre-parity placement of buildings, props and units lives in `world/legacy_map_layer.gd` until slice 15.
 
 ## Known evidence and risks
 
@@ -132,7 +146,7 @@ Each side has one command, and neither needs a human.
 
 Native grass plates differ by one or two pixels of at most 2 levels between reruns of unchanged code, so byte comparisons of native plates need that floor.
 
-Counters never prove pixels. Headless Godot proves lifecycle only. Every pass keeps the Rust digest/replay tests, the capture parser tests, the native lifecycle tests and the browser scenes it touches green. The full repository check and verification suite run once, at slice 16.
+Counters never prove pixels. Headless Godot proves lifecycle only. Every pass keeps the Rust digest/replay tests, the capture parser tests, the native lifecycle tests and the browser scenes it touches green. The full repository check and verification suite run once, at slice 18.
 
 ## Next Agent Prompt
 
