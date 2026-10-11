@@ -11,7 +11,7 @@
       <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
   </defs>
-  <rect x="0.5" y="0.5" width="31" height="31" fill="#05101a" stroke="#73dbff" stroke-opacity="0.35"/>
+  <rect x="0.5" y="0.5" width="31" height="31" fill="#050f17" stroke="#73dbff" stroke-opacity="0.35"/>
   <path d="M3.5 10V3.5H10M28.5 22v6.5H22" fill="none" stroke="#73dbff" stroke-width="2"/>
   <path d="M9 25.5L13.6 6.5h4.8L23 25.5h-3.9l-.8-4h-4.6l-.8 4zM14.4 18h3.2L16 10.5z" fill="#e6f5ff" fill-rule="evenodd" filter="url(#glow)"/>
 </svg>
