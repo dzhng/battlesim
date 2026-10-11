@@ -176,7 +176,7 @@ test("a kit that fails to arrive is named, and the installed generation stays", 
   corrupt[corrupt.length - 1] ^= 0xff;
   files.set(kitFile[YARD_KIT], corrupt);
   await expect(loader.withAppearances([YARD_KIT])).rejects.toThrow(
-    /kit "city_kit_yard": .*gzip content hash/,
+    /kit "city_kit_yard": .*does not inflate/,
   );
   expect(loader.installed).toBe(first);
   // Served whole again, the same request succeeds.

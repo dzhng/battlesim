@@ -224,7 +224,7 @@ test("a library that does not match its kits fails the whole load", async () => 
   corrupt[corrupt.length - 1] ^= 0xff;
   files.set(libraryPath, corrupt);
   files.set("catalog.json", new TextEncoder().encode(runtimeCatalogText(result.runtime)));
-  await expect(loader.load("/assets/")).rejects.toThrow(/gzip content hash/);
+  await expect(loader.load("/assets/")).rejects.toThrow(/does not inflate/);
   expect(loader.installed).toBe(first);
 });
 

@@ -1,6 +1,8 @@
 // @vitest-environment node
-// The one loader: installs a whole catalog generation at once, verifies every
-// content hash, and keeps what is installed when anything fails.
+// The one loader: installs a whole catalog generation at once, refuses a
+// file that does not decode to its declared lengths, and keeps what is
+// installed when anything fails. Content hashes are proved once, when the
+// runtime files are baked and checked (`asset check`), not on every load.
 import { expect, test } from "vitest";
 import { bakeCatalog, runtimeCatalogText } from "@packages/scene-assets/src/bake.ts";
 import { AppearanceLibrary, memoryFetch } from "@packages/scene-assets/src/loader.ts";
@@ -47,14 +49,14 @@ test("a static appearance arrives with the simulation box its art is authored to
   expect(installed.appearances.get("tank")?.footprint).toBeNull();
 });
 
-test("a bundle whose bytes do not match its hash fails the load and keeps the installed generation", async () => {
+test("a corrupted bundle fails the load and keeps the installed generation", async () => {
   const { library, files, result } = await served();
   const first = await library.load("/assets/");
   const tankFile = bundlePath(result.runtime.gzip![result.runtime.appearances.tank.bundle].hash);
   const corrupt = files.get(tankFile)!.slice();
   corrupt[corrupt.length - 1] ^= 0xff;
   files.set(tankFile, corrupt);
-  await expect(library.load("/assets/")).rejects.toThrow(/content hash/);
+  await expect(library.load("/assets/")).rejects.toThrow(/does not inflate/);
   expect(library.installed).toBe(first);
   expect(library.installed?.appearances.size).toBe(6);
 });
@@ -164,25 +166,22 @@ test("gzip inflation beyond the declared kit length is refused without consuming
 
 test.each([
   ["wire length", /gzip length/],
-  ["wire hash", /gzip content hash/],
+  ["corrupt gzip", /does not inflate/],
   ["truncated gzip", /kit "city_kit_test"/],
   ["raw length", /decoded length/],
-  ["raw hash", /decoded content hash/],
   ["missing record", /missing gzip transport/],
   ["raw kit budget", /invalid gzip lengths/],
 ] as const)(
   "invalid %s is refused atomically before its art is installed",
   async (failure, message) => {
     const { KIT, result, files } = await servedCity();
-    const { packGzip } = await import("@packages/scene-assets/src/gzip.ts");
-    const { gunzipSync } = await import("node:zlib");
     const { sha256Hex } = await import("@packages/scene-assets/src/glb.ts");
     const hash = result.runtime.appearances[KIT].bundle;
     const record = result.runtime.gzip![hash];
     const path = bundlePath(record.hash);
     const encoded = files.get(path)!.slice();
     if (failure === "wire length") files.set(path, encoded.subarray(1));
-    if (failure === "wire hash") {
+    if (failure === "corrupt gzip") {
       encoded[encoded.length - 1] ^= 0xff;
       files.set(path, encoded);
     }
@@ -194,13 +193,6 @@ test.each([
       record.hash = await sha256Hex(truncated);
       record.bytes = truncated.length;
       files.set(bundlePath(record.hash), truncated);
-    }
-    if (failure === "raw hash") {
-      const raw = new Uint8Array(gunzipSync(encoded));
-      raw[raw.length - 1] ^= 0xff;
-      const repacked = await packGzip(raw);
-      result.runtime.gzip![hash] = repacked.transport;
-      files.set(bundlePath(repacked.transport.hash), repacked.bytes);
     }
     files.set("catalog.json", new TextEncoder().encode(runtimeCatalogText(result.runtime)));
     const library = new AppearanceLibrary(memoryFetch(files, "/assets/"));
