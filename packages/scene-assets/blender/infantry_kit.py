@@ -182,9 +182,10 @@ class Kit:
     def slim_body(self):
         """The UBC body is a superhero. Pull each vertex toward its dominant bone's segment,
         by bone, before any shell is cut: narrower shoulders, thinner arms and neck, a
-        shallower chest. Joints stay where the rig has them."""
+        shallower chest. The legs keep their bulk (the trousers fill them out: `fill_legs`).
+        Joints stay where the rig has them."""
         pull = {"clavicle": 0.25, "upperarm": 0.4, "lowerarm": 0.3, "spine_03": 0.22, "spine_02": 0.14,
-                "spine_01": 0.06, "neck_01": 0.2, "thigh": 0.16, "calf": 0.1}
+                "spine_01": 0.06, "neck_01": 0.2}
         bones = self.arm.data.bones
         names = {g.index: g.name for g in self.body.vertex_groups}
         me = self.body.data
@@ -308,6 +309,7 @@ class Kit:
                 for v in zone:
                     if v.co.y < plane:
                         v.co.y += (plane - v.co.y) * 0.7
+            fill_legs(bm)
 
         seat = (lambda co: 0.7 < co.z < 1.02 and abs(co.x) < 0.2, 24)  # crotch and seat
         cloth = self.shell("uniform", keep, m["uniform"], offset, smooth=20, tube=1.0, rim=0.012, post=post, relax=seat,
@@ -1015,6 +1017,49 @@ def tubify(bm, k):
         slim = 1.0 - 0.18 * clamp01((abs(v.co.x) - 0.26) / 0.12) if abs(v.co.x) > 0.26 and v.co.z > 1.2 else 1.0
         if r > 1e-6:
             v.co = axis + d * ((r + (mean[key] * slim - r) * k) / r)
+
+
+def bump(x, centre, width):
+    return math.exp(-(((x - centre) / width) ** 2))
+
+
+def smoothstep(e0, e1, x):
+    t = clamp01((x - e0) / (e1 - e0))
+    return t * t * (3 - 2 * t)
+
+
+def fill_legs(bm):
+    """Give the tubed trousers a man's legs: thighs full from above the knee,
+    deeper front to back than across and easing into narrow hips (a flare at
+    the hip reads as a woman's), a calf behind the shin, and a modest seat behind
+    the hips. Same leg axes as `tubify` (the soldier faces -Y, so +Y is behind him)."""
+    for v in bm.verts:
+        co = v.co
+        if co.z > 1.06 or co.z < 0.2 or (abs(co.x) > 0.26 and co.z > 1.2):
+            continue
+        side = 1 if co.x > 0 else -1
+        if co.z < 0.95:
+            t = clamp01((0.971 - co.z) / (0.971 - 0.086))
+            ax, ay = side * 0.114, 0.036 + 0.052 * t * t
+            dx, dy = co.x - ax, co.y - ay
+            # full from just above the knee, easing off into the hip so the hips stay narrow
+            thigh = smoothstep(0.52, 0.68, co.z) * (1 - smoothstep(0.84, 0.95, co.z) * 0.6)
+            outer = dx * side > 0
+            calf = bump(co.z, 0.40, 0.09)
+            fx = 1 + thigh * (LEG_FILL["thigh_across"] if outer else LEG_FILL["thigh_inner"]) + calf * LEG_FILL["calf"] * 0.4
+            fy = 1 + thigh * LEG_FILL["thigh_deep"]
+            if dy > 0:  # the calf behind the shin
+                fy += LEG_FILL["calf"] * calf
+            co.x = ax + dx * fx
+            co.y = ay + dy * fy
+        # the seat: a flat, square muscle behind the hip, fading at the waist and the thigh
+        if co.y > 0.0 and abs(co.x) < 0.22:
+            cheek = bump(abs(co.x), 0.07, 0.11)
+            co.y += LEG_FILL["seat"] * bump(co.z, 0.88, 0.075) * cheek * smoothstep(0.0, 0.08, co.y)
+
+
+# How far `fill_legs` swells each part: shares of the tube's radius, and the seat in metres.
+LEG_FILL = {"thigh_across": 0.12, "thigh_inner": 0.06, "thigh_deep": 0.3, "calf": 0.2, "seat": 0.032}
 
 
 def add_rim(bm, depth):

@@ -25,7 +25,12 @@ import { clamp, deltaAngle, mat4, vec3, type Mat4, type Vec2, type Vec3 } from "
 import { mulberry32 } from "math/random";
 import { easing } from "math/time";
 import { REST_ARTICULATION, type Articulation } from "@packages/scene-assets/src/articulation";
-import type { Side } from "@packages/scene-assets/src/schema";
+import {
+  INFANTRY_DEATHS,
+  INFANTRY_MOVES,
+  INFANTRY_WAYS,
+  type Side,
+} from "@packages/scene-assets/src/schema";
 import {
   airborne,
   vehicleClass,
@@ -196,6 +201,9 @@ export interface PoseFeel {
     /** Speed from which a soldier walks, and from which he runs, m/s. */
     walk_mps: number;
     run_mps: number;
+    /** Speed up to which a soldier lying down crawls, m/s; faster, he gets up
+     *  and moves crouched. */
+    crawl_mps: number;
     /** Crossfade between clips, seconds. */
     fade_s: number;
     /** Speed below which facing does not follow velocity, m/s. */
@@ -260,6 +268,8 @@ export function validatePoseFeel(p: PoseFeel): PoseFeel {
   positive("gait.walk_mps", gait.walk_mps);
   positive("rotor.tip_mps", rotor.tip_mps);
   if (!(gait.run_mps > gait.walk_mps)) fail("gait.run_mps", "must exceed walk_mps");
+  if (!(gait.crawl_mps > gait.walk_mps && gait.crawl_mps <= gait.run_mps))
+    fail("gait.crawl_mps", "must exceed walk_mps and not exceed run_mps");
   positive("gait.fade_s", gait.fade_s);
   if (!(gait.facing_mps >= 0)) fail("gait.facing_mps", "must be ≥ 0");
   positive("gait.turn_rad_s", gait.turn_rad_s);
@@ -311,6 +321,42 @@ export interface PoseDriverOptions {
   /** Seconds a soldier stays in his firing pose after a shot: the rules'
    *  `cover.lean_hold_s`, the time the simulation keeps him out on a lean. */
   leanHold: number;
+}
+
+/** The ways he moves (`INFANTRY_WAYS`) at their bearings from his facing,
+ *  counter-clockwise. */
+const WAY_BEARINGS: Record<(typeof INFANTRY_WAYS)[number], number> = {
+  f: 0,
+  l: Math.PI / 2,
+  b: Math.PI,
+  r: -Math.PI / 2,
+};
+const WAYS = Object.entries(WAY_BEARINGS);
+
+/** How far past the halfway bearing between two ways he keeps the way he is
+ *  going, so a diagonal does not flicker between two clips, radians. */
+const WAY_HOLD_RAD = 0.2;
+
+/** The way he goes at bearing `rel` from his facing: the nearest, unless
+ *  `current` (his clip) is already a way of `gait` and still near enough. */
+function wayOf(rel: number, current: string, gait: string): string {
+  const held = current.startsWith(`${gait}_`) ? current.slice(gait.length + 1) : null;
+  const kept = WAYS.find(([way]) => way === held);
+  if (kept && Math.abs(deltaAngle(kept[1], rel)) <= Math.PI / 4 + WAY_HOLD_RAD) return kept[0];
+  let best = WAYS[0][0];
+  let off = Infinity;
+  for (const [way, at] of WAYS) {
+    const d = Math.abs(deltaAngle(at, rel));
+    if (d < off) [best, off] = [way, d];
+  }
+  return best;
+}
+
+/** The gait a clip moves in (`INFANTRY_MOVES`), or null for any other clip. */
+function gaitOfClip(clip: string): string | null {
+  const cut = clip.lastIndexOf("_");
+  const gait = cut < 0 ? "" : clip.slice(0, cut);
+  return (Object.values(INFANTRY_MOVES) as string[]).includes(gait) ? gait : null;
 }
 
 /** Where a soldier starts a looping clip: his own offset (the golden ratio
@@ -369,6 +415,8 @@ interface SoldierState {
    *  lean point he slides to (kept while he eases back from it). */
   leanT: number;
   leanAt: Vec3;
+  /** The posture he was last posed in: the one he falls from. */
+  posture: Posture;
   /** His `restManner` and `stanceManner`, and when his squad last fired. */
   turn: number;
   tempo: number;
@@ -540,19 +588,11 @@ export class PoseDriver {
       state.ownShots = own ?? 0;
       const firing = time - state.firedAt < this.options.leanHold;
 
-      // Facing: his own velocity, else the weapon's aim (or the unit's heading),
-      // strayed by his own manner once the squad has settled.
-      const settled = clamp((time - state.alertAt - rest.settle_s[0]) / rest.settle_s[1], 0, 1);
-      const target = speed > gait.facing_mps ? Math.atan2(dy, dx) : aim + state.turn * settled;
-      const turn = deltaAngle(pose.facing, target);
-      const step = gait.turn_rad_s * dt;
-      if (holding) pose.facing = aim;
-      else pose.facing += Math.abs(turn) <= step ? turn : Math.sign(turn) * step;
-
       // Out on his lean he kneels to fire, pinned or not: the film's man
       // pops out from behind the tree and drops back. Otherwise, under fire
-      // or firing, each man takes his own stance.
-      const posture =
+      // or firing, each man takes his own stance. Lying down he can only
+      // crawl so fast: quicker than that, he gets up and goes crouched.
+      const held =
         soldier.posture ??
         (soldier.lean
           ? "kneel"
@@ -561,17 +601,36 @@ export class PoseDriver {
             : firing
               ? state.stance.firing
               : "stand");
+      const posture = held === "prone" && speed >= gait.crawl_mps ? "kneel" : held;
+      state.posture = posture;
+      const running = speed >= gait.run_mps;
+      // Down in a posture or shooting, he keeps his weapon toward the threat
+      // as he moves (`INFANTRY_MOVES`), whichever way he goes; otherwise, and at a run,
+      // he faces the way he goes.
+      const gaitOf = running || (posture === "stand" && !firing) ? null : INFANTRY_MOVES[posture];
+
+      // Facing: his own velocity, else the weapon's aim (or the unit's heading),
+      // strayed by his own manner once the squad has settled.
+      const settled = clamp((time - state.alertAt - rest.settle_s[0]) / rest.settle_s[1], 0, 1);
+      const travel = Math.atan2(dy, dx);
+      const target = speed > gait.facing_mps && !gaitOf ? travel : aim + state.turn * settled;
+      const turn = deltaAngle(pose.facing, target);
+      const step = gait.turn_rad_s * dt;
+      if (holding) pose.facing = aim;
+      else pose.facing += Math.abs(turn) <= step ? turn : Math.sign(turn) * step;
 
       const clip = holding
         ? authoredHold.clip
-        : posture === "prone"
-          ? "prone_pinned"
-          : posture === "kneel" && speed < gait.walk_mps
-            ? "kneel_fire"
-            : speed >= gait.run_mps
-              ? "run"
-              : speed >= gait.walk_mps
-                ? "walk"
+        : running
+          ? "run"
+          : speed >= gait.walk_mps
+            ? gaitOf
+              ? `${gaitOf}_${wayOf(deltaAngle(pose.facing, travel), pose.clip, gaitOf)}`
+              : "walk"
+            : posture === "prone"
+              ? "prone_pinned"
+              : posture === "kneel"
+                ? "kneel_fire"
                 : state.watch || firing
                   ? "stand_aim"
                   : "idle";
@@ -625,6 +684,7 @@ export class PoseDriver {
       at: vec3.clone(soldier.position),
       leanT: 0,
       leanAt: vec3.clone(soldier.position),
+      posture: "stand",
       turn,
       tempo,
       watch,
@@ -672,8 +732,10 @@ export class PoseDriver {
         state.pose.unit = -1;
         const changedHold = state.pose.operatorMount !== null;
         state.pose.activeMount = null;
-        if (changedHold) this.resetClip(state, "death");
-        else this.switchTo(state, "death");
+        // He falls from the posture he is in, never getting up to die.
+        const fall = INFANTRY_DEATHS[state.posture];
+        if (changedHold) this.resetClip(state, fall);
+        else this.switchTo(state, fall);
         this.dying.add(f.soldier);
       } else if (state) {
         // Authority can remove a floor while the same death is still playing.
@@ -715,7 +777,7 @@ export class PoseDriver {
       state.seen = generation;
       const pose = state.pose;
       pose.activeMount = null;
-      const facts = this.options.clip(pose.kind, "death", pose);
+      const facts = this.options.clip(pose.kind, pose.clip, pose);
       pose.phase = facts ? Math.min(1, (time - state.fellAt!) / facts.duration) : 1;
       this.fade(state, dt);
       if (pose.phase >= 1 && !pose.blend) {
@@ -778,16 +840,21 @@ export class PoseDriver {
   /** Move to `clip` (fading from the current one) and advance its phase. */
   private advance(state: SoldierState, clip: string, moved: number, dt: number) {
     const pose = state.pose;
-    if (clip !== pose.clip) this.switchTo(state, clip);
+    if (clip !== pose.clip) {
+      // Turning his way within one gait keeps his step: its ways share a phase.
+      const gait = gaitOfClip(clip);
+      const phase = pose.phase;
+      this.switchTo(state, clip);
+      if (gait && gait === gaitOfClip(state.fading.clip)) pose.phase = phase;
+    }
     const facts = this.options.clip(pose.kind, pose.clip, pose);
     if (facts) {
-      // Locomotion with a declared stride advances with ground covered, so
-      // feet do not slide; everything else advances with time, the idle at
-      // his own tempo.
-      const step =
-        facts.stride_m && (pose.clip === "walk" || pose.clip === "run")
-          ? moved / facts.stride_m
-          : (dt / facts.duration) * (pose.clip === "idle" ? state.tempo : 1);
+      // Locomotion (a clip with a declared stride) advances with ground
+      // covered, so feet do not slide; everything else advances with time,
+      // the idle at his own tempo.
+      const step = facts.stride_m
+        ? moved / facts.stride_m
+        : (dt / facts.duration) * (pose.clip === "idle" ? state.tempo : 1);
       pose.phase = facts.loop ? (pose.phase + step) % 1 : Math.min(1, pose.phase + step);
     }
     this.fade(state, dt);

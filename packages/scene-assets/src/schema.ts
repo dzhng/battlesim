@@ -199,14 +199,38 @@ export const UNIT_BUNDLE_KIND: Record<AppearanceUnit, BundleKind> = {
   kit: "static",
 };
 
-/** Clip roles every infantry skeleton carries (spike 03), plus the fit reference pose. */
+/** The gait a soldier moves in, by posture, while he keeps his weapon toward
+ *  the threat: standing with it shouldered, crouched, or crawling. */
+export const INFANTRY_MOVES = {
+  stand: "walk_aim",
+  kneel: "crouch",
+  prone: "crawl",
+} as const;
+/** The ways he can go relative to where he faces: ahead, left, back, right.
+ *  Each gait has one clip per way, `<gait>_<way>`, its phase following the
+ *  ground covered over its stride. */
+export const INFANTRY_WAYS = ["f", "l", "b", "r"] as const;
+
+/** The fall a soldier plays when he dies, by the posture he dies in; each
+ *  ends in the one corpse pose (`corpse_pose`, `death` at its end). */
+export const INFANTRY_DEATHS = {
+  stand: "death",
+  kneel: "death_kneel",
+  prone: "death_prone",
+} as const;
+
+/** Clip roles every infantry skeleton carries (spike 03, a clip for every way
+ *  of every gait, and a fall from every posture), plus the fit reference pose. */
 export const INFANTRY_CLIPS = [
   "idle",
   "walk",
   "run",
   "kneel_fire",
   "prone_pinned",
-  "death",
+  ...Object.values(INFANTRY_DEATHS),
+  ...Object.values(INFANTRY_MOVES).flatMap((gait) =>
+    INFANTRY_WAYS.map((way) => `${gait}_${way}` as const),
+  ),
 ] as const;
 /** Skinned sockets: nodes under a joint, named exactly. */
 export const INFANTRY_SOCKETS = ["eye", "muzzle"] as const;
@@ -608,7 +632,12 @@ export interface GrassSpec {
   /** A seed head (wheat, grasses in flower) on a `chance` of the blades: from
    *  `from` of the height the blade swells to `width` times its root width,
    *  closing at the tip, and takes `color` when it has one (an ear, a flower). */
-  head?: { from: number; width: number; chance: number; color?: [number, number, number] };
+  head?: {
+    from: number;
+    width: number;
+    chance: number;
+    color?: [number, number, number];
+  };
   /** Dry stems among the green: a `chance` of the blades take these colours. */
   dry?: {
     chance: number;

@@ -48,7 +48,61 @@
         "prone_pinned": {
           "loop": true
         },
+        "walk_aim_f": {
+          "loop": true,
+          "stride_m": 0.99
+        },
+        "walk_aim_l": {
+          "loop": true,
+          "stride_m": 0.47
+        },
+        "walk_aim_b": {
+          "loop": true,
+          "stride_m": 0.99
+        },
+        "walk_aim_r": {
+          "loop": true,
+          "stride_m": 0.47
+        },
+        "crouch_f": {
+          "loop": true,
+          "stride_m": 0.89
+        },
+        "crouch_l": {
+          "loop": true,
+          "stride_m": 0.47
+        },
+        "crouch_b": {
+          "loop": true,
+          "stride_m": 0.89
+        },
+        "crouch_r": {
+          "loop": true,
+          "stride_m": 0.47
+        },
+        "crawl_f": {
+          "loop": true,
+          "stride_m": 0.6
+        },
+        "crawl_l": {
+          "loop": true,
+          "stride_m": 0.6
+        },
+        "crawl_b": {
+          "loop": true,
+          "stride_m": 0.6
+        },
+        "crawl_r": {
+          "loop": true,
+          "stride_m": 0.6
+        },
         "death": {
+          "loop": false
+        },
+        "death_kneel": {
+          "loop": false
+        },
+        "death_prone": {
           "loop": false
         },
         "stand_aim": {
@@ -82,7 +136,61 @@
         "prone_pinned": {
           "loop": true
         },
+        "walk_aim_f": {
+          "loop": true,
+          "stride_m": 0.99
+        },
+        "walk_aim_l": {
+          "loop": true,
+          "stride_m": 0.47
+        },
+        "walk_aim_b": {
+          "loop": true,
+          "stride_m": 0.99
+        },
+        "walk_aim_r": {
+          "loop": true,
+          "stride_m": 0.47
+        },
+        "crouch_f": {
+          "loop": true,
+          "stride_m": 0.89
+        },
+        "crouch_l": {
+          "loop": true,
+          "stride_m": 0.47
+        },
+        "crouch_b": {
+          "loop": true,
+          "stride_m": 0.89
+        },
+        "crouch_r": {
+          "loop": true,
+          "stride_m": 0.47
+        },
+        "crawl_f": {
+          "loop": true,
+          "stride_m": 0.6
+        },
+        "crawl_l": {
+          "loop": true,
+          "stride_m": 0.6
+        },
+        "crawl_b": {
+          "loop": true,
+          "stride_m": 0.6
+        },
+        "crawl_r": {
+          "loop": true,
+          "stride_m": 0.6
+        },
         "death": {
+          "loop": false
+        },
+        "death_kneel": {
+          "loop": false
+        },
+        "death_prone": {
           "loop": false
         },
         "stand_aim": {
