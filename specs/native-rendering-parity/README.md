@@ -69,13 +69,16 @@ Graph: `13 → {14, 15, 16} → 17 → 18`. Slices 14, 15 and 16 share no owners
 
 ### Phase 4: Rust native core and one shared presentation crate
 
+**Principle (user, 2026-10-11): the Rust side is as smart as possible, and each renderer as dumb as possible.** Rust decodes, interpolates, poses, makes effects, chooses detail and visibility, and resolves placement. TypeGPU and Godot only draw the buffers they are given. Presentation logic stays out of the simulation's authoritative state and digest. It reads only what the simulation publishes for a side, so it cannot see past fog of war, and tuning it never changes a replay.
+
 Set by the user on 2026-10-11, after the static world's selection walk cost about 6.5 ms per frame in GDScript. GDScript is the wrong owner for the client's CPU work. Native's CPU side moves to a Rust GDExtension. Per-frame presentation logic moves into one shared Rust crate that the browser runs through WASM and native links, which removes the TypeScript-to-native duplication. Every step keeps plates and counts unchanged and the browser's shipped frame identical. The user's priority (2026-10-11) is lower overall complexity: each shared-code slice must reduce net code, and a small, measured browser performance cost is acceptable for it. A meaningful regression still blocks.
 
-Graph: `18 → 19 → 20 → 21 → 22 → 23 → 24`. Slice 15's performance fix is 18's first module.
+Graph: `18 → 19 → 20 → 20b → 21 → 22 → 23 → 24`. Slice 15's performance fix is 18's first module.
 
 - [ ] 18 — Rust native core: run loop, readers, report, static-world selection and instance writes in the GDExtension; GDScript shrinks to an entry scene. [slice](slices/18-rust-native-core.md)
 - [ ] 19 — One publication reader in Rust beside its writer, used by both clients; `observation.ts` and `observation.gd` deleted. [slice](slices/19-shared-publication-reader.md)
 - [ ] 20 — Shared presentation crate: interpolation, poses, launches, effects and cook-offs, used by both clients; TS originals and native ports deleted. [slice](slices/20-shared-presentation-crate.md)
+- [ ] 20b — The static world resolved in Rust (building modules, scenery, terrain and grass tables, tier rules) for both clients; the TS resolvers and the manifest's placement artifacts are deleted. [slice](slices/20b-static-world-in-rust.md)
 - [ ] 21 — The rest of native's CPU side in Rust; no GDScript owns logic. [slice](slices/21-remaining-native-cpu.md)
 - [ ] 22 — Completeness: every phase 3 "not ported" item closed. [slice](slices/22-completeness.md)
 - [ ] 23 — The browser on shared code: whole-game check, visual suite and battle frame time. [slice](slices/23-browser-on-shared-code.md)
