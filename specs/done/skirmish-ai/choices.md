@@ -27,6 +27,10 @@
   `PreparedMap` and `admit_skirmish`; saved rows retain deliberate edge cases.
   Reports preserve refusals, timeouts, no-progress outcomes, map/site identity,
   replay parity, and deterministic digests.
+- **Stall detection follows observable motion.** A tournament run is stagnant
+  only when objectives, contacts, unit counts, and published unit
+  positions/goals all remain unchanged for the configured window. This keeps a
+  long legal approach from looking like a deadlock.
 
 ## Deferred by design
 

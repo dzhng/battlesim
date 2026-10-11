@@ -85,6 +85,9 @@ struct Report {
     recon_range_m: f64,
 }
 
+type MovementSignature = Vec<(u32, u64, u64, Option<(u64, u64)>)>;
+type ProgressSignature = (u32, u32, u64, u64, u64, MovementSignature);
+
 struct Inputs {
     presets: String,
     templates: String,
@@ -340,7 +343,7 @@ fn run(inputs: &Inputs, row: Row) -> Report {
     ];
     let mut seq = [1u64, 1u64];
     let mut stagnant = 0;
-    let mut previous = (0u32, 0u32, 0u64, 0u64, 0u64);
+    let mut previous: Option<ProgressSignature> = None;
     while report.ticks < row.horizon_ticks {
         let mut refused_this_tick = 0;
         for side in Side::ALL {
@@ -441,21 +444,35 @@ fn run(inputs: &Inputs, row: Row) -> Report {
                         (frame.own.len() as u64).wrapping_add(frame.contacts.len() as u64)
                     })
                     .sum();
+                let movement = Side::ALL
+                    .into_iter()
+                    .flat_map(|side| {
+                        battle.observe(side).own.iter().map(|unit| {
+                            (
+                                unit.id.0,
+                                unit.position[0].to_bits(),
+                                unit.position[1].to_bits(),
+                                unit.goal.map(|goal| (goal[0].to_bits(), goal[1].to_bits())),
+                            )
+                        })
+                    })
+                    .collect::<Vec<_>>();
                 (
                     owned,
                     capture,
                     v.scores.iter().sum::<f64>().to_bits(),
                     capture_bits,
                     observed,
+                    movement,
                 )
             })
             .unwrap_or_default();
-        stagnant = if progress == previous {
+        stagnant = if previous.as_ref().is_some_and(|old| *old == progress) {
             stagnant + 1
         } else {
             0
         };
-        previous = progress;
+        previous = Some(progress);
         if view.is_some_and(|v| v.phase == contract::skirmish::Phase::Finished) {
             report.status = Status::Complete;
             break;
@@ -525,6 +542,7 @@ mod tests {
         assert_eq!(left.replay_match, Some(true));
         assert_eq!(left.site_count, 3);
         assert!(left.map_identity.is_some());
+        assert!(matches!(left.status, Status::Timeout));
         assert_eq!(left.accepted_orders, right.accepted_orders);
         assert_eq!(left.refused_orders, right.refused_orders);
     }

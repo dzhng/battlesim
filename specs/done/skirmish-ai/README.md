@@ -48,6 +48,9 @@ of the same policy seam.
   admitted map identity/site count, objective ownership, contact/recon
   evidence, spend/living cost, doctrine pivots, refused orders, and battle and
   replay digests with replay parity.
+- The tournament watchdog treats changes in published unit positions or goals
+  as progress, so long approaches are allowed to reach their horizon instead
+  of being classified as stalled solely because objectives have not changed.
 - Existing simulation command admission, objective rules, sensing, replay, and
   catalog tests remain the authorities for legality and outcomes.
 

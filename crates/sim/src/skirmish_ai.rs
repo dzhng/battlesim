@@ -572,7 +572,7 @@ fn unit_can_target_layer(rules: &Rules, kind: TypeIndex, layer: AltitudeLayer) -
             .weapons
             .iter()
             .filter_map(|weapon| rules.weapons.get(weapon))
-            .any(|weapon| weapon.targets.contains(&layer))
+            .any(|weapon| weapon.targets.contains_key(&layer))
     })
 }
 
@@ -606,7 +606,7 @@ fn candidate_score(
             .iter()
             .flat_map(|mount| mount.def.weapons.iter())
             .filter_map(|id| rules.weapons.get(id))
-            .filter(|weapon| weapon.targets.contains(&layer))
+            .filter(|weapon| weapon.targets.contains_key(&layer))
             .map(|weapon| weapon.damage * weapon.ballistics.range_m)
             .fold(0.0, f64::max)
             / f64::from(unit.cost.max(1))
