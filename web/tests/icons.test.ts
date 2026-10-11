@@ -91,11 +91,25 @@ test("an icon the generator cannot draw is refused, naming it", () => {
   );
 });
 
-test("a disabled soldier card's silhouette is its soldier posed aiming, not its bind pose", () => {
-  // The Stinger team's source is a skinned soldier on the launcher clips
-  // (its manifest entry names the skeleton): posed at the clips' aim
+test("a disabled soldier card's silhouette is its soldier posed aiming, not its bind pose", async () => {
+  // No roster soldier card is disabled today, so the manifest entry is the
+  // test's own: the Stinger gunner's source, a skinned soldier on the
+  // launcher clips (the entry names the skeleton). Posed at the clips' aim
   // reference he stands a man's height, the launcher out ahead of him.
-  const solids = disabled("fim_92_stinger_team");
+  const soldier = await disabledLookup(
+    {
+      entries: [
+        {
+          id: "soldier_card",
+          source_path: "assets/source/roster/infantry/fim_92_stinger_team/active_a.glb",
+          skeleton: "quaternius-ubc-launcher",
+        },
+      ],
+    },
+    async (path) => new Uint8Array(readFileSync(new URL(path, REPO))),
+    SKELETONS,
+  );
+  const solids = soldier("soldier_card");
   expect(solids?.length).toBeGreaterThan(0);
   let [x0, x1, y0, y1, z0, z1] = [Infinity, -Infinity, Infinity, -Infinity, Infinity, -Infinity];
   for (const s of solids!)

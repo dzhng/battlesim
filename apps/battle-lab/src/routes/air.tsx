@@ -8,7 +8,7 @@ import { gameCamera } from "../gameCamera";
 import { TickStatus } from "../TickStatus";
 
 // The first helicopter checkpoint: the test helicopter flies one move order
-// over a village at cruise height, pops over its roofs, goes round the tower
+// over a village at cruise height, climbs over its tallest roofs, goes round the tower
 // in its way and over a little wood. A red rifle squad by the village plinks
 // at it, a tank far to the south never brings its gun to bear, and the gun
 // jeep beside the tank, told to fire once the helicopter hovers at the end of

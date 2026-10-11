@@ -9,7 +9,7 @@ You are picking up a placeholder for passenger transport. It covers trucks, APCs
 
 - [ ] Map the unknowns with the user (see the open questions below).
 - [ ] Slice: one carriage contract (load, carry, unload) shared by ground vehicles and helicopters.
-- [ ] Slice: a helicopter landing as a low hover. First fix the helicopters' U1 ([choices](../done/helicopters/choices.md)): an aircraft must stop exactly on its point, not bow up to 0.18 m past it.
+- [ ] Slice: a helicopter landing as a low hover. An aircraft overshoots its point a few metres and settles back exactly onto it (`units::Settle`); a landing waits for the settle to end.
 - [ ] Hand the carrier rows in the roster their passenger capacity.
 
 ## Why it exists

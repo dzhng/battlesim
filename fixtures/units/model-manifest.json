@@ -26,28 +26,6 @@
       "source_path": "assets/source/roster/9k515_tornado_s/eastern_9k515_tornado_s_heavy_rocket_artillery.glb"
     },
     {
-      "id": "eastern_air_defense_team_fn_6",
-      "family": "air_defense_team",
-      "category": "inf",
-      "model_status": "reference_built",
-      "source_family": "eastern_air_defense_team_fn_6",
-      "source_kind": "infantry",
-      "disabled_reason": "Air-defense targeting and airborne targets deferred",
-      "source_path": "assets/source/roster/infantry/eastern_air_defense_team_fn_6/active_a.glb",
-      "skeleton": "quaternius-ubc-launcher"
-    },
-    {
-      "id": "eastern_air_defense_team_igla_s",
-      "family": "air_defense_team",
-      "category": "inf",
-      "model_status": "reference_built",
-      "source_family": "eastern_air_defense_team_igla_s",
-      "source_kind": "infantry",
-      "disabled_reason": "Air-defense targeting and airborne targets deferred",
-      "source_path": "assets/source/roster/infantry/eastern_air_defense_team_igla_s/active_a.glb",
-      "skeleton": "quaternius-ubc-launcher"
-    },
-    {
       "id": "eastern_bm_21_grad_bm_21_rocket_artillery",
       "family": "bm_21_grad",
       "category": "sup",
@@ -406,17 +384,6 @@
       "source_kind": "aircraft",
       "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
       "source_path": "assets/source/roster/disabled/f_35a.glb"
-    },
-    {
-      "id": "fim_92_stinger_team",
-      "family": "air_defense_team",
-      "category": "inf",
-      "model_status": "reference_built",
-      "source_family": "fim_92_stinger_team",
-      "source_kind": "infantry",
-      "disabled_reason": "Air-defense targeting and airborne targets deferred",
-      "source_path": "assets/source/roster/infantry/fim_92_stinger_team/active_a.glb",
-      "skeleton": "quaternius-ubc-launcher"
     },
     {
       "id": "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed",

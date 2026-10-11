@@ -206,6 +206,18 @@
       "extends": "roster_profile_light_helicopter",
       "body": {
         "hull": {
+          "armor": {
+            "front": 7,
+            "side": 7,
+            "rear": 7,
+            "roof": 7,
+            "ricochet": {
+              "front": 0.1,
+              "side": 0.1,
+              "rear": 0.1,
+              "roof": 0.1
+            }
+          },
           "half_extents_m": [
             3.75,
             1.64,
@@ -217,9 +229,9 @@
       "mounts": [
         {
           "id": "guns",
-          "name": "Chain Gun",
+          "name": "HMG",
           "weapons": [
-            "autocannon"
+            "hmg"
           ],
           "turret": false,
           "pivot_m": [
@@ -274,6 +286,18 @@
       "extends": "roster_profile_light_helicopter",
       "body": {
         "hull": {
+          "armor": {
+            "front": 7,
+            "side": 7,
+            "rear": 7,
+            "roof": 7,
+            "ricochet": {
+              "front": 0.1,
+              "side": 0.1,
+              "rear": 0.1,
+              "roof": 0.1
+            }
+          },
           "half_extents_m": [
             3.75,
             1.475,
@@ -299,7 +323,33 @@
             1.15,
             0,
             0
-          ]
+          ],
+          "arc": {
+            "centre_deg": 90,
+            "width_deg": 160
+          }
+        },
+        {
+          "id": "door_right",
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            2.35,
+            -1.25,
+            1.05
+          ],
+          "muzzle_m": [
+            1.15,
+            0,
+            0
+          ],
+          "arc": {
+            "centre_deg": -90,
+            "width_deg": 160
+          }
         }
       ],
       "appearance": "us_ah_6_mh_6_little_bird_mh_6m"
@@ -325,7 +375,7 @@
       "body": {
         "squad": {
           "slots": [
-            "us_army_scouts_light_patrol__scout",
+            "us_army_scouts_light_patrol__marksman",
             "us_army_scouts_light_patrol__scout",
             "us_army_scouts_light_patrol__scout",
             "us_army_scouts_light_patrol__scout"
@@ -350,7 +400,7 @@
         "variant": "BGM-71 TOW 2A",
         "family_name": "ATGM Team"
       },
-      "extends": "roster_profile_at_team",
+      "extends": "roster_profile_weapon_team",
       "body": {
         "squad": {
           "slots": [
@@ -406,7 +456,33 @@
             1.2,
             0,
             0
-          ]
+          ],
+          "arc": {
+            "centre_deg": 90,
+            "width_deg": 160
+          }
+        },
+        {
+          "id": "door_right",
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            5.207,
+            -1.33,
+            1.8
+          ],
+          "muzzle_m": [
+            1.2,
+            0,
+            0
+          ],
+          "arc": {
+            "centre_deg": -90,
+            "width_deg": 160
+          }
         }
       ],
       "appearance": "us_ch_47_chinook_ch_47f"
@@ -625,7 +701,7 @@
         "squad": {
           "slots": [
             "us_force_recon_recon_patrol__grenadier",
-            "us_force_recon_recon_patrol__scout",
+            "us_force_recon_recon_patrol__marksman",
             "us_force_recon_recon_patrol__scout",
             "us_force_recon_recon_patrol__scout"
           ]
@@ -1831,14 +1907,14 @@
       "body": {
         "squad": {
           "slots": [
-            "us_marine_squad_close_quarters_infantry__roster_assault_rifle",
-            "us_marine_squad_close_quarters_infantry__roster_assault_rifle",
-            "us_marine_squad_close_quarters_infantry__roster_assault_rifle",
-            "us_marine_squad_close_quarters_infantry__roster_assault_rifle",
-            "us_marine_squad_close_quarters_infantry__roster_assault_rifle",
-            "us_marine_squad_close_quarters_infantry__roster_assault_rifle",
-            "us_marine_squad_close_quarters_infantry__roster_assault_rifle",
-            "us_marine_squad_close_quarters_infantry__roster_assault_rifle"
+            "us_marine_squad_close_quarters_infantry__grenadier",
+            "us_marine_squad_close_quarters_infantry__grenadier",
+            "us_marine_squad_close_quarters_infantry__machine_gunner",
+            "us_marine_squad_close_quarters_infantry__marksman",
+            "us_marine_squad_close_quarters_infantry__rifleman",
+            "us_marine_squad_close_quarters_infantry__rifleman",
+            "us_marine_squad_close_quarters_infantry__rifleman",
+            "us_marine_squad_close_quarters_infantry__rifleman"
           ]
         }
       }
@@ -1864,12 +1940,12 @@
       "body": {
         "squad": {
           "slots": [
-            "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_1",
-            "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_2",
-            "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_3",
-            "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_4",
-            "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_5",
-            "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_6"
+            "us_marksman_squad_m110_equipped_longer_range_infantry__marksman",
+            "us_marksman_squad_m110_equipped_longer_range_infantry__marksman",
+            "us_marksman_squad_m110_equipped_longer_range_infantry__marksman",
+            "us_marksman_squad_m110_equipped_longer_range_infantry__grenadier",
+            "us_marksman_squad_m110_equipped_longer_range_infantry__rifleman",
+            "us_marksman_squad_m110_equipped_longer_range_infantry__rifleman"
           ]
         }
       }
@@ -1963,8 +2039,8 @@
       "body": {
         "squad": {
           "slots": [
-            "us_scout_snipers_m107_heavy_sniper_team__roster_heavy_sniper_1",
-            "us_scout_snipers_m107_heavy_sniper_team__roster_heavy_sniper_2"
+            "us_scout_snipers_m107_heavy_sniper_team__sniper",
+            "us_scout_snipers_m107_heavy_sniper_team__spotter"
           ]
         }
       }
@@ -2296,7 +2372,33 @@
             1.0,
             0,
             0
-          ]
+          ],
+          "arc": {
+            "centre_deg": 90,
+            "width_deg": 160
+          }
+        },
+        {
+          "id": "door_right",
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            2.45,
+            -1.4,
+            1.45
+          ],
+          "muzzle_m": [
+            1.0,
+            0,
+            0
+          ],
+          "arc": {
+            "centre_deg": -90,
+            "width_deg": 160
+          }
         }
       ],
       "appearance": "us_uh_1y_venom_utility_transport"
@@ -2346,7 +2448,33 @@
             1.1,
             0,
             0
-          ]
+          ],
+          "arc": {
+            "centre_deg": 90,
+            "width_deg": 160
+          }
+        },
+        {
+          "id": "door_right",
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            2.025,
+            -1.2,
+            1.5
+          ],
+          "muzzle_m": [
+            1.1,
+            0,
+            0
+          ],
+          "arc": {
+            "centre_deg": -90,
+            "width_deg": 160
+          }
         }
       ],
       "appearance": "us_uh_60_black_hawk_uh_60m"

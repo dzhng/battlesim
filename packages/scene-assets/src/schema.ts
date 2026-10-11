@@ -199,14 +199,50 @@ export const UNIT_BUNDLE_KIND: Record<AppearanceUnit, BundleKind> = {
   kit: "static",
 };
 
-/** Clip roles every infantry skeleton carries (spike 03), plus the fit reference pose. */
+/** The gait a soldier moves in, by posture, while he keeps his weapon toward
+ *  the threat: standing with it shouldered, crouched, or crawling. */
+export const INFANTRY_MOVES = {
+  stand: "walk_aim",
+  kneel: "crouch",
+  prone: "crawl",
+} as const;
+/** The ways he can go relative to where he faces: ahead, left, back, right.
+ *  Each gait has one clip per way, `<gait>_<way>`, its phase following the
+ *  ground covered over its stride. */
+export const INFANTRY_WAYS = ["f", "l", "b", "r"] as const;
+
+/** The fall a soldier plays when he dies, by the posture he dies in. */
+export const INFANTRY_DEATHS = {
+  stand: "death",
+  kneel: "death_kneel",
+  prone: "death_prone",
+} as const;
+/** Standing, the fall back onto his back of a man hit from the front. */
+export const INFANTRY_FALL_BACK = "death_back";
+/** The ways a dead soldier lies, each the end of a fall: face down, face up.
+ *  A skinned bundle bakes one corpse for each (`corpse_poses`). */
+export const INFANTRY_CORPSES = ["death", INFANTRY_FALL_BACK] as const;
+/** The corpse (an `INFANTRY_CORPSES` index) each fall ends in. */
+export const INFANTRY_FALLS: Readonly<Record<string, number>> = {
+  death: 0,
+  death_kneel: 0,
+  death_prone: 0,
+  [INFANTRY_FALL_BACK]: 1,
+};
+
+/** Clip roles every infantry skeleton carries (spike 03, a clip for every way
+ *  of every gait, and a fall from every posture), plus the fit reference pose. */
 export const INFANTRY_CLIPS = [
   "idle",
   "walk",
   "run",
   "kneel_fire",
   "prone_pinned",
-  "death",
+  ...Object.values(INFANTRY_DEATHS),
+  INFANTRY_FALL_BACK,
+  ...Object.values(INFANTRY_MOVES).flatMap((gait) =>
+    INFANTRY_WAYS.map((way) => `${gait}_${way}` as const),
+  ),
 ] as const;
 /** Skinned sockets: nodes under a joint, named exactly. */
 export const INFANTRY_SOCKETS = ["eye", "muzzle"] as const;
@@ -392,7 +428,8 @@ export interface SkinnedBundle {
   textures: Texture[];
   bounds: Bounds; // over every clip of the skeleton
   far_pose: PoseRef;
-  corpse_pose: PoseRef;
+  /** Each way the body lies dead (`INFANTRY_CORPSES`), in that order. */
+  corpse_poses: PoseRef[];
   sockets: Socket[];
 }
 
@@ -531,7 +568,6 @@ export interface AppearanceEntry {
   basis_yaw_deg: number;
   skeleton?: string;
   far_pose?: PoseRef;
-  corpse_pose?: PoseRef;
   tolerances?: Partial<Tolerances>;
   /** A vehicle: which of its rigs draws each of its unit type's mounts, by
    *  mount id (`{ "cannon": "gun", "HMG": "hmg" }`). The validator checks
@@ -608,7 +644,12 @@ export interface GrassSpec {
   /** A seed head (wheat, grasses in flower) on a `chance` of the blades: from
    *  `from` of the height the blade swells to `width` times its root width,
    *  closing at the tip, and takes `color` when it has one (an ear, a flower). */
-  head?: { from: number; width: number; chance: number; color?: [number, number, number] };
+  head?: {
+    from: number;
+    width: number;
+    chance: number;
+    color?: [number, number, number];
+  };
   /** Dry stems among the green: a `chance` of the blades take these colours. */
   dry?: {
     chance: number;

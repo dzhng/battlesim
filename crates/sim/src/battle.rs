@@ -613,6 +613,7 @@ impl Battle {
                     entered_tick: self.tick,
                 },
             );
+            skirmish.record_spawn(side, unit.id, unit.kind, reservation.price, self.tick);
             skirmish.next_dispatch[index] = self.tick
                 + u64::from(skirmish.setup.rules.dispatch_interval_s)
                     * u64::from(self.rules.tick_hz);
@@ -649,6 +650,13 @@ impl Battle {
                 * crate::skirmish::CREDIT_SCALE as f64)
                 .round() as u64;
             skirmish.wallets[unit.side.index()] += credits;
+            skirmish.record_refund(
+                unit.side,
+                unit.id,
+                unit.kind,
+                credits as f64 / crate::skirmish::CREDIT_SCALE as f64,
+                self.tick,
+            );
             unit.retired = true;
             unit.withdrawing = false;
             unit.orders.clear();
@@ -803,6 +811,17 @@ impl Battle {
             crashes: Vec::new(),
         };
         let authored: Vec<PropId> = battle.world.props().map(|p| p.id).collect();
+        if let Some(skirmish) = &mut battle.skirmish {
+            for unit in &battle.units {
+                skirmish.record_spawn(
+                    unit.side,
+                    unit.id,
+                    unit.kind,
+                    battle.rules.catalog.get(unit.kind).cost,
+                    0,
+                );
+            }
+        }
         for id in authored {
             battle.schedule_expiry(id);
         }
@@ -2098,6 +2117,43 @@ impl Battle {
             }
         }
         if let Some(skirmish) = &mut self.skirmish {
+            for death in &destroyed {
+                let victim = &self.units[death.victim.0 as usize];
+                let killer = death.source.and_then(|source| {
+                    let unit = self.units.get(source.unit.0 as usize)?;
+                    Some(contract::skirmish::MatchUnit {
+                        side: source.side,
+                        id: source.unit,
+                        kind: unit.kind,
+                    })
+                });
+                let victim_cost = skirmish.entered.get(&death.victim).map_or_else(
+                    || self.rules.catalog.get(victim.kind).cost,
+                    |unit| unit.price,
+                );
+                let killer_cost = death.source.and_then(|source| {
+                    skirmish
+                        .entered
+                        .get(&source.unit)
+                        .map(|unit| unit.price)
+                        .or_else(|| {
+                            self.units
+                                .get(source.unit.0 as usize)
+                                .map(|unit| self.rules.catalog.get(unit.kind).cost)
+                        })
+                });
+                skirmish.record_kill(
+                    contract::skirmish::MatchUnit {
+                        side: victim.side,
+                        id: victim.id,
+                        kind: victim.kind,
+                    },
+                    victim_cost,
+                    killer,
+                    killer_cost,
+                    self.tick,
+                );
+            }
             let deaths: Vec<_> = destroyed
                 .iter()
                 .filter_map(|death| {

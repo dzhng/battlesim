@@ -48,7 +48,64 @@
         "prone_pinned": {
           "loop": true
         },
+        "walk_aim_f": {
+          "loop": true,
+          "stride_m": 0.99
+        },
+        "walk_aim_l": {
+          "loop": true,
+          "stride_m": 0.47
+        },
+        "walk_aim_b": {
+          "loop": true,
+          "stride_m": 0.99
+        },
+        "walk_aim_r": {
+          "loop": true,
+          "stride_m": 0.47
+        },
+        "crouch_f": {
+          "loop": true,
+          "stride_m": 0.89
+        },
+        "crouch_l": {
+          "loop": true,
+          "stride_m": 0.47
+        },
+        "crouch_b": {
+          "loop": true,
+          "stride_m": 0.89
+        },
+        "crouch_r": {
+          "loop": true,
+          "stride_m": 0.47
+        },
+        "crawl_f": {
+          "loop": true,
+          "stride_m": 0.6
+        },
+        "crawl_l": {
+          "loop": true,
+          "stride_m": 0.6
+        },
+        "crawl_b": {
+          "loop": true,
+          "stride_m": 0.6
+        },
+        "crawl_r": {
+          "loop": true,
+          "stride_m": 0.6
+        },
         "death": {
+          "loop": false
+        },
+        "death_back": {
+          "loop": false
+        },
+        "death_kneel": {
+          "loop": false
+        },
+        "death_prone": {
           "loop": false
         },
         "stand_aim": {
@@ -82,7 +139,64 @@
         "prone_pinned": {
           "loop": true
         },
+        "walk_aim_f": {
+          "loop": true,
+          "stride_m": 0.99
+        },
+        "walk_aim_l": {
+          "loop": true,
+          "stride_m": 0.47
+        },
+        "walk_aim_b": {
+          "loop": true,
+          "stride_m": 0.99
+        },
+        "walk_aim_r": {
+          "loop": true,
+          "stride_m": 0.47
+        },
+        "crouch_f": {
+          "loop": true,
+          "stride_m": 0.89
+        },
+        "crouch_l": {
+          "loop": true,
+          "stride_m": 0.47
+        },
+        "crouch_b": {
+          "loop": true,
+          "stride_m": 0.89
+        },
+        "crouch_r": {
+          "loop": true,
+          "stride_m": 0.47
+        },
+        "crawl_f": {
+          "loop": true,
+          "stride_m": 0.6
+        },
+        "crawl_l": {
+          "loop": true,
+          "stride_m": 0.6
+        },
+        "crawl_b": {
+          "loop": true,
+          "stride_m": 0.6
+        },
+        "crawl_r": {
+          "loop": true,
+          "stride_m": 0.6
+        },
         "death": {
+          "loop": false
+        },
+        "death_back": {
+          "loop": false
+        },
+        "death_kneel": {
+          "loop": false
+        },
+        "death_prone": {
           "loop": false
         },
         "stand_aim": {
@@ -179,10 +293,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "test_at_b": {
@@ -196,10 +306,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "test_at_c": {
@@ -213,10 +319,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "test_at_carried": {
@@ -227,10 +329,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "test_at_carried_b": {
@@ -241,10 +339,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "test_at_carried_c": {
@@ -255,10 +349,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "hedge_shrub": {
@@ -277,10 +367,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "test_recon_b": {
@@ -291,10 +377,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "test_recon_c": {
@@ -305,10 +387,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "test_rifle": {
@@ -319,10 +397,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "test_rifle_c": {
@@ -333,10 +407,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "test_rifle_b": {
@@ -347,10 +417,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "tree_broadleaf": {
@@ -3403,7 +3469,8 @@
       "source": "assets/source/roster/chinook/us_ch_47_chinook_ch_47f.glb",
       "basis_yaw_deg": 0,
       "mounts": {
-        "door": "hmg"
+        "door": "hmg",
+        "door_right": "gun"
       },
       "wreck": "us_ch_47_chinook_ch_47f_wreck"
     },
@@ -3429,7 +3496,8 @@
       "source": "assets/source/roster/chinook/europe_ch_47_chinook_hc6.glb",
       "basis_yaw_deg": 0,
       "mounts": {
-        "door": "hmg"
+        "door": "hmg",
+        "door_right": "gun"
       },
       "wreck": "europe_ch_47_chinook_hc6_wreck"
     },
@@ -3481,7 +3549,8 @@
       "source": "assets/source/roster/h1/us_uh_1y_venom_utility_transport.glb",
       "basis_yaw_deg": 0,
       "mounts": {
-        "door": "hmg"
+        "door": "hmg",
+        "door_right": "gun"
       },
       "wreck": "us_uh_1y_venom_utility_transport_wreck"
     },
@@ -3559,7 +3628,8 @@
       "source": "assets/source/roster/hip/eastern_mi_8_hip_mi_8amtsh.glb",
       "basis_yaw_deg": 0,
       "mounts": {
-        "door": "hmg"
+        "door": "hmg",
+        "door_right": "gun"
       },
       "wreck": "eastern_mi_8_hip_mi_8amtsh_wreck"
     },
@@ -3631,7 +3701,8 @@
       "source": "assets/source/roster/little_bird/us_ah_6_mh_6_little_bird_mh_6m.glb",
       "basis_yaw_deg": 0,
       "mounts": {
-        "door": "hmg"
+        "door": "hmg",
+        "door_right": "gun"
       },
       "wreck": "us_ah_6_mh_6_little_bird_mh_6m_wreck"
     },
@@ -3706,7 +3777,8 @@
       "source": "assets/source/roster/utility_helis/europe_nh90_tth.glb",
       "basis_yaw_deg": 0,
       "mounts": {
-        "door": "hmg"
+        "door": "hmg",
+        "door_right": "gun"
       },
       "wreck": "europe_nh90_tth_wreck"
     },
@@ -3732,7 +3804,8 @@
       "source": "assets/source/roster/utility_helis/europe_aw101_merlin_hc4.glb",
       "basis_yaw_deg": 0,
       "mounts": {
-        "door": "hmg"
+        "door": "hmg",
+        "door_right": "gun"
       },
       "wreck": "europe_aw101_merlin_hc4_wreck"
     },
@@ -3810,7 +3883,8 @@
       "source": "assets/source/roster/hawk/us_uh_60_black_hawk_uh_60m.glb",
       "basis_yaw_deg": 0,
       "mounts": {
-        "door": "hmg"
+        "door": "hmg",
+        "door_right": "gun"
       },
       "wreck": "us_uh_60_black_hawk_uh_60m_wreck"
     },
@@ -3836,7 +3910,8 @@
       "source": "assets/source/roster/hawk/eastern_z_20_utility_transport.glb",
       "basis_yaw_deg": 0,
       "mounts": {
-        "door": "hmg"
+        "door": "hmg",
+        "door_right": "gun"
       },
       "wreck": "eastern_z_20_utility_transport_wreck"
     },
@@ -3926,10 +4001,6 @@
       "far_pose": {
         "clip": "kneel_fire",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "eastern_atgm_team_kornet_active_b": {
@@ -3943,10 +4014,6 @@
       "far_pose": {
         "clip": "kneel_fire",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "eastern_atgm_team_kornet_active_c": {
@@ -3960,10 +4027,6 @@
       "far_pose": {
         "clip": "kneel_fire",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "eastern_atgm_team_kornet_carried_a": {
@@ -3974,10 +4037,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "eastern_atgm_team_kornet_carried_b": {
@@ -3988,10 +4047,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "eastern_atgm_team_kornet_carried_c": {
@@ -4002,10 +4057,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "eastern_atgm_team_kornet_guard_a": {
@@ -4016,10 +4067,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "eastern_atgm_team_kornet_guard_b": {
@@ -4030,10 +4077,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "eastern_atgm_team_kornet_guard_c": {
@@ -4044,10 +4087,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_a": {
@@ -4058,10 +4097,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_b": {
@@ -4072,10 +4107,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_c": {
@@ -4086,10 +4117,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "eastern_rpg_team_rpg_29_active_a": {
@@ -4103,10 +4130,6 @@
       "far_pose": {
         "clip": "stand_aim",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "eastern_rpg_team_rpg_29_active_b": {
@@ -4120,10 +4143,6 @@
       "far_pose": {
         "clip": "stand_aim",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "eastern_rpg_team_rpg_29_active_c": {
@@ -4137,10 +4156,6 @@
       "far_pose": {
         "clip": "stand_aim",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "eastern_rpg_team_rpg_29_carried_a": {
@@ -4151,10 +4166,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "eastern_rpg_team_rpg_29_carried_b": {
@@ -4165,10 +4176,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "eastern_rpg_team_rpg_29_carried_c": {
@@ -4179,10 +4186,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "eastern_rpg_team_rpg_29_guard_a": {
@@ -4193,10 +4196,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "eastern_rpg_team_rpg_29_guard_b": {
@@ -4207,10 +4206,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "eastern_rpg_team_rpg_29_guard_c": {
@@ -4221,10 +4216,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "eastern_rpg_team_rpg_7_active_a": {
@@ -4238,10 +4229,6 @@
       "far_pose": {
         "clip": "stand_aim",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "eastern_rpg_team_rpg_7_active_b": {
@@ -4255,10 +4242,6 @@
       "far_pose": {
         "clip": "stand_aim",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "eastern_rpg_team_rpg_7_active_c": {
@@ -4272,10 +4255,6 @@
       "far_pose": {
         "clip": "stand_aim",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "eastern_rpg_team_rpg_7_carried_a": {
@@ -4286,10 +4265,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "eastern_rpg_team_rpg_7_carried_b": {
@@ -4300,10 +4275,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "eastern_rpg_team_rpg_7_carried_c": {
@@ -4314,10 +4285,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "eastern_rpg_team_rpg_7_guard_a": {
@@ -4328,10 +4295,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "eastern_rpg_team_rpg_7_guard_b": {
@@ -4342,10 +4305,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "eastern_rpg_team_rpg_7_guard_c": {
@@ -4356,10 +4315,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "eastern_scouts_light_patrol_active_a": {
@@ -4370,10 +4325,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "eastern_scouts_light_patrol_active_b": {
@@ -4384,10 +4335,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "eastern_scouts_light_patrol_active_c": {
@@ -4398,10 +4345,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "eastern_sniper_team_asvk_heavy_sniper_team_active_a": {
@@ -4412,10 +4355,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "eastern_sniper_team_asvk_heavy_sniper_team_active_b": {
@@ -4426,10 +4365,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "eastern_sniper_team_asvk_heavy_sniper_team_active_c": {
@@ -4440,10 +4375,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "us_army_scouts_light_patrol_active_a": {
@@ -4454,10 +4385,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "us_army_scouts_light_patrol_active_b": {
@@ -4468,10 +4395,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "us_army_scouts_light_patrol_active_c": {
@@ -4482,10 +4405,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "us_atgm_team_bgm_71_tow_2a_active_a": {
@@ -4499,10 +4418,6 @@
       "far_pose": {
         "clip": "kneel_fire",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "us_atgm_team_bgm_71_tow_2a_active_b": {
@@ -4516,10 +4431,6 @@
       "far_pose": {
         "clip": "kneel_fire",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "us_atgm_team_bgm_71_tow_2a_active_c": {
@@ -4533,10 +4444,6 @@
       "far_pose": {
         "clip": "kneel_fire",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "us_atgm_team_bgm_71_tow_2a_carried_a": {
@@ -4547,10 +4454,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "us_atgm_team_bgm_71_tow_2a_carried_b": {
@@ -4561,10 +4464,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "us_atgm_team_bgm_71_tow_2a_carried_c": {
@@ -4575,10 +4474,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "us_atgm_team_bgm_71_tow_2a_guard_a": {
@@ -4589,10 +4484,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "us_atgm_team_bgm_71_tow_2a_guard_b": {
@@ -4603,10 +4494,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "us_atgm_team_bgm_71_tow_2a_guard_c": {
@@ -4617,10 +4504,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "europe_atgm_team_akeron_mp_active_a": {
@@ -4634,10 +4517,6 @@
       "far_pose": {
         "clip": "stand_aim",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "europe_atgm_team_akeron_mp_active_b": {
@@ -4651,10 +4530,6 @@
       "far_pose": {
         "clip": "stand_aim",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "europe_atgm_team_akeron_mp_active_c": {
@@ -4668,10 +4543,6 @@
       "far_pose": {
         "clip": "stand_aim",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "europe_atgm_team_akeron_mp_carried_a": {
@@ -4682,10 +4553,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "europe_atgm_team_akeron_mp_carried_b": {
@@ -4696,10 +4563,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "europe_atgm_team_akeron_mp_carried_c": {
@@ -4710,10 +4573,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "europe_atgm_team_akeron_mp_guard_a": {
@@ -4724,10 +4583,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "europe_atgm_team_akeron_mp_guard_b": {
@@ -4738,10 +4593,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "europe_atgm_team_akeron_mp_guard_c": {
@@ -4752,10 +4603,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "fgm_148_javelin_team_active_a": {
@@ -4769,10 +4616,6 @@
       "far_pose": {
         "clip": "stand_aim",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       },
       "factions": {
         "europe": "fgm_148_javelin_team_europe_active_a"
@@ -4790,10 +4633,6 @@
         "clip": "stand_aim",
         "phase": 0
       },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
-      },
       "factions": {
         "europe": "fgm_148_javelin_team_europe_active_b"
       }
@@ -4810,10 +4649,6 @@
         "clip": "stand_aim",
         "phase": 0
       },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
-      },
       "factions": {
         "europe": "fgm_148_javelin_team_europe_active_c"
       }
@@ -4826,10 +4661,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       },
       "factions": {
         "europe": "fgm_148_javelin_team_europe_carried_a"
@@ -4844,10 +4675,6 @@
         "clip": "idle",
         "phase": 0
       },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
-      },
       "factions": {
         "europe": "fgm_148_javelin_team_europe_carried_b"
       }
@@ -4860,10 +4687,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       },
       "factions": {
         "europe": "fgm_148_javelin_team_europe_carried_c"
@@ -4880,10 +4703,6 @@
       "far_pose": {
         "clip": "stand_aim",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "fgm_148_javelin_team_europe_active_b": {
@@ -4897,10 +4716,6 @@
       "far_pose": {
         "clip": "stand_aim",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "fgm_148_javelin_team_europe_active_c": {
@@ -4914,10 +4729,6 @@
       "far_pose": {
         "clip": "stand_aim",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "fgm_148_javelin_team_europe_carried_a": {
@@ -4928,10 +4739,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "fgm_148_javelin_team_europe_carried_b": {
@@ -4942,10 +4749,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "fgm_148_javelin_team_europe_carried_c": {
@@ -4956,10 +4759,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "fgm_148_javelin_team_guard_a": {
@@ -4970,10 +4769,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       },
       "factions": {
         "europe": "europe_recon_patrol_light_patrol_active_a"
@@ -4988,10 +4783,6 @@
         "clip": "idle",
         "phase": 0
       },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
-      },
       "factions": {
         "europe": "europe_recon_patrol_light_patrol_active_b"
       }
@@ -5005,10 +4796,6 @@
         "clip": "idle",
         "phase": 0
       },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
-      },
       "factions": {
         "europe": "europe_recon_patrol_light_patrol_active_c"
       }
@@ -5021,10 +4808,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "us_force_recon_recon_patrol_active_b": {
@@ -5035,10 +4818,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "us_force_recon_recon_patrol_active_c": {
@@ -5049,10 +4828,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "us_marine_squad_close_quarters_infantry_active_a": {
@@ -5063,10 +4838,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "us_marine_squad_close_quarters_infantry_active_b": {
@@ -5077,10 +4848,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "us_marine_squad_close_quarters_infantry_active_c": {
@@ -5091,10 +4858,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "us_marksman_squad_m110_equipped_longer_range_infantry_active_a": {
@@ -5105,10 +4868,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "us_marksman_squad_m110_equipped_longer_range_infantry_active_b": {
@@ -5119,10 +4878,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "us_marksman_squad_m110_equipped_longer_range_infantry_active_c": {
@@ -5133,10 +4888,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "us_scout_snipers_m107_heavy_sniper_team_active_a": {
@@ -5147,10 +4898,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "us_scout_snipers_m107_heavy_sniper_team_active_b": {
@@ -5161,10 +4908,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "us_scout_snipers_m107_heavy_sniper_team_active_c": {
@@ -5175,10 +4918,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "assault_squad_active_a": {
@@ -5189,10 +4928,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       },
       "factions": {
         "eastern": "assault_squad_eastern_active_a"
@@ -5206,10 +4941,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "assault_squad_active_b": {
@@ -5220,10 +4951,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       },
       "factions": {
         "eastern": "assault_squad_eastern_active_b"
@@ -5237,10 +4964,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "assault_squad_active_c": {
@@ -5251,10 +4974,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       },
       "factions": {
         "eastern": "assault_squad_eastern_active_c"
@@ -5268,10 +4987,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "rifle_squad_active_a": {
@@ -5282,10 +4997,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       },
       "factions": {
         "eastern": "rifle_squad_eastern_active_a",
@@ -5300,10 +5011,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "rifle_squad_europe_active_a": {
@@ -5314,10 +5021,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "rifle_squad_active_b": {
@@ -5328,10 +5031,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       },
       "factions": {
         "eastern": "rifle_squad_eastern_active_b",
@@ -5346,10 +5045,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "rifle_squad_europe_active_b": {
@@ -5360,10 +5055,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "rifle_squad_active_c": {
@@ -5374,10 +5065,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       },
       "factions": {
         "eastern": "rifle_squad_eastern_active_c",
@@ -5392,10 +5079,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "rifle_squad_europe_active_c": {
@@ -5406,10 +5089,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "europe_marksman_squad_longer_range_infantry_active_a": {
@@ -5420,10 +5099,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "europe_marksman_squad_longer_range_infantry_active_b": {
@@ -5434,10 +5109,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "europe_marksman_squad_longer_range_infantry_active_c": {
@@ -5448,10 +5119,6 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "europe_recon_patrol_light_patrol_active_a": {
@@ -5462,15 +5129,49 @@
       "far_pose": {
         "clip": "idle",
         "phase": 0
-      },
-      "corpse_pose": {
-        "clip": "death",
-        "phase": 1
       }
     },
     "europe_recon_patrol_light_patrol_active_b": {
       "unit": "soldier",
       "source": "assets/source/roster/infantry/europe_recon_patrol_light_patrol/active_b.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      }
+    },
+    "europe_recon_patrol_light_patrol_active_c": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/europe_recon_patrol_light_patrol/active_c.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      }
+    },
+    "machine_gunner_active_a": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/machine_gunner/active_a.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      },
+      "factions": {
+        "eastern": "machine_gunner_eastern_active_a",
+        "europe": "machine_gunner_europe_active_a"
+      }
+    },
+    "machine_gunner_eastern_active_a": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/machine_gunner/eastern_active_a.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-rifle",
       "far_pose": {
@@ -5482,9 +5183,629 @@
         "phase": 1
       }
     },
-    "europe_recon_patrol_light_patrol_active_c": {
+    "machine_gunner_europe_active_a": {
       "unit": "soldier",
-      "source": "assets/source/roster/infantry/europe_recon_patrol_light_patrol/active_c.glb",
+      "source": "assets/source/roster/infantry/machine_gunner/europe_active_a.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "us_marine_machine_gunner_active_a": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/us_marine_machine_gunner/active_a.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "us_marine_marksman_active_a": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/us_marine_marksman/active_a.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "marksman_active_a": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/us_marksman_squad_m110_equipped_longer_range_infantry/active_a.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      },
+      "factions": {
+        "eastern": "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_a",
+        "europe": "europe_marksman_squad_longer_range_infantry_active_a"
+      }
+    },
+    "fim_92_stinger_team_active_a": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/fim_92_stinger_team/active_a.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-launcher",
+      "tolerances": {
+        "muzzle_m": 0.2
+      },
+      "far_pose": {
+        "clip": "stand_aim",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      },
+      "factions": {
+        "europe": "fim_92_stinger_team_europe_active_a"
+      }
+    },
+    "fim_92_stinger_team_europe_active_a": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/fim_92_stinger_team/europe_active_a.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-launcher",
+      "tolerances": {
+        "muzzle_m": 0.2
+      },
+      "far_pose": {
+        "clip": "stand_aim",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "eastern_air_defense_team_igla_s_active_a": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/eastern_air_defense_team_igla_s/active_a.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-launcher",
+      "tolerances": {
+        "muzzle_m": 0.2
+      },
+      "far_pose": {
+        "clip": "stand_aim",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "eastern_air_defense_team_fn_6_active_a": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/eastern_air_defense_team_fn_6/active_a.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-launcher",
+      "tolerances": {
+        "muzzle_m": 0.2
+      },
+      "far_pose": {
+        "clip": "stand_aim",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "fim_92_stinger_team_carried_a": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/fim_92_stinger_team/carried_a.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      },
+      "factions": {
+        "europe": "fim_92_stinger_team_europe_carried_a"
+      }
+    },
+    "fim_92_stinger_team_europe_carried_a": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/fim_92_stinger_team/europe_carried_a.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "eastern_air_defense_team_igla_s_carried_a": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/eastern_air_defense_team_igla_s/carried_a.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "eastern_air_defense_team_fn_6_carried_a": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/eastern_air_defense_team_fn_6/carried_a.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "machine_gunner_active_b": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/machine_gunner/active_b.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      },
+      "factions": {
+        "eastern": "machine_gunner_eastern_active_b",
+        "europe": "machine_gunner_europe_active_b"
+      }
+    },
+    "machine_gunner_eastern_active_b": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/machine_gunner/eastern_active_b.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "machine_gunner_europe_active_b": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/machine_gunner/europe_active_b.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "us_marine_machine_gunner_active_b": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/us_marine_machine_gunner/active_b.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "us_marine_marksman_active_b": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/us_marine_marksman/active_b.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "marksman_active_b": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/us_marksman_squad_m110_equipped_longer_range_infantry/active_b.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      },
+      "factions": {
+        "eastern": "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_b",
+        "europe": "europe_marksman_squad_longer_range_infantry_active_b"
+      }
+    },
+    "fim_92_stinger_team_active_b": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/fim_92_stinger_team/active_b.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-launcher",
+      "tolerances": {
+        "muzzle_m": 0.2
+      },
+      "far_pose": {
+        "clip": "stand_aim",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      },
+      "factions": {
+        "europe": "fim_92_stinger_team_europe_active_b"
+      }
+    },
+    "fim_92_stinger_team_europe_active_b": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/fim_92_stinger_team/europe_active_b.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-launcher",
+      "tolerances": {
+        "muzzle_m": 0.2
+      },
+      "far_pose": {
+        "clip": "stand_aim",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "eastern_air_defense_team_igla_s_active_b": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/eastern_air_defense_team_igla_s/active_b.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-launcher",
+      "tolerances": {
+        "muzzle_m": 0.2
+      },
+      "far_pose": {
+        "clip": "stand_aim",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "eastern_air_defense_team_fn_6_active_b": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/eastern_air_defense_team_fn_6/active_b.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-launcher",
+      "tolerances": {
+        "muzzle_m": 0.2
+      },
+      "far_pose": {
+        "clip": "stand_aim",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "fim_92_stinger_team_carried_b": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/fim_92_stinger_team/carried_b.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      },
+      "factions": {
+        "europe": "fim_92_stinger_team_europe_carried_b"
+      }
+    },
+    "fim_92_stinger_team_europe_carried_b": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/fim_92_stinger_team/europe_carried_b.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "eastern_air_defense_team_igla_s_carried_b": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/eastern_air_defense_team_igla_s/carried_b.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "eastern_air_defense_team_fn_6_carried_b": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/eastern_air_defense_team_fn_6/carried_b.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "machine_gunner_active_c": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/machine_gunner/active_c.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      },
+      "factions": {
+        "eastern": "machine_gunner_eastern_active_c",
+        "europe": "machine_gunner_europe_active_c"
+      }
+    },
+    "machine_gunner_eastern_active_c": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/machine_gunner/eastern_active_c.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "machine_gunner_europe_active_c": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/machine_gunner/europe_active_c.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "us_marine_machine_gunner_active_c": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/us_marine_machine_gunner/active_c.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "us_marine_marksman_active_c": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/us_marine_marksman/active_c.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "marksman_active_c": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/us_marksman_squad_m110_equipped_longer_range_infantry/active_c.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      },
+      "factions": {
+        "eastern": "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_c",
+        "europe": "europe_marksman_squad_longer_range_infantry_active_c"
+      }
+    },
+    "fim_92_stinger_team_active_c": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/fim_92_stinger_team/active_c.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-launcher",
+      "tolerances": {
+        "muzzle_m": 0.2
+      },
+      "far_pose": {
+        "clip": "stand_aim",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      },
+      "factions": {
+        "europe": "fim_92_stinger_team_europe_active_c"
+      }
+    },
+    "fim_92_stinger_team_europe_active_c": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/fim_92_stinger_team/europe_active_c.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-launcher",
+      "tolerances": {
+        "muzzle_m": 0.2
+      },
+      "far_pose": {
+        "clip": "stand_aim",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "eastern_air_defense_team_igla_s_active_c": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/eastern_air_defense_team_igla_s/active_c.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-launcher",
+      "tolerances": {
+        "muzzle_m": 0.2
+      },
+      "far_pose": {
+        "clip": "stand_aim",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "eastern_air_defense_team_fn_6_active_c": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/eastern_air_defense_team_fn_6/active_c.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-launcher",
+      "tolerances": {
+        "muzzle_m": 0.2
+      },
+      "far_pose": {
+        "clip": "stand_aim",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "fim_92_stinger_team_carried_c": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/fim_92_stinger_team/carried_c.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      },
+      "factions": {
+        "europe": "fim_92_stinger_team_europe_carried_c"
+      }
+    },
+    "fim_92_stinger_team_europe_carried_c": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/fim_92_stinger_team/europe_carried_c.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "eastern_air_defense_team_igla_s_carried_c": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/eastern_air_defense_team_igla_s/carried_c.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "eastern_air_defense_team_fn_6_carried_c": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/eastern_air_defense_team_fn_6/carried_c.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-rifle",
       "far_pose": {

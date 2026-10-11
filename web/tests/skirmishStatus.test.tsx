@@ -14,6 +14,7 @@ const match: SkirmishView = {
   result: null,
   pending: [],
   objectives: [],
+  report: null,
 };
 test("the public match readout follows preparation, both scores and the terminal result", () => {
   const view = render(<SkirmishStatus match={match} />);

@@ -6,8 +6,8 @@
 //   posed on the CPU from the pose inputs (`articulate`);
 // - static models (a prop, a kit's module), and every corpse, use the
 //   palette's identity slot; a static piece in motion (a wreck's, cooking
-//   off) takes a slot of its own. A corpse is its body posed once at the bundle's
-//   `corpse_pose` at install (`posedMesh`), so the fallen (up to their
+//   off) takes a slot of its own. A corpse is its body posed once at one of the
+//   bundle's `corpse_poses` at install (`posedMesh`), so the fallen (up to their
 //   presentation cap) are never skinned.
 //
 // Rewritten from reading ~/dev/game battle-renderer/src/world/crowd.ts:
@@ -205,8 +205,8 @@ const WEAR_EDGE = 0.04;
  *  row holds `ALBEDO_MEAN_ONLY − layer`, and the surface takes its mean colour. */
 const ALBEDO_MEAN_ONLY = -2;
 
-/** The pose every corpse in the static population lies in. */
-const CORPSE_POSE: ModelPose = { kind: "corpse" };
+/** A corpse's fog class: every way of lying takes the ground's. */
+const CORPSE_POSE: ModelPose = { kind: "corpse", lies: 0 };
 /** Palette slot 0 is the identity every static model and corpse uses. */
 const IDENTITY_SLOT = 0;
 const NO_XRAY = [0, 0, 0, 0] as const;
@@ -536,8 +536,8 @@ interface GpuAppearance {
   body: Drawable[];
   /** Per state, per tier (static). */
   states: Map<string, Drawable[]>;
-  /** Per tier: the corpse (skinned only). */
-  corpse: Drawable[];
+  /** Each way the body lies dead (skinned only), as `corpse_poses`. */
+  corpses: GpuCorpse[];
   /** Palette matrices one model takes. */
   joints: number;
   /** Skinned: the body's rows in the joint table and its clip table. */
@@ -552,14 +552,18 @@ interface GpuAppearance {
   /** Standing height and reach from the foot (far pose), metres: detail and culling. */
   size: number;
   radius: number;
-  /** The corpse's length and reach. */
-  corpseSize: number;
-  corpseRadius: number;
-  /** The corpse's bounds, for its impostor bake. */
-  corpseBounds: Bounds | null;
-  /** Impostor atlas layers, or -1 without one. */
+  /** Impostor atlas layer, or -1 without one. */
   farCard: number;
-  corpseCard: number;
+}
+
+/** One way a body lies dead: its posed tiers, length and reach, bounds (for
+ *  its impostor bake) and impostor layer (-1 without one). */
+interface GpuCorpse {
+  tiers: Drawable[];
+  size: number;
+  radius: number;
+  bounds: Bounds;
+  card: number;
 }
 
 /** Fold a MeshData into the 48-byte vertex layout. */
@@ -695,7 +699,8 @@ export interface ModelStats {
 
 /** An impostor atlas the battle draws cards from, and which pose it shows. */
 export interface CardAtlas {
-  which: "far" | "corpse";
+  /** The pose it shows: the far pose, or a way of lying dead. */
+  pose: ModelPose;
   atlas: ImpostorAtlas;
 }
 
@@ -708,8 +713,8 @@ interface Corpses {
   /** Its records (identity palette, no x-ray, card layer set) in chunk
    *  order, one kind: the static card buffer's contents. */
   chunks: StaticChunks;
-  /** Per record in chunk order: its appearance. */
-  appearance: (GpuAppearance | null)[];
+  /** Per record in chunk order: the way its body lies. */
+  lies: (GpuCorpse | null)[];
   /** Cards for a whole chunk, when every corpse in it has one and is far. */
   level: ChunkLevel<DetailView>;
 }
@@ -955,7 +960,7 @@ export async function createModelLayer(
         bundle,
         body: [],
         states: new Map(),
-        corpse: [],
+        corpses: [],
         joints: 1,
         jointBase: 0,
         clips: null,
@@ -966,11 +971,7 @@ export async function createModelLayer(
         worlds: [],
         size: far.size,
         radius: far.radius,
-        corpseSize: far.size,
-        corpseRadius: far.radius,
-        corpseBounds: null,
         farCard: -1,
-        corpseCard: -1,
       };
       /** One tier's buffers from parts; returns a drawable per part key. */
       const tierMesh = (
@@ -1028,22 +1029,24 @@ export async function createModelLayer(
         tierMesh(tier, tag, [
           { key: "", meshes: [{ mesh, pack: packVertices(mesh, materialBase, rigid, noTrack) }] },
         ]).get("")!;
-      let corpseWorlds: Mat4[] | null = null;
-      if (bundle.kind === "skinned" && skeleton) {
-        corpseWorlds = poseWorlds(bundle, skeleton, bundle.corpse_pose);
-        const lying = posedMesh(bundle.tiers[0], bundle.joints, corpseWorlds);
-        gpu.corpseBounds = positionsBounds(lying.positions);
-        const c = boundsSize(gpu.corpseBounds);
-        gpu.corpseSize = c.size;
-        gpu.corpseRadius = c.radius;
-      }
+      if (bundle.kind === "skinned" && skeleton)
+        for (const [k, pose] of bundle.corpse_poses.entries()) {
+          const worlds = poseWorlds(bundle, skeleton, pose);
+          const bounds = positionsBounds(
+            posedMesh(bundle.tiers[0], bundle.joints, worlds).positions,
+          );
+          gpu.corpses.push({
+            ...boundsSize(bounds),
+            bounds,
+            card: -1,
+            tiers: bundle.tiers.map((mesh, t) =>
+              single(t, `corpse${k}-t${t}`, posedMesh(mesh, bundle.joints, worlds), 0),
+            ),
+          });
+        }
       for (let t = 0; t < tierCount(bundle); t++) {
         if (bundle.kind === "skinned") {
           gpu.body.push(single(t, `t${t}`, bundle.tiers[t], null));
-          if (corpseWorlds)
-            gpu.corpse.push(
-              single(t, `corpse-t${t}`, posedMesh(bundle.tiers[t], bundle.joints, corpseWorlds), 0),
-            );
         } else if (bundle.kind === "articulated") {
           gpu.body.push(
             tierMesh(t, `t${t}`, [
@@ -1101,7 +1104,7 @@ export async function createModelLayer(
       }
       if (bundle.kind === "skinned") for (const d of gpu.body) d.body = true;
       // Each tier casts with the next coarser one.
-      for (const list of [gpu.body, gpu.corpse, ...gpu.states.values()])
+      for (const list of [gpu.body, ...gpu.corpses.map((c) => c.tiers), ...gpu.states.values()])
         for (let t = 0; t < list.length; t++)
           list[t].caster = list[Math.min(t + CASTER_COARSER, list.length - 1)];
       built.set(name, gpu);
@@ -1207,7 +1210,7 @@ export async function createModelLayer(
     cards = null;
     for (const gpu of appearances.values()) {
       gpu.farCard = -1;
-      gpu.corpseCard = -1;
+      for (const c of gpu.corpses) c.card = -1;
     }
     atlasLayers = atlases.length;
     if (atlases.length) {
@@ -1217,11 +1220,11 @@ export async function createModelLayer(
         cardScope,
         atlases.map((a) => a.atlas),
       );
-      atlases.forEach(({ which, atlas }, layer) => {
+      atlases.forEach(({ pose, atlas }, layer) => {
         const gpu = appearances.get(atlas.appearance);
         if (!gpu) return;
-        if (which === "corpse") gpu.corpseCard = layer;
-        else gpu.farCard = layer;
+        if (pose.kind !== "corpse") gpu.farCard = layer;
+        else if (gpu.corpses[pose.lies]) gpu.corpses[pose.lies].card = layer;
       });
     }
     stats.atlasLayers = atlasLayers;
@@ -1236,10 +1239,12 @@ export async function createModelLayer(
     const count = list.length;
     const placed = new Float32Array(count * RECORD_FLOATS);
     const sizes = new Float32Array(count);
-    const owners: (GpuAppearance | null)[] = list.map((c) => appearances.get(c.appearance) ?? null);
+    const owners: (GpuCorpse | null)[] = list.map(
+      (c) => appearances.get(c.appearance)?.corpses[c.lies] ?? null,
+    );
     list.forEach((c, i) => {
-      const gpu = owners[i];
-      sizes[i] = gpu?.corpseSize ?? 0;
+      const lying = owners[i];
+      sizes[i] = lying?.size ?? 0;
       const r = i * RECORD_FLOATS;
       placed[r] = c.x;
       placed[r + 1] = c.y;
@@ -1247,17 +1252,17 @@ export async function createModelLayer(
       placed[r + 3] = c.yaw;
       placed[r + 4] = IDENTITY_SLOT;
       placed.set(c.tint ?? NO_TINT, r + 8);
-      placed[r + 11] = gpu?.corpseCard ?? -1;
+      placed[r + 11] = lying?.card ?? -1;
       placed.set(UNIT_SCALE, r + 12);
     });
     const chunks = corpseChunks(placed, RECORD_FLOATS, sizes);
-    const appearance = Array.from(chunks.order[0], (i) => owners[i]);
+    const lies = Array.from(chunks.order[0], (i) => owners[i]);
     const carded = chunks.chunks.map((chunk) => {
       for (let i = chunk.start[0]; i < chunk.end[0]; i++)
-        if ((appearance[i]?.corpseCard ?? -1) < 0) return false;
+        if ((lies[i]?.card ?? -1) < 0) return false;
       return true;
     });
-    corpses = { count, chunks, appearance, level: corpseChunkLevel(detail, carded) };
+    corpses = { count, chunks, lies, level: corpseChunkLevel(detail, carded) };
     corpseCards.set(upload("corpse-cards", chunks.sorted[0], VERTEX_USAGE));
     if (corpseChoice.length < count) corpseChoice = new Int32Array(count * 2);
     stats.corpses = count;
@@ -1272,7 +1277,7 @@ export async function createModelLayer(
 
   /** The drawable an instance's pose takes at `tier`, or null. */
   function drawableOf(gpu: GpuAppearance, pose: ModelPose, tier: number): Drawable | null {
-    if (pose.kind === "corpse") return gpu.corpse[tier] ?? null;
+    if (pose.kind === "corpse") return gpu.corpses[pose.lies]?.tiers[tier] ?? null;
     if (pose.kind === "static") return gpu.states.get(pose.state)?.[tier] ?? null;
     return gpu.body[tier] ?? null;
   }
@@ -1343,8 +1348,8 @@ export async function createModelLayer(
       const gpu = appearances.get(inst.appearance);
       unitChoice[i] = CULLED;
       if (!gpu) continue;
-      const lying = inst.pose.kind === "corpse";
-      const card = lying ? gpu.corpseCard : gpu.farCard;
+      const lying = inst.pose.kind === "corpse" ? (gpu.corpses[inst.pose.lies] ?? null) : null;
+      const card = lying ? lying.card : gpu.farCard;
       const tiers = tierCount(gpu.bundle);
       let tier: number;
       // A fitted prop's reach grows with its largest scale, and a moving
@@ -1380,8 +1385,8 @@ export async function createModelLayer(
           inst.x,
           inst.y,
           inst.z,
-          (lying ? gpu.corpseSize : gpu.size) * grow,
-          (lying ? gpu.corpseRadius : gpu.radius) * grow + moved,
+          (lying ?? gpu).size * grow,
+          (lying ?? gpu).radius * grow + moved,
           carded,
           lift > 0 ? _pack_shadow : null,
         );
@@ -1409,7 +1414,7 @@ export async function createModelLayer(
     cardRunCount = 0;
     let fixedCards = 0;
     if (corpses) {
-      const { chunks, appearance } = corpses;
+      const { chunks, lies } = corpses;
       if (view) selectChunks(chunks, view, corpses.level, null);
       else selectEveryChunk(chunks);
       const fog = fogClassOf(CORPSE_POSE);
@@ -1424,9 +1429,9 @@ export async function createModelLayer(
         const chunk = chunks.chunks[k];
         near += chunk.end[0] - chunk.start[0];
         for (let i = chunk.start[0]; i < chunk.end[0]; i++) {
-          const gpu = appearance[i];
+          const lying = lies[i];
           corpseChoice[i] = CULLED;
-          if (!gpu || !gpu.corpse.length) continue;
+          if (!lying) continue;
           const r = i * RECORD_FLOATS;
           const tier = view
             ? modelDetail(
@@ -1435,9 +1440,9 @@ export async function createModelLayer(
                 fallen[r],
                 fallen[r + 1],
                 fallen[r + 2],
-                gpu.corpseSize,
-                gpu.corpseRadius,
-                gpu.corpseCard >= 0,
+                lying.size,
+                lying.radius,
+                lying.card >= 0,
               )
             : 0;
           if (tier === CULLED) {
@@ -1449,7 +1454,7 @@ export async function createModelLayer(
             nearCards++;
             continue;
           }
-          const bucket = gpu.corpse[tier].id * DRAW_CLASSES + fog;
+          const bucket = lying.tiers[tier].id * DRAW_CLASSES + fog;
           corpseChoice[i] = bucket;
           bucketCount[bucket]++;
         }
@@ -1500,7 +1505,7 @@ export async function createModelLayer(
           IDENTITY_SLOT,
           0,
           0,
-          inst.pose.kind === "corpse" ? gpu.corpseCard : gpu.farCard,
+          inst.pose.kind === "corpse" ? (gpu.corpses[inst.pose.lies]?.card ?? -1) : gpu.farCard,
         );
         continue;
       }
@@ -1843,29 +1848,15 @@ export async function createModelLayer(
     /** The pose an impostor of `name` shows, and its bounds in that pose. */
     farPose,
     /** The impostor atlases the battle carries: every skinned appearance's
-     *  far pose and corpse, in the order `setCards` takes them. */
-    cardPoses(): {
-      appearance: string;
-      which: "far" | "corpse";
-      pose: ModelPose;
-      bounds: Bounds;
-    }[] {
-      const out: {
-        appearance: string;
-        which: "far" | "corpse";
-        pose: ModelPose;
-        bounds: Bounds;
-      }[] = [];
+     *  far pose and each way it lies dead. */
+    cardPoses(): { appearance: string; pose: ModelPose; bounds: Bounds }[] {
+      const out: { appearance: string; pose: ModelPose; bounds: Bounds }[] = [];
       for (const gpu of appearances.values()) {
-        if (gpu.bundle.kind !== "skinned" || !gpu.corpseBounds) continue;
-        const far = farPose(gpu.name)!;
-        out.push({ appearance: gpu.name, which: "far", ...far });
-        out.push({
-          appearance: gpu.name,
-          which: "corpse",
-          pose: { kind: "corpse" },
-          bounds: gpu.corpseBounds,
-        });
+        if (gpu.bundle.kind !== "skinned" || !gpu.corpses.length) continue;
+        out.push({ appearance: gpu.name, ...farPose(gpu.name)! });
+        gpu.corpses.forEach(({ bounds }, lies) =>
+          out.push({ appearance: gpu.name, pose: { kind: "corpse", lies }, bounds }),
+        );
       }
       return out;
     },

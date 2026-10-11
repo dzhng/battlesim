@@ -287,7 +287,7 @@ export default function Workbench() {
         y: c.position[1],
         z: c.position[2],
         yaw: c.yaw,
-        pose: { kind: "corpse" },
+        pose: { kind: "corpse", lies: c.lies },
       }));
       return [...posed, ...lying].map((m) => ({
         ...m,

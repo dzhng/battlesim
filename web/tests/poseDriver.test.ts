@@ -19,6 +19,7 @@ import {
 import { gamePose as FEEL } from "@apps/battle-lab/src/poseFeed";
 import { UNITS } from "./catalog";
 import { UnitCatalog, vehicleClass } from "@packages/scene-assets/src/units";
+import { INFANTRY_FALLS } from "@packages/scene-assets/src/schema";
 import { shippedMounts } from "./shippedMounts";
 
 const REST = FEEL.rest;
@@ -34,6 +35,21 @@ const CLIPS: Record<string, { duration: number; loop: boolean; stride_m: number 
   kneel_fire: { duration: 1, loop: true, stride_m: null },
   prone_pinned: { duration: 2, loop: true, stride_m: null },
   death: { duration: 2, loop: false, stride_m: null },
+  death_back: { duration: 2, loop: false, stride_m: null },
+  death_kneel: { duration: 1.5, loop: false, stride_m: null },
+  death_prone: { duration: 1, loop: false, stride_m: null },
+  ...Object.fromEntries(
+    (["walk_aim", "crouch", "crawl"] as const).flatMap((gait) =>
+      (["f", "b", "l", "r"] as const).map((way) => [
+        `${gait}_${way}`,
+        {
+          duration: 1,
+          loop: true,
+          stride_m: gait === "crawl" ? 0.6 : way === "f" || way === "b" ? 1 : 0.5,
+        },
+      ]),
+    ),
+  ),
 };
 
 /** Half the tank's track gauge: its hull's half width by its class's gauge share. */
@@ -51,7 +67,12 @@ const driver = () =>
   });
 
 const squad = (
-  soldiers: { id: number; x: number; y: number; posture?: "stand" | "kneel" | "prone" }[],
+  soldiers: {
+    id: number;
+    x: number;
+    y: number;
+    posture?: "stand" | "kneel" | "prone";
+  }[],
   extra: Partial<FeedUnit> = {},
 ): FeedUnit => ({
   id: 1,
@@ -146,6 +167,91 @@ test("a clip change crossfades from the previous clip", () => {
   expect(later.soldiers[0].blend).toBeNull();
 });
 
+/** One soldier in `posture` who has seen his squad fire at bearing 0 (so he faces
+ *  it), then moves at `speed` toward bearing `heading` for half a second. */
+const mover = (
+  posture: "stand" | "kneel" | "prone" | undefined,
+  heading: number,
+  speed: number,
+) => {
+  const d = driver();
+  const at = (time: number, x: number, y: number, shots: number) =>
+    d.update(
+      frame(time, [
+        squad([{ id: 1, x, y, posture }], {
+          mounts: [{ bearing: 0, elevation: 0, shots }],
+        }),
+      ]),
+    ).soldiers[0];
+  at(0, 0, 0, 0);
+  at(0.5, 0, 0, 3);
+  const step = speed * 0.5;
+  return at(1, Math.cos(heading) * step, Math.sin(heading) * step, 3);
+};
+
+test("lying down, a soldier crawls whichever way he goes, still facing the threat", () => {
+  // Facing bearing 0 (+X); a bearing of +π/2 is his left.
+  const ways = { f: 0, l: Math.PI / 2, b: Math.PI, r: -Math.PI / 2 };
+  for (const [way, heading] of Object.entries(ways)) {
+    const s = mover("prone", heading, 0.6);
+    expect(s.clip).toBe(`crawl_${way}`);
+    expect(s.facing).toBeCloseTo(0, 5);
+  }
+  // A diagonal plays the nearest way.
+  expect(mover("prone", Math.PI * 0.85, 0.6).clip).toBe("crawl_b");
+});
+
+test("crouched, a soldier moves crouched whichever way he goes, weapon toward the threat", () => {
+  const ways = { f: 0, l: Math.PI / 2, b: Math.PI, r: -Math.PI / 2 };
+  for (const [way, heading] of Object.entries(ways)) {
+    const s = mover("kneel", heading, 1.2);
+    expect(s.clip).toBe(`crouch_${way}`);
+    expect(s.facing).toBeCloseTo(0, 5);
+  }
+});
+
+test("standing while his squad fires, a soldier walks with his weapon up toward the aim", () => {
+  const ways = { f: 0, l: Math.PI / 2, b: Math.PI, r: -Math.PI / 2 };
+  for (const [way, heading] of Object.entries(ways)) {
+    const s = mover(undefined, heading, 1.2);
+    // A man who fires kneeling or lying down takes that posture's move instead.
+    const firing = stanceManner(1, STANCE).firing;
+    const gait = firing === "prone" ? "crawl" : firing === "kneel" ? "crouch" : "walk_aim";
+    expect(s.clip).toBe(`${gait}_${way}`);
+    expect(s.facing).toBeCloseTo(0, 5);
+  }
+});
+
+test("too fast to crawl he moves crouched; at a run he turns and runs the way he goes", () => {
+  expect(mover("prone", Math.PI, FEEL.gait.crawl_mps + 0.2).clip).toBe("crouch_b");
+  const ran = mover("kneel", Math.PI / 2, FEEL.gait.run_mps + 0.5);
+  expect(ran.clip).toBe("run");
+  // Turning is rate-limited: he has turned toward his travel, from the aim.
+  expect(ran.facing).toBeGreaterThan(0);
+});
+
+test("a crawl advances its phase by the ground covered over its stride", () => {
+  const d = driver();
+  const at = (time: number, x: number) =>
+    d.update(
+      frame(time, [
+        squad([{ id: 1, x, y: 0, posture: "prone" }], {
+          mounts: [{ bearing: 0, elevation: 0, shots: time > 0 ? 3 : 0 }],
+        }),
+      ]),
+    ).soldiers[0];
+  at(0, 0);
+  at(0.5, 0);
+  const started = at(1, 0.15);
+  expect(started.clip).toBe("crawl_f");
+  // Poses are rewritten in place: keep the phase before the next frame.
+  const phase = started.phase;
+  const later = at(1.5, 0.45);
+  expect(later.clip).toBe("crawl_f");
+  // 0.3 m of a 0.6 m stride since the last frame.
+  expect((later.phase - phase + 1) % 1).toBeCloseTo(0.5, 5);
+});
+
 test("a shot kneels a still soldier, suppression pins him, and a soldier's own posture wins", () => {
   const d = driver();
   d.update(
@@ -203,7 +309,10 @@ test("a squad under fire is never a row of copies: firing and pinned, each man k
   const firing = at(0.5, { mounts: [{ bearing: 1, elevation: 0, shots: 3 }] });
   expect(firing).toEqual(men.map((m) => held(stanceManner(m.id, STANCE).firing)));
   expect(new Set(firing)).toEqual(new Set(["stand_aim", "kneel_fire", "prone_pinned"]));
-  const pinned = at(3, { mounts: [{ bearing: 1, elevation: 0, shots: 3 }], pinned: true });
+  const pinned = at(3, {
+    mounts: [{ bearing: 1, elevation: 0, shots: 3 }],
+    pinned: true,
+  });
   expect(pinned).toEqual(men.map((m) => held(stanceManner(m.id, STANCE).pinned)));
   // Some hug the ground, some crouch; nobody stands up under it.
   expect(new Set(pinned)).toEqual(new Set(["prone_pinned", "kneel_fire"]));
@@ -211,6 +320,60 @@ test("a squad under fire is never a row of copies: firing and pinned, each man k
   for (const m of men)
     if (stanceManner(m.id, STANCE).firing === "prone")
       expect(stanceManner(m.id, STANCE).pinned).toBe("prone");
+});
+
+test("a soldier falls from the posture he is in: kneeling he slumps, lying he goes slack", () => {
+  const d = driver();
+  const men = [
+    { id: 1, x: 0, y: 0, posture: "stand" as const },
+    { id: 2, x: 3, y: 0, posture: "kneel" as const },
+    { id: 3, x: 6, y: 0, posture: "prone" as const },
+    { id: 4, x: 9, y: 0, posture: "prone" as const },
+  ];
+  d.update(frame(0, [squad(men)]));
+  // The fourth was crawling when he was hit.
+  d.update(frame(0.5, [squad(men.map((m) => (m.id === 4 ? { ...m, y: 0.3 } : m)))]));
+  const fallen = men.map((m) => ({
+    soldier: m.id,
+    position: [m.x, m.id === 4 ? 0.3 : 0, 0] as Vec3,
+    yaw: 0,
+    kind: "test_rifle" as const,
+    slot: 0,
+    side: "blue" as const,
+  }));
+  const fell = d.update(frame(1, [squad([])], fallen));
+  const by = new Map(fell.soldiers.map((s) => [s.soldier, s]));
+  expect(by.get(1)!.clip).toBe("death");
+  expect(by.get(2)!.clip).toBe("death_kneel");
+  expect(by.get(3)!.clip).toBe("death_prone");
+  expect(by.get(4)!.clip).toBe("death_prone");
+  // Each plays its own fall out: the shortest is done first and lies static.
+  const later = d.update(frame(2.1, [squad([])], fallen));
+  expect(later.corpses.map((c) => c.soldier)).toEqual([3, 4]);
+  expect(later.soldiers.map((s) => s.soldier).sort()).toEqual([1, 2]);
+});
+
+test("killed standing, most fall back onto their backs and the rest pitch forward, each lying as he fell", () => {
+  const d = driver();
+  const men = Array.from({ length: 20 }, (_, i) => ({ id: i + 1, x: i * 2, y: 0 }));
+  d.update(frame(0, [squad(men)]));
+  const fallen = men.map((m) => ({
+    soldier: m.id,
+    position: [m.x, 0, 0] as Vec3,
+    yaw: 0,
+    kind: "test_rifle" as const,
+    slot: 0,
+    side: "blue" as const,
+  }));
+  const falls = d.update(frame(1, [squad([])], fallen)).soldiers.map((s) => s.clip);
+  // Each man by his own manner, the same every battle, and a squad mixes both.
+  expect(falls).toEqual(
+    men.map((m) => (stanceManner(m.id, STANCE).fallsBack ? "death_back" : "death")),
+  );
+  expect(new Set(falls)).toEqual(new Set(["death", "death_back"]));
+  const lain = d.update(frame(4, [squad([])], fallen)).corpses;
+  expect(lain.map((c) => c.lies)).toEqual(falls.map((c) => INFANTRY_FALLS[c]));
+  expect(new Set(lain.map((c) => c.lies))).toEqual(new Set([0, 1]));
 });
 
 test("a fallen soldier plays his death once, facing as he fell, then lies static", () => {
@@ -230,7 +393,11 @@ test("a fallen soldier plays his death once, facing as he fell, then lies static
   // His own facing (the squad's heading, strayed by his manner at rest), not
   // the published yaw of his fall.
   const own = restManner(1, REST).turn;
-  expect(fell.soldiers[0]).toMatchObject({ soldier: 1, clip: "death", phase: 0 });
+  expect(fell.soldiers[0]).toMatchObject({
+    soldier: 1,
+    clip: "death",
+    phase: 0,
+  });
   expect(fell.soldiers[0].facing).toBeCloseTo(own, 9);
   expect(fell.corpses).toEqual([]);
   const later = d.update(frame(2, [squad([])], fallen));
@@ -246,6 +413,8 @@ test("a fallen soldier plays his death once, facing as he fell, then lies static
       side: "blue",
       position: [0, 0, 0],
       yaw: own,
+      // standing, he lies as his own manner falls: on his back or his face
+      lies: stanceManner(1, STANCE).fallsBack ? 1 : 0,
       operatorMount: null,
     },
   ]);
@@ -390,6 +559,55 @@ test("an aircraft's rotors turn while it lives, and nothing it has rolls as it f
   expect(ground.articulation.rotor_blur).toBe(0);
 });
 
+test("a flying aircraft dips its nose to speed up, flares to brake and banks into a turn", () => {
+  const heli = (x: number, y: number, yaw: number): FeedUnit => ({
+    ...tank(x, yaw, 0, 0),
+    kind: "test_heli",
+    position: [x, y, 30],
+    mounts: [{ bearing: 0, elevation: 0, shots: 0 }],
+  });
+  /** The drawn tilt after flying `path` (time, x, y, yaw) at 30 Hz. */
+  const fly = (path: (t: number) => [number, number, number], seconds: number) => {
+    const d = driver();
+    let v = d.update(frame(0, [heli(...path(0))])).vehicles[0];
+    for (let k = 1; k <= seconds * 30; k++)
+      v = d.update(frame(k / 30, [heli(...path(k / 30))])).vehicles[0];
+    return v.tilt;
+  };
+  const noseDown = (m: ReturnType<typeof fly>) => -(m?.[2] ?? 0);
+  // Its left (+Y) side's height: a bank to the left lowers it.
+  const leftDown = (m: ReturnType<typeof fly>) => -(m?.[6] ?? 0);
+  // Gathering speed east at 3 m/s²: its nose dips.
+  const speeding = fly((t) => [1.5 * t * t, 0, 0], 2);
+  expect(noseDown(speeding)).toBeGreaterThan(Math.sin(0.1));
+  // Braking from 20 m/s at 3 m/s²: its nose rises.
+  const braking = fly((t) => [20 * t - 1.5 * t * t, 0, 0], 2);
+  expect(noseDown(braking)).toBeLessThan(-Math.sin(0.1));
+  // Turning left (north) round a 60 m circle at 15 m/s: its left side dips.
+  const w = 15 / 60;
+  const turning = fly((t) => [60 * Math.sin(w * t), 60 - 60 * Math.cos(w * t), w * t], 3);
+  expect(leftDown(turning)).toBeGreaterThan(Math.sin(0.1));
+  // Paused mid-turn (the clock holding still), it holds its bank.
+  const d = driver();
+  const path = (t: number): [number, number, number] => [
+    60 * Math.sin(w * t),
+    60 - 60 * Math.cos(w * t),
+    w * t,
+  ];
+  let held = d.update(frame(0, [heli(...path(0))])).vehicles[0];
+  for (let k = 1; k <= 90; k++) held = d.update(frame(k / 30, [heli(...path(k / 30))])).vehicles[0];
+  const banked = leftDown(held.tilt);
+  for (let k = 0; k < 5; k++) held = d.update(frame(3, [heli(...path(3))])).vehicles[0];
+  expect(leftDown(held.tilt)).toBeCloseTo(banked, 9);
+  // Hovering still: level.
+  expect(noseDown(fly(() => [0, 0, 0], 2))).toBeCloseTo(0, 6);
+  // Never past the most it leans, however hard it brakes.
+  const slam = fly((t) => [Math.min(t, 0.5) * 60, 0, 0], 1);
+  expect(Math.abs(noseDown(slam))).toBeLessThanOrEqual(
+    Math.sin((FEEL.attitude.max_deg * Math.PI) / 180) + 1e-6,
+  );
+});
+
 test("a supply vehicle's deploy progress is its articulation's", () => {
   const out = driver().update(
     frame(0, [{ ...tank(0, 0, 0, 0), kind: "test_supply", mounts: [], deployment: 0.4 }]),
@@ -400,13 +618,19 @@ test("a supply vehicle's deploy progress is its articulation's", () => {
 test("presentation.pose is checked: a run no faster than a walk, or a gauge past the hull, is refused", () => {
   expect(validatePoseFeel(FEEL)).toBe(FEEL);
   expect(() =>
-    validatePoseFeel({ ...FEEL, gait: { ...FEEL.gait, run_mps: FEEL.gait.walk_mps } }),
+    validatePoseFeel({
+      ...FEEL,
+      gait: { ...FEEL.gait, run_mps: FEEL.gait.walk_mps },
+    }),
   ).toThrow(/gait\.run_mps/);
   expect(() => validatePoseFeel({ ...FEEL, gauge: { tracked_heavy: 1.2 } })).toThrow(
     /gauge\.tracked_heavy/,
   );
   expect(() =>
-    validatePoseFeel({ ...FEEL, stance: { fire_prone: 0.6, fire_stand: 0.5, pinned_kneel: 0 } }),
+    validatePoseFeel({
+      ...FEEL,
+      stance: { fire_prone: 0.6, fire_stand: 0.5, pinned_kneel: 0, fall_back: 0.5 },
+    }),
   ).toThrow(/stance/);
 });
 
@@ -461,7 +685,9 @@ test("a soldier's shot is timed once per rise of his shot count, not every frame
   const at = (time: number, shots: number) =>
     d.update(
       frame(time, [
-        squad([], { soldiers: [{ id: 1, slot: 0, activeMount: 0, position: [0, 0, 0], shots }] }),
+        squad([], {
+          soldiers: [{ id: 1, slot: 0, activeMount: 0, position: [0, 0, 0], shots }],
+        }),
       ]),
     ).soldiers[0].clip;
   at(0, 0);
@@ -511,7 +737,10 @@ test("at most `corpses.max` lie drawn; the oldest leave first, sinking away over
     [1, 0],
     [2, 0],
   ]);
-  expect(fell.fading[0].corpse).toMatchObject({ position: [1, 0, 0], kind: "test_rifle" });
+  expect(fell.fading[0].corpse).toMatchObject({
+    position: [1, 0, 0],
+    kind: "test_rifle",
+  });
   // Deeper as the fade runs, and gone once it has run.
   const mid = d.update(frame(2, [], more)).fading.map((c) => c.sink);
   expect(mid[0]).toBeGreaterThan(0);
@@ -594,7 +823,10 @@ test("support changes preserve an already fading corpse's age and disappearance"
   d.update(frame(0, [], original));
   const more = downed([1, 2]);
   d.update(frame(1, [], more));
-  const dropped = more.map((f) => ({ ...f, position: [f.position[0], 0, -1] as Vec3 }));
+  const dropped = more.map((f) => ({
+    ...f,
+    position: [f.position[0], 0, -1] as Vec3,
+  }));
   const mid = d.update(frame(2, [], dropped));
   expect(mid.fading[0].corpse.position).toEqual([1, 0, -1]);
   expect(mid.fading[0].since).toBe(1);
@@ -722,7 +954,14 @@ test("a fallen launcher carrier keeps his carried identity through death and cor
   unit.soldiers[0].activeMount = 1;
   d.update(frame(0, [unit]));
   const fallen: FeedFrame["fallen"] = [
-    { soldier: 1, kind: "test_at", slot: 0, side: "blue", position: [0, 0, 0], yaw: 0 },
+    {
+      soldier: 1,
+      kind: "test_at",
+      slot: 0,
+      side: "blue",
+      position: [0, 0, 0],
+      yaw: 0,
+    },
   ];
   const pose = d.update(frame(0.01, [], fallen)).soldiers[0];
   expect(pose.operatorMount).toBe(1);

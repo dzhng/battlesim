@@ -14,6 +14,7 @@ import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import type { CameraPresentation } from "@packages/renderer-core/src/cameraController";
 import { ReadoutLayer } from "@web/battle/present/readouts";
 import { SkirmishStatus } from "./battleStatus";
+import { MatchResultOverlay } from "./MatchResultOverlay";
 import { PurchasePicker } from "@web/battle/present/purchasePicker";
 import { ArmyDeck } from "@web/battle/present/armyDeck";
 import { CaptionList, useCaptions } from "@web/battle/present/captions";
@@ -137,6 +138,7 @@ export function BattleView({
   const { world, meshes, sim, control, surfaceZ } = session;
   const worldFeed = useFeed(meshes);
   const { observation } = sim;
+  const matchFinished = observation?.skirmish?.phase === "finished";
   const { contacts } = session;
   const { pointerPaint } = session;
   const rulerLabels = useRef<RangeRulerLabelsHandle>(null);
@@ -225,7 +227,7 @@ export function BattleView({
       {meshes && !sim.error && (
         <LabViewport
           fixture={fixture}
-          inputEnabled={!pause.open && loadStage === "playable"}
+          inputEnabled={!pause.open && !matchFinished && loadStage === "playable"}
           world={worldFeed}
           structures={session.structures}
           buildings={session.buildingsFeed}
@@ -281,7 +283,7 @@ export function BattleView({
       />
       <RangeRulerLabels handle={rulerLabels} />
       {/* The army roster and command row keep their place as selection changes. */}
-      <div className="hud" data-testid="battle-panel" inert={pause.open}>
+      <div className="hud" data-testid="battle-panel" inert={pause.open || matchFinished}>
         <header className="hud-panel hud-top" data-occludes-readouts>
           {!sim.error &&
             (observation?.skirmish ? (
@@ -348,6 +350,7 @@ export function BattleView({
           {menu?.(session)}
         </PauseMenu>
       )}
+      {observation?.skirmish && <MatchResultOverlay match={observation.skirmish} />}
     </>
   );
 }

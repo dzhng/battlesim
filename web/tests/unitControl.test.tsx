@@ -464,7 +464,7 @@ test("attack-move sends the entire selection, including unarmed units, by click 
   act(() => hook.result.current.setMode("attack_move"));
   await click({ shift: true });
   act(() => hook.result.current.setSelected([2]));
-  act(() => fireEvent.keyDown(window, { code: "KeyX" }));
+  act(() => fireEvent.keyDown(window, { code: "KeyC" }));
   expect(hook.result.current.mode).toBe("attack_move");
   await click({});
   expect(sent).toEqual([

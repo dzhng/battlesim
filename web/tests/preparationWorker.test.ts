@@ -64,7 +64,6 @@ test("a preparation worker becomes the battle authority and replays its commands
         const { rememberReplay, readSavedReplay, ReplayImport } = await importModule(
           `${root}/../../apps/battle-lab/src/replayFile.tsx`,
         );
-        const { MainMenu } = await importModule(`${root}/../../apps/battle-lab/src/MainMenu.tsx`);
         const { default: Battle } = await importModule(
           `${root}/../../apps/battle-lab/src/routes/battle.tsx`,
         );
@@ -177,8 +176,8 @@ test("a preparation worker becomes the battle authority and replays its commands
               await new Promise((r) => setTimeout(r, 0));
             };
             try {
-              // Hold an actual IndexedDB transaction open so the menu's read
-              // remains pending. It must not offer a guessed replay viewer.
+              // Hold an actual IndexedDB transaction open so the saved replay's
+              // read remains pending. It must not offer a guessed replay viewer.
               const db = await new Promise<IDBDatabase>((resolve, reject) => {
                 const open = indexedDB.open("battle-replay", 1);
                 open.onsuccess = () => resolve(open.result);
@@ -194,7 +193,6 @@ test("a preparation worker becomes the battle authority and replays its commands
                 };
               };
               keep();
-              renderScreen(createElement(MainMenu));
               const shot = async (name: string) => {
                 await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
                 await (window as unknown as { replayShot(name: string): Promise<void> }).replayShot(
@@ -202,14 +200,6 @@ test("a preparation worker becomes the battle authority and replays its commands
                 );
               };
               try {
-                while (!host.textContent?.includes("Watch replay")) await wait();
-                [...host.querySelectorAll("button")]
-                  .find((b) => b.textContent?.includes("Watch replay"))!
-                  .click();
-                while (!host.querySelector('input[type="file"]')) await wait();
-                await shot("menu-pending");
-                if (host.querySelector('a[href^="/battle"]'))
-                  throw new Error("pending storage guessed a replay viewer");
                 window.history.replaceState(null, "", "/battle?replay=saved");
                 renderScreen(scoped(gameCatalog, createElement(Battle)));
                 while (!host.querySelector('[data-testid="loading"]')) await wait();
@@ -222,16 +212,11 @@ test("a preparation worker becomes the battle authority and replays its commands
                 await shot("prepared-pulse-high");
                 pulse.currentTime = Number(pulse.effect!.getComputedTiming().duration) / 2;
                 await shot("prepared-pulse-low");
-                renderScreen(createElement(MainMenu));
-                while (!host.textContent?.includes("Watch replay")) await wait();
-                [...host.querySelectorAll("button")]
-                  .find((b) => b.textContent?.includes("Watch replay"))!
-                  .click();
               } finally {
                 held = false;
               }
-              while (!host.querySelector('a[href="/battle?replay=saved"]')) await wait();
-              await shot("menu-ready");
+              while (host.textContent?.includes("Reading saved battle")) await wait();
+              await shot("replay-ready");
               db.close();
               renderScreen(
                 createElement(ReplayImport, {

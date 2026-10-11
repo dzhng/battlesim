@@ -120,6 +120,24 @@ test("Q turns the view left and E turns it right, about the target", () => {
   expect(q.target).toEqual(CAM.target);
 });
 
+test("Z looks up and X looks down without turning or zooming", () => {
+  const rig = new CameraController(CONFIG);
+  const up = rig.step(CAM, held("KeyZ"), 0.25);
+  const down = rig.step(CAM, held("KeyX"), 0.25);
+  expect(up.pitch).toBeCloseTo(CAM.pitch - CONFIG.rotate_speed * 0.25, 6);
+  expect(down.pitch).toBeCloseTo(CAM.pitch + CONFIG.rotate_speed * 0.25, 6);
+  expect(up.yaw).toBe(CAM.yaw);
+  expect(down.yaw).toBe(CAM.yaw);
+  expect(up.distance).toBe(CAM.distance);
+  expect(down.distance).toBe(CAM.distance);
+});
+
+test("keyboard tilt stays within the orbit pitch limits", () => {
+  const rig = new CameraController(CONFIG);
+  expect(rig.step(CAM, held("KeyZ"), 10).pitch).toBe(PITCH_LIMITS[0]);
+  expect(rig.step(CAM, held("KeyX"), 10).pitch).toBe(PITCH_LIMITS[1]);
+});
+
 test("the wheel zooms within the limits and moves pitch along the curve", () => {
   const rig = new CameraController(CONFIG);
   const out = rig.step(CAM, { wheel: 1e6 }, 0);
@@ -145,7 +163,7 @@ test("middle-drag orbits yaw and pitch, never zoom, and pitch stays in its limit
 test("an idle intent returns the camera untouched, so nothing redraws", () => {
   const rig = new CameraController(CONFIG);
   expect(rig.step(CAM, held(), 0.1)).toBe(CAM);
-  expect(rig.step(CAM, held("KeyZ"), 0.1)).toBe(CAM);
+  expect(rig.step(CAM, held("KeyV"), 0.1)).toBe(CAM);
   expect(rig.step(CAM, { wheel: 0, drag: [0, 0], edge: [0, 0] }, 0.1)).toBe(CAM);
 });
 

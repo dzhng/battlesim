@@ -21,6 +21,7 @@ mod cover;
 mod damage;
 mod deployment;
 mod destruction;
+mod door_guns;
 mod drive;
 mod encounter;
 mod endurance;

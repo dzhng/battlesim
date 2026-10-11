@@ -671,6 +671,7 @@ mod tests {
             }],
             scores: [0.0; 2],
             result: None,
+            report: None,
         });
         (
             setup.rules,

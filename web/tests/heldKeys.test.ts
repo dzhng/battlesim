@@ -44,7 +44,7 @@ test("keys typed into a control or pressed with Ctrl, Cmd or Alt are not held", 
 test("claimed keys lose their browser default (arrows don't scroll); others keep it", () => {
   keys = trackHeldKeys(window, (code) => code === "ArrowUp");
   const arrow = new KeyboardEvent("keydown", { code: "ArrowUp", cancelable: true });
-  const other = new KeyboardEvent("keydown", { code: "KeyX", cancelable: true });
+  const other = new KeyboardEvent("keydown", { code: "KeyC", cancelable: true });
   window.dispatchEvent(arrow);
   window.dispatchEvent(other);
   expect(arrow.defaultPrevented).toBe(true);

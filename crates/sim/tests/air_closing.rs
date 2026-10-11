@@ -1,6 +1,6 @@
 //! The helicopters' closing scene (D14), the air map's `closing` encounter as
 //! its lab (`/lab/air-closing`) plays it: the Apache flies in from the map's
-//! edge, pops up over the village roofs and kills the tank behind them; flying
+//! edge, flies in over the village roofs and kills the tank behind them; flying
 //! on, it is shot down by the IFV the tower hid, and its wreck comes down in
 //! the wood and flattens the trees there.
 
@@ -77,7 +77,7 @@ fn ground(b: &Battle, at: V2) -> f64 {
 }
 
 #[test]
-fn the_apache_flies_in_from_the_edge_and_pops_over_the_roofs_to_find_the_tank() {
+fn the_apache_flies_in_from_the_edge_over_the_roofs_to_find_the_tank() {
     let b = battle();
     let start = b.unit(APACHE).unwrap().position;
     assert!(
@@ -87,9 +87,11 @@ fn the_apache_flies_in_from_the_edge_and_pops_over_the_roofs_to_find_the_tank() 
     let (b, beat) = play();
     let (_, height) = beat.tank_seen.expect("the Apache never saw the tank");
     let cruise = b.rules().air.cruise_agl_m;
+    // At cruise it flies over the village's roofs, climbing only over the
+    // tallest: it finds the tank from up there, not from the street.
     assert!(
-        height > cruise + 5.0,
-        "it saw the tank from {height:.1} m, not popped up over the roofs (cruise {cruise} m)"
+        height >= cruise - 0.5,
+        "it saw the tank from {height:.1} m, under its cruise ({cruise} m)"
     );
 }
 

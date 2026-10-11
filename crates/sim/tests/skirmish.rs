@@ -1,5 +1,6 @@
 #![allow(clippy::approx_constant)]
 
+use crate::common;
 use contract::command::{CommandEnvelope, Order};
 use contract::ids::Side;
 use serde_json::json;
@@ -220,6 +221,60 @@ fn paid_reinforcement_enters_at_base_once_and_moves_to_its_destination() {
     let frame = battle.observe(Side::Blue);
     assert_eq!(frame.own.len(), 1);
     assert!(frame.own[0].position[1] > 15.0);
+}
+
+#[test]
+fn terminal_report_records_spawn_actions_and_spend_for_both_sides() {
+    let setup = setup();
+    let mut skirmish = sim::skirmish::Skirmish::new(setup.skirmish.unwrap());
+    assert!(skirmish.report.events.is_empty());
+    skirmish
+        .reserve(
+            Side::Blue,
+            common::unit_kind("test_tank"),
+            [400.0, 300.0],
+            200,
+            1,
+            0,
+        )
+        .unwrap();
+    skirmish.record_spawn(
+        Side::Blue,
+        contract::ids::UnitId(0),
+        common::unit_kind("test_tank"),
+        200,
+        2,
+    );
+    skirmish.record_kill(
+        contract::skirmish::MatchUnit {
+            side: Side::Red,
+            id: contract::ids::UnitId(1),
+            kind: common::unit_kind("test_rifle"),
+        },
+        110,
+        Some(contract::skirmish::MatchUnit {
+            side: Side::Blue,
+            id: contract::ids::UnitId(0),
+            kind: common::unit_kind("test_tank"),
+        }),
+        Some(200),
+        3,
+    );
+    skirmish.phase = contract::skirmish::Phase::Finished;
+    let report = skirmish.view(Side::Red, 2, 30, 0).report.unwrap();
+    assert_eq!(report.totals[Side::Blue.index()].spent, 200);
+    assert!(report.events.iter().any(|event| matches!(
+        event,
+        contract::skirmish::MatchEvent::Spawn { unit, .. } if unit.side == Side::Blue
+    )));
+    assert!(report.events.iter().any(|event| matches!(
+        event,
+        contract::skirmish::MatchEvent::Kill {
+            victim_cost: 110,
+            killer_cost: Some(200),
+            ..
+        }
+    )));
 }
 
 #[test]

@@ -75,7 +75,7 @@ fn penetrating_hits_take_fixed_damage_and_a_failed_one_takes_none() {
 }
 
 #[test]
-fn rounds_that_cannot_penetrate_do_nothing() {
+fn rounds_far_short_of_the_armour_do_nothing() {
     let mut setup = common::scenario_with(
         &map(json!([]), json!([])),
         json!([
@@ -87,12 +87,14 @@ fn rounds_that_cannot_penetrate_do_nothing() {
     );
     let hull = common::hull("test_supply");
     let full = hull.hp;
+    let a = &hull.armor;
     for penetrates in [false, true] {
-        if penetrates {
-            let a = &hull.armor;
-            setup.rules.weapons.get_mut("rifle").unwrap().penetration =
-                a.front.max(a.side).max(a.rear).max(a.roof) + 1.0;
-        }
+        // Short of `partial_from` of its thinnest face, or past its thickest.
+        setup.rules.weapons.get_mut("rifle").unwrap().penetration = if penetrates {
+            a.front.max(a.side).max(a.rear).max(a.roof) + 1.0
+        } else {
+            setup.rules.penetration.partial_from * a.weakest()
+        };
         let mut b = Battle::new(&setup, 2);
         let mut hits = 0;
         for _ in 0..300 {
