@@ -4,6 +4,7 @@
 // `effectFeed.ts` reads it, each fielded type's hull and mount muzzles, the
 // prop kinds that smoke once known, and what each unit's wreck throws when it
 // cooks off. Static per battle; native ports the per-frame effects.
+import type { Vec3 } from "math";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import { mountMuzzles } from "@packages/scene-assets/src/mountMuzzle";
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
@@ -12,7 +13,6 @@ import type { EffectsManifest, WreckRecord } from "@web/battle/benchmark/effectM
 import { gameEffects, smokeLooksOf } from "../effectFeed";
 import { wreckPieces } from "../cookOffs";
 
-type Vec3 = [number, number, number];
 const vec = (v: ArrayLike<number>): Vec3 => [v[0], v[1], v[2]];
 
 /** The `effects` section for a battle fielding `kinds` under `units`, its

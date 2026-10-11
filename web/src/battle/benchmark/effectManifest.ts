@@ -8,9 +8,8 @@
 // effects themselves are per frame, so native ports them as formulas. Beside
 // it, `effectCounts` holds what each plate's frame drew of them.
 // Plain Node runs the writer, so this imports nothing the renderer owns.
+import type { Vec3 } from "math";
 import { finite, hasKeys, isRecord } from "./presentationCapture.ts";
-
-type Vec3 = [number, number, number];
 
 /** A hull mount's muzzle model (`mountMuzzle.ts` `MountMuzzle`): the mount it
  *  rides (`on`, an index; null: the hull), its pivot and its carrier's ring

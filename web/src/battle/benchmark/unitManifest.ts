@@ -5,10 +5,8 @@
 // (`apps/battle-lab/src/benchmark/unitPresentation.ts`); what moves per frame
 // (interpolation, the pose driver, articulation) native ports as formulas.
 // Plain Node runs the writer, so this imports nothing the renderer owns.
+import type { Quat, Vec3 } from "math";
 import { finite, hasKeys, isRecord } from "./presentationCapture.ts";
-
-type Vec3 = [number, number, number];
-type Quat = [number, number, number, number];
 
 /** A node's or joint's local transform (`scene-assets` `Trs`). */
 export interface TrsRecord {
