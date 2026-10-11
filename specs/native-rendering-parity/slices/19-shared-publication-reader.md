@@ -14,6 +14,8 @@
 
 Write the findings into this file before building.
 
+**Order: web first.** Land the change in the browser first. Measure before and after with slice 07's harness on the graphics test and a medium battle: average FPS, 1% low, p95 and p99, main-thread CPU and GPU timestamps, three runs each. Only then switch native to the same code.
+
 **Focused gates:**
 - **Equality.** The Rust reader matches the old TS decoder field for field on both fixture captures, before the TS decoder is deleted (the test from slice 13, reused).
 - **The shipped browser is unchanged in what it draws.** Digest and replay unchanged, and the graphics test and battle scenes green. Its frame time and main-thread CPU on the graphics test (slice 07's harness) show no meaningful regression; a small measured cost is acceptable for less code (user, 2026-10-11).

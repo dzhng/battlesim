@@ -23,7 +23,11 @@ The TypeScript originals and native's ports are deleted.
 
 Write the findings into this file before building.
 
+**Posing (18b question 1, decided by profiling):** before building poses, measure whether the browser is CPU- or GPU-bound today. Prototype Rust-built joint palettes against the current GPU kernel fed by Rust, and keep the faster. Record the numbers here.
+
 **Order:** interpolation and poses first (gate: slice 14's pose vectors, then the model counts), then effects (gate: slice 17's effect vectors and counts).
+
+**Order: web first.** Land the change in the browser first. Measure before and after with slice 07's harness on the graphics test and a medium battle: average FPS, 1% low, p95 and p99, main-thread CPU and GPU timestamps, three runs each. Only then switch native to the same code.
 
 **Focused gates:**
 - **Parity with today.** Before any TS module is deleted, the Rust output equals today's TS output on the existing vector tests and on every plate's counts.

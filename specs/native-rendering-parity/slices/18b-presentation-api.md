@@ -320,6 +320,15 @@ Measured from control `2026-10-11T15-26-04-627Z` (18 plates); anything marked *e
 
 **About 230 KB a frame with Rust posing, and about 60 KB if poses stayed on the GPU, plus static batch changes.** That is less than either client uploads today, and at 120 fps it is 28 MB/s, which is nothing on unified memory. The cost to watch is not bytes but Rust's CPU time per frame on the browser's main thread. Slices 19 and 20 measure it, as their research steps already require.
 
+## Review (2026-10-11)
+
+The user approved the API and questions 2–8 as recommended. Question 4 was decided separately (below).
+
+Question 1 (posing on the CPU in Rust, or a GPU kernel fed by Rust) is **decided by profiling**, not by recommendation:
+- first, measure whether the browser is CPU- or GPU-bound today, on the reel and on a medium battle (slice 07's harness: main-thread CPU and timestamp GPU);
+- then prototype Rust palettes in the browser and compare frame time;
+- the faster path is used, and the measurements are recorded here.
+
 ## Open questions for review
 
 1. **Poses on the CPU in Rust, or kept on the GPU.**

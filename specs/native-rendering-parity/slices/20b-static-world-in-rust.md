@@ -21,6 +21,8 @@ The browser draws Rust's output; native draws the same output with no browser ex
 
 Write the findings into this file before building.
 
+**Order: web first.** Land the change in the browser first. Measure before and after with slice 07's harness on the graphics test and a medium battle: average FPS, 1% low, p95 and p99, main-thread CPU and GPU timestamps, three runs each. Only then switch native to the same code.
+
 **Focused gates:**
 - Equality: the Rust resolvers' output equals today's TypeScript output on both reel maps, record for record, before the TypeScript is deleted.
 - The shipped browser draws the same frame. Plates are byte-identical, and the terrain and grass WGSL is unchanged.
