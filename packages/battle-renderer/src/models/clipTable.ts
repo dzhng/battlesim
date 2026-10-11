@@ -3,7 +3,7 @@
 // sampled densely (joint-major within a frame), each joint as two vec4s —
 // rotation (x, y, z, w) and translation plus uniform scale. Channels a clip
 // leaves absent take the body's bind, so the kernel never branches on them.
-// Built once per installed appearance; the per-frame work is `clipFrames`.
+// Built once per installed appearance; the presentation crate samples it.
 
 import type { Clip, Joint, SkeletonClips } from "@packages/scene-assets/src/schema";
 import { CHANNEL_ABSENT, CHANNEL_ANIMATED } from "@packages/scene-assets/src/schema";
@@ -78,34 +78,4 @@ function writeClip(data: Float32Array, offset: number, clip: Clip, joints: reado
     if (rMode !== CHANNEL_ABSENT) r += rMode === CHANNEL_ANIMATED ? clip.frames : 1;
     if (tMode !== CHANNEL_ABSENT) t += tMode === CHANNEL_ANIMATED ? clip.frames : 1;
   }
-}
-
-export interface ClipFrames {
-  f0: number;
-  f1: number;
-  /** Weight of `f1`. */
-  w: number;
-}
-
-/**
- * The two frames either side of `phase` (0..1 of the clip's duration) and the
- * weight between them, as scene-assets' `sampleClip` reads them. A looping
- * clip wraps its phase (the bake samples both ends, so they agree); a one-shot
- * clip holds its ends.
- */
-export function clipFrames(out: ClipFrames, clip: TableClip, phase: number): ClipFrames {
-  const last = clip.frames - 1;
-  if (last <= 0) {
-    out.f0 = 0;
-    out.f1 = 0;
-    out.w = 0;
-    return out;
-  }
-  const p = clip.loop ? phase - Math.floor(phase) : Math.min(1, Math.max(0, phase));
-  const frame = Math.min(last, p * clip.duration * clip.rate);
-  const f0 = Math.min(last, Math.floor(frame));
-  out.f0 = f0;
-  out.f1 = Math.min(last, f0 + 1);
-  out.w = frame - f0;
-  return out;
 }

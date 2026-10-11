@@ -9,11 +9,7 @@ import { AppearanceLibrary, memoryFetch } from "@packages/scene-assets/src/loade
 import { validateLoose } from "@packages/scene-assets/src/loose.ts";
 import { farPoseBounds, sampleClip } from "@packages/scene-assets/src/pose.ts";
 import type { SkinnedBundle } from "@packages/scene-assets/src/schema.ts";
-import {
-  SAMPLE_FLOATS,
-  buildClipTable,
-  clipFrames,
-} from "@packages/battle-renderer/src/models/clipTable.ts";
+import { SAMPLE_FLOATS, buildClipTable } from "@packages/battle-renderer/src/models/clipTable.ts";
 import {
   boxFilter,
   impostorViews,
@@ -81,12 +77,18 @@ test("the clip table holds, frame for frame, what sampleClip reads", async () =>
   for (const clip of clips.clips) {
     const entry = table.clips.get(clip.name)!;
     for (const phase of [0, 0.37, 0.5, 1]) {
-      const frames = clipFrames({ f0: 0, f1: 0, w: 0 }, entry, phase);
+      // The frames either side of `phase`, as the presentation crate reads them.
+      const at = Math.min(entry.frames - 1, phase * entry.duration * entry.rate);
+      const frames = {
+        f0: Math.floor(at),
+        f1: Math.min(entry.frames - 1, Math.floor(at) + 1),
+        w: at - Math.floor(at),
+      };
       const cpu = sampleClip(clips, clip, body.joints, phase);
       for (let j = 0; j < n; j++) {
-        const at = (f: number) => entry.offset + (f * n + j) * SAMPLE_FLOATS;
-        const a = table.data.subarray(at(frames.f0), at(frames.f0) + 8);
-        const b = table.data.subarray(at(frames.f1), at(frames.f1) + 8);
+        const of = (f: number) => entry.offset + (f * n + j) * SAMPLE_FLOATS;
+        const a = table.data.subarray(of(frames.f0), of(frames.f0) + 8);
+        const b = table.data.subarray(of(frames.f1), of(frames.f1) + 8);
         const q = quat.slerp(
           quat.create(),
           [a[0], a[1], a[2], a[3]],
@@ -101,22 +103,6 @@ test("the clip table holds, frame for frame, what sampleClip reads", async () =>
       }
     }
   }
-});
-
-test("a looping clip wraps its phase; a one-shot clip holds its ends", () => {
-  const loop = {
-    name: "l",
-    offset: 0,
-    frames: 31,
-    duration: 1,
-    rate: 30,
-    loop: true,
-    stride_m: null,
-  };
-  expect(clipFrames({ f0: 0, f1: 0, w: 0 }, loop, 1.25)).toEqual({ f0: 7, f1: 8, w: 0.5 });
-  const once = { ...loop, loop: false };
-  expect(clipFrames({ f0: 0, f1: 0, w: 0 }, once, 1.25)).toEqual({ f0: 30, f1: 30, w: 0 });
-  expect(clipFrames({ f0: 0, f1: 0, w: 0 }, once, -1)).toEqual({ f0: 0, f1: 1, w: 0 });
 });
 
 test("impostor cells frame the far pose's sphere the same from every side", async () => {
