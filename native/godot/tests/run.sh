@@ -9,6 +9,10 @@ set -u
 cd "$(dirname "$0")/.."
 # The world layers walk the static world in the Rust extension.
 binding/build.sh >/dev/null 2>&1 || { echo "FAIL the Rust extension does not build (binding/build.sh)"; exit 1; }
+# Godot loads an extension only once an import has listed it; a fresh
+# checkout has no list yet.
+[ -f .godot/extension_list.cfg ] || godot --headless --path . --import >/dev/null 2>&1 ||
+	{ echo "FAIL the project does not import"; exit 1; }
 status=0
 for test in ${@:-tests/*_test.gd}; do
 	name=$(basename "$test")
