@@ -4,7 +4,7 @@
 
 **Status:** phases 1 and 2 are built and closed (2026-10-10 and 2026-10-11). Native draws the menu reel from the browser's frame records with the same camera, light, terrain and grass. Its release export is no slower than the browser's production build on any measure, on both scenes (slice 12): market-town p95 13.4 ms against 23.9, and GPU busy about half the browser's on both. [`choices.md`](choices.md) holds the discovery map and both phases' ledgers.
 
-**Next pickup:** slices 14, 15 and 16 in parallel; slice 13 (full publication decode) is done. Phase 3 was planned on the user's behalf (see Phases). Read `choices.md` first; its decisions are givens.
+**Next pickup:** slices 14 and 15 in parallel; slices 13 (full publication decode) and 16 (water and scars) are done. Phase 3 was planned on the user's behalf (see Phases). Read `choices.md` first; its decisions are givens.
 
 **Goal:** make the native Godot client visually equivalent to the browser renderer for the authored menu reel, and at least as fast as it, as a maintained second client beside the browser. Rust stays the only gameplay, observation, visibility, replay and digest authority. The browser remains shipped.
 
@@ -64,7 +64,7 @@ Graph: `13 → {14, 15, 16} → 17 → 18`. Slices 14, 15 and 16 share no owners
 - [x] 13 — Full publication decode (`785d7aaf2`): `capture/observation.gd` ports the browser's decoder, and every field of every sample of paris-corner and a seven-sample market-town window equals the browser's decode. Guided missiles, crashes, leans, encounter and skirmish appear in neither fixture (see `choices.md`). [slice](slices/13-publication-decode.md)
 - [ ] 14 — Units, poses, corpses and aircraft: interpolation and pose derivation ported, impostors for posed soldiers, counts equal per plate. [slice](slices/14-units-and-poses.md)
 - [ ] 15 — Buildings and scenery: module and scenery placement exported by the browser, state from the publication; `legacy_map_layer.gd` deleted. [slice](slices/15-buildings-and-scenery.md)
-- [ ] 16 — Water surface and ground scars; the grass gate's scar allowance deleted. [slice](slices/16-water-and-scars.md)
+- [x] 16 — Water surface and ground scars (`98e45d17e`): native draws the side's learned scars on the ground and in the grass, and every market-town grass cell holds within 0.07% with no allowance. Water is judged by vectors against the browser's WGSL only, since no reel map has water. Scars cost about 1.4 ms at p95. [slice](slices/16-water-and-scars.md)
 - [ ] 17 — Effects from the published causes, same seeds and clock. [slice](slices/17-effects.md)
 - [ ] 18 — Whole-frame verdict, the performance re-gate, the promotion decision, the full repository check and closeout. [slice](slices/18-promotion-and-closeout.md)
 
@@ -76,7 +76,7 @@ Graph: `13 → {14, 15, 16} → 17 → 18`. Slices 14, 15 and 16 share no owners
 | Scaffolding | Removed |
 | --- | --- |
 | `legacy_map_layer.gd` (placement, its kit shells' open tiers drawn over the coarser ones, its read of `fixtures/game.json` detail thresholds) | Slice 15 |
-| The grass count gate's `scar-omission` allowance | Slice 16, when native draws learned scars |
+| ~~The grass count gate's `scar-omission` allowance~~ | Removed in slice 16 |
 
 Update this section before ending every implementation pass. Record the current slice, evidence, unresolved decisions, and the next exact pickup.
 
