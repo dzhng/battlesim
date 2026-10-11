@@ -139,19 +139,32 @@ fn both_sides_that_saw_it_go_down_see_it_fall_to_its_wreck() {
     );
 }
 
-#[test]
-fn its_crash_fells_the_trees_it_lands_on() {
+/// A wood across the helicopter's flight, and the helicopter shot down over
+/// it by a jeep placed so the wreck lands on trees, not in a gap between them.
+fn down_in_the_wood() -> Battle {
     let forest = json!([{ "shape": { "kind": "polygon",
         "ring": [[120, 140], [420, 140], [420, 260], [120, 260]] } }]);
-    let (b, _, _) = shoot_down(open(json!([]), forest), [300.0, 40.0], json!([]));
+    let (b, _, _) = shoot_down(open(json!([]), forest.clone()), [320.0, 40.0], json!([]));
+    // Trees stood where it came down: the wood before anything flew over it.
     let (at, _, _) = wreck(&b);
+    let wood = battle_with(&fixture(), open(json!([]), forest), json!([]));
+    assert!(trees_within(&wood, at, 5.0) > 0, "no tree stood at {at:?}");
+    b
+}
+
+/// The trees standing within `r` of `at`.
+fn trees_within(b: &Battle, at: V2, r: f64) -> usize {
     let tree = b.world().types().index(&b.rules().forests.tree).unwrap();
-    let standing = b
-        .world()
-        .props_near(at, 5.0)
-        .into_iter()
-        .filter(|p| p.kind == tree && p.footprint().distance(at) < 5.0)
-        .count();
+    (b.world().props_near(at, r).into_iter())
+        .filter(|p| p.kind == tree && p.footprint().distance(at) < r)
+        .count()
+}
+
+#[test]
+fn its_crash_fells_the_trees_it_lands_on() {
+    let b = down_in_the_wood();
+    let (at, _, _) = wreck(&b);
+    let standing = trees_within(&b, at, 5.0);
     assert_eq!(standing, 0, "{standing} trees still stand under the wreck");
 }
 
@@ -160,9 +173,7 @@ fn the_side_that_saw_it_go_down_sees_the_trees_it_felled() {
     // Blue's only unit was the helicopter: with no eyes left on the wood,
     // blue still saw it come down there, so it knows the trees its crash
     // felled as it knows its wreck, and no longer plans with them standing.
-    let forest = json!([{ "shape": { "kind": "polygon",
-        "ring": [[120, 140], [420, 140], [420, 260], [120, 260]] } }]);
-    let (b, _, _) = shoot_down(open(json!([]), forest), [300.0, 40.0], json!([]));
+    let b = down_in_the_wood();
     assert!(b.unit(UnitId(0)).is_some_and(|u| !u.alive()));
     let (at, _, _) = wreck(&b);
     let felled: Vec<[f64; 2]> = (b.observe(Side::Blue).fallen_bodies.iter())
