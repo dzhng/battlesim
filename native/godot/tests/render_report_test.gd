@@ -21,5 +21,6 @@ func run() -> bool:
 	check(read.budgets[0] == {"owner": "native/legacy_map_layer", "reason": "buildings beyond 1000 m of every frame eye", "sourceId": "map:test-town/buildings", "admitted": 3.0, "rendered": 2.0, "dropped": 1.0}, "a budget row keeps every field")
 	check(read.plates[0] == {"index": 2.0, "path": "/tmp/plate-2.png", "gpuMs": 1.25}, "a plate row keeps its GPU time")
 	check(read.plates[1].gpuMs == null, "a plate without a GPU measurement says so rather than 0")
+	check(read.renderer.build == "editor", "a run from the editor binary says so, apart from a debug or release export: %s" % read.renderer)
 	check(RenderReport.new().ok(), "a report without blockers is ok")
 	return true

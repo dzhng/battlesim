@@ -5,21 +5,38 @@ extends RefCounted
 ## `--import` run imports whatever is new. Linking a directory instead would
 ## make Godot write `.import` files into the real `assets/` tree.
 ## A missing file, a Git LFS pointer or a failed import is a named blocker.
+##
+## An exported build can neither link nor import: it packs what `staging/`
+## held when it was exported, and lives outside the repository, so it takes
+## the repository root from `REPO_VARIABLE`.
 
 const STAGING := "res://staging"
 const LFS_POINTER := "version https://git-lfs.github.com/spec/v1"
+const REPO_VARIABLE := "BATTLEGAME_REPO"
 
 ## An absolute path for `relative` to the repository root (or `relative` itself
 ## when it is already absolute).
 static func repo_path(relative: String) -> String:
 	if relative.is_absolute_path():
 		return relative.simplify_path()
-	return ProjectSettings.globalize_path("res://").path_join("../..").path_join(relative).simplify_path()
+	return repo_root().path_join(relative).simplify_path()
+
+## The repository root: two folders above the project in the editor, and
+## `REPO_VARIABLE` in an exported build.
+static func repo_root() -> String:
+	if OS.has_feature("editor"):
+		return ProjectSettings.globalize_path("res://").path_join("../..")
+	var root := OS.get_environment(REPO_VARIABLE)
+	if not root.is_absolute_path():
+		push_error("an exported build needs %s, the repository root as an absolute path; native/godot/release.sh sets it" % REPO_VARIABLE)
+	return root
 
 ## Stages every repository-relative path in `relatives` and returns
 ## `{relative: resource path}` for those that imported. Every other path is a
 ## blocker in `report`.
 static func stage(relatives: Array, report) -> Dictionary:
+	if not OS.has_feature("editor"):
+		return _packed(relatives, report)
 	var linked: Array[String] = []
 	for relative in relatives:
 		var source := repo_path(relative)
@@ -54,4 +71,16 @@ static func stage(relatives: Array, report) -> Dictionary:
 			staged[relative] = resource
 		else:
 			report.add_blocker("import", "%s did not import" % relative)
+	return staged
+
+## An exported build's staged assets: those it packed. Every other path is a
+## blocker in `report`.
+static func _packed(relatives: Array, report) -> Dictionary:
+	var staged := {}
+	for relative in relatives:
+		var resource := STAGING.path_join(relative)
+		if ResourceLoader.exists(resource):
+			staged[relative] = resource
+		else:
+			report.add_blocker("asset", "%s is not in this export; an editor run of the scene stages it, then export again" % relative)
 	return staged

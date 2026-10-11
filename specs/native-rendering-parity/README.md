@@ -44,7 +44,7 @@ Graph: `07 → 08 → 09 → 10 → 11 → 12`. Measure first, name the cause, t
 - [ ] 08 — Native frame anatomy: pass-by-pass timeline and ablation beside the browser's, naming the cause of the slow frames. [slice](slices/08-native-frame-anatomy.md)
 - [ ] 09 — Pipelined frames: no CPU waits on the GPU and no idle GPU between passes. [slice](slices/09-pipelined-frames.md)
 - [ ] 10 — Per-pass GPU budgets: every native pass at or below the browser's. [slice](slices/10-pass-budgets.md)
-- [ ] 11 — Release build: measure the native release export and the browser's production build. [slice](slices/11-release-build.md)
+- [x] 11 — Release build: `native/godot/release.sh` exports a macOS release build and runs the parity run from it; its paris-corner and market-town plates match the editor run's within the grass noise floor, and the report states its build kind. The browser's production build and the side-by-side timings are slice 12's. [slice](slices/11-release-build.md)
 - [ ] 12 — Performance gate: native no slower than the browser on any measure, on both scenes, plugged in. [slice](slices/12-performance-gate.md)
 
 ### Phase 3: same models and events, then promotion (placeholders)
@@ -154,6 +154,7 @@ Counters never prove pixels. Headless Godot proves lifecycle only. Every pass ke
 - Control run: `PARITY_SCENES=paris-corner lockf -k <main>/throwaway/gpu.lock bun run --cwd web scene -- native-parity-capture`. One scene takes about 55 s; both take about 3 minutes.
 - Native run: `godot --path native/godot --window-position 10000,10000 -- --run <dir> --scene <map>`, under the same lock.
 - Native tests: `native/godot/tests/run.sh`, under the lock.
+- Native release run: `native/godot/release.sh --run <dir> --scene <map> [...]`, under the same lock; it exports, then runs the same arguments from the exported app.
 
 **Worktree prerequisites:**
 - Symlink `web/node_modules` to the main checkout's.

@@ -42,6 +42,7 @@ func to_dictionary() -> Dictionary:
 			"method": ProjectSettings.get_setting("rendering/renderer/rendering_method"),
 			"driver": RenderingServer.get_current_rendering_driver_name(),
 			"display": DisplayServer.get_name(),
+			"build": build_kind(),
 		},
 		"frames": frames,
 		"budgets": _budgets,
@@ -49,6 +50,13 @@ func to_dictionary() -> Dictionary:
 		"plates": _plates,
 		"grass": _grass,
 	}
+
+## What ran the project: `editor` (the editor binary, a debug build),
+## `debug` (a debug export) or `release` (a release export).
+static func build_kind() -> String:
+	if OS.has_feature("editor"):
+		return "editor"
+	return "debug" if OS.is_debug_build() else "release"
 
 func write(path: String) -> Error:
 	DirAccess.make_dir_recursive_absolute(path.get_base_dir())

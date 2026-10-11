@@ -45,6 +45,37 @@ Rendering needs a display. `--headless` uses Godot's dummy renderer, which
 never draws, so a headless run stops at a `display` blocker. The window is
 placed off screen, which still needs a logged-in macOS session.
 
+## The release build
+
+Native is measured as it would ship: a release export of this project, not
+the editor binary's debug run. `release.sh` exports the `macOS release`
+preset (`export_presets.cfg`) into `throwaway/native-release/` and runs the
+exported app off screen with the parity run's own arguments:
+
+```text
+lockf -k <main checkout>/throwaway/gpu.lock \
+  native/godot/release.sh --run <dir> --scene <name> [any parity run argument]
+```
+
+- **Templates.** The export needs Godot's 4.7.2 export templates in
+  `~/Library/Application Support/Godot/export_templates/4.7.2.stable/`
+  (the official `Godot_v4.7.2-stable_export_templates.tpz`; only
+  `macos.zip` and `version.txt` are used).
+- **Preset.** A release template with no signing beyond Godot's ad-hoc
+  signature, and the project's own rendering settings. The template ships
+  only universal binaries, and an arm64 export needs ETC2/ASTC texture
+  imports, so the project imports those beside S3TC; the editor still draws
+  with S3TC. The grass build's `.compute` text, which the run reads as a
+  file, is packed as one; the tests are left out.
+- **Paths.** The app lives outside the repository, so it takes the root from
+  `BATTLEGAME_REPO`, which the script sets; repo-relative arguments and
+  assets resolve from it as in the editor.
+- **Assets.** An export can neither link nor import. It packs what `staging/`
+  held when it was exported, and an asset it lacks is a named blocker. An
+  editor run of a scene stages its assets.
+- **Report.** `renderer.build` says what ran the project: `editor`, `debug` or
+  `release`.
+
 ## Layout
 
 Each folder owns one kind of thing; `parity_run.gd` is the entry point, and

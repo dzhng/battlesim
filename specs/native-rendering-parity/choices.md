@@ -269,3 +269,24 @@ None found at the closeout. Two earlier choices were corrected during the build 
 - **Unexercised paths.** The water formulas are ported but unmeasured, because neither reel map has water. Relief is tested only against a synthetic grid.
 - **Run-to-run noise.** Native grass plates differ by one or two pixels between reruns, probably GPU append order. Byte comparisons need that floor.
 - **Git history.** The two closeout reviewers shared one git index, so their commits were rewritten into `ed268e8b`, `bcaa8fff` and `ef730416`, with a tree identical to the pre-rewrite HEAD. Nothing had been pushed.
+
+## Phase 2
+
+### Slice 11: release build
+
+- **The release export runs the parity run unchanged, through one script.** `native/godot/release.sh` exports the `macOS release` preset into `throwaway/native-release/` and passes every argument through, so plates and `--bench` both run from the exported app.
+  - It re-exports on every call (10–20 s) rather than tracking staleness.
+  - Confidence: high.
+- **An export packs `staging/` as it was at export time; an asset it lacks is a named blocker.** An export can neither link nor import, so `Staging.stage` only looks up packed resources there. An editor run of a scene stages its assets.
+  - The alternatives were runtime glTF loading (a second loading path whose import settings could differ from the editor's) or a headless staging pass that duplicates the run's admission. Both go away or change when slice 13 replaces the legacy map layer.
+  - Confidence: medium. A fresh checkout needs one editor run per scene before its first export.
+- **The exported app takes the repository root from `BATTLEGAME_REPO`.** The script sets it. The editor still derives the root from `res://`. Deriving it from the executable's path would break under a symlinked `throwaway/`.
+  - Confidence: high.
+- **The preset is universal, and the project imports ETC2/ASTC beside S3TC.** Godot's 4.7.2 templates ship only universal binaries, and an arm64 or universal export refuses to run without ETC2/ASTC imports. The editor's plates did not change with the setting (both scenes byte-identical but one market-town pixel, 3 levels).
+  - Confidence: high.
+- **Signing is Godot's built-in ad-hoc signature; there is no notarisation.** Apple Silicon needs some signature to run the binary.
+  - Confidence: high.
+- **The report says what ran it:** `renderer.build` is `editor`, `debug` or `release`.
+  - Confidence: high.
+- **Templates are installed by hand,** from the official `.tpz`, checked against the release's SHA512-SUMS, with only `macos.zip` and `version.txt` copied into the user's Godot data folder.
+  - Confidence: high.
