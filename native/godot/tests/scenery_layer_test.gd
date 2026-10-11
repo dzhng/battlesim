@@ -19,6 +19,7 @@ const FELLED := {"fall_s": 2.6, "settle_s": 0.6, "settle_deg": 4, "rest_height_m
 
 ## Ground the side saw cleared: everything west of x = 0.
 class Cleared:
+	var cleared_version := 1
 	func cleared_at(x: float, _y: float) -> bool:
 		return x < 0.0
 

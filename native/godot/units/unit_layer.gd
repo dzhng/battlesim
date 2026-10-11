@@ -494,7 +494,7 @@ func present(record: Dictionary, camera: Camera3D, size: Vector2) -> Dictionary:
 	if vehicle_matrices > 0:
 		_vehicle_texture.update(_vehicle_image)
 	_kernel.dispatch()
-	_batches.prepare(camera, size)
+	_batches.write()
 	return counts
 
 func _corpse(chosen: Dictionary, view, lying: Dictionary, corpse: Dictionary, sink: float) -> void:

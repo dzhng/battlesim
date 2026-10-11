@@ -44,9 +44,9 @@ static func of(material: Material, scenery: bool, posed := "") -> ShaderMaterial
 		out.set_shader_parameter("metallic", base.metallic)
 		out.set_shader_parameter("alpha_cutoff", base.alpha_scissor_threshold)
 		_texture(out, "albedo", base.albedo_texture)
-		if base.normal_enabled:
-			_texture(out, "normal", base.normal_texture)
-			out.set_shader_parameter("normal_scale", base.normal_scale)
+		# The normal map also carries a cutout's coverage in its alpha.
+		_texture(out, "normal", base.normal_texture)
+		out.set_shader_parameter("normal_scale", base.normal_scale)
 		if _texture(out, "roughness", base.roughness_texture):
 			out.set_shader_parameter("roughness_channel", _channel(base.roughness_texture_channel))
 		if _texture(out, "metallic", base.metallic_texture):

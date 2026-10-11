@@ -26,7 +26,7 @@ const PlateWriter = preload("res://reel/plate_writer.gd")
 const RenderReport = preload("res://report/render_report.gd")
 const Staging = preload("res://assets/staging.gd")
 const EnvironmentAdapter = preload("res://environment/environment_adapter.gd")
-const LegacyMapLayer = preload("res://world/legacy_map_layer.gd")
+const StaticWorld = preload("res://world/static_world.gd")
 const UnitLayer = preload("res://units/unit_layer.gd")
 const TerrainLayer = preload("res://terrain/terrain_layer.gd")
 const GrassLayer = preload("res://grass/grass_layer.gd")
@@ -42,8 +42,9 @@ const FrameTiming = preload("res://report/frame_timing.gd")
 
 const OWNER := "native/parity_run"
 ## The browser's presentation layers native can draw; the manifest decides
-## which are drawn. `models` is the units (`units/unit_layer.gd`).
-const LAYERS := ["sky", "terrain", "water", "scars", "grass", "buildings", "props", "models", "fog"]
+## which are drawn. `models` is the units (`units/unit_layer.gd`);
+## `structures` the fitted props (`world/prop_layer.gd`).
+const LAYERS := ["sky", "terrain", "water", "scars", "grass", "scenery", "structures", "buildings", "models", "fog"]
 const USAGE := "usage: godot --path native/godot -- --run <dir> --scene <name> [--frames plates|all|<i,j,...>] [--maps <dir>] [--out <dir>] [--bench <warm-up frames> [--pace uncapped|display]]"
 ## A run that is still going after this long has stalled: it stops at a
 ## `timeout` blocker and frees the GPU lock. A whole scene benched at 80 ms a
@@ -145,12 +146,11 @@ func _render(options: Dictionary) -> void:
 		return
 
 	var stepper = selected.stepper
-	var targets: Array = stepper.records().map(func(record): return Vector2(float(record.target[0]), float(record.target[1])))
 	var units := read_units(options.scene_dir, manifest)
 	if not units.ok:
 		_report.add_blocker(units.blocker.name, units.blocker.detail)
 		return
-	var world := compose(self, manifest, ground, decoded.samples, map, targets, capture.side, _report, {"tables": units.tables, "tickHz": float(capture.tickHz)})
+	var world := compose(self, manifest, ground, decoded.samples, options.scene_dir, capture.side, _report, {"tables": units.tables, "tickHz": float(capture.tickHz)})
 	if not _report.ok():
 		return
 
@@ -202,14 +202,14 @@ func _render(options: Dictionary) -> void:
 			_report.add_blocker("publication", "frame %d at tick %d precedes the first sample" % [record.index, record.tick])
 			return
 		CameraRig.apply(camera, record, manifest.lens)
+		learned.advance_to(decoded.samples, int(record.tick))
 		if scars_shown:
-			learned.advance_to(decoded.samples, int(record.tick))
 			world.scars.sync(learned)
 		if world.grass != null:
 			world.grass.grow(record)
 		world.environment.prepare(camera, Vector2(get_window().size), StrictJson.vector3(record.target))
 		var models: Dictionary = world.units.present(record, camera, Vector2(get_window().size)) if world.units != null else {}
-		world.layer.prepare(camera, Vector2(get_window().size))
+		world.static_world.present(sample, learned, float(record.simTime), camera, Vector2(get_window().size), _report)
 		if world.fog != null:
 			world.fog.show_fog(sample.fog)
 		var step_ms := (Time.get_ticks_usec() - stepped) / 1000.0
@@ -227,6 +227,8 @@ func _render(options: Dictionary) -> void:
 				_report.add_blocker(plate.blocker.name, plate.blocker.detail)
 				return
 			_report.add_plate(int(record.index), path, plate.gpu_ms)
+			if world.static_world.listed():
+				_count_instances(int(record.index), world.static_world, manifest, manifest.instanceCounts.filter(func(row): return row.plate == record.plate))
 			if world.units != null:
 				_count_models(int(record.index), models, manifest.modelCounts.filter(func(row): return row.plate == record.plate))
 			if world.grass != null:
@@ -244,6 +246,17 @@ func _render(options: Dictionary) -> void:
 		world.grass.report_counts(_report)
 	if world.units != null:
 		world.units.report_budgets(_report)
+
+## The plate's building modules, scenery and known props against the
+## browser's (`instanceCounts`): any count apart is an `instances` blocker.
+func _count_instances(index: int, world: StaticWorld, manifest: Dictionary, browser: Array) -> void:
+	var native := world.counts()
+	_report.add_instances({"index": index, "native": native, "browser": null if browser.is_empty() else browser[0]})
+	if browser.is_empty():
+		_report.add_blocker("instances", "plate-%d: the manifest has no instance counts for it" % index)
+		return
+	for difference in StaticWorld.differences(native, browser[0], manifest.buildings.modules, manifest.scenery.kinds):
+		_report.add_blocker("instances", "plate-%d: %s" % [index, difference])
 
 ## The plate's posed models by kind against the browser's (`modelCounts`):
 ## any kind apart is a `models` blocker.
@@ -317,12 +330,12 @@ static func read_units(scene_dir: String, manifest: Dictionary) -> Dictionary:
 
 ## Builds the light and every layer the manifest lists under `root`, staging the
 ## assets the layers draw, everything seated on `ground.heights`. Returns
-## `{environment, layer, grass, fog, scars, units}`; `grass`, `fog` and `units`
+## `{environment, static_world, grass, fog, scars, units}`; `grass`, `fog` and `units`
 ## are null unless listed, and `scars` (`scar_texture.gd`) holds no scars
 ## until synced. `units` holds the manifest units' clip tables
 ## (`read_units`) and the capture's tick rate. Blockers and budgets go to
 ## `report`.
-static func compose(root: Node3D, manifest: Dictionary, ground: Dictionary, samples: Array, map: Dictionary, targets: Array, side: String, report, units := {}) -> Dictionary:
+static func compose(root: Node3D, manifest: Dictionary, ground: Dictionary, samples: Array, scene_dir: String, side: String, report, units := {}) -> Dictionary:
 	var layers: Array = manifest.layers
 	for layer in layers:
 		if not LAYERS.has(layer):
@@ -339,24 +352,24 @@ static func compose(root: Node3D, manifest: Dictionary, ground: Dictionary, samp
 		grass = GrassLayer.new(ground, manifest.grass, manifest.tuning, manifest.lens, scars.texture)
 		root.add_child(grass)
 		grass.build(report)
-	var layer := LegacyMapLayer.new(map, targets, ground.heights)
+	var static_world := StaticWorld.new(scene_dir, manifest, float(units.get("tickHz", 30.0)), report)
+	root.add_child(static_world)
 	var unit_layer: Node3D = null
-	var assets := layer.required_assets(layers)
+	var assets := []
 	if layers.has("models"):
 		unit_layer = UnitLayer.new(manifest.units, units.get("tables", {}), samples, side, float(units.get("tickHz", 30.0)), manifest.light)
 		root.add_child(unit_layer)
 		assets.append_array(unit_layer.required_assets())
 	var staged := Staging.stage(assets, report)
-	root.add_child(layer)
 	var fog: Node3D = null
 	if report.ok():
-		layer.build(layers, staged, manifest.light, report)
+		static_world.build(report)
 		if unit_layer != null:
 			unit_layer.build(staged, report)
 		if layers.has("fog"):
 			fog = FogLayer.new()
 			root.add_child(fog)
-	return {"environment": environment, "layer": layer, "grass": grass, "fog": fog, "scars": scars, "units": unit_layer}
+	return {"environment": environment, "static_world": static_world, "grass": grass, "fog": fog, "scars": scars, "units": unit_layer}
 
 ## The box shadows fall in, in Godot space: the ground grid, from a metre
 ## below its lowest ground to `Light.STANDING_M` above its highest, for what

@@ -25,6 +25,7 @@ const ModelBatches = preload("res://world/model_batches.gd")
 const DetailView = preload("res://world/detail_view.gd")
 const WordTables = preload("res://core/word_tables.gd")
 const Coords = preload("res://core/coords.gd")
+const ChunkGrid = preload("res://world/chunk_grid.gd")
 
 const OWNER := "native/building_layer"
 const TIERS := 4
@@ -60,6 +61,8 @@ var _rows: Array[Dictionary] = []
 var _chunks: Array[PackedInt32Array] = []
 var _chunk_boxes: Array[AABB] = []
 var _chunk_heights := PackedFloat32Array()
+## The chunks gathered for culling (`chunk_grid.gd`).
+var _grid: ChunkGrid
 ## Chunk and tier -> module -> instances packed for the batches; dropped when
 ## a building of the chunk falls or rises.
 var _packs := {}
@@ -124,6 +127,7 @@ func _init(tables: Dictionary, buildings: Dictionary, sun: Vector3, max_far_m: f
 		_chunk_boxes[c] = _boxes[b] if _chunks[c].is_empty() else _chunk_boxes[c].merge(_boxes[b])
 		_chunk_heights[c] = maxf(_chunk_heights[c], _heights[b])
 		_chunks[c].append(b)
+	_grid = ChunkGrid.new(_chunk_boxes, _chunk_heights, 8.0 * _chunk_m)
 
 ## The kit sources the modules are drawn from (`catalog`'s).
 func required_assets(catalog) -> Array:
@@ -142,7 +146,7 @@ func build(catalog, report) -> void:
 			report.add_blocker("buildings", "kit %s has no module %s staged" % [module.kit, module.module])
 			_modules.append(-1)
 			continue
-		_modules.append(_batches.add_appearance(node, {"lod_px": _lod_px_per_m, "sized": false}))
+		_modules.append(_batches.add_appearance(node))
 	var rows := 0
 	for state in _rows:
 		rows += int(state.count)
@@ -203,21 +207,17 @@ func prepare(view, report) -> void:
 	var coarse_view := PackedInt32Array()
 	var coarse_cast := PackedInt32Array()
 	var near := []
-	for c in _chunks.size():
-		var box := _chunk_boxes[c]
-		if _chunks[c].is_empty():
-			continue
-		if view.box_meets(box):
-			var distance: float = view.distance_to(box)
-			var wanted := _level(view, distance)
-			if wanted < COARSEST:
-				near.append([distance, c, wanted])
-			else:
-				coarse_view.append(c)
-				if distance <= view.reach:
-					coarse_cast.append(c)
-		elif view.casts_into_view(box, _chunk_heights[c]):
-			coarse_cast.append(c)
+	var visit: Array = _grid.visit(view, _chunk_boxes, _chunk_heights, true)
+	for c in visit[0]:
+		var distance: float = view.distance_to(_chunk_boxes[c])
+		var wanted := _level(view, distance)
+		if wanted < COARSEST:
+			near.append([distance, c, wanted])
+		else:
+			coarse_view.append(c)
+			if distance <= view.reach:
+				coarse_cast.append(c)
+	coarse_cast.append_array(visit[1])
 	near.sort_custom(func(a, b): return a[0] < b[0])
 	var residents := []
 	var used := 0
@@ -249,6 +249,7 @@ func prepare(view, report) -> void:
 		return
 	_last_choice = choice
 	_choose(coarse_view, coarse_cast, residents, ruins)
+	_batches.write()
 
 ## The tier a chunk `distance` metres off draws at (`buildingLevel`).
 func _level(view, distance: float) -> int:
@@ -332,5 +333,3 @@ static func _merge(into: Dictionary, more: Dictionary) -> void:
 		else:
 			into[m] = more[m].duplicate()
 
-func prepare_batches(camera: Camera3D, size: Vector2) -> void:
-	_batches.prepare(camera, size)

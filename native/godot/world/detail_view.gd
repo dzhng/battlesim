@@ -56,6 +56,25 @@ func sphere_meets(center: Vector3, radius: float) -> bool:
 			return false
 	return true
 
+## The eye's distance to the farthest corner of `box`.
+func farthest(box: AABB) -> float:
+	var far := Vector3(
+		box.position.x if eye.x - box.position.x > box.end.x - eye.x else box.end.x,
+		box.position.y if eye.y - box.position.y > box.end.y - eye.y else box.end.y,
+		box.position.z if eye.z - box.position.z > box.end.z - eye.z else box.end.z)
+	return eye.distance_to(far)
+
+## Whether all of `box` lies within the view's side planes.
+func box_within(box: AABB) -> bool:
+	for plane in sides:
+		var farthest_out := Vector3(
+			box.end.x if plane.normal.x > 0.0 else box.position.x,
+			box.end.y if plane.normal.y > 0.0 else box.position.y,
+			box.end.z if plane.normal.z > 0.0 else box.position.z)
+		if plane.distance_to(farthest_out) > 0.0:
+			return false
+	return true
+
 ## The eye's distance to the nearest point of `box`.
 func distance_to(box: AABB) -> float:
 	return eye.distance_to(eye.clamp(box.position, box.end))

@@ -22,6 +22,9 @@ var _next := 0
 ## true).
 var _all_changed := true
 var _changed := {}
+## Counts the changes to what is cleared: while it holds, `cleared_at`
+## answers as before.
+var cleared_version := 0
 
 ## `ground` is the publication layout's `ground` (`cellM`, `cols`, `rows`,
 ## `tileSize`).
@@ -46,6 +49,7 @@ func apply(patch: Dictionary) -> void:
 	if patch.full:
 		_marks.clear()
 		_all_changed = true
+		cleared_version += 1
 	var runs: PackedFloat32Array = patch.runs
 	for at in range(0, runs.size(), 4):
 		var at_tile := int(runs[at])
@@ -56,6 +60,8 @@ func apply(patch: Dictionary) -> void:
 		for local in range(span % 256, span % 256 + span / 256):
 			var i := (at_tile % tiles_x) * tile + local % tile
 			var j := (at_tile / tiles_x) * tile + local / tile
+			if (int(_marks.get(j * cols + i, 0)) >> 32) != (cell >> 32):
+				cleared_version += 1
 			if cell == 0:
 				_marks.erase(j * cols + i)
 			else:

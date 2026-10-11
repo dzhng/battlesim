@@ -84,8 +84,15 @@ void fragment() {
 		NORMAL_MAP_DEPTH = normal_scale;
 	}
 #ifdef CUTOUT
-	ALPHA = base.a * sampled.a;
-	ALPHA_SCISSOR_THRESHOLD = alpha_cutoff;
+	// A cutout's coverage rides its normal map's alpha (the browser's
+	// `coverageValue`), times the base colour's, sampled through the mip
+	// chain and scaled so the cutoff is half there (`cutoutCoverage`). A
+	// surface too far to resolve its holes thins by the share of it that is
+	// there: the browser dithers that share over its samples, native over
+	// pixels, against interleaved gradient noise.
+	float coverage = base.a * (has_normal ? texture(normal_texture, UV).a : 1.0);
+	ALPHA = clamp(coverage * 0.5 / max(alpha_cutoff, 0.001), 0.0, 1.0);
+	ALPHA_SCISSOR_THRESHOLD = max(fract(52.9829189 * fract(dot(FRAGCOORD.xy, vec2(0.06711056, 0.00583715)))), 0.001);
 #endif
 #ifdef TRANSLUCENT
 	ALPHA = base.a * sampled.a;

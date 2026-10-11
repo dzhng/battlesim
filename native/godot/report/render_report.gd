@@ -18,6 +18,7 @@ var _blockers: Array = []
 var _plates: Array = []
 var _grass: Array = []
 var _models: Array = []
+var _instances: Array = []
 
 func add_budget(owner: String, reason: String, source_id: String, admitted: int, rendered: int, dropped: int) -> void:
 	_budgets.append({"owner": owner, "reason": reason, "sourceId": source_id, "admitted": admitted, "rendered": rendered, "dropped": dropped})
@@ -39,6 +40,10 @@ func add_grass(counts: Dictionary) -> void:
 func add_models(counts: Dictionary) -> void:
 	_models.append(counts)
 
+## The building modules, scenery and known props a plate's frame drew, native's
+## beside the browser's (`static_world.gd` `counts`).
+func add_instances(counts: Dictionary) -> void:
+	_instances.append(counts)
 
 func ok() -> bool:
 	return _blockers.is_empty()
@@ -60,6 +65,7 @@ func to_dictionary() -> Dictionary:
 		"plates": _plates,
 		"grass": _grass,
 		"models": _models,
+		"instances": _instances,
 	}
 
 ## What ran the project: `editor` (the editor binary, a debug build),

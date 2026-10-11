@@ -5,7 +5,8 @@ extends RefCounted
 ## encounter, seed and the sha256 of the map and capture bytes), the viewport,
 ## the lens, the light, the shader tuning tables, the layers the browser drew,
 ## the terrain and grass tables (as hashed artifacts beside the manifest) and
-## the grass counts per plate, and the units (`unit_manifest.gd`) with what
+## the grass counts per plate, the buildings, scenery and props with what each
+## plate drew of them, and the units (`unit_manifest.gd`) with what
 ## each plate posed.
 ## Native renders only a battle whose files match that identity exactly.
 
@@ -15,7 +16,7 @@ const StrictJson = preload("res://core/strict_json.gd")
 const UnitManifest = preload("res://capture/unit_manifest.gd")
 
 const SCHEMA := "native-visual-presentation"
-const ROOT_KEYS := ["schema", "identity", "viewport", "lens", "light", "tuning", "layers", "omissions", "terrain", "grass", "grassCounts", "units", "modelCounts"]
+const ROOT_KEYS := ["schema", "identity", "viewport", "lens", "light", "tuning", "layers", "omissions", "terrain", "grass", "grassCounts", "units", "modelCounts", "buildings", "scenery", "props", "instanceCounts"]
 const IDENTITY_KEYS := ["scene", "map", "encounter", "seed", "mapHash", "captureHash"]
 const VIEWPORT_KEYS := ["width", "height", "scale"]
 const LENS_KEYS := ["fovY", "near", "depth", "far"]
@@ -23,6 +24,10 @@ const OMISSION_KEYS := ["owner", "reason", "sourceId"]
 const ARTIFACT_KEYS := ["name", "sha256", "words", "layout"]
 const GRASS_KEYS := ["tables", "constants", "kinds"]
 const GRASS_COUNT_KEYS := ["plate", "cells"]
+const BUILDINGS_KEYS := ["tables", "modules", "tiers"]
+const SCENERY_KEYS := ["tables", "kinds", "tiers", "felled"]
+const PROPS_KEYS := ["detail", "looks", "map", "fit", "buildings"]
+const INSTANCE_COUNT_KEYS := ["plate", "buildings", "scenery", "knownProps"]
 
 ## Reads `<dir>/manifest.json` and `<dir>/capture.json`, and the map named by
 ## the manifest from `<maps_dir>/<map>/map.json`.
@@ -160,10 +165,36 @@ static func _manifest_error(manifest: Variant) -> String:
 			return shape
 		if not StrictJson.is_name(count.plate) or typeof(count.cells) != TYPE_ARRAY or not count.cells.all(func(cell): return StrictJson.is_integer(cell) and int(cell) >= 0):
 			return "grass count %s needs a plate and non-negative cell counts" % count.plate
+	shape = _world_error(manifest)
+	if not shape.is_empty():
+		return shape
 	shape = UnitManifest.error(manifest.units)
 	if not shape.is_empty():
 		return shape
 	return UnitManifest.counts_error(manifest.modelCounts)
+
+## An empty string when the buildings, scenery and props sections and the
+## per-plate instance counts have their shapes; the layers that read them
+## decode them, and refuse what they cannot use.
+static func _world_error(manifest: Dictionary) -> String:
+	for section in [["buildings", BUILDINGS_KEYS], ["scenery", SCENERY_KEYS], ["props", PROPS_KEYS]]:
+		var shape := StrictJson.exact_keys(manifest[section[0]], section[1], section[0])
+		if not shape.is_empty():
+			return shape
+	for section in ["buildings", "scenery"]:
+		var shape := _artifacts_error(manifest[section].tables, section + ".tables")
+		if not shape.is_empty():
+			return shape
+	var shape := _artifacts_error([manifest.props.map], "props.map")
+	if not shape.is_empty():
+		return shape
+	if typeof(manifest.instanceCounts) != TYPE_ARRAY:
+		return "instanceCounts must be an array"
+	for count in manifest.instanceCounts:
+		shape = StrictJson.exact_keys(count, INSTANCE_COUNT_KEYS, "instance count")
+		if not shape.is_empty():
+			return shape
+	return ""
 
 ## An empty string when `artifacts` is a list of hashed-artifact records
 ## `{name, sha256, words, layout}`.

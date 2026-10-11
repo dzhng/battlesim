@@ -135,8 +135,9 @@ composes the layers the manifest lists.
 - `environment/`, `terrain/` and `grass/` each port one browser owner by
   formula: light and atmosphere, the ground, the grass field; `units/` ports
   the browser's posing of soldiers and vehicles.
-- `world/` holds what native still draws its own way, each piece reported as
-  an approximation until a later slice ports its browser owner.
+- `world/` draws the map's models from the browser's placement: the
+  instanced batches every model goes through, the buildings, scenery and
+  props, and the fog overlay.
 - `reel/` places the camera, steps the records and writes plates; `report/`
   owns the report and the error logger; `assets/` stages repository assets.
 - `core/` holds the concepts more than one of those needs, each with one
@@ -314,31 +315,57 @@ materials × passes, never placed objects or their parts.
   rule) and an unsuffixed mesh is in every tier. A skinned mesh is the units
   layer's (below). Godot's own simplified meshes are off
   (`project.godot`): the authored tiers are the one level of detail.
-- **Tiers.** A model takes the tier the browser's `presentation.models` gives
-  its projected height; a building the one `presentation.buildings` gives a
-  metre at its distance. Off screen it draws nothing.
-- **Statics and movers.** Statics are bucketed in 64 m chunks; a chunk is
-  culled against the view's side planes and tiered at its nearest point, and
-  a batch is rewritten only when one of its chunks changes. Movers are chosen one
-  by one every frame, and a layer with its own tier rule (the units') hands
-  each appearance and tier the instances it draws and casts (`choose`).
-- **Shadows.** A model drawn as a mesh casts through a shadow-only batch one
-  tier coarser, within the cascades' reach; the view's batches cast nothing.
-  A chunk out of view whose shadow can land in it casts at the coarsest tier.
+- **Surfaces.** Every material draws as the browser's model surface
+  (`world/model_surface.gd`): base colour times vertex colour, its colour
+  scale and texture, and the instance's tint by the material's share (a
+  scenery appearance takes it whole). Each instance carries its tint.
+- **Chosen.** Each layer ports its browser owner's rule for which model
+  draws at which tier and which casts (buildings, scenery, props, units), and
+  hands each appearance and tier the instances it draws into the view and
+  those it casts (`choose`). A view batch casts nothing; a caster batch draws
+  only into the cascades. A batch's buffer is written only when its layer
+  chose anew, and each layer chooses anew only when what it draws changed.
+- **Culling.** Layers cull and tier against `world/detail_view.gd` (the
+  view's side planes, pixels per metre and shadow reach), chunk by chunk,
+  with chunks gathered in cells (`world/chunk_grid.gd`) so a cell out of view
+  costs one test.
 
-## Legacy map layer
+## Buildings, scenery and props
 
-Until slice 15 ports the browser's placement, `world/legacy_map_layer.gd`
-decides roughly what stands where, and each layer's batches draw it:
-- building shells picked from a catalog kit by template token, with no facade
-  modules: a shell's open tiers (0 and 1, cut for the modules) draw over every
-  coarser tier, which fills what the modules would, and its closed tiers
-  (2 and 3) draw alone;
-- catalog props or boxes.
+The browser exports what stands where, static per map (`manifest.buildings`,
+`.scenery` and `.props`); native places nothing, and ports the per-frame rules
+and the side's knowledge. `world/static_world.gd` builds the layers the
+manifest lists and counts each plate.
 
-Every category is reported as an approximation, and rows farther than 1 km
-from every frame target are reported as dropped. The detail thresholds are
-read from `fixtures/game.json` until the manifest carries them.
+- **Buildings** (`world/building_layer.gd`, the browser's
+  `buildingPlacements.ts`): every building's kit module instances in each
+  state. A 64 m chunk in view draws its coarse rows, or its rows at the tier a
+  metre's pixels at its nearest point call for while the pool has room,
+  nearest first. A building the side knows destroyed draws its ruin's or
+  gutted shell's rows, by what its parts became (`knownProps`).
+- **Scenery** (`world/scenery_layer.gd`, `sceneryLayer.ts`): the forest, its
+  understorey and the backdrop past the map in 128 m chunks, a far chunk whole
+  at the coarsest tier and a near one tree by tree; the forest floor's dressing
+  a cell at a time. A tree the side saw fall (`fallenBodies`) falls from
+  `(tick − 1) / tickHz` and lies by its stump (`world/felled.gd`, baked on the
+  CPU); a shrub or a piece of dressing on ground it saw cleared is gone.
+- **Props** (`world/prop_layer.gd`, `propAppearance.ts`): the map's props as
+  the browser fitted them, less those the side knows replaced, and every prop
+  it learned (wrecks, shoved bodies, rubble) fitted here from the browser's
+  candidates. As the browser's models layer, a 64 m chunk in view is visited
+  and each prop in it culled and tiered on its own, cast a tier coarser.
+- **Appearances** resolve through `world/appearance_catalog.gd`: a kit's
+  module, or an appearance's state, staged from the asset catalog.
+- **Counts.** For each plate the report puts native's building modules per
+  kit module and tier, scenery per population, appearance and tier, and known
+  props per appearance and tier beside the browser's `instanceCounts`; any
+  difference is an `instances` blocker.
+- **Settled at once.** The browser expands residents and lays dressing over
+  a few frames after a cut; native settles each frame whole, which is what
+  the browser shows mid-shot. A view whose residents would pass what the
+  browser's pool packing holds is a blocker.
+- **Not ported:** the leaf clumps' shading, the dressing's shrink below a
+  few pixels, wear chips and lit interiors (reported as approximations).
 
 ## Units
 

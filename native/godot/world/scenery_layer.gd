@@ -27,11 +27,17 @@ const DetailView = preload("res://world/detail_view.gd")
 const WordTables = preload("res://core/word_tables.gd")
 const Coords = preload("res://core/coords.gd")
 const Felled = preload("res://world/felled.gd")
+const ChunkGrid = preload("res://world/chunk_grid.gd")
 
 const OWNER := "native/scenery_layer"
 const TIERS := 4
 const COARSEST := TIERS - 1
 const POPULATIONS := ["forest", "understorey", "backdrop"]
+## How a chunk draws in a frame's plan: whole at the coarsest tier, tree by
+## tree, or only into the cascades.
+const FAR := 0
+const NEAR := 1
+const CAST := 2
 ## A crown's heart, as a share of the tree's height (`lod.ts` `HEART`).
 const FLOATS := ModelBatches.INSTANCE_FLOATS
 
@@ -57,8 +63,16 @@ class Population:
 	var members: Array[PackedInt32Array] = []
 	var boxes: Array[AABB] = []
 	var sizes := PackedFloat32Array()
+	var least := PackedFloat32Array()
 	var whole: Array[Dictionary] = []
 	var stood: Array[PackedInt32Array] = []
+	## Per chunk while near: each standing instance's tier, its instances by
+	## kind and tier (`kind · 4 + tier`), and a count of their rebuilds.
+	var near_tiers: Array[PackedByteArray] = []
+	var near_packs: Array[Dictionary] = []
+	var near_version := PackedInt32Array()
+	## The chunks gathered for culling (`chunk_grid.gd`).
+	var grid: ChunkGrid
 
 var _batches: ModelBatches
 var _kinds: Array
@@ -74,8 +88,14 @@ var _cells := {}
 var _cell_list: Array[Dictionary] = []
 ## The felled trees and their stumps (`felled.gd`); null with no forest.
 var _felled: Felled
-## The trunk ids of the trees the forest stands without.
+## The trunk ids of the trees the forest stands without, and the learned
+## ground's `cleared_version` the shrubs and dressing stand by.
 var _fallen_ids := {}
+var _learned
+var _cleared_version := -1
+## What the last frame drew, by chunk and cell (`_plan`): unchanged, the
+## batches keep what they hold.
+var _last_plan: Array = []
 ## Population name -> per kind and tier (`kind · 4 + tier`), what the last
 ## frame drew; and the stumps per kind.
 var counts := {}
@@ -110,6 +130,9 @@ func _init(tables: Dictionary, scenery: Dictionary, sun: Vector3, max_far_m: flo
 			"count": cells.i[o + cells.at.count],
 			"cleared": PackedByteArray(),
 			"pack": {},
+			# The cleared version it was last laid by, and a count of its layings.
+			"laid": -1,
+			"version": 0,
 		})
 	_felled = Felled.new(scenery.felled, tick_hz)
 	for key in POPULATIONS + ["dressing", "felled"]:
@@ -131,7 +154,7 @@ func build(catalog, report) -> void:
 			report.add_blocker("scenery", "appearance %s has no staged summer state" % kind)
 			_appearances.append(-1)
 			continue
-		_appearances.append(_batches.add_appearance(node, {"lod_px": _lod_px, "sized": true}, true))
+		_appearances.append(_batches.add_appearance(node, true))
 	var forest_kinds := {}
 	for kind in _populations.forest.kinds:
 		forest_kinds[kind] = true
@@ -153,76 +176,96 @@ func set_known(fallen_bodies: Array, learned) -> void:
 	if felled != _fallen_ids:
 		_fallen_ids = felled
 		_restand(_populations.forest, func(i): return not felled.has(_populations.forest.ids[i]))
-	var shrubs: Population = _populations.understorey
-	_restand(shrubs, func(i): return not _cleared(learned, shrubs, i))
+	var version: int = learned.cleared_version if learned != null else 0
+	if learned != _learned or version != _cleared_version:
+		_learned = learned
+		_cleared_version = version
+		var shrubs: Population = _populations.understorey
+		_restand(shrubs, func(i): return not _cleared(learned, shrubs, i))
 	_felled.show(fallen_bodies, _populations.forest)
-	for cell in _cell_list:
-		cell.learned = learned
 
 ## Chooses what `view` (`detail_view.gd`) draws and casts at presentation
-## second `clock`, and counts it.
+## second `clock`, and counts it. The batches are written only when what the
+## frame draws differs from the last frame's.
 func prepare(view, clock: float) -> void:
-	var view_lists := []
-	var cast_lists := []
-	for k in _kinds.size() * TIERS:
-		view_lists.append(PackedFloat32Array())
-		cast_lists.append(PackedFloat32Array())
+	var plan := []
 	for population in POPULATIONS:
-		_select(_populations[population], view, view_lists, cast_lists, counts[population])
-	_select_dressing(view, view_lists, counts.dressing)
-	for k in _appearances.size():
-		if _appearances[k] < 0:
-			continue
-		for tier in TIERS:
-			_batches.choose(_appearances[k], tier, view_lists[k * TIERS + tier], cast_lists[k * TIERS + tier])
+		plan.append(_plan(_populations[population], view, counts[population]))
+	plan.append(_plan_dressing(view, counts.dressing))
+	if plan != _last_plan:
+		_last_plan = plan
+		_choose(plan)
 	_felled.prepare(view, clock, _lod_px, counts.felled, counts.stumps)
+	_batches.write()
 
-func prepare_batches(camera: Camera3D, size: Vector2) -> void:
-	_batches.prepare(camera, size)
 
 ## The tier an instance `height` metres tall draws at from `distance` (`tierFor`).
 static func tier_for(height: float, distance: float, pixels_per_metre: float, lod_px: Array) -> int:
 	var px := height * pixels_per_metre / maxf(distance, 1e-3)
 	return 0 if px > float(lod_px[0]) else 1 if px > float(lod_px[1]) else 2 if px > float(lod_px[2]) else COARSEST
 
-## Adds what `view` draws of `pop` to the lists, by kind and tier, and counts it.
-func _select(pop: Population, view, view_lists: Array, cast_lists: Array, drawn: PackedInt32Array) -> void:
+## What `view` draws of `pop`, counted into `drawn` by kind and tier: per
+## chunk, `[chunk, FAR or NEAR or CAST, casts, its near packs' version]`.
+func _plan(pop: Population, view, drawn: PackedInt32Array) -> Array:
 	drawn.fill(0)
-	var ppm: float = view.pixels_per_metre
-	var eye: Vector3 = view.eye
-	for c in pop.boxes.size():
-		if pop.stood[c].is_empty():
-			continue
+	var plan := []
+	var visit: Array = pop.grid.visit(view, pop.boxes, pop.sizes, pop.casts)
+	for c in visit[1]:
+		plan.append([c, CAST, true, 0])
+	for c in visit[0]:
 		var box := pop.boxes[c]
-		if not view.box_meets(box):
-			if pop.casts and view.casts_into_view(box, pop.sizes[c]):
-				for kind in pop.whole[c]:
-					cast_lists[kind * TIERS + COARSEST].append_array(pop.whole[c][kind])
-			continue
 		var distance: float = view.distance_to(box)
-		if tier_for(pop.sizes[c], distance, ppm, _lod_px) == COARSEST:
-			var casts: bool = pop.casts and distance <= view.reach
+		if tier_for(pop.sizes[c], distance, view.pixels_per_metre, _lod_px) == COARSEST:
 			for kind in pop.whole[c]:
-				var whole: PackedFloat32Array = pop.whole[c][kind]
-				view_lists[kind * TIERS + COARSEST].append_array(whole)
-				drawn[kind * TIERS + COARSEST] += whole.size() / FLOATS
-				if casts:
-					cast_lists[kind * TIERS + COARSEST].append_array(whole)
+				drawn[kind * TIERS + COARSEST] += pop.whole[c][kind].size() / FLOATS
+			plan.append([c, FAR, pop.casts and distance <= view.reach, 0])
 			continue
-		for i in pop.stood[c]:
-			var tier := tier_for(pop.heights[i], eye.distance_to(pop.centres[i]), ppm, _lod_px)
-			var kind := pop.kinds[i]
-			var instance := pop.packs.slice(i * FLOATS, i * FLOATS + FLOATS)
-			view_lists[kind * TIERS + tier].append_array(instance)
-			drawn[kind * TIERS + tier] += 1
-			if pop.casts:
-				cast_lists[kind * TIERS + mini(tier + _caster_coarser, COARSEST)].append_array(instance)
+		_tier_near(pop, c, view)
+		for key in pop.near_packs[c]:
+			drawn[key] += pop.near_packs[c][key].size() / FLOATS
+		plan.append([c, NEAR, pop.casts, pop.near_version[c]])
+	return plan
 
-## Adds the dressing cells `view` draws, nearest first while the slots last.
-func _select_dressing(view, view_lists: Array, drawn: PackedInt32Array) -> void:
+## Near chunk `c`'s instances each at their own tier for `view`; their packs
+## are rebuilt only when a tier changed.
+func _tier_near(pop: Population, c: int, view) -> void:
+	var stood := pop.stood[c]
+	var tiers := PackedByteArray()
+	tiers.resize(stood.size())
+	var eye: Vector3 = view.eye
+	var ppm: float = view.pixels_per_metre
+	# Its tallest tree at the box's nearest point and its shortest at the
+	# farthest taking one tier, every tree takes it.
+	var near := tier_for(pop.sizes[c], view.distance_to(pop.boxes[c]), ppm, _lod_px)
+	if near == tier_for(pop.least[c], view.farthest(pop.boxes[c]), ppm, _lod_px):
+		tiers.fill(near)
+	else:
+		var l0 := float(_lod_px[0])
+		var l1 := float(_lod_px[1])
+		var l2 := float(_lod_px[2])
+		for n in stood.size():
+			var i := stood[n]
+			var px := pop.heights[i] * ppm / maxf(eye.distance_to(pop.centres[i]), 1e-3)
+			tiers[n] = 0 if px > l0 else 1 if px > l1 else 2 if px > l2 else COARSEST
+	if tiers == pop.near_tiers[c]:
+		return
+	pop.near_tiers[c] = tiers
+	var packs := {}
+	for n in stood.size():
+		var i := stood[n]
+		var key := pop.kinds[i] * TIERS + tiers[n]
+		if not packs.has(key):
+			packs[key] = PackedFloat32Array()
+		packs[key].append_array(pop.packs.slice(i * FLOATS, i * FLOATS + FLOATS))
+	pop.near_packs[c] = packs
+	pop.near_version[c] += 1
+
+## The dressing cells `view` draws, nearest first while the browser's slots
+## last, counted into `drawn`: `[cell, tier, the cell's pack version]` each.
+func _plan_dressing(view, drawn: PackedInt32Array) -> Array:
 	drawn.fill(0)
 	if _cell_list.is_empty():
-		return
+		return []
 	var ppm: float = view.pixels_per_metre
 	var top := float(_dressing_rules.topM)
 	var reach := top * ppm / (float(_dressing_rules.fadePx) * float(_dressing_rules.gone))
@@ -241,26 +284,64 @@ func _select_dressing(view, view_lists: Array, drawn: PackedInt32Array) -> void:
 			if distance < reach:
 				wanted.append([distance, at])
 	wanted.sort_custom(func(a, b): return a[0] < b[0])
-	var slots := int(_dressing_rules.slots)
-	for entry in wanted.slice(0, slots):
+	var plan := []
+	for entry in wanted.slice(0, int(_dressing_rules.slots)):
 		var tier := tier_for(top, entry[0], ppm, _dressing_rules.lodPx)
-		var pack := _dressing_pack(_cell_list[entry[1]])
+		var cell: Dictionary = _cell_list[entry[1]]
+		var pack := _dressing_pack(cell)
 		for kind in pack:
-			view_lists[kind * TIERS + tier].append_array(pack[kind])
 			drawn[kind * TIERS + tier] += pack[kind].size() / FLOATS
+		plan.append([entry[1], tier, cell.version])
+	return plan
+
+## Hands the batches every appearance and tier `plan` draws and casts.
+func _choose(plan: Array) -> void:
+	var view_lists := []
+	var cast_lists := []
+	for k in _kinds.size() * TIERS:
+		view_lists.append(PackedFloat32Array())
+		cast_lists.append(PackedFloat32Array())
+	for p in POPULATIONS.size():
+		var pop: Population = _populations[POPULATIONS[p]]
+		for entry in plan[p]:
+			var c: int = entry[0]
+			if entry[1] == NEAR:
+				for key in pop.near_packs[c]:
+					view_lists[key].append_array(pop.near_packs[c][key])
+					if entry[2]:
+						cast_lists[key - key % TIERS + mini(key % TIERS + _caster_coarser, COARSEST)].append_array(pop.near_packs[c][key])
+				continue
+			for kind in pop.whole[c]:
+				if entry[1] == FAR:
+					view_lists[kind * TIERS + COARSEST].append_array(pop.whole[c][kind])
+				if entry[2]:
+					cast_lists[kind * TIERS + COARSEST].append_array(pop.whole[c][kind])
+	for entry in plan[POPULATIONS.size()]:
+		var pack: Dictionary = _cell_list[entry[0]].pack
+		for kind in pack:
+			view_lists[kind * TIERS + entry[1]].append_array(pack[kind])
+	for k in _appearances.size():
+		if _appearances[k] < 0:
+			continue
+		for tier in TIERS:
+			_batches.choose(_appearances[k], tier, view_lists[k * TIERS + tier], cast_lists[k * TIERS + tier])
 
 ## A cell's pieces standing on ground the side has not seen cleared, by
 ## kind; laid again when what is cleared under it changes.
 func _dressing_pack(cell: Dictionary) -> Dictionary:
+	if cell.laid == _cleared_version and not cell.pack.is_empty():
+		return cell.pack
+	cell.laid = _cleared_version
 	var cleared := PackedByteArray()
 	cleared.resize(cell.count)
-	var learned = cell.get("learned")
+	var learned = _learned
 	var records := _dressing
 	for p in cell.count:
 		var o: int = (cell.first + p) * records.stride + records.at.pose
 		cleared[p] = 1 if learned != null and learned.cleared_at(records.f[o], records.f[o + 1]) else 0
 	if cleared != cell.cleared or cell.pack.is_empty():
 		cell.cleared = cleared
+		cell.version += 1
 		var pack := {}
 		for p in cell.count:
 			if cleared[p]:
@@ -321,9 +402,14 @@ func _population(records: Dictionary, casts: bool) -> Population:
 	for c in pop.members.size():
 		pop.boxes.append(AABB())
 		pop.sizes.append(0.0)
+		pop.least.append(0.0)
 		pop.whole.append({})
 		pop.stood.append(PackedInt32Array())
+		pop.near_tiers.append(PackedByteArray())
+		pop.near_packs.append({})
+		pop.near_version.append(0)
 		_rechunk(pop, c)
+	pop.grid = ChunkGrid.new(pop.boxes, pop.sizes, 4.0 * _chunk_m)
 	return pop
 
 ## Rebuilds `pop`'s chunk `c` from what stands in it.
@@ -332,19 +418,27 @@ static func _rechunk(pop: Population, c: int) -> void:
 	var whole := {}
 	var box := AABB()
 	var size := 0.0
+	var least := INF
 	for i in pop.members[c]:
 		if not pop.standing[i]:
 			continue
 		box = pop.bounds[i] if stood.is_empty() else box.merge(pop.bounds[i])
 		size = maxf(size, pop.heights[i])
+		least = minf(least, pop.heights[i])
 		stood.append(i)
 		var kind := pop.kinds[i]
 		if not whole.has(kind):
 			whole[kind] = PackedFloat32Array()
 		whole[kind].append_array(pop.packs.slice(i * FLOATS, i * FLOATS + FLOATS))
 	pop.stood[c] = stood
+	# Tiered again when next near.
+	pop.near_tiers[c] = PackedByteArray()
+	pop.near_version[c] += 1
 	pop.boxes[c] = box
 	pop.sizes[c] = size
+	pop.least[c] = least
+	if pop.grid != null:
+		pop.grid.update(pop.grid.cell_of(c), pop.boxes, pop.sizes)
 	pop.whole[c] = whole
 
 ## Stands each instance of `pop` that `stands` keeps, rebuilding the chunks

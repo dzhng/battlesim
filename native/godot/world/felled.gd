@@ -39,6 +39,8 @@ var _stumps := PackedInt32Array()
 ## last baked for.
 var _trees: Array[Dictionary] = []
 var _root: Node3D
+## Where each forest tree is in the forest population, by trunk id.
+var _forest_at := {}
 
 func _init(rules: Dictionary, tick_hz: float) -> void:
 	_rules = rules
@@ -65,15 +67,16 @@ func build(batches: ModelBatches, appearances: PackedInt32Array, root: Node3D, f
 		var part := MeshInstance3D.new()
 		part.mesh = stump_mesh(trunk, float(_rules.stump_height_m), barks[kind], _rules.cut)
 		holder.add_child(part)
-		_stumps[kind] = batches.add_appearance(holder, {"lod_px": [0.0, 0.0, 0.0], "sized": true}, true)
+		_stumps[kind] = batches.add_appearance(holder, true)
 		holder.free()
 
 ## The felled trees of `fallen_bodies` (`fallenBodies`) that `forest` (a
 ## `scenery_layer.gd` population) stands.
 func show(fallen_bodies: Array, forest) -> void:
-	var at := {}
-	for i in forest.ids.size():
-		at[forest.ids[i]] = i
+	if _forest_at.is_empty():
+		for i in forest.ids.size():
+			_forest_at[forest.ids[i]] = i
+	var at := _forest_at
 	var before := {}
 	for tree in _trees:
 		before[tree.prop] = tree

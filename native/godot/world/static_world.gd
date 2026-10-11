@@ -77,6 +77,7 @@ func build(report) -> void:
 ## Draws what `sample` (the frame's publication) says the side knows, with
 ## the side's learned ground replayed to its tick (`learned`), at presentation
 ## second `clock`, as `camera` sees it into a viewport `size` pixels big.
+## Each layer writes its batches only when what it draws changed.
 func present(sample: Dictionary, learned, clock: float, camera: Camera3D, size: Vector2, report) -> void:
 	var view = DetailView.of(camera, size, _sun, _max_far_m)
 	if buildings != null:
@@ -88,8 +89,6 @@ func present(sample: Dictionary, learned, clock: float, camera: Camera3D, size: 
 	if props != null:
 		props.set_known(sample.knownProps)
 		props.prepare(view)
-	for layer in _layers():
-		layer.prepare_batches(camera, size)
 
 ## What the last frame drew, in the browser's `instanceCounts` shape (less
 ## the plate's name).

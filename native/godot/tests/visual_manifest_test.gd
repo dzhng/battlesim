@@ -6,7 +6,7 @@ func run() -> bool:
 	var fixture_dir := FIXTURE_RUN.path_join(FIXTURE_SCENE)
 	var loaded := Manifest.load(fixture_dir, FIXTURE_MAPS)
 	check(loaded.ok, "the fixture manifest is admitted: %s" % loaded.get("blocker"))
-	check(loaded.get("manifest", {}).get("layers", []).has("buildings") and not loaded.manifest.layers.has("fog"), "the admitted manifest carries the layers the browser drew")
+	check(loaded.get("manifest", {}).get("layers", []).has("terrain") and not loaded.manifest.layers.has("fog"), "the admitted manifest carries the layers the browser drew")
 	check(loaded.get("capture", {}).get("valid", false), "the admitted run carries its parsed capture")
 
 	# Each identity mismatch is refused with a blocker that names it.
