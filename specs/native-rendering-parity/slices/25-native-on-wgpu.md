@@ -29,4 +29,10 @@ Write the findings into this file before building.
 - **Performance:** native at or below the browser on every measure, both scenes, release build.
 - **Less code:** Godot's project, its ported shaders and the GDScript go. Net code drops.
 
+**Platforms** (user, 2026-10-11): native must run on **Windows** as well as macOS. This replaces the walk's "macOS only for now".
+- `wgpu` covers both: Direct3D 12 (and Vulkan) on Windows, Metal on macOS.
+- The gates above must pass on Windows too. That needs a Windows machine, real or cloud. Until one is available, Windows is built for but marked unverified.
+
+**Then, the fully shared renderer** (user, 2026-10-11: liked, decided after measuring). `wgpu` also targets the browser's WebGPU through WASM. Once native `wgpu` is measured against TypeGPU, decide whether the browser renderer moves to the same Rust `wgpu` renderer, so both clients share one renderer and the host-side pass orchestration stops being duplicated. TypeGPU stays the browser's stack until then: it was chosen because it performs well (2026-09-27), and no earlier `wgpu` comparison is recorded.
+
 **Order:** after phase 4's 19, 20 and 20b, because the 18b API is what both renderers consume. Planned in detail when phase 4 closes.
