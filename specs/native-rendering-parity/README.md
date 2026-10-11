@@ -4,7 +4,7 @@
 
 **Status:** phase 1 is built and closed (2026-10-10). Native draws the menu reel from the browser's frame records with the same camera, light, terrain and grass, and every slice passed its one-variable gate. [`choices.md`](choices.md) holds the discovery map and the consolidated phase 1 ledger. Phase 2, native performance, is planned (slices 07–12) and comes before any more visual work.
 
-**Next pickup:** slice 09, native model drawing architecture. Slice 08 named the cause: with the harness fixed, native frames are GPU-saturated vertex work from the legacy map layer (units unbatched, props at full detail) multiplied by four shadow cascades. The orchestrator decided to build the lasting batched draw path rather than tune or skip the scaffolding (`slices/09-model-batches.md`). Read `choices.md` (Phase 2) first; its decisions are givens.
+**Next pickup:** slice 10, per-pass GPU budgets. Slice 09 built the batched model path: the market-town window now runs at 8.45 ms (the browser's p50 is 16.7), and the whole reel at a 10.3 ms p50 but a 26 ms p95, from the wide city views where kit shells still draw all four tiers and far props their coarsest out to the horizon. Presenting to a shown window is still unmeasured since 09. Read `choices.md` (Phase 2) first; its decisions are givens.
 
 **Goal:** make the native Godot client visually equivalent to the browser renderer for the authored menu reel, and at least as fast as it, as a maintained second client beside the browser. Rust stays the only gameplay, observation, visibility, replay and digest authority. The browser remains shipped.
 
@@ -42,14 +42,14 @@ Graph: `07 → 08 → 09 → 10 → 11 → 12`. Measure first and name the cause
 
 - [x] 07 — Profiling harness (`2fd549f2b`, `cfe6887ae`, `39850b7b7`): one command per client, one summariser, GPU traces on both; native draws every frame itself, so a hidden window no longer stalls it. Not taken: the Time Profiler CPU profile. [slice](slices/07-profiling-harness.md)
 - [x] 08 — Native frame anatomy: the 77 ms frames were waiting (fixed in 07) plus the legacy layer's draws and primitives times the shadow cascades; findings in the slice. [slice](slices/08-native-frame-anatomy.md)
-- [ ] 09 — Native model drawing architecture: batched instances per appearance and tier, the browser's impostors, and shadow casters culled per cascade. 08 found the cost is the legacy model layer times the cascades, not waiting. [slice](slices/09-model-batches.md)
+- [x] 09 — Native model drawing architecture (`355be5442`, then the tiers pass): `world/model_batches.gd` draws one MultiMesh per appearance and authored tier, a surface per material; statics culled and tiered by 64 m chunk, casters one tier coarser. Market-town 1000–1299: 19,922 → 410 draws, 18.0 → 4.24 M primitives, 34.75 → 8.45 ms p50. Impostor cards deferred to 13. [slice](slices/09-model-batches.md)
 - [ ] 10 — Per-pass GPU budgets: every native pass at or below the browser's. [slice](slices/10-pass-budgets.md)
 - [x] 11 — Release build: `native/godot/release.sh` exports a macOS release build and runs the parity run from it; its paris-corner and market-town plates match the editor run's within the grass noise floor, and the report states its build kind. The browser's production build and the side-by-side timings are slice 12's. [slice](slices/11-release-build.md)
 - [ ] 12 — Performance gate: native no slower than the browser on any measure, on both scenes, plugged in. [slice](slices/12-performance-gate.md)
 
 ### Phase 3: same models and events, then promotion (placeholders)
 
-- [ ] 13 — Authored model identity, material roles, pivots, fit, recorded LOD tiers, buildings and props. Replaces `legacy_map_layer.gd`.
+- [ ] 13 — Authored model identity, material roles, pivots, fit, recorded LOD tiers, buildings and props, on slice 09's `model_batches.gd`; posed soldiers and their impostor cards. Replaces `legacy_map_layer.gd`.
 - [ ] 14 — Observed dust, smoke, muzzle/tracer, blast, scar and grounding effects from published causes. This needs a new publication seam: the capture must carry effect causes.
 - [ ] 15 — Compose all layers within phase 2's budgets.
 - [ ] 16 — Promotion gate; the full repository check runs once here.
@@ -61,7 +61,7 @@ Graph: `07 → 08 → 09 → 10 → 11 → 12`. Measure first and name the cause
 
 | Scaffolding | Removed |
 | --- | --- |
-| `legacy_map_layer.gd` | Slice 13 |
+| `legacy_map_layer.gd` (placement, its kit shells drawn at every tier, its read of `fixtures/game.json` detail thresholds) | Slice 13 |
 | The grass count gate's `scar-omission` allowance | Slice 14, when native draws learned scars |
 
 Update this section before ending every implementation pass. Record the current slice, evidence, unresolved decisions, and the next exact pickup.
@@ -105,7 +105,7 @@ Native must not choose a building shell by family/token heuristics (removed in s
 - Terrain and grass: `packages/battle-renderer/src/terrain/{terrainSurface.ts,terrainGrid.ts,biome.ts,grassField.ts}` and `packages/battle-renderer/src/frame/{terrainHeights.ts,terrainMaterial.ts,grassPass.ts}`.
 - Models and authored content (phase 2): `packages/scene-assets/src/{loader.ts,schema.ts,templateLibrary.ts,appearanceCatalog.ts}`, `packages/battle-renderer/src/models/*`, `apps/battle-lab/src/buildingTier.ts`.
 - Effects and scars (phase 2): `packages/battle-renderer/src/effects/{effectFrame.ts,effectPass.ts}` and `packages/battle-renderer/src/frame/scarTexture.ts`.
-- Native client: `native/godot/` (see its README). `parity_run.gd` is the entry point. Capture, manifest, stepping, plates and the report are separate modules, and `core/` owns the concepts they share (strict JSON, coordinates, word tables, compute passes, shader text). The pre-parity buildings, props and units live in `world/legacy_map_layer.gd` until slice 13.
+- Native client: `native/godot/` (see its README). `parity_run.gd` is the entry point. Capture, manifest, stepping, plates and the report are separate modules, and `core/` owns the concepts they share (strict JSON, coordinates, word tables, compute passes, shader text). Models are drawn by `world/model_batches.gd`; the pre-parity placement of buildings, props and units lives in `world/legacy_map_layer.gd` until slice 13.
 
 ## Known evidence and risks
 
@@ -136,11 +136,11 @@ Counters never prove pixels. Headless Godot proves lifecycle only. Every pass ke
 
 ## Next Agent Prompt
 
-*Updated 2026-10-10.* Phase 1 is closed. You are implementing **phase 2, native performance**, starting at slice 07.
+*Updated 2026-10-11.* Phase 1 is closed. You are implementing **phase 2, native performance**; 07, 08, 09 and 11 are done, so the next is slice 10.
 
 1. **Read first:** this README, then `choices.md` (its decisions are givens), then the slice file. Load `audit-performance`, `renderer` and `write-tests`.
-2. **Measure before changing anything.** 07 builds the harness and 08 names the cause.
-   - An FPS-comparison agent has already started 07: a native `--bench` timing mode, raw per-frame intervals summarised by the browser's code, and Metal HUD logging. It was redirected to 08's ablation once the slow frames showed up. Check `throwaway/perf/` and `git log` for what landed.
+2. **Measure before changing anything,** with 07's harness: native `--bench` and `web/fps-compare.mjs`, three runs. 08's anatomy and 09's before/after tables are in their slice files; their evidence is in `throwaway/perf/`.
+   - Native's staged imports predate a merge of main that changed the Abrams and soldier sources (`choices.md`, slice 09). Keep them while comparing with the 2026-10-10 control; a new control and a fresh import go together.
 3. **Measuring conditions:**
    - Every comparison is plugged in, at 1280×720.
    - Both clients are uncapped, or both capped at the display rate.

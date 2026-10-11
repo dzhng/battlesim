@@ -302,6 +302,29 @@ Commits `2fd549f2b`, `cfe6887ae`, `39850b7b7`. Closed by the coordinator on the 
   - Confidence: high.
 - **Not done: the CPU profile.** No Time Profiler capture was taken. Native CPU time per frame is 6–7 ms against 26 ms frames, so the CPU isn't the bottleneck.
 
+### Slice 09: native model drawing architecture
+
+Closed by the agent on the evidence; the user had not reviewed it at the time of writing.
+
+- **One MultiMesh per appearance and tier, its mesh one surface per material.** Each tier's parts are merged with their transforms baked in (`SurfaceTool`), so a 1,247-part Abrams draws one surface per material a pass (the reel's units average about 15), not one per part. The slice's "one MultiMesh per appearance part" became per appearance, because parts would have kept draw calls in the thousands.
+  - Confidence: high.
+- **The authored `_LOD<n>` names are the tiers, and Godot's automatic mesh LODs are off** (`rendering/mesh_lod/lod_change/threshold_pixels = 0`). The legacy layer drew all four authored tiers of every model on top of each other, the main source of 08's primitives and of z-fighting speckle. One level-of-detail owner, as in the browser; merged meshes have no Godot LODs anyway.
+  - Confidence: high.
+- **Tiers follow the browser's rules, at chunk granularity for statics.** Models by projected height (`presentation.models.lod_px`), buildings by a metre's pixels (`presentation.buildings.lod_px_per_m`), statics in 64 m chunks tiered at the chunk's nearest point, movers one by one. The browser tiers props per instance inside near chunks; the chunk rule is never coarser than that, and a chunk's batches are rewritten only when the chunk crosses a tier boundary or the view's edge.
+  - Confidence: high.
+- **The detail thresholds are read from `fixtures/game.json` by the legacy layer,** like the catalogs it already reads, not from the manifest. Slice 13 moves them into the manifest with the rest of placement.
+  - Confidence: medium. It is a second reader of `presentation`, with a named removal.
+- **Shadows mirror the browser, not the brief's wording.** A mesh-drawn model casts through a shadow-only batch one tier coarser (`CASTER_COARSER`), the coarsest tier casts as itself, and view batches cast nothing. A chunk out of view whose shadow can land in it casts at the coarsest tier. The brief said far tiers don't cast; the browser's far props do, out to the cascades' 2.6 km, and dropping them would move native away from it.
+  - Confidence: high.
+- **Kit shells draw every tier at once.** A shell's finer tiers have openings that facade modules fill, and the legacy layer places no modules, so a single tier showed hollow Paris blocks. Shells are about 1% of draws; slice 13 replaces them.
+  - Confidence: high.
+- **Skinned parts are posed on the CPU at build** (bind poses times the skeleton's pose), because a MultiMesh draws no skeleton. Without it the soldiers shifted by a few pixels.
+  - Confidence: high.
+- **No impostor cards yet.** The browser bakes cards only for skinned soldiers, from their far pose. Native has six unposed soldiers in the reel, whose coarsest tier is 755 triangles, and the window runs at 8.5 ms against a 16.7 ms budget. Cards baked from an unposed soldier would show the wrong pose, so they wait for slice 13's articulation. *Agent, against the slice's contract; spending margin on simplicity.*
+  - Confidence: medium.
+- **The runs use the assets imported on 2026-10-10.** A merge of main during the slice changed the Abrams and both soldier sources; the staging only imports new files, so native kept the earlier imports, which match the browser control. A fresh import (or a new control) brings in main's models.
+  - Confidence: high.
+
 ### Slice 11: release build
 
 - **The release export runs the parity run unchanged, through one script.** `native/godot/release.sh` exports the `macOS release` preset into `throwaway/native-release/` and passes every argument through, so plates and `--bench` both run from the exported app.

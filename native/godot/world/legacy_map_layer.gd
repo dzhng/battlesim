@@ -36,6 +36,12 @@ var _units: ModelBatches
 ## Unit kind name -> its appearance in the units' batches.
 var _unit_appearances := {}
 var _side_color: Color
+## The detail rules of `model_batches.gd`: a model's tier by its projected
+## size, a building's by a metre's.
+var _model_detail: Dictionary
+var _building_detail: Dictionary
+var _sun: Vector3
+var _max_far_m: float
 var _contact_mesh: CylinderMesh
 ## The ground's `height_field.gd`.
 var _heights
@@ -77,15 +83,24 @@ func required_assets(layers: Array) -> Array:
 	needed.erase("")
 	return needed.keys()
 
-## Builds the listed layers from staged assets, reporting every category.
-func build(layers: Array, staged: Dictionary, side: String, report) -> void:
+## Builds the listed layers from staged assets, reporting every category;
+## `light` is the manifest's, whose sun the models' shadows fall from.
+func build(layers: Array, staged: Dictionary, side: String, light: Dictionary, report) -> void:
 	_staged = staged
+	_sun = Coords.sim_array_to_godot(light.sunDirection)
+	_max_far_m = float(light.cascades.max_far_m)
 	if layers.has("buildings"):
 		_build_buildings(report)
 	if layers.has("props"):
 		_build_props(report)
 	if layers.has("models"):
 		_build_units(side, report)
+
+## Chooses what `camera`, drawing into a viewport `size` pixels big, draws of
+## every layer this frame.
+func prepare(camera: Camera3D, size: Vector2) -> void:
+	for batches in get_children():
+		batches.prepare(camera, size)
 
 ## Shows the units of one decoded publication, and no other unit.
 func show_units(units: Array) -> void:
@@ -123,11 +138,11 @@ func _build_buildings(report) -> void:
 		else:
 			boxes.append(Transform3D(Coords.yaw_basis(yaw).scaled_local(Vector3(18.0, 8.0, 18.0)), Coords.sim_array_to_godot(translation) + Vector3(0.0, 4.0, 0.0)))
 	if not boxes.is_empty():
-		var box := _stand_in(batches, _box_mesh(Color("7b7d7b"), 0.8))
+		var box := _stand_in(batches, _box_mesh(Color("7b7d7b"), 0.8), _building_detail)
 		for placement in boxes:
 			batches.add_static(box, placement)
 	batches.seal()
-	report.add_budget(OWNER, "approximation: kit shells picked by template token (until slice 07), within %d m of a frame target" % REACH_M, "map.buildings", admitted, near, admitted - near)
+	report.add_budget(OWNER, "approximation: kit shells picked by template token, every tier drawn at once (until slice 13), within %d m of a frame target" % REACH_M, "map.buildings", admitted, near, admitted - near)
 	if not boxes.is_empty():
 		report.add_budget(OWNER, "approximation: an 18x8x18 m box where no kit shell matches the template", "map.buildings/boxes", boxes.size(), boxes.size(), 0)
 	_report_malformed(report, "map.buildings", malformed)
@@ -142,7 +157,7 @@ func _shell(template_id: String, batches: ModelBatches) -> int:
 	if not _shells.has(key):
 		var catalog := _scene(kit).instantiate()
 		var shell := catalog.get_node_or_null(NodePath(token))
-		_shells[key] = batches.add_appearance(shell) if shell != null else -1
+		_shells[key] = batches.add_appearance(shell, _building_detail) if shell != null else -1
 		catalog.free()
 	return _shells[key]
 
@@ -240,12 +255,12 @@ func _build_props(report) -> void:
 			var appearance: int
 			if not entry.source.is_empty():
 				var root := _scene(entry.source).instantiate()
-				appearance = batches.add_appearance(root)
+				appearance = batches.add_appearance(root, _model_detail)
 				root.free()
 			elif kind == "street_tree":
-				appearance = _stand_in(batches, _tree_mesh())
+				appearance = _stand_in(batches, _tree_mesh(), _model_detail)
 			else:
-				appearance = _stand_in(batches, _box_mesh(Color("7d6a50"), 0.55))
+				appearance = _stand_in(batches, _box_mesh(Color("7d6a50"), 0.55), _model_detail)
 			for placement in entry.placements:
 				batches.add_static(appearance, placement)
 		report.add_budget(OWNER, "%s, within %d m of a frame target" % [reason, REACH_M], "prop:" + kind, entry.admitted, entry.placements.size(), entry.admitted - entry.placements.size())
@@ -282,6 +297,12 @@ func _prop_source(kind: String) -> String:
 func _build_units(side: String, report) -> void:
 	_units = _batches("ObservedUnits")
 	_side_color = Color("d95c5c") if side == "red" else Color("4d9be6")
+	_contact_mesh = CylinderMesh.new()
+	_contact_mesh.top_radius = 0.95
+	_contact_mesh.bottom_radius = 0.95
+	_contact_mesh.height = 0.05
+	_contact_mesh.material = _material(Color(_side_color, 0.85), 1.0)
+	_contact_mesh.material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	for kind in _unit_kinds:
 		var source := _unit_source(kind)
 		var reason := "catalog model %s at its authored size, unposed" % source if not source.is_empty() else "approximation: a capsule; the unit kind has no catalog appearance"
@@ -305,18 +326,11 @@ func _unit_appearance(kind: String) -> int:
 		capsule.mesh.material.emission_energy_multiplier = 0.25
 		capsule.position.y = 0.7
 		holder.add_child(capsule)
-	if _contact_mesh == null:
-		_contact_mesh = CylinderMesh.new()
-		_contact_mesh.top_radius = 0.95
-		_contact_mesh.bottom_radius = 0.95
-		_contact_mesh.height = 0.05
-		_contact_mesh.material = _material(Color(_side_color, 0.85), 1.0)
-		_contact_mesh.material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	var contact := MeshInstance3D.new()
 	contact.mesh = _contact_mesh
 	contact.position.y = 0.03
 	holder.add_child(contact)
-	var appearance := _units.add_appearance(holder)
+	var appearance := _units.add_appearance(holder, _model_detail)
 	holder.free()
 	return appearance
 
@@ -335,6 +349,12 @@ func _unit_source(kind: String) -> String:
 # Shared -----------------------------------------------------------------------
 
 func _load_catalogs() -> void:
+	# The browser's detail tiers (`presentation.models` and `.buildings`).
+	var presentation: Dictionary = _read_json("fixtures/game.json").presentation
+	_model_detail = {"lod_px": presentation.models.lod_px, "sized": true}
+	# A kit shell's finer tiers have openings its facade modules fill; this
+	# layer places no modules, so every tier of a shell is drawn together.
+	_building_detail = {"lod_px": presentation.buildings.lod_px_per_m, "sized": false, "tiers": false}
 	var appearances = _read_json("assets/catalog.json")
 	if typeof(appearances) == TYPE_DICTIONARY:
 		_appearances = appearances.get("appearances", {})
@@ -377,12 +397,12 @@ func _scene(relative: String) -> PackedScene:
 	return _scenes[relative]
 
 ## A one-mesh stand-in's appearance in `batches`.
-static func _stand_in(batches: ModelBatches, mesh: Mesh) -> int:
+static func _stand_in(batches: ModelBatches, mesh: Mesh, detail: Dictionary) -> int:
 	var root := Node3D.new()
 	var part := MeshInstance3D.new()
 	part.mesh = mesh
 	root.add_child(part)
-	var appearance := batches.add_appearance(root)
+	var appearance := batches.add_appearance(root, detail)
 	root.free()
 	return appearance
 
@@ -406,7 +426,7 @@ static func _material(color: Color, roughness: float) -> StandardMaterial3D:
 	return material
 
 func _batches(batches_name: String) -> ModelBatches:
-	var batches := ModelBatches.new(batches_name)
+	var batches := ModelBatches.new(batches_name, _sun, _max_far_m)
 	add_child(batches)
 	return batches
 

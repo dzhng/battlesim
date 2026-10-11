@@ -63,18 +63,24 @@ func run() -> bool:
 	var a := {"id": 1.0, "kindName": "test_unit", "position": [0.0, 0.0, 0.0], "yaw": 0.0}
 	var b := {"id": 2.0, "kindName": "test_unit", "position": [5.0, 5.0, 0.0], "yaw": 0.0}
 	var holder: Node = units.root.find_child("ObservedUnits", true, false)
+	get_root().add_child(units.root)
+	var camera := Camera3D.new()
+	units.root.add_child(camera)
+	camera.look_at_from_position(Vector3(0, 20, 30), Vector3.ZERO)
 	layer.show_units([a, b])
+	layer.prepare(camera, Vector2(1280, 720))
 	check(_drawn(holder) == 2, "both units are drawn: %d" % _drawn(holder))
 	layer.show_units([b])
+	layer.prepare(camera, Vector2(1280, 720))
 	check(_drawn(holder) == 1, "a unit absent from the publication is not drawn: %d" % _drawn(holder))
 	units.root.free()
 	return true
 
-## How many instances the batches below `holder` draw.
+## How many instances the batches below `holder` draw into the view.
 static func _drawn(holder: Node) -> int:
 	var drawn := 0
 	for batch in holder.get_children():
-		if batch is MultiMeshInstance3D and batch.visible:
+		if batch is MultiMeshInstance3D and batch.visible and batch.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY:
 			drawn += batch.multimesh.instance_count
 	return drawn
 

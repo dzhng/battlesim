@@ -184,6 +184,7 @@ func _render(options: Dictionary) -> void:
 			world.grass.grow(record)
 		world.environment.prepare(camera, Vector2(get_window().size), StrictJson.vector3(record.target))
 		world.layer.show_units(sample.units)
+		world.layer.prepare(camera, Vector2(get_window().size))
 		if world.fog != null:
 			world.fog.show_fog(sample.fog)
 		var step_ms := (Time.get_ticks_usec() - stepped) / 1000.0
@@ -294,7 +295,7 @@ static func compose(root: Node3D, manifest: Dictionary, ground: Dictionary, samp
 	root.add_child(layer)
 	var fog: Node3D = null
 	if report.ok():
-		layer.build(layers, staged, side, report)
+		layer.build(layers, staged, side, manifest.light, report)
 		if layers.has("fog"):
 			fog = FogLayer.new()
 			root.add_child(fog)

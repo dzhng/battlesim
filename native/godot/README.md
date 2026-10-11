@@ -260,15 +260,43 @@ browser's own tables (`manifest.grass`), anew for every frame record.
   them, so two runs of the same plate can differ in a few pixels where blades
   overlap. Compare plates against that floor, not against zero.
 
+## Models
+
+`world/model_batches.gd` draws placed models as the browser's models layer
+does: instanced batches, so draw calls follow appearances × tiers ×
+materials × passes, never placed objects or their parts.
+
+- **Appearances.** Any node tree of meshes. Each tier's meshes merge into one
+  mesh with a surface per material, every part's transform baked in. A mesh
+  names its tier with a `_LOD<n>` suffix (finest first, the scene assets'
+  rule) and an unsuffixed mesh is in every tier. A skinned mesh is posed on
+  the CPU where its skeleton stands. Godot's own simplified meshes are off
+  (`project.godot`): the authored tiers are the one level of detail.
+- **Tiers.** A model takes the tier the browser's `presentation.models` gives
+  its projected height; a building the one `presentation.buildings` gives a
+  metre at its distance. Off screen it draws nothing.
+- **Statics and movers.** Statics are bucketed in 64 m chunks; a chunk is
+  culled against the view's side planes and tiered at its nearest point, and
+  a batch is rewritten only when one of its chunks changes. Movers (units) are
+  chosen one by one every frame.
+- **Shadows.** A model drawn as a mesh casts through a shadow-only batch one
+  tier coarser, within the cascades' reach; the view's batches cast nothing.
+  A chunk out of view whose shadow can land in it casts at the coarsest tier.
+- **Not yet:** the browser's impostor cards for far soldiers. A far soldier
+  draws its coarsest tier.
+
 ## Legacy map layer
 
-Until phase 2 ports the browser's model owners, the map is drawn roughly:
-- building shells picked from a catalog kit by template token;
+Until slice 13 ports the browser's placement, `world/legacy_map_layer.gd`
+decides roughly what stands where, and each layer's batches draw it:
+- building shells picked from a catalog kit by template token, every tier at
+  once, since no facade module fills the finer tiers' openings;
 - catalog props or boxes;
 - units as unposed catalog models at their authored size, or capsules.
 
 Every category is reported as an approximation, and rows farther than 1 km
-from every frame target are reported as dropped.
+from every frame target are reported as dropped. The detail thresholds are
+read from `fixtures/game.json` until the manifest carries them.
 
 ## Checks
 
