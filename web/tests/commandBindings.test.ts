@@ -19,7 +19,8 @@ function press(code: string, init: KeyboardEventInit = {}, target: EventTarget =
 test("each command key maps to its command, per the user's table", () => {
   expect(commandForKey(press("Backspace"))).toBe("stop");
   expect(commandForKey(press("KeyR"))).toBe("reverse_move");
-  expect(commandForKey(press("KeyX"))).toBe("attack_move");
+  expect(commandForKey(press("KeyC"))).toBe("attack_move");
+  expect(commandForKey(press("KeyX"))).toBeNull();
   expect(commandForKey(press("KeyF"))).toBe("toggle_fire_policy");
   expect(commandForKey(press("KeyG"))).toBe("attack_ground");
   expect(commandForKey(press("KeyT"))).toBe("toggle_deployment");
@@ -27,7 +28,7 @@ test("each command key maps to its command, per the user's table", () => {
 });
 
 test("the letters the camera takes are no longer commands", () => {
-  for (const code of ["KeyW", "KeyA", "KeyS", "KeyD", "KeyQ", "KeyE"])
+  for (const code of ["KeyW", "KeyA", "KeyS", "KeyD", "KeyQ", "KeyE", "KeyZ", "KeyX"])
     expect(commandForKey(press(code))).toBeNull();
 });
 
