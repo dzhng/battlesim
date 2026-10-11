@@ -49,6 +49,13 @@ pub struct WeaponDefinition {
     pub magazine: Option<Magazine>,
     pub ammo: AmmoCapacity,
     pub penetration: f64,
+    /// How gently its damage fades as its penetration falls short of the
+    /// armour: the share of the armour it must reach to do any damage. Absent
+    /// is the rules' `penetration.partial_from`. A shell's blast and
+    /// fragments still shake a hull far beyond what it can pierce, so HE
+    /// fades gently where a kinetic or shaped-charge round cuts off.
+    #[serde(default)]
+    pub partial_from: Option<f64>,
     pub damage: f64,
     pub near_miss_suppression: f64,
     pub blast_radius_m: f64,
@@ -61,18 +68,48 @@ pub struct WeaponDefinition {
     /// bullets do not inherit eligibility from penetration or guidance.
     #[serde(default)]
     pub interceptable: bool,
-    /// Share of `damage` a vehicle still takes when this round fails to
-    /// penetrate the struck face: HE's partial effect on armour. Absent
-    /// means none (the round does nothing to armour it cannot pierce).
-    #[serde(default)]
-    pub armor_fraction: f64,
     /// Armour-piercing: preferred against identified vehicles, never at contacts.
     #[serde(default)]
     pub armor_piercing: bool,
-    /// The altitude layers it can engage (D1): what its crew can bring it to
-    /// bear on. A rifle, a machine gun or an autocannon swings up at a
-    /// helicopter; a tank gun, a grenade or a ground missile cannot.
-    pub targets: Vec<crate::catalog::AltitudeLayer>,
+    /// The altitude layers it can engage (D1), each with how it fires there:
+    /// what its crew can bring it to bear on. A rifle, a machine gun or an
+    /// autocannon swings up at a helicopter, from much closer and with a much
+    /// wider spread than along the ground; a tank gun, a grenade or a ground
+    /// missile cannot. A layer it does not list, it never engages.
+    pub targets: BTreeMap<crate::catalog::AltitudeLayer, LayerFire>,
+}
+
+/// How a weapon fires at one altitude layer. Each value it leaves out is
+/// the row's own. Only what changes with the target's height lives here:
+/// the gun, its magazine and its round are the same whatever it aims at.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct LayerFire {
+    /// Its reach at this layer; never past the row's `range_m`, whose flight
+    /// the rules admitted.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub range_m: Option<f64>,
+    /// Its spread at this layer, milliradians.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scatter_mrad: Option<f64>,
+}
+
+/// A weapon's resolved fire at one altitude layer.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Fire {
+    pub range_m: f64,
+    pub scatter_mrad: f64,
+}
+
+impl WeaponDefinition {
+    /// How it fires at `layer`, or `None` when its crew can't bring it to
+    /// bear there. The one place `targets` is read.
+    pub fn against(&self, layer: crate::catalog::AltitudeLayer) -> Option<Fire> {
+        self.targets.get(&layer).map(|fire| Fire {
+            range_m: fire.range_m.unwrap_or(self.ballistics.range_m),
+            scatter_mrad: fire.scatter_mrad.unwrap_or(self.ballistics.scatter_mrad),
+        })
+    }
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
@@ -112,6 +149,15 @@ pub struct OperatorPose {
     pub phase: f64,
 }
 
+/// A turret's arc: `width_deg` of bearings centred `centre_deg` off the
+/// hull's heading, counter-clockwise (90: its left).
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct MountArc {
+    pub centre_deg: f64,
+    pub width_deg: f64,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct MountDefinition {
@@ -139,6 +185,10 @@ pub struct MountDefinition {
     /// Traverses at the turret rate; fires only within the bearing tolerance.
     #[serde(default)]
     pub turret: bool,
+    /// The bearings a turret can swing through, off the hull's heading (a
+    /// door gun's door); absent, it swings all round.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub arc: Option<MountArc>,
     /// The earlier mount of the same unit whose turret carries this one (a
     /// roof gun on the cannon's turret). Absent, the hull carries it.
     #[serde(default)]
@@ -185,16 +235,6 @@ pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponR
                 }
             }
         }
-        if let Some(value) = row
-            .get("armor_fraction")
-            .and_then(serde_json::Value::as_f64)
-        {
-            if !(0.0..=1.0).contains(&value) {
-                return Err(Error::custom(format!(
-                    "weapons.{id}: armor_fraction must lie in [0, 1]"
-                )));
-            }
-        }
         if let Some(value) = row.get("turn_deg_s").and_then(serde_json::Value::as_f64) {
             if !value.is_finite() || value <= 0.0 {
                 return Err(Error::custom(format!(
@@ -227,11 +267,26 @@ pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponR
                             return Err(serde::de::Error::custom(format!("{field} must be finite and nonnegative")));
                         }
                     }
+                    if def.partial_from.is_some_and(|p| !(0.0..1.0).contains(&p)) {
+                        return Err(serde::de::Error::custom("partial_from must lie in [0, 1)"));
+                    }
                     if def.min_range_m > def.ballistics.range_m {
                         return Err(serde::de::Error::custom("min_range_m must not exceed range_m"));
                     }
-                    if !(0.0..=1.0).contains(&def.armor_fraction) {
-                        return Err(serde::de::Error::custom("armor_fraction must lie in [0, 1]"));
+                    for (layer, fire) in &def.targets {
+                        // The layer as authored (`low_air`), not its Rust name.
+                        let layer = serde_json::to_value(layer)?;
+                        let layer = layer.as_str().unwrap_or_default();
+                        if fire.range_m.is_some_and(|r| !(r > 0.0 && r <= def.ballistics.range_m)) {
+                            return Err(serde::de::Error::custom(format!(
+                                "targets.{layer}.range_m must be positive and not exceed range_m"
+                            )));
+                        }
+                        if fire.scatter_mrad.is_some_and(|s| !(s.is_finite() && s >= 0.0)) {
+                            return Err(serde::de::Error::custom(format!(
+                                "targets.{layer}.scatter_mrad must be finite and nonnegative"
+                            )));
+                        }
                     }
                     if def.ballistics.turn_deg_s.is_some_and(|rate| !rate.is_finite() || rate <= 0.0) {
                         return Err(serde::de::Error::custom("turn_deg_s must be finite and positive"));

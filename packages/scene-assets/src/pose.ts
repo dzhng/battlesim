@@ -176,7 +176,7 @@ export function poseWorlds(
 /**
  * `mesh` skinned once under joint `worlds` into a static mesh: positions,
  * normals and tangents posed, joints and weights dropped. A corpse is its
- * body posed at `corpse_pose` this way, then drawn like any static mesh.
+ * body posed at one of `corpse_poses` this way, then drawn like any static mesh.
  */
 export function posedMesh(mesh: MeshData, joints: Joint[], worlds: Mat4[]): MeshData {
   const skinning = worlds.map((w, j) => mul(w, joints[j].inverse_bind));

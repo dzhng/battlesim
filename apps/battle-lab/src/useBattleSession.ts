@@ -115,7 +115,7 @@ import type { Order, SideName } from "@web/battle/sim/protocol";
 import type { LabBox, LabPick, ViewportFrame, ViewportGpu, ViewportPointer } from "./LabViewport";
 import { pickedUnit, pickToPointer, sideInstances, type DrawnInstances } from "./sideInstances";
 import { createPoseDriver, ObservationFeed, type PoseRules } from "./poseFeed";
-import { DrawnMuzzles } from "@packages/battle-renderer/src/models/drawnMuzzles";
+import { DrawnModels } from "@packages/battle-renderer/src/models/drawnModels";
 import { useSimSession, type ScriptedSim } from "./useSimSession";
 import { createEffectFrame, drawnMuzzleSource, effectPublication, gameEffects } from "./effectFeed";
 import {
@@ -624,14 +624,14 @@ export function useBattleSession({
     );
     const resolve: ResolveAppearance = (kind, s, id, slot, operatorMount, activeMount) =>
       drawing.resolve(kind, s, id, slot, operatorMount, activeMount);
-    const muzzles = new DrawnMuzzles(appearances, resolve, units);
+    const drawn = new DrawnModels(appearances, resolve, units);
     return {
       appearances,
       driver: createPoseDriver(rules, units, appearances),
       feed: new ObservationFeed(side, units),
       resolve,
-      muzzles,
-      source: drawnMuzzleSource(muzzles, side),
+      drawn,
+      source: drawnMuzzleSource(drawn, side),
       models: [] as ModelInstance[],
       corpses: { version: -1, list: [] as CorpseInstance[], soldiers: [] as number[] },
     };
@@ -714,9 +714,10 @@ export function useBattleSession({
         return { picks: d.picks, clock: time, effects: effectBatch, ground, felled: fallenTrees };
       }
       const poses = posing.driver.update(posing.feed.frame(sample));
-      // Flashes sit on the muzzles as this frame draws them.
-      posing.muzzles.update(poses);
-      effects.build(time, effectBatch, posing.source);
+      // Flashes sit on the muzzles, and rotor blurs on the rotors, as this
+      // frame draws them.
+      posing.drawn.update(poses);
+      effects.build(time, effectBatch, posing.source, posing.drawn);
       if (audio) {
         const reversing = new Set(published.own.filter((u) => u.reversing).map((u) => u.id));
         const enemyReversing = new Set(
@@ -1137,7 +1138,7 @@ export function useBattleSession({
      *  draws it. */
     drawnMuzzle: (id: number, mount: number): Vec3 | null => {
       const at: Vec3 = [0, 0, 0];
-      return posing?.muzzles.vehicle(side, id, mount, at) ? at : null;
+      return posing?.drawn.vehicle(side, id, mount, at) ? at : null;
     },
     digest: () => sim.digest.current,
     error: () => sim.error,
@@ -1252,7 +1253,7 @@ export function useBattleSession({
     /** Every drawn model's muzzle sockets in the world, posed from the model
      *  instances as drawn (the workbench's socket gizmos), with each model's
      *  origin to select the firing body before its attachment is measured.
-     *  Computed apart from the flashes' own `DrawnMuzzles`. */
+     *  Computed apart from the flashes' own `DrawnModels`. */
     muzzleSockets: () =>
       (posing?.models ?? []).flatMap((m) => {
         const bundle = appearances?.appearances.get(m.appearance)?.bundle;

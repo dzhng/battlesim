@@ -5905,7 +5905,7 @@
                 2.615,
                 2.36
               ],
-              "hp": 250.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -6764,7 +6764,7 @@
                 3.65,
                 2.425
               ],
-              "hp": 250.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -6974,7 +6974,7 @@
                 2.635,
                 1.95
               ],
-              "hp": 300.0,
+              "hp": 150.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -7083,7 +7083,7 @@
                 2.495,
                 2.355
               ],
-              "hp": 300.0,
+              "hp": 150.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -7192,7 +7192,7 @@
                 2.7,
                 2.2
               ],
-              "hp": 200.0,
+              "hp": 100.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -7212,6 +7212,10 @@
           },
           "mounts": [
             {
+              "arc": {
+                "centre_deg": 90.0,
+                "width_deg": 160.0
+              },
               "id": "door",
               "muzzle_m": [
                 1.15,
@@ -7223,6 +7227,31 @@
               "pivot_m": [
                 5.647,
                 1.3,
+                1.65
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "hmg"
+              ]
+            },
+            {
+              "arc": {
+                "centre_deg": -90.0,
+                "width_deg": 160.0
+              },
+              "id": "door_right",
+              "muzzle_m": [
+                1.15,
+                0.0,
+                0.0
+              ],
+              "name": "HMG",
+              "on": null,
+              "pivot_m": [
+                5.647,
+                -1.3,
                 1.65
               ],
               "special": false,
@@ -7817,7 +7846,7 @@
                 "roof": 45.0,
                 "side": 130.0
               },
-              "eye_m": 3.1,
+              "eye_m": 3.162,
               "half_extents_m": [
                 4.35,
                 1.75,
@@ -7846,7 +7875,7 @@
             {
               "id": "cannon",
               "muzzle_m": [
-                5.36,
+                6.75,
                 0.0,
                 0.594
               ],
@@ -7877,7 +7906,7 @@
               "pivot_m": [
                 -0.55,
                 -0.58,
-                3.102
+                3.162
               ],
               "special": false,
               "squad": false,
@@ -8772,7 +8801,7 @@
                 2.175,
                 1.75
               ],
-              "hp": 250.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -8881,7 +8910,7 @@
                 2.19,
                 1.875
               ],
-              "hp": 200.0,
+              "hp": 100.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -8901,6 +8930,10 @@
           },
           "mounts": [
             {
+              "arc": {
+                "centre_deg": 90.0,
+                "width_deg": 160.0
+              },
               "id": "door",
               "muzzle_m": [
                 1.1,
@@ -8912,6 +8945,31 @@
               "pivot_m": [
                 2.025,
                 1.2,
+                1.5
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "hmg"
+              ]
+            },
+            {
+              "arc": {
+                "centre_deg": -90.0,
+                "width_deg": 160.0
+              },
+              "id": "door_right",
+              "muzzle_m": [
+                1.1,
+                0.0,
+                0.0
+              ],
+              "name": "HMG",
+              "on": null,
+              "pivot_m": [
+                2.025,
+                -1.2,
                 1.5
               ],
               "special": false,
@@ -9197,7 +9255,7 @@
                 2.2,
                 2.31
               ],
-              "hp": 250.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -9217,6 +9275,10 @@
           },
           "mounts": [
             {
+              "arc": {
+                "centre_deg": 90.0,
+                "width_deg": 160.0
+              },
               "id": "door",
               "muzzle_m": [
                 1.2,
@@ -9228,6 +9290,31 @@
               "pivot_m": [
                 2.165,
                 1.33,
+                1.6
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "hmg"
+              ]
+            },
+            {
+              "arc": {
+                "centre_deg": -90.0,
+                "width_deg": 160.0
+              },
+              "id": "door_right",
+              "muzzle_m": [
+                1.2,
+                0.0,
+                0.0
+              ],
+              "name": "HMG",
+              "on": null,
+              "pivot_m": [
+                2.165,
+                -1.33,
                 1.6
               ],
               "special": false,
@@ -9285,7 +9372,7 @@
                 1.515,
                 1.7
               ],
-              "hp": 150.0,
+              "hp": 80.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -9305,6 +9392,10 @@
           },
           "mounts": [
             {
+              "arc": {
+                "centre_deg": 90.0,
+                "width_deg": 160.0
+              },
               "id": "door",
               "muzzle_m": [
                 1.1,
@@ -9605,11 +9696,11 @@
                 "roof": 15.0,
                 "side": 40.0
               },
-              "eye_m": 2.88,
+              "eye_m": 3.16,
               "half_extents_m": [
                 4.06,
                 1.58,
-                1.485
+                1.6
               ],
               "hp": 90.0,
               "push_class": "medium",
@@ -9644,7 +9735,7 @@
               "pivot_m": [
                 -0.95,
                 0.0,
-                2.02
+                2.1
               ],
               "special": false,
               "squad": false,
@@ -9666,7 +9757,7 @@
               "pivot_m": [
                 -1.5,
                 0.62,
-                2.88
+                3.16
               ],
               "special": false,
               "squad": false,
@@ -9724,7 +9815,7 @@
                 1.945,
                 2.713
               ],
-              "hp": 250.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -9744,6 +9835,10 @@
           },
           "mounts": [
             {
+              "arc": {
+                "centre_deg": 90.0,
+                "width_deg": 160.0
+              },
               "id": "door",
               "muzzle_m": [
                 1.2,
@@ -9755,6 +9850,31 @@
               "pivot_m": [
                 5.207,
                 1.33,
+                1.8
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "hmg"
+              ]
+            },
+            {
+              "arc": {
+                "centre_deg": -90.0,
+                "width_deg": 160.0
+              },
+              "id": "door_right",
+              "muzzle_m": [
+                1.2,
+                0.0,
+                0.0
+              ],
+              "name": "HMG",
+              "on": null,
+              "pivot_m": [
+                5.207,
+                -1.33,
                 1.8
               ],
               "special": false,
@@ -10454,7 +10574,7 @@
                 2.158,
                 1.75
               ],
-              "hp": 250.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -10563,7 +10683,7 @@
                 2.226,
                 2.16
               ],
-              "hp": 250.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -11693,7 +11813,7 @@
                 1.8,
                 2.0
               ],
-              "hp": 200.0,
+              "hp": 100.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -11713,6 +11833,10 @@
           },
           "mounts": [
             {
+              "arc": {
+                "centre_deg": 90.0,
+                "width_deg": 160.0
+              },
               "id": "door",
               "muzzle_m": [
                 1.15,
@@ -11724,6 +11848,31 @@
               "pivot_m": [
                 2.215,
                 1.2,
+                1.55
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "hmg"
+              ]
+            },
+            {
+              "arc": {
+                "centre_deg": -90.0,
+                "width_deg": 160.0
+              },
+              "id": "door_right",
+              "muzzle_m": [
+                1.15,
+                0.0,
+                0.0
+              ],
+              "name": "HMG",
+              "on": null,
+              "pivot_m": [
+                2.215,
+                -1.2,
                 1.55
               ],
               "special": false,
@@ -12606,7 +12755,7 @@
                 2.066,
                 1.725
               ],
-              "hp": 250.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -12698,16 +12847,16 @@
           "body": {
             "hull": {
               "armor": {
-                "front": 15.0,
-                "rear": 15.0,
+                "front": 7.0,
+                "rear": 7.0,
                 "ricochet": {
                   "front": 0.1,
                   "rear": 0.1,
                   "roof": 0.1,
                   "side": 0.1
                 },
-                "roof": 15.0,
-                "side": 15.0
+                "roof": 7.0,
+                "side": 7.0
               },
               "eye_m": 1.4,
               "half_extents_m": [
@@ -12715,7 +12864,7 @@
                 1.64,
                 1.213
               ],
-              "hp": 150.0,
+              "hp": 80.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -12741,7 +12890,7 @@
                 0.0,
                 0.0
               ],
-              "name": "Chain Gun",
+              "name": "HMG",
               "on": null,
               "pivot_m": [
                 1.75,
@@ -12752,7 +12901,7 @@
               "squad": false,
               "turret": false,
               "weapons": [
-                "autocannon"
+                "hmg"
               ]
             },
             {
@@ -12807,16 +12956,16 @@
           "body": {
             "hull": {
               "armor": {
-                "front": 15.0,
-                "rear": 15.0,
+                "front": 7.0,
+                "rear": 7.0,
                 "ricochet": {
                   "front": 0.1,
                   "rear": 0.1,
                   "roof": 0.1,
                   "side": 0.1
                 },
-                "roof": 15.0,
-                "side": 15.0
+                "roof": 7.0,
+                "side": 7.0
               },
               "eye_m": 1.4,
               "half_extents_m": [
@@ -12824,7 +12973,7 @@
                 1.475,
                 1.213
               ],
-              "hp": 150.0,
+              "hp": 80.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -12844,6 +12993,10 @@
           },
           "mounts": [
             {
+              "arc": {
+                "centre_deg": 90.0,
+                "width_deg": 160.0
+              },
               "id": "door",
               "muzzle_m": [
                 1.15,
@@ -12855,6 +13008,31 @@
               "pivot_m": [
                 2.35,
                 1.25,
+                1.05
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "hmg"
+              ]
+            },
+            {
+              "arc": {
+                "centre_deg": -90.0,
+                "width_deg": 160.0
+              },
+              "id": "door_right",
+              "muzzle_m": [
+                1.15,
+                0.0,
+                0.0
+              ],
+              "name": "HMG",
+              "on": null,
+              "pivot_m": [
+                2.35,
+                -1.25,
                 1.05
               ],
               "special": false,
@@ -13006,7 +13184,7 @@
                 1.945,
                 2.713
               ],
-              "hp": 250.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -13026,6 +13204,10 @@
           },
           "mounts": [
             {
+              "arc": {
+                "centre_deg": 90.0,
+                "width_deg": 160.0
+              },
               "id": "door",
               "muzzle_m": [
                 1.2,
@@ -13037,6 +13219,31 @@
               "pivot_m": [
                 5.207,
                 1.33,
+                1.8
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "hmg"
+              ]
+            },
+            {
+              "arc": {
+                "centre_deg": -90.0,
+                "width_deg": 160.0
+              },
+              "id": "door_right",
+              "muzzle_m": [
+                1.2,
+                0.0,
+                0.0
+              ],
+              "name": "HMG",
+              "on": null,
+              "pivot_m": [
+                5.207,
+                -1.33,
                 1.8
               ],
               "special": false,
@@ -15294,7 +15501,7 @@
                 1.45,
                 1.8
               ],
-              "hp": 200.0,
+              "hp": 100.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -15314,6 +15521,10 @@
           },
           "mounts": [
             {
+              "arc": {
+                "centre_deg": 90.0,
+                "width_deg": 160.0
+              },
               "id": "door",
               "muzzle_m": [
                 1.0,
@@ -15325,6 +15536,31 @@
               "pivot_m": [
                 2.45,
                 1.4,
+                1.45
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "hmg"
+              ]
+            },
+            {
+              "arc": {
+                "centre_deg": -90.0,
+                "width_deg": 160.0
+              },
+              "id": "door_right",
+              "muzzle_m": [
+                1.0,
+                0.0,
+                0.0
+              ],
+              "name": "HMG",
+              "on": null,
+              "pivot_m": [
+                2.45,
+                -1.4,
                 1.45
               ],
               "special": false,
@@ -15382,7 +15618,7 @@
                 2.19,
                 1.825
               ],
-              "hp": 200.0,
+              "hp": 100.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -15402,6 +15638,10 @@
           },
           "mounts": [
             {
+              "arc": {
+                "centre_deg": 90.0,
+                "width_deg": 160.0
+              },
               "id": "door",
               "muzzle_m": [
                 1.1,
@@ -15413,6 +15653,31 @@
               "pivot_m": [
                 2.025,
                 1.2,
+                1.5
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "hmg"
+              ]
+            },
+            {
+              "arc": {
+                "centre_deg": -90.0,
+                "width_deg": 160.0
+              },
+              "id": "door_right",
+              "muzzle_m": [
+                1.1,
+                0.0,
+                0.0
+              ],
+              "name": "HMG",
+              "on": null,
+              "pivot_m": [
+                2.025,
+                -1.2,
                 1.5
               ],
               "special": false,
@@ -18422,7 +18687,7 @@
             2.615,
             2.36
           ],
-          "hp": 250.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -19170,7 +19435,7 @@
             3.65,
             2.425
           ],
-          "hp": 250.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -19454,7 +19719,7 @@
             2.635,
             1.95
           ],
-          "hp": 300.0,
+          "hp": 150.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -19566,7 +19831,7 @@
             2.495,
             2.355
           ],
-          "hp": 300.0,
+          "hp": 150.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -19678,7 +19943,7 @@
             2.7,
             2.2
           ],
-          "hp": 200.0,
+          "hp": 100.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -19699,6 +19964,10 @@
       },
       "mounts": [
         {
+          "arc": {
+            "centre_deg": 90.0,
+            "width_deg": 160.0
+          },
           "carriers": [],
           "id": "door",
           "muzzle_m": [
@@ -19711,6 +19980,32 @@
           "pivot_m": [
             5.647,
             1.3,
+            1.65
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "hmg"
+          ]
+        },
+        {
+          "arc": {
+            "centre_deg": -90.0,
+            "width_deg": 160.0
+          },
+          "carriers": [],
+          "id": "door_right",
+          "muzzle_m": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "name": "HMG",
+          "on": null,
+          "pivot_m": [
+            5.647,
+            -1.3,
             1.65
           ],
           "special": false,
@@ -20138,7 +20433,7 @@
             "roof": 45.0,
             "side": 130.0
           },
-          "eye_m": 3.1,
+          "eye_m": 3.162,
           "half_extents_m": [
             4.35,
             1.75,
@@ -20169,7 +20464,7 @@
           "carriers": [],
           "id": "cannon",
           "muzzle_m": [
-            5.36,
+            6.75,
             0.0,
             0.594
           ],
@@ -20201,7 +20496,7 @@
           "pivot_m": [
             -0.55,
             -0.58,
-            3.102
+            3.162
           ],
           "special": false,
           "squad": false,
@@ -21118,7 +21413,7 @@
             2.175,
             1.75
           ],
-          "hp": 250.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -21230,7 +21525,7 @@
             2.19,
             1.875
           ],
-          "hp": 200.0,
+          "hp": 100.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -21251,6 +21546,10 @@
       },
       "mounts": [
         {
+          "arc": {
+            "centre_deg": 90.0,
+            "width_deg": 160.0
+          },
           "carriers": [],
           "id": "door",
           "muzzle_m": [
@@ -21263,6 +21562,32 @@
           "pivot_m": [
             2.025,
             1.2,
+            1.5
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "hmg"
+          ]
+        },
+        {
+          "arc": {
+            "centre_deg": -90.0,
+            "width_deg": 160.0
+          },
+          "carriers": [],
+          "id": "door_right",
+          "muzzle_m": [
+            1.1,
+            0.0,
+            0.0
+          ],
+          "name": "HMG",
+          "on": null,
+          "pivot_m": [
+            2.025,
+            -1.2,
             1.5
           ],
           "special": false,
@@ -21613,7 +21938,7 @@
             2.2,
             2.31
           ],
-          "hp": 250.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -21634,6 +21959,10 @@
       },
       "mounts": [
         {
+          "arc": {
+            "centre_deg": 90.0,
+            "width_deg": 160.0
+          },
           "carriers": [],
           "id": "door",
           "muzzle_m": [
@@ -21646,6 +21975,32 @@
           "pivot_m": [
             2.165,
             1.33,
+            1.6
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "hmg"
+          ]
+        },
+        {
+          "arc": {
+            "centre_deg": -90.0,
+            "width_deg": 160.0
+          },
+          "carriers": [],
+          "id": "door_right",
+          "muzzle_m": [
+            1.2,
+            0.0,
+            0.0
+          ],
+          "name": "HMG",
+          "on": null,
+          "pivot_m": [
+            2.165,
+            -1.33,
             1.6
           ],
           "special": false,
@@ -21703,7 +22058,7 @@
             1.515,
             1.7
           ],
-          "hp": 150.0,
+          "hp": 80.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -21724,6 +22079,10 @@
       },
       "mounts": [
         {
+          "arc": {
+            "centre_deg": 90.0,
+            "width_deg": 160.0
+          },
           "carriers": [],
           "id": "door",
           "muzzle_m": [
@@ -21973,11 +22332,11 @@
             "roof": 15.0,
             "side": 40.0
           },
-          "eye_m": 2.88,
+          "eye_m": 3.16,
           "half_extents_m": [
             4.06,
             1.58,
-            1.485
+            1.6
           ],
           "hp": 90.0,
           "push_class": "medium",
@@ -22014,7 +22373,7 @@
           "pivot_m": [
             -0.95,
             0.0,
-            2.02
+            2.1
           ],
           "special": false,
           "squad": false,
@@ -22037,7 +22396,7 @@
           "pivot_m": [
             -1.5,
             0.62,
-            2.88
+            3.16
           ],
           "special": false,
           "squad": false,
@@ -22095,7 +22454,7 @@
             1.945,
             2.713
           ],
-          "hp": 250.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -22116,6 +22475,10 @@
       },
       "mounts": [
         {
+          "arc": {
+            "centre_deg": 90.0,
+            "width_deg": 160.0
+          },
           "carriers": [],
           "id": "door",
           "muzzle_m": [
@@ -22128,6 +22491,32 @@
           "pivot_m": [
             5.207,
             1.33,
+            1.8
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "hmg"
+          ]
+        },
+        {
+          "arc": {
+            "centre_deg": -90.0,
+            "width_deg": 160.0
+          },
+          "carriers": [],
+          "id": "door_right",
+          "muzzle_m": [
+            1.2,
+            0.0,
+            0.0
+          ],
+          "name": "HMG",
+          "on": null,
+          "pivot_m": [
+            5.207,
+            -1.33,
             1.8
           ],
           "special": false,
@@ -22843,7 +23232,7 @@
             2.158,
             1.75
           ],
-          "hp": 250.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -22955,7 +23344,7 @@
             2.226,
             2.16
           ],
-          "hp": 250.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -23998,7 +24387,7 @@
             1.8,
             2.0
           ],
-          "hp": 200.0,
+          "hp": 100.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -24019,6 +24408,10 @@
       },
       "mounts": [
         {
+          "arc": {
+            "centre_deg": 90.0,
+            "width_deg": 160.0
+          },
           "carriers": [],
           "id": "door",
           "muzzle_m": [
@@ -24031,6 +24424,32 @@
           "pivot_m": [
             2.215,
             1.2,
+            1.55
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "hmg"
+          ]
+        },
+        {
+          "arc": {
+            "centre_deg": -90.0,
+            "width_deg": 160.0
+          },
+          "carriers": [],
+          "id": "door_right",
+          "muzzle_m": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "name": "HMG",
+          "on": null,
+          "pivot_m": [
+            2.215,
+            -1.2,
             1.55
           ],
           "special": false,
@@ -24766,7 +25185,7 @@
             2.066,
             1.725
           ],
-          "hp": 250.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -24861,16 +25280,16 @@
       "body": {
         "hull": {
           "armor": {
-            "front": 15.0,
-            "rear": 15.0,
+            "front": 7.0,
+            "rear": 7.0,
             "ricochet": {
               "front": 0.1,
               "rear": 0.1,
               "roof": 0.1,
               "side": 0.1
             },
-            "roof": 15.0,
-            "side": 15.0
+            "roof": 7.0,
+            "side": 7.0
           },
           "eye_m": 1.4,
           "half_extents_m": [
@@ -24878,7 +25297,7 @@
             1.64,
             1.213
           ],
-          "hp": 150.0,
+          "hp": 80.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -24906,7 +25325,7 @@
             0.0,
             0.0
           ],
-          "name": "Chain Gun",
+          "name": "HMG",
           "on": null,
           "pivot_m": [
             1.75,
@@ -24917,7 +25336,7 @@
           "squad": false,
           "turret": false,
           "weapons": [
-            "autocannon"
+            "hmg"
           ]
         },
         {
@@ -24973,16 +25392,16 @@
       "body": {
         "hull": {
           "armor": {
-            "front": 15.0,
-            "rear": 15.0,
+            "front": 7.0,
+            "rear": 7.0,
             "ricochet": {
               "front": 0.1,
               "rear": 0.1,
               "roof": 0.1,
               "side": 0.1
             },
-            "roof": 15.0,
-            "side": 15.0
+            "roof": 7.0,
+            "side": 7.0
           },
           "eye_m": 1.4,
           "half_extents_m": [
@@ -24990,7 +25409,7 @@
             1.475,
             1.213
           ],
-          "hp": 150.0,
+          "hp": 80.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -25011,6 +25430,10 @@
       },
       "mounts": [
         {
+          "arc": {
+            "centre_deg": 90.0,
+            "width_deg": 160.0
+          },
           "carriers": [],
           "id": "door",
           "muzzle_m": [
@@ -25023,6 +25446,32 @@
           "pivot_m": [
             2.35,
             1.25,
+            1.05
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "hmg"
+          ]
+        },
+        {
+          "arc": {
+            "centre_deg": -90.0,
+            "width_deg": 160.0
+          },
+          "carriers": [],
+          "id": "door_right",
+          "muzzle_m": [
+            1.15,
+            0.0,
+            0.0
+          ],
+          "name": "HMG",
+          "on": null,
+          "pivot_m": [
+            2.35,
+            -1.25,
             1.05
           ],
           "special": false,
@@ -25265,7 +25714,7 @@
             1.945,
             2.713
           ],
-          "hp": 250.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -25286,6 +25735,10 @@
       },
       "mounts": [
         {
+          "arc": {
+            "centre_deg": 90.0,
+            "width_deg": 160.0
+          },
           "carriers": [],
           "id": "door",
           "muzzle_m": [
@@ -25298,6 +25751,32 @@
           "pivot_m": [
             5.207,
             1.33,
+            1.8
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "hmg"
+          ]
+        },
+        {
+          "arc": {
+            "centre_deg": -90.0,
+            "width_deg": 160.0
+          },
+          "carriers": [],
+          "id": "door_right",
+          "muzzle_m": [
+            1.2,
+            0.0,
+            0.0
+          ],
+          "name": "HMG",
+          "on": null,
+          "pivot_m": [
+            5.207,
+            -1.33,
             1.8
           ],
           "special": false,
@@ -27362,7 +27841,7 @@
             1.45,
             1.8
           ],
-          "hp": 200.0,
+          "hp": 100.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -27383,6 +27862,10 @@
       },
       "mounts": [
         {
+          "arc": {
+            "centre_deg": 90.0,
+            "width_deg": 160.0
+          },
           "carriers": [],
           "id": "door",
           "muzzle_m": [
@@ -27395,6 +27878,32 @@
           "pivot_m": [
             2.45,
             1.4,
+            1.45
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "hmg"
+          ]
+        },
+        {
+          "arc": {
+            "centre_deg": -90.0,
+            "width_deg": 160.0
+          },
+          "carriers": [],
+          "id": "door_right",
+          "muzzle_m": [
+            1.0,
+            0.0,
+            0.0
+          ],
+          "name": "HMG",
+          "on": null,
+          "pivot_m": [
+            2.45,
+            -1.4,
             1.45
           ],
           "special": false,
@@ -27452,7 +27961,7 @@
             2.19,
             1.825
           ],
-          "hp": 200.0,
+          "hp": 100.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -27473,6 +27982,10 @@
       },
       "mounts": [
         {
+          "arc": {
+            "centre_deg": 90.0,
+            "width_deg": 160.0
+          },
           "carriers": [],
           "id": "door",
           "muzzle_m": [
@@ -27485,6 +27998,32 @@
           "pivot_m": [
             2.025,
             1.2,
+            1.5
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "hmg"
+          ]
+        },
+        {
+          "arc": {
+            "centre_deg": -90.0,
+            "width_deg": 160.0
+          },
+          "carriers": [],
+          "id": "door_right",
+          "muzzle_m": [
+            1.1,
+            0.0,
+            0.0
+          ],
+          "name": "HMG",
+          "on": null,
+          "pivot_m": [
+            2.025,
+            -1.2,
             1.5
           ],
           "special": false,
@@ -27527,7 +28066,6 @@
       "aim_s": 2.0,
       "ammo": 20,
       "anti_armor": false,
-      "armor_fraction": 0.0,
       "armor_piercing": true,
       "blast_radius_m": 0.0,
       "damage": 50.0,
@@ -27541,6 +28079,7 @@
       "min_range_m": 0.0,
       "name": "AP Shell",
       "near_miss_suppression": 0.2,
+      "partial_from": null,
       "penetration": 300.0,
       "range_m": 900.0,
       "reload_s": 6.0,
@@ -27549,9 +28088,9 @@
       "stationary": false,
       "structural_damage": 10.0,
       "suppression_radius_m": 8.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -27561,7 +28100,6 @@
       "aim_s": 2.0,
       "ammo": 15,
       "anti_armor": false,
-      "armor_fraction": 0.15,
       "armor_piercing": false,
       "blast_radius_m": 12.0,
       "damage": 80.0,
@@ -27575,6 +28113,7 @@
       "min_range_m": 0.0,
       "name": "HE Shell",
       "near_miss_suppression": 0.4,
+      "partial_from": 0.08,
       "penetration": 30.0,
       "range_m": 900.0,
       "reload_s": 6.0,
@@ -27583,9 +28122,9 @@
       "stationary": false,
       "structural_damage": 100.0,
       "suppression_radius_m": 15.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -27595,7 +28134,6 @@
       "aim_s": 3.0,
       "ammo": 4,
       "anti_armor": true,
-      "armor_fraction": 0.0,
       "armor_piercing": false,
       "blast_radius_m": 4.0,
       "damage": 55.0,
@@ -27610,6 +28148,7 @@
       "min_range_m": 100.0,
       "name": "Akeron MP",
       "near_miss_suppression": 0.3,
+      "partial_from": null,
       "penetration": 200.0,
       "range_m": 900.0,
       "reload_s": 9.0,
@@ -27618,9 +28157,9 @@
       "stationary": true,
       "structural_damage": 100.0,
       "suppression_radius_m": 10.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_attack": {
         "dive_deg": 40.0,
         "loft_m": 60.0
@@ -27634,7 +28173,6 @@
       "aim_s": 0.8,
       "ammo": "unlimited",
       "anti_armor": false,
-      "armor_fraction": 0.0,
       "armor_piercing": false,
       "blast_radius_m": 0.0,
       "damage": 35.0,
@@ -27655,6 +28193,7 @@
       "min_range_m": 0.0,
       "name": "Assault Rifle",
       "near_miss_suppression": 0.025,
+      "partial_from": null,
       "penetration": 5.0,
       "range_m": 240.0,
       "reload_s": 0.0,
@@ -27663,10 +28202,13 @@
       "stationary": false,
       "structural_damage": 0.25,
       "suppression_radius_m": 3.0,
-      "targets": [
-        "ground",
-        "low_air"
-      ],
+      "targets": {
+        "ground": {},
+        "low_air": {
+          "range_m": 100.0,
+          "scatter_mrad": 50.0
+        }
+      },
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -27676,7 +28218,6 @@
       "aim_s": 3.0,
       "ammo": 4,
       "anti_armor": true,
-      "armor_fraction": 0.0,
       "armor_piercing": false,
       "blast_radius_m": 4.0,
       "damage": 45.0,
@@ -27691,6 +28232,7 @@
       "min_range_m": 5.0,
       "name": "ATGM",
       "near_miss_suppression": 0.3,
+      "partial_from": null,
       "penetration": 300.0,
       "range_m": 900.0,
       "reload_s": 9.0,
@@ -27699,9 +28241,9 @@
       "stationary": true,
       "structural_damage": 100.0,
       "suppression_radius_m": 10.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_speed_mps": 200.0,
       "trajectory": "direct",
       "turn_deg_s": 60.0
@@ -27711,7 +28253,6 @@
       "aim_s": 1.0,
       "ammo": 240,
       "anti_armor": false,
-      "armor_fraction": 0.0,
       "armor_piercing": false,
       "blast_radius_m": 2.0,
       "damage": 100.0,
@@ -27732,6 +28273,7 @@
       "min_range_m": 0.0,
       "name": "Autocannon",
       "near_miss_suppression": 0.1,
+      "partial_from": null,
       "penetration": 65.0,
       "range_m": 650.0,
       "reload_s": 6.0,
@@ -27740,10 +28282,13 @@
       "stationary": false,
       "structural_damage": 8.0,
       "suppression_radius_m": 6.0,
-      "targets": [
-        "ground",
-        "low_air"
-      ],
+      "targets": {
+        "ground": {},
+        "low_air": {
+          "range_m": 350.0,
+          "scatter_mrad": 18.0
+        }
+      },
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -27753,7 +28298,6 @@
       "aim_s": 3.0,
       "ammo": 4,
       "anti_armor": true,
-      "armor_fraction": 0.0,
       "armor_piercing": false,
       "blast_radius_m": 4.0,
       "damage": 55.0,
@@ -27768,6 +28312,7 @@
       "min_range_m": 5.0,
       "name": "Bastion",
       "near_miss_suppression": 0.3,
+      "partial_from": null,
       "penetration": 320.0,
       "range_m": 650.0,
       "reload_s": 10.0,
@@ -27776,9 +28321,9 @@
       "stationary": true,
       "structural_damage": 100.0,
       "suppression_radius_m": 10.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_speed_mps": 200.0,
       "trajectory": "direct",
       "turn_deg_s": 60.0
@@ -27788,7 +28333,6 @@
       "aim_s": 1.5,
       "ammo": 8,
       "anti_armor": false,
-      "armor_fraction": 0.0,
       "armor_piercing": false,
       "blast_radius_m": 6.0,
       "damage": 20.0,
@@ -27802,6 +28346,7 @@
       "min_range_m": 5.0,
       "name": "Grenade",
       "near_miss_suppression": 0.15,
+      "partial_from": null,
       "penetration": 20.0,
       "range_m": 150.0,
       "reload_s": 5.0,
@@ -27810,9 +28355,9 @@
       "stationary": false,
       "structural_damage": 10.0,
       "suppression_radius_m": 8.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -27822,7 +28367,6 @@
       "aim_s": 2.0,
       "ammo": 20,
       "anti_armor": false,
-      "armor_fraction": 0.0,
       "armor_piercing": true,
       "blast_radius_m": 0.0,
       "damage": 45.0,
@@ -27836,6 +28380,7 @@
       "min_range_m": 0.0,
       "name": "AP Shell",
       "near_miss_suppression": 0.2,
+      "partial_from": null,
       "penetration": 250.0,
       "range_m": 850.0,
       "reload_s": 6.0,
@@ -27844,9 +28389,9 @@
       "stationary": false,
       "structural_damage": 10.0,
       "suppression_radius_m": 8.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -27856,7 +28401,6 @@
       "aim_s": 2.0,
       "ammo": 15,
       "anti_armor": false,
-      "armor_fraction": 0.15,
       "armor_piercing": false,
       "blast_radius_m": 12.0,
       "damage": 80.0,
@@ -27870,6 +28414,7 @@
       "min_range_m": 0.0,
       "name": "HE Shell",
       "near_miss_suppression": 0.4,
+      "partial_from": 0.08,
       "penetration": 30.0,
       "range_m": 850.0,
       "reload_s": 6.0,
@@ -27878,9 +28423,9 @@
       "stationary": false,
       "structural_damage": 100.0,
       "suppression_radius_m": 15.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -27890,7 +28435,6 @@
       "aim_s": 2.0,
       "ammo": 30,
       "anti_armor": false,
-      "armor_fraction": 0.0,
       "armor_piercing": false,
       "blast_radius_m": 0.0,
       "damage": 100.0,
@@ -27904,6 +28448,7 @@
       "min_range_m": 0.0,
       "name": "Heavy Sniper",
       "near_miss_suppression": 0.025,
+      "partial_from": null,
       "penetration": 30.0,
       "range_m": 700.0,
       "reload_s": 2.5,
@@ -27912,10 +28457,13 @@
       "stationary": false,
       "structural_damage": 0.25,
       "suppression_radius_m": 3.0,
-      "targets": [
-        "ground",
-        "low_air"
-      ],
+      "targets": {
+        "ground": {},
+        "low_air": {
+          "range_m": 150.0,
+          "scatter_mrad": 48.0
+        }
+      },
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -27925,7 +28473,6 @@
       "aim_s": 3.0,
       "ammo": 8,
       "anti_armor": true,
-      "armor_fraction": 0.0,
       "armor_piercing": false,
       "blast_radius_m": 4.0,
       "damage": 45.0,
@@ -27940,6 +28487,7 @@
       "min_range_m": 5.0,
       "name": "Air ATGM",
       "near_miss_suppression": 0.3,
+      "partial_from": null,
       "penetration": 300.0,
       "range_m": 1200.0,
       "reload_s": 9.0,
@@ -27948,9 +28496,9 @@
       "stationary": false,
       "structural_damage": 100.0,
       "suppression_radius_m": 10.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_speed_mps": 200.0,
       "trajectory": "direct",
       "turn_deg_s": 60.0
@@ -27960,7 +28508,6 @@
       "aim_s": 2.0,
       "ammo": "unlimited",
       "anti_armor": false,
-      "armor_fraction": 0.15,
       "armor_piercing": false,
       "blast_radius_m": 9.0,
       "damage": 50.0,
@@ -27974,6 +28521,7 @@
       "min_range_m": 0.0,
       "name": "Crash",
       "near_miss_suppression": 0.4,
+      "partial_from": 0.08,
       "penetration": 25.0,
       "range_m": 800.0,
       "reload_s": 6.0,
@@ -27982,9 +28530,9 @@
       "stationary": false,
       "structural_damage": 300.0,
       "suppression_radius_m": 15.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -27994,7 +28542,6 @@
       "aim_s": 1.0,
       "ammo": "unlimited",
       "anti_armor": false,
-      "armor_fraction": 0.0,
       "armor_piercing": false,
       "blast_radius_m": 0.0,
       "damage": 20.0,
@@ -28015,6 +28562,7 @@
       "min_range_m": 0.0,
       "name": "HMG",
       "near_miss_suppression": 0.04,
+      "partial_from": null,
       "penetration": 20.0,
       "range_m": 400.0,
       "reload_s": 5.0,
@@ -28023,10 +28571,13 @@
       "stationary": false,
       "structural_damage": 4.0,
       "suppression_radius_m": 4.0,
-      "targets": [
-        "ground",
-        "low_air"
-      ],
+      "targets": {
+        "ground": {},
+        "low_air": {
+          "range_m": 200.0,
+          "scatter_mrad": 24.0
+        }
+      },
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -28036,7 +28587,6 @@
       "aim_s": 2.0,
       "ammo": 20,
       "anti_armor": false,
-      "armor_fraction": 0.15,
       "armor_piercing": false,
       "blast_radius_m": 12.0,
       "damage": 65.0,
@@ -28050,6 +28600,7 @@
       "min_range_m": 0.0,
       "name": "HE Shell",
       "near_miss_suppression": 0.4,
+      "partial_from": 0.08,
       "penetration": 25.0,
       "range_m": 650.0,
       "reload_s": 6.0,
@@ -28058,9 +28609,9 @@
       "stationary": false,
       "structural_damage": 100.0,
       "suppression_radius_m": 15.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -28070,7 +28621,6 @@
       "aim_s": 3.0,
       "ammo": 4,
       "anti_armor": true,
-      "armor_fraction": 0.0,
       "armor_piercing": false,
       "blast_radius_m": 4.0,
       "damage": 55.0,
@@ -28085,6 +28635,7 @@
       "min_range_m": 100.0,
       "name": "Javelin",
       "near_miss_suppression": 0.3,
+      "partial_from": null,
       "penetration": 200.0,
       "range_m": 800.0,
       "reload_s": 9.0,
@@ -28093,9 +28644,9 @@
       "stationary": true,
       "structural_damage": 100.0,
       "suppression_radius_m": 10.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_attack": {
         "dive_deg": 40.0,
         "loft_m": 60.0
@@ -28109,7 +28660,6 @@
       "aim_s": 3.0,
       "ammo": 4,
       "anti_armor": true,
-      "armor_fraction": 0.0,
       "armor_piercing": false,
       "blast_radius_m": 4.0,
       "damage": 55.0,
@@ -28124,6 +28674,7 @@
       "min_range_m": 5.0,
       "name": "Kornet",
       "near_miss_suppression": 0.3,
+      "partial_from": null,
       "penetration": 320.0,
       "range_m": 950.0,
       "reload_s": 10.0,
@@ -28132,9 +28683,9 @@
       "stationary": true,
       "structural_damage": 100.0,
       "suppression_radius_m": 10.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_speed_mps": 200.0,
       "trajectory": "direct",
       "turn_deg_s": 60.0
@@ -28144,7 +28695,6 @@
       "aim_s": 2.0,
       "ammo": 20,
       "anti_armor": false,
-      "armor_fraction": 0.0,
       "armor_piercing": true,
       "blast_radius_m": 0.0,
       "damage": 40.0,
@@ -28158,6 +28708,7 @@
       "min_range_m": 0.0,
       "name": "AP Shell",
       "near_miss_suppression": 0.2,
+      "partial_from": null,
       "penetration": 170.0,
       "range_m": 750.0,
       "reload_s": 6.0,
@@ -28166,9 +28717,9 @@
       "stationary": false,
       "structural_damage": 10.0,
       "suppression_radius_m": 8.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -28178,7 +28729,6 @@
       "aim_s": 2.0,
       "ammo": 15,
       "anti_armor": false,
-      "armor_fraction": 0.15,
       "armor_piercing": false,
       "blast_radius_m": 12.0,
       "damage": 65.0,
@@ -28192,6 +28742,7 @@
       "min_range_m": 0.0,
       "name": "HE Shell",
       "near_miss_suppression": 0.4,
+      "partial_from": 0.08,
       "penetration": 30.0,
       "range_m": 750.0,
       "reload_s": 6.0,
@@ -28200,9 +28751,9 @@
       "stationary": false,
       "structural_damage": 100.0,
       "suppression_radius_m": 15.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -28212,7 +28763,6 @@
       "aim_s": 2.0,
       "ammo": 120,
       "anti_armor": false,
-      "armor_fraction": 0.0,
       "armor_piercing": false,
       "blast_radius_m": 0.0,
       "damage": 45.0,
@@ -28230,6 +28780,7 @@
       "min_range_m": 0.0,
       "name": "Marksman Rifle",
       "near_miss_suppression": 0.025,
+      "partial_from": null,
       "penetration": 8.0,
       "range_m": 450.0,
       "reload_s": 3.0,
@@ -28238,10 +28789,13 @@
       "stationary": false,
       "structural_damage": 0.25,
       "suppression_radius_m": 3.0,
-      "targets": [
-        "ground",
-        "low_air"
-      ],
+      "targets": {
+        "ground": {},
+        "low_air": {
+          "range_m": 100.0,
+          "scatter_mrad": 40.0
+        }
+      },
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -28251,7 +28805,6 @@
       "aim_s": 0.8,
       "ammo": "unlimited",
       "anti_armor": false,
-      "armor_fraction": 0.0,
       "armor_piercing": false,
       "blast_radius_m": 0.0,
       "damage": 35.0,
@@ -28272,6 +28825,7 @@
       "min_range_m": 0.0,
       "name": "Rifle",
       "near_miss_suppression": 0.025,
+      "partial_from": null,
       "penetration": 5.0,
       "range_m": 300.0,
       "reload_s": 0.0,
@@ -28280,10 +28834,13 @@
       "stationary": false,
       "structural_damage": 0.25,
       "suppression_radius_m": 3.0,
-      "targets": [
-        "ground",
-        "low_air"
-      ],
+      "targets": {
+        "ground": {},
+        "low_air": {
+          "range_m": 100.0,
+          "scatter_mrad": 40.0
+        }
+      },
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -28293,7 +28850,6 @@
       "aim_s": 1.5,
       "ammo": 38,
       "anti_armor": false,
-      "armor_fraction": 0.15,
       "armor_piercing": false,
       "blast_radius_m": 7.0,
       "damage": 60.0,
@@ -28311,6 +28867,7 @@
       "min_range_m": 0.0,
       "name": "Rocket Pod",
       "near_miss_suppression": 0.4,
+      "partial_from": 0.08,
       "penetration": 30.0,
       "range_m": 900.0,
       "reload_s": 12.0,
@@ -28319,9 +28876,9 @@
       "stationary": false,
       "structural_damage": 80.0,
       "suppression_radius_m": 15.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -28331,7 +28888,6 @@
       "aim_s": 2.0,
       "ammo": 3,
       "anti_armor": true,
-      "armor_fraction": 0.0,
       "armor_piercing": false,
       "blast_radius_m": 6.0,
       "damage": 55.0,
@@ -28345,6 +28901,7 @@
       "min_range_m": 5.0,
       "name": "RPG-29",
       "near_miss_suppression": 0.15,
+      "partial_from": null,
       "penetration": 240.0,
       "range_m": 400.0,
       "reload_s": 9.0,
@@ -28353,9 +28910,9 @@
       "stationary": false,
       "structural_damage": 10.0,
       "suppression_radius_m": 8.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -28365,7 +28922,6 @@
       "aim_s": 2.0,
       "ammo": 4,
       "anti_armor": true,
-      "armor_fraction": 0.0,
       "armor_piercing": false,
       "blast_radius_m": 6.0,
       "damage": 45.0,
@@ -28379,6 +28935,7 @@
       "min_range_m": 5.0,
       "name": "RPG-7",
       "near_miss_suppression": 0.15,
+      "partial_from": null,
       "penetration": 160.0,
       "range_m": 300.0,
       "reload_s": 8.0,
@@ -28387,9 +28944,9 @@
       "stationary": false,
       "structural_damage": 10.0,
       "suppression_radius_m": 8.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -28399,7 +28956,6 @@
       "aim_s": 3.0,
       "ammo": 4,
       "anti_armor": true,
-      "armor_fraction": 0.0,
       "armor_piercing": false,
       "blast_radius_m": 4.0,
       "damage": 55.0,
@@ -28414,6 +28970,7 @@
       "min_range_m": 5.0,
       "name": "Spike",
       "near_miss_suppression": 0.3,
+      "partial_from": null,
       "penetration": 320.0,
       "range_m": 900.0,
       "reload_s": 10.0,
@@ -28422,9 +28979,9 @@
       "stationary": true,
       "structural_damage": 100.0,
       "suppression_radius_m": 10.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_speed_mps": 200.0,
       "trajectory": "direct",
       "turn_deg_s": 60.0
@@ -28434,7 +28991,6 @@
       "aim_s": 2.0,
       "ammo": 20,
       "anti_armor": false,
-      "armor_fraction": 0.0,
       "armor_piercing": true,
       "blast_radius_m": 0.0,
       "damage": 40.0,
@@ -28448,6 +29004,7 @@
       "min_range_m": 0.0,
       "name": "AP Shell",
       "near_miss_suppression": 0.2,
+      "partial_from": null,
       "penetration": 180.0,
       "range_m": 800.0,
       "reload_s": 6.0,
@@ -28456,9 +29013,9 @@
       "stationary": false,
       "structural_damage": 10.0,
       "suppression_radius_m": 8.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -28468,7 +29025,6 @@
       "aim_s": 2.0,
       "ammo": 15,
       "anti_armor": false,
-      "armor_fraction": 0.15,
       "armor_piercing": false,
       "blast_radius_m": 12.0,
       "damage": 80.0,
@@ -28482,6 +29038,7 @@
       "min_range_m": 0.0,
       "name": "HE Shell",
       "near_miss_suppression": 0.4,
+      "partial_from": 0.08,
       "penetration": 30.0,
       "range_m": 800.0,
       "reload_s": 6.0,
@@ -28490,9 +29047,9 @@
       "stationary": false,
       "structural_damage": 100.0,
       "suppression_radius_m": 15.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -28502,7 +29059,6 @@
       "aim_s": 3.0,
       "ammo": 4,
       "anti_armor": true,
-      "armor_fraction": 0.0,
       "armor_piercing": false,
       "blast_radius_m": 4.0,
       "damage": 45.0,
@@ -28517,6 +29073,7 @@
       "min_range_m": 5.0,
       "name": "TOW 2A",
       "near_miss_suppression": 0.3,
+      "partial_from": null,
       "penetration": 300.0,
       "range_m": 900.0,
       "reload_s": 9.0,
@@ -28525,9 +29082,9 @@
       "stationary": true,
       "structural_damage": 100.0,
       "suppression_radius_m": 10.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_speed_mps": 200.0,
       "trajectory": "direct",
       "turn_deg_s": 60.0

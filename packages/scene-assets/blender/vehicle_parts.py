@@ -414,6 +414,13 @@ def hull_plan(rear, front, half, chamfer):
             (front - chamfer, half), (rear, half)]
 
 
+def mirror_plan(left):
+    """A whole plan ring from its left half (`left`, (x, y) points with
+    y >= 0, front to rear): those points, then the right half back from rear
+    to front. A point on the centre line is not repeated."""
+    return list(left) + [(x, -y) for x, y in reversed(left) if y > 0]
+
+
 def on_side(x, z, side, low, high, proud=0.0, standing=False, fall=0.0):
     """Where a part sits on a hull side face that leans in toward the roof.
 
@@ -422,20 +429,24 @@ def on_side(x, z, side, low, high, proud=0.0, standing=False, fall=0.0):
     Returns (loc, rot) for a part at `x` whose origin is at height `z` on the
     `side` (+1 left, -1 right) face, `proud` out along the face's normal:
     a part lying in its local XY plane and facing local +Z (`bolted_panel`,
-    `armour_tiles`) gets its back on the face with local x along the hull,
-    falling toward +X by `fall` (the slope of a line it follows, dz/dx);
-    with `standing`, a part standing upright in its own frame (`slat_armour`,
-    `stowage_box`) leans with the face, its local +Y facing out on both sides
-    (so the right side's is turned half round)."""
+    `armour_tiles`) gets its back on the face with local x along the hull;
+    on a face that also falls toward +X by `fall` (dz/dx, as a band running
+    down beside a glacis), local x follows that fall. With `standing`, a part
+    standing upright in its own frame (`slat_armour`, `stowage_box`) leans
+    with the face, its local +Y facing out on both sides (so the right side's
+    is turned half round)."""
     (y0, z0), (y1, z1) = low, high
     lean = math.atan2(y0 - y1, z1 - z0)
     y = y0 - (z - z0) * math.tan(lean)
     loc = (x, side * (y + proud * math.cos(lean)), z + proud * math.sin(lean))
     if standing:
         return loc, (lean, 0, 0 if side > 0 else math.pi)
-    # In the face's own plane a fall of dz is dz / cos(lean) along its slope.
-    turn = Matrix.Rotation(side * math.atan(fall / math.cos(lean)), 3, "Z")
-    return loc, tuple((Matrix.Rotation(-side * (math.pi / 2 - lean), 3, "X") @ turn).to_euler("XYZ"))
+    # Pitched down by the fall, the part's cross-section is shortened, so the
+    # face leans further from upright across it.
+    pitch = math.atan(fall)
+    across = math.atan2(y0 - y1, (z1 - z0) * math.cos(pitch))
+    roll = Matrix.Rotation(-side * (math.pi / 2 - across), 3, "X")
+    return loc, tuple((Matrix.Rotation(pitch, 3, "Y") @ roll).to_euler("XYZ"))
 
 
 def roof_fittings(name, crown, top, mats, parent, periscopes=(), rails=True):
@@ -711,38 +722,38 @@ def antenna(name, loc, mats, parent, height=2.4, radius=0.008, rot=(0, 0, 0)):
 
 
 # ---------------------------------------------------------------- weapons
-def browning_m2(parent, reach, mats, receiver_x=0.06, grips=False):
+def browning_m2(parent, reach, mats, receiver_x=0.06, grips=False, prefix="m2"):
     """The M2 heavy machine gun on its mount's pitch node `parent`, firing
     along +X to the muzzle `reach` metres out: receiver centred at
     `receiver_x`, the barrel and its jacket, the flash hider, and with `grips`
-    the spade grips a standing gunner holds. Every piece is named `m2_*`.
+    the spade grips a standing gunner holds. Every piece is named `<prefix>_*` (`m2_*`).
     Returns its meshes. Roles: dark, steel, black."""
     barrel_from = receiver_x + 0.26
     made = []
-    made += box(name="m2_receiver", size=(0.52, 0.13, 0.15), loc=(receiver_x, 0, 0), mat=mats["dark"], parent=parent,
+    made += box(name=f"{prefix}_receiver", size=(0.52, 0.13, 0.15), loc=(receiver_x, 0, 0), mat=mats["dark"], parent=parent,
                 bevel=0.012)
-    made += cyl(name="m2_barrel", r=0.024, depth=reach - barrel_from, loc=((reach + barrel_from) / 2, 0, 0), axis="X",
+    made += cyl(name=f"{prefix}_barrel", r=0.024, depth=reach - barrel_from, loc=((reach + barrel_from) / 2, 0, 0), axis="X",
                 mat=mats["steel"], parent=parent, seg=10)
-    made += cyl(name="m2_jacket", r=0.040, depth=0.22, loc=(barrel_from + 0.11, 0, 0), axis="X", mat=mats["dark"],
+    made += cyl(name=f"{prefix}_jacket", r=0.040, depth=0.22, loc=(barrel_from + 0.11, 0, 0), axis="X", mat=mats["dark"],
                 parent=parent, seg=12, lods=MID)
-    made += cyl(name="m2_flash_hider", r=0.034, r2=0.026, depth=0.08, loc=(reach - 0.04, 0, 0), axis="X",
+    made += cyl(name=f"{prefix}_flash_hider", r=0.034, r2=0.026, depth=0.08, loc=(reach - 0.04, 0, 0), axis="X",
                 mat=mats["steel"], parent=parent, seg=10, lods=NEAR)
     if grips:
         for side in (-1, 1):
-            made += cyl(name=f"m2_grip_{side}", r=0.018, depth=0.12, loc=(receiver_x - 0.30, side * 0.07, -0.02),
+            made += cyl(name=f"{prefix}_grip_{side}", r=0.018, depth=0.12, loc=(receiver_x - 0.30, side * 0.07, -0.02),
                         mat=mats["black"], parent=parent, seg=8, lods=NEAR)
     return made
 
 
-def kord(parent, reach, mats):
+def kord(parent, reach, mats, prefix="kord"):
     """The 12.7 mm Kord on its mount's pitch node `parent`, firing along +X to
     the muzzle `reach` metres out: a long receiver, the barrel, its muzzle
-    brake and the ammunition box. Pieces are named `kord_*`. Returns its
+    brake and the ammunition box. Pieces are named `<prefix>_*` (`kord_*`). Returns its
     meshes. Roles: dark, steel, paint."""
-    made = box("kord_receiver", (0.62, 0.10, 0.14), (0.02, 0, 0), mats["dark"], parent, bevel=0.012)
-    made += cyl("kord_barrel", 0.028, reach - 0.40, ((reach + 0.30) / 2, 0, 0), "X", mats["dark"], parent, seg=10)
-    made += cyl("kord_brake", 0.040, 0.10, (reach - 0.05, 0, 0), "X", mats["steel"], parent, seg=10, lods=NEAR)
-    made += box("kord_ammo", (0.26, 0.12, 0.20), (0.0, 0.13, -0.06), mats["paint"], parent, bevel=0.015, lods=MID)
+    made = box(f"{prefix}_receiver", (0.62, 0.10, 0.14), (0.02, 0, 0), mats["dark"], parent, bevel=0.012)
+    made += cyl(f"{prefix}_barrel", 0.028, reach - 0.40, ((reach + 0.30) / 2, 0, 0), "X", mats["dark"], parent, seg=10)
+    made += cyl(f"{prefix}_brake", 0.040, 0.10, (reach - 0.05, 0, 0), "X", mats["steel"], parent, seg=10, lods=NEAR)
+    made += box(f"{prefix}_ammo", (0.26, 0.12, 0.20), (0.0, 0.13, -0.06), mats["paint"], parent, bevel=0.015, lods=MID)
     return made
 
 

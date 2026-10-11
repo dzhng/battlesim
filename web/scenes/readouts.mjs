@@ -351,7 +351,7 @@ export async function run(ctx) {
   await page.mouse.move(20, 20);
   await lab(page, () => window.__lab.reset());
 
-  // Keys (CommandBindings): F toggles the fire policy; X arms attack-move,
+  // Keys (CommandBindings): F toggles the fire policy; C arms attack-move,
   // R a reverse move.
   await page.keyboard.press("f");
   await advance(page, 2);
@@ -361,9 +361,9 @@ export async function run(ctx) {
     o.own[0].engagement === "return_fire_only",
     o.own[0].engagement,
   );
-  await page.keyboard.press("x");
+  await page.keyboard.press("c");
   ctx.check(
-    "X arms attack-move",
+    "C arms attack-move",
     (await lab(page, () => window.__lab.route.mode())) === "attack_move",
   );
   await page.keyboard.press("r");
@@ -529,8 +529,8 @@ export async function run(ctx) {
     .getByRole("toolbar", { name: "Commands" })
     .evaluate((t) => [...t.querySelectorAll("button")].map((b) => b.ariaLabel).join("\n"));
   ctx.check(
-    "the command bar names X for attack-move and R for reverse",
-    /Attack-move \(X or Ctrl\+right-click\)/.test(bar) && /Reverse \(R,/.test(bar),
+    "the command bar names C for attack-move and R for reverse",
+    /Attack-move \(C or Ctrl\+right-click\)/.test(bar) && /Reverse \(R,/.test(bar),
     bar,
   );
 

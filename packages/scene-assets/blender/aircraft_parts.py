@@ -792,8 +792,9 @@ def chin_gun(v, rigged, mats, pitch_deg, stroke_m, mount="chin", drum=0.27, barr
 
 
 def door_gun(v, rigged, mats, pitch_deg, inboard, gun="m2", mount="door"):
-    """A heavy machine gun swung out of a cabin door on `mount`'s HMG rig
-    (`rigged`, from `vehicle_export.rig`): the pintle arm out from the
+    """A heavy machine gun swung out of a cabin door on `mount`'s rig
+    (`rigged`, from `vehicle_export.rig`; the `hmg` rig, or `gun` for a second
+    door's, since a model has one of each): the pintle arm out from the
     airframe's side, from `inboard` metres in from the pivot (towards the
     centreline), and its post up to the pintle, both fixed in the frame the
     pivot is in (the root's, as the rig is); the pintle head and cradle
@@ -803,19 +804,32 @@ def door_gun(v, rigged, mats, pitch_deg, inboard, gun="m2", mount="door"):
     from vehicle_parts import browning_m2, kord
     (yaw, pitch, _muzzle, pivot), (reach, _, bore) = _rigged(v, rigged, mount)
     pitch["pitch_min_deg"], pitch["pitch_max_deg"] = pitch_deg
+    # A machine gun on a pintle doesn't run back like a cannon: on a `gun`
+    # rig (a second door's), the renderer recoils it by nothing.
+    pitch["recoil_max_m"] = 0.0
     side = 1 if pivot.y >= 0 else -1
     foot = pivot.z + bore - 0.42
+    name = f"{mount}_gun"
     # The arm's root on the cabin side, the post up under the pintle.
-    line("door_gun_arm", (pivot.x, pivot.y - side * inboard, foot), (pivot.x, pivot.y, foot), mats["dark"], v.root,
+    line(f"{name}_arm", (pivot.x, pivot.y - side * inboard, foot), (pivot.x, pivot.y, foot), mats["dark"], v.root,
          width=0.07, height=0.06, lods=MID)
-    cyl("door_gun_post", 0.035, 0.3, (pivot.x, pivot.y, foot + 0.15), "Z", mats["dark"], v.root, seg=8, lods=MID)
-    cyl("door_gun_pintle", 0.05, 0.12, (0, 0, bore - 0.12), "Z", mats["dark"], yaw, seg=10)
-    box("door_gun_cradle", (0.24, 0.16, 0.05), (0.02, 0, bore - 0.08), mats["dark"], yaw, bevel=0.008, lods=MID)
+    cyl(f"{name}_post", 0.035, 0.3, (pivot.x, pivot.y, foot + 0.15), "Z", mats["dark"], v.root, seg=8, lods=MID)
+    cyl(f"{name}_pintle", 0.05, 0.12, (0, 0, bore - 0.12), "Z", mats["dark"], yaw, seg=10)
+    box(f"{name}_cradle", (0.24, 0.16, 0.05), (0.02, 0, bore - 0.08), mats["dark"], yaw, bevel=0.008, lods=MID)
     if gun == "kord":
-        kord(pitch, reach, mats)
+        kord(pitch, reach, mats, prefix=f"{mount}_kord")
     else:
-        browning_m2(pitch, reach, mats, grips=True)
-        box("m2_ammo_can", (0.28, 0.1, 0.18), (0.0, -side * 0.13, -0.05), mats["paint"], pitch, bevel=0.01, lods=MID)
+        browning_m2(pitch, reach, mats, grips=True, prefix=f"{mount}_m2")
+        box(f"{mount}_m2_ammo_can", (0.28, 0.1, 0.18), (0.0, -side * 0.13, -0.05), mats["paint"], pitch,
+            bevel=0.01, lods=MID)
+
+
+def door_guns(v, rigged, mats, pitch_deg, inboard, gun="m2"):
+    """A `door_gun` in every cabin door the unit's frame has a door mount for
+    (`door`, and `door_right` where it carries one each side)."""
+    for mt in v.frame["mounts"]:
+        if mt["name"].startswith("door"):
+            door_gun(v, rigged, mats, pitch_deg, inboard, gun, mount=mt["name"])
 
 
 # ---------------------------------------------------------------- wreck

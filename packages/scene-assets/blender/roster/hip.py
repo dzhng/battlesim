@@ -70,7 +70,7 @@ def build(variant, v):
             rot=(math.pi / 2, 0, 0), thick=0.12)
     box("tail_pylon", (0.9, 0.36, 1.4), (-8.55, 0, 2.95), m["paint"], hull, bevel=0.04, rot=(0, -0.3, 0))
     A.blade_antenna("antenna_belly", (-1.0, 0, 0.55), 0.3, m, hull, down=True)
-    A.door_gun(v, rig(v.frame, v.root), m, DOOR_PITCH_DEG, inboard=0.15, gun="kord")
+    A.door_guns(v, rig(v.frame, v.root), m, DOOR_PITCH_DEG, inboard=0.15, gun="kord")
 
     # The VVS's red star on the boom, a red bort number on the nose.
     A.markings(v, [

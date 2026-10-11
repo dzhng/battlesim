@@ -5,12 +5,12 @@
 ## What shipped and why
 
 All 19 roster helicopters are playable for the player and the skirmish AI, and they play the way Broken Arrow and WARNO helicopters do:
-- They cruise 20 m over the ground, nap-of-the-earth, and pop up over roofs.
+- They cruise 30 m over the ground (20 m when the spec closed; raised at the user's request) and climb over the tallest roofs.
 - They fly round anything taller than 30 m.
 - They strafe: the airframe turns to bring its rockets, missiles and any gun fixed in the hull to bear while it flies on. Chin and door guns are turrets (D28).
 - They fire missiles and rockets on the move.
 - They resupply by sinking to a low hover at a supply truck.
-- They shrug off rifles and fall to autocannons. Heavy snipers and machine guns can hurt them too.
+- They shrug off rifles and fall to autocannons. Heavy snipers and machine guns can hurt them too. The Little Birds are the exception: their skin (armour 7, on their own cards) lets part of a rifle round through, so rifles wear one down. Both Little Birds fire an HMG: the AH-6M's fixed forward, the MH-6M's from a door each side.
 - They come down in a spinning arc, and the wreck flattens the trees it lands on.
 
 The user framed every rule as a war-film moment rather than a ballistics table:
@@ -31,11 +31,12 @@ Research behind the rules:
   - Pinned by `crates/sim/tests/air.rs` for traffic, shoving and concealment. Cover and treads are not pinned by a test.
 - **One altitude rule, measured from the ground.**
   - Cruise height, clearance and ceiling come from one battle-wide `air` block in `fixtures/game.json` (`contract::scenario::AirRules`). The low hover's 2 m clearance over the tallest ground hull is a code constant (`movement::air`).
-  - The aircraft holds cruise height and climbs to the clearance over any body top or forest canopy it is about to pass, never above the ceiling (`movement::air::height_target`). The look-ahead reads the true world's bodies and trees, not the side's belief; only routing uses belief.
+  - The aircraft holds cruise height and climbs to the clearance over any body top or forest canopy it is about to pass, never above the ceiling (`movement::air::height_target`).
+  - It flies like a helicopter, not a car: it gathers and sheds speed over the air's `acceleration_s`, and braking for its goal it runs a little past (`settle_share` of the last leg, at most `settle_max_m`) and eases back onto the point without turning round (`units::Settle`). Its drawn airframe pitches into its acceleration and banks into turns (`presentation.pose.attitude`), read from its drawn motion. The look-ahead reads the true world's bodies and trees, not the side's belief; only routing uses belief.
   - A body taller than the obstacle height is a wall in the side's air grid (`navigation::air::AirGrid`, built per side from what that side believes stands, `SideGeometry::air_grid`).
   - Pinned by `air_flight.rs`.
 - **What a weapon can engage is data.**
-  - Every weapon row states `targets` or inherits it through `extends` (`ground`, `low_air`), and only `weapons::reaches` reads it. Target choice, explicit orders, threat ranking and the area-fire hold all go through it.
+  - Every weapon row states `targets` or inherits it through `extends`: each layer it engages (`ground`, `low_air`) with its range and spread there, the row's own where it leaves one out. Only `WeaponDefinition::against` reads it. Target choice, explicit orders, range checks, shot spread, threat ranking and the area-fire hold all go through it. A ground gun reaches a helicopter from much closer and with a much wider spread than along the ground, so helicopters outrange it but fall to a few hits.
   - Flight never reads `targets`, so a stray round still strikes a helicopter in its way.
   - `high_air` is left out until something flies high (D43).
   - Pinned by `air_weapons.rs`.
@@ -43,6 +44,8 @@ Research behind the rules:
 - **A gun fixed in a hull bears where the body faces, on every vehicle** (D8).
   - `weapons::hull_fixed` defines it. Such a mount reports `Reach.face` whenever it holds a lock on a target it can fire on, and the body turns to that bearing: an aircraft keeps flying its route, an idle tracked hull pivots, and wheels hold fire.
   - Pinned by `hull_guns.rs`.
+- **A turret may have an arc** (a mount row's `arc`): a door gun swings only through its door, 160° on its side. When a gun's target lies outside its arc, the body turns the arc's middle onto it, the same turn a hull-fixed gun asks for, unless a gun with the same weapons already bears on it. Transports carry a gun in each door, so neither turns them; the Wildcat's one door gun does.
+  - Pinned by `door_guns.rs`.
 - **Guidance is a row property, not a consequence of `stationary`** (D38).
   - A guided row states `guidance: "stationary" | "on_the_move"` (`contract::ballistics::Guidance`), and loading refuses a guided row without it.
   - Ground missiles guide only while standing still; `heli_atgm` guides on the move.
@@ -88,7 +91,7 @@ Research behind the rules:
   - Weapon rows `heli_atgm`, `rocket_pod` and `helicopter_crash` in `fixtures/game.json`.
   - The rotor sound `uh60-b-roll` in `fixtures/sounds.json`.
 - **Browser:**
-  - Rotor articulation (`packages/scene-assets/src/articulation.ts`, the `rotor` input).
+  - Rotor articulation (`packages/scene-assets/src/articulation.ts`, the `rotor` and `rotor_blur` inputs, and the blades and mast each rotor's geometry has), drawn in flight as a shutter sees it (`effects/effectFrame.ts`, `rotor_blur`).
   - Drop line and ground marker (`packages/battle-renderer/src/orderOverlay.ts`, `buildAircraftMarks`).
   - The fall and the smoke trail (`packages/battle-renderer/src/models/poseDriver.ts`, `effects/effectFrame.ts`; the lab's `poseFeed.ts` and `effectFeed.ts`).
   - The contact sign (`packages/battle-renderer/src/contactGlyph.ts`).
@@ -126,6 +129,7 @@ Research behind the rules:
   - `full-*-fog-close.jpg` and `full-*-tower-map.jpg`: 1920×1080 frames. The fog frames also show the real ground glyph for comparison.
 - **The built sign keeps D's recipe but sizes it differently.** It follows the contact's uncertainty, clamped to a 20–44 px radius, which the spike's checkpoint asked for. It also adds a pale stem to the ground, raises fill and hatch, and draws a lit grey-blue rim instead of D's white ([choices](choices.md)).
 - **The look and feel** were judged against the Broken Arrow and WARNO descriptions above, with no reference images, and against the user's own words: "almost like a red cloud, a perfect circular red sign that's kind of floating in the air", rifle sparks, and a wreck that flattens trees.
+- **The drop line** was redrawn after the closeout. The user disliked the solid 3D line; five Canvas2D concepts over a real capture ([`assets/drop-line/sheet.jpg`](assets/drop-line/sheet.jpg): ring only, a fading hairline, dots, a short stem, a centre pin) were offered, and the user picked the dots, rising from the ring's centre rather than its edge, then asked that they be round, in the ring's own yellow, and hold full for the first fifth of the height and fade out by four fifths of it rather than tie on to the airframe. The dots are lit as marks on the ground, not as solids, and drawn in the marker's colour at full brightness, so they read as the ring's glowing paint does ([`assets/drop-line/chosen-and-built.jpg`](assets/drop-line/chosen-and-built.jpg): the concept, the shipped build, and close over the ring).
 - **The panel workbench's pictures** (`web/scenes/baselines/panels/`) were re-recorded at the closeout to include the test helicopter's panels.
 
 ## Balance at closeout
@@ -138,4 +142,4 @@ Balance was out of scope: the user asked only that helicopters not be clearly un
 
 ## What comes next
 
-[Transport](../../transport/README.md), still a placeholder, plans to carry infantry in ground carriers and helicopters, and to land helicopters through `movement::air::low_hover`. Landing on a point will first need U1's exact stop.
+[Transport](../../transport/README.md), still a placeholder, plans to carry infantry in ground carriers and helicopters, and to land helicopters through `movement::air::low_hover`. Landing on a point can use the settle: the aircraft ends exactly on its goal once it has eased back.

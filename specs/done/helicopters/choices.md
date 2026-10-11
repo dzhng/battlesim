@@ -66,7 +66,7 @@ The entries are grouped by verdict: **needs-user** (decide; each one has a provi
 - **Verdict:** needs-user (taste). It was shown at the slice 12 checkpoint with no reply. Provisional call: kept as built. To reverse, decide whether the marker should follow the roof (a renderer change to paint on roof layers) or stay on the ground.
 - **Confidence:** medium.
 
-### N8. A door gun can traverse all the way round, through its own cabin
+### N8. A door gun can traverse all the way round, through its own cabin *(decided after the closeout: door guns have a 160° arc on their side, transports carry one in each door, and the airframe turns a gun's arc onto a target none bears on; the `arc` of a mount row)*
 - **When:** slice 16.
 - **The choice:** the simulation has no traverse arc for any mount. A left-door gun told to fire at something on the right swings through the fuselage and fires. In a war film it would either refuse, or the pilot would turn the airframe. The alternative was a traverse arc on mounts, so a gun only fires inside its arc, or the airframe turns to bring the target into it, as hull-fixed weapons already make it do (S20).
 - **The gap:** D28 made door guns turrets without limiting them.
@@ -78,7 +78,7 @@ The entries are grouped by verdict: **needs-user** (decide; each one has a provi
 
 ## Unsound
 
-### U1. An aircraft closing on its goal round a last corner can bow up to 0.18 m wide
+### U1. An aircraft closing on its goal round a last corner can bow up to 0.18 m wide *(superseded: aircraft now overshoot and settle by design)*
 - **When:** slices 03 → 07, re-checked at closeout (`crates/sim/src/movement/air.rs`, `crates/sim/src/navigation/air.rs`).
 - **The choice:** an air route comes from A* over 4 m cells and is string-pulled to the corners the flight needs. When the goal lies just past a corner, the aircraft turns onto the final leg still carrying sideways momentum. Its acceleration-limited steering bleeds that off on the way in, so its path bows slightly wide of the goal before it settles.
 - **What the closeout found:** the "metre past and back" the build recorded is gone after later flight fixes. The largest swing away from the goal, across twelve tower positions, measures 0.18 m, at two of the twelve positions (zero at the other ten). The test `flies_on_past_a_tower_without_turning_back` now asserts that the aircraft never turns back by more than 2 m (it curves about 1.2 m across the goal's line), and that within 30 m of its goal it never swings more than 0.2 m away from it. Two attempts to remove the bow entirely failed: a step-crossing snap, and settling within 0.25 m. The bow happens about 1 m out, where the leftover sideways momentum is still bleeding off.
@@ -218,7 +218,7 @@ The entries are grouped by verdict: **needs-user** (decide; each one has a provi
 
 ### S15. The flight model
 - **When:** slice 03, fixed in slice 07 (`step_aircraft`, `turn`, `separation` in `crates/sim/src/movement/air.rs`).
-- **The choice:** an aircraft has a ground velocity that eases toward the speed it wants, at `cruise / drive.acceleration_s` (the ground vehicles' acceleration time). It takes each corner no faster than `cruise × cos(turn angle)` and no faster than it could stop from in the rest of the route, braking on 80% of its acceleration. A waypoint on the way counts as passed within 1 m, or once the aircraft is beyond it along the leg that led there. The slice 07 lab found it skimming a tower's corner 1–2 m wide and flying 130 m on before turning back. Overlapping aircraft drift apart at up to 4 m/s. Above 1 m/s it faces where it flies; below that, its ordered facing, at the type's turn rate. The alternatives were a full aerodynamic model (out of scope) or a wider waypoint radius (which only moves the miss).
+- **The choice:** an aircraft has a ground velocity that eases toward the speed it wants, at `cruise / air.acceleration_s` (4.5 s, a ground vehicle's acceleration time). It takes each corner no faster than `cruise × cos(turn angle)` and no faster than it could stop from in the rest of the route, braking on 60% of its acceleration (`BRAKING_SHARE`). A waypoint on the way counts as passed within 1 m, or once the aircraft is beyond it along the leg that led there. The slice 07 lab found it skimming a tower's corner 1–2 m wide and flying 130 m on before turning back. Overlapping aircraft drift apart at up to 4 m/s. Above 1 m/s it faces where it flies; below that, its ordered facing, at the type's turn rate. The alternatives were a full aerodynamic model (out of scope) or a wider waypoint radius (which only moves the miss).
 - **The gap:** D4, D6 and D7 gave the feel, not the model.
 - **The reach:** every aircraft flies through it. The aircraft-only constants are at the top of the file.
 - **Verdict:** sound. U1 is its one remaining defect.
@@ -272,9 +272,9 @@ The entries are grouped by verdict: **needs-user** (decide; each one has a provi
 - **Verdict:** sound.
 - **Confidence:** medium-high.
 
-### S22. Rotor spin is metres swept by the blade tip, at a drawing speed of 45 m/s
+### S22. Rotor spin is metres swept by the blade tip; a flying rotor is drawn as a shutter sees it
 - **When:** slice 06 (`presentation.pose.rotor.tip_mps` in `fixtures/game.json`; `packages/battle-renderer/src/models/poseDriver.ts`).
-- **The choice:** all rotors spin from one articulation input, `rotor`: the distance every blade tip has swept, which grows at 45 m/s while the unit is airborne. Each `rotor_*` node turns by that distance over its own radius, as a wheel turns by distance over its radius. So every tip runs at one speed and small tail rotors turn faster, with no per-rotor authoring. A real tip runs about 220 m/s. 45 keeps the tail rotor under a quarter turn per 60 Hz frame (no backwards strobing) and the main rotor near 60 rpm, so you can see it turn. There is no blade blur. The alternatives were an angle per rotor, or a gear ratio on the tail rotor.
+- **The choice:** all rotors spin from one articulation input, `rotor`: the distance every blade tip has swept, which grows at 45 m/s while the unit is airborne. Each `rotor_*` node turns by that distance over its own radius, as a wheel turns by distance over its radius. So every tip runs at one speed and small tail rotors turn faster, with no per-rotor authoring. A real tip runs about 220 m/s. The build first drew 45 m/s so the blades wouldn't strobe; after the closeout the user asked for a faster, film-like rotor, and suggested simulating a camera shutter. Now the tip runs at 200 m/s and a flying aircraft's rotor geometry is hidden: the effect pass draws each blade smeared over the angle it turned while the shutter was open (`presentation.effects.rotor_blur.shutter` of the turn since the last drawn frame), plus its hub and mast, from the blades and mast the rig measures in the rotor's own geometry. It strobes as film does; the small tail rotors, turning more than a whole turn a frame, spread thin; the rotor casts no shadow. The alternatives were an angle per rotor, or a gear ratio on the tail rotor; for the blur, a translucent disc over the solid blades (it couldn't hide them) or re-exported blades.
 - **The gap:** nothing said how rotors move.
 - **The reach:** one renderer-only number to retune.
 - **Verdict:** sound.

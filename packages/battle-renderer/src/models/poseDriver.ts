@@ -22,10 +22,18 @@
 // and is gone, though the simulation still lists him.
 
 import { clamp, deltaAngle, mat4, vec3, type Mat4, type Vec2, type Vec3 } from "math";
+import { GRAVITY } from "../effects/cookOff";
 import { mulberry32 } from "math/random";
 import { easing } from "math/time";
 import { REST_ARTICULATION, type Articulation } from "@packages/scene-assets/src/articulation";
-import type { Side } from "@packages/scene-assets/src/schema";
+import {
+  INFANTRY_DEATHS,
+  INFANTRY_FALL_BACK,
+  INFANTRY_FALLS,
+  INFANTRY_MOVES,
+  INFANTRY_WAYS,
+  type Side,
+} from "@packages/scene-assets/src/schema";
 import {
   airborne,
   vehicleClass,
@@ -150,6 +158,8 @@ export interface VehiclePose {
 /** A fallen soldier whose death has played out (or was never seen): drawn
  *  as a static mesh, never skinned. */
 export interface CorpsePose {
+  /** Which way he lies: the corpse his fall ended in (`INFANTRY_FALLS`). */
+  lies: number;
   /** Last observed carried equipment; unknown for a body first seen fallen. */
   operatorMount?: number | null;
   soldier: number;
@@ -196,6 +206,9 @@ export interface PoseFeel {
     /** Speed from which a soldier walks, and from which he runs, m/s. */
     walk_mps: number;
     run_mps: number;
+    /** Speed up to which a soldier lying down crawls, m/s; faster, he gets up
+     *  and moves crouched. */
+    crawl_mps: number;
     /** Crossfade between clips, seconds. */
     fade_s: number;
     /** Speed below which facing does not follow velocity, m/s. */
@@ -216,9 +229,10 @@ export interface PoseFeel {
     settle_s: [number, number];
   };
   /** How a squad under fire holds itself (`stanceManner`): the shares of
-   *  men who fire lying down and standing (the rest kneel), and of men who
-   *  crouch rather than lie flat when pinned. */
-  stance: { fire_prone: number; fire_stand: number; pinned_kneel: number };
+   *  men who fire lying down and standing (the rest kneel), of men who
+   *  crouch rather than lie flat when pinned, and of men killed standing who
+   *  fall back onto their backs (hit from the front) rather than forward. */
+  stance: { fire_prone: number; fire_stand: number; pinned_kneel: number; fall_back: number };
   /** How a soldier slides out to his lean point and back: seconds out,
    *  a quick step, and seconds back in, slower. */
   lean: { out_s: number; back_s: number };
@@ -237,9 +251,16 @@ export interface PoseFeel {
    *  share of its hull's half width; 1 when absent. */
   gauge: Partial<Record<string, number>>;
   /** How fast a drawn rotor's blade tips run, metres a second: every rotor
-   *  turns at this over its reach. A drawing speed, slower than a real
-   *  rotor's, so the blades read as turning rather than strobing. */
+   *  turns at this over its reach. Near a real rotor's: faster than a frame
+   *  can show, so the blur drawn over it (`presentation.effects.rotor_blur`)
+   *  carries the turn. */
   rotor: { tip_mps: number };
+  /** A flying aircraft leans into its motion as a rotor must: nose down to
+   *  speed up, up to brake, into a turn, by the angle that tilts its lift
+   *  into its acceleration (`atan(a / g)`) times `gain`, at most `max_deg`.
+   *  Its acceleration is read from its drawn motion, eased over
+   *  `smoothing_s`. */
+  attitude: { gain: number; max_deg: number; smoothing_s: number };
   /** How many of the fallen lie drawn at once. Past `max` the oldest sinks
    *  `sink_m` into the ground over `fade_s` seconds, easing in, and is then
    *  gone for good. A presentation cap: the simulation keeps every one. */
@@ -255,10 +276,16 @@ export function validatePoseFeel(p: PoseFeel): PoseFeel {
   const positive = (path: string, v: number) => {
     if (!(v > 0)) fail(path, "must be positive");
   };
-  const { gait, rest, stance, lean, mount, gauge, rotor, corpses } = p;
+  const { gait, rest, stance, lean, mount, gauge, rotor, attitude, corpses } = p;
   positive("gait.walk_mps", gait.walk_mps);
   positive("rotor.tip_mps", rotor.tip_mps);
+  positive("attitude.smoothing_s", attitude.smoothing_s);
+  if (!(attitude.gain >= 0)) fail("attitude.gain", "must not be negative");
+  if (!(attitude.max_deg > 0 && attitude.max_deg < 90))
+    fail("attitude.max_deg", "must be in (0, 90)");
   if (!(gait.run_mps > gait.walk_mps)) fail("gait.run_mps", "must exceed walk_mps");
+  if (!(gait.crawl_mps > gait.walk_mps && gait.crawl_mps <= gait.run_mps))
+    fail("gait.crawl_mps", "must exceed walk_mps and not exceed run_mps");
   positive("gait.fade_s", gait.fade_s);
   if (!(gait.facing_mps >= 0)) fail("gait.facing_mps", "must be ≥ 0");
   positive("gait.turn_rad_s", gait.turn_rad_s);
@@ -275,7 +302,8 @@ export function validatePoseFeel(p: PoseFeel): PoseFeel {
     !share(stance.fire_prone) ||
     !share(stance.fire_stand) ||
     !(stance.fire_prone + stance.fire_stand <= 1) ||
-    !share(stance.pinned_kneel)
+    !share(stance.pinned_kneel) ||
+    !share(stance.fall_back)
   )
     fail("stance", "shares must lie in [0, 1], fire_prone + fire_stand ≤ 1");
   positive("lean.out_s", lean.out_s);
@@ -312,6 +340,42 @@ export interface PoseDriverOptions {
   leanHold: number;
 }
 
+/** The ways he moves (`INFANTRY_WAYS`) at their bearings from his facing,
+ *  counter-clockwise. */
+const WAY_BEARINGS: Record<(typeof INFANTRY_WAYS)[number], number> = {
+  f: 0,
+  l: Math.PI / 2,
+  b: Math.PI,
+  r: -Math.PI / 2,
+};
+const WAYS = Object.entries(WAY_BEARINGS);
+
+/** How far past the halfway bearing between two ways he keeps the way he is
+ *  going, so a diagonal does not flicker between two clips, radians. */
+const WAY_HOLD_RAD = 0.2;
+
+/** The way he goes at bearing `rel` from his facing: the nearest, unless
+ *  `current` (his clip) is already a way of `gait` and still near enough. */
+function wayOf(rel: number, current: string, gait: string): string {
+  const held = current.startsWith(`${gait}_`) ? current.slice(gait.length + 1) : null;
+  const kept = WAYS.find(([way]) => way === held);
+  if (kept && Math.abs(deltaAngle(kept[1], rel)) <= Math.PI / 4 + WAY_HOLD_RAD) return kept[0];
+  let best = WAYS[0][0];
+  let off = Infinity;
+  for (const [way, at] of WAYS) {
+    const d = Math.abs(deltaAngle(at, rel));
+    if (d < off) [best, off] = [way, d];
+  }
+  return best;
+}
+
+/** The gait a clip moves in (`INFANTRY_MOVES`), or null for any other clip. */
+function gaitOfClip(clip: string): string | null {
+  const cut = clip.lastIndexOf("_");
+  const gait = cut < 0 ? "" : clip.slice(0, cut);
+  return (Object.values(INFANTRY_MOVES) as string[]).includes(gait) ? gait : null;
+}
+
 /** Where a soldier starts a looping clip: his own offset (the golden ratio
  *  over his id), so a squad that starts walking, kneels or breathes together
  *  never moves in lockstep. A one-shot clip (death) starts at its start. */
@@ -339,10 +403,12 @@ export function restManner(
   return { turn, tempo, watch };
 }
 
-/** A soldier's posture while he fires, and while his squad is pinned. */
+/** A soldier's posture while he fires, and while his squad is pinned, and
+ *  whether, killed standing, he falls back onto his back. */
 export interface Stance {
   firing: Posture;
   pinned: Posture;
+  fallsBack: boolean;
 }
 
 /** How a soldier holds himself under fire, his own for life (from his id):
@@ -356,7 +422,15 @@ export function stanceManner(soldier: number, stance: PoseFeel["stance"]): Stanc
   const firing: Posture =
     u < stance.fire_prone ? "prone" : u >= 1 - stance.fire_stand ? "stand" : "kneel";
   const pinned: Posture = u >= 1 - stance.pinned_kneel ? "kneel" : "prone";
-  return { firing, pinned };
+  // A second sequence, so how he falls does not follow how he stands.
+  const fallsBack = (soldier * 0.7548776662466927) % 1 < stance.fall_back;
+  return { firing, pinned, fallsBack };
+}
+
+/** The fall he plays dying in `posture`: standing, back onto his back or
+ *  forward onto his face by his own manner. */
+function fallOf(posture: Posture, stance: Stance): string {
+  return posture === "stand" && stance.fallsBack ? INFANTRY_FALL_BACK : INFANTRY_DEATHS[posture];
 }
 
 interface SoldierState {
@@ -368,6 +442,8 @@ interface SoldierState {
    *  lean point he slides to (kept while he eases back from it). */
   leanT: number;
   leanAt: Vec3;
+  /** The posture he was last posed in: the one he falls from. */
+  posture: Posture;
   /** His `restManner` and `stanceManner`, and when his squad last fired. */
   turn: number;
   tempo: number;
@@ -392,6 +468,14 @@ interface VehicleState {
   gunShots: number;
   firedAt: number;
   seen: number;
+  /** A flying aircraft's drawn ground velocity and acceleration, eased
+   *  (`PoseFeel.attitude`), and the attitude they gave it last: what it
+   *  leans by, held while the clock stands still. */
+  flight?: {
+    velocity: [number, number];
+    accel: [number, number];
+    attitude: { pitch: number; roll: number } | null;
+  };
 }
 
 /** `from` moved toward `to` by at most `step`. */
@@ -496,6 +580,29 @@ export class PoseDriver {
     return out;
   }
 
+  /** How a flying aircraft leans (`PoseFeel.attitude`), from how its drawn
+   *  position moved since the last frame; held as it was while the clock
+   *  stands still. Level, it carries no tilt. */
+  private aircraftAttitude(state: VehicleState, unit: FeedUnit, dt: number) {
+    const f = (state.flight ??= { velocity: [0, 0], accel: [0, 0], attitude: null });
+    if (dt === 0) return f.attitude;
+    const { gain, max_deg, smoothing_s } = this.options.feel.attitude;
+    const k = 1 - Math.exp(-dt / smoothing_s);
+    const p = state.pose.position;
+    const [vx, vy] = [(unit.position[0] - p[0]) / dt, (unit.position[1] - p[1]) / dt];
+    const [ox, oy] = f.velocity;
+    f.velocity = [ox + (vx - ox) * k, oy + (vy - oy) * k];
+    const [ax, ay] = [(f.velocity[0] - ox) / dt, (f.velocity[1] - oy) / dt];
+    f.accel = [f.accel[0] + (ax - f.accel[0]) * k, f.accel[1] + (ay - f.accel[1]) * k];
+    const max = (max_deg * Math.PI) / 180;
+    const tiltBy = (a: number) => clamp(gain * Math.atan(a / GRAVITY), -max, max);
+    const [c, s] = [Math.cos(unit.yaw), Math.sin(unit.yaw)];
+    const pitch = -tiltBy(f.accel[0] * c + f.accel[1] * s);
+    const roll = -tiltBy(-f.accel[0] * s + f.accel[1] * c);
+    f.attitude = Math.abs(pitch) + Math.abs(roll) > 1e-9 ? { pitch, roll } : null;
+    return f.attitude;
+  }
+
   private squad(unit: FeedUnit, time: number, dt: number, generation: number) {
     const { gait, rest, lean: slide } = this.options.feel;
     for (const soldier of unit.soldiers) {
@@ -539,19 +646,11 @@ export class PoseDriver {
       state.ownShots = own ?? 0;
       const firing = time - state.firedAt < this.options.leanHold;
 
-      // Facing: his own velocity, else the weapon's aim (or the unit's heading),
-      // strayed by his own manner once the squad has settled.
-      const settled = clamp((time - state.alertAt - rest.settle_s[0]) / rest.settle_s[1], 0, 1);
-      const target = speed > gait.facing_mps ? Math.atan2(dy, dx) : aim + state.turn * settled;
-      const turn = deltaAngle(pose.facing, target);
-      const step = gait.turn_rad_s * dt;
-      if (holding) pose.facing = aim;
-      else pose.facing += Math.abs(turn) <= step ? turn : Math.sign(turn) * step;
-
       // Out on his lean he kneels to fire, pinned or not: the film's man
       // pops out from behind the tree and drops back. Otherwise, under fire
-      // or firing, each man takes his own stance.
-      const posture =
+      // or firing, each man takes his own stance. Lying down he can only
+      // crawl so fast: quicker than that, he gets up and goes crouched.
+      const held =
         soldier.posture ??
         (soldier.lean
           ? "kneel"
@@ -560,17 +659,36 @@ export class PoseDriver {
             : firing
               ? state.stance.firing
               : "stand");
+      const posture = held === "prone" && speed >= gait.crawl_mps ? "kneel" : held;
+      state.posture = posture;
+      const running = speed >= gait.run_mps;
+      // Down in a posture or shooting, he keeps his weapon toward the threat
+      // as he moves (`INFANTRY_MOVES`), whichever way he goes; otherwise, and at a run,
+      // he faces the way he goes.
+      const gaitOf = running || (posture === "stand" && !firing) ? null : INFANTRY_MOVES[posture];
+
+      // Facing: his own velocity, else the weapon's aim (or the unit's heading),
+      // strayed by his own manner once the squad has settled.
+      const settled = clamp((time - state.alertAt - rest.settle_s[0]) / rest.settle_s[1], 0, 1);
+      const travel = Math.atan2(dy, dx);
+      const target = speed > gait.facing_mps && !gaitOf ? travel : aim + state.turn * settled;
+      const turn = deltaAngle(pose.facing, target);
+      const step = gait.turn_rad_s * dt;
+      if (holding) pose.facing = aim;
+      else pose.facing += Math.abs(turn) <= step ? turn : Math.sign(turn) * step;
 
       const clip = holding
         ? authoredHold.clip
-        : posture === "prone"
-          ? "prone_pinned"
-          : posture === "kneel" && speed < gait.walk_mps
-            ? "kneel_fire"
-            : speed >= gait.run_mps
-              ? "run"
-              : speed >= gait.walk_mps
-                ? "walk"
+        : running
+          ? "run"
+          : speed >= gait.walk_mps
+            ? gaitOf
+              ? `${gaitOf}_${wayOf(deltaAngle(pose.facing, travel), pose.clip, gaitOf)}`
+              : "walk"
+            : posture === "prone"
+              ? "prone_pinned"
+              : posture === "kneel"
+                ? "kneel_fire"
                 : state.watch || firing
                   ? "stand_aim"
                   : "idle";
@@ -624,6 +742,7 @@ export class PoseDriver {
       at: vec3.clone(soldier.position),
       leanT: 0,
       leanAt: vec3.clone(soldier.position),
+      posture: "stand",
       turn,
       tempo,
       watch,
@@ -671,14 +790,18 @@ export class PoseDriver {
         state.pose.unit = -1;
         const changedHold = state.pose.operatorMount !== null;
         state.pose.activeMount = null;
-        if (changedHold) this.resetClip(state, "death");
-        else this.switchTo(state, "death");
+        // He falls from the posture he is in, never getting up to die.
+        const fall = fallOf(state.posture, state.stance);
+        if (changedHold) this.resetClip(state, fall);
+        else this.switchTo(state, fall);
         this.dying.add(f.soldier);
       } else if (state) {
         // Authority can remove a floor while the same death is still playing.
         vec3.copy(state.pose.position, f.position);
       } else {
+        // Never seen fall: he lies as he would have fallen standing.
         this.lay({
+          lies: INFANTRY_FALLS[fallOf("stand", stanceManner(f.soldier, this.options.feel.stance))],
           soldier: f.soldier,
           kind: f.kind,
           slot: f.slot,
@@ -714,13 +837,14 @@ export class PoseDriver {
       state.seen = generation;
       const pose = state.pose;
       pose.activeMount = null;
-      const facts = this.options.clip(pose.kind, "death", pose);
+      const facts = this.options.clip(pose.kind, pose.clip, pose);
       pose.phase = facts ? Math.min(1, (time - state.fellAt!) / facts.duration) : 1;
       this.fade(state, dt);
       if (pose.phase >= 1 && !pose.blend) {
         this.dying.delete(id);
         this.soldiers.delete(id);
         this.lay({
+          lies: INFANTRY_FALLS[pose.clip],
           soldier: id,
           kind: pose.kind,
           operatorMount: pose.operatorMount,
@@ -777,16 +901,21 @@ export class PoseDriver {
   /** Move to `clip` (fading from the current one) and advance its phase. */
   private advance(state: SoldierState, clip: string, moved: number, dt: number) {
     const pose = state.pose;
-    if (clip !== pose.clip) this.switchTo(state, clip);
+    if (clip !== pose.clip) {
+      // Turning his way within one gait keeps his step: its ways share a phase.
+      const gait = gaitOfClip(clip);
+      const phase = pose.phase;
+      this.switchTo(state, clip);
+      if (gait && gait === gaitOfClip(state.fading.clip)) pose.phase = phase;
+    }
     const facts = this.options.clip(pose.kind, pose.clip, pose);
     if (facts) {
-      // Locomotion with a declared stride advances with ground covered, so
-      // feet do not slide; everything else advances with time, the idle at
-      // his own tempo.
-      const step =
-        facts.stride_m && (pose.clip === "walk" || pose.clip === "run")
-          ? moved / facts.stride_m
-          : (dt / facts.duration) * (pose.clip === "idle" ? state.tempo : 1);
+      // Locomotion (a clip with a declared stride) advances with ground
+      // covered, so feet do not slide; everything else advances with time,
+      // the idle at his own tempo.
+      const step = facts.stride_m
+        ? moved / facts.stride_m
+        : (dt / facts.duration) * (pose.clip === "idle" ? state.tempo : 1);
       pose.phase = facts.loop ? (pose.phase + step) % 1 : Math.min(1, pose.phase + step);
     }
     this.fade(state, dt);
@@ -832,6 +961,7 @@ export class PoseDriver {
     const key = sideKey(unit.id, unit.side, "blue");
     let state = this.vehicles.get(key);
     if (!state) {
+      const flies = airborne(this.options.units.type(unit.kind));
       // First seen: posed as published, with no shot to recoil from.
       state = {
         gunShots: gunMount?.shots ?? 0,
@@ -842,8 +972,14 @@ export class PoseDriver {
           side: unit.side,
           position: vec3.clone(unit.position),
           yaw: unit.yaw,
-          airborne: airborne(this.options.units.type(unit.kind)),
-          articulation: { ...REST_ARTICULATION, gun_pitch: gunTarget, hmg_pitch: hmgTarget },
+          airborne: flies,
+          // Its rotors as a camera's shutter sees them turn, not as geometry.
+          articulation: {
+            ...REST_ARTICULATION,
+            gun_pitch: gunTarget,
+            hmg_pitch: hmgTarget,
+            rotor_blur: flies ? 1 : 0,
+          },
           tilt: null,
         },
         seen: generation,
@@ -866,13 +1002,15 @@ export class PoseDriver {
       a.travel_l += forward - turned * half;
       a.travel_r += forward + turned * half;
     }
+    const flying = pose.airborne && !unit.attitude ? this.aircraftAttitude(state, unit, dt) : null;
     vec3.copy(pose.position, unit.position);
     pose.yaw = unit.yaw;
-    if (unit.attitude) {
+    const attitude = unit.attitude ?? flying;
+    if (attitude) {
       // Nose up about its +Y, then right side down about its +X.
       const tilt = (pose.tilt ??= mat4.create());
-      mat4.fromYRotation(tilt, -unit.attitude.pitch);
-      mat4.rotateX(tilt, tilt, unit.attitude.roll);
+      mat4.fromYRotation(tilt, -attitude.pitch);
+      mat4.rotateX(tilt, tilt, attitude.roll);
     } else pose.tilt = null;
     a.deploy = unit.deployment ?? 0;
 

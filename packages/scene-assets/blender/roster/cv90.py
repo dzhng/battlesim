@@ -100,7 +100,7 @@ def turret_body(v, turret, mk4):
 
     def ring(pts, lean, nose):
         left = [(x - (nose if x > 0.9 else 0.0), y - lean) for x, y in pts]
-        return left + [(x, -y) for x, y in reversed(left)]
+        return VP.mirror_plan(left)
 
     rings = [(FOOT, ring(half, 0.0, 0.0)), (0.36, ring(half, -0.08 if mk4 else 0.0, 0.0)),
              (ROOF, ring(half, 0.12, 0.30))]

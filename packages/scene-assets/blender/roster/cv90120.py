@@ -52,7 +52,7 @@ def turret_body(v, turret):
     # front is broad and low, not a narrow box set back.
     def plan(cheek, side, nose, back):
         left = [(nose, 0.36), *cheek, (-1.25, side), (back, side - 0.20)]
-        return left + [(x, -y) for x, y in reversed(left)]
+        return VP.mirror_plan(left)
 
     base = plan(CHEEK_WAIST, SIDE_WAIST, 1.15, -2.20)
     crown = plan(CHEEK_ROOF, SIDE_ROOF, 0.95, -2.15)

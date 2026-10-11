@@ -87,10 +87,7 @@ def build(variant, v):
         box(f"cabin_window_{k}", (0.5, 0.03, 0.42), (1.6, side * 1.075, 1.55), m["glass"], hull, lods=MID)
         box(f"cockpit_window_{k}", (0.9, 0.03, 0.55), (length / 2 - 2.3, side * 0.98, 1.55), m["glass"], hull,
             lods=MID)
-        if not z20 and side < 0:
-            # The right door gun stowed on its mount in the cabin window.
-            cyl(f"door_gun_{k}", 0.03, 1.1, (2.2, side * 1.2, 1.5), "X", m["steel"], hull, seg=6, lods=NEAR)
-    A.door_gun(v, rig(v.frame, v.root), m, DOOR_PITCH_DEG, inboard=0.2, gun="kord" if z20 else "m2")
+    A.door_guns(v, rig(v.frame, v.root), m, DOOR_PITCH_DEG, inboard=0.2, gun="kord" if z20 else "m2")
     cyl("mast", 0.2, 0.75, (0.3, 0, 2.95), "Z", m["dark"], hull, seg=12)
     A.rotor("main", (0.3, 0, height - 0.22), 8.18 if not z20 else 8.2, 4 if not z20 else 5, 0.53, m, hull,
             hub=0.42, mast=0.0, droop=0.025, phase=0.4)

@@ -230,7 +230,7 @@ function assertShape(bundle: Bundle) {
       if (
         !Array.isArray(bundle.joints) ||
         !bundle.far_pose ||
-        !bundle.corpse_pose ||
+        !bundle.corpse_poses?.length ||
         !bundle.bounds
       )
         throw new Error("skinned bundle is incomplete");

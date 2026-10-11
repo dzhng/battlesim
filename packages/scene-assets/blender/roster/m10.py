@@ -143,7 +143,7 @@ def turret_plan(front, side):
     chamfered corners, the upright sides and the bustle's back."""
     left = [(front - 0.25, 0.38), (front, 0.50), (front, side - 0.30), (front - 0.26, side), (-1.30, side),
             (BACK, side - 0.10)]
-    return left + [(x, -y) for x, y in reversed(left)]
+    return VP.mirror_plan(left)
 
 
 def turret_body(v, turret):

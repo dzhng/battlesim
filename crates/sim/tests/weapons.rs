@@ -5,6 +5,7 @@ use std::collections::BTreeSet;
 use contract::command::{Engagement, Order, TargetRef};
 use contract::ids::{Side, UnitId};
 use contract::observation::{ActionReason, MountReadiness, MoveState, OwnUnit, SuppressionTier};
+use contract::weapons::WeaponDefinition;
 use serde_json::{json, Value};
 use sim::battle::Battle;
 use sim::flight::{FlightEvent, ProjectileId};
@@ -2416,8 +2417,8 @@ fn an_attack_pursues_the_last_report_never_the_hidden_unit() {
 
 #[test]
 fn a_cannon_loads_ap_against_armour_and_he_once_ap_is_spent() {
-    // A tank duel: AP while any remains; once AP is spent the cannon fires HE,
-    // which still hurts armour, but only by its armour fraction.
+    // A tank duel: AP while any remains; once AP is spent the cannon fires HE
+    // rather than falling silent.
     let duel = |condition: Value| {
         let mut b = battle(
             json!([]),
@@ -2434,30 +2435,18 @@ fn a_cannon_loads_ap_against_armour_and_he_once_ap_is_spent() {
             .filter(|s| s.1 == 0 && s.2.starts_with("tank_"))
             .map(|s| s.2.clone())
             .collect();
-        (cannon, b.unit(UnitId(1)).unwrap().hp)
+        cannon
     };
-    let (full, _) = duel(json!({}));
+    let full = duel(json!({}));
     assert_eq!(
         full.first().map(String::as_str),
         Some("tank_ap"),
         "armour draws AP first: {full:?}"
     );
-    let (spent, hp) = duel(json!({ "spent": { "tank_ap": 20 } }));
+    let spent = duel(json!({ "spent": { "tank_ap": 20 } }));
     assert!(
         !spent.is_empty() && spent.iter().all(|w| w == "tank_he"),
         "{spent:?}"
-    );
-    let he = weapon("tank_he");
-    let per_hit = he["damage"].as_f64().unwrap() * he["armor_fraction"].as_f64().unwrap();
-    let lost = 100.0 - hp;
-    assert!(lost > 0.0, "HE hurts armour partially");
-    assert!(
-        (lost / per_hit - (lost / per_hit).round()).abs() < 1e-9,
-        "whole HE hits of {per_hit}: lost {lost}"
-    );
-    assert!(
-        per_hit < weapon("tank_ap")["damage"].as_f64().unwrap(),
-        "HE is far weaker than AP against armour"
     );
 }
 
@@ -3330,4 +3319,118 @@ fn an_enemy_entering_range_cancels_a_top_up_but_not_an_empty_reload() {
         replay.step();
     }
     assert_eq!(replay.digest(), b.digest());
+}
+
+/// Blue's tank firing into red's front for 20 s with its AP round as
+/// `round` leaves it: each tick an AP round first met red's hull (the only
+/// round to meet it that tick), the hit points red lost and whether it
+/// glanced off.
+fn hits_on_a_tank_front(round: impl Fn(&mut WeaponDefinition)) -> Vec<(f64, bool)> {
+    let mut setup = scenario_with(
+        &map(json!([])),
+        json!([
+            { "side": "blue", "kind": "test_tank", "position": [300, 300] },
+            { "side": "red", "kind": "test_tank", "position": [600, 300], "yaw": std::f64::consts::PI, "engagement": "return_fire_only" },
+        ]),
+        json!([]),
+        json!([]),
+    );
+    round(setup.rules.weapons.get_mut("tank_ap").unwrap());
+    let mut b = Battle::new(&setup, 5);
+    let red = sim::flight::BodyId(sim::weapons::VEHICLE_BODY_BASE + 1);
+    let mut ap = BTreeSet::new();
+    let mut hits = Vec::new();
+    for _ in 0..ticks(20.0) {
+        let before = b.unit(UnitId(1)).unwrap().hp;
+        b.step();
+        let met: Vec<(ProjectileId, u8, bool)> = b
+            .flight_events()
+            .iter()
+            .filter_map(|e| match e {
+                FlightEvent::Ricochet(r) if r.body == red => Some((r.projectile, r.bounces, true)),
+                FlightEvent::Impact(i) if i.struck == sim::flight::Struck::Body(red) => {
+                    Some((i.projectile, i.bounces, false))
+                }
+                _ => None,
+            })
+            .collect();
+        if let [(round, 0, glanced)] = met.as_slice() {
+            if ap.contains(round) {
+                hits.push((before - b.unit(UnitId(1)).unwrap().hp, *glanced));
+            }
+        }
+        ap.extend(
+            b.rounds()
+                .filter(|(_, r)| weapon_name(&b, r.weapon) == "tank_ap")
+                .map(|(p, _)| p.id),
+        );
+    }
+    hits
+}
+
+#[test]
+fn a_round_just_short_of_the_armour_does_its_share_of_damage() {
+    // The test tank's front is 140 and the AP round does 40. Penetration 126
+    // reaches 0.9 of the armour: three quarters of the way from the 0.6 where
+    // damage starts to the full armour, so three quarters of its damage,
+    // whether it stops in the plate or glances off it.
+    let hits = hits_on_a_tank_front(|ap| ap.penetration = 126.0);
+    for glanced in [false, true] {
+        let lost: Vec<f64> = hits
+            .iter()
+            .filter(|h| h.1 == glanced)
+            .map(|h| h.0)
+            .collect();
+        assert!(
+            !lost.is_empty(),
+            "no hit with glanced = {glanced}: {hits:?}"
+        );
+        assert!(
+            lost.iter().all(|l| (l - 30.0).abs() < 1e-9),
+            "glanced = {glanced}: {lost:?}"
+        );
+    }
+}
+
+#[test]
+fn a_gun_takes_the_target_it_hurts_most_before_the_costlier_one() {
+    // A gun jeep's autocannon (65) against a tank broadside (side 100) gets
+    // an eighth of its damage through; against a jeep, all of it. Both can
+    // shoot back, and the tank costs more: the gunner still rakes the jeep.
+    let mut b = battle(
+        json!([]),
+        json!([
+            { "side": "blue", "kind": "test_gun_jeep", "position": [100, 300] },
+            { "side": "red", "kind": "test_tank", "position": [350, 250], "yaw": std::f64::consts::FRAC_PI_2, "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_jeep", "position": [350, 350], "engagement": "return_fire_only" },
+        ]),
+        json!([]),
+        json!([]),
+    );
+    run(&mut b, 5);
+    let jeep = b
+        .observe(Side::Blue)
+        .identified
+        .iter()
+        .find(|e| e.kind == common::unit_kind("test_jeep"))
+        .expect("the jeep is not identified")
+        .id;
+    assert_eq!(
+        mount(&b, Side::Blue, 0, 0).target,
+        Some(TargetRef::Identified { id: jeep })
+    );
+}
+
+#[test]
+fn a_round_with_a_gentle_falloff_still_shakes_armour_twice_its_penetration() {
+    // The AP round (40 damage) at half the test tank's front (140) gets
+    // nothing through by the rules' 0.6. Its own `partial_from` of 0.2 puts
+    // half the armour 3/8 of the way to piercing: 15 a hit.
+    let hits = hits_on_a_tank_front(|ap| {
+        ap.penetration = 70.0;
+        ap.partial_from = Some(0.2);
+    });
+    let lost: Vec<f64> = hits.iter().map(|h| h.0).collect();
+    assert!(!lost.is_empty(), "no hit landed");
+    assert!(lost.iter().all(|l| (l - 15.0).abs() < 1e-9), "{lost:?}");
 }

@@ -19,7 +19,14 @@ import {
   impostorViews,
   IMPOSTOR_SPEC,
 } from "@packages/battle-renderer/src/models/impostor.ts";
-import { AUTHORITY, TOLERANCES, soldierGlb, tankGlb, testCatalog } from "./synthetic";
+import {
+  AUTHORITY,
+  SOLDIER_CLIPS,
+  TOLERANCES,
+  soldierGlb,
+  tankGlb,
+  testCatalog,
+} from "./synthetic";
 
 const context = { authority: AUTHORITY, tolerances: TOLERANCES };
 const empty = { skeletons: {}, appearances: {} };
@@ -62,7 +69,7 @@ test("a dropped skinned body brings its own clips, installed under their id", as
     testCatalog().sides,
   );
   const installed = await new AppearanceLibrary(memoryFetch(files, "mem:/")).load("mem:/");
-  expect(installed.skeletons.get("adhoc")!.clips.length).toBe(7);
+  expect(installed.skeletons.get("adhoc")!.clips.length).toBe(SOLDIER_CLIPS.length);
 });
 
 test("the clip table holds, frame for frame, what sampleClip reads", async () => {

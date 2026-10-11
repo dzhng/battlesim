@@ -1434,6 +1434,22 @@ fn check(
     // A hull's mounts: each on the hull or an earlier turret, firing from
     // its own muzzle, and neither a squad's weapon nor a soldier's.
     for (i, m) in t.mounts.iter().enumerate() {
+        if let Some(arc) = m.arc {
+            // Its arc is measured off the hull's heading, so the hull must
+            // carry the turret that swings through it.
+            if !m.turret || m.on.is_some() {
+                return rule(&format!(
+                    "mount {:?} has an arc but no turret on the hull to swing through it",
+                    m.id
+                ));
+            }
+            if !(arc.width_deg > 0.0 && arc.width_deg < 360.0 && arc.centre_deg.is_finite()) {
+                return rule(&format!(
+                    "mount {:?} arc width must lie between 0 and 360 degrees",
+                    m.id
+                ));
+            }
+        }
         if let Some(on) = &m.on {
             let Some(carrier) = t.mounts[..i].iter().find(|c| &c.id == on && c.turret) else {
                 return rule(&format!(

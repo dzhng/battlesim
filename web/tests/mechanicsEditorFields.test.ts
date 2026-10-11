@@ -26,7 +26,7 @@ it("keeps invalid converted text from becoming an authored value", () => {
 });
 
 it("round trips fractions, cadence and dimensions and retains untouched precision", () => {
-  const fraction = gameplayField("weapons", ["armor_fraction"])!;
+  const fraction = gameplayField("weapons", ["gravity_scale"])!;
   expect(displayFieldValue(fraction, 0.15, {})).toBe("15");
   expect(parseFieldValue(fraction, "25", {})).toEqual({ value: 0.25 });
   const cadence = gameplayField("weapons", ["magazine", "shot_interval_s"])!;

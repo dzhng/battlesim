@@ -281,7 +281,7 @@ export async function createBattleFrame(
             for (const card of models.cardPoses()) {
               if (disposed) return;
               atlases.push({
-                which: card.which,
+                pose: card.pose,
                 atlas: await impostors.bake(card.appearance, card.pose, card.bounds, CARD_SPEC),
               });
             }

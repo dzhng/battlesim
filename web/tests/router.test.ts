@@ -30,9 +30,10 @@ test("the main menu at / opens each of its pages inside its plate, and Back retu
   const { LabRouter: DevelopmentRouter } = await import("@apps/battle-lab/src/router");
   const menu = await visit(createElement(DevelopmentRouter));
   const links = () => menu.queryAllByRole("link").map((a) => a.getAttribute("href"));
-  const pages = ["Skirmish", "Watch replay", "Settings", "Developer"];
+  const pages = ["Skirmish", "Tutorial", "Settings", "Developer"];
   expect(links()).toEqual([]);
   for (const page of pages) expect(menu.getByRole("button", { name: page })).toBeTruthy();
+  expect(menu.queryByRole("button", { name: "Watch replay" })).toBeNull();
   expect(menu.queryByRole("button", { name: "Back" })).toBeNull();
 
   /** Open `page` from the list: the plate shows only it, under a Back button. */
@@ -43,8 +44,7 @@ test("the main menu at / opens each of its pages inside its plate, and Back retu
   };
   const entries: Record<string, Record<string, string>> = {
     Skirmish: { Deploy: "/battle?play=1&type=mixed&size=small&faction=us" },
-    // No battle saved on this browser: only the file to load one from.
-    "Watch replay": {},
+    Tutorial: {},
     Settings: { "Graphics test": "/graphics-test" },
     Developer: {
       "Mechanics editor": "/mechanics",
@@ -56,6 +56,11 @@ test("the main menu at / opens each of its pages inside its plate, and Back retu
   };
   for (const [page, expected] of Object.entries(entries)) {
     open(page);
+    if (page === "Skirmish") {
+      for (const label of ["XS", "medium", "large", "xl"]) {
+        expect(menu.getByRole("radio", { name: label })).toBeTruthy();
+      }
+    }
     expect(links()).toEqual(Object.values(expected));
     for (const [name, href] of Object.entries(expected)) {
       expect(menu.getByRole("link", { name }).getAttribute("href")).toBe(href);
@@ -63,9 +68,6 @@ test("the main menu at / opens each of its pages inside its plate, and Back retu
     fireEvent.click(menu.getByRole("button", { name: "Back" }));
     expect(menu.getByRole("button", { name: page })).toBeTruthy();
   }
-  open("Watch replay");
-  expect(menu.getByTestId("replay-file")).toBeTruthy();
-  fireEvent.click(menu.getByRole("button", { name: "Back" }));
   open("Settings");
   expect(menu.getByTestId("sound-controls")).toBeTruthy();
   expect(menu.getByRole("link", { name: "Graphics test" }).getAttribute("href")).toBe(

@@ -15,7 +15,7 @@ import {
   type EffectShooter,
   type MuzzleSource,
 } from "@packages/battle-renderer/src/effects/effectFrame";
-import type { DrawnMuzzles } from "@packages/battle-renderer/src/models/drawnMuzzles";
+import type { DrawnModels } from "@packages/battle-renderer/src/models/drawnModels";
 import { fromSideKey, sideKey } from "@packages/battle-renderer/src/sideKey";
 import { inheritRows } from "@packages/renderer-core/src/kindTable";
 import { buildingRemains } from "@packages/scene-assets/src/authority";
@@ -103,7 +103,7 @@ function shooter(
 /** The flashes' muzzles, as `drawn` has the models posed, for a battle seen
  *  as `side`: a shooter's key is a `sideKey` with the side's own ids even,
  *  as `effectPublication` keys them. */
-export function drawnMuzzleSource(drawn: DrawnMuzzles, side: SideName): MuzzleSource {
+export function drawnMuzzleSource(drawn: DrawnModels, side: SideName): MuzzleSource {
   return {
     muzzle(shooter, mount, soldier, at) {
       const { id, side: of } = fromSideKey(shooter, side);

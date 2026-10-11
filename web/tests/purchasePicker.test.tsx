@@ -93,6 +93,27 @@ test("the picker opens fresh, however it was last closed", () => {
   expectFresh();
 });
 
+test("resting the pointer on a category tab switches to it, without a click", () => {
+  const view = render(
+    <PurchasePicker
+      cards={[card("base", "SEP v2")]}
+      faction="us"
+      match={match}
+      onChoose={vi.fn()}
+      rules={RULES}
+    />,
+  );
+  fireEvent.click(view.getByRole("button", { name: "Reinforcements" }));
+  expect(view.queryByRole("button", { name: "M1 Abrams" })).toBeNull();
+  fireEvent.mouseEnter(view.getByRole("tab", { name: "VEH" }));
+  expect(view.getByRole("tab", { name: "VEH" }).getAttribute("aria-selected")).toBe("true");
+  fireEvent.mouseEnter(view.getByRole("button", { name: "M1 Abrams" }));
+  expect(view.getByRole("group", { name: "M1 Abrams variants" })).toBeTruthy();
+  // Passing back over the shown tab keeps the open family's info cards.
+  fireEvent.mouseEnter(view.getByRole("tab", { name: "VEH" }));
+  expect(view.getByRole("group", { name: "M1 Abrams variants" })).toBeTruthy();
+});
+
 test("purchase availability follows observed credits and reserved slots", () => {
   const choose = vi.fn();
   const props = {

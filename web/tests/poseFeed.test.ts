@@ -19,7 +19,7 @@ import {
 import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import { poseFrameInstances } from "@packages/battle-renderer/src/models/modelInstances";
-import { DrawnMuzzles } from "@packages/battle-renderer/src/models/drawnMuzzles";
+import { DrawnModels } from "@packages/battle-renderer/src/models/drawnModels";
 import { bakeCatalog, runtimeCatalogText } from "@packages/scene-assets/src/bake";
 import { AppearanceLibrary, memoryFetch } from "@packages/scene-assets/src/loader";
 import { AUTHORITY, testCatalog, testSources } from "./sceneAssets/synthetic";
@@ -438,7 +438,7 @@ test("a previous weapon's flash cannot attach to the soldier's currently drawn m
     ...baked.files,
   ]);
   const installed = await new AppearanceLibrary(memoryFetch(files, "/assets/")).load("/assets/");
-  const drawn = new DrawnMuzzles(
+  const drawn = new DrawnModels(
     installed,
     () => ({ appearance: "rifleman", tint: [1, 1, 1] }),
     UNITS,
@@ -492,7 +492,7 @@ test("the supported hold aligns the drawn bore and moving carried kit rejects it
         : u,
     ),
   });
-  const drawn = new DrawnMuzzles(
+  const drawn = new DrawnModels(
     installed,
     () => ({ appearance: "rifleman", tint: [1, 1, 1] }),
     units,

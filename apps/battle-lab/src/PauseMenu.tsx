@@ -4,12 +4,13 @@ import { Link } from "react-router";
 // pauses the battle, and closing it resumes a battle it paused. It holds
 // what the player sets between moments of play: the route's own items (the
 // scenario, replays), restart, and the sound.
-import { useCallback, useEffect, useRef, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { hudIcon } from "@packages/scene-assets/src/icons";
 import { Icon } from "@web/battle/present/icons";
 import type { SimClient } from "@web/battle/sim/client";
 import { DiagnosticsControls } from "./DiagnosticsControls";
 import { SoundControls } from "./SoundControls";
+import { Tutorial } from "./Tutorial";
 
 /** The menu's open state over `client`: opening pauses an unpaused battle and
  *  closing resumes only a pause it owns. */
@@ -72,29 +73,76 @@ export function PauseMenu({
   /** The route's own items. */
   children?: ReactNode;
 }) {
+  const [tutorialOpen, setTutorialOpen] = useState(false);
+  useEffect(() => {
+    if (!tutorialOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code !== "Escape" || e.repeat || e.defaultPrevented) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setTutorialOpen(false);
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [tutorialOpen]);
   return (
-    <div className="hud-veil" data-occludes-readouts>
-      <div className="hud-panel hud-menu" role="dialog" aria-modal="true" aria-label="Paused">
-        <strong className="hud-menu-title">Paused</strong>
-        <button type="button" className="hud-menu-item" onClick={onClose} autoFocus>
-          Resume
-        </button>
-        {onRestart && (
-          <button type="button" className="hud-menu-item" onClick={onRestart}>
-            Restart
+    <>
+      <div className="hud-veil" data-occludes-readouts>
+        <div
+          className="hud-panel hud-menu"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Paused"
+          aria-hidden={tutorialOpen || undefined}
+          inert={tutorialOpen || undefined}
+        >
+          <strong className="hud-menu-title">Paused</strong>
+          <button type="button" className="hud-menu-item" onClick={onClose} autoFocus>
+            Resume
           </button>
-        )}
-        {children}
-        <Link className="hud-menu-item" to="/">
-          Main menu
-        </Link>
-        <section className="hud-menu-section" aria-label="Sound">
-          <SoundControls />
-        </section>
-        <section className="hud-menu-section" aria-label="Diagnostics">
-          <DiagnosticsControls />
-        </section>
+          <button type="button" className="hud-menu-item" onClick={() => setTutorialOpen(true)}>
+            Tutorial
+          </button>
+          {onRestart && (
+            <button type="button" className="hud-menu-item" onClick={onRestart}>
+              Restart
+            </button>
+          )}
+          {children}
+          <Link className="hud-menu-item" to="/">
+            Main menu
+          </Link>
+          <section className="hud-menu-section" aria-label="Sound">
+            <SoundControls />
+          </section>
+          <section className="hud-menu-section" aria-label="Diagnostics">
+            <DiagnosticsControls />
+          </section>
+        </div>
       </div>
-    </div>
+      {tutorialOpen && (
+        <div className="hud-veil hud-tutorial-veil" data-occludes-readouts>
+          <div
+            className="hud-panel hud-tutorial-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Tutorial"
+          >
+            <header className="hud-tutorial-head">
+              <strong className="hud-menu-title">Tutorial</strong>
+              <button
+                type="button"
+                className="hud-menu-item"
+                onClick={() => setTutorialOpen(false)}
+                autoFocus
+              >
+                Close tutorial
+              </button>
+            </header>
+            <Tutorial />
+          </div>
+        </div>
+      )}
+    </>
   );
 }

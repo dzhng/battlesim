@@ -18,6 +18,7 @@ import type {
   SkeletonEntry,
   Tolerances,
 } from "@packages/scene-assets/src/schema.ts";
+import { INFANTRY_CLIPS, INFANTRY_DEATHS } from "@packages/scene-assets/src/schema.ts";
 import {
   UnitCatalog,
   type MountRow,
@@ -436,15 +437,8 @@ export interface SoldierOptions {
   tint?: number; // the side-tint mask weight of its material (extras.tint)
 }
 
-export const SOLDIER_CLIPS = [
-  "idle",
-  "walk",
-  "run",
-  "kneel_fire",
-  "prone_pinned",
-  "death",
-  "stand_aim",
-];
+/** Every role an infantry skeleton carries, and the standing-aim reference pose. */
+export const SOLDIER_CLIPS: string[] = [...INFANTRY_CLIPS, "stand_aim"];
 
 /**
  * A 1.70 m rifleman in glTF Y-up space facing +Z. The armature node scales
@@ -563,7 +557,10 @@ export const SKELETON_ENTRY: SkeletonEntry = {
   sample_hz: 30,
   aim_reference: { clip: "stand_aim", phase: 0 },
   clips: Object.fromEntries(
-    SOLDIER_CLIPS.map((name) => [name, { loop: !["death", "stand_aim"].includes(name) }]),
+    SOLDIER_CLIPS.map((name) => [
+      name,
+      { loop: !["stand_aim", ...Object.values(INFANTRY_DEATHS)].includes(name) },
+    ]),
   ),
 };
 
@@ -1139,7 +1136,7 @@ export const HELI_ROTORS = { main: Math.hypot(5, 0.15), tail: Math.hypot(0.7, 0.
 
 /** A helicopter in engine space, fitting the synthetic `heli` type's hull
  *  [4, 0.8, 1.2]: a fuselage block on skid rails, a mast to the rotor head
- *  at z 2.4, and its rotors, each a `rotor_*` node turning about its local
+ *  at z 2.4 (its top 0.2 m the rotor's own), and its rotors, each a `rotor_*` node turning about its local
  *  Z: the main rotor's blade 10 m tip to tip along +X at rest (far past the
  *  hull), the tail rotor's 1.4 m on the boom's left, turned on its side. */
 export function heliGlb(): Uint8Array {
@@ -1150,7 +1147,11 @@ export function heliGlb(): Uint8Array {
   const main = b.node({
     name: "rotor_main",
     t: g3([0.5, 0, 2.4]),
-    children: [part("blade_main_0", [-5, -0.15, -0.03], [5, 0.15, 0.03])],
+    children: [
+      part("blade_main_0", [-5, -0.15, -0.03], [5, 0.15, 0.03]),
+      // Its mast, down from the hub to the hull's, as an exporter builds one.
+      part("rotor_main_mast", [-0.08, -0.08, -0.2], [0.08, 0.08, 0], 2),
+    ],
   });
   const tail = b.node({
     name: "rotor_tail",

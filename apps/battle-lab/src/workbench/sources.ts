@@ -17,7 +17,7 @@ import {
   type InstalledAppearances,
 } from "@packages/scene-assets/src/loader";
 import { validateLoose, type LooseOptions } from "@packages/scene-assets/src/loose";
-import { INFANTRY_CLIPS } from "@packages/scene-assets/src/schema";
+import { INFANTRY_CLIPS, INFANTRY_DEATHS } from "@packages/scene-assets/src/schema";
 import { reloadGameAppearances, gameAppearances } from "../gameAppearances";
 import type { AppearanceUnit, Catalog, Finding, Side } from "@packages/scene-assets/src/schema";
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
@@ -109,7 +109,9 @@ export const catalogNames = (installed: InstalledAppearances): string[] =>
   [...new Set([...installed.appearances.keys(), ...installed.onRequest.keys()])].sort();
 
 /** The clip roles that loop, for a dropped GLB's clips: every one but the fall. */
-export const INFANTRY_LOOPS: string[] = INFANTRY_CLIPS.filter((clip) => clip !== "death");
+export const INFANTRY_LOOPS: string[] = INFANTRY_CLIPS.filter(
+  (clip) => !(Object.values(INFANTRY_DEATHS) as string[]).includes(clip),
+);
 
 /** The catalog's appearance `name` as a bench model, or null when it names
  *  none. One fetched on request (a kit, a regional look) is fetched to be shown. */

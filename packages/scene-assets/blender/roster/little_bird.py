@@ -71,7 +71,7 @@ def build(variant, v):
             box(f"bench_{k}", (1.4, 0.55, 0.06), (0.6, side * 1.2, 0.68), m["dark"], hull, bevel=0.01)
             box(f"bench_strut_{k}", (0.06, 0.5, 0.06), (1.1, side * 1.05, 0.6), m["dark"], hull, lods=NEAR)
     if variant["id"] == MH6:
-        A.door_gun(v, rig(v.frame, v.root), m, DOOR_PITCH_DEG, inboard=0.4)
+        A.door_guns(v, rig(v.frame, v.root), m, DOOR_PITCH_DEG, inboard=0.4)
 
     # The 160th's near-bare black: U.S. ARMY on the boom.
     A.markings(v, [

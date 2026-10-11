@@ -1,4 +1,4 @@
-//! Flight (D4, D6, D7, D21, D24): an aircraft holds 20 m over the ground,
+//! Flight (D4, D6, D7, D21, D24): an aircraft holds cruise height over the ground,
 //! climbs early to clear anything taller by 10 m, never above 40 m, flies
 //! around bodies taller than 30 m, and parts from other aircraft.
 
@@ -56,40 +56,45 @@ fn height_near(track: &[sim::math::V3], x: f64, reach: f64) -> f64 {
 }
 
 #[test]
-fn cruises_at_20m_to_its_goal() {
+fn cruises_at_its_height_to_its_goal() {
     let (b, track) = fly(map(json!([]), json!([])));
     assert!(arrived(&b) < 1.0, "{:.1} m short", arrived(&b));
+    let cruise = b.rules().air.cruise_agl_m;
     for p in &track {
-        assert!((p.z - 20.0).abs() < 1e-6, "left cruise height: {p:?}");
+        assert!((p.z - cruise).abs() < 1e-6, "left cruise height: {p:?}");
     }
     let fastest = track
         .windows(2)
         .map(|w| (w[1].xy() - w[0].xy()).length())
         .fold(0.0, f64::max)
         * b.rules().tick_hz as f64;
+    // Never past its cruise speed; 400 m is too short to reach it at a
+    // helicopter's acceleration, but most of the way.
     assert!(
-        (fastest - 220.0 / 3.6).abs() < 0.5,
-        "cruise {fastest:.1} m/s"
+        fastest <= 220.0 / 3.6 + 1e-6 && fastest > 0.6 * 220.0 / 3.6,
+        "flew at {fastest:.1} m/s"
     );
 }
 
 #[test]
 fn pops_over_a_roof_and_comes_back_down() {
-    let (b, track) = fly(map(json!([block(0, [300.0, 200.0], 6.0, 15.0)]), json!([])));
+    // A roof whose clearance stands above cruise height.
+    let (b, track) = fly(map(json!([block(0, [300.0, 200.0], 6.0, 25.0)]), json!([])));
     assert!(arrived(&b) < 1.0);
+    let air = &b.rules().air;
     let over = height_near(&track, 300.0, 6.0);
     assert!(
-        (over - 25.0).abs() < 0.5,
-        "over the 15 m roof it flew at {over:.1} m"
+        (over - (25.0 + air.clearance_m)).abs() < 0.5,
+        "over the 25 m roof it flew at {over:.1} m"
     );
     assert!(
-        (track.last().unwrap().z - 20.0).abs() < 0.5,
+        (track.last().unwrap().z - air.cruise_agl_m).abs() < 0.5,
         "it came back down"
     );
 }
 
 #[test]
-fn rises_2m_over_forest_canopy_and_fells_nothing() {
+fn clears_forest_canopy_and_fells_nothing() {
     let forest = json!([{ "shape": { "kind": "polygon",
         "ring": [[260, 150], [340, 150], [340, 250], [260, 250]] } }]);
     let fixture = fixture();
@@ -102,8 +107,9 @@ fn rises_2m_over_forest_canopy_and_fells_nothing() {
     let (b, track) = fly(map(json!([]), forest));
     let over = height_near(&track, 300.0, 20.0);
     let canopy = b.rules().forests.rule.canopy_height_m;
+    let air = &b.rules().air;
     assert!(
-        (over - (canopy + 10.0)).abs() < 0.5,
+        (over - (canopy + air.clearance_m).max(air.cruise_agl_m)).abs() < 0.5,
         "over the forest it flew at {over:.1} m"
     );
     assert_eq!(trees(&b), before, "flying over felled trees");
@@ -138,29 +144,25 @@ fn flies_on_past_a_tower_without_turning_back() {
             "tower {offset}: {:.2} m short",
             arrived(&b)
         );
-        // It never turns back: a skimmed corner once turned it back 100 m;
-        // curving onto its goal it may cross the goal's line by a metre or so.
-        // Closing on its goal round a last corner, the momentum it carries out
-        // of the turn may bow its path up to 0.18 m wide (U1 in the choices
-        // ledger), never more than 0.2 m.
+        // It never turns back on its way: a skimmed corner once turned it
+        // back 100 m. Past the goal it runs on by no more than its designed
+        // overshoot, then settles back.
+        let settle = b.rules().air.settle_max_m;
         let mut furthest = f64::NEG_INFINITY;
-        let mut nearest = f64::INFINITY;
         for p in &track {
             furthest = furthest.max(p.x);
             assert!(
-                p.x > furthest - 2.0,
+                p.x > furthest - settle - 2.0,
                 "tower {offset}: turned back from x {furthest:.2} to {:.2}",
                 p.x
             );
             let d = (p.xy() - v2(GOAL[0], GOAL[1])).length();
-            if d < 30.0 {
-                assert!(
-                    d <= nearest + 0.2,
-                    "tower {offset}: swung {:.2} m away from its goal",
-                    d - nearest
-                );
-                nearest = nearest.min(d);
-            }
+            // Its overshoot, and a little sideways carry from the turn onto
+            // its last leg.
+            assert!(
+                p.x < GOAL[0] || d <= settle + 0.5,
+                "tower {offset}: ran {d:.2} m past its goal"
+            );
         }
     }
 }
@@ -222,4 +224,79 @@ fn overlapping_helicopters_part_softly() {
     }
     let apart = b.rules().air.separation_m;
     assert!(gap(&b) > apart * 0.9, "still {:.1} m apart", gap(&b));
+}
+
+/// From a hover it gathers speed over seconds, not at once: no faster than
+/// its cruise over the air's acceleration time.
+#[test]
+fn gathers_speed_gently_from_a_hover() {
+    let fixture = fixture();
+    let mut b = battle_with(
+        &fixture,
+        map(json!([]), json!([])),
+        json!([{ "side": "blue", "kind": "test_heli", "position": [100, 200] }]),
+    );
+    assert_eq!(b.accept(order(&[0], GOAL)).error, None);
+    let hz = b.rules().tick_hz;
+    let cruise = 220.0 / 3.6;
+    let accel = cruise / b.rules().air.acceleration_s;
+    let mut last = 0.0;
+    for t in 1..=4 * hz {
+        b.step();
+        let speed = b.unit(UnitId(0)).unwrap().drive_speed_mps;
+        assert!(
+            speed - last <= accel / hz as f64 + 1e-9,
+            "jumped {:.2} m/s in a tick",
+            speed - last
+        );
+        last = speed;
+        if t == 2 * hz {
+            assert!(speed < cruise * 0.5, "{speed:.1} m/s after 2 s");
+        }
+    }
+}
+
+/// Braking for its goal it flares a beat late: it runs a little past, then
+/// eases back onto the point without turning round, and settles there.
+#[test]
+fn runs_past_its_goal_and_settles_back_without_turning() {
+    let (b, track) = fly(map(json!([]), json!([])));
+    let air = &b.rules().air;
+    let past = track
+        .iter()
+        .map(|p| p.x - GOAL[0])
+        .fold(f64::NEG_INFINITY, f64::max);
+    assert!(past > 0.5, "it stopped dead: {past:.2} m past");
+    assert!(past <= air.settle_max_m + 0.05, "ran {past:.2} m past");
+    let heli = b.unit(UnitId(0)).unwrap();
+    assert!(arrived(&b) < 0.05, "settled {:.2} m off", arrived(&b));
+    assert!(
+        sim::math::wrap_angle(heli.yaw).abs() < 0.1,
+        "turned round: yaw {:.2}",
+        heli.yaw
+    );
+    assert_eq!(heli.orders.len(), 0, "the move completes once settled");
+}
+
+/// A short hop overshoots by its share of the hop, not the long flight's.
+#[test]
+fn a_short_hop_overshoots_little() {
+    let fixture = fixture();
+    let mut b = battle_with(
+        &fixture,
+        map(json!([]), json!([])),
+        json!([{ "side": "blue", "kind": "test_heli", "position": [470, 200] }]),
+    );
+    assert_eq!(b.accept(order(&[0], GOAL)).error, None);
+    let mut past = f64::NEG_INFINITY;
+    for _ in 0..20 * b.rules().tick_hz {
+        b.step();
+        past = past.max(b.unit(UnitId(0)).unwrap().position.x - GOAL[0]);
+    }
+    let air = &b.rules().air;
+    assert!(
+        past <= air.settle_share * 30.0 + 0.05,
+        "ran {past:.2} m past a 30 m hop"
+    );
+    assert!(arrived(&b) < 0.05);
 }

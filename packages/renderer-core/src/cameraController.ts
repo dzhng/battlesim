@@ -34,7 +34,7 @@ export interface CameraPresentation {
   pitch_curve: readonly (readonly [number, number])[];
   /** Pan speed in orbit distances per second, so it scales with zoom. */
   pan_speed: number;
-  /** Q/E turn rate, rad/s. */
+  /** Q/E turn and Z/X tilt rate, rad/s. */
   rotate_speed: number;
   /** Log-distance change per wheel pixel (deltaY). */
   zoom_speed: number;
@@ -65,9 +65,9 @@ export interface CameraPose {
   pitch: number;
 }
 
-type CameraAxis = "right" | "forward" | "turn";
+type CameraAxis = "right" | "forward" | "turn" | "pitch";
 
-/** The camera's keys: WASD and the arrows pan, Q/E turn the view left/right. */
+/** The camera's keys: WASD and arrows pan, Q/E turn, Z/X tilt. */
 export const CAMERA_KEYS: Readonly<Record<string, readonly [CameraAxis, number]>> = {
   KeyW: ["forward", 1],
   ArrowUp: ["forward", 1],
@@ -79,6 +79,8 @@ export const CAMERA_KEYS: Readonly<Record<string, readonly [CameraAxis, number]>
   ArrowLeft: ["right", -1],
   KeyQ: ["turn", 1],
   KeyE: ["turn", -1],
+  KeyZ: ["pitch", -1],
+  KeyX: ["pitch", 1],
 };
 
 /** Orbit pitch limits: just above the horizon to just short of top-down. */
@@ -159,19 +161,22 @@ export class CameraController {
     let right = intent.edge?.[0] ?? 0;
     let forward = intent.edge?.[1] ?? 0;
     let turn = 0;
+    let pitchTurn = 0;
     for (const code of intent.held ?? []) {
       const key = CAMERA_KEYS[code];
       if (!key) continue;
       if (key[0] === "right") right += key[1];
       else if (key[0] === "forward") forward += key[1];
-      else turn += key[1];
+      else if (key[0] === "turn") turn += key[1];
+      else pitchTurn += key[1];
     }
     right = clamp(right, -1, 1);
     forward = clamp(forward, -1, 1);
     turn = clamp(turn, -1, 1);
+    pitchTurn = clamp(pitchTurn, -1, 1);
     const wheel = intent.wheel ?? 0;
     const [dragX, dragY] = intent.drag ?? [0, 0];
-    if (!right && !forward && !turn && !wheel && !dragX && !dragY) return camera;
+    if (!right && !forward && !turn && !pitchTurn && !wheel && !dragX && !dragY) return camera;
 
     let { distance, pitch, yaw } = camera;
     let [x, y, z] = camera.target;
@@ -190,6 +195,7 @@ export class CameraController {
       pitch = clamp(pitch + dragY * c.orbit_speed, PITCH_LIMITS[0], PITCH_LIMITS[1]);
     }
     yaw += turn * c.rotate_speed * dt;
+    pitch = clamp(pitch + pitchTurn * c.rotate_speed * dt, PITCH_LIMITS[0], PITCH_LIMITS[1]);
     const length = Math.hypot(right, forward);
     if (length > 0) {
       // Diagonals are no faster than straight lines.

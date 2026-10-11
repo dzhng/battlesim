@@ -173,9 +173,7 @@ def skirts(v):
 
 # ---------------------------------------------------------------- turret
 def core_rings():
-    left = CORE
-    right = [(x, -y) for x, y in reversed(CORE) if y > 0]
-    outline = left + right
+    outline = VP.mirror_plan(CORE)
 
     def ring(lean):
         return [(x, math.copysign(max(0.0, abs(y) - lean), y) if y else 0.0) for x, y in outline]
