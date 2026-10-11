@@ -56,7 +56,7 @@ declare global {
         solo?: Bus,
         catalog?: SoundCatalog,
       ) => Promise<Omit<FirefightRender, "samples"> & { wav: string }>;
-      events: () => { t: number; what: string }[];
+      events: () => Promise<{ t: number; what: string }[]>;
       cost: () => ReturnType<typeof battleScaleCost>;
       distance: () => Promise<
         Omit<Awaited<ReturnType<typeof renderDistanceProbe>>, "near" | "far"> & {

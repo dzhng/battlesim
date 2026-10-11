@@ -75,7 +75,21 @@ fn look_at(eye: Vec3, center: Vec3, up: [f64; 3]) -> [f32; 16] {
     ]);
     let dot = |a: [f64; 3]| -(a[0] * eye[0] + a[1] * eye[1] + a[2] * eye[2]);
     [
-        x[0], y[0], z[0], 0.0, x[1], y[1], z[1], 0.0, x[2], y[2], z[2], 0.0, dot(x), dot(y), dot(z),
+        x[0],
+        y[0],
+        z[0],
+        0.0,
+        x[1],
+        y[1],
+        z[1],
+        0.0,
+        x[2],
+        y[2],
+        z[2],
+        0.0,
+        dot(x),
+        dot(y),
+        dot(z),
         1.0,
     ]
     .map(|v| v as f32)

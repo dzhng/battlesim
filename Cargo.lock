@@ -337,6 +337,7 @@ dependencies = [
 name = "presentation-wasm"
 version = "0.1.0"
 dependencies = [
+ "presentation",
  "serde",
  "serde_json",
  "sim",

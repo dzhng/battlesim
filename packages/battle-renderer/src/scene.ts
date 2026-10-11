@@ -12,7 +12,9 @@ import type { OverlayGlowStyle } from "./frame/overlayPass";
 import type { FogProbes, FogVisibilityStats } from "./frame/fogVisibility";
 import type { TerrainSurface } from "./terrain/terrainSurface";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
-import type { CorpseInstance, ModelInstance } from "./models/modelInstances";
+import type { ModelInstance } from "./models/modelInstances";
+import type { frameViews } from "./records.gen";
+import type { WorldAppearance } from "./models/modelLayer";
 import type { ModelStats } from "./models/modelLayer";
 import type { BuildingStats } from "./models/buildingLayer";
 import type { SideBuildings } from "./models/buildingReferences";
@@ -28,7 +30,6 @@ import type { GrassProbes, GrassStats } from "./frame/grassPass";
 import type { UploadedTables } from "./frame/wordTables";
 import type { SceneryCounts } from "./scenery/sceneryTables";
 import type { GrassAppearances } from "./terrain/grassField";
-import type { EffectBatch } from "./effects/effectFrame";
 import type { GroundMarks, ScarStats } from "./frame/scarTexture";
 
 /** A drawn proxy: world placement plus presentation tint. */
@@ -186,7 +187,7 @@ export interface FrameStats {
   grass: GrassStats;
   /** Combat effects: instances drawn and the instance buffer's capacity;
    *  the cast lights the world took and the effects offered. */
-  effects: { instances: number; capacity: number; lights: number; lightsOffered: number };
+  effects: { instances: number; capacity: number; lights: number };
   /** The scar texture: the grid it holds and what its uploads wrote. */
   scars: ScarStats;
 }
@@ -234,10 +235,17 @@ export interface BattleFrame {
    *  it. An empty mesh draws none. */
   setPointerMarks(painted: Mesh): void;
   setInstances(instances: readonly SceneInstance[]): void;
-  /** This frame's combat effects (`EffectFrame.build`), drawn into the lit
-   *  world before fog and post, and the lights they cast on it (every world
-   *  material and lit smoke). Cheap enough to call every frame. */
-  setEffects(batch: EffectBatch): void;
+  /** This frame's presentation (`crates/presentation`'s `Frame`): the
+   *  units, corpses and ghosts as batches with their palettes, the combat
+   *  effects drawn into the lit world before fog and post, and the lights
+   *  they cast (every world material and lit smoke). Read at once: the
+   *  views last only until the next call into the module. Null draws none. */
+  setFrame(
+    frame: ReturnType<typeof frameViews> | null,
+    shown?: { models: boolean; effects: boolean },
+  ): void;
+  /** The drawables the presentation's batches name, by `World.appearances` row. */
+  setPresentationWorld(world: readonly WorldAppearance[]): void;
   /** Presentation seconds: the wind's clock. Hold it and the frame holds
    *  (paused battles, deterministic captures). */
   setClock(seconds: number): void;
@@ -249,24 +257,11 @@ export interface BattleFrame {
    *  resolves once its meshes, clips, pose kernel and impostor atlases (every
    *  body's far pose and corpse) are on the GPU. */
   setAppearances(installed: InstalledAppearances | null): Promise<void>;
-  /** The posed models to draw (from the pose driver), replacing the last list.
-   *  Cheap enough to call every frame. */
+  /** A lab's models (posed with `posedPalette`), replacing the last list. */
   setModels(models: readonly ModelInstance[]): void;
-  /** The corpses, drawn static (never skinned), replacing the last list. Call
-   *  when the list changes, not every frame: it is chunked for culling. */
-  setCorpses(corpses: readonly CorpseInstance[]): void;
   /** Switch material texture channels on or off for every model (the
    *  workbench's per-channel toggles); off draws the material's factors. */
   setTextureChannels(channels: Partial<Record<TextureChannel, boolean>>): void;
-  /** Debug readback: the palette matrices of the frame's models, posed
-   *  afresh in the readback's own submission (so an impostor bake between
-   *  frames can't stand in for them), and where each mesh-drawn model's
-   *  palette starts, from the same packing. */
-  readPalette(): Promise<{ palette: Float32Array; bases: number[] }>;
-  /** Lab probe: GPU time of one pose-kernel dispatch over this frame's posed
-   *  bodies, or `bodies` copies of them (the mean of `reps` in one
-   *  timestamped pass), or null. */
-  timePoseKernel(reps: number, bodies?: number): Promise<{ bodies: number; ms: number } | null>;
   /** Bake an installed appearance's far-pose impostor atlas with this frame's
    *  model path (`models/impostor.ts`). */
   bakeImpostor(appearance: string, spec?: ImpostorSpec): Promise<ImpostorAtlas>;

@@ -158,6 +158,29 @@ export function farPoseBounds(
   );
 }
 
+/** How big a model is drawn, for its tier and culling (`modelDetail`): its
+ *  largest extent, and its reach from its foot. */
+export function boundsSize(b: Bounds): { size: number; radius: number } {
+  return {
+    size: Math.max(b.max[2] - b.min[2], b.max[0] - b.min[0], b.max[1] - b.min[1]),
+    radius: Math.hypot(
+      Math.max(Math.abs(b.min[0]), Math.abs(b.max[0])),
+      Math.max(Math.abs(b.min[1]), Math.abs(b.max[1])),
+      b.max[2] - b.min[2],
+    ),
+  };
+}
+
+/** A body's finest tier lying dead at `pose`, one of its `corpse_poses`. */
+export function lyingBounds(
+  bundle: SkinnedBundle,
+  skeleton: SkeletonClips | null,
+  pose: PoseRef,
+): Bounds {
+  const worlds = poseWorlds(bundle, skeleton, pose);
+  return positionsBounds(posedMesh(bundle.tiers[0], bundle.joints, worlds).positions);
+}
+
 /** A body's joint worlds in `pose` (its bind where the clip is missing). */
 export function poseWorlds(
   bundle: Pick<SkinnedBundle, "joints">,

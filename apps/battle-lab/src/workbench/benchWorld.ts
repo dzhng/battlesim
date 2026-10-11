@@ -14,12 +14,18 @@ import {
 } from "@packages/battle-renderer/src/terrain/terrainSurface";
 import { gameBiome } from "../gameBiome";
 import { SCENERY_KINDS, propsDrawnBy } from "@packages/scene-assets/src/scenery";
-import type { ModelInstance } from "@packages/battle-renderer/src/models/modelInstances";
+import {
+  posedPalette,
+  type CorpseModelPose,
+  type ModelPose,
+  type StaticModelPose,
+} from "@packages/battle-renderer/src/models/modelInstances";
 import {
   REST_ARTICULATION,
   articulate,
   articulationRig,
   restLocals,
+  type Articulation,
 } from "@packages/scene-assets/src/articulation";
 import { sampleClip, worldTransforms } from "@packages/scene-assets/src/pose";
 import { mul, trsMatrix } from "@packages/scene-assets/src/trs";
@@ -302,13 +308,33 @@ export interface Socket {
   frame: Mat4;
 }
 
+/** A pose the workbench sets: a body in a clip at a phase, a vehicle
+ *  articulated, a static state, or a way of lying dead. */
+export type BenchPose =
+  | { kind: "skinned"; clip: string; phase: number; blend: null }
+  | { kind: "articulated"; articulation: Articulation }
+  | StaticModelPose
+  | CorpseModelPose;
+
+/** `pose` as the models layer draws it: a body or a vehicle posed by its
+ *  palette (`posedPalette`), else as given. */
+export function drawnPose(
+  bundle: Exclude<Bundle, SkeletonClips>,
+  skeleton: SkeletonClips | null,
+  pose: BenchPose,
+): ModelPose {
+  if (pose.kind === "skinned") return posedPalette(bundle, skeleton, pose);
+  if (pose.kind === "articulated") return posedPalette(bundle, skeleton, pose.articulation);
+  return pose;
+}
+
 /** Sockets in the model's current pose: a body's named sockets, a vehicle's
  *  muzzles, mast head and mount pivots. CPU-posed with scene-assets, the same
  *  functions the validator measures fit with. */
 export function posedSockets(
   bundle: Exclude<Bundle, SkeletonClips>,
   skeleton: SkeletonClips | null,
-  pose: ModelInstance["pose"],
+  pose: BenchPose,
 ): Socket[] {
   if (bundle.kind === "skinned") {
     const clip = pose.kind === "skinned" ? skeleton?.clips.find((c) => c.name === pose.clip) : null;

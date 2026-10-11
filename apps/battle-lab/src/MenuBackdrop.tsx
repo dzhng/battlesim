@@ -257,7 +257,7 @@ function BackdropBattle({
   });
   const { sim } = session;
   reel.battle.unitAt = (id) => sim.latest.current?.own.find((u) => u.id === id)?.position ?? null;
-  reel.battle.clock = (now) => sim.interpolator.current?.time(now) ?? null;
+  reel.battle.clock = (now) => sim.client?.presentation?.clock(now) ?? null;
   useEffect(() => {
     if (sim.error) console.error(`The menu backdrop battle could not start: ${sim.error}`);
   }, [sim.error]);

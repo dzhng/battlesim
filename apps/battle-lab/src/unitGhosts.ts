@@ -1,17 +1,17 @@
 // Where a unit will stand, drawn as its own models in a ghost colour: the one
 // look for a purchase being placed or already placed, a move's held facing
-// preview, and every ordered destination with Space held.
-import type { Rgba } from "@packages/battle-renderer/src/mesh";
-import {
-  restingModelPose,
-  type ModelInstance,
-  type ResolveAppearance,
-} from "@packages/battle-renderer/src/models/modelInstances";
-import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
+// preview, and every ordered destination with Space held. The UI says where
+// each body stands; the presentation fields and poses them (`GhostBody`).
 import type { SurfaceHeight } from "@packages/battle-renderer/src/orderOverlay";
-import type { Side } from "@packages/scene-assets/src/schema";
 import { airborne, type UnitCatalog } from "@packages/scene-assets/src/units";
 import type { OwnUnitView } from "@web/battle/sim/observationView";
+import type { GhostBody } from "@web/battle/sim/presentation";
+
+/** A ghost's look (`GhostBody.look`): the side's own colour, the
+ *  selection's, or a purchase the simulation refused. */
+export const GHOST_OWN = 0;
+export const GHOST_SELECTED = 1;
+export const GHOST_BLOCKED = 2;
 
 /** How high over the ground a kind's ghost stands: an aircraft's at its
  *  cruise height (`air.cruise_agl_m`), flying where it will be, anything
@@ -29,7 +29,7 @@ export interface UnitGhost {
    *  and id (which of that soldier's looks). Empty for a vehicle. */
   soldiers: readonly { at: readonly [number, number]; slot: number; id: number }[];
   yaw: number;
-  colour: Rgba;
+  look: number;
 }
 
 /** A squad's soldiers at `spots`, in slot order, as a purchase fields them. */
@@ -48,7 +48,7 @@ export function ownSoldiers(unit: OwnUnitView, spots: readonly (readonly [number
 
 /** Where `unit` ends its orders, for Space: its last queued point, else its
  *  goal, with its soldiers' published spots carried there; null while it holds. */
-export function orderedGhost(unit: OwnUnitView, colour: Rgba): UnitGhost | null {
+export function orderedGhost(unit: OwnUnitView, look: number): UnitGhost | null {
   if (!unit.goal) return null;
   const end = unit.queue.at(-1) ?? unit.goal;
   const [dx, dy] = [end[0] - unit.goal[0], end[1] - unit.goal[1]];
@@ -60,39 +60,30 @@ export function orderedGhost(unit: OwnUnitView, colour: Rgba): UnitGhost | null 
       unit.memberOrders.map(({ spot }) => [spot[0] + dx, spot[1] + dy] as const),
     ),
     yaw: unit.finalFacing,
-    colour,
+    look,
   };
 }
 
-/** Appends each ghost's models to `out`: one per soldier for a squad, one
- *  hull for a vehicle, standing `aloft(kind)` over the surface
- *  (`ghostAloft`). A squad with no soldiers placed yet draws nothing. */
-export function pushGhostModels(
-  out: ModelInstance[],
+/** Each ghost's bodies on the ground under them: one per soldier for a
+ *  squad, one hull for a vehicle. A squad with no soldiers placed yet draws
+ *  nothing. */
+export function ghostBodies(
   ghosts: readonly UnitGhost[],
-  side: Side,
-  resolve: ResolveAppearance,
-  appearances: InstalledAppearances,
-  z: SurfaceHeight,
   hull: (kind: string) => boolean,
-  aloft: (kind: string) => number,
-) {
-  for (const ghost of ghosts) {
-    const bodies = hull(ghost.kind) ? [{ at: ghost.at, slot: 0, id: 0 }] : ghost.soldiers;
-    const lift = aloft(ghost.kind);
-    for (const { at, slot, id } of bodies) {
-      const resolved = resolve(ghost.kind, side, id, slot);
-      const bundle = resolved && appearances.appearances.get(resolved.appearance)?.bundle;
-      if (!resolved || !bundle) continue;
-      out.push({
-        appearance: resolved.appearance,
+  z: SurfaceHeight,
+): GhostBody[] {
+  return ghosts.flatMap((ghost) =>
+    (hull(ghost.kind) ? [{ at: ghost.at, slot: 0, id: 0 }] : ghost.soldiers).map(
+      ({ at, slot, id }) => ({
+        kind: ghost.kind,
+        slot,
+        id,
         x: at[0],
         y: at[1],
-        z: z(at[0], at[1]) + lift,
+        z: z(at[0], at[1]),
         yaw: ghost.yaw,
-        pose: restingModelPose(bundle),
-        ghost: ghost.colour,
-      });
-    }
-  }
+        look: ghost.look,
+      }),
+    ),
+  );
 }

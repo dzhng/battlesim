@@ -15,14 +15,13 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::Arc;
 
-use serde::Deserialize;
 use sim::publication::reader::Observation;
 
 use super::cook_off::CookOffFeel;
 use super::publication;
 use crate::seed::js_hypot;
 use crate::units::pose::{Articulation, VehiclePose};
-use crate::world::{EffectsSection, UnitsSection, Vec3, Wreck};
+use crate::world::{EffectsSection, UnitsSection, Vec3, Wreck, WreckLook};
 
 /// How far beyond its own half length a wreck may lie from where its hull
 /// was last seen: a vehicle killed at road speed rolls a few metres on.
@@ -35,19 +34,6 @@ const LANDED_HOLD_S: f64 = 0.5;
 /// How much further than its own top thrown debris sinks before it is gone:
 /// ground falling away under a piece still hides it.
 const DEBRIS_BURIED_M: f64 = 0.15;
-
-/// How a unit type's hull dies, by unit type (an input the manifest is to
-/// carry): its own wreck's appearance as the props fit it (`props.fit.wrecks`
-/// and its `looks`), that wreck's footprint (half extents) and its whole
-/// `default` state's resting bounds (min, max), and how hard the dead hull
-/// brakes to a stop, m/s² (top speed over `movement.drive.wreck_stop_s`).
-#[derive(Clone, Debug, Deserialize)]
-pub struct WreckLook {
-    pub appearance: String,
-    pub footprint: Vec3,
-    pub bounds: [Vec3; 2],
-    pub braking: f64,
-}
 
 /// A model to draw this frame: an appearance placed at `position` turned by
 /// `yaw` and scaled per axis, either in a static `state` moved first by

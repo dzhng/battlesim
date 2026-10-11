@@ -8,7 +8,7 @@
 // Post's settings (exposure, grade, bloom) come from the same light, through
 // `post`.
 import { vec2 } from "math";
-import type { Box3, Frustum } from "math/shapes";
+import type { Box3 } from "math/shapes";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import type { TgpuCommandEncoder, TgpuRenderPass } from "typegpu";
 import { createTypegpuEnvironment } from "../world/environment";
@@ -16,7 +16,7 @@ import { createTypegpuSunShadow } from "../world/shadow";
 import { postSettings, validateLight, type LightPresentation } from "../light/sceneLight";
 import type { SkyRays } from "../shaders/physicalSky";
 import { receiverRange } from "./receiverRange";
-import { CAST_LIGHTS_BYTES, packCastLights, type CastLightList } from "../light/castLights";
+import { CAST_LIGHTS_BYTES, CAST_LIGHTS_MAX } from "../light/castLights";
 import { FRAME_MSAA } from "./targets";
 import type { GpuRegistry } from "./registry";
 
@@ -54,10 +54,13 @@ export async function createEnvironmentFrame(
       receiverRange(range, camera, box);
       shadow.update(camera, range);
     },
-    /** The effects' lights this frame that reach into the view (`sides`),
-     *  the strongest as `camera` sees them when more burn than the world holds. */
-    setCastLights(list: CastLightList, sides: Frustum, camera: Camera3DParams) {
-      castCount = packCastLights(castImage, list, sides, camera.target, camera.distance);
+    /** This frame's cast lights as the presentation chose them (`CastLight`
+     *  rows, at most `CAST_LIGHTS_MAX`) and their facing wrap. */
+    setCastLights(rows: Float32Array, count: number, wrap: number) {
+      castCount = Math.min(count, CAST_LIGHTS_MAX);
+      castImage[0] = castCount;
+      castImage[1] = wrap;
+      castImage.set(rows.subarray(0, castCount * 8), 4);
       environment.setCastLights(castImage, castCount);
     },
     encodeBackground(

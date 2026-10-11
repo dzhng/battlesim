@@ -36,7 +36,7 @@ import {
   buildingCounts,
   buildingTables,
 } from "@packages/battle-renderer/src/models/buildingTables";
-import { MODEL_RECORD_FLOATS } from "@packages/battle-renderer/src/models/modelInstances";
+import { INSTANCE_WORDS as MODEL_RECORD_FLOATS } from "@packages/battle-renderer/src/records.gen";
 import { frustum } from "math/shapes";
 import { readRecords } from "./support/wordRecords";
 import type { KnownProp, MapProp } from "@packages/battle-renderer/src/models/propAppearance";
@@ -113,10 +113,20 @@ const HOUSE: Row[] = [
 // A block with many fine rows: what fills a pool.
 const DENSE: Row[] = [
   [SHELL, 0, 0, 0, 0, 1, 1, 1, ALL, 255, 255, 255],
-  ...Array.from(
-    { length: 39 },
-    (_, i): Row => [WINDOW, 5, i * 0.2 - 4, 1, 0, 1, 1, 1, 1, 255, 255, 255],
-  ),
+  ...Array.from({ length: 39 }, (_, i): Row => [
+    WINDOW,
+    5,
+    i * 0.2 - 4,
+    1,
+    0,
+    1,
+    1,
+    1,
+    1,
+    255,
+    255,
+    255,
+  ]),
 ];
 // The house collapsed: its remains at every tier (the shell, a quarter as
 // tall and rubble-coloured) and wreckage on them at the two finest.

@@ -32,6 +32,16 @@ export interface WreckRecord {
   debrisTop: number | null;
 }
 
+/** How a unit type's hull dies: its wreck's appearance as the props fit it,
+ *  that wreck's footprint (half extents) and its whole state's resting
+ *  bounds (min, max), and how hard the dead hull brakes to a stop, m/s². */
+export interface WreckLookRecord {
+  appearance: string;
+  footprint: Vec3;
+  bounds: [Vec3, Vec3];
+  braking: number;
+}
+
 /** The manifest's `effects`. */
 export interface EffectsManifest {
   /** `presentation.effects` as the effects read it: each weapon's rows
@@ -45,6 +55,8 @@ export interface EffectsManifest {
   smokes: Record<string, string>;
   /** Per wreck appearance, the pieces a cook-off throws. */
   wrecks: Record<string, WreckRecord>;
+  /** Per unit type, how its hull dies. */
+  wreckLooks: Record<string, WreckLookRecord>;
 }
 
 /** What a plate's frame drew of the effects (`EffectFrame.counts`): those
@@ -77,7 +89,7 @@ const isWreck = (value: unknown) =>
 
 /** Refuses an `effects` section a reader could not follow, naming the part at fault. */
 export function validateEffects(value: unknown): EffectsManifest {
-  if (!hasKeys(value, ["presentation", "types", "smokes", "wrecks"]))
+  if (!hasKeys(value, ["presentation", "types", "smokes", "wrecks", "wreckLooks"]))
     throw new Error("visual presentation effects are malformed");
   const looks = isRecord(value.presentation) ? value.presentation.smoke : null;
   if (!isRecord(looks))
@@ -104,6 +116,20 @@ export function validateEffects(value: unknown): EffectsManifest {
     );
   if (!isRecord(value.wrecks) || !Object.values(value.wrecks).every(isWreck))
     throw new Error("visual presentation effects' wrecks need their pieces");
+  if (
+    !isRecord(value.wreckLooks) ||
+    !Object.values(value.wreckLooks).every(
+      (w) =>
+        hasKeys(w, ["appearance", "footprint", "bounds", "braking"]) &&
+        typeof w.appearance === "string" &&
+        vector(w.footprint) &&
+        Array.isArray(w.bounds) &&
+        w.bounds.length === 2 &&
+        w.bounds.every(vector) &&
+        finite(w.braking),
+    )
+  )
+    throw new Error("visual presentation effects' wreck looks need a fitted wreck and its braking");
   return value as unknown as EffectsManifest;
 }
 

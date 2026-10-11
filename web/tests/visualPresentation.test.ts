@@ -64,6 +64,7 @@ const capture = (frames: PresentationFrame[]): PresentationCapture => ({
 /** Two joint samples of one clip, as a page's clip table holds them. */
 const CLIP_FLOATS = Float32Array.from([0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0.6, 0.8, 0.2, 0, 0, 1]);
 const REST = { t: [0, 0, 0], r: [0, 0, 0, 1], s: [1, 1, 1] } as const;
+const IDENTITY = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
 /** A squad of one soldier on a one-clip table and a tank on a two-node rig. */
 function units(): DrawnUnits {
   const soldier = (look: string) => ({ hull: [], slots: [[look]], operated: [null] });
@@ -103,6 +104,12 @@ function units(): DrawnUnits {
         farPose: { clip: "idle", phase: 0 },
         corpsePoses: [{ clip: "idle", phase: 1 }],
         muzzle: { joint: 1, offset: structuredClone(REST) as never },
+        inverseBinds: [IDENTITY, IDENTITY],
+        tiers: 1,
+        bounds: [
+          { size: 1.8, radius: 1 },
+          { size: 1.8, radius: 1.9 },
+        ],
       },
       tank: {
         kind: "articulated",
@@ -123,6 +130,8 @@ function units(): DrawnUnits {
           deploy: [],
           muzzles: { gun: 1 },
         },
+        tiers: 1,
+        bounds: [{ size: 3.6, radius: 4 }],
       },
     },
     tables: [{ name: "clips-0", base64: Buffer.from(CLIP_FLOATS.buffer).toString("base64") }],
@@ -181,6 +190,17 @@ const effects = (): EffectsManifest => ({
   },
   smokes: { heavy_wreck: "wreck" },
   wrecks: { abrams_wreck: { lies: [0.1, 0, 2.1], underside: 1.6, debrisTop: 0.5 } },
+  wreckLooks: {
+    tank: {
+      appearance: "abrams_wreck",
+      footprint: [4, 1.8, 1.2],
+      bounds: [
+        [-4, -1.8, 0],
+        [4, 1.8, 2.4],
+      ],
+      braking: 4,
+    },
+  },
 });
 
 const drawn: DrawnPresentation = {

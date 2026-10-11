@@ -556,6 +556,11 @@ impl PoseDriver {
         })
     }
 
+    /// The last frame posed.
+    pub fn poses(&self) -> &PoseFrame {
+        &self.out
+    }
+
     /// Forget everything: the next frame starts fresh, as if first seen.
     pub fn reset(&mut self) {
         self.soldiers.clear();

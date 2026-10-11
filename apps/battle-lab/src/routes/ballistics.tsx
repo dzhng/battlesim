@@ -14,13 +14,6 @@ import { SavedMap } from "../savedMaps";
 import game from "@fixtures/game.json";
 import type { WeaponRow } from "@packages/scene-assets/src/units";
 import { LabViewport, type ViewportFrame } from "../LabViewport";
-import {
-  createEffectBatch,
-  type EffectBlast,
-  type EffectPublication,
-  type EffectSegment,
-} from "@packages/battle-renderer/src/effects/effectFrame";
-import { createEffectFrame, gameEffects } from "../effectFeed";
 import { useStandingBuildings, useStaticWorld, type WorldView } from "../useStaticWorld";
 import type { GameRules, SessionCatalog } from "@web/battle/catalog/compose";
 import { useSessionCatalog } from "@web/battle/catalog/context";
@@ -35,9 +28,8 @@ import { gameCamera } from "../gameCamera";
 // same solve → spread → launch path weapons use, all at tick 0. Nothing here
 // decides a hit: the Rust store reports every event, judging armoured bodies
 // by the battle's hull policy, so failed penetrations may glance off.
-// Beside the diagnostic traces and marks, the battle's combat effects draw
-// each tick as a publication would carry it: every round's stretch, its
-// ricochets and impact, blasts, and each emitter's launch.
+// It has no battle, so no publication: its rounds draw as the overlay's
+// traces and marks, not as the battle's combat effects.
 
 const SEED = 20260925;
 const TICK_HZ = game.tick_hz;
@@ -175,16 +167,14 @@ function benchOf(catalog: SessionCatalog): Bench {
   ];
 
   const shots: Shot[] = [
-    ...[60, 120, 180].map(
-      (range, i): Shot => ({
-        label: `grenade arc ${range} m`,
-        weapon: W.grenade,
-        kind: "grenade",
-        from: [20, 14 + 6 * i],
-        muzzle: P.infantry_muzzle_m,
-        aim: { ground: [20 + range, 14 + 6 * i] },
-      }),
-    ),
+    ...[60, 120, 180].map((range, i): Shot => ({
+      label: `grenade arc ${range} m`,
+      weapon: W.grenade,
+      kind: "grenade",
+      from: [20, 14 + 6 * i],
+      muzzle: P.infantry_muzzle_m,
+      aim: { ground: [20 + range, 14 + 6 * i] },
+    })),
     {
       label: "hmg at sliding board",
       weapon: W.hmg,
@@ -236,27 +226,23 @@ function benchOf(catalog: SessionCatalog): Bench {
     // Oblique AP: spent AP onto the tank's front 25° off its normal, and HMG
     // onto its side about 37° off its normal from the south-east, each round
     // rolling its face's chance.
-    ...[0, 1, 2, 3].map(
-      (k): Shot => ({
-        label: `oblique AP ${k + 1}`,
-        weapon: LAB_SPENT_AP,
-        kind: "tank_ap",
-        from: [PRESET_TANK[0] - 26, PRESET_TANK[1] - 2 + k],
-        muzzle: 2,
-        // Spread up the plate so each round's mark stands apart.
-        aim: { body: 6, height: 0.5 + 0.45 * k },
-      }),
-    ),
-    ...[0, 1, 2, 3].map(
-      (k): Shot => ({
-        label: `hmg at tank side ${k + 1}`,
-        weapon: W.hmg,
-        kind: "hmg",
-        from: [PRESET_TANK[0] + 16, PRESET_TANK[1] - 9 + 0.6 * k],
-        muzzle: 2,
-        aim: { body: 6, height: 0.5 + 0.45 * k },
-      }),
-    ),
+    ...[0, 1, 2, 3].map((k): Shot => ({
+      label: `oblique AP ${k + 1}`,
+      weapon: LAB_SPENT_AP,
+      kind: "tank_ap",
+      from: [PRESET_TANK[0] - 26, PRESET_TANK[1] - 2 + k],
+      muzzle: 2,
+      // Spread up the plate so each round's mark stands apart.
+      aim: { body: 6, height: 0.5 + 0.45 * k },
+    })),
+    ...[0, 1, 2, 3].map((k): Shot => ({
+      label: `hmg at tank side ${k + 1}`,
+      weapon: W.hmg,
+      kind: "hmg",
+      from: [PRESET_TANK[0] + 16, PRESET_TANK[1] - 9 + 0.6 * k],
+      muzzle: 2,
+      aim: { body: 6, height: 0.5 + 0.45 * k },
+    })),
   ];
   return { movers, shots, rules: catalog.rules, tankArmor: units.hull("test_tank")!.armor };
 }
@@ -418,29 +404,8 @@ function hitKind(movers: readonly Mover[], struck: string | undefined): string {
   return m?.armored ? "hull" : m?.shape === "capsule" ? "soldier" : "prop";
 }
 
-/** Emitter `i`'s soldier id, as a publication would name the shooter. */
-const EMITTER_BASE = 1000;
-
-/** The publication of tick 0: every emitter seen, nothing fired yet. */
-function launchPublication({ shots }: Bench): EffectPublication {
-  return {
-    tick: 0,
-    segments: [],
-    blasts: [],
-    smokes: [],
-    shooters: shots.map((s, i) => ({
-      key: i,
-      half: null,
-      yaw: 0,
-      position: [s.from[0], s.from[1], 0],
-      members: [EMITTER_BASE + i],
-      mounts: [{ bearing: 0, elevation: 0, shots: 0, kind: s.kind, muzzle: null }],
-    })),
-  };
-}
-
-/** Step the run one tick; what it drew, as a publication for the effects. */
-function stepRun(run: Run, view: WorldView): EffectPublication {
+/** Step the run one tick. */
+function stepRun(run: Run, view: WorldView) {
   const k = run.tick + 1;
   run.lab.set_bodies(packBodies(view, run.movers, k));
   const out = JSON.parse(run.lab.step()) as {
@@ -464,49 +429,6 @@ function stepRun(run: Run, view: WorldView): EffectPublication {
     } else ended.set(e.projectile, e);
   }
   for (const [id, x, y, z] of out.rounds) run.paths.get(id)?.push([x, y, z]);
-  const segments: EffectSegment[] = [];
-  const blasts: EffectBlast[] = [];
-  for (const [id, path] of run.paths) {
-    const start = from.get(id)!;
-    if (path.length - start < 2) continue;
-    const shot = run.bench.shots[run.shots.findIndex((s) => s.projectile === id)];
-    const end = ended.get(id);
-    const hit = end?.kind === "impact" ? hitKind(run.movers, end.struck) : "none";
-    segments.push({
-      path: path.slice(start),
-      ricochets: glances.get(id) ?? [],
-      kind: shot.kind,
-      shooter: EMITTER_BASE + run.bench.shots.indexOf(shot),
-      hit,
-      normal: hit === "none" ? null : (end?.normal ?? [0, 0, 1]),
-    });
-    const radius = (shot.weapon as { blast_radius_m?: number }).blast_radius_m ?? 0;
-    if (end?.kind === "impact" && radius > 0)
-      blasts.push({ point: end.point, radius, kind: shot.kind });
-  }
-  return {
-    tick: k,
-    segments,
-    blasts,
-    smokes: [],
-    // Each emitter fired its one round at tick 0: counted from tick 1 on.
-    shooters: run.bench.shots.map((s, i) => ({
-      key: i,
-      half: null,
-      yaw: 0,
-      position: [s.from[0], s.from[1], 0],
-      members: [EMITTER_BASE + i],
-      mounts: [
-        {
-          bearing: 0,
-          elevation: 0,
-          shots: run.shots[i].fired ? 1 : 0,
-          kind: s.kind,
-          muzzle: null,
-        },
-      ],
-    })),
-  };
 }
 
 function overlayOf(run: Run, view: WorldView, half: number) {
@@ -598,10 +520,6 @@ function BallisticsLab({ map }: { map: MapDefinition }) {
   // so presentation recomputes.
   const runRef = useRef<Run | null>(null);
   const [shown, setShown] = useState<{ run: Run } | null>(null);
-  // Combat effects: each step noted as a publication, drawn at the clock of
-  // the tick shown (the lab steps whole ticks, so its clock does too).
-  const effects = useMemo(() => createEffectFrame(TICK_HZ), []);
-  const effectBatch = useMemo(() => createEffectBatch(gameEffects.capacity), []);
 
   useEffect(() => {
     void loadWasm().then(setWasm);
@@ -612,10 +530,9 @@ function BallisticsLab({ map }: { map: MapDefinition }) {
       if (!wasm || !world) return;
       runRef.current?.lab.free();
       runRef.current = startRun(wasm, bench, map, world.view, withSpread);
-      effects.note(launchPublication(bench));
       setShown({ run: runRef.current });
     },
-    [wasm, bench, map, world, effects],
+    [wasm, bench, map, world],
   );
   useEffect(() => restart(false), [restart]);
   useEffect(() => () => runRef.current?.lab.free(), []);
@@ -624,10 +541,10 @@ function BallisticsLab({ map }: { map: MapDefinition }) {
     (tick: number) => {
       const run = runRef.current;
       if (!run || !world) return;
-      while (run.tick < tick) effects.note(stepRun(run, world.view));
+      while (run.tick < tick) stepRun(run, world.view);
       setShown({ run });
     },
-    [world, effects],
+    [world],
   );
 
   // Real-time playback: one tick per 1/30 s until every round has ended.
@@ -678,17 +595,15 @@ function BallisticsLab({ map }: { map: MapDefinition }) {
         return run && { tick: run.tick, shots: run.shots, events: run.events, movers: run.movers };
       },
       subsegments: () => runRef.current?.lab.subsegments_per_tick(),
-      effects: () => effects.stats(),
     }),
-    [runTo, restart, effects],
+    [runTo, restart],
   );
 
   const frame = useCallback((): ViewportFrame | null => {
     const run = runRef.current;
     if (!run) return null;
-    const clock = run.tick / TICK_HZ;
-    return { clock, effects: effects.build(clock, effectBatch) };
-  }, [effects, effectBatch]);
+    return { clock: run.tick / TICK_HZ };
+  }, []);
 
   const run = shown?.run;
   if (!world || !meshes || !run) return null;

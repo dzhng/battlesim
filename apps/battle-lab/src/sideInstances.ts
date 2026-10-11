@@ -1,5 +1,6 @@
-import { vec2, type Vec2 } from "math";
-import { bodyBox, type PickBox, type SoldierBody } from "@packages/battle-renderer/src/picking";
+import { vec2, type Vec2, type Vec3 } from "math";
+import type { PickBox } from "@packages/battle-renderer/src/picking";
+import { NONE, PICK_WORDS, Pick } from "@packages/battle-renderer/src/records.gen";
 import {
   aircraftCircle,
   circleContains,
@@ -8,7 +9,7 @@ import {
 } from "@packages/battle-renderer/src/orderOverlay";
 import { airborne, type UnitCatalog } from "@packages/scene-assets/src/units";
 import type { PointerPick } from "@web/battle/input/pointerIntent";
-import type { Pose } from "@web/battle/present/interpolate";
+import type { PresentedFrame } from "@web/battle/sim/presentation";
 import { contactUnder } from "@web/battle/input/contactPick";
 import type { ContactView, ObservationView } from "@web/battle/sim/observationView";
 import type { LabPick } from "./LabViewport";
@@ -37,40 +38,79 @@ export interface PickRing {
   enemy: number | null;
 }
 
-/** Everything one side may pick: its own units (interpolated poses) and the
- *  enemies it identifies, as blended for the same moment. Unidentified
- *  enemies do not exist here. */
+/** Where the frame drew one unit: its position, and its soldiers'. */
+export interface DrawnUnit {
+  position: Vec3;
+  yaw: number;
+  members: Vec3[];
+}
+
+/** Each drawn own unit and identified enemy, by id, from the frame's picks:
+ *  a unit's own pick (`member` none) and its soldiers' after it. */
+export function drawnUnits(frame: PresentedFrame): {
+  own: Map<number, DrawnUnit>;
+  enemies: Map<number, DrawnUnit>;
+} {
+  const own = new Map<number, DrawnUnit>();
+  const enemies = new Map<number, DrawnUnit>();
+  const { f32, u32 } = frame.picks;
+  let unit: DrawnUnit | null = null;
+  for (let i = 0; i < frame.picks.count; i++) {
+    const o = i * PICK_WORDS;
+    const half = f32[o + Pick.half + 2];
+    const foot: Vec3 = [
+      f32[o + Pick.centre],
+      f32[o + Pick.centre + 1],
+      f32[o + Pick.centre + 2] - half,
+    ];
+    if (u32[o + Pick.member] === NONE) {
+      unit = { position: foot, yaw: f32[o + Pick.centre + 3], members: [] };
+      (u32[o + Pick.flags] & OWN ? own : enemies).set(u32[o + Pick.unit], unit);
+    } else unit?.members.push(foot);
+  }
+  return { own, enemies };
+}
+
+/** Everything one side may pick, as the frame drew it: its own units and
+ *  the enemies it identifies, each soldier's body or a hull's
+ *  (`Frame.picks`), and the rings round them. Unidentified enemies do not
+ *  exist here. */
 export function sideInstances(
-  own: readonly Pose[],
-  identified: readonly Pose[],
+  frame: PresentedFrame,
+  drawnOwn: ReadonlyMap<number, DrawnUnit>,
+  drawnEnemies: ReadonlyMap<number, DrawnUnit>,
   observation: ObservationView,
-  soldier: SoldierBody,
   units: UnitCatalog,
 ): DrawnInstances {
-  const kinds = new Map(observation.own.map((u) => [u.id, u.kind]));
-  const enemyKinds = new Map(observation.identified.map((e) => [e.id, e.kind]));
   const drawn: DrawnInstances = { picks: [], owners: [], enemies: [], rings: [] };
-  const add = (pose: Pose, kind: string, owner: number | null, handle: number | null) => {
-    const body = bodyBox(soldier, units.hull(kind));
-    for (const p of pose.members.length ? pose.members : [pose.position]) {
-      drawn.picks.push({ x: p[0], y: p[1], z: p[2], yaw: pose.yaw, ...body });
-      drawn.owners.push(owner);
-      drawn.enemies.push(handle);
-    }
-  };
-  for (const pose of own) {
-    const kind = kinds.get(pose.id);
-    if (kind) add(pose, kind, pose.id, null);
-  }
-  for (const pose of identified) {
-    const kind = enemyKinds.get(pose.id);
-    if (kind) add(pose, kind, null, pose.id);
+  const { f32, u32 } = frame.picks;
+  for (let i = 0; i < frame.picks.count; i++) {
+    const o = i * PICK_WORDS;
+    const half: [number, number, number] = [
+      f32[o + Pick.half],
+      f32[o + Pick.half + 1],
+      f32[o + Pick.half + 2],
+    ];
+    // A squad's own pick says only where it is drawn; its soldiers are hit.
+    if (half[2] === 0) continue;
+    const [x, y, z] = [f32[o + Pick.centre], f32[o + Pick.centre + 1], f32[o + Pick.centre + 2]];
+    drawn.picks.push({
+      x,
+      y,
+      z: z - half[2],
+      yaw: f32[o + Pick.centre + 3],
+      center: [0, 0, half[2]],
+      half,
+    });
+    const id = u32[o + Pick.unit];
+    const own = (u32[o + Pick.flags] & OWN) !== 0;
+    drawn.owners.push(own ? id : null);
+    drawn.enemies.push(own ? null : id);
   }
   // The rings, where this frame draws each unit: an own unit's as if it
   // were selected (the ring a click there would show).
-  const poses = new Map(own.map((p) => [p.id, p]));
   for (const u of observation.own) {
-    const pose = poses.get(u.id);
+    const pose = drawnOwn.get(u.id);
     if (!pose) continue;
     const view = orderView(units, u, true);
     const circle = unitCircle(
@@ -79,15 +119,17 @@ export function sideInstances(
     );
     if (circle) drawn.rings.push({ circle, unit: u.id, enemy: null });
   }
-  const enemyPoses = new Map(identified.map((p) => [p.id, p]));
   for (const e of observation.identified) {
-    const pose = enemyPoses.get(e.id);
+    const pose = drawnEnemies.get(e.id);
     if (!pose || !airborne(units.type(e.kind))) continue;
     const circle = aircraftCircle(aircraftView(units, { ...e, ...pose }), gameOrderStyle);
     drawn.rings.push({ circle, unit: null, enemy: e.id });
   }
   return drawn;
 }
+
+/** `Pick.flags`: an own unit's. */
+const OWN = 1;
 
 /** The unit whose ring `point` lies in (the nearest centre where rings
  *  overlap): an own unit's only with `includeOwn` (a left click selects it;

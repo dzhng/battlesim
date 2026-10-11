@@ -6,14 +6,14 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sim::publication::reader::{Observation, WeaponPose};
 
 use crate::seed::{js_number, side_key};
 use crate::world::{EffectsSection, MountMuzzle, UnitsSection, Vec3};
 
 /// A visible stretch of one round's flight this tick.
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Segment {
     /// The flown path, at least two points; it bends at each ricochet.
     pub path: Vec<Vec3>,
@@ -26,13 +26,13 @@ pub struct Segment {
     pub normal: Option<Vec3>,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub struct Ricochet {
     pub point: usize,
     pub normal: Vec3,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Blast {
     pub point: Vec3,
     pub radius: f64,
@@ -69,7 +69,7 @@ pub struct Shooter {
 }
 
 /// Something the side knows smokes: a wreck today.
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct SmokeSource {
     pub key: String,
     /// Its look: a `presentation.effects.smoke` row.
@@ -80,7 +80,7 @@ pub struct SmokeSource {
 }
 
 /// A hull the side watched die this tick (`cookOff.ts`).
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub struct CookOff {
     pub center: Vec3,
     /// Its hull's top, metres above `center`.
@@ -89,12 +89,13 @@ pub struct CookOff {
     pub landing: Option<Vec3>,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EffectPublication {
     pub tick: f64,
     pub segments: Vec<Segment>,
     pub blasts: Vec<Blast>,
+    #[serde(skip_serializing)]
     pub shooters: Vec<Shooter>,
     pub smokes: Vec<SmokeSource>,
     #[serde(default)]
@@ -195,7 +196,9 @@ impl EffectFeed {
         }
         let mut smokes = Vec::new();
         for p in o.known_props.iter() {
-            let Some(look) = (!p.destroyed).then(|| effects.smokes.get(&*p.kind)).flatten()
+            let Some(look) = (!p.destroyed)
+                .then(|| effects.smokes.get(&*p.kind))
+                .flatten()
             else {
                 continue;
             };

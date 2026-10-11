@@ -240,6 +240,7 @@ pub struct Deploy {
 }
 
 #[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct EffectsSection {
     /// `presentation.effects`, each weapon's rows resolved (`gameEffects`).
     pub presentation: Value,
@@ -247,6 +248,9 @@ pub struct EffectsSection {
     /// Prop kinds that smoke once known, each with its look.
     pub smokes: BTreeMap<String, String>,
     pub wrecks: BTreeMap<String, Wreck>,
+    /// By unit type: how its hull dies.
+    #[serde(default)]
+    pub wreck_looks: BTreeMap<String, WreckLook>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -262,6 +266,18 @@ pub struct MountMuzzle {
     pub pivot: Vec3,
     pub ring: Vec3,
     pub muzzle: Vec3,
+}
+
+/// How a unit type's hull dies, by unit type : its own wreck's appearance as the props fit it (`props.fit.wrecks`
+/// and its `looks`), that wreck's footprint (half extents) and its whole
+/// `default` state's resting bounds (min, max), and how hard the dead hull
+/// brakes to a stop, m/s² (top speed over `movement.drive.wreck_stop_s`).
+#[derive(Clone, Debug, Deserialize)]
+pub struct WreckLook {
+    pub appearance: String,
+    pub footprint: Vec3,
+    pub bounds: [Vec3; 2],
+    pub braking: f64,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize)]

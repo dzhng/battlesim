@@ -103,11 +103,21 @@ export type AppearanceRecord =
       /** Its weapon's `muzzle` socket: the joint it hangs from and its
        *  offset; null where it has none. A flash sits on it. */
       muzzle: AppearanceMuzzle;
+      /** Each joint's inverse bind (column-major): a palette joint is its
+       *  world times this. */
+      inverseBinds: number[][];
+      tiers: number;
+      /** How big it is drawn (`boundsSize`), for its tier: the far pose,
+       *  then each way it lies dead. */
+      bounds: { size: number; radius: number }[];
     }
   | {
       kind: "articulated";
       nodes: { name: string; parent: number; bind: TrsRecord }[];
       rig: RigRecord;
+      tiers: number;
+      /** How big it is drawn at rest (`boundsSize`), for its tier. */
+      bounds: { size: number; radius: number }[];
     };
 
 /** One dense clip table (`buildClipTable`): `SAMPLE_FLOATS` f32 a joint sample. */
@@ -322,12 +332,35 @@ function isClip(value: unknown): boolean {
   );
 }
 
+/** A tier count and `count` sizes (`boundsSize`). */
+const isDrawn = (value: Record<string, unknown>, count: number) =>
+  Number.isInteger(value.tiers) &&
+  (value.tiers as number) >= 0 &&
+  Array.isArray(value.bounds) &&
+  value.bounds.length === count &&
+  value.bounds.every((b) => hasKeys(b, ["size", "radius"]) && finite(b.size) && finite(b.radius));
+
 function isAppearance(value: unknown, tables: ReadonlySet<string>): boolean {
   if (!isRecord(value)) return false;
   if (value.kind === "skinned")
     return (
-      hasKeys(value, ["kind", "joints", "table", "clips", "farPose", "corpsePoses", "muzzle"]) &&
+      hasKeys(value, [
+        "kind",
+        "joints",
+        "table",
+        "clips",
+        "farPose",
+        "corpsePoses",
+        "muzzle",
+        "inverseBinds",
+        "tiers",
+        "bounds",
+      ]) &&
       isHierarchy(value.joints) &&
+      Array.isArray(value.inverseBinds) &&
+      value.inverseBinds.length === (value.joints as unknown[]).length &&
+      value.inverseBinds.every((m) => Array.isArray(m) && m.length === 16 && m.every(finite)) &&
+      isDrawn(value, 1 + ((value.corpsePoses as unknown[] | undefined) ?? []).length) &&
       tables.has(value.table as string) &&
       isRecord(value.clips) &&
       Object.values(value.clips).every(isClip) &&
@@ -343,8 +376,9 @@ function isAppearance(value: unknown, tables: ReadonlySet<string>): boolean {
     );
   return (
     value.kind === "articulated" &&
-    hasKeys(value, ["kind", "nodes", "rig"]) &&
+    hasKeys(value, ["kind", "nodes", "rig", "tiers", "bounds"]) &&
     isHierarchy(value.nodes) &&
+    isDrawn(value, 1) &&
     isRig(value.rig, (value.nodes as unknown[]).length)
   );
 }

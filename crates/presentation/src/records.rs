@@ -267,7 +267,11 @@ pub fn typescript() -> String {
                 out.push_str(&format!("export const {} = d.{kind}({{\n", l.name));
                 for f in l.fields {
                     assert!(f.count == 4 && f.scalar == "f32", "{}.{}", l.name, f.name);
-                    out.push_str(&format!("  /** {} */\n  {}: d.{vec4},\n", f.doc.trim(), f.name));
+                    out.push_str(&format!(
+                        "  /** {} */\n  {}: d.{vec4},\n",
+                        f.doc.trim(),
+                        f.name
+                    ));
                 }
                 out.push_str("});\n");
             }
@@ -278,7 +282,11 @@ pub fn typescript() -> String {
                         "  /** {} ({}{}) */\n  {}: {},\n",
                         f.doc.trim(),
                         word(f.scalar),
-                        if f.count > 1 { format!(" × {}", f.count) } else { String::new() },
+                        if f.count > 1 {
+                            format!(" × {}", f.count)
+                        } else {
+                            String::new()
+                        },
                         f.name,
                         f.offset / 4
                     ));
@@ -306,9 +314,16 @@ pub fn typescript() -> String {
         for f in sets {
             let word = f.offset / 4;
             s.push_str(&if f.name == "strings" {
-                format!("    strings: new Uint8Array(memory, header[{word}], header[{}]),\n", word + 1)
+                format!(
+                    "    strings: new Uint8Array(memory, header[{word}], header[{}]),\n",
+                    word + 1
+                )
             } else {
-                format!("    {}: set({word}, {}_WORDS),\n", f.name, snake(record_of(f.name)))
+                format!(
+                    "    {}: set({word}, {}_WORDS),\n",
+                    f.name,
+                    snake(record_of(f.name))
+                )
             });
         }
         s.push_str("  };\n}\n");

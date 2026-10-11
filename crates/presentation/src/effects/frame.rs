@@ -1207,10 +1207,12 @@ impl EffectFrame {
 
     /// Take one publication. The tick it covers runs from the previous
     /// tick's presentation time to its own: every effect it causes starts in there.
-    pub fn note(&mut self, publication: &EffectPublication) {
+    /// Takes one publication; returns the launches it shows (`launches.rs`),
+    /// which sound hears too. The same tick again is ignored.
+    pub fn note(&mut self, publication: &EffectPublication) -> Vec<Launch> {
         let tick = publication.tick;
         if tick == self.last_tick {
-            return;
+            return Vec::new();
         }
         if tick < self.last_tick {
             self.reset();
@@ -1222,8 +1224,9 @@ impl EffectFrame {
         let mut rng = Mulberry32::new(to_uint32(tick * f64::from(GOLDEN)));
         let p = &self.p;
         let chance = |kind: &str| pick(&p.tracers, kind).chance.unwrap_or(1.0);
-        for l in self.launches.note(publication, gap, Some(&chance)) {
-            self.pool.flash(p, t0, &l, &mut rng);
+        let launches = self.launches.note(publication, gap, Some(&chance));
+        for l in &launches {
+            self.pool.flash(p, t0, l, &mut rng);
         }
         for (index, s) in publication.segments.iter().enumerate() {
             if s.path.len() < 2 {
@@ -1269,6 +1272,7 @@ impl EffectFrame {
         self.note_movers(publication, gap, t0);
         self.note_smokers(publication, gap, t0, t1);
         self.note_sources(publication, t0, t1);
+        launches
     }
 
     /// Dust behind every hull the side sees move on the ground: a puff off
