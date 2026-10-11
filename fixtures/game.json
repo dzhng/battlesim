@@ -1096,7 +1096,7 @@
     "pose": {
       "gait": { "walk_mps": 0.25, "run_mps": 2.2, "crawl_mps": 1.4, "fade_s": 0.25, "facing_mps": 0.3, "turn_rad_s": 6 },
       "rest": { "turn_rad": 1.0, "tempo": [0.8, 1.25], "watch_every": 4, "settle_s": [4, 6] },
-      "stance": { "fire_prone": 0.3, "fire_stand": 0.2, "pinned_kneel": 0.25 },
+      "stance": { "fire_prone": 0.3, "fire_stand": 0.2, "pinned_kneel": 0.25, "fall_back": 0.65 },
       "lean": { "out_s": 0.25, "back_s": 0.4 },
       "mount": {
         "gun_elevation_rad_s": 0.6,
@@ -1265,7 +1265,7 @@
         "min_speed_mps": 1.0,
         "full_speed_mps": 8
       },
-      "rotor_blur": { "albedo": 0.03, "shutter": 0.2, "hub_share": 0.07, "min_chord_px": 2.5, "disc": 0.18 },
+      "rotor_blur": { "albedo": 0.03, "shutter": 0.2, "hub_share": 0.07, "min_chord_px": 2.5, "disc": 0.1 },
       "damage_smoke": {
         "albedo": [0.08, 0.078, 0.075],
         "opacity": 0.45,

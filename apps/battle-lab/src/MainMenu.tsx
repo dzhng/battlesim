@@ -1,7 +1,7 @@
 // The game's front door at `/`, in the HUD's look: start a battle on a
 // generated map (its type, its size and, if the player cares, its region),
-// watch a saved battle, read how to play, and
-// the sound settings. The benchmark and the labs are developer tools, behind
+// read how to play, and the sound settings. The benchmark and the labs are
+// developer tools, behind
 // the developer link (kept in production builds: its audience is technical).
 //
 // The menu is one plate over its backdrop battle. Opening one of its pages
@@ -23,7 +23,6 @@ import { Icon } from "@web/battle/present/icons";
 import { MAP_SIZES, MAP_TYPES, type MapSize, type MapType } from "@web/maps/source";
 import { FACTIONS } from "@packages/scene-assets/src/units";
 import { askedChoice, battleHref, playHref, REGIONS, spoken } from "./battleLinks";
-import { ReplayImport, useSavedReplay, REPLAY_ROUTE, type ReplayFile } from "./replayFile";
 import { DiagnosticsControls } from "./DiagnosticsControls";
 import { SoundControls } from "./SoundControls";
 import { Tutorial } from "./Tutorial";
@@ -181,25 +180,9 @@ function BuildLine() {
   );
 }
 
-/** The replay page: the battle saved last on this browser, when there is
- *  one, and a saved battle's file to load; a file opens in its viewer. */
-function ReplayPage({ saved }: { saved: ReplayFile | null | undefined }) {
-  return (
-    <nav aria-label="Replays">
-      <ul>
-        {saved && <EntryItem entry={{ label: "Last saved battle", href: REPLAY_ROUTE }} />}
-        <li>
-          <ReplayImport />
-        </li>
-      </ul>
-    </nav>
-  );
-}
-
 /** The plate's pages: each opens in the plate's place, under a Back button. */
 const PAGES = {
   skirmish: { title: "Skirmish" },
-  replay: { title: "Watch replay" },
   tutorial: { title: "Tutorial" },
   settings: { title: "Settings" },
   // Opened by the quiet developer link, not a tile.
@@ -254,7 +237,6 @@ export function MainMenu() {
   const [page, setPage] = useState<Page | null>(
     Object.values(asked).some((v) => v !== undefined) ? "skirmish" : null,
   );
-  const [savedReplay] = useSavedReplay();
   const plate = useRef<HTMLDivElement>(null);
   const { report, progress } = useLoadingTasks();
   // Covered only until the backdrop is first ready: its restarts happen
@@ -309,7 +291,6 @@ export function MainMenu() {
         <nav aria-label="Main menu">
           <ul>
             <PageEntry page="skirmish" open={setPage} />
-            <PageEntry page="replay" open={setPage} />
             <PageEntry page="tutorial" open={setPage} />
             <PageEntry page="settings" open={setPage} />
           </ul>
@@ -327,7 +308,6 @@ export function MainMenu() {
     ) : (
       <PageView key={page} page={page} back={back}>
         {page === "skirmish" && <NewBattle asked={asked} />}
-        {page === "replay" && <ReplayPage saved={savedReplay.file} />}
         {page === "tutorial" && <Tutorial />}
         {page === "settings" && (
           <>

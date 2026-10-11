@@ -19,6 +19,7 @@ import {
 import { gamePose as FEEL } from "@apps/battle-lab/src/poseFeed";
 import { UNITS } from "./catalog";
 import { UnitCatalog, vehicleClass } from "@packages/scene-assets/src/units";
+import { INFANTRY_FALLS } from "@packages/scene-assets/src/schema";
 import { shippedMounts } from "./shippedMounts";
 
 const REST = FEEL.rest;
@@ -34,6 +35,7 @@ const CLIPS: Record<string, { duration: number; loop: boolean; stride_m: number 
   kneel_fire: { duration: 1, loop: true, stride_m: null },
   prone_pinned: { duration: 2, loop: true, stride_m: null },
   death: { duration: 2, loop: false, stride_m: null },
+  death_back: { duration: 2, loop: false, stride_m: null },
   death_kneel: { duration: 1.5, loop: false, stride_m: null },
   death_prone: { duration: 1, loop: false, stride_m: null },
   ...Object.fromEntries(
@@ -351,6 +353,29 @@ test("a soldier falls from the posture he is in: kneeling he slumps, lying he go
   expect(later.soldiers.map((s) => s.soldier).sort()).toEqual([1, 2]);
 });
 
+test("killed standing, most fall back onto their backs and the rest pitch forward, each lying as he fell", () => {
+  const d = driver();
+  const men = Array.from({ length: 20 }, (_, i) => ({ id: i + 1, x: i * 2, y: 0 }));
+  d.update(frame(0, [squad(men)]));
+  const fallen = men.map((m) => ({
+    soldier: m.id,
+    position: [m.x, 0, 0] as Vec3,
+    yaw: 0,
+    kind: "test_rifle" as const,
+    slot: 0,
+    side: "blue" as const,
+  }));
+  const falls = d.update(frame(1, [squad([])], fallen)).soldiers.map((s) => s.clip);
+  // Each man by his own manner, the same every battle, and a squad mixes both.
+  expect(falls).toEqual(
+    men.map((m) => (stanceManner(m.id, STANCE).fallsBack ? "death_back" : "death")),
+  );
+  expect(new Set(falls)).toEqual(new Set(["death", "death_back"]));
+  const lain = d.update(frame(4, [squad([])], fallen)).corpses;
+  expect(lain.map((c) => c.lies)).toEqual(falls.map((c) => INFANTRY_FALLS[c]));
+  expect(new Set(lain.map((c) => c.lies))).toEqual(new Set([0, 1]));
+});
+
 test("a fallen soldier plays his death once, facing as he fell, then lies static", () => {
   const d = driver();
   d.update(frame(0, [squad([{ id: 1, x: 0, y: 0 }])]));
@@ -388,6 +413,8 @@ test("a fallen soldier plays his death once, facing as he fell, then lies static
       side: "blue",
       position: [0, 0, 0],
       yaw: own,
+      // standing, he lies as his own manner falls: on his back or his face
+      lies: stanceManner(1, STANCE).fallsBack ? 1 : 0,
       operatorMount: null,
     },
   ]);
@@ -602,7 +629,7 @@ test("presentation.pose is checked: a run no faster than a walk, or a gauge past
   expect(() =>
     validatePoseFeel({
       ...FEEL,
-      stance: { fire_prone: 0.6, fire_stand: 0.5, pinned_kneel: 0 },
+      stance: { fire_prone: 0.6, fire_stand: 0.5, pinned_kneel: 0, fall_back: 0.5 },
     }),
   ).toThrow(/stance/);
 });

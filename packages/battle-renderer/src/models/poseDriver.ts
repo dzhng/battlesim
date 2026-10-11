@@ -28,6 +28,8 @@ import { easing } from "math/time";
 import { REST_ARTICULATION, type Articulation } from "@packages/scene-assets/src/articulation";
 import {
   INFANTRY_DEATHS,
+  INFANTRY_FALL_BACK,
+  INFANTRY_FALLS,
   INFANTRY_MOVES,
   INFANTRY_WAYS,
   type Side,
@@ -156,6 +158,8 @@ export interface VehiclePose {
 /** A fallen soldier whose death has played out (or was never seen): drawn
  *  as a static mesh, never skinned. */
 export interface CorpsePose {
+  /** Which way he lies: the corpse his fall ended in (`INFANTRY_FALLS`). */
+  lies: number;
   /** Last observed carried equipment; unknown for a body first seen fallen. */
   operatorMount?: number | null;
   soldier: number;
@@ -225,9 +229,10 @@ export interface PoseFeel {
     settle_s: [number, number];
   };
   /** How a squad under fire holds itself (`stanceManner`): the shares of
-   *  men who fire lying down and standing (the rest kneel), and of men who
-   *  crouch rather than lie flat when pinned. */
-  stance: { fire_prone: number; fire_stand: number; pinned_kneel: number };
+   *  men who fire lying down and standing (the rest kneel), of men who
+   *  crouch rather than lie flat when pinned, and of men killed standing who
+   *  fall back onto their backs (hit from the front) rather than forward. */
+  stance: { fire_prone: number; fire_stand: number; pinned_kneel: number; fall_back: number };
   /** How a soldier slides out to his lean point and back: seconds out,
    *  a quick step, and seconds back in, slower. */
   lean: { out_s: number; back_s: number };
@@ -297,7 +302,8 @@ export function validatePoseFeel(p: PoseFeel): PoseFeel {
     !share(stance.fire_prone) ||
     !share(stance.fire_stand) ||
     !(stance.fire_prone + stance.fire_stand <= 1) ||
-    !share(stance.pinned_kneel)
+    !share(stance.pinned_kneel) ||
+    !share(stance.fall_back)
   )
     fail("stance", "shares must lie in [0, 1], fire_prone + fire_stand ≤ 1");
   positive("lean.out_s", lean.out_s);
@@ -397,10 +403,12 @@ export function restManner(
   return { turn, tempo, watch };
 }
 
-/** A soldier's posture while he fires, and while his squad is pinned. */
+/** A soldier's posture while he fires, and while his squad is pinned, and
+ *  whether, killed standing, he falls back onto his back. */
 export interface Stance {
   firing: Posture;
   pinned: Posture;
+  fallsBack: boolean;
 }
 
 /** How a soldier holds himself under fire, his own for life (from his id):
@@ -414,7 +422,15 @@ export function stanceManner(soldier: number, stance: PoseFeel["stance"]): Stanc
   const firing: Posture =
     u < stance.fire_prone ? "prone" : u >= 1 - stance.fire_stand ? "stand" : "kneel";
   const pinned: Posture = u >= 1 - stance.pinned_kneel ? "kneel" : "prone";
-  return { firing, pinned };
+  // A second sequence, so how he falls does not follow how he stands.
+  const fallsBack = (soldier * 0.7548776662466927) % 1 < stance.fall_back;
+  return { firing, pinned, fallsBack };
+}
+
+/** The fall he plays dying in `posture`: standing, back onto his back or
+ *  forward onto his face by his own manner. */
+function fallOf(posture: Posture, stance: Stance): string {
+  return posture === "stand" && stance.fallsBack ? INFANTRY_FALL_BACK : INFANTRY_DEATHS[posture];
 }
 
 interface SoldierState {
@@ -775,7 +791,7 @@ export class PoseDriver {
         const changedHold = state.pose.operatorMount !== null;
         state.pose.activeMount = null;
         // He falls from the posture he is in, never getting up to die.
-        const fall = INFANTRY_DEATHS[state.posture];
+        const fall = fallOf(state.posture, state.stance);
         if (changedHold) this.resetClip(state, fall);
         else this.switchTo(state, fall);
         this.dying.add(f.soldier);
@@ -783,7 +799,9 @@ export class PoseDriver {
         // Authority can remove a floor while the same death is still playing.
         vec3.copy(state.pose.position, f.position);
       } else {
+        // Never seen fall: he lies as he would have fallen standing.
         this.lay({
+          lies: INFANTRY_FALLS[fallOf("stand", stanceManner(f.soldier, this.options.feel.stance))],
           soldier: f.soldier,
           kind: f.kind,
           slot: f.slot,
@@ -826,6 +844,7 @@ export class PoseDriver {
         this.dying.delete(id);
         this.soldiers.delete(id);
         this.lay({
+          lies: INFANTRY_FALLS[pose.clip],
           soldier: id,
           kind: pose.kind,
           operatorMount: pose.operatorMount,

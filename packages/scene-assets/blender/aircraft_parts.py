@@ -816,14 +816,11 @@ def door_gun(v, rigged, mats, pitch_deg, inboard, gun="m2", mount="door"):
     cyl(f"{name}_post", 0.035, 0.3, (pivot.x, pivot.y, foot + 0.15), "Z", mats["dark"], v.root, seg=8, lods=MID)
     cyl(f"{name}_pintle", 0.05, 0.12, (0, 0, bore - 0.12), "Z", mats["dark"], yaw, seg=10)
     box(f"{name}_cradle", (0.24, 0.16, 0.05), (0.02, 0, bore - 0.08), mats["dark"], yaw, bevel=0.008, lods=MID)
-    # The door's own gun keeps the parts' plain names; another door's gun
-    # is named for its mount.
-    parts = "" if mount == "door" else f"{mount}_"
     if gun == "kord":
-        kord(pitch, reach, mats, prefix=f"{parts}kord")
+        kord(pitch, reach, mats, prefix=f"{mount}_kord")
     else:
-        browning_m2(pitch, reach, mats, grips=True, prefix=f"{parts}m2")
-        box(f"{parts}m2_ammo_can", (0.28, 0.1, 0.18), (0.0, -side * 0.13, -0.05), mats["paint"], pitch,
+        browning_m2(pitch, reach, mats, grips=True, prefix=f"{mount}_m2")
+        box(f"{mount}_m2_ammo_can", (0.28, 0.1, 0.18), (0.0, -side * 0.13, -0.05), mats["paint"], pitch,
             bevel=0.01, lods=MID)
 
 
