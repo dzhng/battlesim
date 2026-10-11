@@ -9,6 +9,8 @@
 
 The browser's own pass costs are the target. If a browser pass is itself slow, say so, but don't fix the browser here.
 
+**Also from 08:** presenting to a shown window adds about 17 ms a frame (26 → 43 ms on 300 market-town records). That is the shipped client's cost. Find what presentation does (swapchain image count, vsync mode, MSAA resolve into the drawable) and bring it to a few ms.
+
 **Runnable artifact:** the per-pass table, browser beside native, before and after, in `throwaway/perf/passes/`.
 
 **Focused gates:**

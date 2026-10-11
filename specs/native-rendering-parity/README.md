@@ -42,7 +42,7 @@ Graph: `07 → 08 → 09 → 10 → 11 → 12`. Measure first, name the cause, t
 
 - [x] 07 — Profiling harness (`2fd549f2b`, `cfe6887ae`, `39850b7b7`): one command per client, one summariser, GPU traces on both; native draws every frame itself, so a hidden window no longer stalls it. Not taken: the Time Profiler CPU profile. [slice](slices/07-profiling-harness.md)
 - [x] 08 — Native frame anatomy: the 77 ms frames were waiting (fixed in 07) plus the legacy layer's draws and primitives times the shadow cascades; findings in the slice. [slice](slices/08-native-frame-anatomy.md)
-- [ ] 09 — Pipelined frames: no CPU waits on the GPU and no idle GPU between passes. [slice](slices/09-pipelined-frames.md)
+- [ ] 09 — Native model drawing architecture: batched instances per appearance and tier, the browser's impostors, and shadow casters culled per cascade. 08 found the cost is the legacy model layer times the cascades, not waiting. [slice](slices/09-model-batches.md)
 - [ ] 10 — Per-pass GPU budgets: every native pass at or below the browser's. [slice](slices/10-pass-budgets.md)
 - [x] 11 — Release build: `native/godot/release.sh` exports a macOS release build and runs the parity run from it; its paris-corner and market-town plates match the editor run's within the grass noise floor, and the report states its build kind. The browser's production build and the side-by-side timings are slice 12's. [slice](slices/11-release-build.md)
 - [ ] 12 — Performance gate: native no slower than the browser on any measure, on both scenes, plugged in. [slice](slices/12-performance-gate.md)
