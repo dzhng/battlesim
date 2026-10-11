@@ -17,13 +17,24 @@ extends Node3D
 ##   chunk against the view's side planes and gives each of its appearances the
 ##   tier the chunk's nearest point calls for; a batch is rewritten only when
 ##   one of its chunks changes. **Movers** are replaced every frame.
+## - **Chosen** instances are a layer's own: a layer that ports a browser
+##   owner's tier rule (buildings, scenery, known props) hands each appearance
+##   and tier the instances it draws and casts this frame.
+## - **Surfaces.** Every material draws as the browser's model surface
+##   (`model_surface.gd`), and each instance carries its tint.
 ## - **Shadows.** A model drawn as a mesh casts through a shadow-only batch one
 ##   tier coarser (the tier never casts for itself), within the cascades'
 ##   reach. A chunk out of view whose shadow can land in it casts at the
 ##   coarsest tier and draws nothing else.
 
+const DetailView = preload("res://world/detail_view.gd")
+const ModelSurface = preload("res://world/model_surface.gd")
+
 const TIERS := 4
 const COARSEST := TIERS - 1
+## Floats an instance takes in a batch: `MultiMesh.TRANSFORM_3D`'s 3×4 rows,
+## then its custom data, the tint (`pack`).
+const INSTANCE_FLOATS := 16
 ## Square chunks the statics are bucketed in, metres (`STATIC_CHUNK_M`).
 const CHUNK_M := 64.0
 ## A model's sun shadow reaches this far past it, so a model just out of view
@@ -58,13 +69,16 @@ class Appearance:
 	var cast: Array[MultiMeshInstance3D] = []
 	## Its statics: chunk id and the appearance's entry in that chunk, in pairs.
 	var chunks := PackedInt32Array()
-	## Per tier: this frame's static and moving instances, 12 floats each
-	## (`MultiMesh.TRANSFORM_3D`'s layout), for the view and the cascades.
+	## Per tier: this frame's static, moving and chosen instances
+	## (`INSTANCE_FLOATS` each), for the view and the cascades.
 	var static_view: Array[PackedFloat32Array] = []
 	var static_cast: Array[PackedFloat32Array] = []
 	var moving_view: Array[PackedFloat32Array] = []
 	var moving_cast: Array[PackedFloat32Array] = []
+	var chosen_view: Array[PackedFloat32Array] = []
+	var chosen_cast: Array[PackedFloat32Array] = []
 	var statics_changed := false
+	var chosen_changed := false
 	## Whether it had movers in the last frame written.
 	var moved := false
 
@@ -96,32 +110,31 @@ var _chunks: Array[Chunk] = []
 var _placed: Array = []
 ## This frame's movers: `[appearance id, Transform3D]` each.
 var _movers: Array = []
-## The ground distance a metre of height throws a shadow, in Godot space.
-var _fall: Vector3
+## The direction toward the sun in Godot space, and how far the cascades
+## reach in view depth.
+var _sun: Vector3
 var _max_far_m: float
 
 ## `sun` is the unit direction toward the sun in Godot space; `max_far_m` how
 ## far the cascades reach in view depth.
 func _init(batches_name: String, sun: Vector3, max_far_m: float) -> void:
 	name = batches_name
-	_fall = Vector3(-sun.x, 0.0, -sun.z) / maxf(sun.y, 1e-3)
+	_sun = sun
 	_max_far_m = max_far_m
 
 ## Registers the meshes below `root` (not `root`'s own transform) as an
 ## appearance drawn at the tiers `detail` gives it (`{lod_px, sized}`);
-## returns its id. A `closed_tier` says the tiers finer than it are open (a
-## kit shell's, cut for facade modules): each draws over every coarser
-## tier, whose meshes fill what its modules would.
-func add_appearance(root: Node, detail: Dictionary) -> int:
+## returns its id. A `scenery` appearance takes its instances' tint on every
+## surface (`model_surface.gd`).
+func add_appearance(root: Node, detail: Dictionary, scenery := false) -> int:
 	var parts := []
 	for child in root.get_children():
 		_collect(child, Transform3D.IDENTITY, parts)
 	var named: bool = parts.any(func(part): return part.tier >= 0)
-	var closed: int = detail.get("closed_tier", 0)
 	var appearance := Appearance.new()
 	for tier in TIERS:
-		appearance.meshes.append(_merged(parts.filter(func(part): return not named or part.tier < 0 or part.tier == tier or (tier < closed and part.tier > tier))))
-		for list in [appearance.static_view, appearance.static_cast, appearance.moving_view, appearance.moving_cast]:
+		appearance.meshes.append(_merged(parts.filter(func(part): return not named or part.tier < 0 or part.tier == tier), scenery))
+		for list in [appearance.static_view, appearance.static_cast, appearance.moving_view, appearance.moving_cast, appearance.chosen_view, appearance.chosen_cast]:
 			list.append(PackedFloat32Array())
 		appearance.view.append(null)
 		appearance.cast.append(null)
@@ -135,15 +148,24 @@ func add_appearance(root: Node, detail: Dictionary) -> int:
 	_appearances.append(appearance)
 	return _appearances.size() - 1
 
-## Places one instance of `appearance` for the whole run.
-func add_static(appearance: int, transform: Transform3D) -> void:
+## The finest tier's bounds of `appearance`, in its own space.
+func bounds(appearance: int) -> AABB:
+	return _appearances[appearance].bounds
+
+## Tier `tier`'s merged mesh of `appearance`, or null where it has none.
+func mesh(appearance: int, tier: int) -> ArrayMesh:
+	return _appearances[appearance].meshes[tier]
+
+## Places one instance of `appearance` for the whole run, tinted `tint`.
+func add_static(appearance: int, transform: Transform3D, tint := Color.WHITE) -> void:
 	_placed.append(appearance)
 	_placed.append(transform)
+	_placed.append(tint)
 
 ## Buckets the statics placed so far into chunks; call once, after the last.
 func seal() -> void:
 	var cells := {}
-	for i in range(0, _placed.size(), 2):
+	for i in range(0, _placed.size(), 3):
 		var appearance: Appearance = _appearances[_placed[i]]
 		var transform: Transform3D = _placed[i + 1]
 		var cell := Vector2i(floori(transform.origin.x / CHUNK_M), floori(transform.origin.z / CHUNK_M))
@@ -158,7 +180,7 @@ func seal() -> void:
 			chunk.appearances.append(_placed[i])
 			chunk.transforms.append(PackedFloat32Array())
 			chunk.tiers.append(CULLED)
-		_pack(chunk.transforms[entry.entries[_placed[i]]], transform)
+		pack(chunk.transforms[entry.entries[_placed[i]]], transform, _placed[i + 2])
 	_placed.clear()
 	for entry in cells.values():
 		var chunk: Chunk = entry.chunk
@@ -180,28 +202,33 @@ func seal() -> void:
 func show_movers(placements: Array) -> void:
 	_movers = placements
 
+## Replaces what this batch set draws of `appearance` at `tier` by a layer's
+## own choice: `view` into the view and `cast` into the cascades, `pack`ed.
+## Kept until chosen again; written by the next `prepare`.
+func choose(appearance: int, tier: int, view: PackedFloat32Array, cast: PackedFloat32Array) -> void:
+	var chosen := _appearances[appearance]
+	chosen.chosen_view[tier] = view
+	chosen.chosen_cast[tier] = cast
+	chosen.chosen_changed = true
+
+## The view of `camera` drawing into a viewport `size` pixels big, under
+## these batches' sun (`detail_view.gd`).
+func view_of(camera: Camera3D, size: Vector2):
+	return DetailView.of(camera, size, _sun, _max_far_m)
+
 ## Chooses what `camera`, drawing into a viewport `size` pixels big, draws
 ## this frame, and writes every batch whose instances changed.
 func prepare(camera: Camera3D, size: Vector2) -> void:
-	var eye := camera.global_position
-	var tan_v := tan(deg_to_rad(camera.fov) / 2.0)
-	var tan_h := tan_v * size.x / size.y
-	# The lens's side planes through the eye (near and far are not tested),
-	# facing out: a point beyond one is out of view. The camera looks down -z.
-	var basis := camera.global_basis
-	var sides := [Vector3(-1, 0, tan_h), Vector3(1, 0, tan_h), Vector3(0, 1, tan_v), Vector3(0, -1, tan_v)].map(
-		func(normal): return Plane((basis * normal).normalized(), eye))
-	var pixels_per_metre := size.y / (2.0 * tan_v)
-	# The cascades reach `max_far_m` in view depth, farther at the view's corners.
-	var reach := _max_far_m * Vector3(1.0, tan_v, tan_h).length()
+	var view = view_of(camera, size)
+	var eye: Vector3 = view.eye
 	for chunk in _chunks:
 		var state := CULLED
 		var per_metre := 0.0
-		if _box_meets(sides, chunk.box):
-			var distance := eye.distance_to(eye.clamp(chunk.box.position, chunk.box.end))
-			per_metre = pixels_per_metre / maxf(distance, 1e-3)
-			state = chunk.breaks.bsearch(per_metre) * 2 + (1 if distance <= reach else 0)
-		elif _casts_into_view(chunk, sides, eye, reach):
+		if view.box_meets(chunk.box):
+			var distance: float = view.distance_to(chunk.box)
+			per_metre = view.pixels_per_metre / maxf(distance, 1e-3)
+			state = chunk.breaks.bsearch(per_metre) * 2 + (1 if distance <= view.reach else 0)
+		elif view.casts_into_view(chunk.box, chunk.box.size.y):
 			state = CAST_ONLY
 		if state == chunk.state:
 			continue
@@ -225,16 +252,17 @@ func prepare(camera: Camera3D, size: Vector2) -> void:
 		var appearance := _appearances[placement[0]]
 		var transform: Transform3D = placement[1]
 		var center := transform * appearance.center
-		if not _meets(sides, center, appearance.radius + SHADOW_MARGIN_M):
+		if not view.sphere_meets(center, appearance.radius + SHADOW_MARGIN_M):
 			continue
-		var tier := appearance.tier(pixels_per_metre / maxf(eye.distance_to(center), 1e-3))
-		_pack(appearance.moving_view[tier], transform)
-		_pack(appearance.moving_cast[mini(tier + CASTER_COARSER, COARSEST)], transform)
+		var tier := appearance.tier(view.pixels_per_metre / maxf(eye.distance_to(center), 1e-3))
+		pack(appearance.moving_view[tier], transform)
+		pack(appearance.moving_cast[mini(tier + CASTER_COARSER, COARSEST)], transform)
 	for id in _appearances.size():
 		var appearance := _appearances[id]
-		if appearance.statics_changed or appearance.moved or moving.has(id):
+		if appearance.statics_changed or appearance.moved or appearance.chosen_changed or moving.has(id):
 			_write(appearance)
 			appearance.statics_changed = false
+			appearance.chosen_changed = false
 			appearance.moved = moving.has(id)
 
 ## Each tier's static instances in chunk order, for the view and the cascades.
@@ -257,8 +285,8 @@ func _write(appearance: Appearance) -> void:
 	for tier in TIERS:
 		if appearance.meshes[tier] == null:
 			continue
-		appearance.view[tier] = _fill(appearance.view[tier], appearance.meshes[tier], GeometryInstance3D.SHADOW_CASTING_SETTING_OFF, appearance.static_view[tier] + appearance.moving_view[tier])
-		appearance.cast[tier] = _fill(appearance.cast[tier], appearance.meshes[tier], GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY, appearance.static_cast[tier] + appearance.moving_cast[tier])
+		appearance.view[tier] = _fill(appearance.view[tier], appearance.meshes[tier], GeometryInstance3D.SHADOW_CASTING_SETTING_OFF, appearance.static_view[tier] + appearance.moving_view[tier] + appearance.chosen_view[tier])
+		appearance.cast[tier] = _fill(appearance.cast[tier], appearance.meshes[tier], GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY, appearance.static_cast[tier] + appearance.moving_cast[tier] + appearance.chosen_cast[tier])
 
 ## `batch` (made on first use) drawing `buffer`'s instances of `mesh`.
 func _fill(batch: MultiMeshInstance3D, mesh: ArrayMesh, shadows: GeometryInstance3D.ShadowCastingSetting, buffer: PackedFloat32Array) -> MultiMeshInstance3D:
@@ -269,43 +297,20 @@ func _fill(batch: MultiMeshInstance3D, mesh: ArrayMesh, shadows: GeometryInstanc
 		batch.cast_shadow = shadows
 		batch.multimesh = MultiMesh.new()
 		batch.multimesh.transform_format = MultiMesh.TRANSFORM_3D
+		batch.multimesh.use_custom_data = true
 		batch.multimesh.mesh = mesh
 		add_child(batch)
-	batch.multimesh.instance_count = buffer.size() / 12
+	batch.multimesh.instance_count = buffer.size() / INSTANCE_FLOATS
 	if not buffer.is_empty():
 		batch.multimesh.buffer = buffer
 	batch.visible = not buffer.is_empty()
 	return batch
 
-## Whether a sphere meets the view between its side planes.
-static func _meets(sides: Array, center: Vector3, radius: float) -> bool:
-	for plane: Plane in sides:
-		if plane.distance_to(center) > radius:
-			return false
-	return true
-
-## Whether a box meets the view between its side planes: no plane has the
-## whole box outside it.
-static func _box_meets(sides: Array, box: AABB) -> bool:
-	for plane: Plane in sides:
-		var nearest := Vector3(
-			box.position.x if plane.normal.x > 0.0 else box.end.x,
-			box.position.y if plane.normal.y > 0.0 else box.end.y,
-			box.position.z if plane.normal.z > 0.0 else box.end.z)
-		if plane.distance_to(nearest) > 0.0:
-			return false
-	return true
-
-## Whether a chunk out of view can cast into it: its box swept along the fall
-## of its tallest model's shadow meets the view within the shadows' reach.
-func _casts_into_view(chunk: Chunk, sides: Array, eye: Vector3, reach: float) -> bool:
-	var swept := chunk.box.merge(AABB(chunk.box.position + _fall * chunk.box.size.y, chunk.box.size))
-	return eye.distance_to(eye.clamp(swept.position, swept.end)) <= reach and _box_meets(sides, swept)
-
 ## One mesh of `parts` (`{mesh, transform}`), a surface per material, each
-## part's transform baked into its vertices; null when there are no parts.
-## Instances draw no skeleton, so a skinned part is drawn as its vertices lie.
-static func _merged(parts: Array) -> ArrayMesh:
+## part's transform baked into its vertices, its material the model surface
+## (`model_surface.gd`); null when there are no parts. Instances draw no
+## skeleton, so a skinned part is drawn as its vertices lie.
+static func _merged(parts: Array, scenery: bool) -> ArrayMesh:
 	var tools := {}
 	for part in parts:
 		var mesh: Mesh = part.mesh
@@ -322,7 +327,7 @@ static func _merged(parts: Array) -> ArrayMesh:
 		arrays[Mesh.ARRAY_BONES] = null
 		arrays[Mesh.ARRAY_WEIGHTS] = null
 		out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-		out.surface_set_material(out.get_surface_count() - 1, material)
+		out.surface_set_material(out.get_surface_count() - 1, ModelSurface.of(material, scenery))
 	return out
 
 ## The tier a mesh's name gives it (`_LOD<n>`), or -1 for every tier.
@@ -393,6 +398,7 @@ static func _posed(mesh: Mesh, skin: Skin, skeleton: Skeleton3D) -> ArrayMesh:
 		out.surface_set_material(surface, mesh.surface_get_material(surface))
 	return out
 
-## Appends `t` in `MultiMesh.TRANSFORM_3D`'s row-major 3×4 layout.
-static func _pack(out: PackedFloat32Array, t: Transform3D) -> void:
-	out.append_array([t.basis.x.x, t.basis.y.x, t.basis.z.x, t.origin.x, t.basis.x.y, t.basis.y.y, t.basis.z.y, t.origin.y, t.basis.x.z, t.basis.y.z, t.basis.z.z, t.origin.z])
+## Appends an instance at `t` tinted `tint`: `MultiMesh.TRANSFORM_3D`'s
+## row-major 3×4 layout, then the tint as custom data.
+static func pack(out: PackedFloat32Array, t: Transform3D, tint := Color.WHITE) -> void:
+	out.append_array([t.basis.x.x, t.basis.y.x, t.basis.z.x, t.origin.x, t.basis.x.y, t.basis.y.y, t.basis.z.y, t.origin.y, t.basis.x.z, t.basis.y.z, t.basis.z.z, t.origin.z, tint.r, tint.g, tint.b, tint.a])

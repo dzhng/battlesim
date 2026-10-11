@@ -70,35 +70,22 @@ func run() -> bool:
 	statics.prepare(camera, VIEWPORT)
 	check(_drawn(statics, 0, false).count == 1, "a chunk that leaves the view stops drawing: %d drawn at tier 0" % _drawn(statics, 0, false).count)
 
-	# A shell whose tiers finer than 2 are open (a kit's `OPEN_TIERS`): an open
-	# tier draws over every coarser tier; tiers 2 and 3 draw alone.
-	camera.look_at_from_position(Vector3(0, 2, 0), Vector3(0, 2, -10))
-	var shells := ModelBatches.new("Shells", sun, 2000.0)
-	world.add_child(shells)
-	var shell := shells.add_appearance(_model(), DETAIL.merged({"closed_tier": 2}))
-	shells.show_movers(distances.map(func(d): return [shell, Transform3D(Basis(), Vector3(0, 0, -d))]))
-	shells.prepare(camera, VIEWPORT)
-	var drawn := _all(shells).filter(func(batch): return not batch.get_meta("cast") and batch.visible).map(func(batch): return _bodies(batch.multimesh.mesh))
-	drawn.sort()
-	check(drawn == [[0, 1, 2, 3], [1, 2, 3], [2], [3]], "a shell draws an open tier over every coarser tier, and tiers 2 and 3 alone: %s" % [drawn])
+	# A layer's own choice: drawn at the tier it names, cast where it says.
+	var chosen := ModelBatches.new("Chosen", sun, 2000.0)
+	world.add_child(chosen)
+	var layered := chosen.add_appearance(_model(), DETAIL)
+	var view := PackedFloat32Array()
+	var cast := PackedFloat32Array()
+	ModelBatches.pack(view, Transform3D(Basis(), Vector3(0, 0, -300)), Color(0.5, 0.25, 1.0))
+	ModelBatches.pack(cast, Transform3D(Basis(), Vector3(0, 0, -300)))
+	chosen.choose(layered, 1, view, cast)
+	chosen.prepare(camera, VIEWPORT)
+	check(_drawn(chosen, 1, false).count == 1 and _drawn(chosen, 1, true).count == 1, "a chosen instance draws at the tier its layer chose, whatever its distance")
+	chosen.choose(layered, 1, PackedFloat32Array(), PackedFloat32Array())
+	chosen.prepare(camera, VIEWPORT)
+	check(_total(chosen) == 0, "a choice replaces the last: %d drawn" % _total(chosen))
 	world.free()
 	return true
-
-## The tiers whose bodies a mesh of `_model` holds, finest first, by their
-## heights (tier t's body is 2 − 0.25 t tall, centred on the origin).
-static func _bodies(mesh: ArrayMesh) -> Array:
-	if mesh == null:
-		return []
-	var tops := {}
-	for surface in mesh.get_surface_count():
-		for vertex: Vector3 in mesh.surface_get_arrays(surface)[Mesh.ARRAY_VERTEX]:
-			if vertex.y > 0.0:
-				tops[snappedf(vertex.y, 0.001)] = true
-	var tiers := []
-	for tier in 4:
-		if tops.has(snappedf((2.0 - 0.25 * tier) / 2.0, 0.001)):
-			tiers.append(tier)
-	return tiers
 
 ## A model whose body has one mesh per tier, each 0.25 m shorter than the
 ## last, standing on an unsuffixed base in every tier.
@@ -127,10 +114,15 @@ static func _all(batches: Node) -> Array:
 
 ## The instances the view (or the cascades) draw at `tier`, and that tier's mesh.
 static func _drawn(batches: Node, tier: int, cast: bool) -> Dictionary:
+	var batch := _batch(batches, tier, cast)
+	return {"count": batch.multimesh.instance_count, "mesh": batch.multimesh.mesh} if batch != null else {"count": 0, "mesh": null}
+
+## The visible batch the view (or the cascades) draw `tier` through, or null.
+static func _batch(batches: Node, tier: int, cast: bool) -> MultiMeshInstance3D:
 	for batch in _all(batches):
 		if batch.get_meta("cast") == cast and batch.visible and _tier_of(batch) == tier:
-			return {"count": batch.multimesh.instance_count, "mesh": batch.multimesh.mesh}
-	return {"count": 0, "mesh": null}
+			return batch
+	return null
 
 ## A batch's tier, by its mesh's height: tier t's is 2.25 − 0.125 t (`_model`).
 static func _tier_of(batch: MultiMeshInstance3D) -> int:

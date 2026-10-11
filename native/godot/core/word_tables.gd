@@ -23,6 +23,16 @@ static func texture(words: PackedByteArray) -> ImageTexture:
 	texels.resize(width * height * 4)
 	return ImageTexture.create_from_image(Image.create_from_data(width, height, false, Image.FORMAT_RGBA8, texels))
 
+## A `records` table (`{words, layout}`) for the CPU: its words read as f32
+## (`f`) and as i32 (`i`, which holds a u32 below 2^31 exactly), its `count`
+## and `stride` in words, and each field's first word by name (`at`).
+static func records(table: Dictionary) -> Dictionary:
+	var words: PackedByteArray = table.words
+	var at := {}
+	for field in table.layout.fields:
+		at[String(field.name)] = int(field.word)
+	return {"f": words.to_float32_array(), "i": words.to_int32_array(), "count": int(table.layout.count), "stride": int(table.layout.stride), "at": at}
+
 ## A one-record table (`{words, layout}`, a `params` record of whole vec4s) as
 ## the vec4s a shader reads, each field decoded by its type.
 static func vec4s(table: Dictionary) -> PackedVector4Array:
