@@ -405,8 +405,13 @@ interface VehicleState {
   firedAt: number;
   seen: number;
   /** A flying aircraft's drawn ground velocity and acceleration, eased
-   *  (`PoseFeel.attitude`): what it leans by. */
-  flight?: { velocity: [number, number]; accel: [number, number] };
+   *  (`PoseFeel.attitude`), and the attitude they gave it last: what it
+   *  leans by, held while the clock stands still. */
+  flight?: {
+    velocity: [number, number];
+    accel: [number, number];
+    attitude: { pitch: number; roll: number } | null;
+  };
 }
 
 /** `from` moved toward `to` by at most `step`. */
@@ -512,28 +517,26 @@ export class PoseDriver {
   }
 
   /** How a flying aircraft leans (`PoseFeel.attitude`), from how its drawn
-   *  position moved since the last frame. */
-  private lean(state: VehicleState, unit: FeedUnit, dt: number) {
-    const f = (state.flight ??= { velocity: [0, 0], accel: [0, 0] });
-    if (dt > 0) {
-      const { gain, max_deg, smoothing_s } = this.options.feel.attitude;
-      const k = 1 - Math.exp(-dt / smoothing_s);
-      const p = state.pose.position;
-      const [vx, vy] = [(unit.position[0] - p[0]) / dt, (unit.position[1] - p[1]) / dt];
-      const [ox, oy] = f.velocity;
-      f.velocity = [ox + (vx - ox) * k, oy + (vy - oy) * k];
-      const [ax, ay] = [(f.velocity[0] - ox) / dt, (f.velocity[1] - oy) / dt];
-      f.accel = [f.accel[0] + (ax - f.accel[0]) * k, f.accel[1] + (ay - f.accel[1]) * k];
-      const max = (max_deg * Math.PI) / 180;
-      const lean = (a: number) => clamp(gain * Math.atan(a / GRAVITY), -max, max);
-      const [c, s] = [Math.cos(unit.yaw), Math.sin(unit.yaw)];
-      const ahead = f.accel[0] * c + f.accel[1] * s;
-      const left = -f.accel[0] * s + f.accel[1] * c;
-      const [pitch, roll] = [-lean(ahead), -lean(left)];
-      // Level, it carries no tilt at all.
-      return Math.abs(pitch) + Math.abs(roll) > 1e-9 ? { pitch, roll } : null;
-    }
-    return null;
+   *  position moved since the last frame; held as it was while the clock
+   *  stands still. Level, it carries no tilt. */
+  private aircraftAttitude(state: VehicleState, unit: FeedUnit, dt: number) {
+    const f = (state.flight ??= { velocity: [0, 0], accel: [0, 0], attitude: null });
+    if (dt === 0) return f.attitude;
+    const { gain, max_deg, smoothing_s } = this.options.feel.attitude;
+    const k = 1 - Math.exp(-dt / smoothing_s);
+    const p = state.pose.position;
+    const [vx, vy] = [(unit.position[0] - p[0]) / dt, (unit.position[1] - p[1]) / dt];
+    const [ox, oy] = f.velocity;
+    f.velocity = [ox + (vx - ox) * k, oy + (vy - oy) * k];
+    const [ax, ay] = [(f.velocity[0] - ox) / dt, (f.velocity[1] - oy) / dt];
+    f.accel = [f.accel[0] + (ax - f.accel[0]) * k, f.accel[1] + (ay - f.accel[1]) * k];
+    const max = (max_deg * Math.PI) / 180;
+    const tiltBy = (a: number) => clamp(gain * Math.atan(a / GRAVITY), -max, max);
+    const [c, s] = [Math.cos(unit.yaw), Math.sin(unit.yaw)];
+    const pitch = -tiltBy(f.accel[0] * c + f.accel[1] * s);
+    const roll = -tiltBy(-f.accel[0] * s + f.accel[1] * c);
+    f.attitude = Math.abs(pitch) + Math.abs(roll) > 1e-9 ? { pitch, roll } : null;
+    return f.attitude;
   }
 
   private squad(unit: FeedUnit, time: number, dt: number, generation: number) {
@@ -913,10 +916,10 @@ export class PoseDriver {
       a.travel_l += forward - turned * half;
       a.travel_r += forward + turned * half;
     }
-    const lean = pose.airborne && !unit.attitude ? this.lean(state, unit, dt) : null;
+    const flying = pose.airborne && !unit.attitude ? this.aircraftAttitude(state, unit, dt) : null;
     vec3.copy(pose.position, unit.position);
     pose.yaw = unit.yaw;
-    const attitude = unit.attitude ?? lean;
+    const attitude = unit.attitude ?? flying;
     if (attitude) {
       // Nose up about its +Y, then right side down about its +X.
       const tilt = (pose.tilt ??= mat4.create());

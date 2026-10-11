@@ -418,6 +418,18 @@ test("a flying aircraft dips its nose to speed up, flares to brake and banks int
   const w = 15 / 60;
   const turning = fly((t) => [60 * Math.sin(w * t), 60 - 60 * Math.cos(w * t), w * t], 3);
   expect(leftDown(turning)).toBeGreaterThan(Math.sin(0.1));
+  // Paused mid-turn (the clock holding still), it holds its bank.
+  const d = driver();
+  const path = (t: number): [number, number, number] => [
+    60 * Math.sin(w * t),
+    60 - 60 * Math.cos(w * t),
+    w * t,
+  ];
+  let held = d.update(frame(0, [heli(...path(0))])).vehicles[0];
+  for (let k = 1; k <= 90; k++) held = d.update(frame(k / 30, [heli(...path(k / 30))])).vehicles[0];
+  const banked = leftDown(held.tilt);
+  for (let k = 0; k < 5; k++) held = d.update(frame(3, [heli(...path(3))])).vehicles[0];
+  expect(leftDown(held.tilt)).toBeCloseTo(banked, 9);
   // Hovering still: level.
   expect(noseDown(fly(() => [0, 0, 0], 2))).toBeCloseTo(0, 6);
   // Never past the most it leans, however hard it brakes.
