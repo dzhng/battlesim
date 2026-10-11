@@ -3,9 +3,9 @@
 **Status:** slices 00 through 03 complete; closeout review next. **Last updated:** 2026-10-11.
 
 **Goal:** replace the fixed skirmish opponent with one shipped, observation-bound
-`BalancedDoctrine` policy. It chooses a force-wide doctrine, deploys recon at
-useful sensor standoffs, buys physical counters for discovered threats, and
-pivots when evidence says the current plan is failing. Seeded bounded mistakes
+`BalancedDoctrine` policy. It chooses a compact force-wide state, deploys recon
+at useful sensor standoffs, buys physical counters for discovered threats, and
+pivots on low-air evidence or a bounded dwell timer. Seeded bounded mistakes
 make the opponent readable and fallible without violating legality, fog of war,
 replay determinism, or economy limits.
 
@@ -33,18 +33,16 @@ authority boundary.
 
 The planned seam has three layers:
 
-1. **Doctrine state** chooses the current force-wide plan and records evidence,
-   dwell, cooldown, and pivot history.
-2. **Mission plan** assigns roles and task groups: recon screen, assault, hold,
-   anti-armour, air denial, logistics, and recovery.
-3. **Order emitter** turns those intents into legal purchases and ordinary
+1. **Doctrine state** chooses the current force-wide state and records low-air
+   evidence, dwell, and pivot history.
+2. **Order emitter** turns that state into legal purchases and ordinary
    movement/attack/deployment orders.
 
 One production policy, `BalancedDoctrine`, implements the seam. A future policy
 can implement the same controller interface without adding a second economy,
 observation contract, or command path. The first tournament host should drive
 both sides externally with `Battle::observe`, side-scoped route/sight queries,
-`Battle::accept`, and `Battle::step`, leaving the public scenario setup's single
+  `Battle::accept`, and `Battle::step`, leaving the public scenario setup's single
 browser AI host unchanged unless the probe proves a two-controller setup is
 necessary.
 
@@ -59,9 +57,10 @@ catalog mechanics remain separate owners.
 - Randomness is seeded per battle, side, and policy. It only perturbs stable
   near-equal choices or delays a response within bounded limits. Candidate order,
   draw count, and fallbacks are fixed.
-- Recon uses sensor-range staging: reachable posts are selected around an
-  approach/objective, with sight shape, concealment, route legality, and facing
-  considered. Recon is not sent to the flag by default.
+- Recon uses sensor-range staging: a reachable post is selected along the
+  entry-to-objective approach from the unit's published sight range and facing.
+  The authority owns route legality; the current policy does not yet perform a
+  separate line-of-sight candidate search.
 - The doctrine graph is authored and believable, but it is an implementation
   detail. If it creates more machinery than the evidence justifies, collapse it
   to a smaller evidence-driven state machine without changing the observable
@@ -81,18 +80,17 @@ Balanced opening -> Recon screen -> Probe -> Assault -> Consolidate
        +-> Infantry pressure                         -> Recover
 ```
 
-Transitions are legal only when their evidence predicates and dwell/cooldown
-rules pass. Example: repeated armour losses can move tank swarm to air denial or
-infantry pressure; a newly identified helicopter can move any combat doctrine to
-air denial; losing logistics can move any doctrine to emergency defence.
+Transitions are legal only when the low-air evidence delay or maximum dwell rule
+passes. Casualty-driven loss pivots and a separate mission-plan layer remain
+follow-up work.
 
 ## Unknowns and landmines
 
 - `ObservationFrame` exposes typed sightings and expiring contacts, never hidden
   enemy state ([`observation.rs`](../../crates/contract/src/observation.rs:612)).
-- The current route callback answers travel time, not sight quality. Recon needs
-  a side-scoped sight query or a generalized existing sight-analysis owner; it
-  must never query true world geometry during play.
+- The current route callback answers travel time, not sight quality. A separate
+  side-scoped sight query is a future refinement; the current policy uses the
+  published sight range and leaves LOS authority in the simulation.
 - Dedicated Stinger/Igla/SHORAD cards remain disabled for deferred airborne
   targeting ([`europe.json`](../../fixtures/units/roster/europe.json:383)). The
   first policy can use generic `low_air` weapons; dedicated air defence is a
@@ -109,14 +107,14 @@ air denial; losing logistics can move any doctrine to emergency defence.
 
 ## Scenario corpus and proof
 
-The corpus should cover `flat_opening`, `town_contact`, `wooded_contact`,
-`blocked_entry`, `contested_center`, `casualty_fallback`, and
-`air_reinforcement`, plus generated open/mixed/metro seeds. Each row names its
-map/encounter identity, faction pair, battle seed, policy id, and tick horizon.
+The initial corpus covers named saved-map rows for opening, town, woods,
+route-pressure, contested, supply, and air cases. Generated open/mixed/metro
+request identity remains a follow-up to the native runner.
 
-Reports measure winner/result, objective time, credit spend, living value,
-first/last contact, recon range and sightings, doctrine pivots, refused orders,
-timeouts, and retired instructions. They also include battle and replay digests.
+Reports measure status/result, objective ownership time, first contact, recon
+sightings, doctrine pivots, refused orders, and the battle digest. Replay digest,
+credit/living-value accounting, and instruction counts remain future harness
+extensions.
 Qualitative invariants belong in tests; exact winners are tournament evidence,
 not brittle fixture expectations.
 
@@ -124,7 +122,7 @@ not brittle fixture expectations.
 
 | Slice | Contract and human-checkable result |
 |---|---|
-| [00-policy-seam-and-probe](slices/00-policy-seam-and-probe.md) | A pure observation-bound policy seam, seeded bounded choice, and recon/pivot probe with current behavior preserved. |
+| [00-policy-seam-and-probe](slices/00-policy-seam-and-probe.md) | A pure observation-bound policy seam, seeded bounded choice, and recon/pivot probe with current behavior preserved. **Complete.** |
 | [01-balanced-doctrine](slices/01-balanced-doctrine.md) | One hierarchical balance policy with authored transitions, counter-aware procurement, and evidence-driven pivots. **Complete.** |
 | [02-recon-and-operations](slices/02-recon-and-operations.md) | Sensor-envelope recon posts, role/task assignment, support/recovery, and integration battles showing visible adaptation. **Complete.** |
 | [03-corpus-and-tournament](slices/03-corpus-and-tournament.md) | Fixture-owned scenario corpus and deterministic native AI-vs-AI report; full balance run at closeout. **Complete.** |
@@ -140,17 +138,19 @@ check; native policy probes and reports own the primary proof.
 - Stable sorting precedes every seeded choice.
 - Randomness cannot violate faction, budget, cap, route, target-layer, or
   objective rules.
-- `BalancedDoctrine` is the only shipped policy. Unknown future policy ids fail
-  admission rather than silently selecting a second implementation.
+- `BalancedDoctrine` is the only shipped policy. Policy identity currently
+  lives in the native tournament metadata and the browser setup still selects
+  its single built-in controller; adding selectable policy ids requires an
+  explicit admission field later.
 - If the doctrine graph grows machinery without improving the corpus metrics,
   delete the graph and retain the simpler state machine.
 
 ## Handoff checklist
 
 - [x] Slice 00 red/green tests and current replay digest proof.
-- [ ] Slice 01 doctrine transition and counter-purchase tests.
-- [ ] Slice 02 recon standoff and integration battle evidence.
-- [ ] Slice 03 corpus repeatability, refusal/timeout rows, and quick tournament.
+- [x] Slice 01 doctrine transition and counter-purchase tests.
+- [x] Slice 02 recon standoff and integration battle evidence.
+- [x] Slice 03 corpus repeatability, refusal/timeout rows, and quick tournament.
 - [ ] Full `check`, full browser verification, and closeout tournament once.
 - [ ] Run `review` before declaring the feature complete, then archive with
   `close-spec`.

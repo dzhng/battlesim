@@ -102,6 +102,11 @@ impl BalancedDoctrine {
         let low_air = frame_has_layer_threat(frame, rules, AltitudeLayer::LowAir);
         if low_air {
             self.last_air_evidence.get_or_insert(frame.tick);
+        } else if self
+            .last_air_evidence
+            .is_some_and(|seen| frame.tick.saturating_sub(seen) > 30 * u64::from(rules.tick_hz))
+        {
+            self.last_air_evidence = None;
         }
         let min_dwell = 20 * u64::from(rules.tick_hz);
         let max_dwell = 180 * u64::from(rules.tick_hz);
@@ -568,11 +573,23 @@ fn candidate_score(
         }
     });
     let affordability_bias = 1_000.0 - f64::from(unit.cost);
+    let weapon_value = demand.map_or(0.0, |layer| {
+        rules
+            .catalog
+            .mounts(kind)
+            .iter()
+            .flat_map(|mount| mount.def.weapons.iter())
+            .filter_map(|id| rules.weapons.get(id))
+            .filter(|weapon| weapon.targets.contains(&layer))
+            .map(|weapon| weapon.damage * weapon.ballistics.range_m)
+            .fold(0.0, f64::max)
+            / f64::from(unit.cost.max(1))
+    });
     let noise = (contract::random::mix(u64::from(kind.0) ^ draw_unit.to_bits()) as f64
         / u64::MAX as f64
         - 0.5)
         * 40.0;
-    capability + affordability_bias + noise
+    capability + affordability_bias + weapon_value + noise
 }
 
 #[cfg(test)]
@@ -901,6 +918,47 @@ mod tests {
             Some(1.0)
         });
         assert_eq!(left_orders, right_orders);
+    }
+
+    #[test]
+    fn different_seeds_can_change_a_reinforcement_choice_without_changing_legality() {
+        let (rules, mut frame, entry) = empty_match();
+        frame.skirmish.as_mut().unwrap().phase = Phase::Active;
+        frame.skirmish.as_mut().unwrap().occupied_slots = 1;
+        frame.skirmish.as_mut().unwrap().credits = 500.0;
+        frame
+            .skirmish
+            .as_mut()
+            .unwrap()
+            .pending
+            .push(contract::skirmish::PendingPurchase {
+                id: contract::skirmish::PurchaseId(1),
+                kind: rules.catalog.index("test_supply").unwrap(),
+                destination: entry.center,
+                confirmed_tick: 0,
+                blocked: false,
+            });
+        let mut variants = std::collections::BTreeSet::new();
+        for seed in 0..32 {
+            let orders = BalancedDoctrine::new(seed).decide(
+                Side::Red,
+                Faction::Us,
+                &entry,
+                &frame,
+                &rules,
+                |_, _| Some(1.0),
+            );
+            if let Some(Order::ConfirmPurchase { variant, .. }) = orders
+                .iter()
+                .find(|order| matches!(order, Order::ConfirmPurchase { .. }))
+            {
+                variants.insert(variant.clone());
+            }
+        }
+        assert!(
+            variants.len() > 1,
+            "bounded seed stream should vary role choices"
+        );
     }
 
     #[test]

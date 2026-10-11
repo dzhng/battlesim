@@ -47,6 +47,7 @@ struct Report {
     battle_digest: u64,
     refused_orders: u32,
     accepted_orders: u32,
+    attempted_orders: u32,
     policy: &'static str,
     factions: [Faction; 2],
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -76,6 +77,7 @@ fn run(row: Row) -> Report {
         battle_digest: 0,
         refused_orders: 0,
         accepted_orders: 0,
+        attempted_orders: 0,
         policy: "balanced_doctrine",
         factions: [Faction::Us, Faction::Europe],
         diagnostic: None,
@@ -173,7 +175,7 @@ fn run(row: Row) -> Report {
     ];
     let mut seq = [1u64, 1u64];
     let mut stagnant = 0;
-    let mut previous = (0u32, 0u32, 0u64);
+    let mut previous = (0u32, 0u32, 0u64, 0u64, 0u64);
     while report.ticks < row.horizon_ticks {
         let mut refused_this_tick = 0;
         for side in Side::ALL {
@@ -187,6 +189,7 @@ fn run(row: Row) -> Report {
                 &mut |id, goal| battle.route_time(side, id, goal),
             );
             for order in orders {
+                report.attempted_orders += 1;
                 let ack = battle.accept(CommandEnvelope {
                     side,
                     seq: seq[side.index()],
@@ -194,9 +197,10 @@ fn run(row: Row) -> Report {
                     queued: false,
                 });
                 seq[side.index()] += 1;
-                report.accepted_orders += 1;
                 if ack.error.is_some() {
                     refused_this_tick += 1;
+                } else {
+                    report.accepted_orders += 1;
                 }
             }
         }
@@ -230,7 +234,25 @@ fn run(row: Row) -> Report {
             .map(|v| {
                 let owned = v.objectives.iter().filter(|o| o.owner.is_some()).count() as u32;
                 let capture = v.objectives.iter().filter(|o| o.contested).count() as u32;
-                (owned, capture, v.scores.iter().sum::<f64>().to_bits())
+                let capture_bits = v
+                    .objectives
+                    .iter()
+                    .map(|o| o.capture_progress.to_bits())
+                    .fold(0u64, u64::wrapping_add);
+                let observed = Side::ALL
+                    .into_iter()
+                    .map(|side| {
+                        let frame = battle.observe(side);
+                        (frame.own.len() as u64).wrapping_add(frame.contacts.len() as u64)
+                    })
+                    .sum();
+                (
+                    owned,
+                    capture,
+                    v.scores.iter().sum::<f64>().to_bits(),
+                    capture_bits,
+                    observed,
+                )
             })
             .unwrap_or_default();
         stagnant = if progress == previous {

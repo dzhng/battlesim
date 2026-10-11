@@ -781,11 +781,15 @@ impl Battle {
                 0,
             ); 2],
             opponent: setup.opponent.clone().map(|o| (o, Defender::default())),
-            skirmish_ai: setup
-                .skirmish
-                .as_ref()
-                .and_then(|s| s.ai_side)
-                .map(|_| crate::skirmish_ai::BalancedDoctrine::new(seed)),
+            skirmish_ai: setup.skirmish.as_ref().and_then(|s| {
+                s.ai_side.map(|side| {
+                    let stream = contract::random::mix(
+                        seed ^ (side.index() as u64 + 1).wrapping_mul(0x9e37_79b9_7f4a_7c15)
+                            ^ 0x4241_4c41_4e43_4544,
+                    );
+                    crate::skirmish_ai::BalancedDoctrine::new(stream)
+                })
+            }),
             referee: setup.encounter.clone().map(|e| (e, Referee::default())),
             encounter: None,
             pending: Vec::new(),

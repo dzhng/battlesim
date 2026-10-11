@@ -28,10 +28,13 @@ sides externally through public observation, side-scoped queries, command
 acceptance, and stepping. Add a two-side setup controller only if this host
 cannot remain equivalent to live play.
 
-Each row reports complete/refused/timeout/no-progress status, winner/result,
-objective time, credit spend, living cost, contact timing, recon sightings and
-range, doctrine pivots, refused orders, instruction counts, battle digest, and
-replay digest. Trace is non-authoritative and stays out of publication/digest.
+The current runner reports complete/refused/timeout/no-progress status, result,
+objective ownership time, contact timing, recon sightings, doctrine pivots,
+refused orders, and the battle digest. Generated request identity, credit and
+living-value accounting, instruction counts, and replay-digest verification
+remain follow-up harness work; they are deliberately not claimed by this
+initial saved-map corpus. Trace is non-authoritative and stays out of
+publication/digest.
 
 ## Verification and closeout
 

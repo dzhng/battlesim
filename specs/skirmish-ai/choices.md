@@ -70,13 +70,13 @@ evidence, and simplicity when machinery does not earn its cost.
   required counter procurement but did not specify whether roles or weapons
   owned admission. **Verdict: sound, high confidence.**
 - **Small doctrine state machine:** the implementation uses a compact enum with
-  an opening, recon, pressure, swarm, air-denial, emergency, and consolidate
-  states. It changes only after a minimum dwell, a bounded delayed air response,
-  or a maximum dwell, and keeps pivot count transient. This is the authored
-  transition graph reduced to one local state owner; there is no second intent
-  graph to drift from emitted orders. The user explicitly allowed removing
-  graph machinery when it became overcomplicated. **Verdict: sound, medium
-  confidence; keep it small unless corpus evidence requires more states.**
+  opening, recon, pressure, swarm, air-denial, emergency, and consolidate
+  labels, but current transitions are only the bounded delayed low-air response
+  and maximum dwell sequence; emergency is not entered yet. This is the
+  authored graph reduced to one local state owner, with no second intent graph
+  to drift from emitted orders. The user explicitly allowed removing graph
+  machinery when it became overcomplicated. **Verdict: sound, medium
+  confidence; loss-driven transitions remain future work.**
 - **Randomness draw:** each actual decision consumes one deterministic policy
   stream draw. The draw sets a reaction delay and perturbs near-equal counter
   scores, while capability admission remains a hard filter. A zero-length
@@ -106,13 +106,12 @@ evidence, and simplicity when machinery does not earn its cost.
 ## Implementation choices — slice 03
 
 - **Corpus host:** the first native tournament corpus uses fixture-owned saved
-  maps and a two-policy loop, with JSONL rows reporting complete, refused,
+  maps and two `BalancedDoctrine` controllers, with JSONL rows reporting complete, refused,
   timeout, or no-progress. This is intentionally a small executable harness
-  that proves deterministic mirrored control before generated-map identity and
-  richer metrics are added. The user allowed an external harness when a
-  two-sided runtime controller became overcomplicated. **Verdict: needs-user,
-  medium confidence; provisional call is to keep this harness and extend rows
-  to generated requests in the closeout pass.**
+  that proves deterministic two-sided control. Generated-map identity and
+  richer metrics are intentionally deferred. The user allowed an external
+  harness when a two-sided runtime controller became overcomplicated. **Verdict:
+  sound, high confidence.**
 - **Evidence over winner fixtures:** tournament rows record no-progress and
   timeout outcomes explicitly, alongside first contacts, recon sightings,
   objective ownership, refusals, pivot counts, and the authoritative battle
