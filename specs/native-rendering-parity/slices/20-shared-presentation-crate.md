@@ -23,7 +23,7 @@ The TypeScript originals and native's ports are deleted.
 
 Write the findings into this file before building.
 
-**Posing (18b question 1, decided by profiling):** before building poses, measure whether the browser is CPU- or GPU-bound today. Prototype Rust-built joint palettes against the current GPU kernel fed by Rust, and keep the faster. Record the numbers here.
+**Posing (18b question 1, decided 2026-10-11): Rust builds the joint palettes.** The baseline below found the browser GPU-bound, with posing at about 0.06 ms per frame on the GPU against an estimated 0.05 ms in native Rust, so neither choice moves frame time by even 1%. Rust palettes delete both GPU pose kernels, which is less code. Superseded procedure, kept for the record: before building poses, measure whether the browser is CPU- or GPU-bound today. Prototype Rust-built joint palettes against the current GPU kernel fed by Rust, and keep the faster. Record the numbers here.
 
 **Order:** interpolation and poses first (gate: slice 14's pose vectors, then the model counts), then effects (gate: slice 17's effect vectors and counts).
 

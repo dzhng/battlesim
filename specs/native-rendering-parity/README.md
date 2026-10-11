@@ -87,6 +87,12 @@ Graph: `18 → 18b (approved 2026-10-11) → 19 → 20 → 20b → 21 → 22 →
 - [ ] 23 — The browser on shared code: whole-game check, visual suite and battle frame time. [slice](slices/23-browser-on-shared-code.md)
 - [ ] 24 — Whole-frame verdict, the performance re-gate, promotion, the full repository check and closeout. [slice](slices/24-promotion-and-closeout.md)
 
+### Phase 5: native on wgpu (planned)
+
+Set by the user on 2026-10-11, after slice 15's Rust walk left market-town's gap on the GPU: Godot's Forward+ costs more per primitive than the browser's lean passes. Native moves to Rust `wgpu` running the browser's own WGSL over the 18b API, and Godot leaves native. It is planned in detail when phase 4 closes.
+
+- [ ] 25 — Native draws with wgpu: the browser's shaders and passes, once for both clients; Godot's project and ported shaders are deleted. [slice](slices/25-native-on-wgpu.md)
+
 ### Firewalls
 
 - **No backward compatibility or migrations.** Formats change in place. A format change updates its writer, reader and tests together, and the strict parsers reject stale files.
