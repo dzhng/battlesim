@@ -57,7 +57,7 @@ interface GraphicsTestState {
   report: ReelReport | null;
   /** Each scene's control plates (`?plates=1`), in run order. */
   plates: readonly (ReelPlate & { scene: string })[];
-  /** Each plated scene's ground and grass tables, in run order. */
+  /** Each plated scene's tables: ground, grass, buildings and scenery, in run order. */
   tables: readonly { scene: string; tables: UploadedTables }[];
 }
 

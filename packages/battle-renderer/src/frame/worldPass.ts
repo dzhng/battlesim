@@ -725,8 +725,15 @@ export async function createWorldPass(
     },
     fog,
     grassProbes: grass.probes,
-    /** The ground's and the grass's GPU tables as last uploaded. */
-    uploadedTables: () => ({ terrain: terrainTables(terrain), grass: grassTables(grass) }),
+    /** The ground's and the grass's GPU tables as last uploaded, and the
+     *  scenery's instances. */
+    uploadedTables: () => ({
+      terrain: terrainTables(terrain),
+      grass: grassTables(grass),
+      scenery: scenery.tables(),
+    }),
+    /** The scenery instances the last view drew (`sceneryLayer.ts`). */
+    drawnScenery: () => scenery.drawn(),
     /** Pose the environment and the cascades for this frame's camera, choose
      *  the trees' detail and fit the grass for a viewport `height` pixels tall. */
     prepare(

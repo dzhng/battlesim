@@ -23,8 +23,9 @@ import { GRASS_CELLS, type Lens } from "@web/battle/benchmark/visualPresentation
 import type { LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
 import type { UploadedTables } from "@packages/battle-renderer/src/frame/wordTables";
 
-/** A control plate: the frame it names read back (`FramePlate`), with the
- *  grass clumps that frame grew counted per screen cell (`grassCells`). */
+/** A control plate: the frame it names read back (`FramePlate`) with what it
+ *  drew of the buildings and scenery, and the grass clumps it grew counted
+ *  per screen cell (`grassCells`). */
 export interface ReelPlate extends Omit<FramePlate, "clumps"> {
   file: string;
   grass: Promise<number[]>;
@@ -75,8 +76,8 @@ export interface ReelResult {
   /** The light the battle was built with; null before it was up. */
   light: LightPresentation | null;
   plates: readonly ReelPlate[];
-  /** The ground's and grass's GPU tables the first plate drew with; null
-   *  without plates. */
+  /** The ground's, grass's, buildings' and scenery's tables the first
+   *  plate drew with; null without plates. */
   tables: UploadedTables | null;
 }
 

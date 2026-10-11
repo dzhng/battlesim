@@ -42,6 +42,9 @@ export interface DressedCell {
   /** Per kind of the field's `kinds`, where its records start in the slot;
    *  one more entry closes the last. */
   starts: number[];
+  /** Per kind of the field's `kinds`, its pieces laid with no size (on
+   *  ground the side has seen cleared). */
+  cleared: number[];
   /** The selection that last wanted it, and how far off it was. */
   stamp: number;
   distance: number;
@@ -94,6 +97,7 @@ export function createDressingCache(
       ),
       slot: NOT_LAID,
       starts: field.kinds.map(() => 0).concat(0),
+      cleared: field.kinds.map(() => 0),
       stamp: 0,
       distance: 0,
       stale: false,
@@ -151,6 +155,7 @@ function cellRecords(cache: DressingCache, cell: DressedCell): Float32Array {
   const instances = treeInstances(placed, cache.sizes);
   const count = instances.kinds.length;
   cell.starts.fill(0);
+  cell.cleared.fill(0);
   for (let p = 0; p < count; p++) cell.starts[field.kinds.indexOf(instances.kinds[p]) + 1]++;
   for (let n = 1; n < cell.starts.length; n++) cell.starts[n] += cell.starts[n - 1];
   const next = cell.starts.slice();
@@ -162,7 +167,10 @@ function cellRecords(cache: DressingCache, cell: DressedCell): Float32Array {
     out[to + INSTANCE_FLOATS - 1] = instances.heights[p] / cache.fadePx;
     const [x, y] = [placed[p * TREE_FLOATS + TREE_FIELD.x], placed[p * TREE_FLOATS + TREE_FIELD.y]];
     // The scale: with none, the piece is no triangle at all.
-    if (cleared?.(x, y)) out.fill(0, to + 4, to + 7);
+    if (cleared?.(x, y)) {
+      out.fill(0, to + 4, to + 7);
+      cell.cleared[field.kinds.indexOf(instances.kinds[p])]++;
+    }
   }
   return out;
 }
@@ -223,4 +231,17 @@ export function dressingCounts(cache: DressingCache): { held: number; tiers: num
     held: cache.held.reduce((sum, cell) => sum + (cell ? pieces(cell) : 0), 0),
     tiers: cache.drawn.map((cells) => cells.reduce((sum, cell) => sum + pieces(cell), 0)),
   };
+}
+
+/** The pieces the last selection draws with a size, per appearance (of
+ *  `kinds`) and tier: `kind · TIER_COUNT + tier`. */
+export function drawnDressing(cache: DressingCache, kinds: number): number[] {
+  const counts = Array.from({ length: kinds * TIER_COUNT }, () => 0);
+  cache.drawn.forEach((cells, t) => {
+    for (const cell of cells)
+      cache.field.kinds.forEach((kind, n) => {
+        counts[kind * TIER_COUNT + t] += cell.starts[n + 1] - cell.starts[n] - cell.cleared[n];
+      });
+  });
+  return counts;
 }

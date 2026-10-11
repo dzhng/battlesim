@@ -11,11 +11,14 @@ import {
   writeVisualPresentation,
   type DrawnPresentation,
   type GrassCount,
+  type InstanceCount,
   type VisualPresentation,
 } from "@web/battle/benchmark/visualPresentation";
 import type { TerrainTables } from "@packages/battle-renderer/src/frame/terrainTables";
 import type { GrassTables } from "@packages/battle-renderer/src/frame/grassTables";
 import type { WordTable } from "@packages/battle-renderer/src/frame/wordTables";
+import type { BuildingTables } from "@packages/battle-renderer/src/models/buildingTables";
+import type { SceneryTables } from "@packages/battle-renderer/src/scenery/sceneryTables";
 import { sunDirection } from "@packages/battle-renderer/src/light/sceneLight";
 import { terrainTuning } from "@packages/battle-renderer/src/terrain/terrainTuning";
 import { grassTuning } from "@packages/battle-renderer/src/terrain/grassTuning";
@@ -119,18 +122,89 @@ const grass: GrassTables = {
   },
   kinds: ["meadow_grass", "wheat"],
 };
+/** Two buildings' tables: a record each, and module rows in each state. */
+const buildings: BuildingTables = {
+  tables: {
+    buildings: records([1, 2, 3, 4, 5, 6, 7, 8]),
+    intact: records([9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]),
+    ruin: records([21, 22, 23, 24]),
+    gutted: records([]),
+  },
+  modules: [
+    { kit: "city_kit_paris", module: "balcony" },
+    { kit: "city_kit_paris", module: "railing" },
+  ],
+  tiers: {
+    lodPxPerM: [12, 5, 2],
+    chunkM: 64,
+    poolRecords: 1024,
+    expandRows: 4000,
+    casterCoarser: 1,
+  },
+};
+const scenery: SceneryTables = {
+  tables: {
+    forest: records([0x40000000, 0, 0, 0]),
+    understorey: records([]),
+    backdrop: records([1, 2, 3, 4, 5, 6, 7, 8]),
+    dressing: records([0x3f000000, 1, 2, 3]),
+    dressingCells: records([3, 4, 0, 1]),
+  },
+  kinds: ["oak", "fern"],
+  tiers: {
+    lodPx: [400, 150, 40],
+    chunkM: 128,
+    casterCoarser: 1,
+    dressing: {
+      lodPx: [300, 100, 20],
+      fadePx: 6,
+      gone: 0.5,
+      cellM: 64,
+      topM: 0.6,
+      reachM: 0.4,
+      ground: [-1, 9],
+      slots: 128,
+      cellsPerView: 2,
+    },
+  },
+};
+const tables = { terrain, grass, buildings, scenery };
 const cells = (n: number) => Array.from({ length: 12 }, (_, i) => i * n);
+const tiered = (kinds: number, n: number) => Array.from({ length: kinds * 4 }, (_, i) => i * n);
+const instanceCounts: InstanceCount[] = [
+  {
+    plate: "plate-1.png",
+    buildings: tiered(2, 3),
+    scenery: {
+      forest: tiered(2, 2),
+      understorey: tiered(2, 0),
+      backdrop: tiered(2, 5),
+      dressing: tiered(2, 7),
+      felled: tiered(2, 0),
+      stumps: [1, 0],
+    },
+    knownProps: [
+      { appearance: "abrams_wreck", levels: [0, 1, 0, 0, 2] },
+      { appearance: "car_wreck_sedan", levels: [3, 0, 0, 0, 0] },
+    ],
+  },
+];
 const grassCounts: GrassCount[] = [{ plate: "plate-1.png", cells: cells(3) }];
 const platedCapture = () =>
   encodePresentationCapture(capture([frame(0), frame(1, [1280, 720], "plate-1.png")]));
 /** The manifest and its artifacts for `captureJson`, drawn with the tables and counts above. */
-async function written(captureJson: string, counts: GrassCount[] = []) {
+async function written(
+  captureJson: string,
+  counts: GrassCount[] = [],
+  instances: InstanceCount[] = counts.length ? instanceCounts : [],
+) {
   const { manifest, artifacts } = await writeVisualPresentation({
     captureJson,
     mapBytes,
     drawn,
-    tables: { terrain, grass },
+    tables,
     grassCounts: counts,
+    instanceCounts: instances,
   });
   return { manifest: JSON.parse(manifest) as VisualPresentation, artifacts };
 }
@@ -163,7 +237,10 @@ test("the manifest names its battle by the capture's workload and the hashes of 
     omissions: [],
     terrain: expect.any(Array),
     grass: expect.any(Object),
+    buildings: expect.any(Object),
+    scenery: expect.any(Object),
     grassCounts: [],
+    instanceCounts: [],
   });
 });
 
@@ -326,4 +403,80 @@ test("the validator refuses a grass section with a missing table, a stray consta
   expect(reject({ kinds: [] })).toThrow(/grass/);
   expect(reject({ kinds: ["wheat", "wheat"] })).toThrow(/grass/);
   expect(reject({ seed: 1 })).toThrow(/grass/);
+});
+
+test("the buildings' and scenery's tables are artifacts after the grass's, with their kinds and tier rules", async () => {
+  const { manifest, artifacts } = await written(platedCapture(), grassCounts);
+  expect(manifest.buildings.modules).toEqual(buildings.modules);
+  expect(manifest.buildings.tiers).toEqual(buildings.tiers);
+  expect(manifest.scenery.kinds).toEqual(scenery.kinds);
+  expect(manifest.scenery.tiers).toEqual(scenery.tiers);
+  let at = manifest.terrain.length + manifest.grass.tables.length;
+  for (const [group, source] of [
+    ["buildings", buildings.tables],
+    ["scenery", scenery.tables],
+  ] as const) {
+    const entries = manifest[group].tables;
+    expect(entries.map((t) => t.name)).toEqual(Object.keys(source));
+    for (const entry of entries) {
+      const { file, bytes } = artifacts[at++];
+      const table = (source as Record<string, WordTable>)[entry.name];
+      expect(file).toBe(`${group}-${entry.name}.u32`);
+      expect(entry).toEqual({
+        name: entry.name,
+        sha256: sha256(bytes),
+        words: table.words.length,
+        layout: table.layout,
+      });
+      expect(wordsOf(bytes)).toEqual(table.words);
+    }
+  }
+  expect(artifacts).toHaveLength(at);
+});
+
+test("instance counts hold one row per plate, sized by the modules and the scenery kinds", async () => {
+  const { manifest } = await written(platedCapture(), grassCounts);
+  expect(manifest.instanceCounts).toEqual(instanceCounts);
+  await expect(written(platedCapture(), grassCounts, [])).rejects.toThrow(/instance.*plate-1\.png/);
+  const [row] = instanceCounts;
+  const reject = (change: object) => () =>
+    validateVisualPresentation({ ...manifest, instanceCounts: [{ ...row, ...change }] });
+  expect(reject({})).not.toThrow();
+  expect(reject({ buildings: tiered(1, 3) })).toThrow(/instance/);
+  expect(reject({ buildings: [-1, ...tiered(2, 3).slice(1)] })).toThrow(/instance/);
+  expect(reject({ scenery: { ...row.scenery, forest: tiered(3, 1) } })).toThrow(/instance/);
+  expect(reject({ scenery: { ...row.scenery, stumps: [1] } })).toThrow(/instance/);
+  const { felled: _, ...unfelled } = row.scenery;
+  expect(reject({ scenery: unfelled })).toThrow(/instance/);
+  expect(reject({ tier: 0 })).toThrow(/instance/);
+  const [wreck] = row.knownProps;
+  expect(reject({ knownProps: [{ ...wreck, levels: [0, 1, 0, 0] }] })).toThrow(/instance/);
+  expect(reject({ knownProps: [wreck, wreck] })).toThrow(/instance/);
+  const { knownProps: _known, ...unknowing } = row;
+  expect(() => validateVisualPresentation({ ...manifest, instanceCounts: [unknowing] })).toThrow(
+    /instance/,
+  );
+});
+
+test("the validator refuses building and scenery sections that are missing a table, a kind or a rule", async () => {
+  const { manifest } = await written(platedCapture(), grassCounts);
+  const reject = (group: "buildings" | "scenery", change: object) => () =>
+    validateVisualPresentation({ ...manifest, [group]: { ...manifest[group], ...change } });
+  const { scenery: _, ...bare } = manifest;
+  expect(() => validateVisualPresentation(bare)).toThrow(/malformed/);
+  expect(reject("buildings", { tables: manifest.buildings.tables.slice(1) })).toThrow(/buildings/);
+  expect(reject("buildings", { modules: [{ kit: "city_kit_paris" }] })).toThrow(/buildings/);
+  const twice = [buildings.modules[0], buildings.modules[0]];
+  expect(reject("buildings", { modules: twice })).toThrow(/buildings/);
+  const { chunkM: _chunk, ...chunkless } = buildings.tiers;
+  expect(reject("buildings", { tiers: chunkless })).toThrow(/buildings/);
+  expect(reject("buildings", { tiers: { ...buildings.tiers, lodPxPerM: [12, 5] } })).toThrow(
+    /buildings/,
+  );
+  expect(reject("scenery", { tables: manifest.scenery.tables.slice(0, 4) })).toThrow(/scenery/);
+  expect(reject("scenery", { kinds: [] })).toThrow(/scenery/);
+  expect(reject("scenery", { kinds: ["oak", "oak"] })).toThrow(/scenery/);
+  const { fadePx: _fade, ...fadeless } = scenery.tiers.dressing;
+  expect(reject("scenery", { tiers: { ...scenery.tiers, dressing: fadeless } })).toThrow(/scenery/);
+  expect(reject("scenery", { tiers: { ...scenery.tiers, chunkM: -1 } })).toThrow(/scenery/);
 });

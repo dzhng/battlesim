@@ -8,6 +8,7 @@ import {
   createDressingCache,
   dressingCounts,
   dressingReach,
+  drawnDressing,
   selectDressing,
   setDressingCleared,
 } from "@packages/battle-renderer/src/scenery/dressing.ts";
@@ -211,4 +212,28 @@ test("dressing on ground the side has seen cleared is laid with no size, once th
       );
     }
   }
+});
+
+test("the drawn count is every piece the view draws with a size, per kind and tier", () => {
+  const { field } = wood(4);
+  const cache = createDressingCache(field, SIZES, FADE_PX, 8);
+  const view = viewOver(128, 128, 65);
+  settle(cache, view);
+  /** Each drawn cell's pieces of a kind, by tier, less those given no size. */
+  const expected = (sized: (x: number) => boolean) => {
+    const counts = Array.from({ length: SIZES.length * 4 }, () => 0);
+    cache.drawn.forEach((cells, tier) => {
+      for (const cell of cells)
+        for (let p = 0; p < PER_CELL; p++) {
+          const x = (cell.i + (p + 0.5) / PER_CELL) * CELL_M;
+          if (sized(x)) counts[(1 + (p % 2)) * 4 + tier]++;
+        }
+    });
+    return counts;
+  };
+  expect(drawnDressing(cache, SIZES.length)).toEqual(expected(() => true));
+  expect(drawnDressing(cache, SIZES.length).some((n) => n > 0)).toBe(true);
+  setDressingCleared(cache, (x) => x < CELL_M * 2);
+  settle(cache, view);
+  expect(drawnDressing(cache, SIZES.length)).toEqual(expected((x) => x >= CELL_M * 2));
 });

@@ -818,6 +818,9 @@ export async function createModelLayer(
   /** The statics a view visits, in drawing order: indices into `statics`,
    *  then `statics.length` plus an index into `staticExtra`. */
   let staticVisit = new Int32Array(64);
+  /** The known props the last pack drew, by appearance: per level, the
+   *  tiers 0–3 and then the impostor card (`IMPOSTOR`). */
+  let knownDrawn = new Map<string, number[]>();
   let corpseList: readonly CorpseInstance[] = [];
   let corpses: Corpses | null = null;
   /** Something changed since the last pack (models, corpses, appearances, a bake). */
@@ -1341,6 +1344,14 @@ export async function createModelLayer(
     let culledBodies = 0;
     let unitCards = 0;
     let nearCards = 0;
+    knownDrawn = new Map();
+    /** A known prop (one of `staticExtra`) drawn at `level`. */
+    const tallyKnown = (i: number, inst: ModelInstance, level: number) => {
+      if (i < unitCount || staticVisit[i - unitCount] < statics.length) return;
+      let levels = knownDrawn.get(inst.appearance);
+      if (!levels) knownDrawn.set(inst.appearance, (levels = [0, 0, 0, 0, 0]));
+      levels[level]++;
+    };
 
     // Units and props: a mesh bucket, a card, or nothing.
     for (let i = 0; i < total; i++) {
@@ -1399,10 +1410,12 @@ export async function createModelLayer(
       if (tier === IMPOSTOR) {
         unitChoice[i] = -2;
         unitCards++;
+        tallyKnown(i, inst, IMPOSTOR);
         continue;
       }
       const drawable = drawableOf(gpu, inst.pose, tier);
       if (!drawable) continue;
+      tallyKnown(i, inst, tier);
       const bucket =
         drawable.id * DRAW_CLASSES + fogClassOf(inst.pose) + (inst.ghost ? FOG_CLASSES : 0);
       unitChoice[i] = bucket;
@@ -2064,6 +2077,16 @@ export async function createModelLayer(
       writeMaterials();
     },
     buildingStats: (): BuildingStats => buildings.stats(),
+    /** The buildings as tables for a second client, and the module instances
+     *  the last view drew (`buildingLayer.ts`). */
+    buildingTables: () => buildings.tables(),
+    drawnBuildings: () => buildings.drawn(),
+    /** The known props (wrecks, shoved bodies, rubble) the last pack drew,
+     *  by appearance in name order, each per tier 0–3 then as a card. */
+    drawnKnownProps: () =>
+      [...knownDrawn]
+        .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+        .map(([appearance, levels]) => ({ appearance, levels: [...levels] })),
     stats: (): ModelStats => ({
       ...stats,
       appearanceTextureBytes: { ...stats.appearanceTextureBytes },

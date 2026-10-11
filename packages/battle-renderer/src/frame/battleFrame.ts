@@ -351,7 +351,12 @@ export async function createBattleFrame(
         settled: () => targets.settled(),
         fogProbes: world.fog,
         grassProbes: world.grassProbes,
-        uploadedTables: world.uploadedTables,
+        uploadedTables: () => ({ ...world.uploadedTables(), buildings: models.buildingTables() }),
+        drawnInstances: () => ({
+          buildings: models.drawnBuildings(),
+          scenery: world.drawnScenery(),
+          knownProps: models.drawnKnownProps(),
+        }),
         stats() {
           const t = targets.current;
           const passes = world.stats();

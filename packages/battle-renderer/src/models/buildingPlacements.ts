@@ -42,11 +42,13 @@ import { TIER_COUNT, type Bounds } from "@packages/scene-assets/src/schema";
 import {
   placeRows,
   ROW_TRANSFORM_FLOATS,
+  templateArt,
   TemplateArtError,
   templateKits,
   templateRows,
   type RowRange,
   type TemplateArtLibrary,
+  type TemplateState,
 } from "@packages/scene-assets/src/templateLibrary";
 import type { DetailView } from "../frame/detailView";
 import {
@@ -69,7 +71,7 @@ const RECORD = MODEL_RECORD_FLOATS;
 const COARSEST = TIER_COUNT - 1;
 /** A resident chunk's casters draw this many tiers coarser than the view,
  *  as every model's do. */
-const CASTER_COARSER = 1;
+export const CASTER_COARSER = 1;
 /** Two coarse ranges of a kind this few records apart draw as one. The
  *  records between belong to chunks out of view: drawing them costs their
  *  vertices, which is less than the draw it saves. */
@@ -520,6 +522,28 @@ function gatherRows(
   }
 }
 
+/** Building `b`'s module instances as the side would know it in `state`:
+ *  each row's record as the layer draws it (`writeRow`), with its library
+ *  row. False, and nothing, when its template has no rows for the state. */
+export function stateRows(
+  scene: BuildingScene,
+  b: number,
+  state: TemplateState,
+  each: (row: number, record: Float32Array) => void,
+): boolean {
+  const { library } = scene.art;
+  const range = templateArt(library, scene.placed.templates[scene.placed.template[b]]).states[
+    state
+  ];
+  if (!range) return false;
+  const transforms = placeRun(scene, b, range.first, range.count);
+  for (let i = 0; i < range.count; i++) {
+    writeRow(scene, _record, 0, b, range.first + i, transforms, i * ROW_TRANSFORM_FLOATS);
+    each(range.first + i, _record);
+  }
+  return true;
+}
+
 /** A resident chunk's pool kind for `module` at tier `level`. */
 const poolKind = (scene: BuildingScene, module: number, level: number) =>
   level * scene.art.library.modules.length + module;
@@ -767,6 +791,39 @@ export function buildingDraws(scene: BuildingScene, draw: BuildingDraw): void {
       for (let k = 0; k < ruins.chunks.kinds; k++)
         if (ruins.mask[k] & (1 << tier))
           eachRange(ruins, RUINS, k, ruins.chunks.ranges[k][tier], tier, draw);
+}
+
+/** The module instances the last `selectBuildings` draws into the view, by
+ *  library module and tier: the coarse records of chunks in view that are
+ *  not hidden, the pool's residents and the fallen rows of chunks in view.
+ *  Unlike the draws, no count spans a chunk out of view or a hidden record. */
+export function drawnModules(
+  scene: BuildingScene,
+  add: (module: number, tier: number, count: number) => void,
+): void {
+  const { coarse, pool, ruins } = scene;
+  for (let k = 0; k < coarse.chunks.kinds; k++) {
+    const ranges = coarse.chunks.ranges[k][0];
+    let shown = 0;
+    for (let r = 0; r < ranges.length; r += 2)
+      for (
+        let at = coarse.base[k] + ranges[r];
+        at < coarse.base[k] + ranges[r] + ranges[r + 1];
+        at++
+      )
+        if (coarse.records[at * RECORD + 12] !== 0) shown++;
+    if (shown) add(coarse.module[k], COARSEST, shown);
+  }
+  const modules = scene.art.library.modules.length;
+  for (let kind = 0; kind < pool.count.length; kind++)
+    if (pool.count[kind]) add(kind % modules, Math.floor(kind / modules), pool.count[kind]);
+  if (ruins)
+    for (let tier = 0; tier < TIER_COUNT; tier++)
+      for (let k = 0; k < ruins.chunks.kinds; k++)
+        if (ruins.mask[k] & (1 << tier))
+          eachRange(ruins, RUINS, k, ruins.chunks.ranges[k][tier], tier, (_s, module, t, _f, n) =>
+            add(module, t, n),
+          );
 }
 
 /** Every draw of the last `selectBuildings` into the sun's cascades: the

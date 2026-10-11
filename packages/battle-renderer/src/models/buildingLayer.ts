@@ -34,6 +34,7 @@ import {
   type BuildingScene,
 } from "./buildingPlacements";
 import type { BuildingStyle, SideBuildings } from "./buildingReferences";
+import { buildingCounts, buildingTables, type BuildingTables } from "./buildingTables";
 import { MODEL_RECORD_FLOATS } from "./modelInstances";
 import { flushPool } from "./placementPool";
 import {
@@ -404,6 +405,19 @@ export function createBuildingLayer(
       hidden: Readonly<SurfaceFlags>,
     ) {
       if (scene && shown) drawList(cast, bind, raw, surface, hidden);
+    },
+    /** The buildings as tables for a second client (`buildingTables.ts`);
+     *  refused while buildings wait for their art. */
+    tables(): BuildingTables {
+      if (!scene && buildings?.placed.template.length)
+        throw new Error("the buildings' template art is not installed yet");
+      return buildingTables(scene, style);
+    },
+    /** The module instances the last view drew, per exported module and
+     *  tier (`buildingCounts`); none while they are hidden. */
+    drawn(): number[] {
+      const counts = buildingCounts(scene);
+      return shown ? counts : counts.fill(0);
     },
     stats(): BuildingStats {
       return {

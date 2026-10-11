@@ -56,6 +56,7 @@ import type { FogStyle } from "@packages/battle-renderer/src/frame/fogStyle";
 import type { LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
 import type {
   BattleFrame,
+  DrawnInstances,
   FrameView,
   SceneInstance,
   WorldLayers,
@@ -185,12 +186,13 @@ export interface ViewportFrame {
 }
 
 /** A drawn frame read back for a second client to draw against: the canvas
- *  as the player saw it, the grass clumps the frame grew, and the same frame
- *  drawn again offscreen lit without its grass. The canvas and the next
- *  frame are untouched. */
+ *  as the player saw it, the grass clumps the frame grew, the building
+ *  modules and scenery it drew, and the same frame drawn again offscreen lit
+ *  without its grass. The canvas and the next frame are untouched. */
 export interface FramePlate {
   png: Promise<Blob>;
   clumps: Promise<readonly Pick<GrassClumpRow, "root">[]>;
+  drawn: DrawnInstances;
   plain: Promise<Blob>;
 }
 
@@ -782,10 +784,12 @@ export function LabViewport({
           scene.grassProbes.suppress(grassSuppressed);
           return readTexturePng(device!, texture).finally(() => texture.destroy());
         };
-        // What the frame drew is read first: the grass-less draw changes the frame.
+        // What the frame drew is read first: the grass-less draw changes the
+        // frame, and may lay more dressing or expand more buildings.
         const plate = (): FramePlate => ({
           png: readTexturePng(device!, context.getCurrentTexture()),
           clumps: scene.grassProbes.clumps(),
+          drawn: scene.drawnInstances(),
           plain: readPlain(),
         });
         redrawRef.current = () => (dirty = true);

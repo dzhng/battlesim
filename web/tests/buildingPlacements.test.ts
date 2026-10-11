@@ -32,7 +32,13 @@ import {
   type BuildingStyle,
   type PlacedBuildings,
 } from "@packages/battle-renderer/src/models/buildingReferences";
+import {
+  buildingCounts,
+  buildingTables,
+} from "@packages/battle-renderer/src/models/buildingTables";
 import { MODEL_RECORD_FLOATS } from "@packages/battle-renderer/src/models/modelInstances";
+import { frustum } from "math/shapes";
+import { readRecords } from "./support/wordRecords";
 import type { KnownProp, MapProp } from "@packages/battle-renderer/src/models/propAppearance";
 import type { PublicBuildings } from "@packages/battle-renderer/src/worldMesh";
 
@@ -698,6 +704,132 @@ test("identical neighbours differ a little in value, each the same every time", 
   });
   expect(scales[0]).not.toBeCloseTo(scales[1], 3);
   expect(tints()).toEqual(tints());
+});
+
+test("every building's modules are exported in each state its template has, where the resolver places them", () => {
+  const frames: [number, number, number, number][] = [
+    [1000, 2000, 3, 0.7],
+    [1300, 2000, 0, 0],
+    [1023, 2100, 1, 0],
+  ];
+  const placed = placedOf([
+    ["house", frames[0]],
+    ["tower", frames[1]],
+    ["stand_in", frames[2]],
+  ]);
+  const scene = createBuildingScene(placed, ART, STYLE);
+  const { tables, modules, tiers } = buildingTables(scene, STYLE);
+  // Only the modules the map's templates place, in the library's order.
+  expect(modules).toEqual([
+    { kit: "city_kit_test", module: "shell" },
+    { kit: "city_kit_test", module: "window" },
+    { kit: "city_kit_test", module: "roof" },
+    { kit: BOX_KIT, module: "box" },
+  ]);
+  expect(tiers).toEqual({
+    lodPxPerM: STYLE.lod_px_per_m,
+    chunkM: STYLE.chunk_m,
+    poolRecords: STYLE.pool_records,
+    expandRows: STYLE.expand_rows,
+    casterCoarser: 1,
+  });
+  const buildings = readRecords(tables.buildings);
+  // Rows per state: -1 where the template has none.
+  expect(buildings.map((b) => b.rows)).toEqual([
+    [4, 2, -1],
+    [2, -1, 2],
+    [1, -1, -1],
+  ]);
+  expect(buildings.map((b) => b.owner)).toEqual([[100], [101], [102]]);
+  expect(buildings.map((b) => b.frame)).toEqual(frames.map((f) => f.map(Math.fround)));
+  // A building's chunk is the one it draws coarse in; its bounds hold its rows.
+  expect(buildings.map((b) => b.chunk[0])).toEqual([...scene.chunkOf]);
+  buildings.forEach((b, i) =>
+    expect([...b.min, ...b.max]).toEqual([...scene.bounds.subarray(i * 6, i * 6 + 6)]),
+  );
+  const template = (b: number) => placed.templates[placed.template[b]];
+  for (const [s, state] of (["intact", "ruin", "gutted"] as const).entries()) {
+    const rows = readRecords(tables[state]);
+    const expected = frames.flatMap(([x, y, z, yaw], b) => {
+      if (buildings[b].rows[s] < 0) return [];
+      const resolved = resolve(template(b), { translation: [x, y, z], yaw }, state, LIBRARY);
+      return Array.from({ length: resolved.rows.count }, (_, i) => ({ b, i, resolved }));
+    });
+    expect(rows).toHaveLength(expected.length);
+    rows.forEach((row, n) => {
+      const { b, i, resolved } = expected[n];
+      const t = [...resolved.transforms.subarray(i * 7, i * 7 + 7)].map(Math.fround);
+      const r = resolved.rows.first + i;
+      expect([...row.position, ...row.yaw, ...row.scale]).toEqual(t);
+      expect(modules[row.kitModule[0]].module).toBe(LIBRARY.modules[LIBRARY.rows.module[r]].module);
+      expect(row.tiers).toEqual([LIBRARY.rows.tiers[r]]);
+      expect(row.building).toEqual([b]);
+      expect(row.chunk).toEqual(buildings[b].chunk);
+      const [tr, tg, tb] = LIBRARY.rows.tint.subarray(r * 3, r * 3 + 3);
+      const tint = color.fromSRGB([tr / 255, tg / 255, tb / 255]);
+      row.tint.forEach((c, k) => expect(c).toBeCloseTo(tint[k], 5));
+    });
+  }
+});
+
+test("the drawn count is every module instance a view draws, per module and tier", () => {
+  const blocks: [string, [number, number, number, number]][] = [];
+  for (let i = 0; i < 8; i++) blocks.push(["house", [1000 + i * 70, 2000, 0, 0]]);
+  blocks.push(["tower", [1100, 2100, 0, 0]]);
+  const scene = createBuildingScene(placedOf(blocks), ART, STYLE);
+  const { modules } = buildingTables(scene, STYLE);
+  const counted = () => {
+    const tally = new Map<string, number>();
+    buildingCounts(scene).forEach((n, k) => {
+      if (n)
+        tally.set(
+          `${LIBRARY.modules.findIndex((m) => m.module === modules[k >> 2].module)}@${k & 3}`,
+          n,
+        );
+    });
+    return tally;
+  };
+  let looking = view(0, 0, 1);
+  /** What the draws hold of chunks in view: a coarse range drawn as one
+   *  across chunks out of view holds those too, and they are not seen. */
+  const seen = () => {
+    const tally = new Map<string, number>();
+    buildingDraws(scene, (source, module, tier, first, count) => {
+      const records = bufferOf(scene, source);
+      for (let i = first; i < first + count; i++) {
+        if (records[i * RECORD + 12] === 0) continue;
+        if (source === COARSE) {
+          const chunk = scene.coarse.chunks.chunks[scene.chunkOf[scene.coarseOwner[i]]];
+          if (!frustum.sidesIntersectsBox3(looking.sides, chunk.box)) continue;
+        }
+        tally.set(`${module}@${tier}`, (tally.get(`${module}@${tier}`) ?? 0) + 1);
+      }
+    });
+    return tally;
+  };
+  const look = (x: number, y: number, distance: number) => {
+    looking = view(x, y, distance);
+    selectBuildings(scene, looking, SHADOW);
+  };
+  for (const [x, distance] of [
+    [1000, 60],
+    [1200, 200],
+    [1300, 600],
+    [1250, 3000],
+  ]) {
+    look(x, 2000, distance);
+    expect(counted(), `${distance} m over ${x}`).toEqual(seen());
+    expect(counted().size, `${distance} m over ${x}`).toBeGreaterThan(0);
+  }
+  // A destroyed building is counted in its fallen state, not its intact one.
+  setFallenBuildings(scene, [
+    { building: 0, state: "ruin" },
+    { building: 8, state: "gutted" },
+  ]);
+  look(1000, 2000, 60);
+  expect(counted()).toEqual(seen());
+  expect([...counted().keys()].some((k) => k.endsWith("@0"))).toBe(true);
+  expect(buildingCounts(scene)).toHaveLength(modules.length * 4);
 });
 
 test("presentation.buildings is checked: tiers that fall, a pool, a jitter in range", () => {

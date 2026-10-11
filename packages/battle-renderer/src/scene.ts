@@ -26,6 +26,7 @@ import type { FelledRules } from "./terrain/biome";
 import type { SceneryStats } from "./frame/sceneryLayer";
 import type { GrassProbes, GrassStats } from "./frame/grassPass";
 import type { UploadedTables } from "./frame/wordTables";
+import type { SceneryCounts } from "./scenery/sceneryTables";
 import type { GrassAppearances } from "./terrain/grassField";
 import type { EffectBatch } from "./effects/effectFrame";
 import type { GroundMarks, ScarStats } from "./frame/scarTexture";
@@ -91,6 +92,17 @@ export interface WorldLayers {
    *  name; `null` draws no grass (a route without appearances, or a view
    *  where the tint replaces the biome). */
   grass: GrassAppearances | null;
+}
+
+/** The building modules, scenery and known props a frame drew. */
+export interface DrawnInstances {
+  /** Per module of `UploadedTables.buildings.modules` and tier:
+   *  `module · 4 + tier`. */
+  buildings: number[];
+  scenery: SceneryCounts;
+  /** The props the side knows (wrecks, shoved bodies, rubble), by
+   *  appearance in name order: per tier 0–3, then drawn as a card. */
+  knownProps: { appearance: string; levels: number[] }[];
 }
 
 export interface InstalledDepthState {
@@ -298,9 +310,13 @@ export interface BattleFrame {
   readonly fogProbes: FogProbes;
   /** Lab probes of the grass field (debug readbacks, never in a frame). */
   readonly grassProbes: GrassProbes;
-  /** The ground's and the grass's GPU tables as last uploaded, in words
-   *  with their layouts: what a second client draws the same field from. */
+  /** The ground's and the grass's GPU tables as last uploaded, and the
+   *  buildings' and scenery's instances, in words with their layouts: what a
+   *  second client draws the same world from. */
   uploadedTables(): UploadedTables;
+  /** What the last drawn frame drew of the buildings and the scenery, per
+   *  kind and tier, for a second client to count against. */
+  drawnInstances(): DrawnInstances;
   /** Resolves once no target rebuild is pending; true if one was. */
   settled(): Promise<boolean>;
   stats(): FrameStats;

@@ -16,6 +16,15 @@ import type {
   WordLayout,
   WordTable,
 } from "@packages/battle-renderer/src/frame/wordTables";
+import type {
+  BuildingTableName,
+  BuildingTiers,
+} from "@packages/battle-renderer/src/models/buildingTables";
+import type {
+  SceneryTableName,
+  SceneryTiers,
+} from "@packages/battle-renderer/src/scenery/sceneryTables";
+import type { DrawnInstances } from "@packages/battle-renderer/src/scene";
 import { decodePresentationCapture, finite, hasKeys, isRecord } from "./presentationCapture.ts";
 
 /** The presentation layers a frame can draw. */
@@ -95,8 +104,24 @@ export interface VisualPresentation extends DrawnPresentation {
     constants: GrassConstants;
     kinds: string[];
   };
+  /** Every building's module instances in each state its template has,
+   *  the kit modules they name, and the tier rule's numbers. */
+  buildings: {
+    tables: TableArtifact<BuildingTableName>[];
+    modules: { kit: string; module: string }[];
+    tiers: BuildingTiers;
+  };
+  /** Every tree, shrub and piece of dressing, the appearances they name,
+   *  and the tier rule's numbers. */
+  scenery: {
+    tables: TableArtifact<SceneryTableName>[];
+    kinds: string[];
+    tiers: SceneryTiers;
+  };
   /** The grass clumps each plate's frame grew, per screen cell. */
   grassCounts: GrassCount[];
+  /** The building modules and scenery instances each plate's frame drew. */
+  instanceCounts: InstanceCount[];
 }
 
 /** Each group's tables, in the manifest's order. */
@@ -116,6 +141,19 @@ export const TABLES = {
     "indicesNear",
     "indicesFar",
   ] as const satisfies readonly GrassTableName[],
+  buildings: [
+    "buildings",
+    "intact",
+    "ruin",
+    "gutted",
+  ] as const satisfies readonly BuildingTableName[],
+  scenery: [
+    "forest",
+    "understorey",
+    "backdrop",
+    "dressing",
+    "dressingCells",
+  ] as const satisfies readonly SceneryTableName[],
 };
 export type TableGroup = keyof typeof TABLES;
 
@@ -156,6 +194,22 @@ export interface GrassCount {
   cells: number[];
 }
 
+/** The detail tiers every building module and scenery appearance has
+ *  (`scene-assets` `TIER_COUNT`). */
+export const TIERS = 4;
+
+/** What a plate's frame drew of the buildings, the scenery and the props
+ *  its side knows (`BattleFrame.drawnInstances`): per kit module of
+ *  `buildings.modules` and tier, `module · TIERS + tier`; per population,
+ *  appearance of `scenery.kinds` and tier likewise; the stumps per
+ *  appearance alone; the known props per appearance, at each tier and then
+ *  as a card. */
+export interface InstanceCount extends DrawnInstances {
+  plate: string;
+}
+
+const SCENERY_POPULATIONS = ["forest", "understorey", "backdrop", "dressing", "felled"] as const;
+
 const IDENTITY_KEYS = ["scene", "map", "encounter", "seed", "mapHash", "captureHash"];
 const MANIFEST_KEYS = [
   "schema",
@@ -168,7 +222,10 @@ const MANIFEST_KEYS = [
   "omissions",
   "terrain",
   "grass",
+  "buildings",
+  "scenery",
   "grassCounts",
+  "instanceCounts",
 ];
 const LAYOUT_KEYS: Record<WordLayout["kind"], readonly string[]> = {
   records: ["kind", "stride", "count", "fields"],
@@ -256,6 +313,86 @@ const isTableList = (value: unknown, names: readonly string[]) =>
       isLayout(t.layout),
   );
 
+const numbers = (value: unknown, n: number, valid: (v: unknown) => boolean) =>
+  Array.isArray(value) && value.length === n && value.every(valid);
+const distinct = (values: readonly unknown[]) =>
+  new Set(values.map((v) => JSON.stringify(v))).size === values.length;
+
+/** Whether `value` is a building section: its tables, its distinct kit
+ *  modules and its tier numbers. */
+function isBuildings(value: unknown): boolean {
+  if (!hasKeys(value, ["tables", "modules", "tiers"])) return false;
+  const { tables, modules, tiers } = value;
+  return (
+    isTableList(tables, TABLES.buildings) &&
+    Array.isArray(modules) &&
+    modules.every((m) => hasKeys(m, ["kit", "module"]) && text(m.kit) && text(m.module)) &&
+    distinct(modules) &&
+    hasKeys(tiers, ["lodPxPerM", "chunkM", "poolRecords", "expandRows", "casterCoarser"]) &&
+    numbers(tiers.lodPxPerM, 3, positive) &&
+    positive(tiers.chunkM) &&
+    [tiers.poolRecords, tiers.expandRows].every((n) => positive(n) && count(n)) &&
+    count(tiers.casterCoarser)
+  );
+}
+
+/** Whether `value` is a scenery section: its tables, its distinct
+ *  appearances and its tier numbers. */
+function isScenery(value: unknown): boolean {
+  if (!hasKeys(value, ["tables", "kinds", "tiers"])) return false;
+  const { tables, kinds, tiers } = value;
+  if (!hasKeys(tiers, ["lodPx", "chunkM", "casterCoarser", "dressing"])) return false;
+  const dressing = tiers.dressing;
+  return (
+    isTableList(tables, TABLES.scenery) &&
+    Array.isArray(kinds) &&
+    kinds.length > 0 &&
+    kinds.every(text) &&
+    distinct(kinds) &&
+    numbers(tiers.lodPx, 3, positive) &&
+    positive(tiers.chunkM) &&
+    count(tiers.casterCoarser) &&
+    hasKeys(dressing, [
+      "lodPx",
+      "fadePx",
+      "gone",
+      "cellM",
+      "topM",
+      "reachM",
+      "ground",
+      "slots",
+      "cellsPerView",
+    ]) &&
+    numbers(dressing.lodPx, 3, positive) &&
+    [dressing.fadePx, dressing.gone, dressing.cellM].every(positive) &&
+    [dressing.topM, dressing.reachM].every(length) &&
+    numbers(dressing.ground, 2, finite) &&
+    [dressing.slots, dressing.cellsPerView].every(count)
+  );
+}
+
+/** Whether `value` counts what a plate drew of `modules` kit modules and
+ *  `kinds` scenery appearances. */
+function isInstanceCount(value: unknown, modules: number, kinds: number): boolean {
+  if (!hasKeys(value, ["plate", "buildings", "scenery", "knownProps"]) || !text(value.plate))
+    return false;
+  const { scenery, knownProps } = value;
+  return (
+    Array.isArray(knownProps) &&
+    knownProps.every(
+      (p) =>
+        hasKeys(p, ["appearance", "levels"]) &&
+        text(p.appearance) &&
+        numbers(p.levels, TIERS + 1, count),
+    ) &&
+    distinct(knownProps.map((p) => p.appearance)) &&
+    numbers(value.buildings, modules * TIERS, count) &&
+    hasKeys(scenery, [...SCENERY_POPULATIONS, "stumps"]) &&
+    SCENERY_POPULATIONS.every((p) => numbers(scenery[p], kinds * TIERS, count)) &&
+    numbers(scenery.stumps, kinds, count)
+  );
+}
+
 /** `value` as a manifest, or a refusal naming the part at fault. */
 export function validateVisualPresentation(value: unknown): VisualPresentation {
   if (!hasKeys(value, MANIFEST_KEYS)) throw new Error("visual presentation is malformed");
@@ -335,6 +472,14 @@ export function validateVisualPresentation(value: unknown): VisualPresentation {
     throw new Error(
       `visual presentation grass needs tables ${TABLES.grass.join(", ")}, its constants and its distinct kinds`,
     );
+  if (!isBuildings(value.buildings))
+    throw new Error(
+      `visual presentation buildings need tables ${TABLES.buildings.join(", ")}, distinct kit modules and their tier numbers`,
+    );
+  if (!isScenery(value.scenery))
+    throw new Error(
+      `visual presentation scenery needs tables ${TABLES.scenery.join(", ")}, distinct appearances and their tier numbers`,
+    );
   const grass = value.grassCounts;
   if (
     !Array.isArray(grass) ||
@@ -350,6 +495,17 @@ export function validateVisualPresentation(value: unknown): VisualPresentation {
   )
     throw new Error(
       `visual presentation grass counts need one row of ${GRASS_CELLS[0] * GRASS_CELLS[1]} whole counts per plate`,
+    );
+  const instances = value.instanceCounts;
+  const modules = (value.buildings as { modules: unknown[] }).modules.length;
+  const kinds = (value.scenery as { kinds: unknown[] }).kinds.length;
+  if (
+    !Array.isArray(instances) ||
+    !instances.every((row) => isInstanceCount(row, modules, kinds)) ||
+    !distinct(instances.map((row) => row.plate))
+  )
+    throw new Error(
+      "visual presentation instance counts need one row per plate, a count per kit module and tier, per scenery population, appearance and tier, and per known prop appearance and level",
     );
   return value as unknown as VisualPresentation;
 }
@@ -379,12 +535,14 @@ export async function writeVisualPresentation({
   drawn,
   tables,
   grassCounts,
+  instanceCounts,
 }: {
   captureJson: string;
   mapBytes: Uint8Array;
   drawn: DrawnPresentation;
   tables: UploadedTables;
   grassCounts: readonly GrassCount[];
+  instanceCounts: readonly InstanceCount[];
 }): Promise<{ manifest: string; artifacts: { file: string; bytes: Uint8Array }[] }> {
   const capture = decodePresentationCapture(captureJson);
   const [first] = capture.frames;
@@ -396,16 +554,23 @@ export async function writeVisualPresentation({
       `the canvas changed from ${width}×${height} to ${resized.canvas.join("×")} at frame ${resized.index}`,
     );
   const plates = capture.frames.flatMap((f) => (f.plate === null ? [] : [f.plate]));
-  const counted = grassCounts.map((g) => g.plate);
-  const uncounted = plates.filter((p) => !counted.includes(p));
-  const stray = counted.filter((p) => !plates.includes(p));
-  if (uncounted.length || stray.length)
-    throw new Error(
-      `grass counts must be one per plate: none for ${uncounted.join(", ") || "-"}; no plate ${stray.join(", ") || "-"}`,
-    );
+  for (const [what, rows] of [
+    ["grass", grassCounts],
+    ["instance", instanceCounts],
+  ] as const) {
+    const counted = rows.map((g) => g.plate);
+    const uncounted = plates.filter((p) => !counted.includes(p));
+    const stray = counted.filter((p) => !plates.includes(p));
+    if (uncounted.length || stray.length)
+      throw new Error(
+        `${what} counts must be one per plate: none for ${uncounted.join(", ") || "-"}; no plate ${stray.join(", ") || "-"}`,
+      );
+  }
   const groups: Record<TableGroup, Record<string, WordTable>> = {
     terrain: tables.terrain,
     grass: tables.grass.tables,
+    buildings: tables.buildings.tables,
+    scenery: tables.scenery.tables,
   };
   const files = (group: TableGroup) => {
     const names: readonly string[] = TABLES[group];
@@ -420,6 +585,8 @@ export async function writeVisualPresentation({
   };
   const terrain = files("terrain");
   const grass = files("grass");
+  const buildings = files("buildings");
+  const scenery = files("scenery");
   const entries = <Name extends string>(list: ReturnType<typeof files>) =>
     Promise.all(
       list.map(async ({ name, bytes, layout }) => ({
@@ -452,10 +619,24 @@ export async function writeVisualPresentation({
       constants: tables.grass.constants,
       kinds: tables.grass.kinds,
     },
+    buildings: {
+      tables: await entries<BuildingTableName>(buildings),
+      modules: tables.buildings.modules,
+      tiers: tables.buildings.tiers,
+    },
+    scenery: {
+      tables: await entries<SceneryTableName>(scenery),
+      kinds: tables.scenery.kinds,
+      tiers: tables.scenery.tiers,
+    },
     grassCounts: plates.map((plate) => grassCounts.find((g) => g.plate === plate)!),
+    instanceCounts: plates.map((plate) => instanceCounts.find((g) => g.plate === plate)!),
   };
   return {
     manifest: JSON.stringify(validateVisualPresentation(manifest)),
-    artifacts: [...terrain, ...grass].map(({ file, bytes }) => ({ file, bytes })),
+    artifacts: [...terrain, ...grass, ...buildings, ...scenery].map(({ file, bytes }) => ({
+      file,
+      bytes,
+    })),
   };
 }

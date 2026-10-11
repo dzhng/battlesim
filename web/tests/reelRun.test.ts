@@ -35,6 +35,11 @@ const platesOf =
   (): FramePlate => ({
     png: Promise.resolve(new Blob([`lit at ${now}`])),
     clumps: Promise.resolve(roots.map((root) => ({ root }))),
+    drawn: {
+      buildings: [now],
+      scenery: { forest: [], understorey: [], backdrop: [], dressing: [], felled: [], stumps: [] },
+      knownProps: [],
+    },
     plain: Promise.resolve(new Blob([`plain at ${now}`])),
   });
 /** A level camera 40 m east of (5, 6, 1), looking west: screen right is +y, up is +z. */
@@ -123,6 +128,8 @@ test("each drawn frame records the view it drew in sim space, and a plate from e
   const [plate] = result.plates;
   expect(await (await plate.png).text()).toBe("lit at 2100");
   expect(await (await plate.plain).text()).toBe("plain at 2100");
+  // What the frame drew, from the frame that was read.
+  expect(plate.drawn.buildings).toEqual([2100]);
 });
 
 test("grass is counted by the screen cell its roots project into, row-major from the top-left", () => {

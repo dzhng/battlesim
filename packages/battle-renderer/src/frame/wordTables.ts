@@ -1,7 +1,11 @@
 // A GPU table as the words the frame uploaded, with the layout a reader
 // needs to decode it without this code. A second client draws the
-// browser's ground and grass from them (`terrainTables.ts`, `grassTables.ts`).
+// browser's ground and grass from them (`terrainTables.ts`, `grassTables.ts`),
+// and its buildings and scenery from the instances those layers expand
+// (`buildingTables.ts`, `sceneryTables.ts`).
 import { d, writeToArrayBuffer } from "typegpu";
+import type { BuildingTables } from "../models/buildingTables";
+import type { SceneryTables } from "../scenery/sceneryTables";
 import type { GrassTables } from "./grassTables";
 import type { TerrainTables } from "./terrainTables";
 
@@ -44,10 +48,13 @@ export interface WordTable {
   layout: WordLayout;
 }
 
-/** Every table the frame uploads for a second client to read. */
+/** Every table the frame uploads, or expands into what it uploads, for a
+ *  second client to read. */
 export interface UploadedTables {
   terrain: TerrainTables;
   grass: GrassTables;
+  buildings: BuildingTables;
+  scenery: SceneryTables;
 }
 
 const PRIMITIVES: Record<string, Pick<WordField, "type" | "count">> = {
@@ -103,6 +110,36 @@ export function recordTable(schema: AnyWgslData, bytes: ArrayBufferLike): WordTa
     words,
     layout: { kind: "records", stride, count: words.length / stride, fields: schemaFields(schema) },
   };
+}
+
+/** `count` records of `schema`, each filled by `fill(put, i)`: `put` writes
+ *  a field's components by the name `schemaFields` gives it. */
+export function fillRecords(
+  schema: AnyWgslData,
+  count: number,
+  fill: (put: (name: string, ...values: number[]) => void, i: number) => void,
+): WordTable {
+  const fields = schemaFields(schema);
+  const byName = new Map(fields.map((f) => [f.name, f]));
+  const stride = d.sizeOf(schema) / 4;
+  const words = new Uint32Array(count * stride);
+  const views = {
+    f32: new Float32Array(words.buffer),
+    u32: words,
+    i32: new Int32Array(words.buffer),
+  };
+  let base = 0;
+  const put = (name: string, ...values: number[]) => {
+    const field = byName.get(name);
+    if (!field || values.length !== field.count)
+      throw new Error(`no ${values.length}-component field "${name}" in the record`);
+    views[field.type].set(values, base + field.word);
+  };
+  for (let i = 0; i < count; i++) {
+    base = i * stride;
+    fill(put, i);
+  }
+  return { words, layout: { kind: "records", stride, count, fields } };
 }
 
 /** `value` serialised as the GPU write of `schema` serialises it. */

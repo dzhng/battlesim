@@ -4,12 +4,14 @@
 //
 //   throwaway/native-parity/<run>/<scene>/{capture.json, manifest.json,
 //     plate-<index>.png, plain-<index>.png,
-//     terrain-<table>.u32, grass-<table>.u32}
+//     terrain-<table>.u32, grass-<table>.u32,
+//     buildings-<table>.u32, scenery-<table>.u32}
 //
 // the capture and its frame records, the `native-visual-presentation`
-// manifest (with each plate's grass counts), the plates read back in their
-// own frames with each frame lit without its grass, and the ground's and
-// grass's GPU tables the manifest hashes.
+// manifest (with each plate's grass, building-module and scenery counts),
+// the plates read back in their own frames with each frame lit without its
+// grass, and the tables the manifest hashes: the ground's and grass's GPU
+// tables, and the buildings' and scenery's instances.
 // PARITY_SCENES=<map,…> films only those scenes (`?scenes=`). Run it under
 // the GPU lock; it waits on the route's stage, never on a timer.
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
@@ -107,19 +109,22 @@ export async function run(ctx) {
     const state = window.__graphicsTest;
     return {
       plates: await Promise.all(
-        state.plates.map(async ({ scene, file, png, plain, grass }) => ({
+        state.plates.map(async ({ scene, file, png, plain, grass, drawn }) => ({
           scene,
           file,
           base64: await base64(await png),
           plain: await base64(await plain),
           cells: await grass,
+          drawn,
         })),
       ),
       uploaded: await Promise.all(
-        state.tables.map(async ({ scene, tables: { terrain, grass } }) => ({
+        state.tables.map(async ({ scene, tables: { terrain, grass, buildings, scenery } }) => ({
           scene,
           terrain: await encode(terrain),
           grass: { ...grass, tables: await encode(grass.tables) },
+          buildings: { ...buildings, tables: await encode(buildings.tables) },
+          scenery: { ...scenery, tables: await encode(scenery.tables) },
         })),
       ),
     };
@@ -150,8 +155,11 @@ export async function run(ctx) {
       tables: {
         terrain: decode(tables.terrain),
         grass: { ...tables.grass, tables: decode(tables.grass.tables) },
+        buildings: { ...tables.buildings, tables: decode(tables.buildings.tables) },
+        scenery: { ...tables.scenery, tables: decode(tables.scenery.tables) },
       },
       grassCounts: own.map(({ file, cells }) => ({ plate: file, cells })),
+      instanceCounts: own.map(({ file, drawn }) => ({ plate: file, ...drawn })),
     });
     await writeFile(new URL("manifest.json", dir), manifest);
     for (const { file, bytes } of artifacts) await writeFile(new URL(file, dir), bytes);
@@ -184,8 +192,17 @@ export async function run(ctx) {
     const heights = parsed.terrain.find((t) => t.name === "heights").layout;
     const shapes = parsed.grass.tables.find((t) => t.name === "shapes").layout;
     const grown = parsed.grassCounts.map((g) => g.cells.reduce((a, b) => a + b, 0));
+    const sum = (list) => list.reduce((a, b) => a + b, 0);
+    const rows = (group, name) => parsed[group].tables.find((t) => t.name === name).layout.count;
+    const modules = parsed.instanceCounts.map((c) => sum(c.buildings));
+    const known = parsed.instanceCounts.map(
+      (c) => c.knownProps.map((p) => `${p.appearance} ${sum(p.levels)}`).join(" + ") || "0",
+    );
+    const scenery = parsed.instanceCounts.map((c) =>
+      ["forest", "understorey", "backdrop", "dressing"].map((p) => sum(c.scenery[p])).join("/"),
+    );
     console.log(
-      `METRIC native-parity-capture ${map}: ${frames.length} frames, ${own.length} plates, heights ${heights.nx}×${heights.ny} at ${heights.spacing} m, grass kinds ${parsed.grass.kinds.join(", ")}, ${shapes.count} shape vertices, grass per plate ${grown.join(", ")} → ${dir.pathname}`,
+      `METRIC native-parity-capture ${map}: ${frames.length} frames, ${own.length} plates, heights ${heights.nx}×${heights.ny} at ${heights.spacing} m, grass kinds ${parsed.grass.kinds.join(", ")}, ${shapes.count} shape vertices, grass per plate ${grown.join(", ")}; ${rows("buildings", "buildings")} buildings, ${rows("buildings", "intact")} intact modules of ${parsed.buildings.modules.length} kinds, modules per plate ${modules.join(", ")}; ${["forest", "understorey", "backdrop", "dressing"].map((p) => `${rows("scenery", p)} ${p}`).join(", ")}, forest/understorey/backdrop/dressing per plate ${scenery.join(", ")}; known props per plate ${known.join(", ")} → ${dir.pathname}`,
     );
   }
   console.log(

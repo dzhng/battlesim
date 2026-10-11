@@ -56,6 +56,7 @@ import {
   createDressingCache,
   DRESSING_GONE,
   dressingCounts,
+  drawnDressing,
   selectDressing,
   setDressingCleared,
   type DressingCache,
@@ -100,6 +101,7 @@ import {
   type FelledTree,
 } from "../scenery/felled";
 import type { FelledRules } from "../terrain/biome";
+import { sceneryTables, type SceneryCounts, type SceneryTables } from "../scenery/sceneryTables";
 
 type Root = ReturnType<typeof tgpu.initFromDevice>;
 
@@ -596,6 +598,8 @@ export async function createSceneryLayer(
   }
   interface Loaded {
     scope: GpuRegistry;
+    /** What the layer was given: the placement and its tiers. */
+    world: WorldScenery;
     dressing: Dressing;
     forest: Standing;
     understorey: Standing;
@@ -643,6 +647,15 @@ export async function createSceneryLayer(
         })),
       ),
     };
+  }
+
+  /** A population's instances of kind `k` the last view drew at tier `t`:
+   *  its near ones there, and its whole chunks drawn at it. */
+  function drawnOf(pop: Population, k: number, t: number): number {
+    let count = pop.staged.counts[k][t];
+    const whole = pop.chunks.ranges[k][t];
+    for (let r = 1; r < whole.length; r += 2) count += whole[r];
+    return count;
   }
 
   /** Write the first `count` records (`stride` floats each) of `data` into
@@ -907,6 +920,7 @@ export async function createSceneryLayer(
       const slots = Math.min(DRESSING_SLOTS, field.cells.length / 2);
       loaded = {
         scope,
+        world: next,
         dressing: {
           cache: createDressingCache(field, sizes, next.dressing.fadePx, slots),
           meshes: tiers,
@@ -1064,6 +1078,53 @@ export async function createSceneryLayer(
       const dressed = dressing();
       if (dressed) drawDressing(dressed, colour(dressingColour), root.unwrap(pass));
     },
+    /** The scenery as tables for a second client (`sceneryTables.ts`). */
+    tables(): SceneryTables {
+      if (!loaded) throw new Error("the frame has no scenery to export");
+      const { world, sizes, dressing } = loaded;
+      return sceneryTables(world.placement, sizes, {
+        lodPx: world.lodPx,
+        chunkM: CHUNK_M,
+        casterCoarser: CASTER_COARSER,
+        dressing: {
+          lodPx: world.dressing.lodPx,
+          fadePx: world.dressing.fadePx,
+          slots: dressing.cache.held.length,
+          cellsPerView: DRESSING_CELLS_PER_VIEW,
+        },
+      });
+    },
+    /** The instances the last view drew, per population, kind and tier
+     *  (`SceneryCounts`): what `stats` sums, kind by kind. */
+    drawn(): SceneryCounts {
+      const kinds = loaded?.sizes.length ?? 0;
+      const zero = () => Array.from({ length: kinds * TIER_COUNT }, () => 0);
+      const population = (pop: Population | null) => {
+        const counts = zero();
+        if (pop)
+          for (let k = 0; k < pop.chunks.kinds; k++)
+            for (let t = 0; t < TIER_COUNT; t++) counts[k * TIER_COUNT + t] = drawnOf(pop, k, t);
+        return counts;
+      };
+      const drawnTrees = trees();
+      const shrubs = drawnTrees && understoreyShown ? drawnTrees.understorey.drawn : null;
+      const felled = zero();
+      const stumps = Array.from({ length: kinds }, () => 0);
+      if (drawnTrees) {
+        const { treeRuns, stumpRuns } = drawnTrees.felled;
+        for (let r = 0; r < treeRuns.length; r += 3) felled[treeRuns[r]] += treeRuns[r + 2];
+        for (let r = 0; r < stumpRuns.length; r += 3) stumps[stumpRuns[r]] += stumpRuns[r + 2];
+      }
+      const dressed = dressing();
+      return {
+        forest: population(drawnTrees?.forest.drawn ?? null),
+        understorey: population(shrubs),
+        backdrop: population(drawnTrees?.backdrop ?? null),
+        dressing: dressed ? drawnDressing(dressed.cache, kinds) : zero(),
+        felled,
+        stumps,
+      };
+    },
     /** Starts a frame's draw count (the frame calls it before its shadows). */
     beginFrame() {
       lastDraws = draws;
@@ -1086,9 +1147,7 @@ export async function createSceneryLayer(
           for (let k = 0; k < pop.chunks.kinds; k++) {
             placed += pop.chunks.sorted[k].length / INSTANCE_FLOATS;
             for (let t = 0; t < TIER_COUNT; t++) {
-              let count = pop.staged.counts[k][t];
-              const whole = pop.chunks.ranges[k][t];
-              for (let r = 1; r < whole.length; r += 2) count += whole[r];
+              const count = drawnOf(pop, k, t);
               tiers[t] += count;
               triangles += (count * pop.meshes[k][t].vertices) / 3;
               if (pop.casts && t < TIER_COUNT - 1) casters += pop.staged.counts[k][t];

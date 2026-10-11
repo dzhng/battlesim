@@ -84,6 +84,9 @@ multipliers, decorrelation offsets and lattice turns stay in the shader as part 
 the formula. A second client reads the same tables, and the frame's
 `uploadedTables` hands it the ground's and grass's GPU tables word for word, each
 with a layout derived from its struct ([word tables](src/frame/wordTables.ts)).
+It hands over the buildings' module instances and the scenery's instances the
+same way, expanded by the owners the layers draw from, so a second client places
+nothing itself, and `drawnInstances` says what the last frame drew of them.
 
 Placement and order previews (a unit being placed, a held facing drag, every
 ordered destination with Space held) name the same installed appearances and pose
