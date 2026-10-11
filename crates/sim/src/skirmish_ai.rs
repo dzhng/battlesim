@@ -48,6 +48,7 @@ pub struct BalancedDoctrine {
     started: bool,
     doctrine_since: Tick,
     pivot_count: u32,
+    last_own_count: Option<usize>,
     last_air_evidence: Option<Tick>,
     response_delay_ticks: Option<Tick>,
     random: contract::random::Rng,
@@ -63,6 +64,7 @@ impl Default for BalancedDoctrine {
             started: false,
             doctrine_since: 0,
             pivot_count: 0,
+            last_own_count: None,
             last_air_evidence: None,
             response_delay_ticks: None,
             random: contract::random::Rng::new(0),
@@ -100,6 +102,11 @@ impl BalancedDoctrine {
                 Some(1 + (draw_unit * 3.0 * f64::from(rules.tick_hz)) as Tick);
         }
         let low_air = frame_has_layer_threat(frame, rules, AltitudeLayer::LowAir);
+        let own_count = frame.own.len();
+        let lost_unit = self
+            .last_own_count
+            .is_some_and(|previous| own_count < previous);
+        self.last_own_count = Some(own_count);
         if low_air {
             self.last_air_evidence.get_or_insert(frame.tick);
         } else if self
@@ -117,7 +124,9 @@ impl BalancedDoctrine {
                     .response_delay_ticks
                     .expect("reaction delay initialized")
         });
-        let next = if delayed_air && dwell >= min_dwell {
+        let next = if lost_unit && dwell >= min_dwell {
+            Some(Doctrine::EmergencyDefense)
+        } else if delayed_air && dwell >= min_dwell {
             Some(Doctrine::AirDenial)
         } else if dwell >= max_dwell {
             Some(match self.doctrine {
@@ -216,16 +225,38 @@ impl BalancedDoctrine {
                 + view.pending.iter().filter(|p| p.kind == kind).count()
         };
         let low_air_demand = frame_has_layer_threat(frame, rules, AltitudeLayer::LowAir);
-        let opening = [
-            ("infantry", Category::Inf, 0),
-            ("infantry", Category::Inf, 0),
-            ("infantry", Category::Inf, 1),
-            ("infantry", Category::Inf, 2),
-            ("recon", Category::Rec, 0),
-            ("at", Category::Inf, 0),
-            ("light_vehicle", Category::Veh, 0),
-            ("logistics", Category::Sup, 0),
-        ];
+        let opening = match self.doctrine {
+            Doctrine::TankSwarm => [
+                ("mbt", Category::Veh, 0),
+                ("mbt", Category::Veh, 0),
+                ("mbt", Category::Veh, 1),
+                ("recon", Category::Rec, 0),
+                ("at", Category::Inf, 0),
+                ("infantry", Category::Inf, 0),
+                ("light_vehicle", Category::Veh, 0),
+                ("logistics", Category::Sup, 0),
+            ],
+            Doctrine::AirDenial => [
+                ("recon", Category::Rec, 0),
+                ("infantry", Category::Inf, 0),
+                ("infantry", Category::Inf, 1),
+                ("at", Category::Inf, 0),
+                ("light_vehicle", Category::Veh, 0),
+                ("infantry", Category::Inf, 2),
+                ("recon", Category::Rec, 0),
+                ("logistics", Category::Sup, 0),
+            ],
+            _ => [
+                ("infantry", Category::Inf, 0),
+                ("infantry", Category::Inf, 0),
+                ("infantry", Category::Inf, 1),
+                ("infantry", Category::Inf, 2),
+                ("recon", Category::Rec, 0),
+                ("at", Category::Inf, 0),
+                ("light_vehicle", Category::Veh, 0),
+                ("logistics", Category::Sup, 0),
+            ],
+        };
         let desired: Vec<_> = opening
             .iter()
             .filter_map(|&(role, category, ordinal)| pick(role, category, ordinal))

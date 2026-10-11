@@ -80,9 +80,9 @@ Balanced opening -> Recon screen -> Probe -> Assault -> Consolidate
        +-> Infantry pressure                         -> Recover
 ```
 
-Transitions are legal only when the low-air evidence delay or maximum dwell rule
-passes. Casualty-driven loss pivots and a separate mission-plan layer remain
-follow-up work.
+Transitions are legal only when the low-air evidence delay, own-unit loss, or
+maximum dwell rule passes. The force-shape presets currently affect opening
+procurement; a richer task-group layer remains follow-up work.
 
 ## Unknowns and landmines
 

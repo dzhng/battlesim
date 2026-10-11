@@ -71,12 +71,12 @@ evidence, and simplicity when machinery does not earn its cost.
   owned admission. **Verdict: sound, high confidence.**
 - **Small doctrine state machine:** the implementation uses a compact enum with
   opening, recon, pressure, swarm, air-denial, emergency, and consolidate
-  labels, but current transitions are only the bounded delayed low-air response
-  and maximum dwell sequence; emergency is not entered yet. This is the
+  labels, and current transitions use bounded delayed low-air response, own-unit
+  loss, and maximum dwell; emergency is reserved for the first loss event. This is the
   authored graph reduced to one local state owner, with no second intent graph
   to drift from emitted orders. The user explicitly allowed removing graph
   machinery when it became overcomplicated. **Verdict: sound, medium
-  confidence; loss-driven transitions remain future work.**
+  confidence; objective/casualty scoring beyond the first loss remains future work.**
 - **Randomness draw:** each actual decision consumes one deterministic policy
   stream draw. The draw sets a reaction delay and perturbs near-equal counter
   scores, while capability admission remains a hard filter. A zero-length
