@@ -8,7 +8,9 @@
 //   row has one), running along the stretch over the tick that flew it;
 // - a muzzle flash for every launch (`launches.ts`): on the muzzle of the
 //   mount or soldier that fired as it is drawn at each frame (a
-//   `MuzzleSource`), else at the published launch point;
+//   `MuzzleSource`), else at the published launch point; a hull's heavy
+//   gun also shakes dust off the whole hull and blows it off the ground
+//   ahead of the muzzle (`FlashStyle.dust`);
 // - an impact puff where a stretch ends in a hit, by hit class, off the
 //   surface along its published normal, and from a tracer, sparks, a hot
 //   flash and its light;
@@ -232,6 +234,17 @@ export interface FlashStyle {
   /** The shot's light on what is round the muzzle, centred `forward_m`
    *  along the shot (behind it when negative: a launcher's back-blast). */
   cast?: TransientCast & { forward_m?: number };
+  /** How much dust a hull's shot of this kind shakes off the hull and blows
+   *  off the ground, as a share of `shot_dust`'s; none where absent. */
+  dust?: number;
+}
+
+/** The dust a heavy gun's shot raises at full strength (`FlashStyle.dust`):
+ *  shaken off the whole hull as it jolts, and blown off the ground by the
+ *  muzzle blast, out to `reach_m` ahead of the muzzle where it points. */
+export interface ShotDustStyle {
+  hull: PuffBurst;
+  ground: PuffBurst & { reach_m: number };
 }
 
 export interface ImpactStyle {
@@ -391,6 +404,7 @@ export interface EffectPresentation {
   /** How a hull the side watched die cooks off. */
   cook_off: CookOffFeel;
   dust: DustStyle;
+  shot_dust: ShotDustStyle;
   damage_smoke: DamageSmokeStyle;
   rotor_blur: RotorBlurStyle;
   /** Smoke sources' looks by kind; a kind without one draws nothing. */
@@ -451,6 +465,14 @@ export function validateEffects(p: EffectPresentation): EffectPresentation {
   if (p.blast.cast.duration_s > p.blast.duration_s)
     throw new Error("presentation.effects.blast.cast outlives its blast");
   validateCookOff(p.cook_off);
+  for (const [k, f] of Object.entries(p.flashes))
+    if (f.dust !== undefined && !(Number.isFinite(f.dust) && f.dust >= 0))
+      throw new Error(`presentation.effects.flashes.${k}.dust must be ≥ 0`);
+  for (const [k, b] of Object.entries(p.shot_dust))
+    if (!(Number.isInteger(b.count) && b.count >= 0 && b.over_s >= 0))
+      throw new Error(`presentation.effects.shot_dust.${k}: a whole count ≥ 0, over_s ≥ 0`);
+  if (!(p.shot_dust.ground.reach_m >= 0))
+    throw new Error("presentation.effects.shot_dust.ground.reach_m must be ≥ 0");
   if (!(p.damage_smoke.rate_hz > 0))
     throw new Error("presentation.effects.damage_smoke.rate_hz must be positive");
   const blur = p.rotor_blur;
@@ -518,6 +540,8 @@ export function maxEffectLifetime(p: EffectPresentation): number {
     b.plume.over_s + b.plume.life_s,
     b.smoke.over_s + b.smoke.life_s,
     p.dust.life_s,
+    p.shot_dust.hull.over_s + p.shot_dust.hull.life_s,
+    p.shot_dust.ground.over_s + p.shot_dust.ground.life_s,
     p.damage_smoke.life_s,
     p.sparks.duration_s * Math.sqrt(Math.max(1, b.spark_scale)),
   );
@@ -1018,9 +1042,18 @@ export class EffectFrame {
     const t1 = pub.tick * this.dt;
     const rng = mulberry32.create((pub.tick * 2654435761) >>> 0);
 
-    // Launches (`launches.ts`): a flash at each, at its tick's start.
-    for (const l of this.launches.note(pub, gap, (kind) => pick(this.p.tracers, kind).chance ?? 1))
-      this.addFlash(t0, l, rng);
+    // Launches (`launches.ts`): a flash at each, at its tick's start, and
+    // a hull's heavy gun's dust.
+    for (const l of this.launches.note(
+      pub,
+      gap,
+      (kind) => pick(this.p.tracers, kind).chance ?? 1,
+    )) {
+      const dust = this.addFlash(t0, l, rng).dust ?? 0;
+      if (!l.hull || dust <= 0) continue;
+      const hull = pub.shooters.find((u) => u.key === l.shooter);
+      if (hull?.half && !hull.airborne) this.addShotDust(t0, l, hull, dust, rng);
+    }
 
     for (const s of pub.segments) {
       if (s.path.length < 2) continue;
@@ -1417,7 +1450,8 @@ export class EffectFrame {
     }
   }
 
-  private addFlash(t0: number, l: Launch, rng: ReturnType<typeof mulberry32.create>) {
+  /** A flash at launch `l`'s muzzle; its look. */
+  private addFlash(t0: number, l: Launch, rng: ReturnType<typeof mulberry32.create>): FlashStyle {
     const style = pick(this.p.flashes, l.kind);
     const last = Math.max(
       style.duration_s,
@@ -1433,6 +1467,57 @@ export class EffectFrame {
     vec3.set(e.p, l.x, l.y, l.z);
     vec3.set(e.n, l.dx, l.dy, l.dz);
     e.rotation = mulberry32.sample(rng) * Math.PI * 2;
+    return style;
+  }
+
+  /** The dust hull `u`'s shot `l` raises at `strength` of `shot_dust`'s,
+   *  from `at`: shaken off the whole hull, from its flanks to its roof, end
+   *  to end, and blown off the ground by the muzzle blast, from just behind
+   *  the muzzle out to `reach_m` ahead of it and as wide as half that. */
+  private addShotDust(
+    at: number,
+    l: Launch,
+    u: EffectShooter,
+    strength: number,
+    rng: ReturnType<typeof mulberry32.create>,
+  ) {
+    const { hull, ground } = this.p.shot_dust;
+    const [hl, hw, hh] = u.half!;
+    const [x, y, z] = u.position;
+    const c = Math.cos(u.yaw);
+    const s = Math.sin(u.yaw);
+    const shaken = Math.round(hull.count * strength);
+    for (let k = 0; k < shaken; k++) {
+      const along = (mulberry32.sample(rng) * 2 - 1) * hl * 0.9;
+      const side = mulberry32.sample(rng) * 2 - 1;
+      const up = 2 * hh * (0.2 + 0.8 * mulberry32.sample(rng));
+      // Low down it comes off a flank; high up, off the roof.
+      const across = up < 2 * hh * 0.6 ? Math.sign(side) * hw * 0.95 : side * hw * 0.9;
+      const when = at + hull.over_s * (k / Math.max(1, shaken - 1));
+      this.addPuff(
+        when,
+        x + along * c - across * s,
+        y + along * s + across * c,
+        z + up,
+        hull,
+        1,
+        1,
+        rng,
+      );
+    }
+    // Level along the shot; straight up or down, along the hull.
+    const level = Math.hypot(l.dx, l.dy);
+    const fx = level > 1e-3 ? l.dx / level : c;
+    const fy = level > 1e-3 ? l.dy / level : s;
+    const blown = Math.round(ground.count * strength);
+    for (let k = 0; k < blown; k++) {
+      const along = ground.reach_m * (Math.sqrt(mulberry32.sample(rng)) * 1.25 - 0.25);
+      const across = (mulberry32.sample(rng) * 2 - 1) * ground.reach_m * 0.5;
+      const when = at + ground.over_s * (k / Math.max(1, blown - 1));
+      const px = l.x + fx * along - fy * across;
+      const py = l.y + fy * along + fx * across;
+      this.addPuff(when, px, py, z + 0.3, ground, 1, 1, rng);
+    }
   }
 
   private addImpact(

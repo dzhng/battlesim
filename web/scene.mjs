@@ -14,6 +14,8 @@
 // fails. Evidence goes to throwaway/evidence/. A scene's approved pictures
 // live in scenes/baselines/<fixture-id>/ (see scenes/_baseline.mjs);
 // UPDATE_BASELINES=1, or =<fixture-id>,…, blesses this run's captures.
+// SCENE_CDP=<http endpoint> drives a browser already started with remote
+// debugging, such as Windows Chrome from WSL, instead of launching Chromium.
 //
 //   UPDATE_BASELINES=panels bun run --cwd web scene -- panels
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
@@ -150,11 +152,13 @@ export async function run(fixtures) {
     if (!servers.has(production)) servers.set(production, await startServer(production));
     return servers.get(production);
   };
-  const browser = await chromium.launch({
-    channel: "chromium",
-    args: [...WEBGPU_FLAGS, "--mute-audio"],
-    ignoreDefaultArgs: ["--hide-scrollbars"],
-  });
+  const browser = process.env.SCENE_CDP
+    ? await chromium.connectOverCDP(process.env.SCENE_CDP)
+    : await chromium.launch({
+        channel: "chromium",
+        args: [...WEBGPU_FLAGS, "--mute-audio"],
+        ignoreDefaultArgs: ["--hide-scrollbars"],
+      });
   const failures = [];
   const pageErrors = [];
   const seconds = [];

@@ -126,7 +126,7 @@ export async function readTexture(
 }
 
 /** The bundle whose art identity is `hash`: its content joined with its
- *  textures, verified against `hash`. `texture` supplies each texture, so a
+ *  textures. `texture` supplies each texture, so a
  *  reader can fetch one once for every bundle that names it. */
 export async function readBundle(
   catalog: RuntimeCatalog,
@@ -138,14 +138,11 @@ export async function readBundle(
   const record = gzipTransport(catalog, hash, maxRaw);
   const [content, textures] = await Promise.all([
     readFile(read, "bundle", hash, bundlePath(record.hash)).then((bytes) =>
-      inflateGzip(bytes, record, hash),
+      unpackGzip(bytes, record, hash),
     ),
     Promise.all((catalog.textures?.[hash] ?? []).map(texture)),
   ]);
-  const bundle = joinTextures(content, textures);
-  if ((await sha256Hex(encodeBundle(bundle))) !== hash)
-    throw new Error(`content ${hash}: decoded content hash differs`);
-  return bundle;
+  return joinTextures(content, textures);
 }
 
 /** The files the bundle `hash` is read from: its own, then its textures'. */
@@ -228,17 +225,17 @@ export function downloadBytes(
 export const onRequestLabel = (entry: RuntimeCatalog["appearances"][string] | undefined) =>
   entry?.regional_family !== undefined ? "regional look" : "kit";
 
-/** Verify the transport and inflate it, cancelling as soon as it exceeds the
- *  declared length. What it inflates to is the caller's to verify. */
-async function inflateGzip(
+/** The original content `rawHash` from its gzip transport, cancelling as
+ *  soon as it exceeds the declared length. Its lengths and gzip's own
+ *  checksum refuse a damaged file; content hashes are proved once, when the
+ *  files are baked and checked (`asset check`), not on every read. */
+export async function unpackGzip(
   bytes: Uint8Array,
   record: GzipTransport,
   rawHash: string,
 ): Promise<Uint8Array> {
   if (bytes.length !== record.bytes)
     throw new Error(`content ${rawHash}: gzip length is ${bytes.length}, expected ${record.bytes}`);
-  if ((await sha256Hex(bytes)) !== record.hash)
-    throw new Error(`content ${rawHash}: gzip content hash differs`);
   const raw = new Uint8Array(record.raw_bytes);
   const reader = new Blob([bytes as Uint8Array<ArrayBuffer>])
     .stream()
@@ -247,7 +244,11 @@ async function inflateGzip(
   let at = 0;
   try {
     for (;;) {
-      const { done, value } = await reader.read();
+      const { done, value } = await reader.read().catch((error: unknown) => {
+        throw new Error(`content ${rawHash}: gzip does not inflate (${String(error)})`, {
+          cause: error,
+        });
+      });
       if (done) break;
       if (at + value.length > raw.length)
         throw new Error(`content ${rawHash}: gzip exceeds decoded length ${raw.length}`);
@@ -262,18 +263,5 @@ async function inflateGzip(
   }
   if (at !== raw.length)
     throw new Error(`content ${rawHash}: decoded length is ${at}, expected ${raw.length}`);
-  return raw;
-}
-
-/** Verify the transport, inflate it, then verify exactly the original content
- *  before any codec reads it. */
-export async function unpackGzip(
-  bytes: Uint8Array,
-  record: GzipTransport,
-  rawHash: string,
-): Promise<Uint8Array> {
-  const raw = await inflateGzip(bytes, record, rawHash);
-  if ((await sha256Hex(raw)) !== rawHash)
-    throw new Error(`content ${rawHash}: decoded content hash differs`);
   return raw;
 }

@@ -19,7 +19,16 @@ thrown onto their backs and the rest pitch onto their faces; kneeling or lying,
 they fall forward. His corpse lies as his fall ended, face up or face down. Building damage follows the
 side's known physical remains, not a renderer guess from height or floor count.
 An effect on a barrel follows [the drawn muzzle](src/models/drawnModels.ts);
-its physical launch remains the simulation's event. A flying aircraft's rotor is
+its physical launch remains the simulation's event. A shot kicks its shooter
+as a war film shows it, harder than life: a heavy gun throws its hull back on
+its springs, away from where the round went, to rock past rest and settle
+without moving off its spot, and shakes dust off the whole hull and off the
+ground ahead of the muzzle; each of a soldier's own shots snaps his upper body
+back about his waist, his muzzle climbing. How hard each round kicks is its
+row in `presentation.pose` (`hull_kick`, `soldier_kick`) and its flash's
+`dust`; a round with no row of its own kicks as its nearest styled ancestor.
+The whole-model motion carries the drawn muzzle, and the pose kernel kicks a
+body as the CPU pose does. A flying aircraft's rotor is
 drawn by the effects from the same drawn pose, as a film camera's shutter sees it:
 each blade smeared over the angle it turned while the shutter was open, so a fast
 rotor blurs at any frame rate and a paused one shows its blades. A spinning

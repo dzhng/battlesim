@@ -121,7 +121,7 @@ test("an airborne vehicle's model knows how high its foot is above the ground un
         yaw: 0,
         airborne: true,
         articulation: { ...REST_ARTICULATION },
-        tilt: null,
+        motion: null,
       },
       {
         unit: 2,
@@ -131,7 +131,7 @@ test("an airborne vehicle's model knows how high its foot is above the ground un
         yaw: 0,
         airborne: false,
         articulation: { ...REST_ARTICULATION },
-        tilt: null,
+        motion: null,
       },
     ],
     corpses: [],
@@ -165,6 +165,7 @@ test("corpses become static instances: no clip, the side's tint, and never a pos
         clip: "walk",
         phase: 0.25,
         blend: null,
+        kick: { pitch: 0, back: 0 },
       },
     ],
     vehicles: [],
@@ -238,6 +239,7 @@ test("a soldier wears the variant his id resolves to, alive and fallen", () => {
     clip: "idle",
     phase: 0,
     blend: null,
+    kick: { pitch: 0, back: 0 },
   });
   const frame: PoseFrame = {
     soldiers: [pose(7), pose(8)],
@@ -279,6 +281,7 @@ test("each unit's models are x-rayed in the colour presentation gives its unit, 
     clip: "idle",
     phase: 0,
     blend: null,
+    kick: { pitch: 0, back: 0 },
   });
   const frame: PoseFrame = {
     soldiers: [soldier("blue", 1), soldier("red", 2)],

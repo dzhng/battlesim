@@ -1219,6 +1219,62 @@ test("a hull watched die cooks off a beat after the hit, and its turret lands in
   expect(drawn(f, hit + LONGEST + 1)).toEqual([]);
 });
 
+test("a heavy gun's shot shakes dust off its whole hull and blows it off the ground under its muzzle", () => {
+  // The test's own look: a tank round shakes a full shot's dust, an
+  // autocannon's a third of it, an HMG's none.
+  const still = { rise_mps: 0, spread_mps: 0, life_s: 1.5, size_m: [0.5, 1] as [number, number] };
+  const presentation: EffectPresentation = {
+    ...PRESENTATION,
+    flashes: {
+      ...PRESENTATION.flashes,
+      tank_ap: { ...PRESENTATION.flashes.tank_ap, dust: 1 },
+      autocannon: { ...PRESENTATION.flashes.autocannon, dust: 1 / 3 },
+      hmg: { ...PRESENTATION.flashes.hmg, dust: 0 },
+    },
+    shot_dust: {
+      hull: { ...PRESENTATION.dust, ...still, count: 12, over_s: 0.1 },
+      ground: { ...PRESENTATION.dust, ...still, count: 9, over_s: 0.1, reach_m: 4 },
+    },
+  };
+  /** The puffs drawn just after `shooter` fires its first mount. */
+  const shotDust = (kind: string, airborne = false) => {
+    const f = new EffectFrame({ tickHz: HZ, presentation });
+    const shooter = (shots: number): EffectShooter => {
+      const t = tank(2, shots);
+      return { ...t, airborne, mounts: [{ ...t.mounts[0], kind }] };
+    };
+    f.note(pub(5, { shooters: [shooter(3)] }));
+    f.note(pub(6, { shooters: [shooter(4)] }));
+    return puffs(drawn(f, 5 * DT + 0.15));
+  };
+  const dust = shotDust("tank_ap");
+  // The hull (at 100, 50, facing east, 3.5 × 1.8 m, 2.4 m tall) fires north.
+  const [hl, hw, top] = [3.5, 1.8, 2.4];
+  const onHull = (i: (typeof dust)[number]) =>
+    Math.abs(i.a[0] - 100) <= hl && Math.abs(i.a[1] - 50) <= hw;
+  const overHull = dust.filter(onHull);
+  const onGround = dust.filter((i) => !onHull(i));
+  // Shaken off the whole hull: end to end, off its roof and down its flanks…
+  expect(overHull.length).toBeGreaterThan(0);
+  for (const i of overHull) expect(i.a[2]).toBeLessThanOrEqual(top);
+  expect(overHull.some((i) => i.a[0] > 100 + hl / 3)).toBe(true);
+  expect(overHull.some((i) => i.a[0] < 100 - hl / 3)).toBe(true);
+  expect(overHull.some((i) => i.a[2] > top * 0.7)).toBe(true);
+  expect(overHull.some((i) => i.a[2] < top * 0.5)).toBe(true);
+  for (const i of onGround) expect(i.a[2]).toBeLessThan(top * 0.5);
+  // …and blown off the ground out where the muzzle points, past the hull's side.
+  expect(onGround.length).toBeGreaterThan(0);
+  for (const i of onGround) expect(i.a[1]).toBeGreaterThan(50);
+  const middle = onGround.reduce((y, i) => y + i.a[1], 0) / onGround.length;
+  expect(middle).toBeGreaterThan(50 + MUZZLE[0]);
+  // An autocannon's shot raises less; an HMG's none, nor anything in the air.
+  const light = shotDust("autocannon");
+  expect(light.length).toBeGreaterThan(0);
+  expect(light.length).toBeLessThan(dust.length / 2);
+  expect(shotDust("hmg")).toEqual([]);
+  expect(shotDust("tank_ap", true)).toEqual([]);
+});
+
 /** A rotor source drawing `rotors` (hub, axis, blade along +Y, 7.3 m). */
 const rotorsOf = (...turned: number[]): RotorSource => ({
   rotors(visit) {
