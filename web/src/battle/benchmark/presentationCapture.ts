@@ -40,10 +40,11 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
 
 function isCameraPose(value: unknown): value is CameraPose {
-  if (!isRecord(value) || !Array.isArray(value.target) || value.target.length !== 2)
-    return false;
+  if (!isRecord(value) || !Array.isArray(value.target) || value.target.length !== 2) return false;
   return (
-    value.target.every((coordinate) => typeof coordinate === "number" && Number.isFinite(coordinate)) &&
+    value.target.every(
+      (coordinate) => typeof coordinate === "number" && Number.isFinite(coordinate),
+    ) &&
     typeof value.distance === "number" &&
     Number.isFinite(value.distance) &&
     typeof value.yaw === "number" &&
@@ -68,17 +69,12 @@ export function validatePresentationCapture(capture: PresentationCapture): Prese
   for (const frame of capture.frames) {
     if (!isRecord(frame)) throw new Error("capture frame is malformed");
     const elapsedMs = frame.elapsedMs;
-    if (
-      typeof elapsedMs !== "number" ||
-      !Number.isFinite(elapsedMs) ||
-      elapsedMs < previousFrame
-    )
+    if (typeof elapsedMs !== "number" || !Number.isFinite(elapsedMs) || elapsedMs < previousFrame)
       throw new Error("capture frame times must be increasing");
     const tick = frame.tick;
     if (typeof tick !== "number" || !Number.isInteger(tick) || tick < 0)
       throw new Error("capture frame tick must be non-negative");
-    if (!isCameraPose(frame.camera))
-      throw new Error("capture frame camera is malformed");
+    if (!isCameraPose(frame.camera)) throw new Error("capture frame camera is malformed");
     previousFrame = elapsedMs;
   }
   if (!Array.isArray(capture.samples)) throw new Error("capture samples must be an array");
@@ -95,7 +91,8 @@ export function validatePresentationCapture(capture: PresentationCapture): Prese
     if (
       !Array.isArray(publication) ||
       !publication.every(
-        (word) => typeof word === "number" && Number.isInteger(word) && word >= 0 && word <= 0xffffffff,
+        (word) =>
+          typeof word === "number" && Number.isInteger(word) && word >= 0 && word <= 0xffffffff,
       )
     )
       throw new Error("capture publication contains an invalid u32 word");
