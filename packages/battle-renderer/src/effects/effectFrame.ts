@@ -357,6 +357,12 @@ export interface RotorBlurStyle {
   shutter: number;
   /** The hub's radius, a share of the blades' reach. */
   hub_share: number;
+  /** The narrowest a blade draws, pixels: a small rotor's thin blades seen
+   *  from the tactical camera would otherwise vanish under a pixel. */
+  min_chord_px: number;
+  /** The least a spinning disc covers, 0..1: the faint grey a film camera
+   *  catches over the whole of it, so even a blur shows the rotor's reach. */
+  disc: number;
 }
 
 export interface DustStyle extends PuffStyle {
@@ -452,6 +458,8 @@ export function validateEffects(p: EffectPresentation): EffectPresentation {
     throw new Error("presentation.effects.rotor_blur: albedo in [0, 1], shutter in (0, 1]");
   if (!(blur.hub_share > 0 && blur.hub_share < 1))
     throw new Error("presentation.effects.rotor_blur.hub_share must be in (0, 1)");
+  if (!(blur.min_chord_px >= 0 && blur.disc >= 0 && blur.disc < 1))
+    throw new Error("presentation.effects.rotor_blur: min_chord_px not negative, disc in [0, 1)");
   if (!Number.isFinite(maxEffectLifetime(p)))
     throw new Error("presentation.effects: every life must be finite");
   return p;
@@ -1660,7 +1668,7 @@ export class EffectFrame {
   }
 
   private drawRotors(batch: EffectBatch, rotors: RotorSource) {
-    const { albedo, shutter, hub_share } = this.p.rotor_blur;
+    const { albedo, shutter, hub_share, min_chord_px, disc } = this.p.rotor_blur;
     const grey: Vec3 = [albedo, albedo, albedo];
     rotors.rotors(({ hub, axis, blade, radius, blades, chord, turned, mast, mastRadius }) => {
       // The angle each blade swept while the shutter was open: past a whole
@@ -1686,8 +1694,11 @@ export class EffectFrame {
         SHAPE.rotor,
         chord / radius,
         blades,
-        0,
+        min_chord_px,
       );
+      // A spinning disc's faint grey over its whole reach.
+      if (sweep > 0 && disc > 0)
+        put(batch, h0, h1, h2, radius, a0, a1, a2, 0, b0, b1, b2, albedo, SHAPE.rotor, 0, 0, disc);
       // The hub: a disc with no blades; and its mast and head, a solid rod.
       put(
         batch,
@@ -1706,7 +1717,7 @@ export class EffectFrame {
         SHAPE.rotor,
         0,
         0,
-        0,
+        1,
       );
       if (mast) ribbon(batch, mast.top, mast.base, 2 * mastRadius, 1, grey, 1);
     });

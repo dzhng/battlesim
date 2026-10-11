@@ -1260,7 +1260,7 @@
         "min_speed_mps": 1.0,
         "full_speed_mps": 8
       },
-      "rotor_blur": { "albedo": 0.03, "shutter": 0.2, "hub_share": 0.07 },
+      "rotor_blur": { "albedo": 0.03, "shutter": 0.2, "hub_share": 0.07, "min_chord_px": 2.5, "disc": 0.18 },
       "damage_smoke": {
         "albedo": [0.08, 0.078, 0.075],
         "opacity": 0.45,
@@ -1379,5 +1379,5 @@
     "wheeled": { "half_width_m": 1.6, "half_length_m": 5.2, "turning_radius_m": 6.0 },
     "air": { "half_width_m": 3.65, "half_length_m": 9.94 }
   },
-  "air": { "cruise_agl_m": 30, "clearance_m": 10, "ceiling_agl_m": 40, "obstacle_m": 30, "separation_m": 14, "acceleration_s": 10, "settle_share": 0.05, "settle_max_m": 4 }
+  "air": { "cruise_agl_m": 30, "clearance_m": 10, "ceiling_agl_m": 40, "obstacle_m": 30, "separation_m": 14, "acceleration_s": 4.5, "settle_share": 0.05, "settle_max_m": 4 }
 }
