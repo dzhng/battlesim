@@ -2,7 +2,7 @@
 // and linear-blend skinning. Validation measures fit in a pose with these, and
 // the bake derives animated and posed bounds from them.
 
-import { mat4, quat, vec3, type Mat4, type Quat, type Vec3 } from "math";
+import { quat, vec3, type Mat4, type Quat, type Vec3 } from "math";
 import { mul, trsMatrix, type Trs } from "./trs.ts";
 import {
   SWEEP_PAD,
@@ -14,7 +14,6 @@ import {
 import {
   CHANNEL_ABSENT,
   CHANNEL_ANIMATED,
-  INFANTRY_KICK_JOINT,
   type ArticulatedNode,
   type Bounds,
   type Bundle,
@@ -22,7 +21,6 @@ import {
   type Joint,
   type MeshData,
   type PoseRef,
-  type Kick,
   type SkeletonClips,
   type SkinnedBundle,
 } from "./schema.ts";
@@ -192,36 +190,10 @@ export function poseWorlds(
     skeleton && clip
       ? sampleClip(skeleton, clip, bundle.joints, pose.phase)
       : bundle.joints.map((j) => j.bind);
-  const parents = bundle.joints.map((j) => j.parent);
-  const worlds = worldTransforms(parents, locals);
-  return pose.kick ? kickWorlds(worlds, parents, kickJoint(bundle), pose.kick) : worlds;
-}
-
-/** A body's `INFANTRY_KICK_JOINT`, or −1 where it has none. */
-export const kickJoint = (bundle: Pick<SkinnedBundle, "joints">): number =>
-  bundle.joints.findIndex((j) => j.name === INFANTRY_KICK_JOINT);
-
-/**
- * Joint `joint` of `worlds` and everything it carries, kicked by `kick`,
- * in place: turned back about the joint (its forward, +X, climbing) and
- * thrown back along −X. The pose kernel kicks the same (`poseKernel.ts`).
- */
-export function kickWorlds(worlds: Mat4[], parents: number[], joint: number, kick: Kick): Mat4[] {
-  if (joint < 0 || (kick.pitch === 0 && kick.back === 0)) return worlds;
-  const w = worlds[joint];
-  const turn = mat4.fromRotationTranslationScaleOrigin(
-    mat4.create(),
-    quat.setAxisAngle(quat.create(), [0, 1, 0], -kick.pitch),
-    [-kick.back, 0, 0],
-    [1, 1, 1],
-    [w[12], w[13], w[14]],
+  return worldTransforms(
+    bundle.joints.map((j) => j.parent),
+    locals,
   );
-  const carried = parents.map(() => false);
-  parents.forEach((parent, j) => {
-    carried[j] = j === joint || (parent >= 0 && carried[parent]);
-    if (carried[j]) worlds[j] = mul(turn, worlds[j]);
-  });
-  return worlds;
 }
 
 /**
