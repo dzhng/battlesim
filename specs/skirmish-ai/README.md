@@ -1,0 +1,157 @@
+# Hierarchical skirmish doctrine AI
+
+**Status:** slice 00 complete; slice 01 next. **Last updated:** 2026-10-10.
+
+**Goal:** replace the fixed skirmish opponent with one shipped, observation-bound
+`BalancedDoctrine` policy. It chooses a force-wide doctrine, deploys recon at
+useful sensor standoffs, buys physical counters for discovered threats, and
+pivots when evidence says the current plan is failing. Seeded bounded mistakes
+make the opponent readable and fallible without violating legality, fog of war,
+replay determinism, or economy limits.
+
+The policy is a commander, not an omniscient optimizer. It may buy a mediocre
+counter or react one decision window late, but it cannot invent a capability,
+read hidden health/ammo/orders, or issue an order the authority would reject.
+
+## Next Agent Prompt
+
+Start with slice 01. Read this README and the slice file, then load `write-tests`
+and `tweak-mechanics` before editing. Build the observation-driven
+`BalancedDoctrine` state machine, counter-aware procurement, and evidence-based
+pivots on top of the `SkirmishPolicy` seam. Keep transient planner memory out of
+the battle digest, run the focused doctrine tests first, and update this section
+with status, evidence, and the next pickup before ending your pass.
+
+## Contract
+
+Today `SkirmishAi::decide` receives a side-scoped `ObservationFrame`, faction,
+entry site, rules, and a route-time callback, then emits ordinary `Order`s. The
+battle calls it before a tick and replays accepted commands instead of rerunning
+the policy ([`battle.rs`](../../crates/sim/src/battle.rs:1695),
+[`skirmish_ai.rs`](../../crates/sim/src/skirmish_ai.rs:19)). Preserve that
+authority boundary.
+
+The planned seam has three layers:
+
+1. **Doctrine state** chooses the current force-wide plan and records evidence,
+   dwell, cooldown, and pivot history.
+2. **Mission plan** assigns roles and task groups: recon screen, assault, hold,
+   anti-armour, air denial, logistics, and recovery.
+3. **Order emitter** turns those intents into legal purchases and ordinary
+   movement/attack/deployment orders.
+
+One production policy, `BalancedDoctrine`, implements the seam. A future policy
+can implement the same controller interface without adding a second economy,
+observation contract, or command path. The first tournament host should drive
+both sides externally with `Battle::observe`, side-scoped route/sight queries,
+`Battle::accept`, and `Battle::step`, leaving the public scenario setup's single
+browser AI host unchanged unless the probe proves a two-controller setup is
+necessary.
+
+This plan supersedes the completed unit-roster spec's “basic AI” checkpoint for
+skirmish behavior only. Encounter `Defender`, transport, publication, and
+catalog mechanics remain separate owners.
+
+## Settled map
+
+- Doctrine pivots use evidence plus a maximum dwell time. A plan gets time to
+  develop, but persistent failure can trigger an earlier pivot.
+- Randomness is seeded per battle, side, and policy. It only perturbs stable
+  near-equal choices or delays a response within bounded limits. Candidate order,
+  draw count, and fallbacks are fixed.
+- Recon uses sensor-range staging: reachable posts are selected around an
+  approach/objective, with sight shape, concealment, route legality, and facing
+  considered. Recon is not sent to the flag by default.
+- The doctrine graph is authored and believable, but it is an implementation
+  detail. If it creates more machinery than the evidence justifies, collapse it
+  to a smaller evidence-driven state machine without changing the observable
+  contract.
+- Personality is emergent through purchases, recon lines, and movement. No
+  player doctrine selector or HUD is added in this feature.
+- Hard cutover: no old AI replay/config migration layer.
+
+## Doctrine graph
+
+The initial graph is a proposal, not an irreversible abstraction:
+
+```text
+Balanced opening -> Recon screen -> Probe -> Assault -> Consolidate
+       |               |            |         |             |
+       +-> Tank swarm +-> Air denial +-> Emergency defence <-+
+       +-> Infantry pressure                         -> Recover
+```
+
+Transitions are legal only when their evidence predicates and dwell/cooldown
+rules pass. Example: repeated armour losses can move tank swarm to air denial or
+infantry pressure; a newly identified helicopter can move any combat doctrine to
+air denial; losing logistics can move any doctrine to emergency defence.
+
+## Unknowns and landmines
+
+- `ObservationFrame` exposes typed sightings and expiring contacts, never hidden
+  enemy state ([`observation.rs`](../../crates/contract/src/observation.rs:612)).
+- The current route callback answers travel time, not sight quality. Recon needs
+  a side-scoped sight query or a generalized existing sight-analysis owner; it
+  must never query true world geometry during play.
+- Dedicated Stinger/Igla/SHORAD cards remain disabled for deferred airborne
+  targeting ([`europe.json`](../../fixtures/units/roster/europe.json:383)). The
+  first policy can use generic `low_air` weapons; dedicated air defence is a
+  separate content/mechanics slice.
+- AI draws must not share combat/damage/observation RNG streams. No rejection
+  sampling or unbounded route/candidate loops.
+- Objective eligibility remains owned by `objectives::can_hold`; helicopters
+  can screen or attack but do not count as objective holders.
+- Tournament rows must distinguish complete, refused, timeout, and no-progress
+  outcomes. Generated skirmish sites must remain valid 3/5/7-site setups.
+- Transient doctrine state and trace are not publication or digest state. Policy
+  identity/configuration belongs in scenario/tournament metadata; replay still
+  proves the accepted command stream.
+
+## Scenario corpus and proof
+
+The corpus should cover `flat_opening`, `town_contact`, `wooded_contact`,
+`blocked_entry`, `contested_center`, `casualty_fallback`, and
+`air_reinforcement`, plus generated open/mixed/metro seeds. Each row names its
+map/encounter identity, faction pair, battle seed, policy id, and tick horizon.
+
+Reports measure winner/result, objective time, credit spend, living value,
+first/last contact, recon range and sightings, doctrine pivots, refused orders,
+timeouts, and retired instructions. They also include battle and replay digests.
+Qualitative invariants belong in tests; exact winners are tournament evidence,
+not brittle fixture expectations.
+
+## Slice graph
+
+| Slice | Contract and human-checkable result |
+|---|---|
+| [00-policy-seam-and-probe](slices/00-policy-seam-and-probe.md) | A pure observation-bound policy seam, seeded bounded choice, and recon/pivot probe with current behavior preserved. |
+| [01-balanced-doctrine](slices/01-balanced-doctrine.md) | One hierarchical balance policy with authored transitions, counter-aware procurement, and evidence-driven pivots. |
+| [02-recon-and-operations](slices/02-recon-and-operations.md) | Sensor-envelope recon posts, role/task assignment, support/recovery, and integration battles showing visible adaptation. |
+| [03-corpus-and-tournament](slices/03-corpus-and-tournament.md) | Fixture-owned scenario corpus and deterministic native AI-vs-AI report; full balance run at closeout. |
+
+No UI or renderer work is planned. A browser battle remains the final smoke
+check; native policy probes and reports own the primary proof.
+
+## Global invariants
+
+- Simulation remains the only outcome authority.
+- Policies consume only side-scoped observations and side-scoped queries.
+- Every accepted AI action is an ordinary command and is replayable.
+- Stable sorting precedes every seeded choice.
+- Randomness cannot violate faction, budget, cap, route, target-layer, or
+  objective rules.
+- `BalancedDoctrine` is the only shipped policy. Unknown future policy ids fail
+  admission rather than silently selecting a second implementation.
+- If the doctrine graph grows machinery without improving the corpus metrics,
+  delete the graph and retain the simpler state machine.
+
+## Handoff checklist
+
+- [x] Slice 00 red/green tests and current replay digest proof.
+- [ ] Slice 01 doctrine transition and counter-purchase tests.
+- [ ] Slice 02 recon standoff and integration battle evidence.
+- [ ] Slice 03 corpus repeatability, refusal/timeout rows, and quick tournament.
+- [ ] Full `check`, full browser verification, and closeout tournament once.
+- [ ] Run `review` before declaring the feature complete, then archive with
+  `close-spec`.
+

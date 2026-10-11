@@ -8,6 +8,20 @@ use contract::scenario::Rules;
 use contract::skirmish::Phase;
 use std::collections::BTreeMap;
 
+/// A side-scoped skirmish policy. Implementations emit the same ordinary
+/// orders as a human controller; the battle host owns admission and replay.
+pub trait SkirmishPolicy {
+    fn decide(
+        &mut self,
+        side: Side,
+        faction: Faction,
+        entry: &EntrySite,
+        frame: &ObservationFrame,
+        rules: &Rules,
+        route_time: &mut dyn FnMut(UnitId, [f64; 2]) -> Option<f64>,
+    ) -> Vec<Order>;
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct SkirmishAi {
     next_decision: Tick,
@@ -16,6 +30,13 @@ pub struct SkirmishAi {
 }
 
 impl SkirmishAi {
+    pub fn new(seed: u64) -> Self {
+        Self {
+            reinforcement: (contract::random::mix(seed) as usize) % 5,
+            ..Self::default()
+        }
+    }
+
     pub fn decide(
         &mut self,
         side: Side,
@@ -24,6 +45,18 @@ impl SkirmishAi {
         frame: &ObservationFrame,
         rules: &Rules,
         mut route_time: impl FnMut(UnitId, [f64; 2]) -> Option<f64>,
+    ) -> Vec<Order> {
+        self.decide_impl(side, faction, entry, frame, rules, &mut route_time)
+    }
+
+    fn decide_impl(
+        &mut self,
+        side: Side,
+        faction: Faction,
+        entry: &EntrySite,
+        frame: &ObservationFrame,
+        rules: &Rules,
+        route_time: &mut dyn FnMut(UnitId, [f64; 2]) -> Option<f64>,
     ) -> Vec<Order> {
         let Some(view) = &frame.skirmish else {
             return vec![];
@@ -325,6 +358,20 @@ impl SkirmishAi {
             orders.push(Order::Ready);
         }
         orders
+    }
+}
+
+impl SkirmishPolicy for SkirmishAi {
+    fn decide(
+        &mut self,
+        side: Side,
+        faction: Faction,
+        entry: &EntrySite,
+        frame: &ObservationFrame,
+        rules: &Rules,
+        route_time: &mut dyn FnMut(UnitId, [f64; 2]) -> Option<f64>,
+    ) -> Vec<Order> {
+        self.decide_impl(side, faction, entry, frame, rules, route_time)
     }
 }
 
@@ -636,5 +683,19 @@ mod tests {
         );
         assert!(card.roster.factions.contains(&Faction::Us));
         assert_eq!(*destination, [500.0, 500.0]);
+    }
+
+    #[test]
+    fn seeded_policy_instances_repeat_the_same_opening_commands() {
+        let (rules, frame, entry) = empty_match();
+        let mut left = SkirmishAi::new(17);
+        let mut right = SkirmishAi::new(17);
+        let left_orders = left.decide(Side::Red, Faction::Us, &entry, &frame, &rules, |_, _| {
+            Some(1.0)
+        });
+        let right_orders = right.decide(Side::Red, Faction::Us, &entry, &frame, &rules, |_, _| {
+            Some(1.0)
+        });
+        assert_eq!(left_orders, right_orders);
     }
 }

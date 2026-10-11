@@ -785,7 +785,7 @@ impl Battle {
                 .skirmish
                 .as_ref()
                 .and_then(|s| s.ai_side)
-                .map(|_| crate::skirmish_ai::SkirmishAi::default()),
+                .map(|_| crate::skirmish_ai::SkirmishAi::new(seed)),
             referee: setup.encounter.clone().map(|e| (e, Referee::default())),
             encounter: None,
             pending: Vec::new(),
