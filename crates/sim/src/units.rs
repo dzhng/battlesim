@@ -309,6 +309,18 @@ pub struct Unit {
 pub struct AirState {
     /// Over the ground, metres a second.
     pub velocity: V2,
+    /// Its arrival at the goal it flies to last, once it has turned onto
+    /// the leg that ends there.
+    pub settle: Option<Settle>,
+}
+
+/// How an aircraft arrives: it aims a little past its goal, then, stopped
+/// there, eases back onto it (`back`), facing as it came.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Settle {
+    pub goal: V2,
+    pub aim: V2,
+    pub back: bool,
 }
 
 /// How a unit moves: over the ground, planned on the navigation grid, or
@@ -565,6 +577,10 @@ impl Unit {
         d.opt_f64(self.turn_to);
         if let Some(a) = self.air {
             d.f64(a.velocity.x).f64(a.velocity.y);
+            match a.settle {
+                Some(s) => d.u64(1).f64(s.aim.x).f64(s.aim.y).u64(s.back as u64),
+                None => d.u64(0),
+            };
         }
         match self.manoeuvre {
             Some(m) => d.u64(1).f64(m.turn).f64(m.driven_m),

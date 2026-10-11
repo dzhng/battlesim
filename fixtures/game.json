@@ -1107,6 +1107,7 @@
         "wheeled_medium_logistics": 0.75
       },
       "rotor": { "tip_mps": 200 },
+      "attitude": { "gain": 1, "max_deg": 18, "smoothing_s": 0.4 },
       "corpses": { "max": 1000, "fade_s": 3, "sink_m": 0.6 }
     },
     "effects": {
@@ -1378,5 +1379,5 @@
     "wheeled": { "half_width_m": 1.6, "half_length_m": 5.2, "turning_radius_m": 6.0 },
     "air": { "half_width_m": 3.65, "half_length_m": 9.94 }
   },
-  "air": { "cruise_agl_m": 20, "clearance_m": 10, "ceiling_agl_m": 40, "obstacle_m": 30, "separation_m": 14 }
+  "air": { "cruise_agl_m": 30, "clearance_m": 10, "ceiling_agl_m": 40, "obstacle_m": 30, "separation_m": 14, "acceleration_s": 10, "settle_share": 0.05, "settle_max_m": 4 }
 }

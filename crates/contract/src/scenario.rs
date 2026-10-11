@@ -596,6 +596,13 @@ pub struct AirRules {
     pub obstacle_m: f64,
     /// Aircraft closer than this, centre to centre, drift apart.
     pub separation_m: f64,
+    /// Seconds an aircraft takes to gather its cruise speed from a hover,
+    /// and to shed it: a helicopter's, not a car's.
+    pub acceleration_s: f64,
+    /// Braking for its goal it runs past by this share of the last leg's
+    /// length, at most `settle_max_m`, then eases back onto the point.
+    pub settle_share: f64,
+    pub settle_max_m: f64,
 }
 
 impl AirRules {
@@ -604,12 +611,15 @@ impl AirRules {
             && self.clearance_m > 0.0
             && self.obstacle_m + self.clearance_m <= self.ceiling_agl_m
             && self.cruise_agl_m <= self.ceiling_agl_m
-            && self.separation_m > 0.0;
+            && self.separation_m > 0.0
+            && self.acceleration_s > 0.0
+            && (0.0..1.0).contains(&self.settle_share)
+            && self.settle_max_m >= 0.0;
         if ok {
             Ok(())
         } else {
             Err(
-                "air: heights must be positive, cruise and obstacle + clearance within the ceiling"
+                "air: heights must be positive, cruise and obstacle + clearance within the ceiling, acceleration_s positive, settle_share in [0, 1), settle_max_m not negative"
                     .into(),
             )
         }

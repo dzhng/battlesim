@@ -22,6 +22,7 @@
 // and is gone, though the simulation still lists him.
 
 import { clamp, deltaAngle, mat4, vec3, type Mat4, type Vec2, type Vec3 } from "math";
+import { GRAVITY } from "../effects/cookOff";
 import { mulberry32 } from "math/random";
 import { easing } from "math/time";
 import { REST_ARTICULATION, type Articulation } from "@packages/scene-assets/src/articulation";
@@ -241,6 +242,12 @@ export interface PoseFeel {
    *  can show, so the blur drawn over it (`presentation.effects.rotor_blur`)
    *  carries the turn. */
   rotor: { tip_mps: number };
+  /** A flying aircraft leans into its motion as a rotor must: nose down to
+   *  speed up, up to brake, into a turn, by the angle that tilts its lift
+   *  into its acceleration (`atan(a / g)`) times `gain`, at most `max_deg`.
+   *  Its acceleration is read from its drawn motion, eased over
+   *  `smoothing_s`. */
+  attitude: { gain: number; max_deg: number; smoothing_s: number };
   /** How many of the fallen lie drawn at once. Past `max` the oldest sinks
    *  `sink_m` into the ground over `fade_s` seconds, easing in, and is then
    *  gone for good. A presentation cap: the simulation keeps every one. */
@@ -256,9 +263,13 @@ export function validatePoseFeel(p: PoseFeel): PoseFeel {
   const positive = (path: string, v: number) => {
     if (!(v > 0)) fail(path, "must be positive");
   };
-  const { gait, rest, stance, lean, mount, gauge, rotor, corpses } = p;
+  const { gait, rest, stance, lean, mount, gauge, rotor, attitude, corpses } = p;
   positive("gait.walk_mps", gait.walk_mps);
   positive("rotor.tip_mps", rotor.tip_mps);
+  positive("attitude.smoothing_s", attitude.smoothing_s);
+  if (!(attitude.gain >= 0)) fail("attitude.gain", "must not be negative");
+  if (!(attitude.max_deg > 0 && attitude.max_deg < 90))
+    fail("attitude.max_deg", "must be in (0, 90)");
   if (!(gait.run_mps > gait.walk_mps)) fail("gait.run_mps", "must exceed walk_mps");
   positive("gait.fade_s", gait.fade_s);
   if (!(gait.facing_mps >= 0)) fail("gait.facing_mps", "must be ≥ 0");
@@ -393,6 +404,9 @@ interface VehicleState {
   gunShots: number;
   firedAt: number;
   seen: number;
+  /** A flying aircraft's drawn ground velocity and acceleration, eased
+   *  (`PoseFeel.attitude`): what it leans by. */
+  flight?: { velocity: [number, number]; accel: [number, number] };
 }
 
 /** `from` moved toward `to` by at most `step`. */
@@ -495,6 +509,31 @@ export class PoseDriver {
       }
     for (const [id, v] of this.vehicles) if (v.seen !== generation) this.vehicles.delete(id);
     return out;
+  }
+
+  /** How a flying aircraft leans (`PoseFeel.attitude`), from how its drawn
+   *  position moved since the last frame. */
+  private lean(state: VehicleState, unit: FeedUnit, dt: number) {
+    const f = (state.flight ??= { velocity: [0, 0], accel: [0, 0] });
+    if (dt > 0) {
+      const { gain, max_deg, smoothing_s } = this.options.feel.attitude;
+      const k = 1 - Math.exp(-dt / smoothing_s);
+      const p = state.pose.position;
+      const [vx, vy] = [(unit.position[0] - p[0]) / dt, (unit.position[1] - p[1]) / dt];
+      const [ox, oy] = f.velocity;
+      f.velocity = [ox + (vx - ox) * k, oy + (vy - oy) * k];
+      const [ax, ay] = [(f.velocity[0] - ox) / dt, (f.velocity[1] - oy) / dt];
+      f.accel = [f.accel[0] + (ax - f.accel[0]) * k, f.accel[1] + (ay - f.accel[1]) * k];
+      const max = (max_deg * Math.PI) / 180;
+      const lean = (a: number) => clamp(gain * Math.atan(a / GRAVITY), -max, max);
+      const [c, s] = [Math.cos(unit.yaw), Math.sin(unit.yaw)];
+      const ahead = f.accel[0] * c + f.accel[1] * s;
+      const left = -f.accel[0] * s + f.accel[1] * c;
+      const [pitch, roll] = [-lean(ahead), -lean(left)];
+      // Level, it carries no tilt at all.
+      return Math.abs(pitch) + Math.abs(roll) > 1e-9 ? { pitch, roll } : null;
+    }
+    return null;
   }
 
   private squad(unit: FeedUnit, time: number, dt: number, generation: number) {
@@ -874,13 +913,15 @@ export class PoseDriver {
       a.travel_l += forward - turned * half;
       a.travel_r += forward + turned * half;
     }
+    const lean = pose.airborne && !unit.attitude ? this.lean(state, unit, dt) : null;
     vec3.copy(pose.position, unit.position);
     pose.yaw = unit.yaw;
-    if (unit.attitude) {
+    const attitude = unit.attitude ?? lean;
+    if (attitude) {
       // Nose up about its +Y, then right side down about its +X.
       const tilt = (pose.tilt ??= mat4.create());
-      mat4.fromYRotation(tilt, -unit.attitude.pitch);
-      mat4.rotateX(tilt, tilt, unit.attitude.roll);
+      mat4.fromYRotation(tilt, -attitude.pitch);
+      mat4.rotateX(tilt, tilt, attitude.roll);
     } else pose.tilt = null;
     a.deploy = unit.deployment ?? 0;
 

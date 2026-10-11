@@ -78,7 +78,7 @@ The entries are grouped by verdict: **needs-user** (decide; each one has a provi
 
 ## Unsound
 
-### U1. An aircraft closing on its goal round a last corner can bow up to 0.18 m wide
+### U1. An aircraft closing on its goal round a last corner can bow up to 0.18 m wide *(superseded: aircraft now overshoot and settle by design)*
 - **When:** slices 03 → 07, re-checked at closeout (`crates/sim/src/movement/air.rs`, `crates/sim/src/navigation/air.rs`).
 - **The choice:** an air route comes from A* over 4 m cells and is string-pulled to the corners the flight needs. When the goal lies just past a corner, the aircraft turns onto the final leg still carrying sideways momentum. Its acceleration-limited steering bleeds that off on the way in, so its path bows slightly wide of the goal before it settles.
 - **What the closeout found:** the "metre past and back" the build recorded is gone after later flight fixes. The largest swing away from the goal, across twelve tower positions, measures 0.18 m, at two of the twelve positions (zero at the other ten). The test `flies_on_past_a_tower_without_turning_back` now asserts that the aircraft never turns back by more than 2 m (it curves about 1.2 m across the goal's line), and that within 30 m of its goal it never swings more than 0.2 m away from it. Two attempts to remove the bow entirely failed: a step-crossing snap, and settling within 0.25 m. The bow happens about 1 m out, where the leftover sideways momentum is still bleeding off.
