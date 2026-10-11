@@ -1,4 +1,4 @@
-# 18 — Whole-frame verdict, promotion and closeout
+# 24 — Whole-frame verdict, promotion and closeout
 
 **Contract:** a whole-frame comparison across every plate of both scenes, with every earlier variable already green. Slice 12's performance gate is re-run with all content drawn. Native becomes eligible for promotion (`comparison_ready` true) only when both pass.
 

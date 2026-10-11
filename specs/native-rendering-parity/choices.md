@@ -501,3 +501,11 @@ The spec said phase 3 would be planned with the user. Under the implementation g
 | Not ported: a cook-off's moving wreck and its thrown debris; reported per run as `effects.cookOffs` | They are models drawn through the props' and units' layers, not effects, and no count covers them; native shows the static wreck | Agent; open |
 | No `crashes`/`guided` fixture | Neither control publishes them; a WASM stream needs a helicopter shot down, which the time-boxed attempt did not produce. The fixed-cause vectors cover the smoking airframe and rotors | Agent; open |
 | Effects cost about 1.3 ms at p50 and 2.9 ms at p95 on market-town (about 1.4 ms CPU); judged relative, since slice 15's market-town cost is still open | The bar is re-checked when slice 15 lands | Agent |
+
+## Phase 4 (2026-10-11), by the user
+
+| Decision | Why | Closed by |
+| --- | --- | --- |
+| Native's CPU side moves from GDScript to a Rust GDExtension (`native/godot-binding`, the native core). GDScript keeps only an entry scene; shaders stay. | GDScript's interpreter made a 6.5 ms per-frame walk the market-town bottleneck. The binding already runs the simulation in-process, so a live client needs Rust there anyway. | User |
+| The publication reader and per-frame presentation derivations (interpolation, poses, launches, effects, cook-offs) move into shared Rust, used by the browser through WASM and by native directly. The TS originals and native ports are deleted. | One owner instead of a TS original plus a native port kept in step by tests | User ("Rust core + shared crate") |
+| The shipped browser's frame must stay byte-identical and its frame time and main-thread CPU no worse. Each shared-code slice researches the WASM boundary cost before building. | The browser is the shipped client; moving its code into WASM can help or hurt depending on marshalling | Orchestrator, from AGENTS.md and the user's performance bar |

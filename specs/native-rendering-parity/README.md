@@ -4,7 +4,7 @@
 
 **Status:** phases 1 and 2 are built and closed (2026-10-10 and 2026-10-11). Native draws the menu reel from the browser's frame records with the same camera, light, terrain and grass. Its release export is no slower than the browser's production build on any measure, on both scenes (slice 12): market-town p95 13.4 ms against 23.9, and GPU busy about half the browser's on both. [`choices.md`](choices.md) holds the discovery map and both phases' ledgers.
 
-**Next pickup:** slice 15's performance gate on market-town (see its findings: props' GPU cost and the layers' remaining CPU), then slice 18; slices 13, 14, 16 and 17 are done. The effects' control is `throwaway/native-parity/2026-10-11T15-26-04-627Z`; older controls lack `effects` and are refused. Phase 3 was planned on the user's behalf (see Phases). Read `choices.md` first; its decisions are givens.
+**Next pickup:** phase 4. Slice 15's Rust selection walk (the first module of slice 18's native core) is in progress in the `slice15-perf` worktree. Slice 19's research can run beside it. Read `choices.md` first; its decisions are givens.
 
 **Goal:** make the native Godot client visually equivalent to the browser renderer for the authored menu reel, and at least as fast as it, as a maintained second client beside the browser. Rust stays the only gameplay, observation, visibility, replay and digest authority. The browser remains shipped.
 
@@ -66,7 +66,20 @@ Graph: `13 → {14, 15, 16} → 17 → 18`. Slices 14, 15 and 16 share no owners
 - [ ] 15 — Buildings and scenery (`e41b00362`, `40425bdbc`, `ce1356947`): built. Native draws the browser's exported building modules, scenery and fitted props in the side's known state, and `legacy_map_layer.gd` is deleted. Instance counts equal the browser's on all 24 plates, and the unprimed critique found no static-world defect. **Open: the performance gate fails on market-town:** p50 22.8 ms against the browser's 15.9, and p95 35.9 against 18.2. Paris-corner passes. [slice](slices/15-buildings-and-scenery.md)
 - [x] 16 — Water surface and ground scars (`98e45d17e`): native draws the side's learned scars on the ground and in the grass, and every market-town grass cell holds within 0.07% with no allowance. Water is judged by vectors against the browser's WGSL only, since no reel map has water. Scars cost about 1.4 ms at p95. [slice](slices/16-water-and-scars.md)
 - [x] 17 — Effects (`8d03df43c`, `3aace2d71`, `3d2aa4eed`): native ports the browser's effect feed, launches, cook-off watch, `EffectFrame`, drawn muzzles and effect pass, with their cast lights on every world material. Effect counts per kind, shape and light equal the browser's on all 24 plates, and seeded instances match TS vectors. The effects cost about 1.3 ms at p50 and 2.9 ms at p95 on market-town. Not ported: a cook-off's moving wreck and debris (reported). [slice](slices/17-effects.md)
-- [ ] 18 — Whole-frame verdict, the performance re-gate, the promotion decision, the full repository check and closeout. [slice](slices/18-promotion-and-closeout.md)
+
+### Phase 4: Rust native core and one shared presentation crate
+
+Set by the user on 2026-10-11, after the static world's selection walk cost about 6.5 ms per frame in GDScript. GDScript is the wrong owner for the client's CPU work. Native's CPU side moves to a Rust GDExtension. Per-frame presentation logic moves into one shared Rust crate that the browser runs through WASM and native links, which removes the TypeScript-to-native duplication. Every step keeps plates, counts and both clients' performance unchanged or better, and the browser's shipped frame identical.
+
+Graph: `18 → 19 → 20 → 21 → 22 → 23 → 24`. Slice 15's performance fix is 18's first module.
+
+- [ ] 18 — Rust native core: run loop, readers, report, static-world selection and instance writes in the GDExtension; GDScript shrinks to an entry scene. [slice](slices/18-rust-native-core.md)
+- [ ] 19 — One publication reader in Rust beside its writer, used by both clients; `observation.ts` and `observation.gd` deleted. [slice](slices/19-shared-publication-reader.md)
+- [ ] 20 — Shared presentation crate: interpolation, poses, launches, effects and cook-offs, used by both clients; TS originals and native ports deleted. [slice](slices/20-shared-presentation-crate.md)
+- [ ] 21 — The rest of native's CPU side in Rust; no GDScript owns logic. [slice](slices/21-remaining-native-cpu.md)
+- [ ] 22 — Completeness: every phase 3 "not ported" item closed. [slice](slices/22-completeness.md)
+- [ ] 23 — The browser on shared code: whole-game check, visual suite and battle frame time. [slice](slices/23-browser-on-shared-code.md)
+- [ ] 24 — Whole-frame verdict, the performance re-gate, promotion, the full repository check and closeout. [slice](slices/24-promotion-and-closeout.md)
 
 ### Firewalls
 
@@ -92,7 +105,7 @@ Both clients render the same menu-reel workload: the same map, encounter, seed a
 4. **Grass and vegetation:** the same impression (coverage, density, colour mix, crop rows, no tiling or bald patches), and rendered blades per region within about 10% of the browser's count for the same window.
 5. **Models, effects and composition:** phase 2.
 
-A visual slice changes one primary variable. Other visible differences are explicitly out of scope until their slice; whole-frame approval belongs only to slice 18.
+A visual slice changes one primary variable. Other visible differences are explicitly out of scope until their slice; whole-frame approval belongs only to slice 24.
 
 ## Ownership and boundary contract
 
@@ -146,7 +159,7 @@ Each side has one command, and neither needs a human.
 
 Native grass plates differ by one or two pixels of at most 2 levels between reruns of unchanged code, so byte comparisons of native plates need that floor.
 
-Counters never prove pixels. Headless Godot proves lifecycle only. Every pass keeps the Rust digest/replay tests, the capture parser tests, the native lifecycle tests and the browser scenes it touches green. The full repository check and verification suite run once, at slice 18.
+Counters never prove pixels. Headless Godot proves lifecycle only. Every pass keeps the Rust digest/replay tests, the capture parser tests, the native lifecycle tests and the browser scenes it touches green. The full repository check and verification suite run once, at slice 24.
 
 ## Next Agent Prompt
 
