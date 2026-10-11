@@ -382,6 +382,7 @@ pub struct FireContext<'a> {
 pub fn squad_range(arsenal: &Arsenal, kind: TypeIndex) -> f64 {
     reach(
         arsenal,
+        AltitudeLayer::Ground,
         arsenal
             .specs(kind)
             .iter()
@@ -390,16 +391,11 @@ pub fn squad_range(arsenal: &Arsenal, kind: TypeIndex) -> f64 {
     )
 }
 
-/// The longest range of these weapon rows (0 for none).
-fn reach(arsenal: &Arsenal, rows: impl Iterator<Item = usize>) -> f64 {
-    rows.map(|k| arsenal.weapons[k].def.ballistics.range_m)
+/// The longest range of these weapon rows at `layer` (0 for none).
+fn reach(arsenal: &Arsenal, layer: AltitudeLayer, rows: impl Iterator<Item = usize>) -> f64 {
+    rows.filter_map(|k| arsenal.weapons[k].def.against(layer))
+        .map(|fire| fire.range_m)
         .fold(0.0, f64::max)
-}
-
-/// Whether a weapon's crew can bring it to bear on a target in `layer` at
-/// all (D1). The one place a weapon's `targets` is read.
-pub fn reaches(def: &WeaponDefinition, layer: AltitudeLayer) -> bool {
-    def.targets.contains(&layer)
 }
 
 /// Whether a weapon can hurt a target with this hull armour (`None`: a
@@ -498,7 +494,7 @@ fn preferred_kind(
     let usable = |k: usize, want_ap: Option<bool>| {
         let def = &weapons[spec.kinds[k]].def;
         mount.has_rounds(k)
-            && reaches(def, resolved.layer)
+            && def.against(resolved.layer).is_some()
             && want_ap.is_none_or(|ap| def.armor_piercing == ap)
             && (effective(def, resolved.armor)
                 || (resolved.armor.is_some() && fires_regardless(def)))
@@ -724,7 +720,11 @@ fn engage(
             // OutOfRange asks an ordered unit to advance; too close holds.
             return Err(ActionReason::HoldingFire);
         }
-        if distance > weapon.def.ballistics.range_m {
+        if weapon
+            .def
+            .against(r.layer)
+            .is_none_or(|fire| distance > fire.range_m)
+        {
             return Err(ActionReason::OutOfRange);
         }
         let aim = Aim {
@@ -935,10 +935,10 @@ fn enemy_in_reach(
     let reach = |layer| {
         reach(
             ctx.arsenal,
+            layer,
             (0..spec.kinds.len())
                 .filter(|&k| mount.has_rounds(k))
-                .map(|k| spec.kinds[k])
-                .filter(|&w| reaches(&ctx.arsenal.weapons[w].def, layer)),
+                .map(|k| spec.kinds[k]),
         )
     };
     let here = unit.position.xy();
@@ -995,9 +995,11 @@ fn return_fire_threat(
             let weapon = &ctx.arsenal.weapons[k];
             let distance = (target - origin).length();
             can_damage(&weapon.def, shooter.armor(ctx.rules))
-                && reaches(&weapon.def, shooter.layer())
                 && distance >= weapon.def.min_range_m
-                && distance <= weapon.def.ballistics.range_m
+                && weapon
+                    .def
+                    .against(shooter.layer())
+                    .is_some_and(|fire| distance <= fire.range_m)
                 && (weapon.profile.turn_rad_s.is_none()
                     || (ctx.world.sight_clear(eye, target)
                         && ctx.world.foliage_depth(eye, target)
@@ -1115,7 +1117,7 @@ fn compatible(
     };
     (0..spec.kinds.len()).any(|k| {
         let def = &ctx.arsenal.weapons[spec.kinds[k]].def;
-        mount.has_rounds(k) && reaches(def, layer) && effective(def, armor)
+        mount.has_rounds(k) && def.against(layer).is_some() && effective(def, armor)
     })
 }
 
@@ -1700,7 +1702,9 @@ fn fire(
 ) -> Option<Shot> {
     let weapon_index = spec.kinds[k];
     let weapon = &ctx.arsenal.weapons[weapon_index];
-    let mut scatter = weapon.profile.scatter_mrad
+    // Its spread at the target's height: wide for a ground gun swung up at
+    // an aircraft.
+    let mut scatter = weapon.def.against(r.layer)?.scatter_mrad
         * ctx
             .rules
             .suppression

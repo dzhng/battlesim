@@ -35,7 +35,7 @@ Research behind the rules:
   - A body taller than the obstacle height is a wall in the side's air grid (`navigation::air::AirGrid`, built per side from what that side believes stands, `SideGeometry::air_grid`).
   - Pinned by `air_flight.rs`.
 - **What a weapon can engage is data.**
-  - Every weapon row states `targets` or inherits it through `extends` (`ground`, `low_air`), and only `weapons::reaches` reads it. Target choice, explicit orders, threat ranking and the area-fire hold all go through it.
+  - Every weapon row states `targets` or inherits it through `extends`: each layer it engages (`ground`, `low_air`) with its range and spread there, the row's own where it leaves one out. Only `WeaponDefinition::against` reads it. Target choice, explicit orders, range checks, shot spread, threat ranking and the area-fire hold all go through it. A ground gun reaches a helicopter from much closer and with a much wider spread than along the ground, so helicopters outrange it but fall to a few hits.
   - Flight never reads `targets`, so a stray round still strikes a helicopter in its way.
   - `high_air` is left out until something flies high (D43).
   - Pinned by `air_weapons.rs`.

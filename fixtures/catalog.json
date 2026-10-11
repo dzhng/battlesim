@@ -5905,7 +5905,7 @@
                 2.615,
                 2.36
               ],
-              "hp": 250.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -6764,7 +6764,7 @@
                 3.65,
                 2.425
               ],
-              "hp": 250.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -6974,7 +6974,7 @@
                 2.635,
                 1.95
               ],
-              "hp": 300.0,
+              "hp": 150.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -7083,7 +7083,7 @@
                 2.495,
                 2.355
               ],
-              "hp": 300.0,
+              "hp": 150.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -7192,7 +7192,7 @@
                 2.7,
                 2.2
               ],
-              "hp": 200.0,
+              "hp": 100.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -8772,7 +8772,7 @@
                 2.175,
                 1.75
               ],
-              "hp": 250.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -8881,7 +8881,7 @@
                 2.19,
                 1.875
               ],
-              "hp": 200.0,
+              "hp": 100.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -9197,7 +9197,7 @@
                 2.2,
                 2.31
               ],
-              "hp": 250.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -9285,7 +9285,7 @@
                 1.515,
                 1.7
               ],
-              "hp": 150.0,
+              "hp": 80.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -9724,7 +9724,7 @@
                 1.945,
                 2.713
               ],
-              "hp": 250.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -10454,7 +10454,7 @@
                 2.158,
                 1.75
               ],
-              "hp": 250.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -10563,7 +10563,7 @@
                 2.226,
                 2.16
               ],
-              "hp": 250.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -11693,7 +11693,7 @@
                 1.8,
                 2.0
               ],
-              "hp": 200.0,
+              "hp": 100.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -12606,7 +12606,7 @@
                 2.066,
                 1.725
               ],
-              "hp": 250.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -12715,7 +12715,7 @@
                 1.64,
                 1.213
               ],
-              "hp": 150.0,
+              "hp": 80.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -12824,7 +12824,7 @@
                 1.475,
                 1.213
               ],
-              "hp": 150.0,
+              "hp": 80.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -13006,7 +13006,7 @@
                 1.945,
                 2.713
               ],
-              "hp": 250.0,
+              "hp": 120.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -15294,7 +15294,7 @@
                 1.45,
                 1.8
               ],
-              "hp": 200.0,
+              "hp": 100.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -15382,7 +15382,7 @@
                 2.19,
                 1.825
               ],
-              "hp": 200.0,
+              "hp": 100.0,
               "push_class": "none",
               "weight_class": "light",
               "wreck": "light_wreck"
@@ -18422,7 +18422,7 @@
             2.615,
             2.36
           ],
-          "hp": 250.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -19170,7 +19170,7 @@
             3.65,
             2.425
           ],
-          "hp": 250.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -19454,7 +19454,7 @@
             2.635,
             1.95
           ],
-          "hp": 300.0,
+          "hp": 150.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -19566,7 +19566,7 @@
             2.495,
             2.355
           ],
-          "hp": 300.0,
+          "hp": 150.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -19678,7 +19678,7 @@
             2.7,
             2.2
           ],
-          "hp": 200.0,
+          "hp": 100.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -21118,7 +21118,7 @@
             2.175,
             1.75
           ],
-          "hp": 250.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -21230,7 +21230,7 @@
             2.19,
             1.875
           ],
-          "hp": 200.0,
+          "hp": 100.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -21613,7 +21613,7 @@
             2.2,
             2.31
           ],
-          "hp": 250.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -21703,7 +21703,7 @@
             1.515,
             1.7
           ],
-          "hp": 150.0,
+          "hp": 80.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -22095,7 +22095,7 @@
             1.945,
             2.713
           ],
-          "hp": 250.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -22843,7 +22843,7 @@
             2.158,
             1.75
           ],
-          "hp": 250.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -22955,7 +22955,7 @@
             2.226,
             2.16
           ],
-          "hp": 250.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -23998,7 +23998,7 @@
             1.8,
             2.0
           ],
-          "hp": 200.0,
+          "hp": 100.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -24766,7 +24766,7 @@
             2.066,
             1.725
           ],
-          "hp": 250.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -24878,7 +24878,7 @@
             1.64,
             1.213
           ],
-          "hp": 150.0,
+          "hp": 80.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -24990,7 +24990,7 @@
             1.475,
             1.213
           ],
-          "hp": 150.0,
+          "hp": 80.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -25265,7 +25265,7 @@
             1.945,
             2.713
           ],
-          "hp": 250.0,
+          "hp": 120.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -27362,7 +27362,7 @@
             1.45,
             1.8
           ],
-          "hp": 200.0,
+          "hp": 100.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -27452,7 +27452,7 @@
             2.19,
             1.825
           ],
-          "hp": 200.0,
+          "hp": 100.0,
           "push_class": "none",
           "weight_class": "light",
           "wreck": "light_wreck"
@@ -27549,9 +27549,9 @@
       "stationary": false,
       "structural_damage": 10.0,
       "suppression_radius_m": 8.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -27583,9 +27583,9 @@
       "stationary": false,
       "structural_damage": 100.0,
       "suppression_radius_m": 15.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -27618,9 +27618,9 @@
       "stationary": true,
       "structural_damage": 100.0,
       "suppression_radius_m": 10.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_attack": {
         "dive_deg": 40.0,
         "loft_m": 60.0
@@ -27663,10 +27663,13 @@
       "stationary": false,
       "structural_damage": 0.25,
       "suppression_radius_m": 3.0,
-      "targets": [
-        "ground",
-        "low_air"
-      ],
+      "targets": {
+        "ground": {},
+        "low_air": {
+          "range_m": 100.0,
+          "scatter_mrad": 50.0
+        }
+      },
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -27699,9 +27702,9 @@
       "stationary": true,
       "structural_damage": 100.0,
       "suppression_radius_m": 10.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_speed_mps": 200.0,
       "trajectory": "direct",
       "turn_deg_s": 60.0
@@ -27740,10 +27743,13 @@
       "stationary": false,
       "structural_damage": 8.0,
       "suppression_radius_m": 6.0,
-      "targets": [
-        "ground",
-        "low_air"
-      ],
+      "targets": {
+        "ground": {},
+        "low_air": {
+          "range_m": 350.0,
+          "scatter_mrad": 18.0
+        }
+      },
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -27776,9 +27782,9 @@
       "stationary": true,
       "structural_damage": 100.0,
       "suppression_radius_m": 10.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_speed_mps": 200.0,
       "trajectory": "direct",
       "turn_deg_s": 60.0
@@ -27810,9 +27816,9 @@
       "stationary": false,
       "structural_damage": 10.0,
       "suppression_radius_m": 8.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -27844,9 +27850,9 @@
       "stationary": false,
       "structural_damage": 10.0,
       "suppression_radius_m": 8.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -27878,9 +27884,9 @@
       "stationary": false,
       "structural_damage": 100.0,
       "suppression_radius_m": 15.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -27912,10 +27918,13 @@
       "stationary": false,
       "structural_damage": 0.25,
       "suppression_radius_m": 3.0,
-      "targets": [
-        "ground",
-        "low_air"
-      ],
+      "targets": {
+        "ground": {},
+        "low_air": {
+          "range_m": 150.0,
+          "scatter_mrad": 48.0
+        }
+      },
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -27948,9 +27957,9 @@
       "stationary": false,
       "structural_damage": 100.0,
       "suppression_radius_m": 10.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_speed_mps": 200.0,
       "trajectory": "direct",
       "turn_deg_s": 60.0
@@ -27982,9 +27991,9 @@
       "stationary": false,
       "structural_damage": 300.0,
       "suppression_radius_m": 15.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -28023,10 +28032,13 @@
       "stationary": false,
       "structural_damage": 4.0,
       "suppression_radius_m": 4.0,
-      "targets": [
-        "ground",
-        "low_air"
-      ],
+      "targets": {
+        "ground": {},
+        "low_air": {
+          "range_m": 200.0,
+          "scatter_mrad": 24.0
+        }
+      },
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -28058,9 +28070,9 @@
       "stationary": false,
       "structural_damage": 100.0,
       "suppression_radius_m": 15.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -28093,9 +28105,9 @@
       "stationary": true,
       "structural_damage": 100.0,
       "suppression_radius_m": 10.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_attack": {
         "dive_deg": 40.0,
         "loft_m": 60.0
@@ -28132,9 +28144,9 @@
       "stationary": true,
       "structural_damage": 100.0,
       "suppression_radius_m": 10.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_speed_mps": 200.0,
       "trajectory": "direct",
       "turn_deg_s": 60.0
@@ -28166,9 +28178,9 @@
       "stationary": false,
       "structural_damage": 10.0,
       "suppression_radius_m": 8.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -28200,9 +28212,9 @@
       "stationary": false,
       "structural_damage": 100.0,
       "suppression_radius_m": 15.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -28238,10 +28250,13 @@
       "stationary": false,
       "structural_damage": 0.25,
       "suppression_radius_m": 3.0,
-      "targets": [
-        "ground",
-        "low_air"
-      ],
+      "targets": {
+        "ground": {},
+        "low_air": {
+          "range_m": 100.0,
+          "scatter_mrad": 40.0
+        }
+      },
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -28280,10 +28295,13 @@
       "stationary": false,
       "structural_damage": 0.25,
       "suppression_radius_m": 3.0,
-      "targets": [
-        "ground",
-        "low_air"
-      ],
+      "targets": {
+        "ground": {},
+        "low_air": {
+          "range_m": 100.0,
+          "scatter_mrad": 40.0
+        }
+      },
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -28319,9 +28337,9 @@
       "stationary": false,
       "structural_damage": 80.0,
       "suppression_radius_m": 15.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -28353,9 +28371,9 @@
       "stationary": false,
       "structural_damage": 10.0,
       "suppression_radius_m": 8.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -28387,9 +28405,9 @@
       "stationary": false,
       "structural_damage": 10.0,
       "suppression_radius_m": 8.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -28422,9 +28440,9 @@
       "stationary": true,
       "structural_damage": 100.0,
       "suppression_radius_m": 10.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_speed_mps": 200.0,
       "trajectory": "direct",
       "turn_deg_s": 60.0
@@ -28456,9 +28474,9 @@
       "stationary": false,
       "structural_damage": 10.0,
       "suppression_radius_m": 8.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -28490,9 +28508,9 @@
       "stationary": false,
       "structural_damage": 100.0,
       "suppression_radius_m": 15.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
@@ -28525,9 +28543,9 @@
       "stationary": true,
       "structural_damage": 100.0,
       "suppression_radius_m": 10.0,
-      "targets": [
-        "ground"
-      ],
+      "targets": {
+        "ground": {}
+      },
       "top_speed_mps": 200.0,
       "trajectory": "direct",
       "turn_deg_s": 60.0
