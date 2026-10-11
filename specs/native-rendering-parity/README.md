@@ -4,7 +4,7 @@
 
 **Status:** phase 1 is built and closed (2026-10-10). Native draws the menu reel from the browser's frame records with the same camera, light, terrain and grass, and every slice passed its one-variable gate. [`choices.md`](choices.md) holds the discovery map and the consolidated phase 1 ledger. Phase 2, native performance, is planned (slices 07–12) and comes before any more visual work.
 
-**Next pickup:** slice 09. Slice 08 named the cause: with the harness fixed, native frames are GPU-saturated vertex work from the legacy map layer (props at full detail, units unbatched) multiplied by four shadow cascades and the depth prepass. Decide first whether 09/10 tune that scaffolding or measure without it, since slice 13 replaces it. Read `choices.md` (Phase 2) first; its decisions are givens.
+**Next pickup:** slice 09, native model drawing architecture. Slice 08 named the cause: with the harness fixed, native frames are GPU-saturated vertex work from the legacy map layer (units unbatched, props at full detail) multiplied by four shadow cascades. The orchestrator decided to build the lasting batched draw path rather than tune or skip the scaffolding (`slices/09-model-batches.md`). Read `choices.md` (Phase 2) first; its decisions are givens.
 
 **Goal:** make the native Godot client visually equivalent to the browser renderer for the authored menu reel, and at least as fast as it, as a maintained second client beside the browser. Rust stays the only gameplay, observation, visibility, replay and digest authority. The browser remains shipped.
 
@@ -38,7 +38,7 @@ Graph: `01 ∥ 02 → 03 → 04a → 04b → 04c → 05a → 05b → 06a → 06b
 
 The user set this phase on 2026-10-10. Visual parity is de-risked: the method of browser-exported data, ported formulas and a fresh control worked for camera, light, terrain and grass, and models are more of the same. Performance is not. A native Godot run showed 14 FPS with 76.7 ms of GPU time per frame while the machine sat nearly idle (GPU about 62%, CPU idle). That signature is waiting, not work. Native must be at least as fast as the browser, and is expected to be clearly faster.
 
-Graph: `07 → 08 → 09 → 10 → 11 → 12`. Measure first, name the cause, then remove waits before tuning passes. Every slice keeps the picture unchanged, within the native grass noise floor.
+Graph: `07 → 08 → 09 → 10 → 11 → 12`. Measure first and name the cause. 08 found it was work, not waiting: 09 rebuilds how native draws models, then 10 tunes the remaining passes and presentation. Every slice keeps the picture unchanged, within the native grass noise floor.
 
 - [x] 07 — Profiling harness (`2fd549f2b`, `cfe6887ae`, `39850b7b7`): one command per client, one summariser, GPU traces on both; native draws every frame itself, so a hidden window no longer stalls it. Not taken: the Time Profiler CPU profile. [slice](slices/07-profiling-harness.md)
 - [x] 08 — Native frame anatomy: the 77 ms frames were waiting (fixed in 07) plus the legacy layer's draws and primitives times the shadow cascades; findings in the slice. [slice](slices/08-native-frame-anatomy.md)
