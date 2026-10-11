@@ -60,9 +60,15 @@ function contention() {
   return found;
 }
 
-const powerSource = () =>
-  /drawing from '([^']+)'/.exec(execFileSync("pmset", ["-g", "batt"], { encoding: "utf8" }))?.[1] ??
-  "unknown";
+/** macOS's power source; "unknown" where `pmset` is absent (another OS). */
+function powerSource() {
+  try {
+    const batt = execFileSync("pmset", ["-g", "batt"], { encoding: "utf8" });
+    return /drawing from '([^']+)'/.exec(batt)?.[1] ?? "unknown";
+  } catch {
+    return "unknown";
+  }
+}
 
 export async function run(ctx) {
   const started = performance.now();
