@@ -1061,6 +1061,11 @@ export async function createModelLayer(
     scope = next;
     appearances = built;
     drawables = nextDrawables;
+    // The frame's runs name the old generation's drawables: drawn again
+    // only once the next presentation frame names the new ones.
+    frameRunCount = 0;
+    frameCardCount = 0;
+    frameCardRuns.length = 0;
     installedSurfaces = surfaceFlags();
     for (const drawable of drawables)
       for (const c of SURFACE_CLASSES) installedSurfaces[c] ||= drawable.parts[c].count > 0;
