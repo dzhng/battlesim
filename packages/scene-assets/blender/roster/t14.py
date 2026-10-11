@@ -13,6 +13,7 @@ fume extractor.
 
 Built to the catalog frame (hull 8.7 x 3.5 x 3.3 m, gun pivot 1.98 m).
 """
+from functools import partial
 import math
 import os
 import sys
@@ -20,22 +21,34 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import vehicle_parts as VP  # noqa: E402
-from armata import (DECK, armour_kit, engine_deck, hull, running_gear, skirts, turret_kit,  # noqa: E402
+from armata import (DECK, Shape, armour_kit, engine_deck, hull, running_gear, skirts, turret_kit,  # noqa: E402
                     wreck)
 from parts import box, cyl, empty, loft  # noqa: E402
 from vehicle_export import rig, run  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 
+# The T-14 on the Armata platform (photos: side, three-quarter front, front):
+# its nose low under a glacis raked at about 23 degrees that runs 2.10 m
+# back to the deck; the nose 0.20 m further past the idler than the base,
+# so the lower plate and the skirts' rising front ends make a pointed beak;
+# the skirts hanging to the road wheels' tops, the wheels showing below;
+# their tops falling with the glacis just proud of it toward the nose; a
+# narrow steep band from the shoulder to the deck; the engine at the rear
+# under an open deck; the Malachit tile field on the glacis.
+SHAPE = Shape(nose_z=1.02, overhang=0.20, skirt_foot=0.90, shoulder=1.70, band_lean=math.radians(45),
+              under_glacis=-0.06, front_engine=False, troop_compartment=False, glacis_tiles=True, slab=False,
+              number="112", glacis_run=2.10)
+
 
 def build(variant, v):
     m, h = v.mats, v.hull
     half = v.length / 2
-    top = hull(v)
-    running_gear(v)
-    skirts(v)
-    armour_kit(v)
-    engine_deck(v, -half + 0.4, -2.0)
+    top = hull(v, SHAPE)
+    running_gear(v, SHAPE)
+    skirts(v, SHAPE)
+    armour_kit(v, SHAPE)
+    engine_deck(v, SHAPE, -half + 0.4, -2.0)
     # The crew capsule's three hatches across the deck ahead of the turret,
     # each with its periscope block.
     for k, y in enumerate((0.75, 0.0, -0.75)):
@@ -59,11 +72,12 @@ def t14_turret(v, turret, base):
     commander's sight, the soft-kill launcher and a slatted cage round the
     bustle."""
     m = v.mats
-    z0, neck, waist, nose, z1 = base + 0.04, base + 0.26, base + 0.32, 0.50, base + 1.24
+    # The arrowhead's point runs just under the gun's axis.
+    nose = v.frame["mounts"][0]["muzzle_m"][2] - 0.094
+    z0, neck, waist, z1 = base + 0.04, base + 0.26, base + 0.32, base + 1.24
 
     def ring(*left):
-        """A ring through `left`'s (x, y) points, front to rear, mirrored."""
-        return list(left) + [(x, -y) for x, y in reversed(left)]
+        return VP.mirror_plan(left)
 
     # The neck stops short of the bustle, which overhangs the deck behind it
     # with daylight under it.
@@ -140,4 +154,4 @@ def kord_station(v, hmg, hmg_gun):
     VP.kord(hmg_gun, v.frame["mounts"][1]["muzzle_m"][0], m)
 
 
-run("t14", "russian_green", build, wreck, chip=1.0)
+run("t14", "russian_green", build, partial(wreck, SHAPE), chip=1.0)

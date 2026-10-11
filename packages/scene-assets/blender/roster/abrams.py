@@ -9,8 +9,8 @@ last cut up over the sprocket; a long shallow glacis with the driver's hatch
 and three periscopes at its head; the rear plate one wide exhaust grille
 between two smaller ones, tail lights in guards at its corners; the turret's
 flat, swept-back cheeks either side of a recessed gun shield, a squared
-bustle with its rack and side stowage, six-tube smoke banks ahead of the side
-boxes, the GPS doghouse on the right front roof, the CITV on the left, the
+bustle with its rack and side stowage bins, six-tube smoke banks ahead of the
+bins, the GPS doghouse on the right front roof, the CITV on the left, the
 commander under a CROWS on the right and the loader's hatch on the left.
 SEPv3: the auxiliary power unit's armoured box on the left rear deck, CROWS-LP
 and the ammunition data link over the muzzle. Trophy: a radar and launcher
@@ -67,15 +67,18 @@ BUSTLE_FOOT = -0.80
 BUSTLE_FLOOR = 0.32
 COMMANDER = (-0.84, -0.62)  # the commander's hatch (turret frame)
 # Trophy on each bustle side (turret frame, left side), measured on the SEPv2
-# Trophy side photo: a housing 2.16 m long from the bustle's rear plate to
-# 0.54 m behind the pivot, standing out from the bustle's side on brackets and
-# proud of the roof, its floor falling from 0.47 m under its top at the front
-# to the bustle's floor at the rear, its top rear corner cut; the launcher
-# 0.40 m behind its front. The photo has housing and launcher 0.48 m over the
-# roof; the dressing allowance's top (0.30 m over the hull box) holds them to
-# 0.39 m, so the housing stands 0.10 m proud, not 0.24 m.
-TROPHY = dict(at=(-1.62, 1.72, ROOF + 0.10), size=(2.16, 0.40, 0.47), rear_drop=0.22, rear_cut=(0.38, 0.24),
-              launcher_back=0.40)
+# Trophy side photo: a housing from the bustle's rear plate to 0.54 m behind
+# the pivot, standing out from the bustle's side on brackets and proud of the
+# roof, its floor falling from 0.47 m under its top at the front to the
+# bustle's floor at the rear, its top rear corner cut; the launcher 0.40 m
+# behind its front, standing 0.29 m on it. The photo has the launcher's top
+# 0.48 m over the roof, so the housing 0.19 m proud. The dressing allowance
+# (`DressingAllowance` in packages/scene-assets/src/unitArt.ts) stops bulky
+# parts 0.30 m over the hull box, 0.40 m over this roof, so the housing
+# stands 0.10 m proud and the launcher's top 0.39 m over the roof.
+TROPHY_FRONT, TROPHY_REAR = -0.54, TURRET_PLAN[-1][0]
+TROPHY = dict(at=((TROPHY_FRONT + TROPHY_REAR) / 2, 1.72, ROOF + 0.10), size=(TROPHY_FRONT - TROPHY_REAR, 0.40, 0.47),
+              rear_drop=0.22, rear_cut=(0.38, 0.24), launcher_back=0.40)
 # The skirts hang flush with the sponsons' sides: the hull's upper half is as
 # wide as their inner faces (the thicker front panels sink into it).
 SKIRT_FACE = SKIRT_Y + 0.035  # their outer face
@@ -255,8 +258,7 @@ def turret_shell():
     bustle's foot so the bustle's floor slopes up behind it; the plan at the
     bustle floor's height; and the roof, its cheeks swept back and its flat
     sides leaning in a little."""
-    left = TURRET_PLAN
-    outline = left + [(x, -y) for x, y in reversed(left) if y > 0]
+    outline = VP.mirror_plan(TURRET_PLAN)
 
     def ring(z):
         out = []
@@ -340,8 +342,7 @@ def commander_hatch(v, turret):
     box("commander_lid_stop", (0.06, 0.30, 0.10), (x - 0.42, y, ROOF + 0.05), m["dark"], turret, lods=NEAR)
 
 
-def trophy_station(v, turret, side, s, at, size=(1.05, 0.30, 0.46), rear_drop=0.0, rear_cut=(0.0, 0.0),
-                   launcher_back=0.20):
+def trophy_station(v, turret, side, s, at, size, launcher_back, rear_drop=0.0, rear_cut=(0.0, 0.0)):
     """Trophy on one turret side (the left side's `at`: the housing's middle
     fore and aft and across, and its top). The housing is `size` (length,
     width, height at its front); its floor falls `rear_drop` further at the
@@ -485,8 +486,8 @@ def wreck(variant, v):
     shell = parts("hull_upper", "hull_lower", "skirt_", "turret_shell")
     densify(shell, scale=2.0)
     warp(shell, heat(0.022, 0.9, seed=5.0), dent((3.35, 0.55, glacis_z(3.35)), 0.55, 0.10, (-0.6, 0, -1)))
-    plate("loader_lid", [(-0.3, -0.25), (0.3, -0.28), (0.32, 0.26), (-0.28, 0.3)], 0.05, (-2.5, 0.75, glacis_z(-2.5) + 0.05),
-          (0.05, -0.1, 0.7), m["paint"], v.hull, seed=11)
+    plate("loader_lid", [(-0.3, -0.25), (0.3, -0.28), (0.32, 0.26), (-0.28, 0.3)], 0.05,
+          (-2.5, 0.75, glacis_z(-2.5) + 0.05), (0.05, -0.1, 0.7), m["paint"], v.hull, seed=11)
     for k, (loc, rot, size) in enumerate((((2.2, -2.2, 0.03), (0.04, 0.02, 0.4), 0.45),
                                           ((-2.8, 2.15, 0.03), (-0.03, 0.05, 1.9), 0.38),
                                           ((4.2, 0.9, 0.03), (0.0, 0.06, 2.7), 0.30))):

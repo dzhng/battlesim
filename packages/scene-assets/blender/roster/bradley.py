@@ -117,7 +117,7 @@ def turret_body(v, turret):
 
     def ring(pts, lean, nose):
         left = [(x - (nose if x > 0.9 else 0.0), y - lean) for x, y in pts]
-        return left + [(x, -y) for x, y in reversed(left)]
+        return VP.mirror_plan(left)
 
     loft("turret_shell", [(FOOT, ring(half, 0.0, 0.0)), (ROOF, ring(half, 0.08, 0.25))], mat=m["paint"],
          parent=turret, bevel=0.05)

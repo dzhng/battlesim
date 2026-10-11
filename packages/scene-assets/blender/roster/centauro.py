@@ -104,8 +104,7 @@ def turret_body(v, turret):
         """A plan ring from the gun's slot round the left side to the rear
         and back down the right: (x, y) of the slot's edge, the nose, the
         cheek's outer corner, the flank's rear end and the bustle's corner."""
-        left = [notch, nose, cheek, flank, rear]
-        return left + [(x, -y) for x, y in reversed(left)]
+        return VP.mirror_plan([notch, nose, cheek, flank, rear])
 
     # Undercut foot, the nose's edge just under the gun, the brow over the
     # mantlet, and the roof; the flanks lean in from the edge to the roof.

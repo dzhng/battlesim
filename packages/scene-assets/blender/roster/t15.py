@@ -16,6 +16,7 @@ the troop compartment's roof, so the 30 mm's axis is at about 2.72 m, as on
 the real module). The module's ring is 1.2 m behind amidships, over the
 fifth road wheel, where the photos put it; the troop hatches are behind it.
 """
+from functools import partial
 import math
 import os
 import sys
@@ -23,28 +24,41 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import vehicle_parts as VP  # noqa: E402
-from armata import (DECK, TROOP_FRONT, TROOP_ROOF, armour_kit, engine_deck, hull, running_gear,  # noqa: E402
-                    side_face, skirts, turret_kit, wreck)
+from armata import (DECK, TROOP_FRONT, TROOP_ROOF, Shape, armour_kit, engine_deck, hull,  # noqa: E402
+                    running_gear, side_face, skirts, turret_kit, wreck)
 from parts import box, cyl, empty, loft, prism  # noqa: E402
 from vehicle_export import rig, run  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 
+# The T-15 on the Armata platform (photos: side, three-quarter front, front):
+# its nose under a longer glacis raked at about 16 degrees, running up to the
+# troop compartment's roof; the nose 0.45 m further past the sprocket than
+# the base, a sharper beak; the skirts covering the road wheels; a deep band
+# leaning in from a low shoulder, carrying the slab modules, the skirts'
+# tops under the glacis by the band's full depth so the band is even from
+# the nose back to the glacis' head; the engine at the front; the glacis one
+# smooth plate.
+SHOULDER = 1.40
+SHAPE = Shape(nose_z=1.05, overhang=0.45, skirt_foot=0.41, shoulder=SHOULDER, band_lean=math.radians(40),
+              under_glacis=DECK - SHOULDER, front_engine=True, troop_compartment=True, glacis_tiles=False, slab=True,
+              number="203")
+
 
 def build(variant, v):
     m, h = v.mats, v.hull
     half = v.length / 2
-    top = hull(v)
-    running_gear(v)
-    skirts(v, slab=True)
-    armour_kit(v)
+    top = hull(v, SHAPE)
+    running_gear(v, SHAPE)
+    skirts(v, SHAPE)
+    armour_kit(v, SHAPE)
     # The engine is under the long glacis: its grilles at the glacis' head.
-    engine_deck(v, top + 0.05, top + 0.85)
+    engine_deck(v, SHAPE, top + 0.05, top + 0.85)
     # The troop compartment over the deck to the full hull height, its front
     # carrying the glacis on up to its roof; the crew's two hatches at the
     # roof's front, ahead of the module; troop hatches behind the module, the
     # tall rear door between stowage boxes hung high on the rear plate.
-    edge = side_face(v)[1][0]
+    edge = side_face(SHAPE)[1][0]
     prism("troop_compartment", [(-half, DECK - 0.02), (top, DECK - 0.02), (TROOP_FRONT, TROOP_ROOF),
                                 (-half, TROOP_ROOF)], 2 * edge, mat=m["paint"], parent=h, bevel=0.04)
     for name, y in (("driver", 0.65), ("commander", -0.65)):
@@ -113,4 +127,4 @@ def kornet_pair(v, launcher, pitch):
             cyl(f"kornet_band_{k}_{j}", 0.118, 0.05, (x, 0, z), "X", m["dark"], pitch, seg=16, lods=NEAR)
 
 
-run("t15", "russian_green", build, wreck, chip=1.0)
+run("t15", "russian_green", build, partial(wreck, SHAPE), chip=1.0)
