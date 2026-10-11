@@ -70,7 +70,11 @@ export function prepareBattle(
         return;
       }
       worker.terminate();
-      if (reply.type === "refused")
+      if (reply.type === "refused") {
+        console.warn("battle preparation refused", {
+          stage: reply.stage,
+          diagnostics: reply.diagnostics,
+        });
         reject(
           new PreparationFailed(
             reply.diagnostics.map((d) => d.message).join("; "),
@@ -78,12 +82,17 @@ export function prepareBattle(
             reply.stage,
           ),
         );
-      else reject(new PreparationFailed(reply.message));
+      } else {
+        console.warn("battle preparation worker failed", { message: reply.message });
+        reject(new PreparationFailed(reply.message));
+      }
     };
     worker.onerror = (event) => {
       if (cancelled) return;
       worker.terminate();
-      reject(new PreparationFailed(event.message || "The preparation worker failed to start."));
+      const message = event.message || "The preparation worker failed to start.";
+      console.warn("battle preparation worker error", { message });
+      reject(new PreparationFailed(message));
     };
   });
   worker.postMessage(message);

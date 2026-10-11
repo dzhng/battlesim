@@ -105,6 +105,11 @@ export function admitBattle(
         if (cancelled) return new Promise(() => {});
         if (battle === null) {
           attempts.push({ request, outcome: "timeout" });
+          console.warn("generated candidate timed out", {
+            seed,
+            attempt: index + 1,
+            maxAttempts: input.policy.max_generated_attempts,
+          });
           failure = new PreparationFailed("Map generation timed out.");
           break;
         }
@@ -114,10 +119,19 @@ export function admitBattle(
       } catch (error) {
         if (cancelled) return new Promise(() => {});
         current?.cancel();
+        const details = evidence(error);
         attempts.push({
           request,
           outcome: error instanceof PreparationFailed && error.stage ? "refused" : "error",
-          failure: evidence(error),
+          failure: details,
+        });
+        console.warn("generated candidate failed", {
+          seed,
+          attempt: index + 1,
+          maxAttempts: input.policy.max_generated_attempts,
+          stage: details.stage,
+          message: details.message,
+          diagnostics: details.diagnostics,
         });
         failure = error;
         if (!canRetry(error)) break;
