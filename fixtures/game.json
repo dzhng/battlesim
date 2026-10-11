@@ -86,7 +86,7 @@
   },
   "weapons": {
     "rifle": {
-      "targets": ["ground", "low_air"],
+      "targets": { "ground": {}, "low_air": { "range_m": 100, "scatter_mrad": 40 } },
       "name": "Rifle",
       "description": "An assault rifle: every soldier carries one.",
       "icon": "rifle",
@@ -108,7 +108,7 @@
       "structural_damage": 0.25
     },
     "grenade": {
-      "targets": ["ground"],
+      "targets": { "ground": {} },
       "name": "Grenade",
       "description": "Rifle grenades lobbed at troops behind cover.",
       "icon": "grenade",
@@ -129,7 +129,7 @@
       "structural_damage": 10
     },
     "tank_ap": {
-      "targets": ["ground"],
+      "targets": { "ground": {} },
       "name": "AP Shell",
       "description": "Armour-piercing sabot: the tank gun's answer to armour.",
       "icon": "ap_shell",
@@ -150,7 +150,7 @@
       "armor_piercing": true
     },
     "tank_he": {
-      "targets": ["ground"],
+      "targets": { "ground": {} },
       "name": "HE Shell",
       "description": "High-explosive shell for troops, cover and buildings.",
       "icon": "he_shell",
@@ -171,7 +171,7 @@
       "structural_damage": 100
     },
     "hmg": {
-      "targets": ["ground", "low_air"],
+      "targets": { "ground": {}, "low_air": { "range_m": 200, "scatter_mrad": 24 } },
       "name": "HMG",
       "description": "A heavy machine gun for troops and light vehicles.",
       "icon": "hmg",
@@ -193,7 +193,7 @@
       "structural_damage": 4
     },
     "atgm": {
-      "targets": ["ground"],
+      "targets": { "ground": {} },
       "interceptable": true,
       "name": "ATGM",
       "description": "A wire-guided anti-tank missile, steered onto its target.",
@@ -223,7 +223,8 @@
       "extends": "rifle",
       "name": "Assault Rifle",
       "range_m": 240,
-      "scatter_mrad": 10
+      "scatter_mrad": 10,
+      "targets": { "low_air": { "scatter_mrad": 50 } }
     },
     "marksman_rifle": {
       "extends": "rifle",
@@ -251,7 +252,8 @@
       "ammo": 30,
       "reload_s": 2.5,
       "aim_s": 2,
-      "magazine": null
+      "magazine": null,
+      "targets": { "low_air": { "range_m": 150, "scatter_mrad": 48 } }
     },
     "autocannon": {
       "extends": "hmg",
@@ -259,6 +261,7 @@
       "description": "A slow-firing cannon whose small bursting shells tear up troops, cover and light armour.",
       "icon": "autocannon",
       "range_m": 650,
+      "targets": { "low_air": { "range_m": 350, "scatter_mrad": 18 } },
       "speed_mps": 600,
       "gravity_scale": 0.5,
       "damage": 100,
@@ -384,7 +387,7 @@
     },
     "rocket_pod": {
       "extends": "tank_he",
-      "targets": ["ground"],
+      "targets": { "ground": {} },
       "name": "Rocket Pod",
       "description": "Unguided rockets in salvos, for troops, light vehicles and cover.",
       "icon": "rockets",
