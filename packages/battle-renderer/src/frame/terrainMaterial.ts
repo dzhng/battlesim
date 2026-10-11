@@ -1688,12 +1688,12 @@ const scarWord = tgpu
  return vec4f(scarNormalized((word&255u)*16u),scarNormalized(((word>>8u)&255u)*16u),scarNormalized(((word>>16u)&255u)*16u),scarNormalized((word>>24u)*16u));
 }`)
   .$uses({ scarNormalized });
+/** The cell `c` (in the grid) from its tile's directory entry `e`. */
 const scarCell = tgpu
   .fn(
-    [d.vec2i],
+    [d.vec2u, d.vec2u],
     d.vec4f,
-  )(/* wgsl */ `(cell:vec2i)->vec4f {
- let P=terrainLayout.$.scarParams;let c=vec2u(clamp(cell,vec2i(0),vec2i(P.pages.xy)-1));let e=scarEntry(c/16u);
+  )(/* wgsl */ `(c:vec2u,e:vec2u)->vec4f {
  if(e.x==0u){return vec4f(0.0);}if((e.x&${SCAR_UNIFORM}u)!=0u){return scarWord(e.y);}
  let local=(c.y%16u)*16u+c.x%16u;
  if((e.x&${SCAR_DENSE}u)!=0u){return scarPoolWord(e.y+local);}
@@ -1701,19 +1701,25 @@ const scarCell = tgpu
  while(lo<hi){let mid=(lo+hi)/2u;let bytes=vec4u(round(scarPoolWord(offset+mid*2u)*255.0));let end=bytes.x+bytes.y*256u;if(end<=local){lo=mid+1u;}else{hi=mid;}}
  return scarPoolWord(offset+lo*2u+1u);
 }`)
-  .$uses({ terrainLayout, scarEntry, scarWord, scarPoolWord });
-/** The original four-neighbor linear rule across every representation join. */
+  .$uses({ scarWord, scarPoolWord });
+/** The original four-neighbor linear rule across every representation join.
+ *  The corners share one lookup in a loop: a shader compiler inlines every
+ *  call, and the lookup's probe and search are loops it cannot fold away. */
 export const sampleGroundLinear = tgpu
   .fn(
     [d.vec2f],
     d.vec4f,
   )(/* wgsl */ `(uv:vec2f)->vec4f {
  let P=terrainLayout.$.scarParams;let size=vec2f(P.pages.xy);let p=scarFilterPosition(uv,size);
- let cell=vec2i(floor(p));let f=fract(p);let e=scarEntry(vec2u(cell)/16u);
- if((e.x==0u||(e.x&${SCAR_UNIFORM}u)!=0u)&&all(vec2u(cell)%16u<vec2u(15u))){return scarWord(e.y);}
- let a=vec4u(round(scarCell(cell)*255.0));let b=vec4u(round(scarCell(cell+vec2i(1,0))*255.0));let c=vec4u(round(scarCell(cell+vec2i(0,1))*255.0));let other=vec4u(round(scarCell(cell+vec2i(1,1))*255.0));
- let q=scarFilterQuanta(a,b,c,other,f);
- return vec4f(scarNormalized(q.x),scarNormalized(q.y),scarNormalized(q.z),scarNormalized(q.w));
+ let cell=vec2i(floor(p));let f=fract(p);var q=array<vec4u,4>();
+ for(var k=0u;k<4u;k++){
+  let c=vec2u(clamp(cell+vec2i(i32(k&1u),i32(k>>1u)),vec2i(0),vec2i(P.pages.xy)-1));let e=scarEntry(c/16u);
+  // The cell's own tile, one word throughout, with all four corners in it.
+  if(k==0u&&(e.x==0u||(e.x&${SCAR_UNIFORM}u)!=0u)&&all(c%16u<vec2u(15u))){return scarWord(e.y);}
+  q[k]=vec4u(round(scarCell(c,e)*255.0));
+ }
+ let w=scarFilterQuanta(q[0],q[1],q[2],q[3],f);
+ return vec4f(scarNormalized(w.x),scarNormalized(w.y),scarNormalized(w.z),scarNormalized(w.w));
 }`)
   .$uses({
     terrainLayout,
@@ -1725,14 +1731,15 @@ export const sampleGroundLinear = tgpu
     scarFilterPosition,
   });
 
-/** The four channels at `uv`, reconstructed by a cubic B-spline over the
- *  1 m cells (four bilinear taps): a crater's footprint comes back round
- *  and smooth, so its thresholded edges are circles, not diamonds. */
-export const sampleGroundCubic = tgpu
+/** A cubic B-spline over the 1 m cells at `uv` as four bilinear taps: `taps`
+ *  their two columns' and two rows' coordinates (x0, y0, x1, y1), `weights`
+ *  the columns' and rows' (x0, y0, x1, y1). */
+const GroundCubic = d.struct({ taps: d.vec4f, weights: d.vec4f }).$name("GroundCubic");
+const groundCubic = tgpu
   .fn(
     [d.vec2f],
-    d.vec4f,
-  )(/* wgsl */ `(uv: vec2f) -> vec4f {
+    GroundCubic,
+  )(/* wgsl */ `(uv: vec2f) -> GroundCubic {
   let size = vec2f(terrainLayout.$.scarParams.pages.xy);
   let p = uv * size - 0.5;
   let i = floor(p);
@@ -1745,16 +1752,45 @@ export const sampleGroundCubic = tgpu
   let w3 = f3 / 6.0;
   let g0 = w0 + w1;
   let g1 = w2 + w3;
-  let h0 = (i - 0.5 + w1 / g0) / size;
-  let h1 = (i + 1.5 + w3 / g1) / size;
-  let a = sampleGroundLinear(vec2f(h0.x, h0.y));
-  let b = sampleGroundLinear(vec2f(h1.x, h0.y));
-  let c = sampleGroundLinear(vec2f(h0.x, h1.y));
-  let e = sampleGroundLinear(vec2f(h1.x, h1.y));
+  return GroundCubic(vec4f((i - 0.5 + w1 / g0) / size, (i + 1.5 + w3 / g1) / size), vec4f(g0, g1));
+}`)
+  .$uses({ terrainLayout, GroundCubic });
+/** Tap `k` (0 to 3: x0y0, x1y0, x0y1, x1y1) of the spline `cubic`. */
+const groundCubicTap = tgpu
+  .fn(
+    [GroundCubic, d.u32],
+    d.vec2f,
+  )(/* wgsl */ `(cubic: GroundCubic, k: u32) -> vec2f {
+  return vec2f(select(cubic.taps.x, cubic.taps.z, (k & 1u) == 1u), select(cubic.taps.y, cubic.taps.w, k >= 2u));
+}`)
+  .$uses({ GroundCubic });
+/** The spline `cubic` from its four taps, in `groundCubicTap`'s order. */
+const groundCubicBlend = tgpu
+  .fn(
+    [GroundCubic, d.vec4f, d.vec4f, d.vec4f, d.vec4f],
+    d.vec4f,
+  )(/* wgsl */ `(cubic: GroundCubic, a: vec4f, b: vec4f, c: vec4f, e: vec4f) -> vec4f {
+  let g0 = cubic.weights.xy;
+  let g1 = cubic.weights.zw;
   // Keep the original hardware cubic outer contraction explicit after inlining.
   return fma(vec4f(g0.y), g0.x * a + g1.x * b, g1.y * (g0.x * c + g1.x * e));
 }`)
-  .$uses({ terrainLayout, sampleGroundLinear });
+  .$uses({ GroundCubic });
+
+/** The four channels at `uv`, reconstructed by a cubic B-spline over the
+ *  1 m cells (four bilinear taps): a crater's footprint comes back round
+ *  and smooth, so its thresholded edges are circles, not diamonds. */
+export const sampleGroundCubic = tgpu
+  .fn(
+    [d.vec2f],
+    d.vec4f,
+  )(/* wgsl */ `(uv: vec2f) -> vec4f {
+  let cubic = groundCubic(uv);
+  var t = array<vec4f, 4>();
+  for (var k = 0u; k < 4u; k++) { t[k] = sampleGroundLinear(groundCubicTap(cubic, k)); }
+  return groundCubicBlend(cubic, t[0], t[1], t[2], t[3]);
+}`)
+  .$uses({ groundCubic, groundCubicTap, groundCubicBlend, sampleGroundLinear });
 
 /** `x` crossing `edge`, anti-aliased over `width` (a pixel's worth of `x`). */
 const crossing = tgpu.fn(
@@ -1785,27 +1821,48 @@ export const groundScars = tgpu
   let uv = xy * P.grid.xy;
   if (any(uv < vec2f(0.0)) || any(uv > vec2f(1.0))) { return out; }
   let texel = P.grid.xy * cell;
-  // Cheap reject: nothing marked within reach.
+  // Twelve bilinear taps through one call, as a shader compiler inlines each
+  // call: the rim's four diagonals (a, b, c, e), the cubic's four, then
+  // either side of \`uv\` along x and y for the slopes (xp, xm, yp, ym).
   let r = ${tuning.scars.rimReachCells};
-  let a = sampleGroundLinear(uv + texel * vec2f(-r, -r));
-  let b = sampleGroundLinear(uv + texel * vec2f(r, -r));
-  let c = sampleGroundLinear(uv + texel * vec2f(-r, r));
-  let e = sampleGroundLinear(uv + texel * vec2f(r, r));
-  let near = max(max(a, b), max(c, e));
-  let s = sampleGroundCubic(uv);
-  if (max(max(s.x, s.y), max(s.z, s.w)) + max(max(near.x, near.y), max(near.z, near.w)) <= 0.0) {
-    return out;
+  let h = ${tuning.scars.slopeTapCells};
+  let cubic = groundCubic(uv);
+  var taps = array<vec4f, 12>();
+  for (var t = 0u; t < 12u; t++) {
+    if (t == 8u) {
+      // Cheap reject: nothing marked within reach.
+      let near = max(max(taps[0], taps[1]), max(taps[2], taps[3]));
+      let s = groundCubicBlend(cubic, taps[4], taps[5], taps[6], taps[7]);
+      if (max(max(s.x, s.y), max(s.z, s.w)) + max(max(near.x, near.y), max(near.z, near.w)) <= 0.0) {
+        return out;
+      }
+    }
+    var at: vec2f;
+    if (t < 4u) {
+      at = uv + texel * vec2f(select(-r, r, (t & 1u) == 1u), select(-r, r, t >= 2u));
+    } else if (t < 8u) {
+      at = groundCubicTap(cubic, t - 4u);
+    } else {
+      let side = texel * select(vec2f(0.0, h), vec2f(h, 0.0), t < 10u);
+      at = select(uv - side, uv + side, (t & 1u) == 0u);
+    }
+    taps[t] = sampleGroundLinear(at);
   }
+  let a = taps[0];
+  let b = taps[1];
+  let c = taps[2];
+  let e = taps[3];
+  let near = max(max(a, b), max(c, e));
+  let s = groundCubicBlend(cubic, taps[4], taps[5], taps[6], taps[7]);
+  let xp = taps[8];
+  let xm = taps[9];
+  let yp = taps[10];
+  let ym = taps[11];
   let detail = 1.0 - smoothstep(${tuning.scars.detailFade[0]}, ${wgslFloat(tuning.scars.detailFade[1])}, footprint / cell);
   let k = P.full;
   let depth = min(s.x * k.x, ${tuning.scars.depthCap});
   let wide = min((a.x + b.x + c.x + e.x) * 0.25 * k.x, ${tuning.scars.depthCap});
-  // Slopes per metre of the crater field, from taps either side.
-  let h = ${tuning.scars.slopeTapCells};
-  let xp = sampleGroundLinear(uv + texel * vec2f(h, 0.0));
-  let xm = sampleGroundLinear(uv - texel * vec2f(h, 0.0));
-  let yp = sampleGroundLinear(uv + texel * vec2f(0.0, h));
-  let ym = sampleGroundLinear(uv - texel * vec2f(0.0, h));
+  // Slopes per metre of the crater field, from the taps either side.
   let bowlSlope = vec2f(xp.x - xm.x, yp.x - ym.x) * k.x / (2.0 * h * cell);
   let wideSlope = vec2f((b.x + e.x) - (a.x + c.x), (c.x + e.x) - (a.x + b.x)) * 0.5 * k.x / (2.0 * r * cell);
   // The height: down into the bowl, up onto the rim just outside it.
@@ -1843,7 +1900,9 @@ export const groundScars = tgpu
     terrainLayout,
     valueNoise,
     sampleGroundLinear,
-    sampleGroundCubic,
+    groundCubic,
+    groundCubicTap,
+    groundCubicBlend,
     crossing,
     ScarSample,
   });
@@ -1858,19 +1917,20 @@ export const groundScarsSeen = tgpu
     [d.vec3f, d.vec3f, d.f32],
     ScarSample,
   )(/* wgsl */ `(world: vec3f, eye: vec3f, footprint: f32) -> ScarSample {
-  var scar = groundScars(world.xy, footprint);
-  if (scar.relief.w <= 0.0) { return scar; }
+  // One call in the loop, as a shader compiler inlines each call.
   let view = normalize(eye - world);
   let run = -view.xy / max(view.z, ${tuning.scars.grazing});
   let deep = terrainLayout.$.scarParams.relief.x;
+  var scar: ScarSample;
   var at = world.xy;
-  for (var i = 0; i < 2; i++) {
-    at = world.xy + run * min(scar.relief.w, ${tuning.scars.depthCap}) * deep * 0.5;
+  for (var i = 0; i < 3; i++) {
     scar = groundScars(at, footprint);
+    if (i == 0 && scar.relief.w <= 0.0) { break; }
+    at = world.xy + run * min(scar.relief.w, ${tuning.scars.depthCap}) * deep * 0.5;
   }
   return scar;
 }`)
-  .$uses({ terrainLayout, groundScars });
+  .$uses({ terrainLayout, groundScars, ScarSample });
 
 /** `surface` (linear albedo, roughness) under the scars `scar`: trampled
  *  grass pales, tracks churn it to soil, ash flecks it near each burst, a
