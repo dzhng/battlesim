@@ -1244,9 +1244,9 @@ function rotorInstances(f: EffectFrame, rotors: RotorSource) {
   );
 }
 
-test("a rotor is drawn as its blades over the angle the shutter saw them sweep, and its hub", () => {
+test("a rotor is drawn as its blades over the angle the shutter saw them sweep, a faint disc, and its hub", () => {
   const blur = PRESENTATION.rotor_blur;
-  const [blades, hub, mast, ...rest] = rotorInstances(frame(), rotorsOf(0.8));
+  const [blades, disc, hub, mast, ...rest] = rotorInstances(frame(), rotorsOf(0.8));
   expect(rest).toEqual([]);
   // Its mast and head: a solid rod from the top of the head down to the
   // airframe, as thick as the model's mast.
@@ -1261,22 +1261,36 @@ test("a rotor is drawn as its blades over the angle the shutter saw them sweep, 
   ]);
   expect(mast[3]).toBeCloseTo(0.3, 6);
   expect(mast[11]).toBe(1);
-  for (const i of [blades, hub]) expect(i[12]).toBe(SHAPE.rotor);
+  for (const i of [blades, disc, hub]) expect(i[12]).toBe(SHAPE.rotor);
   // On its hub, across its axis, its first blade where the model's points.
   expect(blades.slice(0, 7)).toEqual([10, 20, 22, expect.closeTo(7.3, 5), 0, 0, 1]);
   expect(blades.slice(8, 11)).toEqual([0, 1, 0]);
   // The shutter is open for its share of the frame: the blades sweep that
   // share of the angle they turned.
   expect(blades[7]).toBeCloseTo(0.8 * blur.shutter, 6);
-  expect(blades.slice(13, 15)).toEqual([expect.closeTo(0.5 / 7.3, 6), 4]);
+  // No blade draws thinner than its narrowest pixels, however small the
+  // rotor on screen.
+  expect(blades.slice(13, 16)).toEqual([
+    expect.closeTo(0.5 / 7.3, 6),
+    4,
+    expect.closeTo(blur.min_chord_px, 6),
+  ]);
+  // Spinning, a bare disc of faint grey over its whole reach.
+  expect([disc[3], disc[14], disc[15]]).toEqual([
+    expect.closeTo(7.3, 5),
+    0,
+    expect.closeTo(blur.disc, 6),
+  ]);
   // The hub: a solid disc, no blades, its share of the reach.
   expect(hub[3]).toBeCloseTo(7.3 * blur.hub_share, 5);
-  expect(hub[14]).toBe(0);
+  expect([hub[14], hub[15]]).toEqual([0, 1]);
 });
 
 test("a still rotor shows its blades; a fast one smears them round, never past a turn", () => {
-  const still = rotorInstances(frame(), rotorsOf(0))[0];
-  expect(still[7]).toBe(0);
+  const still = rotorInstances(frame(), rotorsOf(0));
+  expect(still[0][7]).toBe(0);
+  // A still rotor has no disc: its blades, its hub and its mast.
+  expect(still.length).toBe(3);
   const fast = rotorInstances(frame(), rotorsOf(100))[0];
   expect(fast[7]).toBeCloseTo(2 * Math.PI, 6);
   // Nothing drawn, no rotor.
@@ -1285,7 +1299,14 @@ test("a still rotor shows its blades; a fast one smears them round, never past a
 
 test("a rotor style with no shutter, or a hub as wide as the rotor, is refused", () => {
   const blur = PRESENTATION.rotor_blur;
-  for (const bad of [{ shutter: 0 }, { shutter: 1.5 }, { hub_share: 1 }, { albedo: 2 }])
+  for (const bad of [
+    { shutter: 0 },
+    { shutter: 1.5 },
+    { hub_share: 1 },
+    { albedo: 2 },
+    { min_chord_px: -1 },
+    { disc: 1 },
+  ])
     expect(() => validateEffects({ ...PRESENTATION, rotor_blur: { ...blur, ...bad } })).toThrow(
       /rotor_blur/,
     );

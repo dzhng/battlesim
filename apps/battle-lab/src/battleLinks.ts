@@ -58,6 +58,7 @@ const PARAMETERS = new Set([
 export const REGIONS: readonly string[] = presets.parcels.regional_families;
 /** Data names the player reads as another name. */
 const SAID: Readonly<Record<string, string>> = {
+  small: "XS",
   china: "taiwan",
   us: "U.S.",
   europe: "European",

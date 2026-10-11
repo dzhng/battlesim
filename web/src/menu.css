@@ -900,9 +900,6 @@
 .menu-card[data-art="skirmish"] {
   --menu-art: url("/menu/skirmish.jpg");
 }
-.menu-card[data-art="replay"] {
-  --menu-art: url("/menu/replay.jpg");
-}
 .menu-card[data-art="tutorial"] {
   --menu-art: url("/menu/tutorial.jpg");
 }

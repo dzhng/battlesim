@@ -923,6 +923,34 @@
   display: grid;
   gap: 6px;
 }
+.hud-veil.hud-tutorial-veil {
+  z-index: 30;
+  background: rgb(var(--hud-glass) / 0.72);
+}
+.hud-panel.hud-tutorial-modal {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: min(760px, 100%);
+  max-height: calc(100dvh - 48px);
+  box-sizing: border-box;
+  padding: 18px 20px;
+  overflow: hidden;
+}
+.hud-tutorial-head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 8px;
+}
+.hud-tutorial-head .hud-menu-title {
+  padding-bottom: 0;
+  text-align: left;
+}
+.hud-tutorial-head .hud-menu-item {
+  width: auto;
+  white-space: nowrap;
+}
 .hud-lower {
   position: fixed;
   inset-inline: 16px;
