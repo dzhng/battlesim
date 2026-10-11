@@ -12,8 +12,11 @@ owns their composition. That function is the authority on phase order.
 consume immutable identities and published causes. Soldier poses follow actual
 published soldiers rather than formation slots. Building damage follows the
 side's known physical remains, not a renderer guess from height or floor count.
-An effect on a barrel follows [the drawn muzzle](src/models/drawnMuzzles.ts);
-its physical launch remains the simulation's event.
+An effect on a barrel follows [the drawn muzzle](src/models/drawnModels.ts);
+its physical launch remains the simulation's event. A flying aircraft's rotor is
+drawn by the effects from the same drawn pose, as a film camera's shutter sees it:
+each blade smeared over the angle it turned while the shutter was open, so a fast
+rotor blurs at any frame rate and a paused one shows its blades.
 
 The app's [observation feeds](../../apps/battle-lab/README.md#observation-feeds)
 translate publications into this boundary. [Scene assets](../scene-assets/README.md)

@@ -401,6 +401,21 @@ export const SOUNDS: Record<string, Maker> = {
   }),
   engine_diesel: looped((sr, rng) => engine(sr, rng, 28, 2, 0.2)),
   engine_small: looped((sr, rng) => engine(sr, rng, 42, 2, 0.6)),
+  rotor: looped((sr, rng) => {
+    // A helicopter's rotor: rushing air slapped by each blade's pass, 17 a
+    // second at rate 1 (whole passes, so it loops), whatever its speed.
+    const passes = 34;
+    const n = Math.round((passes / 17) * sr);
+    const air = seamless(n, Math.round(0.05 * sr), (m) =>
+      biquad(noise(m, rng), sr, "lowpass", 500),
+    );
+    const out = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      const phase = ((i * passes) / n) % 1;
+      out[i] = air[i] * (0.3 + Math.exp(-phase / 0.15));
+    }
+    return toPeak(out);
+  }),
   tracks: looped((sr, rng) => {
     // Track links striking the sprockets, 10 a second at rate 1, and a squeal.
     const n = Math.round(2 * sr);

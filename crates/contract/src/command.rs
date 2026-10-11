@@ -230,6 +230,8 @@ pub enum OrderError {
     RateLimited,
     /// The target reference is not one this side currently holds.
     UnknownTarget,
+    /// The contact is in the air: area fire has no ground point to aim at (D22).
+    AirContact,
     /// The unit has been destroyed.
     Destroyed {
         unit: UnitId,

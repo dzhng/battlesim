@@ -143,7 +143,7 @@ fn city_stress_places_living_units_on_usable_ground() {
         assert!(
             grid.placement_fits(
                 sim::math::v2(u.position[0], u.position[1]),
-                &sim::units::mobility(s.rules.catalog.by_id(&u.kind), &s.rules)
+                &sim::units::ground_mobility(s.rules.catalog.by_id(&u.kind), &s.rules).unwrap()
             ),
             "{} starts in an obstacle at {:?}",
             u.kind,

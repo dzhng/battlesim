@@ -97,9 +97,11 @@ def fittings(v):
         whip = empty(f"dressing_antenna_{s}", parent=hull)
         VP.antenna(f"antenna_{s}", (-2.30, side * 0.75, 1.62), m, whip, height=2.4)
     box("front_plate", (0.02, 0.50, 0.12), (NOSE + 0.005, 0.30, 0.82), m["marking"], hull, lods=MID)
-    # Roof hatches and the folded BAA sensor mast on the rear roof.
-    VP.hatch("commander_hatch", (0.20, 0.45, ROOF), m, hull, radius=0.28)
-    VP.hatch("driver_hatch", (0.80, -0.45, ROOF), m, hull, size=(0.55, 0.50))
+    # The crew's roof hatches just behind the station's ring, clear of what
+    # it swings round, and the folded BAA sensor mast on the rear roof.
+    ring = v.frame["mounts"][0]["pivot_m"][0]
+    VP.hatch("commander_hatch", (ring - 0.50, 0.55, ROOF), m, hull, radius=0.28)
+    VP.hatch("driver_hatch", (ring - 0.60, -0.60, ROOF), m, hull, size=(0.55, 0.50))
     cyl("mast_foot", 0.12, 0.20, (-1.05, -0.45, ROOF + 0.10), "Z", m["dark"], hull, seg=14, lods=MID)
     cyl("mast_column", 0.07, 0.95, (-1.05, -0.45, ROOF + 0.24), "X", m["dark"], hull, seg=12)
     box("sensor_head", (0.36, 0.34, 0.28), (-0.62, -0.45, ROOF + 0.30), m["paint"], hull, bevel=0.03)
@@ -135,7 +137,9 @@ def wreck(variant, v):
     from wreckage import densify, dent, heat, parts, plate, remove, warp
     m = v.mats
     remove("wheel_L_1_", "side_door_L", "sensor_", "dressing_rear_stowage", "rear_box", "rear_jerrycan")
-    plate("door_lying", [(-0.55, -0.31), (0.55, -0.32), (0.55, 0.31), (-0.55, 0.30)], 0.04, (0.0, 0.3, ROOF + 0.06),
+    # The door lies on the roof behind the weapon station's ring.
+    behind = v.frame["mounts"][0]["pivot_m"][0] - 0.95
+    plate("door_lying", [(-0.55, -0.31), (0.55, -0.32), (0.55, 0.31), (-0.55, 0.30)], 0.04, (behind, 0.3, ROOF + 0.06),
           (0.02, 0.03, 0.0), m["paint"], v.root, seed=211)
     plate("sensor_lying", [(-0.18, -0.17), (0.18, -0.17), (0.18, 0.17), (-0.18, 0.17)], 0.25, (-2.25, -0.45, 1.75),
           (0.2, 0.1, 0.5), m["paint"], v.root, seed=212)

@@ -414,6 +414,13 @@ def hull_plan(rear, front, half, chamfer):
             (front - chamfer, half), (rear, half)]
 
 
+def mirror_plan(left):
+    """A whole plan ring from its left half (`left`, (x, y) points with
+    y >= 0, front to rear): those points, then the right half back from rear
+    to front. A point on the centre line is not repeated."""
+    return list(left) + [(x, -y) for x, y in reversed(left) if y > 0]
+
+
 def on_side(x, z, side, low, high, proud=0.0, standing=False, fall=0.0):
     """Where a part sits on a hull side face that leans in toward the roof.
 
@@ -422,20 +429,24 @@ def on_side(x, z, side, low, high, proud=0.0, standing=False, fall=0.0):
     Returns (loc, rot) for a part at `x` whose origin is at height `z` on the
     `side` (+1 left, -1 right) face, `proud` out along the face's normal:
     a part lying in its local XY plane and facing local +Z (`bolted_panel`,
-    `armour_tiles`) gets its back on the face with local x along the hull,
-    falling toward +X by `fall` (the slope of a line it follows, dz/dx);
-    with `standing`, a part standing upright in its own frame (`slat_armour`,
-    `stowage_box`) leans with the face, its local +Y facing out on both sides
-    (so the right side's is turned half round)."""
+    `armour_tiles`) gets its back on the face with local x along the hull;
+    on a face that also falls toward +X by `fall` (dz/dx, as a band running
+    down beside a glacis), local x follows that fall. With `standing`, a part
+    standing upright in its own frame (`slat_armour`, `stowage_box`) leans
+    with the face, its local +Y facing out on both sides (so the right side's
+    is turned half round)."""
     (y0, z0), (y1, z1) = low, high
     lean = math.atan2(y0 - y1, z1 - z0)
     y = y0 - (z - z0) * math.tan(lean)
     loc = (x, side * (y + proud * math.cos(lean)), z + proud * math.sin(lean))
     if standing:
         return loc, (lean, 0, 0 if side > 0 else math.pi)
-    # In the face's own plane a fall of dz is dz / cos(lean) along its slope.
-    turn = Matrix.Rotation(side * math.atan(fall / math.cos(lean)), 3, "Z")
-    return loc, tuple((Matrix.Rotation(-side * (math.pi / 2 - lean), 3, "X") @ turn).to_euler("XYZ"))
+    # Pitched down by the fall, the part's cross-section is shortened, so the
+    # face leans further from upright across it.
+    pitch = math.atan(fall)
+    across = math.atan2(y0 - y1, (z1 - z0) * math.cos(pitch))
+    roll = Matrix.Rotation(-side * (math.pi / 2 - across), 3, "X")
+    return loc, tuple((Matrix.Rotation(pitch, 3, "Y") @ roll).to_euler("XYZ"))
 
 
 def roof_fittings(name, crown, top, mats, parent, periscopes=(), rails=True):

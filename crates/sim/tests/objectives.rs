@@ -163,3 +163,40 @@ fn objective_transitions_replay_and_have_a_paired_browser_record() {
         include_str!("../../../fixtures/parity/skirmish-objectives.json").trim()
     );
 }
+
+/// A helicopter over a flag neither captures nor contests it (D20).
+#[test]
+fn a_helicopter_cannot_capture_or_contest_a_flag() {
+    let mut rules = sim::fixtures::test_game();
+    rules["catalog"].as_array_mut().unwrap().push(serde_json::json!({ "units": { "blue_test_heli": {
+        "extends": "test_heli",
+        "roles": ["helicopter"],
+        "roster": { "factions": ["us"], "category": "hel", "family_name": "Test", "variant": "Test" }
+    } } }));
+    let mut setup = super::skirmish::setup();
+    setup.rules = serde_json::from_value(rules).unwrap();
+    setup.skirmish.as_mut().unwrap().sites.objectives[0].center = [400.0, 10.0];
+    let mut battle = Battle::new(&setup, 1);
+    assert!(battle
+        .accept(command(
+            Side::Blue,
+            1,
+            Order::ConfirmPurchase {
+                variant: "blue_test_heli".into(),
+                destination: [400.0, 10.0]
+            }
+        ))
+        .error
+        .is_none());
+    battle.accept(command(Side::Blue, 2, Order::Ready));
+    battle.accept(command(Side::Red, 1, Order::Ready));
+    for _ in 0..40 * battle.rules().tick_hz {
+        battle.step();
+    }
+    let frame = battle.observe(Side::Blue);
+    assert_eq!(frame.own.len(), 1);
+    let flag = &frame.skirmish.as_ref().unwrap().objectives[0];
+    assert_eq!(flag.owner, None);
+    assert_eq!(flag.capturing, None);
+    assert!(!flag.contested);
+}

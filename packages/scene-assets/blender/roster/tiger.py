@@ -1,4 +1,4 @@
-"""Tiger HAD and UHT, from assets/references/ec665_tiger/. Disabled cards.
+"""Tiger HAD and UHT, from assets/references/ec665_tiger/.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/tiger.py -- [--variant=<card>] [--wreck]
 
@@ -11,10 +11,16 @@ and a tail wheel. The HAD (Spain, France) has the roof sight over the
 cockpit and the 30 mm chin turret; the UHT (Germany) has the mast-mounted
 sight on the rotor head and no turret. Army green-grey.
 
-Dimensions stated from published figures (rotorcraft rule: fuselage
-length without blades, width over the stub wings' stores, height to the top
-of the rotor head or what stands on it): HAD 14.08 x 4.32 x 3.83 m; UHT
-14.08 x 4.32 x 4.32 m.
+Built to the catalog frame, from published figures (rotorcraft rule:
+fuselage length without blades, width over the stub wings' stores, height to
+the top of the rotor head or what stands on it): HAD 14.08 x 4.32 x 3.83 m;
+UHT 14.08 x 4.32 x 4.32 m.
+
+The HAD's 30 mm gun is the `chin` mount's rig, within the THL-30 turret's
+elevation. Both carry their missiles fixed in the hull (the `missiles`
+mount's muzzle is the right outer rail's missile front); the UHT's inboard
+stations carry rocket launchers, fixed too (the `rockets` mount's muzzle is
+the left launcher's mouth).
 """
 import math
 import os
@@ -23,11 +29,13 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
 from parts import box, cyl  # noqa: E402
-from vehicle_export import run_disabled  # noqa: E402
+from vehicle_export import rig, run  # noqa: E402
 from vehicle_parts import MID  # noqa: E402
 
 HAD, UHT = "europe_ec665_tiger_had", "europe_ec665_tiger_uht"
-CARDS = {HAD: (14.08, 4.32, 3.83), UHT: (14.08, 4.32, 4.32)}
+# The THL-30 turret's elevation, degrees, and the gun's stroke.
+GUN_PITCH_DEG = (-28.0, 28.0)
+GUN_STROKE_M = 0.06
 SPEC = dict(
     # The side photo: the tandem glass deep and standing out of the body,
     # the engines big and high beside the mast.
@@ -53,7 +61,7 @@ def build(variant, v):
     had = variant["id"] == HAD
     s = dict(SPEC)
     s["stores"] = ([("pod", (1.2, 1.05, 1.0), 1.6, 0.22), ("missile", (1.1, 2.0, 1.0), 1.63, 0.09)] if had else
-                   [("pod", (1.2, 1.05, 1.0), 1.6, 0.22), ("missile", (1.1, 2.0, 1.0), 1.5, 0.13)])
+                   [("rockets", (1.2, 1.05, 1.0), 1.6, 0.22, False), ("missile", (1.1, 2.0, 1.0), 1.5, 0.13)])
     m = A.jet(v, s)
     hull = v.hull
     A.canopy("canopy", 6.4, 4.95, 1.45, 2.32, 0.54, m, hull, bows=(6.0, 5.6), peak=0.6, tail=0.75)
@@ -75,8 +83,7 @@ def build(variant, v):
     if had:
         # The roof sight over the cockpit and the 30 mm turret under the chin.
         A.sensor_ball("roof_sight", (4.7, 0, 2.74), 0.24, m, hull)
-        cyl("gun_turret", 0.2, 0.3, (5.6, 0, 0.62), "Z", m["dark"], hull, seg=12)
-        cyl("gun_barrel", 0.05, 1.3, (6.3, 0, 0.55), "X", m["steel"], hull, seg=8, lods=MID)
+        A.chin_gun(v, rig(v.frame, v.root), m, GUN_PITCH_DEG, GUN_STROKE_M, drum=0.24)
     else:
         # The mast-mounted sight on the rotor head.
         cyl("mast_sight_post", 0.09, 0.3, (0.3, 0, 3.85), "Z", m["dark"], hull, seg=10)
@@ -95,7 +102,7 @@ def build(variant, v):
         ])
 
 def wreck(variant, v):
-    A.crash(v, tail_x=-2.4, tail_yaw=0.42, tail_drop=0.1, blades_broken=(("main", 1),), seed=66)
+    A.rotorcraft_crash(v, tail_x=-2.4, tail_yaw=0.42, tail_drop=0.1, seed=66)
 
 
-run_disabled("tiger", CARDS, "nato_helicopter_green", build, wreck, skip=("dressing_", "blade_"))
+run("tiger", "nato_helicopter_green", build, wreck, references="assets/references/ec665_tiger/references.json")

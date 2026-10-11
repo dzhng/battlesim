@@ -1,4 +1,4 @@
-"""ZTQ-15 (Type 15) light tank (disabled card), from assets/references/type15/.
+"""ZTQ-15 (Type 15) light tank, from assets/references/type15/.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/type15.py -- [--wreck]
 
@@ -12,7 +12,8 @@ has a thermal sleeve and a fume extractor; the commander's panoramic sight
 on the right rear roof, the remote heavy machine gun station beside it, four
 smoke tubes a side. Its paint is the PLA's digital desert pattern.
 
-Frame 7.3 x 3.35 x 2.5 m, gun pivot 1.68 m (`DIMENSIONS`, `MOUNTS`).
+Built to the catalog frame (hull 7.3 x 3.35 x 2.5 m, gun pivot 1.68 m, the
+remote HMG on the turret roof at 2.44 m).
 """
 import math
 import os
@@ -21,23 +22,15 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft, prism  # noqa: E402
-from vehicle_export import rig, run_disabled  # noqa: E402
+from vehicle_export import rig, run  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 
-CARD = "eastern_type_15_ztq_15_light_tank"
-# The frame its references give (a disabled card has no unit type): the
-# hull box, and the mounts its turret and guns are rigged on for the art.
-DIMENSIONS = (7.3, 3.35, 2.5)
-MOUNTS = [
-    dict(name="cannon", role="gun", on=None, pivot_m=[0.0, 0.0, 1.68], muzzle_m=[5.36, 0.0, 0.504]),
-    dict(name="HMG", role="hmg", on="cannon", pivot_m=[-0.25, -0.58, 2.632], muzzle_m=[1.43, 0.0, 0.32]),
-]
 TRACK_Y = 1.30
 TRACK_W = 0.48
 ROAD_R = 0.33
 ROAD_Z = 0.40
-DECK = 1.56
+DECK = 1.42
 TRUNNION = 0.85
 
 
@@ -56,8 +49,8 @@ def hull(v):
         VP.periscope(f"driver_periscope_{k}", (half - 1.12, 0.35 + k * 0.20, DECK), m, h, size=(0.11, 0.16, 0.08))
     for side, s in ((1, "L"), (-1, "R")):
         VP.light_with_guard(f"headlight_{s}", (half - 0.95, side * 1.30, DECK + 0.08), 0.06, m, h)
-        VP.tow_hook(f"front_tow_{s}", (half - 0.02, side * 0.65, 0.82), m, h, size=0.12)
-        VP.tow_hook(f"rear_tow_{s}", (-half + 0.02, side * 0.75, 0.80), m, h, size=0.12, rot=(0, 0, math.pi))
+        VP.tow_hook(f"front_tow_{s}", (half - 0.14, side * 0.65, 0.82), m, h, size=0.12)
+        VP.tow_hook(f"rear_tow_{s}", (-half + 0.14, side * 0.75, 0.80), m, h, size=0.12, rot=(0, 0, math.pi))
         for k in range(6):
             length = (v.length - 0.6) / 6
             x = half - 0.35 - length * (k + 0.5)
@@ -70,16 +63,17 @@ def hull(v):
     VP.grille("engine_grille", (-2.65, 0, DECK), (1.10, 1.90), m, h, slats=10)
     VP.exhaust("exhaust", (-half - 0.02, -1.05, 1.25), 0.09, 0.25, m, h, rot=(0, 0, math.pi))
     # The photos' add-on armour: thick bolted modules over the skirts' front
-    # half, spare track links across the nose, jerrycans and a deck box aft.
+    # half, spare track links across the nose, jerrycans lying on the deck aft
+    # and a deck box.
     for side, s in ((1, "L"), (-1, "R")):
         VP.armour_tiles(f"skirt_armour_{s}", (half - 1.75, side * 1.62, 0.84), (2.60, 0.56), (4, 2), 0.07, m, h,
                         rot=(-side * math.pi / 2, 0, 0))
-        VP.jerrycan(f"jerrycan_{s}", (-half + 0.35, side * 1.15, DECK), dict(m, paint=m["dark"]), h,
-                    rot=(0, 0, math.pi / 2))
+        VP.jerrycan(f"jerrycan_{s}", (-half + 0.15, side * 1.15, DECK + 0.09), dict(m, paint=m["dark"]), h,
+                    rot=(0, math.pi / 2, 0))
     for k in range(4):
         cyl(f"spare_link_{k}", 0.045, 0.55, (half - 0.18, -0.85 + k * 0.57, 0.98), "Y", m["track"], h, seg=8,
             lods=NEAR)
-    VP.stowage_box("deck_box", (-half + 0.40, 0, DECK), (0.35, 1.30, 0.38), m, h)
+    VP.stowage_box("deck_box", (-half + 0.40, 0, DECK), (0.35, 1.30, 0.20), m, h)
     # The rear: its tail lights in their guards.
     for side, sd in ((1, "L"), (-1, "R")):
         VP.light_with_guard(f"tail_light_{sd}", (-v.length / 2 - 0.02, side * (v.width / 2 - 0.5), DECK - 0.20), 0.05,
@@ -95,40 +89,43 @@ def running_gear(v):
 def turret(v, turret, gun, hmg, hmg_gun):
     m = v.mats
     base = DECK - v.frame["mounts"][0]["pivot_m"][2]
-    top = base + 0.72
-    foot = [(1.30, 0.45), (1.05, 1.15), (-1.30, 1.20), (-1.55, 0.90), (-1.55, -0.90), (-1.30, -1.20), (1.05, -1.15),
-            (1.30, -0.45)]
-    crown = [(1.00, 0.42), (0.80, 1.05), (-1.25, 1.10), (-1.45, 0.85), (-1.45, -0.85), (-1.25, -1.10), (0.80, -1.05),
-             (1.00, -0.42)]
-    cyl("turret_ring_guard", 0.98, 0.08, (0, 0, base + 0.02), "Z", m["dark"], turret, seg=36, lods=MID)
-    loft("turret_shell", [(base + 0.04, foot), (top, crown)], mat=m["paint"], parent=turret, bevel=0.035)
+    top = base + 1.00
+    # The turret stands apart from the flat deck: an undercut foot on a dark
+    # ring, then the widest belt, its modular armour swept into an arrowhead
+    # ahead of the mantlet, and a crown leaning in.
+    belt = [(1.75, 0.35), (1.10, 1.28), (-1.30, 1.30), (-1.55, 1.00), (-1.55, -1.00), (-1.30, -1.30), (1.10, -1.28),
+            (1.75, -0.35)]
+    foot = [(x * 0.80, y * 0.80) for x, y in belt]
+    crown = [(1.25, 0.32), (0.85, 1.08), (-1.25, 1.12), (-1.45, 0.88), (-1.45, -0.88), (-1.25, -1.12), (0.85, -1.08),
+             (1.25, -0.32)]
+    cyl("turret_ring_guard", 1.02, 0.14, (0, 0, base + 0.05), "Z", m["dark"], turret, seg=36, lods=MID)
+    loft("turret_shell", [(base + 0.10, foot), (base + 0.40, belt), (top, crown)], mat=m["paint"], parent=turret,
+         bevel=0.035)
     VP.roof_fittings("roof", crown, top, m, turret, periscopes=((-0.10, 0.80, 0.6),))
     VP.laser_warners("laser_warner", crown, top, m, turret)
-    # A wedge of armour blocks on each cheek, the bustle box behind.
     for side, s in ((1, "L"), (-1, "R")):
-        for k in range(3):
-            box(f"cheek_block_{s}_{k}", (0.70 - k * 0.12, 0.32, 0.40), (1.15 - k * 0.20, side * (0.55 + k * 0.30),
-                                                                        base + 0.42), m["paint"], turret, bevel=0.04,
-                rot=(0, 0.25, side * (0.35 + k * 0.10)))
         # Tiles on the turret's leaning flank: the shell's side at x -0.30,
-        # from its foot ring to its crown ring.
-        loc, rot = VP.on_side(-0.30, base + 0.38, side, (1.179, base + 0.04), (1.077, top))
-        VP.armour_tiles(f"side_tiles_{s}", loc, (1.60, 0.50), (4, 1), 0.08, m, turret, rot=rot)
-        # A stowage basket on each flank's rear, the cheek's front face tiled.
-        VP.slat_armour(f"side_basket_{s}", (-0.95, side * 1.28, base + 0.20), (0.80, 0.42), m, turret, spacing=0.10,
+        # from its belt ring to its crown ring.
+        loc, rot = VP.on_side(-0.30, base + 0.70, side, (1.30, base + 0.40), (1.115, top))
+        VP.armour_tiles(f"side_tiles_{s}", loc, (1.60, 0.52), (4, 1), 0.06, m, turret, rot=rot)
+        # A stowage basket on each flank's rear, the arrowhead's faces tiled.
+        VP.slat_armour(f"side_basket_{s}", (-0.95, side * 1.36, base + 0.40), (0.80, 0.52), m, turret, spacing=0.10,
                        bar=0.014)
-        VP.armour_tiles(f"cheek_face_{s}", (1.24, side * 0.80, base + 0.40), (0.42, 0.62), (1, 2), 0.06, m, turret,
-                        rot=(0, math.pi / 2 - 0.25, side * -0.55))
+        # Halfway up the arrowhead's face: its outward normal and lean.
+        out = math.atan2(1.75 - 1.10, 1.28 - 0.35)
+        VP.armour_tiles(f"cheek_face_{s}", (1.24, side * 0.76, base + 0.70), (0.70, 0.98), (1, 3), 0.05, m, turret,
+                        rot=(0, math.pi / 2 - 0.59, side * out))
         VP.smoke_discharger_bank(f"smoke_{s}", (0.10, side * 1.10, top - 0.05), m, turret, count=4, tube_radius=0.045,
                                  tube_length=0.20, elevation=0.4, spread=0.4, rot=(0, 0, side * 1.1))
         whip = empty(f"dressing_antenna_{s}", parent=turret)
         VP.antenna(f"antenna_{s}", (-1.35, side * 0.80, top), m, whip, height=2.0)
-    VP.stowage_box("bustle_box", (-1.85, 0, base + 0.10), (0.50, 2.00, 0.52), m, turret)
-    VP.slat_armour("bustle_rack", (-2.12, 0, base + 0.10), (1.90, 0.55), m, turret, rot=(0, 0, math.pi / 2))
-    VP.sight_housing("gunner_sight", (0.45, 0.55, top - 0.02), m, turret, size=(0.42, 0.30, 0.28))
+    VP.stowage_box("bustle_box", (-1.85, 0, base + 0.12), (0.50, 2.00, 0.74), m, turret)
+    VP.slat_armour("bustle_rack", (-2.12, 0, base + 0.12), (1.90, 0.76), m, turret, rot=(0, 0, math.pi / 2))
+    sight = empty("dressing_gunner_sight", parent=turret)
+    VP.sight_housing("gunner_sight", (0.45, 0.55, top - 0.02), m, sight, size=(0.42, 0.30, 0.24))
     mast = empty("dressing_commander_sight", parent=turret)
-    cyl("panorama_post", 0.09, 0.22, (-0.55, -0.55, top + 0.11), "Z", m["dark"], mast, seg=12)
-    VP.sight_housing("panorama_head", (-0.55, -0.55, top + 0.20), m, mast, size=(0.32, 0.30, 0.28))
+    cyl("panorama_post", 0.09, 0.04, (-0.55, -0.55, top + 0.02), "Z", m["dark"], mast, seg=12)
+    VP.sight_housing("panorama_head", (-0.55, -0.55, top + 0.02), m, mast, size=(0.32, 0.30, 0.26))
     VP.hatch("loader_hatch", (-0.45, 0.50, top), m, turret, radius=0.26)
     # The 105 mm: mantlet, sleeve, fume extractor, muzzle.
     reach = v.frame["mounts"][0]["muzzle_m"][0] - TRUNNION
@@ -179,6 +176,4 @@ def wreck(variant, v):
     rest_on_ground(0.004)
 
 
-if __name__ == "__main__":
-    run_disabled("type15", {CARD: DIMENSIONS}, "chinese_digital", build, wreck, mounts={CARD: MOUNTS},
-                 skip=("dressing_", "gun", "hmg"), chip=1.0)
+run("type15", "chinese_digital", build, wreck, chip=1.0)

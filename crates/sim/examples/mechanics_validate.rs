@@ -47,8 +47,9 @@ mod tests {
 
     #[test]
     fn rejects_launch_profiles_tighter_than_the_games_accuracy_ceiling() {
+        // A row nothing extends, so the error names it and no other.
         let mut game = game();
-        game["weapons"]["rifle"]["scatter_mrad"] = json!(0);
+        game["weapons"]["heavy_sniper"]["scatter_mrad"] = json!(0);
         let error = sim::fixtures::admit(
             game,
             sim::fixtures::catalog_documents(sim::fixtures::CatalogSet::Game),
@@ -56,7 +57,7 @@ mod tests {
         .err()
         .expect("invalid spread must fail");
         assert!(
-            error.contains("weapons.rifle")
+            error.contains("weapons.heavy_sniper")
                 && error.contains("Landing spread must be at least")
                 && error.contains("entered 0 m"),
             "{error}"

@@ -1,7 +1,8 @@
 // The effect pass: draws `EffectFrame`'s instances into the lit world, after
 // the world pass has resolved it and before the fog mask pass gives unseen
 // pixels their look, so effects take bloom, grade and tone map like any
-// light. Three shapes (`SHAPE`), each a camera-facing quad:
+// light. Four shapes (`SHAPE`): three camera-facing quads, and a disc lying
+// in its own plane:
 //
 // - a streak between two points (tracers, flash tongues, sparks), at least
 //   `min_px` wide, dimmed rather than drawn thinner; or a smoke ribbon (a
@@ -18,9 +19,13 @@
 //   the sheet's own relief on top, so a column reads as volume, turns with
 //   the sun, glows backlit and takes the sky's colour in its shade. The
 //   world's cast lights (`light/castLights.ts`) light it too, as they light
-//   the ground: a missile's motor its trail, a flash its smoke.
+//   the ground: a missile's motor its trail, a flash its smoke;
+// - a rotor as a film camera's shutter sees it: in the plane its blades
+//   turn in, about its hub, each blade smeared over the angle it swept while
+//   the shutter was open (its colour spread over that wedge, so thin at the
+//   tips), lit as smoke; with no blades, a solid disc (its hub).
 //
-// Glows and light streaks add light; ribbons, discs and flipbooks blend
+// Glows and light streaks add light; ribbons, discs, rotor blurs and flipbooks blend
 // over. Single-sampled into the resolved `lit` target, they test against the
 // world's depth by reading it (sample 0), and fade into what they meet (soft particles). Beside the
 // colour they lower the fog mask's unseen and seen coverage by their own
@@ -90,6 +95,9 @@ struct Out {
 };
 
 const NEAR_W = 0.05;
+/** How deep a rotor fades into what it meets, metres: a roof just under it
+ *  still takes it. */
+const ROTOR_SOFT_M = 0.05;
 
 /** The world's light on a lit sprite: the sun in the sprite's own frame
  *  (the camera's right, up, and toward the eye), and the sky's diffuse
@@ -204,6 +212,30 @@ fn projScale() -> vec2f {
     }
     return out;
   }
+  if (shape == 3u) {
+    // A rotor: the quad round its hub in the plane across its axis, its
+    // first blade along +x of that plane.
+    let axis = normalize(v.b.xyz);
+    let u = normalize(v.color.xyz - axis * dot(v.color.xyz, axis));
+    let w = cross(axis, u);
+    let clip = cam.viewProj * vec4f(v.a.xyz + (u * c.x + w * c.y) * v.a.w, 1.0);
+    if (clip.w < NEAR_W) {
+      out.pos = vec4f(0.0, 0.0, -2.0, 1.0);
+      return out;
+    }
+    out.pos = clip;
+    out.viewDepth = clip.w;
+    out.color = vec4f(vec3f(v.color.w), 1.0);
+    // Its sweep, a blade's chord over its reach, its blades, and how deep
+    // it fades into what it meets.
+    out.extra = vec4f(v.b.w, v.misc.y, v.misc.z, ROTOR_SOFT_M);
+    let l = spriteLight();
+    out.sun = l.sun;
+    out.skyTop = l.skyTop;
+    out.skySide = l.skySide;
+    out.castLit = castAt(v.a.xyz);
+    return out;
+  }
   let clip = cam.viewProj * vec4f(v.a.xyz, 1.0);
   if (clip.w < NEAR_W) {
     out.pos = vec4f(0.0, 0.0, -2.0, 1.0);
@@ -269,6 +301,7 @@ fn cell(tuv: vec2f, frame: f32, cols: f32) -> vec2f {
   let tuv = clamp(vec2f(f.uv.x, -f.uv.y) * 0.5 + 0.5, vec2f(0.004), vec2f(0.996));
   let gx = dpdx(tuv);
   let gy = dpdy(tuv);
+  let offsetWidth = fwidth(f.offset);
   let shape = u32(f.misc.x);
   let raw = textureLoad(sceneDepth, vec2i(f.pos.xy), 0);
   let scene = select(1e9, cam.znear / raw, raw > 0.0);
@@ -303,6 +336,28 @@ fn cell(tuv: vec2f, frame: f32, cols: f32) -> vec2f {
     let cover = (1.0 - smoothstep(0.6, 1.0, length(f.uv))) * clamp(gap / 0.1, 0.0, 1.0);
     rgb = f.color.rgb * cover;
     alpha = f.color.a * cover;
+  } else if (shape == 3u) {
+    // A rotor, from its hub (0) to its blade tips (1). Each blade covers
+    // the wedge it swept, back from where it is now, for the share of the
+    // exposure it spent over each point of it: its chord's angle over the
+    // wedge's. With no blades, a solid disc (its hub).
+    let r = length(f.offset);
+    let ang = atan2(f.offset.y, f.offset.x);
+    let aa = length(offsetWidth) / max(r, 1e-3);
+    let n = i32(f.extra.z + 0.5);
+    var cover = select(0.0, 1.0, n == 0);
+    let chordAng = f.extra.y / max(r, 1e-3);
+    let half = (f.extra.x + chordAng) * 0.5;
+    let share = chordAng / (f.extra.x + chordAng);
+    for (var k = 0; k < n; k++) {
+      let mid = 2.0 * PI * f32(k) / f32(n) - f.extra.x * 0.5;
+      let d = abs(atan2(sin(ang - mid), cos(ang - mid)));
+      cover += (1.0 - smoothstep(half - aa, half + aa, d)) * share;
+    }
+    let edge = 1.0 - smoothstep(1.0 - length(offsetWidth), 1.0, r);
+    cover = min(cover, 1.0) * edge * clamp(gap / f.extra.w, 0.0, 1.0);
+    alpha = cover;
+    rgb = f.color.rgb * smokeLight(f, vec2f(0.0)) * alpha;
   } else if (shape == 1u) {
     let r = length(f.uv);
     let ang = atan2(f.uv.y, f.uv.x);

@@ -9,8 +9,7 @@ appearance whose source lies in `assets/source/roster/<family>/`.
 Plain Python, no Blender: exporters import it, and it is tested on its own.
 An appearance no unit draws is refused by name. A disabled card has no unit
 type, so `disabled_variant` takes the frame its exporter states from the
-card's references: its length, width and height, and the mounts a turreted
-card rigs for its art alone.
+card's references: its length, width and height.
 """
 import json
 import os
@@ -102,10 +101,9 @@ def family_variants(family, repo=REPO):
     return [_variant(i, appearances[i], units) for i in ids]
 
 
-def disabled_variant(card_id, dimensions, mounts=(), repo=REPO):
+def disabled_variant(card_id, dimensions, repo=REPO):
     """A disabled card's export path, names, faction and frame: `dimensions`
-    (length, width and height in metres) and `mounts` (each as a catalog
-    mount, with its articulation `role`) as its exporter states them from its
+    (length, width and height in metres) as its exporter states them from its
     references (`frame_source`)."""
     entries = json.loads((Path(repo) / "fixtures/units/model-manifest.json").read_text())["entries"]
     entry = next((e for e in entries if e["id"] == card_id), None)
@@ -121,7 +119,7 @@ def disabled_variant(card_id, dimensions, mounts=(), repo=REPO):
         half_extents_m=[d / 2 for d in dimensions],
         body_dimensions_m=list(dimensions),
         eye_m=None,
-        mounts=[dict(m) for m in mounts],
+        mounts=[],
     )
     return dict(
         id=card_id,

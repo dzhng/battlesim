@@ -1,0 +1,40 @@
+{
+  "schema": "native-rendering-evidence/v1",
+  "workload": {
+    "id": "menu-reel",
+    "fingerprint": "c905ce8c",
+    "sceneIds": [
+      "market-town",
+      "paris-corner"
+    ],
+    "viewport": [
+      1280,
+      800
+    ],
+    "plateComposition": "standalone_center",
+    "subjectTrackingLagSeconds": 0.5,
+    "comparisonPlateViewport": [
+      1280,
+      720
+    ]
+  },
+  "captures": [
+    {
+      "scene": "market-town",
+      "path": "throwaway/browser-captures-current/market-town.json",
+      "sha256": "1f039a59c86ebbbefb7e7c218bcea6da694b00dc00094a3140dbcdf0207cc273",
+      "samples": 3582,
+      "frames": 115
+    },
+    {
+      "scene": "paris-corner",
+      "path": "throwaway/browser-captures-current/paris-corner.json",
+      "sha256": "6111b00218508416fa0fc5e094c65e80aacf65f91ee733a3f4ae821b3b539ce2",
+      "samples": 1325,
+      "frames": 41
+    }
+  ],
+  "browserReport": "throwaway/browser-graphics-report-current.json",
+  "nativeReport": "throwaway/native/authored-report-reviewed.json",
+  "notes": "Ignored reports and captures are local evidence. The browser report recorded a 1280x800 CSS viewport at DPR 2; committed browser control plates and native cuts are 1280x720. This manifest pins the latest Apple Metal browser report (recorded from a dirty build, as marked in the report), capture hashes, workload fingerprint, plate/native viewports and final display-backed native report. The authored-material review attestation was recorded after image inspection; comparison_ready remains false."
+}

@@ -14,7 +14,8 @@ panoramic sight on its right, a remote machine gun station, a slatted
 bustle cage. British green.
 
 Built to the catalog frame, the Challenger 2's (hull 8.3 x 4.2 x 2.49 m, gun
-pivot 1.494 m): the generated views put the turret roof near 2.5 m too.
+pivot 0.2 m ahead of the hull's middle and 1.494 m up): the generated views
+put the turret roof near 2.5 m too. The turret is built at the frame's pivot.
 """
 import math
 import os
@@ -183,7 +184,7 @@ def wreck(variant, v):
     for k, (loc, rot) in enumerate((((0.8, -2.95, 0.10), (1.5, 0.1, 0.3)), ((-0.8, -3.1, 0.10), (1.45, -0.2, -0.4)))):
         solid(f"fallen_skirt_{k}", (1.25, 0.14, 0.86), loc, m["paint"], v.hull, rot=rot, bevel=0.02)
     bend(parts("skirt_R_1_"), (1.6, -1.95, 1.13), (1, 0, 0), (0, 0, -1), -0.6)
-    bend(parts("bustle_cage"), (-2.35, 0, 1.4), (0, 1, 0), (1, 0, 0), 0.3)
+    bend(parts("bustle_cage"), (v.frame["mounts"][0]["pivot_m"][0] - 2.35, 0, 1.4), (0, 1, 0), (1, 0, 0), 0.3)
     shell = parts("hull_upper", "hull_lower", "skirt_", "turret_shell")
     densify(shell, scale=2.0)
     warp(shell, heat(0.022, 0.9, seed=51.0), dent((3.6, 0.5, 1.2), 0.5, 0.10, (-0.6, 0, -1)))

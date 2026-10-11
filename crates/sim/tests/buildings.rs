@@ -1316,3 +1316,46 @@ fn generated_tree_and_bridge_bodies_cannot_require_building_bulk() {
         "generated {wrongly_accepted:?} have no aggregate floor/footprint facts"
     );
 }
+
+/// A helicopter selected with the cursor over a building: the preview and
+/// the right-click answer it as the battle answers any order, and the
+/// battle plays on.
+#[test]
+fn a_helicopter_ordered_onto_a_building_flies_there() {
+    let mut setup = compound_setup(json!([]));
+    setup.units = serde_json::from_value(json!([
+        {"side":"blue","kind":"test_heli","position":[150,300]}
+    ]))
+    .unwrap();
+    let mut b = Battle::new(&setup, 1);
+    let request = contract::command::BuildingPreviewRequest {
+        units: vec![contract::ids::UnitId(0)],
+        building: 0,
+        ..Default::default()
+    };
+    let preview = b.preview_building(Side::Blue, &request).unwrap();
+    assert!(preview.entrant.is_none(), "a helicopter never enters");
+    let goal = preview.destinations[0].goal;
+    assert!(preview.destinations[0].placed);
+    let ack = b.accept(contract::command::CommandEnvelope {
+        side: Side::Blue,
+        seq: 1,
+        order: contract::command::Order::OccupyBuilding {
+            units: vec![contract::ids::UnitId(0)],
+            building: 0,
+            gesture: 1,
+            facing: None,
+        },
+        queued: false,
+    });
+    assert!(ack.error.is_none(), "{ack:?}");
+    for _ in 0..30 * b.rules().tick_hz {
+        b.step();
+    }
+    let at = b.unit(contract::ids::UnitId(0)).unwrap().position;
+    assert!(
+        (at.x - goal[0]).hypot(at.y - goal[1]) < 1.0,
+        "it hovers at {at:?}, short of {goal:?}"
+    );
+    assert!(b.unit(contract::ids::UnitId(0)).unwrap().airborne());
+}

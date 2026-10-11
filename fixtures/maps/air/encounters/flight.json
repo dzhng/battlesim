@@ -1,0 +1,13 @@
+{
+  "units": [
+    {"side":"blue","kind":"test_heli","position":[40,460]},
+    {"side":"red","kind":"test_rifle","position":[230,380],"yaw":1.5707963267948966},
+    {"side":"red","kind":"test_gun_jeep","position":[420,20],"yaw":1.5707963267948966,"engagement":"return_fire_only"},
+    {"side":"red","kind":"test_tank","position":[446,20],"yaw":1.5707963267948966}
+  ],
+  "scripts": [
+    {"tick":30,"side":"blue","order":{"kind":"move","units":[0],"gesture":1,"goal":[580,460],"route":"fastest"}},
+    {"tick":540,"side":"red","order":{"kind":"set_engagement","units":[2],"policy":"fire_at_will"}},
+    {"tick":590,"side":"red","order":{"kind":"set_engagement","units":[2],"policy":"return_fire_only"}}
+  ]
+}

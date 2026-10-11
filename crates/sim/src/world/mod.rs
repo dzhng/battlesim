@@ -315,7 +315,10 @@ impl WorldGeometry {
         let floor_movers = floor_nav.as_ref().map(|_| {
             let mut movers: Vec<crate::navigation::Mobility> = Vec::new();
             for kind in rules.catalog.indices() {
-                let mover = crate::units::mobility(rules.catalog.get(kind), rules);
+                let Some(mover) = crate::units::ground_mobility(rules.catalog.get(kind), rules)
+                else {
+                    continue;
+                };
                 if !movers.iter().any(|m| {
                     m.class == mover.class
                         && m.push == mover.push

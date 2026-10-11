@@ -251,6 +251,27 @@ const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
         : []),
     ]),
     field(
+      "mobility.air.cruise_kmh",
+      "Cruise speed",
+      "Movement",
+      "An aircraft's one speed: it flies over every surface alike, easing in and out with the shared drive acceleration time.",
+      { unit: "km/h", max: 320 },
+    ),
+    field(
+      "mobility.air.turn_deg_s",
+      "Turning rate",
+      "Movement",
+      "How fast the airframe turns, on the spot when hovering or to bring a fixed gun to bear while flying.",
+      { unit: "°/s" },
+    ),
+    field(
+      "mobility.air.climb_mps",
+      "Climb rate",
+      "Movement",
+      "How fast it climbs over roofs and sinks to a low hover; the heights themselves are the rules' air section.",
+      { unit: "m/s" },
+    ),
+    field(
       "sensors.ground_m",
       "Ground sight range",
       "Reconnaissance",
@@ -278,7 +299,11 @@ const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
       "Deployment capability",
       "Service",
       "Set up before providing service, then pack before moving. Enable adds editable setup and packing durations.",
-      { kind: "object", optional: true, initial: { seconds: 3, pack_seconds: null } },
+      {
+        kind: "object",
+        optional: true,
+        initial: { seconds: 3, pack_seconds: null },
+      },
     ),
     field(
       "capabilities.deploy.seconds",
@@ -383,6 +408,13 @@ const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
       "Flight & accuracy",
       "Maximum heading correction while supported by the launcher. None is unguided; guided rounds ignore gravity and are exempt from the unguided accuracy floor.",
       { unit: "°/s", optional: true },
+    ),
+    field(
+      "guidance",
+      "Guidance",
+      "Flight & accuracy",
+      "When the launcher can steer its guided round: stationary keeps guiding only while the launcher holds still; on the move keeps guiding as it moves. Every guided row states it.",
+      { kind: "enum", choices: ["stationary", "on_the_move"], optional: true },
     ),
     field(
       "accel_mps2",
@@ -527,6 +559,13 @@ const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
       "Impact & suppression",
       "Percentage of direct damage still dealt to a vehicle when this round fails to penetrate, such as a high-explosive partial effect.",
       { conversion: "percent", unit: "%", max: 1 },
+    ),
+    field(
+      "targets",
+      "Engages",
+      "Impact & suppression",
+      "The height bands its crew can bring it to bear on: ground, and low_air for guns that swing up at helicopters. Rows that extend another inherit it.",
+      { kind: "strings" },
     ),
     field(
       "armor_piercing",
@@ -757,7 +796,12 @@ export function entryFields(section: Section, entry: JsonObject): GameplayField[
       return Array.isArray(rows)
         ? rows.flatMap((row) =>
             isObject(row) && typeof row.id === "string"
-              ? [{ ...f, path: f.path.map((p) => (p === "*" ? String(row.id) : p)) }]
+              ? [
+                  {
+                    ...f,
+                    path: f.path.map((p) => (p === "*" ? String(row.id) : p)),
+                  },
+                ]
               : [],
           )
         : [];

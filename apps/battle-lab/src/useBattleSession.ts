@@ -84,7 +84,7 @@ import {
   sameReveal,
   type RevealedOrders,
 } from "@web/battle/present/orderReveal";
-import type { Faction } from "@packages/scene-assets/src/units";
+import { topSpeedKmh, type Faction } from "@packages/scene-assets/src/units";
 import {
   DEFAULT_PLACEMENT_FACING,
   PurchasePlacementControl,
@@ -115,7 +115,7 @@ import type { Order, SideName } from "@web/battle/sim/protocol";
 import type { LabBox, LabPick, ViewportFrame, ViewportGpu, ViewportPointer } from "./LabViewport";
 import { pickedUnit, pickToPointer, sideInstances, type DrawnInstances } from "./sideInstances";
 import { createPoseDriver, ObservationFeed, type PoseRules } from "./poseFeed";
-import { DrawnMuzzles } from "@packages/battle-renderer/src/models/drawnMuzzles";
+import { DrawnModels } from "@packages/battle-renderer/src/models/drawnModels";
 import { useSimSession, type ScriptedSim } from "./useSimSession";
 import { createEffectFrame, drawnMuzzleSource, effectPublication, gameEffects } from "./effectFeed";
 import {
@@ -129,12 +129,10 @@ import { useAppAudio } from "./AppAudio";
 import { useFeed } from "./feed";
 import { posedSockets } from "./workbench/benchWorld";
 import type { Vec3 } from "math";
-import type { Pose } from "@web/battle/present/interpolate";
-import { circleContains, unitCircle } from "@packages/battle-renderer/src/orderOverlay";
 import type { FelledTree } from "@packages/battle-renderer/src/scenery/felled";
-import { orderView } from "./battleOverlay";
 import {
   fieldedSoldiers,
+  ghostAloft,
   orderedGhost,
   ownSoldiers,
   pushGhostModels,
@@ -207,6 +205,8 @@ export interface ScenarioRules extends PoseRules, PanelRules, RulerRules {
   physics: SoldierBody & RulerRules["physics"];
   service: { radius_m: number };
   sensors: FogSensorRules;
+  /** An aircraft's ghost flies at its cruise height. */
+  air: { cruise_agl_m: number };
 }
 
 export function useBattleSession({
@@ -271,12 +271,10 @@ export function useBattleSession({
   // its ammunition goes, and only then as its moving wreck.
   const lastHulls = useMemo(
     () =>
-      new LastSeenHulls((kind) => {
-        const m = units.type(kind).mobility;
-        const road = "tracked" in m ? m.tracked : "wheeled" in m ? m.wheeled : m.foot;
-        // As the simulation stops a dead hull: full road speed lost in `wreck_stop_s`.
-        return road.road_kmh / 3.6 / rules.movement.drive.wreck_stop_s;
-      }),
+      new LastSeenHulls(
+        // As the simulation stops a dead hull: full top speed lost in `wreck_stop_s`.
+        (kind) => topSpeedKmh(units.type(kind).mobility) / 3.6 / rules.movement.drive.wreck_stop_s,
+      ),
     [units, rules],
   );
   // Each cook-off's hull, as last seen, found once as it starts.
@@ -577,9 +575,8 @@ export function useBattleSession({
 
   // What the last frame drew: which unit or enemy each pick box is, and each
   // own unit's drawn (interpolated) position.
-  const drawn = useRef<DrawnInstances>({ picks: [], owners: [], enemies: [] });
+  const drawn = useRef<DrawnInstances>({ picks: [], owners: [], enemies: [], rings: [] });
   const drawnAt = useRef(new Map<number, Readonly<Vec3>>());
-  const drawnPoses = useRef<readonly Pose[]>([]);
   const drawnEnemyAt = useRef(new Map<number, Readonly<Vec3>>());
   const readouts = useRef<ReadoutLayerHandle>(null);
   // The last frame's clock and drawn motion, which sound hears at the camera.
@@ -627,14 +624,14 @@ export function useBattleSession({
     );
     const resolve: ResolveAppearance = (kind, s, id, slot, operatorMount, activeMount) =>
       drawing.resolve(kind, s, id, slot, operatorMount, activeMount);
-    const muzzles = new DrawnMuzzles(appearances, resolve, units);
+    const drawn = new DrawnModels(appearances, resolve, units);
     return {
       appearances,
       driver: createPoseDriver(rules, units, appearances),
       feed: new ObservationFeed(side, units),
       resolve,
-      muzzles,
-      source: drawnMuzzleSource(muzzles, side),
+      drawn,
+      source: drawnMuzzleSource(drawn, side),
       models: [] as ModelInstance[],
       corpses: { version: -1, list: [] as CorpseInstance[], soldiers: [] as number[] },
     };
@@ -691,7 +688,6 @@ export function useBattleSession({
         return null;
       }
       const { time, own, identified, observation: published } = sample;
-      drawnPoses.current = own;
       const d = sideInstances(own, identified, published, rules.physics, units);
       drawn.current = d;
       drawnAt.current = new Map(own.map((p) => [p.id, p.position]));
@@ -718,9 +714,10 @@ export function useBattleSession({
         return { picks: d.picks, clock: time, effects: effectBatch, ground, felled: fallenTrees };
       }
       const poses = posing.driver.update(posing.feed.frame(sample));
-      // Flashes sit on the muzzles as this frame draws them.
-      posing.muzzles.update(poses);
-      effects.build(time, effectBatch, posing.source);
+      // Flashes sit on the muzzles, and rotor blurs on the rotors, as this
+      // frame draws them.
+      posing.drawn.update(poses);
+      effects.build(time, effectBatch, posing.source, posing.drawn);
       if (audio) {
         const reversing = new Set(published.own.filter((u) => u.reversing).map((u) => u.id));
         const enemyReversing = new Set(
@@ -732,7 +729,13 @@ export function useBattleSession({
         };
       }
       indoorUnits.of(published.own);
-      const posed = poseFrameInstances(posing.models, poses, posing.resolve, xrayOf.current);
+      const posed = poseFrameInstances(
+        posing.models,
+        poses,
+        posing.resolve,
+        xrayOf.current,
+        surfaceZ,
+      );
       lastHulls.note(poses.vehicles, time);
       // Each cooking-off hull: whole until its ammunition goes, then its
       // moving wreck until a moment after it lies still, when the static
@@ -791,6 +794,7 @@ export function useBattleSession({
         posing.appearances,
         surfaceZ,
         (kind) => Boolean(units.hull(kind)),
+        ghostAloft(units, rules.air.cruise_agl_m),
       );
       return {
         picks: d.picks,
@@ -839,26 +843,6 @@ export function useBattleSession({
       if (!world) return null;
       const pointer = pickToPointer(world, drawn.current, pick, observation?.contacts);
       const panel = readouts.current?.pick(pick.x, pick.y);
-      if (!panel && pick.button === "left" && pointer.unit === null && pointer.enemy === null) {
-        const ground = groundUnderRay(world.view, pick.ray);
-        if (ground) {
-          // The units the last frame drew, at their drawn poses.
-          for (const u of drawnObservation.current?.own ?? []) {
-            if (units.hull(u.kind)) continue;
-            const pose = orderView(units, u, true);
-            const drawnPose = drawnPoses.current.find((p) => p.id === u.id);
-            if (drawnPose) {
-              pose.position = drawnPose.position;
-              pose.members = drawnPose.members;
-            }
-            const circle = unitCircle(pose, gameOrderStyle);
-            if (circle && circleContains(circle, [ground[0], ground[1]])) {
-              pointer.unit = u.id;
-              break;
-            }
-          }
-        }
-      }
       return panel ? { ...pointer, ...panel } : pointer;
     },
     [world, observation, units],
@@ -1149,6 +1133,13 @@ export function useBattleSession({
       ),
     /** The soldiers the last drawn frame lays as static corpses. */
     lying: () => posing?.corpses.soldiers ?? [],
+    /** Where the last drawn frame draws the muzzle of the shown side's
+     *  vehicle `id`'s mount `mount`, where its flash goes; null when no rig
+     *  draws it. */
+    drawnMuzzle: (id: number, mount: number): Vec3 | null => {
+      const at: Vec3 = [0, 0, 0];
+      return posing?.drawn.vehicle(side, id, mount, at) ? at : null;
+    },
     digest: () => sim.digest.current,
     error: () => sim.error,
     status: () => sim.status,
@@ -1262,7 +1253,7 @@ export function useBattleSession({
     /** Every drawn model's muzzle sockets in the world, posed from the model
      *  instances as drawn (the workbench's socket gizmos), with each model's
      *  origin to select the firing body before its attachment is measured.
-     *  Computed apart from the flashes' own `DrawnMuzzles`. */
+     *  Computed apart from the flashes' own `DrawnModels`. */
     muzzleSockets: () =>
       (posing?.models ?? []).flatMap((m) => {
         const bundle = appearances?.appearances.get(m.appearance)?.bundle;

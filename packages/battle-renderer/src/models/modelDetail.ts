@@ -12,7 +12,7 @@
 // A map's props stand for the whole battle and number in the tens of
 // thousands, so they are a population too, visited by chunk in view.
 // This file says only what a corpse's or a prop's bounds and a chunk's level are.
-import { vec3 } from "math";
+import { vec3, type Vec3 } from "math";
 import { box3, frustum, type Sphere } from "math/shapes";
 import type { DetailView } from "../frame/detailView";
 import {
@@ -55,9 +55,13 @@ export function detailAt(
 }
 
 const _detail_sphere: Sphere = { center: vec3.create(), radius: 0 };
+const _shadow_sphere: Sphere = { center: vec3.create(), radius: 0 };
 
 /** `CULLED`, a tier, or `IMPOSTOR` for a model standing at (x, y, z), `size`
- *  metres tall and within `radius` of its centre (half its size up). */
+ *  metres tall and within `radius` of its centre (half its size up). A
+ *  model in the air (an airframe) casts its shadow far from itself: given
+ *  where that lands (`shadowAt`, the shadow of its foot), it draws while
+ *  either is in view, so its shadow never pops at the screen's edge. */
 export function modelDetail(
   detail: ModelDetailPresentation,
   view: DetailView,
@@ -67,11 +71,17 @@ export function modelDetail(
   size: number,
   radius: number,
   impostor: boolean,
+  shadowAt: Readonly<Vec3> | null = null,
 ): number {
   const c = _detail_sphere.center;
   vec3.set(c, x, y, z + size / 2);
   _detail_sphere.radius = radius + SHADOW_MARGIN_M;
-  if (!frustum.sidesIntersectsSphere(view.sides, _detail_sphere)) return CULLED;
+  if (!frustum.sidesIntersectsSphere(view.sides, _detail_sphere)) {
+    if (!shadowAt) return CULLED;
+    vec3.set(_shadow_sphere.center, shadowAt[0], shadowAt[1], shadowAt[2] + size / 2);
+    _shadow_sphere.radius = _detail_sphere.radius;
+    if (!frustum.sidesIntersectsSphere(view.sides, _shadow_sphere)) return CULLED;
+  }
   return detailAt(detail, view, size, vec3.distance(c, view.eye), impostor);
 }
 

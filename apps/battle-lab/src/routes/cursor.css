@@ -46,6 +46,12 @@
   margin: 0;
   height: 82px;
 }
+/* Each specimen's arrow tip. */
+.cursor-tip {
+  position: absolute;
+  left: calc(50% - 16px);
+  top: 14px;
+}
 .cursor-grid figcaption {
   position: absolute;
   top: 58px;

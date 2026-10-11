@@ -8,8 +8,6 @@ use contract::maps::{MapCategory, ResolveCode};
 use sim::battle::Battle;
 use sim::maps::Catalogue;
 
-use crate::common;
-
 #[test]
 fn every_saved_map_resolves_by_id_to_the_identity_its_sources_pin() {
     let catalogue = Catalogue::shipped();
@@ -70,14 +68,16 @@ fn a_listing_that_does_not_say_test_or_menu_is_refused() {
 #[test]
 fn every_saved_encounter_makes_a_battle_on_its_map() {
     let catalogue = Catalogue::shipped();
-    // Each map's encounters run on its own catalog set: a test map's on the
-    // test units, the menu's on the menu's units.
-    let test_rules = common::rules();
-    let mut menu = sim::fixtures::game();
-    menu["catalog"] = serde_json::Value::Array(sim::fixtures::catalog_documents(
-        sim::fixtures::CatalogSet::Menu,
-    ));
-    let menu_rules: contract::scenario::Rules = serde_json::from_value(menu).unwrap();
+    // Each map's encounters run on the catalog set its pages run: a test
+    // map's on the test set (labs field the game's units too, the Apache),
+    // the menu's on the menu's set.
+    let rules_of = |set| {
+        let mut game = sim::fixtures::game();
+        game["catalog"] = serde_json::Value::Array(sim::fixtures::catalog_documents(set));
+        serde_json::from_value::<contract::scenario::Rules>(game).unwrap()
+    };
+    let test_rules = rules_of(sim::fixtures::CatalogSet::Test);
+    let menu_rules = rules_of(sim::fixtures::CatalogSet::Menu);
     let mut encounters = 0;
     for id in catalogue.ids() {
         let map = catalogue.load(&id).unwrap().definition;

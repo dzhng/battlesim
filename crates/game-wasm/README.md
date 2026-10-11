@@ -22,6 +22,12 @@ its target/output settings. Generated bindings under `web/src/wasm/` are rebuild
 output, not edited source. Each page or worker initializes its own realm's module;
 sharing a JavaScript loader promise does not share an authority between workers.
 
+A Rust panic traps the call that hit it, and the handle it held stays borrowed:
+every later call then fails with "recursive use of an object", which names
+nothing. [The binding source](src/lib.rs) installs a panic hook that rethrows the
+panic's own message, uncaught, so the page hosting the worker records it with
+its other errors (and its diagnostics report).
+
 [Paired native/WebAssembly records](../../fixtures/README.md#paired-records) prove
 both execution and packed decoding. Float32 observation agreement alone cannot
 prove identical authoritative state; exact battle digests provide that check.

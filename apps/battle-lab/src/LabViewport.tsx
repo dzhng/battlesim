@@ -1,5 +1,6 @@
 import { FrameRate, type FrameRateHandle } from "@web/battle/present/frameRate";
 import { useLabLoading } from "./LabLoading";
+import { diagnosticsSource } from "@web/diagnostics";
 import { useCursorAction, type CursorAction } from "@web/battle/present/gameCursor";
 import { useEffect, useRef, useState } from "react";
 import { gpuFailureMessage } from "@packages/renderer-core/src/device";
@@ -633,10 +634,12 @@ export function LabViewport({
         if (!context) throw new Error("Canvas refused a WebGPU context.");
         canvasContext = context;
         context.configure({ device, format: info.format, alphaMode: "opaque" });
+        // One pixel per CSS pixel, on any display: a high-density screen
+        // scales the battle up rather than drawing it at its own density.
+        // The page's HUD keeps the display's density.
         const syncSize = () => {
-          const dpr = window.devicePixelRatio || 1;
-          const w = Math.max(1, Math.round(canvas.clientWidth * dpr));
-          const h = Math.max(1, Math.round(canvas.clientHeight * dpr));
+          const w = Math.max(1, canvas.clientWidth);
+          const h = Math.max(1, canvas.clientHeight);
           if (canvas.width !== w || canvas.height !== h) {
             canvas.width = w;
             canvas.height = h;
@@ -696,10 +699,22 @@ export function LabViewport({
         };
         let scene = await build();
         if (signal.aborted) return;
+        const adapter = info.description || `${info.vendor} ${info.architecture}`.trim();
         pilot?.attach?.({
-          adapter: info.description || `${info.vendor} ${info.architecture}`.trim(),
+          adapter,
           stats: () => scene.stats(),
         });
+        // What the battle draws, for a player's diagnostics report.
+        signal.addEventListener(
+          "abort",
+          diagnosticsSource("battle view", () => ({
+            adapter,
+            format: info.format,
+            canvas: [canvas.width, canvas.height],
+            gpu: scene.stats().gpu,
+            gpuAllocations: allocations(),
+          })),
+        );
         const draw = () => {
           syncSize();
           // Cleared first: a frame may ask to be drawn again (`requestRedraw`).

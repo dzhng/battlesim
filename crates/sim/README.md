@@ -15,6 +15,15 @@ the same. Seeded randomness and iteration order are part of that contract. A bod
 still where the map authored it is held by one digest of the authored props, taken
 when the world is built, so a tick's digest costs what changed, not the map's size.
 
+Seed a draw by what it decides, never by when it is asked. A draw that settles a
+decision (where a squad stands at its goal, where it steps out of a building) is
+keyed by the unit and that decision, not by the tick. Then the decision lands the
+same whenever it applies, and a preview queried every tick shows what the order
+will do instead of reshuffling. The tick belongs only in a draw for an event that
+happens on that tick, such as one shot's dispersion. A ghost drawn while the
+player is still choosing the point (a purchase being placed) decides nothing: it
+keeps one draw, so it slides with the cursor instead of reshuffling under it.
+
 [Publication](src/publication.rs) exposes only the selected side's observation.
 Geometry, sensing, hearing and knowledge owners decide what that observation may
 contain; the renderer and audio engine do not grant visibility or reveal identities.
@@ -97,6 +106,11 @@ resolution, a roster model's fit, the menu reel).
 What the roster must satisfy is refused where the rules load
 ([catalog resolution](../contract/src/catalog.rs) and the rules' cross-section
 checks), so loading it is its check.
+
+An aircraft is a hull with no ground footprint (`Unit::ground_footprint` is
+`None`): traffic, shoving, cover, treads, forest lanes and forest concealment
+never see it. Its motion (`units::Motion::Air`) never reaches ground
+navigation; a site that only a ground mover reaches asks `Unit::ground`.
 
 Where a mechanic depends on how big or how extreme a unit can be, the extreme
 is data: the rules' `hull_limits` bound every hull a battle may field, loading

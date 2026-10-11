@@ -2465,7 +2465,7 @@ fn a_cannon_loads_ap_against_armour_and_he_once_ap_is_spent() {
 fn a_tank_round_leaves_the_muzzle_past_the_hull_front_on_the_turret_bearing() {
     // The cannon is a realistic gun: its muzzle sits past the hull's front
     // face (about 5.9 m ahead of the hull centre at 2 m: its `mounts` row),
-    // and the turret carries it round the hull origin.
+    // and the turret carries it round its ring.
     let mut b = battle(
         json!([]),
         json!([
@@ -2655,6 +2655,123 @@ fn a_tank_roof_hmg_fires_from_its_own_muzzle_whatever_its_bearing_to_the_turret(
             "{deg}°: launched at {origin:?}, its row puts the muzzle at {expected:?}"
         );
     }
+}
+
+#[test]
+fn a_roof_hmg_on_an_off_centre_turret_rides_the_turret_round_its_ring() {
+    // A turret whose ring sits a metre behind the hull's middle, as on a
+    // front-engined vehicle: as it turns, the roof gun on it swings round
+    // that ring with the turret, never round the hull's middle, so its
+    // rounds still leave the gun the viewer sees on the turret roof.
+    let mut authored = rules();
+    sim::fixtures::patch_catalog(
+        &mut authored,
+        "units",
+        "test_tank",
+        json!({ "mounts": [
+            { "id": "cannon", "pivot_m": [-1.0, 0, 1.45] },
+            { "id": "HMG", "pivot_m": [-1.25, -0.58, 2.35] },
+        ] }),
+    );
+    let rules: contract::scenario::Rules = serde_json::from_value(authored.clone()).unwrap();
+    let (cannon, hmg) = (
+        serde_json::to_value(&rules.catalog.by_id("test_tank").mounts[0]).unwrap(),
+        serde_json::to_value(&rules.catalog.by_id("test_tank").mounts[1]).unwrap(),
+    );
+    // The turret turns onto a tank off to the left of the hull; the roof gun
+    // takes a squad ahead, behind or to the right. The whole scene is laid
+    // out for a hull heading east and again for one heading north, so the
+    // ring is seen to turn with the hull too.
+    let cases = [0.0f64, 90.0]
+        .into_iter()
+        .flat_map(|hull| [-90.0f64, 90.0, 180.0].map(|deg| (hull, deg)));
+    for (hull, deg) in cases {
+        let yaw = hull.to_radians();
+        let at = |r: f64, rel_deg: f64| {
+            let a = yaw + rel_deg.to_radians();
+            [300.0 + r * a.cos(), 300.0 + r * a.sin()]
+        };
+        let mut setup = scenario_with(
+            &map(json!([])),
+            json!([
+                { "side": "blue", "kind": "test_tank", "position": [300, 300], "yaw": yaw },
+                { "side": "red", "kind": "test_tank", "position": at(140.0, 90.0), "yaw": yaw - std::f64::consts::FRAC_PI_2, "engagement": "return_fire_only" },
+                { "side": "red", "kind": "test_rifle", "position": at(80.0, deg + 90.0), "engagement": "return_fire_only" },
+            ]),
+            json!([]),
+            json!([]),
+        );
+        setup.rules = serde_json::from_value(authored.clone()).unwrap();
+        let mut b = Battle::new(&setup, 5);
+        run(&mut b, 1);
+        let tank = b
+            .observe(Side::Blue)
+            .identified
+            .iter()
+            .find(|e| e.kind == common::unit_kind("test_tank"))
+            .expect("the tank ahead is seen")
+            .id;
+        Commander::new().ok(
+            &mut b,
+            Side::Blue,
+            Order::Attack {
+                units: vec![UnitId(0)],
+                target: TargetRef::Identified { id: tank },
+            },
+        );
+        let turned = |b: &[f64]| wrap_deg((b[1] - b[0]).to_degrees());
+        let (origin, bearings) = first_launch(&mut b, 0, "hmg", 30.0, |b| {
+            wrap_deg(turned(b) - deg).abs() < 10.0
+        });
+        let expected = carried_muzzle(
+            &cannon,
+            &hmg,
+            [300.0, 300.0],
+            yaw,
+            (bearings[0], bearings[1]),
+        );
+        let off = (0..3)
+            .map(|i| (origin[i] - expected[i]).powi(2))
+            .sum::<f64>()
+            .sqrt();
+        assert!(
+            off < 0.05,
+            "hull {hull}°, {deg}°: launched at {origin:?}, riding the turret round its ring puts the muzzle at {expected:?}"
+        );
+    }
+}
+
+/// A carried mount's muzzle for a unit at `at` heading `yaw`: its carrier's
+/// ring at the carrier's pivot (turned with the hull), its own pivot turned
+/// round that ring with the carrier's bearing `carried`, its muzzle along
+/// `bearing`.
+fn carried_muzzle(
+    carrier: &Value,
+    row: &Value,
+    at: [f64; 2],
+    yaw: f64,
+    (carried, bearing): (f64, f64),
+) -> [f64; 3] {
+    let v = |r: &Value, key: &str| -> Vec<f64> {
+        r[key]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|x| x.as_f64().unwrap())
+            .collect()
+    };
+    let (ring, pivot, muzzle) = (v(carrier, "pivot_m"), v(row, "pivot_m"), v(row, "muzzle_m"));
+    let turn = |x: f64, y: f64, by: f64| [x * by.cos() - y * by.sin(), x * by.sin() + y * by.cos()];
+    let r = turn(ring[0], ring[1], yaw);
+    let (a, b) = (
+        turn(pivot[0] - ring[0], pivot[1] - ring[1], carried),
+        turn(muzzle[0], muzzle[1], bearing),
+    );
+    [
+        at[0] + r[0] + a[0] + b[0],
+        at[1] + r[1] + a[1] + b[1],
+        pivot[2] + muzzle[2],
+    ]
 }
 
 /// A mount row's muzzle for a unit at `at` (hull yaw 0) whose carrier points

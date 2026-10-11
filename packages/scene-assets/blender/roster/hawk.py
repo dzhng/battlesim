@@ -1,5 +1,5 @@
 """UH-60M Black Hawk and Z-20, from assets/references/uh_60_black_hawk/ and
-assets/references/z_20/. Disabled cards.
+assets/references/z_20/.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/hawk.py -- [--variant=<card>] [--wreck]
 
@@ -13,10 +13,13 @@ struts under the cabin and a tail wheel. The UH-60M: four wide-chord
 blades, door guns, Army green. The Z-20: five blades, a slimmer nose and
 fairing, PLA grey.
 
-Dimensions stated from published figures (the rule for every rotorcraft
-here: fuselage length nose to tail without blades, width over the widest
-fixed part, height to the top of the main rotor head): UH-60M 15.26 x 4.38
-x 3.76 m; Z-20 15.4 x 4.4 x 3.9 m.
+Built to the catalog frame, from published figures (the rule for every
+rotorcraft here: fuselage length nose to tail without blades, width over the
+widest fixed part, height to the top of the main rotor head): UH-60M 15.26 x
+4.38 x 3.76 m; Z-20 15.4 x 4.4 x 3.9 m.
+
+The gun in the left gunner's window is the `door` mount's HMG rig (on the
+UH-60M the right one stays stowed, the hull's; the Z-20 carries the one).
 """
 import math
 import os
@@ -25,18 +28,26 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
 from parts import box, cyl  # noqa: E402
-from vehicle_export import run_disabled  # noqa: E402
+from vehicle_export import rig, run  # noqa: E402
 from vehicle_parts import MID, NEAR  # noqa: E402
 
 UH60, Z20 = "us_uh_60_black_hawk_uh_60m", "eastern_z_20_utility_transport"
-CARDS = {UH60: (15.26, 4.38, 3.76), Z20: (15.4, 4.4, 3.9)}
+# The door gun's elevation on its pintle, degrees.
+DOOR_PITCH_DEG = (-60.0, 20.0)
+# The published length, width and height to the top of the rotor head,
+# metres, that the art is drawn to (the hull's box is the airframe's, under
+# the rotor).
+PUBLISHED_M = {UH60: (15.26, 4.38, 3.76), Z20: (15.4, 4.4, 3.9)}
 SCHEME = {UH60: "us_army_aviation", Z20: "chinese_air_grey"}
+# How far forward the airframe's parts (placed in their drawing's frame)
+# move to centre on the hull box.
+AFT_M = {UH60: 0.275, Z20: 0.275}
 
 
 def spec(variant):
     z20 = variant["id"] == Z20
-    nose = CARDS[variant["id"]][0] / 2
-    tail = -CARDS[variant["id"]][0] / 2
+    nose = PUBLISHED_M[variant["id"]][0] / 2
+    tail = -nose
     return dict(
         # The photos: a short, tall cabin under the engines' hump, the
         # mains forward under the cockpit's back, the tail wheel far aft.
@@ -62,9 +73,8 @@ def build(variant, v):
     z20 = variant["id"] == Z20
     m = A.jet(v, s)
     hull = v.hull
-    length = CARDS[variant["id"]][0]
+    length, _, height = PUBLISHED_M[variant["id"]]
     tail = -length / 2
-    height = CARDS[variant["id"]][2]
     # The engines either side of the transmission, their exhausts turned out.
     for side, k in ((1, "L"), (-1, "R")):
         A.body(f"nacelle_{k}", [(2.8, 0.0, 2.6, 2.6), (2.5, 0.34, 2.3, 2.92, 2.6), (0.0, 0.34, 2.28, 2.9, 2.58),
@@ -77,9 +87,10 @@ def build(variant, v):
         box(f"cabin_window_{k}", (0.5, 0.03, 0.42), (1.6, side * 1.075, 1.55), m["glass"], hull, lods=MID)
         box(f"cockpit_window_{k}", (0.9, 0.03, 0.55), (length / 2 - 2.3, side * 0.98, 1.55), m["glass"], hull,
             lods=MID)
-        if not z20:
-            # The door gun on its mount in the cabin window.
+        if not z20 and side < 0:
+            # The right door gun stowed on its mount in the cabin window.
             cyl(f"door_gun_{k}", 0.03, 1.1, (2.2, side * 1.2, 1.5), "X", m["steel"], hull, seg=6, lods=NEAR)
+    A.door_gun(v, rig(v.frame, v.root), m, DOOR_PITCH_DEG, inboard=0.2, gun="kord" if z20 else "m2")
     cyl("mast", 0.2, 0.75, (0.3, 0, 2.95), "Z", m["dark"], hull, seg=12)
     A.rotor("main", (0.3, 0, height - 0.22), 8.18 if not z20 else 8.2, 4 if not z20 else 5, 0.53, m, hull,
             hub=0.42, mast=0.0, droop=0.025, phase=0.4)
@@ -102,9 +113,14 @@ def build(variant, v):
             ("insignia", dict(kind="cn_star", centre=(-3.0, 1.2, 1.72), normal=(0, 1, 0), up=(0, 0, 1), size=0.3, onto=("fuselage",))),
             ("text", dict(text="20", height=0.4, centre=(3.0, 1.2, 1.5), normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",), colour="red")),
         ])
+    # The airframe as drawn runs off the frame's middle; the frame (and the
+    # mounts' pivots in it) is centred on the hull box.
+    v.hull.location.x += AFT_M[variant["id"]]
+
 
 def wreck(variant, v):
-    A.crash(v, tail_x=-3.0, tail_yaw=0.45, tail_drop=0.1, blades_broken=(("main", 1), ("main", 3)), seed=60)
+    A.rotorcraft_crash(v, tail_x=-3.0, tail_yaw=0.35, tail_drop=0.1, seed=60)
 
 
-run_disabled("hawk", CARDS, SCHEME, build, wreck, skip=("dressing_", "blade_"))
+run("hawk", SCHEME, build, wreck,
+    references=["assets/references/uh_60_black_hawk/references.json", "assets/references/z_20/references.json"])

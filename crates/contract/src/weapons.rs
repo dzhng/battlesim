@@ -69,6 +69,10 @@ pub struct WeaponDefinition {
     /// Armour-piercing: preferred against identified vehicles, never at contacts.
     #[serde(default)]
     pub armor_piercing: bool,
+    /// The altitude layers it can engage (D1): what its crew can bring it to
+    /// bear on. A rifle, a machine gun or an autocannon swings up at a
+    /// helicopter; a tank gun, a grenade or a ground missile cannot.
+    pub targets: Vec<crate::catalog::AltitudeLayer>,
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
@@ -139,9 +143,10 @@ pub struct MountDefinition {
     /// roof gun on the cannon's turret). Absent, the hull carries it.
     #[serde(default)]
     pub on: Option<String>,
-    /// Where this mount turns, in its carrier's frame (forward, left, up
-    /// from the hull or infantry operator origin), turned by the carrier's bearing (or the
-    /// hull's yaw).
+    /// Where this mount turns, in the hull's frame at rest (forward, left, up
+    /// from the hull or infantry operator origin). A mount `on` a turret
+    /// swings round that turret's pivot with its bearing; a hull mount turns
+    /// with the hull's yaw.
     #[serde(default)]
     pub pivot_m: [f64; 3],
     /// Its muzzle from the pivot (forward, left, up), turned by this
@@ -230,6 +235,9 @@ pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponR
                     }
                     if def.ballistics.turn_deg_s.is_some_and(|rate| !rate.is_finite() || rate <= 0.0) {
                         return Err(serde::de::Error::custom("turn_deg_s must be finite and positive"));
+                    }
+                    if def.ballistics.turn_deg_s.is_some() != def.ballistics.guidance.is_some() {
+                        return Err(serde::de::Error::custom("a guided row (turn_deg_s) states its guidance, and only a guided row"));
                     }
                     if let Some(m) = def.magazine {
                         if m.rounds < 2 || !m.shot_interval_s.is_finite() || m.shot_interval_s <= 0.0

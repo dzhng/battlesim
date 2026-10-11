@@ -580,6 +580,40 @@ pub struct Rules {
     pub buildings: BuildingRules,
     pub garrison: GarrisonRules,
     pub hull_limits: HullLimits,
+    pub air: AirRules,
+}
+
+/// The heights every aircraft flies at, one rule for the whole battle (D25):
+/// it cruises `cruise_agl_m` above the ground, climbs to `clearance_m` over
+/// anything taller, never above `ceiling_agl_m`, and routes around any body
+/// whose top stands more than `obstacle_m` above its ground.
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AirRules {
+    pub cruise_agl_m: f64,
+    pub clearance_m: f64,
+    pub ceiling_agl_m: f64,
+    pub obstacle_m: f64,
+    /// Aircraft closer than this, centre to centre, drift apart.
+    pub separation_m: f64,
+}
+
+impl AirRules {
+    fn check(&self) -> Result<(), String> {
+        let ok = self.cruise_agl_m > 0.0
+            && self.clearance_m > 0.0
+            && self.obstacle_m + self.clearance_m <= self.ceiling_agl_m
+            && self.cruise_agl_m <= self.ceiling_agl_m
+            && self.separation_m > 0.0;
+        if ok {
+            Ok(())
+        } else {
+            Err(
+                "air: heights must be positive, cruise and obstacle + clearance within the ceiling"
+                    .into(),
+            )
+        }
+    }
 }
 
 /// The largest hull each drive may have: what the map generator and the
@@ -591,6 +625,8 @@ pub struct Rules {
 pub struct HullLimits {
     pub tracked: DriveLimits,
     pub wheeled: DriveLimits,
+    /// An aircraft's hull, without its rotor disc.
+    pub air: DriveLimits,
 }
 
 /// One drive's largest hull; a tracked hull pivots and has no turn limit.
@@ -615,7 +651,9 @@ impl HullLimits {
                 Mobility::Wheeled {
                     turning_radius_m, ..
                 } => ("wheeled", &self.wheeled, Some(turning_radius_m)),
-                _ => continue,
+                Mobility::Air { .. } => ("air", &self.air, None),
+                // A squad has no hull; the catalog refuses a hull on foot.
+                Mobility::Foot { .. } => continue,
             };
             let [length, width, _] = hull.half_extents_m;
             let past = [
@@ -668,6 +706,7 @@ struct UncheckedRules {
     buildings: BuildingRules,
     garrison: GarrisonRules,
     hull_limits: HullLimits,
+    air: AirRules,
 }
 
 impl TryFrom<UncheckedRules> for Rules {
@@ -681,6 +720,7 @@ impl TryFrom<UncheckedRules> for Rules {
             ("forests", r.forests.check(&r.catalog)),
             ("formation", r.formation.check()),
             ("commands", r.commands.check()),
+            ("air", r.air.check()),
         ] {
             checked.map_err(|error| crate::catalog::CatalogError::Invalid {
                 section: "rules",
@@ -711,6 +751,7 @@ impl TryFrom<UncheckedRules> for Rules {
             buildings: r.buildings,
             garrison: r.garrison,
             hull_limits: r.hull_limits,
+            air: r.air,
         })
     }
 }

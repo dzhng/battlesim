@@ -52,6 +52,7 @@ test("the production observed feed launches own and enemy rounds by shooter and 
           : [],
       blasts: [],
       knownProps: [],
+      crashes: [],
     }) as unknown as ObservationView;
   const launches = new LaunchTracker();
   expect(launches.note(effectPublication(observation(1), "blue", UNITS), false)).toEqual([]);

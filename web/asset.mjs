@@ -12,10 +12,11 @@
 //                          git lfs pull exactly the runtime bundles (and sources) of the named entries
 //   blender <script.py> [args...]
 //                          run a Blender script headless on the pinned Blender
-//   sheet <appearance|glb> [--out DIR] [--accept] [--unit U] [--type T] [--yaw DEG] [--side blue|red] [--references [--variant V]]
+//   sheet <appearance|glb> [--out DIR] [--accept] [--unit U] [--type T] [--yaw DEG] [--clips GLB] [--side blue|red] [--references [--variant V]]
 //                          the workbench's contact sheet, strips, surface (close views
 //                          and each texture channel's part), texture preview, stats and impostor
 //                          atlas, rendered headless by the production renderer;
+//                          --clips gives a loose skinned GLB its skeleton's clips;
 //                          --references adds reference.png, each view beside its roster family's
 //                          reference of the same view (missing and generated marked), for the
 //                          reference variant V (default: the appearance's name; a kit's army look);
@@ -542,6 +543,7 @@ async function sheet(args) {
       unit: { type: "string" },
       type: { type: "string" },
       yaw: { type: "string" },
+      clips: { type: "string" },
       side: { type: "string" },
       references: { type: "boolean" },
       variant: { type: "string" },
@@ -550,7 +552,7 @@ async function sheet(args) {
   const [target] = positionals;
   if (!target)
     throw new Error(
-      "sheet <appearance|glb> [--out DIR] [--accept] [--unit U] [--type T] [--yaw DEG] [--side blue|red] [--references [--variant V]]",
+      "sheet <appearance|glb> [--out DIR] [--accept] [--unit U] [--type T] [--yaw DEG] [--clips GLB] [--side blue|red] [--references [--variant V]]",
     );
   const file = target.endsWith(".glb") && existsSync(target) ? target : null;
   const side = values.side ?? "blue";
@@ -576,7 +578,13 @@ async function sheet(args) {
     });
     if (file)
       await page.evaluate(
-        ([n, bytes, opts]) => window.__workbench.drop(n, new Uint8Array(bytes), opts),
+        ([n, bytes, opts]) =>
+          window.__workbench.drop(n, new Uint8Array(bytes), {
+            ...opts,
+            ...(opts.clips
+              ? { clips: { path: opts.clips.path, bytes: new Uint8Array(opts.clips.bytes) } }
+              : {}),
+          }),
         [
           basename(file),
           Array.from(readFileSync(file)),
@@ -584,6 +592,14 @@ async function sheet(args) {
             ...(values.unit ? { unit: values.unit } : {}),
             ...(values.type ? { type: values.type } : {}),
             ...(values.yaw !== undefined ? { yaw: Number(values.yaw) } : {}),
+            ...(values.clips
+              ? {
+                  clips: {
+                    path: repoPath(values.clips),
+                    bytes: Array.from(readFileSync(values.clips)),
+                  },
+                }
+              : {}),
           },
         ],
       );

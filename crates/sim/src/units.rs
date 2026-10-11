@@ -1,7 +1,7 @@
 //! Units as the authority holds them: bodies, squads, orders and movement state.
 use std::collections::{BTreeSet, VecDeque};
 
-use contract::catalog::{Mobility as Moves, TypeIndex, UnitType};
+use contract::catalog::{AltitudeLayer, Mobility as Moves, TypeIndex, UnitType};
 use contract::command::{Engagement, MoveDirection, RoutePolicy};
 use contract::ids::{Side, UnitId};
 use contract::map::MoverClass;
@@ -14,6 +14,9 @@ use crate::math::{Obb2, Rotation, V2, V3};
 use crate::navigation::Mobility;
 use crate::weapons::{Mount, Target};
 use crate::world::PropId;
+
+/// An aircraft smokes below this share of its health (D34).
+const SMOKING_HP_SHARE: f64 = 0.5;
 
 /// One soldier: a body of his own (L4–L6). He stands on the ground at his
 /// own position, or at his building slot while garrisoned; nothing places
@@ -229,7 +232,7 @@ pub struct Unit {
     pub withdrawing: bool,
     pub position: V3,
     pub yaw: f64,
-    pub mobility: Mobility,
+    pub motion: Motion,
     /// Vehicle hull half extents (length, width, height); infantry use members.
     pub hull: Option<V3>,
     pub members: Vec<Soldier>,
@@ -240,8 +243,9 @@ pub struct Unit {
     pub planned_goal: Option<V2>,
     /// Remaining waypoints of the current order, once planned.
     pub route: Option<Vec<V2>>,
-    /// Where a squad's corridor runs from to its first remaining waypoint:
-    /// the planning start, then the last waypoint every soldier passed.
+    /// Where a squad's corridor or an aircraft's leg runs from to its first
+    /// remaining waypoint: the planning start, then the last waypoint passed
+    /// (by every soldier, for a squad).
     pub route_from: V2,
     pub state: MoveState,
     pub blocker: Option<UnitId>,
@@ -293,12 +297,55 @@ pub struct Unit {
     pub reversing: bool,
     /// Actual accepted hull speed; negative while reversing.
     pub drive_speed_mps: f64,
-    /// A tracked vehicle's ordered facing (Q9), still to pivot to at rest.
+    /// A tracked vehicle's or an aircraft's ordered facing (Q9), still to
+    /// turn to at rest.
     pub turn_to: Option<f64>,
+    /// An aircraft's flight; `None` on the ground.
+    pub air: Option<AirState>,
 }
 
-/// How a unit of type `t` moves: on foot, or by its drive (Q29, Q30).
-pub fn mobility(t: &UnitType, rules: &Rules) -> Mobility {
+/// What an aircraft carries from tick to tick.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct AirState {
+    /// Over the ground, metres a second.
+    pub velocity: V2,
+}
+
+/// How a unit moves: over the ground, planned on the navigation grid, or
+/// through the air, where no ground rule reaches it.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Motion {
+    Ground(Mobility),
+    Air(Flight),
+}
+
+/// An aircraft's own numbers; its heights are the rules' `air` section.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Flight {
+    pub cruise_mps: f64,
+    pub turn_rad_s: f64,
+    pub climb_mps: f64,
+}
+
+/// How a unit of type `t` moves.
+pub fn motion(t: &UnitType, rules: &Rules) -> Motion {
+    match t.mobility {
+        Moves::Air {
+            cruise_kmh,
+            turn_deg_s,
+            climb_mps,
+        } => Motion::Air(Flight {
+            cruise_mps: cruise_kmh / 3.6,
+            turn_rad_s: turn_deg_s.to_radians(),
+            climb_mps,
+        }),
+        _ => Motion::Ground(ground_mobility(t, rules).expect("a ground mover")),
+    }
+}
+
+/// How a ground unit of type `t` moves: on foot, or by its drive (Q29, Q30);
+/// `None` for an aircraft, which never touches ground navigation.
+pub fn ground_mobility(t: &UnitType, rules: &Rules) -> Option<Mobility> {
     let m = &rules.movement;
     let (off_road_mps, road_mps) = t.mobility.speeds_mps();
     let vehicle = |drive| Mobility {
@@ -310,7 +357,8 @@ pub fn mobility(t: &UnitType, rules: &Rules) -> Mobility {
         push: t.hull().expect("a vehicle has a hull").push_class,
         drive: Some(drive),
     };
-    match t.mobility {
+    Some(match t.mobility {
+        Moves::Air { .. } => return None,
         Moves::Foot { .. } => Mobility {
             off_road_mps,
             road_mps,
@@ -343,7 +391,7 @@ pub fn mobility(t: &UnitType, rules: &Rules) -> Mobility {
             reverse_fraction,
             feel: m.drive,
         }),
-    }
+    })
 }
 
 /// Driving rules the vehicle motion model divides and eases by. (Each unit
@@ -394,6 +442,38 @@ impl Unit {
     }
     pub fn is_vehicle(&self) -> bool {
         self.hull.is_some()
+    }
+
+    /// Flies: no ground rule (traffic, shoving, cover, treads, forest lanes,
+    /// concealment) reaches it.
+    pub fn airborne(&self) -> bool {
+        matches!(self.motion, Motion::Air(_))
+    }
+
+    /// It trails smoke (D19, D34): an aircraft below half its health. What a
+    /// viewer sees of its damage, own or enemy; never its health itself.
+    pub fn smoking(&self, rules: &Rules) -> bool {
+        self.airborne()
+            && self.alive()
+            && (self.unit_type(rules).hull()).is_some_and(|h| self.hp < SMOKING_HP_SHARE * h.hp)
+    }
+
+    /// The height band it occupies, which decides what can engage it.
+    pub fn layer(&self) -> AltitudeLayer {
+        if self.airborne() {
+            AltitudeLayer::LowAir
+        } else {
+            AltitudeLayer::Ground
+        }
+    }
+
+    /// How it moves over the ground. Only ground movement, routing and
+    /// placement ask, and an aircraft never reaches them.
+    pub fn ground(&self) -> &Mobility {
+        match &self.motion {
+            Motion::Ground(m) => m,
+            Motion::Air(_) => panic!("an aircraft never reaches ground movement"),
+        }
     }
 
     /// A squad stands where its living soldiers stand: their centroid. Called
@@ -483,6 +563,9 @@ impl Unit {
             d.f64(self.drive_speed_mps);
         }
         d.opt_f64(self.turn_to);
+        if let Some(a) = self.air {
+            d.f64(a.velocity.x).f64(a.velocity.y);
+        }
         match self.manoeuvre {
             Some(m) => d.u64(1).f64(m.turn).f64(m.driven_m),
             None => d.u64(0),
@@ -601,6 +684,10 @@ impl Unit {
         d.u64(self.engagement as u64)
             .u64(self.reach.can_engage as u64)
             .u64(self.reach.needs_closer as u64);
+        // Only a gun fixed in a hull sets it, so other units keep their digests.
+        if let Some(face) = self.reach.face {
+            d.f64(face);
+        }
         d.u64(self.attackers.len() as u64);
         for a in &self.attackers {
             d.u64(a.0 as u64);
@@ -620,9 +707,11 @@ impl Unit {
         }
     }
 
-    /// The hull's ground footprint, for vehicles.
-    pub fn hull_box(&self) -> Option<Obb2> {
-        self.hull.map(|h| Obb2 {
+    /// The hull's footprint on the ground: what traffic waits for, soldiers
+    /// step out of and lean on. `None` for a squad and for an aircraft, which
+    /// stands on nothing.
+    pub fn ground_footprint(&self) -> Option<Obb2> {
+        self.hull.filter(|_| !self.airborne()).map(|h| Obb2 {
             center: self.position.xy(),
             yaw: self.yaw,
             half: h.xy(),

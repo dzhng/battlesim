@@ -38,7 +38,10 @@ export function BenchmarkResults({
     TITLE[outcome.status] ||
     (report.length === "short" ? "Short run result" : "Five-minute result");
   const headline: [string, string, string?][] = [
-    ["Average FPS", fmt(report.averageFps)],
+    ["Average FPS", fmt(report.frameRate?.average)],
+    ["1% low FPS", fmt(report.frameRate?.low1)],
+    ["Minimum FPS", fmt(report.frameRate?.minimum)],
+    ["Maximum FPS", fmt(report.frameRate?.maximum)],
     ["Median frame", fmt(report.frameMs?.p50), "ms"],
     ["95th percentile", fmt(report.frameMs?.p95), "ms"],
     ["99th percentile", fmt(report.frameMs?.p99), "ms"],

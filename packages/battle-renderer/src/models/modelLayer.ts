@@ -39,7 +39,7 @@
 // any static model, with their own record buffers and draw ranges.
 
 import { tgpu, d, std } from "typegpu";
-import { mat4, type Mat4 } from "math";
+import { mat4, vec3, type Mat4 } from "math";
 import type {
   ArticulatedBundle,
   Bounds,
@@ -699,6 +699,9 @@ export interface CardAtlas {
   atlas: ImpostorAtlas;
 }
 
+/** Where an airframe's shadow lands, as `pack` tests it. */
+const _pack_shadow = vec3.create();
+
 /** A corpse population, chunked when it changes (`setCorpses`). */
 interface Corpses {
   count: number;
@@ -1347,19 +1350,30 @@ export async function createModelLayer(
       // A fitted prop's reach grows with its largest scale, and a moving
       // piece's by how far it has moved.
       const grow = inst.scale ? Math.max(inst.scale[0], inst.scale[1], inst.scale[2]) : 1;
-      const motion = inst.pose.kind === "static" ? inst.pose.motion : undefined;
+      const motion =
+        inst.pose.kind === "static" || inst.pose.kind === "articulated"
+          ? inst.pose.motion
+          : undefined;
       const moved = motion ? grow * Math.hypot(motion[12], motion[13], motion[14]) : 0;
-      // A card shows its bundle's first state, at rest: a piece of it, or one
-      // in motion, is drawn as a mesh however far.
+      // A card shows its bundle's first state, at rest: a piece of it, or a
+      // model in motion, is drawn as a mesh however far.
       const carded =
         !inst.ghost &&
         card >= 0 &&
+        !motion &&
         (inst.pose.kind !== "static" ||
-          (!motion &&
-            gpu.bundle.kind === "static" &&
-            inst.pose.state === gpu.bundle.states[0]?.name));
+          (gpu.bundle.kind === "static" && inst.pose.state === gpu.bundle.states[0]?.name));
       if (inst.tier !== undefined || !view) tier = Math.min(tiers - 1, Math.max(0, inst.tier ?? 0));
-      else
+      else {
+        // An airframe's shadow lands its lift along the sun's fall.
+        const lift = inst.lift ?? 0;
+        if (lift > 0)
+          vec3.set(
+            _pack_shadow,
+            inst.x + shadowFall[0] * lift,
+            inst.y + shadowFall[1] * lift,
+            inst.z - lift,
+          );
         tier = modelDetail(
           detail,
           view,
@@ -1369,7 +1383,9 @@ export async function createModelLayer(
           (lying ? gpu.corpseSize : gpu.size) * grow,
           (lying ? gpu.corpseRadius : gpu.radius) * grow + moved,
           carded,
+          lift > 0 ? _pack_shadow : null,
         );
+      }
       if (tier === CULLED) {
         culled++;
         if (inst.pose.kind === "skinned") culledBodies++;
@@ -1530,11 +1546,14 @@ export async function createModelLayer(
         const nodes = (bundle as ArticulatedBundle).nodes;
         const locals = articulate(gpu.locals, nodes, gpu.rig!, input);
         // Node worlds in place (parents precede children), into the palette.
+        // A whole-model motion (a falling airframe's tilt) carries every root.
         const { parents, worlds } = gpu;
+        const motion = inst.pose.kind === "articulated" ? inst.pose.motion : undefined;
         for (let j = 0; j < parents.length; j++) {
           const w = worlds[j];
           mat4.fromRotationTranslationScale(w, locals[j].r, locals[j].t, locals[j].s);
           if (parents[j] >= 0) mat4.multiply(w, worlds[parents[j]], w);
+          else if (motion) mat4.multiply(w, motion, w);
           paletteStaging.set(w, (base + j) * 16);
         }
         const scroll = trackScroll(gpu.rig!, input);
@@ -1680,6 +1699,9 @@ export async function createModelLayer(
   let viewKey = "";
   /** The detail view the last frame packed at (null, exact, before any frame). */
   let lastView: DetailView | null = null;
+  /** Where the sun's shadows fall, metres across the ground per metre of
+   *  height, as the last frame was prepared. */
+  const shadowFall: [number, number] = [0, 0];
 
   /** Pose the last packing's skinned models: the kernel writes their palette. */
   function encodePose(raw: GPUCommandEncoder) {
@@ -1785,6 +1807,8 @@ export async function createModelLayer(
      *  shadows fall for it), when anything changed. */
     prepare(view: DetailView, key: string, shadow: SunShadow) {
       buildings.prepare(view, key, shadow);
+      shadowFall[0] = shadow.fall[0];
+      shadowFall[1] = shadow.fall[1];
       if (!dirty && key === viewKey) return;
       viewKey = key;
       lastView = view;

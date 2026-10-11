@@ -660,7 +660,7 @@ fn killed_driving(props: Value) -> ([f64; 2], f64, f64, [f64; 2]) {
     }
     let (at, speed) = last.expect("it drove");
     assert!(!b.unit(UnitId(0)).unwrap().alive(), "blue's tank survived");
-    let braking = b.unit(UnitId(0)).unwrap().mobility.road_mps
+    let braking = b.unit(UnitId(0)).unwrap().ground().road_mps
         / rules()["movement"]["drive"]["wreck_stop_s"]
             .as_f64()
             .unwrap();

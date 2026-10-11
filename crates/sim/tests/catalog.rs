@@ -549,7 +549,7 @@ fn a_hull_past_its_drives_limits_is_refused_at_load() {
         ),
         (
             "test_tank",
-            json!({ "body": { "hull": { "half_extents_m": [4.3, 1.8, 1.2] } } }),
+            json!({ "body": { "hull": { "half_extents_m": [4.9, 1.8, 1.2] } } }),
             "tracked half length",
         ),
         (

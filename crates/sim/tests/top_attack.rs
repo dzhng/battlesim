@@ -18,7 +18,7 @@ use sim::math::{v3, V3};
 /// up off the launcher, holds a loft a viewer reads at play camera and
 /// pitches over steeply. At the generic row's 60°/s the pitch-over comes too
 /// close for its turn radius and the missile loops or overshoots
-/// (`specs/ground-admission/assets/top-attack/`).
+/// (`specs/done/ground-admission/assets/top-attack/`).
 fn top_attack_row() -> WeaponBallistics {
     WeaponBallistics {
         turn_deg_s: Some(360.0),

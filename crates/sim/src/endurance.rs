@@ -82,7 +82,9 @@ pub fn city_scenario(
     let mut placed: Vec<crate::math::V2> = Vec::new();
     for unit in setup.units.iter_mut().filter(|u| u.condition.is_none()) {
         let wanted = crate::math::v2(unit.position[0], unit.position[1]);
-        let mobility = crate::units::mobility(setup.rules.catalog.by_id(&unit.kind), &setup.rules);
+        let mobility =
+            crate::units::ground_mobility(setup.rules.catalog.by_id(&unit.kind), &setup.rules)
+                .expect("endurance places ground units");
         let mut found = None;
         'search: for ring in 0i32..=20 {
             for y in -ring..=ring {

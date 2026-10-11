@@ -104,7 +104,7 @@ fn a_vehicle_shoves_only_bodies_strictly_lighter_than_its_push_class() {
             let mut entered = false;
             for _ in 0..(30.0 * r.tick_hz as f64) as u64 {
                 b.step();
-                let hull = b.unit(UnitId(0)).unwrap().hull_box().unwrap();
+                let hull = b.unit(UnitId(0)).unwrap().ground_footprint().unwrap();
                 let prop = b.world().prop(BODY).unwrap().footprint();
                 entered |= hull.separation(&prop).is_some_and(|v| v.length() > 0.05);
             }

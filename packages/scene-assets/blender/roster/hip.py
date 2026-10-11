@@ -1,4 +1,4 @@
-"""Mi-8AMTSh, from assets/references/mi_8_hip/. A disabled card.
+"""Mi-8AMTSh, from assets/references/mi_8_hip/.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/hip.py -- [--wreck]
 
@@ -10,9 +10,12 @@ stabilator, the clamshell doors at the rear, fixed tricycle gear; the
 AMTSh's outriggers with rocket pods, the armour plates and the exhaust
 suppressors. Army camouflage.
 
-Dimensions stated from published figures (rotorcraft rule: fuselage length
-without blades, width over the outrigger stores, height to the top of the
-rotor head): 18.17 x 5.6 x 4.76 m.
+Built to the catalog frame, from published figures (rotorcraft rule:
+fuselage length without blades, width over the outrigger stores, height to
+the top of the rotor head): 18.17 x 5.6 x 4.76 m.
+
+The gun swung out of the forward left door is the `door` mount's HMG rig;
+the outriggers' pods are the airframe's art (its card fields the gun alone).
 """
 import math
 import os
@@ -21,10 +24,11 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
 from parts import box, cyl  # noqa: E402
-from vehicle_export import run_disabled  # noqa: E402
+from vehicle_export import rig, run  # noqa: E402
 from vehicle_parts import MID  # noqa: E402
 
-CARDS = {"eastern_mi_8_hip_mi_8amtsh": (18.17, 5.6, 4.76)}
+# The door gun's elevation on its pintle, degrees.
+DOOR_PITCH_DEG = (-60.0, 20.0)
 SPEC = dict(
     fuselage=[(9.08, 0.0, 1.35, 1.35), (8.7, 0.7, 0.75, 2.05, 1.35, 2.2), (7.6, 1.05, 0.55, 2.6, 1.45, 2.8),
               (5.6, 1.18, 0.5, 2.85, 1.55, 3.5), (0.0, 1.18, 0.5, 2.85, 1.55, 3.5), (-1.9, 1.05, 0.7, 2.8, 1.7, 3.0),
@@ -41,6 +45,9 @@ SPEC = dict(
     pylons=[((1.2, 1.7, 1.75), 0.7, 0.2), ((1.2, 2.45, 1.8), 0.7, 0.2)],
     stores=[("pod", (1.1, 1.7, 1.33), 1.7, 0.25), ("pod", (1.1, 2.45, 1.38), 1.7, 0.25)],
 )
+# How far forward the airframe's parts (placed in their drawing's frame)
+# move to centre on the hull box.
+AFT_M = 0.047
 
 
 def build(variant, v):
@@ -63,15 +70,20 @@ def build(variant, v):
             rot=(math.pi / 2, 0, 0), thick=0.12)
     box("tail_pylon", (0.9, 0.36, 1.4), (-8.55, 0, 2.95), m["paint"], hull, bevel=0.04, rot=(0, -0.3, 0))
     A.blade_antenna("antenna_belly", (-1.0, 0, 0.55), 0.3, m, hull, down=True)
+    A.door_gun(v, rig(v.frame, v.root), m, DOOR_PITCH_DEG, inboard=0.15, gun="kord")
 
     # The VVS's red star on the boom, a red bort number on the nose.
     A.markings(v, [
         ("insignia", dict(kind="ru_star", centre=(-5.0, 1.2, 2.25), normal=(0, 1, 0), up=(0, 0, 1), size=0.3, onto=("fuselage",))),
         ("text", dict(text="52", height=0.5, centre=(6.0, 1.2, 1.8), normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",), colour="red")),
     ])
+    # The airframe as drawn runs off the frame's middle; the frame (and the
+    # mounts' pivots in it) is centred on the hull box.
+    v.hull.location.x += AFT_M
+
 
 def wreck(variant, v):
-    A.crash(v, tail_x=-3.4, tail_yaw=0.35, tail_drop=0.08, blades_broken=(("main", 1), ("main", 4)), seed=8)
+    A.rotorcraft_crash(v, tail_x=-3.4, tail_yaw=0.35, tail_drop=0.08, seed=8)
 
 
-run_disabled("hip", CARDS, "russian_helicopter_camo", build, wreck, skip=("dressing_", "blade_"))
+run("hip", "russian_helicopter_camo", build, wreck, references="assets/references/mi_8_hip/references.json")

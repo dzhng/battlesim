@@ -87,7 +87,7 @@ export function frameCostRow(report: BenchmarkReport, slice: string): string {
   const heap = report.memory.peakHeapBytes;
   const note = [
     `${report.scenario.id} v${report.scenario.version}, tour ${report.scenario.cameraScript}, ${report.identity?.viewport.join("×")} DPR ${report.identity?.dpr}`,
-    `${report.averageFps?.toFixed(1)} FPS average, ${report.framesOver33ms} frames over 33 ms`,
+    `${report.frameRate?.average.toFixed(1)} FPS average, ${report.frameRate?.low1.toFixed(1)} 1% low, ${report.framesOver33ms} frames over 33 ms`,
     `CPU p50/p95 ${ms(report.cpuMs?.p50)}/${ms(report.cpuMs?.p95)} ms`,
     `sim ${(s.simulatedSeconds / (report.recordedMs / 1000)).toFixed(2)}× real time from tick ${s.startTick} to ${s.endTick}, step p50/p95 ${ms(report.ticks.stepMs?.p50)}/${ms(report.ticks.stepMs?.p95)} ms`,
     heap === null

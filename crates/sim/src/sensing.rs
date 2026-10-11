@@ -144,8 +144,12 @@ fn samples(unit: &Unit) -> Vec<(Option<usize>, V3)> {
 }
 
 /// Detection multiplier for a target sample: the strongest concealment of
-/// its forest ground and, for a garrisoned squad, its building.
+/// its forest ground and, for a garrisoned squad, its building. An aircraft
+/// flies above both.
 fn target_concealment(world: &WorldGeometry, target: &Unit, at: V3, rules: &Rules) -> f64 {
+    if target.airborne() {
+        return 1.0;
+    }
     let s = &rules.sensors;
     let shelter = crate::garrison::shelter(target, rules);
     world

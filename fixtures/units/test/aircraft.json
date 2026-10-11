@@ -1,0 +1,36 @@
+{
+  "units": {
+    "test_heli": {
+      "name": "Helicopter",
+      "description": "A small utility helicopter on skids with a door HMG, flying in the low-air layer.",
+      "faction": "generic",
+      "family": "aircraft",
+      "roles": ["light_vehicle"],
+      "cost": 180,
+      "body": {
+        "hull": {
+          "half_extents_m": [7, 1.2, 1.6],
+          "eye_m": 2,
+          "hp": 200,
+          "armor": {
+            "front": 15,
+            "side": 15,
+            "rear": 15,
+            "roof": 15,
+            "ricochet": { "front": 0.1, "side": 0.1, "rear": 0.1, "roof": 0.1 }
+          },
+          "weight_class": "light",
+          "push_class": "none",
+          "wreck": "light_wreck"
+        }
+      },
+      "mobility": { "air": { "cruise_kmh": 220, "turn_deg_s": 90, "climb_mps": 6 } },
+      "sensors": { "ground_m": 700, "sight_shape": { "front": 1.0, "side": 1.0, "rear": 1.0 } },
+      "mounts": [
+        { "id": "HMG", "name": "Door HMG", "weapons": ["hmg"], "turret": true, "pivot_m": [1.6, 1.12, 1.25], "muzzle_m": [1.2, 0, 0] }
+      ],
+      "sound": { "profile": "vehicle", "loudness_m": 900 },
+      "appearance": "test_heli"
+    }
+  }
+}

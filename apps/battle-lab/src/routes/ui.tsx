@@ -15,7 +15,7 @@ import { presentationRules } from "@web/battle/catalog/sets";
 import { ArmyDeck } from "@web/battle/present/armyDeck";
 import { CaptionList, type CaptionLine } from "@web/battle/present/captions";
 import { FrameRate, type FrameRateHandle } from "@web/battle/present/frameRate";
-import { GameCursor, type GameCursorHandle } from "@web/battle/present/gameCursor";
+import { CursorPicture } from "@web/battle/present/gameCursor";
 import {
   ObjectiveMarkers,
   type ObjectiveMarkersHandle,
@@ -212,13 +212,11 @@ function Ruler() {
 
 /** A refused order: the cursor's blocked badge and the refusal beside it. */
 function Refusal() {
-  const cursor = useRef<GameCursorHandle>(null);
   const [acks, setAcks] = useState<AckEntry[]>([]);
   // An effect, not a layout effect: the refusal's own pointer listener is
   // attached by then, and reads where the pointer is.
   useEffect(() => {
     window.dispatchEvent(new PointerEvent("pointermove", { clientX: 640, clientY: 400 }));
-    cursor.current?.place({ x: 640, y: 400 }, "blocked");
     setAcks([
       {
         seq: 1,
@@ -230,7 +228,7 @@ function Refusal() {
   }, []);
   return (
     <>
-      <GameCursor handle={cursor} />
+      <CursorPicture action="blocked" x={640} y={400} />
       <RejectedOrder acks={acks} />
     </>
   );

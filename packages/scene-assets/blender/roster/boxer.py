@@ -168,15 +168,17 @@ def fittings(v):
 def flw200(v, station, pitch, pivot):
     """The APC's FLW 200 remote station on its roof plate, its heavy machine
     gun in the cradle, the sight head on its left and the ammunition box on
-    its right; the two roof hatches behind it."""
+    its right; the commander's hatch ahead of it on its left, the two roof
+    hatches behind it."""
     m = v.mats
     hull = v.hull
     for k, (x, y) in enumerate(((-1.55, 0.62), (-1.55, -0.62))):
         VP.hatch(f"roof_hatch_{k}", (x, y, ROOF), m, hull, size=(0.85, 0.66))
-    VP.hatch("commander_hatch", (0.75, 0.60, ROOF), m, hull, radius=0.30)
+    cx, cy = pivot.x + 0.75, 0.60
+    VP.hatch("commander_hatch", (cx, cy, ROOF), m, hull, radius=0.30)
     for k in range(4):
         a = -0.6 + k * 0.4
-        VP.periscope(f"commander_vision_{k}", (0.75 + 0.36 * math.cos(a), 0.60 + 0.36 * math.sin(a), ROOF), m, hull,
+        VP.periscope(f"commander_vision_{k}", (cx + 0.36 * math.cos(a), cy + 0.36 * math.sin(a), ROOF), m, hull,
                      size=(0.10, 0.13, 0.07), rot=(0, 0, a))
     base = ROOF - pivot.z
     cyl("station_ring", 0.42, 0.06, (0, 0, base + 0.03), "Z", m["dark"], station, seg=24, lods=MID)

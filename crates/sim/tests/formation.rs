@@ -397,3 +397,57 @@ fn a_previewed_squad_spreads_each_living_soldier_round_its_goal_and_a_hull_has_n
     let hull = preview.iter().find(|d| d.unit == UnitId(1)).unwrap();
     assert!(hull.spots.is_empty(), "a vehicle stands as one body");
 }
+
+#[test]
+fn a_held_squad_preview_keeps_its_spots_as_time_passes_and_the_order_sends_soldiers_there() {
+    use contract::command::{CommandEnvelope, MoveDirection, Order, RoutePolicy};
+    use contract::ids::Side;
+    use sim::battle::Battle;
+    let setup = crate::common::scenario(
+        r#"{"size":[300,200],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,"props":[]}"#,
+        serde_json::json!([{"side":"blue","kind":"test_rifle","position":[30,60]}]),
+        serde_json::json!([]),
+    );
+    let mut battle = Battle::new(&setup, 1);
+    let request = contract::command::MovePreviewRequest {
+        units: vec![UnitId(0)],
+        goal: [200.0, 100.0],
+        ..Default::default()
+    };
+    let first = battle.preview_move(Side::Blue, &request).unwrap();
+    for _ in 0..5 {
+        battle.step();
+    }
+    let later = battle.preview_move(Side::Blue, &request).unwrap();
+    assert_eq!(
+        later[0].spots, first[0].spots,
+        "the same move shows the same soldier spots on every tick it is held"
+    );
+    let ack = battle.accept(CommandEnvelope {
+        side: Side::Blue,
+        seq: 1,
+        queued: false,
+        order: Order::Move {
+            units: vec![UnitId(0)],
+            gesture: 1,
+            goal: request.goal,
+            route: RoutePolicy::Shortest,
+            direction: MoveDirection::Forward,
+            facing: None,
+        },
+    });
+    assert_eq!(ack.error, None);
+    while battle.tick() < ack.applied_tick + 1 {
+        battle.step();
+    }
+    // Open ground has no cover to draw a soldier off his drawn spot.
+    let sent: Vec<_> = battle.observe(Side::Blue).own[0]
+        .member_orders
+        .iter()
+        .map(|m| m.spot)
+        .collect();
+    assert_eq!(
+        sent, first[0].spots,
+        "the ghost shows where each soldier goes"
+    );
+}

@@ -8,7 +8,7 @@ import game from "@fixtures/game.json";
 import { expect, test } from "vitest";
 import { vec3, type Vec3 } from "math";
 import {
-  PITCH_LIMITS,
+  DEFAULT_PITCH_LIMITS,
   articulate,
   articulationRig,
   restLocals,
@@ -109,7 +109,7 @@ test("the gun and HMG point along their published bearings and elevations", asyn
   expect(mg.elevation).toBeCloseTo(hmg.elevation, 5);
 });
 
-test("a new published elevation is eased to at the gun's rate, never snapped", () => {
+test("a new published elevation is eased to at the gun's rate, never snapped", async () => {
   const d = driver();
   const hmg = { bearing: 0, elevation: 0, shots: 0 };
   d.update({
@@ -125,11 +125,11 @@ test("a new published elevation is eased to at the gun's rate, never snapped", (
   expect(pitchAt(0.1)).toBeCloseTo(MOUNT_FEEL.gun_elevation_rad_s * 0.1, 6);
   expect(pitchAt(0.2)).toBeCloseTo(MOUNT_FEEL.gun_elevation_rad_s * 0.2, 6);
   expect(pitchAt(2)).toBeCloseTo(0.15, 6);
-  // And never past the gun's presentation limit.
+  // And the drawn gun never goes past its model's pitch limit.
   const high = { ...raised, elevation: 1 };
-  const limited = d.update({ time: 10, units: [tank(0, 0, high, hmg)], fallen: [] }).vehicles[0]
-    .articulation.gun_pitch;
-  expect(limited).toBeCloseTo(PITCH_LIMITS.gun[1], 6);
+  const posed = d.update({ time: 10, units: [tank(0, 0, high, hmg)], fallen: [] }).vehicles[0];
+  const at = await posedWorld(posed.articulation, 0);
+  expect(aim(at("gun"), at("muzzle")).elevation).toBeCloseTo(DEFAULT_PITCH_LIMITS.gun[1], 6);
 });
 
 test("each rise of the gun's shot counter recoils it, and it runs out to battery", () => {

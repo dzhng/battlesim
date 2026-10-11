@@ -169,6 +169,8 @@ const ROLE_MODIFIERS: Record<string, string> = {
   recon: '<path d="M3 25L39 3"/>',
   anti_armour: '<path d="M3 25L21 3l18 22"/>',
   supply: '<path d="M3 17h36"/>',
+  // The aviation bow tie: two triangles meeting at the frame's centre.
+  rotary_wing: '<path d="M9 8v12l24-12v12z"/>',
   wheeled:
     '<circle cx="14" cy="30" r="2.2" fill="currentColor"/><circle cx="28" cy="30" r="2.2" fill="currentColor"/>',
 };

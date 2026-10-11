@@ -155,13 +155,13 @@ export class LaunchTracker {
   }
 
   /** A hull's shot from mount `m`: from its own muzzle, along its aim. Its
-   *  pivot turns with its carrier (the mount it is on, or the hull). */
+   *  pivot swings with its carrier round the carrier's ring (`muzzleOffset`). */
   private hullLaunch(u: EffectShooter, m: number): Launch {
     const mount = u.mounts[m];
     const at = _launch_offset;
     if (mount.muzzle) {
       const carried = mount.muzzle.on === null ? u.yaw : u.mounts[mount.muzzle.on].bearing;
-      muzzleOffset(at, mount.muzzle, carried, mount.bearing);
+      muzzleOffset(at, mount.muzzle, u.yaw, carried, mount.bearing);
     } else vec3.set(at, 0, 0, 0);
     const c = Math.cos(mount.bearing);
     const s = Math.sin(mount.bearing);

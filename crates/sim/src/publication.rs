@@ -15,6 +15,7 @@
 //! exactness in one float past 2²⁴, so they travel as two 16-bit limbs: a
 //! field pair `<name>Lo`, `<name>Hi` holding `lo + hi · 2^limbBits`, both -1
 //! when absent.
+use contract::catalog::AltitudeLayer;
 use contract::command::{Engagement, MoveDirection, RoutePolicy, TargetRef};
 use contract::ids::Side;
 use contract::observation::{
@@ -46,6 +47,7 @@ const POSTURES: [Posture; 2] = [Posture::Packed, Posture::Deployed];
 const POLICIES: [RoutePolicy; 2] = [RoutePolicy::Shortest, RoutePolicy::Fastest];
 const DIRECTIONS: [MoveDirection; 2] = [MoveDirection::Forward, MoveDirection::Reverse];
 const CONTACT_SOURCES: [ContactSource; 2] = [ContactSource::Firing, ContactSource::LastSeen];
+const LAYERS: [AltitudeLayer; 2] = [AltitudeLayer::Ground, AltitudeLayer::LowAir];
 const SOUND_CATEGORIES: [SoundCategory; 3] = [
     SoundCategory::Infantry,
     SoundCategory::Vehicle,
@@ -111,9 +113,11 @@ const REASONS: [ActionReason; 16] = [
 const TARGET_KINDS: [&str; 4] = ["none", "identified", "contact", "ground"];
 /// Ammunition kinds per mount the record carries (the cannon's AP and HE).
 pub const MAX_AMMO_KINDS: usize = 2;
-/// Weapon rows a firing report's `heard` mask can name: a float holds an
-/// integer exactly below 2^24.
-pub const MAX_WEAPON_ROWS: usize = 24;
+/// Weapon rows a firing report's heard mask can name. It travels as two
+/// words of `HEARD_WORD_BITS` each, since a float holds an integer exactly
+/// below 2^24.
+pub const MAX_WEAPON_ROWS: usize = 2 * HEARD_WORD_BITS;
+const HEARD_WORD_BITS: usize = 24;
 const MOUNT_FIELDS: [&str; 15] = [
     "mount",
     "loaded",
@@ -144,7 +148,7 @@ const POSE_FIELDS: [&str; 7] = [
 
 /// Header words; the non-map groups' delivery metadata starts here.
 pub const HEADER_WORDS: usize = HEADER.len();
-const HEADER: [&str; 40] = [
+const HEADER: [&str; 41] = [
     "tick",
     "ownCount",
     "identifiedCount",
@@ -185,6 +189,7 @@ const HEADER: [&str; 40] = [
     "scoreBlue",
     "scoreRed",
     "matchResult",
+    "crashCount",
 ];
 const OBJECTIVE_FIELDS: [&str; 8] = [
     "id",
@@ -207,16 +212,20 @@ const PENDING_FIELDS: [&str; 8] = [
     "blocked",
 ];
 const GROUND_FIELDS: [&str; 4] = ["tile", "span", "craterScorch", "tracksTrampledCleared"];
-const CONTACT_FIELDS: [&str; 9] = [
+const CONTACT_FIELDS: [&str; 13] = [
     "id",
     "source",
     "x",
     "y",
+    "z",
+    "layer",
+    "aloft",
     "radius",
     "evidenceTick",
     "expiresTick",
     "kind",
-    "heard",
+    "heardLow",
+    "heardHigh",
 ];
 const AUDIBLE_FIELDS: [&str; 5] = ["listener", "category", "sector", "band", "moving"];
 const PROJECTILE_FIELDS: [&str; 10] = [
@@ -245,6 +254,7 @@ const CORPSE_FIELDS: [&str; 9] = [
     "yaw",
 ];
 const FALLEN_BODY_FIELDS: [&str; 7] = ["propLo", "propHi", "x", "y", "towardX", "towardY", "tick"];
+const CRASH_FIELDS: [&str; 9] = ["id", "own", "kind", "x", "y", "z", "yaw", "pitch", "roll"];
 const KNOWN_PROP_FIELDS: [&str; 20] = [
     "kind",
     "x",
@@ -267,7 +277,7 @@ const KNOWN_PROP_FIELDS: [&str; 20] = [
     "authoredPropHi",
     "wreckOf",
 ];
-const OWN_FIELDS: [&str; 47] = [
+const OWN_FIELDS: [&str; 48] = [
     "id",
     "kind",
     "x",
@@ -315,8 +325,9 @@ const OWN_FIELDS: [&str; 47] = [
     "withdrawing",
     "protectionCharges",
     "protectionCooldownProgress",
+    "smoking",
 ];
-const IDENTIFIED_FIELDS: [&str; 12] = [
+const IDENTIFIED_FIELDS: [&str; 13] = [
     "id",
     "kind",
     "cost",
@@ -329,6 +340,7 @@ const IDENTIFIED_FIELDS: [&str; 12] = [
     "memberCount",
     "poseCount",
     "reversing",
+    "smoking",
 ];
 
 /// An integer as its two exact 16-bit limbs.
@@ -503,6 +515,7 @@ pub fn layout_json(battle: &Battle) -> String {
             },
             { "name": "pendingPurchases", "count": "pendingCount", "fields": PENDING_FIELDS, "sections": [] },
             { "name": "objectives", "count": "objectiveCount", "fields": OBJECTIVE_FIELDS, "sections": [] },
+            { "name": "crashes", "count": "crashCount", "fields": CRASH_FIELDS, "sections": [] },
         ],
         "groupDelivery": { "fields": ["length", "encoding", "floats"], "range": ["start", "length"], "copy": ["source", "length"], "copyAlignments": (0..GROUPS).map(|g| fixed_row_width(g).max(1)).collect::<Vec<_>>(), "encodings": GROUP_ENCODINGS,
             "packed": {
@@ -545,6 +558,7 @@ pub fn layout_json(battle: &Battle) -> String {
         "policies": names(&POLICIES),
         "directions": names(&DIRECTIONS),
         "contactSources": names(&CONTACT_SOURCES),
+        "layers": names(&LAYERS),
         "soundCategories": names(&SOUND_CATEGORIES),
         "soundBands": names(&SOUND_BANDS),
         "propKinds": battle.world().types().ids(),
@@ -562,6 +576,8 @@ pub fn layout_json(battle: &Battle) -> String {
         // Mount ammo is rounds left per kind: -1 unlimited, -2 no such kind.
         // goalX/goalY are NaN without a movement order; policy, direction and blocker are -1 when absent.
         // reversing is 1 while the unit drives backwards this tick, else 0.
+        // smoking is 1 while it trails smoke (an aircraft below half its
+        // health), own or identified alike, else 0.
         // finalFacing is the bearing the unit ends its move at (its yaw
         // without one). A member order is the soldier's spot (his post while
         // holding, where he stands without either); coverNow and coverThere
@@ -580,14 +596,21 @@ pub fn layout_json(battle: &Battle) -> String {
         // interpolated); reach toward bearing b is sightRange * m, with
         // c = cos(b - sightForward), m = side·(1 − c²) + (c ≥ 0 ? front : rear)·c².
         // A contact's kind indexes unitKinds (-1 for a firing report); its
-        // heard is a bitmask over roundKinds (bit k for row k; 0 for a last
-        // sighting).
+        // heardLow and heardHigh are a bitmask over roundKinds, 24 rows a
+        // word (bit k of heardLow for row k < 24, bit k - 24 of heardHigh
+        // otherwise; both 0 for a last sighting). Its z is its cause's height when the evidence came, and
+        // its layer indexes layers; aloft is 1 when the area hangs in the air
+        // (more than the low hover over the ground), else 0.
         // A projectile's or blast's kind indexes roundKinds; a segment's
         // shooter is absent (-1) for a vehicle's gun, and nx, ny, nz are 0
         // when hit is none. A segment's path is a polyline of at least two
         // points; each ricochet names the path point where the round glanced
         // off a hull, with the outward normal there, and hit is at the path's
         // last point. A pose's shots rise by one per round launched.
+        // A crash is a downed airframe still falling: its id is the side's
+        // own unit id when own is 1, else the handle it was identified by;
+        // its kind indexes unitKinds; x, y, z is its foot, and yaw, pitch
+        // (nose up) and roll (right side down) its attitude, in radians.
     })
     .to_string()
 }
@@ -892,6 +915,7 @@ fn pack_record(
                 contract::skirmish::MatchResult::Winner { side } => side.index() as f32,
                 contract::skirmish::MatchResult::Draw => 2.0,
             }),
+        frame.crashes.len() as f32,
     ]);
     for u in &frame.own {
         let [garrison_lo, garrison_hi] = limbs_or_absent(u.garrison.map(|g| g.building));
@@ -946,6 +970,7 @@ fn pack_record(
             u.protection
                 .and_then(|p| p.cooldown)
                 .map_or(-1.0, |p| p as f32),
+            u.smoking as u8 as f32,
         ]);
     }
     for u in &frame.own {
@@ -1026,6 +1051,7 @@ fn pack_record(
             e.members.len() as f32,
             e.weapon_poses.len() as f32,
             e.reversing as u8 as f32,
+            e.smoking as u8 as f32,
         ]);
     }
     for e in &frame.identified {
@@ -1051,11 +1077,15 @@ fn pack_record(
             tag(&CONTACT_SOURCES, &c.source),
             c.center[0] as f32,
             c.center[1] as f32,
+            c.center[2] as f32,
+            tag(&LAYERS, &c.layer),
+            if c.aloft { 1.0 } else { 0.0 },
             c.radius as f32,
             c.evidence_tick as f32,
             c.expires_tick as f32,
             c.kind.map_or(-1.0, |k| k.0 as f32),
-            c.heard as f32,
+            (c.heard & ((1 << HEARD_WORD_BITS) - 1)) as f32,
+            (c.heard >> HEARD_WORD_BITS) as f32,
         ]);
     }
     if let Some(ends) = ends.as_mut() {
@@ -1237,6 +1267,22 @@ fn pack_record(
             ]);
         }
     }
+    if let Some(ends) = ends.as_mut() {
+        ends.push(out.len());
+    }
+    for c in &frame.crashes {
+        out.extend([
+            c.id as f32,
+            c.own as u8 as f32,
+            c.kind.0 as f32,
+            c.position[0] as f32,
+            c.position[1] as f32,
+            c.position[2] as f32,
+            c.yaw as f32,
+            c.pitch as f32,
+            c.roll as f32,
+        ]);
+    }
     let word = |i: usize| {
         let value = fog.bits[i];
         if i + 1 == words && !cells.is_multiple_of(32) {
@@ -1349,6 +1395,7 @@ fn packed_len(frame: &ObservationFrame, fog: usize, runs: usize) -> Result<usize
     add(frame.corpses.len(), CORPSE_FIELDS.len())?;
     add(frame.known_props.len(), KNOWN_PROP_FIELDS.len())?;
     add(frame.fallen_bodies.len(), FALLEN_BODY_FIELDS.len())?;
+    add(frame.crashes.len(), CRASH_FIELDS.len())?;
     add(fog, 1)?;
     add(runs, GROUND_FIELDS.len())?;
     Ok(length)
@@ -1670,7 +1717,7 @@ const VARIABLE_ANCHOR_WORDS: usize = 3;
 
 /// Each non-map group's fixed row width, in record order; 0 where variable
 /// sections leave no one width to address complete rows by.
-const GROUP_ROW_WIDTHS: [usize; 12] = [
+const GROUP_ROW_WIDTHS: [usize; 13] = [
     0,
     0,
     CONTACT_FIELDS.len(),
@@ -1683,6 +1730,7 @@ const GROUP_ROW_WIDTHS: [usize; 12] = [
     FALLEN_BODY_FIELDS.len(),
     PENDING_FIELDS.len(),
     OBJECTIVE_FIELDS.len(),
+    CRASH_FIELDS.len(),
 ];
 
 /// Non-map groups, in record order.

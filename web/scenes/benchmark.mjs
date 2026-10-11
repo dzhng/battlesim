@@ -43,7 +43,7 @@ export async function run(ctx, named = false) {
     const labels = await nav.locator(".menu-card-label").allTextContents();
     ctx.check(
       "the main menu lists its pages and replay, and the benchmark and labs behind the developer link",
-      played.join() === "Skirmish,Watch replay,Settings" &&
+      played.join() === "Skirmish,Watch replay,Tutorial,Settings" &&
         hidden === 0 &&
         labels.join() === "Benchmark,Labs",
       JSON.stringify({ played, hidden, labels }),

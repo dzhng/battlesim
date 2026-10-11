@@ -27,8 +27,14 @@ export async function modelGhostAgreement(ctx) {
         ]);
       // Every unit's art: the probe draws one model of each kind, whoever wears it.
       const installed = await new assets.AppearanceLibrary().load("/");
+      // One model of each kind; the static one is named, so a model added to
+      // the catalog never silently changes what this check judges.
+      const STATIC_SAMPLE = "basketball_court";
       const chosen = ["skinned", "articulated", "static"].map((kind) =>
-        [...installed.appearances].find(([, entry]) => entry.bundle.kind === kind),
+        [...installed.appearances].find(
+          ([name, entry]) =>
+            entry.bundle.kind === kind && (kind !== "static" || name === STATIC_SAMPLE),
+        ),
       );
       if (chosen.some((entry) => !entry)) throw new Error("missing placement model kind");
       // The page's device admission, as every page that draws models gets it.

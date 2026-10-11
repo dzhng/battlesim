@@ -1,0 +1,15 @@
+# Slice 11 quick battle sample (not the balance report).
+# One roster AT team (blue, fire at will) on open ground against one still roster tank
+# (red, return fire only), game rules, seeds 1..6, 120 s each. Faces from the flown
+# impact against the struck hull's pose; @N is the descent angle in degrees.
+# Re-run after rebasing onto main (helicopter guidance and altitude layers): same counts.
+# Rows: javelin 800 m / akeron_mp 900 m, min 100 m, pen 200, dmg 55, turn 360, loft 60, dive 40.
+
+fgm_148_javelin_team vs eastern_t_90_t_90m_proryv at 500 m, flank (yaw 90°): launched 20, hull hits 18 (roof 18, at 44-47°), elsewhere 2, kills 6/6 (3 roof hits each; 25-68 s)
+fgm_148_javelin_team vs eastern_t_90_t_90m_proryv at 500 m, head-on:         launched 18, hull hits 18 (roof 18), kills 6/6
+fgm_148_javelin_team vs us_m1_abrams_sep_v2 at 500 m, head-on (no APS):     launched 12, hull hits 12 (roof 12), kills 6/6 (2 hits: 110 hp)
+fgm_148_javelin_team vs us_m1_abrams_sep_v2_trophy at 500 m, head-on:       launched 23, hull hits 0, all intercepted, kills 0/6 (tank at its full 110 hp)
+europe_atgm_team_akeron_mp vs eastern_t_90_t_90m_proryv at 580 m, flank:    launched 18, hull hits 18 (roof 18), kills 6/6
+europe_atgm_team_akeron_mp vs eastern_t_90_t_90m_proryv at 850 m, flank:    launched 0 (the team's own 600 m sight; needs a spotter's sight to reach its 900 m)
+fgm_148_javelin_team vs eastern_t_90_t_90m_proryv at 150 m, flank:          launched 6 (one each), roof 6, kills 0/6 (the tank kills the team after the first hit)
+control: us_atgm_team_bgm_71_tow_2a vs eastern_t_90_t_90m_proryv at 500 m, head-on: hull hits 18 (front 18; TOW pierces 300 > 220), kills 6/6

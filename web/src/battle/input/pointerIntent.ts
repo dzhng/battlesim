@@ -17,6 +17,8 @@ export interface PointerPick {
   building?: number | null;
   enemy?: number | null;
   contact?: number | null;
+  /** The picked contact is in the air: area fire cannot reach it (D22). */
+  contactAirborne?: boolean;
   facingTo?: [number, number] | null;
 }
 
@@ -90,7 +92,7 @@ export function pointerIntent(
       ? { kind: "attack", units, target: { kind: "identified", id: pick.enemy }, queued }
       : { kind: "blocked", disarm: true };
   }
-  if (pick.contact != null) {
+  if (pick.contact != null && !pick.contactAirborne) {
     const units = armed();
     if (units.length)
       return { kind: "attack", units, target: { kind: "contact", id: pick.contact }, queued };

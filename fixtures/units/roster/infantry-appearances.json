@@ -324,6 +324,72 @@
         "rifle_squad_active_c"
       ]
     },
+    "fgm_148_javelin_team__roster_javelin_gunner": {
+      "extends": "roster_javelin_gunner",
+      "appearance": [
+        "fgm_148_javelin_team_guard_a",
+        "fgm_148_javelin_team_guard_b",
+        "fgm_148_javelin_team_guard_c"
+      ],
+      "mounts": [
+        {
+          "id": "launcher",
+          "operator_appearance": {
+            "active": [
+              "fgm_148_javelin_team_active_a",
+              "fgm_148_javelin_team_active_b",
+              "fgm_148_javelin_team_active_c"
+            ],
+            "carried": [
+              "fgm_148_javelin_team_carried_a",
+              "fgm_148_javelin_team_carried_b",
+              "fgm_148_javelin_team_carried_c"
+            ]
+          }
+        }
+      ]
+    },
+    "fgm_148_javelin_team__at_rifleman": {
+      "extends": "roster_at_rifleman",
+      "appearance": [
+        "fgm_148_javelin_team_guard_a",
+        "fgm_148_javelin_team_guard_b",
+        "fgm_148_javelin_team_guard_c"
+      ]
+    },
+    "europe_atgm_team_akeron_mp__roster_akeron_gunner": {
+      "extends": "roster_akeron_gunner",
+      "appearance": [
+        "europe_atgm_team_akeron_mp_guard_a",
+        "europe_atgm_team_akeron_mp_guard_b",
+        "europe_atgm_team_akeron_mp_guard_c"
+      ],
+      "mounts": [
+        {
+          "id": "launcher",
+          "operator_appearance": {
+            "active": [
+              "europe_atgm_team_akeron_mp_active_a",
+              "europe_atgm_team_akeron_mp_active_b",
+              "europe_atgm_team_akeron_mp_active_c"
+            ],
+            "carried": [
+              "europe_atgm_team_akeron_mp_carried_a",
+              "europe_atgm_team_akeron_mp_carried_b",
+              "europe_atgm_team_akeron_mp_carried_c"
+            ]
+          }
+        }
+      ]
+    },
+    "europe_atgm_team_akeron_mp__at_rifleman": {
+      "extends": "roster_at_rifleman",
+      "appearance": [
+        "europe_atgm_team_akeron_mp_guard_a",
+        "europe_atgm_team_akeron_mp_guard_b",
+        "europe_atgm_team_akeron_mp_guard_c"
+      ]
+    },
     "europe_marksman_squad_longer_range_infantry__roster_marksman_rifle_1": {
       "extends": "roster_marksman_rifle_1",
       "appearance": [

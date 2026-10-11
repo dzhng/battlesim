@@ -38,6 +38,11 @@ export function paintOnly(painted: Mesh, paintedMarching?: Mesh): WorldMeshes {
 
 const AXIS_X: Vec3 = [1, 0, 0];
 const AXIS_Z: Vec3 = [0, 0, 1];
+/** A round mark's facets: sides round it and rings from pole to pole,
+ *  enough for a circle at the few pixels a mark is drawn at. The rings are
+ *  even, so one runs round its equator and it is as wide as it is round. */
+const MARK_SIDES = 10;
+const MARK_RINGS = 6;
 const _triangle_normal = vec3.create();
 const _segment_forward = vec3.create();
 const _segment_u = vec3.create();
@@ -100,6 +105,33 @@ export class MeshBuilder {
     ]) {
       this.quad(p[a], p[b], p[cc], p[d], color);
     }
+    return this;
+  }
+
+  /** A ball of radius `radius` round `c` that reads as a round mark, not a
+   *  solid: a circle on screen from any side, every face taking the
+   *  ground's normal, so the overlays' light shades it as it shades paint
+   *  on the ground. */
+  mark(c: P3, radius: number, color: Rgba) {
+    const at = (lat: number, lon: number): P3 => {
+      const [a, o] = [(Math.PI * lat) / MARK_RINGS, (2 * Math.PI * lon) / MARK_SIDES];
+      return [
+        c[0] + radius * Math.sin(a) * Math.cos(o),
+        c[1] + radius * Math.sin(a) * Math.sin(o),
+        c[2] + radius * Math.cos(a),
+      ];
+    };
+    for (let lat = 0; lat < MARK_RINGS; lat++)
+      for (let lon = 0; lon < MARK_SIDES; lon++) {
+        const [a, b, cc, d] = [
+          at(lat, lon),
+          at(lat + 1, lon),
+          at(lat + 1, lon + 1),
+          at(lat, lon + 1),
+        ];
+        this.vertex(a, AXIS_Z, color).vertex(b, AXIS_Z, color).vertex(cc, AXIS_Z, color);
+        this.vertex(a, AXIS_Z, color).vertex(cc, AXIS_Z, color).vertex(d, AXIS_Z, color);
+      }
     return this;
   }
 

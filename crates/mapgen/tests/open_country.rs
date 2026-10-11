@@ -983,7 +983,7 @@ fn real_ground_sight_is_cut_between_cells_at_edges_and_inside_a_town() {
     let rules = rules();
     let prepared = PreparedMap::new(&country.map, &rules);
     let jeep = rules.catalog.by_id("test_jeep");
-    let mobility = sim::units::mobility(jeep, &rules);
+    let mobility = sim::units::ground_mobility(jeep, &rules).unwrap();
     let sight = sim::sight::Sight {
         forward: 0.,
         shape: jeep.sensors.sight_shape,

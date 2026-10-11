@@ -349,6 +349,37 @@ fn a_purchase_preview_spreads_a_squad_round_its_destination_and_a_hull_stands_al
 }
 
 #[test]
+fn a_purchase_ghost_keeps_its_shape_as_the_cursor_moves_over_open_ground() {
+    let mut rules = deck();
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_rifle",
+        json!({
+            "roster": { "factions": ["us"], "category": "inf", "family_name": "Test squad", "variant": "Test" }
+        }),
+    );
+    let mut battle = Battle::new(&match_on(rules), 1);
+    let shape = |battle: &mut Battle, at: [f64; 2]| -> Vec<(i64, i64)> {
+        battle
+            .preview_purchase(Side::Blue, "test_rifle", at)
+            .unwrap()
+            .spots
+            .iter()
+            .map(|s| (((s[0] - at[0]) * 1e6) as i64, ((s[1] - at[1]) * 1e6) as i64))
+            .collect()
+    };
+    let first = shape(&mut battle, [400.0, 300.0]);
+    for at in [[400.5, 300.0], [403.0, 298.0], [410.0, 305.0]] {
+        assert_eq!(
+            shape(&mut battle, at),
+            first,
+            "the ghost slides with the cursor at {at:?}"
+        );
+    }
+}
+
+#[test]
 fn purchase_admission_refuses_unavailable_wrong_faction_and_invalid_destination_atomically() {
     let mut battle = Battle::new(&setup(), 1);
     for (seq, side, variant, destination, error) in [
@@ -508,7 +539,13 @@ fn preparation_timeout_starts_combat_without_granting_preparation_income() {
 /// A match against the basic opponent on red, whose deck holds squads, a
 /// launcher team and a truck.
 fn against_the_basic_opponent() -> contract::scenario::ScenarioDefinition {
+    against_an_opponent_with(json!({ "units": {} }))
+}
+
+/// The basic opponent, its deck also holding the catalog document `extra`.
+fn against_an_opponent_with(extra: serde_json::Value) -> contract::scenario::ScenarioDefinition {
     let mut rules = deck();
+    rules["catalog"].as_array_mut().unwrap().push(extra);
     for (id, category) in [
         ("test_rifle", "inf"),
         ("test_at", "inf"),
@@ -522,6 +559,47 @@ fn against_the_basic_opponent() -> contract::scenario::ScenarioDefinition {
     let mut setup = match_on(rules);
     setup.skirmish.as_mut().unwrap().ai_side = Some(Side::Red);
     setup
+}
+
+/// The basic opponent whose deck also holds a helicopter.
+fn against_an_opponent_with_a_helicopter() -> contract::scenario::ScenarioDefinition {
+    against_an_opponent_with(json!({ "units": { "red_test_heli": {
+        "extends": "test_heli",
+        "roles": ["helicopter"],
+        "roster": { "factions": ["eastern"], "category": "hel", "family_name": "Test", "variant": "Test" }
+    } } }))
+}
+
+/// The opponent buys a helicopter in its reinforcements; it enters at its
+/// base already at cruise height, never waiting for clear ground, and sets off
+/// for an objective.
+#[test]
+fn the_skirmish_ai_buys_and_flies_a_helicopter() {
+    let setup = against_an_opponent_with_a_helicopter();
+    let mut battle = Battle::new(&setup, 3);
+    battle.accept(command(Side::Blue, 1, Order::Ready));
+    let heli = battle.rules().catalog.index("red_test_heli").unwrap();
+    let cruise = battle.rules().air.cruise_agl_m;
+    let mut flown = false;
+    for _ in 0..600 * battle.rules().tick_hz {
+        battle.step();
+        let red = battle.observe(Side::Red);
+        if let Some(u) = red.own.iter().find(|u| u.kind == heli) {
+            let ground = battle
+                .world()
+                .height_at(u.position[0], u.position[1])
+                .unwrap();
+            assert!(
+                u.position[2] >= ground + cruise - 1e-6,
+                "it entered on the ground"
+            );
+            if battle.unit(u.id).unwrap().route.is_some() {
+                flown = true;
+                break;
+            }
+        }
+    }
+    assert!(flown, "the opponent never bought and flew a helicopter");
 }
 
 #[test]
@@ -925,4 +1003,44 @@ fn an_occupied_base_keeps_the_returning_unit_and_its_slot_without_payment() {
     assert_eq!(status.skirmish.as_ref().unwrap().occupied_slots, 2);
     let passive = (battle.tick() - start) as f64 / f64::from(battle.rules().tick_hz) * 200.0 / 60.0;
     assert!((status.skirmish.as_ref().unwrap().credits - before - passive).abs() < 0.00001);
+}
+
+/// The player buys a helicopter as a reinforcement: the preview places it,
+/// it enters at its base, and the battle plays on while it flies to the
+/// destination the player chose.
+#[test]
+fn a_helicopter_the_player_buys_enters_and_flies_to_its_destination() {
+    let mut rules = deck();
+    rules["catalog"].as_array_mut().unwrap().push(json!({ "units": { "blue_test_heli": {
+        "extends": "test_heli",
+        "roster": { "factions": ["us"], "category": "hel", "family_name": "Test", "variant": "Test" }
+    } } }));
+    let mut battle = Battle::new(&match_on(rules), 1);
+    battle
+        .preview_purchase(Side::Blue, "blue_test_heli", [400.0, 300.0])
+        .unwrap();
+    let ack = battle.accept(command(
+        Side::Blue,
+        1,
+        Order::ConfirmPurchase {
+            variant: "blue_test_heli".into(),
+            destination: [400.0, 300.0],
+        },
+    ));
+    assert!(ack.error.is_none(), "{ack:?}");
+    battle.accept(command(Side::Blue, 2, Order::Ready));
+    battle.accept(command(Side::Red, 1, Order::Ready));
+    for _ in 0..60 * battle.rules().tick_hz {
+        battle.step();
+        for side in Side::ALL {
+            battle.observe(side);
+        }
+    }
+    let frame = battle.observe(Side::Blue);
+    assert_eq!(frame.own.len(), 1);
+    let p = frame.own[0].position;
+    assert!(
+        (p[0] - 400.0).hypot(p[1] - 300.0) < 5.0,
+        "it ended at {p:?}"
+    );
 }

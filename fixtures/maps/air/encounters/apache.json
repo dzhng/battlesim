@@ -1,0 +1,8 @@
+{
+  "units": [
+    {"side":"blue","kind":"ah_64e_guardian","position":[110,120],"yaw":-0.38},
+    {"side":"red","kind":"test_tank","position":[152,100],"yaw":3.14159,"engagement":"return_fire_only"},
+    {"side":"red","kind":"test_tank","position":[164,100],"yaw":3.14159,"engagement":"return_fire_only"},
+    {"side":"red","kind":"test_tank","position":[176,100],"yaw":3.14159,"engagement":"return_fire_only"}
+  ]
+}

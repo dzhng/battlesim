@@ -16,8 +16,10 @@ gunner's on the right front, the Natter remote weapon station on the right
 and the HERO launcher box on the rear of the bustle. Not settled by any
 photo: the prototype's turret roof and rear (gaps).
 
-Built to the catalog frame (hull 7.8 x 3.7 x 2.5 m, turret pivot 1.5 m,
-cannon muzzle 6.1 m ahead): nothing here moves it.
+Built to the catalog frame (hull 7.8 x 3.7 x 2.5 m, turret pivot 0.3 m ahead
+of the hull's middle and 1.5 m up, as on the Leopard 2 hull it shares, cannon
+muzzle 6.1 m ahead): nothing here moves it; the turret is built at the
+frame's pivot.
 """
 import math
 import os
@@ -121,9 +123,7 @@ def turret_rings():
     edge = [(2.62, 0.48), (1.85, 1.66), (-2.75, 1.66), (-3.00, 1.25)]
     roof = [(1.70, 0.42), (1.20, 1.32), (-2.60, 1.34), (-2.85, 1.00)]
 
-    def ring(half):
-        return half + [(x, -y) for x, y in reversed(half)]
-
+    ring = VP.mirror_plan
     return [(FOOT, ring(foot)), (EDGE, ring(edge)), (EDGE + 0.12, ring([(x - 0.06, y) for x, y in edge])),
             (ROOF, ring(roof))]
 
@@ -201,7 +201,12 @@ def wreck(variant, v):
     burst. `wreckage.burn` then heaves the turret."""
     from parts import box as solid, rest_on_ground
     from wreckage import bend, densify, dent, heat, parts, plate, remove, warp
+    import bpy
     m = v.mats
+    # The turret died traversed a little left of the bow: with the ring ahead
+    # of the hull's middle, the 130 mm laid dead ahead would reach past the
+    # ground the wreck may cover (its footprint allowance).
+    bpy.data.objects["turret"].rotation_euler.z += math.radians(5.0)
     remove("track_R_band", "wheel_R_3_", "wheel_R_4_", "side_panel_R_2", "panel_bolt_R_2", "hero_cell_",
            "panel_name_R")
     thrown = solid("thrown_track", (4.2, TRACK_W, 0.05), (-0.2, -2.25, 0.03), m["track"], v.hull, rot=(0, 0, 0.06),

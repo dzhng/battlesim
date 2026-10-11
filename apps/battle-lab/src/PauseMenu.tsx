@@ -8,6 +8,7 @@ import { useCallback, useEffect, useRef, type ReactNode } from "react";
 import { hudIcon } from "@packages/scene-assets/src/icons";
 import { Icon } from "@web/battle/present/icons";
 import type { SimClient } from "@web/battle/sim/client";
+import { DiagnosticsControls } from "./DiagnosticsControls";
 import { SoundControls } from "./SoundControls";
 
 /** The menu's open state over `client`: opening pauses an unpaused battle and
@@ -89,6 +90,9 @@ export function PauseMenu({
         </Link>
         <section className="hud-menu-section" aria-label="Sound">
           <SoundControls />
+        </section>
+        <section className="hud-menu-section" aria-label="Diagnostics">
+          <DiagnosticsControls />
         </section>
       </div>
     </div>

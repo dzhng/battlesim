@@ -950,92 +950,120 @@ fn a_screened_release_repeats_from_its_seed() {
 
 #[test]
 fn a_survivor_keeps_guiding_when_the_original_gunner_falls() {
-    // A fragile gunner guides at a far tank; once he launches, a red scout
-    // team opens fire on his team, whose riflemen do not fall. Whenever he
-    // falls with a missile in flight, a survivor takes up the same launcher
-    // and keeps guiding that missile.
-    let mut takeovers = 0;
-    for seed in 1..=6 {
-        let mut b = quick(
-            json!([]),
-            json!([
-                { "side": "blue", "kind": "test_at", "position": [40, 300] },
-                { "side": "red", "kind": "test_tank", "position": [630, 300], "engagement": "return_fire_only" },
-                { "side": "red", "kind": "test_recon", "position": [100, 330], "engagement": "return_fire_only" },
-            ]),
-            seed,
-            |r| {
-                let hp = |hp| json!({ "hp": hp });
-                sim::fixtures::patch_catalog(r, "soldiers", "test_at_rifleman", hp(100_000));
-                sim::fixtures::patch_catalog(r, "soldiers", "test_atgm_gunner", hp(1));
-            },
-        );
-        until_launch(&mut b);
-        let open_fire = Order::SetEngagement {
-            units: vec![UnitId(2)],
-            policy: contract::command::Engagement::FireAtWill,
-        };
-        Commander::new().ok(&mut b, Side::Red, open_fire);
-        for _ in 0..600 {
-            let flying = missile(&b).filter(|m| m.supported);
+    let takeovers = survivor_takeovers(|_| {}).count();
+    assert!(takeovers > 0, "no seed saw the gunner fall mid-flight");
+}
+
+#[test]
+fn a_survivor_keeps_a_top_attack_missile_climbing_and_diving_onto_the_tank() {
+    // The handoff passes the launcher, not a fresh shot: the survivor's
+    // missile still flies the row's loft and comes down on the tank.
+    let mut struck = 0;
+    for (mut b, mut path) in survivor_takeovers(top_attack) {
+        while let Some(m) = missile(&b) {
+            path.push(m.position);
             b.step();
-            let gunner = own(&b, Side::Blue, 0).is_some_and(|u| u.member_slots.contains(&0));
-            // His missile, if it is still in flight the tick he fell: one that
-            // struck that same tick had nothing left to release.
-            let still = |b: &Battle| {
-                let id = flying.as_ref()?.id;
-                b.observe(Side::Blue)
-                    .guided
-                    .iter()
-                    .find(|m| m.id == id)
-                    .cloned()
-            };
-            if let (Some(before), false, true) = (&flying, gunner, still(&b).is_some()) {
-                // Guidance runs before damage: the next tick assigns a
-                // survivor before steering the existing missile.
-                b.step();
-                let Some(m) = still(&b) else {
-                    // It may hit during the handoff tick: there is no continuing
-                    // guidance to inspect, but disappearance must be a real impact.
-                    assert!(b.flight_events().iter().any(|event| matches!(
-                        event, sim::flight::FlightEvent::Impact(i)
-                            if i.projectile.0 == before.id && i.detonated
-                    )));
-                    break;
-                };
-                assert!(m.supported, "seed {seed}: a survivor keeps guiding");
-                let team = b.unit(UnitId(0)).unwrap();
-                let launcher = team.mounts.iter().find(|m| m.support.is_some()).unwrap();
-                let operator = launcher.operator.unwrap();
-                let survivor = team.members.iter().find(|s| s.id == operator).unwrap();
-                assert_eq!(
-                    survivor.active_mount,
-                    Some(launcher.spec),
-                    "guidance reserves the survivor on the handoff tick"
-                );
-                assert!(
-                    !b.rounds().any(|(p, r)| {
-                        p.age_s == 0.0
-                            && r.unit == UnitId(0)
-                            && b.arsenal().weapons[r.weapon].id == "rifle"
-                            && p.shooter.unwrap().body.0 == operator
-                    }),
-                    "the surviving guide cannot fire his rifle on that tick"
-                );
-                assert_eq!(m.id, before.id, "the same missile survives the handoff");
-                assert!(
-                    m.point[0] > 600.0 && m.point[2] > 0.0,
-                    "still aiming at the tank"
-                );
-                takeovers += 1;
-                break;
-            }
-            if !gunner {
-                break;
-            }
+        }
+        assert!(apex(&path) > 30.0, "it climbed: apex {:.1} m", apex(&path));
+        if own(&b, Side::Red, 1).unwrap().hp < common::hull("test_tank").hp {
+            struck += 1;
         }
     }
-    assert!(takeovers > 0, "no seed saw the gunner fall mid-flight");
+    assert!(struck > 0, "no handed-off missile struck the tank");
+}
+
+/// A fragile gunner guides at a far tank; once he launches, a red scout team
+/// opens fire on his team, whose riflemen do not fall. Whenever he falls with
+/// a missile in flight, a survivor takes up the same launcher and keeps
+/// guiding that missile. Each takeover's battle, the tick after the handoff,
+/// with the missile's path as blue saw it until then.
+fn survivor_takeovers(rules: fn(&mut Value)) -> impl Iterator<Item = (Battle, Vec<[f64; 3]>)> {
+    (1..=6).filter_map(move |seed| survivor_takeover(seed, rules))
+}
+
+fn survivor_takeover(seed: u64, rules: fn(&mut Value)) -> Option<(Battle, Vec<[f64; 3]>)> {
+    let mut b = quick(
+        json!([]),
+        json!([
+            { "side": "blue", "kind": "test_at", "position": [40, 300] },
+            { "side": "red", "kind": "test_tank", "position": [630, 300], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_recon", "position": [100, 330], "engagement": "return_fire_only" },
+        ]),
+        seed,
+        |r| {
+            let hp = |hp| json!({ "hp": hp });
+            sim::fixtures::patch_catalog(r, "soldiers", "test_at_rifleman", hp(100_000));
+            sim::fixtures::patch_catalog(r, "soldiers", "test_atgm_gunner", hp(1));
+            rules(r);
+        },
+    );
+    until_launch(&mut b);
+    let open_fire = Order::SetEngagement {
+        units: vec![UnitId(2)],
+        policy: contract::command::Engagement::FireAtWill,
+    };
+    Commander::new().ok(&mut b, Side::Red, open_fire);
+    let mut path = Vec::new();
+    for _ in 0..600 {
+        let flying = missile(&b).filter(|m| m.supported);
+        path.extend(flying.as_ref().map(|m| m.position));
+        b.step();
+        let gunner = own(&b, Side::Blue, 0).is_some_and(|u| u.member_slots.contains(&0));
+        // His missile, if it is still in flight the tick he fell: one that
+        // struck that same tick had nothing left to release.
+        let still = |b: &Battle| {
+            let id = flying.as_ref()?.id;
+            b.observe(Side::Blue)
+                .guided
+                .iter()
+                .find(|m| m.id == id)
+                .cloned()
+        };
+        if let (Some(before), false, true) = (&flying, gunner, still(&b).is_some()) {
+            // Guidance runs before damage: the next tick assigns a
+            // survivor before steering the existing missile.
+            b.step();
+            let Some(m) = still(&b) else {
+                // It may hit during the handoff tick: there is no continuing
+                // guidance to inspect, but disappearance must be a real impact.
+                assert!(b.flight_events().iter().any(|event| matches!(
+                    event, sim::flight::FlightEvent::Impact(i)
+                        if i.projectile.0 == before.id && i.detonated
+                )));
+                return None;
+            };
+            assert!(m.supported, "seed {seed}: a survivor keeps guiding");
+            let team = b.unit(UnitId(0)).unwrap();
+            let launcher = team.mounts.iter().find(|m| m.support.is_some()).unwrap();
+            let operator = launcher.operator.unwrap();
+            let survivor = team.members.iter().find(|s| s.id == operator).unwrap();
+            assert_eq!(
+                survivor.active_mount,
+                Some(launcher.spec),
+                "guidance reserves the survivor on the handoff tick"
+            );
+            assert!(
+                !b.rounds().any(|(p, r)| {
+                    p.age_s == 0.0
+                        && r.unit == UnitId(0)
+                        && b.arsenal().weapons[r.weapon].id == "rifle"
+                        && p.shooter.unwrap().body.0 == operator
+                }),
+                "the surviving guide cannot fire his rifle on that tick"
+            );
+            assert_eq!(m.id, before.id, "the same missile survives the handoff");
+            assert!(
+                m.point[0] > 600.0 && m.point[2] > 0.0,
+                "still aiming at the tank"
+            );
+            path.push(m.position);
+            return Some((b, path));
+        }
+        if !gunner {
+            return None;
+        }
+    }
+    None
 }
 
 /// A living soldier: his slot and where he stands.

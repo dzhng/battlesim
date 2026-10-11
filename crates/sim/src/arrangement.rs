@@ -19,11 +19,17 @@ const DRAWS: usize = 24;
 const RING_STEP_M: f64 = 0.5;
 
 /// The random draws for one arrangement: fixed by the battle's seed, the
-/// squad and the tick, so a replay draws the same spots and every order
-/// draws new ones.
-pub fn rng(seed: u64, unit: u32, tick: u64) -> Rng {
-    let mut mix = Rng::new(seed ^ (u64::from(unit) << 40) ^ tick.rotate_left(17));
+/// squad and `draw` (which arrangement), so a replay draws the same spots.
+pub fn rng(seed: u64, unit: u32, draw: u64) -> Rng {
+    let mut mix = Rng::new(seed ^ (u64::from(unit) << 40) ^ draw.rotate_left(17));
     Rng::new(mix.next_u64())
+}
+
+/// The draw for a squad arriving at `goal`: the same goal draws the same
+/// spots whenever it is asked, so a preview held over many ticks shows where
+/// the order will send each soldier, and a new goal draws new ones.
+pub fn arrival(goal: V2) -> u64 {
+    goal.x.to_bits() ^ goal.y.to_bits().rotate_left(32)
 }
 
 /// The ground a soldier's disc of `radius` stands on at `p`: inside the map,

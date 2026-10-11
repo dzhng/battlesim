@@ -634,12 +634,14 @@ def pylon(name, loc, length, depth, mats, parent):
 def store(name, kind, loc, length, radius, mats, parent, fins=True, rail=False):
     """A store hung with its nose at +X, centred on `loc`: `missile` (a slim
     body, a pointed seeker, canards and tail fins, its live bands), `bomb`
-    (a fat body, its fuze and tail fins), `tank` (a drop tank) or `pod` (a
-    sensor pod with its window). `rail` hangs it from a launch rail."""
+    (a fat body, its fuze and tail fins), `tank` (a drop tank), `pod` (a
+    sensor pod with its window) or `rockets` (a blunt rocket launcher, its
+    tubes' mouths in its dark front face). `rail` hangs it from a launch
+    rail."""
     x, y, z = loc
     h = length / 2
-    nose = {"missile": 0.12, "bomb": 0.25, "tank": 0.3, "pod": 0.15}[kind]
-    tail = {"missile": 0.98, "bomb": 0.8, "tank": 0.75, "pod": 0.9}[kind]
+    nose = {"missile": 0.12, "bomb": 0.25, "tank": 0.3, "pod": 0.15, "rockets": 0.04}[kind]
+    tail = {"missile": 0.98, "bomb": 0.8, "tank": 0.75, "pod": 0.9, "rockets": 0.94}[kind]
     st = [(x + h, 0.0, z, z), (x + h - length * nose, radius, z - radius, z + radius),
           (x - h + length * (1 - tail), radius, z - radius, z + radius),
           (x - h, radius * (0.4 if kind != "missile" else 0.95), z - radius * 0.5, z + radius * 0.5)]
@@ -658,6 +660,16 @@ def store(name, kind, loc, length, radius, mats, parent, fins=True, rail=False):
     if kind == "pod":
         box(f"{name}_window", (0.03, radius * 1.1, radius * 1.1), (x + h - length * nose * 0.4, y, z),
             mats["glass"], parent, lods=MID)
+    if kind == "rockets":
+        # The front face, and a ring of tube mouths round a centre one.
+        cyl(f"{name}_face", radius * 0.94, 0.02, (x + h + 0.01, y, z), "X", mats["black"], parent, seg=14, lods=MID)
+        for j in range(7):
+            a = math.tau * j / 6
+            dy, dz = (0.0, 0.0) if j == 6 else (math.cos(a) * radius * 0.58, math.sin(a) * radius * 0.58)
+            cyl(f"{name}_tube_{j}", radius * 0.2, 0.03, (x + h + 0.02, y + dy, z + dz), "X", mats["steel"], parent,
+                seg=8, lods=FINE)
+            cyl(f"{name}_mouth_{j}", radius * 0.13, 0.03, (x + h + 0.03, y + dy, z + dz), "X", mats["black"], parent,
+                seg=8, lods=FINE)
     if rail:
         box(f"{name}_rail", (length * 0.6, 0.07, radius + 0.06), (x - length * 0.05, y, z + radius + 0.01),
             mats["dark"], parent, bevel=0.01, lods=MID)
@@ -751,6 +763,61 @@ def skids(x_front, x_back, y, cross, top, mats, parent, radius=0.045):
         tube_part(f"skid_cross_{k}", arch, radius * 1.1, mats["dark"], parent, MID)
 
 
+# ---------------------------------------------------------------- guns
+def _rigged(v, rigged, mount):
+    """`mount`'s rig nodes (`vehicle_export.rig`'s (yaw, pitch, muzzle,
+    pivot)) and its muzzle from the pivot, as the frame states it."""
+    return rigged[mount], next(mt for mt in v.frame["mounts"] if mt["name"] == mount)["muzzle_m"]
+
+
+def chin_gun(v, rigged, mats, pitch_deg, stroke_m, mount="chin", drum=0.27, barrels=(0.0,)):
+    """A turreted gun under the airframe on `mount`'s gun rig (`rigged`,
+    from `vehicle_export.rig`): the turret drum yawing at the pivot, its
+    yoke arms down either side of the bore, the receiver on the gun node
+    and a barrel (one per lateral offset in `barrels`) out to the muzzle.
+    The gun node carries the model's own elevation, `pitch_deg` (low,
+    high), and recoil stroke `stroke_m`: the renderer's rig clamps and
+    recoils the drawn gun to them."""
+    (turret, gun, _muzzle, _pivot), (reach, _, bore) = _rigged(v, rigged, mount)
+    gun["pitch_min_deg"], gun["pitch_max_deg"] = pitch_deg
+    gun["recoil_max_m"] = stroke_m
+    cyl("gun_turret", drum, 0.3, (0, 0, 0.06), "Z", mats["dark"], turret, seg=16)
+    for side in (1, -1):
+        box(f"gun_yoke_{'L' if side > 0 else 'R'}", (0.22, 0.05, 0.22), (0, side * 0.16, bore), mats["dark"], turret,
+            bevel=0.01, lods=MID)
+    box("gun_cradle", (0.5, 0.22, 0.2), (0.1, 0, 0), mats["dark"], gun, bevel=0.02)
+    for j, dy in enumerate(barrels):
+        cyl("gun_barrel" if len(barrels) == 1 else f"gun_barrel_{j}", 0.05, reach - 0.05, ((reach + 0.05) / 2, dy, 0),
+            "X", mats["steel"], gun, seg=8, lods=MID)
+
+
+def door_gun(v, rigged, mats, pitch_deg, inboard, gun="m2", mount="door"):
+    """A heavy machine gun swung out of a cabin door on `mount`'s HMG rig
+    (`rigged`, from `vehicle_export.rig`): the pintle arm out from the
+    airframe's side, from `inboard` metres in from the pivot (towards the
+    centreline), and its post up to the pintle, both fixed in the frame the
+    pivot is in (the root's, as the rig is); the pintle head and cradle
+    yawing on it, and the gun (`m2` or `kord`) pitching to the muzzle,
+    within the model's own elevation `pitch_deg` (low, high) on the gun
+    node."""
+    from vehicle_parts import browning_m2, kord
+    (yaw, pitch, _muzzle, pivot), (reach, _, bore) = _rigged(v, rigged, mount)
+    pitch["pitch_min_deg"], pitch["pitch_max_deg"] = pitch_deg
+    side = 1 if pivot.y >= 0 else -1
+    foot = pivot.z + bore - 0.42
+    # The arm's root on the cabin side, the post up under the pintle.
+    line("door_gun_arm", (pivot.x, pivot.y - side * inboard, foot), (pivot.x, pivot.y, foot), mats["dark"], v.root,
+         width=0.07, height=0.06, lods=MID)
+    cyl("door_gun_post", 0.035, 0.3, (pivot.x, pivot.y, foot + 0.15), "Z", mats["dark"], v.root, seg=8, lods=MID)
+    cyl("door_gun_pintle", 0.05, 0.12, (0, 0, bore - 0.12), "Z", mats["dark"], yaw, seg=10)
+    box("door_gun_cradle", (0.24, 0.16, 0.05), (0.02, 0, bore - 0.08), mats["dark"], yaw, bevel=0.008, lods=MID)
+    if gun == "kord":
+        kord(pitch, reach, mats)
+    else:
+        browning_m2(pitch, reach, mats, grips=True)
+        box("m2_ammo_can", (0.28, 0.1, 0.18), (0.0, -side * 0.13, -0.05), mats["paint"], pitch, bevel=0.01, lods=MID)
+
+
 # ---------------------------------------------------------------- wreck
 def crash(v, tail_x, wing_y=None, wing_side=-1, tail_yaw=0.35, tail_drop=0.18, blades_broken=(), seed=0):
     """The airframe after it came down and burnt, before `wreckage.burn`: gear
@@ -801,12 +868,37 @@ def crash(v, tail_x, wing_y=None, wing_side=-1, tail_yaw=0.35, tail_drop=0.18, b
                               (-size * 0.6, size * 0.7)], 0.03,
               (v.length * dx, v.width * 0.5 * dy, 0.03), (0.04 * k, -0.03, 0.7 + k * 1.3), m["paint"], v.root,
               curl=0.1, seed=seed + 71 + k)
+    # Each rotor's blades lie in their own stretch beside the airframe (a
+    # second rotor's further aft), so no two lie on one another.
+    rotors = list(dict.fromkeys(r for r, _ in blades_broken))
     for rotor_name, k in blades_broken:
+        aft = rotors.index(rotor_name) * 3.2
         plate(f"litter_blade_{rotor_name}_{k}", [(-2.4, -0.12), (2.6, -0.1), (2.5, 0.14), (-2.3, 0.12)], 0.04,
-              (-v.length * 0.1 + k * 0.6, (1 if k % 2 else -1) * (v.width * 0.5 + 1.5 + k * 0.4), 0.04),
+              (-v.length * 0.1 + k * 0.6 - aft, (1 if k % 2 else -1) * (v.width * 0.5 + 1.5 + k * 0.4), 0.04),
               (0, 0.02, 0.4 + k * 1.1), m["blade"], v.root, seed=seed + 91 + k)
     v.root.rotation_euler = (0.06 * (1 if seed % 2 else -1), 0.03, 0)
     rest_on_ground(0.004)
+
+
+def rotorcraft_crash(v, lifting=("main",), **crash_kw):
+    """A rotorcraft's wreck (`crash`, with `crash_kw`): every blade of its
+    `lifting` rotors snapped off against the ground and thrown clear, past
+    the box the simulation keeps as cover, as the wreck's debris
+    (`debris_blades`). Its guns stay bolted on: each mount rig's nodes
+    become plain parts named for their mount (`chin_turret`), so the wreck
+    has no turret to throw."""
+    import bpy
+    from vehicle_export import RIG_NODES
+    for mount in v.frame["mounts"]:
+        for name in RIG_NODES.get(mount["role"], ()):
+            bpy.data.objects[name].name = f"{mount['name']}_{name}"
+    broken = sorted({(r, int(o.name.split("_")[2])) for r in lifting for o in bpy.data.objects
+                     if o.name.startswith(f"blade_{r}_")}, key=lambda b: (lifting.index(b[0]), b[1]))
+    crash(v, blades_broken=tuple(broken), **crash_kw)
+    thrown = empty("debris_blades", parent=v.root)
+    for o in list(bpy.data.objects):
+        if o.name.startswith("litter_blade_") and o.parent == v.root:
+            o.parent = thrown
 
 
 # ---------------------------------------------------------------- a whole airframe

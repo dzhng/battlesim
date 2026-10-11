@@ -1,0 +1,14 @@
+DUEL eastern_type_15_ztq_15_light_tank vs europe_cv90_cv9040c @450m: t=15s blue_hp=100 red_hp=-30
+DUEL eastern_type_15_ztq_15_light_tank vs europe_cv90_cv9040c @650m: t=240s blue_hp=100 red_hp=90
+DUEL eastern_type_15_ztq_15_light_tank vs us_m2_bradley_ifv_m2a4 @450m: t=15s blue_hp=10 red_hp=-30
+DUEL eastern_type_15_ztq_15_light_tank vs us_m2_bradley_ifv_m2a4 @650m: t=240s blue_hp=100 red_hp=90
+DUEL eastern_type_15_ztq_15_light_tank vs europe_boxer_rct30 @450m: t=33s blue_hp=100 red_hp=-35
+DUEL eastern_type_15_ztq_15_light_tank vs europe_boxer_rct30 @650m: t=240s blue_hp=100 red_hp=85
+DUEL eastern_type_15_ztq_15_light_tank vs eastern_t_90_t_90m_proryv @450m: t=27s blue_hp=-35 red_hp=120
+DUEL eastern_type_15_ztq_15_light_tank vs eastern_t_90_t_90m_proryv @650m: t=240s blue_hp=100 red_hp=120
+DUEL eastern_type_15_ztq_15_light_tank vs us_m1_abrams_sep_v2 @450m: t=27s blue_hp=-35 red_hp=110
+DUEL eastern_type_15_ztq_15_light_tank vs us_m1_abrams_sep_v2 @650m: t=240s blue_hp=100 red_hp=110
+DUEL eastern_brm_brm_3k vs us_m3_bradley_cfv_m3a3 @450m: t=2s blue_hp=90 red_hp=-20
+DUEL eastern_brm_brm_3k vs us_m3_bradley_cfv_m3a3 @650m: t=2s blue_hp=90 red_hp=-20
+DUEL eastern_brm_brm_3k vs europe_ajax_tracked_reconnaissance_vehicle @450m: t=2s blue_hp=90 red_hp=-20
+DUEL eastern_brm_brm_3k vs europe_ajax_tracked_reconnaissance_vehicle @650m: t=2s blue_hp=90 red_hp=-20

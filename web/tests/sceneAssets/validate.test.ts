@@ -53,6 +53,8 @@ import {
   panelGlb,
   skidGlb,
   cartGlb,
+  heliGlb,
+  HELI_AUTHORITY,
   soldierGlb,
   syntheticUnits,
   tankGlb,
@@ -563,6 +565,35 @@ test("a mount is drawn by the rig its model declares, whatever the mount is call
   );
 });
 
+test("a mount fixed in the hull is drawn by the hull, with no rig of its own", async () => {
+  // A launcher on the hull's side, neither a turret nor carried by one: it
+  // never turns apart from the body, so nothing articulates it.
+  const [cannon, hmg] = tankMounts();
+  const launcher = {
+    ...cannon,
+    id: "rockets",
+    turret: false,
+    on: null,
+    pivot_m: [1, 1.6, 1.2],
+    muzzle_m: [0.8, 0, 0],
+  } as typeof cannon;
+  const fit = (mounts: (typeof cannon)[]) =>
+    validateAppearance(
+      {
+        name: "tank",
+        entry: { unit: "vehicle", source: "t.glb", basis_yaw_deg: 0, mounts: TANK_DRAWS },
+        files: { "t.glb": tankGlb() },
+      },
+      { tolerances: TOLERANCES, authority: { ...AUTHORITY, units: syntheticUnits({ mounts }) } },
+    );
+  expect((await fit([cannon, hmg, launcher])).findings).toEqual([]);
+  // A turret mount left undeclared is still named.
+  const turret = { ...launcher, turret: true };
+  expect((await fit([cannon, hmg, turret])).findings.map((f) => f.message)).toContainEqual(
+    expect.stringMatching(/mount "rockets" is not drawn by any rig/),
+  );
+});
+
 test("the roof HMG is fitted on its own pivot, turning with the turret and on its own ring", async () => {
   // Right at rest, wrong as it turns: the row puts the HMG's pivot at its
   // muzzle's foot, not on the ring the model turns it on.
@@ -757,4 +788,18 @@ test("what rolls on the ground must spin: tyres under wheel nodes; skids or a be
   expect(await judged(skidGlb())).not.toContain("nodes.missing");
   expect(await judged(cartGlb(true))).not.toContain("nodes.missing");
   expect(await judged(cartGlb(false))).toContain("nodes.missing");
+});
+
+test("a helicopter fits its hull without its rotors: their disc is not its airframe's size", async () => {
+  const findings = (
+    await validateAppearance(
+      {
+        name: "heli",
+        entry: { unit: "vehicle", source: "heli.glb", basis_yaw_deg: 0 },
+        files: { "heli.glb": heliGlb() },
+      },
+      { ...context, authority: HELI_AUTHORITY },
+    )
+  ).findings;
+  expect(findings.map((f) => f.message)).toEqual([]);
 });

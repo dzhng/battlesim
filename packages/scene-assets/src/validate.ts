@@ -19,6 +19,7 @@ import { mountMuzzles, muzzleOffset, type MountMuzzle } from "./mountMuzzle.ts";
 import {
   FACTIONS,
   MOUNT_NODES,
+  hullFixed,
   isArticulation,
   mountRoles,
   vehicleClass,
@@ -34,6 +35,7 @@ import {
   REST_ARTICULATION,
   articulate,
   articulationRig,
+  isRotor,
   restLocals,
 } from "./articulation.ts";
 import {
@@ -983,15 +985,17 @@ export function typeFindings(
     out.push(...deployFindings(label, nodes, index, tolerances));
   }
 
-  // The hull box, without what its mounts carry beyond it or its dressing.
-  // Dressing nested in dressing is measured with the outer node.
+  // The hull box, without what its mounts carry beyond it, its dressing or
+  // its rotors (a rotor's disc is not its airframe's size). Dressing nested
+  // in dressing is measured with the outer node.
   const dressing = nodes.flatMap((n, i) =>
     isDressing(n.name) && !nodes.some((d, j) => isDressing(d.name) && isUnder(i, j)) ? [i] : [],
   );
   const excluded = roles
     .flatMap((role) => (role === "hand" ? [] : [index.get(OFF_HULL[role])]))
     .filter((i): i is number => i !== undefined)
-    .concat(dressing);
+    .concat(dressing)
+    .concat(nodes.flatMap((n, i) => (isRotor(n.name) ? [i] : [])));
   const hullPositions = articulatedPositions(
     nodes,
     worlds,
@@ -1071,8 +1075,9 @@ function mountDrawFindings(label: string, type: UnitType, draws: MountDraws | nu
       );
     else rigs.set(rig, mount);
   }
+  // A mount fixed in the hull is drawn by it; every mount that turns needs a rig.
   for (const m of type.mounts)
-    if (m.muzzle_m && !draws?.[m.id])
+    if (m.muzzle_m && !draws?.[m.id] && !hullFixed(m))
       out.push(
         finding("fit.mount_draw", `${label}: mount "${m.id}" is not drawn by any rig`, fix(m.id)),
       );
@@ -1118,7 +1123,7 @@ function muzzleFindings(
     if (!m || muzzle === undefined) return;
     const what = `${rule.name}[${i}] (${m.id})`;
     const rest = pointAt(worlds[muzzle], [0, 0, 0]);
-    muzzleOffset(expected, m, 0, 0);
+    muzzleOffset(expected, m, 0, 0, 0);
     const error = vec3.distance(rest, expected);
     if (error > tolerances.vehicle_muzzle_m)
       out.push(
@@ -1140,7 +1145,7 @@ function muzzleFindings(
         const yaws = new Map([[yaw, own]]);
         if (carrier !== undefined) yaws.set(carrier, carried);
         const at = pointAt(yawed(yaws)[muzzle], [0, 0, 0]);
-        muzzleOffset(expected, m, carried, carried + own);
+        muzzleOffset(expected, m, 0, carried, carried + own);
         worst = Math.max(worst, vec3.distance(at, expected));
       }
     }
@@ -1149,7 +1154,7 @@ function muzzleFindings(
         finding(
           "fit.muzzle_arc",
           `${label}: as ${mount.yaw} turns, ${mount.muzzle} leaves the arc ${what} swings it through by up to ${fmt(worst)} m`,
-          `put the ${mount.yaw}'s yaw pivot on the row's pivot_m, as the simulation's muzzle model does`,
+          `put the ${mount.yaw}'s yaw pivot on the row's pivot_m, under its carrier's ring as the simulation's muzzle model turns it`,
         ),
       );
   });

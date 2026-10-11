@@ -1,0 +1,22 @@
+# Slice 12 quick battle sample (not the balance report).
+# One EBRC Jaguar (blue, fire at will) on open ground against one still tank (red, return
+# fire only), game rules, seeds 1..3, 120 s each. @N is each Akeron's descent angle over
+# its last flown step; apex is its highest point.
+# Rows 1-3: T-90M head-on at 700 m. 4-6: T-90M flank at 700 m. 7-9: T-90M head-on at
+# 840 m (inside the Jaguar's 850 m sight). 10-12: T-90M head-on at 400 m (it sees the
+# Jaguar and shoots back). 13-15: Abrams SEP v3 Trophy head-on at 700 m.
+seed 1: 700 m yaw 3.14: launched 3, @45°/apex 62 m @45°/apex 62 m @45°/apex 62 m; tank hp -45 (killed at 25 s); jaguar hp 80
+seed 2: 700 m yaw 3.14: launched 3, @45°/apex 62 m @45°/apex 62 m @45°/apex 62 m; tank hp -45 (killed at 25 s); jaguar hp 80
+seed 3: 700 m yaw 3.14: launched 3, @45°/apex 62 m @45°/apex 62 m @45°/apex 62 m; tank hp -45 (killed at 25 s); jaguar hp 80
+seed 1: 700 m yaw 1.57: launched 3, @45°/apex 62 m @45°/apex 62 m @45°/apex 62 m; tank hp -45 (killed at 25 s); jaguar hp 80
+seed 2: 700 m yaw 1.57: launched 3, @45°/apex 62 m @45°/apex 62 m @45°/apex 62 m; tank hp -45 (killed at 25 s); jaguar hp 80
+seed 3: 700 m yaw 1.57: launched 3, @45°/apex 62 m @45°/apex 62 m @45°/apex 62 m; tank hp -45 (killed at 25 s); jaguar hp 80
+seed 1: 840 m yaw 3.14: launched 3, @45°/apex 62 m @45°/apex 62 m @45°/apex 62 m; tank hp -45 (killed at 26 s); jaguar hp 80
+seed 2: 840 m yaw 3.14: launched 3, @45°/apex 62 m @45°/apex 62 m @45°/apex 62 m; tank hp -45 (killed at 26 s); jaguar hp 80
+seed 3: 840 m yaw 3.14: launched 3, @45°/apex 62 m @45°/apex 62 m @45°/apex 62 m; tank hp -45 (killed at 26 s); jaguar hp 80
+seed 1: 400 m yaw 3.14: launched 3, @45°/apex 61 m @45°/apex 61 m @33°/apex 60 m; tank hp 10; jaguar hp -10
+seed 2: 400 m yaw 3.14: launched 1, @45°/apex 61 m; tank hp 65; jaguar hp -10
+seed 3: 400 m yaw 3.14: launched 3, @45°/apex 61 m @45°/apex 61 m @45°/apex 61 m; tank hp -45 (killed at 24 s); jaguar hp 35
+seed 1: 700 m yaw 3.14: launched 4, @45°/apex 62 m @45°/apex 62 m @45°/apex 62 m @45°/apex 62 m; tank hp 110; jaguar hp 68
+seed 2: 700 m yaw 3.14: launched 4, @45°/apex 62 m @45°/apex 62 m @45°/apex 62 m @45°/apex 62 m; tank hp 110; jaguar hp 68
+seed 3: 700 m yaw 3.14: launched 4, @45°/apex 62 m @45°/apex 62 m @45°/apex 62 m @45°/apex 62 m; tank hp 110; jaguar hp 44

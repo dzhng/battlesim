@@ -12,28 +12,6 @@
    "note": "CV90120-T at IDET (Brno), right front quarter: the CV90 hull, a low wedge turret over the hull centre, the long 120 mm gun with thermal sleeve and perforated muzzle brake, the commander's sight ball on the roof. Exhibition camouflage, not followed."
   },
   {
-   "file": "europe_cv90120_light_tank-side.jpg",
-   "variant": "europe_cv90120_light_tank",
-   "view": "side",
-   "source": "photo",
-   "page": "https://commons.wikimedia.org/wiki/File:UA_21st_Mechanized_Brigade_CV-90.jpg",
-   "author": "21st Mechanized Brigade",
-   "licence": "CC-BY-4.0",
-   "sha256": "78699fe28491a3ffff40fd3097ce234fcd4a977a14e26e8a0d2de0d9eeecfdcd",
-   "note": "CV9040C left side: the CV90 hull and its seven road wheels, the hull the CV90120 keeps (same bytes as assets/references/cv90/europe_cv90_cv9040c-side.jpg); the turret is not the CV90120's."
-  },
-  {
-   "file": "europe_cv90120_light_tank-rear.jpg",
-   "variant": "europe_cv90120_light_tank",
-   "view": "rear",
-   "source": "photo",
-   "page": "https://commons.wikimedia.org/wiki/File:Stridsfordon_90_Gotlands_regemente_11.jpg",
-   "author": "Bene Rioó",
-   "licence": "CC-BY-SA-4.0",
-   "sha256": "b7adf1edc0807833bd6fe17283aa0f4ca04499eb0d72283dc5d6309cc726a352",
-   "note": "Swedish Strf 9040 rear: the CV90 hull's rear door and stowage, kept by the CV90120 (same bytes as assets/references/cv90/europe_cv90_cv9040c-rear.jpg)."
-  },
-  {
    "file": "europe_cv90120_light_tank-three_quarter_front-2-generated.jpg",
    "variant": "europe_cv90120_light_tank",
    "view": "three_quarter_front",
@@ -49,10 +27,43 @@
     "europe_cv90120_light_tank-three_quarter_front.jpg"
    ],
    "seed": 2003
+  },
+  {
+   "file": "europe_cv90120_light_tank-front.jpg",
+   "variant": "europe_cv90120_light_tank",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:CV90120-01.jpg",
+   "author": "Spike78",
+   "licence": "CC-BY-SA-3.0",
+   "sha256": "19b445bfd287947a1a3de51f0a30e26d02b7041d9059160c669cebc07df98529",
+   "note": "CV90120-T at MSPO 2007 (Kielce), head-on from the left track: the CV90 nose and glacis under a wide turret whose faceted cheeks stand well out beside the narrow gun shield, the commander's sight on its post above. Grey trial camouflage, not followed."
+  },
+  {
+   "file": "europe_cv90120_light_tank-detail.jpg",
+   "variant": "europe_cv90120_light_tank",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:CV90120-02.jpg",
+   "author": "Spike78",
+   "licence": "CC-BY-SA-3.0",
+   "sha256": "f66b1578da867ebb1254088b14d9df679fc58b974c7f6a3e9cf2454b00a47ee2",
+   "note": "CV90120-T at MSPO 2007, left front low: the hull's bolted side skirts and nose, and the turret's left cheek, a long faceted wedge running back from the gun shield to the flat side; the thermal-sleeved 120 mm."
+  },
+  {
+   "file": "europe_cv90120_light_tank-detail-2.jpg",
+   "variant": "europe_cv90120_light_tank",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:MSPO2007-57.jpg",
+   "author": "Spike78",
+   "licence": "CC-BY-SA-3.0",
+   "sha256": "3c2a10279c54d8dced62c2f1a3574ec7a71b506f6fe6819220700562cf9aa866",
+   "note": "CV90120-T at MSPO 2007, from above the turret's right cheek: the wedge cheek and its sight window either side of the gun shield, the sleeved barrel and perforated muzzle brake over the CV90 glacis and deck."
   }
  ],
  "gaps": [
-  "europe_cv90120_light_tank: one licensable photo of the vehicle itself (right front quarter, exhibition camouflage); its side and rear are the CV9040C hull's photos and the turret's sides and rear are guessed",
+  "europe_cv90120_light_tank: no licensable side or rear photo of the CV90120 itself (Commons' other MSPO 2007 photos are under an attribution-only licence outside the allowed list); its hull is the CV90's, whose side and rear are in assets/references/cv90/, and the turret's sides and rear are read off the front quarters",
   "europe_cv90120_light_tank: Swedish splinter scheme though no CV90120 serves; the scheme of the CV90 family's home army",
   "europe_cv90120_light_tank: dimensions are the CV90 hull's (about 6.6 m long, 3.2 m wide) and a turret roof about 2.5 m up, measured off the photo; not published figures"
  ]

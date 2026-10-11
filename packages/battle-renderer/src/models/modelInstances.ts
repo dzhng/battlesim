@@ -25,6 +25,9 @@ export interface SkinnedModelPose {
 export interface ArticulatedModelPose {
   kind: "articulated";
   articulation: Articulation;
+  /** A rigid motion of the whole model in its own frame, before its yaw (a
+   *  falling airframe's tilt, `VehiclePose.tilt`); none: upright. */
+  motion?: Mat4;
 }
 
 export interface StaticModelPose {
@@ -78,6 +81,10 @@ export interface ModelInstance {
   z: number;
   /** Heading of the model's +X, radians counter-clockwise from world +X. */
   yaw: number;
+  /** How far its foot stands above the ground under it, metres (an airframe
+   *  in flight): its shadow falls that much farther along the sun. None: on
+   *  the ground. */
+  lift?: number;
   /** Per-axis scale in the model's own frame, applied before `yaw`: a static
    *  prop fitted to its placed box (`propAppearance.ts`). None is 1. */
   scale?: readonly [number, number, number];
@@ -128,14 +135,16 @@ export type XrayOf = (side: Side, unit: number) => ModelInstance["xray"];
 
 /** One model per posed soldier and vehicle, by the appearance for its kind and
  *  side (a soldier's own variant), x-rayed in `xrayOf`'s colour for its unit,
- *  and one per fading corpse, lying, sunk by its fade and never x-rayed.
- *  Writes into `out` (reusing its records, so a frame allocates nothing once
- *  warm) and returns it. */
+ *  and one per fading corpse, lying, sunk by its fade and never x-rayed. An
+ *  airborne vehicle's model is lifted above the ground under it (`ground`,
+ *  the height at a point; none, the vehicle's own). Writes into `out`
+ *  (reusing its records, so a frame allocates nothing once warm) and returns it. */
 export function poseFrameInstances(
   out: ModelInstance[],
   frame: PoseFrame,
   resolve: ResolveAppearance,
   xrayOf: XrayOf = NO_XRAY,
+  ground?: (x: number, y: number) => number,
 ): ModelInstance[] {
   let n = 0;
   const record = (): ModelInstance => {
@@ -157,6 +166,7 @@ export function poseFrameInstances(
     m.y = s.position[1];
     m.z = s.position[2];
     m.yaw = s.facing;
+    m.lift = 0;
     let pose = m.pose;
     if (pose.kind !== "skinned" || pose === REST_POSE)
       pose = m.pose = { kind: "skinned", clip: "", phase: 0, blend: null };
@@ -175,11 +185,13 @@ export function poseFrameInstances(
     m.y = v.position[1];
     m.z = v.position[2];
     m.yaw = v.yaw;
+    m.lift = v.airborne && ground ? Math.max(0, m.z - ground(m.x, m.y)) : 0;
     const pose =
       m.pose.kind === "articulated"
         ? m.pose
         : (m.pose = { kind: "articulated", articulation: v.articulation });
     pose.articulation = v.articulation;
+    pose.motion = v.tilt ?? undefined;
     m.xray = xrayOf(v.side, v.unit);
   }
   // Corpses the cap has pushed out, sinking: posed per frame until gone.
@@ -194,6 +206,7 @@ export function poseFrameInstances(
     m.y = c.position[1];
     m.z = c.position[2] - f.sink;
     m.yaw = c.yaw;
+    m.lift = 0;
     m.pose = LYING_POSE;
     m.xray = null;
   }

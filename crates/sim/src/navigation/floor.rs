@@ -115,7 +115,8 @@ mod tests {
     use std::sync::Arc;
 
     fn floor_movers(rules: &Rules) -> [Mobility; 2] {
-        ["test_rifle", "test_jeep"].map(|id| crate::units::mobility(rules.catalog.by_id(id), rules))
+        ["test_rifle", "test_jeep"]
+            .map(|id| crate::units::ground_mobility(rules.catalog.by_id(id), rules).unwrap())
     }
 
     #[test]

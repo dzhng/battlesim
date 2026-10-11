@@ -3,6 +3,7 @@ import { expect, test, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { initSync, Battle } from "@wasm/game_wasm.js";
 import { createSimClient, type Publication } from "../src/battle/sim/client";
+import { ObservationDecoder } from "../src/battle/sim/observation";
 import type { SimReply, SimRequest } from "../src/battle/sim/protocol";
 import { labScenario } from "./catalog";
 import { loadMap } from "@web/maps/node";
@@ -135,8 +136,10 @@ test("an authority failure returns held records once and rejects requests after 
       const buffer = new Float32Array(memory.buffer, battle.publication_ptr(), length).slice()
         .buffer;
       deliver({ type: "publication", tick, digest: battle.digest(), length, buffer, stepMs: 0 });
+      expect(held.at(-1)!.copyPacked()).toEqual(Array.from(new Uint32Array(buffer)));
     }
     expect(held.map((publication) => publication.tick)).toEqual([1, 2]);
+    expect(held[0].copyPacked()).toHaveLength(held[0].bytes / Uint32Array.BYTES_PER_ELEMENT);
     expect(requests.filter((request) => request.type === "credit")).toEqual([]);
     const command = client.command({ kind: "stop", units: [1] });
     const advance = client.advance(1);
@@ -155,6 +158,28 @@ test("an authority failure returns held records once and rejects requests after 
     client.dispose();
     battle.free();
     vi.unstubAllGlobals();
+  }
+});
+
+test("raw capture words replay through a fresh Rust publication decoder", () => {
+  const memory = initSync({
+    module: readFileSync(new URL("../src/wasm/game_wasm_bg.wasm", import.meta.url)),
+  }).memory;
+  const battle = new Battle(
+    labScenario(loadMap("geometry").definition, [
+      { side: "blue", kind: "test_tank", position: [40, 150] },
+    ]),
+    9,
+  );
+  const decoder = new ObservationDecoder(JSON.parse(battle.observation_layout()));
+  decoder.invalidate("blue");
+  for (let i = 0; i < 3; i++) {
+    const tick = battle.step();
+    const length = battle.publish("blue");
+    const words = new Uint32Array(memory.buffer, battle.publication_ptr(), length).slice();
+    const floats = new Float32Array(words.buffer);
+    const observation = decoder.decode(floats);
+    expect(observation?.tick).toBe(tick);
   }
 });
 

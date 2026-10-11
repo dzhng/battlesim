@@ -29,6 +29,11 @@
       "name": "Light vehicle",
       "description": "Fast, lightly armoured vehicles with a mounted gun.",
       "symbol": ["recon", "wheeled"]
+    },
+    "helicopter": {
+      "name": "Helicopter",
+      "description": "Fast, fragile airframes that fly low and strike from the air.",
+      "symbol": ["rotary_wing"]
     }
   }
 }

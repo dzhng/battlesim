@@ -94,7 +94,10 @@ component state.
 
 [Page resources](src/appResources.ts) retain the admitted GPU across screen changes;
 [the viewport](src/LabViewport.tsx) owns the canvas configuration and scene
-allocations. A required resource failure ends play until manual Reload, while the
+allocations. The battle draws one pixel per CSS pixel on any display, and a
+high-density screen scales it up: drawing at the display's density multiplies the
+frame's cost for detail a moving battlefield hardly shows, while the HUD, drawn by
+the page, stays at full density. A required resource failure ends play until manual Reload, while the
 menu remains available. Document departure releases the page GPU; component
 refresh cleanup only detaches listeners so development refresh cannot destroy a
 still-live page's resources.

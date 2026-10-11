@@ -6,7 +6,9 @@ import type { ContactView } from "../src/battle/sim/observation";
 const contact: ContactView = {
   id: 7,
   source: "last_seen",
-  center: [100, 200],
+  center: [100, 200, 0],
+  layer: "ground",
+  aloft: false,
   radius: 20,
   evidenceTick: 0,
   expiresTick: 300,
@@ -36,7 +38,7 @@ test("renewed evidence cancels retirement and replaces the one visual slot", () 
   const refreshed = {
     ...contact,
     source: "firing",
-    center: [500, 600] as [number, number],
+    center: [500, 600, 0] as [number, number, number],
     evidenceTick: 55,
     expiresTick: 955,
   };

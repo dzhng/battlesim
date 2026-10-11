@@ -109,7 +109,9 @@ fn reverse_speed_is_the_fraction_of_forward() {
             | contract::catalog::Mobility::Wheeled {
                 reverse_fraction, ..
             } => reverse_fraction,
-            contract::catalog::Mobility::Foot { .. } => panic!("{kind} is on foot"),
+            contract::catalog::Mobility::Foot { .. } | contract::catalog::Mobility::Air { .. } => {
+                panic!("{kind} is not a ground vehicle")
+            }
         };
         assert!(
             (reverse / forward - fraction).abs() < 1e-6,
@@ -252,7 +254,7 @@ fn each_road_kind_carries_its_own_speed() {
 #[test]
 fn a_slow_surface_is_never_slower_than_open_ground() {
     let rules: contract::scenario::Rules = serde_json::from_value(rules()).unwrap();
-    let foot = sim::units::mobility(rules.catalog.by_id("test_rifle"), &rules);
+    let foot = sim::units::ground_mobility(rules.catalog.by_id("test_rifle"), &rules).unwrap();
     let dirt = rules.surfaces[&contract::map::SurfaceKind::DirtTrack].speed_factor;
     assert!(
         foot.road_mps * dirt < foot.off_road_mps,

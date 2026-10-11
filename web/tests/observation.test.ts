@@ -467,9 +467,36 @@ test("every frozen animation field and ground value decodes, integers exact past
     "test_at",
   ]);
   expect(o.knownProps.map((p) => p.kind)).toEqual(["tank_wreck"]);
+  // A heard helicopter's report keeps its height and band through the wire.
+  expect(o.contacts).toEqual([
+    {
+      id: 3,
+      source: "firing",
+      center: [120.5, 64.25, 31.5],
+      layer: "low_air",
+      aloft: true,
+      radius: 30,
+      evidenceTick: 4,
+      expiresTick: 900,
+      kind: null,
+      heard: [layout.roundKinds[2]],
+    },
+  ]);
   // A prop id past 2^24 survives as two limbs.
   expect(o.fallenBodies).toEqual([
     { prop: 16777300, at: [120.5, 64.25], toward: [0, -1], tick: 7 },
+  ]);
+  // A downed airframe falls through the wire as itself, where and how it hangs.
+  expect(o.crashes).toEqual([
+    {
+      id: 9,
+      own: false,
+      kind: "test_jeep",
+      position: [140.5, 60.25, 12.5],
+      yaw: 0.75,
+      pitch: -0.25,
+      roll: 0.125,
+    },
   ]);
   const ground = new GroundView(layout.ground);
   ground.applyRuns(o.groundPatch);
@@ -502,6 +529,10 @@ test("every frozen animation field and ground value decodes, integers exact past
   expect(o.identified[0].memberActiveMounts).toEqual([]);
   expect(o.identified[0].weaponPoses.map((p) => p.shots)).toEqual([9, big + 6]);
   expect(o.identified[0].reversing).toBe(true);
+  // A damaged enemy's coarse smoke bit, and nothing of its health, crosses the wire.
+  expect(o.identified[0].smoking).toBe(true);
+  expect(o.identified[0]).not.toHaveProperty("hp");
+  expect(o.own[0].smoking).toBe(false);
   expect(o.projectiles).toEqual([
     {
       path: [
@@ -587,8 +618,20 @@ test("every frozen animation field and ground value decodes, integers exact past
       replaces: big + 8,
     },
   ]);
-  // Frozen vectors carry their own weapon vocabulary and index meanings.
-  expect(layout.roundKinds).toEqual(["atgm", "grenade", "hmg", "rifle", "tank_ap", "tank_he"]);
+  // A firing report heard from rows on both sides of a mask word's 24 bits
+  // keeps every bit.
+  expect(wide.contacts.map((c) => c.heard)).toEqual([["atgm", "row_23", "row_24", "row_47"]]);
+  // Frozen vectors carry their own weapon vocabulary and index meanings, as
+  // wide as the heard mask.
+  expect(layout.roundKinds.slice(0, 6)).toEqual([
+    "atgm",
+    "grenade",
+    "hmg",
+    "rifle",
+    "tank_ap",
+    "tank_he",
+  ]);
+  expect(layout.roundKinds).toHaveLength(48);
 });
 
 test("a live battle publishes poses, soldier ids, tracer kinds and blasts", () => {

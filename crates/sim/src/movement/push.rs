@@ -117,7 +117,7 @@ pub fn shove(
         .iter()
         .enumerate()
         .filter(|(j, u)| *j != pusher && u.alive())
-        .filter_map(|(_, u)| u.hull_box())
+        .filter_map(|(_, u)| u.ground_footprint())
         .any(|h| deeper(&h));
     (!into_prop && !into_hull).then_some(Shove {
         prop: prop.id,
