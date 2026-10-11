@@ -79,7 +79,7 @@ Graph: `18 → 18b (approved 2026-10-11) → 19 → 20 → 20b → 21 → 22 →
 
 - [ ] 18 — Rust native core: run loop, readers, report, static-world selection and instance writes in the GDExtension; GDScript shrinks to an entry scene. [slice](slices/18-rust-native-core.md)
 - [ ] 18b — The presentation API: a small, documented, data-oriented boundary between Rust and every renderer, reviewed by the user before 19, 20 and 20b expose anything to a renderer. [slice](slices/18b-presentation-api.md)
-- [ ] 19 — One publication reader in Rust beside its writer, used by both clients; `observation.ts` and `observation.gd` deleted. [slice](slices/19-shared-publication-reader.md)
+- [ ] 19 — One publication reader in Rust beside its writer, used by both clients; `observation.ts` and `observation.gd` deleted. Internals built (the reader, equality on both fixture captures, research in the slice); surfaces wait for 18b. [slice](slices/19-shared-publication-reader.md)
 - [ ] 20 — Shared presentation crate: interpolation, poses, launches, effects and cook-offs, used by both clients; TS originals and native ports deleted. [slice](slices/20-shared-presentation-crate.md)
 - [ ] 20b — The static world resolved in Rust (building modules, scenery, terrain and grass tables, tier rules) for both clients; the TS resolvers and the manifest's placement artifacts are deleted. [slice](slices/20b-static-world-in-rust.md)
 - [ ] 21 — The rest of native's CPU side in Rust; no GDScript owns logic. [slice](slices/21-remaining-native-cpu.md)

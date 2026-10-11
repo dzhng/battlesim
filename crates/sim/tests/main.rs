@@ -48,6 +48,7 @@ mod navigation;
 mod objectives;
 mod order_markers;
 mod publication;
+mod publication_reader;
 mod ricochet;
 mod rivers;
 mod road_journeys;

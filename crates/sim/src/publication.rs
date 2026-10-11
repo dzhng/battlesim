@@ -28,6 +28,8 @@ use contract::scenario::CoverTier;
 use crate::battle::Battle;
 use crate::ground::GroundRunPatch;
 
+pub mod reader;
+
 /// Atomic publication allowance; uniform Large ground plus finest fog is about
 /// 40.5 MB. Higher-entropy workloads fail admission explicitly, never lose cells.
 pub const MAX_PUBLICATION_BYTES: usize = 64 * 1024 * 1024;
@@ -360,6 +362,110 @@ const IDENTIFIED_FIELDS: [&str; 13] = [
     "reversing",
     "smoking",
 ];
+const XY_FIELDS: [&str; 2] = ["x", "y"];
+const XYZ_FIELDS: [&str; 3] = ["x", "y", "z"];
+const MEMBER_ID_FIELDS: [&str; 4] = ["idLo", "idHi", "slot", "activeMount"];
+const MEMBER_ORDER_FIELDS: [&str; 4] = ["x", "y", "coverNow", "coverThere"];
+const RICOCHET_FIELDS: [&str; 4] = ["point", "nx", "ny", "nz"];
+const DELIVERY_FIELDS: [&str; 3] = ["length", "encoding", "floats"];
+const RANGE_FIELDS: [&str; 2] = ["start", "length"];
+const COPY_FIELDS: [&str; 2] = ["source", "length"];
+
+/// A variable-length run of points that follows a group's rows: its count is
+/// the row's `count` field.
+struct SectionLayout {
+    name: &'static str,
+    count: &'static str,
+    fields: &'static [&'static str],
+}
+
+/// One non-map group: its header count, row fields and variable sections.
+struct GroupLayout {
+    name: &'static str,
+    count: &'static str,
+    fields: &'static [&'static str],
+    sections: &'static [SectionLayout],
+}
+
+const fn section(
+    name: &'static str,
+    count: &'static str,
+    fields: &'static [&'static str],
+) -> SectionLayout {
+    SectionLayout {
+        name,
+        count,
+        fields,
+    }
+}
+
+const fn rows(
+    name: &'static str,
+    count: &'static str,
+    fields: &'static [&'static str],
+) -> GroupLayout {
+    GroupLayout {
+        name,
+        count,
+        fields,
+        sections: &[],
+    }
+}
+
+/// The non-map groups in record order; [`layout_json`] publishes them and the
+/// [`reader`] refuses a layout that differs.
+const GROUP_LAYOUTS: [GroupLayout; GROUPS] = [
+    GroupLayout {
+        name: "own",
+        count: "ownCount",
+        fields: &OWN_FIELDS,
+        sections: &[
+            section("route", "routeCount", &XY_FIELDS),
+            section("queue", "queueCount", &XY_FIELDS),
+            section("members", "memberCount", &XYZ_FIELDS),
+            section("memberHp", "memberCount", &["hp"]),
+            section("memberIds", "memberCount", &MEMBER_ID_FIELDS),
+            section("memberOrders", "memberCount", &MEMBER_ORDER_FIELDS),
+            section("memberLeans", "memberCount", &LEAN_FIELDS),
+            section("sees", "seesCount", &["id"]),
+            section("mounts", "mountCount", &MOUNT_FIELDS),
+            section("weaponPoses", "mountCount", &POSE_FIELDS),
+            section("sightEyes", "sightEyeCount", &XYZ_FIELDS),
+        ],
+    },
+    GroupLayout {
+        name: "identified",
+        count: "identifiedCount",
+        fields: &IDENTIFIED_FIELDS,
+        sections: &[
+            section("members", "memberCount", &XYZ_FIELDS),
+            section("memberIds", "memberCount", &MEMBER_ID_FIELDS),
+            section("memberLeans", "memberCount", &LEAN_FIELDS),
+            section("weaponPoses", "poseCount", &POSE_FIELDS),
+        ],
+    },
+    rows("contacts", "contactCount", &CONTACT_FIELDS),
+    rows("audible", "audibleCount", &AUDIBLE_FIELDS),
+    GroupLayout {
+        name: "projectiles",
+        count: "projectileCount",
+        fields: &PROJECTILE_FIELDS,
+        sections: &[
+            section("path", "pointCount", &XYZ_FIELDS),
+            section("ricochets", "ricochetCount", &RICOCHET_FIELDS),
+        ],
+    },
+    rows("blasts", "blastCount", &BLAST_FIELDS),
+    rows("guided", "guidedCount", &GUIDED_FIELDS),
+    rows("corpses", "corpseCount", &CORPSE_FIELDS),
+    rows("knownProps", "knownPropCount", &KNOWN_PROP_FIELDS),
+    rows("fallenBodies", "fallenBodyCount", &FALLEN_BODY_FIELDS),
+    rows("pendingPurchases", "pendingCount", &PENDING_FIELDS),
+    rows("reportTotals", "reportTotalsCount", &REPORT_TOTAL_FIELDS),
+    rows("reportEvents", "reportEventCount", &REPORT_EVENT_FIELDS),
+    rows("objectives", "objectiveCount", &OBJECTIVE_FIELDS),
+    rows("crashes", "crashCount", &CRASH_FIELDS),
+];
 
 /// An integer as its two exact 16-bit limbs.
 pub(crate) fn limbs(n: u32) -> [f32; 2] {
@@ -440,104 +546,21 @@ pub fn layout_json(battle: &Battle) -> String {
         .map(|w| w.id.as_str())
         .collect();
     let ground = battle.ground();
+    let groups: Vec<_> = GROUP_LAYOUTS
+        .iter()
+        .map(|g| {
+            let sections: Vec<_> = g
+                .sections
+                .iter()
+                .map(|s| serde_json::json!({ "name": s.name, "count": s.count, "fields": s.fields }))
+                .collect();
+            serde_json::json!({ "name": g.name, "count": g.count, "fields": g.fields, "sections": sections })
+        })
+        .collect();
     serde_json::json!({
         "header": HEADER.as_slice(),
-        "groups": [
-            {
-                "name": "own",
-                "count": "ownCount",
-                "fields": &OWN_FIELDS[..],
-                "sections": [
-                    { "name": "route", "count": "routeCount", "fields": ["x", "y"] },
-                    { "name": "queue", "count": "queueCount", "fields": ["x", "y"] },
-                    { "name": "members", "count": "memberCount", "fields": ["x", "y", "z"] },
-                    { "name": "memberHp", "count": "memberCount", "fields": ["hp"] },
-                    { "name": "memberIds", "count": "memberCount", "fields": ["idLo", "idHi", "slot", "activeMount"] },
-                    {
-                        "name": "memberOrders",
-                        "count": "memberCount",
-                        "fields": ["x", "y", "coverNow", "coverThere"],
-                    },
-                    { "name": "memberLeans", "count": "memberCount", "fields": LEAN_FIELDS },
-                    { "name": "sees", "count": "seesCount", "fields": ["id"] },
-                    { "name": "mounts", "count": "mountCount", "fields": MOUNT_FIELDS },
-                    { "name": "weaponPoses", "count": "mountCount", "fields": POSE_FIELDS },
-                    { "name": "sightEyes", "count": "sightEyeCount", "fields": ["x", "y", "z"] },
-                ],
-            },
-            {
-                "name": "identified",
-                "count": "identifiedCount",
-                "fields": IDENTIFIED_FIELDS,
-                "sections": [
-                    { "name": "members", "count": "memberCount", "fields": ["x", "y", "z"] },
-                    { "name": "memberIds", "count": "memberCount", "fields": ["idLo", "idHi", "slot", "activeMount"] },
-                    { "name": "memberLeans", "count": "memberCount", "fields": LEAN_FIELDS },
-                    { "name": "weaponPoses", "count": "poseCount", "fields": POSE_FIELDS },
-                ],
-            },
-            {
-                "name": "contacts",
-                "count": "contactCount",
-                "fields": CONTACT_FIELDS,
-                "sections": [],
-            },
-            {
-                "name": "audible",
-                "count": "audibleCount",
-                "fields": AUDIBLE_FIELDS,
-                "sections": [],
-            },
-            {
-                "name": "projectiles",
-                "count": "projectileCount",
-                "fields": PROJECTILE_FIELDS,
-                "sections": [
-                    { "name": "path", "count": "pointCount", "fields": ["x", "y", "z"] },
-                    {
-                        "name": "ricochets",
-                        "count": "ricochetCount",
-                        "fields": ["point", "nx", "ny", "nz"],
-                    },
-                ],
-            },
-            {
-                "name": "blasts",
-                "count": "blastCount",
-                "fields": BLAST_FIELDS,
-                "sections": [],
-            },
-            {
-                "name": "guided",
-                "count": "guidedCount",
-                "fields": GUIDED_FIELDS,
-                "sections": [],
-            },
-            {
-                "name": "corpses",
-                "count": "corpseCount",
-                "fields": CORPSE_FIELDS,
-                "sections": [],
-            },
-            {
-                "name": "knownProps",
-                "count": "knownPropCount",
-                "fields": KNOWN_PROP_FIELDS,
-                "sections": [],
-            },
-            {
-                "name": "fallenBodies",
-                "count": "fallenBodyCount",
-                "fields": FALLEN_BODY_FIELDS,
-                "sections": [],
-            },
-            { "name": "pendingPurchases", "count": "pendingCount", "fields": PENDING_FIELDS, "sections": [] },
-            { "name": "reportTotals", "count": "reportTotalsCount", "fields": REPORT_TOTAL_FIELDS, "sections": [] },
-            { "name": "reportEvents", "count": "reportEventCount", "fields": REPORT_EVENT_FIELDS, "sections": [] },
-            { "name": "objectives", "count": "objectiveCount", "fields": OBJECTIVE_FIELDS, "sections": [] },
-            { "name": "crashes", "count": "crashCount", "fields": CRASH_FIELDS, "sections": [] },
-        ],
-        "groupDelivery": { "fields": ["length", "encoding", "floats"], "range": ["start", "length"], "copy": ["source", "length"], "copyAlignments": (0..GROUPS).map(|g| fixed_row_width(g).max(1)).collect::<Vec<_>>(), "encodings": GROUP_ENCODINGS,
+        "groups": groups,
+        "groupDelivery": { "fields": DELIVERY_FIELDS, "range": RANGE_FIELDS, "copy": COPY_FIELDS, "copyAlignments": (0..GROUPS).map(|g| fixed_row_width(g).max(1)).collect::<Vec<_>>(), "encodings": GROUP_ENCODINGS,
             "packed": {
                 "bitOrder": "lsb-first in raw u32 carrier words",
                 "form": "u8: replacement=0, snapshot=1, copies=2",
@@ -1827,31 +1850,18 @@ fn write_group_operations(
 /// Short exact spans remain reusable when variable metadata shifts their addresses.
 const VARIABLE_ANCHOR_WORDS: usize = 3;
 
-/// Each non-map group's fixed row width, in record order; 0 where variable
-/// sections leave no one width to address complete rows by.
-const GROUP_ROW_WIDTHS: [usize; 15] = [
-    0,
-    0,
-    CONTACT_FIELDS.len(),
-    AUDIBLE_FIELDS.len(),
-    0,
-    BLAST_FIELDS.len(),
-    GUIDED_FIELDS.len(),
-    CORPSE_FIELDS.len(),
-    KNOWN_PROP_FIELDS.len(),
-    FALLEN_BODY_FIELDS.len(),
-    PENDING_FIELDS.len(),
-    REPORT_TOTAL_FIELDS.len(),
-    REPORT_EVENT_FIELDS.len(),
-    OBJECTIVE_FIELDS.len(),
-    CRASH_FIELDS.len(),
-];
-
 /// Non-map groups, in record order.
-pub const GROUPS: usize = GROUP_ROW_WIDTHS.len();
+pub const GROUPS: usize = 15;
 
+/// A non-map group's fixed row width; 0 where variable sections leave no one
+/// width to address complete rows by.
 fn fixed_row_width(group: usize) -> usize {
-    GROUP_ROW_WIDTHS[group]
+    let g = &GROUP_LAYOUTS[group];
+    if g.sections.is_empty() {
+        g.fields.len()
+    } else {
+        0
+    }
 }
 
 fn compare_rows(a: &[f32], b: &[f32]) -> std::cmp::Ordering {
