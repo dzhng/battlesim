@@ -42,7 +42,7 @@ func advance_to(samples: Array, tick: int) -> void:
 		apply(samples[_next].groundPatch)
 		_next += 1
 
-## Applies one publication's ground patch (`observation.gd`'s `groundPatch`):
+## Applies one publication's ground patch (the decoded sample's `groundPatch`):
 ## per run, its tile, `start + length * 256`, `crater + scorch * 256` and
 ## `tracks + trampled * 256 + cleared * 65536`.
 func apply(patch: Dictionary) -> void:

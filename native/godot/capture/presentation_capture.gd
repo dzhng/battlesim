@@ -7,7 +7,6 @@ extends RefCounted
 ## rejected with a reason.
 
 const StrictJson = preload("res://core/strict_json.gd")
-const Observation = preload("res://capture/observation.gd")
 const JsText = preload("res://core/js_text.gd")
 
 const SCHEMA := "battle-presentation-capture"
@@ -117,12 +116,14 @@ static func _invalid(reason: String) -> Dictionary:
 	return {"valid": false, "reason": reason}
 
 ## Decodes every sample of a parsed capture in tick order, through one
-## publication stream (`observation.gd`). Returns `{ok: true, samples}`, one
+## publication stream: the Rust reader, in the extension (`PublicationReader`). Returns `{ok: true, samples}`, one
 ## observation per sample shaped like the browser's, or `{ok: false, blocker}`:
 ## a sample that fails to decode breaks every later baseline, so it stops the
 ## run.
 static func decode_samples(capture_result: Dictionary) -> Dictionary:
-	var stream := Observation.new(capture_result.layout)
+	var stream = ClassDB.instantiate("PublicationReader")
+	if not stream.open(capture_result.capture.layout):
+		return {"ok": false, "blocker": {"name": "publication", "detail": "the layout is refused: %s" % stream.error}}
 	var samples: Array = []
 	for sample in capture_result.capture.samples:
 		var observation = stream.decode(sample.publication)

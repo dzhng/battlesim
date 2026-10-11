@@ -80,17 +80,21 @@ Paris-corner's third "after" run was slower in GPU and CPU together (6.36 ms GPU
 
 Every run of both scenes passed its checks (reel complete, timing comparable, no contention; the benchmark's phases, contact and camera keyframes). Evidence: `throwaway/perf/slice19-{before,after}/` and `throwaway/perf-runs.log`.
 
-**Less code, web half** (code lines, excluding comments, blanks and fixtures, against `b25be91dd`):
+## Native half (built 2026-10-11)
+
+The extension's `PublicationReader` (`native/godot-binding/src/publication_reader.rs`) wraps the same Rust reader. `open(layout)` returns false, with `error`, for a layout that isn't the writer's. `decode(words)` returns the sample's observation as Godot dictionaries and arrays of floats, the fog bits as a `PackedInt64Array` and the ground runs as a `PackedFloat32Array`, or null with `error`. An unchanged static group is the same `Array`, which `pose_feed.gd`'s `is_same` relies on. `presentation_capture.gd`'s `decode_samples` calls it, so the GDScript runner's consumers are unchanged. `observation.gd`, `publication_decode_test.gd` and the browser's fixture check (`nativePublicationDecode.test.ts`) are deleted. `crates/sim/tests/publication_reader.rs` stays as the reader's check against the fixtures. `native/godot/tests/run.sh` passes all 25 tests, including the learned-ground, pose-vector and capture tests that decode through the reader.
+
+**Less code, whole slice** (code lines, excluding comments, blanks and fixtures, against `f53a07d05`):
 
 | | added | deleted | net |
 | --- | --- | --- | --- |
-| Rust (reader 1,305, `GROUP_LAYOUTS`, presentation module 81, equality test 89) | 1,609 | 117 | +1,492 |
-| TS (`observation.ts` out; `observationView.ts` 322 and `presentation.ts` 39 in) | 429 | 1,298 | −869 |
-| TS tests | 89 | 84 | +5 |
-| GDScript | 2 | 0 | +2 |
-| Total | 2,129 | 1,499 | **+630** |
+| Rust (reader, `GROUP_LAYOUTS`, presentation module, extension class, equality test) | 1,718 | 117 | +1,601 |
+| TS (`observation.ts` out; `observationView.ts` and `presentation.ts` in) | 429 | 1,298 | −869 |
+| TS tests | 81 | 151 | −70 |
+| GDScript (`observation.gd` and its compare test out) | 3 | 954 | −951 |
+| Total | 2,231 | 2,520 | **−289** |
 
-The web half alone grows the total. The native half deletes `observation.gd` (836), `publication_decode_test.gd` (84) and the browser's fixture check (`nativePublicationDecode.test.ts`, 77), which brings the slice to about −360 after its glue. Two more duplicates of the reader could then go: the Rust tests' own transport decoder (`tests/common/publication_codec.rs`, 140) and the logical-record walker in `tests/publication.rs`.
+Two duplicates of the reader remain for later: the Rust tests' own transport decoder (`tests/common/publication_codec.rs`, 140 lines) and the logical-record walker in `tests/publication.rs`.
 
 **Focused gates:**
 - **Equality.** The Rust reader matches the old TS decoder field for field on both fixture captures, before the TS decoder is deleted (the test from slice 13, reused).

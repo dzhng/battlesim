@@ -164,28 +164,24 @@ light, and the report records it as a budget.
 
 ## Publication
 
-`capture/observation.gd` decodes the capture's publications as one ordered
-stream, a port of the Rust reader the browser decodes with
-(`crates/sim/src/publication/reader.rs`), until native calls that reader
-itself (slice 19). Each sample becomes one observation
-with the browser's keys, nulls and float32 values: every group and section,
-the fog field and the ground runs with their cleared byte. The published
-layout owns packing, baselines and offsets. A layout group native doesn't
-know, a short payload, a bad encoding or a record that breaks its baseline
-stops the run at a `publication` blocker.
+Native decodes the capture's publications with the same Rust reader the
+browser uses (`crates/sim/src/publication/reader.rs`), through the extension's
+`PublicationReader`: one ordered stream, each sample one observation with the
+browser's keys and nulls, the fog bits and the ground runs (with their cleared
+byte). An unchanged static group is the same `Array` as the sample before. A
+layout that isn't the writer's, a short payload, a bad encoding or a record
+that breaks its baseline stops the run at a `publication` blocker.
 
 A record's `simTime` is read as the browser reads it, to the nearest double
 (`core/js_text.gd`): Godot's own JSON reader can land an ulp off, and a clock
 exactly on a tick's boundary then falls on the other side of it.
 
-The check is exact: `web/tests/nativePublicationDecode.test.ts` writes the
-browser's decode of the fixture captures to
-`tests/fixtures/publication/<scene>-observations.json`, and
-`tests/publication_decode_test.gd` compares native's field by field (the fog
-words by digest). The market-town fixture is seven samples of a control
-capture whose first record is re-encoded as a fresh one (snapshot groups, the
-full fog, an empty learned ground), for the groups paris-corner never
-publishes. Rerun the vitest when the layout or the decoder changes.
+The reader's check is `crates/sim/tests/publication_reader.rs`: every sample
+of the fixture captures equals `tests/fixtures/publication/<scene>-observations.json`,
+the browser's last decode before the reader replaced it (the fog words by
+digest). The market-town fixture is seven samples of a control capture whose
+first record is re-encoded as a fresh one, for the groups paris-corner never
+publishes.
 
 ## Light
 

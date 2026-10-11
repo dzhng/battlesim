@@ -153,6 +153,7 @@ version = "0.1.0"
 dependencies = [
  "contract",
  "godot",
+ "serde",
  "serde_json",
  "sim",
 ]
