@@ -1,6 +1,6 @@
 extends Node3D
 
-## A rough native placement of the saved map, kept until slice 13 ports the
+## A rough native placement of the saved map, kept until slice 15 ports the
 ## browser's owners: what stands where for buildings (`buildings`), props
 ## (`props`) and observed units (`models`), each layer drawn by its own
 ## `model_batches.gd`. Every category is reported as a budget that names its
@@ -55,10 +55,10 @@ func _init(map: Dictionary, targets: Array, samples: Array, heights) -> void:
 	_region = String(map.get("regional_family", "")).to_lower()
 	var ids := {}
 	for sample in samples:
-		for unit in sample.units:
-			if not ids.has(unit.kindName):
-				ids[unit.kindName] = {}
-			ids[unit.kindName][unit.id] = true
+		for unit in sample.own:
+			if not ids.has(unit.kind):
+				ids[unit.kind] = {}
+			ids[unit.kind][unit.id] = true
 	for kind in ids:
 		_unit_kinds[kind] = ids[kind].size()
 	for target in targets:
@@ -108,9 +108,9 @@ func show_units(units: Array) -> void:
 		return
 	var placements := []
 	for unit in units:
-		if not _unit_appearances.has(unit.kindName):
-			_unit_appearances[unit.kindName] = _unit_appearance(unit.kindName)
-		placements.append([_unit_appearances[unit.kindName], Transform3D(Coords.yaw_basis(float(unit.yaw)), Coords.sim_array_to_godot(unit.position))])
+		if not _unit_appearances.has(unit.kind):
+			_unit_appearances[unit.kind] = _unit_appearance(unit.kind)
+		placements.append([_unit_appearances[unit.kind], Transform3D(Coords.yaw_basis(float(unit.yaw)), Coords.sim_array_to_godot(unit.position))])
 	_units.show_movers(placements)
 
 # Buildings --------------------------------------------------------------------
@@ -142,7 +142,7 @@ func _build_buildings(report) -> void:
 		for placement in boxes:
 			batches.add_static(box, placement)
 	batches.seal()
-	report.add_budget(OWNER, "approximation: kit shells picked by template token with no facade modules, an open tier drawn over every coarser tier (until slice 13), within %d m of a frame target" % REACH_M, "map.buildings", admitted, near, admitted - near)
+	report.add_budget(OWNER, "approximation: kit shells picked by template token with no facade modules, an open tier drawn over every coarser tier (until slice 15), within %d m of a frame target" % REACH_M, "map.buildings", admitted, near, admitted - near)
 	if not boxes.is_empty():
 		report.add_budget(OWNER, "approximation: an 18x8x18 m box where no kit shell matches the template", "map.buildings/boxes", boxes.size(), boxes.size(), 0)
 	_report_malformed(report, "map.buildings", malformed)

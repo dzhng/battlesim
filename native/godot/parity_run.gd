@@ -187,7 +187,7 @@ func _render(options: Dictionary) -> void:
 		if world.grass != null:
 			world.grass.grow(record)
 		world.environment.prepare(camera, Vector2(get_window().size), StrictJson.vector3(record.target))
-		world.layer.show_units(sample.units)
+		world.layer.show_units(sample.own)
 		world.layer.prepare(camera, Vector2(get_window().size))
 		if world.fog != null:
 			world.fog.show_fog(sample.fog)

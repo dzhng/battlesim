@@ -14,7 +14,7 @@ const MAP := {
 	"props": [{"kind": "test_post", "center": [18.0, 24.0], "yaw": 0.0, "half_extents": [0.3, 0.3, 1.0], "base_z": null}, {"kind": "parked_car", "center": [5000.0, 5000.0], "yaw": 0.0, "half_extents": [2.0, 1.0, 0.7], "base_z": null}],
 	"buildings": [{"template_id": "test-block", "frame": {"translation": [32.0, 32.0, 0.0], "yaw": 0.3}}],
 }
-const SAMPLES := [{"tick": 3, "units": [{"id": 7.0, "kindName": "test_unit", "position": [10.0, 20.0, 0.0], "yaw": 0.5}], "fog": {}}]
+const SAMPLES := [{"tick": 3, "own": [{"id": 7.0, "kind": "test_unit", "position": [10.0, 20.0, 0.0], "yaw": 0.5}], "fog": {}}]
 
 func run() -> bool:
 	var listed := _compose(["sky", "terrain", "buildings", "props", "models"])
@@ -60,8 +60,8 @@ func run() -> bool:
 	# no instance transforms to read back.)
 	var units := _compose(["models"])
 	var layer = units.world.layer
-	var a := {"id": 1.0, "kindName": "test_unit", "position": [0.0, 0.0, 0.0], "yaw": 0.0}
-	var b := {"id": 2.0, "kindName": "test_unit", "position": [5.0, 5.0, 0.0], "yaw": 0.0}
+	var a := {"id": 1.0, "kind": "test_unit", "position": [0.0, 0.0, 0.0], "yaw": 0.0}
+	var b := {"id": 2.0, "kind": "test_unit", "position": [5.0, 5.0, 0.0], "yaw": 0.0}
 	var holder: Node = units.root.find_child("ObservedUnits", true, false)
 	get_root().add_child(units.root)
 	var camera := Camera3D.new()

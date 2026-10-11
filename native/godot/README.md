@@ -156,6 +156,26 @@ plane from the manifest's lens. Godot has no infinite far plane, so the far
 plane is the map's diagonal plus the backdrop's reach from the manifest's
 light, and the report records it as a budget.
 
+## Publication
+
+`capture/observation.gd` decodes the capture's publications as one ordered
+stream, the port of the browser's `ObservationDecoder`
+(`web/src/battle/sim/observation.ts`). Each sample becomes one observation
+with the browser's keys, nulls and float32 values: every group and section,
+the fog field and the ground runs with their cleared byte. The published
+layout owns packing, baselines and offsets. A layout group native doesn't
+know, a short payload, a bad encoding or a record that breaks its baseline
+stops the run at a `publication` blocker.
+
+The check is exact: `web/tests/nativePublicationDecode.test.ts` writes the
+browser's decode of the fixture captures to
+`tests/fixtures/publication/<scene>-observations.json`, and
+`tests/publication_decode_test.gd` compares native's field by field (the fog
+words by digest). The market-town fixture is seven samples of a control
+capture whose first record is re-encoded as a fresh one (snapshot groups, the
+full fog, an empty learned ground), for the groups paris-corner never
+publishes. Rerun the vitest when the layout or the decoder changes.
+
 ## Light
 
 The manifest's `light` is the browser's `presentation.light`, exactly as the
@@ -293,7 +313,7 @@ materials × passes, never placed objects or their parts.
 
 ## Legacy map layer
 
-Until slice 13 ports the browser's placement, `world/legacy_map_layer.gd`
+Until slice 15 ports the browser's placement, `world/legacy_map_layer.gd`
 decides roughly what stands where, and each layer's batches draw it:
 - building shells picked from a catalog kit by template token, with no facade
   modules: a shell's open tiers (0 and 1, cut for the modules) draw over every
