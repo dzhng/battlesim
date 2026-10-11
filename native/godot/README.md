@@ -70,9 +70,11 @@ back and writes no PNG.
 - **Pacing.** Uncapped by default: vsync off and no frame-rate limit, so a
   frame takes as long as it costs. `--pace display` turns vsync on instead,
   for comparing with a browser whose frames the display paces.
-- **On screen.** A bench shows its window while it runs, so keep runs short.
-  A minimised window skips presenting its frames: the same 300 records took
-  26 ms a frame minimised and 37–48 ms shown.
+- **Presentation.** A bench runs minimised, like every run, and a minimised
+  window doesn't present its frames, as the headless browser it is compared
+  with doesn't. Presenting is a separate cost: the same 300 market-town
+  records took 25–26 ms a frame minimised and 37–48 ms with the window shown
+  (the project's `window/size/mode` at 0).
 - **Timing.** Each frame's interval runs from the end of one frame's draw to
   the next (`Time.get_ticks_usec` after each `force_draw`), and its CPU time is
   the record's step plus Godot's frame setup and viewport render on the CPU.

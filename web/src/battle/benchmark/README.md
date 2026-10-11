@@ -38,13 +38,21 @@ differs between the clients.
   recording's average.
 - **Native.** The [native client's bench](../../../../native/godot/README.md#the-frame-rate-bench)
   draws a capture run's frame records and writes the same raw frames.
-- **Same pacing.** Both are compared uncapped or both paced to the display.
-  Chromium's `--disable-frame-rate-limit` hangs the graphics test in battle
-  preparation (inside the model layer's appearance install), and
-  `--disable-gpu-vsync` alone leaves `requestAnimationFrame` at the display's
-  rate, so today the browser is paced and native runs with `--pace display`.
-  Under a shared cap, average FPS shows who holds the rate; CPU and GPU time
-  per frame show the headroom.
+- **Same pacing, no presentation.** Neither client presents to the display:
+  the browser runs headless and native minimised. Chromium's
+  `--disable-frame-rate-limit` hangs the graphics test in battle preparation
+  (inside the model layer's appearance install), and `--disable-gpu-vsync`
+  alone leaves `requestAnimationFrame` at the display's 120 Hz, so the
+  browser stays paced and native runs uncapped. The cap doesn't bind while
+  the browser's frames take longer than 8.3 ms; where it would, compare CPU
+  and GPU time per frame instead. Presenting to a shown window is a separate
+  cost, measured on its own.
+- **Power.** On battery the headless browser holds exactly 30 FPS whatever
+  its frames cost, so every comparison runs plugged in.
+- **GPU traces.** [`gpu-trace.mjs`](../../../gpu-trace.mjs) reads a Metal
+  System Trace of either client: per-frame GPU busy and idle time, encoder
+  times, and other processes' share of the GPU. Tracing slows the frames it
+  records, so a trace gives proportions and gaps, never absolute ms.
 - **Conditions.** Every run records its power source, build, adapter and
   pacing. Compare runs on the same power source; three runs per side, with
   the spread explained before any comparison.

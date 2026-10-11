@@ -168,9 +168,6 @@ func _render(options: Dictionary) -> void:
 	OS.low_processor_usage_mode_sleep_usec = 0
 	RenderingServer.viewport_set_measure_render_time(viewport_rid, true)
 	if options.bench >= 0:
-		# A bench is timed on screen: a minimised window skips presenting its
-		# frames, which made them a third cheaper than a shown one's.
-		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
 		timing = FrameTiming.new(options.bench)
 		_refuse_contention("start")
 		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if options.pace == "display" else DisplayServer.VSYNC_DISABLED)

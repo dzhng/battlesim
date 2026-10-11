@@ -6,7 +6,10 @@
 //   node gpu-trace.mjs <name>.trace <process name prefix>
 //
 // Attach to Godot, or to Chrome's GPU process ("Google Chrome for Testing
-// Helper"). The trace is system-wide; only the named process's GPU work counts.
+// Helper"). The trace is system-wide; only the named process's GPU work counts,
+// and other processes' share is reported. Tracing slows the frames it records,
+// so read a trace for proportions and gaps; absolute ms come from untraced
+// runs.
 // For each frame Metal assigned (by present) it reports the span from its
 // first GPU work to the next frame's, the GPU busy time (the union of its
 // encoders' intervals on every channel), the idle gap (span less busy), and
@@ -146,8 +149,9 @@ export function frameAnatomy(rows, process) {
 }
 
 /** Above this share of the GPU's work from other processes, a trace measured
- *  a shared GPU. */
-const FOREIGN_SHARE_MAX = 0.02;
+ *  a shared GPU. Below it the share is ambient (the desktop, the app showing
+ *  the run) and hits both clients alike. */
+const FOREIGN_SHARE_MAX = 0.1;
 
 export async function main([trace, name] = globalThis.process.argv.slice(2)) {
   if (!trace || !name) throw new Error("usage: node gpu-trace.mjs <trace> <process name prefix>");
