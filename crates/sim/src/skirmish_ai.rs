@@ -1,5 +1,5 @@
 //! Observation-bound player-match policy; all outcomes remain ordinary commands.
-use contract::catalog::{Category, Faction, TypeIndex};
+use contract::catalog::{AltitudeLayer, Category, Faction, TypeIndex};
 use contract::command::Order;
 use contract::encounter::EntrySite;
 use contract::ids::{Side, Tick, UnitId};
@@ -22,18 +22,116 @@ pub trait SkirmishPolicy {
     ) -> Vec<Order>;
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Doctrine {
+    BalancedOpening,
+    ReconScreen,
+    InfantryPressure,
+    TankSwarm,
+    AirDenial,
+    EmergencyDefense,
+    Consolidate,
+}
+
+impl Default for Doctrine {
+    fn default() -> Self {
+        Self::BalancedOpening
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct BalancedDoctrine {
     next_decision: Tick,
     assigned: BTreeMap<UnitId, String>,
     reinforcement: usize,
+    doctrine: Doctrine,
+    started: bool,
+    doctrine_since: Tick,
+    pivot_count: u32,
+    last_air_evidence: Option<Tick>,
+    response_delay_ticks: Option<Tick>,
+    random: contract::random::Rng,
+}
+
+impl Default for BalancedDoctrine {
+    fn default() -> Self {
+        Self {
+            next_decision: 0,
+            assigned: BTreeMap::new(),
+            reinforcement: 0,
+            doctrine: Doctrine::BalancedOpening,
+            started: false,
+            doctrine_since: 0,
+            pivot_count: 0,
+            last_air_evidence: None,
+            response_delay_ticks: None,
+            random: contract::random::Rng::new(0),
+        }
+    }
 }
 
 impl BalancedDoctrine {
     pub fn new(seed: u64) -> Self {
         Self {
             reinforcement: (contract::random::mix(seed) as usize) % 5,
+            random: contract::random::Rng::new(contract::random::mix(seed ^ 0x534b_4952_4d49_5348)),
+            response_delay_ticks: None,
             ..Self::default()
+        }
+    }
+
+    pub fn doctrine(&self) -> Doctrine {
+        self.doctrine
+    }
+
+    pub fn pivot_count(&self) -> u32 {
+        self.pivot_count
+    }
+
+    fn update_doctrine(&mut self, frame: &ObservationFrame, rules: &Rules, draw_unit: f64) {
+        if !self.started {
+            self.started = true;
+            self.doctrine_since = frame.tick;
+        }
+        if self.response_delay_ticks.is_none() {
+            // One fixed draw selects a bounded reaction delay. The delay is a
+            // personality trait, not a license to ignore a threat forever.
+            self.response_delay_ticks = Some(
+                1 + (draw_unit * 3.0 * f64::from(rules.tick_hz)) as Tick,
+            );
+        }
+        let low_air = frame_has_layer_threat(frame, rules, AltitudeLayer::LowAir);
+        if low_air {
+            self.last_air_evidence.get_or_insert(frame.tick);
+        }
+        let min_dwell = 20 * u64::from(rules.tick_hz);
+        let max_dwell = 180 * u64::from(rules.tick_hz);
+        let dwell = frame.tick.saturating_sub(self.doctrine_since);
+        let delayed_air = self
+            .last_air_evidence
+            .is_some_and(|seen| {
+                frame.tick.saturating_sub(seen)
+                    >= self.response_delay_ticks.expect("reaction delay initialized")
+            });
+        let next = if delayed_air && dwell >= min_dwell {
+            Some(Doctrine::AirDenial)
+        } else if dwell >= max_dwell {
+            Some(match self.doctrine {
+                Doctrine::BalancedOpening => Doctrine::ReconScreen,
+                Doctrine::ReconScreen => Doctrine::InfantryPressure,
+                Doctrine::InfantryPressure => Doctrine::TankSwarm,
+                Doctrine::TankSwarm => Doctrine::Consolidate,
+                Doctrine::AirDenial => Doctrine::Consolidate,
+                Doctrine::Consolidate => Doctrine::ReconScreen,
+                Doctrine::EmergencyDefense => Doctrine::ReconScreen,
+            })
+        } else {
+            None
+        };
+        if let Some(next) = next.filter(|next| *next != self.doctrine) {
+            self.doctrine = next;
+            self.doctrine_since = frame.tick;
+            self.pivot_count = self.pivot_count.saturating_add(1);
         }
     }
 
@@ -64,7 +162,10 @@ impl BalancedDoctrine {
         if view.phase == Phase::Finished || frame.tick < self.next_decision {
             return vec![];
         }
+        let draw = self.random.next_u64();
+        let draw_unit = (draw >> 11) as f64 * (1.0 / (1u64 << 53) as f64);
         self.next_decision = frame.tick.saturating_add(5 * u64::from(rules.tick_hz));
+        self.update_doctrine(frame, rules, draw_unit);
         self.assigned
             .retain(|id, _| frame.own.iter().any(|u| u.id == *id));
         let eligible: Vec<_> = rules
@@ -110,6 +211,7 @@ impl BalancedDoctrine {
             frame.own.iter().filter(|u| u.kind == kind).count()
                 + view.pending.iter().filter(|p| p.kind == kind).count()
         };
+        let low_air_demand = frame_has_layer_threat(frame, rules, AltitudeLayer::LowAir);
         let opening = [
             ("infantry", Category::Inf, 0),
             ("infantry", Category::Inf, 0),
@@ -179,12 +281,33 @@ impl BalancedDoctrine {
                         ("light_vehicle", Category::Veh),
                         ("helicopter", Category::Hel),
                     ];
-                    let selected = (0..roles.len()).find_map(|offset| {
-                        let index = (self.reinforcement + offset) % roles.len();
-                        pick(roles[index].0, roles[index].1, 0)
+                    let selected = if low_air_demand {
+                        eligible
+                            .iter()
+                            .copied()
+                            .filter(|&kind| {
+                                unit_can_target_layer(rules, kind, AltitudeLayer::LowAir)
+                            })
+                            .max_by(|a, b| {
+                                candidate_score(rules, *a, draw_unit, Some(AltitudeLayer::LowAir))
+                                    .total_cmp(&candidate_score(
+                                        rules,
+                                        *b,
+                                        draw_unit,
+                                        Some(AltitudeLayer::LowAir),
+                                    ))
+                                    .then_with(|| rules.catalog.id(*b).cmp(rules.catalog.id(*a)))
+                            })
                             .filter(|&k| f64::from(rules.catalog.get(k).cost) <= view.credits)
-                            .map(|k| (index, k))
-                    });
+                            .map(|k| (0, k))
+                    } else {
+                        (0..roles.len()).find_map(|offset| {
+                            let index = (self.reinforcement + offset) % roles.len();
+                            pick(roles[index].0, roles[index].1, 0)
+                                .filter(|&k| f64::from(rules.catalog.get(k).cost) <= view.credits)
+                                .map(|k| (index, k))
+                        })
+                    };
                     selected.map(|(index, k)| {
                         self.reinforcement = (index + 1) % roles.len();
                         k
@@ -379,6 +502,47 @@ fn distance(a: [f64; 2], b: [f64; 2]) -> f64 {
     libm::hypot(a[0] - b[0], a[1] - b[1])
 }
 
+fn unit_can_target_layer(rules: &Rules, kind: TypeIndex, layer: AltitudeLayer) -> bool {
+    rules.catalog.mounts(kind).iter().any(|mount| {
+        mount
+            .def
+            .weapons
+            .iter()
+            .filter_map(|weapon| rules.weapons.get(weapon))
+            .any(|weapon| weapon.targets.contains(&layer))
+    })
+}
+
+fn frame_has_layer_threat(frame: &ObservationFrame, rules: &Rules, layer: AltitudeLayer) -> bool {
+    frame
+        .identified
+        .iter()
+        .any(|unit| rules.catalog.get(unit.kind).mobility.layer() == layer)
+        || frame.contacts.iter().any(|contact| contact.layer == layer)
+}
+
+fn candidate_score(
+    rules: &Rules,
+    kind: TypeIndex,
+    draw_unit: f64,
+    demand: Option<AltitudeLayer>,
+) -> f64 {
+    let unit = rules.catalog.get(kind);
+    let capability = demand.map_or(0.0, |layer| {
+        if unit_can_target_layer(rules, kind, layer) {
+            10_000.0
+        } else {
+            -10_000.0
+        }
+    });
+    let affordability_bias = 1_000.0 - f64::from(unit.cost);
+    let noise = (contract::random::mix(u64::from(kind.0) ^ draw_unit.to_bits()) as f64
+        / u64::MAX as f64
+        - 0.5)
+        * 40.0;
+    capability + affordability_bias + noise
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -456,10 +620,14 @@ mod tests {
             json!({"roles":["at"]}),
         );
         let rules: Rules = serde_json::from_value(authored).unwrap();
-        let orders =
-            BalancedDoctrine::default().decide(Side::Red, Faction::Us, &entry, &frame, &rules, |_, _| {
-                Some(1.0)
-            });
+        let orders = BalancedDoctrine::default().decide(
+            Side::Red,
+            Faction::Us,
+            &entry,
+            &frame,
+            &rules,
+            |_, _| Some(1.0),
+        );
         let Order::ConfirmPurchase { variant, .. } = &orders[0] else {
             panic!("category fallback must purchase")
         };
@@ -665,10 +833,14 @@ mod tests {
     #[test]
     fn zero_unit_opening_uses_an_affordable_admitted_faction_purchase() {
         let (rules, frame, entry) = empty_match();
-        let orders =
-            BalancedDoctrine::default().decide(Side::Red, Faction::Us, &entry, &frame, &rules, |_, _| {
-                Some(1.0)
-            });
+        let orders = BalancedDoctrine::default().decide(
+            Side::Red,
+            Faction::Us,
+            &entry,
+            &frame,
+            &rules,
+            |_, _| Some(1.0),
+        );
         let Order::ConfirmPurchase {
             variant,
             destination,
@@ -697,5 +869,106 @@ mod tests {
             Some(1.0)
         });
         assert_eq!(left_orders, right_orders);
+    }
+
+    #[test]
+    fn identified_helicopter_selects_a_catalog_unit_that_can_engage_low_air() {
+        let mut authored = deck();
+        crate::fixtures::patch_catalog(
+            &mut authored,
+            "units",
+            "test_rifle",
+            json!({
+                "body": { "squad": { "slots": ["test_atgm_gunner"] } }
+            }),
+        );
+        crate::fixtures::patch_catalog(
+            &mut authored,
+            "units",
+            "test_jeep",
+            json!({ "roster": { "factions": ["us"], "category": "veh", "family_name": "Test", "variant": "Air guard" } }),
+        );
+        let rules: Rules = serde_json::from_value(authored).unwrap();
+        let (mut frame, entry) = {
+            let (rules0, frame, entry) = empty_match();
+            assert_eq!(
+                rules0
+                    .catalog
+                    .id(rules.catalog.index("test_rifle").unwrap()),
+                "test_rifle"
+            );
+            (frame, entry)
+        };
+        let heli = rules.catalog.index("test_heli").unwrap();
+        frame.skirmish.as_mut().unwrap().phase = Phase::Active;
+        frame.skirmish.as_mut().unwrap().credits = 1_000.0;
+        frame.skirmish.as_mut().unwrap().occupied_slots = 1;
+        let supply = rules.catalog.index("test_supply").unwrap();
+        frame
+            .skirmish
+            .as_mut()
+            .unwrap()
+            .pending
+            .push(contract::skirmish::PendingPurchase {
+                id: contract::skirmish::PurchaseId(1),
+                kind: supply,
+                destination: entry.center,
+                confirmed_tick: 0,
+                blocked: false,
+            });
+        frame.own.clear();
+        frame
+            .identified
+            .push(contract::observation::IdentifiedUnit {
+                id: contract::observation::ObservedTargetId(7),
+                kind: heli,
+                cost: rules.catalog.get(heli).cost,
+                position: [500.0, 500.0, 20.0],
+                yaw: 0.0,
+                velocity: [0.0, 0.0],
+                members: vec![],
+                member_ids: vec![],
+                member_slots: vec![],
+                member_active_mounts: vec![],
+                weapon_poses: vec![],
+                reversing: false,
+                smoking: false,
+                member_leans: vec![],
+            });
+        let mut ai = BalancedDoctrine::new(0);
+        let orders = ai.decide(Side::Red, Faction::Us, &entry, &frame, &rules, |_, _| {
+            Some(1.0)
+        });
+        let Order::ConfirmPurchase { variant, .. } = orders
+            .iter()
+            .find(|order| matches!(order, Order::ConfirmPurchase { .. }))
+            .expect("an active reinforcement purchase")
+        else {
+            unreachable!()
+        };
+        let kind = rules.catalog.index(variant).unwrap();
+        assert!(unit_can_target_layer(
+            &rules,
+            kind,
+            contract::catalog::AltitudeLayer::LowAir
+        ));
+    }
+
+    #[test]
+    fn doctrine_pivots_after_maximum_dwell_without_visible_progress() {
+        let (rules, mut frame, entry) = empty_match();
+        frame.skirmish.as_mut().unwrap().phase = Phase::Active;
+        frame.skirmish.as_mut().unwrap().credits = 0.0;
+        let mut ai = BalancedDoctrine::new(7);
+        ai.decide(Side::Red, Faction::Us, &entry, &frame, &rules, |_, _| {
+            Some(1.0)
+        });
+        assert_eq!(ai.doctrine(), Doctrine::BalancedOpening);
+        frame.tick = 181 * u64::from(rules.tick_hz);
+        ai.decide(Side::Red, Faction::Us, &entry, &frame, &rules, |_, _| {
+            Some(1.0)
+        });
+        assert_eq!(ai.doctrine(), Doctrine::ReconScreen);
+        assert_eq!(ai.pivot_count(), 1);
     }
 }

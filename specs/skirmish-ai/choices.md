@@ -59,3 +59,29 @@ evidence, and simplicity when machinery does not earn its cost.
   sound, medium confidence; revisit if tournament variance is too weak or too
   strong.**
 
+## Implementation choices — slice 01
+
+- **Physical counter admission:** when a low-air threat is identified, the
+  policy filters real catalog mounts and weapon rows for a `low_air` target
+  layer before scoring a purchase. For example, a helicopter sighting can make
+  an HMG or autocannon carrier eligible while a ground-only anti-tank missile
+  is not. This keeps the AI inside the same physical capability data the
+  simulation uses and avoids a role-name-only “anti-air” exception. The plan
+  required counter procurement but did not specify whether roles or weapons
+  owned admission. **Verdict: sound, high confidence.**
+- **Small doctrine state machine:** the implementation uses a compact enum with
+  an opening, recon, pressure, swarm, air-denial, emergency, and consolidate
+  states. It changes only after a minimum dwell, a bounded delayed air response,
+  or a maximum dwell, and keeps pivot count transient. This is the authored
+  transition graph reduced to one local state owner; there is no second intent
+  graph to drift from emitted orders. The user explicitly allowed removing
+  graph machinery when it became overcomplicated. **Verdict: sound, medium
+  confidence; keep it small unless corpus evidence requires more states.**
+- **Randomness draw:** each actual decision consumes one deterministic policy
+  stream draw. The draw sets a reaction delay and perturbs near-equal counter
+  scores, while capability admission remains a hard filter. A zero-length
+  delay is represented as one tick so the stream cannot accidentally be
+  consumed again on every decision. The user asked for bounded mistakes and
+  delayed response but left the exact draw representation open. **Verdict:
+  sound, high confidence.**
+

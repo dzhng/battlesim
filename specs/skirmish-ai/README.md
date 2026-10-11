@@ -1,6 +1,6 @@
 # Hierarchical skirmish doctrine AI
 
-**Status:** slice 00 complete; slice 01 next. **Last updated:** 2026-10-10.
+**Status:** slices 00 and 01 complete; slice 02 next. **Last updated:** 2026-10-10.
 
 **Goal:** replace the fixed skirmish opponent with one shipped, observation-bound
 `BalancedDoctrine` policy. It chooses a force-wide doctrine, deploys recon at
@@ -15,12 +15,12 @@ read hidden health/ammo/orders, or issue an order the authority would reject.
 
 ## Next Agent Prompt
 
-Start with slice 01. Read this README and the slice file, then load `write-tests`
-and `tweak-mechanics` before editing. Build the observation-driven
-`BalancedDoctrine` state machine, counter-aware procurement, and evidence-based
-pivots on top of the `SkirmishPolicy` seam. Keep transient planner memory out of
-the battle digest, run the focused doctrine tests first, and update this section
-with status, evidence, and the next pickup before ending your pass.
+Start with slice 02. Read this README and the slice file, then load `write-tests`
+and `tweak-mechanics` before editing. Add side-scoped sensor-envelope recon
+posts, role/task assignment, and support/recovery orders on top of the doctrine
+state already in `BalancedDoctrine`. Keep transient planner memory out of the
+battle digest, run the focused recon tests first, and update this section with
+status, evidence, and the next pickup before ending your pass.
 
 ## Contract
 
@@ -125,7 +125,7 @@ not brittle fixture expectations.
 | Slice | Contract and human-checkable result |
 |---|---|
 | [00-policy-seam-and-probe](slices/00-policy-seam-and-probe.md) | A pure observation-bound policy seam, seeded bounded choice, and recon/pivot probe with current behavior preserved. |
-| [01-balanced-doctrine](slices/01-balanced-doctrine.md) | One hierarchical balance policy with authored transitions, counter-aware procurement, and evidence-driven pivots. |
+| [01-balanced-doctrine](slices/01-balanced-doctrine.md) | One hierarchical balance policy with authored transitions, counter-aware procurement, and evidence-driven pivots. **Complete.** |
 | [02-recon-and-operations](slices/02-recon-and-operations.md) | Sensor-envelope recon posts, role/task assignment, support/recovery, and integration battles showing visible adaptation. |
 | [03-corpus-and-tournament](slices/03-corpus-and-tournament.md) | Fixture-owned scenario corpus and deterministic native AI-vs-AI report; full balance run at closeout. |
 
