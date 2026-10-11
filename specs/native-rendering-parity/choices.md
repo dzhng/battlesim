@@ -367,3 +367,25 @@ Closed by the agent on the evidence; the user had not reviewed it at the time of
   | Release export | 17.7 | 54.5 ms | 64.8 ms | 75.6 ms | 12.5 ms | 26.3 ms |
 
   - Release halves the CPU time per frame, but frames stay around 55 ms. Both draw the same counts (about 25k draw calls and 24.5M primitives per frame). The bottleneck is not the debug build; it is what slice 08 is naming.
+
+### Slice 12: performance gate
+
+Closed by the agent on the evidence; the user had not reviewed it at the time of writing. Evidence is in `throwaway/perf/gate/`.
+
+- **The gate's figures come from native uncapped, minimised, against the headless browser,** the pairing slice 07 chose.
+  - A second set with native capped at the display (`--pace display`) gave the same picture: both clients are paced by the display either way. It is kept as evidence and is not the gate.
+  - Confidence: high.
+- **The bench minimises its window again just before timing** (`parity_run.gd`). The project starts minimised, but in 4 of 6 runs of each set macOS had the window back on screen. Every on-screen run read paris-corner p50 8.37 ms, against the browser's 8.34, and every minimised run 8.22–8.33.
+  - Re-minimising held 12 of 12 runs minimised (6 probes, 6 gate runs), and the measure passed.
+  - It enforces the stated condition (no presentation, as the headless browser) rather than changing the bar or the clock.
+  - The other fix considered was a vsync-aligned native clock, matching rAF's. Godot exposes no present timestamp, so it was not contained.
+  - Confidence: medium. Why macOS restores the window is not known; the report's `window` field is the check.
+- **GPU busy per frame is a proportion, calibrated.** Each trace gives the client's GPU busy share of wall time: the union of its top-level encoders over its first to last GPU work. That share times the untraced mean frame interval gives ms per frame; each figure is the median of three traces.
+  - Wall-time share sidesteps Metal frame grouping, which differs between the clients. The browser's headless frames don't map to Metal frames, and `gpu-trace.mjs` spans can be infinite there.
+  - The browser's timestamp queries show the calibration overstates the traced browser by 14–39%. Both figures are reported.
+  - Confidence: medium.
+- **The traces are separate runs from the timing runs,** at about a quarter, half and three quarters of each scene. Tracing slows frames, so a traced run is never a timing run.
+  - The native traces predate the window fix, and four of the six were on screen. Presenting adds native work, so the comparison errs against native; they were not re-taken.
+  - Confidence: high.
+- **CPU ms is reported, not gated.** On paris-corner native's CPU p50 is 1.54 ms against the browser's 0.88. The two clocks cover different work: the browser's simulation runs in a worker and its GPU submission in Chrome's GPU process. Slice 12's measures are frame time, FPS and GPU time.
+  - Confidence: medium.

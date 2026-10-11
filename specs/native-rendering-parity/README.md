@@ -2,9 +2,9 @@
 
 ## Status and next pickup
 
-**Status:** phase 1 is built and closed (2026-10-10). Native draws the menu reel from the browser's frame records with the same camera, light, terrain and grass, and every slice passed its one-variable gate. [`choices.md`](choices.md) holds the discovery map and the consolidated phase 1 ledger. Phase 2, native performance, is planned (slices 07–12) and comes before any more visual work.
+**Status:** phases 1 and 2 are built and closed (2026-10-10 and 2026-10-11). Native draws the menu reel from the browser's frame records with the same camera, light, terrain and grass. Its release export is no slower than the browser's production build on any measure, on both scenes (slice 12): market-town p95 13.4 ms against 23.9, and GPU busy about half the browser's on both. [`choices.md`](choices.md) holds the discovery map and both phases' ledgers.
 
-**Next pickup:** slice 12, the performance gate. Slice 10 brought native's whole reel under the browser's on every percentile, on both scenes: market-town p95 14.8 ms against 25.1 and p99 16.0 against 26.1. Every pass is now under the browser's, and presenting costs about 0.1 ms. Measure against the control `throwaway/native-parity/2026-10-11T08-56-34-958Z`. Read `choices.md` (Phase 2) first; its decisions are givens.
+**Next pickup:** plan phase 3 (models, effects, promotion) with the user before building any of it. Slices 13–16 are placeholders. Phase 3 content adds native cost: each slice reports its own pass cost, and slice 12's gate re-runs when the phase closes.
 
 **Goal:** make the native Godot client visually equivalent to the browser renderer for the authored menu reel, and at least as fast as it, as a maintained second client beside the browser. Rust stays the only gameplay, observation, visibility, replay and digest authority. The browser remains shipped.
 
@@ -45,7 +45,7 @@ Graph: `07 → 08 → 09 → 10 → 11 → 12`. Measure first and name the cause
 - [x] 09 — Native model drawing architecture (`355be5442`, then the tiers pass): `world/model_batches.gd` draws one MultiMesh per appearance and authored tier, a surface per material; statics culled and tiered by 64 m chunk, casters one tier coarser. Market-town 1000–1299: 19,922 → 410 draws, 18.0 → 4.24 M primitives, 34.75 → 8.45 ms p50. Impostor cards deferred to 13. [slice](slices/09-model-batches.md)
 - [x] 10 — Per-pass budgets and presentation (`a214d9808`, `2c04e93fe`). Kit shells draw an open tier over the coarser ones and a closed tier alone, and native bakes the browser's sky lookup. Market-town reel p95 24.4 → 14.8 ms and p99 26.3 → 16.0 (browser 25.1 / 26.1); GPU busy 6.3 → 4.4 ms a frame (browser 9.8); presenting costs about 0.1 ms. New control `2026-10-11T08-56-34-958Z`. [slice](slices/10-pass-budgets.md)
 - [x] 11 — Release build: `native/godot/release.sh` exports a macOS release build and runs the parity run from it; its paris-corner and market-town plates match the editor run's within the grass noise floor, and the report states its build kind. The browser's production build and the side-by-side timings are slice 12's. [slice](slices/11-release-build.md)
-- [ ] 12 — Performance gate: native no slower than the browser on any measure, on both scenes, plugged in. [slice](slices/12-performance-gate.md)
+- [x] 12 — Performance gate: passed. Release export against the browser's production build, three interleaved runs, plugged in. Market-town averages 115.0 FPS against 71.6, with p99 14.4 ms against 25.4. Paris-corner averages 120.0 against 101.5, with p99 9.6 against 17.8. Traced GPU busy is 5.9 against 10.8 ms and 4.5 against 8.2. The plates are byte-identical to the editor's. On the way, the bench now re-minimises its window before timing: an on-screen window had put paris p50 0.03 ms over the browser's. [slice](slices/12-performance-gate.md)
 
 ### Phase 3: same models and events, then promotion (placeholders)
 
@@ -136,19 +136,22 @@ Counters never prove pixels. Headless Godot proves lifecycle only. Every pass ke
 
 ## Next Agent Prompt
 
-*Updated 2026-10-11.* Phase 1 is closed. You are implementing **phase 2, native performance**; 07–11 are done, so the next is slice 12.
+*Updated 2026-10-11.* Phases 1 and 2 are closed. The next step is **planning phase 3** (models, effects, promotion) with the user. Don't build any of it before the user has agreed the plan.
 
-1. **Read first:** this README, then `choices.md` (its decisions are givens), then the slice file. Load `audit-performance`, `renderer` and `write-tests`.
-2. **Measure before changing anything,** with 07's harness: native `--bench` and `web/fps-compare.mjs`, three runs. 08's anatomy and 09's before/after tables are in their slice files; their evidence is in `throwaway/perf/`.
-   - The control is `throwaway/native-parity/2026-10-11T08-56-34-958Z`, with native's staging imported fresh from the same tree (slice 10). A new control and a fresh import go together.
-   - Native is paced at the display's 120 Hz even when uncapped, and a run's window may be on screen whatever the project asks (slice 10's findings).
-3. **Measuring conditions:**
-   - Every comparison is plugged in, at 1280×720.
-   - Both clients are uncapped, or both capped at the display rate.
-   - Each figure is three runs, with the spread shown.
-   - Nothing appears on the user's screen: Godot runs off-screen and Chromium headless.
+1. **Read first:** this README, then `choices.md` (its decisions are givens), then the placeholder slices 13–16 and slice 12's findings (the budgets phase 3 inherits). Plan with [`write-spec`](../../.agents/skills/write-spec/SKILL.md).
+2. **The baseline to hold.** Evidence is in `throwaway/perf/gate/` (`summary.md`).
+   - Release export against the browser's production build:
+     - market-town: p95 13.4 ms against 23.9, GPU busy 5.9 ms a frame against 10.8;
+     - paris-corner: p95 9.2 ms against 16.8, GPU busy 4.5 ms against 8.2.
+   - Native's frames are display-paced at 8.3 ms. Its headroom is GPU busy time, read from proportions-calibrated Metal System Traces (`throwaway/perf/gate/gpu.mjs`).
+   - Each phase 3 layer reports its own pass cost, and slice 12's gate re-runs when the phase closes.
+3. **Measuring conditions,** whenever a slice measures:
+   - Every comparison is plugged in, at 1280×720, three runs interleaved, with the spread shown.
+   - The browser can't be uncapped (slice 07). Native runs uncapped, and its bench re-minimises its window before timing. Check that every report's `window` reads `minimized`: an on-screen window moves a median at the display step.
+   - Nothing appears on the user's screen: Godot runs minimised and Chromium headless.
    - xctrace lives at `/Applications/Xcode.app/Contents/Developer/usr/bin/xctrace`.
-4. **The picture must not change.** Plates stay byte-identical or within the native grass noise floor (1–2 px, at most 2 levels).
+   - The control is `throwaway/native-parity/2026-10-11T08-56-34-958Z`, with native's staging imported fresh from the same tree. A new control and a fresh import go together.
+4. **The picture must not change** except in the slice's one variable. Plates stay byte-identical or within the native grass noise floor (1–2 px, at most 2 levels).
 5. **After each slice,** update this section and add the slice's choices to `choices.md`.
 
 **Commands:**
