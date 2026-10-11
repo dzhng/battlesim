@@ -4,7 +4,7 @@
 
 **Status:** phase 1 is built and closed (2026-10-10). Native draws the menu reel from the browser's frame records with the same camera, light, terrain and grass, and every slice passed its one-variable gate. [`choices.md`](choices.md) holds the discovery map and the consolidated phase 1 ledger. Phase 2, native performance, is planned (slices 07–12) and comes before any more visual work.
 
-**Next pickup:** slice 07 (profiling harness), then 08 (native frame anatomy). Read `choices.md` first; its decisions are givens.
+**Next pickup:** slice 09. Slice 08 named the cause: with the harness fixed, native frames are GPU-saturated vertex work from the legacy map layer (props at full detail, units unbatched) multiplied by four shadow cascades and the depth prepass. Decide first whether 09/10 tune that scaffolding or measure without it, since slice 13 replaces it. Read `choices.md` (Phase 2) first; its decisions are givens.
 
 **Goal:** make the native Godot client visually equivalent to the browser renderer for the authored menu reel, and at least as fast as it, as a maintained second client beside the browser. Rust stays the only gameplay, observation, visibility, replay and digest authority. The browser remains shipped.
 
@@ -40,8 +40,8 @@ The user set this phase on 2026-10-10. Visual parity is de-risked: the method of
 
 Graph: `07 → 08 → 09 → 10 → 11 → 12`. Measure first, name the cause, then remove waits before tuning passes. Every slice keeps the picture unchanged, within the native grass noise floor.
 
-- [ ] 07 — Profiling harness: one command per client, one summariser, Metal System Trace and Time Profiler on both. [slice](slices/07-profiling-harness.md)
-- [ ] 08 — Native frame anatomy: pass-by-pass timeline and ablation beside the browser's, naming the cause of the slow frames. [slice](slices/08-native-frame-anatomy.md)
+- [x] 07 — Profiling harness (`2fd549f2b`, `cfe6887ae`, `39850b7b7`): one command per client, one summariser, GPU traces on both; native draws every frame itself, so a hidden window no longer stalls it. Not taken: the Time Profiler CPU profile. [slice](slices/07-profiling-harness.md)
+- [x] 08 — Native frame anatomy: the 77 ms frames were waiting (fixed in 07) plus the legacy layer's draws and primitives times the shadow cascades; findings in the slice. [slice](slices/08-native-frame-anatomy.md)
 - [ ] 09 — Pipelined frames: no CPU waits on the GPU and no idle GPU between passes. [slice](slices/09-pipelined-frames.md)
 - [ ] 10 — Per-pass GPU budgets: every native pass at or below the browser's. [slice](slices/10-pass-budgets.md)
 - [x] 11 — Release build: `native/godot/release.sh` exports a macOS release build and runs the parity run from it; its paris-corner and market-town plates match the editor run's within the grass noise floor, and the report states its build kind. The browser's production build and the side-by-side timings are slice 12's. [slice](slices/11-release-build.md)

@@ -272,6 +272,36 @@ None found at the closeout. Two earlier choices were corrected during the build 
 
 ## Phase 2
 
+### Slice 07: profiling harness
+
+Commits `2fd549f2b`, `cfe6887ae`, `39850b7b7`. Closed by the coordinator on the user's behalf where marked; otherwise by the agent or the territory.
+
+- **One summariser, raw frames from both clients.** Native writes raw per-frame intervals and CPU times; `frameComparison.ts` (`web/fps-compare.mjs`) computes every number for both with the browser's `frameTimeSummary`. Only the interval clock differs: rAF timestamps against `Time.get_ticks_usec`.
+  - Confidence: high.
+- **The comparison pair is minimised native against the headless browser; neither presents to the display.** A minimised window skips presentation: the same 300 market-town records took 25–26 ms a frame minimised and 37–48 ms shown. Presenting is reported as its own cost, from a shown sample. *Coordinator, for the user.*
+  - Confidence: high.
+- **Both clients are compared without uncapping the browser.** Chromium's `--disable-frame-rate-limit` hangs the graphics test in battle preparation: the battle frame is built once, then the model layer's `install` never finishes (time-boxed, root cause not found). `--disable-gpu-vsync` alone leaves rAF at the display's 120 Hz. The browser stays paced and native runs uncapped. The cap doesn't bind while the browser's frames take over 8.3 ms. *Territory; pairing rule from the coordinator.*
+  - Confidence: medium. A browser that drops under 8.3 ms a frame would need CPU and GPU time per frame instead.
+- **Every comparison runs plugged in.** On battery the headless browser holds exactly 30.0 FPS (every interval 33.3 ms) on frames that cost 7 ms of CPU and 9 ms of GPU; on AC the same reel runs at 50–61 FPS on market-town. A trivial WebGPU page reaches 120 Hz on battery, so it isn't Chromium's battery saver. The cause is not found.
+  - Confidence: high that it's the power source; unknown why.
+- **Native draws every frame itself.** Godot's main loop skips drawing, and sleeps, while its window is minimised or covered (`can_any_window_draw`), so runs that awaited `frame_post_draw` stalled for as long as the window stayed hidden. One stall was reproduced for 18 minutes; `sample` showed the main thread in `nanosleep` in 98% of samples. The loops now `force_draw` with the render loop off, after one main-loop iteration per record, which pushes moved nodes' transforms. Force-drawn plates are byte-identical to the old loop's. A shipped client pausing while hidden is normal game behaviour, a phase 3 question.
+  - Confidence: high.
+- **The window starts minimised.** macOS clamps `--window-position 10000,10000` back on screen (to 872, 592), so every earlier "off-screen" run was visible.
+  - Confidence: high.
+- **GPU traces give proportions and gaps, never absolute ms.** Metal System Trace slows a native frame about 2.7× (a 69 ms span traced against 26 ms untraced). Untraced runs give the ms. *Coordinator, for the user.*
+  - Confidence: high.
+- **A trace is discarded above 10% foreign GPU work.** The T3 Code app the user watches does 3–6% of the GPU's work during traces; that is ambient and hits both clients alike. Every trace reports its share. *Coordinator, for the user.*
+  - Confidence: medium.
+- **Encoders are grouped by channel and command index, not by pass label.** Godot 4.7.2's `RenderingDevice` debug labels don't reach Metal's encoder labels; native's compute passes carry them anyway. Passes are attributed by ablation (slice 08).
+  - Confidence: high.
+- **The Metal HUD log is no source.** On this macOS its switch is `MTL_HUD_LOG_ENABLED` (the 2022 talk's `MTL_HUD_LOGGING_ENABLED` is stale), and its per-frame values are redacted as `<private>` without `sudo log config`.
+  - Confidence: high.
+- **The graphics test shows the in-game frame-rate counter** (a pilot's `frameRate`), so its readings can be checked against the recording. They agree within 2% on every run so far.
+  - Confidence: high.
+- **Both sides refuse to time while the other client draws,** matching the other client by its executable path or process name; a command line that merely mentions it doesn't count.
+  - Confidence: high.
+- **Not done: the CPU profile.** No Time Profiler capture was taken. Native CPU time per frame is 6–7 ms against 26 ms frames, so the CPU isn't the bottleneck.
+
 ### Slice 11: release build
 
 - **The release export runs the parity run unchanged, through one script.** `native/godot/release.sh` exports the `macOS release` preset into `throwaway/native-release/` and passes every argument through, so plates and `--bench` both run from the exported app.
