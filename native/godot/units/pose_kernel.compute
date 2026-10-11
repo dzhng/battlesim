@@ -1,0 +1,133 @@
+// The browser's pose kernel (`packages/battle-renderer/src/models/poseKernel.ts`),
+// ported to GLSL: one invocation poses one soldier. For each joint, parents
+// before children, it samples the clip's two neighbouring frames from the
+// dense clip table, slerps between them, optionally crossfades a second clip,
+// and composes the joint's world transform. Then it writes one palette matrix
+// per bind of the glTF's skin: what moves a vertex from the glTF's mesh space
+// to where the body stands now, in Godot's model space.
+//
+// Native's vertices are the glTF's own, so a bind's matrix is
+// `C · world[joint] · bind`: `C` the sim-to-Godot conversion, `joint` the
+// bundle joint the bind moves with, and `bind` (`unit_layer.gd` uploads it)
+// the glTF's skinning to the body at rest, into that joint's rest frame. Each
+// matrix is three RGBA32F texels of the palette image, its rows;
+// `unit_layer.gd` prepends the version line, the workgroup size and
+// `MAX_JOINTS`.
+
+struct Control {
+	// Clip A: first sample (vec4 index), frame 0, frame 1, weight bits.
+	uvec4 a;
+	// Clip B, the crossfade, or copies of A.
+	uvec4 b;
+	// Blend weight bits, joint count, joint table base, palette base.
+	uvec4 c;
+	// Bind count, bind table base.
+	uvec4 d;
+};
+
+struct Bind {
+	mat4 bind;
+	ivec4 joint;
+};
+
+layout(set = 0, binding = 0, std430) restrict readonly buffer Samples { vec4 samples[]; };
+layout(set = 0, binding = 1, std430) restrict readonly buffer Parents { int parents[]; };
+layout(set = 0, binding = 4, std430) restrict readonly buffer Binds { Bind binds[]; };
+layout(set = 0, binding = 2, std430) restrict readonly buffer Controls { Control controls[]; };
+layout(set = 0, binding = 3, rgba32f) restrict writeonly uniform image2D palette;
+
+layout(push_constant, std430) uniform Push {
+	uint count;
+	uint width;
+	uint pad0;
+	uint pad1;
+} push;
+
+struct Local {
+	vec4 q;
+	vec3 t;
+	float s;
+};
+
+// The browser's shortest-arc slerp (`slerpQ`).
+vec4 slerp_q(vec4 a, vec4 input_b, float weight) {
+	if (weight <= 0.0) { return a; }
+	if (weight >= 1.0) { return input_b; }
+	vec4 b = input_b;
+	float cosine = dot(a, b);
+	if (cosine < 0.0) { b = -b; cosine = -cosine; }
+	vec4 result;
+	if (cosine > 0.9995) {
+		result = a * (1.0 - weight) + b * weight;
+	} else {
+		float theta = atan(sqrt(max(0.0, 1.0 - cosine * cosine)), cosine);
+		result = a * sin((1.0 - weight) * theta) + b * sin(weight * theta);
+	}
+	float magnitude = length(result);
+	return result / (magnitude > 0.0 ? magnitude : 1.0);
+}
+
+Local read_local(uint index) {
+	vec4 q = samples[index];
+	vec4 ts = samples[index + 1u];
+	return Local(q, ts.xyz, ts.w);
+}
+
+Local mix_local(Local a, Local b, float weight) {
+	return Local(slerp_q(a.q, b.q, weight), mix(a.t, b.t, weight), mix(a.s, b.s, weight));
+}
+
+Local sample_clip(uvec4 clip, uint joint, uint count) {
+	Local a = read_local(clip.x + (clip.y * count + joint) * 2u);
+	Local b = read_local(clip.x + (clip.z * count + joint) * 2u);
+	return mix_local(a, b, uintBitsToFloat(clip.w));
+}
+
+mat4 trs(Local pose) {
+	vec4 q = pose.q;
+	float x2 = q.x + q.x; float y2 = q.y + q.y; float z2 = q.z + q.z;
+	float xx = q.x * x2; float xy = q.x * y2; float xz = q.x * z2;
+	float yy = q.y * y2; float yz = q.y * z2; float zz = q.z * z2;
+	float wx = q.w * x2; float wy = q.w * y2; float wz = q.w * z2;
+	return mat4(
+		vec4(vec3(1.0 - (yy + zz), xy + wz, xz - wy) * pose.s, 0.0),
+		vec4(vec3(xy - wz, 1.0 - (xx + zz), yz + wx) * pose.s, 0.0),
+		vec4(vec3(xz + wy, yz - wx, 1.0 - (xx + yy)) * pose.s, 0.0),
+		vec4(pose.t, 1.0));
+}
+
+// Sim space (z up) to Godot's (y up): (x, y, z) -> (x, z, -y).
+const mat4 TO_GODOT = mat4(vec4(1.0, 0.0, 0.0, 0.0), vec4(0.0, 0.0, -1.0, 0.0), vec4(0.0, 1.0, 0.0, 0.0), vec4(0.0, 0.0, 0.0, 1.0));
+
+void store(uint index, mat4 m) {
+	// Rows of the 3×4 affine part, one texel each.
+	for (uint row = 0u; row < 3u; row++) {
+		uint texel = index * 3u + row;
+		imageStore(palette, ivec2(int(texel % push.width), int(texel / push.width)), vec4(m[0][row], m[1][row], m[2][row], m[3][row]));
+	}
+}
+
+void main() {
+	uint instance = gl_GlobalInvocationID.x;
+	if (instance >= push.count) { return; }
+	Control control = controls[instance];
+	float blend = uintBitsToFloat(control.c.x);
+	uint count = min(control.c.y, uint(MAX_JOINTS));
+	uint joint_base = control.c.z;
+	uint palette_base = control.c.w;
+	mat4 world[MAX_JOINTS];
+	for (uint joint = 0u; joint < count; joint++) {
+		Local local = sample_clip(control.a, joint, count);
+		if (blend > 0.0) {
+			local = mix_local(local, sample_clip(control.b, joint, count), blend);
+		}
+		mat4 m = trs(local);
+		int parent = parents[joint_base + joint];
+		if (parent >= 0) { m = world[parent] * m; }
+		world[joint] = m;
+	}
+	for (uint i = 0u; i < control.d.x; i++) {
+		Bind bind = binds[control.d.y + i];
+		store(palette_base + i, TO_GODOT * world[bind.joint.x] * bind.bind);
+	}
+}

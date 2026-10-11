@@ -26,6 +26,14 @@ import type {
 } from "@packages/battle-renderer/src/scenery/sceneryTables";
 import type { DrawnInstances } from "@packages/battle-renderer/src/scene";
 import { decodePresentationCapture, finite, hasKeys, isRecord } from "./presentationCapture.ts";
+import {
+  isModelCount,
+  unitArtifacts,
+  validateUnits,
+  type DrawnUnits,
+  type ModelCount,
+  type UnitsManifest,
+} from "./unitManifest.ts";
 
 /** The presentation layers a frame can draw. */
 export const PRESENTATION_LAYERS = [
@@ -79,9 +87,13 @@ export interface DrawnPresentation {
   tuning: { terrain: TuningTable; grass: TuningTable };
   layers: readonly PresentationLayer[];
   omissions: readonly Omission[];
+  /** What poses and draws the battle's units (`unitManifest.ts`). */
+  units: DrawnUnits;
 }
 
-export interface VisualPresentation extends DrawnPresentation {
+export interface VisualPresentation extends Omit<DrawnPresentation, "units"> {
+  /** The units, their clip tables each in its own file (`unitTableFile`). */
+  units: UnitsManifest;
   schema: "native-visual-presentation";
   identity: {
     scene: string;
@@ -122,6 +134,8 @@ export interface VisualPresentation extends DrawnPresentation {
   grassCounts: GrassCount[];
   /** The building modules and scenery instances each plate's frame drew. */
   instanceCounts: InstanceCount[];
+  /** The soldiers, vehicles and corpses each plate's frame posed. */
+  modelCounts: ModelCount[];
 }
 
 /** Each group's tables, in the manifest's order. */
@@ -228,6 +242,8 @@ const MANIFEST_KEYS = [
   "scenery",
   "grassCounts",
   "instanceCounts",
+  "units",
+  "modelCounts",
 ];
 const LAYOUT_KEYS: Record<WordLayout["kind"], readonly string[]> = {
   records: ["kind", "stride", "count", "fields"],
@@ -509,6 +525,16 @@ export function validateVisualPresentation(value: unknown): VisualPresentation {
     throw new Error(
       "visual presentation instance counts need one row per plate, a count per kit module and tier, per scenery population, appearance and tier, and per known prop appearance and level",
     );
+  validateUnits(value.units);
+  const models = value.modelCounts;
+  if (
+    !Array.isArray(models) ||
+    !models.every(isModelCount) ||
+    !distinct(models.map((row) => row.plate))
+  )
+    throw new Error(
+      "visual presentation model counts need one row per plate of whole soldiers, vehicles, aircraft, corpses and fading corpses",
+    );
   return value as unknown as VisualPresentation;
 }
 
@@ -538,6 +564,7 @@ export async function writeVisualPresentation({
   tables,
   grassCounts,
   instanceCounts,
+  modelCounts,
 }: {
   captureJson: string;
   mapBytes: Uint8Array;
@@ -545,6 +572,7 @@ export async function writeVisualPresentation({
   tables: UploadedTables;
   grassCounts: readonly GrassCount[];
   instanceCounts: readonly InstanceCount[];
+  modelCounts: readonly ModelCount[];
 }): Promise<{ manifest: string; artifacts: { file: string; bytes: Uint8Array }[] }> {
   const capture = decodePresentationCapture(captureJson);
   const [first] = capture.frames;
@@ -559,6 +587,7 @@ export async function writeVisualPresentation({
   for (const [what, rows] of [
     ["grass", grassCounts],
     ["instance", instanceCounts],
+    ["model", modelCounts],
   ] as const) {
     const counted = rows.map((g) => g.plate);
     const uncounted = plates.filter((p) => !counted.includes(p));
@@ -598,6 +627,7 @@ export async function writeVisualPresentation({
         layout,
       })),
     );
+  const units = await unitArtifacts(drawn.units, sha256);
   const { scene, map, encounter, seed } = capture.workload;
   const manifest: VisualPresentation = {
     schema: "native-visual-presentation",
@@ -633,12 +663,17 @@ export async function writeVisualPresentation({
     },
     grassCounts: plates.map((plate) => grassCounts.find((g) => g.plate === plate)!),
     instanceCounts: plates.map((plate) => instanceCounts.find((g) => g.plate === plate)!),
+    units: units.units,
+    modelCounts: plates.map((plate) => modelCounts.find((g) => g.plate === plate)!),
   };
   return {
     manifest: JSON.stringify(validateVisualPresentation(manifest)),
-    artifacts: [...terrain, ...grass, ...buildings, ...scenery].map(({ file, bytes }) => ({
-      file,
-      bytes,
-    })),
+    artifacts: [
+      ...[...terrain, ...grass, ...buildings, ...scenery].map(({ file, bytes }) => ({
+        file,
+        bytes,
+      })),
+      ...units.artifacts,
+    ],
   };
 }

@@ -22,6 +22,7 @@ import {
 import { GRASS_CELLS, type Lens } from "@web/battle/benchmark/visualPresentation";
 import type { LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
 import type { UploadedTables } from "@packages/battle-renderer/src/frame/wordTables";
+import type { DrawnUnits } from "@web/battle/benchmark/unitManifest";
 
 /** A control plate: the frame it names read back (`FramePlate`) with what it
  *  drew of the buildings and scenery, and the grass clumps it grew counted
@@ -79,6 +80,9 @@ export interface ReelResult {
   /** The ground's, grass's, buildings' and scenery's tables the first
    *  plate drew with; null without plates. */
   tables: UploadedTables | null;
+  /** What poses and draws the battle's units, as the first plate drew
+   *  them (`describeUnits`); null without plates. */
+  units: DrawnUnits | null;
 }
 
 /** One complete scene; preparation and inter-scene loading have no frame
@@ -102,6 +106,8 @@ export function createReelRun(
   let stats: Parameters<NonNullable<ViewportPilot["attach"]>>[0]["stats"] | null = null;
   let lastStats = 0;
   const subject = { unitAt: (_id: number): ArrayLike<number> | null => null };
+  /** The battle's units described for a second client; the page sets it. */
+  const fielded = { describe: (): DrawnUnits | null => null };
   let lastSubject: readonly number[] = [0, 0];
   let tracked: { follow: number; at: [number, number]; now: number } | null = null;
   const capture: PresentationSample[] = [];
@@ -111,6 +117,7 @@ export function createReelRun(
   let light: LightPresentation | null = null;
   let exportTables: (() => UploadedTables) | null = null;
   let tables: UploadedTables | null = null;
+  let units: DrawnUnits | null = null;
   const track = (follow: number, now: number): readonly number[] => {
     const live = subject.unitAt(follow);
     if (tracked?.follow !== follow) tracked = live && { follow, at: [live[0], live[1]], now };
@@ -141,6 +148,7 @@ export function createReelRun(
       light,
       plates: plated,
       tables,
+      units,
     });
   };
   const sample = (now: number) => sampleReel(scene.reel, recording.elapsed(now) / 1000);
@@ -185,6 +193,7 @@ export function createReelRun(
         plate = plateFile(index);
         const { clumps, ...pictures } = readPlate();
         tables ??= exportTables?.() ?? null;
+        units ??= fielded.describe();
         plated.push({
           file: plate,
           ...pictures,
@@ -244,6 +253,7 @@ export function createReelRun(
     pilot,
     scripted,
     subject,
+    fielded,
     recording,
     durationMs,
     captureSamples: () => capture,

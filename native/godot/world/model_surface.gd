@@ -5,18 +5,21 @@ extends RefCounted
 ## coverage as Godot imported them, and the scene assets' extras Godot keeps
 ## as metadata (`colour_scale`, and `tint`, the share of an instance's tint it
 ## takes). A scenery appearance takes its instance's tint whole, as the
-## browser's scenery layer does. Not ported: wear chips and lit interiors.
+## browser's scenery layer does. A posed surface (a unit's) moves each vertex
+## by its instance's palette (`units/unit_layer.gd`): `skinned` by four joints,
+## `rigid` by its node's. Not ported: wear chips and lit interiors.
 
 const INCLUDE := "res://world/model_surface.gdshaderinc"
 
-## Source material and tint mode -> its ShaderMaterial.
+## Source material, tint mode and posing -> its ShaderMaterial.
 static var _materials := {}
 ## Render modes and defines -> the Shader compiled with them.
 static var _shaders := {}
 
-## `material` (null for none) as a surface; `scenery` takes the whole tint.
-static func of(material: Material, scenery: bool) -> ShaderMaterial:
-	var key := [material, scenery]
+## `material` (null for none) as a surface; `scenery` takes the whole tint;
+## `posed` is "", "skinned" or "rigid".
+static func of(material: Material, scenery: bool, posed := "") -> ShaderMaterial:
+	var key := [material, scenery, posed]
 	if _materials.has(key):
 		return _materials[key]
 	var out := ShaderMaterial.new()
@@ -24,6 +27,8 @@ static func of(material: Material, scenery: bool) -> ShaderMaterial:
 	var extras: Dictionary = material.get_meta("extras", {}) if material != null else {}
 	var modes: Array[String] = []
 	var defines: Array[String] = []
+	if not posed.is_empty():
+		defines.append("POSED_" + posed.to_upper())
 	if base != null:
 		if base.cull_mode == BaseMaterial3D.CULL_DISABLED:
 			modes.append("cull_disabled")

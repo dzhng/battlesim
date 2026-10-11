@@ -8,8 +8,19 @@ import { gameLight } from "@apps/battle-lab/src/gameLight";
 import { sunDirection } from "@packages/battle-renderer/src/light/sceneLight";
 import { terrainTuning } from "@packages/battle-renderer/src/terrain/terrainTuning";
 import { grassTuning } from "@packages/battle-renderer/src/terrain/grassTuning";
+import type { DrawnUnits } from "@web/battle/benchmark/unitManifest";
 
 const pose = { target: [0, 0] as const, distance: 40, yaw: 0, pitch: 0.2 };
+/** A plated scene's units, as the page describes them (`describeUnits`). */
+const units: DrawnUnits = {
+  pose: {},
+  leanHold: 1.5,
+  detail: { lod_px: [150, 60, 24], impostor_px: 10 },
+  tints: { blue: [1, 1, 1], red: [1.18, 1, 0.78] },
+  types: {},
+  appearances: {},
+  tables: [],
+};
 function result(map: string, started: number, intervals: number[]): ReelResult {
   const recording = new BenchmarkRecording(1000);
   recording.start(started);
@@ -52,6 +63,7 @@ function result(map: string, started: number, intervals: number[]): ReelResult {
     light: gameLight,
     plates: [],
     tables: null,
+    units,
   };
 }
 
@@ -92,6 +104,7 @@ test("exports each scene's capture with the frames it drew and what it drew them
       tuning: { terrain: terrainTuning, grass: grassTuning },
       layers: ["sky", "terrain"],
       omissions: [],
+      units,
     },
   ]);
   expect(report.capture.frameTimingComparable).toBe(true);

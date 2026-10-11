@@ -1,9 +1,9 @@
 extends Node3D
 
 ## A rough native placement of the saved map, kept until slice 15 ports the
-## browser's owners: what stands where for buildings (`buildings`), props
-## (`props`) and observed units (`models`), each layer drawn by its own
-## `model_batches.gd`. Every category is reported as a budget that names its
+## browser's owners: what stands where for buildings (`buildings`) and props
+## (`props`), each layer drawn by its own `model_batches.gd`. Units are
+## `units/unit_layer.gd`'s. Every category is reported as a budget that names its
 ## approximation and how many rows it drew and dropped. Every position and yaw
 ## goes through `Coords`; what has no height of its own stands on the ground's
 ## height field.
@@ -22,45 +22,27 @@ const TARGET_SPACING_M := 25.0
 var _map: Dictionary
 var _region := ""
 var _centers: Array[Vector2] = []
-## Kind name -> number of distinct units of that kind in the capture.
-var _unit_kinds := {}
 var _appearances := {}
-var _units_catalog := {}
-var _soldiers := {}
 ## Repository path -> staged resource path.
 var _staged := {}
 var _scenes := {}
 ## Kit and shell token -> its appearance in the buildings' batches, or -1.
 var _shells := {}
-var _units: ModelBatches
-## Unit kind name -> its appearance in the units' batches.
-var _unit_appearances := {}
-var _side_color: Color
 ## The detail rules of `model_batches.gd`: a model's tier by its projected
 ## size, a building's by a metre's.
 var _model_detail: Dictionary
 var _building_detail: Dictionary
 var _sun: Vector3
 var _max_far_m: float
-var _contact_mesh: CylinderMesh
 ## The ground's `height_field.gd`.
 var _heights
 
-## `targets` are the sim-space (x, y) frame targets the run draws; `samples`
-## the capture's decoded samples, whose units it draws.
-func _init(map: Dictionary, targets: Array, samples: Array, heights) -> void:
+## `targets` are the sim-space (x, y) frame targets the run draws.
+func _init(map: Dictionary, targets: Array, heights) -> void:
 	name = "LegacyMapLayer"
 	_map = map
 	_heights = heights
 	_region = String(map.get("regional_family", "")).to_lower()
-	var ids := {}
-	for sample in samples:
-		for unit in sample.own:
-			if not ids.has(unit.kind):
-				ids[unit.kind] = {}
-			ids[unit.kind][unit.id] = true
-	for kind in ids:
-		_unit_kinds[kind] = ids[kind].size()
 	for target in targets:
 		if not _centers.any(func(center): return center.distance_to(target) < TARGET_SPACING_M):
 			_centers.append(target)
@@ -77,15 +59,12 @@ func required_assets(layers: Array) -> Array:
 		for prop in _rows("props"):
 			if _valid_prop(prop) and _near(_prop_position(prop)):
 				needed[_prop_source(String(prop.kind))] = true
-	if layers.has("models"):
-		for kind in _unit_kinds:
-			needed[_unit_source(kind)] = true
 	needed.erase("")
 	return needed.keys()
 
 ## Builds the listed layers from staged assets, reporting every category;
 ## `light` is the manifest's, whose sun the models' shadows fall from.
-func build(layers: Array, staged: Dictionary, side: String, light: Dictionary, report) -> void:
+func build(layers: Array, staged: Dictionary, light: Dictionary, report) -> void:
 	_staged = staged
 	_sun = Coords.sim_array_to_godot(light.sunDirection)
 	_max_far_m = float(light.cascades.max_far_m)
@@ -93,25 +72,12 @@ func build(layers: Array, staged: Dictionary, side: String, light: Dictionary, r
 		_build_buildings(report)
 	if layers.has("props"):
 		_build_props(report)
-	if layers.has("models"):
-		_build_units(side, report)
 
 ## Chooses what `camera`, drawing into a viewport `size` pixels big, draws of
 ## every layer this frame.
 func prepare(camera: Camera3D, size: Vector2) -> void:
 	for batches in get_children():
 		batches.prepare(camera, size)
-
-## Shows the units of one decoded publication, and no other unit.
-func show_units(units: Array) -> void:
-	if _units == null:
-		return
-	var placements := []
-	for unit in units:
-		if not _unit_appearances.has(unit.kind):
-			_unit_appearances[unit.kind] = _unit_appearance(unit.kind)
-		placements.append([_unit_appearances[unit.kind], Transform3D(Coords.yaw_basis(float(unit.yaw)), Coords.sim_array_to_godot(unit.position))])
-	_units.show_movers(placements)
 
 # Buildings --------------------------------------------------------------------
 
@@ -292,60 +258,6 @@ func _prop_source(kind: String) -> String:
 			return source
 	return ""
 
-# Units ------------------------------------------------------------------------
-
-func _build_units(side: String, report) -> void:
-	_units = _batches("ObservedUnits")
-	_side_color = Color("d95c5c") if side == "red" else Color("4d9be6")
-	_contact_mesh = CylinderMesh.new()
-	_contact_mesh.top_radius = 0.95
-	_contact_mesh.bottom_radius = 0.95
-	_contact_mesh.height = 0.05
-	_contact_mesh.material = _material(Color(_side_color, 0.85), 1.0)
-	_contact_mesh.material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	for kind in _unit_kinds:
-		var source := _unit_source(kind)
-		var reason := "catalog model %s at its authored size, unposed" % source if not source.is_empty() else "approximation: a capsule; the unit kind has no catalog appearance"
-		report.add_budget(OWNER, reason, "unit:" + kind, _unit_kinds[kind], _unit_kinds[kind], 0)
-
-## A unit kind's appearance: its catalog model, or a capsule in the side's
-## colour, on a contact disc in that colour.
-func _unit_appearance(kind: String) -> int:
-	var holder := Node3D.new()
-	var source := _unit_source(kind)
-	if _staged.has(source):
-		holder.add_child(_scene(source).instantiate())
-	else:
-		var capsule := MeshInstance3D.new()
-		capsule.mesh = CapsuleMesh.new()
-		capsule.mesh.radius = 0.5
-		capsule.mesh.height = 2.0
-		capsule.mesh.material = _material(_side_color, 1.0)
-		capsule.mesh.material.emission_enabled = true
-		capsule.mesh.material.emission = _side_color
-		capsule.mesh.material.emission_energy_multiplier = 0.25
-		capsule.position.y = 0.7
-		holder.add_child(capsule)
-	var contact := MeshInstance3D.new()
-	contact.mesh = _contact_mesh
-	contact.position.y = 0.03
-	holder.add_child(contact)
-	var appearance := _units.add_appearance(holder, _model_detail)
-	holder.free()
-	return appearance
-
-## The unit's catalog appearance, or its first soldier's.
-func _unit_source(kind: String) -> String:
-	var unit: Dictionary = _units_catalog.get(kind, {})
-	var appearance := String(unit.get("appearance", ""))
-	if appearance.is_empty():
-		var slots: Array = unit.get("body", {}).get("squad", {}).get("slots", [])
-		if not slots.is_empty():
-			var appearances: Array = _soldiers.get(String(slots[0]), {}).get("appearance", [])
-			if not appearances.is_empty():
-				appearance = String(appearances[0])
-	return _entry_source(_appearances.get(appearance, {}))
-
 # Shared -----------------------------------------------------------------------
 
 func _load_catalogs() -> void:
@@ -362,21 +274,6 @@ func _load_catalogs() -> void:
 	var appearances = _read_json("assets/catalog.json")
 	if typeof(appearances) == TYPE_DICTIONARY:
 		_appearances = appearances.get("appearances", {})
-	for path in ["fixtures/catalog.json", "fixtures/units/menu/units.json"]:
-		var catalog = _read_json(path)
-		if typeof(catalog) != TYPE_DICTIONARY:
-			continue
-		var units = catalog.get("units", {})
-		if typeof(units) == TYPE_ARRAY:
-			for unit in units:
-				if typeof(unit) == TYPE_DICTIONARY and unit.has("id"):
-					_units_catalog[String(unit.id)] = unit
-		else:
-			for id in units:
-				_units_catalog[String(id)] = units[id]
-		var soldiers: Dictionary = catalog.get("soldiers", {})
-		for id in soldiers:
-			_soldiers[String(id)] = soldiers[id]
 
 static func _read_json(relative: String) -> Variant:
 	return JSON.parse_string(FileAccess.get_file_as_string(Staging.repo_path(relative)))

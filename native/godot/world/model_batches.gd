@@ -148,6 +148,28 @@ func add_appearance(root: Node, detail: Dictionary, scenery := false) -> int:
 	_appearances.append(appearance)
 	return _appearances.size() - 1
 
+## Registers prebuilt meshes, one per tier (null where a tier has none), as
+## an appearance whose instances a layer chooses (`choose`); every pose of
+## it stays within `box`, which culls its batches. Returns its id.
+func add_meshes(meshes: Array[ArrayMesh], box: AABB) -> int:
+	var appearance := Appearance.new()
+	for tier in TIERS:
+		if meshes[tier] != null:
+			meshes[tier].custom_aabb = box
+		appearance.meshes.append(meshes[tier])
+		for list in [appearance.static_view, appearance.static_cast, appearance.moving_view, appearance.moving_cast, appearance.chosen_view, appearance.chosen_cast]:
+			list.append(PackedFloat32Array())
+		appearance.view.append(null)
+		appearance.cast.append(null)
+	appearance.bounds = box
+	appearance.size = maxf(box.size[box.get_longest_axis_index()], 1e-3)
+	appearance.center = box.get_center()
+	appearance.radius = box.size.length() / 2.0
+	appearance.lod_px = [INF, INF, INF]
+	appearance.sized = false
+	_appearances.append(appearance)
+	return _appearances.size() - 1
+
 ## The finest tier's bounds of `appearance`, in its own space.
 func bounds(appearance: int) -> AABB:
 	return _appearances[appearance].bounds
@@ -308,8 +330,7 @@ func _fill(batch: MultiMeshInstance3D, mesh: ArrayMesh, shadows: GeometryInstanc
 
 ## One mesh of `parts` (`{mesh, transform}`), a surface per material, each
 ## part's transform baked into its vertices, its material the model surface
-## (`model_surface.gd`); null when there are no parts. Instances draw no
-## skeleton, so a skinned part is drawn as its vertices lie.
+## (`model_surface.gd`); null when there are no parts.
 static func _merged(parts: Array, scenery: bool) -> ArrayMesh:
 	var tools := {}
 	for part in parts:
@@ -331,72 +352,24 @@ static func _merged(parts: Array, scenery: bool) -> ArrayMesh:
 	return out
 
 ## The tier a mesh's name gives it (`_LOD<n>`), or -1 for every tier.
-static func _tier_of(mesh_name: String) -> int:
+static func tier_of(mesh_name: String) -> int:
 	var at := mesh_name.rfind("_LOD")
 	if at < 0 or not mesh_name.substr(at + 4).is_valid_int():
 		return -1
 	return int(mesh_name.substr(at + 4))
 
 ## Every mesh below a node, with its transform from the node `parent` maps
-## from; a skinned mesh is posed where its skeleton stands.
+## from. A skinned mesh is the units layer's to pose (`units/unit_layer.gd`):
+## here it is an error.
 static func _collect(node: Node, parent: Transform3D, parts: Array) -> void:
 	var transform: Transform3D = parent * node.transform if node is Node3D else parent
 	if node is MeshInstance3D and node.mesh != null:
-		var skeleton := node.get_node_or_null(node.skeleton) as Skeleton3D if node.skin != null else null
-		if skeleton != null:
-			# Godot skins in the skeleton's space, whatever the mesh node's own
-			# transform; its glTF import parents a skinned mesh to its skeleton.
-			if skeleton != node.get_parent():
-				push_error("%s is skinned to %s, which is not its parent" % [node.name, skeleton.name])
-			parts.append({"mesh": _posed(node.mesh, node.skin, skeleton), "transform": parent, "tier": _tier_of(node.name)})
+		if node.skin != null:
+			push_error("%s is skinned; only the units layer draws skinned meshes" % node.name)
 		else:
-			parts.append({"mesh": node.mesh, "transform": transform, "tier": _tier_of(node.name)})
+			parts.append({"mesh": node.mesh, "transform": transform, "tier": tier_of(node.name)})
 	for child in node.get_children():
 		_collect(child, transform, parts)
-
-## `mesh` skinned on the CPU to `skeleton`'s current pose, as the GPU would
-## draw it, in the skeleton's space.
-static func _posed(mesh: Mesh, skin: Skin, skeleton: Skeleton3D) -> ArrayMesh:
-	var binds: Array[Transform3D] = []
-	for i in skin.get_bind_count():
-		var bone := skin.get_bind_bone(i)
-		if bone < 0:
-			bone = skeleton.find_bone(skin.get_bind_name(i))
-		binds.append(skeleton.get_bone_global_pose(bone) * skin.get_bind_pose(i))
-	var out := ArrayMesh.new()
-	for surface in mesh.get_surface_count():
-		var arrays := mesh.surface_get_arrays(surface)
-		var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
-		var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL] if arrays[Mesh.ARRAY_NORMAL] != null else PackedVector3Array()
-		var tangents: PackedFloat32Array = arrays[Mesh.ARRAY_TANGENT] if arrays[Mesh.ARRAY_TANGENT] != null else PackedFloat32Array()
-		var bones: PackedInt32Array = arrays[Mesh.ARRAY_BONES]
-		var weights: PackedFloat32Array = arrays[Mesh.ARRAY_WEIGHTS]
-		var per := bones.size() / vertices.size()
-		for v in vertices.size():
-			var blend := Transform3D(Basis(Vector3.ZERO, Vector3.ZERO, Vector3.ZERO), Vector3.ZERO)
-			for k in per:
-				var w := weights[v * per + k]
-				if w > 0.0:
-					var m := binds[bones[v * per + k]]
-					blend = Transform3D(Basis(blend.basis.x + m.basis.x * w, blend.basis.y + m.basis.y * w, blend.basis.z + m.basis.z * w), blend.origin + m.origin * w)
-			vertices[v] = blend * vertices[v]
-			if not normals.is_empty():
-				normals[v] = (blend.basis * normals[v]).normalized()
-			if not tangents.is_empty():
-				var t := (blend.basis * Vector3(tangents[v * 4], tangents[v * 4 + 1], tangents[v * 4 + 2])).normalized()
-				tangents[v * 4] = t.x
-				tangents[v * 4 + 1] = t.y
-				tangents[v * 4 + 2] = t.z
-		arrays[Mesh.ARRAY_VERTEX] = vertices
-		if not normals.is_empty():
-			arrays[Mesh.ARRAY_NORMAL] = normals
-		if not tangents.is_empty():
-			arrays[Mesh.ARRAY_TANGENT] = tangents
-		arrays[Mesh.ARRAY_BONES] = null
-		arrays[Mesh.ARRAY_WEIGHTS] = null
-		out.add_surface_from_arrays(mesh.surface_get_primitive_type(surface), arrays)
-		out.surface_set_material(surface, mesh.surface_get_material(surface))
-	return out
 
 ## Appends an instance at `t` tinted `tint`: `MultiMesh.TRANSFORM_3D`'s
 ## row-major 3×4 layout, then the tint as custom data.

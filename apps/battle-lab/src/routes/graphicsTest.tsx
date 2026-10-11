@@ -233,6 +233,7 @@ function ReelBattle({
   });
   run.subject.unitAt = (id) =>
     session.sim.latest.current?.own.find((u) => u.id === id)?.position ?? null;
+  run.fielded.describe = session.describeUnits;
   useEffect(() => {
     if (session.sim.error) run.fail(session.sim.error);
   }, [run, session.sim.error]);

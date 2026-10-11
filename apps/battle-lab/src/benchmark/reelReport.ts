@@ -82,11 +82,13 @@ export function createReelReport(
     samples: r.capture,
     frames: r.frames,
   }));
-  // What each scene drew its frames with; null for a scene that drew none.
+  // What each scene drew its frames with; null for a scene that drew none
+  // or took no plate (its units are described at its first plate).
   const drawnPresentations: (DrawnPresentation | null)[] = results.map(
     (r) =>
       r.lens &&
-      r.light && {
+      r.light &&
+      r.units && {
         lens: r.lens,
         light: {
           ...r.light,
@@ -95,6 +97,7 @@ export function createReelReport(
         tuning: { terrain: terrainTuning, grass: grassTuning },
         layers,
         omissions: [],
+        units: r.units,
       },
   );
   const host = typeof navigator === "undefined" ? null : navigator;

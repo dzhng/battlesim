@@ -5,15 +5,17 @@ extends RefCounted
 ## encounter, seed and the sha256 of the map and capture bytes), the viewport,
 ## the lens, the light, the shader tuning tables, the layers the browser drew,
 ## the terrain and grass tables (as hashed artifacts beside the manifest) and
-## the grass counts per plate.
+## the grass counts per plate, and the units (`unit_manifest.gd`) with what
+## each plate posed.
 ## Native renders only a battle whose files match that identity exactly.
 
 const Capture = preload("res://capture/presentation_capture.gd")
 const Light = preload("res://environment/light.gd")
 const StrictJson = preload("res://core/strict_json.gd")
+const UnitManifest = preload("res://capture/unit_manifest.gd")
 
 const SCHEMA := "native-visual-presentation"
-const ROOT_KEYS := ["schema", "identity", "viewport", "lens", "light", "tuning", "layers", "omissions", "terrain", "grass", "grassCounts"]
+const ROOT_KEYS := ["schema", "identity", "viewport", "lens", "light", "tuning", "layers", "omissions", "terrain", "grass", "grassCounts", "units", "modelCounts"]
 const IDENTITY_KEYS := ["scene", "map", "encounter", "seed", "mapHash", "captureHash"]
 const VIEWPORT_KEYS := ["width", "height", "scale"]
 const LENS_KEYS := ["fovY", "near", "depth", "far"]
@@ -158,7 +160,10 @@ static func _manifest_error(manifest: Variant) -> String:
 			return shape
 		if not StrictJson.is_name(count.plate) or typeof(count.cells) != TYPE_ARRAY or not count.cells.all(func(cell): return StrictJson.is_integer(cell) and int(cell) >= 0):
 			return "grass count %s needs a plate and non-negative cell counts" % count.plate
-	return ""
+	shape = UnitManifest.error(manifest.units)
+	if not shape.is_empty():
+		return shape
+	return UnitManifest.counts_error(manifest.modelCounts)
 
 ## An empty string when `artifacts` is a list of hashed-artifact records
 ## `{name, sha256, words, layout}`.

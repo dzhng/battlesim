@@ -242,6 +242,30 @@ export function corpseInstances(frame: PoseFrame, resolve: ResolveAppearance): C
   return out;
 }
 
+/** How many models of each kind a pose frame draws, counting only those
+ *  with an appearance: soldiers (living and dying), vehicles on the ground,
+ *  aircraft (flying or falling), lying corpses and corpses sinking away. */
+export interface ModelCounts {
+  soldiers: number;
+  vehicles: number;
+  aircraft: number;
+  corpses: number;
+  fading: number;
+}
+
+export function modelCounts(frame: PoseFrame, resolve: ResolveAppearance): ModelCounts {
+  const out: ModelCounts = { soldiers: 0, vehicles: 0, aircraft: 0, corpses: 0, fading: 0 };
+  for (const s of frame.soldiers)
+    if (resolve(s.kind, s.side, s.soldier, s.slot, s.operatorMount, s.activeMount)) out.soldiers++;
+  for (const v of frame.vehicles)
+    if (resolve(v.kind, v.side, v.unit, 0)) out[v.airborne ? "aircraft" : "vehicles"]++;
+  for (const c of frame.corpses)
+    if (resolve(c.kind, c.side, c.soldier, c.slot, c.operatorMount ?? null, null)) out.corpses++;
+  for (const { corpse: c } of frame.fading)
+    if (resolve(c.kind, c.side, c.soldier, c.slot, c.operatorMount ?? null, null)) out.fading++;
+  return out;
+}
+
 const NO_XRAY: XrayOf = () => null;
 const REST_POSE: SkinnedModelPose = { kind: "skinned", clip: "", phase: 0, blend: null };
 /** The fading corpses' poses, one per way of lying, shared. */

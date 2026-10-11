@@ -5,13 +5,14 @@
 //   throwaway/native-parity/<run>/<scene>/{capture.json, manifest.json,
 //     plate-<index>.png, plain-<index>.png,
 //     terrain-<table>.u32, grass-<table>.u32,
-//     buildings-<table>.u32, scenery-<table>.u32}
+//     buildings-<table>.u32, scenery-<table>.u32, units-<table>.u32}
 //
 // the capture and its frame records, the `native-visual-presentation`
-// manifest (with each plate's grass, building-module and scenery counts),
-// the plates read back in their own frames with each frame lit without its
-// grass, and the tables the manifest hashes: the ground's and grass's GPU
-// tables, and the buildings' and scenery's instances.
+// manifest (with each plate's grass, building-module, scenery and posed
+// model counts), the plates read back in their own frames with each frame lit
+// without its grass, and the tables the manifest hashes: the ground's and
+// grass's GPU tables, the buildings' and scenery's instances, and the units'
+// clip tables.
 // PARITY_SCENES=<map,…> films only those scenes (`?scenes=`). Run it under
 // the GPU lock; it waits on the route's stage, never on a timer.
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
@@ -109,13 +110,14 @@ export async function run(ctx) {
     const state = window.__graphicsTest;
     return {
       plates: await Promise.all(
-        state.plates.map(async ({ scene, file, png, plain, grass, drawn }) => ({
+        state.plates.map(async ({ scene, file, png, plain, grass, drawn, models }) => ({
           scene,
           file,
           base64: await base64(await png),
           plain: await base64(await plain),
           cells: await grass,
           drawn,
+          models,
         })),
       ),
       uploaded: await Promise.all(
@@ -160,6 +162,7 @@ export async function run(ctx) {
       },
       grassCounts: own.map(({ file, cells }) => ({ plate: file, cells })),
       instanceCounts: own.map(({ file, drawn }) => ({ plate: file, ...drawn })),
+      modelCounts: own.map(({ file, models }) => ({ plate: file, ...models })),
     });
     await writeFile(new URL("manifest.json", dir), manifest);
     for (const { file, bytes } of artifacts) await writeFile(new URL(file, dir), bytes);
@@ -200,6 +203,12 @@ export async function run(ctx) {
     );
     const scenery = parsed.instanceCounts.map((c) =>
       ["forest", "understorey", "backdrop", "dressing"].map((p) => sum(c.scenery[p])).join("/"),
+    );
+    const posed = parsed.modelCounts.map((c) =>
+      [c.soldiers, c.vehicles, c.aircraft, c.corpses, c.fading].join("/"),
+    );
+    console.log(
+      `METRIC native-parity-capture ${map} units: ${Object.keys(parsed.units.types).length} unit types, ${Object.keys(parsed.units.appearances).length} appearances, ${parsed.units.tables.length} clip tables; soldiers/vehicles/aircraft/corpses/fading per plate ${posed.join(", ")}`,
     );
     console.log(
       `METRIC native-parity-capture ${map}: ${frames.length} frames, ${own.length} plates, heights ${heights.nx}×${heights.ny} at ${heights.spacing} m, grass kinds ${parsed.grass.kinds.join(", ")}, ${shapes.count} shape vertices, grass per plate ${grown.join(", ")}; ${rows("buildings", "buildings")} buildings, ${rows("buildings", "intact")} intact modules of ${parsed.buildings.modules.length} kinds, modules per plate ${modules.join(", ")}; ${["forest", "understorey", "backdrop", "dressing"].map((p) => `${rows("scenery", p)} ${p}`).join(", ")}, forest/understorey/backdrop/dressing per plate ${scenery.join(", ")}; known props per plate ${known.join(", ")} → ${dir.pathname}`,

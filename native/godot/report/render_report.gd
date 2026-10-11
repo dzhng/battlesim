@@ -17,6 +17,7 @@ var _budgets: Array = []
 var _blockers: Array = []
 var _plates: Array = []
 var _grass: Array = []
+var _models: Array = []
 
 func add_budget(owner: String, reason: String, source_id: String, admitted: int, rendered: int, dropped: int) -> void:
 	_budgets.append({"owner": owner, "reason": reason, "sourceId": source_id, "admitted": admitted, "rendered": rendered, "dropped": dropped})
@@ -32,6 +33,12 @@ func add_plate(index: int, path: String, gpu_ms: Variant) -> void:
 ## browser's (`grass_layer.gd` `counts`).
 func add_grass(counts: Dictionary) -> void:
 	_grass.append(counts)
+
+## What a plate's frame posed by kind, native's beside the browser's
+## (`units/unit_layer.gd` `present`).
+func add_models(counts: Dictionary) -> void:
+	_models.append(counts)
+
 
 func ok() -> bool:
 	return _blockers.is_empty()
@@ -52,6 +59,7 @@ func to_dictionary() -> Dictionary:
 		"blockers": _blockers,
 		"plates": _plates,
 		"grass": _grass,
+		"models": _models,
 	}
 
 ## What ran the project: `editor` (the editor binary, a debug build),

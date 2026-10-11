@@ -20,3 +20,10 @@ static func sim_array_to_godot(point: Array) -> Vector3:
 ## conversion it is the same angle about +y.
 static func yaw_basis(yaw: float) -> Basis:
 	return Basis(Vector3.UP, yaw)
+
+## The sim-to-Godot conversion as a basis.
+const TO_GODOT := Basis(Vector3(1, 0, 0), Vector3(0, 0, -1), Vector3(0, 1, 0))
+
+## A sim-space transform `t` acting in Godot space: `C · t · C⁻¹`.
+static func sim_transform(t: Transform3D) -> Transform3D:
+	return Transform3D(TO_GODOT, Vector3.ZERO) * t * Transform3D(TO_GODOT.inverse(), Vector3.ZERO)

@@ -133,7 +133,8 @@ composes the layers the manifest lists.
   fields, no stale shapes) and replays what the capture implies, such as the
   side's learned ground.
 - `environment/`, `terrain/` and `grass/` each port one browser owner by
-  formula: light and atmosphere, the ground, the grass field.
+  formula: light and atmosphere, the ground, the grass field; `units/` ports
+  the browser's posing of soldiers and vehicles.
 - `world/` holds what native still draws its own way, each piece reported as
   an approximation until a later slice ports its browser owner.
 - `reel/` places the camera, steps the records and writes plates; `report/`
@@ -310,21 +311,20 @@ materials × passes, never placed objects or their parts.
 - **Appearances.** Any node tree of meshes. Each tier's meshes merge into one
   mesh with a surface per material, every part's transform baked in. A mesh
   names its tier with a `_LOD<n>` suffix (finest first, the scene assets'
-  rule) and an unsuffixed mesh is in every tier. A skinned mesh is posed on
-  the CPU where its skeleton stands. Godot's own simplified meshes are off
+  rule) and an unsuffixed mesh is in every tier. A skinned mesh is the units
+  layer's (below). Godot's own simplified meshes are off
   (`project.godot`): the authored tiers are the one level of detail.
 - **Tiers.** A model takes the tier the browser's `presentation.models` gives
   its projected height; a building the one `presentation.buildings` gives a
   metre at its distance. Off screen it draws nothing.
 - **Statics and movers.** Statics are bucketed in 64 m chunks; a chunk is
   culled against the view's side planes and tiered at its nearest point, and
-  a batch is rewritten only when one of its chunks changes. Movers (units) are
-  chosen one by one every frame.
+  a batch is rewritten only when one of its chunks changes. Movers are chosen one
+  by one every frame, and a layer with its own tier rule (the units') hands
+  each appearance and tier the instances it draws and casts (`choose`).
 - **Shadows.** A model drawn as a mesh casts through a shadow-only batch one
   tier coarser, within the cascades' reach; the view's batches cast nothing.
   A chunk out of view whose shadow can land in it casts at the coarsest tier.
-- **Not yet:** the browser's impostor cards for far soldiers. A far soldier
-  draws its coarsest tier.
 
 ## Legacy map layer
 
@@ -334,12 +334,48 @@ decides roughly what stands where, and each layer's batches draw it:
   modules: a shell's open tiers (0 and 1, cut for the modules) draw over every
   coarser tier, which fills what the modules would, and its closed tiers
   (2 and 3) draw alone;
-- catalog props or boxes;
-- units as unposed catalog models at their authored size, or capsules.
+- catalog props or boxes.
 
 Every category is reported as an approximation, and rows farther than 1 km
 from every frame target are reported as dropped. The detail thresholds are
 read from `fixtures/game.json` until the manifest carries them.
+
+## Units
+
+`units/` draws every soldier, vehicle and corpse the browser poses, posed as
+the browser poses them, through the model batches.
+
+- **Poses.** The browser's per-frame derivations are ported line for line,
+  on the frame record's clock: `tick_interpolator.gd` blends the record's
+  publication from the one before (`interpolate.ts`), `pose_feed.gd` reads it
+  as the pose driver does (`poseFeed.ts`, with `launches.gd` naming which
+  soldier fired), and `pose_driver.gd` is the driver (`poseDriver.ts`): gait,
+  facing, stance and lean, deaths and the corpse cap, turret bearings, eased
+  elevations, recoil, track travel and an aircraft's lean. Poses carry from
+  frame to frame, so every record is posed in order, drawn or not.
+- **What draws them.** The manifest's `units` (`capture/unit_manifest.gd`) is
+  the browser's own resolution: each fielded type's facts and the appearance
+  sets `AppearanceCatalog` picks from per side, the pose feel, and each
+  appearance's joints and clips (a body, its clip table a hashed artifact) or
+  nodes and rig (a vehicle). `unit_poses.gd` picks a soldier's member by id
+  from them.
+- **Soldiers and corpses** keep the glTF's own vertices and skin. Each skin
+  bind moves with the bundle joint of its name: the GPU pose kernel
+  (`pose_kernel.gd`, the browser's `poseKernel.ts`) samples the clip table and
+  writes one matrix per bind into a palette image, and the model surface skins
+  each vertex from it (`POSED_SKINNED`). A corpse is the same body at its
+  corpse pose, one palette per body and way of lying.
+- **Vehicles** keep their glTF parts, each following the bundle node it hangs
+  from: the articulated nodes are posed on the CPU (`articulation.gd`, the
+  browser's `articulate`) into a second palette (`POSED_RIGID`), and a track's
+  texture scrolls by its links' travel.
+- **Detail.** Each model takes the browser's rule (`modelDetail`): culled
+  off screen, else the tier its projected height calls for, its shadow cast
+  one tier coarser. Not yet: the browser's impostor cards for models under
+  `impostor_px`, which draw their coarsest tier; the report counts them.
+- **Checks.** The build refuses a glTF whose joints or nodes do not stand
+  where the bundle's do. Each plate's posed models by kind (`modelCounts`)
+  must equal the browser's, or the run stops at a `models` blocker.
 
 ## Checks
 

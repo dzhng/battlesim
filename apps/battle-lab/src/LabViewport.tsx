@@ -40,6 +40,7 @@ import {
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import type {
   CorpseInstance,
+  ModelCounts,
   ModelInstance,
 } from "@packages/battle-renderer/src/models/modelInstances";
 import type { FelledTree } from "@packages/battle-renderer/src/scenery/felled";
@@ -173,6 +174,8 @@ export interface ViewportFrame {
   models?: readonly ModelInstance[];
   /** The corpses: handed to the frame only when the array changes. */
   corpses?: readonly CorpseInstance[];
+  /** How many models of each kind `models` and `corpses` pose (`modelCounts`). */
+  counts?: ModelCounts;
   /** The trees the side knows have fallen: handed over only when the array
    *  changes. */
   felled?: readonly FelledTree[];
@@ -193,6 +196,8 @@ export interface FramePlate {
   png: Promise<Blob>;
   clumps: Promise<readonly Pick<GrassClumpRow, "root">[]>;
   drawn: DrawnInstances;
+  /** The soldiers, vehicles and corpses the frame posed. */
+  models: ModelCounts;
   plain: Promise<Blob>;
 }
 
@@ -440,6 +445,13 @@ export function LabViewport({
   const modelsRef = useRef(models);
   modelsRef.current = models;
   const corpsesRef = useRef<readonly CorpseInstance[]>([]);
+  const countsRef = useRef<ModelCounts>({
+    soldiers: 0,
+    vehicles: 0,
+    aircraft: 0,
+    corpses: 0,
+    fading: 0,
+  });
   const felledRef = useRef<readonly FelledTree[]>([]);
   const modelsSuppressed = useRef(false);
   const effectsSuppressed = useRef(false);
@@ -790,6 +802,7 @@ export function LabViewport({
           png: readTexturePng(device!, context.getCurrentTexture()),
           clumps: scene.grassProbes.clumps(),
           drawn: scene.drawnInstances(),
+          models: countsRef.current,
           plain: readPlain(),
         });
         redrawRef.current = () => (dirty = true);
@@ -851,6 +864,7 @@ export function LabViewport({
               modelsRef.current = animated.models;
               if (!modelsSuppressed.current) scene.setModels(animated.models);
             }
+            if (animated.counts) countsRef.current = animated.counts;
             if (animated.corpses && animated.corpses !== corpsesRef.current) {
               corpsesRef.current = animated.corpses;
               if (!modelsSuppressed.current) scene.setCorpses(animated.corpses);

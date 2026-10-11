@@ -27,6 +27,7 @@ const RenderReport = preload("res://report/render_report.gd")
 const Staging = preload("res://assets/staging.gd")
 const EnvironmentAdapter = preload("res://environment/environment_adapter.gd")
 const LegacyMapLayer = preload("res://world/legacy_map_layer.gd")
+const UnitLayer = preload("res://units/unit_layer.gd")
 const TerrainLayer = preload("res://terrain/terrain_layer.gd")
 const GrassLayer = preload("res://grass/grass_layer.gd")
 const HeightField = preload("res://terrain/height_field.gd")
@@ -41,7 +42,7 @@ const FrameTiming = preload("res://report/frame_timing.gd")
 
 const OWNER := "native/parity_run"
 ## The browser's presentation layers native can draw; the manifest decides
-## which are drawn. `models` is the observed units.
+## which are drawn. `models` is the units (`units/unit_layer.gd`).
 const LAYERS := ["sky", "terrain", "water", "scars", "grass", "buildings", "props", "models", "fog"]
 const USAGE := "usage: godot --path native/godot -- --run <dir> --scene <name> [--frames plates|all|<i,j,...>] [--maps <dir>] [--out <dir>] [--bench <warm-up frames> [--pace uncapped|display]]"
 ## A run that is still going after this long has stalled: it stops at a
@@ -145,7 +146,11 @@ func _render(options: Dictionary) -> void:
 
 	var stepper = selected.stepper
 	var targets: Array = stepper.records().map(func(record): return Vector2(float(record.target[0]), float(record.target[1])))
-	var world := compose(self, manifest, ground, decoded.samples, map, targets, capture.side, _report)
+	var units := read_units(options.scene_dir, manifest)
+	if not units.ok:
+		_report.add_blocker(units.blocker.name, units.blocker.detail)
+		return
+	var world := compose(self, manifest, ground, decoded.samples, map, targets, capture.side, _report, {"tables": units.tables, "tickHz": float(capture.tickHz)})
 	if not _report.ok():
 		return
 
@@ -182,8 +187,15 @@ func _render(options: Dictionary) -> void:
 		# project starts minimised, but macOS can bring the window back on
 		# screen before this point; minimise it again before timing.
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_MINIMIZED)
+	# Units are posed record by record: a record the stepper skips is posed
+	# too, unseen, since poses carry from frame to frame.
+	var posed := -1
 	var record = stepper.step()
 	while record != null:
+		if world.units != null:
+			for skipped in range(posed + 1, int(record.index)):
+				world.units.advance(capture.frames[skipped])
+			posed = int(record.index)
 		var stepped := Time.get_ticks_usec()
 		var sample := _sample_at(decoded.samples, int(record.tick))
 		if sample.is_empty():
@@ -196,7 +208,7 @@ func _render(options: Dictionary) -> void:
 		if world.grass != null:
 			world.grass.grow(record)
 		world.environment.prepare(camera, Vector2(get_window().size), StrictJson.vector3(record.target))
-		world.layer.show_units(sample.own)
+		var models: Dictionary = world.units.present(record, camera, Vector2(get_window().size)) if world.units != null else {}
 		world.layer.prepare(camera, Vector2(get_window().size))
 		if world.fog != null:
 			world.fog.show_fog(sample.fog)
@@ -215,6 +227,8 @@ func _render(options: Dictionary) -> void:
 				_report.add_blocker(plate.blocker.name, plate.blocker.detail)
 				return
 			_report.add_plate(int(record.index), path, plate.gpu_ms)
+			if world.units != null:
+				_count_models(int(record.index), models, manifest.modelCounts.filter(func(row): return row.plate == record.plate))
 			if world.grass != null:
 				var browser: Array = manifest.grassCounts.filter(func(row): return row.plate == record.plate)
 				_report.add_grass(world.grass.counts(int(record.index), camera, Vector2(get_window().size), browser[0].cells if not browser.is_empty() else null))
@@ -228,6 +242,20 @@ func _render(options: Dictionary) -> void:
 		return
 	if world.grass != null:
 		world.grass.report_counts(_report)
+	if world.units != null:
+		world.units.report_budgets(_report)
+
+## The plate's posed models by kind against the browser's (`modelCounts`):
+## any kind apart is a `models` blocker.
+func _count_models(index: int, native: Dictionary, browser: Array) -> void:
+	var row := {"index": index, "native": native, "browser": null if browser.is_empty() else browser[0]}
+	_report.add_models(row)
+	if browser.is_empty():
+		_report.add_blocker("models", "plate-%d: the manifest has no model counts for it" % index)
+		return
+	for kind in native:
+		if int(browser[0][kind]) != int(native[kind]):
+			_report.add_blocker("models", "plate-%d: native poses %d %s where the browser posed %d" % [index, native[kind], kind, browser[0][kind]])
 
 ## A bench measures the GPU alone: a browser drawing at the same time (the
 ## scene runner's Chromium, which can outlive its locked command while it tears
@@ -282,12 +310,19 @@ static func read_ground(scene_dir: String, manifest: Dictionary) -> Dictionary:
 		return {"ok": false, "blocker": {"name": "terrain", "detail": heights.detail}}
 	return {"ok": true, "tables": read.tables, "heights": heights.heights, "grass": grass.tables}
 
+## The units' clip tables beside the manifest: `{ok: true, tables}` or
+## `{ok: false, blocker}`.
+static func read_units(scene_dir: String, manifest: Dictionary) -> Dictionary:
+	return Manifest.read_tables(scene_dir, manifest.units.tables, "units")
+
 ## Builds the light and every layer the manifest lists under `root`, staging the
 ## assets the layers draw, everything seated on `ground.heights`. Returns
-## `{environment, layer, grass, fog, scars}`; `grass` and `fog` are null unless
-## listed, and `scars` (`scar_texture.gd`) holds no scars until synced.
-## Blockers and budgets go to `report`.
-static func compose(root: Node3D, manifest: Dictionary, ground: Dictionary, samples: Array, map: Dictionary, targets: Array, side: String, report) -> Dictionary:
+## `{environment, layer, grass, fog, scars, units}`; `grass`, `fog` and `units`
+## are null unless listed, and `scars` (`scar_texture.gd`) holds no scars
+## until synced. `units` holds the manifest units' clip tables
+## (`read_units`) and the capture's tick rate. Blockers and budgets go to
+## `report`.
+static func compose(root: Node3D, manifest: Dictionary, ground: Dictionary, samples: Array, map: Dictionary, targets: Array, side: String, report, units := {}) -> Dictionary:
 	var layers: Array = manifest.layers
 	for layer in layers:
 		if not LAYERS.has(layer):
@@ -304,16 +339,24 @@ static func compose(root: Node3D, manifest: Dictionary, ground: Dictionary, samp
 		grass = GrassLayer.new(ground, manifest.grass, manifest.tuning, manifest.lens, scars.texture)
 		root.add_child(grass)
 		grass.build(report)
-	var layer := LegacyMapLayer.new(map, targets, samples, ground.heights)
-	var staged := Staging.stage(layer.required_assets(layers), report)
+	var layer := LegacyMapLayer.new(map, targets, ground.heights)
+	var unit_layer: Node3D = null
+	var assets := layer.required_assets(layers)
+	if layers.has("models"):
+		unit_layer = UnitLayer.new(manifest.units, units.get("tables", {}), samples, side, float(units.get("tickHz", 30.0)), manifest.light)
+		root.add_child(unit_layer)
+		assets.append_array(unit_layer.required_assets())
+	var staged := Staging.stage(assets, report)
 	root.add_child(layer)
 	var fog: Node3D = null
 	if report.ok():
-		layer.build(layers, staged, side, manifest.light, report)
+		layer.build(layers, staged, manifest.light, report)
+		if unit_layer != null:
+			unit_layer.build(staged, report)
 		if layers.has("fog"):
 			fog = FogLayer.new()
 			root.add_child(fog)
-	return {"environment": environment, "layer": layer, "grass": grass, "fog": fog, "scars": scars}
+	return {"environment": environment, "layer": layer, "grass": grass, "fog": fog, "scars": scars, "units": unit_layer}
 
 ## The box shadows fall in, in Godot space: the ground grid, from a metre
 ## below its lowest ground to `Light.STANDING_M` above its highest, for what

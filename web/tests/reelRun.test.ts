@@ -4,6 +4,7 @@ import { createReelRun, grassCells, type ReelPlate } from "@apps/battle-lab/src/
 import type { UploadedTables } from "@packages/battle-renderer/src/frame/wordTables";
 import type { BackdropScene } from "@apps/battle-lab/src/menuReel";
 import type { FramePlate } from "@apps/battle-lab/src/LabViewport";
+import type { DrawnUnits } from "@web/battle/benchmark/unitManifest";
 
 const pose = { target: [0, 0] as [number, number], distance: 40, yaw: 0, pitch: 0.2 };
 const scene: BackdropScene = {
@@ -40,6 +41,7 @@ const platesOf =
       scenery: { forest: [], understorey: [], backdrop: [], dressing: [], felled: [], stumps: [] },
       knownProps: [],
     },
+    models: { soldiers: now, vehicles: 1, aircraft: 0, corpses: 2, fading: 0 },
     plain: Promise.resolve(new Blob([`plain at ${now}`])),
   });
 /** A level camera 40 m east of (5, 6, 1), looking west: screen right is +y, up is +z. */
@@ -130,6 +132,7 @@ test("each drawn frame records the view it drew in sim space, and a plate from e
   expect(await (await plate.plain).text()).toBe("plain at 2100");
   // What the frame drew, from the frame that was read.
   expect(plate.drawn.buildings).toEqual([2100]);
+  expect(plate.models.soldiers).toBe(2100);
 });
 
 test("grass is counted by the screen cell its roots project into, row-major from the top-left", () => {
@@ -148,8 +151,8 @@ test("grass is counted by the screen cell its roots project into, row-major from
   expect(cells).toEqual([1, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1]);
 });
 
-test("a plate frame counts the grass its own frame grew and keeps the tables it drew with", async () => {
-  type Result = { plates: ReelPlate[]; tables: UploadedTables | null };
+test("a plate frame counts the grass its own frame grew and keeps the tables and units it drew with", async () => {
+  type Result = { plates: ReelPlate[]; tables: UploadedTables | null; units: unknown };
   const results: Result[] = [];
   const run = createReelRun(scene, 30, (r) => results.push(r as unknown as Result), {
     plates: true,
@@ -162,6 +165,9 @@ test("a plate frame counts the grass its own frame grew and keeps the tables it 
     stats: () => ({}) as never,
     tables: () => (exported++, tables),
   });
+  const units = { types: {} } as unknown as DrawnUnits;
+  let described = 0;
+  run.fielded.describe = () => (described++, units);
   run.scripted.onWarm();
   run.pilot.frame!(drawn(1000));
   run.pilot.frame!({ ...drawn(1500, 2, platesOf(1500, [[5, 60, 1]])), camera: level });
@@ -171,10 +177,16 @@ test("a plate frame counts the grass its own frame grew and keeps the tables it 
   expect(await result.plates[0].grass).toEqual([0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0]);
   expect(result.tables).toBe(tables);
   expect(exported).toBe(1);
+  expect(result.units).toBe(units);
+  expect(described).toBe(1);
 });
 
 test("without plates the run asks the viewport for no read-back and exports nothing", () => {
-  const results: { plates: readonly ReelPlate[]; tables: UploadedTables | null }[] = [];
+  const results: {
+    plates: readonly ReelPlate[];
+    tables: UploadedTables | null;
+    units: DrawnUnits | null;
+  }[] = [];
   const run = createReelRun(scene, 30, (r) => results.push(r));
   expect(run.pilot.plates).toBe(false);
   run.pilot.attach!({
@@ -189,4 +201,5 @@ test("without plates the run asks the viewport for no read-back and exports noth
   for (const now of [1000, 1500, 2100, 3000]) run.pilot.frame!({ ...drawn(now), camera: level });
   expect(results[0].plates).toEqual([]);
   expect(results[0].tables).toBeNull();
+  expect(results[0].units).toBeNull();
 });

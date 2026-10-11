@@ -23,6 +23,7 @@ import { sunDirection } from "@packages/battle-renderer/src/light/sceneLight";
 import { terrainTuning } from "@packages/battle-renderer/src/terrain/terrainTuning";
 import { grassTuning } from "@packages/battle-renderer/src/terrain/grassTuning";
 import { gameLight } from "@apps/battle-lab/src/gameLight";
+import type { DrawnUnits, ModelCount } from "@web/battle/benchmark/unitManifest";
 
 const frame = (
   index: number,
@@ -58,6 +59,72 @@ const capture = (frames: PresentationFrame[]): PresentationCapture => ({
   frames,
 });
 
+/** Two joint samples of one clip, as a page's clip table holds them. */
+const CLIP_FLOATS = Float32Array.from([0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0.6, 0.8, 0.2, 0, 0, 1]);
+const REST = { t: [0, 0, 0], r: [0, 0, 0, 1], s: [1, 1, 1] } as const;
+/** A squad of one soldier on a one-clip table and a tank on a two-node rig. */
+function units(): DrawnUnits {
+  const soldier = (look: string) => ({ hull: [], slots: [[look]], operated: [null] });
+  return {
+    pose: { gait: { walk_mps: 0.25 } },
+    leanHold: 1.5,
+    detail: { lod_px: [150, 60, 24], impostor_px: 10 },
+    tints: { blue: [1, 1, 1], red: [1.18, 1, 0.78] },
+    types: {
+      rifle: {
+        hull: null,
+        airborne: false,
+        roles: ["hand"],
+        mounts: [{ weapon: "rifle", on: null, activePose: null }],
+        draws: { blue: soldier("rifleman"), red: soldier("rifleman") },
+      },
+      tank: {
+        hull: { halfTrack: 1.4 },
+        airborne: false,
+        roles: ["gun"],
+        mounts: [{ weapon: "cannon", on: null, activePose: null }],
+        draws: {
+          blue: { hull: ["tank"], slots: [], operated: [null] },
+          red: { hull: ["tank"], slots: [], operated: [null] },
+        },
+      },
+    },
+    appearances: {
+      rifleman: {
+        kind: "skinned",
+        joints: [
+          { name: "root", parent: -1, bind: structuredClone(REST) as never },
+          { name: "spine", parent: 0, bind: structuredClone(REST) as never },
+        ],
+        table: "clips-0",
+        clips: { idle: { offset: 0, frames: 1, duration: 1, rate: 30, loop: true, stride: null } },
+        farPose: { clip: "idle", phase: 0 },
+        corpsePoses: [{ clip: "idle", phase: 1 }],
+      },
+      tank: {
+        kind: "articulated",
+        nodes: [
+          { name: "hull", parent: -1, bind: structuredClone(REST) as never },
+          { name: "turret", parent: 0, bind: structuredClone(REST) as never },
+        ],
+        rig: {
+          turret: 1,
+          gun: -1,
+          hmg: -1,
+          hmgGun: -1,
+          pitch: { gun: [-0.17, 0.35], hmg: [-0.17, 0.79] },
+          stroke: null,
+          wheels: [],
+          tracks: [],
+          rotors: [],
+          deploy: [],
+        },
+      },
+    },
+    tables: [{ name: "clips-0", base64: Buffer.from(CLIP_FLOATS.buffer).toString("base64") }],
+  };
+}
+
 const drawn: DrawnPresentation = {
   lens: { fovY: 0.8, near: 1, depth: "reverse-z", far: "infinite" },
   light: {
@@ -67,6 +134,7 @@ const drawn: DrawnPresentation = {
   tuning: { terrain: terrainTuning, grass: grassTuning },
   layers: ["sky", "terrain", "grass"],
   omissions: [],
+  units: units(),
 };
 const mapBytes = new TextEncoder().encode('{"map":"bytes"}');
 
@@ -192,6 +260,9 @@ const instanceCounts: InstanceCount[] = [
   },
 ];
 const grassCounts: GrassCount[] = [{ plate: "plate-1.png", cells: cells(3) }];
+const modelCounts: ModelCount[] = [
+  { plate: "plate-1.png", soldiers: 9, vehicles: 2, aircraft: 0, corpses: 4, fading: 0 },
+];
 const platedCapture = () =>
   encodePresentationCapture(capture([frame(0), frame(1, [1280, 720], "plate-1.png")]));
 /** The manifest and its artifacts for `captureJson`, drawn with the tables and counts above. */
@@ -207,6 +278,7 @@ async function written(
     tables,
     grassCounts: counts,
     instanceCounts: instances,
+    modelCounts: counts.length ? modelCounts : [],
   });
   return { manifest: JSON.parse(manifest) as VisualPresentation, artifacts };
 }
@@ -243,7 +315,68 @@ test("the manifest names its battle by the capture's workload and the hashes of 
     scenery: expect.any(Object),
     grassCounts: [],
     instanceCounts: [],
+    units: expect.any(Object),
+    modelCounts: [],
   });
+});
+
+test("the units' clip tables are artifacts after the scenery's, and each plate's model counts ride along", async () => {
+  const { manifest, artifacts } = await written(platedCapture(), grassCounts);
+  const bytes = new Uint8Array(CLIP_FLOATS.buffer);
+  const { tables: clipTables, ...described } = manifest.units;
+  const { tables: _, ...page } = drawn.units;
+  expect(described).toEqual(page);
+  expect(clipTables).toEqual([
+    {
+      name: "clips-0",
+      sha256: sha256(bytes),
+      words: CLIP_FLOATS.length,
+      layout: {
+        kind: "records",
+        stride: 8,
+        count: 2,
+        fields: [
+          { name: "rotation", word: 0, type: "f32", count: 4 },
+          { name: "translation", word: 4, type: "f32", count: 3 },
+          { name: "scale", word: 7, type: "f32", count: 1 },
+        ],
+      },
+    },
+  ]);
+  expect(artifacts.at(-1)).toEqual({ file: "units-clips-0.u32", bytes });
+  expect(manifest.modelCounts).toEqual(modelCounts);
+
+  const reject = (change: object) => () => validateVisualPresentation({ ...manifest, ...change });
+  const [rifleman] = Object.values(manifest.units.appearances);
+  expect(reject({ units: { ...manifest.units, tables: [] } })).toThrow(/units/);
+  expect(
+    reject({
+      units: {
+        ...manifest.units,
+        appearances: { ...manifest.units.appearances, rifleman: { ...rifleman, joints: [] } },
+      },
+    }),
+  ).toThrow(/units/);
+  const { rifle, ...rest } = manifest.units.types;
+  const stray = {
+    ...rifle,
+    draws: { ...rifle.draws, red: { hull: [], slots: [["ghost"]], operated: [null] } },
+  };
+  expect(reject({ units: { ...manifest.units, types: { ...rest, rifle: stray } } })).toThrow(
+    /types/,
+  );
+  expect(reject({ modelCounts: [{ ...modelCounts[0], corpses: -1 }] })).toThrow(/model counts/);
+  await expect(
+    writeVisualPresentation({
+      captureJson: platedCapture(),
+      mapBytes,
+      drawn,
+      tables,
+      grassCounts,
+      instanceCounts,
+      modelCounts: [],
+    }),
+  ).rejects.toThrow(/model counts must be one per plate/);
 });
 
 test("a run whose canvas changed size, or drew nothing, has no one viewport and is refused", async () => {
@@ -435,7 +568,8 @@ test("the buildings' and scenery's tables are artifacts after the grass's, with 
       expect(wordsOf(bytes)).toEqual(table.words);
     }
   }
-  expect(artifacts).toHaveLength(at);
+  // The units' clip tables follow.
+  expect(artifacts).toHaveLength(at + manifest.units.tables.length);
 });
 
 test("instance counts hold one row per plate, sized by the modules and the scenery kinds", async () => {

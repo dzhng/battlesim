@@ -70,6 +70,7 @@ import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog"
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import {
   corpseInstances,
+  modelCounts,
   poseFrameInstances,
   type CorpseInstance,
   type ModelInstance,
@@ -114,7 +115,8 @@ import type { KnownPropView, ObservationView } from "@web/battle/sim/observation
 import type { Order, SideName } from "@web/battle/sim/protocol";
 import type { LabBox, LabPick, ViewportFrame, ViewportGpu, ViewportPointer } from "./LabViewport";
 import { pickedUnit, pickToPointer, sideInstances, type DrawnInstances } from "./sideInstances";
-import { createPoseDriver, ObservationFeed, type PoseRules } from "./poseFeed";
+import { createPoseDriver, gamePose, ObservationFeed, type PoseRules } from "./poseFeed";
+import { describeUnits } from "./benchmark/unitPresentation";
 import { DrawnModels } from "@packages/battle-renderer/src/models/drawnModels";
 import { useSimSession, type ScriptedSim } from "./useSimSession";
 import { createEffectFrame, drawnMuzzleSource, effectPublication, gameEffects } from "./effectFeed";
@@ -226,7 +228,7 @@ export function useBattleSession({
   const catalog = useSessionCatalog();
   // The session draws, reads and loads its own catalog's units; a scenario
   // fielding a unit the catalog lacks is refused by name, not left undrawn.
-  const { map, rules, skirmish, units } = useMemo(() => {
+  const { map, rules, skirmish, units, fielded } = useMemo(() => {
     const parsed = JSON.parse(scenario) as {
       map: unknown;
       rules: ScenarioRules;
@@ -237,6 +239,7 @@ export function useBattleSession({
       ...parsed,
       rules: presentationRules(parsed.rules, catalog),
       units: admitScenario(parsed, catalog),
+      fielded: (parsed.units ?? []).map((u) => u.kind),
     };
   }, [scenario, catalog]);
   const world = useStaticWorld(map, rules);
@@ -799,6 +802,7 @@ export function useBattleSession({
       return {
         picks: d.picks,
         models: composed,
+        counts: modelCounts(poses, posing.resolve),
         corpses: posing.corpses.list,
         felled: fallenTrees,
         clock: time,
@@ -1356,6 +1360,18 @@ export function useBattleSession({
     surfaceZ,
     /** The appearances the viewport's models layer installs. */
     appearances: modelAppearances,
+    /** What a second client needs to pose and draw this battle's units
+     *  (`describeUnits`); null until its appearances are installed. */
+    describeUnits: () =>
+      posing &&
+      describeUnits({
+        kinds: fielded,
+        installed: posing.appearances,
+        units,
+        factions: factions && { blue: factions[0], red: factions[1] },
+        pose: gamePose,
+        leanHold: rules.cover.lean_hold_s,
+      }),
     /** Every animation frame's drawn units and presentation clock, for the viewport. */
     frame,
     /** The battle's sound (null unless `sound`), and its per-frame listener. */
