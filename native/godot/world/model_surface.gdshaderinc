@@ -13,6 +13,8 @@
 // track scrolls its texture by the palette's first texel, its links' travel
 // (`modelVertex`).
 
+#include "res://effects/cast_lights.gdshaderinc"
+
 uniform vec4 base : source_color = vec4(1.0);
 uniform float colour_scale = 1.0;
 uniform float tint_share = 0.0;
@@ -79,6 +81,7 @@ void fragment() {
 	ALBEDO = base.rgb * COLOR.rgb * colour_scale * sampled.rgb * mix(vec3(1.0), tint, tint_share);
 	ROUGHNESS = roughness * (has_roughness ? dot(texture(roughness_texture, UV), roughness_channel) : 1.0);
 	METALLIC = metallic * (has_metallic ? dot(texture(metallic_texture, UV), metallic_channel) : 1.0);
+	EMISSION = cast_light(ALBEDO, NORMAL, VERTEX, INV_VIEW_MATRIX);
 	if (has_normal) {
 		NORMAL_MAP = texture(normal_texture, UV).rgb;
 		NORMAL_MAP_DEPTH = normal_scale;

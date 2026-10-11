@@ -6,17 +6,19 @@ extends RefCounted
 ## the lens, the light, the shader tuning tables, the layers the browser drew,
 ## the terrain and grass tables (as hashed artifacts beside the manifest) and
 ## the grass counts per plate, the buildings, scenery and props with what each
-## plate drew of them, and the units (`unit_manifest.gd`) with what
-## each plate posed.
+## plate drew of them, the units (`unit_manifest.gd`) with what
+## each plate posed, and the effects (`effect_manifest.gd`) with what each
+## plate drew of them.
 ## Native renders only a battle whose files match that identity exactly.
 
 const Capture = preload("res://capture/presentation_capture.gd")
 const Light = preload("res://environment/light.gd")
 const StrictJson = preload("res://core/strict_json.gd")
 const UnitManifest = preload("res://capture/unit_manifest.gd")
+const EffectManifest = preload("res://capture/effect_manifest.gd")
 
 const SCHEMA := "native-visual-presentation"
-const ROOT_KEYS := ["schema", "identity", "viewport", "lens", "light", "tuning", "layers", "omissions", "terrain", "grass", "grassCounts", "units", "modelCounts", "buildings", "scenery", "props", "instanceCounts"]
+const ROOT_KEYS := ["schema", "identity", "viewport", "lens", "light", "tuning", "layers", "omissions", "terrain", "grass", "grassCounts", "units", "modelCounts", "buildings", "scenery", "props", "instanceCounts", "effects", "effectCounts"]
 const IDENTITY_KEYS := ["scene", "map", "encounter", "seed", "mapHash", "captureHash"]
 const VIEWPORT_KEYS := ["width", "height", "scale"]
 const LENS_KEYS := ["fovY", "near", "depth", "far"]
@@ -171,7 +173,13 @@ static func _manifest_error(manifest: Variant) -> String:
 	shape = UnitManifest.error(manifest.units)
 	if not shape.is_empty():
 		return shape
-	return UnitManifest.counts_error(manifest.modelCounts)
+	shape = UnitManifest.counts_error(manifest.modelCounts)
+	if not shape.is_empty():
+		return shape
+	shape = EffectManifest.error(manifest.effects)
+	if not shape.is_empty():
+		return shape
+	return EffectManifest.counts_error(manifest.effectCounts)
 
 ## An empty string when the buildings, scenery and props sections and the
 ## per-plate instance counts have their shapes; the layers that read them

@@ -13,6 +13,7 @@ extends RefCounted
 const TickInterpolator = preload("res://units/tick_interpolator.gd")
 const PoseFeed = preload("res://units/pose_feed.gd")
 const PoseDriver = preload("res://units/pose_driver.gd")
+const EffectFeed = preload("res://effects/effect_feed.gd")
 
 ## The manifest's `units`.
 var units: Dictionary
@@ -21,11 +22,12 @@ var _tick_hz: float
 var _feed: PoseFeed
 var _driver: PoseDriver
 
-func _init(manifest_units: Dictionary, samples: Array, side: String, tick_hz: float) -> void:
+## `effects` is the manifest's `effects`, which the launches read.
+func _init(manifest_units: Dictionary, effects: Dictionary, samples: Array, side: String, tick_hz: float) -> void:
 	units = manifest_units
 	_samples = samples
 	_tick_hz = tick_hz
-	_feed = PoseFeed.new(side, units.types)
+	_feed = PoseFeed.new(side, EffectFeed.new(units.types, effects))
 	_driver = PoseDriver.new(units.pose, float(units.leanHold), units.types, clip_facts)
 
 ## The pose frame (`PoseFrame`) for a record, or an empty dictionary before

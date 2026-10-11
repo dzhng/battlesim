@@ -104,14 +104,18 @@ var _vehicle_texture: ImageTexture
 var _posed := {"soldiers": 0, "vehicles": 0, "corpses": 0}
 var _dropped := {"soldiers": 0, "vehicles": 0, "corpses": 0}
 var _far_soldiers := 0
+## The pose frame the last `present` drew, for what sits on the models (the
+## effects' muzzles and rotors, `effects/drawn_models.gd`).
+var drawn := {}
 
 ## `units` is the manifest's section, `tables` its clip tables (`{name:
-## {words}}`), `samples` the capture's decoded observations, `light` the
+## {words}}`), `effects` its effects (whose launches pose the firing
+## soldiers), `samples` the capture's decoded observations, `light` the
 ## manifest's (its sun casts the units' shadows).
-func _init(units: Dictionary, tables: Dictionary, samples: Array, side: String, tick_hz: float, light: Dictionary) -> void:
+func _init(units: Dictionary, effects: Dictionary, tables: Dictionary, samples: Array, side: String, tick_hz: float, light: Dictionary) -> void:
 	name = "Units"
 	_units = units
-	_poses = UnitPoses.new(units, samples, side, tick_hz)
+	_poses = UnitPoses.new(units, effects, samples, side, tick_hz)
 	for table in tables:
 		_tables[table] = tables[table].words.to_float32_array()
 	_tints = units.tints
@@ -441,6 +445,7 @@ func advance(record: Dictionary) -> void:
 ## Returns what the frame posed by kind (`modelCounts`).
 func present(record: Dictionary, camera: Camera3D, size: Vector2) -> Dictionary:
 	var frame := _poses.step(record)
+	drawn = frame
 	var counts := _poses.counts(frame)
 	if frame.is_empty() or _kernel == null or not _kernel.ready():
 		return counts
@@ -591,6 +596,22 @@ func _store(index: int, m: Transform3D) -> void:
 
 static func _point(p: Array) -> Vector3:
 	return Coords.sim_to_godot(Vector3(p[0], p[1], p[2]))
+
+## The manifest's `units`.
+func manifest() -> Dictionary:
+	return _units
+
+## The appearance record named `name`, or null.
+func appearance(name: String) -> Variant:
+	return _units.appearances.get(name)
+
+## The appearance drawing a posed unit or soldier (`UnitPoses.resolve`).
+func resolve(kind: String, side: String, id: int, slot: int, operator_mount: Variant, active_mount: Variant) -> String:
+	return _poses.resolve(kind, side, id, slot, operator_mount, active_mount)
+
+## A clip table's floats.
+func table(name: String) -> PackedFloat32Array:
+	return _tables[name]
 
 ## Budget rows for the run: what was posed and dropped past the palettes,
 ## and the models that would have drawn as impostor cards.

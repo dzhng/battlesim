@@ -65,7 +65,7 @@ func run() -> bool:
 	kernel.free_device()
 
 	var report := RenderReport.new()
-	var layer := UnitLayer.new(fixture.units, units.tables, [], "blue", 30.0, fixture.light)
+	var layer := UnitLayer.new(fixture.units, fixture.effects, units.tables, [], "blue", 30.0, fixture.light)
 	get_root().add_child(layer)
 	layer.build(Staging.stage(layer.required_assets(), report), report)
 	check(report.ok(), "every fixture appearance builds: %s" % JSON.stringify(report.to_dictionary().blockers))

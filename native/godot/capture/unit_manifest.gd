@@ -2,8 +2,9 @@ extends RefCounted
 
 ## Reader for the manifest's `units` and `modelCounts` (the browser's
 ## `web/src/battle/benchmark/unitManifest.ts`): the pose driver's feel, each
-## fielded unit type's facts and appearance sets, each appearance's joints
-## and clips (a skinned body) or nodes and rig (a vehicle), the clip tables
+## fielded unit type's facts and appearance sets, each appearance's joints,
+## clips and weapon's muzzle socket (a skinned body) or nodes and rig, its
+## mounts' muzzle nodes and rotors included (a vehicle), the clip tables
 ## as hashed artifacts, and what each plate posed. Strict: no defaults, no
 ## unknown fields.
 
@@ -13,11 +14,12 @@ const UNITS_KEYS := ["pose", "leanHold", "detail", "tints", "types", "appearance
 const TYPE_KEYS := ["hull", "airborne", "roles", "mounts", "draws"]
 const MOUNT_KEYS := ["weapon", "on", "activePose"]
 const DRAWS_KEYS := ["hull", "slots", "operated"]
-const SKINNED_KEYS := ["kind", "joints", "table", "clips", "farPose", "corpsePoses"]
+const SKINNED_KEYS := ["kind", "joints", "table", "clips", "farPose", "corpsePoses", "muzzle"]
 const ARTICULATED_KEYS := ["kind", "nodes", "rig"]
 const NODE_KEYS := ["name", "parent", "bind"]
 const CLIP_KEYS := ["offset", "frames", "duration", "rate", "loop", "stride"]
-const RIG_KEYS := ["turret", "gun", "hmg", "hmgGun", "pitch", "stroke", "wheels", "tracks", "rotors", "deploy"]
+const RIG_KEYS := ["turret", "gun", "hmg", "hmgGun", "pitch", "stroke", "wheels", "tracks", "rotors", "deploy", "muzzles"]
+const ROTOR_KEYS := ["node", "radius", "blades", "chord", "rest", "mast_below", "mast_above", "mast_radius"]
 const COUNT_KINDS := ["soldiers", "vehicles", "aircraft", "corpses", "fading"]
 ## `presentation.pose`, as `validatePoseFeel` requires it.
 const FEEL_KEYS := {
@@ -146,6 +148,15 @@ static func _appearance_error(appearance: Variant, tables: Dictionary) -> String
 				return "clip %s needs an offset, frames, a duration, a rate, loop and a stride or null" % name
 		if not _pose_ok(appearance.farPose) or typeof(appearance.corpsePoses) != TYPE_ARRAY or not appearance.corpsePoses.all(_pose_ok):
 			return "a far pose and corpse poses"
+		var muzzle = appearance.muzzle
+		if muzzle != null:
+			shape = StrictJson.exact_keys(muzzle, ["joint", "offset"], "muzzle")
+			if shape.is_empty():
+				shape = StrictJson.exact_keys(muzzle.offset, ["t", "r", "s"], "muzzle offset")
+			if not shape.is_empty():
+				return shape
+			if not (StrictJson.is_integer(muzzle.joint) and int(muzzle.joint) >= 0 and int(muzzle.joint) < appearance.joints.size() and StrictJson.is_vector(muzzle.offset.t, 3) and StrictJson.is_vector(muzzle.offset.r, 4) and StrictJson.is_vector(muzzle.offset.s, 3)):
+				return "its muzzle needs one of its joints and an offset"
 		return ""
 	if appearance.get("kind") == "articulated":
 		var shape := StrictJson.exact_keys(appearance, ARTICULATED_KEYS, "articulated appearance")
@@ -165,6 +176,14 @@ static func _appearance_error(appearance: Variant, tables: Dictionary) -> String
 		for list in ["wheels", "tracks", "rotors", "deploy"]:
 			if typeof(rig[list]) != TYPE_ARRAY or not rig[list].all(func(part): return typeof(part) == TYPE_DICTIONARY and node.call(part.get("node"))):
 				return "rig %s must name its nodes" % list
+		for rotor in rig.rotors:
+			shape = StrictJson.exact_keys(rotor, ROTOR_KEYS, "rotor")
+			if not shape.is_empty():
+				return shape
+			if not ROTOR_KEYS.all(func(key): return StrictJson.is_number(rotor[key])) or float(rotor.radius) <= 0.0 or not StrictJson.is_integer(rotor.blades):
+				return "a rotor needs its reach, blades, chord, rest angle and mast"
+		if typeof(rig.muzzles) != TYPE_DICTIONARY or not rig.muzzles.values().all(func(n): return node.call(n) and int(n) >= 0):
+			return "rig muzzles must name its nodes by role"
 		return ""
 	return "kind must be skinned or articulated"
 

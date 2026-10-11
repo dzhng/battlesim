@@ -26,6 +26,7 @@ varying float ground;
 #include "res://core/word_tables.gdshaderinc"
 #include "res://core/coords.gdshaderinc"
 #include "res://core/wgsl.gdshaderinc"
+#include "res://effects/cast_lights.gdshaderinc"
 
 // Field `field` (a vec4) of shape vertex `vertex`.
 vec4 shape_vec4(int vertex, int field) {
@@ -114,4 +115,5 @@ void fragment() {
 	NORMAL = normalize((VIEW_MATRIX * vec4(sim_to_godot(shading), 0.0)).xyz);
 	ALBEDO = albedo;
 	ROUGHNESS = TUNING_blade_roughness;
+	EMISSION = cast_light(ALBEDO, NORMAL, VERTEX, INV_VIEW_MATRIX);
 }

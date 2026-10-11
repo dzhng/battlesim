@@ -19,6 +19,7 @@ var _plates: Array = []
 var _grass: Array = []
 var _models: Array = []
 var _instances: Array = []
+var _effects: Array = []
 
 func add_budget(owner: String, reason: String, source_id: String, admitted: int, rendered: int, dropped: int) -> void:
 	_budgets.append({"owner": owner, "reason": reason, "sourceId": source_id, "admitted": admitted, "rendered": rendered, "dropped": dropped})
@@ -45,6 +46,11 @@ func add_models(counts: Dictionary) -> void:
 func add_instances(counts: Dictionary) -> void:
 	_instances.append(counts)
 
+## The effects a plate's frame drew, native's beside the browser's
+## (`effects/effect_layer.gd` `counts`).
+func add_effects(counts: Dictionary) -> void:
+	_effects.append(counts)
+
 func ok() -> bool:
 	return _blockers.is_empty()
 
@@ -66,6 +72,7 @@ func to_dictionary() -> Dictionary:
 		"grass": _grass,
 		"models": _models,
 		"instances": _instances,
+		"effects": _effects,
 	}
 
 ## What ran the project: `editor` (the editor binary, a debug build),

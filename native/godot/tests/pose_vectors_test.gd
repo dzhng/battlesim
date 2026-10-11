@@ -30,7 +30,7 @@ func run() -> bool:
 	if not decoded.ok:
 		return true
 	var capture: Dictionary = parsed.capture
-	var poses := UnitPoses.new(units, decoded.samples, capture.side, float(capture.tickHz))
+	var poses := UnitPoses.new(units, run.effects, decoded.samples, capture.side, float(capture.tickHz))
 	var frames := {}
 	for frame in expected.frames:
 		frames[int(frame.index)] = frame

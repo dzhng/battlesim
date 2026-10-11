@@ -8,6 +8,7 @@ extends RefCounted
 
 const StrictJson = preload("res://core/strict_json.gd")
 const Observation = preload("res://capture/observation.gd")
+const JsText = preload("res://core/js_text.gd")
 
 const SCHEMA := "battle-presentation-capture"
 const ROOT_KEYS := ["schema", "workload", "tickHz", "warmTick", "side", "layout", "samples", "frames"]
@@ -16,11 +17,21 @@ const SAMPLE_KEYS := ["tick", "digest", "publication"]
 const FRAME_KEYS := ["index", "reelMs", "tick", "simTime", "eye", "target", "up", "canvas", "plate"]
 
 ## Returns `{valid: true, capture, layout}` or `{valid: false, reason}`.
+## Each record's `simTime` is read as the browser reads it, to the nearest
+## double: a clock on a tick's boundary must fall on the same side of it.
 static func parse(text: String) -> Dictionary:
 	var parser := JSON.new()
 	if parser.parse(text) != OK:
 		return _invalid("capture is not valid JSON")
-	return validate(parser.data)
+	var data = parser.data
+	if typeof(data) == TYPE_DICTIONARY and typeof(data.get("frames")) == TYPE_ARRAY:
+		var times := RegEx.create_from_string("\"simTime\":(-?[0-9][0-9.eE+-]*)").search_all(text)
+		if times.size() != data.frames.size():
+			return _invalid("capture names %d simTimes for %d frames" % [times.size(), data.frames.size()])
+		for at in times.size():
+			if typeof(data.frames[at]) == TYPE_DICTIONARY:
+				data.frames[at].simTime = JsText.parse_number(times[at].get_string(1))
+	return validate(data)
 
 static func validate(value: Variant) -> Dictionary:
 	var shape := StrictJson.exact_keys(value, ROOT_KEYS, "capture")

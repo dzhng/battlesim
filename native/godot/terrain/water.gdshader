@@ -9,6 +9,7 @@ render_mode blend_mix, depth_draw_never, cull_disabled;
 
 #include "res://core/coords.gdshaderinc"
 #include "res://terrain/ground.gdshaderinc"
+#include "res://effects/cast_lights.gdshaderinc"
 
 varying vec3 sim_position;
 
@@ -25,4 +26,5 @@ void fragment() {
 	ALPHA = surface.a;
 	ROUGHNESS = TUNING_water_roughness;
 	NORMAL = normalize((VIEW_MATRIX * vec4(sim_to_godot(water_normal(xy, footprint)), 0.0)).xyz);
+	EMISSION = cast_light(ALBEDO, NORMAL, VERTEX, INV_VIEW_MATRIX);
 }

@@ -10,10 +10,11 @@ extends RefCounted
 ## reconciles only those changes.
 
 const PoseMath = preload("res://units/pose_math.gd")
-const Launches = preload("res://units/launches.gd")
+const Launches = preload("res://effects/launches.gd")
+const EffectFeed = preload("res://effects/effect_feed.gd")
 
 var _side: String
-var _types: Dictionary
+var _effects: EffectFeed
 var _observation = null
 var _fallen: Array = []
 var _corpses = null
@@ -24,10 +25,11 @@ var _last_tick := -1
 ## Each unit's mount records, by `sideKey`.
 var _mounts := {}
 
-## `side` is the capture's; `types` the manifest's unit types.
-func _init(side: String, types: Dictionary) -> void:
+## `side` is the capture's; `effects` reads its publications as the
+## launches do (`effectPublication`).
+func _init(side: String, effects: EffectFeed) -> void:
 	_side = side
-	_types = types
+	_effects = effects
 
 ## The feed frame for one drawn sample (`tick_interpolator.gd` `frame`).
 func frame(sample: Dictionary) -> Dictionary:
@@ -52,7 +54,9 @@ func frame(sample: Dictionary) -> Dictionary:
 				_shots.clear()
 			var gap := _last_tick >= 0 and tick != _last_tick + 1
 			_last_tick = tick
-			for launch in _launches.note(observation, _side, _types, gap):
+			for launch in _launches.note(_effects.publication(observation, _side), gap):
+				if launch.soldier == null:
+					continue
 				if not _shots.has(launch.soldier):
 					_shots[launch.soldier] = {}
 				var counts: Dictionary = _shots[launch.soldier]

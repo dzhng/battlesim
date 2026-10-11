@@ -9,6 +9,21 @@ window/size/viewport_height=720
 ; onto it, and a minimised window still renders and reads back.
 window/size/mode=1
 
+[shader_globals]
+
+cast_light_count={
+"type": "float",
+"value": 0.0
+}
+cast_light_wrap={
+"type": "float",
+"value": 0.0
+}
+cast_lights={
+"type": "sampler2D",
+"value": ""
+}
+
 [rendering]
 renderer/rendering_method="forward_plus"
 ; The authored tiers are the only level of detail (world/model_batches.gd):

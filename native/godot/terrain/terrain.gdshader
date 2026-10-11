@@ -9,6 +9,7 @@ shader_type spatial;
 
 #include "res://core/coords.gdshaderinc"
 #include "res://terrain/ground.gdshaderinc"
+#include "res://effects/cast_lights.gdshaderinc"
 
 varying vec3 sim_position;
 
@@ -45,4 +46,5 @@ void fragment() {
 	n = scarred_normal(n, scar);
 	NORMAL = normalize((VIEW_MATRIX * vec4(sim_to_godot(n), 0.0)).xyz);
 #endif
+	EMISSION = cast_light(ALBEDO, NORMAL, VERTEX, INV_VIEW_MATRIX);
 }

@@ -33,6 +33,7 @@ var _receivers: AABB
 var _sun: DirectionalLight3D
 var _haze: CompositorEffect
 var _sky_lut: SkyLut
+var _world: WorldEnvironment
 
 ## `receivers` is the box the map's shadow receivers lie in, in Godot space.
 func _init(light: Dictionary, sky_listed: bool, receivers: AABB) -> void:
@@ -57,6 +58,7 @@ func _init(light: Dictionary, sky_listed: bool, receivers: AABB) -> void:
 	env.ambient_light_energy = 1.0
 	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	var world := WorldEnvironment.new()
+	_world = world
 	world.environment = env
 	_haze = HazeEffect.new(light, _sky_lut)
 	world.compositor = Compositor.new()
@@ -69,6 +71,17 @@ func _init(light: Dictionary, sky_listed: bool, receivers: AABB) -> void:
 	add_child(world)
 	_sun = build_sun(light)
 	add_child(_sun)
+
+## The baked sky the haze and the sky light read.
+func sky_lut() -> SkyLut:
+	return _sky_lut
+
+## Draws `effect` into the lit, hazed frame before the post chain, as the
+## browser draws its effects after its world pass.
+func add_effect(effect: CompositorEffect) -> void:
+	var effects: Array[CompositorEffect] = _world.compositor.compositor_effects
+	effects.insert(effects.size() - 1, effect)
+	_world.compositor.compositor_effects = effects
 
 func _enter_tree() -> void:
 	get_viewport().msaa_3d = FRAME_MSAA

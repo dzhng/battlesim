@@ -37,14 +37,24 @@ func run() -> bool:
 	check(grass.report.to_dictionary().blockers.any(func(row): return row.name == "grass" and row.detail.contains("rendering device")), "a listed grass layer that cannot grow is a named blocker")
 	grass.root.free()
 
-	var fogged := _compose(["fog", "effects"])
+	var fogged := _compose(["fog", "props"])
 	var fog: MultiMeshInstance3D = fogged.root.find_child("Fog", true, false)
 	check(fog != null, "a listed fog layer is drawn")
 	if fog != null:
 		fog.show_fog({"nx": 2, "ny": 2, "cellM": 8.0, "bits": [9]})
 		check(fog.multimesh.instance_count == 2, "fog paints exactly the hidden cells (2 of 4)")
-	check(fogged.report.to_dictionary().budgets.any(func(row): return row.sourceId == "layer:effects" and row.dropped == 1), "a listed layer native cannot draw is reported as dropped")
+	check(fogged.report.to_dictionary().budgets.any(func(row): return row.sourceId == "layer:props" and row.dropped == 1), "a listed layer native cannot draw is reported as dropped")
 	fogged.root.free()
+
+	# The effects draw into the lit, hazed frame, before the post chain.
+	var effected := _compose(["effects"])
+	var world_environment: WorldEnvironment = effected.root.find_child("Environment", true, false).get_child(0)
+	var passes: Array = world_environment.compositor.compositor_effects
+	check(effected.world.effects != null and passes.size() == 3 and passes[1] == effected.world.effects.pass_, "a listed effects layer draws between the haze and the post chain")
+	effected.root.free()
+	var plain := _compose(["terrain"])
+	check(plain.world.effects == null, "an unlisted effects layer draws nothing")
+	plain.root.free()
 
 	# Soldiers are posed on the GPU: without a display, a listed models layer
 	# stops the run by name rather than being left out.
@@ -61,7 +71,7 @@ func _compose(layers: Array) -> Dictionary:
 	var fixture: Dictionary = read_json(FIXTURE_RUN.path_join(FIXTURE_SCENE).path_join("manifest.json"))
 	var light: Dictionary = fixture.light
 	light.sunDirection = [sqrt(0.5), 0.0, sqrt(0.5)]
-	var manifest := {"layers": layers, "light": light, "tuning": fixture.tuning, "grass": fixture.grass, "lens": fixture.lens, "units": fixture.units, "buildings": fixture.buildings, "scenery": fixture.scenery, "props": fixture.props}
+	var manifest := {"layers": layers, "light": light, "tuning": fixture.tuning, "grass": fixture.grass, "lens": fixture.lens, "units": fixture.units, "buildings": fixture.buildings, "scenery": fixture.scenery, "props": fixture.props, "effects": fixture.effects}
 	var ground := ParityRun.read_ground(FIXTURE_RUN.path_join(FIXTURE_SCENE), fixture)
 	var world := ParityRun.compose(root, manifest, ground, SAMPLES, FIXTURE_RUN.path_join(FIXTURE_SCENE), "blue", report)
 	return {"root": root, "report": report, "world": world}
