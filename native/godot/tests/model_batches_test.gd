@@ -69,8 +69,36 @@ func run() -> bool:
 	camera.look_at_from_position(Vector3(0, 2, 0), Vector3(0, 2, 10))
 	statics.prepare(camera, VIEWPORT)
 	check(_drawn(statics, 0, false).count == 1, "a chunk that leaves the view stops drawing: %d drawn at tier 0" % _drawn(statics, 0, false).count)
+
+	# A shell whose tiers finer than 2 are open (a kit's `OPEN_TIERS`): an open
+	# tier draws over every coarser tier; tiers 2 and 3 draw alone.
+	camera.look_at_from_position(Vector3(0, 2, 0), Vector3(0, 2, -10))
+	var shells := ModelBatches.new("Shells", sun, 2000.0)
+	world.add_child(shells)
+	var shell := shells.add_appearance(_model(), DETAIL.merged({"closed_tier": 2}))
+	shells.show_movers(distances.map(func(d): return [shell, Transform3D(Basis(), Vector3(0, 0, -d))]))
+	shells.prepare(camera, VIEWPORT)
+	var drawn := _all(shells).filter(func(batch): return not batch.get_meta("cast") and batch.visible).map(func(batch): return _bodies(batch.multimesh.mesh))
+	drawn.sort()
+	check(drawn == [[0, 1, 2, 3], [1, 2, 3], [2], [3]], "a shell draws an open tier over every coarser tier, and tiers 2 and 3 alone: %s" % [drawn])
 	world.free()
 	return true
+
+## The tiers whose bodies a mesh of `_model` holds, finest first, by their
+## heights (tier t's body is 2 − 0.25 t tall, centred on the origin).
+static func _bodies(mesh: ArrayMesh) -> Array:
+	if mesh == null:
+		return []
+	var tops := {}
+	for surface in mesh.get_surface_count():
+		for vertex: Vector3 in mesh.surface_get_arrays(surface)[Mesh.ARRAY_VERTEX]:
+			if vertex.y > 0.0:
+				tops[snappedf(vertex.y, 0.001)] = true
+	var tiers := []
+	for tier in 4:
+		if tops.has(snappedf((2.0 - 0.25 * tier) / 2.0, 0.001)):
+			tiers.append(tier)
+	return tiers
 
 ## A model whose body has one mesh per tier, each 0.25 m shorter than the
 ## last, standing on an unsuffixed base in every tier.

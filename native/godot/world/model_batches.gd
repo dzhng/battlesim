@@ -108,17 +108,19 @@ func _init(batches_name: String, sun: Vector3, max_far_m: float) -> void:
 	_max_far_m = max_far_m
 
 ## Registers the meshes below `root` (not `root`'s own transform) as an
-## appearance drawn at the tiers `detail` gives it (`{lod_px, sized}`, and
-## `tiers: false` to draw every mesh in every tier whatever its name);
-## returns its id.
+## appearance drawn at the tiers `detail` gives it (`{lod_px, sized}`);
+## returns its id. A `closed_tier` says the tiers finer than it are open (a
+## kit shell's, cut for facade modules): each draws over every coarser
+## tier, whose meshes fill what its modules would.
 func add_appearance(root: Node, detail: Dictionary) -> int:
 	var parts := []
 	for child in root.get_children():
 		_collect(child, Transform3D.IDENTITY, parts)
-	var named: bool = detail.get("tiers", true) and parts.any(func(part): return part.tier >= 0)
+	var named: bool = parts.any(func(part): return part.tier >= 0)
+	var closed: int = detail.get("closed_tier", 0)
 	var appearance := Appearance.new()
 	for tier in TIERS:
-		appearance.meshes.append(_merged(parts.filter(func(part): return not named or part.tier < 0 or part.tier == tier)))
+		appearance.meshes.append(_merged(parts.filter(func(part): return not named or part.tier < 0 or part.tier == tier or (tier < closed and part.tier > tier))))
 		for list in [appearance.static_view, appearance.static_cast, appearance.moving_view, appearance.moving_cast]:
 			list.append(PackedFloat32Array())
 		appearance.view.append(null)

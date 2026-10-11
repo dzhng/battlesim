@@ -61,7 +61,7 @@ Graph: `07 → 08 → 09 → 10 → 11 → 12`. Measure first and name the cause
 
 | Scaffolding | Removed |
 | --- | --- |
-| `legacy_map_layer.gd` (placement, its kit shells drawn at every tier, its read of `fixtures/game.json` detail thresholds) | Slice 13 |
+| `legacy_map_layer.gd` (placement, its kit shells' open tiers drawn over the coarser ones, its read of `fixtures/game.json` detail thresholds) | Slice 13 |
 | The grass count gate's `scar-omission` allowance | Slice 14, when native draws learned scars |
 
 Update this section before ending every implementation pass. Record the current slice, evidence, unresolved decisions, and the next exact pickup.

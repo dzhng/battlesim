@@ -142,7 +142,7 @@ func _build_buildings(report) -> void:
 		for placement in boxes:
 			batches.add_static(box, placement)
 	batches.seal()
-	report.add_budget(OWNER, "approximation: kit shells picked by template token, every tier drawn at once (until slice 13), within %d m of a frame target" % REACH_M, "map.buildings", admitted, near, admitted - near)
+	report.add_budget(OWNER, "approximation: kit shells picked by template token with no facade modules, an open tier drawn over every coarser tier (until slice 13), within %d m of a frame target" % REACH_M, "map.buildings", admitted, near, admitted - near)
 	if not boxes.is_empty():
 		report.add_budget(OWNER, "approximation: an 18x8x18 m box where no kit shell matches the template", "map.buildings/boxes", boxes.size(), boxes.size(), 0)
 	_report_malformed(report, "map.buildings", malformed)
@@ -352,9 +352,13 @@ func _load_catalogs() -> void:
 	# The browser's detail tiers (`presentation.models` and `.buildings`).
 	var presentation: Dictionary = _read_json("fixtures/game.json").presentation
 	_model_detail = {"lod_px": presentation.models.lod_px, "sized": true}
-	# A kit shell's finer tiers have openings its facade modules fill; this
-	# layer places no modules, so every tier of a shell is drawn together.
-	_building_detail = {"lod_px": presentation.buildings.lod_px_per_m, "sized": false, "tiers": false}
+	# A kit shell's walls are cut open for its facade modules at tiers 0 and 1
+	# (`OPEN_TIERS`, packages/scene-assets/blender/city/kit.py); from tier 2
+	# the shell is the whole building. This layer places no modules, so an
+	# open tier draws over every coarser tier, which fill what the modules
+	# would (a Paris dormer is in tier 1, a balcony's front in tier 3), and a
+	# closed tier draws alone.
+	_building_detail = {"lod_px": presentation.buildings.lod_px_per_m, "sized": false, "closed_tier": 2}
 	var appearances = _read_json("assets/catalog.json")
 	if typeof(appearances) == TYPE_DICTIONARY:
 		_appearances = appearances.get("appearances", {})

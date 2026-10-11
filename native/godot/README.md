@@ -289,8 +289,10 @@ materials × passes, never placed objects or their parts.
 
 Until slice 13 ports the browser's placement, `world/legacy_map_layer.gd`
 decides roughly what stands where, and each layer's batches draw it:
-- building shells picked from a catalog kit by template token, every tier at
-  once, since no facade module fills the finer tiers' openings;
+- building shells picked from a catalog kit by template token, with no facade
+  modules: a shell's open tiers (0 and 1, cut for the modules) draw over every
+  coarser tier, which fills what the modules would, and its closed tiers
+  (2 and 3) draw alone;
 - catalog props or boxes;
 - units as unposed catalog models at their authored size, or capsules.
 
