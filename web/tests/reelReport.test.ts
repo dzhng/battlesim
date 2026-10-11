@@ -9,6 +9,7 @@ import { sunDirection } from "@packages/battle-renderer/src/light/sceneLight";
 import { terrainTuning } from "@packages/battle-renderer/src/terrain/terrainTuning";
 import { grassTuning } from "@packages/battle-renderer/src/terrain/grassTuning";
 import type { DrawnUnits } from "@web/battle/benchmark/unitManifest";
+import type { DrawnProps } from "@web/battle/benchmark/propManifest";
 
 const pose = { target: [0, 0] as const, distance: 40, yaw: 0, pitch: 0.2 };
 /** A plated scene's units, as the page describes them (`describeUnits`). */
@@ -20,6 +21,14 @@ const units: DrawnUnits = {
   types: {},
   appearances: {},
   tables: [],
+};
+/** Its props, as the page describes them (`describeProps`). */
+const props: DrawnProps = {
+  detail: { lod_px: [150, 60, 24], impostor_px: 10 },
+  looks: [],
+  map: { base64: "", count: 0 },
+  fit: { kinds: {}, wrecks: {}, standIn: null },
+  buildings: { parts: [], shells: [] },
 };
 function result(map: string, started: number, intervals: number[]): ReelResult {
   const recording = new BenchmarkRecording(1000);
@@ -64,6 +73,7 @@ function result(map: string, started: number, intervals: number[]): ReelResult {
     plates: [],
     tables: null,
     units,
+    props,
   };
 }
 
@@ -105,6 +115,7 @@ test("exports each scene's capture with the frames it drew and what it drew them
       layers: ["sky", "terrain"],
       omissions: [],
       units,
+      props,
     },
   ]);
   expect(report.capture.frameTimingComparable).toBe(true);

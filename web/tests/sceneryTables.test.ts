@@ -66,6 +66,15 @@ const RULES = {
   chunkM: 128,
   casterCoarser: 1,
   dressing: { lodPx: [300, 100, 20] as const, fadePx: 6, slots: 2, cellsPerView: 2 },
+  felled: {
+    fall_s: 2.6,
+    settle_s: 0.6,
+    settle_deg: 4,
+    rest_height_m: 1,
+    rest_spread: 0.6,
+    stump_height_m: 0.4,
+    cut: [0.26, 0.19, 0.11] as const,
+  },
 };
 
 test("every tree, shrub and piece of dressing is exported as the layer instances it", () => {
@@ -105,8 +114,9 @@ test("every tree, shrub and piece of dressing is exported as the layer instances
   expect(dressing.length / TREE_FLOATS).toBe(3);
 });
 
-test("the tier rule's numbers travel with the tables", () => {
-  const { tiers } = sceneryTables(placement, SIZES, RULES);
+test("the tier rule's numbers and how a felled tree falls travel with the tables", () => {
+  const { tiers, felled } = sceneryTables(placement, SIZES, RULES);
+  expect(felled).toEqual(RULES.felled);
   expect(tiers).toEqual({
     lodPx: [400, 150, 40],
     chunkM: 128,

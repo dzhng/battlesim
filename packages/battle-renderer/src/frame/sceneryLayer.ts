@@ -1092,6 +1092,7 @@ export async function createSceneryLayer(
           slots: dressing.cache.held.length,
           cellsPerView: DRESSING_CELLS_PER_VIEW,
         },
+        felled: world.felled,
       });
     },
     /** The instances the last view drew, per population, kind and tier

@@ -498,3 +498,38 @@ test("a car wears one of its appearance's paints, the same car the same paint wh
   // A prop whose appearance has no paints is drawn as authored.
   expect(drawnModels(walls, [], painted).every((m) => m.tint === undefined)).toBe(true);
 });
+
+test("what fit chooses among is described whole: a second client fits as it does", () => {
+  const described = appearances.describe();
+  // A port of `choose` over the description alone.
+  const choose = (kind: string, half: Vec3, wreckOf: string | null) => {
+    const k = described.kinds[kind];
+    if (k.wreck) return wreckOf ? (described.wrecks[wreckOf]?.name ?? null) : null;
+    let best: string | null = null;
+    let least = Infinity;
+    for (const c of k.candidates) {
+      const misfit = [0, 1, 2].reduce(
+        (m, a) => m + Math.abs(Math.log(half[a] / c.footprint[a])),
+        0,
+      );
+      if (misfit < least) [least, best] = [misfit, c.name];
+    }
+    return best;
+  };
+  const boxes: [string, Vec3, string | null][] = [
+    ["wall", [2, 0.3, 0.8], null],
+    ["ruin", [7, 6, 0.5], null],
+    ["heavy_wreck", [3.5, 1.8, 1.2], "test_tank"],
+    ["light_wreck", [2.2, 1, 0.95], "test_jeep"],
+    ["heavy_wreck", [3.5, 1.8, 1.2], "no_such_unit"],
+  ];
+  for (const [kind, half, wreckOf] of boxes)
+    expect(choose(kind, half, wreckOf), kind).toBe(
+      appearances.fit({ kind, center: [0, 0], yaw: 0, half, baseZ: 0, wreckOf }, [])[0]
+        ?.appearance ?? null,
+    );
+  // Every bound kind is described, and a kind with no art and no stand-in
+  // draws nothing.
+  expect(Object.keys(described.kinds).sort()).toEqual(Object.keys(layout.propAppearance).sort());
+  expect(Object.values(described.kinds).every((k) => k.standIn === null)).toBe(true);
+});

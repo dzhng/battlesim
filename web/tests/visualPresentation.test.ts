@@ -24,6 +24,7 @@ import { terrainTuning } from "@packages/battle-renderer/src/terrain/terrainTuni
 import { grassTuning } from "@packages/battle-renderer/src/terrain/grassTuning";
 import { gameLight } from "@apps/battle-lab/src/gameLight";
 import type { DrawnUnits, ModelCount } from "@web/battle/benchmark/unitManifest";
+import { NO_PROP, PROP_MODEL_WORDS, type DrawnProps } from "@web/battle/benchmark/propManifest";
 
 const frame = (
   index: number,
@@ -125,6 +126,46 @@ function units(): DrawnUnits {
   };
 }
 
+/** Two fitted map models (a lamp no knowledge replaces, a car map prop 7),
+ *  each building's parts, and a fit whose parked car paints from one look
+ *  and whose tank wrecks as another. */
+const MAP_WORDS = (() => {
+  const words = new Uint32Array(2 * PROP_MODEL_WORDS);
+  const floats = new Float32Array(words.buffer);
+  floats.set([10, 20, 0, 0.5, 1, 1, 1], 0);
+  words[7] = 0;
+  floats.set([1, 1, 1], 8);
+  words[11] = NO_PROP;
+  floats.set([30, 40, 0, 1.5, 1.1, 0.9, 1], PROP_MODEL_WORDS);
+  words[PROP_MODEL_WORDS + 7] = 1;
+  floats.set([0.3, 0.3, 0.31], PROP_MODEL_WORDS + 8);
+  words[PROP_MODEL_WORDS + 11] = 7;
+  return words;
+})();
+const props = (): DrawnProps => ({
+  detail: { lod_px: [150, 60, 24], impostor_px: 12 },
+  looks: [
+    { appearance: "lamp", state: "default" },
+    { appearance: "parked_car", state: "default" },
+    { appearance: "abrams_wreck", state: "default" },
+  ],
+  map: { base64: Buffer.from(MAP_WORDS.buffer).toString("base64"), count: 2 },
+  fit: {
+    kinds: {
+      parked_car: {
+        modular: false,
+        wreck: false,
+        candidates: [{ look: 1, footprint: [2.2, 0.9, 0.72], paints: [[0.3, 0.3, 0.31]] }],
+        standIn: null,
+      },
+      wreck: { modular: false, wreck: true, candidates: [], standIn: null },
+    },
+    wrecks: { abrams: { look: 2, footprint: [4, 1.8, 1.2], paints: null } },
+    standIn: null,
+  },
+  buildings: { parts: [[0, 1], [2]], shells: ["gutted_shell"] },
+});
+
 const drawn: DrawnPresentation = {
   lens: { fovY: 0.8, near: 1, depth: "reverse-z", far: "infinite" },
   light: {
@@ -135,6 +176,7 @@ const drawn: DrawnPresentation = {
   layers: ["sky", "terrain", "grass"],
   omissions: [],
   units: units(),
+  props: props(),
 };
 const mapBytes = new TextEncoder().encode('{"map":"bytes"}');
 
@@ -237,6 +279,15 @@ const scenery: SceneryTables = {
       cellsPerView: 2,
     },
   },
+  felled: {
+    fall_s: 2.6,
+    settle_s: 0.6,
+    settle_deg: 4,
+    rest_height_m: 1,
+    rest_spread: 0.6,
+    stump_height_m: 0.4,
+    cut: [0.26, 0.19, 0.11],
+  },
 };
 const tables = { terrain, grass, buildings, scenery };
 const cells = (n: number) => Array.from({ length: 12 }, (_, i) => i * n);
@@ -317,6 +368,7 @@ test("the manifest names its battle by the capture's workload and the hashes of 
     instanceCounts: [],
     units: expect.any(Object),
     modelCounts: [],
+    props: expect.any(Object),
   });
 });
 
@@ -377,6 +429,49 @@ test("the units' clip tables are artifacts after the scenery's, and each plate's
       modelCounts: [],
     }),
   ).rejects.toThrow(/model counts must be one per plate/);
+});
+
+test("the map's fitted props are an artifact before the units', and the fit, the parts and the felled rules ride along", async () => {
+  const { manifest, artifacts } = await written(platedCapture(), grassCounts);
+  const bytes = new Uint8Array(MAP_WORDS.buffer);
+  const { map, ...described } = manifest.props;
+  const { map: _, ...page } = drawn.props;
+  expect(described).toEqual(page);
+  expect(map).toEqual({
+    name: "map",
+    sha256: sha256(bytes),
+    words: 2 * PROP_MODEL_WORDS,
+    layout: expect.objectContaining({ kind: "records", stride: PROP_MODEL_WORDS, count: 2 }),
+  });
+  expect(artifacts.at(-2)).toEqual({ file: "props-map.u32", bytes });
+  expect(manifest.scenery.felled).toEqual(scenery.felled);
+
+  const reject = (change: object) => () =>
+    validateVisualPresentation({ ...manifest, props: { ...manifest.props, ...change } });
+  const { buildings: parts, fit } = manifest.props;
+  // The buildings table places two buildings.
+  expect(reject({ buildings: { ...parts, parts: [[0, 1]] } })).toThrow(/2 placed/);
+  expect(reject({ buildings: { ...parts, parts: [[0, 1], [1]] } })).toThrow(/part props/);
+  expect(reject({ buildings: { parts: parts.parts } })).toThrow(/props/);
+  const car = fit.kinds.parked_car;
+  const astray = { ...car, candidates: [{ ...car.candidates[0], look: 3 }] };
+  expect(reject({ fit: { ...fit, kinds: { ...fit.kinds, parked_car: astray } } })).toThrow(
+    /parked_car/,
+  );
+  expect(reject({ map: { ...map, words: 12 } })).toThrow(/map/);
+  const { felled: _felled, ...unfelled } = manifest.scenery;
+  expect(() => validateVisualPresentation({ ...manifest, scenery: unfelled })).toThrow(/scenery/);
+  await expect(
+    writeVisualPresentation({
+      captureJson: platedCapture(),
+      mapBytes,
+      drawn: { ...drawn, props: { ...drawn.props, map: { ...drawn.props.map, count: 3 } } },
+      tables,
+      grassCounts,
+      instanceCounts,
+      modelCounts,
+    }),
+  ).rejects.toThrow(/3 models/);
 });
 
 test("a run whose canvas changed size, or drew nothing, has no one viewport and is refused", async () => {
@@ -568,8 +663,8 @@ test("the buildings' and scenery's tables are artifacts after the grass's, with 
       expect(wordsOf(bytes)).toEqual(table.words);
     }
   }
-  // The units' clip tables follow.
-  expect(artifacts).toHaveLength(at + manifest.units.tables.length);
+  // The props' map models follow, then the units' clip tables.
+  expect(artifacts).toHaveLength(at + 1 + manifest.units.tables.length);
 });
 
 test("instance counts hold one row per plate, sized by the modules and the scenery kinds", async () => {

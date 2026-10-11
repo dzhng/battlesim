@@ -260,6 +260,41 @@ export class PropAppearances {
     return out;
   }
 
+  /** What `fit` chooses among, for a second client to fit as it does: per
+   *  bound kind, its candidates in choosing order, whether it repeats a
+   *  module, whether it is drawn as its unit's wreck, and the stand-in's
+   *  tint where it has no art; and each unit type's own wreck. */
+  describe(): {
+    kinds: Record<
+      string,
+      {
+        modular: boolean;
+        wreck: boolean;
+        candidates: Omit<Candidate, "bundle">[];
+        standIn: Vec3 | null;
+      }
+    >;
+    wrecks: Record<string, Omit<Candidate, "bundle">>;
+  } {
+    const plain = ({ name, footprint, paints }: Candidate) => ({ name, footprint, paints });
+    return {
+      kinds: Object.fromEntries(
+        Object.keys(this.bindings).map((kind) => [
+          kind,
+          {
+            modular: this.bindings[kind].modular === true,
+            wreck: this.bindings[kind].drawn_by === WRECK,
+            candidates: (this.byKind.get(kind) ?? []).map(plain),
+            standIn: this.standsIn(kind)
+              ? (this.standIns!.get(kind) ?? this.standIns!.get("default")!)
+              : null,
+          },
+        ]),
+      ),
+      wrecks: Object.fromEntries([...this.wrecks].map(([unit, c]) => [unit, plain(c)])),
+    };
+  }
+
   /** Whether `kind` is a forest's tree: the scenery draws it, not a model. */
   drawsTree(kind: string): boolean {
     return this.bindings[kind]?.drawn_by === "forest";

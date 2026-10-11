@@ -12,6 +12,7 @@ import { fillRecords, type WordTable } from "../frame/wordTables";
 import { DRESSING_GONE } from "./dressing";
 import { INSTANCE_FLOATS, treeInstances, type PlacedInstances } from "./lod";
 import { TREE_FLOATS, type KindSize, type SceneryPlacement } from "./placement";
+import type { FelledRules } from "../terrain/biome";
 
 /** An instance as the layer draws it: `pose` (x, y, z, yaw), `shape`
  *  (scale x, y, z, the heart's height above the foot), `tint` (r, g, b and
@@ -53,6 +54,8 @@ export interface SceneryRules {
     slots: number;
     cellsPerView: number;
   };
+  /** How a felled tree falls and lies (`biome.trees.felled`). */
+  felled: FelledRules;
 }
 
 /** The tier rule's numbers: an instance of height h draws at tier t while
@@ -84,6 +87,8 @@ export interface SceneryTables {
   /** Appearance names, by an instance's `kind`. */
   kinds: string[];
   tiers: SceneryTiers;
+  /** How a tree the side saw fall falls and lies (`felled.ts`). */
+  felled: FelledRules;
 }
 
 /** The instances a view drew, per population: `kind · 4 + tier`; the
@@ -143,6 +148,7 @@ export function sceneryTables(
       }),
     },
     kinds: [...placement.kinds],
+    felled: rules.felled,
     tiers: {
       lodPx: [...rules.lodPx],
       chunkM: rules.chunkM,

@@ -22,10 +22,17 @@ import type {
 } from "@packages/battle-renderer/src/models/buildingTables";
 import type {
   SceneryTableName,
+  SceneryTables,
   SceneryTiers,
 } from "@packages/battle-renderer/src/scenery/sceneryTables";
 import type { DrawnInstances } from "@packages/battle-renderer/src/scene";
 import { decodePresentationCapture, finite, hasKeys, isRecord } from "./presentationCapture.ts";
+import {
+  propArtifacts,
+  validateProps,
+  type DrawnProps,
+  type PropsManifest,
+} from "./propManifest.ts";
 import {
   isModelCount,
   unitArtifacts,
@@ -89,9 +96,13 @@ export interface DrawnPresentation {
   omissions: readonly Omission[];
   /** What poses and draws the battle's units (`unitManifest.ts`). */
   units: DrawnUnits;
+  /** What draws the side's props and fallen buildings (`propManifest.ts`). */
+  props: DrawnProps;
 }
 
-export interface VisualPresentation extends Omit<DrawnPresentation, "units"> {
+export interface VisualPresentation extends Omit<DrawnPresentation, "units" | "props"> {
+  /** The props, the map's fitted models in their own file (`PROP_TABLE_FILE`). */
+  props: PropsManifest;
   /** The units, their clip tables each in its own file (`unitTableFile`). */
   units: UnitsManifest;
   schema: "native-visual-presentation";
@@ -129,6 +140,7 @@ export interface VisualPresentation extends Omit<DrawnPresentation, "units"> {
     tables: TableArtifact<SceneryTableName>[];
     kinds: string[];
     tiers: SceneryTiers;
+    felled: SceneryTables["felled"];
   };
   /** The grass clumps each plate's frame grew, per screen cell. */
   grassCounts: GrassCount[];
@@ -244,6 +256,7 @@ const MANIFEST_KEYS = [
   "instanceCounts",
   "units",
   "modelCounts",
+  "props",
 ];
 const LAYOUT_KEYS: Record<WordLayout["kind"], readonly string[]> = {
   records: ["kind", "stride", "count", "fields"],
@@ -354,11 +367,22 @@ function isBuildings(value: unknown): boolean {
   );
 }
 
+/** `biome.trees.felled`, as a felled tree reads it (`felled.ts`). */
+const FELLED_KEYS = [
+  "fall_s",
+  "settle_s",
+  "settle_deg",
+  "rest_height_m",
+  "rest_spread",
+  "stump_height_m",
+  "cut",
+];
+
 /** Whether `value` is a scenery section: its tables, its distinct
  *  appearances and its tier numbers. */
 function isScenery(value: unknown): boolean {
-  if (!hasKeys(value, ["tables", "kinds", "tiers"])) return false;
-  const { tables, kinds, tiers } = value;
+  if (!hasKeys(value, ["tables", "kinds", "tiers", "felled"])) return false;
+  const { tables, kinds, tiers, felled } = value;
   if (!hasKeys(tiers, ["lodPx", "chunkM", "casterCoarser", "dressing"])) return false;
   const dressing = tiers.dressing;
   return (
@@ -385,7 +409,12 @@ function isScenery(value: unknown): boolean {
     [dressing.fadePx, dressing.gone, dressing.cellM].every(positive) &&
     [dressing.topM, dressing.reachM].every(length) &&
     numbers(dressing.ground, 2, finite) &&
-    [dressing.slots, dressing.cellsPerView].every(count)
+    [dressing.slots, dressing.cellsPerView].every(count) &&
+    hasKeys(felled, FELLED_KEYS) &&
+    FELLED_KEYS.slice(0, -1).every((key) => finite(felled[key]) && felled[key] >= 0) &&
+    positive(felled.fall_s) &&
+    positive(felled.rest_spread) &&
+    numbers(felled.cut, 3, finite)
   );
 }
 
@@ -526,6 +555,14 @@ export function validateVisualPresentation(value: unknown): VisualPresentation {
       "visual presentation instance counts need one row per plate, a count per kit module and tier, per scenery population, appearance and tier, and per known prop appearance and level",
     );
   validateUnits(value.units);
+  const props = validateProps(value.props);
+  const placed = (
+    value.buildings as { tables: { name: string; layout: { count: number } }[] }
+  ).tables.find((t) => t.name === "buildings")!.layout.count;
+  if (props.buildings.parts.length !== placed)
+    throw new Error(
+      `visual presentation props list parts for ${props.buildings.parts.length} buildings, not the ${placed} placed`,
+    );
   const models = value.modelCounts;
   if (
     !Array.isArray(models) ||
@@ -628,6 +665,7 @@ export async function writeVisualPresentation({
       })),
     );
   const units = await unitArtifacts(drawn.units, sha256);
+  const props = await propArtifacts(drawn.props, sha256);
   const { scene, map, encounter, seed } = capture.workload;
   const manifest: VisualPresentation = {
     schema: "native-visual-presentation",
@@ -660,10 +698,12 @@ export async function writeVisualPresentation({
       tables: await entries<SceneryTableName>(scenery),
       kinds: tables.scenery.kinds,
       tiers: tables.scenery.tiers,
+      felled: tables.scenery.felled,
     },
     grassCounts: plates.map((plate) => grassCounts.find((g) => g.plate === plate)!),
     instanceCounts: plates.map((plate) => instanceCounts.find((g) => g.plate === plate)!),
     units: units.units,
+    props: props.props,
     modelCounts: plates.map((plate) => modelCounts.find((g) => g.plate === plate)!),
   };
   return {
@@ -673,6 +713,7 @@ export async function writeVisualPresentation({
         file,
         bytes,
       })),
+      ...props.artifacts,
       ...units.artifacts,
     ],
   };

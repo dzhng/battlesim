@@ -130,6 +130,7 @@ import { createBattleAudio, soundMotion } from "./soundFeed";
 import { useAppAudio } from "./AppAudio";
 import { useFeed } from "./feed";
 import { posedSockets } from "./workbench/benchWorld";
+import { describeProps } from "./benchmark/propPresentation";
 import type { Vec3 } from "math";
 import type { FelledTree } from "@packages/battle-renderer/src/scenery/felled";
 import {
@@ -1329,6 +1330,18 @@ export function useBattleSession({
     /** The props drawn from what the side knows (standing destroyable props
      *  when "apart", their remains, and wrecks), fed to the viewport. */
     structures: structuresFeed,
+    /** What a second client needs to draw this side's props and fallen
+     *  buildings (`describeProps`); null until the map's props are fitted. */
+    describeProps: () =>
+      meshes && fittedMap && props && drawnBuildings
+        ? describeProps({
+            world: meshes.structures,
+            apart: fittedMap,
+            fit: props.fit,
+            buildings: drawnBuildings,
+            units,
+          })
+        : null,
     /** The map's buildings, and those the side has seen
      *  fall, for the viewport. */
     buildingsFeed,
