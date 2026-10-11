@@ -18,14 +18,23 @@ pub struct WorldInput {
     /// The presented side, `"blue"` or `"red"`.
     pub side: String,
     pub tick_hz: f64,
-    /// Unit vector toward the sun (sim space): where an airframe's shadow falls.
-    pub sun: Vec3,
+    /// The sun's azimuth and elevation (rad): where an airframe's shadow falls.
+    pub sun_azimuth: f64,
+    pub sun_elevation: f64,
+    /// A soldier's body, for the UI's hit tests (`physics`).
+    pub soldier: SoldierBody,
     /// `presentation.overlay.xray`: the observing side's units and its selection.
     pub xray: Xray,
     /// A purchase the simulation refused, drawn as a ghost (rgba).
     pub blocked: [f64; 4],
     /// `air.cruise_agl_m`: where an aircraft's ghost flies.
     pub cruise_agl_m: f64,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize)]
+pub struct SoldierBody {
+    pub radius_m: f64,
+    pub height_m: f64,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize)]

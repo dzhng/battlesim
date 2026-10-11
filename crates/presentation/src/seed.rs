@@ -24,8 +24,9 @@ impl Mulberry32 {
 
 /// `hashString(key)`: FNV-1a of `key`'s UTF-16 code units.
 pub fn hash_string(key: &str) -> u32 {
-    key.encode_utf16()
-        .fold(2_166_136_261u32, |h, c| (h ^ u32::from(c)).wrapping_mul(16_777_619))
+    key.encode_utf16().fold(2_166_136_261u32, |h, c| {
+        (h ^ u32::from(c)).wrapping_mul(16_777_619)
+    })
 }
 
 /// `String(x)` as JavaScript writes it: the shortest digits that read back
@@ -48,7 +49,50 @@ pub fn js_number(x: f64) -> String {
     let text = format!("{x:e}");
     let (mantissa, exponent) = text.split_once('e').expect("exponent form");
     let exponent: i32 = exponent.parse().expect("exponent");
-    format!("{mantissa}e{}{}", if exponent < 0 { "-" } else { "+" }, exponent.abs())
+    format!(
+        "{mantissa}e{}{}",
+        if exponent < 0 { "-" } else { "+" },
+        exponent.abs()
+    )
+}
+
+/// `Math.hypot` as V8 computes it: each value over the largest, squared and
+/// summed with Kahan's compensation, so lengths match the browser's bits.
+pub fn js_hypot(values: &[f64]) -> f64 {
+    let max = values.iter().fold(0.0f64, |m, v| m.max(v.abs()));
+    if max == f64::INFINITY {
+        return max;
+    }
+    if values.iter().any(|v| v.is_nan()) {
+        return f64::NAN;
+    }
+    if max == 0.0 {
+        return 0.0;
+    }
+    let (mut sum, mut compensation) = (0.0, 0.0);
+    for v in values {
+        let n = v.abs() / max;
+        let summand = n * n - compensation;
+        let preliminary = sum + summand;
+        compensation = (preliminary - sum) - summand;
+        sum = preliminary;
+    }
+    sum.sqrt() * max
+}
+
+/// `Math.round`: the nearest whole number, halves up.
+pub fn js_round(x: f64) -> f64 {
+    let f = x.floor();
+    if x - f >= 0.5 {
+        f + 1.0
+    } else {
+        f
+    }
+}
+
+/// `x >>> 0` for a whole `x`: its value modulo 2³².
+pub fn to_uint32(x: f64) -> u32 {
+    x.trunc().rem_euclid(4_294_967_296.0) as u32
 }
 
 /// `sideKey(id, side, even)`: one number per (side, id), `even`'s ids even.

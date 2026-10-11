@@ -11,7 +11,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use super::publication::{EffectPublication, Segment, Shooter};
-use crate::seed::{hash_string, js_number, Mulberry32};
+use crate::seed::{hash_string, js_hypot, js_number, Mulberry32};
 use crate::world::{MountMuzzle, Vec3};
 
 /// One shot the publication shows, at the start of its tick.
@@ -31,7 +31,12 @@ pub struct Launch {
 }
 
 fn end_key(p: &Vec3) -> String {
-    format!("{},{},{}", js_number(p[0]), js_number(p[1]), js_number(p[2]))
+    format!(
+        "{},{},{}",
+        js_number(p[0]),
+        js_number(p[1]),
+        js_number(p[2])
+    )
 }
 
 fn shooter_text(s: Option<f64>) -> String {
@@ -117,8 +122,8 @@ impl LaunchTracker {
                         left -= 1.0;
                         let (a, b) = (s.path[0], s.path[1]);
                         let d = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
-                        let len = (d[0] * d[0] + d[1] * d[1] + d[2] * d[2]).sqrt();
-                        let len = if len == 0.0 { 1.0 } else { len };
+                        let len = js_hypot(&d);
+                        let len = if len == 0.0 || len.is_nan() { 1.0 } else { len };
                         out.push(Launch {
                             shooter: u.key,
                             mount: m,
@@ -179,11 +184,16 @@ impl LaunchTracker {
     }
 }
 
-/// `p` rotated by `angle` about the vertical through `origin`.
+/// `p` rotated by `angle` about the vertical through `origin`, summed in
+/// `vec3.rotateZ`'s order so the bits match.
 fn rotate_z(p: Vec3, origin: Vec3, angle: f64) -> Vec3 {
     let (s, c) = angle.sin_cos();
     let (x, y) = (p[0] - origin[0], p[1] - origin[1]);
-    [origin[0] + x * c - y * s, origin[1] + x * s + y * c, p[2]]
+    [
+        (x * c - y * s) + origin[0],
+        (x * s + y * c) + origin[1],
+        (p[2] - origin[2]) + origin[2],
+    ]
 }
 
 /// The muzzle's offset from the unit's position for a hull heading `yaw`,
