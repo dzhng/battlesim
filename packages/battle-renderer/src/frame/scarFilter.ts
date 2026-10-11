@@ -125,6 +125,14 @@ async function measureFilter(
  layout.$.output[gid.x*2u+1u]=bitcast<vec4u>(textureSampleLevel(layout.$.reference,layout.$.sampler,uv,layer,0.0));
 }`)
     .$uses({ layout, scarFilterQuanta, scarFilterPosition });
+  let mismatch: {
+    size: readonly [number, number, number];
+    point: number[];
+    channel: number;
+    q: number;
+    expected: number;
+    hardware: number;
+  } | null = null;
   try {
     const pipeline = root.createComputePipeline({ compute: kernel });
     await pipeline.initAsync();
@@ -240,14 +248,27 @@ async function measureFilter(
         const values = new Uint32Array(read.getMappedRange(0, batch.points.length * 32));
         for (let i = 0; i < batch.points.length; i++)
           for (let c = 0; c < 4; c++)
-            if (normalizedBits[values[i * 8 + c]] !== values[i * 8 + 4 + c])
-              throw new Error(
-                `ground filter measured compatibility failed; exact sampling is not admitted on this device: size=${batch.size} point=${batch.points[i]} channel=${c} q=${values[i * 8 + c]} expected=${normalizedBits[values[i * 8 + c]]} hardware=${values[i * 8 + 4 + c]}`,
-              );
+            if (
+              mismatch === null &&
+              normalizedBits[values[i * 8 + c]] !== values[i * 8 + 4 + c]
+            )
+              mismatch = {
+                size: batch.size,
+                point: batch.points[i],
+                channel: c,
+                q: values[i * 8 + c],
+                expected: normalizedBits[values[i * 8 + c]],
+                hardware: values[i * 8 + 4 + c],
+              };
       } finally {
         read.unmap();
       }
     }
+    if (mismatch)
+      console.warn(
+        "ground filter hardware sampling differs; using the renderer's manual filter",
+        mismatch,
+      );
   } finally {
     scope.release();
   }

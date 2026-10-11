@@ -72,7 +72,7 @@ function EntryItem({ entry: e }: { entry: Entry }) {
           <span className="menu-card-label">{e.label}</span>
         </a>
       ) : (
-        <Link className="menu-card" to={e.href}>
+        <Link className="menu-card" to={e.href} target="_self">
           <span className="menu-card-label">{e.label}</span>
         </Link>
       )}
@@ -154,6 +154,7 @@ function NewBattle({ asked }: { asked: ReturnType<typeof askedChoice> }) {
       <Link
         className="menu-card menu-deploy"
         data-testid="menu-deploy"
+        target="_self"
         to={asked.seed ? battleHref({ ...choice, seed: asked.seed }) : playHref(choice)}
       >
         <span className="menu-card-label">Deploy</span>
@@ -316,7 +317,7 @@ export function MainMenu() {
             <nav aria-label="Graphics">
               <ul>
                 <li>
-                  <Link className="menu-card" to="/graphics-test">
+                  <Link className="menu-card" to="/graphics-test" target="_self">
                     <span className="menu-card-label">Graphics test</span>
                   </Link>
                 </li>
