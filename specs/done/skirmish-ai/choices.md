@@ -29,8 +29,10 @@
   replay parity, and deterministic digests.
 - **Default self-play is a real fresh match.** The example runs one generated
   mixed map at the smallest existing skirmish tier with a clock-derived seed;
-  `--seed` makes it reproducible and `--corpus` keeps the deterministic sweep
-  separate from interactive playtesting.
+  `--seed` makes it reproducible, `--max-seconds` supplies a safety cap, and
+  `--corpus` keeps the deterministic sweep separate from interactive
+  playtesting. The run ends on the simulation's terminal result when one is
+  reached.
 - **Stall detection follows observable motion.** A tournament run is stagnant
   only when objectives, contacts, unit counts, and published unit
   positions/goals all remain unchanged for the configured window. This keeps a

@@ -245,9 +245,11 @@ find those seeds.
 
 The `skirmish_tournament` example defaults to one two-controller game on a
 fresh generated `mixed` map at the smallest skirmish tier, using a clock seed
-unless `--seed <u64>` is supplied. Its JSON report includes that seed and the
-replay parity result. Pass `--corpus` to run the deterministic multi-row
-regression corpus instead.
+unless `--seed <u64>` is supplied. It runs until the simulation reaches a
+terminal result, with a 30-minute safety cap adjustable through
+`--max-seconds <u64>`. Its JSON report includes the chosen cap, actual battle
+seconds, seed and replay parity result. Pass `--corpus` to run the deterministic
+multi-row regression corpus instead.
 
 [The generation rationale](../../specs/done/city-maps/README.md) links frozen reports
 and the parameter snapshot used for design feedback. Those historical values are

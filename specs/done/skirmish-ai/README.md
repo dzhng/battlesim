@@ -76,7 +76,9 @@ policy or runtime controller needs it. Saved maps remain in the corpus for
 intentional edge cases; generated rows prove map identity and site admission.
 The example's default mode now runs one fresh generated mixed small-map game
 with a clock-derived seed; `--seed` makes that match reproducible and
-`--corpus` retains the deterministic regression sweep.
+`--max-seconds` controls its safety cap while `--corpus` retains the
+deterministic regression sweep. A default run stops on the simulation's
+terminal result when it arrives before the cap.
 
 No visual surface was added, so there is no screenshot provenance for this
 feature.

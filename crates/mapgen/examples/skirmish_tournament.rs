@@ -57,10 +57,14 @@ enum Status {
     NoProgress,
 }
 
+const DEFAULT_MAX_BATTLE_SECONDS: u64 = 1_800;
+
 #[derive(Debug, Serialize)]
 struct Report {
     id: String,
     seed: u64,
+    max_battle_seconds: u64,
+    battle_seconds: f64,
     status: Status,
     ticks: u64,
     battle_digest: u64,
@@ -284,9 +288,19 @@ fn main() {
             .and_then(|index| args.get(index + 1))
             .map(|value| value.parse::<u64>().expect("--seed must be a u64"))
             .unwrap_or_else(random_seed);
+        let max_seconds = args
+            .iter()
+            .position(|arg| arg == "--max-seconds")
+            .and_then(|index| args.get(index + 1))
+            .map(|value| value.parse::<u64>().expect("--max-seconds must be a u64"))
+            .unwrap_or(DEFAULT_MAX_BATTLE_SECONDS);
         println!(
             "{}",
-            serde_json::to_string(&run_safe(&inputs, self_play_row(seed))).unwrap()
+            serde_json::to_string(&run_safe(
+                &inputs,
+                self_play_row(seed, max_seconds, inputs.rules.tick_hz),
+            ))
+            .unwrap()
         );
     }
 }
@@ -298,7 +312,7 @@ fn random_seed() -> u64 {
         .as_nanos() as u64
 }
 
-fn self_play_row(seed: u64) -> Row {
+fn self_play_row(seed: u64, max_seconds: u64, tick_hz: u32) -> Row {
     Row {
         id: format!("self_play_{seed}"),
         map: MapSource::Generated(GeneratedMap {
@@ -307,8 +321,8 @@ fn self_play_row(seed: u64) -> Row {
             size: "small".into(),
         }),
         seed,
-        horizon_ticks: 10_800,
-        no_progress_ticks: 1_800,
+        horizon_ticks: max_seconds.saturating_mul(u64::from(tick_hz)),
+        no_progress_ticks: u64::MAX,
     }
 }
 
@@ -336,6 +350,8 @@ fn empty_report(id: String) -> Report {
     Report {
         id,
         seed: 0,
+        max_battle_seconds: 0,
+        battle_seconds: 0.0,
         status: Status::Refused,
         ticks: 0,
         battle_digest: 0,
@@ -363,6 +379,7 @@ fn empty_report(id: String) -> Report {
 fn run(inputs: &Inputs, row: Row) -> Report {
     let mut report = empty_report(row.id.clone());
     report.seed = row.seed;
+    report.max_battle_seconds = row.horizon_ticks / u64::from(inputs.rules.tick_hz);
     let (setup, prepared, map_identity) = match prepare_row(inputs, &row) {
         Ok(value) => value,
         Err(error) => {
@@ -526,6 +543,7 @@ fn run(inputs: &Inputs, row: Row) -> Report {
         report.status = Status::Timeout;
     }
     report.battle_digest = battle.digest();
+    report.battle_seconds = report.ticks as f64 / f64::from(inputs.rules.tick_hz);
     report.result = battle
         .observe(Side::Blue)
         .skirmish
@@ -552,9 +570,10 @@ mod tests {
 
     #[test]
     fn default_self_play_is_a_generated_small_map() {
-        let row = self_play_row(17);
+        let row = self_play_row(17, DEFAULT_MAX_BATTLE_SECONDS, 30);
         assert_eq!(row.seed, 17);
-        assert_eq!(row.horizon_ticks, 10_800);
+        assert_eq!(row.horizon_ticks, 54_000);
+        assert_eq!(row.no_progress_ticks, u64::MAX);
         assert!(matches!(
             row.map,
             MapSource::Generated(GeneratedMap {
