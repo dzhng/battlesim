@@ -331,7 +331,7 @@ Measured from control `2026-10-11T15-26-04-627Z` (18 plates); anything marked *e
 3. **Static placement through Frame batches, not World lists.** The proposal put instance lists by appearance and tier in `World`.
    - *Recommended:* batches written on change. This is what native does today and what Godot's MultiMesh needs.
    - World lists would upload over a million instances to draw at most 63,000, or need an index indirection that Godot's MultiMesh doesn't have.
-4. **Overlays stay UI** (order lines, contact glyphs, markers, the range ruler): meshes the browser's UI builds from `observation()` and hands to `draw`.
+4. **Overlays stay UI** (order lines, contact glyphs, markers, the range ruler): meshes the browser's UI builds from `observation()` and hands to `draw`. **Decided by the user (2026-10-11): yes.** An order line runs from a unit's position to its members' destinations, which `observation()` already carries (`memberOrders`). Rust describing the line would only repeat that data. Ghosts stay in Rust, because they need the fielding and posing every unit gets.
    - *Recommended: yes, for phase 4.* Native has no UI, and moving overlay geometry to Rust is a UI project of its own.
 5. **Fog's look is in `Frame`, not the UI surface.** It is drawn in the world, and a live native client needs it.
    - *Recommended: yes.* The UI keeps the contact glyphs.
