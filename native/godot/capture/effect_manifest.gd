@@ -8,6 +8,7 @@ extends RefCounted
 ## defaults, no unknown fields where native reads them.
 
 const StrictJson = preload("res://core/strict_json.gd")
+const EffectFrame = preload("res://effects/effect_frame.gd")
 
 const EFFECTS_KEYS := ["presentation", "types", "smokes", "wrecks"]
 ## Every part of `presentation.effects` the effects read (`EffectPresentation`).
@@ -15,9 +16,6 @@ const PRESENTATION_KEYS := ["capacity", "min_px", "tracers", "flashes", "impacts
 ## The tables keyed by round or hit kind, each with its `default` row.
 const DEFAULTED := ["tracers", "flashes", "impacts", "impact_scale", "blast_scale"]
 const COUNT_KEYS := ["plate", "running", "instances", "lights"]
-## The kinds and shapes a plate's counts name (`EFFECT_KINDS`, `SHAPE_NAMES`).
-const KINDS := ["tracer", "flash", "impact", "sparks", "blast", "puff", "flame", "trail"]
-const SHAPES := ["streak", "glow", "flipbook", "rotor"]
 
 ## An empty string when `effects` is a section the effects can follow, or
 ## the first problem.
@@ -74,9 +72,9 @@ static func counts_error(counts: Variant) -> String:
 	for row in counts:
 		var shape := StrictJson.exact_keys(row, COUNT_KEYS, "effect count")
 		if shape.is_empty():
-			shape = StrictJson.exact_keys(row.running, KINDS, "effect count running")
+			shape = StrictJson.exact_keys(row.running, EffectFrame.KINDS, "effect count running")
 		if shape.is_empty():
-			shape = StrictJson.exact_keys(row.instances, SHAPES, "effect count instances")
+			shape = StrictJson.exact_keys(row.instances, EffectFrame.SHAPES, "effect count instances")
 		if not shape.is_empty():
 			return shape
 		var whole := func(v): return StrictJson.is_integer(v) and int(v) >= 0

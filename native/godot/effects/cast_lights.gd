@@ -51,18 +51,15 @@ func pack(batch: EffectFrame.Batch, view, focus: Vector3, distance: float) -> Pa
 		var o := order[k] * EffectFrame.LIGHT_FLOATS
 		var r := v[o + 3]
 		var at := Coords.sim_to_godot(Vector3(v[o], v[o + 1], v[o + 2]))
+		var light := [v[o], v[o + 1], v[o + 2], 1.0 / (r * r), v[o + 4], v[o + 5], v[o + 6], 0.0]
 		for j in 8:
-			out[4 + k * 8 + j] = [v[o], v[o + 1], v[o + 2], 1.0 / (r * r), v[o + 4], v[o + 5], v[o + 6], 0.0][j]
+			out[4 + k * 8 + j] = light[j]
 		_image.set_pixel(2 * k, 0, Color(at.x, at.y, at.z, 1.0 / (r * r)))
 		_image.set_pixel(2 * k + 1, 0, Color(v[o + 4], v[o + 5], v[o + 6], 0.0))
 	_texture.update(_image)
 	RenderingServer.global_shader_parameter_set("cast_light_count", float(kept))
 	RenderingServer.global_shader_parameter_set("cast_light_wrap", batch.wrap)
 	return out
-
-## Lights nothing: the world's materials take no cast light.
-static func clear() -> void:
-	RenderingServer.global_shader_parameter_set("cast_light_count", 0.0)
 
 ## A light's weight for the cut: its strength over its reach, dimmed by its
 ## distance from the camera's focus in camera distances.

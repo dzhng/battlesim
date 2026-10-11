@@ -27,15 +27,12 @@ const ShaderText = preload("res://core/shader_text.gd")
 const StrictJson = preload("res://core/strict_json.gd")
 const Staging = preload("res://assets/staging.gd")
 const EffectFrame = preload("res://effects/effect_frame.gd")
+const CastLights = preload("res://effects/cast_lights.gd")
 
 ## The effect atlas's sheets, one layer each in `EffectFrame` layer order
 ## (`flipbooks.ts`): a fireball burning out, and a lit puff turning.
 const FLIPBOOKS := ["assets/third-party/effects/explosion00_5x5.png", "assets/third-party/effects/cloud01_8x8.png"]
 const FLIPBOOK_SIZE := 1024
-## Lights the effects' smoke takes, as the world's (`CAST_LIGHTS_MAX`).
-const CAST_LIGHTS_MAX := 24
-## How fast a cast light falls off inside its radius (`CAST_FALLOFF`).
-const CAST_FALLOFF := 6.0
 ## Floats in the frame uniform.
 const FRAME_FLOATS := 48
 
@@ -72,7 +69,7 @@ func _init(light: Dictionary, sky_lut: SkyLut, capacity: int) -> void:
 	_light = light
 	_sky_lut = sky_lut
 	_capacity = capacity
-	_casts.resize(4 + CAST_LIGHTS_MAX * 8)
+	_casts.resize(4 + CastLights.MAX * 8)
 
 ## A blocker the pass met building its resources, or "".
 func error() -> String:
@@ -92,7 +89,7 @@ func _notification(what: int) -> void:
 			return
 		# Dependents first: the pipeline before its shader.
 		for k in range(_owned.size() - 1, -1, -1):
-			if _owned[k].is_valid() and not (_owned[k] == _pipeline and not _shader.is_valid()):
+			if _owned[k].is_valid():
 				rd.free_rid(_owned[k])
 		for framebuffer in _framebuffers.values():
 			if rd.framebuffer_is_valid(framebuffer):
@@ -166,7 +163,7 @@ func _frame(scene: RenderSceneData, size: Vector2i) -> PackedFloat32Array:
 func _build(rd: RenderingDevice) -> bool:
 	var source := RDShaderSource.new()
 	source.language = RenderingDevice.SHADER_LANGUAGE_GLSL
-	var common := COMMON.replace("{sky}", SkyModel.lookup_function()).replace("{falloff}", ShaderText.number(CAST_FALLOFF))
+	var common := COMMON.replace("{sky}", SkyModel.lookup_function()).replace("{falloff}", ShaderText.number(CastLights.FALLOFF))
 	source.source_vertex = "#version 450\n" + common + VERTEX
 	source.source_fragment = "#version 450\n" + common + FRAGMENT
 	var spirv := rd.shader_compile_spirv_from_source(source)
@@ -177,7 +174,7 @@ func _build(rd: RenderingDevice) -> bool:
 	_shader = _own(rd.shader_create_from_spirv(spirv, "effects"))
 	_instance_buffer = _own(rd.storage_buffer_create(_capacity * EffectFrame.FLOATS * 4))
 	_frame_buffer = _own(rd.uniform_buffer_create(FRAME_FLOATS * 4))
-	_cast_buffer = _own(rd.storage_buffer_create((4 + CAST_LIGHTS_MAX * 8) * 4))
+	_cast_buffer = _own(rd.storage_buffer_create((4 + CastLights.MAX * 8) * 4))
 	_linear = _own(_sampler(rd, RenderingDevice.SAMPLER_FILTER_LINEAR))
 	_nearest = _own(_sampler(rd, RenderingDevice.SAMPLER_FILTER_NEAREST))
 	_atlas = _own(_load_atlas(rd))
@@ -324,9 +321,10 @@ void sprite_light() {
 }
 
 void emit(vec4 clip) {
-	// Back to the device's clip space, whose y runs down; nothing tests depth,
-	// so z stays inside.
-	gl_Position = vec4(clip.x, -clip.y, 0.5 * clip.w, clip.w);
+	// Back to the device's clip space, whose y runs down. The browser's
+	// reverse-Z projection has z the near plane's distance, so whatever lies
+	// nearer than it is clipped; here too.
+	gl_Position = vec4(clip.x, -clip.y, frame.canvas.z, clip.w);
 }
 
 void main() {

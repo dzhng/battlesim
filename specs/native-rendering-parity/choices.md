@@ -484,3 +484,20 @@ The spec said phase 3 would be planned with the user. Under the implementation g
 | The fixture run's manifest carries the world sections but not their tables, and does not list `buildings`, `scenery` or `structures` | Paris's building tables are 3.8 MB; its plate's counts are from another run | Agent |
 | The learned ground counts changes to what is cleared (`cleared_version`) | Shrubs and dressing re-stand only then | Agent |
 | Performance gate: fails on market-town (p50 22.8 ms against 15.9, p95 35.9 against 18.2); paris passes. CPU fixed from 14.9 to 9.4 ms on records 1000–1299; the rest is props' GPU (about 10 ms), which follows the browser's own drawing rule | Not closed by loosening the bar; recorded with its measured causes and the untried levers in the slice | Agent; open, needs a decision |
+
+### Slice 17: effects
+
+| Decision | Why | Closed by |
+| --- | --- | --- |
+| The manifest's `effects` carries the tuning as `gameEffects` resolves it and the catalog rows the effects read (hulls, mount muzzles, smoking prop kinds, wreck pieces); units gain the muzzle socket, muzzle nodes and rotor blade facts | The browser resolves, native ports the per-frame derivations, as for the light and the units | Agent (#3) |
+| `effectCounts` counts what `EffectFrame` has running at the plate's clock by kind, the instances it built by shape and its lights; started effects only | Exact and load-free; a publication the browser decoded ahead of the drawn tick only adds unstarted effects, so started ones are the same on both sides | Agent (#4) |
+| Native reads a record's `simTime` to the nearest double (`core/js_text.gd`) rather than through Godot's JSON reader | Godot's reader is an ulp off on clocks the browser writes; plate 1335's clock sits exactly on a tick and lost 18 tracers. Other JSON numbers stay Godot's (no boundary depends on them) | Territory |
+| JavaScript's number text is ported exactly (float32 inputs, shortest round trip, ties to even, exact decimal arithmetic) | The browser seeds dust, smoke sources and tracer chance from keys with positions in them; any other text seeds other particles | Territory |
+| The launch tracker moves to `effects/launches.gd` as the one owner; the pose feed reads it over `effect_feed.gd`'s publication | The browser has one `LaunchTracker` for flashes and firing soldiers | Agent (refactor-clean) |
+| The effect pass is a compositor raster pass between the haze and the post chain, not Godot transparent geometry | The browser draws its effects after its world (hazed) and before post; a spatial material would be hazed by the depth behind it and blend through Godot's own state | Agent (delegated: drawing technique) |
+| Cast lights reach the world's materials through three shader globals (count, wrap, a 48×1 texture) declared in `project.godot`, added to emission with the browser's formula | Every lit material reads them, as the browser's `shade` does; Godot's omni lights have another falloff and BRDF | Agent (#3) |
+| Lit smoke's sky light is the baked sky averaged over each hemisphere, cosine-weighted, times the fill; reported as `effects.sky` | Native has no prefiltered environment to read at full roughness; the dust and smoke match the browser's brightness on the plates | Agent; open |
+| Sprites nearer than the near plane are clipped, as the browser's reverse-Z projection clips them | Found by the unprimed critique on paris plate 1206 | Agent |
+| Not ported: a cook-off's moving wreck and its thrown debris; reported per run as `effects.cookOffs` | They are models drawn through the props' and units' layers, not effects, and no count covers them; native shows the static wreck | Agent; open |
+| No `crashes`/`guided` fixture | Neither control publishes them; a WASM stream needs a helicopter shot down, which the time-boxed attempt did not produce. The fixed-cause vectors cover the smoking airframe and rotors | Agent; open |
+| Effects cost about 1.3 ms at p50 and 2.9 ms at p95 on market-town (about 1.4 ms CPU); judged relative, since slice 15's market-town cost is still open | The bar is re-checked when slice 15 lands | Agent |

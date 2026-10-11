@@ -134,7 +134,8 @@ composes the layers the manifest lists.
   side's learned ground.
 - `environment/`, `terrain/` and `grass/` each port one browser owner by
   formula: light and atmosphere, the ground, the grass field; `units/` ports
-  the browser's posing of soldiers and vehicles.
+  the browser's posing of soldiers and vehicles, and `effects/` its combat
+  effects.
 - `world/` draws the map's models from the browser's placement: the
   instanced batches every model goes through, the buildings, scenery and
   props, and the fog overlay.
@@ -142,7 +143,8 @@ composes the layers the manifest lists.
   owns the report and the error logger; `assets/` stages repository assets.
 - `core/` holds the concepts more than one of those needs, each with one
   owner: the coordinate conversion, word tables, strict JSON checks, numbers
-  written into shader text, and compute passes. A concept's shader-text half
+  written into shader text, compute passes, the browser's seeded sequence and
+  text as JavaScript writes and reads it (`js_text.gd`). A concept's shader-text half
   sits beside it as a `.gdshaderinc`.
 
 ## Coordinates and camera
@@ -168,6 +170,10 @@ the fog field and the ground runs with their cleared byte. The published
 layout owns packing, baselines and offsets. A layout group native doesn't
 know, a short payload, a bad encoding or a record that breaks its baseline
 stops the run at a `publication` blocker.
+
+A record's `simTime` is read as the browser reads it, to the nearest double
+(`core/js_text.gd`): Godot's own JSON reader can land an ulp off, and a clock
+exactly on a tick's boundary then falls on the other side of it.
 
 The check is exact: `web/tests/nativePublicationDecode.test.ts` writes the
 browser's decode of the fixture captures to
@@ -375,7 +381,7 @@ the browser poses them, through the model batches.
 - **Poses.** The browser's per-frame derivations are ported line for line,
   on the frame record's clock: `tick_interpolator.gd` blends the record's
   publication from the one before (`interpolate.ts`), `pose_feed.gd` reads it
-  as the pose driver does (`poseFeed.ts`, with `launches.gd` naming which
+  as the pose driver does (`poseFeed.ts`, with `effects/launches.gd` naming which
   soldier fired), and `pose_driver.gd` is the driver (`poseDriver.ts`): gait,
   facing, stance and lean, deaths and the corpse cap, turret bearings, eased
   elevations, recoil, track travel and an aircraft's lean. Poses carry from
@@ -403,6 +409,42 @@ the browser poses them, through the model batches.
 - **Checks.** The build refuses a glTF whose joints or nodes do not stand
   where the bundle's do. Each plate's posed models by kind (`modelCounts`)
   must equal the browser's, or the run stops at a `models` blocker.
+
+## Effects
+
+`effects/` draws the browser's combat effects from the causes the capture
+already publishes, on the frame record's clock and with the browser's seeds.
+
+- **Causes.** Every publication up to a record's tick is read as the browser
+  reads it for effects (`effect_feed.gd`, `effectFeed.ts`): visible flight,
+  blasts, each seen unit's shot counters and hull, the airframes falling, and
+  the wrecks and ruins the side knows. `cook_offs.gd` finds the hulls the side
+  watched brew up. `launches.gd` names who fired and which rounds show as
+  tracers; the pose feed reads the same tracker.
+- **Effects.** `effect_frame.gd` is the browser's `EffectFrame` line for line:
+  tracers and smoke trails, flashes, impacts, sparks, blasts, dust, smoke from
+  smoking hulls, flames and smoke over wrecks and ruins, cook-offs and rotor
+  blurs, with their cast lights. Per tick it seeds from
+  `mulberry32((tick·2654435761)>>>0)`, consumed in publication order; dust,
+  smoking hulls and smoke sources seed from the browser's `hashString` keys,
+  written as JavaScript writes their numbers. The manifest's `effects` holds
+  the tuning and the catalog rows it reads.
+- **Placement.** A flash sits on the muzzle the units layer drew
+  (`drawn_models.gd`, `drawnModels.ts`): a vehicle's muzzle node under its
+  articulation, a soldier's weapon socket in his clip.
+- **Drawing.** `effect_pass.gd` is the browser's effect pass as a raster pass
+  between the haze and the post chain: streaks, glows and discs, flipbooks
+  from the effect atlas, rotor blurs, tested against the world's depth.
+  Lit smoke takes the sun, the sky (averaged over each hemisphere, a reported
+  approximation of the browser's prefiltered environment) and the cast lights.
+- **Cast lights.** `cast_lights.gd` keeps the lights in view, the strongest
+  past 24, and hands them to every world material through shader globals
+  (`cast_lights.gdshaderinc`, added to emission as the browser adds them).
+- **Counts.** For each plate the report puts native's effects running by kind,
+  instances by shape and lights beside the browser's `effectCounts`; any
+  difference is an `effects` blocker.
+- **Not drawn:** a cook-off's moving wreck and the debris it throws (the
+  static wreck shows throughout), reported per run.
 
 ## Checks
 
