@@ -11,4 +11,7 @@ window/size/mode=1
 
 [rendering]
 renderer/rendering_method="forward_plus"
+; The authored tiers are the only level of detail (world/model_batches.gd):
+; Godot's own simplified meshes are never drawn.
+mesh_lod/lod_change/threshold_pixels=0.0
 textures/vram_compression/import_etc2_astc=true

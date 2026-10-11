@@ -1,13 +1,15 @@
 extends Node3D
 
-## A rough native drawing of the saved map, kept until each layer's slice ports
-## the browser's owner: buildings (`buildings`), props (`props`) and observed
-## units (`models`). Every category is reported as
-## a budget that names its approximation and how many rows it drew and dropped.
-## Every position and yaw goes through `Coords`; what has no height of its own
-## stands on the ground's height field.
+## A rough native placement of the saved map, kept until slice 13 ports the
+## browser's owners: what stands where for buildings (`buildings`), props
+## (`props`) and observed units (`models`), each layer drawn by its own
+## `model_batches.gd`. Every category is reported as a budget that names its
+## approximation and how many rows it drew and dropped. Every position and yaw
+## goes through `Coords`; what has no height of its own stands on the ground's
+## height field.
 
 const Staging = preload("res://assets/staging.gd")
+const ModelBatches = preload("res://world/model_batches.gd")
 const Coords = preload("res://core/coords.gd")
 const StrictJson = preload("res://core/strict_json.gd")
 
@@ -28,11 +30,12 @@ var _soldiers := {}
 ## Repository path -> staged resource path.
 var _staged := {}
 var _scenes := {}
-var _shell_prototypes := {}
-var _units_holder: Node3D
-## Unit id -> its node, so a unit keeps its node however the rows are ordered.
-var _unit_nodes := {}
-var _unit_material: StandardMaterial3D
+## Kit and shell token -> its appearance in the buildings' batches, or -1.
+var _shells := {}
+var _units: ModelBatches
+## Unit kind name -> its appearance in the units' batches.
+var _unit_appearances := {}
+var _side_color: Color
 var _contact_mesh: CylinderMesh
 ## The ground's `height_field.gd`.
 var _heights
@@ -56,12 +59,6 @@ func _init(map: Dictionary, targets: Array, samples: Array, heights) -> void:
 		if not _centers.any(func(center): return center.distance_to(target) < TARGET_SPACING_M):
 			_centers.append(target)
 	_load_catalogs()
-
-func _notification(what: int) -> void:
-	if what == NOTIFICATION_PREDELETE:
-		for prototype in _shell_prototypes.values():
-			if prototype != null:
-				prototype.free()
 
 ## The repository assets the listed layers draw.
 func required_assets(layers: Array) -> Array:
@@ -90,29 +87,21 @@ func build(layers: Array, staged: Dictionary, side: String, report) -> void:
 	if layers.has("models"):
 		_build_units(side, report)
 
-## Shows the units of one decoded publication and hides every other unit.
+## Shows the units of one decoded publication, and no other unit.
 func show_units(units: Array) -> void:
-	if _units_holder == null:
+	if _units == null:
 		return
-	var seen := {}
+	var placements := []
 	for unit in units:
-		var node: Node3D = _unit_nodes.get(unit.id)
-		if node == null or node.get_meta("kind") != unit.kindName:
-			if node != null:
-				node.free()
-			node = _unit_node(unit.kindName)
-			_units_holder.add_child(node)
-			_unit_nodes[unit.id] = node
-		node.position = Coords.sim_array_to_godot(unit.position)
-		node.rotation.y = float(unit.yaw)
-		seen[unit.id] = true
-	for id in _unit_nodes:
-		_unit_nodes[id].visible = seen.has(id)
+		if not _unit_appearances.has(unit.kindName):
+			_unit_appearances[unit.kindName] = _unit_appearance(unit.kindName)
+		placements.append([_unit_appearances[unit.kindName], Transform3D(Coords.yaw_basis(float(unit.yaw)), Coords.sim_array_to_godot(unit.position))])
+	_units.show_movers(placements)
 
 # Buildings --------------------------------------------------------------------
 
 func _build_buildings(report) -> void:
-	var holder := _holder("Buildings")
+	var batches := _batches("Buildings")
 	var boxes: Array[Transform3D] = []
 	var admitted := 0
 	var near := 0
@@ -128,31 +117,34 @@ func _build_buildings(report) -> void:
 		near += 1
 		var translation: Array = building.frame.translation
 		var yaw := float(building.frame.get("yaw", 0.0))
-		var shell := _shell(String(building.template_id))
-		if shell != null:
-			shell.transform = Transform3D(Coords.yaw_basis(yaw), Coords.sim_array_to_godot(translation))
-			holder.add_child(shell)
+		var shell := _shell(String(building.template_id), batches)
+		if shell >= 0:
+			batches.add_static(shell, Transform3D(Coords.yaw_basis(yaw), Coords.sim_array_to_godot(translation)))
 		else:
 			boxes.append(Transform3D(Coords.yaw_basis(yaw).scaled_local(Vector3(18.0, 8.0, 18.0)), Coords.sim_array_to_godot(translation) + Vector3(0.0, 4.0, 0.0)))
-	_add_instances(holder, [_box_part(Color("7b7d7b"), 0.8)], boxes)
+	if not boxes.is_empty():
+		var box := _stand_in(batches, _box_mesh(Color("7b7d7b"), 0.8))
+		for placement in boxes:
+			batches.add_static(box, placement)
+	batches.seal()
 	report.add_budget(OWNER, "approximation: kit shells picked by template token (until slice 07), within %d m of a frame target" % REACH_M, "map.buildings", admitted, near, admitted - near)
 	if not boxes.is_empty():
 		report.add_budget(OWNER, "approximation: an 18x8x18 m box where no kit shell matches the template", "map.buildings/boxes", boxes.size(), boxes.size(), 0)
 	_report_malformed(report, "map.buildings", malformed)
 
-func _shell(template_id: String) -> Node3D:
+## The appearance of a template's kit shell in `batches`, or -1.
+func _shell(template_id: String, batches: ModelBatches) -> int:
 	var token := _shell_token(template_id)
 	var kit := _kit_source(template_id)
 	if token.is_empty() or not _staged.has(kit):
-		return null
+		return -1
 	var key := kit + "|" + token
-	if not _shell_prototypes.has(key):
+	if not _shells.has(key):
 		var catalog := _scene(kit).instantiate()
-		var shell := catalog.get_node_or_null(NodePath(token)) as Node3D
-		_shell_prototypes[key] = shell.duplicate() if shell != null else null
+		var shell := catalog.get_node_or_null(NodePath(token))
+		_shells[key] = batches.add_appearance(shell) if shell != null else -1
 		catalog.free()
-	var prototype: Node3D = _shell_prototypes[key]
-	return prototype.duplicate() as Node3D if prototype != null else null
+	return _shells[key]
 
 ## The catalog kit for a template's family, preferring the map's regional kit.
 func _kit_source(template_id: String) -> String:
@@ -208,7 +200,7 @@ static func _shell_token(template_id: String) -> String:
 # Props ------------------------------------------------------------------------
 
 func _build_props(report) -> void:
-	var holder := _holder("Props")
+	var batches := _batches("Props")
 	var kinds := {}
 	var malformed := 0
 	for prop in _rows("props"):
@@ -236,20 +228,28 @@ func _build_props(report) -> void:
 			entry.placements.append(Transform3D(Coords.yaw_basis(yaw).scaled_local(scale), _seated(position, float(half[2]))))
 	for kind in kinds:
 		var entry: Dictionary = kinds[kind]
-		var parts: Array
 		var reason: String
 		if not entry.source.is_empty():
-			# Only a kind with rows in reach was staged.
-			parts = _mesh_parts(entry.source) if not entry.placements.is_empty() else []
 			reason = "catalog model %s at its saved position" % entry.source
 		elif kind == "street_tree":
-			parts = [_tree_part()]
 			reason = "approximation: a cone; the catalog has no tree model"
 		else:
-			parts = [_box_part(Color("7d6a50"), 0.55)]
 			reason = "approximation: a box from its half extents; the catalog has no model"
-		_add_instances(holder, parts, entry.placements)
+		# Only a kind with rows in reach was staged.
+		if not entry.placements.is_empty():
+			var appearance: int
+			if not entry.source.is_empty():
+				var root := _scene(entry.source).instantiate()
+				appearance = batches.add_appearance(root)
+				root.free()
+			elif kind == "street_tree":
+				appearance = _stand_in(batches, _tree_mesh())
+			else:
+				appearance = _stand_in(batches, _box_mesh(Color("7d6a50"), 0.55))
+			for placement in entry.placements:
+				batches.add_static(appearance, placement)
 		report.add_budget(OWNER, "%s, within %d m of a frame target" % [reason, REACH_M], "prop:" + kind, entry.admitted, entry.placements.size(), entry.admitted - entry.placements.size())
+	batches.seal()
 	_report_malformed(report, "map.props", malformed)
 
 func _prop_source(kind: String) -> String:
@@ -280,26 +280,17 @@ func _prop_source(kind: String) -> String:
 # Units ------------------------------------------------------------------------
 
 func _build_units(side: String, report) -> void:
-	_units_holder = _holder("ObservedUnits")
-	var color := Color("d95c5c") if side == "red" else Color("4d9be6")
-	_unit_material = _material(color, 1.0)
-	_unit_material.emission_enabled = true
-	_unit_material.emission = color
-	_unit_material.emission_energy_multiplier = 0.25
-	_contact_mesh = CylinderMesh.new()
-	_contact_mesh.top_radius = 0.95
-	_contact_mesh.bottom_radius = 0.95
-	_contact_mesh.height = 0.05
-	_contact_mesh.material = _material(Color(color, 0.85), 1.0)
-	_contact_mesh.material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_units = _batches("ObservedUnits")
+	_side_color = Color("d95c5c") if side == "red" else Color("4d9be6")
 	for kind in _unit_kinds:
 		var source := _unit_source(kind)
 		var reason := "catalog model %s at its authored size, unposed" % source if not source.is_empty() else "approximation: a capsule; the unit kind has no catalog appearance"
 		report.add_budget(OWNER, reason, "unit:" + kind, _unit_kinds[kind], _unit_kinds[kind], 0)
 
-func _unit_node(kind: String) -> Node3D:
+## A unit kind's appearance: its catalog model, or a capsule in the side's
+## colour, on a contact disc in that colour.
+func _unit_appearance(kind: String) -> int:
 	var holder := Node3D.new()
-	holder.set_meta("kind", kind)
 	var source := _unit_source(kind)
 	if _staged.has(source):
 		holder.add_child(_scene(source).instantiate())
@@ -308,14 +299,26 @@ func _unit_node(kind: String) -> Node3D:
 		capsule.mesh = CapsuleMesh.new()
 		capsule.mesh.radius = 0.5
 		capsule.mesh.height = 2.0
-		capsule.material_override = _unit_material
+		capsule.mesh.material = _material(_side_color, 1.0)
+		capsule.mesh.material.emission_enabled = true
+		capsule.mesh.material.emission = _side_color
+		capsule.mesh.material.emission_energy_multiplier = 0.25
 		capsule.position.y = 0.7
 		holder.add_child(capsule)
+	if _contact_mesh == null:
+		_contact_mesh = CylinderMesh.new()
+		_contact_mesh.top_radius = 0.95
+		_contact_mesh.bottom_radius = 0.95
+		_contact_mesh.height = 0.05
+		_contact_mesh.material = _material(Color(_side_color, 0.85), 1.0)
+		_contact_mesh.material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	var contact := MeshInstance3D.new()
 	contact.mesh = _contact_mesh
 	contact.position.y = 0.03
 	holder.add_child(contact)
-	return holder
+	var appearance := _units.add_appearance(holder)
+	holder.free()
+	return appearance
 
 ## The unit's catalog appearance, or its first soldier's.
 func _unit_source(kind: String) -> String:
@@ -373,49 +376,28 @@ func _scene(relative: String) -> PackedScene:
 		_scenes[relative] = load(_staged[relative])
 	return _scenes[relative]
 
-## Every mesh in a staged scene with its transform relative to the scene root.
-func _mesh_parts(relative: String) -> Array:
-	var root := _scene(relative).instantiate()
-	var parts := []
-	_collect_meshes(root, Transform3D.IDENTITY, parts)
+## A one-mesh stand-in's appearance in `batches`.
+static func _stand_in(batches: ModelBatches, mesh: Mesh) -> int:
+	var root := Node3D.new()
+	var part := MeshInstance3D.new()
+	part.mesh = mesh
+	root.add_child(part)
+	var appearance := batches.add_appearance(root)
 	root.free()
-	return parts
+	return appearance
 
-static func _collect_meshes(node: Node, parent: Transform3D, parts: Array) -> void:
-	var transform: Transform3D = parent * node.transform if node is Node3D else parent
-	if node is MeshInstance3D and node.mesh != null:
-		parts.append({"mesh": node.mesh, "transform": transform})
-	for child in node.get_children():
-		_collect_meshes(child, transform, parts)
-
-## One MultiMesh per part, each instance placed at a placement.
-static func _add_instances(holder: Node3D, parts: Array, placements: Array[Transform3D]) -> void:
-	if placements.is_empty():
-		return
-	for part in parts:
-		var multi := MultiMesh.new()
-		multi.transform_format = MultiMesh.TRANSFORM_3D
-		multi.mesh = part.mesh
-		multi.instance_count = placements.size()
-		var offset: Transform3D = part.get("transform", Transform3D.IDENTITY)
-		for i in placements.size():
-			multi.set_instance_transform(i, placements[i] * offset)
-		var batch := MultiMeshInstance3D.new()
-		batch.multimesh = multi
-		holder.add_child(batch)
-
-static func _box_part(color: Color, roughness: float) -> Dictionary:
+static func _box_mesh(color: Color, roughness: float) -> BoxMesh:
 	var box := BoxMesh.new()
 	box.material = _material(color, roughness)
-	return {"mesh": box}
+	return box
 
-static func _tree_part() -> Dictionary:
+static func _tree_mesh() -> CylinderMesh:
 	var cone := CylinderMesh.new()
 	cone.top_radius = 0.15
 	cone.bottom_radius = 0.9
 	cone.height = 5.0
 	cone.material = _material(Color("385941"), 1.0)
-	return {"mesh": cone}
+	return cone
 
 static func _material(color: Color, roughness: float) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
@@ -423,11 +405,10 @@ static func _material(color: Color, roughness: float) -> StandardMaterial3D:
 	material.roughness = roughness
 	return material
 
-func _holder(holder_name: String) -> Node3D:
-	var holder := Node3D.new()
-	holder.name = holder_name
-	add_child(holder)
-	return holder
+func _batches(batches_name: String) -> ModelBatches:
+	var batches := ModelBatches.new(batches_name)
+	add_child(batches)
+	return batches
 
 func _near(position: Vector2) -> bool:
 	for center in _centers:

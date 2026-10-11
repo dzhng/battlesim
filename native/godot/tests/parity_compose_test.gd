@@ -56,20 +56,27 @@ func run() -> bool:
 	check(fogged.report.to_dictionary().budgets.any(func(row): return row.sourceId == "layer:scars" and row.dropped == 1), "a listed layer native cannot draw is reported as dropped")
 	fogged.root.free()
 
-	# Units keep their node by id, however the publication orders its rows.
+	# Each publication's units are drawn, and no others. (A headless run keeps
+	# no instance transforms to read back.)
 	var units := _compose(["models"])
 	var layer = units.world.layer
 	var a := {"id": 1.0, "kindName": "test_unit", "position": [0.0, 0.0, 0.0], "yaw": 0.0}
 	var b := {"id": 2.0, "kindName": "test_unit", "position": [5.0, 5.0, 0.0], "yaw": 0.0}
 	var holder: Node = units.root.find_child("ObservedUnits", true, false)
 	layer.show_units([a, b])
-	var nodes: Array = holder.get_children()
-	layer.show_units([b, a])
-	check(holder.get_children() == nodes and nodes[0].position == Vector3.ZERO and nodes[1].position == Vector3(5, 0, -5), "a unit keeps its node when the rows reorder")
+	check(_drawn(holder) == 2, "both units are drawn: %d" % _drawn(holder))
 	layer.show_units([b])
-	check(not nodes[0].visible and nodes[1].visible, "a unit absent from the publication is hidden")
+	check(_drawn(holder) == 1, "a unit absent from the publication is not drawn: %d" % _drawn(holder))
 	units.root.free()
 	return true
+
+## How many instances the batches below `holder` draw.
+static func _drawn(holder: Node) -> int:
+	var drawn := 0
+	for batch in holder.get_children():
+		if batch is MultiMeshInstance3D and batch.visible:
+			drawn += batch.multimesh.instance_count
+	return drawn
 
 ## The fixture run's light (its sun turned) and ground under `MAP`.
 func _compose(layers: Array) -> Dictionary:
