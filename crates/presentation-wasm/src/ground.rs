@@ -286,6 +286,12 @@ impl Ground {
         self.inner.drawn.clone()
     }
 
+    /// How far a crater's bowl moves the scars read along a view ray, metres
+    /// (`Presentation.set_scar_reach`).
+    pub fn scar_reach_m(&self) -> f64 {
+        self.inner.scar_reach_m()
+    }
+
     /// How far past its edge each rule (paved, forest, water) is read by a
     /// pixel `footprint` metres wide.
     pub fn reach(&self, footprint: f64) -> Vec<f64> {

@@ -123,6 +123,12 @@ pub struct TerrainTuning {
     pub forest_verge: ForestVerge,
     pub bank: Bank,
     pub marks: Marks,
+    pub scars: Scars,
+}
+
+#[derive(Clone, Deserialize)]
+pub struct Scars {
+    pub depth_cap: f64,
 }
 
 #[derive(Clone, Deserialize)]

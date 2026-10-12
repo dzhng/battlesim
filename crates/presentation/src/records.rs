@@ -426,6 +426,21 @@ pub fn typescript() -> String {
          export const FOG_EDGE_REACH_PX = {};\n",
         crate::fog::FOG_EDGE_REACH_PX
     ));
+    {
+        use crate::scars::*;
+        out.push_str(&format!(
+            "/** The scar cache's directory flags over a tile key + 1, its pool texture\n \
+             *  and the normalization table at the pool's start, and `ScarParams`' words\n \
+             *  before the biome's look (`scars/mod.rs`). */\n\
+             export const SCAR_UNIFORM = {UNIFORM:#x};\n\
+             export const SCAR_DENSE = {DENSE:#x};\n\
+             export const SCAR_KEY_MASK = {KEY_MASK:#x};\n\
+             export const SCAR_POOL_WIDTH = {POOL_WIDTH};\n\
+             export const SCAR_POOL_HEIGHT = {POOL_HEIGHT};\n\
+             export const SCAR_NORMALIZATION_WORDS = {NORMALIZATION_WORDS};\n\
+             export const SCAR_PARAMS_WORDS = {PARAMS_WORDS};\n"
+        ));
+    }
     for l in LAYOUTS {
         out.push_str(&format!("\n/** {} */\n", l.doc.trim()));
         let word = |s: &str| if s == "f32" { "f32" } else { "u32" };

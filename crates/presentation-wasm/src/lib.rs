@@ -206,6 +206,77 @@ impl Presentation {
         Ok(&self.world_header as *const WorldHeader as u32)
     }
 
+    /// Whether the scars changed since the last call: what grows on them
+    /// grows again.
+    pub fn scars_changed(&mut self) -> bool {
+        self.inner.scars_changed()
+    }
+
+    /// The regions the terrain draws one by one, four metres each (x0, y0,
+    /// x1, y1); none when the marks draw at once.
+    pub fn scar_regions(&self) -> Vec<f64> {
+        self.inner.scar_regions().concat()
+    }
+
+    /// What to upload before drawing the scars over `region` (four metres;
+    /// none: the view), clipped to it when `clipped`.
+    pub fn prepare_scars(&mut self, region: Option<Vec<f64>>, clipped: bool) -> ScarUpload {
+        let region = region.map(|r| [r[0], r[1], r[2], r[3]]);
+        ScarUpload(self.inner.prepare_scars(region, clipped))
+    }
+
+    /// The renderer holds no scars: the next upload writes them all.
+    pub fn resend_scars(&mut self) {
+        self.inner.resend_scars();
+    }
+
+    /// The crater's view-ray reach, metres (`Ground.scar_reach_m`).
+    pub fn set_scar_reach(&mut self, reach_m: f64) {
+        self.inner.set_scar_reach(reach_m);
+    }
+
+    /// The scar cache's `ScarStats`, as JSON.
+    pub fn scar_stats(&self) -> String {
+        serde_json::to_string(&self.inner.scar_stats()).unwrap()
+    }
+
+    /// The learned ground's epoch, revision and cleared cells (0 without a layout).
+    pub fn ground_epoch(&self) -> f64 {
+        self.inner.ground().map_or(0.0, |g| g.epoch)
+    }
+    pub fn ground_revision(&self) -> f64 {
+        self.inner.ground().map_or(0.0, |g| g.revision)
+    }
+    pub fn ground_cleared_count(&self) -> u32 {
+        self.inner.ground().map_or(0, |g| g.cleared_count() as u32)
+    }
+    /// The side whose ground it learned, once a snapshot came.
+    pub fn ground_side(&self) -> Option<String> {
+        self.inner.ground().and_then(|g| g.side.clone())
+    }
+
+    /// Whether the side has seen cell (i, j) cleared.
+    pub fn ground_cleared(&self, i: u32, j: u32) -> bool {
+        self.inner
+            .ground()
+            .is_some_and(|g| g.is_cleared(i as usize, j as usize))
+    }
+
+    /// The cleared spans in tile order: (tile, start + length × 256) pairs.
+    pub fn ground_cleared_runs(&self) -> Vec<u32> {
+        self.inner
+            .ground()
+            .map_or_else(Vec::new, |g| g.cleared_runs())
+    }
+
+    /// Every marked or cleared cell in row-major order: (cell index, marks
+    /// as drawn: crater, scorch, tracks, trampled a byte each) pairs.
+    pub fn ground_marked(&self) -> Vec<u32> {
+        self.inner
+            .ground()
+            .map_or_else(Vec::new, |g| g.marked_cells())
+    }
+
     /// The buildings the side knows destroyed as the last frame drew them:
     /// building and state (1 ruin, 2 gutted), in pairs.
     pub fn fallen_buildings(&self) -> Vec<u32> {
@@ -333,6 +404,44 @@ pub fn launches(publications: &str) -> Result<String, JsError> {
 /// records' words in order: sky, aerial, sun, bloom, grade (`light.rs`). The
 /// renderer needs them when it builds its frame, before any battle loads and
 /// for scenes with none, so this needs no `Presentation`.
+/// What a renderer uploads before drawing the scars
+/// (`presentation::scars::ScarUpload`).
+#[wasm_bindgen]
+pub struct ScarUpload(presentation::scars::ScarUpload);
+
+#[wasm_bindgen]
+impl ScarUpload {
+    /// The directory's words (two a `rg32uint` texel) when it changed.
+    pub fn directory(&self) -> Option<Vec<u32>> {
+        self.0.directory.as_ref().map(|(words, _)| words.clone())
+    }
+    /// The directory texture's width and height, when it changed.
+    pub fn directory_size(&self) -> Vec<u32> {
+        self.0
+            .directory
+            .as_ref()
+            .map_or_else(Vec::new, |(_, s)| s.to_vec())
+    }
+    /// Pool writes, (offset, texels) pairs, each within one row.
+    pub fn writes(&self) -> Vec<u32> {
+        self.0.writes.concat()
+    }
+    /// The writes' texels in order, four bytes each.
+    pub fn texels(&self) -> Vec<u8> {
+        self.0.texels.clone()
+    }
+    /// `ScarParams`' words before the look.
+    pub fn params(&self) -> Vec<u32> {
+        self.0.params.to_vec()
+    }
+}
+
+/// The scar pool's first texels: the normalization table, written once.
+#[wasm_bindgen]
+pub fn scar_normalization() -> Vec<u8> {
+    presentation::scars::normalization()
+}
+
 #[wasm_bindgen]
 pub fn light_records(light: &str) -> Result<Vec<f32>, JsError> {
     let settings: presentation::light::LightSettings = serde_json::from_str(light)
