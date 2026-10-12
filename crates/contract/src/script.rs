@@ -13,6 +13,7 @@ use crate::random::mix;
 
 pub const SCRIPT_RUNTIME_VERSION: &str = "scenario-script-1";
 pub const DEFAULT_MAX_SOURCE_BYTES: usize = 256 * 1024;
+const MAX_PARSE_NESTING: usize = 256;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ScriptLimits {
@@ -1042,10 +1043,15 @@ fn diag(code: &'static str, span: SourceSpan, message: impl Into<String>) -> Scr
 struct Parser {
     tokens: Vec<Token>,
     at: usize,
+    nesting: usize,
 }
 impl Parser {
     fn new(tokens: Vec<Token>) -> Self {
-        Self { tokens, at: 0 }
+        Self {
+            tokens,
+            at: 0,
+            nesting: 0,
+        }
     }
     fn program(&mut self) -> Result<Vec<Stmt>, Vec<ScriptDiagnostic>> {
         let mut out = Vec::new();
@@ -1126,12 +1132,30 @@ impl Parser {
         }
     }
     fn block(&mut self) -> Result<Vec<Stmt>, ScriptDiagnostic> {
+        self.nesting += 1;
+        if self.nesting > MAX_PARSE_NESTING {
+            self.nesting -= 1;
+            return Err(diag(
+                "nesting_limit",
+                self.tokens
+                    .get(self.at)
+                    .map(|token| token.span)
+                    .unwrap_or(SourceSpan {
+                        start: 0,
+                        end: 0,
+                        line: 1,
+                        column: 1,
+                    }),
+                "script nesting exceeds the compile limit",
+            ));
+        }
         self.expect_symbol('{')?;
         let mut out = Vec::new();
         while !self.peek_symbol('}') && !self.is_eof() {
             out.push(self.stmt()?);
         }
         self.expect_symbol('}')?;
+        self.nesting -= 1;
         Ok(out)
     }
     fn expr(&mut self) -> Result<Expr, ScriptDiagnostic> {
@@ -1255,8 +1279,18 @@ impl Parser {
                 }
             }
             TokenKind::Symbol('(') => {
+                self.nesting += 1;
+                if self.nesting > MAX_PARSE_NESTING {
+                    self.nesting -= 1;
+                    return Err(diag(
+                        "nesting_limit",
+                        t.span,
+                        "script nesting exceeds the compile limit",
+                    ));
+                }
                 let e = self.expr()?;
                 self.expect_symbol(')')?;
+                self.nesting -= 1;
                 Ok(e)
             }
             _ => Err(diag("expression", t.span, "expected a value")),
