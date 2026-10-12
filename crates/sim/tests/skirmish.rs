@@ -625,6 +625,22 @@ fn against_an_opponent_with_a_helicopter() -> contract::scenario::ScenarioDefini
     } } }))
 }
 
+/// The opponent whose admitted deck includes a physical indirect-fire card.
+fn against_an_opponent_with_artillery() -> contract::scenario::ScenarioDefinition {
+    let mut rules = deck();
+    rules["weapons"]["hmg"]["trajectory"] = json!("indirect");
+    rules["weapons"]["hmg"]["min_range_m"] = json!(50.0);
+    rules["weapons"]["hmg"]["range_m"] = json!(500.0);
+    rules["catalog"].as_array_mut().unwrap().push(json!({ "units": { "red_test_jeep": {
+        "extends": "test_jeep",
+        "roles": ["artillery"],
+        "roster": { "factions": ["eastern"], "category": "sup", "family_name": "Test artillery", "variant": "Test" }
+    } } }));
+    let mut setup = match_on(rules);
+    setup.skirmish.as_mut().unwrap().ai_side = Some(Side::Red);
+    setup
+}
+
 /// The opponent buys a helicopter in its reinforcements; it enters at its
 /// base already at cruise height, never waiting for clear ground, and sets off
 /// for an objective.
@@ -696,6 +712,57 @@ fn the_basic_opponent_buys_from_zero_through_recorded_commands_and_replays_every
         .iter()
         .any(|(_, c)| c.side == Side::Red && matches!(c.order, Order::ConfirmPurchase { .. })));
     let mut replay = Battle::from_replay(&setup, &record).unwrap();
+    for digest in digests {
+        replay.step();
+        assert_eq!(replay.digest(), digest, "tick {}", replay.tick());
+    }
+}
+
+#[test]
+fn the_skirmish_ai_procures_artillery_and_replays_its_named_catalog_cutover() {
+    let setup = against_an_opponent_with_artillery();
+    let mut live = Battle::new(&setup, 3);
+    assert!(live
+        .accept(command(
+            Side::Blue,
+            1,
+            Order::ConfirmPurchase {
+                variant: "test_tank".into(),
+                destination: [400.0, 300.0],
+            },
+        ))
+        .error
+        .is_none());
+    assert!(live
+        .accept(command(Side::Blue, 2, Order::Ready))
+        .error
+        .is_none());
+    let mut digests = Vec::new();
+    for _ in 0..45 * live.rules().tick_hz {
+        live.step();
+        digests.push(live.digest());
+    }
+    let artillery = live.rules().catalog.index("red_test_jeep").unwrap();
+    let red = live.observe(Side::Red);
+    assert!(
+        red.own.iter().any(|unit| unit.kind == artillery)
+            || red
+                .skirmish
+                .as_ref()
+                .unwrap()
+                .pending
+                .iter()
+                .any(|pending| pending.kind == artillery),
+        "the AI did not field or reserve its admitted artillery card"
+    );
+    assert!(live.replay().accepted.iter().any(|(_, command)| {
+        command.side == Side::Red
+            && matches!(
+                &command.order,
+                Order::ConfirmPurchase { variant, .. } if variant == "red_test_jeep"
+            )
+    }));
+    let mut replay = Battle::from_replay(&setup, &live.replay()).unwrap();
     for digest in digests {
         replay.step();
         assert_eq!(replay.digest(), digest, "tick {}", replay.tick());
