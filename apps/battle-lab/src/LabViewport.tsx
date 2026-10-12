@@ -728,9 +728,11 @@ export function LabViewport({
             known: 0,
           };
         /** The buildings' style and sun, taken when the frame is built. A
-         *  new frame holds no static batches, so the first drawn through it
-         *  is sent them all (`resend`, raised when it replaces the last: the
-         *  last may draw on while it builds, and must not take them). */
+         *  frame holds no static batches when it is new or takes a new world
+         *  (a load, a restarted battle's presentation), so the next frame is
+         *  sent them all (`resend`, raised then; a new frame raises it when
+         *  it replaces the last: the last may draw on while it builds, and
+         *  must not take them). */
         let staticStyle = gameBuildingStyle;
         let staticSun = { azimuth: 0, elevation: 1, farM: 0 };
         let resend = true;
@@ -943,6 +945,7 @@ export function LabViewport({
             if (world && world !== presentedWorldRef.current) {
               presentedWorldRef.current = world;
               scene.setPresentationWorld(world);
+              resend = true;
             }
             if (animated.presented)
               scene.setFrame(animated.presented, {
@@ -971,6 +974,7 @@ export function LabViewport({
                 if (world && world !== presentedWorldRef.current) {
                   presentedWorldRef.current = world;
                   scene.setPresentationWorld(world);
+                  resend = true;
                 }
               }
               // The stats calls may grow memory: the views are taken after them.

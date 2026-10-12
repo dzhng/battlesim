@@ -1,7 +1,6 @@
 # Artillery choices ledger
 
-This is the implementation decision ledger. User-set decisions live in the
-feature README; these entries record load-bearing
+User-set decisions live in the feature README; these entries record load-bearing
 implementation choices where the plan left the mechanism open.
 
 ## Sound
@@ -79,11 +78,10 @@ Verdict: sound. Confidence: high.
 ### The artillery flight scene installs proxy emitters instead of the full roster art
 
 The focused scene exercises production WASM flight and terrain with proxy
-emitters, so it does not install the whole appearance library. The full roster
-asset set exceeds this local WebGPU device's 256-layer texture-array limit; the
-scene would otherwise fail before its assertions. Proxy emitters keep the
-flight contract visible without changing production battle rendering, whose
-appearance path remains covered by the asset checks.
+emitters, so it does not make the physics checkpoint depend on the complete
+appearance library. Proxy emitters keep the flight contract visible while
+production appearance loading stays covered by the session-scoped texture
+checks and the renderer's adapter-limit guard.
 
 Gap: the scene contract required flight evidence but did not require roster
 models in the same diagnostic route.
@@ -95,11 +93,12 @@ Verdict: sound. Confidence: medium.
 
 ### Static artillery source meshes use fixed hull mounts with explicit visual overhang tolerance
 
-The artillery GLBs contain complete static vehicles but do not contain the
-renderer’s generic `turret`/`gun`/`muzzle` articulation chain. The physical rows
-therefore keep a real muzzle for simulation and mark the mount fixed for asset
-fit, while appearance entries allow a long barrel or launcher to overhang the
-compact collision hull. A fabricated rig would claim the model can animate when
+The artillery GLBs are articulated vehicle bundles whose artillery mount
+geometry is fixed rather than part of the renderer’s generic
+`turret`/`gun`/`muzzle` articulation chain. The physical rows therefore keep a
+real muzzle for simulation and mark the mount fixed for asset fit, while
+appearance entries allow a long barrel or launcher to overhang the compact
+collision hull. A fabricated rig would claim the model can animate when
 it cannot; widening the collision hull would make barrels block movement.
 
 Gap: the physical roster slice delegated source-specific fit decisions.

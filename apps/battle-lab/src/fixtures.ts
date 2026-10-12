@@ -11,8 +11,7 @@ export interface LabFixture {
   map: string | null;
   /** A timing verdict runs against a production build. */
   build?: "production";
-  /** Seconds its scene may run, past the runner's default: a scene whose
-   *  work grows with the art library. */
+  /** Seconds its scene may run, other than the runner's default. */
   timeout_s?: number;
 }
 

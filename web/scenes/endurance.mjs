@@ -359,6 +359,11 @@ export async function run(ctx) {
   for (let i = 0; i < 3; i++) resetStates.push(await restartPresentedOpening(page, 90));
   const resetAllocations = resetStates.map((state) => state.gpu);
   ctx.check(
+    "every reset cycle draws the buildings that stand",
+    resetStates.every((state) => state.buildings.standing > 0 && state.buildings.drawn > 0),
+    JSON.stringify(resetStates.map((state) => state.buildings)),
+  );
+  ctx.check(
     "reset cycles return live GPU buffers and textures to the same counts and bytes at tick 90",
     resetAllocations.every((a) => JSON.stringify(a) === JSON.stringify(resetAllocations[0])),
     JSON.stringify(resetAllocations),
