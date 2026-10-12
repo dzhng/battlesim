@@ -641,5 +641,32 @@ The spec said phase 3 would be planned with the user. Under the implementation g
 | `Appearance.pad` becomes `draws`, which says which scenery shader draws a row (0 a model or kit module). A felled tree is two `Instance` records | The scenery shaders read the 64-byte `Instance` with no second record type; a fall needs more than 16 floats | Agent |
 | The ground lives on `Presentation`; the `Ground` wasm class is deleted, and generic names take a `ground_` prefix | One owner per map (coordinator brief); the frame's scenery walk needs the ground the page's tables come from | Agent |
 | Felled trees come from the publication's fallen bodies inside Rust. The cleared ground is still handed in (`set_cleared`) | The lab can hide the learned ground (`scarsSuppressed`), and a scene with no battle has none; reading `learned()` directly would lose both | Agent |
-| `set_ground` sets the scars' reach itself, and the page's `set_scar_reach` is deleted. Rust keeps it for native's own ground | The reach is the ground's fact; native has not moved its ground onto `Presentation` yet | Agent |
+| `set_ground` sets the scars' reach itself, and the page's `set_scar_reach` is deleted. Rust keeps it for native's own ground | The reach is the ground's fact; native has not moved its ground onto `Presentation` yet | Agent; closed by slice 25 step 5b (native sets its ground on `Presentation`, and `set_scar_reach` is deleted) |
 | The felled angle is accepted at one ulp from the TS on 51 of 1,422 trees | The step 3 `libm` decision; it is invisible on screen | Agent |
+
+### Slice 25, step 5b: the scenery on native, the ground on `Presentation`
+
+| Decision | Why | Closed by |
+| --- | --- | --- |
+| `place_scenery` takes each kind's finest mesh, and Rust reads the size, trunk and crown off it; the stump mesh is Rust's (`stump_mesh`) | Native needed the same facts and stump. One owner, in Rust, instead of a second port; equal to the deleted TS bit for bit | Agent |
+| A tree is a biome `trees.species` kind | Rust has no catalog; it agrees with the catalog's `tree` on every kind | Agent |
+| The page places scenery from the world layers' scenery art, passed with the ground | Since 20b step 4 the battle handed its presentation only the models' pruned art, and no battle drew scenery | Agent |
+| Native's scenery draws runs from the frame's instance buffer, not per-key buffers | The replay resends statics on each drawn frame; a live client needs per-key buffers, as for the buildings | Agent |
+| The replay forwards the learned ground's cleared cells to `set_cleared`, as the page does | 20b step 4 kept `set_cleared` as an input; folding it into `Presentation` is open | Agent |
+
+### Slice 25: the score's decisions in Rust; native plays voice lines and the score
+
+Resolves battle voices and music's [N2](../done/battle-voices-music/choices.md#n2-the-scores-mood-logic-stays-in-typescript) ("the score's mood logic stays in TypeScript"), whose provisional call held until a native client needed music. Native needs it now.
+
+| Decision | Why | Closed by |
+| --- | --- | --- |
+| **N2 resolved: Rust decides the battle score** (`presentation::sound::music::Score`): the mood (`tension`, `combat`) with its enter and leave spans, from the side's own barks; the next track of a mood as a catalog id, by a shuffle bag (each track once a shuffle, never twice in a row) on the score's own seeded `Mulberry32`; and the dip under voice lines. `presentation.audio.music` and the catalog's `music.moods` are typed in `sound::tables` | The user's decision (2026-10-12): one owner for every battle sound decision, both clients alike | User |
+| **Music is three commands in the sound's command stream:** `music` (stream track `track` from `at`, looping, fading in over `fade`), `music_stop` (fade every sounding track out over `fade`, then free it) and `duck` (dip the bus by `depth`, gliding with time constant `glide`). A crossfade is `music_stop` then `music` over the same span; the first track only fades in, under the menu's own fade-out | Players stay as dumb as a mixer: no crossfade or duck state of their own. Two ops keep the first track's fade-in exactly as the TS played it | Agent, on the user's contract |
+| **Players resolve ids to files.** Rust never sees a file name, format or path: the browser's `MusicPlayer` builds `/audio/music/<id>.<sha8>.mp3`, native the same path under `assets/runtime` | The user's decision | User |
+| **Menu music stays the app's** (`AppAudio`): the menu bed, its fades, and ending the score on leaving a battle | Not a battle decision (user) | User |
+| The browser seeds each battle's score from `Math.random` at its first update; native's replay seeds it 0, as the browser's lines are seeded 0 | The page had no battle seed in its audio path, and the TS drew from `Math.random`: each battle still opens on a different track. A replay has no seed to take | Agent |
+| `speaking` is the line arbitration's (`Chatter::speaking`: a line started and not yet over, through a reset), deleting the TS `until` | The score's input should be Rust's too; a reset lets sounding lines play out, so it keeps `until` apart from the sounding list | Agent |
+| Native streams music through its own `kira` sound: MP3 bytes in memory decoded packet by packet (`symphonia` 0.6, the version `kira` uses), resampled linearly, with linear amplitude fades as the browser's ramps. Not `kira`'s streaming sound | `kira`'s streaming decodes on a thread; rendered to a buffer it gaps nondeterministically. Decoding in place is deterministic and still never holds a track decoded whole | Agent |
+| Native voice takes: a pack's `pack.json` tells the arbitration every voice and take length at once; a take is read and decoded when a line plays it, the last 32 kept (the browser's `DECODED_TAKES`), and calibrated by `bank::source_normalization` as the browser's sink calibrates a take | The browser holds every take's MP3 bytes in memory to dodge the network; native's disk is always there | Agent |
+| Native's duck glides linearly over `glide` (a `kira` tween) where the browser approaches with that time constant; named, as step 7's 60 ms glides were | `kira` has no exponential approach; the dip depth is exact | Agent |
+| Not ported: the unseen-enemy shout pool on native (`shoutPool.ts`'s selection stays the browser's), so an unseen shout is silent natively | Its take selection is a TS rule; moving it to Rust for both clients is its own step | Agent; reported |

@@ -103,7 +103,7 @@ export interface AudioPresentation {
   footsteps: OneShot & { stride_m: number; max_step_m: number };
   /** Fire loops by smoke-source kind. */
   fires: Record<string, FireSound>;
-  /** Battle music: its mood direction (`MusicDirector`) and its ducking while voice lines play. */
+  /** Battle music: its mood direction and its ducking while voice lines play (`presentation::sound::music`). */
   music: BattleMusicRules;
   /** Unit voice lines: how many sound at once, how long one may wait to start,
    *  and the window in which a group's answers collapse to one (`Chatter`). */

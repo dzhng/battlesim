@@ -11,8 +11,11 @@
 // battle's sounds take to be ready, with packs served and without.
 import game from "@fixtures/game.json";
 import { AppAudio } from "@packages/battle-audio/src/appAudio";
-import { BattleMusic, type BattleMusicRules } from "@packages/battle-audio/src/music/battleMusic";
-import type { BattleMood } from "@packages/battle-audio/src/music/musicDirector";
+import {
+  BattleMusic,
+  type BattleMood,
+  type BattleMusicRules,
+} from "@packages/battle-audio/src/music/battleMusic";
 import { gameSounds } from "@packages/battle-audio/src/shippedSounds";
 import type { HeardShout } from "@packages/battle-audio/src/soundFrame";
 import { BattleVoices } from "@packages/battle-audio/src/voices/battleVoices";
@@ -90,10 +93,10 @@ export async function renderBarks(): Promise<BarksRender> {
     gameSounds.music.moods,
     {
       play: (track: string) => void moods.push({ at: sink.t, mood: moodOf(track) }),
-      crossfadeTo: (track: string) => void moods.push({ at: sink.t, mood: moodOf(track) }),
+      stop: () => {},
       duck: (depth: number) => void ducks.push({ at: sink.t, depth }),
     } as never,
-    () => 0,
+    0,
   );
 
   const lines: BarksRender["lines"] = [];

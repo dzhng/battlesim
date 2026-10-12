@@ -3,10 +3,10 @@
 //
 //   node fps-compare.mjs <run dir>
 //
-// It reads every `browser-*.json` the graphics-fps scene wrote below the
-// folder and writes `<run dir>/summary.md`: one row per client and scene,
-// with each run's conditions. Native's runs join once `native/client` writes
-// a bench (slice 25's performance gate).
+// It reads every `browser-*.json` the graphics-fps scene wrote and every
+// `native-*.json` the native client's `--bench` wrote below the folder (the
+// same shape), and writes `<run dir>/summary.md`: one row per client and
+// scene, with each run's conditions.
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { compareRuns } from "./src/battle/benchmark/frameComparison.ts";
@@ -19,11 +19,11 @@ async function* files(dir) {
   }
 }
 
-/** Each scene of a browser file as runs. */
+/** Each scene of a client's file as runs. */
 function runsOf(path, json) {
-  if (json.client === "browser")
+  if (json.client === "browser" || json.client === "native")
     return json.scenes.map((s) => ({
-      client: "browser",
+      client: json.client,
       scene: s.scene,
       intervalsMs: s.intervalsMs,
       cpuMs: s.cpuMs,
@@ -42,14 +42,14 @@ export async function main([dir] = process.argv.slice(2)) {
   for await (const path of files(dir))
     if (path.endsWith(".json"))
       runs.push(...runsOf(path, JSON.parse(await readFile(path, "utf8"))));
-  if (runs.length === 0) throw new Error(`${dir}: no browser file`);
+  if (runs.length === 0) throw new Error(`${dir}: no browser or native file`);
   const rows = compareRuns(runs);
   const lines = [
-    "| client | scene | runs | avg FPS (median; min–max) | 1% low | min FPS | frame ms p50 / p95 / p99 / max | CPU ms p50 | GPU ms mean |",
+    "| client | scene | runs | avg FPS (median; min–max) | 1% low | min FPS | frame ms p50 / p95 / p99 / max | CPU ms p50 / p95 | GPU ms mean |",
     "|---|---|---|---|---|---|---|---|---|",
     ...rows.map(
       (r) =>
-        `| ${r.client} | ${r.scene} | ${r.runs} | ${fixed(r.averageFps.median)} (${fixed(r.averageFps.min)}–${fixed(r.averageFps.max)}) | ${fixed(r.low1Fps)} | ${fixed(r.minimumFps)} | ${[r.frameMs.p50, r.frameMs.p95, r.frameMs.p99, r.frameMs.max].map((v) => fixed(v, 2)).join(" / ")} | ${fixed(r.cpuMsP50, 2)} | ${fixed(r.gpuMsMean, 2)} |`,
+        `| ${r.client} | ${r.scene} | ${r.runs} | ${fixed(r.averageFps.median)} (${fixed(r.averageFps.min)}–${fixed(r.averageFps.max)}) | ${fixed(r.low1Fps)} | ${fixed(r.minimumFps)} | ${[r.frameMs.p50, r.frameMs.p95, r.frameMs.p99, r.frameMs.max].map((v) => fixed(v, 2)).join(" / ")} | ${fixed(r.cpuMs?.p50, 2)} / ${fixed(r.cpuMs?.p95, 2)} | ${fixed(r.gpuMsMean, 2)} |`,
     ),
     "",
     "Conditions per run:",

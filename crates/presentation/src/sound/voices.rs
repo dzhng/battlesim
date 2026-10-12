@@ -215,6 +215,8 @@ pub struct Chatter {
     pending: Vec<Pending>,
     /// Each sounding speaker and when its line ends.
     sounding: Vec<(String, f64)>,
+    /// When the last line started ends: lines play out through a reset.
+    until: f64,
     /// Each group key's first request moment.
     groups: HashMap<String, f64>,
     /// Requests so far per speaker, trigger and intensity.
@@ -235,6 +237,7 @@ impl Chatter {
             takes: HashMap::new(),
             pending: Vec::new(),
             sounding: Vec::new(),
+            until: f64::NEG_INFINITY,
             groups: HashMap::new(),
             counts: HashMap::new(),
             dropped: Vec::new(),
@@ -383,6 +386,7 @@ impl Chatter {
                 },
             });
             self.sounding.push((r.speaker.clone(), now + duration));
+            self.until = self.until.max(now + duration);
             self.out.started.push(Started {
                 id,
                 request: r.clone(),
@@ -417,6 +421,11 @@ impl Chatter {
         }
         out.heard = barks;
         &self.out
+    }
+
+    /// A line is sounding at player time `now` (the score dips under it).
+    pub fn speaking(&self, now: f64) -> bool {
+        now < self.until
     }
 
     /// Forgets everything waiting and sounding, as for a new battle.

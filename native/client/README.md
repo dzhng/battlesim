@@ -23,21 +23,32 @@ It runs the browser's own shaders and passes over the [presentation crate](../..
   each `Frame` batch is one run of instances over one row's tier. A corpse is
   its body posed once by the presentation crate's rest palette; so is a body
   at the impostor tier (its far pose), since impostor cards are not baked yet.
-- **The ground** is the presentation crate's, resolved from the saved map
-  by the simulation's own world code (`static_world::files::ground`): the
+- **The ground** is the presentation's (`Presentation::set_ground`), from
+  the saved map as the simulation's own world code exports it
+  (`static_world::files::ground`, what the page reads from `WorldView`): the
   terrain's tables, its meshes (terrain, skirt, backdrop, water), the grass's
   tables and blade shapes, and the side's learned scars. The client uploads
   them and draws the terrain into the depth prepass, the cascades and the lit
   world. The grass grows on the GPU over the window the crate fits to each
   view, through the exported build, finish and indirect draw.
+- **The scenery** (trees, the tree lines' shrubs, the scenery past the map,
+  the forest floor's dressing, felled trees and their stumps) is the frame's
+  static batches. The replay places it from each kind's finest mesh
+  (`place_scenery`), packed as the browser packs it; the presentation walks
+  it and cuts each felled tree's stump (`stump_mesh`). Each row's batches
+  draw through the browser's scenery pipelines, routed by
+  `Appearance.draws`, into the depth prepass, the lit world and, for what the
+  walk lists as casters, the cascades. Like the page, the replay hands back
+  the ground the side has seen cleared (`set_cleared`).
 - **Sun shadows** are four cascades the presentation crate fits to each
   frame's camera over the map's box (`presentation::shadow`): the receiver
   block and each cascade's caster camera are records the client uploads. The
   ground, the models and the buildings cast into them, a unit one tier
   coarser than it draws and never as a card.
-- **Buildings** are the frame's static batches: the map's buildings placed
-  from the template art, in the state the side knows. A replay frames only the
-  plates it draws, so it asks for every static batch on those frames.
+- **Buildings** are the frame's static batches too: the map's buildings
+  placed from the template art, in the state the side knows. A replay frames
+  only the plates it draws, so it asks for every static batch on those
+  frames.
 - **Effects** are the frame's effect instances (`Presentation::effects`),
   drawn into the resolved lit world over the browser's own flipbook sheets
   (`assets/third-party/effects`, Git LFS), and the cast lights the
@@ -52,8 +63,14 @@ It runs the browser's own shaders and passes over the [presentation crate](../..
   voice under its bus, low-pass, equal-power pan, reverb sends, a limiter),
   with the recordings in `assets/runtime/audio/clips` (Git LFS) and the
   synthesized sounds composed by the same Rust bank the browser's decisions
-  were made against. `--sound <wav>` renders a replay's sound to a file; it is
-  never played aloud by the replay, and the tests render to a buffer.
+  were made against. Voice lines (the crate's answers and barks) are takes
+  of the voice packs (`assets/runtime/audio/voices/<set>/pack.json`), read
+  and decoded when a line plays; the score (the crate's mood and track
+  choice) streams its MP3s from `assets/runtime/audio/music` on a music bus
+  that crossfades and dips under lines. A track or take Git LFS has not
+  fetched is refused by name in the report. `--sound <wav>` renders a
+  replay's sound to a file; it is never played aloud by the replay, and the
+  tests render to a buffer.
 - **What is bound but not drawn yet** reads as absent in every shader: fog
   of war's sight (every surface seen) and the painted ground marks (the UI
   paints them; a replay has no UI).
@@ -70,6 +87,21 @@ The window opens borderless and off-screen by default, so nothing appears on
 the user's screen. On macOS, `wgpu` presents nothing to a window that isn't
 visible (off-screen, minimised or hidden all report `Occluded`), so those runs
 draw unpaced; plates never depend on presenting.
+
+## Timing a scene
+
+`--bench <dir>` is native's half of the [frame-rate
+comparison](../../web/src/battle/benchmark/README.md#the-frame-rate-comparison).
+It draws every frame record of the scene back to back through the whole pass
+list, framing each one as a plate is framed, and writes no plates. Each frame
+records the same things as the browser's reel: its interval, its CPU time, and
+its GPU time between two timestamp marker passes. The CPU time is split into
+framing, preparing, encoding and submitting. The report goes to
+`native-<scene>-<time>.json` in the browser file's shape. A window that isn't
+shown presents nothing and never blocks, so the bench keeps at most two frames
+on the GPU, as a swap chain would. Every frame lists every static batch,
+because the models keep none from the frame before. Run it on a release build,
+under the GPU lock.
 
 ## Checks
 

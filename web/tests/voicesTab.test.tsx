@@ -100,6 +100,15 @@ function fixture() {
         ],
         picked: null,
       },
+      "tank/lead": {
+        text: "Moving out. Taking fire! Get out, get out!",
+        candidates: [
+          { transcript: "Moving out.", score: 0.9, duration_s: 9.0 },
+          { transcript: "Moving out. Taking fire!", score: 0.95, duration_s: 9.4 },
+          { transcript: "Moving out, taking fire.", score: 0.92, duration_s: 9.2 },
+        ],
+        picked: 2,
+      },
     },
   };
   const voices: VoiceAPI = {
@@ -259,16 +268,28 @@ test("Play row plays a voice's lines back to back, and bulk accept judges only u
   );
 });
 
+test("a voice already picked keeps its candidates: the one in use is marked, another replaces it", async () => {
+  const { voices, audition } = await open();
+  const panel = screen.getByRole("region", { name: "Candidates for lead" });
+  expect(within(panel).getByText("In use")).toBeTruthy();
+  expect(within(panel).queryByRole("button", { name: "Use candidate 2" })).toBeNull();
+  expect(within(panel).queryByRole("button", { name: "None of these" })).toBeNull();
+  fireEvent.click(within(panel).getByRole("button", { name: "Play candidate 3" }));
+  expect(heard(audition)).toEqual([candidateUrl("tank/lead", 3)]);
+  fireEvent.click(within(panel).getByRole("button", { name: "Use candidate 3" }));
+  await waitFor(() => expect(voices.pick).toHaveBeenCalledWith("tank/lead", 3, true));
+  // The swap queues the voice's new takes: the tab follows those jobs.
+  await waitFor(() => expect(voices.jobs).toHaveBeenCalled());
+});
+
 test("a voice waiting for its designed voice offers its candidates through the set's profile", async () => {
   const { voices, audition } = await open();
   const panel = screen.getByRole("region", { name: "Candidates for soldier" });
-  // The lead already has its voice: only the soldier is offered candidates.
-  expect(screen.queryByRole("region", { name: "Candidates for lead" })).toBeNull();
   expect(within(panel).getByText(/match 0\.88 · 8\.4 s/)).toBeTruthy();
   fireEvent.click(within(panel).getByRole("button", { name: "Play candidate 2" }));
   expect(heard(audition)).toEqual([candidateUrl("tank/soldier", 2)]);
   fireEvent.click(within(panel).getByRole("button", { name: "Pick candidate 2" }));
-  await waitFor(() => expect(voices.pick).toHaveBeenCalledWith("tank/soldier", 2));
+  await waitFor(() => expect(voices.pick).toHaveBeenCalledWith("tank/soldier", 2, false));
   // None of these: a design retake, then new candidates.
   fireEvent.click(within(panel).getByRole("button", { name: "None of these" }));
   await waitFor(() => expect(voices.design).toHaveBeenCalledWith("tank/soldier"));

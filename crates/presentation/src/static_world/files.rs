@@ -5,7 +5,7 @@
 use crate::static_world::buildings::{Placed, PlacedBuildings};
 use crate::static_world::ground::biome::Biome;
 use crate::static_world::ground::tables::Grid;
-use crate::static_world::ground::{self, Ground, Source, Tuning};
+use crate::static_world::ground::{self, Source, Tuning};
 use crate::static_world::library::{kit_bounds, Bounds, Library};
 use crate::world::BuildingStyle;
 use serde_json::Value;
@@ -32,10 +32,13 @@ fn runtime_file(root: &Path, catalog: &Value, hash: &str, file: &str) -> Result<
     Ok(out)
 }
 
-/// A saved map's ground as a client with no page resolves it: the ground
-/// (its tables, grass and scenery) and the simulation's terrain triangles.
+/// A saved map's ground as a client with no page reads it: what
+/// `Presentation::set_ground` resolves the ground from, and the simulation's
+/// terrain triangles.
 pub struct MapGround {
-    pub ground: Ground,
+    pub source: Source,
+    pub biome: Biome,
+    pub tuning: Tuning,
     /// The terrain's vertices (x, y, z) and triangles, as the simulation
     /// exports them.
     pub positions: Vec<f32>,
@@ -45,8 +48,8 @@ pub struct MapGround {
 /// The ground of saved map `map` (`fixtures/maps/<map>`), built by the
 /// simulation's own world code under the game's rules, in the map's biome
 /// (`meta.json`) and regional finish, with `fixtures/game.json`'s
-/// `presentation` tunings: what the page resolves through `WorldView` and
-/// `Ground` (`terrainSurface.ts`).
+/// `presentation` tunings: what the page reads from `WorldView` and hands
+/// `set_ground`.
 pub fn ground(root: &Path, map: &str) -> Result<MapGround, String> {
     let folder = root.join("fixtures/maps").join(map);
     let resolved = sim::maps::load_folder(&folder).map_err(|e| e.to_string())?;
@@ -101,7 +104,9 @@ pub fn ground(root: &Path, map: &str) -> Result<MapGround, String> {
     let tuning: Tuning = serde_json::from_value(game["presentation"].clone())
         .map_err(|e| format!("presentation: {e}"))?;
     Ok(MapGround {
-        ground: Ground::new(source, biome, tuning)?,
+        source,
+        biome,
+        tuning,
         positions: world.export_terrain_positions(),
         indices: world.export_terrain_indices(),
     })

@@ -20,7 +20,7 @@ import type { SideStructures } from "./models/propAppearance";
 import type { SurfaceClass } from "./models/surfaceParts";
 import type { ImpostorAtlas, ImpostorSpec } from "./models/impostor";
 import type { StaticBundle, TextureChannel } from "@packages/scene-assets/src/schema";
-import type { Biome, PresentedGround } from "./terrain/terrainSurface";
+import type { PresentedGround } from "./terrain/terrainSurface";
 import type { SceneryStats, SceneryWalkStats } from "./frame/sceneryLayer";
 import type { GrassProbes, GrassStats } from "./frame/grassPass";
 import type { SceneryCounts } from "./frame/sceneryLayer";
@@ -57,11 +57,10 @@ export interface WorldMeshes {
 
 /** The trees, hedgerows and forest-floor dressing's art: the appearances
  *  (`tree`, `hedgerow` and `dressing` bundles from the one loader) the
- *  scenery's rows name, and how a felled tree's stump is cut
- *  (`biome.trees.felled`). Where each stands is the presentation's. */
+ *  scenery's rows name. Where each stands, and a felled tree's stump, are
+ *  the presentation's. */
 export interface WorldScenery {
   appearances: ReadonlyMap<string, StaticBundle>;
-  felled: Biome["trees"]["felled"];
 }
 
 /** The static world in layers, so each takes its own material and FogTerm

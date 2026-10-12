@@ -1,0 +1,366 @@
+//! Native's half of the frame-rate comparison (`web/fps-compare.mjs`): a
+//! replay's frame records drawn back to back, each through the whole pass
+//! list, timed as the browser's graphics test times its reel. Each frame
+//! records its interval (start to next start), its CPU time (framing,
+//! preparing, encoding, submitting and presenting) and its GPU time between
+//! two marker passes (`gpuTiming.ts`'s technique: 1×1 cleared render passes
+//! carrying timestamp writes, whole frame only). The report is the browser
+//! file's shape with `client: "native"`.
+//!
+//! A window that isn't shown presents nothing and blocks on nothing, so the
+//! bench holds at most `IN_FLIGHT` frames on the GPU, as a presenting swap
+//! chain would: a frame's interval is then whichever of the CPU and the GPU
+//! is slower.
+use std::collections::VecDeque;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+use std::time::Instant;
+
+use serde_json::{json, Value};
+use wgpu::*;
+
+/// Drawn frames left out of the timing: the browser's `WARMUP_FRAMES`.
+pub const WARMUP_FRAMES: usize = 60;
+/// Frames submitted and not yet finished, at most (the surface's
+/// `desired_maximum_frame_latency`).
+pub const IN_FLIGHT: usize = 2;
+/// The CPU frame's parts, in order.
+pub const PHASES: [&str; 4] = ["frame", "prepare", "encode", "submit"];
+
+/// One frame's marker queries and the buffers its times come back through.
+struct Slot {
+    queries: QuerySet,
+    resolve: Buffer,
+    readback: Buffer,
+    mapped: Arc<AtomicBool>,
+}
+
+/// GPU time per frame from two timestamp markers.
+struct FrameTimer {
+    slots: Vec<Slot>,
+    marker: TextureView,
+    /// Nanoseconds per timestamp tick.
+    period: f64,
+}
+
+impl FrameTimer {
+    fn new(device: &Device, queue: &Queue) -> Option<Self> {
+        if !device.features().contains(Features::TIMESTAMP_QUERY) {
+            return None;
+        }
+        let buffer = |label, usage| {
+            device.create_buffer(&BufferDescriptor {
+                label: Some(label),
+                size: 16,
+                usage,
+                mapped_at_creation: false,
+            })
+        };
+        let slots = (0..=IN_FLIGHT)
+            .map(|_| Slot {
+                queries: device.create_query_set(&QuerySetDescriptor {
+                    label: Some("frame-timer"),
+                    ty: QueryType::Timestamp,
+                    count: 2,
+                }),
+                resolve: buffer(
+                    "frame-timer-resolve",
+                    BufferUsages::QUERY_RESOLVE | BufferUsages::COPY_SRC,
+                ),
+                readback: buffer(
+                    "frame-timer-readback",
+                    BufferUsages::MAP_READ | BufferUsages::COPY_DST,
+                ),
+                mapped: Arc::new(AtomicBool::new(false)),
+            })
+            .collect();
+        let marker = device
+            .create_texture(&TextureDescriptor {
+                label: Some("frame-timer-marker"),
+                size: Extent3d {
+                    width: 1,
+                    height: 1,
+                    depth_or_array_layers: 1,
+                },
+                mip_level_count: 1,
+                sample_count: 1,
+                dimension: TextureDimension::D2,
+                format: TextureFormat::R8Unorm,
+                usage: TextureUsages::RENDER_ATTACHMENT,
+                view_formats: &[],
+            })
+            .create_view(&Default::default());
+        Some(Self {
+            slots,
+            marker,
+            period: f64::from(queue.get_timestamp_period()),
+        })
+    }
+
+    fn mark(&self, encoder: &mut CommandEncoder, frame: usize, index: u32) {
+        encoder.begin_render_pass(&RenderPassDescriptor {
+            label: Some(if index == 0 {
+                "frame-begin"
+            } else {
+                "frame-end"
+            }),
+            color_attachments: &[Some(RenderPassColorAttachment {
+                view: &self.marker,
+                depth_slice: None,
+                resolve_target: None,
+                ops: Operations {
+                    load: LoadOp::Clear(Color::BLACK),
+                    store: StoreOp::Store,
+                },
+            })],
+            timestamp_writes: Some(RenderPassTimestampWrites {
+                query_set: &self.slots[frame % self.slots.len()].queries,
+                beginning_of_pass_write_index: Some(index),
+                end_of_pass_write_index: None,
+            }),
+            ..Default::default()
+        });
+    }
+
+    /// After `frame` is submitted: its times map back when it finishes.
+    fn submitted(&self, frame: usize) {
+        let slot = &self.slots[frame % self.slots.len()];
+        let mapped = slot.mapped.clone();
+        slot.readback.map_async(MapMode::Read, .., move |r| {
+            mapped.store(r.is_ok(), Ordering::Release);
+        });
+    }
+
+    /// `frame`'s GPU ms, once its submission has finished.
+    fn collect(&self, frame: usize) -> Option<f64> {
+        let slot = &self.slots[frame % self.slots.len()];
+        if !slot.mapped.swap(false, Ordering::Acquire) {
+            return None;
+        }
+        let ticks: [u64; 2] = {
+            let view = slot.readback.get_mapped_range(..).ok()?;
+            bytemuck::pod_read_unaligned(&view[..16])
+        };
+        slot.readback.unmap();
+        (ticks[0] != 0 && ticks[1] > ticks[0])
+            .then(|| (ticks[1] - ticks[0]) as f64 * self.period / 1e6)
+    }
+}
+
+/// One timed frame.
+struct Sample {
+    interval_ms: f64,
+    cpu_ms: f64,
+    gpu_ms: Option<f64>,
+    phases_ms: [f64; PHASES.len()],
+}
+
+/// The frames of one bench run.
+pub struct Bench {
+    timer: Option<FrameTimer>,
+    in_flight: VecDeque<(usize, SubmissionIndex)>,
+    samples: Vec<Sample>,
+    /// The frame being drawn, its start and its phase marks.
+    frame: usize,
+    started: Option<Instant>,
+    marks: Vec<Instant>,
+}
+
+impl Bench {
+    pub fn new(device: &Device, queue: &Queue) -> Self {
+        Self {
+            timer: FrameTimer::new(device, queue),
+            in_flight: VecDeque::new(),
+            samples: Vec::new(),
+            frame: 0,
+            started: None,
+            marks: Vec::new(),
+        }
+    }
+
+    /// A frame starts: its interval runs from the last frame's start.
+    pub fn start(&mut self) {
+        let now = Instant::now();
+        if let Some(last) = self.started.replace(now) {
+            let interval_ms = ms(now - last);
+            if let Some(s) = self.samples.last_mut() {
+                s.interval_ms = interval_ms;
+            }
+        }
+        self.marks.clear();
+    }
+
+    /// The end of the current phase (`PHASES`, in order).
+    pub fn mark(&mut self) {
+        self.marks.push(Instant::now());
+    }
+
+    /// The command buffer that opens the frame's GPU time: submit it first.
+    pub fn begin(&self, device: &Device) -> Option<CommandBuffer> {
+        let timer = self.timer.as_ref()?;
+        let mut encoder = device.create_command_encoder(&Default::default());
+        timer.mark(&mut encoder, self.frame, 0);
+        Some(encoder.finish())
+    }
+
+    /// Closes the frame's GPU time at the end of `encoder`.
+    pub fn end(&self, encoder: &mut CommandEncoder) {
+        let Some(timer) = &self.timer else { return };
+        timer.mark(encoder, self.frame, 1);
+        let slot = &timer.slots[self.frame % timer.slots.len()];
+        encoder.resolve_query_set(&slot.queries, 0..2, &slot.resolve, 0);
+        encoder.copy_buffer_to_buffer(&slot.resolve, 0, &slot.readback, 0, 16);
+    }
+
+    /// The frame was submitted as `index` (and presented): its CPU time
+    /// ends here. Then waits until no more than `IN_FLIGHT` frames are
+    /// unfinished, collecting the finished frames' GPU times.
+    pub fn submitted(&mut self, device: &Device, index: SubmissionIndex) -> Result<(), String> {
+        self.mark();
+        let start = self.started.ok_or("a frame submitted before it started")?;
+        let mut phases_ms = [0.0; PHASES.len()];
+        let mut from = start;
+        for (phase, &at) in phases_ms.iter_mut().zip(&self.marks) {
+            *phase = ms(at - from);
+            from = at;
+        }
+        self.samples.push(Sample {
+            interval_ms: 0.0,
+            cpu_ms: ms(from - start),
+            gpu_ms: None,
+            phases_ms,
+        });
+        if let Some(timer) = &self.timer {
+            timer.submitted(self.frame);
+        }
+        self.in_flight.push_back((self.frame, index));
+        self.frame += 1;
+        while self.in_flight.len() > IN_FLIGHT {
+            self.finish_oldest(device)?;
+        }
+        Ok(())
+    }
+
+    fn finish_oldest(&mut self, device: &Device) -> Result<(), String> {
+        let Some((frame, index)) = self.in_flight.pop_front() else {
+            return Ok(());
+        };
+        device
+            .poll(PollType::Wait {
+                submission_index: Some(index),
+                timeout: None,
+            })
+            .map_err(|e| format!("waiting on frame {frame}: {e}"))?;
+        if let Some(timer) = &self.timer {
+            self.samples[frame].gpu_ms = timer.collect(frame);
+        }
+        Ok(())
+    }
+
+    /// Finishes every frame and writes the report for `scene`: the browser
+    /// file's shape (`graphics-fps.mjs`), its frames after the warm-up.
+    /// The last frame has no interval (nothing started after it), so it is
+    /// left out.
+    pub fn report(
+        &mut self,
+        device: &Device,
+        scene: &str,
+        size: [u32; 2],
+        conditions: Value,
+    ) -> Result<Value, String> {
+        while !self.in_flight.is_empty() {
+            self.finish_oldest(device)?;
+        }
+        let timed = self
+            .samples
+            .get(WARMUP_FRAMES..self.samples.len().saturating_sub(1))
+            .filter(|t| !t.is_empty())
+            .ok_or(format!(
+                "{} frames: none after the {WARMUP_FRAMES}-frame warm-up",
+                self.samples.len()
+            ))?;
+        let mut gpu: Vec<f64> = timed.iter().filter_map(|s| s.gpu_ms).collect();
+        gpu.sort_by(f64::total_cmp);
+        let gpu = (!gpu.is_empty()).then(|| {
+            json!({
+                "frames": gpu.len(),
+                "meanMs": gpu.iter().sum::<f64>() / gpu.len() as f64,
+                "p95Ms": gpu[((gpu.len() - 1) as f64 * 0.95) as usize],
+            })
+        });
+        let phases: serde_json::Map<String, Value> = PHASES
+            .iter()
+            .enumerate()
+            .map(|(i, name)| {
+                let ms: Vec<f64> = timed.iter().map(|s| s.phases_ms[i]).collect();
+                ((*name).to_owned(), json!(ms))
+            })
+            .collect();
+        Ok(json!({
+            "client": "native",
+            "conditions": conditions,
+            "viewport": { "width": size[0], "height": size[1] },
+            "scenes": [{
+                "scene": scene,
+                "warmupFrames": WARMUP_FRAMES,
+                "intervalsMs": timed.iter().map(|s| s.interval_ms).collect::<Vec<_>>(),
+                "cpuMs": timed.iter().map(|s| s.cpu_ms).collect::<Vec<_>>(),
+                "gpu": gpu,
+                "phasesMs": phases,
+            }],
+        }))
+    }
+}
+
+fn ms(d: std::time::Duration) -> f64 {
+    d.as_secs_f64() * 1e3
+}
+
+/// macOS's power source; "unknown" where `pmset` is absent (another OS).
+pub fn power_source() -> String {
+    std::process::Command::new("pmset")
+        .args(["-g", "batt"])
+        .output()
+        .ok()
+        .and_then(|o| {
+            let text = String::from_utf8_lossy(&o.stdout).into_owned();
+            let rest = text.split("drawing from '").nth(1)?;
+            Some(rest.split('\'').next()?.to_owned())
+        })
+        .unwrap_or_else(|| "unknown".to_owned())
+}
+
+/// A report's numbers in a line: average FPS, CPU ms p50 and p95 with each
+/// phase's median, the GPU ms, and what the frames drew on average.
+pub fn summary(report: &Value) -> String {
+    let scene = &report["scenes"][0];
+    let sorted = |v: &Value| {
+        let mut v: Vec<f64> = v
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_f64)
+            .collect();
+        v.sort_by(f64::total_cmp);
+        v
+    };
+    // Nearest rank, as `summarize` in `recording.ts`.
+    let rank = |v: &[f64], q: f64| v[((v.len() as f64 * q).ceil() as usize).clamp(1, v.len()) - 1];
+    let intervals = sorted(&scene["intervalsMs"]);
+    let cpu = sorted(&scene["cpuMs"]);
+    let phases: Vec<String> = PHASES
+        .iter()
+        .map(|name| format!("{name} {:.2}", rank(&sorted(&scene["phasesMs"][name]), 0.5)))
+        .collect();
+    format!(
+        "bench {}: {} frames, {:.1} FPS average, CPU ms p50 {:.2} p95 {:.2} (medians: {}), GPU {}; drew on average {}",
+        scene["scene"].as_str().unwrap_or("?"),
+        intervals.len(),
+        1000.0 * intervals.len() as f64 / intervals.iter().sum::<f64>(),
+        rank(&cpu, 0.5),
+        rank(&cpu, 0.95),
+        phases.join(", "),
+        scene["gpu"],
+        report["conditions"]["meanDrawn"],
+    )
+}

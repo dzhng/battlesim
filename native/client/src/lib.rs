@@ -1,6 +1,7 @@
 //! The native client: the browser's own shaders and passes on `wgpu`, drawing
 //! what the presentation crate's `Frame` lists (slice 25).
 pub mod audio;
+pub mod bench;
 pub mod bundle;
 pub mod capture;
 pub mod effects;
@@ -14,6 +15,7 @@ pub mod models;
 pub mod pipelines;
 pub mod post;
 pub mod scars;
+pub mod scenery;
 pub mod shadow;
 pub mod sky;
 pub mod world;
