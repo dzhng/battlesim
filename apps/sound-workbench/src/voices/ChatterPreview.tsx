@@ -9,6 +9,7 @@ import {
   type DropReason,
   type VoiceTier,
 } from "../../../../packages/battle-audio/src/voices/chatter";
+import { loadPresentation } from "../../../../web/src/battle/sim/presentation";
 import { VoiceBank } from "../../../../packages/battle-audio/src/voices/voiceBank";
 import { voicePack } from "../../../../packages/battle-audio/src/voices/voiceCatalog";
 import type { Auditioner } from "../audition";
@@ -56,8 +57,8 @@ const TIER: Record<VoiceTier, string> = {
 };
 
 /**
- * Plays the scripted firefight through the battle's own `Chatter` and
- * `VoiceBank`, with every locked take not judged bad, and draws which lines
+ * Plays the scripted firefight through the battle's own line arbitration
+ * (`Chatter`, in Rust) and `VoiceBank`, with every locked take not judged bad, and draws which lines
  * started and which were dropped.
  */
 export function ChatterPreview({ api, audition }: { api: VoiceAPI; audition: Auditioner }) {
@@ -85,8 +86,10 @@ export function ChatterPreview({ api, audition }: { api: VoiceAPI; audition: Aud
             return take && take.verdict !== "bad" ? take : null;
           }),
         );
+      await loadPresentation();
+      const chatter = new Chatter(RULES, SEED);
       const opened = await audition.lines(async (context, signal) => {
-        const bank = new VoiceBank(context, fetch, packs);
+        const bank = new VoiceBank(context, fetch, packs, { listener: chatter });
         await bank.load(SCRIPT_SETS, signal);
         return bank;
       });
@@ -95,7 +98,6 @@ export function ChatterPreview({ api, audition }: { api: VoiceAPI; audition: Aud
       setStatus(
         bank.errors.size ? `Some takes failed to load: ${[...bank.errors.keys()].join(", ")}` : "",
       );
-      const chatter = new Chatter(RULES, bank, sink, SEED);
       let next = 0;
       timer.current = setInterval(() => {
         const now = sink.now();
@@ -106,18 +108,22 @@ export function ChatterPreview({ api, audition }: { api: VoiceAPI; audition: Aud
         }
         while (next < CHATTER_SCRIPT.length && CHATTER_SCRIPT[next].t <= now) {
           const { t, ...request } = CHATTER_SCRIPT[next++];
-          chatter.request({ ...request, at: t });
+          chatter.request({ ...request, at: t }, now);
         }
-        const { started, dropped } = chatter.update(LISTENER);
+        const { commands, started, dropped } = chatter.update(now, LISTENER);
+        for (const line of commands) {
+          const buffer = bank.line(line.sound, line.variant);
+          if (buffer) sink.play(buffer, line.at);
+        }
         if (started.length || dropped.length)
           setEvents((list) => [
             ...list,
-            ...started.map(({ request, voice, take, buffer, at }) => ({
+            ...started.map(({ request, voice, take, duration, at }) => ({
               speaker: request.speaker,
               tier: request.tier,
               trigger: request.trigger,
               at,
-              started: { duration: buffer.duration, voice, take },
+              started: { duration, voice, take },
             })),
             ...dropped.map(({ request, reason, at }) => ({
               speaker: request.speaker,

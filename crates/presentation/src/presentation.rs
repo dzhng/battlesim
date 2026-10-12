@@ -20,7 +20,7 @@ use crate::records::{
     View as ViewRecord, NONE,
 };
 use crate::scars::{LearnedGround, ScarCache, ScarStats, ScarUpload, MAX_AXIS};
-use crate::sound::frame::{Cue, Heard, Listener, Motion};
+use crate::sound::frame::{Cue, Heard, Listener, Motion, Shout};
 use crate::static_world::batches::{Population, StaticBatches, Sun};
 use crate::static_world::buildings::{Buildings, PlacedBuildings};
 use crate::static_world::fallen::{Knowledge, Known};
@@ -641,19 +641,16 @@ impl Presentation {
     }
 
     /// The last publication as sound hears it: what the effects took of it,
-    /// the launches it shows and the side's hearing cues; none before one.
+    /// the launches it shows, the side's hearing cues and the shouts it
+    /// hears in the open; none before one.
     pub fn heard(&self) -> Option<Heard<'_>> {
         let (effects, launches) = self.loaded.as_ref()?.sound.as_ref()?;
+        let latest = self.latest.as_ref()?;
         Some(Heard {
             effects,
             launches,
-            audible: self
-                .latest
-                .as_ref()?
-                .audible
-                .iter()
-                .map(Cue::from)
-                .collect(),
+            audible: latest.audible.iter().map(Cue::from).collect(),
+            shouts: latest.shouts.iter().map(Shout::from).collect(),
         })
     }
 

@@ -27,11 +27,13 @@ import {
   type TakeRecord,
   type VoiceLock,
 } from "./lock";
+import { checkPacks } from "./packs";
 import { LIMITS, Pool } from "./pool";
-import { RESPONSE_TALK_S, matches } from "./transcript";
+import { matches } from "./transcript";
 
-/** A bark's nominal talk time is the simulation's (`ShoutRules.talk_s`, keyed `b<n>_<trigger>`); a
+/** A bark's talk time is the simulation's (`ShoutRules.talk_s`, keyed `b<n>_<trigger>`); a
  *  response, which the simulation never sees, is held to `RESPONSE_TALK_S`. */
+const RESPONSE_TALK_S = 4;
 const BARK_TALK_S: Record<string, number> = Object.fromEntries(
   Object.entries(game.shouts.talk_s).map(([key, seconds]) => [barkTrigger(key), seconds]),
 );
@@ -275,8 +277,7 @@ export async function generateVoices(run: VoiceRun): Promise<VoiceRunResult> {
     }
     const match = matches(text, transcript, {
       callsign: set.callsign,
-      durationS: served.duration,
-      talkS: talkTime(take.trigger),
+      length: { durationS: served.duration, talkS: talkTime(take.trigger) },
     });
     const provenance: Generated = {
       kind: "Generated",
@@ -381,7 +382,8 @@ export async function generateBeds(run: {
 /**
  * Proves the lock against the files by hash: every raw master and served file
  * exists with its recorded sha, and was processed with today's profile. It never
- * re-renders, because MP3 encoders differ between ffmpeg versions.
+ * re-renders, because MP3 encoders differ between ffmpeg versions. Then proves
+ * the served packs (`checkPacks`).
  */
 export function checkVoices(run: {
   root: string;
@@ -440,7 +442,7 @@ export function checkVoices(run: {
     if (current !== record.processing_key)
       problems.push(`${id}: processed with an older profile; run \`generate process\``);
   }
-  return problems;
+  return [...problems, ...checkPacks(root, catalog, lock)];
 }
 
 /** The processing owner's voice profiles and encoder. */

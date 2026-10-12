@@ -56,25 +56,6 @@ const SOUND_CATEGORIES: [SoundCategory; 4] = [
     SoundCategory::Shot,
     SoundCategory::Shout,
 ];
-const SHOUT_TRIGGERS: [ShoutTrigger; 17] = [
-    ShoutTrigger::B1ContactInfantry,
-    ShoutTrigger::B2ContactVehicle,
-    ShoutTrigger::B3ContactAir,
-    ShoutTrigger::B4OpensFire,
-    ShoutTrigger::B5UnderFire,
-    ShoutTrigger::B6Suppressed,
-    ShoutTrigger::B7Pinned,
-    ShoutTrigger::B8Hit,
-    ShoutTrigger::B9ManDown,
-    ShoutTrigger::B10BadlyDamaged,
-    ShoutTrigger::B11Kill,
-    ShoutTrigger::B12Reloading,
-    ShoutTrigger::B13OutOfAmmo,
-    ShoutTrigger::B14MissileAway,
-    ShoutTrigger::B15IncomingMissile,
-    ShoutTrigger::B16Destroyed,
-    ShoutTrigger::B17FriendlyDestroyedNearby,
-];
 const INTENSITIES: [Intensity; 2] = [Intensity::Steady, Intensity::Stressed];
 const SOUND_BANDS: [SoundBand; 2] = [SoundBand::Near, SoundBand::Far];
 /// At most the fixed 18 km extent at the finest accepted 2 m fog grid.
@@ -638,7 +619,7 @@ pub fn layout_json(battle: &Battle) -> String {
         "layers": names(&LAYERS),
         "soundCategories": names(&SOUND_CATEGORIES),
         "soundBands": names(&SOUND_BANDS),
-        "shoutTriggers": names(&SHOUT_TRIGGERS),
+        "shoutTriggers": names(&ShoutTrigger::ALL),
         "intensities": names(&INTENSITIES),
         "propKinds": battle.world().types().ids(),
         "engagements": names(&ENGAGEMENTS),
@@ -1461,7 +1442,7 @@ fn pack_record(
             s.position[0] as f32,
             s.position[1] as f32,
             s.position[2] as f32,
-            tag(&SHOUT_TRIGGERS, &s.trigger),
+            tag(&ShoutTrigger::ALL, &s.trigger),
             tag(&INTENSITIES, &s.intensity),
         ]);
     }

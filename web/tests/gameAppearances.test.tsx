@@ -40,7 +40,11 @@ test("required appearance rejection remains fatal on the menu", async () => {
   await waitFor(() => expect(view.getByRole("heading", { name: "Aborted" })).toBeTruthy());
   expect(view.queryByText("Loading appearance")).toBeNull();
   expect(view.getByRole("link", { name: "Back to the menu" }).getAttribute("href")).toBe("/");
-  view.rerender(<AppResourceBoundary menu={true}><div>Main menu remains available</div></AppResourceBoundary>);
+  view.rerender(
+    <AppResourceBoundary menu={true}>
+      <div>Main menu remains available</div>
+    </AppResourceBoundary>,
+  );
   expect(view.queryByText("Main menu remains available")).toBeNull();
   expect(view.getByRole("heading", { name: "Aborted" })).toBeTruthy();
 });

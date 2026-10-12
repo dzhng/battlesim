@@ -193,7 +193,6 @@ test.skipIf(!hasFfmpeg)(
   },
 );
 
-
 /** Integrated loudness (LUFS) and channel count of an encoded file, as ffmpeg reads them. */
 function measure(path: string) {
   const loudness = spawnSync(

@@ -1,8 +1,19 @@
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { packUrl, voicePack, voiceUrl, type VoiceCatalog } from "../../src/voices/voiceCatalog";
-import { LOCK, readLock, verdictOf, writeAtomic, type TakeRecord } from "./lock";
+import {
+  packUrl,
+  takeId,
+  voicePack,
+  voiceUrl,
+  type VoiceCatalog,
+  type VoicePack,
+} from "../../src/voices/voiceCatalog";
+import { LOCK, readLock, verdictOf, writeAtomic, type TakeRecord, type VoiceLock } from "./lock";
+
+const VOICES = "assets/runtime/audio/voices";
+const served = (root: string, url: string) => join(root, "assets/runtime", url);
+const sha256Of = (path: string) => createHash("sha256").update(readFileSync(path)).digest("hex");
 
 /**
  * Whether a take belongs in its set's pack: judged ok on the bytes served.
@@ -12,6 +23,29 @@ import { LOCK, readLock, verdictOf, writeAtomic, type TakeRecord } from "./lock"
 export function packAdmits(record: TakeRecord, unreviewed: boolean): boolean {
   const verdict = verdictOf(record);
   return verdict === "ok" || (unreviewed && verdict === null && !record.match.flagged);
+}
+
+/** A set's pack as the lock and the served files make it now. */
+function admittedPack(
+  root: string,
+  catalog: VoiceCatalog,
+  lock: VoiceLock,
+  set: string,
+  unreviewed: boolean,
+  log: (line: string) => void,
+): VoicePack {
+  return voicePack(catalog, set, (id, take) => {
+    const record = lock.takes[id];
+    if (!record || !packAdmits(record, unreviewed)) return null;
+    const path = served(root, voiceUrl(take, record.served_sha256));
+    if (!existsSync(path)) return null;
+    const sha256 = sha256Of(path);
+    if (sha256 !== record.served_sha256) {
+      log(`CHANGED ${id}`);
+      return null;
+    }
+    return { sha256, duration_s: record.duration_s };
+  });
 }
 
 /**
@@ -28,24 +62,12 @@ export function writePacks(options: {
 }): { packs: number; takes: number } {
   const { root, catalog, unreviewed, log } = options;
   const lock = readLock(join(root, LOCK));
-  const served = (url: string) => join(root, "assets/runtime", url);
   let packs = 0;
   let takes = 0;
   for (const set of options.sets ?? Object.keys(catalog.sets).sort()) {
     if (!catalog.sets[set]) throw new Error(`unknown set ${set}`);
-    const pack = voicePack(catalog, set, (id, take) => {
-      const record = lock.takes[id];
-      if (!record || !packAdmits(record, unreviewed)) return null;
-      const path = served(voiceUrl(take, record.served_sha256));
-      if (!existsSync(path)) return null;
-      const sha256 = createHash("sha256").update(readFileSync(path)).digest("hex");
-      if (sha256 !== record.served_sha256) {
-        log(`CHANGED ${id}`);
-        return null;
-      }
-      return { sha256, duration_s: record.duration_s };
-    });
-    const path = served(packUrl(set));
+    const pack = admittedPack(root, catalog, lock, set, unreviewed, log);
+    const path = served(root, packUrl(set));
     if (!pack.takes.length) {
       if (existsSync(path)) {
         rmSync(path);
@@ -59,4 +81,43 @@ export function writePacks(options: {
     log(`PACK ${set} takes=${pack.takes.length}`);
   }
   return { packs, takes };
+}
+
+/**
+ * Proves the served packs: every packed take is in the lock, judged ok on the
+ * bytes its URL names, and its file holds those bytes; each pack is the one
+ * `generate pack` would write now; and no pack names a set voices.json lacks.
+ */
+export function checkPacks(root: string, catalog: VoiceCatalog, lock: VoiceLock): string[] {
+  const problems: string[] = [];
+  const folders = existsSync(join(root, VOICES)) ? readdirSync(join(root, VOICES)) : [];
+  const sets = new Set([...Object.keys(catalog.sets), ...folders]);
+  for (const set of [...sets].sort()) {
+    const path = served(root, packUrl(set));
+    const onDisk = existsSync(path) ? readFileSync(path, "utf8") : null;
+    if (!catalog.sets[set]) {
+      if (onDisk !== null) problems.push(`pack ${set}: set not in voices.json`);
+      continue;
+    }
+    const pack: VoicePack | null = onDisk === null ? null : JSON.parse(onDisk);
+    for (const take of pack?.takes ?? []) {
+      const where = { set, ...take };
+      const id = takeId(where);
+      const record = lock.takes[id];
+      if (!record) problems.push(`pack ${set}: ${id} is not in the lock`);
+      else if (take.url !== voiceUrl(where, record.served_sha256))
+        problems.push(`pack ${set}: ${id} names other bytes than the lock`);
+      else if (verdictOf(record) !== "ok")
+        problems.push(`pack ${set}: ${id} is not judged ok on its bytes`);
+      else if (
+        !existsSync(served(root, take.url)) ||
+        sha256Of(served(root, take.url)) !== record.served_sha256
+      )
+        problems.push(`pack ${set}: ${id} served file differs`);
+    }
+    const expected = admittedPack(root, catalog, lock, set, false, () => {});
+    const current = expected.takes.length ? `${JSON.stringify(expected, null, 2)}\n` : null;
+    if (current !== onDisk) problems.push(`pack ${set}: stale; run \`generate pack\``);
+  }
+  return problems;
 }

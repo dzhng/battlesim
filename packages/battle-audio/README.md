@@ -103,6 +103,11 @@ writing `fixtures/voices.lock.json` and every voice audio file, belong to
 bare usage lists the commands. It reaches ElevenLabs only through Duet's proxy with
 this machine's Duet login.
 
+Audio has two provenance kinds, both owned by [the catalog](src/catalog.ts): a
+recording names its licence, author and pinned bytes; a generated sound (`Generated`)
+names the generator, model, the text or prompt and, for a voice, the voice id and
+description it was spoken with. Every voice take and every battle track is generated.
+
 A take is two cached steps. Its **raw master** (`assets/source/audio/voices/`) is a
 function of the expanded line, voice, model, settings and retake count, so it is paid
 for once; bumping a retake in `voices.json` is how a judged-bad take is bought again.
@@ -141,23 +146,38 @@ generated bed, a raw master the tool's `beds` command buys once and the lock rec
 the tank's engine is one, since the game synthesises engines. Either way the bed's
 sha256 enters the processing key, so a changed clip or master re-renders its takes.
 
-Which lines play is decided in one place, [the chatter](src/voices/chatter.ts):
-answers before own shouts before a seen enemy's, nearest the camera first, a few
-lines at once (`presentation.audio.voices`), a line dropped when it can't start
+Which lines play is decided in one place, in Rust
+([`presentation::sound::voices`](../../crates/presentation/src/sound/voices.rs),
+bound by [the chatter](src/voices/chatter.ts)): answers before own shouts before a
+seen enemy's, nearest the listener first (a battle's is its sound frame's own), a
+few lines at once (`presentation.audio.voices`), a line dropped when it can't start
 soon, a unit never over itself, one answer per group. It picks the take with the
-client's own seeded randomness, never the simulation's. Its takes come from
+client's own seeded randomness, never the simulation's, and gives start commands
+on the voices bus that the page only carries out. Its takes come from
 [the voice bank](src/voices/voiceBank.ts), which loads a battle's sets from their
-`pack.json` in the background; a take not yet loaded is a dropped line, never a
-wait. The sound workbench's chatter preview runs the same two.
+`pack.json` in the background and tells the chatter each set's voices and each
+take as it arrives; a take not yet loaded is a dropped line, never a wait. The
+sound workbench's chatter preview runs the same two.
 
 A unit answers its owner ([responses](src/voices/responses.ts)) when selected,
 when an order is accepted or refused for a reason the player caused, and when
 an ordered move (or a purchase's drive in) ends after a real journey. One unit
 answers for a group: the one clicked, else the highest-value. Only the owner
-hears an answer, dry and centred on the voices bus. A battle loads the packs
-of the sets its own units and pending purchases speak with, once its sounds are
-ready. `generate pack` writes a set's `pack.json` from the takes judged ok on
-the bytes served; before review, `--unreviewed` also lists unjudged takes the
+hears an answer, dry and centred on the voices bus.
+
+A shout the side hears in the open, its own unit's or an identified enemy's,
+is a bark: Rust's sound frame asks the chatter for it in the set its kind
+speaks with for its side, and the line is spoken where the shout was, placed
+as every unit sound is (distance, the air's low-pass and reverb send). The
+page hands Rust each unit kind's set for its own faction and the enemy's
+(`BattleAudio.speakers`, from `voices.json`'s assignments), once; Rust never
+reads `voices.json`. Outside a skirmish the factions are unknown and shouts
+are silent. A battle loads the packs of every set those two factions speak
+with, and of its own units and pending purchases, once its sounds are ready;
+a set without a pack is silent. The page's line player is the mixer's
+(`WebAudioSink.line`), so a bark has the graph every unit sound has.
+`generate pack` writes a set's `pack.json` from the takes judged ok on the
+bytes served; before review, `--unreviewed` also lists unjudged takes the
 transcript check passed.
 
 An unseen enemy's shout reaches the side only as an anonymous hearing cue, so
@@ -210,8 +230,7 @@ track ids. A track names the `sources` record it was encoded from, the hash of
 the served file, and a gain. The served file is
 `assets/runtime/audio/music/<track>.<sha8>.mp3`, a mono 128 kbps encode written
 by the asset tool's `music` command; the hash in the name keeps a re-encoded
-track from meeting a cached one. A track's gain sets its loudness in the mix:
-the menu bed's matches the integrated loudness the old decoded bed had.
+track from meeting a cached one. A track's gain sets its loudness in the mix.
 
 The battle score is generated, so its sources record how (`Generated`: model,
 prompt, length) instead of a licence, and only a recording can be cropped into
@@ -223,6 +242,10 @@ sets it to −26 LUFS. `--track` buys a track again.
 Which mood plays is the [music director's](src/music/musicDirector.ts) call: a
 pure rule on an injected clock, fed the side's own barks. Its numbers live in
 `presentation.audio.music`. It never repeats a track back to back within a mood.
+In a battle, [the score](src/music/battleMusic.ts) opens on `tension` as the
+menu's music fades, hears every bark the voice lines took (only the side's own
+move it), crossfades when the mood changes, and dips by the duck depth while
+any voice line sounds. It stays in TypeScript while the music tables do.
 
 Music feeds the same master as the rest of the menu mix, so master volume and
 mute cover it. Inside the player, a level gain carries the player's music

@@ -274,12 +274,103 @@ export async function run(ctx) {
     `per frame p50 ${cost.p50.toFixed(3)} ms, p95 ${cost.p95.toFixed(3)} ms; offline render of 8 s ${mix.renderMs.toFixed(0)} ms`,
   );
   await responsesHeard(ctx, page);
+  await barksHeard(ctx, page);
+  await readyWithPacks(ctx, page);
   await auditionTour(ctx, page);
+}
+
+/** Barks in the open: a seen enemy off to the right, then an own tank off to
+ *  the left, shout "under fire" (`soundBarks.ts`, the tank crew's served
+ *  pack). Each is heard on the voices bus from where it was shouted;
+ *  the score opens on tension, moves to combat on the own bark only, and
+ *  dips under every line. */
+async function barksHeard(ctx, page) {
+  const r = await page.evaluate(() => window.__sound.barks());
+  const wav = Buffer.from(r.wav, "base64");
+  await writeFile(ctx.evidencePath("barks.wav"), wav);
+  const { l, r: right } = decodeWav(wav);
+  const energy = (ch, from, to) => {
+    let sum = 0;
+    for (let i = Math.round(from * r.sampleRate); i < Math.round(to * r.sampleRate); i++)
+      sum += ch[i] * ch[i];
+    return sum;
+  };
+  const lines = r.lines.map((line) => {
+    const [a, b] = [line.at, line.at + line.duration];
+    const left = energy(l, a, b);
+    const rightE = energy(right, a, b);
+    const n = Math.max(1, Math.round((b - a) * r.sampleRate) * 2);
+    return {
+      ...line,
+      rmsDb: 10 * Math.log10((left + rightE) / n + 1e-18),
+      leftOverRightDb: 10 * Math.log10((left + 1e-18) / (rightE + 1e-18)),
+      waitedS: line.at - (r.shouted.find((s) => s.speaker === line.speaker)?.at ?? NaN),
+    };
+  });
+  await ctx.writeEvidence("barks.json", { ...r, wav: undefined, lines });
+  const seen = lines.find((x) => x.speaker === "seen/9");
+  const own = lines.find((x) => x.speaker === "own/1");
+  ctx.check(
+    "a shout heard in the open plays its bark where it was shouted: the enemy's on the right, the own tank's on the left",
+    r.errors.length === 0 &&
+      lines.length === 2 &&
+      seen?.tier === "other_bark" &&
+      own?.tier === "own_bark" &&
+      lines.every((x) => x.rmsDb > -45 && x.waitedS >= 0 && x.waitedS <= 0.1) &&
+      seen.leftOverRightDb < -3 &&
+      own.leftOverRightDb > 3,
+    lines
+      .map(
+        (x) =>
+          `${x.speaker} ${x.tier} ${x.rmsDb.toFixed(1)} dBFS, L−R ${x.leftOverRightDb.toFixed(1)} dB, after ${x.waitedS.toFixed(2)} s`,
+      )
+      .join("; ") + `; errors ${r.errors.length}`,
+  );
+  const ownAt = r.shouted.find((s) => s.speaker === "own/1")?.at;
+  ctx.check(
+    "the score opens on tension and moves to combat on the side's own bark, not the enemy's; it dips under each line",
+    JSON.stringify(r.moods.map((m) => m.mood)) === JSON.stringify(["tension", "combat"]) &&
+      r.moods[0].at === 0 &&
+      Math.abs(r.moods[1].at - ownAt) < 0.05 &&
+      r.ducks.filter((d) => d.depth > 0).length === 2 &&
+      r.ducks.at(-1)?.depth === 0,
+    `moods ${r.moods.map((m) => `${m.mood}@${m.at.toFixed(2)}s`).join(", ")}; own bark @${ownAt}s; ducks ${r.ducks.map((d) => `${d.depth}@${d.at.toFixed(2)}s`).join(", ")}`,
+  );
+}
+
+/** Voice packs load after a battle's sounds are ready, so serving them leaves
+ *  `ready` where it was: fresh battles alternately without and with the
+ *  tank crew's pack. Wall time, so a sample to read, not a gate; the gate is
+ *  that no voice file is asked for before `ready`. */
+async function readyWithPacks(ctx, page) {
+  const samples = [];
+  for (const packs of [false, true, false, true])
+    samples.push(await page.evaluate((p) => window.__sound.readyCost(p), packs));
+  await ctx.writeEvidence("ready-with-packs.json", samples);
+  const median = (packs) => {
+    const ms = samples
+      .filter((s) => s.packs === packs)
+      .map((s) => s.readyMs)
+      .sort((a, b) => a - b);
+    return (ms[0] + ms[ms.length - 1]) / 2;
+  };
+  ctx.check(
+    "battle audio is ready before any voice pack is asked for, and the packs load after",
+    samples.every((s) => s.voiceFetchesBefore === 0) &&
+      samples.filter((s) => s.packs).every((s) => s.voiceFetchesAfter > 1),
+    `ready ${median(false).toFixed(0)} ms without packs, ${median(true).toFixed(0)} ms with; ` +
+      samples
+        .map(
+          (s) =>
+            `${s.packs ? "packs" : "none"} ${s.readyMs.toFixed(0)} ms, ${s.voiceFetchesBefore} before / ${s.voiceFetchesAfter} after`,
+        )
+        .join("; "),
+  );
 }
 
 /** Units answering their owner: the lab plays a selection, a group's order
  *  (asked twice) and a refused order through the battle's voice lines, from
- *  a stand-in pack of the pilot set's takes (`soundResponses.ts`). Each answer
+ *  the tank crew's served pack (`soundResponses.ts`). Each answer
  *  is played once, on the voices bus, when it was asked for. */
 async function responsesHeard(ctx, page) {
   const r = await page.evaluate(() => window.__sound.responses());

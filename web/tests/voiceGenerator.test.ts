@@ -16,6 +16,7 @@ import { Pool } from "@packages/battle-audio/tools/generate/pool";
 import { matches } from "@packages/battle-audio/tools/generate/transcript";
 import {
   readLock,
+  recordVerdicts,
   type CandidateRecord,
   type DesignRecord,
 } from "@packages/battle-audio/tools/generate/lock";
@@ -480,6 +481,54 @@ describe("voice packs", () => {
     expect(listed(packed(false, takes, root))).toEqual(["stressed/1"]);
   });
 
+  it("check proves every packed take is the ok-judged bytes the lock names, and reports a stale or orphan pack", async () => {
+    const root = workspace();
+    await run(root, fakeProxy());
+    const lockPath = join(root, "fixtures/voices.lock.json");
+    const sha = (id: string) => lockAt(root).takes[id].served_sha256;
+    const ids = ["tank/lead/move/steady/0", "tank/lead/move/steady/1"];
+    recordVerdicts(
+      lockPath,
+      "ok",
+      ids.map((id) => `${id}@${sha(id)}`),
+      quiet,
+    );
+    writePacks({ root, catalog: catalog(), unreviewed: false, log: quiet });
+    const check = () => checkVoices({ root, catalog: catalog(), profiles: profiles() });
+    expect(check()).toEqual([]);
+
+    // A verdict changed after packing: the pack ships a take no longer judged ok.
+    recordVerdicts(lockPath, "bad", [`${ids[1]}@${sha(ids[1])}`], quiet);
+    expect(check()).toEqual([
+      `pack tank: ${ids[1]} is not judged ok on its bytes`,
+      "pack tank: stale; run `generate pack`",
+    ]);
+    writePacks({ root, catalog: catalog(), unreviewed: false, log: quiet });
+    expect(check()).toEqual([]);
+
+    // A take judged ok since packing is missing from the pack.
+    const stressed = "tank/lead/move/stressed/0";
+    recordVerdicts(lockPath, "ok", [`${stressed}@${sha(stressed)}`], quiet);
+    expect(check()).toEqual(["pack tank: stale; run `generate pack`"]);
+    writePacks({ root, catalog: catalog(), unreviewed: false, log: quiet });
+
+    // A packed file whose bytes changed, and a pack for a set voices.json lost.
+    const served = join(
+      root,
+      "assets/runtime/audio/voices/tank",
+      `lead-move-steady-0.${sha(ids[0]).slice(0, 8)}.mp3`,
+    );
+    writeFileSync(served, "edited");
+    mkdirSync(join(root, "assets/runtime/audio/voices/gone"), { recursive: true });
+    writeFileSync(join(root, "assets/runtime/audio/voices/gone/pack.json"), "{}");
+    expect(check()).toEqual(
+      expect.arrayContaining([
+        `pack tank: ${ids[0]} served file differs`,
+        "pack gone: set not in voices.json",
+      ]),
+    );
+  });
+
   it("leaves out a take whose served file is not the bytes the lock names", () => {
     const root = workspace();
     const pack = packed(
@@ -614,6 +663,37 @@ describe("transcript match", () => {
     ).toMatchObject({ flagged: false, score: 1 });
   });
 
+  it("reads a spelling-only difference as the same words", () => {
+    const heard = (script: string, transcript: string) =>
+      matches(script, transcript, { callsign: "Oscar 1" });
+    for (const [script, transcript] of [
+      ["Enemy in the treeline.", "Enemy in the tree line"],
+      ["Armour, front.", "Armor front"],
+      ["Reloading, stand by.", "Reloading. Standby"],
+      ["[shouting] Bail out! Bail out, God damn it!", "Bail out. Bail out, goddammit"],
+      ["Co-pilot wounded.", "Copilot wounded"],
+      ["[shouting] Backblast clear!", "Back blast clear!"],
+      ["Troops, four hundred metres.", "Troops, 400 meters"],
+    ])
+      expect(heard(script, transcript), transcript).toMatchObject({ flagged: false, score: 1 });
+  });
+
+  it("still flags a misread word or a dropped keyword once spelling is set aside", () => {
+    const callsign = "Oscar 1";
+    expect(matches("Rocket out.", "Rock it out", { callsign }).flagged).toBe(true);
+    expect(matches("Armour, front.", "Armor hell", { callsign }).flagged).toBe(true);
+    expect(
+      matches("[shouting] Tank! Gunner, sabot!", "Tank, gun, sabot", { callsign }),
+    ).toMatchObject({ flagged: true, missing: ["gunner"] });
+    // Overlong is a flag however well the words match.
+    expect(
+      matches("Enemy in the treeline.", "Enemy in the tree line", {
+        callsign,
+        length: { durationS: 5, talkS: 3 },
+      }),
+    ).toMatchObject({ flagged: true, overlong: true });
+  });
+
   it("flags a misheard keyword even when the rest of the line is right", () => {
     const result = matches("Gunner, sabot, tank!", "Gutter, sabot, tank!", { callsign: "Oscar 1" });
     expect(result).toMatchObject({ flagged: true, missing: ["gunner"] });
@@ -621,11 +701,15 @@ describe("transcript match", () => {
 
   it("flags a take longer than its trigger's talk time", () => {
     const line = "Roger, moving out.";
-    expect(matches(line, line, { callsign: "", durationS: 2, talkS: 3 }).flagged).toBe(false);
-    expect(matches(line, line, { callsign: "", durationS: 4, talkS: 3 })).toMatchObject({
-      flagged: true,
-      overlong: true,
-    });
+    expect(matches(line, line, { callsign: "", length: { durationS: 2, talkS: 3 } }).flagged).toBe(
+      false,
+    );
+    expect(matches(line, line, { callsign: "", length: { durationS: 4, talkS: 3 } })).toMatchObject(
+      {
+        flagged: true,
+        overlong: true,
+      },
+    );
   });
 });
 

@@ -8,7 +8,10 @@ import {
 export const GRAPHICS_TARGET = { averageFps: 45 } as const;
 export const GRAPHICS_TIERS: readonly GraphicsTier[] = ["high", "medium", "low"];
 
-export function judgeIntervals(intervalsMs: readonly number[], _tier?: GraphicsTier): TierBenchmarkInput {
+export function judgeIntervals(
+  intervalsMs: readonly number[],
+  _tier?: GraphicsTier,
+): TierBenchmarkInput {
   if (intervalsMs.length < 30 || intervalsMs.some((v) => !Number.isFinite(v) || v <= 0))
     throw new Error("Graphics auto-detect produced insufficient or invalid frame samples.");
   const sorted = [...intervalsMs].sort((a, b) => b - a);
@@ -18,7 +21,9 @@ export function judgeIntervals(intervalsMs: readonly number[], _tier?: GraphicsT
   return { averageFps, onePercentLowFps };
 }
 
-export function chooseTier(samples: Partial<Record<GraphicsTier, TierBenchmarkInput>>): GraphicsTier {
+export function chooseTier(
+  samples: Partial<Record<GraphicsTier, TierBenchmarkInput>>,
+): GraphicsTier {
   const result = resolveAutoDetect({
     high: samples.high ?? null,
     medium: samples.medium ?? null,
@@ -57,51 +62,73 @@ export function createCanonicalFrameRunner({
   sampleMs?: number;
   timeoutMs?: number;
 }): GraphicsDetectionRunner {
-  return (tier, signal) => new Promise<TierBenchmarkInput>((resolve, reject) => {
-    const preparation = new AbortController();
-    const intervals: number[] = [];
-    let previous = 0;
-    let started: number | null = null;
-    let done = false;
-    let timeout: ReturnType<typeof setTimeout> | undefined;
-    let unsubscribe = () => {};
-    const abort = () => finish(new DOMException("Detection cancelled", "AbortError"));
-    const finish = (error?: unknown) => {
-      if (done) return;
-      done = true;
-      clearTimeout(timeout);
-      signal.removeEventListener("abort", abort);
-      unsubscribe();
-      preparation.abort();
-      if (error) reject(error);
-      else {
-        try { resolve(judgeIntervals(intervals, tier)); } catch (reason) { reject(reason); }
-      }
-    };
-    if (signal.aborted) return abort();
-    signal.addEventListener("abort", abort, { once: true });
-    timeout = setTimeout(() => finish(new Error("Graphics auto-detect timed out before the scene produced enough frames.")), timeoutMs);
-    const ready = () => {
-      if (done) return;
-      const stop = subscribeFrames((timestampMs) => {
+  return (tier, signal) =>
+    new Promise<TierBenchmarkInput>((resolve, reject) => {
+      const preparation = new AbortController();
+      const intervals: number[] = [];
+      let previous = 0;
+      let started: number | null = null;
+      let done = false;
+      let timeout: ReturnType<typeof setTimeout> | undefined;
+      let unsubscribe = () => {};
+      const abort = () => finish(new DOMException("Detection cancelled", "AbortError"));
+      const finish = (error?: unknown) => {
         if (done) return;
-        if (!Number.isFinite(timestampMs)) return finish(new Error("Graphics auto-detect received an invalid frame timestamp."));
-        if (started === null) { started = timestampMs; previous = timestampMs; return; }
-        const interval = timestampMs - previous;
-        if (interval <= 0) return finish(new Error("Graphics auto-detect received non-increasing frame timestamps."));
-        previous = timestampMs;
-        const elapsed = timestampMs - started;
-        if (elapsed < warmupMs) return;
-        intervals.push(interval);
-        if (elapsed >= warmupMs + sampleMs) finish();
-      });
-      unsubscribe = stop;
-      // A source may synchronously emit while being subscribed.
-      if (done) stop();
-    };
-    try { void setTier(tier, preparation.signal).then(ready).catch(finish); }
-    catch (error) { finish(error); }
-  });
+        done = true;
+        clearTimeout(timeout);
+        signal.removeEventListener("abort", abort);
+        unsubscribe();
+        preparation.abort();
+        if (error) reject(error);
+        else {
+          try {
+            resolve(judgeIntervals(intervals, tier));
+          } catch (reason) {
+            reject(reason);
+          }
+        }
+      };
+      if (signal.aborted) return abort();
+      signal.addEventListener("abort", abort, { once: true });
+      timeout = setTimeout(
+        () =>
+          finish(
+            new Error("Graphics auto-detect timed out before the scene produced enough frames."),
+          ),
+        timeoutMs,
+      );
+      const ready = () => {
+        if (done) return;
+        const stop = subscribeFrames((timestampMs) => {
+          if (done) return;
+          if (!Number.isFinite(timestampMs))
+            return finish(new Error("Graphics auto-detect received an invalid frame timestamp."));
+          if (started === null) {
+            started = timestampMs;
+            previous = timestampMs;
+            return;
+          }
+          const interval = timestampMs - previous;
+          if (interval <= 0)
+            return finish(
+              new Error("Graphics auto-detect received non-increasing frame timestamps."),
+            );
+          previous = timestampMs;
+          const elapsed = timestampMs - started;
+          if (elapsed < warmupMs) return;
+          intervals.push(interval);
+          if (elapsed >= warmupMs + sampleMs) finish();
+        });
+        unsubscribe = stop;
+        // A source may synchronously emit while being subscribed.
+        if (done) stop();
+      };
+      try {
+        void setTier(tier, preparation.signal).then(ready).catch(finish);
+      } catch (error) {
+        finish(error);
+      }
+    });
 }
 
 let runner: GraphicsDetectionRunner | null = null;
@@ -157,7 +184,11 @@ export function runAutoDetect(): Promise<GraphicsTier> {
     }
     const selectedMode = chooseTier(results);
     const result = results[selectedMode]!;
-    graphicsSettings.set({ mode: "auto", detectedMode: selectedMode, lastResult: { ...result, selectedMode } });
+    graphicsSettings.set({
+      mode: "auto",
+      detectedMode: selectedMode,
+      lastResult: { ...result, selectedMode },
+    });
     publish({ status: "complete", tier: selectedMode, error: null });
     return selectedMode;
   })()

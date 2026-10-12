@@ -6,7 +6,6 @@ import {
 import type { SoundCatalog } from "../../../packages/battle-audio/src/catalog";
 import type { MusicTrack } from "../../../packages/battle-audio/src/music/musicCatalog";
 import { MusicPlayer } from "../../../packages/battle-audio/src/music/musicPlayer";
-import type { LineSink, VoiceLine } from "../../../packages/battle-audio/src/voices/chatter";
 
 // A memoryless ceiling preserves safe short attacks; compressor startup can
 // attenuate a brief report before its gain has settled.
@@ -60,6 +59,13 @@ export interface Auditioner {
     prepare: (context: BaseAudioContext, signal: AbortSignal) => Promise<T>,
   ): Promise<LineAudition<T> | null>;
   stop(): void;
+}
+
+/** Where an audition's lines are heard, on a clock from 0. */
+export interface LineSink {
+  now(): number;
+  /** Plays `buffer` calibrated like a take from sink time `at`. */
+  play(buffer: AudioBuffer, at: number): void;
 }
 
 /** A running audition of voice lines. */
@@ -194,8 +200,8 @@ export class SoundAuditioner implements Auditioner {
       current,
       sink: {
         now,
-        play: (line: VoiceLine) => {
-          if (current()) start(line.buffer, 1, false, Math.max(0, line.at - now()));
+        play: (buffer: AudioBuffer, at: number) => {
+          if (current()) start(buffer, 1, false, Math.max(0, at - now()));
         },
       },
     };

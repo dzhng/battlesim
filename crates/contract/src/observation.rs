@@ -175,6 +175,28 @@ pub enum ShoutTrigger {
     B17FriendlyDestroyedNearby,
 }
 
+impl ShoutTrigger {
+    pub const ALL: [ShoutTrigger; 17] = [
+        ShoutTrigger::B1ContactInfantry,
+        ShoutTrigger::B2ContactVehicle,
+        ShoutTrigger::B3ContactAir,
+        ShoutTrigger::B4OpensFire,
+        ShoutTrigger::B5UnderFire,
+        ShoutTrigger::B6Suppressed,
+        ShoutTrigger::B7Pinned,
+        ShoutTrigger::B8Hit,
+        ShoutTrigger::B9ManDown,
+        ShoutTrigger::B10BadlyDamaged,
+        ShoutTrigger::B11Kill,
+        ShoutTrigger::B12Reloading,
+        ShoutTrigger::B13OutOfAmmo,
+        ShoutTrigger::B14MissileAway,
+        ShoutTrigger::B15IncomingMissile,
+        ShoutTrigger::B16Destroyed,
+        ShoutTrigger::B17FriendlyDestroyedNearby,
+    ];
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Intensity {

@@ -184,18 +184,18 @@ export function assignedSet(
   const assignment = assignments[unit];
   return typeof assignment === "string" ? assignment : (assignment?.[faction] ?? null);
 }
-/** Every set `faction` speaks with: the sets of the unit types its roster fields. */
-export function factionSets(
+/** The set each unit type `faction`'s roster fields speaks with, by type. */
+export function factionVoices(
   assignments: VoiceCatalog["assignments"],
   units: Iterable<{ id: string; factions: readonly string[] }>,
   faction: string,
-): string[] {
-  const sets = new Set<string>();
+): Record<string, string> {
+  const voices: Record<string, string> = {};
   for (const { id, factions } of units) {
     const set = factions.includes(faction) ? assignedSet(assignments, id, faction) : null;
-    if (set) sets.add(set);
+    if (set) voices[id] = set;
   }
-  return [...sets].sort();
+  return voices;
 }
 export function lineText(
   catalog: VoiceCatalog,

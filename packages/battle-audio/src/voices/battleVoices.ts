@@ -1,21 +1,20 @@
 // A battle's voice lines: the takes of the sets it asks for (`VoiceBank`),
-// the one arbitration (`Chatter`), and where a line sounds. Packs load only
-// once `start` is called (the battle's own sounds are ready), and each set
-// once. A line plays dry and centred on the mixer's voices bus: an answer is
-// the owner's radio, never placed in the world.
-import { sourceNormalization } from "../soundBank";
-import { Chatter, type ChatterRules, type LineSink, type VoiceLine } from "./chatter";
+// the one arbitration (`Chatter`, in Rust), and playing what it starts.
+// Packs load only once `start` is called (the battle's own sounds are
+// ready), and each set once. A line plays on the mixer's voices bus as Rust
+// gives it, after its take's calibration: an answer dry and centred, the
+// owner's radio; a battle's bark where it was shouted.
+import type { SoundFrame, VoiceSpec } from "../soundFrame";
+import { Chatter, type ChatterRules, type ChatterUpdate } from "./chatter";
 import type { ResponseRequest } from "./responses";
 import { VoiceBank, type PackSource } from "./voiceBank";
 
-/** A line's level on the voices bus, after the calibration every take gets. */
-export const LINE_GAIN = 0.5;
-
-/** The mixer a battle's lines sound through, on its clock. */
+/** The mixer a battle's lines sound through, on its clock (`WebAudioSink`). */
 export interface LineOutput {
   readonly context: BaseAudioContext;
-  readonly buses: { readonly voices: AudioNode };
   now(): number;
+  /** Plays a line of take `buffer`, calibrated as every take is. */
+  line(voice: VoiceSpec, buffer: AudioBuffer): void;
 }
 
 export class BattleVoices {
@@ -24,17 +23,18 @@ export class BattleVoices {
   private readonly wanted = new Set<string>();
   private readonly asked = new Set<string>();
   private started = false;
-  private readonly sounding = new Set<AudioBufferSourceNode>();
-  private readonly calibration = new WeakMap<AudioBuffer, number>();
+  /** When the last line started ends, on the player's clock. */
+  private until = -Infinity;
 
   constructor(
     private readonly output: LineOutput,
     rules: ChatterRules,
     options: { fetcher?: typeof fetch; packs?: PackSource; seed?: number } = {},
   ) {
-    this.bank = new VoiceBank(output.context, options.fetcher, options.packs);
-    const sink: LineSink = { now: () => output.now(), play: (line) => this.play(line) };
-    this.chatter = new Chatter(rules, this.bank, sink, options.seed ?? 0);
+    this.chatter = new Chatter(rules, options.seed ?? 0);
+    this.bank = new VoiceBank(output.context, options.fetcher, options.packs, {
+      listener: this.chatter,
+    });
   }
 
   /** Sets this battle speaks with; they load once started. */
@@ -49,14 +49,26 @@ export class BattleVoices {
     return this.load();
   }
 
-  /** Asks for a line now; the next `update` decides whether it plays. */
+  /** Asks for a line now; the next arbitration decides whether it plays. */
   respond(request: ResponseRequest) {
-    this.chatter.request({ ...request, at: this.output.now() });
+    const now = this.output.now();
+    this.chatter.request({ ...request, at: now }, now);
   }
 
-  /** Starts what may start, heard from `listener`. */
-  update(listener: readonly number[]) {
-    return this.chatter.update(listener);
+  /** Starts what may start with the barks battle sound `frame` heard,
+   *  heard from where it last heard. */
+  hear(frame: SoundFrame): ChatterUpdate {
+    return this.play(frame.hearLines(this.chatter));
+  }
+
+  /** Starts what may start, heard from `listener` (a script's). */
+  update(listener: readonly number[]): ChatterUpdate {
+    return this.play(this.chatter.update(this.output.now(), listener));
+  }
+
+  /** A line is sounding at player time `now`. */
+  speaking(now = this.output.now()): boolean {
+    return now < this.until;
   }
 
   /** Forgets every line waiting; lines sounding play out. */
@@ -71,12 +83,6 @@ export class BattleVoices {
 
   dispose() {
     this.bank.dispose();
-    for (const source of this.sounding) {
-      source.onended = null;
-      source.stop();
-      source.disconnect();
-    }
-    this.sounding.clear();
   }
 
   private load(): Promise<void> {
@@ -86,22 +92,13 @@ export class BattleVoices {
     return sets.length ? this.bank.load(sets) : Promise.resolve();
   }
 
-  private play(line: VoiceLine) {
-    const { context, buses } = this.output;
-    let calibration = this.calibration.get(line.buffer);
-    if (calibration === undefined) {
-      calibration = sourceNormalization(line.buffer);
-      this.calibration.set(line.buffer, calibration);
+  /** Carries out an arbitration's start commands. */
+  private play(update: ChatterUpdate): ChatterUpdate {
+    for (const { op: _, id: __, ...line } of update.commands) {
+      const buffer = this.bank.line(line.sound, line.variant);
+      if (buffer) this.output.line(line, buffer);
     }
-    const source = new AudioBufferSourceNode(context, { buffer: line.buffer });
-    const gain = new GainNode(context, { gain: LINE_GAIN * calibration });
-    source.connect(gain).connect(buses.voices);
-    source.onended = () => {
-      this.sounding.delete(source);
-      source.disconnect();
-      gain.disconnect();
-    };
-    this.sounding.add(source);
-    source.start(line.at);
+    for (const line of update.started) this.until = Math.max(this.until, line.at + line.duration);
+    return update;
   }
 }

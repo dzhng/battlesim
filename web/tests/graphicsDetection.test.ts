@@ -1,5 +1,12 @@
 import { describe, expect, test, vi } from "vitest";
-import { chooseTier, judgeIntervals, cancelAutoDetect, registerGraphicsDetectionRunner, runAutoDetect, graphicsDetectionState } from "@apps/battle-lab/src/graphicsDetection";
+import {
+  chooseTier,
+  judgeIntervals,
+  cancelAutoDetect,
+  registerGraphicsDetectionRunner,
+  runAutoDetect,
+  graphicsDetectionState,
+} from "@apps/battle-lab/src/graphicsDetection";
 import { graphicsSettings } from "@apps/battle-lab/src/graphicsSettings";
 
 describe("graphics auto-detect", () => {
@@ -9,7 +16,13 @@ describe("graphics auto-detect", () => {
     expect(result.onePercentLowFps).toBeCloseTo(60);
   });
   test("chooses the highest passing tier", () => {
-    expect(chooseTier({ high: { averageFps: 44, onePercentLowFps: 40 }, medium: { averageFps: 50, onePercentLowFps: 35 }, low: { averageFps: 60, onePercentLowFps: 50 } })).toBe("medium");
+    expect(
+      chooseTier({
+        high: { averageFps: 44, onePercentLowFps: 40 },
+        medium: { averageFps: 50, onePercentLowFps: 35 },
+        low: { averageFps: 60, onePercentLowFps: 50 },
+      }),
+    ).toBe("medium");
   });
   test("rejects an adapter whose average misses the target on every preset", () => {
     expect(() =>
@@ -57,7 +70,9 @@ describe("graphics detection runner boundary", () => {
     const dispose = registerGraphicsDetectionRunner(
       (tier, signal) =>
         new Promise((resolve, reject) => {
-          signal.addEventListener("abort", () => reject(new DOMException("Detection cancelled", "AbortError")));
+          signal.addEventListener("abort", () =>
+            reject(new DOMException("Detection cancelled", "AbortError")),
+          );
           release = () => resolve({ averageFps: tier === "high" ? 46 : 60, onePercentLowFps: 4 });
         }),
     );
@@ -93,31 +108,45 @@ describe("canonical frame runner", () => {
   });
 });
 
- test("bounds renderer preparation and aborts its work on timeout", async () => {
-    vi.useFakeTimers();
-    const { createCanonicalFrameRunner } = await import("@apps/battle-lab/src/graphicsDetection");
-    let preparationSignal!: AbortSignal;
-    const run = createCanonicalFrameRunner({
-      setTier: (_, signal) => { preparationSignal = signal; return new Promise(() => {}); },
-      subscribeFrames: () => () => {},
-      timeoutMs: 100,
-    });
-    const pending = run("high", new AbortController().signal);
-    const outcome = pending.then(() => "resolved", (error: Error) => error.message);
-    try {
-      await vi.advanceTimersByTimeAsync(100);
-      expect(await Promise.race([outcome, Promise.resolve("still pending")])).toContain("timed out");
-      expect(preparationSignal.aborted).toBe(true);
-    } finally { vi.useRealTimers(); }
+test("bounds renderer preparation and aborts its work on timeout", async () => {
+  vi.useFakeTimers();
+  const { createCanonicalFrameRunner } = await import("@apps/battle-lab/src/graphicsDetection");
+  let preparationSignal!: AbortSignal;
+  const run = createCanonicalFrameRunner({
+    setTier: (_, signal) => {
+      preparationSignal = signal;
+      return new Promise(() => {});
+    },
+    subscribeFrames: () => () => {},
+    timeoutMs: 100,
   });
+  const pending = run("high", new AbortController().signal);
+  const outcome = pending.then(
+    () => "resolved",
+    (error: Error) => error.message,
+  );
+  try {
+    await vi.advanceTimersByTimeAsync(100);
+    expect(await Promise.race([outcome, Promise.resolve("still pending")])).toContain("timed out");
+    expect(preparationSignal.aborted).toBe(true);
+  } finally {
+    vi.useRealTimers();
+  }
+});
 
 test("cancelled final tier cannot persist even if the adapter resolves late", async () => {
   Object.defineProperty(navigator, "gpu", { configurable: true, value: {} });
   let finish!: () => void;
   let reachedLow!: () => void;
-  const low = new Promise<void>((resolve) => { reachedLow = resolve; });
+  const low = new Promise<void>((resolve) => {
+    reachedLow = resolve;
+  });
   const dispose = registerGraphicsDetectionRunner(async (tier) => {
-    if (tier === "low") await new Promise<void>((resolve) => { finish = resolve; reachedLow(); });
+    if (tier === "low")
+      await new Promise<void>((resolve) => {
+        finish = resolve;
+        reachedLow();
+      });
     return { averageFps: tier === "high" ? 46 : 60, onePercentLowFps: 2 };
   });
   const before = graphicsSettings.get();
@@ -128,5 +157,7 @@ test("cancelled final tier cannot persist even if the adapter resolves late", as
   try {
     await expect(pending).rejects.toThrow("cancelled");
     expect(graphicsSettings.get()).toBe(before);
-  } finally { dispose(); }
+  } finally {
+    dispose();
+  }
 });

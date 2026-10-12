@@ -7,6 +7,7 @@ import type { AudioPresentation } from "@packages/battle-audio/src/audioPresenta
 import type { SoundCatalog } from "@packages/battle-audio/src/catalog";
 import { AppAudio } from "@packages/battle-audio/src/appAudio";
 import { soundSettings } from "@packages/battle-audio/src/settings";
+import { MusicPlayer } from "@packages/battle-audio/src/music/musicPlayer";
 
 beforeAll(() => loadPresentation());
 
@@ -326,4 +327,84 @@ test("a battle loads its voice sets only once its sounds are ready, and its unit
   expect(fetched.filter((url) => url.endsWith("pack.json"))).toEqual([
     "/audio/voices/tank/pack.json",
   ]);
+});
+
+test("a battle's own shout plays its kind's bark where it was shouted, and the music dips under it", async () => {
+  const take = buffer(1, 8000, 8000);
+  const fetcher = async (url: string) => {
+    if (url === "/audio/voices/tank/pack.json")
+      return Response.json({
+        set: "tank",
+        voices: [{ id: "gunner", speaks: "barks" }],
+        takes: [
+          {
+            voice: "gunner",
+            trigger: "under_fire",
+            intensity: "stressed",
+            take: 0,
+            url: "/audio/voices/tank/gunner-under_fire-stressed-0.abcd1234.mp3",
+            duration_s: 1,
+          },
+        ],
+      });
+    if (url.endsWith("pack.json")) return new Response(null, { status: 404 });
+    return new Response(Uint8Array.of(url.startsWith("/audio/voices/") ? 9 : 1));
+  };
+  const played: AudioBuffer[] = [];
+  const placed: number[][] = [];
+  class Source extends Node {
+    buffer: AudioBuffer;
+    playbackRate = param();
+    onended: (() => void) | null = null;
+    constructor(_: unknown, options: { buffer: AudioBuffer }) {
+      super();
+      this.buffer = options.buffer;
+    }
+    start() {
+      played.push(this.buffer);
+    }
+    stop() {}
+  }
+  class Panner extends Node {
+    constructor(_: unknown, o: { positionX: number; positionY: number; positionZ: number }) {
+      super();
+      placed.push([o.positionX, o.positionY, o.positionZ]);
+    }
+  }
+  vi.stubGlobal("AudioBufferSourceNode", Source);
+  vi.stubGlobal("PannerNode", Panner);
+  for (const name of ["BiquadFilterNode", "StereoPannerNode"]) vi.stubGlobal(name, Node);
+  const ducks = vi.spyOn(MusicPlayer.prototype, "duck");
+  const audio = setupDecode(
+    async (bytes) => (new Uint8Array(bytes)[0] === 9 ? take : buffer(1, 2, 8000)),
+    fetcher,
+  );
+  audio.speakers({ own: { m1a2: "tank" }, enemy: { t90: "ru_tank" } });
+  await vi.waitFor(() => expect(audio.stats()?.loading).toBe(false));
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  const frame = () =>
+    audio.update({
+      clock: 0,
+      motion: { vehicles: [], soldiers: [] },
+      listener: { position: [0, 0, 0], forward: [0, 1, 0] },
+    });
+  frame();
+  audio.note({
+    ...empty(1),
+    shouts: [
+      {
+        own: true,
+        id: 4,
+        kind: "m1a2",
+        position: [30, 10, 1],
+        trigger: "b5_under_fire",
+        intensity: "stressed",
+      },
+    ],
+  });
+  frame();
+  expect(played.filter((b) => b === take)).toHaveLength(1);
+  expect(placed).toContainEqual([30, 10, 1]);
+  const { depth } = game.presentation.audio.music.duck;
+  expect(ducks).toHaveBeenCalledWith(depth, expect.any(Number), expect.any(Number));
 });

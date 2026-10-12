@@ -44,9 +44,13 @@ wherever it runs.
 - [Sound](src/sound/): what a battle hears, when, where and how loud, from the
   same publication the effects read, the frame's emitters and the side's
   hearing cues, as commands a player carries out (start, glide, stop a voice;
-  listen from here); and the synthesized baselines and recipe buffers every
-  player prepares alike. `tests/sound.rs` holds it to every command the
-  browser's TypeScript frame gave over the sound lab's firefight.
+  listen from here); which units' voice lines play, started on the voices
+  bus, a shout the side hears in the open asking for a bark in its kind's
+  set and spoken where it was shouted; and the synthesized baselines and
+  recipe buffers every player prepares alike. `tests/sound.rs` holds it to
+  every command the browser's
+  TypeScript frame gave over the sound lab's firefight, and `tests/voices.rs`
+  to the lines recorded scripts start and drop.
 
 ## How a battle looks
 

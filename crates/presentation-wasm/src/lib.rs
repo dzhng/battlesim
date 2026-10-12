@@ -13,6 +13,7 @@ use presentation::sound::bank::{self, Bank, Core};
 use presentation::sound::frame::{self, Command, Listener, Motion, Scripted, Sound};
 use presentation::sound::synth;
 use presentation::sound::tables::{Cadence, Recipe};
+use presentation::sound::voices::{self, Request};
 use presentation::static_world::buildings::{Placed, PlacedBuildings};
 use presentation::static_world::fallen::Known;
 use presentation::static_world::library::{Bounds, Library};
@@ -539,6 +540,15 @@ impl SoundFrame {
         Ok(())
     }
 
+    /// Which voice set each unit kind speaks with, JSON `{own: {kind: set},
+    /// enemy: {kind: set}}`: the side's own faction's and its enemy's.
+    pub fn speakers(&mut self, speakers: &str) -> Result<(), JsError> {
+        let speakers =
+            serde_json::from_str(speakers).map_err(|e| JsError::new(&format!("speakers: {e}")))?;
+        self.inner.set_speakers(speakers);
+        Ok(())
+    }
+
     /// Every sound a battle plays, JSON: what the page prepares.
     pub fn sounds(&self) -> String {
         serde_json::to_string(&self.inner.tables().battle_sounds()).expect("names serialize")
@@ -598,6 +608,74 @@ impl SoundFrame {
     /// Voices, budget, holds and counts, JSON (`SoundStats`).
     pub fn stats(&self) -> String {
         serde_json::to_string(&self.inner.stats()).expect("stats serialize")
+    }
+}
+
+/// Which voice lines play (`presentation::sound::voices::Chatter`): the
+/// takes the page has loaded and its units' requests in, the start commands
+/// its voices bus carries out, and the lines started and dropped, out, as JSON.
+#[wasm_bindgen]
+pub struct Chatter {
+    inner: voices::Chatter,
+}
+
+#[wasm_bindgen]
+impl Chatter {
+    /// By `rules` (`presentation.audio.voices`, JSON), takes chosen by `seed`.
+    #[wasm_bindgen(constructor)]
+    pub fn new(rules: &str, seed: f64) -> Result<Chatter, JsError> {
+        let rules: voices::ChatterRules = serde_json::from_str(rules)
+            .map_err(|e| JsError::new(&format!("presentation.audio.voices: {e}")))?;
+        rules.check().map_err(error)?;
+        Ok(Chatter {
+            inner: voices::Chatter::new(rules, seed),
+        })
+    }
+
+    /// Set `set`'s pack arrived with these voices (`[{id, speaks}]` JSON).
+    pub fn voices(&mut self, set: &str, voices: &str) -> Result<(), JsError> {
+        let voices = serde_json::from_str(voices).map_err(|e| JsError::new(&e.to_string()))?;
+        self.inner.set_voices(set, voices);
+        Ok(())
+    }
+
+    /// A take is loaded and lasts `duration` seconds.
+    pub fn loaded(
+        &mut self,
+        set: &str,
+        voice: &str,
+        trigger: &str,
+        intensity: &str,
+        take: u32,
+        duration: f64,
+    ) {
+        self.inner
+            .loaded(set, voice, trigger, intensity, take, duration);
+    }
+
+    /// Asks for a line (`VoiceRequest` JSON) at mixer time `now`.
+    pub fn request(&mut self, request: &str, now: f64) -> Result<(), JsError> {
+        let request: Request =
+            serde_json::from_str(request).map_err(|e| JsError::new(&e.to_string()))?;
+        self.inner.request(request, now);
+        Ok(())
+    }
+
+    /// Arbitrates at mixer time `now`, nearest `listener` first.
+    pub fn update(&mut self, now: f64, listener: &[f64]) -> String {
+        let listener = [listener[0], listener[1], listener[2]];
+        serde_json::to_string(self.inner.update(now, listener)).expect("lines serialize")
+    }
+
+    /// A battle's arbitration at mixer time `now`: the barks `sound` heard,
+    /// heard from where it last heard, each placed where it was shouted.
+    pub fn hear(&mut self, sound: &mut SoundFrame, now: f64) -> String {
+        serde_json::to_string(self.inner.hear(&mut sound.inner, now)).expect("lines serialize")
+    }
+
+    /// Forgets every line waiting and sounding (a new battle).
+    pub fn reset(&mut self) {
+        self.inner.reset();
     }
 }
 

@@ -5,7 +5,7 @@
 import { expect, test } from "vitest";
 import { ShoutPool, shoutTakes } from "@packages/battle-audio/src/voices/shoutPool";
 import {
-  factionSets,
+  factionVoices,
   packUrl,
   type PackTake,
   type VoicePack,
@@ -70,13 +70,16 @@ test("the pool loads only its share, and a set without a pack adds nothing", asy
   expect(await new ShoutPool(context, 2, { fetcher }).load(["absent"])).toEqual([]);
 });
 
-test("a faction speaks with the sets of the units its roster fields", () => {
+test("a faction speaks with the set of each unit its roster fields", () => {
   const assignments = { rifles: { us: "us_rifles", eastern: "ru_rifles" }, tank: "ru_tank" };
   const units = [
     { id: "rifles", factions: ["us", "eastern"] },
     { id: "tank", factions: ["eastern"] },
     { id: "unvoiced", factions: ["eastern"] },
   ];
-  expect(factionSets(assignments, units, "eastern")).toEqual(["ru_rifles", "ru_tank"]);
-  expect(factionSets(assignments, units, "us")).toEqual(["us_rifles"]);
+  expect(factionVoices(assignments, units, "eastern")).toEqual({
+    rifles: "ru_rifles",
+    tank: "ru_tank",
+  });
+  expect(factionVoices(assignments, units, "us")).toEqual({ rifles: "us_rifles" });
 });
