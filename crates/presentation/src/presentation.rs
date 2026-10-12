@@ -468,6 +468,56 @@ impl Presentation {
         self.buildings.as_ref().map(|b| &b.walk.stats[..])
     }
 
+    /// A skinned row's body as it holds still (`World.appearances`): a
+    /// corpse row as it lies (its `corpse_poses` entry), a body row in its
+    /// far pose (what its impostor card shows). Each joint's bind-to-model
+    /// motion: a renderer skins the body's mesh by it once, when it loads
+    /// the row (`posedMesh`), and draws that mesh where the frame's
+    /// instance takes the identity. None for a rigid row, or before a world
+    /// loads.
+    pub fn rest_palette(&self, row: u32) -> Option<Vec<Joint>> {
+        let loaded = self.loaded.as_ref()?;
+        let r = self.world.appearances.get(row as usize)?;
+        let name = self
+            .world
+            .strings
+            .get(r.name as usize..(r.name + r.name_len) as usize)?;
+        let Some(Appearance::Skinned {
+            joints,
+            clips,
+            table,
+            far_pose,
+            corpse_poses,
+            ..
+        }) = loaded.units.appearances.get(name)
+        else {
+            return None;
+        };
+        let pose = match r.lies {
+            NONE => far_pose,
+            lies => corpse_poses.get(lies as usize)?,
+        };
+        let mut worlds = Vec::new();
+        let table = loaded.tables.get(table)?;
+        skin::joint_worlds(
+            joints,
+            clips,
+            table,
+            &pose.clip,
+            pose.phase,
+            None,
+            &mut worlds,
+        );
+        let ibs = &loaded.inverse_binds[name];
+        Some(
+            worlds
+                .iter()
+                .zip(ibs)
+                .map(|(w, ib)| joint(&skin::affine(&skin::mul(w, ib))))
+                .collect(),
+        )
+    }
+
     /// The presentation time at wall time `wall_s` (live only).
     pub fn clock(&self, wall_s: f64) -> Option<f64> {
         self.interpolator.time(wall_s)
