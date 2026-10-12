@@ -48,7 +48,7 @@ impl Sun {
     /// as the page's `sunShadow` took them.
     pub fn shadow(&self, camera: &Camera) -> Shadow {
         let throw = 1.0 / libm::tan(self.elevation);
-        let tan_v = libm::tan(f64::from(camera.fov_y) / 2.0);
+        let tan_v = libm::tan(camera.fov_y / 2.0);
         let [w, h] = camera.size.map(|v| f64::from(v.max(1)));
         Shadow {
             fall: [

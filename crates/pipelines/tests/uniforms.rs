@@ -3,7 +3,9 @@
 //! exported WGSL's member of the same name, and the records span the struct.
 //! A renderer uploads the record's bytes as they are.
 use naga::{Module, TypeInner};
-use presentation::records::{Aerial, Bloom, FogLook, Grade, Layout, SkyLight, Sun, View};
+use presentation::records::{
+    Aerial, Bloom, Camera, FogLook, Grade, Layout, SkyLight, Sun, SunShadow, View,
+};
 use std::fs;
 
 fn module(file: &str) -> Module {
@@ -77,6 +79,10 @@ fn the_uniform_records_are_the_shaders_structs() {
         ("fogMaskColumns.wgsl", "FogStyleUniform", &FogLook::LAYOUT),
         ("fogMaskCompose.wgsl", "FogStyleUniform", &FogLook::LAYOUT),
         ("fogMaskRim.wgsl", "FogStyleUniform", &FogLook::LAYOUT),
+        ("worldPrepass.wgsl", "Camera", &Camera::LAYOUT),
+        ("worldTerrain.wgsl", "Camera", &Camera::LAYOUT),
+        ("worldTerrain.wgsl", "SunShadow", &SunShadow::LAYOUT),
+        ("worldOpaque.wgsl", "SunShadow", &SunShadow::LAYOUT),
     ] {
         let (want, span) = members(&module(file), name);
         assert_eq!(fields(layout, ""), want, "{file} {name}");

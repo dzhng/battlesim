@@ -49,6 +49,37 @@ pub struct LightSettings {
     pub exposure: f64,
     pub grade: GradeSettings,
     pub bloom: BloomSettings,
+    /// The sun's shadow cascades (`shadow.rs`).
+    pub cascades: CascadeSettings,
+    pub backdrop: BackdropSettings,
+}
+
+/// `presentation.light.cascades`: how the sun's shadow maps are fitted.
+#[derive(Clone, Debug, Deserialize)]
+pub struct CascadeSettings {
+    /// The receiver layout's slots (`shadow::CASCADES`).
+    pub count: u32,
+    /// Texels a side of each cascade's map.
+    pub map_size: u32,
+    /// No sun shadow beyond this view depth (m).
+    pub max_far_m: f64,
+    /// Practical split: 0 uniform, 1 logarithmic.
+    pub split_lambda: f64,
+    /// Normal bias per cascade in its texels per texel of PCF radius, with
+    /// a floor (m).
+    pub normal_bias_texels: f64,
+    pub normal_bias_min_m: f64,
+    /// Normalised depth bias, scaled by the cascade's index.
+    pub depth_bias: f64,
+    /// The penumbra's width (m): each cascade's PCF radius follows its texel.
+    pub softness_m: f64,
+}
+
+/// `presentation.light.backdrop`: the land drawn past the map's edge.
+#[derive(Clone, Debug, Deserialize)]
+pub struct BackdropSettings {
+    /// How far it reaches out from the map (m).
+    pub reach_m: f64,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -249,7 +280,12 @@ impl LightSettings {
     /// Unit vector toward the sun (z up).
     pub fn sun_direction(&self) -> [f64; 3] {
         let (az, el) = (self.sun_azimuth, self.sun_elevation);
-        [el.cos() * az.cos(), el.cos() * az.sin(), el.sin()]
+        let cos_el = libm::cos(el);
+        [
+            cos_el * libm::cos(az),
+            cos_el * libm::sin(az),
+            libm::sin(el),
+        ]
     }
 
     /// The sky's uniform.
