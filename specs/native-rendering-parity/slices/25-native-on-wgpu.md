@@ -513,6 +513,8 @@ Control `throwaway/native-parity/2026-10-12T10-11-20-573Z`, captured from this b
   - *Scars:* Rust's uploads equal the deleted TypeScript's word for word over both reels' publication streams (1,291 and 3,537 publications, including about 200 resend and hide/show cycles) and over synthetic streams that force epochs, holes, pool compaction and the regional path (1,300 region uploads). `tests/scars.rs` replays the vectors and reads every learned cell back through the directory and pool. Thirteen planted bugs each broke it. `ground`, `graphics-test` and 57 web tests pass.
   - *Browser frame time, scars:* six interleaved runs a side, under machine load (load average 9–24 from other sessions). Market-town 25.4 against 24.3 FPS, and Paris-corner 31.9 against 32.3; both inside the noise, so no regression detected rather than a measurement. Over market-town's publications, the scars' CPU work fell from 195–254 ms to 81–118 ms.
 
+- **Browser frame time, the merged step** (`graphics-fps`, production, headless, three interleaved runs per side under the lock, the pre-step main `494071e7c` against this branch; load average 4.5–13 from other sessions). Market-town averaged 25.1, 23.8 and 20.2 FPS against 24.5, 25.4 and 21.9, with GPU ms medians of 25.8 against 25.3. Paris-corner averaged 32.5, 35.0 and 21.7 FPS against 34.8, 34.4 and 27.9, with GPU ms medians of 20.7 against 21.2. Each adjacent pair is level within the run-to-run swing. The third pair ran at load 13 and moved both sides. The GPU time is unchanged, as bit-identical inputs predict. These are not quiet-machine numbers.
+
 ### Code
 
 Native and the loader (this lane, without the merges): Rust +1,492 −438, net **+1,054**:
@@ -546,7 +548,7 @@ Production code is net +2,329 lines over the step: Rust +3,225 against TypeScrip
 
 ### Next pickup
 
-- Re-measure both lanes' FPS pairs on a quiet machine.
+- Re-measure the browser's frame time on a quiet machine: every pair this step was run under other sessions' load.
 - The scenery lane (`slice20b3`) brings the trees, the hedgerows and the dressing through `Frame`. The map's props and the known props come with it or next. Native's model layer already draws any static row.
 - The painted marks and fog of war's sight come once native has a UI and fog inputs.
 
