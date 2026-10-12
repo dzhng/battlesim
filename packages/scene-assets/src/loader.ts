@@ -87,8 +87,14 @@ export interface InstalledAppearances {
  *  its kit is absent (parallel to `library.modules`). */
 export interface InstalledTemplateArt {
   library: TemplateArtLibrary;
+  /** The library file as it decoded, which Rust resolves buildings from
+   *  (`crates/static-world`). */
+  bytes: Uint8Array;
   modules: BoundModule[];
 }
+
+/** A template art library, decoded, and its file. */
+type LibraryFile = Pick<InstalledTemplateArt, "library" | "bytes">;
 
 export type Fetch = (url: string) => Promise<{
   ok: boolean;
@@ -154,8 +160,8 @@ export class AppearanceLibrary {
         async (name) => [name, await this.appearance(source, name, skeletons)] as const,
       ),
     );
-    const library = catalog.templates && (await this.templateLibrary(source, catalog.templates));
-    return this.install(source, catalog.sides, skeletons, new Map(appearances), library);
+    const templates = catalog.templates && (await this.templateLibrary(source, catalog.templates));
+    return this.install(source, catalog.sides, skeletons, new Map(appearances), templates);
   }
 
   /**
@@ -190,13 +196,7 @@ export class AppearanceLibrary {
     if (this.source !== source) return this.withUnits(wearing);
     source.wearing = new Set([...source.wearing, ...wearing]);
     const { appearances, templates } = this.current;
-    return this.install(
-      source,
-      sides,
-      skeletons,
-      new Map([...appearances, ...arrived]),
-      templates?.library,
-    );
+    return this.install(source, sides, skeletons, new Map([...appearances, ...arrived]), templates);
   }
 
   /**
@@ -233,13 +233,7 @@ export class AppearanceLibrary {
     if (this.source !== source) return this.withAppearances(requested);
     // Onto whatever is installed by now: another request may have landed first.
     const { sides, skeletons, appearances, templates } = this.current;
-    return this.install(
-      source,
-      sides,
-      skeletons,
-      new Map([...appearances, ...arrived]),
-      templates?.library,
-    );
+    return this.install(source, sides, skeletons, new Map([...appearances, ...arrived]), templates);
   }
 
   /** Install the next generation: `appearances` of `source`, and its template
@@ -250,8 +244,9 @@ export class AppearanceLibrary {
     sides: SideTints,
     skeletons: Map<string, SkeletonClips>,
     appearances: Map<string, InstalledAppearance>,
-    library: TemplateArtLibrary | undefined,
+    templates: LibraryFile | undefined,
   ): InstalledAppearances {
+    const library = templates?.library;
     const modules =
       library &&
       bindModules(library, (name) => {
@@ -265,7 +260,7 @@ export class AppearanceLibrary {
       skeletons,
       appearances,
       onRequest: onRequestOf(source.catalog),
-      ...(library && modules ? { templates: { library, modules } } : {}),
+      ...(templates && modules ? { templates: { ...templates, modules } } : {}),
     };
     return this.current;
   }
@@ -369,16 +364,15 @@ export class AppearanceLibrary {
   private async templateLibrary(
     source: Source,
     named: NonNullable<RuntimeCatalog["templates"]>,
-  ): Promise<TemplateArtLibrary> {
-    const library = decodeTemplateLibrary(
-      await readGzip(
-        source.catalog,
-        "template library",
-        named.library,
-        templateLibraryPath,
-        source.read,
-      ),
+  ): Promise<LibraryFile> {
+    const bytes = await readGzip(
+      source.catalog,
+      "template library",
+      named.library,
+      templateLibraryPath,
+      source.read,
     );
+    const library = decodeTemplateLibrary(bytes);
     if (library.art_hash !== named.art_hash || library.covers !== named.covers)
       throw new Error(
         `template library ${named.library} is art ${library.art_hash} over catalogue ${library.covers}, not what the catalog names; re-bake`,
@@ -396,7 +390,7 @@ export class AppearanceLibrary {
           `kit "${kit.appearance}" is bundle ${entry.bundle.slice(0, 12)}, but the library was packed against ${kit.bundle.slice(0, 12)}; re-bake`,
         );
     }
-    return library;
+    return { library, bytes };
   }
 }
 

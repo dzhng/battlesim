@@ -3,7 +3,7 @@
  * and each drawn frame's records (`records.gen.ts`), out. Rust decodes,
  * interpolates, poses and makes the effects; the page hands the frame's
  * views straight to the renderer and reads the UI's facts from them. */
-import init, { Presentation, light_records } from "@wasm/presentation/presentation_wasm.js";
+import init, { Presentation, StaticWorld, light_records } from "@wasm/presentation/presentation_wasm.js";
 import wasmUrl from "@wasm/presentation/presentation_wasm_bg.wasm?url";
 import {
   APPEARANCE_WORDS,
@@ -18,6 +18,7 @@ import {
 } from "@packages/battle-renderer/src/light/sceneLight";
 import type { Articulation } from "@packages/scene-assets/src/articulation";
 import type { HeardPublication } from "@packages/battle-audio/src/soundFrame";
+import type { CreateBuildingWalk } from "@packages/battle-renderer/src/models/buildingLayer";
 import { countedFetch } from "../../downloads";
 import type { ObservationLayout, ObservationView } from "./observationView";
 
@@ -229,3 +230,19 @@ export class ObservationDecoder {
     return this.rust.moving_wrecks();
   }
 }
+
+/** A map's buildings resolved and walked in Rust (`crates/static-world`)
+ * for the renderer: the module must be loaded (`loadPresentation`). */
+export const createBuildingWalk: CreateBuildingWalk = (placed, art, style) => {
+  const bounds = new Float32Array(art.bounds.length * 6).fill(Number.NaN);
+  art.bounds.forEach((b, m) => b && bounds.set([...b.min, ...b.max], m * 6));
+  return new StaticWorld(
+    art.bytes,
+    bounds,
+    JSON.stringify(placed.templates),
+    placed.template,
+    placed.frames,
+    placed.owners,
+    JSON.stringify(style),
+  );
+};

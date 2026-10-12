@@ -100,9 +100,9 @@ Destroying a TypeGPU root alone does not destroy all resources it created. Size-
 must release a late build rather than install it into a dead frame.
 
 Update a resource at its actual frequency: immutable world data, changed
-knowledge, view changes or frame animation. [Model pools](src/models/placementPool.ts)
-and [static chunks](src/frame/staticChunks.ts) bound work and residency without
-changing authoritative populations. Streaming work reports when it remains
+knowledge, view changes or frame animation. [Static chunks](src/frame/staticChunks.ts)
+and the buildings' Rust walk (`crates/static-world`) bound work and residency
+without changing authoritative populations. Streaming work reports when it remains
 pending; a camera cut cannot be captured merely after an arbitrary number of frames.
 
 Diagnostics describe the last drawn frame. Cost and resource comparisons need the

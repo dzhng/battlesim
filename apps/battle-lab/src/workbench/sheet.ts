@@ -1,3 +1,4 @@
+import { loadPresentation, createBuildingWalk } from "@web/battle/sim/presentation";
 // Model sheets: every view needed to judge a model, rendered by the
 // production battle frame (a second `BattleFrame` on the viewport's device, at
 // a fixed tile size) and laid out with labels on a 2D canvas.
@@ -210,6 +211,7 @@ export class SheetRenderer {
   }
 
   static async create(device: GPUDevice, format: GPUTextureFormat, model: LoadedModel) {
+    await loadPresentation();
     const frame = await createBattleFrame(device, format, {
       light: await resolveLight(gameLight),
       fogGeometry: gameFogGeometry,
@@ -220,6 +222,7 @@ export class SheetRenderer {
       models: gameModelDetail,
       glass: gameGlass,
       buildings: gameBuildingStyle,
+      createBuildingWalk,
       world: benchWorld(null),
       instances: [],
       width: TILE,

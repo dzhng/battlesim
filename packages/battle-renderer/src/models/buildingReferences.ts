@@ -1,7 +1,7 @@
 // A map's buildings as the frame draws them from template art: compact
 // references for the whole map (which template, where it was placed, whose
 // it is), and what a side knows fell. Nothing here holds a module transform;
-// `buildingPlacements.ts` expands the references near the camera.
+// Rust resolves and walks them (`crates/static-world`, `buildingLayer.ts`).
 //
 // Every building of every map is drawn this way, from its template's rows in
 // the installed template art library: a generated town's, a test map's
@@ -24,11 +24,8 @@ export interface BuildingStyle {
   lod_px_per_m: [number, number, number];
   /** Square chunks buildings are bucketed in, metres: a chunk takes one tier. */
   chunk_m: number;
-  /** Module instances the residency pool holds at most (`placementPool.ts`). */
+  /** Module instances the residency pool holds at most (`crates/static-world` `walk.rs`). */
   pool_records: number;
-  /** Rows one view change may expand into the pool; chunks past it wait a
-   *  frame at the coarsest tier. */
-  expand_rows: number;
   /** Each building's tint strays this far in value, either way, so identical
    *  neighbours part. */
   tint_jitter: number;
@@ -42,8 +39,6 @@ export function validateBuildingStyle(style: BuildingStyle): BuildingStyle {
   if (!(style.chunk_m >= 16)) throw new Error(`${at}.chunk_m must be 16 m or more`);
   if (!(Number.isInteger(style.pool_records) && style.pool_records >= 1024))
     throw new Error(`${at}.pool_records must be a whole number, 1024 or more`);
-  if (!(Number.isInteger(style.expand_rows) && style.expand_rows >= 1))
-    throw new Error(`${at}.expand_rows must be a whole number, 1 or more`);
   if (!(style.tint_jitter >= 0 && style.tint_jitter <= 0.5))
     throw new Error(`${at}.tint_jitter must be within [0, 0.5]`);
   return style;

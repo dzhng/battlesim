@@ -1,6 +1,7 @@
 import { FrameRate, type FrameRateHandle } from "@web/battle/present/frameRate";
 import { useLabLoading } from "./LabLoading";
 import { diagnosticsSource } from "@web/diagnostics";
+import { loadPresentation, createBuildingWalk } from "@web/battle/sim/presentation";
 import { useCursorAction, type CursorAction } from "@web/battle/present/gameCursor";
 import { useEffect, useRef, useState } from "react";
 import { gpuFailureMessage } from "@packages/renderer-core/src/device";
@@ -699,6 +700,7 @@ export function LabViewport({
         // A route's own light, else the fixture's (a lab URL's `?sun=` sets it lower).
         const light = () => lightRef.current ?? gameLightFor(window.location.search);
         const build = async () => {
+          await loadPresentation();
           const next = await createBattleFrame(device!, info.format, {
             light: await resolveLight(light()),
             fogGeometry: gameFogGeometry,
@@ -709,6 +711,7 @@ export function LabViewport({
             models: gameModelDetail,
             glass: gameGlass,
             buildings: buildingStyleRef.current ?? gameBuildingStyle,
+            createBuildingWalk,
             world: worldRef.current.current!,
             instances: instancesRef.current,
             width: canvas.width,

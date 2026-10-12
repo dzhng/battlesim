@@ -11,8 +11,7 @@
 // or battle.
 //
 // Rows are columns over the whole library (34 bytes a row), and a template's
-// state is a range of them, so resolving a placed building copies nothing but
-// its transforms.
+// state is a range of them. Rust places them on a map (`crates/static-world`).
 
 import { decodeContainer, encodeContainer } from "./codec.ts";
 import { sha256Hex } from "./glb.ts";
@@ -211,76 +210,6 @@ export function templateKits(
       for (let r = range.first; r < range.first + range.count; r++)
         kits.add(library.kits[library.modules[library.rows.module[r]].kit].appearance);
   return kits;
-}
-
-/** Where a template stands on a map: the contract's `PlacementFrame`. */
-export interface PlacementFrame {
-  translation: readonly [number, number, number];
-  /** Radians about +Z. */
-  yaw: number;
-}
-
-/**
- * Write `rows` in world space: `ROW_TRANSFORM_FLOATS` floats per row into
- * `out` from `offset`, each row's position turned and moved by the frame and
- * its yaw turned with it. Returns the offset past the last float written.
- * Allocates nothing.
- */
-export function placeRows(
-  library: TemplateArtLibrary,
-  rows: RowRange,
-  frame: PlacementFrame,
-  out: Float32Array,
-  offset = 0,
-): number {
-  const source = library.rows.transform;
-  const [cos, sin] = [Math.cos(frame.yaw), Math.sin(frame.yaw)];
-  const [tx, ty, tz] = frame.translation;
-  let from = rows.first * ROW_TRANSFORM_FLOATS;
-  let to = offset;
-  for (let i = 0; i < rows.count; i++) {
-    const [x, y] = [source[from], source[from + 1]];
-    out[to] = tx + cos * x - sin * y;
-    out[to + 1] = ty + sin * x + cos * y;
-    out[to + 2] = tz + source[from + 2];
-    out[to + 3] = frame.yaw + source[from + 3];
-    out[to + 4] = source[from + 4];
-    out[to + 5] = source[from + 5];
-    out[to + 6] = source[from + 6];
-    from += ROW_TRANSFORM_FLOATS;
-    to += ROW_TRANSFORM_FLOATS;
-  }
-  return to;
-}
-
-/** A placed building's module placements. Row `i`'s module, tiers and tint
- *  are the library's columns at `rows.first + i`; its world transform is
- *  `transforms` at `offset + i * ROW_TRANSFORM_FLOATS`. */
-export interface Placements {
-  rows: RowRange;
-  transforms: Float32Array;
-  offset: number;
-}
-
-/**
- * The module placements of template `templateId`, standing at `frame`, as a
- * side knows it (`state`). Pure. Missing art is refused by name
- * (`TemplateArtError`). Pass `out` to write the transforms into a buffer of
- * the caller's, from `offset`; a caller that keeps its own counts uses
- * `templateRows` and `placeRows` and allocates nothing.
- */
-export function resolve(
-  templateId: string,
-  frame: PlacementFrame,
-  state: TemplateState,
-  library: TemplateArtLibrary,
-  out?: Float32Array,
-  offset = 0,
-): Placements {
-  const rows = templateRows(library, templateId, state);
-  const transforms = out ?? new Float32Array(rows.count * ROW_TRANSFORM_FLOATS);
-  placeRows(library, rows, frame, transforms, offset);
-  return { rows, transforms, offset };
 }
 
 /** A library module where it is drawn from: its kit appearance, and the index

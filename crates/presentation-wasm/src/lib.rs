@@ -3,6 +3,8 @@
 //! observation, and each drawn frame's records as views over this module's
 //! memory, out. It links the publication reader and the presentation crate,
 //! not the rules, and runs on the page's main thread.
+mod world;
+
 use std::sync::Arc;
 
 use presentation::presentation::{Ghost, Presentation as Inner, Ui};

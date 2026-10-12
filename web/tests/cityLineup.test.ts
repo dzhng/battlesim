@@ -1,9 +1,10 @@
 // @vitest-environment node
 // The template line-up lab's own logic: where each template stands, the
 // references the frame is handed, a forced tier, and the camera stations at a
-// tier's boundary. The drawing is the renderer's, through the same scene a
-// generated town uses.
+// tier's boundary. The drawing is the renderer's, through the same building walk
+// a generated town uses.
 import { expect, test } from "vitest";
+import { createBuildingWalk, loadPresentation } from "@web/battle/sim/presentation";
 import { boundaryRange, tierStyle } from "@apps/battle-lab/src/buildingTier";
 import {
   cameraToFit,
@@ -22,18 +23,18 @@ import {
   viewProjMatrix,
 } from "@packages/renderer-core/src/camera3d";
 import { createDetailView, setDetailView } from "@packages/battle-renderer/src/frame/detailView";
-import {
-  buildingDraws,
-  createBuildingScene,
-  selectBuildings,
-  type BuildingArt,
-} from "@packages/battle-renderer/src/models/buildingPlacements";
+import type { BuildingArt } from "@packages/battle-renderer/src/models/buildingLayer";
 import {
   FRAME_FLOATS,
   validateBuildingStyle,
   type BuildingStyle,
 } from "@packages/battle-renderer/src/models/buildingReferences";
-import type { TemplateArtLibrary } from "@packages/scene-assets/src/templateLibrary";
+import {
+  encodeTemplateLibrary,
+  type TemplateArtLibrary,
+} from "@packages/scene-assets/src/templateLibrary";
+
+await loadPresentation();
 
 const part = (
   center: [number, number],
@@ -201,6 +202,7 @@ const LIBRARY: TemplateArtLibrary = {
 };
 const ART: BuildingArt = {
   library: LIBRARY,
+  bytes: encodeTemplateLibrary(LIBRARY),
   bounds: [
     { min: [-5, -4, 0], max: [5, 4, 5] },
     { min: [-0.5, -0.1, 0], max: [0.5, 0.1, 1] },
@@ -210,7 +212,6 @@ const STYLE: BuildingStyle = validateBuildingStyle({
   lod_px_per_m: [10, 4, 1.2],
   chunk_m: 64,
   pool_records: 1024,
-  expand_rows: 100000,
   tint_jitter: 0,
 });
 const LENS = { fovY: 0.8, aspect: 16 / 9, near: 1 };
@@ -219,19 +220,21 @@ const HEIGHT_PX = 1080;
 /** The tiers a camera `pose` draws the line-up's one house at. */
 function tiersDrawn(style: BuildingStyle, pose: ReturnType<typeof poseAtRange>): number[] {
   const lineup = lineUp([HOUSE_A], SPACING);
-  const scene = createBuildingScene(lineupBuildings(lineup.entries), ART, style);
-  const view = setDetailView(
+  const walk = createBuildingWalk(lineupBuildings(lineup.entries), ART, style);
+  const detail = setDetailView(
     createDetailView(),
     { ...LENS, ...pose, target: [...pose.target, 0] },
     HEIGHT_PX,
   );
-  selectBuildings(scene, view, null);
+  // The view words: the eye, pixels per metre, no shadows, the side planes.
+  const words = new Float64Array(23);
+  words.set([...detail.eye, detail.pixelsPerMetre, 0, 0, -1]);
+  detail.sides.slice(0, 4).forEach((p, i) => words.set([...p.normal, p.constant], 7 + i * 4));
+  walk.select(words);
   const tiers = new Set<number>();
-  buildingDraws(scene, (source, _module, tier, first, count) => {
-    const records = source === 0 ? scene.coarse.records : scene.pool.records;
-    // A record hidden in place (a resident chunk's coarse row) draws nothing.
-    for (let i = first; i < first + count; i++) if (records[i * 16 + 12] !== 0) tiers.add(tier);
-  });
+  const draws = walk.draws(0);
+  for (let d = 0; d < draws.length; d += 4) if (draws[d + 3] > 0) tiers.add(draws[d + 1]);
+  walk.free();
   return [...tiers].sort();
 }
 

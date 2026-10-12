@@ -100,7 +100,7 @@ import {
 } from "./modelDetail";
 import { uploadCardAtlases, type CardGroup } from "./impostorCards";
 import type { ImpostorAtlas } from "./impostor";
-import { createBuildingLayer, type BuildingStats } from "./buildingLayer";
+import { createBuildingLayer, type BuildingStats, type CreateBuildingWalk } from "./buildingLayer";
 import type { BuildingStyle, SideBuildings } from "./buildingReferences";
 import type { SunShadow } from "../frame/staticChunks";
 
@@ -700,9 +700,10 @@ export async function createModelLayer(
   registry: GpuRegistry,
   detail: ModelDetailPresentation,
   buildingStyle: BuildingStyle,
+  createBuildingWalk: CreateBuildingWalk,
 ) {
   const device = root.device;
-  const buildings = createBuildingLayer(device, registry, buildingStyle);
+  const buildings = createBuildingLayer(device, registry, buildingStyle, createBuildingWalk);
   const buffer = (label: string, size: number, usage: number) =>
     device.createBuffer({ label, size: Math.max(16, Math.ceil(size / 16) * 16), usage });
   const upload = (
@@ -1631,10 +1632,6 @@ export async function createModelLayer(
     setSurfaceShown(surface: SurfaceClass, on: boolean) {
       hiddenSurfaces[surface] = !on;
     },
-    /** Whether buildings still wait to be expanded: draw another frame. */
-    get buildingsPending(): boolean {
-      return buildings.pending;
-    },
     /** Choose this frame's draws for the camera (`view`, with where the sun's
      *  shadows fall for it), when anything changed. */
     prepare(view: DetailView, key: string, shadow: SunShadow) {
@@ -1796,7 +1793,6 @@ export async function createModelLayer(
     buildingStats: (): BuildingStats => buildings.stats(),
     /** The buildings as tables for a second client, and the module instances
      *  the last view drew (`buildingLayer.ts`). */
-    buildingTables: () => buildings.tables(),
     drawnBuildings: () => buildings.drawn(),
     /** The known props (wrecks, shoved bodies, rubble) the last pack drew,
      *  by appearance in name order, each per tier 0–3 then as a card. */
