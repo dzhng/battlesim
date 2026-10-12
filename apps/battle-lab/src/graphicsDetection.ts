@@ -6,8 +6,9 @@ import {
 } from "./graphicsSettings";
 
 export const GRAPHICS_TARGET = { averageFps: 45 } as const;
+export const GRAPHICS_TIERS: readonly GraphicsTier[] = ["high", "medium", "low"];
 
-export function judgeIntervals(intervalsMs: readonly number[], tier: GraphicsTier): TierBenchmarkInput {
+export function judgeIntervals(intervalsMs: readonly number[], _tier?: GraphicsTier): TierBenchmarkInput {
   if (intervalsMs.length < 30 || intervalsMs.some((v) => !Number.isFinite(v) || v <= 0))
     throw new Error("Graphics auto-detect produced insufficient or invalid frame samples.");
   const sorted = [...intervalsMs].sort((a, b) => b - a);
@@ -23,40 +24,150 @@ export function chooseTier(samples: Partial<Record<GraphicsTier, TierBenchmarkIn
     medium: samples.medium ?? null,
     low: samples.low ?? null,
   });
-  if ("unusable" in result || !result.mode) {
+  if ("unusable" in result || !result.mode)
     throw new Error(
       `Graphics auto-detect could not meet the ${GRAPHICS_TARGET.averageFps} FPS target on any preset. Reload after closing other GPU-heavy applications.`,
     );
-  }
   return result.mode;
 }
 
-export function runAutoDetect(): Promise<GraphicsTier> {
-  if (!navigator.gpu) return Promise.reject(new Error("WebGPU is unavailable. Reload in a WebGPU-capable browser."));
-  const sample = (tier: GraphicsTier) =>
-    new Promise<TierBenchmarkInput>((resolve, reject) => {
-      graphicsSettings.set({ mode: tier });
-      setTimeout(() => {
-      let last = performance.now();
-      const samples: number[] = [];
-      const started = last;
-      const frame = (now: number) => {
-        samples.push(now - last);
-        last = now;
-        if (now - started < 1500) requestAnimationFrame(frame);
+/** A runner owns the actual canonical menu-reel workload. It must exclude
+ * preparation/warm-up and reject incomplete data; this module only owns the
+ * policy, serialization and persistence boundary. */
+export type GraphicsDetectionRunner = (
+  tier: GraphicsTier,
+  signal: AbortSignal,
+) => Promise<TierBenchmarkInput>;
+
+/** Build a runner from renderer-ready frame notifications. `setTier` must
+ * rebuild the canonical reel viewport and resolve only after its first frame;
+ * `subscribeFrames` receives presentation timestamps from that renderer. This
+ * keeps display callbacks out of the policy module and prevents measuring
+ * React/menu scheduling instead of the workload. */
+export function createCanonicalFrameRunner({
+  setTier,
+  subscribeFrames,
+  warmupMs = 500,
+  sampleMs = 1500,
+  timeoutMs = 8_000,
+}: {
+  setTier: (tier: GraphicsTier, signal: AbortSignal) => Promise<void>;
+  subscribeFrames: (listener: (timestampMs: number) => void) => () => void;
+  warmupMs?: number;
+  sampleMs?: number;
+  timeoutMs?: number;
+}): GraphicsDetectionRunner {
+  return async (tier, signal) => {
+    await setTier(tier, signal);
+    const intervals: number[] = [];
+    let previous = 0;
+    let started = 0;
+    let done = false;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    let unsubscribe = () => {};
+    const result = new Promise<TierBenchmarkInput>((resolve, reject) => {
+      const finish = (error?: unknown) => {
+        if (done) return;
+        done = true;
+        if (timeout) clearTimeout(timeout);
+        unsubscribe();
+        if (error) reject(error);
         else {
-          try { resolve(judgeIntervals(samples, tier)); } catch (error) { reject(error); }
+          try { resolve(judgeIntervals(intervals, tier)); } catch (reason) { reject(reason); }
         }
       };
-      requestAnimationFrame(frame);
-      }, 250);
+      const abort = () => finish(new DOMException("Detection cancelled", "AbortError"));
+      if (signal.aborted) return abort();
+      signal.addEventListener("abort", abort, { once: true });
+      unsubscribe = subscribeFrames((timestampMs) => {
+        if (!Number.isFinite(timestampMs)) return;
+        if (!started) { started = timestampMs; previous = timestampMs; return; }
+        const elapsed = timestampMs - started;
+        if (elapsed < warmupMs) { previous = timestampMs; return; }
+        if (elapsed >= warmupMs + sampleMs) return finish();
+        const interval = timestampMs - previous;
+        previous = timestampMs;
+        if (interval > 0) intervals.push(interval);
+      });
+      timeout = setTimeout(() => finish(new Error("Graphics auto-detect timed out before the scene produced enough frames.")), timeoutMs);
     });
-  return (async () => {
+    return result;
+  };
+}
+
+let runner: GraphicsDetectionRunner | null = null;
+let active: { promise: Promise<GraphicsTier>; controller: AbortController } | null = null;
+const listeners = new Set<() => void>();
+let state: {
+  status: "idle" | "running" | "complete" | "failed";
+  tier: GraphicsTier | null;
+  error: string | null;
+} = { status: "idle", tier: null, error: null };
+
+function publish(next: typeof state): void {
+  state = next;
+  listeners.forEach((listener) => listener());
+}
+
+/** Install the canonical reel adapter while the menu/backdrop is mounted. */
+export function registerGraphicsDetectionRunner(next: GraphicsDetectionRunner | null): () => void {
+  runner = next;
+  return () => {
+    if (runner === next) runner = null;
+  };
+}
+
+export function graphicsDetectionState(): typeof state {
+  return state;
+}
+
+export function subscribeGraphicsDetection(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => void listeners.delete(listener);
+}
+
+/** Run the bounded canonical workload once. Concurrent callers share one run;
+ * only a complete run changes persisted settings. */
+export function runAutoDetect(): Promise<GraphicsTier> {
+  if (active) return active.promise;
+  if (!navigator.gpu) return fail("WebGPU is unavailable. Reload in a WebGPU-capable browser.");
+  if (!runner)
+    return fail("Graphics auto-detect is not ready. Keep the menu open and reload to try again.");
+
+  const controller = new AbortController();
+  publish({ status: "running", tier: null, error: null });
+  const promise = (async () => {
     const results: Partial<Record<GraphicsTier, TierBenchmarkInput>> = {};
-    for (const tier of ["high", "medium", "low"] as const) results[tier] = await sample(tier);
+    for (const tier of GRAPHICS_TIERS) {
+      if (controller.signal.aborted) throw new DOMException("Detection cancelled", "AbortError");
+      const result = await runner!(tier, controller.signal);
+      if (!result || !Number.isFinite(result.averageFps) || result.averageFps < 0)
+        throw new Error(`Graphics auto-detect returned unusable ${tier} FPS evidence.`);
+      results[tier] = result;
+    }
     const selectedMode = chooseTier(results);
     const result = results[selectedMode]!;
     graphicsSettings.set({ mode: "auto", detectedMode: selectedMode, lastResult: { ...result, selectedMode } });
+    publish({ status: "complete", tier: selectedMode, error: null });
     return selectedMode;
-  })();
+  })()
+    .catch((error: unknown) => {
+      const reason = error instanceof Error ? error.message : String(error);
+      publish({ status: "failed", tier: null, error: reason });
+      throw error instanceof Error ? error : new Error(reason);
+    })
+    .finally(() => {
+      active = null;
+    });
+  active = { promise, controller };
+  return promise;
+}
+
+export function cancelAutoDetect(): void {
+  active?.controller.abort();
+}
+
+function fail(message: string): Promise<never> {
+  publish({ status: "failed", tier: null, error: message });
+  return Promise.reject(new Error(message));
 }
