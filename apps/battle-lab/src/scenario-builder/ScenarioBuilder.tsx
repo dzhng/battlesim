@@ -141,9 +141,7 @@ export default function ScenarioBuilder() {
   async function download() {
     setStatus({ kind: "idle", text: "Validating draft through the simulation contract…" });
     try {
-      const wasm = (await loadWasm()) as unknown as ScenarioBundleWasm & {
-        author_scenario_bundle?: (json: string) => string;
-      };
+      const wasm = (await loadWasm()) as unknown as ScenarioBundleWasm;
       if (!wasm.author_scenario_bundle)
         throw new Error("this build has no scenario authoring boundary yet");
       const next = cloneDraft(draft);
