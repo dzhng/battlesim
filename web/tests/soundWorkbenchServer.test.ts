@@ -56,6 +56,7 @@ async function fixture() {
     defaults: {},
     impacts: {},
     effects: {},
+    music: { moods: { menu: [], tension: [], combat: [] }, tracks: {} },
   };
   const text = JSON.stringify(baseline); // Preserve unformatted bytes on no-op.
   await writeFile(join(root, "fixtures/sounds.json"), text);

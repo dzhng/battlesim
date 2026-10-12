@@ -45,6 +45,7 @@ function fixture() {
     defaults: {},
     impacts: {},
     effects: {},
+    music: { moods: { menu: [], tension: [], combat: [] }, tracks: {} },
   };
   catalog.sources.test = {
     label: "Test master",

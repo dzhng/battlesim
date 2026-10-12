@@ -280,10 +280,15 @@ pub struct Battle {
     replaying: Option<VecDeque<(Tick, CommandEnvelope)>>,
     observations: [ObservationFrame; 2],
     pub(crate) shouts: [ShoutLedger; 2],
-    previous_units: Vec<Unit>,
+    /// Each unit as barks saw it at the start of this tick.
+    shout_before: Vec<shouts::Before>,
     shout_evidence: ShoutEvidence,
     shout_fired: BTreeSet<UnitId>,
     shout_kills: BTreeSet<UnitId>,
+    shout_under_fire: BTreeSet<UnitId>,
+    /// Per listening side, the enemies that shouted unseen since the last
+    /// sound bucket.
+    shouted_unseen: [BTreeSet<UnitId>; 2],
     scenario_digest: u64,
     config_digest: u64,
     /// Transient bodies (a row with a `lifetime_s`) and the tick each goes.
@@ -811,10 +816,12 @@ impl Battle {
             replaying: None,
             observations: Default::default(),
             shouts: Default::default(),
-            previous_units: Vec::new(),
+            shout_before: Vec::new(),
             shout_evidence: ShoutEvidence::default(),
             shout_fired: BTreeSet::new(),
             shout_kills: BTreeSet::new(),
+            shout_under_fire: BTreeSet::new(),
+            shouted_unseen: Default::default(),
             scenario_digest: scenario_digest(setup),
             config_digest: config_digest(setup),
             expiries: BTreeMap::new(),
@@ -837,7 +844,7 @@ impl Battle {
             battle.schedule_expiry(id);
         }
         sight::snapshot(&mut battle.units, &battle.arsenal);
-        battle.previous_units = battle.units.clone();
+        shouts::remember(&mut battle.shout_before, &battle.units, &battle.rules);
         for side in Side::ALL {
             battle.sense(side, true);
             battle.sweep_fog(side);
@@ -1211,7 +1218,7 @@ impl Battle {
         }
         self.skirmish_ai_turn();
         self.tick += 1;
-        self.previous_units.clone_from(&self.units);
+        shouts::remember(&mut self.shout_before, &self.units, &self.rules);
         for side in Side::ALL {
             for contact in self.knowledge[side.index()].expire_contacts(self.tick) {
                 for unit in self.units.iter_mut().filter(|u| u.side == side) {
@@ -1400,6 +1407,7 @@ impl Battle {
                     &self.units,
                     &self.knowledge[side.index()],
                     &self.fired,
+                    &self.shouted_unseen[side.index()],
                     &self.rules,
                 )
             } else {
@@ -1408,6 +1416,9 @@ impl Battle {
         }
         if self.tick.is_multiple_of(bucket) {
             self.fired.clear();
+            for shouted in &mut self.shouted_unseen {
+                shouted.clear();
+            }
         }
         if let Some((rules, referee)) = self.referee.as_mut() {
             self.encounter = Some(referee.judge(
@@ -1981,6 +1992,14 @@ impl Battle {
             &mut self.damage_rng,
         );
         self.consequences(outcome);
+        // The rounds that ended this tick are forgotten below.
+        self.shout_under_fire = shouts::under_fire(
+            &self.flight_events,
+            &self.rounds,
+            &self.units,
+            &self.arsenal,
+            &self.rules,
+        );
         // Each burst marks the ground after it has done its damage.
         for (_, blast) in &self.blasts {
             let [x, y, z] = blast.point;
@@ -3386,9 +3405,21 @@ impl Battle {
         self.shout_evidence = if self.tick == 0 {
             ShoutEvidence::default()
         } else {
+            let physical = shouts::Physical {
+                under_fire: std::mem::take(&mut self.shout_under_fire),
+                incoming: shouts::incoming(
+                    &self.world,
+                    self.projectiles.active(),
+                    &self.rounds,
+                    &self.units,
+                    &self.rules,
+                ),
+            };
             shouts::evidence(
-                &self.previous_units,
+                &self.shout_before,
                 &self.units,
+                &self.world,
+                &physical,
                 std::mem::take(&mut self.shout_fired),
                 identified,
                 &self.rules,
@@ -3440,6 +3471,11 @@ impl Battle {
             frame.audible.clone_from(&self.audible[side.index()]);
             frame.shouts.clone_from(&own_shouts[side.index()]);
             frame.shouts.extend(shouts::heard(
+                &own_shouts[1 - side.index()],
+                knowledge,
+                self.tick,
+            ));
+            self.shouted_unseen[side.index()].extend(shouts::unheard(
                 &own_shouts[1 - side.index()],
                 knowledge,
                 self.tick,

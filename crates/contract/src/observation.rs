@@ -125,6 +125,8 @@ pub enum SoundCategory {
     Infantry,
     Vehicle,
     Shot,
+    /// An unseen enemy shouted: never which bark, voice or unit.
+    Shout,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]

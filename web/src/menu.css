@@ -371,6 +371,7 @@
 .menu .sound-controls {
   display: flex;
   gap: 16px;
+  align-items: start;
   color: rgb(var(--hud-dim));
 }
 /* The developer tools' link: quiet, under everything the player uses. */

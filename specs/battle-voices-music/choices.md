@@ -1,6 +1,7 @@
 # Battle voices and music: choices
 
 Every entry below is a given for whoever builds this. Each one says who closed it:
+
 - **user**;
 - **territory**, meaning the code or a live probe answered it;
 - **agent**, meaning I answered on the user's behalf under the delegation recorded below, with the preference and reason.
@@ -10,6 +11,7 @@ Append build-time decisions under "Build log" at the end, attributed the same wa
 ## Delegation
 
 The user confirmed four preferences:
+
 1. Take the recommendation when it's grounded in the code.
 2. Atmosphere over leanness.
 3. The simulation is the authority.
@@ -50,7 +52,7 @@ The user opted in to agent answers for **structural** questions: workbench layou
   - A side hears all of its own units' shouts, and an enemy's only while that enemy is seen.
   - Picking the take is the client's, using its own seeded randomness.
   - Rejected: the client deriving shouts (B), and unseen shouts at their true position (C).
-  - **The leak is accepted by name:** a seen enemy's *stressed* take or a pinned bark reveals its state. The comment on `IdentifiedUnit` at `observation.rs:14-15` ("never health…") is amended in slice 13 to name this audible exception.
+  - **The leak is accepted by name:** a seen enemy's _stressed_ take or a pinned bark reveals its state. The comment on `IdentifiedUnit` at `observation.rs:14-15` ("never health…") is amended in slice 13 to name this audible exception.
 - **D6 (user):** all 29 triggers, B17 included even though the agent recommended cutting it. Each has steady and stressed intensity × 2 takes.
   - **Stressed** means health ≤ ½ or suppressed.
   - **Agent:** for squads, "health" is living members ÷ starting members, because `OwnUnit.hp` is 0 for infantry (`observation.rs:457`). Preference 1; this resolves an undefined term.
@@ -77,16 +79,19 @@ These are presentation only. They change no outcome, and none adds state to `Uni
   - A squad that is already Suppressed or Pinned stays silent on B5, because B6 and B7 own that moment.
   - The shooter need not be seen.
   - Data check: only the MANPADS rows (Stinger, Igla-S, FN-6) have a zero radius. That's correct, because their threat to helicopters is B15's.
+
 - **B15, incoming missile:** an enemy guided round counts if both:
   - its commanded point (`Guidance.point`, `flight/mod.rs:364-370`) lies within the unit's footprint (hull extents, or the squad area's radius);
   - the unit sees it: `sensing::sees_point(world, eye(unit), missile, sight::of(unit), 1.0, sensors)` (`sensing.rs:102`).
 
   A missile behind a ridge stays silent until it crests. A missile aimed at the neighbouring tank makes only the neighbour shout.
+
 - **B17, friendly destroyed nearby:** when a unit is destroyed (a vehicle wrecked, or a squad's last soldier dead), only the **nearest** living friendly that sees its position shouts. It is one witness, never a chorus; this mirrors `hearing.rs:41-46`'s nearest listener. A death nobody saw gets no shout.
 
 ## Unseen enemies (user, reverses map T6)
 
 The user found the `cue_voices` murmur sounds "like footsteps or heavy breathing" and accepted the recommendation to replace it:
+
 - `cue_voices` is deleted.
 - An **unseen** enemy's shout reaches the other side through hearing as an **anonymous** cue: listener, 8-way sector, near/far band, and nothing else.
 - The client plays a random bark from a **generic pool**, never the speaker's own set, under heavy muffling (about 600 Hz low-pass plus reverb), so the words can't be made out.
@@ -98,14 +103,15 @@ The user found the `cue_voices` murmur sounds "like footsteps or heavy breathing
 - **T1:** the reference voices are US tank **C**, Russian rifle **B**, US recon **B** and UK pilot **C**. Audio is in [`assets/reference-voices/`](assets/reference-voices/); the descriptions are in `saved-voices.json`. The same-role sets borrow their description style.
 - **T2:** treatment follows where the speaker sits.
 
-  | Speaker | Treatment |
-  |---|---|
-  | Tank crew | **light** radio (high-pass ~250 Hz, low-pass ~3.8 kHz, gentle compression, faint hiss) over a faint engine bed. "Processed, but less" than the first radio. |
-  | Infantry in the open | **dry** (slapback was rejected) |
-  | Recon | quiet earpiece |
-  | Pilots | intercom over a rotor bed |
+  | Speaker              | Treatment                                                                                                                                                   |
+  | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | Tank crew            | **light** radio (high-pass ~250 Hz, low-pass ~3.8 kHz, gentle compression, faint hiss) over a faint engine bed. "Processed, but less" than the first radio. |
+  | Infantry in the open | **dry** (slapback was rejected)                                                                                                                             |
+  | Recon                | quiet earpiece                                                                                                                                              |
+  | Pilots               | intercom over a rotor bed                                                                                                                                   |
 
   References: `us_tank-radio-light.mp3`, `us_recon-earpiece-candidateA.mp3`, `uk_pilot-intercom-rotor-candidateA.mp3`.
+
 - **T7:** one score for every faction.
 - **T8:** the user is the only reviewer, so the workbench is built for fast spot checks and mark-bad → regenerate.
 - **T9–T12, music:** a Pulse-family **background underscore**:
@@ -121,6 +127,7 @@ The user found the `cue_voices` murmur sounds "like footsteps or heavy breathing
   - Rejected in round 2: arpeggio, muted drums, and a separate drone tension.
 
   The prompt template is the `STYLE` constant in [`slices/08-music-tracks.md`](slices/08-music-tracks.md). The chosen sketches are in [`assets/reference-music/`](assets/reference-music/).
+
 - **D8 (user):** two moods. Any own B5–B9 bark within 20 s switches to combat; 45 s without one returns to tension; the crossfade is 4 s. Music plays on a music bus that dips under voices.
   - Rejected: one playlist (B) and three moods (C).
 - **T13 (user):** players get **music** and **voices** levels next to master. The user's reason: "this way we don't need to over-analyze it". The level owner is `settings.ts`, and the control is `SoundControls.tsx` in both menus.
@@ -175,6 +182,7 @@ The user found the `cue_voices` murmur sounds "like footsteps or heavy breathing
 There were four drafts: A fewest-slices (Claude), B risk-first (Codex), C seam-quality (Claude), D asset-pipeline (Claude).
 
 **Agreed by all four, so firm:**
+
 - Shout state is per side and off `Unit`, with no RNG.
 - One named re-bless.
 - The library and review come before any battle playback.
@@ -182,6 +190,7 @@ There were four drafts: A fewest-slices (Claude), B risk-first (Codex), C seam-q
 - `Chatter` and the voice bank are pure, separately tested modules.
 
 **Splits and the call made:**
+
 - **Slice count.** A had 4, C 21, D 12. Kept: 16, with 3 parallel lanes.
   - A's merged "voices and music in battle" slice hides three seams: arbitration, music streaming and simulation publication.
   - C's split of the simulation into ledger → physical barks → publish is kept, so the re-bless happens once, at the end.
@@ -200,6 +209,7 @@ There were four drafts: A fewest-slices (Claude), B risk-first (Codex), C seam-q
 <!-- Append: date, slice, decision, who closed it, and why. -->
 
 **2026-10-12, slice 01 (agent; Codex implemented, orchestrator reviewed):**
+
 - **Sets:** 56, more than the planned ~40. Every country × role that the roster actually fields gets its own set, so no accent is borrowed.
 - **Role per unit:** taken from the unit row's own data (roster category, declared roles, squad slot bodies). This puts the Centauro II with tank crews, the Tiger HAD/UHT with attack pilots, the FN-6 team in a Chinese set, and squad-bodied recon rows with recon infantry.
 - **Voices per set:**
@@ -217,6 +227,7 @@ There were four drafts: A fewest-slices (Claude), B risk-first (Codex), C seam-q
 - **The CLI** is `packages/battle-audio/tools/generate/cli.ts`, run as `bun run generate plan`. It totals 7,108 clips and about 181k characters.
 
 **2026-10-12, slice 11 (agent; Codex implemented, a Claude worker wrote the tests during a Codex capacity outage, orchestrator reviewed):**
+
 - **Splitting a side's shouts:** `shouts::build` emits a side's **own** shouts. `shouts::heard` copies an enemy's own shouts into the other side's frame as `Seen(handle)`, only while that side identifies the speaker that tick. One owner builds each unit's shouts; hearing only filters them.
 - **Tie-break order** is data (`PRIORITY`): B16 > B10 > B9 > B8 > B7 > B6 > B14 > B13 > B12 > B11 > B4. A contact call speaks first and blocks that unit's other barks for its talk time.
 - **Transitions:**
@@ -232,7 +243,7 @@ There were four drafts: A fewest-slices (Claude), B risk-first (Codex), C seam-q
 - **No compatibility shim.** `ShoutRules` serializes like every other rule. The two parity scenarios that embed rules gained the `shouts` block as data. Every pinned `digest` and `publication_sha256` was compared value by value and is unchanged.
 - **Tests stay in the one sim test binary** (`cargo test -p sim --test sim shouts::`). The spec's `--test shouts` wording was the orchestrator's mistake.
 - **Follow-up for slice 12:** evidence compares a full copy of every unit (`previous_units`) made each tick. Replace it with a minimal per-unit snapshot holding only what barks read (alive, health, member hp, tier, mount reasons, ammo), and check the cost on the benchmark.
-**2026-10-12, slice 02 (agent; preference 1 unless noted):**
+  **2026-10-12, slice 02 (agent; preference 1 unless noted):**
 - **Command names:** the generating command is `voices` (`bun run generate voices`), as slices 03, 04 and 06 already call it; `generate generate` read badly. `beds` generates the two beds. Selection adds `--trigger` and `--intensity` beside `--set`, `--take` and `--only`, because slice 02's own human check ("`--only R2`") needed a trigger filter that `--only missing|bad|flagged` can't express. Set names are the real ids (`us_tank_crew`), not the walk's short names.
 - **`process`** is `voices` without a client: it re-renders only takes already in the lock and never calls.
 - **Cache by file:** a raw master is trusted by its generation-key file name, so a kill before the lock flush never pays twice. A superseded take's old raw master and served file are deleted with it (one take, one of each).
@@ -249,11 +260,13 @@ There were four drafts: A fewest-slices (Claude), B risk-first (Codex), C seam-q
 - **Size note for slice 06:** these takes average about 12 KB (1–3 s at 40 kbps). At 7,108 clips the library would be about 85 MB, well over L2's 20 MB estimate. Slice 06 must report it before committing, as it already says.
 
 **2026-10-12, slice 02 review (orchestrator):**
+
 - **One owner for talk time.** Barks are held to the simulation's `ShoutRules.talk_s` in `fixtures/game.json`; the generation tool reads that file. Responses never reach the simulation, so the tool keeps one named ceiling for them, `RESPONSE_TALK_S` = 4 s. The tool's interim 3.5 s default is deleted.
 - **`talk_s` raised from 1.5 s to 2.5 s for every bark.** The tested takes run about 2–2.7 s, and at 1.5 s the simulation would start a unit's next shout while its last one is still playing. Digests are unaffected: shouts aren't digested, and the parity scenarios embed their own copy of the rules.
 - **Library size estimate: about 85 MB, not 20 MB.** At 40 kbps a take averages about 12 KB. That is acceptable: it lives in LFS, and a battle loads only its own sets, in the background after `ready`. Slice 06 reports the real figure before committing the batch.
 
 **2026-10-12, slice 03 (agent; a Claude worker implemented during the Codex capacity outage, orchestrator reviewed):**
+
 - **Verdicts:**
   - A verdict carries the sha256 of the bytes the reviewer heard. `generate verdict` refuses any take whose bytes have changed since. One function, `verdictOf`, owns "a verdict holds only while the sha matches".
   - The server runs every generation-tool command one at a time, so `voices.lock.json` keeps one writer.
@@ -268,7 +281,41 @@ There were four drafts: A fewest-slices (Claude), B risk-first (Codex), C seam-q
 - **Not built:** a description editor per voice (the server supports it; there is no UI yet). Regenerating a description is slice 05's design loop.
 
 **2026-10-12, beds (user):**
+
 - **The helicopter bed is the game's own `rotor-uh60` loop,** the recording every helicopter already plays in battle. It is US Army UH-60 B-roll, public domain. For the intercom it is low-passed to 900 Hz ("cockpit-muffled"; the user chose option B in an A/B). It replaces the ElevenLabs-generated rotor bed.
 - **Rule:** a bed comes from the game's existing sound for that machine, so a sound has one owner across the game. The generation tool must take beds from catalog clips, not from `/v1/sound-generation`.
 - **Tank bed:** the game has no recorded engine (engines are synthesised; only the track rattle is recorded), so the tank bed stays generated until the user hears an alternative.
 - **Implementation is due before slice 05:** the generation tool's `beds` command, the `voice-intercom` profile and re-processing of the existing takes.
+**2026-10-12, slice 07 (agent; Codex implemented in part before its capacity outage, a Claude worker finished the review fixes, orchestrator reviewed):**
+- **Music is not a mixer bus.** It streams through `MusicPlayer`, which feeds the same master as the rest of the mix: element → track gain → level (`buses.music` × the music setting) → duck → master. The mixer's `Bus` list no longer has `music`, because a bus nothing plays on was dead structure. The voices bus keeps its distance-reverb send: barks are positional battle sounds (slices 14/15), and slice 07's "neither bus sends to the reverb" was wrong for voices.
+- **Level and ducking are two separate nodes,** so neither overwrites the other.
+- **Loudness:** the menu bed's track gain is 0.16, which matches the old WAV mix at −29.8 LUFS, within 0.2 dB. Codex's first version would have been about 17 dB louder.
+- **Catalog:** a music track names its `sources` record. `musicUrl()` alone builds `/audio/music/<track>.<sha8>.mp3`. The `music` section is required, and moods must be exactly menu/tension/combat. The old WAV clip, its recipe, the file and the `"music"` processing profile are deleted, together with the test that pinned that profile.
+- **Streaming:** checked in real Chrome inside the app (ranged 206 responses, playing) and in WebKit through the same element → Web Audio graph. This Playwright version can't launch its Firefox build.
+- **The `street` scene fails on clean `main` too** (checked in a separate worktree on 2026-10-12). That failure is already on `main` and is unrelated to this feature; it is left for its owner, and the closeout's full run will report it.
+
+**2026-10-12, 02b beds (agent):**
+
+- **One bed shape for both sources.** A profile's bed in `VOICE_PROFILES` is `{clip | generated, filter, volume}`: `clip` names a `sounds.json` clip, mixed from its prepared runtime file; `generated` names a lock bed. One resolver in the tool turns either into a file and its sha256, and the processing key hashes that sha. There is no second path for the tank. Its filter is `anull`, so its takes re-rendered to identical bytes.
+- **The catalog's recorded sha is the clip's identity.** A file that differs from it refuses to render ("pull Git LFS"), and so does a missing clip id.
+- **`check` reports a lock bed no profile names,** so a superseded generated master can't linger.
+
+**2026-10-12, slice 04 pilot (orchestrator ran it):**
+- **Scope:** `us_tank_crew` lead voice, all 12 responses × steady/stressed × 2 takes = 48 takes. The set's bark voice (`soldier`) has no designed voice until slice 05, so the pilot measured the lead voice only. That is enough to price the batch: cost scales with characters.
+- **Cost and speed:** 1,284 characters and 92 calls (48 speech, 44 transcription; 4 transcripts were already cached), in **20 s** wall time at 8 concurrent calls. The whole library is about 181k characters and 7,100 takes, so it projects to roughly an hour of generation and about 181k characters of text-to-speech credit (plus transcription), well within the Pro plan.
+- **Quality:** 3 of 48 takes were flagged (6.25%, under the 10% stop line).
+  - "Gunner" misheard as "Gutter" and "sabot" as "Sabo": one retake each fixed both.
+  - "Tank here, send it." came out as "Thank you" twice. It was reworded to "Armour here, send it."
+  - After that: **0 flagged, 0% mismatch**.
+- **Lesson for the batch:** the R/retake loop handles one-off misreads. A line misread twice gets reworded instead. No gate needed; the batch proceeds (user: "don't let me block you here").
+
+**2026-10-12, slice 12 (agent):**
+- **Hulls hear near misses (territory).** Flight's near-miss sweep measures every body, hulls included, out to the round's `suppression_radius_m`; only suppression drops hulls. `hulls_hear_near_misses_and_a_sabot_passing_a_tank_is_under_fire` pins it. B5 therefore reads flight's `NearMiss` for every unit, plus each impact and ricochet within the radius of the hull box or the nearest living soldier, scored by suppression's own `near_miss`. No ShoutRules floor was added: a tank under rifle fire does shout, as the slice asks.
+- **"Already suppressed"** is the squad's tier after this tick's rounds, so a squad whose tier rises this tick says B6 or B7, never B5.
+- **Tie-break order:** B16 > B15 > B10 > B9 > B8 > B7 > B6 > B17 > B5 > B14 > B13 > B12 > B11 > B4. An incoming missile is the most urgent thing a living unit can say; taking fire is the least specific stress bark.
+- **B15's footprint** is the hull's extents seen from above (a supported missile steers at the target's last sighting plus aim height, a released one at a ground point), or the squad's footprint radius.
+- **B17's witness looks at where the dead unit's crew or soldiers stood** (`sensing::eye`), not the bare ground point: a sight line ending on the terrain is refused, so "sees its position" would never hold. Nearest by ground distance, ties to the lower id.
+- **The unseen cue** carries as far as the speaker's own `loudness_m`. A shout spoken on a bucket tick is heard at the next bucket. A destroyed speaker's last shout makes no cue, since hearing hears living sources only.
+- **The publication does not change in this slice.** `SoundCategory::Shout` cues ride in `ObservationFrame.audible`, but the encoder leaves them out (`published_audible` in `publication.rs`) until slice 13 adds `Shout` to the layout's sound categories and deletes that filter. None of the five pinned publication streams contains a shout cue, so slice 13's re-bless gets no audible bytes from them.
+- **Snapshot:** `shouts::Before` keeps alive, hull hp, each soldier's hp, the tier and each mount's reason, shot count and guided missile, refilled in place each tick. The endurance soak (5 simulated minutes) went from 0.970 to 0.115 M instructions per tick in the phase that held the copy, and 781.2 to 774.3 G step instructions overall; the digest is unchanged.
+- **Tests for two table rows read the moment physically rather than literally.** "Behind a ridge": a guided missile needs a clear line from its launcher to the target, so terrain that hides the missile also hides the target; the test hides it beyond the tank's rear sight instead. The rule is the same `sees_point`. "The unit's own missile": a blue squad stands beside the red tank its own launcher fires at, so the missile steers onto the squad's area, and the launcher is checked too.
