@@ -10,6 +10,7 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 use serde::Deserialize;
 use serde_json::Value;
 
+use super::music::{Moods, MusicRules};
 use super::synth;
 use super::voices::ChatterRules;
 
@@ -78,7 +79,7 @@ pub struct Buses {
     pub units: f64,
     pub effects: f64,
     pub ambience: f64,
-    /// Streamed music's level: not a mixer bus (the browser's `MusicPlayer`).
+    /// The music bus's level: streamed tracks, outside the voice budget.
     pub music: f64,
     pub voices: f64,
 }
@@ -199,9 +200,8 @@ pub struct AudioPresentation {
     pub vehicles: HashMap<String, VehicleSound>,
     pub footsteps: Footsteps,
     pub fires: HashMap<String, FireSound>,
-    /// Battle music's mood direction and ducking: the browser's music
-    /// director owns it, so the frame leaves it unread.
-    pub music: Value,
+    /// Battle music's mood direction and ducking ([`super::music`]).
+    pub music: MusicRules,
     /// How unit voice lines are chosen ([`super::voices`]).
     pub voices: ChatterRules,
     pub ambience: OneShot,
@@ -256,6 +256,16 @@ pub struct SoundCatalog {
     pub impacts: HashMap<String, HashMap<String, String>>,
     /// Replacements for baseline effect and loop slots.
     pub effects: HashMap<String, String>,
+    /// The score's tracks by mood; which file a track is, is the player's.
+    pub music: MusicCatalog,
+}
+
+/// The catalog's `music` section, as far as a battle decides it: each battle
+/// mood's track ids (the menu's is the app's, and each track's file the
+/// player's).
+#[derive(Clone, Debug, Deserialize)]
+pub struct MusicCatalog {
+    pub moods: Moods,
 }
 
 /// The rounds one firing voice covers, `interval_s` apart.

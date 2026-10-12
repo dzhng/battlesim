@@ -124,6 +124,11 @@ export class Chatter {
     return JSON.parse(this.rust.hear(frame, now)) as ChatterUpdate;
   }
 
+  /** A line is sounding at player time `now`; lines play out through a reset. */
+  speaking(now: number): boolean {
+    return this.chatter?.speaking(now) ?? false;
+  }
+
   /** Forgets everything waiting and sounding, as for a new battle. */
   reset() {
     this.chatter?.reset();

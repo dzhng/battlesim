@@ -26,8 +26,6 @@ export class BattleVoices {
   private readonly wanted = new Set<string>();
   private readonly asked = new Set<string>();
   private started = false;
-  /** When the last line started ends, on the player's clock. */
-  private until = -Infinity;
 
   constructor(
     private readonly output: LineOutput,
@@ -72,7 +70,7 @@ export class BattleVoices {
 
   /** A line is sounding at player time `now`. */
   speaking(now = this.output.now()): boolean {
-    return now < this.until;
+    return this.chatter.speaking(now);
   }
 
   /** Forgets every line waiting; lines sounding play out. */
@@ -108,7 +106,6 @@ export class BattleVoices {
       this.bank.play(line.sound, line.variant, line.at, this.wait, now, (buffer, at) =>
         this.output.line({ ...line, at }, buffer),
       );
-    for (const line of update.started) this.until = Math.max(this.until, line.at + line.duration);
     return update;
   }
 }

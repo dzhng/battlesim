@@ -407,7 +407,7 @@ test("a battle's own shout plays its kind's bark where it was shouted, and the m
   await vi.waitFor(() => expect(played.filter((b) => b === take)).toHaveLength(1));
   expect(placed).toContainEqual([30, 10, 1]);
   const { depth } = game.presentation.audio.music.duck;
-  expect(ducks).toHaveBeenCalledWith(depth, expect.any(Number), expect.any(Number));
+  expect(ducks).toHaveBeenCalledWith(depth, game.presentation.audio.music.duck.attack_s);
 });
 
 test("a skirmish loads the sets of its fielded units and of enemy kinds once identified; the rest only lend their shout pool", async () => {

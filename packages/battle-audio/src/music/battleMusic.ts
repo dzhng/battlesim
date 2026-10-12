@@ -1,47 +1,76 @@
-// The score in a battle: it opens on `tension`, the side's own barks move it
-// to `combat` and back (`MusicDirector`), each change a crossfade, and it
-// dips while a voice line sounds. Pure on an injected player and clock, so a
-// test drives it without a media element.
+// The score in a battle. Which mood plays (`tension`, `combat` from the
+// side's own barks), which track comes next and when the music dips under a
+// voice line is decided in Rust (`presentation::sound::music`, through the
+// presentation module, which must be loaded first). This only carries its
+// music commands out on a player: a start fades a track in, a stop fades
+// every track out (a crossfade is the two over the same span), and a duck
+// dips the bus.
+import { Score } from "@wasm/presentation/presentation_wasm.js";
 import type { VoiceRequest } from "../voices/chatter";
-import { MusicDirector, type BattleMood, type MusicDirection } from "./musicDirector";
-import type { MusicPlayer } from "./musicPlayer";
+import type { Mood } from "./musicCatalog";
 
-/** `presentation.audio.music`. */
-export interface BattleMusicRules extends MusicDirection {
+/** `presentation.audio.music`: read by Rust, typed here for the workbench. */
+export interface BattleMusicRules {
   /** How far the music dips under a voice line, and how fast it dips and recovers. */
   duck: { depth: number; attack_s: number; release_s: number };
+  /** A qualifying bark at most this old switches tension to combat. */
+  combat_window_s: number;
+  /** Combat returns to tension after this long without one. */
+  calm_s: number;
+  /** The crossfade between moods. */
+  crossfade_s: number;
+  /** The own barks that mean the side is in a fight (B5–B9). */
+  combat_triggers: string[];
+}
+
+export type BattleMood = Exclude<Mood, "menu">;
+
+/** What the music bus carries out (`presentation::sound::frame::Command`'s music ops). */
+export type MusicCommand =
+  | { op: "music"; at: number; track: string; fade: number }
+  | { op: "music_stop"; at: number; fade: number }
+  | { op: "duck"; at: number; depth: number; glide: number };
+
+/** What carries the commands out: the page's `MusicPlayer`, or a recorder. */
+export interface MusicBus {
+  play(track: string, options: { fade: number }): unknown;
+  stop(fade: number): void;
+  duck(depth: number, glide: number): void;
+}
+
+/** Carries out the score's commands on `player`. */
+function playMusic(commands: readonly MusicCommand[], player: MusicBus) {
+  for (const c of commands)
+    if (c.op === "music") player.play(c.track, { fade: c.fade });
+    else if (c.op === "music_stop") player.stop(c.fade);
+    else player.duck(c.depth, c.glide);
 }
 
 export class BattleMusic {
-  private readonly director: MusicDirector;
-  private mood: BattleMood | null = null;
-  private ducked = false;
+  private readonly score: Score;
 
+  /** By `rules` over the catalog's battle moods' tracks, shuffled by `seed`. */
   constructor(
-    private readonly rules: BattleMusicRules,
+    rules: BattleMusicRules,
     tracks: Record<BattleMood, readonly string[]>,
-    private readonly player: Pick<MusicPlayer, "play" | "crossfadeTo" | "duck">,
-    random: () => number,
+    private readonly player: MusicBus,
+    seed: number,
   ) {
-    this.director = new MusicDirector(rules, tracks, random);
+    this.score = new Score(JSON.stringify(rules), JSON.stringify(tracks), seed >>> 0);
   }
 
-  /** At time `t` (seconds): the barks heard since the last update, of which
-   *  only the side's own move the mood, and whether a voice line sounds. */
-  update(t: number, barks: readonly VoiceRequest[], speaking: boolean) {
-    for (const bark of barks) if (bark.tier === "own_bark") this.director.note(bark.trigger, t);
-    const mood = this.director.mood(t);
-    if (mood !== this.mood) {
-      const track = this.director.next(mood);
-      // The first track fades in under the menu's fade-out; a change crossfades.
-      if (track && this.mood === null) this.player.play(track, { fade: this.rules.crossfade_s });
-      else if (track) this.player.crossfadeTo(track, this.rules.crossfade_s);
-      this.mood = mood;
-    }
-    if (speaking !== this.ducked) {
-      const { depth, attack_s, release_s } = this.rules.duck;
-      this.player.duck(speaking ? depth : 0, attack_s, release_s);
-      this.ducked = speaking;
-    }
+  /** At time `t` (seconds): the barks the voice lines heard since the last
+   *  update, of which only the side's own move the mood, and whether a voice
+   *  line sounds. Returns the commands it carried out. */
+  update(t: number, barks: readonly VoiceRequest[], speaking: boolean): MusicCommand[] {
+    const commands = JSON.parse(
+      this.score.hear(t, barks.length ? JSON.stringify(barks) : "[]", speaking),
+    ) as MusicCommand[];
+    playMusic(commands, this.player);
+    return commands;
+  }
+
+  dispose() {
+    this.score.free();
   }
 }
