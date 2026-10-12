@@ -5863,7 +5863,7 @@
       "footprint_half_m": [
         3.475,
         1.36,
-        1.25
+        1.6
       ],
       "tolerances": {
         "footprint_m": 6.0

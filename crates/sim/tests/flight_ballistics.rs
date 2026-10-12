@@ -597,6 +597,42 @@ fn a_synthetic_artillery_profile_reaches_2500m_on_the_high_arc() {
 }
 
 #[test]
+fn every_shipped_artillery_row_reaches_its_declared_range_on_the_high_arc() {
+    let game: serde_json::Value =
+        serde_json::from_str(include_str!("../../../fixtures/game.json")).unwrap();
+    let rules: contract::ballistics::FlightRules =
+        serde_json::from_value(game["physics"].clone()).unwrap();
+    let config = FlightConfig::new(&rules, 30).unwrap();
+    for name in [
+        "artillery_howitzer",
+        "artillery_mortar",
+        "artillery_rocket_light",
+        "artillery_rocket_heavy",
+        "artillery_strike_missile",
+    ] {
+        let row: WeaponBallistics = serde_json::from_value(game["weapons"][name].clone()).unwrap();
+        let profile = config.profile(&row).unwrap();
+        let world = flat([row.range_m + 400.0, 400.0], "");
+        let aim = Aim {
+            origin: v3(100.0, 200.0, 1.4),
+            target: v3(100.0 + row.range_m, 200.0, 0.0),
+            target_velocity: V3::default(),
+        };
+        let solution = solve_launch_past(&world, &config, &profile, &aim, None)
+            .unwrap_or_else(|error| panic!("{name} cannot reach {} m: {error:?}", row.range_m));
+        assert_eq!(
+            solution.arc,
+            ArcKind::High,
+            "{name} must prefer the indirect arc"
+        );
+        assert!(
+            solution.time_of_flight_s < profile.lifetime_s,
+            "{name} expires before impact"
+        );
+    }
+}
+
+#[test]
 fn an_indirect_arc_still_stops_on_a_prop_in_its_curved_path() {
     let world = flat(
         [800.0, 400.0],
@@ -670,10 +706,10 @@ fn every_round_has_a_bounded_lifetime() {
         config().profile(&too_long),
         Err(FlightConfigError::LifetimeExceedsBound {
             lifetime_s: 45.0,
-            max_s: 30.0
+            max_s: 35.0
         })
     );
-    // Straight up, still climbing at 30 s: it expires exactly at its lifetime.
+    // Straight up, still climbing at 35 s: it expires exactly at its lifetime.
     let world = flat([200.0, 200.0], "");
     let mut store = Projectiles::new(config());
     store.launch(launch(v3(100.0, 100.0, 2.0), v3(0.0, 0.0, 850.0)));
@@ -681,7 +717,7 @@ fn every_round_has_a_bounded_lifetime() {
     let [(tick, FlightEvent::Expired(e))] = events[..] else {
         panic!("{events:?}")
     };
-    assert_eq!((tick, e.cause), (900, Expiry::Lifetime));
+    assert_eq!((tick, e.cause), (1050, Expiry::Lifetime));
     assert!(store.active().is_empty());
     // A flat shot out of the closed map ends there.
     store.launch(launch(v3(100.0, 100.0, 50.0), v3(850.0, 0.0, 0.0)));

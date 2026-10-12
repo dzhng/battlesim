@@ -1,4 +1,4 @@
-"""Stryker M-SHORAD and M1129 Mortar Carrier (disabled cards), from
+"""Stryker M-SHORAD and M1129 Mortar Carrier, from
 assets/references/stryker_m_shorad/ and m1129_stryker_mortar/, on the
 Stryker hull and running gear `roster/stryker.py` builds.
 
@@ -29,8 +29,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import stryker as S  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
-from parts import box, cyl, empty, loft  # noqa: E402
-from vehicle_export import run_disabled  # noqa: E402
+from parts import box, cyl, empty, loft, script_args  # noqa: E402
+from vehicle_export import run, run_disabled  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 
@@ -161,5 +161,10 @@ def wreck(variant, v):
 
 
 if __name__ == "__main__":
-    run_disabled("stryker_support", {SHORAD: (6.95, 2.72, 3.20), MORTAR: (6.95, 2.72, 2.50)}, "us_desert_tan", build,
-                 wreck, chip=0.6)
+    selected = next((a.split("=", 1)[1] for a in script_args() if a.startswith("--variant=")), None)
+    if selected != SHORAD:
+        run("m1129_stryker_mortar", "us_desert_tan", build, wreck,
+            script="stryker_support.py", chip=0.6)
+    if selected != MORTAR:
+        run_disabled("stryker_support", {SHORAD: (6.95, 2.72, 3.20)}, "us_desert_tan", build,
+                     wreck, chip=0.6)

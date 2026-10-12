@@ -1,10 +1,10 @@
 # Artillery units
 
-Status: implementation complete; closeout is blocked by the browser scene startup gate. Last updated 2026-10-12.
+Status: closeout in progress; completion is not yet verified. Last updated 2026-10-12.
 
 ## Next Agent Prompt
 
-The implementation is landed in commits `0fbd2638` through `e2a503e4`, and `origin/main` is already an ancestor of this branch. Focused native, catalog, publication, typecheck and command-deck gates are green. The artillery scene reaches the existing ballistics lab but times out during lab startup in this checkout, so the required visual critique/compare gate is not honestly green and this plan remains active. Do not weaken the scene timeout or archive until that environment can complete the production route. The full formatter gate also reports four untouched pre-existing files; the touched HUD stylesheet is formatted.
+Latest main (`a6665ae5`) is merged in `c2dc7f8d`; local artillery changes are restored. Both WASM modules rebuilt and the artillery scene passed after the merge. Finish presentation integration errors surfaced on main, then audit the materialized artillery runtime bundles and exporter changes, complete AI evidence/replay and cursor-ring visual coverage, and run final review and gates. Do not archive yet. The prior full check finished with all 819 simulation integration tests passing but 17 browser failures; use that failure evidence to select focused checks rather than restarting it unchanged. The artillery scene is a proxy flight bench and does not prove production roster rendering or the cursor-ring look.
 
 ## Goal
 

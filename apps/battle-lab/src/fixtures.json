@@ -78,7 +78,7 @@
   {
     "id": "artillery",
     "route": "/lab/artillery",
-    "describe": "Artillery weapon checkpoint: the shipped indirect mortar clears a ridge on a high arc while its long range, spread and large minimum range remain visible in the same flight and collision bench.",
+    "describe": "Artillery weapon checkpoint: the shipped indirect mortar clears a ridge on a high arc and holds fire inside its authored minimum range.",
     "map": "geometry"
   },
   {

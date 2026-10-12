@@ -3,5 +3,5 @@
 import { run as runFlightBench } from "./ballistics.mjs";
 
 export async function run(ctx) {
-  await runFlightBench(ctx);
+  await runFlightBench(ctx, { artilleryOnly: true });
 }

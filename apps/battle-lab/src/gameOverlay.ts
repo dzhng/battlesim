@@ -53,6 +53,11 @@ const { flash: orderFlash, ...orders } = game.presentation.overlay.orders;
  *  unit can't take, a range ruler past its last reach. */
 const CANNOT: Rgba = [...gameHud.bad, 1];
 
+/** The pending ground-attack footprint: a target-area warning, not a unit
+ * selection colour. It shares the HUD's red warning role so it reads as the
+ * consequence of firing into this patch of ground. */
+export const gameAttackGroundSpread: Rgba = [...gameHud.bad, 0.82];
+
 export const gameOrderStyle: OrderStyle = validateOrderStyle({
   ...(orders as unknown as Omit<OrderStyle, "blocked">),
   blocked: CANNOT,

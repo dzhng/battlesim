@@ -1,4 +1,4 @@
-"""CAESAR 8x8 self-propelled howitzer (disabled card), from assets/references/caesar/.
+"""CAESAR 8x8 self-propelled howitzer, from assets/references/caesar/.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/caesar.py -- [--wreck]
 
@@ -25,7 +25,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, prism  # noqa: E402
 from truck_chassis import chassis  # noqa: E402
-from vehicle_export import run_disabled  # noqa: E402
+from vehicle_export import run  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 
@@ -117,4 +117,5 @@ def wreck(variant, v):
 
 
 if __name__ == "__main__":
-    run_disabled("caesar", {CARD: (10.0, 2.55, 3.20)}, "french_three_tone", build, wreck, skip=("dressing_", "gun_", "fume_", "muzzle_", "brake_"), chip=1.0)
+    run("caesar", "french_three_tone", build, wreck,
+        receipt_file="assets/source/roster/caesar/caesar.source-receipt.json", chip=1.0)

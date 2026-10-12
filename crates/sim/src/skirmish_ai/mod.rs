@@ -3,7 +3,7 @@ use contract::catalog::{AltitudeLayer, Category, Faction, TypeIndex};
 use contract::command::{Order, TargetRef};
 use contract::encounter::EntrySite;
 use contract::ids::{Side, Tick, UnitId};
-use contract::observation::ObservationFrame;
+use contract::observation::{ObservationFrame, ObservedTargetId};
 use contract::scenario::Rules;
 use contract::skirmish::Phase;
 use std::collections::BTreeMap;
@@ -47,6 +47,14 @@ pub struct BalancedDoctrine {
     last_air_evidence: Option<Tick>,
     response_delay_ticks: Option<Tick>,
     random: contract::random::Rng,
+    sightings: BTreeMap<ObservedTargetId, ArtillerySighting>,
+}
+
+#[derive(Clone, Debug)]
+struct ArtillerySighting {
+    tick: Tick,
+    position: [f64; 3],
+    velocity: [f64; 2],
 }
 
 impl Default for BalancedDoctrine {
@@ -63,6 +71,7 @@ impl Default for BalancedDoctrine {
             last_air_evidence: None,
             response_delay_ticks: None,
             random: contract::random::Rng::new(0),
+            sightings: BTreeMap::new(),
         }
     }
 }
@@ -167,6 +176,21 @@ impl BalancedDoctrine {
         let Some(view) = &frame.skirmish else {
             return vec![];
         };
+        let horizon = 3 * u64::from(rules.tick_hz);
+        self.sightings
+            .retain(|_, seen| frame.tick.saturating_sub(seen.tick) <= horizon);
+        for target in &frame.identified {
+            if rules.catalog.get(target.kind).mobility.layer() == AltitudeLayer::Ground {
+                self.sightings.insert(
+                    target.id,
+                    ArtillerySighting {
+                        tick: frame.tick,
+                        position: target.position,
+                        velocity: target.velocity,
+                    },
+                );
+            }
+        }
         if view.phase == Phase::Finished || frame.tick < self.next_decision {
             return vec![];
         }
@@ -416,7 +440,15 @@ impl BalancedDoctrine {
                         continue;
                     }
                     if rules.catalog.get(unit.kind).has_role("artillery") {
-                        if let Some(point) = artillery_ground_guess(unit, frame, rules) {
+                        if let Some(point) =
+                            artillery_ground_guess(unit, frame, rules, &self.sightings).or_else(
+                                || {
+                                    artillery_objective_guess(
+                                        unit, side, entry, frame, rules, route_time,
+                                    )
+                                },
+                            )
+                        {
                             orders.push(Order::Attack {
                                 units: vec![unit.id],
                                 target: TargetRef::Ground { point },
@@ -596,76 +628,137 @@ fn unit_can_engage_target(rules: &Rules, kind: TypeIndex, target: TypeIndex) -> 
     })
 }
 
-/// Derive a deliberately uncertain public aim point from a live contact. The
-/// policy never sees the hidden emitter: it uses only the contact's area,
-/// optional identified type and the observed velocity of a matching sighting.
+/// A ground point is eligible only when one mounted indirect weapon can
+/// reach it. Separate envelopes must never be merged across a dead zone.
+fn artillery_in_range(
+    unit: &contract::observation::OwnUnit,
+    rules: &Rules,
+    point: [f64; 3],
+) -> bool {
+    let range = distance3(unit.position, point);
+    rules
+        .catalog
+        .mounts(unit.kind)
+        .iter()
+        .flat_map(|mount| &mount.def.weapons)
+        .filter_map(|id| rules.weapons.get(id))
+        .filter(|weapon| weapon.ballistics.trajectory == contract::ballistics::Trajectory::Indirect)
+        .any(|weapon| {
+            weapon
+                .against(AltitudeLayer::Ground)
+                .is_some_and(|fire| range >= weapon.min_range_m && range <= fire.range_m)
+        })
+}
+
+/// Contacts have no emitter identity or motion. Retained sightings have a
+/// side-scoped observed handle, so they can predict only their own last view.
 fn artillery_ground_guess(
     unit: &contract::observation::OwnUnit,
     frame: &ObservationFrame,
     rules: &Rules,
+    sightings: &BTreeMap<ObservedTargetId, ArtillerySighting>,
 ) -> Option<[f64; 3]> {
-    let contact = frame
+    let horizon = 3 * u64::from(rules.tick_hz);
+    let contacts = frame
         .contacts
         .iter()
         .filter(|contact| {
-            contact.layer == AltitudeLayer::Ground && frame.tick <= contact.expires_tick
+            contact.layer == AltitudeLayer::Ground
+                && !contact.aloft
+                && contact.evidence_tick <= frame.tick
+                && frame.tick <= contact.expires_tick
+                && frame.tick - contact.evidence_tick <= horizon
         })
         .filter_map(|contact| {
-            let matching = contact.kind.and_then(|kind| {
-                frame
-                    .identified
-                    .iter()
-                    .filter(|target| target.kind == kind)
-                    .min_by(|a, b| {
-                        distance3(a.position, contact.center)
-                            .total_cmp(&distance3(b.position, contact.center))
-                            .then(a.id.cmp(&b.id))
-                    })
-            });
-            let motion_s = matching.map_or(0.0, |_target| {
-                (frame.tick.saturating_sub(contact.evidence_tick) as f64 / f64::from(rules.tick_hz))
-                    .min(3.0)
-            });
-            let velocity = matching.map_or([0.0, 0.0], |target| target.velocity);
-            let predicted = [
-                contact.center[0] + velocity[0] * motion_s,
-                contact.center[1] + velocity[1] * motion_s,
+            let angle = f64::from(contact.id.0) * 2.399963229728653;
+            let bias = contact.radius.min(40.0) * 0.35;
+            let point = [
+                contact.center[0] + libm::cos(angle) * bias,
+                contact.center[1] + libm::sin(angle) * bias,
+                contact.center[2],
             ];
-            let dx = predicted[0] - unit.position[0];
-            let dy = predicted[1] - unit.position[1];
-            let range = libm::hypot(dx, dy);
-            let artillery = rules.catalog.mounts(unit.kind).iter().flat_map(|mount| {
-                mount
-                    .def
-                    .weapons
-                    .iter()
-                    .filter_map(|weapon| rules.weapons.get(weapon))
-                    .filter(|weapon| {
-                        weapon.ballistics.trajectory == contract::ballistics::Trajectory::Indirect
-                    })
-            });
-            let mut min_range = f64::INFINITY;
-            let mut max_range: f64 = 0.0;
-            for weapon in artillery {
-                if let Some(fire) = weapon.against(AltitudeLayer::Ground) {
-                    min_range = min_range.min(weapon.min_range_m);
-                    max_range = max_range.max(fire.range_m);
-                }
-            }
-            (max_range > 0.0 && range >= min_range && range <= max_range)
-                .then_some((contact, predicted, range))
+            // Reverse the uncertain displacement at a range edge; a report
+            // cannot turn into an exact emitter fix merely to make it fire.
+            let opposite = [
+                contact.center[0] - libm::cos(angle) * bias,
+                contact.center[1] - libm::sin(angle) * bias,
+                contact.center[2],
+            ];
+            [point, opposite]
+                .into_iter()
+                .find(|point| artillery_in_range(unit, rules, *point))
+                .map(|point| (point, contact.id.0))
+        });
+    let predicted = sightings
+        .iter()
+        .filter(|(id, seen)| {
+            !frame.identified.iter().any(|target| target.id == **id)
+                && seen.tick <= frame.tick
+                && frame.tick - seen.tick <= horizon
         })
-        .min_by(|(_, _, a), (_, _, b)| a.total_cmp(b))?;
-    let (contact, predicted, _) = contact;
-    // Bias within the reported area using a stable golden-angle offset. This
-    // keeps guesses visibly fallible while remaining deterministic in replay.
-    let angle = f64::from(contact.id.0) * 2.399963229728653;
-    let bias = contact.radius.min(40.0) * 0.35;
-    Some([
-        predicted[0] + libm::cos(angle) * bias,
-        predicted[1] + libm::sin(angle) * bias,
-        contact.center[2],
-    ])
+        .filter_map(|(id, seen)| {
+            let seconds = (frame.tick - seen.tick) as f64 / f64::from(rules.tick_hz);
+            let point = [
+                seen.position[0] + seen.velocity[0] * seconds,
+                seen.position[1] + seen.velocity[1] * seconds,
+                seen.position[2],
+            ];
+            artillery_in_range(unit, rules, point).then_some((point, id.0))
+        });
+    contacts
+        .chain(predicted)
+        .min_by(|(a, ai), (b, bi)| {
+            distance3(unit.position, *a)
+                .total_cmp(&distance3(unit.position, *b))
+                .then(ai.cmp(bi))
+        })
+        .map(|(point, _)| point)
+}
+
+/// Public enemy-held or contested objectives support a fallible route guess.
+/// Neutral empty flags alone reveal no enemy presence and do not justify fire.
+fn artillery_objective_guess(
+    unit: &contract::observation::OwnUnit,
+    side: Side,
+    entry: &EntrySite,
+    frame: &ObservationFrame,
+    rules: &Rules,
+    route_time: &mut dyn FnMut(UnitId, [f64; 2]) -> Option<f64>,
+) -> Option<[f64; 3]> {
+    frame
+        .skirmish
+        .as_ref()?
+        .objectives
+        .iter()
+        .filter(|objective| {
+            objective.owner.is_some_and(|owner| owner != side)
+                || objective.contested
+                || objective.capturing.is_some_and(|owner| owner != side)
+        })
+        .filter_map(|objective| {
+            // Aim at the far approach to the objective from our public entry,
+            // never at a hidden occupant or a guaranteed centre-point hit.
+            let dx = objective.center[0] - entry.center[0];
+            let dy = objective.center[1] - entry.center[1];
+            let length = libm::hypot(dx, dy);
+            if length <= 0.0 {
+                return None;
+            }
+            let offset = objective.radius_m.min(40.0) * 0.5;
+            let point = [
+                objective.center[0] + dx / length * offset,
+                objective.center[1] + dy / length * offset,
+                unit.position[2],
+            ];
+            if !artillery_in_range(unit, rules, point) {
+                return None;
+            }
+            route_time(unit.id, [point[0], point[1]])
+                .filter(|time| time.is_finite() && *time >= 0.0)
+                .map(|time| (point, time, &objective.id))
+        })
+        .min_by(|(_, at, ai), (_, bt, bi)| at.total_cmp(bt).then(ai.cmp(bi)))
+        .map(|(point, _, _)| point)
 }
 
 fn recon_post(

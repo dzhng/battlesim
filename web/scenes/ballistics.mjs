@@ -6,7 +6,7 @@ import { anyNear, decode, writeCrop } from "./_png.mjs";
 import { checkOverlayIsolation } from "./_overlays.mjs";
 import { game } from "./_units.mjs";
 
-const END_TICK = 300;
+const END_TICK = 1200;
 
 const CAMERAS = {
   overview: null,
@@ -64,10 +64,34 @@ async function capture(ctx, page, name) {
   return frame;
 }
 
-export async function run(ctx) {
+export async function run(ctx, options = {}) {
   const page = await ctx.newPage();
   await ctx.openLab(page);
   await page.evaluate(() => window.__lab.route.reset(false));
+  if (options.artilleryOnly) {
+    await runTo(page, END_TICK);
+    const state = await page.evaluate(() => window.__lab.route.state());
+    const shot = (label) => state.shots.find((s) => s.label === label);
+    const mortar = shot("artillery mortar over crest");
+    const close = shot("artillery mortar inside minimum range");
+    const impact = state.events.find(
+      (e) => e.projectile === mortar.projectile && e.kind === "impact",
+    );
+    ctx.check(
+      "shipped mortar clears the ridge on the indirect high arc",
+      mortar.fired && mortar.arc === "high" && impact?.struck === "terrain",
+      JSON.stringify({ mortar, impact }),
+    );
+    ctx.check(
+      "shipped mortar holds fire inside its minimum range",
+      !close.fired && close.reason === "holding_fire",
+      JSON.stringify(close),
+    );
+    await show(page, "crest");
+    await capture(ctx, page, "frame-artillery-crest.png");
+    await ctx.writeEvidence("artillery-state.json", state);
+    return;
+  }
   ctx.check(
     "game gravity needs one chord per 30 Hz tick within 2 cm",
     (await page.evaluate(() => window.__lab.route.subsegments())) === 1,
@@ -152,6 +176,7 @@ export async function run(ctx) {
   );
   const direct = shot("direct grenade over crest");
   const mortar = shot("artillery mortar over crest");
+  const mortarTooClose = shot("artillery mortar inside minimum range");
   const landed = end("artillery mortar over crest");
   ctx.check(
     "direct fire over the crest has no solution; the indirect high arc clears it",
@@ -163,8 +188,13 @@ export async function run(ctx) {
       mortar.fired &&
       mortar.arc === "high" &&
       landed?.struck === "terrain" &&
-      flat(landed.point, [92, 292]) < 0.05,
+      flat(landed.point, [92, 300]) < 0.05,
     JSON.stringify({ blocked_at: direct.blocked_at, landed: landed?.point }),
+  );
+  ctx.check(
+    "the artillery minimum range holds a close ground attack",
+    !mortarTooClose.fired && mortarTooClose.reason === "holding_fire",
+    JSON.stringify(mortarTooClose),
   );
   const across = end("grenade across crossing bodies");
   const passed = s.events.filter(

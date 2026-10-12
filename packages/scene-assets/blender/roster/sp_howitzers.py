@@ -1,4 +1,4 @@
-"""Tracked 155/152 mm self-propelled howitzers (disabled cards): M109A7 Paladin,
+"""Tracked 155/152 mm self-propelled howitzers: M109A7 Paladin,
 PzH 2000, 2S19M2 Msta-S and PLZ-05, from assets/references/<family>/.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/sp_howitzers.py -- [--variant=<card id>] [--wreck]
@@ -25,8 +25,7 @@ on the turret's flanks and a rear door into the turret.
 
 Each card's frame is the hull's length,
 width and height stated from its published dimensions (the gun excluded),
-recorded in its receipt as `references`. With no mount in the frame the gun
-is drawn at rest and does not articulate until the card's mechanics land.
+recorded in its receipt as `references`. The fixed mount keeps the gun drawn at rest.
 """
 import math
 import os
@@ -35,7 +34,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft, prism, stencil  # noqa: E402
-from vehicle_export import run_disabled  # noqa: E402
+from vehicle_export import run  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 
@@ -265,5 +264,7 @@ def wreck(variant, v):
 
 
 if __name__ == "__main__":
-    run_disabled("sp_howitzers", {c: s["dims"] for c, s in SPECS.items()},
-                 {c: s["scheme"] for c, s in SPECS.items()}, build, wreck, skip=("dressing_", "gun_", "fume_", "muzzle_", "brake_"), chip=1.0)
+    run("m109_paladin", {card: s["scheme"] for card, s in SPECS.items()}, build, wreck,
+        appearances=list(SPECS), script="sp_howitzers.py",
+        receipt_file="assets/source/roster/m109_paladin/sp_howitzers.source-receipt.json",
+        references=[f"assets/references/{s['family']}/references.json" for s in SPECS.values()], chip=1.0)
