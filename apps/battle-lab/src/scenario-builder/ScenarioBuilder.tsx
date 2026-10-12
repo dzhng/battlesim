@@ -333,7 +333,12 @@ export default function ScenarioBuilder() {
                     }))
                   }
                 >
-                  {CONTROLLERS.map((controller) => (
+                  {(slot.side === "neutral"
+                    ? (["passive_ai"] as BuilderController[])
+                    : slot.human_capable
+                      ? CONTROLLERS
+                      : (["active_ai", "passive_ai"] as BuilderController[])
+                  ).map((controller) => (
                     <option key={controller} value={controller}>
                       {controller.replace("_", " ")}
                     </option>
