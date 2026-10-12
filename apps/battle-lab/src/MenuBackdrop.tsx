@@ -32,7 +32,8 @@ import { useBattleSession } from "./useBattleSession";
 import { useLabLoading } from "./LabLoading";
 import type { ScriptedSim } from "./useSimSession";
 import game from "@fixtures/game.json";
-import { graphicsProfiles, graphicsSettings, resolveEffectiveTier } from "./graphicsSettings";
+import { graphicsProfiles, graphicsSettings, resolveEffectiveTier, type GraphicsTier } from "./graphicsSettings";
+import { createCanonicalFrameRunner, registerGraphicsDetectionRunner } from "./graphicsDetection";
 
 const SCENES = validateBackdrop(backdrop, listMaps()).scenes;
 const FILM_CAMERA = filmCamera(
@@ -93,11 +94,44 @@ function BackdropScenes({ plate, shown }: BackdropProps) {
   // A refused page GPU leaves the menu its plain background, with nothing to wait for.
   const refused = useSyncExternalStore(appResources.subscribe, appResources.error);
   const graphics = useSyncExternalStore(graphicsSettings.subscribe, graphicsSettings.get);
+  const [probeTier, setProbeTier] = useState<GraphicsTier | null>(null);
+  const frameListeners = useRef(new Set<(timestampMs: number) => void>());
+  const readyWaiter = useRef<{ resolve: () => void; reject: (reason: unknown) => void } | null>(null);
+  useEffect(() => {
+    const runner = createCanonicalFrameRunner({
+      setTier: (tier, signal) => {
+        setProbeTier(tier);
+        return new Promise<void>((resolve, reject) => {
+          const abort = () => reject(new DOMException("Detection cancelled", "AbortError"));
+          if (signal.aborted) return abort();
+          signal.addEventListener("abort", abort, { once: true });
+          readyWaiter.current = {
+            resolve: () => { signal.removeEventListener("abort", abort); resolve(); },
+            reject: (reason) => { signal.removeEventListener("abort", abort); reject(reason); },
+          };
+        });
+      },
+      subscribeFrames: (listener) => {
+        frameListeners.current.add(listener);
+        return () => frameListeners.current.delete(listener);
+      },
+    });
+    const unregister = registerGraphicsDetectionRunner(async (tier, signal) => {
+      try { return await runner(tier, signal); }
+      finally { setProbeTier(null); }
+    });
+    return () => {
+      unregister();
+      readyWaiter.current?.reject(new DOMException("Detection cancelled", "AbortError"));
+      readyWaiter.current = null;
+      frameListeners.current.clear();
+    };
+  }, []);
   useLabLoading("renderer", refused ? true : null);
   // Scenes played so far: the one playing is `played` modulo their count.
   const [played, setPlayed] = useState(0);
   const scene = SCENES[played % SCENES.length];
-  const quality = graphicsProfiles[resolveEffectiveTier(graphics.mode, graphics.detectedMode)];
+  const quality = graphicsProfiles[probeTier ?? resolveEffectiveTier(graphics.mode, graphics.detectedMode)];
   const next = SCENES[(played + 1) % SCENES.length];
   const battle = useBuiltScenario(scene, (_, s) => sceneScenario(s, rules));
   const failed = buildFailed(battle) ? battle.error : null;
@@ -114,7 +148,9 @@ function BackdropScenes({ plate, shown }: BackdropProps) {
       shown={shown}
       onWarm={() => void sceneScenario(next, rules).catch(() => {})}
       onEnd={() => setPlayed((n) => n + 1)}
-        quality={quality}
+      onProbeReady={() => readyWaiter.current?.resolve()}
+      onProbeFrame={(now) => frameListeners.current.forEach((listener) => listener(now))}
+      quality={quality}
     />
   );
 }
@@ -225,6 +261,8 @@ function BackdropBattle({
   onWarm,
   onEnd,
   quality,
+  onProbeReady,
+  onProbeFrame,
 }: {
   scene: BackdropScene;
   scenario: string;
@@ -235,6 +273,8 @@ function BackdropBattle({
   /** Its reel has played to the end, under the veil. */
   onEnd: () => void;
   quality: typeof graphicsProfiles.high;
+  onProbeReady: () => void;
+  onProbeFrame: (now: number) => void;
 }) {
   const veil = useRef<HTMLDivElement>(null);
   // Ready to film once the battle first stands at its warm tick.
@@ -283,8 +323,8 @@ function BackdropBattle({
           appearances={session.appearances}
           initialCamera={reel.initial}
           groundAt={session.surfaceZ}
-          onReady={session.onReady}
-          pilot={reel.pilot}
+          onReady={(gpu) => { session.onReady(gpu); onProbeReady(); }}
+          pilot={{ ...reel.pilot, frame: ({ now }) => onProbeFrame(now) }}
           cameraConfig={FILM_CAMERA}
           quality={quality}
         />
