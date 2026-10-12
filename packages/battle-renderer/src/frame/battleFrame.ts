@@ -58,7 +58,7 @@ export interface BattleFrameOptions {
     buildingLodScale: number;
     treeLodScale: number;
     grassDensity: number;
-    shadowMapSize: 1024 | 1536 | 2048;
+    shadowMapSize: 1024 | 2048;
     shadowReach: number;
     forestDressing: boolean;
     understorey: boolean;

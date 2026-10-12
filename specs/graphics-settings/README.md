@@ -2,9 +2,9 @@
 
 ## Next Agent Prompt
 
-Slices 01–03 are complete. Pick up slice 04 next. Read `slices/04-auto-detect-startup.md`, then wire the bounded canonical benchmark, first-launch/rerun flow, and fatal startup errors. The shared UI is in `GraphicsSettingsControls.tsx`; its optional `onApply` hook is ready for the BattleView renderer transaction, while menu-only changes persist immediately. Preserve the four-choice contract and update this section before ending your pass.
+Slices 01–04 are implemented. The next pickup is closeout: run the canonical per-tier production sweep, browser UI scenes, visual review, whole-spec review, and then archive this spec. The current detector runs bounded RAF windows for High, Medium, and Low and persists the highest passing tier; keep the canonical reel evidence as the final gate. Update this section before ending your pass.
 
-Status: slices 01–03 complete; slice 04 next (2026-10-11).
+Status: slices 01–04 implemented; closeout remains (2026-10-11).
 
 ## Goal
 

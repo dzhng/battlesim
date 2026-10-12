@@ -21,7 +21,7 @@ export interface GraphicsQualityProfile {
   grassDensity: number;
   forestDressing: boolean;
   understorey: boolean;
-  shadowMapSize: 1024 | 1536 | 2048;
+  shadowMapSize: 1024 | 2048;
   shadowReach: number;
   bloom: true;
   castLights: true;
