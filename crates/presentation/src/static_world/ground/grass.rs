@@ -479,6 +479,18 @@ pub struct Window {
     pub reach: f64,
 }
 
+impl Window {
+    /// The ground the window covers: min x, min y, max x, max y.
+    pub fn bounds(&self) -> [f64; 4] {
+        [
+            self.x0,
+            self.y0,
+            self.x0 + f64::from(self.tiles_x) * TILE_M,
+            self.y0 + f64::from(self.tiles_y) * TILE_M,
+        ]
+    }
+}
+
 /// Metres one pixel spans per metre of distance from the eye, for a lens of
 /// `fov_y` on a viewport `height_px` tall.
 pub fn metres_per_pixel(fov_y: f64, height_px: f64) -> f64 {

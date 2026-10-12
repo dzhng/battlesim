@@ -189,17 +189,20 @@ impl Ground {
 
     /// The window of tiles a camera at `eye` grows grass over, at
     /// `metres_per_px` (`grass_metres_per_pixel`): its corner x and y, tiles
-    /// across and up, and reach.
+    /// across and up, reach, and the far corner x and y.
     pub fn grass_window(&self, eye: &[f64], metres_per_px: f64) -> Vec<f64> {
         let w = self
             .inner
             .grass_window([eye[0], eye[1], eye[2]], metres_per_px);
+        let [.., x1, y1] = w.bounds();
         vec![
             w.x0,
             w.y0,
             f64::from(w.tiles_x),
             f64::from(w.tiles_y),
             w.reach,
+            x1,
+            y1,
         ]
     }
 

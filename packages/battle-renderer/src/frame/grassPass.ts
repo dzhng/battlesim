@@ -44,32 +44,26 @@
 import { tgpu, d, std, type TgpuBindGroup, type TgpuRenderPass } from "typegpu";
 import { pcgHash } from "../shaders/pcgHash";
 import { vec3, type Mat4 } from "math";
-import { frustum } from "math/shapes";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { eyePosition } from "@packages/renderer-core/src/camera3d";
+import { GRASS_HEIGHT_VARIATION } from "@packages/scene-assets/src/grass.ts";
 import {
-  GRASS_SEGMENTS,
-  GRASS_HEIGHT_VARIATION,
-  GRASS_MAX_HEIGHT_M,
-  grassBladeVertices,
-  grassStripIndices,
-} from "@packages/scene-assets/src/grass.ts";
+  grass_blade_vertices,
+  grass_field_segments,
+  grass_frame_params,
+  grass_metres_per_pixel,
+  grass_strip_indices,
+} from "@wasm/presentation/presentation_wasm.js";
 import { typegpuCameraLayout } from "../world/camera";
 import { battleWorldDepth } from "../worldDepth";
 import type { Biome, TerrainSurface } from "../terrain/terrainSurface";
 
 type GrassRules = Biome["grass"];
 import {
-  createGrassWindow,
-  FIELD_LODS,
   GRASS_GROWTH_ROWS,
   GRASS_MAX_KINDS,
   GRASS_MIX_MAX,
-  GRASS_TILE_M,
-  grassSides,
-  grassWindow,
-  metresPerPixel,
-  packGrassShapes,
+  grassShapes,
   type GrassAppearances,
 } from "../terrain/grassField";
 import game from "@fixtures/game.json";
@@ -749,7 +743,9 @@ export async function createGrassPass(
 
   const { STORAGE, COPY_DST, COPY_SRC, INDIRECT, INDEX, MAP_READ } = GPUBufferUsage;
   const params = registry.own(root.createBuffer(GrassParams).$usage("uniform"));
-  const tierUniforms = FIELD_LODS.map(() =>
+  /** The field's tiers, near then far, by their blades' segments. */
+  const tierSegments = [...grass_field_segments()];
+  const tierUniforms = tierSegments.map(() =>
     registry.own(root.createBuffer(d.vec4u).$usage("uniform")),
   );
   const args = registry.buffer({
@@ -775,17 +771,17 @@ export async function createGrassPass(
   let capacity: [number, number] = [0, 0];
   let indexCounts: [number, number] = [0, 0];
   let ready = false;
-  let lowest = 0;
   let tiles = 0;
   let buildGroup: ReturnType<typeof makeBuildGroup> | null = null;
   let drawGroups: ReturnType<typeof makeDrawGroup>[] = [];
-  const window = createGrassWindow();
-  const sides = frustum.create();
+  /** This frame's window (`Ground.grass_window`): its corner, tiles across
+   *  and up, reach, and far corner. */
+  let window: Float64Array = new Float64Array(7);
   const eye = vec3.create();
   /** `GrassParams` as the ground laid it (`Ground.grass_params`), its
    *  per-frame fields (the planes, the eye, the window's corner and tile, its
    *  tiles) written over each regrow. */
-  let frameParams: { f: Float32Array; u: Uint32Array } | null = null;
+  let frameParams: Uint32Array | null = null;
 
   function makeBuildGroup() {
     return root.createBindGroup(grassBuildLayout, {
@@ -815,27 +811,21 @@ export async function createGrassPass(
     ground.retune_grass(retuned && JSON.stringify(retuned));
     const names = JSON.parse(ground.grass_kinds()) as string[];
     if (!names.every((name) => appearances!.has(name))) return;
-    const packed = packGrassShapes(
-      names.map((name) => ({ name, bundle: appearances!.get(name)! })),
-    );
-    const laid = ground.grass_params(
-      packed.facts,
-      GRASS_HEIGHT_VARIATION[1],
-      GRASS_MAX_HEIGHT_M,
-      densityMultiplier,
-    );
+    const packed = grassShapes(names, appearances);
+    const laid = ground.grass_params(packed, densityMultiplier);
+    const shapes = packed.shapes();
+    const maxBlades = packed.max_blades();
+    packed.free();
     kindNames = names;
-    lowest = grid.minHeight;
     const props = ground.grass_props();
     slots.props.set(storage("grass-props", props.byteLength));
     device.queue.writeBuffer(slots.props.current!, 0, props);
     capacity = [rules.capacity[0], rules.capacity[1]];
     slots.clumps.set(storage("grass-clumps", (capacity[0] + capacity[1]) * CLUMP_BYTES, COPY_SRC));
-    slots.shapes.set(storage("grass-shapes", packed.shapes.byteLength));
-    device.queue.writeBuffer(slots.shapes.current!, 0, packed.shapes);
-    FIELD_LODS.forEach((lod, t) => {
-      const segments = GRASS_SEGMENTS[lod];
-      const indices = grassStripIndices(packed.maxBlades, segments);
+    slots.shapes.set(storage("grass-shapes", shapes.byteLength));
+    device.queue.writeBuffer(slots.shapes.current!, 0, shapes);
+    tierSegments.forEach((segments, t) => {
+      const indices = grass_strip_indices(maxBlades, segments);
       indexCounts[t] = indices.length;
       const buffer = device.createBuffer({
         label: `grass-indices-${t}`,
@@ -846,11 +836,13 @@ export async function createGrassPass(
       const padded = new Uint16Array(buffer.size / 2);
       padded.set(indices);
       device.queue.writeBuffer(buffer, 0, padded);
-      tierUniforms[t].write(d.vec4u(t, t === 0 ? 0 : capacity[0], grassBladeVertices(segments), 0));
+      tierUniforms[t].write(
+        d.vec4u(t, t === 0 ? 0 : capacity[0], grass_blade_vertices(segments), 0),
+      );
     });
-    frameParams = { f: new Float32Array(laid.buffer), u: laid };
+    frameParams = laid;
     buildGroup = makeBuildGroup();
-    drawGroups = FIELD_LODS.map((_, t) => makeDrawGroup(t));
+    drawGroups = tierSegments.map((_, t) => makeDrawGroup(t));
     grownFor.fill(NaN);
     ready = true;
   }
@@ -875,11 +867,11 @@ export async function createGrassPass(
     prepare(camera: Camera3DParams, viewProj: Mat4, heightPx: number) {
       drawn = false;
       regrow = false;
-      if (!ready || suppressed || !frameParams || !rules) return;
+      if (!ready || suppressed || !frameParams || !surface) return;
       eyePosition(eye, camera);
-      const scale = metresPerPixel(camera.fovY, heightPx);
-      grassWindow(window, eye, lowest, scale, rules);
-      tiles = window.tilesX * window.tilesY;
+      const scale = grass_metres_per_pixel(camera.fovY, heightPx);
+      window = surface.ground.grass_window(Float64Array.from(eye), scale);
+      tiles = window[2] * window[3];
       if (!tiles) return;
       drawn = true;
       let same = grownFor[16] === Math.fround(scale);
@@ -888,16 +880,14 @@ export async function createGrassPass(
       grownFor.set(viewProj);
       grownFor[16] = scale;
       regrow = true;
-      grassSides(sides, viewProj);
-      // The side planes are the frustum's first four, then the eye and the
-      // window's corner and tile, and its tiles.
-      for (let i = 0; i < 4; i++) {
-        const p = sides[i];
-        frameParams.f.set([p.normal[0], p.normal[1], p.normal[2], p.constant], i * 4);
-      }
-      frameParams.f.set([eye[0], eye[1], eye[2], scale, window.x0, window.y0, GRASS_TILE_M], 16);
-      frameParams.u.set([window.tilesX, window.tilesY], 24);
-      params.write(frameParams.u.buffer as ArrayBuffer);
+      grass_frame_params(
+        frameParams,
+        Float32Array.from(viewProj),
+        Float64Array.from(eye),
+        scale,
+        window,
+      );
+      params.write(frameParams.buffer as ArrayBuffer);
       resetArgs.fill(0);
       resetArgs[0] = indexCounts[0];
       resetArgs[5] = indexCounts[1];
@@ -910,14 +900,7 @@ export async function createGrassPass(
     },
     /** The exact window sampled while this frame's clumps are rebuilt. */
     scarBounds(): readonly [number, number, number, number] | undefined {
-      return regrow
-        ? [
-            window.x0,
-            window.y0,
-            window.x0 + window.tilesX * GRASS_TILE_M,
-            window.y0 + window.tilesY * GRASS_TILE_M,
-          ]
-        : undefined;
+      return regrow ? [window[0], window[1], window[5], window[6]] : undefined;
     },
     /** Grow this frame's clumps (compute, before the colour pass). */
     encodeBuild(encoder: GPUCommandEncoder) {
@@ -926,13 +909,13 @@ export async function createGrassPass(
         .with(buildGroup)
         .with(terrain.group)
         .with(encoder)
-        .dispatchWorkgroups(window.tilesX, window.tilesY);
+        .dispatchWorkgroups(window[2], window[3]);
       finish.with(buildGroup).with(encoder).dispatchWorkgroups(1);
     },
     /** Draw both tiers into the world pass. */
     draw(pass: TgpuRenderPass, cameraGroup: CameraGroup, fogGround: TgpuBindGroup) {
       if (!drawn) return;
-      FIELD_LODS.forEach((_, t) => {
+      tierSegments.forEach((_, t) => {
         drawPipeline
           .with(pass)
           .with(cameraGroup)
