@@ -36,7 +36,8 @@ import {
   watchingPose,
   type FlightFrame,
 } from "../cameraLab";
-import { knownFallen, seenDestroyed } from "../destroyedBuildings";
+import { seenDestroyed } from "../destroyedBuildings";
+import { buildingRemains } from "@packages/scene-assets/src/authority";
 import { useFeed } from "../feed";
 import { LabViewport, type ViewportPilot } from "../LabViewport";
 import { buildFailed, useBuiltScenario } from "../useBuiltScenario";
@@ -151,6 +152,7 @@ function Arena({ map }: { map: MapDefinition }) {
   );
   // What blue knows: nothing but the map, or that it has seen the courtyard
   // block collapse (it is low enough to; a tower would stand, gutted).
+  const shells = useMemo(() => buildingRemains(units).shells, [units]);
   const standing = useMemo(() => {
     const library = appearances?.templates?.library;
     if (!world || !drawn || !library) return null;
@@ -161,13 +163,11 @@ function Arena({ map }: { map: MapDefinition }) {
     const parts = buildingPartProps(world.exports.buildings);
     return {
       boxes: knownStanding(props, known, parts),
-      buildings: {
-        placed: index.placed,
-        fallen: knownFallen(units, index, known),
-      },
+      // No battle publishes here: the switch stands in for what blue knows.
+      buildings: { placed: index.placed, partBuilding: index.partBuilding, shells, known },
       obstacles: buildingObstacles(props, known, parts, surfaceZ),
     };
-  }, [world, drawn, fallen, surfaceZ, appearances, units]);
+  }, [world, drawn, fallen, surfaceZ, appearances, units, shells]);
   const buildingsFeed = useFeed(standing?.buildings ?? null);
   const obstaclesFeed = useFeed(standing?.obstacles ?? null);
 

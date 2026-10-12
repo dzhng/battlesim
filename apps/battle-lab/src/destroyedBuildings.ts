@@ -1,29 +1,16 @@
 // How the simulation ends a building, as the lab app reads it from the
-// catalog's building rows: which of a map's buildings a side knows destroyed,
-// and how (a battle's observation is classified here), and, for a lab with no
-// battle, what a side that saw a building destroyed would have been published.
-import { buildingCollapse, buildingRemains } from "@packages/scene-assets/src/authority";
+// catalog's building rows: what a side that saw a building destroyed would
+// have been published, for a lab with no battle. The presentation reads the
+// building's state from those props as it reads a publication's.
+import { buildingCollapse } from "@packages/scene-assets/src/authority";
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import { templateArt, type TemplateArtLibrary } from "@packages/scene-assets/src/templateLibrary";
 import { ruinHeight } from "@packages/scene-assets/src/templateSource";
 import {
-  fallenBuildings,
   FRAME_FLOATS,
   type BuildingIndex,
-  type FallenBuilding,
 } from "@packages/battle-renderer/src/models/buildingReferences";
 import type { KnownProp } from "@packages/battle-renderer/src/models/propAppearance";
-
-/** The buildings of `index` a side that knows `known` knows destroyed, each
- *  in the state `units`' catalog says it was published in (a gutted
- *  building's parts become its shell prop types). */
-export function knownFallen(
-  units: UnitCatalog,
-  index: BuildingIndex,
-  known: readonly KnownProp[],
-): FallenBuilding[] {
-  return fallenBuildings(index, known, buildingRemains(units).shells);
-}
 
 /**
  * What a side that saw building `building` of `index` destroyed knows of it,

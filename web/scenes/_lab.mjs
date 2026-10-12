@@ -100,16 +100,9 @@ export function gpuMs(page, frames = 120) {
   );
 }
 
-/** Draw frames until every building near the camera is expanded into the
- *  pool: a view change expands a budget of rows a frame, and a chunk waiting
- *  its turn draws at the coarsest tier meanwhile. */
-export async function buildingsSettled(page, timeout = 30000) {
-  const deadline = Date.now() + timeout;
-  for (;;) {
-    await lab(page, () => window.__lab.frame());
-    if (await lab(page, () => !window.__lab.stats().buildings.pending)) return;
-    if (Date.now() >= deadline) throw new Error("building expansion did not settle");
-  }
+/** Draw a frame: the buildings' walk settles in the frame it is asked. */
+export async function buildingsSettled(page) {
+  await lab(page, () => window.__lab.frame());
 }
 
 /** Open a battle's pause menu by its HUD button. */

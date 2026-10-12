@@ -108,18 +108,10 @@ function AuthorityLab({ battle }: { battle: SavedBattle }) {
       <LabViewport
         fixture="authority"
         world={worldFeed}
-        structures={session.structures}
-        obstacles={session.cameraObstaclesFeed}
-        buildings={session.buildingsFeed}
-        frame={session.frame}
-        appearances={session.appearances}
+        {...session.known}
+        {...session.viewport}
         initialCamera={AUTHORITY_CAMERA}
-        onPick={session.onPick}
-        onRightPress={session.onRightPress}
-        onCursor={session.onCursor}
-        pointerMarks={session.pointerPaint.feed}
-        onBox={session.onBox}
-        onReady={session.onReady}
+        {...session.input}
         diagnostics={diagnostics}
       />
       <aside className="hud-panel lab-panel" data-testid="authority-panel">

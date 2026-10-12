@@ -345,9 +345,13 @@ work. `binding/build.sh` builds the release library into `binding/` (build
 output, never committed); `tests/run.sh` and `release.sh` run it, and an
 editor run needs it run first whenever the crate changed.
 
-- **`StaticLayer`** (`static_layers`) walks a static layer each frame:
-  buildings, the trees and shrubs, the props. A layer hands it the browser's
-  word tables once per map, what the side knows whenever that changes, and
+- **`BuildingWalk`** (`building_walk.rs`) is the browser's own buildings
+  walk (`crates/presentation`'s `static_world`): it resolves the capture's saved map against
+  the runtime catalog's template art, takes what the side knows and the view,
+  and hands back each module and tier's records as MultiMesh rows.
+- **`StaticLayer`** (`static_layers`) walks the trees and shrubs and the
+  props each frame. A layer hands it the browser's word tables once per map,
+  what the side knows whenever that changes, and
   the view every frame (`detail_view.gd` `packed`), and gets back the kinds
   and tiers whose drawn or cast instances changed, with those instances, for
   its batches (`model_batches.gd`, which the units layer shares). The forest
@@ -359,9 +363,11 @@ not reach.
 
 ## Buildings, scenery and props
 
-The browser exports what stands where, static per map (`manifest.buildings`,
-`.scenery` and `.props`); native places nothing, and ports the per-frame rules
-and the side's knowledge. `world/static_world.gd` builds the layers the
+Rust resolves the buildings for both clients (`crates/presentation`'s
+`static_world`), and the
+browser exports the scenery and props, static per map (`manifest.scenery` and
+`.props`); native places nothing, and ports the per-frame rules and the side's
+knowledge. `world/static_world.gd` builds the layers the
 manifest lists and counts each plate.
 
 - **Buildings** (`world/building_layer.gd`, the browser's

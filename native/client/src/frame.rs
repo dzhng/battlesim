@@ -1,9 +1,15 @@
 //! The frame: one ordered list of passes, encoded in order each drawn frame
 //! (Bevy 0.19+'s fixed pass order without a render graph; `battleFrame.ts`
-//! is the browser's). A pass reads the frame's `View` and the sized targets
-//! and encodes its work; the list is the whole frame.
+//! is the browser's). Each presentation `Frame` first prepares the layers
+//! (the environment's view, the models' palettes and instances); then each
+//! pass reads the frame's `View`, the sized targets and the layers, and
+//! encodes its work. The list is the whole frame.
+use presentation::presentation::Frame;
 use presentation::records::View;
 use wgpu::*;
+
+use crate::environment::Environment;
+use crate::models::Models;
 
 /// The lit world before post.
 pub const HDR_FORMAT: TextureFormat = TextureFormat::Rgba16Float;
@@ -11,6 +17,10 @@ pub const HDR_FORMAT: TextureFormat = TextureFormat::Rgba16Float;
 pub const DISPLAY_FORMAT: TextureFormat = TextureFormat::Bgra8Unorm;
 /// 4× is the count WebGPU guarantees for every renderable format.
 pub const MSAA: u32 = 4;
+/// Reverse-Z: cleared to 0 (the far plane), nearer is greater.
+pub const DEPTH_FORMAT: TextureFormat = TextureFormat::Depth32Float;
+/// The fog mask the lit passes write beside their colour (`WORLD_OUT`).
+pub const FOG_MASK_FORMAT: TextureFormat = TextureFormat::Rgba8Unorm;
 
 /// The frame's size-dependent targets.
 pub struct Targets {
@@ -19,6 +29,11 @@ pub struct Targets {
     pub hdr_msaa: TextureView,
     /// Post's input.
     pub hdr: TextureView,
+    /// The world's depth, multisampled.
+    pub depth: TextureView,
+    /// The fog mask, multisampled. Nothing reads it until the fog mask
+    /// passes are built, so it is never resolved.
+    pub fog_mask_msaa: TextureView,
     /// Post's output: presented, and read back for a plate.
     pub display: TextureView,
     pub display_texture: Texture,
@@ -59,32 +74,59 @@ impl Targets {
                 1,
                 render | TextureUsages::TEXTURE_BINDING,
             )),
+            depth: view(texture("depth", DEPTH_FORMAT, MSAA, render)),
+            fog_mask_msaa: view(texture("fog-mask-msaa", FOG_MASK_FORMAT, MSAA, render)),
             display: display_texture.create_view(&Default::default()),
             display_texture,
         }
     }
 }
 
-pub trait Pass {
-    fn name(&self) -> &'static str;
-    fn encode(&self, queue: &Queue, view: &View, targets: &Targets, encoder: &mut CommandEncoder);
+/// What a pass draws from.
+pub struct Inputs<'a> {
+    pub queue: &'a Queue,
+    pub view: &'a View,
+    pub targets: &'a Targets,
+    pub environment: &'a Environment,
+    pub models: &'a Models,
 }
 
-/// The passes in the order they draw.
+pub trait Pass {
+    fn name(&self) -> &'static str;
+    fn encode(&self, inputs: &Inputs, encoder: &mut CommandEncoder);
+}
+
+/// The layers and the passes in the order they draw.
 pub struct Passes {
     pub targets: Targets,
+    pub environment: Environment,
+    pub models: Models,
     pub passes: Vec<Box<dyn Pass>>,
 }
 
 impl Passes {
+    /// Prepares the layers for `frame`, the haze measured from `observer`.
+    pub fn prepare(&mut self, device: &Device, queue: &Queue, frame: &Frame, observer: [f64; 3]) {
+        self.environment
+            .prepare(queue, &frame.view, observer, frame.clock as f32);
+        self.models.prepare(device, queue, frame);
+    }
+
     /// Encodes every pass for `view` into the display target.
     pub fn encode(&self, device: &Device, queue: &Queue, view: &View) -> CommandEncoder {
         let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor {
             label: Some("battle-frame"),
         });
+        let inputs = Inputs {
+            queue,
+            view,
+            targets: &self.targets,
+            environment: &self.environment,
+            models: &self.models,
+        };
         for pass in &self.passes {
             encoder.push_debug_group(pass.name());
-            pass.encode(queue, view, &self.targets, &mut encoder);
+            pass.encode(&inputs, &mut encoder);
             encoder.pop_debug_group();
         }
         encoder

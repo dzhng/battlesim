@@ -5,13 +5,13 @@
 //   throwaway/native-parity/<run>/<scene>/{capture.json, manifest.json,
 //     plate-<index>.png, plain-<index>.png,
 //     terrain-<table>.u32, grass-<table>.u32,
-//     buildings-<table>.u32, scenery-<table>.u32, units-<table>.u32}
+//     scenery-<table>.u32, units-<table>.u32}
 //
 // the capture and its frame records, the `native-visual-presentation`
 // manifest (with each plate's grass, building-module, scenery, posed-model
 // and effect counts), the plates read back in their own frames with each
 // frame lit without its grass, and the tables the manifest hashes: the ground's and
-// grass's GPU tables, the buildings' and scenery's instances, and the units'
+// grass's GPU tables, the scenery's instances, and the units'
 // clip tables.
 // PARITY_SCENES=<map,…> films only those scenes (`?scenes=`). Run it under
 // the GPU lock; it waits on the route's stage, never on a timer.
@@ -122,11 +122,10 @@ export async function run(ctx) {
         })),
       ),
       uploaded: await Promise.all(
-        state.tables.map(async ({ scene, tables: { terrain, grass, buildings, scenery } }) => ({
+        state.tables.map(async ({ scene, tables: { terrain, grass, scenery } }) => ({
           scene,
           terrain: await encode(terrain),
           grass: { ...grass, tables: await encode(grass.tables) },
-          buildings: { ...buildings, tables: await encode(buildings.tables) },
           scenery: { ...scenery, tables: await encode(scenery.tables) },
         })),
       ),
@@ -158,7 +157,6 @@ export async function run(ctx) {
       tables: {
         terrain: decode(tables.terrain),
         grass: { ...tables.grass, tables: decode(tables.grass.tables) },
-        buildings: { ...tables.buildings, tables: decode(tables.buildings.tables) },
         scenery: { ...tables.scenery, tables: decode(tables.scenery.tables) },
       },
       grassCounts: own.map(({ file, cells }) => ({ plate: file, cells })),
@@ -213,7 +211,7 @@ export async function run(ctx) {
       `METRIC native-parity-capture ${map} units: ${Object.keys(parsed.units.types).length} unit types, ${Object.keys(parsed.units.appearances).length} appearances, ${parsed.units.tables.length} clip tables; soldiers/vehicles/aircraft/corpses/fading per plate ${posed.join(", ")}`,
     );
     console.log(
-      `METRIC native-parity-capture ${map}: ${frames.length} frames, ${own.length} plates, heights ${heights.nx}×${heights.ny} at ${heights.spacing} m, grass kinds ${parsed.grass.kinds.join(", ")}, ${shapes.count} shape vertices, grass per plate ${grown.join(", ")}; ${rows("buildings", "buildings")} buildings, ${rows("buildings", "intact")} intact modules of ${parsed.buildings.modules.length} kinds, modules per plate ${modules.join(", ")}; ${["forest", "understorey", "backdrop", "dressing"].map((p) => `${rows("scenery", p)} ${p}`).join(", ")}, forest/understorey/backdrop/dressing per plate ${scenery.join(", ")}; known props per plate ${known.join(", ")} → ${dir.pathname}`,
+      `METRIC native-parity-capture ${map}: ${frames.length} frames, ${own.length} plates, heights ${heights.nx}×${heights.ny} at ${heights.spacing} m, grass kinds ${parsed.grass.kinds.join(", ")}, ${shapes.count} shape vertices, grass per plate ${grown.join(", ")}; building modules per plate ${modules.join(", ")}; ${["forest", "understorey", "backdrop", "dressing"].map((p) => `${rows("scenery", p)} ${p}`).join(", ")}, forest/understorey/backdrop/dressing per plate ${scenery.join(", ")}; known props per plate ${known.join(", ")} → ${dir.pathname}`,
     );
     const effected = parsed.effectCounts.map(
       (c) => `${sum(Object.values(c.running))}/${sum(Object.values(c.instances))}/${c.lights}`,

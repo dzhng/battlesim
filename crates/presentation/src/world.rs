@@ -1,8 +1,10 @@
-//! What a battle's presentation is loaded from (18b's `load_world` input, as
-//! far as slice 20 reads it): the `units` and `effects` sections both clients
-//! already carry (`web/src/battle/benchmark/unitManifest.ts`,
-//! `effectManifest.ts`), each skinned body's dense clip table, the light's
-//! sun, the overlay colours and the side presented. Static per battle.
+//! What a presentation is loaded from (18b's `load_world` input, as far as
+//! slices 20 and 20b read it): the light's sun, and a battle's `units` and
+//! `effects` sections both clients already carry
+//! (`web/src/battle/benchmark/unitManifest.ts`, `effectManifest.ts`), each
+//! skinned body's dense clip table, the overlay colours and the side
+//! presented, and the static world's style. The template library and the
+//! placed buildings come beside it as bytes. Static per battle.
 use std::collections::BTreeMap;
 
 use serde::Deserialize;
@@ -13,14 +15,40 @@ pub type Quat = [f64; 4];
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct WorldInput {
+    /// What a battle's units and effects draw from; none for a world of
+    /// statics alone (a lab with no battle).
+    #[serde(default)]
+    pub battle: Option<BattleInput>,
+    /// The sun's azimuth and elevation (rad): where shadows fall.
+    pub sun_azimuth: f64,
+    pub sun_elevation: f64,
+    /// `light.cascades.max_far_m`: the farthest a shadow is received from
+    /// the eye along the view; no static casts without it.
+    #[serde(default)]
+    pub cascade_far_m: Option<f64>,
+    /// `presentation.buildings`, when buildings are loaded.
+    #[serde(default)]
+    pub buildings: Option<BuildingStyle>,
+}
+
+/// `presentation.buildings`: how buildings are tiered, chunked and pooled.
+#[derive(Clone, Copy, Debug, Deserialize)]
+pub struct BuildingStyle {
+    /// Pixels a metre covers at a chunk's nearest point for tiers 0 to 2.
+    pub lod_px_per_m: [f64; 3],
+    pub chunk_m: f64,
+    /// Rows the residency pool holds.
+    pub pool_records: usize,
+    pub tint_jitter: f64,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct BattleInput {
     pub units: UnitsSection,
     pub effects: EffectsSection,
     /// The presented side, `"blue"` or `"red"`.
     pub side: String,
     pub tick_hz: f64,
-    /// The sun's azimuth and elevation (rad): where an airframe's shadow falls.
-    pub sun_azimuth: f64,
-    pub sun_elevation: f64,
     /// A soldier's body, for the UI's hit tests (`physics`).
     pub soldier: SoldierBody,
     /// `presentation.overlay.xray`: the observing side's units and its selection.

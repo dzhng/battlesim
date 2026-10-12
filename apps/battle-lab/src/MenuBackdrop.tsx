@@ -340,11 +340,8 @@ function BackdropBattle({
           fixture="menu-backdrop"
           inputEnabled={false}
           world={world}
-          structures={session.structures}
-          buildings={session.buildingsFeed}
-          obstacles={session.cameraObstaclesFeed}
-          frame={session.frame}
-          appearances={session.appearances}
+          {...session.known}
+          {...session.viewport}
           initialCamera={reel.initial}
           groundAt={session.surfaceZ}
           onReady={(gpu) => {

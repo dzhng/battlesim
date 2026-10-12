@@ -256,15 +256,9 @@ function GroundInspector({ scenario, seed, camera, legend, extra }: InspectorPro
         world={worldFeed}
         overlay={overlayFeed}
         fog={session.fogFeed}
-        frame={session.frame}
-        appearances={session.appearances}
+        {...session.viewport}
         initialCamera={camera}
-        onPick={session.onPick}
-        onRightPress={session.onRightPress}
-        onCursor={session.onCursor}
-        pointerMarks={session.pointerPaint.feed}
-        onBox={session.onBox}
-        onReady={session.onReady}
+        {...session.input}
         diagnostics={diagnostics}
       />
       <aside className="hud-panel lab-panel" data-testid="ground-panel">

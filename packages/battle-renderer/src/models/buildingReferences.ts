@@ -1,7 +1,10 @@
 // A map's buildings as the frame draws them from template art: compact
 // references for the whole map (which template, where it was placed, whose
-// it is), and what a side knows fell. Nothing here holds a module transform;
-// `buildingPlacements.ts` expands the references near the camera.
+// it is), which building each part prop is, and the template art they are
+// drawn from.
+// Nothing here holds a module transform: Rust resolves and walks them
+// (`crates/presentation`'s static world), and `buildingLayer.ts` draws what
+// it chose.
 //
 // Every building of every map is drawn this way, from its template's rows in
 // the installed template art library: a generated town's, a test map's
@@ -10,8 +13,11 @@
 //
 // Knowledge is the rule every structure follows: a building stands intact
 // until the side has seen it destroyed, and is then drawn in the state the
-// simulation published of it (`fallenBuildings`), never one worked out here.
-import type { TemplateState } from "@packages/scene-assets/src/templateLibrary";
+// simulation published of it, never one worked out here. The presentation
+// reads that from the side's known props (`static_world/fallen.rs`).
+import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
+import type { Bounds } from "@packages/scene-assets/src/schema";
+import { templateKits, type TemplateArtLibrary } from "@packages/scene-assets/src/templateLibrary";
 import type { KnownProp, MapProp } from "./propAppearance";
 import type { PublicBuildings } from "../worldMesh";
 
@@ -24,11 +30,8 @@ export interface BuildingStyle {
   lod_px_per_m: [number, number, number];
   /** Square chunks buildings are bucketed in, metres: a chunk takes one tier. */
   chunk_m: number;
-  /** Module instances the residency pool holds at most (`placementPool.ts`). */
+  /** Module instances the residency pool holds at most (`static_world/walk.rs`). */
   pool_records: number;
-  /** Rows one view change may expand into the pool; chunks past it wait a
-   *  frame at the coarsest tier. */
-  expand_rows: number;
   /** Each building's tint strays this far in value, either way, so identical
    *  neighbours part. */
   tint_jitter: number;
@@ -42,8 +45,6 @@ export function validateBuildingStyle(style: BuildingStyle): BuildingStyle {
   if (!(style.chunk_m >= 16)) throw new Error(`${at}.chunk_m must be 16 m or more`);
   if (!(Number.isInteger(style.pool_records) && style.pool_records >= 1024))
     throw new Error(`${at}.pool_records must be a whole number, 1024 or more`);
-  if (!(Number.isInteger(style.expand_rows) && style.expand_rows >= 1))
-    throw new Error(`${at}.expand_rows must be a whole number, 1 or more`);
   if (!(style.tint_jitter >= 0 && style.tint_jitter <= 0.5))
     throw new Error(`${at}.tint_jitter must be within [0, 0.5]`);
   return style;
@@ -64,25 +65,21 @@ export interface PlacedBuildings {
   owners: Uint32Array;
 }
 
-/** The states a destroyed building is known in: collapsed to remains, or
- *  standing as a burnt shell. */
-export type DamageState = Exclude<TemplateState, "intact">;
-
-/** A building a side knows is no longer intact. */
-export interface FallenBuilding {
-  /** Which of `PlacedBuildings`. */
-  building: number;
-  /** The state its template is drawn in. */
-  state: DamageState;
-}
-
-/** The buildings a side draws: the map's, and which of them it has seen
- *  fall. `placed` keeps its identity while the map and the
- *  library do; only `fallen` follows knowledge. */
-export interface SideBuildings {
+/** The buildings a scene's presentation draws: the map's, which building
+ *  each part prop is, and the prop kinds a gutted building's parts become
+ *  (the catalog's building rows: `buildingRemains`), which the side's known
+ *  props are read against. A lab no battle publishes into hands its own
+ *  stand-in for those props (`known`); in a battle the publication's decide. */
+export interface SceneBuildings {
   placed: PlacedBuildings;
-  fallen: readonly FallenBuilding[];
+  partBuilding: ReadonlyMap<number, number>;
+  shells: ReadonlySet<string>;
+  known?: readonly KnownPart[];
 }
+
+/** What the rule reads of a known prop: the map prop whose place it took,
+ *  its kind, and whether it was destroyed with nothing left. */
+export type KnownPart = Pick<KnownProp, "authoredProp" | "kind" | "destroyed">;
 
 /** A map's buildings, and their parts' props. */
 export interface BuildingIndex {
@@ -126,31 +123,33 @@ export function indexBuildings(
   return { placed, partBuilding, parts };
 }
 
-/**
- * The buildings of `index` a side knows are destroyed, and how, from the props
- * it has learned (`known`). What the simulation published decides the state:
- * a part's place taken by a prop of a type in `shells` (the types a gutted
- * building's parts become, from the catalog's building rows: `buildingRemains`)
- * is a building that stands `gutted`; taken by anything else, or by nothing,
- * it is a `ruin`. A destruction the side has not seen leaves the building
- * intact, however long ago it was.
- *
- * The simulation destroys a building whole, by one rule, and a side that sees
- * any part of it learns every part, so one known part says what the building
- * is. Were a side ever to know parts in both states, the building is a ruin:
- * a shell is drawn only where nothing known says a part came down.
- */
-export function fallenBuildings(
-  index: BuildingIndex,
-  known: readonly KnownProp[],
-  shells: { has(kind: string): boolean },
-): FallenBuilding[] {
-  const states = new Map<number, DamageState>();
-  for (const k of known) {
-    const building = k.authoredProp === null ? undefined : index.partBuilding.get(k.authoredProp);
-    if (building === undefined) continue;
-    const stands = !k.destroyed && shells.has(k.kind);
-    states.set(building, stands && states.get(building) !== "ruin" ? "gutted" : "ruin");
-  }
-  return [...states].sort(([a], [b]) => a - b).map(([building, state]) => ({ building, state }));
+/** The template art a scene draws from. */
+export interface BuildingArt {
+  library: TemplateArtLibrary;
+  /** The library's file, which Rust resolves buildings from. */
+  bytes: Uint8Array;
+  /** Per library module: its mesh's bounds in its own frame, or null for a
+   *  module of a kit that is not installed (a map installs the kits its
+   *  templates' rows place: `templateKits`). */
+  bounds: readonly (Bounds | null)[];
+}
+
+/** The template art `installed` holds, each module's bounds from its
+ *  installed kit's bundle; null without a library. */
+export function buildingArt(installed: InstalledAppearances | null): BuildingArt | null {
+  const templates = installed?.templates;
+  if (!templates) return null;
+  const bounds = templates.modules.map(({ kit, state }) => {
+    const bundle = state === null ? null : installed.appearances.get(kit)?.bundle;
+    return bundle?.kind === "static" ? (bundle.states[state!]?.bounds ?? null) : null;
+  });
+  return { library: templates.library, bytes: templates.bytes, bounds };
+}
+
+/** Whether every kit `placed` needs is installed in `art`. The buildings and
+ *  the kits that draw them arrive apart; a scene is built once both have. */
+export function artCovers(placed: PlacedBuildings, art: BuildingArt): boolean {
+  const { kits, modules } = art.library;
+  const needed = templateKits(art.library, placed.templates);
+  return modules.every((m, i) => art.bounds[i] !== null || !needed.has(kits[m.kit].appearance));
 }

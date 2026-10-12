@@ -648,6 +648,7 @@ version = "0.1.0"
 dependencies = [
  "contract",
  "godot",
+ "presentation",
  "serde",
  "serde_json",
  "sim",
@@ -1058,6 +1059,7 @@ name = "native-client"
 version = "0.1.0"
 dependencies = [
  "bytemuck",
+ "flate2",
  "pipelines",
  "png",
  "pollster",
@@ -1576,6 +1578,8 @@ name = "presentation"
 version = "0.1.0"
 dependencies = [
  "bytemuck",
+ "flate2",
+ "libm",
  "serde",
  "serde_json",
  "sim",

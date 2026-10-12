@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
-use sim::publication::reader::{Observation, Reader};
+use sim::publication::reader::{KnownProp, Observation, Reader, Shared};
 
 use crate::effects::cook_offs::{CookOffs, PlacedModel};
 use crate::effects::frame::{EffectBatch, EffectFrame, EffectPresentation, EFFECT_FLOATS};
@@ -19,6 +19,11 @@ use crate::records::{
     Appearance as Row, Batch, CastLight, Counts, Effect, Emitter, Instance, Joint, Pick,
     View as ViewRecord, NONE,
 };
+use crate::static_world::batches::{Population, StaticBatches, Sun};
+use crate::static_world::buildings::{Buildings, PlacedBuildings};
+use crate::static_world::fallen::{Knowledge, Known};
+use crate::static_world::library::STATES;
+use crate::static_world::walk::{BuildingPopulation, BuildingWalk};
 use crate::units::articulation::{articulate, rest_locals, track_scroll};
 use crate::units::drawn::{ClipTables, DrawnModels};
 use crate::units::driver::PoseDriver;
@@ -27,7 +32,7 @@ use crate::units::interpolate::{FrameSample, TickInterpolator};
 use crate::units::pose::{Articulation, ClipBlend, Kick, PoseFrame};
 use crate::units::skin::{self, Mat4};
 use crate::view::{model_detail, Camera, View, CULLED, IMPOSTOR};
-use crate::world::{Appearance, Bounds, Trs, UnitsSection, Vec3, WorldInput};
+use crate::world::{Appearance, BattleInput, Bounds, Trs, UnitsSection, Vec3, WorldInput};
 
 /// Publications kept for the effects while the world loads: two minutes at 30 Hz.
 const PENDING_MAX: usize = 3600;
@@ -43,6 +48,10 @@ pub struct Ui<'a> {
     /// Own units hidden by the world show through it.
     pub xray: bool,
     pub ghosts: &'a [Ghost],
+    /// A lab's stand-in for the publication's known props, where no battle
+    /// publishes (a switch that shows a building destroyed); none reads the
+    /// latest publication's.
+    pub known: Option<&'a [Known]>,
 }
 
 /// One body of a unit the UI shows where it will stand.
@@ -86,7 +95,7 @@ pub struct World {
 }
 
 impl World {
-    fn row(&mut self, name: &str, state: &str, lies: u32, skin: u32) -> u32 {
+    fn row(&mut self, name: &str, state: &str, lies: u32, skin: u32, placed: bool) -> u32 {
         let key = (name.to_owned(), state.to_owned(), lies);
         if let Some(&row) = self.rows.get(&key) {
             return row;
@@ -106,7 +115,8 @@ impl World {
             state_len,
             lies,
             skin,
-            pad: [0; 2],
+            placed: u32::from(placed),
+            pad: 0,
         });
         self.rows.insert(key, row);
         row
@@ -128,9 +138,18 @@ struct Model {
     scroll: [f64; 2],
 }
 
+/// What the buildings' known states were last derived from.
+#[derive(Default)]
+enum KnownFrom {
+    #[default]
+    Unread,
+    Lab(Vec<Known>),
+    Published(Option<Shared<KnownProp>>),
+}
+
 /// What a battle draws: its sections, and the per-frame chain's state.
 struct Loaded {
-    input: WorldInput,
+    input: BattleInput,
     units: Arc<UnitsSection>,
     tables: Arc<ClipTables>,
     inverse_binds: HashMap<String, Vec<Mat4>>,
@@ -152,13 +171,22 @@ struct Loaded {
 }
 
 pub struct Presentation {
-    reader: Reader,
+    /// The side's stream; none for a world no battle publishes into.
+    reader: Option<Reader>,
     tick_hz: f64,
     interpolator: TickInterpolator,
     latest: Option<Arc<Observation>>,
     /// Publications taken before the world loaded, noted when it does.
     pending: Vec<Arc<Observation>>,
     loaded: Option<Loaded>,
+    buildings: Option<BuildingPopulation>,
+    /// How the side's knowledge stands the buildings, what it stands them
+    /// in (building, `STATES` index), and what that was derived from.
+    knowledge: Knowledge,
+    fallen: Vec<(usize, usize)>,
+    known_from: KnownFrom,
+    sun: Option<Sun>,
+    statics: StaticBatches,
     world: World,
     frame: Frame,
 }
@@ -186,24 +214,37 @@ fn joint(m: &[f32; 12]) -> Joint {
 
 impl Presentation {
     /// A presentation of the stream `layout` (the battle's
-    /// `observation_layout`) names, at `tick_hz`.
-    pub fn new(layout: &str, tick_hz: f64) -> Result<Self, String> {
+    /// `observation_layout`) names, at `tick_hz`; with no layout, of a world
+    /// no battle publishes into (a lab's), drawn from `load_world` alone.
+    pub fn new(layout: Option<&str>, tick_hz: f64) -> Result<Self, String> {
         Ok(Self {
-            reader: Reader::new(layout)?,
+            reader: layout.map(Reader::new).transpose()?,
             tick_hz,
             interpolator: TickInterpolator::new(tick_hz),
             latest: None,
             pending: Vec::new(),
             loaded: None,
+            buildings: None,
+            knowledge: Knowledge::default(),
+            fallen: Vec::new(),
+            known_from: KnownFrom::Unread,
+            sun: None,
+            statics: StaticBatches::default(),
             world: World::default(),
             frame: Frame::default(),
         })
     }
 
+    fn reader(&mut self) -> Result<&mut Reader, String> {
+        self.reader
+            .as_mut()
+            .ok_or_else(|| "this presentation has no publication layout".to_owned())
+    }
+
     /// Records still in flight are stale; the next opens a new epoch, for
     /// `side` when named.
     pub fn invalidate(&mut self, side: Option<&str>) -> Result<(), String> {
-        self.reader.invalidate(side)?;
+        self.reader()?.invalidate(side)?;
         self.latest = None;
         self.interpolator = TickInterpolator::new(self.tick_hz);
         self.pending.clear();
@@ -213,7 +254,7 @@ impl Presentation {
     /// Reads the next publication's words, received at wall time
     /// `arrived_s`. False for a stale record; a malformed one errs.
     pub fn push_publication(&mut self, words: &[u32], arrived_s: f64) -> Result<bool, String> {
-        let Some(observation) = self.reader.decode(words)? else {
+        let Some(observation) = self.reader()?.decode(words)? else {
             return Ok(false);
         };
         let observation = Arc::new(observation);
@@ -237,9 +278,57 @@ impl Presentation {
         self.latest.as_deref()
     }
 
-    /// Loads what the battle draws; `tables` are the skinned bodies' dense
-    /// clip tables by name. Publications already taken are noted now.
-    pub fn load_world(&mut self, input: WorldInput, tables: ClipTables) -> Result<(), String> {
+    /// Loads what the world draws: `buildings` placed from their template
+    /// art, and the battle's units and effects, `tables` being the skinned
+    /// bodies' dense clip tables by name. Publications already taken are
+    /// noted now.
+    pub fn load_world(
+        &mut self,
+        input: WorldInput,
+        tables: ClipTables,
+        buildings: Option<PlacedBuildings>,
+    ) -> Result<(), String> {
+        // Every drawable a frame may name, so the renderer loads them once;
+        // the buildings' first, a row per walked module.
+        self.world = World::default();
+        self.fallen.clear();
+        self.known_from = KnownFrom::Unread;
+        self.knowledge = Knowledge::default();
+        self.buildings = match buildings {
+            None => None,
+            Some(placed) => {
+                self.knowledge = Knowledge::new(placed.parts, placed.shells);
+                let style = input
+                    .buildings
+                    .ok_or("buildings are drawn under presentation.buildings")?;
+                let buildings =
+                    Buildings::new(placed.library, &placed.bounds, placed.placed, &style)?;
+                let rows = (0..buildings.modules.len())
+                    .map(|m| {
+                        let (kit, module) = buildings.module(m);
+                        self.world.row(kit, module, NONE, 0, true)
+                    })
+                    .collect();
+                let walk = BuildingWalk::new(
+                    buildings,
+                    style.lod_px_per_m,
+                    style.chunk_m,
+                    style.pool_records,
+                );
+                Some(BuildingPopulation { walk, rows })
+            }
+        };
+        self.sun = input.cascade_far_m.map(|far_m| Sun {
+            azimuth: input.sun_azimuth,
+            elevation: input.sun_elevation,
+            far_m,
+        });
+        self.statics.invalidate();
+        self.loaded = None;
+        let (azimuth, elevation) = (input.sun_azimuth, input.sun_elevation);
+        let Some(input) = input.battle else {
+            return Ok(());
+        };
         let units = Arc::new(input.units.clone());
         let tables = Arc::new(tables);
         let presentation = EffectPresentation::from_value(&input.effects.presentation)?;
@@ -256,8 +345,6 @@ impl Presentation {
                 inverse_binds.insert(name.clone(), skin::inverse_binds(joints, given));
             }
         }
-        // Every drawable a frame may name, so the renderer loads them once.
-        self.world = World::default();
         for (name, a) in &units.appearances {
             match a {
                 Appearance::Skinned {
@@ -265,23 +352,22 @@ impl Presentation {
                     corpse_poses,
                     ..
                 } => {
-                    self.world.row(name, "", NONE, joints.len() as u32);
+                    self.world.row(name, "", NONE, joints.len() as u32, false);
                     for lies in 0..corpse_poses.len() {
-                        self.world.row(name, "", lies as u32, 0);
+                        self.world.row(name, "", lies as u32, 0, false);
                     }
                 }
                 Appearance::Articulated { nodes, .. } => {
-                    self.world.row(name, "", NONE, nodes.len() as u32);
+                    self.world.row(name, "", NONE, nodes.len() as u32, false);
                 }
             }
         }
         // A cook-off draws its wreck's pieces: whole, hull, turret, debris.
         for look in input.effects.wreck_looks.values() {
             for state in ["default", "hull", "turret", "debris"] {
-                self.world.row(&look.appearance, state, NONE, 0);
+                self.world.row(&look.appearance, state, NONE, 0, false);
             }
         }
-        let (azimuth, elevation) = (input.sun_azimuth, input.sun_elevation);
         let throw = 1.0 / elevation.tan();
         let mut loaded = Loaded {
             feed: ObservationFeed::new(&side),
@@ -312,6 +398,124 @@ impl Presentation {
 
     pub fn world(&self) -> &World {
         &self.world
+    }
+
+    /// The buildings the side knows destroyed, each with its state (`STATES`
+    /// index, 1 ruin or 2 gutted), as the last frame drew them.
+    pub fn fallen(&self) -> &[(usize, usize)] {
+        &self.fallen
+    }
+
+    /// The renderer holds no static batches (a new one): the next frame
+    /// writes every one.
+    pub fn resend_statics(&mut self) {
+        self.statics.invalidate();
+    }
+
+    /// What the side knows of the buildings (`fallen.rs`), from `lab` or
+    /// else the latest publication's known props, derived again only when
+    /// that changed. A building known in a state its template has no rows
+    /// for is refused by name, and nothing changes.
+    fn know(&mut self, lab: Option<&[Known]>) -> Result<(), String> {
+        let Some(buildings) = &mut self.buildings else {
+            return Ok(());
+        };
+        let fallen = match lab {
+            Some(known) => {
+                if matches!(&self.known_from, KnownFrom::Lab(last) if last == known) {
+                    return Ok(());
+                }
+                self.known_from = KnownFrom::Lab(known.to_vec());
+                self.knowledge.fallen(
+                    known
+                        .iter()
+                        .map(|k| (k.authored_prop, k.kind.as_str(), k.destroyed)),
+                )
+            }
+            None => {
+                let group = self.latest.as_ref().map(|o| o.known_props.clone());
+                let ptr = |g: &Option<Shared<KnownProp>>| g.as_ref().map(Arc::as_ptr);
+                if matches!(&self.known_from, KnownFrom::Published(last) if ptr(last) == ptr(&group))
+                {
+                    return Ok(());
+                }
+                self.known_from = KnownFrom::Published(group.clone());
+                group.map_or_else(Vec::new, |g| {
+                    self.knowledge
+                        .fallen(g.iter().map(|k| (k.authored_prop, &*k.kind, k.destroyed)))
+                })
+            }
+        };
+        if fallen == self.fallen {
+            return Ok(());
+        }
+        if let Some(&b) = buildings.walk.set_fallen(&fallen).first() {
+            let state = fallen.iter().find(|f| f.0 == b).map_or(0, |f| f.1);
+            return Err(format!(
+                "state.missing: template \"{}\" has no \"{}\" rows",
+                buildings.walk.buildings.template(b),
+                STATES[state]
+            ));
+        }
+        self.fallen = fallen;
+        self.statics.invalidate();
+        Ok(())
+    }
+
+    /// The buildings' walk as the last frame left it (`BuildingWalk::stats`);
+    /// none without buildings.
+    pub fn building_stats(&self) -> Option<&[usize]> {
+        self.buildings.as_ref().map(|b| &b.walk.stats[..])
+    }
+
+    /// A skinned row's body as it holds still (`World.appearances`): a
+    /// corpse row as it lies (its `corpse_poses` entry), a body row in its
+    /// far pose (what its impostor card shows). Each joint's bind-to-model
+    /// motion: a renderer skins the body's mesh by it once, when it loads
+    /// the row (`posedMesh`), and draws that mesh where the frame's
+    /// instance takes the identity. None for a rigid row, or before a world
+    /// loads.
+    pub fn rest_palette(&self, row: u32) -> Option<Vec<Joint>> {
+        let loaded = self.loaded.as_ref()?;
+        let r = self.world.appearances.get(row as usize)?;
+        let name = self
+            .world
+            .strings
+            .get(r.name as usize..(r.name + r.name_len) as usize)?;
+        let Some(Appearance::Skinned {
+            joints,
+            clips,
+            table,
+            far_pose,
+            corpse_poses,
+            ..
+        }) = loaded.units.appearances.get(name)
+        else {
+            return None;
+        };
+        let pose = match r.lies {
+            NONE => far_pose,
+            lies => corpse_poses.get(lies as usize)?,
+        };
+        let mut worlds = Vec::new();
+        let table = loaded.tables.get(table)?;
+        skin::joint_worlds(
+            joints,
+            clips,
+            table,
+            &pose.clip,
+            pose.phase,
+            None,
+            &mut worlds,
+        );
+        let ibs = &loaded.inverse_binds[name];
+        Some(
+            worlds
+                .iter()
+                .zip(ibs)
+                .map(|(w, ib)| joint(&skin::affine(&skin::mul(w, ib))))
+                .collect(),
+        )
     }
 
     /// The presentation time at wall time `wall_s` (live only).
@@ -484,8 +688,10 @@ impl Presentation {
         })
     }
 
-    /// What to draw at presentation time `time` for `camera`.
-    pub fn frame(&mut self, time: f64, camera: &Camera, ui: &Ui) -> &Frame {
+    /// What to draw at presentation time `time` for `camera`; errs when the
+    /// side knows a building in a state its template lacks.
+    pub fn frame(&mut self, time: f64, camera: &Camera, ui: &Ui) -> Result<&Frame, String> {
+        self.know(ui.known)?;
         let f = &mut self.frame;
         f.index += 1;
         f.clock = time;
@@ -499,14 +705,20 @@ impl Presentation {
         f.light_wrap = 0.0;
         let view = View::new(camera);
         f.view = view.record(camera);
+        let mut populations: Vec<&mut dyn Population> = Vec::new();
+        if let Some(b) = &mut self.buildings {
+            populations.push(b);
+        }
+        self.statics
+            .write(&mut populations, camera, &view, self.sun.as_ref(), f);
         let (Some(loaded), Some(sample)) = (self.loaded.as_mut(), self.interpolator.frame(time))
         else {
-            return &self.frame;
+            return Ok(&self.frame);
         };
         let f = &mut self.frame;
         f.tick = sample.observation.tick as u32;
         loaded.frame(sample, &view, ui, &self.world, f);
-        &self.frame
+        Ok(&self.frame)
     }
 }
 
@@ -964,7 +1176,7 @@ fn pose_vehicle(
 /// The boxes of every drawn soldier and vehicle, for the UI's hit tests:
 /// a hull's box, else each soldier's (`bodyBox`), and each unit's drawn
 /// position as a box of no size.
-fn picks(sample: &FrameSample, units: &UnitsSection, input: &WorldInput, f: &mut Frame) {
+fn picks(sample: &FrameSample, units: &UnitsSection, input: &BattleInput, f: &mut Frame) {
     let o = &sample.observation;
     let kinds = o
         .own

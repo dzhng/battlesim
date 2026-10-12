@@ -1,7 +1,8 @@
 extends Node3D
 
-## The map's buildings, scenery and props, drawn from the placement the
-## browser exported (`manifest.buildings`, `.scenery`, `.props`) in the state
+## The map's buildings, scenery and props, drawn from Rust's resolved
+## buildings and the placement the browser exported (`manifest.scenery`,
+## `.props`) in the state
 ## the side knows from each frame's publication, and counted per plate against
 ## what the browser drew (`manifest.instanceCounts`): equal, or a blocker.
 ## Each listed layer is its own owner: `building_layer.gd` (`buildings`),
@@ -30,11 +31,7 @@ func _init(scene_dir: String, manifest: Dictionary, tick_hz: float, report) -> v
 	_max_far_m = float(manifest.light.cascades.max_far_m)
 	var layers: Array = manifest.layers
 	if layers.has("buildings"):
-		var read := Manifest.read_tables(scene_dir, manifest.buildings.tables, "buildings")
-		if not read.ok:
-			report.add_blocker(read.blocker.name, read.blocker.detail)
-			return
-		buildings = BuildingLayer.new(read.tables, manifest.buildings, _sun, _max_far_m)
+		buildings = BuildingLayer.new(manifest.identity.map, _sun, _max_far_m, report)
 		buildings.set_parts(manifest.props.buildings.parts, manifest.props.buildings.shells)
 		add_child(buildings)
 	if layers.has("scenery"):
@@ -51,6 +48,10 @@ func _init(scene_dir: String, manifest: Dictionary, tick_hz: float, report) -> v
 			return
 		props = PropLayer.new(manifest.props, read.tables.map, _sun, _max_far_m)
 		add_child(props)
+
+## The modules the buildings' counts are by (`{kit, module}`).
+func modules() -> Array:
+	return buildings.modules if buildings != null else []
 
 ## The layers there are.
 func _layers() -> Array:

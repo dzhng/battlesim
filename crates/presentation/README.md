@@ -20,8 +20,9 @@ wherever it runs.
 - [Records](src/records.rs): every record a renderer reads, defined once;
   `records_are_current` generates `packages/battle-renderer/src/records.gen.ts`.
 - [Units](src/units/): interpolation between ticks, the pose feed and driver,
-  articulation, joint palettes, and where each drawn model's muzzles and rotors
-  are.
+  articulation, joint palettes (and each skinned row's rest palette: a corpse
+  as it lies, a body in its far pose, which a renderer poses its mesh by once),
+  and where each drawn model's muzzles and rotors are.
 - [Effects](src/effects/): the effect publication, launches (the one derivation
   the flashes, the firing soldiers and the gunfire sounds read), the effect frame,
   the cast lights it chooses for the view, and cook-offs.

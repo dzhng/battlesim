@@ -1,13 +1,15 @@
 //! The static world's layers (buildings, scenery, props), the first module of
-//! the native core: the browser's word tables are handed over once per map,
-//! what the side knows when it changes, and the view every frame; a layer
-//! gets back the kinds and tiers whose drawn or cast instances changed. The
-//! rules are `world/*_layer.gd`'s ports of the browser's; this walks them.
+//! the native core: the browser's scenery and props word tables are handed
+//! over once per map, what the side knows when it changes, and the view every
+//! frame; a layer gets back the kinds and tiers whose drawn or cast instances
+//! changed. The rules are `world/*_layer.gd`'s ports of the browser's; this
+//! walks them. The buildings walk in the shared crate (`building_walk.rs`).
 
 mod walk;
 
 use godot::prelude::*;
 use std::collections::HashMap;
+pub use walk::{pack, region};
 use walk::{Aabb, *};
 
 /// A word table (`{words, layout}`, `WordTables`): its records' fields by name.
@@ -42,30 +44,12 @@ impl Table {
         let w = r * self.stride + self.at[name];
         std::array::from_fn(|k| f32::from_le_bytes(self.word(w + k)))
     }
-    fn n<const N: usize>(&self, r: usize, name: &str) -> [i32; N] {
-        let w = r * self.stride + self.at[name];
-        std::array::from_fn(|k| i32::from_le_bytes(self.word(w + k)))
-    }
     fn i(&self, r: usize, name: &str) -> i32 {
-        self.n::<1>(r, name)[0]
+        let w = r * self.stride + self.at[name];
+        i32::from_le_bytes(self.word(w))
     }
     fn word(&self, w: usize) -> [u8; 4] {
         self.words.as_slice()[w * 4..w * 4 + 4].try_into().unwrap()
-    }
-    /// Building rows (`BuildingModule`): kind is the module, mask its tiers.
-    fn rows(&self) -> impl Iterator<Item = Instance> + '_ {
-        (0..self.len()).map(|r| Instance {
-            pack: pack(
-                self.f(r, "position"),
-                self.f::<1>(r, "yaw")[0],
-                self.f(r, "scale"),
-                self.f(r, "tint"),
-            ),
-            kind: self.i(r, "kitModule") as u32,
-            mask: self.i(r, "tiers") as u8,
-            key: self.i(r, "building") as i64,
-            ..Default::default()
-        })
     }
 }
 
@@ -118,17 +102,8 @@ fn chunk_by_cell(pop: &mut Population, members: Vec<(usize, [f32; 2])>, chunk_m:
     }
     for cell in order {
         let (bounds, all) = cells.remove(&cell).unwrap();
-        pop.add_chunk(bounds, 0.0, all);
+        pop.add_chunk(bounds, all);
     }
-}
-
-/// A building: where it stands (sim), its box, its height, and per fallen
-/// state (ruin, gutted) its rows' first and count (-1: none).
-struct Building {
-    foot: [f32; 2],
-    bounds: Aabb,
-    height: f32,
-    rows: [(u32, i32); 2],
 }
 
 #[derive(GodotClass)]
@@ -139,12 +114,6 @@ pub struct StaticLayer {
     /// Per key (`kind · 4 + tier`): instances drawn as given (stumps).
     placed: HashMap<usize, Vec<f32>>,
     last: Lists,
-    /// The buildings, their chunk size, their populations (intact, fallen)
-    /// and the fallen rows of every state.
-    buildings: Vec<Building>,
-    chunk_m: f64,
-    built: [i64; 2],
-    fallen_rows: Vec<Instance>,
 }
 
 #[godot_api]
@@ -183,7 +152,6 @@ impl StaticLayer {
                 kind: t.i(r, "kind") as u32,
                 key: key(t.i(r, "id")),
                 bounds: Aabb::sim([x - reach, y - reach, z], [x + reach, y + reach, z + h]),
-                ..Default::default()
             });
         }
         chunk_by_cell(
@@ -253,105 +221,8 @@ impl StaticLayer {
         let mut boxes = p.instances.iter().map(|i| i.bounds);
         if let Some(first) = boxes.next() {
             let all = (0..p.instances.len() as u32).collect();
-            p.add_chunk(boxes.fold(first, |a, b| a.merge(&b)), 0.0, all);
+            p.add_chunk(boxes.fold(first, |a, b| a.merge(&b)), all);
         }
-    }
-
-    /// The buildings (`tables`: `buildings`, `intact`, `ruin`, `gutted`)
-    /// under the browser's tiers (`manifest.buildings.tiers`): the intact rows
-    /// by the chunk each building was exported in.
-    #[func]
-    fn add_buildings(&mut self, tables: VarDictionary, tiers: VarDictionary) -> i64 {
-        let table = |name: &str| Table::of(&tables.at(name).to());
-        let (placed, intact) = (table("buildings"), table("intact"));
-        self.chunk_m = num(&tiers.at("chunkM"));
-        let lods = lod(&tiers.at("lodPxPerM"));
-        let pool = num(&tiers.at("poolRecords")) as usize;
-        let mut pop = Population::new(Rule::Buildings { pool }, lods, self.kinds);
-        pop.instances = intact.rows().collect();
-        let (ruin, gutted) = (table("ruin"), table("gutted"));
-        self.fallen_rows = ruin.rows().chain(gutted.rows()).collect();
-        let chunks = (0..placed.len())
-            .map(|b| placed.i(b, "chunk") + 1)
-            .max()
-            .unwrap_or(0) as usize;
-        let mut chunked: Vec<(Option<Aabb>, f32, Vec<u32>)> =
-            (0..chunks).map(|_| (None, 0.0, vec![])).collect();
-        let mut first = [0u32, 0, ruin.len() as u32];
-        for b in 0..placed.len() {
-            let (lo, hi) = (placed.f::<3>(b, "min"), placed.f::<3>(b, "max"));
-            let counts = placed.n::<3>(b, "rows");
-            let bounds = Aabb::sim(lo, hi);
-            let foot = placed.f::<2>(b, "frame");
-            self.buildings.push(Building {
-                foot,
-                bounds,
-                height: hi[2] - lo[2],
-                rows: [(first[1], counts[1]), (first[2], counts[2])],
-            });
-            if let Ok(c) = usize::try_from(placed.i(b, "chunk")) {
-                let entry = &mut chunked[c];
-                entry.0 = Some(entry.0.map_or(bounds, |a| a.merge(&bounds)));
-                entry.1 = entry.1.max(hi[2] - lo[2]);
-                entry.2.extend(first[0]..first[0] + counts[0].max(0) as u32);
-            }
-            (0..3).for_each(|s| first[s] += counts[s].max(0) as u32);
-        }
-        for (bounds, height, all) in chunked {
-            pop.add_chunk(bounds.unwrap_or_default(), height, all);
-        }
-        self.built = [
-            self.push(pop),
-            self.push(Population::new(Rule::Ruins, lods, self.kinds)),
-        ];
-        self.built[0]
-    }
-
-    /// The buildings the side knows fallen, each in `states` (1 ruin, 2
-    /// gutted): they leave the intact rows and draw their state's, chunked by
-    /// the cell each stands in. Returns those whose template has no such rows.
-    #[func]
-    fn set_fallen(
-        &mut self,
-        buildings: PackedInt32Array,
-        states: PackedInt32Array,
-    ) -> PackedInt32Array {
-        let mut fallen: Vec<(usize, usize)> = (0..buildings.len())
-            .map(|k| (buildings[k] as usize, states[k] as usize - 1))
-            .collect();
-        fallen.sort();
-        self.pops[self.built[0] as usize]
-            .hide_keys(&fallen.iter().map(|&(b, _)| b as i64).collect());
-        let ruins = &mut self.pops[self.built[1] as usize];
-        ruins.instances = self.fallen_rows.clone();
-        ruins.chunks.clear();
-        let (mut cells, mut order) = (HashMap::<(i64, i64), (Aabb, f32, Vec<u32>)>::new(), vec![]);
-        for &(b, s) in &fallen {
-            let building = &self.buildings[b];
-            let cell = building
-                .foot
-                .map(|v| (v as f64 / self.chunk_m).floor() as i64);
-            let entry = cells.entry((cell[0], cell[1])).or_insert_with(|| {
-                (
-                    order.push((cell[0], cell[1])),
-                    (building.bounds, 0.0, vec![]),
-                )
-                    .1
-            });
-            entry.0 = entry.0.merge(&building.bounds);
-            entry.1 = entry.1.max(building.height);
-            let (first, count) = building.rows[s];
-            entry.2.extend(first..first + count.max(0) as u32);
-        }
-        for cell in order {
-            let (bounds, height, all) = cells.remove(&cell).unwrap();
-            ruins.add_chunk(bounds, height, all);
-        }
-        fallen
-            .iter()
-            .filter(|&&(b, s)| self.buildings[b].rows[s].1 < 0)
-            .map(|&(b, _)| b as i32)
-            .collect()
     }
 
     /// Hides exactly population `pop`'s instances `hidden` marks (a byte each).
@@ -431,12 +302,6 @@ impl StaticLayer {
         }
         sum.into_iter().collect()
     }
-
-    /// The most rows the buildings' pool held in one walk.
-    #[func]
-    fn most_resident(&self) -> i64 {
-        self.pops[self.built[0] as usize].most_resident as i64
-    }
 }
 
 impl StaticLayer {
@@ -459,6 +324,5 @@ fn model(pack: Vec<f32>, kind: u32, size: f32, radius: f32, key: i64) -> Instanc
         kind,
         key,
         bounds,
-        ..Default::default()
     }
 }
