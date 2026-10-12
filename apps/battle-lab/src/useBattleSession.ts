@@ -540,7 +540,13 @@ export function useBattleSession({
   // the native manifest carries them. A new side or catalog loads again.
   const factions = skirmish?.factions;
   const presentation = sim.client?.presentation ?? null;
-  const loadedWorld = useRef<unknown>(null);
+  // The world last loaded, and the drawables its batches name: every frame
+  // offers them, so a viewport built after the load (a lab rebuilding its
+  // frame) draws the units too.
+  const loadedWorld = useRef<{
+    input: unknown;
+    appearances: readonly PresentedAppearance[];
+  } | null>(null);
   const worldInput = useMemo(() => {
     if (!appearances || !props) return null;
     return presentationWorld({
@@ -618,11 +624,11 @@ export function useBattleSession({
         drawnObservation.current = null;
         return null;
       }
-      let world: PresentedAppearance[] | undefined;
-      if (worldInput && loadedWorld.current !== worldInput) {
-        world = presentation.loadWorld(worldInput.world, worldInput.tables);
-        loadedWorld.current = worldInput;
-      }
+      if (worldInput && loadedWorld.current?.input !== worldInput)
+        loadedWorld.current = {
+          input: worldInput,
+          appearances: presentation.loadWorld(worldInput.world, worldInput.tables),
+        };
       drawnClock.current = time;
       drawnObservation.current = published;
       // The order just issued has not landed: its units still publish the old one.
@@ -669,7 +675,7 @@ export function useBattleSession({
       return {
         picks: drawn.current.picks,
         presented,
-        world,
+        world: loadedWorld.current?.appearances,
         counts,
         felled: felled.of(published.fallenBodies),
         clock: time,

@@ -176,7 +176,8 @@ export interface ViewportFrame {
   /** The presentation's frame (`crates/presentation`): the units, corpses,
    *  ghosts and effects it draws, read before the next call into the module. */
   presented?: PresentedFrame;
-  /** The drawables the presentation's batches name, when they change. */
+  /** The drawables the presentation's batches name: the same array until
+   *  the presentation loads another world. */
   world?: readonly PresentedAppearance[];
   /** How many models of each kind the frame poses. */
   counts?: ModelCounts;
@@ -853,7 +854,7 @@ export function LabViewport({
               scene.setInstances(animated.instances);
             }
             if (animated.picks) picksRef.current = animated.picks;
-            if (animated.world) {
+            if (animated.world && animated.world !== presentedWorldRef.current) {
               presentedWorldRef.current = animated.world;
               scene.setPresentationWorld(animated.world);
             }
