@@ -1659,10 +1659,9 @@ const scarEntry = tgpu
  let tilesX=(P.pages.x+15u)/16u;let key=tile.y*tilesX+tile.x;
  var at=((key*0x9e3779b1u)^(key>>16u))&P.pages.z;
  loop {let dim=textureDimensions(terrainLayout.$.scarPages);let e=textureLoad(terrainLayout.$.scarPages,vec2i(i32(at%dim.x),i32(at/dim.x)),0).xy;
-  if(e.x==0u){return vec2u(${SCAR_UNIFORM}u,P.defaultWord.x);}
+  if(e.x==0u){break;}
   if((e.x&${SCAR_KEY_MASK}u)==key+1u){return e;}at=(at+1u)&P.pages.z;}
- // Unreachable (the loop only leaves by returning), but naga requires it.
- return vec2u(0u);
+ return vec2u(${SCAR_UNIFORM}u,P.defaultWord.x);
 }`)
   .$uses({ terrainLayout });
 const scarPoolWord = tgpu

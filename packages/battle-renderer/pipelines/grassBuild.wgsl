@@ -532,10 +532,9 @@ fn scarEntry(tile: vec2u) -> vec2u {
  let tilesX=(P.pages.x+15u)/16u;let key=tile.y*tilesX+tile.x;
  var at=((key*0x9e3779b1u)^(key>>16u))&P.pages.z;
  loop {let dim=textureDimensions(scarPages);let e=textureLoad(scarPages,vec2i(i32(at%dim.x),i32(at/dim.x)),0).xy;
-  if(e.x==0u){return vec2u(2147483648u,P.defaultWord.x);}
+  if(e.x==0u){break;}
   if((e.x&536870911u)==key+1u){return e;}at=(at+1u)&P.pages.z;}
- // Unreachable (the loop only leaves by returning), but naga requires it.
- return vec2u(0u);
+ return vec2u(2147483648u,P.defaultWord.x);
 }
 
 @group(1) @binding(7) var scars: texture_2d_array<f32>;

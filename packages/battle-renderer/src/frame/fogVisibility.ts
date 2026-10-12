@@ -154,15 +154,13 @@ const fogFoliage = tgpu
   let key=j*P.foliageNx+i;
   var lo=0u;
   var hi=arrayLength(&buildLayout.$.foliage);
-  loop {
-    if(lo>=hi){return vec2f(0.0);}
+  while(lo<hi){
     let mid=(lo+hi)/2u;
     let row=buildLayout.$.foliage[mid];
     let at=u32(row.y)*P.foliageNx+u32(row.x);
     if(at==key){return row.zw;}
     if(at<key){lo=mid+1u;}else{hi=mid;}
   }
-  // Unreachable (the loop only leaves by returning), but naga requires it.
   return vec2f(0.0);
 }`)
   .$uses({ buildLayout });
