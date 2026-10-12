@@ -299,3 +299,12 @@ There were four drafts: A fewest-slices (Claude), B risk-first (Codex), C seam-q
 - **One bed shape for both sources.** A profile's bed in `VOICE_PROFILES` is `{clip | generated, filter, volume}`: `clip` names a `sounds.json` clip, mixed from its prepared runtime file; `generated` names a lock bed. One resolver in the tool turns either into a file and its sha256, and the processing key hashes that sha. There is no second path for the tank. Its filter is `anull`, so its takes re-rendered to identical bytes.
 - **The catalog's recorded sha is the clip's identity.** A file that differs from it refuses to render ("pull Git LFS"), and so does a missing clip id.
 - **`check` reports a lock bed no profile names,** so a superseded generated master can't linger.
+
+**2026-10-12, slice 04 pilot (orchestrator ran it):**
+- **Scope:** `us_tank_crew` lead voice, all 12 responses × steady/stressed × 2 takes = 48 takes. The set's bark voice (`soldier`) has no designed voice until slice 05, so the pilot measured the lead voice only. That is enough to price the batch: cost scales with characters.
+- **Cost and speed:** 1,284 characters and 92 calls (48 speech, 44 transcription; 4 transcripts were already cached), in **20 s** wall time at 8 concurrent calls. The whole library is about 181k characters and 7,100 takes, so it projects to roughly an hour of generation and about 181k characters of text-to-speech credit (plus transcription), well within the Pro plan.
+- **Quality:** 3 of 48 takes were flagged (6.25%, under the 10% stop line).
+  - "Gunner" misheard as "Gutter" and "sabot" as "Sabo": one retake each fixed both.
+  - "Tank here, send it." came out as "Thank you" twice. It was reworded to "Armour here, send it."
+  - After that: **0 flagged, 0% mismatch**.
+- **Lesson for the batch:** the R/retake loop handles one-off misreads. A line misread twice gets reworded instead. No gate needed; the batch proceeds (user: "don't let me block you here").
