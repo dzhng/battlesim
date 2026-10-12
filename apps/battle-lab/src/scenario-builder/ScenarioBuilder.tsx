@@ -109,7 +109,9 @@ export default function ScenarioBuilder() {
   }
 
   function onCanvasPointerDown(event: PointerEvent<SVGSVGElement>) {
-    if (event.target === event.currentTarget) place(pointFromPointer(event, mapSize));
+    const target = event.target;
+    if (target instanceof Element && target.closest(".builder-unit")) return;
+    place(pointFromPointer(event, mapSize));
   }
 
   function onCanvasPointerMove(event: PointerEvent<SVGSVGElement>) {
