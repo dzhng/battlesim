@@ -98,8 +98,8 @@ export function PauseMenu({
           role="dialog"
           aria-modal="true"
           aria-label="Paused"
-          aria-hidden={tutorialOpen || undefined}
-          inert={tutorialOpen || undefined}
+          aria-hidden={tutorialOpen || settingsOpen || undefined}
+          inert={tutorialOpen || settingsOpen || undefined}
         >
           <strong className="hud-menu-title">Paused</strong>
           <button type="button" className="hud-menu-item" onClick={onClose} autoFocus>
@@ -120,12 +120,6 @@ export function PauseMenu({
           <Link className="hud-menu-item" to="/">
             Main menu
           </Link>
-          <section className="hud-menu-section" aria-label="Sound">
-            <SoundControls />
-          </section>
-          <section className="hud-menu-section" aria-label="Diagnostics">
-            <DiagnosticsControls />
-          </section>
         </div>
       </div>
       {tutorialOpen && (

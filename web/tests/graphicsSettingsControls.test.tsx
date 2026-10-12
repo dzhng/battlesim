@@ -50,9 +50,16 @@ test("rerun failures stay actionable in the settings surface", async () => {
 
 test("pause menu opens settings as a nested modal and Escape closes it", () => {
   const view = render(<PauseMenu onClose={() => {}} />);
+  expect(view.queryByLabelText("Master volume")).toBeNull();
+  expect(view.queryByRole("button", { name: "Copy diagnostics" })).toBeNull();
   fireEvent.click(view.getByRole("button", { name: "Settings" }));
   expect(view.getByRole("dialog", { name: "Settings" })).toBeTruthy();
+  expect(view.queryByRole("dialog", { name: "Paused" })).toBeNull();
+  expect(view.getByLabelText("Master volume")).toBeTruthy();
+  expect(view.getByRole("button", { name: "Copy diagnostics" })).toBeTruthy();
   fireEvent.keyDown(window, { code: "Escape", cancelable: true });
   expect(view.queryByRole("dialog", { name: "Settings" })).toBeNull();
+  expect(view.getByRole("dialog", { name: "Paused" })).toBeTruthy();
+  expect(view.queryByLabelText("Master volume")).toBeNull();
   view.unmount();
 });
