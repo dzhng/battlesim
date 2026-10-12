@@ -423,6 +423,132 @@ Set by the coordinator: a Rust contract lands in the browser first, so the light
 - **A free `light_records`, not `load_world`.** See the contract above. 18b is amended.
 - **Native Godot's own ports of these formulas** (`environment/light.gd`, `sky_model.gd`, `aerial.gd`) are frozen and leave with Godot at step 8. Their comments name the deleted TS.
 
+## Step 4: the ground, built (2026-10-12, branch `phase5g`)
+
+Native draws the terrain, the backdrop and the map's skirt, the sun's cascades, the side's scars, the grass, and the water, through the browser's exported pipelines. It also draws the buildings. Every number it uploads is the presentation crate's. Three pieces the browser still derived in TypeScript moved into Rust first, browser first: the cascade fit, the ground's meshes with the grass field's CPU side, and the learned ground with its scar cache. Two lanes built them in parallel (`worktree-agent-acad722b…`, `worktree-agent-a9cfa9d2…`), merged here.
+
+### The contract
+
+- **The sun's shadow is Rust's** (`presentation::shadow`, browser first). `sun_shadow(light, camera, map_box)` fits the frame's cascades and returns a `SunShadowFrame`: the receiver block and one caster camera per active cascade.
+  - Two new records: `SunShadow` (the shaders' receiver block, 400 B) and `Camera` (the camera uniform, 160 B). `crates/pipelines/tests/uniforms.rs` holds both to the exported WGSL.
+  - It covers the receiver range over the map's box (`map_box`), the splits, the texel-snapped fits, the biases, the PCF radius and the inactive and cold records.
+  - `LightSettings` gains `cascades` and `backdrop`.
+  - **`view::Camera`'s `up`, `fov_y` and `near` are now `f64`.** In `f32`, the fit's texel-snap floors flipped against the browser's.
+  - The page calls the binding's `SunShadow` once a frame and uploads the words. `cascadePolicy.ts`, `shadowData.ts`, `receiverRange.ts` and `shadowPolicy.ts` are deleted.
+- **The ground's meshes are Rust's** (`static_world::ground::mesh`): `terrain` (with the traversal overlay's tints), `skirt`, `water` and `backdrop`, as world vertices. `backdrop.ts`, `waterSurface.ts`, `addSkirt` and the terrain loop in `terrainSurface.ts` are deleted.
+- **The grass field's CPU side is Rust's** (`static_world::ground::grass`):
+  - `pack_shapes`, from each grass kind's tier meshes: the bundle's arrays, which each client reads itself;
+  - `strip_indices`, `blade_vertices`, `FIELD_SEGMENTS` and `LIMITS`;
+  - `Ground::grass_window` and `frame_params`, the per-frame window and the `GrassParams` fields.
+
+  The renderer keeps only its regrow check: it regrows when the view changes.
+- **The side's learned ground and its scar cache are Rust's** (`presentation::scars`, browser first). Each publication's ground patch is applied in `push_publication`. A renderer calls these on `Presentation`:
+  - `scars_changed()`, after which the grass regrows;
+  - `scar_regions()`, empty when the marks fit at once;
+  - `prepare_scars(region, clipped)`, which returns a `ScarUpload`: the directory's words and size, the pool's texel runs, and `ScarParams`' first 20 words;
+  - `resend_scars()`, for a renderer that holds nothing;
+  - `set_scar_reach(Ground::scar_reach_m())`, the halo.
+
+  The page's `ground.ts`, `groundPage.ts`, `groundHoles.ts`, `ScarSync` and `scarPool.ts` are deleted.
+- **Native reads the ground from the repository's own files.** `static_world::files::ground(root, map)` builds the map with the simulation's world code under the game's rules, in the map's biome (`meta.json`) and its regional finish. It is the same `Source` the page builds from `WorldView`. The layout's prop-kind parsing moved from the WASM binding into `ground::drawn_by`, so both clients use one owner. `files::placed_buildings` stages the buildings, with each building's parts and the shell kinds the manifest carries.
+- **Native's frame:** `sun-shadow → depth prepass → world → effects → fog mask → ghosts → post → fog rim`.
+  - **The sky is merged into the world pass**, as `worldPass.encode` does. The pass grows the grass (compute), draws the sky, then the terrain, the skirt, the models, the grass, the backdrop, the water, and glass last.
+  - **The scars load at the browser's submission points.** The grass window's upload comes before the build. Then comes either the view's upload, or, region by region, an upload and a submitted terrain pass for each.
+  - **The depth prepass** draws the ground before the models.
+  - **Each cascade** draws the ground's casters and the models' casters. A unit casts with the tier one coarser than it draws, and never as a card, as `drawCasters` does. The static world casts only in its caster batches.
+  - `Passes::prepare` now takes the frame's camera, and `prepare_scars` takes the presentation. `Inputs` gains the device, the shadow, the ground and the grass.
+
+### What draws, and what is left
+
+- **Draws:**
+  - the terrain, with its plots, rows, wheelings, roads, kerbs and markings, the forest floor and the river banks;
+  - the skirt and the backdrop past the map;
+  - the four cascades, cast by the ground, the units, the corpses, the wrecks and the buildings;
+  - the scars: tracks, craters, scorch and trampling, in the ground and in the grass;
+  - the grass, with its build, finish and two indexed indirect draws;
+  - the water, through the exported `worldWater`. No reel map has water, so no plate judges it.
+- **The buildings, a small addition:** they are the frame's static batches. A replay frames only the plates it draws, so on those frames it asks `resend_statics()`; a frame whose walk changed nothing names its static batches `first = NONE`. Building-module counts equal the control's on every plate.
+- **Left, and why:**
+  - *Scenery* (trees, hedgerows, dressing): the `slice20b3` lane is moving the scenery walk into Rust.
+  - *The map's props and the known props* (parked cars, lamps, fences, walls, bins, resting wrecks): the static world draws them with the scenery, not through `Frame`.
+  - *Painted marks*: the UI paints them, and a replay has no UI. The paint target stays all zeros, which is the browser's own state in the reel. Nothing would exercise a painted-marks pass yet.
+  - *Fog of war's sight*: as in step 6.
+  - *The per-region scar path* is built but not exercised by either reel: every reel frame's marks fit at once, 69 to 437 pages on market-town.
+  - *Offscreen scar regions are not skipped.* The browser projects each region and skips the ones off screen; native draws every region, which draws the same picture. Moving that cull into Rust is for when a battle needs it.
+
+### Evidence
+
+Control `throwaway/native-parity/2026-10-12T10-11-20-573Z`, captured from this branch's merged tree: the browser reads Rust's fit, meshes, grass field and scars. Native plates, pairs (control on top) and crops are in `throwaway/phase5g/` (`n2/`, `cmp/`, `critique/`).
+
+- **Counts:**
+  - Models and building modules equal the control's on all 24 plates.
+  - Effects are equal on 22 of 24. Market-town 166 and 2216 differ by step 6's tick-boundary rule (tracers 77 against 51 on 166, one puff on 2216).
+- **Plates** (`compare-screenshots`, every plate):
+
+  | | grayscale MAE | pixelmatch ratio |
+  | --- | --- | --- |
+  | market-town | 0.72–3.48 | 0.008–0.059 |
+  | paris-corner | 0.005–4.55 | 0.00004–0.073 |
+
+  Before the ground (the step 6 state against the earlier control), market-town was 2.5–14.1 MAE. The absolute-difference maps of the worst plates (market-town 2216, paris-corner 163) are lit only on the trees, the fences, the cars and the lamps, and on those objects' shadows.
+  - At full size, the tank's tracks on the gravel road behind it (market-town 864), the tank's soft shadow, the grass clumps and their colour, the field rows, and the Paris street's markings and building shadows sit where the control's do.
+- **Unprimed critique** of all 24 pairs and five crops. It was told only that the two halves are two renderers of one moment.
+  - It found the terrain, field rows, grass, shadows (no acne or banding), roads, tracks and craters, and the Paris streets the same.
+  - It found every object difference in the out-of-scope layers: trees, resting wrecks, street props, walls and fences.
+  - Its one open ground question (green in town against grey pavement) was checked at 2×: the pavement is the same in both, and the green is trees, hedges and park furniture.
+  - It rated the grass "very slightly softer" in B at low confidence.
+- **Tests:**
+  - `cargo test` passes for `presentation`, `pipelines` and `native-client` (under the lock). Clippy `-D warnings` is clean on those three and on `presentation-wasm`.
+  - The web typecheck is clean on the merged tree.
+  - The lanes' own checks are below.
+- **The lanes:**
+  - *Shadow, meshes and grass:* every output equals the deleted TypeScript bit for bit, with no ulp differences, on vectors dumped from it first.
+    - `tests/shadow.rs`: 136 fits, giving the receiver blocks and 544 caster cameras, plus the cold blocks. They cover both reel maps' boxes, ground-level to 6 km cameras, pitch from 0.12 to vertical, two lenses, three viewports, three suns, and fits with no box.
+    - `tests/ground_meshes.rs`: the terrain, the traversal overlay, the skirt, the water, the backdrop and the map box, on six maps built natively through `sim`.
+    - `tests/grass_field.rs`: the shapes and facts of all 10 grass bundles, and 80 windows with their frame words.
+    - Each test was falsified once.
+    - `view.rs` and the sun direction now use `libm`'s trig, so both clients compute the same values.
+    - `graphics-test` and `ground` pass. The `street` scene fails 3 checks: one fails on the base too, one compares an f32 half extent with 0.3 exactly and cannot pass on either side, and one looks like battle timing (not confirmed on the base, whose run timed out).
+  - *Browser frame time, shadow, meshes and grass:* six runs a side, interleaved under load (load average 7–22). Market-town is level: 24.3 against 23.8 FPS, GPU 23.5 against 26.1 ms. Paris-corner's median is 29.2 against 35.1, but single runs swung from 20 to 56 FPS, so this neither shows nor rules out a change of about ±15%. The new per-frame calls cost 0.019 ms in a micro-benchmark, and every GPU input is bit-identical.
+  - *Scars:* Rust's uploads equal the deleted TypeScript's word for word over both reels' publication streams (1,291 and 3,537 publications, including about 200 resend and hide/show cycles) and over synthetic streams that force epochs, holes, pool compaction and the regional path (1,300 region uploads). `tests/scars.rs` replays the vectors and reads every learned cell back through the directory and pool. Thirteen planted bugs each broke it. `ground`, `graphics-test` and 57 web tests pass.
+  - *Browser frame time, scars:* six interleaved runs a side, under machine load (load average 9–24 from other sessions). Market-town 25.4 against 24.3 FPS, and Paris-corner 31.9 against 32.3; both inside the noise, so no regression detected rather than a measurement. Over market-town's publications, the scars' CPU work fell from 195–254 ms to 81–118 ms.
+
+### Code
+
+Native and the loader (this lane, without the merges): Rust +1,492 −438, net **+1,054**:
+- `ground.rs`, `grass.rs`, `shadow.rs` and `scars.rs`;
+- the world pass's order and its scar submissions;
+- the models' casters;
+- `files::ground` and `placed_buildings`.
+
+Docs: the native client's README.
+
+The lanes (comments and blanks excluded):
+
+| | Rust | TypeScript |
+| --- | --- | --- |
+| Shadow, meshes, grass: production | +1,011 (`shadow.rs` 424, `grass.rs` +233, `mesh.rs` 142, bindings +154) | −609 |
+| Shadow, meshes, grass: tests | +631 | −199 |
+| Scars: production | +1,160 | −933 |
+| Scars: tests | +706 | −733 |
+
+Generated: `records.gen.ts` +24. Fixtures: 1.36 MB of vectors JSON (shadow, grass, mesh digests, scars).
+
+Production code is net +2,329 lines over the step: Rust +3,225 against TypeScript −1,542, with native's Godot-free ground at +1,054. The Rust is longer than the TypeScript it replaced: rustfmt's layout and the WASM marshalling account for most of it. Godot's deletions at step 8 settle the "less code" gate.
+
+### Decisions
+
+- **Three moves went browser first in parallel lanes**, each with its own equality vectors and FPS pair, then merged. Each lane deleted the TypeScript it replaced.
+- **Native draws every scar region** rather than projecting a scissor and skipping regions off screen (`worldPass.ts`'s `scissor`). The picture is the same, and the region path is cold in both reels.
+- **The replay asks for every static batch on each frame it draws** (`resend_statics`), because it draws only the plate frames. A live client draws every frame and keeps its last static upload, as the browser does.
+- **The skirt draws through `worldOpaque`** with the same all-zero fog group as every other layer, since native has no fog of war.
+- **`view::Camera` is `f64`** (an 18b amendment), so the cascade fit matches the browser's bit for bit.
+
+### Next pickup
+
+- Re-measure both lanes' FPS pairs on a quiet machine.
+- The scenery lane (`slice20b3`) brings the trees, the hedgerows and the dressing through `Frame`. The map's props and the known props come with it or next. Native's model layer already draws any static row.
+- The painted marks and fog of war's sight come once native has a UI and fog inputs.
 
 ## Step 5a: the models, built (2026-10-12, branch `phase5c`)
 
