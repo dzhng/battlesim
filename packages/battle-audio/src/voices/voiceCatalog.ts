@@ -32,6 +32,18 @@ export const BARK_TRIGGERS = [
   "friendly_destroyed_nearby",
 ] as const;
 export const ALL_TRIGGERS = [...RESPONSE_TRIGGERS, ...BARK_TRIGGERS] as const;
+export type BarkTrigger = (typeof BARK_TRIGGERS)[number];
+
+/** A bark's voice name from the simulation's tag: the contract names B5
+ *  `b5_under_fire` (the publication layout's `shoutTriggers`, `ShoutRules.talk_s`),
+ *  a voice line `under_fire`. The one place the two forms meet; a tag whose
+ *  number and name aren't the same bark is refused. */
+export function barkTrigger(tag: string): BarkTrigger {
+  const match = /^b(\d+)_(.+)$/.exec(tag);
+  const trigger = match ? BARK_TRIGGERS[Number(match[1]) - 1] : undefined;
+  if (!match || trigger !== match[2]) throw new Error(`${tag} names no bark`);
+  return trigger;
+}
 export type Trigger = (typeof ALL_TRIGGERS)[number];
 export type Intensity = "steady" | "stressed";
 export interface VoiceLineSet {

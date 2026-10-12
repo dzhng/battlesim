@@ -501,6 +501,29 @@ test("every frozen animation field and ground value decodes, integers exact past
       roll: 0.125,
     },
   ]);
+  // A bark keeps whose it is (an identified enemy's handle exact past 2^24),
+  // its type, place, trigger and intensity; an unseen enemy's is only a cue.
+  expect(o.shouts).toEqual([
+    {
+      own: true,
+      id: 0,
+      kind: "test_rifle",
+      position: [110.5, 62.25, 1.5],
+      trigger: "b9_man_down",
+      intensity: "stressed",
+    },
+    {
+      own: false,
+      id: 16777301,
+      kind: "test_tank",
+      position: [130.5, 70.25, 2.5],
+      trigger: "b15_incoming_missile",
+      intensity: "steady",
+    },
+  ]);
+  expect(o.audible).toEqual([
+    { listener: 0, category: "shout", sector: 5, band: "near", moving: false },
+  ]);
   const ground = new GroundView(layout.ground);
   ground.applyRuns(o.groundPatch);
   const cell = big + 12;

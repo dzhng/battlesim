@@ -4,6 +4,7 @@ import { existsSync, mkdirSync, readFileSync, renameSync, rmSync } from "node:fs
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  barkTrigger,
   lineText,
   takeFile,
   takeId,
@@ -32,7 +33,7 @@ import { RESPONSE_TALK_S, matches } from "./transcript";
 /** A bark's nominal talk time is the simulation's (`ShoutRules.talk_s`, keyed `b<n>_<trigger>`); a
  *  response, which the simulation never sees, is held to `RESPONSE_TALK_S`. */
 const BARK_TALK_S: Record<string, number> = Object.fromEntries(
-  Object.entries(game.shouts.talk_s).map(([key, seconds]) => [key.replace(/^b\d+_/, ""), seconds]),
+  Object.entries(game.shouts.talk_s).map(([key, seconds]) => [barkTrigger(key), seconds]),
 );
 function talkTime(trigger: string): number {
   return BARK_TALK_S[trigger] ?? RESPONSE_TALK_S;

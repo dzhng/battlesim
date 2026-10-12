@@ -12,7 +12,10 @@ use serde::{Deserialize, Serialize};
 pub struct ObservedTargetId(pub u32);
 
 /// What a side knows of an identified enemy: its class and value and what its
-/// sensors saw this tick. Never health, ammunition, orders or timers.
+/// sensors saw this tick. Never health, ammunition, orders or timers. The one
+/// audible exception: a seen enemy's shouts (`ObservationFrame::shouts`)
+/// carry its intensity and bark, so a stressed take or a pinned call reveals
+/// that it is hurt or suppressed, as hearing it would (decision D5).
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct IdentifiedUnit {
     pub id: ObservedTargetId,

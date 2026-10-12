@@ -19,9 +19,9 @@ use contract::catalog::AltitudeLayer;
 use contract::command::{Engagement, MoveDirection, RoutePolicy, TargetRef};
 use contract::ids::Side;
 use contract::observation::{
-    ActionReason, ContactSource, EncounterResult, GarrisonPhase, LeanSide, MemberLean, MoveState,
-    ObservationFrame, Posture, SegmentHit, ServiceStatus, SoundBand, SoundCategory, SoundCue,
-    SuppressionTier, WeaponPose,
+    ActionReason, ContactSource, EncounterResult, GarrisonPhase, Intensity, LeanSide, MemberLean,
+    MoveState, ObservationFrame, Posture, SegmentHit, ServiceStatus, ShoutSpeaker, ShoutTrigger,
+    SoundBand, SoundCategory, SuppressionTier, WeaponPose,
 };
 use contract::scenario::CoverTier;
 
@@ -50,11 +50,32 @@ const POLICIES: [RoutePolicy; 2] = [RoutePolicy::Shortest, RoutePolicy::Fastest]
 const DIRECTIONS: [MoveDirection; 2] = [MoveDirection::Forward, MoveDirection::Reverse];
 const CONTACT_SOURCES: [ContactSource; 2] = [ContactSource::Firing, ContactSource::LastSeen];
 const LAYERS: [AltitudeLayer; 2] = [AltitudeLayer::Ground, AltitudeLayer::LowAir];
-const SOUND_CATEGORIES: [SoundCategory; 3] = [
+const SOUND_CATEGORIES: [SoundCategory; 4] = [
     SoundCategory::Infantry,
     SoundCategory::Vehicle,
     SoundCategory::Shot,
+    SoundCategory::Shout,
 ];
+const SHOUT_TRIGGERS: [ShoutTrigger; 17] = [
+    ShoutTrigger::B1ContactInfantry,
+    ShoutTrigger::B2ContactVehicle,
+    ShoutTrigger::B3ContactAir,
+    ShoutTrigger::B4OpensFire,
+    ShoutTrigger::B5UnderFire,
+    ShoutTrigger::B6Suppressed,
+    ShoutTrigger::B7Pinned,
+    ShoutTrigger::B8Hit,
+    ShoutTrigger::B9ManDown,
+    ShoutTrigger::B10BadlyDamaged,
+    ShoutTrigger::B11Kill,
+    ShoutTrigger::B12Reloading,
+    ShoutTrigger::B13OutOfAmmo,
+    ShoutTrigger::B14MissileAway,
+    ShoutTrigger::B15IncomingMissile,
+    ShoutTrigger::B16Destroyed,
+    ShoutTrigger::B17FriendlyDestroyedNearby,
+];
+const INTENSITIES: [Intensity; 2] = [Intensity::Steady, Intensity::Stressed];
 const SOUND_BANDS: [SoundBand; 2] = [SoundBand::Near, SoundBand::Far];
 /// At most the fixed 18 km extent at the finest accepted 2 m fog grid.
 /// A snapshot holds two exact 16-bit limbs per word: at most 20,250,000 bytes.
@@ -150,7 +171,7 @@ const POSE_FIELDS: [&str; 7] = [
 
 /// Header words; the non-map groups' delivery metadata starts here.
 pub const HEADER_WORDS: usize = HEADER.len();
-const HEADER: [&str; 43] = [
+const HEADER: [&str; 44] = [
     "tick",
     "ownCount",
     "identifiedCount",
@@ -194,6 +215,7 @@ const HEADER: [&str; 43] = [
     "scoreRed",
     "matchResult",
     "crashCount",
+    "shoutCount",
 ];
 const OBJECTIVE_FIELDS: [&str; 8] = [
     "id",
@@ -259,6 +281,17 @@ const CORPSE_FIELDS: [&str; 9] = [
 ];
 const FALLEN_BODY_FIELDS: [&str; 7] = ["propLo", "propHi", "x", "y", "towardX", "towardY", "tick"];
 const CRASH_FIELDS: [&str; 9] = ["id", "own", "kind", "x", "y", "z", "yaw", "pitch", "roll"];
+const SHOUT_FIELDS: [&str; 9] = [
+    "own",
+    "idLo",
+    "idHi",
+    "kind",
+    "x",
+    "y",
+    "z",
+    "trigger",
+    "intensity",
+];
 const REPORT_TOTAL_FIELDS: [&str; 4] = ["spawned", "spent", "killed", "refunded"];
 const REPORT_EVENT_FIELDS: [&str; 13] = [
     "tickLo",
@@ -465,6 +498,7 @@ const GROUP_LAYOUTS: [GroupLayout; GROUPS] = [
     rows("reportEvents", "reportEventCount", &REPORT_EVENT_FIELDS),
     rows("objectives", "objectiveCount", &OBJECTIVE_FIELDS),
     rows("crashes", "crashCount", &CRASH_FIELDS),
+    rows("shouts", "shoutCount", &SHOUT_FIELDS),
 ];
 
 /// An integer as its two exact 16-bit limbs.
@@ -604,6 +638,8 @@ pub fn layout_json(battle: &Battle) -> String {
         "layers": names(&LAYERS),
         "soundCategories": names(&SOUND_CATEGORIES),
         "soundBands": names(&SOUND_BANDS),
+        "shoutTriggers": names(&SHOUT_TRIGGERS),
+        "intensities": names(&INTENSITIES),
         "propKinds": battle.world().types().ids(),
         "engagements": names(&ENGAGEMENTS),
         "actionReasons": names(&REASONS),
@@ -654,6 +690,11 @@ pub fn layout_json(battle: &Battle) -> String {
         // own unit id when own is 1, else the handle it was identified by;
         // its kind indexes unitKinds; x, y, z is its foot, and yaw, pitch
         // (nose up) and roll (right side down) its attitude, in radians.
+        // A shout is a bark this side hears: own is 1 for its own unit (id
+        // its unit id) and 0 for an identified enemy (id the handle it was
+        // identified by); kind indexes unitKinds, x, y, z is where it was
+        // said, trigger indexes shoutTriggers and intensity intensities. An
+        // unseen enemy's shout is never one: it is an audible shout cue.
     })
     .to_string()
 }
@@ -892,7 +933,7 @@ fn pack_record(
         frame.own.len() as f32,
         frame.identified.len() as f32,
         frame.contacts.len() as f32,
-        published_audible(frame).count() as f32,
+        frame.audible.len() as f32,
         frame.known_props.len() as f32,
         frame.projectiles.len() as f32,
         frame.blasts.len() as f32,
@@ -965,6 +1006,7 @@ fn pack_record(
                 contract::skirmish::MatchResult::Draw => 2.0,
             }),
         frame.crashes.len() as f32,
+        frame.shouts.len() as f32,
     ]);
     for u in &frame.own {
         let [garrison_lo, garrison_hi] = limbs_or_absent(u.garrison.map(|g| g.building));
@@ -1140,7 +1182,7 @@ fn pack_record(
     if let Some(ends) = ends.as_mut() {
         ends.push(out.len());
     }
-    for a in published_audible(frame) {
+    for a in &frame.audible {
         out.extend([
             a.listener.0 as f32,
             tag(&SOUND_CATEGORIES, &a.category),
@@ -1402,6 +1444,27 @@ fn pack_record(
             c.roll as f32,
         ]);
     }
+    if let Some(ends) = ends.as_mut() {
+        ends.push(out.len());
+    }
+    for s in &frame.shouts {
+        let (own, id) = match s.speaker {
+            ShoutSpeaker::Own(id) => (1.0, id.0),
+            ShoutSpeaker::Seen(id) => (0.0, id.0),
+        };
+        let [lo, hi] = limbs(id);
+        out.extend([
+            own,
+            lo,
+            hi,
+            s.kind.0 as f32,
+            s.position[0] as f32,
+            s.position[1] as f32,
+            s.position[2] as f32,
+            tag(&SHOUT_TRIGGERS, &s.trigger),
+            tag(&INTENSITIES, &s.intensity),
+        ]);
+    }
     let word = |i: usize| {
         let value = fog.bits[i];
         if i + 1 == words && !cells.is_multiple_of(32) {
@@ -1449,16 +1512,6 @@ fn pack_record(
         return Err("publication values do not match their counts".into());
     }
     Ok(())
-}
-
-/// The sound cues the publication carries. An unseen shout's cue stays in
-/// the simulation's frame until the layout publishes shouts, so the bytes a
-/// client reads do not change before then.
-fn published_audible(frame: &ObservationFrame) -> impl Iterator<Item = &SoundCue> {
-    frame
-        .audible
-        .iter()
-        .filter(|a| a.category != SoundCategory::Shout)
 }
 
 fn packed_len(frame: &ObservationFrame, fog: usize, runs: usize) -> Result<usize, String> {
@@ -1529,7 +1582,7 @@ fn packed_len(frame: &ObservationFrame, fog: usize, runs: usize) -> Result<usize
         add(u.weapon_poses.len(), POSE_FIELDS.len())?;
     }
     add(frame.contacts.len(), CONTACT_FIELDS.len())?;
-    add(published_audible(frame).count(), AUDIBLE_FIELDS.len())?;
+    add(frame.audible.len(), AUDIBLE_FIELDS.len())?;
     add(frame.projectiles.len(), PROJECTILE_FIELDS.len())?;
     for p in &frame.projectiles {
         add(p.path.len(), 3)?;
@@ -1541,6 +1594,7 @@ fn packed_len(frame: &ObservationFrame, fog: usize, runs: usize) -> Result<usize
     add(frame.known_props.len(), KNOWN_PROP_FIELDS.len())?;
     add(frame.fallen_bodies.len(), FALLEN_BODY_FIELDS.len())?;
     add(frame.crashes.len(), CRASH_FIELDS.len())?;
+    add(frame.shouts.len(), SHOUT_FIELDS.len())?;
     add(fog, 1)?;
     add(runs, GROUND_FIELDS.len())?;
     Ok(length)
@@ -1861,7 +1915,7 @@ fn write_group_operations(
 const VARIABLE_ANCHOR_WORDS: usize = 3;
 
 /// Non-map groups, in record order.
-pub const GROUPS: usize = 15;
+pub const GROUPS: usize = 16;
 
 /// A non-map group's fixed row width; 0 where variable sections leave no one
 /// width to address complete rows by.
