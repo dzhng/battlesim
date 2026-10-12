@@ -2,7 +2,7 @@
 
 ## Status and next pickup
 
-**Status:** the side topology, bundle contract, offline admission, slot ownership, controller takeover, deterministic script runtime, modes, tactical builder, explicit scenario/replay file I/O, normal upload/play route, bundle-owned catalog admission, and embedded audio seams are implemented. Native/WASM focused checks, the full 848-test simulation suite, and the builder export browser scene pass. The runtime assets are present; the remaining browser closeout has reached the uploaded-package deployment screen but the normal BattleView checkpoint still needs a warm, responsive Vite/browser run in this checkout.
+**Status:** the side topology, bundle contract, offline admission, slot ownership, controller takeover, deterministic script runtime, modes, tactical builder, explicit scenario/replay file I/O, normal upload/play route, bundle-owned catalog admission, and embedded audio seams are implemented. Native contract checks, the full 848-test simulation suite, TypeScript checks, focused browser tests, and the builder export browser scene pass. The runtime assets are present; the remaining browser closeout has reached the uploaded-package deployment screen but the normal BattleView checkpoint still needs a warm, responsive Vite/browser run in this checkout.
 
 **Updated:** 2026-10-12.
 
