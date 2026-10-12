@@ -158,7 +158,7 @@ on the voices bus that the page only carries out. Its takes come from
 `pack.json` in the background and tells the chatter each set's voices and each
 take as it arrives, with the length its pack records; a take not yet loaded is a
 dropped line, never a wait. A loaded take stays as fetched, MP3 about a twentieth
-of its decoded size, and is decoded when a line starts it; the last 32 played
+of its decoded size, and is decoded when a line starts it; the last few played
 stay decoded. A line plays when its take is decoded, or is dropped if that comes
 later than the chatter's wait after its start. The sound workbench's chatter
 preview runs the same two.
@@ -189,8 +189,8 @@ An unseen enemy's shout reaches the side only as an anonymous hearing cue, so
 it plays a stressed bark from a generic pool of the enemy faction's sets, never
 the speaker's own voice, muffled past understanding. [The shout pool](src/voices/shoutPool.ts)
 only loads those takes, a few per shouting voice from each pack that exists,
-and keeps them decoded because a cue starts at once: 64 to 100 takes, 23 to
-37 MB, by faction. Rust picks the take and places it. With no pack loaded a
+and keeps them decoded because a cue starts at once (`takes_per_voice` bounds
+it). Rust picks the take and places it. With no pack loaded a
 shout is silent.
 
 What a battle hears, when, where and how loud (timing, distance, the air's

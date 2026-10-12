@@ -216,8 +216,7 @@ function lockReport() {
 
 if (command === "plan") {
   const result = report();
-  if (args.includes("--html"))
-    html(flag("html") ?? "throwaway/voice-sets.html");
+  if (args.includes("--html")) html(flag("html") ?? "throwaway/voice-sets.html");
   if (!result.clips || !result.characters) process.exitCode = 1;
 } else if (command === "beds") {
   const { calls } = await generateBeds({ root, client: duetClient(), log });

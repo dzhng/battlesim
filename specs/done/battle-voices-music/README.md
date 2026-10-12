@@ -74,9 +74,9 @@ new take never collides with a cached one (choices S30, S32).
 waiting for any voice. Packs load in the background: own units' sets, an enemy
 kind's set from the first time it is identified, and a small bounded pool for
 unseen shouts. The pool stays decoded; any other take is decoded when its line
-starts. The first shipped version
-loaded every set both rosters speak with and kept them decoded, about 1.3 GB of
-PCM; the fix brought a fresh deploy to about 33 MB (choices S38).
+starts. The first shipped version loaded every set both rosters speak with
+and kept them decoded, about 1.3 GB of PCM; the fix brought a fresh deploy to
+about 33 MB (choices S38).
 
 ## What must stay true
 
@@ -102,7 +102,9 @@ PCM; the fix brought a fresh deploy to about 33 MB (choices S38).
 - **`assets.py` alone owns ffmpeg and encoding.** The tool calls it.
 - **Rust's `Chatter` is the only place line limits are enforced,** for battle
   and for the workbench's chatter preview alike. Its rules, including a line's
-  level, are data in `presentation.audio.voices`.
+  level, are data in `presentation.audio.voices`. The player only carries out
+  its start commands; the one line it drops itself is one whose take decodes
+  later than `wait_s` after its start (choices S38).
 - **`MusicPlayer` is the only music path,** menu bed included. Music streams
   and is not a mixer bus.
 - **One provenance owner** (`catalog.ts`, with its `Generated` kind) **and one
@@ -202,14 +204,17 @@ voices, Music playback) and the [workbench principles](../../../apps/sound-workb
   the unseen-shout cue in `sound/frame.rs`. Pinned by
   [`crates/presentation/tests/voices.rs`](../../../crates/presentation/tests/voices.rs)
   against the recorded chatter vectors.
-- **Browser:** the Rust binding `chatter.ts`, `BattleVoices`, `VoiceBank`,
-  `ShoutPool`, `responses.ts` and `voiceCatalog.ts` in
+- **Browser:** `BattleAudio` in
+  [`battleAudio.ts`](../../../packages/battle-audio/src/battleAudio.ts), which
+  decides which sets a battle loads; the Rust binding `chatter.ts`,
+  `BattleVoices`, `VoiceBank`, `ShoutPool`, `responses.ts` and
+  `voiceCatalog.ts` in
   [`packages/battle-audio/src/voices/`](../../../packages/battle-audio/src/voices/);
   `MusicPlayer`, `MusicDirector`, `BattleMusic` and `musicCatalog.ts` in
   [`packages/battle-audio/src/music/`](../../../packages/battle-audio/src/music/).
-  Their tests are under `web/tests/` (`chatter`, `voiceBank`, `shoutPool`,
-  `responses`, `unitResponses`, `voiceCatalog`, `musicDirector`, `musicPlayer`,
-  `battleMusic`).
+  Their tests are under `web/tests/` (`battleAudio` for which sets load,
+  `chatter`, `voiceBank`, `shoutPool`, `responses`, `unitResponses`,
+  `voiceCatalog`, `musicDirector`, `musicPlayer`, `battleMusic`).
 - **Generation:** the `bun run generate` tool in
   [`packages/battle-audio/tools/generate/`](../../../packages/battle-audio/tools/generate/)
   (proxy client `elevenlabs.ts`, `lock.ts`, `packs.ts`, `transcript.ts`,

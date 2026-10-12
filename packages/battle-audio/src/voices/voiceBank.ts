@@ -5,8 +5,8 @@
 // rather than waited for: the bank tells its listener (the line arbitration,
 // `Chatter`) each set's voices and each take as it arrives, with the length
 // its pack records. A take is held as fetched (MP3, about a twentieth of its
-// decoded size) and decoded only when a line plays it; the last few decoded
-// stay decoded.
+// decoded size) and decoded when a line plays it, the last few played staying
+// decoded, or once for a caller that keeps the audio (the shout pool).
 import type { Intensity, PackTake, Trigger, VoicePack } from "./voiceCatalog";
 import { packUrl } from "./voiceCatalog";
 
@@ -124,10 +124,25 @@ export class VoiceBank {
     return [...this.bytes.keys()];
   }
 
-  /** Take `name`'s audio, decoded now or kept from a recent line; null when it isn't loaded. */
+  /** Take `name`'s audio, decoded now for a caller that keeps it; null when it isn't loaded. */
   decode(name: string): Promise<AudioBuffer> | null {
-    const decoded = this.decoded.get(name) ?? this.decodeFresh(name);
-    if (!decoded) return null;
+    const bytes = this.bytes.get(name);
+    // A decode takes its bytes; the bank keeps its own.
+    return bytes ? this.context.decodeAudioData(bytes.slice(0)) : null;
+  }
+
+  /** Take `name`'s audio for a line, kept from a recent line or decoded now; null when it isn't loaded. */
+  private recent(name: string): Promise<AudioBuffer> | null {
+    let decoded = this.decoded.get(name);
+    if (!decoded) {
+      const fresh = this.decode(name);
+      if (!fresh) return null;
+      // A failed decode isn't kept: the next line tries again.
+      fresh.catch(() => {
+        if (this.decoded.get(name) === fresh) this.decoded.delete(name);
+      });
+      decoded = fresh;
+    }
     // Most recently played last; past the limit, the least recent goes.
     this.decoded.delete(name);
     this.decoded.set(name, decoded);
@@ -151,7 +166,7 @@ export class VoiceBank {
     now: () => number,
     play: (buffer: AudioBuffer, at: number) => void,
   ): boolean {
-    const decoded = this.decode(`${sound}/${variant}`);
+    const decoded = this.recent(`${sound}/${variant}`);
     if (!decoded) return false;
     const line: Promise<void> = decoded.then(
       (buffer) => {
@@ -189,17 +204,6 @@ export class VoiceBank {
     this.bytes.clear();
     this.fetched.clear();
     this.decoded.clear();
-  }
-
-  private decodeFresh(name: string): Promise<AudioBuffer> | null {
-    const bytes = this.bytes.get(name);
-    if (!bytes) return null;
-    // A decode takes its bytes; the bank keeps its own.
-    const decoded = this.context.decodeAudioData(bytes.slice(0));
-    decoded.catch(() => {
-      if (this.decoded.get(name) === decoded) this.decoded.delete(name);
-    });
-    return decoded;
   }
 
   private fetch(url: string, signal: AbortSignal): Promise<ArrayBuffer> {

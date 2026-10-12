@@ -4,8 +4,7 @@
 // takes; which take a shout plays, where and how muffled, is Rust's
 // (`presentation::sound::frame`). A set without a pack adds nothing, so an
 // empty pool is a silent shout, never an error. The frame starts a shout at
-// once, so the pool's takes are all kept decoded; it stays small (a few per
-// shouting voice: 64 to 100 takes, 23 to 37 MB decoded, by faction).
+// once, so the pool keeps every take decoded; `takes_per_voice` keeps it small.
 import { VoiceBank, type PackSource } from "./voiceBank";
 import { BARK_TRIGGERS, type PackTake, type VoicePack } from "./voiceCatalog";
 
