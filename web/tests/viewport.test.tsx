@@ -87,7 +87,7 @@ test("a viewport disposed during its build releases the late frame and never bec
         throw new Error("late frame used after unmount");
       },
       setClock() {},
-      setCorpses() {},
+      setPresentationWorld() {},
       setFelled() {},
       setGround() {},
       dispose() {
@@ -150,7 +150,7 @@ test("appearance updates reach the installing frame and unmount releases it imme
     setFog() {},
     setModels() {},
     setClock() {},
-    setCorpses() {},
+    setPresentationWorld() {},
     setFelled() {},
     setGround() {},
     dispose() {
@@ -195,7 +195,7 @@ test("a covered viewport ignores camera keys and resumes steering when uncovered
     gpu.resolve!({
       setFog() {},
       setClock() {},
-      setCorpses() {},
+      setPresentationWorld() {},
       setFelled() {},
       setGround: () => false,
       render() {},
