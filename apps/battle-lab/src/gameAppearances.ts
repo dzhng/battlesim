@@ -26,6 +26,11 @@ import { appResources } from "./appResources";
 
 const library = new AppearanceLibrary(countedFetch);
 let loading: Promise<InstalledAppearances> | null = null;
+let loadingFactions: string | null | undefined;
+
+function factionsKey(factions: ReadonlySet<string> | null | undefined): string | null | undefined {
+  return factions === null ? null : factions && [...factions].sort().join("|");
+}
 
 /** The page's appearances for a session running `units`, with `asked`
  *  among them: the catalog's one load, then whichever of their art and of
@@ -34,8 +39,12 @@ export function gameAppearances(
   units: UnitCatalog,
   asked: Iterable<string> = [],
   wearing: ReadonlySet<string> = units.appearances,
+  factions?: ReadonlySet<string> | null,
 ): Promise<InstalledAppearances> {
-  loading ??= library.load("/", wearing);
+  const key = factionsKey(factions);
+  if (loading && loadingFactions !== key) loading = null;
+  loadingFactions = key;
+  loading ??= library.load("/", wearing, factions);
   return loading.then(() => library.withUnits(wearing)).then(() => library.withAppearances(asked));
 }
 
@@ -44,6 +53,7 @@ export function gameAppearances(
  *  asked for again. */
 export function reloadGameAppearances(units: UnitCatalog): Promise<InstalledAppearances> {
   loading = null;
+  loadingFactions = undefined;
   return gameAppearances(units);
 }
 
@@ -72,6 +82,7 @@ export function installedUnitNames(
 export function useGameAppearances(
   asked: ReadonlySet<string> | null = NOTHING,
   kinds: Iterable<string> | null = null,
+  factions?: ReadonlySet<string> | null,
 ): InstalledAppearances | null {
   const { units } = useSessionCatalog();
   const wearing = useMemo(
@@ -82,7 +93,7 @@ export function useGameAppearances(
   useEffect(() => {
     if (!asked) return;
     let live = true;
-    gameAppearances(units, asked, wearing).then(
+    gameAppearances(units, asked, wearing, factions).then(
       (next) => live && setInstalled(next),
       (error: unknown) => {
         if (live) appResources.refuse(error);
@@ -91,7 +102,7 @@ export function useGameAppearances(
     return () => {
       live = false;
     };
-  }, [asked, units, wearing]);
+  }, [asked, units, wearing, factions]);
   // What an earlier request installed answers this one only if it has what it asked.
   const held =
     installed &&
@@ -141,13 +152,14 @@ export function useMapAppearances(
   family: string | null,
   standIns = false,
   kinds: Iterable<string> | null = null,
+  factions?: ReadonlySet<string> | null,
 ): InstalledAppearances | null {
-  const catalog = useGameAppearances(NOTHING, kinds);
+  const catalog = useGameAppearances(NOTHING, kinds, factions);
   const asked = useMemo(
     () => catalog && placed && mapDownloads(catalog, placed, family, standIns),
     [catalog, placed, family, standIns],
   );
-  return useGameAppearances(asked);
+  return useGameAppearances(asked, kinds, factions);
 }
 
 /**
@@ -166,12 +178,11 @@ export function mapAppearances(
   buildings: PlacedBuildings,
   units: boolean,
   unitNames: ReadonlySet<string> | null = null,
+  dynamicProps = true,
 ): InstalledAppearances {
-  const art = propArt(appearances, world.exports.buildings.regionalFamily);
+  const art = propArt(appearances, world.exports.buildings.regionalFamily, dynamicProps);
   const drawn = new Set(
-    JSON.parse(
-      prop_appearances(JSON.stringify(world.layout), world.exports.props, art),
-    ) as string[],
+    JSON.parse(prop_appearances(JSON.stringify(world.layout), world.exports.props, art)) as string[],
   );
   const kits = mapKits(appearances, buildings);
   for (const kit of kits)

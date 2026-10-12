@@ -242,6 +242,7 @@ export function useBattleSession({
     () => (requestedKindKey ? requestedKindKey.split("\0") : []),
     [requestedKindKey],
   );
+  const factionsForArt = useMemo(() => (skirmish ? new Set(skirmish.factions) : null), [skirmish]);
   // A shout heard in the open is a bark in its kind's set for its side's
   // faction; an unseen enemy's is drawn from the enemy faction's sets. Of
   // those, only the sets of kinds fielded or identified load.
@@ -356,8 +357,9 @@ export function useBattleSession({
   const appearances = useMapAppearances(
     drawnBuildings?.placed ?? null,
     world?.exports.buildings.regionalFamily ?? null,
-    true,
+    (world?.exports.props.length ?? 0) > 0 || (drawnBuildings?.placed.template.length ?? 0) > 0,
     requestedKinds,
+    factionsForArt,
   );
   // The ground, and the art its scenery and grass draw from; its props and
   // what the side knows of them (rubble, wrecks, shoved bodies where it last
@@ -473,9 +475,10 @@ export function useBattleSession({
             drawnBuildings.placed,
             true,
             installedUnitNames(appearances, units.appearancesFor(requestedKinds)),
+            skirmish !== undefined || world.exports.forests.length > 0,
           )
         : null,
-    [appearances, world, drawnBuildings, units, requestedKinds],
+    [appearances, world, drawnBuildings, units, requestedKinds, skirmish],
   );
   const modelAppearancesFeed = useFeed(modelAppearances);
 

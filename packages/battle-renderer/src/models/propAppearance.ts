@@ -88,7 +88,11 @@ export function knownStanding(
  *  footprint, paints and its first state's bounds), each vehicle appearance's
  *  own wreck, the stand-in kit's bounds where it is installed with its module,
  *  the stand-ins' tints, the map's regional family and the models' tiers. */
-export function propArt(installed: InstalledAppearances, family: string | null): string {
+export function propArt(
+  installed: InstalledAppearances,
+  family: string | null,
+  dynamic = true,
+): string {
   const appearances = [];
   const wrecks: Record<string, string> = {};
   for (const [name, a] of installed.appearances) {
@@ -115,5 +119,6 @@ export function propArt(installed: InstalledAppearances, family: string | null):
     stand_in_tints: game.presentation.stand_ins.tints,
     family,
     detail: game.presentation.models,
+    dynamic,
   });
 }

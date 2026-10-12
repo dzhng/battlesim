@@ -110,6 +110,7 @@ interface Source {
   catalog: RuntimeCatalog;
   read: ReadRuntime;
   wearing: ReadonlySet<string> | undefined;
+  factions: ReadonlySet<string> | null | undefined;
   textures: Map<string, Promise<Texture>>;
 }
 
@@ -135,15 +136,20 @@ export class AppearanceLibrary {
    *  absent): the appearances its load takes (`catalogLoadNames`), the
    *  skeleton clips and the template art library. Installs only if all
    *  succeed. */
-  async load(baseUrl: string, wearing?: ReadonlySet<string>): Promise<InstalledAppearances> {
+  async load(
+    baseUrl: string,
+    wearing?: ReadonlySet<string>,
+    factions?: ReadonlySet<string> | null,
+  ): Promise<InstalledAppearances> {
     const response = await this.fetcher(`${baseUrl}catalog.json`);
     if (!response.ok) throw new Error(`appearance catalog: HTTP ${response.status}`);
     const catalog = (await response.json()) as RuntimeCatalog;
-    admitLoad(catalog, wearing);
+    admitLoad(catalog, wearing, factions);
     const source: Source = {
       catalog,
       read: this.reader(baseUrl),
       wearing,
+      factions,
       textures: new Map(),
     };
     const skeletons = new Map<string, SkeletonClips>();
@@ -156,7 +162,7 @@ export class AppearanceLibrary {
       }),
     );
     const appearances = await Promise.all(
-      catalogLoadNames(catalog, wearing).map(
+      catalogLoadNames(catalog, wearing, factions).map(
         async (name) => [name, await this.appearance(source, name, skeletons)] as const,
       ),
     );
@@ -179,9 +185,11 @@ export class AppearanceLibrary {
     if (!source.wearing) return this.current;
     const wider = new Set([...source.wearing, ...wearing]);
     const held = this.current.appearances;
-    const absent = catalogLoadNames(source.catalog, wider).filter((name) => !held.has(name));
+    const absent = catalogLoadNames(source.catalog, wider, source.factions).filter(
+      (name) => !held.has(name),
+    );
     if (absent.length === 0) return this.current;
-    admitLoad(source.catalog, wider);
+    admitLoad(source.catalog, wider, source.factions);
     const { sides, skeletons } = this.current;
     const arrived = await Promise.all(
       absent.map(
@@ -220,6 +228,7 @@ export class AppearanceLibrary {
         return entry && fetchedOnRequest(entry);
       }),
       source.wearing,
+      source.factions,
     );
     if (bytes > MAP_DOWNLOAD_MAX_BYTES)
       throw new Error(`map download ${bytes} bytes is over ${MAP_DOWNLOAD_MAX_BYTES}`);
@@ -396,8 +405,12 @@ export class AppearanceLibrary {
 
 /** Refuse a catalog load of the art units wearing `wearing` draw that is
  *  over `CATALOG_LOAD_MAX_BYTES`, before anything of it is fetched. */
-function admitLoad(catalog: RuntimeCatalog, wearing: ReadonlySet<string> | undefined): void {
-  const bytes = catalogLoadBytes(catalog, wearing);
+function admitLoad(
+  catalog: RuntimeCatalog,
+  wearing: ReadonlySet<string> | undefined,
+  factions?: ReadonlySet<string> | null,
+): void {
+  const bytes = catalogLoadBytes(catalog, wearing, new Set<string>(), factions);
   if (bytes > CATALOG_LOAD_MAX_BYTES)
     throw new Error(`catalog load ${bytes} bytes is over ${CATALOG_LOAD_MAX_BYTES}`);
 }
