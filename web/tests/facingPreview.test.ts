@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { UNITS } from "./catalog";
+import { UNITS, WEAPONS } from "./catalog";
 import { buildDestinationPreview } from "@packages/battle-renderer/src/orderOverlay";
 import { gameOrderStyle, gameStroke } from "@apps/battle-lab/src/gameOverlay";
 import { VERTEX_FLOATS } from "@packages/battle-renderer/src/mesh";
@@ -43,6 +43,19 @@ test("pointer paint clears the preview when the gesture ends", async () => {
   expect(paint.feed.current).not.toEqual(east);
   paint.update(null, [], () => 0, 0.05);
   expect(paint.feed.current.length).toBe(0);
+});
+
+test("attack-ground spread stays visible up close and grows with cursor range", async () => {
+  const { attackGroundSpread } = await import("@apps/battle-lab/src/pointerPaint");
+  const selected = [
+    { id: 1, kind: "test_tank", position: [0, 0, 0], members: [], area: null, garrison: null },
+  ] as unknown as import("../src/battle/sim/observationView").OwnUnitView[];
+  const drawn = new Map<number, readonly [number, number, number]>([[1, [0, 0, 0]]]);
+  const close = attackGroundSpread([1, 0], selected, drawn, UNITS, WEAPONS);
+  const far = attackGroundSpread([2000, 0], selected, drawn, UNITS, WEAPONS);
+  expect(close?.radius_m).toBe(6);
+  expect(far?.radius_m).toBeGreaterThan(close?.radius_m ?? 0);
+  expect(far?.radius_m).toBeLessThanOrEqual(80);
 });
 
 test("placement queries coalesce cursor updates, a facing drag keeps its last answer, and a cancelled reply cannot restore markers", async () => {

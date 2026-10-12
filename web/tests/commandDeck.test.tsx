@@ -92,3 +92,13 @@ test("Deploy stays disabled when no selected unit can deploy, while attack-move 
   expect(view.getByRole("button", { name: /^Attack-move / }).hasAttribute("disabled")).toBe(false);
   expect(view.getByRole("button", { name: /^Attack ground / }).hasAttribute("disabled")).toBe(true);
 });
+
+test("Attack ground is tactically emphasized for an indirect weapon", () => {
+  const view = render(<CommandBar control={control([unit("us_m109_paladin_m109a7")])} />);
+  const artillery = view.getByRole("button", { name: /^Attack ground / });
+  expect(artillery.classList.contains("ro-cmd-emphasis")).toBe(true);
+  view.rerender(<CommandBar control={control([unit("test_tank")])} />);
+  expect(
+    view.getByRole("button", { name: /^Attack ground / }).classList.contains("ro-cmd-emphasis"),
+  ).toBe(false);
+});

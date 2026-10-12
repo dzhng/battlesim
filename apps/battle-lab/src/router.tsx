@@ -23,6 +23,7 @@ const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
   river: lazy(() => import("./routes/river")),
   sensors: lazy(() => import("./routes/sensors")),
   ballistics: lazy(() => import("./routes/ballistics")),
+  artillery: lazy(() => import("./routes/ballistics")),
   contacts: lazy(() => import("./routes/contacts")),
   weapons: lazy(() => import("./routes/weapons")),
   consequences: lazy(() => import("./routes/consequences")),

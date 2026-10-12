@@ -5816,6 +5816,318 @@
         "clip": "death",
         "phase": 1
       }
+    },
+    "us_m109_paladin_m109a7": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/m109_paladin/us_m109_paladin_m109a7.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "us_m109_paladin_m109a7_wreck",
+      "tolerances": {
+        "hull_extent_m": 5.5
+      }
+    },
+    "us_m109_paladin_m109a7_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/m109_paladin/us_m109_paladin_m109a7_wreck.glb",
+        "debris": "assets/source/roster/m109_paladin/us_m109_paladin_m109a7_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        3.4,
+        1.95,
+        1.625
+      ],
+      "tolerances": {
+        "footprint_m": 6.0
+      }
+    },
+    "us_m1129_stryker_mortar_120_mm_mortar_carrier": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/m1129_stryker_mortar/us_m1129_stryker_mortar_120_mm_mortar_carrier.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "us_m1129_stryker_mortar_120_mm_mortar_carrier_wreck",
+      "tolerances": {
+        "hull_extent_m": 5.5
+      }
+    },
+    "us_m1129_stryker_mortar_120_mm_mortar_carrier_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/m1129_stryker_mortar/us_m1129_stryker_mortar_120_mm_mortar_carrier_wreck.glb",
+        "debris": "assets/source/roster/m1129_stryker_mortar/us_m1129_stryker_mortar_120_mm_mortar_carrier_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        3.475,
+        1.36,
+        1.6
+      ],
+      "tolerances": {
+        "footprint_m": 6.0
+      }
+    },
+    "us_m142_himars_gmlrs": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/m142_himars/us_m142_himars_gmlrs.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "us_m142_himars_gmlrs_wreck",
+      "tolerances": {
+        "hull_extent_m": 5.5
+      }
+    },
+    "us_m142_himars_gmlrs_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/m142_himars/us_m142_himars_gmlrs_wreck.glb",
+        "debris": "assets/source/roster/m142_himars/us_m142_himars_gmlrs_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        3.5,
+        1.2,
+        1.6
+      ],
+      "tolerances": {
+        "footprint_m": 6.0
+      }
+    },
+    "us_m142_himars_prsm": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/m142_himars/us_m142_himars_prsm.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "us_m142_himars_prsm_wreck",
+      "tolerances": {
+        "hull_extent_m": 5.5
+      }
+    },
+    "us_m142_himars_prsm_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/m142_himars/us_m142_himars_prsm_wreck.glb",
+        "debris": "assets/source/roster/m142_himars/us_m142_himars_prsm_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        3.5,
+        1.2,
+        1.6
+      ],
+      "tolerances": {
+        "footprint_m": 6.0
+      }
+    },
+    "us_m270_mlrs_m270a2": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/m270_mlrs/us_m270_mlrs_m270a2.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "us_m270_mlrs_m270a2_wreck",
+      "tolerances": {
+        "hull_extent_m": 5.5
+      }
+    },
+    "us_m270_mlrs_m270a2_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/m270_mlrs/us_m270_mlrs_m270a2_wreck.glb",
+        "debris": "assets/source/roster/m270_mlrs/us_m270_mlrs_m270a2_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        3.485,
+        1.485,
+        1.31
+      ],
+      "tolerances": {
+        "footprint_m": 6.0
+      }
+    },
+    "europe_mars_ii_multiple_launch_rocket_system": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/mars_ii/europe_mars_ii_multiple_launch_rocket_system.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "europe_mars_ii_multiple_launch_rocket_system_wreck",
+      "tolerances": {
+        "hull_extent_m": 5.5
+      }
+    },
+    "europe_mars_ii_multiple_launch_rocket_system_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/mars_ii/europe_mars_ii_multiple_launch_rocket_system_wreck.glb",
+        "debris": "assets/source/roster/mars_ii/europe_mars_ii_multiple_launch_rocket_system_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        3.485,
+        1.485,
+        1.31
+      ],
+      "tolerances": {
+        "footprint_m": 6.0
+      }
+    },
+    "europe_caesar_88": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/caesar/europe_caesar_88.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "europe_caesar_88_wreck",
+      "tolerances": {
+        "hull_extent_m": 5.5
+      }
+    },
+    "europe_caesar_88_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/caesar/europe_caesar_88_wreck.glb",
+        "debris": "assets/source/roster/caesar/europe_caesar_88_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        5.0,
+        1.275,
+        1.6
+      ],
+      "tolerances": {
+        "footprint_m": 6.0
+      }
+    },
+    "europe_pzh_2000_tracked_155_mm_howitzer": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/pzh_2000/europe_pzh_2000_tracked_155_mm_howitzer.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "europe_pzh_2000_tracked_155_mm_howitzer_wreck",
+      "tolerances": {
+        "hull_extent_m": 5.5
+      }
+    },
+    "europe_pzh_2000_tracked_155_mm_howitzer_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/pzh_2000/europe_pzh_2000_tracked_155_mm_howitzer_wreck.glb",
+        "debris": "assets/source/roster/pzh_2000/europe_pzh_2000_tracked_155_mm_howitzer_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        3.935,
+        1.79,
+        1.53
+      ],
+      "tolerances": {
+        "footprint_m": 6.0
+      }
+    },
+    "eastern_2s19_msta_s_2s19m2": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/2s19_msta_s/eastern_2s19_msta_s_2s19m2.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "eastern_2s19_msta_s_2s19m2_wreck",
+      "tolerances": {
+        "hull_extent_m": 5.5
+      }
+    },
+    "eastern_2s19_msta_s_2s19m2_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/2s19_msta_s/eastern_2s19_msta_s_2s19m2_wreck.glb",
+        "debris": "assets/source/roster/2s19_msta_s/eastern_2s19_msta_s_2s19m2_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        3.575,
+        1.79,
+        1.495
+      ],
+      "tolerances": {
+        "footprint_m": 6.0
+      }
+    },
+    "eastern_plz_05_chinese_tracked_155_mm_howitzer": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/plz_05/eastern_plz_05_chinese_tracked_155_mm_howitzer.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "eastern_plz_05_chinese_tracked_155_mm_howitzer_wreck",
+      "tolerances": {
+        "hull_extent_m": 5.5
+      }
+    },
+    "eastern_plz_05_chinese_tracked_155_mm_howitzer_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/plz_05/eastern_plz_05_chinese_tracked_155_mm_howitzer_wreck.glb",
+        "debris": "assets/source/roster/plz_05/eastern_plz_05_chinese_tracked_155_mm_howitzer_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        3.65,
+        1.7,
+        1.55
+      ],
+      "tolerances": {
+        "footprint_m": 6.0
+      }
+    },
+    "eastern_bm_21_grad_bm_21_rocket_artillery": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/bm_21_grad/eastern_bm_21_grad_bm_21_rocket_artillery.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "eastern_bm_21_grad_bm_21_rocket_artillery_wreck",
+      "tolerances": {
+        "hull_extent_m": 5.5
+      }
+    },
+    "eastern_bm_21_grad_bm_21_rocket_artillery_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/bm_21_grad/eastern_bm_21_grad_bm_21_rocket_artillery_wreck.glb",
+        "debris": "assets/source/roster/bm_21_grad/eastern_bm_21_grad_bm_21_rocket_artillery_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        3.675,
+        1.345,
+        1.545
+      ],
+      "tolerances": {
+        "footprint_m": 6.0
+      }
+    },
+    "eastern_9k515_tornado_s_heavy_rocket_artillery": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/9k515_tornado_s/eastern_9k515_tornado_s_heavy_rocket_artillery.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "eastern_9k515_tornado_s_heavy_rocket_artillery_wreck",
+      "tolerances": {
+        "hull_extent_m": 5.5
+      }
+    },
+    "eastern_9k515_tornado_s_heavy_rocket_artillery_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/9k515_tornado_s/eastern_9k515_tornado_s_heavy_rocket_artillery_wreck.glb",
+        "debris": "assets/source/roster/9k515_tornado_s/eastern_9k515_tornado_s_heavy_rocket_artillery_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        6.05,
+        1.525,
+        1.525
+      ],
+      "tolerances": {
+        "footprint_m": 6.0
+      }
     }
   }
 }

@@ -625,6 +625,22 @@ fn against_an_opponent_with_a_helicopter() -> contract::scenario::ScenarioDefini
     } } }))
 }
 
+/// The opponent whose admitted deck includes a physical indirect-fire card.
+fn against_an_opponent_with_artillery() -> contract::scenario::ScenarioDefinition {
+    let mut rules = deck();
+    rules["weapons"]["hmg"]["trajectory"] = json!("indirect");
+    rules["weapons"]["hmg"]["min_range_m"] = json!(50.0);
+    rules["weapons"]["hmg"]["range_m"] = json!(500.0);
+    rules["catalog"].as_array_mut().unwrap().push(json!({ "units": { "red_test_jeep": {
+        "extends": "test_jeep",
+        "roles": ["artillery"],
+        "roster": { "factions": ["eastern"], "category": "sup", "family_name": "Test artillery", "variant": "Test" }
+    } } }));
+    let mut setup = match_on(rules);
+    setup.skirmish.as_mut().unwrap().ai_side = Some(Side::Red);
+    setup
+}
+
 /// The opponent buys a helicopter in its reinforcements; it enters at its
 /// base already at cruise height, never waiting for clear ground, and sets off
 /// for an objective.
@@ -700,6 +716,78 @@ fn the_basic_opponent_buys_from_zero_through_recorded_commands_and_replays_every
         replay.step();
         assert_eq!(replay.digest(), digest, "tick {}", replay.tick());
     }
+}
+
+#[test]
+fn the_skirmish_ai_procures_artillery_and_replays_its_named_catalog_cutover() {
+    let setup = against_an_opponent_with_artillery();
+    let mut live = Battle::new(&setup, 3);
+    assert!(live
+        .accept(command(
+            Side::Blue,
+            1,
+            Order::ConfirmPurchase {
+                variant: "test_tank".into(),
+                destination: [400.0, 300.0],
+            },
+        ))
+        .error
+        .is_none());
+    assert!(live
+        .accept(command(Side::Blue, 2, Order::Ready))
+        .error
+        .is_none());
+    let mut digests = Vec::new();
+    for _ in 0..45 * live.rules().tick_hz {
+        live.step();
+        digests.push(live.digest());
+    }
+    let artillery = live.rules().catalog.index("red_test_jeep").unwrap();
+    let artillery_ids: std::collections::BTreeSet<_> = live
+        .observe(Side::Red)
+        .own
+        .iter()
+        .filter(|unit| unit.kind == artillery)
+        .map(|unit| unit.id)
+        .collect();
+    let red = live.observe(Side::Red);
+    assert!(
+        red.own.iter().any(|unit| unit.kind == artillery)
+            || red
+                .skirmish
+                .as_ref()
+                .unwrap()
+                .pending
+                .iter()
+                .any(|pending| pending.kind == artillery),
+        "the AI did not field or reserve its admitted artillery card"
+    );
+    assert!(live.replay().accepted.iter().any(|(_, command)| {
+        command.side == Side::Red
+            && matches!(
+                &command.order,
+                Order::ConfirmPurchase { variant, .. } if variant == "red_test_jeep"
+            )
+    }));
+    assert!(live.replay().accepted.iter().any(|(_, command)| {
+        command.side == Side::Red
+            && matches!(&command.order, Order::Attack { units, target: contract::command::TargetRef::Identified { .. } } if units.iter().any(|id| artillery_ids.contains(id)))
+    }), "artillery must use the ordinary identified-target attack order");
+    let mut replay = Battle::from_replay(&setup, &live.replay()).unwrap();
+    for digest in digests {
+        replay.step();
+        assert_eq!(replay.digest(), digest, "tick {}", replay.tick());
+    }
+    let mut without_artillery_row = setup.clone();
+    without_artillery_row
+        .rules
+        .weapons
+        .remove("artillery_mortar");
+    assert_eq!(
+        Battle::from_replay(&without_artillery_row, &live.replay()).err(),
+        Some(sim::battle::ReplayError::ConfigMismatch),
+        "a replay with the artillery row removed must use the named hard cutover"
+    );
 }
 
 #[test]

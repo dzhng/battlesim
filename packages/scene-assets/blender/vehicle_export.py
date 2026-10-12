@@ -35,7 +35,7 @@ from mathutils import Vector
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import parts as P  # noqa: E402
-from catalog_frames import family_variants  # noqa: E402
+from catalog_frames import family_variants, roster_variant  # noqa: E402
 from parts import bare_steel, empty, finish, flat_paint, glass, reset, script_args, textured, track_steel, tyre, triangles_by_tier  # noqa: E402
 from wreckage import WRECK_ARG, burn, export_wreck, scatter  # noqa: E402
 
@@ -193,15 +193,21 @@ def _receipt(path, script, variants, frames, references=None):
     }, indent=2) + "\n")
 
 
-def run(family, scheme, build, wreck, ao_distance=1.0, ao_rays=8, references=None, **looks):
+def run(family, scheme, build, wreck, ao_distance=1.0, ao_rays=8, references=None,
+        appearances=None, script=None, receipt_file=None, **looks):
     """Export every variant of `family` (or `--variant=<id>`), live or with
     `--wreck` its wreck, through `build` and `wreck` (see the module doc).
     `references` is its reference library's `references.json` where that is
-    not `assets/references/<family>/`. `looks` are `materials` keywords (a
+    not `assets/references/<family>/`. A shared script can name `appearances`
+    from several folders; `script` keeps its receipt tied to the actual source.
+    `looks` are `materials` keywords (a
     family's fittings, canvas or chip)."""
-    receipt = _export(family_variants(family), scheme, build, wreck, ao_distance, ao_rays, looks=looks)
+    variants = ([roster_variant(name, repo=REPO) for name in appearances]
+                if appearances is not None else family_variants(family, repo=REPO))
+    receipt = _export(variants, scheme, build, wreck, ao_distance, ao_rays, looks=looks)
     if receipt is not None:
-        _receipt(f"assets/source/roster/{family}/source-receipt.json", f"{family}.py", receipt, "fixtures/catalog.json",
+        _receipt(receipt_file or f"assets/source/roster/{family}/source-receipt.json",
+                 script or f"{family}.py", receipt, "fixtures/catalog.json",
                  references)
 
 

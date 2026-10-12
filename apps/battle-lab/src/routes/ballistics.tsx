@@ -18,7 +18,6 @@ import { useStandingBuildings, useStaticWorld, type WorldView } from "../useStat
 import type { GameRules, SessionCatalog } from "@web/battle/catalog/compose";
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import { gameBiome } from "../gameBiome";
-import { useMapAppearances } from "../gameAppearances";
 import { loadWasm, type Wasm } from "@web/battle/sim/module";
 import { useFeed } from "../feed";
 import { gameCamera } from "../gameCamera";
@@ -82,15 +81,9 @@ function benchOf(catalog: SessionCatalog): Bench {
       return [name, { ...row, speed_mps: row.speed_mps / Math.sqrt(g), gravity_scale: 1 }];
     }),
   );
-  // No game weapon has indirect-fire capability yet; this lab-only row
-  // exercises the opt-in high arc with a slow round whose apex fits the frame.
-  const LAB_MORTAR = {
-    speed_mps: 45,
-    range_m: 500,
-    scatter_mrad: 10,
-    suppression_radius_m: 10,
-    trajectory: "indirect",
-  };
+  // Use the shipped indirect row so the lab exercises the same trajectory
+  // and spread metadata that an artillery unit carries in battle.
+  const LAB_MORTAR = W.artillery_mortar;
   // The oblique-AP preset: game AP pierces every face of the tank, so this
   // lab-only row is a spent AP round (penetration below the front plate) whose
   // failed penetrations may glance off.
@@ -210,7 +203,15 @@ function benchOf(catalog: SessionCatalog): Bench {
       aim: { ground: [100, 292] },
     },
     {
-      label: "indirect lab mortar over crest",
+      label: "artillery mortar over crest",
+      weapon: LAB_MORTAR,
+      kind: "grenade",
+      from: [92, 118],
+      muzzle: P.infantry_muzzle_m,
+      aim: { ground: [92, 300] },
+    },
+    {
+      label: "artillery mortar inside minimum range",
       weapon: LAB_MORTAR,
       kind: "grenade",
       from: [92, 118],
@@ -304,6 +305,107 @@ interface Run {
   paths: Map<number, Xyz[]>;
   movers: Mover[];
   bench: Bench;
+}
+
+const artilleryRoute = window.location.pathname.endsWith("/artillery");
+
+function diagramPoint([, y, z]: Xyz): [number, number] {
+  // Side profile along the mortar's northward line: horizontal is range and
+  // vertical is height, so the high arc reads as an arc instead of a top-down
+  // line with no visible elevation.
+  // Compress the real flight height so the long high arc fits beside the
+  // ground profile; the labels retain the authored metre values.
+  return [100 + (y / 300) * 800, 540 - z * 0.35];
+}
+
+function ArtilleryDiagram({ run, view }: { run: Run; view: WorldView }) {
+  const mortar = run.shots.find((shot) => shot.label === "artillery mortar over crest");
+  const path = mortar?.projectile === undefined ? [] : (run.paths.get(mortar.projectile) ?? []);
+  const impact = run.events.find(
+    (event) => event.projectile === mortar?.projectile && event.kind === "impact",
+  );
+  const line = path.map(diagramPoint);
+  const ridge = Array.from({ length: 25 }, (_, i) => {
+    const y = 130 + i * (160 / 24);
+    const h = Math.sqrt(Math.max(0, 1 - ((y - 210) / 80) ** 2)) * 20;
+    const z = view.height_at(100, y) ?? h;
+    return [100 + (y / 300) * 800, 540 - z * 4];
+  });
+  const ridgeLine = [[100, 540], ...ridge, [900, 540]].map(([x, y]) => `${x},${y}`).join(" ");
+  const flightLine = line.map(([x, y]) => `${x},${y}`).join(" ");
+  const impactPoint = impact ? diagramPoint(impact.point) : null;
+  return (
+    <div className="artillery-lab-diagram" data-testid="artillery-diagram">
+      <svg
+        viewBox="0 0 1000 660"
+        preserveAspectRatio="none"
+        role="img"
+        aria-label="Indirect artillery fire over a ridge"
+      >
+        <defs>
+          <pattern id="artillery-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(132,169,150,.16)" />
+          </pattern>
+          <linearGradient id="artillery-ground" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#233b35" />
+            <stop offset="1" stopColor="#101c1c" />
+          </linearGradient>
+          <filter id="artillery-glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+        <rect x="0" y="0" width="1000" height="660" fill="url(#artillery-ground)" />
+        <rect x="0" y="0" width="1000" height="660" fill="url(#artillery-grid)" />
+        <path d="M100 540 H900" stroke="#789b83" strokeWidth="2" opacity=".65" />
+        <polyline points={ridgeLine} fill="none" stroke="#c59049" strokeWidth="5" opacity=".9" />
+        {flightLine && (
+          <polyline
+            points={flightLine}
+            fill="none"
+            stroke="#f2d47d"
+            strokeWidth="4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            filter="url(#artillery-glow)"
+          />
+        )}
+        {line[0] && <circle cx={line[0][0]} cy={line[0][1]} r="9" fill="#74d1e8" />}
+        {impactPoint && (
+          <>
+            <circle
+              cx={impactPoint[0]}
+              cy={impactPoint[1]}
+              r="22"
+              fill="none"
+              stroke="#f05b54"
+              strokeWidth="3"
+            />
+            <circle cx={impactPoint[0]} cy={impactPoint[1]} r="6" fill="#f05b54" />
+          </>
+        )}
+        <text x="430" y="48" className="artillery-diagram-kicker">
+          INDIRECT FIRE / HIGH ARC
+        </text>
+        <text x="120" y="575" className="artillery-diagram-label">
+          MORTAR POSITION
+        </text>
+        <text x="600" y="408" className="artillery-diagram-label">
+          RIDGE CREST
+        </text>
+        <path d="M 660 416 L 660 458" stroke="#d6dfd2" strokeWidth="1" opacity=".55" />
+        <text x="815" y="575" className="artillery-diagram-label">
+          IMPACT / TERRAIN
+        </text>
+        <text x="120" y="605" className="artillery-diagram-note">
+          145 M/S · 1,800 M MAX · 180 M MIN
+        </text>
+      </svg>
+    </div>
+  );
 }
 
 function poseAt(view: WorldView, m: Mover, tick: number) {
@@ -499,16 +601,9 @@ function BallisticsLab({ map }: { map: MapDefinition }) {
   const world = useStaticWorld(map, catalog.rules);
   const buildings = useStandingBuildings(world);
   const buildingsFeed = useFeed(buildings);
-  const appearances = useMapAppearances(
-    buildings?.placed ?? null,
-    world?.exports.buildings.regionalFamily ?? null,
-  );
   const meshes = useMemo(
-    () =>
-      world &&
-      appearances &&
-      buildWorldLayers(world.exports, world.layout, gameBiome, "surface", appearances),
-    [world, appearances],
+    () => world && buildWorldLayers(world.exports, world.layout, gameBiome, "surface"),
+    [world],
   );
   const worldFeed = useFeed(meshes);
   const [wasm, setWasm] = useState<Wasm | null>(null);
@@ -607,21 +702,32 @@ function BallisticsLab({ map }: { map: MapDefinition }) {
   const run = shown?.run;
   if (!world || !meshes || !run) return null;
   const impacts = run.events.filter((e) => e.kind === "impact");
+  const panelShots = artilleryRoute
+    ? run.shots.filter((shot) => shot.label.startsWith("artillery mortar"))
+    : run.shots;
   return (
     <>
+      {artilleryRoute && <ArtilleryDiagram run={run} view={world.view} />}
       <LabViewport
         fixture="ballistics"
         world={worldFeed}
         buildings={buildingsFeed}
-        appearances={appearances}
+        // This bench draws proxy emitters and flight marks; it does not need
+        // the full roster appearance library. Leaving models uninstalled
+        // keeps the diagnostic route within WebGPU's texture-array limit on
+        // devices that cap arrays at 256 layers.
+        appearances={null}
         overlay={overlayFeed}
         instances={instances}
         initialCamera={BALLISTICS_CAMERA}
         diagnostics={diagnostics}
         frame={frame}
       />
-      <aside className="hud-panel lab-panel" data-testid="ballistics-panel">
-        <strong>Ballistics</strong>
+      <aside
+        className={`hud-panel lab-panel${artilleryRoute ? " artillery-panel" : ""}`}
+        data-testid="ballistics-panel"
+      >
+        <strong>{artilleryRoute ? "Artillery" : "Ballistics"}</strong>
         <div className="lab-hint">
           Tick {run.tick} · {run.lab.subsegments_per_tick()} chord/tick · middle-drag orbit · WASD
           pan
@@ -653,7 +759,7 @@ function BallisticsLab({ map }: { map: MapDefinition }) {
           Weapon spread (off: analytic aim)
         </label>
         <ol className="lab-log lab-list" data-testid="shots">
-          {run.shots.map((s) => {
+          {panelShots.map((s) => {
             const end = run.events.find((e) => ends(e) && e.projectile === s.projectile);
             const glances = run.events.filter(
               (e) => e.kind === "ricochet" && e.projectile === s.projectile,
@@ -672,16 +778,21 @@ function BallisticsLab({ map }: { map: MapDefinition }) {
           {impacts.length} impacts · {run.events.filter((e) => e.kind === "ricochet").length}{" "}
           ricochets · {run.events.filter((e) => e.kind === "near_miss").length} near misses
         </div>
-        <div className="lab-hint">
-          <div>
-            Traces: orange hit a body · yellow hit ground · white in flight · faint red rejected arc
+        {artilleryRoute ? (
+          <div className="lab-hint">Arc clears ridge · close fire held</div>
+        ) : (
+          <div className="lab-hint">
+            <div>
+              Traces: orange hit a body · yellow hit ground · white in flight · faint red rejected
+              arc
+            </div>
+            <div>
+              Marks: red body hit · yellow ground hit · lime ricochet · black obstruction · cyan
+              closest pass
+            </div>
+            <div>Navy plate: aim point · bodies blue, violet once struck</div>
           </div>
-          <div>
-            Marks: red body hit · yellow ground hit · lime ricochet · black obstruction · cyan
-            closest pass
-          </div>
-          <div>Navy plate: aim point · bodies blue, violet once struck</div>
-        </div>
+        )}
       </aside>
     </>
   );

@@ -62,6 +62,7 @@ import {
 import type { CursorAction } from "@web/battle/present/gameCursor";
 import {
   PointerPaint,
+  attackGroundSpread,
   rulerAt,
   previewForIntent,
   cursorForIntent,
@@ -762,6 +763,7 @@ export function useBattleSession({
         [],
         surfaceZ,
         metresPerPxAt(camera.distance, camera.fovY, window.innerHeight),
+        null,
       );
       return active ? (purchaseGhost.current?.valid === false ? "blocked" : "default") : null;
     }
@@ -857,11 +859,22 @@ export function useBattleSession({
             surfaceZ,
           )
         : null;
+    const attackGround =
+      active && intent.kind === "attack" && intent.target.kind === "ground" && shown
+        ? attackGroundSpread(
+            [intent.target.point[0], intent.target.point[1]],
+            control.selectedUnits,
+            drawnAt.current,
+            units,
+            catalog.weapons,
+          )
+        : null;
     pointerPaint.update(
       ruler,
       active ? preview : [],
       surfaceZ,
       metresPerPxAt(camera.distance, camera.fovY, window.innerHeight),
+      attackGround,
     );
     if (!active) return null;
     if (!held && pick?.unit != null) return "default";

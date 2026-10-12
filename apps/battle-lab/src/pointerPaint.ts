@@ -1,7 +1,13 @@
 // Pointer-following ground paint: the held destination/facing preview and
 // the Space range ruler share one feed, refreshed only when their geometry changes.
 import type { WorldRay } from "@packages/renderer-core/src/camera3d";
-import { EMPTY_MESH, concatMeshes, type Mesh } from "@packages/battle-renderer/src/mesh";
+import {
+  EMPTY_MESH,
+  concatMeshes,
+  groundRing,
+  MeshBuilder,
+  type Mesh,
+} from "@packages/battle-renderer/src/mesh";
 import {
   buildDestinationPreview,
   circleExit,
@@ -36,7 +42,42 @@ import type { Vec3 } from "math";
 import { orderView } from "./battleOverlay";
 import { Feed } from "./feed";
 import { groundUnderRay, type StaticWorld } from "./useStaticWorld";
-import { gameOrderStyle, gameRulerStyle, gameStroke } from "./gameOverlay";
+import { gameAttackGroundSpread, gameOrderStyle, gameRulerStyle, gameStroke } from "./gameOverlay";
+
+export interface AttackGroundSpread {
+  center: readonly [number, number];
+  radius_m: number;
+}
+
+/** The cursor footprint stays visible at close range and remains readable at
+ *  distance. Its unclamped value is angular spread × range. */
+export function attackGroundSpread(
+  center: readonly [number, number],
+  selected: readonly OwnUnitView[],
+  drawnAt: ReadonlyMap<number, Readonly<Vec3>>,
+  units: UnitCatalog,
+  weapons: Readonly<Record<string, unknown>>,
+): AttackGroundSpread | null {
+  let radius = 0;
+  let hasGroundWeapon = false;
+  for (const unit of selected) {
+    const at = drawnAt.get(unit.id) ?? unit.position;
+    const distance = Math.hypot(center[0] - at[0], center[1] - at[1]);
+    for (const mount of units.type(unit.kind).mounts) {
+      for (const id of mount.weapons) {
+        const weapon = weapons[id] as
+          | { scatter_mrad?: number; targets?: { ground?: { scatter_mrad?: number } } }
+          | undefined;
+        if (!weapon?.targets?.ground) continue;
+        hasGroundWeapon = true;
+        const scatter = weapon.targets.ground.scatter_mrad ?? weapon.scatter_mrad ?? 0;
+        radius = Math.max(radius, (distance * scatter) / 1000);
+      }
+    }
+  }
+  if (!hasGroundWeapon) return null;
+  return { center, radius_m: Math.min(80, Math.max(6, radius)) };
+}
 
 /** The ruler shown, and the circle the orders draw round its unit (with
  *  Space held), which the painted line leaves from. */
@@ -242,6 +283,7 @@ export class PointerPaint {
     preview: readonly (DestinationMarker & { unit: number })[],
     z: SurfaceHeight,
     metresPerPx: number,
+    attackGround: AttackGroundSpread | null = null,
   ) {
     this.preview = preview;
     this.shown = shown?.ruler ?? null;
@@ -262,10 +304,29 @@ export class PointerPaint {
       preview
         .map((p) => [p.unit, ...p.c, p.r, p.facing ?? 0, p.placed, p.opacity, metresPerPx].join())
         .join(";");
-    if (key === this.key) return;
-    this.key = key;
+    const spreadKey = attackGround
+      ? `:${attackGround.center.join(",")}:${attackGround.radius_m.toFixed(3)}:${metresPerPx}`
+      : ":";
+    const nextKey = key + spreadKey;
+    if (nextKey === this.key) return;
+    this.key = nextKey;
+    const spread = attackGround
+      ? (() => {
+          const mesh = new MeshBuilder();
+          groundRing(
+            mesh,
+            attackGround.center,
+            attackGround.radius_m,
+            gameStroke(metresPerPx)(1.6),
+            gameAttackGroundSpread,
+            { z, segments: 48 },
+          );
+          return mesh.build();
+        })()
+      : EMPTY_MESH;
     this.feed.set(
       concatMeshes([
+        spread,
         shown
           ? buildRangeRuler(
               rulerLine(shown.ruler, shown.circle),
