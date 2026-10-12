@@ -104,13 +104,15 @@ async function measureFilter(
   const normalized = new Float32Array(4081);
   for (let q = 0; q < normalized.length; q++) normalized[q] = q / 4080;
   const normalizedBits = new Uint32Array(normalized.buffer);
-  const layout = tgpu.bindGroupLayout({
-    count: { uniform: d.vec4u },
-    points: { storage: (n: number) => d.arrayOf(d.vec4f, n), access: "readonly" },
-    output: { storage: (n: number) => d.arrayOf(d.vec4u, n), access: "mutable" },
-    reference: { texture: d.texture2dArray(d.f32) },
-    sampler: { sampler: "filtering" },
-  });
+  const layout = tgpu
+    .bindGroupLayout({
+      count: { uniform: d.vec4u },
+      points: { storage: (n: number) => d.arrayOf(d.vec4f, n), access: "readonly" },
+      output: { storage: (n: number) => d.arrayOf(d.vec4u, n), access: "mutable" },
+      reference: { texture: d.texture2dArray(d.f32) },
+      sampler: { sampler: "filtering" },
+    })
+    .$name("scarFilter");
   const kernel = tgpu
     .computeFn({ in: { gid: d.builtin.globalInvocationId }, workgroupSize: [64] })(/* wgsl */ `{
  if(gid.x>=layout.$.count.x){return;}let p=layout.$.points[gid.x];let layer=i32(p.z);
@@ -134,7 +136,7 @@ async function measureFilter(
     hardware: number;
   } | null = null;
   try {
-    const pipeline = root.createComputePipeline({ compute: kernel });
+    const pipeline = root.createComputePipeline({ compute: kernel }).$name("scarFilter");
     await pipeline.initAsync();
     const count = scope.own(root.createBuffer(d.vec4u).$usage("uniform"));
     const texture = scope.texture({
@@ -248,10 +250,7 @@ async function measureFilter(
         const values = new Uint32Array(read.getMappedRange(0, batch.points.length * 32));
         for (let i = 0; i < batch.points.length; i++)
           for (let c = 0; c < 4; c++)
-            if (
-              mismatch === null &&
-              normalizedBits[values[i * 8 + c]] !== values[i * 8 + 4 + c]
-            )
+            if (mismatch === null && normalizedBits[values[i * 8 + c]] !== values[i * 8 + 4 + c])
               mismatch = {
                 size: batch.size,
                 point: batch.points[i],

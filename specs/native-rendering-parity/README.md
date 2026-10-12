@@ -96,6 +96,7 @@ Graph: `18 → 18b (approved 2026-10-11) → 19 → 20 ∥ 20b → phase 5 (25, 
 Set by the user on 2026-10-11, after slice 15's Rust walk left market-town's gap on the GPU: Godot's Forward+ costs more per primitive than the browser's lean passes. Native moves to Rust `wgpu` running the browser's own WGSL over the 18b API, and Godot leaves native. It is planned in detail when phase 4 closes.
 
 - [ ] 25 — Native draws with wgpu: the browser's shaders and passes, once for both clients; Godot's project and ported shaders are deleted. [slice](slices/25-native-on-wgpu.md)
+  - Steps 1 and 2 built (branch `phase5a`): the browser's shaders are one text for every light and size, and `packages/battle-renderer/pipelines/` exports each pipeline's WGSL and settings, held to the browser's code by a Vitest drift test and validated by naga (`crates/pipelines`). Next: step 3, the native skeleton.
 
 ### Firewalls
 

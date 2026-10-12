@@ -730,16 +730,18 @@ export async function createGrassPass(
     };
   });
 
-  const drawPipeline = root.createRenderPipeline({
-    vertex: grassVertex,
-    fragment,
-    targets: worldTargets(),
-    primitive: { topology: "triangle-list", cullMode: "none" },
-    depthStencil: battleWorldDepth("read-write"),
-    multisample: { count: FRAME_MSAA },
-  });
-  const build = root.createComputePipeline({ compute: buildFn });
-  const finish = root.createComputePipeline({ compute: finishFn });
+  const drawPipeline = root
+    .createRenderPipeline({
+      vertex: grassVertex,
+      fragment,
+      targets: worldTargets(),
+      primitive: { topology: "triangle-list", cullMode: "none" },
+      depthStencil: battleWorldDepth("read-write"),
+      multisample: { count: FRAME_MSAA },
+    })
+    .$name("grassDraw");
+  const build = root.createComputePipeline({ compute: buildFn }).$name("grassBuild");
+  const finish = root.createComputePipeline({ compute: finishFn }).$name("grassFinish");
   await Promise.all([drawPipeline.initAsync(), build.initAsync(), finish.initAsync()]);
 
   const { STORAGE, COPY_DST, COPY_SRC, INDIRECT, INDEX, MAP_READ } = GPUBufferUsage;

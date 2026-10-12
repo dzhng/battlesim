@@ -20,3 +20,7 @@ assets/runtime/audio/** filter=lfs diff=lfs merge=lfs -text
 
 # Ledgers are appended to by every lane: keep both sides of concurrent appends.
 specs/**/choices.md merge=union
+
+# The browser's shader export is generated (web/tests/shaderExport.test.ts):
+# collapsed in review diffs; regenerate it rather than merging it by hand.
+packages/battle-renderer/pipelines/** linguist-generated=true
