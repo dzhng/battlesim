@@ -1,7 +1,10 @@
 // @vitest-environment node
-import { expect, test } from "vitest";
+import { beforeAll, expect, test } from "vitest";
+import { loadPresentation } from "@web/battle/sim/presentation";
 import { sectorPan } from "@packages/battle-audio/src/soundFrame";
 import { describeCue } from "../src/battle/present/captions";
+
+beforeAll(() => loadPresentation());
 
 test("captions carry exactly the cue's category, band and direction", () => {
   const text = describeCue(

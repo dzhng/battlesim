@@ -221,7 +221,10 @@ test("every order sent is heard as it goes, a queued (Shift) one too", async () 
   const { client, sent } = recordingClient();
   const heard: { order: Order; queued: boolean }[] = [];
   const hook = renderHook(
-    () => useUnitControl(client, observation, (order, queued) => heard.push({ order, queued })),
+    () =>
+      useUnitControl(client, observation, {
+        onIssue: (order, queued) => heard.push({ order, queued }),
+      }),
     { wrapper },
   );
   act(() => hook.result.current.setSelected([1]));
@@ -234,6 +237,89 @@ test("every order sent is heard as it goes, a queued (Shift) one too", async () 
   );
   expect(sent.map((s) => s.queued)).toEqual([false, true]);
   expect(heard).toEqual(sent);
+});
+
+test("the selection's growth is heard: the units it gained, and the one clicked to gain it", () => {
+  // A unit answers when selected: the clicked one, or a box's highest-value one.
+  const observation = {
+    own: [own(1, "test_rifle"), own(2, "test_rifle"), own(3, "test_supply")],
+    contacts: [],
+  } as unknown as ObservationView;
+  const { client } = recordingClient();
+  const heard: { added: number[]; clicked: number | null }[] = [];
+  const hook = renderHook(
+    () =>
+      useUnitControl(client, observation, {
+        onSelect: (added, clicked) => heard.push({ added: [...added], clicked }),
+      }),
+    { wrapper },
+  );
+  const left = (unit: number | null, shift: boolean, time: number) =>
+    act(() =>
+      hook.result.current.onPointer({
+        unit,
+        button: "left",
+        shift,
+        ctrl: false,
+        x: 0,
+        y: 0,
+        time,
+        ground: [0, 0],
+      }),
+    );
+  left(1, false, 0);
+  left(2, true, 1000);
+  // Shift-clicking a selected unit drops it: nothing was gained.
+  left(2, true, 2000);
+  act(() => hook.result.current.selectInRect(() => true, false));
+  left(null, false, 3000);
+  expect(heard).toEqual([
+    { added: [1], clicked: 1 },
+    { added: [2], clicked: 2 },
+    { added: [2, 3], clicked: null },
+  ]);
+  hook.unmount();
+});
+
+test("every order's acknowledgement is heard with its order, a refusal too", async () => {
+  // A unit answers an order once the authority accepts it, and says so when it refuses.
+  const refusal = { reason: "no_valid_destination" };
+  let seq = 0;
+  const client = {
+    command: async (order: Order) => ({
+      seq: ++seq,
+      applied_tick: 0,
+      error: order.kind === "move" ? refusal : null,
+    }),
+  } as unknown as SimClient;
+  const observation = { own: [own(1, "test_rifle")], contacts: [] } as unknown as ObservationView;
+  const heard: { order: string; seq: number; error: unknown }[] = [];
+  const hook = renderHook(
+    () =>
+      useUnitControl(client, observation, {
+        onAck: (order, ack) => heard.push({ order: order.kind, seq: ack.seq, error: ack.error }),
+      }),
+    { wrapper },
+  );
+  act(() => hook.result.current.setSelected([1]));
+  await act(async () => hook.result.current.stop());
+  await act(async () =>
+    hook.result.current.onPointer({
+      unit: null,
+      button: "right",
+      shift: false,
+      ctrl: false,
+      x: 0,
+      y: 0,
+      time: 0,
+      ground: [50, 50],
+    }),
+  );
+  expect(heard).toEqual([
+    { order: "stop", seq: 1, error: null },
+    { order: "move", seq: 2, error: refusal },
+  ]);
+  hook.unmount();
 });
 
 test("losing a selected unit leaves survivors commandable without reselecting", async () => {
@@ -271,6 +357,22 @@ test("losing a selected unit leaves survivors commandable without reselecting", 
   await act(async () => hook.result.current.stop());
   expect(hook.result.current.selected).toEqual([]);
   expect(sent).toHaveLength(5);
+  hook.unmount();
+});
+
+test("the fire-policy key orders the selection it judged, even before a re-render", async () => {
+  const { client, sent } = recordingClient();
+  const observation = {
+    own: [own(1, "test_rifle"), own(2, "test_rifle")],
+    contacts: [],
+  } as unknown as ObservationView;
+  const hook = renderHook(() => useUnitControl(client, observation), { wrapper });
+  act(() => hook.result.current.setSelected([1, 2]));
+  // A key handler bound before the last render still holds the earlier toggle.
+  const toggle = hook.result.current.togglePolicy;
+  act(() => hook.result.current.setSelected([2]));
+  await act(async () => toggle());
+  expect(sent.map(({ order }) => "units" in order && order.units)).toEqual([[2]]);
   hook.unmount();
 });
 

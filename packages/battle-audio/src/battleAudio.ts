@@ -1,3 +1,4 @@
+import { camera_listener, Presentation } from "@wasm/presentation/presentation_wasm.js";
 import { eyePosition, type Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { vec3 } from "math";
 import {
@@ -7,26 +8,40 @@ import {
   type SoundMotion,
   type SoundPublication,
   type SoundStats,
+  type Speakers,
 } from "./soundFrame";
+
+/** A frame a script draws: its presentation time, what moves, and where it is heard. */
+export interface ScriptedHearing {
+  clock: number;
+  motion: SoundMotion;
+  listener: Listener;
+}
 import { battleSounds } from "./catalog";
 import type { AppAudio } from "./appAudio";
 import type { SoundBank } from "./soundBank";
 import { WebAudioSink } from "./webAudioSink";
+import { BattleVoices } from "./voices/battleVoices";
+import { ShoutPool } from "./voices/shoutPool";
+import type { ResponseRequest } from "./voices/responses";
 
-/** Where the listener stands for a camera: `share` of the way from the
- *  point looked at to the eye, facing the way the camera looks (level). */
+/** Where a script's listener stands for a camera, as the battle's does
+ *  (`Listener::of_camera`): `share` of the way from the point looked at to
+ *  the eye, facing the way the camera looks (level). */
 export function cameraListener(
   camera: Pick<Camera3DParams, "target" | "distance" | "pitch" | "yaw">,
   share: number,
 ): Listener {
   const eye = eyePosition(vec3.create(), camera as Camera3DParams);
-  const t = camera.target;
-  const position = vec3.lerp(vec3.create(), t, eye, share);
-  const forward = vec3.fromValues(t[0] - eye[0], t[1] - eye[1], 0);
-  if (vec3.length(forward) < 1e-6)
-    vec3.set(forward, -Math.cos(camera.yaw), -Math.sin(camera.yaw), 0);
-  vec3.normalize(forward, forward);
-  return { position, forward };
+  const s = Math.sin(camera.pitch);
+  const up = [-s * Math.cos(camera.yaw), -s * Math.sin(camera.yaw), Math.cos(camera.pitch)];
+  const l = camera_listener(
+    Float64Array.from(eye),
+    Float64Array.from(camera.target),
+    Float64Array.from(up),
+    share,
+  );
+  return { position: [l[0], l[1], l[2]], forward: [l[3], l[4], l[5]] };
 }
 
 export interface BattleAudioStats extends SoundStats {
@@ -45,6 +60,9 @@ export interface BattleAudioStats extends SoundStats {
 export class BattleAudio {
   private sink: WebAudioSink | null = null;
   private frame: SoundFrame | null = null;
+  private voices: BattleVoices | null = null;
+  private shouts: ShoutPool | null = null;
+  private speakerSets: Speakers | null = null;
   private ready = false;
   private error: string | null = null;
   private disposed = false;
@@ -64,12 +82,15 @@ export class BattleAudio {
       bank,
     ));
     this.frame = new SoundFrame(this.options, sink);
+    this.voices = new BattleVoices(sink, this.options.presentation.voices);
     void bank
       .prepare(battleSounds(this.options.catalog))
       .then(() => {
         if (this.sink !== sink) return;
         this.ready = true;
         this.frame?.reset();
+        void this.voices?.start();
+        this.hearSpeakers();
       })
       .catch((error: unknown) => {
         if (this.sink !== sink) return;
@@ -84,27 +105,73 @@ export class BattleAudio {
   private get live() {
     return this.ready && this.app.stats().running ? this.frame : null;
   }
-  note(pub: SoundPublication) {
-    this.live?.note(pub);
+  /** Hear the battle's last publication, or a script's. */
+  note(feed: Presentation | SoundPublication) {
+    const frame = this.live;
+    if (!frame) return;
+    if (feed instanceof Presentation) frame.notePresented(feed);
+    else frame.note(feed);
   }
-  update(clock: number, motion: SoundMotion, camera: Camera3DParams) {
-    if (!this.live) return;
-    this.live.update(
-      clock,
-      performance.now() / 1000,
-      motion,
-      cameraListener(camera, this.options.presentation.listener_eye_share),
-    );
-    this.app.battleStarted(this);
+  /** A unit's answer to its owner (`responseFor`); unheard before sound is live. */
+  respond(request: ResponseRequest) {
+    if (this.live) this.voices?.respond(request);
+  }
+  /** The voice sets this battle's units speak with; they load once its sounds are ready. */
+  loadVoices(sets: Iterable<string>) {
+    void this.voices?.want(sets);
+  }
+  /** Which voice set each unit kind speaks with, for the side's own faction
+   *  and its enemy's: a shout heard in the open is a bark in its kind's set,
+   *  and an unseen enemy's is drawn from the enemy's sets. Every one of those
+   *  sets loads once this battle's sounds are ready. */
+  speakers(speakers: Speakers) {
+    this.speakerSets = speakers;
+    this.hearSpeakers();
+  }
+  private hearSpeakers() {
+    const { sink, frame, speakerSets } = this;
+    if (!this.ready || !sink || !frame || !speakerSets || this.shouts) return;
+    frame.speakers(speakerSets);
+    const enemySets = [...new Set(Object.values(speakerSets.enemy))].sort();
+    void this.voices?.want([...Object.values(speakerSets.own), ...enemySets]);
+    const pool = (this.shouts = new ShoutPool(
+      sink.context,
+      this.options.presentation.cues.shout.takes_per_voice,
+    ));
+    void pool.load(enemySets).then((takes) => {
+      if (this.shouts !== pool) return;
+      sink.addTakes(takes);
+      frame.shouts(takes.map(({ sound, buffer }) => ({ sound, duration: buffer.duration })));
+    });
+  }
+  /** Hear the battle's last frame from its camera, or a script's frame. */
+  update(feed: Presentation | ScriptedHearing) {
+    const frame = this.live;
+    if (!frame) return;
+    const wall = performance.now() / 1000;
+    if (feed instanceof Presentation) frame.hear(feed, wall);
+    else frame.update(feed.clock, wall, feed.motion, feed.listener);
+    // Lines are heard from where the frame just heard, in Rust, with the
+    // barks it heard; the score hears them too, and dips under any line.
+    const voices = this.voices;
+    const lines = voices?.hear(frame);
+    this.app.battleHeard(this, lines?.heard ?? [], voices?.speaking() ?? false);
   }
   reset() {
     this.frame?.reset();
+    this.voices?.reset();
   }
-  setVolume(volume: number) {
+  setVolume(volume: number, voices = 1) {
     if (!this.sink) return;
+    const at = this.sink.now();
     this.sink.master.gain.setTargetAtTime(
       this.options.presentation.buses.master * volume,
-      this.sink.now(),
+      at,
+      0.02,
+    );
+    this.sink.buses.voices.gain.setTargetAtTime(
+      this.options.presentation.buses.voices * voices,
+      at,
       0.02,
     );
   }
@@ -123,9 +190,13 @@ export class BattleAudio {
     if (this.disposed) return;
     this.disposed = true;
     this.frame?.reset();
+    this.voices?.dispose();
+    this.shouts?.dispose();
+    this.shouts = null;
     this.sink?.dispose();
     this.sink = null;
     this.frame = null;
+    this.voices = null;
     this.app.releaseBattle(this);
   }
 }

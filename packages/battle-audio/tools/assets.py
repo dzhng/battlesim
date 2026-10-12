@@ -12,7 +12,6 @@ import sys
 import wave
 
 FILTERS = {
-    "music": "anull",
     "weighted-shot": "highpass=f=45,equalizer=f=140:t=o:w=1.2:g=4,equalizer=f=3000:t=o:w=1:g=1.5,acompressor=threshold=0.18:ratio=2.2:attack=5:release=90",
     "heavy-report": "highpass=f=35,equalizer=f=100:t=o:w=1.2:g=4,acompressor=threshold=0.18:ratio=2.2:attack=5:release=90",
     "impact": "highpass=f=60",
@@ -26,8 +25,10 @@ FILTERS = {
 }
 
 # Generated voice takes: where the speaker sits decides the treatment (choices.md T2).
-# A hiss is noise band-limited like the radio; a bed is a generated ambience, looped
-# under the line. Each take is normalised to its profile's integrated loudness.
+# A hiss is noise band-limited like the radio. A bed is the machine's ambience, looped
+# under the line through its own filter: the game's own sound for that machine (`clip`,
+# a sounds.json clip), or a generated raw master (`generated`, a voices.lock.json bed)
+# where the game has no recording. Each take is normalised to its profile's loudness.
 VOICE_ENCODER = {"codec": "libmp3lame", "bitrate": "40k", "sample_rate": 24000, "channels": 1,
                  "true_peak_db": -1.5}
 VOICE_PROFILES = {
@@ -35,7 +36,8 @@ VOICE_PROFILES = {
     "voice-radio-light": {
         "filter": "highpass=f=250,lowpass=f=3800,acompressor=threshold=0.1:ratio=4:attack=5:release=60:makeup=2",
         "hiss": {"color": "white", "amplitude": 0.015, "highpass": 500, "lowpass": 3000, "weight": 0.3},
-        "bed": {"name": "tank_engine", "volume": 0.3},
+        # The game synthesises its engines; only the track rattle is recorded.
+        "bed": {"generated": "tank_engine", "filter": "anull", "volume": 0.3},
         "loudness_lufs": -16,
     },
     "voice-earpiece": {
@@ -47,7 +49,8 @@ VOICE_PROFILES = {
     "voice-intercom": {
         "filter": "highpass=f=300,lowpass=f=3400,acompressor=threshold=0.1:ratio=6:attack=5:release=60:makeup=3",
         "hiss": {"color": "white", "amplitude": 0.015, "highpass": 500, "lowpass": 3000, "weight": 0.25},
-        "bed": {"name": "helicopter_rotor", "volume": 0.6},
+        # Cockpit-muffled: the rotor heard through the airframe and the headset.
+        "bed": {"clip": "rotor-uh60", "filter": "lowpass=f=900", "volume": 0.6},
         "loudness_lufs": -16,
     },
 }
@@ -74,13 +77,17 @@ def ffmpeg(arguments, data=None):
 
 
 def sources(root, catalog):
+    """Decode every recording a clip crops; music masters stream and are never cut."""
     decoded = {}
+    cropped = {crop["source"] for clip in catalog["clips"].values() for crop in clip.get("layers", [clip])}
     # Admit every source before writes so a changed master cannot partly replace a library.
-    for name, source in catalog["sources"].items():
+    for name in sorted(cropped):
+        source = catalog["sources"][name]
         path = root / source["path"]
         if not path.is_file() or digest(path.read_bytes()) != source["sha256"]:
             raise ValueError(f"source {name}: hash mismatch or missing media (pull Git LFS)")
-    for name, source in catalog["sources"].items():
+    for name in sorted(cropped):
+        source = catalog["sources"][name]
         path = root / source["path"]
         info = json.loads(subprocess.check_output(["ffprobe", "-v", "error", "-show_streams", "-of", "json", str(path)]))["streams"][0]
         rate = int(info["sample_rate"])
@@ -239,7 +246,8 @@ def voice(profile, source, bed, output):
         length = float(subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "format=duration",
                                                 "-of", "csv=p=0", str(bed)]))
         args += ["-stream_loop", "-1", "-ss", f"{(seed % 1000) / 1000 * length * 0.9:.3f}", "-i", str(bed)]
-        graph.append(f"[1:a]aformat=channel_layouts=mono,aresample={rate},volume={spec['bed']['volume']}[bed]")
+        graph.append(f"[1:a]aformat=channel_layouts=mono,aresample={rate},"
+                     f"{spec['bed']['filter']},volume={spec['bed']['volume']}[bed]")
         mix.append("[bed]")
         weights.append("1")
     graph.append(f"{''.join(mix)}amix=inputs={len(mix)}:duration=first:normalize=0:weights={' '.join(weights)}[out]")
@@ -263,15 +271,45 @@ def voice(profile, source, bed, output):
                                "-f", "mp3", "-"], pcm))
     return {"duration_s": round(duration, 3), "loudness_lufs": spec["loudness_lufs"]}
 
+def encode_music(master, output):
+    """A served music file: mono like the rest of the library, 128 kbps so it streams
+    without a whole-file decode. Encoded to a file, not a pipe, so ffmpeg can write the
+    seekable header. Returns its length and integrated loudness, which sets its gain."""
+    ffmpeg(["-y", "-i", str(master), "-ac", "1", "-b:a", "128k", str(output)])
+    rate = 48000
+    pcm = ffmpeg(["-i", str(output), "-ac", "1", "-ar", str(rate), "-f", "f32le", "-"])
+    return {"duration_s": round(len(pcm) / 4 / rate, 3), "loudness_lufs": round(loudness(pcm, rate), 2)}
+
+
+def music(root, catalog, path):
+    """Encode each music track from its pinned source to runtime/audio/music/<track>.<sha8>.mp3."""
+    for name, track in catalog["music"]["tracks"].items():
+        source = catalog["sources"][track["source"]]
+        master = root / source["path"]
+        if not master.is_file() or digest(master.read_bytes()) != source["sha256"]:
+            raise ValueError(f"music {name}: source hash mismatch or missing media (pull Git LFS)")
+        folder = root / "assets/runtime/audio/music"
+        folder.mkdir(parents=True, exist_ok=True)
+        encoded = folder / f"{name}.tmp.mp3"
+        encode_music(master, encoded)
+        served = digest(encoded.read_bytes())
+        target = folder / f"{name}.{served[:8]}.mp3"
+        encoded.replace(target)
+        if track["sha256"] != served:
+            (folder / f"{name}.{track['sha256'][:8]}.mp3").unlink(missing_ok=True)
+            # The hash is unique in the file: replace it in place, keeping the catalog's layout.
+            path.write_text(path.read_text().replace(track["sha256"], served))
+        print(f"music: {target.relative_to(root)}")
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=["build", "check", "list", "voice", "voice-profiles"])
+    parser.add_argument("command", choices=["build", "check", "list", "voice", "voice-profiles", "music"])
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[3])
     parser.add_argument("--profile", help="voice: the take's processing profile")
-    parser.add_argument("--input", type=Path, help="voice: the raw master")
+    parser.add_argument("--input", type=Path, help="voice, music: the raw master")
     parser.add_argument("--bed", type=Path, help="voice: the profile's ambience, looped under the line")
-    parser.add_argument("--output", type=Path, help="voice: the served MP3")
+    parser.add_argument("--output", type=Path, help="voice, music: the served MP3")
     args = parser.parse_args()
     if args.command == "voice-profiles":
         print(json.dumps({"encoder": VOICE_ENCODER, "profiles": VOICE_PROFILES}))
@@ -281,8 +319,16 @@ def main():
             raise ValueError("voice needs --profile, --input and --output")
         print(json.dumps(voice(args.profile, args.input, args.bed, args.output)))
         return
+    if args.command == "music" and (args.input or args.output):
+        if not (args.input and args.output):
+            raise ValueError("music encodes one master with both --input and --output")
+        print(json.dumps(encode_music(args.input, args.output)))
+        return
     path = args.root / "fixtures/sounds.json"
     catalog = json.loads(path.read_text())
+    if args.command == "music":
+        music(args.root, catalog, path)
+        return
     if args.command == "list":
         for name, clip in catalog["clips"].items():
             print(f"{name}: {clip['label']} ({clip['role']})")

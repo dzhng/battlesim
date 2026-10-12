@@ -61,7 +61,7 @@ const sideKey = (id: number, own: boolean) => id * 2 + (own ? 0 : 1);
 async function heard(pubs: readonly EffectPublication[]): Promise<HeardPublication[]> {
   await loadPresentation();
   const shots = JSON.parse(launches(JSON.stringify(pubs))) as HeardPublication["launches"][];
-  return pubs.map((effects, i) => ({ effects, launches: shots[i], turretLandsS: 0 }));
+  return pubs.map((effects, i) => ({ effects, launches: shots[i] }));
 }
 
 const FIREFIGHT_S = 8;
@@ -370,7 +370,11 @@ export interface FirefightRender {
 /** The game's sound rendered offline for `seconds` at 48 kHz stereo:
  *  the context, its sink with the bank loaded, and the frame that plays
  *  into it. `solo` keeps one bus and mutes the others. */
-async function offlineSound(seconds: number, solo?: Bus, catalog: SoundCatalog = gameSounds) {
+export async function offlineSound(
+  seconds: number,
+  solo?: Bus,
+  catalog: SoundCatalog = gameSounds,
+) {
   const sampleRate = 48000;
   const ctx = new OfflineAudioContext(2, Math.round(seconds * sampleRate), sampleRate);
   const { buses } = gameAudio;
@@ -382,22 +386,37 @@ async function offlineSound(seconds: number, solo?: Bus, catalog: SoundCatalog =
           units: solo === "units" ? buses.units : 0,
           effects: solo === "effects" ? buses.effects : 0,
           ambience: solo === "ambience" ? buses.ambience : 0,
+          music: 0,
+          voices: solo === "voices" ? buses.voices : 0,
         },
       }
     : gameAudio;
   const sink = new OfflineSink(ctx, presentation, catalog);
-  await sink.bank.prepare(battleSounds(catalog));
+  await Promise.all([sink.bank.prepare(battleSounds(catalog)), loadPresentation()]);
   const frame = new SoundFrame(
     {
       tickHz: HZ,
       presentation,
       catalog,
+      weapons: game.weapons,
       smokeTimes: game.presentation.effects.smoke,
       cookOff: game.presentation.effects.cook_off,
     },
     sink,
   );
   return { sampleRate, ctx, sink, frame };
+}
+
+/** An offline render's two channels, interleaved. */
+export function interleave(buffer: AudioBuffer): Float32Array {
+  const samples = new Float32Array(buffer.length * 2);
+  const l = buffer.getChannelData(0);
+  const r = buffer.getChannelData(1);
+  for (let i = 0; i < buffer.length; i++) {
+    samples[2 * i] = l[i];
+    samples[2 * i + 1] = r[i];
+  }
+  return samples;
 }
 
 /** Render the firefight offline; `solo` keeps one bus and mutes the others. */
@@ -426,13 +445,7 @@ export async function renderFirefight(
   const r0 = performance.now();
   const buffer = await ctx.startRendering();
   const renderMs = performance.now() - r0;
-  const samples = new Float32Array(buffer.length * 2);
-  const l = buffer.getChannelData(0);
-  const r = buffer.getChannelData(1);
-  for (let i = 0; i < buffer.length; i++) {
-    samples[2 * i] = l[i];
-    samples[2 * i + 1] = r[i];
-  }
+  const samples = interleave(buffer);
   const stats = frame.stats();
   return {
     sampleRate,

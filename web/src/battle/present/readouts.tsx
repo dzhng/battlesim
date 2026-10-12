@@ -179,25 +179,29 @@ export function ReadoutLayer({
         content: <InfoPanel panel={ownPanel(units, u, own, rules)} />,
       };
     }),
-    ...identified.map((e): Callout => ({
-      key: `enemy-${e.id}`,
-      owner: "enemy",
-      id: e.id,
-      at: e.position,
-      selected: false,
-      content: <InfoPanel panel={enemyPanel(units, e.kind, rules)} />,
-    })),
-    ...contacts.map((c): Callout => ({
-      key: `contact-${c.id}`,
-      opacity: c.opacity,
-      retiring: c.retiring,
-      owner: "contact",
-      id: c.id,
-      at: c.center,
-      onGround: !c.aloft,
-      selected: false,
-      content: <InfoPanel panel={contactPanel(units, c, tick, rules)} />,
-    })),
+    ...identified.map(
+      (e): Callout => ({
+        key: `enemy-${e.id}`,
+        owner: "enemy",
+        id: e.id,
+        at: e.position,
+        selected: false,
+        content: <InfoPanel panel={enemyPanel(units, e.kind, rules)} />,
+      }),
+    ),
+    ...contacts.map(
+      (c): Callout => ({
+        key: `contact-${c.id}`,
+        opacity: c.opacity,
+        retiring: c.retiring,
+        owner: "contact",
+        id: c.id,
+        at: c.center,
+        onGround: !c.aloft,
+        selected: false,
+        content: <InfoPanel panel={contactPanel(units, c, tick, rules)} />,
+      }),
+    ),
   ];
   const calloutsRef = useRef(callouts);
   calloutsRef.current = callouts;

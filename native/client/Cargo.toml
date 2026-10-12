@@ -4,8 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-presentation = { path = "../../crates/presentation" }
+presentation = { path = "../../crates/presentation", features = ["files"] }
 pipelines = { path = "../../crates/pipelines" }
+kira = { version = "0.12.5", default-features = false, features = ["cpal"] }
 wgpu = "30.0.1"
 winit = "0.30"
 pollster = "0.4"

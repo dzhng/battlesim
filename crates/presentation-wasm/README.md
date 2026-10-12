@@ -11,9 +11,22 @@ per entity. A view lasts until the next call into the module, which may grow its
 memory. The game UI's observation comes out of `observation()`, as JSON in the
 shape of `web/src/battle/sim/observationView.ts`, with the fog bits and ground
 runs as typed arrays beside it; sound's publication and the labs' probes come out
-as JSON on demand.
+as JSON on demand. The side's learned ground stays in the module: the terrain asks
+`scars_changed`, `scar_regions` and `prepare_scars` each frame and uploads the
+`ScarUpload` it gets, and the page reads the cleared runs and marked cells.
 
 It links the [publication reader](../sim/src/publication/reader.rs) and the
 presentation crate, and no rules, so the main thread never loads the simulation.
 The web manifest's `build:wasm` builds it after `game-wasm`, into
 `web/src/wasm/presentation/`.
+
+It also hands the page the static world `static_world` resolves: `StaticWorld`
+is the buildings and their walk; `Ground` is a map's ground, built once per map
+from `WorldView`'s exports, the world layout, the biome file and the map's
+region: the terrain's GPU tables, the grass's (over the grass kinds' shapes,
+which `GrassShapes` packs from their bundles' tiers) and each frame's grass
+window, the water's mesh, and the scenery, the dressing laid a cell at a time on
+request. Its probes (`plots_json`, `distances` and the like) serve the ground
+scenes; no frame reads them. The ground's other meshes (terrain, skirt,
+backdrop) and the map's box are free functions, and `SunShadow` fits the sun's
+cascades each frame.

@@ -95,7 +95,7 @@ pub struct EffectPublication {
     pub tick: f64,
     pub segments: Vec<Segment>,
     pub blasts: Vec<Blast>,
-    #[serde(skip_serializing)]
+    #[serde(skip_serializing, default)]
     pub shooters: Vec<Shooter>,
     pub smokes: Vec<SmokeSource>,
     #[serde(default)]

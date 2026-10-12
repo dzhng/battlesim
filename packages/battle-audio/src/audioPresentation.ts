@@ -4,10 +4,13 @@
 // `default` row so a new kind sounds like something until its row is added.
 // Sound names are the synthesised bank's (`synth.ts` `SOUNDS`).
 import { requireDefaults } from "@packages/renderer-core/src/kindTable";
+import type { BattleMusicRules } from "./music/battleMusic";
+import type { ChatterRules } from "./voices/chatter";
 
-/** The mix buses under the master. */
-export type Bus = "units" | "effects" | "ambience";
-export const BUSES: readonly Bus[] = ["units", "effects", "ambience"];
+/** The mixer's buses under the master. Music is not one of them: it streams
+ *  through `MusicPlayer`, which takes its level from `buses.music`. */
+export type Bus = "units" | "effects" | "ambience" | "voices";
+export const BUSES: readonly Bus[] = ["units", "effects", "ambience", "voices"];
 
 /** A gunshot or blast: a near and a far sound, switched at `far_m`. */
 export interface NearFar {
@@ -53,7 +56,7 @@ export interface FireSound {
 
 export interface AudioPresentation {
   /** Bus levels, and the master's. */
-  buses: Record<Bus | "master", number>;
+  buses: Record<Bus | "master" | "music", number>;
   /** Where the listener stands: this share of the way from the camera's
    *  target to its eye (0 at the ground point looked at, 1 at the eye). */
   listener_eye_share: number;
@@ -100,13 +103,23 @@ export interface AudioPresentation {
   footsteps: OneShot & { stride_m: number; max_step_m: number };
   /** Fire loops by smoke-source kind. */
   fires: Record<string, FireSound>;
+  /** Battle music: its mood direction (`MusicDirector`) and its ducking while voice lines play. */
+  music: BattleMusicRules;
+  /** Unit voice lines: how many sound at once, how long one may wait to start,
+   *  and the window in which a group's answers collapse to one (`Chatter`). */
+  voices: ChatterRules;
   /** The countryside bed, never positional. */
   ambience: OneShot;
   /** Unseen enemies, from hearing cues: a sound by `category` or
-   *  `category_moving`, its gain by band, the far band muffled, and a same cue
-   *  not repeated within `repeat_s`. Played from the cue's direction only. */
+   *  `category_moving` (a category with neither is silent), a shout from the
+   *  enemy's pool, its gain by band, the far band muffled, and a same cue not
+   *  repeated within `repeat_s`. Played from the cue's direction only. */
   cues: {
     sounds: Record<string, string>;
+    /** A shout: a stressed bark of the enemy faction's (`ShoutPool`, up to
+     *  `takes_per_voice` of each shouting voice), at `gain` times its band's,
+     *  through a `lowpass_hz` low-pass and a `wet` reverb send. */
+    shout: { gain: number; lowpass_hz: number; wet: number; takes_per_voice: number };
     near_gain: number;
     far_gain: number;
     far_lowpass_hz: number;
@@ -119,7 +132,6 @@ const TABLES = ["shots", "impacts", "impact_scale", "blasts", "vehicles", "fires
 /** Throws on a table without its `default`, or a budget that leaves no transients. */
 export function validateAudio(p: AudioPresentation): AudioPresentation {
   requireDefaults("presentation.audio", p, TABLES);
-  if (!p.cues.sounds.default) throw new Error("presentation.audio.cues.sounds needs a default");
   if (!p.cook_off?.blast || !p.cook_off.landing)
     throw new Error("presentation.audio.cook_off needs a blast and a landing");
   if (!(p.budget.voices > p.budget.loops && p.budget.loops >= 0))
@@ -132,5 +144,18 @@ export function validateAudio(p: AudioPresentation): AudioPresentation {
     throw new Error("presentation.audio.air: near_hz ≥ far_hz > 0 and far_m > 0");
   if (!(wet >= 0 && wet <= 1 && reverb_s > 0 && attack_s >= 0))
     throw new Error("presentation.audio.air: wet 0 to 1, reverb_s > 0, attack_s ≥ 0");
+  const voices = p.voices;
+  if (
+    !(
+      Number.isInteger(voices?.lines) &&
+      voices.lines >= 1 &&
+      voices.wait_s >= 0 &&
+      voices.group_s >= 0 &&
+      voices.gain > 0
+    )
+  )
+    throw new Error(
+      "presentation.audio.voices: lines a whole number from 1, wait_s and group_s ≥ 0, gain > 0",
+    );
   return p;
 }

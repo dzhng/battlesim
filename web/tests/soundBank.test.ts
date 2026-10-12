@@ -1,7 +1,10 @@
 // @vitest-environment node
-import { expect, test } from "vitest";
+import { beforeAll, expect, test } from "vitest";
+import { loadPresentation } from "@web/battle/sim/presentation";
 import type { SoundCatalog } from "@packages/battle-audio/src/catalog";
 import { SoundBank } from "@packages/battle-audio/src/soundBank";
+
+beforeAll(() => loadPresentation());
 
 function buffer(channels: number, length: number, sampleRate: number): AudioBuffer {
   const data = Array.from({ length: channels }, () => new Float32Array(length));
@@ -36,6 +39,7 @@ function recordingCatalog(): SoundCatalog {
     defaults: {},
     impacts: {},
     effects: {},
+    music: { moods: { menu: [], tension: [], combat: [] }, tracks: {} },
   };
 }
 
@@ -224,7 +228,7 @@ test("failed decoding is explicit and a later retry can prepare the recipe", asy
 });
 
 test("a recorded core and synthesized support retain the tail without corrupting the same bank’s baseline", async () => {
-  const { synthesize } = await import("@packages/battle-audio/src/synth");
+  const { synthesize } = await import("@packages/battle-audio/src/soundBank");
   const sampleRate = 8000;
   const core = buffer(1, 2, sampleRate);
   core.getChannelData(0).set([0.8, -0.4]);
@@ -267,7 +271,7 @@ test("a recorded core and synthesized support retain the tail without corrupting
 });
 
 test("synthesized support sounds under every shot of a recorded burst", async () => {
-  const { synthesize } = await import("@packages/battle-audio/src/synth");
+  const { synthesize } = await import("@packages/battle-audio/src/soundBank");
   const sampleRate = 8000;
   // A three-shot recording at 0.1 s, silent but for its length.
   const core = buffer(1, 4000, sampleRate);
@@ -307,7 +311,8 @@ test("synthesized support sounds under every shot of a recorded burst", async ()
 });
 
 test("every synthesized baseline retains its exact samples, including stereo ambience", async () => {
-  const { SOUNDS, synthesize } = await import("@packages/battle-audio/src/synth");
+  const { synthesize } = await import("@packages/battle-audio/src/soundBank");
+  const { SOUNDS } = await import("@packages/battle-audio/src/synth");
   const sampleRate = 8000;
   const context = { sampleRate, createBuffer: buffer } as unknown as BaseAudioContext;
   const catalog = recordingCatalog();

@@ -1,6 +1,7 @@
 import { readFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
+  assignedSet,
   validateVoiceCatalog,
   ALL_TRIGGERS,
   voiceTriggers,
@@ -10,7 +11,10 @@ import {
 } from "../../src/voices/voiceCatalog";
 import voiceJson from "../../../../fixtures/voices.json";
 import { duetClient, type ElevenLabsClient } from "./elevenlabs";
+import { autoPicks, designVoices, pickVoice, renderPreviews } from "./design";
 import { LOCK, readLock, recordVerdicts } from "./lock";
+import { assetsEncoder, generateMusic } from "./music";
+import { writePacks } from "./packs";
 import {
   assetsProcessor,
   checkVoices,
@@ -30,8 +34,7 @@ for (const name of ["eastern", "europe", "shared", "us"]) {
 }
 const catalog = validateVoiceCatalog(voiceJson, roster);
 function assignment(unit: string, faction: string) {
-  const value = catalog.assignments[unit];
-  return typeof value === "string" ? value : (value?.[faction] ?? "(missing)");
+  return assignedSet(catalog.assignments, unit, faction) ?? "(missing)";
 }
 function lineCharacters(
   catalog: VoiceCatalog,
@@ -121,6 +124,9 @@ function html(path: string) {
 const USAGE = `usage: bun run generate <command>
   plan [--html path]       the whole library's clips and characters, per set
   beds                     generate the profiles' ambience beds (once)
+  music [--track a,b] [--dry-run]
+                           generate the battle score's missing or changed tracks;
+                           --track buys those tracks again
   voices [selection]       generate, process, transcribe and lock takes
          [--dry-run] [--max-chars N]
   process [selection]      re-render takes whose profile changed; no calls
@@ -128,6 +134,17 @@ const USAGE = `usage: bun run generate <command>
   report                   the plan, then what the lock holds
   verdict ok|bad <take>@<sha256> ...
                            judge takes, each bound to the served bytes heard
+  pack [--set a,b] [--unreviewed]
+                           write each set's pack.json from its takes judged ok;
+                           --unreviewed also lists unjudged, unflagged takes
+  design [<set>/<voice> ...]
+                           3 Voice Design candidates per voice (default: every
+                           voice without a voice_id), transcribed and previewed
+  preview [<set>/<voice> ...]
+                           render candidates through their set's profile; no calls
+  pick <set>/<voice> <candidate> [--replace]
+                           save candidate 1-3 as the voice; writes voices.json
+  pick --auto              pick the best-matching candidate of every waiting voice
 selection: [--set a,b] [--voice lead,soldier] [--trigger move,attack]
            [--intensity steady|stressed] [--take K] [--only missing|bad|flagged]`;
 const [command, ...args] = process.argv.slice(2);
@@ -170,6 +187,22 @@ async function voices(client: ElevenLabsClient | null) {
   if (result.stopped) console.log(`STOPPED ${result.stopped.message}`);
   if (result.failed) process.exitCode = 1;
 }
+/** Renders the named voices' candidates (all designed voices by default); a failure only warns. */
+async function previews(voices: string[]) {
+  try {
+    await renderPreviews({
+      root,
+      catalog,
+      processor: assetsProcessor,
+      profiles: readProfiles(),
+      voices,
+      log,
+    });
+  } catch (error) {
+    console.log(`PREVIEW FAILED ${error instanceof Error ? error.message : error}`);
+    process.exitCode = 1;
+  }
+}
 function lockReport() {
   const takes = Object.entries(readLock(resolve(root, LOCK)).takes);
   const flagged = takes.filter(([, take]) => take.match.flagged);
@@ -189,6 +222,18 @@ if (command === "plan") {
 } else if (command === "beds") {
   const { calls } = await generateBeds({ root, client: duetClient(), log });
   console.log(`TOTAL calls=${calls}`);
+} else if (command === "music") {
+  const result = await generateMusic({
+    root,
+    client: duetClient(),
+    encoder: assetsEncoder,
+    tracks: list("track"),
+    dryRun: args.includes("--dry-run"),
+    log,
+  });
+  console.log(`TOTAL calls=${result.calls} seconds=${result.seconds} failed=${result.failed}`);
+  if (result.stopped) console.log(`STOPPED ${result.stopped.message}`);
+  if (result.failed) process.exitCode = 1;
 } else if (command === "voices") await voices(duetClient());
 else if (command === "process") await voices(null);
 else if (command === "check") {
@@ -198,6 +243,40 @@ else if (command === "check") {
   if (problems.length) process.exitCode = 1;
 } else if (command === "verdict") {
   if (!recordVerdicts(resolve(root, LOCK), args[0], args.slice(1), log)) process.exitCode = 1;
+} else if (command === "pack") {
+  const result = writePacks({
+    root,
+    catalog,
+    sets: list("set"),
+    unreviewed: args.includes("--unreviewed"),
+    log,
+  });
+  console.log(`TOTAL packs=${result.packs} takes=${result.takes}`);
+} else if (command === "design") {
+  const named = args.filter((arg) => !arg.startsWith("--"));
+  const result = await designVoices({ root, catalog, client: duetClient(), voices: named, log });
+  console.log(
+    `TOTAL voices=${result.voices} designs=${result.designs} transcripts=${result.transcripts} failed=${result.failed}`,
+  );
+  if (result.stopped) console.log(`STOPPED ${result.stopped.message}`);
+  await previews(named);
+  if (result.failed) process.exitCode = 1;
+} else if (command === "preview") {
+  await previews(args.filter((arg) => !arg.startsWith("--")));
+} else if (command === "pick") {
+  const validate = (value: unknown) => validateVoiceCatalog(value, roster);
+  const client = duetClient();
+  const picks = args.includes("--auto")
+    ? autoPicks(catalog, readLock(resolve(root, LOCK)))
+    : [{ voice: args[0], candidate: Number(args[1]) }];
+  for (const { voice, candidate } of picks) {
+    if (!/^[a-z0-9_]+\/[a-z0-9_]+$/.test(voice ?? "") || ![1, 2, 3].includes(candidate))
+      throw new Error(USAGE);
+    const replace = args.includes("--replace");
+    if (!(await pickVoice({ root, client, validate, voice, candidate, replace, log })))
+      process.exitCode = 1;
+  }
+  console.log(`TOTAL picks=${picks.length}`);
 } else if (command === "report") {
   report();
   lockReport();

@@ -24,17 +24,19 @@
 // value with zoom.
 //
 // Every number here that sets the look and is not the biome's lives in
-// `terrain/terrainTuning.ts`, spliced into the WGSL as a constant.
+// `presentation.terrain` in `fixtures/game.json` (`crates/presentation`'s
+// `ground::tuning` documents each), spliced into the WGSL as a constant.
 //
 // Rewritten from reading ~/dev/game
 // battle-renderer/src/shaders/terrainMaterial.ts: the mottle, drift and
 // feathered road-edge ideas; not its baked distance texture or rock layers.
 import { tgpu, d, std } from "typegpu";
 import { pcgHash } from "../shaders/pcgHash";
-import { MAX_PLOT_DEPTH, NODE_FLOATS, type PlotTree } from "../terrain/plots";
-import type { TerrainSite, TerrainSurface } from "../terrain/terrainSurface";
+import type { TerrainSurface } from "../terrain/terrainSurface";
+import type { Ground } from "@wasm/presentation/presentation_wasm.js";
 import {
-  buildSurfaceField,
+  CUT_A,
+  CUT_B,
   SURFACE_CELL_WORDS,
   SURFACE_FLOATS,
   SURFACE_KIND_SHIFT,
@@ -44,11 +46,7 @@ import {
   SURFACE_RECT,
   SURFACE_STROKE,
   SURFACE_TRIANGLE,
-  type SurfaceField,
-  type SurfaceReach,
 } from "../terrain/surfaceField";
-import { CUT_A, CUT_B } from "../terrain/strokes";
-import { isRoad, SURFACE_AREA_KINDS, type SurfaceAreaKind } from "../terrain/surfaces";
 import {
   CLASS_EDGE,
   CLASS_FOREST_SHIFT,
@@ -57,33 +55,23 @@ import {
   CLASS_KIND_SHIFT,
   CLASS_STEPS_PER_M,
 } from "../terrain/groundClasses";
-import { GRASS_EDGE_M } from "../terrain/grassField";
-import { terrainTuning as tuning } from "../terrain/terrainTuning";
-import { longestBank } from "../terrain/rivers";
-import {
-  linearRgb,
-  roadRow,
-  SCAR_CHANNELS,
-  type Biome,
-  type ForestFloor,
-  type Road,
-  type ScarMark,
-} from "../terrain/biome";
-import type { Rgb } from "../light/sceneLight";
+import game from "@fixtures/game.json";
 import type { GpuRegistry, GpuSlot } from "./registry";
 import { scarFilterQuanta, scarFilterPosition } from "./scarFilter";
 import {
   createScarTexture,
-  SCAR_UNIFORM,
-  SCAR_DENSE,
-  SCAR_KEY_MASK,
-  SCAR_REGION_CELLS,
   type ScarRegion,
+  type ScarStats,
   type GroundMarks,
 } from "./scarTexture";
+import { SCAR_DENSE, SCAR_KEY_MASK, SCAR_PARAMS_WORDS, SCAR_UNIFORM } from "../records.gen";
+const tuning = game.presentation.terrain;
 
-/** The paved kinds a map can hold: a row of the look table each. */
-const ROAD_KINDS = SURFACE_AREA_KINDS.length;
+/** The paved kinds a map can hold, a row of the look table each, in the
+ *  simulation's tag order (`ground::biome::AREA_KINDS`). */
+const ROAD_KINDS = 4;
+/** The deepest the plot split goes (`ground::plots::MAX_DEPTH`). */
+const MAX_PLOT_DEPTH = 64;
 /** How one paved kind is drawn (`biome.roads`). */
 const RoadLook = d.struct({
   /** The surface: linear rgb, roughness. */
@@ -149,7 +137,7 @@ export const TerrainParams = d.struct({
   /** Verge feather, the pixel footprints (metres) over which plots give way
    *  to the distant colour, then unused. */
   feathers: d.vec4f,
-  /** Each paved kind's look, by its tag (`SURFACE_AREA_KINDS`). */
+  /** Each paved kind's look, by its tag. */
   roads: d.arrayOf(RoadLook, ROAD_KINDS),
   /** The rows' tags in the order they are painted, the lowest layer first. */
   roadOrder: d.vec4u,
@@ -270,11 +258,12 @@ export const terrainLayout = tgpu.bindGroupLayout({
 /** Rec. 709's weights: a linear colour's luminance is its dot with them. */
 const LUMA_WEIGHTS = [0.2126, 0.7152, 0.0722] as const;
 const LUMA = d.vec3f(...LUMA_WEIGHTS);
-const MOTTLE_DRY = d.vec3f(...tuning.mottle.dry);
+const [dryR, dryG, dryB] = tuning.mottle.dry;
+const MOTTLE_DRY = d.vec3f(dryR, dryG, dryB);
 /** A number as WGSL float text: a whole number keeps its `.0`. */
 const wgslFloat = (n: number) => (Number.isInteger(n) ? n.toFixed(1) : `${n}`);
-const NODE_BYTES = 32;
-const PLOT_BYTES = 96;
+const NODE_WORDS = 8;
+const PLOT_WORDS = 24;
 
 /** Value noise on a unit lattice, in [0, 1]: an integer hash per lattice
  *  corner (no sin-hash, which loses precision kilometres out), smoothly
@@ -323,22 +312,22 @@ const mottle = tgpu.fn(
   // a pixel wide however slowly the noise crosses, so no patch fades softly
   // out as a shadow's penumbra does.
   const slope = d.vec2f(
-    ((valueNoise(std.add(at, d.vec2f(tuning.mottle.slopeStep, 0))) - streak) /
-      tuning.mottle.slopeStep) *
+    ((valueNoise(std.add(at, d.vec2f(tuning.mottle.slope_step, 0))) - streak) /
+      tuning.mottle.slope_step) *
       reach.x,
-    ((valueNoise(std.add(at, d.vec2f(0, tuning.mottle.slopeStep))) - streak) /
-      tuning.mottle.slopeStep) *
+    ((valueNoise(std.add(at, d.vec2f(0, tuning.mottle.slope_step))) - streak) /
+      tuning.mottle.slope_step) *
       reach.y,
   );
-  const inside = (streak - tuning.mottle.patchCut) / std.max(std.length(slope), 1e-4);
-  const edge = std.max(footprint, tuning.mottle.patchEdgeM) * 0.5;
+  const inside = (streak - tuning.mottle.patch_cut) / std.max(std.length(slope), 1e-4);
+  const edge = std.max(footprint, tuning.mottle.patch_edge_m) * 0.5;
   const parched = std.smoothstep(-edge, edge, inside);
   const fine = valueNoise(std.add(std.mul(xy, shape.z), d.vec2f(37.1, 11.3))) - 0.5;
   const fineShown =
-    1 - std.smoothstep(tuning.mottle.fineFade[0], tuning.mottle.fineFade[1], footprint * shape.z);
+    1 - std.smoothstep(tuning.mottle.fine_fade[0], tuning.mottle.fine_fade[1], footprint * shape.z);
   return d.vec2f(
-    fine * tuning.mottle.fineValue * fineShown,
-    parched * tuning.mottle.patchHue + std.max(fine, 0) * tuning.mottle.fineHue * fineShown,
+    fine * tuning.mottle.fine_value * fineShown,
+    parched * tuning.mottle.patch_hue + std.max(fine, 0) * tuning.mottle.fine_hue * fineShown,
   );
 });
 
@@ -356,9 +345,9 @@ export const groundWheeling = tgpu
   let phase = dot(xy, rows.xy) / rows.z;
   let furrow = round(phase);
   let nth = furrow - tram.x * floor(furrow / tram.x);
-  if (nth != 0.0 && nth != ${wgslFloat(tuning.wheeling.gaugeRows)}) { return 0.0; }
+  if (nth != 0.0 && nth != ${wgslFloat(tuning.wheeling.gauge_rows)}) { return 0.0; }
   let off = abs(phase - furrow) * rows.z;
-  let pixel = max(footprint, ${tuning.wheeling.leastPixelM});
+  let pixel = max(footprint, ${tuning.wheeling.least_pixel_m});
   return clamp((tram.y - off) / pixel + 0.5, 0.0, 1.0) * min(1.0, 2.0 * tram.y / pixel);
 }`)
   .$uses({ terrainLayout });
@@ -390,7 +379,7 @@ const fieldTexture = tgpu
     let shown = 1.0 - smoothstep(${tuning.rows.fade[0]}, ${tuning.rows.fade[1]}, footprint / rows.z);
     let stripe = 0.5 + 0.5 * cos(phase * 6.2831853);
     var furrow = stripe * stripe * stripe;
-    let along = grain.x * grain.z / ${wgslFloat(tuning.rows.breakGrains)};
+    let along = grain.x * grain.z / ${wgslFloat(tuning.rows.break_grains)};
     let seen = shown * (1.0 - smoothstep(${tuning.grain.fade[0]}, ${tuning.grain.fade[1]}, footprint * along));
     if (breaks > 0.0 && seen > 0.0) {
       // Each furrow has its own noise along its length; two meet on the bed
@@ -458,8 +447,8 @@ const polygonEdgeDistance = tgpu.fn(
 /** A stroke stretch's `inside` (its half width less the distance to it)
  *  once its cut ends are taken: past an end the stretch is cut square at, the
  *  distance to that flat end; short of it, no deeper than the end is near.
- *  `detail` is the stretch's `(half width, tag, cuts)`; `terrain/strokes.ts`
- *  `strokeInside` is this on the CPU. An uncut stretch keeps `inside` as its
+ *  `detail` is the stretch's `(half width, tag, cuts)`; `ground::shapes`'
+ *  `stroke_inside` is this on the CPU. An uncut stretch keeps `inside` as its
  *  caller computed it. */
 const strokeCutInside = tgpu.fn(
   [d.vec2f, d.vec4f, d.vec4f, d.f32],
@@ -555,8 +544,8 @@ export const forestVergeInside = tgpu.fn(
   const verge = terrainLayout.$.params.forestVerge;
   const wander = (valueNoise(std.add(std.mul(xy, verge.z), d.vec2f(71.3, 23.9))) - 0.5) * 2;
   const patches =
-    valueNoise(std.add(std.mul(xy, tuning.forestVerge.patchScale), d.vec2f(5.1, 91.7))) - 0.5;
-  return forest + verge.x * tuning.forestVerge.inset + wander * verge.y + patches * verge.x;
+    valueNoise(std.add(std.mul(xy, tuning.forest_verge.patch_scale), d.vec2f(5.1, 91.7))) - 0.5;
+  return forest + verge.x * tuning.forest_verge.inset + wander * verge.y + patches * verge.x;
 });
 
 /** The forest floor's weight at `xy`: 1 inside its drawn edge, 0 outside,
@@ -568,7 +557,7 @@ const forestFloorWeight = tgpu.fn(
   "use gpu";
   const feather = std.max(
     footprint,
-    terrainLayout.$.params.forestVerge.x * tuning.forestVerge.feather,
+    terrainLayout.$.params.forestVerge.x * tuning.forest_verge.feather,
   );
   return std.smoothstep(-feather, feather, forestVergeInside(xy, forest));
 });
@@ -640,7 +629,7 @@ const groundFloor = tgpu.fn(
   if (wood > 0 || forest > -params.forestVerge.x - params.forestVerge.y) {
     const band = groundLineBand(xy, groundCell(xy, footprint), forest);
     if (band.x > 0.5) {
-      const feather = std.max(footprint, params.forestVerge.x * tuning.forestVerge.feather);
+      const feather = std.max(footprint, params.forestVerge.x * tuning.forest_verge.feather);
       return d.vec2f(0, std.smoothstep(-feather, feather, band.y));
     }
   }
@@ -664,19 +653,21 @@ const forestFloor = tgpu.fn(
   const turned = d.vec2f(at.x * 0.8 - at.y * 0.6, at.x * 0.6 + at.y * 0.8);
   const across = d.vec2f(at.x * 0.28 + at.y * 0.96, at.y * 0.28 - at.x * 0.96);
   const moss = std.smoothstep(
-    tuning.forestFloor.moss.cut[0],
-    tuning.forestFloor.moss.cut[1],
-    valueNoise(std.add(turned, d.vec2f(13.3, 7.7))) * tuning.forestFloor.moss.weights[0] +
-      valueNoise(std.add(std.mul(across, tuning.forestFloor.moss.fineScale), d.vec2f(4.1, 9.2))) *
-        tuning.forestFloor.moss.weights[1],
+    tuning.forest_floor.moss.cut[0],
+    tuning.forest_floor.moss.cut[1],
+    valueNoise(std.add(turned, d.vec2f(13.3, 7.7))) * tuning.forest_floor.moss.weights[0] +
+      valueNoise(std.add(std.mul(across, tuning.forest_floor.moss.fine_scale), d.vec2f(4.1, 9.2))) *
+        tuning.forest_floor.moss.weights[1],
   );
   const humus = std.smoothstep(
-    tuning.forestFloor.humus.cut[0],
-    tuning.forestFloor.humus.cut[1],
-    valueNoise(std.add(std.mul(across, tuning.forestFloor.humus.scales[0]), d.vec2f(2.9, 41.1))) *
-      tuning.forestFloor.humus.weights[0] +
-      valueNoise(std.add(std.mul(turned, tuning.forestFloor.humus.scales[1]), d.vec2f(17.3, 5.9))) *
-        tuning.forestFloor.humus.weights[1],
+    tuning.forest_floor.humus.cut[0],
+    tuning.forest_floor.humus.cut[1],
+    valueNoise(std.add(std.mul(across, tuning.forest_floor.humus.scales[0]), d.vec2f(2.9, 41.1))) *
+      tuning.forest_floor.humus.weights[0] +
+      valueNoise(
+        std.add(std.mul(turned, tuning.forest_floor.humus.scales[1]), d.vec2f(17.3, 5.9)),
+      ) *
+        tuning.forest_floor.humus.weights[1],
   );
   let floor = std.mix(params.forestLitter.xyz, params.forestMoss.xyz, moss * params.forestMoss.w);
   floor = std.mix(floor, params.forestHumus.xyz, humus * params.forestHumus.w);
@@ -686,22 +677,22 @@ const forestFloor = tgpu.fn(
   const rootsAt = std.mul(xy, params.forestVerge.w);
   const ridge = std.abs(valueNoise(std.add(rootsAt, d.vec2f(29.1, 3.3))) - 0.5);
   const runs = std.smoothstep(
-    tuning.forestFloor.roots.runs[0],
-    tuning.forestFloor.roots.runs[1],
-    valueNoise(std.add(std.mul(rootsAt, tuning.forestFloor.roots.runScale), d.vec2f(8.3, 17.9))),
+    tuning.forest_floor.roots.runs[0],
+    tuning.forest_floor.roots.runs[1],
+    valueNoise(std.add(std.mul(rootsAt, tuning.forest_floor.roots.run_scale), d.vec2f(8.3, 17.9))),
   );
   const shown =
     1 -
     std.smoothstep(
-      tuning.forestFloor.roots.fade[0],
-      tuning.forestFloor.roots.fade[1],
+      tuning.forest_floor.roots.fade[0],
+      tuning.forest_floor.roots.fade[1],
       footprint * params.forestVerge.w,
     );
   const line =
     (1 -
-      std.smoothstep(tuning.forestFloor.roots.line[0], tuning.forestFloor.roots.line[1], ridge)) *
+      std.smoothstep(tuning.forest_floor.roots.line[0], tuning.forest_floor.roots.line[1], ridge)) *
     runs;
-  const root = line * shown + tuning.forestFloor.roots.mean * (1 - shown);
+  const root = line * shown + tuning.forest_floor.roots.mean * (1 - shown);
   floor = std.mul(floor, 1 - detail.w * root);
   return std.mul(floor, 1 + detail.y * noise);
 });
@@ -832,7 +823,7 @@ export const groundPaved = tgpu
  *  both read it, so grass grows exactly where the ground says what it is.
  *  `cell` is the point's `groundCell` and `paved` its `groundPaved`: `road`
  *  and `forest` are exact as far as a pixel that wide reads them
- *  (`groundReach`), and keep their side beyond. */
+ *  (`Ground::reach`), and keep their side beyond. */
 export const groundSite = tgpu.fn(
   [d.vec2f, d.vec4u, GroundPaved],
   d.vec4f,
@@ -869,7 +860,7 @@ export const groundSite = tgpu.fn(
 /** How far `xy` lies inside the water's edge (negative outside): the deepest
  *  any river stretch of `cell`, its `groundCell`, puts it. A stretch's half
  *  width runs linearly between its ends; the point reads it at the closest
- *  point of the centreline (`terrain/rivers.ts` `stretchInside`, and the
+ *  point of the centreline (`ground::water`'s `stretch_inside`, and the
  *  simulation's `contract::river::section`). */
 export const groundWater = tgpu
   .fn(
@@ -919,11 +910,11 @@ export const groundBank = tgpu
   let grade=stretch.detail.z+(stretch.detail.w-stretch.detail.z)*t;
   let heights=terrainLayout.$.surfaces[at+1u].ends.xy;
   let run=(heights.x+(heights.y-heights.x)*t)/max(grade,1e-4);
-  let ease=max(footprint,${tuning.bank.easeM});
+  let ease=max(footprint,${tuning.bank.ease_m});
   let sloped=(1.0-smoothstep(run-ease,run+ease,-inside))*(1.0-smoothstep(0.0,ease,inside));
   let top=run+terrainLayout.$.params.waterBed.w;
-  let weight=exp(clamp(inside,-${tuning.bank.blendReachM},${tuning.bank.blendReachM})/${tuning.bank.blendM});
-  let shown=min(grade*terrainLayout.$.params.shoreEdge.w,${tuning.shading.maxSlope});
+  let weight=exp(clamp(inside,-${tuning.bank.blend_reach_m},${tuning.bank.blend_reach_m})/${tuning.bank.blend_m});
+  let shown=min(grade*terrainLayout.$.params.shoreEdge.w,${tuning.shading.max_slope});
   sum+=vec4f(away/max(off,1e-4)*shown*sloped,1.0-smoothstep(top,top+2.0*ease,-inside),1.0)*weight;
  }
  if(sum.w<=0.0){return vec3f(0.0);}
@@ -969,12 +960,12 @@ export const groundShore = tgpu.fn(
   const fine = std.mix(
     valueNoise(std.add(std.mul(turned(xy, tuning.shore.turns[1]), scale), d.vec2f(41.7, 13.1))),
     0.5,
-    std.smoothstep(tuning.shore.fineFade[0], tuning.shore.fineFade[1], footprint * scale),
+    std.smoothstep(tuning.shore.fine_fade[0], tuning.shore.fine_fade[1], footprint * scale),
   );
-  const line = reach * (1 - params.shoreEdge.x * std.mix(broad, fine, tuning.shore.fineShare));
+  const line = reach * (1 - params.shoreEdge.x * std.mix(broad, fine, tuning.shore.fine_share));
   return d.vec3f(
-    1 - std.smoothstep(wet * tuning.shore.wetWhole, wet, out),
-    1 - std.smoothstep(std.mix(wet, line, tuning.shore.earthWhole), line, out),
+    1 - std.smoothstep(wet * tuning.shore.wet_whole, wet, out),
+    1 - std.smoothstep(std.mix(wet, line, tuning.shore.earth_whole), line, out),
     1 - std.smoothstep(wet, line, out),
   );
 });
@@ -1012,7 +1003,7 @@ const wanderNoise = tgpu
     [d.vec2f],
     d.f32,
   )(/* wgsl */ `(at:vec2f)->f32 {
- let push=vec2f(valueNoise(at*${tuning.wander.pushScale}+vec2f(11.3,47.1)),valueNoise(at*${tuning.wander.pushScale}+vec2f(83.9,5.7)))-0.5;
+ let push=vec2f(valueNoise(at*${tuning.wander.push_scale}+vec2f(11.3,47.1)),valueNoise(at*${tuning.wander.push_scale}+vec2f(83.9,5.7)))-0.5;
  let p=at+push*${tuning.wander.push};
  let a=valueNoise(vec2f(0.87*p.x-0.5*p.y,0.5*p.x+0.87*p.y));
  let b=valueNoise(vec2f(0.6*p.x+0.8*p.y,-0.8*p.x+0.6*p.y)*${tuning.wander.octaves[0]}+vec2f(19.1,7.7));
@@ -1030,14 +1021,14 @@ const roadGrain = tgpu
     [d.vec2f, d.f32],
     d.f32,
   )(/* wgsl */ `(p:vec2f,pixel:f32)->f32 {
- let shown=vec4f(1.0)-smoothstep(vec4f(${tuning.roadGrain.fade[0]}),vec4f(${tuning.roadGrain.fade[1]}),pixel*vec4f(1.0,${tuning.roadGrain.octaves.join(",")}));
+ let shown=vec4f(1.0)-smoothstep(vec4f(${tuning.road_grain.fade[0]}),vec4f(${tuning.road_grain.fade[1]}),pixel*vec4f(1.0,${tuning.road_grain.octaves.join(",")}));
  var grain=0.0;
- if(shown.x>0.0){grain+=(valueNoise(vec2f(0.87*p.x-0.5*p.y,0.5*p.x+0.87*p.y))-0.5)*${tuning.roadGrain.weights[0]}*shown.x;}
- if(shown.y>0.0){grain+=(valueNoise(vec2f(0.6*p.x+0.8*p.y,-0.8*p.x+0.6*p.y)*${tuning.roadGrain.octaves[0]}+vec2f(19.1,7.7))-0.5)*${tuning.roadGrain.weights[1]}*shown.y;}
- if(shown.z>0.0){grain+=(valueNoise(vec2f(0.96*p.x-0.28*p.y,0.28*p.x+0.96*p.y)*${tuning.roadGrain.octaves[1]}+vec2f(3.3,41.9))-0.5)*${tuning.roadGrain.weights[2]}*shown.z;}
+ if(shown.x>0.0){grain+=(valueNoise(vec2f(0.87*p.x-0.5*p.y,0.5*p.x+0.87*p.y))-0.5)*${tuning.road_grain.weights[0]}*shown.x;}
+ if(shown.y>0.0){grain+=(valueNoise(vec2f(0.6*p.x+0.8*p.y,-0.8*p.x+0.6*p.y)*${tuning.road_grain.octaves[0]}+vec2f(19.1,7.7))-0.5)*${tuning.road_grain.weights[1]}*shown.y;}
+ if(shown.z>0.0){grain+=(valueNoise(vec2f(0.96*p.x-0.28*p.y,0.28*p.x+0.96*p.y)*${tuning.road_grain.octaves[1]}+vec2f(3.3,41.9))-0.5)*${tuning.road_grain.weights[2]}*shown.z;}
  if(shown.w>0.0){
-  let stone=valueNoise(p*${tuning.roadGrain.octaves[2]}+vec2f(71.9,13.7));
-  grain+=(smoothstep(${tuning.roadGrain.stones[0]},${tuning.roadGrain.stones[1]},stone)-smoothstep(${tuning.roadGrain.stones[0]},${tuning.roadGrain.stones[1]},1.0-stone))*${tuning.roadGrain.weights[3]}*shown.w;
+  let stone=valueNoise(p*${tuning.road_grain.octaves[2]}+vec2f(71.9,13.7));
+  grain+=(smoothstep(${tuning.road_grain.stones[0]},${tuning.road_grain.stones[1]},stone)-smoothstep(${tuning.road_grain.stones[0]},${tuning.road_grain.stones[1]},1.0-stone))*${tuning.road_grain.weights[3]}*shown.w;
  }
  return grain;
 }`)
@@ -1076,8 +1067,8 @@ const groundStrip = tgpu
  let look=terrainLayout.$.params.roads[kind];
  let half=look.track.y;
  if(half<=0.0||paved.lane.w>look.track.z){return 0.0;}
- let reach=half*(1.0+(wanderNoise(xy*${1 / tuning.strip.wanderM}+vec2f(41.3,9.7))-0.5)*${tuning.strip.wander});
- let soft=max(footprint,${tuning.strip.edgeM});
+ let reach=half*(1.0+(wanderNoise(xy*${1 / tuning.strip.wander_m}+vec2f(41.3,9.7))-0.5)*${tuning.strip.wander});
+ let soft=max(footprint,${tuning.strip.edge_m});
  let shown=1.0-smoothstep(${tuning.strip.pixels[0]},${tuning.strip.pixels[1]},footprint/(2.0*half));
  return (1.0-smoothstep(reach-soft,reach+soft,paved.lane.z))*shown;
 }`)
@@ -1116,7 +1107,7 @@ const groundRuts = tgpu
   if(abs(u)<1.0){let b=1.0-u*u;depth=b*b;rise=4.0*u*b;}
  }
  if(ruts==0.0){return vec3f(0.0);}
- let faint=mix(${tuning.ruts.faint},1.0,smoothstep(${tuning.ruts.breakCut[0]},${tuning.ruts.breakCut[1]},wanderNoise(xy*${1 / tuning.ruts.breakM}+vec2f(13.9,57.3))))*shown;
+ let faint=mix(${tuning.ruts.faint},1.0,smoothstep(${tuning.ruts.break_cut[0]},${tuning.ruts.break_cut[1]},wanderNoise(xy*${1 / tuning.ruts.break_m}+vec2f(13.9,57.3))))*shown;
  let mean=ruts*width*${RUT_MEAN}/(2.0*half);
  return vec3f(paved.lane.xy*(look.ruts.w*rise*${1 / RUT_STEEPEST}*faint),look.track.x*(mean-depth)*faint);
 }`)
@@ -1147,7 +1138,7 @@ export const groundShoulder = tgpu
   let wander=saturate((wanderNoise(xy*look.edge.y+vec2f(27.3,88.1))-0.5)*${tuning.shoulder.wander}+0.5);
   let reach=width*(1.0-look.edge.x*wander);
   let across=saturate(out/reach);
-  let tufts=1.0-across*(1.0-smoothstep(${tuning.shoulder.tufts[0]},${tuning.shoulder.tufts[1]},wanderNoise(xy*${1 / tuning.shoulder.tuftM}+vec2f(5.9,63.1))));
+  let tufts=1.0-across*(1.0-smoothstep(${tuning.shoulder.tufts[0]},${tuning.shoulder.tufts[1]},wanderNoise(xy*${1 / tuning.shoulder.tuft_m}+vec2f(5.9,63.1))));
   let wear=(1.0-smoothstep(${tuning.shoulder.whole},1.0,out/reach))*tufts*(1.0-smoothstep(${tuning.shoulder.pixels[0]},${tuning.shoulder.pixels[1]},footprint/width));
   if(wear>worn.x){worn=vec2f(wear,f32(k));}
  }
@@ -1177,7 +1168,7 @@ const strokeJoint = tgpu.fn(
   [d.f32, d.f32, d.f32, d.f32],
   d.f32,
 )(/* wgsl */ `(along:f32,perMetre:f32,footprint:f32,width:f32)->f32 {
- let shown=1.0-smoothstep(${tuning.slabs.jointPixels[0]},${tuning.slabs.jointPixels[1]},footprint/width);
+ let shown=1.0-smoothstep(${tuning.slabs.joint_pixels[0]},${tuning.slabs.joint_pixels[1]},footprint/width);
  if(perMetre<=0.0||shown<=0.0){return 0.0;}
  let to=abs(fract(along*perMetre+0.5)-0.5)/perMetre;
  return (1.0-smoothstep(width*0.5,width*0.5+footprint,to))*shown;
@@ -1208,7 +1199,7 @@ const walkJoint = tgpu
  let road=terrainLayout.$.params.roads[u32(paved.run.w)];
  let beyond=paved.lane.z-paved.lane.w;
  if(beyond<=0.0||beyond>=road.join.z){return 0.0;}
- return strokeJoint(paved.run.z,road.slabs.x,footprint,${tuning.slabs.jointM})*road.slabs.y;
+ return strokeJoint(paved.run.z,road.slabs.x,footprint,${tuning.slabs.joint_m})*road.slabs.y;
 }`)
   .$uses({ terrainLayout, strokeJoint, GroundPaved });
 
@@ -1232,7 +1223,7 @@ const groundCurb = tgpu
  if(inside<-2.0*width||inside>2.0*look.slabs.z){return vec3f(0.0);}
  let shown=1.0-smoothstep(${tuning.curb.pixels[0]},${tuning.curb.pixels[1]},footprint/width);
  if(shown<=0.0){return vec3f(0.0);}
- let soft=max(footprint,${tuning.curb.edgeM})*0.5;
+ let soft=max(footprint,${tuning.curb.edge_m})*0.5;
  // Another carriageway's surface over the edge leaves no curb there.
  var open=1.0;
  for(var k=0u;k<${ROAD_KINDS}u;k++){
@@ -1291,7 +1282,7 @@ const groundMarks = tgpu
   let seg=terrainLayout.$.surfaces[entry&${SURFACE_RECORD_MASK}u];
   if(terrainLayout.$.params.roads[u32(seg.detail.y)].track.w<=0.0){continue;}
   let a=seg.ends.xy;let ab=seg.ends.zw-a;let len=max(length(ab),1e-6);
-  if(abs(dot(ab,paved.run.xy))>${tuning.marks.crossingCos}*len){continue;}
+  if(abs(dot(ab,paved.run.xy))>${tuning.marks.crossing_cos}*len){continue;}
   let free=dot(xy-a,ab)/len;
   let away=xy-(a+ab*(clamp(free,0.0,len)/len));let off=length(away);
   let inside=strokeCutInside(xy,seg.ends,seg.detail,seg.detail.x-off);
@@ -1309,10 +1300,10 @@ const groundMarks = tgpu
   let ends=((cuts&${CUT_A}u)!=0u&&free<room)||((cuts&${CUT_B}u)!=0u&&len-free<room);
   if(!ends&&free>=0.0&&free<=len){cross=max(cross,inside);}
  }
- let soft=max(footprint,${tuning.marks.edgeM})*0.5;
+ let soft=max(footprint,${tuning.marks.edge_m})*0.5;
  let centre=(1.0-smoothstep(line-soft,line+soft,paved.lane.z))
   *(1.0-smoothstep(look.marks.y*0.5-soft,look.marks.y*0.5+soft,abs(dash)))
-  *(1.0-step(-far-${tuning.marks.clearM},near));
+  *(1.0-step(-far-${tuning.marks.clear_m},near));
  let zone=smoothstep(-far-soft,-far+soft,cross)*(1.0-smoothstep(-bars.z-soft,-bars.z+soft,cross));
  let across=abs(fract(paved.lane.z/(2.0*bars.x))-0.5)*2.0*bars.x;
  let bar=1.0-smoothstep(bars.x*0.5-soft,bars.x*0.5+soft,across);
@@ -1334,7 +1325,7 @@ const groundMarks = tgpu
  *  grain; along a stroke's lanes it is shaded by its ruts (`groundRuts`), and
  *  a narrow track's middle goes to the verge's grass (`groundStrip`); a walk
  *  is crossed by its slabs' joints (`walkJoint`), an area by its own slabs'
- *  joints, square to its outline's dominant bearing (`areaBearings`). Last a
+ *  joints, square to its outline's dominant bearing (the ground's `area_bearings`). Last a
  *  street's painted lines (`groundMarks`), worn in patches, and its
  *  kerbstones along its edge (`groundCurb`). `paved` is the point's `groundPaved`. */
 const groundRoads = tgpu
@@ -1367,12 +1358,12 @@ const groundRoads = tgpu
    // never a ruled end across a road.
    feather=max(feather,carried*0.5);
    inside-=feather;
-   if(!plain){inside+=(wanderNoise(xy*${1 / tuning.surface.joinDriftM}+vec2f(7.9,52.3))-0.5)*2.0*carried;}
+   if(!plain){inside+=(wanderNoise(xy*${1 / tuning.surface.join_drift_m}+vec2f(7.9,52.3))-0.5)*2.0*carried;}
   }
   if(inside<=-feather){continue;}
   var core=look.core.xyz;
   if(!plain){
-   let hue=smoothstep(${tuning.surface.patchCut[0]},${tuning.surface.patchCut[1]},wanderNoise(xy*look.shape.y+vec2f(61.7,17.3)))*look.worn.w;
+   let hue=smoothstep(${tuning.surface.patch_cut[0]},${tuning.surface.patch_cut[1]},wanderNoise(xy*look.shape.y+vec2f(61.7,17.3)))*look.worn.w;
    let grain=roadGrain(xy*look.shape.w,footprint*look.shape.w);
    core=mix(core,look.worn.xyz,hue)*(1.0+look.shape.z*grain);
    if(i32(k)==lane){
@@ -1395,16 +1386,16 @@ const groundRoads = tgpu
      // A plain border a slab wide (at most slabs.areaBorderM) runs along the
      // edge line before the grid starts: where the grid is not square to
      // the street, it meets the border, not the kerb.
-     let border=1.0-smoothstep(0.0,footprint,out-min(1.0/look.stones.z,${tuning.slabs.areaBorderM}));
-     let w=${tuning.slabs.areaJointM};
+     let border=1.0-smoothstep(0.0,footprint,out-min(1.0/look.stones.z,${tuning.slabs.area_border_m}));
+     let w=${tuning.slabs.area_joint_m};
      let along=vec2f(cos(paved.bearing),sin(paved.bearing));
      // The grid fades out before a slab is a few pixels across, so far
      // paving reads as its colour rather than a shimmering mesh.
-     let near=(1.0-smoothstep(${tuning.slabs.areaSlabPixels[0]},${tuning.slabs.areaSlabPixels[1]},footprint*look.stones.z))*(1.0-border);
+     let near=(1.0-smoothstep(${tuning.slabs.area_slab_pixels[0]},${tuning.slabs.area_slab_pixels[1]},footprint*look.stones.z))*(1.0-border);
      let joint=near*max(areaJoint(dot(xy,along),look.stones.z,footprint,w),areaJoint(dot(xy,vec2f(-along.y,along.x)),look.stones.z,footprint,w));
      let drawn=max(w,footprint);
      let edge=(1.0-smoothstep(drawn-footprint*0.5,drawn+footprint*0.5,out))*(w/drawn);
-     core*=1.0-max(joint,edge*${tuning.slabs.areaEdgeDepth})*look.stones.w;
+     core*=1.0-max(joint,edge*${tuning.slabs.area_edge_depth})*look.stones.w;
     }
    }
   }
@@ -1416,7 +1407,7 @@ const groundRoads = tgpu
  let paint=groundMarks(xy,footprint,paved);
  if(paint>0.0){
   let look=terrainLayout.$.params.roads[u32(paved.run.w)];
-  let worn=1.0-look.marks.w*smoothstep(${tuning.marks.wearCut[0]},${tuning.marks.wearCut[1]},wanderNoise(xy*${1 / tuning.marks.wearM}+vec2f(33.7,71.1)));
+  let worn=1.0-look.marks.w*smoothstep(${tuning.marks.wear_cut[0]},${tuning.marks.wear_cut[1]},wanderNoise(xy*${1 / tuning.marks.wear_m}+vec2f(33.7,71.1)));
   let grain=roadGrain(xy*look.shape.w,footprint*look.shape.w);
   surface=mix(surface,vec4f(look.paint.xyz*(1.0+look.shape.z*grain),look.core.w),paint*look.paint.w*worn);
  }
@@ -1424,7 +1415,7 @@ const groundRoads = tgpu
  if(stones>0.0){
   let look=terrainLayout.$.params.roads[u32(paved.run.w)];
   let grain=roadGrain(xy*look.shape.w,footprint*look.shape.w);
-  let joint=strokeJoint(paved.run.z,look.stones.x,footprint,${tuning.slabs.jointM})*look.stones.y;
+  let joint=strokeJoint(paved.run.z,look.stones.x,footprint,${tuning.slabs.joint_m})*look.stones.y;
   surface=mix(surface,vec4f(look.curb.xyz*(1.0+look.shape.z*grain)*(1.0-joint),look.core.w),stones);
  }
  return surface;
@@ -1473,7 +1464,7 @@ export const groundColour = tgpu.fn(
   // land: its mean colour.
   const inRegion = rectInside(xy, params.region);
   const distant = std.max(
-    1 - std.smoothstep(0, tuning.distant.fadeM, inRegion),
+    1 - std.smoothstep(0, tuning.distant.fade_m, inRegion),
     std.smoothstep(params.feathers.y, params.feathers.z, footprint),
   );
   albedo = std.mix(albedo, params.distant.xyz, distant);
@@ -1500,21 +1491,21 @@ export const groundColour = tgpu.fn(
     const field = std.mix(
       std.dot(params.verge.xyz, LUMA),
       std.dot(plot.colour.xyz, LUMA) * (1 - 0.5 * plot.rows.w),
-      std.smoothstep(0, tuning.shore.fieldEaseM, site.y),
+      std.smoothstep(0, tuning.shore.field_ease_m, site.y),
     );
     const least = field * params.shoreEdge.z;
-    const earth = std.mul(params.shoreEarth.xyz, 1 + tuning.shore.earthMottle * noise);
+    const earth = std.mul(params.shoreEarth.xyz, 1 + tuning.shore.earth_mottle * noise);
     albedo = std.mix(albedo, atLeast(earth, least), shore.y);
-    roughness = std.mix(roughness, tuning.shore.earthRoughness, shore.y);
+    roughness = std.mix(roughness, tuning.shore.earth_roughness, shore.y);
     albedo = std.mix(albedo, atLeast(params.shore.xyz, least), shore.x);
-    roughness = std.mix(roughness, tuning.shore.wetRoughness, shore.x);
+    roughness = std.mix(roughness, tuning.shore.wet_roughness, shore.x);
   }
 
   // The roads, over all but water.
   const paving = groundRoads(xy, footprint, paved, d.vec4f(albedo, roughness));
 
   // The water bed, under the simulation's rivers (water wins over road).
-  const bed = std.smoothstep(-aa, std.max(aa, tuning.shore.bedEaseM), water);
+  const bed = std.smoothstep(-aa, std.max(aa, tuning.shore.bed_ease_m), water);
   albedo = std.mix(paving.xyz, params.waterBed.xyz, bed);
   return d.vec4f(std.max(albedo, d.vec3f(0)), paving.w);
 });
@@ -1571,7 +1562,7 @@ export const groundClasses = tgpu.fn(
 // sun reflect in it, broken by two octaves of ripples. The surface ends on the
 // simulation's water edge, feathered over a pixel: the ground meets the
 // surface there, so nothing hides it and nothing steps. Its numbers are
-// `terrainTuning.water`, which the world pass reads too.
+// `presentation.terrain.water`, which the world pass reads too.
 
 /** Ripple height at `xy`: two octaves of value noise, in about [0, 1.5]. */
 const rippleHeight = tgpu.fn(
@@ -1580,9 +1571,9 @@ const rippleHeight = tgpu.fn(
 )((xy) => {
   "use gpu";
   return (
-    valueNoise(std.mul(xy, 1 / tuning.water.ripple.longM)) +
-    tuning.water.ripple.shortWeight *
-      valueNoise(std.add(std.mul(xy, 1 / tuning.water.ripple.shortM), d.vec2f(17.3, 5.1)))
+    valueNoise(std.mul(xy, 1 / tuning.water.ripple.long_m)) +
+    tuning.water.ripple.short_weight *
+      valueNoise(std.add(std.mul(xy, 1 / tuning.water.ripple.short_m), d.vec2f(17.3, 5.1)))
   );
 });
 
@@ -1603,11 +1594,11 @@ export const waterSurface = tgpu.fn(
   const water = groundWater(xy, groundCell(xy, footprint));
   const deep = 1 - std.exp(-std.max(water, 0) * params.waterLook.x);
   const shown =
-    1 - std.smoothstep(tuning.water.ripple.fadeM[0], tuning.water.ripple.fadeM[1], footprint);
-  const drift = tuning.water.lanes.drift * valueNoise(std.mul(xy, 1 / tuning.water.lanes.driftM));
+    1 - std.smoothstep(tuning.water.ripple.fade_m[0], tuning.water.ripple.fade_m[1], footprint);
+  const drift = tuning.water.lanes.drift * valueNoise(std.mul(xy, 1 / tuning.water.lanes.drift_m));
   const lane = valueNoise(d.vec2f(water / tuning.water.lanes.m + drift, 3.7));
   const streak = valueNoise(
-    std.add(std.mul(xy, 1 / tuning.water.lanes.streakM), d.vec2f(63.1, 29.3)),
+    std.add(std.mul(xy, 1 / tuning.water.lanes.streak_m), d.vec2f(63.1, 29.3)),
   );
   const lit = std.smoothstep(
     tuning.water.lanes.lit[0],
@@ -1616,7 +1607,7 @@ export const waterSurface = tgpu.fn(
   );
   const colour = std.mul(
     std.mix(params.waterEdge.xyz, params.water.xyz, deep),
-    1 + params.waterLook.y * std.mix(tuning.water.lanes.litMean, lit, shown),
+    1 + params.waterLook.y * std.mix(tuning.water.lanes.lit_mean, lit, shown),
   );
   const edge = std.smoothstep(-footprint * 0.5, footprint * 0.5, water);
   return d.vec4f(colour, std.mix(params.waterEdge.w, params.water.w, deep) * edge);
@@ -1629,13 +1620,13 @@ export const waterNormal = tgpu.fn(
   d.vec3f,
 )((xy, footprint) => {
   "use gpu";
-  const ex = d.vec2f(tuning.water.ripple.stepM, 0);
-  const ey = d.vec2f(0, tuning.water.ripple.stepM);
+  const ex = d.vec2f(tuning.water.ripple.step_m, 0);
+  const ey = d.vec2f(0, tuning.water.ripple.step_m);
   const dx = rippleHeight(std.add(xy, ex)) - rippleHeight(std.sub(xy, ex));
   const dy = rippleHeight(std.add(xy, ey)) - rippleHeight(std.sub(xy, ey));
   const k =
-    (tuning.water.ripple.slope / (2 * tuning.water.ripple.stepM)) *
-    (1 - std.smoothstep(tuning.water.ripple.fadeM[0], tuning.water.ripple.fadeM[1], footprint));
+    (tuning.water.ripple.slope / (2 * tuning.water.ripple.step_m)) *
+    (1 - std.smoothstep(tuning.water.ripple.fade_m[0], tuning.water.ripple.fade_m[1], footprint));
   return std.normalize(d.vec3f(-dx * k, -dy * k, 1));
 });
 
@@ -1825,8 +1816,8 @@ export const groundScars = tgpu
   // Twelve bilinear taps through one call, as a shader compiler inlines each
   // call: the rim's four diagonals (a, b, c, e), the cubic's four, then
   // either side of \`uv\` along x and y for the slopes (xp, xm, yp, ym).
-  let r = ${tuning.scars.rimReachCells};
-  let h = ${tuning.scars.slopeTapCells};
+  let r = ${tuning.scars.rim_reach_cells};
+  let h = ${tuning.scars.slope_tap_cells};
   let cubic = groundCubic(uv);
   var taps = array<vec4f, 12>();
   for (var t = 0u; t < 12u; t++) {
@@ -1859,10 +1850,10 @@ export const groundScars = tgpu
   let xm = taps[9];
   let yp = taps[10];
   let ym = taps[11];
-  let detail = 1.0 - smoothstep(${tuning.scars.detailFade[0]}, ${wgslFloat(tuning.scars.detailFade[1])}, footprint / cell);
+  let detail = 1.0 - smoothstep(${tuning.scars.detail_fade[0]}, ${wgslFloat(tuning.scars.detail_fade[1])}, footprint / cell);
   let k = P.full;
-  let depth = min(s.x * k.x, ${tuning.scars.depthCap});
-  let wide = min((a.x + b.x + c.x + e.x) * 0.25 * k.x, ${tuning.scars.depthCap});
+  let depth = min(s.x * k.x, ${tuning.scars.depth_cap});
+  let wide = min((a.x + b.x + c.x + e.x) * 0.25 * k.x, ${tuning.scars.depth_cap});
   // Slopes per metre of the crater field, from the taps either side.
   let bowlSlope = vec2f(xp.x - xm.x, yp.x - ym.x) * k.x / (2.0 * h * cell);
   let wideSlope = vec2f((b.x + e.x) - (a.x + c.x), (c.x + e.x) - (a.x + b.x)) * 0.5 * k.x / (2.0 * r * cell);
@@ -1870,7 +1861,7 @@ export const groundScars = tgpu
   let onRim = select(0.0, 1.0, wide > depth);
   let slope = (P.relief.y * onRim * (wideSlope - bowlSlope) - bowlSlope) * P.relief.x * detail;
   // Iso-lines, each crossing within a pixel.
-  let grain = valueNoise(xy * ${1 / tuning.scars.lipWanderM} + vec2f(5.7, 2.1)) - 0.5;
+  let grain = valueNoise(xy * ${1 / tuning.scars.lip_wander_m} + vec2f(5.7, 2.1)) - 0.5;
   let pixelDepth = length(bowlSlope) * footprint;
   let bowl = crossing(depth, ${tuning.scars.lip[0]} + ${tuning.scars.lip[1]} * grain, pixelDepth);
   let skirt = crossing(depth, ${tuning.scars.ring[0]} + ${tuning.scars.ring[1]} * grain, pixelDepth) * (1.0 - bowl);
@@ -1879,10 +1870,10 @@ export const groundScars = tgpu
   let peak = max(max(max(s.x, xp.x), max(xm.x, yp.x)), max(ym.x, near.x)) * k.x;
   let soil = smoothstep(${tuning.scars.pock[0]}, ${tuning.scars.pock[1]}, peak);
   let ring = skirt * soil;
-  let scorched = crossing(depth, ${tuning.scars.pockEdge[0]} + ${tuning.scars.pockEdge[1]} * grain, pixelDepth) * (1.0 - bowl);
+  let scorched = crossing(depth, ${tuning.scars.pock_edge[0]} + ${tuning.scars.pock_edge[1]} * grain, pixelDepth) * (1.0 - bowl);
   // Darkest at its heart, browner toward its edge, as a burn is.
-  let heart = ${tuning.scars.pockEdgeDark} + ${1 - tuning.scars.pockEdgeDark} * smoothstep(${tuning.scars.pockEdge[0]}, ${tuning.scars.ring[0]}, depth);
-  let pock = scorched * (1.0 - soil) * ${tuning.scars.pockSoot} * heart;
+  let heart = ${tuning.scars.pock_edge_dark} + ${1 - tuning.scars.pock_edge_dark} * smoothstep(${tuning.scars.pock_edge[0]}, ${tuning.scars.ring[0]}, depth);
+  let pock = scorched * (1.0 - soil) * ${tuning.scars.pock_soot} * heart;
   // Soot: ash in flecks over the scorch, thickest near the burst, never a
   // solid sheet: a flecked dark is one thing no shadow here is.
   let burnt = saturate(s.y * k.y);
@@ -1927,7 +1918,7 @@ export const groundScarsSeen = tgpu
   for (var i = 0; i < 3; i++) {
     scar = groundScars(at, footprint);
     if (i == 0 && scar.relief.w <= 0.0) { break; }
-    at = world.xy + run * min(scar.relief.w, ${tuning.scars.depthCap}) * deep * 0.5;
+    at = world.xy + run * min(scar.relief.w, ${tuning.scars.depth_cap}) * deep * 0.5;
   }
   return scar;
 }`)
@@ -1947,19 +1938,19 @@ export const scarredSurface = tgpu
   let xy = scar.at.xy;
   var albedo = surface.xyz;
   var roughness = surface.w;
-  let grain = valueNoise(xy * ${tuning.scarSurface.grainScale});
-  let fleck = valueNoise(xy * ${tuning.scarSurface.fleckScale} + vec2f(2.2, 9.1));
-  albedo = mix(albedo, P.trampled.xyz * mix(${tuning.scarSurface.trampled[0]}, ${tuning.scarSurface.trampled[1]}, grain), w.w * P.trampled.w);
-  albedo = mix(albedo, P.tracks.xyz * mix(${tuning.scarSurface.tracks[0]}, ${tuning.scarSurface.tracks[1]}, grain), w.z * P.tracks.w);
+  let grain = valueNoise(xy * ${tuning.scar_surface.grain_scale});
+  let fleck = valueNoise(xy * ${tuning.scar_surface.fleck_scale} + vec2f(2.2, 9.1));
+  albedo = mix(albedo, P.trampled.xyz * mix(${tuning.scar_surface.trampled[0]}, ${tuning.scar_surface.trampled[1]}, grain), w.w * P.trampled.w);
+  albedo = mix(albedo, P.tracks.xyz * mix(${tuning.scar_surface.tracks[0]}, ${tuning.scar_surface.tracks[1]}, grain), w.z * P.tracks.w);
   // Soot is uneven: ash grey and char black in flecks and drifts.
-  let ash = mix(${tuning.scarSurface.ash[0]}, ${tuning.scarSurface.ash[1]}, fleck * ${tuning.scarSurface.ashWeights[0]} + valueNoise(xy * ${tuning.scarSurface.ashDriftScale} + vec2f(4.4, 0.3)) * ${tuning.scarSurface.ashWeights[1]});
+  let ash = mix(${tuning.scar_surface.ash[0]}, ${tuning.scar_surface.ash[1]}, fleck * ${tuning.scar_surface.ash_weights[0]} + valueNoise(xy * ${tuning.scar_surface.ash_drift_scale} + vec2f(4.4, 0.3)) * ${tuning.scar_surface.ash_weights[1]});
   albedo = mix(albedo, P.scorch.xyz * ash, w.y * P.scorch.w);
   let ring = scar.relief.z * P.ejecta.w;
-  albedo = mix(albedo, P.ejecta.xyz * mix(${tuning.scarSurface.soil[0]}, ${tuning.scarSurface.soil[1]}, fleck), ring);
+  albedo = mix(albedo, P.ejecta.xyz * mix(${tuning.scar_surface.soil[0]}, ${tuning.scar_surface.soil[1]}, fleck), ring);
   let bowl = w.x * P.crater.w;
   // The deeper, the darker: the floor sees less sky than the lip.
-  let cavity = mix(1.0, ${tuning.scarSurface.cavity}, saturate(scar.relief.w));
-  albedo = mix(albedo, P.crater.xyz * mix(${tuning.scarSurface.soil[0]}, ${tuning.scarSurface.soil[1]}, fleck) * cavity, bowl);
+  let cavity = mix(1.0, ${tuning.scar_surface.cavity}, saturate(scar.relief.w));
+  albedo = mix(albedo, P.crater.xyz * mix(${tuning.scar_surface.soil[0]}, ${tuning.scar_surface.soil[1]}, fleck) * cavity, bowl);
   // Churned soil and ash are fully rough: a tilted wall never catches sky.
   roughness = mix(roughness, 1.0, max(w.y * P.scorch.w, max(bowl, ring)));
   return vec4f(albedo, roughness);
@@ -1974,7 +1965,7 @@ export const scarredNormal = tgpu.fn(
   // At most 40° of tilt: steeper walls turn to the blue sky and read as haze.
   let slope = scar.relief.xy;
   let steep = length(slope);
-  let capped = slope * min(1.0, ${tuning.shading.maxSlope} / max(steep, 1e-6));
+  let capped = slope * min(1.0, ${tuning.shading.max_slope} / max(steep, 1e-6));
   return normalize(n - vec3f(capped, 0.0) * n.z);
 }`);
 
@@ -1991,6 +1982,20 @@ export const scarRegionContains = tgpu.fn(
 });
 
 const EMPTY_SCAR_REGIONS: readonly ScarRegion[] = [];
+const NO_SCARS: Omit<ScarStats, "textureBytes" | "directoryBytes"> = {
+  cols: 0,
+  rows: 0,
+  cellM: 1,
+  uploads: 0,
+  fullUploads: 0,
+  lastBytes: 0,
+  totalBytes: 0,
+  pages: 0,
+  directoryEntries: 1,
+  poolWords: 0,
+  defaultWord: 0,
+  cacheBounds: [0, 0, 0, 0],
+};
 
 /** The terrain's GPU tables, rebuilt whole when the world is set. */
 export function createTerrainSource(root: Root, registry: GpuRegistry) {
@@ -2009,36 +2014,12 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
   const surfaces: GpuSlot<ReturnType<typeof surfaceBuffer>> = registry.slot();
   const surfaceIndex: GpuSlot<ReturnType<typeof indexBuffer>> = registry.slot();
   const scarParams = registry.own(root.createBuffer(ScarParams).$usage("uniform"));
-  const scarLook = {
-    full: d.vec4f(1, 1, 1, 1),
-    crater: d.vec4f(),
-    ejecta: d.vec4f(),
-    scorch: d.vec4f(),
-    tracks: d.vec4f(),
-    trampled: d.vec4f(),
-    relief: d.vec4f(),
-    grass: d.vec4f(),
-  };
-  const noClip: ScarRegion = [0, 0, 0, 0];
-  let clip: ScarRegion = noClip;
-  let regions: ScarRegion[] = [];
-  let regionGrid = "";
-  /** The scar params as last written (`terrainTables.ts` reads them). */
-  let scarWritten: d.Infer<typeof ScarParams> | null = null;
-  const writeScarParams = () => {
-    const stats = scars.stats();
-    const { cols, rows, cellM, poolWidth, directoryEntries } = stats;
-    const on = cols > 0 && rows > 0;
-    scarWritten = {
-      grid: d.vec4f(on ? 1 / (cols * cellM) : 0, on ? 1 / (rows * cellM) : 0, cellM, on ? 1 : 0),
-      pages: d.vec4u(cols, rows, directoryEntries - 1, poolWidth),
-      clip: d.vec4f(...clip),
-      cacheBounds: d.vec4u(...stats.cacheBounds),
-      defaultWord: d.vec4u(stats.defaultWord, 0, 0, 0),
-      ...scarLook,
-    };
-    scarParams.write(scarWritten);
-  };
+  // The scar params as one record: the presentation's words for the grid and
+  // cache, then the biome's look (`ground::tables`).
+  const scarWords = new Uint32Array(d.sizeOf(ScarParams) / 4);
+  new Float32Array(scarWords.buffer).fill(1, SCAR_PARAMS_WORDS, SCAR_PARAMS_WORDS + 4);
+  /** The learned ground the scars were last uploaded from. */
+  let marks: GroundMarks | null = null;
   const groupOf = () =>
     root.createBindGroup(terrainLayout, {
       params,
@@ -2051,27 +2032,17 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
       scarPages: scars.directory.createView(),
     });
   const scars = createScarTexture(registry);
-  /** The surface's numbers as `set` last packed them, and the frame's view. */
-  let look: Omit<d.Infer<typeof TerrainParams>, "view"> | null = null;
+  /** `TerrainParams` as `set` last packed it, its last `vec4u` the frame's view. */
+  let look: Uint32Array | null = null;
   let classView = false;
   let roadWear = true;
-  /** The plots `set` last packed, and whether they carry their texture. */
-  let fields: PlotLook | null = null;
+  /** The ground `set` last drew, and whether its plots carry their texture. */
+  let ground: Ground | null = null;
   let textured = true;
-  /** The tables as last uploaded (`terrainTables.ts` reads them). */
-  let packed: {
-    grid: TerrainSurface["grid"];
-    nodes: ArrayBuffer;
-    plots: ArrayBuffer;
-    surfaces: ArrayBuffer;
-    surfaceIndex: ArrayBuffer;
-    rivers: Float32Array;
-  } | null = null;
-  const paramsNow = () =>
-    look && { ...look, view: d.vec4u(classView ? 1 : 0, roadWear ? 0 : 1, 0, 0) };
   const writeParams = () => {
-    const now = paramsNow();
-    if (now) params.write(now);
+    if (!look) return;
+    look.set([classView ? 1 : 0, roadWear ? 0 : 1, 0, 0], look.length - 4);
+    params.write(look.buffer as ArrayBuffer);
   };
 
   const source = {
@@ -2096,344 +2067,57 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
     setFieldTexture(on: boolean): boolean {
       if (on === textured) return false;
       textured = on;
-      if (fields && packed) {
-        packed.plots = packPlots(fields, textured);
-        plots.current!.write(packed.plots);
-      }
+      if (ground) plots.current!.write(ground.plots(textured).buffer as ArrayBuffer);
       return true;
-    },
-    /** The words `set` uploaded, the params and scar params as last
-     *  written, and the rivers; null before `set`. */
-    uploaded: () => {
-      const now = paramsNow();
-      return packed && now && scarWritten && { ...packed, params: now, scars: scarWritten };
     },
     group: null as unknown as ReturnType<typeof groupOf>,
     /** Follow the side's learned ground (null: none); true when the scars
      *  changed, so what grows on them must regrow. */
-    setGround(ground: GroundMarks | null): boolean {
-      const changed = scars.setGround(ground);
-      const key = ground ? `${ground.cols}/${ground.rows}/${ground.cellM}` : "";
-      if (key !== regionGrid) {
-        regionGrid = key;
-        regions = [];
-        if (ground) {
-          const span = SCAR_REGION_CELLS * ground.cellM;
-          for (let y = 0; y < ground.rows * ground.cellM; y += span)
-            for (let x = 0; x < ground.cols * ground.cellM; x += span)
-              regions.push([
-                x,
-                y,
-                Math.min(x + span, ground.cols * ground.cellM),
-                Math.min(y + span, ground.rows * ground.cellM),
-              ]);
-        }
-      }
-      return changed;
+    setGround(next: GroundMarks | null): boolean {
+      if (next === marks) return next?.changed() ?? false;
+      marks = next;
+      next?.resend();
+      next?.changed();
+      // No ground draws no scars: the grid is off.
+      if (!next) scarParams.write(scarWords.fill(0, 0, SCAR_PARAMS_WORDS).buffer as ArrayBuffer);
+      return true;
     },
-    scarStats: () => scars.stats(),
-    /** Exact filter stencil plus the bounded crater view-ray displacement. */
+    scarStats: (): ScarStats => ({
+      ...(marks?.stats() ?? NO_SCARS),
+      ...scars.bytes(),
+    }),
+    /** Upload what the presentation says the scars over `region` (none:
+     *  the view) need, clipped to it when `clipped`. */
     prepareScars(region?: ScarRegion, clipped = false) {
-      clip = clipped && region ? region : noClip;
-      const cellM = scars.stats().cellM;
-      const priorDirectory = scars.directory;
-      scars.prepare(region, 2 + (2 * tuning.scars.depthCap * scarLook.relief.x) / cellM);
-      writeScarParams();
-      if (scars.directory !== priorDirectory) source.group = groupOf();
+      if (!marks) return;
+      const upload = marks.prepare(region, clipped);
+      if (scars.upload(upload)) source.group = groupOf();
+      scarWords.set(upload.params);
+      scarParams.write(scarWords.buffer as ArrayBuffer);
     },
     scarRegions(): readonly ScarRegion[] {
-      return scars.hasMarks() && !scars.globalEligible() ? regions : EMPTY_SCAR_REGIONS;
+      return marks?.regions() ?? EMPTY_SCAR_REGIONS;
     },
     set(surface: TerrainSurface) {
-      const { plots: tree, site, biome } = surface;
-      fields = { plots: tree, biome };
-      const field = terrainField(surface);
-      packed = {
-        grid: surface.grid,
-        nodes: packNodes(tree),
-        plots: packPlots(fields, textured),
-        surfaces: field.records.buffer as ArrayBuffer,
-        surfaceIndex: field.index.buffer as ArrayBuffer,
-        rivers: site.rivers,
-      };
-      nodes.set(nodeBuffer(tree.nodes.length / NODE_FLOATS)).write(packed.nodes);
-      plots.set(plotBuffer(tree.plots.length)).write(packed.plots);
-      surfaces.set(surfaceBuffer(field.records.length / SURFACE_FLOATS)).write(packed.surfaces);
-      surfaceIndex.set(indexBuffer(field.index.length)).write(packed.surfaceIndex);
-      const rules = biome.field_rules;
-      const one = (key: string) => linearRgb(biome.palettes[key][0]);
-      const bank = biome.palettes[biome.shore.palette];
-      look = {
-        region: d.vec4f(...tree.region),
-        field: d.vec4f(field.origin[0], field.origin[1], 1 / field.cellM, field.footprintM),
-        fieldGrid: d.vec4u(field.cols, field.rows, field.levels, 0),
-        shape: d.vec4f(rules.edge_warp_m, 1 / rules.edge_warp_scale_m, 1 / rules.mottle_m, 0),
-        verge: d.vec4f(...one(biome.verge.palette), biome.verge.width_m / 2),
-        feathers: d.vec4f(
-          biome.verge.feather_m,
-          rules.size_m[0] * tuning.distant.plotPixels[0],
-          rules.size_m[0] * tuning.distant.plotPixels[1],
-          0,
-        ),
-        roads: roadLooks(biome),
-        roadOrder: d.vec4u(...roadOrder(biome)),
-        ...forestParams(biome.forest_floor, biome.palettes[biome.forest_floor.palette]),
-        waterBed: d.vec4f(...one("water_bed"), triangleReach(site)),
-        water: d.vec4f(...one("water"), biome.water.opacity[1]),
-        waterEdge: d.vec4f(...linearRgb(biome.palettes.water[1]), biome.water.opacity[0]),
-        waterLook: d.vec4f(1 / biome.water.shallows_m, biome.water.streak, 0, 0),
-        shore: d.vec4f(...linearRgb(bank[0]), biome.shore.wet_m),
-        shoreEarth: d.vec4f(...linearRgb(bank[1]), biome.shore.mud_m),
-        shoreEdge: d.vec4f(
-          biome.shore.wander,
-          1 / biome.shore.wander_scale_m,
-          biome.shore.lift,
-          biome.shore.relief,
-        ),
-        distant: d.vec4f(...one("distant"), 0),
-      };
+      ground = surface.ground;
+      const tables = ground.terrain();
+      const upload = (words: Uint32Array | Float32Array) => words.buffer as ArrayBuffer;
+      const [nodeWords, plotWords] = [tables.nodes(), ground.plots(textured)];
+      const [records, index] = [tables.surfaces(), tables.surface_index()];
+      nodes.set(nodeBuffer(nodeWords.length / NODE_WORDS)).write(upload(nodeWords));
+      plots.set(plotBuffer(plotWords.length / PLOT_WORDS)).write(upload(plotWords));
+      surfaces.set(surfaceBuffer(records.length / SURFACE_FLOATS)).write(upload(records));
+      surfaceIndex.set(indexBuffer(index.length)).write(upload(index));
+      const packed = tables.params();
+      look = new Uint32Array(packed.length + 4);
+      look.set(packed);
       writeParams();
-      const s = biome.scars;
-      const mark = (m: ScarMark) => d.vec4f(...one(m.palette), m.strength);
-      scarLook.full = d.vec4f(
-        ...(SCAR_CHANNELS.map((c) => 255 / s[c].full) as [number, number, number, number]),
-      );
-      scarLook.crater = mark(s.crater);
-      scarLook.ejecta = d.vec4f(...one(s.crater.ejecta_palette), s.crater.ejecta);
-      scarLook.scorch = mark(s.scorch);
-      scarLook.tracks = mark(s.tracks);
-      scarLook.trampled = mark(s.trampled);
-      scarLook.relief = d.vec4f(s.crater.relief_m, s.crater.rim, 0, 0);
-      scarLook.grass = d.vec4f(s.grass.thin, s.grass.tracks_thin, s.grass.flatten, 0);
-      writeScarParams();
+      scarWords.set(tables.scars(), SCAR_PARAMS_WORDS);
+      tables.free();
+      scarParams.write(scarWords.buffer as ArrayBuffer);
       source.group = groupOf();
     },
   };
   return source;
 }
 export type TerrainSource = ReturnType<typeof createTerrainSource>;
-
-/** How far past a bank's top a ground triangle that straddles it carries its
- *  tilt: a triangle's diagonal. */
-function triangleReach(site: TerrainSite): number {
-  return site.gridM * Math.SQRT2;
-}
-
-/** `surface`'s field as the material reads it: its site's ground rules, with
- *  the paved strokes as they are drawn (`TerrainSurface.strokes`). The
- *  material and any check of its lookups both build this. */
-export function terrainField(surface: TerrainSurface): SurfaceField {
-  return buildSurfaceField(
-    { ...surface.site, surfaceStrokes: surface.strokes },
-    terrainReach(surface),
-  );
-}
-
-/** How far each ground rule of `surface` is read at a pixel `footprint`
- *  metres wide: what its surface field is built with. */
-export function terrainReach({ site, biome }: TerrainSurface) {
-  const bankM = longestBank(site.rivers) + triangleReach(site);
-  return (footprint: number) => groundReach(biome, footprint, bankM);
-}
-
-/** How far from its edge each ground rule is read by a pixel `footprint`
- *  metres wide, in metres: the surface field lists what lies within it, and a
- *  distance past it only keeps its side. Each term is one reader:
- *
- *  - paved: the shoulder beside a road (`groundShoulder`: its width at the
- *    widest), which the grass thins across too, or the walk beside a street
- *    (`groundPaved`: its width); the road's own edge
- *    (`groundRoads`: half a feather either side, a pixel wide at least); the
- *    far end of a crossing's bars, and a centre line's dash that ends short
- *    of them, from the edge of the road that crosses (`groundMarks`);
- *  - forest: the floor's ragged verge (`forestVergeInside` moves the edge out
- *    by up to the verge and its warp, `forestFloorWeight` feathers it by a
- *    pixel at least), which `groundDapple` and the grass read too, the grass
- *    thinning past its margin;
- *  - water: the shore's bands (`groundShore`: the bare earth ends within
- *    `mud_m`), the bed's and the water surface's pixel-wide edge, the grass's
- *    margin, and the bank's shading (`groundBank`) out to `bankM` from the
- *    water: the ground's longest bank and a triangle past its top. Inside
- *    the water a stretch lists itself, so the surface's shallows need none. */
-export function groundReach(biome: Biome, footprint: number, bankM = 0): SurfaceReach {
-  const floor = biome.forest_floor;
-  const grass = biome.grass.clear_m;
-  return {
-    paved: Math.max(
-      ...Object.values(biome.roads).map((road) => road.shoulder.width_m),
-      ...Object.values(biome.roads).map(({ markings }) =>
-        markings
-          ? markings.crossing.gap_m +
-            markings.crossing.length_m +
-            tuning.marks.clearM +
-            markings.dash_m[0]
-          : 0,
-      ),
-      Math.max(...Object.values(biome.roads).map((road) => road.walk?.width_m ?? 0)) +
-        Math.max(...Object.values(biome.roads).map((road) => road.feather_m), footprint) / 2,
-    ),
-    forest:
-      floor.verge_m +
-      floor.verge_warp_m +
-      Math.max(footprint, floor.verge_m * tuning.forestVerge.feather, grass.area + GRASS_EDGE_M),
-    water: Math.max(
-      biome.shore.mud_m,
-      footprint / 2,
-      bankM + 2 * Math.max(footprint, tuning.bank.easeM),
-      grass.area + GRASS_EDGE_M,
-    ),
-  };
-}
-
-const luminance = (c: readonly number[]) =>
-  c[0] * LUMA_WEIGHTS[0] + c[1] * LUMA_WEIGHTS[1] + c[2] * LUMA_WEIGHTS[2];
-
-/** The row of the look table for the paved kind tagged `tag`, drawn as
- *  `road`. The patches' colour is scaled to the surface's own luminance: a
- *  patch is a change of hue alone. */
-function roadLook(road: Road, tag: number, palettes: Biome["palettes"]) {
-  const [core, worn] = palettes[road.palette].map(linearRgb);
-  const level = luminance(core) / luminance(worn);
-  const row = (kind: string | undefined) =>
-    kind === undefined ? tag : SURFACE_AREA_KINDS.indexOf(kind as SurfaceAreaKind);
-  const marks = road.markings;
-  return {
-    core: d.vec4f(...core, road.roughness),
-    worn: d.vec4f(worn[0] * level, worn[1] * level, worn[2] * level, road.mottle),
-    shape: d.vec4f(road.feather_m, 1 / road.patch_m, road.grain, 1 / road.grain_m),
-    join: d.vec4f(road.join_m, 0, road.walk?.width_m ?? 0, row(road.walk?.kind)),
-    shoulder: d.vec4f(...linearRgb(palettes[road.shoulder.palette][0]), road.shoulder.width_m),
-    edge: d.vec4f(
-      road.shoulder.jitter,
-      1 / road.shoulder.jitter_m,
-      road.shoulder.grass,
-      road.shoulder.cover,
-    ),
-    ruts: d.vec4f(
-      road.ruts.offsets_m[0] ?? 0,
-      road.ruts.offsets_m[1] ?? 0,
-      road.ruts.width_m,
-      Math.tan((road.ruts.tilt_deg * Math.PI) / 180),
-    ),
-    track: d.vec4f(
-      road.ruts.tint,
-      road.centre_strip.half_width_m,
-      road.centre_strip.max_road_width_m / 2,
-      isRoad(tag) ? 1 : 0,
-    ),
-    slabs: d.vec4f(
-      road.walk?.slab_m ? 1 / road.walk.slab_m : 0,
-      road.walk?.joint ?? 0,
-      road.curb?.face_m ?? 0,
-      road.curb ? Math.tan((road.curb.tilt_deg * Math.PI) / 180) : 0,
-    ),
-    curb: road.curb
-      ? d.vec4f(...linearRgb(palettes[road.curb.palette][0]), road.curb.width_m)
-      : d.vec4f(0),
-    stones: d.vec4f(
-      road.curb ? 1 / road.curb.stone_m : 0,
-      road.curb?.joint ?? 0,
-      road.slabs ? 1 / road.slabs.slab_m : 0,
-      road.slabs?.joint ?? 0,
-    ),
-    paint: marks ? d.vec4f(...linearRgb(palettes[marks.palette][0]), marks.cover) : d.vec4f(0),
-    marks: marks
-      ? d.vec4f(marks.line_m / 2, marks.dash_m[0], marks.dash_m[0] + marks.dash_m[1], marks.wear)
-      : d.vec4f(0, 0, 1, 0),
-    crossing: marks
-      ? d.vec4f(
-          marks.crossing.bar_m,
-          marks.crossing.length_m,
-          marks.crossing.gap_m,
-          marks.crossing.inset_m,
-        )
-      : d.vec4f(1, 0, 0, 0),
-  };
-}
-
-/** The look table in native tag order, selected by each authored kind. */
-export function roadLooks(biome: Biome) {
-  return SURFACE_AREA_KINDS.map((kind, tag) => roadLook(roadRow(biome, kind), tag, biome.palettes));
-}
-
-/** Paved tags from lowest layer to highest, with native order breaking ties. */
-export function roadOrder(biome: Biome): [number, number, number, number] {
-  const layer = (tag: number) => roadRow(biome, SURFACE_AREA_KINDS[tag]).layer ?? ROAD_KINDS - tag;
-  const [a, b, c, e] = SURFACE_AREA_KINDS.map((_, tag) => tag).sort(
-    (x, y) => layer(x) - layer(y) || y - x,
-  );
-  return [a, b, c, e];
-}
-
-/** The forest floor's uniform fields: its palette's litter, moss and humus. */
-function forestParams(floor: ForestFloor, [litter, moss, humus]: readonly Rgb[]) {
-  return {
-    forestLitter: d.vec4f(...linearRgb(litter), 0),
-    forestMoss: d.vec4f(...linearRgb(moss), floor.moss),
-    forestHumus: d.vec4f(...linearRgb(humus), floor.humus),
-    forestDetail: d.vec4f(1 / floor.patch_m, floor.mottle, floor.roughness, floor.roots),
-    forestVerge: d.vec4f(
-      floor.verge_m,
-      floor.verge_warp_m,
-      1 / floor.verge_warp_scale_m,
-      1 / floor.roots_m,
-    ),
-    forestDapple: d.vec4f(1 / floor.dapple.size_m, floor.dapple.share, floor.dapple.sun, 0),
-    forestLine: d.vec4f(floor.tree_line.taper_m, floor.tree_line.warp_m, 0, 0),
-  };
-}
-
-function packNodes(tree: PlotTree): ArrayBuffer {
-  const count = tree.nodes.length / NODE_FLOATS;
-  const bytes = new ArrayBuffer(Math.max(1, count) * NODE_BYTES);
-  const f = new Float32Array(bytes);
-  const i = new Int32Array(bytes);
-  for (let k = 0; k < count; k++) {
-    const o = k * NODE_FLOATS;
-    f[k * 8] = tree.nodes[o];
-    f[k * 8 + 1] = tree.nodes[o + 1];
-    f[k * 8 + 2] = tree.nodes[o + 2];
-    i[k * 8 + 4] = tree.nodes[o + 3];
-    i[k * 8 + 5] = tree.nodes[o + 4];
-  }
-  return bytes;
-}
-
-/** What the plots' records are packed from. */
-type PlotLook = Pick<TerrainSurface, "plots" | "biome">;
-
-/** The plots' records; without `textured`, their rows and dry patches alone. */
-function packPlots({ plots: tree, biome }: PlotLook, textured: boolean): ArrayBuffer {
-  const f = new Float32Array(Math.max(1, tree.plots.length) * (PLOT_BYTES / 4));
-  tree.plots.forEach((plot, k) => {
-    const kind = biome.plots[plot.kind];
-    f.set(
-      [
-        ...linearRgb(plot.colour),
-        kind.roughness,
-        plot.across[0],
-        plot.across[1],
-        kind.furrow_m,
-        kind.furrow_contrast,
-        kind.mottle,
-        plot.kind,
-        textured ? kind.row_break : 0,
-        0,
-        1 / kind.grain_m,
-        textured ? kind.grain : 0,
-        1 / kind.grain_stretch,
-        0,
-        1 / kind.patch_m[0],
-        1 / kind.patch_m[1],
-        0,
-        0,
-        textured ? kind.tram.rows : 0,
-        kind.tram.width_m / 2,
-        kind.tram.contrast,
-        0,
-      ],
-      k * (PLOT_BYTES / 4),
-    );
-  });
-  return f.buffer;
-}

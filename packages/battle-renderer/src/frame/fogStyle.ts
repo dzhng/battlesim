@@ -7,10 +7,11 @@
 // (without it, a sight wedge leaving a wall read as a second cast shadow), and
 // `edge_softness` fades the unseen side in over a few pixels.
 //
-// Every number is live-tunable (`BattleFrame.setFogStyle`) and lives in the
-// fixture's `presentation.fog`: named styles, one selected. `fogLook` is the
-// one WGSL function unseen pixels go through, applied by the fog mask pass
-// (`fogMaskPass.ts`) from the per-pixel mask the world's materials write.
+// Every number is live-tunable (`BattleFrame.setFogLook`) and lives in the
+// fixture's `presentation.fog`: named styles, one selected. The presentation
+// crate checks a style and resolves it into the uniform (`fog.rs`); `fogLook`
+// is the one WGSL function unseen pixels go through, applied by the fog mask
+// pass (`fogMaskPass.ts`) from the per-pixel mask the world's materials write.
 import { tgpu, d } from "typegpu";
 
 /** One unseen look, as the fixture writes it. */
@@ -57,10 +58,9 @@ export interface FogStyle {
   };
 }
 
-/** The widest rim or soft edge a style may ask for, device pixels. */
-export const FOG_EDGE_REACH_PX = 8;
 /** The mask pass stores distances to the other side up to this many pixels;
- *  its search reaches `ceil(max(rim, softness)) + 1`, always below it. */
+ *  a style's search reaches `ceil(max(rim, softness)) + 1`, always below it
+ *  (`FOG_EDGE_REACH_PX`, the presentation crate's `fog.rs`). */
 export const FOG_DISTANCE_CAP_PX = 16;
 
 /** `presentation.fog`: named unseen looks and the one drawn. */
@@ -69,54 +69,8 @@ export interface FogPresentation {
   styles: Record<string, FogStyle>;
 }
 
-/** Rec. 709 luminance weights, the same the grade uses. */
-const LUMA = [0.2126, 0.7152, 0.0722] as const;
-
-export function validateFogStyle(s: FogStyle, path = "fog style"): FogStyle {
-  const within = (name: string, v: number, lo: number, hi: number) => {
-    if (!(Number.isFinite(v) && v >= lo && v <= hi))
-      throw new Error(`${path}.${name} must be within [${lo}, ${hi}], got ${v}`);
-  };
-  within("dim", s.dim, 0, 1);
-  within("cool", s.cool, 0, 1);
-  within("saturation", s.saturation, 0, 1);
-  within("veil", s.veil, 0, 1);
-  if (!Array.isArray(s.tint) || s.tint.length !== 3)
-    throw new Error(`${path}.tint must be [r, g, b]`);
-  s.tint.forEach((c, i) => within(`tint[${i}]`, c, 0, 4));
-  if (!(LUMA[0] * s.tint[0] + LUMA[1] * s.tint[1] + LUMA[2] * s.tint[2] > 0))
-    throw new Error(`${path}.tint must not be black`);
-  within("lines.strength", s.lines.strength, -1, 4);
-  within("lines.floor", s.lines.floor, 0, 1);
-  within("lines.spacing_px", s.lines.spacing_px, 1, 256);
-  within("lines.width_px", s.lines.width_px, 0, 256);
-  within("lines.angle_deg", s.lines.angle_deg, -360, 360);
-  within("edge_softness", s.edge_softness, 0, FOG_EDGE_REACH_PX);
-  if (!s.rim) throw new Error(`${path}.rim must be {width_px, color, alpha}`);
-  within("rim.width_px", s.rim.width_px, 0, FOG_EDGE_REACH_PX);
-  within("rim.alpha", s.rim.alpha, 0, 1);
-  if (!Array.isArray(s.rim.color) || s.rim.color.length !== 3)
-    throw new Error(`${path}.rim.color must be [r, g, b]`);
-  s.rim.color.forEach((c, i) => within(`rim.color[${i}]`, c, 0, 1));
-  return s;
-}
-
-/** Every named style valid, and the selected one among them. */
-export function validateFogPresentation(fog: FogPresentation): FogPresentation {
-  const names = Object.keys(fog.styles ?? {});
-  if (!names.length) throw new Error("presentation.fog.styles must name at least one style");
-  for (const name of names) validateFogStyle(fog.styles[name], `presentation.fog.styles.${name}`);
-  if (!names.includes(fog.style))
-    throw new Error(`presentation.fog.style "${fog.style}" is not one of [${names.join(", ")}]`);
-  return fog;
-}
-
-/** The style `presentation.fog` selects. */
-export function selectedFogStyle(fog: FogPresentation): FogStyle {
-  return fog.styles[fog.style];
-}
-
-/** The style as the GPU reads it. */
+/** The style as the GPU reads it: the presentation crate's `FogLook` record
+ *  (`fog.rs` resolves a style into it; the page through `resolveFogLook`). */
 export const FogStyleUniform = d
   .struct({
     /** The night tint at unit luminance. */
@@ -140,28 +94,6 @@ export const FogStyleUniform = d
     reachPx: d.f32,
   })
   .$name("FogStyleUniform");
-
-/** The uniform's values for a style. */
-export function fogStyleUniform(s: FogStyle) {
-  const luma = LUMA[0] * s.tint[0] + LUMA[1] * s.tint[1] + LUMA[2] * s.tint[2];
-  return {
-    tint: d.vec3f(s.tint[0] / luma, s.tint[1] / luma, s.tint[2] / luma),
-    dim: s.dim,
-    cool: s.cool,
-    saturation: s.saturation,
-    veil: s.veil,
-    lineStrength: s.lines.strength,
-    lineSpacingPx: s.lines.spacing_px,
-    lineWidthPx: s.lines.width_px,
-    lineAngle: (s.lines.angle_deg * Math.PI) / 180,
-    lineFloor: s.lines.floor,
-    edgeSoftnessPx: s.edge_softness,
-    rimColor: d.vec3f(...s.rim.color),
-    rimAlpha: s.rim.alpha,
-    rimWidthPx: s.rim.width_px,
-    reachPx: Math.ceil(Math.max(s.rim.width_px, s.edge_softness)) + 1,
-  };
-}
 
 /** An unseen pixel's colour: `lit` (HDR, linear) at framebuffer `pixel`. */
 export const fogLook = tgpu.fn(

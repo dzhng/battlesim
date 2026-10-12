@@ -4,6 +4,7 @@ import { existsSync, mkdirSync, readFileSync, renameSync, rmSync } from "node:fs
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  barkTrigger,
   lineText,
   takeFile,
   takeId,
@@ -26,13 +27,15 @@ import {
   type TakeRecord,
   type VoiceLock,
 } from "./lock";
+import { checkPacks } from "./packs";
 import { LIMITS, Pool } from "./pool";
-import { RESPONSE_TALK_S, matches } from "./transcript";
+import { matches } from "./transcript";
 
-/** A bark's nominal talk time is the simulation's (`ShoutRules.talk_s`, keyed `b<n>_<trigger>`); a
+/** A bark's talk time is the simulation's (`ShoutRules.talk_s`, keyed `b<n>_<trigger>`); a
  *  response, which the simulation never sees, is held to `RESPONSE_TALK_S`. */
+const RESPONSE_TALK_S = 4;
 const BARK_TALK_S: Record<string, number> = Object.fromEntries(
-  Object.entries(game.shouts.talk_s).map(([key, seconds]) => [key.replace(/^b\d+_/, ""), seconds]),
+  Object.entries(game.shouts.talk_s).map(([key, seconds]) => [barkTrigger(key), seconds]),
 );
 function talkTime(trigger: string): number {
   return BARK_TALK_S[trigger] ?? RESPONSE_TALK_S;
@@ -41,31 +44,34 @@ function talkTime(trigger: string): number {
 export const TTS_MODEL = "eleven_v3";
 /** v3 takes stability 0, 0.5 or 1; "natural" keeps a voice consistent without flattening it. */
 export const VOICE_SETTINGS = { stability: 0.5 };
-/** The ambience under a profile, generated once as a raw master. */
+/** Ambience the game has no recording of, generated once as a raw master. A machine the
+ *  game already plays takes its bed from that clip instead (`assets.py` `VOICE_PROFILES`). */
 export const BEDS: Record<string, { prompt: string; duration_s: number }> = {
   tank_engine: {
     prompt:
       "Inside a main battle tank: steady diesel engine rumble and turbine whine, metallic rattles, muffled, constant loop",
     duration_s: 12,
   },
-  helicopter_rotor: {
-    prompt:
-      "Inside a military helicopter cockpit: steady rotor thump and turbine whine, muffled, constant loop",
-    duration_s: 12,
-  },
 };
 const FLUSH_EVERY = 20;
 const LOCAL_JOBS = 4;
 const RAW = "assets/source/audio/voices";
+const SOUNDS = "fixtures/sounds.json";
 const ASSETS = fileURLToPath(new URL("../assets.py", import.meta.url));
 
+/** A profile's bed: the game's own sound for the machine (a `sounds.json` clip id) or, where
+ *  the game has none, a generated raw master (a lock `beds` name); either through `filter`. */
+export type BedSpec = (
+  | { clip: string; generated?: never }
+  | { generated: string; clip?: never }
+) & {
+  filter: string;
+  volume: number;
+};
 /** `assets.py voice-profiles`: the processing owner's definitions, hashed into processing keys. */
 export interface VoiceProfiles {
   encoder: object;
-  profiles: Record<
-    string,
-    { bed: { name: string; volume: number } | null; [setting: string]: unknown }
-  >;
+  profiles: Record<string, { bed: BedSpec | null; [setting: string]: unknown }>;
 }
 /** Renders a raw master through a profile into `output`. */
 export type Processor = (job: {
@@ -108,6 +114,39 @@ export interface VoiceRunResult {
 }
 
 const today = () => new Date().toISOString().slice(0, 10);
+
+/**
+ * The file a profile's bed is mixed from and its sha256, the bed's identity in the
+ * processing key: a catalog clip's prepared runtime file, or a generated raw master.
+ * Throws when the bed is missing or its bytes differ from their record.
+ */
+export function bedResolver(root: string, lock: VoiceLock) {
+  let clips: Record<string, { url: string; sha256: string }> | undefined;
+  // Each bed is proven once per run, not once per take.
+  const proven = new Map<string, { path: string; sha256: string }>();
+  return (bed: BedSpec | null): { path: string; sha256: string } | null => {
+    if (!bed) return null;
+    const known = proven.get(bed.clip ?? bed.generated!);
+    if (known) return known;
+    const held = bed.clip
+      ? (clips ??= JSON.parse(readFileSync(join(root, SOUNDS), "utf8")).clips)[bed.clip]
+      : lock.beds[bed.generated!];
+    if (!held)
+      throw new Error(
+        bed.clip
+          ? `bed clip ${bed.clip}: not in sounds.json`
+          : `bed ${bed.generated}: run \`generate beds\``,
+      );
+    const path = join(root, "url" in held ? join("assets/runtime", held.url) : held.raw);
+    if (!existsSync(path) || sha256(readFileSync(path)) !== held.sha256)
+      throw new Error(
+        `bed ${bed.clip ?? bed.generated}: file differs from its sha256 (pull Git LFS)`,
+      );
+    const resolved = { path, sha256: held.sha256 };
+    proven.set(bed.clip ?? bed.generated!, resolved);
+    return resolved;
+  };
+}
 const servedPath = (root: string, take: VoiceTake, sha: string) =>
   join(root, "assets/runtime", voiceUrl(take, sha));
 
@@ -156,6 +195,7 @@ export async function generateVoices(run: VoiceRun): Promise<VoiceRunResult> {
   const tts = new Pool(LIMITS.tts, { stop });
   const stt = new Pool(LIMITS.stt, { stop });
   const local = new Pool(LOCAL_JOBS, { stop });
+  const bedOf = bedResolver(root, lock);
   const result: VoiceRunResult = {
     takes: takes.length,
     calls: 0,
@@ -205,8 +245,7 @@ export async function generateVoices(run: VoiceRun): Promise<VoiceRunResult> {
 
     const profile = profiles.profiles[set.processing];
     if (!profile) throw new Error(`profile ${set.processing}: not defined by assets.py`);
-    const bed = profile.bed ? lock.beds[profile.bed.name] : null;
-    if (profile.bed && !bed) throw new Error(`bed ${profile.bed.name}: run \`generate beds\``);
+    const bed = bedOf(profile.bed);
     const processing = processingKey({
       rawSha,
       profile: { name: set.processing, ...profile },
@@ -222,7 +261,7 @@ export async function generateVoices(run: VoiceRun): Promise<VoiceRunResult> {
             const { duration_s } = await run.processor({
               profile: set.processing,
               input: join(root, rawFile),
-              bed: bed ? join(root, bed.raw) : null,
+              bed: bed?.path ?? null,
               output,
             });
             const sha = sha256(readFileSync(output));
@@ -238,8 +277,7 @@ export async function generateVoices(run: VoiceRun): Promise<VoiceRunResult> {
     }
     const match = matches(text, transcript, {
       callsign: set.callsign,
-      durationS: served.duration,
-      talkS: talkTime(take.trigger),
+      length: { durationS: served.duration, talkS: talkTime(take.trigger) },
     });
     const provenance: Generated = {
       kind: "Generated",
@@ -264,8 +302,8 @@ export async function generateVoices(run: VoiceRun): Promise<VoiceRunResult> {
       provenance,
       ...(previous?.verdict ? { verdict: previous.verdict } : {}),
     };
-    // The superseded files of this take go with it: one take, one raw master, one served file.
-    if (previous && previous.raw !== rawFile) rmSync(join(root, previous.raw), { force: true });
+    // A superseded raw master stays (paid-for source media is never deleted); its served
+    // file is a re-renderable derivation that ships with every deploy, so it goes.
     if (previous && previous.served_sha256 !== served.sha)
       rmSync(servedPath(root, take, previous.served_sha256), { force: true });
     lock.takes[id] = record;
@@ -322,7 +360,6 @@ export async function generateBeds(run: {
       const sha = sha256(bytes);
       const raw = `${RAW}/beds/${name}.${sha.slice(0, 8)}.mp3`;
       writeAtomic(join(run.root, raw), bytes);
-      if (held && held.raw !== raw) rmSync(join(run.root, held.raw), { force: true });
       lock.beds[name] = {
         raw,
         sha256: sha,
@@ -345,7 +382,8 @@ export async function generateBeds(run: {
 /**
  * Proves the lock against the files by hash: every raw master and served file
  * exists with its recorded sha, and was processed with today's profile. It never
- * re-renders, because MP3 encoders differ between ffmpeg versions.
+ * re-renders, because MP3 encoders differ between ffmpeg versions. Then proves
+ * the served packs (`checkPacks`).
  */
 export function checkVoices(run: {
   root: string;
@@ -357,8 +395,22 @@ export function checkVoices(run: {
   const problems: string[] = [];
   const holds = (path: string, sha: string) =>
     existsSync(path) && sha256(readFileSync(path)) === sha;
-  for (const [name, bed] of Object.entries(lock.beds))
-    if (!holds(join(root, bed.raw), bed.sha256)) problems.push(`bed ${name}: raw master differs`);
+  const bedOf = bedResolver(root, lock);
+  const bedShas = new Map<string, string | null>();
+  for (const [name, profile] of Object.entries(profiles.profiles))
+    try {
+      bedShas.set(name, bedOf(profile.bed)?.sha256 ?? null);
+    } catch (error) {
+      problems.push(`profile ${name}: ${(error as Error).message}`);
+    }
+  const named = new Set(Object.values(profiles.profiles).map((profile) => profile.bed?.generated));
+  for (const name of Object.keys(lock.beds))
+    if (!named.has(name)) problems.push(`bed ${name}: no profile uses it`);
+  for (const [id, design] of Object.entries(lock.designs))
+    design.candidates.forEach((candidate, i) => {
+      if (!holds(join(root, candidate.raw), candidate.raw_sha256))
+        problems.push(`design ${id} candidate ${i + 1}: raw master differs`);
+    });
   for (const [id, record] of Object.entries(lock.takes)) {
     const [set, voice, trigger, intensity, take] = id.split("/");
     const where: VoiceTake = {
@@ -378,19 +430,19 @@ export function checkVoices(run: {
     if (!holds(servedPath(root, where, record.served_sha256), record.served_sha256))
       problems.push(`${id}: served file differs`);
     const profile = profiles.profiles[spec.processing];
-    const bed = profile?.bed ? lock.beds[profile.bed.name] : null;
     const current =
       profile &&
+      bedShas.has(spec.processing) &&
       processingKey({
         rawSha: record.raw_sha256,
         profile: { name: spec.processing, ...profile },
-        bedSha: bed?.sha256 ?? null,
+        bedSha: bedShas.get(spec.processing)!,
         encoder: profiles.encoder,
       });
     if (current !== record.processing_key)
       problems.push(`${id}: processed with an older profile; run \`generate process\``);
   }
-  return problems;
+  return [...problems, ...checkPacks(root, catalog, lock)];
 }
 
 /** The processing owner's voice profiles and encoder. */

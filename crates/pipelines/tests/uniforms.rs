@@ -1,9 +1,11 @@
 //! The uniforms Rust hands a pipeline are the structs its shader declares:
-//! every field of the presentation's light records sits at the offset of the
+//! every field of the presentation's light and fog records sits at the offset of the
 //! exported WGSL's member of the same name, and the records span the struct.
 //! A renderer uploads the record's bytes as they are.
 use naga::{Module, TypeInner};
-use presentation::records::{Aerial, Bloom, Grade, Layout, SkyLight, Sun, View};
+use presentation::records::{
+    Aerial, Bloom, Camera, FogLook, Grade, Layout, SkyLight, Sun, SunShadow, View,
+};
 use std::fs;
 
 fn module(file: &str) -> Module {
@@ -64,7 +66,7 @@ fn fields(layout: &Layout, prefix: &str) -> Vec<(String, u32)> {
 }
 
 #[test]
-fn the_light_records_are_the_shaders_structs() {
+fn the_uniform_records_are_the_shaders_structs() {
     for (file, name, layout) in [
         ("bake.wgsl", "SkyLight", &SkyLight::LAYOUT),
         ("background.wgsl", "SkyLight", &SkyLight::LAYOUT),
@@ -73,6 +75,14 @@ fn the_light_records_are_the_shaders_structs() {
         ("postLook.wgsl", "Grade", &Grade::LAYOUT),
         ("worldOpaque.wgsl", "Aerial", &Aerial::LAYOUT),
         ("effects.wgsl", "Aerial", &Aerial::LAYOUT),
+        ("fogMaskRows.wgsl", "FogStyleUniform", &FogLook::LAYOUT),
+        ("fogMaskColumns.wgsl", "FogStyleUniform", &FogLook::LAYOUT),
+        ("fogMaskCompose.wgsl", "FogStyleUniform", &FogLook::LAYOUT),
+        ("fogMaskRim.wgsl", "FogStyleUniform", &FogLook::LAYOUT),
+        ("worldPrepass.wgsl", "Camera", &Camera::LAYOUT),
+        ("worldTerrain.wgsl", "Camera", &Camera::LAYOUT),
+        ("worldTerrain.wgsl", "SunShadow", &SunShadow::LAYOUT),
+        ("worldOpaque.wgsl", "SunShadow", &SunShadow::LAYOUT),
     ] {
         let (want, span) = members(&module(file), name);
         assert_eq!(fields(layout, ""), want, "{file} {name}");

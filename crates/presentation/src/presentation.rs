@@ -19,6 +19,8 @@ use crate::records::{
     Appearance as Row, Batch, CastLight, Counts, Effect, Emitter, Instance, Joint, Pick,
     View as ViewRecord, NONE,
 };
+use crate::scars::{LearnedGround, ScarCache, ScarStats, ScarUpload, MAX_AXIS};
+use crate::sound::frame::{Cue, Heard, Listener, Motion, Shout};
 use crate::static_world::batches::{Population, StaticBatches, Sun};
 use crate::static_world::buildings::{Buildings, PlacedBuildings};
 use crate::static_world::fallen::{Knowledge, Known};
@@ -187,8 +189,32 @@ pub struct Presentation {
     known_from: KnownFrom,
     sun: Option<Sun>,
     statics: StaticBatches,
+    /// The units' and the buildings' tier thresholds over their authored
+    /// values (`set_detail_scale`).
+    detail_scale: [f64; 2],
     world: World,
     frame: Frame,
+    /// The camera the last frame was asked for.
+    camera: Option<Camera>,
+    /// The side's learned ground (none without a layout), and its scars as
+    /// the renderer holds them.
+    ground: Option<LearnedGround>,
+    scars: ScarCache,
+}
+
+/// The layout's ground grid, learned blank.
+fn ground_of(layout: &str) -> Result<LearnedGround, String> {
+    let layout: serde_json::Value = serde_json::from_str(layout).map_err(|e| e.to_string())?;
+    let g = &layout["ground"];
+    let (cols, rows) = (g["cols"].as_u64(), g["rows"].as_u64());
+    let (Some(cell_m), Some(cols), Some(rows)) = (g["cellM"].as_f64(), cols, rows) else {
+        return Err("the layout's ground has no grid".into());
+    };
+    let (cols, rows) = (cols as usize, rows as usize);
+    if cols > MAX_AXIS || rows > MAX_AXIS {
+        return Err("the ground grid exceeds the scars' exact Q8 coordinates".into());
+    }
+    Ok(LearnedGround::new(cell_m, cols, rows))
 }
 
 /// Rows of the x-ray or ghost colour (`packXray`): rgb as one integer
@@ -217,7 +243,10 @@ impl Presentation {
     /// `observation_layout`) names, at `tick_hz`; with no layout, of a world
     /// no battle publishes into (a lab's), drawn from `load_world` alone.
     pub fn new(layout: Option<&str>, tick_hz: f64) -> Result<Self, String> {
+        let ground = layout.map(ground_of).transpose()?;
         Ok(Self {
+            scars: ScarCache::new(ground.as_ref().map(|g| (g.cols, g.rows, g.cell_m))),
+            ground,
             reader: layout.map(Reader::new).transpose()?,
             tick_hz,
             interpolator: TickInterpolator::new(tick_hz),
@@ -230,8 +259,10 @@ impl Presentation {
             known_from: KnownFrom::Unread,
             sun: None,
             statics: StaticBatches::default(),
+            detail_scale: [1.0, 1.0],
             world: World::default(),
             frame: Frame::default(),
+            camera: None,
         })
     }
 
@@ -242,9 +273,12 @@ impl Presentation {
     }
 
     /// Records still in flight are stale; the next opens a new epoch, for
-    /// `side` when named.
+    /// `side` when named. The learned ground is blank until it does.
     pub fn invalidate(&mut self, side: Option<&str>) -> Result<(), String> {
         self.reader()?.invalidate(side)?;
+        if let Some(ground) = &mut self.ground {
+            ground.forget();
+        }
         self.latest = None;
         self.interpolator = TickInterpolator::new(self.tick_hz);
         self.pending.clear();
@@ -257,6 +291,9 @@ impl Presentation {
         let Some(observation) = self.reader()?.decode(words)? else {
             return Ok(false);
         };
+        if let Some(ground) = &mut self.ground {
+            ground.apply(&observation.ground_patch)?;
+        }
         let observation = Arc::new(observation);
         self.interpolator.push(observation.clone(), arrived_s);
         self.latest = Some(observation.clone());
@@ -276,6 +313,46 @@ impl Presentation {
     /// The latest publication's observation, for the game UI.
     pub fn observation(&self) -> Option<&Observation> {
         self.latest.as_deref()
+    }
+
+    /// The side's learned ground, as its publications taught it.
+    pub fn ground(&self) -> Option<&LearnedGround> {
+        self.ground.as_ref()
+    }
+
+    /// Whether the scars changed since the last call: what grows on them
+    /// grows again.
+    pub fn scars_changed(&mut self) -> bool {
+        self.scars.changed(self.ground.as_mut())
+    }
+
+    /// The regions (metres, `[x0, y0, x1, y1]`) the terrain draws one by one,
+    /// each after its own `prepare_scars(Some(region), true)`; none when
+    /// every mark fits at once and one `prepare_scars(None, false)` serves.
+    pub fn scar_regions(&self) -> Vec<[f64; 4]> {
+        self.scars.regions()
+    }
+
+    /// What the renderer uploads before drawing the scars over `region`
+    /// (none: the whole view), clipped to it when `clipped`.
+    pub fn prepare_scars(&mut self, region: Option<[f64; 4]>, clipped: bool) -> ScarUpload {
+        self.scars.prepare(self.ground.as_mut(), region, clipped)
+    }
+
+    /// The renderer holds no scars (a new one, or scars shown again): the
+    /// next upload writes them all.
+    pub fn resend_scars(&mut self) {
+        self.scars.resend();
+    }
+
+    /// The crater's view-ray reach in metres (`Ground::scar_reach_m`): a
+    /// region's scars load this far past it.
+    pub fn set_scar_reach(&mut self, reach_m: f64) {
+        self.scars.set_reach(reach_m);
+    }
+
+    pub fn scar_stats(&self) -> ScarStats {
+        self.scars.stats()
     }
 
     /// Loads what the world draws: `buildings` placed from their template
@@ -309,12 +386,13 @@ impl Presentation {
                         self.world.row(kit, module, NONE, 0, true)
                     })
                     .collect();
-                let walk = BuildingWalk::new(
+                let mut walk = BuildingWalk::new(
                     buildings,
                     style.lod_px_per_m,
                     style.chunk_m,
                     style.pool_records,
                 );
+                walk.set_lod_scale(self.detail_scale[1]);
                 Some(BuildingPopulation { walk, rows })
             }
         };
@@ -468,6 +546,16 @@ impl Presentation {
         self.buildings.as_ref().map(|b| &b.walk.stats[..])
     }
 
+    /// Draws the units' tiers at `units` and the buildings' at `buildings`
+    /// times their authored thresholds (a graphics quality; 1 as authored).
+    pub fn set_detail_scale(&mut self, units: f64, buildings: f64) {
+        self.detail_scale = [units, buildings];
+        if let Some(b) = &mut self.buildings {
+            b.walk.set_lod_scale(buildings);
+        }
+        self.statics.invalidate();
+    }
+
     /// A skinned row's body as it holds still (`World.appearances`): a
     /// corpse row as it lies (its `corpse_poses` entry), a body row in its
     /// far pose (what its impostor card shows). Each joint's bind-to-model
@@ -552,29 +640,53 @@ impl Presentation {
         serde_json::to_string(&shots).map_err(|e| e.to_string())
     }
 
-    /// The last publication as sound reads it, JSON: its effect publication,
-    /// with the hulls the side watched brew up, the launches it shows, and
-    /// when a cook-off's turret lands (seconds after its tick starts).
-    pub fn sound_json(&self) -> String {
-        #[derive(Serialize)]
-        #[serde(rename_all = "camelCase")]
-        struct Heard<'a> {
-            effects: &'a EffectPublication,
-            launches: Vec<Shot>,
-            turret_lands_s: f64,
-        }
-        let Some(loaded) = &self.loaded else {
-            return "null".into();
-        };
-        let Some((effects, launches)) = &loaded.sound else {
-            return "null".into();
-        };
-        serde_json::to_string(&Heard {
+    /// The last publication as sound hears it: what the effects took of it,
+    /// the launches it shows, the side's hearing cues and the shouts it
+    /// hears in the open; none before one.
+    pub fn heard(&self) -> Option<Heard<'_>> {
+        let (effects, launches) = self.loaded.as_ref()?.sound.as_ref()?;
+        let latest = self.latest.as_ref()?;
+        Some(Heard {
             effects,
-            launches: launches.iter().map(Shot::of).collect(),
-            turret_lands_s: loaded.effects.presentation().cook_off.impact_after(),
+            launches,
+            audible: latest.audible.iter().map(Cue::from).collect(),
+            shouts: latest.shouts.iter().map(Shout::from).collect(),
         })
-        .expect("a sound publication serializes")
+    }
+
+    /// What the last frame draws moving, as sound hears it: its emitters,
+    /// each vehicle as its type's vehicle class.
+    pub fn motion(&self) -> Motion {
+        let types = self.loaded.as_ref().map(|l| &l.units.types);
+        Motion::of(&self.frame.emitters, |class| {
+            types?
+                .values()
+                .nth(class as usize)?
+                .vehicle_class
+                .as_deref()
+        })
+    }
+
+    /// Where sound listens for the last frame's camera, `share` of the way
+    /// from what it looks at to its eye; none before a frame.
+    pub fn listener(&self, share: f64) -> Option<Listener> {
+        let c = self.camera.as_ref()?;
+        Some(Listener::of_camera(
+            c.eye,
+            c.target,
+            c.up.map(|v| v as f32),
+            share,
+        ))
+    }
+
+    /// The last frame's presentation time.
+    pub fn clock_of_frame(&self) -> f64 {
+        self.frame.clock
+    }
+
+    /// The last frame asked for.
+    pub fn last_frame(&self) -> &Frame {
+        &self.frame
     }
 
     /// Where the last frame draws the muzzle of the presented side's vehicle
@@ -692,6 +804,7 @@ impl Presentation {
     /// side knows a building in a state its template lacks.
     pub fn frame(&mut self, time: f64, camera: &Camera, ui: &Ui) -> Result<&Frame, String> {
         self.know(ui.known)?;
+        self.camera = Some(*camera);
         let f = &mut self.frame;
         f.index += 1;
         f.clock = time;
@@ -717,7 +830,7 @@ impl Presentation {
         };
         let f = &mut self.frame;
         f.tick = sample.observation.tick as u32;
-        loaded.frame(sample, &view, ui, &self.world, f);
+        loaded.frame(sample, &view, ui, &self.world, self.detail_scale[0], f);
         Ok(&self.frame)
     }
 }
@@ -737,7 +850,15 @@ impl Loaded {
         self.sound = Some((publication, launches));
     }
 
-    fn frame(&mut self, sample: &FrameSample, view: &View, ui: &Ui, world: &World, f: &mut Frame) {
+    fn frame(
+        &mut self,
+        sample: &FrameSample,
+        view: &View,
+        ui: &Ui,
+        world: &World,
+        unit_scale: f64,
+        f: &mut Frame,
+    ) {
         let Loaded {
             input,
             units,
@@ -770,7 +891,8 @@ impl Loaded {
         f.counts.dropped = batch.dropped as u32;
 
         let side: &str = &input.side;
-        let detail = units.detail;
+        let mut detail = units.detail;
+        detail.lod_px = detail.lod_px.map(|v| v * unit_scale);
         let xray = input.xray;
         let o = &sample.observation;
         let indoor: Vec<f64> = o
@@ -1078,7 +1200,7 @@ impl Loaded {
         f.counts.culled = culled;
         batches(models, f);
         picks(sample, units, input, f);
-        emitters(o, poses, side, f);
+        emitters(o, poses, side, units, f);
     }
 }
 
@@ -1229,7 +1351,7 @@ fn picks(sample: &FrameSample, units: &UnitsSection, input: &BattleInput, f: &mu
 
 /// What audio hears move this frame: each drawn vehicle's tracks and
 /// turret, and each drawn soldier.
-fn emitters(o: &Observation, poses: &PoseFrame, side: &str, f: &mut Frame) {
+fn emitters(o: &Observation, poses: &PoseFrame, side: &str, units: &UnitsSection, f: &mut Frame) {
     let reversing = |unit: f64, own: bool| {
         if own {
             o.own.iter().any(|u| u.id == unit && u.reversing)
@@ -1243,7 +1365,11 @@ fn emitters(o: &Observation, poses: &PoseFrame, side: &str, f: &mut Frame) {
         f.emitters.push(Emitter {
             unit: v.unit as u32,
             member: NONE,
-            class: NONE,
+            class: units
+                .types
+                .keys()
+                .position(|k| **k == *v.kind)
+                .map_or(NONE, |i| i as u32),
             flags: u32::from(!own) | if reversing(v.unit, own) { 2 } else { 0 },
             position: [
                 v.position[0] as f32,

@@ -52,7 +52,7 @@ function contention() {
   };
   const found = [];
   // By process name: a run still queued on the GPU lock draws nothing.
-  if (running("-ix", "godot").length) found.push("a native run");
+  if (running("-x", "native-client").length) found.push("a native run");
   const browsers = running(
     "-f",
     "^/[^ ]*Chrome for Testing\\.app/Contents/MacOS/Google Chrome for Testing( |$)",

@@ -29,7 +29,7 @@ Check, as well:
 - It stays **outside** `WebAudioSink`, because `MediaElementAudioSourceNode` doesn't exist on `OfflineAudioContext`.
 
 **Buses:** `Bus` (`audioPresentation.ts:9`) gains `"music"` and `"voices"`.
-- Neither bus sends to the distance reverb (`webAudioSink.ts:73-80`).
+- Music is not a mixer bus at all: `MusicPlayer` feeds the master directly (`choices.md`, slice 07). The voices bus keeps its distance-reverb send for positional barks.
 - The music bus ducks while any line plays on the voices bus. The depth and release are in `fixtures/game.json` → `presentation.audio.music`.
 
 **Catalog:** `fixtures/sounds.json` gains a `music` section: `moods { menu, tension, combat } → [track ids]` and `tracks { id → { source, sha256, gain } }`.

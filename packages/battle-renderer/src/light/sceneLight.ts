@@ -8,7 +8,7 @@
 // game-renderer/src/environment/environment.ts, whose named presets this
 // replaces: the battle has one light, and the fixture owns its numbers.
 import { vec3, type Vec3 } from "math";
-import { CSM_CASCADES } from "./shadowPolicy";
+import { SUN_CASCADES } from "../records.gen";
 import { AERIAL_WORDS, BLOOM_WORDS, GRADE_WORDS, SKY_LIGHT_WORDS, SUN_WORDS } from "../records.gen";
 
 export type Rgb = readonly [number, number, number];
@@ -199,7 +199,7 @@ export function validateLight(light: LightPresentation): LightPresentation {
   within("backdrop.reach_m", light.backdrop.reach_m, 0, 1e6);
   within("haze.overview_from_m", light.haze.overview_from_m, 1, 1e6);
   const c = light.cascades;
-  if (c.count !== CSM_CASCADES) bad("cascades.count", `the receiver layout has ${CSM_CASCADES}`);
+  if (c.count !== SUN_CASCADES) bad("cascades.count", `the receiver layout has ${SUN_CASCADES}`);
   if (![512, 1024, 2048, 4096].includes(c.map_size))
     bad("cascades.map_size", "must be 512, 1024, 2048 or 4096");
   within("cascades.max_far_m", c.max_far_m, 10, 20000);

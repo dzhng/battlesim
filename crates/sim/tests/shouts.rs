@@ -1,16 +1,21 @@
-//! Barks (slice 11): the simulation decides, every tick, which units shout
-//! which bark, at which intensity, and which side hears it. Each test plays a
-//! small real battle on the test units and judges every shout against the
-//! authority's own state on the tick it was spoken.
+//! Barks: the simulation decides, every tick, which units shout which bark,
+//! at which intensity, and which side hears it. Each test plays a small real
+//! battle on the test units and judges every shout against the authority's
+//! own state on the tick it was spoken.
 use crate::common as test_common;
 use contract::command::{Order, TargetRef};
 use contract::ids::{Side, UnitId};
+use std::collections::BTreeMap;
+
 use contract::observation::{
-    ActionReason, Intensity, Shout, ShoutSpeaker, ShoutTrigger as T, SuppressionTier,
+    ActionReason, Intensity, Shout, ShoutSpeaker, ShoutTrigger as T, SoundCategory, SoundCue,
+    SuppressionTier,
 };
 use contract::scenario::{Rules, ScenarioDefinition};
 use serde_json::{json, Value};
 use sim::battle::Battle;
+use sim::flight::{FlightEvent, Guidance, ProjectileId};
+use sim::math::V3;
 use sim::units::Unit;
 
 #[test]
@@ -36,6 +41,17 @@ fn ai_sources_do_not_read_the_shout_channel() {
     ))
     .unwrap();
     assert!(!source.contains(".shouts"));
+}
+
+#[test]
+fn rules_without_a_talk_time_for_every_bark_are_refused() {
+    let mut fixture = sim::fixtures::test_game();
+    fixture["shouts"]["talk_s"]
+        .as_object_mut()
+        .unwrap()
+        .remove("b11_kill");
+    let error = serde_json::from_value::<Rules>(fixture).expect_err("a bark without a talk time");
+    assert!(error.to_string().contains("b11_kill"), "{error}");
 }
 
 #[test]
@@ -65,13 +81,32 @@ fn a_fresh_identification_emits_one_contact_bark_for_the_nearest_unit() {
 struct Moment {
     heard: [Vec<Shout>; 2],
     identified: [Vec<[f64; 3]>; 2],
+    audible: [Vec<SoundCue>; 2],
     units: Vec<Unit>,
+    /// The tick's flight events.
+    events: Vec<FlightEvent>,
+    /// Every round in flight at the end of the tick.
+    rounds: BTreeMap<ProjectileId, Flying>,
+}
+
+/// A round in flight: whose it is, where it is and, if guided, where it
+/// steers.
+#[derive(Clone)]
+struct Flying {
+    side: Side,
+    /// Its weapon row's id.
+    weapon: String,
+    position: V3,
+    velocity: V3,
+    guidance: Option<Guidance>,
 }
 
 struct Run {
     rules: Rules,
     /// `moments[0]` is the battle as set up, before the first step.
     moments: Vec<Moment>,
+    /// The battle as it ended, for its world.
+    end: Battle,
 }
 
 fn snapshot(b: &Battle) -> Moment {
@@ -79,21 +114,53 @@ fn snapshot(b: &Battle) -> Moment {
     Moment {
         heard: Side::ALL.map(|s| frame(s).shouts.clone()),
         identified: Side::ALL.map(|s| frame(s).identified.iter().map(|u| u.position).collect()),
+        audible: Side::ALL.map(|s| frame(s).audible.clone()),
         units: (0..).map_while(|i| b.unit(UnitId(i)).cloned()).collect(),
+        events: b.flight_events().to_vec(),
+        rounds: b
+            .rounds()
+            .map(|(p, r)| {
+                let flying = Flying {
+                    side: r.side,
+                    weapon: b.arsenal().weapons[r.weapon].id.clone(),
+                    position: p.position,
+                    velocity: p.velocity,
+                    guidance: p.guidance,
+                };
+                (p.id, flying)
+            })
+            .collect(),
     }
 }
 
 /// `units` on an empty field `size` metres across, on the test rules as
 /// `fixture` edits them.
 fn setup(size: [f64; 2], units: Value, fixture: impl FnOnce(&mut Value)) -> ScenarioDefinition {
+    setup_events(size, units, json!([]), fixture)
+}
+
+/// [`setup`] with authored `events`.
+fn setup_events(
+    size: [f64; 2],
+    units: Value,
+    events: Value,
+    fixture: impl FnOnce(&mut Value),
+) -> ScenarioDefinition {
     let mut rules = test_common::scenario_rules();
     fixture(&mut rules);
     let map = json!({ "size": size, "fog_cell_m": 8, "height_grid_m": 4,
         "slope_cutoff_deg": 35, "props": [] });
     let map = test_common::physical_map(&map.to_string());
     serde_json::from_value(json!({ "map": map, "rules": rules, "units": units,
-        "events": [], "scripts": [] }))
+        "events": events, "scripts": [] }))
     .unwrap()
+}
+
+/// [`brief`], and a bark may be said again on the next tick: a test sees
+/// every tick its evidence holds.
+fn chatty(rules: &mut Value) {
+    brief(rules);
+    rules["shouts"]["cooldown_s"] = json!(1.0 / rules["tick_hz"].as_f64().unwrap());
 }
 
 /// Every bark takes one tick to say, so a unit is free to speak again on the
@@ -111,18 +178,37 @@ fn brief(rules: &mut Value) {
 }
 
 fn play(setup: &ScenarioDefinition, seed: u64, seconds: f64, orders: &[(Side, Order)]) -> Run {
+    play_with(setup, seed, seconds, orders, |_, _| None)
+}
+
+/// [`play`], giving `order` the battle after every tick: an order it returns
+/// is sent before the next.
+fn play_with(
+    setup: &ScenarioDefinition,
+    seed: u64,
+    seconds: f64,
+    orders: &[(Side, Order)],
+    mut order: impl FnMut(&Battle, &Moment) -> Option<(Side, Order)>,
+) -> Run {
     let mut b = Battle::new(setup, seed);
-    for (seq, (side, order)) in orders.iter().enumerate() {
-        test_common::order(&mut b, *side, seq as u64 + 1, order.clone());
+    let mut seq = 0;
+    for (side, order) in orders {
+        seq += 1;
+        test_common::order(&mut b, *side, seq, order.clone());
     }
     let mut moments = vec![snapshot(&b)];
     for _ in 0..(seconds * b.rules().tick_hz as f64) as u64 {
         b.step();
         moments.push(snapshot(&b));
+        if let Some((side, next)) = order(&b, moments.last().unwrap()) {
+            seq += 1;
+            test_common::order(&mut b, side, seq, next);
+        }
     }
     Run {
         rules: b.rules().clone(),
         moments,
+        end: b,
     }
 }
 
@@ -732,4 +818,699 @@ fn a_bark_is_stressed_at_half_health_or_under_suppression() {
             rules.suppression.tier(unit.suppression)
         );
     }
+}
+
+// ---------------------------------------------------------------------------
+// B5: under fire, from the rounds a unit hears.
+
+impl Run {
+    /// The ticks a round of `side`'s passed `id` close enough to be heard
+    /// as a near miss, within its weapon's suppression radius, from a
+    /// weapon row `weapon` accepts.
+    fn near_misses(&self, id: u32, side: Side, weapon: impl Fn(&str) -> bool) -> Vec<usize> {
+        (1..self.moments.len())
+            .filter(|&t| {
+                self.moments[t].events.iter().any(|e| match e {
+                    FlightEvent::NearMiss(n) => {
+                        n.unit == UnitId(id)
+                            && self.moments[t - 1]
+                                .rounds
+                                .get(&n.projectile)
+                                .is_some_and(|r| r.side == side && weapon(&r.weapon))
+                    }
+                    _ => false,
+                })
+            })
+            .collect()
+    }
+
+    /// Whether unit `id` says `trigger` on `tick`, or something that speaks
+    /// before it: a contact call, or a bark earlier in the tie-break order.
+    fn calls(&self, tick: usize, id: u32, trigger: T) -> bool {
+        let rank = |k: &T| sim::shouts::PRIORITY.iter().position(|p| p == k);
+        let contact = |k: &T| {
+            matches!(
+                k,
+                T::B1ContactInfantry | T::B2ContactVehicle | T::B3ContactAir
+            )
+        };
+        let spoke: Vec<T> = self.spoke(tick, id).iter().map(|s| s.trigger).collect();
+        spoke == [trigger]
+            || spoke
+                .iter()
+                .any(|k| contact(k) || rank(k).unwrap() < rank(&trigger).unwrap())
+    }
+
+    /// Weapon row `weapon`'s suppression radius.
+    fn radius(&self, weapon: &str) -> f64 {
+        let row = self
+            .end
+            .arsenal()
+            .weapons
+            .iter()
+            .find(|w| w.id == weapon)
+            .unwrap();
+        row.def.ballistics.suppression_radius_m
+    }
+
+    fn tier(&self, tick: usize, id: u32) -> SuppressionTier {
+        self.rules.suppression.tier(self.unit(tick, id).suppression)
+    }
+}
+
+/// `side`'s attack on the enemy standing at `at`, once its frame
+/// identifies it.
+fn attack_when_seen(
+    side: Side,
+    units: Vec<UnitId>,
+    at: [f64; 2],
+) -> impl FnMut(&Battle, &Moment) -> Option<(Side, Order)> {
+    let mut sent = false;
+    move |b, _| {
+        if sent {
+            return None;
+        }
+        let target =
+            b.observe(side).identified.iter().find(|u| {
+                (u.position[0] - at[0]).abs() < 1.0 && (u.position[1] - at[1]).abs() < 1.0
+            })?;
+        sent = true;
+        let target = TargetRef::Identified { id: target.id };
+        Some((
+            side,
+            Order::Attack {
+                units: units.clone(),
+                target,
+            },
+        ))
+    }
+}
+
+/// Blue's tank duels a red tank 320 m off; its sabots fly past `bystander`,
+/// 6 m beside the line of fire 160 m out.
+fn sabots_past(bystander: Value) -> Run {
+    let s = setup(
+        [1200.0, 600.0],
+        json!([
+            { "side": "blue", "kind": "test_tank", "position": [100, 300], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_tank", "position": [420, 300], "engagement": "return_fire_only" },
+            bystander,
+        ]),
+        chatty,
+    );
+    play_with(
+        &s,
+        4,
+        20.0,
+        &[],
+        attack_when_seen(Side::Blue, vec![UnitId(0)], [420.0, 300.0]),
+    )
+}
+
+#[test]
+fn hulls_hear_near_misses_and_a_sabot_passing_a_tank_is_under_fire() {
+    let run = sabots_past(
+        json!({ "side": "red", "kind": "test_tank", "position": [260, 306],
+        "engagement": "return_fire_only" }),
+    );
+    let passes = run.near_misses(2, Side::Blue, |w| w == "tank_ap");
+    assert!(
+        !passes.is_empty(),
+        "flight reports a sabot's near miss on a hull"
+    );
+    let said = run.said(2, T::B5UnderFire);
+    for t in &passes {
+        let spoke: Vec<T> = run.spoke(*t, 2).iter().map(|s| s.trigger).collect();
+        assert_eq!(
+            spoke,
+            [T::B5UnderFire],
+            "a sabot passes on tick {t}: {said:?}"
+        );
+    }
+}
+
+#[test]
+fn own_side_rounds_passing_close_are_not_taking_fire() {
+    // Blue's tank shells a red squad that cannot die and cannot reach back;
+    // a blue tank stands beside the line of fire.
+    let s = setup(
+        [1200.0, 600.0],
+        json!([
+            { "side": "blue", "kind": "test_tank", "position": [100, 300], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_rifle", "position": [420, 300], "engagement": "return_fire_only",
+              "condition": { "soldier_hp": 1.0e6 } },
+            { "side": "blue", "kind": "test_tank", "position": [260, 306], "engagement": "return_fire_only" },
+        ]),
+        chatty,
+    );
+    let run = play_with(
+        &s,
+        4,
+        20.0,
+        &[],
+        attack_when_seen(Side::Blue, vec![UnitId(0)], [420.0, 300.0]),
+    );
+    assert!(
+        !run.near_misses(2, Side::Blue, |_| true).is_empty(),
+        "blue's rounds pass its own tank"
+    );
+    assert!(run.near_misses(2, Side::Red, |_| true).is_empty());
+    assert!(
+        run.said(2, T::B5UnderFire).is_empty(),
+        "check fire, not taking fire"
+    );
+}
+
+#[test]
+fn a_units_own_shells_landing_close_are_not_taking_fire() {
+    // A lone tank, its sabots spent, shells the ground 13.5 m before its
+    // hull: its own bursts land within their suppression radius of it, just
+    // beyond their blast.
+    let s = setup(
+        [1200.0, 600.0],
+        json!([{ "side": "blue", "kind": "test_tank", "position": [100, 300],
+                 "condition": { "spent": { "tank_ap": 20 } } }]),
+        chatty,
+    );
+    let ground = Order::Attack {
+        units: vec![UnitId(0)],
+        target: TargetRef::Ground {
+            point: [117.0, 300.0, 0.0],
+        },
+    };
+    let run = play(&s, 4, 30.0, &[(Side::Blue, ground)]);
+    let close: Vec<usize> = (1..run.moments.len())
+        .filter(|&t| {
+            run.moments[t].events.iter().any(|e| match e {
+                FlightEvent::Impact(i) => run.moments[t - 1]
+                    .rounds
+                    .get(&i.projectile)
+                    .is_some_and(|r| run.unit(t, 0).hull_distance(i.point) < run.radius(&r.weapon)),
+                _ => false,
+            })
+        })
+        .collect();
+    assert!(!close.is_empty(), "its own shells burst close by");
+    assert!(run.said(0, T::B5UnderFire).is_empty());
+}
+
+#[test]
+fn a_suppressed_or_pinned_squad_leaves_taking_fire_to_its_suppression() {
+    // A blue tank works over a red squad 100 m off for 15 s: the squad is
+    // suppressed, then pinned, under steady near misses.
+    let s = setup(
+        [1200.0, 600.0],
+        json!([
+            { "side": "blue", "kind": "test_tank", "position": [100, 300] },
+            { "side": "red", "kind": "test_rifle", "position": [200, 303], "engagement": "return_fire_only",
+              "condition": { "soldier_hp": 1.0e6 } },
+        ]),
+        chatty,
+    );
+    let run = play(&s, 4, 15.0, &[]);
+    let said = run.said(1, T::B5UnderFire);
+    assert!(
+        !said.is_empty(),
+        "the squad calls taking fire before it is suppressed"
+    );
+    for &t in &said {
+        assert_eq!(run.tier(t, 1), SuppressionTier::None, "tick {t}");
+    }
+    let suppressed_and_missed: Vec<usize> = run
+        .near_misses(1, Side::Blue, |_| true)
+        .into_iter()
+        .filter(|&t| run.tier(t, 1) != SuppressionTier::None)
+        .collect();
+    assert!(
+        suppressed_and_missed.len() > 10,
+        "rounds keep passing the squad once it is suppressed: {suppressed_and_missed:?}"
+    );
+}
+
+/// A blue rifle squad that cannot die opens fire on a red tank 200 m off
+/// that faces `yaw` (0 faces away from the squad).
+fn rifles_on_tank(yaw: f64) -> Run {
+    let s = setup(
+        [1200.0, 600.0],
+        json!([
+            { "side": "blue", "kind": "test_rifle", "position": [100, 300], "condition": { "soldier_hp": 1.0e6 } },
+            { "side": "red", "kind": "test_tank", "position": [300, 300], "yaw": yaw,
+              "engagement": "return_fire_only" },
+        ]),
+        chatty,
+    );
+    play(&s, 6, 20.0, &[])
+}
+
+/// The ticks a rifle round glanced off unit `id`'s hull, and those it
+/// struck it.
+fn pings(run: &Run, id: u32) -> (Vec<usize>, Vec<usize>) {
+    let body = sim::flight::BodyId(sim::weapons::VEHICLE_BODY_BASE + id);
+    let (mut glanced, mut struck) = (Vec::new(), Vec::new());
+    for t in 1..run.moments.len() {
+        let rifle = |p: &ProjectileId| {
+            run.moments[t - 1]
+                .rounds
+                .get(p)
+                .is_some_and(|r| r.weapon == "rifle")
+        };
+        for e in &run.moments[t].events {
+            match e {
+                FlightEvent::Ricochet(r) if r.body == body && rifle(&r.projectile) => {
+                    glanced.push(t)
+                }
+                FlightEvent::Impact(i)
+                    if i.struck == sim::flight::Struck::Body(body) && rifle(&i.projectile) =>
+                {
+                    struck.push(t)
+                }
+                _ => {}
+            }
+        }
+    }
+    (glanced, struck)
+}
+
+#[test]
+fn a_tank_pinged_by_rifle_fire_calls_taking_fire() {
+    let run = rifles_on_tank(std::f64::consts::PI);
+    let (glanced, struck) = pings(&run, 1);
+    assert!(!glanced.is_empty(), "rifle rounds glance off the tank");
+    let mut called = 0;
+    for t in glanced.into_iter().chain(struck) {
+        assert!(run.calls(t, 1, T::B5UnderFire), "pinged on tick {t}");
+        called += usize::from(run.said(1, T::B5UnderFire).contains(&t));
+    }
+    assert!(called > 0, "the tank says it");
+}
+
+#[test]
+fn taking_fire_is_called_though_the_shooter_is_unseen() {
+    // The tank faces away; the squad behind it is beyond its rear sight.
+    let run = rifles_on_tank(0.0);
+    let said = run.said(1, T::B5UnderFire);
+    let unseen: Vec<usize> = said
+        .iter()
+        .copied()
+        .filter(|&t| run.moments[t].identified[Side::Red.index()].is_empty())
+        .collect();
+    assert!(
+        !unseen.is_empty(),
+        "the tank calls taking fire before it sees who fires: {said:?}"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// B15: incoming missile, for the unit it steers onto, once seen.
+
+impl Run {
+    /// The guided rounds in flight at the end of `tick`.
+    fn missiles(&self, tick: usize) -> impl Iterator<Item = &Flying> {
+        self.moments[tick]
+            .rounds
+            .values()
+            .filter(|r| r.guidance.is_some())
+    }
+
+    /// Whether unit `id` sees the point `at` on `tick`, by its own sight.
+    fn sees(&self, tick: usize, id: u32, at: V3) -> bool {
+        let unit = self.unit(tick, id);
+        sim::sensing::sees_point(
+            self.end.world(),
+            sim::sensing::eye(unit, &self.rules),
+            at,
+            &sim::sight::of(unit, &self.rules),
+            1.0,
+            &self.rules.sensors,
+        )
+    }
+
+    /// The unit blue's launcher `id` guides its missile at on `tick`.
+    fn guided_at(&self, tick: usize, id: u32) -> Option<UnitId> {
+        self.unit(tick, id)
+            .mounts
+            .iter()
+            .find_map(|m| match m.support?.target {
+                sim::weapons::Target::Unit(t) => Some(t),
+                _ => None,
+            })
+    }
+}
+
+/// Whether `point` lies on hull `unit` seen from above.
+fn on_hull(unit: &Unit, point: V3) -> bool {
+    let half = unit.hull.unwrap();
+    let d = point.xy() - unit.position.xy();
+    let (s, c) = (unit.yaw.sin(), unit.yaw.cos());
+    let local = [d.x * c + d.y * s, -d.x * s + d.y * c];
+    local[0].abs() <= half.x && local[1].abs() <= half.y
+}
+
+/// A blue AT team that cannot die and `red` units, 350 m off.
+fn missile_at(red: Value, seconds: f64) -> Run {
+    let mut units = vec![
+        json!({ "side": "blue", "kind": "test_at", "position": [100, 300],
+        "condition": { "soldier_hp": 1.0e6 } }),
+    ];
+    units.extend(red.as_array().unwrap().iter().cloned());
+    let s = setup([1200.0, 600.0], Value::Array(units), chatty);
+    play(&s, 8, seconds, &[])
+}
+
+#[test]
+fn a_missile_aimed_at_the_neighbouring_tank_is_called_by_that_tank_only() {
+    let run = missile_at(
+        json!([
+            { "side": "red", "kind": "test_tank", "position": [450, 300], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_tank", "position": [450, 312], "engagement": "return_fire_only" },
+        ]),
+        20.0,
+    );
+    let target = (1..run.moments.len())
+        .find_map(|t| run.guided_at(t, 0))
+        .expect("the launcher guides a missile");
+    let neighbour = if target == UnitId(1) { 2 } else { 1 };
+    assert!(
+        !run.said(target.0, T::B15IncomingMissile).is_empty(),
+        "the tank it steers onto calls it"
+    );
+    assert!(
+        run.said(neighbour, T::B15IncomingMissile).is_empty(),
+        "the tank beside it does not"
+    );
+}
+
+#[test]
+fn an_incoming_missile_is_silent_until_the_tank_sees_it() {
+    // The tank faces away; the missile comes from beyond its rear sight.
+    let run = missile_at(
+        json!([{ "side": "red", "kind": "test_tank", "position": [450, 300], "yaw": 0.0,
+                 "engagement": "return_fire_only" }]),
+        20.0,
+    );
+    let (mut unseen, mut seen) = (0, 0);
+    for t in 1..run.moments.len() {
+        let tank = run.unit(t, 1);
+        if !tank.alive() {
+            break;
+        }
+        let aimed: Vec<V3> = run
+            .missiles(t)
+            .filter(|m| m.side == Side::Blue && on_hull(tank, m.guidance.unwrap().point))
+            .map(|m| m.position)
+            .collect();
+        let sees = aimed.iter().any(|&at| run.sees(t, 1, at));
+        let spoke: Vec<T> = run.spoke(t, 1).iter().map(|s| s.trigger).collect();
+        if !aimed.is_empty() && !sees {
+            unseen += 1;
+        }
+        if sees {
+            seen += 1;
+            assert!(
+                run.calls(t, 1, T::B15IncomingMissile),
+                "tick {t}: {spoke:?}"
+            );
+        } else {
+            assert!(!spoke.contains(&T::B15IncomingMissile), "tick {t}: unseen");
+        }
+    }
+    assert!(
+        unseen > 0,
+        "the missile flies a while out of the tank's sight"
+    );
+    assert!(seen > 0, "and then into it");
+    assert!(!run.said(1, T::B15IncomingMissile).is_empty());
+}
+
+#[test]
+fn a_sides_own_missile_is_never_incoming() {
+    // A blue squad stands beside the red tank its own launcher fires at: the
+    // missile steers onto the squad's area too.
+    let run = missile_at(
+        json!([
+            { "side": "red", "kind": "test_tank", "position": [450, 300], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_rifle", "position": [450, 304], "engagement": "return_fire_only",
+              "condition": { "soldier_hp": 1.0e6 } },
+        ]),
+        20.0,
+    );
+    let r = run.rules.physics.soldier_radius_m;
+    let overhead = (1..run.moments.len()).any(|t| {
+        let squad = run.unit(t, 2);
+        run.missiles(t).any(|m| {
+            (m.guidance.unwrap().point.xy() - squad.position.xy()).length()
+                <= squad.footprint_radius(r)
+                && run.sees(t, 2, m.position)
+        })
+    });
+    assert!(
+        overhead,
+        "the squad sees its side's missile steer onto its area"
+    );
+    assert!(
+        !run.said(1, T::B15IncomingMissile).is_empty(),
+        "the red tank calls it"
+    );
+    assert!(
+        run.said(2, T::B15IncomingMissile).is_empty(),
+        "the blue squad does not"
+    );
+    assert!(
+        run.said(0, T::B15IncomingMissile).is_empty(),
+        "nor does the launcher"
+    );
+}
+
+#[test]
+fn a_released_missile_whose_fixed_point_lies_on_a_tank_is_still_incoming() {
+    // The AT team walks off as its missile closes on the tank: the missile
+    // is let go, and flies on at a point fixed a coast ahead, on the tank.
+    let s = setup(
+        [1200.0, 600.0],
+        json!([
+            { "side": "blue", "kind": "test_at", "position": [100, 300], "condition": { "soldier_hp": 1.0e6 } },
+            { "side": "red", "kind": "test_tank", "position": [450, 300], "engagement": "return_fire_only" },
+        ]),
+        chatty,
+    );
+    let coast = test_common::game()["guided"]["release_coast_s"]
+        .as_f64()
+        .unwrap();
+    let mut walked = false;
+    let run = play_with(&s, 8, 20.0, &[], |b, m| {
+        let tank = b.unit(UnitId(1))?.position;
+        let missile = m
+            .rounds
+            .values()
+            .find(|r| r.guidance.is_some_and(|g| g.supported))?;
+        // Walk off once a coast's flight would reach the tank: the release,
+        // on the next tick, fixes the point there.
+        let coast_m = (missile.velocity * coast).xy().length();
+        if walked || coast_m < (tank.xy() - missile.position.xy()).length() {
+            return None;
+        }
+        walked = true;
+        let walk = Order::Move {
+            units: vec![UnitId(0)],
+            gesture: 1,
+            goal: [100.0, 200.0],
+            route: contract::command::RoutePolicy::Shortest,
+            direction: contract::command::MoveDirection::Forward,
+            facing: None,
+        };
+        Some((Side::Blue, walk))
+    });
+    let released: Vec<usize> = (1..run.moments.len())
+        .filter(|&t| {
+            let tank = run.unit(t, 1);
+            tank.alive()
+                && run.missiles(t).any(|m| {
+                    let g = m.guidance.unwrap();
+                    !g.supported && on_hull(tank, g.point) && run.sees(t, 1, m.position)
+                })
+        })
+        .collect();
+    assert!(
+        !released.is_empty(),
+        "the tank sees a released missile fly on at a point on it"
+    );
+    for &t in &released {
+        assert!(run.calls(t, 1, T::B15IncomingMissile), "tick {t}");
+    }
+}
+
+// ---------------------------------------------------------------------------
+// B17: friendly destroyed nearby, called by one witness.
+
+/// Blue's tank kills a red jeep 300 m off; `red` friendlies look on (or
+/// don't) from where they stand.
+fn jeep_lost(red: Value) -> Run {
+    let mut units = vec![
+        json!({ "side": "blue", "kind": "test_tank", "position": [100, 300] }),
+        json!({ "side": "red", "kind": "test_jeep", "position": [400, 300], "engagement": "return_fire_only" }),
+    ];
+    units.extend(red.as_array().unwrap().iter().cloned());
+    let s = setup([2000.0, 2000.0], Value::Array(units), brief);
+    play(&s, 6, 30.0, &[])
+}
+
+/// Every B17 spoken in the run: (tick, speaker).
+fn losses_called(run: &Run) -> Vec<(usize, u32)> {
+    (0..run.moments.len())
+        .flat_map(|t| {
+            run.moments[t]
+                .heard
+                .iter()
+                .flatten()
+                .filter(|s| s.trigger == T::B17FriendlyDestroyedNearby)
+                .filter_map(move |s| speaker(s).map(|id| (t, id.0)))
+        })
+        .collect()
+}
+
+#[test]
+fn a_loss_nobody_sees_is_not_called() {
+    // The only red friendly stands 1.3 km off, beyond its own sight.
+    let run = jeep_lost(json!([
+        { "side": "red", "kind": "test_rifle", "position": [400, 1600], "engagement": "return_fire_only" },
+    ]));
+    death(&run, 1);
+    assert!(losses_called(&run).is_empty());
+}
+
+#[test]
+fn of_three_friendlies_watching_only_the_nearest_calls_the_loss() {
+    // Three red squads 150, 200 and 250 m behind the jeep, out of the tank's
+    // sight, all see it go.
+    let run = jeep_lost(json!([
+        { "side": "red", "kind": "test_rifle", "position": [650, 300], "engagement": "return_fire_only" },
+        { "side": "red", "kind": "test_rifle", "position": [550, 300], "engagement": "return_fire_only" },
+        { "side": "red", "kind": "test_rifle", "position": [600, 300], "engagement": "return_fire_only" },
+    ]));
+    let died = death(&run, 1);
+    let jeep = sim::sensing::eye(run.unit(died, 1), &run.rules);
+    for id in [2, 3, 4] {
+        assert!(
+            run.sees(died, id, jeep),
+            "squad {id} sees where the jeep's crew sat"
+        );
+    }
+    assert_eq!(losses_called(&run), [(died, 3)], "the nearest, once");
+}
+
+#[test]
+fn the_destroyed_unit_never_witnesses_its_own_loss() {
+    // The jeep is the only red unit that sees where it died: nobody calls it,
+    // and it says only that it is destroyed.
+    let run = jeep_lost(json!([]));
+    let died = death(&run, 1);
+    assert!(losses_called(&run).is_empty());
+    let said: Vec<T> = run.spoke(died, 1).iter().map(|s| s.trigger).collect();
+    assert_eq!(said, [T::B16Destroyed]);
+}
+
+// ---------------------------------------------------------------------------
+// The unseen shout: an anonymous cue through hearing.
+
+/// A red tank 500 m from a blue tank, beyond its sight, gives itself away
+/// by firing every second; the blue crew shells the area and the red crew
+/// calls the rounds landing round it. A blue truck, as blind to it, stands
+/// farther off. Nothing blue sees the red tank. Sound buckets last
+/// `bucket_s`.
+fn unseen_shouter(bucket_s: f64) -> Run {
+    let fire: Vec<Value> = (0..20)
+        .map(|k| json!({ "tick": 5 + k * 30, "fire": { "unit": 2 } }))
+        .collect();
+    let s = setup_events(
+        [1200.0, 600.0],
+        json!([
+            { "side": "blue", "kind": "test_tank", "position": [100, 300] },
+            { "side": "blue", "kind": "test_supply", "position": [60, 340] },
+            { "side": "red", "kind": "test_tank", "position": [600, 300], "engagement": "return_fire_only" },
+        ]),
+        json!(fire),
+        |rules| {
+            chatty(rules);
+            rules["sensors"]["sound_bucket_s"] = json!(bucket_s);
+        },
+    );
+    play(&s, 3, 20.0, &[])
+}
+
+impl Run {
+    fn bucket_ticks(&self) -> usize {
+        (self.rules.sensors.sound_bucket_s * self.rules.tick_hz as f64).round() as usize
+    }
+
+    /// Blue's shout cues on `tick`.
+    fn shout_cues(&self, tick: usize) -> Vec<&SoundCue> {
+        self.moments[tick].audible[Side::Blue.index()]
+            .iter()
+            .filter(|c| c.category == SoundCategory::Shout)
+            .collect()
+    }
+}
+
+#[test]
+fn an_unseen_enemys_shout_reaches_the_nearest_listener_as_one_anonymous_cue() {
+    let run = unseen_shouter(0.5);
+    let bucket = run.bucket_ticks();
+    let said = barks(&run, 2);
+    assert!(said.len() > 3, "the red crew talks: {said:?}");
+    let mut cued = 0;
+    for t in (bucket..run.moments.len()).step_by(bucket) {
+        assert!(
+            run.moments[t].identified[Side::Blue.index()].is_empty(),
+            "blue never sees the red tank"
+        );
+        assert!(
+            !run.moments[t].heard[Side::Blue.index()]
+                .iter()
+                .any(|s| matches!(s.speaker, ShoutSpeaker::Seen(_))),
+            "nor hears what it shouts"
+        );
+        let shouted = said.iter().any(|&(s, _)| s + bucket >= t && s < t);
+        let cues = run.shout_cues(t);
+        if !shouted {
+            assert!(cues.is_empty(), "tick {t}: a cue with no shout");
+            continue;
+        }
+        cued += 1;
+        // East of the nearer blue unit, its tank, beyond half the red
+        // tank's 650 m carry.
+        assert_eq!(
+            cues,
+            [&SoundCue {
+                listener: UnitId(0),
+                category: SoundCategory::Shout,
+                sector: 0,
+                band: contract::observation::SoundBand::Far,
+                moving: false,
+            }],
+            "tick {t}"
+        );
+    }
+    assert!(cued > 0);
+}
+
+#[test]
+fn many_shouts_from_one_unseen_source_in_a_bucket_are_one_cue() {
+    let run = unseen_shouter(10.0);
+    let bucket = run.bucket_ticks();
+    let said = barks(&run, 2);
+    let mut crowded = 0;
+    for t in (bucket..run.moments.len()).step_by(bucket) {
+        let shouts = said
+            .iter()
+            .filter(|&&(s, _)| s + bucket >= t && s < t)
+            .count();
+        if shouts >= 5 {
+            crowded += 1;
+            assert_eq!(run.shout_cues(t).len(), 1, "tick {t}: {shouts} shouts");
+        }
+    }
+    assert!(
+        crowded > 0,
+        "the red crew shouts five times in some bucket: {said:?}"
+    );
 }

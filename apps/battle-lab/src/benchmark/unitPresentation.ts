@@ -101,6 +101,7 @@ export function describeUnits({
               ((cls ? (pose.gauge as Record<string, number>)[cls] : undefined) ?? 1),
           }
         : null,
+      vehicleClass: cls,
       airborne: airborne(type),
       roles: [...catalog.mountRoles(kind)],
       mounts: type.mounts.map((m) => {

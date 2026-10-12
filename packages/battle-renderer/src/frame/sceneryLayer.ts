@@ -100,8 +100,20 @@ import {
   type FelledKind,
   type FelledTree,
 } from "../scenery/felled";
-import type { FelledRules } from "../terrain/biome";
-import { sceneryTables, type SceneryCounts, type SceneryTables } from "../scenery/sceneryTables";
+import type { Biome } from "../terrain/terrainSurface";
+
+type FelledRules = Biome["trees"]["felled"];
+
+/** The instances a view drew, per population: `kind · 4 + tier`; the
+ *  stumps of felled trees per kind alone (a stump has one mesh). */
+export interface SceneryCounts {
+  forest: number[];
+  understorey: number[];
+  backdrop: number[];
+  dressing: number[];
+  felled: number[];
+  stumps: number[];
+}
 
 type Root = ReturnType<typeof tgpu.initFromDevice>;
 
@@ -665,9 +677,7 @@ export async function createSceneryLayer(
 
   /** Write the first `count` records (`stride` floats each) of `data` into
    *  `held`'s buffer, made anew by `make` at twice the need when too small. */
-  function writeGrowing<
-    B extends Releasable & { write: (data: ArrayBuffer, options: { endOffset: number }) => void },
-  >(
+  function writeGrowing<B extends Releasable & { write: (data: ArrayBuffer) => void }>(
     held: { slot: GpuSlot<B>; capacity: number },
     data: Float32Array,
     count: number,
@@ -679,7 +689,10 @@ export async function createSceneryLayer(
       held.capacity = Math.max(64, count * 2);
       held.slot.set(make(held.capacity));
     }
-    held.slot.current!.write(data.buffer as ArrayBuffer, { endOffset: count * stride * 4 });
+    // The staged records' first `count`, as a view: the staging array holds
+    // the whole population and may outsize the GPU buffer. TypeGPU copies a
+    // view's bytes as it does a buffer's, though its types name only buffers.
+    held.slot.current!.write(data.subarray(0, count * stride) as unknown as ArrayBuffer);
   }
 
   function upload(pop: Population) {
@@ -1082,23 +1095,6 @@ export async function createSceneryLayer(
       }
       const dressed = dressing();
       if (dressed) drawDressing(dressed, colour(dressingColour), root.unwrap(pass));
-    },
-    /** The scenery as tables for a second client (`sceneryTables.ts`). */
-    tables(): SceneryTables {
-      if (!loaded) throw new Error("the frame has no scenery to export");
-      const { world, sizes, dressing } = loaded;
-      return sceneryTables(world.placement, sizes, {
-        lodPx: world.lodPx,
-        chunkM: CHUNK_M,
-        casterCoarser: CASTER_COARSER,
-        dressing: {
-          lodPx: world.dressing.lodPx,
-          fadePx: world.dressing.fadePx,
-          slots: dressing.cache.held.length,
-          cellsPerView: DRESSING_CELLS_PER_VIEW,
-        },
-        felled: world.felled,
-      });
     },
     /** The instances the last view drew, per population, kind and tier
      *  (`SceneryCounts`): what `stats` sums, kind by kind. */

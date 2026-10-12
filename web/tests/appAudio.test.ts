@@ -1,11 +1,15 @@
 // @vitest-environment jsdom
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, beforeAll, expect, test, vi } from "vitest";
+import { loadPresentation } from "@web/battle/sim/presentation";
+import { cameraListener } from "@packages/battle-audio/src/battleAudio";
 import game from "@fixtures/game.json";
 import { AppAudio } from "@packages/battle-audio/src/appAudio";
 import { SOUNDS } from "@packages/battle-audio/src/synth";
 import { soundSettings } from "@packages/battle-audio/src/settings";
 import type { SoundCatalog } from "@packages/battle-audio/src/catalog";
 import type { AudioPresentation } from "@packages/battle-audio/src/audioPresentation";
+
+beforeAll(() => loadPresentation());
 
 const param = (value = 0) => ({
   value,
@@ -15,7 +19,9 @@ const param = (value = 0) => ({
   setValueAtTime(value: number) {
     this.value = value;
   },
-  linearRampToValueAtTime() {},
+  linearRampToValueAtTime(value: number) {
+    this.value = value;
+  },
   cancelScheduledValues() {},
 });
 class Node {
@@ -57,6 +63,7 @@ class Node {
 }
 class Source extends Node {
   declare buffer: AudioBuffer;
+  declare loop: boolean;
   onended: (() => void) | null = null;
   stopped = false;
   offset = -1;
@@ -68,6 +75,43 @@ class Source extends Node {
     this.stopped = true;
     this.onended?.();
   }
+}
+class Gain extends Node {}
+class MediaSource extends Node {
+  constructor(
+    context: Context,
+    readonly options: { mediaElement: Media },
+  ) {
+    super(context);
+  }
+}
+class Media {
+  src = "";
+  loop = false;
+  preload = "";
+  paused = true;
+  play = vi.fn(async () => {
+    this.paused = false;
+  });
+  pause() {
+    this.paused = true;
+  }
+  load() {}
+  removeAttribute() {
+    this.src = "";
+  }
+  constructor() {
+    media.push(this);
+  }
+}
+/** The gain from `from` to the speakers through gain nodes; −1 when it never arrives. */
+function reach(from: Node, destination: Node): number {
+  if (from === destination) return 1;
+  for (const next of from.connections) {
+    const rest = reach(next, destination);
+    if (rest >= 0) return (from instanceof Gain ? from.gain.value : 1) * rest;
+  }
+  return -1;
 }
 function buffer(channels: number, length: number, sampleRate: number): AudioBuffer {
   const data = Array.from({ length: channels }, () => new Float32Array(length));
@@ -103,12 +147,14 @@ class Context {
 const nodes: Node[] = [];
 const contexts: Context[] = [];
 const sources: Source[] = [];
+const media: Media[] = [];
 const active: AppAudio[] = [];
 afterEach(() => {
   active.splice(0).forEach((a) => a.dispose());
   nodes.length = 0;
   contexts.length = 0;
   sources.length = 0;
+  media.length = 0;
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
@@ -117,7 +163,6 @@ const cookOff = game.presentation.effects.cook_off;
 const empty = (tick: number) => ({
   effects: { tick, segments: [], blasts: [], smokes: [] },
   launches: [],
-  turretLandsS: 0,
   audible: [],
 });
 const camera = {
@@ -133,16 +178,18 @@ const camera = {
 function setup() {
   for (const name of [
     "DynamicsCompressorNode",
-    "GainNode",
     "ConvolverNode",
     "BiquadFilterNode",
     "PannerNode",
     "StereoPannerNode",
   ])
     vi.stubGlobal(name, Node);
+  vi.stubGlobal("GainNode", Gain);
+  vi.stubGlobal("MediaElementAudioSourceNode", MediaSource);
+  vi.stubGlobal("Audio", Media);
   vi.stubGlobal("AudioBufferSourceNode", Source);
   vi.stubGlobal("AudioContext", Context);
-  soundSettings.set({ muted: false, volume: 1 });
+  soundSettings.set({ muted: false, volume: 1, music: 1 });
   const catalog: SoundCatalog = {
     sources: {},
     clips: {},
@@ -155,9 +202,11 @@ function setup() {
     defaults: {},
     impacts: {},
     effects: {},
+    music: {
+      moods: { menu: ["bed"], tension: [], combat: [] },
+      tracks: { bed: { source: "bed", sha256: "a".repeat(64), gain: 0.5 } },
+    },
   };
-  // A short fixture bed keeps lifecycle checks independent of musical content.
-  catalog.sounds.menu_music = { ...catalog.sounds.countryside };
   catalog.sounds["recorded-clack-14"] = { ...catalog.sounds.rifle };
   catalog.sounds["recorded-clack-17"] = { ...catalog.sounds.cannon };
   const app = new AppAudio({ presentation, catalog });
@@ -165,12 +214,41 @@ function setup() {
   return app;
 }
 
-test("menu music starts at its introduction while ambience keeps a staggered loop phase", async () => {
+test("the menu bed streams through the music player under the master; only ambience is a decoded loop", async () => {
   const app = setup();
   app.setScreen("menu");
   await vi.waitFor(() => expect(app.stats().menuReady).toBe(true));
-  expect(sources[0].offset).toBe(0);
-  expect(sources[1].offset).toBeGreaterThan(0);
+  expect(app.stats().menuPlaying).toBe(true);
+  expect(media).toHaveLength(1);
+  expect(media[0]).toMatchObject({
+    src: "/audio/music/bed.aaaaaaaa.mp3",
+    loop: true,
+    paused: false,
+  });
+  // The one decoded loop is the countryside, at a staggered phase.
+  expect(sources.filter((s) => s.loop)).toHaveLength(1);
+  expect(sources[0].offset).toBeGreaterThan(0);
+});
+
+test("master volume and the music level both scale the menu bed, and mute silences it", async () => {
+  const app = setup();
+  app.setScreen("menu");
+  await vi.waitFor(() => expect(app.stats().menuPlaying).toBe(true));
+  const bed = nodes.find((n) => n instanceof MediaSource)!;
+  const speakers = contexts[0].destination;
+  const { master, music } = presentation.buses;
+  // Params hold their last target: the bed's fade-in has reached its catalog gain.
+  expect(reach(bed, speakers)).toBeCloseTo(master * music * 0.5);
+  soundSettings.set({ volume: 0.5 });
+  expect(reach(bed, speakers)).toBeCloseTo(master * 0.5 * music * 0.5);
+  soundSettings.set({ music: 0.4 });
+  expect(reach(bed, speakers)).toBeCloseTo(master * 0.5 * music * 0.4 * 0.5);
+  soundSettings.set({ muted: true });
+  expect(media[0].paused).toBe(true);
+  expect(contexts[0].suspend).toHaveBeenCalled();
+  soundSettings.set({ muted: false });
+  await vi.waitFor(() => expect(app.stats().menuPlaying).toBe(true));
+  expect(media.at(-1)!.paused).toBe(false);
 });
 
 test("battle exit keeps the page context and prepared buffers but disconnects its graph and forgets its evidence", async () => {
@@ -182,7 +260,11 @@ test("battle exit keeps the page context and prepared buffers but disconnects it
   const first = app.createBattle({ tickHz: 30, presentation, smokeTimes: {}, cookOff });
   await vi.waitFor(() => expect(first.stats()?.loading).toBe(false));
   first.note(empty(8));
-  first.update(8 / 30, { vehicles: [], soldiers: [] }, camera);
+  first.update({
+    clock: 8 / 30,
+    motion: { vehicles: [], soldiers: [] },
+    listener: cameraListener(camera, 0.25),
+  });
   expect(first.stats()?.tick).toBe(8);
   const oldSources = sources.filter((s) => !s.stopped);
   const ambient = oldSources.at(-1)!.buffer;
@@ -194,7 +276,11 @@ test("battle exit keeps the page context and prepared buffers but disconnects it
   await vi.waitFor(() => expect(second.stats()?.loading).toBe(false));
   expect(second.stats()).toMatchObject({ tick: -1, pending: 0 });
   second.note(empty(1));
-  second.update(1 / 30, { vehicles: [], soldiers: [] }, camera);
+  second.update({
+    clock: 1 / 30,
+    motion: { vehicles: [], soldiers: [] },
+    listener: cameraListener(camera, 0.25),
+  });
   expect(sources.at(-1)!.buffer).toBe(ambient);
   expect(contexts).toHaveLength(1);
   app.dispose();
@@ -233,20 +319,28 @@ test("a blocked early attempt resumes on menu input and the bed lasts until batt
   const battle = app.createBattle({ tickHz: 30, presentation, smokeTimes: {}, cookOff });
   await vi.waitFor(() => expect(battle.stats()?.loading).toBe(false));
   battle.note(empty(4));
-  battle.update(4 / 30, { vehicles: [], soldiers: [] }, camera);
+  battle.update({
+    clock: 4 / 30,
+    motion: { vehicles: [], soldiers: [] },
+    listener: cameraListener(camera, 0.25),
+  });
   expect(battle.stats()?.tick).toBe(-1);
-  expect(sources.filter((s) => !s.stopped)).toHaveLength(2);
+  expect(sources.filter((s) => !s.stopped)).toHaveLength(1);
   permitted = true;
   window.dispatchEvent(new Event("pointerdown"));
   await vi.waitFor(() => expect(app.stats().running).toBe(true));
-  expect(sources.filter((s) => !s.stopped)).toHaveLength(2);
+  expect(sources.filter((s) => !s.stopped)).toHaveLength(1);
   battle.note(empty(5));
-  battle.update(5 / 30, { vehicles: [], soldiers: [] }, camera);
+  battle.update({
+    clock: 5 / 30,
+    motion: { vehicles: [], soldiers: [] },
+    listener: cameraListener(camera, 0.25),
+  });
   expect(app.stats().menuPlaying).toBe(false);
   expect(sources.filter((s) => !s.stopped)).toHaveLength(1);
   battle.dispose();
   app.setScreen("menu");
-  expect(sources.filter((s) => !s.stopped)).toHaveLength(2);
+  expect(sources.filter((s) => !s.stopped)).toHaveLength(1);
   app.setScreen("other");
   expect(sources.filter((s) => !s.stopped)).toHaveLength(0);
 });
@@ -261,11 +355,15 @@ test("repeated battle visits return every audio connection to the menu baseline"
     const battle = app.createBattle({ tickHz: 30, presentation, smokeTimes: {}, cookOff });
     await vi.waitFor(() => expect(battle.stats()?.loading).toBe(false));
     battle.note(empty(1));
-    battle.update(1 / 30, { vehicles: [], soldiers: [] }, camera);
+    battle.update({
+      clock: 1 / 30,
+      motion: { vehicles: [], soldiers: [] },
+      listener: cameraListener(camera, 0.25),
+    });
     battle.dispose();
     app.setScreen("menu");
     expect(nodes.reduce((n, node) => n + node.connections.size, 0)).toBe(baseline);
-    expect(sources.filter((s) => !s.stopped)).toHaveLength(2);
+    expect(sources.filter((s) => !s.stopped)).toHaveLength(1);
   }
 });
 

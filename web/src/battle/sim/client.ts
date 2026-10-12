@@ -3,9 +3,8 @@
  * consumer; the credit goes back only when the consumer releases it. */
 import { createAuthority, type AuthorityHost } from "./authority";
 import { loadSimModule } from "./module";
-import { GroundView } from "./ground";
-import type { ObservationLayout, ObservationView } from "./observationView";
-import { ObservationDecoder, loadPresentation } from "./presentation";
+import type { ObservationView } from "./observationView";
+import { ObservationDecoder, loadPresentation, type LearnedGround } from "./presentation";
 import type {
   AuthorityStatus,
   CommandAck,
@@ -24,9 +23,9 @@ export interface Publication {
   tick: number;
   digest: string;
   observation: ObservationView;
-  /** The side's learned ground, with this publication's patch applied. One
-   *  view for the client's life: it only ever moves forward. */
-  ground: GroundView;
+  /** The side's learned ground, with this publication's patch applied (the
+   *  presentation's). One for the client's life: it only ever moves forward. */
+  ground: LearnedGround;
   /** Size of the packed frame on the wire. */
   bytes: number;
   /** Wall time the authority spent stepping this tick, ms. */
@@ -130,7 +129,6 @@ function directChannel(receive: (reply: SimReply) => void): SimChannel {
 export function createSimClient(options: SimClientOptions): SimClient {
   let decoder: ObservationDecoder | null = null;
   let observedSide = options.side;
-  let ground: GroundView | null = null;
   let slow = false;
   let paused = false;
   let seq = 0;
@@ -212,8 +210,6 @@ export function createSimClient(options: SimClientOptions): SimClient {
     try {
       switch (reply.type) {
         case "ready": {
-          const layout = JSON.parse(reply.layout) as ObservationLayout;
-          ground = new GroundView(layout.ground);
           // Publications follow `start`, which waits on `ready`.
           void loadPresentation()
             .then(() => {
@@ -257,7 +253,7 @@ export function createSimClient(options: SimClientOptions): SimClient {
         }
         case "publication": {
           const buffer = reply.buffer;
-          if (!decoder || !ground)
+          if (!decoder?.ground)
             throw new Error("publication arrived before the authority was ready");
           const observation = decoder.decode(
             new Float32Array(buffer, 0, reply.length),
@@ -269,14 +265,12 @@ export function createSimClient(options: SimClientOptions): SimClient {
             settleAdvances();
             return;
           }
-          // Before the credit can return: the patch is part of this record.
-          ground!.applyRuns(observation.groundPatch);
           let released = false;
           const publication: Publication = {
             tick: reply.tick,
             digest: reply.digest,
             observation,
-            ground: ground!,
+            ground: decoder.ground,
             bytes: reply.length * Float32Array.BYTES_PER_ELEMENT,
             stepMs: reply.stepMs,
             copyPacked() {
@@ -402,7 +396,6 @@ export function createSimClient(options: SimClientOptions): SimClient {
     observeAs(side) {
       if (failure || disposed) return;
       observedSide = side;
-      ground?.invalidate();
       decoder?.invalidate(side);
       channel.send({ type: "side", side });
     },

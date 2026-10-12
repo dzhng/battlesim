@@ -3,8 +3,6 @@ import { UNITS } from "./catalog";
 import { buildDestinationPreview } from "@packages/battle-renderer/src/orderOverlay";
 import { gameOrderStyle, gameStroke } from "@apps/battle-lab/src/gameOverlay";
 import { VERTEX_FLOATS } from "@packages/battle-renderer/src/mesh";
-import { GroundView } from "../src/battle/sim/ground";
-import { cellPatchRuns } from "./groundRuns";
 
 test("the held destination marker keeps its anchor while its arrow follows facing", () => {
   const mark = { c: [100, 200] as const, r: 8, facing: 0, placed: true, opacity: 1 };
@@ -259,20 +257,13 @@ test.each(["clearing", "epoch replacement"] as const)(
     const own = [
       { id: 1, kind: "test_rifle", position: [0, 0, 0], members: [], area: null, garrison: null },
     ] as unknown as import("../src/battle/sim/observationView").OwnUnitView[];
-    const ground = new GroundView({ cellM: 1, cols: 4, rows: 4 });
-    const publish = (epoch: number, revision: number, cell: number, full: boolean) =>
-      ground.applyRuns(
-        cellPatchRuns(ground.cols, {
-          epoch,
-          side: "blue",
-          baseRevision: full ? 0 : ground.revision,
-          revision,
-          full,
-          cells: Uint32Array.of(cell),
-          marks: new Uint8Array(4),
-          cleared: Uint8Array.of(1),
-        }),
-      );
+    // What the side's learned ground says of its clearing: a cell cleared in
+    // the same epoch, or a new epoch's snapshot.
+    const ground = { clearedCount: 0, epoch: 0 };
+    const publish = (epoch: number, _revision: number, _cell: number, full: boolean) => {
+      ground.clearedCount = full ? 1 : ground.clearedCount + 1;
+      ground.epoch = epoch;
+    };
     publish(1, 1, 0, true);
     const replies: ((p: import("../src/battle/sim/protocol").BuildingPlacement) => void)[] = [];
     const client = {

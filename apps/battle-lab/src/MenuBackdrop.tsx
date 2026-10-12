@@ -345,7 +345,7 @@ function BackdropBattle({
           initialCamera={reel.initial}
           groundAt={session.surfaceZ}
           onReady={(gpu) => {
-            session.onReady(gpu);
+            session.viewport.onReady(gpu);
             onProbeReady();
           }}
           pilot={{ ...reel.pilot, frame: ({ now }) => onProbeFrame(now) }}

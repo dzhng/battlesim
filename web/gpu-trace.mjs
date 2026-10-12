@@ -5,16 +5,16 @@
 //     --time-limit 3s --output <name>.trace
 //   node gpu-trace.mjs <name>.trace <process name prefix>
 //
-// Attach to Godot, or to Chrome's GPU process ("Google Chrome for Testing
-// Helper"). The trace is system-wide; only the named process's GPU work counts,
-// and other processes' share is reported. Tracing slows the frames it records,
-// so read a trace for proportions and gaps; absolute ms come from untraced
-// runs.
+// Attach to the native client (`native-client`), or to Chrome's GPU process
+// ("Google Chrome for Testing Helper"). The trace is system-wide; only the
+// named process's GPU work counts, and other processes' share is reported.
+// Tracing slows the frames it records, so read a trace for proportions and
+// gaps; absolute ms come from untraced runs.
 // For each frame Metal assigned (by present) it reports the span from its
 // first GPU work to the next frame's, the GPU busy time (the union of its
 // encoders' intervals on every channel), the idle gap (span less busy), and
-// each encoder's mean time by channel and command index (Godot's debug labels
-// don't reach Metal's encoder labels; WebGPU's need Dawn's
+// each encoder's mean time by channel and command index (WebGPU's labels
+// reach Metal's encoder labels only with Dawn's
 // `use_user_defined_labels_in_backend`). Writes <name>.trace.json beside it.
 import { execFileSync } from "node:child_process";
 import { writeFile } from "node:fs/promises";

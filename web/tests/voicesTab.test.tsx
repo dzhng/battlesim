@@ -11,11 +11,12 @@ import {
 } from "@packages/battle-audio/src/voices/voiceCatalog";
 import { SoundWorkbench } from "../../apps/sound-workbench/src/SoundWorkbench";
 import type { Snapshot, WorkbenchAPI } from "../../apps/sound-workbench/src/protocol";
-import type {
-  TakeView,
-  VerdictRequest,
-  VoiceAPI,
-  VoiceSnapshot,
+import {
+  candidateUrl,
+  type TakeView,
+  type VerdictRequest,
+  type VoiceAPI,
+  type VoiceSnapshot,
 } from "../../apps/sound-workbench/src/voices/protocol";
 import type { Auditioner } from "../../apps/sound-workbench/src/audition";
 
@@ -89,6 +90,17 @@ function fixture() {
     counts: {
       tank: { expected: 164, takes: 4, unreviewed: 3, flagged: 1, ok: 1, bad: 0 },
     },
+    designs: {
+      "tank/soldier": {
+        text: "Moving out. Taking fire! Get out, get out!",
+        candidates: [
+          { transcript: "Moving out. Taking fire! Get out, get out!", score: 1, duration_s: 9.1 },
+          { transcript: "Moving out. Taking fire! Get out!", score: 0.88, duration_s: 8.4 },
+          { transcript: "Moving. Taking fire! Get out, get out!", score: 0.88, duration_s: 10.2 },
+        ],
+        picked: null,
+      },
+    },
   };
   const voices: VoiceAPI = {
     snapshot: vi.fn(async () => snapshot),
@@ -109,6 +121,10 @@ function fixture() {
       job: { id: "1", args: [], status: "queued" as const, lines: [] },
     })),
     jobs: vi.fn(async () => ({ jobs: [] })),
+    design: vi.fn(async () => ({
+      job: { id: "2", args: [], status: "queued" as const, lines: [] },
+    })),
+    pick: vi.fn(async () => snapshot),
   };
   const sounds: WorkbenchAPI = {
     snapshot: () => new Promise<Snapshot>(() => {}),
@@ -119,6 +135,8 @@ function fixture() {
     play: vi.fn(async () => {}),
     live: vi.fn(),
     voice: vi.fn(async () => {}),
+    music: vi.fn(),
+    lines: vi.fn(async () => null),
     stop: vi.fn(),
   };
   return { voices, sounds, audition };
@@ -239,4 +257,22 @@ test("Play row plays a voice's lines back to back, and bulk accept judges only u
       ],
     }),
   );
+});
+
+test("a voice waiting for its designed voice offers its candidates through the set's profile", async () => {
+  const { voices, audition } = await open();
+  const panel = screen.getByRole("region", { name: "Candidates for soldier" });
+  // The lead already has its voice: only the soldier is offered candidates.
+  expect(screen.queryByRole("region", { name: "Candidates for lead" })).toBeNull();
+  expect(within(panel).getByText(/match 0\.88 · 8\.4 s/)).toBeTruthy();
+  fireEvent.click(within(panel).getByRole("button", { name: "Play candidate 2" }));
+  expect(heard(audition)).toEqual([candidateUrl("tank/soldier", 2)]);
+  fireEvent.click(within(panel).getByRole("button", { name: "Pick candidate 2" }));
+  await waitFor(() => expect(voices.pick).toHaveBeenCalledWith("tank/soldier", 2));
+  // None of these: a design retake, then new candidates.
+  fireEvent.click(within(panel).getByRole("button", { name: "None of these" }));
+  await waitFor(() => expect(voices.design).toHaveBeenCalledWith("tank/soldier"));
+  expect(vi.mocked(voices.preview).mock.calls.at(-1)![0].catalog.retakes).toEqual({
+    "tank/soldier/design": 1,
+  });
 });

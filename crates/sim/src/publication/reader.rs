@@ -27,7 +27,7 @@ use super::{
     GROUP_ENCODINGS, GROUP_LAYOUTS, GUIDED_FIELDS, HEADER, HEARD_WORD_BITS, IDENTIFIED_FIELDS,
     KNOWN_PROP_FIELDS, LEAN_FIELDS, LIMB_BITS, MEMBER_ID_FIELDS, MEMBER_ORDER_FIELDS, MOUNT_FIELDS,
     OBJECTIVE_FIELDS, OWN_FIELDS, PENDING_FIELDS, POSE_FIELDS, PROJECTILE_FIELDS, RANGE_FIELDS,
-    REPORT_EVENT_FIELDS, REPORT_TOTAL_FIELDS,
+    REPORT_EVENT_FIELDS, REPORT_TOTAL_FIELDS, SHOUT_FIELDS,
 };
 
 pub type Point2 = [f64; 2];
@@ -48,7 +48,7 @@ macro_rules! view {
 view!(Observation { tick: f64, own: Vec<OwnUnit>, identified: Vec<Identified>, contacts: Vec<Contact>,
     audible: Vec<SoundCue>, #[serde(skip)] known_props: Shared<KnownProp>, projectiles: Vec<Projectile>,
     blasts: Vec<Blast>, #[serde(skip)] corpses: Shared<Corpse>, #[serde(skip)] fallen_bodies: Shared<FallenBody>,
-    crashes: Vec<Crash>, guided: Vec<Guided>, encounter: Option<Encounter>, skirmish: Option<Skirmish>,
+    crashes: Vec<Crash>, shouts: Vec<Shout>, guided: Vec<Guided>, encounter: Option<Encounter>, skirmish: Option<Skirmish>,
     fog: Arc<Fog>, ground_patch: GroundPatch });
 view!(OwnUnit { id: f64, kind: Name, position: Point3, yaw: f64, goal: Option<Point2>, policy: Option<Name>,
     direction: Option<Name>, reversing: bool, withdrawing: bool, protection: Option<Protection>, state: Name,
@@ -122,6 +122,14 @@ view!(Crash {
     yaw: f64,
     pitch: f64,
     roll: f64
+});
+view!(Shout {
+    own: bool,
+    id: f64,
+    kind: Name,
+    position: Point3,
+    trigger: Name,
+    intensity: Name
 });
 view!(Encounter {
     held_s: f64,
@@ -761,6 +769,7 @@ impl Reader {
                 _ => Arc::new(map(&rows[fallen], |r| Ok(fallen_body(r)))?),
             },
             crashes: map(&rows[group("crashes")], |r| self.crash(r))?,
+            shouts: map(&rows[group("shouts")], |r| self.shout(r))?,
             guided: map(&rows[group("guided")], |r| Ok(guided(r)))?,
             encounter: if encounter < 0.0 {
                 None
@@ -1064,6 +1073,19 @@ impl Reader {
             yaw: v!(f, "yaw"),
             pitch: v!(f, "pitch"),
             roll: v!(f, "roll"),
+        })
+    }
+
+    fn shout(&self, r: &Row) -> Result<Shout> {
+        const FIELDS: &[&str] = &SHOUT_FIELDS;
+        let f = r.fields;
+        Ok(Shout {
+            own: v!(f, "own") == 1.0,
+            id: v!(f, "idLo") + v!(f, "idHi") * LIMB,
+            kind: self.name("unitKinds", v!(f, "kind"))?,
+            position: [v!(f, "x"), v!(f, "y"), v!(f, "z")],
+            trigger: self.name("shoutTriggers", v!(f, "trigger"))?,
+            intensity: self.name("intensities", v!(f, "intensity"))?,
         })
     }
 

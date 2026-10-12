@@ -4,7 +4,7 @@
 use presentation::records::SkyLight;
 use wgpu::*;
 
-use crate::frame::{Inputs, Pass, HDR_FORMAT};
+use crate::frame::{Inputs, HDR_FORMAT};
 use crate::gpu::buffer;
 use crate::pipelines::Pipelines;
 
@@ -117,12 +117,10 @@ impl Sky {
     }
 }
 
-impl Pass for Sky {
-    fn name(&self) -> &'static str {
-        "sky"
-    }
-
-    fn encode(&self, inputs: &Inputs, encoder: &mut CommandEncoder) {
+impl Sky {
+    /// The shown sky along the view's rays: the world pass's background,
+    /// its own pass before the world draws over it (`encodeBackground`).
+    pub fn encode(&self, inputs: &Inputs, encoder: &mut CommandEncoder) {
         let (view, targets) = (inputs.view, inputs.targets);
         let rays: &[f32] = &[view.sky_origin, view.sky_dx, view.sky_dy].concat();
         inputs
@@ -133,7 +131,7 @@ impl Pass for Sky {
             color_attachments: &[Some(RenderPassColorAttachment {
                 view: &targets.hdr_msaa,
                 depth_slice: None,
-                resolve_target: Some(&targets.hdr),
+                resolve_target: Some(&targets.lit),
                 // Kept: the world pass draws over it. It resolves too, since
                 // Metal skips the resolve of a tile a pass draws nothing into.
                 ops: Operations {

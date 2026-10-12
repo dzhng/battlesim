@@ -60,7 +60,7 @@ import { typegpuCameraLayout } from "../world/camera";
 import { battleWorldDepth, BATTLE_DEPTH_ATTACHMENT } from "../worldDepth";
 import type { SkyRays } from "../shaders/physicalSky";
 import type { EnvironmentFrame } from "./environmentFrame";
-import { backdropMesh } from "./backdrop";
+import { backdrop_mesh, map_box } from "@wasm/presentation/presentation_wasm.js";
 import {
   identityInstance,
   type CameraGroup,
@@ -81,8 +81,6 @@ import {
 } from "./fogTerm";
 import { createGrassPass } from "./grassPass";
 import { createTerrainHeights } from "./terrainHeights";
-import { terrainTables } from "./terrainTables";
-import { grassTables } from "./grassTables";
 import { createFogVisibility, type FogTiles } from "./fogVisibility";
 import {
   createTerrainSource,
@@ -104,15 +102,13 @@ import {
   waterNormal,
   waterSurface,
 } from "./terrainMaterial";
-import { terrainTuning } from "../terrain/terrainTuning";
+import game from "@fixtures/game.json";
 import { createSceneryLayer } from "./sceneryLayer";
 import type { FelledTree } from "../scenery/felled";
 import { createPaintedMarks, validatePaintStyle, type PaintStyle } from "./paintedMarks";
 import type { GroundMarks, ScarRegion } from "./scarTexture";
 import type { FogGeometryPresentation, FogInput } from "./fogInputs";
-import type { Box3 } from "math/shapes";
 import { vec3, type Mat4 } from "math";
-import { mapBox } from "./receiverRange";
 import {
   createModelFragments,
   modelAttribs,
@@ -147,6 +143,7 @@ import {
   type FrameTargets,
 } from "./targets";
 import type { GpuRegistry } from "./registry";
+const terrainTuning = game.presentation.terrain;
 
 type Root = ReturnType<typeof tgpu.initFromDevice>;
 
@@ -159,6 +156,8 @@ const srgbToLinear = tgpu.fn(
   return std.pow(std.max(c, d.vec3f(0)), d.vec3f(2.2));
 });
 
+/** No map: the cascades fit just past the near plane. */
+const NO_BOX = new Float64Array(0);
 /** Selection glow added to a highlighted proxy. */
 const HIGHLIGHT = [0.95, 0.8, 0.2] as const;
 /** A rough dielectric: the flat box world has no material maps yet. */
@@ -612,7 +611,9 @@ export async function createWorldPass(
   };
   const backdrop = new MeshSlot(root, registry, identity);
   const proxies = new ProxyInstances(root, registry);
-  let box: Box3 | null = null;
+  /** The map's box (`map_box`): what the cascades fit over, and what a
+   *  scar's scissor projects. */
+  let box: Float64Array | null = null;
   let frameProjection: Mat4 | null = null;
   const corner = vec3.create(),
     projected = createProjectedPoint();
@@ -666,8 +667,8 @@ export async function createWorldPass(
       grass.setWorld(next.terrain, next.grass);
       worldProps = next.structures;
       setStatics();
-      box = mapBox(next.terrain.mesh);
-      if (box) backdrop.set(backdropMesh(box, environment.light.backdrop.reach_m));
+      box = map_box(next.terrain.mesh) ?? null;
+      if (box) backdrop.set(backdrop_mesh(box, environment.light.backdrop.reach_m) as Mesh);
     },
     setStructures(next: SideStructures) {
       structures = next;
@@ -745,26 +746,21 @@ export async function createWorldPass(
     },
     fog,
     grassProbes: grass.probes,
-    /** The ground's and the grass's GPU tables as last uploaded, and the
-     *  scenery's instances. */
-    uploadedTables: () => ({
-      terrain: terrainTables(terrain),
-      grass: grassTables(grass),
-      scenery: scenery.tables(),
-    }),
     /** The scenery instances the last view drew (`sceneryLayer.ts`). */
     drawnScenery: () => scenery.drawn(),
     /** Pose the environment and the cascades for this frame's camera, choose
-     *  the trees' detail and fit the grass for a viewport `height` pixels tall. */
+     *  the trees' detail and fit the grass for a viewport `width` by
+     *  `height` pixels. */
     prepare(
       camera: Camera3DParams,
       view: ArrayLike<number>,
       viewProj: Mat4,
       rays: SkyRays,
+      width: number,
       height: number,
     ) {
       frameProjection = viewProj;
-      environment.prepare(camera, view, rays, box);
+      environment.prepare(camera, width, height, view, rays, box ?? NO_BOX);
       scenery.prepare(camera, height);
       grass.prepare(camera, viewProj, height);
     },

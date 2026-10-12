@@ -14,7 +14,9 @@
 // mirror of the vertex stage's math (`frame/sceneryLayer.ts`), so tests
 // hold the drawn shape to the rules.
 import { VERTEX_FLOATS, type Mesh } from "../mesh";
-import type { FelledRules } from "../terrain/biome";
+import type { Biome } from "../terrain/terrainSurface";
+
+type FelledRules = Biome["trees"]["felled"];
 import { HEART, INSTANCE_FLOATS, leafSeed } from "./lod";
 import { TREE_FIELD, TREE_FLOATS, type KindSize } from "./placement";
 

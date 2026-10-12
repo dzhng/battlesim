@@ -25,7 +25,6 @@ import { frameCamera } from "../frameCamera";
 import { battleWorldDepth } from "../worldDepth";
 import type { ResolvedLight } from "../light/sceneLight";
 import type { FogGeometryPresentation } from "./fogInputs";
-import type { FogStyle } from "./fogStyle";
 import { createEnvironmentFrame } from "./environmentFrame";
 import { GpuRegistry } from "./registry";
 import { allocateFrameTargets, SizedTargets } from "./targets";
@@ -50,10 +49,10 @@ const EMPTY = new Float32Array(0);
 const MIN_TARGET_PX = 64;
 
 export interface BattleFrameOptions {
-  /** Optional resolved graphics quality; omitted preserves authored High. */
+  /** Optional resolved graphics quality; omitted preserves authored High.
+   *  The units' and buildings' detail is the presentation's
+   *  (`setDetailScale`): Rust tiers them. */
   quality?: {
-    unitLodScale: number;
-    buildingLodScale: number;
     treeLodScale: number;
     grassDensity: number;
     shadowMapSize: 1024 | 2048;
@@ -65,8 +64,9 @@ export interface BattleFrameOptions {
   light: ResolvedLight;
   /** `presentation.fog_geometry`: the sight lights' resolution and budgets. */
   fogGeometry: FogGeometryPresentation;
-  /** The unseen look to start with (`presentation.fog`'s selected style). */
-  fogStyle: FogStyle;
+  /** The unseen look to start with: `presentation.fog`'s selected style as
+   *  the presentation crate resolves it (a `FogLook` record). */
+  fogLook: Float32Array;
   /** The halo the display-space overlays carry. */
   overlayGlow: OverlayGlowStyle;
   /** How the painted ground marks look. */
@@ -122,28 +122,7 @@ export async function createBattleFrame(
         }
       : options.light;
     const environment = await createEnvironmentFrame(device, registry, effectiveLight);
-    const models = await createModelLayer(
-      root,
-      registry,
-      quality
-        ? {
-            ...options.models,
-            lod_px: options.models.lod_px.map((v) => v * quality.unitLodScale) as [
-              number,
-              number,
-              number,
-            ],
-          }
-        : options.models,
-      quality
-        ? {
-            ...options.buildings,
-            lod_px_per_m: options.buildings.lod_px_per_m.map(
-              (v) => v * quality.buildingLodScale,
-            ) as [number, number, number],
-          }
-        : options.buildings,
-    );
+    const models = await createModelLayer(root, registry, options.models);
     registry.adopt(() => models.dispose());
     const world = await createWorldPass(
       root,
@@ -157,7 +136,7 @@ export async function createBattleFrame(
       quality?.grassDensity ?? 1,
       quality?.treeLodScale ?? 1,
     );
-    const fogMask = await createFogMaskPass(root, registry, displayFormat, options.fogStyle);
+    const fogMask = await createFogMaskPass(root, registry, displayFormat, options.fogLook);
     const impostors = createImpostorBaker(root, registry, models, environment);
     const overlay = await createOverlayPass(root, registry, displayFormat, options.overlayGlow);
     const effects = await createEffectPass(device, registry, environment.raw);
@@ -235,7 +214,7 @@ export async function createBattleFrame(
           camera.write(state.bytes.buffer);
           const detail = setDetailView(detailView, camera3d, height);
           environment.setCastLights(lights, lightsShown ? lightCount : 0, lightWrap);
-          world.prepare(camera3d, state.view, state.viewProj, state.rays, height);
+          world.prepare(camera3d, state.view, state.viewProj, state.rays, width, height);
           models.prepare(detail, detailKey(camera3d, height), sunShadow(shadow, sun, camera3d));
 
           let encoder = root["~unstable"].createCommandEncoder({ label: "battle-frame" });
@@ -359,8 +338,8 @@ export async function createBattleFrame(
           if (!far) throw new Error(`no installed appearance ${appearance}`);
           return impostors.bake(appearance, far.pose, far.bounds, spec);
         },
-        setFogStyle(next) {
-          if (!disposed) fogMask.setStyle(next);
+        setFogLook(next) {
+          if (!disposed) fogMask.setLook(next);
         },
         setCastLightsShown(on) {
           lightsShown = on;
@@ -404,7 +383,6 @@ export async function createBattleFrame(
         settled: () => targets.settled(),
         fogProbes: world.fog,
         grassProbes: world.grassProbes,
-        uploadedTables: () => world.uploadedTables(),
         drawnInstances: () => ({
           buildings: models.drawnBuildings(),
           scenery: world.drawnScenery(),

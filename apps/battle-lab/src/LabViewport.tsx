@@ -83,6 +83,7 @@ import {
 } from "./presentedFrame";
 import { emptyBuildingWalkStats } from "@packages/battle-renderer/src/models/buildingLayer";
 import {
+  resolveFogLook,
   resolveLight,
   type PresentedAppearance,
   type PresentedFrame,
@@ -204,7 +205,7 @@ export interface ViewportFrame {
   clock?: number;
   /** What the frame's effects hold, by kind and shape. */
   effectCounts?: EffectCounts;
-  /** The observing side's learned ground (the client's `GroundView`), drawn
+  /** The observing side's learned ground (the presentation's `LearnedGround`), drawn
    *  as scars; the frame uploads only what changed since it last looked. */
   ground?: GroundMarks | null;
 }
@@ -234,13 +235,11 @@ export interface ViewportPilot {
   frameRate?: boolean;
   /** The battle frame is up: the adapter, the light it was built with, the
    *  frame's own statistics (its rolling GPU frame time from
-   *  `timestamp-query`, and live memory), and its ground's and grass's GPU
-   *  tables as last uploaded. */
+   *  `timestamp-query`, and live memory). */
   attach?(frame: {
     adapter: string;
     light: LightPresentation;
     stats: () => ReturnType<BattleFrame["stats"]>;
-    tables: () => ReturnType<BattleFrame["uploadedTables"]>;
   }): void;
   /** The framing for the frame at `now`; the rig places it
    *  (`CameraController.place`) and draws it clear of obstacles (`resolve`).
@@ -563,7 +562,7 @@ export function LabViewport({
   fogStyleRef.current = fogStyle;
   const lightRef = useRef(light);
   useEffect(() => {
-    sceneRef.current?.setFogStyle(fogStyle ?? gameFogStyle);
+    sceneRef.current?.setFogLook(resolveFogLook(fogStyle ?? gameFogStyle));
     redrawRef.current();
   }, [fogStyle]);
   const fogSuppressed = useRef(false);
@@ -740,6 +739,11 @@ export function LabViewport({
         let staticStyle = gameBuildingStyle;
         let staticSun = { azimuth: 0, elevation: 1, farM: 0 };
         let resend = false;
+        /** The presentation and quality the detail scale was last given to. */
+        let detailed: [ObservationDecoder | null, GraphicsQualityProfile | undefined] = [
+          null,
+          undefined,
+        ];
         const build = async () => {
           const lit = light();
           staticSun = {
@@ -752,13 +756,12 @@ export function LabViewport({
           const next = await createBattleFrame(device!, info.format, {
             light: await resolveLight(lit),
             fogGeometry: gameFogGeometry,
-            fogStyle: fogStyleRef.current ?? gameFogStyle,
+            fogLook: resolveFogLook(fogStyleRef.current ?? gameFogStyle),
             overlayGlow: gameOverlayGlow,
             paint: gamePaint,
             xrayMinHiddenFragmentFraction: gameXrayMinHiddenFragmentFraction,
             models: gameModelDetail,
             glass: gameGlass,
-            buildings: buildingStyleRef.current ?? gameBuildingStyle,
             quality: qualityRef.current,
             world: worldRef.current.current!,
             instances: instancesRef.current,
@@ -803,7 +806,6 @@ export function LabViewport({
           adapter,
           light: light(),
           stats: () => scene.stats(),
-          tables: () => scene.uploadedTables(),
         });
         // What the battle draws, for a player's diagnostics report.
         signal.addEventListener(
@@ -904,6 +906,11 @@ export function LabViewport({
               );
               if (resend) decoder.resendStatics();
               resend = false;
+              const quality = qualityRef.current;
+              if (detailed[0] !== decoder || detailed[1] !== quality) {
+                detailed = [decoder, quality];
+                decoder.setDetailScale(quality?.unitLodScale ?? 1, quality?.buildingLodScale ?? 1);
+              }
             }
             animated = frameRef.current?.(now, snapshot());
           } catch (err) {

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
-import type { GroundView } from "@web/battle/sim/ground";
+import type { LearnedGround, ObservationDecoder } from "@web/battle/sim/presentation";
 import type { ObservationView } from "@web/battle/sim/observationView";
 import type { SideName } from "@web/battle/sim/protocol";
 import game from "@fixtures/game.json";
@@ -9,10 +9,11 @@ import { BattleMemory, orderLayer, remainsLayer, tracerLayer } from "../battleOv
 import {
   buildGroundCellOverlay,
   CHANNEL_COLORS,
+  GROUND_CHANNELS,
   groundCells,
   type GroundCells,
+  type GroundChannel,
 } from "../groundCells";
-import { GROUND_CHANNELS, type GroundChannel } from "@web/battle/sim/ground";
 import { channels } from "@web/battle/present/hudTheme";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
@@ -134,8 +135,11 @@ function GroundInspector({ scenario, seed, camera, legend, extra }: InspectorPro
   const built = useRef({ tick: -Infinity, epoch: -1, revision: -1 });
   // The largest delta so far: the stream stays bounded.
   const maxDelta = useRef(0);
+  // The cells the latest patch covered, read from the presentation as it decodes.
+  const lastCells = useRef(0);
+  const decoderRef = useRef<ObservationDecoder | null>(null);
   // The session's view of the side's learned ground (set once it exists).
-  const groundRef = useRef<{ current: GroundView | null } | null>(null);
+  const groundRef = useRef<{ current: LearnedGround | null } | null>(null);
   const refreshGround = useCallback((tick?: number) => {
     const view = groundRef.current?.current;
     if (!view) return null;
@@ -153,8 +157,8 @@ function GroundInspector({ scenario, seed, camera, legend, extra }: InspectorPro
   const onDecoded = useCallback(
     (o: ObservationView) => {
       memory.current.note(o);
-      const patch = o.groundPatch;
-      if (!patch.full) maxDelta.current = Math.max(maxDelta.current, patchCells(patch));
+      lastCells.current = decoderRef.current?.groundPatchCells() ?? 0;
+      if (!o.groundPatch.full) maxDelta.current = Math.max(maxDelta.current, lastCells.current);
       const view = groundRef.current?.current;
       if (!view) return;
       const b = built.current;
@@ -168,6 +172,7 @@ function GroundInspector({ scenario, seed, camera, legend, extra }: InspectorPro
   );
   const session = useBattleSession({ scenario, seed, onDecoded, side });
   const { world, meshes, sim, control, surfaceZ } = session;
+  decoderRef.current = sim.client?.presentation ?? null;
   const worldFeed = useFeed(meshes);
   const { observation, client } = sim;
   groundRef.current = sim.ground;
@@ -239,7 +244,7 @@ function GroundInspector({ scenario, seed, camera, legend, extra }: InspectorPro
               full: last.full,
               base: last.baseRevision,
               revision: last.revision,
-              cells: patchCells(last),
+              cells: lastCells.current,
             },
           }
         : null;
@@ -293,7 +298,7 @@ function GroundInspector({ scenario, seed, camera, legend, extra }: InspectorPro
           {last
             ? `Stream ${last.epoch} (${last.side}) at revision ${last.revision}; last patch ${
                 last.full ? "a full snapshot" : `a delta from ${last.baseRevision}`
-              } of ${patchCells(last)} cells; largest delta ${maxDelta.current}`
+              } of ${lastCells.current} cells; largest delta ${maxDelta.current}`
             : "No patch yet"}
         </div>
         <div className="lab-legend">
@@ -308,11 +313,4 @@ function GroundInspector({ scenario, seed, camera, legend, extra }: InspectorPro
       </aside>
     </>
   );
-}
-
-/** Logical cells represented by a compact patch; diagnostics never expand it. */
-function patchCells(patch: ObservationView["groundPatch"]): number {
-  let cells = 0;
-  for (let at = 1; at < patch.runs.length; at += 4) cells += Math.floor(patch.runs[at] / 256);
-  return cells;
 }

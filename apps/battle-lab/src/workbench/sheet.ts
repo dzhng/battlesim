@@ -27,7 +27,7 @@ import {
   type TextureChannel,
 } from "@packages/scene-assets/src/schema";
 import { gameLight } from "../gameLight";
-import { resolveLight } from "@web/battle/sim/presentation";
+import { resolveFogLook, resolveLight } from "@web/battle/sim/presentation";
 import { gameFogGeometry, gameFogStyle } from "../gameFog";
 import { gameOverlayGlow, gamePaint, gameXrayMinHiddenFragmentFraction } from "../gameOverlay";
 import { gameGlass, gameModelDetail } from "../gameModels";
@@ -213,7 +213,7 @@ export class SheetRenderer {
     const frame = await createBattleFrame(device, format, {
       light: await resolveLight(gameLight),
       fogGeometry: gameFogGeometry,
-      fogStyle: gameFogStyle,
+      fogLook: resolveFogLook(gameFogStyle),
       overlayGlow: gameOverlayGlow,
       paint: gamePaint,
       xrayMinHiddenFragmentFraction: gameXrayMinHiddenFragmentFraction,

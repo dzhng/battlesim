@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   BARK_TRIGGERS,
   RESPONSE_TRIGGERS,
+  barkTrigger,
   lineText,
   validateVoiceCatalog,
 } from "@packages/battle-audio/src/voices/voiceCatalog";
@@ -18,6 +19,34 @@ const roster = Object.assign(
       ).units,
   ),
 );
+
+// The simulation's layout, as the encoder's codec test holds it
+// (`crates/sim/tests/publication.rs`): its bark tags are the contract's names.
+const { layout } = JSON.parse(
+  readFileSync(resolve(process.cwd(), "../fixtures/parity/publication/codec-vectors.json"), "utf8"),
+) as { layout: { shoutTriggers: string[] } };
+
+describe("bark names", () => {
+  it("are the simulation's barks, B1 to B17 in order", () => {
+    expect(layout.shoutTriggers.map(barkTrigger)).toEqual(BARK_TRIGGERS);
+  });
+
+  it("are scripted, both intensities and both takes, by every role", () => {
+    const catalog = validateVoiceCatalog(voiceJson, roster);
+    for (const [name, role] of Object.entries(catalog.roles))
+      for (const tag of layout.shoutTriggers) {
+        const lines = role.lines[barkTrigger(tag)];
+        expect(lines?.steady, `${name} ${tag}`).toHaveLength(2);
+        expect(lines?.stressed, `${name} ${tag}`).toHaveLength(2);
+      }
+  });
+
+  it("refuse a tag that names no bark or the wrong number", () => {
+    expect(() => barkTrigger("b18_surrender")).toThrow();
+    expect(() => barkTrigger("b4_under_fire")).toThrow();
+    expect(() => barkTrigger("under_fire")).toThrow();
+  });
+});
 
 describe("voice catalog", () => {
   it("exports the 29 approved triggers", () => {

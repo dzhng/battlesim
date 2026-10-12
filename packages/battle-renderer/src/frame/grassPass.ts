@@ -39,39 +39,34 @@
 //
 // Grass casts no sun shadow (cost); it receives the cascades. Every number
 // here that sets the look and is not the biome's lives in
-// `terrain/grassTuning.ts`, spliced into the WGSL as a constant.
+// `presentation.grass` in `fixtures/game.json` (documented in
+// `crates/presentation`'s `ground::tuning`), spliced into the WGSL as a constant.
 import { tgpu, d, std, type TgpuBindGroup, type TgpuRenderPass } from "typegpu";
 import { pcgHash } from "../shaders/pcgHash";
 import { vec3, type Mat4 } from "math";
-import { frustum } from "math/shapes";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { eyePosition } from "@packages/renderer-core/src/camera3d";
+import { GRASS_HEIGHT_VARIATION } from "@packages/scene-assets/src/grass.ts";
 import {
-  GRASS_SEGMENTS,
-  GRASS_HEIGHT_VARIATION,
-  grassBladeVertices,
-  grassStripIndices,
-} from "@packages/scene-assets/src/grass.ts";
+  grass_blade_vertices,
+  grass_field_segments,
+  grass_frame_params,
+  grass_metres_per_pixel,
+  grass_strip_indices,
+} from "@wasm/presentation/presentation_wasm.js";
 import { typegpuCameraLayout } from "../world/camera";
 import { battleWorldDepth } from "../worldDepth";
-import type { TerrainSurface } from "../terrain/terrainSurface";
+import type { Biome, TerrainSurface } from "../terrain/terrainSurface";
+
+type GrassRules = Biome["grass"];
 import {
-  createGrassWindow,
-  FIELD_LODS,
   GRASS_GROWTH_ROWS,
   GRASS_MAX_KINDS,
-  GRASS_TILE_M,
-  grassKinds,
-  grassSides,
-  grassWindow,
-  metresPerPixel,
-  packGrassProps,
-  packGrassShapes,
+  GRASS_MIX_MAX,
+  grassShapes,
   type GrassAppearances,
-  GRASS_EDGE_M,
 } from "../terrain/grassField";
-import { GRASS_MIX_MAX, type GrassRules } from "../terrain/biome";
-import { grassTuning as tuning } from "../terrain/grassTuning";
+import game from "@fixtures/game.json";
 import {
   fogCoverage,
   fogIsGround,
@@ -106,6 +101,7 @@ import type { EnvironmentFrame } from "./environmentFrame";
 import type { CameraGroup } from "./geometry";
 import { FRAME_MSAA, WORLD_OUT, worldTargets } from "./targets";
 import type { GpuRegistry, GpuSlot } from "./registry";
+const tuning = game.presentation.grass;
 
 type Root = ReturnType<typeof tgpu.initFromDevice>;
 
@@ -132,7 +128,7 @@ export const GrassParams = d
     shading: d.vec4f,
     /** The bare margin round a forest or water, the farthest a clump moves
      *  to its row; 0, 0. (A prop's margin widens its footprint in the prop
-     *  table: `packGrassProps`.) */
+     *  table: `Ground::grass_props`.) */
     clear: d.vec4f,
     /** The height grid's size, 0, 0. */
     counts: d.vec4u,
@@ -191,7 +187,7 @@ export const grassBuildLayout = tgpu.bindGroupLayout({
     access: "readonly",
     visibility: ["compute"],
   },
-  /** The prop footprints, bucketed by grid cell (`packGrassProps`). */
+  /** The prop footprints, bucketed by grid cell (`Ground::grass_props`). */
   props: {
     storage: (n: number) => d.arrayOf(d.vec4f, n),
     access: "readonly",
@@ -268,7 +264,7 @@ const grassDensity = tgpu
     d.f32,
   )(/* wgsl */ `(dist: f32, drop: f32) -> f32 {
   let P = &grassBuildLayout.$.params;
-  let facing = clamp(drop / dist, ${tuning.density.leastFacing}, 1.0);
+  let facing = clamp(drop / dist, ${tuning.density.least_facing}, 1.0);
   let footprint = (*P).eye.w * dist;
   return min((*P).density.y, facing / ((*P).density.x * footprint * footprint));
 }`)
@@ -339,8 +335,8 @@ const buildFn = tgpu
   }
   zlo -= 1.0;
   zhi += 1.0 + (*P).window.w;
-  let lo2 = lo - vec2f(${tuning.placement.jitterM} + (*P).clear.y);
-  let hi2 = hi + vec2f(${tuning.placement.jitterM} + (*P).clear.y);
+  let lo2 = lo - vec2f(${tuning.placement.jitter_m} + (*P).clear.y);
+  let hi2 = hi + vec2f(${tuning.placement.jitter_m} + (*P).clear.y);
   for (var i = 0u; i < 4u; i++) {
     let pl = (*P).planes[i];
     let pv = vec3f(select(lo2.x, hi2.x, pl.x >= 0.0), select(lo2.y, hi2.y, pl.y >= 0.0), select(zlo, zhi, pl.z >= 0.0));
@@ -358,7 +354,7 @@ const buildFn = tgpu
     // The sequence's point, jittered by a fixed amount so a sparse field
     // shows no lattice; both depend on the tile and j alone.
     let h = grassHash(bitcast<u32>(cell.x) ^ (j * 2654435761u), bitcast<u32>(cell.y) + j);
-    let jitter = (vec2f(fract(h.z * 7.13), fract(h.x * 5.31)) - 0.5) * ${2 * tuning.placement.jitterM};
+    let jitter = (vec2f(fract(h.z * 7.13), fract(h.x * 5.31)) - 0.5) * ${2 * tuning.placement.jitter_m};
     let fell = lo + T * fract(offset + f32(j + 1u) * vec2f(${R2[0]}, ${R2[1]})) + jitter;
     let fellZ = grassGround(fell);
     let dist = max(distance(eye, vec3f(fell, fellZ)), 0.5);
@@ -380,7 +376,7 @@ const buildFn = tgpu
     // band under it, and the field's own right up to that.
     var wood = max(site.w, forestVergeInside(fell, site.w));
     var line = vec2f(0.0, -1e9);
-    if (wood > -((*P).clear.x + ${GRASS_EDGE_M})) {
+    if (wood > -((*P).clear.x + ${tuning.edge_m})) {
       line = groundLineBand(fell, cell, site.w);
       if (line.x > 0.5) { wood = -1e9; }
     }
@@ -392,8 +388,8 @@ const buildFn = tgpu
     let worn = groundShoulder(fell, footprint, paved);
     // Bare on a road's own surface and at the foot of its shoulder, but for
     // a track's centre strip.
-    if (worn.x > ${tuning.stand.bareWear}) { continue; }
-    let edge = smoothstep(0.0, ${GRASS_EDGE_M}, min(margin, abs(site.z))) * (1.0 - worn.x);
+    if (worn.x > ${tuning.stand.bare_wear}) { continue; }
+    let edge = smoothstep(0.0, ${tuning.edge_m}, min(margin, abs(site.z))) * (1.0 - worn.x);
     var grows = min(u32(terrainLayout.$.plots[i32(site.x)].detail.y), ${GRASS_GROWTH_ROWS - 2}u);
     if (groundVerge(site, footprint) > 0.5 || line.y > 0.0) { grows = ${GRASS_GROWTH_ROWS - 1}u; }
     let g = (*P).growth[grows];
@@ -406,7 +402,7 @@ const buildFn = tgpu
     if (g.w > 0.0 && plot.rows.z > 0.0) {
       let across = dot(fell, plot.rows.xy) / plot.rows.z;
       let toRow = (floor(across) + 0.5 - across) * plot.rows.z * g.w;
-      let room = max(0.0, min(site.y - terrainLayout.$.params.verge.w, margin) - ${tuning.placement.headlandM});
+      let room = max(0.0, min(site.y - terrainLayout.$.params.verge.w, margin) - ${tuning.placement.headland_m});
       p = fell + plot.rows.xy * clamp(toRow, -room, room);
     }
     // A wheeling stays bare.
@@ -417,13 +413,13 @@ const buildFn = tgpu
     let S = terrainLayout.$.scarParams.grass;
     let bare = max(max(scar.weights.x, scar.weights.y), scar.weights.z * S.y) * S.x;
     // Sparse patches: the stand thins there and nowhere thickens.
-    let sparse = 1.0 - smoothstep(${tuning.stand.sparseCut[0]}, ${tuning.stand.sparseCut[1]}, valueNoise(p * (*P).patchScales.y + vec2f(41.7, 13.1)));
-    let keep = rho * g.x * (1.0 - stand.z * sparse) * mix(${tuning.stand.edgeDensity}, 1.0, edge) * (1.0 - bare) * (1.0 - shore) * groundShoulderGrass(worn);
+    let sparse = 1.0 - smoothstep(${tuning.stand.sparse_cut[0]}, ${tuning.stand.sparse_cut[1]}, valueNoise(p * (*P).patchScales.y + vec2f(41.7, 13.1)));
+    let keep = rho * g.x * (1.0 - stand.z * sparse) * mix(${tuning.stand.edge_density}, 1.0, edge) * (1.0 - bare) * (1.0 - shore) * groundShoulderGrass(worn);
     if (rank >= keep) { continue; }
     if (grassUnderProp(p)) { continue; }
     // A clump nearing its rank's threshold is small: it grows as the
     // density passes it, and shrinks away as the fade takes it.
-    let grow = 1.0 - smoothstep(${tuning.stand.growFrom} * keep, keep, rank);
+    let grow = 1.0 - smoothstep(${tuning.stand.grow_from} * keep, keep, rank);
     let fade = 1.0 - smoothstep((*P).density.z, (*P).density.w, footprint);
     // Which of the row's grasses this clump is: its hash against their
     // shares, a drifting grass weighted up inside its drifts and down to
@@ -435,8 +431,8 @@ const buildFn = tgpu
       let entry = (*P).mixes[grows * ${GRASS_MIX_MAX}u + i];
       var share = entry.y;
       if (entry.z > 0.0) {
-        let drift = smoothstep(${tuning.mix.driftCut[0]}, ${tuning.mix.driftCut[1]}, valueNoise(p * (*P).patchScales.w + vec2f(f32(i) * 17.3 + 3.1, f32(grows) * 7.9)));
-        share *= mix(1.0, ${tuning.mix.driftGather} * drift, entry.z);
+        let drift = smoothstep(${tuning.mix.drift_cut[0]}, ${tuning.mix.drift_cut[1]}, valueNoise(p * (*P).patchScales.w + vec2f(f32(i) * 17.3 + 3.1, f32(grows) * 7.9)));
+        share *= mix(1.0, ${tuning.mix.drift_gather} * drift, entry.z);
       }
       shares[i] = share;
       total += share;
@@ -455,8 +451,8 @@ const buildFn = tgpu
     let row = (*P).kinds[kind];
     // Patches a few metres across stand taller or lower, as uneven grass does.
     let tall = valueNoise(p * (*P).patchScales.x);
-    let height = row.x * g.y * grow * fade * mix(${GRASS_HEIGHT_VARIATION[0]}, ${GRASS_HEIGHT_VARIATION[1]}, h.x) * mix(stand.x, stand.y, tall) * mix(${tuning.stand.edgeHeight}, 1.0, edge);
-    if (height < ${tuning.stand.leastHeightM}) { continue; }
+    let height = row.x * g.y * grow * fade * mix(${GRASS_HEIGHT_VARIATION[0]}, ${GRASS_HEIGHT_VARIATION[1]}, h.x) * mix(stand.x, stand.y, tall) * mix(${tuning.stand.edge_height}, 1.0, edge);
+    if (height < ${tuning.stand.least_height_m}) { continue; }
     let centre = root + vec3f(0.0, 0.0, height * 0.5);
     let radius = height * 0.8 + 0.4;
     var shown = true;
@@ -466,11 +462,11 @@ const buildFn = tgpu
     }
     if (!shown) { continue; }
     var tier = 1u;
-    if (height / footprint > (*P).tiers.x * mix(${tuning.tierJitter[0]}, ${tuning.tierJitter[1]}, h.y)) { tier = 0u; }
+    if (height / footprint > (*P).tiers.x * mix(${tuning.tier_jitter[0]}, ${tuning.tier_jitter[1]}, h.y)) { tier = 0u; }
     let width = max(1.0, (*P).tiers.y * footprint / max(row.z, 1e-4));
     // Dry patches, and a grass drier than its neighbours: toward straw at
     // the ground's own luminance, so no patch is darker than its field.
-    let parched = smoothstep(${tuning.stand.parchedCut[0]}, ${tuning.stand.parchedCut[1]}, valueNoise(p * (*P).patchScales.z + vec2f(9.3, 77.1)));
+    let parched = smoothstep(${tuning.stand.parched_cut[0]}, ${tuning.stand.parched_cut[1]}, valueNoise(p * (*P).patchScales.z + vec2f(9.3, 77.1)));
     // What sets a clump apart from the ground under it (how dry it is, its
     // grain) goes with the clump as the fade takes it, so the field's far
     // edge meets the painted ground with the ground's own colour.
@@ -572,8 +568,8 @@ const grassVertexOf = tgpu
   let dir = (*P).wind.xy;
   let along = dot(c.root.xy, dir);
   let front = sin(6.2831853 * (along - t * (*P).gusts.y) * (*P).gusts.x);
-  let gust = smoothstep(${tuning.wind.gustFrom}, 1.0, front);
-  let flutter = (*P).gusts.z * sin((*P).gusts.w * t + s.side.w * 6.2831853 + along * ${tuning.wind.flutterPhase});
+  let gust = smoothstep(${tuning.wind.gust_from}, 1.0, front);
+  let flutter = (*P).gusts.z * sin((*P).gusts.w * t + s.side.w * 6.2831853 + along * ${tuning.wind.flutter_phase});
   let bend = s.spine.w * s.spine.w;
   let packed = unpack4x8unorm(c.colour);
   // Laid over by tracks or trampling: the clump sinks and its blades lean
@@ -582,7 +578,7 @@ const grassVertexOf = tgpu
   let flat = 1.0 - packed.w;
   let answer = s.tint.w * (1.0 - flat);
   let lean = ((*P).wind.z + (*P).wind.w * gust + flutter) * answer;
-  let push = dir * lean + vec2f(-dir.y, dir.x) * flutter * ${tuning.wind.flutterAcross} * answer;
+  let push = dir * lean + vec2f(-dir.y, dir.x) * flutter * ${tuning.wind.flutter_across} * answer;
   let laid = vec2f(cs, sn) * flat * ${tuning.laid.lean};
   var world = c.root + vec3f(spine.xy, spine.z * (1.0 - flat * ${tuning.laid.sink})) + side + vec3f((push + laid) * c.height * bend, 0.0);
   world.z -= 0.5 * dot(push, push) * c.height * bend;
@@ -747,7 +743,9 @@ export async function createGrassPass(
 
   const { STORAGE, COPY_DST, COPY_SRC, INDIRECT, INDEX, MAP_READ } = GPUBufferUsage;
   const params = registry.own(root.createBuffer(GrassParams).$usage("uniform"));
-  const tierUniforms = FIELD_LODS.map(() =>
+  /** The field's tiers, near then far, by their blades' segments. */
+  const tierSegments = [...grass_field_segments()];
+  const tierUniforms = tierSegments.map(() =>
     registry.own(root.createBuffer(d.vec4u).$usage("uniform")),
   );
   const args = registry.buffer({
@@ -773,22 +771,17 @@ export async function createGrassPass(
   let capacity: [number, number] = [0, 0];
   let indexCounts: [number, number] = [0, 0];
   let ready = false;
-  let lowest = 0;
   let tiles = 0;
   let buildGroup: ReturnType<typeof makeBuildGroup> | null = null;
   let drawGroups: ReturnType<typeof makeDrawGroup>[] = [];
-  const window = createGrassWindow();
-  const sides = frustum.create();
+  /** This frame's window (`Ground.grass_window`): its corner, tiles across
+   *  and up, reach, and far corner. */
+  let window: Float64Array = new Float64Array(7);
   const eye = vec3.create();
-  let frameParams: d.Infer<typeof GrassParams> | null = null;
-  /** What `rebuild` uploaded (`grassTables.ts` reads it). */
-  let packedTables: {
-    props: Float32Array;
-    shapes: Float32Array;
-    indices: Uint16Array[];
-    tiers: d.v4u[];
-    maxBlades: number;
-  } | null = null;
+  /** `GrassParams` as the ground laid it (`Ground.grass_params`), its
+   *  per-frame fields (the planes, the eye, the window's corner and tile, its
+   *  tiles) written over each regrow. */
+  let frameParams: Uint32Array | null = null;
 
   function makeBuildGroup() {
     return root.createBindGroup(grassBuildLayout, {
@@ -813,29 +806,30 @@ export async function createGrassPass(
     ready = false;
     const grid = surface?.grid;
     if (!surface || !grid || !appearances) return;
+    const ground = surface.ground;
     rules = retuned ?? surface.biome.grass;
-    const kinds = grassKinds({ ...surface.biome, grass: rules }, appearances);
-    if (!kinds) return;
-    const packed = packGrassShapes(kinds);
-    kindNames = kinds.appearances.map((a) => a.name);
-    lowest = grid.minHeight;
-    const props = packGrassProps(surface.site.footprints, rules.clear_m.prop);
+    ground.retune_grass(retuned && JSON.stringify(retuned));
+    const names = JSON.parse(ground.grass_kinds()) as string[];
+    if (!names.every((name) => appearances!.has(name))) return;
+    const packed = grassShapes(names, appearances);
+    const shapes = packed.shapes();
+    const maxBlades = packed.max_blades();
+    let laid: Uint32Array;
+    try {
+      laid = ground.grass_params(packed, densityMultiplier);
+    } finally {
+      packed.free();
+    }
+    kindNames = names;
+    const props = ground.grass_props();
     slots.props.set(storage("grass-props", props.byteLength));
     device.queue.writeBuffer(slots.props.current!, 0, props);
     capacity = [rules.capacity[0], rules.capacity[1]];
     slots.clumps.set(storage("grass-clumps", (capacity[0] + capacity[1]) * CLUMP_BYTES, COPY_SRC));
-    slots.shapes.set(storage("grass-shapes", packed.shapes.byteLength));
-    device.queue.writeBuffer(slots.shapes.current!, 0, packed.shapes);
-    const uploaded = {
-      props,
-      shapes: packed.shapes,
-      indices: [] as Uint16Array[],
-      tiers: [] as d.v4u[],
-      maxBlades: packed.maxBlades,
-    };
-    FIELD_LODS.forEach((lod, t) => {
-      const segments = GRASS_SEGMENTS[lod];
-      const indices = grassStripIndices(packed.maxBlades, segments);
+    slots.shapes.set(storage("grass-shapes", shapes.byteLength));
+    device.queue.writeBuffer(slots.shapes.current!, 0, shapes);
+    tierSegments.forEach((segments, t) => {
+      const indices = grass_strip_indices(maxBlades, segments);
       indexCounts[t] = indices.length;
       const buffer = device.createBuffer({
         label: `grass-indices-${t}`,
@@ -846,60 +840,13 @@ export async function createGrassPass(
       const padded = new Uint16Array(buffer.size / 2);
       padded.set(indices);
       device.queue.writeBuffer(buffer, 0, padded);
-      const tier = d.vec4u(t, t === 0 ? 0 : capacity[0], grassBladeVertices(segments), 0);
-      tierUniforms[t].write(tier);
-      uploaded.indices.push(padded);
-      uploaded.tiers.push(tier);
-    });
-    packedTables = uploaded;
-    const wind = rules.wind;
-    const vec4s = <V>(
-      data: Float32Array | Uint32Array,
-      count: number,
-      of: (x: number, y: number, z: number, w: number) => V,
-    ) =>
-      Array.from({ length: count }, (_, k) =>
-        of(data[k * 4], data[k * 4 + 1], data[k * 4 + 2], data[k * 4 + 3]),
+      tierUniforms[t].write(
+        d.vec4u(t, t === 0 ? 0 : capacity[0], grass_blade_vertices(segments), 0),
       );
-    const heading = (wind.heading_deg * Math.PI) / 180;
-    frameParams = {
-      planes: [d.vec4f(), d.vec4f(), d.vec4f(), d.vec4f()],
-      eye: d.vec4f(),
-      window: d.vec4f(0, 0, GRASS_TILE_M, kinds.tallest),
-      grid: d.vec4u(0, 0, capacity[0], capacity[1]),
-      density: d.vec4f(
-        rules.pixels_per_clump,
-        rules.max_clumps_m2 * densityMultiplier,
-        rules.fade_m_per_px[0],
-        rules.fade_m_per_px[1],
-      ),
-      tiers: d.vec4f(
-        rules.near_tier_px,
-        rules.min_blade_px,
-        rules.soften_m_per_px[0],
-        rules.soften_m_per_px[1],
-      ),
-      shading: d.vec4f(rules.soften, rules.blade_facing, rules.clump_value, 0),
-      clear: d.vec4f(rules.clear_m.area, kinds.rowReach, 0, 0),
-      counts: d.vec4u(grid.nx, grid.ny, 0, 0),
-      ground: d.vec4f(grid.spacing, 0, 0, 0),
-      wind: d.vec4f(Math.cos(heading), Math.sin(heading), wind.lean, wind.gust),
-      gusts: d.vec4f(1 / wind.gust_m, wind.gust_mps, wind.flutter, wind.flutter_hz * 2 * Math.PI),
-      growth: vec4s(kinds.growth, GRASS_GROWTH_ROWS, d.vec4f),
-      patches: vec4s(kinds.patches, GRASS_GROWTH_ROWS, d.vec4f),
-      mixes: vec4s(kinds.mixes, GRASS_GROWTH_ROWS * GRASS_MIX_MAX, d.vec4f),
-      patchScales: d.vec4f(
-        1 / rules.patch_m.height,
-        1 / rules.patch_m.thin,
-        1 / rules.patch_m.dry,
-        1 / rules.patch_m.drift,
-      ),
-      grain: d.vec4f(1 / rules.patch_m.grain, rules.dry_lift, 0, 0),
-      kinds: vec4s(packed.rows, GRASS_MAX_KINDS, d.vec4f),
-      bases: vec4s(packed.bases, GRASS_MAX_KINDS, d.vec4u),
-    };
+    });
+    frameParams = laid;
     buildGroup = makeBuildGroup();
-    drawGroups = FIELD_LODS.map((_, t) => makeDrawGroup(t));
+    drawGroups = tierSegments.map((_, t) => makeDrawGroup(t));
     grownFor.fill(NaN);
     ready = true;
   }
@@ -924,11 +871,11 @@ export async function createGrassPass(
     prepare(camera: Camera3DParams, viewProj: Mat4, heightPx: number) {
       drawn = false;
       regrow = false;
-      if (!ready || suppressed || !frameParams || !rules) return;
+      if (!ready || suppressed || !frameParams || !surface) return;
       eyePosition(eye, camera);
-      const scale = metresPerPixel(camera.fovY, heightPx);
-      grassWindow(window, eye, lowest, scale, rules);
-      tiles = window.tilesX * window.tilesY;
+      const scale = grass_metres_per_pixel(camera.fovY, heightPx);
+      window = surface.ground.grass_window(Float64Array.from(eye), scale);
+      tiles = window[2] * window[3];
       if (!tiles) return;
       drawn = true;
       let same = grownFor[16] === Math.fround(scale);
@@ -937,16 +884,14 @@ export async function createGrassPass(
       grownFor.set(viewProj);
       grownFor[16] = scale;
       regrow = true;
-      grassSides(sides, viewProj);
-      // The side planes are the frustum's first four.
-      frameParams.planes = [0, 1, 2, 3].map((i) => {
-        const p = sides[i];
-        return d.vec4f(p.normal[0], p.normal[1], p.normal[2], p.constant);
-      });
-      frameParams.eye = d.vec4f(eye[0], eye[1], eye[2], scale);
-      frameParams.window = d.vec4f(window.x0, window.y0, GRASS_TILE_M, frameParams.window.w);
-      frameParams.grid = d.vec4u(window.tilesX, window.tilesY, capacity[0], capacity[1]);
-      params.write(frameParams);
+      grass_frame_params(
+        frameParams,
+        Float32Array.from(viewProj),
+        Float64Array.from(eye),
+        scale,
+        window,
+      );
+      params.write(frameParams.buffer as ArrayBuffer);
       resetArgs.fill(0);
       resetArgs[0] = indexCounts[0];
       resetArgs[5] = indexCounts[1];
@@ -959,14 +904,7 @@ export async function createGrassPass(
     },
     /** The exact window sampled while this frame's clumps are rebuilt. */
     scarBounds(): readonly [number, number, number, number] | undefined {
-      return regrow
-        ? [
-            window.x0,
-            window.y0,
-            window.x0 + window.tilesX * GRASS_TILE_M,
-            window.y0 + window.tilesY * GRASS_TILE_M,
-          ]
-        : undefined;
+      return regrow ? [window[0], window[1], window[5], window[6]] : undefined;
     },
     /** Grow this frame's clumps (compute, before the colour pass). */
     encodeBuild(encoder: GPUCommandEncoder) {
@@ -975,13 +913,13 @@ export async function createGrassPass(
         .with(buildGroup)
         .with(terrain.group)
         .with(encoder)
-        .dispatchWorkgroups(window.tilesX, window.tilesY);
+        .dispatchWorkgroups(window[2], window[3]);
       finish.with(buildGroup).with(encoder).dispatchWorkgroups(1);
     },
     /** Draw both tiers into the world pass. */
     draw(pass: TgpuRenderPass, cameraGroup: CameraGroup, fogGround: TgpuBindGroup) {
       if (!drawn) return;
-      FIELD_LODS.forEach((_, t) => {
+      tierSegments.forEach((_, t) => {
         drawPipeline
           .with(pass)
           .with(cameraGroup)
@@ -1000,12 +938,6 @@ export async function createGrassPass(
         clumpBytes: ready ? (capacity[0] + capacity[1]) * CLUMP_BYTES : 0,
         kinds: kindNames,
       };
-    },
-    /** What `rebuild` uploaded, the params as last written, the kinds and
-     *  tier capacities, and each tier's index count; null with no field. */
-    uploaded() {
-      if (!ready || !packedTables || !frameParams) return null;
-      return { ...packedTables, params: frameParams, kinds: kindNames, capacity, indexCounts };
     },
     /** Lab probes (debug readbacks, never in a frame). */
     probes: {

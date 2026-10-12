@@ -1,12 +1,12 @@
-// The browser and native clients' frame timing from one run folder, compared
-// on the same numbers from the same code (`frameComparison.ts`):
+// Frame timing from one run folder, compared on the same numbers from the
+// same code (`frameComparison.ts`):
 //
 //   node fps-compare.mjs <run dir>
 //
-// It reads every `browser-*.json` the graphics-fps scene wrote and every
-// native bench report (`report.json` with a `bench`) below the folder, and
-// writes `<run dir>/summary.md`: one row per client and scene, with each
-// run's conditions.
+// It reads every `browser-*.json` the graphics-fps scene wrote below the
+// folder and writes `<run dir>/summary.md`: one row per client and scene,
+// with each run's conditions. Native's runs join once `native/client` writes
+// a bench (slice 25's performance gate).
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { compareRuns } from "./src/battle/benchmark/frameComparison.ts";
@@ -19,7 +19,7 @@ async function* files(dir) {
   }
 }
 
-/** Each scene of a browser file, and a native bench report, as runs. */
+/** Each scene of a browser file as runs. */
 function runsOf(path, json) {
   if (json.client === "browser")
     return json.scenes.map((s) => ({
@@ -31,23 +31,6 @@ function runsOf(path, json) {
       conditions: { ...json.conditions, warmupFrames: s.warmupFrames },
       path,
     }));
-  if (json.schema === "godot-render-report" && json.bench)
-    return [
-      {
-        client: "native",
-        scene: json.identity.scene,
-        intervalsMs: json.bench.intervalsMs,
-        cpuMs: json.bench.cpuMs,
-        gpuMs: json.bench.gpuMs,
-        conditions: {
-          ...json.bench.conditions,
-          build: `godot ${json.renderer.build}`,
-          pace: json.bench.pace,
-          warmupFrames: json.bench.warmupFrames,
-        },
-        path,
-      },
-    ];
   return [];
 }
 
@@ -59,7 +42,7 @@ export async function main([dir] = process.argv.slice(2)) {
   for await (const path of files(dir))
     if (path.endsWith(".json"))
       runs.push(...runsOf(path, JSON.parse(await readFile(path, "utf8"))));
-  if (runs.length === 0) throw new Error(`${dir}: no browser file or native bench report`);
+  if (runs.length === 0) throw new Error(`${dir}: no browser file`);
   const rows = compareRuns(runs);
   const lines = [
     "| client | scene | runs | avg FPS (median; min–max) | 1% low | min FPS | frame ms p50 / p95 / p99 / max | CPU ms p50 | GPU ms mean |",

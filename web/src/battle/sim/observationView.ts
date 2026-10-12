@@ -4,7 +4,6 @@
  * counters) arrive whole; an absent one is null. */
 
 import type { MoveDirection } from "./protocol";
-import type { GroundRunsPatch } from "./ground";
 
 /** The ground grid and exact tile-local run packing. */
 export interface GroundLayout {
@@ -61,8 +60,13 @@ export interface ObservationLayout {
   contactSources: string[];
   /** Height bands a contact's cause can occupy: ground, low_air. */
   layers: string[];
+  /** What an unseen enemy's sound was: infantry, vehicle, shot or shout. */
   soundCategories: string[];
   soundBands: string[];
+  /** The barks B1–B17, in order (`b1_contact_infantry`, …): the contract's names. */
+  shoutTriggers: string[];
+  /** How a bark is said: steady, stressed. */
+  intensities: string[];
   propKinds: string[];
   engagements: string[];
   actionReasons: string[];
@@ -409,6 +413,23 @@ export interface SoundCueView {
   moving: boolean;
 }
 
+/** A bark this side hears: its own unit's, or an identified enemy's. An
+ *  unseen enemy's shout is never one; it reaches the side only as an anonymous
+ *  `shout` sound cue. */
+export interface ShoutView {
+  /** True for this side's own unit, false for an identified enemy. */
+  own: boolean;
+  /** The own unit's id, or the identified enemy's handle. */
+  id: number;
+  kind: string;
+  /** Where it was said; a unit that has just died still speaks its last line. */
+  position: Point3;
+  /** One of the layout's `shoutTriggers`. */
+  trigger: string;
+  /** One of the layout's `intensities`. */
+  intensity: string;
+}
+
 /** A side-known obstacle state, with its immutable authored association. */
 export interface KnownPropView {
   id: number;
@@ -512,10 +533,20 @@ export interface ObservationView {
   fallenBodies: readonly FallenBodyView[];
   /** Downed airframes still falling that this side saw go down. */
   crashes: FallingAirframeView[];
+  /** Barks spoken this tick that this side hears. */
+  shouts: ShoutView[];
   guided: GuidedView[];
   /** The fixture's completion condition, when it has one. */
   encounter: { heldS: number; result: string } | null;
   skirmish: SkirmishView | null;
   fog: VisibilityView;
-  groundPatch: GroundRunsPatch;
+  /** Which patch of the side's learned ground this publication carried
+   *  (the presentation applies its runs: `LearnedGround`). */
+  groundPatch: {
+    epoch: number;
+    side: string;
+    baseRevision: number;
+    revision: number;
+    full: boolean;
+  };
 }

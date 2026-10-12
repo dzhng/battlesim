@@ -17,7 +17,9 @@ import {
   treeIndex,
 } from "@packages/battle-renderer/src/scenery/felled";
 import { TREE_FIELD, TREE_FLOATS } from "@packages/battle-renderer/src/scenery/placement";
-import type { FelledRules } from "@packages/battle-renderer/src/terrain/biome";
+import type { Biome } from "@packages/battle-renderer/src/terrain/terrainSurface";
+
+type FelledRules = Biome["trees"]["felled"];
 
 const RULES: FelledRules = {
   fall_s: 2,

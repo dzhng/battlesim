@@ -1,15 +1,19 @@
 // @vitest-environment node
+import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { expect, test } from "vitest";
 import units from "@fixtures/catalog.json";
 import shipped from "@fixtures/sounds.json";
 import {
   battleSounds,
   firingCadence,
+  recording,
   resolveShot,
   validateSoundCatalog,
   type SoundCatalog,
   type SoundClip,
 } from "@packages/battle-audio/src/catalog";
+import { musicUrl } from "@packages/battle-audio/src/music/musicCatalog";
 
 const catalog = (): SoundCatalog => ({
   sources: {},
@@ -21,6 +25,7 @@ const catalog = (): SoundCatalog => ({
   defaults: {},
   impacts: {},
   effects: {},
+  music: { moods: { menu: [], tension: [], combat: [] }, tracks: {} },
 });
 
 test("a weapon row's own firing choice wins over the global default", () => {
@@ -210,9 +215,9 @@ test("a designed clip layers crops of attributed sources; each layer names a rea
     notes: "",
   };
   expect(validateSoundCatalog(c)).toBe(c);
-  c.sources.whine.license = "Unknown";
+  recording(c, "whine").license = "Unknown";
   expect(() => validateSoundCatalog(c)).toThrow(/whine: invalid provenance/);
-  c.sources.whine.license = "CC-BY-NC-3.0";
+  recording(c, "whine").license = "CC-BY-NC-3.0";
   expect(validateSoundCatalog(c)).toBe(c);
   (c.clips.heavy as { layers: { source: string }[] }).layers[1].source = "missing";
   expect(() => validateSoundCatalog(c)).toThrow(/clip heavy/);
@@ -246,4 +251,78 @@ test("a battle prepares the baselines and what is assigned, not the audition-onl
   expect(prepared).toEqual(expect.arrayContaining(["hit", "glance", "replacement"]));
   expect(prepared).not.toContain("unused");
   expect(new Set(prepared).size).toBe(prepared.length);
+});
+
+test("music tracks name a real source and moods name real tracks; the section is required", () => {
+  const c = catalog();
+  c.sources.bed = {
+    label: "Bed",
+    author: "Author",
+    license: "CC0-1.0",
+    url: "https://example.com/bed",
+    path: "assets/third-party/audio/bed.mp3",
+    sha256: "a".repeat(64),
+    notes: "",
+  };
+  c.music.tracks.bed = { source: "bed", sha256: "c".repeat(64), gain: 0.5 };
+  c.music.moods.menu = ["bed"];
+  expect(validateSoundCatalog(c)).toBe(c);
+  c.music.moods.combat = ["missing"];
+  expect(() => validateSoundCatalog(c)).toThrow(/mood combat/);
+  c.music.moods.combat = [];
+  c.music.tracks.bed.source = "missing";
+  expect(() => validateSoundCatalog(c)).toThrow(/music track bed/);
+  const { music: _, ...withoutMusic } = catalog();
+  expect(() => validateSoundCatalog(withoutMusic)).toThrow(/music/);
+});
+
+test("a generated track records how it was made; only a recording can be cropped into a clip", () => {
+  const c = catalog();
+  c.sources.combat_1 = {
+    kind: "Generated",
+    generator: "ElevenLabs music",
+    model: "music_v1",
+    prompt: "Background underscore",
+    length_s: 150,
+    date: "2026-10-12",
+    plan: "Duet ElevenLabs",
+    path: "assets/source/audio/music/combat_1.0a1b2c3d.mp3",
+    sha256: "a".repeat(64),
+  };
+  c.music.tracks.combat_1 = { source: "combat_1", sha256: "c".repeat(64), gain: 0.3 };
+  c.music.moods.combat = ["combat_1"];
+  expect(validateSoundCatalog(c)).toBe(c);
+  c.clips.cut = {
+    label: "Cut",
+    category: "music",
+    role: "other",
+    processing: "impact",
+    url: "/audio/clips/cut.wav",
+    sha256: "b".repeat(64),
+    sample_rate: 48000,
+    frames: 4000,
+    loop: false,
+    notes: "",
+    source: "combat_1",
+    source_rate: 44100,
+    source_frames: [0, 4000],
+  };
+  expect(() => validateSoundCatalog(c)).toThrow(/clip cut/);
+  delete c.clips.cut;
+  c.sources.combat_1 = { ...c.sources.combat_1, path: "assets/third-party/audio/x.mp3" };
+  expect(() => validateSoundCatalog(c)).toThrow(/combat_1: invalid provenance/);
+  c.sources.combat_1 = { ...c.sources.combat_1, path: "assets/source/audio/music/x.mp3" };
+  delete (c.sources.combat_1 as { prompt?: string }).prompt;
+  expect(() => validateSoundCatalog(c)).toThrow(/combat_1: invalid provenance/);
+});
+
+test("every shipped music track is served at <track>.<sha8>.mp3 and the menu has a bed", () => {
+  const sounds = validateSoundCatalog(structuredClone(shipped));
+  expect(sounds.music.moods.menu.length).toBeGreaterThan(0);
+  for (const [id, track] of Object.entries(sounds.music.tracks)) {
+    const served = fileURLToPath(
+      new URL(`../../assets/runtime${musicUrl(id, track)}`, import.meta.url),
+    );
+    expect(existsSync(served), served).toBe(true);
+  }
 });

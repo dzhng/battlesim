@@ -12,7 +12,10 @@ use serde::{Deserialize, Serialize};
 pub struct ObservedTargetId(pub u32);
 
 /// What a side knows of an identified enemy: its class and value and what its
-/// sensors saw this tick. Never health, ammunition, orders or timers.
+/// sensors saw this tick. Never health, ammunition, orders or timers. The one
+/// audible exception: a seen enemy's shouts (`ObservationFrame::shouts`)
+/// carry its intensity and bark, so a stressed take or a pinned call reveals
+/// that it is hurt or suppressed, as hearing it would (decision D5).
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct IdentifiedUnit {
     pub id: ObservedTargetId,
@@ -125,6 +128,8 @@ pub enum SoundCategory {
     Infantry,
     Vehicle,
     Shot,
+    /// An unseen enemy shouted: never which bark, voice or unit.
+    Shout,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -168,6 +173,28 @@ pub enum ShoutTrigger {
     B15IncomingMissile,
     B16Destroyed,
     B17FriendlyDestroyedNearby,
+}
+
+impl ShoutTrigger {
+    pub const ALL: [ShoutTrigger; 17] = [
+        ShoutTrigger::B1ContactInfantry,
+        ShoutTrigger::B2ContactVehicle,
+        ShoutTrigger::B3ContactAir,
+        ShoutTrigger::B4OpensFire,
+        ShoutTrigger::B5UnderFire,
+        ShoutTrigger::B6Suppressed,
+        ShoutTrigger::B7Pinned,
+        ShoutTrigger::B8Hit,
+        ShoutTrigger::B9ManDown,
+        ShoutTrigger::B10BadlyDamaged,
+        ShoutTrigger::B11Kill,
+        ShoutTrigger::B12Reloading,
+        ShoutTrigger::B13OutOfAmmo,
+        ShoutTrigger::B14MissileAway,
+        ShoutTrigger::B15IncomingMissile,
+        ShoutTrigger::B16Destroyed,
+        ShoutTrigger::B17FriendlyDestroyedNearby,
+    ];
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]

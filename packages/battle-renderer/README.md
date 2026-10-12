@@ -24,15 +24,20 @@ translate publications into this boundary. [Scene assets](../scene-assets/README
 owns installed appearance generations and fit. A map must request its building
 kits before drawing them; a catalog listing is not installed kit geometry.
 
-[Terrain](src/terrain/) uses compiled map shapes; [scenery](src/scenery/) places
-admitted appearances around them. Physical bounds and visual-only landscape remain
+[Terrain](src/terrain/) and [scenery](src/scenery/) draw the static world Rust
+resolves for every client from the map's compiled shapes and the biome
+([the ground](../../crates/presentation/src/static_world/ground/mod.rs): forests,
+plots, roads as drawn, surface fields, water cells, the terrain's and grass's GPU
+tables, and where every tree, shrub and piece of dressing stands); the renderer
+uploads the tables as given and instances admitted appearances where they stand. Physical bounds and visual-only landscape remain
 separate. Cosmetic geometry must not invent a physical obstruction or imply cover
 that the simulation does not provide: a tree the side has seen felled falls on the
 clock and lies pressed under cover height by its stump ([felled trees](src/scenery/felled.ts)),
 since the simulation gives it no body. A map's region (its `regional_family`) is a
 look, never physics: the biome's paved rows take that region's own finish through
-one function (`regionalBiome` in [the biome](src/terrain/biome.ts)), and scenery
-its region's appearances.
+one function (`Biome::load` in
+[the biome](../../crates/presentation/src/static_world/ground/biome.rs)), and
+scenery its region's appearances.
 
 ## Shared drawing contracts
 
@@ -63,16 +68,13 @@ postprocessing, so grading and fog cannot change their information colors.
 room and glass geometry; alpha cannot silently acquire a second meaning in a pass.
 Numeric layouts and pipeline formats belong to their source owners, not this guide.
 
-The ground's and the grass's look numbers that are not the biome's live in one
-tuning table each ([terrain](src/terrain/terrainTuning.ts),
-[grass](src/terrain/grassTuning.ts)), spliced into the WGSL as constants; hash
-multipliers, decorrelation offsets and lattice turns stay in the shader as part of
-the formula. A second client reads the same tables, and the frame's
-`uploadedTables` hands it the ground's and grass's GPU tables word for word, each
-with a layout derived from its struct ([word tables](src/frame/wordTables.ts)).
-It hands over the buildings' module instances and the scenery's instances the
-same way, expanded by the owners the layers draw from, so a second client places
-nothing itself, and `drawnInstances` says what the last frame drew of them.
+The ground's and the grass's look numbers that are not the biome's are data,
+`presentation.terrain` and `presentation.grass` in the game fixture (documented
+in [the ground's tuning](../../crates/presentation/src/static_world/ground/tuning.rs)),
+spliced into the WGSL as constants; hash multipliers, decorrelation offsets and
+lattice turns stay in the shader as part of the formula. A second client draws the
+same world from the same Rust output, and `drawnInstances` says what the last
+frame drew of the buildings and the scenery.
 
 The shaders are the same text for every battle and every canvas size: a
 battle's light (sun, sky, clouds, haze, bloom) and a size's texel steps reach
@@ -101,7 +103,7 @@ must release a late build rather than install it into a dead frame.
 
 Update a resource at its actual frequency: immutable world data, changed
 knowledge, view changes or frame animation. [Static chunks](src/frame/staticChunks.ts)
-and the buildings' Rust walk (`crates/presentation`'s static world) bound work and residency
+and the buildings' Rust walk (`static_world::walk`) bound work and residency
 without changing authoritative populations. Streaming work reports when it remains
 pending; a camera cut cannot be captured merely after an arbitrary number of frames.
 

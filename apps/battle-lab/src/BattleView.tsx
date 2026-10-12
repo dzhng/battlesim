@@ -256,7 +256,7 @@ export function BattleView({
           }}
           pilot={scripted?.pilot}
           onFrame={(project, view, pointer) => {
-            session.hear(view);
+            session.hear();
             contactFacing.follow(view);
             const step = zoomStep(view.distance);
             if (step !== zoomRef.current) {

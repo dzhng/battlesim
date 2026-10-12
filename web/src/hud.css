@@ -332,6 +332,22 @@
   gap: 14px;
   align-items: center;
 }
+/* Master, music and voices: a name column and a slider column, so the
+   sliders start and end together. */
+.sound-levels {
+  flex: 1;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  align-items: center;
+}
+.sound-levels label {
+  display: contents;
+}
+.sound-levels input[type="range"] {
+  width: 100%;
+  margin: 0;
+}
 
 /* ---- Callouts: readouts floating off their units ---------------------- */
 .ro-layer,

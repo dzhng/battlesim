@@ -6,16 +6,15 @@
 // scale; a standing clock silences transients and holds loops; reset and a
 // new battle clear everything; the side's own sounds stay heard at the
 // farthest zoom, coloured far.
-import { expect, test } from "vitest";
+import { beforeAll, expect, test } from "vitest";
+import { loadPresentation } from "@web/battle/sim/presentation";
 import game from "@fixtures/game.json";
 import type { AudioPresentation } from "@packages/battle-audio/src/audioPresentation";
 import { cameraListener } from "@packages/battle-audio/src/battleAudio";
 import { gameSounds } from "@packages/battle-audio/src/shippedSounds";
 import type { SoundCatalog } from "@packages/battle-audio/src/catalog";
 import {
-  distanceGain,
   SoundFrame,
-  type CookOffFireballs,
   type HeardPublication,
   type Listener,
   type SoundCue,
@@ -25,16 +24,18 @@ import {
   type VoiceSpec,
   vehicleLoops,
 } from "@packages/battle-audio/src/soundFrame";
-import { synthesize } from "@packages/battle-audio/src/synth";
+import { synthesize } from "@packages/battle-audio/src/soundBank";
 
 const HZ = 30;
 const DT = 1 / HZ;
 const AUDIO = game.presentation.audio as unknown as AudioPresentation;
 const SMOKE = game.presentation.effects.smoke;
-const COOK_OFF: CookOffFireballs = game.presentation.effects.cook_off;
-/** When a cook-off's turret lands, seconds after its tick starts (the
- *  presentation's, `HeardPublication.turretLandsS`). */
-const TURRET_LANDS_S = 1.4;
+const COOK_OFF = game.presentation.effects.cook_off;
+/** When a cook-off's turret lands, seconds after its tick starts: thrown
+ *  `rise_m` up, it falls back in √(8h/g). */
+const TURRET_LANDS_S = COOK_OFF.delay_s + Math.sqrt((8 * COOK_OFF.rise_m) / 9.81);
+
+beforeAll(() => loadPresentation());
 
 /** A publication as the presentation hears it: what the effects read, and
  *  the launches it shows (the presentation derives them; here, given). */
@@ -42,7 +43,6 @@ type Effects = HeardPublication["effects"] & { launches?: HeardPublication["laun
 const heard = ({ launches = [], ...effects }: Effects): HeardPublication => ({
   effects,
   launches,
-  turretLandsS: TURRET_LANDS_S,
 });
 const LISTENER: Listener = { position: [0, -20, 20], forward: [0, 1, 0] };
 const STILL: SoundMotion = { vehicles: [], soldiers: [] };
@@ -91,6 +91,7 @@ function setup() {
         defaults: {},
         impacts: {},
         effects: {},
+        music: { moods: { menu: [], tension: [], combat: [] }, tracks: {} },
       },
       smokeTimes: SMOKE,
       cookOff: COOK_OFF,
@@ -375,17 +376,6 @@ test("the side's own shot at the farthest zoom sounds at the floor at least, and
   }
 });
 
-test("distance never takes a heard sound below the floor, and falls steadily to it", () => {
-  let last = Infinity;
-  for (let d = 0; d <= AUDIO.distance.max_m; d += 25) {
-    const g = distanceGain(AUDIO, d);
-    expect(g).toBeGreaterThanOrEqual(AUDIO.distance.floor);
-    expect(g).toBeLessThanOrEqual(last);
-    last = g;
-  }
-  expect(distanceGain(AUDIO, 0)).toBe(1);
-});
-
 test("weapon row choices change reports without changing observed cadence or hidden cues", () => {
   const catalog = {
     sources: {},
@@ -397,6 +387,7 @@ test("weapon row choices change reports without changing observed cadence or hid
     },
     impacts: {},
     effects: {},
+    music: { moods: { menu: [], tension: [], combat: [] }, tracks: {} },
   };
   const sink = new FakeSink();
   const frame = new SoundFrame(
@@ -454,7 +445,13 @@ test("a burst recording sounds once per burst, its shots on the gun's launches",
       interval_s: 0.1,
     },
   });
-  const recipe = (clip: string) => ({ clips: [clip], synth: null });
+  const recipe = (clip: string) => ({
+    clips: [clip],
+    synth: null,
+    synth_gain: 0,
+    gain: 1,
+    loop: false,
+  });
   const catalog = {
     sources: {},
     clips: { three: clip(3) },
@@ -465,6 +462,7 @@ test("a burst recording sounds once per burst, its shots on the gun's launches",
     },
     impacts: {},
     effects: {},
+    music: { moods: { menu: [], tension: [], combat: [] }, tracks: {} },
   } as unknown as SoundCatalog;
   const heard = (kind: string, ticks: number[]) => {
     const sink = new FakeSink();
@@ -500,6 +498,7 @@ test("a hull's mounts keep their weapons' explicit recipes while implicit impact
     },
     impacts: { ground: { hmg: "dirt_hit" } },
     effects: { cannon: "recorded_cannon", rifle: "recorded_rifle", impact_hull: "hard_hit" },
+    music: { moods: { menu: [], tension: [], combat: [] }, tracks: {} },
   };
   const sink = new FakeSink();
   const frame = new SoundFrame(

@@ -109,6 +109,8 @@ pub struct Texture {
 pub struct Node {
     pub name: String,
     pub tiers: Vec<Mesh>,
+    /// A static state's highest point (`bounds.max[2]`), where it has bounds.
+    pub top: Option<f64>,
 }
 
 pub enum Shape {
@@ -244,6 +246,7 @@ impl Views<'_> {
                 Ok(Node {
                     name: n["name"].as_str().ok_or("unnamed node")?.to_owned(),
                     tiers: self.tiers(&n["tiers"])?,
+                    top: n["bounds"]["max"][2].as_f64(),
                 })
             })
             .collect()

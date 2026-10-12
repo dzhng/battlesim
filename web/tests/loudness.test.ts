@@ -1,6 +1,9 @@
 // @vitest-environment node
-import { expect, test } from "vitest";
-import { maxMomentaryLoudness } from "@packages/battle-audio/src/loudness";
+import { beforeAll, expect, test } from "vitest";
+import { maxMomentaryLoudness } from "@packages/battle-audio/src/soundBank";
+import { loadPresentation } from "@web/battle/sim/presentation";
+
+beforeAll(() => loadPresentation());
 
 test("K-weighted metering matches the BS.1770 1 kHz reference across browser sample rates", () => {
   for (const rate of [44100, 48000, 96000]) {
