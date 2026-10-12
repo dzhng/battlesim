@@ -335,16 +335,23 @@ export class VoiceWorkbenchStore {
     return { job: this.queue.start(["design", await this.voiceOf(voice)]) };
   }
 
-  /** `generate pick`: saves a candidate as the voice; the tool writes voices.json. */
+  /** `generate pick`: saves a candidate as the voice; the tool writes voices.json.
+   *  `replace` swaps a voice already picked for another of its candidates. */
   async pick(value: unknown): Promise<VoiceSnapshot> {
-    const request = object(value, ["voice", "candidate"]);
+    const request = object(value, ["voice", "candidate", "replace"]);
     const voice = await this.voiceOf(request.voice);
     if (![1, 2, 3].includes(request.candidate as number))
       throw new WorkbenchError("A candidate is 1, 2 or 3");
+    if (request.replace !== undefined && typeof request.replace !== "boolean")
+      throw new WorkbenchError("replace is true or false");
+    const args = [
+      "pick",
+      voice,
+      String(request.candidate),
+      ...(request.replace ? ["--replace"] : []),
+    ];
     const lines: string[] = [];
-    const code = await this.queue.serial(() =>
-      this.queue.run(["pick", voice, String(request.candidate)], (line) => lines.push(line)),
-    );
+    const code = await this.queue.serial(() => this.queue.run(args, (line) => lines.push(line)));
     if (code !== 0) throw new WorkbenchError(`generate pick failed: ${lines.join("\n")}`, 500);
     return this.snapshot();
   }

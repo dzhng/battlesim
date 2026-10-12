@@ -225,9 +225,9 @@ export function VoicesTab({ api, audition }: { api: VoiceAPI; audition: Audition
   );
 
   const pick = useCallback(
-    async (voice: string, candidate: number) => {
+    async (voice: string, candidate: number, replace: boolean) => {
       try {
-        const saved = await api.pick(voice, candidate);
+        const saved = await api.pick(voice, candidate, replace);
         latest.current = saved;
         setSnapshot(saved);
       } catch (error) {
@@ -488,10 +488,12 @@ export function VoicesTab({ api, audition }: { api: VoiceAPI; audition: Audition
           </p>
         </section>
         {spec.voices
-          .filter((voice) => voice.voice_id === null)
+          .filter((voice) => voice.voice_id === null || snapshot.designs[`${set}/${voice.id}`])
           .map((voice) => {
             const id = `${set}/${voice.id}`;
             const design = snapshot.designs[id];
+            // A picked voice keeps its candidates: the one in use, and the others to swap in.
+            const picked = voice.voice_id !== null;
             return (
               <section
                 key={id}
@@ -499,13 +501,15 @@ export function VoicesTab({ api, audition }: { api: VoiceAPI; audition: Audition
                 aria-label={`Candidates for ${voice.id}`}
               >
                 <div className="sw-review-line">
-                  <span className="sw-count">DESIGN</span>
+                  <span className="sw-count">{picked ? "VOICE" : "DESIGN"}</span>
                   <strong>
                     {voice.id} <small>{voice.speaks}</small>
                   </strong>
-                  <button disabled={running} onClick={() => void redesign(id)}>
-                    {design ? "None of these" : "Design"}
-                  </button>
+                  {!picked && (
+                    <button disabled={running} onClick={() => void redesign(id)}>
+                      {design ? "None of these" : "Design"}
+                    </button>
+                  )}
                 </div>
                 <p className="sw-voice-description">{voice.description}</p>
                 {design ? (
@@ -524,12 +528,27 @@ export function VoicesTab({ api, audition }: { api: VoiceAPI; audition: Audition
                           match {candidate.score?.toFixed(2) ?? "–"} ·{" "}
                           {candidate.duration_s.toFixed(1)} s
                         </span>
-                        <button
-                          aria-label={`Pick candidate ${index + 1}`}
-                          onClick={() => void pick(id, index + 1)}
-                        >
-                          Pick
-                        </button>
+                        {!picked ? (
+                          <button
+                            aria-label={`Pick candidate ${index + 1}`}
+                            onClick={() => void pick(id, index + 1, false)}
+                          >
+                            Pick
+                          </button>
+                        ) : design.picked === index + 1 ? (
+                          <strong className="sw-in-use">In use</strong>
+                        ) : (
+                          <button
+                            aria-label={`Use candidate ${index + 1}`}
+                            onClick={() => {
+                              const replace = `Use candidate ${index + 1} as ${id}? Its takes will need regenerating.`;
+                              if (globalThis.confirm?.(replace) ?? true)
+                                void pick(id, index + 1, true);
+                            }}
+                          >
+                            Use this
+                          </button>
+                        )}
                       </li>
                     ))}
                   </ol>
