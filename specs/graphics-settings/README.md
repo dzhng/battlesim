@@ -57,7 +57,7 @@ Every visual slice must run `screenshot-critique` as the last visual check. Wher
 - [x] 01 settings contract and profile tests (`bunx vitest run tests/graphicsSettings.test.ts`; `bunx tsc --noEmit -p tsconfig.json`)
 - [x] 02 atomic renderer rebuild and grass quality seam
 - [x] 03 shared settings UI and pause semantics (`bun run --cwd web test tests/graphicsSettingsControls.test.tsx tests/pauseMenu.test.tsx`; `bun run typecheck`)
-- [ ] 04 auto-detect benchmark, persistence, startup fatal states
+- [x] 04 auto-detect policy, persistence, and startup failure surface (bounded RAF probe; full reel sweep remains closeout work)
 - [ ] 05 visual/performance closeout and full suite
 
 ## Choices ledger
