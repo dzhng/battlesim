@@ -63,7 +63,7 @@ export interface BattleFrameOptions {
     understorey: boolean;
   };
   /** `presentation.light`: sun, sky, haze, grade, bloom and cascades. */
-  light: LightPresentation;
+  light: ResolvedLight;
   /** `presentation.fog_geometry`: the sight lights' resolution and budgets. */
   fogGeometry: FogGeometryPresentation;
   /** The unseen look to start with (`presentation.fog`'s selected style). */
@@ -114,10 +114,13 @@ export async function createBattleFrame(
     const effectiveLight = quality
       ? {
           ...options.light,
-          cascades: {
-            ...options.light.cascades,
-            map_size: quality.shadowMapSize,
-            max_far_m: quality.shadowReach,
+          settings: {
+            ...options.light.settings,
+            cascades: {
+              ...options.light.settings.cascades,
+              map_size: quality.shadowMapSize,
+              max_far_m: quality.shadowReach,
+            },
           },
         }
       : options.light;
@@ -171,7 +174,7 @@ export async function createBattleFrame(
         width,
         height,
         displayFormat,
-        options.light,
+        effectiveLight,
       );
       scope.adopt(post.dispose);
       const fog = world.fogTiles(scope, width, height, t.depth, t.paint);
@@ -208,9 +211,9 @@ export async function createBattleFrame(
       const detailView = createDetailView();
       const shadow = { fall: [0, 0] as [number, number], reach: 0 };
       const sun = {
-        azimuth: options.light.sun_azimuth,
-        elevation: options.light.sun_elevation,
-        maxFarM: effectiveLight.cascades.max_far_m,
+        azimuth: options.light.settings.sun_azimuth,
+        elevation: options.light.settings.sun_elevation,
+        maxFarM: effectiveLight.settings.cascades.max_far_m,
       };
       const rebuild = (width: number, height: number) =>
         targets.ensure(width, height).then(
