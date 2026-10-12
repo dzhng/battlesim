@@ -370,6 +370,43 @@ fn leading_steady_observed_motion_hits_and_aiming_at_the_present_misses() {
 }
 
 #[test]
+fn indirect_fire_at_a_last_seen_point_misses_after_target_relocation() {
+    let world = flat([1000.0, 600.0], "");
+    let artillery = profile("artillery_mortar");
+    let dt = config().tick_s();
+    let origin = v3(100.0, 200.0, 1.4);
+    let observed = v3(500.0, 200.0, 0.0);
+    let relocated = Mover::standing(7, 1, tank_shape(), observed - v3(0.0, 0.0, 1.0))
+        .moving(v3(0.0, 18.0, 0.0));
+    let aim = Aim {
+        origin,
+        target: observed,
+        target_velocity: V3::default(),
+    };
+    let solution = solve_launch_past(&world, &config(), &artillery, &aim, None).unwrap();
+    assert_eq!(solution.arc, ArcKind::High);
+    let mut store = Projectiles::new(config());
+    store.launch(fired(&artillery, origin, solution.velocity));
+    let events = fly(&mut store, &world, 2_000, |tick| {
+        vec![relocated.body(tick, dt)]
+    });
+    let hits = impacts(&events);
+    assert!(
+        !hits.is_empty(),
+        "the stale artillery round must end: {events:?}"
+    );
+    assert!(
+        hits.iter()
+            .all(|(_, hit)| hit.struck != Struck::Body(sim::flight::BodyId(7))),
+        "the relocated target must not be hit by a stale aim: {hits:?}"
+    );
+    assert!(
+        hits.iter().any(|(_, hit)| hit.struck == Struck::Terrain),
+        "the stale round should land on terrain: {hits:?}"
+    );
+}
+
+#[test]
 fn an_unguided_round_is_dodged_by_changing_motion_after_launch() {
     let world = flat([1000.0, 400.0], "");
     let grenade = lob_profile();
