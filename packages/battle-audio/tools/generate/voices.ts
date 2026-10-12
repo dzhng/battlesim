@@ -4,6 +4,7 @@ import { existsSync, mkdirSync, readFileSync, renameSync, rmSync } from "node:fs
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  barkTrigger,
   lineText,
   takeFile,
   takeId,
@@ -32,7 +33,7 @@ import { RESPONSE_TALK_S, matches } from "./transcript";
 /** A bark's nominal talk time is the simulation's (`ShoutRules.talk_s`, keyed `b<n>_<trigger>`); a
  *  response, which the simulation never sees, is held to `RESPONSE_TALK_S`. */
 const BARK_TALK_S: Record<string, number> = Object.fromEntries(
-  Object.entries(game.shouts.talk_s).map(([key, seconds]) => [key.replace(/^b\d+_/, ""), seconds]),
+  Object.entries(game.shouts.talk_s).map(([key, seconds]) => [barkTrigger(key), seconds]),
 );
 function talkTime(trigger: string): number {
   return BARK_TALK_S[trigger] ?? RESPONSE_TALK_S;
@@ -117,7 +118,7 @@ const today = () => new Date().toISOString().slice(0, 10);
  * processing key: a catalog clip's prepared runtime file, or a generated raw master.
  * Throws when the bed is missing or its bytes differ from their record.
  */
-function bedResolver(root: string, lock: VoiceLock) {
+export function bedResolver(root: string, lock: VoiceLock) {
   let clips: Record<string, { url: string; sha256: string }> | undefined;
   // Each bed is proven once per run, not once per take.
   const proven = new Map<string, { path: string; sha256: string }>();
@@ -300,8 +301,8 @@ export async function generateVoices(run: VoiceRun): Promise<VoiceRunResult> {
       provenance,
       ...(previous?.verdict ? { verdict: previous.verdict } : {}),
     };
-    // The superseded files of this take go with it: one take, one raw master, one served file.
-    if (previous && previous.raw !== rawFile) rmSync(join(root, previous.raw), { force: true });
+    // A superseded raw master stays (paid-for source media is never deleted); its served
+    // file is a re-renderable derivation that ships with every deploy, so it goes.
     if (previous && previous.served_sha256 !== served.sha)
       rmSync(servedPath(root, take, previous.served_sha256), { force: true });
     lock.takes[id] = record;
@@ -358,7 +359,6 @@ export async function generateBeds(run: {
       const sha = sha256(bytes);
       const raw = `${RAW}/beds/${name}.${sha.slice(0, 8)}.mp3`;
       writeAtomic(join(run.root, raw), bytes);
-      if (held && held.raw !== raw) rmSync(join(run.root, held.raw), { force: true });
       lock.beds[name] = {
         raw,
         sha256: sha,
@@ -404,6 +404,11 @@ export function checkVoices(run: {
   const named = new Set(Object.values(profiles.profiles).map((profile) => profile.bed?.generated));
   for (const name of Object.keys(lock.beds))
     if (!named.has(name)) problems.push(`bed ${name}: no profile uses it`);
+  for (const [id, design] of Object.entries(lock.designs))
+    design.candidates.forEach((candidate, i) => {
+      if (!holds(join(root, candidate.raw), candidate.raw_sha256))
+        problems.push(`design ${id} candidate ${i + 1}: raw master differs`);
+    });
   for (const [id, record] of Object.entries(lock.takes)) {
     const [set, voice, trigger, intensity, take] = id.split("/");
     const where: VoiceTake = {

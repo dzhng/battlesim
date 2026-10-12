@@ -1,8 +1,7 @@
-import { spawn } from "node:child_process";
+import type { IncomingMessage, ServerResponse } from "node:http";
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { createInterface } from "node:readline";
 import { FixturePublication } from "../fixture-publication/publication";
 import {
   ALL_TRIGGERS,
@@ -17,41 +16,26 @@ import {
   type TakeRecord,
   type VoiceLock,
 } from "../../packages/battle-audio/tools/generate/lock";
-import { WorkbenchError, equal, hash, jsonRoutes, object } from "./http";
-import type { Review, Save } from "./src/protocol";
+import {
+  designId,
+  designRetake,
+  previewFile,
+} from "../../packages/battle-audio/tools/generate/design";
+import type { GenerationQueue } from "./generation";
+import { WorkbenchError, equal, hash, jsonRoutes, localOnly, object } from "./http";
+import type { GenerationJob, Review, Save } from "./src/protocol";
 import type {
   SetCounts,
   TakeView,
   VerdictResult,
   VoiceDraft,
-  VoiceJob,
   VoiceScope,
   VoiceSnapshot,
 } from "./src/voices/protocol";
 
-/** Runs the generation tool with `args`, reporting each output line; resolves to its exit code. */
-export type GenerateRunner = (args: string[], line: (text: string) => void) => Promise<number>;
-
-/** The generation tool as a child process: the only writer of the lock and of voice audio. */
-export const generateTool =
-  (root: string): GenerateRunner =>
-  (args, line) =>
-    new Promise((resolve) => {
-      const child = spawn("bun", ["run", "generate", ...args], { cwd: root });
-      for (const stream of [child.stdout, child.stderr])
-        createInterface({ input: stream }).on("line", line);
-      child.on("error", (error) => {
-        line(error.message);
-        resolve(1);
-      });
-      child.on("close", (code) => resolve(code ?? 1));
-    });
-
 const VOICES = "fixtures/voices.json";
 const TAKE = /^[a-z0-9_]+\/[a-z0-9_]+\/[a-z_]+\/(steady|stressed)\/[01]$/;
 const SHA = /^[0-9a-f]{64}$/;
-const KEPT_JOBS = 10;
-const KEPT_LINES = 400;
 
 interface Inputs {
   text: string;
@@ -113,18 +97,17 @@ const strings = (value: unknown, allowed: (item: string) => boolean, what: strin
 /**
  * The Voices tab's store. People edit `voices.json` through fixture publication;
  * the lock is read here and written only by the generation tool, which this store
- * runs one command at a time so two writers never race.
+ * runs through the workbench's one generation queue so two writers never race.
  */
 export class VoiceWorkbenchStore {
   private readonly publication: FixturePublication;
   private readonly candidates = new Map<string, Candidate>();
-  private readonly jobs: VoiceJob[] = [];
-  private tool: Promise<unknown> = Promise.resolve();
-  private nextJob = 1;
+  /** Voices whose candidate previews the tool brought up to date this session. */
+  private readonly rendered = new Set<string>();
   constructor(
     private readonly root: string,
     private readonly validateCatalog: (value: unknown) => VoiceCatalog,
-    private readonly run: GenerateRunner,
+    private readonly queue: GenerationQueue,
   ) {
     this.publication = new FixturePublication(
       root,
@@ -159,6 +142,20 @@ export class VoiceWorkbenchStore {
       counts: Object.fromEntries(
         Object.keys(catalog.sets).map((set) => [set, counts(catalog, lock, set)]),
       ),
+      designs: Object.fromEntries(
+        Object.entries(lock.designs).map(([id, design]) => [
+          id,
+          {
+            text: design.text,
+            candidates: design.candidates.map(({ transcript, match, duration_s }) => ({
+              transcript,
+              score: match?.score ?? null,
+              duration_s,
+            })),
+            picked: design.picked?.candidate ?? null,
+          },
+        ]),
+      ),
     };
   }
 
@@ -183,7 +180,12 @@ export class VoiceWorkbenchStore {
       !equal(catalog.assignments, current.assignments)
     )
       throw new WorkbenchError("Only line text, voice descriptions and retakes are editable here");
-    const known = new Set(Object.keys(catalog.sets).flatMap((set) => setTakes(catalog, set)));
+    const known = new Set(
+      Object.entries(catalog.sets).flatMap(([set, spec]) => [
+        ...setTakes(catalog, set),
+        ...spec.voices.map((voice) => designRetake(designId(set, voice.id))),
+      ]),
+    );
     for (const [id, count] of Object.entries(catalog.retakes))
       if (!known.has(id) || !Number.isSafeInteger(count) || count < 0)
         throw new WorkbenchError(`Retake ${id} must name a take and count from 0`);
@@ -231,13 +233,6 @@ export class VoiceWorkbenchStore {
     return this.snapshot();
   }
 
-  /** One tool command at a time: a verdict waits for a running generation, never races it. */
-  private serial<T>(run: () => Promise<T>): Promise<T> {
-    const job = this.tool.then(run);
-    this.tool = job.catch(() => {});
-    return job;
-  }
-
   async verdict(value: unknown): Promise<VerdictResult> {
     const request = object(value, ["verdict", "takes"]);
     if (request.verdict !== "ok" && request.verdict !== "bad")
@@ -258,8 +253,8 @@ export class VoiceWorkbenchStore {
     )
       throw new WorkbenchError("Name each judged take with the sha256 it was heard as");
     const lines: string[] = [];
-    const code = await this.serial(() =>
-      this.run(
+    const code = await this.queue.serial(() =>
+      this.queue.run(
         [
           "verdict",
           request.verdict as string,
@@ -286,7 +281,7 @@ export class VoiceWorkbenchStore {
   }
 
   /** Starts `generate voices` over a scope; its progress is read through `jobs`. */
-  async generate(value: unknown): Promise<{ job: VoiceJob }> {
+  async generate(value: unknown): Promise<{ job: GenerationJob }> {
     const { scope: raw } = object(value, ["scope"]);
     const scope = object(raw, ["sets", "voices", "triggers", "intensities", "take", "only"]);
     const { catalog } = await this.inputs();
@@ -322,32 +317,71 @@ export class VoiceWorkbenchStore {
       ...(selection.take === undefined ? [] : ["--take", String(selection.take)]),
       ...(selection.only ? ["--only", selection.only] : []),
     ];
-    const job: VoiceJob = { id: String(this.nextJob++), args, status: "queued", lines: [] };
-    this.jobs.push(job);
-    if (this.jobs.length > KEPT_JOBS) this.jobs.splice(0, this.jobs.length - KEPT_JOBS);
-    const line = (text: string) => {
-      job.lines.push(text);
-      if (job.lines.length > KEPT_LINES) job.lines.splice(0, job.lines.length - KEPT_LINES);
-    };
-    void this.serial(async () => {
-      job.status = "running";
-      try {
-        job.status = (await this.run(args, line)) === 0 ? "done" : "failed";
-      } catch (error) {
-        line(error instanceof Error ? error.message : String(error));
-        job.status = "failed";
-      }
-    });
-    return { job };
+    return { job: this.queue.start(args) };
   }
 
-  listJobs(): Promise<{ jobs: VoiceJob[] }> {
-    return Promise.resolve({ jobs: this.jobs });
+  /** A `<set>/<voice>` the catalog has. */
+  private async voiceOf(value: unknown): Promise<string> {
+    const { catalog } = await this.inputs();
+    const [set, voice, ...rest] = typeof value === "string" ? value.split("/") : [];
+    if (rest.length || !catalog.sets[set]?.voices.some(({ id }) => id === voice))
+      throw new WorkbenchError("Name a voice as <set>/<voice>");
+    return designId(set, voice);
+  }
+
+  /** `generate design` for one voice; "None of these" bumps its design retake first. */
+  async design(value: unknown): Promise<{ job: GenerationJob }> {
+    const { voice } = object(value, ["voice"]);
+    return { job: this.queue.start(["design", await this.voiceOf(voice)]) };
+  }
+
+  /** `generate pick`: saves a candidate as the voice; the tool writes voices.json. */
+  async pick(value: unknown): Promise<VoiceSnapshot> {
+    const request = object(value, ["voice", "candidate"]);
+    const voice = await this.voiceOf(request.voice);
+    if (![1, 2, 3].includes(request.candidate as number))
+      throw new WorkbenchError("A candidate is 1, 2 or 3");
+    const lines: string[] = [];
+    const code = await this.queue.serial(() =>
+      this.queue.run(["pick", voice, String(request.candidate)], (line) => lines.push(line)),
+    );
+    if (code !== 0) throw new WorkbenchError(`generate pick failed: ${lines.join("\n")}`, 500);
+    return this.snapshot();
+  }
+
+  /**
+   * A candidate's preview through its set's profile. The tool renders it (locally,
+   * no calls) the first time a voice is played in this session, so a tuned profile
+   * is heard after a restart.
+   */
+  async candidateAudio(voice: string, candidate: number): Promise<Buffer> {
+    const id = await this.voiceOf(voice);
+    if (![1, 2, 3].includes(candidate)) throw new WorkbenchError("A candidate is 1, 2 or 3", 404);
+    if (!this.rendered.has(id)) {
+      const lines: string[] = [];
+      const code = await this.queue.serial(() =>
+        this.queue.run(["preview", id], (l) => lines.push(l)),
+      );
+      if (code !== 0) throw new WorkbenchError(`generate preview failed: ${lines.join("\n")}`, 500);
+      this.rendered.add(id);
+    }
+    try {
+      return await readFile(join(this.root, previewFile(id, candidate)));
+    } catch {
+      throw new WorkbenchError(`${id} has no candidate ${candidate}`, 404);
+    }
+  }
+
+  listJobs(): Promise<{ jobs: GenerationJob[] }> {
+    return Promise.resolve({ jobs: this.queue.jobs });
   }
 }
 
+const CANDIDATE_AUDIO =
+  /^\/__sound-workbench\/voices\/candidate\/([a-z0-9_]+\/[a-z0-9_]+)\/([0-9])$/;
+
 export function voiceWorkbenchMiddleware(store: VoiceWorkbenchStore) {
-  return jsonRoutes(
+  const json = jsonRoutes(
     "/__sound-workbench/voices/",
     { snapshot: () => store.snapshot(), jobs: () => store.listJobs() },
     {
@@ -355,6 +389,26 @@ export function voiceWorkbenchMiddleware(store: VoiceWorkbenchStore) {
       save: (body) => store.save(body as Save),
       verdict: (body) => store.verdict(body),
       generate: (body) => store.generate(body),
+      design: (body) => store.design(body),
+      pick: (body) => store.pick(body),
     },
   );
+  return async (request: IncomingMessage, response: ServerResponse, next: () => void) => {
+    // A design candidate's audio: `candidate/<set>/<voice>/<n>`.
+    const audio = request.method === "GET" && request.url?.split("?")[0].match(CANDIDATE_AUDIO);
+    if (!audio) return json(request, response, next);
+    try {
+      localOnly(request);
+      const bytes = await store.candidateAudio(audio[1], Number(audio[2]));
+      response.setHeader("Content-Type", "audio/mpeg");
+      response.setHeader("Cache-Control", "no-store");
+      response.end(bytes);
+    } catch (error) {
+      response.statusCode = error instanceof WorkbenchError ? error.status : 500;
+      response.setHeader("Content-Type", "application/json");
+      response.end(
+        JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
+      );
+    }
+  };
 }

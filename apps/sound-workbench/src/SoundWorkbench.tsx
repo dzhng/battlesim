@@ -5,11 +5,20 @@ import {
   type SoundCatalog,
 } from "../../../packages/battle-audio/src/catalog";
 import { SoundAuditioner, type Auditioner, type LiveMix } from "./audition";
-import { workbenchAPI, type Review, type Snapshot, type WorkbenchAPI } from "./protocol";
+import {
+  musicAPI,
+  workbenchAPI,
+  type MusicAPI,
+  type Review,
+  type Snapshot,
+  type WorkbenchAPI,
+} from "./protocol";
 import { Library, type Selection } from "./Library";
 import { GlobalAssignments } from "./Assignments";
 import { Movement } from "./Movement";
 import { VoicesTab } from "./voices/VoicesTab";
+import { MusicTab } from "./music/MusicTab";
+import { ChatterPreview } from "./voices/ChatterPreview";
 import { voiceAPI, type VoiceAPI } from "./voices/protocol";
 import "./sound-workbench.css";
 
@@ -36,13 +45,18 @@ function changedSettings(
 export function SoundWorkbench({
   api = workbenchAPI,
   voices = voiceAPI,
+  music = musicAPI,
   audition: suppliedAudition,
-}: { api?: WorkbenchAPI; voices?: VoiceAPI; audition?: Auditioner } = {}) {
+}: { api?: WorkbenchAPI; voices?: VoiceAPI; music?: MusicAPI; audition?: Auditioner } = {}) {
   const audition = useMemo(() => suppliedAudition ?? new SoundAuditioner(), [suppliedAudition]);
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [draft, setDraft] = useState<SoundCatalog | null>(null);
   const [review, setReview] = useState<Review | null>(null);
-  const [tab, setTab] = useState<"library" | "movement" | "effects" | "voices">("library");
+  const [tab, setTab] = useState<
+    "library" | "movement" | "effects" | "voices" | "music" | "chatter"
+  >(
+    "library",
+  );
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Selection | null>(null);
   const [busy, setBusy] = useState(false);
@@ -50,9 +64,11 @@ export function SoundWorkbench({
   const [playing, setPlaying] = useState("");
   const [mix, setMix] = useState<LiveMix | null>(null);
   const [loadingAudio, setLoadingAudio] = useState(false);
+  const [stops, setStops] = useState(0);
   const auditionGeneration = useRef(0);
   const stopAudio = useCallback(() => {
     auditionGeneration.current++;
+    setStops((count) => count + 1);
     audition.stop();
     setPlaying("");
     setMix(null);
@@ -173,7 +189,7 @@ export function SoundWorkbench({
           <h1>Sound workbench</h1>
           <p>Audition the library. Choose the sound of each unit and weapon mount.</p>
         </div>
-        {tab !== "voices" && (
+        {tab !== "voices" && tab !== "music" && tab !== "chatter" && (
           <div className="sw-publication">
             <span>{dirty ? "UNSAVED DRAFT" : "SAVED GENERATION"}</span>
             <button
@@ -208,6 +224,8 @@ export function SoundWorkbench({
             ["movement", "Movement"],
             ["effects", "Defaults & effects"],
             ["voices", "Voices"],
+            ["music", "Music"],
+            ["chatter", "Chatter preview"],
           ] as const
         ).map(([value, label]) => (
           <button
@@ -242,6 +260,19 @@ export function SoundWorkbench({
       )}
       {tab === "voices" ? (
         <VoicesTab api={voices} audition={audition} />
+      ) : tab === "music" && snapshot ? (
+        <MusicTab
+          snapshot={snapshot}
+          api={music}
+          audition={audition}
+          stop={stopAudio}
+          stops={stops}
+          reload={() =>
+            void api.snapshot().then(accept, (error) => setMessage(String(error.message)))
+          }
+        />
+      ) : tab === "chatter" ? (
+        <ChatterPreview api={voices} audition={audition} />
       ) : !snapshot || !draft ? (
         <p>{message ? "The saved library could not be loaded." : "Loading saved library…"}</p>
       ) : (

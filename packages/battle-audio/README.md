@@ -116,6 +116,17 @@ high word error or a take longer than its trigger's talk time flags it for revie
 `check` proves the lock by hash and never re-encodes, since MP3 bytes differ between
 ffmpeg builds.
 
+A voice is bought before its takes. `design` asks Voice Design for three candidates
+from the voice's description, each speaking its role's audition: the role's own
+lines, steady to desperate, the same for every voice of the role so candidates
+compare. A candidate's generated id is temporary, so its preview is kept as a raw
+master (`assets/source/audio/voices/design/`), transcribed, and recorded in the
+lock's `designs`; a design is bought again only when the description, audition or
+the voice's design retake (`<set>/<voice>/design` in `retakes`) changes. `pick` saves
+one candidate as a permanent voice and writes its `voice_id` into `voices.json`
+through the workbench's fixture publication. Candidates are heard through the set's
+profile, rendered locally into the scratch folder.
+
 [`assets.py voice`](tools/assets.py) is the treatment: where the speaker sits
 decides it (dry in the open, a light radio over the tank's engine, an earpiece for
 recon, an intercom over the rotor). Each take is mixed with its profile's hiss and
@@ -129,6 +140,15 @@ such as the cockpit's muffling. Only a machine the game has no recording of gets
 generated bed, a raw master the tool's `beds` command buys once and the lock records;
 the tank's engine is one, since the game synthesises engines. Either way the bed's
 sha256 enters the processing key, so a changed clip or master re-renders its takes.
+
+Which lines play is decided in one place, [the chatter](src/voices/chatter.ts):
+answers before own shouts before a seen enemy's, nearest the camera first, a few
+lines at once (`presentation.audio.voices`), a line dropped when it can't start
+soon, a unit never over itself, one answer per group. It picks the take with the
+client's own seeded randomness, never the simulation's. Its takes come from
+[the voice bank](src/voices/voiceBank.ts), which loads a battle's sets from their
+`pack.json` in the background; a take not yet loaded is a dropped line, never a
+wait. The sound workbench's chatter preview runs the same two.
 
 The [sound frame](src/soundFrame.ts) owns timing, distance and voice allocation.
 Only implicit presentation slots follow shared effect replacements; an explicit
@@ -167,6 +187,17 @@ the served file, and a gain. The served file is
 by the asset tool's `music` command; the hash in the name keeps a re-encoded
 track from meeting a cached one. A track's gain sets its loudness in the mix:
 the menu bed's matches the integrated loudness the old decoded bed had.
+
+The battle score is generated, so its sources record how (`Generated`: model,
+prompt, length) instead of a licence, and only a recording can be cropped into
+a clip. `bun run generate music` owns those tracks: their table and prompts live
+in [the tool](tools/generate/music.ts), each raw master is paid for once and kept
+under `assets/source/audio/music/`, and each served encode is given the gain that
+sets it to −26 LUFS. `--track` buys a track again.
+
+Which mood plays is the [music director's](src/music/musicDirector.ts) call: a
+pure rule on an injected clock, fed the side's own barks. Its numbers live in
+`presentation.audio.music`. It never repeats a track back to back within a mood.
 
 Music feeds the same master as the rest of the menu mix, so master volume and
 mute cover it. Inside the player, a level gain carries the player's music

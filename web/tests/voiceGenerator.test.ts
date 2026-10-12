@@ -5,11 +5,26 @@ import { dirname, join } from "node:path";
 import { mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { afterEach, describe, expect, it } from "vitest";
-import { takeId, type VoiceCatalog } from "@packages/battle-audio/src/voices/voiceCatalog";
+import {
+  ALL_TRIGGERS,
+  takeId,
+  validateVoiceCatalog,
+  type VoiceCatalog,
+} from "@packages/battle-audio/src/voices/voiceCatalog";
 import { ElevenLabsClient } from "@packages/battle-audio/tools/generate/elevenlabs";
 import { Pool } from "@packages/battle-audio/tools/generate/pool";
 import { matches } from "@packages/battle-audio/tools/generate/transcript";
-import { readLock } from "@packages/battle-audio/tools/generate/lock";
+import {
+  readLock,
+  type CandidateRecord,
+  type DesignRecord,
+} from "@packages/battle-audio/tools/generate/lock";
+import {
+  auditionText,
+  autoPicks,
+  designVoices,
+  pickVoice,
+} from "@packages/battle-audio/tools/generate/design";
 import {
   checkVoices,
   generateVoices,
@@ -73,6 +88,9 @@ const profiles = (compression = 4): VoiceProfiles => ({
 function fakeProxy(options: { failAfter?: number; transcript?: (spoken: string) => string } = {}) {
   /** Requests the proxy answered, so the ones that cost credits. */
   const calls: string[] = [];
+  /** Descriptions sent to Voice Design, and bodies sent to save a voice. */
+  const designs: string[] = [];
+  const saved: { voice_name: string; generated_voice_id: string; labels: object }[] = [];
   let requests = 0;
   const fetch = async (url: string | URL | Request, init?: RequestInit) => {
     const path = new URL(String(url)).pathname;
@@ -85,10 +103,27 @@ function fakeProxy(options: { failAfter?: number; transcript?: (spoken: string) 
     }
     if (path.endsWith("/speech-to-text")) {
       const file = (init!.body as FormData).get("file") as Blob;
-      const spoken = (await file.text()).replace(/^speech:/, "");
+      const spoken = (await file.text()).replace(/^speech\d*:/, "");
       return Response.json({ text: (options.transcript ?? ((s) => s))(spoken) });
     }
     if (path.endsWith("/sound-generation")) return new Response(new Uint8Array([1, 2, 3]));
+    // Voice Design: three previews speaking the audition text, each with its own bytes.
+    if (path.endsWith("/text-to-voice/design")) {
+      const { text, voice_description } = JSON.parse(String(init?.body));
+      designs.push(voice_description);
+      return Response.json({
+        previews: [1, 2, 3].map((n) => ({
+          generated_voice_id: `generated-${designs.length}-${n}`,
+          audio_base_64: Buffer.from(`speech${n}:${text}`).toString("base64"),
+          duration_secs: 6 + n,
+        })),
+      });
+    }
+    if (path.endsWith("/text-to-voice")) {
+      const body = JSON.parse(String(init?.body));
+      saved.push(body);
+      return Response.json({ voice_id: `saved-${body.generated_voice_id}` });
+    }
     return new Response("not found", { status: 404 });
   };
   const client = new ElevenLabsClient({
@@ -96,7 +131,13 @@ function fakeProxy(options: { failAfter?: number; transcript?: (spoken: string) 
     workspace: "w",
     token: "t",
   });
-  return { client, calls, tts: () => calls.filter((c) => c.includes("/text-to-speech/")).length };
+  return {
+    client,
+    calls,
+    designs,
+    saved,
+    tts: () => calls.filter((c) => c.includes("/text-to-speech/")).length,
+  };
 }
 /** Processing at the ffmpeg edge: the served bytes are a function of raw bytes and profile. */
 function fakeProcessor() {
@@ -248,9 +289,13 @@ describe("voice generation", () => {
     const c = catalog();
     Object.assign(c.sets.tank.voices[1], { speaks: "all", voice_id: "voice-soldier-id" });
     const select = { triggers: ["move" as const], take: 0 };
-    expect(selectTakes(c, { beds: {}, takes: {} }, select).takes).toHaveLength(4);
+    expect(selectTakes(c, { beds: {}, designs: {}, takes: {} }, select).takes).toHaveLength(4);
     expect(
-      selectTakes(c, { beds: {}, takes: {} }, { ...select, voices: ["lead"] }).takes.map(takeId),
+      selectTakes(
+        c,
+        { beds: {}, designs: {}, takes: {} },
+        { ...select, voices: ["lead"] },
+      ).takes.map(takeId),
     ).toEqual(["tank/lead/move/steady/0", "tank/lead/move/stressed/0"]);
   });
 
@@ -308,6 +353,156 @@ describe("voice generation", () => {
     const result = await run(root, proxy, { maxChars: 40 });
     expect(proxy.tts()).toBe(2);
     expect(result.characters).toBeLessThanOrEqual(40);
+  });
+});
+
+/** A crew whose every trigger has lines, so its role has an audition; its soldier awaits design. */
+function designCatalog(): VoiceCatalog {
+  const c = catalog();
+  c.roles.crew.lines = Object.fromEntries(
+    ALL_TRIGGERS.map((trigger) => [
+      trigger,
+      lines(
+        [`Steady ${trigger} one.`, `Steady ${trigger} two.`],
+        [`[shouting] Stressed ${trigger} one!`, `[urgent] Stressed ${trigger} two!`],
+      ),
+    ]),
+  ) as VoiceCatalog["roles"][string]["lines"];
+  c.sets.tank.voices[1].description = "US tank crew gunner in his twenties, raspy voice";
+  return c;
+}
+function writeCatalog(root: string, c: VoiceCatalog) {
+  writeFileSync(join(root, "fixtures/voices.json"), `${JSON.stringify(c, null, 2)}\n`);
+}
+const lockAt = (root: string) => readLock(join(root, "fixtures/voices.lock.json"));
+const design = (root: string, proxy: ReturnType<typeof fakeProxy>, c = designCatalog()) =>
+  designVoices({ root, catalog: c, client: proxy.client, log: quiet });
+const pick = (
+  root: string,
+  proxy: ReturnType<typeof fakeProxy>,
+  voice: string,
+  candidate: number,
+  replace = false,
+) =>
+  pickVoice({
+    root,
+    client: proxy.client,
+    validate: (value) => validateVoiceCatalog(value, null),
+    voice,
+    candidate,
+    replace,
+    log: quiet,
+  });
+
+describe("voice design", () => {
+  it("designs a waiting voice from its description and role audition, and keeps three transcribed candidates", async () => {
+    const root = workspace();
+    const proxy = fakeProxy();
+    const result = await design(root, proxy);
+    expect(result.failed).toBe(0);
+    // Only the soldier waits for a voice; the lead is already saved.
+    expect(proxy.designs).toEqual(["US tank crew gunner in his twenties, raspy voice"]);
+    const record = lockAt(root).designs["tank/soldier"];
+    const text = auditionText(designCatalog(), "crew");
+    expect(text.length).toBeGreaterThanOrEqual(100);
+    expect(record.text).toBe(text);
+    expect(record.candidates.map((c) => c.generated_voice_id)).toEqual([
+      "generated-1-1",
+      "generated-1-2",
+      "generated-1-3",
+    ]);
+    for (const [i, candidate] of record.candidates.entries()) {
+      // The preview is a raw master: its bytes are on disk under the voice's design folder.
+      expect(candidate.raw).toMatch(/^assets\/source\/audio\/voices\/design\/tank\/soldier\//);
+      expect(readFileSync(join(root, candidate.raw), "utf8")).toBe(`speech${i + 1}:${text}`);
+      expect(candidate.raw_sha256).toBe(
+        createHash("sha256")
+          .update(`speech${i + 1}:${text}`)
+          .digest("hex"),
+      );
+      expect(candidate.transcript).toBe(text);
+      expect(candidate.match?.score).toBe(1);
+    }
+    // A voice that already has candidates is never designed again.
+    const again = fakeProxy();
+    await design(root, again);
+    expect(again.calls).toEqual([]);
+  });
+
+  it("designs again when the voice's design retake is bumped", async () => {
+    const root = workspace();
+    await design(root, fakeProxy());
+    const c = designCatalog();
+    c.retakes["tank/soldier/design"] = 1;
+    const again = fakeProxy();
+    await design(root, again, c);
+    expect(again.designs).toHaveLength(1);
+    expect(lockAt(root).designs["tank/soldier"].retake).toBe(1);
+  });
+
+  it("pick saves the chosen candidate permanently and writes its voice_id into voices.json", async () => {
+    const root = workspace();
+    writeCatalog(root, designCatalog());
+    await design(root, fakeProxy());
+    const proxy = fakeProxy();
+    expect(await pick(root, proxy, "tank/soldier", 2)).toBe(true);
+    expect(proxy.saved).toEqual([
+      expect.objectContaining({
+        voice_name: "battlegame tank soldier",
+        generated_voice_id: "generated-1-2",
+        labels: { project: "battlegame", set: "tank", voice: "soldier" },
+      }),
+    ]);
+    const saved = JSON.parse(readFileSync(join(root, "fixtures/voices.json"), "utf8"));
+    expect(saved.sets.tank.voices[1].voice_id).toBe("saved-generated-1-2");
+    // The rest of the file is untouched.
+    expect(saved.sets.tank.voices[0].voice_id).toBe(LEAD);
+    const record = lockAt(root).designs["tank/soldier"];
+    expect(record.picked).toMatchObject({ candidate: 2, voice_id: "saved-generated-1-2" });
+    expect(record.candidates).toHaveLength(3);
+  });
+
+  it("pick refuses a voice that already has a voice_id unless told to replace it", async () => {
+    const root = workspace();
+    writeCatalog(root, designCatalog());
+    await design(root, fakeProxy());
+    await pick(root, fakeProxy(), "tank/soldier", 1);
+    const before = readFileSync(join(root, "fixtures/voices.json"), "utf8");
+    const refused = fakeProxy();
+    expect(await pick(root, refused, "tank/soldier", 3)).toBe(false);
+    expect(refused.calls).toEqual([]);
+    expect(readFileSync(join(root, "fixtures/voices.json"), "utf8")).toBe(before);
+    const replaced = fakeProxy();
+    expect(await pick(root, replaced, "tank/soldier", 3, true)).toBe(true);
+    const saved = JSON.parse(readFileSync(join(root, "fixtures/voices.json"), "utf8"));
+    expect(saved.sets.tank.voices[1].voice_id).toBe("saved-generated-1-3");
+  });
+
+  it("auto pick takes the best speech-to-text match, then the duration nearest the role's median", () => {
+    const candidate = (score: number, duration_s: number) =>
+      ({ match: { score }, duration_s }) as unknown as CandidateRecord;
+    const record = (candidates: CandidateRecord[]) => ({ candidates }) as unknown as DesignRecord;
+    const c = designCatalog();
+    c.sets.tank.voices.push({
+      id: "soldier2",
+      speaks: "barks",
+      gender: "male",
+      description: "",
+      voice_id: null,
+    });
+    const picks = autoPicks(c, {
+      beds: {},
+      takes: {},
+      designs: {
+        // Role median of every candidate's duration: 8 s.
+        "tank/soldier": record([candidate(0.9, 8), candidate(1, 4), candidate(0.7, 8)]),
+        "tank/soldier2": record([candidate(1, 12), candidate(1, 8.5), candidate(0.5, 8)]),
+      },
+    });
+    expect(picks).toEqual([
+      { voice: "tank/soldier", candidate: 2 },
+      { voice: "tank/soldier2", candidate: 2 },
+    ]);
   });
 });
 

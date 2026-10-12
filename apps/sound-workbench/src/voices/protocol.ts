@@ -4,7 +4,7 @@ import type {
   VoiceCatalog,
 } from "../../../../packages/battle-audio/src/voices/voiceCatalog";
 import type { Match } from "../../../../packages/battle-audio/tools/generate/transcript";
-import type { Review, Save } from "../protocol";
+import type { GenerationJob, Review, Save } from "../protocol";
 
 /** One locked take as the review grid shows it. */
 export interface TakeView {
@@ -28,6 +28,14 @@ export interface SetCounts {
   ok: number;
   bad: number;
 }
+/** A voice's Voice Design candidates, by `<set>/<voice>`. */
+export interface DesignView {
+  /** The role's audition text every candidate speaks. */
+  text: string;
+  candidates: { transcript: string | null; score: number | null; duration_s: number }[];
+  /** The candidate saved as the voice (1-based), if any. */
+  picked: number | null;
+}
 export interface VoiceSnapshot {
   /** The `voices.json` generation a draft edits. Verdicts never change it. */
   revision: string;
@@ -35,6 +43,7 @@ export interface VoiceSnapshot {
   /** Locked takes by take id. */
   takes: Record<string, TakeView>;
   counts: Record<string, SetCounts>;
+  designs: Record<string, DesignView>;
 }
 export interface VoiceDraft {
   revision: string;
@@ -62,22 +71,21 @@ export interface VoiceScope {
   take?: number;
   only?: "missing" | "bad" | "flagged";
 }
-export interface VoiceJob {
-  id: string;
-  /** The generation tool's arguments. */
-  args: string[];
-  status: "queued" | "running" | "done" | "failed";
-  /** The tool's latest progress lines. */
-  lines: string[];
-}
 export interface VoiceAPI {
   snapshot(): Promise<VoiceSnapshot>;
   preview(draft: VoiceDraft): Promise<Review>;
   save(review: Save): Promise<VoiceSnapshot>;
   verdict(request: VerdictRequest): Promise<VerdictResult>;
-  generate(scope: VoiceScope): Promise<{ job: VoiceJob }>;
-  jobs(): Promise<{ jobs: VoiceJob[] }>;
+  generate(scope: VoiceScope): Promise<{ job: GenerationJob }>;
+  /** Designs new candidates for `<set>/<voice>`. */
+  design(voice: string): Promise<{ job: GenerationJob }>;
+  /** Saves candidate 1–3 as the voice; voices.json gains its voice_id. */
+  pick(voice: string, candidate: number): Promise<VoiceSnapshot>;
+  jobs(): Promise<{ jobs: GenerationJob[] }>;
 }
+/** A design candidate rendered through its set's profile. */
+export const candidateUrl = (voice: string, candidate: number) =>
+  `/__sound-workbench/voices/candidate/${voice}/${candidate}`;
 
 async function request<T>(endpoint: string, body?: unknown): Promise<T> {
   const response = await fetch(
@@ -100,5 +108,7 @@ export const voiceAPI: VoiceAPI = {
   save: (review) => request("save", review),
   verdict: (body) => request("verdict", body),
   generate: (scope) => request("generate", { scope }),
+  design: (voice) => request("design", { voice }),
+  pick: (voice, candidate) => request("pick", { voice, candidate }),
   jobs: () => request("jobs"),
 };

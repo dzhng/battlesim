@@ -5,7 +5,7 @@
 // destination. Level and duck are separate nodes so neither overwrites the
 // other. Outside `WebAudioSink`: `MediaElementAudioSourceNode` has no
 // `OfflineAudioContext` form.
-import { musicUrl, type MusicTrack } from "../catalog";
+import { musicUrl, type MusicTrack } from "./musicCatalog";
 
 interface Playing {
   media: HTMLMediaElement;

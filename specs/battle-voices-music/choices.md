@@ -319,3 +319,52 @@ There were four drafts: A fewest-slices (Claude), B risk-first (Codex), C seam-q
 - **The publication does not change in this slice.** `SoundCategory::Shout` cues ride in `ObservationFrame.audible`, but the encoder leaves them out (`published_audible` in `publication.rs`) until slice 13 adds `Shout` to the layout's sound categories and deletes that filter. None of the five pinned publication streams contains a shout cue, so slice 13's re-bless gets no audible bytes from them.
 - **Snapshot:** `shouts::Before` keeps alive, hull hp, each soldier's hp, the tier and each mount's reason, shot count and guided missile, refilled in place each tick. The endurance soak (5 simulated minutes) went from 0.970 to 0.115 M instructions per tick in the phase that held the copy, and 781.2 to 774.3 G step instructions overall; the digest is unchanged.
 - **Tests for two table rows read the moment physically rather than literally.** "Behind a ridge": a guided missile needs a clear line from its launcher to the target, so terrain that hides the missile also hides the target; the test hides it beyond the tank's rear sight instead. The rule is the same `sees_point`. "The unit's own missile": a blue squad stands beside the red tank its own launcher fires at, so the missile steers onto the squad's area, and the launcher is checked too.
+
+**2026-10-12, slice 13 (agent; the re-bless commit is recorded when it lands):**
+- **Row layout:** `shouts` rows are `own, idLo, idHi, kind, x, y, z, trigger, intensity`. `own` is 1 for the side's own unit and 0 for an identified enemy, as crashes, corpses and projectiles mark it, rather than a new speaker table. The id is the unit id or the identification handle, in limbs. `shoutCount` ends the header and the group follows `crashes`: the newest group goes last.
+- **Tag tables:** the layout publishes `shoutTriggers` (the contract's serde names, `b1_contact_infantry` … `b17_friendly_destroyed_nearby`, in B order) and `intensities` (`steady`, `stressed`). `soundCategories` gains `shout`, and `published_audible` is deleted.
+- **One name mapping:** `barkTrigger` in `voiceCatalog.ts` turns a simulation tag into its voice name and refuses a tag whose number and name disagree. The generation tool's talk-time keys use it in place of its own regex. The contract test reads the layout from `codec-vectors.json`, whose bark, intensity and sound-category tables the encoder's codec test holds equal to the writer's.
+- **The re-bless:** `BLESS_PARITY=1` on `publication::` only. In the five streams every changed value is a `publication_sha256` (1,896 of them); every `digest`, `initial_digest` and `fog_sha256` is unchanged, compared value by value. `codec-vectors.json` changed its layout and bits, and its base frame gained two shouts (own and seen) and a shout cue. The combat stream carries three barks, one of them a seen enemy's; no stream carries a shout cue.
+- **Native captures re-encoded, not re-captured:** the Godot fixture captures (`market-town`, `paris-corner`) hold the old layout, which the reader refuses. Each record gained `shoutCount` 0 and the empty shouts delivery the writer emits (length 0, snapshot, payload 0), its expected observations gained `shouts: []`, and paris-corner's `captureHash` was recomputed. Their sample digests are untouched.
+
+**2026-10-12, slice 13 verification (orchestrator):** the re-bless proof parsed every leaf of the six publication records. Only `publication_sha256` values changed (1,896 of them). All 1,901 `digest`/`initial_digest` values and every `fog_sha256` are identical. The re-encoded native Godot captures pass the Rust reader test and the Godot `presentation_capture`, `frame_stepper` and `visual_manifest` tests. `parity_compose_test` fails with or without this slice's native changes (two layer-blocker cases), so that failure was there before this slice.
+**2026-10-12, slice 05 (a Claude worker built it; the user approved the picks):**
+- **117 voices designed,** 3 candidates each, with 0 failures: 117 design calls and 351 transcriptions in 376 s. The mean speech-to-text match was 0.956. The Chinese sets scored lowest, most likely because of the accent.
+- **Descriptions:** the designer replaced 109 placeholder descriptions with full ones in the T1 style (nation, gender, role, age, timbre, delivery, accent). The user saw them on the candidates page and approved the outcome.
+- **Picks:** `generate pick --auto` chose, for each voice, the candidate with the best match on its audition text, tie-broken by duration closest to the role's median. The user listened and said "your auto picked ones are good". All 121 voices now have a saved `voice_id`; any can be re-picked later with `generate pick --replace`.
+- **Keep everything (user, standing rule):** every generated or extracted asset is kept, unpicked candidates and superseded takes included ("we have more than enough space … we could use them as additional voice samples", as with the unused weapon recordings).
+  - The tool no longer deletes superseded raw masters, design candidates or beds.
+  - Served files of a superseded take are still removed: they are re-renderable derivations that would otherwise ship with every deploy.
+  - The generated helicopter bed that 02b deleted is restored, unused, under `assets/source/audio/voices/beds/`.
+  - The pilot's three superseded raw masters were deleted before this rule and were never committed, so they are gone.
+**2026-10-12, slice 08 (agent; preference 1 unless noted):**
+
+- **Generated sources join the catalog's `sources`.** A track's source is `Generated` provenance plus `length_s`, `path` (under `assets/source/audio/music/`) and `sha256`; a recording keeps its licence receipt. Validation refuses a clip cropped from a generated source. The `music` section's types and `musicUrl()` moved to `src/music/musicCatalog.ts`, so the Bun-run tool can name a served file without loading the synthesised bank.
+- **Track ids:** `combat_1..3`, `tension_sparse_1..2`, `tension_dark_1`; each source has its track's id. Length 150 s for all six.
+- **Prompt variations (delegated):** combat_1 keeps the ostinato and strings in front at one flat intensity; combat_2 lets the taiko and drums lead (still far back) with a slow build to a plateau; combat_3 is darker, with a syncopated ostinato and gentle swells every 30 s. The two sparse tracks differ by stillness versus unease; the dark track uses the table's prompt as written.
+- **Caching:** a raw master holds while its prompt, model and length are unchanged and its bytes match, as the beds do. `--track` buys that track again and deletes its old raw and served files. A kill between receiving and recording a master would pay for that track again; at six tracks that is accepted.
+- **−26 LUFS is the track's integrated loudness after its gain,** on the same scale the menu bed was matched on (−29.8). The gain is computed from the served file, measured by `assets.py music --input/--output`, the one music encoder.
+- **The tool writes `sounds.json` through oxfmt,** escaping non-ASCII as `assets.py build` does, so adding a track doesn't reflow the file. The first write also normalised about 40 lines of older layout drift.
+- **`assets.py build` decodes only the sources a clip crops.** Music masters stream and are never cut.
+- **`presentation.audio.music`** became `{ duck: {depth, attack_s, release_s}, combat_window_s: 20, calm_s: 45, crossfade_s: 4, combat_triggers: [B5–B9] }`. Nothing read the duck numbers yet.
+- **Director semantics:** combat starts when the latest qualifying bark is at most 20 s old when the mood is asked; it ends when the latest is over 45 s old. Shuffle is a bag per mood; a new bag never starts with the track just played.
+- **Workbench:** voices and music share one generation queue (`apps/sound-workbench/generation.ts`), so the tool's files keep one writer. The Music tab's mood switch drives `MusicDirector` on a clock the tab owns: Combat notes a B5 bark; Tension skips the calm period. Tracks play at their catalog gain, as in battle.
+- **Real spend:** 6 `music_v1` calls, 900 s of music, no retries needed.
+
+- **2026-10-12 (orchestrator):** generating a track again keeps the old raw master (the user's keep-everything rule) and drops only the old served file. The workbench shares one generation-tool queue for voices, design, pick and music, so `voices.lock.json` and `sounds.json` each keep a single writer. The user's listen to the six tracks is non-blocking. No track plays in a battle before slice 14, and every track can be regenerated from the Music tab.
+
+**2026-10-12, slice 09 (a Claude worker built it; the orchestrator reviewed):**
+- **`Chatter`** (`packages/battle-audio/src/voices/chatter.ts`) is the one place line rules live:
+  - at most 4 lines play at once;
+  - responses come before own barks, which come before a seen enemy's, nearest the camera first within each;
+  - a line is dropped after waiting 1 s;
+  - a speaker never overlaps itself;
+  - an order to a group gets one answer (requests within 250 ms collapse).
+  
+  The numbers are in `presentation.audio.voices`. Two choices the spec left open: a request with no position ranks as nearest, since it's the owner's radio; a line whose take isn't loaded is dropped at once.
+- **Takes and voices:**
+  - The take is drawn with `mulberry32` from the `math` package, keyed by speaker, trigger, intensity and request count.
+  - A bark's voice comes from a stable hash of the speaker, so one soldier always has the same voice.
+- **Pack format** (`voiceCatalog.ts`): `VoicePack { set, voices[], takes[] }` at `/audio/voices/<set>/pack.json`, built only by `voicePack()`. Slice 06's `generate pack` calls it with accepted takes only.
+- **`VoiceBank`** loads packs and MP3s by URL in the background and never blocks battle start. A failed set stays silent.
+- **The chatter preview** in the workbench runs a scripted firefight through the real `Chatter` with a fixed seed. Its lane view marks lines heard, collapsed and missing.

@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from "react";
+import { recording } from "../../../packages/battle-audio/src/catalog";
 import { SOUNDS } from "../../../packages/battle-audio/src/synth";
 import { RecipeEditor } from "./RecipeEditor";
 import type { EditorProps } from "./editorProps";
@@ -132,7 +133,7 @@ export function Library({
                     {(clip.frames / clip.sample_rate).toFixed(3)} s · {clip.sample_rate} Hz
                   </dd>
                   {crops.map((crop, i) => {
-                    const source = draft.sources[crop.source];
+                    const source = recording(draft, crop.source);
                     return (
                       <Fragment key={i}>
                         <dt>{crops.length > 1 ? `Layer ${i + 1}` : "Source"}</dt>
@@ -154,7 +155,7 @@ export function Library({
                   <dt>Processing</dt>
                   <dd>{clip.processing}</dd>
                 </dl>
-                {[...new Set(crops.map((crop) => draft.sources[crop.source].notes))]
+                {[...new Set(crops.map((crop) => recording(draft, crop.source).notes))]
                   .filter(Boolean)
                   .map((notes) => (
                     <p key={notes}>{notes}</p>
