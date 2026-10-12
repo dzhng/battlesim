@@ -774,6 +774,52 @@ Net lines deleted, by language (generated `Cargo.lock` −129 apart):
 
 Fixtures: about 0.6 MB of Godot-only vectors and run artifacts deleted.
 
+### The performance gate's measure (2026-10-12, branch `nativebench`)
+
+The gate is "native at or below the browser on every measure, both scenes, release build". This builds native's half of the measure and takes one provisional reading. The final gate is rerun once native draws everything.
+
+**The contract.**
+- `native-client --bench <dir>` (`native/client/src/bench.rs`) plays a parity capture's frame records back to back. Each frame is framed by `Presentation::frame` at the record's sim time and camera, with every publication up to its tick, then drawn through the whole pass list and presented to the borderless off-screen window. No plates are written.
+- Each frame records three times:
+  - its interval, from one frame's start to the next;
+  - its CPU time, from the start through the submit and the present call;
+  - its GPU time between two timestamp marker passes. These are `gpuTiming.ts`'s 1×1 cleared render passes: the begin marker goes in its own command buffer, submitted first, and the end marker goes at the end of the frame's encoder.
+- The CPU time is also split into framing, preparing the layers, encoding, and submit with present.
+- The off-screen window never blocks, so the bench keeps at most two frames in flight (the swap chain's latency). A frame's interval is then as long as the slower of its CPU and its GPU.
+- The first 60 frames are left out, as `graphics-fps` leaves out its first 60.
+- The report is `native-<scene>-<time>.json` in the browser file's shape. It has `client: "native"`, the conditions (power, build, adapter, pace, the pass list and the mean drawn per frame), and per scene the `intervalsMs`, `cpuMs`, `gpu {frames, meanMs, p95Ms}` and `phasesMs`.
+- `fps-compare.mjs` reads `native-*.json` beside `browser-*.json`. Its table gains the CPU ms p95.
+- **Every bench frame lists every static batch** (`Replay::frame(.., drawn = true)`), because the models and scenery hold no batch from the frame before. Native therefore copies and uploads every static instance each frame: 120 KB a frame on paris-corner and 259 KB on market-town. The browser keeps them.
+
+**What each side drew.**
+- **Both** drew the ground, the grass, the buildings, the scenery, the models, the effects, fog's mask (with no fog of war, as the reel has none) and post. The browser is `graphics-fps` at `c34a9f1df`, with its trees back.
+- **Neither** drew props: they are `props20b`'s. Fog of war's sight is not built natively, and neither reel draws it.
+- **Only the browser** also runs the live simulation worker, the HUD and the sound frame. It draws its own frames from the live simulation.
+- **Native** replays the capture's records: market-town 5,981 timed frames and paris-corner 1,846 (captures `2026-10-12T17-20-59-057Z` and `17-14-02-526Z`). The camera path and publications are the reel's, but the frames are not the browser run's frames. The captures came from `native5i` before the browser's trees were back, but a capture carries no scenery: native places its own from the map.
+- **Native's mean per frame:**
+  - market-town: 43,721 scenery instances, 5,616 building pieces, and models with 660k triangles (10 soldiers, 3 vehicles, 11 corpses), plus 486 effects;
+  - paris-corner: 545 scenery instances, 14,800 building pieces, and models with 3.0M triangles, plus 60 effects.
+
+**The reading** (one run a side, plugged in, Apple M5 Pro, 1280×720, `throwaway/perf/nativebench-2/summary.md`). The GPU lock was held for each timed run.
+
+| client | scene | load (1 min) | avg FPS | 1% low | frame ms p50 / p95 / p99 | CPU ms p50 / p95 | GPU ms mean |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| browser | market-town | 17 → falling | 30.7 | 9.0 | 33.33 / 49.99 / 75.00 | 7.26 / 44.33 | 21.32 |
+| native | market-town | 3.0 → 2.3 | 56.3 | 25.0 | 17.33 / 21.54 / 24.10 | 1.94 / 2.56 | 17.45 |
+| browser | paris-corner | falling → 3.0 | 46.1 | 10.9 | 16.70 / 41.57 / 75.02 | 1.50 / 2.36 | 13.37 |
+| native | paris-corner | 2.3 → 40 | 123.9 | 86.6 | 7.85 / 10.92 / 11.21 | 1.69 / 2.03 | 7.71 |
+
+- **Native is at or below the browser on every measure but one.** That one is paris-corner's CPU p50: 1.69 ms against the browser's 1.50. Native's CPU p95 is lower there.
+- The browser's market-town run started at load 17, so its row is provisional. Its paris-corner row and native's market-town row ran on a quiet machine. Native's paris-corner run ended with the load rising to 40.
+- The browser is paced to 120 Hz (8.3 ms) and native is unpaced. The browser's frames are longer than 8.3 ms, so the cap doesn't bind.
+- **Native is GPU-bound on both scenes.** Its frame-interval p50 equals its GPU mean: 17.3 against 17.5 ms on market-town, and 7.9 against 7.7 ms on paris-corner.
+  - Its CPU frame is 1.7–1.9 ms: framing 0.5–0.65, preparing 0.3–0.55, encoding under 0.1, and submit with present 0.65–0.75.
+  - Presenting costs nothing, because the off-screen window is occluded and nothing is shown.
+  - The GPU is not split by pass. Apple's tile-based GPU overlaps passes, so the browser's timer doesn't split it either.
+- **The first reading is discarded** (`nativebench-1`, load 30–60, before the trees fix). It had native paris-corner at 37, 18 and 11 FPS on three runs. A Metal System Trace of the third showed other processes doing 70% of the GPU's work: the lock serialises our runs, not other users of the GPU.
+
+**Next for the gate:** once props land and native draws everything, rerun three runs a side on a quiet machine. Native should then hold its static batches across frames rather than resend them, as the browser does.
+
 ## Step 5b: the scenery, and the ground on `Presentation` (2026-10-12, branch `native5i`)
 
 Native draws the scenery from `Frame`'s static batches (slice 20b step 4's walk) and reads its ground from `Presentation`. The map's props and the known props are the `props20b` lane's, not yet on main.
