@@ -276,3 +276,87 @@ A new map's light no longer recompiles 17 modules; on the base it cost about 6 s
 ### Next pickup
 
 Step 3, the native skeleton, reads `crates/pipelines`'s directory and `pipelines.json`. Regenerate the export (`UPDATE_PIPELINES=1 bun run --cwd web test -- tests/shaderExport.test.ts`) after slices 20 and 20b land, and add the impostor bake and pose kernel then.
+
+## Step 3: the native skeleton, built (2026-10-11, branch `phase5b`)
+
+### The contract
+
+- **`native/client`** is the native client: a library (the passes, the pipeline loader, the capture replay) and one binary that replays a parity scene and writes its plates. Its README holds the usage.
+- **Pipelines come only from the export.** `Pipelines::build` reads `pipelines.json` with every struct `deny_unknown_fields`, fills WebGPU's defaults where the export leaves a field out (a `buffer: {}` is a uniform), builds each pipeline inside an error scope, and fails listing every pipeline the device refuses. Passes look pipelines and layouts up by name. All 63 build on Apple M5 Pro: 5.7 s cold, 0.06–0.08 s once Metal's shader cache is warm. `tests/pipelines.rs` is the gate (falsified once by breaking `bake.wgsl`).
+- **Uniforms are presentation records, uploaded as bytes** (amends 18b):
+  - `World.light` is `presentation::light::LightSettings`: the fixture's `presentation.light` resolved into `SkyLight`, `Bloom` and `Grade` records. The sky's resolution is the browser's `skyModelParams` and `skyLight`, equal to the last bit on two lights (`tests/fixtures/sky-vectors.json`, written once by the browser's code; falsified).
+  - `Frame.view` is 18b's `View` (view, projection, eye, size), filled every frame, even before the world loads, plus the sky's three corner rays (`sky_origin`, `sky_dx`, `sky_dy`, the browser's `frameCamera` rays). `cascades` and `sun_penumbra` wait for shadows (step 4).
+  - `crates/pipelines/tests/uniforms.rs` holds each record to the struct the exported WGSL declares, member by member and in span, via naga (falsified by swapping two fields).
+- **The frame is one ordered pass list.** `Passes { targets, passes: Vec<Box<dyn Pass>> }`, and a `Pass` has `name` and `encode(queue, view, targets, encoder)`. It is encoded in order each drawn frame, with a debug group per pass. Today the list is `[sky, post]`. There is no graph, no scheduling and no extract stage beyond `Frame` itself (Bevy 0.19+'s fixed order).
+- **What draws.** The sky bakes its 384×192 lookup once at load, then each frame draws the shown sky (disc and clouds) along `Frame.view`'s rays into the 4× `rgba16float` target, resolved. Post is the browser's chain: highpass, five levels of two-axis blur, composite, then `postLook` (grade, AgX) into a `bgra8unorm` display target, which is copied to the window and read back for plates. The browser's fog step (lit → hdr) is skipped, since the reel draws no fog, so the sky resolves straight into post's input.
+- **The replay drives the presentation crate through 18b's calls:** `Presentation::new(layout, tickHz)` and `load_world` (the manifest's `units` and `effects`, the clip tables, the light's sun, and the soldier's body and cruise height from `fixtures/game.json`). Then, for every frame record, every sample up to its tick is pushed, and `frame(simTime, camera from the record and the manifest's lens)` is called. The UI's x-ray and blocked colours are zeros, since a replay selects nothing.
+
+### Evidence
+
+Control `2026-10-11T18-47-00-317Z` (main checkout's `throwaway/native-parity/`), both scenes. Scratch is in `throwaway/phase5b/`: plates, contact sheets, `diff-market/`, `diff-paris/` and `critique/`.
+
+- **Counts.** `Frame.counts` (soldiers, vehicles, aircraft, corpses) equal the manifest's `modelCounts` on all 24 plates. So the replay feeds the presentation crate what the browser fed it.
+- **Sky region against the control.**
+  - The top 140 rows of the market-town plates with no smoke or buildings in them: 280, 599, 961, 1385, 1821, 2226, 3384 and 3780.
+    - Grayscale MAE 0.01–0.10.
+    - No pixel off by more than 8 levels in any channel (most at most 3).
+    - pixelmatch 0.
+  - Paris-corner 424's gap between buildings (160×100 px): at most 3 levels.
+  - The other market-town plates differ only where the browser draws smoke plumes or buildings into the band (effects and models are later steps).
+  - By eye, cloud shapes, positions, shading, the blue gradient and the horizon tint match. The unprimed critique found no difference in the three market-town pairs. Its Paris findings were checked at 3× zoom and come from the downscaled side-by-side, not the plates.
+- **Below the horizon** native shows the sky's horizon haze with faint vertical banding (the lookup's columns). The browser's ground and backdrop cover it.
+- **`cargo test`** (native-client, presentation, pipelines) and **clippy `-D warnings`** are clean. `presentation-wasm` and `godot-binding` still compile.
+
+### The window on macOS
+
+`wgpu` 30's Metal surface checks `NSWindow.occlusionState` before `nextDrawable` (its workaround for [wgpu#8309](https://github.com/gfx-rs/wgpu/issues/8309)) and returns `Occluded` for a window that isn't visible. Measured over 60–138 paced frames:
+
+| Window | Presented | Occluded | Frame interval p50 |
+| --- | --- | --- | --- |
+| Visible (on screen) | all | 0 | 8.33 ms (the 120 Hz display, `Fifo`) |
+| Off-screen (borderless, at 10000,10000) | 0 | all | 0.55–0.61 ms, unpaced |
+| Minimised | 0 | all | 0.54 ms |
+| Hidden | 0 | all | 0.57 ms |
+
+- **An occluded or minimised window presents nothing and nothing blocks.** Frames run unpaced, so plates never depend on presenting.
+- **A timing run must change.** Slice 12's minimised bench measured Godot presenting. On `wgpu` the same bench presents nothing, so step 8's performance gate must compare GPU busy time (Metal System Trace or the two timestamp markers), or present to a visible window.
+- **A live client needs its own pacing while occluded,** as Bevy throttles an unfocused window.
+- **AppKit pulls a titled window back on screen.** The first runs asked for 10000,10000 and opened at 1040,66: about 3 s on the user's screen, three times, before the window became borderless. A borderless window stays off-screen.
+- **Frames run from `about_to_wait` with `ControlFlow::Poll`,** not from redraw requests, which macOS doesn't deliver to a window it isn't showing.
+
+### Code
+
+The production code is +1,899 net lines:
+- the client, 1,543;
+- the presentation crate's light and view records, about 330.
+
+The rest of the change:
+- tests +206;
+- docs +45;
+- generated +2,567, almost all `Cargo.lock` (the `winit`/`wgpu` tree), plus `records.gen.ts` and the sky vectors.
+
+This step only adds code. Godot's deletions come at step 8.
+
+### Decisions
+
+- **Rust resolves the light (18b's `World.light`).** The client derives nothing. Until the browser reads the same records, its `skyLight` and post packers are a second copy, held equal by the sky vectors. The browser's adoption deletes them (with slice 23 or the shared-renderer decision).
+- **The sky rays go into `View`** rather than into each renderer: projection keeps one owner. They are an 18b amendment.
+- **Present by copying the display target** (`COPY_DST` surface), so plates and the window read the same texture. A visible window costs one 1280×720 copy a frame.
+- **The pass list is a `Vec<Box<dyn Pass>>`**, encoded in order. It has no render graph, as the research recommended.
+
+### Not built yet (step 3's research list)
+
+- the depth and fog-mask targets;
+- two-marker GPU timing;
+- the `Immediate` switch;
+- resizing (targets are fixed at the capture's canvas).
+
+These come with the passes that need them.
+- **Follow-up for the export:** the sky's two layouts carry TypeGPU's automatic names (`bake - Automatic Bind Group & Layout`). Name them in `sky.ts` when the export is next regenerated.
+
+### Next pickup
+
+Step 4, the ground:
+- terrain, shadows (fill `View.cascades`), scars, grass with its compute and indirect draw, and painted marks;
+- add their passes to the list between the sky and post, merging the sky into the world colour pass as the browser does;
+- plates against the same control.
