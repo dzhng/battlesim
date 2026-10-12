@@ -313,6 +313,7 @@ export async function run(ctx) {
   // page's is, except the tutorial's, a plate as tall as the screen.
   const homeTop = (await body.boundingBox())?.y;
   for (const entry of ["skirmish", "settings", "developer"]) {
+    await page.locator("main.menu:not([inert]) .menu-body").waitFor({ timeout: 120_000 });
     await page.locator(`[data-page="${entry}"]`).click();
     const top = (await body.boundingBox())?.y;
     ctx.check(
@@ -321,9 +322,11 @@ export async function run(ctx) {
       JSON.stringify({ homeTop, top }),
     );
     await page.keyboard.press("Escape");
+    await page.locator("main.menu:not([inert]) .menu-body").waitFor({ timeout: 120_000 });
   }
   // The developer page lists every lab: it changes as labs come and go.
   for (const entry of ["skirmish", "tutorial", "settings"]) {
+    await page.locator("main.menu:not([inert]) .menu-body").waitFor({ timeout: 120_000 });
     await page.locator(`[data-page="${entry}"]`).click();
     await pointerAway(page);
     await mediaDecodes(ctx, page, `menu ${entry}`);
@@ -348,6 +351,7 @@ export async function run(ctx) {
     }
     await ctx.matchBaseline(body, `menu-${entry}`, { style: MENU_UNPINNED });
     await page.keyboard.press("Escape");
+    await page.locator("main.menu:not([inert]) .menu-body").waitFor({ timeout: 120_000 });
   }
   await page.close();
 }
