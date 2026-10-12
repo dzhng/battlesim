@@ -841,7 +841,9 @@ export async function createFogVisibility(
     encoder.clearBuffer(buffers.wholeFlags.current!);
     if (count) {
       write(buffers.wholeItems, "fog-whole-items", up.whole_items());
-      wholeUniform.write(d.vec4f(...(up.whole_uniform() as unknown as [number, number, number, number])));
+      wholeUniform.write(
+        d.vec4f(...(up.whole_uniform() as unknown as [number, number, number, number])),
+      );
       pipelines.whole
         .with(faces)
         .with(
@@ -947,7 +949,8 @@ export async function createFogVisibility(
       tiles = frameTiles;
       const up = source?.prepare_fog(camera, width, height, 0);
       if (!up) {
-        if (active) device.queue.writeBuffer(root.unwrap(params), 0, new Uint32Array(FOG_PARAMS_WORDS));
+        if (active)
+          device.queue.writeBuffer(root.unwrap(params), 0, new Uint32Array(FOG_PARAMS_WORDS));
         active = false;
         return;
       }
@@ -959,7 +962,10 @@ export async function createFogVisibility(
         const { cull, faces } = groups();
         if (up.whole().length) encodeWholes(encoder, up, faces);
         encoder.clearBuffer(frameTiles.counts!);
-        pipelines.cull.with(cull!).with(encoder).dispatchWorkgroups(frameTiles.tilesX, frameTiles.tilesY);
+        pipelines.cull
+          .with(cull!)
+          .with(encoder)
+          .dispatchWorkgroups(frameTiles.tilesX, frameTiles.tilesY);
       } finally {
         up.free();
       }
@@ -969,7 +975,9 @@ export async function createFogVisibility(
     groups,
     stats(): FogVisibilityStats {
       const rust = source?.fog_stats();
-      const s = rust ? (JSON.parse(rust) as Omit<FogVisibilityStats, "tileListBytes" | "tiles">) : null;
+      const s = rust
+        ? (JSON.parse(rust) as Omit<FogVisibilityStats, "tileListBytes" | "tiles">)
+        : null;
       const eyesMax = tiles?.lists ? tiles.lists.size / WORD / (tiles.tilesX * tiles.tilesY) : 0;
       return {
         enabled: (s?.enabled ?? false) && active,

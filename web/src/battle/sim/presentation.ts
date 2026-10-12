@@ -48,10 +48,7 @@ import {
 import { tierMesh } from "@packages/battle-renderer/src/scenery/appearance";
 import { concatMeshes, type Mesh } from "@packages/battle-renderer/src/mesh";
 import { STUMP } from "@packages/battle-renderer/src/frame/sceneryLayer";
-import {
-  occluderBoxes,
-  type FogOccluder,
-} from "@packages/battle-renderer/src/frame/fogVisibility";
+import { occluderBoxes, type FogOccluder } from "@packages/battle-renderer/src/frame/fogVisibility";
 import type { WorldScenery } from "@packages/battle-renderer/src/scene";
 import { propArt, type KnownProp } from "@packages/battle-renderer/src/models/propAppearance";
 import {
@@ -185,8 +182,7 @@ const buffer = () => memory!.buffer;
  *  for each ground set, so a renderer knows to read them again. */
 function groundOf(rust: Presentation): PresentedGround {
   return {
-    prepare_fog: (camera, width, height, probes) =>
-      rust.prepare_fog(camera, width, height, probes),
+    prepare_fog: (camera, width, height, probes) => rust.prepare_fog(camera, width, height, probes),
     resend_fog: () => rust.resend_fog(),
     rebuild_fog: () => rust.rebuild_fog(),
     fog_stats: () => rust.fog_stats(),
