@@ -6,6 +6,8 @@
 
 The simulation half was built in slice 12: hearing emits an anonymous `SoundCategory::Shout` cue carrying listener, sector and band only, and slice 13 published it. This slice is the client half plus the deletions.
 
+**Rust (owner change, 2026-10-12):** the native-parity work decides hearing cues in `crates/presentation/src/sound/frame.rs`. The table is `presentation.audio.cues` (`Cues` in `sound/tables.rs`); a cue plays by category, with a near/far gain, a far-band low-pass and a `repeat_s` limit. Add the `shout` cue kind there, through the same muffled far-band path, so one owner covers "heard but not seen".
+
 **Client:**
 - `fixtures/game.json` `presentation.audio.cues.sounds` maps `shout` to a **generic pool**: stressed barks drawn from all sets of the listener's *enemy* faction, picked at random.
 - They are played through a ~600 Hz low-pass and the reverb send, at the cue's sector and band. They are not intelligible.
