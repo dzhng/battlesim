@@ -192,11 +192,16 @@ export interface BattleFrame {
    *  walk. Call every frame before drawing, with the frame `setFrame` took
    *  (taken again after any call into the module): a frame naming its static
    *  batches unchanged keeps what was uploaded. Returns whether what is
-   *  drawn changed. Null draws none. */
+   *  drawn changed. Null draws none. Frame the presentation for
+   *  `staticGeneration`, so it writes every batch when this frame holds none. */
   setStaticFrame(
     frame: ReturnType<typeof frameViews> | null,
     stats: { buildings: BuildingWalkStats; scenery: SceneryWalkStats },
   ): boolean;
+  /** The presentation's `generation` for this frame's static batches: new
+   *  with the frame and with each `setPresentationWorld`, both of which leave
+   *  it holding none. */
+  readonly staticGeneration: number;
   /** The ground the scene's presentation resolved (`TerrainSurface.input`):
    *  the terrain material's tables, the grass's and the water's mesh.
    *  `null` draws no ground. */

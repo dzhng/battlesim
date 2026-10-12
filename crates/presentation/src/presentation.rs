@@ -574,12 +574,6 @@ impl Presentation {
         &self.fallen
     }
 
-    /// The renderer holds no static batches (a new one): the next frame
-    /// writes every one.
-    pub fn resend_statics(&mut self) {
-        self.statics.invalidate();
-    }
-
     /// What the side knows (`fallen.rs`, `props.rs`), from `lab` or else
     /// the latest publication's known props, taken again only when that
     /// changed: the props it knows, and the state it knows each building in.
@@ -1224,9 +1218,18 @@ impl Presentation {
             .map_or_else(Vec::new, |f| f.sight.occluders())
     }
 
-    /// What to draw at presentation time `time` for `camera`; errs when the
-    /// side knows a building in a state its template lacks.
-    pub fn frame(&mut self, time: f64, camera: &Camera, ui: &Ui) -> Result<&Frame, String> {
+    /// What to draw at presentation time `time` for `camera`, for a renderer
+    /// at `generation`: a number it bumps whenever it holds no static batches
+    /// (a new GPU frame, a new world, a jump), so a new one is written every
+    /// static batch. Errs when the side knows a building in a state its
+    /// template lacks.
+    pub fn frame(
+        &mut self,
+        time: f64,
+        camera: &Camera,
+        ui: &Ui,
+        generation: u32,
+    ) -> Result<&Frame, String> {
         self.know(ui.known)?;
         self.camera = Some(*camera);
         let f = &mut self.frame;
@@ -1267,8 +1270,14 @@ impl Presentation {
             populations.push(p);
         }
         let f = &mut self.frame;
-        self.statics
-            .write(&mut populations, camera, &view, self.sun.as_ref(), f);
+        self.statics.write(
+            &mut populations,
+            camera,
+            &view,
+            self.sun.as_ref(),
+            generation,
+            f,
+        );
         let (Some(loaded), Some(sample)) = (self.loaded.as_mut(), self.interpolator.frame(time))
         else {
             return Ok(&self.frame);

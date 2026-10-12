@@ -295,12 +295,6 @@ impl Presentation {
         self.inner.set_detail_scale(units, buildings);
     }
 
-    /// The renderer holds no static batches (a new one): the next frame
-    /// writes every one.
-    pub fn resend_statics(&mut self) {
-        self.inner.resend_statics();
-    }
-
     /// The buildings' walk as the last frame left it: chunks, coarse rows,
     /// chunks resident, rows resident, rows expanded, chunks refused room,
     /// the fallen rows and those drawn per tier. Empty without buildings.
@@ -320,7 +314,9 @@ impl Presentation {
     /// address. Its sets are views valid until the next call. `known` is a
     /// lab's stand-in for the publication's known props, JSON (empty: the
     /// publication's); a building known in a state its template lacks throws
-    /// by name.
+    /// by name. `generation` is the renderer's, bumped whenever it holds no
+    /// static batches: a new one is written every one.
+    #[allow(clippy::too_many_arguments)]
     pub fn frame(
         &mut self,
         time: f64,
@@ -329,6 +325,7 @@ impl Presentation {
         xray: bool,
         ghosts: &str,
         known: &str,
+        generation: u32,
     ) -> Result<u32, JsError> {
         let c = camera;
         let camera = Camera {
@@ -355,7 +352,10 @@ impl Presentation {
             ghosts: &ghosts,
             known: known.as_deref(),
         };
-        let f = self.inner.frame(time, &camera, &ui).map_err(error)?;
+        let f = self
+            .inner
+            .frame(time, &camera, &ui, generation)
+            .map_err(error)?;
         let header = FrameHeader {
             clock: f.clock as f32,
             tick: f.tick,

@@ -3,7 +3,8 @@
 //! lists by appearance row, tier and pass, each with a print of what it
 //! holds. A frame writes a list whose print changed since the renderer last
 //! took it, and names every other unchanged (`first` = `NONE`), so the
-//! renderer draws what it holds.
+//! renderer draws what it holds. A renderer that holds nothing says so with
+//! a new generation, and is written every list.
 use crate::presentation::Frame;
 use crate::records::{Batch, NONE};
 use crate::seed::js_hypot;
@@ -76,10 +77,13 @@ pub struct StaticBatches {
     stale: bool,
     /// Per batch key: the print and version the renderer last took.
     sent: HashMap<u32, (u64, u32)>,
+    /// The renderer's generation `sent` was written for.
+    generation: Option<u32>,
 }
 
 impl StaticBatches {
-    /// The renderer holds nothing (a load, a new renderer): walk and write all.
+    /// What was sent no longer stands (a load, new populations): walk and
+    /// write all.
     pub fn invalidate(&mut self) {
         self.stale = true;
         self.sent.clear();
@@ -91,7 +95,8 @@ impl StaticBatches {
     }
 
     /// Walks `populations` for `camera` when it or what they know changed,
-    /// and lists their batches in `f`: written when any list changed,
+    /// and lists their batches in `f`: written when any list changed or the
+    /// renderer's `generation` (bumped whenever it holds nothing) is new,
     /// named unchanged otherwise.
     pub fn write(
         &mut self,
@@ -99,8 +104,12 @@ impl StaticBatches {
         camera: &Camera,
         view: &View,
         sun: Option<&Sun>,
+        generation: u32,
         f: &mut Frame,
     ) {
+        if self.generation != Some(generation) {
+            (self.generation, self.sent) = (Some(generation), HashMap::new());
+        }
         if self.stale || self.walked.as_ref() != Some(camera) {
             let shadow = sun.map(|s| s.shadow(camera));
             for p in populations.iter_mut() {
@@ -147,5 +156,58 @@ impl StaticBatches {
         // A batch left out is the renderer's to drop: it is written anew
         // when it comes back.
         self.sent = sent;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// One building's list that never changes.
+    struct Still([Record; 1]);
+
+    impl Population for Still {
+        fn select(&mut self, _: &View, _: Option<&Shadow>) -> bool {
+            false
+        }
+        fn each_list(&self, visit: &mut dyn FnMut(List)) {
+            visit(List {
+                row: 3,
+                tier: 0,
+                pass: VIEW_PASS,
+                records: &self.0,
+                print: 7,
+            });
+        }
+    }
+
+    /// Frames `still` once for a renderer at `generation`: whether its batch
+    /// was written (records follow) rather than named unchanged.
+    fn written(statics: &mut StaticBatches, still: &mut Still, generation: u32) -> bool {
+        let camera = Camera {
+            eye: [0.0, -50.0, 30.0],
+            target: [0.0; 3],
+            up: [0.0, 0.0, 1.0],
+            fov_y: 0.8,
+            near: 0.5,
+            size: [640, 480],
+        };
+        let mut f = Frame::default();
+        let view = View::new(&camera);
+        statics.write(&mut [still], &camera, &view, None, generation, &mut f);
+        let [batch] = f.batches[..] else {
+            panic!("one batch, not {}", f.batches.len());
+        };
+        batch.first != NONE && f.instances.len() == 1
+    }
+
+    #[test]
+    fn a_renderer_holding_nothing_is_written_every_batch_again() {
+        let mut statics = StaticBatches::default();
+        let mut still = Still([[1.0; 16]]);
+        assert!(written(&mut statics, &mut still, 1), "first frame");
+        assert!(!written(&mut statics, &mut still, 1), "held: unchanged");
+        assert!(written(&mut statics, &mut still, 2), "new generation");
+        assert!(!written(&mut statics, &mut still, 2), "held again");
     }
 }

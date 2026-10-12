@@ -59,8 +59,9 @@ It runs the browser's own shaders and passes over the [presentation crate](../..
   browser holds them: one buffer per batch key, rewritten only when the
   frame writes it, dropped when the frame stops listing it. The models and
   the scenery draw them from there. A replay that jumps between plates
-  frames the records between without drawing them, so on a drawn frame after
-  an undrawn one it asks for every static batch anew.
+  frames the records between without drawing them, so each undrawn record
+  bumps the frame's static generation and the next frame writes every
+  static batch anew.
 - **Effects** are the frame's effect instances (`Presentation::effects`),
   drawn into the resolved lit world over the browser's own flipbook sheets
   (`assets/third-party/effects`, Git LFS), and the cast lights the

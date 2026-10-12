@@ -154,8 +154,9 @@ interface LabViewportProps {
   /** Left-drag rectangle in page CSS pixels, with the projection to test against it. */
   onBox?: (box: LabBox) => void;
   /** Called every animation frame; what it returns redraws the frame with it
-   *  (presentation interpolation between completed ticks). */
-  frame?: (now: number, camera: ViewportCamera) => ViewportFrame | null;
+   *  (presentation interpolation between completed ticks). `generation` is
+   *  the GPU frame's static generation, for the presentation's frame. */
+  frame?: (now: number, camera: ViewportCamera, generation: number) => ViewportFrame | null;
   /** The first frame is on screen (the loading cover can lift), with the
    *  device's live GPU allocation counts. */
   onReady?: (gpu: ViewportGpu) => void;
@@ -727,15 +728,9 @@ export function LabViewport({
             models: 0,
             known: 0,
           };
-        /** The buildings' style and sun, taken when the frame is built. A
-         *  frame holds no static batches when it is new or takes a new world
-         *  (a load, a restarted battle's presentation), so the next frame is
-         *  sent them all (`resend`, raised then; a new frame raises it when
-         *  it replaces the last: the last may draw on while it builds, and
-         *  must not take them). */
+        /** The buildings' style and sun, taken when the frame is built. */
         let staticStyle = gameBuildingStyle;
         let staticSun = { azimuth: 0, elevation: 1, farM: 0 };
-        let resend = true;
         /** The presentation and quality the detail scale was last given to. */
         let detailed: [
           ObservationDecoder | null,
@@ -903,8 +898,6 @@ export function LabViewport({
               const layers = worldRef.current.current;
               decoder.setGround(layers?.terrain.input ?? null, layers?.scenery ?? null);
               decoder.setFog(fogSuppressed.current ? null : (fogRef.current?.current ?? null));
-              if (resend) decoder.resendStatics();
-              resend = false;
               const quality = qualityRef.current;
               const shown = sceneryShown.current;
               if (
@@ -922,7 +915,7 @@ export function LabViewport({
                 );
               }
             }
-            animated = frameRef.current?.(now, snapshot());
+            animated = frameRef.current?.(now, snapshot(), scene.staticGeneration);
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err);
             handle.error = message;
@@ -945,7 +938,6 @@ export function LabViewport({
             if (world && world !== presentedWorldRef.current) {
               presentedWorldRef.current = world;
               scene.setPresentationWorld(world);
-              resend = true;
             }
             if (animated.presented)
               scene.setFrame(animated.presented, {
@@ -966,15 +958,16 @@ export function LabViewport({
             let scenery = NO_SCENERY_WALK;
             if (decoder) {
               if (!animated?.presented) {
-                decoder.frame(clock, presentedCamera(snapshot()), {
-                  ...NO_UI,
-                  known: buildingsRef.current?.current?.known,
-                });
+                decoder.frame(
+                  clock,
+                  presentedCamera(snapshot()),
+                  { ...NO_UI, known: buildingsRef.current?.current?.known },
+                  scene.staticGeneration,
+                );
                 const world = decoder.world();
                 if (world && world !== presentedWorldRef.current) {
                   presentedWorldRef.current = world;
                   scene.setPresentationWorld(world);
-                  resend = true;
                 }
               }
               // The stats calls may grow memory: the views are taken after them.
@@ -1119,7 +1112,6 @@ export function LabViewport({
             const previous = scene;
             const next = await build();
             scene = next;
-            resend = true;
             previous.dispose();
             if (signal.aborted) return;
             setInspecting((shown) => (shown ? scene : shown));
