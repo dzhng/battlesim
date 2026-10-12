@@ -130,6 +130,57 @@ fn each_soldier_walks_runs_or_stands_by_his_own_motion_and_faces_his_own_way() {
     assert_eq!(at(1.0, moved, &mut replay), seen);
 }
 
+/// Paused mid-battle, everything is drawn exactly as it was: a walker
+/// mid-stride, a pinned man mid-crawl, a dying man mid-fall, a tank on the
+/// move. Resumed, each carries on as if the pause never happened.
+#[test]
+fn paused_everyone_holds_mid_stride_and_resumed_carries_on_as_if_never_paused() {
+    let units = units();
+    let none = fallen(&[]);
+    let down = fallen(&[9.0]);
+    // At `time`: soldier 1 walks east, pinned soldier 2 crawls (his squad fired
+    // at bearing 0), soldier 9 is shot at 1.5, and the tank drives east.
+    let at = |time: f64, d: &mut PoseDriver| {
+        let walker = squad(vec![man(1.0, 1.2 * time, 0.0, 0.0)], false);
+        let mut crawler = squad(vec![man(2.0, 0.0, 5.0 + 0.5 * time, 0.0)], true);
+        crawler.id = 2.0;
+        crawler.mounts[0].shots = 3.0;
+        let mut victim = squad(vec![man(9.0, 9.0, 0.0, 0.0)], false);
+        victim.id = 3.0;
+        let (alive, gone) = if time < 1.5 {
+            (vec![victim.soldiers.pop().unwrap()], &none)
+        } else {
+            (vec![], &down)
+        };
+        victim.soldiers = alive;
+        let tank = tank(20.0 + 4.0 * time, 0.0, (0.0, 0.0, 0.0), 0.0);
+        let units_now = vec![walker, crawler, victim, tank];
+        format!("{:?}", d.update(&frame(time, units_now, gone), &units))
+    };
+    let mut paused = PoseDriver::new(&units).unwrap();
+    let mut straight = PoseDriver::new(&units).unwrap();
+    for time in [0.0, 0.5, 1.0, 1.6] {
+        at(time, &mut paused);
+        at(time, &mut straight);
+    }
+    let before = at(1.7, &mut paused);
+    at(1.7, &mut straight);
+    let poses = paused.poses();
+    assert_eq!(clip_of(poses, 1.0), "walk");
+    assert!(
+        clip_of(poses, 2.0).starts_with("crawl_") || clip_of(poses, 2.0).starts_with("crouch_")
+    );
+    assert!(clip_of(poses, 9.0).starts_with("death"), "mid-fall");
+    for _ in 0..3 {
+        assert_eq!(at(1.7, &mut paused), before, "paused, the same frame again");
+    }
+    assert_eq!(
+        at(1.8, &mut paused),
+        at(1.8, &mut straight),
+        "resumed, as if never paused"
+    );
+}
+
 /// Under fire every man takes his own stance, pinned nobody stands, a man
 /// who fires lying down stays down, and each falls from where he is.
 #[test]
