@@ -141,6 +141,15 @@ generated bed, a raw master the tool's `beds` command buys once and the lock rec
 the tank's engine is one, since the game synthesises engines. Either way the bed's
 sha256 enters the processing key, so a changed clip or master re-renders its takes.
 
+Which lines play is decided in one place, [the chatter](src/voices/chatter.ts):
+answers before own shouts before a seen enemy's, nearest the camera first, a few
+lines at once (`presentation.audio.voices`), a line dropped when it can't start
+soon, a unit never over itself, one answer per group. It picks the take with the
+client's own seeded randomness, never the simulation's. Its takes come from
+[the voice bank](src/voices/voiceBank.ts), which loads a battle's sets from their
+`pack.json` in the background; a take not yet loaded is a dropped line, never a
+wait. The sound workbench's chatter preview runs the same two.
+
 The [sound frame](src/soundFrame.ts) owns timing, distance and voice allocation.
 Only implicit presentation slots follow shared effect replacements; an explicit
 recipe selection keeps its identity. The [bank](src/soundBank.ts) prepares live

@@ -1,7 +1,6 @@
 // @vitest-environment node
 import { expect, test } from "vitest";
 import { createReelRun, grassCells, type ReelPlate } from "@apps/battle-lab/src/benchmark/reelRun";
-import type { UploadedTables } from "@packages/battle-renderer/src/frame/wordTables";
 import type { BackdropScene } from "@apps/battle-lab/src/menuReel";
 import { emptyEffectCounts } from "@apps/battle-lab/src/presentedFrame";
 import type { FramePlate } from "@apps/battle-lab/src/LabViewport";
@@ -153,19 +152,16 @@ test("grass is counted by the screen cell its roots project into, row-major from
   expect(cells).toEqual([1, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1]);
 });
 
-test("a plate frame counts the grass its own frame grew and keeps the tables and units it drew with", async () => {
-  type Result = { plates: ReelPlate[]; tables: UploadedTables | null; units: unknown };
+test("a plate frame counts the grass its own frame grew and keeps the units it drew with", async () => {
+  type Result = { plates: ReelPlate[]; units: unknown };
   const results: Result[] = [];
   const run = createReelRun(scene, 30, (r) => results.push(r as unknown as Result), {
     plates: true,
   });
-  const tables = { terrain: {}, grass: {} } as unknown as UploadedTables;
-  let exported = 0;
   run.pilot.attach!({
     adapter: "test",
     light: {} as never,
     stats: () => ({}) as never,
-    tables: () => (exported++, tables),
   });
   const units = { types: {} } as unknown as DrawnUnits;
   let described = 0;
@@ -177,31 +173,21 @@ test("a plate frame counts the grass its own frame grew and keeps the tables and
   run.pilot.frame!(drawn(3000));
   const [result] = results;
   expect(await result.plates[0].grass).toEqual([0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0]);
-  expect(result.tables).toBe(tables);
-  expect(exported).toBe(1);
   expect(result.units).toBe(units);
   expect(described).toBe(1);
 });
 
 test("without plates the run asks the viewport for no read-back and exports nothing", () => {
-  const results: {
-    plates: readonly ReelPlate[];
-    tables: UploadedTables | null;
-    units: DrawnUnits | null;
-  }[] = [];
+  const results: { plates: readonly ReelPlate[]; units: DrawnUnits | null }[] = [];
   const run = createReelRun(scene, 30, (r) => results.push(r));
   expect(run.pilot.plates).toBe(false);
   run.pilot.attach!({
     adapter: "test",
     light: {} as never,
     stats: () => ({}) as never,
-    tables: () => {
-      throw new Error("tables exported without plates");
-    },
   });
   run.scripted.onWarm();
   for (const now of [1000, 1500, 2100, 3000]) run.pilot.frame!({ ...drawn(now), camera: level });
   expect(results[0].plates).toEqual([]);
-  expect(results[0].tables).toBeNull();
   expect(results[0].units).toBeNull();
 });

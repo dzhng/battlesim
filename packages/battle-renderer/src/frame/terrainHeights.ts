@@ -2,23 +2,9 @@
 // The directory and height bits occupy one storage binding, so paging does not
 // consume another binding on passes already at the device's storage limit.
 import { tgpu, d, type TgpuFn } from "typegpu";
+import { terrain_heights } from "@wasm/presentation/presentation_wasm.js";
 import type { TerrainGrid } from "../terrain/terrainGrid";
 import type { GpuRegistry } from "./registry";
-
-/** Header (page size, columns, directory length), directory (page + 1, or 0),
- *  then the present pages' f32 height bits. Empty ground needs only the header. */
-export function packTerrainHeights(grid: TerrainGrid): Uint32Array {
-  const cols = Math.ceil(grid.nx / grid.pageSize);
-  const count = grid.pageIds.length ? cols * Math.ceil(grid.ny / grid.pageSize) : 0;
-  const words = new Uint32Array(3 + count + grid.heights.length);
-  words.set([grid.pageSize, cols, count]);
-  for (let p = 0; p < grid.pageIds.length; p++) words[3 + grid.pageIds[p]] = p + 1;
-  words.set(
-    new Uint32Array(grid.heights.buffer, grid.heights.byteOffset, grid.heights.length),
-    3 + count,
-  );
-  return words;
-}
 
 type WordReader = TgpuFn<(index: typeof d.u32) => typeof d.u32>;
 
@@ -53,7 +39,9 @@ export function createTerrainHeights(registry: GpuRegistry) {
         current?.ny !== grid.ny ||
         current?.pageSize !== grid.pageSize
       ) {
-        const words = packTerrainHeights(grid);
+        // Header (page size, columns, directory length), directory (page + 1,
+        // or 0), then the present pages' f32 height bits (`Grid::pages`).
+        const words = terrain_heights(grid.nx, grid.ny, grid.pageSize, grid.pageIds, grid.heights);
         slot.set(
           registry.device.createBuffer({
             label: "terrain-heights",

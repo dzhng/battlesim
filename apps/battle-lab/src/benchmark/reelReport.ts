@@ -1,6 +1,4 @@
 import { sunDirection } from "@packages/battle-renderer/src/light/sceneLight";
-import { terrainTuning } from "@packages/battle-renderer/src/terrain/terrainTuning";
-import { grassTuning } from "@packages/battle-renderer/src/terrain/grassTuning";
 import { BenchmarkRecording } from "@web/battle/benchmark/recording";
 import {
   MENU_REEL_WORKLOAD,
@@ -96,7 +94,6 @@ export function createReelReport(
           ...r.light,
           sunDirection: Array.from(sunDirection(r.light)) as [number, number, number],
         },
-        tuning: { terrain: terrainTuning, grass: grassTuning },
         layers,
         omissions: [],
         units: r.units,

@@ -6,8 +6,6 @@ import { MENU_REEL_WORKLOAD, menuReelFingerprint } from "@web/battle/benchmark/m
 import type { ReelResult } from "@apps/battle-lab/src/benchmark/reelRun";
 import { gameLight } from "@apps/battle-lab/src/gameLight";
 import { sunDirection } from "@packages/battle-renderer/src/light/sceneLight";
-import { terrainTuning } from "@packages/battle-renderer/src/terrain/terrainTuning";
-import { grassTuning } from "@packages/battle-renderer/src/terrain/grassTuning";
 import type { DrawnUnits } from "@web/battle/benchmark/unitManifest";
 import type { EffectsManifest } from "@web/battle/benchmark/effectManifest";
 import type { DrawnProps } from "@web/battle/benchmark/propManifest";
@@ -80,7 +78,6 @@ function result(map: string, started: number, intervals: number[]): ReelResult {
     lens: { fovY: 0.8, near: 1, depth: "reverse-z", far: "infinite" },
     light: gameLight,
     plates: [],
-    tables: null,
     units,
     props,
     effects,
@@ -121,7 +118,6 @@ test("exports each scene's capture with the frames it drew and what it drew them
     {
       lens: { fovY: 0.8, near: 1, depth: "reverse-z", far: "infinite" },
       light: { ...gameLight, sunDirection: Array.from(sunDirection(gameLight)) },
-      tuning: { terrain: terrainTuning, grass: grassTuning },
       layers: ["sky", "terrain"],
       omissions: [],
       units,

@@ -136,6 +136,7 @@ function fixture() {
     live: vi.fn(),
     voice: vi.fn(async () => {}),
     music: vi.fn(),
+    lines: vi.fn(async () => null),
     stop: vi.fn(),
   };
   return { voices, sounds, audition };

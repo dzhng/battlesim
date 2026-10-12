@@ -81,8 +81,6 @@ import {
 } from "./fogTerm";
 import { createGrassPass } from "./grassPass";
 import { createTerrainHeights } from "./terrainHeights";
-import { terrainTables } from "./terrainTables";
-import { grassTables } from "./grassTables";
 import { createFogVisibility, type FogTiles } from "./fogVisibility";
 import {
   createTerrainSource,
@@ -104,7 +102,7 @@ import {
   waterNormal,
   waterSurface,
 } from "./terrainMaterial";
-import { terrainTuning } from "../terrain/terrainTuning";
+import game from "@fixtures/game.json";
 import { createSceneryLayer } from "./sceneryLayer";
 import type { FelledTree } from "../scenery/felled";
 import { createPaintedMarks, validatePaintStyle, type PaintStyle } from "./paintedMarks";
@@ -147,6 +145,7 @@ import {
   type FrameTargets,
 } from "./targets";
 import type { GpuRegistry } from "./registry";
+const terrainTuning = game.presentation.terrain;
 
 type Root = ReturnType<typeof tgpu.initFromDevice>;
 
@@ -745,13 +744,6 @@ export async function createWorldPass(
     },
     fog,
     grassProbes: grass.probes,
-    /** The ground's and the grass's GPU tables as last uploaded, and the
-     *  scenery's instances. */
-    uploadedTables: () => ({
-      terrain: terrainTables(terrain),
-      grass: grassTables(grass),
-      scenery: scenery.tables(),
-    }),
     /** The scenery instances the last view drew (`sceneryLayer.ts`). */
     drawnScenery: () => scenery.drawn(),
     /** Pose the environment and the cascades for this frame's camera, choose

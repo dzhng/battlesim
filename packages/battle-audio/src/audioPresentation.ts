@@ -5,6 +5,7 @@
 // Sound names are the synthesised bank's (`synth.ts` `SOUNDS`).
 import { requireDefaults } from "@packages/renderer-core/src/kindTable";
 import type { MusicDirection } from "./music/musicDirector";
+import type { ChatterRules } from "./voices/chatter";
 
 /** The mixer's buses under the master. Music is not one of them: it streams
  *  through `MusicPlayer`, which takes its level from `buses.music`. */
@@ -104,6 +105,9 @@ export interface AudioPresentation {
   fires: Record<string, FireSound>;
   /** Battle music: its mood direction (`MusicDirector`) and its ducking while voice lines play. */
   music: MusicDirection & { duck: { depth: number; attack_s: number; release_s: number } };
+  /** Unit voice lines: how many sound at once, how long one may wait to start,
+   *  and the window in which a group's answers collapse to one (`Chatter`). */
+  voices: ChatterRules;
   /** The countryside bed, never positional. */
   ambience: OneShot;
   /** Unseen enemies, from hearing cues: a sound by `category` or
@@ -136,5 +140,17 @@ export function validateAudio(p: AudioPresentation): AudioPresentation {
     throw new Error("presentation.audio.air: near_hz ≥ far_hz > 0 and far_m > 0");
   if (!(wet >= 0 && wet <= 1 && reverb_s > 0 && attack_s >= 0))
     throw new Error("presentation.audio.air: wet 0 to 1, reverb_s > 0, attack_s ≥ 0");
+  const voices = p.voices;
+  if (
+    !(
+      Number.isInteger(voices?.lines) &&
+      voices.lines >= 1 &&
+      voices.wait_s >= 0 &&
+      voices.group_s >= 0
+    )
+  )
+    throw new Error(
+      "presentation.audio.voices: lines a whole number from 1, wait_s and group_s ≥ 0",
+    );
   return p;
 }

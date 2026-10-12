@@ -352,3 +352,27 @@ There were four drafts: A fewest-slices (Claude), B risk-first (Codex), C seam-q
 - **Real spend:** 6 `music_v1` calls, 900 s of music, no retries needed.
 
 - **2026-10-12 (orchestrator):** generating a track again keeps the old raw master (the user's keep-everything rule) and drops only the old served file. The workbench shares one generation-tool queue for voices, design, pick and music, so `voices.lock.json` and `sounds.json` each keep a single writer. The user's listen to the six tracks is non-blocking. No track plays in a battle before slice 14, and every track can be regenerated from the Music tab.
+
+**2026-10-12, slice 09 (a Claude worker built it; the orchestrator reviewed):**
+- **`Chatter`** (`packages/battle-audio/src/voices/chatter.ts`) is the one place line rules live:
+  - at most 4 lines play at once;
+  - responses come before own barks, which come before a seen enemy's, nearest the camera first within each;
+  - a line is dropped after waiting 1 s;
+  - a speaker never overlaps itself;
+  - an order to a group gets one answer (requests within 250 ms collapse).
+  
+  The numbers are in `presentation.audio.voices`. Two choices the spec left open: a request with no position ranks as nearest, since it's the owner's radio; a line whose take isn't loaded is dropped at once.
+- **Takes and voices:**
+  - The take is drawn with `mulberry32` from the `math` package, keyed by speaker, trigger, intensity and request count.
+  - A bark's voice comes from a stable hash of the speaker, so one soldier always has the same voice.
+- **Pack format** (`voiceCatalog.ts`): `VoicePack { set, voices[], takes[] }` at `/audio/voices/<set>/pack.json`, built only by `voicePack()`. Slice 06's `generate pack` calls it with accepted takes only.
+- **`VoiceBank`** loads packs and MP3s by URL in the background and never blocks battle start. A failed set stays silent.
+- **The chatter preview** in the workbench runs a scripted firefight through the real `Chatter` with a fixed seed. Its lane view marks lines heard, collapsed and missing.
+
+**2026-10-12, sound decisions move to Rust (territory: the native-parity session, which works for the same user):**
+- The native-rendering-parity work (branch `phase5f`, slice 25 step 7) moves the battle's sound decisions from TypeScript into `crates/presentation/src/sound/`. Both clients read Rust's decisions; native plays them with `kira`.
+- Project rule: Rust as smart as possible, clients as dumb as possible. So:
+  - Chatter's arbitration moves to Rust as well (new slice 09b);
+  - slice 14's bark decisions and slice 15's unseen shout cue are built in Rust;
+  - TypeScript keeps playback, the voice assets and the generation tooling.
+- The ports wait for `phase5f` to land on `main`. Until then, no new decision logic goes into `battleAudio.ts` or `audioPresentation.ts`.

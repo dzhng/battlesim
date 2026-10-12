@@ -12,6 +12,7 @@ import {
   type WorldLayout,
 } from "@packages/battle-renderer/src/worldMesh";
 import { loadWasm, type Wasm } from "@web/battle/sim/module";
+import { loadPresentation } from "@web/battle/sim/presentation";
 
 export type WorldView = InstanceType<Wasm["WorldView"]>;
 
@@ -32,7 +33,8 @@ export function useStaticWorld(map: unknown, rules: unknown): StaticWorld | null
   useEffect(() => {
     let live = true;
     let view: WorldView | null = null;
-    void loadWasm().then((wasm) => {
+    // The ground's shapes are resolved by the presentation module.
+    void Promise.all([loadWasm(), loadPresentation()]).then(([wasm]) => {
       if (!live) return;
       // The world as the simulation builds it under the one rules owner.
       const ruleText = JSON.stringify(rules);

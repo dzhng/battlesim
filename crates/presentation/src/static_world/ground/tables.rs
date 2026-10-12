@@ -1,0 +1,431 @@
+//! The ground's GPU tables as the words both renderers upload: the height
+//! pages, the plot split's nodes and plots, the terrain material's
+//! parameters and the scars' look. Each record is the terrain material's
+//! `d.struct` (`frame/terrainMaterial.ts`) word for word: every field a
+//! `vec4`, f32 unless named.
+use super::biome::{linear, Road, AREA_KINDS};
+use super::field::{Field, FOOTPRINT_M};
+use super::{is_road, js, Ground, RIVER};
+use std::f64::consts::SQRT_2;
+
+/// The most levels the material's surface field may build: the widest is
+/// far past any map.
+const LEVELS: usize = 32;
+const LUMA: [f64; 3] = [0.2126, 0.7152, 0.0722];
+
+/// `v` as the f32 a `Float32Array` holds, in its word.
+pub fn word(v: f64) -> u32 {
+    (v as f32).to_bits()
+}
+
+/// Appends a `vec4f`.
+pub fn vec4(out: &mut Vec<u32>, v: [f64; 4]) {
+    out.extend(v.map(word));
+}
+
+fn rgb(c: [f64; 3], w: f64) -> [f64; 4] {
+    [c[0], c[1], c[2], w]
+}
+
+fn luminance(c: [f64; 3]) -> f64 {
+    c[0] * LUMA[0] + c[1] * LUMA[1] + c[2] * LUMA[2]
+}
+
+fn tan_deg(deg: f64) -> f64 {
+    js::tan(deg * std::f64::consts::PI / 180.0)
+}
+
+/// The surface field's grid as the material's parameters carry it.
+pub struct TerrainTables {
+    pub heights: Vec<u32>,
+    pub nodes: Vec<u32>,
+    pub plots: Vec<u32>,
+    /// `TerrainParams` but its last `vec4u` (`view`), the frame's own.
+    pub params: Vec<u32>,
+    /// `ScarParams` from `full` on: the look; the grid and cache words
+    /// before it are the frame's.
+    pub scars: Vec<u32>,
+    pub surfaces: Vec<f32>,
+    pub surface_index: Vec<u32>,
+    pub water: Vec<f32>,
+}
+
+impl Ground {
+    /// How far from its edge each rule (paved, forest, water) is read by a
+    /// pixel `footprint` metres wide: what the material's surface field lists.
+    /// Each term is one reader: beside a road its shoulder or walk, its edge's
+    /// feather, a crossing's bars and the dash short of them; a forest's
+    /// ragged verge, feathered by a pixel, and the grass's margin past it; the
+    /// shore's bands, the water's pixel-wide edge, the grass's margin and the
+    /// bank's shading out to `bank_m` from the water.
+    pub fn reach(&self, footprint: f64, bank_m: f64) -> [f64; 3] {
+        let (b, t) = (&self.biome, &self.tuning.terrain);
+        let floor = &b.forest_floor;
+        let grass = b.grass.clear_m.area + self.tuning.grass.edge_m;
+        let most =
+            |f: &dyn Fn(&Road) -> f64| b.roads.values().map(f).fold(f64::NEG_INFINITY, js::max);
+        let marks = most(&|r| {
+            r.markings.as_ref().map_or(0.0, |m| {
+                m.crossing.gap_m + m.crossing.length_m + t.marks.clear_m + m.dash_m[0]
+            })
+        });
+        let walk = most(&|r| r.walk.as_ref().map_or(0.0, |w| w.width_m));
+        let paved = js::max(
+            most(&|r| r.shoulder.width_m),
+            js::max(
+                marks,
+                walk + js::max(most(&|r| r.feather_m), footprint) / 2.0,
+            ),
+        );
+        let forest_m = floor.verge_m * t.forest_verge.feather;
+        let forest =
+            floor.verge_m + floor.verge_warp_m + js::max(js::max(footprint, forest_m), grass);
+        let bank = bank_m + 2.0 * js::max(footprint, t.bank.ease_m);
+        let water = js::max(
+            js::max(b.shore.mud_m, footprint / 2.0),
+            js::max(bank, grass),
+        );
+        [paved, forest, water]
+    }
+
+    /// The material's surface field: the strokes as drawn, each rule read
+    /// out to its reach at every level.
+    pub fn terrain_field(&self) -> Result<Field, String> {
+        let s = &self.source;
+        let longest = chunks_of(&s.rivers).fold(0.0, |run, r| {
+            js::max(js::max(run, (r[8] / r[6]) as f64), (r[9] / r[7]) as f64)
+        });
+        let bank_m = longest + s.grid.spacing * SQRT_2;
+        let reach: Vec<[f64; 3]> = (0..LEVELS)
+            .map(|level| self.reach(FOOTPRINT_M * js::pow(2.0, level as f64), bank_m))
+            .collect();
+        self.field(true, &reach)
+    }
+
+    /// The plots' records; without `textured`, their rows and dry patches
+    /// alone (a paired cost measure).
+    pub fn plot_records(&self, textured: bool) -> Vec<u32> {
+        let mut out = vec![];
+        for p in &self.plots.plots {
+            let k = &self.biome.plots[p.kind];
+            let on = |v: f64| if textured { v } else { 0.0 };
+            vec4(&mut out, rgb(linear(p.colour), k.roughness));
+            vec4(
+                &mut out,
+                [p.across[0], p.across[1], k.furrow_m, k.furrow_contrast],
+            );
+            vec4(&mut out, [k.mottle, p.kind as f64, on(k.row_break), 0.0]);
+            vec4(
+                &mut out,
+                [1.0 / k.grain_m, on(k.grain), 1.0 / k.grain_stretch, 0.0],
+            );
+            vec4(&mut out, [1.0 / k.patch_m[0], 1.0 / k.patch_m[1], 0.0, 0.0]);
+            vec4(
+                &mut out,
+                [on(k.tram.rows), k.tram.width_m / 2.0, k.tram.contrast, 0.0],
+            );
+        }
+        at_least_one(out, 24)
+    }
+
+    /// Every terrain table but the scars' grid, from `field` (`terrain_field`).
+    pub fn terrain_tables(&self, field: Field) -> TerrainTables {
+        let (s, b) = (&self.source, &self.biome);
+        let mut nodes = vec![];
+        for n in self.plots.nodes.as_chunks::<5>().0 {
+            nodes.extend([
+                word(n[0]),
+                word(n[1]),
+                word(n[2]),
+                0,
+                n[3] as i32 as u32,
+                n[4] as i32 as u32,
+                0,
+                0,
+            ]);
+        }
+        let one = |key: &str| linear(b.palette(key)[0]);
+        let rules = &b.field_rules;
+        let [ox, oy, cell, cols, rows, levels, _] = field.grid;
+        let mut p = vec![];
+        vec4(&mut p, self.plots.region);
+        vec4(&mut p, [ox, oy, 1.0 / cell, FOOTPRINT_M]);
+        p.extend([cols as u32, rows as u32, levels as u32, 0]);
+        vec4(
+            &mut p,
+            [
+                rules.edge_warp_m,
+                1.0 / rules.edge_warp_scale_m,
+                1.0 / rules.mottle_m,
+                0.0,
+            ],
+        );
+        vec4(&mut p, rgb(one(&b.verge.palette), b.verge.width_m / 2.0));
+        let pixels = self.tuning.terrain.distant.plot_pixels;
+        vec4(
+            &mut p,
+            [
+                b.verge.feather_m,
+                rules.size_m[0] * pixels[0],
+                rules.size_m[0] * pixels[1],
+                0.0,
+            ],
+        );
+        for (tag, kind) in AREA_KINDS.iter().enumerate() {
+            self.road_look(&mut p, b.road(kind), tag);
+        }
+        let layer = |tag: usize| {
+            b.road(AREA_KINDS[tag])
+                .layer
+                .unwrap_or((AREA_KINDS.len() - tag) as f64)
+        };
+        let mut order: Vec<usize> = (0..AREA_KINDS.len()).collect();
+        order.sort_by(|&x, &y| layer(x).total_cmp(&layer(y)).then(y.cmp(&x)));
+        p.extend(order.iter().map(|&t| t as u32));
+        let f = &b.forest_floor;
+        let [litter, moss, humus] = [0, 1, 2].map(|i| linear(b.palette(&f.palette)[i]));
+        vec4(&mut p, rgb(litter, 0.0));
+        vec4(&mut p, rgb(moss, f.moss));
+        vec4(&mut p, rgb(humus, f.humus));
+        vec4(&mut p, [1.0 / f.patch_m, f.mottle, f.roughness, f.roots]);
+        vec4(
+            &mut p,
+            [
+                f.verge_m,
+                f.verge_warp_m,
+                1.0 / f.verge_warp_scale_m,
+                1.0 / f.roots_m,
+            ],
+        );
+        vec4(
+            &mut p,
+            [1.0 / f.dapple.size_m, f.dapple.share, f.dapple.sun, 0.0],
+        );
+        vec4(&mut p, [f.tree_line.taper_m, f.tree_line.warp_m, 0.0, 0.0]);
+        vec4(&mut p, rgb(one("water_bed"), s.grid.spacing * SQRT_2));
+        vec4(&mut p, rgb(one("water"), b.water.opacity[1]));
+        vec4(
+            &mut p,
+            rgb(linear(b.palette("water")[1]), b.water.opacity[0]),
+        );
+        vec4(&mut p, [1.0 / b.water.shallows_m, b.water.streak, 0.0, 0.0]);
+        let (shore, bank) = (&b.shore, b.palette(&b.shore.palette));
+        vec4(&mut p, rgb(linear(bank[0]), shore.wet_m));
+        vec4(&mut p, rgb(linear(bank[1]), shore.mud_m));
+        vec4(
+            &mut p,
+            [
+                shore.wander,
+                1.0 / shore.wander_scale_m,
+                shore.lift,
+                shore.relief,
+            ],
+        );
+        vec4(&mut p, rgb(one("distant"), 0.0));
+        let sc = &b.scars;
+        let mut scars = vec![];
+        vec4(
+            &mut scars,
+            [&sc.crater.mark, &sc.scorch, &sc.tracks, &sc.trampled].map(|m| 255.0 / m.full),
+        );
+        let mark = |out: &mut Vec<u32>, palette: &str, strength: f64| {
+            vec4(out, rgb(one(palette), strength))
+        };
+        mark(&mut scars, &sc.crater.mark.palette, sc.crater.mark.strength);
+        mark(&mut scars, &sc.crater.ejecta_palette, sc.crater.ejecta);
+        for m in [&sc.scorch, &sc.tracks, &sc.trampled] {
+            mark(&mut scars, &m.palette, m.strength);
+        }
+        vec4(&mut scars, [sc.crater.relief_m, sc.crater.rim, 0.0, 0.0]);
+        vec4(
+            &mut scars,
+            [sc.grass.thin, sc.grass.tracks_thin, sc.grass.flatten, 0.0],
+        );
+        TerrainTables {
+            heights: s.grid.pages(),
+            nodes: at_least_one(nodes, 8),
+            plots: self.plot_records(true),
+            params: p,
+            scars,
+            surfaces: field.records,
+            surface_index: field.index,
+            water: self.water_cells(),
+        }
+    }
+
+    /// The look table's row for the paved kind tagged `tag`, drawn as
+    /// `road`. Its patches' colour is held to the surface's luminance: a
+    /// patch is a change of hue alone.
+    fn road_look(&self, out: &mut Vec<u32>, road: &Road, tag: usize) {
+        let palettes = &self.biome.palettes;
+        let first = |key: &str| linear(palettes[key][0]);
+        let (core, worn) = (first(&road.palette), linear(palettes[&road.palette][1]));
+        let level = luminance(core) / luminance(worn);
+        let walk_row = road.walk.as_ref().map_or(tag, |w| {
+            AREA_KINDS.iter().position(|k| *k == w.kind).unwrap()
+        });
+        let walk = |f: fn(&super::biome::Walk) -> f64| road.walk.as_ref().map_or(0.0, f);
+        let (s, r) = (&road.shoulder, &road.ruts);
+        vec4(out, rgb(core, road.roughness));
+        vec4(
+            out,
+            [
+                worn[0] * level,
+                worn[1] * level,
+                worn[2] * level,
+                road.mottle,
+            ],
+        );
+        vec4(
+            out,
+            [
+                road.feather_m,
+                1.0 / road.patch_m,
+                road.grain,
+                1.0 / road.grain_m,
+            ],
+        );
+        vec4(
+            out,
+            [road.join_m, 0.0, walk(|w| w.width_m), walk_row as f64],
+        );
+        vec4(out, rgb(first(&s.palette), s.width_m));
+        vec4(out, [s.jitter, 1.0 / s.jitter_m, s.grass, s.cover]);
+        let rut = |i: usize| r.offsets_m.get(i).copied().unwrap_or(0.0);
+        vec4(out, [rut(0), rut(1), r.width_m, tan_deg(r.tilt_deg)]);
+        let strip = &road.centre_strip;
+        let carriageway = if is_road(tag as f32) { 1.0 } else { 0.0 };
+        vec4(
+            out,
+            [
+                r.tint,
+                strip.half_width_m,
+                strip.max_road_width_m / 2.0,
+                carriageway,
+            ],
+        );
+        let curb = road.curb.as_ref();
+        let slab = walk(|w| if w.slab_m != 0.0 { 1.0 / w.slab_m } else { 0.0 });
+        vec4(
+            out,
+            [
+                slab,
+                walk(|w| w.joint),
+                curb.map_or(0.0, |c| c.face_m),
+                curb.map_or(0.0, |c| tan_deg(c.tilt_deg)),
+            ],
+        );
+        vec4(
+            out,
+            curb.map_or([0.0; 4], |c| rgb(first(&c.palette), c.width_m)),
+        );
+        let marks = road.markings.as_ref();
+        vec4(
+            out,
+            marks.map_or([0.0; 4], |m| rgb(first(&m.palette), m.cover)),
+        );
+        vec4(
+            out,
+            marks.map_or([0.0, 0.0, 1.0, 0.0], |m| {
+                [
+                    m.line_m / 2.0,
+                    m.dash_m[0],
+                    m.dash_m[0] + m.dash_m[1],
+                    m.wear,
+                ]
+            }),
+        );
+        vec4(
+            out,
+            marks.map_or([1.0, 0.0, 0.0, 0.0], |m| {
+                let c = &m.crossing;
+                [c.bar_m, c.length_m, c.gap_m, c.inset_m]
+            }),
+        );
+        let slabs = road.slabs.as_ref();
+        vec4(
+            out,
+            [
+                curb.map_or(0.0, |c| 1.0 / c.stone_m),
+                curb.map_or(0.0, |c| c.joint),
+                slabs.map_or(0.0, |s| 1.0 / s.slab_m),
+                slabs.map_or(0.0, |s| s.joint),
+            ],
+        );
+    }
+}
+
+fn chunks_of(rivers: &[f32]) -> impl Iterator<Item = &[f32; RIVER]> {
+    rivers.as_chunks::<RIVER>().0.iter()
+}
+
+/// A storage binding can't be empty: at least one zeroed record of `words`.
+fn at_least_one(mut out: Vec<u32>, words: usize) -> Vec<u32> {
+    if out.is_empty() {
+        out.resize(words, 0);
+    }
+    out
+}
+
+/// The public sampled ground: absent vertex pages are flat at zero.
+#[derive(Default)]
+pub struct Grid {
+    pub nx: usize,
+    pub ny: usize,
+    pub spacing: f64,
+    pub page_size: usize,
+    pub min_height: f64,
+    /// Sorted ids in the `ceil(nx / page_size)`-wide page directory.
+    pub page_ids: Vec<u32>,
+    /// `page_size²` row-major heights per present page.
+    pub heights: Vec<f32>,
+}
+
+impl Grid {
+    /// The pages as the GPU reads them: page size, columns, directory
+    /// length, the directory (present page + 1, or 0), then the heights.
+    pub fn pages(&self) -> Vec<u32> {
+        let cols = self.nx.div_ceil(self.page_size);
+        let count = if self.page_ids.is_empty() {
+            0
+        } else {
+            cols * self.ny.div_ceil(self.page_size)
+        };
+        let mut out = vec![self.page_size as u32, cols as u32, count as u32];
+        out.resize(3 + count, 0);
+        for (p, &id) in self.page_ids.iter().enumerate() {
+            out[3 + id as usize] = p as u32 + 1;
+        }
+        out.extend(self.heights.iter().map(|h| h.to_bits()));
+        out
+    }
+
+    /// The height of vertex `(i, j)`.
+    pub fn sample(&self, i: usize, j: usize) -> f64 {
+        let size = self.page_size;
+        let id = ((j / size) * self.nx.div_ceil(size) + i / size) as u32;
+        match self.page_ids.binary_search(&id) {
+            Ok(page) => self.heights[page * size * size + (j % size) * size + i % size] as f64,
+            Err(_) => 0.0,
+        }
+    }
+
+    /// The ground's height at `(x, y)`, clamped to the grid's edge, by the
+    /// simulation's south-west to north-east triangle rule.
+    pub fn height(&self, x: f64, y: f64) -> f64 {
+        let (nx, ny) = ((self.nx - 1) as f64, (self.ny - 1) as f64);
+        let fx = js::min(js::max(x / self.spacing, 0.0), nx);
+        let fy = js::min(js::max(y / self.spacing, 0.0), ny);
+        let i = js::min(fx.floor(), nx - 1.0) as usize;
+        let j = js::min(fy.floor(), ny - 1.0) as usize;
+        let (u, v) = (fx - i as f64, fy - j as f64);
+        let (h00, h11) = (self.sample(i, j), self.sample(i + 1, j + 1));
+        if u >= v {
+            let h10 = self.sample(i + 1, j);
+            h00 + u * (h10 - h00) + v * (h11 - h10)
+        } else {
+            let h01 = self.sample(i, j + 1);
+            h00 + v * (h01 - h00) + u * (h11 - h01)
+        }
+    }
+}

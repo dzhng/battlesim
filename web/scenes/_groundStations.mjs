@@ -266,10 +266,14 @@ const LINE_INSET_M = 400;
 async function treeLine(page, size) {
   await generatedGround(page);
   return page.evaluate(
-    async ({ size: [width, height], repo, run, field, clear, inset }) => {
-      const { FOREST_STROKE_FLOATS } = await import(
-        `/@fs/${repo}packages/battle-renderer/src/terrain/forestShapes.ts`
-      );
+    ({ size: [width, height], run, field, clear, inset }) => {
+      // A forest stroke's stretch: `ax, ay, bx, by, half width, id, cuts`;
+      // a forest's metadata: `id, canopy, shape kind` (1 a strip).
+      const FOREST_STROKE_FLOATS = 7;
+      const { forestStrokes, forestMetadata } = window.__generatedGround.exports;
+      const strips = new Set();
+      for (let o = 0; o < forestMetadata.length; o += 3)
+        if (forestMetadata[o + 2] === 1) strips.add(forestMetadata[o]);
       const ground = (x, y) => window.__lab.route.surfaceAt(x, y);
       const wooded = (x, y) => ground(x, y)?.forest === true;
       const open = (x, y) => {
@@ -277,10 +281,10 @@ async function treeLine(page, size) {
         return s?.kind === "ground" && !s.forest;
       };
       let best;
-      for (const shape of window.__generatedGround.surface.site.forestShapes) {
-        if (shape.kind !== "stroke") continue;
-        const s = shape.strokes;
+      {
+        const s = forestStrokes;
         for (let o = 0; o < s.length; o += FOREST_STROKE_FLOATS) {
+          if (!strips.has(s[o + 5])) continue;
           const [ax, ay, bx, by, half] = s.subarray(o, o + 5);
           const length = Math.hypot(bx - ax, by - ay);
           const [mx, my] = [(ax + bx) / 2, (ay + by) / 2];
@@ -299,19 +303,18 @@ async function treeLine(page, size) {
             );
           });
           if (between)
-            best = { length, at: [mx, my], yaw: Math.atan2(across[1], across[0]), shape };
+            best = { length, at: [mx, my], yaw: Math.atan2(across[1], across[0]), id: s[o + 5] };
         }
       }
       if (!best) return undefined;
-      const { strokes } = best.shape;
       const strip = [];
-      for (let o = 0; o < strokes.length; o += FOREST_STROKE_FLOATS)
-        strip.push(Array.from(strokes.subarray(o, o + 5)));
+      for (let o = 0; o < forestStrokes.length; o += FOREST_STROKE_FLOATS)
+        if (forestStrokes[o + 5] === best.id)
+          strip.push(Array.from(forestStrokes.subarray(o, o + 5)));
       return { at: best.at, yaw: best.yaw, strip };
     },
     {
       size,
-      repo: new URL("../../", import.meta.url).pathname,
       run: TREE_LINE_M,
       field: FIELD_BESIDE_M,
       clear: CLEAR_BESIDE_M,
@@ -423,8 +426,9 @@ const streetTrees = (page, centre) =>
   );
 
 /** The generated map's ground as the renderer builds it, in the page as
- *  `window.__generatedGround`: its terrain `surface` (its plots, its paved
- *  strokes as drawn). The map is made again from the page's own request,
+ *  `window.__generatedGround`: its terrain `surface` (the ground Rust
+ *  resolved: its plots, its paved strokes as drawn), the map's `exports` and
+ *  its world `layout`. The map is made again from the page's own request,
  *  under the rules a player's battle prepares it with (the game's catalog
  *  set: the generator reads the units' rules), and must be the map the
  *  page prepared. */
@@ -442,6 +446,8 @@ const generatedGround = (page) =>
         import(file("fixtures/prototype-building-templates.json?raw")),
       ]);
       await wasm.default();
+      // The ground's shapes are resolved by the presentation module.
+      await (await import(file("web/src/battle/sim/presentation.ts"))).loadPresentation();
       const prepared = window.__lab.route.prepared();
       const rules = JSON.stringify(gameRules);
       const outcome = JSON.parse(
@@ -460,13 +466,12 @@ const generatedGround = (page) =>
         );
       const view = new wasm.WorldView(JSON.stringify(outcome.result.map), rules);
       try {
+        const exports = mesh.readWorldExports(view);
+        const layout = JSON.parse(wasm.world_layout(rules));
         window.__generatedGround = {
-          surface: mesh.buildWorldLayers(
-            mesh.readWorldExports(view),
-            JSON.parse(wasm.world_layout(rules)),
-            biome.default,
-            "surface",
-          ).terrain,
+          surface: mesh.buildWorldLayers(exports, layout, biome.default, "surface").terrain,
+          exports,
+          layout,
         };
       } finally {
         view.free();
@@ -485,19 +490,33 @@ const BESIDE_ROAD_M = 10;
 export async function drawnRoads(page, points) {
   await generatedGround(page);
   return page.evaluate(
-    async ({ points, repo, beside }) => {
-      const file = (p) => `/@fs/${repo}${p}`;
-      const [strokes, surfaces] = await Promise.all([
-        import(file("packages/battle-renderer/src/terrain/strokes.ts")),
-        import(file("packages/battle-renderer/src/terrain/surfaces.ts")),
-      ]);
-      const { surface } = window.__generatedGround;
-      const drawn = surface.strokes;
-      const stride = surface.site.surfaceStrokeStride;
+    ({ points, beside }) => {
+      const { surface, exports, layout } = window.__generatedGround;
+      const drawn = surface.ground.drawn_strokes() ?? exports.surfaceStrokes;
+      // A stretch: `ax, ay, bx, by, half width, kind, cut ends` (1 at a, 2 at b).
+      const stride = 7;
+      const isRoad = (tag) => layout.roadAreaKinds.includes(layout.surfaceAreaKinds[tag]);
+      /** How far `(x, y)` lies inside stretch `o`: its half width less the
+       *  distance to it, and past a cut end the distance to that square end. */
+      const strokeInside = (r, o, x, y) => {
+        const [ax, ay, bx, by, half, , cuts] = r.subarray(o, o + 7);
+        const [dx, dy] = [bx - ax, by - ay];
+        const length = Math.hypot(dx, dy);
+        const t = length
+          ? Math.min(1, Math.max(0, ((x - ax) * dx + (y - ay) * dy) / length ** 2))
+          : 0;
+        const inside = half - Math.hypot(x - ax - dx * t, y - ay - dy * t);
+        if (!cuts) return inside;
+        const along = ((x - ax) * dx + (y - ay) * dy) / length;
+        const past = Math.max(cuts & 1 ? -along : -Infinity, cuts & 2 ? along - length : -Infinity);
+        if (past <= 0) return Math.min(inside, -past);
+        const aside = Math.max(Math.abs((x - ax) * dy - (y - ay) * dx) / length - half, 0);
+        return -Math.hypot(aside, past);
+      };
       return points.map(([x, y]) => {
         let road = null;
         for (let o = 0; o < drawn.length; o += stride) {
-          if (!surfaces.isRoad(drawn[o + 5])) continue;
+          if (!isRoad(drawn[o + 5])) continue;
           // A stretch's box first: a town has thousands.
           const pad = drawn[o + 4] + beside;
           if (
@@ -507,14 +526,14 @@ export async function drawnRoads(page, points) {
             y > Math.max(drawn[o + 1], drawn[o + 3]) + pad
           )
             continue;
-          const inside = strokes.strokeInside(drawn, o, x, y);
+          const inside = strokeInside(drawn, o, x, y);
           if (inside > -beside && inside > (road?.inside ?? -Infinity))
-            road = { kind: surfaces.SURFACE_AREA_KINDS[drawn[o + 5]], inside };
+            road = { kind: layout.surfaceAreaKinds[drawn[o + 5]], inside };
         }
         return road;
       });
     },
-    { points, repo: new URL("../../", import.meta.url).pathname, beside: BESIDE_ROAD_M },
+    { points, beside: BESIDE_ROAD_M },
   );
 }
 
@@ -530,19 +549,18 @@ const TOWN_END_M = 300;
 async function townEdges(page, centre) {
   await generatedGround(page);
   return page.evaluate(
-    async ({ centre: [cx, cy], repo, end }) => {
-      const { plotAt } = await import(`/@fs/${repo}packages/battle-renderer/src/terrain/plots.ts`);
-      const { surface } = window.__generatedGround;
+    ({ centre: [cx, cy], end }) => {
+      const { surface, exports } = window.__generatedGround;
       const rules = surface.biome.field_rules;
       const yard = surface.biome.plots.findIndex((p) => p.name === rules.settlement_kind);
-      const isYard = (x, y) => surface.plots.plots[plotAt(surface.plots, x, y).plot].kind === yard;
+      const isYard = (x, y) => surface.ground.plot_kind_at(x, y) === yard;
       let last = cx;
       for (let x = cx; x > last - end && x > 0; x -= 2) if (isYard(x, cy)) last = x;
       // A road stops, round, where it is drawn as a street from there on:
       // at a point no exported stretch ends at.
-      const drawn = surface.strokes;
-      const exported = surface.site.surfaceStrokes;
-      const stride = surface.site.surfaceStrokeStride;
+      const exported = exports.surfaceStrokes;
+      const drawn = surface.ground.drawn_strokes() ?? exported;
+      const stride = 7;
       const ends = new Set();
       for (let o = 0; o < exported.length; o += stride)
         for (const k of [0, 2]) ends.add(`${exported[o + k]},${exported[o + k + 1]}`);
@@ -563,7 +581,7 @@ async function townEdges(page, centre) {
         joinYaw: join && Math.atan2(join.at[1] - cy, join.at[0] - cx),
       };
     },
-    { centre, repo: new URL("../../", import.meta.url).pathname, end: TOWN_END_M },
+    { centre, end: TOWN_END_M },
   );
 }
 
@@ -865,17 +883,15 @@ const streetGround = (page) =>
     async (repo) => {
       if (window.__streetGround) return;
       const file = (p) => `/@fs/${repo}${p}`;
-      const [wasm, { buildStreetScenario }, { catalogSet }, mesh, fields, terrain, biome] =
-        await Promise.all([
-          import("/src/wasm/game_wasm.js"),
-          import(file("apps/battle-lab/src/streetScenario.ts")),
-          import(file("web/src/battle/catalog/sets.ts")),
-          import(file("packages/battle-renderer/src/worldMesh.ts")),
-          import(file("packages/battle-renderer/src/terrain/surfaceField.ts")),
-          import(file("packages/battle-renderer/src/frame/terrainMaterial.ts")),
-          import(file("fixtures/biomes/summer.json")),
-        ]);
+      const [wasm, { buildStreetScenario }, { catalogSet }, mesh, biome] = await Promise.all([
+        import("/src/wasm/game_wasm.js"),
+        import(file("apps/battle-lab/src/streetScenario.ts")),
+        import(file("web/src/battle/catalog/sets.ts")),
+        import(file("packages/battle-renderer/src/worldMesh.ts")),
+        import(file("fixtures/biomes/summer.json")),
+      ]);
       await wasm.default();
+      await (await import(file("web/src/battle/sim/presentation.ts"))).loadPresentation();
       const setup = JSON.parse(await buildStreetScenario((await catalogSet("test")).rules));
       const rules = JSON.stringify(setup.rules);
       const view = new wasm.WorldView(JSON.stringify(setup.map), rules);
@@ -883,20 +899,31 @@ const streetGround = (page) =>
         const exported = mesh.readWorldExports(view);
         const layout = JSON.parse(wasm.world_layout(rules));
         const surface = mesh.buildWorldLayers(exported, layout, biome.default, "surface").terrain;
-        const field = terrain.terrainField(surface);
-        // Where the first prop of each type stands.
+        const distances = (x, y, footprint) =>
+          surface.ground.distances(Float64Array.of(x, y, footprint));
+        // Where the first prop of each type stands; every prop's footprint
+        // (`x, y, yaw, hx, hy`) and the buildings' centres.
         const first = {};
-        const [kind, x, y] = ["kind", "x", "y"].map((f) => layout.propFields.indexOf(f));
-        for (let o = 0; o < exported.props.length; o += layout.propStride)
-          first[layout.propKinds[exported.props[o + kind]]] ??= [
-            exported.props[o + x],
-            exported.props[o + y],
-          ];
+        const footprints = [];
+        const buildings = [];
+        const at = ["kind", "x", "y", "yaw", "hx", "hy"].map((f) => layout.propFields.indexOf(f));
+        const p = exported.props;
+        for (let o = 0; o < p.length; o += layout.propStride) {
+          const [kind, x, y, yaw, hx, hy] = at.map((k) => p[o + k]);
+          const name = layout.propKinds[kind];
+          first[name] ??= [x, y];
+          footprints.push(x, y, yaw, hx, hy);
+          if (layout.propAppearance[name]?.drawn_by === "building") buildings.push(x, y);
+        }
         window.__streetGround = {
           surface,
+          map: exported.extents.physical,
+          plots: JSON.parse(surface.ground.plots_json()),
+          footprints,
+          buildings,
           first,
-          paved: (x, y, footprint) => fields.pavedDistance(field, x, y, footprint),
-          forest: (x, y, footprint) => fields.forestDistance(field, x, y, footprint),
+          paved: (x, y, footprint) => distances(x, y, footprint)[0],
+          forest: (x, y, footprint) => distances(x, y, footprint)[1],
         };
       } finally {
         view.free();
@@ -943,8 +970,8 @@ async function streetPlots(page) {
   await streetGround(page);
   return page.evaluate(
     ({ inset, room }) => {
-      const { surface, forest } = window.__streetGround;
-      const [x0, y0, x1, y1] = surface.site.map;
+      const { surface, forest, map, plots, footprints, buildings } = window.__streetGround;
+      const [x0, y0, x1, y1] = map;
       const yard = surface.biome.field_rules.settlement_kind;
       /** How far inside convex outline `o` a point lies. */
       const inside = (o, x, y) => {
@@ -960,7 +987,7 @@ async function streetPlots(page) {
       };
       /** How far a point lies from the nearest static prop's footprint. */
       const fromProps = (x, y) => {
-        const f = surface.site.footprints;
+        const f = footprints;
         let clear = Infinity;
         for (let k = 0; k < f.length; k += 5) {
           const [dx, dy] = [x - f[k], y - f[k + 1]];
@@ -972,7 +999,7 @@ async function streetPlots(page) {
         return clear;
       };
       const best = {};
-      for (const plot of surface.plots.plots) {
+      for (const plot of plots) {
         const o = plot.outline;
         const n = o.length / 2;
         const name = surface.biome.plots[plot.kind].name;
@@ -1008,7 +1035,9 @@ async function streetPlots(page) {
           cy > y0 + inset &&
           cy < y1 - inset &&
           clear > room &&
-          surface.site.buildings.every((b) => Math.hypot(b[0] - cx, b[1] - cy) > apart) &&
+          buildings.every(
+            (_, k, b) => k % 2 === 1 || Math.hypot(b[k] - cx, b[k + 1] - cy) > apart,
+          ) &&
           [
             [0, 0],
             [room, 0],

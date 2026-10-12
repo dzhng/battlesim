@@ -18,6 +18,7 @@ import { GlobalAssignments } from "./Assignments";
 import { Movement } from "./Movement";
 import { VoicesTab } from "./voices/VoicesTab";
 import { MusicTab } from "./music/MusicTab";
+import { ChatterPreview } from "./voices/ChatterPreview";
 import { voiceAPI, type VoiceAPI } from "./voices/protocol";
 import "./sound-workbench.css";
 
@@ -51,7 +52,9 @@ export function SoundWorkbench({
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [draft, setDraft] = useState<SoundCatalog | null>(null);
   const [review, setReview] = useState<Review | null>(null);
-  const [tab, setTab] = useState<"library" | "movement" | "effects" | "voices" | "music">(
+  const [tab, setTab] = useState<
+    "library" | "movement" | "effects" | "voices" | "music" | "chatter"
+  >(
     "library",
   );
   const [search, setSearch] = useState("");
@@ -186,7 +189,7 @@ export function SoundWorkbench({
           <h1>Sound workbench</h1>
           <p>Audition the library. Choose the sound of each unit and weapon mount.</p>
         </div>
-        {tab !== "voices" && tab !== "music" && (
+        {tab !== "voices" && tab !== "music" && tab !== "chatter" && (
           <div className="sw-publication">
             <span>{dirty ? "UNSAVED DRAFT" : "SAVED GENERATION"}</span>
             <button
@@ -222,6 +225,7 @@ export function SoundWorkbench({
             ["effects", "Defaults & effects"],
             ["voices", "Voices"],
             ["music", "Music"],
+            ["chatter", "Chatter preview"],
           ] as const
         ).map(([value, label]) => (
           <button
@@ -267,6 +271,8 @@ export function SoundWorkbench({
             void api.snapshot().then(accept, (error) => setMessage(String(error.message)))
           }
         />
+      ) : tab === "chatter" ? (
+        <ChatterPreview api={voices} audition={audition} />
       ) : !snapshot || !draft ? (
         <p>{message ? "The saved library could not be loaded." : "Loading saved library…"}</p>
       ) : (

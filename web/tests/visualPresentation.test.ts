@@ -14,13 +14,7 @@ import {
   type InstanceCount,
   type VisualPresentation,
 } from "@web/battle/benchmark/visualPresentation";
-import type { TerrainTables } from "@packages/battle-renderer/src/frame/terrainTables";
-import type { GrassTables } from "@packages/battle-renderer/src/frame/grassTables";
-import type { WordTable } from "@packages/battle-renderer/src/frame/wordTables";
-import type { SceneryTables } from "@packages/battle-renderer/src/scenery/sceneryTables";
 import { sunDirection } from "@packages/battle-renderer/src/light/sceneLight";
-import { terrainTuning } from "@packages/battle-renderer/src/terrain/terrainTuning";
-import { grassTuning } from "@packages/battle-renderer/src/terrain/grassTuning";
 import { gameLight } from "@apps/battle-lab/src/gameLight";
 import type { DrawnUnits, ModelCount } from "@web/battle/benchmark/unitManifest";
 import { NO_PROP, PROP_MODEL_WORDS, type DrawnProps } from "@web/battle/benchmark/propManifest";
@@ -208,7 +202,6 @@ const drawn: DrawnPresentation = {
     ...gameLight,
     sunDirection: Array.from(sunDirection(gameLight)) as [number, number, number],
   },
-  tuning: { terrain: terrainTuning, grass: grassTuning },
   layers: ["sky", "terrain", "grass"],
   omissions: [],
   units: units(),
@@ -217,96 +210,6 @@ const drawn: DrawnPresentation = {
 };
 const mapBytes = new TextEncoder().encode('{"map":"bytes"}');
 
-const records = (words: number[]): WordTable => ({
-  words: Uint32Array.from(words),
-  layout: {
-    kind: "records",
-    stride: 4,
-    count: words.length / 4,
-    fields: [{ name: "line", word: 0, type: "f32", count: 4 }],
-  },
-});
-/** Small tables of every kind; the heights hold a page whose first height is 1.5 m. */
-const terrain: TerrainTables = {
-  heights: {
-    words: Uint32Array.from([2, 1, 1, 1, 0x3fc00000, 0, 0, 0]),
-    layout: { kind: "height-pages", nx: 2, ny: 2, spacing: 4, pageSize: 2 },
-  },
-  nodes: records([1, 2, 3, 4]),
-  plots: records([5, 6, 7, 8, 9, 10, 11, 12]),
-  surfaces: records([0xffffffff, 0, 1, 2]),
-  surfaceIndex: {
-    words: Uint32Array.from([3, 0, 1 << 30]),
-    layout: { kind: "words", count: 3, constants: { kindShift: 30 } },
-  },
-  params: records([13, 14, 15, 16]),
-  scars: records([17, 18, 19, 20]),
-  water: records([]),
-};
-/** A small grass field: two u16 strips, an empty prop grid, two kinds. */
-const grass: GrassTables = {
-  tables: {
-    params: records([1, 2, 3, 4]),
-    props: {
-      words: Uint32Array.from([0, 0, 0x41000000, 0, 0, 0, 0, 0]),
-      layout: { kind: "prop-cells", count: 2 },
-    },
-    shapes: records([0x3f800000, 0, 0, 0]),
-    indicesNear: {
-      words: Uint32Array.from([0x00010000, 0x00000002]),
-      layout: { kind: "u16", count: 3 },
-    },
-    indicesFar: { words: Uint32Array.from([0x00010000]), layout: { kind: "u16", count: 2 } },
-  },
-  constants: {
-    tileM: 4,
-    segments: [4, 2],
-    bladeVertices: [9, 5],
-    capacity: [100, 200],
-    firstClump: [0, 100],
-    indexCount: [3, 2],
-    maxBlades: 1,
-    edgeM: 1.2,
-    heightVariation: [0.8, 1.2],
-  },
-  kinds: ["meadow_grass", "wheat"],
-};
-const scenery: SceneryTables = {
-  tables: {
-    forest: records([0x40000000, 0, 0, 0]),
-    understorey: records([]),
-    backdrop: records([1, 2, 3, 4, 5, 6, 7, 8]),
-    dressing: records([0x3f000000, 1, 2, 3]),
-    dressingCells: records([3, 4, 0, 1]),
-  },
-  kinds: ["oak", "fern"],
-  tiers: {
-    lodPx: [400, 150, 40],
-    chunkM: 128,
-    casterCoarser: 1,
-    dressing: {
-      lodPx: [300, 100, 20],
-      fadePx: 6,
-      gone: 0.5,
-      cellM: 64,
-      topM: 0.6,
-      reachM: 0.4,
-      ground: [-1, 9],
-      slots: 128,
-      cellsPerView: 2,
-    },
-  },
-  felled: {
-    fall_s: 2.6,
-    settle_s: 0.6,
-    settle_deg: 4,
-    rest_height_m: 1,
-    rest_spread: 0.6,
-    stump_height_m: 0.4,
-    cut: [0.26, 0.19, 0.11],
-  },
-};
-const tables = { terrain, grass, scenery };
 const cells = (n: number) => Array.from({ length: 12 }, (_, i) => i * n);
 const tiered = (kinds: number, n: number) => Array.from({ length: kinds * 4 }, (_, i) => i * n);
 const instanceCounts: InstanceCount[] = [
@@ -341,7 +244,7 @@ const effectCounts: EffectCount[] = [
 ];
 const platedCapture = () =>
   encodePresentationCapture(capture([frame(0), frame(1, [1280, 720], "plate-1.png")]));
-/** The manifest and its artifacts for `captureJson`, drawn with the tables and counts above. */
+/** The manifest and its artifacts for `captureJson`, drawn with the counts above. */
 async function written(
   captureJson: string,
   counts: GrassCount[] = [],
@@ -352,7 +255,6 @@ async function written(
     captureJson,
     mapBytes,
     drawn,
-    tables,
     grassCounts: counts,
     instanceCounts: instances,
     modelCounts: counts.length ? modelCounts : [],
@@ -361,11 +263,6 @@ async function written(
   return { manifest: JSON.parse(manifest) as VisualPresentation, artifacts };
 }
 const sha256 = (bytes: Uint8Array | string) => createHash("sha256").update(bytes).digest("hex");
-/** An artifact file's bytes read back as little-endian u32 words. */
-const wordsOf = (bytes: Uint8Array) => {
-  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  return Uint32Array.from({ length: bytes.length / 4 }, (_, i) => view.getUint32(i * 4, true));
-};
 
 test("the manifest names its battle by the capture's workload and the hashes of both files", async () => {
   const captureJson = encodePresentationCapture(capture([frame(0), frame(1)]));
@@ -384,12 +281,8 @@ test("the manifest names its battle by the capture's workload and the hashes of 
     viewport: { width: 1280, height: 720, scale: 1 },
     lens: drawn.lens,
     light: drawn.light,
-    tuning: drawn.tuning,
     layers: drawn.layers,
     omissions: [],
-    terrain: expect.any(Array),
-    grass: expect.any(Object),
-    scenery: expect.any(Object),
     grassCounts: [],
     instanceCounts: [],
     units: expect.any(Object),
@@ -400,7 +293,7 @@ test("the manifest names its battle by the capture's workload and the hashes of 
   });
 });
 
-test("the units' clip tables are artifacts after the scenery's, and each plate's model counts ride along", async () => {
+test("the units' clip tables are artifacts after the props', and each plate's model counts ride along", async () => {
   const { manifest, artifacts } = await written(platedCapture(), grassCounts);
   const bytes = new Uint8Array(CLIP_FLOATS.buffer);
   const { tables: clipTables, ...described } = manifest.units;
@@ -451,7 +344,6 @@ test("the units' clip tables are artifacts after the scenery's, and each plate's
       captureJson: platedCapture(),
       mapBytes,
       drawn,
-      tables,
       grassCounts,
       instanceCounts,
       modelCounts: [],
@@ -460,7 +352,7 @@ test("the units' clip tables are artifacts after the scenery's, and each plate's
   ).rejects.toThrow(/model counts must be one per plate/);
 });
 
-test("the map's fitted props are an artifact before the units', and the fit, the parts and the felled rules ride along", async () => {
+test("the map's fitted props are an artifact before the units', the only other one, and the fit and the parts ride along", async () => {
   const { manifest, artifacts } = await written(platedCapture(), grassCounts);
   const bytes = new Uint8Array(MAP_WORDS.buffer);
   const { map, ...described } = manifest.props;
@@ -473,7 +365,7 @@ test("the map's fitted props are an artifact before the units', and the fit, the
     layout: expect.objectContaining({ kind: "records", stride: PROP_MODEL_WORDS, count: 2 }),
   });
   expect(artifacts.at(-2)).toEqual({ file: "props-map.u32", bytes });
-  expect(manifest.scenery.felled).toEqual(scenery.felled);
+  expect(artifacts).toHaveLength(1 + manifest.units.tables.length);
 
   const reject = (change: object) => () =>
     validateVisualPresentation({ ...manifest, props: { ...manifest.props, ...change } });
@@ -486,14 +378,11 @@ test("the map's fitted props are an artifact before the units', and the fit, the
     /parked_car/,
   );
   expect(reject({ map: { ...map, words: 12 } })).toThrow(/map/);
-  const { felled: _felled, ...unfelled } = manifest.scenery;
-  expect(() => validateVisualPresentation({ ...manifest, scenery: unfelled })).toThrow(/scenery/);
   await expect(
     writeVisualPresentation({
       captureJson: platedCapture(),
       mapBytes,
       drawn: { ...drawn, props: { ...drawn.props, map: { ...drawn.props.map, count: 3 } } },
-      tables,
       grassCounts,
       instanceCounts,
       modelCounts,
@@ -532,36 +421,6 @@ test("the manifest carries the light the frames were drawn under, with a unit su
   expect(reject({ light: sunless })).toThrow(/sun/);
 });
 
-test("each terrain table is an artifact of its words, little-endian, named by the hash of its bytes", async () => {
-  const { manifest, artifacts } = await written(platedCapture(), grassCounts);
-  expect(manifest.terrain.map((t) => t.name)).toEqual([
-    "heights",
-    "nodes",
-    "plots",
-    "surfaces",
-    "surfaceIndex",
-    "params",
-    "scars",
-    "water",
-  ]);
-  for (const [i, entry] of manifest.terrain.entries()) {
-    expect(artifacts[i].file).toBe(`terrain-${entry.name}.u32`);
-    const { bytes } = artifacts[i];
-    const table = terrain[entry.name];
-    expect(entry).toEqual({
-      name: entry.name,
-      sha256: sha256(bytes),
-      words: table.words.length,
-      layout: table.layout,
-    });
-    expect(wordsOf(bytes)).toEqual(table.words);
-  }
-  // Little-endian: the first height's f32 1.5 lies low byte first.
-  const heights = artifacts[0].bytes;
-  expect(new DataView(heights.buffer, heights.byteOffset).getFloat32(16, true)).toBe(1.5);
-  expect(Array.from(heights.subarray(16, 20))).toEqual([0, 0, 0xc0, 0x3f]);
-});
-
 test("grass counts hold one row of twelve cells for each plate the capture drew, and only those", async () => {
   const { manifest } = await written(platedCapture(), grassCounts);
   expect(manifest.grassCounts).toEqual(grassCounts);
@@ -569,6 +428,8 @@ test("grass counts hold one row of twelve cells for each plate the capture drew,
   await expect(
     written(platedCapture(), [...grassCounts, { plate: "plate-0.png", cells: cells(1) }]),
   ).rejects.toThrow(/plate-0\.png/);
+  const { grassCounts: _counts, ...countless } = manifest;
+  expect(() => validateVisualPresentation(countless)).toThrow(/malformed/);
   const reject = (row: object) => () =>
     validateVisualPresentation({ ...manifest, grassCounts: [row] });
   expect(reject({ plate: "plate-1.png", cells: cells(1).slice(1) })).toThrow(/grass/);
@@ -577,120 +438,7 @@ test("grass counts hold one row of twelve cells for each plate the capture drew,
   expect(reject({ plate: "plate-1.png", cells: cells(1), tier: 0 })).toThrow(/grass/);
 });
 
-test("the validator refuses a missing, unknown or stale terrain artifact entry", async () => {
-  const { manifest } = await written(platedCapture(), grassCounts);
-  const reject = (change: object) => () => validateVisualPresentation({ ...manifest, ...change });
-  const { terrain: _, ...bare } = manifest;
-  expect(() => validateVisualPresentation(bare)).toThrow(/malformed/);
-  const { grassCounts: _counts, ...countless } = manifest;
-  expect(() => validateVisualPresentation(countless)).toThrow(/malformed/);
-  const [heights, ...rest] = manifest.terrain;
-  expect(reject({ terrain: rest })).toThrow(/terrain/);
-  expect(reject({ terrain: [{ ...heights, name: "relief" }, ...rest] })).toThrow(/terrain/);
-  expect(reject({ terrain: [{ ...heights, bytes: 32 }, ...rest] })).toThrow(/terrain/);
-  expect(reject({ terrain: [{ ...heights, sha256: "abc" }, ...rest] })).toThrow(/terrain/);
-  expect(
-    reject({ terrain: [{ ...heights, layout: { ...heights.layout, origin: [0, 0] } }, ...rest] }),
-  ).toThrow(/terrain/);
-  const nodes = rest[0];
-  if (nodes.layout.kind !== "records") throw new Error("nodes are records");
-  const field = { ...nodes.layout.fields[0], type: "f16" };
-  expect(
-    reject({
-      terrain: [
-        heights,
-        { ...nodes, layout: { ...nodes.layout, fields: [field] } },
-        ...rest.slice(1),
-      ],
-    }),
-  ).toThrow(/terrain/);
-});
-
-test("the manifest carries the terrain and grass tuning tables the shaders were built from", async () => {
-  const { manifest } = await written(encodePresentationCapture(capture([frame(0)])));
-  expect(manifest.tuning).toEqual({ terrain: terrainTuning, grass: grassTuning });
-  const reject = (tuning: unknown) => () => validateVisualPresentation({ ...manifest, tuning });
-  expect(reject({ terrain: terrainTuning })).toThrow(/tuning/);
-  expect(reject({ terrain: { mottle: { scale: "4" } }, grass: grassTuning })).toThrow(/tuning/);
-  expect(reject({ terrain: { mottle: { scale: Number.NaN } }, grass: grassTuning })).toThrow(
-    /tuning/,
-  );
-});
-
-test("the grass tables are artifacts beside the terrain's, with the field's constants and kinds", async () => {
-  const { manifest, artifacts } = await written(platedCapture(), grassCounts);
-  expect(manifest.grass.tables.map((t) => t.name)).toEqual([
-    "params",
-    "props",
-    "shapes",
-    "indicesNear",
-    "indicesFar",
-  ]);
-  expect(manifest.grass.constants).toEqual(grass.constants);
-  expect(manifest.grass.kinds).toEqual(grass.kinds);
-  const files = artifacts.slice(manifest.terrain.length);
-  for (const [i, entry] of manifest.grass.tables.entries()) {
-    expect(files[i].file).toBe(`grass-${entry.name}.u32`);
-    expect(entry.sha256).toBe(sha256(files[i].bytes));
-    expect(entry.layout).toEqual(grass.tables[entry.name].layout);
-    expect(wordsOf(files[i].bytes)).toEqual(grass.tables[entry.name].words);
-  }
-});
-
-test("the validator refuses a grass section with a missing table, a stray constant or no kinds", async () => {
-  const { manifest } = await written(platedCapture(), grassCounts);
-  const reject = (change: object) => () =>
-    validateVisualPresentation({ ...manifest, grass: { ...manifest.grass, ...change } });
-  const { grass: _, ...bare } = manifest;
-  expect(() => validateVisualPresentation(bare)).toThrow(/malformed/);
-  expect(reject({ tables: manifest.grass.tables.slice(1) })).toThrow(/grass/);
-  const [params, props, ...rest] = manifest.grass.tables;
-  expect(
-    reject({
-      tables: [params, { ...props, layout: { kind: "prop-cells", count: 2, cell: 8 } }, ...rest],
-    }),
-  ).toThrow(/grass/);
-  const { maxBlades: _blades, ...short } = manifest.grass.constants;
-  expect(reject({ constants: short })).toThrow(/grass/);
-  expect(reject({ constants: { ...manifest.grass.constants, lod: 0 } })).toThrow(/grass/);
-  expect(reject({ constants: { ...manifest.grass.constants, tileM: "4" } })).toThrow(/grass/);
-  const { edgeM: _edge, ...noEdge } = manifest.grass.constants;
-  expect(reject({ constants: noEdge })).toThrow(/grass/);
-  expect(reject({ constants: { ...manifest.grass.constants, edgeM: -1 } })).toThrow(/grass/);
-  expect(reject({ constants: { ...manifest.grass.constants, heightVariation: [0.8] } })).toThrow(
-    /grass/,
-  );
-  expect(reject({ kinds: [] })).toThrow(/grass/);
-  expect(reject({ kinds: ["wheat", "wheat"] })).toThrow(/grass/);
-  expect(reject({ seed: 1 })).toThrow(/grass/);
-});
-
-test("the scenery's tables are artifacts after the grass's, with its kinds and tier rules", async () => {
-  const { manifest, artifacts } = await written(platedCapture(), grassCounts);
-  expect(manifest.scenery.kinds).toEqual(scenery.kinds);
-  expect(manifest.scenery.tiers).toEqual(scenery.tiers);
-  let at = manifest.terrain.length + manifest.grass.tables.length;
-  for (const [group, source] of [["scenery", scenery.tables]] as const) {
-    const entries = manifest[group].tables;
-    expect(entries.map((t) => t.name)).toEqual(Object.keys(source));
-    for (const entry of entries) {
-      const { file, bytes } = artifacts[at++];
-      const table = (source as Record<string, WordTable>)[entry.name];
-      expect(file).toBe(`${group}-${entry.name}.u32`);
-      expect(entry).toEqual({
-        name: entry.name,
-        sha256: sha256(bytes),
-        words: table.words.length,
-        layout: table.layout,
-      });
-      expect(wordsOf(bytes)).toEqual(table.words);
-    }
-  }
-  // The props' map models follow, then the units' clip tables.
-  expect(artifacts).toHaveLength(at + 1 + manifest.units.tables.length);
-});
-
-test("instance counts hold one row per plate, a count per module and tier and sized by the scenery kinds", async () => {
+test("instance counts hold one row per plate, a count per module and tier and the scenery's sized by its stumps' appearances", async () => {
   const { manifest } = await written(platedCapture(), grassCounts);
   expect(manifest.instanceCounts).toEqual(instanceCounts);
   await expect(written(platedCapture(), grassCounts, [])).rejects.toThrow(/instance.*plate-1\.png/);
@@ -712,20 +460,6 @@ test("instance counts hold one row per plate, a count per module and tier and si
   expect(() => validateVisualPresentation({ ...manifest, instanceCounts: [unknowing] })).toThrow(
     /instance/,
   );
-});
-
-test("the validator refuses a scenery section that is missing a table, a kind or a rule", async () => {
-  const { manifest } = await written(platedCapture(), grassCounts);
-  const reject = (group: "scenery", change: object) => () =>
-    validateVisualPresentation({ ...manifest, [group]: { ...manifest[group], ...change } });
-  const { scenery: _, ...bare } = manifest;
-  expect(() => validateVisualPresentation(bare)).toThrow(/malformed/);
-  expect(reject("scenery", { tables: manifest.scenery.tables.slice(0, 4) })).toThrow(/scenery/);
-  expect(reject("scenery", { kinds: [] })).toThrow(/scenery/);
-  expect(reject("scenery", { kinds: ["oak", "oak"] })).toThrow(/scenery/);
-  const { fadePx: _fade, ...fadeless } = scenery.tiers.dressing;
-  expect(reject("scenery", { tiers: { ...scenery.tiers, dressing: fadeless } })).toThrow(/scenery/);
-  expect(reject("scenery", { tiers: { ...scenery.tiers, chunkM: -1 } })).toThrow(/scenery/);
 });
 
 test("the effects ride along as the page described them, and each plate's effect counts beside them", async () => {
