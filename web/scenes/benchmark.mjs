@@ -5,7 +5,7 @@
 // the camera flew its keyframes; saves the report, the frame-cost.md row and
 // screenshots of the menu, the run and the results as evidence.
 import { writeFile } from "node:fs/promises";
-import { openMenuPage } from "./_lab.mjs";
+import { menuShown, openMenuPage } from "./_lab.mjs";
 
 const PREPARE_TIMEOUT_MS = 600_000;
 const FULL = process.env.BENCHMARK_LENGTH === "full";
@@ -33,6 +33,7 @@ export async function run(ctx, named = false) {
     );
   } else {
     await page.goto(`${origin}/`);
+    await menuShown(page);
     const main = page.getByRole("navigation", { name: "Main menu" });
     await main.waitFor();
     const played = await main.locator(".menu-card-label").allTextContents();
