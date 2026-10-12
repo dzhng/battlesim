@@ -1,26 +1,21 @@
-// Exercise initialization through the real frame factory, including cleanup
-// and retry on the same device. No test hook enters the production sampler.
+// The scars are filtered in the shader from loaded texels, never by a
+// sampler. Query the production cubic and linear lookups on a dense ground and
+// compare them, bit for bit, with the hardware filter's original arithmetic.
 import { createHash } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
-export async function groundFilterAdmission(ctx) {
+export async function groundFilterExact(ctx) {
   const page = await ctx.newPage();
   await page.goto(new URL("/", ctx.url).href);
   const repo = new URL("../../", import.meta.url).pathname;
   const result = await page.evaluate(async (repo) => {
     const file = (p) => `/@fs/${repo}${p}`;
-    const [frameModule, mesh, light, fog, overlay, models, rules, biome, wasm, allocations] =
-      await Promise.all([
-        import(file("packages/battle-renderer/src/frame/battleFrame.ts")),
-        import(file("packages/battle-renderer/src/worldMesh.ts")),
-        import(file("apps/battle-lab/src/gameLight.ts")),
-        import(file("apps/battle-lab/src/gameFog.ts")),
-        import(file("apps/battle-lab/src/gameOverlay.ts")),
-        import(file("apps/battle-lab/src/gameModels.ts")),
-        import(file("web/src/battle/catalog/sets.ts")).then((m) => m.catalogSet("test")),
-        import(file("fixtures/biomes/summer.json")),
-        import("/src/wasm/game_wasm.js"),
-        import(file("packages/renderer-core/src/gpuAllocations.ts")),
-      ]);
+    const [mesh, rules, biome, wasm, allocations] = await Promise.all([
+      import(file("packages/battle-renderer/src/worldMesh.ts")),
+      import(file("web/src/battle/catalog/sets.ts")).then((m) => m.catalogSet("test")),
+      import(file("fixtures/biomes/summer.json")),
+      import("/src/wasm/game_wasm.js"),
+      import(file("packages/renderer-core/src/gpuAllocations.ts")),
+    ]);
     await wasm.default();
     const view = new wasm.WorldView(
       JSON.stringify({ size: [32, 32], height_grid_m: 4, fog_cell_m: 8, slope_cutoff_deg: 35 }),
@@ -30,48 +25,14 @@ export async function groundFilterAdmission(ctx) {
     const device = await adapter.requestDevice();
     const live = allocations.trackGpuAllocations(device);
     const baseline = live();
-    const options = {
-      light: light.gameLight,
-      fogGeometry: fog.gameFogGeometry,
-      fogStyle: fog.gameFogStyle,
-      overlayGlow: overlay.gameOverlayGlow,
-      paint: overlay.gamePaint,
-      xrayMinHiddenFragmentFraction: overlay.gameXrayMinHiddenFragmentFraction,
-      models: models.gameModelDetail,
-      glass: models.gameGlass,
-      buildings: models.gameBuildingStyle,
-      world: mesh.buildWorldLayers(
-        mesh.readWorldExports(view),
-        JSON.parse(wasm.world_layout(JSON.stringify(rules.rules))),
-        biome.default,
-        "surface",
-      ),
-      instances: [],
-      width: 64,
-      height: 64,
-    };
-    const sampler = device.createSampler.bind(device);
-    let rejected = "",
-      returned = null;
+    const world = mesh.buildWorldLayers(
+      mesh.readWorldExports(view),
+      JSON.parse(wasm.world_layout(JSON.stringify(rules.rules))),
+      biome.default,
+      "surface",
+    );
     try {
-      device.createSampler = (descriptor) =>
-        sampler(
-          descriptor?.label === "ground-scars"
-            ? { ...descriptor, minFilter: "nearest", magFilter: "nearest" }
-            : descriptor,
-        );
-      try {
-        returned = await frameModule.createBattleFrame(device, "bgra8unorm", options);
-      } catch (error) {
-        rejected = error.message;
-      }
-      returned?.dispose();
-      const afterFailure = live();
-      device.createSampler = sampler;
-      const recovered = await frameModule.createBattleFrame(device, "bgra8unorm", options);
-      recovered.dispose();
-      const afterRetry = live();
-      // Use the production sampler and bindings. A profile-only shader can
+      // Use the production lookup and bindings. A profile-only shader can
       // miss cancellation that appears after this source is inlined.
       const terrainPath = file("packages/battle-renderer/src/frame/terrainMaterial.ts");
       const terrainText = await (await fetch(terrainPath)).text();
@@ -98,8 +59,7 @@ export async function groundFilterAdmission(ctx) {
         maxError = 0;
       try {
         const source = terrain.createTerrainSource(root, registry);
-        await source.ready();
-        source.set(options.world.terrain);
+        source.set(world.terrain);
         const ground = new GroundView({ cellM: 1, cols: 600, rows: 600 }),
           runs = [];
         for (let y = 0; y < 38; y++)
@@ -238,7 +198,7 @@ export async function groundFilterAdmission(ctx) {
               points: input,
               output,
               reference: reference.createView(),
-              sampler: sampler({
+              sampler: device.createSampler({
                 minFilter: "linear",
                 magFilter: "linear",
                 addressModeU: "clamp-to-edge",
@@ -279,10 +239,7 @@ export async function groundFilterAdmission(ctx) {
         device.createShaderModule = shader;
       }
       return {
-        rejected,
         baseline,
-        afterFailure,
-        afterRetry,
         queryCount,
         bitFailures,
         linearFailures,
@@ -292,7 +249,6 @@ export async function groundFilterAdmission(ctx) {
         compiled,
       };
     } finally {
-      device.createSampler = sampler;
       view.free();
       device.destroy();
     }
@@ -309,12 +265,6 @@ export async function groundFilterAdmission(ctx) {
       .digest("hex");
   await writeFile(ctx.evidencePath("ground-filter-query.json"), JSON.stringify(result, null, 2));
   ctx.check(
-    "unsupported ground filtering rejects frame creation and releases every allocation",
-    /ground.*filter.*compatib/i.test(result.rejected) &&
-      JSON.stringify(result.afterFailure) === JSON.stringify(result.baseline),
-    JSON.stringify(result),
-  );
-  ctx.check(
     "the production cubic sampler matches original dense hardware values bit for bit",
     result.bitFailures === 0 &&
       result.linearFailures === 0 &&
@@ -327,11 +277,6 @@ export async function groundFilterAdmission(ctx) {
       afterQueries: result.afterQueries,
       shaderHashes: result.shaderHashes,
     }),
-  );
-  ctx.check(
-    "failed initialization does not poison a compatible retry on the same device",
-    JSON.stringify(result.afterRetry) === JSON.stringify(result.baseline),
-    JSON.stringify(result.afterRetry),
   );
   await page.close();
 }

@@ -343,48 +343,60 @@ export async function createWorldPass(
     primitive: { topology: "triangle-list", cullMode: "none" },
   } as const;
   // Depth only, with no fragment stage, so both keep early-Z.
-  const prepass = root.createRenderPipeline({
-    ...base,
-    depthStencil: battleWorldDepth("read-write"),
-    multisample: { count: FRAME_MSAA },
-  });
-  const caster = root.createRenderPipeline({
-    ...base,
-    depthStencil: battleWorldDepth("read-write"),
-  });
-  const opaque = root.createRenderPipeline({
-    ...base,
-    fragment: worldFragment,
-    targets: worldTargets(),
-    depthStencil: battleWorldDepth("prepassed"),
-    multisample: { count: FRAME_MSAA },
-  });
-  const water = root.createRenderPipeline({
-    ...base,
-    fragment: waterFragment,
-    // The fog mask blends as the colour does: water over unseen ground is as
-    // unseen as its alpha lets the ground through.
-    targets: worldTargets({
-      color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha" },
-      alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha" },
-    }),
-    depthStencil: battleWorldDepth("read"),
-    multisample: { count: FRAME_MSAA },
-  });
-  const terrainPipeline = root.createRenderPipeline({
-    ...base,
-    fragment: terrainFragment,
-    targets: worldTargets(),
-    depthStencil: battleWorldDepth("prepassed"),
-    multisample: { count: FRAME_MSAA },
-  });
-  const backdropPipeline = root.createRenderPipeline({
-    ...base,
-    fragment: backdropFragment,
-    targets: worldTargets(),
-    depthStencil: battleWorldDepth("prepassed"),
-    multisample: { count: FRAME_MSAA },
-  });
+  const prepass = root
+    .createRenderPipeline({
+      ...base,
+      depthStencil: battleWorldDepth("read-write"),
+      multisample: { count: FRAME_MSAA },
+    })
+    .$name("worldPrepass");
+  const caster = root
+    .createRenderPipeline({
+      ...base,
+      depthStencil: battleWorldDepth("read-write"),
+    })
+    .$name("worldCaster");
+  const opaque = root
+    .createRenderPipeline({
+      ...base,
+      fragment: worldFragment,
+      targets: worldTargets(),
+      depthStencil: battleWorldDepth("prepassed"),
+      multisample: { count: FRAME_MSAA },
+    })
+    .$name("worldOpaque");
+  const water = root
+    .createRenderPipeline({
+      ...base,
+      fragment: waterFragment,
+      // The fog mask blends as the colour does: water over unseen ground is as
+      // unseen as its alpha lets the ground through.
+      targets: worldTargets({
+        color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha" },
+        alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha" },
+      }),
+      depthStencil: battleWorldDepth("read"),
+      multisample: { count: FRAME_MSAA },
+    })
+    .$name("worldWater");
+  const terrainPipeline = root
+    .createRenderPipeline({
+      ...base,
+      fragment: terrainFragment,
+      targets: worldTargets(),
+      depthStencil: battleWorldDepth("prepassed"),
+      multisample: { count: FRAME_MSAA },
+    })
+    .$name("worldTerrain");
+  const backdropPipeline = root
+    .createRenderPipeline({
+      ...base,
+      fragment: backdropFragment,
+      targets: worldTargets(),
+      depthStencil: battleWorldDepth("prepassed"),
+      multisample: { count: FRAME_MSAA },
+    })
+    .$name("worldBackdrop");
   const modelBase = {
     attribs: modelAttribs,
     vertex: modelVertex,

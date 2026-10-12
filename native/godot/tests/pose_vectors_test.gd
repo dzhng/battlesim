@@ -6,8 +6,9 @@ extends "res://tests/check.gd"
 ## own poses of the same records (gait clip and phase, facing, position,
 ## crossfade, turret bearing and travel, corpses) and model counts; the
 ## tank's articulation at fixed inputs; and a body's joint worlds sampled from
-## the clip table at fixed clips. The vectors are written by
-## `web/tests/nativePoseVectors.test.ts`.
+## the clip table at fixed clips. The vectors are pinned: the deleted
+## `nativePoseVectors.test.ts` wrote them, and `crates/presentation`'s own
+## tests (`tests/poses.rs`) now own the behaviour.
 
 const Capture = preload("res://capture/presentation_capture.gd")
 const UnitManifest = preload("res://capture/unit_manifest.gd")

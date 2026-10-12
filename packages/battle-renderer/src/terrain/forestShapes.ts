@@ -30,7 +30,7 @@ export const FOREST_BOUNDARY_FLOATS = 5;
  *  owner; `idAt` is where a record holds its forest's ID. */
 function ranges(records: Float32Array, stride: number, idAt: number): Map<number, Float32Array> {
   const out = new Map<number, Float32Array>();
-  for (let first = 0; first < records.length; ) {
+  for (let first = 0; first < records.length;) {
     const id = records[first + idAt];
     let end = first + stride;
     while (end < records.length && records[end + idAt] === id) end += stride;

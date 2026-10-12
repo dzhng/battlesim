@@ -1,0 +1,366 @@
+//! Replays a browser parity run's scene natively and writes its plates.
+//!
+//! `native-client --run <parity run> --scene <map> --out <dir>
+//!   [--window offscreen|minimised|hidden|visible] [--pace <frames>]`
+//!
+//! Every frame record is framed through the presentation crate; each one
+//! the browser wrote a plate of is drawn, presented and written to `--out`
+//! under the control plate's name. Then the last frame is drawn and presented
+//! `--pace` more times, and the report says how presenting went. The window
+//! opens off-screen unless told otherwise.
+use std::path::PathBuf;
+use std::sync::Arc;
+use std::time::{Duration, Instant};
+
+use native_client::capture::Replay;
+use native_client::frame::{Passes, Targets, DISPLAY_FORMAT};
+use native_client::gpu::{self, Gpu};
+use native_client::pipelines::Pipelines;
+use native_client::post::Post;
+use native_client::sky::Sky;
+use presentation::records::View;
+use wgpu::{CommandEncoder, CurrentSurfaceTexture, PresentMode, Surface, SurfaceConfiguration};
+use winit::application::ApplicationHandler;
+use winit::dpi::{PhysicalPosition, PhysicalSize};
+use winit::event::WindowEvent;
+use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
+use winit::window::{Window, WindowId};
+
+struct Args {
+    scene: PathBuf,
+    out: PathBuf,
+    window: String,
+    pace: usize,
+}
+
+fn args() -> Result<Args, String> {
+    let mut run = None;
+    let (mut scene, mut out, mut window, mut pace) = (None, None, "offscreen".to_owned(), 120);
+    let mut it = std::env::args().skip(1);
+    while let Some(flag) = it.next() {
+        let mut value = || it.next().ok_or(format!("{flag} needs a value"));
+        match flag.as_str() {
+            "--run" => run = Some(PathBuf::from(value()?)),
+            "--scene" => scene = Some(value()?),
+            "--out" => out = Some(PathBuf::from(value()?)),
+            "--window" => window = value()?,
+            "--pace" => pace = value()?.parse().map_err(|e| format!("--pace: {e}"))?,
+            other => return Err(format!("unknown argument {other}")),
+        }
+    }
+    if !["offscreen", "minimised", "hidden", "visible"].contains(&window.as_str()) {
+        return Err(format!("--window {window}"));
+    }
+    Ok(Args {
+        scene: run
+            .ok_or("--run is required")?
+            .join(scene.ok_or("--scene is required")?),
+        out: out.ok_or("--out is required")?,
+        window,
+        pace,
+    })
+}
+
+#[derive(Default)]
+struct Presents {
+    shown: usize,
+    occluded: usize,
+    other: Vec<String>,
+    /// Wall time from one presented frame's start to the next's.
+    intervals: Vec<Duration>,
+}
+
+struct Run {
+    window: Arc<Window>,
+    surface: Surface<'static>,
+    gpu: Gpu,
+    passes: Passes,
+    replay: Replay,
+    next: usize,
+    view: View,
+    plates: usize,
+    count_mismatches: Vec<String>,
+    paced: usize,
+    presents: Presents,
+    last: Option<Instant>,
+}
+
+impl Run {
+    fn start(event_loop: &ActiveEventLoop, args: &Args) -> Result<Self, String> {
+        let game = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/game.json");
+        let replay = Replay::open(&args.scene, &game)?;
+        let size = replay.records.first().ok_or("no frame records")?.canvas;
+        let mut attributes = Window::default_attributes()
+            .with_title("battlegame native")
+            .with_inner_size(PhysicalSize::new(size[0], size[1]))
+            .with_resizable(false)
+            .with_visible(args.window != "hidden");
+        if args.window == "offscreen" {
+            // AppKit pulls a titled window back onto the screen; a borderless
+            // one stays where it is put.
+            attributes = attributes
+                .with_decorations(false)
+                .with_position(PhysicalPosition::new(10000, 10000));
+        }
+        let window = Arc::new(
+            event_loop
+                .create_window(attributes)
+                .map_err(|e| e.to_string())?,
+        );
+        if args.window == "minimised" {
+            window.set_minimized(true);
+        }
+        println!("window at {:?}", window.outer_position());
+        let instance = gpu::instance(Box::new(window.clone()));
+        let surface = instance
+            .create_surface(window.clone())
+            .map_err(|e| e.to_string())?;
+        let gpu = gpu::open(&instance, Some(&surface))?;
+        let caps = surface.get_capabilities(&gpu.adapter);
+        if !caps.formats.contains(&DISPLAY_FORMAT)
+            || !caps.usages.contains(wgpu::TextureUsages::COPY_DST)
+        {
+            return Err(format!(
+                "the surface can't take {DISPLAY_FORMAT:?} copies: {caps:?}"
+            ));
+        }
+        // The window's backing may not be the canvas size; the copy needs it.
+        surface.configure(
+            &gpu.device,
+            &SurfaceConfiguration {
+                usage: wgpu::TextureUsages::COPY_DST | wgpu::TextureUsages::RENDER_ATTACHMENT,
+                format: DISPLAY_FORMAT,
+                color_space: Default::default(),
+                width: size[0],
+                height: size[1],
+                present_mode: PresentMode::Fifo,
+                desired_maximum_frame_latency: 2,
+                alpha_mode: wgpu::CompositeAlphaMode::Opaque,
+                view_formats: vec![],
+            },
+        );
+
+        let built = Instant::now();
+        let pipelines = Pipelines::build(&gpu.device, pipelines::DIR)?;
+        println!(
+            "pipelines: {} built in {:.2} s on {}",
+            pipelines.names().count(),
+            built.elapsed().as_secs_f64(),
+            gpu.adapter.get_info().name
+        );
+        let targets = Targets::new(&gpu.device, size);
+        let light = &replay.light;
+        let sky = Sky::new(&gpu.device, &gpu.queue, &pipelines, &light.sky());
+        let post = Post::new(
+            &gpu.device,
+            &pipelines,
+            &targets,
+            &light.bloom(),
+            &light.grade(),
+        );
+        std::fs::create_dir_all(&args.out).map_err(|e| e.to_string())?;
+        Ok(Self {
+            window,
+            surface,
+            gpu,
+            passes: Passes {
+                targets,
+                passes: vec![Box::new(sky), Box::new(post)],
+            },
+            replay,
+            next: 0,
+            view: View::default(),
+            plates: 0,
+            count_mismatches: Vec::new(),
+            paced: 0,
+            presents: Presents::default(),
+            last: None,
+        })
+    }
+
+    /// Copies the display target to the window and presents it, if the
+    /// window can show it.
+    fn present(&mut self, mut encoder: CommandEncoder) {
+        let now = Instant::now();
+        if let Some(last) = self.last.replace(now) {
+            self.presents.intervals.push(now - last);
+        }
+        let texture = match self.surface.get_current_texture() {
+            CurrentSurfaceTexture::Success(t) | CurrentSurfaceTexture::Suboptimal(t) => t,
+            CurrentSurfaceTexture::Occluded => {
+                self.presents.occluded += 1;
+                self.gpu.queue.submit([encoder.finish()]);
+                return;
+            }
+            other => {
+                let status = format!("{other:?}");
+                self.presents.other.push(status);
+                self.gpu.queue.submit([encoder.finish()]);
+                return;
+            }
+        };
+        let targets = &self.passes.targets;
+        encoder.copy_texture_to_texture(
+            targets.display_texture.as_image_copy(),
+            texture.texture.as_image_copy(),
+            targets.display_texture.size(),
+        );
+        self.gpu.queue.submit([encoder.finish()]);
+        self.window.pre_present_notify();
+        self.gpu.queue.present(texture);
+        self.presents.shown += 1;
+    }
+
+    /// Frames records up to the next plate and draws it; then paces. False when done.
+    fn step(&mut self, args: &Args) -> Result<bool, String> {
+        while let Some(record) = self.replay.records.get(self.next).cloned() {
+            self.next += 1;
+            let frame = self.replay.frame(&record)?;
+            self.view = frame.view;
+            let Some(plate) = record.plate else { continue };
+            let counts = frame.counts;
+            let want = self
+                .replay
+                .model_counts
+                .iter()
+                .find(|c| c["plate"] == plate.as_str());
+            if let Some(want) = want {
+                let got = [
+                    counts.soldiers,
+                    counts.vehicles,
+                    counts.aircraft,
+                    counts.corpses,
+                ];
+                let names = ["soldiers", "vehicles", "aircraft", "corpses"];
+                for (n, g) in names.iter().zip(got) {
+                    if want[n].as_u64() != Some(u64::from(g)) {
+                        self.count_mismatches
+                            .push(format!("{plate} {n}: {g} against {}", want[n]));
+                    }
+                }
+            }
+            let (device, queue) = (&self.gpu.device, &self.gpu.queue);
+            let encoder = self.passes.encode(device, queue, &self.view);
+            let rgba = self.passes.read_display(device, queue, encoder);
+            write_png(&args.out.join(&plate), self.passes.targets.size, &rgba)?;
+            self.plates += 1;
+            let encoder = device.create_command_encoder(&Default::default());
+            self.present(encoder);
+            return Ok(true);
+        }
+        if self.paced < args.pace {
+            self.paced += 1;
+            let encoder = self
+                .passes
+                .encode(&self.gpu.device, &self.gpu.queue, &self.view);
+            self.present(encoder);
+            return Ok(true);
+        }
+        Ok(false)
+    }
+
+    fn report(&self, args: &Args) {
+        println!("plates: {} written to {}", self.plates, args.out.display());
+        if self.count_mismatches.is_empty() {
+            println!("model counts: equal to the browser's on every plate");
+        } else {
+            println!(
+                "model counts differ:\n  {}",
+                self.count_mismatches.join("\n  ")
+            );
+        }
+        let p = &self.presents;
+        let mut ms: Vec<f64> = p.intervals.iter().map(|d| d.as_secs_f64() * 1e3).collect();
+        ms.sort_by(f64::total_cmp);
+        let at = |q: f64| {
+            ms.get(((ms.len() as f64 - 1.0) * q) as usize)
+                .copied()
+                .unwrap_or(0.0)
+        };
+        println!(
+            "window {}: {} presented, {} occluded, other {:?}; frame interval p50 {:.2} ms, p95 {:.2} ms over the last {} frames",
+            args.window,
+            p.shown,
+            p.occluded,
+            p.other,
+            at(0.5),
+            at(0.95),
+            ms.len()
+        );
+    }
+}
+
+fn write_png(path: &std::path::Path, size: [u32; 2], rgba: &[u8]) -> Result<(), String> {
+    let file = std::fs::File::create(path).map_err(|e| format!("{}: {e}", path.display()))?;
+    let mut encoder = png::Encoder::new(std::io::BufWriter::new(file), size[0], size[1]);
+    encoder.set_color(png::ColorType::Rgba);
+    encoder.set_depth(png::BitDepth::Eight);
+    let mut writer = encoder.write_header().map_err(|e| e.to_string())?;
+    writer.write_image_data(rgba).map_err(|e| e.to_string())
+}
+
+struct App {
+    args: Args,
+    run: Option<Run>,
+    error: Option<String>,
+}
+
+impl App {
+    fn fail(&mut self, event_loop: &ActiveEventLoop, error: String) {
+        self.error = Some(error);
+        event_loop.exit();
+    }
+}
+
+impl ApplicationHandler for App {
+    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+        if self.run.is_some() {
+            return;
+        }
+        match Run::start(event_loop, &self.args) {
+            Ok(run) => self.run = Some(run),
+            Err(e) => self.fail(event_loop, e),
+        }
+        event_loop.set_control_flow(ControlFlow::Poll);
+    }
+
+    fn window_event(&mut self, event_loop: &ActiveEventLoop, _: WindowId, event: WindowEvent) {
+        match event {
+            WindowEvent::CloseRequested => event_loop.exit(),
+            WindowEvent::Occluded(occluded) => println!("window occluded: {occluded}"),
+            _ => {}
+        }
+    }
+
+    /// The frames run from the loop itself, not from redraw requests, which
+    /// macOS doesn't deliver to a window it isn't showing.
+    fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
+        let Some(run) = self.run.as_mut() else { return };
+        match run.step(&self.args) {
+            Ok(true) => {}
+            Ok(false) => {
+                run.report(&self.args);
+                self.run = None;
+                event_loop.exit();
+            }
+            Err(e) => self.fail(event_loop, e),
+        }
+    }
+}
+
+fn main() {
+    let result = args().and_then(|args| {
+        let event_loop = EventLoop::new().map_err(|e| e.to_string())?;
+        let mut app = App {
+            args,
+            run: None,
+            error: None,
+        };
+        event_loop.run_app(&mut app).map_err(|e| e.to_string())?;
+        app.error.map_or(Ok(()), Err)
+    });
+    if let Err(e) = result {
+        eprintln!("native-client: {e}");
+        std::process::exit(1);
+    }
+}

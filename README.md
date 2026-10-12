@@ -17,14 +17,17 @@ owner of the thing you want to change:
 | [Simulation](crates/sim/README.md) | Deterministic battle rules, replay digests, encounter placement and native reports. |
 | [Map generation](crates/mapgen/README.md) | Seeded layout, physical compilation, admission and generation reports; shared by native tools and WebAssembly. |
 | [WebAssembly boundary](crates/game-wasm/README.md) | Native/browser parity, geometry queries, packed publication memory and binding lifetime. |
+| [Presentation](crates/presentation/README.md) | One side's publications to each drawn frame's records: interpolation, poses, effects, cook-offs, tiers and cast lights, shared by every client. |
 | [Browser application](web/README.md) | Workers, map adapters, player input/readouts, build configuration and browser verification. |
 | [Battle lab](apps/battle-lab/README.md) | Player pages and focused developer fixtures, composed from the same battle view. |
 | [Renderer primitives](packages/renderer-core/README.md) | Shared camera/depth contracts, device admission and GPU allocation accounting. |
 | [Battle renderer](packages/battle-renderer/README.md) | Observed feeds, terrain, models, light, fog, effects, overlays and GPU lifetime. |
+| [Pipelines](crates/pipelines/README.md) | The battle renderer's shaders and pipeline settings, exported for a native client and validated as `wgpu` compiles them. |
 | [Scene assets](packages/scene-assets/README.md) | Appearance contracts, validation, baking and loading; includes [Blender authoring](packages/scene-assets/README.md#authored-sources-blender). |
 | [Battle audio](packages/battle-audio/README.md) | Recorded and synthetic sound preparation, source calibration and playback from observed causes. |
 | [Fixtures](fixtures/README.md) | Authored rules, unit/prop catalogs, generator presets, saved maps and sound assignments. |
 | [Assets](assets/README.md) | Source media, prepared runtime files, review sheets and third-party provenance. |
+| [Native client](native/client/README.md) | The native client on `wgpu`: the browser's exported shaders and passes over the presentation crate's frames; it replaces the Godot client. |
 | [Native Godot client](native/godot/README.md) | A second client that renders the browser's recorded frames for side-by-side parity; its [Rust binding](native/godot-binding/README.md). |
 
 Development tools edit those existing owners: the [mechanics editor](apps/mechanics-editor/README.md),

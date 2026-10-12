@@ -6,6 +6,9 @@ import { fileURLToPath } from "node:url";
 
 // The shipped entry, links, loading cover and preparation worker. Menu warm-up
 // admits the page GPU, but this history proof cancels before drawing a battle.
+// The menu stays inert until its backdrop battle is ready, which a cold dev
+// server takes about the 30 s startup budget to reach, so the first click
+// and the test's limit leave room for that; they still only catch a hang.
 test("client exit and history keep the document while discarding preparation visits", async () => {
   const server = await createServer({
     configFile: fileURLToPath(new URL("../vite.config.ts", import.meta.url)),
@@ -21,7 +24,7 @@ test("client exit and history keep the document while discarding preparation vis
     });
     const page = await browser.newPage();
     await page.goto(server.resolvedUrls!.local[0]);
-    await page.getByRole("button", { name: "Skirmish", exact: true }).click();
+    await page.getByRole("button", { name: "Skirmish", exact: true }).click({ timeout: 60_000 });
     const origin = await page.evaluate(() => performance.timeOrigin);
     const workerOpened = page.waitForEvent("worker");
     await page.getByRole("link", { name: "Deploy" }).click();
@@ -50,4 +53,4 @@ test("client exit and history keep the document while discarding preparation vis
     await browser?.close();
     await server.close();
   }
-}, 30000);
+}, 90_000);

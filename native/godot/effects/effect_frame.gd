@@ -1,3 +1,4 @@
+# Frozen: a port of the per-frame presentation `crates/presentation` now owns; no fixes here, deleted with Godot (slice 25).
 extends RefCounted
 
 ## Combat effects, ported line for line from the browser's one owner

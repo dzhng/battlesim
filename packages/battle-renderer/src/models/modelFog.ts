@@ -27,7 +27,7 @@ export const FOG_CLASSES = 4;
  * is, so a body in plain view never splits into seen and unseen faces.
  */
 export function modelFog(pose: ModelPose): ModelFog {
-  if (pose.kind === "skinned" || pose.kind === "articulated") return "units";
+  if (pose.kind === "posed") return "units";
   // A prop movers stand on takes the ground paint (`StaticModelPose.ground`).
   if (pose.kind === "static" && pose.ground) return "paintedFaces";
   return pose.kind === "corpse" ? "ground" : "faces";

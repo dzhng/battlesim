@@ -465,17 +465,21 @@ export async function createSceneryLayer(
     vertex: placedVertex,
     primitive: { topology: "triangle-list", cullMode: "back" },
   } as const;
-  const prepass = root.createRenderPipeline({
-    ...base,
-    depthStencil: battleWorldDepth("read-write"),
-    multisample: { count: FRAME_MSAA },
-  });
-  const caster = root.createRenderPipeline({
-    ...base,
-    // Both faces cast: a crown's far side must shadow its own underside.
-    primitive: { topology: "triangle-list", cullMode: "none" },
-    depthStencil: battleWorldDepth("read-write"),
-  });
+  const prepass = root
+    .createRenderPipeline({
+      ...base,
+      depthStencil: battleWorldDepth("read-write"),
+      multisample: { count: FRAME_MSAA },
+    })
+    .$name("sceneryPrepass");
+  const caster = root
+    .createRenderPipeline({
+      ...base,
+      // Both faces cast: a crown's far side must shadow its own underside.
+      primitive: { topology: "triangle-list", cullMode: "none" },
+      depthStencil: battleWorldDepth("read-write"),
+    })
+    .$name("sceneryCaster");
   const forestColour = root.createRenderPipeline({
     ...base,
     fragment: forestFragment,

@@ -4,14 +4,11 @@
 // ~/dev/game's crowd tiering (technique): placement and the camera decide,
 // not upload order.
 //
-// Corpses number up to their presentation cap (`presentation.pose.corpses`,
-// a thousand), so they are a population of the static chunk owner
-// (`frame/staticChunks.ts`), bucketed once, when the list changes: a chunk
-// off screen is skipped whole, and a chunk too far for any corpse in it to
-// exceed the impostor size draws as one range of cards from a static buffer.
 // A map's props stand for the whole battle and number in the tens of
-// thousands, so they are a population too, visited by chunk in view.
-// This file says only what a corpse's or a prop's bounds and a chunk's level are.
+// thousands, so they are a population of the static chunk owner
+// (`frame/staticChunks.ts`), visited by chunk in view. The units, corpses and
+// ghosts are tiered by the same rule in the presentation crate
+// (`crates/presentation/src/view.rs`), which takes the statics over with 20b.
 import { vec3, type Vec3 } from "math";
 import { box3, frustum, type Sphere } from "math/shapes";
 import type { DetailView } from "../frame/detailView";
@@ -85,42 +82,6 @@ export function modelDetail(
   return detailAt(detail, view, size, vec3.distance(c, view.eye), impostor);
 }
 
-/** Square chunks corpses are bucketed in, metres. */
-export const CORPSE_CHUNK_M = 64;
-
-const _corpse_corner = vec3.create();
-
-/**
- * Corpses as a chunked population of one kind, drawn at a mesh tier or as
- * cards (`IMPOSTOR`): `records` hold `stride` floats a corpse, its position
- * first, and corpse `i` is `sizes[i]` metres long. A corpse's bounds reach
- * its length and the shadow margin every way.
- */
-export function corpseChunks(
-  records: Float32Array,
-  stride: number,
-  sizes: Float32Array,
-): StaticChunks {
-  return createStaticChunks(
-    {
-      records,
-      stride,
-      kinds: new Uint16Array(sizes.length),
-      sizes,
-      bound(i, box) {
-        const o = i * stride;
-        const [x, y, z] = [records[o], records[o + 1], records[o + 2]];
-        const r = sizes[i] + SHADOW_MARGIN_M;
-        box3.expandByPoint(box, box, vec3.set(_corpse_corner, x - r, y - r, z - r));
-        box3.expandByPoint(box, box, vec3.set(_corpse_corner, x + r, y + r, z + r));
-      },
-    },
-    1,
-    CORPSE_CHUNK_M,
-    IMPOSTOR + 1,
-  );
-}
-
 /** Square chunks a map's static models are bucketed in, metres. */
 export const STATIC_CHUNK_M = 64;
 
@@ -182,19 +143,6 @@ export function staticsInView(pop: StaticChunks, view: DetailView, out: Int32Arr
   }
   out.subarray(0, count).sort();
   return count;
-}
-
-/** A corpse chunk's level: cards for the whole chunk when every corpse in it
- *  has one (`carded`, per chunk) and its largest is below the impostor size
- *  from the chunk's nearest point; else each corpse chooses (`modelDetail`). */
-export function corpseChunkLevel(
-  detail: ModelDetailPresentation,
-  carded: readonly boolean[],
-): ChunkLevel<DetailView> {
-  return (chunk, distance, view, index) =>
-    carded[index] && detailAt(detail, view, chunk.size, distance, true) === IMPOSTOR
-      ? IMPOSTOR
-      : NEAR;
 }
 
 /** `presentation.models`, checked: tiers strictly finer toward the camera,

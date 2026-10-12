@@ -239,7 +239,7 @@ async function measureEffectCost(ctx) {
 }
 
 /** Paired models on/off, interleaved 1.5 s batches, median difference of
- *  the frame's GPU time per framing; the pose kernel timed on its own. */
+ *  the frame's GPU time per framing. */
 async function modelCostAt(page, label) {
   const batch = (off) =>
     lab(

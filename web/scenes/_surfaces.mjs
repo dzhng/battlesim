@@ -107,7 +107,6 @@ export async function surfaceExportAgreement(ctx) {
         .join.y;
       const world = mesh.buildWorldLayers(exported, layout, biome.default, "surface");
       const source = terrain.createTerrainSource(root, registry);
-      await source.ready();
       source.set(world.terrain);
       const queryLayout = tgpu.bindGroupLayout({
         points: { storage: (n) => d.arrayOf(d.vec4f, n), access: "readonly" },

@@ -63,7 +63,7 @@ import {
   type FallenBuilding,
   type PlacedBuildings,
 } from "./buildingReferences";
-import { MODEL_RECORD_FLOATS } from "./modelInstances";
+import { INSTANCE_WORDS as MODEL_RECORD_FLOATS } from "../records.gen";
 import { createPlacementPool, poolAppend, poolRemove, type PlacementPool } from "./placementPool";
 
 const RECORD = MODEL_RECORD_FLOATS;
@@ -768,7 +768,7 @@ function eachRange(
   draw: BuildingDraw,
   bridge = 0,
 ) {
-  for (let r = 0; r < ranges.length; ) {
+  for (let r = 0; r < ranges.length;) {
     const first = ranges[r];
     let end = first + ranges[r + 1];
     for (r += 2; r < ranges.length && ranges[r] >= end && ranges[r] - end <= bridge; r += 2)

@@ -67,6 +67,9 @@ test("an occluder update immediately rebuilds only affected built maps through t
     },
   });
   const pipeline = {
+    $name() {
+      return this;
+    },
     async initAsync() {},
     with(group: { bindings?: Record<string, { destroyed?: boolean }> }) {
       if (group.bindings && Object.values(group.bindings).some((b) => b.destroyed))

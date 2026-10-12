@@ -17,23 +17,52 @@ import { cameraListener } from "@packages/battle-audio/src/battleAudio";
 import {
   SoundFrame,
   type Listener,
+  type HeardPublication,
   type SoundCue,
   type SoundMotion,
 } from "@packages/battle-audio/src/soundFrame";
 import { WebAudioSink } from "@packages/battle-audio/src/webAudioSink";
-import type {
-  EffectBlast,
-  EffectPublication,
-  EffectSegment,
-  EffectShooter,
-} from "@packages/battle-renderer/src/effects/effectFrame";
-import { LaunchTracker } from "@packages/battle-renderer/src/effects/launches";
-import { sideKey } from "@packages/battle-renderer/src/sideKey";
-import { mountMuzzles } from "@packages/scene-assets/src/mountMuzzle";
-import { gameEffects } from "./effectFeed";
+import { mountMuzzles, type MountMuzzle } from "@packages/scene-assets/src/mountMuzzle";
+import { launches } from "@wasm/presentation/presentation_wasm.js";
+import { loadPresentation } from "@web/battle/sim/presentation";
 import { gameAudio } from "./soundFeed";
 import { gameSounds } from "@packages/battle-audio/src/shippedSounds";
 import { battleSounds, type SoundCatalog } from "@packages/battle-audio/src/catalog";
+
+type HeardEffects = HeardPublication["effects"];
+type EffectSegment = HeardEffects["segments"][number];
+type EffectBlast = HeardEffects["blasts"][number];
+
+/** A unit whose shots the side sees, as the presentation's launches read it
+ *  (`crates/presentation/src/effects/publication.rs`). */
+interface EffectShooter {
+  key: number;
+  position: readonly number[];
+  half: readonly number[] | null;
+  yaw: number;
+  members: readonly number[];
+  mounts: {
+    bearing: number;
+    elevation: number;
+    shots: number;
+    kind: string;
+    muzzle: MountMuzzle | null;
+  }[];
+}
+
+/** A scripted publication: what sound hears, and the shooters its launches come from. */
+type EffectPublication = HeardEffects & { shooters: EffectShooter[] };
+
+/** One side key per (side, id), the presented side's ids even. */
+const sideKey = (id: number, own: boolean) => id * 2 + (own ? 0 : 1);
+
+/** `pubs` as sound hears them, each with its launches as the effects derive
+ *  them (`launches`, in Rust). */
+async function heard(pubs: readonly EffectPublication[]): Promise<HeardPublication[]> {
+  await loadPresentation();
+  const shots = JSON.parse(launches(JSON.stringify(pubs))) as HeardPublication["launches"][];
+  return pubs.map((effects, i) => ({ effects, launches: shots[i], turretLandsS: 0 }));
+}
 
 const FIREFIGHT_S = 8;
 const HZ = game.tick_hz;
@@ -44,9 +73,9 @@ const FPS = 60;
 export const LISTENER: Listener = { position: [0, -40, 25], forward: [0, 1, 0] };
 
 // Heard as blue: each unit's key is its `sideKey`, blue's ids even.
-const BLUE_SQUAD = { key: sideKey(1, "blue", "blue"), members: [20, 21, 22, 23, 24, 25] };
-const BLUE_TANK = { key: sideKey(2, "blue", "blue"), at: [-35, -10, 0] as number[] };
-const RED_TANK = { key: sideKey(1, "red", "blue"), at: [150, 90, 0] as number[] };
+const BLUE_SQUAD = { key: sideKey(1, true), members: [20, 21, 22, 23, 24, 25] };
+const BLUE_TANK = { key: sideKey(2, true), at: [-35, -10, 0] as number[] };
+const RED_TANK = { key: sideKey(1, false), at: [150, 90, 0] as number[] };
 const WRECK = {
   key: "heavy_wreck:40,30",
   kind: "wreck",
@@ -308,11 +337,10 @@ function firefightMotion(s: number): SoundMotion {
 /** The visual events a sound should line up with: each loud launch (as the
  *  muzzle flashes place it, at its tick's start) and each blast (at its
  *  tick's end), seconds. */
-export function visualEvents(script: Script): { t: number; what: string }[] {
-  const launches = new LaunchTracker();
+export async function visualEvents(script: Script): Promise<{ t: number; what: string }[]> {
   const out: { t: number; what: string }[] = [];
-  for (const pub of script.pubs) {
-    for (const l of launches.note(pub, false))
+  for (const { effects: pub, launches } of await heard(script.pubs)) {
+    for (const l of launches)
       if (l.kind !== "rifle" && l.kind !== "hmg")
         out.push({ t: (pub.tick - 1) * DT, what: `launch ${l.kind}` });
     for (const b of pub.blasts) out.push({ t: pub.tick * DT, what: `blast ${b.kind}` });
@@ -364,8 +392,8 @@ async function offlineSound(seconds: number, solo?: Bus, catalog: SoundCatalog =
       tickHz: HZ,
       presentation,
       catalog,
-      smokeTimes: gameEffects.smoke,
-      cookOff: gameEffects.cook_off,
+      smokeTimes: game.presentation.effects.smoke,
+      cookOff: game.presentation.effects.cook_off,
     },
     sink,
   );
@@ -380,6 +408,7 @@ export async function renderFirefight(
 ): Promise<FirefightRender> {
   const { sampleRate, ctx, sink, frame } = await offlineSound(FIREFIGHT_S, solo, catalog);
   const script = firefightScript(units);
+  const pubs = await heard(script.pubs);
   const t0 = performance.now();
   let next = 0;
   for (let f = 0; f <= FIREFIGHT_S * FPS; f++) {
@@ -387,7 +416,7 @@ export async function renderFirefight(
     // Publications arrive as their ticks complete; the clock shows the
     // tick before the latest, as the interpolator does.
     while (next < script.pubs.length && script.pubs[next].tick * DT <= s + DT) {
-      frame.note({ effects: script.pubs[next], audible: script.audible[next] });
+      frame.note({ ...pubs[next], audible: script.audible[next] });
       next++;
     }
     sink.t = s;
@@ -436,14 +465,11 @@ export async function battleScaleCost(
     travelR: 0,
     turret: 0,
   }));
-  const times: number[] = [];
-  let tick = 0;
-  let notes = 0;
-  for (let f = 1; f <= 3 * FPS; f++) {
-    const s = f / FPS;
-    const t = performance.now();
-    while ((tick + 1) * DT <= s + DT) {
-      tick++;
+  // Every tick's publication, heard as the presentation derives it, made
+  // before the clock starts: the cost is sound's own.
+  const scripted: EffectPublication[] = [];
+  for (let tick = 1; tick * DT <= 3 + DT; tick++) {
+    {
       const firing = soldiers.filter((x) => (tick + x.id) % 15 === 0);
       const pub: EffectPublication = {
         tick,
@@ -453,7 +479,7 @@ export async function battleScaleCost(
         blasts: [],
         smokes: [],
         shooters: soldiers.map((x) => ({
-          key: sideKey(x.id, "blue", "blue"),
+          key: sideKey(x.id, true),
           position: x.position,
           half: null,
           yaw: 0,
@@ -469,7 +495,19 @@ export async function battleScaleCost(
           ],
         })),
       };
-      frame.note({ effects: pub, audible: [] });
+      scripted.push(pub);
+    }
+  }
+  const pubs = await heard(scripted);
+  const times: number[] = [];
+  let tick = 0;
+  let notes = 0;
+  for (let f = 1; f <= 3 * FPS; f++) {
+    const s = f / FPS;
+    const t = performance.now();
+    while ((tick + 1) * DT <= s + DT) {
+      tick++;
+      frame.note({ ...pubs[tick - 1], audible: [] });
       notes++;
     }
     for (const x of soldiers) x.position = [x.position[0] + 0.02, x.position[1], 1];
@@ -499,7 +537,7 @@ async function renderShot(
 ): Promise<Float32Array> {
   const seconds = 2.5;
   const { ctx, sink, frame } = await offlineSound(seconds, "effects", catalog);
-  const key = sideKey(1, "blue", "blue");
+  const key = sideKey(1, true);
   const shooter = (shots: number): EffectShooter => ({
     key,
     position: at,
@@ -509,9 +547,10 @@ async function renderShot(
     mounts: [{ bearing: 0, elevation: 0, shots, kind: "rifle", muzzle: null }],
   });
   const fireTick = tickAt(0.2);
-  for (let tick = 1; tick <= tickAt(seconds); tick++) {
-    frame.note({
-      effects: {
+  const pubs = await heard(
+    Array.from({ length: tickAt(seconds) }, (_, i) => {
+      const tick = i + 1;
+      return {
         tick,
         // The round flies from the tick after its counter rises.
         segments:
@@ -519,9 +558,11 @@ async function renderShot(
         blasts: [],
         shooters: [shooter(tick >= fireTick ? 1 : 0)],
         smokes: [],
-      },
-      audible: [],
-    });
+      };
+    }),
+  );
+  for (let tick = 1; tick <= tickAt(seconds); tick++) {
+    frame.note({ ...pubs[tick - 1], audible: [] });
     for (let f = Math.ceil((tick - 1) * DT * FPS); f < tick * DT * FPS; f++) {
       sink.t = f / FPS;
       frame.update(f / FPS, f / FPS, { vehicles: [], soldiers: [] }, listener);

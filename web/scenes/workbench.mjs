@@ -1,7 +1,7 @@
 // The model workbench. Drops golden-failure GLBs and expects their
 // findings; renders synthetic art through the production frame and checks
-// the pose paths (GPU palette = CPU pose, articulation moves pixels, the feed
-// replay drives the pose driver); loads `?bundle=` through the one loader;
+// the pose paths (articulation and a clip's phase move pixels); loads
+// `?bundle=` through the one loader;
 // bakes the impostor twice for one hash; produces a sheet headlessly; and
 // captures the named views at 1920×1080 as evidence.
 import { writeFile } from "node:fs/promises";
@@ -55,8 +55,8 @@ async function drop(page, name, bytes, type = "auto", wait = true) {
   if (wait) await drawnOnBench(page, name);
 }
 
-/** Wait until `name` is on the bench, installed on the GPU (meshes, clips,
- *  pose kernel), and drawn. Installing swaps the appearances in between
+/** Wait until `name` is on the bench, installed on the GPU (meshes and
+ *  cards), and drawn. Installing swaps the appearances in between
  *  frames, so the models layer's stats (instances, draws) only count the
  *  model once a frame has packed it: draw one before reading them. */
 async function drawnOnBench(page, name) {
@@ -134,33 +134,8 @@ export async function run(ctx) {
   const tankYawed = await shot(ctx, page, "tank-turret-90.png");
   const moved = changed(tankRest, tankYawed);
   ctx.check("turret yaw and gun pitch move the drawn tank", moved > 2000, `${moved} px`);
-  let tankError = await wb(page, () => window.__workbench.paletteError());
-  // A hull rocked back on its springs by a shot carries every node.
-  const c = Math.cos(0.06);
-  const s = Math.sin(0.06);
-  await wb(page, (p) => window.__workbench.setPose(p), {
-    kind: "articulated",
-    articulation: rest,
-    motion: [c, 0, s, 0, 0, 1, 0, 0, -s, 0, c, 0, -0.15, 0, 0, 1],
-  });
-  tankError = Math.max(tankError, await wb(page, () => window.__workbench.paletteError()));
-  ctx.check(
-    "the articulated palette equals the CPU's node worlds, rocked or at rest",
-    tankError < 1e-4,
-    `${tankError}`,
-  );
-
-  // ---- the feed replay drives the pose driver.
-  await wb(page, () => window.__workbench.setFeed(10));
-  const slewed = await wb(page, () => window.__workbench.models()[0].pose.articulation);
-  ctx.check(
-    "a tank feed slewing its gun turns the turret relative to the hull",
-    Math.abs(slewed.turret_yaw) > 0.5 && slewed.travel_l !== slewed.travel_r,
-    JSON.stringify(slewed),
-  );
-
-  // ---- a skinned soldier: clips on the GPU equal the CPU pose. The
-  // synthetic rig faces +Z in glTF, as the Quaternius rig does: basis yaw 90.
+  // ---- a skinned soldier. The synthetic rig faces +Z in glTF, as the
+  // Quaternius rig does: basis yaw 90.
   await page.getByTestId("workbench-yaw").selectOption("90");
   await drop(page, "rifleman.glb", await synthetic(page, "soldierGlb"), "test_rifle");
   const soldier = await wb(page, () => window.__workbench.state());
@@ -168,37 +143,6 @@ export async function run(ctx) {
     "a valid synthetic rifleman validates clean",
     soldier.findings.length === 0,
     JSON.stringify(soldier.findings.map((f) => f.code)),
-  );
-  let worst = 0;
-  // A shot's kick turns the upper body back about the waist on the GPU as
-  // on the CPU.
-  for (const [clip, phase, kick] of [
-    ["walk", 0.3],
-    ["death", 0.7],
-    ["run", 0.95],
-    ["stand_aim", 0, { pitch: 0.15, back: 0.05 }],
-  ]) {
-    await wb(page, (p) => window.__workbench.setPose(p), {
-      kind: "skinned",
-      clip,
-      phase,
-      blend: null,
-      kick,
-    });
-    worst = Math.max(worst, await wb(page, () => window.__workbench.paletteError()));
-  }
-  ctx.check("the pose kernel's palette equals scene-assets' CPU pose", worst < 1e-4, `${worst}`);
-  // An impostor bake packs its own pose into the models layer's palette
-  // between frames (a card bake runs whenever appearances install), so a
-  // read straight after one, with no frame between, is the race made certain.
-  const afterBake = await wb(page, async () => {
-    await window.__workbench.bakeImpostor();
-    return window.__workbench.paletteError();
-  });
-  ctx.check(
-    "the palette read is the frame's models' even right after an impostor bake",
-    afterBake < 1e-4,
-    `${afterBake}`,
   );
   await wb(page, () => window.__workbench.setView("left"));
   await wb(page, (p) => window.__workbench.setPose(p), {
@@ -220,34 +164,6 @@ export async function run(ctx) {
     changed(standing, fallen) > 2000,
     `${changed(standing, fallen)} px`,
   );
-
-  await wb(page, () => window.__workbench.setFeed(4));
-  const walking = await wb(page, () => window.__workbench.models().map((m) => m.pose.clip));
-  ctx.check(
-    "an infantry feed poses each soldier on his own (walking)",
-    walking.length === 4 && walking.every((c) => c === "walk"),
-    walking.join(","),
-  );
-  await wb(page, () => window.__workbench.setFeed(14));
-  const pinned = await wb(page, () => window.__workbench.models().map((m) => m.pose.clip));
-  ctx.check(
-    "suppression lowers every soldier into his own prone or kneeling stance",
-    pinned.length === walking.length &&
-      pinned.every((c) => c === "prone_pinned" || c === "kneel_fire"),
-    pinned.join(","),
-  );
-  await wb(page, () => window.__workbench.setFeed(16.5));
-  const fell = await wb(page, () => window.__workbench.models().map((m) => m.pose.clip));
-  ctx.check("the fallen soldier plays his death", fell.includes("death"), fell.join(","));
-  // His death played out, he lies as a static corpse: no clip, never skinned.
-  await wb(page, () => window.__workbench.setFeed(19.5));
-  const lying = await wb(page, () => window.__workbench.models().map((m) => m.pose.kind));
-  ctx.check(
-    "then he lies as a static corpse",
-    lying.filter((k) => k === "corpse").length === 1 && !lying.includes(undefined),
-    lying.join(","),
-  );
-  await wb(page, () => window.__workbench.setFeed(null));
 
   // ---- impostor: same inputs, same hash.
   const first = await wb(page, () => window.__workbench.bakeImpostor());
@@ -445,7 +361,7 @@ export async function run(ctx) {
     grassSheet.strips.some((s) => s.name === "states"),
     grassSheet.strips.map((s) => s.name).join(","),
   );
-  // Hold a real GPU pipeline completion while a newer model is requested.
+  // Hold the older model's card readback while a newer model is requested.
   // Both updates must finish in request order, including their card bakes.
   await Promise.all([page.close(), served.close(), grass.close()]);
   const race = await ctx.newPage({ viewport: VIEWPORT });
@@ -466,25 +382,11 @@ export async function run(ctx) {
           }),
       );
     };
-    const original = GPUDevice.prototype.createComputePipelineAsync;
-    GPUDevice.prototype.createComputePipelineAsync = function (descriptor) {
-      const compiled = original.call(this, descriptor);
-      if (descriptor.label !== "pose-kernel") return compiled;
-      GPUDevice.prototype.createComputePipelineAsync = original;
-      return compiled.then(
-        (pipeline) =>
-          new Promise((resolve) => {
-            window.releaseOlderAppearance = () => resolve(pipeline);
-          }),
-      );
-    };
   });
   await drop(race, "older.glb", rifle, "test_rifle", false);
-  await race.waitForFunction(() => window.releaseOlderAppearance);
+  await race.waitForFunction(() => window.releaseOlderCards);
   await drop(race, "latest.glb", tank, "test_tank", false);
   await race.waitForFunction(() => window.__workbench.state().model === "latest.glb");
-  await race.evaluate(() => window.releaseOlderAppearance());
-  await race.waitForFunction(() => window.releaseOlderCards);
   const baking = await race.evaluate(() => window.__lab.stats().models.installed);
   ctx.check(
     "the next appearance waits for the previous model's card readback",

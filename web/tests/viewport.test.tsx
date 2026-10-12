@@ -23,6 +23,12 @@ vi.mock("@packages/renderer-core/src/device", () => ({
   }),
   gpuFailureMessage: String,
 }));
+// The frame is faked, so the light it would be built with need not be
+// resolved through the presentation module's WASM.
+vi.mock("@web/battle/sim/presentation", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  resolveLight: async (light: unknown) => light,
+}));
 vi.mock("@packages/battle-renderer/src/frame/battleFrame", () => ({
   createBattleFrame: () =>
     new Promise<BattleFrame>((resolve) => {
@@ -87,7 +93,7 @@ test("a viewport disposed during its build releases the late frame and never bec
         throw new Error("late frame used after unmount");
       },
       setClock() {},
-      setCorpses() {},
+      setPresentationWorld() {},
       setFelled() {},
       setGround() {},
       dispose() {
@@ -150,7 +156,7 @@ test("appearance updates reach the installing frame and unmount releases it imme
     setFog() {},
     setModels() {},
     setClock() {},
-    setCorpses() {},
+    setPresentationWorld() {},
     setFelled() {},
     setGround() {},
     dispose() {
@@ -195,7 +201,7 @@ test("a covered viewport ignores camera keys and resumes steering when uncovered
     gpu.resolve!({
       setFog() {},
       setClock() {},
-      setCorpses() {},
+      setPresentationWorld() {},
       setFelled() {},
       setGround: () => false,
       render() {},

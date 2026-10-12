@@ -32,7 +32,13 @@ const props: DrawnProps = {
   buildings: { parts: [], shells: [] },
 };
 /** Its effects, as the page describes them (`describeEffects`). */
-const effects: EffectsManifest = { presentation: { smoke: {} }, types: {}, smokes: {}, wrecks: {} };
+const effects: EffectsManifest = {
+  presentation: { smoke: {} },
+  types: {},
+  smokes: {},
+  wrecks: {},
+  wreckLooks: {},
+};
 function result(map: string, started: number, intervals: number[]): ReelResult {
   const recording = new BenchmarkRecording(1000);
   recording.start(started);

@@ -1,3 +1,5 @@
+> **Dropped (2026-10-11).** Phase 5 replaces Godot, so native's remaining GDScript is deleted with it rather than ported. See the README's phase 4 note.
+
 # 21 — The rest of native's CPU side in Rust
 
 **Contract:** no GDScript owns logic. What is left after 18–20 moves into the native core:

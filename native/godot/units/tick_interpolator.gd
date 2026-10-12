@@ -1,3 +1,4 @@
+# Frozen: a port of the per-frame presentation `crates/presentation` now owns; no fixes here, deleted with Godot (slice 25).
 extends RefCounted
 
 ## Presentation between completed ticks, as the browser's `TickInterpolator`

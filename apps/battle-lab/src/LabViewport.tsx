@@ -38,11 +38,7 @@ import {
   type CameraObstacles,
 } from "@packages/renderer-core/src/cameraObstacles";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
-import type {
-  CorpseInstance,
-  ModelCounts,
-  ModelInstance,
-} from "@packages/battle-renderer/src/models/modelInstances";
+import type { ModelInstance } from "@packages/battle-renderer/src/models/modelInstances";
 import type { FelledTree } from "@packages/battle-renderer/src/scenery/felled";
 import type { SideStructures } from "@packages/battle-renderer/src/models/propAppearance";
 import { trackHeldKeys } from "@web/battle/input/heldKeys";
@@ -74,11 +70,16 @@ import type { GrassClumpRow } from "@packages/battle-renderer/src/frame/grassPas
 import { PassInspector } from "./PassInspector";
 import type { FeedSource } from "./feed";
 import {
-  createEffectBatch,
   emptyEffectCounts,
-  type EffectBatch,
+  emptyModelCounts,
   type EffectCounts,
-} from "@packages/battle-renderer/src/effects/effectFrame";
+  type ModelCounts,
+} from "./presentedFrame";
+import {
+  resolveLight,
+  type PresentedAppearance,
+  type PresentedFrame,
+} from "@web/battle/sim/presentation";
 import type { Mesh } from "@packages/battle-renderer/src/mesh";
 import { pickBox, proxyPickBox, type PickBox } from "@packages/battle-renderer/src/picking";
 import type { GraphicsQualityProfile } from "./graphicsSettings";
@@ -141,7 +142,7 @@ interface LabViewportProps {
   onBox?: (box: LabBox) => void;
   /** Called every animation frame; what it returns redraws the frame with it
    *  (presentation interpolation between completed ticks). */
-  frame?: (now: number) => ViewportFrame | null;
+  frame?: (now: number, camera: ViewportCamera) => ViewportFrame | null;
   /** The first frame is on screen (the loading cover can lift), with the
    *  device's live GPU allocation counts. */
   onReady?: (gpu: ViewportGpu) => void;
@@ -175,20 +176,19 @@ export interface ViewportFrame {
    *  the simulation's bodies); the drawn proxies when omitted. Picks report
    *  an index into this list. */
   picks?: readonly PickBox[];
-  /** Posed models (soldiers and vehicles). */
-  models?: readonly ModelInstance[];
-  /** The corpses: handed to the frame only when the array changes. */
-  corpses?: readonly CorpseInstance[];
-  /** How many models of each kind `models` and `corpses` pose (`modelCounts`). */
+  /** The presentation's frame (`crates/presentation`): the units, corpses,
+   *  ghosts and effects it draws, read before the next call into the module. */
+  presented?: PresentedFrame;
+  /** The drawables the presentation's batches name, when they change. */
+  world?: readonly PresentedAppearance[];
+  /** How many models of each kind the frame poses. */
   counts?: ModelCounts;
   /** The trees the side knows have fallen: handed over only when the array
    *  changes. */
   felled?: readonly FelledTree[];
   /** The presentation clock, in seconds (the pose driver's and the wind's). */
   clock?: number;
-  /** Combat effects at that clock (`EffectFrame.build`). */
-  effects?: EffectBatch;
-  /** What `effects` holds, by kind and shape (`EffectFrame.counts`). */
+  /** What the frame's effects hold, by kind and shape. */
   effectCounts?: EffectCounts;
   /** The observing side's learned ground (the client's `GroundView`), drawn
    *  as scars; the frame uploads only what changed since it last looked. */
@@ -296,9 +296,6 @@ export interface LabBox {
   project: (x: number, y: number, z: number) => [number, number] | null;
 }
 
-/** What a frame draws while effects are suppressed. */
-const NO_EFFECTS: EffectBatch = createEffectBatch(0);
-
 /** Pixels a left press may travel and still count as a click. */
 const CLICK_SLOP_PX = 5;
 /** Screen-edge band that pans the camera like a held key. */
@@ -395,11 +392,6 @@ interface LabHandle {
   suppressXrayCoverage?: (on: boolean) => Promise<void>;
   /** Draw the ground unmarked while on (paired frames and cost). */
   suppressScars?: (on: boolean) => Promise<void>;
-  /** GPU time of one pose-kernel dispatch over the posed bodies drawn now. */
-  timePoseKernel?: (
-    reps: number,
-    bodies?: number,
-  ) => Promise<{ bodies: number; ms: number } | null>;
 }
 
 declare global {
@@ -463,14 +455,8 @@ export function LabViewport({
   appearancesRef.current = appearances;
   const modelsRef = useRef(models);
   modelsRef.current = models;
-  const corpsesRef = useRef<readonly CorpseInstance[]>([]);
-  const countsRef = useRef<ModelCounts>({
-    soldiers: 0,
-    vehicles: 0,
-    aircraft: 0,
-    corpses: 0,
-    fading: 0,
-  });
+  const presentedWorldRef = useRef<readonly PresentedAppearance[]>([]);
+  const countsRef = useRef<ModelCounts>(emptyModelCounts());
   const effectCountsRef = useRef<EffectCounts>(emptyEffectCounts());
   const felledRef = useRef<readonly FelledTree[]>([]);
   const modelsSuppressed = useRef(false);
@@ -727,7 +713,7 @@ export function LabViewport({
         const light = () => lightRef.current ?? gameLightFor(window.location.search);
         const build = async () => {
           const next = await createBattleFrame(device!, info.format, {
-            light: light(),
+            light: await resolveLight(light()),
             fogGeometry: gameFogGeometry,
             fogStyle: fogStyleRef.current ?? gameFogStyle,
             overlayGlow: gameOverlayGlow,
@@ -764,7 +750,7 @@ export function LabViewport({
             }
             if (modelsRef.current) next.setModels(modelsRef.current);
             next.setClock(clock);
-            next.setCorpses(corpsesRef.current);
+            next.setPresentationWorld(presentedWorldRef.current);
             next.setFelled(felledRef.current);
             next.setGround(groundNow());
             return next;
@@ -868,7 +854,7 @@ export function LabViewport({
             dirty = true; // a piloted frame is always drawn: it is measured
           }
           see(dt);
-          const animated = frameRef.current?.(now);
+          const animated = frameRef.current?.(now, snapshot());
           if (animated?.ground !== undefined) groundRef.current = animated.ground;
           if (scene.setGround(groundNow())) dirty = true;
           if (animated) {
@@ -881,17 +867,17 @@ export function LabViewport({
               scene.setInstances(animated.instances);
             }
             if (animated.picks) picksRef.current = animated.picks;
-            if (animated.effects && !effectsSuppressed.current) scene.setEffects(animated.effects);
-            if (animated.models) {
-              modelsRef.current = animated.models;
-              if (!modelsSuppressed.current) scene.setModels(animated.models);
+            if (animated.world) {
+              presentedWorldRef.current = animated.world;
+              scene.setPresentationWorld(animated.world);
             }
+            if (animated.presented)
+              scene.setFrame(animated.presented, {
+                models: !modelsSuppressed.current,
+                effects: !effectsSuppressed.current,
+              });
             if (animated.counts) countsRef.current = animated.counts;
             if (animated.effectCounts) effectCountsRef.current = animated.effectCounts;
-            if (animated.corpses && animated.corpses !== corpsesRef.current) {
-              corpsesRef.current = animated.corpses;
-              if (!modelsSuppressed.current) scene.setCorpses(animated.corpses);
-            }
             if (animated.felled && animated.felled !== felledRef.current) {
               felledRef.current = animated.felled;
               scene.setFelled(animated.felled);
@@ -1074,7 +1060,6 @@ export function LabViewport({
           async suppressModels(on: boolean) {
             modelsSuppressed.current = on;
             scene.setModels(on ? [] : (modelsRef.current ?? []));
-            scene.setCorpses(on ? [] : corpsesRef.current);
             await nextFrame();
           },
           async suppressTrees(on: boolean) {
@@ -1103,7 +1088,6 @@ export function LabViewport({
           },
           async suppressEffects(on: boolean) {
             effectsSuppressed.current = on;
-            if (on) scene.setEffects(NO_EFFECTS);
             await nextFrame();
           },
           async suppressCastLights(on: boolean) {
@@ -1124,7 +1108,6 @@ export function LabViewport({
             );
             await nextFrame();
           },
-          timePoseKernel: (reps: number, bodies?: number) => scene.timePoseKernel(reps, bodies),
         } satisfies Partial<LabHandle>);
 
         // Input: left click selects, left drag box-selects (or, as an action,

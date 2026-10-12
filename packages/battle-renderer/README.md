@@ -8,32 +8,16 @@ owns their composition. That function is the authority on phase order.
 
 ## Feed boundaries
 
-[Models](src/models/), [effects](src/effects/) and [fog inputs](src/frame/fogInputs.ts)
-consume immutable identities and published causes. Soldier poses follow actual
-published soldiers rather than formation slots. A soldier down in a posture, or
-shooting, keeps his weapon toward the threat as he moves and steps, crouches or
-crawls the way he goes, with a clip for every way; otherwise, and at a run, he
-turns to face where he is going. No posture slides along the ground. A soldier
-dies from the posture he is in, never getting up to fall: standing, most are
-thrown onto their backs and the rest pitch onto their faces; kneeling or lying,
-they fall forward. His corpse lies as his fall ended, face up or face down. Building damage follows the
-side's known physical remains, not a renderer guess from height or floor count.
-An effect on a barrel follows [the drawn muzzle](src/models/drawnModels.ts);
-its physical launch remains the simulation's event. A shot kicks its shooter
-as a war film shows it, harder than life: a heavy gun throws its hull back on
-its springs, away from where the round went, to rock past rest and settle
-without moving off its spot, and shakes dust off the whole hull and off the
-ground ahead of the muzzle; each of a soldier's own shots snaps his upper body
-back about his waist, his muzzle climbing. How hard each round kicks is its
-row in `presentation.pose` (`hull_kick`, `soldier_kick`) and its flash's
-`dust`; a round with no row of its own kicks as its nearest styled ancestor.
-The whole-model motion carries the drawn muzzle, and the pose kernel kicks a
-body as the CPU pose does. A flying aircraft's rotor is
-drawn by the effects from the same drawn pose, as a film camera's shutter sees it:
-each blade smeared over the angle it turned while the shutter was open, so a fast
-rotor blurs at any frame rate and a paused one shows its blades. A spinning
-disc keeps a faint grey over its whole reach, and no blade draws thinner than a
-few pixels, so a small rotor still reads from the tactical camera.
+Units, corpses, ghosts, a cook-off's pieces, the combat effects and their cast
+lights arrive as [the presentation crate's](../../crates/presentation/README.md)
+frames ([records](src/records.gen.ts)): batches already culled and tiered, joint
+palettes, effect instances in draw order and the lights chosen for the view. The
+renderer draws them as given and owns only what is per vertex, texel and pixel:
+the meshes and textures an appearance names, skinning by the given palette, the
+passes. [Models](src/models/) and [fog inputs](src/frame/fogInputs.ts) for the
+static world still consume immutable identities and published causes here.
+Building damage follows the side's known physical remains, not a renderer guess
+from height or floor count.
 
 The app's [observation feeds](../../apps/battle-lab/README.md#observation-feeds)
 translate publications into this boundary. [Scene assets](../scene-assets/README.md)
@@ -45,17 +29,7 @@ admitted appearances around them. Physical bounds and visual-only landscape rema
 separate. Cosmetic geometry must not invent a physical obstruction or imply cover
 that the simulation does not provide: a tree the side has seen felled falls on the
 clock and lies pressed under cover height by its stump ([felled trees](src/scenery/felled.ts)),
-since the simulation gives it no body. A hull the side watched die cooks off
-([cook-off](src/effects/cookOff.ts)): fireballs from its ring, its hull jolted and
-its turret thrown, both pieces of its own unit's wreck (a wreck is drawn as the
-unit it names, never by the nearest footprint), until they lie where the wreck has
-them and the whole wreck takes over without a seam. A wreck without detachable
-pieces jolts as one body. What the blast throws clear (the wreck's `debris`
-state) lies wider than the box the simulation keeps as cover, so it does not
-stay: it lies still for a while, then sinks into the ground and is gone, while
-the wreck never fades; a wreck found later has none. Every watched vehicle keeps its last live appearance
-until the blast and follows its roll to the resting wreck; a wreck found
-later is simply there. A map's region (its `regional_family`) is a
+since the simulation gives it no body. A map's region (its `regional_family`) is a
 look, never physics: the biome's paved rows take that region's own finish through
 one function (`regionalBiome` in [the biome](src/terrain/biome.ts)), and scenery
 its region's appearances.
@@ -65,6 +39,9 @@ its region's appearances.
 [Renderer core](../renderer-core/README.md) owns the live camera and depth convention.
 [Light](src/light/sceneLight.ts) shares one fixture-owned sun and environment;
 [world shading](src/world/) and [shader functions](src/shaders/) reuse it.
+What the sky, the haze, the sun and post make of the light is resolved in Rust
+(`presentation::light`): the frame is built with those uniform records and
+uploads them as they are, so both clients light a battle from one derivation.
 The [sky](src/world/sky.ts) shows a fair-weather cloud layer over the clear
 atmosphere it bakes; the environment light is baked clear, so clouds never dim
 the sun on the ground.
@@ -96,6 +73,13 @@ with a layout derived from its struct ([word tables](src/frame/wordTables.ts)).
 It hands over the buildings' module instances and the scenery's instances the
 same way, expanded by the owners the layers draw from, so a second client places
 nothing itself, and `drawnInstances` says what the last frame drew of them.
+
+The shaders are the same text for every battle and every canvas size: a
+battle's light (sun, sky, clouds, haze, bloom) and a size's texel steps reach
+them through uniforms, never spliced in, so one compiled set serves every map.
+Every pipeline has its own name. A second client compiles this text, not a
+port: [the export](pipelines/) is each pipeline's WGSL and settings, written
+from this package's code and held to it by its test ([pipelines](../../crates/pipelines/README.md)).
 
 Placement and order previews (a unit being placed, a held facing drag, every
 ordered destination with Space held) name the same installed appearances and pose

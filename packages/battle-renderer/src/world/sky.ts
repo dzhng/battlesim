@@ -1,5 +1,4 @@
 import { tgpu, d, common } from "typegpu";
-import type { SkyModelParams } from "../light/skyParameters";
 import { SKY_LUT_WIDTH, SKY_LUT_HEIGHT } from "../light/skyParameters";
 import {
   type SkyRays,
@@ -8,6 +7,7 @@ import {
   skyRadianceWgsl,
   skyDiscWgsl,
   skyCloudsWgsl,
+  SkyLight,
   cloudHashWgsl,
   cloudNoiseWgsl,
   cloudFbmWgsl,
@@ -16,10 +16,11 @@ import {
 const Rays = d.struct({ origin: d.vec3f, dx: d.vec3f, dy: d.vec3f });
 
 /** Linear HDR sky only: no exposure, tone mapping, PMREM or environment lighting.
- *  The shown background carries the cloud layer; the baked LUT stays clear. */
+ *  The shown background carries the cloud layer; the baked LUT stays clear.
+ *  `record` is the light's `SkyLight` record. */
 export async function createTypegpuSky(
   device: GPUDevice,
-  params: SkyModelParams,
+  record: Float32Array<ArrayBuffer>,
   backgroundSamples: 1 | 4,
 ) {
   const root = tgpu.initFromDevice({ device });
@@ -27,6 +28,9 @@ export async function createTypegpuSky(
     .createTexture({ size: [SKY_LUT_WIDTH, SKY_LUT_HEIGHT], format: "rgba16float" })
     .$usage("render", "sampled");
   const rays = root.createBuffer(Rays).$usage("uniform");
+  const light = root.createBuffer(SkyLight).$usage("uniform");
+  light.write(record.buffer);
+  const lightUniform = light.as("uniform");
   const sampler = root.createSampler({
     minFilter: "linear",
     magFilter: "linear",
@@ -34,13 +38,18 @@ export async function createTypegpuSky(
     addressModeV: "clamp-to-edge",
   });
   const direction = tgpu.fn([d.vec2f], d.vec3f)(equirectDirectionWgsl);
-  const radiance = tgpu.fn([d.vec3f], d.vec3f)(skyRadianceWgsl(params));
+  const radiance = tgpu.fn([d.vec3f], d.vec3f)(skyRadianceWgsl).$uses({ skyLight: lightUniform });
   const equirectUv = tgpu.fn([d.vec3f], d.vec2f)(equirectUvWgsl);
-  const disc = tgpu.fn([d.vec3f], d.vec3f)(skyDiscWgsl(params));
+  const disc = tgpu.fn([d.vec3f], d.vec3f)(skyDiscWgsl).$uses({ skyLight: lightUniform });
   const hash = tgpu.fn([d.vec2i], d.f32)(cloudHashWgsl);
   const noise = tgpu.fn([d.vec2f], d.f32)(cloudNoiseWgsl).$uses({ hash });
   const fbm = tgpu.fn([d.vec2f], d.f32)(cloudFbmWgsl).$uses({ noise });
-  const clouds = tgpu.fn([d.vec3f, d.vec3f], d.vec3f)(skyCloudsWgsl(params)).$uses({ fbm });
+  const clouds = tgpu
+    .fn(
+      [d.vec3f, d.vec3f],
+      d.vec3f,
+    )(skyCloudsWgsl)
+    .$uses({ fbm, skyLight: lightUniform });
   const sample = tgpu
     .fn(
       [d.vec3f],
@@ -101,6 +110,7 @@ export async function createTypegpuSky(
   } catch (error) {
     lut.destroy();
     rays.destroy();
+    light.destroy();
     root.destroy();
     throw error;
   }
@@ -128,6 +138,7 @@ export async function createTypegpuSky(
     dispose() {
       lut.destroy();
       rays.destroy();
+      light.destroy();
       root.destroy();
     },
   };

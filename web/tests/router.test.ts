@@ -3,19 +3,8 @@ import { visitInRouter as visit } from "./support/router";
 import { LAB_FIXTURES } from "@apps/battle-lab/src/fixtures";
 import { createElement } from "react";
 import { cleanup, fireEvent } from "@testing-library/react";
-import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 import { LabRouter } from "@apps/battle-lab/src/router";
-
-// jsdom has no layout, so no ResizeObserver; the menu's observer sees nothing.
-beforeEach(() => {
-  vi.stubGlobal(
-    "ResizeObserver",
-    class {
-      observe() {}
-      disconnect() {}
-    },
-  );
-});
 
 afterEach(() => {
   cleanup();

@@ -303,7 +303,7 @@ function validateManifestLight(value: unknown): ManifestLight {
 }
 
 const count = (value: unknown) => Number.isInteger(value) && (value as number) >= 0;
-const length = (value: unknown) => finite(value) && value >= 0;
+const nonNegative = (value: unknown) => finite(value) && value >= 0;
 const positive = (value: unknown) => finite(value) && value > 0;
 
 /** Whether `value` is a word layout a reader can follow. */
@@ -419,7 +419,7 @@ function isScenery(value: unknown): boolean {
     ]) &&
     numbers(dressing.lodPx, 3, positive) &&
     [dressing.fadePx, dressing.gone, dressing.cellM].every(positive) &&
-    [dressing.topM, dressing.reachM].every(length) &&
+    [dressing.topM, dressing.reachM].every(nonNegative) &&
     numbers(dressing.ground, 2, finite) &&
     [dressing.slots, dressing.cellsPerView].every(count) &&
     hasKeys(felled, FELLED_KEYS) &&
@@ -519,7 +519,7 @@ export function validateVisualPresentation(value: unknown): VisualPresentation {
     !isTableList(field.tables, TABLES.grass) ||
     !hasKeys(field.constants, Object.keys(GRASS_CONSTANTS)) ||
     !Object.entries(GRASS_CONSTANTS).every(([key, kind]) => {
-      const valid = kind === "count" ? count : length;
+      const valid = kind === "count" ? count : nonNegative;
       const c = (field.constants as Record<string, unknown>)[key];
       return Array.isArray(c) ? c.length === 2 && c.every(valid) : valid(c);
     }) ||

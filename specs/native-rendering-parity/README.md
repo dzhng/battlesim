@@ -73,17 +73,21 @@ Graph: `13 → {14, 15, 16} → 17 → 18`. Slices 14, 15 and 16 share no owners
 
 Set by the user on 2026-10-11, after the static world's selection walk cost about 6.5 ms per frame in GDScript. GDScript is the wrong owner for the client's CPU work. Native's CPU side moves to a Rust GDExtension. Per-frame presentation logic moves into one shared Rust crate that the browser runs through WASM and native links, which removes the TypeScript-to-native duplication. Every step keeps plates and counts unchanged and the browser's shipped frame identical. The user's priority (2026-10-11) is lower overall complexity: each shared-code slice must reduce net code, and a small, measured browser performance cost is acceptable for it. A meaningful regression still blocks.
 
-Graph: `18 → 18b (approved 2026-10-11) → 19 → 20 → 20b → 21 → 22 → 23 → 24`.
+Graph: `18 → 18b (approved 2026-10-11) → 19 → 20 ∥ 20b → phase 5 (25, with 22 inside it) → 23 → 24`.
+
+**Godot is frozen (user, 2026-10-11).** From now until phase 5 replaces it, no lane runs Godot (no plates, no display tests, no windows on the user's screen) or adds Godot glue. Native stays as it is on main. Phase 4's remaining slices stop at the browser and `crates/presentation`, and their native plate and count gates are dropped. Only headless native tests run, if a change touches code native compiles against.
+
+**The Godot spike leaves no tech debt (user, 2026-10-11).** Phase 5 replaces Godot, so nothing Godot-shaped enters shared code. Native's halves of 19, 20 and 20b are the thinnest GDExtension glue over the shared crates, deleted with Godot. Slice 21 (moving native's remaining GDScript into Rust inside Godot) is dropped. Slice 22 (completeness) is built once, on `wgpu`, inside phase 5.
 
 **Web first (user, 2026-10-11).** Each shared-code slice (19, 20, 20b) lands in the browser first, with clean before/after frame-rate numbers from slice 07's harness on the graphics test and a medium battle. Only then does native switch to it. Native's own core work (18, 21) proceeds independently. Slice 15's performance fix is 18's first module.
 
 - [ ] 18 — Rust native core: run loop, readers, report, static-world selection and instance writes in the GDExtension; GDScript shrinks to an entry scene. [slice](slices/18-rust-native-core.md)
 - [ ] 18b — The presentation API: a small, documented, data-oriented boundary between Rust and every renderer, reviewed by the user before 19, 20 and 20b expose anything to a renderer. [slice](slices/18b-presentation-api.md)
 - [x] 19 — One publication reader in Rust beside its writer (`crates/sim/src/publication/reader.rs`), used by both clients. The page decodes through `crates/presentation-wasm` (18b's `push_publication` and `observation()`), and native through the extension's `PublicationReader`. `observation.ts` and `observation.gd` are deleted. The reader equals the TS decoder on both fixture captures and both whole control streams. The graphics test and the benchmark show no meaningful change, and the slice is net −289 lines (tables in the slice). [slice](slices/19-shared-publication-reader.md)
-- [ ] 20 — Shared presentation crate: interpolation, poses, launches, effects and cook-offs, used by both clients; TS originals and native ports deleted. [slice](slices/20-shared-presentation-crate.md)
+- [x] 20 — Shared presentation crate (`crates/presentation`): interpolation, poses (joint palettes in Rust), ghosts, launches, effects, cast lights and cook-offs, with the camera's tiers and light choice, behind 18b's `frame()`; the browser draws its records and the TS originals and GPU pose kernel are deleted. Equal to the browser's vectors; the reels faster, the battle unchanged; net −720 lines. Native adopts it in phase 5; its ports are frozen. [slice](slices/20-shared-presentation-crate.md)
 - [ ] 20b — The static world resolved in Rust (building modules, scenery, terrain and grass tables, tier rules) for both clients; the TS resolvers and the manifest's placement artifacts are deleted. [slice](slices/20b-static-world-in-rust.md)
-- [ ] 21 — The rest of native's CPU side in Rust; no GDScript owns logic. [slice](slices/21-remaining-native-cpu.md)
-- [ ] 22 — Completeness: every phase 3 "not ported" item closed. [slice](slices/22-completeness.md)
+- ~~21 — The rest of native's CPU side in Rust~~: dropped (2026-10-11). Phase 5 replaces Godot, so the Godot-side GDScript is deleted with it, not ported.
+- [ ] 22 — Completeness: every phase 3 "not ported" item, closed on `wgpu` inside phase 5. [slice](slices/22-completeness.md)
 - [ ] 23 — The browser on shared code: whole-game check, visual suite and battle frame time. [slice](slices/23-browser-on-shared-code.md)
 - [ ] 24 — Whole-frame verdict, the performance re-gate, promotion, the full repository check and closeout. [slice](slices/24-promotion-and-closeout.md)
 
@@ -92,6 +96,8 @@ Graph: `18 → 18b (approved 2026-10-11) → 19 → 20 → 20b → 21 → 22 →
 Set by the user on 2026-10-11, after slice 15's Rust walk left market-town's gap on the GPU: Godot's Forward+ costs more per primitive than the browser's lean passes. Native moves to Rust `wgpu` running the browser's own WGSL over the 18b API, and Godot leaves native. It is planned in detail when phase 4 closes.
 
 - [ ] 25 — Native draws with wgpu: the browser's shaders and passes, once for both clients; Godot's project and ported shaders are deleted. [slice](slices/25-native-on-wgpu.md)
+  - Steps 1 and 2 built (branch `phase5a`): the browser's shaders are one text for every light and size, and `packages/battle-renderer/pipelines/` exports each pipeline's WGSL and settings, held to the browser's code by a Vitest drift test and validated by naga (`crates/pipelines`).
+  - Step 3 built (branch `phase5b`): `native/client` builds all 63 exported pipelines on `wgpu` Metal and replays a parity scene through the presentation crate. One ordered pass list (sky, post) draws plates whose sky matches the control within 8 levels. Native's model counts equal the browser's on all 24 plates. An occluded or minimised window presents nothing on macOS. The browser now reads the same light records from Rust; its TS light derivations are deleted. Next: step 4, the ground.
 
 ### Firewalls
 
@@ -140,7 +146,7 @@ Native must not choose a building shell by family/token heuristics (removed in s
 
 - Camera and projection: `packages/renderer-core/src/camera3d.ts`, `cameraUniform.ts`, `cameraController.ts`, `cameraClearance.ts`, `depthContract.ts`, `apps/battle-lab/src/gameCamera.ts`, `apps/battle-lab/src/menuReel.ts` and `apps/battle-lab/src/benchmark/reelRun.ts`.
 - Capture run: `apps/battle-lab/src/routes/graphicsTest.tsx`, `apps/battle-lab/src/benchmark/{reelRun.ts,reelReport.ts}`, `web/src/battle/benchmark/presentationCapture.ts`, `web/scene.mjs` and `web/scenes/graphics-test.mjs`.
-- Light and atmosphere: `packages/battle-renderer/src/light/{sceneLight.ts,physicalEnvironment.ts,aerialParameters.ts,skyParameters.ts,cascadePolicy.ts}`, `packages/battle-renderer/src/world/{environment.ts,sky.ts,shadow.ts,post.ts}` and `packages/battle-renderer/src/frame/{environmentFrame.ts,fogMaskPass.ts,fogTerm.ts}`.
+- Light and atmosphere: `crates/presentation/src/light.rs`, `packages/battle-renderer/src/light/{sceneLight.ts,skyParameters.ts,cascadePolicy.ts}`, `packages/battle-renderer/src/world/{environment.ts,sky.ts,shadow.ts,post.ts}` and `packages/battle-renderer/src/frame/{environmentFrame.ts,fogMaskPass.ts,fogTerm.ts}`.
 - Terrain and grass: `packages/battle-renderer/src/terrain/{terrainSurface.ts,terrainGrid.ts,biome.ts,grassField.ts}` and `packages/battle-renderer/src/frame/{terrainHeights.ts,terrainMaterial.ts,grassPass.ts}`.
 - Models and authored content (phase 2): `packages/scene-assets/src/{loader.ts,schema.ts,templateLibrary.ts,appearanceCatalog.ts}`, `packages/battle-renderer/src/models/*`, `apps/battle-lab/src/buildingTier.ts`.
 - Effects and scars (phase 2): `packages/battle-renderer/src/effects/{effectFrame.ts,effectPass.ts}` and `packages/battle-renderer/src/frame/scarTexture.ts`.
