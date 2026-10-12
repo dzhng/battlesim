@@ -670,6 +670,7 @@ export async function createGrassPass(
   environment: EnvironmentFrame,
   terrain: TerrainSource,
   terrainHeights: TerrainHeights,
+  densityMultiplier = 1,
 ) {
   const device = registry.device;
   const fragment = tgpu.fragmentFn({
@@ -817,7 +818,12 @@ export async function createGrassPass(
     const packed = packGrassShapes(
       names.map((name) => ({ name, bundle: appearances!.get(name)! })),
     );
-    const laid = ground.grass_params(packed.facts, GRASS_HEIGHT_VARIATION[1], GRASS_MAX_HEIGHT_M);
+    const laid = ground.grass_params(
+      packed.facts,
+      GRASS_HEIGHT_VARIATION[1],
+      GRASS_MAX_HEIGHT_M,
+      densityMultiplier,
+    );
     kindNames = names;
     lowest = grid.minHeight;
     const props = ground.grass_props();

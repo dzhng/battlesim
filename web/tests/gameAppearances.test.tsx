@@ -19,7 +19,7 @@ afterEach(() => {
   vi.resetModules();
 });
 
-test("required appearance rejection replaces loading with a recoverable refusal", async () => {
+test("required appearance rejection remains fatal on the menu", async () => {
   vi.stubGlobal("fetch", async () => {
     throw new Error("Required appearance unavailable");
   });
@@ -40,12 +40,9 @@ test("required appearance rejection replaces loading with a recoverable refusal"
   await waitFor(() => expect(view.getByRole("heading", { name: "Aborted" })).toBeTruthy());
   expect(view.queryByText("Loading appearance")).toBeNull();
   expect(view.getByRole("link", { name: "Back to the menu" }).getAttribute("href")).toBe("/");
-  view.rerender(
-    <AppResourceBoundary menu={true}>
-      <div>Main menu remains available</div>
-    </AppResourceBoundary>,
-  );
-  expect(view.getByText("Main menu remains available")).toBeTruthy();
+  view.rerender(<AppResourceBoundary menu={true}><div>Main menu remains available</div></AppResourceBoundary>);
+  expect(view.queryByText("Main menu remains available")).toBeNull();
+  expect(view.getByRole("heading", { name: "Aborted" })).toBeTruthy();
 });
 
 test("a demanded building kit refuses play even after the shared catalog loaded", async () => {

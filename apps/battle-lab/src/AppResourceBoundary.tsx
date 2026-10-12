@@ -22,7 +22,7 @@ export function AppResourceBoundary({ menu, children }: { menu: boolean; childre
       clearTimeout(timer);
     };
   }, [menu, error]);
-  if (menu || !error) return children;
+  if (!error) return children;
   return (
     <LoadingScreen
       title="Deploying"

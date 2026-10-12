@@ -448,3 +448,34 @@ fn a_points_props_cell_lists_every_prop_that_could_cover_it() {
     }
     assert!(covered > 50, "{covered} points under a prop");
 }
+
+#[test]
+fn the_grass_density_setting_scales_the_densest_stand_and_nothing_else() {
+    use super::grass::{KindFacts, Limits, Quality};
+    let g = ground();
+    let facts: Vec<KindFacts> = g
+        .grass_kinds()
+        .iter()
+        .map(|_| KindFacts {
+            mesh_height: 0.3,
+            top: 0.3,
+            blades: 6.0,
+            root_width: 0.02,
+            bases: [0, 0],
+        })
+        .collect();
+    let limits = Limits {
+        variation: 1.2,
+        tallest: 0.9,
+    };
+    let at = |density| {
+        g.grass_params(&facts, &limits, &Quality { density })
+            .unwrap()
+    };
+    let (full, half) = (at(1.0), at(0.5));
+    // `GrassParams.density.y`, word 29: the most clumps a square metre holds.
+    let most = |p: &[u32]| f32::from_bits(p[29]);
+    assert_eq!(most(&half), most(&full) * 0.5);
+    let differ: Vec<usize> = (0..full.len()).filter(|&k| full[k] != half[k]).collect();
+    assert_eq!(differ, [29]);
+}

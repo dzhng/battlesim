@@ -3,7 +3,7 @@
 //! tables, the water's cells and the scenery, as flat arrays.
 use presentation::static_world::ground::biome::{Biome, GrassRules};
 use presentation::static_world::ground::field::Field;
-use presentation::static_world::ground::grass::{KindFacts, Limits};
+use presentation::static_world::ground::grass::{KindFacts, Limits, Quality};
 use presentation::static_world::ground::scenery::{Scenery, Size};
 use presentation::static_world::ground::tables::{Grid, TerrainTables};
 use presentation::static_world::ground::{self, DrawnBy, Source, Tuning};
@@ -171,12 +171,14 @@ impl Ground {
 
     /// `GrassParams` for the kinds' mesh facts, six numbers each in kind
     /// order (highest vertex, top, blades, root width, near and far base),
-    /// under the scene assets' height variation and tallest grass.
+    /// under the scene assets' height variation and tallest grass, and the
+    /// player's grass density (a scale on the densest stand, 1 the biome's).
     pub fn grass_params(
         &self,
         facts: &[f64],
         variation: f64,
         tallest: f64,
+        density: f64,
     ) -> Result<Vec<u32>, JsError> {
         let facts: Vec<KindFacts> = facts
             .as_chunks::<6>()
@@ -191,7 +193,7 @@ impl Ground {
             })
             .collect();
         self.inner
-            .grass_params(&facts, &Limits { variation, tallest })
+            .grass_params(&facts, &Limits { variation, tallest }, &Quality { density })
             .map_err(error)
     }
 

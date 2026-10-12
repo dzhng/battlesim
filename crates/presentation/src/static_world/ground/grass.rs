@@ -38,6 +38,12 @@ pub struct Limits {
     pub tallest: f64,
 }
 
+/// The player's graphics setting for the field: a scale on the most clumps a
+/// square metre holds (1: the biome's own).
+pub struct Quality {
+    pub density: f64,
+}
+
 impl Ground {
     /// The grass appearances the biome's growth names, in kind order.
     pub fn grass_kinds(&self) -> Vec<String> {
@@ -53,10 +59,15 @@ impl Ground {
         names
     }
 
-    /// `GrassParams` with its per-frame fields (`planes`, `eye`, `window`'s
+    /// `GrassParams` under the player's `quality`, with its per-frame fields (`planes`, `eye`, `window`'s
     /// corner and tile, `grid`'s tiles) zero, for `facts` in `grass_kinds`
     /// order; refused where a row would grow grass past `limits.tallest`.
-    pub fn grass_params(&self, facts: &[KindFacts], limits: &Limits) -> Result<Vec<u32>, String> {
+    pub fn grass_params(
+        &self,
+        facts: &[KindFacts],
+        limits: &Limits,
+        quality: &Quality,
+    ) -> Result<Vec<u32>, String> {
         let (rules, names) = (&self.biome.grass, self.grass_kinds());
         if self.biome.plots.len() > GROWTH_ROWS - 1 {
             return Err(format!(
@@ -119,7 +130,7 @@ impl Ground {
             &mut out,
             [
                 rules.pixels_per_clump,
-                rules.max_clumps_m2,
+                rules.max_clumps_m2 * quality.density,
                 rules.fade_m_per_px[0],
                 rules.fade_m_per_px[1],
             ],

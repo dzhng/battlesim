@@ -61,7 +61,7 @@ function grassKinds(of: Biome, sources: ReadonlyMap<string, StaticBundle>) {
   const names = JSON.parse(ground.grass_kinds()) as string[];
   if (!names.every((name) => sources.has(name))) return null;
   const packed = packGrassShapes(names.map((name) => ({ name, bundle: sources.get(name)! })));
-  const words = ground.grass_params(packed.facts, GRASS_HEIGHT_VARIATION[1], GRASS_MAX_HEIGHT_M);
+  const words = ground.grass_params(packed.facts, GRASS_HEIGHT_VARIATION[1], GRASS_MAX_HEIGHT_M, 1);
   return { names, packed, params: new Float32Array(words.buffer) };
 }
 

@@ -13,9 +13,20 @@ and passes over the [presentation crate](../../crates/presentation/README.md)'s
   frame, as Bevy draws since 0.19 and as the browser's `battleFrame` does. It
   has no render graph. A pass reads the frame's `View` and the sized targets.
 - **Uniforms** are records the presentation crate resolves (the sky's light,
-  the bloom, the grade, the view's sky rays). The client uploads their bytes as
-  they are, and `crates/pipelines` holds each record to the struct its shader
-  declares.
+  the sun, the haze, the bloom, the grade, the view's sky rays). The client
+  uploads their bytes as they are, and `crates/pipelines` holds each record to
+  the struct its shader declares. A pass binds groups by the layout they fill,
+  never by number.
+- **Models** are the browser's appearance bundles from `assets/runtime` (Git
+  LFS; pull the ones a scene needs), read as the browser reads them: the
+  catalog, gzip transport, the bundle container and its texture files. Every
+  `World.appearances` row is loaded once into the browser's vertex layout, and
+  each `Frame` batch is one run of instances over one row's tier. A corpse is
+  its body posed once by the presentation crate's rest palette; so is a body
+  at the impostor tier (its far pose), since impostor cards are not baked yet.
+- **What is bound but not drawn yet** reads as absent in every shader: the
+  sun's cascades (every surface takes the whole sun), the cast lights (none)
+  and fog of war (every surface seen).
 
 ## Running a parity scene
 

@@ -83,6 +83,23 @@ export interface ShotChoice {
   far: string;
   gain: number;
 }
+/** A streamed track, served as `music/<id>.<sha8>.mp3` (see `musicUrl`). */
+export interface MusicTrack {
+  /** The `sources` record it was encoded from. */
+  source: string;
+  /** Of the served MP3. */
+  sha256: string;
+  gain: number;
+}
+export const MOODS = ["menu", "tension", "combat"] as const;
+export type Mood = (typeof MOODS)[number];
+export interface MusicCatalog {
+  moods: Record<Mood, string[]>;
+  tracks: Record<string, MusicTrack>;
+}
+/** The served file: a content hash in the name, so a re-encoded track never meets a cached one. */
+export const musicUrl = (id: string, track: MusicTrack) =>
+  `/audio/music/${id}.${track.sha256.slice(0, 8)}.mp3`;
 export interface SoundCatalog {
   sources: Record<string, SoundSource>;
   clips: Record<string, SoundClip>;
@@ -92,6 +109,7 @@ export interface SoundCatalog {
   impacts: Record<string, Record<string, string>>;
   /** Replacements for baseline effect/loop slots; baseline recipes remain selectable. */
   effects: Record<string, string>;
+  music: MusicCatalog;
 }
 const id = /^[a-zA-Z0-9_-]+$/;
 const hash = /^[a-f0-9]{64}$/;
@@ -108,7 +126,7 @@ function finite(value: unknown, low: number, high: number): boolean {
 }
 export function validateSoundCatalog(value: unknown): SoundCatalog {
   const root = record(value, "sound catalog");
-  const sections = ["sources", "clips", "sounds", "defaults", "impacts", "effects"];
+  const sections = ["sources", "clips", "sounds", "defaults", "impacts", "effects", "music"];
   for (const section of sections) record(root[section], section);
   const unknown = Object.keys(root).find((key) => !sections.includes(key));
   if (unknown) throw new Error(`sound catalog: unknown section ${unknown}`);
@@ -242,6 +260,26 @@ export function validateSoundCatalog(value: unknown): SoundCatalog {
     )
       throw new Error(`effect ${slot}: unknown sound or loop mismatch`);
   }
+  const { moods, tracks } = catalog.music;
+  record(tracks, "music tracks");
+  for (const [name, track] of Object.entries(tracks)) {
+    record(track, `music track ${name}`);
+    if (
+      !id.test(name) ||
+      !Object.hasOwn(catalog.sources, track.source) ||
+      !hash.test(track.sha256) ||
+      !finite(track.gain, 0, 2)
+    )
+      throw new Error(`music track ${name}: invalid track or unknown source`);
+  }
+  record(moods, "music moods");
+  const unknownMood = Object.keys(moods).find(
+    (mood) => !(MOODS as readonly string[]).includes(mood),
+  );
+  if (unknownMood) throw new Error(`music: unknown mood ${unknownMood}`);
+  for (const mood of MOODS)
+    if (!Array.isArray(moods[mood]) || moods[mood].some((t) => !Object.hasOwn(tracks, t)))
+      throw new Error(`music mood ${mood}: missing or unknown track`);
   return catalog;
 }
 

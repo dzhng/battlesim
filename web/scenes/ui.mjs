@@ -265,6 +265,16 @@ async function picker(ctx, page, shot) {
 
 export async function run(ctx) {
   const page = await ctx.newPage({ viewport: { width: 1280, height: 800 } });
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      "battle.graphics",
+      JSON.stringify({
+        mode: "high",
+        detectedMode: "high",
+        lastResult: { averageFps: 60, onePercentLowFps: 60, selectedMode: "high" },
+      }),
+    );
+  });
   await ctx.openLab(page, ctx.url);
   const shots = await page
     .getByTestId("shots")
@@ -289,19 +299,19 @@ export async function run(ctx) {
   // The main menu, each page of it, over its plain ground.
   const origin = new URL(ctx.url).origin;
   await page.goto(`${origin}/`);
-  await page.locator("main.menu:not([inert])").waitFor({ timeout: 120_000 });
+  await page.locator("main.menu:not(.loading):not([inert])").waitFor({ timeout: 120_000 });
   // The loading screen's own plate leaves after the menu wakes.
-  await page.waitForFunction(() => document.querySelectorAll(".menu-body").length === 1);
+  await page.getByTestId("loading").waitFor({ state: "hidden", timeout: 120_000 });
   await page.evaluate(() => document.fonts.ready);
   await pointerAway(page);
   await mediaDecodes(ctx, page, "menu");
-  const body = page.locator("main.menu .menu-body");
+  const body = page.locator("main.menu:not(.loading):not([inert]) .menu-body");
   await ctx.matchBaseline(body, "menu", { style: MENU_UNPINNED });
   // The pages open in the plate's place: its top edge stays where the main
   // page's is, except the tutorial's, a plate as tall as the screen.
   const homeTop = (await body.boundingBox())?.y;
   for (const entry of ["skirmish", "settings", "developer"]) {
-    await page.locator(`[data-page="${entry}"]`).click();
+    await page.locator(`main.menu:not(.loading):not([inert]) [data-page="${entry}"]`).click();
     const top = (await body.boundingBox())?.y;
     ctx.check(
       `menu ${entry}: the plate's top stays where the main page's is`,
@@ -312,7 +322,7 @@ export async function run(ctx) {
   }
   // The developer page lists every lab: it changes as labs come and go.
   for (const entry of ["skirmish", "tutorial", "settings"]) {
-    await page.locator(`[data-page="${entry}"]`).click();
+    await page.locator(`main.menu:not(.loading):not([inert]) [data-page="${entry}"]`).click();
     await pointerAway(page);
     await mediaDecodes(ctx, page, `menu ${entry}`);
     // The page's pictures, drawn before the picture of the page is taken.
@@ -320,6 +330,20 @@ export async function run(ctx) {
       [...document.querySelectorAll(".menu-body img")].every((i) => i.complete),
     );
     await contained(ctx, page, `menu ${entry}`);
+    if (entry === "settings") {
+      const choices = await page
+        .getByRole("radio")
+        .evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-label")));
+      ctx.check(
+        "menu settings exposes exactly the four graphics choices",
+        JSON.stringify(choices) === JSON.stringify(["Auto-detect", "Low", "Medium", "High"]),
+        JSON.stringify(choices),
+      );
+      ctx.check(
+        "menu settings has one active graphics choice",
+        (await page.getByRole("radio", { checked: true }).count()) === 1,
+      );
+    }
     await ctx.matchBaseline(body, `menu-${entry}`, { style: MENU_UNPINNED });
     await page.keyboard.press("Escape");
   }

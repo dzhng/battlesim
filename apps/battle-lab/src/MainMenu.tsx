@@ -24,6 +24,7 @@ import { MAP_SIZES, MAP_TYPES, type MapSize, type MapType } from "@web/maps/sour
 import { FACTIONS } from "@packages/scene-assets/src/units";
 import { askedChoice, battleHref, playHref, REGIONS, spoken } from "./battleLinks";
 import { DiagnosticsControls } from "./DiagnosticsControls";
+import { GraphicsSettingsControls } from "./GraphicsSettingsControls";
 import { SoundControls } from "./SoundControls";
 import { Tutorial } from "./Tutorial";
 import { MenuBackdrop } from "./MenuBackdrop";
@@ -31,6 +32,7 @@ import { LOADING_STAGES, LoadingTasks, useLoadingTasks } from "./LabLoading";
 import { LoadingScreen } from "./LoadingScreen";
 import { Wordmark } from "./Wordmark";
 import { APP_COMMIT, simFingerprint } from "./buildIdentity";
+import { GraphicsDetectionHost } from "./GraphicsDetectionHost";
 
 interface Entry {
   label: string;
@@ -270,7 +272,7 @@ export function MainMenu() {
   const [homeHeight, setHomeHeight] = useState<number | null>(null);
   useLayoutEffect(() => {
     const el = plate.current;
-    if (page !== null || !el) return;
+    if (page !== null || !el || typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver(([entry]) =>
       setHomeHeight(entry.borderBoxSize[0].blockSize),
     );
@@ -312,6 +314,7 @@ export function MainMenu() {
         {page === "tutorial" && <Tutorial />}
         {page === "settings" && (
           <>
+            <GraphicsSettingsControls />
             <SoundControls />
             <DiagnosticsControls />
             <nav aria-label="Graphics">
@@ -342,9 +345,11 @@ export function MainMenu() {
               : ({ "--menu-home-height": `${homeHeight}px` } as CSSProperties)
           }
         >
-          <div className="hud-panel menu-body" ref={plate}>
-            {content}
-          </div>
+          <GraphicsDetectionHost runner={null} enabled={!loading}>
+            <div className="hud-panel menu-body" ref={plate}>
+              {content}
+            </div>
+          </GraphicsDetectionHost>
         </div>
       </main>
       {loading && (

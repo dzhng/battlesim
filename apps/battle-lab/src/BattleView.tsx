@@ -30,6 +30,8 @@ import { useBattleSession, type BattleSession } from "./useBattleSession";
 import type { ScriptedSim } from "./useSimSession";
 import type { ViewportPilot } from "./LabViewport";
 import { useFeed } from "./feed";
+import { useSyncExternalStore } from "react";
+import { graphicsProfiles, graphicsSettings, resolveEffectiveTier } from "./graphicsSettings";
 import {
   RangeRulerLabels,
   type RangeRulerLabelsHandle,
@@ -145,6 +147,8 @@ export function BattleView({
   const objectiveMarkers = useRef<ObjectiveMarkersHandle>(null);
   const { clear: clearCues } = cues;
   const pause = usePauseMenu(sim.client, menuOpen, setMenuOpen);
+  const graphics = useSyncExternalStore(graphicsSettings.subscribe, graphicsSettings.get);
+  const quality = graphicsProfiles[resolveEffectiveTier(graphics.mode, graphics.detectedMode)];
   const { audio } = session;
   useEffect(() => {
     clearCues();
@@ -263,6 +267,7 @@ export function BattleView({
             objectiveMarkers.current?.place(project, surfaceZ);
           }}
           diagnostics={{ ...session.probes, ...diagnostics?.(session) }}
+          quality={quality}
         />
       )}
       <ObjectiveMarkers
@@ -343,6 +348,7 @@ export function BattleView({
                   sim.restart();
                 }
           }
+          onSettingsApply={() => window.__lab?.rebuild?.()}
         >
           {menu?.(session)}
         </PauseMenu>

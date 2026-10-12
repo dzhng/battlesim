@@ -86,6 +86,8 @@ pub struct Lists {
 
 pub struct BuildingWalk {
     pub buildings: Buildings,
+    /// The tier rule as authored, and as drawn (`set_lod_scale`).
+    authored_lod: [f64; 3],
     lod: [f64; 3],
     pool: usize,
     chunk_m: f64,
@@ -105,6 +107,12 @@ pub struct BuildingWalk {
 }
 
 impl BuildingWalk {
+    /// Draws the tier rule's thresholds `scale` times their authored values
+    /// (a graphics quality: below 1 a building coarsens nearer the eye).
+    pub fn set_lod_scale(&mut self, scale: f64) {
+        self.lod = self.authored_lod.map(|v| v * scale);
+    }
+
     /// `buildings` drawn under the tier rule `lod` (pixels a metre covers at
     /// a chunk's nearest point for tiers 0 to 2), in `chunk_m` chunks, with a
     /// pool of `pool` rows.
@@ -127,6 +135,7 @@ impl BuildingWalk {
         Self {
             fallen: vec![None; buildings.len()],
             buildings,
+            authored_lod: lod,
             lod,
             pool,
             chunk_m,

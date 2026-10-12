@@ -1,6 +1,20 @@
 // @vitest-environment node
-import { expect, test } from "vitest";
-import { loadRegistry, parseArgs, pinnedFixtures, selectFixtures } from "./scene.mjs";
+import { expect, test, vi } from "vitest";
+import {
+  loadRegistry,
+  nativeToolPath,
+  parseArgs,
+  pinnedFixtures,
+  selectFixtures,
+} from "./scene.mjs";
+
+test("native helpers live in the durable Cargo target by default", () => {
+  vi.stubEnv("CARGO_TARGET_DIR", "target");
+  expect(nativeToolPath("debug/examples/mechanics_validate")).toMatch(
+    /[\\/]target[\\/]debug[\\/]examples[\\/]mechanics_validate$/,
+  );
+  vi.unstubAllEnvs();
+});
 
 test("scene args: fixture ids, the bun `--` separator, --list and --visual", () => {
   expect(parseArgs(["--", "foundation"])).toEqual({

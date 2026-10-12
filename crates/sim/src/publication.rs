@@ -20,7 +20,7 @@ use contract::command::{Engagement, MoveDirection, RoutePolicy, TargetRef};
 use contract::ids::Side;
 use contract::observation::{
     ActionReason, ContactSource, EncounterResult, GarrisonPhase, LeanSide, MemberLean, MoveState,
-    ObservationFrame, Posture, SegmentHit, ServiceStatus, SoundBand, SoundCategory,
+    ObservationFrame, Posture, SegmentHit, ServiceStatus, SoundBand, SoundCategory, SoundCue,
     SuppressionTier, WeaponPose,
 };
 use contract::scenario::CoverTier;
@@ -892,7 +892,7 @@ fn pack_record(
         frame.own.len() as f32,
         frame.identified.len() as f32,
         frame.contacts.len() as f32,
-        frame.audible.len() as f32,
+        published_audible(frame).count() as f32,
         frame.known_props.len() as f32,
         frame.projectiles.len() as f32,
         frame.blasts.len() as f32,
@@ -1140,7 +1140,7 @@ fn pack_record(
     if let Some(ends) = ends.as_mut() {
         ends.push(out.len());
     }
-    for a in &frame.audible {
+    for a in published_audible(frame) {
         out.extend([
             a.listener.0 as f32,
             tag(&SOUND_CATEGORIES, &a.category),
@@ -1451,6 +1451,16 @@ fn pack_record(
     Ok(())
 }
 
+/// The sound cues the publication carries. An unseen shout's cue stays in
+/// the simulation's frame until the layout publishes shouts, so the bytes a
+/// client reads do not change before then.
+fn published_audible(frame: &ObservationFrame) -> impl Iterator<Item = &SoundCue> {
+    frame
+        .audible
+        .iter()
+        .filter(|a| a.category != SoundCategory::Shout)
+}
+
 fn packed_len(frame: &ObservationFrame, fog: usize, runs: usize) -> Result<usize, String> {
     let mut length = HEADER.len();
     let mut add = |rows: usize, width: usize| -> Result<(), String> {
@@ -1519,7 +1529,7 @@ fn packed_len(frame: &ObservationFrame, fog: usize, runs: usize) -> Result<usize
         add(u.weapon_poses.len(), POSE_FIELDS.len())?;
     }
     add(frame.contacts.len(), CONTACT_FIELDS.len())?;
-    add(frame.audible.len(), AUDIBLE_FIELDS.len())?;
+    add(published_audible(frame).count(), AUDIBLE_FIELDS.len())?;
     add(frame.projectiles.len(), PROJECTILE_FIELDS.len())?;
     for p in &frame.projectiles {
         add(p.path.len(), 3)?;

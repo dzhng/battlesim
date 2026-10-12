@@ -22,7 +22,7 @@ const VIEWPORT = { width: 1280, height: 720 };
 
 /** Refuse to start without what the route needs, naming how to build it. */
 async function prerequisites() {
-  const target = process.env.CARGO_TARGET_DIR ?? "throwaway/target";
+  const target = process.env.CARGO_TARGET_DIR ?? "target";
   const needs = [
     [new URL("web/src/wasm/game_wasm_bg.wasm", ROOT), "the WebAssembly (bun run build:wasm)"],
     [

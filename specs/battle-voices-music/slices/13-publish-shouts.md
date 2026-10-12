@@ -20,7 +20,7 @@
 
 **`crates/contract/src/observation.rs:14-15`:** amend the `IdentifiedUnit` comment to name the audible exception: a seen enemy's shouts reveal stress and suppression (decision D5).
 
-**`SoundCategory::Shout`** (added and emitted in slice 12) travels in the existing `audible` group. Its bytes are covered by this same re-bless, so the re-bless happens exactly once.
+**`SoundCategory::Shout`** (added and emitted in slice 12) travels in the existing `audible` group. Its bytes are covered by this same re-bless, so the re-bless happens exactly once. Slice 12 keeps it out of the bytes: add `Shout` to `SOUND_CATEGORIES` and delete `published_audible`, which filters it.
 
 **Contract test:** the layout's trigger tags equal `BARK_TRIGGERS` in `voiceCatalog.ts`, and every role in `voices.json` scripts every tag.
 

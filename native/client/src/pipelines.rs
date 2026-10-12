@@ -266,6 +266,30 @@ pub enum Pipeline {
 pub struct Pipelines {
     pipelines: HashMap<String, Pipeline>,
     layouts: HashMap<String, BindGroupLayout>,
+    /// Each pipeline's bind group layouts, by slot.
+    slots: HashMap<String, Vec<String>>,
+}
+
+/// A render pipeline and the layouts its bind group slots take, so a pass
+/// binds groups by the layout they fill rather than by number.
+#[derive(Clone)]
+pub struct Bound {
+    pub pipeline: RenderPipeline,
+    slots: Vec<String>,
+}
+
+impl Bound {
+    /// Sets the pipeline, and each slot's group from `groups` by layout name.
+    pub fn set(&self, pass: &mut RenderPass, groups: &[(&str, &BindGroup)]) {
+        pass.set_pipeline(&self.pipeline);
+        for (i, slot) in self.slots.iter().enumerate() {
+            let (_, group) = groups
+                .iter()
+                .find(|(name, _)| name == slot)
+                .unwrap_or_else(|| panic!("no bind group for layout {slot}"));
+            pass.set_bind_group(i as u32, *group, &[]);
+        }
+    }
 }
 
 impl Pipelines {
@@ -285,6 +309,11 @@ impl Pipelines {
             layouts.insert(name.clone(), layout);
         }
         let mut pipelines = HashMap::new();
+        let slots = export
+            .pipelines
+            .iter()
+            .map(|d| (d.name.clone(), d.layout.clone()))
+            .collect();
         let mut failures = Vec::new();
         for desc in &export.pipelines {
             let scope = device.push_error_scope(ErrorFilter::Validation);
@@ -306,7 +335,11 @@ impl Pipelines {
                 failures.join("\n")
             ));
         }
-        Ok(Self { pipelines, layouts })
+        Ok(Self {
+            pipelines,
+            layouts,
+            slots,
+        })
     }
 
     /// The names of every pipeline built.
@@ -318,6 +351,14 @@ impl Pipelines {
         match self.pipelines.get(name) {
             Some(Pipeline::Render(p)) => p,
             _ => panic!("no render pipeline {name} in the export"),
+        }
+    }
+
+    /// The render pipeline `name` with its slots' layouts.
+    pub fn bound(&self, name: &str) -> Bound {
+        Bound {
+            pipeline: self.render(name).clone(),
+            slots: self.slots[name].clone(),
         }
     }
 

@@ -187,6 +187,9 @@ pub struct Presentation {
     known_from: KnownFrom,
     sun: Option<Sun>,
     statics: StaticBatches,
+    /// The units' and the buildings' tier thresholds over their authored
+    /// values (`set_detail_scale`).
+    detail_scale: [f64; 2],
     world: World,
     frame: Frame,
 }
@@ -230,6 +233,7 @@ impl Presentation {
             known_from: KnownFrom::Unread,
             sun: None,
             statics: StaticBatches::default(),
+            detail_scale: [1.0, 1.0],
             world: World::default(),
             frame: Frame::default(),
         })
@@ -309,12 +313,13 @@ impl Presentation {
                         self.world.row(kit, module, NONE, 0, true)
                     })
                     .collect();
-                let walk = BuildingWalk::new(
+                let mut walk = BuildingWalk::new(
                     buildings,
                     style.lod_px_per_m,
                     style.chunk_m,
                     style.pool_records,
                 );
+                walk.set_lod_scale(self.detail_scale[1]);
                 Some(BuildingPopulation { walk, rows })
             }
         };
@@ -466,6 +471,66 @@ impl Presentation {
     /// none without buildings.
     pub fn building_stats(&self) -> Option<&[usize]> {
         self.buildings.as_ref().map(|b| &b.walk.stats[..])
+    }
+
+    /// Draws the units' tiers at `units` and the buildings' at `buildings`
+    /// times their authored thresholds (a graphics quality; 1 as authored).
+    pub fn set_detail_scale(&mut self, units: f64, buildings: f64) {
+        self.detail_scale = [units, buildings];
+        if let Some(b) = &mut self.buildings {
+            b.walk.set_lod_scale(buildings);
+        }
+        self.statics.invalidate();
+    }
+
+    /// A skinned row's body as it holds still (`World.appearances`): a
+    /// corpse row as it lies (its `corpse_poses` entry), a body row in its
+    /// far pose (what its impostor card shows). Each joint's bind-to-model
+    /// motion: a renderer skins the body's mesh by it once, when it loads
+    /// the row (`posedMesh`), and draws that mesh where the frame's
+    /// instance takes the identity. None for a rigid row, or before a world
+    /// loads.
+    pub fn rest_palette(&self, row: u32) -> Option<Vec<Joint>> {
+        let loaded = self.loaded.as_ref()?;
+        let r = self.world.appearances.get(row as usize)?;
+        let name = self
+            .world
+            .strings
+            .get(r.name as usize..(r.name + r.name_len) as usize)?;
+        let Some(Appearance::Skinned {
+            joints,
+            clips,
+            table,
+            far_pose,
+            corpse_poses,
+            ..
+        }) = loaded.units.appearances.get(name)
+        else {
+            return None;
+        };
+        let pose = match r.lies {
+            NONE => far_pose,
+            lies => corpse_poses.get(lies as usize)?,
+        };
+        let mut worlds = Vec::new();
+        let table = loaded.tables.get(table)?;
+        skin::joint_worlds(
+            joints,
+            clips,
+            table,
+            &pose.clip,
+            pose.phase,
+            None,
+            &mut worlds,
+        );
+        let ibs = &loaded.inverse_binds[name];
+        Some(
+            worlds
+                .iter()
+                .zip(ibs)
+                .map(|(w, ib)| joint(&skin::affine(&skin::mul(w, ib))))
+                .collect(),
+        )
     }
 
     /// The presentation time at wall time `wall_s` (live only).
@@ -667,7 +732,7 @@ impl Presentation {
         };
         let f = &mut self.frame;
         f.tick = sample.observation.tick as u32;
-        loaded.frame(sample, &view, ui, &self.world, f);
+        loaded.frame(sample, &view, ui, &self.world, self.detail_scale[0], f);
         Ok(&self.frame)
     }
 }
@@ -687,7 +752,15 @@ impl Loaded {
         self.sound = Some((publication, launches));
     }
 
-    fn frame(&mut self, sample: &FrameSample, view: &View, ui: &Ui, world: &World, f: &mut Frame) {
+    fn frame(
+        &mut self,
+        sample: &FrameSample,
+        view: &View,
+        ui: &Ui,
+        world: &World,
+        unit_scale: f64,
+        f: &mut Frame,
+    ) {
         let Loaded {
             input,
             units,
@@ -720,7 +793,8 @@ impl Loaded {
         f.counts.dropped = batch.dropped as u32;
 
         let side: &str = &input.side;
-        let detail = units.detail;
+        let mut detail = units.detail;
+        detail.lod_px = detail.lod_px.map(|v| v * unit_scale);
         let xray = input.xray;
         let o = &sample.observation;
         let indoor: Vec<f64> = o

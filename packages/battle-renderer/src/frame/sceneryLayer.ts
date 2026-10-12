@@ -414,6 +414,7 @@ export async function createSceneryLayer(
   root: Root,
   registry: GpuRegistry,
   environment: EnvironmentFrame,
+  lodScale = 1,
 ) {
   /** Shading shared by both populations: albedo, leaf clumps and the light. */
   const surface = tgpu.fn(
@@ -650,7 +651,7 @@ export async function createSceneryLayer(
       staged: createStagedLevels(chunks),
       casts,
       meshes,
-      lodPx,
+      lodPx: lodPx.map((value) => value * lodScale) as unknown as TierView["lodPx"],
       far: chunks.sorted.map((instances) => {
         const buffer = scope.own(instanceBuffer(root, instances.length / INSTANCE_FLOATS));
         if (instances.length) buffer.write(instances.buffer);
@@ -676,9 +677,7 @@ export async function createSceneryLayer(
 
   /** Write the first `count` records (`stride` floats each) of `data` into
    *  `held`'s buffer, made anew by `make` at twice the need when too small. */
-  function writeGrowing<
-    B extends Releasable & { write: (data: ArrayBuffer, options: { endOffset: number }) => void },
-  >(
+  function writeGrowing<B extends Releasable & { write: (data: ArrayBuffer) => void }>(
     held: { slot: GpuSlot<B>; capacity: number },
     data: Float32Array,
     count: number,
@@ -690,7 +689,10 @@ export async function createSceneryLayer(
       held.capacity = Math.max(64, count * 2);
       held.slot.set(make(held.capacity));
     }
-    held.slot.current!.write(data.buffer as ArrayBuffer, { endOffset: count * stride * 4 });
+    // The staged records' first `count`, as a view: the staging array holds
+    // the whole population and may outsize the GPU buffer. TypeGPU copies a
+    // view's bytes as it does a buffer's, though its types name only buffers.
+    held.slot.current!.write(data.subarray(0, count * stride) as unknown as ArrayBuffer);
   }
 
   function upload(pop: Population) {

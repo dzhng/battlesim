@@ -88,25 +88,28 @@ impl Replay {
             serde_json::from_value(manifest["lens"].clone()).map_err(|e| format!("lens: {e}"))?;
         let physics = &game["physics"];
         let input: WorldInput = serde_json::from_value(json!({
-            "units": manifest["units"],
-            "effects": manifest["effects"],
-            "side": capture.side,
-            "tick_hz": capture.tick_hz,
+            "battle": {
+                "units": manifest["units"],
+                "effects": manifest["effects"],
+                "side": capture.side,
+                "tick_hz": capture.tick_hz,
+                "soldier": {
+                    "radius_m": physics["soldier_radius_m"],
+                    "height_m": physics["soldier_height_m"],
+                },
+                // The UI's colours: a replay selects nothing and shows no
+                // x-ray or ghost, so no frame reads them.
+                "xray": { "own": [0, 0, 0, 0], "selected": [0, 0, 0, 0] },
+                "blocked": [0, 0, 0, 0],
+                "cruise_agl_m": game["air"]["cruise_agl_m"],
+            },
             "sun_azimuth": light.sun_azimuth,
             "sun_elevation": light.sun_elevation,
-            "soldier": {
-                "radius_m": physics["soldier_radius_m"],
-                "height_m": physics["soldier_height_m"],
-            },
-            // The UI's colours: a replay selects nothing and shows no x-ray
-            // or ghost, so no frame reads them.
-            "xray": { "own": [0, 0, 0, 0], "selected": [0, 0, 0, 0] },
-            "blocked": [0, 0, 0, 0],
-            "cruise_agl_m": game["air"]["cruise_agl_m"],
         }))
         .map_err(|e| format!("world: {e}"))?;
         let mut tables = ClipTables::new();
-        for a in input.units.appearances.values() {
+        let units = &input.battle.as_ref().ok_or("world: no battle")?.units;
+        for a in units.appearances.values() {
             if let Appearance::Skinned { table, .. } = a {
                 let path = dir.join(format!("units-{table}.u32"));
                 let bytes = fs::read(&path).map_err(|e| format!("{}: {e}", path.display()))?;
@@ -117,8 +120,9 @@ impl Replay {
                 );
             }
         }
-        let mut presentation = Presentation::new(&capture.layout, capture.tick_hz)?;
-        presentation.load_world(input, tables)?;
+        let mut presentation = Presentation::new(Some(&capture.layout), capture.tick_hz)?;
+        // The static world (buildings, ground) arrives with the ground step.
+        presentation.load_world(input, tables, None)?;
         Ok(Self {
             dir: dir.to_owned(),
             records: capture.frames,
@@ -132,6 +136,11 @@ impl Replay {
             lens,
             presentation,
         })
+    }
+
+    /// The presentation the replay drives: its world names what the models load.
+    pub fn presentation(&self) -> &Presentation {
+        &self.presentation
     }
 
     /// Frames `record`: pushes the publications up to its tick, then asks
@@ -153,8 +162,7 @@ impl Replay {
             near: self.lens.near,
             size: record.canvas,
         };
-        Ok(self
-            .presentation
-            .frame(record.sim_time, &camera, &Ui::default()))
+        self.presentation
+            .frame(record.sim_time, &camera, &Ui::default())
     }
 }
