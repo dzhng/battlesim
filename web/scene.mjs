@@ -261,7 +261,13 @@ export async function run(fixtures) {
               if (m.type() !== "error") return;
               const text = m.text();
               pageErrors.push(`${fixture.id}: ${text}`);
-              if (fatalGpuMessage(text)) fatalGpuErrors.set(page, text);
+              if (fatalGpuMessage(text)) {
+                fatalGpuErrors.set(page, text);
+                // Scenes that own their readiness loop (graphics-test,
+                // parity capture) do not call openLab. Closing the poisoned
+                // page makes their Playwright wait reject immediately too.
+                void page.close().catch(() => {});
+              }
             });
           }
           return page;
