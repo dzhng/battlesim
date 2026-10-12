@@ -1,6 +1,6 @@
 import { beginGpuAdmission } from "../gpuAdmission";
 import { tgpu, d, std, common, type TgpuFn, type TgpuBindGroup } from "typegpu";
-import type { BloomSettings, PostSettings } from "../light/sceneLight";
+import type { ResolvedLight } from "../light/sceneLight";
 import {
   GRADE_LUMA,
   BLOOM_KERNEL_RADII,
@@ -14,7 +14,7 @@ import {
   postDirectWgsl,
 } from "../shaders/post";
 
-/** The grade uniform: `PostSettings` as the final pass reads it. */
+/** The grade uniform (`presentation::records::Grade`). */
 const Grade = d.struct({
   saturation: d.f32,
   contrast: d.f32,
@@ -26,32 +26,8 @@ const Grade = d.struct({
   lift: d.vec4f,
 });
 
-function gradeUniform(settings: PostSettings) {
-  const g = settings.grade;
-  const numbers = [
-    settings.exposure,
-    g.saturation,
-    g.contrast,
-    g.split_tone,
-    g.shadow_lift,
-    ...g.shadow_tint,
-    ...g.highlight_tint,
-    ...g.lift,
-  ];
-  if (!numbers.every(Number.isFinite)) throw new Error("Post parameters must be finite");
-  return {
-    saturation: g.saturation,
-    contrast: g.contrast,
-    splitTone: g.split_tone,
-    shadowLift: g.shadow_lift,
-    exposure: settings.exposure,
-    shadowTint: d.vec4f(...g.shadow_tint, 1),
-    highlightTint: d.vec4f(...g.highlight_tint, 1),
-    lift: d.vec4f(...g.lift, 0),
-  };
-}
-/** The bloom uniform: `presentation.light.bloom` as the highpass and the
- *  composite read it. */
+/** The bloom uniform (`presentation::records::Bloom`), as the highpass and
+ *  the composite read it. */
 const Bloom = d.struct({
   /** Each blurred level's share of the composite. */
   weights: d.vec4f,
@@ -61,19 +37,6 @@ const Bloom = d.struct({
   threshold: d.f32,
   knee: d.f32,
 });
-
-function bloomUniform(bloom: BloomSettings): d.Infer<typeof Bloom> {
-  const [w0, w1, w2, w3, w4] = [1, 0.8, 0.6, 0.4, 0.2].map(
-    (f) => f * (1 - bloom.radius) + (1.2 - f) * bloom.radius,
-  );
-  return {
-    weights: d.vec4f(w0, w1, w2, w3),
-    weight4: w4,
-    strength: bloom.strength,
-    threshold: bloom.threshold,
-    knee: bloom.threshold + bloom.smooth_width,
-  };
-}
 
 const highpassLayout = tgpu.bindGroupLayout({
   linearSampler: { sampler: "filtering" },
@@ -108,16 +71,16 @@ const finalLayout = tgpu.bindGroupLayout({
 export type PostMode = "look" | "ungraded" | "raw";
 
 /** Borrowed input/output/device; TypeGPU owns all intermediate HDR resources and
- * pipeline encoding. Adapted: `settings` (exposure, grade,
- * bloom from `presentation.light`) are fixed for the chain's life, so their
- * uniforms are written once; the shaders depend on neither them nor the size. */
+ * pipeline encoding. The light's bloom and grade records are fixed for the
+ * chain's life, so their uniforms are written once; the shaders depend on
+ * neither them nor the size. */
 export async function createTypegpuPost(
   device: GPUDevice,
   input: GPUTextureView,
   width: number,
   height: number,
   outputFormat: GPUTextureFormat,
-  settings: PostSettings,
+  light: Pick<ResolvedLight, "bloom" | "grade">,
 ) {
   if (!Number.isInteger(width) || !Number.isInteger(height) || width < 64 || height < 64)
     throw new Error("Five-level parity bloom requires a framebuffer at least 64×64");
@@ -148,10 +111,12 @@ export async function createTypegpuPost(
   };
   try {
     const sampler = root.createSampler({ minFilter: "linear", magFilter: "linear" });
-    const uniform = root.createBuffer(Grade, gradeUniform(settings)).$usage("uniform");
+    const uniform = root.createBuffer(Grade).$usage("uniform");
+    uniform.write(light.grade.buffer);
     owned.push(uniform);
     root.unwrap(uniform);
-    const bloom = root.createBuffer(Bloom, bloomUniform(settings.bloom)).$usage("uniform");
+    const bloom = root.createBuffer(Bloom).$usage("uniform");
+    bloom.write(light.bloom.buffer);
     owned.push(bloom);
     root.unwrap(bloom);
     root.unwrap(sampler);

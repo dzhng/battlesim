@@ -3,7 +3,7 @@
 //! exported WGSL's member of the same name, and the records span the struct.
 //! A renderer uploads the record's bytes as they are.
 use naga::{Module, TypeInner};
-use presentation::records::{Bloom, Grade, Layout, SkyLight, View};
+use presentation::records::{Aerial, Bloom, Grade, Layout, SkyLight, Sun, View};
 use std::fs;
 
 fn module(file: &str) -> Module {
@@ -71,6 +71,8 @@ fn the_light_records_are_the_shaders_structs() {
         ("bloomHighpass.wgsl", "Bloom", &Bloom::LAYOUT),
         ("bloomComposite.wgsl", "Bloom", &Bloom::LAYOUT),
         ("postLook.wgsl", "Grade", &Grade::LAYOUT),
+        ("worldOpaque.wgsl", "Aerial", &Aerial::LAYOUT),
+        ("effects.wgsl", "Aerial", &Aerial::LAYOUT),
     ] {
         let (want, span) = members(&module(file), name);
         assert_eq!(fields(layout, ""), want, "{file} {name}");
@@ -83,4 +85,21 @@ fn the_view_carries_the_sky_s_rays() {
     let (want, span) = members(&module("background.wgsl"), "Rays");
     assert_eq!(fields(&View::LAYOUT, "sky_"), want);
     assert_eq!(span, 48, "three vec3f, as the view's three rays");
+}
+
+#[test]
+fn the_sun_is_the_environment_s_light_after_its_view() {
+    let (members, _) = members(&module("worldOpaque.wgsl"), "Environment");
+    let at = |name: &str| members.iter().find(|(n, _)| n == name).unwrap().1;
+    let base = at("sunDirection");
+    let want: Vec<(String, u32)> = ["sunDirection", "sunRadiance", "settings", "fill"]
+        .iter()
+        .map(|n| (n.to_string(), at(n) - base))
+        .collect();
+    assert_eq!(fields(&Sun::LAYOUT, ""), want);
+    assert_eq!(
+        at("aerial") - base,
+        Sun::LAYOUT.size as u32,
+        "the haze follows the sun"
+    );
 }

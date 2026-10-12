@@ -8,6 +8,7 @@ import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "nod
 import { describe, expect, it } from "vitest";
 import { createBattleFrame } from "@packages/battle-renderer/src/frame/battleFrame";
 import type { LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
+import { resolveLight } from "@web/battle/sim/presentation";
 import { benchWorld } from "../../apps/battle-lab/src/workbench/benchWorld";
 import { gameLight } from "../../apps/battle-lab/src/gameLight";
 import { gameFogGeometry, gameFogStyle } from "../../apps/battle-lab/src/gameFog";
@@ -36,7 +37,7 @@ installGpuGlobals(FLIPBOOK_SIZE);
 async function record(light: LightPresentation, width: number, height: number) {
   const { device, recording } = recordingGpuDevice();
   const frame = await createBattleFrame(device, "bgra8unorm", {
-    light,
+    light: await resolveLight(light),
     fogGeometry: gameFogGeometry,
     fogStyle: gameFogStyle,
     overlayGlow: gameOverlayGlow,

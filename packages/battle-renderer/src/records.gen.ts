@@ -232,6 +232,60 @@ export const SkyLight = {
 } as const;
 export const SKY_LIGHT_WORDS = 36;
 
+/** The haze (`Aerial` in every lit shader's environment uniform): extinction over distance from the camera's ground focus, a range term, a sunward Mie tint and a low valley mist. */
+export const Aerial = {
+  /** Per-channel extinction σ (km⁻¹). (f32 × 3) */
+  extinction: 0,
+  /** No haze within this distance of the focus (km). (f32) */
+  clear_radius_km: 3,
+  /** The sunward Mie tint (linear rgb) and its strength. (f32 × 3) */
+  sun_tint: 4,
+  /**  (f32) */
+  sun_strength: 7,
+  /** The valley mist's colour (linear rgb) and how much of it the far air takes. (f32 × 3) */
+  mist_color: 8,
+  /**  (f32) */
+  mist_color_strength: 11,
+  /**  (f32) */
+  overview_from_m: 12,
+  /**  (f32) */
+  range_near_m: 13,
+  /**  (f32) */
+  range_far_m: 14,
+  /**  (f32) */
+  range_power: 15,
+  /**  (f32) */
+  range_strength: 16,
+  /**  (f32) */
+  mist_opacity: 17,
+  /**  (f32) */
+  sun_power: 18,
+  /**  (f32) */
+  pad0: 19,
+  /** The mist's height band and distance ramp (m). (f32 × 2) */
+  mist_height_m: 20,
+  /**  (f32 × 2) */
+  mist_distance_m: 22,
+  /** Where the horizon's sky takes over from the view's, below and above it. (f32 × 2) */
+  horizon_fade: 24,
+  /**  (f32 × 2) */
+  pad1: 26,
+} as const;
+export const AERIAL_WORDS = 28;
+
+/** The sun and the shadow fill, as the environment uniform carries them after its view (`sunDirection` to `fill`). */
+export const Sun = {
+  /** Unit vector toward the sun; w 0. (f32 × 4) */
+  sun_direction: 0,
+  /** The sun's colour (its transmittance, greyed by overcast) times its intensity, linear rgb; w 0. (f32 × 4) */
+  sun_radiance: 4,
+  /** x the renderer's environment map's top mip (0 here); y the share of the sun a sun-shadowed surface keeps. (f32 × 4) */
+  settings: 8,
+  /** Linear rgb multiplier on the sky's environment light; w 0. (f32 × 4) */
+  fill: 12,
+} as const;
+export const SUN_WORDS = 16;
+
 /** The bloom (`Bloom` in post's highpass and composite). */
 export const Bloom = {
   /** The first four blurred levels' shares of the composite. (f32 × 4) */

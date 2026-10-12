@@ -3,7 +3,7 @@
  * and each drawn frame's records (`records.gen.ts`), out. Rust decodes,
  * interpolates, poses and makes the effects; the page hands the frame's
  * views straight to the renderer and reads the UI's facts from them. */
-import init, { Presentation } from "@wasm/presentation/presentation_wasm.js";
+import init, { Presentation, light_records } from "@wasm/presentation/presentation_wasm.js";
 import wasmUrl from "@wasm/presentation/presentation_wasm_bg.wasm?url";
 import {
   APPEARANCE_WORDS,
@@ -11,6 +11,11 @@ import {
   frameViews,
   worldViews,
 } from "@packages/battle-renderer/src/records.gen";
+import {
+  resolvedLight,
+  type LightPresentation,
+  type ResolvedLight,
+} from "@packages/battle-renderer/src/light/sceneLight";
 import type { Articulation } from "@packages/scene-assets/src/articulation";
 import type { HeardPublication } from "@packages/battle-audio/src/soundFrame";
 import { countedFetch } from "../../downloads";
@@ -37,6 +42,14 @@ export function loadPresentation(): Promise<unknown> {
   return loaded;
 }
 
+/** `presentation.light` resolved by the presentation crate
+ *  (`presentation::light`) into the records the renderer uploads as they
+ *  are. A frame is built with it before any battle loads, and for scenes
+ *  with none, so it needs no `Presentation`, only the module. */
+export async function resolveLight(settings: LightPresentation): Promise<ResolvedLight> {
+  await loadPresentation();
+  return resolvedLight(settings, light_records(JSON.stringify(settings)));
+}
 /** 18b's camera: the eye and what it looks at (m, sim), the screen's up,
  *  the vertical field of view (rad), the near plane (m) and the drawing
  *  size in device pixels. */

@@ -1,20 +1,17 @@
 // @vitest-environment node
 // The battle's light: `presentation.light` in the
 // fixture is the one owner of the sun, sky, haze, grade, bloom and cascades.
+// What the sky, the haze, the sun and post make of it is resolved and tested
+// in the presentation crate (`crates/presentation/tests/light.rs`).
 import { expect, test } from "vitest";
 import game from "@fixtures/game.json";
 import { loadMap } from "@web/maps/node";
 import {
-  postSettings,
   sunDirection,
   validateLight,
   type LightPresentation,
 } from "@packages/battle-renderer/src/light/sceneLight.ts";
-import { skyModelParams } from "@packages/battle-renderer/src/light/skyParameters.ts";
-import { photorealEnvironment } from "@packages/battle-renderer/src/light/physicalEnvironment.ts";
-import { aerial } from "@packages/battle-renderer/src/shaders/aerial.ts";
-import { skyLight } from "@packages/battle-renderer/src/shaders/physicalSky.ts";
-import { aerialParams } from "@packages/battle-renderer/src/light/aerialParameters.ts";
+import { resolveLight } from "@web/battle/sim/presentation";
 import { createTypegpuPost } from "@packages/battle-renderer/src/world/post.ts";
 import { cascadeFrameFit, ShadowFrame } from "@packages/battle-renderer/src/shadowData.ts";
 import { Camera } from "@packages/battle-renderer/src/world/camera.ts";
@@ -54,12 +51,6 @@ function cascadeBlendWeight(
 }
 
 const LIGHT = game.presentation.light as unknown as LightPresentation;
-/** Every number in a uniform's values, its vectors flattened. */
-const numbers = (values: object): number[] =>
-  Object.values(values).flatMap((v: number | Iterable<number>) =>
-    typeof v === "number" ? [v] : [...v],
-  );
-
 const withLight = (edit: (l: LightPresentation) => void): LightPresentation => {
   const copy = structuredClone(LIGHT);
   edit(copy);
@@ -96,28 +87,20 @@ test("the street test map's light is valid, and a broken one is refused by name"
   expect(() => validateLight(withLight((l) => (l.shadow_floor = -0.1)))).toThrow(/shadow_floor/);
 });
 
-test("a sun shadow keeps the light's shadow floor of the sun, and the fixture sets one", () => {
-  // A shadow darker than unseen ground reads as fog.
-  expect(LIGHT.shadow_floor).toBeGreaterThan(0);
-  expect(photorealEnvironment(LIGHT).shadowFloor).toBe(LIGHT.shadow_floor);
-});
-
-test("the sky, the environment light, the haze and the cascades share one sun", () => {
+test("the sky, the environment light and the cascades share one sun", async () => {
   const sun = sunDirection(LIGHT);
   expect(Math.hypot(...sun)).toBeCloseTo(1, 12);
   expect(sun[2]).toBeCloseTo(Math.sin(LIGHT.sun_elevation), 12);
-  expect(skyModelParams(LIGHT).sunDirection).toEqual(sun);
-  expect(photorealEnvironment(LIGHT).sunDirection).toEqual(sun);
+  // The records the sky and the environment upload carry it.
+  const light = await resolveLight(LIGHT);
+  [...light.sky.subarray(0, 3)].forEach((c, i) => expect(c).toBeCloseTo(sun[i], 6));
+  [...light.sun.subarray(0, 3)].forEach((c, i) => expect(c).toBeCloseTo(sun[i], 6));
   // Each cascade light looks down the sun: its view's forward row is -sun.
   const frame = cascadeFrameFit(LIGHT.cascades, camera({}), sun, [30, 400]);
   for (const cascade of frame.cascades) {
     const v = cascade.view;
     [v[2], v[6], v[10]].forEach((c, i) => expect(c).toBeCloseTo(sun[i], 6));
   }
-  // The shown sky's uniform carries the same vector (the haze reads the
-  // environment's).
-  const shown = skyLight(skyModelParams(LIGHT)).sunDirection;
-  [shown.x, shown.y, shown.z].forEach((c, i) => expect(c).toBeCloseTo(sun[i], 6));
 });
 
 const _inCascade_clip = vec3.create();
@@ -238,45 +221,16 @@ test("the strategic camera spends its cascades on the map, 1.6 km out and beyond
   expect(beyond.cappedFar).toBe(LIGHT.cascades.max_far_m);
 });
 
-test("sampled sun elevations and turbidities give finite, non-negative HDR light", () => {
-  for (const sun_elevation of [0.05, 0.3, LIGHT.sun_elevation, 1.2, Math.PI / 2])
-    for (const turbidity of [1, LIGHT.sky.turbidity, 6, 12]) {
-      const light = validateLight(
-        withLight((l) => {
-          l.sun_elevation = sun_elevation;
-          l.sky.turbidity = turbidity;
-        }),
-      );
-      const env = photorealEnvironment(light);
-      const radiance = env.sunColor.map((c) => c * env.sunIntensity);
-      const haze = aerialParams(light);
-      for (const v of [...radiance, ...env.fill, ...haze.extinction, haze.visibilityKm]) {
-        expect(Number.isFinite(v), `elevation ${sun_elevation}, turbidity ${turbidity}`).toBe(true);
-        expect(v).toBeGreaterThanOrEqual(0);
-      }
-      expect(numbers(aerial(light)).every(Number.isFinite)).toBe(true);
-    }
-});
-
 test("post encodes sRGB itself, so it refuses an sRGB canvas that would encode twice", async () => {
   const device = null as unknown as GPUDevice;
   const input = null as unknown as GPUTextureView;
-  const post = postSettings(LIGHT);
+  const post = await resolveLight(LIGHT);
   await expect(createTypegpuPost(device, input, 256, 256, "bgra8unorm-srgb", post)).rejects.toThrow(
     /sRGB/,
   );
 });
 
-test("a sunny sky carries fair-weather clouds that give way to the overcast dome, and a cloud field past full is refused", () => {
-  const clouds = skyModelParams(LIGHT).clouds;
-  expect(clouds.coverage).toBeGreaterThan(0);
-  expect(clouds.opacity).toBeGreaterThan(0.5);
-  // Overcast is one grey dome: no separate cloud field over it.
-  const overcast = withLight((l) => {
-    l.sky.turbidity = 12;
-  });
-  expect(skyModelParams(overcast).clouds.opacity).toBe(0);
-  expect(numbers(skyLight(skyModelParams(LIGHT))).every(Number.isFinite)).toBe(true);
+test("a cloud field past full is refused by name", () => {
   expect(() =>
     validateLight(
       withLight((l) => {

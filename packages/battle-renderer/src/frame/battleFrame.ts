@@ -23,7 +23,7 @@ import { Camera, typegpuCameraLayout } from "../world/camera";
 import { createTypegpuPost } from "../world/post";
 import { frameCamera } from "../frameCamera";
 import { battleWorldDepth } from "../worldDepth";
-import type { LightPresentation } from "../light/sceneLight";
+import type { ResolvedLight } from "../light/sceneLight";
 import type { FogGeometryPresentation } from "./fogInputs";
 import type { FogStyle } from "./fogStyle";
 import { createEnvironmentFrame } from "./environmentFrame";
@@ -51,8 +51,9 @@ const EMPTY = new Float32Array(0);
 const MIN_TARGET_PX = 64;
 
 export interface BattleFrameOptions {
-  /** `presentation.light`: sun, sky, haze, grade, bloom and cascades. */
-  light: LightPresentation;
+  /** `presentation.light` (sun, sky, haze, grade, bloom and cascades) and
+   *  the records the presentation crate resolved from it. */
+  light: ResolvedLight;
   /** `presentation.fog_geometry`: the sight lights' resolution and budgets. */
   fogGeometry: FogGeometryPresentation;
   /** The unseen look to start with (`presentation.fog`'s selected style). */
@@ -126,7 +127,7 @@ export async function createBattleFrame(
         width,
         height,
         displayFormat,
-        environment.post,
+        options.light,
       );
       scope.adopt(post.dispose);
       const fog = world.fogTiles(scope, width, height, t.depth, t.paint);
@@ -159,9 +160,9 @@ export async function createBattleFrame(
       const detailView = createDetailView();
       const shadow = { fall: [0, 0] as [number, number], reach: 0 };
       const sun = {
-        azimuth: options.light.sun_azimuth,
-        elevation: options.light.sun_elevation,
-        maxFarM: options.light.cascades.max_far_m,
+        azimuth: options.light.settings.sun_azimuth,
+        elevation: options.light.settings.sun_elevation,
+        maxFarM: options.light.settings.cascades.max_far_m,
       };
       const rebuild = (width: number, height: number) =>
         targets.ensure(width, height).then(

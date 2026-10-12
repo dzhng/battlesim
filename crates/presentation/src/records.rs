@@ -289,6 +289,51 @@ records! {
         pad1: f32,
     }
 
+    /// The haze (`Aerial` in every lit shader's environment uniform):
+    /// extinction over distance from the camera's ground focus, a range
+    /// term, a sunward Mie tint and a low valley mist.
+    Plain Aerial {
+        /// Per-channel extinction σ (km⁻¹).
+        extinction: [f32; 3],
+        /// No haze within this distance of the focus (km).
+        clear_radius_km: f32,
+        /// The sunward Mie tint (linear rgb) and its strength.
+        sun_tint: [f32; 3],
+        sun_strength: f32,
+        /// The valley mist's colour (linear rgb) and how much of it the far air takes.
+        mist_color: [f32; 3],
+        mist_color_strength: f32,
+        overview_from_m: f32,
+        range_near_m: f32,
+        range_far_m: f32,
+        range_power: f32,
+        range_strength: f32,
+        mist_opacity: f32,
+        sun_power: f32,
+        pad0: f32,
+        /// The mist's height band and distance ramp (m).
+        mist_height_m: [f32; 2],
+        mist_distance_m: [f32; 2],
+        /// Where the horizon's sky takes over from the view's, below and above it.
+        horizon_fade: [f32; 2],
+        pad1: [f32; 2],
+    }
+
+    /// The sun and the shadow fill, as the environment uniform carries them
+    /// after its view (`sunDirection` to `fill`).
+    Plain Sun {
+        /// Unit vector toward the sun; w 0.
+        sun_direction: [f32; 4],
+        /// The sun's colour (its transmittance, greyed by overcast) times its
+        /// intensity, linear rgb; w 0.
+        sun_radiance: [f32; 4],
+        /// x the renderer's environment map's top mip (0 here); y the share
+        /// of the sun a sun-shadowed surface keeps.
+        settings: [f32; 4],
+        /// Linear rgb multiplier on the sky's environment light; w 0.
+        fill: [f32; 4],
+    }
+
     /// The bloom (`Bloom` in post's highpass and composite).
     Plain Bloom {
         /// The first four blurred levels' shares of the composite.

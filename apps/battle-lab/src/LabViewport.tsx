@@ -75,7 +75,11 @@ import {
   type EffectCounts,
   type ModelCounts,
 } from "./presentedFrame";
-import type { PresentedAppearance, PresentedFrame } from "@web/battle/sim/presentation";
+import {
+  resolveLight,
+  type PresentedAppearance,
+  type PresentedFrame,
+} from "@web/battle/sim/presentation";
 import type { Mesh } from "@packages/battle-renderer/src/mesh";
 import { pickBox, proxyPickBox, type PickBox } from "@packages/battle-renderer/src/picking";
 
@@ -696,7 +700,7 @@ export function LabViewport({
         const light = () => lightRef.current ?? gameLightFor(window.location.search);
         const build = async () => {
           const next = await createBattleFrame(device!, info.format, {
-            light: light(),
+            light: await resolveLight(light()),
             fogGeometry: gameFogGeometry,
             fogStyle: fogStyleRef.current ?? gameFogStyle,
             overlayGlow: gameOverlayGlow,

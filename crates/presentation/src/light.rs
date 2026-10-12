@@ -1,13 +1,13 @@
 //! The battle's light as the shaders read it (18b's `World.light`): the
-//! fixture's `presentation.light` resolved into the sky's, the bloom's and the
-//! grade's uniform records. The sky model is the browser's
-//! (`skyParameters.ts`, `skyLight` in `physicalSky.ts`): a Hillaire-style
-//! atmosphere whose turbidity sets the haze and the overcast, and a cumulus
-//! layer over it. A renderer bakes its sky lookup from [`SkyLight`] and
-//! derives nothing itself.
+//! fixture's `presentation.light` resolved into the uniform records of the
+//! sky, the haze, the sun and post ([`LightRecords`]). The sky model is a
+//! Hillaire-style atmosphere whose turbidity sets the haze, the sun's tint and
+//! the overcast, with a cumulus layer over it. Both clients upload the records
+//! as they are: a renderer bakes its sky lookup from [`SkyLight`] and derives
+//! nothing itself.
 use serde::Deserialize;
 
-use crate::records::{Bloom, Grade, SkyLight};
+use crate::records::{Aerial, Bloom, Grade, SkyLight, Sun};
 
 // Earth's atmosphere (Hillaire, EGSR 2020), in km, z up: the bake's constants.
 const PLANET_RADIUS_KM: f64 = 6360.0;
@@ -25,14 +25,27 @@ const LOW_SUN_AUREOLE_RADIANCE: f64 = 0.55;
 /// The lower hemisphere's ground bounce (dry earth).
 const GROUND_BOUNCE_TINT: [f64; 3] = [0.34, 0.3, 0.25];
 const SUN_DISC_RADIANCE: f64 = 2.5;
+/// Neutral ground-fog extinction (km⁻¹) per (turbidity − onset)²: heavy
+/// weather only; clear turbidities add none.
+const FOG_COEFF_KM: f64 = 0.026;
+const FOG_TURBIDITY_ONSET: f64 = 4.0;
+/// Where the haze's horizon sky takes over from the view's: the fade below
+/// and above the horizon, widened as the visibility clears from 8 to 32 km.
+const HORIZON_FADE_Z: [f64; 2] = [-0.18, 0.06];
+const HORIZON_CLEAR_EXTRA_Z: [f64; 2] = [0.2, 0.08];
+const HORIZON_VISIBILITY_KM: [f64; 2] = [8.0, 32.0];
 
-/// `presentation.light`, as far as the sky and post read it.
+/// `presentation.light`, as far as the records read it.
 #[derive(Clone, Debug, Deserialize)]
 pub struct LightSettings {
     /// About +z from +x, and above the ground (rad).
     pub sun_azimuth: f64,
     pub sun_elevation: f64,
+    pub sun_intensity: f64,
+    /// The share of the sun a sun-shadowed surface keeps.
+    pub shadow_floor: f64,
     pub sky: SkySettings,
+    pub haze: HazeSettings,
     pub exposure: f64,
     pub grade: GradeSettings,
     pub bloom: BloomSettings,
@@ -44,7 +57,53 @@ pub struct SkySettings {
     pub turbidity: f64,
     /// The single-scattered sky's brightness against the sunlit ground.
     pub radiance: f64,
+    /// Multiplies the sky's environment light per linear channel: the shadow fill.
+    pub fill: [f64; 3],
     pub clouds: CloudSettings,
+}
+
+/// The haze's curve over the physical extinction.
+#[derive(Clone, Debug, Deserialize)]
+pub struct HazeSettings {
+    pub distance_scale: f64,
+    pub clear_radius_m: f64,
+    pub overview_from_m: f64,
+    pub range_near_m: f64,
+    pub range_far_m: f64,
+    pub range_power: f64,
+    pub range_strength: f64,
+    pub sun_tint: [f64; 3],
+    pub sun_strength: f64,
+    pub sun_power: f64,
+    pub mist_color: [f64; 3],
+    pub mist_height_m: [f64; 2],
+    pub mist_distance_m: [f64; 2],
+    pub mist_color_strength: f64,
+    pub mist_opacity: f64,
+}
+
+/// Every uniform record the light resolves to.
+#[derive(Clone, Copy, Debug)]
+pub struct LightRecords {
+    pub sky: SkyLight,
+    pub aerial: Aerial,
+    pub sun: Sun,
+    pub bloom: Bloom,
+    pub grade: Grade,
+}
+
+impl LightRecords {
+    /// The records' words in order (sky, aerial, sun, bloom, grade): what the
+    /// browser's binding hands the page.
+    pub fn words(&self) -> Vec<f32> {
+        let mut out = Vec::new();
+        out.extend_from_slice(bytemuck::cast_slice(&[self.sky]));
+        out.extend_from_slice(bytemuck::cast_slice(&[self.aerial]));
+        out.extend_from_slice(bytemuck::cast_slice(&[self.sun]));
+        out.extend_from_slice(bytemuck::cast_slice(&[self.bloom]));
+        out.extend_from_slice(bytemuck::cast_slice(&[self.grade]));
+        out
+    }
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -121,6 +180,72 @@ fn f32s<const N: usize>(v: [f64; N]) -> [f32; N] {
 }
 
 impl LightSettings {
+    /// Every record, resolved.
+    pub fn records(&self) -> LightRecords {
+        LightRecords {
+            sky: self.sky(),
+            aerial: self.aerial(),
+            sun: self.sun(),
+            bloom: self.bloom(),
+            grade: self.grade(),
+        }
+    }
+
+    /// The sun as the environment carries it: its tint is the atmosphere's
+    /// transmittance toward it, greyed as the overcast diffuses it.
+    pub fn sun(&self) -> Sun {
+        let sun = self.sun_direction();
+        let overcast = smoothstep(4.0, 7.0, self.sky.turbidity);
+        let t = transmittance_to_sun(sun, self.sky.turbidity);
+        let lum = 0.2126 * t[0] + 0.7152 * t[1] + 0.0722 * t[2];
+        let colour = t.map(|c| c + (lum - c) * overcast);
+        let [r, g, b] = colour.map(|c| c * self.sun_intensity);
+        let fill = self.sky.fill;
+        Sun {
+            sun_direction: f32s([sun[0], sun[1], sun[2], 0.0]),
+            sun_radiance: f32s([r, g, b, 0.0]),
+            settings: [0.0, self.shadow_floor as f32, 0.0, 0.0],
+            fill: f32s([fill[0], fill[1], fill[2], 0.0]),
+        }
+    }
+
+    /// The haze: turbidity gives the physical extinction, the haze settings
+    /// its curve.
+    pub fn aerial(&self) -> Aerial {
+        let h = &self.haze;
+        let turbidity = self.sky.turbidity;
+        let mie = mie_scale(turbidity) * BETA_MIE_EXTINCTION;
+        let fog = FOG_COEFF_KM * (turbidity - FOG_TURBIDITY_ONSET).max(0.0).powi(2);
+        let extinction = BETA_RAYLEIGH.map(|r| (r + mie) * h.distance_scale + fog);
+        // Koschmieder's visibility: a clearer air widens the horizon's fade.
+        let visibility_km = 3.912 / ((extinction[0] + extinction[1] + extinction[2]) / 3.0);
+        let [near, far] = HORIZON_VISIBILITY_KM;
+        let thin = ((visibility_km - near) / (far - near)).clamp(0.0, 1.0);
+        Aerial {
+            extinction: f32s(extinction),
+            clear_radius_km: (h.clear_radius_m / 1000.0) as f32,
+            sun_tint: f32s(h.sun_tint),
+            sun_strength: h.sun_strength as f32,
+            mist_color: f32s(h.mist_color),
+            mist_color_strength: h.mist_color_strength as f32,
+            overview_from_m: h.overview_from_m as f32,
+            range_near_m: h.range_near_m as f32,
+            range_far_m: h.range_far_m as f32,
+            range_power: h.range_power as f32,
+            range_strength: h.range_strength as f32,
+            mist_opacity: h.mist_opacity as f32,
+            sun_power: h.sun_power as f32,
+            pad0: 0.0,
+            mist_height_m: f32s(h.mist_height_m),
+            mist_distance_m: f32s(h.mist_distance_m),
+            horizon_fade: f32s([
+                HORIZON_FADE_Z[0] - HORIZON_CLEAR_EXTRA_Z[0] * thin,
+                HORIZON_FADE_Z[1] + HORIZON_CLEAR_EXTRA_Z[1] * thin,
+            ]),
+            pad1: [0.0; 2],
+        }
+    }
+
     /// Unit vector toward the sun (z up).
     pub fn sun_direction(&self) -> [f64; 3] {
         let (az, el) = (self.sun_azimuth, self.sun_elevation);

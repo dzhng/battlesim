@@ -1,5 +1,4 @@
 import { tgpu, d, common } from "typegpu";
-import type { SkyModelParams } from "../light/skyParameters";
 import { SKY_LUT_WIDTH, SKY_LUT_HEIGHT } from "../light/skyParameters";
 import {
   type SkyRays,
@@ -9,7 +8,6 @@ import {
   skyDiscWgsl,
   skyCloudsWgsl,
   SkyLight,
-  skyLight,
   cloudHashWgsl,
   cloudNoiseWgsl,
   cloudFbmWgsl,
@@ -18,10 +16,11 @@ import {
 const Rays = d.struct({ origin: d.vec3f, dx: d.vec3f, dy: d.vec3f });
 
 /** Linear HDR sky only: no exposure, tone mapping, PMREM or environment lighting.
- *  The shown background carries the cloud layer; the baked LUT stays clear. */
+ *  The shown background carries the cloud layer; the baked LUT stays clear.
+ *  `record` is the light's `SkyLight` record. */
 export async function createTypegpuSky(
   device: GPUDevice,
-  params: SkyModelParams,
+  record: Float32Array<ArrayBuffer>,
   backgroundSamples: 1 | 4,
 ) {
   const root = tgpu.initFromDevice({ device });
@@ -29,7 +28,8 @@ export async function createTypegpuSky(
     .createTexture({ size: [SKY_LUT_WIDTH, SKY_LUT_HEIGHT], format: "rgba16float" })
     .$usage("render", "sampled");
   const rays = root.createBuffer(Rays).$usage("uniform");
-  const light = root.createBuffer(SkyLight, skyLight(params)).$usage("uniform");
+  const light = root.createBuffer(SkyLight).$usage("uniform");
+  light.write(record.buffer);
   const lightUniform = light.as("uniform");
   const sampler = root.createSampler({
     minFilter: "linear",

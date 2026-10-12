@@ -223,3 +223,14 @@ impl Presentation {
 pub fn launches(publications: &str) -> Result<String, JsError> {
     Inner::launches_json(publications).map_err(error)
 }
+
+/// The battle's light (`presentation.light`, JSON) resolved into its uniform
+/// records' words in order: sky, aerial, sun, bloom, grade (`light.rs`). The
+/// renderer needs them when it builds its frame, before any battle loads and
+/// for scenes with none, so this needs no `Presentation`.
+#[wasm_bindgen]
+pub fn light_records(light: &str) -> Result<Vec<f32>, JsError> {
+    let settings: presentation::light::LightSettings = serde_json::from_str(light)
+        .map_err(|e| JsError::new(&format!("presentation.light: {e}")))?;
+    Ok(settings.records().words())
+}

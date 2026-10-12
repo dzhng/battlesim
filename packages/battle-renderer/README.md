@@ -39,6 +39,9 @@ its region's appearances.
 [Renderer core](../renderer-core/README.md) owns the live camera and depth convention.
 [Light](src/light/sceneLight.ts) shares one fixture-owned sun and environment;
 [world shading](src/world/) and [shader functions](src/shaders/) reuse it.
+What the sky, the haze, the sun and post make of the light is resolved in Rust
+(`presentation::light`): the frame is built with those uniform records and
+uploads them as they are, so both clients light a battle from one derivation.
 The [sky](src/world/sky.ts) shows a fair-weather cloud layer over the clear
 atmosphere it bakes; the environment light is baked clear, so clouds never dim
 the sun on the ground.

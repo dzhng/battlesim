@@ -1,8 +1,9 @@
-// Renderer-independent WGSL bodies. Constants/preset derivation remain owned by
-// skyParameters; these mirror SkyModel's TSL operations, including its z clamp.
-// The material consumer must also retain NodeMaterial's final max(output, 0).
-// The text is the same for every battle: the light's numbers arrive in the
-// `SkyLight` uniform (`skyLight`), bound to these bodies as `skyLight`.
+// Renderer-independent WGSL bodies. The atmosphere's constants are
+// skyParameters'; these mirror SkyModel's TSL operations, including its z
+// clamp. The material consumer must also retain NodeMaterial's final
+// max(output, 0). The text is the same for every battle: the light's numbers
+// arrive in the `SkyLight` uniform, the record the presentation crate
+// resolves (`presentation::light`), bound to these bodies as `skyLight`.
 import { d } from "typegpu";
 import * as sky from "../light/skyParameters";
 import type { Vec3 } from "math";
@@ -68,48 +69,6 @@ export const SkyLight = d.struct({
   /** A shaded base's radiance, before the sky shows through it. */
   cloudBase: d.vec3f,
 });
-
-/** `a · b · k` per channel as a shader compiler folds constants: in f32, left
- *  to right. These products were once literals, so the uniform carries the
- *  folded value and the picture keeps its last bit. */
-function folded(a: readonly number[], b: number, k = 1) {
-  const f32 = Math.fround;
-  const [x, y, z] = a.map((v) => f32(f32(f32(v) * f32(b)) * f32(k)));
-  return d.vec3f(x, y, z);
-}
-
-/** The `SkyLight` values for `p`. */
-export function skyLight(p: sky.SkyModelParams): d.Infer<typeof SkyLight> {
-  const c = p.clouds;
-  // The sun's bearing across the layer (any, for a sun overhead).
-  const across = Math.hypot(p.sunDirection[0], p.sunDirection[1]);
-  const toSun = across > 1e-6 ? [p.sunDirection[0] / across, p.sunDirection[1] / across] : [1, 0];
-  const lo = 1 - c.coverage;
-  const [gx, gy, gz] = sky.GROUND_BOUNCE_TINT.map((v) => v + (0.88 - v) * p.overcast);
-  return {
-    sunDirection: d.vec3f(...p.sunDirection),
-    overcast: p.overcast,
-    sunTransmittance: d.vec3f(...p.sunTransmittance),
-    radiance: p.radiance,
-    groundTint: d.vec3f(gx, gy, gz),
-    mieScatter: sky.BETA_MIE_SCATTER * p.mieScale,
-    mieExtinction: sky.BETA_MIE_EXTINCTION * p.mieScale,
-    multipleScatter: (sky.MS_FLOOR * Math.sqrt(Math.max(p.sunDirection[2], 0))) / (4 * Math.PI),
-    aureole: sky.lowSunAureoleStrength(p.sunDirection[2], p.overcast),
-    overcastScale: Math.sqrt(Math.max(p.sunDirection[2], 0.05)),
-    discRadiance: sky.SUN_DISC_RADIANCE * (1 - p.overcast),
-    cloudReach: c.height_m / c.scale_m,
-    cloudEdge: d.vec2f(lo - c.softness, lo + c.softness),
-    cloudToSun: d.vec2f(toSun[0] * 0.07, toSun[1] * 0.07),
-    cloudLow: lo,
-    cloudShadowTop: lo + 0.3,
-    cloudCoreTop: lo + 0.35,
-    cloudOpacity: c.opacity,
-    cloudLit: folded(p.sunTransmittance, c.radiance),
-    cloudSilver: c.radiance * 0.6,
-    cloudBase: folded(c.shade, c.radiance, 0.7),
-  };
-}
 
 const R0 = sky.PLANET_RADIUS_KM + sky.EYE_ALTITUDE_KM;
 const G2 = sky.MIE_G * sky.MIE_G;

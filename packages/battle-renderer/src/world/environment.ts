@@ -7,14 +7,12 @@ import {
 } from "./shadow";
 import { typegpuTextureBytes } from "./textureUpload";
 import { tgpu, d, std } from "typegpu";
-import type { LightPresentation } from "../light/sceneLight";
-import { photorealEnvironment } from "../light/physicalEnvironment";
-import { skyModelParams } from "../light/skyParameters";
+import { sunDirection, type ResolvedLight } from "../light/sceneLight";
 import { createTypegpuSky } from "./sky";
 import { createTypegpuPmrem } from "./pmrem";
 import { samplePmrem } from "./pmremSampling";
 import { standardPbrWgsl } from "../shaders/standardPbr";
-import { Aerial, aerial, aerialWgsl } from "../shaders/aerial";
+import { Aerial, aerialWgsl } from "../shaders/aerial";
 import { equirectUvWgsl } from "../shaders/physicalSky";
 import { DFG_LUT_DATA, DFG_LUT_SIZE } from "../shaders/dfgLut";
 import { shadeEnvironmentWgsl } from "../shaders/environment";
@@ -39,6 +37,17 @@ export const Environment = d.struct({
   /** The battle's haze (`shaders/aerial.ts`). */
   aerial: Aerial,
 });
+/** Where the light's records and the view lie in the uniform, in words: the
+ *  `Sun` record covers `sunDirection` to `fill`, the `Aerial` record `aerial`. */
+const word = (field: (e: d.Infer<typeof Environment>) => unknown) =>
+  d.memoryLayoutOf(Environment, field).offset / 4;
+const AT = {
+  view: word((e) => e.worldToView),
+  observer: word((e) => e.observer),
+  sun: word((e) => e.sunDirection),
+  topMip: word((e) => e.settings.x),
+  aerial: word((e) => e.aerial),
+};
 const environmentEntries = {
   data: { uniform: Environment, visibility: ["vertex", "fragment"] },
   /** The frame's cast lights (`light/castLights.ts`): flashes, motors, bursts, fires. */
@@ -265,7 +274,7 @@ const unlit = tgpu.fn(
 /** TypeGPU resource ownership; exposed GPU views are borrowed by component bindings. */
 export async function createTypegpuEnvironment(
   device: GPUDevice,
-  light: LightPresentation,
+  light: ResolvedLight,
   backgroundSamples: 1 | 4,
   shadow: TypegpuSunShadow,
 ) {
@@ -279,7 +288,7 @@ export async function createTypegpuEnvironment(
     root.destroy();
   };
   try {
-    const sky = await createTypegpuSky(device, skyModelParams(light), backgroundSamples);
+    const sky = await createTypegpuSky(device, light.sky, backgroundSamples);
     owned.push({ destroy: sky.dispose });
     const pmrem = await createTypegpuPmrem(device, sky.lut);
     owned.push({ destroy: pmrem.dispose });
@@ -308,8 +317,11 @@ export async function createTypegpuEnvironment(
       sunDepth: shadow.receiverView,
       sunCompare: shadow.comparison,
     });
-    const spec = photorealEnvironment(light);
-    const haze = aerial(light);
+    // The light's part of the uniform is set once; the view's each frame.
+    const image = new Float32Array(d.sizeOf(Environment) / 4);
+    image.set(light.sun, AT.sun);
+    image[AT.topMip] = pmrem.maxMip;
+    image.set(light.aerial, AT.aerial);
     return {
       group,
       /** The environment uniform and PMREM as raw resources, for raw passes
@@ -320,7 +332,7 @@ export async function createTypegpuEnvironment(
       unlit,
       sky,
       /** The one sun direction every material shades with. */
-      sunDirection: spec.sunDirection as readonly [number, number, number],
+      sunDirection: sunDirection(light.settings) as readonly [number, number, number],
       /** This frame's cast lights, a packed `CastLights` image
        *  (`packCastLights`): only the header and the lights in use are sent. */
       setCastLights(image: Float32Array<ArrayBuffer>, count: number) {
@@ -331,18 +343,9 @@ export async function createTypegpuEnvironment(
       setView(worldToView: ArrayLike<number>, observer: readonly [number, number, number]) {
         if (disposed) throw Error("TypeGPU environment disposed");
         if (worldToView.length !== 16) throw Error("Expected camera view matrix");
-        data.write({
-          worldToView: Array.from(worldToView),
-          observer: d.vec4f(...observer, 0),
-          sunDirection: d.vec4f(...spec.sunDirection, 0),
-          sunRadiance: d.vec4f(
-            ...(spec.sunColor.map((c) => c * spec.sunIntensity) as [number, number, number]),
-            0,
-          ),
-          settings: d.vec4f(pmrem.maxMip, spec.shadowFloor, 0, 0),
-          fill: d.vec4f(...spec.fill, 0),
-          aerial: haze,
-        });
+        image.set(worldToView, AT.view);
+        image.set(observer, AT.observer);
+        data.write(image.buffer);
       },
       dispose,
     };

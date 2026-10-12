@@ -1,6 +1,4 @@
 import { d } from "typegpu";
-import type { LightPresentation } from "../light/sceneLight";
-import { aerialParams, aerialHorizonFade, HORIZON_SKY_Z } from "../light/aerialParameters";
 
 // Adapted from ~/dev/game battle-renderer/src/shaders/aerial.ts (reuse
 // manifest). Local changes: reads `presentation.light`; a view looking down
@@ -8,7 +6,11 @@ import { aerialParams, aerialHorizonFade, HORIZON_SKY_Z } from "../light/aerialP
 // the LUT's ground-bounce hemisphere (which hazed a high camera khaki). The
 // light's numbers arrive in the `Aerial` uniform, so one text serves every battle.
 
-/** The haze's per-battle numbers (`aerialParams`), as the environment uniform carries them. */
+/** How far above the horizon the haze looks for the horizon's sky. */
+const HORIZON_SKY_Z = 0.004;
+
+/** The haze's per-battle numbers (`presentation::records::Aerial`, which the
+ *  presentation crate resolves), as the environment uniform carries them. */
 export const Aerial = d.struct({
   /** Per-channel extinction σ (km⁻¹), and the clear radius around the focus (km). */
   extinction: d.vec3f,
@@ -32,30 +34,6 @@ export const Aerial = d.struct({
   /** Where the horizon's sky takes over from the view's, below and above it. */
   horizonFade: d.vec2f,
 });
-
-/** The `Aerial` values for `light`. */
-export function aerial(light: LightPresentation): d.Infer<typeof Aerial> {
-  const p = aerialParams(light);
-  const horizon = aerialHorizonFade(p.visibilityKm);
-  return {
-    extinction: d.vec3f(...p.extinction),
-    clearRadiusKm: p.clearRadiusKm,
-    sunTint: d.vec3f(...p.sunMieTint),
-    sunStrength: p.sunMieStrength,
-    mistColor: d.vec3f(...p.valleyMistColor),
-    mistColorStrength: p.valleyMistColorStrength,
-    overviewFromM: p.overviewFromM,
-    rangeNearM: p.rangeFogNearM,
-    rangeFarM: p.rangeFogFarM,
-    rangePower: p.rangeFogPower,
-    rangeStrength: p.rangeFogStrength,
-    mistOpacity: p.valleyMistOpacityBoost,
-    sunPower: p.sunMiePower,
-    mistHeightM: d.vec2f(p.valleyMistHeightBottomM, p.valleyMistHeightTopM),
-    mistDistanceM: d.vec2f(p.valleyMistDistanceStartM, p.valleyMistDistanceFullM),
-    horizonFade: d.vec2f(horizon.horizonFadeStart, horizon.horizonFadeEnd),
-  };
-}
 
 const f = (v: number) => `${v.toExponential(16)}f`;
 
