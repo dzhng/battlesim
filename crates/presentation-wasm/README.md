@@ -11,7 +11,9 @@ per entity. A view lasts until the next call into the module, which may grow its
 memory. The game UI's observation comes out of `observation()`, as JSON in the
 shape of `web/src/battle/sim/observationView.ts`, with the fog bits and ground
 runs as typed arrays beside it; sound's publication and the labs' probes come out
-as JSON on demand.
+as JSON on demand. The side's learned ground stays in the module: the terrain asks
+`scars_changed`, `scar_regions` and `prepare_scars` each frame and uploads the
+`ScarUpload` it gets, and the page reads the cleared runs and marked cells.
 
 It links the [publication reader](../sim/src/publication/reader.rs) and the
 presentation crate, and no rules, so the main thread never loads the simulation.
