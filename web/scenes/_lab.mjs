@@ -120,6 +120,38 @@ export async function openMenu(page) {
 
 /** The main menu is up, its loading screen gone, showing its list of pages. */
 export async function menuShown(page) {
+  // Browser scenes exercise battle/menu contracts, not first-launch graphics
+  // detection. Seed a valid settled preference before the app mounts so the
+  // startup detector cannot hold the menu behind its fatal/progress gate.
+  const seeded = await page.evaluate(() => {
+    const key = "battle.graphics";
+    try {
+      const current = JSON.parse(localStorage.getItem(key) ?? "null");
+      if (
+        current?.mode === "high" &&
+        current?.detectedMode === "high" &&
+        current?.lastResult?.selectedMode === "high" &&
+        current?.lastResult?.averageFps >= 45
+      )
+        return true;
+    } catch {
+      // Seed below.
+    }
+    localStorage.setItem(
+      key,
+      JSON.stringify({
+        mode: "high",
+        detectedMode: "high",
+        lastResult: { averageFps: 60, onePercentLowFps: 60, selectedMode: "high" },
+      }),
+    );
+    return false;
+  });
+  if (!seeded) {
+    await page.reload();
+  }
+  await page.locator("main.menu:not(.loading):not([inert])").waitFor({ timeout: 120_000 });
+  await page.getByTestId("loading").waitFor({ state: "hidden", timeout: 120_000 });
   await page.getByRole("button", { name: "Skirmish", exact: true }).click({ trial: true });
 }
 
