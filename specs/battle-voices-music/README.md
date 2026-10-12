@@ -2,7 +2,7 @@
 
 ## Next Agent Prompt
 
-**Status (2026-10-11):** planned; nothing is built. The discovery walk with the user and four independent drafts (fewest-slices, risk-first on Codex, seam-quality, asset-pipeline) produced this plan. Every entry in [`choices.md`](choices.md) is a given. It records who closed each decision and why.
+**Status (2026-10-12):** slice 01 built (voice data, 56 sets, hand-written scripts). Slices 07 and 11 are in fix passes in their own worktrees. Next lane-A pickup: slice 02. The discovery walk with the user and four independent drafts (fewest-slices, risk-first on Codex, seam-quality, asset-pipeline) produced this plan. Every entry in [`choices.md`](choices.md) is a given. It records who closed each decision and why.
 
 **Pick up here:**
 - Start [slice 01](slices/01-voice-data.md).
@@ -15,7 +15,7 @@
 - **The battle digest must never change.** A digest change is a bug. Publication parity is re-blessed exactly once, in slice 13, by name.
 
 **Global TODO:**
-- [ ] 01 — Voice data: the `voices.json` schema, the `Generated` provenance kind, the set table, role scripts, assignments for every roster unit, and the `plan` report. [slice](slices/01-voice-data.md)
+- [x] 01 — Voice data: the `voices.json` schema, the `Generated` provenance kind, the set table, role scripts, assignments for every roster unit, and the `plan` report. [slice](slices/01-voice-data.md)
 - [ ] 02 — Generation tool and processing: the proxy client, cache, lock, speech-to-text check, voice profiles in `assets.py`, and mono MP3 under `assets/runtime/audio/voices/`. [slice](slices/02-generator-and-processing.md)
 - [ ] 03 — Voices tab: the workbench review grid, the keyboard review queue, verdicts, and regenerating a take. [slice](slices/03-voices-tab.md)
 - [ ] 04 — Pilot: `us_tank` with all 29 triggers, a credit and mismatch report, then straight on to the batch. [slice](slices/04-pilot.md)

@@ -198,3 +198,20 @@ There were four drafts: A fewest-slices (Claude), B risk-first (Codex), C seam-q
 ## Build log
 
 <!-- Append: date, slice, decision, who closed it, and why. -->
+
+**2026-10-12, slice 01 (agent; Codex implemented, orchestrator reviewed):**
+- **Sets:** 56, more than the planned ~40. Every country × role that the roster actually fields gets its own set, so no accent is borrowed.
+- **Role per unit:** taken from the unit row's own data (roster category, declared roles, squad slot bodies). This puts the Centauro II with tank crews, the Tiger HAD/UHT with attack pilots, the FN-6 team in a Chinese set, and squad-bodied recon rows with recon infantry.
+- **Voices per set:**
+  - Squads of 6 or more get 3 voices.
+  - Sniper, ATGM, MANPADS and small recon teams get 2.
+  - **Vehicle crews get 2:** a commander who speaks responses and a crew member who shouts barks. The spec hadn't said; one voice per crew would sound flat in battle.
+- **Female voices:** 8 sets have a female response voice, covering the attack and transport pilots plus one IFV crew per faction. The user can veto any of them in the Voices tab.
+- **Callsigns:** a national word plus a number ("Dragon 1", "Adler 6"), unique per set.
+- **The four saved T1 voices** sit on `us_tank_crew`, `ru_rifle_squad`, `us_recon_infantry` and `uk_attack_helicopter_pilot`. The alias sets the first pass created were deleted.
+- **Scripts were rewritten by hand** after review found Codex's version mechanical (`[urgent]` stuck on the steady text, duplicated tags):
+  - steady lines carry no tag;
+  - stressed lines carry one tag and different words;
+  - about 1 in 7 stressed lines swear;
+  - sniper teams whisper like recon.
+- **The CLI** is `packages/battle-audio/tools/generate/cli.ts`, run as `bun run generate plan`. It totals 7,108 clips and about 181k characters.
