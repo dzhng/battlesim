@@ -2,9 +2,9 @@
 
 ## Next Agent Prompt
 
-Slice 01 is complete. Pick up slice 02 next. Read this README and `slices/02-renderer-rebuild.md`, then add the one-owner effective profile flow and atomic paused renderer rebuild. Do not wire the settings UI or benchmark startup flow until slice 03/04. Preserve the slice 01 store contract and update this section before ending your pass.
+Slices 01–03 are complete. Pick up slice 04 next. Read `slices/04-auto-detect-startup.md`, then wire the bounded canonical benchmark, first-launch/rerun flow, and fatal startup errors. The shared UI is in `GraphicsSettingsControls.tsx`; its optional `onApply` hook is ready for the BattleView renderer transaction, while menu-only changes persist immediately. Preserve the four-choice contract and update this section before ending your pass.
 
-Status: slice 01 complete; slice 02 next (2026-10-11).
+Status: slices 01–03 complete; slice 04 next (2026-10-11).
 
 ## Goal
 
@@ -55,8 +55,8 @@ Every visual slice must run `screenshot-critique` as the last visual check. Wher
 ## Global checklist
 
 - [x] 01 settings contract and profile tests (`bunx vitest run tests/graphicsSettings.test.ts`; `bunx tsc --noEmit -p tsconfig.json`)
-- [ ] 02 atomic renderer rebuild and grass quality seam
-- [ ] 03 shared settings UI and pause semantics
+- [x] 02 atomic renderer rebuild and grass quality seam
+- [x] 03 shared settings UI and pause semantics (`bun run --cwd web test tests/graphicsSettingsControls.test.tsx tests/pauseMenu.test.tsx`; `bun run typecheck`)
 - [ ] 04 auto-detect benchmark, persistence, startup fatal states
 - [ ] 05 visual/performance closeout and full suite
 

@@ -24,6 +24,7 @@ import { MAP_SIZES, MAP_TYPES, type MapSize, type MapType } from "@web/maps/sour
 import { FACTIONS } from "@packages/scene-assets/src/units";
 import { askedChoice, battleHref, playHref, REGIONS, spoken } from "./battleLinks";
 import { DiagnosticsControls } from "./DiagnosticsControls";
+import { GraphicsSettingsControls } from "./GraphicsSettingsControls";
 import { SoundControls } from "./SoundControls";
 import { Tutorial } from "./Tutorial";
 import { MenuBackdrop } from "./MenuBackdrop";
@@ -312,6 +313,7 @@ export function MainMenu() {
         {page === "tutorial" && <Tutorial />}
         {page === "settings" && (
           <>
+            <GraphicsSettingsControls />
             <SoundControls />
             <DiagnosticsControls />
             <nav aria-label="Graphics">
