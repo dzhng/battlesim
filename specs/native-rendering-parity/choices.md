@@ -686,3 +686,18 @@ Resolves battle voices and music's [N2](../done/battle-voices-music/choices.md#n
 | Native voice takes: a pack's `pack.json` tells the arbitration every voice and take length at once; a take is read and decoded when a line plays it, the last 32 kept (the browser's `DECODED_TAKES`), and calibrated by `bank::source_normalization` as the browser's sink calibrates a take | The browser holds every take's MP3 bytes in memory to dodge the network; native's disk is always there | Agent |
 | Native's duck glides linearly over `glide` (a `kira` tween) where the browser approaches with that time constant; named, as step 7's 60 ms glides were | `kira` has no exponential approach; the dip depth is exact | Agent |
 | Not ported: the unseen-enemy shout pool on native (`shoutPool.ts`'s selection stays the browser's), so an unseen shout is silent natively | Its take selection is a TS rule; moving it to Rust for both clients is its own step | Agent; reported |
+
+### Slice 25, step 6b: fog of war's sight in Rust
+
+| Decision | Why | Closed by |
+| --- | --- | --- |
+| Rust decides every fog upload: eyes, known occluders, map slots, rebuild schedule, horizon and whole-fog records, `FogParams`. A renderer writes one `FogUpload` a frame and runs the passes it names | Rust as smart as it can be; native would otherwise port the same 900 lines | Agent |
+| The renderer calls `prepare_fog` at encode time, with its camera record, rather than `frame()` making it | The rebuild schedule assumes every prepared frame dispatches; the page frames its presentation on ticks it may not render | Agent |
+| Fog reads the latest publication's own units and known props itself, not `know()`'s lab stand-in (`Ui.known`). A lab stands in eyes (`FogSetup.eyes`) or looks through some units (`units`) | The side's sight is the publication's; the labs that stand in buildings have no battle fog | Agent |
+| The side's foliage is still handed in (`WorldView.foliage_cleared`; `files::side_foliage` natively) | Clearing foliage needs the simulation's world, which the page's presentation does not hold | Agent |
+| The geometry joins `Tuning` (`presentation.fog_geometry`, checked by Rust); the frame keeps `tile_px` and `radial_bins`, which the shader text splices | The pipelines are built before any presentation exists; the export holds the text | Agent |
+| `Source` gains `playable` and `PropKinds` (names, drawn-by, occludes); `ground::source(world, extents, layout)` builds it from the simulation's world for native and the tests | One builder of the ground's source | Agent |
+| Native binds each surface's fog group by what it is (`fog::Layer`, `modelFog.ts`'s rule); `Environment` no longer owns a fog group | Units must never be fogged, corpses as the ground; one all-purpose group could not say so | Agent |
+| The equality vectors hash each upload (FNV-1a) and commit the street's publications as words; the knowledge rules are held by Rust unit tests and `buildingKnowledge.test.ts` through Rust | The streams had no fallen or destroyed prop, so two falsifications passed the vectors | Agent |
+| A fog reel (`/graphics-test?fog=1`, `PARITY_FOG=1`) judges native's fog | Neither reel draws fog; the reel's own publications and cameras make the control | Agent |
+| `bareTerrain`'s playable rectangle is `[x, y, width, height]` | Fog reads the simulation's rectangle format; the facade's stations fell outside the old one | Agent |

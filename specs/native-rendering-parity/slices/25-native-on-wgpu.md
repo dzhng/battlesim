@@ -950,3 +950,82 @@ The vector fixture is one generated JSON line (0.6 MB).
 ### Decisions
 
 In `choices.md`, "the score's decisions in Rust". Not ported: native's unseen-enemy shout pool. Its take selection is still the browser's `shoutPool.ts`, so an unseen enemy's shout is silent natively.
+
+## Step 6b: fog of war's sight in Rust; native computes and draws it (2026-10-12, branch `fogsight`)
+
+Step 6 left fog's sight in TypeScript: `fogInputs.ts` and the CPU half of `fogVisibility.ts` assembled the compute's input from the static world and the observation, and native bound an all-zero fog group. Browser first, that derivation moved into `crates/presentation`, equal to the TypeScript word for word, and the TypeScript is deleted. Native then runs the browser's exported fog compute from the same records.
+
+### The contract
+
+- **Rust decides every fog upload** (`presentation::fog::sight`). Its inputs are the ground's `Source` (the height grid, the props with the layout's `occludingPropKinds`, and now the playable rectangle), `presentation.fog_geometry` (now part of `Tuning`, checked by Rust), the rules' sensor numbers, and the side's publications. From these it derives:
+  - the eyes: every own unit's `sight.eyes` at the published tick, keyed `<unit>:<eye>`;
+  - the occluders the side knows: the map's occluding props less those a known prop replaced, plus known props that occlude and are not destroyed;
+  - the map slots, the rebuild schedule, the horizon records, the structures' `wholes` grid and their pass rows, and the `FogParams` record.
+
+  Each frame, `Presentation::prepare_fog(camera, width, height, probes)` returns one `FogUpload`: params, eyes, map sizes, rebuild records and workgroups, foliage, occluders and the `wholes` words when they changed, the structures pass, and the cull's tiles. A renderer writes each piece as given and runs the passes it names.
+- **New records:** `FogParams` (256 B), `FogEye` (48 B) and `FogBox` (32 B). `crates/pipelines/tests/uniforms.rs` holds them to `fogMerge.wgsl`'s and `worldTerrain.wgsl`'s structs. `records.gen.ts` also generates `FOLIAGE_STEP`, `WHOLE_TEXTURE_WIDTH` and `WHOLE_BOX_WORDS`, which the shader text splices.
+- **What a scene asks** (`Presentation::set_fog(FogSetup)`, or none for no fog): `sensors`, and a lab's stand-in `eyes` or the `units` it looks through. The page's `FogRequest` carries them; `ObservationDecoder.setFog` applies it once the ground is set, and `LabViewport` hands it each frame. The side's **foliage** is still the simulation's export (`WorldView.foliage_cleared`, `files::side_foliage` natively), handed over when the side has seen ground cleared.
+- **The renderer** gets fog from the presented ground (`PresentedGround` includes `prepare_fog`, `resend_fog`, `rebuild_fog`, `fog_stats` and `fog_occluders`). `BattleFrameOptions.fogGeometry` keeps only the shader text's `tile_px` and `radial_bins`. `setFog` and `FogInput` are gone. The tile lists are made at a size's first fogged frame.
+- **Native** (`native/client/src/fog.rs`): `Fog::prepare` uploads the frame's `FogUpload`. The `FogSight` pass runs `fogTerrain`, `fogMerge`, `fogWhole` and `fogCull` after the depth prepass. Every fogged material binds the fragment group of what it is (`fog::Layer`, `modelFog.ts`'s rule):
+  - units are never fogged;
+  - a corpse is fogged as the ground under it;
+  - the static world, scenery and the skirt are fogged face by face;
+  - the terrain, grass and backdrop are the painted ground;
+  - water is painted faces;
+  - glass takes no fog.
+
+  `Environment` no longer owns a fog group. A replay draws fog where the manifest lists the `fog` layer.
+- **A fog reel:** `/graphics-test?fog=1` films with the side's fog and lists `fog` in its layers, and `PARITY_FOG=1` passes it from `native-parity-capture`. `bareTerrain`'s playable rectangle is now `[x, y, width, height]`, as the simulation's is.
+- **Deleted TypeScript:** `fogInputs.ts`; `fogVisibility.ts`'s slots, rebuild picks, horizon, whole and affected-eye records, its occluder grid and its parameter packing; `fogVisibility.test.ts`; and the fog derivation in `useBattleSession`.
+
+### Evidence
+
+- **Equality, before deleting the TypeScript.** A scratch Vitest (`throwaway/fogsight/fogDump.scratch.test.ts`) ran the base's `createFogVisibility` on a recording device. On each publication it set the `FogInput` the page built, then encoded a frame, plus a second frame after every third publication. It recorded every buffer and texture write (FNV-1a), the full `FogParams`, every dispatch and every clear. It covered three runs:
+  - paris-corner's whole capture: 181 publications, 241 frames;
+  - market-town's capture window: 7 publications, 9 frames;
+  - the fog labs' street (blue's encounter, 180 ticks): 240 frames, with garrisons and a knowledge change.
+
+  `tests/fog_sight.rs` replays the same streams through `Presentation` (`set_ground`, `set_fog`, `push_publication`, `prepare_fog`), and every frame equals the browser's: params, eyes, rebuild records, occluders, foliage, the `wholes` words, the pass rows, the workgroups and the clears. It was falsified once by moving the horizon sectors' margin. The vectors are `fixtures/fog-sight-vectors.json` (126 KB) and the street's publications (`fog-street-publications.u32`, 204 KB).
+- **The knowledge rules.** The vectors' streams have no fallen or destroyed known props; two falsifications passed the vectors. So the rules have their own tests:
+  - Rust unit tests: a fallen map prop leaves and its remains take its place, and a destroyed or non-occluding known prop never occludes. Ported from `fog.test.ts` and `fogVisibility.test.ts`, as are the grid lookup, the candidates' order, the whole-fog pairing, the west wrap, the garrison's eyes and the immediate rebuild of touched maps.
+  - `buildingKnowledge.test.ts` now asks a Rust presentation for each side's occluders over a shelled compound: blue sees the remains, red the standing building.
+  - `fog.test.ts`'s metamorphic test (a wall the side has not seen never reaches its fog) runs through Rust.
+- **Scenes:** `fog-look` (8 checks), `fog` (9) and `facade` (13, its fog check included) pass after merging main.
+- **Native plates against a fresh fog control.** Neither reel shows fog, so the control is the reel filmed with fog on: `throwaway/native-parity/2026-10-12T19-26-40-508Z` (`PARITY_FOG=1`, both scenes), captured from this tree. Native replays it into `throwaway/fogsight/native/`; pairs and diffs are in `throwaway/fogsight/cmp/`.
+  - Model, scenery and effect counts equal the browser's on every paris-corner plate. On market-town, only plates drawn on a tick boundary differ in effects, as in step 6.
+  - Fog shows on paris-corner 1161 and 1509. Native's fog-on plates differ from its own fog-off replay there by distances of 0.062 and 0.091, and by less than 0.007 elsewhere.
+  - Against the control, paris-corner 1509 has a distance of 0 and 1161 of 0.019. The unseen street, the fogged facades, the hatched balcony undersides, the far building fogged whole, and the unseen patch with its rim lie in the same places with the same look.
+  - The unprimed critique (five pairs) agreed. Every difference it named is the props native does not draw yet (cars, lamps, bollards, hedges): `props20b` landed during this step, and native's model layer leaves their rows (`draws` 7 and 8) to a later step. On market-town 5008, rim patches show where the browser's hedges stand. It found no defect in the hatching.
+  - **One difference that is not fog:** on paris-corner 152 and 1161, native casts a large building shadow across the road that the browser's plate lacks. Native's plates are the same with fog off (distance 0.002), and the browser's fog-off plate shows the same lit road. It is a native-against-browser shadow difference, recorded for step 8's gates.
+- **Browser frame time** (`graphics-fps`, market-town, production, headless, under the GPU lock; base `c34a9f1df` against this branch, interleaved; the reel draws no fog):
+
+  | Run | Load average | avg FPS | 1% low | p95 ms | GPU ms |
+  | --- | --- | --- | --- | --- | --- |
+  | base | 13.6 | 60.1 | 21.1 | 25.42 | 11.03 |
+  | branch | 9.8 | 59.6 | 24.0 | 33.33 | 12.04 |
+  | base | 6.0 | 66.4 | 30.3 | 25.02 | 10.25 |
+  | branch | 6.7 | 67.0 | 36.9 | 25.00 | 10.45 |
+
+  Level within the pairs' swing. The machine was busy with other sessions, so these are not quiet-machine numbers.
+- **Gates:** `cargo test` for `presentation`, `pipelines` and `native-client`; clippy `-D warnings` on those and `presentation-wasm`; `cargo fmt --check`; the web typecheck; oxlint (no errors; the warnings are main's); nine web test files (51 tests).
+
+### Code
+
+Net lines against main, without comments and blank lines (`sight.rs`'s in-module tests counted as tests):
+
+| | Production | Tests |
+| --- | --- | --- |
+| Rust | about +1,940: `fog/sight.rs` about 1,000 (rustfmt's layout), native `fog.rs` about 400, the WASM binding 130, the presentation, `Source`, records and native wiring | about +570 |
+| TypeScript and TSX | −629 | −320 |
+| JS (`native-parity-capture`) | +1 | |
+
+Fixtures: 330 KB of vectors and publications. Generated: `records.gen.ts` (+133). The step adds Rust and removes TypeScript, so the browser's renderer only uploads what it is given.
+
+### Decisions
+
+In `choices.md`, "Slice 25, step 6b".
+
+### Next pickup
+
+- Native draws the props' batches (`draws` 7 and 8): the critique's differences are all props. Bind each through `Layer::Faces`, or `Layer::PaintedFaces` for one movers stand on.
+- Step 8's gates. Look into paris-corner's building shadow on the road (152, 1161), which native casts and the browser does not.
