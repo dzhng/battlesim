@@ -17,11 +17,7 @@ import {
   gamePaint,
   gameXrayMinHiddenFragmentFraction,
 } from "../../apps/battle-lab/src/gameOverlay";
-import {
-  gameBuildingStyle,
-  gameGlass,
-  gameModelDetail,
-} from "../../apps/battle-lab/src/gameModels";
+import { gameGlass, gameModelDetail } from "../../apps/battle-lab/src/gameModels";
 import { FLIPBOOK_SIZE } from "@packages/battle-renderer/src/effects/flipbooks";
 import {
   installGpuGlobals,
@@ -45,7 +41,6 @@ async function record(light: LightPresentation, width: number, height: number) {
     xrayMinHiddenFragmentFraction: gameXrayMinHiddenFragmentFraction,
     models: gameModelDetail,
     glass: gameGlass,
-    buildings: gameBuildingStyle,
     world: benchWorld(null),
     instances: [],
     width,
