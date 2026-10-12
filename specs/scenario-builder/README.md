@@ -2,11 +2,11 @@
 
 ## Status and next pickup
 
-**Status:** the side topology, bundle contract, offline admission, slot ownership, controller takeover, deterministic script runtime, modes, tactical builder, explicit scenario/replay file I/O, normal upload/play route, bundle-owned catalog admission, and embedded audio seams are implemented. Native contract checks, the full 848-test simulation suite, TypeScript checks, focused browser tests, and the builder export browser scene pass. The runtime assets are present; the remaining browser closeout has reached the uploaded-package deployment screen but the normal BattleView checkpoint still needs a warm, responsive Vite/browser run in this checkout.
+**Status:** the side topology, bundle contract, offline admission, slot ownership, controller takeover, deterministic script runtime, modes, tactical builder, explicit scenario/replay file I/O, normal upload/play route, bundle-owned catalog admission, and embedded audio seams are implemented. Native contract checks, the full 848-test simulation suite, TypeScript checks, focused browser tests, and the builder export browser scene pass. The uploaded play route now reaches the normal renderer, where this SwiftShader browser aborts on the existing model texture-array budget (`441` layers requested, `256` device layers); replay and mixed-player browser evidence remains pending on a device/runtime that satisfies that renderer limit.
 
 **Updated:** 2026-10-12.
 
-**Next pickup:** rerun the upload → controller selection → battle → replay browser scene against a warm Vite server, then record the controller takeover, visibility, audio, and replay-digest evidence. Keep the production topology at Blue, Red, and passive Neutral; arbitrary side counts remain a later architecture project.
+**Next pickup:** rerun the upload → controller selection → battle → replay browser scene on a device/runtime with the renderer's required texture-array capacity, then record the controller takeover, visibility, audio, and replay-digest evidence. Keep the production topology at Blue, Red, and passive Neutral; arbitrary side counts remain a later architecture project.
 
 **Topology verdict (2026-10-11):** keep a fixed Blue/Red/Neutral model for this feature. The probe ran the real scenario → Battle → observation/replay path, then added a disposable Neutral variant and the minimum compile adaptations. `sim` compiled only after changing side-owned arrays in movement/route planning; a Neutral battle then panicked at `battle.rs:2448` indexing fixed-two sightings. The inventory found 172 side-indexed/fixed-two owners before the browser UI, plus fixed skirmish/objective/publication assumptions. Arbitrary FFA is deferred; no dynamic-side compatibility layer is carried forward.
 
