@@ -282,7 +282,7 @@ export function MainMenu() {
   const [homeHeight, setHomeHeight] = useState<number | null>(null);
   useLayoutEffect(() => {
     const el = plate.current;
-    if (page !== null || !el) return;
+    if (page !== null || !el || typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver(([entry]) =>
       setHomeHeight(entry.borderBoxSize[0].blockSize),
     );
