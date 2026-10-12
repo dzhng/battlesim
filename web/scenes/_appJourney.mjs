@@ -31,11 +31,12 @@ export async function appJourney(ctx) {
         probe.contexts.push(this);
       }
     };
-    const start = AudioBufferSourceNode.prototype.start;
-    AudioBufferSourceNode.prototype.start = function (...args) {
-      if (this.loop && this.buffer?.duration > 200)
-        probe.music.push({ buffer: this.buffer, offset: args[1] ?? 0 });
-      return start.apply(this, args);
+    // Music streams from media elements: each start's file and position.
+    const play = HTMLMediaElement.prototype.play;
+    HTMLMediaElement.prototype.play = function (...args) {
+      if (this.src.includes("/audio/music/"))
+        probe.music.push({ src: this.src, offset: this.currentTime });
+      return play.apply(this, args);
     };
   });
   await page.goto(new URL(ctx.url).origin);
@@ -51,7 +52,7 @@ export async function appJourney(ctx) {
   await snapshot(ctx, page, "app-journey-menu.png");
   const backdrop = page.workers();
   ctx.check(
-    "menu prepares the actual full recording beside one battle worker, its backdrop's",
+    "menu streams its music beside one battle worker, its backdrop's",
     backdrop.length === 1,
     `${backdrop.length} workers`,
   );
@@ -222,7 +223,7 @@ export async function appJourney(ctx) {
         contexts: p.contexts.length,
         running: p.contexts[0].state,
         offsets: p.music.map((m) => m.offset),
-        sameBuffer: p.music.every((m) => m.buffer === p.music[0].buffer),
+        sameTrack: p.music.every((m) => m.src === p.music[0].src),
         allocations,
         timeOrigin: performance.timeOrigin,
       };
@@ -234,7 +235,7 @@ export async function appJourney(ctx) {
     owners.devices === 1 &&
       owners.contexts === 1 &&
       owners.running === "running" &&
-      owners.sameBuffer &&
+      owners.sameTrack &&
       owners.offsets.every((offset) => offset === 0) &&
       owners.allocations.buffers === 0 &&
       owners.allocations.textures === 0 &&

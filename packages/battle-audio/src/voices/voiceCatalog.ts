@@ -183,6 +183,15 @@ export function lineText(
   return lines[intensity][take].replaceAll("{callsign}", selected.callsign);
 }
 
+/** The triggers a voice speaks: a leader answers, a soldier shouts, a lone voice does both. */
+export function voiceTriggers(voice: Pick<VoiceSpec, "speaks">): readonly Trigger[] {
+  return voice.speaks === "responses"
+    ? RESPONSE_TRIGGERS
+    : voice.speaks === "barks"
+      ? BARK_TRIGGERS
+      : ALL_TRIGGERS;
+}
+
 /** One take of one line: a voice speaking a trigger at an intensity. */
 export interface VoiceTake {
   set: string;

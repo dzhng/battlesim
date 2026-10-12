@@ -45,6 +45,7 @@ function fixture() {
     defaults: {},
     impacts: {},
     effects: {},
+    music: { moods: { menu: [], tension: [], combat: [] }, tracks: {} },
   };
   catalog.sources.test = {
     label: "Test master",
@@ -107,6 +108,7 @@ function fixture() {
   const audition: Auditioner = {
     play: vi.fn(async () => {}),
     live: vi.fn(async () => mix),
+    voice: vi.fn(async () => {}),
     stop: vi.fn(),
   };
   return {

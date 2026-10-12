@@ -3239,7 +3239,7 @@
         "selected": {
           "steady": [
             "{callsign}, go ahead.",
-            "Tank here, send it."
+            "Armour here, send it."
           ],
           "stressed": [
             "[urgent] {callsign}, send it, quick!",
@@ -5228,5 +5228,9 @@
     "europe_vbci_infantry_fighting_vehicle": "de_ifv_crew",
     "europe_vbl_machine_gun_scout": "de_ifv_crew"
   },
-  "retakes": {}
+  "retakes": {
+    "us_tank_crew/lead/selected/steady/1": 1,
+    "us_tank_crew/lead/attack/steady/0": 1,
+    "us_tank_crew/lead/attack/stressed/0": 1
+  }
 }

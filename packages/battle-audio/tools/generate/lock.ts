@@ -42,6 +42,42 @@ export function readLock(path: string): VoiceLock {
   return { beds: lock.beds ?? {}, takes: lock.takes ?? {} };
 }
 
+/** A take's standing verdict: one given to other bytes no longer holds. */
+export function verdictOf(record: TakeRecord): "ok" | "bad" | null {
+  return record.verdict?.sha256 === record.served_sha256 ? record.verdict.value : null;
+}
+
+/**
+ * `generate verdict`: judges takes named `<take>@<served sha256>`, the bytes the
+ * reviewer heard. A take whose bytes changed since, or that the lock lacks, is
+ * refused by name; the others are recorded. True when every one was recorded.
+ */
+export function recordVerdicts(
+  path: string,
+  value: string,
+  judged: readonly string[],
+  log: (line: string) => void,
+): boolean {
+  if (value !== "ok" && value !== "bad") throw new Error(`verdict ${value}: expected ok or bad`);
+  const lock = readLock(path);
+  let recorded = 0;
+  for (const entry of judged) {
+    const at = entry.lastIndexOf("@");
+    const id = entry.slice(0, at);
+    const sha256 = entry.slice(at + 1);
+    const record = at > 0 ? lock.takes[id] : undefined;
+    if (!record) log(`UNKNOWN ${entry}`);
+    else if (record.served_sha256 !== sha256) log(`CHANGED ${id}`);
+    else {
+      record.verdict = { value, sha256 };
+      recorded++;
+      log(`VERDICT ${id} ${value}`);
+    }
+  }
+  if (recorded) writeLock(path, lock);
+  return recorded === judged.length;
+}
+
 const sorted = <T>(record: Record<string, T>) =>
   Object.fromEntries(Object.entries(record).sort(([a], [b]) => (a < b ? -1 : 1)));
 

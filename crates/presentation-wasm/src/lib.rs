@@ -210,6 +210,12 @@ impl Presentation {
             .collect()
     }
 
+    /// Draws the units' tiers at `units` and the buildings' at `buildings`
+    /// times their authored thresholds (a graphics quality; 1 as authored).
+    pub fn set_detail_scale(&mut self, units: f64, buildings: f64) {
+        self.inner.set_detail_scale(units, buildings);
+    }
+
     /// The renderer holds no static batches (a new one): the next frame
     /// writes every one.
     pub fn resend_statics(&mut self) {

@@ -5,9 +5,10 @@
 // Sound names are the synthesised bank's (`synth.ts` `SOUNDS`).
 import { requireDefaults } from "@packages/renderer-core/src/kindTable";
 
-/** The mix buses under the master. */
-export type Bus = "units" | "effects" | "ambience";
-export const BUSES: readonly Bus[] = ["units", "effects", "ambience"];
+/** The mixer's buses under the master. Music is not one of them: it streams
+ *  through `MusicPlayer`, which takes its level from `buses.music`. */
+export type Bus = "units" | "effects" | "ambience" | "voices";
+export const BUSES: readonly Bus[] = ["units", "effects", "ambience", "voices"];
 
 /** A gunshot or blast: a near and a far sound, switched at `far_m`. */
 export interface NearFar {
@@ -53,7 +54,7 @@ export interface FireSound {
 
 export interface AudioPresentation {
   /** Bus levels, and the master's. */
-  buses: Record<Bus | "master", number>;
+  buses: Record<Bus | "master" | "music", number>;
   /** Where the listener stands: this share of the way from the camera's
    *  target to its eye (0 at the ground point looked at, 1 at the eye). */
   listener_eye_share: number;
@@ -100,6 +101,8 @@ export interface AudioPresentation {
   footsteps: OneShot & { stride_m: number; max_step_m: number };
   /** Fire loops by smoke-source kind. */
   fires: Record<string, FireSound>;
+  /** Music ducking while voice lines play. */
+  music: { depth: number; attack_s: number; release_s: number };
   /** The countryside bed, never positional. */
   ambience: OneShot;
   /** Unseen enemies, from hearing cues: a sound by `category` or

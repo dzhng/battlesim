@@ -281,6 +281,21 @@ test("a row draws at a tier only if its mask has it, whether the masks nest or n
   expect(walk.stats().resident).toBe(0);
 });
 
+test("a lower graphics quality draws a building coarser at the same distance, and the authored tiers return at 1", () => {
+  const walk = walkOf(placedOf([["house", [1000, 2000, 0, 0]]]));
+  const shell = () => {
+    select(walk, view(1000, 2000, 200));
+    return walk.drawn().find((d) => d.module === SHELL)?.tier;
+  };
+  expect(shell()).toBe(1);
+  // Thresholds three times the authored: a building needs three times the
+  // pixels per metre for each tier.
+  walk.setDetailScale(1, 3);
+  expect(shell()).toBe(2);
+  walk.setDetailScale(1, 1);
+  expect(shell()).toBe(1);
+});
+
 test("a chunk is expanded once when it comes near, and leaves the pool when it leaves", () => {
   const walk = walkOf(placedOf([["house", [1000, 2000, 0, 0]]]));
   expect(select(walk, view(1000, 2000, 60))).toBe(true);

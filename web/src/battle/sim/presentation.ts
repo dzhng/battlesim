@@ -404,6 +404,12 @@ export class ObservationDecoder {
     this.rust.resend_statics();
   }
 
+  /** Draws the units' tiers at `units` and the buildings' at `buildings`
+   *  times their authored thresholds (a graphics quality; 1 as authored). */
+  setDetailScale(units: number, buildings: number) {
+    this.rust.set_detail_scale(units, buildings);
+  }
+
   free() {
     this.rust.free();
   }

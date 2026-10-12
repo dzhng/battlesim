@@ -142,7 +142,7 @@ export function nativeValidator(root: string): Validator {
       const child = spawn(
         resolvePath(
           root,
-          process.env.CARGO_TARGET_DIR ?? "throwaway/target",
+          process.env.CARGO_TARGET_DIR ?? "target",
           "debug/examples/mechanics_validate",
         ),
         [],

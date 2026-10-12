@@ -91,6 +91,7 @@ function setup() {
         defaults: {},
         impacts: {},
         effects: {},
+        music: { moods: { menu: [], tension: [], combat: [] }, tracks: {} },
       },
       smokeTimes: SMOKE,
       cookOff: COOK_OFF,
@@ -397,6 +398,7 @@ test("weapon row choices change reports without changing observed cadence or hid
     },
     impacts: {},
     effects: {},
+    music: { moods: { menu: [], tension: [], combat: [] }, tracks: {} },
   };
   const sink = new FakeSink();
   const frame = new SoundFrame(
@@ -465,6 +467,7 @@ test("a burst recording sounds once per burst, its shots on the gun's launches",
     },
     impacts: {},
     effects: {},
+    music: { moods: { menu: [], tension: [], combat: [] }, tracks: {} },
   } as unknown as SoundCatalog;
   const heard = (kind: string, ticks: number[]) => {
     const sink = new FakeSink();
@@ -500,6 +503,7 @@ test("a hull's mounts keep their weapons' explicit recipes while implicit impact
     },
     impacts: { ground: { hmg: "dirt_hit" } },
     effects: { cannon: "recorded_cannon", rifle: "recorded_rifle", impact_hull: "hard_hit" },
+    music: { moods: { menu: [], tension: [], combat: [] }, tracks: {} },
   };
   const sink = new FakeSink();
   const frame = new SoundFrame(
