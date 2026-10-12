@@ -28,7 +28,8 @@ export function GraphicsDetectionHost({
     if (!enabled || import.meta.env.MODE === "test") return;
     const settings = graphicsSettings.get();
     if (settings.mode !== "auto" || settings.detectedMode) return;
-    void runAutoDetect();
+    const start = setTimeout(() => void runAutoDetect(), 0);
+    return () => clearTimeout(start);
   }, [enabled]);
 
   if (state.status === "failed")

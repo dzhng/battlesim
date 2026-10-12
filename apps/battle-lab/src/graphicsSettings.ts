@@ -96,7 +96,12 @@ function isFiniteFps(value: unknown): value is number {
 function isBenchmarkResult(value: unknown): value is GraphicsBenchmarkResult {
   if (!value || typeof value !== "object") return false;
   const result = value as Record<string, unknown>;
-  if (Object.keys(result).some((key) => !["averageFps", "onePercentLowFps", "selectedMode"].includes(key))) return false;
+  if (
+    Object.keys(result).some(
+      (key) => !["averageFps", "onePercentLowFps", "selectedMode"].includes(key),
+    )
+  )
+    return false;
   return (
     isFiniteFps(result.averageFps) &&
     isFiniteFps(result.onePercentLowFps) &&
@@ -107,7 +112,8 @@ function isBenchmarkResult(value: unknown): value is GraphicsBenchmarkResult {
 function isSettings(value: unknown): value is GraphicsSettings {
   if (!value || typeof value !== "object") return false;
   const settings = value as Record<string, unknown>;
-  if (Object.keys(settings).some((key) => !["mode", "detectedMode", "lastResult"].includes(key))) return false;
+  if (Object.keys(settings).some((key) => !["mode", "detectedMode", "lastResult"].includes(key)))
+    return false;
   return (
     (settings.mode === "auto" || isTier(settings.mode)) &&
     (settings.detectedMode === null || isTier(settings.detectedMode)) &&
@@ -129,8 +135,11 @@ function load(): GraphicsSettings {
 let current = load();
 const listeners = new Set<() => void>();
 
-export function resolveEffectiveTier(mode: GraphicsMode, detectedMode: GraphicsTier | null): GraphicsTier {
-  return mode === "auto" ? detectedMode ?? "high" : mode;
+export function resolveEffectiveTier(
+  mode: GraphicsMode,
+  detectedMode: GraphicsTier | null,
+): GraphicsTier {
+  return mode === "auto" ? (detectedMode ?? "high") : mode;
 }
 
 /** Pick the best tier that meets the RTS target (45 average FPS). */
@@ -147,14 +156,16 @@ export function resolveAutoDetect(results: AutoDetectResults): AutoDetectResolut
 
 export const graphicsSettings = {
   get: (): GraphicsSettings => current,
-  set(next: Partial<GraphicsSettings>) {
+  set(next: Partial<GraphicsSettings>, options: { persist?: boolean } = {}) {
     const updated = { ...current, ...next };
     if (!isSettings(updated)) throw new Error("Invalid graphics settings");
     current = updated;
-    try {
-      globalThis.localStorage?.setItem(STORAGE_KEY, JSON.stringify(current));
-    } catch {
-      // Storage blocked: keep the setting for this page only.
+    if (options.persist !== false) {
+      try {
+        globalThis.localStorage?.setItem(STORAGE_KEY, JSON.stringify(current));
+      } catch {
+        // Storage blocked: keep the setting for this page only.
+      }
     }
     for (const listener of listeners) listener();
   },

@@ -32,8 +32,7 @@ import { LOADING_STAGES, LoadingTasks, useLoadingTasks } from "./LabLoading";
 import { LoadingScreen } from "./LoadingScreen";
 import { Wordmark } from "./Wordmark";
 import { APP_COMMIT, simFingerprint } from "./buildIdentity";
-import { graphicsSettings } from "./graphicsSettings";
-import { runAutoDetect } from "./graphicsDetection";
+import { GraphicsDetectionHost } from "./GraphicsDetectionHost";
 
 interface Entry {
   label: string;
@@ -243,15 +242,6 @@ export function MainMenu() {
   );
   const plate = useRef<HTMLDivElement>(null);
   const { report, progress } = useLoadingTasks();
-  const [graphicsError, setGraphicsError] = useState<string | null>(null);
-  useEffect(() => {
-    if (import.meta.env.MODE === "test") return;
-    const settings = graphicsSettings.get();
-    if (settings.mode !== "auto" || settings.detectedMode) return;
-    void runAutoDetect().catch((error: unknown) =>
-      setGraphicsError(error instanceof Error ? error.message : String(error)),
-    );
-  }, []);
   // Covered only until the backdrop is first ready: its restarts happen
   // behind its own veil. One that cannot be made leaves the plain ground.
   const [revealed, setRevealed] = useState(false);
@@ -295,17 +285,6 @@ export function MainMenu() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [page, back]);
-  if (graphicsError) {
-    return (
-      <main className="lab-loading" role="alert">
-        <h1>Graphics detection failed</h1>
-        <p>{graphicsError}</p>
-        <button type="button" className="hud-menu-item" onClick={() => window.location.reload()}>
-          Reload
-        </button>
-      </main>
-    );
-  }
   const content =
     page === null ? (
       <>
@@ -366,9 +345,11 @@ export function MainMenu() {
               : ({ "--menu-home-height": `${homeHeight}px` } as CSSProperties)
           }
         >
-          <div className="hud-panel menu-body" ref={plate}>
-            {content}
-          </div>
+          <GraphicsDetectionHost runner={null}>
+            <div className="hud-panel menu-body" ref={plate}>
+              {content}
+            </div>
+          </GraphicsDetectionHost>
         </div>
       </main>
       {loading && (
