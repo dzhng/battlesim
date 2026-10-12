@@ -743,6 +743,13 @@ fn the_skirmish_ai_procures_artillery_and_replays_its_named_catalog_cutover() {
         digests.push(live.digest());
     }
     let artillery = live.rules().catalog.index("red_test_jeep").unwrap();
+    let artillery_ids: std::collections::BTreeSet<_> = live
+        .observe(Side::Red)
+        .own
+        .iter()
+        .filter(|unit| unit.kind == artillery)
+        .map(|unit| unit.id)
+        .collect();
     let red = live.observe(Side::Red);
     assert!(
         red.own.iter().any(|unit| unit.kind == artillery)
@@ -762,6 +769,10 @@ fn the_skirmish_ai_procures_artillery_and_replays_its_named_catalog_cutover() {
                 Order::ConfirmPurchase { variant, .. } if variant == "red_test_jeep"
             )
     }));
+    assert!(live.replay().accepted.iter().any(|(_, command)| {
+        command.side == Side::Red
+            && matches!(&command.order, Order::Attack { units, target: contract::command::TargetRef::Identified { .. } } if units.iter().any(|id| artillery_ids.contains(id)))
+    }), "artillery must use the ordinary identified-target attack order");
     let mut replay = Battle::from_replay(&setup, &live.replay()).unwrap();
     for digest in digests {
         replay.step();
