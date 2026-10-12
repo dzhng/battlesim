@@ -1,20 +1,16 @@
-// FogVisibility: the GPU owner of sight-light fog (spike 02's technique).
-// It consumes `FogInput` (the static world, each own eye at the published
-// tick, the occluders the side knows) and produces what `fogTerm` samples:
+// FogVisibility: the GPU half of sight-light fog (spike 02's technique). The
+// presentation crate decides everything (`presentation::fog::sight`): each
+// frame it hands a `FogUpload`, which this uploads as it is, then runs:
 //
-// - one horizon map per eye, `azimuth_bins × radial_bins` words: a coarse
-//   terrain march at `terrain_azimuth_bins` rays, then a merge at full
-//   azimuth that intersects only the known occluders within reach exactly.
-//   Moved eyes rebuild `rebuild_eyes_per_frame` at a time; new eyes and maps
-//   touched by an occluder change rebuild at once. The
-//   sight shape is applied per fragment, so a new bearing never rebuilds;
-// - per frame, a cull over the depth prepass: each `tile_px` screen tile
-//   bounds the ground it shows and lists the eyes whose reach touches it;
-// - the structures that take fog whole (every known occluder): after the
-//   maps change, or the eyes (a publication), one workgroup per reachable occluder
-//   samples its walls and roof every `whole_step_m` against every eye and
-//   flags it seen if any sample is; the flags join the occluders' boxes and
-//   a lookup grid in the `wholes` texture `fogWholeSeen` reads.
+// - the rebuilt eyes' horizon maps, `azimuth_bins × radial_bins` words an
+//   eye: a coarse terrain march at `terrain_azimuth_bins` rays, then a merge
+//   at full azimuth that meets only the known occluders within reach;
+// - the structures that take fog whole: one workgroup per reachable
+//   occluder samples its walls and roof against every eye in reach and flags
+//   it seen if any sample is; the flags join the occluders' boxes and a
+//   lookup grid in the `wholes` texture `fogWholeSeen` reads;
+// - per frame, a cull over the depth prepass: each screen tile bounds the
+//   ground it shows and lists the eyes whose reach touches it.
 //
 // Every buffer is owned by the frame's registry; the tile lists live in the
 // size-dependent scope beside the targets. `probe` evaluates the same lookup
@@ -22,23 +18,18 @@
 // tests), and `probeShape` runs the WGSL sight shape against Rust's vectors.
 // Probes read back: lab only, never in the frame.
 import { tgpu, d } from "typegpu";
-import { vec2, type Vec2 } from "math";
+import type { FogUpload, Presentation } from "@wasm/presentation/presentation_wasm.js";
 import type { GpuRegistry, GpuSlot } from "./registry";
 import { triangleRuleHeight } from "./triangleRule";
 import { terrainSample, type TerrainHeights } from "./terrainHeights";
+import type { TerrainGrid } from "../terrain/terrainGrid";
 import {
-  eyeReach,
   FOLIAGE_STEP,
-  type FogEye,
-  type FogGeometryPresentation,
-  type FogInput,
-  type FogOccluder,
-  type FogSight,
-  type FogWorld,
+  FOG_BOX_WORDS,
+  FOG_EYE_WORDS,
+  FOG_PARAMS_WORDS,
   WHOLE_TEXTURE_WIDTH,
-  WHOLE_BOX_WORDS,
-  wholeWords,
-} from "./fogInputs";
+} from "../records.gen";
 import {
   FogEyeRecord,
   FogLayer,
@@ -57,12 +48,8 @@ const COPY_DST = 0x08;
 const COPY_SRC = 0x04;
 const MAP_READ = 0x01;
 const WORD = 4;
-const EYE_BYTES = 48;
-const BOX_BYTES = 32;
 const PROBE_BYTES = 32;
 const BUILD_WORKGROUP = 64;
-const MAX_WORKGROUPS = 65535;
-const HORIZON_SECTORS = 64;
 
 const FogBox = d
   .struct({ center: d.vec2f, half: d.vec2f, yaw: d.f32, top: d.f32, base: d.f32, pad1: d.f32 })
@@ -544,20 +531,32 @@ export interface FogProbeInput {
   normal?: readonly [number, number, number];
 }
 
-/** An eye record as the lookup reads it: already built, in map slot `slot`. */
-interface FogEyeRow {
-  position: readonly [number, number, number];
-  reach: number;
-  forward: number;
-  front: number;
-  side: number;
-  rear: number;
-  range: number;
-  slot: number;
+/** What fog is drawn from: the scene's presentation, which decides it. */
+export type FogSource = Pick<
+  Presentation,
+  "prepare_fog" | "resend_fog" | "rebuild_fog" | "fog_stats" | "fog_occluders"
+>;
+
+/** The pipelines' text constants (`presentation.fog_geometry`): the cull's
+ *  screen tile and the merge's radial bins. */
+export interface FogShaders {
+  tile_px: number;
+  radial_bins: number;
+}
+
+/** A structure that takes fog whole, as the lab reads it back. */
+export interface FogOccluder {
+  x: number;
+  y: number;
+  yaw: number;
+  hx: number;
+  hy: number;
+  base: number;
+  top: number;
 }
 
 export interface FogVisibilityStats {
-  /** Whether fog is on (an input is set). */
+  /** Whether fog is drawn. */
   enabled: boolean;
   eyes: number;
   /** Map slots allocated (eyes that fit before the maps grow). */
@@ -574,35 +573,26 @@ export interface FogVisibilityStats {
   tiles: [number, number];
 }
 
-interface SlotState {
-  slot: number;
-  /** Where the map was built from, and to what reach; null until built. */
-  built: readonly [number, number, number] | null;
-  reach: number;
-  eye: FogEye;
-}
-
-/** The tile lists for one frame size. */
+/** The tile lists for one frame size, made at its first fogged frame. */
 export interface FogTiles {
+  scope: GpuRegistry;
   tilesX: number;
   tilesY: number;
-  lists: GPUBuffer;
-  counts: GPUBuffer;
+  lists: GPUBuffer | null;
+  counts: GPUBuffer | null;
   depthView: GPUTextureView;
   /** The frame's ground paint, which the painted layers read. */
   paintView: GPUTextureView;
 }
 
-function eyeRecords(rows: readonly FogEyeRow[]): ArrayBuffer {
-  const bytes = new ArrayBuffer(Math.max(1, rows.length) * EYE_BYTES);
-  const f = new Float32Array(bytes);
-  const u = new Uint32Array(bytes);
-  rows.forEach((r, i) => {
-    const o = (i * EYE_BYTES) / WORD;
-    f.set([...r.position, r.reach, r.forward, r.front, r.side, r.rear, r.range], o);
-    u[o + 9] = r.slot;
-  });
-  return bytes;
+/** `Presentation.fog_occluders`' seven numbers a box, as boxes. */
+export function occluderBoxes(n: Float64Array): FogOccluder[] {
+  const boxes: FogOccluder[] = [];
+  for (let i = 0; i < n.length; i += 7) {
+    const [x, y, yaw, hx, hy, base, top] = n.subarray(i, i + 7);
+    boxes.push({ x, y, yaw, hx, hy, base, top });
+  }
+  return boxes;
 }
 
 function probeRecords(points: readonly FogProbeInput[]): ArrayBuffer {
@@ -618,278 +608,28 @@ function probeRecords(points: readonly FogProbeInput[]): ArrayBuffer {
   return bytes;
 }
 
-function occluderRecords(boxes: readonly FogOccluder[]): ArrayBuffer {
-  const bytes = new ArrayBuffer(Math.max(1, boxes.length) * BOX_BYTES);
-  const f = new Float32Array(bytes);
-  boxes.forEach((b, i) =>
-    f.set([b.x, b.y, b.hx, b.hy, b.yaw, b.top, b.base], (i * BOX_BYTES) / WORD),
-  );
-  return bytes;
-}
-
-/** The foliage grid's cells (`canopy_m, depth_per_m` pairs), past its header. */
-function foliageCells(foliage: Float32Array): Float32Array {
-  return foliage.length > 3 ? foliage.subarray(3) : new Float32Array(4);
-}
-
-const _fog_position: Vec2 = [0, 0];
-const _fog_center: Vec2 = [0, 0];
-let _fog_seen = new Uint32Array(0);
-let _fog_found = new Uint32Array(0);
-const _fog_half: Vec2 = [0, 0];
-
-/** Reuse the whole-structure grid for horizon candidates. Lists are deduplicated
- * and sorted so equal horizon slopes retain the original occluder's jump. */
-export function fogOccludersInReach(
-  grid: ReturnType<typeof wholeWords>,
-  position: readonly [number, number, number],
-  reach: number,
-  queryMargin = 0,
-): number[] {
-  const p = grid.params;
-  if (!p.wholeCount) return [];
-  const [x, y] = position;
-  // The GPU reads f32 coordinates and lengths. Grow the CPU broad phase by
-  // eight f32 relative rounding units, including subtraction and sqrt.
-  const pad =
-    8 *
-    2 ** -23 *
-    Math.max(
-      1,
-      Math.abs(x),
-      Math.abs(y),
-      reach,
-      Math.abs(p.wholeOrigin[0]) + p.wholeNx * p.wholeCellM,
-      Math.abs(p.wholeOrigin[1]) + p.wholeNy * p.wholeCellM,
-    );
-  const queryReach = reach + queryMargin;
-  const loX = Math.max(0, Math.floor((x - queryReach - pad - p.wholeOrigin[0]) / p.wholeCellM));
-  const hiX = Math.min(
-    p.wholeNx - 1,
-    Math.floor((x + queryReach + pad - p.wholeOrigin[0]) / p.wholeCellM),
-  );
-  const loY = Math.max(0, Math.floor((y - queryReach - pad - p.wholeOrigin[1]) / p.wholeCellM));
-  const hiY = Math.min(
-    p.wholeNy - 1,
-    Math.floor((y + queryReach + pad - p.wholeOrigin[1]) / p.wholeCellM),
-  );
-  // A box spans several cells: each is judged once (`seen`), and those in
-  // reach are marked in `found`, read back in index order. Both are bit
-  // sets over the grid's boxes, cleared where they were set.
-  const words = (p.wholeCount + 31) >>> 5;
-  if (_fog_seen.length < words) {
-    _fog_seen = new Uint32Array(words);
-    _fog_found = new Uint32Array(words);
-  }
-  const seen = _fog_seen;
-  const marked = _fog_found;
-  const touched: number[] = [];
-  const floats = new Float32Array(grid.words.buffer);
-  vec2.set(_fog_position, x, y);
-  for (let j = loY; j <= hiY; j++)
-    for (let i = loX; i <= hiX; i++) {
-      const cell = grid.words[j * p.wholeNx + i];
-      const start = p.wholeItemsBase + (cell >>> 8);
-      for (let at = start; at < start + (cell & 255); at++) {
-        const index = grid.words[at];
-        const w = index >>> 5;
-        const bit = 1 << (index & 31);
-        if (seen[w] & bit) continue;
-        if (!seen[w]) touched.push(w);
-        seen[w] |= bit;
-        const b = p.wholeBoxesBase + index * WHOLE_BOX_WORDS;
-        vec2.fromBuffer(_fog_center, floats, b);
-        vec2.fromBuffer(_fog_half, floats, b + 4);
-        const radius = vec2.length(_fog_half);
-        if (vec2.squaredDistance(_fog_center, _fog_position) <= (reach + radius + pad) ** 2)
-          marked[w] |= bit;
-      }
-    }
-  touched.sort((a, b) => a - b);
-  const found: number[] = [];
-  for (const w of touched) {
-    for (let bits = marked[w]; bits; bits &= bits - 1)
-      found.push((w << 5) | (31 - Math.clz32(bits & -bits)));
-    seen[w] = 0;
-    marked[w] = 0;
-  }
-  return found;
-}
-
-/** Conservative angular lists reduce ray work without changing box intersections.
- * Bounding circles enclose every turned box; one extra sector at either edge
- * covers f32 ray-angle rounding. Source order preserves equal-slope ties.
- * `margin` widens each circle, for boxes a ray only passes near. */
-export function fogHorizonRecords(
-  grid: ReturnType<typeof wholeWords>,
-  eyes: readonly Pick<FogEyeRow, "position" | "reach">[],
-  indices: readonly number[] = eyes.map((_, i) => i),
-  margin = 0,
-): Uint32Array {
-  const floats = new Float32Array(grid.words.buffer);
-  const scale = HORIZON_SECTORS / (Math.PI * 2);
-  // Each eye's boxes with the sectors they span (all of them when the eye
-  // is inside its circle, or the span would wrap round): counted per
-  // sector first, then laid out, so each list keeps the boxes' order.
-  const spans = eyes.map((eye) => {
-    const found = fogOccludersInReach(grid, eye.position, eye.reach);
-    const range = new Int32Array(found.length * 2);
-    vec2.set(_fog_position, Math.fround(eye.position[0]), Math.fround(eye.position[1]));
-    found.forEach((index, k) => {
-      const b = grid.params.wholeBoxesBase + index * WHOLE_BOX_WORDS;
-      vec2.fromBuffer(_fog_center, floats, b);
-      vec2.fromBuffer(_fog_half, floats, b + 4);
-      const distance = vec2.distance(_fog_center, _fog_position);
-      const radius = vec2.length(_fog_half) + margin;
-      let lo = 0;
-      let hi = HORIZON_SECTORS - 1;
-      if (distance > radius * (1 + 8 * 2 ** -23)) {
-        const angle = Math.atan2(
-          _fog_center[1] - _fog_position[1],
-          _fog_center[0] - _fog_position[0],
-        );
-        const half = Math.asin(Math.min(1, radius / distance));
-        const a = Math.floor((angle - half + Math.PI) * scale) - 1;
-        const z = Math.floor((angle + half + Math.PI) * scale) + 1;
-        if (z - a + 1 < HORIZON_SECTORS) [lo, hi] = [a, z];
-      }
-      range[2 * k] = lo;
-      range[2 * k + 1] = hi;
-    });
-    return { found, range };
-  });
-  const headers = eyes.length * 3;
-  const tableWords = eyes.length * HORIZON_SECTORS * 2;
-  let count = headers + tableWords;
-  for (const { range } of spans)
-    for (let k = 0; k < range.length; k += 2) count += range[k + 1] - range[k] + 1;
-  const records = new Uint32Array(count);
-  const sizes = new Uint32Array(HORIZON_SECTORS);
-  const cursor = new Uint32Array(HORIZON_SECTORS);
-  const sector = (s: number) => (s + HORIZON_SECTORS) % HORIZON_SECTORS;
-  let at = headers + tableWords;
-  spans.forEach(({ found, range }, r) => {
-    const table = headers + r * HORIZON_SECTORS * 2;
-    records.set([indices[r], table, HORIZON_SECTORS], r * 3);
-    sizes.fill(0);
-    for (let k = 0; k < found.length; k++)
-      for (let s = range[2 * k]; s <= range[2 * k + 1]; s++) sizes[sector(s)]++;
-    for (let s = 0; s < HORIZON_SECTORS; s++) {
-      records[table + s * 2] = at;
-      records[table + s * 2 + 1] = sizes[s];
-      cursor[s] = at;
-      at += sizes[s];
-    }
-    found.forEach((index, k) => {
-      for (let s = range[2 * k]; s <= range[2 * k + 1]; s++) records[cursor[sector(s)]++] = index;
-    });
-  });
-  return records;
-}
-
-/** Each eye's occluders in reach, by where it stands and how far it sees,
- *  on the grid they were found on. */
-export type EyeOccluders = { grid: ReturnType<typeof wholeWords>; lists: Map<string, number[]> };
-
-/** Reachable structure rows and their eye lists for the whole-fog pass. An
- *  eye standing where it stood at the last call (`kept`, on the same grid)
- *  reuses its list rather than searching the grid again: most have not moved.
- *  The records are the same either way. */
-export function wholeFogRecords(
-  grid: ReturnType<typeof wholeWords>,
-  eyes: readonly Pick<FogEyeRow, "position" | "reach">[],
-  queryMargin: number,
-  kept?: EyeOccluders,
-) {
-  const reuse = kept?.grid === grid ? kept.lists : undefined;
-  const lists = new Map<string, number[]>();
-  const found = eyes.map((eye) => {
-    const key = `${eye.position[0]},${eye.position[1]},${eye.reach}`;
-    let list = lists.get(key) ?? reuse?.get(key);
-    if (!list) list = fogOccludersInReach(grid, eye.position, eye.reach, queryMargin);
-    lists.set(key, list);
-    return list;
-  });
-  // Rows in box order, each with its eyes in eye order: by counting, not by
-  // sorting (a box's eyes are counted, then laid out after the row headers).
-  const boxes = grid.params.wholeCount;
-  const eyesOf = new Uint32Array(boxes);
-  let pairs = 0;
-  for (const list of found)
-    for (const index of list) {
-      eyesOf[index]++;
-      pairs++;
-    }
-  let count = 0;
-  for (let b = 0; b < boxes; b++) if (eyesOf[b]) count++;
-  const words = new Uint32Array(count * 3 + pairs);
-  // Each box's next free eye slot, from its row's offset.
-  const cursor = new Uint32Array(boxes);
-  let row = 0;
-  let at = count * 3;
-  for (let b = 0; b < boxes; b++) {
-    if (!eyesOf[b]) continue;
-    words.set([b, at, eyesOf[b]], row * 3);
-    cursor[b] = at;
-    at += eyesOf[b];
-    row++;
-  }
-  found.forEach((list, e) => {
-    for (const index of list) words[cursor[index]++] = e;
-  });
-  return { count, words, kept: { grid, lists } satisfies EyeOccluders };
-}
-
-/** An unchanged geometry set preserves every eye map, even when row indices
- * move. A removed box dirties its old neighbours, an added box its new ones. */
-export function fogAffectedEyes(
-  before: readonly FogOccluder[],
-  beforeGrid: ReturnType<typeof wholeWords>,
-  after: readonly FogOccluder[],
-  afterGrid: ReturnType<typeof wholeWords>,
-  eyes: readonly Pick<FogEyeRow, "position" | "reach">[],
-): number[] {
-  // A box kept as the same object is unchanged (`knownOccluders` keeps the
-  // map's); only the rest are compared by value, so a change costs the boxes
-  // it touches rather than a key for every box.
-  const kept = new Set(after);
-  const had = new Set(before);
-  const gone = before.flatMap((b, i) => (kept.has(b) ? [] : [i]));
-  const come = after.flatMap((b, i) => (had.has(b) ? [] : [i]));
-  const key = (b: FogOccluder) => [b.x, b.y, b.hx, b.hy, b.yaw, b.base, b.top].join(",");
-  const goneKeys = new Set(gone.map((i) => key(before[i])));
-  const comeKeys = new Set(come.map((i) => key(after[i])));
-  const removed = new Set(gone.filter((i) => !comeKeys.has(key(before[i]))));
-  const added = new Set(come.filter((i) => !goneKeys.has(key(after[i]))));
-  if (!removed.size && !added.size) return [];
-  const affected: number[] = [];
-  eyes.forEach((e, i) => {
-    if (
-      (removed.size &&
-        fogOccludersInReach(beforeGrid, e.position, e.reach).some((b) => removed.has(b))) ||
-      (added.size && fogOccludersInReach(afterGrid, e.position, e.reach).some((b) => added.has(b)))
-    )
-      affected.push(i);
-  });
-  return affected;
-}
-
-const sameEye = (a: readonly number[], b: readonly number[]) =>
-  a[0] === b[0] && a[1] === b[1] && a[2] === b[2];
+/** Ground with no height pages: flat at zero (a scene's bare ground). */
+const FLAT: TerrainGrid = {
+  nx: 2,
+  ny: 2,
+  spacing: 1,
+  pageSize: 1,
+  minHeight: 0,
+  pageIds: new Uint32Array(0),
+  heights: new Float32Array(0),
+};
 
 export async function createFogVisibility(
   root: Root,
   registry: GpuRegistry,
-  geometry: FogGeometryPresentation,
+  shaders: FogShaders,
   terrainHeights: TerrainHeights,
 ) {
   const device = registry.device;
-  const g = geometry;
-  const merge = mergeFn(g.radial_bins);
   const pipelines = {
     terrain: root.createComputePipeline({ compute: terrainMarch }).$name("fogTerrain"),
-    merge: root.createComputePipeline({ compute: merge }).$name("fogMerge"),
-    cull: root.createComputePipeline({ compute: cullFn(g.tile_px) }).$name("fogCull"),
+    merge: root.createComputePipeline({ compute: mergeFn(shaders.radial_bins) }).$name("fogMerge"),
+    cull: root.createComputePipeline({ compute: cullFn(shaders.tile_px) }).$name("fogCull"),
     probe: root.createComputePipeline({ compute: probeFn }).$name("fogProbe"),
     shape: root.createComputePipeline({ compute: shapeFn }).$name("fogShape"),
     whole: root.createComputePipeline({ compute: wholeFn }).$name("fogWhole"),
@@ -931,7 +671,7 @@ export async function createFogVisibility(
       format: "r32uint",
       usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
     });
-  /** A flag word per structure cell, `rows` texture rows of them. */
+  /** A flag word per structure, `rows` texture rows of them. */
   const wholeFlagBuffer = (rows: number) =>
     device.createBuffer({
       label: "fog-whole-flags",
@@ -946,234 +686,89 @@ export async function createFogVisibility(
     return s;
   };
   const buffers = {
-    eyes: slot(storage("fog-eyes", EYE_BYTES)),
+    // A storage binding holds at least one of its records.
+    eyes: slot(storage("fog-eyes", FOG_EYE_WORDS * WORD)),
     maps: slot(storage("fog-maps", WORD)),
     terrain: slot(storage("fog-terrain-maps", WORD)),
     foliage: slot(storage("fog-foliage", 16)),
-    occluders: slot(storage("fog-occluders", BOX_BYTES)),
+    occluders: slot(storage("fog-occluders", FOG_BOX_WORDS * WORD)),
     rebuild: slot(storage("fog-rebuild", WORD)),
     wholes: slot(wholeTexture(1)),
     wholeFlags: slot(wholeFlagBuffer(1)),
     wholeItems: slot(storage("fog-whole-items", WORD)),
   };
-  /** The structures' lookup (`wholeWords`), and whether their flags are stale. */
-  let wholes = wholeWords([], 0);
-  let wholesDirty = false;
-  let eyeOccluders: EyeOccluders | undefined;
-  let wholeItemCapacity = 1;
-  let maxOccluderRadius = 0;
-
-  let world: FogWorld | null = null;
-  /** The tallest canopy: translucent surfaces stand at most this far above ground. */
-  let translucentLiftM = 0;
-  let sight: FogSight | null = null;
-  let occluders: readonly FogOccluder[] | null = null;
-  let capacity = 0;
-  let eyeCapacity = 1;
-  let rebuildCapacity = 1;
-  const slots = new Map<string, SlotState>();
-  const free: number[] = [];
-  let order: SlotState[] = [];
-  /** Moved eyes waiting for a rebuild, oldest first. */
-  let queue: string[] = [];
-  let rebuilt = 0;
-  let rebuiltTotal = 0;
+  /** Each buffer's size; a write that outgrows one replaces it. */
+  const sizes = new Map<GpuSlot<GPUBuffer>, number>();
+  /** Bind groups are made again when a buffer they bind is replaced. */
   let generation = 0;
+  /** Writes `words` into `target`, growing it (by doubling) to fit; an
+   *  `exact` buffer is the words' size, for a shader that reads its length. */
+  const write = (
+    target: GpuSlot<GPUBuffer>,
+    label: string,
+    words: Uint32Array | Float32Array,
+    exact = false,
+  ) => {
+    const size = sizes.get(target) ?? 0;
+    if (exact ? words.byteLength !== size : words.byteLength > size) {
+      const bytes = exact ? words.byteLength : Math.max(words.byteLength, 2 * size);
+      target.set(storage(label, bytes));
+      sizes.set(target, bytes);
+      generation++;
+    }
+    device.queue.writeBuffer(target.current!, 0, words);
+  };
+
+  let source: FogSource | null = null;
+  let grid: TerrainGrid = FLAT;
+  let active = false;
+  let mapWords = [0, 0];
+  let flagRows = 1;
   let tiles: FogTiles | null = null;
   let groupsFor: { generation: number; tiles: FogTiles | null; value: FogGroups } | null = null;
 
-  const eyeRow = (s: SlotState): FogEyeRow => ({
-    position: s.built ?? s.eye.position,
-    reach: s.reach,
-    forward: s.eye.forward,
-    front: s.eye.shape.front,
-    side: s.eye.shape.side,
-    rear: s.eye.shape.rear,
-    range: s.eye.range,
-    slot: s.slot,
-  });
-
-  /** Every map rebuilt from scratch (a new world, new knowledge, more slots). */
-  const invalidate = () => {
-    for (const s of slots.values()) s.built = null;
-    queue = [];
-  };
-
-  const grow = (needed: number) => {
-    capacity = Math.max(needed, capacity * 2, 4);
-    const AZ = g.azimuth_bins;
-    const R = g.radial_bins;
-    buffers.maps.set(storage("fog-maps", capacity * AZ * R * WORD));
-    buffers.terrain.set(storage("fog-terrain-maps", capacity * g.terrain_azimuth_bins * R * WORD));
-    generation++;
-    invalidate();
-  };
-
-  const setWorld = (next: FogWorld) => {
-    // The side's foliage changes during a battle (trees felled); its
-    // terrain never does, so only a new map uploads the heights again.
-    world = next;
-    translucentLiftM = 0;
-    for (let i = 5; i < next.foliage.length; i += 4)
-      translucentLiftM = Math.max(translucentLiftM, next.foliage[i]);
-    const foliage = foliageCells(next.foliage);
-    buffers.foliage.set(storage("fog-foliage", foliage.byteLength));
-    device.queue.writeBuffer(buffers.foliage.current!, 0, foliage);
-    generation++;
-    invalidate();
-  };
-
-  const setOccluders = (next: readonly FogOccluder[]) => {
-    const nextWholes = wholeWords(next, 2 * g.face_probe_m);
-    const built = [...slots.values()].filter((s) => s.built);
-    const affected = fogAffectedEyes(
-      occluders ?? [],
-      wholes,
-      next,
-      nextWholes,
-      built.map((s) => ({ position: s.built!, reach: s.reach })),
-    );
-    for (const i of affected) built[i].built = null;
-    queue = queue.filter((key) => slots.get(key)!.built !== null);
-    occluders = next;
-    const bytes = occluderRecords(next);
-    buffers.occluders.set(storage("fog-occluders", bytes.byteLength));
-    device.queue.writeBuffer(buffers.occluders.current!, 0, bytes);
-    wholes = nextWholes;
-    buffers.wholes.set(wholeTexture(wholes.rows));
-    device.queue.writeTexture(
-      { texture: buffers.wholes.current! },
-      wholes.words,
-      { bytesPerRow: WHOLE_TEXTURE_WIDTH * WORD },
-      [WHOLE_TEXTURE_WIDTH, wholes.rows],
-    );
-    buffers.wholeFlags.set(wholeFlagBuffer(wholes.flagRows));
-    maxOccluderRadius = 0;
-    for (const box of next) {
-      vec2.set(_fog_half, box.hx, box.hy);
-      maxOccluderRadius = Math.max(maxOccluderRadius, vec2.length(_fog_half));
-    }
-    generation++;
-  };
-
-  const setSight = (next: FogSight) => {
-    sight = next;
-    wholesDirty = true;
-    if (next.occluders !== occluders) setOccluders(next.occluders);
-    const live = new Set(next.eyes.map((e) => e.key));
-    for (const [key, s] of slots) {
-      if (!live.has(key)) {
-        slots.delete(key);
-        free.push(s.slot);
-      }
-    }
-    queue = queue.filter((k) => live.has(k));
-    const needed = next.eyes.length;
-    if (needed > capacity) {
-      // Slots are renumbered densely into the grown maps.
-      const kept = [...slots.values()];
-      free.length = 0;
-      grow(needed);
-      kept.forEach((s, i) => (s.slot = i));
-      for (let i = capacity - 1; i >= kept.length; i--) free.push(i);
-    }
-    order = next.eyes.map((eye) => {
-      let s = slots.get(eye.key);
-      if (!s) {
-        s = { slot: free.pop()!, built: null, reach: eyeReach(eye), eye };
-        slots.set(eye.key, s);
-        return s;
-      }
-      const moved = s.built && (!sameEye(s.built, eye.position) || s.reach !== eyeReach(eye));
-      s.eye = eye;
-      if (moved && !queue.includes(eye.key)) queue.push(eye.key);
-      return s;
-    });
-    if (order.length > eyeCapacity) {
-      eyeCapacity = Math.max(order.length, eyeCapacity * 2);
-      buffers.eyes.set(storage("fog-eyes", eyeCapacity * EYE_BYTES));
+  /** Upload what the presentation decided; returns the rebuild's
+   *  workgroups, if any eye rebuilds. */
+  const upload = (up: FogUpload): Uint32Array | null => {
+    active = up.active();
+    const [maps, terrainMaps] = up.map_words();
+    if (maps !== mapWords[0] || terrainMaps !== mapWords[1]) {
+      // A new size rebuilds every map: the old ones are not kept.
+      buffers.maps.set(storage("fog-maps", maps * WORD));
+      buffers.terrain.set(storage("fog-terrain-maps", terrainMaps * WORD));
+      mapWords = [maps, terrainMaps];
       generation++;
     }
-  };
-
-  /** Pick this frame's rebuilds: every eye never built, then moved eyes up to
-   *  the budget, oldest first. */
-  const pickRebuilds = (): number[] => {
-    const picked: number[] = [];
-    order.forEach((s, i) => {
-      if (!s.built) picked.push(i);
-    });
-    let budget = g.rebuild_eyes_per_frame;
-    const index = new Map(order.map((s, i) => [s.eye.key, i]));
-    while (budget > 0 && queue.length) {
-      const i = index.get(queue.shift()!)!;
-      if (!picked.includes(i)) picked.push(i);
-      budget--;
+    const foliage = up.foliage();
+    // The foliage lookup searches the whole buffer (`arrayLength`).
+    if (foliage) write(buffers.foliage, "fog-foliage", foliage, true);
+    const occluders = up.occluders();
+    if (occluders) write(buffers.occluders, "fog-occluders", occluders);
+    const wholes = up.wholes();
+    if (wholes) {
+      const rows = wholes.length / WHOLE_TEXTURE_WIDTH;
+      buffers.wholes.set(wholeTexture(rows));
+      device.queue.writeTexture(
+        { texture: buffers.wholes.current! },
+        wholes,
+        { bytesPerRow: WHOLE_TEXTURE_WIDTH * WORD },
+        [WHOLE_TEXTURE_WIDTH, rows],
+      );
+      generation++;
     }
-    for (const i of picked) {
-      const s = order[i];
-      s.built = s.eye.position;
-      s.reach = eyeReach(s.eye);
-    }
-    return picked;
-  };
-
-  const writeParams = (extra: {
-    rebuildCount: number;
-    probeCount: number;
-    camera?: Float32Array;
-    width?: number;
-    height?: number;
-  }) => {
-    const cam = extra.camera;
-    // The camera uniform's inverse view-projection (floats 16..31) and eye (32..34).
-    const column = (c: number) =>
-      cam ? d.vec4f(cam[16 + c * 4], cam[17 + c * 4], cam[18 + c * 4], cam[19 + c * 4]) : d.vec4f();
-    params.write({
-      invViewProj: d.mat4x4f(column(0), column(1), column(2), column(3)),
-      cameraEye: d.vec3f(cam?.[32] ?? 0, cam?.[33] ?? 0, cam?.[34] ?? 0),
-      translucentLiftM,
-      azimuthBins: g.azimuth_bins,
-      terrainAzimuthBins: g.terrain_azimuth_bins,
-      radialBins: g.radial_bins,
-      tilePx: g.tile_px,
-      tilesX: tiles?.tilesX ?? 0,
-      tileEyesMax: g.tile_eyes_max,
-      eyeCount: order.length,
-      foliageNx: world && world.foliage.length > 3 ? world.foliage[0] : 0,
-      foliageNy: world && world.foliage.length > 3 ? world.foliage[1] : 0,
-      heightNx: world?.nx ?? 2,
-      heightNy: world?.ny ?? 2,
-      rebuildCount: extra.rebuildCount,
-      enabled: world && sight ? 1 : 0,
-      probeCount: extra.probeCount,
-      firstBinM: g.first_bin_m,
-      targetHeightM: world?.targetHeightM ?? 0,
-      foliageCellM: world && world.foliage.length > 3 ? world.foliage[2] : 1,
-      foliageFullBlock: world?.foliageFullBlock ?? 1,
-      minSightGapM: world?.minSightGapM ?? 0,
-      playable: world
-        ? d.vec4f(...(world.playable ?? [0, 0, world.nx * world.spacing, world.ny * world.spacing]))
-        : d.vec4f(),
-      heightSpacing: world?.spacing ?? 1,
-      faceProbeM: g.face_probe_m,
-      width: extra.width ?? 0,
-      height: extra.height ?? 0,
-      stepMinM: g.terrain_step_m[0],
-      stepMaxM: g.terrain_step_m[1],
-      stepFraction: g.terrain_step_fraction,
-      roofReachM: g.roof_reach_m,
-      ...wholes.params,
-      wholeOrigin: d.vec2f(...wholes.params.wholeOrigin),
-      wholeCount: world && sight ? wholes.params.wholeCount : 0,
-    });
+    const eyes = up.eyes();
+    if (eyes.length) write(buffers.eyes, "fog-eyes", eyes);
+    const rebuild = up.rebuild();
+    if (rebuild.length) write(buffers.rebuild, "fog-rebuild", rebuild);
+    device.queue.writeBuffer(root.unwrap(params), 0, up.params());
+    return rebuild.length ? up.rebuild_dispatch() : null;
   };
 
   const buildGroup = () =>
     root.createBindGroup(buildLayout, {
       params,
       eyes: buffers.eyes.current!,
-      heights: terrainHeights.forGrid(world!),
+      heights: terrainHeights.forGrid(grid),
       foliage: buffers.foliage.current!,
       occluders: buffers.occluders.current!,
       rebuild: buffers.rebuild.current!,
@@ -1181,48 +776,11 @@ export async function createFogVisibility(
       maps: buffers.maps.current!,
     });
   let build: { generation: number; group: ReturnType<typeof buildGroup> } | null = null;
-
-  /** Rebuild the maps of the eyes picked this frame; writes the eye table. */
-  const prepare = (
-    encoder: GPUCommandEncoder,
-    frame: { probeCount: number; camera?: Float32Array; width?: number; height?: number },
-  ) => {
-    const active = !!(world && sight);
-    const picked = active ? pickRebuilds() : [];
-    rebuilt = picked.length;
-    rebuiltTotal += rebuilt;
-    if (active) {
-      device.queue.writeBuffer(buffers.eyes.current!, 0, eyeRecords(order.map(eyeRow)));
-      if (picked.length) {
-        const records = fogHorizonRecords(
-          wholes,
-          picked.map((i) => ({ position: order[i].built!, reach: order[i].reach })),
-          picked,
-          (world?.minSightGapM ?? 0) / 2,
-        );
-        if (records.length > rebuildCapacity) {
-          rebuildCapacity = Math.max(records.length, rebuildCapacity * 2);
-          buffers.rebuild.set(storage("fog-rebuild", rebuildCapacity * WORD));
-          generation++;
-        }
-        device.queue.writeBuffer(buffers.rebuild.current!, 0, records);
-      }
-    }
-    writeParams({ rebuildCount: picked.length, ...frame });
-    if (picked.length) wholesDirty = true;
-    if (!picked.length) return;
+  /** The rebuilt eyes' terrain march and merge. */
+  const rebuildMaps = (encoder: GPUCommandEncoder, dispatch: Uint32Array) => {
     if (!build || build.generation !== generation) build = { generation, group: buildGroup() };
-    const dispatch = (bins: number) => {
-      const n = Math.ceil((picked.length * bins) / BUILD_WORKGROUP);
-      if (n > MAX_WORKGROUPS)
-        throw new Error(`fog: ${picked.length} eyes exceed one rebuild dispatch`);
-      return n;
-    };
-    pipelines.terrain
-      .with(build.group)
-      .with(encoder)
-      .dispatchWorkgroups(dispatch(g.terrain_azimuth_bins));
-    pipelines.merge.with(build.group).with(encoder).dispatchWorkgroups(dispatch(g.azimuth_bins));
+    pipelines.terrain.with(build.group).with(encoder).dispatchWorkgroups(dispatch[0]);
+    pipelines.merge.with(build.group).with(encoder).dispatchWorkgroups(dispatch[1]);
   };
 
   interface FogGroups {
@@ -1250,8 +808,8 @@ export async function createFogVisibility(
       params,
       eyes: buffers.eyes.current!,
       depth: t.depthView,
-      lists: t.lists,
-      counts: t.counts,
+      lists: t.lists!,
+      counts: t.counts!,
     });
   const groups = (): FogGroups => {
     if (!groupsFor || groupsFor.generation !== generation || groupsFor.tiles !== tiles) {
@@ -1264,18 +822,68 @@ export async function createFogVisibility(
           ground: fragmentGroup(layers.ground, tiles),
           faces: fragmentGroup(layers.faces, tiles),
           units: fragmentGroup(layers.units, tiles),
-          cull: tiles ? cullGroup(tiles) : null,
+          cull: tiles?.lists ? cullGroup(tiles) : null,
         },
       };
     }
     return groupsFor.value;
   };
 
-  const readback = async (source: GPUBuffer, bytes: number): Promise<ArrayBuffer> => {
+  /** The structures pass: clear the flags, flag each row's structure, copy
+   *  the flags into the `wholes` texture's flag rows. */
+  const encodeWholes = (encoder: GPUCommandEncoder, up: FogUpload, faces: FogGroups["faces"]) => {
+    const [count, x, y, flagsRow, rows] = up.whole();
+    if (rows !== flagRows) {
+      buffers.wholeFlags.set(wholeFlagBuffer(rows));
+      flagRows = rows;
+    }
+    // An eye leaving a neighbourhood must clear its previously seen flags.
+    encoder.clearBuffer(buffers.wholeFlags.current!);
+    if (count) {
+      write(buffers.wholeItems, "fog-whole-items", up.whole_items());
+      wholeUniform.write(
+        d.vec4f(...(up.whole_uniform() as unknown as [number, number, number, number])),
+      );
+      pipelines.whole
+        .with(faces)
+        .with(
+          root.createBindGroup(wholeLayout, {
+            boxes: buffers.occluders.current!,
+            whole: wholeUniform,
+            flags: buffers.wholeFlags.current!,
+            items: buffers.wholeItems.current!,
+          }),
+        )
+        .with(encoder)
+        .dispatchWorkgroups(x, y);
+    }
+    encoder.copyBufferToTexture(
+      { buffer: buffers.wholeFlags.current!, bytesPerRow: WHOLE_TEXTURE_WIDTH * WORD },
+      { texture: buffers.wholes.current!, origin: [0, flagsRow] },
+      [WHOLE_TEXTURE_WIDTH, rows],
+    );
+  };
+
+  /** The frame size's tile lists, made for the cull's tiles. */
+  const ensureTiles = (t: FogTiles, [tilesX, tilesY, eyesMax]: Uint32Array) => {
+    if (t.lists && t.tilesX === tilesX && t.tilesY === tilesY) return;
+    const n = tilesX * tilesY;
+    t.lists = t.scope.buffer({ label: "fog-tile-lists", size: n * eyesMax * WORD, usage: STORAGE });
+    t.counts = t.scope.buffer({
+      label: "fog-tile-counts",
+      size: n * WORD,
+      usage: STORAGE | COPY_DST | COPY_SRC,
+    });
+    t.tilesX = tilesX;
+    t.tilesY = tilesY;
+    generation++;
+  };
+
+  const readback = async (from: GPUBuffer, bytes: number): Promise<ArrayBuffer> => {
     const read = device.createBuffer({ size: bytes, usage: MAP_READ | COPY_DST });
     try {
       const encoder = device.createCommandEncoder({ label: "fog-readback" });
-      encoder.copyBufferToBuffer(source, 0, read, 0, bytes);
+      encoder.copyBufferToBuffer(from, 0, read, 0, bytes);
       device.queue.submit([encoder.finish()]);
       await read.mapAsync(1);
       return read.getMappedRange().slice(0);
@@ -1286,43 +894,17 @@ export async function createFogVisibility(
   const outBuffer = (bytes: number) =>
     device.createBuffer({ size: Math.max(16, bytes), usage: STORAGE | COPY_SRC });
 
-  /** Run the probe pipeline with `group` bound as fog. */
-  const runProbe = async (
-    group: ReturnType<typeof fragmentGroup> | (() => ReturnType<typeof fragmentGroup>),
-    points: readonly FogProbeInput[],
-    before?: (encoder: GPUCommandEncoder) => void,
-  ): Promise<Uint8Array> => {
-    const records = probeRecords(points);
-    const input = storage("fog-probe-points", records.byteLength);
-    const out = outBuffer(points.length * WORD);
-    try {
-      device.queue.writeBuffer(input, 0, records);
-      const encoder = device.createCommandEncoder({ label: "fog-probe" });
-      before?.(encoder);
-      pipelines.probe
-        .with(typeof group === "function" ? group() : group)
-        .with(root.createBindGroup(probeLayout, { points: input, out }))
-        .with(encoder)
-        .dispatchWorkgroups(Math.max(1, Math.ceil(points.length / BUILD_WORKGROUP)));
-      device.queue.submit([encoder.finish()]);
-      return Uint8Array.from(new Uint32Array(await readback(out, points.length * WORD)));
-    } finally {
-      input.destroy();
-      out.destroy();
-    }
-  };
-
   return {
-    /** The fog to draw: world, eyes and occluders; `null` draws everything seen. */
-    set(input: FogInput | null) {
-      if (!input) {
-        sight = null;
-        return;
-      }
-      if (input.world !== world) setWorld(input.world);
-      setSight(input.sight);
+    /** What fog is drawn from: the scene's presentation over the ground
+     *  `heights` (none: flat), or none (everything seen). */
+    setSource(next: FogSource | null, heights: TerrainGrid | null) {
+      grid = heights ?? FLAT;
+      generation++;
+      if (next === source) return;
+      source = next;
+      // This renderer holds nothing of it yet.
+      source?.resend_fog();
     },
-    /** The tile lists for a frame size, owned by that size's scope. */
     /** The ground paint's look on the painted layers. */
     setPaintStyle(style: {
       albedo: number;
@@ -1343,35 +925,20 @@ export async function createFogVisibility(
         pad2: 0,
       });
     },
-    sized(
-      scope: GpuRegistry,
-      width: number,
-      height: number,
-      depth: GPUTexture,
-      paint: GPUTexture,
-    ): FogTiles {
-      const tilesX = Math.ceil(width / g.tile_px);
-      const tilesY = Math.ceil(height / g.tile_px);
-      const n = tilesX * tilesY;
+    /** The tile lists for a frame size, owned by that size's scope. */
+    sized(scope: GpuRegistry, depth: GPUTexture, paint: GPUTexture): FogTiles {
       return {
-        tilesX,
-        tilesY,
-        lists: scope.buffer({
-          label: "fog-tile-lists",
-          size: n * g.tile_eyes_max * WORD,
-          usage: STORAGE,
-        }),
-        counts: scope.buffer({
-          label: "fog-tile-counts",
-          size: n * WORD,
-          usage: STORAGE | COPY_DST | COPY_SRC,
-        }),
+        scope,
+        tilesX: 0,
+        tilesY: 0,
+        lists: null,
+        counts: null,
         depthView: depth.createView(),
         paintView: paint.createView(),
       };
     },
-    /** This frame's rebuilds, then the tile cull over the prepass depth.
-     *  `camera` is the frame's packed camera uniform. */
+    /** This frame's rebuilds, structures and tile cull over the prepass
+     *  depth. `camera` is the frame's camera record. */
     encode(
       encoder: GPUCommandEncoder,
       frameTiles: FogTiles,
@@ -1380,100 +947,96 @@ export async function createFogVisibility(
       height: number,
     ) {
       tiles = frameTiles;
-      prepare(encoder, { probeCount: 0, camera, width, height });
-      if (!world || !sight) return;
-      const { cull, faces } = groups();
-      if (wholesDirty && occluders?.length) {
-        // Flag each structure seen or not, then copy the flags into the
-        // `wholes` texture the fragments read.
-        wholesDirty = false;
-        // Preserve the original bounding-circle reach test: roof probes may
-        // look inward from a box just outside the eye's circle.
-        const {
-          count: n,
-          words: items,
-          kept,
-        } = wholeFogRecords(wholes, order.map(eyeRow), maxOccluderRadius, eyeOccluders);
-        eyeOccluders = kept;
-        if (items.length > wholeItemCapacity) {
-          wholeItemCapacity = Math.max(items.length, wholeItemCapacity * 2);
-          buffers.wholeItems.set(storage("fog-whole-items", wholeItemCapacity * WORD));
-        }
-        // An eye leaving a neighbourhood must clear its previously seen flags.
-        encoder.clearBuffer(buffers.wholeFlags.current!);
-        if (n) {
-          device.queue.writeBuffer(buffers.wholeItems.current!, 0, items);
-          wholeUniform.write(d.vec4f(g.whole_step_m, n, 0, 0));
-          pipelines.whole
-            .with(faces)
-            .with(
-              root.createBindGroup(wholeLayout, {
-                boxes: buffers.occluders.current!,
-                whole: wholeUniform,
-                flags: buffers.wholeFlags.current!,
-                items: buffers.wholeItems.current!,
-              }),
-            )
-            .with(encoder)
-            .dispatchWorkgroups(Math.min(n, MAX_WORKGROUPS), Math.ceil(n / MAX_WORKGROUPS));
-        }
-        encoder.copyBufferToTexture(
-          { buffer: buffers.wholeFlags.current!, bytesPerRow: WHOLE_TEXTURE_WIDTH * WORD },
-          { texture: buffers.wholes.current!, origin: [0, wholes.flagsRow] },
-          [WHOLE_TEXTURE_WIDTH, wholes.flagRows],
-        );
+      const up = source?.prepare_fog(camera, width, height, 0);
+      if (!up) {
+        if (active)
+          device.queue.writeBuffer(root.unwrap(params), 0, new Uint32Array(FOG_PARAMS_WORDS));
+        active = false;
+        return;
       }
-      encoder.clearBuffer(frameTiles.counts);
-      pipelines.cull
-        .with(cull!)
-        .with(encoder)
-        .dispatchWorkgroups(frameTiles.tilesX, frameTiles.tilesY);
+      try {
+        const dispatch = upload(up);
+        if (dispatch) rebuildMaps(encoder, dispatch);
+        if (!active) return;
+        ensureTiles(frameTiles, up.tiles());
+        const { cull, faces } = groups();
+        if (up.whole().length) encodeWholes(encoder, up, faces);
+        encoder.clearBuffer(frameTiles.counts!);
+        pipelines.cull
+          .with(cull!)
+          .with(encoder)
+          .dispatchWorkgroups(frameTiles.tilesX, frameTiles.tilesY);
+      } finally {
+        up.free();
+      }
     },
     /** The fragment bind groups: ground, faces standing on it, and units
      *  (never fogged). */
     groups,
     stats(): FogVisibilityStats {
-      const R = g.radial_bins;
+      const rust = source?.fog_stats();
+      const s = rust
+        ? (JSON.parse(rust) as Omit<FogVisibilityStats, "tileListBytes" | "tiles">)
+        : null;
+      const eyesMax = tiles?.lists ? tiles.lists.size / WORD / (tiles.tilesX * tiles.tilesY) : 0;
       return {
-        enabled: !!(world && sight),
-        eyes: order.length,
-        slots: capacity,
-        occluders: occluders?.length ?? 0,
-        rebuilt,
-        pending: queue.length,
-        rebuiltTotal,
-        mapBytes: capacity * g.azimuth_bins * R * WORD,
-        terrainMapBytes: capacity * g.terrain_azimuth_bins * R * WORD,
-        tileListBytes: tiles ? tiles.tilesX * tiles.tilesY * (g.tile_eyes_max + 1) * WORD : 0,
-        tiles: tiles ? [tiles.tilesX, tiles.tilesY] : [0, 0],
+        enabled: (s?.enabled ?? false) && active,
+        eyes: s?.eyes ?? 0,
+        slots: s?.slots ?? 0,
+        occluders: s?.occluders ?? 0,
+        rebuilt: s?.rebuilt ?? 0,
+        pending: s?.pending ?? 0,
+        rebuiltTotal: s?.rebuiltTotal ?? 0,
+        mapBytes: s?.mapBytes ?? 0,
+        terrainMapBytes: s?.terrainMapBytes ?? 0,
+        tileListBytes: tiles?.lists ? tiles.tilesX * tiles.tilesY * (eyesMax + 1) * WORD : 0,
+        tiles: tiles?.lists ? [tiles.tilesX, tiles.tilesY] : [0, 0],
       };
     },
     /** Fog at `points` against every eye, after building any maps still due. */
     async probe(points: readonly FogProbeInput[]): Promise<Uint8Array> {
-      if (!world || !sight) return new Uint8Array(points.length).fill(1);
-      // Preparing can replace the dummy list buffer before the first frame.
-      // Bind only after preparation, when every referenced resource is live.
-      return runProbe(
-        () => groups().faces,
-        points,
-        (encoder) => prepare(encoder, { probeCount: points.length }),
-      );
+      const up = source?.prepare_fog(undefined, 0, 0, points.length);
+      if (!up?.active()) {
+        up?.free();
+        return new Uint8Array(points.length).fill(1);
+      }
+      const records = probeRecords(points);
+      const input = storage("fog-probe-points", records.byteLength);
+      const out = outBuffer(points.length * WORD);
+      try {
+        device.queue.writeBuffer(input, 0, records);
+        const encoder = device.createCommandEncoder({ label: "fog-probe" });
+        // Uploading can replace the buffers the groups bind: bind after it.
+        const dispatch = upload(up);
+        if (dispatch) rebuildMaps(encoder, dispatch);
+        pipelines.probe
+          .with(groups().faces)
+          .with(root.createBindGroup(probeLayout, { points: input, out }))
+          .with(encoder)
+          .dispatchWorkgroups(Math.max(1, Math.ceil(points.length / BUILD_WORKGROUP)));
+        device.queue.submit([encoder.finish()]);
+        return Uint8Array.from(new Uint32Array(await readback(out, points.length * WORD)));
+      } finally {
+        up.free();
+        input.destroy();
+        out.destroy();
+      }
     },
     /** Rebuild every eye's maps on the next frame, as if all had moved (a
      *  cost probe). */
     rebuildAll() {
-      invalidate();
+      source?.rebuild_fog();
     },
     /** The per-tile eye counts of the last frame (a debug readback). */
     async tileCounts(): Promise<Uint32Array> {
-      if (!tiles) return new Uint32Array(0);
+      if (!tiles?.counts) return new Uint32Array(0);
       const bytes = tiles.tilesX * tiles.tilesY * WORD;
       return new Uint32Array(await readback(tiles.counts, bytes));
     },
     /** The structures that take fog whole, and whether each was flagged
      *  seen by the last frame (a debug readback). */
     async wholes(): Promise<{ boxes: readonly FogOccluder[]; seen: Uint8Array }> {
-      const boxes = occluders ?? [];
+      const boxes = occluderBoxes(source?.fog_occluders() ?? new Float64Array(0));
       if (!boxes.length) return { boxes, seen: new Uint8Array(0) };
       const flags = new Uint32Array(
         await readback(buffers.wholeFlags.current!, boxes.length * WORD),

@@ -39,7 +39,7 @@ const platesOf =
     drawn: {
       buildings: [now],
       scenery: { forest: [], understorey: [], backdrop: [], dressing: [], felled: [], stumps: [] },
-      knownProps: [],
+      props: [],
     },
     models: { soldiers: now, vehicles: 1, aircraft: 0, corpses: 2, fading: 0 },
     effects: { ...emptyEffectCounts(), lights: now },

@@ -1,7 +1,7 @@
 // @vitest-environment node
 // What the frame draws of a model: nothing off screen,
 // a mesh tier by projected height, or its impostor card when far; which fog
-// group it binds; and corpses as static instances, chunked for the thousands.
+// group it binds.
 import { expect, test } from "vitest";
 import { frustum } from "math/shapes";
 import game from "@fixtures/game.json";
@@ -13,8 +13,6 @@ import {
   SHADOW_MARGIN_M,
   detailAt,
   modelDetail,
-  staticModelChunks,
-  staticsInView,
   validateModelDetail,
   type ModelDetailPresentation,
 } from "@packages/battle-renderer/src/models/modelDetail";
@@ -103,42 +101,4 @@ test("posed soldiers are units, never fogged; corpses take the ground's fog, bui
   expect(modelFog({ kind: "posed", palette: new Float32Array(0) })).toBe("units");
   expect(modelFog({ kind: "corpse", lies: 0 })).toBe("ground");
   expect(modelFog({ kind: "static", state: "intact" })).toBe("faces");
-});
-
-test("a map's static models are visited by chunk: every one the view can draw, in list order, and few it cannot", () => {
-  // A town's worth of props on a 4 km square, each its own size and reach.
-  const n = 20000;
-  const at = (i: number): [number, number, number] => [
-    ((i * 7919) % 4000) + 0.5,
-    ((i * 104729) % 4000) + 0.5,
-    (i % 7) * 0.3,
-  ];
-  const size = (i: number) => 0.5 + (i % 11);
-  const statics = Array.from({ length: n }, (_, i) => {
-    const [x, y, z] = at(i);
-    return { x, y, z, size: size(i), radius: size(i) * 0.75 };
-  });
-  const pop = staticModelChunks(statics);
-  const visited = new Int32Array(n);
-  for (const [distance, target] of [
-    [65, [1000, 1000, 0]],
-    [180, [3193, 3040, 0]],
-    [600, [200, 3900, 0]],
-    [2500, [2000, 2000, 0]],
-  ] as const) {
-    const v = setDetailView(createDetailView(), camera(distance, [...target]), HEIGHT);
-    const count = staticsInView(pop, v, visited);
-    const list = [...visited.subarray(0, count)];
-    // In list order, each once.
-    expect(list).toEqual([...new Set(list)].sort((a, b) => a - b));
-    // Every static the per-model test keeps is visited.
-    const kept = new Set(list);
-    for (let i = 0; i < n; i++) {
-      const s = statics[i];
-      if (modelDetail(DETAIL, v, s.x, s.y, s.z, s.size, s.radius, true) !== CULLED)
-        expect(kept.has(i), `static ${i} at ${distance} m`).toBe(true);
-    }
-    // From the play camera most of the map is never visited.
-    if (distance <= 600) expect(count).toBeLessThan(n / 4);
-  }
 });

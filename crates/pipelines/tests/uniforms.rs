@@ -4,7 +4,8 @@
 //! A renderer uploads the record's bytes as they are.
 use naga::{Module, TypeInner};
 use presentation::records::{
-    Aerial, Bloom, Camera, FogLook, Grade, Layout, SkyLight, Sun, SunShadow, View,
+    Aerial, Bloom, Camera, FogBox, FogEye, FogLook, FogParams, Grade, Layout, SkyLight, Sun,
+    SunShadow, View,
 };
 use std::fs;
 
@@ -85,6 +86,24 @@ fn the_uniform_records_are_the_shaders_structs() {
         ("worldOpaque.wgsl", "SunShadow", &SunShadow::LAYOUT),
     ] {
         let (want, span) = members(&module(file), name);
+        assert_eq!(fields(layout, ""), want, "{file} {name}");
+        assert_eq!(layout.size as u32, span, "{file} {name} size");
+    }
+}
+
+#[test]
+fn fog_s_sight_records_are_the_shaders_structs() {
+    for (file, name, layout) in [
+        ("fogMerge.wgsl", "FogParams", &FogParams::LAYOUT),
+        ("worldTerrain.wgsl", "FogParams", &FogParams::LAYOUT),
+        ("fogMerge.wgsl", "FogEyeRecord", &FogEye::LAYOUT),
+        ("fogMerge.wgsl", "FogBox", &FogBox::LAYOUT),
+    ] {
+        let (members, span) = members(&module(file), name);
+        let want: Vec<_> = members
+            .into_iter()
+            .filter(|(n, _)| !n.starts_with("pad"))
+            .collect();
         assert_eq!(fields(layout, ""), want, "{file} {name}");
         assert_eq!(layout.size as u32, span, "{file} {name} size");
     }

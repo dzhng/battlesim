@@ -143,15 +143,18 @@ records! {
         /// Joints a palette for it holds (0: rigid).
         skin: u32,
         /// 1 for a drawable of the static world (a building's kit module, a
-        /// tree), whose batches a frame writes only when they change and
-        /// names unchanged otherwise; 0 for one the frame poses every time.
+        /// tree, a prop), whose batches a frame writes only when they change
+        /// and names unchanged otherwise; 0 for one the frame poses every time.
         placed: u32,
-        /// What draws it: 0 a model; scenery 1 the forest, 2 a tree line's
-        /// shrubs, 3 the backdrop, 4 forest-floor dressing (its seed is its
-        /// height over the size it fades at), 5 a felled tree (two records
-        /// an instance: the tree with its fall's way, angle and hinge; then
-        /// its press up-and-down and across, trunk, landing and crown base),
-        /// 6 a felled tree's stump (`Presentation::stump_mesh`).
+        /// What draws it: 0 a model or a building's kit module; scenery 1
+        /// the forest, 2 a tree line's shrubs, 3 the backdrop, 4 forest-floor
+        /// dressing (its seed is its height over the size it fades at), 5 a
+        /// felled tree (two records an instance: the tree with its fall's
+        /// way, angle and hinge; then its press up-and-down and across,
+        /// trunk, landing and crown base), 6 a felled tree's stump
+        /// (`Presentation::stump_mesh`); a prop drawn as a model with the
+        /// units, 7 fogged face by face, 8 a surface movers stand on, which
+        /// takes the ground paint.
         draws: u32,
     }
 
@@ -432,6 +435,91 @@ records! {
         control: [f32; 4],
     }
 
+    /// Fog of war's sight for one frame (`FogParams`, bound by the fog
+    /// compute and every fogged material): the frame's camera and size, the
+    /// sight lights' geometry, the static world sight is cut by, and the
+    /// structures that take fog whole (`fog::sight`).
+    Plain FogParams {
+        inv_view_proj: [f32; 16],
+        camera_eye: [f32; 3],
+        /// The tallest canopy over the ground (m).
+        translucent_lift_m: f32,
+        azimuth_bins: u32,
+        terrain_azimuth_bins: u32,
+        radial_bins: u32,
+        tile_px: u32,
+        tiles_x: u32,
+        tile_eyes_max: u32,
+        eye_count: u32,
+        /// The foliage grid's cells across and down (0: no foliage).
+        foliage_nx: u32,
+        foliage_ny: u32,
+        height_nx: u32,
+        height_ny: u32,
+        /// Eyes whose maps this frame rebuilds.
+        rebuild_count: u32,
+        /// 0: no fog, everything seen.
+        enabled: u32,
+        probe_count: u32,
+        first_bin_m: f32,
+        target_height_m: f32,
+        foliage_cell_m: f32,
+        foliage_full_block: f32,
+        min_sight_gap_m: f32,
+        pad0: f32,
+        /// The playable rectangle as the map's extents give it; outside it
+        /// is fogged.
+        playable: [f32; 4],
+        height_spacing: f32,
+        face_probe_m: f32,
+        width: f32,
+        height: f32,
+        step_min_m: f32,
+        step_max_m: f32,
+        step_fraction: f32,
+        roof_reach_m: f32,
+        /// The structures that take fog whole: how many, their lookup grid
+        /// in the `wholes` texture (cells across and down, cell size,
+        /// origin) and where its item lists, boxes and seen flags start.
+        whole_count: u32,
+        whole_nx: u32,
+        whole_ny: u32,
+        whole_cell_m: f32,
+        whole_origin: [f32; 2],
+        whole_items_base: u32,
+        whole_boxes_base: u32,
+        whole_flags_base: u32,
+        pad1: [f32; 3],
+    }
+
+    /// One eye as its map was built (`FogEyeRecord`): `position` the map's
+    /// origin and `reach` its radius; forward, shape and range the latest
+    /// publication's.
+    Plain FogEye {
+        position: [f32; 3],
+        reach: f32,
+        forward: f32,
+        front: f32,
+        side: f32,
+        rear: f32,
+        range: f32,
+        /// The map slot holding this eye's maps.
+        slot: u32,
+        pad0: u32,
+        pad1: u32,
+    }
+
+    /// An oriented box that hides what lies behind it (`FogBox`).
+    Plain FogBox {
+        center: [f32; 2],
+        /// Half extents along and across its heading.
+        half: [f32; 2],
+        yaw: f32,
+        top: f32,
+        base: f32,
+        pad1: f32,
+    }
+
     /// What this frame poses and runs, for the gates.
     Plain Counts {
         soldiers: u32,
@@ -464,6 +552,15 @@ pub fn typescript() -> String {
          export const FOG_EDGE_REACH_PX = {};\n",
         crate::fog::FOG_EDGE_REACH_PX
     ));
+    {
+        use crate::fog::sight::{FOLIAGE_STEP, WHOLE_BOX_WORDS, WHOLE_TEXTURE_WIDTH};
+        out.push_str(&format!(
+            "/** Fog's foliage depth steps, the `wholes` texture's row and a structure box's words (`fog/sight.rs`). */\n\
+             export const FOLIAGE_STEP = {FOLIAGE_STEP};\n\
+             export const WHOLE_TEXTURE_WIDTH = {WHOLE_TEXTURE_WIDTH};\n\
+             export const WHOLE_BOX_WORDS = {WHOLE_BOX_WORDS};\n",
+        ));
+    }
     out.push_str(&format!(
         "/** The sun's cascade slots `SunShadow` holds (`shadow.rs`). */\n\
          export const SUN_CASCADES = {};\n",

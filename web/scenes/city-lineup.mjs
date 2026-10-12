@@ -31,7 +31,7 @@ import {
   lab,
   route,
 } from "./_lab.mjs";
-import { cropBox, decode } from "./_png.mjs";
+import { capture, cropBox, decode } from "./_png.mjs";
 import { writeSheet } from "./_sheet.mjs";
 import { bounds, judge, projected, setFits } from "./_templateFit.mjs";
 
@@ -59,7 +59,7 @@ async function show(page, method, key, value) {
 
 async function frame(page) {
   await lab(page, () => window.__lab.frame());
-  return page.screenshot();
+  return capture(page);
 }
 
 /** The frame's pixels in the box `at` alone. A pair's half needs only its
@@ -68,9 +68,7 @@ async function frame(page) {
 async function frameCrop(page, at) {
   await lab(page, () => window.__lab.frame());
   const { width, height } = page.viewportSize();
-  return page.screenshot({
-    clip: cropBox(width, height, at.x, at.y, at.w, at.h),
-  });
+  return capture(page, { clip: cropBox(width, height, at.x, at.y, at.w, at.h) });
 }
 
 async function runSet(ctx, page, set, fit) {

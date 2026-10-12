@@ -60,12 +60,15 @@ pub enum DrawnBy {
 }
 
 /// The world layout's (`sim::world::export::layout_json`) prop kinds, as
-/// far as the ground reads them: what draws each.
+/// far as the ground and sight read them: what draws each, and which hide
+/// what lies behind them.
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct Layout {
     prop_kinds: Vec<String>,
     prop_appearance: std::collections::HashMap<String, Option<PropAppearance>>,
+    #[serde(default)]
+    occluding_prop_kinds: Vec<String>,
 }
 
 #[derive(Deserialize)]
@@ -73,10 +76,19 @@ struct PropAppearance {
     drawn_by: String,
 }
 
-/// What draws each prop kind of the world layout `layout` (JSON), in kind order.
-pub fn drawn_by(layout: &str) -> Result<Vec<Option<DrawnBy>>, String> {
+/// The world layout's prop kinds, in kind order: their names, what draws
+/// each, and which occlude sight.
+#[derive(Clone, Debug, Default)]
+pub struct PropKinds {
+    pub names: Vec<String>,
+    pub drawn_by: Vec<Option<DrawnBy>>,
+    pub occludes: Vec<bool>,
+}
+
+/// The prop kinds of the world layout `layout` (JSON).
+pub fn prop_kinds(layout: &str) -> Result<PropKinds, String> {
     let layout: Layout = serde_json::from_str(layout).map_err(|e| format!("layout: {e}"))?;
-    Ok(layout
+    let drawn_by = layout
         .prop_kinds
         .iter()
         .map(
@@ -86,20 +98,31 @@ pub fn drawn_by(layout: &str) -> Result<Vec<Option<DrawnBy>>, String> {
                 _ => None,
             },
         )
-        .collect())
+        .collect();
+    let occludes = layout
+        .prop_kinds
+        .iter()
+        .map(|k| layout.occluding_prop_kinds.contains(k))
+        .collect();
+    Ok(PropKinds {
+        names: layout.prop_kinds,
+        drawn_by,
+        occludes,
+    })
 }
 
 /// What the ground is resolved from: the physical map `[min x, min y, max x,
-/// max y]`, its own rendered surroundings where it has them, its height
-/// grid, its exported streams as `WorldView` names them, and per prop kind
-/// what draws it.
+/// max y]`, the playable rectangle as the map's extents give it, its own
+/// rendered surroundings where it has them, its height grid, its exported
+/// streams as `WorldView` names them, and its prop kinds.
 #[derive(Default)]
 pub struct Source {
     pub map: [f64; 4],
+    pub playable: [f64; 4],
     pub rendered: Option<[f64; 4]>,
     pub grid: Grid,
     pub props: Vec<f32>,
-    pub drawn_by: Vec<Option<DrawnBy>>,
+    pub kinds: PropKinds,
     pub foliage: Vec<f32>,
     pub surface_strokes: Vec<f32>,
     pub surface_runs: Vec<f32>,
@@ -118,7 +141,7 @@ pub struct Source {
 
 impl Source {
     fn drawn_by(&self, prop: &[f32; PROP]) -> Option<DrawnBy> {
-        self.drawn_by.get(prop[2] as usize).copied().flatten()
+        self.kinds.drawn_by.get(prop[2] as usize).copied().flatten()
     }
 
     /// The buildings' centres.
@@ -130,11 +153,57 @@ impl Source {
     }
 }
 
-/// `presentation`'s blocks the ground reads (`tuning`).
+/// `presentation`'s blocks the ground reads (`tuning`), and fog of war's
+/// sight over it.
 #[derive(Clone, Deserialize)]
 pub struct Tuning {
     pub terrain: tuning::TerrainTuning,
     pub grass: tuning::GrassTuning,
+    pub fog_geometry: crate::fog::sight::Geometry,
+}
+
+/// What the ground of `world` is resolved from, the map's `extents` and its
+/// world `layout` (`sim::world::export::layout_json`).
+pub fn source(
+    world: &sim::world::WorldGeometry,
+    extents: &contract::map::MapExtents,
+    layout: &str,
+) -> Result<Source, String> {
+    let header: serde_json::Value = serde_json::from_str(&world.export_terrain_grid())
+        .map_err(|e| format!("terrain grid: {e}"))?;
+    let n = |k: &str| header[k].as_f64().unwrap_or(0.0);
+    Ok(Source {
+        map: extents.physical,
+        playable: extents.playable,
+        // The page hands the rendered surroundings only where they reach
+        // past the map (`resolveGround`).
+        rendered: (extents.rendered[0] < 0.0).then_some(extents.rendered),
+        grid: Grid {
+            nx: n("nx") as usize,
+            ny: n("ny") as usize,
+            spacing: n("spacing"),
+            page_size: n("pageSize") as usize,
+            min_height: n("minHeight"),
+            page_ids: world.export_terrain_page_ids(),
+            heights: world.export_terrain_heights(),
+        },
+        props: world.export_props(),
+        kinds: prop_kinds(layout)?,
+        foliage: world.export_foliage(),
+        surface_strokes: world.export_surface_strokes(),
+        surface_runs: world.export_surface_runs(),
+        surface_triangles: world.export_surface_triangles(),
+        surface_boundaries: world.export_surface_boundaries(),
+        rivers: world.export_rivers(),
+        river_runs: world.export_river_runs(),
+        forests: world.export_forests(),
+        forest_rect_ids: world.export_forest_rect_ids(),
+        forest_metadata: world.export_forest_metadata(),
+        forest_strokes: world.export_forest_strokes(),
+        forest_triangles: world.export_forest_triangles(),
+        forest_boundaries: world.export_forest_boundaries(),
+        forest_trunk_ranges: world.export_forest_trunk_ranges(),
+    })
 }
 
 pub struct Ground {

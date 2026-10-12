@@ -4,21 +4,12 @@
 // ~/dev/game's crowd tiering (technique): placement and the camera decide,
 // not upload order.
 //
-// A map's props stand for the whole battle and number in the tens of
-// thousands, so they are a population of the static chunk owner
-// (`frame/staticChunks.ts`), visited by chunk in view. The units, corpses and
-// ghosts are tiered by the same rule in the presentation crate
-// (`crates/presentation/src/view.rs`), which takes the statics over with 20b.
+// A lab's own models are tiered here; the units, corpses, ghosts and the
+// map's props by the same rule in the presentation crate
+// (`crates/presentation/src/view.rs`).
 import { vec3, type Vec3 } from "math";
-import { box3, frustum, type Sphere } from "math/shapes";
+import { frustum, type Sphere } from "math/shapes";
 import type { DetailView } from "../frame/detailView";
-import {
-  createStaticChunks,
-  NEAR,
-  selectChunks,
-  type ChunkLevel,
-  type StaticChunks,
-} from "../frame/staticChunks";
 
 /** `presentation.models`: the detail tiers by projected height, in device pixels. */
 export interface ModelDetailPresentation {
@@ -80,69 +71,6 @@ export function modelDetail(
     if (!frustum.sidesIntersectsSphere(view.sides, _shadow_sphere)) return CULLED;
   }
   return detailAt(detail, view, size, vec3.distance(c, view.eye), impostor);
-}
-
-/** Square chunks a map's static models are bucketed in, metres. */
-export const STATIC_CHUNK_M = 64;
-
-/** A static model where `modelDetail` tests it: its foot, how tall it is
- *  and the radius it is drawn within. */
-export interface StaticBounds {
-  x: number;
-  y: number;
-  z: number;
-  size: number;
-  radius: number;
-}
-
-const _static_corner = vec3.create();
-const everyNear: ChunkLevel<DetailView> = () => NEAR;
-
-/**
- * A map's static models (props, standing for the whole battle) bucketed by
- * ground, so a frame visits only the chunks in view. A chunk's box holds each
- * model's sphere as `modelDetail` tests it, shadow margin and all, so a model
- * in a chunk out of view is one `modelDetail` culls.
- */
-export function staticModelChunks(statics: readonly StaticBounds[]): StaticChunks {
-  const records = new Float32Array(statics.length * 3);
-  const sizes = new Float32Array(statics.length);
-  statics.forEach((s, i) => {
-    records.set([s.x, s.y, s.z], i * 3);
-    sizes[i] = s.size;
-  });
-  return createStaticChunks(
-    {
-      records,
-      stride: 3,
-      kinds: new Uint16Array(statics.length),
-      sizes,
-      bound(i, box) {
-        const s = statics[i];
-        const r = s.radius + SHADOW_MARGIN_M;
-        const z = s.z + s.size / 2;
-        box3.expandByPoint(box, box, vec3.set(_static_corner, s.x - r, s.y - r, z - r));
-        box3.expandByPoint(box, box, vec3.set(_static_corner, s.x + r, s.y + r, z + r));
-      },
-    },
-    1,
-    STATIC_CHUNK_M,
-    1,
-  );
-}
-
-/** Write into `out` the static models in the chunks `view` meets, as indices
- *  into the list they were chunked from, in that list's order; answer how many. */
-export function staticsInView(pop: StaticChunks, view: DetailView, out: Int32Array): number {
-  selectChunks(pop, view, everyNear, null);
-  let count = 0;
-  const order = pop.order[0];
-  for (const c of pop.near) {
-    const chunk = pop.chunks[c];
-    for (let i = chunk.start[0]; i < chunk.end[0]; i++) out[count++] = order[i];
-  }
-  out.subarray(0, count).sort();
-  return count;
 }
 
 /** `presentation.models`, checked: tiers strictly finer toward the camera,

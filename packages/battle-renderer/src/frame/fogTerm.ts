@@ -33,7 +33,7 @@
 //
 // `fogLayout` is read by the world's fragments and by FogVisibility's probe;
 // both call the same `fogSeenBy`.
-import { FOLIAGE_STEP, WHOLE_BOX_WORDS, WHOLE_TEXTURE_WIDTH } from "./fogInputs";
+import { FOLIAGE_STEP, WHOLE_BOX_WORDS, WHOLE_TEXTURE_WIDTH } from "../records.gen";
 import { tgpu, d } from "typegpu";
 import { typegpuCameraLayout } from "../world/camera";
 

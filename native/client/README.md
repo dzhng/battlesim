@@ -46,14 +46,35 @@ It runs the browser's own shaders and passes over the [presentation crate](../..
   ground, the models and the buildings cast into them, a unit one tier
   coarser than it draws and never as a card.
 - **Buildings** are the frame's static batches too: the map's buildings
-  placed from the template art, in the state the side knows. A replay frames
-  only the plates it draws, so it asks for every static batch on those
-  frames.
+  placed from the template art, in the state the side knows.
+- **Props** (parked cars, lamps, walls, fences, hedges, benches, wrecks,
+  rubble, shoved bodies) are the frame's static batches as well: the replay
+  places the map's props (`place_props`) from the art a page running the
+  scene's units installs (`files::prop_art`: the catalog's footprints,
+  paints and wrecks, each look's bounds read from its bundle's header), and
+  the presentation fits them and adds what the side knows. Their rows
+  (`Appearance.draws` 7 and 8) draw through the model pipelines and cast as
+  a unit casts, a tier coarser.
+- **The static batches are held between frames** (`statics.rs`), as the
+  browser holds them: one buffer per batch key, rewritten only when the
+  frame writes it, dropped when the frame stops listing it. The models and
+  the scenery draw them from there. A replay that jumps between plates
+  frames the records between without drawing them, so on a drawn frame after
+  an undrawn one it asks for every static batch anew.
 - **Effects** are the frame's effect instances (`Presentation::effects`),
   drawn into the resolved lit world over the browser's own flipbook sheets
   (`assets/third-party/effects`, Git LFS), and the cast lights the
   presentation chose (`Presentation::lights`) light every lit material and
   the smoke.
+- **Fog of war's sight** is the presentation's (`Presentation::prepare_fog`):
+  each drawn frame the client uploads what it is handed (eyes, occluders,
+  rebuild records, the structures' grid and `FogParams`) and runs the
+  browser's `fogTerrain`, `fogMerge`, `fogWhole` and `fogCull` after the
+  depth prepass. Every fogged material binds the fragment group of what it is
+  (`fog::Layer`): units never fogged, corpses as the ground under them, the
+  static world face by face. A replay draws fog where the browser did (the
+  manifest's `fog` layer), the side's foliage following the ground it sees
+  cleared.
 - **Fog's mask** runs as the browser's does: the world resolves its fog mask
   beside the lit world, and the mask passes compose the fogged world into
   post's input and draw the rim after post, in the fixture's unseen look
@@ -71,9 +92,8 @@ It runs the browser's own shaders and passes over the [presentation crate](../..
   fetched is refused by name in the report. `--sound <wav>` renders a
   replay's sound to a file; it is never played aloud by the replay, and the
   tests render to a buffer.
-- **What is bound but not drawn yet** reads as absent in every shader: fog
-  of war's sight (every surface seen) and the painted ground marks (the UI
-  paints them; a replay has no UI).
+- **What is bound but not drawn yet** reads as absent in every shader: the
+  painted ground marks (the UI paints them; a replay has no UI).
 
 ## Running a parity scene
 
@@ -99,9 +119,9 @@ its GPU time between two timestamp marker passes. The CPU time is split into
 framing, preparing, encoding and submitting. The report goes to
 `native-<scene>-<time>.json` in the browser file's shape. A window that isn't
 shown presents nothing and never blocks, so the bench keeps at most two frames
-on the GPU, as a swap chain would. Every frame lists every static batch,
-because the models keep none from the frame before. Run it on a release build,
-under the GPU lock.
+on the GPU, as a swap chain would. Every frame is drawn, so the static batches
+are written only when they change. Run it on a release build, under the GPU
+lock.
 
 ## Checks
 

@@ -1,16 +1,7 @@
 // @vitest-environment node
 import { expect, test } from "vitest";
-import {
-  apartKinds,
-  buildWorldLayers,
-  worldStructures,
-  type WorldLayout,
-} from "@packages/battle-renderer/src/worldMesh.ts";
+import { buildWorldLayers, type WorldLayout } from "@packages/battle-renderer/src/worldMesh.ts";
 import { VERTEX_FLOATS } from "@packages/battle-renderer/src/mesh.ts";
-import { validateStandIns } from "@packages/battle-renderer/src/models/propAppearance.ts";
-import type { InstalledAppearances } from "@packages/scene-assets/src/loader.ts";
-import type { StaticBundle } from "@packages/scene-assets/src/schema.ts";
-import { STAND_IN_KIT, STAND_IN_MODULE } from "@packages/scene-assets/src/standInKit.ts";
 import summer from "@fixtures/biomes/summer.json";
 import { loadPresentation } from "@web/battle/sim/presentation";
 
@@ -31,17 +22,6 @@ const layout: WorldLayout = {
     vehicle: ["building", "wall", "crate", "heavy_wreck", "ruin"],
   },
   occludingPropKinds: ["building", "wall", "ruin"],
-  movablePropKinds: ["crate", "heavy_wreck"],
-  destroyablePropKinds: ["building", "wall", "crate", "trunk", "heavy_wreck"],
-  propAppearance: {
-    building: { drawn_by: "building", map_only: true },
-    wall: { drawn_by: "wall", modular: true },
-    crate: { drawn_by: "crate" },
-    trunk: { drawn_by: "forest" },
-    bridge_deck: { drawn_by: "bridge_deck", map_only: true },
-    heavy_wreck: { drawn_by: "wreck" },
-    ruin: { drawn_by: "ruin" },
-  },
   flags: { forest: 1, blocked: 2 },
   propStride: 10,
   limbBits: 16,
@@ -141,14 +121,15 @@ test("the skirt the map stands on is a layer of its own; props are boxes only in
     return zs;
   };
   // The surface view draws the skirt, below the lowest ground, and no box:
-  // its props are appearances (`structures`), here with none installed.
+  // its props are appearances, the scene's presentation's to draw.
   const surface = buildWorldLayers(exports, layout, biome, "surface");
   expect(Math.min(...heights(surface.props))).toBeLessThan(0.5);
   expect(Math.max(...heights(surface.props))).toBeLessThan(6);
-  expect(surface.structures).toEqual([]);
+  expect(surface.terrain.input.props).toBe(true);
   // The traversal view shows what blocks: the crate's box, its top at 6.
   const traversal = buildWorldLayers(exports, layout, biome, "traversal");
   expect(Math.max(...heights(traversal.props))).toBeCloseTo(6);
+  expect(traversal.terrain.input.props).toBe(false);
 });
 
 test("the traversal overlay tints each triangle by its exported blocked flag, over the biome", () => {
@@ -162,42 +143,4 @@ test("the traversal overlay tints each triangle by its exported blocked flag, ov
   // The traversal tint replaces the biome; the surface view leaves the biome alone.
   expect(tint(traversal, 3)[3]).toBe(1);
   expect(tint(surface, 3)[3]).toBe(0);
-});
-
-test("a battle draws apart what can move and, when asked, what the integrity column says can be destroyed", () => {
-  // Trees stay the scenery's: a felled one is dropped where its ground is cleared.
-  expect(apartKinds(layout, false).sort()).toEqual(["crate", "heavy_wreck"]);
-  expect(apartKinds(layout, true).sort()).toEqual(["building", "crate", "heavy_wreck", "wall"]);
-});
-
-test("a static prop with no art is drawn in the world as its stand-in box, as one drawn apart is", () => {
-  // The crate's kind as a static one: nothing shoves or destroys it, so the
-  // world draws it, not the battle's known props.
-  const still: WorldLayout = { ...layout, movablePropKinds: [], destroyablePropKinds: [] };
-  const bundle: StaticBundle = {
-    kind: "static",
-    states: [{ name: STAND_IN_MODULE, tiers: [], bounds: { min: [0, 0, 0], max: [1, 1, 1] } }],
-    materials: [],
-    textures: [],
-    bounds: { min: [0, 0, 0], max: [1, 1, 1] },
-  };
-  const kit: InstalledAppearances = {
-    generation: 1,
-    sides: { blue: [1, 1, 1], red: [1, 1, 1] },
-    skeletons: new Map(),
-    onRequest: new Map(),
-    appearances: new Map([
-      [
-        STAND_IN_KIT,
-        { unit: "kit", scenery: null, footprint: null, mounts: null, regionalFamily: null, bundle },
-      ],
-    ]),
-  } as unknown as InstalledAppearances;
-  const standIns = validateStandIns({ tints: { default: [0.5, 0.5, 0.5] } });
-  expect(worldStructures(exports, still, [], kit)).toEqual([]);
-  const [box, ...rest] = worldStructures(exports, still, [], kit, standIns);
-  expect(rest).toEqual([]);
-  expect(box.appearance).toBe(STAND_IN_KIT);
-  expect([box.x, box.y, box.z]).toEqual([2, 2, 5]);
-  expect(box.scale).toEqual([1, 1, 1]);
 });

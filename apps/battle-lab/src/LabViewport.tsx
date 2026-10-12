@@ -4,6 +4,7 @@ import { diagnosticsSource } from "@web/diagnostics";
 import {
   loadPresentation,
   ObservationDecoder,
+  type PropStats,
   type PresentedUi,
 } from "@web/battle/sim/presentation";
 import { useCursorAction, type CursorAction } from "@web/battle/present/gameCursor";
@@ -44,7 +45,6 @@ import {
 } from "@packages/renderer-core/src/cameraObstacles";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import type { ModelInstance } from "@packages/battle-renderer/src/models/modelInstances";
-import type { SideStructures } from "@packages/battle-renderer/src/models/propAppearance";
 import { trackHeldKeys } from "@web/battle/input/heldKeys";
 import type { Project } from "@web/battle/present/readouts";
 import { gameCamera } from "./gameCamera";
@@ -52,7 +52,6 @@ import { gameLightFor } from "./gameLight";
 import { gameFogGeometry, gameFogStyle } from "./gameFog";
 import { gameOverlayGlow, gamePaint, gameXrayMinHiddenFragmentFraction } from "./gameOverlay";
 import { gameBuildingStyle, gameGlass, gameModelDetail } from "./gameModels";
-import type { FogInput } from "@packages/battle-renderer/src/frame/fogInputs";
 import type { FogStyle } from "@packages/battle-renderer/src/frame/fogStyle";
 import type { LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
 import type {
@@ -85,6 +84,7 @@ import { NO_SCENERY_WALK } from "@packages/battle-renderer/src/frame/sceneryLaye
 import {
   resolveFogLook,
   resolveLight,
+  type FogRequest,
   type PresentedAppearance,
   type PresentedFrame,
 } from "@web/battle/sim/presentation";
@@ -105,10 +105,6 @@ interface LabViewportProps {
   inputEnabled?: boolean;
   /** The static world, fed like the overlay (`useFeed`); drawn once it is set. */
   world: FeedSource<WorldLayers | null>;
-  /** Knowledge-drawn props as fitted appearances (standing walls and field
-   *  works, remembered rubble and wrecks), lit and fogged with the world;
-   *  fed like the overlay (`SideStructures`). */
-  structures?: FeedSource<SideStructures>;
   /** The map's buildings, fed like the overlay; omitted or null draws none.
    *  They are drawn by the scene's one presentation: the battle's
    *  (`presentation`), else one the viewport makes with no layout, whose
@@ -130,9 +126,10 @@ interface LabViewportProps {
   /** Ground paint that follows the pointer (the range ruler), fed like the
    *  overlay and uploaded apart from it (`BattleFrame.setPointerMarks`). */
   pointerMarks?: FeedSource<Mesh>;
-  /** What the observing side sees from, over the static world, fed like the
-   *  overlay; omitted or null draws no fog. */
-  fog?: FeedSource<FogInput | null>;
+  /** The side's fog of war, which its presentation decides (its sensor
+   *  rules, foliage, and a lab's stand-ins), fed like the overlay; omitted
+   *  or null draws no fog. */
+  fog?: FeedSource<FogRequest | null>;
   /** How unseen looks; the fixture's selected style when omitted. Live. */
   fogStyle?: FogStyle;
   /** The light, fixed for the viewport's life; the fixture's when omitted. */
@@ -173,8 +170,10 @@ interface LabViewportProps {
    *  viewport's life: while it gives a framing it owns the camera, input no
    *  longer steers it, and every frame is drawn and reported with its cost. */
   pilot?: ViewportPilot;
-  /** Appearance bundles from `AppearanceLibrary` for the models layer. */
-  appearances?: InstalledAppearances | null;
+  /** Appearance bundles from `AppearanceLibrary` for the models layer, fed
+   *  like the overlay: the bundles and the template library's bytes are
+   *  megabytes a changing prop would copy into React's measures. */
+  appearances?: FeedSource<InstalledAppearances | null>;
   /** Posed models to draw. */
   models?: readonly ModelInstance[];
   /** What a click can pick when no frame hands picks over (the units'
@@ -319,7 +318,8 @@ interface LabHandle {
   ready: boolean;
   error: string | null;
   adapter?: { vendor: string; architecture: string; description: string; format: string };
-  stats?: () => ReturnType<BattleFrame["stats"]>;
+  /** The frame's statistics, and what the scene's props draw. */
+  stats?: () => ReturnType<BattleFrame["stats"]> & { props: PropStats };
   allocations?: GpuAllocationTracker;
   /** The camera drawn. */
   camera?: () => Camera3DParams;
@@ -414,7 +414,6 @@ export function LabViewport({
   fixture,
   inputEnabled = true,
   world,
-  structures,
   buildings,
   presentation,
   buildingStyle,
@@ -462,8 +461,7 @@ export function LabViewport({
     previousQualityKey.current = qualityKey;
     void window.__lab?.rebuild?.();
   }, [qualityKey]);
-  const appearancesRef = useRef(appearances);
-  appearancesRef.current = appearances;
+  const appearancesRef = useRef(appearances?.current ?? null);
   const modelsRef = useRef(models);
   modelsRef.current = models;
   const presentedWorldRef = useRef<readonly PresentedAppearance[]>([]);
@@ -542,8 +540,6 @@ export function LabViewport({
       }),
     [pointerMarks],
   );
-  const structuresRef = useRef(structures);
-  structuresRef.current = structures;
   const buildingsRef = useRef(buildings);
   buildingsRef.current = buildings;
   const presentationRef = useRef(presentation);
@@ -564,14 +560,9 @@ export function LabViewport({
     redrawRef.current();
   }, [fogStyle]);
   const fogSuppressed = useRef(false);
-  useEffect(() => {
-    const draw = (input: FogInput | null) => {
-      sceneRef.current?.setFog(fogSuppressed.current ? null : input);
-      redrawRef.current();
-    };
-    draw(fog?.current ?? null);
-    return fog?.subscribe(draw);
-  }, [fog]);
+  // The scene's presentation takes the fog each frame (`setFog` below); a
+  // change only asks for one.
+  useEffect(() => fog?.subscribe(() => redrawRef.current()), [fog]);
   useEffect(
     () =>
       overlay?.subscribe((meshes: WorldMeshes | undefined) => {
@@ -581,21 +572,17 @@ export function LabViewport({
     [overlay],
   );
   useEffect(() => {
-    const draw = (next: SideStructures) => {
-      sceneRef.current?.setStructures(next);
-      redrawRef.current();
+    const install = (next: InstalledAppearances | null) => {
+      appearancesRef.current = next;
+      const scene = sceneRef.current;
+      if (!scene) return;
+      void scene.setAppearances(next).then(() => {
+        if (modelsRef.current) scene.setModels(modelsRef.current);
+        redrawRef.current();
+      });
     };
-    if (!structures) return;
-    draw(structures.current);
-    return structures.subscribe(draw);
-  }, [structures]);
-  useEffect(() => {
-    const scene = sceneRef.current;
-    if (!scene) return;
-    void scene.setAppearances(appearances ?? null).then(() => {
-      if (modelsRef.current) scene.setModels(modelsRef.current);
-      redrawRef.current();
-    });
+    install(appearances?.current ?? null);
+    return appearances?.subscribe(install);
   }, [appearances]);
   useEffect(() => {
     if (models) sceneRef.current?.setModels(models);
@@ -732,6 +719,14 @@ export function LabViewport({
           if (!own && moduleLoaded) own = new ObservationDecoder();
           return own;
         };
+        const propStats = (): PropStats =>
+          scenePresentation()?.propStats() ?? {
+            bodies: 0,
+            parts: 0,
+            unmodelled: 0,
+            models: 0,
+            known: 0,
+          };
         /** The buildings' style and sun, taken when the frame is built. A
          *  new frame holds no static batches, so the first drawn through it
          *  is sent them all (`resend`, raised when it replaces the last: the
@@ -777,12 +772,10 @@ export function LabViewport({
           // Prop effects and feeds can update this frame while appearances load.
           sceneRef.current = next;
           try {
-            if (structuresRef.current) next.setStructures(structuresRef.current.current);
             const meshes = overlayRef.current?.current;
             if (meshes) next.setOverlay(meshes);
             const marks = pointerMarksRef.current?.current;
             if (marks) next.setPointerMarks(marks);
-            next.setFog(fogRef.current?.current ?? null);
             if (appearancesRef.current) await next.setAppearances(appearancesRef.current);
             if (signal.aborted) {
               next.dispose();
@@ -907,6 +900,7 @@ export function LabViewport({
               );
               const layers = worldRef.current.current;
               decoder.setGround(layers?.terrain.input ?? null, layers?.scenery ?? null);
+              decoder.setFog(fogSuppressed.current ? null : (fogRef.current?.current ?? null));
               if (resend) decoder.resendStatics();
               resend = false;
               const quality = qualityRef.current;
@@ -1070,7 +1064,7 @@ export function LabViewport({
             description: info.description,
             format: info.format,
           },
-          stats: () => scene.stats(),
+          stats: () => ({ ...scene.stats(), props: propStats() }),
           allocations,
           camera: () => camera,
           setCamera(next: Camera3DParams) {
@@ -1154,7 +1148,7 @@ export function LabViewport({
           },
           async suppressFog(on: boolean) {
             fogSuppressed.current = on;
-            scene.setFog(on ? null : (fogRef.current?.current ?? null));
+            dirty = true;
             await nextFrame();
           },
           async suppressScars(on: boolean) {

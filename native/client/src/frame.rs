@@ -14,6 +14,7 @@ use wgpu::*;
 
 use crate::effects::Effects;
 use crate::environment::{view_proj, Environment};
+use crate::fog::Fog;
 use crate::grass::Grass;
 use crate::ground::Ground;
 use crate::models::Models;
@@ -118,6 +119,7 @@ pub struct Inputs<'a> {
     pub models: &'a Models,
     pub scenery: &'a Scenery,
     pub effects: &'a Effects,
+    pub fog: &'a Fog,
 }
 
 pub trait Pass {
@@ -136,6 +138,7 @@ pub struct Passes {
     pub models: Models,
     pub scenery: Scenery,
     pub effects: Effects,
+    pub fog: Fog,
     pub passes: Vec<Box<dyn Pass>>,
 }
 
@@ -148,7 +151,7 @@ impl Passes {
         queue: &Queue,
         presentation: &Presentation,
         camera: &Camera,
-    ) {
+    ) -> Result<(), String> {
         let frame = presentation.last_frame();
         self.environment
             .prepare(queue, &frame.view, camera.target, frame.clock as f32);
@@ -165,8 +168,9 @@ impl Passes {
                 height,
             );
         }
-        self.models.prepare(device, queue, frame);
-        self.scenery.prepare(frame);
+        self.models.prepare(device, queue, frame)?;
+        self.scenery.prepare(self.models.statics());
+        Ok(())
     }
 
     /// Takes this frame's scars from `presentation`: the grass regrows over
@@ -174,6 +178,19 @@ impl Passes {
     pub fn prepare_scars(&mut self, device: &Device, presentation: &mut Presentation) {
         self.ground
             .prepare_scars(device, presentation, self.grass.scar_bounds());
+    }
+
+    /// Takes this frame's fog of war from `presentation`, for its last
+    /// frame's view.
+    pub fn prepare_fog(
+        &mut self,
+        device: &Device,
+        queue: &Queue,
+        presentation: &mut Presentation,
+    ) -> Result<(), String> {
+        let frame = presentation.last_frame();
+        let camera = crate::environment::camera(&frame.view, frame.clock as f32);
+        self.fog.prepare(device, queue, presentation, &camera)
     }
 
     /// Prepares the effects and the cast lights `presentation` made for
@@ -207,6 +224,7 @@ impl Passes {
             models: &self.models,
             scenery: &self.scenery,
             effects: &self.effects,
+            fog: &self.fog,
         };
         for pass in &self.passes {
             encoder.push_debug_group(pass.name());

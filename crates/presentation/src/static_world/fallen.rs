@@ -17,10 +17,11 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 pub const RUIN: usize = 1;
 pub const GUTTED: usize = 2;
 
-/// A known prop as the rule reads it: the map prop whose place it took (none
-/// for a prop that is no map prop's, a wreck), its kind, and whether it was
-/// destroyed with nothing left. The publication's `KnownProp`, or a lab's
-/// stand-in for one, keyed as the page's `KnownProp` is.
+/// A lab's stand-in for one of the publication's known props, keyed as the
+/// page's `KnownProp` is: the map prop whose place it took (none for a prop
+/// that is no map prop's, a wreck), its kind, and whether it was destroyed
+/// with nothing left, which is all the buildings read; and, for the props to
+/// draw it, its id and box (a stand-in without a box draws nothing).
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Known {
@@ -29,6 +30,18 @@ pub struct Known {
     pub kind: String,
     #[serde(default)]
     pub destroyed: bool,
+    #[serde(default)]
+    pub id: Option<f64>,
+    #[serde(default)]
+    pub center: Option<[f64; 2]>,
+    #[serde(default)]
+    pub yaw: f64,
+    #[serde(default)]
+    pub half: [f64; 3],
+    #[serde(default)]
+    pub base_z: f64,
+    #[serde(default)]
+    pub wreck_of: Option<String>,
 }
 
 /// How a side's knowledge stands a map's buildings: which building each part
@@ -50,6 +63,11 @@ impl Knowledge {
             part_building: parts.into_iter().collect(),
             shells: shells.into_iter().collect(),
         }
+    }
+
+    /// Whether map prop `prop` is a building's part.
+    pub fn is_part(&self, prop: f64) -> bool {
+        self.part_building.contains_key(&(prop as u32))
     }
 
     /// The buildings `known` says are no longer intact, by building, each

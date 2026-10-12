@@ -1,6 +1,7 @@
 // A captioned grid of pictures, saved as one PNG: the review sheet a scene
 // hands to whoever judges its captures. The browser lays it out and draws the
 // captions, so a sheet needs no font or layout code here.
+import { capture } from "./_png.mjs";
 
 const pages = new WeakMap();
 
@@ -42,5 +43,5 @@ export async function writeSheet(
       .join("")}</main>`,
     { waitUntil: "load" },
   );
-  await page.screenshot({ path: ctx.evidencePath(file), fullPage: true });
+  await capture(page, { path: ctx.evidencePath(file), fullPage: true });
 }

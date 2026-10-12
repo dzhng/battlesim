@@ -3,6 +3,40 @@ import { PNG } from "pngjs";
 
 export const decode = (buffer) => PNG.sync.read(buffer);
 
+/**
+ * The page's pixels as a PNG: the viewport, the `clip` box ({ x, y, width,
+ * height } in CSS pixels) or, with `fullPage`, the whole document; also
+ * written to `path` when given. The same lossless pixels as
+ * `page.screenshot()`, encoded by Chrome's fast setting: its default encoder
+ * takes over a second on a detailed 1920 by 1080 frame, which was most of a
+ * picture-heavy scene's time.
+ */
+export async function capture(page, { clip, fullPage = false, path } = {}) {
+  const cdp = await page.context().newCDPSession(page);
+  try {
+    let area = clip;
+    if (fullPage) {
+      const { cssContentSize } = await cdp.send("Page.getLayoutMetrics");
+      area = {
+        x: 0,
+        y: 0,
+        width: Math.ceil(cssContentSize.width),
+        height: Math.ceil(cssContentSize.height),
+      };
+    }
+    const { data } = await cdp.send("Page.captureScreenshot", {
+      format: "png",
+      optimizeForSpeed: true,
+      ...(area && { clip: { ...area, scale: 1 }, captureBeyondViewport: fullPage }),
+    });
+    const png = Buffer.from(data, "base64");
+    if (path) await writeFile(path, png);
+    return png;
+  } finally {
+    await cdp.detach();
+  }
+}
+
 export function pixel(png, x, y) {
   const i = (Math.round(y) * png.width + Math.round(x)) * 4;
   return [png.data[i], png.data[i + 1], png.data[i + 2]];

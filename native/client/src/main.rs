@@ -16,6 +16,7 @@
 //! With `--bench`, no plate is written: every frame record is framed, drawn
 //! and presented back to back, timed (`bench`), and the report is written to
 //! that directory as `native-<scene>-<time>.json` for `web/fps-compare.mjs`.
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -26,6 +27,7 @@ use native_client::bundle::{Library, RUNTIME};
 use native_client::capture::{Record, Replay};
 use native_client::effects::{EffectPass, Effects};
 use native_client::environment::Environment;
+use native_client::fog::{Fog, FogSight};
 use native_client::fog_mask::fog_mask;
 use native_client::frame::{Passes, Targets, DISPLAY_FORMAT};
 use native_client::gpu::{self, Gpu};
@@ -126,9 +128,10 @@ struct Run {
     sound: Option<Audio>,
     /// A bench's timing, and what its frames drew: the sum over its frames
     /// of the models' soldiers, vehicles, corpses, pieces and triangles, the
-    /// scenery in view, the effects, and the instance bytes uploaded.
+    /// scenery in view, the effects, the instance bytes uploaded, and the
+    /// props.
     bench: Option<Bench>,
-    drew: [f64; 8],
+    drew: [f64; 9],
 }
 
 impl Run {
@@ -249,6 +252,9 @@ impl Run {
         // A fresh renderer holds no scars: the first upload writes them all.
         replay.presentation_mut().resend_scars();
         let effects = Effects::new(&gpu.device, &gpu.queue, &pipelines, &environment, &targets)?;
+        // Fog of war over the ground's height pages; a fresh renderer holds none.
+        let fog = Fog::new(&gpu.device, &pipelines, &targets, &ground.heights);
+        replay.presentation_mut().resend_fog();
         let (fog_mask, fog_rim) = fog_mask(&gpu.device, &pipelines, &targets, &replay.fog_look);
         if let Some(dir) = args.out.as_ref().or(args.bench.as_ref()) {
             std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
@@ -287,9 +293,11 @@ impl Run {
                 models,
                 scenery,
                 effects,
+                fog,
                 passes: vec![
                     Box::new(ShadowPass::new(&pipelines)),
                     Box::new(DepthPrepass::new(&pipelines)),
+                    Box::new(FogSight),
                     Box::new(WorldColour::new(&pipelines, sky)),
                     Box::new(EffectPass),
                     Box::new(fog_mask),
@@ -308,7 +316,7 @@ impl Run {
             last: None,
             sound,
             bench,
-            drew: [0.0; 8],
+            drew: [0.0; 9],
         })
     }
 
@@ -358,7 +366,7 @@ impl Run {
     }
 
     /// Prepares the layers to draw `record`'s frame, the last framed.
-    fn prepare(&mut self, record: &Record) {
+    fn prepare(&mut self, record: &Record) -> Result<(), String> {
         // The scars changed under the grass: it regrows over them.
         if self.replay.presentation_mut().scars_changed() {
             self.passes.grass.regrow();
@@ -369,12 +377,15 @@ impl Run {
         let wrap = frame.light_wrap;
         let (device, queue) = (&self.gpu.device, &self.gpu.queue);
         self.passes
-            .prepare(device, queue, self.replay.presentation(), &camera);
+            .prepare(device, queue, self.replay.presentation(), &camera)?;
         self.passes
             .prepare_scars(device, self.replay.presentation_mut());
+        self.passes
+            .prepare_fog(device, queue, self.replay.presentation_mut())?;
         let presentation = self.replay.presentation();
         self.passes
             .prepare_effects(device, queue, presentation, wrap);
+        Ok(())
     }
 
     /// Frames, draws and presents the next record, timed. False when done.
@@ -385,11 +396,11 @@ impl Run {
         self.next += 1;
         let bench = self.bench.as_mut().ok_or("not a bench")?;
         bench.start();
-        // Every frame is drawn, so it lists every static batch: the models
-        // hold none from the frame before.
+        // Every frame is drawn: the static batches it names unchanged are
+        // held from the frame before.
         self.replay.frame(&record, true, |_| {})?;
         self.bench.as_mut().ok_or("not a bench")?.mark();
-        self.prepare(&record);
+        self.prepare(&record)?;
         let d = self.passes.models.drawn();
         let scenery = self.passes.scenery.drawn();
         let trees: u32 = scenery.populations.iter().flatten().sum();
@@ -403,6 +414,7 @@ impl Run {
             f64::from(trees),
             f64::from(self.passes.effects.count()),
             bytes as f64,
+            f64::from(d.props),
         ];
         for (sum, v) in self.drew.iter_mut().zip(frame) {
             *sum += v;
@@ -443,7 +455,7 @@ impl Run {
             let Some(plate) = record.plate.clone() else {
                 continue;
             };
-            self.prepare(&record);
+            self.prepare(&record)?;
             let counts = self.replay.last_frame().counts;
             let (device, queue) = (&self.gpu.device, &self.gpu.queue);
             let presentation = self.replay.presentation();
@@ -473,7 +485,7 @@ impl Run {
                     ("fading", counts.fading, n("fading")),
                     (
                         "instances drawn of those listed",
-                        d.soldiers + d.vehicles + d.corpses + d.pieces + d.ghosts,
+                        d.soldiers + d.vehicles + d.corpses + d.pieces + d.props + d.ghosts,
                         d.listed,
                     ),
                 ];
@@ -488,6 +500,16 @@ impl Run {
                 &plate,
                 &self.replay.instance_counts,
                 &self.passes.scenery.drawn(),
+            ));
+            self.count_mismatches.extend(prop_mismatches(
+                &plate,
+                &self.replay.instance_counts,
+                self.passes.models.drawn_props(),
+            ));
+            self.count_mismatches.extend(building_mismatches(
+                &plate,
+                &self.replay.instance_counts,
+                self.passes.models.drawn_buildings(),
             ));
             let scars = self.replay.presentation().scar_stats();
             println!(
@@ -549,7 +571,7 @@ impl Run {
             );
         }
         if self.count_mismatches.is_empty() {
-            println!("model, scenery and effect counts: equal to the browser's on every plate");
+            println!("model, building, prop, scenery and effect counts: equal to the browser's on every plate");
         } else {
             println!("counts differ:\n  {}", self.count_mismatches.join("\n  "));
         }
@@ -598,6 +620,7 @@ impl Run {
                 "scenery": mean(5),
                 "effects": mean(6),
                 "instanceBytes": mean(7),
+                "props": mean(8),
             },
         });
         let scene = self.replay.map.clone();
@@ -727,6 +750,78 @@ fn scenery_mismatches(
                 "{plate} scenery {name}: {} against {} ({got:?} against {wanted:?})",
                 total(&got),
                 total(&wanted)
+            )
+        })
+        .collect()
+}
+
+/// Where the props `drawn` (by appearance, per tier) differ from what the
+/// browser drew of `plate` (`instanceCounts[].props`).
+fn prop_mismatches(
+    plate: &str,
+    instance_counts: &[serde_json::Value],
+    drawn: &BTreeMap<String, [u32; 4]>,
+) -> Vec<String> {
+    let Some(want) = instance_counts.iter().find(|c| c["plate"] == plate) else {
+        return vec![];
+    };
+    let want: BTreeMap<String, [u32; 4]> = want["props"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|p| {
+            let levels = &p["levels"];
+            let level = |t: usize| levels[t].as_u64().unwrap_or(u64::MAX) as u32;
+            let name = p["appearance"].as_str().unwrap_or("").to_owned();
+            (name, std::array::from_fn(level))
+        })
+        .collect();
+    let total = |m: &BTreeMap<String, [u32; 4]>| -> u32 { m.values().flatten().sum() };
+    let names: BTreeSet<&String> = want.keys().chain(drawn.keys()).collect();
+    names
+        .into_iter()
+        .filter(|n| want.get(*n) != drawn.get(*n))
+        .map(|n| {
+            format!(
+                "{plate} props {n}: {:?} against {:?} (all props {} against {})",
+                drawn.get(n),
+                want.get(n),
+                total(drawn),
+                total(&want)
+            )
+        })
+        .collect()
+}
+
+/// Where `plate`'s building modules differ from the browser's
+/// (`instanceCounts[].buildings`, `module · 4 + tier`).
+fn building_mismatches(
+    plate: &str,
+    instance_counts: &[serde_json::Value],
+    drawn: &[u32],
+) -> Vec<String> {
+    let Some(want) = instance_counts.iter().find(|c| c["plate"] == plate) else {
+        return vec![];
+    };
+    let want: Vec<u32> = want["buildings"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|n| n.as_u64().unwrap_or(u64::MAX) as u32)
+        .collect();
+    let at = |list: &[u32], i: usize| list.get(i).copied().unwrap_or(0);
+    let total = |list: &[u32]| list.iter().sum::<u32>();
+    (0..want.len().max(drawn.len()))
+        .filter(|&i| at(drawn, i) != at(&want, i))
+        .map(|i| {
+            format!(
+                "{plate} building module {} tier {}: {} against {} (all modules {} against {})",
+                i / 4,
+                i % 4,
+                at(drawn, i),
+                at(&want, i),
+                total(drawn),
+                total(&want)
             )
         })
         .collect()

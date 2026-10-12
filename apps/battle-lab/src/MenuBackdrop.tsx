@@ -320,7 +320,6 @@ function BackdropBattle({
     scenario,
     seed: scene.seed,
     scripted: reel.scripted,
-    destroyable: "apart",
     inputEnabled: false,
     xray: false,
   });

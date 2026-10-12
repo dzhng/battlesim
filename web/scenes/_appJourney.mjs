@@ -87,6 +87,34 @@ export async function appJourney(ctx) {
   await presented(page);
   const digest = await page.evaluate(() => window.__lab.route.digest());
   await snapshot(ctx, page, "app-journey-play.png");
+  // A real skirmish's map grows trees: the battle's presentation is handed
+  // the world's scenery art, so its forests are placed and some are drawn,
+  // far from the opening camera and near from a low one looking across the
+  // ground (straight down at 150 m the camera may see only a field).
+  const far = await page.evaluate(() => window.__lab.stats().scenery);
+  const opening = await page.evaluate(() => window.__lab.camera());
+  await page.evaluate(() => {
+    const c = window.__lab.camera();
+    window.__lab.setCamera({ ...c, distance: 150, pitch: 0.3 });
+  });
+  for (let k = 0; k < 30; k++) await page.evaluate(() => window.__lab.frame?.());
+  await page.waitForTimeout(1000);
+  const near = await page.evaluate(() => window.__lab.stats().scenery);
+  await snapshot(ctx, page, "app-journey-trees.png");
+  await page.evaluate((c) => window.__lab.setCamera(c), opening);
+  ctx.check(
+    "a played skirmish places its forests and draws some of them",
+    far.forest.placed > 0 &&
+      far.forest.tiers.some((n) => n > 0) &&
+      near.forest.tiers.some((n) => n > 0),
+    JSON.stringify({
+      placed: far.forest.placed,
+      far: far.forest.tiers,
+      near: near.forest.tiers,
+      backdrop: far.backdrop.tiers,
+      understorey: far.understorey.tiers,
+    }),
+  );
   const toolbar = page.getByRole("toolbar", { name: "Commands", exact: true });
 
   // The real pause controls own keyboard, pointer and camera input.
