@@ -182,3 +182,24 @@ export function lineText(
     throw new Error(`line ${set}/${voice}/${trigger}/${intensity}/${take}: not found`);
   return lines[intensity][take].replaceAll("{callsign}", selected.callsign);
 }
+
+/** One take of one line: a voice speaking a trigger at an intensity. */
+export interface VoiceTake {
+  set: string;
+  voice: string;
+  trigger: Trigger;
+  intensity: Intensity;
+  take: number;
+}
+/** The take's identity, as `retakes` and the generation lock key it. */
+export function takeId({ set, voice, trigger, intensity, take }: VoiceTake): string {
+  return `${set}/${voice}/${trigger}/${intensity}/${take}`;
+}
+/** A take's file name: its identity in the set's folder, then a content hash. */
+export function takeFile(take: VoiceTake, sha256: string): string {
+  return `${take.voice}-${take.trigger}-${take.intensity}-${take.take}.${sha256.slice(0, 8)}.mp3`;
+}
+/** The served URL of a take's processed bytes: the only builder of this path. */
+export function voiceUrl(take: VoiceTake, sha256: string): string {
+  return `/audio/voices/${take.set}/${takeFile(take, sha256)}`;
+}

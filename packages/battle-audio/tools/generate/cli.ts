@@ -6,8 +6,19 @@ import {
   BARK_TRIGGERS,
   type VoiceCatalog,
   type Trigger,
+  type Intensity,
 } from "../../src/voices/voiceCatalog";
 import voiceJson from "../../../../fixtures/voices.json";
+import { duetClient, type ElevenLabsClient } from "./elevenlabs";
+import { LOCK, readLock } from "./lock";
+import {
+  assetsProcessor,
+  checkVoices,
+  generateBeds,
+  generateVoices,
+  readProfiles,
+  type VoiceSelection,
+} from "./voices";
 
 type Unit = { roles?: string[]; roster?: { factions?: string[] } };
 const root = resolve(import.meta.dir, "../../../..");
@@ -110,10 +121,85 @@ function html(path: string) {
     `<!doctype html><meta charset="utf-8"><title>Voice sets</title><style>body{font:14px system-ui;background:#111;color:#eee;padding:24px}table{border-collapse:collapse;margin:8px 0 24px;width:100%}td,th{border:1px solid #555;padding:5px;text-align:left;vertical-align:top}section{margin-top:32px}td:nth-child(2),td:nth-child(3){max-width:420px}</style><h1>Battle voice sets</h1><h2>Roster assignments</h2><table><tr><th>unit</th><th>faction</th><th>set</th><th>country</th><th>role</th><th>female response</th></tr>${rows}</table><h2>Per-set generation budget</h2><table><tr><th>set</th><th>voices</th><th>clips</th><th>characters</th></tr>${subtotals}</table>${scripts}`,
   );
 }
+const USAGE = `usage: bun run generate <command>
+  plan [--html path]       the whole library's clips and characters, per set
+  beds                     generate the profiles' ambience beds (once)
+  voices [selection]       generate, process, transcribe and lock takes
+         [--dry-run] [--max-chars N]
+  process [selection]      re-render takes whose profile changed; no calls
+  check                    prove the lock against the files by hash
+  report                   the plan, then what the lock holds
+selection: [--set a,b] [--trigger move,attack] [--intensity steady|stressed]
+           [--take K] [--only missing|bad|flagged]`;
 const [command, ...args] = process.argv.slice(2);
-if (command !== "plan") throw new Error("usage: generate plan [--html path]");
-const result = report();
-const htmlFlag = args.indexOf("--html");
-if (htmlFlag >= 0)
-  html(args[htmlFlag + 1] ?? "specs/battle-voices-music/visualizations/voice-sets.html");
-if (!result.clips || !result.characters) process.exitCode = 1;
+const flag = (name: string) => {
+  const at = args.indexOf(`--${name}`);
+  return at >= 0 ? args[at + 1] : undefined;
+};
+const list = (name: string) => flag(name)?.split(",");
+function selection(): VoiceSelection {
+  const triggers = list("trigger");
+  for (const trigger of triggers ?? [])
+    if (!allTriggers.includes(trigger as Trigger)) throw new Error(`unknown trigger ${trigger}`);
+  const only = flag("only");
+  if (only && !["missing", "bad", "flagged"].includes(only)) throw new Error(USAGE);
+  return {
+    sets: list("set"),
+    triggers: triggers as Trigger[] | undefined,
+    intensities: list("intensity") as Intensity[] | undefined,
+    take: flag("take") === undefined ? undefined : Number(flag("take")),
+    only: only as VoiceSelection["only"],
+  };
+}
+const log = (line: string) => console.log(line);
+async function voices(client: ElevenLabsClient | null) {
+  const result = await generateVoices({
+    root,
+    catalog,
+    client,
+    processor: assetsProcessor,
+    profiles: readProfiles(),
+    select: selection(),
+    maxChars: flag("max-chars") === undefined ? undefined : Number(flag("max-chars")),
+    dryRun: args.includes("--dry-run"),
+    log,
+  });
+  console.log(
+    `TOTAL takes=${result.takes} calls=${result.calls} characters=${result.characters} flagged=${result.flagged} failed=${result.failed}`,
+  );
+  if (result.stopped) console.log(`STOPPED ${result.stopped.message}`);
+  if (result.failed) process.exitCode = 1;
+}
+function lockReport() {
+  const takes = Object.entries(readLock(resolve(root, LOCK)).takes);
+  const flagged = takes.filter(([, take]) => take.match.flagged);
+  for (const [id, take] of flagged)
+    console.log(`FLAGGED ${id}\t"${take.text}" heard "${take.transcript}"`);
+  const characters = takes.reduce((sum, [, take]) => sum + take.text.length, 0);
+  console.log(
+    `LOCK takes=${takes.length} characters=${characters} flagged=${flagged.length} mismatch=${takes.length ? ((100 * flagged.length) / takes.length).toFixed(1) : 0}%`,
+  );
+}
+
+if (command === "plan") {
+  const result = report();
+  if (args.includes("--html"))
+    html(flag("html") ?? "specs/battle-voices-music/visualizations/voice-sets.html");
+  if (!result.clips || !result.characters) process.exitCode = 1;
+} else if (command === "beds") {
+  const { calls } = await generateBeds({ root, client: duetClient(), log });
+  console.log(`TOTAL calls=${calls}`);
+} else if (command === "voices") await voices(duetClient());
+else if (command === "process") await voices(null);
+else if (command === "check") {
+  const problems = checkVoices({ root, catalog, profiles: readProfiles() });
+  for (const problem of problems) console.log(`FAIL ${problem}`);
+  console.log(`check: ${problems.length} problems`);
+  if (problems.length) process.exitCode = 1;
+} else if (command === "report") {
+  report();
+  lockReport();
+} else {
+  console.error(USAGE);
+  process.exitCode = 1;
+}

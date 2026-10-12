@@ -2,10 +2,10 @@
 
 ## Next Agent Prompt
 
-**Status (2026-10-12):** slice 01 built (voice data, 56 sets, hand-written scripts). Slices 07 and 11 are in fix passes in their own worktrees. Next lane-A pickup: slice 02. The discovery walk with the user and four independent drafts (fewest-slices, risk-first on Codex, seam-quality, asset-pipeline) produced this plan. Every entry in [`choices.md`](choices.md) is a given. It records who closed each decision and why.
+**Status (2026-10-12):** slices 01 (voice data) and 02 (generation tool, voice profiles, the two beds, the four saved voices' R2 takes) built. Slices 07 and 11 are in fix passes in their own worktrees. Next lane-A pickup: slice 03. The discovery walk with the user and four independent drafts (fewest-slices, risk-first on Codex, seam-quality, asset-pipeline) produced this plan. Every entry in [`choices.md`](choices.md) is a given. It records who closed each decision and why.
 
 **Pick up here:**
-- Start [slice 01](slices/01-voice-data.md).
+- Start [slice 03](slices/03-voices-tab.md).
 - Slices [07](slices/07-music-player.md) and [11](slices/11-shout-ledger.md) share no files with 01–06, so they can run in parallel lanes. Give each its own worktree.
 - Read `choices.md` first. Then read the slice file. Then read the owners each slice names.
 
@@ -16,7 +16,7 @@
 
 **Global TODO:**
 - [x] 01 — Voice data: the `voices.json` schema, the `Generated` provenance kind, the set table, role scripts, assignments for every roster unit, and the `plan` report. [slice](slices/01-voice-data.md)
-- [ ] 02 — Generation tool and processing: the proxy client, cache, lock, speech-to-text check, voice profiles in `assets.py`, and mono MP3 under `assets/runtime/audio/voices/`. [slice](slices/02-generator-and-processing.md)
+- [x] 02 — Generation tool and processing: the proxy client, cache, lock, speech-to-text check, voice profiles in `assets.py`, and mono MP3 under `assets/runtime/audio/voices/`. [slice](slices/02-generator-and-processing.md)
 - [ ] 03 — Voices tab: the workbench review grid, the keyboard review queue, verdicts, and regenerating a take. [slice](slices/03-voices-tab.md)
 - [ ] 04 — Pilot: `us_tank` with all 29 triggers, a credit and mismatch report, then straight on to the batch. [slice](slices/04-pilot.md)
 - [ ] 05 — Voice design: 3 candidates per voice, the user's pick saved permanently. [slice](slices/05-voice-design.md)
