@@ -236,27 +236,35 @@ export async function createFogMaskPass(
   displayFormat: GPUTextureFormat,
   initialStyle: FogStyle,
 ) {
-  const rows = root.createRenderPipeline({
-    vertex: common.fullScreenTriangle,
-    fragment: screen(distanceRows),
-    targets: { format: FOG_DISTANCE_FORMAT },
-  });
-  const columns = root.createRenderPipeline({
-    vertex: common.fullScreenTriangle,
-    fragment: screen(distanceColumns),
-    targets: { format: FOG_DISTANCE_FORMAT },
-  });
-  const compose = root.createRenderPipeline({
-    vertex: common.fullScreenTriangle,
-    fragment: screen(composeFog),
-    targets: { format: HDR_FORMAT },
-    multisample: { count: FRAME_MSAA },
-  });
-  const rim = root.createRenderPipeline({
-    vertex: common.fullScreenTriangle,
-    fragment: screen(rimAt),
-    targets: { format: displayFormat, blend: over },
-  });
+  const rows = root
+    .createRenderPipeline({
+      vertex: common.fullScreenTriangle,
+      fragment: screen(distanceRows),
+      targets: { format: FOG_DISTANCE_FORMAT },
+    })
+    .$name("fogMaskRows");
+  const columns = root
+    .createRenderPipeline({
+      vertex: common.fullScreenTriangle,
+      fragment: screen(distanceColumns),
+      targets: { format: FOG_DISTANCE_FORMAT },
+    })
+    .$name("fogMaskColumns");
+  const compose = root
+    .createRenderPipeline({
+      vertex: common.fullScreenTriangle,
+      fragment: screen(composeFog),
+      targets: { format: HDR_FORMAT },
+      multisample: { count: FRAME_MSAA },
+    })
+    .$name("fogMaskCompose");
+  const rim = root
+    .createRenderPipeline({
+      vertex: common.fullScreenTriangle,
+      fragment: screen(rimAt),
+      targets: { format: displayFormat, blend: over },
+    })
+    .$name("fogMaskRim");
   await Promise.all([rows, columns, compose, rim].map((p) => p.initAsync()));
 
   const look = registry.own(root.createBuffer(FogStyleUniform).$usage("uniform"));

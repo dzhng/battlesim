@@ -12,8 +12,8 @@ import {
 } from "@packages/battle-renderer/src/light/sceneLight.ts";
 import { skyModelParams } from "@packages/battle-renderer/src/light/skyParameters.ts";
 import { photorealEnvironment } from "@packages/battle-renderer/src/light/physicalEnvironment.ts";
-import { aerialWgsl } from "@packages/battle-renderer/src/shaders/aerial.ts";
-import { skyCloudsWgsl } from "@packages/battle-renderer/src/shaders/physicalSky.ts";
+import { aerial } from "@packages/battle-renderer/src/shaders/aerial.ts";
+import { skyLight } from "@packages/battle-renderer/src/shaders/physicalSky.ts";
 import { aerialParams } from "@packages/battle-renderer/src/light/aerialParameters.ts";
 import { createTypegpuPost } from "@packages/battle-renderer/src/world/post.ts";
 import { cascadeFrameFit, ShadowFrame } from "@packages/battle-renderer/src/shadowData.ts";
@@ -54,6 +54,12 @@ function cascadeBlendWeight(
 }
 
 const LIGHT = game.presentation.light as unknown as LightPresentation;
+/** Every number in a uniform's values, its vectors flattened. */
+const numbers = (values: object): number[] =>
+  Object.values(values).flatMap((v: number | Iterable<number>) =>
+    typeof v === "number" ? [v] : [...v],
+  );
+
 const withLight = (edit: (l: LightPresentation) => void): LightPresentation => {
   const copy = structuredClone(LIGHT);
   edit(copy);
@@ -108,9 +114,10 @@ test("the sky, the environment light, the haze and the cascades share one sun", 
     const v = cascade.view;
     [v[2], v[6], v[10]].forEach((c, i) => expect(c).toBeCloseTo(sun[i], 6));
   }
-  // The haze's sunward tint is compiled from the same vector.
-  const literal = (x: number) => `${x.toExponential(16)}f`;
-  expect(aerialWgsl(LIGHT)).toContain(`vec3f(${sun.map(literal).join(",")})`);
+  // The shown sky's uniform carries the same vector (the haze reads the
+  // environment's).
+  const shown = skyLight(skyModelParams(LIGHT)).sunDirection;
+  [shown.x, shown.y, shown.z].forEach((c, i) => expect(c).toBeCloseTo(sun[i], 6));
 });
 
 const _inCascade_clip = vec3.create();
@@ -247,7 +254,7 @@ test("sampled sun elevations and turbidities give finite, non-negative HDR light
         expect(Number.isFinite(v), `elevation ${sun_elevation}, turbidity ${turbidity}`).toBe(true);
         expect(v).toBeGreaterThanOrEqual(0);
       }
-      expect(aerialWgsl(light)).not.toMatch(/NaN|Infinity/);
+      expect(numbers(aerial(light)).every(Number.isFinite)).toBe(true);
     }
 });
 
@@ -269,7 +276,7 @@ test("a sunny sky carries fair-weather clouds that give way to the overcast dome
     l.sky.turbidity = 12;
   });
   expect(skyModelParams(overcast).clouds.opacity).toBe(0);
-  expect(skyCloudsWgsl(skyModelParams(LIGHT))).not.toMatch(/NaN|Infinity/);
+  expect(numbers(skyLight(skyModelParams(LIGHT))).every(Number.isFinite)).toBe(true);
   expect(() =>
     validateLight(
       withLight((l) => {

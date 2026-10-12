@@ -1,6 +1,6 @@
 import { beginGpuAdmission } from "../gpuAdmission";
 import { tgpu, d, std, common, type TgpuFn, type TgpuBindGroup } from "typegpu";
-import type { PostSettings } from "../light/sceneLight";
+import type { BloomSettings, PostSettings } from "../light/sceneLight";
 import {
   GRADE_LUMA,
   BLOOM_KERNEL_RADII,
@@ -50,9 +50,41 @@ function gradeUniform(settings: PostSettings) {
     lift: d.vec4f(...g.lift, 0),
   };
 }
-const sampled = tgpu.bindGroupLayout({
+/** The bloom uniform: `presentation.light.bloom` as the highpass and the
+ *  composite read it. */
+const Bloom = d.struct({
+  /** Each blurred level's share of the composite. */
+  weights: d.vec4f,
+  weight4: d.f32,
+  strength: d.f32,
+  /** Where the highpass starts and where it is full (linear HDR luminance). */
+  threshold: d.f32,
+  knee: d.f32,
+});
+
+function bloomUniform(bloom: BloomSettings): d.Infer<typeof Bloom> {
+  const [w0, w1, w2, w3, w4] = [1, 0.8, 0.6, 0.4, 0.2].map(
+    (f) => f * (1 - bloom.radius) + (1.2 - f) * bloom.radius,
+  );
+  return {
+    weights: d.vec4f(w0, w1, w2, w3),
+    weight4: w4,
+    strength: bloom.strength,
+    threshold: bloom.threshold,
+    knee: bloom.threshold + bloom.smooth_width,
+  };
+}
+
+const highpassLayout = tgpu.bindGroupLayout({
   linearSampler: { sampler: "filtering" },
   source: { texture: d.texture2d() },
+  bloom: { uniform: Bloom },
+});
+/** One axis of a level's blur; `step` is one texel along it, in uv. */
+const blurLayout = tgpu.bindGroupLayout({
+  linearSampler: { sampler: "filtering" },
+  source: { texture: d.texture2d() },
+  step: { uniform: d.vec2f },
 });
 const compositeLayout = tgpu.bindGroupLayout({
   linearSampler: { sampler: "filtering" },
@@ -61,6 +93,7 @@ const compositeLayout = tgpu.bindGroupLayout({
   level2: { texture: d.texture2d() },
   level3: { texture: d.texture2d() },
   level4: { texture: d.texture2d() },
+  bloom: { uniform: Bloom },
 });
 const finalLayout = tgpu.bindGroupLayout({
   linearSampler: { sampler: "filtering" },
@@ -76,8 +109,8 @@ export type PostMode = "look" | "ungraded" | "raw";
 
 /** Borrowed input/output/device; TypeGPU owns all intermediate HDR resources and
  * pipeline encoding. Adapted: `settings` (exposure, grade,
- * bloom from `presentation.light`) are fixed for the chain's life, so the
- * bloom's numbers are compiled in and the grade uniform is written once. */
+ * bloom from `presentation.light`) are fixed for the chain's life, so their
+ * uniforms are written once; the shaders depend on neither them nor the size. */
 export async function createTypegpuPost(
   device: GPUDevice,
   input: GPUTextureView,
@@ -118,75 +151,126 @@ export async function createTypegpuPost(
     const uniform = root.createBuffer(Grade, gradeUniform(settings)).$usage("uniform");
     owned.push(uniform);
     root.unwrap(uniform);
+    const bloom = root.createBuffer(Bloom, bloomUniform(settings.bloom)).$usage("uniform");
+    owned.push(bloom);
+    root.unwrap(bloom);
     root.unwrap(sampler);
     const pipeline = (
+      name: string,
       shade: TgpuFn<(uv: d.Vec2f) => d.Vec4f>,
       format: GPUTextureFormat = "rgba16float",
     ) =>
-      root.createRenderPipeline({
-        vertex: common.fullScreenTriangle,
-        fragment: tgpu.fragmentFn({ in: { uv: d.vec2f }, out: d.vec4f })(({ uv }) => {
-          "use gpu";
-          return shade(uv);
-        }),
-        targets: { format },
-      });
+      root
+        .createRenderPipeline({
+          vertex: common.fullScreenTriangle,
+          fragment: tgpu.fragmentFn({ in: { uv: d.vec2f }, out: d.vec4f })(({ uv }) => {
+            "use gpu";
+            return shade(uv);
+          }),
+          targets: { format },
+        })
+        .$name(name);
     const stages: ((encoder: GPUCommandEncoder) => void)[] = [];
-    const blurStage = (
-      body: string,
-      source: GPUTextureView,
+    const stage = (
+      p: ReturnType<typeof pipeline>,
+      group: TgpuBindGroup,
       target: ReturnType<typeof texture>,
     ) => {
-      const algorithm = tgpu.fn([d.vec2f, d.texture2d(), d.sampler()], d.vec4f)(body);
-      const shader = tgpu.fn(
-        [d.vec2f],
-        d.vec4f,
-      )((uv) => {
-        "use gpu";
-        return algorithm(uv, sampled.$.source, sampled.$.linearSampler);
-      });
-      const p = pipeline(shader).with(
-        admittedGroup(root.createBindGroup(sampled, { source, linearSampler: sampler })),
-      );
-      init.push(p.initAsync());
+      const drawn = p.with(admittedGroup(group));
+      init.push(drawn.initAsync());
       const targetView = target.createView("render");
       stages.push((encoder) =>
-        p
+        drawn
           .with(encoder)
           .withColorAttachment({ view: targetView, clearValue: [0, 0, 0, 0] })
           .draw(3),
       );
     };
+    const highpassAlgorithm = tgpu
+      .fn(
+        [d.vec2f, d.texture2d(), d.sampler(), Bloom],
+        d.vec4f,
+      )(bloomHighpassWgsl)
+      .$uses({ Bloom });
+    const highpass = tgpu.fn(
+      [d.vec2f],
+      d.vec4f,
+    )((uv) => {
+      "use gpu";
+      return highpassAlgorithm(
+        uv,
+        highpassLayout.$.source,
+        highpassLayout.$.linearSampler,
+        highpassLayout.$.bloom,
+      );
+    });
+    /** A level's blur, along whichever axis its `step` uniform points. */
+    const blur = BLOOM_KERNEL_RADII.map((radius, level) => {
+      const algorithm = tgpu.fn(
+        [d.vec2f, d.texture2d(), d.sampler(), d.vec2f],
+        d.vec4f,
+      )(bloomBlurWgsl(radius));
+      const shader = tgpu.fn(
+        [d.vec2f],
+        d.vec4f,
+      )((uv) => {
+        "use gpu";
+        return algorithm(uv, blurLayout.$.source, blurLayout.$.linearSampler, blurLayout.$.step);
+      });
+      return pipeline(`bloomBlur${level}`, shader);
+    });
+    const blurStage = (
+      level: number,
+      source: GPUTextureView,
+      step: d.v2f,
+      target: ReturnType<typeof texture>,
+    ) => {
+      const uniform = root.createBuffer(d.vec2f, step).$usage("uniform");
+      owned.push(uniform);
+      const group = root.createBindGroup(blurLayout, {
+        source,
+        linearSampler: sampler,
+        step: uniform,
+      });
+      stage(blur[level], group, target);
+    };
     let w = Math.floor(width / 2),
       h = Math.floor(height / 2);
     const bright = texture(w, h);
-    blurStage(bloomHighpassWgsl(settings.bloom), input, bright);
+    stage(
+      pipeline("bloomHighpass", highpass),
+      root.createBindGroup(highpassLayout, { source: input, linearSampler: sampler, bloom }),
+      bright,
+    );
     let source = bright;
     const levels: ReturnType<typeof texture>[] = [];
     let compositeTarget: ReturnType<typeof texture> | undefined;
-    for (const radius of BLOOM_KERNEL_RADII) {
+    for (const level of BLOOM_KERNEL_RADII.keys()) {
       const horizontal = texture(w, h),
         vertical = texture(w, h);
       compositeTarget ??= horizontal;
-      blurStage(bloomBlurWgsl(radius, w, h, 0), root.unwrap(source.createView()), horizontal);
-      blurStage(bloomBlurWgsl(radius, w, h, 1), root.unwrap(horizontal.createView()), vertical);
+      blurStage(level, root.unwrap(source.createView()), d.vec2f(1 / w, 0), horizontal);
+      blurStage(level, root.unwrap(horizontal.createView()), d.vec2f(0, 1 / h), vertical);
       source = vertical;
       levels.push(vertical);
       w = Math.floor(w / 2);
       h = Math.floor(h / 2);
     }
-    const compositeAlgorithm = tgpu.fn(
-      [
-        d.vec2f,
-        d.texture2d(),
-        d.texture2d(),
-        d.texture2d(),
-        d.texture2d(),
-        d.texture2d(),
-        d.sampler(),
-      ],
-      d.vec4f,
-    )(bloomCompositeWgsl(settings.bloom));
+    const compositeAlgorithm = tgpu
+      .fn(
+        [
+          d.vec2f,
+          d.texture2d(),
+          d.texture2d(),
+          d.texture2d(),
+          d.texture2d(),
+          d.texture2d(),
+          d.sampler(),
+          Bloom,
+        ],
+        d.vec4f,
+      )(bloomCompositeWgsl)
+      .$uses({ Bloom });
     const compositeShader = tgpu.fn(
       [d.vec2f],
       d.vec4f,
@@ -200,9 +284,10 @@ export async function createTypegpuPost(
         compositeLayout.$.level3,
         compositeLayout.$.level4,
         compositeLayout.$.linearSampler,
+        compositeLayout.$.bloom,
       );
     });
-    const composite = pipeline(compositeShader).with(
+    const composite = pipeline("bloomComposite", compositeShader).with(
       admittedGroup(
         root.createBindGroup(compositeLayout, {
           linearSampler: sampler,
@@ -211,6 +296,7 @@ export async function createTypegpuPost(
           level2: levels[2],
           level3: levels[3],
           level4: levels[4],
+          bloom,
         }),
       ),
     );
@@ -265,7 +351,7 @@ export async function createTypegpuPost(
         finalLayout.$.grade.exposure,
       );
     });
-    const direct = pipeline(directShader, outputFormat);
+    const direct = pipeline("postUngraded", directShader, outputFormat);
     init.push(direct.initAsync());
     const rawShader = tgpu.fn(
       [d.vec2f],
@@ -275,9 +361,9 @@ export async function createTypegpuPost(
       const texel = std.textureSample(finalLayout.$.scene, finalLayout.$.linearSampler, uv);
       return d.vec4f(texel.xyz, 1);
     });
-    const raw = pipeline(rawShader, outputFormat);
+    const raw = pipeline("postRaw", rawShader, outputFormat);
     init.push(raw.initAsync());
-    const final = pipeline(finalShader, outputFormat);
+    const final = pipeline("postLook", finalShader, outputFormat);
     init.push(final.initAsync());
     const zero = texture(1, 1);
     const groups = [zero, compositeTarget!].map((bloom) =>

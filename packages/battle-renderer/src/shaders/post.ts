@@ -1,8 +1,7 @@
 // Adapted from ~/dev/game battle-renderer/src/shaders/post.ts (reuse
 // manifest). Local changes: the grade's tints and the bloom's numbers come from
-// `presentation.light` (the grade uniform and the bloom WGSL builders) instead
-// of module constants, and the per-preset grade strength is gone.
-import type { BloomSettings } from "../light/sceneLight";
+// `presentation.light` through the grade and bloom uniforms instead of module
+// constants, and the per-preset grade strength is gone.
 
 /** Rec. 709 luma, for the grade and the bloom threshold. */
 export const GRADE_LUMA = [0.2126, 0.7152, 0.0722] as const;
@@ -43,37 +42,35 @@ export const outputSrgbWgsl = `(linear: vec3f) -> vec3f {
 
 export const BLOOM_KERNEL_RADII = [6, 10, 14, 18, 22] as const;
 
-/** Pure shader functions; each runtime supplies the sampled resources and uniforms. */
-export function bloomHighpassWgsl(bloom: BloomSettings): string {
-  return `(uv: vec2f, source: texture_2d<f32>, linearSampler: sampler) -> vec4f {
+/** Pure shader functions; each runtime supplies the sampled resources and
+ *  uniforms. The text depends on neither the light nor the target's size. */
+export const bloomHighpassWgsl = `(uv: vec2f, source: texture_2d<f32>, linearSampler: sampler, bloom: Bloom) -> vec4f {
   let c = textureSample(source,linearSampler,uv);
-  return mix(vec4f(0),c,smoothstep(${bloom.threshold},${bloom.threshold + bloom.smooth_width},dot(c.rgb,vec3f(${GRADE_LUMA.join(",")}))));
+  return mix(vec4f(0),c,smoothstep(bloom.threshold,bloom.knee,dot(c.rgb,vec3f(${GRADE_LUMA.join(",")}))));
 }`;
-}
 
-export function bloomBlurWgsl(radius: number, width: number, height: number, axis: 0 | 1) {
+/** One axis of a level's blur. `step` is one texel of the level along that
+ *  axis, in uv. */
+export function bloomBlurWgsl(radius: number) {
   const sigma = radius / 3;
   const weights = Array.from(
     { length: radius },
     (_, i) => (0.39894 * Math.exp((-0.5 * i * i) / (sigma * sigma))) / sigma,
   );
-  const delta = axis === 0 ? `vec2f(${1 / width},0)` : `vec2f(0,${1 / height})`;
-  return `(uv: vec2f, source: texture_2d<f32>, linearSampler: sampler) -> vec4f {
+  return `(uv: vec2f, source: texture_2d<f32>, linearSampler: sampler, step: vec2f) -> vec4f {
     let weights = array<f32,${radius}>(${weights.join(",")});
     var color = textureSample(source,linearSampler,uv).rgb*weights[0];
     for(var i = 1; i < ${radius}; i++) {
-      let offset = ${delta}*f32(i);
+      let offset = step*f32(i);
       color += (textureSample(source,linearSampler,uv+offset).rgb+textureSample(source,linearSampler,uv-offset).rgb)*weights[i];
     }
     return vec4f(color,1);
   }`;
 }
 
-export function bloomCompositeWgsl(bloom: BloomSettings): string {
-  return `(uv: vec2f, level0: texture_2d<f32>, level1: texture_2d<f32>, level2: texture_2d<f32>, level3: texture_2d<f32>, level4: texture_2d<f32>, linearSampler: sampler) -> vec4f {
-  return (${[1, 0.8, 0.6, 0.4, 0.2].map((f, i) => `textureSample(level${i},linearSampler,uv)*${f * (1 - bloom.radius) + (1.2 - f) * bloom.radius}`).join("+")})*${bloom.strength};
+export const bloomCompositeWgsl = `(uv: vec2f, level0: texture_2d<f32>, level1: texture_2d<f32>, level2: texture_2d<f32>, level3: texture_2d<f32>, level4: texture_2d<f32>, linearSampler: sampler, bloom: Bloom) -> vec4f {
+  return (${[0, 1, 2, 3, 4].map((i) => `textureSample(level${i},linearSampler,uv)*bloom.${i < 4 ? `weights.${"xyzw"[i]}` : "weight4"}`).join("+")})*bloom.strength;
 }`;
-}
 
 export const postFinalWgsl = `(uv: vec2f, scene: texture_2d<f32>, bloom: texture_2d<f32>, linearSampler: sampler, grade: Grade) -> vec4f {
   let hdr = textureSample(scene,linearSampler,uv)+textureSample(bloom,linearSampler,uv);
