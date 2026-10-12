@@ -1,6 +1,7 @@
 import { readFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
+  assignedSet,
   validateVoiceCatalog,
   ALL_TRIGGERS,
   voiceTriggers,
@@ -13,6 +14,7 @@ import { duetClient, type ElevenLabsClient } from "./elevenlabs";
 import { autoPicks, designVoices, pickVoice, renderPreviews } from "./design";
 import { LOCK, readLock, recordVerdicts } from "./lock";
 import { assetsEncoder, generateMusic } from "./music";
+import { writePacks } from "./packs";
 import {
   assetsProcessor,
   checkVoices,
@@ -32,8 +34,7 @@ for (const name of ["eastern", "europe", "shared", "us"]) {
 }
 const catalog = validateVoiceCatalog(voiceJson, roster);
 function assignment(unit: string, faction: string) {
-  const value = catalog.assignments[unit];
-  return typeof value === "string" ? value : (value?.[faction] ?? "(missing)");
+  return assignedSet(catalog.assignments, unit, faction) ?? "(missing)";
 }
 function lineCharacters(
   catalog: VoiceCatalog,
@@ -133,6 +134,9 @@ const USAGE = `usage: bun run generate <command>
   report                   the plan, then what the lock holds
   verdict ok|bad <take>@<sha256> ...
                            judge takes, each bound to the served bytes heard
+  pack [--set a,b] [--unreviewed]
+                           write each set's pack.json from its takes judged ok;
+                           --unreviewed also lists unjudged, unflagged takes
   design [<set>/<voice> ...]
                            3 Voice Design candidates per voice (default: every
                            voice without a voice_id), transcribed and previewed
@@ -239,6 +243,15 @@ else if (command === "check") {
   if (problems.length) process.exitCode = 1;
 } else if (command === "verdict") {
   if (!recordVerdicts(resolve(root, LOCK), args[0], args.slice(1), log)) process.exitCode = 1;
+} else if (command === "pack") {
+  const result = writePacks({
+    root,
+    catalog,
+    sets: list("set"),
+    unreviewed: args.includes("--unreviewed"),
+    log,
+  });
+  console.log(`TOTAL packs=${result.packs} takes=${result.takes}`);
 } else if (command === "design") {
   const named = args.filter((arg) => !arg.startsWith("--"));
   const result = await designVoices({ root, catalog, client: duetClient(), voices: named, log });

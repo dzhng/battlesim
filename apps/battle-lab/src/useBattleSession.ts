@@ -104,6 +104,7 @@ import { describeUnits, gamePose, type PoseRules } from "./benchmark/unitPresent
 import { useSimSession, type ScriptedSim } from "./useSimSession";
 import { groundUnderRay, useMapBuildings, useStaticWorld } from "./useStaticWorld";
 import { createBattleAudio } from "./soundFeed";
+import { UnitResponses } from "./unitResponses";
 import { frameCounts, presentationWorld, presentedCamera } from "./presentedFrame";
 import { gameLight } from "./gameLight";
 import type { ObservationDecoder } from "@web/battle/sim/presentation";
@@ -234,6 +235,8 @@ export function useBattleSession({
     [sound, rules.tick_hz, appAudio],
   );
   useEffect(() => () => audio?.dispose(), [audio]);
+  // The units' answers to their owner (R1–R12), one battle's at a time.
+  const responses = useRef<UnitResponses | null>(null);
   // The presentation notes every publication for the effects as it decodes
   // it (`presentation.ts`); sound hears the same, and the side's structures
   // leave out a wreck it draws moving (a cook-off).
@@ -247,12 +250,18 @@ export function useBattleSession({
         setMovingWrecks((now) => (now.join() === moving.join() ? now : moving));
         audio?.note(presentation.wasm);
       }
+      responses.current?.observed(o);
       onDecoded?.(o, digest);
     },
     [audio, onDecoded],
   );
   const sim = useSimSession({ scenario, seed, onDecoded: noteDecoded, replay, scripted, prepared });
   presentationRef.current = sim.client?.presentation ?? null;
+  const faction = skirmish ? skirmish.factions[side === "blue" ? 0 : 1] : null;
+  useEffect(() => {
+    responses.current =
+      audio && sim.client ? new UnitResponses(audio, units, faction, rules.tick_hz) : null;
+  }, [audio, sim.client, units, faction, rules.tick_hz]);
   const { observation } = sim;
   const contactPresentation = useMemo(
     () => (sim.client ? new ContactPresentation(rules.tick_hz, gameContactStyle.fade_s) : null),
@@ -297,7 +306,11 @@ export function useBattleSession({
   const control = useUnitControl(
     replay || scripted ? null : sim.client,
     observation,
-    noteOrder,
+    {
+      onIssue: noteOrder,
+      onAck: (order, ack, queued) => responses.current?.acknowledged(order, ack, queued),
+      onSelect: (added, clicked) => responses.current?.selected(added, clicked),
+    },
     inputEnabled,
   );
   const [purchasePlacement] = useState(() => new PurchasePlacementControl());

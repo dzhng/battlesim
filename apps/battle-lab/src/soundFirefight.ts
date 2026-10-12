@@ -370,7 +370,11 @@ export interface FirefightRender {
 /** The game's sound rendered offline for `seconds` at 48 kHz stereo:
  *  the context, its sink with the bank loaded, and the frame that plays
  *  into it. `solo` keeps one bus and mutes the others. */
-async function offlineSound(seconds: number, solo?: Bus, catalog: SoundCatalog = gameSounds) {
+export async function offlineSound(
+  seconds: number,
+  solo?: Bus,
+  catalog: SoundCatalog = gameSounds,
+) {
   const sampleRate = 48000;
   const ctx = new OfflineAudioContext(2, Math.round(seconds * sampleRate), sampleRate);
   const { buses } = gameAudio;
