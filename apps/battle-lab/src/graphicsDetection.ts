@@ -18,7 +18,9 @@ export function chooseTier(samples: Partial<Record<GraphicsTier, TierBenchmarkIn
     if (sample && sample.averageFps >= GRAPHICS_TARGET.averageFps && sample.onePercentLowFps >= GRAPHICS_TARGET.onePercentLowFps)
       return tier;
   }
-  throw new Error("Graphics auto-detect could not find a usable preset at the 45 FPS target.");
+  // A valid but slow adapter still gets the lowest playable profile; fatal is
+  // reserved for missing or unusable measurements.
+  return "low";
 }
 
 export function runAutoDetect(): Promise<GraphicsTier> {
