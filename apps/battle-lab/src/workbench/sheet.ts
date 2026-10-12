@@ -30,7 +30,7 @@ import { gameLight } from "../gameLight";
 import { resolveLight } from "@web/battle/sim/presentation";
 import { gameFogGeometry, gameFogStyle } from "../gameFog";
 import { gameOverlayGlow, gamePaint, gameXrayMinHiddenFragmentFraction } from "../gameOverlay";
-import { gameBuildingStyle, gameGlass, gameModelDetail } from "../gameModels";
+import { gameGlass, gameModelDetail } from "../gameModels";
 import { benchOverlay, benchWorld, drawnPose, posedSockets, type BenchPose } from "./benchWorld";
 import { sideTint, type LoadedModel } from "./sources";
 import {
@@ -219,7 +219,6 @@ export class SheetRenderer {
       xrayMinHiddenFragmentFraction: gameXrayMinHiddenFragmentFraction,
       models: gameModelDetail,
       glass: gameGlass,
-      buildings: gameBuildingStyle,
       world: benchWorld(null),
       instances: [],
       width: TILE,

@@ -3,7 +3,8 @@
 This crate is the native client's GDExtension. Two parts:
 
 - **The native core** the Godot project loads: so far the static layers'
-  per-frame walk (`src/static_layers`), described in
+  per-frame walk (`src/static_layers`), and the buildings' walk shared with
+  the browser (`src/building_walk.rs` over `crates/presentation`'s `static_world`), described in
   [the project's readme](../godot/README.md#the-rust-extension).
   `native/godot/binding/build.sh` builds and places it.
 - **The binding smoke** (`src/lib.rs`'s node and version probe), the first

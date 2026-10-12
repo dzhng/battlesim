@@ -57,7 +57,7 @@ interface GraphicsTestState {
   report: ReelReport | null;
   /** Each scene's control plates (`?plates=1`), in run order. */
   plates: readonly (ReelPlate & { scene: string })[];
-  /** Each plated scene's tables: ground, grass, buildings and scenery, in run order. */
+  /** Each plated scene's tables: ground, grass and scenery, in run order. */
   tables: readonly { scene: string; tables: UploadedTables }[];
 }
 
@@ -263,18 +263,14 @@ function ReelBattle({
         fixture="graphics-test"
         inputEnabled={false}
         world={world}
-        structures={session.structures}
-        buildings={session.buildingsFeed}
-        obstacles={session.cameraObstaclesFeed}
-        frame={session.frame}
-        appearances={session.appearances}
+        {...session.known}
+        {...session.viewport}
         initialCamera={{
           ...first,
           target: [first.target[0], first.target[1], 0],
           ...gameCamera.lens,
         }}
         groundAt={session.surfaceZ}
-        onReady={session.onReady}
         pilot={pilot}
         cameraConfig={cameraConfig}
       />

@@ -229,28 +229,25 @@ export function BattleView({
           fixture={fixture}
           inputEnabled={!pause.open && !matchFinished && loadStage === "playable"}
           world={worldFeed}
-          structures={session.structures}
-          buildings={session.buildingsFeed}
-          obstacles={session.cameraObstaclesFeed}
+          {...session.known}
           overlay={overlayFeed}
           pointerMarks={pointerPaint.feed}
           fog={session.fogFeed}
-          frame={session.frame}
-          appearances={session.appearances}
+          {...session.viewport}
           initialCamera={camera}
           cameraConfig={cameraConfig}
           groundAt={surfaceZ}
-          onPick={input ? session.onPick : undefined}
+          onPick={input ? session.input.onPick : undefined}
           leftDragAction={input && !!session.purchase?.placing}
-          onRightPress={session.onRightPress}
+          onRightPress={session.input.onRightPress}
           onCursor={(pointer, view, project) => {
-            const action = session.onCursor(pointer, view);
+            const action = session.input.onCursor(pointer, view);
             rulerLabels.current?.place(project, pointerPaint.shown);
             return action;
           }}
-          onBox={scripted ? undefined : session.onBox}
+          onBox={scripted ? undefined : session.input.onBox}
           onReady={(gpu) => {
-            session.onReady(gpu);
+            session.viewport.onReady(gpu);
             setViewportReady(true);
           }}
           pilot={scripted?.pilot}

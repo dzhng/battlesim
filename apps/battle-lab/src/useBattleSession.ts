@@ -43,15 +43,15 @@ import {
 } from "@packages/battle-renderer/src/frame/fogInputs";
 import {
   FRAME_FLOATS,
-  type SideBuildings,
+  type SceneBuildings,
 } from "@packages/battle-renderer/src/models/buildingReferences";
+import { buildingRemains } from "@packages/scene-assets/src/authority";
 import {
   buildingObstacles,
   buildingPartProps,
   knownOf,
 } from "@packages/battle-renderer/src/buildingObstacles";
 import { gameBiome } from "./gameBiome";
-import { knownFallen } from "./destroyedBuildings";
 import { mapAppearances, useMapAppearances } from "./gameAppearances";
 import { gameStandIns } from "./gameModels";
 import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog";
@@ -106,7 +106,7 @@ import { groundUnderRay, useMapBuildings, useStaticWorld } from "./useStaticWorl
 import { createBattleAudio } from "./soundFeed";
 import { frameCounts, frameSound, presentationWorld, presentedCamera } from "./presentedFrame";
 import { gameLight } from "./gameLight";
-import type { ObservationDecoder, PresentedAppearance } from "@web/battle/sim/presentation";
+import type { ObservationDecoder } from "@web/battle/sim/presentation";
 import type { ViewportCamera } from "@packages/renderer-core/src/cameraUniform";
 import type { SoundMotion } from "@packages/battle-audio/src/soundFrame";
 import { useAppAudio } from "./AppAudio";
@@ -408,21 +408,27 @@ export function useBattleSession({
       JSON.stringify(knownOf(JSON.parse(knownKey) as KnownPropView[], buildingParts)),
     [knownKey, buildingParts],
   );
-  const buildings = useMemo<SideBuildings | null>(
+  // The map's buildings, which the battle's presentation draws in the state
+  // the side's publication knows them in.
+  const buildings = useMemo<SceneBuildings | null>(
     () =>
-      drawnBuildings && knownBuildingsKey
-        ? {
-            placed: drawnBuildings.placed,
-            fallen: knownFallen(
-              units,
-              drawnBuildings,
-              JSON.parse(knownBuildingsKey) as KnownPropView[],
-            ),
-          }
-        : null,
-    [drawnBuildings, knownBuildingsKey, units],
+      drawnBuildings && {
+        placed: drawnBuildings.placed,
+        partBuilding: drawnBuildings.partBuilding,
+        shells: buildingRemains(units).shells,
+      },
+    [drawnBuildings, units],
   );
   const buildingsFeed = useFeed(buildings);
+  // The battle's presentation as the viewport reads it each frame.
+  const presentationSource = useMemo(
+    () => ({
+      get current() {
+        return sim.client?.presentation ?? null;
+      },
+    }),
+    [sim.client],
+  );
   // The map's props drawn apart, fitted once for the battle; what the side
   // knows then hides those it replaced and fits only its own (`sideStructures`).
   const fittedMap = useMemo(
@@ -540,7 +546,6 @@ export function useBattleSession({
   // the native manifest carries them. A new side or catalog loads again.
   const factions = skirmish?.factions;
   const presentation = sim.client?.presentation ?? null;
-  const loadedWorld = useRef<unknown>(null);
   const worldInput = useMemo(() => {
     if (!appearances || !props) return null;
     return presentationWorld({
@@ -613,15 +618,13 @@ export function useBattleSession({
       // with the battle). Everything this frame draws or decides reads the
       // latest publication, the tick the presentation blends toward.
       const published = sim.latest.current;
+      // Staged as soon as it is known: the presentation loads it with the
+      // buildings by its next frame, the viewport's until the first publication.
+      presentation?.setBattle(worldInput);
       const time = observation && published ? presentation?.clock(now) : null;
       if (time == null || !published || !presentation) {
         drawnObservation.current = null;
         return null;
-      }
-      let world: PresentedAppearance[] | undefined;
-      if (worldInput && loadedWorld.current !== worldInput) {
-        world = presentation.loadWorld(worldInput.world, worldInput.tables);
-        loadedWorld.current = worldInput;
       }
       drawnClock.current = time;
       drawnObservation.current = published;
@@ -669,7 +672,6 @@ export function useBattleSession({
       return {
         picks: drawn.current.picks,
         presented,
-        world,
         counts,
         felled: felled.of(published.fallenBodies),
         clock: time,
@@ -1041,8 +1043,9 @@ export function useBattleSession({
      *  side knows them (`parts`: the remains or the shell of one it has seen
      *  destroyed), which are the boxes its camera keeps clear of. */
     buildings: () => {
-      if (!drawnBuildings || !buildings || !knownBuildingsKey) return [];
-      const state = new Map(buildings.fallen.map((f) => [f.building, f.state]));
+      if (!drawnBuildings || !knownBuildingsKey) return [];
+      const fallen = presentation?.fallenBuildings() ?? [];
+      const state = new Map(fallen.map((f) => [f.building, f.state]));
       const known = JSON.parse(knownBuildingsKey) as KnownPropView[];
       const { placed } = drawnBuildings;
       const box = (p: PropBox) => ({
@@ -1165,9 +1168,18 @@ export function useBattleSession({
   return {
     world,
     meshes,
-    /** The props drawn from what the side knows (standing destroyable props
-     *  when "apart", their remains, and wrecks), fed to the viewport. */
-    structures: structuresFeed,
+    /** What every battle view hands its viewport (`LabViewport`): each
+     *  animation frame's drawn units and presentation clock, the battle's
+     *  presentation (which draws the buildings too), the appearances its
+     *  models layer installs, and the GPU's arrival. */
+    viewport: { frame, presentation: presentationSource, appearances: modelAppearances, onReady },
+    /** What the side knows stands, for a viewport that draws it: the props
+     *  drawn from that knowledge (standing destroyable props when "apart",
+     *  their remains, and wrecks), the map's buildings, and what the camera
+     *  keeps clear of. */
+    known: { structures: structuresFeed, buildings: buildingsFeed, obstacles: cameraObstaclesFeed },
+    /** The player's pointer on a viewport that takes orders. */
+    input: { onPick, onRightPress, onCursor, onBox, pointerMarks: pointerPaint.feed },
     /** What a second client needs to draw this side's props and fallen
      *  buildings (`describeProps`); null until the map's props are fitted. */
     describeProps: () =>
@@ -1180,12 +1192,6 @@ export function useBattleSession({
             units,
           })
         : null,
-    /** The map's buildings, and those the side has seen
-     *  fall, for the viewport. */
-    buildingsFeed,
-    /** What the camera keeps clear of, from what the side knows stands, for
-     *  the viewport. */
-    cameraObstaclesFeed,
     /** What renderer fog is drawn from; `fogFeed` carries it to the viewport. */
     fog,
     fogFeed,
@@ -1209,15 +1215,11 @@ export function useBattleSession({
     revealed,
     pointerPaint,
     surfaceZ,
-    /** The appearances the viewport's models layer installs. */
-    appearances: modelAppearances,
     /** What a second client needs to pose and draw this battle's units and
      *  its combat effects (`describeUnits`, `describeEffects`): the
      *  presentation's own input; null until it can load. */
     describeUnits: () => worldInput?.units ?? null,
     describeEffects: () => worldInput?.effects ?? null,
-    /** Every animation frame's drawn units and presentation clock, for the viewport. */
-    frame,
     /** The battle's sound (null unless `sound`), and its per-frame listener. */
     audio,
     hear,
@@ -1242,11 +1244,6 @@ export function useBattleSession({
             }
           : null,
       ),
-    onPick,
-    onRightPress,
-    onCursor,
-    onBox,
-    onReady,
     gpuAllocations,
     probes,
   };

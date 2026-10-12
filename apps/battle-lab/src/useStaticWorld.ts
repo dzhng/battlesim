@@ -3,7 +3,7 @@ import type { WorldRay } from "@packages/renderer-core/src/camera3d";
 import {
   indexBuildings,
   type BuildingIndex,
-  type SideBuildings,
+  type SceneBuildings,
 } from "@packages/battle-renderer/src/models/buildingReferences";
 import { mapProps, type MapProp } from "@packages/battle-renderer/src/models/propAppearance";
 import {
@@ -95,7 +95,13 @@ export function useMapBuildings(world: StaticWorld | null): MapBuildings | null 
 
 /** The map's buildings for a view no side's knowledge is behind (a probe of
  *  the static world): every one standing. */
-export function useStandingBuildings(world: StaticWorld | null): SideBuildings | null {
+export function useStandingBuildings(world: StaticWorld | null): SceneBuildings | null {
   const map = useMapBuildings(world);
-  return useMemo(() => map && { placed: map.index.placed, fallen: [] }, [map]);
+  return useMemo(
+    () =>
+      map && { placed: map.index.placed, partBuilding: map.index.partBuilding, shells: NO_SHELLS },
+    [map],
+  );
 }
+
+const NO_SHELLS: ReadonlySet<string> = new Set();

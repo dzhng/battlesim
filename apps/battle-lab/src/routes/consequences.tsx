@@ -117,20 +117,12 @@ function ConsequencesLab({ battle }: { battle: SavedBattle }) {
       <LabViewport
         fixture="consequences"
         world={worldFeed}
-        structures={session.structures}
-        obstacles={session.cameraObstaclesFeed}
-        buildings={session.buildingsFeed}
+        {...session.known}
         overlay={overlayFeed}
         fog={session.fogFeed}
-        frame={session.frame}
-        appearances={session.appearances}
+        {...session.viewport}
         initialCamera={CONSEQUENCES_CAMERA}
-        onPick={session.onPick}
-        onRightPress={session.onRightPress}
-        onCursor={session.onCursor}
-        pointerMarks={session.pointerPaint.feed}
-        onBox={session.onBox}
-        onReady={session.onReady}
+        {...session.input}
         onFrame={session.placePanels}
         diagnostics={diagnostics}
       />

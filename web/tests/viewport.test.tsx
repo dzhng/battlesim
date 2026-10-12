@@ -66,6 +66,11 @@ async function mount(
   return { view, props, frames, configure, Viewport: LabViewport };
 }
 
+/** Waits until the viewport is building its frame: it resolves the frame's
+ *  light through the presentation module, which loads first. */
+const building = () =>
+  act(() => vi.waitFor(() => expect(gpu.resolve).not.toBeNull(), { timeout: 10_000 }));
+
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
@@ -81,8 +86,7 @@ test("a viewport disposed during its build releases the late frame and never bec
       ready = true;
     },
   });
-  await act(async () => {});
-  expect(gpu.resolve).not.toBeNull();
+  await building();
   view.unmount();
   expect(gpu.destroyed).toBe(false);
   listeners.mockClear();
@@ -110,7 +114,7 @@ test("a viewport disposed during its build releases the late frame and never bec
 test("failed frame initialization releases the frame and reports its error to the loading boundary", async () => {
   const reported: (string | null | undefined)[] = [];
   const { view, props, Viewport } = await mount({}, (id, task) => reported.push(task?.error));
-  await act(async () => {});
+  await building();
   let disposed = false;
   await act(async () =>
     gpu.resolve!({
@@ -145,7 +149,7 @@ test("appearance updates reach the installing frame and unmount releases it imme
   const first = appearance(1),
     latest = appearance(2);
   const { view, props, Viewport } = await mount({ appearances: first });
-  await act(async () => {});
+  await building();
   let release!: () => void;
   const installing = new Promise<void>((resolve) => {
     release = resolve;
@@ -181,22 +185,21 @@ test("appearance updates reach the installing frame and unmount releases it imme
 
 test("a later viewport borrows the same device and releases its canvas without destroying admission", async () => {
   const first = await mount();
-  await act(async () => {});
+  await building();
   const native = HTMLCanvasElement.prototype.getContext as ReturnType<typeof vi.fn>;
   const context = native.mock.results.at(-1)!.value as GPUCanvasContext;
   first.view.unmount();
   expect(context.unconfigure).toHaveBeenCalledTimes(1);
   expect(gpu.destroyed).toBe(false);
   const second = await mount();
-  await act(async () => {});
-  expect(gpu.resolve).not.toBeNull();
+  await building();
   second.view.unmount();
   expect(gpu.destroyed).toBe(false);
 });
 
 test("a covered viewport ignores camera keys and resumes steering when uncovered", async () => {
   const { view, frames, props, Viewport } = await mount({ inputEnabled: false });
-  await act(async () => {});
+  await building();
   await act(async () =>
     gpu.resolve!({
       setFog() {},

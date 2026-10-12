@@ -4,8 +4,8 @@
 // their appearances (static per map), the tables `PropAppearances.fit` chooses
 // a known prop's appearance from, and which map props are a building's parts
 // and what a gutted building's parts become. Native fits what the side learns
-// per frame (`propAppearance.ts`) and derives fallen buildings
-// (`buildingReferences.ts` `fallenBuildings`).
+// per frame (`propAppearance.ts`) and derives fallen buildings by the
+// presentation's rule (`static_world/fallen.rs`).
 import game from "@fixtures/game.json";
 import { buildingRemains } from "@packages/scene-assets/src/authority";
 import { STAND_IN_KIT, STAND_IN_MODULE } from "@packages/scene-assets/src/standInKit";

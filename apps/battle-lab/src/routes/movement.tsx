@@ -125,19 +125,11 @@ function MovementLab({ battle }: { battle: SavedBattle }) {
       <LabViewport
         fixture="movement"
         world={worldFeed}
-        structures={session.structures}
-        obstacles={session.cameraObstaclesFeed}
-        buildings={session.buildingsFeed}
+        {...session.known}
         overlay={overlayFeed}
-        frame={session.frame}
-        appearances={session.appearances}
+        {...session.viewport}
         initialCamera={MOVEMENT_CAMERA}
-        onPick={session.onPick}
-        onRightPress={session.onRightPress}
-        onCursor={session.onCursor}
-        pointerMarks={session.pointerPaint.feed}
-        onBox={session.onBox}
-        onReady={session.onReady}
+        {...session.input}
         diagnostics={diagnostics}
       />
       <aside className="hud-panel lab-panel" data-testid="movement-panel">

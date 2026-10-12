@@ -381,7 +381,7 @@ export function mapProps(exports: WorldExports, layout: WorldLayout): MapProp[] 
  * has; nothing for one it saw destroyed with nothing left. A fall the side has
  * not seen leaves the prop standing. The camera keeps clear of a building's
  * parts by these, the same knowledge its drawn state follows
- * (`fallenBuildings`), so what is drawn and what blocks the camera cannot part.
+ * (`static_world/fallen.rs`), so what is drawn and what blocks the camera cannot part.
  */
 export function knownStanding(
   props: readonly MapProp[],

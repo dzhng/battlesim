@@ -40,7 +40,6 @@ import type { GlassStyle } from "../models/surfaceFragments";
 import { createImpostorBaker } from "../models/impostor";
 import { CARD_SPEC } from "../models/impostorCards";
 import type { ModelDetailPresentation } from "../models/modelDetail";
-import type { BuildingStyle } from "../models/buildingReferences";
 import { sunShadow } from "./staticChunks";
 import { createDetailView, detailKey, setDetailView } from "./detailView";
 import { FrameHeader, type frameViews } from "../records.gen";
@@ -66,8 +65,6 @@ export interface BattleFrameOptions {
   xrayMinHiddenFragmentFraction: number;
   /** `presentation.models`: the models' detail tiers and impostor size. */
   models: ModelDetailPresentation;
-  /** `presentation.buildings`: the buildings' tiers, chunks and pool. */
-  buildings: BuildingStyle;
   /** `presentation.glass`: how a pane of glass takes light. */
   glass: GlassStyle;
   world: WorldLayers;
@@ -101,7 +98,7 @@ export async function createBattleFrame(
     const camera = registry.own(root.createBuffer(Camera).$usage("uniform"));
     const cameraGroup = root.createBindGroup(typegpuCameraLayout, { cam: camera });
     const environment = await createEnvironmentFrame(device, registry, options.light);
-    const models = await createModelLayer(root, registry, options.models, options.buildings);
+    const models = await createModelLayer(root, registry, options.models);
     registry.adopt(() => models.dispose());
     const world = await createWorldPass(
       root,
@@ -189,8 +186,6 @@ export async function createBattleFrame(
           environment.setCastLights(lights, lightsShown ? lightCount : 0, lightWrap);
           world.prepare(camera3d, state.view, state.viewProj, state.rays, height);
           models.prepare(detail, detailKey(camera3d, height), sunShadow(shadow, sun, camera3d));
-          // Buildings expand into their pool a budget a frame: draw until done.
-          if (models.buildingsPending) options.requestRedraw?.();
 
           let encoder = root["~unstable"].createCommandEncoder({ label: "battle-frame" });
           let raw = root.unwrap(encoder);
@@ -236,8 +231,8 @@ export async function createBattleFrame(
         setStructures(next) {
           if (!disposed) world.setStructures(next);
         },
-        setBuildings(next) {
-          if (!disposed) models.setBuildings(next);
+        setStaticFrame(frame, stats) {
+          return !disposed && models.setStaticFrame(frame, stats);
         },
         setGround(next) {
           return !disposed && world.setGround(next);
@@ -358,7 +353,7 @@ export async function createBattleFrame(
         settled: () => targets.settled(),
         fogProbes: world.fog,
         grassProbes: world.grassProbes,
-        uploadedTables: () => ({ ...world.uploadedTables(), buildings: models.buildingTables() }),
+        uploadedTables: () => world.uploadedTables(),
         drawnInstances: () => ({
           buildings: models.drawnBuildings(),
           scenery: world.drawnScenery(),

@@ -111,24 +111,16 @@ function WeaponsLab({ battle }: { battle: SavedBattle }) {
       <LabViewport
         fixture="weapons"
         world={worldFeed}
-        structures={session.structures}
-        obstacles={session.cameraObstaclesFeed}
-        buildings={session.buildingsFeed}
+        {...session.known}
         overlay={overlayFeed}
         fog={session.fogFeed}
-        frame={session.frame}
-        appearances={session.appearances}
+        {...session.viewport}
         initialCamera={WEAPONS_CAMERA}
-        onPick={session.onPick}
-        onRightPress={session.onRightPress}
-        onCursor={session.onCursor}
-        pointerMarks={session.pointerPaint.feed}
-        onBox={session.onBox}
+        {...session.input}
         onFrame={(project, view, pointer) => {
           session.placePanels(project, view, pointer);
           contactFacing.follow(view);
         }}
-        onReady={session.onReady}
         diagnostics={diagnostics}
       />
       <ReadoutLayer

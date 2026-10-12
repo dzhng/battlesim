@@ -10,6 +10,7 @@ crate-type = ["cdylib"]
 godot = { version = "0.5.5", features = ["api-4-7"] }
 sim = { path = "../../crates/sim" }
 contract = { path = "../../crates/contract" }
+presentation = { path = "../../crates/presentation", features = ["files"] }
 serde = "1"
 serde_json = "1"
 

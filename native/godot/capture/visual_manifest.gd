@@ -18,7 +18,7 @@ const UnitManifest = preload("res://capture/unit_manifest.gd")
 const EffectManifest = preload("res://capture/effect_manifest.gd")
 
 const SCHEMA := "native-visual-presentation"
-const ROOT_KEYS := ["schema", "identity", "viewport", "lens", "light", "tuning", "layers", "omissions", "terrain", "grass", "grassCounts", "units", "modelCounts", "buildings", "scenery", "props", "instanceCounts", "effects", "effectCounts"]
+const ROOT_KEYS := ["schema", "identity", "viewport", "lens", "light", "tuning", "layers", "omissions", "terrain", "grass", "grassCounts", "units", "modelCounts", "scenery", "props", "instanceCounts", "effects", "effectCounts"]
 const IDENTITY_KEYS := ["scene", "map", "encounter", "seed", "mapHash", "captureHash"]
 const VIEWPORT_KEYS := ["width", "height", "scale"]
 const LENS_KEYS := ["fovY", "near", "depth", "far"]
@@ -26,7 +26,6 @@ const OMISSION_KEYS := ["owner", "reason", "sourceId"]
 const ARTIFACT_KEYS := ["name", "sha256", "words", "layout"]
 const GRASS_KEYS := ["tables", "constants", "kinds"]
 const GRASS_COUNT_KEYS := ["plate", "cells"]
-const BUILDINGS_KEYS := ["tables", "modules", "tiers"]
 const SCENERY_KEYS := ["tables", "kinds", "tiers", "felled"]
 const PROPS_KEYS := ["detail", "looks", "map", "fit", "buildings"]
 const INSTANCE_COUNT_KEYS := ["plate", "buildings", "scenery", "knownProps"]
@@ -181,18 +180,17 @@ static func _manifest_error(manifest: Variant) -> String:
 		return shape
 	return EffectManifest.counts_error(manifest.effectCounts)
 
-## An empty string when the buildings, scenery and props sections and the
+## An empty string when the scenery and props sections and the
 ## per-plate instance counts have their shapes; the layers that read them
 ## decode them, and refuse what they cannot use.
 static func _world_error(manifest: Dictionary) -> String:
-	for section in [["buildings", BUILDINGS_KEYS], ["scenery", SCENERY_KEYS], ["props", PROPS_KEYS]]:
+	for section in [["scenery", SCENERY_KEYS], ["props", PROPS_KEYS]]:
 		var shape := StrictJson.exact_keys(manifest[section[0]], section[1], section[0])
 		if not shape.is_empty():
 			return shape
-	for section in ["buildings", "scenery"]:
-		var shape := _artifacts_error(manifest[section].tables, section + ".tables")
-		if not shape.is_empty():
-			return shape
+	var tables := _artifacts_error(manifest.scenery.tables, "scenery.tables")
+	if not tables.is_empty():
+		return tables
 	var shape := _artifacts_error([manifest.props.map], "props.map")
 	if not shape.is_empty():
 		return shape
