@@ -5,6 +5,8 @@
 - Own barks drive the music mood.
 - Music ducks under voices.
 
+**Owner change (2026-10-12):** once the native-parity work lands, which bark plays and how loud is decided in Rust (`crates/presentation/src/sound/`, through 09b's `voices.rs`); `BattleAudio` only plays. Read the seam below as the behaviour to build, placed in Rust.
+
 ## Seam
 
 **`BattleAudio`** turns each published `Shout` into a `VoiceRequest`:

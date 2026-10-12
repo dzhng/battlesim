@@ -9,6 +9,7 @@ import { mat4, vec3 } from "math";
 import { frustum } from "math/shapes";
 import { contentSha256 } from "@packages/scene-assets/src/glb.ts";
 import {
+  GRASS_HEIGHT_VARIATION,
   GRASS_MAX_HEIGHT_M,
   GRASS_SEGMENTS,
   grassBladeVertices,
@@ -20,22 +21,19 @@ import {
 } from "@packages/scene-assets/src/grass.ts";
 import { validateAppearance } from "@packages/scene-assets/src/validate.ts";
 import type { Catalog, StaticBundle } from "@packages/scene-assets/src/schema.ts";
-import {
-  GRASS_MIX_MAX,
-  validateBiome,
-  type Biome,
-} from "@packages/battle-renderer/src/terrain/biome.ts";
+import { bareTerrain, type Biome } from "@packages/battle-renderer/src/terrain/terrainSurface.ts";
 import {
   createGrassWindow,
   GRASS_GROWTH_ROWS,
+  GRASS_MIX_MAX,
   GRASS_TILE_M,
-  grassKinds,
   grassSides,
   grassWindow,
   metresPerPixel,
   packGrassShapes,
   SHAPE_FLOATS,
 } from "@packages/battle-renderer/src/terrain/grassField.ts";
+import { loadPresentation } from "@web/battle/sim/presentation";
 import { eyePosition, viewProjMatrix } from "@packages/renderer-core/src/camera3d.ts";
 import summer from "@fixtures/biomes/summer.json";
 import game from "@fixtures/game.json";
@@ -44,7 +42,28 @@ import { AUTHORITY, GRASS_SPEC, TOLERANCES } from "./sceneAssets/synthetic";
 const ROOT = new URL("../../", import.meta.url);
 const read = (path: string) => readFileSync(new URL(path, ROOT));
 const catalog = JSON.parse(read("assets/catalog.json").toString()) as Catalog;
-const biome = validateBiome(summer as unknown as Biome);
+const biome: Biome = summer;
+await loadPresentation();
+
+/** `of`'s ground (a bare one): the biome is admitted, or refused, in Rust. */
+const groundOf = (of: Biome) => bareTerrain(new Float32Array(0), [0, 0, 64, 64], 4, of).ground;
+
+/** Where `GrassParams`' growth rows and mixes start, in floats. */
+const GROWTH = 60;
+const MIXES = GROWTH + GRASS_GROWTH_ROWS * 8;
+
+/** The biome's growth resolved against `sources` as the field resolves it:
+ *  null (no grass) until every kind it names is installed, else the kinds in
+ *  order, their packed shapes and the pass's parameters. Throws as the field
+ *  refuses. */
+function grassKinds(of: Biome, sources: ReadonlyMap<string, StaticBundle>) {
+  const ground = groundOf(of);
+  const names = JSON.parse(ground.grass_kinds()) as string[];
+  if (!names.every((name) => sources.has(name))) return null;
+  const packed = packGrassShapes(names.map((name) => ({ name, bundle: sources.get(name)! })));
+  const words = ground.grass_params(packed.facts, GRASS_HEIGHT_VARIATION[1], GRASS_MAX_HEIGHT_M, 1);
+  return { names, packed, params: new Float32Array(words.buffer) };
+}
 
 /** Every grass the biome's rows name, each drawn as `bundle`. */
 const growing = (of: Biome, bundle: StaticBundle) =>
@@ -55,21 +74,22 @@ const growing = (of: Biome, bundle: StaticBundle) =>
   );
 
 /** `biome` growing on its meadows alone, and `mix` there in place of their own. */
-function meadowOf(mix: Biome["grass"]["growth"][string]["mix"], patches = {}): Biome {
+function meadowOf(mix: Biome["grass"]["growth"]["meadow"]["mix"], patches = {}): Biome {
   const out = structuredClone(biome);
   const meadow = out.grass.growth.meadow;
-  out.grass.growth = { meadow: { ...meadow, mix, patches: { ...meadow.patches, ...patches } } };
-  return out;
+  const growth = { meadow: { ...meadow, mix, patches: { ...meadow.patches, ...patches } } };
+  return { ...out, grass: { ...out.grass, growth: growth as typeof out.grass.growth } };
 }
 
 /** What the field packs for plot kind `name`'s row: its clumps' kinds by
  *  share, as the build reads them. */
 function packedMix(of: Biome, kinds: NonNullable<ReturnType<typeof grassKinds>>, name: string) {
   const row = of.plots.findIndex((p) => p.name === name);
-  const count = kinds.growth[row * 4 + 2];
+  const count = kinds.params[GROWTH + row * 4 + 2];
   return Array.from({ length: count }, (_, i) => {
-    const [kind, share, drift, dry] = kinds.mixes.subarray((row * GRASS_MIX_MAX + i) * 4);
-    return { name: kinds.appearances[kind].name, share, drift, dry };
+    const at = MIXES + (row * GRASS_MIX_MAX + i) * 4;
+    const [kind, share, drift, dry] = kinds.params.subarray(at, at + 4);
+    return { name: kinds.names[kind], share, drift, dry };
   });
 }
 
@@ -124,9 +144,9 @@ test("the biome grows only catalog grass kinds, on its own plot kinds and the ve
       expect(entry?.unit === "scenery" && entry.scenery === "grass", `${key}`).toBe(true);
     }
   expect(() =>
-    validateBiome({
+    groundOf({
       ...biome,
-      grass: { ...biome.grass, growth: { orchard: biome.grass.growth.meadow } },
+      grass: { ...biome.grass, growth: { orchard: biome.grass.growth.meadow } as never },
     }),
   ).toThrow(/grass.growth.orchard/);
 });
@@ -137,10 +157,11 @@ test("the field waits for every grass kind the biome names", async () => {
   const kinds = grassKinds(biome, growing(biome, meadow))!;
   // Each plot kind's row holds its density (none where it grows nothing);
   // the verge is the last row.
+  const growth = biome.grass.growth as Record<string, { density: number }>;
   biome.plots.forEach((plot, k) => {
-    expect(kinds.growth[k * 4]).toBeCloseTo(biome.grass.growth[plot.name]?.density ?? 0, 6);
+    expect(kinds.params[GROWTH + k * 4]).toBeCloseTo(growth[plot.name]?.density ?? 0, 6);
   });
-  expect(kinds.growth[(GRASS_GROWTH_ROWS - 1) * 4]).toBeCloseTo(
+  expect(kinds.params[GROWTH + (GRASS_GROWTH_ROWS - 1) * 4]).toBeCloseTo(
     biome.grass.growth.verge.density,
     6,
   );
@@ -164,13 +185,11 @@ test("a growth row's mix reaches the field as each kind's share of its clumps", 
 
 test("a clump's tints average to one, so its mean colour is the ground's it grows on", async () => {
   const meadow = await tuft();
-  const kinds = grassKinds(biome, growing(biome, meadow))!;
-  const { shapes, bases, rows } = packGrassShapes(kinds);
-  const blades = rows[1];
-  const count = blades * grassBladeVertices(GRASS_SEGMENTS[0]);
+  const { shapes, facts } = grassKinds(biome, growing(biome, meadow))!.packed;
+  const count = facts[2] * grassBladeVertices(GRASS_SEGMENTS[0]);
   for (let c = 0; c < 3; c++) {
     let sum = 0;
-    for (let v = 0; v < count; v++) sum += shapes[(bases[0] + v) * SHAPE_FLOATS + 12 + c];
+    for (let v = 0; v < count; v++) sum += shapes[(facts[4] + v) * SHAPE_FLOATS + 12 + c];
     expect(sum / count).toBeCloseTo(1, 5);
   }
 });
@@ -247,14 +266,12 @@ test("one tall kind in a mix is refused, and only while the row's patches lift i
 
 test("a row's mix is one to four catalog kinds, each with a share", () => {
   const species = { appearance: "grass_meadow", share: 1, drift: 0, dry: 0 };
-  expect(() => validateBiome(meadowOf([]))).toThrow(/grass.growth.meadow.mix/);
+  expect(() => groundOf(meadowOf([]))).toThrow(/grass.growth.meadow.mix/);
   expect(() =>
-    validateBiome(meadowOf(Array.from({ length: GRASS_MIX_MAX + 1 }, () => species))),
+    groundOf(meadowOf(Array.from({ length: GRASS_MIX_MAX + 1 }, () => species))),
   ).toThrow(/grass.growth.meadow.mix/);
-  expect(() => validateBiome(meadowOf([{ ...species, share: 0 }]))).toThrow(/share/);
-  expect(() => validateBiome(meadowOf([species], { height: [0.9, 0.5] }))).toThrow(
-    /patches.height/,
-  );
+  expect(() => groundOf(meadowOf([{ ...species, share: 0 }]))).toThrow(/share/);
+  expect(() => groundOf(meadowOf([species], { height: [0.9, 0.5] }))).toThrow(/patches.height/);
 });
 
 test("a strip cannot gain height when the field widens its blades", async () => {
@@ -272,14 +289,14 @@ test("the effective height check includes the far tier's drawn vertices", async 
 
 /** A biome growing `source` everywhere, and its kinds' packed shapes. */
 function packed(source: StaticBundle) {
-  return packGrassShapes(grassKinds(biome, growing(biome, source))!);
+  return grassKinds(biome, growing(biome, source))!.packed;
 }
 
 test("a kind answers the field's wind as far as its spec says, at every blade vertex", async () => {
   const responses = async (wind: number) => {
-    const { shapes, bases, rows } = packed(await tuft({ ...GRASS_SPEC, wind }));
-    const count = rows[1] * grassBladeVertices(GRASS_SEGMENTS[0]);
-    return Array.from({ length: count }, (_, v) => shapes[(bases[0] + v) * SHAPE_FLOATS + 15]);
+    const { shapes, facts } = packed(await tuft({ ...GRASS_SPEC, wind }));
+    const count = facts[2] * grassBladeVertices(GRASS_SEGMENTS[0]);
+    return Array.from({ length: count }, (_, v) => shapes[(facts[4] + v) * SHAPE_FLOATS + 15]);
   };
   for (const r of await responses(1)) expect(r).toBeCloseTo(1, 6);
   // A stiff stalk: a quarter of the sway, to a byte's step.
@@ -327,7 +344,7 @@ test("the summer biome's every growth row stays under the cap with the catalog's
     if (entry.grass) sources.set(name, await tuft(entry.grass));
   // `grassKinds` refuses any row whose composed height passes the cap.
   const kinds = grassKinds(biome, sources)!;
-  expect(kinds.appearances.length).toBeGreaterThan(0);
+  expect(kinds.names.length).toBeGreaterThan(0);
   expect(GRASS_MAX_HEIGHT_M).toBe(0.9);
 });
 

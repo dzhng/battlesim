@@ -83,6 +83,7 @@ import {
 } from "./presentedFrame";
 import { emptyBuildingWalkStats } from "@packages/battle-renderer/src/models/buildingLayer";
 import {
+  resolveFogLook,
   resolveLight,
   type PresentedAppearance,
   type PresentedFrame,
@@ -234,13 +235,11 @@ export interface ViewportPilot {
   frameRate?: boolean;
   /** The battle frame is up: the adapter, the light it was built with, the
    *  frame's own statistics (its rolling GPU frame time from
-   *  `timestamp-query`, and live memory), and its ground's and grass's GPU
-   *  tables as last uploaded. */
+   *  `timestamp-query`, and live memory). */
   attach?(frame: {
     adapter: string;
     light: LightPresentation;
     stats: () => ReturnType<BattleFrame["stats"]>;
-    tables: () => ReturnType<BattleFrame["uploadedTables"]>;
   }): void;
   /** The framing for the frame at `now`; the rig places it
    *  (`CameraController.place`) and draws it clear of obstacles (`resolve`).
@@ -563,7 +562,7 @@ export function LabViewport({
   fogStyleRef.current = fogStyle;
   const lightRef = useRef(light);
   useEffect(() => {
-    sceneRef.current?.setFogStyle(fogStyle ?? gameFogStyle);
+    sceneRef.current?.setFogLook(resolveFogLook(fogStyle ?? gameFogStyle));
     redrawRef.current();
   }, [fogStyle]);
   const fogSuppressed = useRef(false);
@@ -757,7 +756,7 @@ export function LabViewport({
           const next = await createBattleFrame(device!, info.format, {
             light: await resolveLight(lit),
             fogGeometry: gameFogGeometry,
-            fogStyle: fogStyleRef.current ?? gameFogStyle,
+            fogLook: resolveFogLook(fogStyleRef.current ?? gameFogStyle),
             overlayGlow: gameOverlayGlow,
             paint: gamePaint,
             xrayMinHiddenFragmentFraction: gameXrayMinHiddenFragmentFraction,
@@ -807,7 +806,6 @@ export function LabViewport({
           adapter,
           light: light(),
           stats: () => scene.stats(),
-          tables: () => scene.uploadedTables(),
         });
         // What the battle draws, for a player's diagnostics report.
         signal.addEventListener(

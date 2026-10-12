@@ -368,3 +368,11 @@ There were four drafts: A fewest-slices (Claude), B risk-first (Codex), C seam-q
 - **Pack format** (`voiceCatalog.ts`): `VoicePack { set, voices[], takes[] }` at `/audio/voices/<set>/pack.json`, built only by `voicePack()`. Slice 06's `generate pack` calls it with accepted takes only.
 - **`VoiceBank`** loads packs and MP3s by URL in the background and never blocks battle start. A failed set stays silent.
 - **The chatter preview** in the workbench runs a scripted firefight through the real `Chatter` with a fixed seed. Its lane view marks lines heard, collapsed and missing.
+
+**2026-10-12, sound decisions move to Rust (territory: the native-parity session, which works for the same user):**
+- The native-rendering-parity work (branch `phase5f`, slice 25 step 7) moves the battle's sound decisions from TypeScript into `crates/presentation/src/sound/`. Both clients read Rust's decisions; native plays them with `kira`.
+- Project rule: Rust as smart as possible, clients as dumb as possible. So:
+  - Chatter's arbitration moves to Rust as well (new slice 09b);
+  - slice 14's bark decisions and slice 15's unseen shout cue are built in Rust;
+  - TypeScript keeps playback, the voice assets and the generation tooling.
+- The ports wait for `phase5f` to land on `main`. Until then, no new decision logic goes into `battleAudio.ts` or `audioPresentation.ts`.

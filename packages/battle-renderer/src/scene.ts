@@ -7,7 +7,6 @@ import type { Mesh } from "./mesh";
 import type { ProxyKind } from "./proxies";
 import type { GpuFrameTime } from "./frame/gpuTiming";
 import type { FogInput } from "./frame/fogInputs";
-import type { FogStyle } from "./frame/fogStyle";
 import type { OverlayGlowStyle } from "./frame/overlayPass";
 import type { FogProbes, FogVisibilityStats } from "./frame/fogVisibility";
 import type { TerrainSurface } from "./terrain/terrainSurface";
@@ -23,11 +22,10 @@ import type { ImpostorAtlas, ImpostorSpec } from "./models/impostor";
 import type { StaticBundle, TextureChannel } from "@packages/scene-assets/src/schema";
 import type { SceneryPlacement } from "./scenery/placement";
 import type { FelledTree } from "./scenery/felled";
-import type { FelledRules } from "./terrain/biome";
+import type { Biome } from "./terrain/terrainSurface";
 import type { SceneryStats } from "./frame/sceneryLayer";
 import type { GrassProbes, GrassStats } from "./frame/grassPass";
-import type { UploadedTables } from "./frame/wordTables";
-import type { SceneryCounts } from "./scenery/sceneryTables";
+import type { SceneryCounts } from "./frame/sceneryLayer";
 import type { GrassAppearances } from "./terrain/grassField";
 import type { GroundMarks, ScarStats } from "./frame/scarTexture";
 
@@ -68,7 +66,7 @@ export interface WorldScenery {
   /** `biome.trees.lod_px`: the detail tiers by projected height. */
   lodPx: readonly [number, number, number];
   /** How a felled tree falls and lies (`biome.trees.felled`). */
-  felled: FelledRules;
+  felled: Biome["trees"]["felled"];
   /** The dressing's tiers and fade (`biome.forest_floor.dressing`). */
   dressing: { lodPx: readonly [number, number, number]; fadePx: number };
 }
@@ -96,8 +94,8 @@ export interface WorldLayers {
 
 /** The building modules, scenery and known props a frame drew. */
 export interface DrawnInstances {
-  /** Per module of `UploadedTables.buildings.modules` and tier:
-   *  `module · 4 + tier`. */
+  /** Per module the buildings' walk draws (`StaticWorld.modules`) and
+   *  tier: `module · 4 + tier`. */
   buildings: number[];
   scenery: SceneryCounts;
   /** The props the side knows (wrecks, shoved bodies, rubble), by
@@ -266,8 +264,9 @@ export interface BattleFrame {
   /** Bake an installed appearance's far-pose impostor atlas with this frame's
    *  model path (`models/impostor.ts`). */
   bakeImpostor(appearance: string, spec?: ImpostorSpec): Promise<ImpostorAtlas>;
-  /** How unseen looks: identity on seen pixels, live from the next frame. */
-  setFogStyle(style: FogStyle): void;
+  /** How unseen looks (a `FogLook` record, `resolveFogLook`): identity on
+   *  seen pixels, live from the next frame. */
+  setFogLook(look: Float32Array): void;
   /** The overlays' own halo, live from the next frame (strength 0: none). */
   setOverlayGlow(glow: OverlayGlowStyle): void;
   /** Lab diagnostics: draw the painted ground marks or not (paired frames). */
@@ -306,10 +305,6 @@ export interface BattleFrame {
   readonly fogProbes: FogProbes;
   /** Lab probes of the grass field (debug readbacks, never in a frame). */
   readonly grassProbes: GrassProbes;
-  /** The ground's and the grass's GPU tables as last uploaded, and the
-   *  buildings' and scenery's instances, in words with their layouts: what a
-   *  second client draws the same world from. */
-  uploadedTables(): UploadedTables;
   /** What the last drawn frame drew of the buildings and the scenery, per
    *  kind and tier, for a second client to count against. */
   drawnInstances(): DrawnInstances;

@@ -5,7 +5,8 @@ import { useSessionCatalog } from "@web/battle/catalog/context";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { MeshBuilder, type Rgba } from "@packages/battle-renderer/src/mesh";
 import type { SceneInstance, WorldLayers } from "@packages/battle-renderer/src/scene";
-import { terrainSurface } from "@packages/battle-renderer/src/terrain/terrainSurface";
+import { loadPresentation } from "@web/battle/sim/presentation";
+import { bareTerrain } from "@packages/battle-renderer/src/terrain/terrainSurface";
 import {
   posedPalette,
   type ModelInstance,
@@ -17,6 +18,9 @@ import { gameBiome } from "../gameBiome";
 import { useGameAppearances } from "../gameAppearances";
 import { useFeed } from "../feed";
 import { gameCamera } from "../gameCamera";
+
+// The patch's ground is resolved by the presentation module.
+await loadPresentation();
 
 // Render-only fixture: a raised ground patch, a tank and a truck drawn as their
 // appearances, and hand-placed proxies (soldiers, a crate). It has no
@@ -66,28 +70,14 @@ function groundPatch(): WorldLayers {
     }
   }
   const none = new Float32Array(0);
-  const site = {
-    map: [-PATCH_HALF, -PATCH_HALF, PATCH_HALF, PATCH_HALF] as const,
-    gridM: CELL,
-    surfaceStrokes: none,
-    surfaceStrokeStride: 7,
-    surfaceRuns: none,
-    surfaceRunStride: 4,
-    surfaceTriangles: none,
-    surfaceBoundaries: none,
-    surfaceTriangleStride: 7,
-    surfaceBoundaryStride: 5,
-    forests: none,
-    forestShapes: [],
-    rivers: none,
-    riverRuns: none,
-    riverRunStride: 4,
-    buildings: [],
-    footprints: none,
-  };
   return {
     // The checker patch is the tint alone: no grass over it.
-    terrain: terrainSurface(mesh.build(), site, gameBiome, null),
+    terrain: bareTerrain(
+      mesh.build(),
+      [-PATCH_HALF, -PATCH_HALF, PATCH_HALF, PATCH_HALF],
+      CELL,
+      gameBiome,
+    ),
     props: none,
     water: none,
     structures: [],

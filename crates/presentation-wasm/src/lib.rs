@@ -3,6 +3,8 @@
 //! observation, and each drawn frame's records as views over this module's
 //! memory, out. It links the publication reader and the presentation crate,
 //! not the rules, and runs on the page's main thread.
+mod ground;
+
 use std::sync::Arc;
 
 use presentation::presentation::{Ghost, Presentation as Inner, Ui};
@@ -465,4 +467,15 @@ pub fn camera_listener(eye: &[f64], target: &[f64], up: &[f64], share: f64) -> V
     let v = |a: &[f64]| [a[0], a[1], a[2]];
     let l = Listener::of_camera(v(eye), v(target), v(up).map(|x| x as f32), share);
     [l.position, l.forward].concat()
+}
+
+/// One unseen look (a `presentation.fog` style, JSON) resolved into the
+/// `FogLook` uniform's words (`fog.rs`); errs naming a field out of range.
+/// The fog mask passes need it when the frame is built and whenever a lab
+/// tunes the look, so this needs no `Presentation`.
+#[wasm_bindgen]
+pub fn fog_look(style: &str) -> Result<Vec<f32>, JsError> {
+    let style: presentation::fog::FogStyle =
+        serde_json::from_str(style).map_err(|e| JsError::new(&format!("fog style: {e}")))?;
+    Ok(style.look().map_err(error)?.words())
 }

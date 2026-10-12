@@ -368,6 +368,32 @@ records! {
         lift: [f32; 4],
     }
 
+    /// What unseen looks like (`FogStyleUniform` in the fog mask passes):
+    /// a `presentation.fog` style resolved (`fog::FogStyle::look`).
+    Plain FogLook {
+        /// The night tint at unit luminance.
+        tint: [f32; 3],
+        dim: f32,
+        cool: f32,
+        saturation: f32,
+        veil: f32,
+        line_strength: f32,
+        line_spacing_px: f32,
+        line_width_px: f32,
+        /// Radians.
+        line_angle: f32,
+        line_floor: f32,
+        edge_softness_px: f32,
+        pad0: [f32; 3],
+        /// Display sRGB.
+        rim_color: [f32; 3],
+        rim_alpha: f32,
+        rim_width_px: f32,
+        /// How far the distance passes search for the other side, pixels.
+        reach_px: f32,
+        pad1: [f32; 2],
+    }
+
     /// What this frame poses and runs, for the gates.
     Plain Counts {
         soldiers: u32,
@@ -395,6 +421,11 @@ pub fn typescript() -> String {
          import { d } from \"typegpu\";\n\n\
          export const NONE = 0xffffffff;\n",
     );
+    out.push_str(&format!(
+        "/** The widest fog rim or soft edge a style may ask for, device pixels (`fog.rs`). */\n\
+         export const FOG_EDGE_REACH_PX = {};\n",
+        crate::fog::FOG_EDGE_REACH_PX
+    ));
     for l in LAYOUTS {
         out.push_str(&format!("\n/** {} */\n", l.doc.trim()));
         let word = |s: &str| if s == "f32" { "f32" } else { "u32" };

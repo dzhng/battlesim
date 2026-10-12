@@ -3,6 +3,8 @@
 import { d } from "typegpu";
 
 export const NONE = 0xffffffff;
+/** The widest fog rim or soft edge a style may ask for, device pixels (`fog.rs`). */
+export const FOG_EDGE_REACH_PX = 8;
 
 /** Where a frame's sets lie, as pointers into the module's memory and record counts (the WASM binding fills them; native reads the `Frame` directly). */
 export const FrameHeader = {
@@ -325,6 +327,45 @@ export const Grade = {
   lift: 16,
 } as const;
 export const GRADE_WORDS = 20;
+
+/** What unseen looks like (`FogStyleUniform` in the fog mask passes): a `presentation.fog` style resolved (`fog::FogStyle::look`). */
+export const FogLook = {
+  /** The night tint at unit luminance. (f32 × 3) */
+  tint: 0,
+  /**  (f32) */
+  dim: 3,
+  /**  (f32) */
+  cool: 4,
+  /**  (f32) */
+  saturation: 5,
+  /**  (f32) */
+  veil: 6,
+  /**  (f32) */
+  line_strength: 7,
+  /**  (f32) */
+  line_spacing_px: 8,
+  /**  (f32) */
+  line_width_px: 9,
+  /** Radians. (f32) */
+  line_angle: 10,
+  /**  (f32) */
+  line_floor: 11,
+  /**  (f32) */
+  edge_softness_px: 12,
+  /**  (f32 × 3) */
+  pad0: 13,
+  /** Display sRGB. (f32 × 3) */
+  rim_color: 16,
+  /**  (f32) */
+  rim_alpha: 19,
+  /**  (f32) */
+  rim_width_px: 20,
+  /** How far the distance passes search for the other side, pixels. (f32) */
+  reach_px: 21,
+  /**  (f32 × 2) */
+  pad1: 22,
+} as const;
+export const FOG_LOOK_WORDS = 24;
 
 /** What this frame poses and runs, for the gates. */
 export const Counts = {

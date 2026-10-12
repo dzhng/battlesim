@@ -6,8 +6,10 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use presentation::fog::FogPresentation;
 use presentation::light::LightSettings;
 use presentation::presentation::{Frame, Presentation, Ui};
+use presentation::records::FogLook;
 use presentation::units::drawn::ClipTables;
 use presentation::view::Camera;
 use presentation::world::{Appearance, WorldInput};
@@ -58,8 +60,12 @@ pub struct Replay {
     pub dir: PathBuf,
     pub records: Vec<Record>,
     pub light: LightSettings,
+    /// The fixture's selected unseen look (`presentation.fog`).
+    pub fog_look: FogLook,
     /// The browser's posed-model counts by plate (`modelCounts`).
     pub model_counts: Vec<Value>,
+    /// The browser's effect counts by plate (`effectCounts`).
+    pub effect_counts: Vec<Value>,
     samples: Vec<Sample>,
     pushed: usize,
     lens: Lens,
@@ -109,6 +115,9 @@ impl Replay {
             "sun_elevation": light.sun_elevation,
         }))
         .map_err(|e| format!("world: {e}"))?;
+        let fog: FogPresentation = serde_json::from_value(game["presentation"]["fog"].clone())
+            .map_err(|e| format!("presentation.fog: {e}"))?;
+        let fog_look = fog.selected()?.look()?;
         let mut tables = ClipTables::new();
         let units = &input.battle.as_ref().ok_or("world: no battle")?.units;
         for a in units.appearances.values() {
@@ -129,7 +138,12 @@ impl Replay {
             dir: dir.to_owned(),
             records: capture.frames,
             light,
+            fog_look,
             model_counts: manifest["modelCounts"]
+                .as_array()
+                .cloned()
+                .unwrap_or_default(),
+            effect_counts: manifest["effectCounts"]
                 .as_array()
                 .cloned()
                 .unwrap_or_default(),
