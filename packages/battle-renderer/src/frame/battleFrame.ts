@@ -41,7 +41,7 @@ import { CARD_SPEC } from "../models/impostorCards";
 import type { ModelDetailPresentation } from "../models/modelDetail";
 import { sunShadow } from "./staticChunks";
 import { createDetailView, detailKey, setDetailView } from "./detailView";
-import { FrameHeader, type frameViews } from "../records.gen";
+import { FrameHeader } from "../records.gen";
 import { EMPTY_MESH } from "../mesh";
 
 /** Post's five-level bloom needs at least this many pixels a side. */

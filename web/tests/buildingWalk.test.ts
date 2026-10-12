@@ -10,7 +10,6 @@ import { color } from "math/color";
 import {
   encodeTemplateLibrary,
   ROW_TRANSFORM_FLOATS,
-  TEMPLATE_STATES,
   templateKits,
   templateRows,
   type TemplateArtLibrary,

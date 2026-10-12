@@ -30,7 +30,6 @@ import {
   type SurfaceParts,
 } from "./surfaceParts";
 
-const RECORD_BYTES = INSTANCE_WORDS * 4;
 const VERTEX_USAGE = 0x20 | 0x08; // VERTEX | COPY_DST
 /** A static batch's passes (`Batch.pass`): drawn into the view, cast into
  *  the sun's cascades. */

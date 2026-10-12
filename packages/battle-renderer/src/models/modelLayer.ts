@@ -58,7 +58,6 @@ import {
   lyingBounds,
   poseWorlds,
   posedMesh,
-  positionsBounds,
 } from "@packages/scene-assets/src/pose";
 import { typegpuCameraLayout } from "../world/camera";
 import type { EnvironmentFrame } from "../frame/environmentFrame";
@@ -183,8 +182,6 @@ const WEAR_EDGE = 0.04;
  *  row holds `ALBEDO_MEAN_ONLY − layer`, and the surface takes its mean colour. */
 const ALBEDO_MEAN_ONLY = -2;
 
-/** A corpse's fog class: every way of lying takes the ground's. */
-const CORPSE_POSE: ModelPose = { kind: "corpse", lies: 0 };
 /** Palette slot 0 is the identity every static model and corpse uses. */
 const IDENTITY_SLOT = 0;
 const IDENTITY_JOINT = Float32Array.of(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0);
@@ -1546,7 +1543,6 @@ export async function createModelLayer(
 
   let viewKey = "";
   /** The detail view the last frame packed at (null, exact, before any frame). */
-  let lastView: DetailView | null = null;
   /** Where the sun's shadows fall, metres across the ground per metre of
    *  height, as the last frame was prepared. */
   const shadowFall: [number, number] = [0, 0];
@@ -1650,7 +1646,6 @@ export async function createModelLayer(
       shadowFall[1] = shadow.fall[1];
       if (!dirty && key === viewKey) return;
       viewKey = key;
-      lastView = view;
       dirty = false;
       pack(view);
     },
