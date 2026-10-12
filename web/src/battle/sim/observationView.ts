@@ -4,7 +4,6 @@
  * counters) arrive whole; an absent one is null. */
 
 import type { MoveDirection } from "./protocol";
-import type { GroundRunsPatch } from "./ground";
 
 /** The ground grid and exact tile-local run packing. */
 export interface GroundLayout {
@@ -541,5 +540,13 @@ export interface ObservationView {
   encounter: { heldS: number; result: string } | null;
   skirmish: SkirmishView | null;
   fog: VisibilityView;
-  groundPatch: GroundRunsPatch;
+  /** Which patch of the side's learned ground this publication carried
+   *  (the presentation applies its runs: `LearnedGround`). */
+  groundPatch: {
+    epoch: number;
+    side: string;
+    baseRevision: number;
+    revision: number;
+    full: boolean;
+  };
 }

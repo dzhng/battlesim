@@ -31,6 +31,11 @@ wherever it runs.
   sky's corner rays.
 - [The light](src/light.rs): the fixture's light resolved into the sky's,
   bloom's and grade's uniform records, as the browser's sky model resolves it.
+- [Scars](src/scars/): the side's learned ground, from its publications'
+  patches, and the bounded GPU cache of its scars. A renderer uploads what it
+  is handed (the directory's words, the pool's texels, `ScarParams`' words
+  before the biome's look) and asks which regions to draw one by one when the
+  marks don't fit at once; it derives nothing.
 - [Sound](src/sound/): what a battle hears, when, where and how loud, from the
   same publication the effects read, the frame's emitters and the side's
   hearing cues, as commands a player carries out (start, glide, stop a voice;
@@ -75,5 +80,6 @@ roll to the resting wreck.
 ## Checks
 
 `tests/poses.rs` and `tests/effects.rs` hold it to the browser's recorded vectors
-(native's fixture capture and fixed effect causes); the behaviour tests beside
-them cover what those do not reach.
+(native's fixture capture and fixed effect causes), and `tests/scars.rs` holds
+every scar upload to the words the browser's own cache wrote; the behaviour
+tests beside them cover what those do not reach.

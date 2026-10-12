@@ -13,7 +13,6 @@ import {
 import type { ObservationLayout } from "../src/battle/sim/observationView";
 import { ObservationDecoder, loadPresentation } from "../src/battle/sim/presentation";
 import { packedGroundRuns } from "./groundRuns";
-import { GroundView } from "../src/battle/sim/ground";
 import { sightMultiplier } from "@packages/battle-renderer/src/sightOverlay";
 import { labScenario, TEST_RULES } from "./catalog";
 import { loadEncounter, loadMap } from "@web/maps/node";
@@ -461,8 +460,10 @@ test("every frozen animation field and ground value decodes, integers exact past
     const delivered = new Float32Array(wire.length + packed.length);
     delivered.set(wire);
     delivered.set(packed, wire.length);
-    return new ObservationDecoder(layout).decode(delivered)!;
+    decoder = new ObservationDecoder(layout);
+    return decoder.decode(delivered)!;
   };
+  let decoder: ObservationDecoder | null = null;
   const o = decodeVector("base");
   expect([o.own[0].kind, o.identified[0].kind, o.corpses[0].kind]).toEqual([
     "test_rifle",
@@ -524,16 +525,14 @@ test("every frozen animation field and ground value decodes, integers exact past
   expect(o.audible).toEqual([
     { listener: 0, category: "shout", sector: 5, band: "near", moving: false },
   ]);
-  const ground = new GroundView(layout.ground);
-  ground.applyRuns(o.groundPatch);
-  const cell = big + 12;
-  expect(ground.cell(cell % 18000, Math.floor(cell / 18000))).toEqual({
-    crater: 255,
-    scorch: 0,
-    tracks: 17,
-    trampled: 200,
-  });
-  expect(ground.cell(0, 0)).toEqual({ crater: 1, scorch: 2, tracks: 255, trampled: 4 });
+  // The presentation learned the patch: each marked cell as drawn, a byte a mark.
+  const ground = decoder!.ground!;
+  const marked = new Map<number, number[]>();
+  const pairs = ground.markedCells();
+  for (let k = 0; k < pairs.length; k += 2)
+    marked.set(pairs[k], [...new Uint8Array(Uint32Array.of(pairs[k + 1]).buffer)]);
+  expect(marked.get(big + 12)).toEqual([255, 0, 17, 200]);
+  expect(marked.get(0)).toEqual([1, 2, 255, 4]);
   expect(ground.isCleared(0, 0)).toBe(true);
   expect(o.own[0].memberIds).toEqual([3, big + 2]);
   expect(o.own[0].memberSlots).toEqual([0, 7]);

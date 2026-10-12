@@ -19,6 +19,7 @@ use crate::records::{
     Appearance as Row, Batch, CastLight, Counts, Effect, Emitter, Instance, Joint, Pick,
     View as ViewRecord, NONE,
 };
+use crate::scars::{LearnedGround, ScarCache, ScarStats, ScarUpload, MAX_AXIS};
 use crate::sound::frame::{Cue, Heard, Listener, Motion};
 use crate::static_world::batches::{Population, StaticBatches, Sun};
 use crate::static_world::buildings::{Buildings, PlacedBuildings};
@@ -195,6 +196,25 @@ pub struct Presentation {
     frame: Frame,
     /// The camera the last frame was asked for.
     camera: Option<Camera>,
+    /// The side's learned ground (none without a layout), and its scars as
+    /// the renderer holds them.
+    ground: Option<LearnedGround>,
+    scars: ScarCache,
+}
+
+/// The layout's ground grid, learned blank.
+fn ground_of(layout: &str) -> Result<LearnedGround, String> {
+    let layout: serde_json::Value = serde_json::from_str(layout).map_err(|e| e.to_string())?;
+    let g = &layout["ground"];
+    let (cols, rows) = (g["cols"].as_u64(), g["rows"].as_u64());
+    let (Some(cell_m), Some(cols), Some(rows)) = (g["cellM"].as_f64(), cols, rows) else {
+        return Err("the layout's ground has no grid".into());
+    };
+    let (cols, rows) = (cols as usize, rows as usize);
+    if cols > MAX_AXIS || rows > MAX_AXIS {
+        return Err("the ground grid exceeds the scars' exact Q8 coordinates".into());
+    }
+    Ok(LearnedGround::new(cell_m, cols, rows))
 }
 
 /// Rows of the x-ray or ghost colour (`packXray`): rgb as one integer
@@ -223,7 +243,10 @@ impl Presentation {
     /// `observation_layout`) names, at `tick_hz`; with no layout, of a world
     /// no battle publishes into (a lab's), drawn from `load_world` alone.
     pub fn new(layout: Option<&str>, tick_hz: f64) -> Result<Self, String> {
+        let ground = layout.map(ground_of).transpose()?;
         Ok(Self {
+            scars: ScarCache::new(ground.as_ref().map(|g| (g.cols, g.rows, g.cell_m))),
+            ground,
             reader: layout.map(Reader::new).transpose()?,
             tick_hz,
             interpolator: TickInterpolator::new(tick_hz),
@@ -250,9 +273,12 @@ impl Presentation {
     }
 
     /// Records still in flight are stale; the next opens a new epoch, for
-    /// `side` when named.
+    /// `side` when named. The learned ground is blank until it does.
     pub fn invalidate(&mut self, side: Option<&str>) -> Result<(), String> {
         self.reader()?.invalidate(side)?;
+        if let Some(ground) = &mut self.ground {
+            ground.forget();
+        }
         self.latest = None;
         self.interpolator = TickInterpolator::new(self.tick_hz);
         self.pending.clear();
@@ -265,6 +291,9 @@ impl Presentation {
         let Some(observation) = self.reader()?.decode(words)? else {
             return Ok(false);
         };
+        if let Some(ground) = &mut self.ground {
+            ground.apply(&observation.ground_patch)?;
+        }
         let observation = Arc::new(observation);
         self.interpolator.push(observation.clone(), arrived_s);
         self.latest = Some(observation.clone());
@@ -284,6 +313,46 @@ impl Presentation {
     /// The latest publication's observation, for the game UI.
     pub fn observation(&self) -> Option<&Observation> {
         self.latest.as_deref()
+    }
+
+    /// The side's learned ground, as its publications taught it.
+    pub fn ground(&self) -> Option<&LearnedGround> {
+        self.ground.as_ref()
+    }
+
+    /// Whether the scars changed since the last call: what grows on them
+    /// grows again.
+    pub fn scars_changed(&mut self) -> bool {
+        self.scars.changed(self.ground.as_mut())
+    }
+
+    /// The regions (metres, `[x0, y0, x1, y1]`) the terrain draws one by one,
+    /// each after its own `prepare_scars(Some(region), true)`; none when
+    /// every mark fits at once and one `prepare_scars(None, false)` serves.
+    pub fn scar_regions(&self) -> Vec<[f64; 4]> {
+        self.scars.regions()
+    }
+
+    /// What the renderer uploads before drawing the scars over `region`
+    /// (none: the whole view), clipped to it when `clipped`.
+    pub fn prepare_scars(&mut self, region: Option<[f64; 4]>, clipped: bool) -> ScarUpload {
+        self.scars.prepare(self.ground.as_mut(), region, clipped)
+    }
+
+    /// The renderer holds no scars (a new one, or scars shown again): the
+    /// next upload writes them all.
+    pub fn resend_scars(&mut self) {
+        self.scars.resend();
+    }
+
+    /// The crater's view-ray reach in metres (`Ground::scar_reach_m`): a
+    /// region's scars load this far past it.
+    pub fn set_scar_reach(&mut self, reach_m: f64) {
+        self.scars.set_reach(reach_m);
+    }
+
+    pub fn scar_stats(&self) -> ScarStats {
+        self.scars.stats()
     }
 
     /// Loads what the world draws: `buildings` placed from their template

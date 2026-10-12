@@ -565,6 +565,11 @@ export function useBattleSession({
   // the native manifest carries them. A new side or catalog loads again.
   const factions = skirmish?.factions;
   const presentation = sim.client?.presentation ?? null;
+  // How far a crater's bowl moves the scars a view ray reads: the static
+  // ground's, so the scar cache loads a region that far past it.
+  useEffect(() => {
+    if (presentation && meshes) presentation.setScarReach(meshes.terrain.ground.scar_reach_m());
+  }, [presentation, meshes]);
   const worldInput = useMemo(() => {
     if (!appearances || !props) return null;
     return presentationWorld({
@@ -1091,12 +1096,14 @@ export function useBattleSession({
       const per = Math.max(1, Math.round(binM / g.cellM));
       const bins = new Map<number, number>();
       let cells = 0;
-      g.forEachMarked((i, j) => {
-        if (g.cell(i, j).crater < 64) return;
+      const marked = g.markedCells();
+      for (let k = 0; k < marked.length; k += 2) {
+        if ((marked[k + 1] & 255) < 64) continue;
+        const [i, j] = [marked[k] % g.cols, Math.floor(marked[k] / g.cols)];
         cells++;
         const key = Math.floor(j / per) * g.cols + Math.floor(i / per);
         bins.set(key, (bins.get(key) ?? 0) + 1);
-      });
+      }
       let densest: [number, number] | null = null;
       let most = 0;
       for (const [key, n] of bins)

@@ -42,7 +42,12 @@ import {
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import { TEMPLATE_STATES, type TemplateState } from "@packages/scene-assets/src/templateLibrary";
 import { countedFetch } from "../../downloads";
-import type { ObservationLayout, ObservationView } from "./observationView";
+import type {
+  GroundMarks,
+  ScarRegion,
+  ScarUpload,
+} from "@packages/battle-renderer/src/frame/scarTexture";
+import type { GroundLayout, ObservationLayout, ObservationView } from "./observationView";
 
 let loaded: Promise<{ memory: WebAssembly.Memory }> | null = null;
 let memory: WebAssembly.Memory | null = null;
@@ -182,6 +187,84 @@ export interface FallenBuilding {
   state: Exclude<TemplateState, "intact">;
 }
 
+/** The side's learned ground as the presentation keeps it
+ *  (`crates/presentation/src/scars`): what its publications taught it, cell
+ *  by cell, and its scars as the renderer uploads them. */
+export class LearnedGround implements GroundMarks {
+  readonly cellM: number;
+  readonly cols: number;
+  readonly rows: number;
+  private regionsFlat: Float64Array | null = null;
+  private regionList: ScarRegion[] = [];
+
+  constructor(
+    private readonly rust: Presentation,
+    grid: Pick<GroundLayout, "cellM" | "cols" | "rows">,
+  ) {
+    ({ cellM: this.cellM, cols: this.cols, rows: this.rows } = grid);
+  }
+
+  get epoch(): number {
+    return this.rust.ground_epoch();
+  }
+  get revision(): number {
+    return this.rust.ground_revision();
+  }
+  /** The side it learned for, once a snapshot came. */
+  get side(): string | null {
+    return this.rust.ground_side() ?? null;
+  }
+  /** Cells the side has seen cleared. */
+  get clearedCount(): number {
+    return this.rust.ground_cleared_count();
+  }
+  isCleared(i: number, j: number): boolean {
+    return i >= 0 && j >= 0 && this.rust.ground_cleared(i, j);
+  }
+  /** The cleared spans in tile order: (tile, start + length × 256) pairs. */
+  clearedRuns(): Uint32Array {
+    return this.rust.ground_cleared_runs();
+  }
+  /** Every marked or cleared cell in row-major order: (cell index, marks as
+   *  drawn: crater, scorch, tracks, trampled a byte each) pairs. */
+  markedCells(): Uint32Array {
+    return this.rust.ground_marked();
+  }
+
+  changed(): boolean {
+    return this.rust.scars_changed();
+  }
+  regions(): readonly ScarRegion[] {
+    const flat = this.rust.scar_regions();
+    if (this.regionsFlat?.length !== flat.length) {
+      this.regionsFlat = flat;
+      this.regionList = [];
+      for (let k = 0; k < flat.length; k += 4)
+        this.regionList.push([flat[k], flat[k + 1], flat[k + 2], flat[k + 3]]);
+    }
+    return this.regionList;
+  }
+  prepare(region?: ScarRegion, clipped = false): ScarUpload {
+    const upload = this.rust.prepare_scars(region && Float64Array.from(region), clipped);
+    const words = upload.directory(),
+      size = upload.directory_size();
+    const out: ScarUpload = {
+      directory: words ? { words, width: size[0], height: size[1] } : null,
+      writes: upload.writes(),
+      texels: upload.texels(),
+      params: upload.params(),
+    };
+    upload.free();
+    return out;
+  }
+  resend() {
+    this.rust.resend_scars();
+  }
+  stats() {
+    return JSON.parse(this.rust.scar_stats()) as ReturnType<GroundMarks["stats"]>;
+  }
+}
+
 /** One ordered side-publication stream, and its presentation; or, with no
  * layout, a presentation no battle publishes into (a world of statics).
  * Retained observations are immutable; unchanged fog and static groups
@@ -210,12 +293,19 @@ export class ObservationDecoder {
   private walked = false;
   private readonly walk = emptyBuildingWalkStats();
 
+  /** The side's learned ground, from the publications decoded; none
+   *  without a layout. */
+  readonly ground: LearnedGround | null;
+
   /** `tickHz` paces the interpolation; decoding alone ignores it. */
   constructor(layout?: string | ObservationLayout, tickHz = 30) {
-    this.rust = new Presentation(
-      layout === undefined || typeof layout === "string" ? layout : JSON.stringify(layout),
-      tickHz,
-    );
+    const json =
+      layout === undefined || typeof layout === "string" ? layout : JSON.stringify(layout);
+    this.rust = new Presentation(json, tickHz);
+    this.ground =
+      json === undefined
+        ? null
+        : new LearnedGround(this.rust, (JSON.parse(json) as ObservationLayout).ground);
   }
 
   /** The next record's observation, or null for a stale one (in flight from
@@ -230,7 +320,6 @@ export class ObservationDecoder {
     view.knownProps ??= last!.knownProps;
     view.fallenBodies ??= last!.fallenBodies;
     view.fog.bits = this.rust.fog_bits() ?? last!.fog.bits;
-    view.groundPatch.runs = this.rust.ground_runs();
     return (this.last = view);
   }
 
@@ -401,6 +490,21 @@ export class ObservationDecoder {
    *  writes every one. */
   resendStatics() {
     this.rust.resend_statics();
+  }
+
+  /** How far a crater's bowl moves the scars a view ray reads, metres (the
+   *  static ground's `scar_reach_m`): the scar cache loads a region this far
+   *  past it. */
+  setScarReach(reachM: number) {
+    this.rust.set_scar_reach(reachM);
+  }
+
+  /** The cells the latest publication's ground patch covered. */
+  groundPatchCells(): number {
+    const runs = this.rust.ground_runs();
+    let cells = 0;
+    for (let at = 1; at < runs.length; at += 4) cells += Math.floor(runs[at] / 256);
+    return cells;
   }
 
   /** Draws the units' tiers at `units` and the buildings' at `buildings`

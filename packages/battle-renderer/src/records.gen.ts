@@ -7,6 +7,16 @@ export const NONE = 0xffffffff;
 export const FOG_EDGE_REACH_PX = 8;
 /** The sun's cascade slots `SunShadow` holds (`shadow.rs`). */
 export const SUN_CASCADES = 4;
+/** The scar cache's directory flags over a tile key + 1, its pool texture
+ *  and the normalization table at the pool's start, and `ScarParams`' words
+ *  before the biome's look (`scars/mod.rs`). */
+export const SCAR_UNIFORM = 0x80000000;
+export const SCAR_DENSE = 0x20000000;
+export const SCAR_KEY_MASK = 0x1fffffff;
+export const SCAR_POOL_WIDTH = 2048;
+export const SCAR_POOL_HEIGHT = 1024;
+export const SCAR_NORMALIZATION_WORDS = 4096;
+export const SCAR_PARAMS_WORDS = 20;
 
 /** Where a frame's sets lie, as pointers into the module's memory and record counts (the WASM binding fills them; native reads the `Frame` directly). */
 export const FrameHeader = {

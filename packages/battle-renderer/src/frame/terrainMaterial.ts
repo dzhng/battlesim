@@ -60,13 +60,11 @@ import type { GpuRegistry, GpuSlot } from "./registry";
 import { scarFilterQuanta, scarFilterPosition } from "./scarFilter";
 import {
   createScarTexture,
-  SCAR_UNIFORM,
-  SCAR_DENSE,
-  SCAR_KEY_MASK,
-  SCAR_REGION_CELLS,
   type ScarRegion,
+  type ScarStats,
   type GroundMarks,
 } from "./scarTexture";
+import { SCAR_DENSE, SCAR_KEY_MASK, SCAR_PARAMS_WORDS, SCAR_UNIFORM } from "../records.gen";
 const tuning = game.presentation.terrain;
 
 /** The paved kinds a map can hold, a row of the look table each, in the
@@ -1984,6 +1982,20 @@ export const scarRegionContains = tgpu.fn(
 });
 
 const EMPTY_SCAR_REGIONS: readonly ScarRegion[] = [];
+const NO_SCARS: Omit<ScarStats, "textureBytes" | "directoryBytes"> = {
+  cols: 0,
+  rows: 0,
+  cellM: 1,
+  uploads: 0,
+  fullUploads: 0,
+  lastBytes: 0,
+  totalBytes: 0,
+  pages: 0,
+  directoryEntries: 1,
+  poolWords: 0,
+  defaultWord: 0,
+  cacheBounds: [0, 0, 0, 0],
+};
 
 /** The terrain's GPU tables, rebuilt whole when the world is set. */
 export function createTerrainSource(root: Root, registry: GpuRegistry) {
@@ -2002,27 +2014,12 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
   const surfaces: GpuSlot<ReturnType<typeof surfaceBuffer>> = registry.slot();
   const surfaceIndex: GpuSlot<ReturnType<typeof indexBuffer>> = registry.slot();
   const scarParams = registry.own(root.createBuffer(ScarParams).$usage("uniform"));
-  // The scar params as one record: the grid and cache words the frame
-  // writes, then the biome's look (`ground::tables`) from `full` on.
-  const scarWords = new ArrayBuffer(d.sizeOf(ScarParams));
-  const scarF = new Float32Array(scarWords);
-  const scarU = new Uint32Array(scarWords);
-  const LOOK = 20;
-  scarF.fill(1, LOOK, LOOK + 4);
-  const noClip: ScarRegion = [0, 0, 0, 0];
-  let clip: ScarRegion = noClip;
-  let regions: ScarRegion[] = [];
-  let regionGrid = "";
-  const writeScarParams = () => {
-    const stats = scars.stats();
-    const { cols, rows, cellM, poolWidth, directoryEntries } = stats;
-    const on = cols > 0 && rows > 0;
-    scarF.set([on ? 1 / (cols * cellM) : 0, on ? 1 / (rows * cellM) : 0, cellM, on ? 1 : 0]);
-    scarU.set([cols, rows, directoryEntries - 1, poolWidth], 4);
-    scarF.set(clip, 8);
-    scarU.set([...stats.cacheBounds, stats.defaultWord, 0, 0, 0], 12);
-    scarParams.write(scarWords);
-  };
+  // The scar params as one record: the presentation's words for the grid and
+  // cache, then the biome's look (`ground::tables`).
+  const scarWords = new Uint32Array(d.sizeOf(ScarParams) / 4);
+  new Float32Array(scarWords.buffer).fill(1, SCAR_PARAMS_WORDS, SCAR_PARAMS_WORDS + 4);
+  /** The learned ground the scars were last uploaded from. */
+  let marks: GroundMarks | null = null;
   const groupOf = () =>
     root.createBindGroup(terrainLayout, {
       params,
@@ -2076,38 +2073,30 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
     group: null as unknown as ReturnType<typeof groupOf>,
     /** Follow the side's learned ground (null: none); true when the scars
      *  changed, so what grows on them must regrow. */
-    setGround(ground: GroundMarks | null): boolean {
-      const changed = scars.setGround(ground);
-      const key = ground ? `${ground.cols}/${ground.rows}/${ground.cellM}` : "";
-      if (key !== regionGrid) {
-        regionGrid = key;
-        regions = [];
-        if (ground) {
-          const span = SCAR_REGION_CELLS * ground.cellM;
-          for (let y = 0; y < ground.rows * ground.cellM; y += span)
-            for (let x = 0; x < ground.cols * ground.cellM; x += span)
-              regions.push([
-                x,
-                y,
-                Math.min(x + span, ground.cols * ground.cellM),
-                Math.min(y + span, ground.rows * ground.cellM),
-              ]);
-        }
-      }
-      return changed;
+    setGround(next: GroundMarks | null): boolean {
+      if (next === marks) return next?.changed() ?? false;
+      marks = next;
+      next?.resend();
+      next?.changed();
+      // No ground draws no scars: the grid is off.
+      if (!next) scarParams.write(scarWords.fill(0, 0, SCAR_PARAMS_WORDS).buffer as ArrayBuffer);
+      return true;
     },
-    scarStats: () => scars.stats(),
-    /** Exact filter stencil plus the bounded crater view-ray displacement. */
+    scarStats: (): ScarStats => ({
+      ...(marks?.stats() ?? NO_SCARS),
+      ...scars.bytes(),
+    }),
+    /** Upload what the presentation says the scars over `region` (none:
+     *  the view) need, clipped to it when `clipped`. */
     prepareScars(region?: ScarRegion, clipped = false) {
-      clip = clipped && region ? region : noClip;
-      const cellM = scars.stats().cellM;
-      const priorDirectory = scars.directory;
-      scars.prepare(region, 2 + (2 * tuning.scars.depth_cap * scarF[LOOK + 24]) / cellM);
-      writeScarParams();
-      if (scars.directory !== priorDirectory) source.group = groupOf();
+      if (!marks) return;
+      const upload = marks.prepare(region, clipped);
+      if (scars.upload(upload)) source.group = groupOf();
+      scarWords.set(upload.params);
+      scarParams.write(scarWords.buffer as ArrayBuffer);
     },
     scarRegions(): readonly ScarRegion[] {
-      return scars.hasMarks() && !scars.globalEligible() ? regions : EMPTY_SCAR_REGIONS;
+      return marks?.regions() ?? EMPTY_SCAR_REGIONS;
     },
     set(surface: TerrainSurface) {
       ground = surface.ground;
@@ -2123,9 +2112,9 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
       look = new Uint32Array(packed.length + 4);
       look.set(packed);
       writeParams();
-      scarU.set(tables.scars(), LOOK);
+      scarWords.set(tables.scars(), SCAR_PARAMS_WORDS);
       tables.free();
-      writeScarParams();
+      scarParams.write(scarWords.buffer as ArrayBuffer);
       source.group = groupOf();
     },
   };

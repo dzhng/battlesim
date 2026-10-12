@@ -128,6 +128,14 @@ impl Ground {
         at_least_one(out, 24)
     }
 
+    /// How far a crater's bowl moves the scars read along a view ray
+    /// (`groundScarsSeen`), metres: as deep as the shader reads, at the
+    /// relief its uniform holds, both ways. A region's scars load this far past it.
+    pub fn scar_reach_m(&self) -> f64 {
+        let relief = self.biome.scars.crater.relief_m as f32 as f64;
+        2.0 * self.tuning.terrain.scars.depth_cap * relief
+    }
+
     /// Every terrain table but the scars' grid, from `field` (`terrain_field`).
     pub fn terrain_tables(&self, field: Field) -> TerrainTables {
         let (s, b) = (&self.source, &self.biome);
