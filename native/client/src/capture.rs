@@ -184,6 +184,10 @@ impl Replay {
         &self.presentation
     }
 
+    pub fn presentation_mut(&mut self) -> &mut Presentation {
+        &mut self.presentation
+    }
+
     /// The camera `record` was drawn from, under the manifest's lens.
     pub fn camera(&self, record: &Record) -> Camera {
         Camera {

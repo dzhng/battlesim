@@ -101,38 +101,38 @@ impl Pass for WorldColour {
     }
 
     fn encode(&self, inputs: &Inputs, encoder: &mut CommandEncoder) {
-        let t = inputs.targets;
-        inputs
-            .grass
-            .encode_build(encoder, inputs.ground.layout_group());
+        let (queue, ground) = (inputs.queue, inputs.ground);
+        let scars = &ground.scars;
+        if let Some(upload) = scars.grass_upload() {
+            scars.apply(queue, upload);
+        }
+        inputs.grass.encode_build(encoder, ground.layout_group());
         self.sky.encode(inputs, encoder);
-        let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
-            label: Some("world"),
-            color_attachments: &[
-                Some(RenderPassColorAttachment {
-                    view: &t.hdr_msaa,
-                    depth_slice: None,
-                    resolve_target: Some(&t.lit),
-                    ops: Operations {
-                        load: LoadOp::Load,
-                        store: StoreOp::Store,
-                    },
-                }),
-                Some(RenderPassColorAttachment {
-                    view: &t.fog_mask_msaa,
-                    depth_slice: None,
-                    resolve_target: Some(&t.fog_mask),
-                    ops: Operations {
-                        load: LoadOp::Clear(Color::TRANSPARENT),
-                        store: StoreOp::Store,
-                    },
-                }),
-            ],
-            depth_stencil_attachment: Some(depth(&t.depth, LoadOp::Load, false)),
-            ..Default::default()
-        });
         let frame = inputs.environment.groups();
-        inputs.ground.draw_terrain(&mut pass, &frame);
+        // Too many marks to hold at once: the terrain draws region by region,
+        // each submitted after its scars load (the frame so far first).
+        let regional = scars.regional();
+        if regional {
+            let done = std::mem::replace(
+                encoder,
+                inputs.device.create_command_encoder(&Default::default()),
+            );
+            queue.submit([done.finish()]);
+            for (i, upload) in scars.region_uploads().iter().enumerate() {
+                scars.apply(queue, upload);
+                let mut region = inputs.device.create_command_encoder(&Default::default());
+                let mut pass = world_pass(&mut region, inputs.targets, "ground-region", i == 0);
+                ground.draw_terrain(&mut pass, &frame);
+                drop(pass);
+                queue.submit([region.finish()]);
+            }
+        } else if let Some(upload) = scars.view_upload() {
+            scars.apply(queue, upload);
+        }
+        let mut pass = world_pass(encoder, inputs.targets, "world", !regional);
+        if !regional {
+            ground.draw_terrain(&mut pass, &frame);
+        }
         inputs.ground.draw_skirt(&mut pass, &frame);
         let models = inputs.models;
         let mut groups = frame.to_vec();
@@ -147,6 +147,45 @@ impl Pass for WorldColour {
         self.glass.set(&mut pass, &groups);
         models.draw(&mut pass, Surface::Blended);
     }
+}
+
+/// A pass of the lit world over the sky and the prepass's depth, with the
+/// fog mask beside it (cleared when `first`); both resolve.
+fn world_pass<'a>(
+    encoder: &'a mut CommandEncoder,
+    t: &'a crate::frame::Targets,
+    label: &'static str,
+    first: bool,
+) -> RenderPass<'a> {
+    encoder.begin_render_pass(&RenderPassDescriptor {
+        label: Some(label),
+        color_attachments: &[
+            Some(RenderPassColorAttachment {
+                view: &t.hdr_msaa,
+                depth_slice: None,
+                resolve_target: Some(&t.lit),
+                ops: Operations {
+                    load: LoadOp::Load,
+                    store: StoreOp::Store,
+                },
+            }),
+            Some(RenderPassColorAttachment {
+                view: &t.fog_mask_msaa,
+                depth_slice: None,
+                resolve_target: Some(&t.fog_mask),
+                ops: Operations {
+                    load: if first {
+                        LoadOp::Clear(Color::TRANSPARENT)
+                    } else {
+                        LoadOp::Load
+                    },
+                    store: StoreOp::Store,
+                },
+            }),
+        ],
+        depth_stencil_attachment: Some(depth(&t.depth, LoadOp::Load, false)),
+        ..Default::default()
+    })
 }
 
 /// Where the UI's units will stand: translucent, over the fogged world,

@@ -13,6 +13,7 @@ pub mod ground;
 pub mod models;
 pub mod pipelines;
 pub mod post;
+pub mod scars;
 pub mod shadow;
 pub mod sky;
 pub mod world;

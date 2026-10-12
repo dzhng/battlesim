@@ -216,6 +216,26 @@ impl Grass {
         queue.write_buffer(&self.args, 0, bytemuck::cast_slice(&args));
     }
 
+    /// Grow the clumps again on the next frame, though the view has not
+    /// moved: the scars under them changed.
+    pub fn regrow(&mut self) {
+        self.grown_for = None;
+    }
+
+    /// The window this frame's clumps are grown over, when they regrow: the
+    /// scars they read are loaded for it.
+    pub fn scar_bounds(&self) -> Option<[f64; 4]> {
+        let w = &self.window;
+        self.regrow.then(|| {
+            [
+                w.x0,
+                w.y0,
+                w.x0 + f64::from(w.tiles_x) * field::TILE_M,
+                w.y0 + f64::from(w.tiles_y) * field::TILE_M,
+            ]
+        })
+    }
+
     /// Grows this frame's clumps, if the view moved (compute, before the
     /// colour pass); `terrain` is the ground's group.
     pub fn encode_build(&self, encoder: &mut CommandEncoder, terrain: (&str, &BindGroup)) {

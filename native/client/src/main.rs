@@ -108,7 +108,7 @@ struct Run {
 impl Run {
     fn start(event_loop: &ActiveEventLoop, args: &Args) -> Result<Self, String> {
         let game = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/game.json");
-        let replay = Replay::open(&args.scene, &game)?;
+        let mut replay = Replay::open(&args.scene, &game)?;
         let size = replay.records.first().ok_or("no frame records")?.canvas;
         let mut attributes = Window::default_attributes()
             .with_title("battlegame native")
@@ -212,6 +212,9 @@ impl Run {
             &ground.map.ground,
             &ground.heights,
         )?;
+        // The scars a region loads reach as far as a crater's bowl moves them.
+        let scar_reach = ground.map.ground.scar_reach_m();
+        replay.presentation_mut().set_scar_reach(scar_reach);
         println!(
             "ground: {} resolved and uploaded in {:.2} s",
             replay.map,
@@ -336,12 +339,18 @@ impl Run {
             let Some(plate) = record.plate.clone() else {
                 continue;
             };
+            // The scars changed under the grass: it regrows over them.
+            if self.replay.presentation_mut().scars_changed() {
+                self.passes.grass.regrow();
+            }
             let camera = self.replay.camera(&record);
             let frame = self.replay.last_frame();
             self.view = frame.view;
             let (device, queue) = (&self.gpu.device, &self.gpu.queue);
             self.passes.prepare(device, queue, frame, &camera);
             let (counts, wrap) = (frame.counts, frame.light_wrap);
+            self.passes
+                .prepare_scars(device, self.replay.presentation_mut());
             let presentation = self.replay.presentation();
             self.passes
                 .prepare_effects(device, queue, presentation, wrap);
@@ -382,11 +391,14 @@ impl Run {
                     }
                 }
             }
+            let scars = self.replay.presentation().scar_stats();
             println!(
-                "{plate}: drawn {drawn:?}, culled soldiers {}, effects {} and {} lights",
+                "{plate}: drawn {drawn:?}, culled soldiers {}, effects {} and {} lights, scar pages {} ({})",
                 counts.culled,
                 self.passes.effects.count(),
-                counts.lights
+                counts.lights,
+                scars.pages,
+                if self.passes.ground.scars.regional() { "by region" } else { "at once" },
             );
             let encoder = self.passes.encode(device, queue, &self.view);
             let rgba = self.passes.read_display(device, queue, encoder);

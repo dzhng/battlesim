@@ -2,25 +2,21 @@
 //! `terrainMaterial.ts`'s `createTerrainSource`): the presentation crate's
 //! ground tables and meshes, uploaded once, drawn into the depth prepass,
 //! the sun's cascades and the lit world. The terrain's group (`terrainLayout`)
-//! is the grass build's too.
+//! is the grass build's too, and holds the side's scars (`scars.rs`).
 use presentation::shadow::map_box;
 use presentation::static_world::files::MapGround;
 use presentation::static_world::ground::mesh::{self, VERTEX_FLOATS};
 use wgpu::*;
 
+use presentation::presentation::Presentation;
+
 use crate::gpu::{bind, buffer};
 use crate::pipelines::{Bound, Pipelines};
+use crate::scars::Scars;
 
 /// `TerrainParams`' last `vec4u`, the frame's view: the lit ground (not its
 /// classes), the roads worn.
 const VIEW: [u32; 4] = [0, 0, 0, 0];
-/// `ScarParams`: the grid and cache words, then the biome's look from `full`.
-const SCAR_WORDS: usize = 52;
-const SCAR_LOOK: usize = 20;
-/// The scar pool's texture (`scarTexture.ts`), its first texels the
-/// normalisation table the shader reads.
-const SCAR_POOL: [u32; 2] = [2048, 1024];
-const SCAR_NORMALIZATION_WORDS: usize = 4096;
 /// The identity instance (`identityInstance`): no offset, unit scale, no tint.
 const IDENTITY: [f32; 8] = [0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0];
 
@@ -53,6 +49,31 @@ impl Mesh {
     }
 }
 
+/// `terrainLayout`'s group: the tables, then the scars.
+fn terrain_group(
+    device: &Device,
+    layout: &BindGroupLayout,
+    tables: &[Buffer; 5],
+    scars: &Scars,
+) -> BindGroup {
+    let [params, nodes, plots, surfaces, index] = tables;
+    bind(
+        device,
+        layout,
+        "terrain",
+        &[
+            params.as_entire_binding(),
+            nodes.as_entire_binding(),
+            plots.as_entire_binding(),
+            surfaces.as_entire_binding(),
+            index.as_entire_binding(),
+            scars.params.as_entire_binding(),
+            BindingResource::TextureView(&scars.directory_view()),
+            BindingResource::TextureView(&scars.pool_view()),
+        ],
+    )
+}
+
 /// A storage table holding at least one record of `record` bytes.
 fn table(device: &Device, label: &str, bytes: &[u8], record: usize) -> Buffer {
     let mut padded = bytes.to_vec();
@@ -60,28 +81,15 @@ fn table(device: &Device, label: &str, bytes: &[u8], record: usize) -> Buffer {
     buffer(device, label, BufferUsages::STORAGE, &padded)
 }
 
-fn texture(device: &Device, label: &str, size: [u32; 2], format: TextureFormat) -> Texture {
-    device.create_texture(&TextureDescriptor {
-        label: Some(label),
-        size: Extent3d {
-            width: size[0],
-            height: size[1],
-            depth_or_array_layers: 1,
-        },
-        mip_level_count: 1,
-        sample_count: 1,
-        dimension: TextureDimension::D2,
-        format,
-        usage: TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST,
-        view_formats: &[],
-    })
-}
-
 pub struct Ground {
     /// What the ground was resolved from: its tables, the grass's rules.
     pub map: MapGround,
     /// `terrainLayout`: the terrain's tables and the side's scars.
     pub group: BindGroup,
+    layout: BindGroupLayout,
+    /// The terrain's tables: params, plot nodes, plots, surfaces and their index.
+    tables: [Buffer; 5],
+    pub scars: Scars,
     /// The height pages fog and grass read (`Grid::pages`).
     pub heights: Buffer,
     /// The box the map's ground and what stands on it fill (`mapBox`).
@@ -138,57 +146,10 @@ impl Ground {
             bytemuck::cast_slice(&tables.surface_index),
             4,
         );
-        // No scars yet: an empty grid (`grid.w` 0), the biome's look after it.
-        let mut scars = [0u32; SCAR_WORDS];
-        scars[SCAR_LOOK..SCAR_LOOK + tables.scars.len()].copy_from_slice(&tables.scars);
-        let scar_params = buffer(device, "scar-params", uniform, bytemuck::cast_slice(&scars));
-        let pool = texture(
-            device,
-            "ground-scar-words",
-            SCAR_POOL,
-            TextureFormat::Rgba8Unorm,
-        );
-        let normalization: Vec<f32> = (0..SCAR_NORMALIZATION_WORDS)
-            .map(|q| q.min(4080) as f32 / 4080.0)
-            .collect();
-        queue.write_texture(
-            pool.as_image_copy(),
-            bytemuck::cast_slice(&normalization),
-            TexelCopyBufferLayout {
-                offset: 0,
-                bytes_per_row: Some(SCAR_POOL[0] * 4),
-                rows_per_image: None,
-            },
-            Extent3d {
-                width: SCAR_POOL[0],
-                height: SCAR_NORMALIZATION_WORDS as u32 / SCAR_POOL[0],
-                depth_or_array_layers: 1,
-            },
-        );
-        let directory = texture(
-            device,
-            "ground-scar-directory",
-            [1, 1],
-            TextureFormat::Rg32Uint,
-        );
-        let group = bind(
-            device,
-            pipelines.layout("terrainLayout"),
-            "terrain",
-            &[
-                params.as_entire_binding(),
-                nodes.as_entire_binding(),
-                plots.as_entire_binding(),
-                surfaces.as_entire_binding(),
-                index.as_entire_binding(),
-                scar_params.as_entire_binding(),
-                BindingResource::TextureView(&directory.create_view(&Default::default())),
-                BindingResource::TextureView(&pool.create_view(&TextureViewDescriptor {
-                    dimension: Some(TextureViewDimension::D2Array),
-                    ..Default::default()
-                })),
-            ],
-        );
+        let scars = Scars::new(device, queue, &tables.scars);
+        let tables = [params, nodes, plots, surfaces, index];
+        let layout = pipelines.layout("terrainLayout").clone();
+        let group = terrain_group(device, &layout, &tables, &scars);
         let heights = buffer(
             device,
             "terrain-heights",
@@ -203,6 +164,9 @@ impl Ground {
         Ok(Self {
             map,
             group,
+            layout,
+            tables,
+            scars,
             heights,
             map_box,
             terrain: Mesh::new(device, "terrain", &terrain),
@@ -222,6 +186,19 @@ impl Ground {
             lit_backdrop: pipelines.bound("worldBackdrop"),
             lit_water: pipelines.bound("worldWater"),
         })
+    }
+
+    /// Takes this frame's scar uploads from `presentation`, the grass's
+    /// window `grass` first when it regrows.
+    pub fn prepare_scars(
+        &mut self,
+        device: &Device,
+        presentation: &mut Presentation,
+        grass: Option<[f64; 4]>,
+    ) {
+        if self.scars.prepare(device, presentation, grass) {
+            self.group = terrain_group(device, &self.layout, &self.tables, &self.scars);
+        }
     }
 
     /// The group by the layout it fills.

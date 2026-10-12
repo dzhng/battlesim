@@ -106,6 +106,7 @@ impl Targets {
 
 /// What a pass draws from.
 pub struct Inputs<'a> {
+    pub device: &'a Device,
     pub queue: &'a Queue,
     pub view: &'a View,
     pub targets: &'a Targets,
@@ -155,6 +156,13 @@ impl Passes {
         self.models.prepare(device, queue, frame);
     }
 
+    /// Takes this frame's scars from `presentation`: the grass regrows over
+    /// them when they changed (the next frame's growth reads them).
+    pub fn prepare_scars(&mut self, device: &Device, presentation: &mut Presentation) {
+        self.ground
+            .prepare_scars(device, presentation, self.grass.scar_bounds());
+    }
+
     /// Prepares the effects and the cast lights `presentation` made for
     /// its last frame, whose cast lights reach `light_wrap` round a surface.
     pub fn prepare_effects(
@@ -175,6 +183,7 @@ impl Passes {
             label: Some("battle-frame"),
         });
         let inputs = Inputs {
+            device,
             queue,
             view,
             targets: &self.targets,
