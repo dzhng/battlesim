@@ -151,8 +151,8 @@ export async function run(ctx) {
     JSON.stringify({ walker, dodger }),
   );
   const direct = shot("direct grenade over crest");
-  const mortar = shot("indirect lab mortar over crest");
-  const landed = end("indirect lab mortar over crest");
+  const mortar = shot("artillery mortar over crest");
+  const landed = end("artillery mortar over crest");
   ctx.check(
     "direct fire over the crest has no solution; the indirect high arc clears it",
     !direct.fired &&

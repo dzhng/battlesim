@@ -76,6 +76,12 @@
     "map": "geometry"
   },
   {
+    "id": "artillery",
+    "route": "/lab/artillery",
+    "describe": "Artillery weapon checkpoint: the shipped indirect mortar clears a ridge on a high arc while its long range, spread and large minimum range remain visible in the same flight and collision bench.",
+    "map": "geometry"
+  },
+  {
     "id": "contacts",
     "route": "/lab/contacts",
     "describe": "Uncertain evidence: a hidden squad fires every 3 s (stable firing area), a tank leaves a fixed last-seen area when it drives behind the hill, synthesized sound cues with captions.",

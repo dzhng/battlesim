@@ -90,15 +90,9 @@ function benchOf(catalog: SessionCatalog): Bench {
       return [name, { ...row, speed_mps: row.speed_mps / Math.sqrt(g), gravity_scale: 1 }];
     }),
   );
-  // No game weapon has indirect-fire capability yet; this lab-only row
-  // exercises the opt-in high arc with a slow round whose apex fits the frame.
-  const LAB_MORTAR = {
-    speed_mps: 45,
-    range_m: 500,
-    scatter_mrad: 10,
-    suppression_radius_m: 10,
-    trajectory: "indirect",
-  };
+  // Use the shipped indirect row so the lab exercises the same trajectory
+  // and spread metadata that an artillery unit carries in battle.
+  const LAB_MORTAR = W.artillery_mortar;
   // The oblique-AP preset: game AP pierces every face of the tank, so this
   // lab-only row is a spent AP round (penetration below the front plate) whose
   // failed penetrations may glance off.
@@ -218,7 +212,7 @@ function benchOf(catalog: SessionCatalog): Bench {
       aim: { ground: [100, 292] },
     },
     {
-      label: "indirect lab mortar over crest",
+      label: "artillery mortar over crest",
       weapon: LAB_MORTAR,
       kind: "grenade",
       from: [92, 118],
