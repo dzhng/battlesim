@@ -68,6 +68,11 @@ export async function restartPresentedOpening(page, targetTick) {
       lying: window.__lab.route.lying(),
       camera: window.__lab.camera(),
     },
+    // The buildings standing, and the module instances the frame drew of them.
+    buildings: {
+      standing: window.__lab.stats().buildings.buildings,
+      drawn: window.__lab.stats().buildings.tiers.reduce((a, b) => a + b, 0),
+    },
     gpu: window.__lab.allocations(),
   }));
 }
