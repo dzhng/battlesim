@@ -320,6 +320,20 @@ export async function run(ctx) {
       [...document.querySelectorAll(".menu-body img")].every((i) => i.complete),
     );
     await contained(ctx, page, `menu ${entry}`);
+    if (entry === "settings") {
+      const choices = await page
+        .getByRole("radio")
+        .evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-label")));
+      ctx.check(
+        "menu settings exposes exactly the four graphics choices",
+        JSON.stringify(choices) === JSON.stringify(["Auto-detect", "Low", "Medium", "High"]),
+        JSON.stringify(choices),
+      );
+      ctx.check(
+        "menu settings has one active graphics choice",
+        (await page.getByRole("radio", { checked: true }).count()) === 1,
+      );
+    }
     await ctx.matchBaseline(body, `menu-${entry}`, { style: MENU_UNPINNED });
     await page.keyboard.press("Escape");
   }
