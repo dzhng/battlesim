@@ -59,7 +59,8 @@ Slice 01 kills the 2.5 km/minimum-range assumption cheaply. Slice 02 makes the p
 - [x] Convert all 12 planned rows into complete physical units, roles, weapons, wrecks and runtime appearances — [slice 02](slices/02-physical-roster.md)
 - [x] Add deterministic artillery procurement, normal attacks and observation-bounded guessed salvos — [slice 03](slices/03-skirmish-artillery.md)
 - [x] Emphasize Attack Ground contextually and add a focused artillery lab/scene — [slice 04](slices/04-command-ui-and-lab.md)
-- [ ] Regenerate catalog/replay/parity evidence, run visual review and full checks, and record the named behavior cutover — [slice 05](slices/05-closeout.md)
+- [x] Regenerate catalog/replay/parity evidence and record the named behavior cutover — [slice 05](slices/05-closeout.md)
+- [ ] Complete repository-wide visual/full-check gates when a compatible GPU and full asset inputs are available — [slice 05](slices/05-closeout.md)
 
 ## Known risks and firewalls
 
@@ -87,14 +88,18 @@ Use the narrowest check per slice, then run the repository-wide checks once at c
 
 ## Closeout evidence
 
-Focused native, catalog, browser and artillery-scene checks pass. The scene
+Focused native, catalog, browser and artillery-scene checks pass. The five
+publication parity records were regenerated for the artillery catalog cutover;
+all 25 native publication tests and 13 browser fog-delivery tests pass. The scene
 harness now aborts on the first fatal WebGPU diagnostic, preserves the adapter
 limit message, suppresses repeated invalid-resource noise and includes page
 state on readiness timeouts; its focused five-test suite passes. The known
 SwiftShader parity probe now reports one primary texture-array failure instead
 of a page-close cascade. The full `bun run check` was rerun with a local ALSA
-development sysroot and completed with 859 Rust tests passing and five
-publication-pair failures. The earlier lint-only
+development sysroot; its earlier completed run had 859 Rust tests passing and
+five publication-pair failures before the parity refresh. A corrected absolute
+target-path rerun reached the workspace's long map-generation sweep and was
+stopped to avoid repeating unrelated expensive coverage. The earlier lint-only
 failure was environmental (`alsa-sys` could not find `alsa.pc`), while
 `cargo clippy -p sim --all-targets -- -D warnings` is clean. A full browser
 rerun after fetching the required LFS baselines and city inputs removed the
