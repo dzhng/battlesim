@@ -263,19 +263,14 @@ function ReelBattle({
         fixture="graphics-test"
         inputEnabled={false}
         world={world}
-        structures={session.structures}
-        buildings={session.buildingsFeed}
-        obstacles={session.cameraObstaclesFeed}
-        frame={session.frame}
-        presentation={session.presentation}
-        appearances={session.appearances}
+        {...session.known}
+        {...session.viewport}
         initialCamera={{
           ...first,
           target: [first.target[0], first.target[1], 0],
           ...gameCamera.lens,
         }}
         groundAt={session.surfaceZ}
-        onReady={session.onReady}
         pilot={pilot}
         cameraConfig={cameraConfig}
       />

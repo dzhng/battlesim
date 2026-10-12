@@ -236,23 +236,18 @@ function FogLookLab({ scenario }: { scenario: string }) {
         key={`${sun}-${bloom}`}
         fixture="fog-look"
         world={worldFeed}
-        structures={session.structures}
-        obstacles={session.cameraObstaclesFeed}
-        buildings={session.buildingsFeed}
+        {...session.known}
         overlay={overlayFeed}
         fog={fogFeed}
         fogStyle={style}
         light={lightFor(sun, bloom)}
-        frame={session.frame}
-        presentation={session.presentation}
-        appearances={session.appearances}
+        {...session.viewport}
         initialCamera={STREET_CAMERA}
         groundAt={surfaceZ}
         onFrame={(project, view, pointer) => {
           session.placePanels(project, view, pointer);
           contactFacing.follow(view);
         }}
-        onReady={session.onReady}
         diagnostics={diagnostics}
       />
       <ReadoutLayer

@@ -84,17 +84,12 @@ function Shelling({ battle }: { battle: SavedBattle }) {
       <LabViewport
         fixture="city-ruins"
         world={worldFeed}
-        structures={session.structures}
-        buildings={session.buildingsFeed}
-        obstacles={session.cameraObstaclesFeed}
+        {...session.known}
         fog={session.fogFeed}
-        frame={session.frame}
-        presentation={session.presentation}
-        appearances={session.appearances}
+        {...session.viewport}
         initialCamera={OPENING}
         cameraConfig={cameraConfig}
         groundAt={session.surfaceZ}
-        onReady={session.onReady}
         diagnostics={diagnostics}
       />
       <aside className="hud-panel lab-panel" data-testid="city-ruins-panel">

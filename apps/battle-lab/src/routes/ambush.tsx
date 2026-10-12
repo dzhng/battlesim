@@ -185,19 +185,12 @@ function AmbushLab({ battles }: { battles: Record<Variant, SavedBattle> }) {
       <LabViewport
         fixture="ambush"
         world={worldFeed}
-        buildings={session.buildingsFeed}
+        buildings={session.known.buildings}
         overlay={overlayFeed}
         fog={session.fogFeed}
-        frame={session.frame}
-        presentation={session.presentation}
-        appearances={session.appearances}
+        {...session.viewport}
         initialCamera={AMBUSH_CAMERA}
-        onPick={session.onPick}
-        onRightPress={session.onRightPress}
-        onCursor={session.onCursor}
-        pointerMarks={session.pointerPaint.feed}
-        onBox={session.onBox}
-        onReady={session.onReady}
+        {...session.input}
         diagnostics={diagnostics}
       />
       <aside className="hud-panel lab-panel" data-testid="ambush-panel">

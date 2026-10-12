@@ -81,14 +81,11 @@ function SensorsLab({ battle }: { battle: SavedBattle }) {
       <LabViewport
         fixture="sensors"
         world={worldFeed}
-        buildings={session.buildingsFeed}
+        buildings={session.known.buildings}
         overlay={overlayFeed}
         fog={fogFeed}
-        frame={session.frame}
-        presentation={session.presentation}
-        appearances={session.appearances}
+        {...session.viewport}
         initialCamera={SENSORS_CAMERA}
-        onReady={session.onReady}
         diagnostics={diagnostics}
       />
       <aside className="hud-panel lab-panel" data-testid="sensors-panel">

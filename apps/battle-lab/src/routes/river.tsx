@@ -131,19 +131,12 @@ function RiverLab({ battle }: { battle: SavedBattle }) {
       <LabViewport
         fixture="river"
         world={worldFeed}
-        structures={view === "surface" ? session.structures : undefined}
-        buildings={view === "surface" ? session.buildingsFeed : undefined}
+        structures={view === "surface" ? session.known.structures : undefined}
+        buildings={view === "surface" ? session.known.buildings : undefined}
         overlay={overlayFeed}
-        frame={session.frame}
-        presentation={session.presentation}
-        appearances={session.appearances}
+        {...session.viewport}
         initialCamera={RIVER_CAMERA}
-        onPick={session.onPick}
-        onRightPress={session.onRightPress}
-        onCursor={session.onCursor}
-        pointerMarks={session.pointerPaint.feed}
-        onBox={session.onBox}
-        onReady={session.onReady}
+        {...session.input}
         diagnostics={diagnostics}
       />
       <aside className="hud-panel lab-panel" data-testid="river-panel">

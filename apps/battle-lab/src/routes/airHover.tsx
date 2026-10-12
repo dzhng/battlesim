@@ -77,21 +77,12 @@ function AirHoverLab({ battles }: { battles: Record<Variant, SavedBattle> }) {
       <LabViewport
         fixture="air-hover"
         world={worldFeed}
-        structures={session.structures}
-        obstacles={session.cameraObstaclesFeed}
-        buildings={session.buildingsFeed}
+        {...session.known}
         overlay={overlayFeed}
         fog={session.fogFeed}
-        frame={session.frame}
-        presentation={session.presentation}
-        appearances={session.appearances}
+        {...session.viewport}
         initialCamera={initial}
-        onPick={session.onPick}
-        onRightPress={session.onRightPress}
-        onCursor={session.onCursor}
-        pointerMarks={session.pointerPaint.feed}
-        onBox={session.onBox}
-        onReady={session.onReady}
+        {...session.input}
         onFrame={onFrame}
         diagnostics={{ ...session.probes, variant: (v: Variant) => chooseVariant(v) }}
       />

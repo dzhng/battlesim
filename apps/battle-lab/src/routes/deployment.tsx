@@ -104,16 +104,9 @@ function DeploymentLab({ battle }: { battle: SavedBattle }) {
         fixture="deployment"
         world={worldFeed}
         overlay={overlayFeed}
-        frame={session.frame}
-        presentation={session.presentation}
-        appearances={session.appearances}
+        {...session.viewport}
         initialCamera={DEPLOYMENT_CAMERA}
-        onPick={session.onPick}
-        onRightPress={session.onRightPress}
-        onCursor={session.onCursor}
-        pointerMarks={session.pointerPaint.feed}
-        onBox={session.onBox}
-        onReady={session.onReady}
+        {...session.input}
         onFrame={session.placePanels}
         diagnostics={diagnostics}
       />

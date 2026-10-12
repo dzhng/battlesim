@@ -270,15 +270,10 @@ function BackdropBattle({
           fixture="menu-backdrop"
           inputEnabled={false}
           world={world}
-          structures={session.structures}
-          buildings={session.buildingsFeed}
-          obstacles={session.cameraObstaclesFeed}
-          frame={session.frame}
-          presentation={session.presentation}
-          appearances={session.appearances}
+          {...session.known}
+          {...session.viewport}
           initialCamera={reel.initial}
           groundAt={session.surfaceZ}
-          onReady={session.onReady}
           pilot={reel.pilot}
           cameraConfig={FILM_CAMERA}
         />

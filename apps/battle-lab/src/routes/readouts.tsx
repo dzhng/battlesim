@@ -61,19 +61,12 @@ function ReadoutsLab({ battle }: { battle: SavedBattle }) {
       <LabViewport
         fixture="readouts"
         world={worldFeed}
-        buildings={session.buildingsFeed}
+        buildings={session.known.buildings}
         overlay={overlayFeed}
         fog={session.fogFeed}
-        frame={session.frame}
-        presentation={session.presentation}
-        appearances={session.appearances}
+        {...session.viewport}
         initialCamera={READOUTS_CAMERA}
-        onPick={session.onPick}
-        onRightPress={session.onRightPress}
-        onCursor={session.onCursor}
-        pointerMarks={session.pointerPaint.feed}
-        onBox={session.onBox}
-        onReady={session.onReady}
+        {...session.input}
         onFrame={session.placePanels}
         diagnostics={diagnostics}
       />

@@ -177,16 +177,11 @@ function FogLab({ scenario }: { scenario: string }) {
       <LabViewport
         fixture="fog"
         world={worldFeed}
-        structures={session.structures}
-        obstacles={session.cameraObstaclesFeed}
-        buildings={session.buildingsFeed}
+        {...session.known}
         fog={fogFeed}
-        frame={session.frame}
-        presentation={session.presentation}
-        appearances={session.appearances}
+        {...session.viewport}
         initialCamera={STREET_CAMERA}
         groundAt={session.surfaceZ}
-        onReady={session.onReady}
         diagnostics={diagnostics}
       />
       <aside className="hud-panel lab-panel" data-testid="fog-panel">

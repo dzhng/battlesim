@@ -112,16 +112,9 @@ function SupplyLab({ battle }: { battle: SavedBattle }) {
         world={worldFeed}
         overlay={overlayFeed}
         fog={session.fogFeed}
-        frame={session.frame}
-        presentation={session.presentation}
-        appearances={session.appearances}
+        {...session.viewport}
         initialCamera={SUPPLY_CAMERA}
-        onPick={session.onPick}
-        onRightPress={session.onRightPress}
-        onCursor={session.onCursor}
-        pointerMarks={session.pointerPaint.feed}
-        onBox={session.onBox}
-        onReady={session.onReady}
+        {...session.input}
         onFrame={session.placePanels}
         diagnostics={diagnostics}
       />

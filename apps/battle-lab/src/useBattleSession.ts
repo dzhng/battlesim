@@ -1168,9 +1168,18 @@ export function useBattleSession({
   return {
     world,
     meshes,
-    /** The props drawn from what the side knows (standing destroyable props
-     *  when "apart", their remains, and wrecks), fed to the viewport. */
-    structures: structuresFeed,
+    /** What every battle view hands its viewport (`LabViewport`): each
+     *  animation frame's drawn units and presentation clock, the battle's
+     *  presentation (which draws the buildings too), the appearances its
+     *  models layer installs, and the GPU's arrival. */
+    viewport: { frame, presentation: presentationSource, appearances: modelAppearances, onReady },
+    /** What the side knows stands, for a viewport that draws it: the props
+     *  drawn from that knowledge (standing destroyable props when "apart",
+     *  their remains, and wrecks), the map's buildings, and what the camera
+     *  keeps clear of. */
+    known: { structures: structuresFeed, buildings: buildingsFeed, obstacles: cameraObstaclesFeed },
+    /** The player's pointer on a viewport that takes orders. */
+    input: { onPick, onRightPress, onCursor, onBox, pointerMarks: pointerPaint.feed },
     /** What a second client needs to draw this side's props and fallen
      *  buildings (`describeProps`); null until the map's props are fitted. */
     describeProps: () =>
@@ -1183,14 +1192,6 @@ export function useBattleSession({
             units,
           })
         : null,
-    /** The map's buildings, and those the side has seen
-     *  fall, for the viewport. */
-    buildingsFeed,
-    /** The battle's presentation, which draws those buildings too. */
-    presentation: presentationSource,
-    /** What the camera keeps clear of, from what the side knows stands, for
-     *  the viewport. */
-    cameraObstaclesFeed,
     /** What renderer fog is drawn from; `fogFeed` carries it to the viewport. */
     fog,
     fogFeed,
@@ -1214,15 +1215,11 @@ export function useBattleSession({
     revealed,
     pointerPaint,
     surfaceZ,
-    /** The appearances the viewport's models layer installs. */
-    appearances: modelAppearances,
     /** What a second client needs to pose and draw this battle's units and
      *  its combat effects (`describeUnits`, `describeEffects`): the
      *  presentation's own input; null until it can load. */
     describeUnits: () => worldInput?.units ?? null,
     describeEffects: () => worldInput?.effects ?? null,
-    /** Every animation frame's drawn units and presentation clock, for the viewport. */
-    frame,
     /** The battle's sound (null unless `sound`), and its per-frame listener. */
     audio,
     hear,
@@ -1247,11 +1244,6 @@ export function useBattleSession({
             }
           : null,
       ),
-    onPick,
-    onRightPress,
-    onCursor,
-    onBox,
-    onReady,
     gpuAllocations,
     probes,
   };

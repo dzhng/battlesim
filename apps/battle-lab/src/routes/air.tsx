@@ -46,21 +46,12 @@ function AirLab({ battle }: { battle: SavedBattle }) {
       <LabViewport
         fixture="air"
         world={worldFeed}
-        structures={session.structures}
-        obstacles={session.cameraObstaclesFeed}
-        buildings={session.buildingsFeed}
+        {...session.known}
         overlay={overlayFeed}
         fog={session.fogFeed}
-        frame={session.frame}
-        presentation={session.presentation}
-        appearances={session.appearances}
+        {...session.viewport}
         initialCamera={AIR_CAMERA}
-        onPick={session.onPick}
-        onRightPress={session.onRightPress}
-        onCursor={session.onCursor}
-        pointerMarks={session.pointerPaint.feed}
-        onBox={session.onBox}
-        onReady={session.onReady}
+        {...session.input}
         onFrame={session.placePanels}
         diagnostics={session.probes}
       />
