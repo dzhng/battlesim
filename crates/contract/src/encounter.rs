@@ -578,6 +578,8 @@ impl EncounterSetup {
             units: self.units,
             events: Vec::new(),
             scripts: self.scripts,
+            authored_scripts: Vec::new(),
+            victory: None,
             opponent: Some(self.opponent),
             encounter: Some(self.encounter),
         }

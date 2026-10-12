@@ -177,6 +177,7 @@ fn turns_on_the_spot_to_an_ordered_facing() {
     );
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
+        slot: None,
         seq: 1,
         order: Order::Move {
             units: vec![UnitId(0)],

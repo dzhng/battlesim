@@ -71,6 +71,7 @@ fn generated_maps_plan_the_assault_with_the_sides_at_opposite_edges() {
             let near = match d.side {
                 Side::Blue => d.head[1],
                 Side::Red => depth - d.head[1],
+                Side::Neutral => panic!("encounter deployments cannot use the neutral side"),
             };
             assert!(
                 near < depth / 3.0,

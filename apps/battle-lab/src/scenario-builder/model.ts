@@ -1,6 +1,6 @@
 import type { MapDefinition } from "@web/maps/resolve";
 import type { GameRules } from "@web/battle/catalog/compose";
-import type { Faction, UnitCatalog } from "@packages/scene-assets/src/units";
+import { FACTIONS, type Faction, type UnitCatalog } from "@packages/scene-assets/src/units";
 import type { SideName, Engagement } from "@web/battle/sim/protocol";
 
 export type BuilderController = "human" | "active_ai" | "passive_ai";
@@ -38,7 +38,7 @@ export interface ScenarioBundleDraft {
   map: { map_hash: string; template_catalog_hash?: string | null };
   rules_hash: string;
   scenario: {
-    skirmish?: unknown;
+    skirmish?: BuilderSkirmish;
     map: MapDefinition;
     rules: GameRules;
     units: BuilderUnit[];
@@ -50,8 +50,81 @@ export interface ScenarioBundleDraft {
   slots: BuilderSlot[];
   mode: BuilderMode;
   victory: { source: string };
-  authored_scripts: { id: string; source: string }[];
+  authored_scripts: { id: string; source: string; side: SideName; slot?: string | null }[];
   assets: BuilderAsset[];
+}
+
+export const BUILDER_FACTIONS = FACTIONS;
+
+export interface BuilderSkirmish {
+  factions: [Faction, Faction];
+  ai_side?: SideName;
+  rules: {
+    credits_per_minute: number;
+    starting_minutes: number;
+    preparation_s: number;
+    max_units: number;
+    dispatch_interval_s: number;
+  };
+  sites: {
+    entries: [
+      { side: "blue"; center: [number, number]; yaw: number },
+      { side: "red"; center: [number, number]; yaw: number },
+    ];
+    objectives: {
+      id: string;
+      center: [number, number];
+      radius_m: number;
+      kind: "junction" | "field";
+      counterpart: string | null;
+    }[];
+    candidates: never[];
+  };
+}
+
+export function builderEconomy(size: readonly [number, number]): BuilderSkirmish {
+  const [width, depth] = size;
+  return {
+    factions: ["us", "eastern"],
+    ai_side: "red",
+    rules: {
+      credits_per_minute: 200,
+      starting_minutes: 2,
+      preparation_s: 20,
+      max_units: 30,
+      dispatch_interval_s: 1,
+    },
+    sites: {
+      entries: [
+        { side: "blue", center: [width / 2, 12], yaw: Math.PI / 2 },
+        { side: "red", center: [width / 2, depth - 12], yaw: -Math.PI / 2 },
+      ],
+      objectives: [
+        {
+          id: "center",
+          center: [width / 2, depth / 2],
+          radius_m: 50,
+          kind: "junction",
+          counterpart: null,
+        },
+        {
+          id: "west",
+          center: [width * 0.25, depth / 2],
+          radius_m: 50,
+          kind: "field",
+          counterpart: "east",
+        },
+        {
+          id: "east",
+          center: [width * 0.75, depth / 2],
+          radius_m: 50,
+          kind: "field",
+          counterpart: "west",
+        },
+      ],
+      candidates: [],
+    },
+  };
 }
 
 /** A compact resolved-map snapshot for the first authoring checkpoint. */
@@ -67,6 +140,13 @@ export function emptyBuilderMap(): MapDefinition {
     forests: [],
     props: [],
   };
+}
+
+export function nextSlotId(slots: readonly BuilderSlot[], side: SideName): string {
+  const prefix = `${side}-`;
+  let n = 1;
+  while (slots.some((slot) => slot.id === `${prefix}${n}`)) n++;
+  return `${prefix}${n}`;
 }
 
 export function createBuilderDraft(rules: GameRules, units: UnitCatalog): ScenarioBundleDraft {
@@ -122,6 +202,28 @@ export function createBuilderDraft(rules: GameRules, units: UnitCatalog): Scenar
 
 export function cloneDraft(draft: ScenarioBundleDraft): ScenarioBundleDraft {
   return structuredClone(draft);
+}
+
+/** Remove one editor unit and keep the portable unit indexes contiguous. */
+export function removeBuilderUnit(
+  draft: ScenarioBundleDraft,
+  removedId: number,
+): ScenarioBundleDraft {
+  return {
+    ...draft,
+    scenario: {
+      ...draft.scenario,
+      units: draft.scenario.units
+        .filter((unit) => unit.id !== removedId)
+        .map((unit, index) => ({ ...unit, id: index })),
+    },
+    slots: draft.slots.map((slot) => ({
+      ...slot,
+      units: slot.units
+        .filter((id) => id !== removedId)
+        .map((id) => (id > removedId ? id - 1 : id)),
+    })),
+  };
 }
 
 export function parseBuilderDraft(text: string): ScenarioBundleDraft {

@@ -20,6 +20,7 @@ impl Orders {
         self.seq += 1;
         let ack = b.accept(CommandEnvelope {
             side: Side::Blue,
+            slot: None,
             seq: self.seq,
             order,
             queued,
@@ -542,6 +543,7 @@ fn an_unreachable_destination_is_rejected_without_live_route_searches() {
     // vehicle would park at its foot instead: it is a squad that is refused.)
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
+        slot: None,
         seq: 1,
         queued: false,
         order: Order::Move {

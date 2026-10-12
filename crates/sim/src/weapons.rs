@@ -2457,6 +2457,7 @@ mod target_priority_tests {
         let knowledge = [
             SideKnowledge::new(1, battle.ground()),
             SideKnowledge::new(2, battle.ground()),
+            SideKnowledge::new(3, battle.ground()),
         ];
         let ctx = FireContext {
             world: battle.world(),
@@ -2511,6 +2512,7 @@ mod target_priority_tests {
         let knowledge = [
             SideKnowledge::new(1, battle.ground()),
             SideKnowledge::new(2, battle.ground()),
+            SideKnowledge::new(3, battle.ground()),
         ];
         let ctx = FireContext {
             world: battle.world(),
@@ -2560,6 +2562,7 @@ mod target_priority_tests {
             let knowledge = [
                 SideKnowledge::new(1, battle.ground()),
                 SideKnowledge::new(2, battle.ground()),
+                SideKnowledge::new(3, battle.ground()),
             ];
             let ctx = FireContext {
                 world: battle.world(),
@@ -2607,6 +2610,7 @@ mod target_priority_tests {
         let mut knowledge = [
             SideKnowledge::new(1, battle.ground()),
             SideKnowledge::new(2, battle.ground()),
+            SideKnowledge::new(3, battle.ground()),
         ];
         let sightings: Vec<_> = (1..3)
             .map(|id| crate::sensing::Sighting {

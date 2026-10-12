@@ -117,8 +117,12 @@ export function LoadingScreen({
                 <li
                   key={stage.id}
                   aria-label={stage.label}
+                  aria-current={k === at ? "step" : undefined}
                   data-state={k < at ? "done" : k === at ? "active" : "pending"}
-                />
+                >
+                  <span className="loading-stage-bar" aria-hidden="true" />
+                  <span className="loading-stage-label">{stage.label}</span>
+                </li>
               ))}
             </ol>
             <div className="loading-stage" role="status" data-testid="loading-stage">

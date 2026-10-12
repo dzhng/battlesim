@@ -5,6 +5,7 @@
 //! small deterministic baseline beside the later topology implementation.
 
 use crate::common;
+use contract::bundle::ControllerKind;
 use contract::command::{CommandEnvelope, Order, OrderError};
 use contract::ids::{Side, UnitId};
 use contract::scenario::ScenarioDefinition;
@@ -18,16 +19,18 @@ fn scenario(units: serde_json::Value) -> ScenarioDefinition {
 
 #[test]
 fn current_scenario_boundary_refuses_a_four_side_candidate() {
-    let mut fixture = sim::fixtures::test_game();
-    fixture["map"] = serde_json::to_value(sim::maps::load("geometry").unwrap().definition).unwrap();
-    fixture["units"] = json!([
+    let fixture = json!({
+        "map": serde_json::to_value(sim::maps::load("geometry").unwrap().definition).unwrap(),
+        "rules": common::scenario_rules(),
+        "units": [
         { "side": "blue", "kind": "test_rifle", "position": [40.0, 80.0] },
         { "side": "red", "kind": "test_rifle", "position": [280.0, 80.0] },
         { "side": "green", "kind": "test_rifle", "position": [40.0, 160.0] },
         { "side": "yellow", "kind": "test_rifle", "position": [280.0, 160.0] }
-    ]);
-    fixture["events"] = json!([]);
-    fixture["scripts"] = json!([]);
+        ],
+        "events": [],
+        "scripts": []
+    });
     let error = serde_json::from_value::<ScenarioDefinition>(fixture)
         .expect_err("the current binary side contract must expose its refusal");
     let text = error.to_string();
@@ -117,6 +120,7 @@ fn neutral_rejects_commands_but_still_returns_fire() {
     let mut battle = Battle::new(&setup, 29);
     let ack = battle.accept(CommandEnvelope {
         side: Side::Neutral,
+        slot: None,
         seq: 1,
         order: Order::Move {
             units: vec![UnitId(1)],
@@ -129,4 +133,137 @@ fn neutral_rejects_commands_but_still_returns_fire() {
         queued: false,
     });
     assert_eq!(ack.error, Some(OrderError::PassiveSide));
+}
+
+#[test]
+fn slot_ownership_rejects_cross_slot_commands_and_accepts_owned_orders() {
+    let setup = scenario(serde_json::json!([
+        { "side": "blue", "owner": "blue-alpha", "kind": "test_rifle", "position": [80.0, 100.0] },
+        { "side": "blue", "owner": "blue-bravo", "kind": "test_rifle", "position": [100.0, 100.0] },
+        { "side": "red", "kind": "test_rifle", "position": [360.0, 100.0] }
+    ]));
+    let mut wrong = Battle::new(&setup, 31);
+    let wrong_ack = wrong.accept(CommandEnvelope {
+        side: Side::Blue,
+        slot: Some("blue-bravo".into()),
+        seq: 1,
+        order: Order::Stop {
+            units: vec![UnitId(0)],
+        },
+        queued: false,
+    });
+    assert_eq!(
+        wrong_ack.error,
+        Some(OrderError::WrongSlot { unit: UnitId(0) })
+    );
+
+    let mut missing = Battle::new(&setup, 31);
+    let missing_ack = missing.accept(CommandEnvelope {
+        side: Side::Blue,
+        slot: None,
+        seq: 1,
+        order: Order::Stop {
+            units: vec![UnitId(0)],
+        },
+        queued: false,
+    });
+    assert_eq!(missing_ack.error, Some(OrderError::MissingSlot));
+
+    let mut owned = Battle::new(&setup, 31);
+    let owned_ack = owned.accept(CommandEnvelope {
+        side: Side::Blue,
+        slot: Some("blue-bravo".into()),
+        seq: 1,
+        order: Order::Stop {
+            units: vec![UnitId(1)],
+        },
+        queued: false,
+    });
+    assert_eq!(owned_ack.error, None);
+}
+
+#[test]
+fn authored_victory_script_finishes_and_replay_keeps_the_result() {
+    let mut setup = scenario(serde_json::json!([
+        { "side": "blue", "kind": "test_rifle", "position": [80.0, 100.0] },
+        { "side": "red", "kind": "test_rifle", "position": [360.0, 100.0] }
+    ]));
+    setup.victory = Some("if tick() == 1 { victory(true); }".into());
+    let mut battle = Battle::new(&setup, 37);
+    let initial = battle.digest();
+    battle.step();
+    assert!(battle.finished());
+    let replay = battle.replay();
+    let mut restored = Battle::from_replay(&setup, &replay).expect("scripted replay loads");
+    assert_eq!(
+        restored.digest(),
+        initial,
+        "replay preserves the initial script state"
+    );
+    restored.step();
+    assert_eq!(restored.digest(), battle.digest());
+}
+
+#[test]
+fn authored_script_events_are_recorded_and_replayed() {
+    let mut setup = scenario(serde_json::json!([
+        { "side": "blue", "kind": "test_rifle", "position": [80.0, 100.0] },
+        { "side": "red", "kind": "test_rifle", "position": [360.0, 100.0] }
+    ]));
+    setup
+        .authored_scripts
+        .push(contract::scenario::AuthoredScript {
+            id: "pulse".into(),
+            source: "if tick() == 1 { event(\"pulse\"); }".into(),
+            side: Side::Blue,
+            slot: None,
+        });
+    let mut battle = Battle::new(&setup, 39);
+    let initial = battle.digest();
+    battle.step();
+    assert_eq!(battle.script_events()[0].name, "pulse");
+    let replay = battle.replay();
+    let mut restored = Battle::from_replay(&setup, &replay).expect("event replay loads");
+    assert_eq!(
+        restored.digest(),
+        initial,
+        "replay does not preload future events"
+    );
+    restored.step();
+    assert_eq!(restored.script_events(), battle.script_events());
+    assert_eq!(restored.digest(), battle.digest());
+}
+
+#[test]
+fn active_ai_issues_owned_orders_and_takeover_is_deterministic() {
+    let setup = scenario(serde_json::json!([
+        { "side": "blue", "owner": "blue-1", "kind": "test_rifle", "position": [80.0, 100.0] },
+        { "side": "red", "owner": "red-1", "kind": "test_rifle", "position": [360.0, 100.0] }
+    ]));
+    let mut human = Battle::new(&setup, 41);
+    human.set_controllers(vec![
+        ("blue-1".into(), ControllerKind::Human),
+        ("red-1".into(), ControllerKind::PassiveAi),
+    ]);
+    human.step();
+    assert!(human
+        .replay()
+        .accepted
+        .iter()
+        .all(|(_, command)| command.slot.as_deref() != Some("blue-1")));
+
+    human.set_controllers(vec![
+        ("blue-1".into(), ControllerKind::ActiveAi),
+        ("red-1".into(), ControllerKind::PassiveAi),
+    ]);
+    human.step();
+    let replay = human.replay();
+    assert!(replay.accepted.iter().any(|(_, command)| {
+        command.slot.as_deref() == Some("blue-1") && command.side == Side::Blue
+    }));
+
+    let mut restored = Battle::from_replay(&setup, &replay).expect("takeover replay loads");
+    restored.step();
+    restored.step();
+    assert_eq!(restored.digest(), human.digest());
 }

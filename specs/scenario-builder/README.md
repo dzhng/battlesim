@@ -2,11 +2,11 @@
 
 ## Status and next pickup
 
-**Status:** slices 00, 00b, 01, and 05 are complete; offline admission is next. The exploration and write-spec interviews are closed.
+**Status:** the side topology, bundle contract, offline admission, slot ownership, controller takeover, deterministic script runtime, modes, tactical builder, explicit scenario/replay file I/O, normal upload/play route, bundle-owned catalog admission, and embedded audio seams are implemented. Native/WASM focused checks, the full 848-test simulation suite, and the builder export browser scene pass. The runtime assets are present; the remaining browser closeout has reached the uploaded-package deployment screen but the normal BattleView checkpoint still needs a warm, responsive Vite/browser run in this checkout.
 
-**Updated:** 2026-10-11.
+**Updated:** 2026-10-12.
 
-**Next pickup:** implement [`slices/02-offline-admission.md`](slices/02-offline-admission.md). Make an uploaded canonical bundle construct the normal prepared world without fixture or generator lookup. Slice 01 froze canonical JSON as the portable container, with embedded user bytes and hash-checked asset records. Slice 05 froze the deterministic script language and host API before builder fields are exposed. Slice 00's disposable probe proved that arbitrary side counts are a cross-owner rewrite; keep the production model at Blue, Red, and passive Neutral for this feature. Update this section before ending every pass.
+**Next pickup:** rerun the upload → controller selection → battle → replay browser scene against a warm Vite server, then record the controller takeover, visibility, audio, and replay-digest evidence. Keep the production topology at Blue, Red, and passive Neutral; arbitrary side counts remain a later architecture project.
 
 **Topology verdict (2026-10-11):** keep a fixed Blue/Red/Neutral model for this feature. The probe ran the real scenario → Battle → observation/replay path, then added a disposable Neutral variant and the minimum compile adaptations. `sim` compiled only after changing side-owned arrays in movement/route planning; a Neutral battle then panicked at `battle.rs:2448` indexing fixed-two sightings. The inventory found 172 side-indexed/fixed-two owners before the browser UI, plus fixed skirmish/objective/publication assumptions. Arbitrary FFA is deferred; no dynamic-side compatibility layer is carried forward.
 
@@ -107,15 +107,15 @@ Any slice that produces a visual shot must:
 - [x] Run and record the side-topology verdict — [`slices/00-side-topology-spike.md`](slices/00-side-topology-spike.md); fixed Blue/Red/Neutral, arbitrary FFA deferred.
 - [x] Materialize fixed Blue/Red/Neutral state and publication — [`slices/00b-fixed-neutral-slot.md`](slices/00b-fixed-neutral-slot.md).
 - [x] Freeze the self-contained bundle and asset container — [`slices/01-bundle-contract.md`](slices/01-bundle-contract.md).
-- [ ] Prove offline map/catalog/audio admission — [`slices/02-offline-admission.md`](slices/02-offline-admission.md).
-- [ ] Materialize player-slot ownership — [`slices/03-player-slots.md`](slices/03-player-slots.md).
-- [ ] Implement active/passive controllers and deterministic takeover — [`slices/04-controllers.md`](slices/04-controllers.md).
+- [x] Prove offline map/catalog/audio admission — [`slices/02-offline-admission.md`](slices/02-offline-admission.md).
+- [x] Materialize player-slot ownership — [`slices/03-player-slots.md`](slices/03-player-slots.md).
+- [x] Implement active/passive controllers and deterministic takeover — [`slices/04-controllers.md`](slices/04-controllers.md).
 - [x] Freeze and prove the authored-code sandbox — [`slices/05-script-sandbox.md`](slices/05-script-sandbox.md).
-- [ ] Integrate Sandbox/Economy and script-defined victory — [`slices/06-modes-and-victory.md`](slices/06-modes-and-victory.md).
-- [ ] Build the tactical canvas and explicit file I/O — [`slices/07-builder-canvas.md`](slices/07-builder-canvas.md).
-- [ ] Add normal upload/play and embedded media playback — [`slices/08-runtime-upload-play.md`](slices/08-runtime-upload-play.md).
+- [x] Integrate Sandbox/Economy and script-defined victory — [`slices/06-modes-and-victory.md`](slices/06-modes-and-victory.md).
+- [x] Build the tactical canvas and explicit file I/O — [`slices/07-builder-canvas.md`](slices/07-builder-canvas.md).
+- [x] Add normal upload/play and embedded media playback — [`slices/08-runtime-upload-play.md`](slices/08-runtime-upload-play.md).
 - [ ] Pass the mixed-player/replay/visual closeout — [`slices/09-acceptance.md`](slices/09-acceptance.md).
 
 ## Next Agent Prompt
 
-You are picking up the scenario-builder implementation plan. Read this README and `choices.md`, then implement slice 02. Prove that an uploaded canonical ScenarioBundle constructs the normal prepared world from its embedded resolved inputs without fixture or generator lookup. Keep explicit Download/Upload as the only persistence path, and update this handoff before ending the pass.
+You are picking up the scenario-builder acceptance closeout. Read this README and `choices.md`, run the registered builder/play scenes against a warm Vite server, and record whether the uploaded package reaches normal BattleView. The remaining proof is controller selection/takeover, side-scoped publication, embedded audio, and explicit replay download/upload with matching digests. Do not add persistence or fixture lookup; update this handoff with the evidence before ending the pass.

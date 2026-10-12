@@ -103,9 +103,9 @@ fn a_fresh_identification_emits_one_contact_bark_for_the_nearest_unit() {
 /// One completed tick: what each side's frame carried and the authority's
 /// units as they stood when it was built.
 struct Moment {
-    heard: [Vec<Shout>; 2],
-    identified: [Vec<[f64; 3]>; 2],
-    audible: [Vec<SoundCue>; 2],
+    heard: [Vec<Shout>; 3],
+    identified: [Vec<[f64; 3]>; 3],
+    audible: [Vec<SoundCue>; 3],
     units: Vec<Unit>,
     /// The tick's flight events.
     events: Vec<FlightEvent>,
@@ -749,9 +749,14 @@ fn an_enemy_is_heard_exactly_while_it_is_identified() {
     let run = play(&s, 12, 30.0, &[]);
     let (mut heard, mut unheard) = (0, 0);
     for m in &run.moments {
-        for listener in Side::ALL {
+        for listener in Side::COMBATANTS {
             let l = listener.index();
-            let mut expected: Vec<(T, [f64; 3], Intensity)> = m.heard[1 - l]
+            let other = if listener == Side::Blue {
+                Side::Red
+            } else {
+                Side::Blue
+            };
+            let mut expected: Vec<(T, [f64; 3], Intensity)> = m.heard[other.index()]
                 .iter()
                 .filter(|s| speaker(s).is_some())
                 .filter(|s| {

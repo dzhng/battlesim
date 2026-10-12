@@ -5,6 +5,7 @@ use sim::battle::Battle;
 fn command(side: Side, seq: u64, order: Order) -> CommandEnvelope {
     CommandEnvelope {
         side,
+        slot: None,
         seq,
         order,
         queued: false,

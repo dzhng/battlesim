@@ -1069,6 +1069,7 @@ fn one_variable_route_change_does_not_resend_other_own_units() {
     assert!(battle
         .accept(CommandEnvelope {
             side: Side::Blue,
+            slot: None,
             seq: 1,
             queued: false,
             order: Order::Move {

@@ -10,7 +10,7 @@ import { admitScenario, presentationRules } from "@web/battle/catalog/sets";
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import { ContactPresentation } from "@web/battle/present/contactPresentation";
 import { gameContactStyle } from "./gameFog";
-import type { PreparedSession } from "@web/battle/prepare/client";
+import type { PreparedConnectionSession } from "@web/battle/prepare/client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Project, ReadoutLayerHandle } from "@web/battle/present/readouts";
 import { metresPerPxAt, type Camera3DParams } from "@packages/renderer-core/src/camera3d";
@@ -156,15 +156,16 @@ export interface BattleSessionOptions {
   /** The scenario JSON the authority runs. */
   scenario: string;
   seed: number;
-  prepared?: PreparedSession;
+  prepared?: PreparedConnectionSession;
+  /** Player slot issuing commands in a slot-owned scenario. */
+  slot?: string;
+  side?: SideName;
   /** Called for every decoded frame, before its credit returns. */
   onDecoded?: (o: ObservationView, digest: string) => void;
   /** A recorded battle to replay: input is off. */
   replay?: string;
   /** Blue is played by a script (the benchmark): input is off. */
   scripted?: ScriptedSim;
-  /** Whose units and identified enemies are drawn (a lab's diagnostic side switch). */
-  side?: SideName;
   /** "apart": every prop kind fire can destroy is drawn apart from the
    *  world, so one seen destroyed leaves the map and its known remains (a
    *  ruin, rubble, a lighter wreck) stand in its place. */
@@ -198,12 +199,13 @@ export function useBattleSession({
   onDecoded,
   replay,
   scripted,
-  side = "blue",
   destroyable,
   sound = false,
   inputEnabled = true,
   xray = true,
   prepared,
+  slot,
+  side = "blue",
 }: BattleSessionOptions) {
   const appAudio = useAppAudio();
   const catalog = useSessionCatalog();
@@ -252,7 +254,16 @@ export function useBattleSession({
     },
     [audio, onDecoded],
   );
-  const sim = useSimSession({ scenario, seed, onDecoded: noteDecoded, replay, scripted, prepared });
+  const sim = useSimSession({
+    scenario,
+    seed,
+    onDecoded: noteDecoded,
+    replay,
+    scripted,
+    prepared,
+    slot,
+    side,
+  });
   presentationRef.current = sim.client?.presentation ?? null;
   const faction = skirmish ? skirmish.factions[side === "blue" ? 0 : 1] : null;
   useEffect(() => {
@@ -1203,15 +1214,16 @@ export function useBattleSession({
     contacts,
     sim,
     control,
-    purchase: skirmish && side !== "neutral"
-      ? {
-          faction: skirmish.factions[side === "red" ? 1 : 0],
-          cards: units.cards,
-          placing: purchasing,
-          choose: choosePurchase,
-          ready: () => void control.issue({ kind: "ready" }),
-        }
-      : null,
+    purchase:
+      skirmish && side !== "neutral"
+        ? {
+            faction: skirmish.factions[side === "red" ? 1 : 0],
+            cards: units.cards,
+            placing: purchasing,
+            choose: choosePurchase,
+            ready: () => void control.issue({ kind: "ready" }),
+          }
+        : null,
     /** Which own units' order marks show, at what opacity (`OrderReveal`):
      *  every unit's with Space held, an order's units' as it flashes. */
     revealed,

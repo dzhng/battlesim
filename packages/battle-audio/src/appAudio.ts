@@ -34,6 +34,7 @@ export class AppAudio {
   private menuPreparing = false;
   private menuPlaying = false;
   private combatStarted = false;
+  private readonly embeddedSources = new Set<AudioBufferSourceNode>();
   private error: string | null = null;
   private closed = false;
   private muted = soundSettings.get().muted;
@@ -188,6 +189,35 @@ export class AppAudio {
     }
     this.score?.update(this.context.currentTime, barks, speaking);
   }
+
+  /** Play one validated, embedded scenario clip through the existing effects
+   * bus. The scenario owns the bytes; AppAudio owns decoding and disposal. */
+  async playEmbeddedAudio(bytesBase64: string, mediaType: string): Promise<void> {
+    if (!mediaType.startsWith("audio/")) throw new Error("embedded scenario asset is not audio");
+    this.start();
+    const context = this.context;
+    const sink = this.menu;
+    if (!context || !sink) throw new Error("audio context is unavailable");
+    const binary = atob(bytesBase64);
+    const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+    const decoded = await context.decodeAudioData(bytes.buffer.slice(0));
+    if (this.closed || this.menu !== sink) return;
+    const source = new AudioBufferSourceNode(context, { buffer: decoded });
+    source.connect(sink.buses.effects);
+    this.embeddedSources.add(source);
+    source.onended = () => {
+      this.embeddedSources.delete(source);
+      source.disconnect();
+    };
+    source.start();
+  }
+
+  /** Only a running, prepared battle's first drawn audio update ends loading music. */
+  battleStarted(battle: BattleAudio) {
+    if (this.battle !== battle || this.combatStarted) return;
+    this.combatStarted = true;
+    this.syncMenu();
+  }
   releaseBattle(battle: BattleAudio) {
     if (this.battle !== battle) return;
     this.battle = null;
@@ -300,6 +330,15 @@ export class AppAudio {
       window.removeEventListener(type, this.onMenuInput, { capture: true });
     window.removeEventListener("pagehide", this.onPageHide);
     this.battle?.dispose();
+    for (const source of this.embeddedSources) {
+      try {
+        source.stop();
+      } catch {
+        /* Already stopped. */
+      }
+      source.disconnect();
+    }
+    this.embeddedSources.clear();
     this.menu?.dispose();
     this.music?.dispose();
     this.bank?.dispose();

@@ -835,6 +835,7 @@ impl<'a> Planner<'a> {
                 let authored = &recipe.forces.side(r.side)[r.index];
                 UnitSetup {
                     side: r.side,
+                    owner: None,
                     kind: authored.kind.clone(),
                     position: xy(station.at),
                     yaw: station.yaw,

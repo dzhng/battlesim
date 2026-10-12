@@ -10,8 +10,12 @@ import {
 import { APP_COMMIT } from "../buildIdentity";
 import {
   cloneDraft,
+  builderEconomy,
+  BUILDER_FACTIONS,
   createBuilderDraft,
+  nextSlotId,
   parseBuilderDraft,
+  removeBuilderUnit,
   unitName,
   type BuilderController,
   type BuilderSlot,
@@ -40,15 +44,10 @@ function colorFor(side: BuilderUnit["side"]): string {
   return side === "blue" ? "blue" : side === "red" ? "red" : "neutral";
 }
 
-function assignUnit(
-  slots: BuilderSlot[],
-  unit: BuilderUnit,
-  oldSide: BuilderUnit["side"],
-): BuilderSlot[] {
+function assignUnit(slots: BuilderSlot[], unit: BuilderUnit, ownerId: string): BuilderSlot[] {
   return slots.map((slot) => {
     const units = slot.units.filter((id) => id !== unit.id);
-    if (slot.side === unit.side && !units.includes(unit.id)) units.push(unit.id);
-    if (slot.side === oldSide && slot.side !== unit.side) return { ...slot, units };
+    if (slot.id === ownerId && !units.includes(unit.id)) units.push(unit.id);
     return { ...slot, units: units.sort((a, b) => a - b) };
   });
 }
@@ -62,6 +61,7 @@ export default function ScenarioBuilder() {
   const initial = useMemo(() => createBuilderDraft(rules, units), [rules, units]);
   const [draft, setDraft] = useState<ScenarioBundleDraft>(() => initial);
   const [selected, setSelected] = useState<number | null>(0);
+  const [selectedSlot, setSelectedSlot] = useState("blue-1");
   const [paletteKind, setPaletteKind] = useState(() => units.ids[0] ?? "");
   const [status, setStatus] = useState<Status>({
     kind: "idle",
@@ -69,6 +69,7 @@ export default function ScenarioBuilder() {
   });
   const [dragging, setDragging] = useState<number | null>(null);
   const upload = useRef<HTMLInputElement>(null);
+  const mapUpload = useRef<HTMLInputElement>(null);
   const assets = draft.assets;
   const mapSize = draft.scenario.map.size;
   const selectedUnit = draft.scenario.units.find((unit) => unit.id === selected) ?? null;
@@ -87,9 +88,17 @@ export default function ScenarioBuilder() {
   }
 
   function place(point: [number, number]) {
+    if (draft.mode === "economy") {
+      setStatus({
+        kind: "error",
+        text: "Economy mode fields units through its wallet; switch to sandbox to place authored units.",
+      });
+      return;
+    }
     if (!paletteKind) return;
     const nextId = draft.scenario.units.reduce((max, unit) => Math.max(max, unit.id), -1) + 1;
-    const side = selectedUnit?.side ?? "blue";
+    const owner = draft.slots.find((slot) => slot.id === selectedSlot) ?? draft.slots[0];
+    const side = owner?.side ?? selectedUnit?.side ?? "blue";
     const unit: BuilderUnit = {
       id: nextId,
       side,
@@ -103,7 +112,7 @@ export default function ScenarioBuilder() {
         ...current.scenario,
         units: [...current.scenario.units, unit].sort((a, b) => a.id - b.id),
       },
-      slots: assignUnit(current.slots, unit, side),
+      slots: assignUnit(current.slots, unit, owner?.id ?? "blue-1"),
     }));
     setSelected(nextId);
   }
@@ -130,10 +139,12 @@ export default function ScenarioBuilder() {
         unit.id === selectedUnit.id ? { ...unit, side, yaw: side === "red" ? Math.PI : 0 } : unit,
       );
       const moved = next.find((unit) => unit.id === selectedUnit.id)!;
+      const replacement = current.slots.find((slot) => slot.side === side);
+      if (!replacement) return current;
       return {
         ...current,
         scenario: { ...current.scenario, units: next },
-        slots: assignUnit(current.slots, moved, selectedUnit.side),
+        slots: assignUnit(current.slots, moved, replacement.id),
       };
     });
   }
@@ -170,6 +181,9 @@ export default function ScenarioBuilder() {
       const loaded = parseBuilderDraft(text);
       setDraft(loaded);
       setSelected(loaded.scenario.units[0]?.id ?? null);
+      setSelectedSlot(
+        loaded.slots.find((slot) => slot.human_capable)?.id ?? loaded.slots[0]?.id ?? "",
+      );
       setStatus({ kind: "ok", text: `Loaded ${identity.sha256.slice(0, 12)}… in memory` });
     } catch (error) {
       setStatus({ kind: "error", text: error instanceof Error ? error.message : String(error) });
@@ -212,6 +226,32 @@ export default function ScenarioBuilder() {
     }
   }
 
+  async function importMap(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    try {
+      const map = JSON.parse(await file.text()) as ScenarioBundleDraft["scenario"]["map"];
+      if (!Array.isArray(map.size) || map.size.length !== 2)
+        throw new Error("map snapshot has no finite size");
+      setDraft((current) => ({
+        ...current,
+        map: {
+          ...current.map,
+          map_hash: "",
+          template_catalog_hash: map.template_catalog_hash ?? null,
+        },
+        scenario: { ...current.scenario, map },
+      }));
+      setStatus({
+        kind: "ok",
+        text: `Loaded resolved map snapshot ${file.name}; download to validate it.`,
+      });
+    } catch (error) {
+      setStatus({ kind: "error", text: error instanceof Error ? error.message : String(error) });
+    }
+  }
+
   return (
     <main className="scenario-builder" data-testid="scenario-builder">
       <section className="scenario-builder-canvas" aria-label="Tactical map canvas">
@@ -247,6 +287,30 @@ export default function ScenarioBuilder() {
           <text className="map-label" x="16" y="26">
             resolved map snapshot · {mapSize[0]} × {mapSize[1]} m
           </text>
+          <rect
+            className="map-boundary"
+            x="18"
+            y="42"
+            width={mapSize[0] - 36}
+            height={mapSize[1] - 60}
+            rx="8"
+          />
+          <rect className="map-lane" x="18" y="42" width={mapSize[0] - 36} height="96" rx="8" />
+          <rect
+            className="map-lane"
+            x="18"
+            y={mapSize[1] - 114}
+            width={mapSize[0] - 36}
+            height="96"
+            rx="8"
+          />
+          <line className="map-scale" x1="24" y1={mapSize[1] - 24} x2="124" y2={mapSize[1] - 24} />
+          <text className="map-scale-label" x="24" y={mapSize[1] - 30}>
+            100 m
+          </text>
+          <text className="map-compass" x={mapSize[0] - 28} y="62">
+            N
+          </text>
           {draft.scenario.units.map((unit) => (
             <g
               key={unit.id}
@@ -260,8 +324,20 @@ export default function ScenarioBuilder() {
                 setDragging(unit.id);
               }}
             >
+              <title>
+                {unitName(units, unit.kind)} · {unit.side} · unit {unit.id}
+              </title>
               <circle r="13" />
-              <text y="1">{unit.id}</text>
+              <g transform={`rotate(${(unit.yaw * 180) / Math.PI})`}>
+                <path className="unit-heading" d="M0 -11 L7 7 L0 4 L-7 7 Z" />
+                <rect className="unit-body" x="-4" y="-4" width="8" height="9" rx="1" />
+              </g>
+              <text className="unit-id" y="1">
+                {unit.id}
+              </text>
+              <text className="unit-label" y="25">
+                {unitName(units, unit.kind)}
+              </text>
             </g>
           ))}
         </svg>
@@ -281,6 +357,9 @@ export default function ScenarioBuilder() {
           <button type="button" onClick={() => document.getElementById("scenario-asset")?.click()}>
             Attach asset
           </button>
+          <button type="button" onClick={() => mapUpload.current?.click()}>
+            Import map snapshot
+          </button>
         </div>
         <input
           ref={upload}
@@ -290,6 +369,13 @@ export default function ScenarioBuilder() {
           onChange={importBundle}
         />
         <input id="scenario-asset" hidden type="file" onChange={addAsset} />
+        <input
+          ref={mapUpload}
+          hidden
+          type="file"
+          accept="application/json,.json"
+          onChange={importMap}
+        />
         <div className="scenario-builder-status" data-kind={status.kind} role="status">
           {status.text}
         </div>
@@ -306,12 +392,137 @@ export default function ScenarioBuilder() {
           ))}
         </select>
         <h2>Slots and controllers</h2>
+        <div className="scenario-builder-actions">
+          <button
+            type="button"
+            onClick={() =>
+              setDraft((current) => {
+                const side = "blue" as const;
+                const id = nextSlotId(current.slots, side);
+                const newSlot: BuilderSlot = {
+                  id,
+                  side,
+                  faction: "us",
+                  controller: "human",
+                  human_capable: true,
+                  units: [],
+                };
+                return {
+                  ...current,
+                  slots: [...current.slots, newSlot].sort((a, b) => a.id.localeCompare(b.id)),
+                };
+              })
+            }
+          >
+            Add human slot
+          </button>
+          <button
+            type="button"
+            disabled={draft.slots.length <= 1}
+            onClick={() =>
+              setDraft((current) => {
+                const removable = current.slots.find(
+                  (slot) => slot.id === selectedSlot && slot.units.length === 0,
+                );
+                if (!removable) {
+                  setStatus({ kind: "error", text: "Select an empty slot before removing it." });
+                  return current;
+                }
+                const slots = current.slots.filter((slot) => slot.id !== removable.id);
+                setSelectedSlot(slots[0]?.id ?? "");
+                return { ...current, slots };
+              })
+            }
+          >
+            Remove empty slot
+          </button>
+        </div>
         <div className="scenario-builder-slots">
           {draft.slots.map((slot) => (
             <div className="scenario-builder-slot" data-side={slot.side} key={slot.id}>
               <i aria-hidden="true" />
               <label>
-                {slot.id} · {slot.units.length} units
+                <span>
+                  {slot.id} · {slot.units.length} units
+                  <button
+                    type="button"
+                    className="scenario-builder-place"
+                    aria-label={`Place unit for ${slot.id}`}
+                    aria-pressed={selectedSlot === slot.id}
+                    onClick={() => setSelectedSlot(slot.id)}
+                  >
+                    {selectedSlot === slot.id ? "placing" : "place"}
+                  </button>
+                </span>
+                <select
+                  aria-label={`${slot.id} side`}
+                  value={slot.side}
+                  onChange={(event) => {
+                    const side = event.target.value as BuilderSlot["side"];
+                    setDraft((current) => {
+                      const nextSlot = {
+                        side,
+                        faction: side === "neutral" ? undefined : (slot.faction ?? "us"),
+                        controller: side === "neutral" ? ("passive_ai" as const) : slot.controller,
+                        human_capable: side === "neutral" ? false : slot.human_capable,
+                      };
+                      return {
+                        ...current,
+                        scenario: {
+                          ...current.scenario,
+                          units: current.scenario.units.map((unit) =>
+                            slot.units.includes(unit.id)
+                              ? { ...unit, side, yaw: side === "red" ? Math.PI : 0 }
+                              : unit,
+                          ),
+                        },
+                        slots: updateSlot(current.slots, slot.id, nextSlot),
+                      };
+                    });
+                  }}
+                >
+                  {SIDES.map((side) => (
+                    <option key={side} value={side}>
+                      {side}
+                    </option>
+                  ))}
+                </select>
+                {slot.side !== "neutral" && (
+                  <select
+                    aria-label={`${slot.id} faction`}
+                    value={slot.faction ?? "us"}
+                    onChange={(event) =>
+                      setDraft((current) => ({
+                        ...current,
+                        slots: updateSlot(current.slots, slot.id, {
+                          faction: event.target.value as BuilderSlot["faction"],
+                        }),
+                      }))
+                    }
+                  >
+                    {BUILDER_FACTIONS.map((faction) => (
+                      <option key={faction} value={faction}>
+                        {faction}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                <label className="scenario-builder-check">
+                  <input
+                    type="checkbox"
+                    checked={slot.human_capable}
+                    disabled={slot.side === "neutral"}
+                    onChange={(event) =>
+                      setDraft((current) => ({
+                        ...current,
+                        slots: updateSlot(current.slots, slot.id, {
+                          human_capable: event.target.checked,
+                        }),
+                      }))
+                    }
+                  />
+                  human-capable
+                </label>
                 <select
                   aria-label={`${slot.id} controller`}
                   value={slot.controller}
@@ -368,6 +579,41 @@ export default function ScenarioBuilder() {
                 }
               />
             </label>
+            <label>
+              X
+              <input
+                type="number"
+                step="0.1"
+                value={selectedUnit.position[0]}
+                onChange={(event) =>
+                  changeUnit(selectedUnit.id, {
+                    position: [Number(event.target.value), selectedUnit.position[1]],
+                  })
+                }
+              />
+            </label>
+            <label>
+              Y
+              <input
+                type="number"
+                step="0.1"
+                value={selectedUnit.position[1]}
+                onChange={(event) =>
+                  changeUnit(selectedUnit.id, {
+                    position: [selectedUnit.position[0], Number(event.target.value)],
+                  })
+                }
+              />
+            </label>
+            <button
+              type="button"
+              onClick={() => {
+                setDraft((current) => removeBuilderUnit(current, selectedUnit.id));
+                setSelected(null);
+              }}
+            >
+              Delete unit
+            </button>
           </section>
         )}
         <h2>Mode and victory</h2>
@@ -375,12 +621,33 @@ export default function ScenarioBuilder() {
           Mode
           <select
             value={draft.mode}
-            onChange={(event) =>
-              setDraft((current) => ({
-                ...current,
-                mode: event.target.value as ScenarioBundleDraft["mode"],
-              }))
-            }
+            onChange={(event) => {
+              const mode = event.target.value as ScenarioBundleDraft["mode"];
+              if (mode === "economy")
+                setStatus({
+                  kind: "ok",
+                  text: "Economy mode uses the skirmish wallet; authored units were cleared.",
+                });
+              setDraft((current) => {
+                if (mode === "economy") {
+                  return {
+                    ...current,
+                    mode,
+                    scenario: {
+                      ...current.scenario,
+                      units: [],
+                      skirmish: builderEconomy(current.scenario.map.size),
+                    },
+                    slots: current.slots.map((slot) => ({ ...slot, units: [] })),
+                  };
+                }
+                return {
+                  ...current,
+                  mode,
+                  scenario: { ...current.scenario, skirmish: undefined },
+                };
+              });
+            }}
           >
             <option value="sandbox">sandbox</option>
             <option value="economy">economy</option>
@@ -395,6 +662,136 @@ export default function ScenarioBuilder() {
             }
           />
         </label>
+        <label>
+          Authored events JSON
+          <textarea
+            aria-label="Authored events JSON"
+            value={JSON.stringify(draft.scenario.events, null, 2)}
+            onChange={(event) => {
+              try {
+                const events = JSON.parse(event.target.value) as unknown;
+                if (!Array.isArray(events)) throw new Error("events must be an array");
+                setDraft((current) => ({
+                  ...current,
+                  scenario: { ...current.scenario, events },
+                }));
+                setStatus({ kind: "ok", text: "Authored events JSON is valid." });
+              } catch (error) {
+                setStatus({
+                  kind: "error",
+                  text: error instanceof Error ? error.message : String(error),
+                });
+              }
+            }}
+          />
+        </label>
+        <h2>Advanced scripts</h2>
+        {draft.authored_scripts.map((script, index) => (
+          <section className="scenario-builder-script" key={script.id}>
+            <label>
+              Script id
+              <input
+                value={script.id}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    authored_scripts: current.authored_scripts.map((item, i) =>
+                      i === index ? { ...item, id: event.target.value } : item,
+                    ),
+                  }))
+                }
+              />
+            </label>
+            <label>
+              Source
+              <textarea
+                value={script.source}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    authored_scripts: current.authored_scripts.map((item, i) =>
+                      i === index ? { ...item, source: event.target.value } : item,
+                    ),
+                  }))
+                }
+              />
+            </label>
+            <label>
+              Script side
+              <select
+                value={script.side}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    authored_scripts: current.authored_scripts.map((item, i) =>
+                      i === index
+                        ? { ...item, side: event.target.value as BuilderUnit["side"] }
+                        : item,
+                    ),
+                  }))
+                }
+              >
+                {SIDES.filter((side) => side !== "neutral").map((side) => (
+                  <option key={side} value={side}>
+                    {side}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Script slot
+              <select
+                value={script.slot ?? ""}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    authored_scripts: current.authored_scripts.map((item, i) =>
+                      i === index ? { ...item, slot: event.target.value || null } : item,
+                    ),
+                  }))
+                }
+              >
+                <option value="">No command slot (events/victory only)</option>
+                {draft.slots
+                  .filter((slot) => slot.side === script.side)
+                  .map((slot) => (
+                    <option key={slot.id} value={slot.id}>
+                      {slot.id}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <button
+              type="button"
+              onClick={() =>
+                setDraft((current) => ({
+                  ...current,
+                  authored_scripts: current.authored_scripts.filter((_, i) => i !== index),
+                }))
+              }
+            >
+              Remove script
+            </button>
+          </section>
+        ))}
+        <button
+          type="button"
+          onClick={() =>
+            setDraft((current) => ({
+              ...current,
+              authored_scripts: [
+                ...current.authored_scripts,
+                {
+                  id: `script-${current.authored_scripts.length + 1}`,
+                  source: 'event("pulse");',
+                  side: "blue",
+                },
+              ],
+            }))
+          }
+        >
+          Add authored script
+        </button>
         <div className="scenario-builder-hint">
           {assets.length
             ? `${assets.length} embedded asset${assets.length === 1 ? "" : "s"}`

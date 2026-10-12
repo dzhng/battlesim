@@ -55,6 +55,17 @@ pub fn check_scenario_bundle(bundle_json: &str) -> String {
     }
 }
 
+/// Canonicalize a builder draft after deriving its map and rules identities.
+/// This is intentionally separate from upload admission: saved files must
+/// already carry the identities they claim.
+#[wasm_bindgen]
+pub fn author_scenario_bundle(bundle_json: &str) -> Result<String, JsError> {
+    contract::bundle::ScenarioBundle::from_authoring_json(bundle_json)
+        .map_err(js_error)?
+        .to_json()
+        .map_err(js_error)
+}
+
 /// Return the canonical bytes of a validated ScenarioBundle.
 #[wasm_bindgen]
 pub fn canonical_scenario_bundle(bundle_json: &str) -> Result<String, JsError> {
@@ -63,6 +74,104 @@ pub fn canonical_scenario_bundle(bundle_json: &str) -> Result<String, JsError> {
     bundle
         .to_json()
         .map_err(|error| js_error(error.to_string()))
+}
+
+/// Run one authored script through the same deterministic contract host used
+/// by scenario battles. The observation JSON is the caller's side-scoped frame.
+#[wasm_bindgen]
+pub fn run_scenario_script(
+    source: &str,
+    side: &str,
+    observation_json: &str,
+    seed: f64,
+    slot: Option<String>,
+) -> Result<String, JsError> {
+    let side = parse_side(side)?;
+    let observation: contract::observation::ObservationFrame =
+        serde_json::from_str(observation_json).map_err(js_error)?;
+    let input = contract::script::ScriptInput::new(side, &observation, seed as u64);
+    let input = match slot {
+        Some(slot) => input.with_slot(slot),
+        None => input,
+    };
+    let script = contract::script::CompiledScript::compile(source).map_err(js_error)?;
+    serde_json::to_string(&script.run(&input).map_err(js_error)?).map_err(js_error)
+}
+
+/// Resolve the effective controller state for a play session. The caller
+/// supplies the one human-capable slot selected on the play screen.
+#[wasm_bindgen]
+pub fn scenario_bundle_controllers(
+    bundle_json: &str,
+    active_human: Option<String>,
+) -> Result<String, JsError> {
+    let bundle = contract::bundle::ScenarioBundle::from_json(bundle_json).map_err(js_error)?;
+    serde_json::to_string(
+        &bundle
+            .effective_controllers(active_human.as_deref())
+            .map_err(js_error)?,
+    )
+    .map_err(js_error)
+}
+
+/// Return the resolved scenario and preparation metadata from an admitted
+/// bundle. This is the browser's read-only bridge for camera/loading state;
+/// map geometry and counts are still computed here with the same prepared-world
+/// owner used by ordinary play.
+#[wasm_bindgen]
+pub fn scenario_bundle_details(bundle_json: &str) -> Result<String, JsError> {
+    let bundle = contract::bundle::ScenarioBundle::from_json(bundle_json).map_err(js_error)?;
+    let identity = bundle.identity().map_err(js_error)?;
+    let scenario_json = bundle.scenario_json().map_err(js_error)?;
+    let map = bundle.scenario.map.clone();
+    let world = PreparedWorld::build(map.clone(), bundle.scenario.rules.clone())?;
+    let start = bundle
+        .scenario
+        .units
+        .iter()
+        .find(|unit| unit.side == Side::Blue)
+        .map(|unit| serde_json::json!({ "at": unit.position, "yaw": unit.yaw }))
+        .unwrap_or_else(
+            || serde_json::json!({ "at": [map.size[0] / 2.0, map.size[1] / 2.0], "yaw": 0.0 }),
+        );
+    let counts = serde_json::json!({
+        "buildings": map.buildings.len(),
+        "parts": map.buildings.iter().map(|building| building.parts.len()).sum::<usize>(),
+        "props": map.props.len(),
+        "surfaces": map.surfaces.len(),
+        "forests": map.forests.len(),
+    });
+    let assets: Vec<_> = bundle
+        .assets
+        .iter()
+        .filter(|asset| asset.media_type.starts_with("audio/") && asset.bytes_base64.is_some())
+        .map(|asset| {
+            serde_json::json!({
+                "id": asset.id,
+                "media_type": asset.media_type,
+                "bytes_base64": asset.bytes_base64,
+            })
+        })
+        .collect();
+    let human_capable_slots: Vec<_> = bundle
+        .slots
+        .iter()
+        .filter(|slot| slot.human_capable)
+        .map(|slot| slot.id.clone())
+        .collect();
+    Ok(serde_json::json!({
+        "scenario": scenario_json,
+        "identity": identity,
+        "size": map.size,
+        "extents": serde_json::from_str::<serde_json::Value>(&world.extents())
+            .map_err(js_error)?,
+        "counts": counts,
+        "assets": assets,
+        "human_capable_slots": human_capable_slots,
+        "start": start,
+        "town": serde_json::Value::Null,
+    })
+    .to_string())
 }
 
 /// The generator version a generation request pins: a request naming another
@@ -714,6 +823,14 @@ impl BattleHandle {
         })
     }
 
+    /// Set play-time controller ownership before the first tick.
+    pub fn set_controllers(&mut self, controllers_json: &str) -> Result<(), JsError> {
+        let controllers: Vec<(String, contract::bundle::ControllerKind)> =
+            serde_json::from_str(controllers_json).map_err(js_error)?;
+        self.battle.set_controllers(controllers);
+        Ok(())
+    }
+
     /// A battle that re-applies a recorded replay and refuses live commands.
     pub fn from_replay(scenario_json: &str, replay_json: &str) -> Result<BattleHandle, JsError> {
         let setup: ScenarioDefinition = serde_json::from_str(scenario_json).map_err(js_error)?;
@@ -869,6 +986,14 @@ impl PreparedWorld {
     pub fn from_scenario(scenario_json: &str) -> Result<PreparedWorld, JsError> {
         let setup: ScenarioDefinition = serde_json::from_str(scenario_json).map_err(js_error)?;
         Self::build(setup.map, setup.rules)
+    }
+
+    /// Admit a self-contained download without consulting fixtures or a map generator.
+    pub fn from_bundle(bundle_json: &str) -> Result<PreparedWorld, JsError> {
+        let bundle = contract::bundle::ScenarioBundle::from_json(bundle_json).map_err(js_error)?;
+        let scenario: ScenarioDefinition =
+            serde_json::from_str(&bundle.scenario_json().map_err(js_error)?).map_err(js_error)?;
+        Self::build(scenario.map, scenario.rules)
     }
 
     pub fn extents(&self) -> String {

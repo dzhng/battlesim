@@ -290,6 +290,12 @@
     "map": null
   },
   {
+    "id": "scenario-play",
+    "route": "/scenario-play",
+    "describe": "Upload a downloaded scenario bundle into the normal battle worker and play it.",
+    "map": null
+  },
+  {
     "id": "scenario-builder",
     "route": "/scenario-builder",
     "describe": "Tactical scenario authoring canvas: place units, edit controllers, and explicitly download or upload self-contained bundles.",

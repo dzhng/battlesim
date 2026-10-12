@@ -38,6 +38,7 @@ test("the main menu at / opens each of its pages inside its plate, and Back retu
     Developer: {
       "Mechanics editor": "/mechanics",
       "Map workbench": "/map-workbench",
+      "Scenario builder": "/scenario-builder",
       "Sound workbench": "/sound-workbench",
       Benchmark: "/benchmark",
       Labs: "/labs",

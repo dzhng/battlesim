@@ -10,6 +10,7 @@ use crate::identity::bytes_hash;
 use crate::ids::{Side, Tick, UnitId};
 use crate::observation::{ObservationFrame, ObservedTargetId};
 use crate::random::mix;
+use serde::{Deserialize, Serialize};
 
 pub const SCRIPT_RUNTIME_VERSION: &str = "scenario-script-1";
 pub const DEFAULT_MAX_SOURCE_BYTES: usize = 256 * 1024;
@@ -110,7 +111,7 @@ impl std::fmt::Display for ScriptError {
 }
 impl std::error::Error for ScriptError {}
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct ScriptOutput {
     pub commands: Vec<ScriptCommand>,
     pub events: Vec<ScriptEvent>,
@@ -118,14 +119,15 @@ pub struct ScriptOutput {
     pub instructions: u32,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct ScriptCommand {
     pub side: Side,
+    pub slot: Option<String>,
     pub order: Order,
     pub queued: bool,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ScriptEvent {
     pub side: Side,
     pub name: String,
@@ -135,6 +137,7 @@ pub struct ScriptEvent {
 /// the host, but scripts can read only the scalar projection below.
 pub struct ScriptInput<'a> {
     pub side: Side,
+    pub slot: Option<String>,
     pub tick: Tick,
     pub observation: &'a ObservationFrame,
     pub rng_seed: u64,
@@ -144,10 +147,16 @@ impl<'a> ScriptInput<'a> {
     pub fn new(side: Side, observation: &'a ObservationFrame, rng_seed: u64) -> Self {
         Self {
             side,
+            slot: None,
             tick: observation.tick,
             observation,
             rng_seed,
         }
+    }
+
+    pub fn with_slot(mut self, slot: impl Into<String>) -> Self {
+        self.slot = Some(slot.into());
+        self
     }
 }
 
@@ -598,6 +607,7 @@ impl<'a> Vm<'a> {
         };
         self.commands.push(ScriptCommand {
             side: self.input.side,
+            slot: self.input.slot.clone(),
             order,
             queued: false,
         });

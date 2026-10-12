@@ -81,7 +81,9 @@ function failureOf(request: PrepareBattleRequest, error: unknown, replay: boolea
         ? "This map could not be built."
         : stage === "encounter"
           ? "No battle could be placed on this map."
-          : "The battle could not be prepared.";
+          : stage === "bundle"
+            ? "This scenario package could not be admitted."
+            : "The battle could not be prepared.";
   return {
     message,
     advice:
@@ -126,22 +128,19 @@ export default function Battle() {
 /** The request for what the address asks, pinned to this build's generator,
  *  presets and catalogue. */
 function AskedBattleView({ asked }: { asked: Exclude<AskedBattle, { kind: "replay" }> }) {
-  const request = useBuiltScenario(
-    asked,
-    (wasm, a): PrepareBattleRequest => ({
-      map_source: {
-        kind: "generated",
-        request: generationRequest(
-          wasm,
-          { ...a.map, profile: "skirmish", seed: a.kind === "play" ? "0" : a.map.seed },
-          GENERATOR,
-          config.limits,
-        ),
-      },
-      factions: a.factions,
-      battle_seed: a.battleSeed,
-    }),
-  );
+  const request = useBuiltScenario(asked, (wasm, a): PrepareBattleRequest => ({
+    map_source: {
+      kind: "generated",
+      request: generationRequest(
+        wasm,
+        { ...a.map, profile: "skirmish", seed: a.kind === "play" ? "0" : a.map.seed },
+        GENERATOR,
+        config.limits,
+      ),
+    },
+    factions: a.factions,
+    battle_seed: a.battleSeed,
+  }));
   if (!request) return null;
   if (buildFailed(request))
     return (

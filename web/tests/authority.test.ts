@@ -399,6 +399,7 @@ test("worker publication copying and transfer preserve every raw NaN carrier bit
   let tick = 0;
   const battle = {
     observation_layout: () => "{}",
+    set_controllers: () => {},
     accept: () => "{}",
     preview_purchase: () => '{"Err":{"reason":"not_skirmish"}}',
     preview_move: () => "[]",
@@ -429,6 +430,7 @@ test("terminal matches complete fast-forward at their final tick and stop publis
   let tick = 0;
   const battle = {
     observation_layout: () => "{}",
+    set_controllers: () => {},
     accept: () => "{}",
     preview_purchase: () => '{"Err":{"reason":"not_skirmish"}}',
     preview_move: () => "[]",

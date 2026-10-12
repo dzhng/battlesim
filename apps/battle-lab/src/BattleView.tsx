@@ -2,12 +2,13 @@ import {
   ObjectiveMarkers,
   type ObjectiveMarkersHandle,
 } from "@web/battle/present/objectiveMarkers";
-// A played (or replayed) battle for blue: the world, the side's units and
+// A played (or replayed) battle for the selected side: the world, that side's units and
 // every overlay, and the HUD: the top bar's readout, the army deck and its
 // command bar, subtitles, and the pause menu. Routes compose it with their
 // own readout (a battle's clock, a lab's telemetry) and
 // pause menu items (the scenario, replays, a lab's switches).
-import type { PreparedSession } from "@web/battle/prepare/client";
+import type { PreparedConnectionSession } from "@web/battle/prepare/client";
+import type { ObservationView } from "@web/battle/sim/observationView";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { RejectedOrder } from "@web/battle/present/rejectedOrder";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
@@ -52,6 +53,8 @@ export function BattleView({
   scenario,
   seed,
   prepared,
+  slot,
+  side,
   replay,
   scripted,
   camera,
@@ -63,12 +66,17 @@ export function BattleView({
   onLoadStage,
   onFailure,
   spawn,
+  onDecoded,
 }: {
   fixture: string;
   /** The scenario JSON the authority runs; the view draws its map. */
   scenario: string;
   seed: number;
-  prepared?: PreparedSession;
+  prepared?: PreparedConnectionSession;
+  /** Player slot issuing commands in a slot-owned scenario. */
+  slot?: string;
+  /** Side whose observation and command stream this player controls. */
+  side?: import("@web/battle/sim/protocol").SideName;
   /** A recorded battle to replay: input is off. */
   replay?: string;
   /** A scripted run: a comparison commander or scenario orders play it, with input off. The benchmark's
@@ -91,8 +99,10 @@ export function BattleView({
   /** The battle's authority refused or failed it: the route's cover shows the
    *  refusal, and nothing is drawn under it. Without one, the HUD says why. */
   onFailure?: (error: string) => void;
-  /** The authoritative blue entry, used for the deployment cue. */
+  /** The authoritative entry for the selected side, used for the deployment cue. */
   spawn?: [number, number] | null;
+  /** Scenario/runtime audio may react to the first authoritative publication. */
+  onDecoded?: (observation: ObservationView, digest: string) => void;
 }) {
   const parsed = useMemo(() => {
     const s = JSON.parse(scenario) as {
@@ -129,7 +139,12 @@ export function BattleView({
     scenario,
     seed,
     prepared,
-    onDecoded: noteCues,
+    slot,
+    side,
+    onDecoded: (observation, digest) => {
+      noteCues(observation);
+      onDecoded?.(observation, digest);
+    },
     replay,
     scripted,
     destroyable: "apart",
