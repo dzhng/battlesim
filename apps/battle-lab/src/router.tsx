@@ -147,7 +147,9 @@ function LabPage({ path: requestedPath }: { path: string }) {
       <Route />
     </SessionCatalogScope>
   );
-  return fixture.id === "generated" || fixture.id === "sound" ? (
+  return fixture.id === "generated" ||
+    fixture.id === "sound" ||
+    fixture.id === "scenario-builder" ? (
     <Suspense fallback={null}>{page}</Suspense>
   ) : (
     <LabLoading key={path} subject={fixture.id.toUpperCase()}>
