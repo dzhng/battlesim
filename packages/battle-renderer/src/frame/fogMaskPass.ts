@@ -25,17 +25,13 @@
 //   in display colour after post (as overlays are), so it is exactly the
 //   style's colour, never graded or bloomed. A sun shadow's edge has no line.
 //
-// The style (`presentation.fog.styles.<name>`) is live via `setStyle`; the
-// lab's mask views show the resolved mask itself, white where seen, or its
-// ground coverage, white where ground.
+// The look (`presentation.fog.styles.<name>`, resolved by the presentation
+// crate into its `FogLook` record) is live via `setLook`; the lab's mask
+// views show the resolved mask itself, white where seen, or its ground
+// coverage, white where ground.
 import { tgpu, d, common, type TgpuBuffer, type UniformFlag } from "typegpu";
-import {
-  FOG_DISTANCE_CAP_PX,
-  FogStyleUniform,
-  fogLook,
-  fogStyleUniform,
-  type FogStyle,
-} from "./fogStyle";
+import { FOG_DISTANCE_CAP_PX, FogStyleUniform, fogLook } from "./fogStyle";
+import { FogLook } from "../records.gen";
 import { FOG_DISTANCE_FORMAT, FRAME_MSAA, HDR_FORMAT, type FrameTargets } from "./targets";
 import type { GpuRegistry } from "./registry";
 
@@ -234,7 +230,7 @@ export async function createFogMaskPass(
   root: Root,
   registry: GpuRegistry,
   displayFormat: GPUTextureFormat,
-  initialStyle: FogStyle,
+  initialLook: Float32Array,
 ) {
   const rows = root
     .createRenderPipeline({
@@ -269,18 +265,19 @@ export async function createFogMaskPass(
 
   const look = registry.own(root.createBuffer(FogStyleUniform).$usage("uniform"));
   const view = registry.own(root.createBuffer(FogMaskView).$usage("uniform"));
-  let style = initialStyle;
+  let words = initialLook;
   let maskView: FogMaskViewKind = "none";
-  look.write(fogStyleUniform(style));
+  look.write(words.buffer as ArrayBuffer);
   view.write({ mask: 0 });
-  /** Whether this style draws anything the distances are needed for. */
-  const edges = () => style.edge_softness > 0 || (style.rim.width_px > 0 && style.rim.alpha > 0);
+  const rimDrawn = () => words[FogLook.rim_width_px] > 0 && words[FogLook.rim_alpha] > 0;
+  /** Whether this look draws anything the distances are needed for. */
+  const edges = () => words[FogLook.edge_softness_px] > 0 || rimDrawn();
 
   return {
-    /** How unseen looks, and its edge, from the next frame on. */
-    setStyle(next: FogStyle) {
-      style = next;
-      look.write(fogStyleUniform(next));
+    /** How unseen looks, and its edge, from the next frame on: a `FogLook`. */
+    setLook(next: Float32Array) {
+      words = next;
+      look.write(next.buffer as ArrayBuffer);
     },
     /** Show the resolved mask (white seen, black unseen), its ground
      *  coverage (white ground) or the ground's classes, instead of the look. */
@@ -316,7 +313,7 @@ export async function createFogMaskPass(
     },
     /** After post: the rim over `output`. */
     encodeRim(encoder: GPUCommandEncoder, groups: FogMaskGroups, output: GPUTextureView) {
-      if (maskView !== "none" || style.rim.width_px <= 0 || style.rim.alpha <= 0) return;
+      if (maskView !== "none" || !rimDrawn()) return;
       rim
         .with(encoder)
         .with(groups.compose)
@@ -325,9 +322,9 @@ export async function createFogMaskPass(
     },
     stats() {
       return {
-        edgeSoftnessPx: style.edge_softness,
-        rimWidthPx: style.rim.width_px,
-        reachPx: edges() ? fogStyleUniform(style).reachPx : 0,
+        edgeSoftnessPx: words[FogLook.edge_softness_px],
+        rimWidthPx: words[FogLook.rim_width_px],
+        reachPx: edges() ? words[FogLook.reach_px] : 0,
         maskView,
       };
     },

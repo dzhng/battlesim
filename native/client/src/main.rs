@@ -1,28 +1,39 @@
 //! Replays a browser parity run's scene natively and writes its plates.
 //!
 //! `native-client --run <parity run> --scene <map> --out <dir>
-//!   [--window offscreen|minimised|hidden|visible] [--pace <frames>]`
+//!   [--window offscreen|minimised|hidden|visible] [--pace <frames>]
+//!   [--sound <wav>]`
 //!
 //! Every frame record is framed through the presentation crate; each one
 //! the browser wrote a plate of is drawn, presented and written to `--out`
 //! under the control plate's name. Then the last frame is drawn and presented
 //! `--pace` more times, and the report says how presenting went. The window
-//! opens off-screen unless told otherwise.
+//! opens off-screen unless told otherwise. With `--sound`, the battle's
+//! sound is heard through every record at the reel's own times and rendered
+//! to that file (never played aloud).
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
+use native_client::audio::{self, Audio, OutputSettings};
 use native_client::bundle::{Library, RUNTIME};
 use native_client::capture::Replay;
+use native_client::effects::{EffectPass, Effects};
 use native_client::environment::Environment;
+use native_client::fog_mask::fog_mask;
 use native_client::frame::{Passes, Targets, DISPLAY_FORMAT};
 use native_client::gpu::{self, Gpu};
+use native_client::grass::Grass;
+use native_client::ground::Ground;
 use native_client::models::Models;
 use native_client::pipelines::Pipelines;
 use native_client::post::Post;
+use native_client::scenery::{Drawn, Scenery};
+use native_client::shadow::{ShadowPass, SunShadow};
 use native_client::sky::Sky;
 use native_client::world::{DepthPrepass, Ghosts, WorldColour};
 use presentation::records::View;
+use presentation::shadow::SunShadowFrame;
 use wgpu::{CommandEncoder, CurrentSurfaceTexture, PresentMode, Surface, SurfaceConfiguration};
 use winit::application::ApplicationHandler;
 use winit::dpi::{PhysicalPosition, PhysicalSize};
@@ -35,11 +46,13 @@ struct Args {
     out: PathBuf,
     window: String,
     pace: usize,
+    sound: Option<PathBuf>,
 }
 
 fn args() -> Result<Args, String> {
     let mut run = None;
     let (mut scene, mut out, mut window, mut pace) = (None, None, "offscreen".to_owned(), 120);
+    let mut sound = None;
     let mut it = std::env::args().skip(1);
     while let Some(flag) = it.next() {
         let mut value = || it.next().ok_or(format!("{flag} needs a value"));
@@ -49,6 +62,7 @@ fn args() -> Result<Args, String> {
             "--out" => out = Some(PathBuf::from(value()?)),
             "--window" => window = value()?,
             "--pace" => pace = value()?.parse().map_err(|e| format!("--pace: {e}"))?,
+            "--sound" => sound = Some(PathBuf::from(value()?)),
             other => return Err(format!("unknown argument {other}")),
         }
     }
@@ -62,6 +76,7 @@ fn args() -> Result<Args, String> {
         out: out.ok_or("--out is required")?,
         window,
         pace,
+        sound,
     })
 }
 
@@ -87,12 +102,20 @@ struct Run {
     paced: usize,
     presents: Presents,
     last: Option<Instant>,
+    /// The battle's sound, rendered to a buffer.
+    sound: Option<Audio>,
 }
 
 impl Run {
     fn start(event_loop: &ActiveEventLoop, args: &Args) -> Result<Self, String> {
         let game = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/game.json");
-        let replay = Replay::open(&args.scene, &game)?;
+        let library = Library::open(std::path::Path::new(RUNTIME))?;
+        let opened = Instant::now();
+        let mut replay = Replay::open(&args.scene, &game, &library)?;
+        println!(
+            "world: ground set, scenery placed and the battle loaded in {:.2} s",
+            opened.elapsed().as_secs_f64()
+        );
         let size = replay.records.first().ok_or("no frame records")?.canvas;
         let mut attributes = Window::default_attributes()
             .with_title("battlegame native")
@@ -162,6 +185,12 @@ impl Run {
             &light.bloom(),
             &light.grade(),
         );
+        let shadow = SunShadow::new(
+            &gpu.device,
+            &pipelines,
+            light.cascades.map_size,
+            &SunShadowFrame::cold(light),
+        );
         let environment = Environment::new(
             &gpu.device,
             &gpu.queue,
@@ -169,36 +198,73 @@ impl Run {
             &sky.lut,
             &light.sun(),
             &light.aerial(),
+            &shadow,
         );
         let installed = Instant::now();
-        let library = Library::open(std::path::Path::new(RUNTIME))?;
-        let models = Models::new(
+        let presentation = replay.presentation();
+        let resolved = presentation.ground().ok_or("the replay set no ground")?;
+        let (positions, indices) = &replay.terrain;
+        let ground = Ground::new(
             &gpu.device,
             &gpu.queue,
             &pipelines,
-            &library,
-            replay.presentation(),
+            resolved,
+            (positions, indices),
+            light.backdrop.reach_m,
         )?;
+        let grass = Grass::new(&gpu.device, &pipelines, &library, resolved, &ground.heights)?;
+        let models = Models::new(&gpu.device, &gpu.queue, &pipelines, &library, presentation)?;
+        let scenery = Scenery::new(&gpu.device, &pipelines, &library, presentation)?;
         println!(
-            "models: {} drawables installed in {:.2} s",
-            replay.presentation().world().appearances.len(),
+            "{}: ground, grass, {} drawables and the scenery installed in {:.2} s",
+            replay.map,
+            presentation.world().appearances.len(),
             installed.elapsed().as_secs_f64()
         );
+        // A fresh renderer holds no scars: the first upload writes them all.
+        replay.presentation_mut().resend_scars();
+        let effects = Effects::new(&gpu.device, &gpu.queue, &pipelines, &environment, &targets)?;
+        let (fog_mask, fog_rim) = fog_mask(&gpu.device, &pipelines, &targets, &replay.fog_look);
         std::fs::create_dir_all(&args.out).map_err(|e| e.to_string())?;
+        let sound = match &args.sound {
+            None => None,
+            Some(_) => {
+                let read = |p: &str| -> Result<serde_json::Value, String> {
+                    let text = std::fs::read_to_string(p).map_err(|e| format!("{p}: {e}"))?;
+                    serde_json::from_str(&text).map_err(|e| format!("{p}: {e}"))
+                };
+                let root = concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/");
+                let setup = audio::setup(
+                    &read(&format!("{root}game.json"))?,
+                    &read(&format!("{root}sounds.json"))?,
+                );
+                let output = OutputSettings::Buffer(audio::SAMPLE_RATE);
+                Some(Audio::new(&setup, std::path::Path::new(RUNTIME), output)?)
+            }
+        };
         Ok(Self {
             window,
             surface,
             gpu,
             passes: Passes {
                 targets,
+                light: replay.light.clone(),
                 environment,
+                shadow,
+                ground,
+                grass,
                 models,
+                scenery,
+                effects,
                 passes: vec![
-                    Box::new(sky),
+                    Box::new(ShadowPass::new(&pipelines)),
                     Box::new(DepthPrepass::new(&pipelines)),
-                    Box::new(WorldColour::new(&pipelines)),
+                    Box::new(WorldColour::new(&pipelines, sky)),
+                    Box::new(EffectPass),
+                    Box::new(fog_mask),
                     Box::new(Ghosts::new(&pipelines)),
                     Box::new(post),
+                    Box::new(fog_rim),
                 ],
             },
             replay,
@@ -209,6 +275,7 @@ impl Run {
             paced: 0,
             presents: Presents::default(),
             last: None,
+            sound,
         })
     }
 
@@ -249,15 +316,44 @@ impl Run {
     fn step(&mut self, args: &Args) -> Result<bool, String> {
         while let Some(record) = self.replay.records.get(self.next).cloned() {
             self.next += 1;
+            // The reel's wall time is both the sound's wall and its mixer clock.
+            let now = record.reel_ms / 1000.0;
+            let mut sound = self.sound.as_mut();
+            let drawn = record.plate.is_some();
+            self.replay.frame(&record, drawn, |p| {
+                if let Some(audio) = sound.as_mut() {
+                    audio.note(p, now);
+                }
+            })?;
+            if let Some(audio) = self.sound.as_mut() {
+                audio.hear(self.replay.presentation(), now, now);
+            }
             let Some(plate) = record.plate.clone() else {
-                self.replay.frame(&record)?;
                 continue;
             };
-            let frame = self.replay.frame(&record)?;
+            // The scars changed under the grass: it regrows over them.
+            if self.replay.presentation_mut().scars_changed() {
+                self.passes.grass.regrow();
+            }
+            let camera = self.replay.camera(&record);
+            let frame = self.replay.last_frame();
             self.view = frame.view;
+            let (counts, wrap) = (frame.counts, frame.light_wrap);
             let (device, queue) = (&self.gpu.device, &self.gpu.queue);
-            self.passes.prepare(device, queue, frame, record.target);
-            let counts = frame.counts;
+            self.passes
+                .prepare(device, queue, self.replay.presentation(), &camera);
+            self.passes
+                .prepare_scars(device, self.replay.presentation_mut());
+            let presentation = self.replay.presentation();
+            self.passes
+                .prepare_effects(device, queue, presentation, wrap);
+            self.count_mismatches.extend(effect_mismatches(
+                &plate,
+                &self.replay.effect_counts,
+                &counts,
+                presentation.effects(),
+                self.passes.effects.count(),
+            ));
             let drawn = self.passes.models.drawn();
             let want = self
                 .replay
@@ -288,9 +384,19 @@ impl Run {
                     }
                 }
             }
+            self.count_mismatches.extend(scenery_mismatches(
+                &plate,
+                &self.replay.instance_counts,
+                &self.passes.scenery.drawn(),
+            ));
+            let scars = self.replay.presentation().scar_stats();
             println!(
-                "{plate}: drawn {drawn:?}, culled soldiers {}",
-                counts.culled
+                "{plate}: drawn {drawn:?}, culled soldiers {}, effects {} and {} lights, scar pages {} ({})",
+                counts.culled,
+                self.passes.effects.count(),
+                counts.lights,
+                scars.pages,
+                if self.passes.ground.scars.regional() { "by region" } else { "at once" },
             );
             let encoder = self.passes.encode(device, queue, &self.view);
             let rgba = self.passes.read_display(device, queue, encoder);
@@ -311,15 +417,30 @@ impl Run {
         Ok(false)
     }
 
-    fn report(&self, args: &Args) {
+    fn report(&mut self, args: &Args) -> Result<(), String> {
         println!("plates: {} written to {}", self.plates, args.out.display());
-        if self.count_mismatches.is_empty() {
-            println!("model counts: equal to the browser's on every plate");
-        } else {
+        if let (Some(audio), Some(path)) = (&mut self.sound, &args.sound) {
+            let samples = audio.samples();
+            write_wav(path, samples)?;
+            let seconds = samples.len() as f64 / 2.0 / f64::from(audio::SAMPLE_RATE);
+            let (played, stats) = (audio.played(), audio.stats());
             println!(
-                "model counts differ:\n  {}",
-                self.count_mismatches.join("\n  ")
+                "sound: {:.1} s to {}; {} voices started, {} stopped, {} sounding; the frame started {}, dropped {}, stole {}, {} cues",
+                seconds,
+                path.display(),
+                played.started,
+                played.stopped,
+                played.live,
+                stats.started,
+                stats.dropped,
+                stats.stolen,
+                stats.cues
             );
+        }
+        if self.count_mismatches.is_empty() {
+            println!("model, scenery and effect counts: equal to the browser's on every plate");
+        } else {
+            println!("counts differ:\n  {}", self.count_mismatches.join("\n  "));
         }
         let p = &self.presents;
         let mut ms: Vec<f64> = p.intervals.iter().map(|d| d.as_secs_f64() * 1e3).collect();
@@ -339,7 +460,120 @@ impl Run {
             at(0.95),
             ms.len()
         );
+        Ok(())
     }
+}
+
+/// Interleaved stereo float samples as a 32-bit float WAV.
+fn write_wav(path: &std::path::Path, samples: &[f32]) -> Result<(), String> {
+    let rate = audio::SAMPLE_RATE;
+    let data = (samples.len() * 4) as u32;
+    let mut bytes = Vec::with_capacity(44 + data as usize);
+    bytes.extend_from_slice(b"RIFF");
+    bytes.extend_from_slice(&(36 + data).to_le_bytes());
+    bytes.extend_from_slice(b"WAVEfmt ");
+    for (v, n) in [
+        (16u32, 4),
+        (3, 2),
+        (2, 2),
+        (rate, 4),
+        (rate * 8, 4),
+        (8, 2),
+        (32, 2),
+    ] {
+        bytes.extend_from_slice(&v.to_le_bytes()[..n]);
+    }
+    bytes.extend_from_slice(b"data");
+    bytes.extend_from_slice(&data.to_le_bytes());
+    for s in samples {
+        bytes.extend_from_slice(&s.to_le_bytes());
+    }
+    std::fs::write(path, bytes).map_err(|e| format!("{}: {e}", path.display()))
+}
+
+/// Where `plate`'s effects differ from the browser's (`effectCounts`): those
+/// running by kind, the cast lights offered, the instances by shape, and the
+/// instances drawn of those the frame lists.
+fn effect_mismatches(
+    plate: &str,
+    effect_counts: &[serde_json::Value],
+    counts: &presentation::records::Counts,
+    effects: &[presentation::records::Effect],
+    drawn: u32,
+) -> Vec<String> {
+    const KINDS: [&str; 8] = [
+        "tracer", "flash", "impact", "sparks", "blast", "puff", "flame", "trail",
+    ];
+    const SHAPES: [&str; 4] = ["streak", "glow", "flipbook", "rotor"];
+    let Some(want) = effect_counts.iter().find(|c| c["plate"] == plate) else {
+        return vec![format!("{plate}: no effect counts in the manifest")];
+    };
+    let n = |v: &serde_json::Value| v.as_u64().unwrap_or(u64::MAX) as u32;
+    let mut checks: Vec<(String, u32, u32)> = KINDS
+        .iter()
+        .zip(counts.running)
+        .map(|(k, got)| (format!("running {k}"), got, n(&want["running"][k])))
+        .collect();
+    checks.push(("lights".into(), counts.lights, n(&want["lights"])));
+    for (shape, name) in SHAPES.iter().enumerate() {
+        let got = effects
+            .iter()
+            .filter(|e| e.misc[0] as usize == shape)
+            .count() as u32;
+        checks.push((
+            format!("{name} instances"),
+            got,
+            n(&want["instances"][name]),
+        ));
+    }
+    checks.push((
+        "effect instances drawn of those listed".into(),
+        drawn,
+        effects.len() as u32,
+    ));
+    checks
+        .into_iter()
+        .filter(|(_, got, wanted)| got != wanted)
+        .map(|(what, got, wanted)| format!("{plate} {what}: {got} against {wanted}"))
+        .collect()
+}
+
+/// Where `plate`'s scenery differs from the browser's (`instanceCounts`):
+/// the instances in view per population, kind and tier, and the stumps.
+fn scenery_mismatches(
+    plate: &str,
+    instance_counts: &[serde_json::Value],
+    drawn: &Drawn,
+) -> Vec<String> {
+    const POPULATIONS: [&str; 5] = ["forest", "understorey", "backdrop", "dressing", "felled"];
+    let Some(want) = instance_counts.iter().find(|c| c["plate"] == plate) else {
+        return vec![format!("{plate}: no instance counts in the manifest")];
+    };
+    let want = &want["scenery"];
+    let list = |v: &serde_json::Value| -> Vec<u32> {
+        v.as_array()
+            .map(|a| {
+                a.iter()
+                    .map(|n| n.as_u64().unwrap_or(u64::MAX) as u32)
+                    .collect()
+            })
+            .unwrap_or_default()
+    };
+    let total = |v: &[u32]| v.iter().sum::<u32>();
+    POPULATIONS
+        .iter()
+        .zip(&drawn.populations)
+        .map(|(name, got)| (*name, got.clone(), list(&want[name])))
+        .chain([("stumps", drawn.stumps.clone(), list(&want["stumps"]))])
+        .filter(|(_, got, wanted)| got != wanted)
+        .map(|(name, got, wanted)| {
+            format!(
+                "{plate} scenery {name}: {} against {} ({got:?} against {wanted:?})",
+                total(&got),
+                total(&wanted)
+            )
+        })
+        .collect()
 }
 
 fn write_png(path: &std::path::Path, size: [u32; 2], rgba: &[u8]) -> Result<(), String> {
@@ -391,7 +625,9 @@ impl ApplicationHandler for App {
         match run.step(&self.args) {
             Ok(true) => {}
             Ok(false) => {
-                run.report(&self.args);
+                if let Err(e) = run.report(&self.args) {
+                    self.error = Some(e);
+                }
                 self.run = None;
                 event_loop.exit();
             }

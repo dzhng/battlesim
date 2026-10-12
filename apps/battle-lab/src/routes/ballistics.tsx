@@ -167,14 +167,16 @@ function benchOf(catalog: SessionCatalog): Bench {
   ];
 
   const shots: Shot[] = [
-    ...[60, 120, 180].map((range, i): Shot => ({
-      label: `grenade arc ${range} m`,
-      weapon: W.grenade,
-      kind: "grenade",
-      from: [20, 14 + 6 * i],
-      muzzle: P.infantry_muzzle_m,
-      aim: { ground: [20 + range, 14 + 6 * i] },
-    })),
+    ...[60, 120, 180].map(
+      (range, i): Shot => ({
+        label: `grenade arc ${range} m`,
+        weapon: W.grenade,
+        kind: "grenade",
+        from: [20, 14 + 6 * i],
+        muzzle: P.infantry_muzzle_m,
+        aim: { ground: [20 + range, 14 + 6 * i] },
+      }),
+    ),
     {
       label: "hmg at sliding board",
       weapon: W.hmg,
@@ -226,23 +228,27 @@ function benchOf(catalog: SessionCatalog): Bench {
     // Oblique AP: spent AP onto the tank's front 25° off its normal, and HMG
     // onto its side about 37° off its normal from the south-east, each round
     // rolling its face's chance.
-    ...[0, 1, 2, 3].map((k): Shot => ({
-      label: `oblique AP ${k + 1}`,
-      weapon: LAB_SPENT_AP,
-      kind: "tank_ap",
-      from: [PRESET_TANK[0] - 26, PRESET_TANK[1] - 2 + k],
-      muzzle: 2,
-      // Spread up the plate so each round's mark stands apart.
-      aim: { body: 6, height: 0.5 + 0.45 * k },
-    })),
-    ...[0, 1, 2, 3].map((k): Shot => ({
-      label: `hmg at tank side ${k + 1}`,
-      weapon: W.hmg,
-      kind: "hmg",
-      from: [PRESET_TANK[0] + 16, PRESET_TANK[1] - 9 + 0.6 * k],
-      muzzle: 2,
-      aim: { body: 6, height: 0.5 + 0.45 * k },
-    })),
+    ...[0, 1, 2, 3].map(
+      (k): Shot => ({
+        label: `oblique AP ${k + 1}`,
+        weapon: LAB_SPENT_AP,
+        kind: "tank_ap",
+        from: [PRESET_TANK[0] - 26, PRESET_TANK[1] - 2 + k],
+        muzzle: 2,
+        // Spread up the plate so each round's mark stands apart.
+        aim: { body: 6, height: 0.5 + 0.45 * k },
+      }),
+    ),
+    ...[0, 1, 2, 3].map(
+      (k): Shot => ({
+        label: `hmg at tank side ${k + 1}`,
+        weapon: W.hmg,
+        kind: "hmg",
+        from: [PRESET_TANK[0] + 16, PRESET_TANK[1] - 9 + 0.6 * k],
+        muzzle: 2,
+        aim: { body: 6, height: 0.5 + 0.45 * k },
+      }),
+    ),
   ];
   return { movers, shots, rules: catalog.rules, tankArmor: units.hull("test_tank")!.armor };
 }
@@ -395,13 +401,6 @@ function startRun(
     return { ...m, start: [x, aimY - m.velocity[1] * time + passed] as [number, number] };
   });
   return { lab, tick: 0, shots, events: [], paths, movers, bench };
-}
-
-/** What a struck label hit, as the battle publishes it. */
-function hitKind(movers: readonly Mover[], struck: string | undefined): string {
-  if (!struck?.startsWith("body")) return struck?.startsWith("prop") ? "prop" : "ground";
-  const m = movers.find((b) => b.id === Number(struck.slice(5)));
-  return m?.armored ? "hull" : m?.shape === "capsule" ? "soldier" : "prop";
 }
 
 /** Step the run one tick. */

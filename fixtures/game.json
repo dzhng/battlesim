@@ -683,8 +683,175 @@
     "rule": { "trunk_spacing_m": 9, "trunk_jitter": 0.3, "concealment_infantry": 0.25, "concealment_vehicle": 0.7, "attenuation_per_m": 0.011, "canopy_radius_m": 6.5, "canopy_height_m": 12, "trunk_radius_m": 0.35, "trunk_height_m": 10, "trunk_clearance_m": 2, "logs_per_ha": 0, "boulders_per_ha": 0, "log_half_extents_m": [2.2, 0.35, 0.35], "boulder_half_extents_m": [1, 0.8, 0.75] }
   },
   "presentation": {
+    "terrain": {
+      "distant": { "fade_m": 600, "plot_pixels": [0.16666666666666666, 0.5] },
+      "mottle": {
+        "patch_hue": 0.6,
+        "fine_value": 0.45,
+        "fine_hue": 0.4,
+        "fine_fade": [0.25, 1],
+        "patch_cut": 0.58,
+        "patch_edge_m": 0.3,
+        "slope_step": 0.05,
+        "dry": [0.7, 0, -0.9]
+      },
+      "grain": {
+        "octave": 2.7,
+        "weights": [0.15, 0.25, 0.35, 0.25],
+        "fade": [0.3, 0.9],
+        "crisp": 2,
+        "turns": [0.55, 1.9, 2.9, 4.3],
+        "warp": 0.45
+      },
+      "rows": { "break_grains": 2, "mean": 0.3125, "fade": [0.15, 0.45] },
+      "wheeling": { "gauge_rows": 2, "least_pixel_m": 0.02 },
+      "verge": { "mottle": 0.18, "roughness": 0.95 },
+      "forest_verge": { "inset": 0.5, "patch_scale": 0.7, "feather": 0.1 },
+      "forest_floor": {
+        "moss": { "cut": [0.38, 0.72], "weights": [0.65, 0.35], "fine_scale": 2.1 },
+        "humus": { "cut": [0.42, 0.78], "weights": [0.6, 0.4], "scales": [1.3, 3.1] },
+        "roots": {
+          "runs": [0.55, 0.75],
+          "run_scale": 1.7,
+          "line": [0.015, 0.035],
+          "fade": [0.02, 0.08],
+          "mean": 0.02
+        }
+      },
+      "dapple": { "weights": [0.65, 0.35], "octave": 2.7, "edge": 0.06, "fade": [0.1, 0.5] },
+      "shading": { "max_slope": 0.84 },
+      "bank": { "ease_m": 0.75, "blend_m": 0.7, "blend_reach_m": 50 },
+      "shore": {
+        "wet_whole": 0.4,
+        "earth_whole": 0.65,
+        "fine": 3.1,
+        "fine_share": 0.4,
+        "turns": [0.55, 1.9],
+        "fine_fade": [0.3, 1],
+        "earth_mottle": 0.6,
+        "field_ease_m": 10,
+        "earth_roughness": 0.92,
+        "wet_roughness": 0.8,
+        "bed_ease_m": 0.3
+      },
+      "wander": { "push_scale": 0.61, "push": 1.4, "octaves": [2.03, 4.01], "weights": [0.5, 0.3, 0.2] },
+      "road_grain": {
+        "fade": [0.6, 1.2],
+        "octaves": [2.03, 4.01, 8.3],
+        "weights": [0.25, 0.35, 0.4, 0.5],
+        "stones": [0.7, 0.76]
+      },
+      "shoulder": {
+        "whole": 0.35,
+        "wander": 5,
+        "pixels": [0.03, 0.08],
+        "grain": 0.5,
+        "tuft_m": 1.1,
+        "tufts": [0.44, 0.52]
+      },
+      "strip": {
+        "wander": 3,
+        "wander_m": 2.5,
+        "edge_m": 0.3,
+        "pixels": [0.2, 0.4],
+        "cover": 0.6,
+        "grass": 0.75
+      },
+      "ruts": { "fade": [0.2, 0.4], "faint": 0.4, "break_m": 6, "break_cut": [0.4, 0.6] },
+      "surface": { "patch_cut": [0.52, 0.66], "join_drift_m": 2.5 },
+      "slabs": {
+        "joint_m": 0.03,
+        "joint_pixels": [0.7, 2.5],
+        "area_joint_m": 0.1,
+        "area_slab_pixels": [0.041666666666666664, 0.4],
+        "area_border_m": 2,
+        "area_edge_depth": 1.5
+      },
+      "curb": { "edge_m": 0.03, "pixels": [0.25, 0.6] },
+      "marks": {
+        "edge_m": 0.03,
+        "pixels": [0.35, 0.85],
+        "crossing_cos": 0.8,
+        "clear_m": 0.3,
+        "wear_m": 1.3,
+        "wear_cut": [0.4, 0.6]
+      },
+      "water": {
+        "roughness": 0.14,
+        "shadow": 0.55,
+        "ripple": {
+          "long_m": 3.2,
+          "short_m": 0.9,
+          "short_weight": 0.5,
+          "slope": 0.09,
+          "step_m": 0.25,
+          "fade_m": [0.15, 1.2]
+        },
+        "lanes": {
+          "m": 0.5,
+          "drift": 2.5,
+          "drift_m": 11,
+          "streak_m": 3.5,
+          "weights": [0.6, 0.4],
+          "lit": [0.55, 0.8],
+          "lit_mean": 0.1
+        }
+      },
+      "scars": {
+        "depth_cap": 1.6,
+        "rim_reach_cells": 1.5,
+        "slope_tap_cells": 0.75,
+        "detail_fade": [0.5, 2],
+        "lip": [0.3, 0.14],
+        "lip_wander_m": 0.45,
+        "ring": [0.035, 0.03],
+        "pock": [0.05, 0.09],
+        "pock_soot": 0.85,
+        "pock_edge": [0.013, 0.006],
+        "pock_edge_dark": 0.45,
+        "ash": {
+          "scale": 4.5,
+          "fine": 3.1,
+          "weights": [0.75, 0.25],
+          "edge": [0.97, 0.72],
+          "least": 0.45
+        },
+        "rut": [0.35, 0.2],
+        "grazing": 0.25
+      },
+      "scar_surface": {
+        "grain_scale": 1.7,
+        "fleck_scale": 6.3,
+        "trampled": [0.9, 1.1],
+        "tracks": [0.85, 1.1],
+        "ash": [0.6, 2.4],
+        "ash_weights": [0.6, 0.4],
+        "ash_drift_scale": 0.7,
+        "soil": [0.8, 1.15],
+        "cavity": 0.7
+      }
+    },
+    "grass": {
+      "edge_m": 1.2,
+      "placement": { "jitter_m": 0.4, "headland_m": 0.3 },
+      "density": { "least_facing": 0.15 },
+      "stand": {
+        "bare_wear": 0.9,
+        "sparse_cut": [0.3, 0.55],
+        "edge_density": 0.5,
+        "edge_height": 0.35,
+        "grow_from": 0.7,
+        "least_height_m": 0.02,
+        "parched_cut": [0.55, 0.8]
+      },
+      "mix": { "drift_cut": [0.4, 0.65], "drift_gather": 3 },
+      "tier_jitter": [0.85, 1.15],
+      "laid": { "lean": 1.1, "sink": 0.6 },
+      "wind": { "gust_from": 0.2, "flutter_phase": 0.35, "flutter_across": 0.5 },
+      "blade": { "roughness": 0.9 }
+    },
     "audio": {
-      "buses": { "master": 0.9, "units": 0.7, "effects": 1.0, "ambience": 0.4 },
+      "buses": { "master": 0.9, "units": 0.7, "effects": 1.0, "ambience": 0.4, "music": 1.0, "voices": 1.0 },
       "listener_eye_share": 0.25,
       "distance": { "ref_m": 15, "rolloff": 1.0, "max_m": 3000, "floor": 0.3, "cull": 0.004 },
       "air": {
@@ -867,14 +1034,21 @@
       "footsteps": { "sound": "footstep", "gain": 0.07, "stride_m": 0.8, "max_step_m": 2 },
       "fires": { "default": { "sound": "fire", "gain": 0.4, "smoulder_gain": 0.1 } },
       "ambience": { "sound": "countryside", "gain": 0.2 },
+      "music": {
+        "duck": { "depth": 0.35, "attack_s": 0.05, "release_s": 0.8 },
+        "combat_window_s": 20,
+        "calm_s": 45,
+        "crossfade_s": 4,
+        "combat_triggers": ["under_fire", "suppressed", "pinned", "hit", "man_down"]
+      },
+      "voices": { "lines": 4, "wait_s": 1, "group_s": 0.25, "gain": 0.5 },
       "cues": {
         "sounds": {
-          "default": "cue_voices",
           "shot": "cue_gunfire",
           "vehicle": "cue_engine",
-          "infantry": "cue_voices",
           "infantry_moving": "cue_footsteps"
         },
+        "shout": { "gain": 1, "lowpass_hz": 600, "wet": 0.6, "takes_per_voice": 4 },
         "near_gain": 0.3,
         "far_gain": 0.12,
         "far_lowpass_hz": 900,

@@ -35,7 +35,7 @@ type Box6 = [f64; 6];
 
 /// Whether a chunk out of `view` casts into it: its box swept along the fall
 /// of a shadow `size` metres tall meets the view within the reach.
-fn casts_into(view: &View, shadow: Option<&Shadow>, b: &Box6, size: f64) -> bool {
+pub(crate) fn casts_into(view: &View, shadow: Option<&Shadow>, b: &Box6, size: f64) -> bool {
     let Some(s) = shadow else { return false };
     let [fx, fy] = s.fall.map(|f| f * size);
     let swept = [
@@ -86,6 +86,8 @@ pub struct Lists {
 
 pub struct BuildingWalk {
     pub buildings: Buildings,
+    /// The tier rule as authored, and as drawn (`set_lod_scale`).
+    authored_lod: [f64; 3],
     lod: [f64; 3],
     pool: usize,
     chunk_m: f64,
@@ -105,6 +107,12 @@ pub struct BuildingWalk {
 }
 
 impl BuildingWalk {
+    /// Draws the tier rule's thresholds `scale` times their authored values
+    /// (a graphics quality: below 1 a building coarsens nearer the eye).
+    pub fn set_lod_scale(&mut self, scale: f64) {
+        self.lod = self.authored_lod.map(|v| v * scale);
+    }
+
     /// `buildings` drawn under the tier rule `lod` (pixels a metre covers at
     /// a chunk's nearest point for tiers 0 to 2), in `chunk_m` chunks, with a
     /// pool of `pool` rows.
@@ -127,6 +135,7 @@ impl BuildingWalk {
         Self {
             fallen: vec![None; buildings.len()],
             buildings,
+            authored_lod: lod,
             lod,
             pool,
             chunk_m,
@@ -301,11 +310,15 @@ impl BuildingWalk {
 pub struct BuildingPopulation {
     pub walk: BuildingWalk,
     pub rows: Vec<u32>,
+    /// Counts the walks that changed what it draws: its lists' print.
+    pub changes: u64,
 }
 
 impl Population for BuildingPopulation {
     fn select(&mut self, view: &View, shadow: Option<&Shadow>) -> bool {
-        !self.walk.select(view, shadow).is_empty()
+        let changed = !self.walk.select(view, shadow).is_empty();
+        self.changes += u64::from(changed);
+        changed
     }
 
     fn each_list(&self, visit: &mut dyn FnMut(List)) {
@@ -317,6 +330,7 @@ impl Population for BuildingPopulation {
                     tier: (key % TIERS) as u32,
                     pass,
                     records: list,
+                    print: self.changes,
                 });
             }
         }

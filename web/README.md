@@ -98,3 +98,7 @@ This avoids contention corrupting frame measurements.
 Its bare invocation prints available commands. Audio preparation has a separate
 [audio tool](../packages/battle-audio/README.md#recording-preparation), because audio
 provenance and crops belong to the sound catalog rather than the appearance catalog.
+
+## Runtime audio sharp edge
+
+The Vercel project must have **Git LFS** enabled in its dashboard. Runtime music and voice MP3s are tracked LFS assets; without that setting a deployment serves pointer files instead of media.

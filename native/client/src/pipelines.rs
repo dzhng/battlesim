@@ -292,7 +292,39 @@ impl Bound {
     }
 }
 
+/// A compute pipeline and its slots' layouts, as [`Bound`].
+#[derive(Clone)]
+pub struct BoundCompute {
+    pub pipeline: ComputePipeline,
+    slots: Vec<String>,
+}
+
+impl BoundCompute {
+    /// Sets the pipeline, and each slot's group from `groups` by layout name.
+    pub fn set(&self, pass: &mut ComputePass, groups: &[(&str, &BindGroup)]) {
+        pass.set_pipeline(&self.pipeline);
+        for (i, slot) in self.slots.iter().enumerate() {
+            let (_, group) = groups
+                .iter()
+                .find(|(name, _)| name == slot)
+                .unwrap_or_else(|| panic!("no bind group for layout {slot}"));
+            pass.set_bind_group(i as u32, *group, &[]);
+        }
+    }
+}
+
 impl Pipelines {
+    /// The compute pipeline `name` with its slots' layouts.
+    pub fn bound_compute(&self, name: &str) -> BoundCompute {
+        match self.pipelines.get(name) {
+            Some(Pipeline::Compute(p)) => BoundCompute {
+                pipeline: p.clone(),
+                slots: self.slots[name].clone(),
+            },
+            _ => panic!("no compute pipeline {name} in the export"),
+        }
+    }
+
     /// Builds every pipeline in `dir`; fails listing each one the device refused.
     pub fn build(device: &Device, dir: &str) -> Result<Self> {
         let text =

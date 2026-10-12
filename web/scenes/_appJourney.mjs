@@ -6,9 +6,16 @@ import {
   presented,
   snapshot,
   groundCss,
+  pointerOffCanvas,
   menuShown,
   openMenuPage,
 } from "./_lab.mjs";
+import { readFileSync } from "node:fs";
+
+/** The sound catalog's music: which tracks the menu and a battle may play. */
+const MUSIC = JSON.parse(
+  readFileSync(new URL("../../fixtures/sounds.json", import.meta.url)),
+).music;
 
 /** The actual player entry and retained page owners, across complete battles:
  *  the menu's Deploy into a generated battle, its pause controls, restart,
@@ -31,11 +38,12 @@ export async function appJourney(ctx) {
         probe.contexts.push(this);
       }
     };
-    const start = AudioBufferSourceNode.prototype.start;
-    AudioBufferSourceNode.prototype.start = function (...args) {
-      if (this.loop && this.buffer?.duration > 200)
-        probe.music.push({ buffer: this.buffer, offset: args[1] ?? 0 });
-      return start.apply(this, args);
+    // Music streams from media elements: each start's file and position.
+    const play = HTMLMediaElement.prototype.play;
+    HTMLMediaElement.prototype.play = function (...args) {
+      if (this.src.includes("/audio/music/"))
+        probe.music.push({ src: this.src, offset: this.currentTime });
+      return play.apply(this, args);
     };
   });
   await page.goto(new URL(ctx.url).origin);
@@ -51,7 +59,7 @@ export async function appJourney(ctx) {
   await snapshot(ctx, page, "app-journey-menu.png");
   const backdrop = page.workers();
   ctx.check(
-    "menu prepares the actual full recording beside one battle worker, its backdrop's",
+    "menu streams its music beside one battle worker, its backdrop's",
     backdrop.length === 1,
     `${backdrop.length} workers`,
   );
@@ -221,21 +229,33 @@ export async function appJourney(ctx) {
         devices: p.devices,
         contexts: p.contexts.length,
         running: p.contexts[0].state,
-        offsets: p.music.map((m) => m.offset),
-        sameBuffer: p.music.every((m) => m.buffer === p.music[0].buffer),
+        // The track id is the served file's name before its content hash.
+        music: p.music.map((m) => ({
+          track: new URL(m.src).pathname.split("/").pop().split(".")[0],
+          offset: m.offset,
+        })),
         allocations,
         timeOrigin: performance.timeOrigin,
       };
     },
     await released.jsonValue(),
   );
+  // The menu replays its one track from the start on every return; a battle
+  // plays its own score (tension and combat tracks), also from the start.
+  const [menuTrack] = MUSIC.moods.menu;
+  const battleTracks = new Set([...MUSIC.moods.tension, ...MUSIC.moods.combat]);
+  const menuStarts = owners.music.filter(({ track }) => track === menuTrack);
   ctx.check(
     "complete player journey retains one GPU/audio bank and releases battle allocations",
     owners.devices === 1 &&
       owners.contexts === 1 &&
       owners.running === "running" &&
-      owners.sameBuffer &&
-      owners.offsets.every((offset) => offset === 0) &&
+      owners.music[0]?.track === menuTrack &&
+      owners.music.at(-1)?.track === menuTrack &&
+      menuStarts.length >= 2 &&
+      owners.music.some(({ track }) => battleTracks.has(track)) &&
+      owners.music.every(({ track }) => track === menuTrack || battleTracks.has(track)) &&
+      owners.music.every(({ offset }) => offset === 0) &&
       owners.allocations.buffers === 0 &&
       owners.allocations.textures === 0 &&
       owners.timeOrigin === origin,
@@ -265,7 +285,7 @@ export async function armyJourney(ctx) {
     window.__lab.route.select([4]);
   });
   await page.evaluate(() => document.fonts.ready);
-  await page.mouse.move(0, 500);
+  await pointerOffCanvas(page);
   await snapshot(ctx, page, "army-player-single.png");
   const own = (await obs(page)).own;
   const roster = page.locator(".hud-army-card");
@@ -290,7 +310,7 @@ export async function armyJourney(ctx) {
     selection.length === 2 && selection.includes(own[0].id) && selection.includes(own[1].id),
     JSON.stringify(selection),
   );
-  await page.mouse.move(0, 500);
+  await pointerOffCanvas(page);
   await snapshot(ctx, page, "army-player-multiple.png");
   await roster.nth(1).hover();
   ctx.check(
@@ -298,7 +318,7 @@ export async function armyJourney(ctx) {
     (await page.getByRole("tooltip").getAttribute("data-unit")) === String(own[1].id),
   );
   await snapshot(ctx, page, "army-player-hover.png");
-  await page.mouse.move(0, 500);
+  await pointerOffCanvas(page);
   await page.evaluate(() => window.__lab.route.select([]));
   ctx.check(
     "clearing selection preserves army cards and disables every command",

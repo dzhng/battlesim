@@ -9,8 +9,16 @@ files = ["dep:flate2"]
 
 [dependencies]
 sim = { path = "../sim" }
+contract = { path = "../contract" }
 serde = { version = "1", features = ["derive", "rc"] }
 serde_json = "1"
 bytemuck = "1.25"
 libm = { version = "=0.2.16", default-features = false }
 flate2 = { version = "1", optional = true }
+
+[dev-dependencies]
+# The ground's meshes are tested on saved maps as the simulation builds them.
+contract = { path = "../contract" }
+# The sound vectors key variations by the text of their positions, so the
+# browser's numbers must read back exactly.
+serde_json = { version = "1", features = ["float_roundtrip"] }

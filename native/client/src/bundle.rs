@@ -84,7 +84,10 @@ pub enum Coverage {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Material {
-    pub base_color: [f32; 4],
+    pub name: String,
+    /// As authored (`f64`): the scenery multiplies it into its vertices
+    /// before narrowing, as the browser does.
+    pub base_color: [f64; 4],
     pub metallic: f32,
     pub roughness: f32,
     pub tint: f32,
@@ -109,6 +112,8 @@ pub struct Texture {
 pub struct Node {
     pub name: String,
     pub tiers: Vec<Mesh>,
+    /// A static state's highest point (`bounds.max[2]`), where it has bounds.
+    pub top: Option<f64>,
 }
 
 pub enum Shape {
@@ -244,6 +249,7 @@ impl Views<'_> {
                 Ok(Node {
                     name: n["name"].as_str().ok_or("unnamed node")?.to_owned(),
                     tiers: self.tiers(&n["tiers"])?,
+                    top: n["bounds"]["max"][2].as_f64(),
                 })
             })
             .collect()

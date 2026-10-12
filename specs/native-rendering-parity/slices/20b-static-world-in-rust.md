@@ -131,3 +131,62 @@ Rebased onto slice 20 (`513bed37d`) and folded per the orchestrator's ruling (a)
 - **Reduction pass** (rebased onto the parity tip `6c6e40d30`, whose light now resolves in Rust). Battle routes no longer repeat the session's fields into `LabViewport`: `useBattleSession` returns three bundles the routes spread, `viewport` (frame, presentation, appearances, GPU hook), `known` (props, buildings, camera obstacles) and `input` (pointer handlers). Building rows carry their renderer record (`Buildings::rows` yields it with its module, tier mask and building), so the walk keeps no copy and no conversion. The tip's `resolveLight` waits for the presentation module, which broke five viewport lifetime tests on the tip as well; they now wait until the frame is being built.
 - **Reduction pass checks.** Equality on both reel maps, 400 views each with the falls (11 and 226 buildings through `ui.known`); `cargo test -p presentation` (59), clippy, `tsc`, the full web suite (1,298), the ground (53) and city-block (10) scenes all PASS. Reel, one run under the lock: market-town 69.9 FPS, CPU p50 5.10 ms, GPU 9.24 ms; paris-corner 107.3 FPS, 1.35 ms, 5.44 ms. CPU p50 is lower on both maps than the last run (5.33, 1.70 ms); market-town's FPS drop is on the GPU side, which this pass doesn't touch, and is within one-run noise.
 - **Net code** against `6c6e40d30` (comments and blanks excluded): TypeScript −965, TS tests −287, TSX −70, mjs −7, GDScript −14, GDScript tests −32, Rust +1,169, toml +5: **−201**.
+
+## Step 3 findings: the biome, the tables and scenery (2026-10-11)
+
+Built on `slice20b3` over step 2 (`a3b45f27b`, `b078a3cb9`, then this record). Steps 2 and 3 land together.
+
+**Contract.**
+- `crates/presentation/src/static_world/ground` resolves the whole static ground: `biome.rs` (serde; `Biome::load(json, family)` applies the map's regional finish and refuses a bad number by its path), `tuning.rs` (the terrain and grass tunings are data, `presentation.terrain` and `presentation.grass` in `fixtures/game.json`, documented there; Rust reads the four numbers its tables use, the shaders splice the rest), `tables.rs` (height pages, plot nodes and records, `TerrainParams` but its frame `view`, the scars' look), `grass.rs` (`GrassParams` with its per-frame fields zero, the props' footprint grid), `scenery.rs` (forest, lone trees, understorey, backdrop, and the dressing laid a cell at a time).
+- The page: `Ground` in `presentation-wasm`, built per map from `WorldView`'s exports, `world_layout()`, the biome file, the map's region and the fixture's `presentation` block. Calls: `terrain()` (tables), `plots(textured)`, `water_cells()`, `grass_kinds()`, `grass_params(facts, variation, tallest)`, `grass_props()`, `retune_grass(rules?)`, `scenery_kinds()`, `place_scenery(sizes)`, `trees(population)`, `forest_ids()`, `dressing()`, `dressing_cells()`, `dress(i, j)`, and `terrain_heights(...)` for the height pages fog and grass share. Probes for the ground scenes only: `plots_json`, `plot_kind_at`, `drawn_strokes`, `reach`, `field_grid`, `distances`.
+- The renderer reports what only it holds: each grass kind's mesh facts (highest vertex, top, blades, root width, where its tiers start among the shape vertices, which it packs itself) and each scenery kind's size (from its installed bundle). It uploads the words as given and patches only per-frame fields (`TerrainParams.view`, the scar grid and cache words, `GrassParams`' planes, eye, window and tiles).
+- The manifest no longer carries `tuning`, `terrain`, `grass` or `scenery`; its writer, validator and capture lost them, and `wordTables.ts`, `terrainTables.ts`, `grassTables.ts` and `sceneryTables.ts` are deleted. Native is untouched (Godot frozen): `godot-binding` builds and its tests pass; its GDScript reads only captures that still carry those sections.
+
+**Equality** against the TypeScript, dumped on the base before any change (`throwaway/slice20b3/golden`): every table and placed record is bit-identical on market-town, paris-corner, river, street, geometry and ground: height pages, plot nodes, plots (textured and plain), surface records and index, water cells, `TerrainParams`, the scars' look, `GrassParams` (with the golden's per-frame fields), the props grid, forest trees and their ids, understorey, backdrop, dressing cells and every cell's pieces. With `libm`: no angle these maps use lands on one of its last-bit differences from V8. The terrain material's 29 exported functions resolve (TypeGPU) to the same WGSL on base and branch; the grass pass's spliced values are the same numbers under renamed keys.
+
+**Browser before/after** (production build, under the GPU lock, interleaved; before is `slice20b2` at `691ea08d8`; another session's unlocked `sound` scene overlapped some runs). The uploaded tables are the same bytes, so frame cost cannot move; the runs agree.
+
+| graphics test | avg FPS | 1% low | p95 ms | GPU ms |
+| --- | --- | --- | --- | --- |
+| market-town before | 66.9, 73.5 | 37.5, 38.8 | 25.00, 24.99 | 9.43, 8.97 |
+| market-town after | 64.7, 78.4 | 34.4, 38.7 | 25.00, 17.76 | 9.26, 8.68 |
+| paris-corner before | 96.4, 96.4 | 47.6, 54.8 | 16.79, 16.67 | 5.82, 6.07 |
+| paris-corner after | 99.4, 100.2 | 58.1, 56.0 | 16.67, 16.68 | 5.76, 5.79 |
+
+| benchmark (city contact) | FPS | p95 ms | CPU p95 ms | GPU frame ms | prepared |
+| --- | --- | --- | --- | --- | --- |
+| before | 14.7, 12.2 | 133.3, 158.3 | 76.9, 102.9 | 21.3, 24.0 | 124, 148 s |
+| after | 13.1, 14.0 | 133.5, 133.3 | 73.2, 71.7 | 22.2, 22.4 | 121, 129 s |
+
+Market-town's ground, tables and scenery resolve in about 0.5 s in WASM (124 ms ground and tables, 351 ms scenery; each dressing cell on request). The presentation module grows from 1.37 to 1.81 MB raw.
+
+**Net code, steps 2 and 3 together** (comments and blanks excluded; against `82f4e0fc7`, before step 2): Rust +4,096, Rust tests +946, TypeScript −4,073, TS tests −3,343, mjs −10, tsx −20: **−2,404** (the tunings' 167 lines of fixture data aside). Step 3 alone: −3,002.
+
+**Web suite:** green but `icons` (3 tests, the soldier models' LFS sources not pulled; identical on `origin/main` `57edae9bd`) and `viewport.test.tsx` (5 tests; identical on this branch's base `slice20b2`, passing on `origin/main`: older than step 3).
+
+**Left:** the dressing's per-frame cache (`scenery/dressing.ts`) and the scenery layer's walk stay TS until the `World` fold moves scenery through `Frame`'s static batches.
+
+## Step 4 findings: the `World` fold (2026-10-12)
+
+Built on `slice20b3` over steps 2 and 3 (on `main` at `5811511d9`), then merged with `main`'s native ground and Rust scars.
+
+**Contract.**
+- The scenery walk is Rust's: `static_world::ground::walk` holds the scenery's 128 m chunks, its four tiers, the forest floor's dressing (128 cells resident, 8 laid a walk), and the felled trees' fall (`fell_pose`, the biome's felled rules). `SceneryPopulation` is a `Population` beside the buildings', so `Frame.batches` carry the scenery through the same `StaticBatches` emitter; each list carries a print, and a batch is written only when its print changed.
+- `Appearance.pad` is now `draws`: 0 a model or kit module, 1 forest, 2 understorey, 3 backdrop, 4 dressing (`tint.w` its height over its fade), 5 felled (two records an instance: the tree with its fall, then squash, spread, trunk, landed, crown), 6 stump. The scenery shaders read the 64-byte `Instance`; their WGSL is unchanged, only the instance strides and offsets in `pipelines.json`.
+- The ground is set on `Presentation` (`set_ground`), not a separate `Ground` class, which is deleted. Its calls carry a `ground_` prefix where the name is generic: `ground_terrain`, `ground_plots`, `ground_water_mesh`, and the probes. The grass calls keep their names: `grass_kinds`, `grass_params(shapes, density)`, `grass_window`, `grass_props`, `retune_grass`. The scenery calls are `scenery_kinds` and `place_scenery`, with four numbers a kind (height, radius, trunk radius, crown base) from the installed bundles.
+- The player's settings are Presentation inputs: `set_scenery_quality(tree_lod_scale, dressing, understorey)`. So is the cleared ground, `set_cleared(runs, cols, rows, cell_m)`, which the lab can withhold. Felled trees come from the publication's fallen bodies inside Rust, so the page derives none. `scenery_pending`, `scenery_falling` and `scenery_stats` report the walk.
+- `set_ground` sets the scars' view-ray reach from its own ground. The page's `set_scar_reach` is deleted. Rust keeps `set_scar_reach` for native, which holds its own `Ground`. `Presentation::ground()` (the side's learned ground) is renamed `learned()`.
+- Deleted TypeScript: `scenery/felled.ts`, `lod.ts`, `dressing.ts` and `placement.ts`; the scenery layer's walk; the battle session's felled derivation.
+
+**Equality** against the TypeScript walk, dumped on the branch before the fold (`throwaway/slice20b3/walk`): over 120 views on each of market-town, paris-corner and river, with dressing settled and a cleared pattern and felled trees set, every list matches tier by tier and kind by kind. The lists are forest, understorey, backdrop, dressing and felled, plus the casters of forest and understorey. Market-town's totals are 429,053 forest, 262,437 forest casters, 5,215 understorey, 50,564 dressing and 170,640 felled. Stumps are record for record. Felled records are identical except for 51 of 1,422, which differ by one ulp in the fall's angle during the settle (`libm`'s sin against V8's: the accepted `libm` decision). The check was rerun after the merge with `main`, with the same result.
+
+**Browser before/after** (production build, under the GPU lock, interleaved; before is `main` at `7afb84774`, which has the TS walk). The machine's load average was 10 to 20 on 18 cores from parallel lanes, so the absolute numbers are about half of step 3's. The pairs agree within their noise:
+
+| graphics test | avg FPS | 1% low | p95 ms | GPU ms |
+| --- | --- | --- | --- | --- |
+| market-town before | 19.9, 24.6 | 8.6, 7.2 | 83.90, 51.35 | 27.52, 23.49 |
+| market-town after | 21.2, 29.7 | 13.0, 9.4 | 66.78, 50.05 | 19.96, 17.88 |
+| paris-corner before | 35.2, 34.5 | 8.3, 8.5 | 42.13, 41.98 | 15.87, 16.49 |
+| paris-corner after | 31.6, 33.2 | 7.6, 7.6 | 43.17, 41.90 | 17.59, 16.99 |
+
+**Net code** (comments and blanks excluded; against `main`): Rust +843, Rust tests +61, TypeScript −810, TS tests −462, mjs +11, tsx +11: **−346**.

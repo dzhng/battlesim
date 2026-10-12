@@ -423,6 +423,140 @@ Set by the coordinator: a Rust contract lands in the browser first, so the light
 - **A free `light_records`, not `load_world`.** See the contract above. 18b is amended.
 - **Native Godot's own ports of these formulas** (`environment/light.gd`, `sky_model.gd`, `aerial.gd`) are frozen and leave with Godot at step 8. Their comments name the deleted TS.
 
+## Step 4: the ground, built (2026-10-12, branch `phase5g`)
+
+Native draws the terrain, the backdrop and the map's skirt, the sun's cascades, the side's scars, the grass, and the water, through the browser's exported pipelines. It also draws the buildings. Every number it uploads is the presentation crate's. Three pieces the browser still derived in TypeScript moved into Rust first, browser first: the cascade fit, the ground's meshes with the grass field's CPU side, and the learned ground with its scar cache. Two lanes built them in parallel (`worktree-agent-acad722b…`, `worktree-agent-a9cfa9d2…`), merged here.
+
+### The contract
+
+- **The sun's shadow is Rust's** (`presentation::shadow`, browser first). `sun_shadow(light, camera, map_box)` fits the frame's cascades and returns a `SunShadowFrame`: the receiver block and one caster camera per active cascade.
+  - Two new records: `SunShadow` (the shaders' receiver block, 400 B) and `Camera` (the camera uniform, 160 B). `crates/pipelines/tests/uniforms.rs` holds both to the exported WGSL.
+  - It covers the receiver range over the map's box (`map_box`), the splits, the texel-snapped fits, the biases, the PCF radius and the inactive and cold records.
+  - `LightSettings` gains `cascades` and `backdrop`.
+  - **`view::Camera`'s `up`, `fov_y` and `near` are now `f64`.** In `f32`, the fit's texel-snap floors flipped against the browser's.
+  - The page calls the binding's `SunShadow` once a frame and uploads the words. `cascadePolicy.ts`, `shadowData.ts`, `receiverRange.ts` and `shadowPolicy.ts` are deleted.
+- **The ground's meshes are Rust's** (`static_world::ground::mesh`): `terrain` (with the traversal overlay's tints), `skirt`, `water` and `backdrop`, as world vertices. `backdrop.ts`, `waterSurface.ts`, `addSkirt` and the terrain loop in `terrainSurface.ts` are deleted.
+- **The grass field's CPU side is Rust's** (`static_world::ground::grass`):
+  - `pack_shapes`, from each grass kind's tier meshes: the bundle's arrays, which each client reads itself;
+  - `strip_indices`, `blade_vertices`, `FIELD_SEGMENTS` and `LIMITS`;
+  - `Ground::grass_window` and `frame_params`, the per-frame window and the `GrassParams` fields.
+
+  The renderer keeps only its regrow check: it regrows when the view changes.
+- **The side's learned ground and its scar cache are Rust's** (`presentation::scars`, browser first). Each publication's ground patch is applied in `push_publication`. A renderer calls these on `Presentation`:
+  - `scars_changed()`, after which the grass regrows;
+  - `scar_regions()`, empty when the marks fit at once;
+  - `prepare_scars(region, clipped)`, which returns a `ScarUpload`: the directory's words and size, the pool's texel runs, and `ScarParams`' first 20 words;
+  - `resend_scars()`, for a renderer that holds nothing;
+  - `set_scar_reach(Ground::scar_reach_m())`, the halo.
+
+  The page's `ground.ts`, `groundPage.ts`, `groundHoles.ts`, `ScarSync` and `scarPool.ts` are deleted.
+- **Native reads the ground from the repository's own files.** `static_world::files::ground(root, map)` builds the map with the simulation's world code under the game's rules, in the map's biome (`meta.json`) and its regional finish. It is the same `Source` the page builds from `WorldView`. The layout's prop-kind parsing moved from the WASM binding into `ground::drawn_by`, so both clients use one owner. `files::placed_buildings` stages the buildings, with each building's parts and the shell kinds the manifest carries.
+- **Native's frame:** `sun-shadow → depth prepass → world → effects → fog mask → ghosts → post → fog rim`.
+  - **The sky is merged into the world pass**, as `worldPass.encode` does. The pass grows the grass (compute), draws the sky, then the terrain, the skirt, the models, the grass, the backdrop, the water, and glass last.
+  - **The scars load at the browser's submission points.** The grass window's upload comes before the build. Then comes either the view's upload, or, region by region, an upload and a submitted terrain pass for each.
+  - **The depth prepass** draws the ground before the models.
+  - **Each cascade** draws the ground's casters and the models' casters. A unit casts with the tier one coarser than it draws, and never as a card, as `drawCasters` does. The static world casts only in its caster batches.
+  - `Passes::prepare` now takes the frame's camera, and `prepare_scars` takes the presentation. `Inputs` gains the device, the shadow, the ground and the grass.
+
+### What draws, and what is left
+
+- **Draws:**
+  - the terrain, with its plots, rows, wheelings, roads, kerbs and markings, the forest floor and the river banks;
+  - the skirt and the backdrop past the map;
+  - the four cascades, cast by the ground, the units, the corpses, the wrecks and the buildings;
+  - the scars: tracks, craters, scorch and trampling, in the ground and in the grass;
+  - the grass, with its build, finish and two indexed indirect draws;
+  - the water, through the exported `worldWater`. No reel map has water, so no plate judges it.
+- **The buildings, a small addition:** they are the frame's static batches. A replay frames only the plates it draws, so on those frames it asks `resend_statics()`; a frame whose walk changed nothing names its static batches `first = NONE`. Building-module counts equal the control's on every plate.
+- **Left, and why:**
+  - *Scenery* (trees, hedgerows, dressing): the `slice20b3` lane is moving the scenery walk into Rust.
+  - *The map's props and the known props* (parked cars, lamps, fences, walls, bins, resting wrecks): the static world draws them with the scenery, not through `Frame`.
+  - *Painted marks*: the UI paints them, and a replay has no UI. The paint target stays all zeros, which is the browser's own state in the reel. Nothing would exercise a painted-marks pass yet.
+  - *Fog of war's sight*: as in step 6.
+  - *The per-region scar path* is built but not exercised by either reel: every reel frame's marks fit at once, 69 to 437 pages on market-town.
+  - *Offscreen scar regions are not skipped.* The browser projects each region and skips the ones off screen; native draws every region, which draws the same picture. Moving that cull into Rust is for when a battle needs it.
+
+### Evidence
+
+Control `throwaway/native-parity/2026-10-12T10-11-20-573Z`, captured from this branch's merged tree: the browser reads Rust's fit, meshes, grass field and scars. Native plates, pairs (control on top) and crops are in `throwaway/phase5g/` (`n2/`, `cmp/`, `critique/`).
+
+- **Counts:**
+  - Models and building modules equal the control's on all 24 plates.
+  - Effects are equal on 22 of 24. Market-town 166 and 2216 differ by step 6's tick-boundary rule (tracers 77 against 51 on 166, one puff on 2216).
+- **Plates** (`compare-screenshots`, every plate):
+
+  | | grayscale MAE | pixelmatch ratio |
+  | --- | --- | --- |
+  | market-town | 0.72–3.48 | 0.008–0.059 |
+  | paris-corner | 0.005–4.55 | 0.00004–0.073 |
+
+  Before the ground (the step 6 state against the earlier control), market-town was 2.5–14.1 MAE. The absolute-difference maps of the worst plates (market-town 2216, paris-corner 163) are lit only on the trees, the fences, the cars and the lamps, and on those objects' shadows.
+  - At full size, the tank's tracks on the gravel road behind it (market-town 864), the tank's soft shadow, the grass clumps and their colour, the field rows, and the Paris street's markings and building shadows sit where the control's do.
+- **Unprimed critique** of all 24 pairs and five crops. It was told only that the two halves are two renderers of one moment.
+  - It found the terrain, field rows, grass, shadows (no acne or banding), roads, tracks and craters, and the Paris streets the same.
+  - It found every object difference in the out-of-scope layers: trees, resting wrecks, street props, walls and fences.
+  - Its one open ground question (green in town against grey pavement) was checked at 2×: the pavement is the same in both, and the green is trees, hedges and park furniture.
+  - It rated the grass "very slightly softer" in B at low confidence.
+- **Tests:**
+  - `cargo test` passes for `presentation`, `pipelines` and `native-client` (under the lock). Clippy `-D warnings` is clean on those three and on `presentation-wasm`.
+  - The web typecheck is clean on the merged tree.
+  - The lanes' own checks are below.
+- **The lanes:**
+  - *Shadow, meshes and grass:* every output equals the deleted TypeScript bit for bit, with no ulp differences, on vectors dumped from it first.
+    - `tests/shadow.rs`: 136 fits, giving the receiver blocks and 544 caster cameras, plus the cold blocks. They cover both reel maps' boxes, ground-level to 6 km cameras, pitch from 0.12 to vertical, two lenses, three viewports, three suns, and fits with no box.
+    - `tests/ground_meshes.rs`: the terrain, the traversal overlay, the skirt, the water, the backdrop and the map box, on six maps built natively through `sim`.
+    - `tests/grass_field.rs`: the shapes and facts of all 10 grass bundles, and 80 windows with their frame words.
+    - Each test was falsified once.
+    - `view.rs` and the sun direction now use `libm`'s trig, so both clients compute the same values.
+    - `graphics-test` and `ground` pass. The `street` scene fails 3 checks: one fails on the base too, one compares an f32 half extent with 0.3 exactly and cannot pass on either side, and one looks like battle timing (not confirmed on the base, whose run timed out).
+  - *Browser frame time, shadow, meshes and grass:* six runs a side, interleaved under load (load average 7–22). Market-town is level: 24.3 against 23.8 FPS, GPU 23.5 against 26.1 ms. Paris-corner's median is 29.2 against 35.1, but single runs swung from 20 to 56 FPS, so this neither shows nor rules out a change of about ±15%. The new per-frame calls cost 0.019 ms in a micro-benchmark, and every GPU input is bit-identical.
+  - *Scars:* Rust's uploads equal the deleted TypeScript's word for word over both reels' publication streams (1,291 and 3,537 publications, including about 200 resend and hide/show cycles) and over synthetic streams that force epochs, holes, pool compaction and the regional path (1,300 region uploads). `tests/scars.rs` replays the vectors and reads every learned cell back through the directory and pool. Thirteen planted bugs each broke it. `ground`, `graphics-test` and 57 web tests pass.
+  - *Browser frame time, scars:* six interleaved runs a side, under machine load (load average 9–24 from other sessions). Market-town 25.4 against 24.3 FPS, and Paris-corner 31.9 against 32.3; both inside the noise, so no regression detected rather than a measurement. Over market-town's publications, the scars' CPU work fell from 195–254 ms to 81–118 ms.
+
+- **Native's run-to-run floor.** Two replays of unchanged code are byte-identical on Paris-corner, which has no grass. On market-town they differ in 39–2,840 scattered pixels a plate. Most are 2–18 levels, and one plate (1777) has a pixel at 44. The grass build appends clumps through atomics, so their order, and with it which blade wins a depth tie, varies from run to run. After the camera uniform moved to Rust's `camera_record` and origin/main was merged, the plates sit within that floor.
+- **After merging origin/main** (`7dc5b5b72`):
+  - `cargo test` passes for `presentation`, `pipelines` and `native-client` (under the lock). Clippy `-D warnings` and `cargo fmt --check` are clean on those three and on `presentation-wasm`.
+  - The typecheck and the 8 affected web test files (51 tests) pass.
+  - Model and building counts are still equal on all 24 plates, with effects as above.
+  - Main's own `native/client/tests/audio.rs` did not compile, because main added `Heard.shouts`. It is fixed here.
+- **Browser frame time, the merged step** (`graphics-fps`, production, headless, three interleaved runs per side under the lock, the pre-step main `494071e7c` against this branch; load average 4.5–13 from other sessions). Market-town averaged 25.1, 23.8 and 20.2 FPS against 24.5, 25.4 and 21.9, with GPU ms medians of 25.8 against 25.3. Paris-corner averaged 32.5, 35.0 and 21.7 FPS against 34.8, 34.4 and 27.9, with GPU ms medians of 20.7 against 21.2. Each adjacent pair is level within the run-to-run swing. The third pair ran at load 13 and moved both sides. The GPU time is unchanged, as bit-identical inputs predict. These are not quiet-machine numbers.
+
+### Code
+
+Native and the loader (this lane, without the merges): Rust +1,492 −438, net **+1,054**:
+- `ground.rs`, `grass.rs`, `shadow.rs` and `scars.rs`;
+- the world pass's order and its scar submissions;
+- the models' casters;
+- `files::ground` and `placed_buildings`.
+
+Docs: the native client's README.
+
+The lanes (comments and blanks excluded):
+
+| | Rust | TypeScript |
+| --- | --- | --- |
+| Shadow, meshes, grass: production | +1,011 (`shadow.rs` 424, `grass.rs` +233, `mesh.rs` 142, bindings +154) | −609 |
+| Shadow, meshes, grass: tests | +631 | −199 |
+| Scars: production | +1,160 | −933 |
+| Scars: tests | +706 | −733 |
+
+Generated: `records.gen.ts` +24. Fixtures: 1.36 MB of vectors JSON (shadow, grass, mesh digests, scars).
+
+Production code is net +2,329 lines over the step: Rust +3,225 against TypeScript −1,542, with native's Godot-free ground at +1,054. The Rust is longer than the TypeScript it replaced: rustfmt's layout and the WASM marshalling account for most of it. Godot's deletions at step 8 settle the "less code" gate.
+
+### Decisions
+
+- **Three moves went browser first in parallel lanes**, each with its own equality vectors and FPS pair, then merged. Each lane deleted the TypeScript it replaced.
+- **Native draws every scar region** rather than projecting a scissor and skipping regions off screen (`worldPass.ts`'s `scissor`). The picture is the same, and the region path is cold in both reels.
+- **The replay asks for every static batch on each frame it draws** (`resend_statics`), because it draws only the plate frames. A live client draws every frame and keeps its last static upload, as the browser does.
+- **The skirt draws through `worldOpaque`** with the same all-zero fog group as every other layer, since native has no fog of war.
+- **`view::Camera` is `f64`** (an 18b amendment), so the cascade fit matches the browser's bit for bit.
+
+### Next pickup
+
+- Re-measure the browser's frame time on a quiet machine: every pair this step was run under other sessions' load.
+- The scenery lane (`slice20b3`) brings the trees, the hedgerows and the dressing through `Frame`. The map's props and the known props come with it or next. Native's model layer already draws any static row.
+- The painted marks and fog of war's sight come once native has a UI and fog inputs.
 
 ## Step 5a: the models, built (2026-10-12, branch `phase5c`)
 
@@ -472,3 +606,256 @@ Control `2026-10-12T06-54-57-178Z`, both scenes. Scratch: `throwaway/phase5c/` (
   - Its low-confidence notes (one corpse looking more sprawled where the control's grain hides its legs; one leaning soldier's boots a pixel or two lower) were checked at zoom: grass occlusion and resolve noise.
 - **Load time.** All 367 market-town rows (27 unit appearances, their corpses, and 73 wreck looks' pieces) install in 3.2 s in a release build (49 s in a debug build).
 - **Tests.** `tests/models.rs`: a corpse row's posed body lies on the ground (falsified by posing at the bind pose: the body stood 1.71 m), and a far body stands in its far pose. `cargo test` for `native-client` (with the pipelines test under the GPU lock), `presentation` and `pipelines`, and clippy `-D warnings` on `native-client` and `presentation`, are clean. `presentation-wasm` and `godot-binding` still compile.
+
+## Step 6: effects and fog's mask, built (2026-10-12, branch `phase5e`)
+
+Native draws every effect instance and cast light a `Frame` makes, through the browser's exported `effects` pipeline, and runs fog's mask passes as `battleFrame` does. Fog of war's sight (the compute) is not built: its inputs are the static world's.
+
+### The contract
+
+- **A fog look is a presentation record** (web first). `presentation::fog` reads `presentation.fog` (`FogPresentation`, `FogStyle`), checks a style (the ranges the TS checked) and resolves it into `records::FogLook`, the fog mask passes' `FogStyleUniform`: the tint at unit luminance, the line angle in radians, the search reach. `crates/pipelines/tests/uniforms.rs` holds it to the struct in all four mask shaders (falsified by swapping two fields).
+  - The page takes it through `presentation-wasm`'s free `fog_look(styleJson)` and `resolveFogLook(style)` (`web/src/battle/sim/presentation.ts`), which throws naming the field out of range.
+  - The renderer takes words, not a style: `BattleFrameOptions.fogStyle: FogStyle` is now `fogLook: Float32Array`, and `BattleFrame.setFogStyle` is `setFogLook`. The mask pass reads its edge and rim switches from the record (`FogLook` offsets in `records.gen.ts`).
+  - Deleted from TS: `fogStyleUniform`, `validateFogStyle`, `validateFogPresentation`, `selectedFogStyle`. `FOG_EDGE_REACH_PX` is generated into `records.gen.ts` from `fog.rs`; `FOG_DISTANCE_CAP_PX` stays in `fogStyle.ts`, where the shaders splice it.
+  - `gameFog.ts` no longer checks the fixture's fog block at import; a style is checked when it is resolved (the frame build, the fog-look lab's edits).
+- **Native's frame** is `sky → depth prepass → world → effects → fog mask → ghosts → post → fog rim`, `battleFrame`'s order.
+  - New targets: `lit` (the world resolves into it, and the effects draw over it), the resolved `fog_mask`, and the two `rg8unorm` distance targets. `hdr` is now the fogged world, post's input. Depth is sampled (the effects read it).
+  - `Passes::prepare_effects(presentation, light_wrap)` uploads `Presentation::effects()` as the instance buffer and `Presentation::lights()` into the environment's `CastLights` (count, wrap, rows), which every lit material and the smoke read.
+  - The flipbooks are the browser's sheets, read by name from `flipbooks.ts` (as the DFG table is read from `dfgLut.ts`), premultiplied in their encoded bytes as `createImageBitmap(premultiply)` does, into a mipmapped `rgba8unorm-srgb` array. Mips are a 2×2 box chain; the browser resizes each level from the sheet with Chrome's "high" filter.
+  - The fog mask passes are built from the replay's look (the fixture's selected style): the distances only when the look has an edge, the rim only when it has one, the compose always.
+- **The replay reports effect counts beside model counts**: per plate, the running effects by kind, the lights, the instances by shape, and the instances drawn of those listed, against the manifest's `effectCounts`.
+
+### What draws, and what is left
+
+- **Draws:** tracers, glows, flashes, fireballs, smoke and dust flipbooks lit by the sun, the PMREM and the cast lights, smoke trails, sparks, rotor blurs (none in either reel), and the cast lights on every model material. Slice 22's lit smoke from the prefiltered environment and cast light following normal maps are drawn by the browser's own shaders here.
+- **Already on `wgpu` since step 5a:** side-colour tints, wear chips and the cook-off's moving wreck and thrown debris (all model rows the `Frame` lists).
+- **Left, and why:**
+  - *Fog of war's sight* (`fogTerrain`, `fogMerge`, `fogCull`, `fogProbe`, `fogShape`, `fogWhole`). Its input (`FogInput`: the terrain grid, foliage, the map's occluding props less those the side saw fall, and the eyes) is assembled in TS (`fogInputs.ts`, `useBattleSession`) from the static world. It needs slice 20b's static world in Rust and step 4's terrain, then a web-first move of `fogEyes`, `mapOccluders`, `knownOccluders` and `wholeWords` into `crates/presentation`. Neither reel draws fog (the graphics test hands the viewport no fog), so the browser's control runs no fog compute either and the mask is empty: native's fog-off bind group is the same state.
+  - *Emissive lamp glass, lit interiors, leaf clumps, dressing shrink, railing dither, water in shadow* belong to the static world and the ground (slice 20b and step 4).
+  - *Overlays and the fog-mask lab views:* native has no UI.
+
+### Evidence
+
+Two controls, both captured from this branch's tree: `throwaway/native-parity/2026-10-12T07-29-29-056Z` before merging main `356a0b7f4`, and `2026-10-12T08-04-37-942Z` after. Native plates, pairs (control over native) and crops are in `throwaway/phase5e/`. The plates were judged on the first; the counts were checked on both.
+
+- **Counts.**
+  - Models: equal on all 24 plates, and every listed instance drawn, as in step 5a.
+  - Effects: native draws every instance the frame lists on all 24 plates, on both controls.
+  - **Every plate whose sim time falls between ticks is equal to the browser's**: 19 of 19 on the first control, 10 of 10 on the second.
+  - **Plates drawn exactly on a tick boundary** (`simTime × 30` an integer to within 1e-13) mostly differ. On the first control 5 of 5 differ (market-town 239, 1203, 1574, 5195, 5435). On the second, 12 of 14 differ. How many plates land on a boundary varies from run to run (5 of 24 on the first, 14 of 24 on the second). The headline is therefore 19 of 24 equal and 13 of 24 equal.
+  - **It is the replay's input, not native.** `throwaway/phase5e/replay.mjs` replays the same capture through the browser's own WASM module on the same calls, and gets native's counts on every plate, including the same five differences.
+  - Effects are a pure function of the publications noted, the time and the camera: framing only the plate records changes nothing.
+  - At a boundary the effect set is discontinuous: launches from tick `k + 1` start at exactly `k / 30`. No publication set from `k − 2` to `k + 2` at times within ±1e-9 reproduces the browser's set. The capture records the sim's tick and the clock, not which publications the page's presentation had noted when it framed. The worst plate (239) has 96 streaks against 72 and 11 glows against 6; the rest are within a few instances.
+- **Plates** (`compare-screenshots`, pairs and full-size crops; target: the same effects in the same places, looking the same, wherever native draws them).
+  - The beaded rocket trail (market-town 1918), the dust behind each tank (239, 2392), the burning wrecks' columns and base fires (847, 3445–5195), the tank's gun burst and impact puffs (2392), and the fireball filling Paris 851's frame match the control in position, shape, shading and fade.
+  - Native's smoke and dust reach below where the browser's ground and buildings cut them (Paris 1263's column, the dust under market-town's tanks), because native has no ground yet.
+- **Unprimed critique** (all 24 pairs and two crops; told only that the ground and buildings are missing). It found no quad edges, banding, fringes, blending or noise errors. It said tracers, muzzle flashes, dust trails, the rocket trail, the smoke columns, the in-fireball frame, the units and the sky match. Its notes:
+  - The gun burst in crop 2392 is paler and less saturated. It sits over pale haze instead of dark grass. The premultiplied blend lays the fire over the background, and that small flipbook samples a box-filtered mip (the browser's is Chrome-resized). Close up (Paris 851) the fireball is identical. *Low priority; recheck once the ground is drawn.*
+  - Thin antennas read crisper and stepped against the haze. That is model geometry (step 5a) against a high-contrast background.
+  - Denser-looking smoke, dust that hides a tank less, and a few extra grey puffs: each sits where the browser's ground or buildings would cover or back it.
+- **Tests.**
+  - `fog.rs`: a tint changes hue and never brightness; out-of-range styles are refused by name; the search reaches one pixel past the widest edge; a hard edge with no rim needs no distances.
+  - `uniforms.rs`: as above. `records_are_current` passes.
+  - Web: `fogStyle.test.ts` (the binding: every fixture style resolves, a bad one is refused by name, the widest edge fits the cap) and `shaderExport.test.ts` (unchanged export) pass. The typecheck is clean.
+  - `cargo test` passes for `native-client` (under the lock), `presentation` and `pipelines`. Clippy `-D warnings` is clean on those three and on `presentation-wasm`.
+- **Scenes.** `fog-look` passes all its checks on the branch, with every named style resolved by Rust and tuned live: the rim, seen pixels untouched, every material path styled, units never fogged, buildings fogged whole. It needs `CARGO_TARGET_DIR` set to the worktree's target for its `/__mechanics` endpoint; without it the endpoint returns 500 on the base and the branch alike.
+- **Browser frame time** (`graphics-fps`, Paris-corner, production, headless, three runs per side interleaved, base web files against the branch's; `throwaway/perf/phase5e-{base,branch}/summary.md`). The look is written once, when the frame is built, so per-frame work is unchanged.
+
+  | | avg FPS, median (min–max) | frame ms p50 / p95 | GPU ms mean |
+  | --- | --- | --- | --- |
+  | Branch | 94.9 (80.7–97.6) | 8.34 / 16.68 | 6.56 |
+  | Base | 81.9 (76.6–87.0) | 8.40 / 17.10 | 7.46 |
+
+  No regression. The spread is the headless pacing.
+- **After merging main** (`356a0b7f4`): `cargo test` passes for `native-client` (under the lock), `presentation` and `pipelines`. Clippy `-D warnings` and `cargo fmt --check` are clean. The typecheck and the two web tests pass. Model counts equal the browser's on all 24 plates of the new control.
+
+### Code
+
+Net lines in this step, without the merge:
+
+| | Rust | TypeScript |
+| --- | --- | --- |
+| Production | +766: native client +544 (`effects.rs` 270, `fog_mask.rs` 141, the wiring); `presentation::fog`, `FogLook` and the binding +222 | −64 (the TS fog style derivation and validation are deleted) |
+| Tests | +120 (`fog.rs`'s tests, the uniforms case) | −46 (`fogStyle.test.ts` is now a binding test) |
+| Generated | | +41 (`records.gen.ts`) |
+
+Docs +9 (the native client's README).
+
+### Decisions
+
+- **The fog look moved to Rust, web first.** Native needs the look's uniform, and the browser derived it in TS. Now both read `FogLook`.
+  - The renderer API takes the resolved words (`fogLook`, `setFogLook`), not the authored style.
+  - `gameFog.ts` no longer checks the fixture's styles when it is imported. A style is checked when it is resolved. Native checks every named style (`FogPresentation::selected`).
+- **Fog of war's sight is not built.** Its inputs belong to the static world, and moving `FogInput` to Rust is its own web-first step. Neither reel draws fog, so no plate could judge it yet. The fog bind group stays all zeros, which is the browser's own state in the reel.
+- **The flipbook list is read from `flipbooks.ts`,** as the DFG table is read from `dfgLut.ts`, so the sheets have one owner. The mips are a box chain. The browser's are Chrome-resized, which matters only for small, distant flipbooks.
+- **The tick-boundary count differences are recorded, not worked around.** The replay pushes every sample up to the record's tick, as it did for the models. Changing that rule (for example, holding back the next tick at a boundary) fixed some boundary plates and broke others. No rule tried reproduced the browser.
+
+### Next pickup
+
+- **Pin the capture's presentation inputs.** Record with each frame what the page's presentation framed from: the latest publication it had noted, the exact time it framed at, and the camera it was handed. Then the replay can match it on tick-boundary frames. This is a browser capture change (`reelRun.ts`, `LabViewport`, `useBattleSession`).
+  - Check first whether the browser's effect counts and its drawn frame come from the same `presentation.frame` call on starved frames. `LabViewport` keeps the last `animated` results.
+  - `throwaway/phase5e/replay.mjs` replays a capture through the browser's WASM module, for comparing the two quickly.
+- **Fog of war's sight,** after slice 20b and step 4. Move `FogInput` into `crates/presentation` (web first), then port `fogVisibility`'s rebuild schedule and tile cull over the exported `fog*` compute pipelines. Judge it with a fog-on scene: the reel has none, so it needs a fog-look capture or a battle capture with fog.
+- **Recheck small fireballs' saturation** once the ground is drawn behind them.
+## Step 7: sound, built (2026-10-12, branch `phase5f`)
+
+### The contract
+
+- **Rust decides what is heard, once for both clients** (`crates/presentation/src/sound/`). The browser's `SoundFrame` (TypeScript) moved there whole:
+  - what plays at each launch, glance, impact, blast and cook-off, the fire and motor loops, each vehicle's engine, running gear, turret and back-up beeper, footsteps by distance walked, and unseen enemies as direction-only cues (unseen shouts included: main's new `shout` category falls to the cue table's `default`);
+  - when (the presentation clock, holds, late drops, a new battle), how loud and how coloured by distance (gain floor, air low-pass, reverb send, softened onset), and the voice budget with its stealing (loudest first, loops capped apart).
+  - Its input is the publication as the effects take it, the frame's emitters (`Frame.emitters`, each vehicle's `class` now its unit type's index, resolved through the world input's new `vehicleClass`) and the side's hearing cues. Its output is an ordered list of `Command`s: `start` a voice (sound, variant, bus, start time, gain, rate, low-pass, wet, attack, position or pan, loop), `set` a loop's parameters, `stop` a voice with a fade, `listen` from here.
+  - Its tables are `presentation.audio`, the sound catalog and the weapon rows: a derived weapon is heard as its nearest styled ancestor, now in Rust (`soundFeed.ts`'s two inheritance passes are deleted).
+- **A player only carries commands out.** It tells Rust each prepared sound's length per alternative once, and the player clock (`now`) with each call.
+  - The browser: `presentation-wasm`'s `SoundFrame` (`note(presentation)`, `hear(presentation, wall, now)`; `note_scripted` and `update_scripted` for the sound lab's script; the script's motion and listener go in as flat `Float64Array`s, not JSON, since parsing 200 soldiers' JSON every frame cost more than the sound itself). `packages/battle-audio/src/soundFrame.ts` is now the `VoiceSink` interface and a thin carrier of the JSON commands. `frameSound`, the heard-publication JSON (`sound_json`/`soundPublication`) and the TS listener rule are deleted; `cameraListener` calls Rust's `Listener::of_camera`.
+  - Native: `native/client/src/audio.rs` on `kira` 0.12 (only its `cpal` feature). A voice is a static sound on its own track under its bus (units, effects, ambience, voices), with a low-pass filter, an equal-power pan, and a send to its bus's reverb; the master goes through a limiter. Output is the device, or a buffer filled up to each player time it is told of (tests, and the replay's `--sound <wav>`).
+- **The prepared sounds** are composed by `sound::bank` (each recipe's alternatives, synthesized support under every shot of a burst, seamless mixed loops, K-weighted source calibration) from `sound::synth` (every synthesized baseline) and the clips in `assets/runtime/audio/clips`, read by a small strict 16-bit PCM WAV reader.
+- **`js_number` now writes digit ties as JavaScript does** (to even: `167.43655395507812`, not Rust's `…13`). Sound keys its variations by position text; the effects' seeds read the same helper.
+
+### What plays, and what is left
+
+- **Plays natively, from the same data:** every sound the browser's battle plays today: gunfire with recorded bursts, impacts, ricochets, blasts, cook-offs, fires, missile motors, vehicles, footsteps, the countryside bed and hearing cues, with the same mixing decisions.
+- **In the browser's battle, not native yet:** unit voice lines and barks (chatter, from [battle voices and music](../../done/battle-voices-music/README.md)) and battle music. Which line plays is already Rust's (`presentation::sound::voices`), but native loads no voice packs and streams no score; the score's mood director is still the browser's `musicDirector.ts`.
+- **Left, browser side (one owner not yet reached):** the browser's bank still synthesizes, composes and calibrates in TypeScript (`synth.ts`, `loudness.ts`, `soundBank.ts`'s mix), beside the Rust port native uses. Their sound lengths agree for all 55 battle sounds (checked), but there are two copies. Next: the bank takes Rust's samples through `presentation-wasm` (its `synthesize` is already bound), and the TS DSP is deleted (about 750 lines). The workbench and the sound scene read `SOUNDS` names, so they need the module loaded or a generated name table.
+- **Player differences, named:** kira's reverb is a Freeverb, not the browser's convolution with its own impulse; glides are 60 ms linear tweens rather than Web Audio's 60 ms time constant; kira treats −60 dB as silence (the cull is −48 dB, so nothing audible is lost).
+
+### Evidence
+
+- **Equal to the browser's decisions.**
+  - `crates/presentation/tests/fixtures/sound-vectors.json`: written by the TypeScript `SoundFrame` before it was deleted, over the sound lab's 8 s firefight (rifles, a tank's AP, HE and HMG, a ricochet, a missile and its motor, a burning wreck, cues), a pause, a cook-off with its turret's clang, a reversing truck and a new battle: 905 steps, about 3,800 commands. `every_command_equals_the_browsers` holds Rust to every one, floats within 1e-9 relative. Falsified once (the vehicle speed easing changed from 0.25 to 0.26 s).
+  - Whole captures (scratch, `throwaway/phase5f/`): both scenes of control `2026-10-11T18-47-00-317Z` driven through the TypeScript frame and the Rust frame with the same inputs and lengths. Paris-corner's 16,284 commands and market-town's 140,069 are equal (12,480 and 29,816 byte for byte before the `js_number` fix found the one difference, a position written `…13` against `…12`). Counts: paris-corner 2,158 started, 299 dropped, 336 stolen, 12 cues; market-town 7,080, 12,147, 3,673, 278.
+  - The existing browser tests run unchanged in substance on the Rust frame: `soundFrame.test.ts` (fog of war, the 100-a-side budget, holds, reset, wrecks, floor at the farthest zoom, choices, bursts, ricochets, cook-offs, helicopters, reverse), `audio`, `battleAudio`, `appAudio`; 183 audio tests across 19 files pass after merging main. Two test edits: a burst test's recipes gained the fields a catalog requires, and the distance-curve test moved to Rust.
+- **Rust behaviour tests** (`tests/sound.rs`): near and far cannon (the far sound, never under the floor, darker and wetter); the transient budget holds with the loudest kept; an unseen enemy is heard only by direction; a standing clock silences transients and holds loops; every synthesized sound peaks at 0.9, is finite and loops as declared; the bank calibrates every battle sound to −23 LUFS times its authored gain; K-weighting reads −3.01 LKFS for a full-scale 997 Hz sine at 44.1 and 48 kHz.
+- **The native player** (`native/client/tests/audio.rs`, rendered to a buffer): a cannon at 20 m sounds over the bed and more than twice as loud as at 1.5 km, the limiter holds, the shot plays out and frees its voice while the bed loops on; a shot to the east is louder on the right and one to the west on the left (falsified once by flipping the pan).
+- **Native end to end** (scratch, both captures, buffer output, no device): paris-corner 41 s and market-town 115 s rendered; peaks 0.31 and 0.45; the frame started 2,161 and 7,078 transients. These differ from the TypeScript run by 0.1–0.2 % because a launch position in today's presentation differs from the earlier capture dump in its last bit, which changes one variant hash and its length. The player never held more than the budget plus the bed, up to one render chunk (2.7 ms) late in freeing.
+- **Gates:** `cargo test` for `presentation` and `native-client` (pipelines under the GPU lock), clippy `-D warnings` on `presentation`, `presentation-wasm` and `native-client`, the web typecheck, and the audio web tests pass. `godot-binding` still compiles. `native-client`'s `tests/models.rs` needs the rifle squad's bundle textures from LFS, which this worktree does not have; it is untouched by this step.
+
+### Code
+
+Against the merged main: production Rust +3,838 (the sound module 2,568 code lines, of which the synthesized baselines are 833; the kira player 449; the WebAssembly binding 127); production TypeScript −684; tests +508; the vector fixture is one generated JSON line (1.2 MB). The step adds code until the browser's bank takes Rust's samples (about −750 TypeScript) and Godot's audio leaves at step 8.
+
+### Decisions
+
+- **Commands, not emitters, are the player contract.** `Frame.emitters` stays the sound's input; a player never reads it. Both players are as dumb as a mixer can be: placement by direction (the Web Audio panner's equal-power law) is the only geometry they do.
+- **Rust is given the prepared lengths** rather than composing the browser's buffers itself, so the browser's bank stays the browser's until it moves.
+- **Native renders offline from the replay** (`--sound <wav>`), never to the device, as the brief required. A live client opens `OutputSettings::Device`.
+- **The sound vectors are read with exact float parsing** (`serde_json`'s `float_roundtrip`, as a dev-dependency of `presentation` only): variations are keyed by position text, so a one-ulp parse error changed a variant.
+
+## Step 8: Godot deleted (2026-10-12, branch `phase5h`)
+
+The deletion half of step 8. The gates half (plates, counts and performance against the browser, release build) is still open.
+
+### The contract
+
+- **Gone:** `native/godot` (the Godot project: its GDScript, Godot shaders, parity runner, release export, bench and tests) and `native/godot-binding` (the GDExtension), with their workspace entries and the `godot` crate tree in `Cargo.lock`, and `crates/sim/examples/native_binding_probe.rs`, the binding's offline control.
+- **Two presentation calls only the binding made are removed:** `static_world::files::buildings` (a resolved `Buildings` for a renderer that walks them itself; native reads `files::placed_buildings` through `load_world`) and `View::for_detail` (a matrix-free view for Godot's own camera). Nothing on `Presentation` or either WASM module was Godot-only.
+- **The parity harness is the browser capture alone.** `web/scenes/native-parity-capture.mjs` is unchanged; Godot's runner was `parity_run.gd` and went with the project. `fps-compare.mjs` no longer reads Godot's render report, so it compares browser runs until `native/client` writes a bench. `graphics-fps` counts a running `native-client` as GPU contention. `gpu-trace.mjs` and its test name `native-client`.
+- **The browser capture fixtures the Rust tests read moved** to `fixtures/parity/capture/` (`run/paris-corner/`: capture, manifest and clip table; `poses/paris-corner-poses.json`; `publication/`: the market-town capture and both scenes' browser decodes). `sim`'s reader test, `presentation`'s pose and effect tests and `native-client`'s corpse test read them there. The Godot-only fixtures nothing else read are deleted: the height, grass-sampling, learned-ground and water vectors, Godot's own effect vectors and units section, its map copy, and the run's terrain and grass artifacts.
+- **Kept, and why:** `packages/scene-assets/blender/packs.{json,py}` name paths inside a third-party asset pack (`Unreal-Godot/`, `Godot - UE/`); they are the vendor's folder names. The spec's earlier slices, `choices.md` and `specs/done/` record what was built on Godot.
+
+### Evidence
+
+- **The harness still feeds native.** A fresh paris-corner control from this branch (`throwaway/native-parity/2026-10-12T13-44-39-698Z`) passes `native-parity-capture`. `native-client` replays it, under the lock, into six plates (`throwaway/phase5h/plates/`). Model and building-module counts equal the control's on all six. Effects are equal on four. The other two, 1195 and 1593, are drawn exactly on tick boundaries (sim ticks 959 and 1169), which is step 6's known capture rule.
+- **Tests:** `cargo build --workspace`; `cargo test` for `native-client` (all five targets, under the lock), and for `presentation`'s lib, `effects`, `poses` and `pose_behaviour`, and `sim`'s publication reader, all reading the moved fixtures; clippy `-D warnings` on `presentation`, `sim`, `native-client` and `presentation-wasm`; `cargo fmt --check`; the web typecheck; `gpuTrace.test.ts` and `frameComparison.test.ts`.
+
+### Code
+
+Net lines deleted, by language (generated `Cargo.lock` −129 apart):
+
+| | Deleted |
+| --- | --- |
+| GDScript | 11,264 |
+| Godot shaders (`.gdshader`, `.gdshaderinc`, the pose `.compute`) | 2,105 |
+| Rust (the binding, the probe and the two calls; +8 −1,340) | 1,332 |
+| Markdown (Godot's and the binding's READMEs, docs) | 560 |
+| Shell, Python, and the Godot project, scene and export files | 201 |
+| TOML (the binding's manifest, the workspace) | 16 |
+| JavaScript and TypeScript (`fps-compare`'s Godot reader; the trace test grew in formatting) | 3 |
+
+Fixtures: about 0.6 MB of Godot-only vectors and run artifacts deleted.
+
+## Step 5b: the scenery, and the ground on `Presentation` (2026-10-12, branch `native5i`)
+
+Native draws the scenery from `Frame`'s static batches (slice 20b step 4's walk) and reads its ground from `Presentation`. The map's props and the known props are the `props20b` lane's, not yet on main.
+
+### The contract
+
+- **`Presentation::place_scenery(finest: &[&[f32]])`** (amends 20b step 4) takes each scenery kind's finest tier in the renderer's world vertex (`ground::mesh::VERTEX_FLOATS`, 1 in the last float for foliage), in `scenery_kinds` order, and refuses the wrong count. Rust reads off it what the walk needs: the kind's height and reach, and a tree's trunk radius at the stump's top and its crown base (`static_world::ground::kinds`). A tree is a kind the biome names in `trees.species`.
+  - It was four numbers a kind, computed by the page (`sceneryFacts`).
+  - WASM: `place_scenery(meshes: Float32Array, floats: Uint32Array)`, the meshes one after another.
+- **`Presentation::stump_mesh(row) -> Option<&[f32]>`** is a felled tree's stump row's mesh (`Appearance.draws` 6): its kind's trunk cut at the biome's `stump_height_m`, in its bark's mean colour, the top in `felled.cut`. None for any other row, and for a shrub's or dressing's stump row, which nothing draws. WASM: `stump_mesh(row)`; the page puts it on the row (`PresentedAppearance.stump`, `WorldAppearance.stump`), and the scenery layer draws it.
+  - Deleted from TS: `sceneryFacts`, `kindSize`, `crownBase`, `trunkAt`, `stumpMesh` (`scenery/appearance.ts`), `WorldScenery.felled`, and `felled.test.ts` (its case moved to `kinds.rs`).
+- **The page places the scenery from the world's scenery art**, not from the art its buildings draw: `SimPresentation.setGround(ground, scenery: WorldScenery | null)`, which `LabViewport` passes from the world layers. Since 20b step 4 the battle had handed its presentation the models' pruned art (`mapAppearances`), which holds no scenery, so **no battle and no graphics test drew any scenery**. `native-parity-capture` now checks that every scene draws some.
+- **Native sets its ground on `Presentation`.**
+  - `files::ground(root, map)` returns what `set_ground` resolves from (`Source`, `Biome`, `Tuning`) and the simulation's terrain triangles, and no longer builds a `Ground`.
+  - `Replay::open(dir, game, library)` sets the ground, places the scenery from the bundles, then loads the world.
+  - `Ground::new` and `Grass::new` read `Presentation::ground()`; `Passes::prepare` takes the presentation.
+  - `Presentation::set_scar_reach` is deleted: `set_ground` sets the reach for both clients.
+  - The replay hands back the ground the side has seen cleared after each frame (`set_cleared`), as `LabViewport` does.
+- **Native's scenery layer** (`native/client/src/scenery.rs`) holds each scenery row and each kind's four tiers, packed as `tierMesh` packs them (shared by every row of the kind). It draws each batch from the frame's instance buffer at its first record. Routing by `draws` is `sceneryLayer.ts`'s:
+  - prepass: `felledPrepass`, `dressingPrepass`, otherwise `sceneryPrepass`;
+  - casters: `felledCaster`, otherwise `sceneryCaster`;
+  - lit: `backdropColour`, `felledColour`, `dressingColour`, otherwise `forestColour`.
+  
+  A felled tree's two records make one instance. Scenery draws after the ground in the prepass, after the models' casters in each cascade, and after the buildings in the lit pass, as `worldPass.ts` orders them. The model layer leaves rows with `draws ≠ 0` to it.
+- **The replay checks the scenery counts** (`instanceCounts[plate].scenery`: per population, kind and tier, and stumps per kind) beside the model and effect counts.
+
+### What draws, and what is left
+
+- **Draws:** the forest, the tree lines' shrubs, the scenery past the map, the forest floor's dressing (shrinking as it nears a few pixels), and felled trees with their stumps (no plate in either reel has a felled tree). All of it is shadowed and cast into the cascades as the walk lists it.
+- **Left:** the map's props and the known props (parked cars, lamps, bollards, fences, walls, hedges, benches, resting wrecks). They belong to `props20b`, which had not landed on main when this step closed. Painted marks and fog of war's sight are as in step 4.
+
+### Evidence
+
+Control `throwaway/native-parity/2026-10-12T17-33-32-749Z`, captured from this branch's tree. Native plates, pairs and crops are in `throwaway/native5i/` (`n1/`, `cmp/out/`, `cmp/crops/`).
+
+- **Equality, before the TypeScript was deleted.** A Vitest dump of the TS (V8, run on every tree, hedgerow and dressing appearance in the catalog: 13 kinds) against Rust:
+  - all four facts are equal bit for bit, and all 7 trees' stumps are equal float for float;
+  - native's `tier_mesh` equals the browser's `tierMesh` float for float on every kind's finest tier (up to 279,360 floats).
+  
+  Under Bun (JavaScriptCore), one fact differed by an ulp: JSC's `Math.hypot` is not V8's, which `js::hypot` reproduces.
+- **Counts:**
+  - Scenery counts (every population, kind and tier, and stumps) and model counts are equal on all 24 plates.
+  - Effects are equal on every plate drawn between ticks. The 7 market-town plates drawn exactly on a tick boundary differ, as in step 6.
+  - Paris-corner draws only backdrop scenery (501–628 a plate); market-town draws up to 25,659 forest, 347 shrubs, 30,208 backdrop and 2,152 dressing instances.
+- **Plates** (`compare-screenshots`, all 24):
+
+  | | grayscale MAE | pixelmatch ratio |
+  | --- | --- | --- |
+  | market-town | 0.05–0.56 (step 4: 0.72–3.48) | 0.00004–0.011 |
+  | paris-corner | 0–0.74, and 4.54 on 169 | 0–0.015, and 0.074 on 169 |
+
+  Paris 169 is the street of parked cars, all of them props.
+- **Unprimed critique** (all 24 pairs and four 2× crops, told only that they are two renderers of one moment): trees, copses and forest match in position, size, colour and shadows, and so do the shrubs, the clutter under the trees, the craters, the fields, the grass, the buildings, the effects and the units. Every difference it found is street furniture absent in native: cars, fences, walls, hedges, benches, tables, lamps, bollards, utility boxes and the static wreck hulks. It found no rendering defect in either. Its low-confidence notes (a tank's road-wheel shading, a pixel at distant soldiers, faint grass speckle) are within native's run-to-run floor (step 4).
+- **The browser regression:** the base (`003002e0c`) capture of market-town drew 0 scenery on all 18 plates, and its plates have no trees. The branch's capture draws them.
+- **Tests:**
+  - `cargo test` passes for `presentation`, `pipelines` and `native-client` (under the lock).
+  - `kinds.rs` holds three cases, and `native/client/tests/scenery.rs` checks that every tree kind's stump row is its trunk cut at the biome's height. That test was falsified once (stump cut 10 % high).
+  - Clippy `-D warnings` and `cargo fmt --check` are clean.
+  - The web typecheck and oxlint are clean, and 8 affected web test files pass (48 tests).
+  - `native-parity-capture` passes on both scenes.
+
+### Code
+
+Net lines, comments and blanks excluded:
+
+| | Rust | TypeScript and JS |
+| --- | --- | --- |
+| Production | +533 −57 in-module tests = **+476**: native `scenery.rs` 240, `ground/kinds.rs` 119, the rest the wiring (the replay's ground and scenery, the passes, the counts) | **−75** (TS +43 −119, TSX +1) |
+| Tests | +109 (`kinds.rs` cases, `tests/scenery.rs`) | −29 (`felled.test.ts`); the capture scene's check +5 |
+
+Generated: `records.gen.ts` (one comment). Docs: the native client's and `presentation-wasm`'s READMEs.
+
+### Decisions
+
+- **The scenery facts and the stump moved to Rust, browser first**, rather than being ported a second time into the native client. Each renderer still packs a bundle's tier into its own vertex (`tierMesh`, `tier_mesh`), as each packs models.
+- **A tree is a biome species** in Rust. The page used the catalog's `scenery: "tree"`; the two agree on every kind.
+- **The page's scenery art is the world layers' `scenery`** (the biome's appearances), handed with the ground. It is no longer whatever `setBuildings` was given.
+- **Native shares a kind's tiers across its rows.** The browser uploads them once per row: up to five copies of each kind.
+- **Native draws the scenery from the frame's instance buffer.** It keeps no buffer per batch key. That is right for the replay, which resends the statics on every drawn frame. A live client needs per-key buffers, as the buildings do (step 4's decision).
+- **The cleared ground is still handed back by the renderer** (20b step 4's decision; the lab can hide it). Native's replay does what the page does. Folding it into `Presentation` with a "shown" switch would remove that round trip from both clients.
+
+### Next pickup
+
+- Merge `props20b` when it lands and draw the props' batches. The model layer already loads any static row, and the critique's differences are all props.
+- Then step 8's gates: plates, counts and performance on both scenes in a release build.

@@ -13,6 +13,7 @@ use std::collections::HashMap;
 
 use presentation::presentation::{Presentation, GHOST_PASS};
 use presentation::records::{Joint, NONE};
+use presentation::static_world::batches::{CAST_PASS, VIEW_PASS};
 use presentation::view::IMPOSTOR;
 use wgpu::*;
 
@@ -23,6 +24,9 @@ use crate::pipelines::Pipelines;
 pub const VERTEX_BYTES: usize = 48;
 /// Material rows a material takes in the materials buffer (`MATERIAL_ROWS`).
 const MATERIAL_ROWS: usize = 5;
+/// Shadow casters draw this many tiers coarser than the view: a cascade
+/// texel is larger than the detail between tiers (`CASTER_COARSER`).
+const CASTER_COARSER: usize = 1;
 
 /// How a material's surface is drawn, in the order a mesh's indices take
 /// (`SURFACE_CLASSES`).
@@ -95,6 +99,8 @@ enum Kind {
 
 struct Row {
     kind: Kind,
+    /// A drawable of the static world: it casts only in its caster batches.
+    placed: bool,
     tiers: Vec<Drawable>,
     /// A body's coarsest mesh posed in its far pose: what its impostor card
     /// shows, drawn in the card's place.
@@ -117,7 +123,12 @@ impl Row {
 struct Run {
     row: usize,
     tier: usize,
-    ghost: bool,
+    /// Drawn in view, cast into the sun's cascades, or a placement ghost
+    /// (`Batch.pass`).
+    pass: u32,
+    /// The tier it casts with, if it casts: a unit in view casts one tier
+    /// coarser and never as a card; the static world in its caster batches.
+    caster: Option<usize>,
     first: u32,
     count: u32,
 }
@@ -359,7 +370,7 @@ fn material_rows(m: &Material, layer: &mut dyn FnMut(&str) -> f32) -> [f32; MATE
         _ => 0.0,
     };
     let w = m.wear.unwrap_or([0.0, 0.0, 0.0, 1.0]);
-    let b = m.base_color;
+    let b = m.base_color.map(|c| c as f32);
     [
         b[0],
         b[1],
@@ -476,6 +487,11 @@ impl Models {
         let mut layers = Layers::default();
         let mut rows = Vec::new();
         for (r, a) in world.appearances.iter().enumerate() {
+            // The scenery's rows are the scenery layer's (`scenery.rs`).
+            if a.draws != 0 {
+                rows.push(None);
+                continue;
+            }
             let (name, state) = (text(a.name, a.name_len), text(a.state, a.state_len));
             if !bundles.contains_key(name) {
                 let bundle = library.bundle(name)?;
@@ -511,12 +527,14 @@ impl Models {
                         .collect();
                     Row {
                         kind: Kind::Corpse,
+                        placed: false,
                         tiers,
                         card: None,
                     }
                 }
                 Shape::Skinned(tiers) => Row {
                     kind: Kind::Soldier,
+                    placed: false,
                     card: match tiers.last() {
                         Some(m) => Some(single(&posed_mesh(m, &rest()?), Some(0))),
                         None => None,
@@ -547,6 +565,7 @@ impl Models {
                         .collect();
                     Row {
                         kind: Kind::Vehicle,
+                        placed: false,
                         tiers,
                         card: None,
                     }
@@ -564,6 +583,7 @@ impl Models {
                     };
                     Row {
                         kind: Kind::Piece,
+                        placed: a.placed != 0,
                         tiers: s.tiers.iter().map(|m| single(m, Some(0))).collect(),
                         card: None,
                     }
@@ -687,12 +707,12 @@ impl Models {
         self.runs.clear();
         self.drawn = Drawn::default();
         for b in &frame.batches {
-            if b.first != NONE {
-                self.drawn.listed += b.count;
-            }
             let Some(Some(row)) = self.rows.get(b.appearance as usize) else {
                 continue;
             };
+            if b.first != NONE && b.pass != CAST_PASS {
+                self.drawn.listed += b.count;
+            }
             if b.first == NONE || b.count == 0 {
                 continue;
             }
@@ -702,6 +722,24 @@ impl Models {
                 continue;
             };
             let ghost = b.pass == GHOST_PASS;
+            let caster = match (row.placed, b.pass) {
+                (true, CAST_PASS) => Some(tier),
+                (false, VIEW_PASS) if !impostor => {
+                    Some((tier + CASTER_COARSER).min(row.tiers.len().saturating_sub(1)))
+                }
+                _ => None,
+            };
+            self.runs.push(Run {
+                row: b.appearance as usize,
+                tier,
+                pass: b.pass,
+                caster,
+                first: b.first,
+                count: b.count,
+            });
+            if b.pass == CAST_PASS {
+                continue;
+            }
             let d = &mut self.drawn;
             match (ghost, row.kind) {
                 (true, _) => d.ghosts += b.count,
@@ -712,14 +750,12 @@ impl Models {
             }
             d.impostors += if impostor { b.count } else { 0 };
             d.triangles += u64::from(b.count * drawable.count / 3);
-            self.runs.push(Run {
-                row: b.appearance as usize,
-                tier,
-                ghost,
-                first: b.first,
-                count: b.count,
-            });
         }
+    }
+
+    /// The frame's instances: the scenery draws its batches' runs from them.
+    pub fn instances(&self) -> &Buffer {
+        &self.instances
     }
 
     /// What the last prepared frame draws.
@@ -732,13 +768,20 @@ impl Models {
         ("modelLayout", &self.group)
     }
 
-    fn each_run(&self, pass: &mut RenderPass, ghost: bool, range: impl Fn(&Drawable) -> Part) {
+    /// Every run `tier_of` gives a tier, through `range` of its drawable.
+    fn each_run(
+        &self,
+        pass: &mut RenderPass,
+        tier_of: impl Fn(&Run) -> Option<usize>,
+        range: impl Fn(&Drawable) -> Part,
+    ) {
         pass.set_vertex_buffer(1, self.instances.slice(..));
-        for run in self.runs.iter().filter(|r| r.ghost == ghost) {
+        for run in &self.runs {
+            let Some(tier) = tier_of(run) else { continue };
             let Some(row) = &self.rows[run.row] else {
                 continue;
             };
-            let Some(d) = row.drawable(run.tier) else {
+            let Some(d) = row.drawable(tier) else {
                 continue;
             };
             let part = range(d);
@@ -758,12 +801,19 @@ impl Models {
     /// One surface class of every run but the ghosts, into a pass whose
     /// pipeline and groups are set.
     pub fn draw(&self, pass: &mut RenderPass, surface: Surface) {
-        self.each_run(pass, false, |d| d.part(surface));
+        let view = |r: &Run| (r.pass == VIEW_PASS).then_some(r.tier);
+        self.each_run(pass, view, |d| d.part(surface));
+    }
+
+    /// One surface class of every caster into a cascade (`drawCasters`).
+    pub fn draw_casters(&self, pass: &mut RenderPass, surface: Surface) {
+        self.each_run(pass, |r| r.caster, |d| d.part(surface));
     }
 
     /// The placement ghosts: whole meshes, every surface.
     pub fn draw_ghosts(&self, pass: &mut RenderPass) {
-        self.each_run(pass, true, |d| Part {
+        let ghost = |r: &Run| (r.pass == GHOST_PASS).then_some(r.tier);
+        self.each_run(pass, ghost, |d| Part {
             first: d.parts[CUTOUT].first,
             count: d.count,
         });
@@ -771,6 +821,6 @@ impl Models {
 
     /// Whether any run is a ghost.
     pub fn has_ghosts(&self) -> bool {
-        self.runs.iter().any(|r| r.ghost)
+        self.runs.iter().any(|r| r.pass == GHOST_PASS)
     }
 }

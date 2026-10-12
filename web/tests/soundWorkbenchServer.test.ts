@@ -7,7 +7,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
 import { SoundWorkbenchStore, soundWorkbenchMiddleware } from "../../apps/sound-workbench/server";
-import { validateSoundCatalog, type SoundCatalog } from "@packages/battle-audio/src/catalog";
+import {
+  recording,
+  validateSoundCatalog,
+  type SoundCatalog,
+} from "@packages/battle-audio/src/catalog";
 import { SOUNDS } from "@packages/battle-audio/src/synth";
 import {
   ALL_TRIGGERS,
@@ -17,9 +21,13 @@ import {
 } from "@packages/battle-audio/src/voices/voiceCatalog";
 import { recordVerdicts, type TakeRecord } from "@packages/battle-audio/tools/generate/lock";
 import {
+  GenerationQueue,
+  musicWorkbenchMiddleware,
+  type GenerateRunner,
+} from "../../apps/sound-workbench/generation";
+import {
   VoiceWorkbenchStore,
   voiceWorkbenchMiddleware,
-  type GenerateRunner,
 } from "../../apps/sound-workbench/voiceStore";
 
 vi.mock("node:fs/promises", async (importOriginal) => ({
@@ -56,6 +64,7 @@ async function fixture() {
     defaults: {},
     impacts: {},
     effects: {},
+    music: { moods: { menu: [], tension: [], combat: [] }, tracks: {} },
   };
   const text = JSON.stringify(baseline); // Preserve unformatted bytes on no-op.
   await writeFile(join(root, "fixtures/sounds.json"), text);
@@ -319,7 +328,7 @@ test.each(["source", "clip"])(
     const source = await installRecording(root);
     const initial = (await request("snapshot")).body;
     const catalog: SoundCatalog = structuredClone(initial.catalog);
-    if (kind === "source") catalog.sources.master.label = "Edited master";
+    if (kind === "source") recording(catalog, "master").label = "Edited master";
     else catalog.clips.reload.label = "Edited reload";
     // The request must reach the immutable-provenance guard, not generic schema validation.
     expect(() => validateSoundCatalog(catalog)).not.toThrow();
@@ -406,7 +415,11 @@ async function voiceFixture(
     }),
   );
   const open = async () => {
-    const store = new VoiceWorkbenchStore(root, (value) => validateVoiceCatalog(value, null), run);
+    const store = new VoiceWorkbenchStore(
+      root,
+      (value) => validateVoiceCatalog(value, null),
+      new GenerationQueue(run),
+    );
     const middleware = voiceWorkbenchMiddleware(store);
     const server = createServer(
       (req, res) =>
@@ -420,7 +433,7 @@ async function voiceFixture(
     const address = server.address();
     if (!address || typeof address === "string") throw new Error("No local server address");
     const origin = `http://127.0.0.1:${address.port}`;
-    return async (endpoint: string, body?: unknown) => {
+    return async (endpoint: string, body?: unknown, raw = false) => {
       const response = await fetch(
         `${origin}/__sound-workbench/voices/${endpoint}`,
         body === undefined
@@ -431,7 +444,11 @@ async function voiceFixture(
               body: JSON.stringify(body),
             },
       );
-      return { status: response.status, body: await response.json() };
+      return {
+        status: response.status,
+        type: response.headers.get("content-type"),
+        body: raw ? await response.text() : await response.json(),
+      };
     };
   };
   return { root, text, open };
@@ -562,6 +579,8 @@ test("voice edits publish line text, descriptions and retakes only", async () =>
   catalog.roles.crew.lines.move.steady[0] = "Moving out.";
   catalog.sets.tank.voices[1].description = "Young loader";
   catalog.retakes[LEAD_MOVE] = 1;
+  // "None of these" asks for a voice's design retake.
+  catalog.retakes["tank/soldier/design"] = 1;
   const review = await request("preview", { revision: initial.revision, catalog });
   expect(review.status).toBe(200);
   expect(await readFile(join(fixture.root, "fixtures/voices.json"), "utf8")).toBe(fixture.text);
@@ -571,7 +590,7 @@ test("voice edits publish line text, descriptions and retakes only", async () =>
   });
   expect(saved.status).toBe(200);
   expect(saved.body.catalog.roles.crew.lines.move.steady[0]).toBe("Moving out.");
-  expect(saved.body.catalog.retakes[LEAD_MOVE]).toBe(1);
+  expect(saved.body.catalog.retakes).toEqual({ [LEAD_MOVE]: 1, "tank/soldier/design": 1 });
   // Who speaks, with which voice and where, is not this editor's to change.
   for (const mutate of [
     (c: VoiceCatalog) => (c.sets.tank.voices[0].voice_id = "other"),
@@ -586,4 +605,124 @@ test("voice edits publish line text, descriptions and retakes only", async () =>
       (await request("preview", { revision: saved.body.revision, catalog: changed })).status,
     ).toBe(400);
   }
+});
+
+test("a design candidate is played through the tool's preview, and pick runs the tool's pick", async () => {
+  const runs: string[][] = [];
+  let root = "";
+  const fixture = await voiceFixture(async (args) => {
+    runs.push(args);
+    if (args[0] === "preview") {
+      await mkdir(join(root, "throwaway/voice-design/tank/soldier"), { recursive: true });
+      await writeFile(join(root, "throwaway/voice-design/tank/soldier/2.mp3"), "candidate-two");
+    }
+    if (args[0] === "pick") {
+      // The tool saves the voice and writes its id into voices.json.
+      const catalog = voiceCatalog();
+      catalog.sets.tank.voices[1].voice_id = "picked-id";
+      await writeFile(join(root, "fixtures/voices.json"), JSON.stringify(catalog, null, 2));
+    }
+    return 0;
+  });
+  root = fixture.root;
+  const lock = await lockOf(root);
+  const candidate = (n: number) => ({
+    generated_voice_id: `g${n}`,
+    raw: `assets/source/audio/voices/design/tank/soldier/candidate-${n}.mp3`,
+    raw_sha256: "r".repeat(64),
+    duration_s: 8 + n,
+    transcript: "heard",
+    match: { score: 0.9, missing: [], overlong: false, flagged: false },
+  });
+  lock.designs = {
+    "tank/soldier": {
+      description: "Crew",
+      text: "audition",
+      model: "m",
+      retake: 0,
+      design_key: "k",
+      date: "2026-10-12",
+      candidates: [1, 2, 3].map(candidate),
+    },
+  };
+  await writeFile(join(root, "fixtures/voices.lock.json"), JSON.stringify(lock));
+  const request = await fixture.open();
+  const snapshot = (await request("snapshot")).body;
+  expect(snapshot.designs["tank/soldier"].candidates[1]).toEqual({
+    transcript: "heard",
+    score: 0.9,
+    duration_s: 10,
+  });
+
+  const audio = await request("candidate/tank/soldier/2", undefined, true);
+  expect(audio).toMatchObject({ status: 200, type: "audio/mpeg", body: "candidate-two" });
+  // Rendered once per voice per session.
+  await request("candidate/tank/soldier/2", undefined, true);
+  expect(runs).toEqual([["preview", "tank/soldier"]]);
+  expect((await request("candidate/tank/nobody/1", undefined, true)).status).toBe(400);
+
+  const picked = await request("pick", { voice: "tank/soldier", candidate: 2 });
+  expect(picked.status).toBe(200);
+  expect(runs.at(-1)).toEqual(["pick", "tank/soldier", "2"]);
+  expect(picked.body.catalog.sets.tank.voices[1].voice_id).toBe("picked-id");
+  // Replacing a voice already picked runs the tool's pick with --replace, then
+  // remakes that voice's takes (the old voice's takes are superseded) and the set's pack.
+  const replaced = await request("pick", { voice: "tank/soldier", candidate: 3, replace: true });
+  expect(replaced.status).toBe(200);
+  await vi.waitFor(() => expect(runs.at(-1)?.[0]).toBe("pack"));
+  expect(runs.slice(-3)).toEqual([
+    ["pick", "tank/soldier", "3", "--replace"],
+    ["voices", "--set", "tank", "--voice", "soldier"],
+    ["pack", "--set", "tank"],
+  ]);
+  expect((await request("pick", { voice: "tank/soldier", candidate: 4 })).status).toBe(400);
+
+  const designed = await request("design", { voice: "tank/soldier" });
+  expect(designed.body.job.args).toEqual(["design", "tank/soldier"]);
+});
+
+test("the Music tab regenerates one named battle track through the generation tool's queue", async () => {
+  const ran: string[][] = [];
+  let finish = () => {};
+  const queue = new GenerationQueue(
+    (args) =>
+      new Promise((resolve) => {
+        ran.push(args);
+        finish = () => resolve(0);
+      }),
+  );
+  const middleware = musicWorkbenchMiddleware(queue);
+  const server = createServer(
+    (req, res) =>
+      void middleware(req, res, () => {
+        res.statusCode = 404;
+        res.end();
+      }),
+  );
+  servers.push(server);
+  await new Promise<void>((done) => server.listen(0, "127.0.0.1", done));
+  const address = server.address();
+  if (!address || typeof address === "string") throw new Error("No local server address");
+  const origin = `http://127.0.0.1:${address.port}`;
+  const post = (body: unknown) =>
+    fetch(`${origin}/__sound-workbench/music/regenerate`, {
+      method: "POST",
+      headers: { Origin: origin, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+  expect((await post({ track: "battlefield2_menu" })).status).toBe(400);
+  const response = await post({ track: "combat_2" });
+  expect(response.status).toBe(200);
+  expect((await response.json()).job.args).toEqual(["music", "--track", "combat_2"]);
+  // A second command waits for the first: the tool's files keep one writer.
+  await post({ track: "tension_dark_1" });
+  await vi.waitFor(() => expect(ran).toHaveLength(1));
+  finish();
+  await vi.waitFor(() => expect(ran).toHaveLength(2));
+  finish();
+  await vi.waitFor(async () => {
+    const { jobs } = await (await fetch(`${origin}/__sound-workbench/music/jobs`)).json();
+    expect(jobs.map((job: { status: string }) => job.status)).toEqual(["done", "done"]);
+  });
 });

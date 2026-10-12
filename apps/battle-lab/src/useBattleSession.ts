@@ -54,7 +54,6 @@ import {
 import { gameBiome } from "./gameBiome";
 import { mapAppearances, useMapAppearances } from "./gameAppearances";
 import { gameStandIns } from "./gameModels";
-import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import { gameHud } from "@web/battle/present/hudTheme";
 import { gameOrderFlash, gameXray } from "./gameOverlay";
@@ -64,7 +63,7 @@ import {
   sameReveal,
   type RevealedOrders,
 } from "@web/battle/present/orderReveal";
-import { topSpeedKmh, type Faction } from "@packages/scene-assets/src/units";
+import type { Faction } from "@packages/scene-assets/src/units";
 import {
   DEFAULT_PLACEMENT_FACING,
   PurchasePlacementControl,
@@ -104,18 +103,19 @@ import { describeUnits, gamePose, type PoseRules } from "./benchmark/unitPresent
 import { useSimSession, type ScriptedSim } from "./useSimSession";
 import { groundUnderRay, useMapBuildings, useStaticWorld } from "./useStaticWorld";
 import { createBattleAudio } from "./soundFeed";
-import { frameCounts, frameSound, presentationWorld, presentedCamera } from "./presentedFrame";
+import { UnitResponses } from "./unitResponses";
+import { assignments as voiceAssignments } from "@fixtures/voices.json";
+import { factionVoices } from "@packages/battle-audio/src/voices/voiceCatalog";
+import { frameCounts, presentationWorld, presentedCamera } from "./presentedFrame";
 import { gameLight } from "./gameLight";
 import type { ObservationDecoder } from "@web/battle/sim/presentation";
 import type { ViewportCamera } from "@packages/renderer-core/src/cameraUniform";
-import type { SoundMotion } from "@packages/battle-audio/src/soundFrame";
 import { useAppAudio } from "./AppAudio";
 import { useFeed } from "./feed";
 import { posedSockets, type BenchPose } from "./workbench/benchWorld";
 import { describeProps } from "./benchmark/propPresentation";
 import { describeEffects } from "./benchmark/effectPresentation";
 import type { Vec3 } from "math";
-import type { FelledTree } from "@packages/battle-renderer/src/scenery/felled";
 import {
   GHOST_BLOCKED,
   GHOST_OWN,
@@ -133,11 +133,6 @@ const PLACED_MATCH_M = 0.5;
 
 /** Ground heights the page remembers before starting afresh. */
 const SURFACE_HEIGHTS_MAX = 1 << 20;
-
-/** Seconds a cook-off's pieces stay drawn, still, before the whole wreck
- *  takes over: the swap rebuilds the side's structures, and this keeps the
- *  pieces drawn until it has. */
-const LANDED_HOLD_S = 0.5;
 
 /** `derive` of the last input it was given, derived again only when the
  *  input's reference changes (the decoder keeps an unchanged list's), so a
@@ -174,7 +169,7 @@ export interface BattleSessionOptions {
    *  world, so one seen destroyed leaves the map and its known remains (a
    *  ruin, rubble, a lighter wreck) stand in its place. */
   destroyable?: "apart";
-  /** Play the battle's sound (heard from the camera `hear` is given). */
+  /** Play the battle's sound (heard from the last frame's camera). */
   sound?: boolean;
   /** Menus and loading covers suspend command input without losing selection. */
   inputEnabled?: boolean;
@@ -235,6 +230,8 @@ export function useBattleSession({
     [sound, rules.tick_hz, appAudio],
   );
   useEffect(() => () => audio?.dispose(), [audio]);
+  // The units' answers to their owner (R1–R12), one battle's at a time.
+  const responses = useRef<UnitResponses | null>(null);
   // The presentation notes every publication for the effects as it decodes
   // it (`presentation.ts`); sound hears the same, and the side's structures
   // leave out a wreck it draws moving (a cook-off).
@@ -246,15 +243,35 @@ export function useBattleSession({
       if (presentation) {
         const moving = [...presentation.movingWrecks()];
         setMovingWrecks((now) => (now.join() === moving.join() ? now : moving));
-        const heard = audio && presentation.soundPublication();
-        if (heard) audio.note({ ...heard, audible: o.audible });
+        audio?.note(presentation.wasm);
       }
+      // An enemy kind's voice set loads once the side first identifies one.
+      audio?.identified(o.identified.map((unit) => unit.kind));
+      responses.current?.observed(o);
       onDecoded?.(o, digest);
     },
     [audio, onDecoded],
   );
   const sim = useSimSession({ scenario, seed, onDecoded: noteDecoded, replay, scripted, prepared });
   presentationRef.current = sim.client?.presentation ?? null;
+  const faction = skirmish ? skirmish.factions[side === "blue" ? 0 : 1] : null;
+  useEffect(() => {
+    responses.current =
+      audio && sim.client ? new UnitResponses(audio, units, faction, rules.tick_hz) : null;
+  }, [audio, sim.client, units, faction, rules.tick_hz]);
+  // A shout heard in the open is a bark in its kind's set for its side's
+  // faction; an unseen enemy's is drawn from the enemy faction's sets. Of
+  // those, only the sets of kinds fielded or identified load.
+  // Outside a skirmish the factions are unknown, so shouts are silent.
+  const enemy = skirmish ? skirmish.factions[side === "blue" ? 1 : 0] : null;
+  useEffect(() => {
+    if (!audio || !faction || !enemy) return;
+    const rows = units.ids.map((id) => ({ id, factions: units.type(id).roster?.factions ?? [] }));
+    audio.speakers({
+      own: factionVoices(voiceAssignments, rows, faction),
+      enemy: factionVoices(voiceAssignments, rows, enemy),
+    });
+  }, [audio, units, faction, enemy]);
   const { observation } = sim;
   const contactPresentation = useMemo(
     () => (sim.client ? new ContactPresentation(rules.tick_hz, gameContactStyle.fade_s) : null),
@@ -299,7 +316,11 @@ export function useBattleSession({
   const control = useUnitControl(
     replay || scripted ? null : sim.client,
     observation,
-    noteOrder,
+    {
+      onIssue: noteOrder,
+      onAck: (order, ack, queued) => responses.current?.acknowledged(order, ack, queued),
+      onSelect: (added, clicked) => responses.current?.selected(added, clicked),
+    },
     inputEnabled,
   );
   const [purchasePlacement] = useState(() => new PurchasePlacementControl());
@@ -530,8 +551,6 @@ export function useBattleSession({
   const drawnAt = useRef(new Map<number, Readonly<Vec3>>());
   const drawnEnemyAt = useRef(new Map<number, Readonly<Vec3>>());
   const readouts = useRef<ReadoutLayerHandle>(null);
-  // The last frame's clock and drawn motion, which sound hears at the camera.
-  const heard = useRef<{ clock: number; motion: SoundMotion } | null>(null);
   // The models layer installs only what the battle draws as models.
   const modelAppearances = useMemo<InstalledAppearances | null>(
     () =>
@@ -599,19 +618,6 @@ export function useBattleSession({
       [],
     ),
   );
-  // The trees the side knows have fallen, each from the start of the tick
-  // it fell (the clock is ticks over tick_hz, as the effects' are). The
-  // decoder keeps an unchanged list's reference, and so does this.
-  const tickHz = rules.tick_hz;
-  const felled = useMemo(
-    () =>
-      byReference(
-        (fallen: ObservationView["fallenBodies"]): readonly FelledTree[] =>
-          fallen.map((f) => ({ prop: f.prop, toward: f.toward, fellAt: (f.tick - 1) / tickHz })),
-        [],
-      ),
-    [tickHz],
-  );
   const frame = useCallback(
     (now: number, viewport: ViewportCamera): ViewportFrame | null => {
       // React's `observation` only says the session has a battle (it is reset
@@ -667,13 +673,11 @@ export function useBattleSession({
       drawn.current = sideInstances(presented, own, enemies, published, units);
       drawnAt.current = new Map([...own].map(([id, u]) => [id, u.position]));
       drawnEnemyAt.current = new Map([...enemies].map(([id, u]) => [id, u.position]));
-      if (audio) heard.current = { clock: time, motion: frameSound(presented, published, units) };
       const { models: counts, effects: effectCounts } = frameCounts(presented);
       return {
         picks: drawn.current.picks,
         presented,
         counts,
-        felled: felled.of(published.fallenBodies),
         clock: time,
         effectCounts,
         ground: sim.ground.current,
@@ -681,7 +685,6 @@ export function useBattleSession({
     },
     [
       observation,
-      felled,
       sim.latest,
       sim.ground,
       presentation,
@@ -698,14 +701,11 @@ export function useBattleSession({
       surfaceZ,
     ],
   );
-  /** Sound for the last frame, heard from `camera`: call once a frame. */
-  const hear = useCallback(
-    (camera: Camera3DParams) => {
-      const h = heard.current;
-      if (audio && h) audio.update(h.clock, h.motion, camera);
-    },
-    [audio],
-  );
+  /** Sound for the last frame, heard from its camera: call once a frame. */
+  const hear = useCallback(() => {
+    const presentation = sim.client?.presentation;
+    if (audio && presentation) audio.update(presentation.wasm);
+  }, [audio, sim.client]);
 
   const semanticPick = useCallback(
     (pick: LabPick): PointerPick | null => {
@@ -1076,12 +1076,14 @@ export function useBattleSession({
       const per = Math.max(1, Math.round(binM / g.cellM));
       const bins = new Map<number, number>();
       let cells = 0;
-      g.forEachMarked((i, j) => {
-        if (g.cell(i, j).crater < 64) return;
+      const marked = g.markedCells();
+      for (let k = 0; k < marked.length; k += 2) {
+        if ((marked[k + 1] & 255) < 64) continue;
+        const [i, j] = [marked[k] % g.cols, Math.floor(marked[k] / g.cols)];
         cells++;
         const key = Math.floor(j / per) * g.cols + Math.floor(i / per);
         bins.set(key, (bins.get(key) ?? 0) + 1);
-      });
+      }
       let densest: [number, number] | null = null;
       let most = 0;
       for (const [key, n] of bins)

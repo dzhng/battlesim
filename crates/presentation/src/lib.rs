@@ -7,10 +7,14 @@
 //! it never sees past fog of war, and it never touches the simulation, so
 //! tuning it never moves a digest or a replay.
 pub mod effects;
+pub mod fog;
 pub mod light;
 pub mod presentation;
 pub mod records;
+pub mod scars;
 pub mod seed;
+pub mod shadow;
+pub mod sound;
 pub mod static_world;
 pub mod units;
 pub mod view;

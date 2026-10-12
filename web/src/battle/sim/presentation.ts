@@ -4,7 +4,11 @@
  * interpolates, poses and makes the effects, and walks the static world;
  * the page hands the frame's views straight to the renderer and reads the
  * UI's facts from them. */
-import init, { Presentation, light_records } from "@wasm/presentation/presentation_wasm.js";
+import init, {
+  Presentation,
+  fog_look,
+  light_records,
+} from "@wasm/presentation/presentation_wasm.js";
 import wasmUrl from "@wasm/presentation/presentation_wasm_bg.wasm?url";
 import {
   APPEARANCE_WORDS,
@@ -20,8 +24,8 @@ import {
   type LightPresentation,
   type ResolvedLight,
 } from "@packages/battle-renderer/src/light/sceneLight";
+import type { FogStyle } from "@packages/battle-renderer/src/frame/fogStyle";
 import type { Articulation } from "@packages/scene-assets/src/articulation";
-import type { HeardPublication } from "@packages/battle-audio/src/soundFrame";
 import {
   emptyBuildingWalkStats,
   type BuildingWalkStats,
@@ -36,9 +40,27 @@ import {
   type SceneBuildings,
 } from "@packages/battle-renderer/src/models/buildingReferences";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
+import {
+  setGround,
+  type GroundInput,
+  type PresentedGround,
+} from "@packages/battle-renderer/src/terrain/terrainSurface";
+import { tierMesh } from "@packages/battle-renderer/src/scenery/appearance";
+import { concatMeshes, type Mesh } from "@packages/battle-renderer/src/mesh";
+import { STUMP } from "@packages/battle-renderer/src/frame/sceneryLayer";
+import type { WorldScenery } from "@packages/battle-renderer/src/scene";
+import {
+  NO_SCENERY_WALK,
+  type SceneryWalkStats,
+} from "@packages/battle-renderer/src/frame/sceneryLayer";
 import { TEMPLATE_STATES, type TemplateState } from "@packages/scene-assets/src/templateLibrary";
 import { countedFetch } from "../../downloads";
-import type { ObservationLayout, ObservationView } from "./observationView";
+import type {
+  GroundMarks,
+  ScarRegion,
+  ScarUpload,
+} from "@packages/battle-renderer/src/frame/scarTexture";
+import type { GroundLayout, ObservationLayout, ObservationView } from "./observationView";
 
 let loaded: Promise<{ memory: WebAssembly.Memory }> | null = null;
 let memory: WebAssembly.Memory | null = null;
@@ -68,6 +90,15 @@ export function loadPresentation(): Promise<unknown> {
 export async function resolveLight(settings: LightPresentation): Promise<ResolvedLight> {
   await loadPresentation();
   return resolvedLight(settings, light_records(JSON.stringify(settings)));
+}
+
+/** A `presentation.fog` style checked and resolved by the presentation crate
+ *  (`presentation::fog`) into the `FogLook` record the fog mask passes
+ *  upload as it is; throws naming a field out of range. Needs the module
+ *  loaded, as it is once a frame is built (`resolveLight`). */
+export function resolveFogLook(style: FogStyle): Float32Array {
+  if (!memory) throw new Error("resolveFogLook: the presentation module is not loaded");
+  return fog_look(JSON.stringify(style));
 }
 /** 18b's camera: the eye and what it looks at (m, sim), the screen's up,
  *  the vertical field of view (rad), the near plane (m) and the drawing
@@ -134,9 +165,28 @@ export interface PresentedAppearance {
   state: string;
   lies: number;
   placed: boolean;
+  /** What draws it (`Appearance.draws`): 0 a model or kit module, else the scenery. */
+  draws: number;
+  /** A felled tree's stump row's mesh (`draws` 6; `Presentation::stump_mesh`). */
+  stump?: Mesh;
 }
 
 const buffer = () => memory!.buffer;
+
+/** The ground `rust` holds, as the renderer reads its tables: a new object
+ *  for each ground set, so a renderer knows to read them again. */
+function groundOf(rust: Presentation): PresentedGround {
+  return {
+    ground_terrain: () => rust.ground_terrain(),
+    ground_plots: (textured) => rust.ground_plots(textured),
+    ground_water_mesh: () => rust.ground_water_mesh(),
+    grass_kinds: () => rust.grass_kinds(),
+    grass_params: (shapes, density) => rust.grass_params(shapes, density),
+    grass_window: (eye, metresPerPx) => rust.grass_window(eye, metresPerPx),
+    grass_props: () => rust.grass_props(),
+    retune_grass: (rules) => rust.retune_grass(rules),
+  };
+}
 
 /** A map's buildings as `load_world` takes them: where they stand, the
  *  template art they are drawn from, which building each part prop is, and
@@ -169,6 +219,84 @@ export interface FallenBuilding {
   state: Exclude<TemplateState, "intact">;
 }
 
+/** The side's learned ground as the presentation keeps it
+ *  (`crates/presentation/src/scars`): what its publications taught it, cell
+ *  by cell, and its scars as the renderer uploads them. */
+export class LearnedGround implements GroundMarks {
+  readonly cellM: number;
+  readonly cols: number;
+  readonly rows: number;
+  private regionsFlat: Float64Array | null = null;
+  private regionList: ScarRegion[] = [];
+
+  constructor(
+    private readonly rust: Presentation,
+    grid: Pick<GroundLayout, "cellM" | "cols" | "rows">,
+  ) {
+    ({ cellM: this.cellM, cols: this.cols, rows: this.rows } = grid);
+  }
+
+  get epoch(): number {
+    return this.rust.ground_epoch();
+  }
+  get revision(): number {
+    return this.rust.ground_revision();
+  }
+  /** The side it learned for, once a snapshot came. */
+  get side(): string | null {
+    return this.rust.ground_side() ?? null;
+  }
+  /** Cells the side has seen cleared. */
+  get clearedCount(): number {
+    return this.rust.ground_cleared_count();
+  }
+  isCleared(i: number, j: number): boolean {
+    return i >= 0 && j >= 0 && this.rust.ground_cleared(i, j);
+  }
+  /** The cleared spans in tile order: (tile, start + length × 256) pairs. */
+  clearedRuns(): Uint32Array {
+    return this.rust.ground_cleared_runs();
+  }
+  /** Every marked or cleared cell in row-major order: (cell index, marks as
+   *  drawn: crater, scorch, tracks, trampled a byte each) pairs. */
+  markedCells(): Uint32Array {
+    return this.rust.ground_marked();
+  }
+
+  changed(): boolean {
+    return this.rust.scars_changed();
+  }
+  regions(): readonly ScarRegion[] {
+    const flat = this.rust.scar_regions();
+    if (this.regionsFlat?.length !== flat.length) {
+      this.regionsFlat = flat;
+      this.regionList = [];
+      for (let k = 0; k < flat.length; k += 4)
+        this.regionList.push([flat[k], flat[k + 1], flat[k + 2], flat[k + 3]]);
+    }
+    return this.regionList;
+  }
+  prepare(region?: ScarRegion, clipped = false): ScarUpload {
+    const upload = this.rust.prepare_scars(region && Float64Array.from(region), clipped);
+    const words = upload.directory(),
+      size = upload.directory_size();
+    const out: ScarUpload = {
+      directory: words ? { words, width: size[0], height: size[1] } : null,
+      writes: upload.writes(),
+      texels: upload.texels(),
+      params: upload.params(),
+    };
+    upload.free();
+    return out;
+  }
+  resend() {
+    this.rust.resend_scars();
+  }
+  stats() {
+    return JSON.parse(this.rust.scar_stats()) as ReturnType<GroundMarks["stats"]>;
+  }
+}
+
 /** One ordered side-publication stream, and its presentation; or, with no
  * layout, a presentation no battle publishes into (a world of statics).
  * Retained observations are immutable; unchanged fog and static groups
@@ -188,6 +316,16 @@ export class ObservationDecoder {
   private art: BuildingArt | null = null;
   private style: BuildingStyle | null = null;
   private sun: PresentedSun | null = null;
+  /** The ground staged, the one set, and the scenery's art it was placed by. */
+  private staged: GroundInput | null = null;
+  private groundSet: GroundInput | null = null;
+  /** The art the staged ground's scenery draws, and the art it was placed by. */
+  private sceneryArt: WorldScenery | null = null;
+  private placedBy: WorldScenery | null = null;
+  /** The ground the page reads tables from, new with each ground set. */
+  private presented: PresentedGround | null = null;
+  /** The cleared ground last handed over: the view and its count. */
+  private cleared: [GroundMarks | null, number] = [null, -1];
   /** Something staged changed since the last load. */
   private stale = false;
   /** The drawables of the last load, and those the page has not taken yet. */
@@ -197,12 +335,19 @@ export class ObservationDecoder {
   private walked = false;
   private readonly walk = emptyBuildingWalkStats();
 
+  /** The side's learned ground, from the publications decoded; none
+   *  without a layout. */
+  readonly ground: LearnedGround | null;
+
   /** `tickHz` paces the interpolation; decoding alone ignores it. */
   constructor(layout?: string | ObservationLayout, tickHz = 30) {
-    this.rust = new Presentation(
-      layout === undefined || typeof layout === "string" ? layout : JSON.stringify(layout),
-      tickHz,
-    );
+    const json =
+      layout === undefined || typeof layout === "string" ? layout : JSON.stringify(layout);
+    this.rust = new Presentation(json, tickHz);
+    this.ground =
+      json === undefined
+        ? null
+        : new LearnedGround(this.rust, (JSON.parse(json) as ObservationLayout).ground);
   }
 
   /** The next record's observation, or null for a stale one (in flight from
@@ -217,7 +362,6 @@ export class ObservationDecoder {
     view.knownProps ??= last!.knownProps;
     view.fallenBodies ??= last!.fallenBodies;
     view.fog.bits = this.rust.fog_bits() ?? last!.fog.bits;
-    view.groundPatch.runs = this.rust.ground_runs();
     return (this.last = view);
   }
 
@@ -261,15 +405,24 @@ export class ObservationDecoder {
     const text = new TextDecoder();
     const rows = views.appearances.u32;
     const name = (at: number, len: number) => text.decode(views.strings.subarray(at, at + len));
-    return (this.rows = Array.from({ length: views.appearances.count }, (_, r) => {
-      const o = r * APPEARANCE_WORDS;
-      return {
-        name: name(rows[o + Appearance.name], rows[o + Appearance.name_len]),
-        state: name(rows[o + Appearance.state], rows[o + Appearance.state_len]),
-        lies: rows[o + Appearance.lies],
-        placed: rows[o + Appearance.placed] === 1,
-      };
-    }));
+    const loaded: PresentedAppearance[] = Array.from(
+      { length: views.appearances.count },
+      (_, r) => {
+        const o = r * APPEARANCE_WORDS;
+        return {
+          name: name(rows[o + Appearance.name], rows[o + Appearance.name_len]),
+          state: name(rows[o + Appearance.state], rows[o + Appearance.state_len]),
+          lies: rows[o + Appearance.lies],
+          placed: rows[o + Appearance.placed] === 1,
+          draws: rows[o + Appearance.draws],
+        };
+      },
+    );
+    // After the views: each call may grow memory.
+    loaded.forEach((row, r) => {
+      if (row.draws === STUMP) row.stump = this.rust.stump_mesh(r) as Mesh;
+    });
+    return (this.rows = loaded);
   }
 
   /** Stage what the battle draws (null: none); loaded with the rest by the
@@ -313,9 +466,80 @@ export class ObservationDecoder {
     [this.buildings, this.style, this.sun] = [buildings, style, sun];
   }
 
-  /** Load what is staged: the battle and the buildings, in one world. */
+  /** Stage the scene's ground (null: none) and the art its scenery draws
+   *  (`WorldLayers.scenery`; null: none placed): set, placed and loaded with
+   *  the rest by the next frame when either is another. Cheap when nothing
+   *  changed: call every frame. */
+  setGround(ground: GroundInput | null, scenery: WorldScenery | null) {
+    if (ground !== this.staged) [this.staged, this.stale] = [ground, true];
+    if (scenery !== this.sceneryArt) [this.sceneryArt, this.stale] = [scenery, true];
+  }
+
+  /** The ground the scene's presentation resolved, for the terrain, the
+   *  grass and the water; null before one is set. */
+  presentedGround(): PresentedGround | null {
+    return this.presented;
+  }
+
+  /** The ground the side has seen cleared (the client's learned ground):
+   *  shrubs and dressing on it leave. Cheap when nothing changed. */
+  setCleared(ground: GroundMarks | null) {
+    const count = ground?.clearedCount ?? 0;
+    if (ground === this.cleared[0] && count === this.cleared[1]) return;
+    this.cleared = [ground, count];
+    const runs = ground?.clearedRuns() ?? new Uint32Array(0);
+    this.rust.set_cleared(runs, ground?.cols ?? 0, ground?.rows ?? 0, ground?.cellM ?? 1);
+  }
+
+  /** The player's scenery settings: the trees' tier thresholds over the
+   *  biome's, and whether the forest floor's dressing and the tree lines'
+   *  shrubs draw. */
+  setSceneryQuality(treeLodScale: number, dressing: boolean, understorey: boolean) {
+    this.rust.set_scenery_quality(treeLodScale, dressing, understorey);
+  }
+
+  /** What the presentation says of the scenery it placed and walked. */
+  sceneryWalk(): SceneryWalkStats {
+    const [forest, understorey, backdrop, cells] = this.rust.scenery_stats();
+    if (forest === undefined) return NO_SCENERY_WALK;
+    return {
+      placed: [forest, understorey, backdrop],
+      cells,
+      pending: this.rust.scenery_pending(),
+      falling: this.rust.scenery_falling(),
+    };
+  }
+
+  /** Sets the staged ground and places its scenery once its art holds
+   *  every appearance it names. */
+  private loadGround() {
+    const ground = this.staged;
+    if (ground !== this.groundSet) {
+      this.groundSet = ground;
+      this.placedBy = null;
+      this.presented = null;
+      if (ground) {
+        setGround(this.rust, ground);
+        this.presented = groundOf(this.rust);
+      }
+    }
+    const art = this.sceneryArt;
+    if (!ground || !art || art === this.placedBy) return;
+    const kinds = JSON.parse(this.rust.scenery_kinds()) as string[];
+    const bundles = kinds.map((name) => art.appearances.get(name));
+    if (!bundles.every((b) => b !== undefined)) return;
+    const finest = bundles.map((b) => tierMesh(b!, 0));
+    this.rust.place_scenery(
+      concatMeshes(finest),
+      Uint32Array.from(finest, (m) => m.length),
+    );
+    this.placedBy = art;
+  }
+
+  /** Load what is staged: the battle, the buildings and the ground, in one world. */
   private load() {
     this.stale = false;
+    this.loadGround();
     const { battle, buildings, art, style, sun } = this;
     const drawn =
       buildings && art && style && buildings.placed.template.length > 0
@@ -390,6 +614,20 @@ export class ObservationDecoder {
     this.rust.resend_statics();
   }
 
+  /** The cells the latest publication's ground patch covered. */
+  groundPatchCells(): number {
+    const runs = this.rust.ground_runs();
+    let cells = 0;
+    for (let at = 1; at < runs.length; at += 4) cells += Math.floor(runs[at] / 256);
+    return cells;
+  }
+
+  /** Draws the units' tiers at `units` and the buildings' at `buildings`
+   *  times their authored thresholds (a graphics quality; 1 as authored). */
+  setDetailScale(units: number, buildings: number) {
+    this.rust.set_detail_scale(units, buildings);
+  }
+
   free() {
     this.rust.free();
   }
@@ -455,10 +693,10 @@ export class ObservationDecoder {
     return frameViews(buffer(), this.framePtr);
   }
 
-  /** The last publication as sound reads it: its effect publication (with
-   *  the hulls the side watched brew up) and the launches it shows. */
-  soundPublication(): HeardPublication | null {
-    return JSON.parse(this.rust.sound_publication()) as HeardPublication | null;
+  /** The module's presentation, which battle sound hears
+   *  (`battle-audio`'s `SoundFrame`). */
+  get wasm(): Presentation {
+    return this.rust;
   }
 
   /** The last frame as the labs' scenes probe it (`Presentation::probe_json`). */

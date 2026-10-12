@@ -1,5 +1,5 @@
 /** Requests in flight at once, per kind of call (the Pro account's measured limits). */
-export const LIMITS = { tts: 8, stt: 4, music: 2 } as const;
+export const LIMITS = { tts: 8, stt: 4, music: 2, design: 3 } as const;
 
 export interface PoolOptions {
   /** Failures in a row, after retries, that stop the pool. */

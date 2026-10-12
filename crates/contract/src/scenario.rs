@@ -604,6 +604,22 @@ pub struct ShoutRules {
     pub talk_s: std::collections::BTreeMap<crate::observation::ShoutTrigger, f64>,
 }
 
+impl ShoutRules {
+    fn check(&self) -> Result<(), String> {
+        for trigger in crate::observation::ShoutTrigger::ALL {
+            if !self.talk_s.get(&trigger).is_some_and(|s| *s > 0.0) {
+                let name = serde_json::to_value(trigger).unwrap_or_default();
+                return Err(format!("shouts: talk_s needs a positive time for {name}"));
+            }
+        }
+        if self.cooldown_s > 0.0 {
+            Ok(())
+        } else {
+            Err("shouts: cooldown_s must be positive".into())
+        }
+    }
+}
+
 /// The heights every aircraft flies at, one rule for the whole battle (D25):
 /// it cruises `cruise_agl_m` above the ground, climbs to `clearance_m` over
 /// anything taller, never above `ceiling_agl_m`, and routes around any body
@@ -754,6 +770,7 @@ impl TryFrom<UncheckedRules> for Rules {
             ("formation", r.formation.check()),
             ("commands", r.commands.check()),
             ("air", r.air.check()),
+            ("shouts", r.shouts.check()),
         ] {
             checked.map_err(|error| crate::catalog::CatalogError::Invalid {
                 section: "rules",

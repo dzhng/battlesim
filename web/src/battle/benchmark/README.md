@@ -15,11 +15,11 @@ The graphics test (`/graphics-test`) plays the menu reel and times it. It is als
 Each scene writes two files, each with one strict reader that refuses a stale shape rather than migrating it:
 
 - [The capture](presentationCapture.ts) (`battle-presentation-capture`): the observed publications and, for every drawn frame, the view the rig actually drew (after clamping, clearance and lag) in sim space, the interpolated sim time and the canvas size. The browser frame is not reproducible across runs (the simulation ticks in real time), so a plate is only ever compared with the frame records of its own run.
-- [The manifest](visualPresentation.ts) (`native-visual-presentation`): the battle named by the hashes of the map and capture files, and what the frames were drawn with: lens, light, the terrain and grass tuning tables, the layers drawn, and the ground's and grass's GPU tables as hashed artifacts. An artifact is exactly the words the page uploaded, with a layout derived from the GPU struct it fills ([`wordTables.ts`](../../../../packages/battle-renderer/src/frame/wordTables.ts)), so neither can drift from the shader. The grass params are one frame's; their view fields are recomputed from each frame record. Each plate has a row of grass counts: the clumps that frame grew, by the screen cell their roots project into.
+- [The manifest](visualPresentation.ts) (`native-visual-presentation`): the battle named by the hashes of the map and capture files, and what the frames were drawn with: lens, light and the layers drawn. Each plate has a row of grass counts: the clumps that frame grew, by the screen cell their roots project into.
 
-  Scenery is static per map, so the manifest carries its placement rather than a second client placing it: every forest tree, understorey shrub, backdrop tree and piece of forest-floor dressing, expanded by the owner the browser draws from and laid out as records ([`sceneryTables.ts`](../../../../packages/battle-renderer/src/scenery/sceneryTables.ts)), with the appearances they name and the numbers the tier rule reads. Buildings travel not at all: both clients resolve them in Rust from the saved map and the template art ([`static_world`](../../../../crates/presentation/src/static_world/mod.rs)). A forest tree names its trunk's body, so a published fall finds it. Which buildings have fallen, which trees are felled and which ground is cleared stay per frame: a second client derives them from the publications. Each plate also counts what its frame drew, from the layers themselves: building modules per kit module Rust resolved and tier, scenery per population, appearance and tier, and the props its side knows (wrecks, shoved bodies, rubble) per appearance and tier.
+  The static world travels not at all: the ground's and grass's tables, the scenery and the buildings are resolved in Rust from the saved map, the biome and the template art ([the ground](../../../../crates/presentation/src/static_world/ground/mod.rs), [the buildings](../../../../crates/presentation/src/static_world/buildings.rs)), the same for every client. Which buildings have fallen, which trees are felled and which ground is cleared stay per frame: a second client derives them from the publications. Each plate also counts what its frame drew, from the layers themselves: building modules per kit module and tier, scenery per population, appearance and tier, and the props its side knows (wrecks, shoved bodies, rubble) per appearance and tier.
 
-`?plates=1` reads each shot's middle frame back in the task that drew it (the viewport's `FramePlate`): the canvas without the page's HUD or fade veil, the grass it grew, and the same frame drawn again offscreen lit without its grass. That picture is named after the plate by rule (`presentationCapture.ts`), and the canvas and the next frame are untouched. Only a plated run may copy from the canvas or export tables, so other frames pay nothing; a plated run is not a timing measure. The [`native-parity-capture` scene](../../../scenes/native-parity-capture.mjs) runs it unattended and writes each scene's files to `throwaway/native-parity/`.
+`?plates=1` reads each shot's middle frame back in the task that drew it (the viewport's `FramePlate`): the canvas without the page's HUD or fade veil, the grass it grew, and the same frame drawn again offscreen lit without its grass. That picture is named after the plate by rule (`presentationCapture.ts`), and the canvas and the next frame are untouched. Only a plated run may copy from the canvas, so other frames pay nothing; a plated run is not a timing measure. The [`native-parity-capture` scene](../../../scenes/native-parity-capture.mjs) runs it unattended and writes each scene's files to `throwaway/native-parity/`.
 
 ## The frame-rate comparison
 
@@ -38,12 +38,15 @@ differs between the clients.
   interval and main-thread time, the frame's GPU time from `timestamp-query`,
   and the in-game frame-rate counter's readings, which must agree with the
   recording's average.
-- **Native.** The [native client's bench](../../../../native/godot/README.md#the-frame-rate-bench)
-  draws a capture run's frame records and writes the same raw frames.
-- **Same pacing, no presentation.** Neither client presents to the display:
-  the browser runs headless and native minimised. Chromium's
-  `--disable-frame-rate-limit` hangs the graphics test in battle preparation
-  (inside the model layer's appearance install), and `--disable-gpu-vsync`
+- **Native.** The [native client](../../../../native/client/README.md) has
+  no bench yet; slice 25's performance gate adds one that draws a capture
+  run's frame records and writes the same raw frames. On macOS a `wgpu`
+  window that isn't visible presents nothing and runs unpaced, so a native
+  run either presents to a visible window or is compared on GPU time.
+- **Same pacing, no presentation.** The browser runs headless and does not
+  present to the display. Chromium's `--disable-frame-rate-limit` hangs the
+  graphics test in battle preparation (inside the model layer's appearance
+  install), and `--disable-gpu-vsync`
   alone leaves `requestAnimationFrame` at the display's 120 Hz, so the
   browser stays paced and native runs uncapped. The cap doesn't bind while
   the browser's frames take longer than 8.3 ms; where it would, compare CPU

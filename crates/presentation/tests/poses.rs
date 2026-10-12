@@ -1,7 +1,7 @@
 //! The crate poses paris-corner's units exactly as the browser does: every
 //! frame record up to its first plate driven through interpolation, the
 //! feed and the pose driver, against the browser's own poses of the same
-//! records (`web/tests/nativePoseVectors.test.ts` writes them); the tank's
+//! records (written by its TypeScript before that was deleted); the tank's
 //! articulation at fixed inputs; and a body's joint worlds sampled from its
 //! clip table. Values agree to the fixture's rounding (1e-6).
 use std::sync::Arc;
@@ -21,7 +21,7 @@ use sim::publication::reader::Reader;
 
 const FIXTURES: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/../../native/godot/tests/fixtures/"
+    "/../../fixtures/parity/capture/"
 );
 
 fn read(path: &str) -> Value {

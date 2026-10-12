@@ -3,10 +3,19 @@
 //! observation, and each drawn frame's records as views over this module's
 //! memory, out. It links the publication reader and the presentation crate,
 //! not the rules, and runs on the page's main thread.
+mod ground;
+
 use std::sync::Arc;
 
 use presentation::presentation::{Ghost, Presentation as Inner, Ui};
 use presentation::records::{FrameHeader, WorldHeader};
+use presentation::sound::bank::{self, Bank, Core};
+use presentation::sound::frame::{
+    self, Command, Listener, Motion, Scripted, Sound, SoundSoldier, SoundVehicle,
+};
+use presentation::sound::synth;
+use presentation::sound::tables::{Cadence, Recipe};
+use presentation::sound::voices::{self, Request};
 use presentation::static_world::buildings::{Placed, PlacedBuildings};
 use presentation::static_world::fallen::Known;
 use presentation::static_world::library::{Bounds, Library};
@@ -26,6 +35,8 @@ pub struct Presentation {
     taken_fog: Option<Arc<Fog>>,
     frame_header: FrameHeader,
     world_header: WorldHeader,
+    /// The biome's own grass rules, while a lab grows the ground's by others.
+    grass: Option<presentation::static_world::ground::biome::GrassRules>,
 }
 
 fn error(e: String) -> JsError {
@@ -64,6 +75,7 @@ impl Presentation {
             taken_fog: None,
             frame_header: FrameHeader::default(),
             world_header: WorldHeader::default(),
+            grass: None,
         })
     }
 
@@ -200,6 +212,72 @@ impl Presentation {
         Ok(&self.world_header as *const WorldHeader as u32)
     }
 
+    /// Whether the scars changed since the last call: what grows on them
+    /// grows again.
+    pub fn scars_changed(&mut self) -> bool {
+        self.inner.scars_changed()
+    }
+
+    /// The regions the terrain draws one by one, four metres each (x0, y0,
+    /// x1, y1); none when the marks draw at once.
+    pub fn scar_regions(&self) -> Vec<f64> {
+        self.inner.scar_regions().concat()
+    }
+
+    /// What to upload before drawing the scars over `region` (four metres;
+    /// none: the view), clipped to it when `clipped`.
+    pub fn prepare_scars(&mut self, region: Option<Vec<f64>>, clipped: bool) -> ScarUpload {
+        let region = region.map(|r| [r[0], r[1], r[2], r[3]]);
+        ScarUpload(self.inner.prepare_scars(region, clipped))
+    }
+
+    /// The renderer holds no scars: the next upload writes them all.
+    pub fn resend_scars(&mut self) {
+        self.inner.resend_scars();
+    }
+
+    /// The scar cache's `ScarStats`, as JSON.
+    pub fn scar_stats(&self) -> String {
+        serde_json::to_string(&self.inner.scar_stats()).unwrap()
+    }
+
+    /// The learned ground's epoch, revision and cleared cells (0 without a layout).
+    pub fn ground_epoch(&self) -> f64 {
+        self.inner.learned().map_or(0.0, |g| g.epoch)
+    }
+    pub fn ground_revision(&self) -> f64 {
+        self.inner.learned().map_or(0.0, |g| g.revision)
+    }
+    pub fn ground_cleared_count(&self) -> u32 {
+        self.inner.learned().map_or(0, |g| g.cleared_count() as u32)
+    }
+    /// The side whose ground it learned, once a snapshot came.
+    pub fn ground_side(&self) -> Option<String> {
+        self.inner.learned().and_then(|g| g.side.clone())
+    }
+
+    /// Whether the side has seen cell (i, j) cleared.
+    pub fn ground_cleared(&self, i: u32, j: u32) -> bool {
+        self.inner
+            .learned()
+            .is_some_and(|g| g.is_cleared(i as usize, j as usize))
+    }
+
+    /// The cleared spans in tile order: (tile, start + length × 256) pairs.
+    pub fn ground_cleared_runs(&self) -> Vec<u32> {
+        self.inner
+            .learned()
+            .map_or_else(Vec::new, |g| g.cleared_runs())
+    }
+
+    /// Every marked or cleared cell in row-major order: (cell index, marks
+    /// as drawn: crater, scorch, tracks, trampled a byte each) pairs.
+    pub fn ground_marked(&self) -> Vec<u32> {
+        self.inner
+            .learned()
+            .map_or_else(Vec::new, |g| g.marked_cells())
+    }
+
     /// The buildings the side knows destroyed as the last frame drew them:
     /// building and state (1 ruin, 2 gutted), in pairs.
     pub fn fallen_buildings(&self) -> Vec<u32> {
@@ -208,6 +286,12 @@ impl Presentation {
             .iter()
             .flat_map(|&(b, s)| [b as u32, s as u32])
             .collect()
+    }
+
+    /// Draws the units' tiers at `units` and the buildings' at `buildings`
+    /// times their authored thresholds (a graphics quality; 1 as authored).
+    pub fn set_detail_scale(&mut self, units: f64, buildings: f64) {
+        self.inner.set_detail_scale(units, buildings);
     }
 
     /// The renderer holds no static batches (a new one): the next frame
@@ -249,9 +333,9 @@ impl Presentation {
         let camera = Camera {
             eye: [c[0], c[1], c[2]],
             target: [c[3], c[4], c[5]],
-            up: [c[6] as f32, c[7] as f32, c[8] as f32],
-            fov_y: c[9] as f32,
-            near: c[10] as f32,
+            up: [c[6], c[7], c[8]],
+            fov_y: c[9],
+            near: c[10],
             size: [c[11] as u32, c[12] as u32],
         };
         let ghosts: Vec<Ghost> = if ghosts.is_empty() {
@@ -293,12 +377,6 @@ impl Presentation {
         Ok(&self.frame_header as *const FrameHeader as u32)
     }
 
-    /// The last publication as sound reads it, JSON: its effect publication
-    /// (with the hulls the side watched brew up) and the launches it shows.
-    pub fn sound_publication(&self) -> String {
-        self.inner.sound_json()
-    }
-
     /// The last frame as the labs' scenes probe it, JSON.
     pub fn probe(&self) -> String {
         self.inner.probe_json()
@@ -327,9 +405,454 @@ pub fn launches(publications: &str) -> Result<String, JsError> {
 /// records' words in order: sky, aerial, sun, bloom, grade (`light.rs`). The
 /// renderer needs them when it builds its frame, before any battle loads and
 /// for scenes with none, so this needs no `Presentation`.
+/// What a renderer uploads before drawing the scars
+/// (`presentation::scars::ScarUpload`).
+#[wasm_bindgen]
+pub struct ScarUpload(presentation::scars::ScarUpload);
+
+#[wasm_bindgen]
+impl ScarUpload {
+    /// The directory's words (two a `rg32uint` texel) when it changed.
+    pub fn directory(&self) -> Option<Vec<u32>> {
+        self.0.directory.as_ref().map(|(words, _)| words.clone())
+    }
+    /// The directory texture's width and height, when it changed.
+    pub fn directory_size(&self) -> Vec<u32> {
+        self.0
+            .directory
+            .as_ref()
+            .map_or_else(Vec::new, |(_, s)| s.to_vec())
+    }
+    /// Pool writes, (offset, texels) pairs, each within one row.
+    pub fn writes(&self) -> Vec<u32> {
+        self.0.writes.concat()
+    }
+    /// The writes' texels in order, four bytes each.
+    pub fn texels(&self) -> Vec<u8> {
+        self.0.texels.clone()
+    }
+    /// `ScarParams`' words before the look.
+    pub fn params(&self) -> Vec<u32> {
+        self.0.params.to_vec()
+    }
+}
+
+/// The scar pool's first texels: the normalization table, written once.
+#[wasm_bindgen]
+pub fn scar_normalization() -> Vec<u8> {
+    presentation::scars::normalization()
+}
+
 #[wasm_bindgen]
 pub fn light_records(light: &str) -> Result<Vec<f32>, JsError> {
     let settings: presentation::light::LightSettings = serde_json::from_str(light)
         .map_err(|e| JsError::new(&format!("presentation.light: {e}")))?;
     Ok(settings.records().words())
+}
+
+/// The sun's shadow cascades (`presentation::shadow`), fitted once a frame:
+/// the frame's `SunShadow` receiver block and each active cascade's caster
+/// `Camera`, as words the renderer uploads as they are.
+#[wasm_bindgen]
+pub struct SunShadow {
+    light: presentation::light::LightSettings,
+    frame: presentation::shadow::SunShadowFrame,
+}
+
+#[wasm_bindgen]
+impl SunShadow {
+    /// For the battle's light (`presentation.light`, JSON), cold: no
+    /// cascade fitted, so no receiver is in one.
+    #[wasm_bindgen(constructor)]
+    pub fn new(light: &str) -> Result<SunShadow, JsError> {
+        let light: presentation::light::LightSettings = serde_json::from_str(light)
+            .map_err(|e| JsError::new(&format!("presentation.light: {e}")))?;
+        Ok(SunShadow {
+            frame: presentation::shadow::SunShadowFrame::cold(&light),
+            light,
+        })
+    }
+
+    /// Fits the cascades for `camera` (as `Presentation.frame` takes it)
+    /// over the map's box (six numbers; none, empty); returns how many are
+    /// active.
+    pub fn fit(&mut self, camera: &[f64], map_box: &[f64]) -> u32 {
+        let c = camera;
+        let camera = Camera {
+            eye: [c[0], c[1], c[2]],
+            target: [c[3], c[4], c[5]],
+            up: [c[6], c[7], c[8]],
+            fov_y: c[9],
+            near: c[10],
+            size: [c[11] as u32, c[12] as u32],
+        };
+        let b: Option<[f64; 6]> = map_box.try_into().ok();
+        self.frame = presentation::shadow::sun_shadow(&self.light, &camera, b.as_ref());
+        self.frame.casters.len() as u32
+    }
+
+    /// The receiver block's words (`SunShadow`).
+    pub fn receiver(&self) -> Vec<f32> {
+        bytemuck::cast_slice(std::slice::from_ref(&self.frame.receiver)).to_vec()
+    }
+
+    /// The active cascades' caster cameras' words (`Camera` each).
+    pub fn casters(&self) -> Vec<f32> {
+        bytemuck::cast_slice(&self.frame.casters).to_vec()
+    }
+}
+
+/// One battle's sound (`presentation::sound::frame::Sound`): publications
+/// and drawn frames in, the commands the page's mixer carries out out, as
+/// JSON.
+#[wasm_bindgen]
+pub struct SoundFrame {
+    inner: Sound,
+}
+
+fn commands(c: &[Command]) -> String {
+    serde_json::to_string(c).expect("commands serialize")
+}
+
+#[wasm_bindgen]
+impl SoundFrame {
+    /// From its setup JSON: `presentation.audio`, the sound catalog, the
+    /// game's weapon rows, the tick rate and `presentation.effects`' smoke
+    /// and cook-off.
+    #[wasm_bindgen(constructor)]
+    pub fn new(setup: &str) -> Result<SoundFrame, JsError> {
+        Ok(SoundFrame {
+            inner: Sound::from_json(setup).map_err(error)?,
+        })
+    }
+
+    /// The prepared sounds' lengths, JSON `{sound: [seconds per alternative]}`.
+    pub fn durations(&mut self, durations: &str) -> Result<(), JsError> {
+        let d = serde_json::from_str(durations).map_err(|e| JsError::new(&e.to_string()))?;
+        self.inner.set_durations(d).map_err(error)
+    }
+
+    /// The enemy faction's shout pool as far as it has loaded, JSON
+    /// `[{sound, duration}]`: the takes an unseen shout is drawn from.
+    pub fn shouts(&mut self, takes: &str) -> Result<(), JsError> {
+        let takes = serde_json::from_str(takes).map_err(|e| JsError::new(&e.to_string()))?;
+        self.inner.set_shouts(takes);
+        Ok(())
+    }
+
+    /// Which voice set each unit kind speaks with, JSON `{own: {kind: set},
+    /// enemy: {kind: set}}`: the side's own faction's and its enemy's.
+    pub fn speakers(&mut self, speakers: &str) -> Result<(), JsError> {
+        let speakers =
+            serde_json::from_str(speakers).map_err(|e| JsError::new(&format!("speakers: {e}")))?;
+        self.inner.set_speakers(speakers);
+        Ok(())
+    }
+
+    /// Every sound a battle plays, JSON: what the page prepares.
+    pub fn sounds(&self) -> String {
+        serde_json::to_string(&self.inner.tables().battle_sounds()).expect("names serialize")
+    }
+
+    /// Takes `presentation`'s last publication, at mixer time `now`.
+    pub fn note(&mut self, presentation: &Presentation, now: f64) -> String {
+        match presentation.inner.heard() {
+            Some(heard) => commands(self.inner.note(&heard, now)),
+            None => "[]".into(),
+        }
+    }
+
+    /// Takes a scripted publication (`SoundPublication` JSON).
+    pub fn note_scripted(&mut self, publication: &str, now: f64) -> Result<String, JsError> {
+        let scripted: Scripted =
+            serde_json::from_str(publication).map_err(|e| JsError::new(&e.to_string()))?;
+        let launches = scripted.launches();
+        Ok(commands(self.inner.note(&scripted.heard(&launches), now)))
+    }
+
+    /// Hears `presentation`'s last frame at wall time `wall`, mixer time `now`.
+    pub fn hear(&mut self, presentation: &Presentation, wall: f64, now: f64) -> String {
+        let share = self.inner.tables().audio.listener_eye_share;
+        let Some(listener) = presentation.inner.listener(share) else {
+            return "[]".into();
+        };
+        let motion = presentation.inner.motion();
+        let clock = presentation.inner.clock_of_frame();
+        commands(self.inner.update(clock, wall, now, &motion, listener))
+    }
+
+    /// Hears scripted motion at presentation time `clock` from `listener`
+    /// (its position, then forward): `soldiers` four numbers each (id, x, y,
+    /// z), `vehicles` eight each (key, x, y, z, left and right travel,
+    /// turret, 1 reversing), and `classes` the vehicles' sound classes,
+    /// space-separated, in their order.
+    #[allow(clippy::too_many_arguments)]
+    pub fn update_scripted(
+        &mut self,
+        clock: f64,
+        wall: f64,
+        now: f64,
+        soldiers: &[f64],
+        vehicles: &[f64],
+        classes: &str,
+        listener: &[f64],
+    ) -> String {
+        let soldiers = soldiers
+            .as_chunks::<4>()
+            .0
+            .iter()
+            .map(|&[id, x, y, z]| SoundSoldier {
+                id,
+                position: [x, y, z],
+            })
+            .collect();
+        let vehicles = vehicles
+            .as_chunks::<8>()
+            .0
+            .iter()
+            .zip(classes.split(' '))
+            .map(
+                |(&[key, x, y, z, travel_l, travel_r, turret, reverse], class)| SoundVehicle {
+                    key,
+                    vehicle_class: class.to_owned(),
+                    position: [x, y, z],
+                    travel_l,
+                    travel_r,
+                    turret,
+                    reverse: reverse != 0.0,
+                },
+            )
+            .collect();
+        let listener = Listener {
+            position: [listener[0], listener[1], listener[2]],
+            forward: [listener[3], listener[4], listener[5]],
+        };
+        let motion = Motion { vehicles, soldiers };
+        commands(self.inner.update(clock, wall, now, &motion, listener))
+    }
+
+    /// Silences and forgets everything, from mixer time `now`.
+    pub fn reset(&mut self, now: f64) -> String {
+        commands(self.inner.reset(now))
+    }
+
+    /// Voices, budget, holds and counts, JSON (`SoundStats`).
+    pub fn stats(&self) -> String {
+        serde_json::to_string(&self.inner.stats()).expect("stats serialize")
+    }
+}
+
+/// Which voice lines play (`presentation::sound::voices::Chatter`): the
+/// takes the page has loaded and its units' requests in, the start commands
+/// its voices bus carries out, and the lines started and dropped, out, as JSON.
+#[wasm_bindgen]
+pub struct Chatter {
+    inner: voices::Chatter,
+}
+
+#[wasm_bindgen]
+impl Chatter {
+    /// By `rules` (`presentation.audio.voices`, JSON), takes chosen by `seed`.
+    #[wasm_bindgen(constructor)]
+    pub fn new(rules: &str, seed: f64) -> Result<Chatter, JsError> {
+        let rules: voices::ChatterRules = serde_json::from_str(rules)
+            .map_err(|e| JsError::new(&format!("presentation.audio.voices: {e}")))?;
+        rules.check().map_err(error)?;
+        Ok(Chatter {
+            inner: voices::Chatter::new(rules, seed),
+        })
+    }
+
+    /// Set `set`'s pack arrived with these voices (`[{id, speaks}]` JSON).
+    pub fn voices(&mut self, set: &str, voices: &str) -> Result<(), JsError> {
+        let voices = serde_json::from_str(voices).map_err(|e| JsError::new(&e.to_string()))?;
+        self.inner.set_voices(set, voices);
+        Ok(())
+    }
+
+    /// A take is loaded and lasts `duration` seconds.
+    pub fn loaded(
+        &mut self,
+        set: &str,
+        voice: &str,
+        trigger: &str,
+        intensity: &str,
+        take: u32,
+        duration: f64,
+    ) {
+        self.inner
+            .loaded(set, voice, trigger, intensity, take, duration);
+    }
+
+    /// Asks for a line (`VoiceRequest` JSON) at mixer time `now`.
+    pub fn request(&mut self, request: &str, now: f64) -> Result<(), JsError> {
+        let request: Request =
+            serde_json::from_str(request).map_err(|e| JsError::new(&e.to_string()))?;
+        self.inner.request(request, now);
+        Ok(())
+    }
+
+    /// Arbitrates at mixer time `now`, nearest `listener` first.
+    pub fn update(&mut self, now: f64, listener: &[f64]) -> String {
+        let listener = [listener[0], listener[1], listener[2]];
+        serde_json::to_string(self.inner.update(now, listener)).expect("lines serialize")
+    }
+
+    /// A battle's arbitration at mixer time `now`: the barks `sound` heard,
+    /// heard from where it last heard, each placed where it was shouted.
+    pub fn hear(&mut self, sound: &mut SoundFrame, now: f64) -> String {
+        serde_json::to_string(self.inner.hear(&mut sound.inner, now)).expect("lines serialize")
+    }
+
+    /// Forgets every line waiting and sounding (a new battle).
+    pub fn reset(&mut self) {
+        self.inner.reset();
+    }
+}
+
+/// The loops a vehicle of sound row `row` (`VehicleSound` JSON) sounds at
+/// `load` and `traverse`, JSON.
+#[wasm_bindgen]
+pub fn vehicle_loops(
+    row: &str,
+    load: f64,
+    traverse: f64,
+    reversing: bool,
+) -> Result<String, JsError> {
+    let row = serde_json::from_str(row).map_err(|e| JsError::new(&e.to_string()))?;
+    Ok(
+        serde_json::to_string(&frame::vehicle_loops(&row, load, traverse, reversing))
+            .expect("loops serialize"),
+    )
+}
+
+/// A hearing cue's stereo position for a listener looking along `forward`.
+#[wasm_bindgen]
+pub fn sector_pan(sector: f64, forward: &[f64]) -> f64 {
+    frame::sector_pan(sector, [forward[0], forward[1], forward[2]])
+}
+
+/// The synthesized sound `name` at `sample_rate`: its channel count, then
+/// its channels one after another.
+#[wasm_bindgen]
+pub fn synthesize(name: &str, sample_rate: f64) -> Result<Vec<f32>, JsError> {
+    let s = synth::synthesize(name, sample_rate).map_err(error)?;
+    Ok([vec![s.channels.len() as f32], s.channels.concat()].concat())
+}
+
+/// `samples` split into channels by `layout` (channels, then frames, per entry).
+fn split(layout: &[u32], samples: &[f32]) -> Vec<Vec<Vec<f32>>> {
+    let mut at = 0;
+    layout
+        .as_chunks::<2>()
+        .0
+        .iter()
+        .map(|&[channels, frames]| {
+            let (channels, frames) = (channels as usize, frames as usize);
+            (0..channels)
+                .map(|_| {
+                    at += frames;
+                    samples[at - frames..at].to_vec()
+                })
+                .collect()
+        })
+        .collect()
+}
+
+/// The loudest K-weighted 100 ms window of one sound (`layout`: its
+/// channels and frames), LUFS.
+#[wasm_bindgen]
+pub fn max_momentary_loudness(layout: &[u32], samples: &[f32], sample_rate: f64) -> f64 {
+    bank::max_momentary_loudness(&split(layout, samples)[0], sample_rate)
+}
+
+/// The gain bringing one sound to the library's reference, times `authored`.
+#[wasm_bindgen]
+pub fn source_normalization(
+    layout: &[u32],
+    samples: &[f32],
+    sample_rate: f64,
+    authored: f64,
+) -> f64 {
+    bank::source_normalization(&split(layout, samples)[0], sample_rate, authored)
+}
+
+/// The page's recipe composer at one sample rate (`sound::bank::Bank`),
+/// keeping the synthesized sounds it has made.
+#[wasm_bindgen]
+pub struct RecipeBank {
+    bank: Bank,
+    normalizations: Vec<f64>,
+}
+
+#[wasm_bindgen]
+impl RecipeBank {
+    #[wasm_bindgen(constructor)]
+    pub fn new(sample_rate: f64) -> RecipeBank {
+        RecipeBank {
+            bank: Bank::new(sample_rate),
+            normalizations: Vec::new(),
+        }
+    }
+
+    /// `recipe`'s (JSON) alternatives from its recordings: each one's
+    /// channels and frames in `layout`, its samples in `samples`, its burst
+    /// (shots, interval) in `cadences`. Out: per alternative, its channel
+    /// count and frames, then its channels; `normalizations` holds each
+    /// one's calibration.
+    pub fn compose(
+        &mut self,
+        recipe: &str,
+        cadences: &[f64],
+        layout: &[u32],
+        samples: &[f32],
+    ) -> Result<Vec<f32>, JsError> {
+        let recipe: Recipe =
+            serde_json::from_str(recipe).map_err(|e| JsError::new(&format!("recipe: {e}")))?;
+        let clips = split(layout, samples);
+        let cores: Vec<Core> = clips
+            .iter()
+            .zip(cadences.as_chunks::<2>().0)
+            .map(|(c, &[shots, interval_s])| {
+                let cadence = Cadence {
+                    shots: shots as usize,
+                    interval_s,
+                };
+                (&c[..], cadence)
+            })
+            .collect();
+        let buffers = self.bank.recipe(&recipe, &cores).map_err(error)?;
+        self.normalizations = buffers.iter().map(|b| b.normalization).collect();
+        let mut out = Vec::new();
+        for b in buffers {
+            out.extend([b.channels.len() as f32, b.channels[0].len() as f32]);
+            out.extend(b.channels.concat());
+        }
+        Ok(out)
+    }
+
+    /// The last composed alternatives' calibrations.
+    pub fn normalizations(&self) -> Vec<f64> {
+        self.normalizations.clone()
+    }
+}
+
+/// Where sound listens for a camera at `eye` looking at `target` with
+/// `up`, `share` of the way from the target to the eye: position, then facing.
+#[wasm_bindgen]
+pub fn camera_listener(eye: &[f64], target: &[f64], up: &[f64], share: f64) -> Vec<f64> {
+    let v = |a: &[f64]| [a[0], a[1], a[2]];
+    let l = Listener::of_camera(v(eye), v(target), v(up).map(|x| x as f32), share);
+    [l.position, l.forward].concat()
+}
+
+/// One unseen look (a `presentation.fog` style, JSON) resolved into the
+/// `FogLook` uniform's words (`fog.rs`); errs naming a field out of range.
+/// The fog mask passes need it when the frame is built and whenever a lab
+/// tunes the look, so this needs no `Presentation`.
+#[wasm_bindgen]
+pub fn fog_look(style: &str) -> Result<Vec<f32>, JsError> {
+    let style: presentation::fog::FogStyle =
+        serde_json::from_str(style).map_err(|e| JsError::new(&format!("fog style: {e}")))?;
+    Ok(style.look().map_err(error)?.words())
 }

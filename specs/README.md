@@ -12,7 +12,7 @@ ladder with parallel named-model production.
 
 [Helicopters](done/helicopters/README.md) (shipped) made the roster's 19 helicopters playable in a low-air layer. [Transport](transport/README.md) is a placeholder for passenger carriage by trucks and helicopters.
 
-[Battle voices and music](battle-voices-music/README.md) plans RTS-style unit voice lines (responses and simulation-emitted barks) and a background battle score, generated with ElevenLabs and reviewed in the sound workbench before they play.
+[Battle voices and music](done/battle-voices-music/README.md) (shipped) gave units RTS-style voice lines (answers to their owner and simulation-emitted barks) and battles an adaptive background score, generated with ElevenLabs and reviewed in the sound workbench.
 
 [Performance](performance/README.md) is a placeholder for measured, deferred
 optimizations (GPU memory, model packing, loading), kept until a player-visible

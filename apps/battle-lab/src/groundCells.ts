@@ -1,10 +1,14 @@
 // The ground lab's flat cell debug view: one flat quad per marked ground
 // cell the observed side has learned, tinted by its strongest shown channel.
-// It reads the side's `GroundView` (the patches its publications carried),
-// never the authoritative layer.
+// It reads the side's learned ground (the patches its publications carried,
+// as the presentation applied them), never the authoritative layer.
 import { MeshBuilder, type Rgba } from "@packages/battle-renderer/src/mesh";
 import type { SurfaceHeight } from "@packages/battle-renderer/src/orderOverlay";
-import { GROUND_CHANNELS, type GroundChannel, type GroundView } from "@web/battle/sim/ground";
+import type { LearnedGround } from "@web/battle/sim/presentation";
+
+/** A learned cell's marks, in the order their bytes are packed. */
+export const GROUND_CHANNELS = ["crater", "scorch", "tracks", "trampled"] as const;
+export type GroundChannel = (typeof GROUND_CHANNELS)[number];
 
 /** One marked cell: its lower corner and marks in [0, 255]. */
 export interface GroundCellView {
@@ -18,13 +22,24 @@ export interface GroundCells {
   cells: GroundCellView[];
 }
 
-/** Every marked cell the view holds. */
-export function groundCells(view: GroundView): GroundCells {
+/** Every marked cell the side has learned. */
+export function groundCells(ground: LearnedGround): GroundCells {
   const cells: GroundCellView[] = [];
-  view.forEachMarked((i, j) =>
-    cells.push({ x: i * view.cellM, y: j * view.cellM, marks: view.cell(i, j) }),
-  );
-  return { cellM: view.cellM, cells };
+  const marked = ground.markedCells();
+  for (let k = 0; k < marked.length; k += 2) {
+    const [index, packed] = [marked[k], marked[k + 1]];
+    cells.push({
+      x: (index % ground.cols) * ground.cellM,
+      y: Math.floor(index / ground.cols) * ground.cellM,
+      marks: {
+        crater: packed & 255,
+        scorch: (packed >>> 8) & 255,
+        tracks: (packed >>> 16) & 255,
+        trampled: packed >>> 24,
+      },
+    });
+  }
+  return { cellM: ground.cellM, cells };
 }
 
 export const CHANNEL_COLORS: Record<GroundChannel, Rgba> = {

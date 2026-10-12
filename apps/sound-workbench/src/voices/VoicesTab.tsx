@@ -10,7 +10,14 @@ import {
   type VoiceTake,
 } from "../../../../packages/battle-audio/src/voices/voiceCatalog";
 import type { Auditioner } from "../audition";
-import type { TakeView, VoiceAPI, VoiceJob, VoiceScope, VoiceSnapshot } from "./protocol";
+import type { GenerationJob } from "../protocol";
+import {
+  candidateUrl,
+  type TakeView,
+  type VoiceAPI,
+  type VoiceScope,
+  type VoiceSnapshot,
+} from "./protocol";
 
 const INTENSITIES: readonly Intensity[] = ["steady", "stressed"];
 const TAKES = [0, 1] as const;
@@ -67,7 +74,7 @@ export function VoicesTab({ api, audition }: { api: VoiceAPI; audition: Audition
   const [queue, setQueue] = useState<string[]>([]);
   const [current, setCurrent] = useState("");
   const [editing, setEditing] = useState<{ id: string; text: string } | null>(null);
-  const [jobs, setJobs] = useState<VoiceJob[]>([]);
+  const [jobs, setJobs] = useState<GenerationJob[]>([]);
   const [message, setMessage] = useState("");
   const latest = useRef<VoiceSnapshot | null>(null);
   latest.current = snapshot;
@@ -215,6 +222,37 @@ export function VoicesTab({ api, audition }: { api: VoiceAPI; audition: Audition
       }
     },
     [judge, publish, generate, report],
+  );
+
+  const pick = useCallback(
+    async (voice: string, candidate: number, replace: boolean) => {
+      try {
+        const saved = await api.pick(voice, candidate, replace);
+        latest.current = saved;
+        setSnapshot(saved);
+        // A swap queues the voice's new takes and the set's pack: follow them.
+        if (replace) setJobs((await api.jobs()).jobs);
+      } catch (error) {
+        report(error);
+      }
+    },
+    [api, report],
+  );
+  /** None of these: bump the voice's design retake, then design new candidates. */
+  const redesign = useCallback(
+    async (voice: string) => {
+      try {
+        await publish((catalog) => {
+          const key = `${voice}/design`;
+          catalog.retakes[key] = (catalog.retakes[key] ?? 0) + 1;
+        });
+        const { job } = await api.design(voice);
+        setJobs((list) => [...list.filter((other) => other.id !== job.id), job]);
+      } catch (error) {
+        report(error);
+      }
+    },
+    [api, publish, report],
   );
 
   // While a job runs, follow its progress; when one ends, show what it made.
@@ -451,6 +489,77 @@ export function VoicesTab({ api, audition }: { api: VoiceAPI; audition: Audition
             <kbd>X</kbd> bad <kbd>R</kbd> bad + regenerate <kbd>E</kbd> edit line
           </p>
         </section>
+        {spec.voices
+          .filter((voice) => voice.voice_id === null || snapshot.designs[`${set}/${voice.id}`])
+          .map((voice) => {
+            const id = `${set}/${voice.id}`;
+            const design = snapshot.designs[id];
+            // A picked voice keeps its candidates: the one in use, and the others to swap in.
+            const picked = voice.voice_id !== null;
+            return (
+              <section
+                key={id}
+                className="sw-review-take sw-design"
+                aria-label={`Candidates for ${voice.id}`}
+              >
+                <div className="sw-review-line">
+                  <span className="sw-count">{picked ? "VOICE" : "DESIGN"}</span>
+                  <strong>
+                    {voice.id} <small>{voice.speaks}</small>
+                  </strong>
+                  {!picked && (
+                    <button disabled={running} onClick={() => void redesign(id)}>
+                      {design ? "None of these" : "Design"}
+                    </button>
+                  )}
+                </div>
+                <p className="sw-voice-description">{voice.description}</p>
+                {design ? (
+                  <ol className="sw-candidates">
+                    {design.candidates.map((candidate, index) => (
+                      <li key={index} title={`heard: ${candidate.transcript ?? "not transcribed"}`}>
+                        <button
+                          aria-label={`Play candidate ${index + 1}`}
+                          onClick={() =>
+                            audition.voice([candidateUrl(id, index + 1)]).catch(report)
+                          }
+                        >
+                          ▶ {index + 1}
+                        </button>
+                        <span>
+                          match {candidate.score?.toFixed(2) ?? "–"} ·{" "}
+                          {candidate.duration_s.toFixed(1)} s
+                        </span>
+                        {!picked ? (
+                          <button
+                            aria-label={`Pick candidate ${index + 1}`}
+                            onClick={() => void pick(id, index + 1, false)}
+                          >
+                            Pick
+                          </button>
+                        ) : design.picked === index + 1 ? (
+                          <strong className="sw-in-use">In use</strong>
+                        ) : (
+                          <button
+                            aria-label={`Use candidate ${index + 1}`}
+                            onClick={() => {
+                              const replace = `Use candidate ${index + 1} as ${id}? Its takes are made again with this voice and stay out of the pack until reviewed.`;
+                              if (globalThis.confirm?.(replace) ?? true)
+                                void pick(id, index + 1, true);
+                            }}
+                          >
+                            Use this
+                          </button>
+                        )}
+                      </li>
+                    ))}
+                  </ol>
+                ) : (
+                  <p>No candidates yet.</p>
+                )}
+              </section>
+            );
+          })}
         {jobs.length > 0 && (
           <section className="sw-jobs" aria-label="Generation jobs">
             {jobs

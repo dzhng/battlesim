@@ -31,6 +31,29 @@ wherever it runs.
   sky's corner rays.
 - [The light](src/light.rs): the fixture's light resolved into the sky's,
   bloom's and grade's uniform records, as the browser's sky model resolves it.
+- [Scars](src/scars/): the side's learned ground, from its publications'
+  patches, and the bounded GPU cache of its scars. A renderer uploads what it
+  is handed (the directory's words, the pool's texels, `ScarParams`' words
+  before the biome's look) and asks which regions to draw one by one when the
+  marks don't fit at once; it derives nothing.
+- [The sun's shadow](src/shadow.rs): each frame's cascades fitted over where the
+  map is in view depth, as the receiver block and each cascade's caster camera.
+- [The static world](src/static_world/): the buildings resolved from their
+  template art, and the ground from the map's exports under the biome: its
+  tables, its meshes (terrain, skirt, water, backdrop), the grass field's
+  shapes, window and per-frame parameters, and the scenery. Buildings and
+  scenery are walked per view into the frame's static batches, written only
+  when a list changes.
+- [Sound](src/sound/): what a battle hears, when, where and how loud, from the
+  same publication the effects read, the frame's emitters and the side's
+  hearing cues, as commands a player carries out (start, glide, stop a voice;
+  listen from here); which units' voice lines play, started on the voices
+  bus, a shout the side hears in the open asking for a bark in its kind's
+  set and spoken where it was shouted; and the synthesized baselines and
+  recipe buffers every player prepares alike. `tests/sound.rs` holds it to
+  every command the browser's
+  TypeScript frame gave over the sound lab's firefight, and `tests/voices.rs`
+  to the lines recorded scripts start and drop.
 
 ## How a battle looks
 
@@ -69,5 +92,8 @@ roll to the resting wreck.
 ## Checks
 
 `tests/poses.rs` and `tests/effects.rs` hold it to the browser's recorded vectors
-(native's fixture capture and fixed effect causes); the behaviour tests beside
-them cover what those do not reach.
+(native's fixture capture and fixed effect causes), `tests/light.rs`,
+`shadow.rs`, `ground_meshes.rs` and `grass_field.rs` to what the browser's
+TypeScript computed before it moved here, bit for bit, and `tests/scars.rs` holds
+every scar upload to the words the browser's own cache wrote; the behaviour
+tests beside them cover what those do not reach.

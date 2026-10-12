@@ -11,10 +11,13 @@ import { validateStandIns } from "@packages/battle-renderer/src/models/propAppea
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader.ts";
 import type { StaticBundle } from "@packages/scene-assets/src/schema.ts";
 import { STAND_IN_KIT, STAND_IN_MODULE } from "@packages/scene-assets/src/standInKit.ts";
-import { validateBiome, type Biome } from "@packages/battle-renderer/src/terrain/biome.ts";
 import summer from "@fixtures/biomes/summer.json";
+import { loadPresentation } from "@web/battle/sim/presentation";
 
-const biome = validateBiome(summer as unknown as Biome);
+// The ground's shapes are resolved by the presentation module.
+await loadPresentation();
+
+const biome = summer;
 
 const layout: WorldLayout = {
   surfaceKinds: ["ground", "road", "water", "bridge"],

@@ -6,7 +6,7 @@ use sim::publication::reader::Reader;
 
 const FIXTURES: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/../../native/godot/tests/fixtures/"
+    "/../../fixtures/parity/capture/"
 );
 
 fn read(path: &str) -> Value {

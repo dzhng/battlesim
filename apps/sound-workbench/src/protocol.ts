@@ -16,6 +16,8 @@ export interface Snapshot {
   footsteps: AudioPresentation["footsteps"];
   /** A soldier's running pace (`presentation.pose.gait.run_mps`). */
   runMps: number;
+  /** Battle music's mood direction and ducking (`presentation.audio.music`), read only here. */
+  music: AudioPresentation["music"];
   materials: string[];
 }
 export interface Draft {
@@ -30,6 +32,15 @@ export interface Review {
 export interface Save {
   candidateId: string;
   revision: string;
+}
+/** A generation-tool command the workbench queued, voices or music. */
+export interface GenerationJob {
+  id: string;
+  /** The generation tool's arguments. */
+  args: string[];
+  status: "queued" | "running" | "done" | "failed";
+  /** The tool's latest progress lines. */
+  lines: string[];
 }
 export interface WorkbenchAPI {
   snapshot(): Promise<Snapshot>;
@@ -56,4 +67,14 @@ export const workbenchAPI: WorkbenchAPI = {
   snapshot: () => request("snapshot"),
   preview: (draft) => request("preview", draft),
   save: (review) => request("save", review),
+};
+
+/** The Music tab's generation: a battle track bought again, and the tool's queue. */
+export interface MusicAPI {
+  regenerate(track: string): Promise<{ job: GenerationJob }>;
+  jobs(): Promise<{ jobs: GenerationJob[] }>;
+}
+export const musicAPI: MusicAPI = {
+  regenerate: (track) => request("music/regenerate", { track }),
+  jobs: () => request("music/jobs"),
 };

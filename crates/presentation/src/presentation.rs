@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
-use sim::publication::reader::{KnownProp, Observation, Reader, Shared};
+use sim::publication::reader::{FallenBody, KnownProp, Observation, Reader, Shared};
 
 use crate::effects::cook_offs::{CookOffs, PlacedModel};
 use crate::effects::frame::{EffectBatch, EffectFrame, EffectPresentation, EFFECT_FLOATS};
@@ -19,9 +19,17 @@ use crate::records::{
     Appearance as Row, Batch, CastLight, Counts, Effect, Emitter, Instance, Joint, Pick,
     View as ViewRecord, NONE,
 };
+use crate::scars::{LearnedGround, ScarCache, ScarStats, ScarUpload, MAX_AXIS};
+use crate::sound::frame::{Cue, Heard, Listener, Motion, Shout};
 use crate::static_world::batches::{Population, StaticBatches, Sun};
 use crate::static_world::buildings::{Buildings, PlacedBuildings};
 use crate::static_world::fallen::{Knowledge, Known};
+use crate::static_world::ground::biome::Biome;
+use crate::static_world::ground::kinds;
+use crate::static_world::ground::walk::{
+    Cleared, Draws, FelledTree, Quality as SceneryQuality, SceneryPopulation, SceneryWalk, DRAWS,
+};
+use crate::static_world::ground::{Ground, Source, Tuning};
 use crate::static_world::library::STATES;
 use crate::static_world::walk::{BuildingPopulation, BuildingWalk};
 use crate::units::articulation::{articulate, rest_locals, track_scroll};
@@ -91,12 +99,24 @@ pub struct Frame {
 pub struct World {
     pub appearances: Vec<Row>,
     pub strings: String,
-    rows: HashMap<(String, String, u32), u32>,
+    rows: HashMap<(String, String, u32, u32), u32>,
 }
 
 impl World {
     fn row(&mut self, name: &str, state: &str, lies: u32, skin: u32, placed: bool) -> u32 {
-        let key = (name.to_owned(), state.to_owned(), lies);
+        self.drawn_row(name, state, lies, skin, placed, 0)
+    }
+
+    fn drawn_row(
+        &mut self,
+        name: &str,
+        state: &str,
+        lies: u32,
+        skin: u32,
+        placed: bool,
+        draws: u32,
+    ) -> u32 {
+        let key = (name.to_owned(), state.to_owned(), lies, draws);
         if let Some(&row) = self.rows.get(&key) {
             return row;
         }
@@ -116,7 +136,7 @@ impl World {
             lies,
             skin,
             placed: u32::from(placed),
-            pad: 0,
+            draws,
         });
         self.rows.insert(key, row);
         row
@@ -187,8 +207,38 @@ pub struct Presentation {
     known_from: KnownFrom,
     sun: Option<Sun>,
     statics: StaticBatches,
+    /// The map's ground (`set_ground`), and its scenery's walk once placed.
+    ground: Option<Ground>,
+    scenery: Option<SceneryWalk>,
+    scenery_quality: SceneryQuality,
+    /// The fallen bodies the scenery last read.
+    felled_from: Option<Shared<FallenBody>>,
+    /// The units' and the buildings' tier thresholds over their authored
+    /// values (`set_detail_scale`).
+    detail_scale: [f64; 2],
     world: World,
     frame: Frame,
+    /// The camera the last frame was asked for.
+    camera: Option<Camera>,
+    /// The side's learned ground (none without a layout), and its scars as
+    /// the renderer holds them.
+    learned: Option<LearnedGround>,
+    scars: ScarCache,
+}
+
+/// The layout's ground grid, learned blank.
+fn ground_of(layout: &str) -> Result<LearnedGround, String> {
+    let layout: serde_json::Value = serde_json::from_str(layout).map_err(|e| e.to_string())?;
+    let g = &layout["ground"];
+    let (cols, rows) = (g["cols"].as_u64(), g["rows"].as_u64());
+    let (Some(cell_m), Some(cols), Some(rows)) = (g["cellM"].as_f64(), cols, rows) else {
+        return Err("the layout's ground has no grid".into());
+    };
+    let (cols, rows) = (cols as usize, rows as usize);
+    if cols > MAX_AXIS || rows > MAX_AXIS {
+        return Err("the ground grid exceeds the scars' exact Q8 coordinates".into());
+    }
+    Ok(LearnedGround::new(cell_m, cols, rows))
 }
 
 /// Rows of the x-ray or ghost colour (`packXray`): rgb as one integer
@@ -217,7 +267,10 @@ impl Presentation {
     /// `observation_layout`) names, at `tick_hz`; with no layout, of a world
     /// no battle publishes into (a lab's), drawn from `load_world` alone.
     pub fn new(layout: Option<&str>, tick_hz: f64) -> Result<Self, String> {
+        let learned = layout.map(ground_of).transpose()?;
         Ok(Self {
+            scars: ScarCache::new(learned.as_ref().map(|g| (g.cols, g.rows, g.cell_m))),
+            learned,
             reader: layout.map(Reader::new).transpose()?,
             tick_hz,
             interpolator: TickInterpolator::new(tick_hz),
@@ -230,8 +283,14 @@ impl Presentation {
             known_from: KnownFrom::Unread,
             sun: None,
             statics: StaticBatches::default(),
+            ground: None,
+            scenery: None,
+            scenery_quality: SceneryQuality::default(),
+            felled_from: None,
+            detail_scale: [1.0, 1.0],
             world: World::default(),
             frame: Frame::default(),
+            camera: None,
         })
     }
 
@@ -242,9 +301,12 @@ impl Presentation {
     }
 
     /// Records still in flight are stale; the next opens a new epoch, for
-    /// `side` when named.
+    /// `side` when named. The learned ground is blank until it does.
     pub fn invalidate(&mut self, side: Option<&str>) -> Result<(), String> {
         self.reader()?.invalidate(side)?;
+        if let Some(learned) = &mut self.learned {
+            learned.forget();
+        }
         self.latest = None;
         self.interpolator = TickInterpolator::new(self.tick_hz);
         self.pending.clear();
@@ -257,6 +319,9 @@ impl Presentation {
         let Some(observation) = self.reader()?.decode(words)? else {
             return Ok(false);
         };
+        if let Some(learned) = &mut self.learned {
+            learned.apply(&observation.ground_patch)?;
+        }
         let observation = Arc::new(observation);
         self.interpolator.push(observation.clone(), arrived_s);
         self.latest = Some(observation.clone());
@@ -276,6 +341,40 @@ impl Presentation {
     /// The latest publication's observation, for the game UI.
     pub fn observation(&self) -> Option<&Observation> {
         self.latest.as_deref()
+    }
+
+    /// The side's learned ground, as its publications taught it.
+    pub fn learned(&self) -> Option<&LearnedGround> {
+        self.learned.as_ref()
+    }
+
+    /// Whether the scars changed since the last call: what grows on them
+    /// grows again.
+    pub fn scars_changed(&mut self) -> bool {
+        self.scars.changed(self.learned.as_mut())
+    }
+
+    /// The regions (metres, `[x0, y0, x1, y1]`) the terrain draws one by one,
+    /// each after its own `prepare_scars(Some(region), true)`; none when
+    /// every mark fits at once and one `prepare_scars(None, false)` serves.
+    pub fn scar_regions(&self) -> Vec<[f64; 4]> {
+        self.scars.regions()
+    }
+
+    /// What the renderer uploads before drawing the scars over `region`
+    /// (none: the whole view), clipped to it when `clipped`.
+    pub fn prepare_scars(&mut self, region: Option<[f64; 4]>, clipped: bool) -> ScarUpload {
+        self.scars.prepare(self.learned.as_mut(), region, clipped)
+    }
+
+    /// The renderer holds no scars (a new one, or scars shown again): the
+    /// next upload writes them all.
+    pub fn resend_scars(&mut self) {
+        self.scars.resend();
+    }
+
+    pub fn scar_stats(&self) -> ScarStats {
+        self.scars.stats()
     }
 
     /// Loads what the world draws: `buildings` placed from their template
@@ -309,15 +408,34 @@ impl Presentation {
                         self.world.row(kit, module, NONE, 0, true)
                     })
                     .collect();
-                let walk = BuildingWalk::new(
+                let mut walk = BuildingWalk::new(
                     buildings,
                     style.lod_px_per_m,
                     style.chunk_m,
                     style.pool_records,
                 );
-                Some(BuildingPopulation { walk, rows })
+                walk.set_lod_scale(self.detail_scale[1]);
+                Some(BuildingPopulation {
+                    walk,
+                    rows,
+                    changes: 0,
+                })
             }
         };
+        if let Some(walk) = &mut self.scenery {
+            let world = &mut self.world;
+            // Scenery draws its appearances' summer state (winter will be
+            // the next biome's).
+            walk.rows = DRAWS
+                .iter()
+                .map(|&d| {
+                    let names = walk.scenery.kinds.iter();
+                    names
+                        .map(|name| world.drawn_row(name, "summer", NONE, 0, true, d as u32))
+                        .collect()
+                })
+                .collect();
+        }
         self.sun = input.cascade_far_m.map(|far_m| Sun {
             azimuth: input.sun_azimuth,
             elevation: input.sun_elevation,
@@ -468,6 +586,16 @@ impl Presentation {
         self.buildings.as_ref().map(|b| &b.walk.stats[..])
     }
 
+    /// Draws the units' tiers at `units` and the buildings' at `buildings`
+    /// times their authored thresholds (a graphics quality; 1 as authored).
+    pub fn set_detail_scale(&mut self, units: f64, buildings: f64) {
+        self.detail_scale = [units, buildings];
+        if let Some(b) = &mut self.buildings {
+            b.walk.set_lod_scale(buildings);
+        }
+        self.statics.invalidate();
+    }
+
     /// A skinned row's body as it holds still (`World.appearances`): a
     /// corpse row as it lies (its `corpse_poses` entry), a body row in its
     /// far pose (what its impostor card shows). Each joint's bind-to-model
@@ -552,29 +680,53 @@ impl Presentation {
         serde_json::to_string(&shots).map_err(|e| e.to_string())
     }
 
-    /// The last publication as sound reads it, JSON: its effect publication,
-    /// with the hulls the side watched brew up, the launches it shows, and
-    /// when a cook-off's turret lands (seconds after its tick starts).
-    pub fn sound_json(&self) -> String {
-        #[derive(Serialize)]
-        #[serde(rename_all = "camelCase")]
-        struct Heard<'a> {
-            effects: &'a EffectPublication,
-            launches: Vec<Shot>,
-            turret_lands_s: f64,
-        }
-        let Some(loaded) = &self.loaded else {
-            return "null".into();
-        };
-        let Some((effects, launches)) = &loaded.sound else {
-            return "null".into();
-        };
-        serde_json::to_string(&Heard {
+    /// The last publication as sound hears it: what the effects took of it,
+    /// the launches it shows, the side's hearing cues and the shouts it
+    /// hears in the open; none before one.
+    pub fn heard(&self) -> Option<Heard<'_>> {
+        let (effects, launches) = self.loaded.as_ref()?.sound.as_ref()?;
+        let latest = self.latest.as_ref()?;
+        Some(Heard {
             effects,
-            launches: launches.iter().map(Shot::of).collect(),
-            turret_lands_s: loaded.effects.presentation().cook_off.impact_after(),
+            launches,
+            audible: latest.audible.iter().map(Cue::from).collect(),
+            shouts: latest.shouts.iter().map(Shout::from).collect(),
         })
-        .expect("a sound publication serializes")
+    }
+
+    /// What the last frame draws moving, as sound hears it: its emitters,
+    /// each vehicle as its type's vehicle class.
+    pub fn motion(&self) -> Motion {
+        let types = self.loaded.as_ref().map(|l| &l.units.types);
+        Motion::of(&self.frame.emitters, |class| {
+            types?
+                .values()
+                .nth(class as usize)?
+                .vehicle_class
+                .as_deref()
+        })
+    }
+
+    /// Where sound listens for the last frame's camera, `share` of the way
+    /// from what it looks at to its eye; none before a frame.
+    pub fn listener(&self, share: f64) -> Option<Listener> {
+        let c = self.camera.as_ref()?;
+        Some(Listener::of_camera(
+            c.eye,
+            c.target,
+            c.up.map(|v| v as f32),
+            share,
+        ))
+    }
+
+    /// The last frame's presentation time.
+    pub fn clock_of_frame(&self) -> f64 {
+        self.frame.clock
+    }
+
+    /// The last frame asked for.
+    pub fn last_frame(&self) -> &Frame {
+        &self.frame
     }
 
     /// Where the last frame draws the muzzle of the presented side's vehicle
@@ -688,10 +840,147 @@ impl Presentation {
         })
     }
 
+    /// The map's ground, resolved from `source` under `biome` (its region's
+    /// finish) and the fixture's tuning; its scenery is placed by
+    /// `place_scenery` and drawn from the next `load_world`.
+    pub fn set_ground(
+        &mut self,
+        source: Source,
+        biome: Biome,
+        tuning: Tuning,
+    ) -> Result<(), String> {
+        let ground = Ground::new(source, biome, tuning)?;
+        // A region's scars load as far past it as a crater's bowl moves them.
+        self.scars.set_reach(ground.scar_reach_m());
+        self.ground = Some(ground);
+        self.scenery = None;
+        self.statics.invalidate();
+        Ok(())
+    }
+
+    pub fn ground(&self) -> Option<&Ground> {
+        self.ground.as_ref()
+    }
+
+    /// The ground's mutably (a lab growing grass by other rules).
+    pub fn ground_mut(&mut self) -> Option<&mut Ground> {
+        self.ground.as_mut()
+    }
+
+    /// Places the ground's scenery, given each of its kinds' finest mesh
+    /// (`Ground::scenery_kinds` order) in the renderer's world vertex
+    /// (`ground::mesh::VERTEX_FLOATS`, 1 in the last float for foliage):
+    /// their sizes, a tree's trunk and crown, and its stump (`kinds`) are
+    /// read off it. Drawn from the next `load_world`.
+    pub fn place_scenery(&mut self, finest: &[&[f32]]) -> Result<(), String> {
+        let ground = self
+            .ground
+            .as_ref()
+            .ok_or("scenery stands on a ground: set_ground first")?;
+        let names = ground.scenery_kinds();
+        if finest.len() != names.len() {
+            return Err(format!(
+                "scenery: {} kinds' meshes for {} kinds",
+                finest.len(),
+                names.len()
+            ));
+        }
+        let trees = &ground.biome.trees;
+        let kinds = names
+            .iter()
+            .zip(finest)
+            .map(|(name, tier)| {
+                let tree = trees.species.iter().any(|s| &s.appearance == name);
+                kinds::kind(tier, tree.then_some(&trees.felled)).map_err(|e| format!("{name}: {e}"))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        let sizes: Vec<_> = kinds.iter().map(|k| k.size).collect();
+        let trunks = kinds.iter().map(|k| k.trunk).collect();
+        let mut walk = SceneryWalk::new(ground.scenery(&sizes), sizes, trunks);
+        walk.stump_meshes = kinds.into_iter().map(|k| k.stump).collect();
+        walk.set_quality(self.scenery_quality);
+        self.scenery = Some(walk);
+        self.felled_from = None;
+        Ok(())
+    }
+
+    /// The mesh `World.appearances` row `row` draws, when it is a felled
+    /// tree's stump (`Appearance.draws` 6): cut from its kind's trunk, in
+    /// the renderer's world vertex. None for any other row.
+    pub fn stump_mesh(&self, row: u32) -> Option<&[f32]> {
+        let walk = self.scenery.as_ref()?;
+        let stumps = walk.rows.get(Draws::Stump as usize - 1)?;
+        let kind = stumps.iter().position(|&r| r == row)?;
+        walk.stump_meshes.get(kind)?.as_deref()
+    }
+
+    /// The player's scenery settings (`walk::Quality`).
+    pub fn set_scenery_quality(&mut self, quality: SceneryQuality) {
+        self.scenery_quality = quality;
+        if let Some(walk) = &mut self.scenery {
+            walk.set_quality(quality);
+            self.statics.rewalk();
+        }
+    }
+
+    /// The ground the side has seen cleared.
+    pub fn set_cleared(&mut self, cleared: Cleared) {
+        if let Some(walk) = &mut self.scenery {
+            walk.set_cleared(cleared);
+            self.statics.rewalk();
+        }
+    }
+
+    /// Wanted dressing cells are still to be laid: frame again before
+    /// trusting a picture.
+    pub fn scenery_pending(&self) -> bool {
+        self.scenery.as_ref().is_some_and(|w| w.pending)
+    }
+
+    /// A felled tree still falls.
+    pub fn scenery_falling(&self) -> bool {
+        self.scenery.as_ref().is_some_and(|w| w.falling)
+    }
+
+    /// Instances placed per scenery population and dressing cells drawn.
+    pub fn scenery_stats(&self) -> Option<[usize; 4]> {
+        self.scenery.as_ref().map(SceneryWalk::stats)
+    }
+
+    /// The trees the latest publication says fell, falling on `time`.
+    fn follow_felled(&mut self, time: f64) {
+        let Some(walk) = &mut self.scenery else {
+            return;
+        };
+        let fallen = self.latest.as_ref().map(|o| o.fallen_bodies.clone());
+        let same = match (&fallen, &self.felled_from) {
+            (Some(a), Some(b)) => Arc::ptr_eq(a, b),
+            (None, None) => true,
+            _ => false,
+        };
+        if !same {
+            let felled = fallen.iter().flat_map(|f| f.iter()).filter_map(|f| {
+                Some(FelledTree {
+                    prop: f.prop? as u32,
+                    toward: f.toward,
+                    fell_at: (f.tick - 1.0) / self.tick_hz,
+                })
+            });
+            if walk.set_felled(felled.collect()) {
+                self.statics.rewalk();
+            }
+            self.felled_from = fallen;
+        }
+        if walk.set_clock(time) || walk.pending {
+            self.statics.rewalk();
+        }
+    }
+
     /// What to draw at presentation time `time` for `camera`; errs when the
     /// side knows a building in a state its template lacks.
     pub fn frame(&mut self, time: f64, camera: &Camera, ui: &Ui) -> Result<&Frame, String> {
         self.know(ui.known)?;
+        self.camera = Some(*camera);
         let f = &mut self.frame;
         f.index += 1;
         f.clock = time;
@@ -705,10 +994,21 @@ impl Presentation {
         f.light_wrap = 0.0;
         let view = View::new(camera);
         f.view = view.record(camera);
+        self.follow_felled(time);
+        let mut scenery = match (&mut self.scenery, &self.ground) {
+            (Some(walk), Some(ground)) if !walk.rows.is_empty() => {
+                Some(SceneryPopulation { walk, ground })
+            }
+            _ => None,
+        };
         let mut populations: Vec<&mut dyn Population> = Vec::new();
         if let Some(b) = &mut self.buildings {
             populations.push(b);
         }
+        if let Some(s) = &mut scenery {
+            populations.push(s);
+        }
+        let f = &mut self.frame;
         self.statics
             .write(&mut populations, camera, &view, self.sun.as_ref(), f);
         let (Some(loaded), Some(sample)) = (self.loaded.as_mut(), self.interpolator.frame(time))
@@ -717,7 +1017,7 @@ impl Presentation {
         };
         let f = &mut self.frame;
         f.tick = sample.observation.tick as u32;
-        loaded.frame(sample, &view, ui, &self.world, f);
+        loaded.frame(sample, &view, ui, &self.world, self.detail_scale[0], f);
         Ok(&self.frame)
     }
 }
@@ -737,7 +1037,15 @@ impl Loaded {
         self.sound = Some((publication, launches));
     }
 
-    fn frame(&mut self, sample: &FrameSample, view: &View, ui: &Ui, world: &World, f: &mut Frame) {
+    fn frame(
+        &mut self,
+        sample: &FrameSample,
+        view: &View,
+        ui: &Ui,
+        world: &World,
+        unit_scale: f64,
+        f: &mut Frame,
+    ) {
         let Loaded {
             input,
             units,
@@ -770,7 +1078,8 @@ impl Loaded {
         f.counts.dropped = batch.dropped as u32;
 
         let side: &str = &input.side;
-        let detail = units.detail;
+        let mut detail = units.detail;
+        detail.lod_px = detail.lod_px.map(|v| v * unit_scale);
         let xray = input.xray;
         let o = &sample.observation;
         let indoor: Vec<f64> = o
@@ -791,7 +1100,7 @@ impl Loaded {
         };
         let tint = |s: &str| units.tints.get(s).map_or([1.0; 3], |t| t.map(|v| v as f32));
         let row = |name: &str, state: &str, lies: u32| {
-            world.rows[&(name.to_owned(), state.to_owned(), lies)]
+            world.rows[&(name.to_owned(), state.to_owned(), lies, 0)]
         };
         models.clear();
         // Soldiers off screen, as the gates count bodies drawn, carded or culled.
@@ -1078,7 +1387,7 @@ impl Loaded {
         f.counts.culled = culled;
         batches(models, f);
         picks(sample, units, input, f);
-        emitters(o, poses, side, f);
+        emitters(o, poses, side, units, f);
     }
 }
 
@@ -1229,7 +1538,7 @@ fn picks(sample: &FrameSample, units: &UnitsSection, input: &BattleInput, f: &mu
 
 /// What audio hears move this frame: each drawn vehicle's tracks and
 /// turret, and each drawn soldier.
-fn emitters(o: &Observation, poses: &PoseFrame, side: &str, f: &mut Frame) {
+fn emitters(o: &Observation, poses: &PoseFrame, side: &str, units: &UnitsSection, f: &mut Frame) {
     let reversing = |unit: f64, own: bool| {
         if own {
             o.own.iter().any(|u| u.id == unit && u.reversing)
@@ -1243,7 +1552,11 @@ fn emitters(o: &Observation, poses: &PoseFrame, side: &str, f: &mut Frame) {
         f.emitters.push(Emitter {
             unit: v.unit as u32,
             member: NONE,
-            class: NONE,
+            class: units
+                .types
+                .keys()
+                .position(|k| **k == *v.kind)
+                .map_or(NONE, |i| i as u32),
             flags: u32::from(!own) | if reversing(v.unit, own) { 2 } else { 0 },
             position: [
                 v.position[0] as f32,

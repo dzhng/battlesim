@@ -44,7 +44,6 @@ import {
 } from "@packages/renderer-core/src/cameraObstacles";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import type { ModelInstance } from "@packages/battle-renderer/src/models/modelInstances";
-import type { FelledTree } from "@packages/battle-renderer/src/scenery/felled";
 import type { SideStructures } from "@packages/battle-renderer/src/models/propAppearance";
 import { trackHeldKeys } from "@web/battle/input/heldKeys";
 import type { Project } from "@web/battle/present/readouts";
@@ -82,7 +81,9 @@ import {
   type ModelCounts,
 } from "./presentedFrame";
 import { emptyBuildingWalkStats } from "@packages/battle-renderer/src/models/buildingLayer";
+import { NO_SCENERY_WALK } from "@packages/battle-renderer/src/frame/sceneryLayer";
 import {
+  resolveFogLook,
   resolveLight,
   type PresentedAppearance,
   type PresentedFrame,
@@ -197,14 +198,11 @@ export interface ViewportFrame {
   presented?: PresentedFrame;
   /** How many models of each kind the frame poses. */
   counts?: ModelCounts;
-  /** The trees the side knows have fallen: handed over only when the array
-   *  changes. */
-  felled?: readonly FelledTree[];
   /** The presentation clock, in seconds (the pose driver's and the wind's). */
   clock?: number;
   /** What the frame's effects hold, by kind and shape. */
   effectCounts?: EffectCounts;
-  /** The observing side's learned ground (the client's `GroundView`), drawn
+  /** The observing side's learned ground (the presentation's `LearnedGround`), drawn
    *  as scars; the frame uploads only what changed since it last looked. */
   ground?: GroundMarks | null;
 }
@@ -234,13 +232,11 @@ export interface ViewportPilot {
   frameRate?: boolean;
   /** The battle frame is up: the adapter, the light it was built with, the
    *  frame's own statistics (its rolling GPU frame time from
-   *  `timestamp-query`, and live memory), and its ground's and grass's GPU
-   *  tables as last uploaded. */
+   *  `timestamp-query`, and live memory). */
   attach?(frame: {
     adapter: string;
     light: LightPresentation;
     stats: () => ReturnType<BattleFrame["stats"]>;
-    tables: () => ReturnType<BattleFrame["uploadedTables"]>;
   }): void;
   /** The framing for the frame at `now`; the rig places it
    *  (`CameraController.place`) and draws it clear of obstacles (`resolve`).
@@ -473,7 +469,8 @@ export function LabViewport({
   const presentedWorldRef = useRef<readonly PresentedAppearance[]>([]);
   const countsRef = useRef<ModelCounts>(emptyModelCounts());
   const effectCountsRef = useRef<EffectCounts>(emptyEffectCounts());
-  const felledRef = useRef<readonly FelledTree[]>([]);
+  /** The lab's scenery switches: the dressing and the tree lines' shrubs. */
+  const sceneryShown = useRef({ dressing: true, understorey: true });
   const modelsSuppressed = useRef(false);
   const effectsSuppressed = useRef(false);
   const scarsSuppressed = useRef(false);
@@ -563,7 +560,7 @@ export function LabViewport({
   fogStyleRef.current = fogStyle;
   const lightRef = useRef(light);
   useEffect(() => {
-    sceneRef.current?.setFogStyle(fogStyle ?? gameFogStyle);
+    sceneRef.current?.setFogLook(resolveFogLook(fogStyle ?? gameFogStyle));
     redrawRef.current();
   }, [fogStyle]);
   const fogSuppressed = useRef(false);
@@ -732,14 +729,23 @@ export function LabViewport({
         const scenePresentation = (): ObservationDecoder | null => {
           const battle = presentationRef.current;
           if (battle) return battle.current;
-          if (!own && moduleLoaded && buildingsRef.current?.current) own = new ObservationDecoder();
+          if (!own && moduleLoaded) own = new ObservationDecoder();
           return own;
         };
-        /** The buildings' style and sun, taken when the frame is built; a
-         *  new frame holds no static batches, so the next is sent them all. */
+        /** The buildings' style and sun, taken when the frame is built. A
+         *  new frame holds no static batches, so the first drawn through it
+         *  is sent them all (`resend`, raised when it replaces the last: the
+         *  last may draw on while it builds, and must not take them). */
         let staticStyle = gameBuildingStyle;
         let staticSun = { azimuth: 0, elevation: 1, farM: 0 };
-        let resend = false;
+        let resend = true;
+        /** The presentation and quality the detail scale was last given to. */
+        let detailed: [
+          ObservationDecoder | null,
+          GraphicsQualityProfile | undefined,
+          boolean,
+          boolean,
+        ] = [null, undefined, true, true];
         const build = async () => {
           const lit = light();
           staticSun = {
@@ -748,17 +754,15 @@ export function LabViewport({
             farM: lit.cascades.max_far_m,
           };
           staticStyle = buildingStyleRef.current ?? gameBuildingStyle;
-          resend = true;
           const next = await createBattleFrame(device!, info.format, {
             light: await resolveLight(lit),
             fogGeometry: gameFogGeometry,
-            fogStyle: fogStyleRef.current ?? gameFogStyle,
+            fogLook: resolveFogLook(fogStyleRef.current ?? gameFogStyle),
             overlayGlow: gameOverlayGlow,
             paint: gamePaint,
             xrayMinHiddenFragmentFraction: gameXrayMinHiddenFragmentFraction,
             models: gameModelDetail,
             glass: gameGlass,
-            buildings: buildingStyleRef.current ?? gameBuildingStyle,
             quality: qualityRef.current,
             world: worldRef.current.current!,
             instances: instancesRef.current,
@@ -787,7 +791,7 @@ export function LabViewport({
             if (modelsRef.current) next.setModels(modelsRef.current);
             next.setClock(clock);
             next.setPresentationWorld(presentedWorldRef.current);
-            next.setFelled(felledRef.current);
+            next.setPresentedGround(scenePresentation()?.presentedGround() ?? null);
             next.setGround(groundNow());
             return next;
           } catch (error) {
@@ -803,7 +807,6 @@ export function LabViewport({
           adapter,
           light: light(),
           stats: () => scene.stats(),
-          tables: () => scene.uploadedTables(),
         });
         // What the battle draws, for a player's diagnostics report.
         signal.addEventListener(
@@ -902,8 +905,26 @@ export function LabViewport({
                 staticStyle,
                 staticSun,
               );
+              const layers = worldRef.current.current;
+              decoder.setGround(layers?.terrain.input ?? null, layers?.scenery ?? null);
               if (resend) decoder.resendStatics();
               resend = false;
+              const quality = qualityRef.current;
+              const shown = sceneryShown.current;
+              if (
+                detailed[0] !== decoder ||
+                detailed[1] !== quality ||
+                detailed[2] !== shown.dressing ||
+                detailed[3] !== shown.understorey
+              ) {
+                detailed = [decoder, quality, shown.dressing, shown.understorey];
+                decoder.setDetailScale(quality?.unitLodScale ?? 1, quality?.buildingLodScale ?? 1);
+                decoder.setSceneryQuality(
+                  quality?.treeLodScale ?? 1,
+                  (quality?.forestDressing ?? true) && shown.dressing,
+                  (quality?.understorey ?? true) && shown.understorey,
+                );
+              }
             }
             animated = frameRef.current?.(now, snapshot());
           } catch (err) {
@@ -913,6 +934,7 @@ export function LabViewport({
           }
           if (animated?.ground !== undefined) groundRef.current = animated.ground;
           if (scene.setGround(groundNow())) dirty = true;
+          decoder?.setCleared(groundNow());
           if (animated) {
             if (animated.clock !== undefined && animated.clock !== clock) {
               clock = animated.clock;
@@ -935,10 +957,6 @@ export function LabViewport({
               });
             if (animated.counts) countsRef.current = animated.counts;
             if (animated.effectCounts) effectCountsRef.current = animated.effectCounts;
-            if (animated.felled && animated.felled !== felledRef.current) {
-              felledRef.current = animated.felled;
-              scene.setFelled(animated.felled);
-            }
             dirty = true;
           }
           // The static world for the camera drawn: walked in Rust, its
@@ -948,6 +966,7 @@ export function LabViewport({
           try {
             let views: PresentedFrame | null = null;
             let walk = NO_WALK;
+            let scenery = NO_SCENERY_WALK;
             if (decoder) {
               if (!animated?.presented) {
                 decoder.frame(clock, presentedCamera(snapshot()), {
@@ -960,11 +979,13 @@ export function LabViewport({
                   scene.setPresentationWorld(world);
                 }
               }
-              // The stats call may grow memory: the views are taken after it.
+              // The stats calls may grow memory: the views are taken after them.
               walk = decoder.buildingWalk();
+              scenery = decoder.sceneryWalk();
               views = decoder.lastFrame();
+              scene.setPresentedGround(decoder.presentedGround());
             }
-            if (scene.setStaticFrame(views, walk)) dirty = true;
+            if (scene.setStaticFrame(views, { buildings: walk, scenery })) dirty = true;
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err);
             handle.error = message;
@@ -1100,6 +1121,7 @@ export function LabViewport({
             const previous = scene;
             const next = await build();
             scene = next;
+            resend = true;
             previous.dispose();
             if (signal.aborted) return;
             setInspecting((shown) => (shown ? scene : shown));
@@ -1153,11 +1175,11 @@ export function LabViewport({
             await nextFrame();
           },
           async suppressDressing(on: boolean) {
-            scene.setDressingShown(!on);
+            sceneryShown.current = { ...sceneryShown.current, dressing: !on };
             await nextFrame();
           },
           async suppressUnderstorey(on: boolean) {
-            scene.setUnderstoreyShown(!on);
+            sceneryShown.current = { ...sceneryShown.current, understorey: !on };
             await nextFrame();
           },
           async suppressBuildings(on: boolean) {

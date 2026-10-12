@@ -1,8 +1,8 @@
 import { writeFile } from "node:fs/promises";
 
 /** The terrain material's field lookup on the GPU against the same lookup on
- *  the CPU (`surfaceField.ts`, which the unit test holds to the all-primitives
- *  distance): every shape the export has, and a town of thousands of records,
+ *  the CPU (the ground's own, `ground::field`, held to the all-primitives
+ *  distance by its tests): every shape the export has, and a town of thousands of records,
  *  at pixels from the play camera's to one as wide as the map. Points stand
  *  round every stroke's ends too, where the stroke is cut square: past the
  *  end, beside it and off its corners. */
@@ -40,8 +40,12 @@ export async function surfaceFieldAgreement(ctx) {
       import("/src/wasm/game_wasm.js"),
       import(file("packages/renderer-core/src/gpuAllocations.ts")),
     ]);
-    const strokes = await import(file("packages/battle-renderer/src/terrain/strokes.ts"));
+    // A stroke's stretch: `ax, ay, bx, by, half width, kind, cut ends`.
+    const STROKE_FLOATS = 7;
+    const STROKE_CUTS = 6;
     await wasm.default();
+    // The ground's shapes are resolved by the presentation module.
+    await (await import(file("web/src/battle/sim/presentation.ts"))).loadPresentation();
     const adapter = await navigator.gpu.requestAdapter();
     const device = await adapter.requestDevice();
     const live = allocations.trackGpuAllocations(device);
@@ -60,20 +64,20 @@ export async function surfaceFieldAgreement(ctx) {
     const grown = [];
     try {
       const layout = JSON.parse(wasm.world_layout(JSON.stringify(rules.rules)));
+      const exported = mesh.readWorldExports(view);
+      const dense = grounds.denseGround(1600, 8, 40);
       const cases = [
         [
           "every shape",
-          mesh.buildWorldLayers(mesh.readWorldExports(view), layout, biome.default, "surface")
-            .terrain,
+          mesh.buildWorldLayers(exported, layout, biome.default, "surface").terrain,
+          exported,
+          [0, 0, ...grounds.CURATED_GROUND.size],
         ],
         [
           "dense town",
-          surface.terrainSurface(
-            new Float32Array(0),
-            grounds.denseGround(1600, 8, 40),
-            biome.default,
-            null,
-          ),
+          surface.bareTerrain(new Float32Array(0), [0, 0, 1600, 1600], 4, biome.default, dense),
+          dense,
+          [0, 0, 1600, 1600],
         ],
       ];
       const source = terrain.createTerrainSource(root, registry);
@@ -103,26 +107,25 @@ export async function surfaceFieldAgreement(ctx) {
         size: count * 16,
         usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
       });
-      for (const [name, surfaceOf] of cases) {
-        const site = surfaceOf.site;
-        const field = fields.buildSurfaceField(site, terrain.terrainReach(surfaceOf));
-        source.set(surfaceOf);
+      for (const [name, surfaceOf, streams, map] of cases) {
+        const ground = surface.presentGround(surfaceOf.input);
+        source.set(ground);
         // Seeded points over the map and a margin past it, as f32.
         let seed = 63;
         const next = () => {
           seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
           return seed / 4294967296;
         };
-        const [minX, minY, maxX, maxY] = site.map;
+        const [minX, minY, maxX, maxY] = map;
         // Round each end a paved or forest stroke is cut at.
         const ends = [];
         const around = (records, stride) => {
           for (let o = 0; o < records.length; o += stride)
             for (const [bit, from, to] of [
-              [strokes.CUT_A, o, o + 2],
-              [strokes.CUT_B, o + 2, o],
+              [fields.CUT_A, o, o + 2],
+              [fields.CUT_B, o + 2, o],
             ]) {
-              if (!(records[o + strokes.STROKE_CUTS] & bit)) continue;
+              if (!(records[o + STROKE_CUTS] & bit)) continue;
               const half = records[o + 4];
               const run = Math.hypot(
                 records[from] - records[to],
@@ -140,8 +143,8 @@ export async function surfaceFieldAgreement(ctx) {
                   ]);
             }
         };
-        around(site.surfaceStrokes, site.surfaceStrokeStride);
-        for (const shape of site.forestShapes) around(shape.strokes, strokes.STROKE_FLOATS);
+        around(streams.surfaceStrokes, STROKE_FLOATS);
+        around(streams.forestStrokes, STROKE_FLOATS);
         // As many of them as a fifth of the points, evenly through the list.
         const endPoints = Math.min(ends.length, POINTS / 5);
         const queries = new Float32Array(count * 4);
@@ -156,6 +159,9 @@ export async function surfaceFieldAgreement(ctx) {
           );
         }
         device.queue.writeBuffer(input, 0, queries);
+        const points = new Float64Array(count * 3);
+        for (let q = 0; q < count; q++) points.set(queries.subarray(q * 4, q * 4 + 3), q * 3);
+        const cpu = ground.ground_distances(points);
         const encoder = root["~unstable"].createCommandEncoder();
         pipeline
           .with(source.group)
@@ -193,16 +199,11 @@ export async function surfaceFieldAgreement(ctx) {
           const values = new Float32Array(read.getMappedRange());
           for (let q = 0; q < count; q++) {
             const [x, y, footprint] = queries.subarray(q * 4, q * 4 + 3);
+            const expected = cpu.subarray(q * 3, q * 3 + 3);
             if (q < endPoints * FOOTPRINTS.length && q % FOOTPRINTS.length === 0) {
-              const round = capsule(site.surfaceStrokes, site.surfaceStrokeStride, x, y);
-              const square = fields.pavedDistance(field, x, y, footprint);
-              if (Math.abs(round) < 1e8 && Math.abs(round - square) > 0.05) cutValues++;
+              const round = capsule(streams.surfaceStrokes, STROKE_FLOATS, x, y);
+              if (Math.abs(round) < 1e8 && Math.abs(round - expected[0]) > 0.05) cutValues++;
             }
-            const expected = [
-              fields.pavedDistance(field, x, y, footprint),
-              fields.forestDistance(field, x, y, footprint),
-              fields.waterDistance(field, x, y, footprint),
-            ];
             expected.forEach((want, k) => {
               const got = values[q * 4 + k];
               // A point no listed primitive reaches reads the sentinel on both.
@@ -219,15 +220,19 @@ export async function surfaceFieldAgreement(ctx) {
         } finally {
           read.unmap();
         }
+        const tables = ground.ground_terrain();
+        const [records, index] = [tables.surfaces(), tables.surface_index()];
+        tables.free();
+        const [, , cellM, cols, rows, levels, exactToM] = ground.ground_field_grid();
         grown.push({
           name,
-          records: field.records.length / fields.SURFACE_FLOATS,
-          cells: [field.cols, field.rows],
-          cellM: field.cellM,
-          levels: field.levels,
-          exactToM: field.exactToM === Infinity ? "any" : field.exactToM,
-          indexBytes: field.index.byteLength,
-          recordBytes: field.records.byteLength,
+          records: records.length / fields.SURFACE_FLOATS,
+          cells: [cols, rows],
+          cellM,
+          levels,
+          exactToM: exactToM === Infinity ? "any" : exactToM,
+          indexBytes: index.byteLength,
+          recordBytes: records.byteLength,
           compared: count * 3,
           endPoints,
           cutValues,

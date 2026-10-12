@@ -48,7 +48,6 @@ import {
   sideTint,
   type LoadedModel,
 } from "../workbench/sources";
-import game from "@fixtures/game.json";
 import modelManifest from "@fixtures/units/model-manifest.json";
 import {
   WORKBENCH_CAMERA,
@@ -57,9 +56,6 @@ import {
   type WorkbenchView,
 } from "../workbench/views";
 import { useFeed, type FeedSource } from "../feed";
-
-/** A model with no side keeps its authored colours. */
-const NO_TINT = [1, 1, 1] as const;
 
 // The model workbench: drop a GLB (or pick a catalog appearance) and, within
 // seconds, see the validator's findings and our own production render — the

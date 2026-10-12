@@ -5,12 +5,12 @@ import type { SoundFrameOptions } from "./soundFrame";
 import { soundSettings } from "./settings";
 import { SoundBank } from "./soundBank";
 import { WebAudioSink } from "./webAudioSink";
+import { BattleMusic } from "./music/battleMusic";
+import { MusicPlayer } from "./music/musicPlayer";
+import type { VoiceRequest } from "./voices/chatter";
 
-/** Reversible menu mix, also used by offline listening review. */
-export const MENU_BED = [
-  { sound: "menu_music", gain: 2.2, offset: 0 },
-  { sound: "countryside", gain: 0.08, offset: undefined },
-] as const;
+/** The menu's countryside bed, under its music (the catalog's `menu` mood). */
+export const MENU_AMBIENCE = { sound: "countryside", gain: 0.08 } as const;
 export const MENU_CUES = {
   hover: { sound: "recorded-clack-14", gain: 0.12 },
   click: { sound: "recorded-clack-17", gain: 0.3 },
@@ -25,6 +25,9 @@ export class AppAudio {
   private context: AudioContext | null = null;
   private bank: SoundBank | null = null;
   private menu: WebAudioSink | null = null;
+  private music: MusicPlayer | null = null;
+  /** The running battle's score, from its first drawn update. */
+  private score: BattleMusic | null = null;
   private battle: BattleAudio | null = null;
   private screen: AudioScreen = "other";
   private menuReady = false;
@@ -78,7 +81,10 @@ export class AppAudio {
 
   setScreen(screen: AudioScreen) {
     this.screen = screen;
-    if (screen === "menu") this.combatStarted = false;
+    if (screen === "menu") {
+      this.combatStarted = false;
+      this.endScore(0);
+    }
     if (screen === "menu" || screen === "loading") this.start();
     this.syncMenu();
   }
@@ -97,6 +103,11 @@ export class AppAudio {
           this.options.catalog,
           this.bank,
         );
+        this.music = new MusicPlayer(
+          this.context,
+          this.options.catalog.music.tracks,
+          this.menu.master,
+        );
       } catch (error) {
         this.error = error instanceof Error ? error.message : String(error);
         this.bank?.dispose();
@@ -107,6 +118,8 @@ export class AppAudio {
       }
     }
     this.setVolume();
+    // Media autoplay is admitted per element: retry inside this input too.
+    this.music?.resume();
     if (this.context.state !== "running") this.battle?.reset();
     // Queue resume even when state is still running: a prior suspend may be
     // pending. Permission failure remains eligible for the next gesture.
@@ -119,7 +132,7 @@ export class AppAudio {
       .catch(() => {});
     this.prepareMenu();
     if (this.bank) this.battle?.connect(this.context, this.bank);
-    this.battle?.setVolume(soundSettings.get().volume);
+    this.battle?.setVolume(soundSettings.get().volume, soundSettings.get().voices);
     this.syncMenu();
   }
 
@@ -159,14 +172,34 @@ export class AppAudio {
     return battle;
   }
 
-  /** Only a running, prepared battle's first drawn audio update ends loading music. */
-  battleStarted(battle: BattleAudio) {
-    if (this.battle !== battle || this.combatStarted) return;
-    this.combatStarted = true;
-    this.syncMenu();
+  /** A running, prepared battle's drawn audio update, with the barks it
+   *  heard and whether a voice line sounds. The first ends the menu's music
+   *  and opens the battle's score, which the barks direct and the lines duck. */
+  battleHeard(battle: BattleAudio, barks: readonly VoiceRequest[], speaking: boolean) {
+    if (this.battle !== battle || !this.context) return;
+    if (!this.combatStarted) {
+      this.combatStarted = true;
+      this.syncMenu();
+      const { music } = this.options.presentation;
+      const { tension, combat } = this.options.catalog.music.moods;
+      this.score = this.music
+        ? new BattleMusic(music, { tension, combat }, this.music, Math.random)
+        : null;
+    }
+    this.score?.update(this.context.currentTime, barks, speaking);
   }
   releaseBattle(battle: BattleAudio) {
-    if (this.battle === battle) this.battle = null;
+    if (this.battle !== battle) return;
+    this.battle = null;
+    this.endScore(MENU_FADE_S);
+  }
+
+  /** The battle's score fades out over `fade` seconds, undipped. */
+  private endScore(fade: number) {
+    if (!this.score) return;
+    this.score = null;
+    this.music?.duck(0, 0, 0);
+    this.music?.stop(fade);
   }
 
   private prepareMenu() {
@@ -174,10 +207,7 @@ export class AppAudio {
       return;
     this.menuPreparing = true;
     void this.bank
-      .prepare([
-        ...MENU_BED.map(({ sound }) => sound),
-        ...Object.values(MENU_CUES).map(({ sound }) => sound),
-      ])
+      .prepare([MENU_AMBIENCE.sound, ...Object.values(MENU_CUES).map(({ sound }) => sound)])
       .then(() => {
         if (this.closed) return;
         this.menuReady = true;
@@ -202,42 +232,46 @@ export class AppAudio {
     this.menuPlaying = wantsBed;
     const at = this.menu.now();
     if (!wantsBed) {
+      this.music?.stop(this.combatStarted ? MENU_FADE_S : 0);
       this.menu.stop(1, at, this.combatStarted ? MENU_FADE_S : 0);
-      this.menu.stop(2, at, this.combatStarted ? MENU_FADE_S : 0);
       return;
     }
     // A quick return during the battle fade replaces it rather than stacking beds.
     this.menu.clear();
-    for (const [i, { sound, gain, offset }] of MENU_BED.entries())
-      this.menu.start(i + 1, {
-        sound,
-        variant: 0,
-        bus: "ambience",
-        at,
-        offset,
-        gain,
-        rate: 1,
-        lowpass: 20000,
-        wet: 0,
-        attack: 0.5,
-        position: null,
-        pan: null,
-        loop: true,
-      });
+    this.music?.stop();
+    const bed = this.options.catalog.music.moods.menu[0];
+    if (bed) this.music?.play(bed, { fade: 0.5 });
+    this.menu.start(1, {
+      sound: MENU_AMBIENCE.sound,
+      variant: 0,
+      bus: "ambience",
+      at,
+      gain: MENU_AMBIENCE.gain,
+      rate: 1,
+      lowpass: 20000,
+      wet: 0,
+      attack: 0.5,
+      position: null,
+      pan: null,
+      loop: true,
+    });
   }
 
   private setVolume() {
     if (!this.context || !this.menu) return;
+    const settings = soundSettings.get();
     this.menu.master.gain.setTargetAtTime(
-      this.options.presentation.buses.master * soundSettings.get().volume,
+      this.options.presentation.buses.master * settings.volume,
       this.context.currentTime,
       0.02,
     );
+    // Music feeds this master, so it is master × music.
+    this.music?.setLevel(this.options.presentation.buses.music * settings.music);
   }
   private applySettings() {
     if (this.closed) return;
     this.setVolume();
-    this.battle?.setVolume(soundSettings.get().volume);
+    this.battle?.setVolume(soundSettings.get().volume, soundSettings.get().voices);
     if (this.muted !== soundSettings.get().muted) this.battle?.reset();
     this.muted = soundSettings.get().muted;
     if (this.muted) {
@@ -267,9 +301,11 @@ export class AppAudio {
     window.removeEventListener("pagehide", this.onPageHide);
     this.battle?.dispose();
     this.menu?.dispose();
+    this.music?.dispose();
     this.bank?.dispose();
     void this.context?.close().catch(() => {});
     this.menu = null;
+    this.music = null;
     this.bank = null;
     this.context = null;
     this.menuPlaying = false;

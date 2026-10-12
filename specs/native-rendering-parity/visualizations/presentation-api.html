@@ -137,12 +137,11 @@
   <text class="s" x="926" y="132">no JS object per entity</text>
 
   <rect class="box gpu" x="910" y="180" width="190" height="138"/>
-  <text class="t" x="926" y="206">Godot renderer</text>
-  <text class="s" x="926" y="228">Rust adaptor in the core</text>
-  <text class="s" x="926" y="246">multimesh_set_buffer,</text>
-  <text class="s" x="926" y="264">buffer_update</text>
-  <text class="s" x="926" y="282">(x,y,z) → (x,z,−y) at the root</text>
-  <text class="s" x="926" y="300">GDScript never sees a Frame</text>
+  <text class="t" x="926" y="206">Native renderer (wgpu)</text>
+  <text class="s" x="926" y="228">native/client links the crate</text>
+  <text class="s" x="926" y="246">the browser's exported WGSL,</text>
+  <text class="s" x="926" y="264">queue.write_buffer of</text>
+  <text class="s" x="926" y="282">the records' bytes</text>
 
   <rect class="box gpu" x="910" y="330" width="190" height="106"/>
   <text class="t" x="926" y="356">Per vertex / pixel</text>
@@ -193,9 +192,8 @@
   <tr><th>Where</th><th>What</th></tr>
   <tr><td><code>crates/presentation/src/records.rs</code></td><td><code>records!</code> macro → <code>#[repr(C)]</code> structs with <code>bytemuck</code> <code>Pod</code>, size assertions, and a field layout (name, offset, type, unit)</td></tr>
   <tr><td><code>records.gen.ts</code></td><td>TypeGPU schemas and <code>frameViews(memory, ptr)</code>: typed-array views over WASM memory, built from the header</td></tr>
-  <tr><td><code>records.gen.glsl</code></td><td>std430 structs for Godot's compute and raster passes</td></tr>
-  <tr><td>native core</td><td>uses the Rust structs directly; <code>bytemuck::cast_slice</code> → <code>PackedFloat32Array</code> → <code>RenderingServer</code></td></tr>
-  <tr><td><code>records_are_current</code></td><td>regenerates both files and fails on any difference</td></tr>
+  <tr><td><code>native/client</code></td><td>uses the Rust structs directly; <code>bytemuck::cast_slice</code> → <code>wgpu</code> <code>queue.write_buffer</code></td></tr>
+  <tr><td><code>records_are_current</code></td><td>regenerates <code>records.gen.ts</code> and fails on any difference</td></tr>
 </table>
 
 <h2>Frame on market-town, per drawn frame</h2>

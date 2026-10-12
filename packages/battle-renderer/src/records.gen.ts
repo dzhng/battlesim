@@ -3,6 +3,20 @@
 import { d } from "typegpu";
 
 export const NONE = 0xffffffff;
+/** The widest fog rim or soft edge a style may ask for, device pixels (`fog.rs`). */
+export const FOG_EDGE_REACH_PX = 8;
+/** The sun's cascade slots `SunShadow` holds (`shadow.rs`). */
+export const SUN_CASCADES = 4;
+/** The scar cache's directory flags over a tile key + 1, its pool texture
+ *  and the normalization table at the pool's start, and `ScarParams`' words
+ *  before the biome's look (`scars/mod.rs`). */
+export const SCAR_UNIFORM = 0x80000000;
+export const SCAR_DENSE = 0x20000000;
+export const SCAR_KEY_MASK = 0x1fffffff;
+export const SCAR_POOL_WIDTH = 2048;
+export const SCAR_POOL_HEIGHT = 1024;
+export const SCAR_NORMALIZATION_WORDS = 4096;
+export const SCAR_PARAMS_WORDS = 20;
 
 /** Where a frame's sets lie, as pointers into the module's memory and record counts (the WASM binding fills them; native reads the `Frame` directly). */
 export const FrameHeader = {
@@ -56,10 +70,10 @@ export const Appearance = {
   lies: 4,
   /** Joints a palette for it holds (0: rigid). (u32) */
   skin: 5,
-  /** 1 for a drawable of the static world (a building's kit module), whose batches a frame writes only when they change and names unchanged otherwise; 0 for one the frame poses every time. (u32) */
+  /** 1 for a drawable of the static world (a building's kit module, a tree), whose batches a frame writes only when they change and names unchanged otherwise; 0 for one the frame poses every time. (u32) */
   placed: 6,
-  /**  (u32) */
-  pad: 7,
+  /** What draws it: 0 a model; scenery 1 the forest, 2 a tree line's shrubs, 3 the backdrop, 4 forest-floor dressing (its seed is its height over the size it fades at), 5 a felled tree (two records an instance: the tree with its fall's way, angle and hinge; then its press up-and-down and across, trunk, landing and crown base), 6 a felled tree's stump (`Presentation::stump_mesh`). (u32) */
+  draws: 7,
 } as const;
 export const APPEARANCE_WORDS = 8;
 
@@ -153,7 +167,7 @@ export const Emitter = {
   unit: 0,
   /**  (u32) */
   member: 1,
-  /** The unit type's row in the world's kinds, or `NONE` for a soldier. (u32) */
+  /** The unit type's index in the world's `units.types` (by name), or `NONE` for a soldier. (u32) */
   class: 2,
   /** 1 enemy, 2 reversing. (u32) */
   flags: 3,
@@ -325,6 +339,75 @@ export const Grade = {
   lift: 16,
 } as const;
 export const GRADE_WORDS = 20;
+
+/** What unseen looks like (`FogStyleUniform` in the fog mask passes): a `presentation.fog` style resolved (`fog::FogStyle::look`). */
+export const FogLook = {
+  /** The night tint at unit luminance. (f32 × 3) */
+  tint: 0,
+  /**  (f32) */
+  dim: 3,
+  /**  (f32) */
+  cool: 4,
+  /**  (f32) */
+  saturation: 5,
+  /**  (f32) */
+  veil: 6,
+  /**  (f32) */
+  line_strength: 7,
+  /**  (f32) */
+  line_spacing_px: 8,
+  /**  (f32) */
+  line_width_px: 9,
+  /** Radians. (f32) */
+  line_angle: 10,
+  /**  (f32) */
+  line_floor: 11,
+  /**  (f32) */
+  edge_softness_px: 12,
+  /**  (f32 × 3) */
+  pad0: 13,
+  /** Display sRGB. (f32 × 3) */
+  rim_color: 16,
+  /**  (f32) */
+  rim_alpha: 19,
+  /**  (f32) */
+  rim_width_px: 20,
+  /** How far the distance passes search for the other side, pixels. (f32) */
+  reach_px: 21,
+  /**  (f32 × 2) */
+  pad1: 22,
+} as const;
+export const FOG_LOOK_WORDS = 24;
+
+/** A camera as every world, shadow and overlay shader binds it (`Camera`): the frame's eye, or a sun cascade posed as its light. */
+export const Camera = {
+  /**  (f32 × 16) */
+  view_proj: 0,
+  /**  (f32 × 16) */
+  inv_view_proj: 16,
+  /**  (f32 × 3) */
+  eye: 32,
+  /**  (f32) */
+  znear: 35,
+  /** The viewport (px). (f32) */
+  width: 36,
+  /**  (f32) */
+  height: 37,
+  /** The animation clock (s). (f32) */
+  time: 38,
+  /**  (f32) */
+  pad: 39,
+} as const;
+export const CAMERA_WORDS = 40;
+
+/** Every shadow receiver's sun cascades (`SunShadow`), from the frame's fit (`shadow::sun_shadow`). */
+export const SunShadow = {
+  /** Per cascade (`shadow::CASCADES`), 24 floats: its light's view-projection (16); depth bias, normal bias (m), PCF radius (texels), 0; the receiver-depth interval it shades, 0, 0. An unfitted cascade is the identity over [1, 1]. (f32 × 96) */
+  cascades: 0,
+  /** The receiver range's capped far, 0, its near, 0. (f32 × 4) */
+  control: 96,
+} as const;
+export const SUN_SHADOW_WORDS = 100;
 
 /** What this frame poses and runs, for the gates. */
 export const Counts = {

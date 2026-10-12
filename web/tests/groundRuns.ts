@@ -1,6 +1,18 @@
-/** Test helpers for ground patches: write one as a list of cells, and count
- *  the cells a run patch covers. */
-import type { GroundRunsPatch } from "../src/battle/sim/ground";
+/** Test helpers for ground patches: write one as a list of cells, count the
+ *  cells a run patch covers, and carry one in a publication record. */
+import type { ObservationLayout } from "../src/battle/sim/observationView";
+
+/** A patch of the side's learned ground, its runs four numbers each: tile,
+ *  start + length × 256, crater + scorch × 256, tracks + trampled × 256 +
+ *  cleared × 65536. */
+export interface GroundRunsPatch {
+  epoch: number;
+  side: string;
+  baseRevision: number;
+  revision: number;
+  full: boolean;
+  runs: Float32Array;
+}
 export interface CellPatch {
   epoch: number;
   side: string;
@@ -85,4 +97,40 @@ export function packedGroundRuns(runs: readonly number[]): Float32Array {
   const words = new Uint32Array(Math.ceil(Number(count) / 32));
   for (let i = 0; i < words.length; i++) words[i] = Number((bits >> BigInt(i * 32)) & 0xffffffffn);
   return new Float32Array(words.buffer);
+}
+
+/** Publication records in `layout`'s shape carrying only a ground patch
+ *  (empty groups, a 9 × 5 fog), for a decoder to learn it. */
+export function groundRecords(layout: ObservationLayout) {
+  let fog = 0;
+  return (patch: GroundRunsPatch): Float32Array => {
+    const base = patch.full ? 0 : fog;
+    fog = base + 1;
+    const header: Record<string, number> = {
+      tick: patch.revision,
+      fogCellM: 8,
+      fogNx: 9,
+      fogNy: 5,
+      fogFloats: patch.full ? 4 : 3,
+      fogFull: Number(patch.full),
+      fogBaseLo: base,
+      fogRevisionLo: fog,
+      groundEpoch: patch.epoch,
+      groundSide: layout.ground.sides.indexOf(patch.side),
+      groundFull: Number(patch.full),
+      groundBase: patch.baseRevision,
+      groundRevision: patch.revision,
+      groundRunCount: patch.runs.length / 4,
+    };
+    const head = Float32Array.from([
+      ...layout.header.map((name) => header[name] ?? 0),
+      ...layout.groups.flatMap(() => [0, 1, 0]),
+      ...(patch.full ? [65535, 65535, 8191, 0] : [0, 0, 0]),
+    ]);
+    const tail = packedGroundRuns(Array.from(patch.runs));
+    const out = new Float32Array(head.length + tail.length);
+    out.set(head);
+    new Uint32Array(out.buffer).set(new Uint32Array(tail.buffer), head.length);
+    return out;
+  };
 }

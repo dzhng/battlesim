@@ -1,113 +1,71 @@
-// The scenery layer: every placed tree, hedgerow shrub and piece of
-// forest-floor dressing, instanced from its appearance's tiers, in the
-// frame's own passes. The trees and shrubs are chunked, culled and tiered by
-// the static chunk owner (`staticChunks.ts`); the buffers, meshes and
-// materials here are the layer's own. Opaque, so all of it is in the depth
-// prepass (FogVisibility's tile cull reads it like any surface).
+// The scenery layer: every tree, hedgerow shrub and piece of forest-floor
+// dressing the presentation's walk chose (`static_world::ground::walk`),
+// instanced from its appearance's tiers in the frame's own passes. The walk
+// is Rust's: what draws at which tier and what casts arrive as the frame's
+// static batches, written only when they change; this layer holds a buffer
+// per batch, the meshes and the materials. Opaque, so all of it is in the
+// depth prepass (FogVisibility's tile cull reads it like any surface).
 //
-// - The forest (the simulation's trunks, one tree each) casts sun shadows
-//   into every cascade (the trees in view, and those whose shadow can land in
-//   it), receives them, and takes FogTerm through the faces group. The
-//   shrubs under a tree line (the understorey) are drawn the same way. A tree is
-//   seen or unseen whole: every fragment probes fog at its crown's
-//   heart with no facing test, as ground probes do. A crown is a porous
-//   volume inside the simulation's foliage, so the sweep's rule (sight into
-//   a forest fades with the foliage crossed) decides it, and fog never
-//   splits a crown along its sunlit and shaded halves.
+// - The forest (the simulation's trunks, one tree each) and the shrubs under
+//   its tree lines cast sun shadows, receive them, and take FogTerm through
+//   the faces group. A tree is seen or unseen whole: every fragment probes
+//   fog at its crown's heart with no facing test, as ground probes do. A
+//   crown is a porous volume inside the simulation's foliage, so the sweep's
+//   rule (sight into a forest fades with the foliage crossed) decides it.
 // - Scenery past the map is drawn like the backdrop it stands on: lit and
-//   hazed, never shadowed, casting nothing, and permanently fogged outside the
-//   playable rectangle.
+//   hazed, never shadowed, casting nothing.
 // - The forest floor's dressing is drawn as a forest tree is (shadowed,
-//   fogged whole at its own heart) and casts nothing: it is small and stands
-//   under the crowns. There is a great deal of it, so it is kept a cell of
-//   ground at a time in one bounded pool (`scenery/dressing.ts`): a cell
-//   draws whole from its slot at one tier, and the vertex stage shrinks each
-//   piece to nothing as it nears a few pixels. A piece is drawn from both
-//   sides: a frond is one sheet.
+//   fogged whole at its own heart) and casts nothing; the vertex stage
+//   shrinks each piece to nothing as it nears a few pixels. A piece is drawn
+//   from both sides: a frond is one sheet.
+// - A tree the side knows has fallen is drawn apart, tipped about its
+//   stump's top on the clock, then lying, pressed flat, its stump (the
+//   presentation's mesh, cut from its trunk) standing where it grew.
 //
 // Foliage adds leaf clumps per pixel (3D value noise bending the normal and
 // darkening the gaps, in the tree's own space so it never swims), fading to
 // the plain crown as a pixel grows past a clump.
-//
-// A tree the side knows has fallen (`setFelled`) leaves the forest and is
-// drawn apart, few as they are: tipped about its stump's top on the clock,
-// then lying, pressed flat (`scenery/felled.ts`), with its stump standing
-// where it grew. It casts, fogs and lights as a standing tree does.
-//
-// A shrub whose foot stands on ground the side has seen cleared (a lane a
-// vehicle knocked through) is not drawn: `setCleared` rebuilds the
-// understorey without it, and the dressing is laid again without what stood
-// on that ground. A forest tree leaves only by its fall (`setFelled`).
-//
-// On a view change `prepare` sorts trees into tiers by projected height
-// (`scenery/lod.ts`) and uploads the near trees' per-tier lists; far chunks
-// draw at tier 3 straight from a static buffer.
 import { tgpu, d, std, type TgpuRenderPass } from "typegpu";
 import { pcgHash } from "../shaders/pcgHash";
-import type { StaticBundle } from "@packages/scene-assets/src/schema";
-import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import { createDetailView, detailKey, setDetailView } from "./detailView";
-import { VERTEX_FLOATS } from "../mesh";
+import { VERTEX_FLOATS, type Mesh } from "../mesh";
 import { typegpuCameraLayout } from "../world/camera";
 import { battleWorldDepth } from "../worldDepth";
 import type { WorldScenery } from "../scene";
-import { kindSize, tierMesh } from "../scenery/appearance";
-import {
-  createDressingCache,
-  DRESSING_GONE,
-  dressingCounts,
-  drawnDressing,
-  selectDressing,
-  setDressingCleared,
-  type DressingCache,
-} from "../scenery/dressing";
-import {
-  chunkTier,
-  INSTANCE_FLOATS,
-  sceneryChunks,
-  tierFor,
-  TIER_COUNT,
-  treeInstances,
-  type PlacedInstances,
-  type TierView,
-} from "../scenery/lod";
-import {
-  createStagedLevels,
-  selectChunks,
-  stageNear,
-  sunShadow,
-  type StagedLevels,
-  type StaticChunks,
-} from "./staticChunks";
+import { KICK_RADII, tierMesh } from "../scenery/appearance";
 import type { EnvironmentFrame } from "./environmentFrame";
 import type { FogVisibility } from "./fogVisibility";
 import { fogCoverage, fogTerm } from "./fogTerm";
 import { type CameraGroup, vertexBuffer, vertexLayout, type VertexBuffer } from "./geometry";
 import { FRAME_MSAA, WORLD_OUT, worldTargets } from "./targets";
-import type { GpuRegistry, GpuSlot, Releasable } from "./registry";
-import type { GroundMarks } from "./scarTexture";
-import { TREE_FIELD, TREE_FLOATS } from "../scenery/placement";
-import {
-  FELLED_FLOATS,
-  felledRecords,
-  stumpMesh,
-  stumpRecords,
-  treeIndex,
-  groupByKey,
-  trunkAt,
-  crownBase,
-  KICK_RADII,
-  type FelledKind,
-  type FelledTree,
-} from "../scenery/felled";
-import type { FelledRules } from "../terrain/biome";
-import { sceneryTables, type SceneryCounts, type SceneryTables } from "../scenery/sceneryTables";
+import type { GpuRegistry } from "./registry";
+import type { WorldAppearance } from "../models/modelLayer";
+import { Batch, BATCH_WORDS, INSTANCE_WORDS, NONE, type frameViews } from "../records.gen";
 
-type Root = ReturnType<typeof tgpu.initFromDevice>;
+/** What draws a scenery row (`Appearance.draws`). */
+const FOREST = 1,
+  UNDERSTOREY = 2,
+  BACKDROP = 3,
+  DRESSING = 4,
+  FELLED = 5;
+/** A felled tree's stump: one mesh, the presentation's (`stump_mesh`). */
+export const STUMP = 6;
+const POPULATIONS = ["forest", "understorey", "backdrop", "dressing", "felled", "stumps"] as const;
+const TIER_COUNT = 4;
+const CAST = 1;
 
-/** One population's instances: placed, drawn per tier this frame (tier 3
- *  counts the far chunks' too), the triangles those draw per view pass, and
- *  how many are drawn into each of the sun's cascades. */
+/** The instances a view drew, per population: `kind · 4 + tier`; the
+ *  stumps of felled trees per kind alone (a stump has one mesh). */
+export interface SceneryCounts {
+  forest: number[];
+  understorey: number[];
+  backdrop: number[];
+  dressing: number[];
+  felled: number[];
+  stumps: number[];
+}
+
+/** One population's instances: placed, drawn per tier this frame, the
+ *  triangles those draw per view pass, and how many are cast. */
 export interface SceneryPopulationStats {
   placed: number;
   tiers: number[];
@@ -121,9 +79,9 @@ export interface SceneryStats {
   /** The shrubs under tree lines. */
   understorey: SceneryPopulationStats;
   backdrop: SceneryPopulationStats;
-  /** The forest floor's dressing: the pieces laid (`placed`) in `cells`
-   *  cells of a pool of `bytes` bytes, the pieces drawn per tier, and
-   *  whether wanted cells are still to be laid. */
+  /** The forest floor's dressing: the pieces drawn (`placed`) from `cells`
+   *  cells in `bytes` of records, per tier, and whether wanted cells are
+   *  still to be laid. */
   dressing: SceneryPopulationStats & { cells: number; bytes: number; pending: boolean };
   /** The felled trees drawn (falling or lying), whether any still falls,
    *  and their stumps. */
@@ -132,45 +90,71 @@ export interface SceneryStats {
   draws: number;
 }
 
-const PlacedInstance = d.unstruct({ pose: d.float32x4, shape: d.float32x4, tint: d.float32x4 });
-const placedLayout = tgpu.vertexLayout(d.disarrayOf(PlacedInstance), "instance");
-const placedAttribs = { ...vertexLayout.attrib, ...placedLayout.attrib };
-type InstanceBuffer = ReturnType<typeof instanceBuffer>;
-function instanceBuffer(root: Root, capacity: number) {
-  return root.createBuffer(placedLayout.schemaForCount(Math.max(1, capacity))).$usage("vertex");
-}
-/** A falling or lying tree (`scenery/felled.ts`): a placed instance, then
- *  its `FellPose`: (toward x, y, angle, hinge), (squash, spread, trunk,
- *  landed), (crown, 0, 0, 0). */
-const FelledInstance = d.unstruct({
-  pose: d.float32x4,
-  shape: d.float32x4,
-  tint: d.float32x4,
-  fall: d.float32x4,
-  rest: d.float32x4,
-  lie: d.float32x4,
-});
-const felledLayout = tgpu.vertexLayout(d.disarrayOf(FelledInstance), "instance");
-const felledAttribs = { ...vertexLayout.attrib, ...felledLayout.attrib };
-type FelledBuffer = ReturnType<typeof felledBuffer>;
-function felledBuffer(root: Root, capacity: number) {
-  return root.createBuffer(felledLayout.schemaForCount(Math.max(1, capacity))).$usage("vertex");
+/** What the presentation says of the scenery it placed and walked
+ *  (`scenery_stats`). */
+export interface SceneryWalkStats {
+  /** Instances placed: the forest's, the tree lines' shrubs', the backdrop's. */
+  placed: [number, number, number];
+  /** Dressing cells the last walk drew, and whether more are wanted. */
+  cells: number;
+  pending: boolean;
+  falling: boolean;
 }
 
-/** Square chunks instances are bucketed in for tier selection, metres. */
-const CHUNK_M = 128;
-/** The most cells of dressing kept on the GPU at once: more than a play
- *  camera sees pieces in. A wider view draws its nearest. */
-const DRESSING_SLOTS = 128;
-/** The cells laid a view: each costs the CPU a fraction of a millisecond, so
- *  a cut's cells arrive over the frames after it. */
-const DRESSING_CELLS_PER_VIEW = 2;
+export const NO_SCENERY_WALK: SceneryWalkStats = {
+  placed: [0, 0, 0],
+  cells: 0,
+  pending: false,
+  falling: false,
+};
+
+type Root = ReturnType<typeof tgpu.initFromDevice>;
+
+/** The frame's instance record (`Instance`) as the scenery reads it: its
+ *  placement is the pose, its scale the shape (with the heart), its tint the
+ *  colour and seed. */
+const PlacedInstance = d.unstruct({
+  pose: d.float32x4,
+  data: d.float32x4,
+  tint: d.float32x4,
+  shape: d.float32x4,
+});
+const placedLayout = tgpu.vertexLayout(d.disarrayOf(PlacedInstance), "instance");
+const placedAttribs = {
+  ...vertexLayout.attrib,
+  pose: placedLayout.attrib.pose,
+  tint: placedLayout.attrib.tint,
+  shape: placedLayout.attrib.shape,
+};
+/** A felled tree's two records: the tree, with its fall (way, angle,
+ *  hinge) in the first's data; then its rest (press up-and-down and across,
+ *  trunk, landing) and lie (crown base). */
+const FelledInstance = d.unstruct({
+  pose: d.float32x4,
+  fall: d.float32x4,
+  tint: d.float32x4,
+  shape: d.float32x4,
+  rest: d.float32x4,
+  lie: d.float32x4,
+  unused0: d.float32x4,
+  unused1: d.float32x4,
+});
+const felledLayout = tgpu.vertexLayout(d.disarrayOf(FelledInstance), "instance");
+const felledAttribs = {
+  ...vertexLayout.attrib,
+  pose: felledLayout.attrib.pose,
+  tint: felledLayout.attrib.tint,
+  shape: felledLayout.attrib.shape,
+  fall: felledLayout.attrib.fall,
+  rest: felledLayout.attrib.rest,
+  lie: felledLayout.attrib.lie,
+};
 /** Foliage roughness: leaves scatter; the environment's specular stays small. */
 const LEAF_ROUGHNESS = 0.85;
 const BARK_ROUGHNESS = 0.9;
-/** Shadow casters draw this many tiers coarser than the view: four cascades
- *  of the finest crowns cost more than the crowns themselves. */
-const CASTER_COARSER = 1;
+/** A piece of dressing is gone at this share of the height it starts to
+ *  shrink at (`ground::walk`'s). */
+const DRESSING_GONE = 0.5;
 
 const placedVaryings = {
   clip: d.builtin.position,
@@ -249,8 +233,8 @@ const placedVertex = tgpu.vertexFn({ in: placedIn, out: placedOut })((v) => {
 });
 
 /** Places a piece of dressing as a tree is placed, shrunk about its foot as
- *  it nears a few pixels: its record's last float is its height over the
- *  projected height it starts to shrink at (`scenery/dressing.ts`), so its
+ *  it nears a few pixels: its tint's last float is its height over the
+ *  projected height it starts to shrink at (`ground::walk`), so its
  *  size on screen over that height is that float times the pixels a metre
  *  covers at its distance. */
 const dressingVertex = tgpu.vertexFn({ in: placedIn, out: placedOut })((v) => {
@@ -284,7 +268,7 @@ const dressingVertex = tgpu.vertexFn({ in: placedIn, out: placedOut })((v) => {
 });
 
 /** `d` metres from a trunk's axis with what lies past its `radius` scaled
- *  by `k` (`scenery/felled.ts`'s `pastTrunk`). */
+ *  by `k`. */
 const pastTrunk = tgpu.fn(
   [d.f32, d.f32, d.f32],
   d.f32,
@@ -293,8 +277,8 @@ const pastTrunk = tgpu.fn(
   return sign(d) * (min(m, radius) + max(m - radius, 0.0) * k);
 }`);
 
-/** Places a felled tree as a standing one is placed, then poses it as
- *  `felledPoint` (`scenery/felled.ts`, its CPU mirror) does: tipped `fall.z`
+/** Places a felled tree as a standing one is placed, then poses it by the
+ *  pose `ground::walk` gave it: tipped `fall.z`
  *  radians toward `fall.xy` about the hinge `fall.w` above its foot, kicked
  *  off its stump and lowered as it lands (`rest.w`); its leaves, and its
  *  bark above the crown's base (`lie.x`), pressed by `rest.x` up-and-down
@@ -402,7 +386,6 @@ export async function createSceneryLayer(
   root: Root,
   registry: GpuRegistry,
   environment: EnvironmentFrame,
-  lodScale = 1,
 ) {
   /** Shading shared by both populations: albedo, leaf clumps and the light. */
   const surface = tgpu.fn(
@@ -547,516 +530,165 @@ export async function createSceneryLayer(
     ].map((pipeline) => pipeline.initAsync()),
   );
 
-  /** A kind's vertices per tier. */
-  type TierMeshes = { buffer: VertexBuffer; vertices: number }[];
-  interface Population {
-    chunks: StaticChunks;
-    /** The near chunks' instances, per kind and tier. */
-    staged: StagedLevels;
-    /** Whether the population casts sun shadows. */
-    casts: boolean;
-    /** Per kind and tier: the appearance's vertices. */
-    meshes: TierMeshes[];
-    /** Tier thresholds this population is sorted by, projected pixels. */
-    lodPx: TierView["lodPx"];
-    /** Per kind: the static far buffer (every instance, chunk order). */
-    far: InstanceBuffer[];
-    /** Per kind and tier: this frame's near instances. */
-    near: { slot: GpuSlot<InstanceBuffer>; capacity: number }[][];
+  /** A row's meshes per tier (one for a stump) and what draws it. */
+  interface RowMeshes {
+    draws: number;
+    kind: number;
+    meshes: { buffer: VertexBuffer; vertices: number }[];
   }
-  /** The forest floor's dressing: the cells laid, each in its slot of `pool`. */
-  interface Dressing {
-    cache: DressingCache;
-    meshes: TierMeshes[];
-    /** The cache's slots, of the field's `capacity` records each. */
-    pool: InstanceBuffer;
-    lodPx: TierView["lodPx"];
+  /** One batch the last frame listed: its row, tier and pass, its buffer
+   *  (records, or a felled tree's pairs), and what it draws. */
+  interface Held {
+    buffer: VertexBuffer | null;
+    capacity: number;
+    count: number;
+    row: number;
+    tier: number;
+    pass: number;
+    seen: number;
   }
-  /** A population on the simulation's ground: what was placed, and of it
-   *  what stands where the side has seen no ground cleared. */
-  interface Standing {
-    drawn: Population;
-    /** The population's own scope, rebuilt when what stands changes. */
-    scope: GpuRegistry;
-    placed: Float32Array;
-    /** Where each standing instance starts in `placed`; null for all. */
-    kept: number[] | null;
-  }
-  /** The felled trees: the forest's trees by trunk id, each kind's stump,
-   *  and the instances drawn this frame, grouped by kind and tier. */
-  interface Felled {
-    rules: FelledRules;
-    /** Per forest tree: its trunk id; and where each id's tree is placed. */
-    ids: Uint32Array;
-    index: Map<number, number>;
-    stumpMeshes: ({ buffer: VertexBuffer; vertices: number } | null)[];
-    /** Per kind: what it lends its fall (zero for no tree). */
-    kinds: FelledKind[];
-    trees: { slot: GpuSlot<FelledBuffer>; capacity: number };
-    stumps: { slot: GpuSlot<InstanceBuffer>; capacity: number };
-    /** `[kind · TIER_COUNT + tier, first, count]` runs of this frame's trees. */
-    treeRuns: number[];
-    /** `[kind, first, count]` runs of the stumps. */
-    stumpRuns: number[];
-    /** Whether a tree still falls: the next frame packs them again. */
-    moving: boolean;
-  }
-  interface Loaded {
-    scope: GpuRegistry;
-    /** What the layer was given: the placement and its tiers. */
-    world: WorldScenery;
-    dressing: Dressing;
-    forest: Standing;
-    understorey: Standing;
-    sizes: ReturnType<typeof kindSize>[];
-    backdrop: Population;
-    felled: Felled;
-  }
-  let loaded: Loaded | null = null;
-  let viewKey = "";
-  /** What the side knows has fallen, by trunk id, and the frame's clock. */
-  let felledList: readonly FelledTree[] = [];
-  let felledIds = new Set<number>();
-  let clock = 0;
-  /** The felled trees need packing again (a new list, view or clock). */
-  let felledDirty = true;
-  // Where the sun's shadows fall: `prepare` sets it per view.
-  const { sun_azimuth, sun_elevation, cascades } = environment.light;
-  const sun = { azimuth: sun_azimuth, elevation: sun_elevation, maxFarM: cascades.max_far_m };
-  const shadow = { fall: [0, 0] as [number, number], reach: 0 };
-  const view: TierView = { ...createDetailView(), lodPx: [1, 1, 1], shadow };
+  let scope: GpuRegistry | null = null;
+  let given: WorldScenery | null = null;
+  let rows: readonly WorldAppearance[] = [];
+  /** Per world row: its meshes, when it is scenery the layer was given art for. */
+  let meshes: (RowMeshes | null)[] = [];
+  let kinds: string[] = [];
+  const held = new Map<number, Held>();
+  let listed: Held[] = [];
+  let frameIndex = 0;
+  let walk = NO_SCENERY_WALK;
+  let treesShown = true;
+  let draws = 0;
+  let lastDraws = 0;
 
-  function population(
-    scope: GpuRegistry,
-    placed: PlacedInstances,
-    meshes: TierMeshes[],
-    lodPx: TierView["lodPx"],
-    casts: boolean,
-  ): Population {
-    const chunks = sceneryChunks(placed, meshes.length, CHUNK_M);
-    return {
-      chunks,
-      staged: createStagedLevels(chunks),
-      casts,
-      meshes,
-      lodPx: lodPx.map((value) => value * lodScale) as unknown as TierView["lodPx"],
-      far: chunks.sorted.map((instances) => {
-        const buffer = scope.own(instanceBuffer(root, instances.length / INSTANCE_FLOATS));
-        if (instances.length) buffer.write(instances.buffer);
-        return buffer;
-      }),
-      near: chunks.sorted.map(() =>
-        Array.from({ length: TIER_COUNT }, () => ({
-          slot: scope.slot<InstanceBuffer>(),
-          capacity: 0,
-        })),
-      ),
-    };
-  }
-
-  /** A population's instances of kind `k` the last view drew at tier `t`:
-   *  its near ones there, and its whole chunks drawn at it. */
-  function drawnOf(pop: Population, k: number, t: number): number {
-    let count = pop.staged.counts[k][t];
-    const whole = pop.chunks.ranges[k][t];
-    for (let r = 1; r < whole.length; r += 2) count += whole[r];
-    return count;
-  }
-
-  /** Write the first `count` records (`stride` floats each) of `data` into
-   *  `held`'s buffer, made anew by `make` at twice the need when too small. */
-  function writeGrowing<
-    B extends Releasable & { write: (data: ArrayBuffer, options: { endOffset: number }) => void },
-  >(
-    held: { slot: GpuSlot<B>; capacity: number },
-    data: Float32Array,
-    count: number,
-    stride: number,
-    make: (capacity: number) => B,
-  ) {
-    if (count === 0) return;
-    if (held.capacity < count) {
-      held.capacity = Math.max(64, count * 2);
-      held.slot.set(make(held.capacity));
-    }
-    held.slot.current!.write(data.buffer as ArrayBuffer, { endOffset: count * stride * 4 });
-  }
-
-  function upload(pop: Population) {
-    for (let k = 0; k < pop.chunks.kinds; k++)
-      for (let t = 0; t < TIER_COUNT; t++)
-        writeGrowing(
-          pop.near[k][t],
-          pop.staged.records[k][t],
-          pop.staged.counts[k][t],
-          INSTANCE_FLOATS,
-          (n) => instanceBuffer(root, n),
-        );
+  /** The meshes of every scenery row the world names and the art covers. */
+  function rebuild() {
+    scope?.release();
+    scope = registry.scope();
+    held.clear();
+    listed = [];
+    kinds = [];
+    meshes = rows.map((row) => {
+      if (!row.draws || !given) return null;
+      const bundle = given.appearances.get(row.name);
+      if (!bundle) return null;
+      if (!kinds.includes(row.name)) kinds.push(row.name);
+      const own = (mesh: Mesh) => ({
+        buffer: scope!.own(vertexBuffer(root, mesh)),
+        vertices: mesh.length / VERTEX_FLOATS,
+      });
+      const tiers = row.stump
+        ? [own(row.stump)]
+        : Array.from({ length: TIER_COUNT }, (_, t) => own(tierMesh(bundle, t)));
+      return { draws: row.draws, kind: kinds.indexOf(row.name), meshes: tiers };
+    });
   }
 
   /** Anything a bound pipeline can draw instances through. */
   interface Drawable {
     with(layout: typeof vertexLayout, buffer: VertexBuffer): Drawable;
-    with(layout: typeof placedLayout, buffer: InstanceBuffer): Drawable;
-    with(layout: typeof felledLayout, buffer: FelledBuffer): Drawable;
+    with(layout: typeof placedLayout | typeof felledLayout, buffer: VertexBuffer): Drawable;
     draw(vertices: number, instances: number, firstVertex?: number, firstInstance?: number): void;
   }
-  let draws = 0;
-  let lastDraws = 0;
-  /** Draw a population into the view, or with `casting` into a cascade: its
-   *  casters, each near tier with a mesh `coarser` tiers down (a cascade
-   *  texel is larger than the leaf relief). */
-  function drawPopulation(pop: Population, bound: Drawable, casting = false, coarser = 0) {
-    for (let k = 0; k < pop.chunks.kinds; k++) {
-      for (let t = 0; t < TIER_COUNT; t++) {
-        const count = pop.staged.counts[k][t];
-        if (count === 0) continue;
-        const mesh = pop.meshes[k][Math.min(t + coarser, TIER_COUNT - 1)];
-        bound
-          .with(vertexLayout, mesh.buffer)
-          .with(placedLayout, pop.near[k][t].slot.current!)
-          .draw(mesh.vertices, count);
-        draws++;
-      }
-      const far = casting ? pop.chunks.cast[k] : pop.chunks.ranges[k][TIER_COUNT - 1];
-      if (far.length === 0) continue;
-      const mesh = pop.meshes[k][TIER_COUNT - 1];
-      const withMesh = bound.with(vertexLayout, mesh.buffer).with(placedLayout, pop.far[k]);
-      for (let r = 0; r < far.length; r += 2) {
-        withMesh.draw(mesh.vertices, far[r + 1], 0, far[r]);
-        draws++;
-      }
-    }
-  }
 
-  /** Draw the dressing's cells in view: per tier and kind, each cell's
-   *  records of that kind. The pipeline, its groups and buffers go through
-   *  the typed path once per mesh; the cells after it change only the range,
-   *  and go straight to the pass. */
-  function drawDressing(dressing: Dressing, bound: Drawable, raw: GPURenderPassEncoder) {
-    const { cache, meshes, pool } = dressing;
-    const { capacity, kinds } = cache.field;
-    for (let t = 0; t < TIER_COUNT; t++)
-      for (let n = 0; n < kinds.length; n++) {
-        const mesh = meshes[kinds[n]][t];
-        let set = false;
-        for (const cell of cache.drawn[t]) {
-          const count = cell.starts[n + 1] - cell.starts[n];
-          if (count === 0) continue;
-          const first = cell.slot * capacity + cell.starts[n];
-          if (set) raw.draw(mesh.vertices, count, 0, first);
-          else
-            bound
-              .with(vertexLayout, mesh.buffer)
-              .with(placedLayout, pool)
-              .draw(mesh.vertices, count, 0, first);
-          set = true;
-          draws++;
-        }
-      }
-  }
-
-  /** Pack the felled trees at the frame's clock, each at the tier its
-   *  standing height takes from the eye, grouped by kind and tier. */
-  function packFelled(felled: Felled, forest: Standing, sizes: ReturnType<typeof kindSize>[]) {
-    const now = felledRecords(
-      felledList,
-      forest.placed,
-      felled.index,
-      sizes,
-      felled.kinds,
-      felled.rules,
-      clock,
-    );
-    felled.moving = now.moving;
-    const keys = Array.from(now.kinds, (kind, i) => {
-      const o = i * FELLED_FLOATS;
-      const [x, y, z] = [now.records[o], now.records[o + 1], now.records[o + 2]];
-      const distance = Math.hypot(x - view.eye[0], y - view.eye[1], z - view.eye[2]);
-      return kind * TIER_COUNT + tierFor(now.heights[i], distance, view);
-    });
-    const grouped = groupByKey(now.records, FELLED_FLOATS, keys);
-    felled.treeRuns = grouped.runs;
-    writeGrowing(felled.trees, grouped.records, keys.length, FELLED_FLOATS, (n) =>
-      felledBuffer(root, n),
-    );
-  }
-
-  /** The stumps of what the side knows has fallen, grouped by kind. */
-  function packStumps(felled: Felled, forest: Standing) {
-    const now = stumpRecords(felledList, forest.placed, felled.index, felled.rules.stump_height_m);
-    const grouped = groupByKey(now.records, INSTANCE_FLOATS, Array.from(now.kinds));
-    felled.stumpRuns = grouped.runs;
-    writeGrowing(felled.stumps, grouped.records, now.kinds.length, INSTANCE_FLOATS, (n) =>
-      instanceBuffer(root, n),
-    );
-  }
-
-  /** Draw the felled trees (a tier `coarser` for a cascade) through
-   *  `trees`, and their stumps through `stumps`. */
-  function drawFelled(felled: Felled, trees: Drawable, stumps: Drawable, coarser = 0) {
-    const { treeRuns, stumpRuns } = felled;
-    const meshes = loaded!.forest.drawn.meshes;
-    for (let r = 0; r < treeRuns.length; r += 3) {
-      const [kind, tier] = [Math.floor(treeRuns[r] / TIER_COUNT), treeRuns[r] % TIER_COUNT];
-      const mesh = meshes[kind][Math.min(tier + coarser, TIER_COUNT - 1)];
-      trees
-        .with(vertexLayout, mesh.buffer)
-        .with(felledLayout, felled.trees.slot.current!)
-        .draw(mesh.vertices, treeRuns[r + 2], 0, treeRuns[r + 1]);
+  /** Draw the listed batches of `pass` that `which` takes, each through
+   *  `bound(draws)` (null: not drawn). */
+  function drawListed(pass: number, bound: (draws: number) => Drawable | null) {
+    for (const h of listed) {
+      const row = meshes[h.row];
+      if (h.pass !== pass || !row || !h.buffer) continue;
+      if (!treesShown && row.draws !== DRESSING) continue;
+      const pipeline = bound(row.draws);
+      if (!pipeline) continue;
+      const mesh = row.meshes[Math.min(h.tier, row.meshes.length - 1)];
+      const layout = row.draws === FELLED ? felledLayout : placedLayout;
+      pipeline.with(vertexLayout, mesh.buffer).with(layout, h.buffer).draw(mesh.vertices, h.count);
       draws++;
     }
-    for (let r = 0; r < stumpRuns.length; r += 3) {
-      const mesh = felled.stumpMeshes[stumpRuns[r]]!;
-      stumps
-        .with(vertexLayout, mesh.buffer)
-        .with(placedLayout, felled.stumps.slot.current!)
-        .draw(mesh.vertices, stumpRuns[r + 2], 0, stumpRuns[r + 1]);
-      draws++;
-    }
-  }
-
-  /** Lab diagnostics: the trees draw and cast, or do neither, and the shrubs
-   *  under tree lines with them or not; the dressing draws or does not. */
-  let treesShown = true;
-  let understoreyShown = true;
-  let dressingShown = true;
-  /** The trees drawn: the forest's, and the backdrop's. */
-  const trees = () => (treesShown ? loaded : null);
-  /** The populations that stand on the simulation's ground, lit, shadowed
-   *  and casting alike: the forest, and the shrubs under its tree lines. */
-  const standing = () => {
-    const drawn = trees();
-    if (!drawn) return [];
-    return understoreyShown ? [drawn.forest.drawn, drawn.understorey.drawn] : [drawn.forest.drawn];
-  };
-  /** Every population drawn into the view. */
-  const populations = () => (trees() ? [...standing(), loaded!.backdrop] : []);
-  const dressing = () => (dressingShown && loaded ? loaded.dressing : null);
-
-  /** Rebuild `stand` without what `gone` names (by its offset in `placed`);
-   *  false where the same instances stand as before. */
-  function restand(stand: Standing, gone: (offset: number) => boolean) {
-    const { scope, sizes } = loaded!;
-    const all = stand.placed;
-    const kept: number[] = [];
-    for (let o = 0; o < all.length; o += TREE_FLOATS) if (!gone(o)) kept.push(o);
-    const before = stand.kept;
-    const same = before
-      ? kept.length === before.length && kept.every((o, k) => o === before[k])
-      : kept.length * TREE_FLOATS === all.length;
-    if (same) return false;
-    const left = new Float32Array(kept.length * TREE_FLOATS);
-    kept.forEach((o, k) => left.set(all.subarray(o, o + TREE_FLOATS), k * TREE_FLOATS));
-    stand.scope.release();
-    stand.scope = scope.scope();
-    const { meshes, lodPx } = stand.drawn;
-    stand.drawn = population(stand.scope, treeInstances(left, sizes), meshes, lodPx, true);
-    stand.kept = kept;
-    return true;
-  }
-  /** The forest stands without the trees the side knows have fallen: a
-   *  forest tree leaves only by its fall, so it never vanishes without one. */
-  function restandForest() {
-    const { ids } = loaded!.felled;
-    return restand(loaded!.forest, (o) => felledIds.has(ids[o / TREE_FLOATS]));
   }
 
   return {
-    /** The world's scenery (placement and appearances); `null` draws none. */
+    /** The scenery's art: the appearances its rows name; `null` draws none. */
     set(next: WorldScenery | null) {
-      loaded?.scope.release();
-      loaded = null;
-      viewKey = "";
-      if (!next) return;
-      const scope = registry.scope();
-      const bundles: StaticBundle[] = next.placement.kinds.map((name) => {
-        const bundle = next.appearances.get(name);
-        if (!bundle) throw new Error(`scenery: no appearance "${name}" was handed to the frame`);
-        return bundle;
-      });
-      const sizes = bundles.map(kindSize);
-      const tiers = bundles.map((bundle) =>
-        Array.from({ length: TIER_COUNT }, (_, t) => {
-          const mesh = tierMesh(bundle, t);
-          return {
-            buffer: scope.own(vertexBuffer(root, mesh)),
-            vertices: mesh.length / VERTEX_FLOATS,
-          };
-        }),
-      );
-      const trees = (within: GpuRegistry, placed: Float32Array, casts: boolean) =>
-        population(within, treeInstances(placed, sizes), tiers, next.lodPx, casts);
-      const stand = (placed: Float32Array): Standing => {
-        const own = scope.scope();
-        return { drawn: trees(own, placed, true), scope: own, placed, kept: null };
-      };
-      const stumpHeight = next.felled.stump_height_m;
-      const forestKinds = new Set<number>();
-      for (let o = 0; o < next.placement.forest.length; o += TREE_FLOATS)
-        forestKinds.add(next.placement.forest[o + TREE_FIELD.kind]);
-      const felled: Felled = {
-        rules: next.felled,
-        ids: next.placement.forestIds,
-        index: treeIndex(next.placement.forestIds),
-        // A stump for each kind the forest stands (hedges and dressing have
-        // no bole to cut).
-        kinds: bundles.map((bundle, kind) => {
-          if (!forestKinds.has(kind)) return { trunk: 0, crown: 0 };
-          const tier = tierMesh(bundle, 0);
-          return { trunk: trunkAt(tier, stumpHeight).radius, crown: crownBase(tier) };
-        }),
-        stumpMeshes: bundles.map((bundle, kind) => {
-          if (!forestKinds.has(kind)) return null;
-          const mesh = stumpMesh(tierMesh(bundle, 0), stumpHeight, next.felled.cut);
-          return {
-            buffer: scope.own(vertexBuffer(root, mesh)),
-            vertices: mesh.length / VERTEX_FLOATS,
-          };
-        }),
-        trees: { slot: scope.slot<FelledBuffer>(), capacity: 0 },
-        stumps: { slot: scope.slot<InstanceBuffer>(), capacity: 0 },
-        treeRuns: [],
-        stumpRuns: [],
-        moving: false,
-      };
-      const field = next.placement.dressing;
-      // A small map's forests are fewer cells than the pool would hold.
-      const slots = Math.min(DRESSING_SLOTS, field.cells.length / 2);
-      loaded = {
-        scope,
-        world: next,
-        dressing: {
-          cache: createDressingCache(field, sizes, next.dressing.fadePx, slots),
-          meshes: tiers,
-          pool: scope.own(instanceBuffer(root, slots * field.capacity)),
-          lodPx: next.dressing.lodPx,
-        },
-        forest: stand(next.placement.forest),
-        understorey: stand(next.placement.understorey),
-        sizes,
-        backdrop: trees(scope, next.placement.backdrop, false),
-        felled,
-      };
-      felledDirty = true;
-      restandForest();
-      packStumps(felled, loaded.forest);
+      given = next;
+      rebuild();
     },
-    /** Draw only the shrubs and dressing whose foot stands on ground
-     *  `ground`'s side has not seen cleared; rebuilds the understorey when
-     *  what stands of it changes. (Trees leave by their falls, `setFelled`.) */
-    setCleared(ground: GroundMarks | null) {
-      if (!loaded) return;
-      /** Whether the side has seen the ground at (x, y) cleared. */
-      const cleared =
-        ground &&
-        ((x: number, y: number) => {
-          const [i, j] = [Math.floor(x / ground.cellM), Math.floor(y / ground.cellM)];
-          return i >= 0 && j >= 0 && i < ground.cols && j < ground.rows && ground.isCleared(i, j);
-        });
-      const all = loaded.understorey.placed;
-      const shrubs = restand(
-        loaded.understorey,
-        (o) => !!cleared?.(all[o + TREE_FIELD.x], all[o + TREE_FIELD.y]),
-      );
-      // The dressing reads the ground as the side knows it from now on.
-      loaded.dressing.cache.cleared = cleared;
-      if (!shrubs) return;
-      setDressingCleared(loaded.dressing.cache, cleared);
-      viewKey = "";
+    /** The drawables a new load's batches name. */
+    setWorld(world: readonly WorldAppearance[]) {
+      if (world === rows) return;
+      rows = world;
+      rebuild();
     },
-    /** The trees the side knows have fallen (`BattleFrame.setFelled`). */
-    setFelled(next: readonly FelledTree[]) {
-      if (next === felledList) return;
-      felledList = next;
-      felledIds = new Set(next.map((f) => f.prop));
-      felledDirty = true;
-      if (!loaded) return;
-      packStumps(loaded.felled, loaded.forest);
-      if (!restandForest()) return;
-      // A fall clears ground round it: the dressing is laid again there.
-      setDressingCleared(loaded.dressing.cache, loaded.dressing.cache.cleared);
-      viewKey = "";
-    },
-    /** Presentation seconds: a falling tree moves on it. */
-    setClock(seconds: number) {
-      if (seconds === clock) return;
-      clock = seconds;
-      if (loaded?.felled.moving) felledDirty = true;
+    /** The static batches of a presentation frame (null: none) and what it
+     *  says of its scenery: the scenery rows' batches are taken, their
+     *  records copied where the frame wrote them. True when what is drawn
+     *  changed. Read at once: the views last only until the next call into
+     *  the module. */
+    setFrame(frame: ReturnType<typeof frameViews> | null, stats: SceneryWalkStats): boolean {
+      walk = stats;
+      frameIndex++;
+      let changed = false;
+      const next: Held[] = [];
+      const words = frame?.batches.u32;
+      for (let b = 0; b < (frame?.batches.count ?? 0); b++) {
+        const o = b * BATCH_WORDS;
+        const row = words![o + Batch.appearance];
+        if (!meshes[row]) continue;
+        const key = words![o + Batch.key];
+        let h = held.get(key);
+        if (!h) {
+          h = { buffer: null, capacity: 0, count: 0, row, tier: 0, pass: 0, seen: 0 };
+          held.set(key, h);
+        }
+        h.row = row;
+        h.tier = words![o + Batch.tier];
+        h.pass = words![o + Batch.pass];
+        h.seen = frameIndex;
+        const first = words![o + Batch.first];
+        const records = words![o + Batch.count];
+        const pairs = meshes[row]!.draws === FELLED;
+        if (first !== NONE) {
+          if (h.capacity < records) {
+            h.capacity = Math.max(64, records * 2);
+            const layout = pairs ? felledLayout : placedLayout;
+            h.buffer = scope!.own(
+              root
+                .createBuffer(layout.schemaForCount(pairs ? h.capacity / 2 : h.capacity))
+                .$usage("vertex"),
+            ) as unknown as VertexBuffer;
+          }
+          const view = frame!.instances.f32.subarray(
+            first * INSTANCE_WORDS,
+            (first + records) * INSTANCE_WORDS,
+          );
+          // TypeGPU copies a view's bytes as it does a buffer's, though its
+          // types name only buffers.
+          (h.buffer as unknown as { write(data: ArrayBuffer): void }).write(
+            view as unknown as ArrayBuffer,
+          );
+          changed = true;
+        }
+        h.count = pairs ? records / 2 : records;
+        next.push(h);
+      }
+      if (next.length !== listed.length) changed = true;
+      listed = next;
+      return changed;
     },
     setTreesShown(on: boolean) {
       treesShown = on;
     },
-    /** Lab diagnostics: draw the shrubs under tree lines or not (a paired
-     *  cost measure). */
-    setUnderstoreyShown(on: boolean) {
-      understoreyShown = on;
-      viewKey = "";
-    },
-    setDressingShown(on: boolean) {
-      dressingShown = on;
-    },
-    /** Choose this frame's tiers for `camera` at a viewport `height` pixels
-     *  tall, and lay the dressing's next cells while any are waiting. */
-    prepare(camera: Camera3DParams, height: number) {
-      const key = detailKey(camera, height);
-      const moved = key !== viewKey;
-      if (loaded && (moved || felledDirty)) {
-        setDetailView(view, camera, height);
-        view.lodPx = loaded.forest.drawn.lodPx;
-        packFelled(loaded.felled, loaded.forest, loaded.sizes);
-        felledDirty = false;
-      }
-      if (!moved && !loaded?.dressing.cache.pending) return;
-      viewKey = key;
-      if (moved) {
-        setDetailView(view, camera, height);
-        sunShadow(shadow, sun, camera);
-        for (const pop of populations()) {
-          view.lodPx = pop.lodPx;
-          selectChunks(pop.chunks, view, chunkTier, pop.casts ? view.shadow : null);
-          stageNear(pop.chunks, pop.staged, view, tierFor);
-          upload(pop);
-        }
-      }
-      if (!loaded) return;
-      const { cache, pool, lodPx } = loaded.dressing;
-      view.lodPx = lodPx;
-      const slotBytes = cache.field.capacity * INSTANCE_FLOATS * 4;
-      selectDressing(cache, view, DRESSING_CELLS_PER_VIEW, (slot, records) =>
-        registry.device.queue.writeBuffer(root.unwrap(pool), slot * slotBytes, records),
-      );
-    },
-    /** The forest into one cascade (`bound` carries the cascade's camera). */
+    /** The standing scenery and the felled into one cascade. */
     encodeShadows(pass: TgpuRenderPass, cameraGroup: CameraGroup) {
       const bound = caster.with(pass).with(cameraGroup) as unknown as Drawable;
-      for (const pop of standing()) drawPopulation(pop, bound, true, CASTER_COARSER);
-      const drawn = trees();
-      if (drawn)
-        drawFelled(
-          drawn.felled,
-          felledCaster.with(pass).with(cameraGroup) as unknown as Drawable,
-          bound,
-          CASTER_COARSER,
-        );
+      const felled = felledCaster.with(pass).with(cameraGroup) as unknown as Drawable;
+      drawListed(CAST, (draws) => (draws === FELLED ? felled : bound));
     },
     encodeDepth(pass: TgpuRenderPass, cameraGroup: CameraGroup) {
       const bound = prepass.with(pass).with(cameraGroup) as unknown as Drawable;
-      for (const pop of populations()) drawPopulation(pop, bound);
-      const drawn = trees();
-      if (drawn)
-        drawFelled(
-          drawn.felled,
-          felledPrepass.with(pass).with(cameraGroup) as unknown as Drawable,
-          bound,
-        );
-      const dressed = dressing();
-      if (dressed)
-        drawDressing(
-          dressed,
-          dressingPrepass.with(pass).with(cameraGroup) as unknown as Drawable,
-          root.unwrap(pass),
-        );
+      const felled = felledPrepass.with(pass).with(cameraGroup) as unknown as Drawable;
+      const dressing = dressingPrepass.with(pass).with(cameraGroup) as unknown as Drawable;
+      drawListed(0, (draws) => (draws === FELLED ? felled : draws === DRESSING ? dressing : bound));
     },
     encode(
       pass: TgpuRenderPass,
@@ -1069,67 +701,42 @@ export async function createSceneryLayer(
           .with(cameraGroup)
           .with(environment.group)
           .with(fogFaces) as unknown as Drawable;
-      for (const pop of standing()) drawPopulation(pop, colour(forestColour));
-      const drawn = trees();
-      if (drawn) {
-        drawPopulation(drawn.backdrop, colour(backdropColour));
-        const felledBound = felledColour
-          .with(pass)
-          .with(cameraGroup)
-          .with(environment.group)
-          .with(fogFaces) as unknown as Drawable;
-        drawFelled(drawn.felled, felledBound, colour(forestColour));
-      }
-      const dressed = dressing();
-      if (dressed) drawDressing(dressed, colour(dressingColour), root.unwrap(pass));
-    },
-    /** The scenery as tables for a second client (`sceneryTables.ts`). */
-    tables(): SceneryTables {
-      if (!loaded) throw new Error("the frame has no scenery to export");
-      const { world, sizes, dressing } = loaded;
-      return sceneryTables(world.placement, sizes, {
-        lodPx: world.lodPx,
-        chunkM: CHUNK_M,
-        casterCoarser: CASTER_COARSER,
-        dressing: {
-          lodPx: world.dressing.lodPx,
-          fadePx: world.dressing.fadePx,
-          slots: dressing.cache.held.length,
-          cellsPerView: DRESSING_CELLS_PER_VIEW,
-        },
-        felled: world.felled,
-      });
+      const [forest, backdrop, felled, dressing] = [
+        colour(forestColour),
+        colour(backdropColour),
+        colour(felledColour as unknown as typeof forestColour),
+        colour(dressingColour),
+      ];
+      drawListed(0, (draws) =>
+        draws === BACKDROP
+          ? backdrop
+          : draws === FELLED
+            ? felled
+            : draws === DRESSING
+              ? dressing
+              : forest,
+      );
     },
     /** The instances the last view drew, per population, kind and tier
-     *  (`SceneryCounts`): what `stats` sums, kind by kind. */
+     *  (`SceneryCounts`); the stumps per kind alone. */
     drawn(): SceneryCounts {
-      const kinds = loaded?.sizes.length ?? 0;
-      const zero = () => Array.from({ length: kinds * TIER_COUNT }, () => 0);
-      const population = (pop: Population | null) => {
-        const counts = zero();
-        if (pop)
-          for (let k = 0; k < pop.chunks.kinds; k++)
-            for (let t = 0; t < TIER_COUNT; t++) counts[k * TIER_COUNT + t] = drawnOf(pop, k, t);
-        return counts;
+      const zero = () => Array.from({ length: kinds.length * TIER_COUNT }, () => 0);
+      const out: SceneryCounts = {
+        forest: zero(),
+        understorey: zero(),
+        backdrop: zero(),
+        dressing: zero(),
+        felled: zero(),
+        stumps: Array.from({ length: kinds.length }, () => 0),
       };
-      const drawnTrees = trees();
-      const shrubs = drawnTrees && understoreyShown ? drawnTrees.understorey.drawn : null;
-      const felled = zero();
-      const stumps = Array.from({ length: kinds }, () => 0);
-      if (drawnTrees) {
-        const { treeRuns, stumpRuns } = drawnTrees.felled;
-        for (let r = 0; r < treeRuns.length; r += 3) felled[treeRuns[r]] += treeRuns[r + 2];
-        for (let r = 0; r < stumpRuns.length; r += 3) stumps[stumpRuns[r]] += stumpRuns[r + 2];
+      for (const h of listed) {
+        const row = meshes[h.row];
+        if (!row || h.pass !== 0) continue;
+        if (!treesShown && row.draws !== DRESSING) continue;
+        if (row.draws === STUMP) out.stumps[row.kind] += h.count;
+        else out[POPULATIONS[row.draws - 1]][row.kind * TIER_COUNT + h.tier] += h.count;
       }
-      const dressed = dressing();
-      return {
-        forest: population(drawnTrees?.forest.drawn ?? null),
-        understorey: population(shrubs),
-        backdrop: population(drawnTrees?.backdrop ?? null),
-        dressing: dressed ? drawnDressing(dressed.cache, kinds) : zero(),
-        felled,
-        stumps,
-      };
+      return out;
     },
     /** Starts a frame's draw count (the frame calls it before its shadows). */
     beginFrame() {
@@ -1137,66 +744,41 @@ export async function createSceneryLayer(
       draws = 0;
     },
     stats(): SceneryStats {
-      const felledStats = (felled: Felled | undefined) => {
-        let trees = 0,
-          stumps = 0;
-        for (let r = 2; r < (felled?.treeRuns.length ?? 0); r += 3) trees += felled!.treeRuns[r];
-        for (let r = 2; r < (felled?.stumpRuns.length ?? 0); r += 3) stumps += felled!.stumpRuns[r];
-        return { trees, falling: felled?.moving ?? false, stumps };
-      };
-      const population = (pop: Population | undefined) => {
-        const tiers = Array.from({ length: TIER_COUNT }, () => 0);
-        let placed = 0,
-          triangles = 0,
+      const population = (draws: number, placed: number) => {
+        const tiers = [0, 0, 0, 0];
+        let triangles = 0,
           casters = 0;
-        if (pop)
-          for (let k = 0; k < pop.chunks.kinds; k++) {
-            placed += pop.chunks.sorted[k].length / INSTANCE_FLOATS;
-            for (let t = 0; t < TIER_COUNT; t++) {
-              const count = drawnOf(pop, k, t);
-              tiers[t] += count;
-              triangles += (count * pop.meshes[k][t].vertices) / 3;
-              if (pop.casts && t < TIER_COUNT - 1) casters += pop.staged.counts[k][t];
-            }
-            for (let r = 1; r < pop.chunks.cast[k].length; r += 2) casters += pop.chunks.cast[k][r];
+        for (const h of listed) {
+          const row = meshes[h.row];
+          if (row?.draws !== draws) continue;
+          if (h.pass === CAST) casters += h.count;
+          else {
+            tiers[h.tier] += h.count;
+            triangles += (h.count * row.meshes[h.tier].vertices) / 3;
           }
+        }
         return { placed, tiers, triangles, casters };
       };
-      const dressing = (drawn: Dressing | undefined) => {
-        const out = {
-          placed: 0,
-          tiers: [0, 0, 0, 0],
-          triangles: 0,
-          casters: 0,
-          cells: 0,
-          bytes: 0,
-          pending: false,
-        };
-        if (!drawn) return out;
-        const { cache, meshes } = drawn;
-        const counts = dressingCounts(cache);
-        out.placed = counts.held;
-        out.cells = cache.held.filter((cell) => cell !== null).length;
-        out.bytes = cache.held.length * cache.field.capacity * INSTANCE_FLOATS * 4;
-        out.pending = cache.pending;
-        if (!dressingShown) return out;
-        out.tiers = counts.tiers;
-        cache.drawn.forEach((cells, t) => {
-          for (const cell of cells)
-            cache.field.kinds.forEach((kind, n) => {
-              out.triangles +=
-                ((cell.starts[n + 1] - cell.starts[n]) * meshes[kind][t].vertices) / 3;
-            });
-        });
-        return out;
-      };
+      const dressing = population(DRESSING, 0);
+      dressing.placed = dressing.tiers.reduce((a, b) => a + b, 0);
+      const felled = population(FELLED, 0);
+      const stumps = population(STUMP, 0);
       return {
-        kinds: loaded ? loaded.backdrop.meshes.length : 0,
-        forest: population(loaded?.forest.drawn),
-        understorey: population(loaded?.understorey.drawn),
-        backdrop: population(loaded?.backdrop),
-        dressing: dressing(loaded?.dressing),
-        felled: felledStats(loaded?.felled),
+        kinds: kinds.length,
+        forest: population(FOREST, walk.placed[0]),
+        understorey: population(UNDERSTOREY, walk.placed[1]),
+        backdrop: population(BACKDROP, walk.placed[2]),
+        dressing: {
+          ...dressing,
+          cells: walk.cells,
+          bytes: dressing.placed * INSTANCE_WORDS * 4,
+          pending: walk.pending,
+        },
+        felled: {
+          trees: felled.tiers.reduce((a, b) => a + b, 0),
+          falling: walk.falling,
+          stumps: stumps.tiers.reduce((a, b) => a + b, 0),
+        },
         draws: lastDraws,
       };
     },

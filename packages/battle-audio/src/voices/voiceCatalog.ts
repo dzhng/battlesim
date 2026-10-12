@@ -32,6 +32,18 @@ export const BARK_TRIGGERS = [
   "friendly_destroyed_nearby",
 ] as const;
 export const ALL_TRIGGERS = [...RESPONSE_TRIGGERS, ...BARK_TRIGGERS] as const;
+export type BarkTrigger = (typeof BARK_TRIGGERS)[number];
+
+/** A bark's voice name from the simulation's tag: the contract names B5
+ *  `b5_under_fire` (the publication layout's `shoutTriggers`, `ShoutRules.talk_s`),
+ *  a voice line `under_fire`. The one place the two forms meet; a tag whose
+ *  number and name aren't the same bark is refused. */
+export function barkTrigger(tag: string): BarkTrigger {
+  const match = /^b(\d+)_(.+)$/.exec(tag);
+  const trigger = match ? BARK_TRIGGERS[Number(match[1]) - 1] : undefined;
+  if (!match || trigger !== match[2]) throw new Error(`${tag} names no bark`);
+  return trigger;
+}
 export type Trigger = (typeof ALL_TRIGGERS)[number];
 export type Intensity = "steady" | "stressed";
 export interface VoiceLineSet {
@@ -162,6 +174,29 @@ export function validateVoiceCatalog(value: unknown, roster: unknown): VoiceCata
   }
   return catalog;
 }
+/** The set a unit type speaks with when `faction` fields it: its assignment, by
+ *  faction for a shared row; null for a unit with none (test and menu rows). */
+export function assignedSet(
+  assignments: VoiceCatalog["assignments"],
+  unit: string,
+  faction: string,
+): string | null {
+  const assignment = assignments[unit];
+  return typeof assignment === "string" ? assignment : (assignment?.[faction] ?? null);
+}
+/** The set each unit type `faction`'s roster fields speaks with, by type. */
+export function factionVoices(
+  assignments: VoiceCatalog["assignments"],
+  units: Iterable<{ id: string; factions: readonly string[] }>,
+  faction: string,
+): Record<string, string> {
+  const voices: Record<string, string> = {};
+  for (const { id, factions } of units) {
+    const set = factions.includes(faction) ? assignedSet(assignments, id, faction) : null;
+    if (set) voices[id] = set;
+  }
+  return voices;
+}
 export function lineText(
   catalog: VoiceCatalog,
   set: string,
@@ -211,4 +246,54 @@ export function takeFile(take: VoiceTake, sha256: string): string {
 /** The served URL of a take's processed bytes: the only builder of this path. */
 export function voiceUrl(take: VoiceTake, sha256: string): string {
   return `/audio/voices/${take.set}/${takeFile(take, sha256)}`;
+}
+
+/** One playable take in a pack. */
+export interface PackTake extends Omit<VoiceTake, "set"> {
+  url: string;
+  duration_s: number;
+}
+/** `pack.json`: what a set can say. A trigger without a take is silent. */
+export interface VoicePack {
+  set: string;
+  /** Each voice and whether it answers or shouts. */
+  voices: Pick<VoiceSpec, "id" | "speaks">[];
+  takes: PackTake[];
+}
+/** A set's pack, at a fixed name so the browser revalidates it: the only builder of this path. */
+export function packUrl(set: string): string {
+  return `/audio/voices/${set}/pack.json`;
+}
+/**
+ * A set's pack from the takes `served` admits: a take's served sha256 and length,
+ * or null to leave it out. The generation tool admits accepted takes; the
+ * workbench preview admits every take not judged bad.
+ */
+export function voicePack(
+  catalog: VoiceCatalog,
+  set: string,
+  served: (take: string, which: VoiceTake) => { sha256: string; duration_s: number } | null,
+): VoicePack {
+  const takes: PackTake[] = [];
+  for (const voice of catalog.sets[set].voices)
+    for (const trigger of voiceTriggers(voice))
+      for (const intensity of ["steady", "stressed"] as const)
+        for (const take of [0, 1]) {
+          const id: VoiceTake = { set, voice: voice.id, trigger, intensity, take };
+          const file = served(takeId(id), id);
+          if (file)
+            takes.push({
+              voice: voice.id,
+              trigger,
+              intensity,
+              take,
+              url: voiceUrl(id, file.sha256),
+              duration_s: file.duration_s,
+            });
+        }
+  return {
+    set,
+    voices: catalog.sets[set].voices.map(({ id, speaks }) => ({ id, speaks })),
+    takes,
+  };
 }

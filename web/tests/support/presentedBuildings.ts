@@ -138,6 +138,9 @@ export function presentBuildings(
         refused: w.refused,
       };
     },
+    /** The units' and buildings' tier thresholds over their authored values. */
+    setDetailScale: (units: number, buildings: number) =>
+      presentation.setDetailScale(units, buildings),
     free: () => presentation.free(),
   };
 }

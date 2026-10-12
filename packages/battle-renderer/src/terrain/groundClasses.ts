@@ -4,7 +4,7 @@
 // rig reads it back (`web/scenes/_groundStations.mjs` `classAt`). Black is "not
 // ground". The first byte is the distance outside the nearest paved edge and
 // the second outside the water's edge, negative inside: exact as far as the
-// ground's look reads that distance (`groundReach`), holding its side beyond.
+// ground's look reads that distance (`Ground::reach`), holding its side beyond.
 // A pixel across two classes holds a mix of their bytes.
 
 /** A distance byte moves one step every 1 / this many metres. */
