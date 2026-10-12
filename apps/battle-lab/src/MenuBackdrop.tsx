@@ -95,12 +95,14 @@ function BackdropScenes({ plate, shown }: BackdropProps) {
   const refused = useSyncExternalStore(appResources.subscribe, appResources.error);
   const graphics = useSyncExternalStore(graphicsSettings.subscribe, graphicsSettings.get);
   const [probeTier, setProbeTier] = useState<GraphicsTier | null>(null);
+  const [probeGeneration, setProbeGeneration] = useState(0);
   const frameListeners = useRef(new Set<(timestampMs: number) => void>());
   const readyWaiter = useRef<{ resolve: () => void; reject: (reason: unknown) => void } | null>(null);
   useEffect(() => {
     const runner = createCanonicalFrameRunner({
       setTier: (tier, signal) => {
         setProbeTier(tier);
+        setProbeGeneration((generation) => generation + 1);
         return new Promise<void>((resolve, reject) => {
           const abort = () => reject(new DOMException("Detection cancelled", "AbortError"));
           if (signal.aborted) return abort();
@@ -151,6 +153,7 @@ function BackdropScenes({ plate, shown }: BackdropProps) {
       onProbeReady={() => readyWaiter.current?.resolve()}
       onProbeFrame={(now) => frameListeners.current.forEach((listener) => listener(now))}
       quality={quality}
+      probeGeneration={probeGeneration}
     />
   );
 }
@@ -263,6 +266,7 @@ function BackdropBattle({
   quality,
   onProbeReady,
   onProbeFrame,
+  probeGeneration,
 }: {
   scene: BackdropScene;
   scenario: string;
@@ -275,6 +279,7 @@ function BackdropBattle({
   quality: typeof graphicsProfiles.high;
   onProbeReady: () => void;
   onProbeFrame: (now: number) => void;
+  probeGeneration: number;
 }) {
   const veil = useRef<HTMLDivElement>(null);
   // Ready to film once the battle first stands at its warm tick.
@@ -313,6 +318,7 @@ function BackdropBattle({
     <div className="menu-backdrop" aria-hidden>
       <div className="menu-backdrop-film">
         <LabViewport
+          key={`graphics-probe-${probeGeneration}`}
           fixture="menu-backdrop"
           inputEnabled={false}
           world={world}
