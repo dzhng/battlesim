@@ -66,11 +66,13 @@ export function MenuButton({ onOpen }: { onOpen: () => void }) {
 export function PauseMenu({
   onClose,
   onRestart,
+  onSettingsApply,
   children,
 }: {
   onClose: () => void;
   /** Restart the battle from its seed; none where a run can't restart. */
   onRestart?: () => void;
+  onSettingsApply?: () => void | Promise<void>;
   /** The route's own items. */
   children?: ReactNode;
 }) {
@@ -168,7 +170,7 @@ export function PauseMenu({
                 Close settings
               </button>
             </header>
-            <GraphicsSettingsControls />
+            <GraphicsSettingsControls onApply={onSettingsApply} />
             <section className="hud-menu-section" aria-label="Sound">
               <SoundControls />
             </section>

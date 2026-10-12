@@ -1,5 +1,6 @@
 import { useState, useSyncExternalStore } from "react";
 import { graphicsSettings, resolveEffectiveTier, type GraphicsMode } from "./graphicsSettings";
+import { runAutoDetect } from "./graphicsDetection";
 
 const choices: readonly GraphicsMode[] = ["auto", "low", "medium", "high"];
 const labels: Record<GraphicsMode, string> = {
@@ -15,7 +16,7 @@ export function GraphicsSettingsControls({
 }: {
   /** Rebuild hook owned by the paused viewport. The controls stay locked until it settles. */
   onApply?: () => void | Promise<void>;
-  onRunAutoDetect?: () => void;
+  onRunAutoDetect?: () => void | Promise<void>;
 }) {
   const settings = useSyncExternalStore(graphicsSettings.subscribe, graphicsSettings.get);
   const [applying, setApplying] = useState(false);
@@ -31,6 +32,10 @@ export function GraphicsSettingsControls({
     }
   };
   const last = settings.lastResult;
+  const rerun = async () => {
+    if (applying) return;
+    await (onRunAutoDetect ? onRunAutoDetect() : runAutoDetect());
+  };
   return (
     <section className="graphics-settings" aria-label="Graphics" data-testid="graphics-settings">
       <div className="menu-field" id="graphics-quality-label">
@@ -61,7 +66,7 @@ export function GraphicsSettingsControls({
         type="button"
         className="hud-menu-item"
         disabled={applying}
-        onClick={() => onRunAutoDetect?.()}
+        onClick={() => void rerun()}
       >
         Run auto-detect again
       </button>
