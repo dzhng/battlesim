@@ -32,7 +32,12 @@ import { useBattleSession } from "./useBattleSession";
 import { useLabLoading } from "./LabLoading";
 import type { ScriptedSim } from "./useSimSession";
 import game from "@fixtures/game.json";
-import { graphicsProfiles, graphicsSettings, resolveEffectiveTier, type GraphicsTier } from "./graphicsSettings";
+import {
+  graphicsProfiles,
+  graphicsSettings,
+  resolveEffectiveTier,
+  type GraphicsTier,
+} from "./graphicsSettings";
 import { createCanonicalFrameRunner, registerGraphicsDetectionRunner } from "./graphicsDetection";
 
 const SCENES = validateBackdrop(backdrop, listMaps()).scenes;
@@ -97,7 +102,9 @@ function BackdropScenes({ plate, shown }: BackdropProps) {
   const [probeTier, setProbeTier] = useState<GraphicsTier | null>(null);
   const [probeGeneration, setProbeGeneration] = useState(0);
   const frameListeners = useRef(new Set<(timestampMs: number) => void>());
-  const readyWaiter = useRef<{ resolve: () => void; reject: (reason: unknown) => void } | null>(null);
+  const readyWaiter = useRef<{ resolve: () => void; reject: (reason: unknown) => void } | null>(
+    null,
+  );
   useEffect(() => {
     const runner = createCanonicalFrameRunner({
       setTier: (tier, signal) => {
@@ -108,8 +115,14 @@ function BackdropScenes({ plate, shown }: BackdropProps) {
           if (signal.aborted) return abort();
           signal.addEventListener("abort", abort, { once: true });
           readyWaiter.current = {
-            resolve: () => { signal.removeEventListener("abort", abort); resolve(); },
-            reject: (reason) => { signal.removeEventListener("abort", abort); reject(reason); },
+            resolve: () => {
+              signal.removeEventListener("abort", abort);
+              resolve();
+            },
+            reject: (reason) => {
+              signal.removeEventListener("abort", abort);
+              reject(reason);
+            },
           };
         });
       },
@@ -117,10 +130,14 @@ function BackdropScenes({ plate, shown }: BackdropProps) {
         frameListeners.current.add(listener);
         return () => frameListeners.current.delete(listener);
       },
+      timeoutMs: 120_000,
     });
     const unregister = registerGraphicsDetectionRunner(async (tier, signal) => {
-      try { return await runner(tier, signal); }
-      finally { setProbeTier(null); }
+      try {
+        return await runner(tier, signal);
+      } finally {
+        setProbeTier(null);
+      }
     });
     return () => {
       unregister();
@@ -133,7 +150,8 @@ function BackdropScenes({ plate, shown }: BackdropProps) {
   // Scenes played so far: the one playing is `played` modulo their count.
   const [played, setPlayed] = useState(0);
   const scene = SCENES[played % SCENES.length];
-  const quality = graphicsProfiles[probeTier ?? resolveEffectiveTier(graphics.mode, graphics.detectedMode)];
+  const quality =
+    graphicsProfiles[probeTier ?? resolveEffectiveTier(graphics.mode, graphics.detectedMode)];
   const next = SCENES[(played + 1) % SCENES.length];
   const battle = useBuiltScenario(scene, (_, s) => sceneScenario(s, rules));
   const failed = buildFailed(battle) ? battle.error : null;
@@ -329,7 +347,10 @@ function BackdropBattle({
           appearances={session.appearances}
           initialCamera={reel.initial}
           groundAt={session.surfaceZ}
-          onReady={(gpu) => { session.onReady(gpu); onProbeReady(); }}
+          onReady={(gpu) => {
+            session.onReady(gpu);
+            onProbeReady();
+          }}
           pilot={{ ...reel.pilot, frame: ({ now }) => onProbeFrame(now) }}
           cameraConfig={FILM_CAMERA}
           quality={quality}
