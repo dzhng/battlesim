@@ -37,6 +37,7 @@ use crate::movement::{self, MovementContext, SideGeometry};
 use crate::navigation::RoadNet;
 use crate::route_planner::RoutePlanner;
 use crate::sensing::{self, Sighting};
+use crate::shouts::{self, ShoutEvidence, ShoutLedger};
 use crate::sight;
 use crate::structures::Structures;
 use crate::supply;
@@ -278,6 +279,11 @@ pub struct Battle {
     /// Recorded commands still to apply when this battle is a replay.
     replaying: Option<VecDeque<(Tick, CommandEnvelope)>>,
     observations: [ObservationFrame; 2],
+    pub(crate) shouts: [ShoutLedger; 2],
+    previous_units: Vec<Unit>,
+    shout_evidence: ShoutEvidence,
+    shout_fired: BTreeSet<UnitId>,
+    shout_kills: BTreeSet<UnitId>,
     scenario_digest: u64,
     config_digest: u64,
     /// Transient bodies (a row with a `lifetime_s`) and the tick each goes.
@@ -804,6 +810,11 @@ impl Battle {
             accepted: Vec::new(),
             replaying: None,
             observations: Default::default(),
+            shouts: Default::default(),
+            previous_units: Vec::new(),
+            shout_evidence: ShoutEvidence::default(),
+            shout_fired: BTreeSet::new(),
+            shout_kills: BTreeSet::new(),
             scenario_digest: scenario_digest(setup),
             config_digest: config_digest(setup),
             expiries: BTreeMap::new(),
@@ -826,6 +837,7 @@ impl Battle {
             battle.schedule_expiry(id);
         }
         sight::snapshot(&mut battle.units, &battle.arsenal);
+        battle.previous_units = battle.units.clone();
         for side in Side::ALL {
             battle.sense(side, true);
             battle.sweep_fog(side);
@@ -1199,6 +1211,7 @@ impl Battle {
         }
         self.skirmish_ai_turn();
         self.tick += 1;
+        self.previous_units.clone_from(&self.units);
         for side in Side::ALL {
             for contact in self.knowledge[side.index()].expire_contacts(self.tick) {
                 for unit in self.units.iter_mut().filter(|u| u.side == side) {
@@ -1354,6 +1367,7 @@ impl Battle {
         }
         self.prune_attackers();
         let fired = self.fire(&moved);
+        self.shout_fired = fired.clone();
         supply::service(
             &self.world,
             &mut self.units,
@@ -2105,6 +2119,14 @@ impl Battle {
             self.units[victim.0 as usize].attackers.insert(shooter);
         }
         let mut destroyed = outcome.destroyed;
+        for death in &destroyed {
+            // A kill bark is for an enemy; a friendly loss is not a kill.
+            if let Some(source) = death.source.filter(|s| {
+                self.units[s.unit.0 as usize].side != self.units[death.victim.0 as usize].side
+            }) {
+                self.shout_kills.insert(source.unit);
+            }
+        }
         // Structural damage in event order; a prop is destroyed once (L10, Q17).
         for hit in outcome.structural {
             if self.structures.damage(&self.world, hit.prop, hit.amount) {
@@ -3356,6 +3378,34 @@ impl Battle {
     }
 
     fn observe_all(&mut self) {
+        let identified = Side::ALL
+            .into_iter()
+            .flat_map(|side| self.knowledge[side.index()].identified_now(self.tick))
+            .map(|(id, _)| (id, self.units[id.0 as usize].layer()))
+            .collect();
+        self.shout_evidence = if self.tick == 0 {
+            ShoutEvidence::default()
+        } else {
+            shouts::evidence(
+                &self.previous_units,
+                &self.units,
+                std::mem::take(&mut self.shout_fired),
+                identified,
+                &self.rules,
+            )
+        };
+        self.shout_evidence.kills.append(&mut self.shout_kills);
+        let own_shouts = Side::ALL.map(|side| {
+            shouts::build(
+                side,
+                &self.shout_evidence,
+                &self.units,
+                &self.knowledge[side.index()],
+                &self.rules,
+                self.tick,
+                &mut self.shouts[side.index()],
+            )
+        });
         // Every live hull a soldier's current cover may lie behind (D2+).
         let hulls = cover::hull_bodies(&crate::lean::hulls(&self.units, &self.rules));
         let low_hover = crate::movement::air::low_hover(&self.rules);
@@ -3388,6 +3438,12 @@ impl Battle {
                         > low_hover
             }));
             frame.audible.clone_from(&self.audible[side.index()]);
+            frame.shouts.clone_from(&own_shouts[side.index()]);
+            frame.shouts.extend(shouts::heard(
+                &own_shouts[1 - side.index()],
+                knowledge,
+                self.tick,
+            ));
             frame.known_props.clear();
             let known = &self.sides[side.index()];
             // Planning and publication share the complete remembered pose.

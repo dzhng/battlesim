@@ -215,3 +215,20 @@ There were four drafts: A fewest-slices (Claude), B risk-first (Codex), C seam-q
   - about 1 in 7 stressed lines swear;
   - sniper teams whisper like recon.
 - **The CLI** is `packages/battle-audio/tools/generate/cli.ts`, run as `bun run generate plan`. It totals 7,108 clips and about 181k characters.
+
+**2026-10-12, slice 11 (agent; Codex implemented, a Claude worker wrote the tests during a Codex capacity outage, orchestrator reviewed):**
+- **Splitting a side's shouts:** `shouts::build` emits a side's **own** shouts. `shouts::heard` copies an enemy's own shouts into the other side's frame as `Seen(handle)`, only while that side identifies the speaker that tick. One owner builds each unit's shouts; hearing only filters them.
+- **Tie-break order** is data (`PRIORITY`): B16 > B10 > B9 > B8 > B7 > B6 > B14 > B13 > B12 > B11 > B4. A contact call speaks first and blocks that unit's other barks for its talk time.
+- **Transitions:**
+  - Contact fires on a **newly** identified enemy, spoken by the nearest unit that sees it.
+  - Altitude decides an air contact before body does, so helicopters count as air.
+  - B4 fires on a **new** target only.
+  - B6 and B7 fire when the tier **rises**.
+  - B12 is infantry-only, judged per weapon mount.
+  - B13 fires once when a weapon runs dry.
+  - Dead and withdrawn units never speak again.
+  - Writing the tests found 13 bugs of exactly this kind in the first implementation.
+- **`talk_s`** starts at 1.5 s for every trigger, a neutral value within the slice's 1–3 s.
+- **No compatibility shim.** `ShoutRules` serializes like every other rule. The two parity scenarios that embed rules gained the `shouts` block as data. Every pinned `digest` and `publication_sha256` was compared value by value and is unchanged.
+- **Tests stay in the one sim test binary** (`cargo test -p sim --test sim shouts::`). The spec's `--test shouts` wording was the orchestrator's mistake.
+- **Follow-up for slice 12:** evidence compares a full copy of every unit (`previous_units`) made each tick. Replace it with a minimal per-unit snapshot holding only what barks read (alive, health, member hp, tier, mount reasons, ammo), and check the cost on the benchmark.

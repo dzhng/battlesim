@@ -147,6 +147,51 @@ pub struct SoundCue {
     pub moving: bool,
 }
 
+/// A bark emitted by the simulation. The client chooses and plays a take.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ShoutTrigger {
+    B1ContactInfantry,
+    B2ContactVehicle,
+    B3ContactAir,
+    B4OpensFire,
+    B5UnderFire,
+    B6Suppressed,
+    B7Pinned,
+    B8Hit,
+    B9ManDown,
+    B10BadlyDamaged,
+    B11Kill,
+    B12Reloading,
+    B13OutOfAmmo,
+    B14MissileAway,
+    B15IncomingMissile,
+    B16Destroyed,
+    B17FriendlyDestroyedNearby,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Intensity {
+    Steady,
+    Stressed,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum ShoutSpeaker {
+    Own(UnitId),
+    Seen(ObservedTargetId),
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Shout {
+    pub speaker: ShoutSpeaker,
+    pub kind: TypeIndex,
+    pub position: [f64; 3],
+    pub trigger: ShoutTrigger,
+    pub intensity: Intensity,
+}
+
 /// A solid obstacle added after the battle began that this side knows about.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct KnownProp {
@@ -619,6 +664,9 @@ pub struct ObservationFrame {
     pub contacts: Vec<ApproximateContact>,
     /// Sounds heard this bucket (empty between buckets).
     pub audible: Vec<SoundCue>,
+    /// Simulation-emitted barks for this completed tick.
+    #[serde(default)]
+    pub shouts: Vec<Shout>,
     /// Obstacles added after setup that this side has seen or run into.
     pub known_props: Vec<KnownProp>,
     /// Round flight this side may draw this tick (own rounds whole, enemy

@@ -25,7 +25,7 @@
 - [ ] 08 — Music tracks: 3 combat and 3 tension tracks, the Music tab, and the mood director. [slice](slices/08-music-tracks.md)
 - [ ] 09 — Chatter: line arbitration, the per-set voice bank, and the 30 s chatter preview. [slice](slices/09-chatter.md)
 - [ ] 10 — Responses in battle: R1–R12. [slice](slices/10-responses.md)
-- [ ] 11 — Shout ledger: simulation barks from existing state, not yet published. [slice](slices/11-shout-ledger.md)
+- [x] 11 — Shout ledger: simulation barks from existing state, not yet published. [slice](slices/11-shout-ledger.md)
 - [ ] 12 — Physical barks: B5 (under fire), B15 (incoming missile), B17 (friendly destroyed nearby), plus the anonymous unseen-shout hearing cue. [slice](slices/12-physical-barks.md)
 - [ ] 13 — Publish shouts: the publication group and the single named re-bless. [slice](slices/13-publish-shouts.md)
 - [ ] 14 — Barks in battle: barks heard near the camera, and the music mood and ducking driven by own barks. [slice](slices/14-barks-in-battle.md)

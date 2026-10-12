@@ -593,6 +593,15 @@ pub struct Rules {
     pub garrison: GarrisonRules,
     pub hull_limits: HullLimits,
     pub air: AirRules,
+    pub shouts: ShoutRules,
+}
+
+/// Timing data for simulation-emitted battle barks.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ShoutRules {
+    pub cooldown_s: f64,
+    pub talk_s: std::collections::BTreeMap<crate::observation::ShoutTrigger, f64>,
 }
 
 /// The heights every aircraft flies at, one rule for the whole battle (D25):
@@ -730,6 +739,7 @@ struct UncheckedRules {
     garrison: GarrisonRules,
     hull_limits: HullLimits,
     air: AirRules,
+    shouts: ShoutRules,
 }
 
 impl TryFrom<UncheckedRules> for Rules {
@@ -776,6 +786,7 @@ impl TryFrom<UncheckedRules> for Rules {
             garrison: r.garrison,
             hull_limits: r.hull_limits,
             air: r.air,
+            shouts: r.shouts,
         })
     }
 }

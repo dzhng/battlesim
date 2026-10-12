@@ -55,7 +55,7 @@ Load [`tweak-mechanics`](../../../.agents/skills/tweak-mechanics/SKILL.md) befor
 A test that prints the shouts per tick for a short scripted skirmish.
 
 ## Verification
-- `crates/sim/tests/shouts.rs`: one test per bark, plus the cooldown, no-overlap, seen-only enemy and intensity tests.
+- `crates/sim/tests/shouts.rs` (run as `cargo test -p sim --test sim shouts::`): one test per bark, plus the cooldown, no-overlap, seen-only enemy and intensity tests.
 - **Digests unchanged:** `crates/sim/tests/menu_reel.rs` and every pinned `digest` in `fixtures/parity/*.json` pass without a re-bless.
 - **`config_digest` changes** because `ShoutRules` is in `Rules`. That is expected and named in `choices.md`.
 

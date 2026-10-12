@@ -31,6 +31,7 @@ pub mod publication;
 pub mod route_planner;
 pub mod sensing;
 pub mod settlement;
+pub mod shouts;
 pub mod sight;
 pub mod skirmish;
 pub mod skirmish_ai;
