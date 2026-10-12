@@ -773,64 +773,6 @@
         ]
       }
     ],
-    "scarFilter": [
-      {
-        "binding": 0,
-        "buffer": {
-          "type": "uniform"
-        },
-        "visibility": [
-          "vertex",
-          "fragment",
-          "compute"
-        ]
-      },
-      {
-        "binding": 1,
-        "buffer": {
-          "type": "read-only-storage"
-        },
-        "visibility": [
-          "vertex",
-          "fragment",
-          "compute"
-        ]
-      },
-      {
-        "binding": 2,
-        "buffer": {
-          "type": "storage"
-        },
-        "visibility": [
-          "fragment",
-          "compute"
-        ]
-      },
-      {
-        "binding": 3,
-        "texture": {
-          "sampleType": "float",
-          "viewDimension": "2d-array",
-          "multisampled": false
-        },
-        "visibility": [
-          "vertex",
-          "fragment",
-          "compute"
-        ]
-      },
-      {
-        "binding": 4,
-        "sampler": {
-          "type": "filtering"
-        },
-        "visibility": [
-          "vertex",
-          "fragment",
-          "compute"
-        ]
-      }
-    ],
     "grassDrawLayout": [
       {
         "binding": 0,
@@ -3898,15 +3840,6 @@
       "multisample": {
         "count": 4
       }
-    },
-    {
-      "name": "scarFilter",
-      "kind": "compute",
-      "shader": "scarFilter.wgsl",
-      "layout": [
-        "scarFilter"
-      ],
-      "compute": {}
     },
     {
       "name": "grassDraw",

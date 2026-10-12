@@ -571,7 +571,6 @@ export async function createWorldPass(
   const fog = await createFogVisibility(root, registry, fogGeometry, terrainHeights);
   const scenery = await createSceneryLayer(root, registry, environment);
   const terrain = createTerrainSource(root, registry);
-  await terrain.ready();
   const grass = await createGrassPass(root, registry, environment, terrain, terrainHeights);
   const paint = createPaintedMarks(root, registry);
   await paint.ready();
