@@ -50,10 +50,10 @@ const EMPTY = new Float32Array(0);
 const MIN_TARGET_PX = 64;
 
 export interface BattleFrameOptions {
-  /** Optional resolved graphics quality; omitted preserves authored High. */
+  /** Optional resolved graphics quality; omitted preserves authored High.
+   *  The units' and buildings' detail is the presentation's
+   *  (`setDetailScale`): Rust tiers them. */
   quality?: {
-    unitLodScale: number;
-    buildingLodScale: number;
     treeLodScale: number;
     grassDensity: number;
     shadowMapSize: 1024 | 2048;
@@ -122,28 +122,7 @@ export async function createBattleFrame(
         }
       : options.light;
     const environment = await createEnvironmentFrame(device, registry, effectiveLight);
-    const models = await createModelLayer(
-      root,
-      registry,
-      quality
-        ? {
-            ...options.models,
-            lod_px: options.models.lod_px.map((v) => v * quality.unitLodScale) as [
-              number,
-              number,
-              number,
-            ],
-          }
-        : options.models,
-      quality
-        ? {
-            ...options.buildings,
-            lod_px_per_m: options.buildings.lod_px_per_m.map(
-              (v) => v * quality.buildingLodScale,
-            ) as [number, number, number],
-          }
-        : options.buildings,
-    );
+    const models = await createModelLayer(root, registry, options.models);
     registry.adopt(() => models.dispose());
     const world = await createWorldPass(
       root,

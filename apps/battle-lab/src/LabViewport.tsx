@@ -740,6 +740,11 @@ export function LabViewport({
         let staticStyle = gameBuildingStyle;
         let staticSun = { azimuth: 0, elevation: 1, farM: 0 };
         let resend = false;
+        /** The presentation and quality the detail scale was last given to. */
+        let detailed: [ObservationDecoder | null, GraphicsQualityProfile | undefined] = [
+          null,
+          undefined,
+        ];
         const build = async () => {
           const lit = light();
           staticSun = {
@@ -758,7 +763,6 @@ export function LabViewport({
             xrayMinHiddenFragmentFraction: gameXrayMinHiddenFragmentFraction,
             models: gameModelDetail,
             glass: gameGlass,
-            buildings: buildingStyleRef.current ?? gameBuildingStyle,
             quality: qualityRef.current,
             world: worldRef.current.current!,
             instances: instancesRef.current,
@@ -904,6 +908,11 @@ export function LabViewport({
               );
               if (resend) decoder.resendStatics();
               resend = false;
+              const quality = qualityRef.current;
+              if (detailed[0] !== decoder || detailed[1] !== quality) {
+                detailed = [decoder, quality];
+                decoder.setDetailScale(quality?.unitLodScale ?? 1, quality?.buildingLodScale ?? 1);
+              }
             }
             animated = frameRef.current?.(now, snapshot());
           } catch (err) {
