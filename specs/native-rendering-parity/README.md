@@ -75,6 +75,8 @@ Set by the user on 2026-10-11, after the static world's selection walk cost abou
 
 Graph: `18 → 18b (approved 2026-10-11) → 19 → 20 ∥ 20b → phase 5 (25, with 22 inside it) → 23 → 24`.
 
+**Godot is frozen (user, 2026-10-11).** From now until phase 5 replaces it, no lane runs Godot (no plates, no display tests, no windows on the user's screen) or adds Godot glue. Native stays as it is on main. Phase 4's remaining slices stop at the browser and `crates/presentation`, and their native plate and count gates are dropped. Only headless native tests run, if a change touches code native compiles against.
+
 **The Godot spike leaves no tech debt (user, 2026-10-11).** Phase 5 replaces Godot, so nothing Godot-shaped enters shared code. Native's halves of 19, 20 and 20b are the thinnest GDExtension glue over the shared crates, deleted with Godot. Slice 21 (moving native's remaining GDScript into Rust inside Godot) is dropped. Slice 22 (completeness) is built once, on `wgpu`, inside phase 5.
 
 **Web first (user, 2026-10-11).** Each shared-code slice (19, 20, 20b) lands in the browser first, with clean before/after frame-rate numbers from slice 07's harness on the graphics test and a medium battle. Only then does native switch to it. Native's own core work (18, 21) proceeds independently. Slice 15's performance fix is 18's first module.
