@@ -416,7 +416,7 @@ Set by the coordinator: a Rust contract lands in the browser first, so the light
   | Base | 82.8 (76.6–102.8) | 8.48 / 17.12 | 6.74 |
 
   No regression; the spread is the headless pacing.
-- **Code** (this pass): production −115 net. That is TypeScript −432 +154 and Rust +189 (the light's derivations, the two records and the binding). Tests +187.
+- **Code** (this pass): production −115 net. That is TypeScript +136 −432 and Rust +189 −8 (the light's derivations, the two records and the binding). Tests +187.
 
 ### Decisions
 
