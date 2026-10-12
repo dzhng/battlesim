@@ -537,7 +537,7 @@ fn each_of_his_own_shots_kicks_a_soldier_back_by_his_weapon_s_kick_and_he_recove
 fn clip_table(name: &str) -> Vec<f32> {
     let at = concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/../../native/godot/tests/fixtures/run/paris-corner/units-"
+        "/../../fixtures/parity/capture/run/paris-corner/units-"
     );
     let bytes = std::fs::read(format!("{at}{name}.u32")).unwrap();
     bytes

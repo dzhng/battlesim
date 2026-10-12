@@ -1,8 +1,7 @@
 # Native client
 
-The native client on `wgpu` ([slice 25](../../specs/native-rendering-parity/slices/25-native-on-wgpu.md)),
-which replaces [Godot](../godot/README.md). It runs the browser's own shaders
-and passes over the [presentation crate](../../crates/presentation/README.md)'s
+The native client on `wgpu` ([slice 25](../../specs/native-rendering-parity/slices/25-native-on-wgpu.md)).
+It runs the browser's own shaders and passes over the [presentation crate](../../crates/presentation/README.md)'s
 `World` and `Frame`, and decides nothing per entity itself.
 
 - **Shaders and pipelines** are the browser's [export](../../crates/pipelines/README.md),

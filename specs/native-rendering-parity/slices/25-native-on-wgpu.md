@@ -740,3 +740,19 @@ Against the merged main: production Rust +3,838 (the sound module 2,568 code lin
 - **Rust is given the prepared lengths** rather than composing the browser's buffers itself, so the browser's bank stays the browser's until it moves.
 - **Native renders offline from the replay** (`--sound <wav>`), never to the device, as the brief required. A live client opens `OutputSettings::Device`.
 - **The sound vectors are read with exact float parsing** (`serde_json`'s `float_roundtrip`, as a dev-dependency of `presentation` only): variations are keyed by position text, so a one-ulp parse error changed a variant.
+
+## Step 8: Godot deleted (2026-10-12, branch `phase5h`)
+
+The deletion half of step 8. The gates half (plates, counts and performance against the browser, release build) is still open.
+
+### The contract
+
+- **Gone:** `native/godot` (the Godot project: its GDScript, Godot shaders, parity runner, release export, bench and tests) and `native/godot-binding` (the GDExtension), with their workspace entries and the `godot` crate tree in `Cargo.lock`, and `crates/sim/examples/native_binding_probe.rs`, the binding's offline control.
+- **Two presentation calls only the binding made are removed:** `static_world::files::buildings` (a resolved `Buildings` for a renderer that walks them itself; native reads `files::placed_buildings` through `load_world`) and `View::for_detail` (a matrix-free view for Godot's own camera). Nothing on `Presentation` or either WASM module was Godot-only.
+- **The parity harness is the browser capture alone.** `web/scenes/native-parity-capture.mjs` is unchanged; Godot's runner was `parity_run.gd` and went with the project. `fps-compare.mjs` no longer reads Godot's render report, so it compares browser runs until `native/client` writes a bench. `graphics-fps` counts a running `native-client` as GPU contention. `gpu-trace.mjs` and its test name `native-client`.
+- **The browser capture fixtures the Rust tests read moved** to `fixtures/parity/capture/` (`run/paris-corner/`: capture, manifest and clip table; `poses/paris-corner-poses.json`; `publication/`: the market-town capture and both scenes' browser decodes). `sim`'s reader test, `presentation`'s pose and effect tests and `native-client`'s corpse test read them there. The Godot-only fixtures nothing else read are deleted: the height, grass-sampling, learned-ground and water vectors, Godot's own effect vectors and units section, its map copy, and the run's terrain and grass artifacts.
+- **Kept, and why:** `packages/scene-assets/blender/packs.{json,py}` name paths inside a third-party asset pack (`Unreal-Godot/`, `Godot - UE/`); they are the vendor's folder names. The spec's earlier slices, `choices.md` and `specs/done/` record what was built on Godot.
+
+### Evidence
+
+PLACEHOLDER_EVIDENCE

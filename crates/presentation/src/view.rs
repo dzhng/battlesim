@@ -161,20 +161,6 @@ impl View {
         }
     }
 
-    /// A view that chooses detail only: its eye, pixels per metre and side
-    /// planes, with no matrices (a renderer's own camera, as native's).
-    pub fn for_detail(eye: Vec3, pixels_per_metre: f64, sides: [Plane; 4]) -> Self {
-        Self {
-            eye,
-            target: eye,
-            distance: 0.0,
-            pixels_per_metre,
-            sides,
-            view: [0.0; 16],
-            projection: [0.0; 16],
-        }
-    }
-
     /// Whether a box (min x, y, z, max x, y, z) meets the view's sides: each
     /// has its nearest corner inside.
     pub fn sees_box(&self, b: &[f64; 6]) -> bool {

@@ -19,16 +19,16 @@ const row = (
   `<sentinel/><metal-nesting-level fmt="${depth}">${depth}</metal-nesting-level>` +
   `<formatted-label fmt="${label}"><string fmt="x">x</string></formatted-label><sentinel/><sentinel/><sentinel/>` +
   `${process}</row>`;
-const godot = '<process id="9" fmt="godot (1)"><pid fmt="1">1</pid></process>';
-const godotRef = '<process ref="9"/>';
+const native = '<process id="9" fmt="native-client (1)"><pid fmt="1">1</pid></process>';
+const nativeRef = '<process ref="9"/>';
 const other = '<process fmt="Chrome Helper (2)"/>';
 
 test("rows resolve each ref to the element its id named, at any depth", () => {
   const rows = parseRows(
-    `<trace-query-result><node><schema/>${row(0, 5, "Vertex", 1, "Render Command 1", godot)}${row(10, 5, "Fragment", 1, "Render Command 1", godotRef)}</node></trace-query-result>`,
+    `<trace-query-result><node><schema/>${row(0, 5, "Vertex", 1, "Render Command 1", native)}${row(10, 5, "Fragment", 1, "Render Command 1", nativeRef)}</node></trace-query-result>`,
   );
   expect(rows).toHaveLength(2);
-  expect(rows[1][10].attrs.fmt).toBe("godot (1)");
+  expect(rows[1][10].attrs.fmt).toBe("native-client (1)");
   expect(rows[1][2].attrs.fmt).toBe("Fragment");
 });
 
@@ -47,18 +47,32 @@ test("a frame runs from its first GPU work to the next frame's: busy is its merg
   const ms = 1e6;
   const xml = `<r>${[
     // Frame 1 is cut by the trace's start and dropped, as is the last frame.
-    row(0, 1 * ms, "Vertex", 1, "Render Command 1", godot),
+    row(0, 1 * ms, "Vertex", 1, "Render Command 1", native),
     // Frame 2: 0–4 ms vertex and 2–6 ms fragment overlap (6 ms busy) in a
     // 10 ms span; a nested interval adds no busy time.
-    row(10 * ms, 4 * ms, "Vertex", 2, "Command Buffer 0:Render Command 3  (godot)", godotRef),
-    row(12 * ms, 4 * ms, "Fragment", 2, "Command Buffer 0:Render Command 3  (godot)", godotRef),
-    row(11 * ms, 1 * ms, "Vertex", 2, "Render Command 3", godotRef, 1),
+    row(
+      10 * ms,
+      4 * ms,
+      "Vertex",
+      2,
+      "Command Buffer 0:Render Command 3  (native-client)",
+      nativeRef,
+    ),
+    row(
+      12 * ms,
+      4 * ms,
+      "Fragment",
+      2,
+      "Command Buffer 0:Render Command 3  (native-client)",
+      nativeRef,
+    ),
+    row(11 * ms, 1 * ms, "Vertex", 2, "Render Command 3", nativeRef, 1),
     // Another process's work in the same window.
     row(13 * ms, 2 * ms, "Compute", 7, "Compute Command 0", other),
-    row(20 * ms, 1 * ms, "Compute", 3, "Compute Command 2", godotRef),
-    row(30 * ms, 1 * ms, "Compute", 4, "Compute Command 2", godotRef),
+    row(20 * ms, 1 * ms, "Compute", 3, "Compute Command 2", nativeRef),
+    row(30 * ms, 1 * ms, "Compute", 4, "Compute Command 2", nativeRef),
   ].join("")}</r>`;
-  const anatomy = frameAnatomy(parseRows(xml), "godot");
+  const anatomy = frameAnatomy(parseRows(xml), "native-client");
   expect(anatomy.frames).toBe(2);
   expect(anatomy.perFrame[0]).toEqual({ frame: 2, spanMs: 10, busyMs: 6, idleMs: 4 });
   expect(anatomy.encodersMs["Vertex · Render Command 3"]).toBe(2);

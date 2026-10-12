@@ -38,12 +38,15 @@ differs between the clients.
   interval and main-thread time, the frame's GPU time from `timestamp-query`,
   and the in-game frame-rate counter's readings, which must agree with the
   recording's average.
-- **Native.** The [native client's bench](../../../../native/godot/README.md#the-frame-rate-bench)
-  draws a capture run's frame records and writes the same raw frames.
-- **Same pacing, no presentation.** Neither client presents to the display:
-  the browser runs headless and native minimised. Chromium's
-  `--disable-frame-rate-limit` hangs the graphics test in battle preparation
-  (inside the model layer's appearance install), and `--disable-gpu-vsync`
+- **Native.** The [native client](../../../../native/client/README.md) has
+  no bench yet; slice 25's performance gate adds one that draws a capture
+  run's frame records and writes the same raw frames. On macOS a `wgpu`
+  window that isn't visible presents nothing and runs unpaced, so a native
+  run either presents to a visible window or is compared on GPU time.
+- **Same pacing, no presentation.** The browser runs headless and does not
+  present to the display. Chromium's `--disable-frame-rate-limit` hangs the
+  graphics test in battle preparation (inside the model layer's appearance
+  install), and `--disable-gpu-vsync`
   alone leaves `requestAnimationFrame` at the display's 120 Hz, so the
   browser stays paced and native runs uncapped. The cap doesn't bind while
   the browser's frames take longer than 8.3 ms; where it would, compare CPU

@@ -2,7 +2,7 @@
 //! page reads it: the saved map, the fixture's presentation numbers, and the
 //! runtime catalog's template library and kit bundles, each stored gzipped
 //! under its transport hash (`packages/scene-assets/src/gzip.ts`).
-use crate::static_world::buildings::{Buildings, Placed, PlacedBuildings};
+use crate::static_world::buildings::{Placed, PlacedBuildings};
 use crate::static_world::ground::biome::Biome;
 use crate::static_world::ground::tables::Grid;
 use crate::static_world::ground::{self, Ground, Source, Tuning};
@@ -105,18 +105,6 @@ pub fn ground(root: &Path, map: &str) -> Result<MapGround, String> {
         positions: world.export_terrain_positions(),
         indices: world.export_terrain_indices(),
     })
-}
-
-/// The buildings of saved map `map` (`fixtures/maps/<map>/map.json`), drawn
-/// from the runtime catalog's template art under `fixtures/game.json`'s
-/// `presentation.buildings`, and that style. Only the kits the map's
-/// templates place are read.
-pub fn buildings(root: &Path, map: &str) -> Result<(Buildings, BuildingStyle), String> {
-    let (placed, style) = placed_buildings(root, map, vec![], vec![])?;
-    Ok((
-        Buildings::new(placed.library, &placed.bounds, placed.placed, &style)?,
-        style,
-    ))
 }
 
 /// The buildings of saved map `map` as `Presentation::load_world` takes

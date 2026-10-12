@@ -10,7 +10,7 @@ use presentation::records::NONE;
 
 const RUN: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/../godot/tests/fixtures/run/paris-corner"
+    "/../../fixtures/parity/capture/run/paris-corner"
 );
 const GAME: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/game.json");
 

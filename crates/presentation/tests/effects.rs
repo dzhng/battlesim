@@ -2,7 +2,7 @@
 //! causes, seeded as it seeds them: every instance's sixteen floats and every
 //! cast light at fixed clocks after a few publications that exercise every
 //! kind of effect, and a fixture run's plate's effect counts replayed from
-//! its capture (`web/tests/nativeEffectVectors.test.ts` wrote both).
+//! its capture (the browser's TypeScript wrote both before it was deleted).
 use std::path::PathBuf;
 
 use presentation::effects::frame::{
@@ -19,7 +19,7 @@ use sim::publication::reader::Reader;
 
 fn fixture(path: &str) -> Value {
     let at = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../native/godot/tests/fixtures")
+        .join("../../fixtures/parity/capture")
         .join(path);
     let text = std::fs::read_to_string(&at).unwrap_or_else(|e| panic!("{}: {e}", at.display()));
     serde_json::from_str(&text).expect("fixture JSON")
