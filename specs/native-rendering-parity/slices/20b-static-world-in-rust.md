@@ -114,3 +114,15 @@ No meaningful regression. Paris-corner's main-thread CPU rises 0.7 ms at p50 (th
 **Net code** (comments and blanks excluded; against `35dd313c2`): TypeScript −1,049, TS tests −260, GDScript −14, GDScript tests −32, Rust +881, mjs −6, toml +13, tsx +3: **−464**. With slice 15's +270 counted against it: **−194**. Raw lines: −560.
 
 **Left for steps 2 and 3:** forest shapes and the terrain surface; then the biome and tunings, the terrain and grass tables, and scenery placement. The README checkbox stays open.
+
+## Step 1, folded onto slice 20 (2026-10-11)
+
+Rebased onto slice 20 (`513bed37d`) and folded per the orchestrator's ruling (a): `82f4e0fc7`, `a42d5be54`, `3d0f1c6c5`-era fix (see the log).
+- **Crate.** `crates/static-world` is gone; it is `crates/presentation/src/static_world/` (`library`, `buildings`, `walk`, `files` behind the `files` feature, `batches`). The walk takes slice 20's `view::View`; `view::building_tier` sits beside `model_detail`.
+- **API.** No separate WASM class. `Presentation`'s constructor arguments are optional (`new Presentation(layout?, tick_hz?)`): a static Presentation is valid with only `load_world`, and `push_publication` errors without a layout. `add_buildings(library, bounds, templates, template, frames, owners)` stages the buildings before `load_world`; `WorldInput` gains an optional `battle` (the units and effects), `cascade_far_m` and `buildings` (the style). `frame()` walks the buildings and emits them as `Frame` batches, one per kit module row, tier and pass (0 drawn, 1 caster), through a general static population (`static_world/batches.rs`) that scenery will plug into; a frame whose walk changed nothing names every batch `first = NONE`. Each kit module is one `World.appearances` row (name the kit, state the module).
+- **Page.** `LabViewport` owns a static Presentation per scene and hands its frame to the renderer (`setStaticFrame`); `buildingLayer.ts` uploads and draws batches only. The fallen list stays a `set_fallen` call computed in TS.
+- **Equality.** On both reel maps, 400 views each (200 before and 200 after 11 and 226 buildings fall), every view's multiset of (module, tier, pass, record) from the Frame equals the walk's: about 985,000 and 1.34 M instances.
+- **Checks.** `cargo test -p presentation` (with `records_are_current`), clippy, `tsc`, the focused web tests (312), the city-block scene (its GPU-bytes baselines needed the record buffer sized by power of two and released on a new load), native `run.sh` (before the Godot freeze; native's walk glue is unchanged).
+- **Performance** (one graphics-test reel under the lock): market-town 80.6 FPS, CPU p50 4.81 ms, GPU 8.30 ms; paris-corner 111.4 FPS, 1.28 ms, 4.79 ms. No regression against the step's interleaved numbers above.
+- **Net code** against `513bed37d` (comments and blanks excluded): TypeScript −989, TS tests −288, TSX +27, mjs −7, GDScript −14, GDScript tests −32, Rust +1,023, toml +5: **−275**; with slice 15's +270, **−5**.
+- **Godot is frozen** (user, 2026-10-11): native's plate and count gates are dropped from this pass; native keeps building, on the shared walk through its existing glue.
