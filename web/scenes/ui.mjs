@@ -301,7 +301,9 @@ export async function run(ctx) {
   await page.goto(`${origin}/`);
   await page.locator("main.menu:not([inert])").waitFor({ timeout: 120_000 });
   // The loading screen's own plate leaves after the menu wakes.
-  await page.waitForFunction(() => document.querySelectorAll(".menu-body").length === 1);
+  await page.waitForFunction(
+    () => document.querySelectorAll("main.menu:not([inert]) .menu-body").length === 1,
+  );
   await page.evaluate(() => document.fonts.ready);
   await pointerAway(page);
   await mediaDecodes(ctx, page, "menu");
