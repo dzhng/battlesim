@@ -117,7 +117,7 @@ No meaningful regression. Paris-corner's main-thread CPU rises 0.7 ms at p50 (th
 
 ## Step 1, folded onto slice 20 (2026-10-11)
 
-Rebased onto slice 20 (`513bed37d`) and folded per the orchestrator's ruling (a): `82f4e0fc7`, `a42d5be54`, `3d0f1c6c5`-era fix (see the log).
+Rebased onto slice 20 (`513bed37d`) and folded per the orchestrator's ruling (a): `82f4e0fc7`, `a42d5be54`, `6d79f8bbc`.
 - **Crate.** `crates/static-world` is gone; it is `crates/presentation/src/static_world/` (`library`, `buildings`, `walk`, `files` behind the `files` feature, `batches`). The walk takes slice 20's `view::View`; `view::building_tier` sits beside `model_detail`.
 - **API.** No separate WASM class. `Presentation`'s constructor arguments are optional (`new Presentation(layout?, tick_hz?)`): a static Presentation is valid with only `load_world`, and `push_publication` errors without a layout. `add_buildings(library, bounds, templates, template, frames, owners)` stages the buildings before `load_world`; `WorldInput` gains an optional `battle` (the units and effects), `cascade_far_m` and `buildings` (the style). `frame()` walks the buildings and emits them as `Frame` batches, one per kit module row, tier and pass (0 drawn, 1 caster), through a general static population (`static_world/batches.rs`) that scenery will plug into; a frame whose walk changed nothing names every batch `first = NONE`. Each kit module is one `World.appearances` row (name the kit, state the module).
 - **Page.** `LabViewport` owns a static Presentation per scene and hands its frame to the renderer (`setStaticFrame`); `buildingLayer.ts` uploads and draws batches only. The fallen list stays a `set_fallen` call computed in TS.
