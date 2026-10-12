@@ -46,7 +46,7 @@ Slice 01 kills the 2.5 km/minimum-range assumption cheaply. Slice 02 makes the p
 ## Global invariants and ownership
 
 - **One projectile owner:** `Trajectory::Indirect`, launch solving, spread and collision stay in the existing flight/weapon owners. No artillery-only flight path.
-- **One artillery command vocabulary:** artillery uses the existing `Order::Attack`/`Order::AttackMove`, `TargetRef::{Identified, Contact, Ground}` and `SetEngagement` contracts; it adds no artillery-specific order shape.
+- **One artillery targeting vocabulary:** artillery uses the existing `Order::Attack`/`Order::AttackMove`, `TargetRef::{Identified, Contact, Ground}` and `SetEngagement` contracts; it adds no artillery-specific order shape.
 - **One catalog authority:** authored fixture documents resolve through `crates/contract/src/catalog.rs`; `fixtures/catalog.json` is derived, never hand-tuned.
 - **One AI boundary:** `SkirmishPolicy::decide` consumes `ObservationFrame`, rules and route callbacks. Prediction helpers may retain deterministic evidence-derived memory, never hidden `Battle` state.
 - **One UI owner:** `readouts.tsx` owns the command bar; `commandReach.ts` owns eligibility; the session catalog supplies weapon trajectory metadata. Do not create an artillery panel or a second range visualization.
