@@ -88,7 +88,7 @@ export interface InstalledAppearances {
 export interface InstalledTemplateArt {
   library: TemplateArtLibrary;
   /** The library file as it decoded, which Rust resolves buildings from
-   *  (`crates/static-world`). */
+   *  (`crates/presentation`'s static world). */
   bytes: Uint8Array;
   modules: BoundModule[];
 }

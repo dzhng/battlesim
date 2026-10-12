@@ -174,19 +174,21 @@ export function presentationWorld(input: {
     units: input.units,
     effects: input.effects,
     world: {
-      units,
-      effects: input.effects,
-      side: input.side,
-      tick_hz: input.tickHz,
+      battle: {
+        units,
+        effects: input.effects,
+        side: input.side,
+        tick_hz: input.tickHz,
+        soldier: {
+          radius_m: input.soldier.soldier_radius_m,
+          height_m: input.soldier.soldier_height_m,
+        },
+        xray: input.xray,
+        blocked: input.blocked,
+        cruise_agl_m: input.cruiseAglM,
+      },
       sun_azimuth: input.sun.azimuth,
       sun_elevation: input.sun.elevation,
-      soldier: {
-        radius_m: input.soldier.soldier_radius_m,
-        height_m: input.soldier.soldier_height_m,
-      },
-      xray: input.xray,
-      blocked: input.blocked,
-      cruise_agl_m: input.cruiseAglM,
     },
     tables: new Map(
       tables.map(({ name, base64 }) => {

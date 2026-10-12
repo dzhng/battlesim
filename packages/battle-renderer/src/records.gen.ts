@@ -69,7 +69,7 @@ export const Batch = {
   appearance: 1,
   /** Detail tier, 0 finest; 4 is the impostor card. (u32) */
   tier: 2,
-  /** 0 drawn in view; 2 a translucent ghost (no shadow, no depth write). (u32) */
+  /** 0 drawn in view; 1 cast into the sun's cascades; 2 a translucent ghost (no shadow, no depth write). (u32) */
   pass: 3,
   /** Casters: bit n set if it reaches cascade n. (u32) */
   cascades: 4,

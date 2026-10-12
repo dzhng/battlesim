@@ -3,12 +3,12 @@
 //! observation, and each drawn frame's records as views over this module's
 //! memory, out. It links the publication reader and the presentation crate,
 //! not the rules, and runs on the page's main thread.
-mod world;
-
 use std::sync::Arc;
 
 use presentation::presentation::{Ghost, Presentation as Inner, Ui};
 use presentation::records::{FrameHeader, WorldHeader};
+use presentation::static_world::buildings::{Placed, PlacedBuildings};
+use presentation::static_world::library::{Bounds, Library};
 use presentation::units::drawn::ClipTables;
 use presentation::view::Camera;
 use serde::Serialize;
@@ -19,6 +19,7 @@ use wasm_bindgen::prelude::*;
 pub struct Presentation {
     inner: Inner,
     tables: ClipTables,
+    buildings: Option<PlacedBuildings>,
     /// The static groups and the fog the page last took, kept to compare by pointer.
     taken: Option<(Shared<Corpse>, Shared<KnownProp>, Shared<FallenBody>)>,
     taken_fog: Option<Arc<Fog>>,
@@ -48,12 +49,16 @@ fn splice<T: Serialize>(json: &mut String, name: &str, group: &Arc<T>, taken: Op
 
 #[wasm_bindgen]
 impl Presentation {
-    /// A presentation of the stream `layout` (the battle's `observation_layout`) names.
+    /// A presentation of the stream `layout` (the battle's
+    /// `observation_layout`) names, at `tick_hz` (30 when not given); with
+    /// no layout, of a world no battle publishes into, drawn from
+    /// `load_world` alone.
     #[wasm_bindgen(constructor)]
-    pub fn new(layout: &str, tick_hz: f64) -> Result<Presentation, JsError> {
+    pub fn new(layout: Option<String>, tick_hz: Option<f64>) -> Result<Presentation, JsError> {
         Ok(Presentation {
-            inner: Inner::new(layout, tick_hz).map_err(error)?,
+            inner: Inner::new(layout.as_deref(), tick_hz.unwrap_or(30.0)).map_err(error)?,
             tables: ClipTables::new(),
+            buildings: None,
             taken: None,
             taken_fog: None,
             frame_header: FrameHeader::default(),
@@ -123,12 +128,54 @@ impl Presentation {
         self.tables.insert(name, floats);
     }
 
-    /// Loads what the battle draws (18b's `load_world`, as `WorldInput`
-    /// JSON) with the clip tables added; returns the `WorldHeader`'s address.
+    /// The map's buildings, before `load_world`: the template library's
+    /// file, inflated; per library module its mesh bounds (min, max), NaN
+    /// where its kit is not installed; and per building its template (an
+    /// index of `templates`, a JSON list of ids), frame (x, y, z, yaw) and
+    /// owner prop. `load_world`'s `buildings` style places them.
+    pub fn add_buildings(
+        &mut self,
+        library: &[u8],
+        bounds: &[f32],
+        templates: &str,
+        template: &[u16],
+        frames: &[f64],
+        owners: &[u32],
+    ) -> Result<(), JsError> {
+        let ids: Vec<String> =
+            serde_json::from_str(templates).map_err(|e| JsError::new(&e.to_string()))?;
+        let bounds: Vec<Option<Bounds>> = bounds
+            .as_chunks::<6>()
+            .0
+            .iter()
+            .map(|b| (!b[0].is_nan()).then_some(*b))
+            .collect();
+        let placed = (0..owners.len())
+            .map(|b| Placed {
+                owner: owners[b],
+                template: ids[template[b] as usize].clone(),
+                frame: frames[b * 4..b * 4 + 4].try_into().unwrap(),
+            })
+            .collect();
+        self.buildings = Some(PlacedBuildings {
+            library: Library::decode(library).map_err(error)?,
+            bounds,
+            placed,
+        });
+        Ok(())
+    }
+
+    /// Loads what the world draws (18b's `load_world`, as `WorldInput`
+    /// JSON) with the clip tables and buildings added; returns the
+    /// `WorldHeader`'s address.
     pub fn load_world(&mut self, json: &str) -> Result<u32, JsError> {
         let input = serde_json::from_str(json).map_err(|e| JsError::new(&e.to_string()))?;
         self.inner
-            .load_world(input, std::mem::take(&mut self.tables))
+            .load_world(
+                input,
+                std::mem::take(&mut self.tables),
+                self.buildings.take(),
+            )
             .map_err(error)?;
         let world = self.inner.world();
         self.world_header = WorldHeader {
@@ -136,6 +183,31 @@ impl Presentation {
             strings: set(world.strings.as_bytes()),
         };
         Ok(&self.world_header as *const WorldHeader as u32)
+    }
+
+    /// What the side knows destroyed: buildings and their states (1 ruin, 2
+    /// gutted). Returns those whose template has no rows for their state,
+    /// and then changes nothing.
+    pub fn set_fallen(&mut self, buildings: &[u32], states: &[u32]) -> Vec<u32> {
+        let fallen: Vec<(usize, usize)> = buildings
+            .iter()
+            .zip(states)
+            .map(|(&b, &s)| (b as usize, s as usize))
+            .collect();
+        self.inner
+            .set_fallen(&fallen)
+            .into_iter()
+            .map(|b| b as u32)
+            .collect()
+    }
+
+    /// The buildings' walk as the last frame left it: chunks, coarse rows,
+    /// chunks resident, rows resident, rows expanded, chunks refused room,
+    /// the fallen rows and those drawn per tier. Empty without buildings.
+    pub fn building_stats(&self) -> Vec<u32> {
+        self.inner
+            .building_stats()
+            .map_or_else(Vec::new, |s| s.iter().map(|&n| n as u32).collect())
     }
 
     /// The presentation time at wall time `wall_s`, sim seconds.

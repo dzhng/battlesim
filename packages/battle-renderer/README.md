@@ -101,7 +101,7 @@ must release a late build rather than install it into a dead frame.
 
 Update a resource at its actual frequency: immutable world data, changed
 knowledge, view changes or frame animation. [Static chunks](src/frame/staticChunks.ts)
-and the buildings' Rust walk (`crates/static-world`) bound work and residency
+and the buildings' Rust walk (`crates/presentation`'s static world) bound work and residency
 without changing authoritative populations. Streaming work reports when it remains
 pending; a camera cut cannot be captured merely after an arbitrary number of frames.
 

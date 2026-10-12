@@ -221,7 +221,7 @@ export const TIERS = 4;
 
 /** What a plate's frame drew of the buildings, the scenery and the props
  *  its side knows (`BattleFrame.drawnInstances`): per kit module Rust
- *  resolved (`crates/static-world`) and tier, `module · TIERS + tier`; per population,
+ *  resolved (`crates/presentation`'s static world) and tier, `module · TIERS + tier`; per population,
  *  appearance of `scenery.kinds` and tier likewise; the stumps per
  *  appearance alone; the known props per appearance, at each tier and then
  *  as a card. */

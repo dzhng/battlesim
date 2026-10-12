@@ -1,7 +1,7 @@
 import { FrameRate, type FrameRateHandle } from "@web/battle/present/frameRate";
 import { useLabLoading } from "./LabLoading";
 import { diagnosticsSource } from "@web/diagnostics";
-import { loadPresentation, createBuildingWalk } from "@web/battle/sim/presentation";
+import { createStaticPresentation, loadPresentation } from "@web/battle/sim/presentation";
 import { useCursorAction, type CursorAction } from "@web/battle/present/gameCursor";
 import { useEffect, useRef, useState } from "react";
 import { gpuFailureMessage } from "@packages/renderer-core/src/device";
@@ -73,9 +73,11 @@ import type { FeedSource } from "./feed";
 import {
   emptyEffectCounts,
   emptyModelCounts,
+  presentedCamera,
   type EffectCounts,
   type ModelCounts,
 } from "./presentedFrame";
+import { emptyBuildingWalkStats } from "@packages/battle-renderer/src/models/buildingLayer";
 import {
   resolveLight,
   type PresentedAppearance,
@@ -85,6 +87,7 @@ import type { Mesh } from "@packages/battle-renderer/src/mesh";
 import { pickBox, proxyPickBox, type PickBox } from "@packages/battle-renderer/src/picking";
 
 const NO_INSTANCES: readonly SceneInstance[] = [];
+const NO_WALK = emptyBuildingWalkStats();
 
 interface LabViewportProps {
   fixture: string;
@@ -524,14 +527,8 @@ export function LabViewport({
   buildingsRef.current = buildings;
   const buildingStyleRef = useRef(buildingStyle);
   buildingStyleRef.current = buildingStyle;
-  useEffect(
-    () =>
-      buildings?.subscribe((next) => {
-        sceneRef.current?.setBuildings(next);
-        redrawRef.current();
-      }),
-    [buildings],
-  );
+  // The frame loop reads the buildings: a change only asks for a frame.
+  useEffect(() => buildings?.subscribe(() => redrawRef.current()), [buildings]);
   const obstaclesRef = useRef(obstacles);
   obstaclesRef.current = obstacles;
   const fogRef = useRef(fog);
@@ -699,10 +696,23 @@ export function LabViewport({
         let clock = 0;
         // A route's own light, else the fixture's (a lab URL's `?sun=` sets it lower).
         const light = () => lightRef.current ?? gameLightFor(window.location.search);
+        /** The static world's presentation, built with each scene: its first
+         *  frame writes every batch the new scene draws. */
+        let statics: ReturnType<typeof createStaticPresentation> | null = null;
+        let staticStyle = gameBuildingStyle;
+        signal.addEventListener("abort", () => statics?.dispose());
         const build = async () => {
           await loadPresentation();
+          const lit = light();
+          statics?.dispose();
+          statics = createStaticPresentation({
+            azimuth: lit.sun_azimuth,
+            elevation: lit.sun_elevation,
+            farM: lit.cascades.max_far_m,
+          });
+          staticStyle = buildingStyleRef.current ?? gameBuildingStyle;
           const next = await createBattleFrame(device!, info.format, {
-            light: await resolveLight(light()),
+            light: await resolveLight(lit),
             fogGeometry: gameFogGeometry,
             fogStyle: fogStyleRef.current ?? gameFogStyle,
             overlayGlow: gameOverlayGlow,
@@ -710,8 +720,6 @@ export function LabViewport({
             xrayMinHiddenFragmentFraction: gameXrayMinHiddenFragmentFraction,
             models: gameModelDetail,
             glass: gameGlass,
-            buildings: buildingStyleRef.current ?? gameBuildingStyle,
-            createBuildingWalk,
             world: worldRef.current.current!,
             instances: instancesRef.current,
             width: canvas.width,
@@ -726,7 +734,6 @@ export function LabViewport({
           sceneRef.current = next;
           try {
             if (structuresRef.current) next.setStructures(structuresRef.current.current);
-            if (buildingsRef.current) next.setBuildings(buildingsRef.current.current);
             const meshes = overlayRef.current?.current;
             if (meshes) next.setOverlay(meshes);
             const marks = pointerMarksRef.current?.current;
@@ -872,6 +879,29 @@ export function LabViewport({
               scene.setFelled(animated.felled);
             }
             dirty = true;
+          }
+          // The static world for the camera drawn: walked in Rust, written
+          // to the frame only when what it draws changed. After the battle's
+          // frame is handed over: its views last only until this call.
+          try {
+            statics!.set(
+              buildingsRef.current?.current ?? null,
+              appearancesRef.current ?? null,
+              staticStyle,
+            );
+            const placed = statics!.frame(presentedCamera(snapshot()));
+            if (
+              scene.setStaticFrame(
+                placed?.frame ?? null,
+                placed?.world ?? [],
+                placed?.stats ?? NO_WALK,
+              )
+            )
+              dirty = true;
+          } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            handle.error = message;
+            setError(message);
           }
           const drawn = dirty;
           if (drawn) draw();

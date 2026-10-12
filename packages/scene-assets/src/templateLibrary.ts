@@ -11,7 +11,7 @@
 // or battle.
 //
 // Rows are columns over the whole library (34 bytes a row), and a template's
-// state is a range of them. Rust places them on a map (`crates/static-world`).
+// state is a range of them. Rust places them on a map (`crates/presentation`'s static world).
 
 import { decodeContainer, encodeContainer } from "./codec.ts";
 import { sha256Hex } from "./glb.ts";

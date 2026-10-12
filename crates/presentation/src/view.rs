@@ -8,7 +8,7 @@ use crate::records::View as ViewRecord;
 use crate::world::{Detail, Vec3};
 
 /// 18b's camera input (sim space).
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct Camera {
     pub eye: Vec3,
     pub target: Vec3,

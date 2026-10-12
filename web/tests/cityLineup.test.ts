@@ -4,7 +4,7 @@
 // tier's boundary. The drawing is the renderer's, through the same building walk
 // a generated town uses.
 import { expect, test } from "vitest";
-import { createBuildingWalk, loadPresentation } from "@web/battle/sim/presentation";
+import { loadPresentation } from "@web/battle/sim/presentation";
 import { boundaryRange, tierStyle } from "@apps/battle-lab/src/buildingTier";
 import {
   cameraToFit,
@@ -22,17 +22,17 @@ import {
   projectPoint,
   viewProjMatrix,
 } from "@packages/renderer-core/src/camera3d";
-import { createDetailView, setDetailView } from "@packages/battle-renderer/src/frame/detailView";
-import type { BuildingArt } from "@packages/battle-renderer/src/models/buildingLayer";
 import {
   FRAME_FLOATS,
   validateBuildingStyle,
+  type BuildingArt,
   type BuildingStyle,
 } from "@packages/battle-renderer/src/models/buildingReferences";
 import {
   encodeTemplateLibrary,
   type TemplateArtLibrary,
 } from "@packages/scene-assets/src/templateLibrary";
+import { presentBuildings } from "./support/presentedBuildings";
 
 await loadPresentation();
 
@@ -220,22 +220,11 @@ const HEIGHT_PX = 1080;
 /** The tiers a camera `pose` draws the line-up's one house at. */
 function tiersDrawn(style: BuildingStyle, pose: ReturnType<typeof poseAtRange>): number[] {
   const lineup = lineUp([HOUSE_A], SPACING);
-  const walk = createBuildingWalk(lineupBuildings(lineup.entries), ART, style);
-  const detail = setDetailView(
-    createDetailView(),
-    { ...LENS, ...pose, target: [...pose.target, 0] },
-    HEIGHT_PX,
-  );
-  // The view words: the eye, pixels per metre, no shadows, the side planes.
-  const words = new Float64Array(23);
-  words.set([...detail.eye, detail.pixelsPerMetre, 0, 0, -1]);
-  detail.sides.slice(0, 4).forEach((p, i) => words.set([...p.normal, p.constant], 7 + i * 4));
-  walk.select(words);
-  const tiers = new Set<number>();
-  const draws = walk.draws(0);
-  for (let d = 0; d < draws.length; d += 4) if (draws[d + 3] > 0) tiers.add(draws[d + 1]);
+  const walk = presentBuildings(lineupBuildings(lineup.entries), ART, style);
+  walk.look({ ...LENS, ...pose, target: [...pose.target, 0] }, HEIGHT_PX);
+  const tiers = [...new Set(walk.drawn().map((d) => d.tier))];
   walk.free();
-  return [...tiers].sort();
+  return tiers.sort();
 }
 
 test("a forced tier draws the building at that tier from any distance", () => {

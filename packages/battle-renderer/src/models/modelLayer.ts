@@ -100,8 +100,7 @@ import {
 } from "./modelDetail";
 import { uploadCardAtlases, type CardGroup } from "./impostorCards";
 import type { ImpostorAtlas } from "./impostor";
-import { createBuildingLayer, type BuildingStats, type CreateBuildingWalk } from "./buildingLayer";
-import type { BuildingStyle, SideBuildings } from "./buildingReferences";
+import { createBuildingLayer, type BuildingStats, type BuildingWalkStats } from "./buildingLayer";
 import type { SunShadow } from "../frame/staticChunks";
 
 type Root = ReturnType<typeof tgpu.initFromDevice>;
@@ -699,11 +698,9 @@ export async function createModelLayer(
   root: Root,
   registry: GpuRegistry,
   detail: ModelDetailPresentation,
-  buildingStyle: BuildingStyle,
-  createBuildingWalk: CreateBuildingWalk,
 ) {
   const device = root.device;
-  const buildings = createBuildingLayer(device, registry, buildingStyle, createBuildingWalk);
+  const buildings = createBuildingLayer(device, registry);
   const buffer = (label: string, size: number, usage: number) =>
     device.createBuffer({ label, size: Math.max(16, Math.ceil(size / 16) * 16), usage });
   const upload = (
@@ -1090,17 +1087,11 @@ export async function createModelLayer(
     rebind();
     // The kits a template art library places are appearances like any other:
     // its modules are their states, and the buildings draw those meshes.
-    buildings.setArt(installed?.templates, {
-      mesh(kit, state, tier) {
-        const gpu = appearances.get(kit);
-        if (gpu?.bundle.kind !== "static") return null;
-        const drawable = gpu.states.get(gpu.bundle.states[state]?.name)?.[tier];
-        return drawable ? { ...drawable.mesh, parts: drawable.parts, count: drawable.count } : null;
-      },
-      bounds(kit, state) {
-        const bundle = appearances.get(kit)?.bundle;
-        return bundle?.kind === "static" ? (bundle.states[state]?.bounds ?? null) : null;
-      },
+    buildings.setSource((kit, module, tier) => {
+      const gpu = appearances.get(kit);
+      if (gpu?.bundle.kind !== "static") return null;
+      const drawable = gpu.states.get(module)?.[tier];
+      return drawable ? { ...drawable.mesh, parts: drawable.parts, count: drawable.count } : null;
     });
     dirty = true;
     old?.release();
@@ -1620,9 +1611,14 @@ export async function createModelLayer(
     get models(): readonly ModelInstance[] {
       return units;
     },
-    /** The buildings a side draws from template art (`buildingLayer.ts`). */
-    setBuildings(next: SideBuildings | null) {
-      buildings.set(next);
+    /** The static batches of the page's static presentation frame
+     *  (`buildingLayer.ts`); whether what is drawn changed. */
+    setStaticFrame(
+      frame: ReturnType<typeof frameViews> | null,
+      world: readonly WorldAppearance[],
+      stats: BuildingWalkStats,
+    ): boolean {
+      return buildings.setFrame(frame, world, stats);
     },
     setBuildingsShown(on: boolean) {
       buildings.setShown(on);
@@ -1635,7 +1631,6 @@ export async function createModelLayer(
     /** Choose this frame's draws for the camera (`view`, with where the sun's
      *  shadows fall for it), when anything changed. */
     prepare(view: DetailView, key: string, shadow: SunShadow) {
-      buildings.prepare(view, key, shadow);
       shadowFall[0] = shadow.fall[0];
       shadowFall[1] = shadow.fall[1];
       if (!dirty && key === viewKey) return;

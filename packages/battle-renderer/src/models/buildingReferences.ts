@@ -1,7 +1,9 @@
 // A map's buildings as the frame draws them from template art: compact
 // references for the whole map (which template, where it was placed, whose
-// it is), and what a side knows fell. Nothing here holds a module transform;
-// Rust resolves and walks them (`crates/static-world`, `buildingLayer.ts`).
+// it is), what a side knows fell, and the template art they are drawn from.
+// Nothing here holds a module transform: Rust resolves and walks them
+// (`crates/presentation`'s static world), and `buildingLayer.ts` draws what
+// it chose.
 //
 // Every building of every map is drawn this way, from its template's rows in
 // the installed template art library: a generated town's, a test map's
@@ -11,7 +13,13 @@
 // Knowledge is the rule every structure follows: a building stands intact
 // until the side has seen it destroyed, and is then drawn in the state the
 // simulation published of it (`fallenBuildings`), never one worked out here.
-import type { TemplateState } from "@packages/scene-assets/src/templateLibrary";
+import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
+import type { Bounds } from "@packages/scene-assets/src/schema";
+import {
+  templateKits,
+  type TemplateArtLibrary,
+  type TemplateState,
+} from "@packages/scene-assets/src/templateLibrary";
 import type { KnownProp, MapProp } from "./propAppearance";
 import type { PublicBuildings } from "../worldMesh";
 
@@ -24,7 +32,7 @@ export interface BuildingStyle {
   lod_px_per_m: [number, number, number];
   /** Square chunks buildings are bucketed in, metres: a chunk takes one tier. */
   chunk_m: number;
-  /** Module instances the residency pool holds at most (`crates/static-world` `walk.rs`). */
+  /** Module instances the residency pool holds at most (`static_world/walk.rs`). */
   pool_records: number;
   /** Each building's tint strays this far in value, either way, so identical
    *  neighbours part. */
@@ -148,4 +156,35 @@ export function fallenBuildings(
     states.set(building, stands && states.get(building) !== "ruin" ? "gutted" : "ruin");
   }
   return [...states].sort(([a], [b]) => a - b).map(([building, state]) => ({ building, state }));
+}
+
+/** The template art a scene draws from. */
+export interface BuildingArt {
+  library: TemplateArtLibrary;
+  /** The library's file, which Rust resolves buildings from. */
+  bytes: Uint8Array;
+  /** Per library module: its mesh's bounds in its own frame, or null for a
+   *  module of a kit that is not installed (a map installs the kits its
+   *  templates' rows place: `templateKits`). */
+  bounds: readonly (Bounds | null)[];
+}
+
+/** The template art `installed` holds, each module's bounds from its
+ *  installed kit's bundle; null without a library. */
+export function buildingArt(installed: InstalledAppearances | null): BuildingArt | null {
+  const templates = installed?.templates;
+  if (!templates) return null;
+  const bounds = templates.modules.map(({ kit, state }) => {
+    const bundle = state === null ? null : installed.appearances.get(kit)?.bundle;
+    return bundle?.kind === "static" ? (bundle.states[state!]?.bounds ?? null) : null;
+  });
+  return { library: templates.library, bytes: templates.bytes, bounds };
+}
+
+/** Whether every kit `placed` needs is installed in `art`. The buildings and
+ *  the kits that draw them arrive apart; a scene is built once both have. */
+export function artCovers(placed: PlacedBuildings, art: BuildingArt): boolean {
+  const { kits, modules } = art.library;
+  const needed = templateKits(art.library, placed.templates);
+  return modules.every((m, i) => art.bounds[i] !== null || !needed.has(kits[m.kit].appearance));
 }

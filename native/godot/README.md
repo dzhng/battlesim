@@ -346,7 +346,7 @@ output, never committed); `tests/run.sh` and `release.sh` run it, and an
 editor run needs it run first whenever the crate changed.
 
 - **`BuildingWalk`** (`building_walk.rs`) is the browser's own buildings
-  walk (`crates/static-world`): it resolves the capture's saved map against
+  walk (`crates/presentation`'s `static_world`): it resolves the capture's saved map against
   the runtime catalog's template art, takes what the side knows and the view,
   and hands back each module and tier's records as MultiMesh rows.
 - **`StaticLayer`** (`static_layers`) walks the trees and shrubs and the
@@ -363,7 +363,8 @@ not reach.
 
 ## Buildings, scenery and props
 
-Rust resolves the buildings for both clients (`crates/static-world`), and the
+Rust resolves the buildings for both clients (`crates/presentation`'s
+`static_world`), and the
 browser exports the scenery and props, static per map (`manifest.scenery` and
 `.props`); native places nothing, and ports the per-frame rules and the side's
 knowledge. `world/static_world.gd` builds the layers the

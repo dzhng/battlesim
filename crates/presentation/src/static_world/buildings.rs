@@ -7,11 +7,21 @@
 //! them over three states. A renderer asks for a set of buildings' rows in
 //! one state ([`Buildings::rows`]) when a chunk comes near.
 use crate::static_world::library::{Bounds, Library, ROW_FLOATS};
+use crate::world::BuildingStyle;
 use std::ops::Range;
 
 /// Detail tiers, 0 finest; every building draws at the coarsest from afar.
 pub const TIERS: usize = 4;
 const COARSEST: usize = TIERS - 1;
+
+/// A map's buildings and the art they are drawn from, as `load_world` takes
+/// them: the template library, every library module's mesh bounds (`None`:
+/// its kit is not installed) and the placed buildings.
+pub struct PlacedBuildings {
+    pub library: Library,
+    pub bounds: Vec<Option<Bounds>>,
+    pub placed: Vec<Placed>,
+}
 
 /// A building as the map places it: its owner prop, its template and the
 /// frame its template's art stands at (x, y, z, yaw about +Z).
@@ -19,14 +29,6 @@ pub struct Placed {
     pub owner: u32,
     pub template: String,
     pub frame: [f64; 4],
-}
-
-/// `presentation.buildings`, the numbers placement reads.
-pub struct Style {
-    /// Square chunks buildings are bucketed in, metres.
-    pub chunk_m: f64,
-    /// How far a building's tint strays in value, either way.
-    pub tint_jitter: f64,
 }
 
 /// Per building (64 B): its frame, its intact bounds in the world, its owner
@@ -140,7 +142,7 @@ impl Buildings {
         library: Library,
         bounds: &[Option<Bounds>],
         placed: Vec<Placed>,
-        style: &Style,
+        style: &BuildingStyle,
     ) -> Result<Self, String> {
         let states = placed
             .iter()

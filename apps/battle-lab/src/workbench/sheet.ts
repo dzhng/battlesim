@@ -1,4 +1,3 @@
-import { loadPresentation, createBuildingWalk } from "@web/battle/sim/presentation";
 // Model sheets: every view needed to judge a model, rendered by the
 // production battle frame (a second `BattleFrame` on the viewport's device, at
 // a fixed tile size) and laid out with labels on a 2D canvas.
@@ -31,7 +30,7 @@ import { gameLight } from "../gameLight";
 import { resolveLight } from "@web/battle/sim/presentation";
 import { gameFogGeometry, gameFogStyle } from "../gameFog";
 import { gameOverlayGlow, gamePaint, gameXrayMinHiddenFragmentFraction } from "../gameOverlay";
-import { gameBuildingStyle, gameGlass, gameModelDetail } from "../gameModels";
+import { gameGlass, gameModelDetail } from "../gameModels";
 import { benchOverlay, benchWorld, drawnPose, posedSockets, type BenchPose } from "./benchWorld";
 import { sideTint, type LoadedModel } from "./sources";
 import {
@@ -211,7 +210,6 @@ export class SheetRenderer {
   }
 
   static async create(device: GPUDevice, format: GPUTextureFormat, model: LoadedModel) {
-    await loadPresentation();
     const frame = await createBattleFrame(device, format, {
       light: await resolveLight(gameLight),
       fogGeometry: gameFogGeometry,
@@ -221,8 +219,6 @@ export class SheetRenderer {
       xrayMinHiddenFragmentFraction: gameXrayMinHiddenFragmentFraction,
       models: gameModelDetail,
       glass: gameGlass,
-      buildings: gameBuildingStyle,
-      createBuildingWalk,
       world: benchWorld(null),
       instances: [],
       width: TILE,

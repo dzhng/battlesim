@@ -4,15 +4,14 @@
 // standing until a side has seen one fall and as its ruin after.
 import { readFileSync } from "node:fs";
 import { afterAll, expect, test } from "vitest";
-import { createBuildingWalk, loadPresentation } from "@web/battle/sim/presentation";
+import { loadPresentation } from "@web/battle/sim/presentation";
 import { TEST_RULES, UNITS } from "./catalog";
 import { gameBuildingStyle } from "@apps/battle-lab/src/gameModels";
 import { knownFallen } from "@apps/battle-lab/src/destroyedBuildings";
 import { WorldView, world_layout } from "@wasm/game_wasm.js";
-import { createDetailView, setDetailView } from "@packages/battle-renderer/src/frame/detailView";
-import type { BuildingArt, BuildingWalk } from "@packages/battle-renderer/src/models/buildingLayer";
 import {
   indexBuildings,
+  type BuildingArt,
   type FallenBuilding,
 } from "@packages/battle-renderer/src/models/buildingReferences";
 import { mapProps, type KnownProp } from "@packages/battle-renderer/src/models/propAppearance";
@@ -24,12 +23,12 @@ import {
 } from "@packages/scene-assets/src/schema";
 import {
   decodeTemplateLibrary,
-  TEMPLATE_STATES,
   templateRows,
   type TemplateState,
 } from "@packages/scene-assets/src/templateLibrary";
 import { loadMap } from "@web/maps/node";
 import { gzipTransport, unpackGzip } from "@packages/scene-assets/src/gzip";
+import { presentBuildings } from "./support/presentedBuildings";
 
 await loadPresentation();
 
@@ -73,41 +72,35 @@ function modulesIn(states: readonly TemplateState[]): string[] {
     .sort();
 }
 
+type Street = ReturnType<typeof presentBuildings>;
+
 /** The whole street from far above, then every module drawn, by name. */
-function drawn(walk: BuildingWalk): string[] {
-  const camera = {
-    target: [1000, 800, 0] as [number, number, number],
-    distance: 2000,
-    pitch: 1.5,
-    yaw: Math.PI / 2,
-    fovY: 0.8,
-    aspect: 16 / 9,
-    near: 1,
-  };
-  const detail = setDetailView(createDetailView(), camera, 1080);
-  // The view words: the eye, pixels per metre, no shadows, the side planes.
-  const words = new Float64Array(23);
-  words.set([...detail.eye, detail.pixelsPerMetre, 0, 0, -1]);
-  detail.sides.slice(0, 4).forEach((p, i) => words.set([...p.normal, p.constant], 7 + i * 4));
-  walk.select(words);
-  const out: string[] = [];
-  const draws = walk.draws(0);
-  for (let d = 0; d < draws.length; d += 4)
-    for (let i = 0; i < draws[d + 3]; i++) out.push(library.modules[draws[d]].module);
-  return out.sort();
+function drawn(street: Street): string[] {
+  street.look(
+    {
+      target: [1000, 800, 0],
+      distance: 2000,
+      pitch: 1.5,
+      yaw: Math.PI / 2,
+      fovY: 0.8,
+      aspect: 16 / 9,
+      near: 1,
+    },
+    1080,
+  );
+  return street
+    .drawn()
+    .map((d) => library.modules[d.module].module)
+    .sort();
 }
 
 /** What the side knows destroyed is `fallen`; none refused. */
-function setFallen(walk: BuildingWalk, fallen: readonly FallenBuilding[]) {
-  const refused = walk.set_fallen(
-    Uint32Array.from(fallen, (f) => f.building),
-    Uint32Array.from(fallen, (f) => TEMPLATE_STATES.indexOf(f.state)),
-  );
-  expect([...refused]).toEqual([]);
+function setFallen(street: Street, fallen: readonly FallenBuilding[]) {
+  expect(street.setFallen(fallen)).toEqual([]);
 }
 
 test("a street house stands until the side has seen it fall, then lies as its ruin", () => {
-  const walk = createBuildingWalk(index.placed, art, gameBuildingStyle);
+  const walk = presentBuildings(index.placed, art, gameBuildingStyle);
   const houses = index.parts.map((): TemplateState => "intact");
   const standing = modulesIn(houses);
   expect(houses.length).toBeGreaterThan(1);

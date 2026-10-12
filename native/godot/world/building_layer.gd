@@ -1,7 +1,7 @@
 extends Node3D
 
 ## The map's buildings, resolved and walked by the browser's own Rust
-## (`crates/static-world`, through the extension's `BuildingWalk`): native
+## (`crates/presentation`'s `static_world`, through the extension's `BuildingWalk`): native
 ## places and chooses nothing; it follows what the side knows and draws the
 ## walk's records.
 

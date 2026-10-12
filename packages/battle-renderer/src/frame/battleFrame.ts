@@ -40,8 +40,6 @@ import type { GlassStyle } from "../models/surfaceFragments";
 import { createImpostorBaker } from "../models/impostor";
 import { CARD_SPEC } from "../models/impostorCards";
 import type { ModelDetailPresentation } from "../models/modelDetail";
-import type { BuildingStyle } from "../models/buildingReferences";
-import type { CreateBuildingWalk } from "../models/buildingLayer";
 import { sunShadow } from "./staticChunks";
 import { createDetailView, detailKey, setDetailView } from "./detailView";
 import { FrameHeader, type frameViews } from "../records.gen";
@@ -67,10 +65,6 @@ export interface BattleFrameOptions {
   xrayMinHiddenFragmentFraction: number;
   /** `presentation.models`: the models' detail tiers and impostor size. */
   models: ModelDetailPresentation;
-  /** `presentation.buildings`: the buildings' tiers, chunks and pool. */
-  buildings: BuildingStyle;
-  /** Rust's building walk (the page's presentation module). */
-  createBuildingWalk: CreateBuildingWalk;
   /** `presentation.glass`: how a pane of glass takes light. */
   glass: GlassStyle;
   world: WorldLayers;
@@ -104,13 +98,7 @@ export async function createBattleFrame(
     const camera = registry.own(root.createBuffer(Camera).$usage("uniform"));
     const cameraGroup = root.createBindGroup(typegpuCameraLayout, { cam: camera });
     const environment = await createEnvironmentFrame(device, registry, options.light);
-    const models = await createModelLayer(
-      root,
-      registry,
-      options.models,
-      options.buildings,
-      options.createBuildingWalk,
-    );
+    const models = await createModelLayer(root, registry, options.models);
     registry.adopt(() => models.dispose());
     const world = await createWorldPass(
       root,
@@ -243,8 +231,8 @@ export async function createBattleFrame(
         setStructures(next) {
           if (!disposed) world.setStructures(next);
         },
-        setBuildings(next) {
-          if (!disposed) models.setBuildings(next);
+        setStaticFrame(frame, world, stats) {
+          return !disposed && models.setStaticFrame(frame, world, stats);
         },
         setGround(next) {
           return !disposed && world.setGround(next);

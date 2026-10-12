@@ -3,8 +3,8 @@
 // id and with no battle on it. The picture every art and damage pass on the
 // templates is judged by.
 //
-// The buildings are a list of references handed to the frame as a generated
-// town's are (`BattleFrame.setBuildings`), so what is drawn here is what a
+// The buildings are a list of references handed to the viewport as a
+// generated town's are (its `buildings`), so what is drawn here is what a
 // town draws. The address chooses what stands and how it is drawn:
 // - `?set=` or `?category=`: one source set or category;
 // - `?tier=0..3`: every building at that detail tier (by distance without it);

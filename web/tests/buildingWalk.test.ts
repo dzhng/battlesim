@@ -1,10 +1,11 @@
 // @vitest-environment node
-// Buildings drawn from template art through the building walk: a map's
-// references, the rows a view draws of them at each tier, the pool's
-// residency as the camera moves, the state a side knows a building in from
-// what it was published, and what changes when it sees one destroyed.
+// Buildings drawn from template art through the presentation's static
+// batches: a map's references, the rows a view draws of them at each tier,
+// the pool's residency as the camera moves, the state a side knows a
+// building in from what it was published, and what changes when it sees one
+// destroyed.
 import { expect, test } from "vitest";
-import { createBuildingWalk, loadPresentation } from "@web/battle/sim/presentation";
+import { loadPresentation } from "@web/battle/sim/presentation";
 import { color } from "math/color";
 import {
   encodeTemplateLibrary,
@@ -15,31 +16,26 @@ import {
   type TemplateArtLibrary,
   type TemplateState,
 } from "@packages/scene-assets/src/templateLibrary";
-import {
-  createDetailView,
-  setDetailView,
-  type DetailView,
-} from "@packages/battle-renderer/src/frame/detailView";
+import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import {
   artCovers,
-  type BuildingArt,
-  type BuildingWalk,
-} from "@packages/battle-renderer/src/models/buildingLayer";
-import {
   fallenBuildings,
   indexBuildings,
   validateBuildingStyle,
+  type BuildingArt,
   type BuildingStyle,
-  type FallenBuilding,
   type PlacedBuildings,
 } from "@packages/battle-renderer/src/models/buildingReferences";
-import { INSTANCE_WORDS as MODEL_RECORD_FLOATS } from "@packages/battle-renderer/src/records.gen";
 import type { KnownProp, MapProp } from "@packages/battle-renderer/src/models/propAppearance";
 import type { PublicBuildings } from "@packages/battle-renderer/src/worldMesh";
+import {
+  presentBuildings,
+  type DrawnModule as Drawn,
+  type PresentedSun,
+} from "./support/presentedBuildings";
 
 await loadPresentation();
 
-const RECORD = MODEL_RECORD_FLOATS;
 const [SHELL, WINDOW, ROOF, BOX] = [0, 1, 2, 3];
 /** A second kit, with one module: what a stand-in template draws. */
 const BOX_KIT = "city_kit_boxes";
@@ -171,83 +167,31 @@ function placedOf(list: [template: string, frame: [number, number, number, numbe
  *  side along x: it sees 0.75 of its distance either way in x and 0.42 in y.
  *  At 1080 pixels and this lens a metre covers 12 px at 106 m, 5 px at 255 m
  *  and 2 px at 638 m. */
-const view = (x: number, y: number, distance: number) =>
-  setDetailView(
-    createDetailView(),
-    {
-      target: [x, y, 0],
-      distance,
-      pitch: 1.5,
-      yaw: Math.PI / 2,
-      fovY: 0.8,
-      aspect: 16 / 9,
-      near: 1,
-    },
-    1080,
-  );
-interface Shadow {
-  fall: [number, number];
-  reach: number;
-}
-const SHADOW: Shadow = { fall: [1, 0], reach: 2600 };
+const view = (x: number, y: number, distance: number): Camera3DParams => ({
+  target: [x, y, 0],
+  distance,
+  pitch: 1.5,
+  yaw: Math.PI / 2,
+  fovY: 0.8,
+  aspect: 16 / 9,
+  near: 1,
+});
+/** A sun low in the west: a shadow falls a metre east for a metre of height,
+ *  received about 2,600 m out. */
+const SUN: PresentedSun = { azimuth: Math.PI, elevation: Math.PI / 4, farM: 2000 };
 
-/** The walk of `placed` in `ART` (or `art`). */
-const walkOf = (placed: PlacedBuildings, style = STYLE, art = ART) =>
-  createBuildingWalk(placed, art, style);
+/** The buildings `placed` presented from `ART` (or `art`), casting under
+ *  `sun` (null: no shadows). */
+const walkOf = (
+  placed: PlacedBuildings,
+  style = STYLE,
+  art = ART,
+  sun: PresentedSun | null = SUN,
+) => presentBuildings(placed, art, style, sun ?? undefined);
+type Walk = ReturnType<typeof walkOf>;
 
-/** Walks `detail`, its shadows `shadow` (or none), packed as the walk's view
- *  words; true when what is drawn or cast changed. */
-function select(walk: BuildingWalk, detail: DetailView, shadow: Shadow | null): boolean {
-  const words = new Float64Array(23);
-  words.set([...detail.eye, detail.pixelsPerMetre]);
-  words.set(shadow ? [...shadow.fall, shadow.reach] : [0, 0, -1], 4);
-  detail.sides.slice(0, 4).forEach((p, i) => words.set([...p.normal, p.constant], 7 + i * 4));
-  return walk.select(words);
-}
-
-/** The walk's stats, by name. */
-function statsOf(walk: BuildingWalk) {
-  const [chunks, coarse, residentChunks, resident, expanded, refused] = walk.stats();
-  return { chunks, coarse, residentChunks, resident, expanded, refused };
-}
-
-/** What `walk` knows destroyed now is `fallen`; returns the buildings it
- *  refused (their template lacks the state). */
-const setFallen = (walk: BuildingWalk, fallen: readonly FallenBuilding[]) => [
-  ...walk.set_fallen(
-    Uint32Array.from(fallen, (f) => f.building),
-    Uint32Array.from(fallen, (f) => TEMPLATE_STATES.indexOf(f.state)),
-  ),
-];
-
-interface Drawn {
-  module: number;
-  tier: number;
-  /** x, y, z, yaw, then the scale. */
-  transform: number[];
-  tint: number[];
-}
-
-/** Every instance the last walk draws (or casts), one entry each. */
-function drawn(walk: BuildingWalk, casters = false): Drawn[] {
-  const pass = casters ? 1 : 0;
-  const records = walk.records(pass);
-  const draws = walk.draws(pass);
-  const out: Drawn[] = [];
-  for (let d = 0; d < draws.length; d += 4) {
-    const [module, tier, first, count] = draws.subarray(d, d + 4);
-    for (let i = first; i < first + count; i++) {
-      const r = [...records.subarray(i * RECORD, (i + 1) * RECORD)];
-      out.push({
-        module,
-        tier,
-        transform: [...r.slice(0, 4), ...r.slice(12, 15)],
-        tint: r.slice(8, 11),
-      });
-    }
-  }
-  return out;
-}
+/** Frames `camera` at 1080 pixels; true when what is drawn or cast changed. */
+const select = (walk: Walk, camera: Camera3DParams) => walk.look(camera, 1080);
 
 /** Row `i` of `template`'s `state` placed at `frame` (x, y, z, yaw): turned
  *  by the frame's yaw about +Z, then moved, as float32. */
@@ -274,11 +218,11 @@ const tally = (list: Drawn[]) => list.map((d) => `${d.module}@${d.tier}`).sort()
 test("a row is drawn where the placed frame puts it: a turned building's records are the resolver's", () => {
   const frame = { translation: [1000, 2000, 3] as [number, number, number], yaw: 0.7 };
   const walk = walkOf(placedOf([["house", [...frame.translation, frame.yaw]]]));
-  select(walk, view(1000, 2000, 60), SHADOW);
+  select(walk, view(1000, 2000, 60));
   const row = (i: number) => placedRow("house", "intact", i, [...frame.translation, frame.yaw]);
-  const fine = drawn(walk);
+  const fine = walk.drawn();
   expect(fine.every((d) => d.tier === 0)).toBe(true);
-  expect(statsOf(walk).resident).toBe(4);
+  expect(walk.stats().resident).toBe(4);
   expect(fine.filter((d) => d.module === SHELL).map((d) => d.transform)).toEqual([row(0)]);
   expect(
     fine
@@ -299,8 +243,8 @@ test("a row is drawn where the placed frame puts it: a turned building's records
 test("a row draws at a tier only if its mask has it, whether the masks nest or not", () => {
   const walk = walkOf(placedOf([["house", [1000, 2000, 0, 0]]]));
   const at = (distance: number) => {
-    select(walk, view(1000, 2000, distance), SHADOW);
-    return { view: tally(drawn(walk)), cast: tally(drawn(walk, true)) };
+    select(walk, view(1000, 2000, distance));
+    return { view: tally(walk.drawn()), cast: tally(walk.drawn(true)) };
   };
   // Tier 0: all four rows, from the pool; they cast a tier coarser.
   expect(at(60)).toEqual({
@@ -319,29 +263,29 @@ test("a row draws at a tier only if its mask has it, whether the masks nest or n
     view: [`${ROOF}@3`, `${SHELL}@3`].sort(),
     cast: [`${ROOF}@3`, `${SHELL}@3`].sort(),
   });
-  expect(statsOf(walk).resident).toBe(0);
+  expect(walk.stats().resident).toBe(0);
 });
 
 test("a chunk is expanded once when it comes near, and leaves the pool when it leaves", () => {
   const walk = walkOf(placedOf([["house", [1000, 2000, 0, 0]]]));
-  expect(select(walk, view(1000, 2000, 60), SHADOW)).toBe(true);
-  expect(statsOf(walk)).toMatchObject({ expanded: 4, resident: 4, residentChunks: 1 });
-  // A still camera, and a camera that moves without changing the chunk's tier.
-  expect(select(walk, view(1000, 2000, 60), SHADOW)).toBe(false);
-  expect(statsOf(walk).expanded).toBe(0);
-  select(walk, view(1004, 2003, 70), SHADOW);
-  expect(statsOf(walk)).toMatchObject({ expanded: 0, resident: 4 });
+  expect(select(walk, view(1000, 2000, 60))).toBe(true);
+  expect(walk.stats()).toMatchObject({ expanded: 4, resident: 4, residentChunks: 1 });
+  // A still camera is not walked again: every batch is named unchanged. A
+  // camera that moves without changing the chunk's tier expands nothing.
+  expect(select(walk, view(1000, 2000, 60))).toBe(false);
+  select(walk, view(1004, 2003, 70));
+  expect(walk.stats()).toMatchObject({ expanded: 0, resident: 4 });
   // Farther: the tier's rows replace the finer ones.
-  select(walk, view(1000, 2000, 200), SHADOW);
-  expect(statsOf(walk)).toMatchObject({ expanded: 2, resident: 2 });
+  select(walk, view(1000, 2000, 200));
+  expect(walk.stats()).toMatchObject({ expanded: 2, resident: 2 });
   // Out of view: nothing is resident, and nothing is drawn.
-  select(walk, view(5000, 2000, 60), SHADOW);
-  expect(statsOf(walk)).toMatchObject({ resident: 0, residentChunks: 0 });
-  expect(drawn(walk)).toEqual([]);
+  select(walk, view(5000, 2000, 60));
+  expect(walk.stats()).toMatchObject({ resident: 0, residentChunks: 0 });
+  expect(walk.drawn()).toEqual([]);
   // Yet its shadow still lands in view from just outside it.
-  select(walk, view(1055, 2000, 60), SHADOW);
-  expect(tally(drawn(walk))).toEqual([]);
-  expect(tally(drawn(walk, true))).toEqual([`${ROOF}@3`, `${SHELL}@3`].sort());
+  select(walk, view(1055, 2000, 60));
+  expect(tally(walk.drawn())).toEqual([]);
+  expect(tally(walk.drawn(true))).toEqual([`${ROOF}@3`, `${SHELL}@3`].sort());
 });
 
 test("a building is in one chunk whole, however its rows straddle a chunk's edge", () => {
@@ -354,14 +298,15 @@ test("a building is in one chunk whole, however its rows straddle a chunk's edge
     ]),
   );
   // Two chunks, one building each, all 4 coarse rows between them.
-  expect(statsOf(walk)).toMatchObject({ chunks: 2, coarse: 4 });
+  expect(walk.stats()).toMatchObject({ chunks: 2, coarse: 4 });
   // From over the first, the second is a tier coarser: no row of either
   // takes the other's tier.
-  select(walk, view(1023, 2000, 100), SHADOW);
-  expect(statsOf(walk)).toMatchObject({ residentChunks: 2, resident: 6 });
+  select(walk, view(1023, 2000, 100));
+  expect(walk.stats()).toMatchObject({ residentChunks: 2, resident: 6 });
   const tiers = (x: number) => [
     ...new Set(
-      drawn(walk)
+      walk
+        .drawn()
         .filter((d) => Math.abs(d.transform[0] - x) < 10)
         .map((d) => d.tier),
     ),
@@ -380,12 +325,12 @@ test("a pan across a town keeps the pool inside its bound, each building drawn o
   let refused = 0;
   let expanded = 0;
   for (let x = 800; x <= 2700; x += 37) {
-    select(walk, view(x, 1120, 100), SHADOW);
-    const stats = statsOf(walk);
+    select(walk, view(x, 1120, 100));
+    const stats = walk.stats();
     refused += stats.refused;
     expanded += stats.expanded;
     expect(stats.resident).toBeLessThanOrEqual(STYLE.pool_records);
-    const shells = drawn(walk).filter((d) => d.module === SHELL);
+    const shells = walk.drawn().filter((d) => d.module === SHELL);
     // No building twice (coarse and resident at once), none half drawn.
     const at = shells.map((d) => `${d.transform[0]},${d.transform[1]}`);
     expect(new Set(at).size).toBe(at.length);
@@ -394,9 +339,9 @@ test("a pan across a town keeps the pool inside its bound, each building drawn o
     for (const [, f] of under) {
       const shell = shells.find((d) => d.transform[0] === f[0] && d.transform[1] === f[1]);
       expect(shell?.tier, `the block at ${f[0]}, ${f[1]} from x = ${x}`).toBe(0);
-      const windows = drawn(walk).filter(
-        (d) => d.module === WINDOW && Math.abs(d.transform[0] - f[0] - 5) < 1e-3,
-      );
+      const windows = walk
+        .drawn()
+        .filter((d) => d.module === WINDOW && Math.abs(d.transform[0] - f[0] - 5) < 1e-3);
       expect(windows.filter((d) => Math.abs(d.transform[1] - f[1]) < 5)).toHaveLength(39);
     }
   }
@@ -404,8 +349,8 @@ test("a pan across a town keeps the pool inside its bound, each building drawn o
   expect(refused).toBeGreaterThan(0);
   expect(expanded).toBeGreaterThan(STYLE.pool_records);
   // Past the town: nothing is left in the pool.
-  select(walk, view(9000, 1120, 100), SHADOW);
-  expect(statsOf(walk)).toMatchObject({ resident: 0, residentChunks: 0 });
+  select(walk, view(9000, 1120, 100));
+  expect(walk.stats()).toMatchObject({ resident: 0, residentChunks: 0 });
 });
 
 const part = (id: number, x: number, y: number, half: [number, number, number]): MapProp => ({
@@ -467,9 +412,9 @@ test("a map needs only the kits its own templates draw from, in every state", ()
   expect(artCovers(standIn, boxOnly)).toBe(true);
   expect(artCovers(house, boxOnly)).toBe(false);
   expect(artCovers(house, ART)).toBe(true);
-  const walk = walkOf(standIn, STYLE, boxOnly);
-  select(walk, view(0, 0, 60), null);
-  expect(tally(drawn(walk))).toEqual([`${BOX}@0`]);
+  const walk = walkOf(standIn, STYLE, boxOnly, null);
+  select(walk, view(0, 0, 60));
+  expect(tally(walk.drawn())).toEqual([`${BOX}@0`]);
 });
 
 /** The prop types a gutted building's parts become, as the catalog names them. */
@@ -569,13 +514,13 @@ test("a building seen to collapse changes only its own records: it leaves the in
         return `${who} ${ruin ? "ruin" : "intact"} ${d.module}@${d.tier}`;
       })
       .sort();
-  select(walk, near, SHADOW);
-  expect(statsOf(walk).resident).toBe(8);
-  expect(setFallen(walk, [{ building: 0, state: "ruin" }])).toEqual([]);
-  select(walk, near, SHADOW);
+  select(walk, near);
+  expect(walk.stats().resident).toBe(8);
+  expect(walk.setFallen([{ building: 0, state: "ruin" }])).toEqual([]);
+  select(walk, near);
   // Its chunk is expanded again without it; the neighbour is still whole.
-  expect(statsOf(walk)).toMatchObject({ expanded: 4, resident: 4 });
-  expect(kinds(drawn(walk))).toEqual(
+  expect(walk.stats()).toMatchObject({ expanded: 4, resident: 4 });
+  expect(kinds(walk.drawn())).toEqual(
     [
       `neighbour intact ${ROOF}@0`,
       `neighbour intact ${SHELL}@0`,
@@ -587,26 +532,26 @@ test("a building seen to collapse changes only its own records: it leaves the in
   );
   // Its remains: its template's ruin rows at the camera's tier, placed at
   // its own frame (turned with it) in the rows' own tints.
-  const ruin = drawn(walk).filter((d) => d.transform[0] < 1010);
+  const ruin = walk.drawn().filter((d) => d.transform[0] < 1010);
   expect(ruin.find((d) => d.module === SHELL)!.transform).toEqual(row(0));
   expect(ruin.find((d) => d.module === ROOF)!.transform).toEqual(row(1));
   const tint = color.fromSRGB([90 / 255, 80 / 255, 70 / 255]);
   ruin.find((d) => d.module === SHELL)!.tint.forEach((c, k) => expect(c).toBeCloseTo(tint[k], 5));
   // From afar its intact coarse rows are gone, not the neighbour's, and its
   // remains are the ruin's own coarse row, which casts for it.
-  select(walk, far, SHADOW);
+  select(walk, far);
   const farDrawn = [
     `neighbour intact ${ROOF}@3`,
     `neighbour intact ${SHELL}@3`,
     `first ruin ${SHELL}@3`,
   ].sort();
-  expect(kinds(drawn(walk))).toEqual(farDrawn);
-  expect(kinds(drawn(walk, true))).toEqual(farDrawn);
+  expect(kinds(walk.drawn())).toEqual(farDrawn);
+  expect(kinds(walk.drawn(true))).toEqual(farDrawn);
 
   // The building is known intact again (another side's view): restored.
-  expect(setFallen(walk, [])).toEqual([]);
-  select(walk, far, SHADOW);
-  expect(kinds(drawn(walk))).toEqual(
+  expect(walk.setFallen([])).toEqual([]);
+  select(walk, far);
+  expect(kinds(walk.drawn())).toEqual(
     [
       `first intact ${ROOF}@3`,
       `first intact ${SHELL}@3`,
@@ -614,8 +559,8 @@ test("a building seen to collapse changes only its own records: it leaves the in
       `neighbour intact ${SHELL}@3`,
     ].sort(),
   );
-  select(walk, near, SHADOW);
-  expect(statsOf(walk).resident).toBe(8);
+  select(walk, near);
+  expect(walk.stats().resident).toBe(8);
 });
 
 test("a building known gutted is its template's gutted rows at every tier, and never its intact shell", () => {
@@ -638,7 +583,7 @@ test("a building known gutted is its template's gutted rows at every tier, and n
         burnt: Math.abs(d.tint[0] - burnt[0]) < 1e-5,
         height: d.transform[6],
       }));
-  expect(setFallen(walk, [{ building: 0, state: "gutted" }])).toEqual([]);
+  expect(walk.setFallen([{ building: 0, state: "gutted" }])).toEqual([]);
   // Tiers 0, 1, 2 and 3, each from the distance the game changes to it at.
   for (const [distance, tier] of [
     [60, 0],
@@ -646,23 +591,23 @@ test("a building known gutted is its template's gutted rows at every tier, and n
     [500, 2],
     [2000, 3],
   ]) {
-    select(walk, view(1000, 2000, distance), SHADOW);
+    select(walk, view(1000, 2000, distance));
     // One shell, the gutted rows', burnt and at full height: the shell stands.
-    expect(tower(drawn(walk)), `tier ${tier}`).toEqual([{ tier, burnt: true, height: 5 }]);
+    expect(tower(walk.drawn()), `tier ${tier}`).toEqual([{ tier, burnt: true, height: 5 }]);
     // Its burnt window is a fine row: at the two finest tiers and no other.
-    const windows = west(drawn(walk)).filter((d) => d.module === WINDOW);
+    const windows = west(walk.drawn()).filter((d) => d.module === WINDOW);
     expect(
       windows.map((d) => ({ tier: d.tier, burnt: Math.abs(d.tint[0] - burntWindow[0]) < 1e-5 })),
     ).toEqual(tier < 2 ? [{ tier, burnt: true }] : []);
     // What casts for it is its own coarse gutted shell.
-    expect(tower(drawn(walk, true))).toEqual([{ tier: 3, burnt: true, height: 5 }]);
+    expect(tower(walk.drawn(true))).toEqual([{ tier: 3, burnt: true, height: 5 }]);
   }
   // Its neighbour is untouched at every one of those.
-  select(walk, view(1000, 2000, 60), SHADOW);
-  expect(tally(drawn(walk).filter((d) => d.transform[0] >= 1010))).toEqual(
+  select(walk, view(1000, 2000, 60));
+  expect(tally(walk.drawn().filter((d) => d.transform[0] >= 1010))).toEqual(
     [`${ROOF}@0`, `${SHELL}@0`, `${WINDOW}@0`, `${WINDOW}@0`].sort(),
   );
-  expect(statsOf(walk).resident).toBe(4);
+  expect(walk.stats().resident).toBe(4);
 });
 
 test("a destroyed building whose template has no rows for the state is refused by name, and nothing changes", () => {
@@ -672,17 +617,17 @@ test("a destroyed building whose template has no rows for the state is refused b
   ]);
   const walk = walkOf(placed);
   const far = view(1010, 2000, 2000);
-  select(walk, far, SHADOW);
-  const before = drawn(walk);
+  select(walk, far);
+  const before = walk.drawn();
   // A tower stands gutted: it has no ruin. The dense block has neither. The
   // walk hands back the buildings it refused, and the layer names them by
   // their template's missing state.
-  expect(setFallen(walk, [{ building: 0, state: "ruin" }])).toEqual([0]);
+  expect(walk.setFallen([{ building: 0, state: "ruin" }])).toEqual([0]);
   expect(() => templateRows(LIBRARY, placed.templates[placed.template[0]], "ruin")).toThrow(
     /state\.missing: template "tower".*"ruin"/,
   );
   expect(
-    setFallen(walk, [
+    walk.setFallen([
       { building: 0, state: "gutted" },
       { building: 1, state: "gutted" },
     ]),
@@ -691,8 +636,8 @@ test("a destroyed building whose template has no rows for the state is refused b
     /state\.missing: template "dense".*"gutted"/,
   );
   // The tower is not gutted either: a refused list changes nothing.
-  select(walk, far, SHADOW);
-  expect(drawn(walk)).toEqual(before);
+  select(walk, far);
+  expect(walk.drawn()).toEqual(before);
 });
 
 test("identical neighbours differ a little in value, each the same every time", () => {
@@ -702,8 +647,8 @@ test("identical neighbours differ a little in value, each the same every time", 
   ]);
   const tints = () => {
     const walk = walkOf(blocks, { ...STYLE, tint_jitter: 0.1 });
-    select(walk, view(1010, 2000, 2000), SHADOW);
-    return drawn(walk).map((d) => d.tint);
+    select(walk, view(1010, 2000, 2000));
+    return walk.drawn().map((d) => d.tint);
   };
   const want = color.fromSRGB([180 / 255, 180 / 255, 190 / 255]);
   const scales = tints().map((tint) => {
@@ -715,51 +660,6 @@ test("identical neighbours differ a little in value, each the same every time", 
   expect(scales).toHaveLength(2);
   expect(scales[0]).not.toBeCloseTo(scales[1], 3);
   expect(tints()).toEqual(tints());
-});
-
-test("the drawn count is every module instance a view draws, per module and tier", () => {
-  const blocks: [string, [number, number, number, number]][] = [];
-  for (let i = 0; i < 8; i++) blocks.push(["house", [1000 + i * 70, 2000, 0, 0]]);
-  blocks.push(["tower", [1100, 2100, 0, 0]]);
-  const walk = walkOf(placedOf(blocks));
-  const modules = walk.modules();
-  const counted = () => {
-    const tally = new Map<string, number>();
-    walk.counts().forEach((n, k) => {
-      if (n) tally.set(`${modules[k >> 2]}@${k & 3}`, n);
-    });
-    return tally;
-  };
-  /** Every record the view draws, per module and tier. */
-  const seen = () => {
-    const tally = new Map<string, number>();
-    for (const d of drawn(walk))
-      tally.set(`${d.module}@${d.tier}`, (tally.get(`${d.module}@${d.tier}`) ?? 0) + 1);
-    return tally;
-  };
-  const look = (x: number, y: number, distance: number) =>
-    select(walk, view(x, y, distance), SHADOW);
-  for (const [x, distance] of [
-    [1000, 60],
-    [1200, 200],
-    [1300, 600],
-    [1250, 3000],
-  ]) {
-    look(x, 2000, distance);
-    expect(counted(), `${distance} m over ${x}`).toEqual(seen());
-    expect(counted().size, `${distance} m over ${x}`).toBeGreaterThan(0);
-  }
-  // A destroyed building is counted in its fallen state, not its intact one.
-  expect(
-    setFallen(walk, [
-      { building: 0, state: "ruin" },
-      { building: 8, state: "gutted" },
-    ]),
-  ).toEqual([]);
-  look(1000, 2000, 60);
-  expect(counted()).toEqual(seen());
-  expect([...counted().keys()].some((k) => k.endsWith("@0"))).toBe(true);
-  expect(walk.counts()).toHaveLength(modules.length * 4);
 });
 
 test("presentation.buildings is checked: tiers that fall, a pool, a jitter in range", () => {

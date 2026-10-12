@@ -16,8 +16,7 @@ import type { ModelInstance } from "./models/modelInstances";
 import type { frameViews } from "./records.gen";
 import type { WorldAppearance } from "./models/modelLayer";
 import type { ModelStats } from "./models/modelLayer";
-import type { BuildingStats } from "./models/buildingLayer";
-import type { SideBuildings } from "./models/buildingReferences";
+import type { BuildingStats, BuildingWalkStats } from "./models/buildingLayer";
 import type { SideStructures } from "./models/propAppearance";
 import type { SurfaceClass } from "./models/surfaceParts";
 import type { ImpostorAtlas, ImpostorSpec } from "./models/impostor";
@@ -206,16 +205,21 @@ export interface BattleFrame {
    *  only what it hides and adds. Lit, graded, shadow-casting and fogged
    *  like the world. */
   setStructures(structures: SideStructures): void;
-  /** The map's buildings (`models/buildingReferences.ts`): its references,
-   *  and those the side knows destroyed, each with the state it knows it in.
-   *  Each is its template's rows from the installed library
-   *  (`setAppearances`), as instances of its kit's modules, at the tier its
-   *  distance asks for: the intact rows, or the ruin's or the gutted shell's
-   *  for one known destroyed. Lit, shadow-casting and fogged like the
-   *  world. Call when either changes, not every frame: a new `placed`
-   *  rebuilds the map's references, a new `fallen` only what changed. `null`
-   *  draws none. */
-  setBuildings(buildings: SideBuildings | null): void;
+  /** The static batches of the page's static presentation frame
+   *  (`crates/presentation`, a `Presentation` no battle publishes into): the
+   *  map's buildings, each a kit module at a tier drawn into the view or cast
+   *  into the sun's cascades, as Rust walked them for this frame's camera and
+   *  what the side knows fell. Lit, shadow-casting and fogged like the world.
+   *  `world` names the batches' drawables by row, and `stats` is what the
+   *  presentation says of its walk. Call every frame before drawing: a frame
+   *  naming its batches unchanged keeps what was uploaded. Read at once: the
+   *  views last only until the next call into the module. Returns whether
+   *  what is drawn changed. Null draws none. */
+  setStaticFrame(
+    frame: ReturnType<typeof frameViews> | null,
+    world: readonly WorldAppearance[],
+    stats: BuildingWalkStats,
+  ): boolean;
   /** The observing side's learned ground (the client's `GroundView`), drawn
    *  as scars on the terrain and grass. Called every animation frame: a new
    *  view is uploaded whole, the same view only where it changed since the

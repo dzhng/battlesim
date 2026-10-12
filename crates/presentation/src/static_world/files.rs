@@ -2,8 +2,9 @@
 //! page reads it: the saved map, the fixture's presentation numbers, and the
 //! runtime catalog's template library and kit bundles, each stored gzipped
 //! under its transport hash (`packages/scene-assets/src/gzip.ts`).
-use crate::static_world::buildings::{Buildings, Placed, Style};
+use crate::static_world::buildings::{Buildings, Placed};
 use crate::static_world::library::{kit_bounds, Bounds, Library};
+use crate::world::BuildingStyle;
 use serde_json::Value;
 use std::collections::{BTreeSet, HashMap};
 use std::io::Read;
@@ -28,20 +29,11 @@ fn runtime_file(root: &Path, catalog: &Value, hash: &str, file: &str) -> Result<
     Ok(out)
 }
 
-/// `presentation.buildings`' tier rule: a chunk `chunk_m` square takes tier
-/// t while a metre at its nearest point covers more than `lod_px_per_m[t]`
-/// pixels (else the coarsest), and the residency pool holds `pool_records`.
-pub struct Tiers {
-    pub lod_px_per_m: [f64; 3],
-    pub chunk_m: f64,
-    pub pool_records: usize,
-}
-
 /// The buildings of saved map `map` (`fixtures/maps/<map>/map.json`), drawn
 /// from the runtime catalog's template art under `fixtures/game.json`'s
-/// `presentation.buildings`, and its tier rule. Only the kits the map's
+/// `presentation.buildings`, and that style. Only the kits the map's
 /// templates place are read.
-pub fn buildings(root: &Path, map: &str) -> Result<(Buildings, Tiers), String> {
+pub fn buildings(root: &Path, map: &str) -> Result<(Buildings, BuildingStyle), String> {
     let saved = json(&root.join("fixtures/maps").join(map).join("map.json"))?;
     let placed: Vec<Placed> = saved["buildings"]
         .as_array()
@@ -59,26 +51,10 @@ pub fn buildings(root: &Path, map: &str) -> Result<(Buildings, Tiers), String> {
                 .collect()
         })
         .unwrap_or_default();
-    let presentation = &json(&root.join("fixtures/game.json"))?["presentation"]["buildings"];
-    let number = |key: &str| {
-        presentation[key]
-            .as_f64()
-            .ok_or_else(|| format!("presentation.buildings.{key} is not a number"))
-    };
-    let lod = |t: usize| {
-        presentation["lod_px_per_m"][t]
-            .as_f64()
-            .ok_or("presentation.buildings.lod_px_per_m needs three numbers")
-    };
-    let style = Style {
-        chunk_m: number("chunk_m")?,
-        tint_jitter: number("tint_jitter")?,
-    };
-    let tiers = Tiers {
-        lod_px_per_m: [lod(0)?, lod(1)?, lod(2)?],
-        chunk_m: style.chunk_m,
-        pool_records: number("pool_records")? as usize,
-    };
+    let style: BuildingStyle = serde_json::from_value(
+        json(&root.join("fixtures/game.json"))?["presentation"]["buildings"].clone(),
+    )
+    .map_err(|e| format!("presentation.buildings: {e}"))?;
     let catalog = json(&root.join("assets/runtime/catalog.json"))?;
     let hash = catalog["templates"]["library"]
         .as_str()
@@ -113,5 +89,5 @@ pub fn buildings(root: &Path, map: &str) -> Result<(Buildings, Tiers), String> {
         .iter()
         .map(|m| installed.get(&m.kit).and_then(|k| k.get(&m.name).copied()))
         .collect();
-    Ok((Buildings::new(library, &bounds, placed, &style)?, tiers))
+    Ok((Buildings::new(library, &bounds, placed, &style)?, style))
 }

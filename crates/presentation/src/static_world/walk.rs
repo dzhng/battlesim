@@ -12,6 +12,7 @@
 //! - **Fallen.** A building the side knows destroyed leaves both and draws its
 //!   template's rows for that state, chunked by where it stands, at the tier
 //!   its chunk takes.
+use crate::static_world::batches::{List, Population, CAST_PASS, VIEW_PASS};
 use crate::static_world::buildings::{BuildingModule, Buildings, TIERS};
 use crate::view::{building_tier, View};
 use std::collections::HashMap;
@@ -329,5 +330,32 @@ impl BuildingWalk {
             self.buildings.rows(b, 0, Some(t), &mut rows);
         }
         rows.iter().map(row).collect()
+    }
+}
+
+/// The buildings as a frame's static population: the walk, and each walked
+/// module's `World.appearances` row (its kit, and the module as the state).
+pub struct BuildingPopulation {
+    pub walk: BuildingWalk,
+    pub rows: Vec<u32>,
+}
+
+impl Population for BuildingPopulation {
+    fn select(&mut self, view: &View, shadow: Option<&Shadow>) -> bool {
+        !self.walk.select(view, shadow).is_empty()
+    }
+
+    fn each_list(&self, visit: &mut dyn FnMut(List)) {
+        let lists = &self.walk.lists;
+        for (pass, lists) in [(VIEW_PASS, &lists.view), (CAST_PASS, &lists.cast)] {
+            for (key, list) in lists.iter().enumerate() {
+                visit(List {
+                    row: self.rows[key / TIERS],
+                    tier: (key % TIERS) as u32,
+                    pass,
+                    records: list,
+                });
+            }
+        }
     }
 }

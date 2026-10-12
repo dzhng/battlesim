@@ -19,6 +19,9 @@ use crate::records::{
     Appearance as Row, Batch, CastLight, Counts, Effect, Emitter, Instance, Joint, Pick,
     View as ViewRecord, NONE,
 };
+use crate::static_world::batches::{Population, StaticBatches, Sun};
+use crate::static_world::buildings::{Buildings, PlacedBuildings};
+use crate::static_world::walk::{BuildingPopulation, BuildingWalk};
 use crate::units::articulation::{articulate, rest_locals, track_scroll};
 use crate::units::drawn::{ClipTables, DrawnModels};
 use crate::units::driver::PoseDriver;
@@ -27,7 +30,7 @@ use crate::units::interpolate::{FrameSample, TickInterpolator};
 use crate::units::pose::{Articulation, ClipBlend, Kick, PoseFrame};
 use crate::units::skin::{self, Mat4};
 use crate::view::{model_detail, Camera, View, CULLED, IMPOSTOR};
-use crate::world::{Appearance, Bounds, Trs, UnitsSection, Vec3, WorldInput};
+use crate::world::{Appearance, BattleInput, Bounds, Trs, UnitsSection, Vec3, WorldInput};
 
 /// Publications kept for the effects while the world loads: two minutes at 30 Hz.
 const PENDING_MAX: usize = 3600;
@@ -130,7 +133,7 @@ struct Model {
 
 /// What a battle draws: its sections, and the per-frame chain's state.
 struct Loaded {
-    input: WorldInput,
+    input: BattleInput,
     units: Arc<UnitsSection>,
     tables: Arc<ClipTables>,
     inverse_binds: HashMap<String, Vec<Mat4>>,
@@ -152,13 +155,17 @@ struct Loaded {
 }
 
 pub struct Presentation {
-    reader: Reader,
+    /// The side's stream; none for a world no battle publishes into.
+    reader: Option<Reader>,
     tick_hz: f64,
     interpolator: TickInterpolator,
     latest: Option<Arc<Observation>>,
     /// Publications taken before the world loaded, noted when it does.
     pending: Vec<Arc<Observation>>,
     loaded: Option<Loaded>,
+    buildings: Option<BuildingPopulation>,
+    sun: Option<Sun>,
+    statics: StaticBatches,
     world: World,
     frame: Frame,
 }
@@ -186,24 +193,34 @@ fn joint(m: &[f32; 12]) -> Joint {
 
 impl Presentation {
     /// A presentation of the stream `layout` (the battle's
-    /// `observation_layout`) names, at `tick_hz`.
-    pub fn new(layout: &str, tick_hz: f64) -> Result<Self, String> {
+    /// `observation_layout`) names, at `tick_hz`; with no layout, of a world
+    /// no battle publishes into (a lab's), drawn from `load_world` alone.
+    pub fn new(layout: Option<&str>, tick_hz: f64) -> Result<Self, String> {
         Ok(Self {
-            reader: Reader::new(layout)?,
+            reader: layout.map(Reader::new).transpose()?,
             tick_hz,
             interpolator: TickInterpolator::new(tick_hz),
             latest: None,
             pending: Vec::new(),
             loaded: None,
+            buildings: None,
+            sun: None,
+            statics: StaticBatches::default(),
             world: World::default(),
             frame: Frame::default(),
         })
     }
 
+    fn reader(&mut self) -> Result<&mut Reader, String> {
+        self.reader
+            .as_mut()
+            .ok_or_else(|| "this presentation has no publication layout".to_owned())
+    }
+
     /// Records still in flight are stale; the next opens a new epoch, for
     /// `side` when named.
     pub fn invalidate(&mut self, side: Option<&str>) -> Result<(), String> {
-        self.reader.invalidate(side)?;
+        self.reader()?.invalidate(side)?;
         self.latest = None;
         self.interpolator = TickInterpolator::new(self.tick_hz);
         self.pending.clear();
@@ -213,7 +230,7 @@ impl Presentation {
     /// Reads the next publication's words, received at wall time
     /// `arrived_s`. False for a stale record; a malformed one errs.
     pub fn push_publication(&mut self, words: &[u32], arrived_s: f64) -> Result<bool, String> {
-        let Some(observation) = self.reader.decode(words)? else {
+        let Some(observation) = self.reader()?.decode(words)? else {
             return Ok(false);
         };
         let observation = Arc::new(observation);
@@ -237,9 +254,53 @@ impl Presentation {
         self.latest.as_deref()
     }
 
-    /// Loads what the battle draws; `tables` are the skinned bodies' dense
-    /// clip tables by name. Publications already taken are noted now.
-    pub fn load_world(&mut self, input: WorldInput, tables: ClipTables) -> Result<(), String> {
+    /// Loads what the world draws: `buildings` placed from their template
+    /// art, and the battle's units and effects, `tables` being the skinned
+    /// bodies' dense clip tables by name. Publications already taken are
+    /// noted now.
+    pub fn load_world(
+        &mut self,
+        input: WorldInput,
+        tables: ClipTables,
+        buildings: Option<PlacedBuildings>,
+    ) -> Result<(), String> {
+        // Every drawable a frame may name, so the renderer loads them once;
+        // the buildings' first, a row per walked module.
+        self.world = World::default();
+        self.buildings = match buildings {
+            None => None,
+            Some(placed) => {
+                let style = input
+                    .buildings
+                    .ok_or("buildings are drawn under presentation.buildings")?;
+                let buildings =
+                    Buildings::new(placed.library, &placed.bounds, placed.placed, &style)?;
+                let rows = (0..buildings.modules.len())
+                    .map(|m| {
+                        let (kit, module) = buildings.module(m);
+                        self.world.row(kit, module, NONE, 0)
+                    })
+                    .collect();
+                let walk = BuildingWalk::new(
+                    buildings,
+                    style.lod_px_per_m,
+                    style.chunk_m,
+                    style.pool_records,
+                );
+                Some(BuildingPopulation { walk, rows })
+            }
+        };
+        self.sun = input.cascade_far_m.map(|far_m| Sun {
+            azimuth: input.sun_azimuth,
+            elevation: input.sun_elevation,
+            far_m,
+        });
+        self.statics.invalidate();
+        self.loaded = None;
+        let (azimuth, elevation) = (input.sun_azimuth, input.sun_elevation);
+        let Some(input) = input.battle else {
+            return Ok(());
+        };
         let units = Arc::new(input.units.clone());
         let tables = Arc::new(tables);
         let presentation = EffectPresentation::from_value(&input.effects.presentation)?;
@@ -256,8 +317,6 @@ impl Presentation {
                 inverse_binds.insert(name.clone(), skin::inverse_binds(joints, given));
             }
         }
-        // Every drawable a frame may name, so the renderer loads them once.
-        self.world = World::default();
         for (name, a) in &units.appearances {
             match a {
                 Appearance::Skinned {
@@ -281,7 +340,6 @@ impl Presentation {
                 self.world.row(&look.appearance, state, NONE, 0);
             }
         }
-        let (azimuth, elevation) = (input.sun_azimuth, input.sun_elevation);
         let throw = 1.0 / elevation.tan();
         let mut loaded = Loaded {
             feed: ObservationFeed::new(&side),
@@ -312,6 +370,26 @@ impl Presentation {
 
     pub fn world(&self) -> &World {
         &self.world
+    }
+
+    /// What the side knows destroyed: buildings and their states (`STATES`
+    /// index, 1 ruin or 2 gutted), replacing the last list. Returns those
+    /// whose template has no rows for their state, and then changes nothing.
+    pub fn set_fallen(&mut self, fallen: &[(usize, usize)]) -> Vec<usize> {
+        let Some(buildings) = &mut self.buildings else {
+            return fallen.iter().map(|&(b, _)| b).collect();
+        };
+        let refused = buildings.walk.set_fallen(fallen);
+        if refused.is_empty() {
+            self.statics.invalidate();
+        }
+        refused
+    }
+
+    /// The buildings' walk as the last frame left it (`BuildingWalk::stats`);
+    /// none without buildings.
+    pub fn building_stats(&self) -> Option<&[usize]> {
+        self.buildings.as_ref().map(|b| &b.walk.stats[..])
     }
 
     /// The presentation time at wall time `wall_s` (live only).
@@ -499,6 +577,12 @@ impl Presentation {
         f.light_wrap = 0.0;
         let view = View::new(camera);
         f.view = view.record(camera);
+        let mut populations: Vec<&mut dyn Population> = Vec::new();
+        if let Some(b) = &mut self.buildings {
+            populations.push(b);
+        }
+        self.statics
+            .write(&mut populations, camera, &view, self.sun.as_ref(), f);
         let (Some(loaded), Some(sample)) = (self.loaded.as_mut(), self.interpolator.frame(time))
         else {
             return &self.frame;
@@ -964,7 +1048,7 @@ fn pose_vehicle(
 /// The boxes of every drawn soldier and vehicle, for the UI's hit tests:
 /// a hull's box, else each soldier's (`bodyBox`), and each unit's drawn
 /// position as a box of no size.
-fn picks(sample: &FrameSample, units: &UnitsSection, input: &WorldInput, f: &mut Frame) {
+fn picks(sample: &FrameSample, units: &UnitsSection, input: &BattleInput, f: &mut Frame) {
     let o = &sample.observation;
     let kinds = o
         .own

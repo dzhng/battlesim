@@ -148,7 +148,8 @@ records! {
         appearance: u32,
         /// Detail tier, 0 finest; 4 is the impostor card.
         tier: u32,
-        /// 0 drawn in view; 2 a translucent ghost (no shadow, no depth write).
+        /// 0 drawn in view; 1 cast into the sun's cascades; 2 a translucent
+        /// ghost (no shadow, no depth write).
         pass: u32,
         /// Casters: bit n set if it reaches cascade n.
         cascades: u32,
