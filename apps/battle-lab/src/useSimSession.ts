@@ -2,7 +2,7 @@ import { useLabLoading } from "./LabLoading";
 import type { PreparedSession } from "@web/battle/prepare/client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createSimClient, type Publication, type SimClient } from "@web/battle/sim/client";
-import type { GroundView } from "@web/battle/sim/ground";
+import type { LearnedGround } from "@web/battle/sim/presentation";
 import type { ObservationView } from "@web/battle/sim/observationView";
 import type { AuthorityStatus } from "@web/battle/sim/protocol";
 
@@ -61,7 +61,7 @@ export function useSimSession({
   // The newest decoded frame, updated synchronously (React state lags a render).
   const latest = useRef<ObservationView | null>(null);
   // The side's learned ground, patched by every publication (one per client).
-  const ground = useRef<GroundView | null>(null);
+  const ground = useRef<LearnedGround | null>(null);
   // The latest publication's digest; diagnostics own any history they record.
   const digest = useRef<string | null>(null);
   const held = useRef<Publication[] | null>(null);

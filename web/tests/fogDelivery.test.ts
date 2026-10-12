@@ -3,7 +3,6 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
 import { createSimClient } from "../src/battle/sim/client";
-import { GroundView } from "../src/battle/sim/ground";
 import { initSync, Battle } from "@wasm/game_wasm.js";
 import type { ObservationLayout, ObservationView } from "../src/battle/sim/observationView";
 import { ObservationDecoder, loadPresentation } from "../src/battle/sim/presentation";
@@ -87,11 +86,17 @@ test("wasm publishes the combat stream's barks: its own units' and only identifi
   for (const frame of frames)
     for (const shout of frame.shouts) {
       const speakers = shout.own ? frame.own : frame.identified;
-      expect(speakers.map((unit) => unit.id), `tick ${frame.tick}`).toContain(shout.id);
+      expect(
+        speakers.map((unit) => unit.id),
+        `tick ${frame.tick}`,
+      ).toContain(shout.id);
       if (shout.own) own++;
       else seen++;
     }
-  expect([own > 0, seen > 0], "the firefight is called by both sides' voices").toEqual([true, true]);
+  expect([own > 0, seen > 0], "the firefight is called by both sides' voices").toEqual([
+    true,
+    true,
+  ]);
 });
 
 test("wasm large-coordinate arrangement matches native authoritative state before float32 packing", () => {
@@ -223,7 +228,7 @@ test("rejected fog records leave the delivered baseline intact", () => {
 test("fog and ground reject a broken paired cursor before either baseline advances", () => {
   const { layout, record } = packets();
   const decoder = new ObservationDecoder(layout);
-  const ground = new GroundView(layout.ground);
+  const ground = decoder.ground!;
   const paired = (
     base: number,
     revision: number,
@@ -241,14 +246,14 @@ test("fog and ground reject a broken paired cursor before either baseline advanc
     return data;
   };
   const first = decoder.decode(paired(0, 1, 0, 1, true))!;
-  ground.applyRuns(first.groundPatch);
+  expect(ground.revision).toBe(1);
   expect(() => decoder.decode(paired(1, 2, 99, 2))).toThrow(/ground.*baseline/);
   expect(() => decoder.decode(paired(1, 2, 1, 2, true))).toThrow(/ground.*baseline/);
-  const corrected = decoder.decode(paired(1, 2, 1, 2))!;
-  expect(ground.applyRuns(corrected.groundPatch)).toBe("applied");
+  expect(ground.revision).toBe(1);
+  decoder.decode(paired(1, 2, 1, 2));
   expect(ground.revision).toBe(2);
-  const unchanged = decoder.decode(paired(2, 3, 2, 2))!;
-  expect(ground.applyRuns(unchanged.groundPatch)).toBe("applied");
+  decoder.decode(paired(2, 3, 2, 2));
+  expect(ground.revision).toBe(2);
   expect(Array.from(first.fog.bits)).toEqual([1, 0]);
 });
 

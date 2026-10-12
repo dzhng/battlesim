@@ -214,7 +214,7 @@ export interface BattleFrame {
    *  batches unchanged keeps what was uploaded. Returns whether what is
    *  drawn changed. Null draws none. */
   setStaticFrame(frame: ReturnType<typeof frameViews> | null, stats: BuildingWalkStats): boolean;
-  /** The observing side's learned ground (the client's `GroundView`), drawn
+  /** The observing side's learned ground (the presentation's `LearnedGround`), drawn
    *  as scars on the terrain and grass. Called every animation frame: a new
    *  view is uploaded whole, the same view only where it changed since the
    *  last call. Returns whether anything drawn changed. `null` draws none. */

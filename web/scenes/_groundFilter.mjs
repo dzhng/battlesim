@@ -39,12 +39,14 @@ export async function groundFilterExact(ctx) {
       const terrainPath = file("packages/battle-renderer/src/frame/terrainMaterial.ts");
       const terrainText = await (await fetch(terrainPath)).text();
       const gpuUrl = terrainText.match(/from ["']([^"']*typegpu[^"']*)["']/)[1];
-      const [{ tgpu, d }, { GpuRegistry }, terrain, { GroundView }] = await Promise.all([
-        import(gpuUrl),
-        import(file("packages/battle-renderer/src/frame/registry.ts")),
-        import(terrainPath),
-        import(file("web/src/battle/sim/ground.ts")),
-      ]);
+      const [{ tgpu, d }, { GpuRegistry }, terrain, { ObservationDecoder }, { groundRecords }] =
+        await Promise.all([
+          import(gpuUrl),
+          import(file("packages/battle-renderer/src/frame/registry.ts")),
+          import(terrainPath),
+          import(file("web/src/battle/sim/presentation.ts")),
+          import(file("web/tests/groundRuns.ts")),
+        ]);
       const compiled = [],
         shader = device.createShaderModule.bind(device);
       device.createShaderModule = (descriptor) => {
@@ -62,8 +64,7 @@ export async function groundFilterExact(ctx) {
       try {
         const source = terrain.createTerrainSource(root, registry);
         source.set(world.terrain);
-        const ground = new GroundView({ cellM: 1, cols: 600, rows: 600 }),
-          runs = [];
+        const runs = [];
         for (let y = 0; y < 38; y++)
           for (let x = 0; x < 38; x++) {
             const width = Math.min(16, 600 - x * 16),
@@ -88,15 +89,32 @@ export async function groundFilterExact(ctx) {
           runs.push([1404, c + 256, v[0] + v[1] * 256, v[2] + v[3] * 256]);
         }
         runs.sort((a, b) => a[0] - b[0] || (a[1] % 256) - (b[1] % 256));
-        ground.applyRuns({
-          epoch: 1,
-          side: "blue",
-          baseRevision: 0,
-          revision: 1,
-          full: true,
-          runs: Float32Array.from(runs.flat()),
-        });
-        source.setGround(ground);
+        // The presentation learns the ground from a publication carrying it.
+        const battle = new wasm.Battle(
+          JSON.stringify({
+            map: { size: [32, 32], height_grid_m: 4, fog_cell_m: 8, slope_cutoff_deg: 35 },
+            rules: rules.rules,
+            units: [],
+            events: [],
+            scripts: [],
+          }),
+          1,
+        );
+        const published = JSON.parse(battle.observation_layout());
+        battle.free();
+        published.ground = { ...published.ground, cellM: 1, cols: 600, rows: 600 };
+        const decoder = new ObservationDecoder(published);
+        decoder.decode(
+          groundRecords(published)({
+            epoch: 1,
+            side: published.ground.sides[0],
+            baseRevision: 0,
+            revision: 1,
+            full: true,
+            runs: Float32Array.from(runs.flat()),
+          }),
+        );
+        source.setGround(decoder.ground);
         source.prepareScars();
         const bytes = new Uint8Array(600 * 600 * 4);
         for (let y = 0; y < 600; y++)

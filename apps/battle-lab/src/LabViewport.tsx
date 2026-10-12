@@ -205,7 +205,7 @@ export interface ViewportFrame {
   clock?: number;
   /** What the frame's effects hold, by kind and shape. */
   effectCounts?: EffectCounts;
-  /** The observing side's learned ground (the client's `GroundView`), drawn
+  /** The observing side's learned ground (the presentation's `LearnedGround`), drawn
    *  as scars; the frame uploads only what changed since it last looked. */
   ground?: GroundMarks | null;
 }
