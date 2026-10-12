@@ -345,7 +345,7 @@ export function MainMenu() {
               : ({ "--menu-home-height": `${homeHeight}px` } as CSSProperties)
           }
         >
-          <GraphicsDetectionHost runner={null}>
+          <GraphicsDetectionHost runner={null} enabled={!loading}>
             <div className="hud-panel menu-body" ref={plate}>
               {content}
             </div>
