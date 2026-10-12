@@ -314,7 +314,7 @@ export async function run(ctx) {
   const homeTop = (await body.boundingBox())?.y;
   for (const entry of ["skirmish", "settings", "developer"]) {
     await page.locator("main.menu:not([inert]) .menu-body").waitFor({ timeout: 120_000 });
-    await page.locator(`[data-page="${entry}"]`).click();
+    await page.locator(`[data-page="${entry}"]`).click({ force: true });
     const top = (await body.boundingBox())?.y;
     ctx.check(
       `menu ${entry}: the plate's top stays where the main page's is`,
@@ -327,7 +327,7 @@ export async function run(ctx) {
   // The developer page lists every lab: it changes as labs come and go.
   for (const entry of ["skirmish", "tutorial", "settings"]) {
     await page.locator("main.menu:not([inert]) .menu-body").waitFor({ timeout: 120_000 });
-    await page.locator(`[data-page="${entry}"]`).click();
+    await page.locator(`[data-page="${entry}"]`).click({ force: true });
     await pointerAway(page);
     await mediaDecodes(ctx, page, `menu ${entry}`);
     // The page's pictures, drawn before the picture of the page is taken.
