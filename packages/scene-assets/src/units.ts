@@ -325,16 +325,40 @@ export class UnitCatalog {
    *  running these units loads of unit art (`catalogLoadNames`). */
   get appearances(): ReadonlySet<string> {
     if (!this.worn) {
-      const worn = new Set<string>();
-      const rows = [...this.view.units, ...Object.values(this.view.soldiers)];
-      for (const row of rows) {
-        for (const name of [row.appearance ?? []].flat()) worn.add(name);
+      const worn = new Set(this.appearancesFor(this.ids));
+      // Preserve the catalog-wide view used by tools: it also validates and
+      // preloads a soldier entry that is not currently referenced by a unit.
+      for (const row of Object.values(this.view.soldiers)) {
+        for (const name of row.appearance) worn.add(name);
         for (const { operator_appearance: kit } of row.mounts)
           for (const name of [...(kit?.active ?? []), ...(kit?.carried ?? [])]) worn.add(name);
       }
       this.worn = worn;
     }
     return this.worn;
+  }
+
+  /** Every appearance worn by the given unit kinds, including their soldier
+   *  slots and operator kits. The loader adds faction looks and wrecks. */
+  appearancesFor(kinds: Iterable<string>): ReadonlySet<string> {
+    const worn = new Set<string>();
+    const addMounts = (mounts: readonly MountRow[]) => {
+      for (const { operator_appearance: kit } of mounts)
+        for (const name of [...(kit?.active ?? []), ...(kit?.carried ?? [])]) worn.add(name);
+    };
+    const soldiers = new Set<string>();
+    for (const kind of kinds) {
+      const row = this.type(kind);
+      for (const name of [row.appearance ?? []].flat()) worn.add(name);
+      addMounts(row.mounts);
+      for (const soldier of this.slots(kind)) soldiers.add(soldier);
+    }
+    for (const kind of soldiers) {
+      const row = this.soldier(kind);
+      for (const name of row.appearance) worn.add(name);
+      addMounts(row.mounts);
+    }
+    return worn;
   }
 
   get cards(): readonly UnitCard[] {

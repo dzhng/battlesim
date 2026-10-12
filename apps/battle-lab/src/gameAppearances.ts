@@ -31,11 +31,10 @@ let loading: Promise<InstalledAppearances> | null = null;
 export function gameAppearances(
   units: UnitCatalog,
   asked: Iterable<string> = [],
+  wearing: ReadonlySet<string> = units.appearances,
 ): Promise<InstalledAppearances> {
-  loading ??= library.load("/", units.appearances);
-  return loading
-    .then(() => library.withUnits(units.appearances))
-    .then(() => library.withAppearances(asked));
+  loading ??= library.load("/", wearing);
+  return loading.then(() => library.withUnits(wearing)).then(() => library.withAppearances(asked));
 }
 
 /** Load the catalog afresh (it was re-baked) for a session running `units`:
@@ -54,13 +53,18 @@ const NOTHING: ReadonlySet<string> = new Set();
  *  refuse the active view through the app boundary. */
 export function useGameAppearances(
   asked: ReadonlySet<string> | null = NOTHING,
+  kinds: Iterable<string> | null = null,
 ): InstalledAppearances | null {
   const { units } = useSessionCatalog();
+  const wearing = useMemo(
+    () => (kinds ? units.appearancesFor(kinds) : units.appearances),
+    [kinds, units],
+  );
   const [installed, setInstalled] = useState<InstalledAppearances | null>(null);
   useEffect(() => {
     if (!asked) return;
     let live = true;
-    gameAppearances(units, asked).then(
+    gameAppearances(units, asked, wearing).then(
       (next) => live && setInstalled(next),
       (error: unknown) => {
         if (live) appResources.refuse(error);
@@ -69,9 +73,13 @@ export function useGameAppearances(
     return () => {
       live = false;
     };
-  }, [asked, units]);
+  }, [asked, units, wearing]);
   // What an earlier request installed answers this one only if it has what it asked.
-  const held = installed && asked && [...asked].every((name) => installed.appearances.has(name));
+  const held =
+    installed &&
+    asked &&
+    [...asked].every((name) => installed.appearances.has(name)) &&
+    [...wearing].every((name) => installed.appearances.has(name));
   return held ? installed : null;
 }
 
@@ -114,8 +122,9 @@ export function useMapAppearances(
   placed: PlacedBuildings | null,
   family: string | null,
   standIns = false,
+  kinds: Iterable<string> | null = null,
 ): InstalledAppearances | null {
-  const catalog = useGameAppearances();
+  const catalog = useGameAppearances(NOTHING, kinds);
   const asked = useMemo(
     () => catalog && placed && mapDownloads(catalog, placed, family, standIns),
     [catalog, placed, family, standIns],

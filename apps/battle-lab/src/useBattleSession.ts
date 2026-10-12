@@ -260,6 +260,22 @@ export function useBattleSession({
     responses.current =
       audio && sim.client ? new UnitResponses(audio, units, faction, rules.tick_hz) : null;
   }, [audio, sim.client, units, faction, rules.tick_hz]);
+  // A battle may purchase or reveal a unit that was not in its opening
+  // scenario. Keep the appearance request live so those units are installed
+  // before the presentation names their models, without loading the whole
+  // roster on adapters with small texture-array limits.
+  const { observation } = sim;
+  const requestedKindKey = useMemo(() => {
+    const kinds = new Set(fielded);
+    for (const unit of observation?.own ?? []) kinds.add(unit.kind);
+    for (const unit of observation?.identified ?? []) kinds.add(unit.kind);
+    for (const pending of observation?.skirmish?.pending ?? []) kinds.add(pending.kind);
+    return [...kinds].sort().join("\0");
+  }, [fielded, observation]);
+  const requestedKinds = useMemo(
+    () => (requestedKindKey ? requestedKindKey.split("\0") : []),
+    [requestedKindKey],
+  );
   // A shout heard in the open is a bark in its kind's set for its side's
   // faction; an unseen enemy's is drawn from the enemy faction's sets. Of
   // those, only the sets of kinds fielded or identified load.
@@ -273,7 +289,6 @@ export function useBattleSession({
       enemy: factionVoices(voiceAssignments, rows, enemy),
     });
   }, [audio, units, faction, enemy]);
-  const { observation } = sim;
   const contactPresentation = useMemo(
     () => (sim.client ? new ContactPresentation(rules.tick_hz, gameContactStyle.fade_s) : null),
     [sim.client, rules.tick_hz],
@@ -376,6 +391,7 @@ export function useBattleSession({
     drawnBuildings?.placed ?? null,
     world?.exports.buildings.regionalFamily ?? null,
     true,
+    requestedKinds,
   );
   // Props that can move (shoved) or be destroyed ("apart") are drawn from
   // what the side knows, apart from the world.
@@ -570,7 +586,7 @@ export function useBattleSession({
     if (!appearances || !props) return null;
     return presentationWorld({
       units: describeUnits({
-        kinds: fielded,
+        kinds: requestedKinds,
         installed: appearances,
         units,
         factions: factions && { blue: factions[0], red: factions[1] },
@@ -578,7 +594,7 @@ export function useBattleSession({
         leanHold: rules.cover.lean_hold_s,
       }),
       effects: describeEffects({
-        kinds: fielded,
+        kinds: requestedKinds,
         units,
         fit: props.fit,
         installed: appearances,
@@ -592,7 +608,7 @@ export function useBattleSession({
       blocked: PURCHASE_BLOCKED,
       cruiseAglM: rules.air.cruise_agl_m,
     });
-  }, [appearances, props, fielded, units, factions, rules, side]);
+  }, [appearances, props, requestedKinds, units, factions, rules, side]);
   // Each unit placed during preparation stands as a ghost where it will go,
   // turned as it was placed, until the battle starts.
   const [placedGhostList] = useState(() =>

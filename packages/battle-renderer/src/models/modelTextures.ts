@@ -55,6 +55,11 @@ export function uploadTextureArray(
   format: TextureFormat,
   textures: readonly Texture[],
 ): GPUTexture {
+  const limit = device.limits.maxTextureArrayLayers;
+  if (textures.length > limit)
+    throw new Error(
+      `${label}: ${textures.length} texture layers exceed this adapter's maxTextureArrayLayers (${limit})`,
+    );
   const size = Math.max(1, ...textures.map((t) => t.width));
   const levels = Math.log2(size) + 1;
   const texture = device.createTexture({
