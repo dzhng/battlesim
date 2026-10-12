@@ -266,17 +266,6 @@ export function MainMenu() {
     setRevealed(true);
     shown.resolve();
   }, [loading, shown]);
-  if (graphicsError) {
-    return (
-      <main className="lab-loading" role="alert">
-        <h1>Graphics detection failed</h1>
-        <p>{graphicsError}</p>
-        <button type="button" className="hud-menu-item" onClick={() => window.location.reload()}>
-          Reload
-        </button>
-      </main>
-    );
-  }
   // Back to the list, onto the entry of the page just left.
   const left = useRef<Page | null>(null);
   const back = useCallback(() => {
@@ -306,6 +295,17 @@ export function MainMenu() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [page, back]);
+  if (graphicsError) {
+    return (
+      <main className="lab-loading" role="alert">
+        <h1>Graphics detection failed</h1>
+        <p>{graphicsError}</p>
+        <button type="button" className="hud-menu-item" onClick={() => window.location.reload()}>
+          Reload
+        </button>
+      </main>
+    );
+  }
   const content =
     page === null ? (
       <>
