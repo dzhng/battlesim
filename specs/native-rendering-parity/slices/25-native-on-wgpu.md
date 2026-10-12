@@ -472,3 +472,94 @@ Control `2026-10-12T06-54-57-178Z`, both scenes. Scratch: `throwaway/phase5c/` (
   - Its low-confidence notes (one corpse looking more sprawled where the control's grain hides its legs; one leaning soldier's boots a pixel or two lower) were checked at zoom: grass occlusion and resolve noise.
 - **Load time.** All 367 market-town rows (27 unit appearances, their corpses, and 73 wreck looks' pieces) install in 3.2 s in a release build (49 s in a debug build).
 - **Tests.** `tests/models.rs`: a corpse row's posed body lies on the ground (falsified by posing at the bind pose: the body stood 1.71 m), and a far body stands in its far pose. `cargo test` for `native-client` (with the pipelines test under the GPU lock), `presentation` and `pipelines`, and clippy `-D warnings` on `native-client` and `presentation`, are clean. `presentation-wasm` and `godot-binding` still compile.
+
+## Step 6: effects and fog's mask, built (2026-10-12, branch `phase5e`)
+
+Native draws every effect instance and cast light a `Frame` makes, through the browser's exported `effects` pipeline, and runs fog's mask passes as `battleFrame` does. Fog of war's sight (the compute) is not built: its inputs are the static world's.
+
+### The contract
+
+- **A fog look is a presentation record** (web first). `presentation::fog` reads `presentation.fog` (`FogPresentation`, `FogStyle`), checks a style (the ranges the TS checked) and resolves it into `records::FogLook`, the fog mask passes' `FogStyleUniform`: the tint at unit luminance, the line angle in radians, the search reach. `crates/pipelines/tests/uniforms.rs` holds it to the struct in all four mask shaders (falsified by swapping two fields).
+  - The page takes it through `presentation-wasm`'s free `fog_look(styleJson)` and `resolveFogLook(style)` (`web/src/battle/sim/presentation.ts`), which throws naming the field out of range.
+  - The renderer takes words, not a style: `BattleFrameOptions.fogStyle: FogStyle` is now `fogLook: Float32Array`, and `BattleFrame.setFogStyle` is `setFogLook`. The mask pass reads its edge and rim switches from the record (`FogLook` offsets in `records.gen.ts`).
+  - Deleted from TS: `fogStyleUniform`, `validateFogStyle`, `validateFogPresentation`, `selectedFogStyle`. `FOG_EDGE_REACH_PX` is generated into `records.gen.ts` from `fog.rs`; `FOG_DISTANCE_CAP_PX` stays in `fogStyle.ts`, where the shaders splice it.
+  - `gameFog.ts` no longer checks the fixture's fog block at import; a style is checked when it is resolved (the frame build, the fog-look lab's edits).
+- **Native's frame** is `sky → depth prepass → world → effects → fog mask → ghosts → post → fog rim`, `battleFrame`'s order.
+  - New targets: `lit` (the world resolves into it, and the effects draw over it), the resolved `fog_mask`, and the two `rg8unorm` distance targets. `hdr` is now the fogged world, post's input. Depth is sampled (the effects read it).
+  - `Passes::prepare_effects(presentation, light_wrap)` uploads `Presentation::effects()` as the instance buffer and `Presentation::lights()` into the environment's `CastLights` (count, wrap, rows), which every lit material and the smoke read.
+  - The flipbooks are the browser's sheets, read by name from `flipbooks.ts` (as the DFG table is read from `dfgLut.ts`), premultiplied in their encoded bytes as `createImageBitmap(premultiply)` does, into a mipmapped `rgba8unorm-srgb` array. Mips are a 2×2 box chain; the browser resizes each level from the sheet with Chrome's "high" filter.
+  - The fog mask passes are built from the replay's look (the fixture's selected style): the distances only when the look has an edge, the rim only when it has one, the compose always.
+- **The replay reports effect counts beside model counts**: per plate, the running effects by kind, the lights, the instances by shape, and the instances drawn of those listed, against the manifest's `effectCounts`.
+
+### What draws, and what is left
+
+- **Draws:** tracers, glows, flashes, fireballs, smoke and dust flipbooks lit by the sun, the PMREM and the cast lights, smoke trails, sparks, rotor blurs (none in either reel), and the cast lights on every model material. Slice 22's lit smoke from the prefiltered environment and cast light following normal maps are drawn by the browser's own shaders here.
+- **Already on `wgpu` since step 5a:** side-colour tints, wear chips and the cook-off's moving wreck and thrown debris (all model rows the `Frame` lists).
+- **Left, and why:**
+  - *Fog of war's sight* (`fogTerrain`, `fogMerge`, `fogCull`, `fogProbe`, `fogShape`, `fogWhole`). Its input (`FogInput`: the terrain grid, foliage, the map's occluding props less those the side saw fall, and the eyes) is assembled in TS (`fogInputs.ts`, `useBattleSession`) from the static world. It needs slice 20b's static world in Rust and step 4's terrain, then a web-first move of `fogEyes`, `mapOccluders`, `knownOccluders` and `wholeWords` into `crates/presentation`. Neither reel draws fog (the graphics test hands the viewport no fog), so the browser's control runs no fog compute either and the mask is empty: native's fog-off bind group is the same state.
+  - *Emissive lamp glass, lit interiors, leaf clumps, dressing shrink, railing dither, water in shadow* belong to the static world and the ground (slice 20b and step 4).
+  - *Overlays and the fog-mask lab views:* native has no UI.
+
+### Evidence
+
+Two controls, both captured from this branch's tree: `throwaway/native-parity/2026-10-12T07-29-29-056Z` before merging main `356a0b7f4`, and `2026-10-12T08-04-37-942Z` after. Native plates, pairs (control over native) and crops are in `throwaway/phase5e/`. The plates were judged on the first; the counts were checked on both.
+
+- **Counts.**
+  - Models: equal on all 24 plates, and every listed instance drawn, as in step 5a.
+  - Effects: native draws every instance the frame lists on all 24 plates, on both controls.
+  - **Every plate whose sim time falls between ticks is equal to the browser's**: 19 of 19 on the first control, 10 of 10 on the second.
+  - **Plates drawn exactly on a tick boundary** (`simTime × 30` an integer to within 1e-13) mostly differ. On the first control 5 of 5 differ (market-town 239, 1203, 1574, 5195, 5435). On the second, 12 of 14 differ. How many plates land on a boundary varies from run to run (5 of 24 on the first, 14 of 24 on the second). The headline is therefore 19 of 24 equal and 13 of 24 equal.
+  - **It is the replay's input, not native.** `throwaway/phase5e/replay.mjs` replays the same capture through the browser's own WASM module on the same calls, and gets native's counts on every plate, including the same five differences.
+  - Effects are a pure function of the publications noted, the time and the camera: framing only the plate records changes nothing.
+  - At a boundary the effect set is discontinuous: launches from tick `k + 1` start at exactly `k / 30`. No publication set from `k − 2` to `k + 2` at times within ±1e-9 reproduces the browser's set. The capture records the sim's tick and the clock, not which publications the page's presentation had noted when it framed. The worst plate (239) has 96 streaks against 72 and 11 glows against 6; the rest are within a few instances.
+- **Plates** (`compare-screenshots`, pairs and full-size crops; target: the same effects in the same places, looking the same, wherever native draws them).
+  - The beaded rocket trail (market-town 1918), the dust behind each tank (239, 2392), the burning wrecks' columns and base fires (847, 3445–5195), the tank's gun burst and impact puffs (2392), and the fireball filling Paris 851's frame match the control in position, shape, shading and fade.
+  - Native's smoke and dust reach below where the browser's ground and buildings cut them (Paris 1263's column, the dust under market-town's tanks), because native has no ground yet.
+- **Unprimed critique** (all 24 pairs and two crops; told only that the ground and buildings are missing). It found no quad edges, banding, fringes, blending or noise errors. It said tracers, muzzle flashes, dust trails, the rocket trail, the smoke columns, the in-fireball frame, the units and the sky match. Its notes:
+  - The gun burst in crop 2392 is paler and less saturated. It sits over pale haze instead of dark grass. The premultiplied blend lays the fire over the background, and that small flipbook samples a box-filtered mip (the browser's is Chrome-resized). Close up (Paris 851) the fireball is identical. *Low priority; recheck once the ground is drawn.*
+  - Thin antennas read crisper and stepped against the haze. That is model geometry (step 5a) against a high-contrast background.
+  - Denser-looking smoke, dust that hides a tank less, and a few extra grey puffs: each sits where the browser's ground or buildings would cover or back it.
+- **Tests.**
+  - `fog.rs`: a tint changes hue and never brightness; out-of-range styles are refused by name; the search reaches one pixel past the widest edge; a hard edge with no rim needs no distances.
+  - `uniforms.rs`: as above. `records_are_current` passes.
+  - Web: `fogStyle.test.ts` (the binding: every fixture style resolves, a bad one is refused by name, the widest edge fits the cap) and `shaderExport.test.ts` (unchanged export) pass. The typecheck is clean.
+  - `cargo test` passes for `native-client` (under the lock), `presentation` and `pipelines`. Clippy `-D warnings` is clean on those three and on `presentation-wasm`.
+- **Scenes.** `fog-look` passes all its checks on the branch, with every named style resolved by Rust and tuned live: the rim, seen pixels untouched, every material path styled, units never fogged, buildings fogged whole. It needs `CARGO_TARGET_DIR` set to the worktree's target for its `/__mechanics` endpoint; without it the endpoint returns 500 on the base and the branch alike.
+- **Browser frame time** (`graphics-fps`, Paris-corner, production, headless, three runs per side interleaved, base web files against the branch's; `throwaway/perf/phase5e-{base,branch}/summary.md`). The look is written once, when the frame is built, so per-frame work is unchanged.
+
+  | | avg FPS, median (min–max) | frame ms p50 / p95 | GPU ms mean |
+  | --- | --- | --- | --- |
+  | Branch | 94.9 (80.7–97.6) | 8.34 / 16.68 | 6.56 |
+  | Base | 81.9 (76.6–87.0) | 8.40 / 17.10 | 7.46 |
+
+  No regression. The spread is the headless pacing.
+- **After merging main** (`356a0b7f4`): `cargo test` passes for `native-client` (under the lock), `presentation` and `pipelines`. Clippy `-D warnings` and `cargo fmt --check` are clean. The typecheck and the two web tests pass. Model counts equal the browser's on all 24 plates of the new control.
+
+### Code
+
+Net lines in this step, without the merge:
+
+| | Rust | TypeScript |
+| --- | --- | --- |
+| Production | +766: native client +544 (`effects.rs` 270, `fog_mask.rs` 141, the wiring); `presentation::fog`, `FogLook` and the binding +222 | −64 (the TS fog style derivation and validation are deleted) |
+| Tests | +120 (`fog.rs`'s tests, the uniforms case) | −46 (`fogStyle.test.ts` is now a binding test) |
+| Generated | | +41 (`records.gen.ts`) |
+
+Docs +9 (the native client's README).
+
+### Decisions
+
+- **The fog look moved to Rust, web first.** Native needs the look's uniform, and the browser derived it in TS. Now both read `FogLook`.
+  - The renderer API takes the resolved words (`fogLook`, `setFogLook`), not the authored style.
+  - `gameFog.ts` no longer checks the fixture's styles when it is imported. A style is checked when it is resolved. Native checks every named style (`FogPresentation::selected`).
+- **Fog of war's sight is not built.** Its inputs belong to the static world, and moving `FogInput` to Rust is its own web-first step. Neither reel draws fog, so no plate could judge it yet. The fog bind group stays all zeros, which is the browser's own state in the reel.
+- **The flipbook list is read from `flipbooks.ts`,** as the DFG table is read from `dfgLut.ts`, so the sheets have one owner. The mips are a box chain. The browser's are Chrome-resized, which matters only for small, distant flipbooks.
+- **The tick-boundary count differences are recorded, not worked around.** The replay pushes every sample up to the record's tick, as it did for the models. Changing that rule (for example, holding back the next tick at a boundary) fixed some boundary plates and broke others. No rule tried reproduced the browser.
+
+### Next pickup
+
+- **Pin the capture's presentation inputs.** Record with each frame what the page's presentation framed from: the latest publication it had noted, the exact time it framed at, and the camera it was handed. Then the replay can match it on tick-boundary frames. This is a browser capture change (`reelRun.ts`, `LabViewport`, `useBattleSession`).
+  - Check first whether the browser's effect counts and its drawn frame come from the same `presentation.frame` call on starved frames. `LabViewport` keeps the last `animated` results.
+  - `throwaway/phase5e/replay.mjs` replays a capture through the browser's WASM module, for comparing the two quickly.
+- **Fog of war's sight,** after slice 20b and step 4. Move `FogInput` into `crates/presentation` (web first), then port `fogVisibility`'s rebuild schedule and tile cull over the exported `fog*` compute pipelines. Judge it with a fog-on scene: the reel has none, so it needs a fog-look capture or a battle capture with fog.
+- **Recheck small fireballs' saturation** once the ground is drawn behind them.
