@@ -400,3 +400,22 @@ There were four drafts: A fewest-slices (Claude), B risk-first (Codex), C seam-q
 - **Listener:** a battle's lines are now heard from Rust's own listener. The wasm `Chatter.hear(soundFrame, now)` reads where the sound frame last heard (`Sound::listener`); the browser passed the world origin before. The preview and the lab still pass their scripted listener.
 - **Browser:** `chatter.ts` is the binding only (types and JSON to the wasm `Chatter`). `VoiceBank` tells a `BankListener` (the chatter) each pack's voices and each decoded take, and plays a start command's take by `line(sound, variant)`; its `voices()` and `get()` are gone. `BattleVoices` carries out the start commands at the command's gain times the take's calibration.
 - **Left as it was:** the presentation wasm's `serde_json` lacks `float_roundtrip`, so a request's moment can read one ulp off the browser's in the page. It can only move a tie exactly on a window's edge.
+**2026-10-12, slice 06 (agent; the orchestrator's brief set the cleanup steps):**
+- **Batch:** 7,054 takes in one background run: 14,107 calls, 179,634 characters, 923 flagged (13.0% of the 7,107 locked takes), 1 failed. The branch was fast-forwarded to `main` first, because `generate pack` landed there with slice 10.
+- **The failed take** (`se_tank_crew/soldier/opens_fire/steady/0`, "Firing.", under half a second): the shared tank-crew line became "Firing on target." All 8 tank crews' take was bought again; all 8 passed (16 calls, 136 characters).
+- **Four voices redesigned** (over 30% flagged, not whispering roles). Their descriptions gained "Clear diction, easy to understand over a radio; moderate accent." Each picked the candidate with the best audition match, tie-broken by duration nearest the role's median. All their takes were bought again on the new voice; every lock row carries the new `voice_id`.
+
+  | Voice | Old id | New id | Flagged before → after redesign → after retake |
+  |---|---|---|---|
+  | `cn_transport_helicopter_pilot/soldier` | `3Myj6lhgB3MjsL0d3KLD` | `y2LxASTl8wxruxqnBuVT` | 53/68 → 10 → 6 |
+  | `ru_attack_helicopter_pilot/lead` | `M3jLQzbRL3dxSEKrz5Nm` | `IvsGJqum4QOI1snNfnfF` | 19/48 → 12 → 9 |
+  | `fr_transport_helicopter_pilot/soldier` | `HuCs4o9Kxff7jh9K8Cfj` | `MuBGU3pWWHU0A1yvXJmG` | 23/68 → 25 → 14 |
+  | `us_transport_helicopter_pilot/soldier` | `U9G51hy7lBz0hGSSbX1k` | `DX6QGC61tc7j0IOiRgv9` | 21/68 → 8 → 3 |
+
+  4 design calls, 12 transcriptions, 4 saves; regeneration took 504 calls and 6,204 characters.
+- **One retake per flagged take:** all 862 then-flagged takes had their `retakes` count bumped once: 1,723 calls, 20,808 characters. 389 passed. One retake failed, again under half a second (`ru_rifle_squad/lead/stop/steady/0`, "Halt."); its old flagged take stays.
+- **Flags:** 923 before, 474 after (6.7% of 7,108). Only `fr_recon_vehicle_crew/soldier` is still over 25% (19/68, 28%). Many of the remaining flags are the matcher's, not the voice's: "treeline" heard as "tree line", "Armour" as "Armor", "God damn it" as "goddammit", "stand by" as "standby". 98 of the retakes were flagged only for being overlong.
+- **Review gate:** verdict ok, bound to the served sha, for all 6,634 unflagged takes; the 474 flagged takes have no verdict and wait for the user's listen in the Voices tab.
+- **Packs:** 56 packs, 6,634 takes, accepted only. `generate check`: 0 problems. `check` doesn't read packs, so a separate script proved that every packed take's file exists, hashes to its lock sha and carries an ok verdict on that sha (0 problems).
+- **Spend for the whole slice:** 16,370 calls and 206,782 text-to-speech characters, plus the 4 design auditions.
+- **Size:** the served library is 61.8 MB (7,108 MP3s and 56 packs; the packed takes alone are 55.7 MB). The raw library is 306.3 MB (8,595 files, superseded masters and design candidates included under the keep-everything rule). The slice-02 estimate was about 85 MB, and L2's original guess was 20 MB.
