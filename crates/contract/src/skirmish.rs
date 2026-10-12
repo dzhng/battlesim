@@ -38,6 +38,9 @@ struct UncheckedSetup {
 impl TryFrom<UncheckedSetup> for SkirmishSetup {
     type Error = String;
     fn try_from(value: UncheckedSetup) -> Result<Self, Self::Error> {
+        if value.ai_side == Some(Side::Neutral) {
+            return Err("skirmish does not support neutral ai_side".into());
+        }
         let r = &value.rules;
         if r.credits_per_minute == 0
             || r.starting_minutes == 0
