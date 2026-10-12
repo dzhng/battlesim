@@ -1,6 +1,6 @@
 //! Observation-bound player-match policy; all outcomes remain ordinary commands.
 use contract::catalog::{AltitudeLayer, Category, Faction, TypeIndex};
-use contract::command::Order;
+use contract::command::{Order, TargetRef};
 use contract::encounter::EntrySite;
 use contract::ids::{Side, Tick, UnitId};
 use contract::observation::ObservationFrame;
@@ -192,7 +192,7 @@ impl BalancedDoctrine {
                 .copied()
                 .filter(|&k| rules.catalog.get(k).has_role(role))
                 .collect();
-            if matching.is_empty() {
+            if matching.is_empty() && role != "artillery" {
                 matching = eligible
                     .iter()
                     .copied()
@@ -229,6 +229,7 @@ impl BalancedDoctrine {
                 ("at", Category::Inf, 0),
                 ("infantry", Category::Inf, 0),
                 ("light_vehicle", Category::Veh, 0),
+                ("artillery", Category::Sup, 0),
                 ("logistics", Category::Sup, 0),
             ],
             Doctrine::AirDenial => [
@@ -239,6 +240,7 @@ impl BalancedDoctrine {
                 ("light_vehicle", Category::Veh, 0),
                 ("infantry", Category::Inf, 2),
                 ("recon", Category::Rec, 0),
+                ("artillery", Category::Sup, 0),
                 ("logistics", Category::Sup, 0),
             ],
             _ => [
@@ -249,6 +251,7 @@ impl BalancedDoctrine {
                 ("recon", Category::Rec, 0),
                 ("at", Category::Inf, 0),
                 ("light_vehicle", Category::Veh, 0),
+                ("artillery", Category::Sup, 0),
                 ("logistics", Category::Sup, 0),
             ],
         };
@@ -309,6 +312,7 @@ impl BalancedDoctrine {
                         ("recon", Category::Rec),
                         ("at", Category::Inf),
                         ("light_vehicle", Category::Veh),
+                        ("artillery", Category::Sup),
                         ("helicopter", Category::Hel),
                     ];
                     let selected = if low_air_demand {
@@ -393,6 +397,33 @@ impl BalancedDoctrine {
             for unit in &own {
                 if rules.catalog.get(unit.kind).has_role("logistics") {
                     continue;
+                }
+                if unit.engagement == contract::command::Engagement::FireAtWill {
+                    if let Some(target) = frame
+                        .identified
+                        .iter()
+                        .filter(|target| unit_can_engage_target(rules, unit.kind, target.kind))
+                        .min_by(|a, b| {
+                            distance3(unit.position, a.position)
+                                .total_cmp(&distance3(unit.position, b.position))
+                                .then(a.id.cmp(&b.id))
+                        })
+                    {
+                        orders.push(Order::Attack {
+                            units: vec![unit.id],
+                            target: TargetRef::Identified { id: target.id },
+                        });
+                        continue;
+                    }
+                    if rules.catalog.get(unit.kind).has_role("artillery") {
+                        if let Some(point) = artillery_ground_guess(unit, frame, rules) {
+                            orders.push(Order::Attack {
+                                units: vec![unit.id],
+                                target: TargetRef::Ground { point },
+                            });
+                            continue;
+                        }
+                    }
                 }
                 let available: Vec<_> = view
                     .objectives
@@ -547,6 +578,94 @@ impl SkirmishPolicy for BalancedDoctrine {
 
 fn distance(a: [f64; 2], b: [f64; 2]) -> f64 {
     libm::hypot(a[0] - b[0], a[1] - b[1])
+}
+
+fn distance3(a: [f64; 3], b: [f64; 3]) -> f64 {
+    libm::hypot(a[0] - b[0], a[1] - b[1])
+}
+
+fn unit_can_engage_target(rules: &Rules, kind: TypeIndex, target: TypeIndex) -> bool {
+    let layer = rules.catalog.get(target).mobility.layer();
+    rules.catalog.mounts(kind).iter().any(|mount| {
+        mount
+            .def
+            .weapons
+            .iter()
+            .filter_map(|weapon| rules.weapons.get(weapon))
+            .any(|weapon| weapon.against(layer).is_some())
+    })
+}
+
+/// Derive a deliberately uncertain public aim point from a live contact. The
+/// policy never sees the hidden emitter: it uses only the contact's area,
+/// optional identified type and the observed velocity of a matching sighting.
+fn artillery_ground_guess(
+    unit: &contract::observation::OwnUnit,
+    frame: &ObservationFrame,
+    rules: &Rules,
+) -> Option<[f64; 3]> {
+    let contact = frame
+        .contacts
+        .iter()
+        .filter(|contact| {
+            contact.layer == AltitudeLayer::Ground && frame.tick <= contact.expires_tick
+        })
+        .filter_map(|contact| {
+            let matching = contact.kind.and_then(|kind| {
+                frame
+                    .identified
+                    .iter()
+                    .filter(|target| target.kind == kind)
+                    .min_by(|a, b| {
+                        distance3(a.position, contact.center)
+                            .total_cmp(&distance3(b.position, contact.center))
+                            .then(a.id.cmp(&b.id))
+                    })
+            });
+            let motion_s = matching.map_or(0.0, |_target| {
+                (frame.tick.saturating_sub(contact.evidence_tick) as f64 / f64::from(rules.tick_hz))
+                    .min(3.0)
+            });
+            let velocity = matching.map_or([0.0, 0.0], |target| target.velocity);
+            let predicted = [
+                contact.center[0] + velocity[0] * motion_s,
+                contact.center[1] + velocity[1] * motion_s,
+            ];
+            let dx = predicted[0] - unit.position[0];
+            let dy = predicted[1] - unit.position[1];
+            let range = libm::hypot(dx, dy);
+            let artillery = rules.catalog.mounts(unit.kind).iter().flat_map(|mount| {
+                mount
+                    .def
+                    .weapons
+                    .iter()
+                    .filter_map(|weapon| rules.weapons.get(weapon))
+                    .filter(|weapon| {
+                        weapon.ballistics.trajectory == contract::ballistics::Trajectory::Indirect
+                    })
+            });
+            let mut min_range = f64::INFINITY;
+            let mut max_range: f64 = 0.0;
+            for weapon in artillery {
+                if let Some(fire) = weapon.against(AltitudeLayer::Ground) {
+                    min_range = min_range.min(weapon.min_range_m);
+                    max_range = max_range.max(fire.range_m);
+                }
+            }
+            (max_range > 0.0 && range >= min_range && range <= max_range)
+                .then_some((contact, predicted, range))
+        })
+        .min_by(|(_, _, a), (_, _, b)| a.total_cmp(b))?;
+    let (contact, predicted, _) = contact;
+    // Bias within the reported area using a stable golden-angle offset. This
+    // keeps guesses visibly fallible while remaining deterministic in replay.
+    let angle = f64::from(contact.id.0) * 2.399963229728653;
+    let bias = contact.radius.min(40.0) * 0.35;
+    Some([
+        predicted[0] + libm::cos(angle) * bias,
+        predicted[1] + libm::sin(angle) * bias,
+        contact.center[2],
+    ])
 }
 
 fn recon_post(

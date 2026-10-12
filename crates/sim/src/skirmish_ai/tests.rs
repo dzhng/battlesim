@@ -494,3 +494,143 @@ fn recon_moves_to_a_sensor_standoff_before_objective() {
     assert!(goal[1] < 500.0);
     assert!(distance(goal, [500.0, 500.0]) > 100.0);
 }
+
+#[test]
+fn opening_procures_an_authored_artillery_role() {
+    let mut authored = deck();
+    crate::fixtures::patch_catalog(
+        &mut authored,
+        "units",
+        "test_jeep",
+        json!({
+            "roles": ["artillery"],
+            "roster": { "factions": ["us"], "category": "sup", "family_name": "Test", "variant": "Test artillery" }
+        }),
+    );
+    let rules: Rules = serde_json::from_value(authored).unwrap();
+    let (_, frame, entry) = empty_match();
+    let orders = BalancedDoctrine::default().decide(
+        Side::Red,
+        Faction::Us,
+        &entry,
+        &frame,
+        &rules,
+        |_, _| Some(1.0),
+    );
+    assert!(orders.iter().any(|order| matches!(
+        order,
+        Order::ConfirmPurchase { variant, .. }
+            if rules.catalog.by_id(variant).has_role("artillery")
+    )));
+}
+
+#[test]
+fn active_policy_uses_an_ordinary_attack_for_a_known_target() {
+    let (rules, mut frame, entry) = empty_match();
+    let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
+        "map":{"size":[1000,1000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
+        "rules":deck(),"units":[{"side":"red","kind":"test_jeep","position":[500,100]}],
+        "events":[],"scripts":[]
+    }))
+    .unwrap();
+    let battle = crate::battle::Battle::new(&setup, 1);
+    frame.own = battle.observe(Side::Red).own.clone();
+    let view = frame.skirmish.as_mut().unwrap();
+    view.phase = Phase::Active;
+    view.credits = 0.0;
+    frame
+        .identified
+        .push(contract::observation::IdentifiedUnit {
+            id: contract::observation::ObservedTargetId(9),
+            kind: rules.catalog.index("test_tank").unwrap(),
+            cost: 100,
+            position: [500.0, 500.0, 0.0],
+            yaw: 0.0,
+            velocity: [0.0, 0.0],
+            members: vec![],
+            member_ids: vec![],
+            member_slots: vec![],
+            member_active_mounts: vec![],
+            weapon_poses: vec![],
+            reversing: false,
+            smoking: false,
+            member_leans: vec![],
+        });
+    let orders = BalancedDoctrine::default().decide(
+        Side::Red,
+        Faction::Us,
+        &entry,
+        &frame,
+        &rules,
+        |_, _| Some(1.0),
+    );
+    assert!(orders.iter().any(|order| matches!(
+        order,
+        Order::Attack { units, target: contract::command::TargetRef::Identified { id } }
+            if units == &vec![UnitId(0)] && *id == contract::observation::ObservedTargetId(9)
+    )));
+}
+
+#[test]
+fn artillery_fires_a_bounded_ground_guess_from_a_contact() {
+    let mut authored = deck();
+    crate::fixtures::patch_catalog(
+        &mut authored,
+        "units",
+        "test_jeep",
+        json!({
+            "roles": ["artillery"],
+            "roster": { "factions": ["us"], "category": "sup", "family_name": "Test", "variant": "Test artillery" }
+        }),
+    );
+    authored["weapons"]["hmg"]["trajectory"] = json!("indirect");
+    let rules: Rules = serde_json::from_value(authored).unwrap();
+    let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
+        "map":{"size":[1000,1000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
+        "rules":deck(),"units":[{"side":"red","kind":"test_jeep","position":[100,100]}],
+        "events":[],"scripts":[]
+    }))
+    .unwrap();
+    let battle = crate::battle::Battle::new(&setup, 1);
+    let (_, mut frame, _) = empty_match();
+    frame.own = battle.observe(Side::Red).own.clone();
+    frame.own[0].kind = rules.catalog.index("test_jeep").unwrap();
+    let view = frame.skirmish.as_mut().unwrap();
+    view.phase = Phase::Active;
+    view.credits = 0.0;
+    frame
+        .contacts
+        .push(contract::observation::ApproximateContact {
+            id: contract::observation::ContactId(4),
+            source: contract::observation::ContactSource::Firing,
+            center: [220.0, 220.0, 0.0],
+            layer: contract::catalog::AltitudeLayer::Ground,
+            aloft: false,
+            radius: 30.0,
+            evidence_tick: 0,
+            expires_tick: 120,
+            kind: None,
+            heard: 0,
+        });
+    let orders = BalancedDoctrine::default().decide(
+        Side::Red,
+        Faction::Us,
+        &entry_from([100.0, 100.0]),
+        &frame,
+        &rules,
+        |_, _| Some(1.0),
+    );
+    assert!(orders.iter().any(|order| matches!(
+        order,
+        Order::Attack { units, target: contract::command::TargetRef::Ground { point } }
+            if units == &vec![UnitId(0)] && point[0] != 220.0 && point[1] != 220.0
+    )));
+}
+
+fn entry_from(center: [f64; 2]) -> EntrySite {
+    EntrySite {
+        side: Side::Red,
+        center,
+        yaw: 0.0,
+    }
+}
