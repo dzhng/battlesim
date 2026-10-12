@@ -635,7 +635,7 @@ export async function createSceneryLayer(
       staged: createStagedLevels(chunks),
       casts,
       meshes,
-      lodPx: lodPx.map((value) => value * lodScale) as TierView["lodPx"],
+      lodPx: lodPx.map((value) => value * lodScale) as unknown as TierView["lodPx"],
       far: chunks.sorted.map((instances) => {
         const buffer = scope.own(instanceBuffer(root, instances.length / INSTANCE_FLOATS));
         if (instances.length) buffer.write(instances.buffer);
