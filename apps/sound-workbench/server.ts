@@ -9,7 +9,8 @@ import { validateVoiceCatalog } from "../../packages/battle-audio/src/voices/voi
 import type { AudioPresentation } from "../../packages/battle-audio/src/audioPresentation";
 import type { Draft, Review, Save, Snapshot } from "./src/protocol";
 import { WorkbenchError, equal, hash, jsonRoutes, object } from "./http";
-import { VoiceWorkbenchStore, generateTool, voiceWorkbenchMiddleware } from "./voiceStore";
+import { GenerationQueue, generateTool, musicWorkbenchMiddleware } from "./generation";
+import { VoiceWorkbenchStore, voiceWorkbenchMiddleware } from "./voiceStore";
 
 interface Inputs {
   texts: string[];
@@ -88,6 +89,7 @@ export class SoundWorkbenchStore {
       vehicles: input.audio.vehicles,
       footsteps: input.audio.footsteps,
       runMps: input.runMps,
+      music: input.audio.music,
       // A glance is a contact too: each round may choose its ricochet.
       materials: [...Object.keys(input.audio.impacts), GLANCE],
     };
@@ -206,10 +208,15 @@ export function soundWorkbenchPlugin(root: string): Plugin {
       type Middleware = ReturnType<typeof jsonRoutes>;
       let sounds: Promise<Middleware> | undefined;
       let voices: Promise<Middleware> | undefined;
+      // Voices and music share one tool queue, so the tool's files keep one writer.
+      const queue = new GenerationQueue(generateTool(root));
+      const music = musicWorkbenchMiddleware(queue);
       // Config loading precedes Vite aliases; shared runtime validation loads through its own module graph.
       const load = (path: string) => server.ssrLoadModule(resolve(root, path));
       server.middlewares.use(async (request, response, next) => {
         if (!request.url?.startsWith("/__sound-workbench/")) return next();
+        if (request.url.startsWith("/__sound-workbench/music/"))
+          return music(request, response, next);
         const voice = request.url.startsWith("/__sound-workbench/voices/");
         const middleware = voice
           ? (voices ??= rosterRows(root).then((roster) =>
@@ -217,7 +224,7 @@ export function soundWorkbenchPlugin(root: string): Plugin {
                 new VoiceWorkbenchStore(
                   root,
                   (value) => validateVoiceCatalog(value, roster),
-                  generateTool(root),
+                  queue,
                 ),
               ),
             ))

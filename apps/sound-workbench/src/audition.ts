@@ -1,6 +1,9 @@
 import { SoundBank } from "../../../packages/battle-audio/src/soundBank";
 import type { SoundCatalog } from "../../../packages/battle-audio/src/catalog";
+import type { MusicTrack } from "../../../packages/battle-audio/src/music/musicCatalog";
+import { MusicPlayer } from "../../../packages/battle-audio/src/music/musicPlayer";
 import { sourceNormalization } from "../../../packages/battle-audio/src/loudness";
+import type { LineSink, VoiceLine } from "../../../packages/battle-audio/src/voices/chatter";
 
 // A memoryless ceiling preserves safe short attacks; compressor startup can
 // attenuate a brief report before its gain has settled.
@@ -10,6 +13,12 @@ const AUDITION_LIMIT_CURVE = Float32Array.from({ length: 2049 }, (_, index) =>
 
 /** The pause between takes played back to back, as between two lines of radio traffic. */
 const VOICE_GAP_S = 0.35;
+
+/** An audition stopped or replaced while it loaded just never sounds. */
+const unlessAborted = (error: unknown): null => {
+  if (error instanceof DOMException && error.name === "AbortError") return null;
+  throw error;
+};
 
 /** A sounding loop of a live mix, keyed so a slot's level and rate can glide. */
 export interface LiveLoop {
@@ -39,7 +48,23 @@ export interface Auditioner {
   ): Promise<void>;
   /** Plays served voice takes back to back, each calibrated like a clip. */
   voice(urls: readonly string[]): Promise<void>;
+  /** Opens the battle's own music player, silent until told what to play. */
+  music(tracks: Record<string, MusicTrack>): Promise<Pick<MusicPlayer, "crossfadeTo" | "stop">>;
+  /** Opens an audition of voice lines: `prepare` loads on its context, and the
+   *  sink plays each line calibrated like a take, on a clock from 0. Null when
+   *  stopped or replaced while preparing. */
+  lines<T>(
+    prepare: (context: BaseAudioContext, signal: AbortSignal) => Promise<T>,
+  ): Promise<LineAudition<T> | null>;
   stop(): void;
+}
+
+/** A running audition of voice lines. */
+export interface LineAudition<T> {
+  prepared: T;
+  sink: LineSink;
+  /** Still sounding: no later audition or stop has replaced it. */
+  current(): boolean;
 }
 
 /** User-triggered audition uses the production bank, including its variation and support mixing. */
@@ -48,8 +73,11 @@ export class SoundAuditioner implements Auditioner {
   private controller: AbortController | null = null;
   private bank: SoundBank | null = null;
   private sources = new Set<AudioBufferSourceNode>();
+  private player: MusicPlayer | null = null;
 
   stop() {
+    this.player?.dispose();
+    this.player = null;
     this.controller?.abort();
     this.controller = null;
     for (const source of this.sources) source.stop();
@@ -91,7 +119,7 @@ export class SoundAuditioner implements Auditioner {
       };
       // Whether this audition still sounds: a later one, or a stop, ends it.
       const current = () => this.controller === controller;
-      return { context, bank, prepared, level, start, current };
+      return { context, bank, prepared, level, start, current, output };
     } catch (error) {
       if (this.controller === controller) this.stop();
       throw error;
@@ -140,17 +168,33 @@ export class SoundAuditioner implements Auditioner {
       kind === "clip"
         ? bank!.clip(id, signal)
         : bank!.prepare([id], signal).then(() => bank!.get(id, variant)),
-    ).catch((error: unknown) => {
-      // A one-shot stopped or replaced while it loaded just never sounds.
-      if (error instanceof DOMException && error.name === "AbortError") return null;
-      throw error;
-    });
+    ).catch(unlessAborted);
     if (!opened) return;
     const { prepared, start, current } = opened;
     const loop = kind === "clip" ? catalog.clips[id].loop : catalog.sounds[id].loop;
     const { source } = start(prepared, gain, loop);
     source.onended = () => {
       if (current()) this.stop();
+    };
+  }
+
+  async lines<T>(prepare: (context: BaseAudioContext, signal: AbortSignal) => Promise<T>) {
+    const opened = await this.open(null, (_, signal, context) => prepare(context, signal)).catch(
+      unlessAborted,
+    );
+    if (!opened) return null;
+    const { context, prepared, start, current } = opened;
+    const origin = context.currentTime;
+    const now = () => context.currentTime - origin;
+    return {
+      prepared,
+      current,
+      sink: {
+        now,
+        play: (line: VoiceLine) => {
+          if (current()) start(line.buffer, 1, false, Math.max(0, line.at - now()));
+        },
+      },
     };
   }
 
@@ -163,10 +207,7 @@ export class SoundAuditioner implements Auditioner {
           return context.decodeAudioData(await response.arrayBuffer());
         }),
       ),
-    ).catch((error: unknown) => {
-      if (error instanceof DOMException && error.name === "AbortError") return null;
-      throw error;
-    });
+    ).catch(unlessAborted);
     if (!opened) return;
     const { prepared, start, current } = opened;
     let delay = 0;
@@ -179,5 +220,11 @@ export class SoundAuditioner implements Auditioner {
       last.onended = () => {
         if (current()) this.stop();
       };
+  }
+
+  /** Music streams at its catalog gain, as in battle: the level is the track's, not the calibration's. */
+  async music(tracks: Record<string, MusicTrack>) {
+    const { context, output } = await this.open(null, async () => null);
+    return (this.player = new MusicPlayer(context, tracks, output));
   }
 }

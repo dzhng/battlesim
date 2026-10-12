@@ -1,4 +1,5 @@
 import type { NearFar } from "./audioPresentation";
+import { MOODS, type MusicCatalog } from "./music/musicCatalog";
 import { SOUNDS } from "./synth";
 
 export interface Generated {
@@ -12,6 +13,17 @@ export interface Generated {
   date: string;
   plan: "Duet ElevenLabs";
 }
+/** A generated master in the library: how it was made, where its raw bytes live. */
+export interface GeneratedSource extends Generated {
+  /** What the generator was asked for. */
+  prompt: string;
+  /** The requested length, part of what the master is a function of. */
+  length_s: number;
+  /** The raw master, under `assets/source/audio/`. */
+  path: string;
+  sha256: string;
+}
+/** A pinned third-party recording; only these are cropped into clips. */
 export interface SoundSource {
   label: string;
   author: string;
@@ -83,25 +95,8 @@ export interface ShotChoice {
   far: string;
   gain: number;
 }
-/** A streamed track, served as `music/<id>.<sha8>.mp3` (see `musicUrl`). */
-export interface MusicTrack {
-  /** The `sources` record it was encoded from. */
-  source: string;
-  /** Of the served MP3. */
-  sha256: string;
-  gain: number;
-}
-export const MOODS = ["menu", "tension", "combat"] as const;
-export type Mood = (typeof MOODS)[number];
-export interface MusicCatalog {
-  moods: Record<Mood, string[]>;
-  tracks: Record<string, MusicTrack>;
-}
-/** The served file: a content hash in the name, so a re-encoded track never meets a cached one. */
-export const musicUrl = (id: string, track: MusicTrack) =>
-  `/audio/music/${id}.${track.sha256.slice(0, 8)}.mp3`;
 export interface SoundCatalog {
-  sources: Record<string, SoundSource>;
+  sources: Record<string, SoundSource | GeneratedSource>;
   clips: Record<string, SoundClip>;
   sounds: Record<string, SoundRecipe>;
   /** Firing choices by weapon row; `default` for a row without one. */
@@ -111,6 +106,10 @@ export interface SoundCatalog {
   effects: Record<string, string>;
   music: MusicCatalog;
 }
+export const isGenerated = (source: SoundSource | GeneratedSource): source is GeneratedSource =>
+  (source as GeneratedSource).kind === "Generated";
+/** A clip's crop source, which validation guarantees is a recording. */
+export const recording = (catalog: SoundCatalog, id: string) => catalog.sources[id] as SoundSource;
 const id = /^[a-zA-Z0-9_-]+$/;
 const hash = /^[a-f0-9]{64}$/;
 function record(value: unknown, where: string): Record<string, unknown> {
@@ -135,18 +134,27 @@ export function validateSoundCatalog(value: unknown): SoundCatalog {
     record(source, `source ${name}`);
     if (
       !id.test(name) ||
-      typeof source.label !== "string" ||
-      typeof source.author !== "string" ||
-      !(LICENSES as readonly string[]).includes(source.license) ||
-      !source.url.startsWith("https://") ||
-      !/^assets\/third-party\/audio\/[a-zA-Z0-9_.-]+$/.test(source.path) ||
-      !hash.test(source.sha256)
+      !hash.test(source.sha256) ||
+      !(isGenerated(source)
+        ? typeof source.generator === "string" &&
+          typeof source.model === "string" &&
+          typeof source.prompt === "string" &&
+          finite(source.length_s, 1, 600) &&
+          /^\d{4}-\d{2}-\d{2}$/.test(source.date) &&
+          source.plan === "Duet ElevenLabs" &&
+          /^assets\/source\/audio\/music\/[a-zA-Z0-9_.-]+$/.test(source.path)
+        : typeof source.label === "string" &&
+          typeof source.author === "string" &&
+          (LICENSES as readonly string[]).includes(source.license) &&
+          source.url.startsWith("https://") &&
+          /^assets\/third-party\/audio\/[a-zA-Z0-9_.-]+$/.test(source.path))
     )
       throw new Error(`source ${name}: invalid provenance`);
   }
   const roles = ["shot", "launch", "impact", "explosion", "loop", "reload", "mechanical", "other"];
   const crop = (c: SourceCrop) =>
     Object.hasOwn(catalog.sources, c.source) &&
+    !isGenerated(catalog.sources[c.source]) &&
     Array.isArray(c.source_frames) &&
     c.source_frames.length === 2 &&
     c.source_frames.every(Number.isSafeInteger) &&

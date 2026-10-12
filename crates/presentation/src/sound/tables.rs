@@ -82,15 +82,6 @@ pub struct Buses {
     pub voices: f64,
 }
 
-/// Music dipping under voice lines: by `depth`, in `attack_s`, back in `release_s`.
-#[derive(Clone, Copy, Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct Ducking {
-    pub depth: f64,
-    pub attack_s: f64,
-    pub release_s: f64,
-}
-
 /// Full within `ref_m`, then inverse (`rolloff`) down toward `floor`, a
 /// share never dropped below within `max_m`, and silent past it. A voice
 /// quieter than `cull` at the listener is not started.
@@ -190,7 +181,11 @@ pub struct AudioPresentation {
     pub vehicles: HashMap<String, VehicleSound>,
     pub footsteps: Footsteps,
     pub fires: HashMap<String, FireSound>,
-    pub music: Ducking,
+    /// Battle music's mood direction and ducking, and how unit voice lines
+    /// are chosen: the browser's music director and chatter own these for
+    /// now (barks in battle are not built), so the frame leaves them unread.
+    pub music: Value,
+    pub voices: Value,
     pub ambience: OneShot,
     pub cues: Cues,
 }
