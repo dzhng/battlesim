@@ -3,7 +3,7 @@
 // once `start` is called (the battle's own sounds are ready), and each set
 // once. A line plays dry and centred on the mixer's voices bus: an answer is
 // the owner's radio, never placed in the world.
-import { sourceNormalization } from "../loudness";
+import { sourceNormalization } from "../soundBank";
 import { Chatter, type ChatterRules, type LineSink, type VoiceLine } from "./chatter";
 import type { ResponseRequest } from "./responses";
 import { VoiceBank, type PackSource } from "./voiceBank";
