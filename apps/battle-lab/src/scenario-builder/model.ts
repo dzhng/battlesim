@@ -20,6 +20,7 @@ export interface BuilderSlot {
   side: SideName;
   faction?: Faction;
   controller: BuilderController;
+  human_capable: boolean;
   units: number[];
 }
 
@@ -88,9 +89,29 @@ export function createBuilderDraft(rules: GameRules, units: UnitCatalog): Scenar
       scripts: [],
     },
     slots: [
-      { id: "blue-1", side: "blue", faction: "us", controller: "human", units: [0] },
-      { id: "red-1", side: "red", faction: "eastern", controller: "active_ai", units: [1] },
-      { id: "neutral-1", side: "neutral", controller: "passive_ai", units: [] },
+      {
+        id: "blue-1",
+        side: "blue",
+        faction: "us",
+        controller: "human",
+        human_capable: true,
+        units: [0],
+      },
+      {
+        id: "red-1",
+        side: "red",
+        faction: "eastern",
+        controller: "active_ai",
+        human_capable: false,
+        units: [1],
+      },
+      {
+        id: "neutral-1",
+        side: "neutral",
+        controller: "passive_ai",
+        human_capable: false,
+        units: [],
+      },
     ],
     mode: "sandbox",
     victory: { source: "return false" },
