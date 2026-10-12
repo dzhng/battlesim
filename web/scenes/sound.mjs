@@ -273,7 +273,57 @@ export async function run(ctx) {
     cost.p95 < 2,
     `per frame p50 ${cost.p50.toFixed(3)} ms, p95 ${cost.p95.toFixed(3)} ms; offline render of 8 s ${mix.renderMs.toFixed(0)} ms`,
   );
+  await responsesHeard(ctx, page);
   await auditionTour(ctx, page);
+}
+
+/** Units answering their owner: the lab plays a selection, a group's order
+ *  (asked twice) and a refused order through the battle's voice lines, from
+ *  a stand-in pack of the pilot set's takes (`soundResponses.ts`). Each answer
+ *  is played once, on the voices bus, when it was asked for. */
+async function responsesHeard(ctx, page) {
+  const r = await page.evaluate(() => window.__sound.responses());
+  const wav = Buffer.from(r.wav, "base64");
+  await writeFile(ctx.evidencePath("responses.wav"), wav);
+  const { mono } = decodeWav(wav);
+  const rms = (from, to) => {
+    const a = Math.max(0, Math.round(from * r.sampleRate));
+    const b = Math.min(mono.length, Math.round(to * r.sampleRate));
+    let sum = 0;
+    for (let i = a; i < b; i++) sum += mono[i] * mono[i];
+    return db(Math.sqrt(sum / Math.max(1, b - a)));
+  };
+  const lines = r.lines.map((line) => ({
+    ...line,
+    rmsDb: rms(line.at, line.at + line.duration),
+    waitedS: line.at - (r.asked.find((a) => a.trigger === line.trigger)?.at ?? NaN),
+  }));
+  const before = rms(0, r.asked[0]?.at ?? 0);
+  const peak = levels(decodeWav(wav)).peak;
+  await ctx.writeEvidence("responses.json", {
+    ...r,
+    wav: undefined,
+    lines,
+    silenceBeforeDb: before,
+    peak,
+  });
+  ctx.check(
+    "each answer asked for plays once: a selection, a group's order, a refusal",
+    r.errors.length === 0 &&
+      JSON.stringify(lines.map((l) => l.trigger)) ===
+        JSON.stringify(["selected", "move", "refused"]) &&
+      r.dropped.length === 1 &&
+      r.dropped[0].reason === "group",
+    `${lines.map((l) => `${l.trigger} by ${l.speaker} (${l.voice} take ${l.take})`).join("; ")}; dropped ${JSON.stringify(r.dropped)}; errors ${r.errors.length}`,
+  );
+  ctx.check(
+    "every answer is heard on the voices bus within a second of being asked, never clipping",
+    lines.length === 3 &&
+      lines.every((l) => l.rmsDb > -40 && l.waitedS >= 0 && l.waitedS <= 1) &&
+      before < -80 &&
+      peak < 0.999,
+    `${lines.map((l) => `${l.trigger} ${l.rmsDb.toFixed(1)} dBFS after ${l.waitedS.toFixed(2)} s`).join("; ")}; before ${before.toFixed(0)} dBFS; peak ${db(peak).toFixed(1)} dBFS`,
+  );
 }
 
 /** Exercise the production auditioner with native offline contexts: fresh
@@ -282,12 +332,17 @@ async function auditionTour(ctx, page) {
   const modules = [
     "../../apps/sound-workbench/src/audition.ts",
     "../../packages/battle-audio/src/shippedSounds.ts",
-    "../../packages/battle-audio/src/loudness.ts",
+    "../../packages/battle-audio/src/soundBank.ts",
     "../../packages/battle-audio/src/synth.ts",
   ].map((path) => `/@fs${fileURLToPath(new URL(path, import.meta.url))}`);
   const report = await page.evaluate(async (urls) => {
-    const [{ SoundAuditioner }, { gameSounds }, { maxMomentaryLoudness }, { SOUNDS, synthesize }] =
-      await Promise.all(urls.map((url) => import(/* @vite-ignore */ url)));
+    const [
+      { SoundAuditioner },
+      { gameSounds },
+      { loadSoundModule, maxMomentaryLoudness, synthesize },
+      { SOUNDS },
+    ] = await Promise.all(urls.map((url) => import(/* @vite-ignore */ url)));
+    await loadSoundModule();
     const Original = window.AudioContext;
     let context;
     let frames;

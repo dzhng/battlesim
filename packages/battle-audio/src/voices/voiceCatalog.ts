@@ -174,6 +174,29 @@ export function validateVoiceCatalog(value: unknown, roster: unknown): VoiceCata
   }
   return catalog;
 }
+/** The set a unit type speaks with when `faction` fields it: its assignment, by
+ *  faction for a shared row; null for a unit with none (test and menu rows). */
+export function assignedSet(
+  assignments: VoiceCatalog["assignments"],
+  unit: string,
+  faction: string,
+): string | null {
+  const assignment = assignments[unit];
+  return typeof assignment === "string" ? assignment : (assignment?.[faction] ?? null);
+}
+/** Every set `faction` speaks with: the sets of the unit types its roster fields. */
+export function factionSets(
+  assignments: VoiceCatalog["assignments"],
+  units: Iterable<{ id: string; factions: readonly string[] }>,
+  faction: string,
+): string[] {
+  const sets = new Set<string>();
+  for (const { id, factions } of units) {
+    const set = factions.includes(faction) ? assignedSet(assignments, id, faction) : null;
+    if (set) sets.add(set);
+  }
+  return [...sets].sort();
+}
 export function lineText(
   catalog: VoiceCatalog,
   set: string,
@@ -249,7 +272,7 @@ export function packUrl(set: string): string {
 export function voicePack(
   catalog: VoiceCatalog,
   set: string,
-  served: (take: string) => { sha256: string; duration_s: number } | null,
+  served: (take: string, which: VoiceTake) => { sha256: string; duration_s: number } | null,
 ): VoicePack {
   const takes: PackTake[] = [];
   for (const voice of catalog.sets[set].voices)
@@ -257,7 +280,7 @@ export function voicePack(
       for (const intensity of ["steady", "stressed"] as const)
         for (const take of [0, 1]) {
           const id: VoiceTake = { set, voice: voice.id, trigger, intensity, take };
-          const file = served(takeId(id));
+          const file = served(takeId(id), id);
           if (file)
             takes.push({
               voice: voice.id,

@@ -68,7 +68,7 @@ impl Pass for DepthPrepass {
 
 /// The grass grown for the view, then the sky, then the lit world over it at
 /// the prepass's depth, with the fog mask beside it (`encode`): the terrain,
-/// the skirt, the models, the grass, the backdrop, and glass last, over
+/// the skirt, the models, the grass, the backdrop, the water, and glass last, over
 /// everything. Both resolve: the lit world into `lit`, the mask into
 /// `fog_mask`.
 pub struct WorldColour {
@@ -143,6 +143,7 @@ impl Pass for WorldColour {
         }
         inputs.grass.draw(&mut pass, &frame);
         inputs.ground.draw_backdrop(&mut pass, &frame);
+        inputs.ground.draw_water(&mut pass, &frame);
         self.glass.set(&mut pass, &groups);
         models.draw(&mut pass, Surface::Blended);
     }

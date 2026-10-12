@@ -31,6 +31,12 @@ wherever it runs.
   sky's corner rays.
 - [The light](src/light.rs): the fixture's light resolved into the sky's,
   bloom's and grade's uniform records, as the browser's sky model resolves it.
+- [Sound](src/sound/): what a battle hears, when, where and how loud, from the
+  same publication the effects read, the frame's emitters and the side's
+  hearing cues, as commands a player carries out (start, glide, stop a voice;
+  listen from here); and the synthesized baselines and recipe buffers every
+  player prepares alike. `tests/sound.rs` holds it to every command the
+  browser's TypeScript frame gave over the sound lab's firefight.
 
 ## How a battle looks
 

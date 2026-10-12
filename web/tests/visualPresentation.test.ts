@@ -69,6 +69,7 @@ function units(): DrawnUnits {
     types: {
       rifle: {
         hull: null,
+        vehicleClass: null,
         airborne: false,
         roles: ["hand"],
         mounts: [{ weapon: "rifle", on: null, activePose: null }],
@@ -76,6 +77,7 @@ function units(): DrawnUnits {
       },
       tank: {
         hull: { halfTrack: 1.4 },
+        vehicleClass: "tracked_heavy",
         airborne: false,
         roles: ["gun"],
         mounts: [{ weapon: "cannon", on: null, activePose: null }],

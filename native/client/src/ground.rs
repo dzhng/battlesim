@@ -87,12 +87,14 @@ pub struct Ground {
     terrain: Mesh,
     skirt: Mesh,
     backdrop: Mesh,
+    water: Mesh,
     identity: Buffer,
     prepass: Bound,
     caster: Bound,
     lit_terrain: Bound,
     lit_skirt: Bound,
     lit_backdrop: Bound,
+    lit_water: Bound,
 }
 
 impl Ground {
@@ -201,6 +203,7 @@ impl Ground {
             terrain: Mesh::new(device, "terrain", &terrain),
             skirt: Mesh::new(device, "skirt", &mesh::skirt(&map.positions)),
             backdrop: Mesh::new(device, "backdrop", &backdrop),
+            water: Mesh::new(device, "water", &mesh::water(&ground.water_cells())),
             identity: buffer(
                 device,
                 "identity",
@@ -212,6 +215,7 @@ impl Ground {
             lit_terrain: pipelines.bound("worldTerrain"),
             lit_skirt: pipelines.bound("worldOpaque"),
             lit_backdrop: pipelines.bound("worldBackdrop"),
+            lit_water: pipelines.bound("worldWater"),
         })
     }
 
@@ -256,5 +260,14 @@ impl Ground {
         all.push(self.layout_group());
         self.lit_backdrop.set(pass, &all);
         self.backdrop.draw(pass, &self.identity);
+    }
+
+    /// The water's surface over the rivers' cells: blended over everything
+    /// opaque, reading depth and writing none.
+    pub fn draw_water(&self, pass: &mut RenderPass, groups: &[(&str, &BindGroup)]) {
+        let mut all = groups.to_vec();
+        all.push(self.layout_group());
+        self.lit_water.set(pass, &all);
+        self.water.draw(pass, &self.identity);
     }
 }

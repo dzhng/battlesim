@@ -108,6 +108,10 @@ pub struct Detail {
 #[serde(rename_all = "camelCase")]
 pub struct UnitType {
     pub hull: Option<Hull>,
+    /// Its vehicle class (`vehicleClass`): the sound row its engine, running
+    /// gear and turret take; none for a squad.
+    #[serde(default)]
+    pub vehicle_class: Option<String>,
     pub airborne: bool,
     pub roles: Vec<String>,
     pub mounts: Vec<TypeMount>,

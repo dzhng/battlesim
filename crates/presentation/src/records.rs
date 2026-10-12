@@ -222,7 +222,8 @@ records! {
     Plain Emitter {
         unit: u32,
         member: u32,
-        /// The unit type's row in the world's kinds, or `NONE` for a soldier.
+        /// The unit type's index in the world's `units.types` (by name), or
+        /// `NONE` for a soldier.
         class: u32,
         /// 1 enemy, 2 reversing.
         flags: u32,

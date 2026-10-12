@@ -25,6 +25,7 @@ import {
   designVoices,
   pickVoice,
 } from "@packages/battle-audio/tools/generate/design";
+import { writePacks } from "@packages/battle-audio/tools/generate/packs";
 import {
   checkVoices,
   generateVoices,
@@ -393,6 +394,102 @@ const pick = (
     replace,
     log: quiet,
   });
+
+describe("voice packs", () => {
+  /** A locked `tank/lead/move/<intensity>/<take>` whose served file holds `bytes`. */
+  function locked(
+    root: string,
+    take: string,
+    bytes: string,
+    record: { verdict?: "ok" | "bad" | "stale"; flagged?: boolean; onDisk?: string } = {},
+  ) {
+    const [intensity, n] = take.split("/");
+    const sha256 = createHash("sha256").update(bytes).digest("hex");
+    const file = `assets/runtime/audio/voices/tank/lead-move-${intensity}-${n}.${sha256.slice(0, 8)}.mp3`;
+    mkdirSync(dirname(join(root, file)), { recursive: true });
+    writeFileSync(join(root, file), record.onDisk ?? bytes);
+    const verdict =
+      record.verdict === "stale"
+        ? { value: "ok", sha256: "f".repeat(64) }
+        : record.verdict && { value: record.verdict, sha256 };
+    return [
+      `tank/lead/move/${take}`,
+      {
+        served_sha256: sha256,
+        duration_s: 1.25,
+        match: { flagged: record.flagged ?? false },
+        ...(verdict ? { verdict } : {}),
+      },
+    ] as const;
+  }
+  function packed(unreviewed: boolean, takes: (readonly [string, object])[], root = workspace()) {
+    writeFileSync(
+      join(root, "fixtures/voices.lock.json"),
+      JSON.stringify({ beds: {}, designs: {}, takes: Object.fromEntries(takes) }),
+    );
+    writePacks({ root, catalog: catalog(), unreviewed, log: quiet });
+    const path = join(root, "assets/runtime/audio/voices/tank/pack.json");
+    return existsSync(path) ? JSON.parse(readFileSync(path, "utf8")) : null;
+  }
+  const listed = (pack: { takes: { intensity: string; take: number }[] } | null) =>
+    pack?.takes.map((take) => `${take.intensity}/${take.take}`) ?? [];
+
+  it("lists only takes judged ok on the bytes served", () => {
+    const root = workspace();
+    const pack = packed(
+      false,
+      [
+        locked(root, "steady/0", "ok", { verdict: "ok" }),
+        // Judged on bytes since replaced; judged bad; never judged.
+        locked(root, "steady/1", "regenerated", { verdict: "stale" }),
+        locked(root, "stressed/0", "bad", { verdict: "bad" }),
+        locked(root, "stressed/1", "unjudged"),
+      ],
+      root,
+    );
+    expect(listed(pack)).toEqual(["steady/0"]);
+    const sha256 = createHash("sha256").update("ok").digest("hex");
+    expect(pack).toEqual({
+      set: "tank",
+      voices: [
+        { id: "lead", speaks: "responses" },
+        { id: "soldier", speaks: "barks" },
+      ],
+      takes: [
+        {
+          voice: "lead",
+          trigger: "move",
+          intensity: "steady",
+          take: 0,
+          url: `/audio/voices/tank/lead-move-steady-0.${sha256.slice(0, 8)}.mp3`,
+          duration_s: 1.25,
+        },
+      ],
+    });
+  });
+
+  it("before review, --unreviewed adds unjudged takes the transcript check passed, never bad or flagged ones", () => {
+    const root = workspace();
+    const takes = [
+      locked(root, "steady/0", "unjudged"),
+      locked(root, "steady/1", "flagged", { flagged: true }),
+      locked(root, "stressed/0", "bad", { verdict: "bad" }),
+      locked(root, "stressed/1", "ok", { verdict: "ok" }),
+    ];
+    expect(listed(packed(true, takes, root))).toEqual(["steady/0", "stressed/1"]);
+    expect(listed(packed(false, takes, root))).toEqual(["stressed/1"]);
+  });
+
+  it("leaves out a take whose served file is not the bytes the lock names", () => {
+    const root = workspace();
+    const pack = packed(
+      false,
+      [locked(root, "steady/0", "ok", { verdict: "ok", onDisk: "other" })],
+      root,
+    );
+    expect(pack).toBeNull();
+  });
+});
 
 describe("voice design", () => {
   it("designs a waiting voice from its description and role audition, and keeps three transcribed candidates", async () => {

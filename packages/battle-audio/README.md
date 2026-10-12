@@ -33,7 +33,7 @@ and downloads only when auditioned, so growing it costs a battle nothing. Baseli
 selectable under their original IDs. A recorded recipe has a distinct ID.
 The bank measures each prepared clip or recipe once and keeps a separate source
 calibration gain. Audition and battle playback apply that gain before their authored
-volume controls. The [loudness owner](src/loudness.ts) uses K-weighted maximum short
+volume controls. The calibration ([`sound::bank`](../../crates/presentation/src/sound/bank.rs)) uses K-weighted maximum short
 windows, so short reports and long quiet tails share a useful reference. This is a
 library calibration, not a measurement of the final battle mix. Source samples,
 synthetic waveforms, decay and stereo balance remain intact; only playback gain
@@ -150,10 +150,35 @@ client's own seeded randomness, never the simulation's. Its takes come from
 `pack.json` in the background; a take not yet loaded is a dropped line, never a
 wait. The sound workbench's chatter preview runs the same two.
 
-The [sound frame](src/soundFrame.ts) owns timing, distance and voice allocation.
-Only implicit presentation slots follow shared effect replacements; an explicit
+A unit answers its owner ([responses](src/voices/responses.ts)) when selected,
+when an order is accepted or refused for a reason the player caused, and when
+an ordered move (or a purchase's drive in) ends after a real journey. One unit
+answers for a group: the one clicked, else the highest-value. Only the owner
+hears an answer, dry and centred on the voices bus. A battle loads the packs
+of the sets its own units and pending purchases speak with, once its sounds are
+ready. `generate pack` writes a set's `pack.json` from the takes judged ok on
+the bytes served; before review, `--unreviewed` also lists unjudged takes the
+transcript check passed.
+
+An unseen enemy's shout reaches the side only as an anonymous hearing cue, so
+it plays a stressed bark from a generic pool of the enemy faction's sets, never
+the speaker's own voice, muffled past understanding. [The shout pool](src/voices/shoutPool.ts)
+only loads those takes, a few per shouting voice from each pack that exists;
+Rust picks the take and places it. With no pack loaded a shout is silent.
+
+What a battle hears, when, where and how loud (timing, distance, the air's
+colour, the voice budget and stealing, loops, footsteps, cues) is decided in
+Rust, once for both clients ([`presentation::sound`](../../crates/presentation/src/sound/));
+the [sound frame](src/soundFrame.ts) only carries its commands out on the
+page's mixer, and native carries the same commands out on `kira`. Only
+implicit presentation slots follow shared effect replacements; an explicit
 recipe selection keeps its identity. The [bank](src/soundBank.ts) prepares live
-and offline buffers through the same asynchronous path. Disposal aborts loading
+and offline buffers through the same asynchronous path: it decodes the
+recordings, and Rust synthesizes, composes and calibrates each recipe
+([`sound::synth`](../../crates/presentation/src/sound/synth.rs),
+[`sound::bank`](../../crates/presentation/src/sound/bank.rs)), so both clients
+play the same samples. The synthesized sounds' names are generated from Rust
+(`synthSounds.gen.ts`). Disposal aborts loading
 and prevents late admission.
 
 The [page audio owner](src/appAudio.ts) retains one context and bank across

@@ -155,7 +155,7 @@ export const Emitter = {
   unit: 0,
   /**  (u32) */
   member: 1,
-  /** The unit type's row in the world's kinds, or `NONE` for a soldier. (u32) */
+  /** The unit type's index in the world's `units.types` (by name), or `NONE` for a soldier. (u32) */
   class: 2,
   /** 1 enemy, 2 reversing. (u32) */
   flags: 3,

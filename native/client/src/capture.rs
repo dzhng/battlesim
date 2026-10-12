@@ -47,6 +47,8 @@ struct Sample {
 pub struct Record {
     pub tick: u64,
     pub sim_time: f64,
+    /// The reel's wall time when the browser drew it, milliseconds.
+    pub reel_ms: f64,
     pub eye: [f64; 3],
     pub target: [f64; 3],
     pub up: [f64; 3],
@@ -194,10 +196,21 @@ impl Replay {
         }
     }
 
-    /// Frames `record`: pushes the publications up to its tick, then asks
-    /// for its frame. A frame that is `drawn` lists every static batch, as a
-    /// renderer that drew the frames between would hold them.
-    pub fn frame(&mut self, record: &Record, drawn: bool) -> Result<&Frame, String> {
+    /// The last frame asked for.
+    pub fn last_frame(&self) -> &Frame {
+        self.presentation.last_frame()
+    }
+
+    /// Frames `record`: pushes the publications up to its tick, `heard`
+    /// after each, then asks for its frame. A frame that is `drawn` lists
+    /// every static batch, as a renderer that drew the frames between would
+    /// hold them.
+    pub fn frame(
+        &mut self,
+        record: &Record,
+        drawn: bool,
+        mut heard: impl FnMut(&Presentation),
+    ) -> Result<&Frame, String> {
         if drawn {
             self.presentation.resend_statics();
         }
@@ -207,6 +220,7 @@ impl Replay {
             .filter(|s| s.tick <= record.tick)
         {
             self.presentation.push_publication(&s.publication, 0.0)?;
+            heard(&self.presentation);
             self.pushed += 1;
         }
         let camera = self.camera(record);

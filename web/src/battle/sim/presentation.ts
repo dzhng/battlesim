@@ -26,7 +26,6 @@ import {
 } from "@packages/battle-renderer/src/light/sceneLight";
 import type { FogStyle } from "@packages/battle-renderer/src/frame/fogStyle";
 import type { Articulation } from "@packages/scene-assets/src/articulation";
-import type { HeardPublication } from "@packages/battle-audio/src/soundFrame";
 import {
   emptyBuildingWalkStats,
   type BuildingWalkStats,
@@ -475,10 +474,10 @@ export class ObservationDecoder {
     return frameViews(buffer(), this.framePtr);
   }
 
-  /** The last publication as sound reads it: its effect publication (with
-   *  the hulls the side watched brew up) and the launches it shows. */
-  soundPublication(): HeardPublication | null {
-    return JSON.parse(this.rust.sound_publication()) as HeardPublication | null;
+  /** The module's presentation, which battle sound hears
+   *  (`battle-audio`'s `SoundFrame`). */
+  get wasm(): Presentation {
+    return this.rust;
   }
 
   /** The last frame as the labs' scenes probe it (`Presentation::probe_json`). */

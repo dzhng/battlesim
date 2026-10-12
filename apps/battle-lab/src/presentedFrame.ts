@@ -1,25 +1,12 @@
 // What the page reads of a presented frame (`crates/presentation`'s
 // `Frame`, through `presentation.ts`) besides drawing it: the counts a
-// capture's plates record, and what audio hears move. And what the page
-// hands the presentation once per battle (`load_world`'s input).
-import type {
-  SoundMotion,
-  SoundSoldier,
-  SoundVehicle,
-} from "@packages/battle-audio/src/soundFrame";
-import {
-  Counts,
-  EFFECT_WORDS,
-  EMITTER_WORDS,
-  Emitter,
-  NONE,
-} from "@packages/battle-renderer/src/records.gen";
-import { vehicleClass, type UnitCatalog } from "@packages/scene-assets/src/units";
+// capture's plates record. And what the page hands the presentation once
+// per battle (`load_world`'s input).
+import { Counts, EFFECT_WORDS } from "@packages/battle-renderer/src/records.gen";
 import type { PresentedCamera, PresentedFrame } from "@web/battle/sim/presentation";
 import { liveCamera, type ViewportCamera } from "@packages/renderer-core/src/cameraUniform";
 import { eyePosition } from "@packages/renderer-core/src/camera3d";
 import { vec3 } from "math";
-import type { ObservationView } from "@web/battle/sim/observationView";
 import type { DrawnUnits } from "@web/battle/benchmark/unitManifest";
 import type { EffectsManifest } from "@web/battle/benchmark/effectManifest";
 import type { SideName } from "@web/battle/sim/protocol";
@@ -107,47 +94,6 @@ export function frameCounts(frame: PresentedFrame): { models: ModelCounts; effec
     },
     effects,
   };
-}
-
-/** What audio hears move this frame (`Frame.emitters`): each drawn vehicle
- *  as its class, keyed apart by side (own even, as the effects key them),
- *  and each drawn soldier. */
-export function frameSound(
-  frame: PresentedFrame,
-  observation: ObservationView,
-  units: UnitCatalog,
-): SoundMotion {
-  const kinds = new Map<number, string>();
-  for (const u of observation.own) kinds.set(u.id * 2, u.kind);
-  for (const e of observation.identified) kinds.set(e.id * 2 + 1, e.kind);
-  for (const c of observation.crashes) kinds.set(c.id * 2 + (c.own ? 0 : 1), c.kind);
-  const motion = { vehicles: [] as SoundVehicle[], soldiers: [] as SoundSoldier[] };
-  const { f32, u32 } = frame.emitters;
-  for (let i = 0; i < frame.emitters.count; i++) {
-    const o = i * EMITTER_WORDS;
-    const position = [
-      f32[o + Emitter.position],
-      f32[o + Emitter.position + 1],
-      f32[o + Emitter.position + 2],
-    ];
-    const flags = u32[o + Emitter.flags];
-    if (u32[o + Emitter.member] !== NONE) {
-      motion.soldiers.push({ id: u32[o + Emitter.member], position });
-      continue;
-    }
-    const key = u32[o + Emitter.unit] * 2 + (flags & 1);
-    const kind = kinds.get(key);
-    motion.vehicles.push({
-      key,
-      vehicleClass: (kind && vehicleClass(units.type(kind))) ?? "default",
-      position,
-      travelL: f32[o + Emitter.motion],
-      travelR: f32[o + Emitter.motion + 1],
-      turret: f32[o + Emitter.motion + 2],
-      reverse: (flags & 2) !== 0,
-    });
-  }
-  return motion;
 }
 
 /** `load_world`'s input: the units and effects sections (`describeUnits`,

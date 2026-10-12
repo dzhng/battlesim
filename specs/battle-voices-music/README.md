@@ -29,13 +29,13 @@
 - [x] 07 — Music player: the `music` and `voices` buses, streaming, the settings sliders, the `music` catalog section, and moving the menu bed over. [slice](slices/07-music-player.md)
 - [x] 08 — Music tracks: 3 combat and 3 tension tracks, the Music tab, and the mood director. Built; the six tracks wait for the user's listen before any battle plays them (slice 14). [slice](slices/08-music-tracks.md)
 - [x] 09 — Chatter: line arbitration, the per-set voice bank, and the 30 s chatter preview. [slice](slices/09-chatter.md)
-- [ ] 10 — Responses in battle: R1–R12.
+- [x] 10 — Responses in battle: R1–R12.
 - [ ] 09b — Chatter in Rust: once the native-parity work (branch `phase5f`) puts sound decisions in `crates/presentation/src/sound/`, port Chatter's rules into `sound/voices.rs`, held to the TS behaviour by vectors the TS writes first; then delete the TS rules. [slice](slices/09b-chatter-in-rust.md) [slice](slices/10-responses.md)
 - [x] 11 — Shout ledger: simulation barks from existing state, not yet published. [slice](slices/11-shout-ledger.md)
 - [x] 12 — Physical barks: B5 (under fire), B15 (incoming missile), B17 (friendly destroyed nearby), plus the anonymous unseen-shout hearing cue. [slice](slices/12-physical-barks.md)
 - [x] 13 — Publish shouts: the publication group and the single named re-bless. [slice](slices/13-publish-shouts.md)
 - [ ] 14 — Barks in battle: barks heard near the camera, and the music mood and ducking driven by own barks. [slice](slices/14-barks-in-battle.md)
-- [ ] 15 — Unseen shouts (client): the muffled generic pool; `cue_voices` deleted. [slice](slices/15-unseen-shouts.md)
+- [x] 15 — Unseen shouts (client): the muffled generic pool; `cue_voices` deleted. [slice](slices/15-unseen-shouts.md)
 - [ ] 16 — Closeout: the full check and verify runs, docs, and close-spec. [slice](slices/16-closeout.md)
 
 **Before you end a pass,** update this section: status, pickup point, ticked items with commits, and blockers. Append any decision the plan didn't make to `choices.md` → Build log, attributed.

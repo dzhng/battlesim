@@ -9,7 +9,9 @@
  * the acknowledgement log. Keys come from `CommandBindings`. Building clicks
  * send the complete selection for authoritative entry and outside gathering;
  * deploy and leaving a building reach only capable units (`commandReach.ts`). Labs and the
- * battle route share it; it sends only real commands. */
+ * battle route share it; it sends only real commands. Its events (`UnitControlEvents`)
+ * let the battle hear orders, their acknowledgements and the selection's growth
+ * (the order flash, and the units' spoken answers). */
 import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
 import type { SimClient } from "../sim/client";
 import type { ObservationView, OwnUnitView } from "../sim/observationView";
@@ -37,19 +39,43 @@ export interface AckEntry {
 
 const LOG_LENGTH = 8;
 
+/** What the player's commands tell the rest of the battle. */
+export interface UnitControlEvents {
+  /** Every order as it is sent, queued or not (the order flash). */
+  onIssue?(order: Order, queued: boolean): void;
+  /** Every order's acknowledgement from the current client: accepted, or refused and why. */
+  onAck?(order: Order, ack: CommandAck, queued: boolean): void;
+  /** The selection gained `added`; `clicked` is the unit clicked to gain them, if one was. */
+  onSelect?(added: readonly number[], clicked: number | null): void;
+}
+
 export function useUnitControl(
   client: SimClient | null,
   observation: ObservationView | null,
-  /** Hears every order as it is sent, queued or not (the order flash). */
-  onIssue?: (order: Order, queued: boolean) => void,
+  events?: UnitControlEvents,
   enabled = true,
 ) {
   const { units: catalog } = useSessionCatalog();
   const enabledRef = useRef(enabled);
   enabledRef.current = enabled;
-  const onIssueRef = useRef(onIssue);
-  onIssueRef.current = onIssue;
+  const eventsRef = useRef(events);
+  eventsRef.current = events;
   const [selected, setSelection] = useState<number[]>([]);
+  // The selection as last heard, and the unit a left-click picked to change it.
+  const heardSelection = useRef<readonly number[]>([]);
+  const clickedRef = useRef<number | null>(null);
+  useEffect(() => {
+    const before = new Set(heardSelection.current);
+    heardSelection.current = selected;
+    const added = selected.filter((id) => !before.has(id));
+    const clicked = clickedRef.current;
+    clickedRef.current = null;
+    if (added.length)
+      eventsRef.current?.onSelect?.(
+        added,
+        clicked !== null && added.includes(clicked) ? clicked : null,
+      );
+  }, [selected]);
   const selectedUnits = useMemo(
     () => selected.flatMap((id) => observation?.own.find((u) => u.id === id) ?? []),
     [observation, selected],
@@ -151,11 +177,13 @@ export function useUnitControl(
   const issue = useCallback(
     async (order: Order, queued = false) => {
       if (!client || !enabledRef.current) return null;
-      onIssueRef.current?.(order, queued);
+      eventsRef.current?.onIssue?.(order, queued);
       const label = describe(order, queued);
       const ack = await client.command(order, queued);
-      if (clientRef.current === client)
+      if (clientRef.current === client) {
         setAcks((log) => [{ seq: ack.seq, label, order, ack }, ...log].slice(0, LOG_LENGTH));
+        eventsRef.current?.onAck?.(order, ack, queued);
+      }
       return ack;
     },
     [client, describe],
@@ -176,6 +204,7 @@ export function useUnitControl(
         const unit = pick.unit;
         const own = observationRef.current?.own ?? [];
         const kind = own.find((u) => u.id === unit)?.kind ?? null;
+        clickedRef.current = kind ? unit : null;
         const similar = clicks.current.click({ ...pick, unit: kind ? unit : null, kind });
         if (similar && kind) {
           // Select similar: every own unit of its type, or of its role

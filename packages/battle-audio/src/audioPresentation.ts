@@ -111,10 +111,15 @@ export interface AudioPresentation {
   /** The countryside bed, never positional. */
   ambience: OneShot;
   /** Unseen enemies, from hearing cues: a sound by `category` or
-   *  `category_moving`, its gain by band, the far band muffled, and a same cue
-   *  not repeated within `repeat_s`. Played from the cue's direction only. */
+   *  `category_moving` (a category with neither is silent), a shout from the
+   *  enemy's pool, its gain by band, the far band muffled, and a same cue not
+   *  repeated within `repeat_s`. Played from the cue's direction only. */
   cues: {
     sounds: Record<string, string>;
+    /** A shout: a stressed bark of the enemy faction's (`ShoutPool`, up to
+     *  `takes_per_voice` of each shouting voice), at `gain` times its band's,
+     *  through a `lowpass_hz` low-pass and a `wet` reverb send. */
+    shout: { gain: number; lowpass_hz: number; wet: number; takes_per_voice: number };
     near_gain: number;
     far_gain: number;
     far_lowpass_hz: number;
@@ -127,7 +132,6 @@ const TABLES = ["shots", "impacts", "impact_scale", "blasts", "vehicles", "fires
 /** Throws on a table without its `default`, or a budget that leaves no transients. */
 export function validateAudio(p: AudioPresentation): AudioPresentation {
   requireDefaults("presentation.audio", p, TABLES);
-  if (!p.cues.sounds.default) throw new Error("presentation.audio.cues.sounds needs a default");
   if (!p.cook_off?.blast || !p.cook_off.landing)
     throw new Error("presentation.audio.cook_off needs a blast and a landing");
   if (!(p.budget.voices > p.budget.loops && p.budget.loops >= 0))
