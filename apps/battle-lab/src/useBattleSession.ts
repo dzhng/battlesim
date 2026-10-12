@@ -498,6 +498,7 @@ export function useBattleSession({
         : null,
     [appearances, world, drawnBuildings],
   );
+  const modelAppearancesFeed = useFeed(modelAppearances);
 
   // What the battle draws, handed to the presentation once its appearances
   // are installed and its wrecks can be fitted: the units and effects as
@@ -1099,7 +1100,12 @@ export function useBattleSession({
      *  animation frame's drawn units and presentation clock, the battle's
      *  presentation (which draws the buildings too), the appearances its
      *  models layer installs, and the GPU's arrival. */
-    viewport: { frame, presentation: presentationSource, appearances: modelAppearances, onReady },
+    viewport: {
+      frame,
+      presentation: presentationSource,
+      appearances: modelAppearancesFeed,
+      onReady,
+    },
     /** What the side knows stands, for a viewport that draws it: the map's
      *  buildings, and what the camera keeps clear of. */
     known: { buildings: buildingsFeed, obstacles: cameraObstaclesFeed },

@@ -241,6 +241,7 @@ function Rows({
     }),
     [appearances],
   );
+  const kitsFeed = useFeed<InstalledAppearances | null>(kits);
 
   // What stands: the whole line-up or one template alone, in one state, less
   // the templates that have no rows for that state.
@@ -395,7 +396,7 @@ function Rows({
         world={worldFeed}
         buildings={buildingsFeed}
         buildingStyle={style}
-        appearances={kits}
+        appearances={kitsFeed}
         initialCamera={cameraAt(query.station, query.at)}
         groundAt={surfaceZ}
         onFrame={placeLabels}

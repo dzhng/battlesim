@@ -139,6 +139,7 @@ function Arena({ map }: { map: MapDefinition }) {
     [world, appearances],
   );
   const worldFeed = useFeed(meshes);
+  const appearancesFeed = useFeed(appearances);
   const surfaceZ = useCallback(
     (x: number, y: number) => world?.view.surface_at(x, y)[0] ?? 0,
     [world],
@@ -295,7 +296,7 @@ function Arena({ map }: { map: MapDefinition }) {
         buildings={buildingsFeed}
         obstacles={obstaclesFeed}
         overlay={overlayFeed}
-        appearances={appearances}
+        appearances={appearancesFeed}
         initialCamera={rig.place(lens, OBSERVER)}
         groundAt={surfaceZ}
         pilot={pilot}

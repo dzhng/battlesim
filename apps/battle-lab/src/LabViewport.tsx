@@ -169,8 +169,10 @@ interface LabViewportProps {
    *  viewport's life: while it gives a framing it owns the camera, input no
    *  longer steers it, and every frame is drawn and reported with its cost. */
   pilot?: ViewportPilot;
-  /** Appearance bundles from `AppearanceLibrary` for the models layer. */
-  appearances?: InstalledAppearances | null;
+  /** Appearance bundles from `AppearanceLibrary` for the models layer, fed
+   *  like the overlay: the bundles and the template library's bytes are
+   *  megabytes a changing prop would copy into React's measures. */
+  appearances?: FeedSource<InstalledAppearances | null>;
   /** Posed models to draw. */
   models?: readonly ModelInstance[];
   /** What a click can pick when no frame hands picks over (the units'
@@ -458,8 +460,7 @@ export function LabViewport({
     previousQualityKey.current = qualityKey;
     void window.__lab?.rebuild?.();
   }, [qualityKey]);
-  const appearancesRef = useRef(appearances);
-  appearancesRef.current = appearances;
+  const appearancesRef = useRef(appearances?.current ?? null);
   const modelsRef = useRef(models);
   modelsRef.current = models;
   const presentedWorldRef = useRef<readonly PresentedAppearance[]>([]);
@@ -575,12 +576,17 @@ export function LabViewport({
     [overlay],
   );
   useEffect(() => {
-    const scene = sceneRef.current;
-    if (!scene) return;
-    void scene.setAppearances(appearances ?? null).then(() => {
-      if (modelsRef.current) scene.setModels(modelsRef.current);
-      redrawRef.current();
-    });
+    const install = (next: InstalledAppearances | null) => {
+      appearancesRef.current = next;
+      const scene = sceneRef.current;
+      if (!scene) return;
+      void scene.setAppearances(next).then(() => {
+        if (modelsRef.current) scene.setModels(modelsRef.current);
+        redrawRef.current();
+      });
+    };
+    install(appearances?.current ?? null);
+    return appearances?.subscribe(install);
   }, [appearances]);
   useEffect(() => {
     if (models) sceneRef.current?.setModels(models);

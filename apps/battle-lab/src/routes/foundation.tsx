@@ -137,6 +137,7 @@ export default function Foundation() {
   const world = useMemo(groundPatch, []);
   const worldFeed = useFeed(world);
   const appearances = useGameAppearances();
+  const appearancesFeed = useFeed(appearances);
   const [selected, setSelected] = useState(-1);
   const instances = useMemo<SceneInstance[]>(
     () =>
@@ -184,7 +185,7 @@ export default function Foundation() {
         fixture="foundation"
         world={worldFeed}
         instances={instances}
-        appearances={appearances}
+        appearances={appearancesFeed}
         models={models}
         picks={targets}
         initialCamera={FOUNDATION_CAMERA}

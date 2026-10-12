@@ -225,6 +225,7 @@ export default function Facade() {
     [],
   );
   const worldFeed = useFeed<WorldLayers | null>(world);
+  const appearancesFeed = useFeed(appearances);
   const fog = useMemo(() => (query.get("fog") === "1" ? fogInput() : null), [query]);
   const fogFeed = useFeed(fog);
 
@@ -283,7 +284,7 @@ export default function Facade() {
         world={worldFeed}
         fog={fogFeed}
         light={light}
-        appearances={appearances}
+        appearances={appearancesFeed}
         models={models}
         initialCamera={{
           ...gameCamera.opening(),

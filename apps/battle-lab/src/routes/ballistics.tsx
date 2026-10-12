@@ -713,10 +713,9 @@ function BallisticsLab({ map }: { map: MapDefinition }) {
         world={worldFeed}
         buildings={buildingsFeed}
         // This bench draws proxy emitters and flight marks; it does not need
-        // the full roster appearance library. Leaving models uninstalled
-        // keeps the diagnostic route within WebGPU's texture-array limit on
-        // devices that cap arrays at 256 layers.
-        appearances={null}
+        // the full roster appearance library. Leaving models uninstalled (no
+        // `appearances`) keeps the diagnostic route within WebGPU's
+        // texture-array limit on devices that cap arrays at 256 layers.
         overlay={overlayFeed}
         instances={instances}
         initialCamera={BALLISTICS_CAMERA}

@@ -221,6 +221,7 @@ function Block({ choice, generated }: { choice: MapChoice; generated: GeneratedT
         : null,
     [world, appearances, drawn],
   );
+  const appearancesFeed = useFeed(modelAppearances);
   const block = useMemo(
     () => world && drawn && blockOf(world.exports.buildings, drawn.index, generated.town),
     [world, drawn, generated],
@@ -373,7 +374,7 @@ function Block({ choice, generated }: { choice: MapChoice; generated: GeneratedT
         buildings={buildingsFeed}
         buildingStyle={style}
         obstacles={obstaclesFeed}
-        appearances={modelAppearances}
+        appearances={appearancesFeed}
         initialCamera={{
           ...gameCamera.opening(),
           target: [...opening.target, surfaceZ(...opening.target)],

@@ -272,6 +272,7 @@ export default function Workbench() {
     [framing, show.figure, view],
   );
   const worldFeed = useFeed(world);
+  const appearancesFeed = useFeed(model?.installed ?? null);
 
   const overlay = useMemo<WorldMeshes>(() => {
     if (!bundle || !model || !framing) return EMPTY;
@@ -628,7 +629,7 @@ export default function Workbench() {
         overlay={overlayFeed}
         initialCamera={initialCamera}
         cameraConfig={WORKBENCH_CAMERA}
-        appearances={model?.installed ?? null}
+        appearances={appearancesFeed}
         models={models}
         frame={animate}
         onReady={(g) => {
