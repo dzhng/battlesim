@@ -778,6 +778,16 @@ fn the_skirmish_ai_procures_artillery_and_replays_its_named_catalog_cutover() {
         replay.step();
         assert_eq!(replay.digest(), digest, "tick {}", replay.tick());
     }
+    let mut without_artillery_row = setup.clone();
+    without_artillery_row
+        .rules
+        .weapons
+        .remove("artillery_mortar");
+    assert_eq!(
+        Battle::from_replay(&without_artillery_row, &live.replay()).err(),
+        Some(sim::battle::ReplayError::ConfigMismatch),
+        "a replay with the artillery row removed must use the named hard cutover"
+    );
 }
 
 #[test]

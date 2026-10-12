@@ -4,7 +4,7 @@ Status: closeout in progress; implementation and focused gates are complete. Las
 
 ## Next Agent Prompt
 
-Latest main (`522c397b`) is merged in `2cd7defa`; the artillery implementation is committed in `cf77c20b`, with the AI replay integration proof in `b85c5a84`. Both WASM modules were rebuilt, the artillery scene passes, runtime artillery bundles pass focused fit checks, and the AI procurement/replay scenario passes. The remaining closeout work is the full `check`/`verify` run, final review, and archival. The artillery scene is a proxy flight bench; production roster admission is covered separately by catalog/fit checks.
+Latest main (`522c397b`) is merged in `2cd7defa`; the artillery implementation is committed in `cf77c20b`, with the AI replay integration proof in `b85c5a84`. Both WASM modules were rebuilt, the artillery scene passes, runtime artillery fit tests pass after fetching the required LFS objects, and the AI procurement/replay scenario passes. Full `check`/`verify` attempts are recorded below; remaining work is the final review and archival decision. The artillery scene is a proxy flight bench; production roster admission is covered separately by the focused catalog/fit tests.
 
 ## Goal
 
@@ -46,7 +46,7 @@ Slice 01 kills the 2.5 km/minimum-range assumption cheaply. Slice 02 makes the p
 ## Global invariants and ownership
 
 - **One projectile owner:** `Trajectory::Indirect`, launch solving, spread and collision stay in the existing flight/weapon owners. No artillery-only flight path.
-- **One command vocabulary:** `Order::Attack`, `Order::AttackMove`, `TargetRef::{Identified, Contact, Ground}` and `SetEngagement` remain the only order shapes.
+- **One artillery command vocabulary:** artillery uses the existing `Order::Attack`/`Order::AttackMove`, `TargetRef::{Identified, Contact, Ground}` and `SetEngagement` contracts; it adds no artillery-specific order shape.
 - **One catalog authority:** authored fixture documents resolve through `crates/contract/src/catalog.rs`; `fixtures/catalog.json` is derived, never hand-tuned.
 - **One AI boundary:** `SkirmishPolicy::decide` consumes `ObservationFrame`, rules and route callbacks. Prediction helpers may retain deterministic evidence-derived memory, never hidden `Battle` state.
 - **One UI owner:** `readouts.tsx` owns the command bar; `commandReach.ts` owns eligibility; the session catalog supplies weapon trajectory metadata. Do not create an artillery panel or a second range visualization.
@@ -83,17 +83,21 @@ Slice 01 kills the 2.5 km/minimum-range assumption cheaply. Slice 02 makes the p
 
 ## Verification policy
 
-Use the narrowest check per slice, then run the repository-wide checks once at closeout. Native tests use `CARGO_TARGET_DIR=throwaway/target`; browser evidence goes in ignored `throwaway/evidence/`; GPU scenes serialize with the repository's `throwaway/gpu.lock`. The captured artillery scene was inspected and independently critiqued; the command-bar and generic spread cursor are covered by focused browser tests. Full-check results and any environmental limitations are recorded here before archival.
+Use the narrowest check per slice, then run the repository-wide checks once at closeout. Native tests use `CARGO_TARGET_DIR=throwaway/target`; browser evidence goes in ignored `throwaway/evidence/`; GPU scenes serialize with the repository's `throwaway/gpu.lock`. The command-bar and generic spread cursor are covered by focused browser tests. The artillery capture has a retained ignored image and independent critique, but there is no approved in-tree visual baseline; the feature remains open for archival until that provenance and the full gates are resolved.
 
 ## Closeout evidence
 
 Focused native, catalog, browser and artillery-scene checks pass. The full
-`bun run check` stops before tests because the workspace image has no ALSA
-development package for `alsa-sys`; `cargo clippy -p sim --all-targets
--- -D warnings` is clean. The full `bun run verify` completes its scene sweep
-but reports unrelated environment failures: SwiftShader caps texture arrays at
-256 layers while the complete roster asks for 477, and several remaining
-non-artillery scenes require source or baseline LFS objects absent from the
-checkout. The artillery scene itself passes both assertions. These logs remain
-in `throwaway/artillery-full-check.log` and `throwaway/artillery-full-verify.log`.
+`bun run check` stops in workspace lint before tests because the workspace image
+has no ALSA development package for `alsa-sys`; `cargo clippy -p sim
+--all-targets -- -D warnings` is clean. The full `bun run verify` exits with 152
+failures. They include the SwiftShader 256-layer limit against the complete
+roster's 477 layers, missing non-artillery source/baseline LFS objects, and
+cascading renderer/startup failures in unrelated scenes. The artillery scene
+passes both assertions. These logs remain in
+`throwaway/artillery-full-check.log` and `throwaway/artillery-full-verify.log`.
+
+No approved artillery or command-bar baseline was supplied or added to the
+repository. The current capture is ignored evidence only (`throwaway/evidence/
+artillery/frame-artillery-crest.png`); it is not a close-spec visual reference.
 

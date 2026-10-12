@@ -303,6 +303,71 @@ fn the_game_catalog_holds_only_what_roster_cards_reach() {
     assert!(stray.is_empty(), "the game catalog ships: {stray:#?}");
 }
 
+#[test]
+fn every_shipped_artillery_card_is_a_complete_physical_catalog_unit() {
+    let view: Value = serde_json::from_str(
+        &std::fs::read_to_string(sim::fixtures::dir().join("catalog.json")).unwrap(),
+    )
+    .unwrap();
+    let ids = [
+        "us_m109_paladin_m109a7",
+        "us_m1129_stryker_mortar_120_mm_mortar_carrier",
+        "us_m142_himars_gmlrs",
+        "us_m142_himars_prsm",
+        "us_m270_mlrs_m270a2",
+        "europe_caesar_88",
+        "europe_mars_ii_multiple_launch_rocket_system",
+        "europe_pzh_2000_tracked_155_mm_howitzer",
+        "eastern_2s19_msta_s_2s19m2",
+        "eastern_9k515_tornado_s_heavy_rocket_artillery",
+        "eastern_bm_21_grad_bm_21_rocket_artillery",
+        "eastern_plz_05_chinese_tracked_155_mm_howitzer",
+    ];
+    let units = view["units"].as_array().unwrap();
+    let cards = view["cards"].as_array().unwrap();
+    for id in ids {
+        let unit = units
+            .iter()
+            .find(|unit| unit["id"] == id)
+            .unwrap_or_else(|| panic!("missing unit {id}"));
+        let card = cards
+            .iter()
+            .find(|card| card["id"] == id)
+            .unwrap_or_else(|| panic!("missing card {id}"));
+        assert!(card["disabled_reason"].is_null(), "{id} remains disabled");
+        assert_eq!(unit["roles"].as_array().unwrap(), &[json!("artillery")]);
+        assert!(
+            !unit["mounts"].as_array().unwrap().is_empty(),
+            "{id} has no mount"
+        );
+        for mount in unit["mounts"].as_array().unwrap() {
+            for weapon in mount["weapons"].as_array().unwrap() {
+                let row = &view["weapons"][weapon.as_str().unwrap()];
+                assert_eq!(
+                    row["trajectory"], "indirect",
+                    "{id} has a direct artillery weapon"
+                );
+                assert!(
+                    row["targets"].get("ground").is_some(),
+                    "{id} weapon lacks ground targeting"
+                );
+            }
+        }
+        assert!(
+            unit["appearance"].as_str().is_some(),
+            "{id} has no appearance"
+        );
+        assert!(
+            unit["body"]["hull"]["wreck"].as_str().is_some(),
+            "{id} has no wreck"
+        );
+        assert!(
+            unit["sound"]["profile"].as_str().is_some(),
+            "{id} has no sound profile"
+        );
+    }
+}
+
 /// No roster squad runs dry: every soldier who fills a card's slot carries
 /// an unlimited squad gun, and any finite weapon is a specialist's extra
 /// (`special`) that a comrade takes up when he falls. A sniper whose big

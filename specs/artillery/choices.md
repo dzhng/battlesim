@@ -1,7 +1,7 @@
 # Artillery choices ledger
 
-This is the final decision ledger for the shipped implementation. User-set
-decisions live in the feature README; these entries record load-bearing
+This is the implementation decision ledger. User-set decisions live in the
+feature README; these entries record load-bearing
 implementation choices where the plan left the mechanism open.
 
 ## Sound
@@ -113,8 +113,9 @@ Verdict: sound. Confidence: high.
 
 When an artillery unit has no suitable identified target, the policy chooses the
 nearest fresh ground contact inside the indirect weapon’s authored minimum and
-maximum range. It extrapolates matching observed movement for at most three
-seconds, then adds a stable offset inside the contact’s reported area. The
+maximum range. A live contact receives a stable offset inside its reported
+area; a retained observed sighting is extrapolated for at most three seconds
+from its own observed velocity. The
 command remains ordinary `Attack` with `TargetRef::Ground`, so the battle
 authority still resolves terrain, collision, minimum range and hold-fire. The
 alternative would be to read hidden battle state or invent a new artillery
@@ -156,7 +157,9 @@ duplicate physics setup and weaker parity.
 Gap: the plan required a focused lab but did not require a new renderer scene.
 
 Reach: future projectile presentation tests have one bench and one source of
-flight evidence to maintain.
+flight evidence to maintain. Production roster fit is covered by focused
+catalog tests; the repository-wide asset check remains broader and requires
+unrelated LFS inputs.
 
 Verdict: sound. Confidence: medium.
 
@@ -175,6 +178,8 @@ new saved parity fixture for a scenario that did not previously contain
 artillery.
 
 Reach: future artillery scenarios can add their own parity records without
-teaching the replay reader an old and new artillery format.
+teaching the replay reader an old and new artillery format. The integration
+test also removes the artillery weapon row and verifies the existing
+`ConfigMismatch` identity refusal.
 
 Verdict: sound. Confidence: high.
