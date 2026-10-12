@@ -67,6 +67,11 @@ fixtures require its production build. A development URL cannot silently stand i
 for that performance gate. Each scene owns the observations that prove its contract;
 a screenshot proves appearance only after visual review. Evidence goes into ignored
 `throwaway/evidence/`, rather than becoming a second set of fixtures.
+The runner treats WebGPU validation, device-loss and adapter failures as fixture
+failures at the first browser diagnostic, including scenes with their own readiness
+loops. It keeps that first message and suppresses follow-on invalid-resource noise;
+readiness timeouts include the page's published state so a slow or refused adapter
+does not look like an unexplained hang.
 
 Interface appearance is a regression gate. A scene can match a capture against
 an approved picture ([baselines](scenes/_baseline.mjs), stored in LFS beside the

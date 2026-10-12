@@ -39,7 +39,9 @@ export const WEBGPU_FLAGS = ["--enable-unsafe-webgpu", "--enable-features=WebGPU
  * readiness timeouts. Scenes that intentionally exercise validation pass
  * `allowErrors` and keep their existing assertions. */
 export function fatalGpuMessage(message) {
-  return /WebGPU (?:uncaptured error|device lost)|GPUPipelineError|Invalid Texture/i.test(message);
+  return /(?:WebGPU (?:uncaptured|validation|internal|out[- ]of[- ]memory) error|GPU(?:Validation|Internal|OutOfMemory)Error|GPUPipelineError|Invalid Texture|device lost|WebGPU is unavailable|requestAdapter\(\).*null|requestDevice.*failed)/i.test(
+    message,
+  );
 }
 
 const nativeTools = [
@@ -215,7 +217,12 @@ export async function run(fixtures) {
       });
   const failures = [];
   const pageErrors = [];
-  const fatalGpuErrors = new WeakMap();
+  const pageErrorKeys = new Set();
+  const recordPageError = (message) => {
+    if (pageErrorKeys.has(message)) return;
+    pageErrorKeys.add(message);
+    pageErrors.push(message);
+  };
   const seconds = [];
   try {
     for (const fixture of fixtures) {
@@ -231,6 +238,16 @@ export async function run(fixtures) {
         failures.push(`${fixture.id}: server did not start`);
         continue;
       }
+      let sceneFailure;
+      let rejectSceneFailure;
+      const sceneFailurePromise = new Promise((_, reject) => {
+        rejectSceneFailure = reject;
+      });
+      const recordSceneFailure = (message) => {
+        if (sceneFailure) return;
+        sceneFailure = new Error(message);
+        rejectSceneFailure(sceneFailure);
+      };
       const ctx = {
         fixture,
         url: `${server.url}${fixture.route}`,
@@ -254,27 +271,39 @@ export async function run(fixtures) {
           await context.route("**/favicon.ico", (route) => route.fulfill({ status: 204 }));
           const page = await context.newPage();
           await page.addInitScript(guardMeasures, MEASURE_ENTRIES_MAX);
-          page.on("crash", () => pageErrors.push(`${fixture.id}: the page crashed`));
+          const failForGpu = (message) => {
+            recordSceneFailure(`fatal WebGPU error: ${message}`);
+            void page
+              .evaluate(() => {
+                console.error = () => {};
+              })
+              .catch(() => {});
+            // Stop a poisoned page from flooding the terminal with follow-on
+            // invalid-resource errors. The first error is already retained in
+            // sceneFailure, so closing cannot hide the useful diagnosis.
+            void page.close().catch(() => {});
+          };
+          page.on("crash", () => {
+            const message = `${fixture.id}: the page crashed`;
+            recordPageError(message);
+            if (!allowErrors) recordSceneFailure(message);
+          });
           if (!allowErrors) {
-            page.on("pageerror", (e) => pageErrors.push(`${fixture.id}: ${e.message}`));
+            page.on("pageerror", (e) => {
+              recordPageError(`${fixture.id}: ${e.message}`);
+              if (fatalGpuMessage(e.message)) failForGpu(e.message);
+            });
             page.on("console", (m) => {
               if (m.type() !== "error") return;
               const text = m.text();
-              pageErrors.push(`${fixture.id}: ${text}`);
-              if (fatalGpuMessage(text)) {
-                fatalGpuErrors.set(page, text);
-                // Scenes that own their readiness loop (graphics-test,
-                // parity capture) do not call openLab. Closing the poisoned
-                // page makes their Playwright wait reject immediately too.
-                void page.close().catch(() => {});
-              }
+              recordPageError(`${fixture.id}: ${text}`);
+              if (fatalGpuMessage(text)) failForGpu(text);
             });
           }
           return page;
         },
         async openLab(page, url = ctx.url, timeout = 30000) {
           await page.goto(url);
-          let timer;
           try {
             await Promise.race([
               page.waitForFunction(
@@ -285,15 +314,24 @@ export async function run(fixtures) {
                 undefined,
                 { timeout },
               ),
-              new Promise((_, reject) => {
-                timer = setInterval(() => {
-                  const failure = fatalGpuErrors.get(page);
-                  if (failure) reject(new Error(`fatal WebGPU error: ${failure}`));
-                }, 50);
-              }),
+              sceneFailurePromise,
             ]);
-          } finally {
-            clearInterval(timer);
+          } catch (error) {
+            if (/Timeout/i.test(error?.message ?? "")) {
+              const state = await page
+                .evaluate(() => ({
+                  ready: Boolean(window.__lab?.ready),
+                  error: window.__lab?.error ?? null,
+                  visibleError: document.querySelector("[data-testid=error]")?.textContent ?? null,
+                  document: document.readyState,
+                }))
+                .catch(() => null);
+              throw new Error(
+                `lab readiness timed out after ${timeout} ms (${JSON.stringify(state)})`,
+                { cause: error },
+              );
+            }
+            throw error;
           }
           let error = await page.evaluate(() => window.__lab?.error);
           if (!error && (await page.getByTestId("error").isVisible())) {
@@ -320,10 +358,19 @@ export async function run(fixtures) {
       const timedOut = new Promise((_, reject) => {
         timer = setTimeout(() => reject(new Error(`scene exceeded ${limit} s`)), limit * 1000);
       });
+      const scenePromise = scene.run(ctx);
       try {
-        await Promise.race([scene.run(ctx), timedOut]);
+        await Promise.race([scenePromise, timedOut, sceneFailurePromise]);
         await approved.finish();
       } catch (error) {
+        if (sceneFailure) {
+          // Preserve the first renderer/environment error while closing pages
+          // to release any scene-owned waits. This avoids reporting only a
+          // secondary "Target page ... closed" rejection.
+          await Promise.allSettled(browser.contexts().map((c) => c.close()));
+          await Promise.allSettled([scenePromise]);
+          error = sceneFailure;
+        }
         ctx.check("scene completed without throwing", false, error?.stack ?? String(error));
       } finally {
         clearTimeout(timer);
@@ -340,7 +387,12 @@ export async function run(fixtures) {
   console.log(
     `\nslowest scenes: ${slowest.map(([id, s]) => `${id} ${s.toFixed(0)} s`).join(", ")}`,
   );
-  if (pageErrors.length) failures.push(`page errors: ${pageErrors.slice(0, 5).join(" | ")}`);
+  const failedFixtures = new Set(failures.map((failure) => failure.slice(0, failure.indexOf(":"))));
+  const unreportedPageErrors = pageErrors.filter(
+    (error) => !failedFixtures.has(error.slice(0, error.indexOf(":"))),
+  );
+  if (unreportedPageErrors.length)
+    failures.push(`page errors: ${unreportedPageErrors.slice(0, 5).join(" | ")}`);
   console.log(
     failures.length
       ? `\n${failures.length} FAILURE(S)\n${failures.join("\n")}`

@@ -12,6 +12,9 @@ import {
 test("fatal GPU diagnostics are identified before readiness timeouts", () => {
   expect(fatalGpuMessage("WebGPU uncaptured error: Texture size exceeded maximum")).toBe(true);
   expect(fatalGpuMessage('WebGPU uncaptured error: [Invalid Texture "<unnamed>"]')).toBe(true);
+  expect(fatalGpuMessage("GPUValidationError: bind group layout is invalid")).toBe(true);
+  expect(fatalGpuMessage("WebGPU is unavailable: requestAdapter() returned null")).toBe(true);
+  expect(fatalGpuMessage("GPUDevice requestDevice failed")).toBe(true);
   expect(fatalGpuMessage("the scene is still loading")).toBe(false);
 });
 
