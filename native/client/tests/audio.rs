@@ -55,6 +55,7 @@ fn cannon(at: [f64; 3], seconds: f64) -> (Vec<f32>, Audio) {
                 effects: &effects,
                 launches: &launches,
                 audible: Vec::new(),
+                shouts: Vec::new(),
             };
             let c = a.sound_mut().note(&heard, now).to_vec();
             a.run(&c, now);
