@@ -31,6 +31,11 @@ wherever it runs.
   sky's corner rays.
 - [The light](src/light.rs): the fixture's light resolved into the sky's,
   bloom's and grade's uniform records, as the browser's sky model resolves it.
+- [The sun's shadow](src/shadow.rs): each frame's cascades fitted over where the
+  map is in view depth, as the receiver block and each cascade's caster camera.
+- [The static world](src/static_world/): the buildings and their walk, and the
+  ground: its tables, its meshes (terrain, skirt, water, backdrop), the grass
+  field's shapes, window and per-frame parameters, and the scenery.
 - [Sound](src/sound/): what a battle hears, when, where and how loud, from the
   same publication the effects read, the frame's emitters and the side's
   hearing cues, as commands a player carries out (start, glide, stop a voice;
@@ -75,5 +80,7 @@ roll to the resting wreck.
 ## Checks
 
 `tests/poses.rs` and `tests/effects.rs` hold it to the browser's recorded vectors
-(native's fixture capture and fixed effect causes); the behaviour tests beside
+(native's fixture capture and fixed effect causes), and `tests/light.rs`,
+`shadow.rs`, `ground_meshes.rs` and `grass_field.rs` to what the browser's
+TypeScript computed before it moved here, bit for bit; the behaviour tests beside
 them cover what those do not reach.
