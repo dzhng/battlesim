@@ -176,7 +176,7 @@ function AmbushLab({ battles }: { battles: Record<Variant, SavedBattle> }) {
     ...session.probes,
     variant: (v: Variant) => setVariant(v),
     moveLauncher,
-    observeAs: (side: "blue" | "red") => sim.client?.observeAs(side),
+    observeAs: (side: "blue" | "red" | "neutral") => sim.client?.observeAs(side),
   };
 
   if (!meshes) return null;

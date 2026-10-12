@@ -496,7 +496,7 @@ impl EncounterRecipe {
         }
         // Encounter recipes remain a binary input. Neutral is available to
         // authored sandbox scenarios, but not to this planner's force schema.
-        for side in [Side::Blue, Side::Red] {
+        for side in Side::COMBATANTS {
             let name = side_name(side);
             let rows = self.forces.side(side);
             if rows.is_empty() {

@@ -144,7 +144,7 @@ fn scenario_in_arena(
     }
     let mut units = Vec::new();
     let mut scripts = Vec::new();
-    for side in Side::ALL {
+    for side in Side::COMBATANTS {
         let east = side == Side::Red;
         let x_of = |depth: f64| left + if east { width - depth } else { depth };
         let yaw = if east { std::f64::consts::PI } else { 0.0 };

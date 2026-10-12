@@ -318,7 +318,7 @@ pub(crate) fn certify_orders(
     // can choose new cover posts during this side's movement proof.
     let opposing =
         crate::knowledge::SideKnowledge::new(ctx.seed, ctx.knowledge[own.index()].ground().layer());
-    let mut knowledge = [&opposing; 2];
+    let mut knowledge = [&opposing; 3];
     knowledge[own.index()] = ctx.knowledge[own.index()];
     // Only overlapping departure and arrival rehearsals require the whole
     // journey. Road choice is independent of how much travel proves a move.
@@ -329,7 +329,11 @@ pub(crate) fn certify_orders(
         let floor = remaining - remaining.div_ceil(active.iter().filter(|a| **a).count() as u64);
         let mut world = initial_world.clone();
         let mut units = source.to_vec();
-        let mut sides = [known.planning_snapshot(), known.planning_snapshot()];
+        let mut sides = [
+            known.planning_snapshot(),
+            known.planning_snapshot(),
+            known.planning_snapshot(),
+        ];
         let ground = ctx.knowledge[own.index()].ground().layer();
         let mut planner = RoutePlanner::default();
         for (i, slot) in slots.iter().enumerate() {

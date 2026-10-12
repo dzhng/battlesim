@@ -2,11 +2,11 @@
 
 ## Status and next pickup
 
-**Status:** slice 00 topology spike complete; production implementation has not started. The exploration and write-spec interviews are closed.
+**Status:** slices 00 and 00b fixed topology complete; bundle implementation is next. The exploration and write-spec interviews are closed.
 
 **Updated:** 2026-10-11.
 
-**Next pickup:** implement [`slices/00b-fixed-neutral-slot.md`](slices/00b-fixed-neutral-slot.md). Materialize the fixed Blue/Red/Neutral simulation/publication contract before bundle serialization. Slice 00's disposable probe proved that arbitrary side counts are a cross-owner rewrite; keep the production model at Blue, Red, and passive Neutral for this feature. Update this section before ending every pass.
+**Next pickup:** implement [`slices/01-bundle-contract.md`](slices/01-bundle-contract.md). Freeze the self-contained bundle and deterministic asset container on the now-working Blue/Red/Neutral runtime. Slice 00's disposable probe proved that arbitrary side counts are a cross-owner rewrite; keep the production model at Blue, Red, and passive Neutral for this feature. Update this section before ending every pass.
 
 **Topology verdict (2026-10-11):** keep a fixed Blue/Red/Neutral model for this feature. The probe ran the real scenario → Battle → observation/replay path, then added a disposable Neutral variant and the minimum compile adaptations. `sim` compiled only after changing side-owned arrays in movement/route planning; a Neutral battle then panicked at `battle.rs:2448` indexing fixed-two sightings. The inventory found 172 side-indexed/fixed-two owners before the browser UI, plus fixed skirmish/objective/publication assumptions. Arbitrary FFA is deferred; no dynamic-side compatibility layer is carried forward.
 
@@ -56,7 +56,7 @@ The current binary assumptions are explicit in `crates/contract/src/ids.rs`, `cr
    │                    └── 09 full acceptance, replay, visual closeout
 ```
 
-Slice 00 is closed with the fixed three-slot verdict. Slice 00b materializes that verdict before any bundle or UI work. Slice 01 must not invent a second scenario schema. Slice 05 must freeze the script host before the UI exposes advanced source. Slices 07–09 are the only browser-heavy slices and each leaves a runnable checkpoint.
+Slices 00 and 00b are closed. Slice 00 records the fixed three-slot verdict; slice 00b materializes it before any bundle or UI work. Slice 01 must not invent a second scenario schema. Slice 05 must freeze the script host before the UI exposes advanced source. Slices 07–09 are the only browser-heavy slices and each leaves a runnable checkpoint.
 
 ## Contract table
 
@@ -105,7 +105,7 @@ Any slice that produces a visual shot must:
 ## Global TODO checklist
 
 - [x] Run and record the side-topology verdict — [`slices/00-side-topology-spike.md`](slices/00-side-topology-spike.md); fixed Blue/Red/Neutral, arbitrary FFA deferred.
-- [ ] Materialize fixed Blue/Red/Neutral state and publication — [`slices/00b-fixed-neutral-slot.md`](slices/00b-fixed-neutral-slot.md).
+- [x] Materialize fixed Blue/Red/Neutral state and publication — [`slices/00b-fixed-neutral-slot.md`](slices/00b-fixed-neutral-slot.md).
 - [ ] Freeze the self-contained bundle and asset container — [`slices/01-bundle-contract.md`](slices/01-bundle-contract.md).
 - [ ] Prove offline map/catalog/audio admission — [`slices/02-offline-admission.md`](slices/02-offline-admission.md).
 - [ ] Materialize player-slot ownership — [`slices/03-player-slots.md`](slices/03-player-slots.md).
@@ -118,5 +118,4 @@ Any slice that produces a visual shot must:
 
 ## Next Agent Prompt
 
-You are picking up the scenario-builder implementation plan. Read this README and `choices.md`, then implement slice 00b only. Materialize exactly three combat/publication slots: Blue, Red, and passive Neutral. Update the fixed arrays and observation/publication paths coherently, refuse Neutral in binary-only economy/encounter paths where semantics are not defined, and prove Neutral can return fire/self-defend without initiating combat. Do not build the bundle or editor yet. Update this handoff before ending the pass.
-
+You are picking up the scenario-builder implementation plan. Read this README and `choices.md`, then implement slice 01 only. Freeze the canonical self-contained ScenarioBundle and deterministic embedded asset container on the fixed Blue/Red/Neutral runtime. Keep explicit Download/Upload as the only persistence path; do not build the tactical editor yet. Update this handoff before ending the pass.

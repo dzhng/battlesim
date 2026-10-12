@@ -450,7 +450,7 @@ pub struct MovementContext<'a> {
     pub seed: u64,
     pub rules: &'a contract::scenario::Rules,
     /// Each side's knowledge: the enemies a squad takes cover from (Q7).
-    pub knowledge: [&'a crate::knowledge::SideKnowledge; 2],
+    pub knowledge: [&'a crate::knowledge::SideKnowledge; 3],
     /// The weapons: how far a squad's reach when it seeks where to fight.
     pub arsenal: &'a crate::weapons::Arsenal,
 }
@@ -460,7 +460,7 @@ pub struct MovementContext<'a> {
 pub(crate) fn advance(
     ctx: &MovementContext,
     units: &mut [Unit],
-    sides: &mut [SideGeometry; 2],
+    sides: &mut [SideGeometry; 3],
     planner: &mut RoutePlanner,
     completed: &mut impl FnMut(crate::battle::TickPhase),
 ) -> Vec<Shove> {
@@ -692,7 +692,7 @@ fn prefer_roads(ctx: &MovementContext, unit: &mut Unit) {
 fn plan_routes(
     ctx: &MovementContext,
     units: &mut [Unit],
-    sides: &mut [SideGeometry; 2],
+    sides: &mut [SideGeometry; 3],
     field: &take_cover::Field,
     planner: &mut RoutePlanner,
 ) {
@@ -703,13 +703,14 @@ fn plan_routes(
         let grid = side.grid(ctx.world, ctx.authored);
         (grid, revision)
     }
-    let [blue, red] = &mut *sides;
+    let [blue, red, neutral] = &mut *sides;
     let ready = planner.advance(
         &ctx.rules.navigation,
         ctx.roads,
         [
             waiting[0].then(|| known(ctx, blue)),
             waiting[1].then(|| known(ctx, red)),
+            waiting[2].then(|| known(ctx, neutral)),
         ],
     );
     for (id, request, plan) in ready {
@@ -930,7 +931,7 @@ fn step_vehicle(
     ctx: &MovementContext,
     units: &mut [Unit],
     i: usize,
-    sides: &mut [SideGeometry; 2],
+    sides: &mut [SideGeometry; 3],
     shoves: &mut Vec<Shove>,
     traffic: &[Option<Obb2>],
 ) {

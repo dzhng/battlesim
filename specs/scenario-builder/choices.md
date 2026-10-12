@@ -64,3 +64,13 @@ This ledger carries decisions from the exploration and write-spec interviews. Us
 |---|---|---|
 | Keep the topology evidence as a native example plus one integration-test module | The probe runs the same `ScenarioDefinition` → `Battle` → side observation → replay path that the runtime owns. The example prints the refusal and digest evidence for a human or later agent; the test keeps the two-side baseline and four-side refusal from silently disappearing. A throwaway worktree was used for the attempted Neutral extension, so no broken experimental code entered the product tree. This gives future work a small executable witness instead of relying on a paragraph claiming the architecture is binary. | **sound** — one authority path, no second runtime implementation |
 | Reslice before bundle work | The original plan said “Blue/Red/Neutral” after the spike, but the current code had no working Neutral slot. If bundle serialization started first, it would freeze a file format that the battle could not load. The plan therefore inserts `00b-fixed-neutral-slot` as the owner that must make the three-slot runtime real before `ScenarioBundle`. | **sound** — prevents a portable artifact that cannot be played |
+
+## Slice 00b implementation choices
+
+| Choice | ELI5 decision audit | Verdict |
+|---|---|---|
+| Use one fixed three-entry side owner across simulation and publication | Blue, Red, and Neutral now share the same indexed observation, fog, sighting, audible, navigation, movement, and publication arrays. This keeps one runtime shape and avoids a dynamic-side compatibility layer. | **sound** |
+| Keep economy/encounter binary and refuse Neutral at their input boundary | Existing wallet, objective, entry-site, and encounter planners are two-side systems. Neutral sandbox units remain valid, while economy commands, Neutral AI-side setup, and Neutral encounter attackers receive named refusal diagnostics before any two-entry array is indexed. | **sound** |
+| Force Neutral to `ReturnFireOnly` at spawn | A Neutral authored slot can defend itself after an incoming attack, but cannot start automatic aggression or override the passive-neutral rule with FireAtWill. | **sound** |
+| Retain parity fixtures under the named topology change | Adding a third observation slot changes battle digests and publication stream identity even for binary scenarios. The native parity records were regenerated under the intentional fixed-topology decision. | **sound** |
+| Mirror Neutral through the worker/client side type while keeping binary UI surfaces binary | The shared `SideName` accepts `neutral`, authority side switching can publish it, and economy/result widgets remain explicitly Blue/Red because binary skirmish refuses Neutral. | **sound** |

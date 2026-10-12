@@ -180,7 +180,7 @@ impl RoutePlanner {
     }
 
     /// Which sides have a unit waiting.
-    pub fn sides(&self) -> [bool; 2] {
+    pub fn sides(&self) -> [bool; 3] {
         Side::ALL.map(|side| self.jobs.values().any(|job| job.request.side == side))
     }
 
@@ -209,7 +209,7 @@ impl RoutePlanner {
         &mut self,
         rules: &NavigationRules,
         roads: &RoadNet,
-        grids: [Option<(&NavGrid, u64)>; 2],
+        grids: [Option<(&NavGrid, u64)>; 3],
     ) -> Vec<(UnitId, Request, Plan)> {
         let allowance = rules.work_per_tick as u64;
         let mut left = allowance.saturating_sub(self.overdraft);

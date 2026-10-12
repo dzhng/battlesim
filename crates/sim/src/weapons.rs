@@ -400,7 +400,7 @@ pub struct FireContext<'a> {
     pub arsenal: &'a Arsenal,
     pub rules: &'a Rules,
     pub tick: Tick,
-    pub knowledge: &'a [SideKnowledge; 2],
+    pub knowledge: &'a [SideKnowledge; 3],
 }
 
 /// How far a squad's own weapons reach: its squad mount's longest range

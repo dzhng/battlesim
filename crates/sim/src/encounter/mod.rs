@@ -317,7 +317,7 @@ impl<'a> Planner<'a> {
     ) -> Result<Self, Vec<EncounterDiagnostic>> {
         let mut problems = Vec::new();
         let mut rows = Vec::new();
-        for side in Side::ALL {
+        for side in Side::COMBATANTS {
             for (index, row) in recipe.forces.side(side).iter().enumerate() {
                 let feature = format!("forces.{}[{index}]", side_name(side));
                 let Some(kind) = rules.catalog.index(&row.kind) else {

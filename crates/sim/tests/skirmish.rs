@@ -82,7 +82,7 @@ fn preparation_starts_empty_and_freezes_the_credit_wallet() {
 fn both_ready_start_early_and_income_adds_exactly_two_hundred_per_minute() {
     let setup = setup();
     let mut battle = Battle::new(&setup, 1);
-    for side in Side::ALL {
+    for side in Side::COMBATANTS {
         assert!(battle
             .accept(command(side, 1, Order::Ready))
             .error
@@ -96,7 +96,7 @@ fn both_ready_start_early_and_income_adds_exactly_two_hundred_per_minute() {
     for _ in 0..60 * battle.rules().tick_hz {
         battle.step();
     }
-    for side in Side::ALL {
+    for side in Side::COMBATANTS {
         assert_eq!(
             battle.observe(side).skirmish.as_ref().unwrap().credits,
             1200.0
@@ -475,7 +475,7 @@ fn purchase_admission_refuses_unavailable_wrong_faction_and_invalid_destination_
         );
     }
     battle.step();
-    for side in Side::ALL {
+    for side in Side::COMBATANTS {
         let status = battle.observe(side).skirmish.as_ref().unwrap();
         assert_eq!(status.credits, 1000.0);
         assert_eq!(status.occupied_slots, 0);
@@ -868,7 +868,7 @@ fn a_destroyed_withdrawing_unit_never_refunds_or_retires() {
         battle.accept(command(side, 2, Order::Ready));
     }
     battle.step();
-    for side in Side::ALL {
+    for side in Side::COMBATANTS {
         let id = battle.observe(side).own[0].id;
         battle.accept(command(
             side,
@@ -1087,7 +1087,7 @@ fn a_helicopter_the_player_buys_enters_and_flies_to_its_destination() {
     battle.accept(command(Side::Red, 1, Order::Ready));
     for _ in 0..60 * battle.rules().tick_hz {
         battle.step();
-        for side in Side::ALL {
+        for side in Side::COMBATANTS {
             battle.observe(side);
         }
     }

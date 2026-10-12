@@ -225,7 +225,7 @@ pub struct Battle {
     units: Vec<Unit>,
     /// Props authored with the map (ids below this) are known to every side.
     authored_props: PropId,
-    sides: [SideGeometry; 2],
+    sides: [SideGeometry; 3],
     /// The map's road graph, built once: public terrain, the same for both
     /// sides.
     roads: RoadNet,
@@ -233,15 +233,15 @@ pub struct Battle {
     planner: RoutePlanner,
     events: VecDeque<ScenarioEvent>,
     scripts: VecDeque<ScriptedOrder>,
-    knowledge: [SideKnowledge; 2],
+    knowledge: [SideKnowledge; 3],
     occlusion: OcclusionGrid,
-    fog: [VisibilityField; 2],
+    fog: [VisibilityField; 3],
     /// Each side's sightings as of each observer's latest identification run
     /// (27 perf), in observer then target order.
-    sightings: [Vec<Sighting>; 2],
+    sightings: [Vec<Sighting>; 3],
     /// Units that fired during the current sound bucket.
     fired: BTreeSet<UnitId>,
-    audible: [Vec<SoundCue>; 2],
+    audible: [Vec<SoundCue>; 3],
     arsenal: Arsenal,
     /// Building health and the ruins collapses left.
     structures: Structures,
@@ -265,8 +265,8 @@ pub struct Battle {
     segments: Vec<Flown>,
     /// This tick's bursts, by firing side.
     blasts: Vec<(Side, Blast)>,
-    next_seq: [u64; 2],
-    order_bucket: [(u64, Tick); 2],
+    next_seq: [u64; 3],
+    order_bucket: [(u64, Tick); 3],
     /// The observation-bound opponent and its memory (off while replaying).
     opponent: Option<(Opponent, Defender)>,
     skirmish_ai: Option<crate::skirmish_ai::BalancedDoctrine>,
@@ -277,7 +277,7 @@ pub struct Battle {
     accepted: Vec<(Tick, CommandEnvelope)>,
     /// Recorded commands still to apply when this battle is a replay.
     replaying: Option<VecDeque<(Tick, CommandEnvelope)>>,
-    observations: [ObservationFrame; 2],
+    observations: [ObservationFrame; 3],
     scenario_digest: u64,
     config_digest: u64,
     /// Transient bodies (a row with a `lifetime_s`) and the tick each goes.
@@ -463,7 +463,15 @@ fn spawn_unit(
         stalls: (f64::INFINITY, 0),
         pursuit: None,
         planned_goal: None,
-        engagement: u.engagement.unwrap_or(Engagement::FireAtWill),
+        // Neutral is a passive world actor: it may answer an attacker through
+        // the normal return-fire threat path, but it never acquires a target
+        // on its own. An authored engagement policy cannot override that
+        // topology rule.
+        engagement: if u.side == Side::Neutral {
+            Engagement::ReturnFireOnly
+        } else {
+            u.engagement.unwrap_or(Engagement::FireAtWill)
+        },
         air: airborne.then(units::AirState::default),
         mounts,
         attackers: BTreeSet::new(),
@@ -681,6 +689,10 @@ impl Battle {
     ) -> Self {
         let rules = setup.rules.clone();
         assert!(
+            setup.skirmish.is_none() || setup.units.iter().all(|unit| unit.side != Side::Neutral),
+            "skirmish does not support neutral units"
+        );
+        assert!(
             setup.skirmish.is_none()
                 || (setup.units.is_empty()
                     && setup.events.is_empty()
@@ -743,10 +755,9 @@ impl Battle {
         let occlusion = OcclusionGrid::new(&world, setup.map.fog_cell_m);
         let structures = Structures::default();
         let ground = GroundLayer::new(world.width(), world.depth(), &rules.ground);
-        let knowledge = [
-            SideKnowledge::new(seed ^ OBSERVATION_STREAM, &ground),
-            SideKnowledge::new(seed ^ OBSERVATION_STREAM ^ 1, &ground),
-        ];
+        let knowledge = std::array::from_fn(|i| {
+            SideKnowledge::new(seed ^ OBSERVATION_STREAM ^ i as u64, &ground)
+        });
         let mut battle = Battle {
             skirmish: setup.skirmish.clone().map(crate::skirmish::Skirmish::new),
             authored_props: world.props().count() as PropId,
@@ -755,10 +766,7 @@ impl Battle {
             seed,
             tick: 0,
             units,
-            sides: [
-                SideGeometry::new(std::sync::Arc::clone(&grid)),
-                SideGeometry::new(grid),
-            ],
+            sides: std::array::from_fn(|_| SideGeometry::new(std::sync::Arc::clone(&grid))),
             roads,
             planner: RoutePlanner::default(),
             events: events.into(),
@@ -781,13 +789,13 @@ impl Battle {
             flight_events: Vec::new(),
             segments: Vec::new(),
             blasts: Vec::new(),
-            fog: [occlusion.field(), occlusion.field()],
+            fog: std::array::from_fn(|_| occlusion.field()),
             occlusion,
-            next_seq: [1, 1],
+            next_seq: [1; 3],
             order_bucket: [(
                 u64::from(setup.rules.commands.orders_per_s) * u64::from(setup.rules.tick_hz),
                 0,
-            ); 2],
+            ); 3],
             opponent: setup.opponent.clone().map(|o| (o, Defender::default())),
             skirmish_ai: setup.skirmish.as_ref().and_then(|s| {
                 s.ai_side.map(|side| {
@@ -1099,6 +1107,9 @@ impl Battle {
         if self.finished() {
             return Err(OrderError::MatchFinished);
         }
+        if command.side == Side::Neutral {
+            return Err(OrderError::PassiveSide);
+        }
         let units = match &command.order {
             Order::Refund { units } => {
                 let Some(skirmish) = &self.skirmish else {
@@ -1311,7 +1322,7 @@ impl Battle {
             tick: self.tick,
             seed: self.seed,
             rules: &self.rules,
-            knowledge: [&self.knowledge[0], &self.knowledge[1]],
+            knowledge: std::array::from_fn(|i| &self.knowledge[i]),
             arsenal: &self.arsenal,
         };
         completed(TickPhase::Other);
@@ -3008,6 +3019,9 @@ impl Battle {
         variant: &str,
         destination: [f64; 2],
     ) -> Result<contract::skirmish::PurchasePreview, OrderError> {
+        if side == Side::Neutral {
+            return Err(OrderError::NotSkirmish);
+        }
         let skirmish = self.skirmish.as_ref().ok_or(OrderError::NotSkirmish)?;
         let kind = self
             .rules
@@ -3323,7 +3337,7 @@ impl Battle {
             tick: self.tick,
             seed: self.seed,
             rules: &self.rules,
-            knowledge: [&self.knowledge[0], &self.knowledge[1]],
+            knowledge: std::array::from_fn(|i| &self.knowledge[i]),
             arsenal: &self.arsenal,
         }
     }
@@ -3361,8 +3375,10 @@ impl Battle {
         let low_hover = crate::movement::air::low_hover(&self.rules);
         for side in Side::ALL {
             let knowledge = &self.knowledge[side.index()];
-            let spotted_by_visible_enemy: BTreeSet<UnitId> = self.sightings[1 - side.index()]
-                .iter()
+            let spotted_by_visible_enemy: BTreeSet<UnitId> = Side::ALL
+                .into_iter()
+                .filter(|other| *other != side)
+                .flat_map(|other| self.sightings[other.index()].iter())
                 .filter(|s| {
                     knowledge
                         .track(s.observer)
@@ -3596,17 +3612,24 @@ impl Battle {
                     }),
             );
             frame.encounter = self.encounter;
-            frame.skirmish = self.skirmish.as_ref().map(|s| {
-                s.view(
-                    side,
-                    self.tick,
-                    self.rules.tick_hz,
-                    self.units
-                        .iter()
-                        .filter(|u| u.side == side && u.alive())
-                        .count() as u32,
-                )
-            });
+            // Economy is a deliberately binary mode. Neutral still gets a
+            // normal observation stream, but it has no wallet, purchase
+            // queue, or objective score to publish.
+            frame.skirmish = self
+                .skirmish
+                .as_ref()
+                .filter(|_| side != Side::Neutral)
+                .map(|s| {
+                    s.view(
+                        side,
+                        self.tick,
+                        self.rules.tick_hz,
+                        self.units
+                            .iter()
+                            .filter(|u| u.side == side && u.alive())
+                            .count() as u32,
+                    )
+                });
             frame.guided.clear();
             frame
                 .guided

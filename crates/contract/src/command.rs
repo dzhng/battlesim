@@ -203,6 +203,8 @@ pub struct CommandEnvelope {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "reason", rename_all = "snake_case")]
 pub enum OrderError {
+    /// Neutral is a passive world slot and cannot receive player commands.
+    PassiveSide,
     NotSkirmish,
     MatchFinished,
     UnitUnavailable,

@@ -40,7 +40,7 @@ pub(super) fn step_aircraft(
     ctx: &MovementContext,
     units: &mut [Unit],
     i: usize,
-    sides: &mut [SideGeometry; 2],
+    sides: &mut [SideGeometry; 3],
 ) {
     let dt = 1.0 / ctx.rules.tick_hz as f64;
     let Motion::Air(flight) = units[i].motion else {

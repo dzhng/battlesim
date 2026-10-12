@@ -1195,9 +1195,9 @@ export function useBattleSession({
     contacts,
     sim,
     control,
-    purchase: skirmish
+    purchase: skirmish && side !== "neutral"
       ? {
-          faction: skirmish.factions[side === "blue" ? 0 : 1],
+          faction: skirmish.factions[side === "red" ? 1 : 0],
           cards: units.cards,
           placing: purchasing,
           choose: choosePurchase,
