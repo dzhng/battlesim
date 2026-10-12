@@ -1,6 +1,10 @@
 // @vitest-environment node
 // The browser's shaders, as a second client receives them: one compiled set
-// for every battle's light and every canvas size.
+// for every battle's light and every canvas size, checked in as
+// `packages/battle-renderer/pipelines/` (one WGSL file per pipeline and
+// `pipelines.json`, each pipeline's settings and bind group layouts).
+// `UPDATE_PIPELINES=1` rewrites the export from the browser's code.
+import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { createBattleFrame } from "@packages/battle-renderer/src/frame/battleFrame";
 import type { LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
@@ -18,7 +22,12 @@ import {
   gameModelDetail,
 } from "../../apps/battle-lab/src/gameModels";
 import { FLIPBOOK_SIZE } from "@packages/battle-renderer/src/effects/flipbooks";
-import { installGpuGlobals, recordingGpuDevice } from "./support/recordingDevice";
+import {
+  installGpuGlobals,
+  recordingGpuDevice,
+  type RecordedStage,
+  type Recording,
+} from "./support/recordingDevice";
 
 installGpuGlobals(FLIPBOOK_SIZE);
 
@@ -86,6 +95,50 @@ const dusk: LightPresentation = {
   exposure: gameLight.exposure * 1.5,
 };
 
+const EXPORT = new URL("../../packages/battle-renderer/pipelines/", import.meta.url);
+const LISTING = "pipelines.json";
+const STAGES = ["vertex", "fragment", "compute"] as const;
+
+/** The export's files by name: each pipeline's WGSL, and the listing. */
+function exportOf(recording: Recording): Map<string, string> {
+  const files = new Map<string, string>();
+  const layouts: Record<string, unknown[]> = {};
+  for (const { label, entries } of recording.layouts) {
+    const named = entries.map(({ visibility, ...entry }) => ({
+      ...entry,
+      visibility: STAGES.filter((_, bit) => visibility & (1 << bit)),
+    }));
+    if (label in layouts && JSON.stringify(layouts[label]) !== JSON.stringify(named))
+      throw new Error(`two different bind group layouts are named ${label}`);
+    layouts[label] = named;
+  }
+  const pipelines = recording.pipelines.map(({ label, kind, layout, ...state }) => {
+    if (!label || files.has(`${label}.wgsl`))
+      throw new Error(`every pipeline needs its own name ($name): "${label}"`);
+    const stages = [state.vertex, state.fragment, state.compute].filter(
+      (s): s is RecordedStage => s !== undefined,
+    );
+    const [module] = new Set(stages.map((s) => s.module));
+    if (stages.some((s) => s.module !== module))
+      throw new Error(`${label}: its stages come from different modules`);
+    const shader = `${label}.wgsl`;
+    files.set(shader, recording.modules[module].code);
+    const entry = ({ module: _, ...stage }: RecordedStage) => stage;
+    return {
+      name: label,
+      kind,
+      shader,
+      layout: layout === "auto" ? layout : layout.map((i) => recording.layouts[i].label),
+      ...state,
+      vertex: state.vertex && entry(state.vertex),
+      fragment: state.fragment && entry(state.fragment),
+      compute: state.compute && entry(state.compute),
+    };
+  });
+  files.set(LISTING, `${JSON.stringify({ layouts, pipelines }, null, 2)}\n`);
+  return files;
+}
+
 describe("the browser's shader set", () => {
   it("is one compiled set for every battle's light and every canvas size", async () => {
     const noon = await record(gameLight, 1280, 720);
@@ -95,5 +148,18 @@ describe("the browser's shader set", () => {
       expect(evening.modules[i].code, `${i}: ${module.label}`).toBe(module.code),
     );
     expect(evening.pipelines).toEqual(noon.pipelines);
+  });
+
+  it("is the checked-in export, so a second client compiles the browser's own shaders", async () => {
+    const files = exportOf(await record(gameLight, 1280, 720));
+    if (process.env.UPDATE_PIPELINES) {
+      rmSync(EXPORT, { recursive: true, force: true });
+      mkdirSync(EXPORT, { recursive: true });
+      for (const [name, text] of files) writeFileSync(new URL(name, EXPORT), text);
+    }
+    const update = "the browser's shaders changed: UPDATE_PIPELINES=1 rewrites the export";
+    expect(readdirSync(EXPORT).sort(), update).toEqual([...files.keys()].sort());
+    for (const [name, text] of files)
+      expect(readFileSync(new URL(name, EXPORT), "utf8"), `${name}: ${update}`).toBe(text);
   });
 });

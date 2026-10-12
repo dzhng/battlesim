@@ -97,6 +97,13 @@ It hands over the buildings' module instances and the scenery's instances the
 same way, expanded by the owners the layers draw from, so a second client places
 nothing itself, and `drawnInstances` says what the last frame drew of them.
 
+The shaders are the same text for every battle and every canvas size: a
+battle's light (sun, sky, clouds, haze, bloom) and a size's texel steps reach
+them through uniforms, never spliced in, so one compiled set serves every map.
+Every pipeline has its own name. A second client compiles this text, not a
+port: [the export](pipelines/) is each pipeline's WGSL and settings, written
+from this package's code and held to it by its test ([pipelines](../../crates/pipelines/README.md)).
+
 Placement and order previews (a unit being placed, a held facing drag, every
 ordered destination with Space held) name the same installed appearances and pose
 as a real unit, one per soldier for a squad.
