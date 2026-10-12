@@ -363,15 +363,20 @@ export async function run(fixtures) {
         await Promise.race([scenePromise, timedOut, sceneFailurePromise]);
         await approved.finish();
       } catch (error) {
+        let reportedError = error;
         if (sceneFailure) {
           // Preserve the first renderer/environment error while closing pages
           // to release any scene-owned waits. This avoids reporting only a
           // secondary "Target page ... closed" rejection.
           await Promise.allSettled(browser.contexts().map((c) => c.close()));
           await Promise.allSettled([scenePromise]);
-          error = sceneFailure;
+          reportedError = sceneFailure;
         }
-        ctx.check("scene completed without throwing", false, error?.stack ?? String(error));
+        ctx.check(
+          "scene completed without throwing",
+          false,
+          reportedError?.stack ?? String(reportedError),
+        );
       } finally {
         clearTimeout(timer);
         await Promise.allSettled(browser.contexts().map((c) => c.close()));
