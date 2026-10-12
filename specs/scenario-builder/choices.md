@@ -21,7 +21,7 @@ This ledger carries decisions from the exploration and write-spec interviews. Us
 | AI | Per-player adaptive, observation-bound | **user**; faction, terrain, relations/side, force composition, and allies should influence behavior |
 | Neutral | Passive; no aggression, but return fire/self-defense | **user** |
 | Default side model | Blue/Red/Neutral fallback | **user**; arbitrary sides are a spike, not an assumed implementation |
-| Arbitrary sides | Proper end-to-end spike; keep only if final complexity is acceptable | **user**; coding agent should find the correct answer by implementing the probe |
+| Arbitrary sides | Slice 00 spike rejected dynamic FFA for this feature; production is fixed Blue/Red/Neutral | **user + territory**; the real path reaches fixed-two state and requires a cross-owner rewrite, so no unbounded abstraction is carried forward |
 | Compatibility | Hard cutover, no migrations or shims | **user** |
 | Bundle location | Portable export, not a codebase fixture; earlier saved-map-folder choice superseded | **user**; scenario files are downloaded/uploaded, future campaign promotion is explicit |
 
@@ -49,3 +49,18 @@ This ledger carries decisions from the exploration and write-spec interviews. Us
 | Script runtime and host API | Slice 05 deterministic portability/fuel probe |
 | Economy behavior after side verdict | Slice 06 against the accepted topology |
 | Asset limits and built-in catalog references | Slices 01–02 measured startup/memory/admission evidence |
+
+## Slice 00 evidence
+
+- The committed native test `side_topology::existing_binary_path_proves_observation_and_replay_baseline` proves the current two-side observation and replay digest path.
+- The committed refusal test and `side_topology_probe` report show the current contract rejects a four-side candidate with `unknown variant 'green', expected 'blue' or 'red'`.
+- A disposable worktree added `Neutral` plus the smallest compile fixes in encounter, movement cover, and route planning. `cargo check -p sim` then passed, but constructing a Blue/Red/Neutral battle panicked at `crates/sim/src/battle.rs:2448` because `sightings` remained length two.
+- The inventory found 172 side-indexed/fixed-two owners in the Rust simulation path before browser/UI consumers. Skirmish economy, objectives, publication layouts/readers, worker protocols, and UI types add further binary contracts.
+- Verdict: implement a deliberate fixed three-slot model for this feature; arbitrary side ids/FFA are a later architecture project, not a hidden fallback.
+
+## Slice 00 implementation choices
+
+| Choice | ELI5 decision audit | Verdict |
+|---|---|---|
+| Keep the topology evidence as a native example plus one integration-test module | The probe runs the same `ScenarioDefinition` → `Battle` → side observation → replay path that the runtime owns. The example prints the refusal and digest evidence for a human or later agent; the test keeps the two-side baseline and four-side refusal from silently disappearing. A throwaway worktree was used for the attempted Neutral extension, so no broken experimental code entered the product tree. This gives future work a small executable witness instead of relying on a paragraph claiming the architecture is binary. | **sound** — one authority path, no second runtime implementation |
+| Reslice before bundle work | The original plan said “Blue/Red/Neutral” after the spike, but the current code had no working Neutral slot. If bundle serialization started first, it would freeze a file format that the battle could not load. The plan therefore inserts `00b-fixed-neutral-slot` as the owner that must make the three-slot runtime real before `ScenarioBundle`. | **sound** — prevents a portable artifact that cannot be played |

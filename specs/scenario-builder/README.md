@@ -2,13 +2,13 @@
 
 ## Status and next pickup
 
-**Status:** planning complete; implementation has not started. The exploration interview and the write-spec interview are closed. The plan is ready for slice 00.
+**Status:** slice 00 topology spike complete; production implementation has not started. The exploration and write-spec interviews are closed.
 
 **Updated:** 2026-10-11.
 
-**Next pickup:** implement [`slices/00-side-topology-spike.md`](slices/00-side-topology-spike.md). Do the end-to-end topology probe through the real contract, native/WASM battle, publication, browser decoder, controllers, and replay path before committing the production side model. Record the verdict and measured owner inventory in [`choices.md`](choices.md), then update this section before ending the pass.
+**Next pickup:** implement [`slices/00b-fixed-neutral-slot.md`](slices/00b-fixed-neutral-slot.md). Materialize the fixed Blue/Red/Neutral simulation/publication contract before bundle serialization. Slice 00's disposable probe proved that arbitrary side counts are a cross-owner rewrite; keep the production model at Blue, Red, and passive Neutral for this feature. Update this section before ending every pass.
 
-**Active warning:** the current simulation is deeply fixed to Blue/Red. The user asked for a real arbitrary-side/FFA spike, not a paper estimate. Do not build the canvas or a compatibility bridge before that verdict.
+**Topology verdict (2026-10-11):** keep a fixed Blue/Red/Neutral model for this feature. The probe ran the real scenario → Battle → observation/replay path, then added a disposable Neutral variant and the minimum compile adaptations. `sim` compiled only after changing side-owned arrays in movement/route planning; a Neutral battle then panicked at `battle.rs:2448` indexing fixed-two sightings. The inventory found 172 side-indexed/fixed-two owners before the browser UI, plus fixed skirmish/objective/publication assumptions. Arbitrary FFA is deferred; no dynamic-side compatibility layer is carried forward.
 
 ## Goal
 
@@ -25,7 +25,7 @@ The scenario package may contain user assets such as audio. Those bytes, hashes,
 - **Runtime:** uploaded packages use the normal preparation/worker/BattleView path. This is local single-human control, not network multiplayer.
 - **Ownership:** every unit belongs to one player slot. Controllers can command only their slot's units. Same-side knowledge may be shared separately from command authority.
 - **Controllers:** at most one active human; human slots may switch to active AI; empty human slots use passive AI; AI-only slots remain active AI.
-- **Sides:** run the arbitrary-side spike first. The fallback production model is Blue, Red, and passive Neutral. Keep arbitrary side ids/FFA only if the spike proves the generalization is a clean, maintainable owner shape through the full acceptance path.
+- **Sides:** fixed Blue, Red, and Neutral. Neutral is a first-class passive slot; arbitrary side ids/FFA are deferred because slice 00 found fixed-two assumptions across simulation, publication, economy, and browser consumers.
 - **Modes:** explicit Sandbox and optional Economy modes. Sandbox has authored forces and no wallet/purchase loop. Economy reuses the existing economy/objective owner after the topology verdict.
 - **Neutral:** does not initiate combat, but returns fire and defends itself when threatened.
 - **Advanced behavior:** authored sandboxed code with deterministic host APIs, bounded execution, no ambient I/O/time/network/DOM, and ordinary command/event emission through the authority.
@@ -43,7 +43,8 @@ The current binary assumptions are explicit in `crates/contract/src/ids.rs`, `cr
 
 ```text
 00 side topology spike
-   ├── 01 canonical bundle + deterministic asset container
+   └── 00b fixed Neutral slot
+          ├── 01 canonical bundle + deterministic asset container
    │      └── 02 offline bundle admission and prepared-world startup
    ├── 03 player slots + controller ownership
    │      └── 04 active/passive AI and takeover
@@ -55,7 +56,7 @@ The current binary assumptions are explicit in `crates/contract/src/ids.rs`, `cr
    │                    └── 09 full acceptance, replay, visual closeout
 ```
 
-Slice 00 is a kill/keep gate. Slice 01 must not invent a second scenario schema. Slice 05 must freeze the script host before the UI exposes advanced source. Slices 07–09 are the only browser-heavy slices and each leaves a runnable checkpoint.
+Slice 00 is closed with the fixed three-slot verdict. Slice 00b materializes that verdict before any bundle or UI work. Slice 01 must not invent a second scenario schema. Slice 05 must freeze the script host before the UI exposes advanced source. Slices 07–09 are the only browser-heavy slices and each leaves a runnable checkpoint.
 
 ## Contract table
 
@@ -95,7 +96,7 @@ Any slice that produces a visual shot must:
 
 ## Known unknowns carried into implementation
 
-- The side-cardinality verdict is intentionally deferred to slice 00.
+- Arbitrary side counts/FFA are deferred after slice 00; the production contract owns exactly Blue, Red, and Neutral for this feature.
 - The bundle container (canonical JSON/base64 versus deterministic binary container) is chosen by slice 01's size and browser-admission probe; the semantic contract is fixed first.
 - The sandbox runtime and host API are chosen by slice 05's portable deterministic probe; a failed probe removes authored code from the shipped runtime rather than adding an unsafe fallback.
 - Economy semantics with arbitrary sides are resolved only after slice 00; unsupported combinations are refused explicitly.
@@ -103,7 +104,8 @@ Any slice that produces a visual shot must:
 
 ## Global TODO checklist
 
-- [ ] Run and record the side-topology verdict — [`slices/00-side-topology-spike.md`](slices/00-side-topology-spike.md).
+- [x] Run and record the side-topology verdict — [`slices/00-side-topology-spike.md`](slices/00-side-topology-spike.md); fixed Blue/Red/Neutral, arbitrary FFA deferred.
+- [ ] Materialize fixed Blue/Red/Neutral state and publication — [`slices/00b-fixed-neutral-slot.md`](slices/00b-fixed-neutral-slot.md).
 - [ ] Freeze the self-contained bundle and asset container — [`slices/01-bundle-contract.md`](slices/01-bundle-contract.md).
 - [ ] Prove offline map/catalog/audio admission — [`slices/02-offline-admission.md`](slices/02-offline-admission.md).
 - [ ] Materialize player-slot ownership — [`slices/03-player-slots.md`](slices/03-player-slots.md).
@@ -116,5 +118,5 @@ Any slice that produces a visual shot must:
 
 ## Next Agent Prompt
 
-You are picking up the scenario-builder implementation plan. Read this README and `choices.md`, then implement slice 00 only. Build a real, disposable topology/controller probe through the existing contract → native/WASM Battle → side-scoped publication → browser decoder → replay path. Include Blue/Red/Neutral and a 4+ side FFA candidate. Inventory every fixed-two owner, run hidden-state isolation, per-player command ownership, passive neutral/empty-slot behavior, active AI takeover, and deterministic replay. Do not build the editor, bundle format, or compatibility bridge yet. Record the verdict, evidence, rejected branch, and exact next pickup in `choices.md` and this README before ending the pass.
+You are picking up the scenario-builder implementation plan. Read this README and `choices.md`, then implement slice 00b only. Materialize exactly three combat/publication slots: Blue, Red, and passive Neutral. Update the fixed arrays and observation/publication paths coherently, refuse Neutral in binary-only economy/encounter paths where semantics are not defined, and prove Neutral can return fire/self-defend without initiating combat. Do not build the bundle or editor yet. Update this handoff before ending the pass.
 

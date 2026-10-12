@@ -20,7 +20,7 @@ Inventory every fixed `[2]`, `Side::ALL`, literal `blue|red`, side-indexed objec
 
 ## Verdict
 
-Keep arbitrary side ids only if the resulting owners are one coherent topology, the full probe stays understandable, hidden-state isolation passes for every observer, replay remains deterministic, and no fixed-two compatibility layer is needed. Otherwise hard-cut the production contract to Blue/Red plus a first-class passive Neutral slot and record arbitrary FFA as deferred. The verdict is about final code shape and behavior, not minimizing spike effort.
+The production feature keeps a fixed Blue/Red/Neutral topology. The existing two-side baseline passed observation and replay checks. The four-side candidate is refused by the current contract, and a disposable Neutral extension required changes across encounter, movement, and route planning before compiling; the first real Neutral battle then panicked in `Battle::sense` because `sightings` remained a two-entry array. The inventory found 172 side-indexed/fixed-two Rust owners before browser/UI consumers, plus fixed skirmish/objective/publication contracts. Arbitrary side ids/FFA are therefore deferred as a separate architecture project. No dynamic-side compatibility layer is carried into the builder.
 
 ## Runnable artifact
 
@@ -35,7 +35,7 @@ Native/WASM probe output containing the owner inventory, generated scenario dige
 
 ## Human review
 
-No player-facing visual change is accepted in this slice. A topology report is the review artifact. If a diagnostic visualization is produced, open it with `preview-shots`; review is non-blocking.
+No player-facing visual change is accepted in this slice. The topology report, refusal test, and replay baseline are the review artifacts. If a diagnostic visualization is produced, open it with `preview-shots`; review is non-blocking.
 
 ## Delegated implementation choices
 
