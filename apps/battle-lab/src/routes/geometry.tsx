@@ -94,17 +94,11 @@ function GeometryLab({ id, readMap }: { id: string; readMap: () => MapDefinition
 
   const meshes = useMemo(() => {
     if (!world || !appearances) return null;
-    const built = buildWorldLayers(
-      world.exports,
-      world.layout,
-      gameBiome,
-      overlay,
-      [],
-      appearances,
-    );
+    const built = buildWorldLayers(world.exports, world.layout, gameBiome, overlay, appearances);
     return showTrees ? built : { ...built, scenery: null };
   }, [world, overlay, showTrees, appearances]);
   const worldFeed = useFeed(meshes);
+  const appearancesFeed = useFeed(appearances);
   // The traversal view shows what blocks as boxes, the buildings' parts among them.
   const buildingsFeed = useFeed(overlay === "surface" ? buildings : null);
 
@@ -147,7 +141,7 @@ function GeometryLab({ id, readMap }: { id: string; readMap: () => MapDefinition
         fixture="geometry"
         world={worldFeed}
         buildings={buildingsFeed}
-        appearances={appearances}
+        appearances={appearancesFeed}
         instances={instances}
         initialCamera={camera}
         cameraConfig={cameraConfig}

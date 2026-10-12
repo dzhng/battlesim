@@ -2,9 +2,11 @@ import { act, cleanup, fireEvent, render } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { afterEach, expect, test, vi } from "vitest";
 import type { LabViewport } from "@apps/battle-lab/src/LabViewport";
+import { Feed } from "@apps/battle-lab/src/feed";
 import { gameCamera } from "@apps/battle-lab/src/gameCamera";
 import type { LoadingTasks } from "@apps/battle-lab/src/LabLoading";
 import type { BattleFrame, WorldLayers } from "@packages/battle-renderer/src/scene";
+import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 
 const gpu = vi.hoisted(() => ({
   resolve: null as null | ((frame: BattleFrame) => void),
@@ -119,7 +121,7 @@ test("failed frame initialization releases the frame and reports its error to th
   let disposed = false;
   await act(async () =>
     gpu.resolve!({
-      setFog() {
+      setClock() {
         throw new Error("frame setup failed");
       },
       setModels() {
@@ -138,9 +140,7 @@ test("failed frame initialization releases the frame and reports its error to th
 });
 
 test("appearance updates reach the installing frame and unmount releases it immediately", async () => {
-  const appearance = (
-    generation: number,
-  ): NonNullable<ComponentProps<typeof LabViewport>["appearances"]> => ({
+  const appearance = (generation: number): InstalledAppearances => ({
     generation,
     sides: { blue: [1, 1, 1], red: [1, 1, 1] },
     appearances: new Map(),
@@ -149,7 +149,8 @@ test("appearance updates reach the installing frame and unmount releases it imme
   });
   const first = appearance(1),
     latest = appearance(2);
-  const { view, props, Viewport } = await mount({ appearances: first });
+  const appearances = new Feed<InstalledAppearances | null>(first);
+  const { view } = await mount({ appearances });
   await building();
   let release!: () => void;
   const installing = new Promise<void>((resolve) => {
@@ -175,7 +176,7 @@ test("appearance updates reach the installing frame and unmount releases it imme
   await act(async () => {
     gpu.resolve!(frame);
   });
-  view.rerender(<Viewport {...props} appearances={latest} />);
+  act(() => appearances.set(latest));
   expect(requested).toBe(latest);
   view.unmount();
   expect(disposed).toBe(true);

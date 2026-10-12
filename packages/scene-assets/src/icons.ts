@@ -178,6 +178,8 @@ const ROLE_MODIFIERS: Record<string, string> = {
   // Air defence: the dome rising from the frame's foot.
   air_defense: '<path d="M9 25a12 11 0 0 1 24 0"/>',
   supply: '<path d="M3 17h36"/>',
+  // The artillery tube and its low carriage: a long-range support weapon.
+  artillery: '<path d="M8 22h8M12 22l-2-3M12 22l2-3M12 19L35 7"/>',
   // The aviation bow tie: two triangles meeting at the frame's centre.
   rotary_wing: '<path d="M9 8v12l24-12v12z"/>',
   wheeled:

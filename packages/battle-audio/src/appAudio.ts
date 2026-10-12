@@ -183,8 +183,9 @@ export class AppAudio {
       this.syncMenu();
       const { music } = this.options.presentation;
       const { tension, combat } = this.options.catalog.music.moods;
+      // Each battle's score shuffles by its own seed, drawn by the page.
       this.score = this.music
-        ? new BattleMusic(music, { tension, combat }, this.music, Math.random)
+        ? new BattleMusic(music, { tension, combat }, this.music, Math.random() * 2 ** 32)
         : null;
     }
     this.score?.update(this.context.currentTime, barks, speaking);
@@ -227,8 +228,9 @@ export class AppAudio {
   /** The battle's score fades out over `fade` seconds, undipped. */
   private endScore(fade: number) {
     if (!this.score) return;
+    this.score.dispose();
     this.score = null;
-    this.music?.duck(0, 0, 0);
+    this.music?.duck(0, 0);
     this.music?.stop(fade);
   }
 

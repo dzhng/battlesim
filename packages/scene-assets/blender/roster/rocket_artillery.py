@@ -1,4 +1,4 @@
-"""Rocket artillery (disabled cards): M270A2, MARS II, M142 HIMARS (GMLRS and
+"""Rocket artillery: M270A2, MARS II, M142 HIMARS (GMLRS and
 PrSM), BM-21 Grad and 9K515 Tornado-S, from assets/references/<family>/.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/rocket_artillery.py -- [--variant=<card id>] [--wreck]
@@ -22,8 +22,7 @@ What the photos settle:
 
 Each card's frame is the vehicle's
 published length, width and height (launcher stowed), recorded in its
-receipt as `references`. The launchers are drawn stowed and do not
-articulate until the cards' mechanics land.
+receipt as `references`. The launchers use fixed mounts and are drawn stowed.
 """
 import math
 import os
@@ -35,7 +34,7 @@ import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft, prism, stencil  # noqa: E402
 import ural as U  # noqa: E402
 from truck_chassis import chassis  # noqa: E402
-from vehicle_export import run_disabled  # noqa: E402
+from vehicle_export import run  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 
@@ -327,5 +326,8 @@ def wreck(variant, v):
 
 
 if __name__ == "__main__":
-    run_disabled("rocket_artillery", {c: dims for c, (_, _, dims) in CARDS.items()},
-                 {c: scheme for c, (_, scheme, _) in CARDS.items()}, build, wreck, chip=1.0)
+    run("m270_mlrs", {card: scheme for card, (_, scheme, _) in CARDS.items()}, build, wreck,
+        appearances=list(CARDS), script="rocket_artillery.py",
+        receipt_file="assets/source/roster/m270_mlrs/rocket_artillery.source-receipt.json",
+        references=[f"assets/references/{family}/references.json" for family in sorted({f for f, _, _ in CARDS.values()})],
+        chip=1.0)

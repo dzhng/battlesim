@@ -4,11 +4,11 @@
 //! under its transport hash (`packages/scene-assets/src/gzip.ts`).
 use crate::static_world::buildings::{Placed, PlacedBuildings};
 use crate::static_world::ground::biome::Biome;
-use crate::static_world::ground::tables::Grid;
 use crate::static_world::ground::{self, Source, Tuning};
-use crate::static_world::library::{kit_bounds, Bounds, Library};
+use crate::static_world::library::{kit_bounds, state_corners, Bounds, Library};
+use crate::static_world::props::{Art, PropInput, STAND_IN_KIT, STAND_IN_MODULE};
 use crate::world::BuildingStyle;
-use serde_json::Value;
+use serde_json::{json, Value};
 use std::collections::{BTreeSet, HashMap};
 use std::io::Read;
 use std::path::Path;
@@ -18,12 +18,22 @@ fn json(path: &Path) -> Result<Value, String> {
     serde_json::from_slice(&text).map_err(|e| format!("{}: {e}", path.display()))
 }
 
-/// The runtime file the content `hash` travels in, inflated.
-fn runtime_file(root: &Path, catalog: &Value, hash: &str, file: &str) -> Result<Vec<u8>, String> {
+/// The path of the runtime file the content `hash` travels in, gzipped.
+fn runtime_path(
+    root: &Path,
+    catalog: &Value,
+    hash: &str,
+    file: &str,
+) -> Result<std::path::PathBuf, String> {
     let transport = catalog["gzip"][hash]["hash"]
         .as_str()
         .ok_or_else(|| format!("the runtime catalog has no transport for {hash}"))?;
-    let path = root.join("assets/runtime").join(transport).join(file);
+    Ok(root.join("assets/runtime").join(transport).join(file))
+}
+
+/// The runtime file the content `hash` travels in, inflated.
+fn runtime_file(root: &Path, catalog: &Value, hash: &str, file: &str) -> Result<Vec<u8>, String> {
+    let path = runtime_path(root, catalog, hash, file)?;
     let bytes = std::fs::read(&path).map_err(|e| format!("{}: {e}", path.display()))?;
     let mut out = vec![];
     flate2::read::GzDecoder::new(&bytes[..])
@@ -39,61 +49,46 @@ pub struct MapGround {
     pub source: Source,
     pub biome: Biome,
     pub tuning: Tuning,
+    /// The sensor numbers sight shares with the simulation (`rules.sensors`).
+    pub sensors: crate::fog::sight::Sensors,
     /// The terrain's vertices (x, y, z) and triangles, as the simulation
     /// exports them.
     pub positions: Vec<f32>,
     pub indices: Vec<u32>,
+    /// The simulation's world, for what a side's knowledge changes of it
+    /// (the foliage left on ground it has seen cleared).
+    pub world: World,
+    /// The world layout (`sim::world::export::layout_json`) its props are
+    /// placed under (`Presentation::place_props`).
+    pub layout: String,
+    /// The map's regional family, if it has one.
+    pub family: Option<String>,
 }
 
 /// The ground of saved map `map` (`fixtures/maps/<map>`), built by the
-/// simulation's own world code under the game's rules, in the map's biome
-/// (`meta.json`) and regional finish, with `fixtures/game.json`'s
-/// `presentation` tunings: what the page reads from `WorldView` and hands
-/// `set_ground`.
+/// simulation's own world code under the rules of the battle fought on it
+/// (the game's, with the units of the map's own category: a menu map's the
+/// menu's, a test map's the tests'), in the map's biome (`meta.json`) and
+/// regional finish, with `fixtures/game.json`'s `presentation` tunings: what
+/// the page reads from `WorldView` and hands `set_ground`.
 pub fn ground(root: &Path, map: &str) -> Result<MapGround, String> {
     let folder = root.join("fixtures/maps").join(map);
     let resolved = sim::maps::load_folder(&folder).map_err(|e| e.to_string())?;
     let game = json(&root.join("fixtures/game.json"))?;
+    let meta = json(&folder.join("meta.json"))?;
+    let set = match meta["category"].as_str() {
+        Some("menu") => sim::fixtures::CatalogSet::Menu,
+        Some("test") => sim::fixtures::CatalogSet::Test,
+        _ => sim::fixtures::CatalogSet::Game,
+    };
+    let mut fixture = sim::fixtures::game();
+    fixture["catalog"] = Value::Array(sim::fixtures::catalog_documents(set));
     let rules: contract::scenario::Rules =
-        serde_json::from_value(sim::fixtures::game()).map_err(|e| format!("rules: {e}"))?;
+        serde_json::from_value(fixture).map_err(|e| format!("rules: {e}"))?;
     let map_def = &resolved.definition;
     let world = sim::world::WorldGeometry::new(map_def, &rules);
-    let extents = map_def.extents();
-    let header: Value = serde_json::from_str(&world.export_terrain_grid())
-        .map_err(|e| format!("terrain grid: {e}"))?;
-    let n = |k: &str| header[k].as_f64().unwrap_or(0.0);
-    let source = Source {
-        map: extents.physical,
-        // The page hands the rendered surroundings only where they reach
-        // past the map (`resolveGround`).
-        rendered: (extents.rendered[0] < 0.0).then_some(extents.rendered),
-        grid: Grid {
-            nx: n("nx") as usize,
-            ny: n("ny") as usize,
-            spacing: n("spacing"),
-            page_size: n("pageSize") as usize,
-            min_height: n("minHeight"),
-            page_ids: world.export_terrain_page_ids(),
-            heights: world.export_terrain_heights(),
-        },
-        props: world.export_props(),
-        drawn_by: ground::drawn_by(&sim::world::export::layout_json(&rules.catalog))?,
-        foliage: world.export_foliage(),
-        surface_strokes: world.export_surface_strokes(),
-        surface_runs: world.export_surface_runs(),
-        surface_triangles: world.export_surface_triangles(),
-        surface_boundaries: world.export_surface_boundaries(),
-        rivers: world.export_rivers(),
-        river_runs: world.export_river_runs(),
-        forests: world.export_forests(),
-        forest_rect_ids: world.export_forest_rect_ids(),
-        forest_metadata: world.export_forest_metadata(),
-        forest_strokes: world.export_forest_strokes(),
-        forest_triangles: world.export_forest_triangles(),
-        forest_boundaries: world.export_forest_boundaries(),
-        forest_trunk_ranges: world.export_forest_trunk_ranges(),
-    };
-    let meta = json(&folder.join("meta.json"))?;
+    let layout = sim::world::export::layout_json(&rules.catalog);
+    let source = ground::source(&world, &map_def.extents(), &layout)?;
     let biome_name = meta["biome"].as_str().ok_or("meta.json has no biome")?;
     let biome_path = root
         .join("fixtures/biomes")
@@ -103,12 +98,115 @@ pub fn ground(root: &Path, map: &str) -> Result<MapGround, String> {
     let biome = Biome::load(&biome_text, map_def.regional_family.as_deref())?;
     let tuning: Tuning = serde_json::from_value(game["presentation"].clone())
         .map_err(|e| format!("presentation: {e}"))?;
+    let sensors =
+        serde_json::from_value(game["sensors"].clone()).map_err(|e| format!("sensors: {e}"))?;
     Ok(MapGround {
         source,
         biome,
         tuning,
+        sensors,
         positions: world.export_terrain_positions(),
         indices: world.export_terrain_indices(),
+        world,
+        layout,
+        family: map_def.regional_family.clone(),
+    })
+}
+
+/// The simulation's world a saved map's ground was built by.
+pub use sim::world::WorldGeometry as World;
+
+/// The foliage a side knows of `world`: less the trees on ground its
+/// `learned` ground says it has seen cleared (`WorldView.foliage_cleared`).
+pub fn side_foliage(world: &World, learned: &crate::scars::LearnedGround) -> Vec<f32> {
+    let (cols, rows, cell) = (learned.cols, learned.rows, learned.cell_m);
+    world.export_foliage_cleared(|x, y| {
+        let (i, j) = ((x / cell).floor(), (y / cell).floor());
+        i >= 0.0
+            && j >= 0.0
+            && (i as usize) < cols
+            && (j as usize) < rows
+            && learned.is_cleared(i as usize, j as usize)
+    })
+}
+
+/// What a map in regional family `family` draws its props from
+/// (`Presentation::place_props`), as a battle page whose units wear the
+/// appearances `wearing` installs it (`propArt` over what the page loads):
+/// every static appearance with a footprint the catalog load takes (scenery
+/// of no region, and of the wrecks only the worn vehicles' own) or the map's
+/// family fetches, each read for its first state's bounds; each worn
+/// vehicle's wreck; the stand-in kit's box where the catalog has its module;
+/// and the fixture's stand-in tints and model tiers.
+pub fn prop_art(root: &Path, family: Option<&str>, wearing: &[&str]) -> Result<PropInput, String> {
+    let catalog = json(&root.join("assets/runtime/catalog.json"))?;
+    let game = json(&root.join("fixtures/game.json"))?;
+    let none = serde_json::Map::new();
+    let entries = catalog["appearances"].as_object().unwrap_or(&none);
+    let worn = |name: &str| wearing.contains(&name);
+    let wreck_of = |name: &str| entries.get(name).and_then(|e| e["wreck"].as_str());
+    let wrecked: BTreeSet<&str> = entries.keys().filter_map(|n| wreck_of(n)).collect();
+    let wrecks: serde_json::Map<String, Value> = wearing
+        .iter()
+        .filter_map(|&n| wreck_of(n).map(|w| (n.to_owned(), json!(w))))
+        .collect();
+    let states = |name: &str, entry: &Value| -> Result<Vec<_>, String> {
+        let hash = entry["bundle"]
+            .as_str()
+            .ok_or(format!("{name}: no bundle"))?;
+        let path = runtime_path(root, &catalog, hash, "bundle.bin")?;
+        let file = std::fs::File::open(&path).map_err(|e| format!("{}: {e}", path.display()))?;
+        state_corners(
+            flate2::read::GzDecoder::new(file),
+            &format!("bundle {name}"),
+        )
+    };
+    let mut appearances = Vec::new();
+    for (name, e) in entries {
+        let region = e["regional_family"].as_str();
+        // A kit, or a look of another region, is fetched only on request.
+        let loaded = match (e["unit"].as_str(), region) {
+            (Some("kit"), _) => false,
+            (_, Some(r)) => Some(r) == family,
+            _ if wrecked.contains(name.as_str()) => wrecks.values().any(|w| w == name),
+            (unit, None) => unit == Some("scenery") || worn(name),
+        };
+        let footprint = &e["footprint_half_m"];
+        if !loaded || e["kind"] != "static" || footprint.is_null() {
+            continue;
+        }
+        let Some((_, bounds)) = states(name, e)?.into_iter().next() else {
+            return Err(format!("bundle {name}: no states"));
+        };
+        appearances.push(Art {
+            name: name.clone(),
+            scenery: e["scenery"].as_str().map(str::to_owned),
+            family: region.map(str::to_owned),
+            footprint: serde_json::from_value(footprint.clone())
+                .map_err(|e| format!("{name}: footprint_half_m: {e}"))?,
+            paints: serde_json::from_value(e["paints"].clone())
+                .map_err(|e| format!("{name}: paints: {e}"))?,
+            bounds,
+        });
+    }
+    let stand_in = match entries.get(STAND_IN_KIT) {
+        Some(kit) if kit["kind"] == "static" => {
+            let states = states(STAND_IN_KIT, kit)?;
+            let has_module = states.iter().any(|(n, _)| n == STAND_IN_MODULE);
+            states.first().filter(|_| has_module).map(|(_, b)| *b)
+        }
+        _ => None,
+    };
+    let presentation = &game["presentation"];
+    Ok(PropInput {
+        appearances,
+        wrecks: serde_json::from_value(Value::Object(wrecks)).map_err(|e| e.to_string())?,
+        stand_in,
+        stand_in_tints: serde_json::from_value(presentation["stand_ins"]["tints"].clone())
+            .map_err(|e| format!("presentation.stand_ins.tints: {e}"))?,
+        family: family.map(str::to_owned),
+        detail: serde_json::from_value(presentation["models"].clone())
+            .map_err(|e| format!("presentation.models: {e}"))?,
     })
 }
 

@@ -9,11 +9,10 @@
 import { useMemo, useState } from "react";
 import { ReadoutLayer } from "@web/battle/present/readouts";
 import { buildContactGlyphs, type ContactShape } from "@packages/battle-renderer/src/contactGlyph";
-import type { FogEye, FogInput } from "@packages/battle-renderer/src/frame/fogInputs";
 import type { FogProbeInput } from "@packages/battle-renderer/src/frame/fogVisibility";
 import type { FogPresentation, FogStyle } from "@packages/battle-renderer/src/frame/fogStyle";
 import { FOG_EDGE_REACH_PX } from "@packages/battle-renderer/src/records.gen";
-import { resolveFogLook } from "@web/battle/sim/presentation";
+import { resolveFogLook, type FogEye, type FogRequest } from "@web/battle/sim/presentation";
 import { concatMeshes } from "@packages/battle-renderer/src/mesh";
 import type { FrameView } from "@packages/battle-renderer/src/scene";
 import type { LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
@@ -116,7 +115,7 @@ export default function FogLook() {
 }
 
 function FogLookLab({ scenario }: { scenario: string }) {
-  const session = useBattleSession({ scenario, seed: STREET_SEED, destroyable: "apart" });
+  const session = useBattleSession({ scenario, seed: STREET_SEED });
   const { meshes, sim, surfaceZ } = session;
   const specimenShapes = useMemo(() => specimensOf(session.units), [session.units]);
   const { observation } = sim;
@@ -145,14 +144,13 @@ function FogLookLab({ scenario }: { scenario: string }) {
   };
   const block = JSON.stringify({ fog: { style: name, styles } }, null, 2);
 
-  const fog = useMemo<FogInput | null>(() => {
+  const recon = observation?.own.find((u) => u.kind === "test_recon")?.id;
+  const fog = useMemo<FogRequest | null>(() => {
     if (!fogOn || !session.fog) return null;
-    if (eyes) return { ...session.fog, sight: { ...session.fog.sight, eyes } };
+    if (eyes) return { ...session.fog, eyes };
     if (!reconOnly) return session.fog;
-    const recon = observation?.own.find((u) => u.kind === "test_recon");
-    const reconEyes = session.fog.sight.eyes.filter((e) => e.key.startsWith(`${recon?.id}:`));
-    return { ...session.fog, sight: { ...session.fog.sight, eyes: reconEyes } };
-  }, [fogOn, reconOnly, eyes, session.fog, observation]);
+    return { ...session.fog, units: recon === undefined ? [] : [recon] };
+  }, [fogOn, reconOnly, eyes, session.fog, recon]);
   const fogFeed = useFeed(fog);
   const overlay = useMemo(() => {
     const battle = contactLayer(session.contacts, surfaceZ, facing);

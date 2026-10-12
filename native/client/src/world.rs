@@ -5,6 +5,7 @@
 //! The ground, the scenery and the models draw into them.
 use wgpu::*;
 
+use crate::fog::Layer;
 use crate::frame::{Inputs, Pass};
 use crate::models::Surface;
 use crate::pipelines::{Bound, Pipelines};
@@ -57,7 +58,7 @@ impl Pass for DepthPrepass {
         inputs.ground.draw_depth(&mut pass, camera);
         inputs
             .scenery
-            .draw_depth(&mut pass, camera, models.instances());
+            .draw_depth(&mut pass, camera, models.statics());
         for (bound, surface) in [
             (&self.solid, Surface::Solid),
             (&self.cutout, Surface::Cutout),
@@ -111,6 +112,13 @@ impl Pass for WorldColour {
         inputs.grass.encode_build(encoder, ground.layout_group());
         self.sky.encode(inputs, encoder);
         let frame = inputs.environment.groups();
+        // Each surface binds the fog group of what it is (`fog::Layer`).
+        let fogged = |layer| {
+            let mut groups = frame.to_vec();
+            groups.push(inputs.fog.group(layer));
+            groups
+        };
+        let painted_ground = fogged(Layer::PaintedGround);
         // Too many marks to hold at once: the terrain draws region by region,
         // each submitted after its scars load (the frame so far first).
         let regional = scars.regional();
@@ -124,7 +132,7 @@ impl Pass for WorldColour {
                 scars.apply(queue, upload);
                 let mut region = inputs.device.create_command_encoder(&Default::default());
                 let mut pass = world_pass(&mut region, inputs.targets, "ground-region", i == 0);
-                ground.draw_terrain(&mut pass, &frame);
+                ground.draw_terrain(&mut pass, &painted_ground);
                 drop(pass);
                 queue.submit([region.finish()]);
             }
@@ -133,20 +141,34 @@ impl Pass for WorldColour {
         }
         let mut pass = world_pass(encoder, inputs.targets, "world", !regional);
         if !regional {
-            ground.draw_terrain(&mut pass, &frame);
+            ground.draw_terrain(&mut pass, &painted_ground);
         }
-        inputs.ground.draw_skirt(&mut pass, &frame);
+        let faces = fogged(Layer::Faces);
+        inputs.ground.draw_skirt(&mut pass, &faces);
         let models = inputs.models;
+        // The models by how fog takes them, as `worldPass.ts` draws them.
+        for layer in [
+            Layer::Units,
+            Layer::Faces,
+            Layer::Ground,
+            Layer::PaintedFaces,
+        ] {
+            let mut groups = fogged(layer);
+            groups.push(models.group());
+            for (bound, surface) in &self.surfaces {
+                bound.set(&mut pass, &groups);
+                models.draw_fogged(&mut pass, *surface, layer);
+            }
+        }
+        inputs.scenery.draw(&mut pass, &faces, models.statics());
+        inputs.grass.draw(&mut pass, &painted_ground);
+        inputs.ground.draw_backdrop(&mut pass, &painted_ground);
+        inputs
+            .ground
+            .draw_water(&mut pass, &fogged(Layer::PaintedFaces));
+        // Glass takes no fog: it draws over what is fogged behind it.
         let mut groups = frame.to_vec();
         groups.push(models.group());
-        for (bound, surface) in &self.surfaces {
-            bound.set(&mut pass, &groups);
-            models.draw(&mut pass, *surface);
-        }
-        inputs.scenery.draw(&mut pass, &frame, models.instances());
-        inputs.grass.draw(&mut pass, &frame);
-        inputs.ground.draw_backdrop(&mut pass, &frame);
-        inputs.ground.draw_water(&mut pass, &frame);
         self.glass.set(&mut pass, &groups);
         models.draw(&mut pass, Surface::Blended);
     }

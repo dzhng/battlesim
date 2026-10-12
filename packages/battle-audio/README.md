@@ -246,13 +246,17 @@ in [the tool](tools/generate/music.ts), each raw master is paid for once and kep
 under `assets/source/audio/music/`, and each served encode is given the gain that
 sets it to −26 LUFS. `--track` buys a track again.
 
-Which mood plays is the [music director's](src/music/musicDirector.ts) call: a
-pure rule on an injected clock, fed the side's own barks. Its numbers live in
-`presentation.audio.music`. It never repeats a track back to back within a mood.
-In a battle, [the score](src/music/battleMusic.ts) opens on `tension` as the
-menu's music fades, hears every bark the voice lines took (only the side's own
-move it), crossfades when the mood changes, and dips by the duck depth while
-any voice line sounds. It stays in TypeScript while the music tables do.
+Which mood plays, which track comes next and when the music dips is decided in
+Rust, once for both clients ([`presentation::sound::music`](../../crates/presentation/src/sound/music.rs)),
+from the side's own barks and whether a voice line sounds. Its numbers live in
+`presentation.audio.music`. Each mood's tracks shuffle by the score's seed, every
+track once a shuffle and never one back to back. Rust names a track by its
+catalog id and emits music commands with the rest: start a track fading in, stop
+every track fading out (a crossfade is the two over one span), and duck. In a
+battle, [the score](src/music/battleMusic.ts) opens on `tension` as the menu's
+music fades, its seed drawn by the page, and only carries the commands out on the
+player, which resolves an id to its served file. The menu's music is the app's,
+not a battle decision.
 
 Music feeds the same master as the rest of the menu mix, so master volume and
 mute cover it. Inside the player, a level gain carries the player's music

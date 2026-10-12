@@ -147,7 +147,6 @@ export function BattleView({
     },
     replay,
     scripted,
-    destroyable: "apart",
     sound: true,
     inputEnabled: !menuOpen && viewportReady,
   });

@@ -22,7 +22,7 @@ import { useSessionCatalog } from "@web/battle/catalog/context";
 import { useCallback, useMemo, useRef, useState } from "react";
 import catalogue from "@fixtures/prototype-building-templates.json";
 import type { SceneBuildings } from "@packages/battle-renderer/src/models/buildingReferences";
-import { apartKinds, buildWorldLayers } from "@packages/battle-renderer/src/worldMesh";
+import { buildWorldLayers } from "@packages/battle-renderer/src/worldMesh";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { CameraController, type CameraPose } from "@packages/renderer-core/src/cameraController";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
@@ -229,16 +229,7 @@ function Rows({
     [world],
   );
   const meshes = useMemo(
-    () =>
-      world &&
-      buildWorldLayers(
-        world.exports,
-        world.layout,
-        gameBiome,
-        "surface",
-        apartKinds(world.layout, true),
-        appearances,
-      ),
+    () => world && buildWorldLayers(world.exports, world.layout, gameBiome, "surface", appearances),
     [world, appearances],
   );
   const worldFeed = useFeed(meshes);
@@ -250,6 +241,7 @@ function Rows({
     }),
     [appearances],
   );
+  const kitsFeed = useFeed<InstalledAppearances | null>(kits);
 
   // What stands: the whole line-up or one template alone, in one state, less
   // the templates that have no rows for that state.
@@ -404,7 +396,7 @@ function Rows({
         world={worldFeed}
         buildings={buildingsFeed}
         buildingStyle={style}
-        appearances={kits}
+        appearances={kitsFeed}
         initialCamera={cameraAt(query.station, query.at)}
         groundAt={surfaceZ}
         onFrame={placeLabels}

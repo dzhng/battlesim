@@ -512,6 +512,10 @@ impl FlightLab {
             target: v3_of(target)?,
             target_velocity: v3_of(target_velocity)?,
         };
+        let min_range_m = number("min_range_m");
+        if min_range_m > 0.0 && (aim.target - aim.origin).length() < min_range_m {
+            return Ok(serde_json::json!({ "fired": false, "reason": "holding_fire" }).to_string());
+        }
         let arc_name = |a: ArcKind| format!("{a:?}").to_lowercase();
         // The lab fires into nothing and holds no round.
         let launched = fire_round(

@@ -441,29 +441,86 @@
       }
     },
     "europe_caesar_88": {
-      "name": "CAESAR 8×8",
-      "description": "8×8",
+      "name": "CAESAR 8\u00d78",
+      "description": "8\u00d78",
       "faction": "europe",
       "family": "caesar",
-      "roles": [],
+      "roles": [
+        "artillery"
+      ],
       "cost": 260,
       "roster": {
         "factions": [
           "europe"
         ],
         "category": "sup",
-        "variant": "8×8",
+        "variant": "8\u00d78",
         "family_name": "CAESAR"
       },
-      "planned": {
-        "reason": "Artillery and indirect-support mechanics deferred",
-        "profile": "wheeled-howitzer",
-        "weapons": [
-          {
-            "name": "Howitzer",
-            "icon": "howitzer"
-          }
-        ]
+      "extends": "roster_profile_truck",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            5.0,
+            1.275,
+            1.6
+          ],
+          "eye_m": 2.8800000000000003,
+          "hp": 130,
+          "armor": {
+            "front": 90,
+            "side": 55,
+            "rear": 35,
+            "roof": 25,
+            "ricochet": {
+              "front": 0.2,
+              "side": 0.15,
+              "rear": 0.1,
+              "roof": 0.25
+            }
+          },
+          "weight_class": "heavy",
+          "push_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "mobility": {
+        "wheeled": {
+          "offroad_kmh": 26,
+          "road_kmh": 82,
+          "turn_deg_s": 34,
+          "reverse_fraction": 0.3,
+          "turning_radius_m": 8
+        }
+      },
+      "mounts": [
+        {
+          "id": "gun",
+          "name": "Howitzer",
+          "weapons": [
+            "artillery_howitzer"
+          ],
+          "turret": false,
+          "pivot_m": [
+            -2.95,
+            0,
+            3.0
+          ],
+          "muzzle_m": [
+            8.06,
+            0,
+            0
+          ]
+        }
+      ],
+      "appearance": "europe_caesar_88",
+      "sensors": {
+        "ground_m": 500,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        }
       }
     },
     "europe_centauro_ii": {
@@ -2063,7 +2120,9 @@
       "description": "Multiple-launch rocket system",
       "faction": "europe",
       "family": "mars_ii",
-      "roles": [],
+      "roles": [
+        "artillery"
+      ],
       "cost": 340,
       "roster": {
         "factions": [
@@ -2073,15 +2132,69 @@
         "variant": "Multiple-launch rocket system",
         "family_name": "MARS II"
       },
-      "planned": {
-        "reason": "Artillery and indirect-support mechanics deferred",
-        "profile": "heavy-rocket",
-        "weapons": [
-          {
-            "name": "Rockets",
-            "icon": "rockets"
-          }
-        ]
+      "extends": "roster_profile_light_tank",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.485,
+            1.485,
+            1.31
+          ],
+          "eye_m": 2.358,
+          "hp": 125,
+          "armor": {
+            "front": 90,
+            "side": 55,
+            "rear": 35,
+            "roof": 25,
+            "ricochet": {
+              "front": 0.2,
+              "side": 0.15,
+              "rear": 0.1,
+              "roof": 0.25
+            }
+          },
+          "weight_class": "heavy",
+          "push_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 24,
+          "road_kmh": 58,
+          "turn_deg_s": 28,
+          "reverse_fraction": 0.3
+        }
+      },
+      "mounts": [
+        {
+          "id": "gun",
+          "name": "Rockets",
+          "weapons": [
+            "artillery_rocket_heavy"
+          ],
+          "turret": false,
+          "pivot_m": [
+            -1.6,
+            0,
+            2.2
+          ],
+          "muzzle_m": [
+            1.0,
+            0,
+            0
+          ]
+        }
+      ],
+      "appearance": "europe_mars_ii_multiple_launch_rocket_system",
+      "sensors": {
+        "ground_m": 450,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        }
       }
     },
     "europe_mirage_2000_2000d_rmv": {
@@ -2327,7 +2440,9 @@
       "description": "Tracked 155 mm howitzer",
       "faction": "europe",
       "family": "pzh_2000",
-      "roles": [],
+      "roles": [
+        "artillery"
+      ],
       "cost": 310,
       "roster": {
         "factions": [
@@ -2337,15 +2452,69 @@
         "variant": "Tracked 155 mm howitzer",
         "family_name": "PzH 2000"
       },
-      "planned": {
-        "reason": "Artillery and indirect-support mechanics deferred",
-        "profile": "tracked-howitzer",
-        "weapons": [
-          {
-            "name": "Howitzer",
-            "icon": "howitzer"
-          }
-        ]
+      "extends": "roster_profile_light_tank",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.935,
+            1.79,
+            1.53
+          ],
+          "eye_m": 2.754,
+          "hp": 150,
+          "armor": {
+            "front": 90,
+            "side": 55,
+            "rear": 35,
+            "roof": 25,
+            "ricochet": {
+              "front": 0.2,
+              "side": 0.15,
+              "rear": 0.1,
+              "roof": 0.25
+            }
+          },
+          "weight_class": "heavy",
+          "push_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 24,
+          "road_kmh": 58,
+          "turn_deg_s": 28,
+          "reverse_fraction": 0.3
+        }
+      },
+      "mounts": [
+        {
+          "id": "gun",
+          "name": "Howitzer",
+          "weapons": [
+            "artillery_howitzer"
+          ],
+          "turret": false,
+          "pivot_m": [
+            -3.0,
+            0,
+            2.9
+          ],
+          "muzzle_m": [
+            8.06,
+            0,
+            0
+          ]
+        }
+      ],
+      "appearance": "europe_pzh_2000_tracked_155_mm_howitzer",
+      "sensors": {
+        "ground_m": 500,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        }
       }
     },
     "europe_rafale_c_f4": {

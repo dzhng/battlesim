@@ -38,11 +38,13 @@ differs between the clients.
   interval and main-thread time, the frame's GPU time from `timestamp-query`,
   and the in-game frame-rate counter's readings, which must agree with the
   recording's average.
-- **Native.** The [native client](../../../../native/client/README.md) has
-  no bench yet; slice 25's performance gate adds one that draws a capture
-  run's frame records and writes the same raw frames. On macOS a `wgpu`
-  window that isn't visible presents nothing and runs unpaced, so a native
-  run either presents to a visible window or is compared on GPU time.
+- **Native.** The [native client's `--bench`](../../../../native/client/README.md#timing-a-scene)
+  draws a capture run's frame records (the reel's camera path and
+  publications) back to back on a release build, and writes the same raw
+  frames: interval, CPU time and GPU time from two timestamp markers. On
+  macOS a `wgpu` window that isn't visible presents nothing and runs
+  unpaced, so the bench holds two frames in flight. Its frames are then as
+  long as the slower of its CPU and its GPU.
 - **Same pacing, no presentation.** The browser runs headless and does not
   present to the display. Chromium's `--disable-frame-rate-limit` hangs the
   graphics test in battle preparation (inside the model layer's appearance

@@ -1,5 +1,5 @@
 //! A browser parity run's scene, replayed through the presentation crate as
-//! 18b's capture replay does: the map's ground set and its scenery placed,
+//! 18b's capture replay does: the map's ground set and its scenery and props placed,
 //! the battle's world loaded once, then for each frame record in order,
 //! every publication up to its tick pushed and `frame()` asked at its sim
 //! time and camera. Every record is framed, since poses, effects and the
@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 
 use presentation::fog::FogPresentation;
 use presentation::light::LightSettings;
-use presentation::presentation::{Frame, Presentation, Ui};
+use presentation::presentation::{FogSetup, Frame, Presentation, Ui};
 use presentation::records::FogLook;
 use presentation::static_world::files;
 use presentation::static_world::ground::walk::Cleared;
@@ -87,8 +87,14 @@ pub struct Replay {
     /// The map's terrain triangles, as the simulation exports them:
     /// vertices (x, y, z), then indices.
     pub terrain: (Vec<f32>, Vec<u32>),
+    /// The simulation's world, kept while fog is drawn: the side's foliage
+    /// follows the ground it sees cleared.
+    world: Option<files::World>,
     /// The cleared cells the scenery last followed.
     cleared: usize,
+    /// Whether the last record framed was drawn: a renderer then holds its
+    /// static batches.
+    drew_last: bool,
     samples: Vec<Sample>,
     pushed: usize,
     lens: Lens,
@@ -174,6 +180,16 @@ impl Replay {
         // The ground, and its scenery placed from each kind's finest mesh.
         let ground = files::ground(root, &map)?;
         presentation.set_ground(ground.source, ground.biome, ground.tuning)?;
+        // Fog of war, where the browser drew it: the side's sight under the
+        // game's sensor rules.
+        let layers = manifest["layers"].as_array().ok_or("manifest: no layers")?;
+        let fog = layers.iter().any(|l| l == "fog");
+        if fog {
+            presentation.set_fog(Some(FogSetup {
+                sensors: Some(ground.sensors),
+                ..FogSetup::default()
+            }))?;
+        }
         let kinds = presentation
             .ground()
             .map_or_else(Vec::new, |g| g.scenery_kinds());
@@ -183,6 +199,13 @@ impl Replay {
             .collect::<Result<Vec<_>, String>>()?;
         let finest: Vec<&[f32]> = finest.iter().map(Vec::as_slice).collect();
         presentation.place_scenery(&finest)?;
+        // The props, from the art a page running these units installs.
+        let wearing: Vec<&str> = units.appearances.keys().map(String::as_str).collect();
+        let art = files::prop_art(root, ground.family.as_deref(), &wearing)?;
+        let records = presentation
+            .ground()
+            .map_or_else(Vec::new, |g| g.source.props.clone());
+        presentation.place_props(&records, &ground.layout, art)?;
         presentation.load_world(input, tables, Some(buildings))?;
         Ok(Self {
             dir: dir.to_owned(),
@@ -203,7 +226,9 @@ impl Replay {
                 .cloned()
                 .unwrap_or_default(),
             terrain: (ground.positions, ground.indices),
+            world: fog.then_some(ground.world),
             cleared: 0,
+            drew_last: false,
             samples: capture.samples,
             pushed: 0,
             lens,
@@ -238,19 +263,22 @@ impl Replay {
     }
 
     /// Frames `record`: pushes the publications up to its tick, `heard`
-    /// after each, then asks for its frame. A frame that is `drawn` lists
-    /// every static batch, as a renderer that drew the frames between would
-    /// hold them. Then, as the page does, the scenery follows the ground the
-    /// side has seen cleared, from the next frame on.
+    /// after each, then asks for its frame. A frame that is `drawn` after
+    /// one that was not (a jump between plates) writes every static batch
+    /// anew, since the renderer took none of the frames between; one drawn
+    /// after a drawn frame writes only what changed. Then, as the page
+    /// does, the scenery follows the ground the side has seen cleared, from
+    /// the next frame on.
     pub fn frame(
         &mut self,
         record: &Record,
         drawn: bool,
         mut heard: impl FnMut(&Presentation),
     ) -> Result<&Frame, String> {
-        if drawn {
+        if drawn && !self.drew_last {
             self.presentation.resend_statics();
         }
+        self.drew_last = drawn;
         while let Some(s) = self
             .samples
             .get(self.pushed)
@@ -268,7 +296,19 @@ impl Replay {
                 self.cleared = learned.cleared_count();
                 let runs = learned.cleared_runs();
                 let cleared = Cleared::from_runs(&runs, learned.cols, learned.rows, learned.cell_m);
+                // Fog's foliage is the side's: less the trees on ground it
+                // has seen cleared, as the page re-exports it.
+                let foliage = self
+                    .world
+                    .as_ref()
+                    .map(|world| files::side_foliage(world, learned));
                 self.presentation.set_cleared(cleared);
+                if let Some(foliage) = foliage {
+                    self.presentation.set_fog(Some(FogSetup {
+                        foliage: Some(foliage),
+                        ..FogSetup::default()
+                    }))?;
+                }
             }
         }
         Ok(self.presentation.last_frame())

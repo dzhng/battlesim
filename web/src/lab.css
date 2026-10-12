@@ -20,6 +20,54 @@
   grid-template-columns: minmax(0, 1fr);
   gap: 6px;
 }
+
+/* The artillery checkpoint keeps its tactical proof readable on machines
+   whose WebGPU canvas is unavailable: the plotted line is the FlightLab's
+   own sampled high arc, not a decorative substitute for the simulation. */
+.artillery-lab-diagram {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  padding: 28px 28px 24px 0;
+  box-sizing: border-box;
+  pointer-events: none;
+  background: #101c1c;
+  isolation: isolate;
+}
+.artillery-lab-diagram svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 1px solid rgb(111 166 144 / 0.42);
+  box-shadow:
+    0 0 28px rgb(71 144 125 / 0.14),
+    inset 0 0 36px rgb(0 0 0 / 0.32);
+}
+.artillery-diagram-kicker,
+.artillery-diagram-label,
+.artillery-diagram-note {
+  font-family: var(--hud-font);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.artillery-diagram-kicker {
+  fill: #b8e6d0;
+  font-size: 16px;
+}
+.artillery-diagram-label {
+  fill: #d6dfd2;
+  font-size: 12px;
+}
+.artillery-diagram-note {
+  fill: #9bb5a7;
+  font-size: 11px;
+}
+.artillery-panel {
+  z-index: 2;
+  max-width: 360px;
+  max-height: none;
+  overflow: visible;
+}
 /* The HUD's panel look (hud.css `.hud-panel`, on every lab panel) owns the
    colours, type and buttons; this sheet only lays the labs out. */
 .lab-panel button {

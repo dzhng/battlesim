@@ -39,14 +39,21 @@ export async function groundFilterExact(ctx) {
       const terrainPath = file("packages/battle-renderer/src/frame/terrainMaterial.ts");
       const terrainText = await (await fetch(terrainPath)).text();
       const gpuUrl = terrainText.match(/from ["']([^"']*typegpu[^"']*)["']/)[1];
-      const [{ tgpu, d }, { GpuRegistry }, terrain, { ObservationDecoder }, { groundRecords }] =
-        await Promise.all([
-          import(gpuUrl),
-          import(file("packages/battle-renderer/src/frame/registry.ts")),
-          import(terrainPath),
-          import(file("web/src/battle/sim/presentation.ts")),
-          import(file("web/tests/groundRuns.ts")),
-        ]);
+      const [
+        { tgpu, d },
+        { GpuRegistry },
+        terrain,
+        surface,
+        { ObservationDecoder },
+        { groundRecords },
+      ] = await Promise.all([
+        import(gpuUrl),
+        import(file("packages/battle-renderer/src/frame/registry.ts")),
+        import(terrainPath),
+        import(file("packages/battle-renderer/src/terrain/terrainSurface.ts")),
+        import(file("web/src/battle/sim/presentation.ts")),
+        import(file("web/tests/groundRuns.ts")),
+      ]);
       const compiled = [],
         shader = device.createShaderModule.bind(device);
       device.createShaderModule = (descriptor) => {
@@ -61,9 +68,11 @@ export async function groundFilterExact(ctx) {
       let bitFailures = 0,
         linearFailures = 0,
         maxError = 0;
+      // The terrain draws the ground the presentation resolved.
+      const ground = surface.presentGround(world.terrain.input);
       try {
         const source = terrain.createTerrainSource(root, registry);
-        source.set(world.terrain);
+        source.set(ground);
         const runs = [];
         for (let y = 0; y < 38; y++)
           for (let x = 0; x < 38; x++) {
@@ -256,6 +265,7 @@ export async function groundFilterExact(ctx) {
         }
       } finally {
         registry.release();
+        ground.free();
         device.createShaderModule = shader;
       }
       return {

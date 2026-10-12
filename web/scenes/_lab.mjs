@@ -1,6 +1,7 @@
 // Helpers every scene shares: the lab's route probes, stepping the paused
 // authority until an observation holds, and saving a drawn frame.
 import { writeFile } from "node:fs/promises";
+import { capture } from "./_png.mjs";
 
 /** Run `fn(arg)` in the page. */
 export const lab = (page, fn, arg) => page.evaluate(fn, arg);
@@ -81,7 +82,7 @@ export const buildingStats = (page) => lab(page, () => window.__lab.stats().buil
  *  class bytes where it is. The frame is back at its final view after. */
 export async function groundClasses(page) {
   await lab(page, () => window.__lab.setFrameView("ground-classes"));
-  const png = await page.screenshot();
+  const png = await capture(page);
   await lab(page, () => window.__lab.setFrameView("final"));
   return png;
 }

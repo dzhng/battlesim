@@ -537,15 +537,16 @@ export async function createSceneryLayer(
     meshes: { buffer: VertexBuffer; vertices: number }[];
   }
   /** One batch the last frame listed: its row, tier and pass, its buffer
-   *  (records, or a felled tree's pairs), and what it draws. */
+   *  (records, or a felled tree's pairs: a power of two of records, in a
+   *  scope of its own), and what it draws. */
   interface Held {
+    scope: GpuRegistry | null;
     buffer: VertexBuffer | null;
     capacity: number;
     count: number;
     row: number;
     tier: number;
     pass: number;
-    seen: number;
   }
   let scope: GpuRegistry | null = null;
   let given: WorldScenery | null = null;
@@ -555,7 +556,6 @@ export async function createSceneryLayer(
   let kinds: string[] = [];
   const held = new Map<number, Held>();
   let listed: Held[] = [];
-  let frameIndex = 0;
   let walk = NO_SCENERY_WALK;
   let treesShown = true;
   let draws = 0;
@@ -621,14 +621,16 @@ export async function createSceneryLayer(
     },
     /** The static batches of a presentation frame (null: none) and what it
      *  says of its scenery: the scenery rows' batches are taken, their
-     *  records copied where the frame wrote them. True when what is drawn
-     *  changed. Read at once: the views last only until the next call into
-     *  the module. */
+     *  records copied where the frame wrote them, and those it no longer
+     *  lists dropped (the frame writes one anew when it comes back), so the
+     *  same view holds the same buffers however it was reached. True when
+     *  what is drawn changed. Read at once: the views last only until the
+     *  next call into the module. */
     setFrame(frame: ReturnType<typeof frameViews> | null, stats: SceneryWalkStats): boolean {
       walk = stats;
-      frameIndex++;
       let changed = false;
       const next: Held[] = [];
+      const keys = new Set<number>();
       const words = frame?.batches.u32;
       for (let b = 0; b < (frame?.batches.count ?? 0); b++) {
         const o = b * BATCH_WORDS;
@@ -637,23 +639,25 @@ export async function createSceneryLayer(
         const key = words![o + Batch.key];
         let h = held.get(key);
         if (!h) {
-          h = { buffer: null, capacity: 0, count: 0, row, tier: 0, pass: 0, seen: 0 };
+          h = { scope: null, buffer: null, capacity: 0, count: 0, row, tier: 0, pass: 0 };
           held.set(key, h);
         }
         h.row = row;
         h.tier = words![o + Batch.tier];
         h.pass = words![o + Batch.pass];
-        h.seen = frameIndex;
         const first = words![o + Batch.first];
         const records = words![o + Batch.count];
         const pairs = meshes[row]!.draws === FELLED;
         if (first !== NONE) {
-          if (h.capacity < records) {
-            h.capacity = Math.max(64, records * 2);
+          const capacity = 2 ** Math.ceil(Math.log2(Math.max(2, records)));
+          if (h.capacity !== capacity) {
+            h.capacity = capacity;
+            h.scope?.release();
+            h.scope = scope!.scope();
             const layout = pairs ? felledLayout : placedLayout;
-            h.buffer = scope!.own(
+            h.buffer = h.scope.own(
               root
-                .createBuffer(layout.schemaForCount(pairs ? h.capacity / 2 : h.capacity))
+                .createBuffer(layout.schemaForCount(pairs ? capacity / 2 : capacity))
                 .$usage("vertex"),
             ) as unknown as VertexBuffer;
           }
@@ -669,9 +673,15 @@ export async function createSceneryLayer(
           changed = true;
         }
         h.count = pairs ? records / 2 : records;
+        keys.add(key);
         next.push(h);
       }
-      if (next.length !== listed.length) changed = true;
+      for (const [key, h] of held)
+        if (!keys.has(key)) {
+          h.scope?.release();
+          held.delete(key);
+          changed = true;
+        }
       listed = next;
       return changed;
     },

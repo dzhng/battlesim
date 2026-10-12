@@ -39,6 +39,11 @@
       "name": "Helicopter",
       "description": "Fast, fragile airframes that fly low and strike from the air.",
       "symbol": ["rotary_wing"]
+    },
+    "artillery": {
+      "name": "Artillery",
+      "description": "Long-range indirect fire that reaches over obstacles.",
+      "symbol": ["artillery"]
     }
   }
 }

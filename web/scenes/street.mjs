@@ -654,6 +654,7 @@ async function soldierTour(ctx) {
   );
 
   // Picking keeps the simulation's boxes: a soldier's torso picks his body's.
+  // The frame's pick records are f32, so his half width is the radius's f32.
   await aim(page, squad.position, { ...SQUAD_FRAMINGS.default, yaw: -Math.PI / 2 });
   await page.evaluate(() => window.__lab.frame());
   const m = squad.members[0];
@@ -663,7 +664,7 @@ async function soldierTour(ctx) {
   ctx.check(
     "clicking a soldier picks his box",
     picked >= 0 &&
-      box.half[0] === game.physics.soldier_radius_m &&
+      box.half[0] === Math.fround(game.physics.soldier_radius_m) &&
       Math.hypot(box.x - m[0], box.y - m[1]) < 1.5,
     JSON.stringify({ picked, box, member: m }),
   );
@@ -2977,15 +2978,17 @@ async function rulerTour(ctx) {
     ],
     "ruler scout withdrawal",
   );
+  // Losing it leaves an area that remembers the type seen there. The side
+  // keeps one area per cause, so the tank firing on after it is lost renews
+  // that same area as firing evidence, still remembering the tank.
+  const lostArea = (x) => x.contacts.find((c) => c.kind === farthest.kind);
   o = await until(
     page,
-    (x) =>
-      !x.identified.some((e) => e.id === farthest.id) &&
-      x.contacts.some((c) => c.source === "last_seen"),
+    (x) => !x.identified.some((e) => e.id === farthest.id) && !!lostArea(x),
     30 * 180,
     15,
   );
-  const contact = o?.contacts.find((c) => c.source === "last_seen");
+  const contact = o && lostArea(o);
   if (contact) {
     const armed =
       o.own.find((u) => u.kind === "test_tank") ?? o.own.find((u) => u.kind === "test_rifle");

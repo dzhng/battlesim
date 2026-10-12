@@ -933,7 +933,9 @@
       "description": "M109A7",
       "faction": "us",
       "family": "m109_paladin",
-      "roles": [],
+      "roles": [
+        "artillery"
+      ],
       "cost": 280,
       "roster": {
         "factions": [
@@ -943,15 +945,69 @@
         "variant": "M109A7",
         "family_name": "M109 Paladin"
       },
-      "planned": {
-        "reason": "Artillery and indirect-support mechanics deferred",
-        "profile": "tracked-howitzer",
-        "weapons": [
-          {
-            "name": "Howitzer",
-            "icon": "howitzer"
-          }
-        ]
+      "extends": "roster_profile_light_tank",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.4,
+            1.95,
+            1.625
+          ],
+          "eye_m": 2.9250000000000003,
+          "hp": 150,
+          "armor": {
+            "front": 90,
+            "side": 55,
+            "rear": 35,
+            "roof": 25,
+            "ricochet": {
+              "front": 0.2,
+              "side": 0.15,
+              "rear": 0.1,
+              "roof": 0.25
+            }
+          },
+          "weight_class": "heavy",
+          "push_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 24,
+          "road_kmh": 58,
+          "turn_deg_s": 28,
+          "reverse_fraction": 0.3
+        }
+      },
+      "mounts": [
+        {
+          "id": "gun",
+          "name": "Howitzer",
+          "weapons": [
+            "artillery_howitzer"
+          ],
+          "turret": false,
+          "pivot_m": [
+            -2.3,
+            0,
+            3.0
+          ],
+          "muzzle_m": [
+            6.0,
+            0,
+            0
+          ]
+        }
+      ],
+      "appearance": "us_m109_paladin_m109a7",
+      "sensors": {
+        "ground_m": 500,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        }
       }
     },
     "us_m10_booker": {
@@ -1141,7 +1197,9 @@
       "description": "120 mm mortar carrier",
       "faction": "us",
       "family": "m1129_stryker_mortar",
-      "roles": [],
+      "roles": [
+        "artillery"
+      ],
       "cost": 180,
       "roster": {
         "factions": [
@@ -1151,15 +1209,70 @@
         "variant": "120 mm mortar carrier",
         "family_name": "Stryker Mortar"
       },
-      "planned": {
-        "reason": "Artillery and indirect-support mechanics deferred",
-        "profile": "mortar-carrier",
-        "weapons": [
-          {
-            "name": "Mortar",
-            "icon": "mortar"
-          }
-        ]
+      "extends": "roster_profile_truck",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.475,
+            1.36,
+            1.6
+          ],
+          "eye_m": 2.25,
+          "hp": 110,
+          "armor": {
+            "front": 90,
+            "side": 55,
+            "rear": 35,
+            "roof": 25,
+            "ricochet": {
+              "front": 0.2,
+              "side": 0.15,
+              "rear": 0.1,
+              "roof": 0.25
+            }
+          },
+          "weight_class": "heavy",
+          "push_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "mobility": {
+        "wheeled": {
+          "offroad_kmh": 26,
+          "road_kmh": 82,
+          "turn_deg_s": 34,
+          "reverse_fraction": 0.3,
+          "turning_radius_m": 8
+        }
+      },
+      "mounts": [
+        {
+          "id": "gun",
+          "name": "Mortar",
+          "weapons": [
+            "artillery_mortar"
+          ],
+          "turret": false,
+          "pivot_m": [
+            -1.1,
+            0,
+            2.35
+          ],
+          "muzzle_m": [
+            0.2,
+            0,
+            0
+          ]
+        }
+      ],
+      "appearance": "us_m1129_stryker_mortar_120_mm_mortar_carrier",
+      "sensors": {
+        "ground_m": 500,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        }
       }
     },
     "us_m1151_hmmwv_hmg": {
@@ -1251,7 +1364,9 @@
       "description": "GMLRS",
       "faction": "us",
       "family": "m142_himars",
-      "roles": [],
+      "roles": [
+        "artillery"
+      ],
       "cost": 300,
       "roster": {
         "factions": [
@@ -1261,15 +1376,70 @@
         "variant": "GMLRS",
         "family_name": "M142 HIMARS"
       },
-      "planned": {
-        "reason": "Artillery and indirect-support mechanics deferred",
-        "profile": "light-rocket",
-        "weapons": [
-          {
-            "name": "Rockets",
-            "icon": "rockets"
-          }
-        ]
+      "extends": "roster_profile_truck",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.5,
+            1.2,
+            1.6
+          ],
+          "eye_m": 2.8800000000000003,
+          "hp": 120,
+          "armor": {
+            "front": 90,
+            "side": 55,
+            "rear": 35,
+            "roof": 25,
+            "ricochet": {
+              "front": 0.2,
+              "side": 0.15,
+              "rear": 0.1,
+              "roof": 0.25
+            }
+          },
+          "weight_class": "heavy",
+          "push_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "mobility": {
+        "wheeled": {
+          "offroad_kmh": 26,
+          "road_kmh": 82,
+          "turn_deg_s": 34,
+          "reverse_fraction": 0.3,
+          "turning_radius_m": 8
+        }
+      },
+      "mounts": [
+        {
+          "id": "gun",
+          "name": "Rockets",
+          "weapons": [
+            "artillery_rocket_light"
+          ],
+          "turret": false,
+          "pivot_m": [
+            -1.5,
+            0,
+            2.5
+          ],
+          "muzzle_m": [
+            1.0,
+            0,
+            0
+          ]
+        }
+      ],
+      "appearance": "us_m142_himars_gmlrs",
+      "sensors": {
+        "ground_m": 450,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        }
       }
     },
     "us_m142_himars_prsm": {
@@ -1277,7 +1447,9 @@
       "description": "PrSM",
       "faction": "us",
       "family": "m142_himars",
-      "roles": [],
+      "roles": [
+        "artillery"
+      ],
       "cost": 400,
       "roster": {
         "factions": [
@@ -1287,15 +1459,70 @@
         "variant": "PrSM",
         "family_name": "M142 HIMARS"
       },
-      "planned": {
-        "reason": "Artillery and indirect-support mechanics deferred",
-        "profile": "light-rocket",
-        "weapons": [
-          {
-            "name": "Strike Missile",
-            "icon": "rockets"
-          }
-        ]
+      "extends": "roster_profile_truck",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.5,
+            1.2,
+            1.6
+          ],
+          "eye_m": 2.8800000000000003,
+          "hp": 120,
+          "armor": {
+            "front": 90,
+            "side": 55,
+            "rear": 35,
+            "roof": 25,
+            "ricochet": {
+              "front": 0.2,
+              "side": 0.15,
+              "rear": 0.1,
+              "roof": 0.25
+            }
+          },
+          "weight_class": "heavy",
+          "push_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "mobility": {
+        "wheeled": {
+          "offroad_kmh": 26,
+          "road_kmh": 82,
+          "turn_deg_s": 34,
+          "reverse_fraction": 0.3,
+          "turning_radius_m": 8
+        }
+      },
+      "mounts": [
+        {
+          "id": "gun",
+          "name": "Strike Missile",
+          "weapons": [
+            "artillery_strike_missile"
+          ],
+          "turret": false,
+          "pivot_m": [
+            -1.5,
+            0,
+            2.5
+          ],
+          "muzzle_m": [
+            1.0,
+            0,
+            0
+          ]
+        }
+      ],
+      "appearance": "us_m142_himars_prsm",
+      "sensors": {
+        "ground_m": 450,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        }
       }
     },
     "us_m1_abrams_sep_v2": {
@@ -1595,7 +1822,9 @@
       "description": "M270A2",
       "faction": "us",
       "family": "m270_mlrs",
-      "roles": [],
+      "roles": [
+        "artillery"
+      ],
       "cost": 350,
       "roster": {
         "factions": [
@@ -1605,15 +1834,69 @@
         "variant": "M270A2",
         "family_name": "M270 MLRS"
       },
-      "planned": {
-        "reason": "Artillery and indirect-support mechanics deferred",
-        "profile": "heavy-rocket",
-        "weapons": [
-          {
-            "name": "Rockets",
-            "icon": "rockets"
-          }
-        ]
+      "extends": "roster_profile_light_tank",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.485,
+            1.485,
+            1.31
+          ],
+          "eye_m": 2.358,
+          "hp": 125,
+          "armor": {
+            "front": 90,
+            "side": 55,
+            "rear": 35,
+            "roof": 25,
+            "ricochet": {
+              "front": 0.2,
+              "side": 0.15,
+              "rear": 0.1,
+              "roof": 0.25
+            }
+          },
+          "weight_class": "heavy",
+          "push_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 24,
+          "road_kmh": 58,
+          "turn_deg_s": 28,
+          "reverse_fraction": 0.3
+        }
+      },
+      "mounts": [
+        {
+          "id": "gun",
+          "name": "Rockets",
+          "weapons": [
+            "artillery_rocket_light"
+          ],
+          "turret": false,
+          "pivot_m": [
+            -1.6,
+            0,
+            2.2
+          ],
+          "muzzle_m": [
+            1.0,
+            0,
+            0
+          ]
+        }
+      ],
+      "appearance": "us_m270_mlrs_m270a2",
+      "sensors": {
+        "ground_m": 450,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        }
       }
     },
     "us_m2_bradley_ifv_m2a4": {

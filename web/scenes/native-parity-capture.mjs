@@ -3,15 +3,17 @@
 // For each scene it writes
 //
 //   throwaway/native-parity/<run>/<scene>/{capture.json, manifest.json,
-//     plate-<index>.png, plain-<index>.png, units-<table>.u32, props-map.u32}
+//     plate-<index>.png, plain-<index>.png, units-<table>.u32}
 //
 // the capture and its frame records, the `native-visual-presentation`
 // manifest (with each plate's grass, building-module, scenery, posed-model
 // and effect counts), the plates read back in their own frames with each
 // frame lit without its grass, and the units' clip tables the manifest hashes.
 // The ground, grass and scenery travel as the map itself: Rust resolves them.
-// PARITY_SCENES=<map,…> films only those scenes (`?scenes=`). Run it under
-// the GPU lock; it waits on the route's stage, never on a timer.
+// PARITY_SCENES=<map,…> films only those scenes (`?scenes=`); PARITY_FOG=1
+// films them with the side's fog of war (`?fog=1`, the manifest's `fog`
+// layer). Run it under the GPU lock; it waits on the route's stage, never on
+// a timer.
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import { plainPlateFile } from "../src/battle/benchmark/presentationCapture.ts";
 import { writeVisualPresentation } from "../src/battle/benchmark/visualPresentation.ts";
@@ -49,7 +51,8 @@ export async function run(ctx) {
   const pageErrors = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
   const scenes = process.env.PARITY_SCENES;
-  const url = scenes ? `${ctx.url}&scenes=${encodeURIComponent(scenes)}` : ctx.url;
+  const fog = process.env.PARITY_FOG === "1" ? "&fog=1" : "";
+  const url = `${scenes ? `${ctx.url}&scenes=${encodeURIComponent(scenes)}` : ctx.url}${fog}`;
   await page.goto(url);
   await page.waitForFunction(() => window.__graphicsTest?.stage, undefined, { timeout: 60_000 });
   const refusal = await page.evaluate(() =>
@@ -159,9 +162,7 @@ export async function run(ctx) {
     const grown = parsed.grassCounts.map((g) => g.cells.reduce((a, b) => a + b, 0));
     const sum = (list) => list.reduce((a, b) => a + b, 0);
     const modules = parsed.instanceCounts.map((c) => sum(c.buildings));
-    const known = parsed.instanceCounts.map(
-      (c) => c.knownProps.map((p) => `${p.appearance} ${sum(p.levels)}`).join(" + ") || "0",
-    );
+    const props = parsed.instanceCounts.map((c) => sum(c.props.map((p) => sum(p.levels))));
     const scenery = parsed.instanceCounts.map((c) =>
       ["forest", "understorey", "backdrop", "dressing"].map((p) => sum(c.scenery[p])).join("/"),
     );
@@ -179,7 +180,7 @@ export async function run(ctx) {
       `METRIC native-parity-capture ${map} units: ${Object.keys(parsed.units.types).length} unit types, ${Object.keys(parsed.units.appearances).length} appearances, ${parsed.units.tables.length} clip tables; soldiers/vehicles/aircraft/corpses/fading per plate ${posed.join(", ")}`,
     );
     console.log(
-      `METRIC native-parity-capture ${map}: ${frames.length} frames, ${own.length} plates, grass per plate ${grown.join(", ")}; building modules per plate ${modules.join(", ")}; forest/understorey/backdrop/dressing per plate ${scenery.join(", ")}; known props per plate ${known.join(", ")} → ${dir.pathname}`,
+      `METRIC native-parity-capture ${map}: ${frames.length} frames, ${own.length} plates, grass per plate ${grown.join(", ")}; building modules per plate ${modules.join(", ")}; forest/understorey/backdrop/dressing per plate ${scenery.join(", ")}; props per plate ${props.join(", ")} → ${dir.pathname}`,
     );
     const effected = parsed.effectCounts.map(
       (c) => `${sum(Object.values(c.running))}/${sum(Object.values(c.instances))}/${c.lights}`,

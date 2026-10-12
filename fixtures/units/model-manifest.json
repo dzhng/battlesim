@@ -6,36 +6,6 @@
   },
   "entries": [
     {
-      "id": "eastern_2s19_msta_s_2s19m2",
-      "family": "2s19_msta_s",
-      "category": "sup",
-      "model_status": "reference_built",
-      "source_family": "2s19_msta_s",
-      "source_kind": "support",
-      "disabled_reason": "Artillery and indirect-support mechanics deferred",
-      "source_path": "assets/source/roster/2s19_msta_s/eastern_2s19_msta_s_2s19m2.glb"
-    },
-    {
-      "id": "eastern_9k515_tornado_s_heavy_rocket_artillery",
-      "family": "9k515_tornado_s",
-      "category": "sup",
-      "model_status": "reference_built",
-      "source_family": "9k515_tornado_s",
-      "source_kind": "support",
-      "disabled_reason": "Artillery and indirect-support mechanics deferred",
-      "source_path": "assets/source/roster/9k515_tornado_s/eastern_9k515_tornado_s_heavy_rocket_artillery.glb"
-    },
-    {
-      "id": "eastern_bm_21_grad_bm_21_rocket_artillery",
-      "family": "bm_21_grad",
-      "category": "sup",
-      "model_status": "reference_built",
-      "source_family": "bm_21_grad",
-      "source_kind": "support",
-      "disabled_reason": "Artillery and indirect-support mechanics deferred",
-      "source_path": "assets/source/roster/bm_21_grad/eastern_bm_21_grad_bm_21_rocket_artillery.glb"
-    },
-    {
       "id": "eastern_buk_buk_m3_medium_range_air_defense",
       "family": "buk",
       "category": "sup",
@@ -126,16 +96,6 @@
       "source_path": "assets/source/roster/pantsir/eastern_pantsir_pantsir_sm.glb"
     },
     {
-      "id": "eastern_plz_05_chinese_tracked_155_mm_howitzer",
-      "family": "plz_05",
-      "category": "sup",
-      "model_status": "reference_built",
-      "source_family": "plz_05",
-      "source_kind": "support",
-      "disabled_reason": "Artillery and indirect-support mechanics deferred",
-      "source_path": "assets/source/roster/plz_05/eastern_plz_05_chinese_tracked_155_mm_howitzer.glb"
-    },
-    {
       "id": "eastern_scout_drone_thermal",
       "family": "scout_drone",
       "category": "rec",
@@ -216,16 +176,6 @@
       "source_path": "assets/source/roster/boxer_skyranger_30/europe_boxer_skyranger_30_gun_and_missile_air_defense.glb"
     },
     {
-      "id": "europe_caesar_88",
-      "family": "caesar",
-      "category": "sup",
-      "model_status": "reference_built",
-      "source_family": "caesar",
-      "source_kind": "support",
-      "disabled_reason": "Artillery and indirect-support mechanics deferred",
-      "source_path": "assets/source/roster/caesar/europe_caesar_88.glb"
-    },
-    {
       "id": "europe_eurofighter_typhoon_tranche_3",
       "family": "eurofighter_typhoon",
       "category": "air",
@@ -276,16 +226,6 @@
       "source_path": "assets/source/roster/kamikaze_drone/europe_kamikaze_drone_anti_personnel.glb"
     },
     {
-      "id": "europe_mars_ii_multiple_launch_rocket_system",
-      "family": "mars_ii",
-      "category": "sup",
-      "model_status": "reference_built",
-      "source_family": "mars_ii",
-      "source_kind": "support",
-      "disabled_reason": "Artillery and indirect-support mechanics deferred",
-      "source_path": "assets/source/roster/mars_ii/europe_mars_ii_multiple_launch_rocket_system.glb"
-    },
-    {
       "id": "europe_mirage_2000_2000d_rmv",
       "family": "mirage_2000",
       "category": "air",
@@ -304,16 +244,6 @@
       "source_kind": "support",
       "disabled_reason": "Air-defense targeting and airborne targets deferred",
       "source_path": "assets/source/roster/nasams/europe_nasams_nasams_3.glb"
-    },
-    {
-      "id": "europe_pzh_2000_tracked_155_mm_howitzer",
-      "family": "pzh_2000",
-      "category": "sup",
-      "model_status": "reference_built",
-      "source_family": "pzh_2000",
-      "source_kind": "support",
-      "disabled_reason": "Artillery and indirect-support mechanics deferred",
-      "source_path": "assets/source/roster/pzh_2000/europe_pzh_2000_tracked_155_mm_howitzer.glb"
     },
     {
       "id": "europe_rafale_c_f4",
@@ -474,56 +404,6 @@
       "source_kind": "support",
       "disabled_reason": "Drone movement, sensing and mission mechanics deferred",
       "source_path": "assets/source/roster/kamikaze_drone/us_kamikaze_drone_anti_personnel.glb"
-    },
-    {
-      "id": "us_m109_paladin_m109a7",
-      "family": "m109_paladin",
-      "category": "sup",
-      "model_status": "reference_built",
-      "source_family": "m109_paladin",
-      "source_kind": "support",
-      "disabled_reason": "Artillery and indirect-support mechanics deferred",
-      "source_path": "assets/source/roster/m109_paladin/us_m109_paladin_m109a7.glb"
-    },
-    {
-      "id": "us_m1129_stryker_mortar_120_mm_mortar_carrier",
-      "family": "m1129_stryker_mortar",
-      "category": "sup",
-      "model_status": "reference_built",
-      "source_family": "m1129_stryker_mortar",
-      "source_kind": "support",
-      "disabled_reason": "Artillery and indirect-support mechanics deferred",
-      "source_path": "assets/source/roster/m1129_stryker_mortar/us_m1129_stryker_mortar_120_mm_mortar_carrier.glb"
-    },
-    {
-      "id": "us_m142_himars_gmlrs",
-      "family": "m142_himars",
-      "category": "sup",
-      "model_status": "reference_built",
-      "source_family": "m142_himars",
-      "source_kind": "support",
-      "disabled_reason": "Artillery and indirect-support mechanics deferred",
-      "source_path": "assets/source/roster/m142_himars/us_m142_himars_gmlrs.glb"
-    },
-    {
-      "id": "us_m142_himars_prsm",
-      "family": "m142_himars",
-      "category": "sup",
-      "model_status": "reference_built",
-      "source_family": "m142_himars",
-      "source_kind": "support",
-      "disabled_reason": "Artillery and indirect-support mechanics deferred",
-      "source_path": "assets/source/roster/m142_himars/us_m142_himars_prsm.glb"
-    },
-    {
-      "id": "us_m270_mlrs_m270a2",
-      "family": "m270_mlrs",
-      "category": "sup",
-      "model_status": "reference_built",
-      "source_family": "m270_mlrs",
-      "source_kind": "support",
-      "disabled_reason": "Artillery and indirect-support mechanics deferred",
-      "source_path": "assets/source/roster/m270_mlrs/us_m270_mlrs_m270a2.glb"
     },
     {
       "id": "us_mq_9_reaper_mq_9a",

@@ -559,6 +559,7 @@ test("a glancing round's ricochet follows its kind, heavier rounds louder", () =
     defaults: {},
     impacts: { ricochet: { tank_ap: "shell_glance" } },
     effects: { ricochet: "bullet_glance" },
+    music: { moods: { menu: [], tension: [], combat: [] }, tracks: {} },
   } as unknown as SoundCatalog;
   const glance = (kind: string) => {
     const sink = new FakeSink();

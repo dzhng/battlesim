@@ -41,7 +41,8 @@ fn json(e: impl ToString) -> JsError {
 #[wasm_bindgen]
 impl Presentation {
     /// Sets the map's ground: `extents` is the physical map's `[min x, min y,
-    /// max x, max y]`, then its rendered surroundings' where it has them;
+    /// max x, max y]`, the playable rectangle, then its rendered
+    /// surroundings' where it has them;
     /// `grid` is `WorldView.terrain_grid()` with its page ids and heights;
     /// the streams are `WorldView`'s exports of the same names; `layout` is
     /// `world_layout()`; `biome` the biome's file and `family` the map's
@@ -76,7 +77,8 @@ impl Presentation {
         let g: GridHeader = serde_json::from_str(grid).map_err(json)?;
         let source = Source {
             map: extents[..4].try_into().unwrap(),
-            rendered: extents.get(4..8).map(|r| r.try_into().unwrap()),
+            playable: extents[4..8].try_into().unwrap(),
+            rendered: extents.get(8..12).map(|r| r.try_into().unwrap()),
             grid: Grid {
                 nx: g.nx,
                 ny: g.ny,
@@ -87,7 +89,7 @@ impl Presentation {
                 heights,
             },
             props,
-            drawn_by: ground::drawn_by(layout).map_err(json)?,
+            kinds: ground::prop_kinds(layout).map_err(json)?,
             foliage,
             surface_strokes,
             surface_runs,
@@ -210,6 +212,49 @@ impl Presentation {
     /// `draws` 6), in the renderer's world vertex; none for any other row.
     pub fn stump_mesh(&self, row: u32) -> Option<Vec<f32>> {
         self.inner.stump_mesh(row).map(<[f32]>::to_vec)
+    }
+
+    /// Places the ground's props, drawn from `art` (JSON, `PropInput`: the
+    /// installed appearances a prop may be drawn as, each with its footprint,
+    /// paints and size; each vehicle appearance's wreck; the stand-in's box
+    /// and tints; the map's regional family; the models' tiers) under the
+    /// world `layout`; drawn from the next `load_world`.
+    pub fn place_props(&mut self, layout: &str, art: &str) -> Result<(), JsError> {
+        let input = serde_json::from_str(art).map_err(|e| json(format!("props: {e}")))?;
+        let records = ground(&self.inner)?.source.props.clone();
+        self.inner
+            .place_props(&records, layout, input)
+            .map_err(error)
+    }
+
+    /// The props' bodies drawn, those a building draws, those no model
+    /// draws, the models placed and those drawing what the side knows;
+    /// empty without props.
+    pub fn prop_stats(&self) -> Vec<u32> {
+        self.inner
+            .prop_stats()
+            .map_or_else(Vec::new, |s| s.iter().map(|&n| n as u32).collect())
+    }
+
+    /// Every prop model placed (JSON): its appearance, state, position, yaw
+    /// and scale.
+    pub fn prop_models(&self) -> String {
+        let models: Vec<_> = self
+            .inner
+            .props()
+            .into_iter()
+            .flat_map(|p| p.models())
+            .map(|((name, state, _), r)| {
+                serde_json::json!({
+                    "appearance": name,
+                    "state": state,
+                    "position": [r[0], r[1], r[2]],
+                    "yaw": r[3],
+                    "scale": [r[12], r[13], r[14]],
+                })
+            })
+            .collect();
+        serde_json::to_string(&models).unwrap()
     }
 
     /// The player's scenery settings: the trees' tier thresholds over the
@@ -504,4 +549,15 @@ pub fn grass_frame_params(
         metres_per_px,
         &window,
     );
+}
+
+/// The appearances drawing a map's props (its exported `props` under the
+/// world `layout`) from `art` (`Presentation.place_props`) could need, as a
+/// JSON list of names: what the models layer installs for them.
+#[wasm_bindgen]
+pub fn prop_appearances(layout: &str, props: &[f32], art: &str) -> Result<String, JsError> {
+    let input = serde_json::from_str(art).map_err(|e| json(format!("props: {e}")))?;
+    let names =
+        presentation::static_world::props::appearances(props, layout, input).map_err(error)?;
+    Ok(serde_json::to_string(&names).unwrap())
 }

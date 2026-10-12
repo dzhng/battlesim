@@ -6,7 +6,6 @@ import type { ViewportCamera } from "@packages/renderer-core/src/cameraUniform";
 import type { Mesh } from "./mesh";
 import type { ProxyKind } from "./proxies";
 import type { GpuFrameTime } from "./frame/gpuTiming";
-import type { FogInput } from "./frame/fogInputs";
 import type { OverlayGlowStyle } from "./frame/overlayPass";
 import type { FogProbes, FogVisibilityStats } from "./frame/fogVisibility";
 import type { TerrainSurface } from "./terrain/terrainSurface";
@@ -16,7 +15,6 @@ import type { frameViews } from "./records.gen";
 import type { WorldAppearance } from "./models/modelLayer";
 import type { ModelStats } from "./models/modelLayer";
 import type { BuildingStats, BuildingWalkStats } from "./models/buildingLayer";
-import type { SideStructures } from "./models/propAppearance";
 import type { SurfaceClass } from "./models/surfaceParts";
 import type { ImpostorAtlas, ImpostorSpec } from "./models/impostor";
 import type { StaticBundle, TextureChannel } from "@packages/scene-assets/src/schema";
@@ -66,14 +64,12 @@ export interface WorldScenery {
 /** The static world in layers, so each takes its own material and FogTerm
  *  its own ground flag: the terrain is ground; the map's skirt (and the
  *  traversal view's prop boxes) are faces. The map's props draw as their
- *  appearances, fitted to their boxes (`structures`, faces too), except
- *  those a route draws from knowledge (`BattleFrame.setStructures`).
- *  The scenery's forest stands in the simulation's forests
+ *  appearances, fitted to their boxes by the scene's presentation (its
+ *  static batches). The scenery's forest stands in the simulation's forests
  *  and draws their trunks; `null` draws none (a route without appearances). */
 export interface WorldLayers {
   terrain: TerrainSurface;
   props: Mesh;
-  structures: readonly ModelInstance[];
   scenery: WorldScenery | null;
   /** The grass kinds the biome grows (scenery "grass" appearances) by catalog
    *  name; `null` draws no grass (a route without appearances, or a view
@@ -81,15 +77,15 @@ export interface WorldLayers {
   grass: GrassAppearances | null;
 }
 
-/** The building modules, scenery and known props a frame drew. */
+/** The building modules, scenery and props a frame drew. */
 export interface DrawnInstances {
   /** Per module the buildings' walk draws (`StaticWorld.modules`) and
    *  tier: `module · 4 + tier`. */
   buildings: number[];
   scenery: SceneryCounts;
-  /** The props the side knows (wrecks, shoved bodies, rubble), by
-   *  appearance in name order: per tier 0–3, then drawn as a card. */
-  knownProps: { appearance: string; levels: number[] }[];
+  /** The props (the map's and those the side knows: wrecks, shoved
+   *  bodies, rubble), by appearance in name order: per tier 0–3. */
+  props: { appearance: string; levels: number[] }[];
 }
 
 export interface InstalledDepthState {
@@ -139,8 +135,6 @@ export interface FrameStats {
    *  pool's residency and what the last view change cost. */
   buildings: BuildingStats;
   worldVertices: number;
-  /** Props drawn from what the side knows (standing walls, rubble, wrecks). */
-  structures: number;
   depth: InstalledDepthState;
   view: FrameView;
   /** Presentation seconds: the wind's clock (`setClock`). */
@@ -185,18 +179,13 @@ export interface BattleFrame {
   render(target: GPUTextureView, camera: ViewportCamera): void;
   /** The static world: the terrain and the props on it. */
   setWorld(world: WorldLayers): void;
-  /** Knowledge-drawn props, as fitted appearances (`SideStructures`): the
-   *  map's props drawn apart less those the side knows replaced, then the
-   *  rubble, wrecks and shoved bodies it remembers. Keep `map` the same
-   *  array while only what the side knows changes: that change then costs
-   *  only what it hides and adds. Lit, graded, shadow-casting and fogged
-   *  like the world. */
-  setStructures(structures: SideStructures): void;
   /** The static batches of the scene's presentation frame
    *  (`crates/presentation`): the map's buildings, each a kit module at a
-   *  tier, and its scenery (trees, shrubs, dressing, felled trees and their
-   *  stumps), drawn into the view or cast into the sun's cascades, as Rust
-   *  walked them for this frame's camera and what the side knows fell. Lit,
+   *  tier, its scenery (trees, shrubs, dressing, felled trees and their
+   *  stumps), and its props and what the side knows of them (rubble,
+   *  wrecks, shoved bodies), each an appearance at a tier, drawn into the
+   *  view or cast into the sun's cascades, as Rust walked them for this
+   *  frame's camera and what the side knows. Lit,
    *  shadow-casting and fogged like the world.
    *  These are the frame's batches of rows marked `placed`
    *  (`setPresentationWorld`); `stats` is what the presentation says of its
@@ -240,10 +229,6 @@ export interface BattleFrame {
   /** Presentation seconds: the wind's clock. Hold it and the frame holds
    *  (paused battles, deterministic captures). */
   setClock(seconds: number): void;
-  /** What the observing side sees from (its eyes at the published tick and
-   *  the occluders it knows), over the static world; `null` shows everything
-   *  clear. */
-  setFog(fog: FogInput | null): void;
   /** Install a catalog generation from `AppearanceLibrary` (the one loader);
    *  resolves once its meshes and impostor atlases (every
    *  body's far pose and corpse) are on the GPU. */

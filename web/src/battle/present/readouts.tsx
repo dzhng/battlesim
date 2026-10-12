@@ -570,6 +570,7 @@ interface CommandProps {
   label: string;
   pressed?: boolean;
   disabled?: boolean;
+  emphasis?: boolean;
   onClick: () => void;
 }
 
@@ -578,6 +579,7 @@ function CommandButton({
   label,
   pressed,
   disabled,
+  emphasis,
   onClick,
   hintHost,
 }: CommandProps & { hintHost?: HTMLElement | null }) {
@@ -607,7 +609,7 @@ function CommandButton({
   return (
     <button
       type="button"
-      className="ro-cmd"
+      className={`ro-cmd${emphasis ? " ro-cmd-emphasis" : ""}`}
       aria-label={label}
       aria-describedby={shown ? id : undefined}
       aria-pressed={pressed}
@@ -654,7 +656,7 @@ export function CommandBar({
     | "exitBuilding"
   > & { refund?: () => void };
 }) {
-  const { units } = useSessionCatalog();
+  const { units, weapons } = useSessionCatalog();
   const selected = control.selectedUnits;
   const n = selected.length;
   const command = (c: CommandProps) => <CommandButton {...c} hintHost={hintHost} />;
@@ -665,13 +667,21 @@ export function CommandBar({
   );
   const hold = n > 0 && selected.every((u) => u.engagement === "return_fire_only");
   const packing = deployers.every((u) => u.deployment?.target === "deployed");
+  const artillery = armed.some((u) =>
+    units
+      .type(u.kind)
+      .mounts.some((mount) =>
+        mount.weapons.some((weapon) => weapons[weapon]?.trajectory === "indirect"),
+      ),
+  );
   /** Movement stays available; an unsupported targeted attack is disabled. */
-  const mode = (m: CommandMode, icon: string, label: string, available = n > 0) =>
+  const mode = (m: CommandMode, icon: string, label: string, available = n > 0, emphasis = false) =>
     command({
       icon,
       label,
       pressed: control.mode === m,
       disabled: !available,
+      emphasis,
       onClick: () => control.setMode(m),
     });
   return (
@@ -683,6 +693,7 @@ export function CommandBar({
         hudIcon("attack_ground"),
         `Attack ground ${key("attack_ground")}`,
         armed.length > 0,
+        artillery,
       )}
       {mode("fast_move", hudIcon("fast_move"), "Fast move (double right-click)")}
       {command({

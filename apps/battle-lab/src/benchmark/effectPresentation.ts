@@ -15,7 +15,7 @@ import { mountMuzzles } from "@packages/scene-assets/src/mountMuzzle";
 import type { Bounds } from "@packages/scene-assets/src/schema";
 import { SCENERY_KINDS, WRECK_PIECES } from "@packages/scene-assets/src/scenery";
 import { topSpeedKmh, type UnitCatalog } from "@packages/scene-assets/src/units";
-import type { PropAppearances } from "@packages/battle-renderer/src/models/propAppearance";
+import type { WorldLayout } from "@packages/battle-renderer/src/worldMesh";
 import type {
   EffectsManifest,
   WreckLookRecord,
@@ -77,19 +77,20 @@ export function wreckPieces(states: readonly { name: string; bounds: Bounds }[])
   };
 }
 
-/** The `effects` section for a battle fielding `kinds` under `units`, its
- *  wrecks fitted by `fit` from `installed`; a dead hull stops in
- *  `wreckStopS` from its top speed. */
+/** The `effects` section for a battle fielding `kinds` under `units`, each
+ *  hull's wreck its model's own (`layout.unitAppearance`, the installed
+ *  model's `wreck`) from `installed`; a dead hull stops in `wreckStopS` from
+ *  its top speed. */
 export function describeEffects({
   kinds,
   units,
-  fit,
+  layout,
   installed,
   wreckStopS,
 }: {
   kinds: readonly string[];
   units: UnitCatalog;
-  fit: PropAppearances;
+  layout: Pick<WorldLayout, "unitAppearance">;
   installed: InstalledAppearances;
   wreckStopS: number;
 }): EffectsManifest {
@@ -106,12 +107,14 @@ export function describeEffects({
   }
   const wrecks: Record<string, WreckRecord> = {};
   const wreckLooks: Record<string, WreckLookRecord> = {};
-  for (const [unit, { name, footprint }] of Object.entries(fit.describe().wrecks)) {
-    const bundle = installed.appearances.get(name)?.bundle;
-    const states = bundle?.kind === "static" ? bundle.states : [];
+  for (const [unit, model] of Object.entries(layout.unitAppearance)) {
+    const name = installed.appearances.get(model)?.wreck;
+    const wreck = name ? installed.appearances.get(name) : undefined;
+    const footprint = wreck?.footprint;
+    const states = wreck?.bundle.kind === "static" ? wreck.bundle.states : [];
     // A wreck with no whole state makes no transition.
     const whole = states.find((s) => s.name === "default");
-    if (!whole) continue;
+    if (!name || !footprint || !whole) continue;
     wrecks[name] = wreckPieces(states);
     wreckLooks[unit] = {
       appearance: name,

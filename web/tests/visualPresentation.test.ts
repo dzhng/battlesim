@@ -17,7 +17,7 @@ import {
 import { sunDirection } from "@packages/battle-renderer/src/light/sceneLight";
 import { gameLight } from "@apps/battle-lab/src/gameLight";
 import type { DrawnUnits, ModelCount } from "@web/battle/benchmark/unitManifest";
-import { NO_PROP, PROP_MODEL_WORDS, type DrawnProps } from "@web/battle/benchmark/propManifest";
+import type { PropsManifest } from "@web/battle/benchmark/propManifest";
 import type { EffectCount, EffectsManifest } from "@web/battle/benchmark/effectManifest";
 
 const frame = (
@@ -133,43 +133,8 @@ function units(): DrawnUnits {
   };
 }
 
-/** Two fitted map models (a lamp no knowledge replaces, a car map prop 7),
- *  each building's parts, and a fit whose parked car paints from one look
- *  and whose tank wrecks as another. */
-const MAP_WORDS = (() => {
-  const words = new Uint32Array(2 * PROP_MODEL_WORDS);
-  const floats = new Float32Array(words.buffer);
-  floats.set([10, 20, 0, 0.5, 1, 1, 1], 0);
-  words[7] = 0;
-  floats.set([1, 1, 1], 8);
-  words[11] = NO_PROP;
-  floats.set([30, 40, 0, 1.5, 1.1, 0.9, 1], PROP_MODEL_WORDS);
-  words[PROP_MODEL_WORDS + 7] = 1;
-  floats.set([0.3, 0.3, 0.31], PROP_MODEL_WORDS + 8);
-  words[PROP_MODEL_WORDS + 11] = 7;
-  return words;
-})();
-const props = (): DrawnProps => ({
-  detail: { lod_px: [150, 60, 24], impostor_px: 12 },
-  looks: [
-    { appearance: "lamp", state: "default" },
-    { appearance: "parked_car", state: "default" },
-    { appearance: "abrams_wreck", state: "default" },
-  ],
-  map: { base64: Buffer.from(MAP_WORDS.buffer).toString("base64"), count: 2 },
-  fit: {
-    kinds: {
-      parked_car: {
-        modular: false,
-        wreck: false,
-        candidates: [{ look: 1, footprint: [2.2, 0.9, 0.72], paints: [[0.3, 0.3, 0.31]] }],
-        standIn: null,
-      },
-      wreck: { modular: false, wreck: true, candidates: [], standIn: null },
-    },
-    wrecks: { abrams: { look: 2, footprint: [4, 1.8, 1.2], paints: null } },
-    standIn: null,
-  },
+/** Each building's parts, and what a gutted one's become. */
+const props = (): PropsManifest => ({
   buildings: { parts: [[0, 1], [2]], shells: ["gutted_shell"] },
 });
 
@@ -226,9 +191,9 @@ const instanceCounts: InstanceCount[] = [
       felled: tiered(2, 0),
       stumps: [1, 0],
     },
-    knownProps: [
-      { appearance: "abrams_wreck", levels: [0, 1, 0, 0, 2] },
-      { appearance: "car_wreck_sedan", levels: [3, 0, 0, 0, 0] },
+    props: [
+      { appearance: "abrams_wreck", levels: [0, 1, 0, 2] },
+      { appearance: "car_wreck_sedan", levels: [3, 0, 0, 0] },
     ],
   },
 ];
@@ -295,7 +260,7 @@ test("the manifest names its battle by the capture's workload and the hashes of 
   });
 });
 
-test("the units' clip tables are artifacts after the props', and each plate's model counts ride along", async () => {
+test("the units' clip tables are artifacts, and each plate's model counts ride along", async () => {
   const { manifest, artifacts } = await written(platedCapture(), grassCounts);
   const bytes = new Uint8Array(CLIP_FLOATS.buffer);
   const { tables: clipTables, ...described } = manifest.units;
@@ -354,43 +319,15 @@ test("the units' clip tables are artifacts after the props', and each plate's mo
   ).rejects.toThrow(/model counts must be one per plate/);
 });
 
-test("the map's fitted props are an artifact before the units', the only other one, and the fit and the parts ride along", async () => {
+test("each building's parts ride along as the page described them, and only the units' tables are artifacts", async () => {
   const { manifest, artifacts } = await written(platedCapture(), grassCounts);
-  const bytes = new Uint8Array(MAP_WORDS.buffer);
-  const { map, ...described } = manifest.props;
-  const { map: _, ...page } = drawn.props;
-  expect(described).toEqual(page);
-  expect(map).toEqual({
-    name: "map",
-    sha256: sha256(bytes),
-    words: 2 * PROP_MODEL_WORDS,
-    layout: expect.objectContaining({ kind: "records", stride: PROP_MODEL_WORDS, count: 2 }),
-  });
-  expect(artifacts.at(-2)).toEqual({ file: "props-map.u32", bytes });
-  expect(artifacts).toHaveLength(1 + manifest.units.tables.length);
-
+  expect(manifest.props).toEqual(drawn.props);
+  expect(artifacts).toHaveLength(manifest.units.tables.length);
   const reject = (change: object) => () =>
     validateVisualPresentation({ ...manifest, props: { ...manifest.props, ...change } });
-  const { buildings: parts, fit } = manifest.props;
+  const { buildings: parts } = manifest.props;
   expect(reject({ buildings: { ...parts, parts: [[0, 1], [1]] } })).toThrow(/part props/);
   expect(reject({ buildings: { parts: parts.parts } })).toThrow(/props/);
-  const car = fit.kinds.parked_car;
-  const astray = { ...car, candidates: [{ ...car.candidates[0], look: 3 }] };
-  expect(reject({ fit: { ...fit, kinds: { ...fit.kinds, parked_car: astray } } })).toThrow(
-    /parked_car/,
-  );
-  expect(reject({ map: { ...map, words: 12 } })).toThrow(/map/);
-  await expect(
-    writeVisualPresentation({
-      captureJson: platedCapture(),
-      mapBytes,
-      drawn: { ...drawn, props: { ...drawn.props, map: { ...drawn.props.map, count: 3 } } },
-      grassCounts,
-      instanceCounts,
-      modelCounts,
-      effectCounts,
-    }),
-  ).rejects.toThrow(/3 models/);
 });
 
 test("a run whose canvas changed size, or drew nothing, has no one viewport and is refused", async () => {
@@ -455,10 +392,10 @@ test("instance counts hold one row per plate, a count per module and tier and th
   const { felled: _, ...unfelled } = row.scenery;
   expect(reject({ scenery: unfelled })).toThrow(/instance/);
   expect(reject({ tier: 0 })).toThrow(/instance/);
-  const [wreck] = row.knownProps;
-  expect(reject({ knownProps: [{ ...wreck, levels: [0, 1, 0, 0] }] })).toThrow(/instance/);
-  expect(reject({ knownProps: [wreck, wreck] })).toThrow(/instance/);
-  const { knownProps: _known, ...unknowing } = row;
+  const [wreck] = row.props;
+  expect(reject({ props: [{ ...wreck, levels: [0, 1, 0, 0, 2] }] })).toThrow(/instance/);
+  expect(reject({ props: [wreck, wreck] })).toThrow(/instance/);
+  const { props: _props, ...unknowing } = row;
   expect(() => validateVisualPresentation({ ...manifest, instanceCounts: [unknowing] })).toThrow(
     /instance/,
   );

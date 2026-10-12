@@ -644,6 +644,20 @@ The spec said phase 3 would be planned with the user. Under the implementation g
 | `set_ground` sets the scars' reach itself, and the page's `set_scar_reach` is deleted. Rust keeps it for native's own ground | The reach is the ground's fact; native has not moved its ground onto `Presentation` yet | Agent; closed by slice 25 step 5b (native sets its ground on `Presentation`, and `set_scar_reach` is deleted) |
 | The felled angle is accepted at one ulp from the TS on 51 of 1,422 trees | The step 3 `libm` decision; it is invisible on screen | Agent |
 
+### Slice 20b: the static world in Rust, step 5 (the props)
+
+| Decision | Why | Closed by |
+| --- | --- | --- |
+| The props' fit, the side's knowledge of them and their walk are Rust's (`static_world::props`), a third `Population` through `StaticBatches`, view pass only. The page draws each batch as a run of the models layer, in the passes the props were drawn in before (units' prepass, fog class, cascades a tier coarser) | One writer for everything static; the props' depth stays out of the world prepass, so the ground paint and the units' x-ray see what they saw | Agent |
+| One rule for every scene: a side draws the map's props less those it knows replaced, plus what it knows. The "apart" split (movable and destroyable kinds drawn from knowledge, the rest as the world) and the sessions' `destroyable` option are gone | In a battle the two lists drew the same picture; the split only made the labs without a side (city block, line-up, camera) leave cars, fences and walls out, which they now draw | Agent |
+| A known body's paint is seeded by the authored prop it is, not its published id | The rule the TypeScript stated ("a shoved car keeps its colour") and its tests held; in a battle it seeded by the known prop's own id, so a shoved car changed colour | Agent |
+| The props take the units' tier thresholds as authored (`presentation.models`), not the player's unit detail scale | As the TypeScript drew them | Agent |
+| A wreck the cook-off draws moving is read from the cook-offs at each frame, not at each publication | The presentation owns both; the page's copy lagged a publication | Agent |
+| `ui.known`, a lab's stand-in for the publication's known props, carries a prop's id and box; a stand-in without a box stands buildings only | The props and the buildings read one knowledge, as in a battle | Agent |
+| The page reports the art (`propArt`: footprint, paints, region, size and reach per installed appearance; each vehicle's wreck; the stand-in) and Rust fits; `prop_appearances` names what the models layer installs | Rust holds no bundle; the page installs only what the frame can name | Agent |
+| The props are bucketed in 64 m chunks, each the box of its models' tested spheres, as the TypeScript did; a list is written when it changes | Market-town's 54,000 models walk every camera move; the chunks make a close view cost its neighbourhood | Agent |
+| The manifest's `props` keeps only `buildings`; the map's prop table and the fit's tables are deleted, and plates count props per tier | Native runs the presentation crate and reads nothing else of them | Agent |
+| The static chunk owner (`frame/staticChunks.ts`) is deleted with its last population, and the models layer's unused sun-shadow input with it | Nothing walks chunks in TypeScript any more | Agent |
 ### Slice 25, step 5b: the scenery on native, the ground on `Presentation`
 
 | Decision | Why | Closed by |
@@ -654,3 +668,44 @@ The spec said phase 3 would be planned with the user. Under the implementation g
 | Native's scenery draws runs from the frame's instance buffer, not per-key buffers | The replay resends statics on each drawn frame; a live client needs per-key buffers, as for the buildings | Agent |
 | The replay forwards the learned ground's cleared cells to `set_cleared`, as the page does | 20b step 4 kept `set_cleared` as an input; folding it into `Presentation` is open | Agent |
 
+| A prop batch's buffer, and now a scenery batch's, is held only while the frame lists it, a power of two of records: a batch left out is dropped, and the frame writes it anew when it comes back | The `StaticBatches` contract already said so; held forever, the scenery's buffers grew with every view visited, so the same view held different GPU memory by its history (city-block's baseline check, once scenery drew again) | Agent |
+| The felled trees' lists print by what they hold, not by a counter bumped on a fall or a clock step | A camera move that changed a felled tree's tier named its lists unchanged, so a renderer drew the last view's records (out of bounds once buffers are tight: a WebGPU validation error on the graphics test's market-town) | Agent; a fix to step 4 |
+### Slice 25: the score's decisions in Rust; native plays voice lines and the score
+
+Resolves battle voices and music's [N2](../done/battle-voices-music/choices.md#n2-the-scores-mood-logic-stays-in-typescript) ("the score's mood logic stays in TypeScript"), whose provisional call held until a native client needed music. Native needs it now.
+
+| Decision | Why | Closed by |
+| --- | --- | --- |
+| **N2 resolved: Rust decides the battle score** (`presentation::sound::music::Score`): the mood (`tension`, `combat`) with its enter and leave spans, from the side's own barks; the next track of a mood as a catalog id, by a shuffle bag (each track once a shuffle, never twice in a row) on the score's own seeded `Mulberry32`; and the dip under voice lines. `presentation.audio.music` and the catalog's `music.moods` are typed in `sound::tables` | The user's decision (2026-10-12): one owner for every battle sound decision, both clients alike | User |
+| **Music is three commands in the sound's command stream:** `music` (stream track `track` from `at`, looping, fading in over `fade`), `music_stop` (fade every sounding track out over `fade`, then free it) and `duck` (dip the bus by `depth`, gliding with time constant `glide`). A crossfade is `music_stop` then `music` over the same span; the first track only fades in, under the menu's own fade-out | Players stay as dumb as a mixer: no crossfade or duck state of their own. Two ops keep the first track's fade-in exactly as the TS played it | Agent, on the user's contract |
+| **Players resolve ids to files.** Rust never sees a file name, format or path: the browser's `MusicPlayer` builds `/audio/music/<id>.<sha8>.mp3`, native the same path under `assets/runtime` | The user's decision | User |
+| **Menu music stays the app's** (`AppAudio`): the menu bed, its fades, and ending the score on leaving a battle | Not a battle decision (user) | User |
+| The browser seeds each battle's score from `Math.random` at its first update; native's replay seeds it 0, as the browser's lines are seeded 0 | The page had no battle seed in its audio path, and the TS drew from `Math.random`: each battle still opens on a different track. A replay has no seed to take | Agent |
+| `speaking` is the line arbitration's (`Chatter::speaking`: a line started and not yet over, through a reset), deleting the TS `until` | The score's input should be Rust's too; a reset lets sounding lines play out, so it keeps `until` apart from the sounding list | Agent |
+| Native streams music through its own `kira` sound: MP3 bytes in memory decoded packet by packet (`symphonia` 0.6, the version `kira` uses), resampled linearly, with linear amplitude fades as the browser's ramps. Not `kira`'s streaming sound | `kira`'s streaming decodes on a thread; rendered to a buffer it gaps nondeterministically. Decoding in place is deterministic and still never holds a track decoded whole | Agent |
+| Native voice takes: a pack's `pack.json` tells the arbitration every voice and take length at once; a take is read and decoded when a line plays it, the last 32 kept (the browser's `DECODED_TAKES`), and calibrated by `bank::source_normalization` as the browser's sink calibrates a take | The browser holds every take's MP3 bytes in memory to dodge the network; native's disk is always there | Agent |
+| Native's duck glides linearly over `glide` (a `kira` tween) where the browser approaches with that time constant; named, as step 7's 60 ms glides were | `kira` has no exponential approach; the dip depth is exact | Agent |
+| Not ported: the unseen-enemy shout pool on native (`shoutPool.ts`'s selection stays the browser's), so an unseen shout is silent natively | Its take selection is a TS rule; moving it to Rust for both clients is its own step | Agent; reported |
+
+### Slice 25, step 6b: fog of war's sight in Rust
+
+| Decision | Why | Closed by |
+| --- | --- | --- |
+| Rust decides every fog upload: eyes, known occluders, map slots, rebuild schedule, horizon and whole-fog records, `FogParams`. A renderer writes one `FogUpload` a frame and runs the passes it names | Rust as smart as it can be; native would otherwise port the same 900 lines | Agent |
+| The renderer calls `prepare_fog` at encode time, with its camera record, rather than `frame()` making it | The rebuild schedule assumes every prepared frame dispatches; the page frames its presentation on ticks it may not render | Agent |
+| Fog reads the latest publication's own units and known props itself, not `know()`'s lab stand-in (`Ui.known`). A lab stands in eyes (`FogSetup.eyes`) or looks through some units (`units`) | The side's sight is the publication's; the labs that stand in buildings have no battle fog | Agent |
+| The side's foliage is still handed in (`WorldView.foliage_cleared`; `files::side_foliage` natively) | Clearing foliage needs the simulation's world, which the page's presentation does not hold | Agent |
+| The geometry joins `Tuning` (`presentation.fog_geometry`, checked by Rust); the frame keeps `tile_px` and `radial_bins`, which the shader text splices | The pipelines are built before any presentation exists; the export holds the text | Agent |
+| `Source` gains `playable` and `PropKinds` (names, drawn-by, occludes); `ground::source(world, extents, layout)` builds it from the simulation's world for native and the tests | One builder of the ground's source | Agent |
+| Native binds each surface's fog group by what it is (`fog::Layer`, `modelFog.ts`'s rule); `Environment` no longer owns a fog group | Units must never be fogged, corpses as the ground; one all-purpose group could not say so | Agent |
+| The equality vectors hash each upload (FNV-1a) and commit the street's publications as words; the knowledge rules are held by Rust unit tests and `buildingKnowledge.test.ts` through Rust | The streams had no fallen or destroyed prop, so two falsifications passed the vectors | Agent |
+| A fog reel (`/graphics-test?fog=1`, `PARITY_FOG=1`) judges native's fog | Neither reel draws fog; the reel's own publications and cameras make the control | Agent |
+| `bareTerrain`'s playable rectangle is `[x, y, width, height]` | Fog reads the simulation's rectangle format; the facade's stations fell outside the old one | Agent |
+
+### Slice 25: effect counts
+
+| Decision | Why | Closed by |
+| --- | --- | --- |
+| The worker's `ready` reports the rules' `tick_hz` as given, and pacing derives `tickMs` from it | `1000 / (1000 / 30)` is 29.999999999999996, and the page's presentation times every effect from that rate. This is a fix in the browser's sim client, outside the capture lane, because the cause was there | Agent |
+| The capture's `tickHz` is the rate the page's presentation ran at (the worker's `ready`), not the rules' | Record the inputs the presentation framed from; the replay builds its `Presentation` from it | Agent |
+| Native checks building modules per module and tier against `instanceCounts[].buildings` | The plates' "statics" had no native check; models, props, scenery and effects did | Agent |
