@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Battle voices &amp; music — the map</title>
+<style>
+:root{--bg:#0b1014;--panel:#111a1f;--line:#1f3a40;--ink:#cfe3e8;--dim:#7d989e;--acc:#7fe3c8;--warn:#f0b35a;--bad:#ff7a6b;--ok:#79d98b}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:14px/1.5 ui-sans-serif,system-ui;margin:0;padding:28px 40px 80px;max-width:1180px}
+h1{color:var(--acc);letter-spacing:.06em;text-transform:uppercase;font-size:19px;margin:0 0 4px}
+h2{color:#9fd;border-bottom:1px solid var(--line);padding-bottom:6px;margin-top:40px}
+h2 .q{color:var(--dim);font-weight:400;font-size:13px;margin-left:8px}
+h3{margin:18px 0 6px;font-size:15px}
+p.lead{color:var(--dim);margin-top:0}
+table{border-collapse:collapse;width:100%;margin:8px 0 14px;font-size:13px}
+th,td{border:1px solid var(--line);padding:6px 8px;vertical-align:top;text-align:left}
+th{background:#0f1d22;color:#9fd;font-weight:600}
+td:first-child{white-space:nowrap;color:var(--acc);font-family:ui-monospace,monospace}
+code{font:12px ui-monospace,monospace;background:#0d1b20;padding:1px 4px;border-radius:3px;color:#bfe}
+.tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:10px;border:1px solid;white-space:nowrap}
+.user{color:var(--ok);border-color:var(--ok)} .terr{color:#8fc3ff;border-color:#8fc3ff} .agent{color:var(--warn);border-color:var(--warn)}
+.open{color:var(--bad);border-color:var(--bad)} .edge{color:#c9a0ff;border-color:#c9a0ff}
+.card{background:var(--panel);border:1px solid #1d2d33;border-left:3px solid var(--line);border-radius:5px;padding:10px 14px;margin:10px 0}
+.card.decided{border-left-color:var(--warn)} .card.open{border-left-color:var(--bad)} .card.edge{border-left-color:#c9a0ff}
+.card b.t{font-size:14px} .card .k{color:var(--dim);font-size:12px;text-transform:uppercase;letter-spacing:.05em;margin-right:6px}
+ul{margin:4px 0 8px 18px;padding:0} li{margin:2px 0}
+.pref{background:var(--panel);border:1px solid #1d2d33;border-radius:5px;padding:10px 14px}
+details{background:var(--panel);border:1px solid #1d2d33;border-radius:5px;padding:8px 14px;margin:8px 0}
+summary{cursor:pointer;color:#9fd}
+label.tg{display:inline-flex;gap:6px;align-items:center;background:#16252b;border:1px solid #2a454d;border-radius:14px;padding:2px 10px;margin:2px 4px 2px 0;cursor:pointer;font-size:12px}
+label.tg:has(input:checked){background:#1f5a4c;border-color:var(--acc);color:#fff}
+label.tg input{display:none}
+textarea{width:100%;height:330px;background:#0d1b20;color:#dff;border:1px solid #2a454d;font:12px/1.45 ui-monospace,monospace;padding:10px}
+button{background:#1f5a4c;color:#fff;border:0;padding:6px 16px;border-radius:4px;cursor:pointer;margin-top:6px}
+a{color:#8fc3ff}
+</style></head><body>
+
+<h1>Battle voices &amp; music · the map</h1>
+<div style="background:#3a1d1d;border:1px solid #ff7a6b;color:#ffd9d4;padding:10px 14px;border-radius:5px;margin-bottom:16px"><b>Superseded where the spec differs.</b> This is the 2026-10-11 discovery map, kept for its rationale. The live plan is <code>specs/battle-voices-music/README.md</code> and its <code>choices.md</code>, which overrides:
+<ul>
+<li><b>A6 / L1:</b> the account is on Pro, and every voice is designed and saved permanently, with no cloning;</li>
+<li><b>T6:</b> the murmur is replaced by an anonymous muffled shout cue;</li>
+<li><b>A2:</b> assignments live in <code>voices.json</code>, not on unit rows;</li>
+<li><b>asset layout:</b> <code>assets/source|runtime/audio/{voices,music}</code>, not <code>assets/generated</code>;</li>
+<li><b>O1/O2:</b> one callsign per set; European generic infantry is German;</li>
+<li><b>L7:</b> resolved (Vercel LFS is on).</li>
+</ul>
+<b>Do not use this page's kickoff prompt.</b> Start from the README's Next Agent Prompt.</div>
+
+<p class="lead">Quadrant walk, 11 Oct 2026, worktree <code>t3code-7b1f4bb7</code>. Samples heard: <code>throwaway/sound-explore/{taste,music2,music3}.html</code>. Legend:
+<span class="tag user">user</span> <span class="tag terr">territory</span> <span class="tag agent">agent on your behalf</span> <span class="tag open">OPEN</span> <span class="tag edge">sharp edge</span></p>
+
+<h2>1 · Known knowns <span class="q">the settled ground</span></h2>
+<table>
+<tr><th>Fact</th><th>Evidence</th></tr>
+<tr><td>Sound only from observed causes</td><td><code>packages/battle-audio/README.md:3-5</code>. Three feeds: publication, per-frame motion and hearing cues (<code>soundFrame.ts</code>). No named-cause enum.</td></tr>
+<tr><td>No voice or bark system anywhere</td><td>Only the synth murmur <code>cue_voices</code> (<code>synth.ts:532-543</code>) for heard-but-unseen infantry (<code>fixtures/game.json:870-881</code>).</td></tr>
+<tr><td>Buses</td><td><code>units | effects | ambience</code>, with no music bus (<code>audioPresentation.ts:9</code>). Budget is 48 sounds, 16 of them loops.</td></tr>
+<tr><td>Menu music only</td><td><code>menu_music</code> (EA/DICE, All-Rights-Reserved). <code>AppAudio</code> loops it on ambience and fades it 1.2 s into battle (<code>appAudio.ts:10-13,162-226</code>).</td></tr>
+<tr><td>Catalog and validator</td><td><code>fixtures/sounds.json</code> holds sources/clips/recipes/defaults/impacts/effects. The licence list is closed and paths must be third-party (<code>catalog.ts:14-21,105-150</code>).</td></tr>
+<tr><td>Settings owner</td><td><code>packages/battle-audio/src/settings.ts</code> persists <code>{muted, volume}</code> for both menus.</td></tr>
+<tr><td>Hooks</td><td>Selection is <code>setSelection</code>; orders go through <code>issue()</code> → <code>CommandAck</code> (<code>web/src/battle/input/useUnitControl.ts</code>). <code>OwnUnit.suppression</code> covers squads only (<code>observation.rs:466</code>). <code>IdentifiedUnit</code> carries "never health, ammunition, orders or timers" (<code>observation.rs:14-15</code>). Mount <code>ActionReason</code> includes Firing, Reloading and OutOfAmmo (<code>observation.rs:198-222</code>).</td></tr>
+<tr><td>Roster</td><td>90 playable units across <code>us</code>, <code>europe</code> and <code>eastern</code> (<code>fixtures/units/roster/*.json</code>). No nationality field. "Europe" mixes DE/UK/FR/SE/IT; "Eastern" mixes RU/CN.</td></tr>
+<tr><td>Digest scope</td><td>Covers simulation state only. <code>self.observations</code> is not folded (<code>crates/sim/src/battle.rs:280,3683-3776</code>).</td></tr>
+<tr><td>ElevenLabs via Duet</td><td><code>POST https://ctl.duet.so/v1/services/elevenlabs/&lt;path&gt;?workspace=&lt;slug&gt;</code> with the Duet bearer. The proxy strips <code>xi-api-key</code>. Allowed: TTS, dialogue, voice design and create, speech-to-speech, speech-to-text, sound effects, music. Denied: <code>voices_read</code>, <code>models_read</code>, <code>user_read</code>. <b>Now on the Creator plan</b>: 5 concurrent TTS calls verified.</td></tr>
+<tr><td>Broken Arrow reference</td><td>Evgeny Shchukin with Alexander Tochilkin: analog synth plus orchestral, on an FMOD adaptive-intensity engine (<a href="https://store.steampowered.com/app/3693780/Broken_Arrow_Soundtrack/">Steam OST</a>, <a href="https://music.apple.com/us/album/broken-arrow-vol-1-original-videogame-soundtrack/1818789596">Apple Music</a>).</td></tr>
+</table>
+
+<h2>2 · Known unknowns <span class="q">the decision ledger</span></h2>
+<table>
+<tr><th>#</th><th>Decision</th><th>Closed by</th></tr>
+<tr><td>D1</td><td>Generate through Duet's ElevenLabs service proxy (above). All generation endpoints work.</td><td><span class="tag terr">territory</span></td></tr>
+<tr><td>D2</td><td><b>Responses</b> (selected, orders) play only to the unit's owner. <b>Barks</b> (situational) play in the world and are heard near the camera, for every side.</td><td><span class="tag user">user</span></td></tr>
+<tr><td>D3</td><td>All lines are in English. Units speak with the accent of their equipment's country of origin.</td><td><span class="tag user">user</span></td></tr>
+<tr><td>D4</td><td>One voice set per <b>country × role</b>, about 40 sets. Squads get 2–3 soldier voices: the leader answers orders and soldiers shout the barks. Each unit row gets <code>voice: &lt;set&gt;</code>, so a unit can have its own set later.</td><td><span class="tag user">user</span></td></tr>
+<tr><td>D5</td><td><b>The simulation emits shouts</b> as <code>(speaker, trigger, intensity)</code>, with the position taken from the speaker. A side hears all of its own units' shouts, and an enemy's only while that enemy is <b>seen</b>. An unseen enemy's shout feeds the existing heard-infantry murmur cue. Picking the take happens in the client, with client-side seeded randomness.</td><td><span class="tag user">user</span></td></tr>
+<tr><td>D6</td><td>All 29 triggers: <b>R1–R12</b> are responses (selected, move, attack, attack-move, stop, weapons free, hold fire, enter building, leave building, withdraw, arrived, refused). <b>B1–B17</b> are barks (contact inf/veh/air, opens fire, under fire🆕, suppressed, pinned, hit, man down, badly damaged, kill, reloading, out of ammo, missile away, incoming missile🆕, destroyed, friendly destroyed nearby🆕). Each has <b>steady/stressed × 2 takes</b>. A unit is stressed when health is ≤ ½ or it is suppressed.</td><td><span class="tag user">user</span></td></tr>
+<tr><td>D7</td><td>Simulation: 8 s cooldown per unit per trigger, and a unit never talks over itself. Client: at most 4 lines at once. Priority is owner responses, then own barks, then others, nearest first. A bark that can't start within 1 s is dropped. One unit answers for a multi-selection. The numbers are guesses to tune.</td><td><span class="tag user">user</span></td></tr>
+<tr><td>D8</td><td>Music has two moods, <b>tension</b> and <b>combat</b>, with about 3 tracks each, shuffled. Combat starts on any own B5–B9 bark within 20 s and ends after 45 s without one. 4 s crossfade, on a new <b>music</b> bus that dips under voices.</td><td><span class="tag user">user</span></td></tr>
+<tr><td>A1</td><td>Workbench: a <b>Voices</b> tab (sets × triggers grid with steady/stressed takes), a <b>Music</b> tab (moods with a manual switch), and a <b>chatter preview</b> (a scripted 30 s firefight through the real 4-line limit).</td><td><span class="tag agent">agent</span> pref 1, extends the existing tabs (<code>SoundWorkbench.tsx:199-206</code>)</td></tr>
+<tr><td>A2</td><td><code>fixtures/voices.json</code> owns voices. <b>Roles</b> own the scripts (lines per trigger × intensity). <b>Sets</b> are role × country and own voice descriptions, reference clips and processing.</td><td><span class="tag agent">agent</span> pref 3, one owner, data over constants</td></tr>
+<tr><td>A3</td><td>Contract: <code>ObservationFrame.shouts: Vec&lt;Shout{speaker: own UnitId | seen ObservedTargetId, trigger: Trigger, intensity: Steady|Stressed}&gt;</code>. Cooldowns and line lengths are simulation rules read from data. The take is never drawn from the simulation's RNG.</td><td><span class="tag agent">agent</span> pref 3</td></tr>
+<tr><td>A4</td><td>A new <code>generated</code> provenance kind records generator, model, text, voice description, date and "made under Duet's ElevenLabs plan". Files live in <code>assets/generated/audio/</code>.</td><td><span class="tag agent">agent</span> pref 1 (<code>catalog.ts:14-21,113</code>)</td></tr>
+<tr><td>A5</td><td>A repeatable generator next to <code>tools/assets.py</code>. Results are stored by a hash of (text, voice, model, settings). It is resumable, runs at most 5 requests at once with retries, and shows visible progress.</td><td><span class="tag agent">agent</span> pref 1, AGENTS.md "reuse a valid result"</td></tr>
+<tr><td>A6</td><td><b>Voice identity is ours.</b> A designed voice is saved only while its lines generate and then deleted. Its description and a <b>reference clip</b> are kept in the repo. Regenerating a line clones that clip into a voice briefly. A <b>pilot set</b> (one set, all 29 triggers) runs first to measure credits and confirm who is billed.</td><td><span class="tag agent">agent</span> pref 1+3. Creator has ~30 slots against ~55–60 voices and ~100k credits against ~110k characters.</td></tr>
+<tr><td>A7</td><td>A few voice sets are female: pilots and one vehicle crew per faction to start, about 6 sets. You can veto any of them in review.</td><td><span class="tag agent">agent</span> T5 + T8 (cheap to change in review)</td></tr>
+</table>
+<div class="pref"><b>Delegation record.</b> Confirmed preferences: (1) take the recommendation when it's grounded in the code; (2) atmosphere over leanness; (3) the simulation is the authority; (4) numbers are guesses to tune. Scope delegated: structural questions (workbench layout, file formats and naming, catalog records). <b>Not delegated:</b> taste (voices, accents, treatment, music) and spending or account decisions.</div>
+
+<h2>3 · Unknown knowns <span class="q">taste and context extracted</span></h2>
+<table>
+<tr><th>#</th><th>Extracted</th><th>What it reshaped</th></tr>
+<tr><td>T1</td><td>Reference voices: US tank <b>C</b>, Russian rifle <b>B</b>, US recon <b>B</b>, UK pilot <b>C</b> (<code>out/*_N.json</code> holds the preview ids, which are temporary).</td><td>Their descriptions become the templates for the other sets of the same role.</td></tr>
+<tr><td>T2</td><td>The voice is treated by where the speaker sits. Tank: <b>light</b> radio over a faint engine bed. Infantry in the open: <b>dry</b>. Recon: quiet earpiece. Pilot: intercom over rotor.</td><td>Processing is a set property (A2) built by the asset pipeline's filter profiles.</td></tr>
+<tr><td>T3</td><td>Callsigns are invented per unit.</td><td>See the OPEN item O1: pre-recorded lines are shared across a set.</td></tr>
+<tr><td>T4</td><td>Stressed lines may swear.</td><td>Applies to the scripts in <code>voices.json</code>.</td></tr>
+<tr><td>T5</td><td>A few female voice sets.</td><td>A7.</td></tr>
+<tr><td>T6</td><td>Unseen enemies stay the synth murmur.</td><td>Confirms D5.</td></tr>
+<tr><td>T7</td><td>One score for every faction.</td><td>Music needs no faction keying.</td></tr>
+<tr><td>T8</td><td>You review alone.</td><td>Workbench is built for spot checks, a "mark bad → regenerate" button, and automatic speech-to-text flags (L9).</td></tr>
+<tr><td>T9</td><td>Combat music is <b>Pulse</b>: a <i>background</i> underscore in D minor at 125 BPM, synth bass ostinato, drums and taiko far back, low strings, distant brass, no melody, hooks or drops. Round 1's foreground styles were rejected.</td><td>The prompt template is in <code>gen_music2.ts</code> (<code>STYLE</code>).</td></tr>
+<tr><td>T10–12</td><td>Tension uses <b>Pulse, sparse</b> and <b>Pulse, dark</b>, in the same key and tempo. Music level is <b>−26 LUFS</b> in the battle mix.</td><td>D8's two moods have one shared palette.</td></tr>
+<tr><td>T13</td><td>Players get <b>music</b> and <b>voices</b> levels in <code>settings.ts</code>, next to master, in both menus.</td><td>No more level analysis needed.</td></tr>
+<tr><td>Context</td><td>Consumer: you in the workbench, then players in the browser. "Done" means reviewed in the workbench before anything goes into a battle.</td><td>L2 and L3 (browser size).</td></tr>
+</table>
+
+<h2>4 · Unknown unknowns <span class="q">landmine cards, worst first</span></h2>
+
+<div class="card decided"><b class="t">L1 · The ElevenLabs account is small</b> <span class="tag agent">decided (A6)</span><br>
+<span class="k">evidence</span>The plan was Starter: 3 concurrent calls, ~10 slots. It is <b>Creator now</b> (5 concurrent verified), still ~30 slots and ~100k credits a month (<a href="https://help.elevenlabs.io/hc/en-us/articles/24351056337937-How-many-voice-slots-do-I-get-per-tier-and-how-can-I-increase-it">slots</a>, <a href="https://elevenlabs.io/pricing">pricing</a>). The balance can't be read (<code>user_read</code> denied).<br>
+<span class="k">bites</span>We need ~55–60 voices and ~110k characters, on a shared account.<br>
+<span class="k">changes</span>Voices are saved only while in use, reference clips live in the repo, and the pilot set comes first.</div>
+
+<div class="card decided"><b class="t">L2 · Size and loading would stall battle audio</b> <span class="tag agent">decided</span><br>
+<span class="k">evidence</span><code>BattleAudio.connect</code> waits for every assigned sound, one at a time (<code>battleAudio.ts:67-72</code>, <code>soundBank.ts:23-37</code>). WAV is 96 KB/s. Menu music decodes a whole 28 MB WAV.<br>
+<span class="k">bites</span>~450 MB of voice WAV, ~100 MB of music, and thousands of serial fetches before battle sound starts.<br>
+<span class="k">changes</span>Mono <b>MP3</b>: ~40 kbps for voices (~20 MB total), 128 kbps for music (~15 MB). Voice sets load in the background <b>after</b> <code>ready</code>, only for the sets in the battle; a bark whose clip isn't loaded yet is dropped. Music <b>streams</b> through a media element.</div>
+
+<div class="card decided"><b class="t">L3 · The catalog ships inside the JavaScript bundle</b> <span class="tag agent">decided</span><br>
+<span class="k">evidence</span><code>shippedSounds.ts</code> imports <code>sounds.json</code> (216 KB for 232 clips).<br>
+<span class="k">changes</span>Voice clips are <b>not</b> entries in <code>sounds.json</code>. Their path is a convention: <code>voices/&lt;set&gt;/&lt;trigger&gt;-&lt;intensity&gt;-&lt;take&gt;.&lt;hash&gt;.mp3</code>. <code>voices.json</code> loads with the battle.</div>
+
+<div class="card decided"><b class="t">L4 · Shout state on units would change every digest</b> <span class="tag agent">decided</span><br>
+<span class="k">evidence</span><code>Unit::digest</code> folds the unit's complete state (<code>units.rs:565</code>). Observations are not digested (<code>battle.rs:280</code>). <code>combat_rng</code> is digested and drives the menu reel (<code>battle.rs:3766</code>, <code>tests/menu_reel.rs</code>).<br>
+<span class="k">changes</span>Cooldown and talking state live with each <b>side's observation builder</b>. There are no simulation RNG draws. <b>Digests must stay unchanged</b>; a digest change counts as a bug.</div>
+
+<div class="card edge"><b class="t">L5 · Publication bytes are pinned</b> <span class="tag edge">sharp edge</span><br>
+<span class="k">evidence</span>The new group goes in <code>GROUP_LAYOUTS</code> (<code>publication.rs:417-470</code>), modelled on <code>audible</code> (<code>:234,451</code>). <code>publication_sha256</code> in <code>fixtures/parity/publication/*.json</code> and <code>codec-vectors.json</code> changes.<br>
+<span class="k">changes</span>One <b>named</b> re-bless (<code>BLESS_PARITY=1</code>): the bytes change and the digests don't. Old replays are already refused by build fingerprint.</div>
+
+<div class="card decided"><b class="t">L6 · The validator assumes third-party crops</b> <span class="tag agent">decided (A4)</span><br>
+<span class="k">evidence</span><code>catalog.ts:105-150</code>. Paid ElevenLabs plans allow commercial game use, and ElevenLabs keeps training rights (<a href="https://terms.law/ai-output-rights/elevenlabs/">summary</a>).</div>
+
+<div class="card open"><b class="t">L7 · Caching and deployment</b> <span class="tag agent">decided</span> + <span class="tag open">OPEN</span><br>
+<span class="k">evidence</span>Clips are served at non-content-addressed <code>/audio/clips/*.wav</code>, outside the immutable <code>/:sha/</code> rule (<code>vercel.json</code>). The Vercel install never runs <code>git lfs pull</code> (<code>web/README.md:41-45</code>).<br>
+<span class="k">changes</span>Hashed filenames, so a regenerated line is never served stale. <b>OPEN:</b> how today's deploy gets its LFS audio at all. Unblocked by inspecting a deployed build before the first deploy with voices.</div>
+
+<div class="card edge"><b class="t">L8 · Throughput and an undocumented route</b> <span class="tag edge">sharp edge</span><br>
+At 5 concurrent calls and an occasional music 500, the batch takes about 2 hours. <code>/v1/services/elevenlabs</code> isn't in Duet's public reference, so the generator keeps its base URL in one constant.</div>
+
+<div class="card decided"><b class="t">L9 · Misreads</b> <span class="tag agent">decided</span><br>
+<span class="k">evidence</span>"Gunner" came out as "Gutter" in the tank sample (speech-to-text check).<br>
+<span class="k">changes</span>Every line is transcribed and compared with its script, and the workbench flags mismatches first.</div>
+
+<div class="card decided"><b class="t">L10 · Menu music decodes 28 MB (beyond this feature)</b> <span class="tag agent">decided</span><br>
+The menu bed moves to the music streaming path and MP3, and the old decode-everything path for music is deleted.</div>
+
+<h3>OPEN items</h3>
+<div class="card open"><b class="t">O1 · Where the callsign comes from</b> <span class="tag open">OPEN, your call</span><br>
+T3 says callsigns are invented per unit, but D4 shares recorded lines across a whole set, so a callsign baked into shared audio would be wrong for every other unit type in that set.
+<b>Options:</b> (a, recommended) one callsign <b>per voice set</b> ("Oscar two-one" for every US tank crew), spoken only in R1 selected and R11 arrived; (b) record R1 and R11 again <b>per unit type</b> with its own callsign, about 700 more clips; (c) no callsigns in audio, shown in the UI only.</div>
+<div class="card open"><b class="t">O2 · Accent for generic European infantry</b> <span class="tag open">OPEN, your call</span><br>
+European Rifle, Assault, Marksman and Recon Patrol squads have no obvious country. <b>Options:</b> (a, recommended) <b>British</b>, the faction's only native-English army, which reads clearly; (b) German; (c) mixed, so each squad's 2–3 voices are different nationalities.</div>
+
+<h3>Confirm before coding</h3>
+<ul>
+<li>The pilot set's real credit use, and whether Duet bills the workspace per call or draws on the account's allowance.</li>
+<li>The Creator plan's actual voice-slot count (A6 holds one or two slots at a time either way).</li>
+<li>How the shout <code>speaker</code> is encoded for unseen and seen enemies in the packed layout (16-bit limbs, <code>publication.rs:14-17</code>).</li>
+<li>The physical rule for "under fire" (B5), "incoming missile" (B15) and "friendly destroyed nearby" (B17). Run each through <code>tweak-mechanics</code> before coding.</li>
+<li>Where the master slider appears in both menus, so the music and voices sliders sit beside it.</li>
+</ul>
+
+<h2>Tweakable plan <span class="q">judgment calls first · mechanical work last</span></h2>
+<details open><summary>Judgment calls (toggle to change the prompt below)</summary>
+<p>
+<label class="tg"><input type="radio" name="o1" value="one callsign per voice set, spoken in R1/R11 only" checked> O1 a · callsign per set</label>
+<label class="tg"><input type="radio" name="o1" value="R1/R11 re-recorded per unit type with its own callsign"> O1 b · per unit type</label>
+<label class="tg"><input type="radio" name="o1" value="no callsigns in audio"> O1 c · none</label><br>
+<label class="tg"><input type="radio" name="o2" value="British" checked> O2 a · British</label>
+<label class="tg"><input type="radio" name="o2" value="German"> O2 b · German</label>
+<label class="tg"><input type="radio" name="o2" value="mixed nationalities within each squad"> O2 c · mixed</label><br>
+<label class="tg"><input type="checkbox" name="pilot" checked> pilot one set before the batch</label>
+<label class="tg"><input type="checkbox" name="b17" checked> include B17 (friendly destroyed nearby)</label>
+</p></details>
+<details><summary>Slices, in build order (I trust you on these)</summary>
+<ol>
+<li><b>Generator and data:</b> <code>voices.json</code> schema, the generated-provenance kind, the proxy generator with caching and speech-to-text checks, processing profiles. Pilot one set, then the batch in the background.</li>
+<li><b>Workbench review:</b> Voices tab, Music tab, chatter preview, mark-bad → regenerate. <i>Your review gate.</i></li>
+<li><b>Music in battle:</b> music bus, streaming, moods with the B5–B9 rule, the menu bed on the same path, music and voices sliders.</li>
+<li><b>Responses:</b> R1–R12 from selection and order acks, played to the owner.</li>
+<li><b>Shouts in the simulation:</b> the <code>Trigger</code> enum, the shout group in the publication, the observation-side cooldowns, the three new physical triggers, the parity re-bless, and a digest-unchanged check.</li>
+<li><b>Bark playback:</b> hearing near the camera, the 4-line limit and priority, drop-if-late, lazy loading per set.</li>
+</ol></details>
+
+<h2>Copyable implementation prompt</h2>
+<textarea id="prompt" readonly></textarea>
+<button onclick="navigator.clipboard.writeText(document.getElementById('prompt').value)">Copy prompt</button>
+
+<script>
+function build(){
+  const v=n=>document.querySelector(`input[name=${n}]:checked`)?.value;
+  const c=n=>document.querySelector(`input[name=${n}]`).checked;
+  document.getElementById('prompt').value =
+`/write-spec Battle voices and music, from the quadrant-walk map at throwaway/sound-explore/map.html (read it fully; every D/A/T/L entry is a given, not a suggestion).
+
+Goal: RTS-style unit voice lines and background battle music, generated with ElevenLabs through Duet's service proxy, reviewed in the sound workbench before anything is played in battle.
+
+Givens:
+- Triggers: R1–R12 responses (owner only, from selection and order acks) and B1–B17 barks (simulation-emitted Shout{speaker, trigger, intensity}; heard near the camera; enemies only while seen; unseen falls back to the existing murmur cue)${c('b17')?'':' (drop B17)'}. Steady/stressed × 2 takes; stressed = health ≤ ½ or suppressed.
+- About 40 voice sets, country × role; squads get 2–3 voices; English with the equipment's country accent; European generic infantry: ${v('o2')}. Callsigns: ${v('o1')}.
+- Reference voices T1, processing T2, swearing in stressed lines, a few female sets (A7).
+- Simulation: 8 s cooldown per unit per trigger, no self-overlap; state lives with the side's observation builder, NOT on Unit; no simulation RNG draws. Digests must stay unchanged; publication parity is re-blessed once, by name.
+- Client: 4 concurrent lines, owner responses > own barks > others, nearest first, drop after 1 s; one unit answers for a group.
+- Music: Pulse-family background underscore (D minor, 125 BPM); combat ×3, tension ×3 (sparse + dark); B5–B9 within 20 s → combat, 45 s out, 4 s crossfade; music bus dips under voices; streamed; menu bed moves to the same path.
+- Files: fixtures/voices.json owns sets and scripts; mono MP3 with hashed filenames in assets/generated/audio/; "generated" provenance; voices saved only while in use, reference clips in repo${c('pilot')?'; pilot one set and report credit use before the full batch':''}.
+- Settings: music and voices levels next to master in packages/battle-audio/src/settings.ts.
+- Workbench: Voices grid, Music tab with a mood switch, chatter preview, mark-bad → regenerate, speech-to-text mismatch flags.
+Open before slice 1: L7 (how deploys get LFS audio) and the physical rules for B5/B15/B17 via tweak-mechanics.`;
+}
+document.addEventListener('change',build); build();
+</script>
+</body></html>
