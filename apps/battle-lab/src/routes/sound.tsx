@@ -15,6 +15,7 @@ import {
   visualEvents,
   type FirefightRender,
 } from "../soundFirefight";
+import { renderResponses, type ResponsesRender } from "../soundResponses";
 import { SoundControls } from "../SoundControls";
 
 /** 16-bit PCM WAV bytes for interleaved stereo. */
@@ -64,6 +65,7 @@ declare global {
           far: number[];
         }
       >;
+      responses: () => Promise<Omit<ResponsesRender, "samples"> & { wav: string }>;
     };
   }
 }
@@ -85,6 +87,10 @@ export default function Sound() {
       async distance() {
         const r = await renderDistanceProbe();
         return { ...r, near: Array.from(r.near), far: Array.from(r.far) };
+      },
+      async responses() {
+        const { samples, ...rest } = await renderResponses();
+        return { ...rest, wav: base64(encodeWav(samples, rest.sampleRate)) };
       },
     };
     return () => void delete window.__sound;

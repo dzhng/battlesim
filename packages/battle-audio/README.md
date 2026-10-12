@@ -150,6 +150,16 @@ client's own seeded randomness, never the simulation's. Its takes come from
 `pack.json` in the background; a take not yet loaded is a dropped line, never a
 wait. The sound workbench's chatter preview runs the same two.
 
+A unit answers its owner ([responses](src/voices/responses.ts)) when selected,
+when an order is accepted or refused for a reason the player caused, and when
+an ordered move (or a purchase's drive in) ends after a real journey. One unit
+answers for a group: the one clicked, else the highest-value. Only the owner
+hears an answer, dry and centred on the voices bus. A battle loads the packs
+of the sets its own units and pending purchases speak with, once its sounds are
+ready. `generate pack` writes a set's `pack.json` from the takes judged ok on
+the bytes served; before review, `--unreviewed` also lists unjudged takes the
+transcript check passed.
+
 What a battle hears, when, where and how loud (timing, distance, the air's
 colour, the voice budget and stealing, loops, footsteps, cues) is decided in
 Rust, once for both clients ([`presentation::sound`](../../crates/presentation/src/sound/));

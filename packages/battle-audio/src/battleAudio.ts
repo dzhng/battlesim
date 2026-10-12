@@ -20,6 +20,8 @@ import { battleSounds } from "./catalog";
 import type { AppAudio } from "./appAudio";
 import type { SoundBank } from "./soundBank";
 import { WebAudioSink } from "./webAudioSink";
+import { BattleVoices } from "./voices/battleVoices";
+import type { ResponseRequest } from "./voices/responses";
 
 /** Where a script's listener stands for a camera, as the battle's does
  *  (`Listener::of_camera`): `share` of the way from the point looked at to
@@ -56,6 +58,7 @@ export interface BattleAudioStats extends SoundStats {
 export class BattleAudio {
   private sink: WebAudioSink | null = null;
   private frame: SoundFrame | null = null;
+  private voices: BattleVoices | null = null;
   private ready = false;
   private error: string | null = null;
   private disposed = false;
@@ -75,12 +78,14 @@ export class BattleAudio {
       bank,
     ));
     this.frame = new SoundFrame(this.options, sink);
+    this.voices = new BattleVoices(sink, this.options.presentation.voices);
     void bank
       .prepare(battleSounds(this.options.catalog))
       .then(() => {
         if (this.sink !== sink) return;
         this.ready = true;
         this.frame?.reset();
+        void this.voices?.start();
       })
       .catch((error: unknown) => {
         if (this.sink !== sink) return;
@@ -102,6 +107,14 @@ export class BattleAudio {
     if (feed instanceof Presentation) frame.notePresented(feed);
     else frame.note(feed);
   }
+  /** A unit's answer to its owner (`responseFor`); unheard before sound is live. */
+  respond(request: ResponseRequest) {
+    if (this.live) this.voices?.respond(request);
+  }
+  /** The voice sets this battle's units speak with; they load once its sounds are ready. */
+  loadVoices(sets: Iterable<string>) {
+    void this.voices?.want(sets);
+  }
   /** Hear the battle's last frame from its camera, or a script's frame. */
   update(feed: Presentation | ScriptedHearing) {
     const frame = this.live;
@@ -109,10 +122,13 @@ export class BattleAudio {
     const wall = performance.now() / 1000;
     if (feed instanceof Presentation) frame.hear(feed, wall);
     else frame.update(feed.clock, wall, feed.motion, feed.listener);
+    // Answers have no position; a battle frame's listener stays in Rust.
+    this.voices?.update(feed instanceof Presentation ? [0, 0, 0] : feed.listener.position);
     this.app.battleStarted(this);
   }
   reset() {
     this.frame?.reset();
+    this.voices?.reset();
   }
   setVolume(volume: number, voices = 1) {
     if (!this.sink) return;
@@ -143,9 +159,11 @@ export class BattleAudio {
     if (this.disposed) return;
     this.disposed = true;
     this.frame?.reset();
+    this.voices?.dispose();
     this.sink?.dispose();
     this.sink = null;
     this.frame = null;
+    this.voices = null;
     this.app.releaseBattle(this);
   }
 }

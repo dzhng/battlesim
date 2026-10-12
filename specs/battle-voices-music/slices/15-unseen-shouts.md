@@ -13,7 +13,7 @@ The simulation half was built in slice 12: hearing emits an anonymous `SoundCate
 - They are played through a ~600 Hz low-pass and the reverb send, at the cue's sector and band. They are not intelligible.
 
 **Deletions:**
-- `cue_voices` (`synth.ts:532-543`).
+- `cue_voices`, which after the native-parity dedupe lives only in `crates/presentation/src/sound/synth.rs` (TS `synth.ts` is deleted by that work). Delete or replace it there; wait for the dedupe to land on `main`.
 - Its `sounds.json` entry (around line 4564).
 - The `default` and `infantry` rows that point at it (`game.json:870-881`).
 
