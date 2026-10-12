@@ -1,10 +1,13 @@
 // @vitest-environment node
+import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { expect, test } from "vitest";
 import units from "@fixtures/catalog.json";
 import shipped from "@fixtures/sounds.json";
 import {
   battleSounds,
   firingCadence,
+  musicUrl,
   resolveShot,
   validateSoundCatalog,
   type SoundCatalog,
@@ -21,6 +24,7 @@ const catalog = (): SoundCatalog => ({
   defaults: {},
   impacts: {},
   effects: {},
+  music: { moods: { menu: [], tension: [], combat: [] }, tracks: {} },
 });
 
 test("a weapon row's own firing choice wins over the global default", () => {
@@ -246,4 +250,38 @@ test("a battle prepares the baselines and what is assigned, not the audition-onl
   expect(prepared).toEqual(expect.arrayContaining(["hit", "glance", "replacement"]));
   expect(prepared).not.toContain("unused");
   expect(new Set(prepared).size).toBe(prepared.length);
+});
+
+test("music tracks name a real source and moods name real tracks; the section is required", () => {
+  const c = catalog();
+  c.sources.bed = {
+    label: "Bed",
+    author: "Author",
+    license: "CC0-1.0",
+    url: "https://example.com/bed",
+    path: "assets/third-party/audio/bed.mp3",
+    sha256: "a".repeat(64),
+    notes: "",
+  };
+  c.music.tracks.bed = { source: "bed", sha256: "c".repeat(64), gain: 0.5 };
+  c.music.moods.menu = ["bed"];
+  expect(validateSoundCatalog(c)).toBe(c);
+  c.music.moods.combat = ["missing"];
+  expect(() => validateSoundCatalog(c)).toThrow(/mood combat/);
+  c.music.moods.combat = [];
+  c.music.tracks.bed.source = "missing";
+  expect(() => validateSoundCatalog(c)).toThrow(/music track bed/);
+  const { music: _, ...withoutMusic } = catalog();
+  expect(() => validateSoundCatalog(withoutMusic)).toThrow(/music/);
+});
+
+test("every shipped music track is served at <track>.<sha8>.mp3 and the menu has a bed", () => {
+  const sounds = validateSoundCatalog(structuredClone(shipped));
+  expect(sounds.music.moods.menu.length).toBeGreaterThan(0);
+  for (const [id, track] of Object.entries(sounds.music.tracks)) {
+    const served = fileURLToPath(
+      new URL(`../../assets/runtime${musicUrl(id, track)}`, import.meta.url),
+    );
+    expect(existsSync(served), served).toBe(true);
+  }
 });

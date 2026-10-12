@@ -12,7 +12,6 @@ import sys
 import wave
 
 FILTERS = {
-    "music": "anull",
     "weighted-shot": "highpass=f=45,equalizer=f=140:t=o:w=1.2:g=4,equalizer=f=3000:t=o:w=1:g=1.5,acompressor=threshold=0.18:ratio=2.2:attack=5:release=90",
     "heavy-report": "highpass=f=35,equalizer=f=100:t=o:w=1.2:g=4,acompressor=threshold=0.18:ratio=2.2:attack=5:release=90",
     "impact": "highpass=f=60",
@@ -263,10 +262,32 @@ def voice(profile, source, bed, output):
                                "-f", "mp3", "-"], pcm))
     return {"duration_s": round(duration, 3), "loudness_lufs": spec["loudness_lufs"]}
 
+def music(root, catalog, path):
+    """Encode each music track from its pinned source to runtime/audio/music/<track>.<sha8>.mp3."""
+    for name, track in catalog["music"]["tracks"].items():
+        source = catalog["sources"][track["source"]]
+        master = root / source["path"]
+        if not master.is_file() or digest(master.read_bytes()) != source["sha256"]:
+            raise ValueError(f"music {name}: source hash mismatch or missing media (pull Git LFS)")
+        # Mono like the rest of the library; 128 kbps streams without a whole-file decode.
+        # Encoded to a file, not a pipe, so ffmpeg can write the seekable header.
+        folder = root / "assets/runtime/audio/music"
+        folder.mkdir(parents=True, exist_ok=True)
+        encoded = folder / f"{name}.tmp.mp3"
+        ffmpeg(["-y", "-i", str(master), "-ac", "1", "-b:a", "128k", str(encoded)])
+        served = digest(encoded.read_bytes())
+        target = folder / f"{name}.{served[:8]}.mp3"
+        encoded.replace(target)
+        if track["sha256"] != served:
+            (folder / f"{name}.{track['sha256'][:8]}.mp3").unlink(missing_ok=True)
+            # The hash is unique in the file: replace it in place, keeping the catalog's layout.
+            path.write_text(path.read_text().replace(track["sha256"], served))
+        print(f"music: {target.relative_to(root)}")
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=["build", "check", "list", "voice", "voice-profiles"])
+    parser.add_argument("command", choices=["build", "check", "list", "voice", "voice-profiles", "music"])
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[3])
     parser.add_argument("--profile", help="voice: the take's processing profile")
     parser.add_argument("--input", type=Path, help="voice: the raw master")
@@ -283,6 +304,9 @@ def main():
         return
     path = args.root / "fixtures/sounds.json"
     catalog = json.loads(path.read_text())
+    if args.command == "music":
+        music(args.root, catalog, path)
+        return
     if args.command == "list":
         for name, clip in catalog["clips"].items():
             print(f"{name}: {clip['label']} ({clip['role']})")

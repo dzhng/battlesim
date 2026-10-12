@@ -533,24 +533,6 @@
     }
   },
   "clips": {
-    "battlefield2-menu": {
-      "label": "Battlefield 2 menu music",
-      "category": "music",
-      "role": "loop",
-      "source": "battlefield2-menu",
-      "source_rate": 44100,
-      "source_frames": [
-        0,
-        12961792
-      ],
-      "processing": "music",
-      "url": "/audio/clips/battlefield2-menu.wav",
-      "sha256": "b7d3be758425f9e4b5a95134006d41e17f5ad6f08700fe0559eac240c906c92c",
-      "sample_rate": 48000,
-      "frames": 14103273,
-      "loop": true,
-      "notes": "Full supplied track, downmixed through the existing mono preparation pipeline; no tonal filter. Standard 100 ms loop crossfade and peak headroom."
-    },
     "auto-01-1": {
       "label": "Auto 01 \u00b7 report 1",
       "category": "machine-gun",
@@ -4327,16 +4309,6 @@
     }
   },
   "sounds": {
-    "menu_music": {
-      "label": "Menu · Battlefield 2",
-      "clips": [
-        "battlefield2-menu"
-      ],
-      "synth": null,
-      "synth_gain": 0,
-      "gain": 1,
-      "loop": true
-    },
     "rifle": {
       "label": "Synth \u00b7 rifle",
       "clips": [],
@@ -5721,5 +5693,15 @@
     "footstep": "recorded-footstep-boots-gravel-fission9",
     "tracks": "recorded-tracks-craigsmith-tanks-close",
     "rotor": "recorded-rotor-uh60"
+  },
+  "music": {
+    "moods": { "menu": ["battlefield2_menu"], "tension": [], "combat": [] },
+    "tracks": {
+      "battlefield2_menu": {
+        "source": "battlefield2-menu",
+        "sha256": "4d08699d94606aabdf14866fc9db9747346dc66860412aab1c27d377bdef6169",
+        "gain": 0.16
+      }
+    }
   }
 }

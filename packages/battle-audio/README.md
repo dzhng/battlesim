@@ -75,9 +75,8 @@ stopping mid-rumble. Designs keep every source's provenance, as crops do.
 
 Each source row records attribution and rights alongside its pinned bytes.
 User-supplied recordings retain an explicit receipt, including reserved-rights
-material chosen for a personal project. The menu recording uses the same bank
-and preparation path as the rest of the library; music preparation keeps its
-tonal balance and starts playback at the introduction.
+material chosen for a personal project. Music is the exception to this
+preparation: it streams instead (see [Music playback](#music-playback)).
 
 The tool averages stereo channels, keeps the source crop in its original frame
 coordinates, applies the selected tonal profile and fades, and normalizes peak
@@ -146,3 +145,23 @@ and unmuting cannot replay old combat.
 Real document departure closes the page engine and cancels bank preparation.
 A document restored from the browser's back-button cache remains closed and
 requires the app's manual Reload recovery; destroyed handles are never revived.
+
+## Music playback
+
+All music, the menu bed included, streams through the [music player](src/music/musicPlayer.ts):
+a media element feeds the Web Audio graph, so a track is never decoded whole
+into a buffer. It sits outside the voice mixer because offline contexts have no
+media-element source.
+
+The catalog's `music` section maps each mood (`menu`, `tension`, `combat`) to
+track ids. A track names the `sources` record it was encoded from, the hash of
+the served file, and a gain. The served file is
+`assets/runtime/audio/music/<track>.<sha8>.mp3`, a mono 128 kbps encode written
+by the asset tool's `music` command; the hash in the name keeps a re-encoded
+track from meeting a cached one. A track's gain sets its loudness in the mix:
+the menu bed's matches the integrated loudness the old decoded bed had.
+
+Music feeds the same master as the rest of the menu mix, so master volume and
+mute cover it. Inside the player, a level gain carries the player's music
+setting and a separate duck gain dips under voice lines, so neither overwrites
+the other. The `voices` bus carries the voices setting.

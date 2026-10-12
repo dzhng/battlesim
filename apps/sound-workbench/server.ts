@@ -98,7 +98,7 @@ export class SoundWorkbenchStore {
   }
 
   private validate(candidate: unknown, input: Inputs): SoundCatalog {
-    object(candidate, ["sources", "clips", "sounds", "defaults", "impacts", "effects"]);
+    object(candidate, ["sources", "clips", "sounds", "defaults", "impacts", "effects", "music"]);
     let catalog;
     try {
       catalog = this.validateCatalog(candidate);
@@ -110,6 +110,8 @@ export class SoundWorkbenchStore {
       !equal(catalog.clips, input.catalog.clips)
     )
       throw new WorkbenchError("Source and clip metadata are immutable in this editor");
+    if (!equal(catalog.music, input.catalog.music))
+      throw new WorkbenchError("Music is immutable in this editor");
     for (const name of this.baselines)
       if (!equal(catalog.sounds[name], input.catalog.sounds[name]))
         throw new WorkbenchError(`Baseline ${name} is immutable; clone it to a new recipe`);

@@ -100,11 +100,17 @@ export class BattleAudio {
   reset() {
     this.frame?.reset();
   }
-  setVolume(volume: number) {
+  setVolume(volume: number, voices = 1) {
     if (!this.sink) return;
+    const at = this.sink.now();
     this.sink.master.gain.setTargetAtTime(
       this.options.presentation.buses.master * volume,
-      this.sink.now(),
+      at,
+      0.02,
+    );
+    this.sink.buses.voices.gain.setTargetAtTime(
+      this.options.presentation.buses.voices * voices,
+      at,
       0.02,
     );
   }

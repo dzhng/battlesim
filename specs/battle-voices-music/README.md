@@ -22,7 +22,7 @@
 - [ ] 04 — Pilot: `us_tank` with all 29 triggers, a credit and mismatch report, then straight on to the batch. [slice](slices/04-pilot.md)
 - [ ] 05 — Voice design: 3 candidates per voice, the user's pick saved permanently. [slice](slices/05-voice-design.md)
 - [ ] 06 — Full batch and packs: background generation, the user's review, and per-set packs. [slice](slices/06-full-batch.md)
-- [ ] 07 — Music player: the `music` and `voices` buses, streaming, the settings sliders, the `music` catalog section, and moving the menu bed over. [slice](slices/07-music-player.md)
+- [x] 07 — Music player: the `music` and `voices` buses, streaming, the settings sliders, the `music` catalog section, and moving the menu bed over. [slice](slices/07-music-player.md)
 - [ ] 08 — Music tracks: 3 combat and 3 tension tracks, the Music tab, and the mood director. [slice](slices/08-music-tracks.md)
 - [ ] 09 — Chatter: line arbitration, the per-set voice bank, and the 30 s chatter preview. [slice](slices/09-chatter.md)
 - [ ] 10 — Responses in battle: R1–R12. [slice](slices/10-responses.md)

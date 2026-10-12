@@ -125,6 +125,7 @@ function setupDecode(decode: () => Promise<AudioBuffer>) {
     defaults: { default: { near: "pending", far: "pending", gain: 1 } },
     impacts: {},
     effects: {},
+    music: { moods: { menu: [], tension: [], combat: [] }, tracks: {} },
   };
   const app = new AppAudio({
     presentation: game.presentation.audio as unknown as AudioPresentation,
