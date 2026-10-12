@@ -119,9 +119,16 @@ ffmpeg builds.
 [`assets.py voice`](tools/assets.py) is the treatment: where the speaker sits
 decides it (dry in the open, a light radio over the tank's engine, an earpiece for
 recon, an intercom over the rotor). Each take is mixed with its profile's hiss and
-generated bed, normalised by integrated loudness rather than peak, and encoded as
-mono MP3 at about 40 kbps. `assets.py voice-profiles` prints the definitions the tool
-hashes.
+bed, normalised by integrated loudness rather than peak, and encoded as mono MP3 at
+about 40 kbps. `assets.py voice-profiles` prints the definitions the tool hashes.
+
+A bed is the game's own sound for that machine, so a sound has one owner: the
+profile names a clip in [`sounds.json`](../../fixtures/sounds.json) (the intercom's
+rotor is `rotor-uh60`, the loop every helicopter plays) and a filter that places it,
+such as the cockpit's muffling. Only a machine the game has no recording of gets a
+generated bed, a raw master the tool's `beds` command buys once and the lock records;
+the tank's engine is one, since the game synthesises engines. Either way the bed's
+sha256 enters the processing key, so a changed clip or master re-renders its takes.
 
 The [sound frame](src/soundFrame.ts) owns timing, distance and voice allocation.
 Only implicit presentation slots follow shared effect replacements; an explicit

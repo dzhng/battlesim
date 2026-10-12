@@ -275,3 +275,24 @@ test.skipIf(!hasFfmpeg)(
     }
   },
 );
+
+test("every voice bed is the game's own catalog clip or a generated bed still in use", () => {
+  const { profiles } = JSON.parse(
+    spawnSync("python3", [resolve("../packages/battle-audio/tools/assets.py"), "voice-profiles"], {
+      encoding: "utf8",
+    }).stdout,
+  ) as { profiles: Record<string, { bed: { clip?: string; generated?: string } | null }> };
+  const clips = JSON.parse(readFileSync(resolve("../fixtures/sounds.json"), "utf8")).clips;
+  const lock = JSON.parse(readFileSync(resolve("../fixtures/voices.lock.json"), "utf8"));
+  const beds = Object.values(profiles).flatMap((profile) => (profile.bed ? [profile.bed] : []));
+  expect(beds.length).toBeGreaterThan(0);
+  for (const bed of beds) {
+    // Exactly one source: a clip the battle already plays, or a generated raw master.
+    expect(Boolean(bed.clip) !== Boolean(bed.generated)).toBe(true);
+    if (bed.clip) expect(clips[bed.clip]?.url).toMatch(/^\/audio\/clips\//);
+    else expect(lock.beds[bed.generated!]).toBeDefined();
+  }
+  // A generated bed no profile names is a stale master: the lock holds none.
+  const generated = new Set(beds.map((bed) => bed.generated).filter(Boolean));
+  expect(Object.keys(lock.beds).filter((name) => !generated.has(name))).toEqual([]);
+});

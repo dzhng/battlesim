@@ -58,7 +58,14 @@ function catalog(): VoiceCatalog {
 const profiles = (compression = 4): VoiceProfiles => ({
   encoder: { codec: "libmp3lame", bitrate: "40k" },
   profiles: {
-    "voice-radio-light": { bed: { name: "tank_engine", volume: 0.3 }, ratio: compression },
+    "voice-radio-light": {
+      bed: { generated: "tank_engine", filter: "anull", volume: 0.3 },
+      ratio: compression,
+    },
+    "voice-intercom": {
+      bed: { clip: "rotor", filter: "lowpass=f=900", volume: 0.6 },
+      ratio: compression,
+    },
   },
 });
 
@@ -108,11 +115,11 @@ afterEach(() => roots.splice(0).forEach((root) => rmSync(root, { recursive: true
 function workspace() {
   const root = mkdtempSync(join(tmpdir(), "voice-generator-"));
   roots.push(root);
-  // The bed is already generated: a raw master and its lock row.
+  // The game's own rotor loop is a catalog clip; the engine bed is already generated.
+  writeClip(root, "rotor-loop");
   const bed = "assets/source/audio/voices/beds/tank_engine.0102.mp3";
   mkdirSync(dirname(join(root, bed)), { recursive: true });
   writeFileSync(join(root, bed), "engine");
-  mkdirSync(join(root, "fixtures"));
   writeFileSync(
     join(root, "fixtures/voices.lock.json"),
     JSON.stringify({
@@ -127,6 +134,19 @@ function workspace() {
     }),
   );
   return root;
+}
+/** The sound catalog's `rotor` clip and its prepared runtime file. */
+function writeClip(root: string, bytes: string) {
+  const url = "/audio/clips/rotor.wav";
+  mkdirSync(join(root, "assets/runtime/audio/clips"), { recursive: true });
+  writeFileSync(join(root, "assets/runtime", url), bytes);
+  mkdirSync(join(root, "fixtures"), { recursive: true });
+  writeFileSync(
+    join(root, "fixtures/sounds.json"),
+    JSON.stringify({
+      clips: { rotor: { url, sha256: createHash("sha256").update(bytes).digest("hex") } },
+    }),
+  );
 }
 const quiet = () => {};
 function run(
@@ -242,6 +262,44 @@ describe("voice generation", () => {
     await run(root, null, { processor: local.processor, profiles: profiles(6) });
     expect(local.jobs).toHaveLength(4);
     expect(checkVoices({ root, catalog: catalog(), profiles: profiles(6) })).toEqual([]);
+  });
+
+  it("lays a profile's bed from the game's catalog clip, and a changed clip re-renders", async () => {
+    const root = workspace();
+    const heli = catalog();
+    heli.sets.tank.processing = "voice-intercom";
+    await run(root, fakeProxy(), { catalog: heli });
+    const lock = () => readLock(join(root, "fixtures/voices.lock.json"));
+    const take = lock().takes["tank/lead/move/steady/0"];
+    const served = (sha: string) =>
+      readFileSync(
+        join(root, "assets/runtime/audio/voices/tank", `lead-move-steady-0.${sha.slice(0, 8)}.mp3`),
+        "utf8",
+      );
+    // The fake processor writes the bed's length: the clip's ten bytes, not the engine's six.
+    expect(served(take.served_sha256)).toBe("voice-intercom:10:speech:Roger, moving out.");
+
+    writeClip(root, "rotor-loop-retuned");
+    const stale = checkVoices({ root, catalog: heli, profiles: profiles() });
+    expect(stale).toHaveLength(4);
+    expect(stale[0]).toMatch(/older profile/);
+    const again = fakeProxy();
+    await run(root, again, { catalog: heli });
+    expect(again.calls).toEqual([]);
+    expect(served(lock().takes["tank/lead/move/steady/0"].served_sha256)).toBe(
+      "voice-intercom:18:speech:Roger, moving out.",
+    );
+    expect(checkVoices({ root, catalog: heli, profiles: profiles() })).toEqual([]);
+  });
+
+  it("reports a locked bed that no profile uses", async () => {
+    const root = workspace();
+    await run(root, fakeProxy());
+    const unbedded = profiles();
+    unbedded.profiles["voice-radio-light"].bed = null;
+    expect(checkVoices({ root, catalog: catalog(), profiles: unbedded })).toContain(
+      "bed tank_engine: no profile uses it",
+    );
   });
 
   it("stops before sending more characters than the budget", async () => {

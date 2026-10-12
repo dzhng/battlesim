@@ -1,17 +1,5 @@
 {
   "beds": {
-    "helicopter_rotor": {
-      "raw": "assets/source/audio/voices/beds/helicopter_rotor.a8ead498.mp3",
-      "sha256": "a8ead4981f8756309dc82e73f792b05061b18506daf3cccdb1e671a1df499e59",
-      "provenance": {
-        "kind": "Generated",
-        "generator": "ElevenLabs sound effects",
-        "model": "eleven_text_to_sound_v2",
-        "prompt": "Inside a military helicopter cockpit: steady rotor thump and turbine whine, muffled, constant loop",
-        "date": "2026-10-12",
-        "plan": "Duet ElevenLabs"
-      }
-    },
     "tank_engine": {
       "raw": "assets/source/audio/voices/beds/tank_engine.88159717.mp3",
       "sha256": "88159717767116e476da22a74493698f77ca880cfce6db93d146a25ca5cf4b1b",
@@ -83,8 +71,8 @@
       "generation_key": "ecb42539c7c5598788cc7021db1bfe2ce7b4edf7c88099dd8e952cb5668c1892",
       "raw": "assets/source/audio/voices/uk_attack_helicopter_pilot/lead-move-steady-0.ecb42539.mp3",
       "raw_sha256": "949b77af253eaccbd259091452e89b91165749780f8b3f9157ad75ef7eb09e94",
-      "processing_key": "4a184f328cd35361c1e78f8100d20df75ec830469f8e633e6baaee6792e448f4",
-      "served_sha256": "1fd39a4a3500dbb0e23f6e98ee40906136049120b8b9e274b1bd61376d70d7b3",
+      "processing_key": "ef5d774caa21989d97eaa7ec5599762d9ed8096073ea1989d92437395a571c19",
+      "served_sha256": "4ec3284ae7aa0434f004062109ac969ea6d6cd8f2f67ef64601501e20c54c5dc",
       "duration_s": 1.68,
       "transcript": "Roger, inbound to the waypoint",
       "match": {
@@ -109,8 +97,8 @@
       "generation_key": "9f58a78dc82f052f010b0e7994ad93b7ad955bdaf1115ec0140bb764e22643f3",
       "raw": "assets/source/audio/voices/uk_attack_helicopter_pilot/lead-move-stressed-0.9f58a78d.mp3",
       "raw_sha256": "86710496de4d2252ec7d51e70b54257c668178cd226088a83e47d79e912dd2fb",
-      "processing_key": "c93c60fa914dd330346468945fbb7cb683a85220e23d679a5bd7ccca6f2668ff",
-      "served_sha256": "b7e110005dadb4c8fb0f045df360fce73c0af1329b18f137e4b75e3860164d05",
+      "processing_key": "f8b7774622c701fe7513b6a131d54c41e0bbee020da11bf64d19eb641ece4cdf",
+      "served_sha256": "f1728b7a26197766a3ae4b1ae2316c1d6666c8f2d58d0d8930e7ac51514f066a",
       "duration_s": 2.48,
       "transcript": "Moving low and fast",
       "match": {
@@ -187,7 +175,7 @@
       "generation_key": "811f525783dc9afdfb3ef7c8c1663258a2ee92c1ffd88dc5c81b871af83033cd",
       "raw": "assets/source/audio/voices/us_tank_crew/lead-move-steady-0.811f5257.mp3",
       "raw_sha256": "798c604227ae8dda868f1f6ce3d088cac508fc669ebbeb64be88c3e7fff335f4",
-      "processing_key": "d8dbbdac439559974f3a232c1e8b2b88b9b5801a9644ec9c9467dcce5b19943d",
+      "processing_key": "860ec474ff9365b5280432e5a42dc6aaea83c021b2ca14d3c7b8e43df1dbb755",
       "served_sha256": "966e9a972d25d781ab048d881f0367b0e9a67e506da0df5fac3253c36bbd9064",
       "duration_s": 1.12,
       "transcript": "Roger, moving out",
@@ -213,7 +201,7 @@
       "generation_key": "e61579ca5a5a99c1f0c01609a2a4e6455bdd037aa48d018d0c2b293c9f80d903",
       "raw": "assets/source/audio/voices/us_tank_crew/lead-move-stressed-0.e61579ca.mp3",
       "raw_sha256": "52514410b53d9268050392489ee91b40a57c1648c487324b1eb4e24e3bfa38b6",
-      "processing_key": "956e8319af1534814a923cd9084b48bdf170c8bb62132377c140bd2a32a6d137",
+      "processing_key": "eb622c27117c0d4b08e3c6981870c356a6a107fb2176493dd3badca8215a0a47",
       "served_sha256": "cdce84b0c91db2922ebbc453f7cb0a87f3b722b9ac95ff334617a60ae5307921",
       "duration_s": 2.72,
       "transcript": "Driver, go, go, go!",

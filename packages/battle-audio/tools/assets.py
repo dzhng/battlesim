@@ -25,8 +25,10 @@ FILTERS = {
 }
 
 # Generated voice takes: where the speaker sits decides the treatment (choices.md T2).
-# A hiss is noise band-limited like the radio; a bed is a generated ambience, looped
-# under the line. Each take is normalised to its profile's integrated loudness.
+# A hiss is noise band-limited like the radio. A bed is the machine's ambience, looped
+# under the line through its own filter: the game's own sound for that machine (`clip`,
+# a sounds.json clip), or a generated raw master (`generated`, a voices.lock.json bed)
+# where the game has no recording. Each take is normalised to its profile's loudness.
 VOICE_ENCODER = {"codec": "libmp3lame", "bitrate": "40k", "sample_rate": 24000, "channels": 1,
                  "true_peak_db": -1.5}
 VOICE_PROFILES = {
@@ -34,7 +36,8 @@ VOICE_PROFILES = {
     "voice-radio-light": {
         "filter": "highpass=f=250,lowpass=f=3800,acompressor=threshold=0.1:ratio=4:attack=5:release=60:makeup=2",
         "hiss": {"color": "white", "amplitude": 0.015, "highpass": 500, "lowpass": 3000, "weight": 0.3},
-        "bed": {"name": "tank_engine", "volume": 0.3},
+        # The game synthesises its engines; only the track rattle is recorded.
+        "bed": {"generated": "tank_engine", "filter": "anull", "volume": 0.3},
         "loudness_lufs": -16,
     },
     "voice-earpiece": {
@@ -46,7 +49,8 @@ VOICE_PROFILES = {
     "voice-intercom": {
         "filter": "highpass=f=300,lowpass=f=3400,acompressor=threshold=0.1:ratio=6:attack=5:release=60:makeup=3",
         "hiss": {"color": "white", "amplitude": 0.015, "highpass": 500, "lowpass": 3000, "weight": 0.25},
-        "bed": {"name": "helicopter_rotor", "volume": 0.6},
+        # Cockpit-muffled: the rotor heard through the airframe and the headset.
+        "bed": {"clip": "rotor-uh60", "filter": "lowpass=f=900", "volume": 0.6},
         "loudness_lufs": -16,
     },
 }
@@ -238,7 +242,8 @@ def voice(profile, source, bed, output):
         length = float(subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "format=duration",
                                                 "-of", "csv=p=0", str(bed)]))
         args += ["-stream_loop", "-1", "-ss", f"{(seed % 1000) / 1000 * length * 0.9:.3f}", "-i", str(bed)]
-        graph.append(f"[1:a]aformat=channel_layouts=mono,aresample={rate},volume={spec['bed']['volume']}[bed]")
+        graph.append(f"[1:a]aformat=channel_layouts=mono,aresample={rate},"
+                     f"{spec['bed']['filter']},volume={spec['bed']['volume']}[bed]")
         mix.append("[bed]")
         weights.append("1")
     graph.append(f"{''.join(mix)}amix=inputs={len(mix)}:duration=first:normalize=0:weights={' '.join(weights)}[out]")
