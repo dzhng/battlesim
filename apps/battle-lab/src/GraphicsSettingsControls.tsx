@@ -57,7 +57,7 @@ export function GraphicsSettingsControls({
           </button>
         ))}
       </div>
-      <p className="hud-menu-note">Target: 45 FPS · Active: {labels[effective]}</p>
+      <p className="hud-menu-note">Target: 45 FPS average · Active: {labels[effective]}</p>
       <p className="hud-menu-note">
         Auto-detect:{" "}
         {last ? `${labels[last.selectedMode]} · ${Math.round(last.averageFps)} FPS` : "Not run"}

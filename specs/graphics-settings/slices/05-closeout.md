@@ -14,4 +14,4 @@ Before declaring done, run `refactor-clean`, `code-review`, and `write-docs`, th
 
 ## Delegated freedom
 
-The implementing agent may choose report formatting and evidence filenames. It may not waive a failed visual, determinism, fatal-path, or 45/30 performance gate without recording an explicit user decision in the choices ledger.
+The implementing agent may choose report formatting and evidence filenames. It may not waive a failed visual, determinism, fatal-path, or 45 FPS performance gate without recording an explicit user decision in the choices ledger.

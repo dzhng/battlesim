@@ -5,7 +5,7 @@ import {
   type TierBenchmarkInput,
 } from "./graphicsSettings";
 
-export const GRAPHICS_TARGET = { averageFps: 45, onePercentLowFps: 30 } as const;
+export const GRAPHICS_TARGET = { averageFps: 45 } as const;
 
 export function judgeIntervals(intervalsMs: readonly number[], tier: GraphicsTier): TierBenchmarkInput {
   if (intervalsMs.length < 30 || intervalsMs.some((v) => !Number.isFinite(v) || v <= 0))
@@ -25,7 +25,7 @@ export function chooseTier(samples: Partial<Record<GraphicsTier, TierBenchmarkIn
   });
   if ("unusable" in result || !result.mode) {
     throw new Error(
-      `Graphics auto-detect could not meet the ${GRAPHICS_TARGET.averageFps}/${GRAPHICS_TARGET.onePercentLowFps} FPS target on any preset. Reload after closing other GPU-heavy applications.`,
+      `Graphics auto-detect could not meet the ${GRAPHICS_TARGET.averageFps} FPS target on any preset. Reload after closing other GPU-heavy applications.`,
     );
   }
   return result.mode;

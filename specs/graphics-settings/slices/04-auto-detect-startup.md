@@ -2,11 +2,11 @@
 
 ## Contract unlocked
 
-Auto-detect runs a bounded canonical graphics workload on first launch and on explicit rerun, records valid evidence, selects the highest tier meeting 45 average FPS and 30 FPS 1% low, and fails loudly when the required measurement cannot complete.
+Auto-detect runs a bounded canonical graphics workload on first launch and on explicit rerun, records valid evidence, selects the highest tier meeting 45 average FPS, and fails loudly when the required measurement cannot complete.
 
 ## API seam
 
-Reuse the existing graphics-test reel and recording summaries. Add a bounded probe adapter that can run each candidate with warmup excluded, finite frame/sample minimums, timeout/cancellation, adapter identity, viewport, build, profile, and benchmark fingerprint. Timestamp-query GPU data is preferred; RAF frame samples remain required for average/1% low and must be marked display-paced. Never treat missing, failed, cancelled, NaN, or insufficient data as zero.
+Reuse the existing graphics-test reel and recording summaries. Add a bounded probe adapter that can run each candidate with warmup excluded, finite frame/sample minimums, timeout/cancellation, adapter identity, viewport, build, profile, and benchmark fingerprint. Timestamp-query GPU data is preferred; RAF frame samples remain required for average and the reported 1% low, and must be marked display-paced. Never treat missing, failed, cancelled, NaN, or insufficient data as zero.
 
 On first launch, block play behind a progress/error surface until Auto-detect completes. Persist the concrete effective tier and evidence. Rerun is available in Settings. Missing WebGPU, adapter/device failure, device loss, or unusable benchmark is a fatal startup screen with reason and Reload. Fix the current menu-boundary behavior that can otherwise leave a blank backdrop alive after a required resource failure.
 

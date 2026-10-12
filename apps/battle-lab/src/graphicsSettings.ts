@@ -133,14 +133,14 @@ export function resolveEffectiveTier(mode: GraphicsMode, detectedMode: GraphicsT
   return mode === "auto" ? detectedMode ?? "high" : mode;
 }
 
-/** Pick the best tier that meets the RTS target (45 average, 30 one-percent low). */
+/** Pick the best tier that meets the RTS target (45 average FPS). */
 export function resolveAutoDetect(results: AutoDetectResults): AutoDetectResolution {
   for (const mode of [...TIERS].reverse()) {
     const result = results[mode];
     if (!result || !isFiniteFps(result.averageFps) || !isFiniteFps(result.onePercentLowFps)) {
       return { mode: null, result: null, unusable: true };
     }
-    if (result.averageFps >= 45 && result.onePercentLowFps >= 30) return { mode, result };
+    if (result.averageFps >= 45) return { mode, result };
   }
   return { mode: null, result: null, unusable: true };
 }

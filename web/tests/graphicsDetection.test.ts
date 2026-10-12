@@ -10,13 +10,22 @@ describe("graphics auto-detect", () => {
   test("chooses the highest passing tier", () => {
     expect(chooseTier({ high: { averageFps: 44, onePercentLowFps: 40 }, medium: { averageFps: 50, onePercentLowFps: 35 }, low: { averageFps: 60, onePercentLowFps: 50 } })).toBe("medium");
   });
-  test("rejects an adapter that misses the target on every preset", () => {
+  test("rejects an adapter whose average misses the target on every preset", () => {
     expect(() =>
       chooseTier({
         high: { averageFps: 20, onePercentLowFps: 10 },
         medium: { averageFps: 30, onePercentLowFps: 20 },
         low: { averageFps: 40, onePercentLowFps: 25 },
       }),
-    ).toThrow("could not meet the 45/30 FPS target");
+    ).toThrow("could not meet the 45 FPS target");
+  });
+  test("ignores a jagged one-percent low when average FPS meets the target", () => {
+    expect(
+      chooseTier({
+        high: { averageFps: 46, onePercentLowFps: 10 },
+        medium: { averageFps: 55, onePercentLowFps: 10 },
+        low: { averageFps: 60, onePercentLowFps: 10 },
+      }),
+    ).toBe("high");
   });
 });

@@ -12,7 +12,7 @@ Give players one shared Settings surface in the Main Menu and in-game Pause menu
 
 ## Fixed contract
 
-- Auto-detect target: average FPS >= 45 and 1% low FPS >= 30 on the canonical graphics workload.
+- Auto-detect target: average FPS >= 45 on the canonical graphics workload. Frame pacing is reported as evidence but does not reject a tier.
 - Auto-detect selects the highest passing tier. If no tier passes, the run is unusable and startup fails; there is no silent fallback.
 - Missing WebGPU, adapter/device admission failure, device loss during required startup, or unusable auto-detect timing is a fatal startup error with an actionable message and Reload action.
 - Settings persistence is a hard cutover under a new key. Missing, malformed, or unknown data starts Auto-detect. No migration or compatibility shim.
@@ -62,7 +62,7 @@ Every visual slice must run `screenshot-critique` as the last visual check. Wher
 
 ## Choices ledger
 
-- 45 FPS average / 30 FPS 1% low target: user decision.
+- 45 FPS average target: user decision; the user removed the 1% low gate after observing jagged pacing in the renderer.
 - Immediate apply while paused: user decision.
 - Four preset choices only: user decision.
 - Auto-detect on first launch plus manual rerun: user decision.

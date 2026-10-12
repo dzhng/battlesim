@@ -61,7 +61,7 @@ describe("graphics settings persistence", () => {
 });
 
 describe("auto-detect resolver", () => {
-  test("selects the highest tier meeting both thresholds, including edges", async () => {
+  test("selects the highest tier meeting the average threshold, including edges", async () => {
     const { resolveAutoDetect } = await loadStore();
     expect(
       resolveAutoDetect({
@@ -69,7 +69,7 @@ describe("auto-detect resolver", () => {
         medium: { averageFps: 45, onePercentLowFps: 30 },
         high: { averageFps: 45, onePercentLowFps: 29.99 },
       }),
-    ).toEqual({ mode: "medium", result: { averageFps: 45, onePercentLowFps: 30 } });
+    ).toEqual({ mode: "high", result: { averageFps: 45, onePercentLowFps: 29.99 } });
   });
 
   test("returns unusable when results are incomplete or non-finite", async () => {

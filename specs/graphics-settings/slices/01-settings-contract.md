@@ -8,7 +8,7 @@ A browser-owned graphics settings module can load/save exactly four modes, resol
 
 Create one owner module near the battle-lab settings owners. Define `GraphicsMode = "auto" | "low" | "medium" | "high"`, an effective tier type, persisted auto-detect metadata, strict validation, `get/set/subscribe`, and a pure `resolveAutoDetect(results)` function. Use a new localStorage key and treat absent/invalid records as first-launch Auto-detect. Profiles must preserve bloom, cast lights, authored sun/sky, and effect mood; only approved render-cost controls vary. Encode the measured candidate values and conservative grass multipliers as data, not scattered constants.
 
-The resolver accepts complete tier results with finite average FPS and 1% low FPS. It returns the highest passing tier under 45/30 or an unusable result; it must not silently choose a fallback.
+The resolver accepts complete tier results with finite average FPS and 1% low FPS. It returns the highest tier with average FPS at least 45 or an unusable result; the 1% low is retained as evidence but does not gate selection.
 
 ## Human-visible artifact
 
