@@ -9,8 +9,7 @@ import game from "@fixtures/game.json";
 import { MeshBuilder, type Mesh, type Rgba } from "@packages/battle-renderer/src/mesh";
 import type { WorldLayers, WorldMeshes } from "@packages/battle-renderer/src/scene";
 import {
-  bareSource,
-  terrainSurface,
+  bareTerrain,
   type TerrainSurface,
 } from "@packages/battle-renderer/src/terrain/terrainSurface";
 import { gameBiome } from "../gameBiome";
@@ -103,7 +102,7 @@ const NONE = new Float32Array(0);
  *  opaque, so it draws as tinted, not as the biome's patchwork. */
 export function flatTerrain(ground: Mesh): TerrainSurface {
   const h = GROUND_REACH_M;
-  return terrainSurface(ground, bareSource([-h, -h, h, h], 2 * h), gameBiome, null);
+  return bareTerrain(ground, [-h, -h, h, h], 2 * h, gameBiome);
 }
 /** The measured ground, built once; only the figure moves. */
 let _bench_terrain: TerrainSurface | null = null;

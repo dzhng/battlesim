@@ -1,6 +1,7 @@
 //! The `math` package's 2D shape tests (`math/shapes`) the ground was
 //! resolved with, in their own operation order. Polygons are flat
 //! `[x0, y0, x1, y1, …]`.
+use super::{js, CUT_A, CUT_B};
 
 /// `vec2.distance`.
 pub fn distance(a: [f64; 2], b: [f64; 2]) -> f64 {
@@ -97,4 +98,77 @@ fn separated_by_edges_of(a: &[f64], b: &[f64]) -> bool {
 /// `polygon2.overlapConvex`: touching counts.
 pub fn convex_overlap(a: &[f64], b: &[f64]) -> bool {
     !separated_by_edges_of(a, b) && !separated_by_edges_of(b, a)
+}
+
+/// `segment2.closestPoint`: the point of `a`–`b` nearest `p`.
+pub fn closest(p: [f64; 2], a: [f64; 2], b: [f64; 2]) -> [f64; 2] {
+    let (qx, qy) = (b[0] - a[0], b[1] - a[1]);
+    let d = qx * qx + qy * qy;
+    let mut t = qx * (p[0] - a[0]) + qy * (p[1] - a[1]);
+    if d > 0.0 {
+        t /= d;
+    }
+    let t = t.clamp(0.0, 1.0);
+    [a[0] + t * qx, a[1] + t * qy]
+}
+
+/// How far `p` lies inside the stretch `r` (`a, b, half width, kind, cuts`;
+/// negative outside): its half width less the distance to it, and past a
+/// cut end the distance to that square end instead
+/// (`contract::ground::stretch_contains`).
+pub fn stroke_inside(r: &[f32], [x, y]: [f64; 2]) -> f64 {
+    let [ax, ay, bx, by, half] = [r[0], r[1], r[2], r[3], r[4]].map(f64::from);
+    let inside = half - distance([x, y], closest([x, y], [ax, ay], [bx, by]));
+    let cuts = r[6] as u32;
+    if cuts == 0 {
+        return inside;
+    }
+    let (dx, dy) = (bx - ax, by - ay);
+    let length = js::hypot(dx, dy);
+    let along = ((x - ax) * dx + (y - ay) * dy) / length;
+    let cut = |bit: u32, v: f64| {
+        if cuts & bit != 0 {
+            v
+        } else {
+            f64::NEG_INFINITY
+        }
+    };
+    let past = js::max(cut(CUT_A, -along), cut(CUT_B, along - length));
+    if past <= 0.0 {
+        return js::min(inside, -past);
+    }
+    let aside = js::max(((x - ax) * dy - (y - ay) * dx).abs() / length - half, 0.0);
+    -js::hypot(aside, past)
+}
+
+/// `polygon2.containsPoint`: edges and vertices count as inside.
+pub fn polygon_contains(v: &[f64], [x, y]: [f64; 2]) -> bool {
+    let n = v.len() / 2;
+    let mut inside = false;
+    let mut j = n - 1;
+    for i in 0..n {
+        let (xi, yi, xj, yj) = (v[i * 2], v[i * 2 + 1], v[j * 2], v[j * 2 + 1]);
+        let side = (yi - yj) * (x - xi) - (xi - xj) * (y - yi);
+        let before = v[(if j == 0 { n - 1 } else { j - 1 }) * 2 + 1];
+        let crossing = if yj < yi {
+            (y >= yj && y < yi).then_some((side > 0.0, y > before))
+        } else if yi < yj {
+            (y > yi && y <= yj).then_some((side < 0.0, y < before))
+        } else {
+            if y == yi && ((x >= xj && x <= xi) || (x >= xi && x <= xj)) {
+                return true;
+            }
+            None
+        };
+        if let Some((toggles, past_vertex)) = crossing {
+            if side == 0.0 {
+                return true;
+            }
+            if toggles && (y != yj || past_vertex) {
+                inside = !inside;
+            }
+        }
+        j = i;
+    }
+    inside
 }

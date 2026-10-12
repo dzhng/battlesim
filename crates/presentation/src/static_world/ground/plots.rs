@@ -5,7 +5,7 @@
 //! land's), and its plots keep it. The terrain material walks the split tree
 //! per pixel: the nearest cut on the way down is the distance to the plot's
 //! edge, where the verge grows, as sharp up close as from afar.
-use super::biome::{Biome, FieldRules};
+use super::biome::{Biome, FieldRules, PLOT_HUE_JITTER};
 use super::js::{self, Rng};
 use super::shapes::{centroid, segments_cross, signed_area};
 use super::{chunks, is_road, Source, RUN, SURFACE_BOUNDARY, SURFACE_STROKE, SURFACE_TRIANGLE};
@@ -53,8 +53,6 @@ const TRACT_ROAD_SHARE: f64 = 0.7;
 const LAND_ROAD_SHARE: f64 = 0.9;
 /// A road stays a plot's candidate while its box comes this near the plot's.
 const ROAD_BOX_PAD_M: f64 = 1e-3;
-/// A plot's channels vary by this share of `colour_jitter`, under its value's.
-const HUE_JITTER: f64 = 0.4;
 
 /// Keeps the part of convex `poly` where `n·p >= c` (Sutherland–Hodgman).
 fn clip(poly: &[f64], [nx, ny, c]: [f64; 3]) -> Vec<f64> {
@@ -275,7 +273,7 @@ impl Split<'_> {
         let jitter = self.rules.colour_jitter;
         let value = 1.0 + (self.rng.next() * 2.0 - 1.0) * jitter;
         let colour = [0, 1, 2].map(|c| {
-            let hue = 1.0 + (self.rng.next() * 2.0 - 1.0) * jitter * HUE_JITTER;
+            let hue = 1.0 + (self.rng.next() * 2.0 - 1.0) * jitter * PLOT_HUE_JITTER;
             js::min(1.0, js::max(0.0, base[c] * value * hue))
         });
         // Rows run along the plot's longer side.
@@ -473,7 +471,7 @@ pub fn plots(s: &Source, strip_runs: &[f32], biome: &Biome) -> Result<Plots, Str
         surround,
         out,
     };
-    for b in chunks::<2>(&s.buildings) {
+    for b in s.buildings() {
         let b = [b[0] as f64, b[1] as f64];
         split
             .buildings
@@ -522,7 +520,7 @@ impl Plots {
 
 #[cfg(test)]
 mod tests {
-    use super::super::biome::Biome;
+    use super::super::biome::{tests::summer, Biome};
     use super::super::forests::forests;
     use super::super::{forests::strip_runs, Source, AREA_KINDS};
     use super::{plots, Plots, NODE};
@@ -530,16 +528,17 @@ mod tests {
     /// The summer biome with fixed field rules, so seeded agricultural cuts
     /// don't obscure the guides.
     fn biome() -> Biome {
-        let mut b: serde_json::Value =
-            serde_json::from_str(include_str!("../../../../../fixtures/biomes/summer.json"))
-                .unwrap();
-        let rules = &mut b["field_rules"];
-        rules["extent_m"] = 0.into();
-        rules["size_m"] = serde_json::json!([1000, 1000]);
-        rules["tract_m"] = 1000.into();
-        // A strip between two road edges lies along them, however long.
-        rules["max_aspect"] = 50.into();
-        serde_json::from_value(b).unwrap()
+        summer(|b| {
+            let rules = &mut b["field_rules"];
+            rules["extent_m"] = 0.into();
+            rules["size_m"] = serde_json::json!([1000, 1000]);
+            rules["tract_m"] = 1000.into();
+            // A strip between two road edges lies along them, however long.
+            rules["max_aspect"] = 50.into();
+            // The backdrop reaches no farther than the patchwork.
+            b["trees"]["backdrop"]["reach_m"] = 0.into();
+        })
+        .unwrap()
     }
 
     fn empty() -> Source {

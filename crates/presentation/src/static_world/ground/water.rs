@@ -13,7 +13,7 @@ const SURFACE_Z: usize = 10;
 /// How far `(x, y)` lies inside the water's edge of the stretch `r`
 /// (negative outside): the half width at the stretch's closest point, which
 /// runs linearly between its ends, less the distance to that point.
-fn stretch_inside(r: &[f32], x: f64, y: f64) -> f64 {
+pub(super) fn stretch_inside(r: &[f32], x: f64, y: f64) -> f64 {
     let [ax, ay, bx, by, half_a, half_b] = [r[0], r[1], r[2], r[3], r[4], r[5]].map(f64::from);
     let (rx, ry) = (bx - ax, by - ay);
     let length2 = rx * rx + ry * ry;

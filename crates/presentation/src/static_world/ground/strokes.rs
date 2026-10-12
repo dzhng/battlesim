@@ -173,7 +173,7 @@ fn built_runs(stroke: &[f32], rule: &Town, built: &impl Fn(f64, f64) -> bool) ->
 
 #[cfg(test)]
 mod tests {
-    use super::super::biome::Biome;
+    use super::super::biome::{tests::summer, Biome};
     use super::super::{CUT_A, CUT_B, SURFACE_STROKE};
     use super::drawn;
 
@@ -184,19 +184,13 @@ mod tests {
     /// beside it, and across a gap in it of under 40 m; the street's surface
     /// is carried 6 m on under the road's.
     fn as_street() -> Biome {
-        serde_json::from_value(serde_json::json!({
-            "seed": 1, "plots": [], "palettes": {},
-            "field_rules": {
-                "extent_m": 0, "size_m": [1, 1], "min_width_m": 1, "strip_chance": 0,
-                "max_aspect": 1, "orientation_deg": 0, "orientation_jitter_deg": 0, "tract_m": 1,
-                "cut_jitter_deg": 0, "cut_range": [0, 1], "colour_jitter": 0,
-                "settlement_kind": "yard", "yard_m": 1, "settlement_m": 1, "surround_kind": "meadow"
-            },
-            "roads": {
-                "default": { "join_m": 6 },
-                "country_road": { "join_m": 2, "town": { "kind": "road", "beside_m": 5, "gap_m": 40 } }
-            }
-        }))
+        summer(|b| {
+            let mut country = b["roads"]["default"].clone();
+            country["join_m"] = 2.into();
+            country["town"] = serde_json::json!({ "kind": "road", "beside_m": 5, "gap_m": 40 });
+            b["roads"]["country_road"] = country;
+            b["roads"]["road"]["join_m"] = 6.into();
+        })
         .unwrap()
     }
 

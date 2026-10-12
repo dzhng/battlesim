@@ -5,7 +5,7 @@
 //! every client: V8's `cos` and `sin` (glibc's) and `atan2` (fdlibm's)
 //! differ from it in the last bit for a few inputs in a hundred, which moves
 //! a plot's cut by under 1e-12 of its value and no record the GPU reads.
-pub use libm::{atan2, cos, pow, sin};
+pub use libm::{atan2, cos, pow, sin, tan};
 
 /// `Math.hypot(x, y)`: V8 scales by the larger and sums with Kahan's
 /// compensation, which is not `libm::hypot`.

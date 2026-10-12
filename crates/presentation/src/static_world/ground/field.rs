@@ -9,7 +9,8 @@
 //! its reach. `terrain/surfaceField.ts` and the terrain material read it and
 //! own the layout's constants.
 use super::forests::{Forest, Kind};
-use super::shapes::{convex_overlap, triangle_contains};
+use super::shapes::{closest, convex_overlap, distance, stroke_inside, triangle_contains};
+use super::water::stretch_inside;
 use super::{chunks, js, Source, AREA, FOREST_BOUNDARY, FOREST_STROKE, FOREST_TRIANGLE, RIVER};
 use super::{SURFACE_BOUNDARY, SURFACE_STROKE, SURFACE_TRIANGLE};
 use std::collections::HashMap;
@@ -30,7 +31,7 @@ const CELL_WORDS: usize = 3;
 /// The finest cells' side and widest pixel, in metres: the play camera looking
 /// down sees at most about 2.5 m a pixel, so only ground seen edge-on climbs.
 const CELL_M: f64 = 8.0;
-const FOOTPRINT_M: f64 = 2.0;
+pub const FOOTPRINT_M: f64 = 2.0;
 /// A level's cells are at least this many of its footprints a side.
 const CELL_FOOTPRINTS: f64 = 4.0;
 /// The finest level never holds more cells: a larger map doubles its cell.
@@ -329,6 +330,110 @@ pub fn field(
         index,
         grid,
     })
+}
+
+impl Field {
+    /// The cell under `(x, y)` for a pixel `footprint` metres wide: where its
+    /// paved, forest and water lists start, and where the last ends. The
+    /// GPU's `groundCell`, in its f32 arithmetic.
+    fn cell(&self, x: f64, y: f64, footprint: f64) -> [usize; 4] {
+        let [ox, oy, cell, cols, rows, levels, _] = self.grid;
+        let (mut level, mut cap) = (0, FOOTPRINT_M);
+        while footprint > cap && ((level + 1) as f64) < levels {
+            cap *= 2.0;
+            level += 1;
+        }
+        let shift = self.index[level * 2 + 1];
+        let inverse = 1.0 / cell as f32;
+        let at = |v: f64, o: f64, n: f64| {
+            let c = ((v as f32 - o as f32) * inverse).floor() as f64;
+            (js::min(n - 1.0, js::max(0.0, c)) as i32 >> shift) as usize
+        };
+        let (cx, cy) = (at(x, ox, cols), at(y, oy, rows));
+        let across = ((cols as i32 - 1) >> shift) as usize + 1;
+        let header = self.index[level * 2] as usize + (cy * across + cx) * CELL_WORDS;
+        std::array::from_fn(|k| self.index[header + k] as usize)
+    }
+
+    /// The entries of list `rule` at `(x, y)`: record kind, new shape, record.
+    fn list(
+        &self,
+        rule: usize,
+        [x, y, footprint]: [f64; 3],
+    ) -> impl Iterator<Item = (u32, bool, &[f32])> {
+        let c = self.cell(x, y, footprint);
+        self.index[c[rule]..c[rule + 1]].iter().map(|&e| {
+            let at = (e & RECORD_MASK) as usize * FLOATS;
+            (e >> 30, e & NEW_SHAPE != 0, &self.records[at..at + FLOATS])
+        })
+    }
+
+    /// How far `(x, y)` lies inside the paving (negative outside): the
+    /// deepest stroke, or the polygons' union by their exposed boundary.
+    pub fn paved(&self, [x, y, footprint]: [f64; 3]) -> f64 {
+        let (mut paved, mut inside, mut nearest) = (-1e9, false, 1e9);
+        for (kind, _, r) in self.list(PAVED, [x, y, footprint]) {
+            match kind {
+                STROKE => paved = js::max(paved, stroke_inside(r, [x, y])),
+                TRIANGLE => inside = inside || in_triangle(r, [x, y]),
+                _ => nearest = js::min(nearest, edge_distance(r, [x, y])),
+            }
+        }
+        js::max(paved, if inside { nearest } else { -nearest })
+    }
+
+    /// How far `(x, y)` lies inside the deepest forest shape (negative outside).
+    pub fn forest(&self, [x, y, footprint]: [f64; 3]) -> f64 {
+        let (mut forest, mut distance, mut inside, mut nearest) = (-1e9, -1e9, false, 1e9);
+        for (kind, new_shape, r) in self.list(FOREST, [x, y, footprint]) {
+            if new_shape {
+                forest = js::max(
+                    js::max(forest, distance),
+                    if inside { nearest } else { -nearest },
+                );
+                (distance, inside, nearest) = (-1e9, false, 1e9);
+            }
+            match kind {
+                RECT => {
+                    let [x0, y0, x1, y1] = [r[0], r[1], r[2], r[3]].map(f64::from);
+                    forest = js::max(
+                        forest,
+                        js::min(js::min(x - x0, x1 - x), js::min(y - y0, y1 - y)),
+                    );
+                }
+                STROKE => distance = js::max(distance, stroke_inside(r, [x, y])),
+                TRIANGLE => inside = inside || in_triangle(r, [x, y]),
+                _ => nearest = js::min(nearest, edge_distance(r, [x, y])),
+            }
+        }
+        js::max(
+            js::max(forest, distance),
+            if inside { nearest } else { -nearest },
+        )
+    }
+
+    /// How far `(x, y)` lies inside the water's edge (negative outside).
+    pub fn water(&self, [x, y, footprint]: [f64; 3]) -> f64 {
+        self.list(WATER, [x, y, footprint])
+            .fold(-1e9, |bed, (_, _, r)| js::max(bed, stretch_inside(r, x, y)))
+    }
+
+    /// Paved, forest and water distances at `(x, y)` for a pixel `footprint` wide.
+    pub fn distances(&self, at: [f64; 3]) -> [f64; 3] {
+        [self.paved(at), self.forest(at), self.water(at)]
+    }
+}
+
+fn point(r: &[f32], k: usize) -> [f64; 2] {
+    [r[k * 2] as f64, r[k * 2 + 1] as f64]
+}
+
+fn in_triangle(r: &[f32], p: [f64; 2]) -> bool {
+    triangle_contains(point(r, 0), point(r, 1), point(r, 2), p)
+}
+
+fn edge_distance(r: &[f32], p: [f64; 2]) -> f64 {
+    distance(p, closest(p, point(r, 0), point(r, 1)))
 }
 
 /// Each paved triangle's area's slab bearing, within a quarter turn: the

@@ -18,7 +18,10 @@ presentation crate, and no rules, so the main thread never loads the simulation.
 The web manifest's `build:wasm` builds it after `game-wasm`, into
 `web/src/wasm/presentation/`.
 
-It also hands the page the static world [`static-world`](../static-world/) resolves:
-`Ground` is a map's ground shapes (forest shapes, the plot split, the paved strokes
-as drawn, surface fields and water cells) as flat arrays, built once per map from
-`WorldView`'s exports and the regional biome.
+It also hands the page the static world `static_world` resolves: `StaticWorld`
+is the buildings and their walk; `Ground` is a map's ground, built once per map
+from `WorldView`'s exports, the world layout, the biome file and the map's
+region: the terrain's GPU tables, the grass's (from the renderer's facts about
+its blade meshes), the water's cells, and the scenery, the dressing laid a cell
+at a time on request. Its probes (`plots_json`, `distances` and the like) serve
+the ground scenes; no frame reads them.

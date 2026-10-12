@@ -21,7 +21,6 @@ import {
 } from "@web/battle/benchmark/presentationCapture";
 import { GRASS_CELLS, type Lens } from "@web/battle/benchmark/visualPresentation";
 import type { LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
-import type { UploadedTables } from "@packages/battle-renderer/src/frame/wordTables";
 import type { DrawnUnits } from "@web/battle/benchmark/unitManifest";
 import type { DrawnProps } from "@web/battle/benchmark/propManifest";
 import type { EffectsManifest } from "@web/battle/benchmark/effectManifest";
@@ -79,9 +78,6 @@ export interface ReelResult {
   /** The light the battle was built with; null before it was up. */
   light: LightPresentation | null;
   plates: readonly ReelPlate[];
-  /** The ground's, grass's and scenery's tables the first
-   *  plate drew with; null without plates. */
-  tables: UploadedTables | null;
   /** What poses and draws the battle's units, as the first plate drew
    *  them (`describeUnits`); null without plates. */
   units: DrawnUnits | null;
@@ -95,8 +91,8 @@ export interface ReelResult {
 
 /** One complete scene; preparation and inter-scene loading have no frame
  *  samples. With `plates`, each shot's middle frame is read back as a
- *  control plate with its grass, and the frame's tables are exported
- *  (which costs those frames their timing); without, nothing is read back. */
+ *  control plate with its grass and what the frame drew (which costs those
+ *  frames their timing); without, nothing is read back. */
 export function createReelRun(
   scene: BackdropScene,
   tickHz: number,
@@ -127,8 +123,6 @@ export function createReelRun(
   const plated: ReelPlate[] = [];
   let lens: Lens | null = null;
   let light: LightPresentation | null = null;
-  let exportTables: (() => UploadedTables) | null = null;
-  let tables: UploadedTables | null = null;
   let units: DrawnUnits | null = null;
   let props: DrawnProps | null = null;
   let effects: EffectsManifest | null = null;
@@ -161,7 +155,6 @@ export function createReelRun(
       lens,
       light,
       plates: plated,
-      tables,
       units,
       props,
       effects,
@@ -175,7 +168,6 @@ export function createReelRun(
       stats = frame.stats;
       adapter = frame.adapter;
       light = frame.light;
-      exportTables = frame.tables;
     },
     pose(now) {
       const s = sample(now);
@@ -208,7 +200,6 @@ export function createReelRun(
       if (readPlate && plateShot(scene.reel, previousMs / 1000, reelMs / 1000) !== null) {
         plate = plateFile(index);
         const { clumps, ...pictures } = readPlate();
-        tables ??= exportTables?.() ?? null;
         units ??= fielded.describe();
         props ??= propped.describe();
         effects ??= effected.describe();

@@ -353,7 +353,6 @@ export async function createBattleFrame(
         settled: () => targets.settled(),
         fogProbes: world.fog,
         grassProbes: world.grassProbes,
-        uploadedTables: () => world.uploadedTables(),
         drawnInstances: () => ({
           buildings: models.drawnBuildings(),
           scenery: world.drawnScenery(),

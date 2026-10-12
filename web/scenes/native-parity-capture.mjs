@@ -3,16 +3,13 @@
 // For each scene it writes
 //
 //   throwaway/native-parity/<run>/<scene>/{capture.json, manifest.json,
-//     plate-<index>.png, plain-<index>.png,
-//     terrain-<table>.u32, grass-<table>.u32,
-//     scenery-<table>.u32, units-<table>.u32}
+//     plate-<index>.png, plain-<index>.png, units-<table>.u32, props-map.u32}
 //
 // the capture and its frame records, the `native-visual-presentation`
 // manifest (with each plate's grass, building-module, scenery, posed-model
 // and effect counts), the plates read back in their own frames with each
-// frame lit without its grass, and the tables the manifest hashes: the ground's and
-// grass's GPU tables, the scenery's instances, and the units'
-// clip tables.
+// frame lit without its grass, and the units' clip tables the manifest hashes.
+// The ground, grass and scenery travel as the map itself: Rust resolves them.
 // PARITY_SCENES=<map,…> films only those scenes (`?scenes=`). Run it under
 // the GPU lock; it waits on the route's stage, never on a timer.
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
@@ -86,9 +83,8 @@ export async function run(ctx) {
   );
   if (report.outcome.status !== "complete") return;
 
-  // Bytes cross from the page as base64: plates as PNGs, GPU tables as
-  // their words (little-endian, as the page holds them).
-  const { plates, uploaded } = await page.evaluate(async () => {
+  // Plates cross from the page as base64 PNGs.
+  const { plates } = await page.evaluate(async () => {
     const base64 = async (blob) => {
       const data = await new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -98,15 +94,6 @@ export async function run(ctx) {
       });
       return data.slice(data.indexOf(",") + 1);
     };
-    const encode = async (group) =>
-      Object.fromEntries(
-        await Promise.all(
-          Object.entries(group).map(async ([name, { words, layout }]) => [
-            name,
-            { base64: await base64(new Blob([words])), layout },
-          ]),
-        ),
-      );
     const state = window.__graphicsTest;
     return {
       plates: await Promise.all(
@@ -121,14 +108,6 @@ export async function run(ctx) {
           effects,
         })),
       ),
-      uploaded: await Promise.all(
-        state.tables.map(async ({ scene, tables: { terrain, grass, scenery } }) => ({
-          scene,
-          terrain: await encode(terrain),
-          grass: { ...grass, tables: await encode(grass.tables) },
-          scenery: { ...scenery, tables: await encode(scenery.tables) },
-        })),
-      ),
     };
   });
   const runDir = new URL(`${new Date().toISOString().replace(/[:.]/g, "-")}/`, OUT);
@@ -140,25 +119,10 @@ export async function run(ctx) {
     await writeFile(new URL("capture.json", dir), captureJson);
     const mapBytes = await readFile(new URL(`fixtures/maps/${map}/map.json`, ROOT));
     const own = plates.filter((p) => p.scene === map);
-    const tables = uploaded.find((t) => t.scene === map);
-    if (!tables) throw new Error(`${map}: the page exported no GPU tables`);
-    const decode = (group) =>
-      Object.fromEntries(
-        Object.entries(group).map(([name, { base64, layout }]) => {
-          const bytes = Buffer.from(base64, "base64");
-          // A copy: a Buffer's bytes need not start on a word boundary.
-          return [name, { words: new Uint32Array(new Uint8Array(bytes).buffer), layout }];
-        }),
-      );
     const { manifest, artifacts } = await writeVisualPresentation({
       captureJson,
       mapBytes,
       drawn: report.drawnPresentations[i],
-      tables: {
-        terrain: decode(tables.terrain),
-        grass: { ...tables.grass, tables: decode(tables.grass.tables) },
-        scenery: { ...tables.scenery, tables: decode(tables.scenery.tables) },
-      },
       grassCounts: own.map(({ file, cells }) => ({ plate: file, cells })),
       instanceCounts: own.map(({ file, drawn }) => ({ plate: file, ...drawn })),
       modelCounts: own.map(({ file, models }) => ({ plate: file, ...models })),
@@ -192,11 +156,8 @@ export async function run(ctx) {
         sizes.every((s) => s === `${VIEWPORT.width}×${VIEWPORT.height}`),
       `viewport ${viewport.width}×${viewport.height}; plates ${[...new Set(sizes)].join(", ")}`,
     );
-    const heights = parsed.terrain.find((t) => t.name === "heights").layout;
-    const shapes = parsed.grass.tables.find((t) => t.name === "shapes").layout;
     const grown = parsed.grassCounts.map((g) => g.cells.reduce((a, b) => a + b, 0));
     const sum = (list) => list.reduce((a, b) => a + b, 0);
-    const rows = (group, name) => parsed[group].tables.find((t) => t.name === name).layout.count;
     const modules = parsed.instanceCounts.map((c) => sum(c.buildings));
     const known = parsed.instanceCounts.map(
       (c) => c.knownProps.map((p) => `${p.appearance} ${sum(p.levels)}`).join(" + ") || "0",
@@ -211,7 +172,7 @@ export async function run(ctx) {
       `METRIC native-parity-capture ${map} units: ${Object.keys(parsed.units.types).length} unit types, ${Object.keys(parsed.units.appearances).length} appearances, ${parsed.units.tables.length} clip tables; soldiers/vehicles/aircraft/corpses/fading per plate ${posed.join(", ")}`,
     );
     console.log(
-      `METRIC native-parity-capture ${map}: ${frames.length} frames, ${own.length} plates, heights ${heights.nx}×${heights.ny} at ${heights.spacing} m, grass kinds ${parsed.grass.kinds.join(", ")}, ${shapes.count} shape vertices, grass per plate ${grown.join(", ")}; building modules per plate ${modules.join(", ")}; ${["forest", "understorey", "backdrop", "dressing"].map((p) => `${rows("scenery", p)} ${p}`).join(", ")}, forest/understorey/backdrop/dressing per plate ${scenery.join(", ")}; known props per plate ${known.join(", ")} → ${dir.pathname}`,
+      `METRIC native-parity-capture ${map}: ${frames.length} frames, ${own.length} plates, grass per plate ${grown.join(", ")}; building modules per plate ${modules.join(", ")}; forest/understorey/backdrop/dressing per plate ${scenery.join(", ")}; known props per plate ${known.join(", ")} → ${dir.pathname}`,
     );
     const effected = parsed.effectCounts.map(
       (c) => `${sum(Object.values(c.running))}/${sum(Object.values(c.instances))}/${c.lights}`,

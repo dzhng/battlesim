@@ -11,12 +11,11 @@ export async function forestExportAgreement(ctx) {
     const terrainPath = file("packages/battle-renderer/src/frame/terrainMaterial.ts");
     const terrainText = await (await fetch(terrainPath)).text();
     const gpuUrl = terrainText.match(/from ["']([^"']*typegpu[^"']*)["']/)[1];
-    const [{ tgpu, d }, { GpuRegistry }, terrain, field, mesh, rules, biome, wasm, allocations] =
+    const [{ tgpu, d }, { GpuRegistry }, terrain, mesh, rules, biome, wasm, allocations] =
       await Promise.all([
         import(gpuUrl),
         import(file("packages/battle-renderer/src/frame/registry.ts")),
         import(terrainPath),
-        import(file("packages/battle-renderer/src/terrain/surfaceField.ts")),
         import(file("packages/battle-renderer/src/worldMesh.ts")),
         import(file("web/src/battle/catalog/sets.ts")).then((m) => m.catalogSet("test")),
         import(file("fixtures/biomes/summer.json")),
@@ -102,12 +101,13 @@ export async function forestExportAgreement(ctx) {
       ...cases.map((c) => ({ ...c, footprint: 1e9 })),
       ...cases.map((c) => ({ ...c, footprint: 0.1 })),
     ];
-    const reach = terrain.groundReach(biome.default, field.SURFACE_FOOTPRINT_M).forest;
-    let rows;
+    let rows, reach;
     try {
       const exported = mesh.readWorldExports(view);
       const layout = JSON.parse(wasm.world_layout(JSON.stringify(rules.rules)));
       const world = mesh.buildWorldLayers(exported, layout, biome.default, "surface");
+      // How far the play camera's widest exact pixel reads the forest rule.
+      reach = world.terrain.ground.reach(2)[1];
       const source = terrain.createTerrainSource(root, registry);
       source.set(world.terrain);
       const queryLayout = tgpu.bindGroupLayout({

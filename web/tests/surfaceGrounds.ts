@@ -1,13 +1,10 @@
 /** Test-only grounds for the surface field: one that holds every shape the
- *  export has, and one dense enough that an index matters. The unit test
- *  (`surfaceField.test.ts`) and the GPU check (`scenes/_surfaceField.mjs`)
- *  read the same two. */
+ *  export has, and one dense enough that an index matters. The GPU check
+ *  (`scenes/_surfaceField.mjs`) holds the material's lookup to the ground's
+ *  own (`ground::field`) on both. */
 import type { Vec2 } from "math";
 import { mulberry32 } from "math/random";
-import {
-  bareSource,
-  type GroundSource,
-} from "@packages/battle-renderer/src/terrain/terrainSurface.ts";
+import type { WorldExports } from "@packages/battle-renderer/src/worldMesh.ts";
 
 const road = (points: number[][], width_m: number, kind = "road") => ({
   kind,
@@ -177,7 +174,7 @@ function polygonForest(into: Forests, cx: number, cy: number, radius: number, si
 
 /** A town-sized ground: curved roads cut to 2 m segments, polygon and strip
  *  woods, and a winding river whose width swells and narrows. */
-export function denseGround(sizeM: number, roads: number, woods: number): GroundSource {
+export function denseGround(sizeM: number, roads: number, woods: number): Partial<WorldExports> {
   const random = mulberry32.create(7);
   const next = () => mulberry32.sample(random);
   const strokes: number[] = [];
@@ -229,7 +226,6 @@ export function denseGround(sizeM: number, roads: number, woods: number): Ground
     rivers.push(ax, ay, bx, by, halfA, halfB, 0.25, 0.25, 1, 1, -1);
   }
   return {
-    ...bareSource([0, 0, sizeM, sizeM], 4),
     surfaceStrokes: Float32Array.from(strokes),
     // Two rectangle woods besides the polygons and the strip.
     forests: Float32Array.of(1200, 1200, 300, 240, 0, 1350, 1300, 200, 200, 0),

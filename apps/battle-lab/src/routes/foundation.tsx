@@ -6,7 +6,7 @@ import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { MeshBuilder, type Rgba } from "@packages/battle-renderer/src/mesh";
 import type { SceneInstance, WorldLayers } from "@packages/battle-renderer/src/scene";
 import { loadPresentation } from "@web/battle/sim/presentation";
-import { bareSource, terrainSurface } from "@packages/battle-renderer/src/terrain/terrainSurface";
+import { bareTerrain } from "@packages/battle-renderer/src/terrain/terrainSurface";
 import {
   posedPalette,
   type ModelInstance,
@@ -72,11 +72,11 @@ function groundPatch(): WorldLayers {
   const none = new Float32Array(0);
   return {
     // The checker patch is the tint alone: no grass over it.
-    terrain: terrainSurface(
+    terrain: bareTerrain(
       mesh.build(),
-      bareSource([-PATCH_HALF, -PATCH_HALF, PATCH_HALF, PATCH_HALF], CELL),
+      [-PATCH_HALF, -PATCH_HALF, PATCH_HALF, PATCH_HALF],
+      CELL,
       gameBiome,
-      null,
     ),
     props: none,
     water: none,
