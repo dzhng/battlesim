@@ -25,8 +25,11 @@ wherever it runs.
 - [Effects](src/effects/): the effect publication, launches (the one derivation
   the flashes, the firing soldiers and the gunfire sounds read), the effect frame,
   the cast lights it chooses for the view, and cook-offs.
-- [The view](src/view.rs): what the camera means for culling and detail, and
-  the one tier rule every drawn model takes.
+- [The view](src/view.rs): what the camera means for culling and detail, the one
+  tier rule every drawn model takes, and the frame's `View` record with the
+  sky's corner rays.
+- [The light](src/light.rs): the fixture's light resolved into the sky's,
+  bloom's and grade's uniform records, as the browser's sky model resolves it.
 
 ## How a battle looks
 

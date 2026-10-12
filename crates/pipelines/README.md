@@ -15,3 +15,7 @@ through uniforms, so one compiled set serves every map.
 This crate's test holds the export to what `wgpu` accepts: naga parses and
 validates every file, writes it as Metal Shading Language, and finds each
 pipeline's entry points.
+
+A second test holds the uniform records the presentation crate resolves to
+the structs the shaders declare, member by member, so the [native
+client](../../native/client/README.md) uploads their bytes as they are.

@@ -93,8 +93,7 @@ fn transmittance_to_sun(direction: [f64; 3], turbidity: f64) -> [f64; 3] {
     let mie = mie_scale(turbidity) * BETA_MIE_EXTINCTION;
     let r0 = PLANET_RADIUS_KM + EYE_ALTITUDE_KM;
     let mu = direction[2].max(0.0);
-    let top = -r0 * mu
-        + (r0 * r0 * (mu * mu - 1.0) + ATMOSPHERE_TOP_KM * ATMOSPHERE_TOP_KM).sqrt();
+    let top = -r0 * mu + (r0 * r0 * (mu * mu - 1.0) + ATMOSPHERE_TOP_KM * ATMOSPHERE_TOP_KM).sqrt();
     let dt = top / STEPS as f64;
     let mut depth = [0.0; 3];
     for i in 0..STEPS {

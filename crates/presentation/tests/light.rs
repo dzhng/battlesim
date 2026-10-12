@@ -8,7 +8,10 @@ use presentation::view::{Camera, View};
 use serde_json::Value;
 
 fn vectors() -> Value {
-    let at = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/sky-vectors.json");
+    let at = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/fixtures/sky-vectors.json"
+    );
     serde_json::from_str(&std::fs::read_to_string(at).unwrap()).unwrap()
 }
 
@@ -30,7 +33,11 @@ fn the_sky_is_the_browser_s() {
             .iter()
             .filter(|f| !f.name.starts_with("pad"))
             .collect();
-        assert_eq!(fields.len(), case["sky"].as_object().unwrap().len(), "{name}: every field");
+        assert_eq!(
+            fields.len(),
+            case["sky"].as_object().unwrap().len(),
+            "{name}: every field"
+        );
         for field in fields {
             let got = &words[field.offset / 4..field.offset / 4 + field.count];
             let want = floats(&case["sky"][camel(field.name)]);
@@ -63,9 +70,15 @@ fn the_sky_looks_where_the_camera_looks() {
     let centre = unit(at(0.5, 0.5));
     assert!((centre[0] - 1.0).abs() < 1e-6 && centre[1].abs() < 1e-6 && centre[2].abs() < 1e-6);
     let top = unit(at(0.5, 0.0));
-    assert!((top[2].atan2(top[0]) - 0.4).abs() < 1e-6, "half the lens up: {top:?}");
+    assert!(
+        (top[2].atan2(top[0]) - 0.4).abs() < 1e-6,
+        "half the lens up: {top:?}"
+    );
     let right = unit(at(1.0, 0.5));
-    assert!(right[1] < 0.0, "looking along +x, the right is -y: {right:?}");
+    assert!(
+        right[1] < 0.0,
+        "looking along +x, the right is -y: {right:?}"
+    );
 }
 
 fn camel(snake: &str) -> String {

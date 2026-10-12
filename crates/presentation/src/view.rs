@@ -182,8 +182,18 @@ impl View {
         ViewRecord {
             view: self.view,
             projection: self.projection,
-            eye: [self.eye[0] as f32, self.eye[1] as f32, self.eye[2] as f32, 1.0],
-            size: [w as f32, h as f32, (1.0 / h) as f32, self.pixels_per_metre as f32],
+            eye: [
+                self.eye[0] as f32,
+                self.eye[1] as f32,
+                self.eye[2] as f32,
+                1.0,
+            ],
+            size: [
+                w as f32,
+                h as f32,
+                (1.0 / h) as f32,
+                self.pixels_per_metre as f32,
+            ],
             sky_origin: ray(origin),
             sky_dx: ray(std::array::from_fn(|i| across[i] - origin[i])),
             sky_dy: ray(std::array::from_fn(|i| down[i] - origin[i])),
