@@ -25,7 +25,6 @@ import { frameCamera } from "../frameCamera";
 import { battleWorldDepth } from "../worldDepth";
 import type { ResolvedLight } from "../light/sceneLight";
 import type { FogGeometryPresentation } from "./fogInputs";
-import type { FogStyle } from "./fogStyle";
 import { createEnvironmentFrame } from "./environmentFrame";
 import { GpuRegistry } from "./registry";
 import { allocateFrameTargets, SizedTargets } from "./targets";
@@ -55,8 +54,9 @@ export interface BattleFrameOptions {
   light: ResolvedLight;
   /** `presentation.fog_geometry`: the sight lights' resolution and budgets. */
   fogGeometry: FogGeometryPresentation;
-  /** The unseen look to start with (`presentation.fog`'s selected style). */
-  fogStyle: FogStyle;
+  /** The unseen look to start with: `presentation.fog`'s selected style as
+   *  the presentation crate resolves it (a `FogLook` record). */
+  fogLook: Float32Array;
   /** The halo the display-space overlays carry. */
   overlayGlow: OverlayGlowStyle;
   /** How the painted ground marks look. */
@@ -110,7 +110,7 @@ export async function createBattleFrame(
       options.xrayMinHiddenFragmentFraction,
       options.glass,
     );
-    const fogMask = await createFogMaskPass(root, registry, displayFormat, options.fogStyle);
+    const fogMask = await createFogMaskPass(root, registry, displayFormat, options.fogLook);
     const impostors = createImpostorBaker(root, registry, models, environment);
     const overlay = await createOverlayPass(root, registry, displayFormat, options.overlayGlow);
     const effects = await createEffectPass(device, registry, environment.raw);
@@ -308,8 +308,8 @@ export async function createBattleFrame(
           if (!far) throw new Error(`no installed appearance ${appearance}`);
           return impostors.bake(appearance, far.pose, far.bounds, spec);
         },
-        setFogStyle(next) {
-          if (!disposed) fogMask.setStyle(next);
+        setFogLook(next) {
+          if (!disposed) fogMask.setLook(next);
         },
         setCastLightsShown(on) {
           lightsShown = on;

@@ -4,7 +4,11 @@
  * interpolates, poses and makes the effects, and walks the static world;
  * the page hands the frame's views straight to the renderer and reads the
  * UI's facts from them. */
-import init, { Presentation, light_records } from "@wasm/presentation/presentation_wasm.js";
+import init, {
+  Presentation,
+  fog_look,
+  light_records,
+} from "@wasm/presentation/presentation_wasm.js";
 import wasmUrl from "@wasm/presentation/presentation_wasm_bg.wasm?url";
 import {
   APPEARANCE_WORDS,
@@ -20,6 +24,7 @@ import {
   type LightPresentation,
   type ResolvedLight,
 } from "@packages/battle-renderer/src/light/sceneLight";
+import type { FogStyle } from "@packages/battle-renderer/src/frame/fogStyle";
 import type { Articulation } from "@packages/scene-assets/src/articulation";
 import type { HeardPublication } from "@packages/battle-audio/src/soundFrame";
 import {
@@ -68,6 +73,15 @@ export function loadPresentation(): Promise<unknown> {
 export async function resolveLight(settings: LightPresentation): Promise<ResolvedLight> {
   await loadPresentation();
   return resolvedLight(settings, light_records(JSON.stringify(settings)));
+}
+
+/** A `presentation.fog` style checked and resolved by the presentation crate
+ *  (`presentation::fog`) into the `FogLook` record the fog mask passes
+ *  upload as it is; throws naming a field out of range. Needs the module
+ *  loaded, as it is once a frame is built (`resolveLight`). */
+export function resolveFogLook(style: FogStyle): Float32Array {
+  if (!memory) throw new Error("resolveFogLook: the presentation module is not loaded");
+  return fog_look(JSON.stringify(style));
 }
 /** 18b's camera: the eye and what it looks at (m, sim), the screen's up,
  *  the vertical field of view (rad), the near plane (m) and the drawing

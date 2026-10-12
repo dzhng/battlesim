@@ -17,24 +17,19 @@ import {
   validateMapBorder,
   type MapBorderStyle,
 } from "@packages/battle-renderer/src/playAreaOverlay";
-import {
-  selectedFogStyle,
-  validateFogPresentation,
-  type FogPresentation,
-  type FogStyle,
-} from "@packages/battle-renderer/src/frame/fogStyle";
+import type { FogPresentation, FogStyle } from "@packages/battle-renderer/src/frame/fogStyle";
 import { gameHud } from "@web/battle/present/hudTheme";
 
 export const gameFogGeometry: FogGeometryPresentation = validateFogGeometry(
   game.presentation.fog_geometry as unknown as FogGeometryPresentation,
 );
 
-export const gameFogPresentation: FogPresentation = validateFogPresentation(
-  game.presentation.fog as unknown as FogPresentation,
-);
+/** Its named unseen looks, checked by the presentation crate as each is
+ *  resolved (`resolveFogLook`). */
+export const gameFogPresentation = game.presentation.fog as unknown as FogPresentation;
 
 /** The unseen look the fixture selects. */
-export const gameFogStyle: FogStyle = selectedFogStyle(gameFogPresentation);
+export const gameFogStyle: FogStyle = gameFogPresentation.styles[gameFogPresentation.style];
 
 /** Contact glyphs, in the HUD's enemy colour. */
 export const gameContactStyle: ContactGlyphStyle = validateContactGlyphStyle({

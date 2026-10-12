@@ -11,12 +11,9 @@ import { ReadoutLayer } from "@web/battle/present/readouts";
 import { buildContactGlyphs, type ContactShape } from "@packages/battle-renderer/src/contactGlyph";
 import type { FogEye, FogInput } from "@packages/battle-renderer/src/frame/fogInputs";
 import type { FogProbeInput } from "@packages/battle-renderer/src/frame/fogVisibility";
-import {
-  FOG_EDGE_REACH_PX,
-  validateFogStyle,
-  type FogPresentation,
-  type FogStyle,
-} from "@packages/battle-renderer/src/frame/fogStyle";
+import type { FogPresentation, FogStyle } from "@packages/battle-renderer/src/frame/fogStyle";
+import { FOG_EDGE_REACH_PX } from "@packages/battle-renderer/src/records.gen";
+import { resolveFogLook } from "@web/battle/sim/presentation";
 import { concatMeshes } from "@packages/battle-renderer/src/mesh";
 import type { FrameView } from "@packages/battle-renderer/src/scene";
 import type { LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
@@ -143,7 +140,7 @@ function FogLookLab({ scenario }: { scenario: string }) {
   const style = styles[name];
 
   const edit = (next: FogStyle) => {
-    validateFogStyle(next);
+    resolveFogLook(next);
     setStyles((all) => ({ ...all, [name]: next }));
   };
   const block = JSON.stringify({ fog: { style: name, styles } }, null, 2);

@@ -14,7 +14,9 @@ use std::time::{Duration, Instant};
 
 use native_client::bundle::{Library, RUNTIME};
 use native_client::capture::Replay;
+use native_client::effects::{EffectPass, Effects};
 use native_client::environment::Environment;
+use native_client::fog_mask::fog_mask;
 use native_client::frame::{Passes, Targets, DISPLAY_FORMAT};
 use native_client::gpu::{self, Gpu};
 use native_client::models::Models;
@@ -184,6 +186,8 @@ impl Run {
             replay.presentation().world().appearances.len(),
             installed.elapsed().as_secs_f64()
         );
+        let effects = Effects::new(&gpu.device, &gpu.queue, &pipelines, &environment, &targets)?;
+        let (fog_mask, fog_rim) = fog_mask(&gpu.device, &pipelines, &targets, &replay.fog_look);
         std::fs::create_dir_all(&args.out).map_err(|e| e.to_string())?;
         Ok(Self {
             window,
@@ -193,12 +197,16 @@ impl Run {
                 targets,
                 environment,
                 models,
+                effects,
                 passes: vec![
                     Box::new(sky),
                     Box::new(DepthPrepass::new(&pipelines)),
                     Box::new(WorldColour::new(&pipelines)),
+                    Box::new(EffectPass),
+                    Box::new(fog_mask),
                     Box::new(Ghosts::new(&pipelines)),
                     Box::new(post),
+                    Box::new(fog_rim),
                 ],
             },
             replay,
@@ -257,7 +265,17 @@ impl Run {
             self.view = frame.view;
             let (device, queue) = (&self.gpu.device, &self.gpu.queue);
             self.passes.prepare(device, queue, frame, record.target);
-            let counts = frame.counts;
+            let (counts, wrap) = (frame.counts, frame.light_wrap);
+            let presentation = self.replay.presentation();
+            self.passes
+                .prepare_effects(device, queue, presentation, wrap);
+            self.count_mismatches.extend(effect_mismatches(
+                &plate,
+                &self.replay.effect_counts,
+                &counts,
+                presentation.effects(),
+                self.passes.effects.count(),
+            ));
             let drawn = self.passes.models.drawn();
             let want = self
                 .replay
@@ -289,8 +307,10 @@ impl Run {
                 }
             }
             println!(
-                "{plate}: drawn {drawn:?}, culled soldiers {}",
-                counts.culled
+                "{plate}: drawn {drawn:?}, culled soldiers {}, effects {} and {} lights",
+                counts.culled,
+                self.passes.effects.count(),
+                counts.lights
             );
             let encoder = self.passes.encode(device, queue, &self.view);
             let rgba = self.passes.read_display(device, queue, encoder);
@@ -314,12 +334,9 @@ impl Run {
     fn report(&self, args: &Args) {
         println!("plates: {} written to {}", self.plates, args.out.display());
         if self.count_mismatches.is_empty() {
-            println!("model counts: equal to the browser's on every plate");
+            println!("model and effect counts: equal to the browser's on every plate");
         } else {
-            println!(
-                "model counts differ:\n  {}",
-                self.count_mismatches.join("\n  ")
-            );
+            println!("counts differ:\n  {}", self.count_mismatches.join("\n  "));
         }
         let p = &self.presents;
         let mut ms: Vec<f64> = p.intervals.iter().map(|d| d.as_secs_f64() * 1e3).collect();
@@ -340,6 +357,53 @@ impl Run {
             ms.len()
         );
     }
+}
+
+/// Where `plate`'s effects differ from the browser's (`effectCounts`): those
+/// running by kind, the cast lights offered, the instances by shape, and the
+/// instances drawn of those the frame lists.
+fn effect_mismatches(
+    plate: &str,
+    effect_counts: &[serde_json::Value],
+    counts: &presentation::records::Counts,
+    effects: &[presentation::records::Effect],
+    drawn: u32,
+) -> Vec<String> {
+    const KINDS: [&str; 8] = [
+        "tracer", "flash", "impact", "sparks", "blast", "puff", "flame", "trail",
+    ];
+    const SHAPES: [&str; 4] = ["streak", "glow", "flipbook", "rotor"];
+    let Some(want) = effect_counts.iter().find(|c| c["plate"] == plate) else {
+        return vec![format!("{plate}: no effect counts in the manifest")];
+    };
+    let n = |v: &serde_json::Value| v.as_u64().unwrap_or(u64::MAX) as u32;
+    let mut checks: Vec<(String, u32, u32)> = KINDS
+        .iter()
+        .zip(counts.running)
+        .map(|(k, got)| (format!("running {k}"), got, n(&want["running"][k])))
+        .collect();
+    checks.push(("lights".into(), counts.lights, n(&want["lights"])));
+    for (shape, name) in SHAPES.iter().enumerate() {
+        let got = effects
+            .iter()
+            .filter(|e| e.misc[0] as usize == shape)
+            .count() as u32;
+        checks.push((
+            format!("{name} instances"),
+            got,
+            n(&want["instances"][name]),
+        ));
+    }
+    checks.push((
+        "effect instances drawn of those listed".into(),
+        drawn,
+        effects.len() as u32,
+    ));
+    checks
+        .into_iter()
+        .filter(|(_, got, wanted)| got != wanted)
+        .map(|(what, got, wanted)| format!("{plate} {what}: {got} against {wanted}"))
+        .collect()
 }
 
 fn write_png(path: &std::path::Path, size: [u32; 2], rgba: &[u8]) -> Result<(), String> {

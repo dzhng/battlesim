@@ -1,6 +1,7 @@
 //! The world's passes (`frame/worldPass.ts`), in the order `battleFrame`
 //! encodes them: the depth prepass, then the lit colour pass with its fog
-//! mask, then the placement ghosts over both. Today only the model layer
+//! mask, both resolved for the effects and the fog mask passes, then the
+//! placement ghosts over the fogged world. Today only the model layer
 //! draws into them; the ground and the scenery join the same passes.
 use wgpu::*;
 
@@ -63,7 +64,8 @@ impl Pass for DepthPrepass {
 }
 
 /// The lit world over the sky, at the prepass's depth, with the fog mask
-/// beside it; glass last, over everything (`encode`).
+/// beside it; glass last, over everything (`encode`). Both resolve: the lit
+/// world into `lit`, the mask into `fog_mask`.
 pub struct WorldColour {
     surfaces: Vec<(Bound, Surface)>,
 }
@@ -98,8 +100,7 @@ impl Pass for WorldColour {
                 Some(RenderPassColorAttachment {
                     view: &t.hdr_msaa,
                     depth_slice: None,
-                    resolve_target: Some(&t.hdr),
-                    // Kept for the ghosts, which draw over it.
+                    resolve_target: Some(&t.lit),
                     ops: Operations {
                         load: LoadOp::Load,
                         store: StoreOp::Store,
@@ -108,10 +109,10 @@ impl Pass for WorldColour {
                 Some(RenderPassColorAttachment {
                     view: &t.fog_mask_msaa,
                     depth_slice: None,
-                    resolve_target: None,
+                    resolve_target: Some(&t.fog_mask),
                     ops: Operations {
                         load: LoadOp::Clear(Color::TRANSPARENT),
-                        store: StoreOp::Discard,
+                        store: StoreOp::Store,
                     },
                 }),
             ],
@@ -128,7 +129,7 @@ impl Pass for WorldColour {
     }
 }
 
-/// Where the UI's units will stand: translucent, over the finished world,
+/// Where the UI's units will stand: translucent, over the fogged world,
 /// reading its depth and writing none (`encodeGhosts`).
 pub struct Ghosts {
     ghost: Bound,

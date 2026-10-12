@@ -24,9 +24,18 @@ and passes over the [presentation crate](../../crates/presentation/README.md)'s
   each `Frame` batch is one run of instances over one row's tier. A corpse is
   its body posed once by the presentation crate's rest palette; so is a body
   at the impostor tier (its far pose), since impostor cards are not baked yet.
+- **Effects** are the frame's effect instances (`Presentation::effects`),
+  drawn into the resolved lit world over the browser's own flipbook sheets
+  (`assets/third-party/effects`, Git LFS), and the cast lights the
+  presentation chose (`Presentation::lights`) light every lit material and
+  the smoke.
+- **Fog's mask** runs as the browser's does: the world resolves its fog mask
+  beside the lit world, and the mask passes compose the fogged world into
+  post's input and draw the rim after post, in the fixture's unseen look
+  (`presentation::fog` resolves it).
 - **What is bound but not drawn yet** reads as absent in every shader: the
-  sun's cascades (every surface takes the whole sun), the cast lights (none)
-  and fog of war (every surface seen).
+  sun's cascades (every surface takes the whole sun) and fog of war's sight
+  (every surface seen), whose inputs come with the static world.
 
 ## Running a parity scene
 

@@ -1,13 +1,15 @@
 //! The frame: one ordered list of passes, encoded in order each drawn frame
 //! (Bevy 0.19+'s fixed pass order without a render graph; `battleFrame.ts`
 //! is the browser's). Each presentation `Frame` first prepares the layers
-//! (the environment's view, the models' palettes and instances); then each
-//! pass reads the frame's `View`, the sized targets and the layers, and
-//! encodes its work. The list is the whole frame.
-use presentation::presentation::Frame;
+//! (the environment's view and cast lights, the models' palettes and
+//! instances, the effects' instances); then each pass reads the frame's
+//! `View`, the sized targets and the layers, and encodes its work. The list
+//! is the whole frame.
+use presentation::presentation::{Frame, Presentation};
 use presentation::records::View;
 use wgpu::*;
 
+use crate::effects::Effects;
 use crate::environment::Environment;
 use crate::models::Models;
 
@@ -21,19 +23,28 @@ pub const MSAA: u32 = 4;
 pub const DEPTH_FORMAT: TextureFormat = TextureFormat::Depth32Float;
 /// The fog mask the lit passes write beside their colour (`WORLD_OUT`).
 pub const FOG_MASK_FORMAT: TextureFormat = TextureFormat::Rgba8Unorm;
+/// The fog mask passes' distances to each side of the edge.
+pub const FOG_DISTANCE_FORMAT: TextureFormat = TextureFormat::Rg8Unorm;
 
 /// The frame's size-dependent targets.
 pub struct Targets {
     pub size: [u32; 2],
-    /// The world, multisampled, resolved into `hdr`.
+    /// The world, multisampled: resolved into `lit`, then the fogged world
+    /// (and the ghosts over it) resolved into `hdr`.
     pub hdr_msaa: TextureView,
-    /// Post's input.
+    /// The lit world, the effects drawn over it.
+    pub lit: TextureView,
+    /// The world with fog applied: post's input.
     pub hdr: TextureView,
-    /// The world's depth, multisampled.
+    /// The world's depth, multisampled; the effects read it.
     pub depth: TextureView,
-    /// The fog mask, multisampled. Nothing reads it until the fog mask
-    /// passes are built, so it is never resolved.
+    /// The fog mask, multisampled, resolved into `fog_mask`.
     pub fog_mask_msaa: TextureView,
+    pub fog_mask: TextureView,
+    /// The distances to the other side of the fog edge: along rows, then
+    /// the Euclidean result.
+    pub fog_distance_rows: TextureView,
+    pub fog_distance: TextureView,
     /// Post's output: presented, and read back for a plate.
     pub display: TextureView,
     pub display_texture: Texture,
@@ -59,6 +70,7 @@ impl Targets {
         };
         let view = |t: Texture| t.create_view(&Default::default());
         let render = TextureUsages::RENDER_ATTACHMENT;
+        let sampled = render | TextureUsages::TEXTURE_BINDING;
         let display_texture = texture(
             "display",
             DISPLAY_FORMAT,
@@ -68,14 +80,18 @@ impl Targets {
         Self {
             size,
             hdr_msaa: view(texture("hdr-msaa", HDR_FORMAT, MSAA, render)),
-            hdr: view(texture(
-                "hdr",
-                HDR_FORMAT,
-                1,
-                render | TextureUsages::TEXTURE_BINDING,
-            )),
-            depth: view(texture("depth", DEPTH_FORMAT, MSAA, render)),
+            lit: view(texture("lit", HDR_FORMAT, 1, sampled)),
+            hdr: view(texture("hdr", HDR_FORMAT, 1, sampled)),
+            depth: view(texture("depth", DEPTH_FORMAT, MSAA, sampled)),
             fog_mask_msaa: view(texture("fog-mask-msaa", FOG_MASK_FORMAT, MSAA, render)),
+            fog_mask: view(texture("fog-mask", FOG_MASK_FORMAT, 1, sampled)),
+            fog_distance_rows: view(texture(
+                "fog-distance-rows",
+                FOG_DISTANCE_FORMAT,
+                1,
+                sampled,
+            )),
+            fog_distance: view(texture("fog-distance", FOG_DISTANCE_FORMAT, 1, sampled)),
             display: display_texture.create_view(&Default::default()),
             display_texture,
         }
@@ -89,6 +105,7 @@ pub struct Inputs<'a> {
     pub targets: &'a Targets,
     pub environment: &'a Environment,
     pub models: &'a Models,
+    pub effects: &'a Effects,
 }
 
 pub trait Pass {
@@ -101,6 +118,7 @@ pub struct Passes {
     pub targets: Targets,
     pub environment: Environment,
     pub models: Models,
+    pub effects: Effects,
     pub passes: Vec<Box<dyn Pass>>,
 }
 
@@ -110,6 +128,20 @@ impl Passes {
         self.environment
             .prepare(queue, &frame.view, observer, frame.clock as f32);
         self.models.prepare(device, queue, frame);
+    }
+
+    /// Prepares the effects and the cast lights `presentation` made for
+    /// its last frame, whose cast lights reach `light_wrap` round a surface.
+    pub fn prepare_effects(
+        &mut self,
+        device: &Device,
+        queue: &Queue,
+        presentation: &Presentation,
+        light_wrap: f32,
+    ) {
+        self.environment
+            .set_cast_lights(queue, presentation.lights(), light_wrap);
+        self.effects.prepare(device, queue, presentation.effects());
     }
 
     /// Encodes every pass for `view` into the display target.
@@ -123,6 +155,7 @@ impl Passes {
             targets: &self.targets,
             environment: &self.environment,
             models: &self.models,
+            effects: &self.effects,
         };
         for pass in &self.passes {
             encoder.push_debug_group(pass.name());
