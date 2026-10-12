@@ -1,20 +1,11 @@
 // Presentation of the exported authoritative geometry, in layers. The ground
 // is the terrain surface (`terrain/terrainSurface.ts`): the simulation's own
 // triangles under the biome's material. Props are their appearances fitted to
-// their exported boxes (`models/propAppearance.ts`), water is laid along the
-// exported rivers, and forests are the scenery's trees (`scenery/placement.ts`),
-// which draw the simulation's trunks too. Colours are presentation only.
+// their exported boxes, water is laid along the exported rivers, and forests
+// are the scenery's trees, which draw the simulation's trunks too: all three
+// resolved by the scene's presentation (`crates/presentation`). Colours are
+// presentation only.
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
-import {
-  drawnBy,
-  mapProps,
-  PropAppearances,
-  structureBodies,
-  type DrawnBody,
-  type PropAppearance,
-  type StandInStyle,
-} from "./models/propAppearance";
-import type { ModelInstance } from "./models/modelInstances";
 import { grassAppearancesOf } from "./terrain/grassField";
 import { concatMeshes, MeshBuilder, type Mesh, type Rgba } from "./mesh";
 import { skirt_mesh } from "@wasm/presentation/presentation_wasm.js";
@@ -39,15 +30,6 @@ export interface WorldLayout {
   blockingPropKinds: Record<string, string[]>;
   /** The prop kinds that hide what lies behind them from sight. */
   occludingPropKinds: string[];
-  /** The prop kinds something can shove: they move, so a battle draws them
-   *  from what the side knows. */
-  movablePropKinds: string[];
-  /** The prop kinds fire can destroy (the body row's integrity column):
-   *  a battle draws them from what the side knows, so one seen destroyed
-   *  leaves the world. */
-  destroyablePropKinds: string[];
-  /** What draws each prop kind (its catalog `appearance`). */
-  propAppearance: Record<string, PropAppearance>;
   flags: { forest: number; blocked: number };
   propStride: number;
   limbBits: number;
@@ -214,20 +196,6 @@ function fieldReader(fields: string[], stride: number, data: Float32Array) {
   };
 }
 
-/** The prop kinds a battle draws apart from the world, from what the side
- *  knows (`structureBodies`), so a change never rebuilds the whole world:
- *  every kind something can shove, and (`destroyable`) every kind fire can
- *  destroy. Trees stay the scenery's either way. */
-export function apartKinds(layout: WorldLayout, destroyable: boolean): string[] {
-  const kinds = new Set([
-    ...layout.movablePropKinds,
-    ...(destroyable ? layout.destroyablePropKinds : []),
-  ]);
-  // Trees are drawn by the scenery's trees in the surface view; boxes only in
-  // the traversal view, where they show what blocks.
-  return [...kinds].filter((kind) => !drawnBy(layout, kind, "forest"));
-}
-
 /** A prop's traversal colour: how many mover classes it stops. */
 function propTraversal(layout: WorldLayout, kind: string): Rgba {
   const classes = Object.values(layout.blockingPropKinds);
@@ -251,66 +219,27 @@ function addTraversalProps(mesh: MeshBuilder, exports: WorldExports, layout: Wor
   }
 }
 
-/** The static world's props as appearances: every map prop but the trees
- *  and the kinds `apart` leaves to what the side knows, a kind with no art
- *  as its stand-in box where `standIns` gives one, as a prop drawn apart is. */
-export function worldStructures(
-  exports: WorldExports,
-  layout: WorldLayout,
-  apart: readonly string[],
-  appearances: InstalledAppearances,
-  standIns?: StandInStyle,
-): ModelInstance[] {
-  return worldStructureBodies(exports, layout, apart, appearances, standIns).flatMap(
-    (b) => b.models,
-  );
-}
-
-/** `worldStructures` body by body (`structureBodies`). */
-export function worldStructureBodies(
-  exports: WorldExports,
-  layout: WorldLayout,
-  apart: readonly string[],
-  appearances: InstalledAppearances,
-  standIns?: StandInStyle,
-): DrawnBody[] {
-  return structureBodies(
-    mapProps(exports, layout),
-    [],
-    new PropAppearances(appearances, layout, exports.buildings.regionalFamily, standIns),
-    (prop) => !drawnBy(layout, prop.kind, "forest") && !apart.includes(prop.kind),
-  );
-}
-
-/** The static world's layers: the ground under `biome`, and, given the
- *  installed appearances, the props on it as appearances (`worldStructures`),
- *  the scenery and the grass kinds (the surface view; the traversal view
- *  draws the props' boxes instead). `apart` (`apartKinds`) leaves out the
- *  kinds a route draws from what the side knows (`structureBodies`). */
+/** The static world's layers: the ground under `biome` (whose props the
+ *  scene's presentation draws as their appearances in the surface view),
+ *  and, given the installed appearances, the scenery's and the grass's art
+ *  (the surface view; the traversal view draws the props' boxes instead). */
 export function buildWorldLayers(
   exports: WorldExports,
   layout: WorldLayout,
   biome: Biome,
   overlay: WorldOverlay,
-  apart: readonly string[] = [],
   appearances: InstalledAppearances | null = null,
-  standIns?: StandInStyle,
 ): WorldLayers {
   // The skirt: vertical faces down from the map's boundary, so the bounded
   // map reads as solid ground rather than a paper-thin sheet. They stand on
   // the ground, so they draw with the props.
   const props = new MeshBuilder();
   if (overlay === "traversal") addTraversalProps(props, exports, layout);
-  const drawn =
-    overlay === "surface" && appearances
-      ? worldStructures(exports, layout, apart, appearances, standIns)
-      : [];
 
   const terrain = buildTerrainSurface(exports, layout, biome, overlay);
   return {
     terrain,
     props: concatMeshes([skirt_mesh(exports.positions) as Mesh, props.build()]),
-    structures: drawn,
     scenery: overlay === "surface" && appearances ? worldScenery(biome, appearances) : null,
     grass: overlay === "surface" && appearances ? grassAppearancesOf(appearances) : null,
   };

@@ -8,7 +8,7 @@ import { gameLight } from "@apps/battle-lab/src/gameLight";
 import { sunDirection } from "@packages/battle-renderer/src/light/sceneLight";
 import type { DrawnUnits } from "@web/battle/benchmark/unitManifest";
 import type { EffectsManifest } from "@web/battle/benchmark/effectManifest";
-import type { DrawnProps } from "@web/battle/benchmark/propManifest";
+import type { PropsManifest } from "@web/battle/benchmark/propManifest";
 
 const pose = { target: [0, 0] as const, distance: 40, yaw: 0, pitch: 0.2 };
 /** A plated scene's units, as the page describes them (`describeUnits`). */
@@ -21,14 +21,8 @@ const units: DrawnUnits = {
   appearances: {},
   tables: [],
 };
-/** Its props, as the page describes them (`describeProps`). */
-const props: DrawnProps = {
-  detail: { lod_px: [150, 60, 24], impostor_px: 10 },
-  looks: [],
-  map: { base64: "", count: 0 },
-  fit: { kinds: {}, wrecks: {}, standIn: null },
-  buildings: { parts: [], shells: [] },
-};
+/** Its buildings' parts, as the page describes them (`describeBuildings`). */
+const props: PropsManifest = { buildings: { parts: [], shells: [] } };
 /** Its effects, as the page describes them (`describeEffects`). */
 const effects: EffectsManifest = {
   presentation: { smoke: {} },

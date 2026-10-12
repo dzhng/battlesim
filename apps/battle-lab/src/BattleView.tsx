@@ -132,7 +132,6 @@ export function BattleView({
     onDecoded: noteCues,
     replay,
     scripted,
-    destroyable: "apart",
     sound: true,
     inputEnabled: !menuOpen && viewportReady,
   });

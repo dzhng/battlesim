@@ -22,12 +22,7 @@ import {
   type BuildingIndex,
   type PlacedBuildings,
 } from "@packages/battle-renderer/src/models/buildingReferences";
-import { PropAppearances } from "@packages/battle-renderer/src/models/propAppearance";
-import {
-  apartKinds,
-  buildWorldLayers,
-  type PublicBuildings,
-} from "@packages/battle-renderer/src/worldMesh";
+import { buildWorldLayers, type PublicBuildings } from "@packages/battle-renderer/src/worldMesh";
 import { CameraController, type CameraPose } from "@packages/renderer-core/src/cameraController";
 import {
   canonicalSeed,
@@ -215,27 +210,14 @@ function Block({ choice, generated }: { choice: MapChoice; generated: GeneratedT
     () =>
       world &&
       appearances &&
-      buildWorldLayers(
-        world.exports,
-        world.layout,
-        gameBiome,
-        "surface",
-        apartKinds(world.layout, true),
-        appearances,
-      ),
+      buildWorldLayers(world.exports, world.layout, gameBiome, "surface", appearances),
     [world, appearances],
   );
   const worldFeed = useFeed(meshes);
   const modelAppearances = useMemo(
     () =>
       world && appearances && drawn
-        ? mapAppearances(
-            appearances,
-            drawn.props,
-            new PropAppearances(appearances, world.layout, world.exports.buildings.regionalFamily),
-            drawn.index.placed,
-            false,
-          )
+        ? mapAppearances(appearances, world, drawn.index.placed, false)
         : null,
     [world, appearances, drawn],
   );

@@ -6,7 +6,7 @@
 import { expect, test } from "vitest";
 import { mapAppearances, mapKits } from "@apps/battle-lab/src/gameAppearances";
 import type { PlacedBuildings } from "@packages/battle-renderer/src/models/buildingReferences.ts";
-import { PropAppearances } from "@packages/battle-renderer/src/models/propAppearance.ts";
+import { loadPresentation } from "@web/battle/sim/presentation";
 import { bakeCatalog, runtimeCatalogText } from "@packages/scene-assets/src/bake.ts";
 import { AppearanceLibrary, memoryFetch, type Fetch } from "@packages/scene-assets/src/loader.ts";
 import { gzipTransport } from "@packages/scene-assets/src/gzip.ts";
@@ -79,7 +79,19 @@ const placedOf = (...templates: string[]): PlacedBuildings => ({
   owners: Uint32Array.from(templates.keys()),
 });
 
-const LAYOUT = { propAppearance: {}, blockingPropKinds: {}, unitAppearance: {} };
+await loadPresentation();
+
+/** A world with no props: what the models layer installs for it is its kits. */
+const WORLD = {
+  exports: { props: new Float32Array(0), buildings: { regionalFamily: null } },
+  layout: {
+    propKinds: [],
+    propAppearance: {},
+    blockingPropKinds: {},
+    unitKinds: [],
+    unitAppearance: {},
+  },
+} as unknown as Parameters<typeof mapAppearances>[1];
 
 test("the catalog loads with its template library and no kit, each kit named as not fetched", async () => {
   const { loader, fetched, libraryFile } = await served();
@@ -114,13 +126,7 @@ test("a map fetches the kit its buildings' templates draw from, and no other", a
     [YARD_KIT, null],
   ]);
   // What the models layer installs to draw it has the kit.
-  const drawn = mapAppearances(
-    installed,
-    [],
-    new PropAppearances(installed, LAYOUT, null),
-    placedOf(HOUSE.id),
-    false,
-  );
+  const drawn = mapAppearances(installed, WORLD, placedOf(HOUSE.id), false);
   expect([...drawn.appearances.keys()]).toEqual([KIT]);
 });
 
@@ -200,16 +206,15 @@ test("a map whose kit is not installed is refused by name, never drawn without i
   const { loader } = await served();
   const catalog = await loader.load(BASE);
   const house = await loader.withAppearances([KIT]);
-  const fit = new PropAppearances(house, LAYOUT, null);
   // The house's kit is there; the yard's was never asked for.
-  expect(() => mapAppearances(house, [], fit, placedOf(HOUSE.id, YARD.id), false)).toThrow(
+  expect(() => mapAppearances(house, WORLD, placedOf(HOUSE.id, YARD.id), false)).toThrow(
     'kit.missing: kit "city_kit_yard" is not installed',
   );
-  expect(() => mapAppearances(catalog, [], fit, placedOf(HOUSE.id), false)).toThrow(
+  expect(() => mapAppearances(catalog, WORLD, placedOf(HOUSE.id), false)).toThrow(
     'kit.missing: kit "city_kit_test" is not installed',
   );
   // A map with no buildings draws from no kit, so none is missed.
-  expect([...mapAppearances(catalog, [], fit, placedOf(), false).appearances.keys()]).toEqual([]);
+  expect([...mapAppearances(catalog, WORLD, placedOf(), false).appearances.keys()]).toEqual([]);
 });
 
 test("a catalog reload during arrival retries the complete map selection, including previously held kits", async () => {

@@ -39,7 +39,6 @@ import type { GlassStyle } from "../models/surfaceFragments";
 import { createImpostorBaker } from "../models/impostor";
 import { CARD_SPEC } from "../models/impostorCards";
 import type { ModelDetailPresentation } from "../models/modelDetail";
-import { sunShadow } from "./staticChunks";
 import { createDetailView, detailKey, setDetailView } from "./detailView";
 import { FrameHeader } from "../records.gen";
 import { EMPTY_MESH } from "../mesh";
@@ -177,12 +176,6 @@ export async function createBattleFrame(
       let lightWrap = 0;
       let lightsShown = true;
       const detailView = createDetailView();
-      const shadow = { fall: [0, 0] as [number, number], reach: 0 };
-      const sun = {
-        azimuth: options.light.settings.sun_azimuth,
-        elevation: options.light.settings.sun_elevation,
-        maxFarM: effectiveLight.settings.cascades.max_far_m,
-      };
       const rebuild = (width: number, height: number) =>
         targets.ensure(width, height).then(
           () => options.requestRedraw?.(),
@@ -207,7 +200,7 @@ export async function createBattleFrame(
           const detail = setDetailView(detailView, camera3d, height);
           environment.setCastLights(lights, lightsShown ? lightCount : 0, lightWrap);
           world.prepare(camera3d, state.view, state.viewProj, state.rays, width, height);
-          models.prepare(detail, detailKey(camera3d, height), sunShadow(shadow, sun, camera3d));
+          models.prepare(detail, detailKey(camera3d, height));
 
           let encoder = root["~unstable"].createCommandEncoder({ label: "battle-frame" });
           let raw = root.unwrap(encoder);
@@ -249,9 +242,6 @@ export async function createBattleFrame(
         },
         setWorld(next) {
           if (!disposed) world.setWorld(next);
-        },
-        setStructures(next) {
-          if (!disposed) world.setStructures(next);
         },
         setStaticFrame(frame, stats) {
           if (disposed) return false;
@@ -375,7 +365,7 @@ export async function createBattleFrame(
         drawnInstances: () => ({
           buildings: models.drawnBuildings(),
           scenery: world.drawnScenery(),
-          knownProps: models.drawnKnownProps(),
+          props: models.drawnProps(),
         }),
         stats() {
           const t = targets.current;
@@ -388,7 +378,6 @@ export async function createBattleFrame(
             models: models.stats(),
             buildings: models.buildingStats(),
             worldVertices: passes.worldVertices,
-            structures: passes.structures,
             depth: {
               format: GPU_DEPTH_FORMAT,
               clearValue: GPU_DEPTH_CLEAR,

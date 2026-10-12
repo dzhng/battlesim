@@ -31,6 +31,7 @@ use crate::static_world::ground::walk::{
 };
 use crate::static_world::ground::{Ground, Source, Tuning};
 use crate::static_world::library::STATES;
+use crate::static_world::props::{KnownBody, PropArt, PropInput, PropLayout, PropPopulation};
 use crate::static_world::walk::{BuildingPopulation, BuildingWalk};
 use crate::units::articulation::{articulate, rest_locals, track_scroll};
 use crate::units::drawn::{ClipTables, DrawnModels};
@@ -211,6 +212,8 @@ pub struct Presentation {
     ground: Option<Ground>,
     scenery: Option<SceneryWalk>,
     scenery_quality: SceneryQuality,
+    /// The map's props and what the side knows of them (`place_props`).
+    props: Option<PropPopulation>,
     /// The fallen bodies the scenery last read.
     felled_from: Option<Shared<FallenBody>>,
     /// The units' and the buildings' tier thresholds over their authored
@@ -286,6 +289,7 @@ impl Presentation {
             ground: None,
             scenery: None,
             scenery_quality: SceneryQuality::default(),
+            props: None,
             felled_from: None,
             detail_scale: [1.0, 1.0],
             world: World::default(),
@@ -443,6 +447,15 @@ impl Presentation {
                 })
                 .collect();
         }
+        if let Some(props) = &mut self.props {
+            let world = &mut self.world;
+            props.rows = props
+                .looks
+                .list
+                .iter()
+                .map(|(name, state, draws)| world.drawn_row(name, state, NONE, 0, true, *draws))
+                .collect();
+        }
         self.sun = input.cascade_far_m.map(|far_m| Sun {
             azimuth: input.sun_azimuth,
             elevation: input.sun_elevation,
@@ -537,25 +550,22 @@ impl Presentation {
         self.statics.invalidate();
     }
 
-    /// What the side knows of the buildings (`fallen.rs`), from `lab` or
-    /// else the latest publication's known props, derived again only when
-    /// that changed. A building known in a state its template has no rows
-    /// for is refused by name, and nothing changes.
+    /// What the side knows (`fallen.rs`, `props.rs`), from `lab` or else
+    /// the latest publication's known props, taken again only when that
+    /// changed: the props it knows, and the state it knows each building in.
+    /// A building known in a state its template has no rows for is refused
+    /// by name, and the buildings stand as they were.
     fn know(&mut self, lab: Option<&[Known]>) -> Result<(), String> {
-        let Some(buildings) = &mut self.buildings else {
+        if self.buildings.is_none() && self.props.is_none() {
             return Ok(());
-        };
-        let fallen = match lab {
+        }
+        let known: Vec<KnownBody> = match lab {
             Some(known) => {
                 if matches!(&self.known_from, KnownFrom::Lab(last) if last == known) {
                     return Ok(());
                 }
                 self.known_from = KnownFrom::Lab(known.to_vec());
-                self.knowledge.fallen(
-                    known
-                        .iter()
-                        .map(|k| (k.authored_prop, k.kind.as_str(), k.destroyed)),
-                )
+                known.iter().map(KnownBody::lab).collect()
             }
             None => {
                 let group = self.latest.as_ref().map(|o| o.known_props.clone());
@@ -565,12 +575,29 @@ impl Presentation {
                     return Ok(());
                 }
                 self.known_from = KnownFrom::Published(group.clone());
-                group.map_or_else(Vec::new, |g| {
-                    self.knowledge
-                        .fallen(g.iter().map(|k| (k.authored_prop, &*k.kind, k.destroyed)))
-                })
+                group.map_or_else(Vec::new, |g| g.iter().map(KnownBody::published).collect())
             }
         };
+        if let Some(props) = &mut self.props {
+            // A building's part is its building's state to draw.
+            let knowledge = &self.knowledge;
+            let standing = known
+                .iter()
+                .filter(|k| !k.authored.is_some_and(|a| knowledge.is_part(a)))
+                .cloned()
+                .collect();
+            if props.set_known(standing) {
+                self.statics.rewalk();
+            }
+        }
+        let Some(buildings) = &mut self.buildings else {
+            return Ok(());
+        };
+        let fallen = self.knowledge.fallen(
+            known
+                .iter()
+                .map(|k| (k.authored, k.kind.as_str(), k.destroyed)),
+        );
         if fallen == self.fallen {
             return Ok(());
         }
@@ -861,6 +888,7 @@ impl Presentation {
         self.scars.set_reach(ground.scar_reach_m());
         self.ground = Some(ground);
         self.scenery = None;
+        self.props = None;
         self.statics.invalidate();
         Ok(())
     }
@@ -886,6 +914,31 @@ impl Presentation {
         self.scenery = Some(walk);
         self.felled_from = None;
         Ok(())
+    }
+
+    /// Places the map's props (the world's exported `records` under its
+    /// `layout`) drawn from `input`'s art; drawn from the next `load_world`.
+    pub fn place_props(
+        &mut self,
+        records: &[f32],
+        layout: &str,
+        input: PropInput,
+    ) -> Result<(), String> {
+        let layout = PropLayout::parse(layout)?;
+        let props = crate::static_world::props::map_props(records, &layout);
+        self.props = Some(PropPopulation::new(PropArt::new(layout, input)?, props));
+        self.known_from = KnownFrom::Unread;
+        Ok(())
+    }
+
+    /// The props' bodies and models (`PropPopulation::stats`); none without props.
+    pub fn prop_stats(&self) -> Option<[usize; 5]> {
+        self.props.as_ref().map(PropPopulation::stats)
+    }
+
+    /// The props placed (none without them).
+    pub fn props(&self) -> Option<&PropPopulation> {
+        self.props.as_ref()
     }
 
     /// The player's scenery settings (`walk::Quality`).
@@ -969,6 +1022,13 @@ impl Presentation {
         let view = View::new(camera);
         f.view = view.record(camera);
         self.follow_felled(time);
+        // A wreck the cook-off draws moving is left out of the props until
+        // it lies still.
+        if let (Some(props), Some(loaded)) = (&mut self.props, &self.loaded) {
+            if props.set_moving(loaded.cook_offs.moving_props().collect()) {
+                self.statics.rewalk();
+            }
+        }
         let mut scenery = match (&mut self.scenery, &self.ground) {
             (Some(walk), Some(ground)) if !walk.rows.is_empty() => {
                 Some(SceneryPopulation { walk, ground })
@@ -981,6 +1041,9 @@ impl Presentation {
         }
         if let Some(s) = &mut scenery {
             populations.push(s);
+        }
+        if let Some(p) = self.props.as_mut().filter(|p| !p.rows.is_empty()) {
+            populations.push(p);
         }
         let f = &mut self.frame;
         self.statics

@@ -131,7 +131,6 @@ function RiverLab({ battle }: { battle: SavedBattle }) {
       <LabViewport
         fixture="river"
         world={worldFeed}
-        structures={view === "surface" ? session.known.structures : undefined}
         buildings={view === "surface" ? session.known.buildings : undefined}
         overlay={overlayFeed}
         {...session.viewport}

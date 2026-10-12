@@ -375,7 +375,6 @@ export async function run(ctx) {
       trees: stats.scenery.forest.placed,
       trunks: window.__lab.route.propsNear("trunk", 0, 0, Infinity).length,
       streetTrees: window.__lab.route.propsNear("street_tree", 0, 0, Infinity).length,
-      structures: stats.structures,
       bodies: window.__lab.route.structureBodies(),
     };
   });
@@ -396,7 +395,6 @@ export async function run(ctx) {
       // body of repeated modules (a fence, a railing) by several.
       counts.bodies.unmodelled === 0 &&
       counts.bodies.parts === generated.counts.parts &&
-      counts.bodies.sideModels === counts.structures &&
       counts.bodies.bodies - counts.bodies.parts + counts.streetTrees === generated.counts.props &&
       generated.counts.props > 100,
     JSON.stringify({ ...counts, map: generated.counts }),

@@ -19,7 +19,9 @@ import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import { TemplateArtError, templateKits } from "@packages/scene-assets/src/templateLibrary";
 import type { PlacedBuildings } from "@packages/battle-renderer/src/models/buildingReferences";
-import type { MapProp, PropAppearances } from "@packages/battle-renderer/src/models/propAppearance";
+import { propArt } from "@packages/battle-renderer/src/models/propAppearance";
+import type { WorldExports, WorldLayout } from "@packages/battle-renderer/src/worldMesh";
+import { prop_appearances } from "@wasm/presentation/presentation_wasm.js";
 import { appResources } from "./appResources";
 
 const library = new AppearanceLibrary(countedFetch);
@@ -77,8 +79,8 @@ export function useGameAppearances(
 
 /** The kits a map of `placed` buildings draws from: those its templates'
  *  rows place, in every state (`templateKits`). With `standIns`, also the
- *  stand-in kit, whose box a prop with no art of its own is drawn as
- *  (`PropAppearances`). A map with buildings and a catalog
+ *  stand-in kit, whose box a prop with no art of its own is drawn as. A map
+ *  with buildings and a catalog
  *  with no template art for them is refused. */
 export function mapKits(
   catalog: InstalledAppearances,
@@ -124,23 +126,27 @@ export function useMapAppearances(
 }
 
 /**
- * What the models layer installs to draw a map: with `units`, every soldier
+ * What the models layer installs to draw `world`: with `units`, every soldier
  * and vehicle; the appearance each of the map's props takes, and every wreck
- * and heap of rubble a battle can leave (`fit.drawnFor`); and, where the map
- * has buildings (`buildings`), the template art library and the kits those
- * buildings' templates draw from, no other. A kit of those that is not
- * installed refuses the map by name: no building is drawn without its art.
- * Trees, hedgerows and grass are the scenery layer's and the grass pass's,
- * which hold their own buffers.
+ * and heap of rubble a battle can leave (the presentation's
+ * `prop_appearances`); and, where the map has buildings (`buildings`), the
+ * template art library and the kits those buildings' templates draw from, no
+ * other. A kit of those that is not installed refuses the map by name: no
+ * building is drawn without its art. Trees, hedgerows and grass are the
+ * scenery layer's and the grass pass's, which hold their own buffers.
  */
 export function mapAppearances(
   appearances: InstalledAppearances,
-  props: readonly MapProp[],
-  fit: PropAppearances,
+  world: { exports: WorldExports; layout: WorldLayout },
   buildings: PlacedBuildings,
   units: boolean,
 ): InstalledAppearances {
-  const drawn = fit.drawnFor(props.filter((p) => !fit.drawsTree(p.kind)));
+  const art = propArt(appearances, world.exports.buildings.regionalFamily);
+  const drawn = new Set(
+    JSON.parse(
+      prop_appearances(JSON.stringify(world.layout), world.exports.props, art),
+    ) as string[],
+  );
   const kits = mapKits(appearances, buildings);
   for (const kit of kits)
     if (!appearances.appearances.has(kit))

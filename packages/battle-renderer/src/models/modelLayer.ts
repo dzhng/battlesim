@@ -20,7 +20,9 @@
 // The battle's units, corpses, ghosts and cook-off pieces arrive as the
 // presentation frame's batches (`setFrame`), already culled and tiered: each
 // batch is one drawable at one tier, or its impostor card, and draws as one
-// run of the frame's instance records. The statics and a lab's models are
+// run of the frame's instance records. The map's props and what the side
+// knows of them arrive as its static batches (`setStaticFrame`), each held
+// in a buffer of its own until the frame writes it again. A lab's models are
 // chosen here each frame from the camera (`modelDetail.ts`): models off
 // screen are skipped, the rest take a mesh tier by projected height or,
 // below `impostor_px`, their impostor card (`impostorCards.ts`). Draws carry
@@ -38,7 +40,6 @@
 // any static model, with their own record buffers and draw ranges.
 
 import { tgpu, d, std } from "typegpu";
-import { vec3 } from "math";
 import type {
   Bounds,
   Bundle,
@@ -77,7 +78,6 @@ import type { DetailView } from "../frame/detailView";
 import { FOG_CLASSES, FOG_INDEX, UNITS, modelFog, modelSeen, type ModelFog } from "./modelFog";
 import type { GpuRegistry, GpuSlot } from "../frame/registry";
 import { restingModelPose, type ModelInstance, type ModelPose } from "./modelInstances";
-import type { StaticChunks } from "../frame/staticChunks";
 import {
   BATCH_WORDS,
   Batch,
@@ -89,18 +89,10 @@ import {
   NONE,
   type frameViews,
 } from "../records.gen";
-import {
-  CULLED,
-  IMPOSTOR,
-  modelDetail,
-  staticModelChunks,
-  staticsInView,
-  type ModelDetailPresentation,
-} from "./modelDetail";
+import { CULLED, IMPOSTOR, modelDetail, type ModelDetailPresentation } from "./modelDetail";
 import { uploadCardAtlases, type CardGroup } from "./impostorCards";
 import type { ImpostorAtlas } from "./impostor";
 import { createBuildingLayer, type BuildingStats, type BuildingWalkStats } from "./buildingLayer";
-import type { SunShadow } from "../frame/staticChunks";
 
 type Root = ReturnType<typeof tgpu.initFromDevice>;
 
@@ -193,12 +185,19 @@ export interface WorldAppearance {
   state: string;
   lies: number;
   /** The static world's (`Appearance.placed`): its batches are written
-   *  only when they change, the buildings layer's or the scenery's. */
+   *  only when they change, the buildings layer's, the scenery's or the props'. */
   placed: boolean;
   /** What draws it (`Appearance.draws`): 0 a model or a building's kit
-   *  module; the scenery layer's otherwise. */
+   *  module; a prop (`PROP`, `PROP_GROUND`); the scenery layer's otherwise. */
   draws: number;
 }
+
+/** A prop's row (`Appearance.draws`): fogged face by face, or a surface
+ *  movers stand on, which takes the ground paint. */
+const PROP = 7;
+const PROP_GROUND = 8;
+const isProp = (row: WorldAppearance | undefined) =>
+  !!row?.placed && (row.draws === PROP || row.draws === PROP_GROUND);
 
 /** A batch's pass for a placement preview (`Batch.pass`). */
 const GHOST_PASS = 2;
@@ -644,6 +643,16 @@ interface DrawRun {
   instances: number;
 }
 
+/** One of the props' static batches as last written: its records' buffer
+ *  (grown, never shrunk), its row and tier, and how many it holds. */
+interface HeldProps {
+  slot: GpuSlot<GPUBuffer>;
+  capacity: number;
+  row: number;
+  tier: number;
+  count: number;
+}
+
 /** A card draw: a run of records in the per-frame or the corpses' static buffer. */
 interface CardRun {
   fixed: boolean;
@@ -693,9 +702,6 @@ export interface CardAtlas {
   pose: ModelPose;
   atlas: ImpostorAtlas;
 }
-
-/** Where an airframe's shadow lands, as `pack` tests it. */
-const _pack_shadow = vec3.create();
 
 export async function createModelLayer(
   root: Root,
@@ -790,25 +796,12 @@ export async function createModelLayer(
   };
 
   let units: readonly ModelInstance[] = [];
-  /** The static models: `statics` (chunked by ground) less the indices
-   *  `staticHidden` marks, then `staticExtra` (few, visited whole). */
-  let statics: readonly ModelInstance[] = [];
-  let staticExtra: readonly ModelInstance[] = [];
-  /** 1 at each index of `statics` not drawn, sized to it; `hiddenList` the
-   *  marked indices, so the next change clears only those. */
-  let staticHidden = new Uint8Array(0);
-  let hiddenList: readonly number[] = [];
-  /** `statics` bucketed by ground for the appearances they were fitted to,
-   *  rebuilt when either changes (null until a view first needs it). */
-  let staticPop: StaticChunks | null = null;
-  let staticPopFor: readonly ModelInstance[] | null = null;
-  let staticPopAppearances: Map<string, GpuAppearance> | null = null;
-  /** The statics a view visits, in drawing order: indices into `statics`,
-   *  then `statics.length` plus an index into `staticExtra`. */
-  let staticVisit = new Int32Array(64);
-  /** The known props the last pack drew, by appearance: per level, the
-   *  tiers 0–3 and then the impostor card (`IMPOSTOR`). */
-  let knownDrawn = new Map<string, number[]>();
+  /** The props' static batches by key, each its records as the frame last
+   *  wrote them; those the last frame listed, and their runs. */
+  const heldProps = new Map<number, HeldProps>();
+  let listedProps: HeldProps[] = [];
+  const propRuns: { run: DrawRun; buffer: GPUBuffer }[] = [];
+  let propScope: GpuRegistry | null = null;
   /** Something changed since the last pack (models, appearances, a bake). */
   let dirty = true;
   // Grow-once scratch: each unit's choice (bucket, or −1 culled, −2 card).
@@ -1096,7 +1089,7 @@ export async function createModelLayer(
       const drawable = gpu.states.get(module)?.[tier];
       return drawable ? { ...drawable.mesh, parts: drawable.parts, count: drawable.count } : null;
     });
-    dirty = true;
+    relistProps();
     old?.release();
   }
 
@@ -1136,72 +1129,79 @@ export async function createModelLayer(
     return gpu.body[tier] ?? null;
   }
 
-  /** How many statics `view` can draw, listed in `staticVisit`: those of
-   *  `statics` in its chunks (every one with no view) not hidden, then every
-   *  one of `staticExtra`, which `modelDetail` culls one by one. */
-  function visitStatics(view: DetailView | null): number {
-    const all = statics.length + staticExtra.length;
-    if (staticVisit.length < all) staticVisit = new Int32Array(all * 2);
-    let count = 0;
-    if (!view) for (let i = 0; i < statics.length; i++) staticVisit[count++] = i;
-    else count = staticsInChunks(view);
-    if (hiddenList.length) {
-      let kept = 0;
-      for (let k = 0; k < count; k++)
-        if (!staticHidden[staticVisit[k]]) staticVisit[kept++] = staticVisit[k];
-      count = kept;
+  /** The props' runs: each listed batch's drawable at its tier, against
+   *  the meshes installed now. */
+  function relistProps() {
+    propRuns.length = 0;
+    for (const h of listedProps) {
+      const row = worldRows[h.row];
+      const gpu = row && appearances.get(row.name);
+      const drawable = gpu?.states.get(row.state)?.[h.tier];
+      if (!drawable || !h.slot.current || !h.count) continue;
+      propRuns.push({
+        run: {
+          drawable,
+          ghost: false,
+          fog: FOG_INDEX[row.draws === PROP_GROUND ? "paintedFaces" : "faces"],
+          firstInstance: 0,
+          instances: h.count,
+        },
+        buffer: h.slot.current,
+      });
     }
-    for (let j = 0; j < staticExtra.length; j++) staticVisit[count++] = statics.length + j;
-    return count;
+    dirty = true;
   }
 
-  /** `statics` in the chunks `view` meets, into `staticVisit`, in list order. */
-  function staticsInChunks(view: DetailView): number {
-    if (staticPopFor !== statics || staticPopAppearances !== appearances) {
-      staticPop = staticModelChunks(
-        statics.map((inst) => {
-          const gpu = appearances.get(inst.appearance);
-          const grow = inst.scale ? Math.max(inst.scale[0], inst.scale[1], inst.scale[2]) : 1;
-          return {
-            x: inst.x,
-            y: inst.y,
-            z: inst.z,
-            size: (gpu?.size ?? 0) * grow,
-            radius: (gpu?.radius ?? 0) * grow,
-          };
-        }),
-      );
-      staticPopFor = statics;
-      staticPopAppearances = appearances;
+  /** The props' batches of a presentation frame: their records copied
+   *  where the frame wrote them. True when what is drawn changed. */
+  function setProps(frame: ReturnType<typeof frameViews> | null): boolean {
+    let changed = false;
+    const next: HeldProps[] = [];
+    const words = frame?.batches.u32;
+    for (let b = 0; b < (frame?.batches.count ?? 0); b++) {
+      const o = b * BATCH_WORDS;
+      const row = words![o + Batch.appearance];
+      if (!isProp(worldRows[row])) continue;
+      const key = words![o + Batch.key];
+      let h = heldProps.get(key);
+      if (!h) {
+        propScope ??= registry.scope();
+        heldProps.set(key, (h = { slot: propScope.slot(), capacity: 0, row, tier: 0, count: 0 }));
+      }
+      const [first, count] = [words![o + Batch.first], words![o + Batch.count]];
+      [h.row, h.tier, h.count] = [row, words![o + Batch.tier], count];
+      if (first !== NONE) {
+        if (h.capacity < count) {
+          h.capacity = Math.max(64, count * 2);
+          h.slot.set(buffer("model-prop-records", h.capacity * RECORD_FLOATS * 4, VERTEX_USAGE));
+        }
+        const records = frame!.instances.f32.subarray(
+          first * RECORD_FLOATS,
+          (first + count) * RECORD_FLOATS,
+        );
+        device.queue.writeBuffer(h.slot.current!, 0, records as Float32Array<ArrayBuffer>);
+        changed = true;
+      }
+      next.push(h);
     }
-    return staticsInView(staticPop!, view, staticVisit);
+    if (next.length !== listedProps.length) changed = true;
+    listedProps = next;
+    if (changed) relistProps();
+    return changed;
   }
 
-  /** Choose, sort and upload the statics' and a lab's models' draws. With
-   *  `view` null every model draws at its own tier (0 unless given) and
-   *  nothing is culled. The presentation frame's runs are `setFrame`'s. */
+  /** Choose, sort and upload a lab's models' draws. With `view` null every
+   *  model draws at its own tier (0 unless given) and nothing is culled.
+   *  The presentation frame's runs are `setFrame`'s, the props' `setProps`'. */
   function pack(view: DetailView | null) {
     hasXrayMeshes = frameXray;
-    const unitCount = units.length;
-    const total = unitCount + visitStatics(view);
-    /** The i-th model: the units, then the statics the view visits. */
-    const staticAt = (k: number) =>
-      k < statics.length ? statics[k] : staticExtra[k - statics.length];
-    const modelAt = (i: number) =>
-      i < unitCount ? units[i] : staticAt(staticVisit[i - unitCount]);
+    const total = units.length;
+    const modelAt = (i: number) => units[i];
     if (unitChoice.length < total) unitChoice = new Int32Array(total * 2);
     const buckets = drawables.length * DRAW_CLASSES;
     bucketCount.fill(0, 0, buckets);
     let culled = 0;
     let unitCards = 0;
-    knownDrawn = new Map();
-    /** A known prop (one of `staticExtra`) drawn at `level`. */
-    const tallyKnown = (i: number, inst: ModelInstance, level: number) => {
-      if (i < unitCount || staticVisit[i - unitCount] < statics.length) return;
-      let levels = knownDrawn.get(inst.appearance);
-      if (!levels) knownDrawn.set(inst.appearance, (levels = [0, 0, 0, 0, 0]));
-      levels[level]++;
-    };
 
     // A mesh bucket, a card, or nothing.
     for (let i = 0; i < total; i++) {
@@ -1245,12 +1245,10 @@ export async function createModelLayer(
       if (tier === IMPOSTOR) {
         unitChoice[i] = -2;
         unitCards++;
-        tallyKnown(i, inst, IMPOSTOR);
         continue;
       }
       const drawable = drawableOf(gpu, inst.pose, tier);
       if (!drawable) continue;
-      tallyKnown(i, inst, tier);
       const bucket =
         drawable.id * DRAW_CLASSES + fogClassOf(inst.pose) + (inst.ghost ? FOG_CLASSES : 0);
       unitChoice[i] = bucket;
@@ -1366,9 +1364,15 @@ export async function createModelLayer(
         0,
         card * RECORD_FLOATS * 4,
       );
-    stats.instances = drawn + frameStats.instances;
+    let props = 0;
+    for (const { run } of propRuns) {
+      props += run.instances;
+      triangles += (run.instances * run.drawable.count) / 3;
+      stats.tiers[run.drawable.tier] += run.instances;
+    }
+    stats.instances = drawn + props + frameStats.instances;
     stats.triangles = triangles;
-    stats.draws = runCount + frameRunCount + cardRunCount;
+    stats.draws = runCount + propRuns.length + frameRunCount + cardRunCount;
     stats.paletteMatrices = cursor > 1 ? cursor : frameStats.palette;
     stats.skinned = frameStats.skinned;
     stats.cards = card;
@@ -1494,6 +1498,13 @@ export async function createModelLayer(
 
   /** The drawables the frame's batches name, by `World.appearances` row. */
   function setWorld(world: readonly WorldAppearance[]) {
+    if (world !== worldRows) {
+      propScope?.release();
+      propScope = null;
+      heldProps.clear();
+      listedProps = [];
+      propRuns.length = 0;
+    }
     worldRows = world;
     buildings.setWorld(world);
     dirty = true;
@@ -1546,14 +1557,12 @@ export async function createModelLayer(
 
   let viewKey = "";
   /** The detail view the last frame packed at (null, exact, before any frame). */
-  /** Where the sun's shadows fall, metres across the ground per metre of
-   *  height, as the last frame was prepared. */
-  const shadowFall: [number, number] = [0, 0];
 
-  /** Every mesh run with the record buffer it draws from: the packed
-   *  statics' and lab models', then the presentation frame's. */
+  /** Every mesh run with the record buffer it draws from: the packed lab
+   *  models', the props', then the presentation frame's. */
   function eachRun(visit: (run: DrawRun, source: GPUBuffer) => void) {
     if (records.current) for (let i = 0; i < runCount; i++) visit(runs[i], records.current);
+    for (const { run, buffer } of propRuns) visit(run, buffer);
     if (frameRecords.current)
       for (let i = 0; i < frameRunCount; i++) visit(frameRuns[i], frameRecords.current);
   }
@@ -1598,24 +1607,6 @@ export async function createModelLayer(
       units = list;
       dirty = true;
     },
-    /** The static props to draw (the map's, and what the side knows stands):
-     *  `list` less the indices `hidden` (ascending) names, then `extra`. Keep
-     *  `list` the same array while only `hidden` and `extra` change: it is
-     *  bucketed by ground once, and a change then costs what it hides and adds. */
-    setStatics(
-      list: readonly ModelInstance[],
-      hidden: readonly number[] = [],
-      extra: readonly ModelInstance[] = [],
-    ) {
-      if (list !== statics || staticHidden.length !== list.length)
-        staticHidden = new Uint8Array(list.length);
-      else for (const i of hiddenList) staticHidden[i] = 0;
-      for (const i of hidden) staticHidden[i] = 1;
-      statics = list;
-      hiddenList = hidden;
-      staticExtra = extra;
-      dirty = true;
-    },
     setFrame,
     setWorld,
     /** Whether the packed unit mesh draws contain an eligible x-ray subject. */
@@ -1629,10 +1620,11 @@ export async function createModelLayer(
     get models(): readonly ModelInstance[] {
       return units;
     },
-    /** The static world's batches of the presentation frame
-     *  (`buildingLayer.ts`); whether what is drawn changed. */
+    /** The static world's batches of the presentation frame: the buildings'
+     *  (`buildingLayer.ts`) and the props'; whether what is drawn changed. */
     setStaticFrame(frame: ReturnType<typeof frameViews> | null, stats: BuildingWalkStats): boolean {
-      return buildings.setFrame(frame, stats);
+      const props = setProps(frame);
+      return buildings.setFrame(frame, stats) || props;
     },
     setBuildingsShown(on: boolean) {
       buildings.setShown(on);
@@ -1642,11 +1634,8 @@ export async function createModelLayer(
     setSurfaceShown(surface: SurfaceClass, on: boolean) {
       hiddenSurfaces[surface] = !on;
     },
-    /** Choose this frame's draws for the camera (`view`, with where the sun's
-     *  shadows fall for it), when anything changed. */
-    prepare(view: DetailView, key: string, shadow: SunShadow) {
-      shadowFall[0] = shadow.fall[0];
-      shadowFall[1] = shadow.fall[1];
+    /** Choose a lab's models' draws for the camera (`view`), when anything changed. */
+    prepare(view: DetailView, key: string) {
       if (!dirty && key === viewKey) return;
       viewKey = key;
       dirty = false;
@@ -1656,22 +1645,15 @@ export async function createModelLayer(
      *  an offline draw (the impostor bake); the next `prepare` packs again. */
     packExact(list: readonly ModelInstance[]) {
       const kept = units;
-      const keptStatics = statics;
-      const keptExtra = staticExtra;
-      const keptHidden = hiddenList;
       const keptRuns = frameRunCount;
       const keptCards = frameCardCount;
+      const keptProps = propRuns.splice(0);
       units = list;
-      statics = [];
-      staticExtra = [];
-      hiddenList = [];
       [frameRunCount, frameCardCount] = [0, 0];
       pack(null);
       units = kept;
-      statics = keptStatics;
-      staticExtra = keptExtra;
-      hiddenList = keptHidden;
       [frameRunCount, frameCardCount] = [keptRuns, keptCards];
+      propRuns.push(...keptProps);
       dirty = true;
     },
     /** An installed appearance's bundle, or null. */
@@ -1802,12 +1784,21 @@ export async function createModelLayer(
     /** The buildings as tables for a second client, and the module instances
      *  the last view drew (`buildingLayer.ts`). */
     drawnBuildings: () => buildings.drawn(),
-    /** The known props (wrecks, shoved bodies, rubble) the last pack drew,
-     *  by appearance in name order, each per tier 0–3 then as a card. */
-    drawnKnownProps: () =>
-      [...knownDrawn]
+    /** The props the last frame drew, by appearance in name order, each per
+     *  tier 0–3. */
+    drawnProps: () => {
+      const drawn = new Map<string, number[]>();
+      for (const h of listedProps) {
+        const name = worldRows[h.row]?.name;
+        if (!name) continue;
+        let levels = drawn.get(name);
+        if (!levels) drawn.set(name, (levels = [0, 0, 0, 0]));
+        levels[h.tier] += h.count;
+      }
+      return [...drawn]
         .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-        .map(([appearance, levels]) => ({ appearance, levels: [...levels] })),
+        .map(([appearance, levels]) => ({ appearance, levels }));
+    },
     stats: (): ModelStats => ({
       ...stats,
       appearanceTextureBytes: { ...stats.appearanceTextureBytes },
@@ -1816,6 +1807,7 @@ export async function createModelLayer(
       bodyTiers: [...stats.bodyTiers],
     }),
     dispose() {
+      propScope?.release();
       buildings.dispose();
       cardScope?.release();
       scope?.release();

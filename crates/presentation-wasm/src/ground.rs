@@ -214,6 +214,49 @@ impl Presentation {
         self.inner.place_scenery(sizes, trunks).map_err(error)
     }
 
+    /// Places the ground's props, drawn from `art` (JSON, `PropInput`: the
+    /// installed appearances a prop may be drawn as, each with its footprint,
+    /// paints and size; each vehicle appearance's wreck; the stand-in's box
+    /// and tints; the map's regional family; the models' tiers) under the
+    /// world `layout`; drawn from the next `load_world`.
+    pub fn place_props(&mut self, layout: &str, art: &str) -> Result<(), JsError> {
+        let input = serde_json::from_str(art).map_err(|e| json(format!("props: {e}")))?;
+        let records = ground(&self.inner)?.source.props.clone();
+        self.inner
+            .place_props(&records, layout, input)
+            .map_err(error)
+    }
+
+    /// The props' bodies drawn, those a building draws, those no model
+    /// draws, the models placed and those drawing what the side knows;
+    /// empty without props.
+    pub fn prop_stats(&self) -> Vec<u32> {
+        self.inner
+            .prop_stats()
+            .map_or_else(Vec::new, |s| s.iter().map(|&n| n as u32).collect())
+    }
+
+    /// Every prop model placed (JSON): its appearance, state, position, yaw
+    /// and scale.
+    pub fn prop_models(&self) -> String {
+        let models: Vec<_> = self
+            .inner
+            .props()
+            .into_iter()
+            .flat_map(|p| p.models())
+            .map(|((name, state, _), r)| {
+                serde_json::json!({
+                    "appearance": name,
+                    "state": state,
+                    "position": [r[0], r[1], r[2]],
+                    "yaw": r[3],
+                    "scale": [r[12], r[13], r[14]],
+                })
+            })
+            .collect();
+        serde_json::to_string(&models).unwrap()
+    }
+
     /// The player's scenery settings: the trees' tier thresholds over the
     /// biome's, and whether the forest floor's dressing and the tree lines'
     /// shrubs draw.
@@ -506,4 +549,15 @@ pub fn grass_frame_params(
         metres_per_px,
         &window,
     );
+}
+
+/// The appearances drawing a map's props (its exported `props` under the
+/// world `layout`) from `art` (`Presentation.place_props`) could need, as a
+/// JSON list of names: what the models layer installs for them.
+#[wasm_bindgen]
+pub fn prop_appearances(layout: &str, props: &[f32], art: &str) -> Result<String, JsError> {
+    let input = serde_json::from_str(art).map_err(|e| json(format!("props: {e}")))?;
+    let names =
+        presentation::static_world::props::appearances(props, layout, input).map_err(error)?;
+    Ok(serde_json::to_string(&names).unwrap())
 }

@@ -94,14 +94,7 @@ function GeometryLab({ id, readMap }: { id: string; readMap: () => MapDefinition
 
   const meshes = useMemo(() => {
     if (!world || !appearances) return null;
-    const built = buildWorldLayers(
-      world.exports,
-      world.layout,
-      gameBiome,
-      overlay,
-      [],
-      appearances,
-    );
+    const built = buildWorldLayers(world.exports, world.layout, gameBiome, overlay, appearances);
     return showTrees ? built : { ...built, scenery: null };
   }, [world, overlay, showTrees, appearances]);
   const worldFeed = useFeed(meshes);

@@ -507,7 +507,7 @@ function BallisticsLab({ map }: { map: MapDefinition }) {
     () =>
       world &&
       appearances &&
-      buildWorldLayers(world.exports, world.layout, gameBiome, "surface", [], appearances),
+      buildWorldLayers(world.exports, world.layout, gameBiome, "surface", appearances),
     [world, appearances],
   );
   const worldFeed = useFeed(meshes);

@@ -4,7 +4,9 @@
 // own family's looks beside its kits, no other family's.
 import { expect, test } from "vitest";
 import { mapDownloads } from "@apps/battle-lab/src/gameAppearances";
-import { PropAppearances } from "@packages/battle-renderer/src/models/propAppearance.ts";
+import { propArt } from "@packages/battle-renderer/src/models/propAppearance.ts";
+import { loadPresentation } from "@web/battle/sim/presentation";
+import { prop_appearances } from "@wasm/presentation/presentation_wasm.js";
 import { bakeCatalog, runtimeCatalogText } from "@packages/scene-assets/src/bake.ts";
 import { gzipTransport } from "@packages/scene-assets/src/gzip.ts";
 import { AppearanceLibrary, memoryFetch, type Fetch } from "@packages/scene-assets/src/loader.ts";
@@ -109,27 +111,22 @@ test("a map of one family fetches its family's looks and no other family's", asy
   expect(fetched).toEqual([file("crate_paris")]);
   expect(paris.appearances.get("crate_paris")?.regionalFamily).toBe("paris");
   expect(paris.appearances.has("crate_ny")).toBe(false);
-  // What it fetched is what its props draw.
-  const layout = {
+  // What it fetched is what its props draw: a crate on the map, 10 m by 8 by 6.
+  await loadPresentation();
+  const layout = JSON.stringify({
+    propKinds: ["crate"],
     propAppearance: { crate: { drawn_by: "crate" } },
     blockingPropKinds: {},
+    unitKinds: [],
     unitAppearance: {},
-  };
-  const box = {
-    kind: "crate",
-    center: [0, 0] as const,
-    yaw: 0,
-    half: [5, 4, 3] as const,
-    baseZ: 0,
-  };
-  expect(
-    new PropAppearances(paris, layout, "paris").choose({ kind: "crate", half: box.half })?.name,
-  ).toBe("crate_paris");
+  });
+  const crate = Float32Array.of(1, 0, 0, 0, 0, 0, 5, 4, 3, 0, -1);
+  const drawn = (installed: typeof paris, family: string | null) =>
+    JSON.parse(prop_appearances(layout, crate, propArt(installed, family))) as string[];
+  expect(drawn(paris, "paris")).toEqual(["crate_paris"]);
   // A map of no family fetches no regional look, and draws the shared one.
   fetched.length = 0;
   const none = await loader.withAppearances(mapDownloads(catalog, NO_BUILDINGS, null));
   expect(fetched).toEqual([]);
-  expect(
-    new PropAppearances(none, layout, null).choose({ kind: "crate", half: box.half })?.name,
-  ).toBe("crate");
+  expect(drawn(none, null)).toEqual(["crate"]);
 });

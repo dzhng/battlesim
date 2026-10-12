@@ -643,3 +643,18 @@ The spec said phase 3 would be planned with the user. Under the implementation g
 | Felled trees come from the publication's fallen bodies inside Rust. The cleared ground is still handed in (`set_cleared`) | The lab can hide the learned ground (`scarsSuppressed`), and a scene with no battle has none; reading `learned()` directly would lose both | Agent |
 | `set_ground` sets the scars' reach itself, and the page's `set_scar_reach` is deleted. Rust keeps it for native's own ground | The reach is the ground's fact; native has not moved its ground onto `Presentation` yet | Agent |
 | The felled angle is accepted at one ulp from the TS on 51 of 1,422 trees | The step 3 `libm` decision; it is invisible on screen | Agent |
+
+### Slice 20b: the static world in Rust, step 5 (the props)
+
+| Decision | Why | Closed by |
+| --- | --- | --- |
+| The props' fit, the side's knowledge of them and their walk are Rust's (`static_world::props`), a third `Population` through `StaticBatches`, view pass only. The page draws each batch as a run of the models layer, in the passes the props were drawn in before (units' prepass, fog class, cascades a tier coarser) | One writer for everything static; the props' depth stays out of the world prepass, so the ground paint and the units' x-ray see what they saw | Agent |
+| One rule for every scene: a side draws the map's props less those it knows replaced, plus what it knows. The "apart" split (movable and destroyable kinds drawn from knowledge, the rest as the world) and the sessions' `destroyable` option are gone | In a battle the two lists drew the same picture; the split only made the labs without a side (city block, line-up, camera) leave cars, fences and walls out, which they now draw | Agent |
+| A known body's paint is seeded by the authored prop it is, not its published id | The rule the TypeScript stated ("a shoved car keeps its colour") and its tests held; in a battle it seeded by the known prop's own id, so a shoved car changed colour | Agent |
+| The props take the units' tier thresholds as authored (`presentation.models`), not the player's unit detail scale | As the TypeScript drew them | Agent |
+| A wreck the cook-off draws moving is read from the cook-offs at each frame, not at each publication | The presentation owns both; the page's copy lagged a publication | Agent |
+| `ui.known`, a lab's stand-in for the publication's known props, carries a prop's id and box; a stand-in without a box stands buildings only | The props and the buildings read one knowledge, as in a battle | Agent |
+| The page reports the art (`propArt`: footprint, paints, region, size and reach per installed appearance; each vehicle's wreck; the stand-in) and Rust fits; `prop_appearances` names what the models layer installs | Rust holds no bundle; the page installs only what the frame can name | Agent |
+| The props are bucketed in 64 m chunks, each the box of its models' tested spheres, as the TypeScript did; a list is written when it changes | Market-town's 54,000 models walk every camera move; the chunks make a close view cost its neighbourhood | Agent |
+| The manifest's `props` keeps only `buildings`; the map's prop table and the fit's tables are deleted, and plates count props per tier | Native runs the presentation crate and reads nothing else of them | Agent |
+| The static chunk owner (`frame/staticChunks.ts`) is deleted with its last population, and the models layer's unused sun-shadow input with it | Nothing walks chunks in TypeScript any more | Agent |

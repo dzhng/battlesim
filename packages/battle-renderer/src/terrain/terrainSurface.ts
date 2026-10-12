@@ -25,6 +25,8 @@ export interface GroundInput {
   layout: string;
   biome: Biome;
   family: string | null;
+  /** Whether the map's props draw as their appearances (the surface view). */
+  props?: boolean;
 }
 
 /** The ground a scene's presentation resolved: the calls the terrain
@@ -145,6 +147,7 @@ export function buildTerrainSurface(
     layout: JSON.stringify(layout),
     biome,
     family: exports.buildings.regionalFamily,
+    props: overlay === "surface",
   };
   // The traversal overlay shows the blocked flag alone; a water tint would
   // muddy it. The water's look is the terrain material's (`waterSurface`).

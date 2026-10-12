@@ -14,12 +14,7 @@ import {
   type EffectCount,
   type EffectsManifest,
 } from "./effectManifest.ts";
-import {
-  propArtifacts,
-  validateProps,
-  type DrawnProps,
-  type PropsManifest,
-} from "./propManifest.ts";
+import { validateProps, type PropsManifest } from "./propManifest.ts";
 import {
   isModelCount,
   unitArtifacts,
@@ -76,15 +71,13 @@ export interface DrawnPresentation {
   omissions: readonly Omission[];
   /** What poses and draws the battle's units (`unitManifest.ts`). */
   units: DrawnUnits;
-  /** What draws the side's props and fallen buildings (`propManifest.ts`). */
-  props: DrawnProps;
+  /** What stands the side's fallen buildings (`propManifest.ts`). */
+  props: PropsManifest;
   /** What turns the side's publications into combat effects (`effectManifest.ts`). */
   effects: EffectsManifest;
 }
 
-export interface VisualPresentation extends Omit<DrawnPresentation, "units" | "props"> {
-  /** The props, the map's fitted models in their own file (`PROP_TABLE_FILE`). */
-  props: PropsManifest;
+export interface VisualPresentation extends Omit<DrawnPresentation, "units"> {
   /** The units, their clip tables each in its own file (`unitTableFile`). */
   units: UnitsManifest;
   schema: "native-visual-presentation";
@@ -126,11 +119,10 @@ export interface GrassCount {
 export const TIERS = 4;
 
 /** What a plate's frame drew of the buildings, the scenery and the props
- *  its side knows (`BattleFrame.drawnInstances`): per kit module the
- *  buildings' walk draws and tier, `module · TIERS + tier`; per population,
- *  scenery appearance (the ground's `scenery_kinds`) and tier likewise; the
- *  stumps per appearance alone; the known props per appearance, at each tier
- *  and then as a card. */
+ *  (`BattleFrame.drawnInstances`): per kit module the buildings' walk draws
+ *  and tier, `module · TIERS + tier`; per population, scenery appearance (the
+ *  ground's `scenery_kinds`) and tier likewise; the stumps per appearance
+ *  alone; the props per appearance, at each tier. */
 export interface InstanceCount extends DrawnInstances {
   plate: string;
 }
@@ -182,18 +174,18 @@ const distinct = (values: readonly unknown[]) =>
 /** Whether `value` counts what a plate drew of the kit modules and scenery
  *  appearances (a count per module or appearance and tier). */
 function isInstanceCount(value: unknown): boolean {
-  if (!hasKeys(value, ["plate", "buildings", "scenery", "knownProps"]) || !text(value.plate))
+  if (!hasKeys(value, ["plate", "buildings", "scenery", "props"]) || !text(value.plate))
     return false;
-  const { scenery, knownProps } = value;
+  const { scenery, props } = value;
   return (
-    Array.isArray(knownProps) &&
-    knownProps.every(
+    Array.isArray(props) &&
+    props.every(
       (p) =>
         hasKeys(p, ["appearance", "levels"]) &&
         text(p.appearance) &&
-        numbers(p.levels, TIERS + 1, count),
+        numbers(p.levels, TIERS, count),
     ) &&
-    distinct(knownProps.map((p) => p.appearance)) &&
+    distinct(props.map((p) => p.appearance)) &&
     Array.isArray(value.buildings) &&
     value.buildings.length % TIERS === 0 &&
     value.buildings.every(count) &&
@@ -279,7 +271,7 @@ export function validateVisualPresentation(value: unknown): VisualPresentation {
     !distinct(instances.map((row) => row.plate))
   )
     throw new Error(
-      "visual presentation instance counts need one row per plate, a count per kit module and tier, per scenery population, appearance and tier, and per known prop appearance and level",
+      "visual presentation instance counts need one row per plate, a count per kit module and tier, per scenery population, appearance and tier, and per prop appearance and tier",
     );
   validateUnits(value.units);
   validateProps(value.props);
@@ -357,7 +349,6 @@ export async function writeVisualPresentation({
       );
   }
   const units = await unitArtifacts(drawn.units, sha256);
-  const props = await propArtifacts(drawn.props, sha256);
   const { scene, map, encounter, seed } = capture.workload;
   const manifest: VisualPresentation = {
     schema: "native-visual-presentation",
@@ -377,13 +368,13 @@ export async function writeVisualPresentation({
     grassCounts: plates.map((plate) => grassCounts.find((g) => g.plate === plate)!),
     instanceCounts: plates.map((plate) => instanceCounts.find((g) => g.plate === plate)!),
     units: units.units,
-    props: props.props,
+    props: drawn.props,
     modelCounts: plates.map((plate) => modelCounts.find((g) => g.plate === plate)!),
     effects: drawn.effects,
     effectCounts: plates.map((plate) => effectCounts.find((g) => g.plate === plate)!),
   };
   return {
     manifest: JSON.stringify(validateVisualPresentation(manifest)),
-    artifacts: [...props.artifacts, ...units.artifacts],
+    artifacts: units.artifacts,
   };
 }

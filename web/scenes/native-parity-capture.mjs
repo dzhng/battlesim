@@ -3,7 +3,7 @@
 // For each scene it writes
 //
 //   throwaway/native-parity/<run>/<scene>/{capture.json, manifest.json,
-//     plate-<index>.png, plain-<index>.png, units-<table>.u32, props-map.u32}
+//     plate-<index>.png, plain-<index>.png, units-<table>.u32}
 //
 // the capture and its frame records, the `native-visual-presentation`
 // manifest (with each plate's grass, building-module, scenery, posed-model
@@ -159,9 +159,7 @@ export async function run(ctx) {
     const grown = parsed.grassCounts.map((g) => g.cells.reduce((a, b) => a + b, 0));
     const sum = (list) => list.reduce((a, b) => a + b, 0);
     const modules = parsed.instanceCounts.map((c) => sum(c.buildings));
-    const known = parsed.instanceCounts.map(
-      (c) => c.knownProps.map((p) => `${p.appearance} ${sum(p.levels)}`).join(" + ") || "0",
-    );
+    const props = parsed.instanceCounts.map((c) => sum(c.props.map((p) => sum(p.levels))));
     const scenery = parsed.instanceCounts.map((c) =>
       ["forest", "understorey", "backdrop", "dressing"].map((p) => sum(c.scenery[p])).join("/"),
     );
@@ -172,7 +170,7 @@ export async function run(ctx) {
       `METRIC native-parity-capture ${map} units: ${Object.keys(parsed.units.types).length} unit types, ${Object.keys(parsed.units.appearances).length} appearances, ${parsed.units.tables.length} clip tables; soldiers/vehicles/aircraft/corpses/fading per plate ${posed.join(", ")}`,
     );
     console.log(
-      `METRIC native-parity-capture ${map}: ${frames.length} frames, ${own.length} plates, grass per plate ${grown.join(", ")}; building modules per plate ${modules.join(", ")}; forest/understorey/backdrop/dressing per plate ${scenery.join(", ")}; known props per plate ${known.join(", ")} → ${dir.pathname}`,
+      `METRIC native-parity-capture ${map}: ${frames.length} frames, ${own.length} plates, grass per plate ${grown.join(", ")}; building modules per plate ${modules.join(", ")}; forest/understorey/backdrop/dressing per plate ${scenery.join(", ")}; props per plate ${props.join(", ")} → ${dir.pathname}`,
     );
     const effected = parsed.effectCounts.map(
       (c) => `${sum(Object.values(c.running))}/${sum(Object.values(c.instances))}/${c.lights}`,

@@ -22,7 +22,7 @@ import {
 import { GRASS_CELLS, type Lens } from "@web/battle/benchmark/visualPresentation";
 import type { LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
 import type { DrawnUnits } from "@web/battle/benchmark/unitManifest";
-import type { DrawnProps } from "@web/battle/benchmark/propManifest";
+import type { PropsManifest } from "@web/battle/benchmark/propManifest";
 import type { EffectsManifest } from "@web/battle/benchmark/effectManifest";
 
 /** A control plate: the frame it names read back (`FramePlate`) with what it
@@ -81,9 +81,9 @@ export interface ReelResult {
   /** What poses and draws the battle's units, as the first plate drew
    *  them (`describeUnits`); null without plates. */
   units: DrawnUnits | null;
-  /** What draws the side's props and fallen buildings, as the first plate
-   *  drew them (`describeProps`); null without plates. */
-  props: DrawnProps | null;
+  /** What stands the side's fallen buildings, as the first plate drew them
+   *  (`describeBuildings`); null without plates. */
+  props: PropsManifest | null;
   /** What turns the side's publications into effects, as the first plate
    *  drew them (`describeEffects`); null without plates. */
   effects: EffectsManifest | null;
@@ -112,8 +112,8 @@ export function createReelRun(
   const subject = { unitAt: (_id: number): ArrayLike<number> | null => null };
   /** The battle's units described for a second client; the page sets it. */
   const fielded = { describe: (): DrawnUnits | null => null };
-  /** The side's props described for a second client; the page sets it. */
-  const propped = { describe: (): DrawnProps | null => null };
+  /** The side's buildings described for a second client; the page sets it. */
+  const propped = { describe: (): PropsManifest | null => null };
   /** The battle's effects described for a second client; the page sets it. */
   const effected = { describe: (): EffectsManifest | null => null };
   let lastSubject: readonly number[] = [0, 0];
@@ -124,7 +124,7 @@ export function createReelRun(
   let lens: Lens | null = null;
   let light: LightPresentation | null = null;
   let units: DrawnUnits | null = null;
-  let props: DrawnProps | null = null;
+  let props: PropsManifest | null = null;
   let effects: EffectsManifest | null = null;
   const track = (follow: number, now: number): readonly number[] => {
     const live = subject.unitAt(follow);
