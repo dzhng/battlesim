@@ -812,10 +812,14 @@ export async function createGrassPass(
     const names = JSON.parse(ground.grass_kinds()) as string[];
     if (!names.every((name) => appearances!.has(name))) return;
     const packed = grassShapes(names, appearances);
-    const laid = ground.grass_params(packed, densityMultiplier);
     const shapes = packed.shapes();
     const maxBlades = packed.max_blades();
-    packed.free();
+    let laid: Uint32Array;
+    try {
+      laid = ground.grass_params(packed, densityMultiplier);
+    } finally {
+      packed.free();
+    }
     kindNames = names;
     const props = ground.grass_props();
     slots.props.set(storage("grass-props", props.byteLength));

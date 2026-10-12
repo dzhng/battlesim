@@ -23,7 +23,10 @@ The web manifest's `build:wasm` builds it after `game-wasm`, into
 It also hands the page the static world `static_world` resolves: `StaticWorld`
 is the buildings and their walk; `Ground` is a map's ground, built once per map
 from `WorldView`'s exports, the world layout, the biome file and the map's
-region: the terrain's GPU tables, the grass's (from the renderer's facts about
-its blade meshes), the water's cells, and the scenery, the dressing laid a cell
-at a time on request. Its probes (`plots_json`, `distances` and the like) serve
-the ground scenes; no frame reads them.
+region: the terrain's GPU tables, the grass's (over the grass kinds' shapes,
+which `GrassShapes` packs from their bundles' tiers) and each frame's grass
+window, the water's mesh, and the scenery, the dressing laid a cell at a time on
+request. Its probes (`plots_json`, `distances` and the like) serve the ground
+scenes; no frame reads them. The ground's other meshes (terrain, skirt,
+backdrop) and the map's box are free functions, and `SunShadow` fits the sun's
+cascades each frame.

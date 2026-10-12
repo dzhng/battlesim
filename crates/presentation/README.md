@@ -36,6 +36,11 @@ wherever it runs.
   is handed (the directory's words, the pool's texels, `ScarParams`' words
   before the biome's look) and asks which regions to draw one by one when the
   marks don't fit at once; it derives nothing.
+- [The sun's shadow](src/shadow.rs): each frame's cascades fitted over where the
+  map is in view depth, as the receiver block and each cascade's caster camera.
+- [The static world](src/static_world/): the buildings and their walk, and the
+  ground: its tables, its meshes (terrain, skirt, water, backdrop), the grass
+  field's shapes, window and per-frame parameters, and the scenery.
 - [Sound](src/sound/): what a battle hears, when, where and how loud, from the
   same publication the effects read, the frame's emitters and the side's
   hearing cues, as commands a player carries out (start, glide, stop a voice;
@@ -80,6 +85,8 @@ roll to the resting wreck.
 ## Checks
 
 `tests/poses.rs` and `tests/effects.rs` hold it to the browser's recorded vectors
-(native's fixture capture and fixed effect causes), and `tests/scars.rs` holds
+(native's fixture capture and fixed effect causes), `tests/light.rs`,
+`shadow.rs`, `ground_meshes.rs` and `grass_field.rs` to what the browser's
+TypeScript computed before it moved here, bit for bit, and `tests/scars.rs` holds
 every scar upload to the words the browser's own cache wrote; the behaviour
 tests beside them cover what those do not reach.
