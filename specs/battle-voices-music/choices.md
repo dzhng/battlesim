@@ -252,3 +252,23 @@ There were four drafts: A fewest-slices (Claude), B risk-first (Codex), C seam-q
 - **One owner for talk time.** Barks are held to the simulation's `ShoutRules.talk_s` in `fixtures/game.json`; the generation tool reads that file. Responses never reach the simulation, so the tool keeps one named ceiling for them, `RESPONSE_TALK_S` = 4 s. The tool's interim 3.5 s default is deleted.
 - **`talk_s` raised from 1.5 s to 2.5 s for every bark.** The tested takes run about 2–2.7 s, and at 1.5 s the simulation would start a unit's next shout while its last one is still playing. Digests are unaffected: shouts aren't digested, and the parity scenarios embed their own copy of the rules.
 - **Library size estimate: about 85 MB, not 20 MB.** At 40 kbps a take averages about 12 KB. That is acceptable: it lives in LFS, and a battle loads only its own sets, in the background after `ready`. Slice 06 reports the real figure before committing the batch.
+
+**2026-10-12, slice 03 (agent; a Claude worker implemented during the Codex capacity outage, orchestrator reviewed):**
+- **Verdicts:**
+  - A verdict carries the sha256 of the bytes the reviewer heard. `generate verdict` refuses any take whose bytes have changed since. One function, `verdictOf`, owns "a verdict holds only while the sha matches".
+  - The server runs every generation-tool command one at a time, so `voices.lock.json` keeps one writer.
+  - **Accept unflagged in set** is a single tool run.
+- **Regeneration:** `generate voices` gains `--voice`, so R regenerates exactly one take and never pays for a set's other missing takes.
+- **Snapshots** send a short per-take summary, and the server alone computes counts. The snapshot revision hashes only `voices.json`, so a verdict never makes a pending edit stale.
+- **Review flow:**
+  - Opening the tab is silent; only a key or a click plays audio.
+  - The queue is fixed when a set opens.
+  - A, X and R advance to the next take and play it.
+  - Line edits and R save without a review diff, to keep the keyboard flow fast.
+- **Not built:** a description editor per voice (the server supports it; there is no UI yet). Regenerating a description is slice 05's design loop.
+
+**2026-10-12, beds (user):**
+- **The helicopter bed is the game's own `rotor-uh60` loop,** the recording every helicopter already plays in battle. It is US Army UH-60 B-roll, public domain. For the intercom it is low-passed to 900 Hz ("cockpit-muffled"; the user chose option B in an A/B). It replaces the ElevenLabs-generated rotor bed.
+- **Rule:** a bed comes from the game's existing sound for that machine, so a sound has one owner across the game. The generation tool must take beds from catalog clips, not from `/v1/sound-generation`.
+- **Tank bed:** the game has no recorded engine (engines are synthesised; only the track rattle is recorded), so the tank bed stays generated until the user hears an alternative.
+- **Implementation is due before slice 05:** the generation tool's `beds` command, the `voice-intercom` profile and re-processing of the existing takes.

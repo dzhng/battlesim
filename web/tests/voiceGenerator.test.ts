@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 import { mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { afterEach, describe, expect, it } from "vitest";
-import type { VoiceCatalog } from "@packages/battle-audio/src/voices/voiceCatalog";
+import { takeId, type VoiceCatalog } from "@packages/battle-audio/src/voices/voiceCatalog";
 import { ElevenLabsClient } from "@packages/battle-audio/tools/generate/elevenlabs";
 import { Pool } from "@packages/battle-audio/tools/generate/pool";
 import { matches } from "@packages/battle-audio/tools/generate/transcript";
@@ -13,6 +13,7 @@ import { readLock } from "@packages/battle-audio/tools/generate/lock";
 import {
   checkVoices,
   generateVoices,
+  selectTakes,
   type Processor,
   type VoiceProfiles,
 } from "@packages/battle-audio/tools/generate/voices";
@@ -221,6 +222,16 @@ describe("voice generation", () => {
     expect(second.tts()).toBe(1);
     const lock = readLock(join(root, "fixtures/voices.lock.json"));
     expect(existsSync(join(root, lock.takes["tank/lead/move/steady/1"].raw))).toBe(true);
+  });
+
+  it("selects one voice's takes when a regeneration names its voice", () => {
+    const c = catalog();
+    Object.assign(c.sets.tank.voices[1], { speaks: "all", voice_id: "voice-soldier-id" });
+    const select = { triggers: ["move" as const], take: 0 };
+    expect(selectTakes(c, { beds: {}, takes: {} }, select).takes).toHaveLength(4);
+    expect(
+      selectTakes(c, { beds: {}, takes: {} }, { ...select, voices: ["lead"] }).takes.map(takeId),
+    ).toEqual(["tank/lead/move/steady/0", "tank/lead/move/stressed/0"]);
   });
 
   it("re-processes a changed profile from the raw master without a call", async () => {

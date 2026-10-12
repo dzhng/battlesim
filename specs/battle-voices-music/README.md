@@ -17,7 +17,8 @@
 **Global TODO:**
 - [x] 01 — Voice data: the `voices.json` schema, the `Generated` provenance kind, the set table, role scripts, assignments for every roster unit, and the `plan` report. [slice](slices/01-voice-data.md)
 - [x] 02 — Generation tool and processing: the proxy client, cache, lock, speech-to-text check, voice profiles in `assets.py`, and mono MP3 under `assets/runtime/audio/voices/`. [slice](slices/02-generator-and-processing.md)
-- [ ] 03 — Voices tab: the workbench review grid, the keyboard review queue, verdicts, and regenerating a take. [slice](slices/03-voices-tab.md)
+- [x] 03 — Voices tab: the workbench review grid, the keyboard review queue, verdicts, and regenerating a take. [slice](slices/03-voices-tab.md)
+- [ ] 02b — Beds from the game's own sounds: the helicopter intercom bed uses the `rotor-uh60` catalog clip, low-passed to 900 Hz (user, `choices.md` → beds). Do this before 04.
 - [ ] 04 — Pilot: `us_tank` with all 29 triggers, a credit and mismatch report, then straight on to the batch. [slice](slices/04-pilot.md)
 - [ ] 05 — Voice design: 3 candidates per voice, the user's pick saved permanently. [slice](slices/05-voice-design.md)
 - [ ] 06 — Full batch and packs: background generation, the user's review, and per-set packs. [slice](slices/06-full-batch.md)

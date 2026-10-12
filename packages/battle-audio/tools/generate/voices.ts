@@ -4,22 +4,28 @@ import { existsSync, mkdirSync, readFileSync, renameSync, rmSync } from "node:fs
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  BARK_TRIGGERS,
-  RESPONSE_TRIGGERS,
   lineText,
   takeFile,
   takeId,
+  voiceTriggers,
   voiceUrl,
   type Intensity,
   type Trigger,
   type VoiceCatalog,
-  type VoiceSpec,
   type VoiceTake,
 } from "../../src/voices/voiceCatalog";
 import type { Generated } from "../../src/catalog";
 import { generationKey, processingKey, sha256 } from "./cacheKey";
 import type { ElevenLabsClient } from "./elevenlabs";
-import { LOCK, readLock, writeAtomic, writeLock, type TakeRecord, type VoiceLock } from "./lock";
+import {
+  LOCK,
+  readLock,
+  verdictOf,
+  writeAtomic,
+  writeLock,
+  type TakeRecord,
+  type VoiceLock,
+} from "./lock";
 import { LIMITS, Pool } from "./pool";
 import { RESPONSE_TALK_S, matches } from "./transcript";
 
@@ -71,6 +77,7 @@ export type Processor = (job: {
 
 export interface VoiceSelection {
   sets?: string[];
+  voices?: string[];
   triggers?: Trigger[];
   intensities?: Intensity[];
   take?: number;
@@ -101,12 +108,6 @@ export interface VoiceRunResult {
 }
 
 const today = () => new Date().toISOString().slice(0, 10);
-const triggersOf = (voice: VoiceSpec): readonly Trigger[] =>
-  voice.speaks === "responses"
-    ? RESPONSE_TRIGGERS
-    : voice.speaks === "barks"
-      ? BARK_TRIGGERS
-      : [...RESPONSE_TRIGGERS, ...BARK_TRIGGERS];
 const servedPath = (root: string, take: VoiceTake, sha: string) =>
   join(root, "assets/runtime", voiceUrl(take, sha));
 
@@ -116,8 +117,9 @@ export function selectTakes(catalog: VoiceCatalog, lock: VoiceLock, select: Voic
   let unvoiced = 0;
   for (const set of select.sets ?? Object.keys(catalog.sets)) {
     if (!catalog.sets[set]) throw new Error(`set ${set}: not in voices.json`);
-    for (const voice of catalog.sets[set].voices)
-      for (const trigger of triggersOf(voice)) {
+    for (const voice of catalog.sets[set].voices) {
+      if (select.voices && !select.voices.includes(voice.id)) continue;
+      for (const trigger of voiceTriggers(voice)) {
         if (select.triggers && !select.triggers.includes(trigger)) continue;
         for (const intensity of select.intensities ?? (["steady", "stressed"] as const))
           for (const take of select.take === undefined ? [0, 1] : [select.take]) {
@@ -125,15 +127,12 @@ export function selectTakes(catalog: VoiceCatalog, lock: VoiceLock, select: Voic
             const record = lock.takes[takeId(candidate)];
             if (select.only === "missing" && record) continue;
             if (select.only === "flagged" && !record?.match.flagged) continue;
-            if (
-              select.only === "bad" &&
-              !(record?.verdict?.value === "bad" && record.verdict.sha256 === record.served_sha256)
-            )
-              continue;
+            if (select.only === "bad" && !(record && verdictOf(record) === "bad")) continue;
             if (voice.voice_id) takes.push(candidate);
             else unvoiced++;
           }
       }
+    }
   }
   return { takes, unvoiced };
 }

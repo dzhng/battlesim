@@ -1,53 +1,16 @@
-import { createHash, randomUUID } from "node:crypto";
-import { readFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import { readFile, readdir } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Plugin } from "vite";
 import { FixturePublication } from "../fixture-publication/publication";
 import type { SoundCatalog } from "../../packages/battle-audio/src/catalog";
 import { GLANCE } from "../../packages/battle-audio/src/contacts";
+import { validateVoiceCatalog } from "../../packages/battle-audio/src/voices/voiceCatalog";
 import type { AudioPresentation } from "../../packages/battle-audio/src/audioPresentation";
 import type { Draft, Review, Save, Snapshot } from "./src/protocol";
+import { WorkbenchError, equal, hash, jsonRoutes, object } from "./http";
+import { VoiceWorkbenchStore, generateTool, voiceWorkbenchMiddleware } from "./voiceStore";
 
-class WorkbenchError extends Error {
-  constructor(
-    message: string,
-    public status = 400,
-  ) {
-    super(message);
-  }
-}
-function object(value: unknown, fields: string[]): Record<string, unknown> {
-  if (
-    !value ||
-    typeof value !== "object" ||
-    Array.isArray(value) ||
-    Object.keys(value).some((key) => !fields.includes(key))
-  )
-    throw new WorkbenchError("Unexpected request fields");
-  return value as Record<string, unknown>;
-}
-const hash = (bytes: string | Buffer) => createHash("sha256").update(bytes).digest("hex");
-const equal = (a: unknown, b: unknown): boolean => {
-  if (a === b) return true;
-  if (
-    !a ||
-    !b ||
-    typeof a !== "object" ||
-    typeof b !== "object" ||
-    Array.isArray(a) !== Array.isArray(b)
-  )
-    return false;
-  const keys = Object.keys(a);
-  return (
-    keys.length === Object.keys(b).length &&
-    keys.every(
-      (key) =>
-        Object.hasOwn(b, key) &&
-        equal((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key]),
-    )
-  );
-};
 interface Inputs {
   texts: string[];
   catalog: SoundCatalog;
@@ -216,86 +179,65 @@ export class SoundWorkbenchStore {
 }
 
 export function soundWorkbenchMiddleware(store: SoundWorkbenchStore) {
-  return async (request: IncomingMessage, response: ServerResponse, next: () => void) => {
-    const path = request.url?.split("?")[0];
-    if (!path?.startsWith("/__sound-workbench/")) return next();
-    response.setHeader("Content-Type", "application/json");
-    response.setHeader("Cache-Control", "no-store");
-    try {
-      const host = request.headers.host ?? "";
-      if (
-        !/^(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/.test(host) ||
-        !["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(request.socket.remoteAddress ?? "")
-      )
-        throw new WorkbenchError("The sound workbench is local-only", 403);
-      if (request.method === "GET" && path === "/__sound-workbench/snapshot") {
-        response.end(JSON.stringify(await store.snapshot()));
-        return;
-      }
-      if (request.method !== "POST")
-        throw new WorkbenchError("Unknown sound workbench endpoint", 404);
-      if (
-        request.headers.origin !== `http://${host}` ||
-        !/^application\/json(?:\s*;|$)/i.test(request.headers["content-type"] ?? "")
-      )
-        throw new WorkbenchError("Requests must come from this local workbench", 403);
-      const chunks: Buffer[] = [];
-      let bytes = 0;
-      for await (const chunk of request) {
-        const part = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-        bytes += part.length;
-        if (bytes > 1024 * 1024)
-          throw new WorkbenchError("Request body exceeds the workbench limit", 413);
-        chunks.push(part);
-      }
-      let body;
-      try {
-        body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
-      } catch {
-        throw new WorkbenchError("Expected a JSON request object");
-      }
-      const result =
-        path === "/__sound-workbench/preview"
-          ? await store.preview(body)
-          : path === "/__sound-workbench/save"
-            ? await store.save(body)
-            : (() => {
-                throw new WorkbenchError("Unknown sound workbench endpoint", 404);
-              })();
-      response.end(JSON.stringify(result));
-    } catch (error) {
-      response.statusCode =
-        error instanceof WorkbenchError ? error.status : error instanceof SyntaxError ? 400 : 500;
-      response.end(
-        JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
-      );
-    }
-  };
+  return jsonRoutes(
+    "/__sound-workbench/",
+    { snapshot: () => store.snapshot() },
+    {
+      preview: (body) => store.preview(body as Draft),
+      save: (body) => store.save(body as Save),
+    },
+  );
 }
+
+/** Repository documents the workbench saves; a save never hot-replaces a running battle's. */
+const SAVED_DOCUMENTS = [
+  "fixtures/sounds.json",
+  "fixtures/voices.json",
+  "fixtures/voices.lock.json",
+];
 
 export function soundWorkbenchPlugin(root: string): Plugin {
   return {
     name: "sound-workbench",
     apply: "serve",
     configureServer(server) {
-      let middleware: Promise<ReturnType<typeof soundWorkbenchMiddleware>> | undefined;
+      type Middleware = ReturnType<typeof jsonRoutes>;
+      let sounds: Promise<Middleware> | undefined;
+      let voices: Promise<Middleware> | undefined;
+      // Config loading precedes Vite aliases; shared runtime validation loads through its own module graph.
+      const load = (path: string) => server.ssrLoadModule(resolve(root, path));
       server.middlewares.use(async (request, response, next) => {
         if (!request.url?.startsWith("/__sound-workbench/")) return next();
-        // Config loading precedes Vite aliases; shared runtime validation loads through its own module graph.
-        middleware ??= Promise.all([
-          server.ssrLoadModule(resolve(root, "packages/battle-audio/src/catalog.ts")),
-          server.ssrLoadModule(resolve(root, "packages/battle-audio/src/synth.ts")),
-        ]).then(([catalog, synth]) =>
-          soundWorkbenchMiddleware(
-            new SoundWorkbenchStore(root, catalog.validateSoundCatalog, Object.keys(synth.SOUNDS)),
-          ),
-        );
+        const voice = request.url.startsWith("/__sound-workbench/voices/");
+        const middleware = voice
+          ? (voices ??= rosterRows(root).then((roster) =>
+              voiceWorkbenchMiddleware(
+                new VoiceWorkbenchStore(
+                  root,
+                  (value) => validateVoiceCatalog(value, roster),
+                  generateTool(root),
+                ),
+              ),
+            ))
+          : (sounds ??= Promise.all([
+              load("packages/battle-audio/src/catalog.ts"),
+              load("packages/battle-audio/src/synth.ts"),
+            ]).then(([catalog, synth]) =>
+              soundWorkbenchMiddleware(
+                new SoundWorkbenchStore(
+                  root,
+                  catalog.validateSoundCatalog,
+                  Object.keys(synth.SOUNDS),
+                ),
+              ),
+            ));
         try {
           await (
             await middleware
           )(request, response, next);
         } catch (error) {
-          middleware = undefined;
+          if (voice) voices = undefined;
+          else sounds = undefined;
           response.statusCode = 500;
           response.end(
             JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
@@ -304,10 +246,19 @@ export function soundWorkbenchPlugin(root: string): Plugin {
       });
     },
     handleHotUpdate(context) {
-      if (resolve(context.file) === resolve(root, "fixtures/sounds.json")) {
+      if (SAVED_DOCUMENTS.some((path) => resolve(context.file) === resolve(root, path))) {
         for (const module of context.modules) context.server.moduleGraph.invalidateModule(module);
         return [];
       }
     },
   };
+}
+
+/** Every roster row, so a voice edit is refused when a playable unit loses its set. */
+async function rosterRows(root: string): Promise<Record<string, unknown>> {
+  const folder = join(root, "fixtures/units/roster");
+  const rows = {};
+  for (const name of (await readdir(folder)).filter((file) => file.endsWith(".json")).sort())
+    Object.assign(rows, JSON.parse(await readFile(join(folder, name), "utf8")).units);
+  return rows;
 }
