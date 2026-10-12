@@ -215,6 +215,8 @@ impl Run {
         // The scars a region loads reach as far as a crater's bowl moves them.
         let scar_reach = ground.map.ground.scar_reach_m();
         replay.presentation_mut().set_scar_reach(scar_reach);
+        // A fresh renderer holds no scars: the first upload writes them all.
+        replay.presentation_mut().resend_scars();
         println!(
             "ground: {} resolved and uploaded in {:.2} s",
             replay.map,
