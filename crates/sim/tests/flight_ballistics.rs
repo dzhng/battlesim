@@ -557,6 +557,66 @@ fn the_high_arc_is_used_only_by_indirect_fire_and_never_by_ignoring_a_ridge() {
 }
 
 #[test]
+fn a_synthetic_artillery_profile_reaches_2500m_on_the_high_arc() {
+    // This is the upper-range feasibility gate for artillery data. It uses a
+    // test-only row so the shipped roster remains out of this slice.
+    let artillery = config()
+        .profile(&WeaponBallistics {
+            range_m: 2_500.0,
+            speed_mps: 160.0,
+            gravity_scale: 1.0,
+            scatter_mrad: 12.0,
+            trajectory: Trajectory::Indirect,
+            lifetime_s: Some(30.0),
+            ..lob_weapon()
+        })
+        .expect("the long-range artillery row is admitted by flight rules");
+    let world = flat([3_200.0, 400.0], "");
+    let aim = Aim {
+        origin: v3(100.0, 200.0, 1.4),
+        target: v3(2_600.0, 200.0, 0.0),
+        target_velocity: V3::default(),
+    };
+    let solution = solve_launch_past(&world, &config(), &artillery, &aim, None)
+        .expect("2.5 km is reachable within the authored lifetime");
+    assert_eq!(solution.arc, ArcKind::High);
+    assert!(solution.time_of_flight_s < artillery.lifetime_s);
+
+    let mut store = Projectiles::new(config());
+    store.launch(fired(&artillery, aim.origin, solution.velocity));
+    let events = fly(&mut store, &world, 1_200, |_| Vec::new());
+    let [(_, hit)] = impacts(&events)[..] else {
+        panic!("one terrain impact expected: {events:?}")
+    };
+    assert_eq!(hit.struck, Struck::Terrain);
+    assert!(
+        (hit.point - aim.target).length() <= 0.02,
+        "landed at {:?}",
+        hit.point
+    );
+}
+
+#[test]
+fn an_indirect_arc_still_stops_on_a_prop_in_its_curved_path() {
+    let world = flat(
+        [800.0, 400.0],
+        r#", "props":[{"kind":"wall","center":[300,200],"yaw":0,"half_extents":[0.15,6,400]}]"#,
+    );
+    let aim = Aim {
+        origin: v3(200.0, 200.0, 1.4),
+        target: v3(400.0, 200.0, 0.0),
+        target_velocity: V3::default(),
+    };
+    let Err(NoSolution::Blocked { arc, point, .. }) =
+        solve_launch_past(&world, &config(), &mortar(Trajectory::Indirect), &aim, None)
+    else {
+        panic!("a wall crossing the high arc must block the round")
+    };
+    assert_eq!(arc.arc, ArcKind::High);
+    assert!((299.0..301.0).contains(&point.x), "blocked at {point:?}");
+}
+
+#[test]
 fn chords_per_tick_follow_the_chord_error_and_the_declared_bound_is_enforced() {
     // The game's 30 Hz: a chord sags g·dt²/8 ≈ 1.4 mm, inside 2 cm, so one chord.
     assert_eq!(config().subsegments_per_tick(), 1);
@@ -670,6 +730,19 @@ fn spread_is_a_truncated_gaussian_per_axis_across_the_line_of_fire() {
     let draw = |seed| scatter_aim(o, aim, sigma_mrad, &mut Rng::new(seed));
     assert_eq!(draw(7), draw(7));
     assert_ne!(draw(7), draw(8));
+}
+
+#[test]
+fn equal_angular_scatter_grows_with_distance() {
+    let origin = v3(100.0, 200.0, 1.4);
+    let near = v3(200.0, 200.0, 0.0);
+    let far = v3(1_100.0, 200.0, 0.0);
+    let near_offset = scatter_aim(origin, near, 12.0, &mut Rng::new(17)) - near;
+    let far_offset = scatter_aim(origin, far, 12.0, &mut Rng::new(17)) - far;
+    // Same angular draw and a ten-times farther point produce a ten-times
+    // larger miss radius; this checks distance scaling without pinning a draw.
+    assert!(far_offset.length() > near_offset.length() * 9.9);
+    assert!(far_offset.length() < near_offset.length() * 10.1);
 }
 
 #[test]
