@@ -8,7 +8,8 @@
 //! Not built yet, and bound so that every shader reads it as absent: fog of
 //! war's sight (its inputs come with the static world): every fog word zero
 //! (`enabled` 0, nothing painted), so every surface is seen.
-use presentation::records::{Aerial, CastLight, Sun, View};
+use presentation::records::{Aerial, Camera as CameraRecord, CastLight, Sun, View};
+use presentation::shadow::camera_record;
 use wgpu::*;
 
 use crate::frame::HDR_FORMAT;
@@ -16,9 +17,6 @@ use crate::gpu::{bind, buffer};
 use crate::pipelines::Pipelines;
 use crate::shadow::SunShadow;
 
-/// `Camera` in every shader: view-projection, its inverse, the eye, the near
-/// plane, the drawing size and the clock, in 160 bytes.
-const CAMERA_BYTES: usize = 160;
 /// `Environment`'s members before the `Sun` record: the view and the observer.
 const SUN_AT: usize = 80;
 /// `CastLights`: a header (count, wrap) and up to 24 lights.
@@ -54,52 +52,17 @@ fn mul(a: &[f64; 16], b: &[f64; 16]) -> [f64; 16] {
     })
 }
 
-/// The inverse of a column-major 4×4 (cofactors), or zeros if singular.
-fn invert(m: &[f64; 16]) -> [f64; 16] {
-    let a = |r: usize, c: usize| m[c * 4 + r];
-    let mut inv = [0.0; 16];
-    for r in 0..4 {
-        for c in 0..4 {
-            // The cofactor of (c, r): the transpose, for the adjugate.
-            let rows: Vec<usize> = (0..4).filter(|&i| i != c).collect();
-            let cols: Vec<usize> = (0..4).filter(|&j| j != r).collect();
-            let e = |i: usize, j: usize| a(rows[i], cols[j]);
-            let minor = e(0, 0) * (e(1, 1) * e(2, 2) - e(1, 2) * e(2, 1))
-                - e(0, 1) * (e(1, 0) * e(2, 2) - e(1, 2) * e(2, 0))
-                + e(0, 2) * (e(1, 0) * e(2, 1) - e(1, 1) * e(2, 0));
-            let sign = if (r + c) % 2 == 0 { 1.0 } else { -1.0 };
-            inv[c * 4 + r] = sign * minor;
-        }
-    }
-    let det: f64 = (0..4).map(|c| a(0, c) * inv[c * 4]).sum();
-    if det == 0.0 {
-        return [0.0; 16];
-    }
-    inv.map(|v| v / det)
-}
-
 /// The view-projection of `view`, as the GPU holds it.
 pub fn view_proj(view: &View) -> [f32; 16] {
     mul(&view.projection.map(f64::from), &view.view.map(f64::from)).map(|v| v as f32)
 }
 
-/// The camera uniform's bytes for `view` (`cameraUniform.ts`).
-pub fn camera_words(view: &View, clock: f32) -> [f32; CAMERA_BYTES / 4] {
-    let view_proj = mul(&view.projection.map(f64::from), &view.view.map(f64::from));
-    let mut words = [0.0; CAMERA_BYTES / 4];
-    for i in 0..16 {
-        words[i] = view_proj[i] as f32;
-    }
-    for (i, v) in invert(&view_proj).iter().enumerate() {
-        words[16 + i] = *v as f32;
-    }
-    words[32..35].copy_from_slice(&view.eye[..3]);
-    // The near plane, from the reverse-Z projection's `near` term.
-    words[35] = view.projection[14];
-    words[36] = view.size[0];
-    words[37] = view.size[1];
-    words[38] = clock;
-    words
+/// The camera uniform for `view` at `clock` seconds (`cameraUniform.ts`).
+fn camera(view: &View, clock: f32) -> CameraRecord {
+    let eye = [view.eye[0], view.eye[1], view.eye[2]];
+    // The near plane is the reverse-Z projection's `near` term.
+    let size = [view.size[0], view.size[1]];
+    camera_record(&view_proj(view), eye, view.projection[14], size, clock)
 }
 
 fn texture(
@@ -320,7 +283,12 @@ impl Environment {
         shadow: &SunShadow,
     ) -> Self {
         let uniform = BufferUsages::UNIFORM | BufferUsages::COPY_DST;
-        let camera_buffer = buffer(device, "camera", uniform, &[0; CAMERA_BYTES]);
+        let camera_buffer = buffer(
+            device,
+            "camera",
+            uniform,
+            bytemuck::bytes_of(&CameraRecord::default()),
+        );
         let camera = bind(
             device,
             pipelines.layout("typegpuCameraLayout"),
@@ -435,7 +403,7 @@ impl Environment {
         queue.write_buffer(
             &self.camera_buffer,
             0,
-            bytemuck::cast_slice(&camera_words(view, clock)),
+            bytemuck::bytes_of(&camera(view, clock)),
         );
         self.image[..16].copy_from_slice(&view.view);
         for (i, v) in observer.iter().enumerate() {
