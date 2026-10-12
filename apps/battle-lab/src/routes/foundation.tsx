@@ -79,7 +79,6 @@ function groundPatch(): WorldLayers {
       gameBiome,
     ),
     props: none,
-    water: none,
     structures: [],
     scenery: null,
     grass: null,

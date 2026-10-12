@@ -19,7 +19,11 @@ import {
 } from "@packages/scene-assets/src/grass.ts";
 import { validateAppearance } from "@packages/scene-assets/src/validate.ts";
 import type { Catalog, StaticBundle } from "@packages/scene-assets/src/schema.ts";
-import { bareTerrain, type Biome } from "@packages/battle-renderer/src/terrain/terrainSurface.ts";
+import {
+  bareTerrain,
+  presentGround,
+  type Biome,
+} from "@packages/battle-renderer/src/terrain/terrainSurface.ts";
 import {
   GRASS_GROWTH_ROWS,
   GRASS_MIX_MAX,
@@ -37,7 +41,8 @@ const biome: Biome = summer;
 await loadPresentation();
 
 /** `of`'s ground (a bare one): the biome is admitted, or refused, in Rust. */
-const groundOf = (of: Biome) => bareTerrain(new Float32Array(0), [0, 0, 64, 64], 4, of).ground;
+const groundOf = (of: Biome) =>
+  presentGround(bareTerrain(new Float32Array(0), [0, 0, 64, 64], 4, of).input);
 
 /** Where `GrassParams`' growth rows and mixes start, in floats. */
 const GROWTH = 60;

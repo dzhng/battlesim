@@ -63,6 +63,8 @@ export class BattleAudio {
   private voices: BattleVoices | null = null;
   private shouts: ShoutPool | null = null;
   private speakerSets: Speakers | null = null;
+  /** Enemy unit kinds the side has identified: their sets load. */
+  private readonly enemyKinds = new Set<string>();
   private ready = false;
   private error: string | null = null;
   private disposed = false;
@@ -116,14 +118,31 @@ export class BattleAudio {
   respond(request: ResponseRequest) {
     if (this.live) this.voices?.respond(request);
   }
-  /** The voice sets this battle's units speak with; they load once its sounds are ready. */
+  /** The voice sets the side's own units, and its purchases on their way,
+   *  speak with; they load once its sounds are ready. */
   loadVoices(sets: Iterable<string>) {
     void this.voices?.want(sets);
   }
+  /** Enemy unit kinds the side identifies: from the first sight of a kind,
+   *  the set it speaks with (`speakers`) loads, in the background. */
+  identified(kinds: Iterable<string>) {
+    let fresh = false;
+    for (const kind of kinds)
+      if (!this.enemyKinds.has(kind)) {
+        this.enemyKinds.add(kind);
+        fresh = true;
+      }
+    if (fresh) this.wantEnemies();
+  }
+  private wantEnemies() {
+    const enemy = this.speakerSets?.enemy;
+    if (enemy) void this.voices?.want([...this.enemyKinds].flatMap((kind) => enemy[kind] ?? []));
+  }
   /** Which voice set each unit kind speaks with, for the side's own faction
    *  and its enemy's: a shout heard in the open is a bark in its kind's set,
-   *  and an unseen enemy's is drawn from the enemy's sets. Every one of those
-   *  sets loads once this battle's sounds are ready. */
+   *  and an unseen enemy's is drawn from the enemy's sets. Only the pool of
+   *  unseen shouts loads from every enemy set; a kind's own set loads as the
+   *  side's units field it (`loadVoices`) or identify it (`identified`). */
   speakers(speakers: Speakers) {
     this.speakerSets = speakers;
     this.hearSpeakers();
@@ -132,8 +151,8 @@ export class BattleAudio {
     const { sink, frame, speakerSets } = this;
     if (!this.ready || !sink || !frame || !speakerSets || this.shouts) return;
     frame.speakers(speakerSets);
+    this.wantEnemies();
     const enemySets = [...new Set(Object.values(speakerSets.enemy))].sort();
-    void this.voices?.want([...Object.values(speakerSets.own), ...enemySets]);
     const pool = (this.shouts = new ShoutPool(
       sink.context,
       this.options.presentation.cues.shout.takes_per_voice,

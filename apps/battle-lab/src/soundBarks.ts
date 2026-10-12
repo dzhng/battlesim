@@ -115,6 +115,8 @@ export async function renderBarks(): Promise<BarksRender> {
       shouted.push({ speaker: `${shout.own ? "own" : "seen"}/${shout.id}`, at: sink.t });
     }
     const update = voices.hear(frame);
+    // A line's take decodes as it starts: let it, while the clock stands.
+    await voices.settled();
     for (const line of update.started)
       lines.push({
         tier: line.request.tier,
@@ -168,6 +170,7 @@ export async function sampleReady(packs: boolean): Promise<ReadySample> {
     const started = performance.now();
     const sound = (battle = createBattleAudio(HZ, app));
     sound.speakers({ own: { [KIND]: SET }, enemy: {} });
+    sound.loadVoices([SET]);
     while (sound.stats()?.loading !== false) {
       if (performance.now() - started > 60000) throw new Error("battle sound never got ready");
       await new Promise((r) => setTimeout(r, 5));

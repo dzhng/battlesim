@@ -6,6 +6,7 @@ import {
   presented,
   snapshot,
   groundCss,
+  pointerOffCanvas,
   menuShown,
   openMenuPage,
 } from "./_lab.mjs";
@@ -284,7 +285,7 @@ export async function armyJourney(ctx) {
     window.__lab.route.select([4]);
   });
   await page.evaluate(() => document.fonts.ready);
-  await page.mouse.move(0, 500);
+  await pointerOffCanvas(page);
   await snapshot(ctx, page, "army-player-single.png");
   const own = (await obs(page)).own;
   const roster = page.locator(".hud-army-card");
@@ -309,7 +310,7 @@ export async function armyJourney(ctx) {
     selection.length === 2 && selection.includes(own[0].id) && selection.includes(own[1].id),
     JSON.stringify(selection),
   );
-  await page.mouse.move(0, 500);
+  await pointerOffCanvas(page);
   await snapshot(ctx, page, "army-player-multiple.png");
   await roster.nth(1).hover();
   ctx.check(
@@ -317,7 +318,7 @@ export async function armyJourney(ctx) {
     (await page.getByRole("tooltip").getAttribute("data-unit")) === String(own[1].id),
   );
   await snapshot(ctx, page, "army-player-hover.png");
-  await page.mouse.move(0, 500);
+  await pointerOffCanvas(page);
   await page.evaluate(() => window.__lab.route.select([]));
   ctx.check(
     "clearing selection preserves army cards and disables every command",

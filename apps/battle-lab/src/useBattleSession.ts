@@ -54,7 +54,6 @@ import {
 import { gameBiome } from "./gameBiome";
 import { mapAppearances, useMapAppearances } from "./gameAppearances";
 import { gameStandIns } from "./gameModels";
-import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import { gameHud } from "@web/battle/present/hudTheme";
 import { gameOrderFlash, gameXray } from "./gameOverlay";
@@ -64,7 +63,7 @@ import {
   sameReveal,
   type RevealedOrders,
 } from "@web/battle/present/orderReveal";
-import { topSpeedKmh, type Faction } from "@packages/scene-assets/src/units";
+import type { Faction } from "@packages/scene-assets/src/units";
 import {
   DEFAULT_PLACEMENT_FACING,
   PurchasePlacementControl,
@@ -118,7 +117,6 @@ import { posedSockets, type BenchPose } from "./workbench/benchWorld";
 import { describeProps } from "./benchmark/propPresentation";
 import { describeEffects } from "./benchmark/effectPresentation";
 import type { Vec3 } from "math";
-import type { FelledTree } from "@packages/battle-renderer/src/scenery/felled";
 import {
   GHOST_BLOCKED,
   GHOST_OWN,
@@ -136,11 +134,6 @@ const PLACED_MATCH_M = 0.5;
 
 /** Ground heights the page remembers before starting afresh. */
 const SURFACE_HEIGHTS_MAX = 1 << 20;
-
-/** Seconds a cook-off's pieces stay drawn, still, before the whole wreck
- *  takes over: the swap rebuilds the side's structures, and this keeps the
- *  pieces drawn until it has. */
-const LANDED_HOLD_S = 0.5;
 
 /** `derive` of the last input it was given, derived again only when the
  *  input's reference changes (the decoder keeps an unchanged list's), so a
@@ -253,6 +246,8 @@ export function useBattleSession({
         setMovingWrecks((now) => (now.join() === moving.join() ? now : moving));
         audio?.note(presentation.wasm);
       }
+      // An enemy kind's voice set loads once the side first identifies one.
+      audio?.identified(o.identified.map((unit) => unit.kind));
       responses.current?.observed(o);
       onDecoded?.(o, digest);
     },
@@ -266,7 +261,8 @@ export function useBattleSession({
       audio && sim.client ? new UnitResponses(audio, units, faction, rules.tick_hz) : null;
   }, [audio, sim.client, units, faction, rules.tick_hz]);
   // A shout heard in the open is a bark in its kind's set for its side's
-  // faction; an unseen enemy's is drawn from the enemy faction's sets.
+  // faction; an unseen enemy's is drawn from the enemy faction's sets. Of
+  // those, only the sets of kinds fielded or identified load.
   // Outside a skirmish the factions are unknown, so shouts are silent.
   const enemy = skirmish ? skirmish.factions[side === "blue" ? 1 : 0] : null;
   useEffect(() => {
@@ -570,11 +566,6 @@ export function useBattleSession({
   // the native manifest carries them. A new side or catalog loads again.
   const factions = skirmish?.factions;
   const presentation = sim.client?.presentation ?? null;
-  // How far a crater's bowl moves the scars a view ray reads: the static
-  // ground's, so the scar cache loads a region that far past it.
-  useEffect(() => {
-    if (presentation && meshes) presentation.setScarReach(meshes.terrain.ground.scar_reach_m());
-  }, [presentation, meshes]);
   const worldInput = useMemo(() => {
     if (!appearances || !props) return null;
     return presentationWorld({
@@ -627,19 +618,6 @@ export function useBattleSession({
         }),
       [],
     ),
-  );
-  // The trees the side knows have fallen, each from the start of the tick
-  // it fell (the clock is ticks over tick_hz, as the effects' are). The
-  // decoder keeps an unchanged list's reference, and so does this.
-  const tickHz = rules.tick_hz;
-  const felled = useMemo(
-    () =>
-      byReference(
-        (fallen: ObservationView["fallenBodies"]): readonly FelledTree[] =>
-          fallen.map((f) => ({ prop: f.prop, toward: f.toward, fellAt: (f.tick - 1) / tickHz })),
-        [],
-      ),
-    [tickHz],
   );
   const frame = useCallback(
     (now: number, viewport: ViewportCamera): ViewportFrame | null => {
@@ -701,7 +679,6 @@ export function useBattleSession({
         picks: drawn.current.picks,
         presented,
         counts,
-        felled: felled.of(published.fallenBodies),
         clock: time,
         effectCounts,
         ground: sim.ground.current,
@@ -709,7 +686,6 @@ export function useBattleSession({
     },
     [
       observation,
-      felled,
       sim.latest,
       sim.ground,
       presentation,

@@ -218,7 +218,6 @@ export default function Facade() {
     () => ({
       terrain: flatTerrain(benchGround(false)),
       props: NONE,
-      water: NONE,
       structures: [],
       scenery: null,
       grass: null,

@@ -20,10 +20,8 @@ import type { SideStructures } from "./models/propAppearance";
 import type { SurfaceClass } from "./models/surfaceParts";
 import type { ImpostorAtlas, ImpostorSpec } from "./models/impostor";
 import type { StaticBundle, TextureChannel } from "@packages/scene-assets/src/schema";
-import type { SceneryPlacement } from "./scenery/placement";
-import type { FelledTree } from "./scenery/felled";
-import type { Biome } from "./terrain/terrainSurface";
-import type { SceneryStats } from "./frame/sceneryLayer";
+import type { Biome, PresentedGround } from "./terrain/terrainSurface";
+import type { SceneryStats, SceneryWalkStats } from "./frame/sceneryLayer";
 import type { GrassProbes, GrassStats } from "./frame/grassPass";
 import type { SceneryCounts } from "./frame/sceneryLayer";
 import type { GrassAppearances } from "./terrain/grassField";
@@ -57,18 +55,13 @@ export interface WorldMeshes {
   paintedMarching?: Mesh;
 }
 
-/** The trees, hedgerows and forest-floor dressing: where each stands, and the
- *  appearances (`tree`, `hedgerow` and `dressing` bundles from the one
- *  loader) it instances. */
+/** The trees, hedgerows and forest-floor dressing's art: the appearances
+ *  (`tree`, `hedgerow` and `dressing` bundles from the one loader) the
+ *  scenery's rows name, and how a felled tree's stump is cut
+ *  (`biome.trees.felled`). Where each stands is the presentation's. */
 export interface WorldScenery {
-  placement: SceneryPlacement;
   appearances: ReadonlyMap<string, StaticBundle>;
-  /** `biome.trees.lod_px`: the detail tiers by projected height. */
-  lodPx: readonly [number, number, number];
-  /** How a felled tree falls and lies (`biome.trees.felled`). */
   felled: Biome["trees"]["felled"];
-  /** The dressing's tiers and fade (`biome.forest_floor.dressing`). */
-  dressing: { lodPx: readonly [number, number, number]; fadePx: number };
 }
 
 /** The static world in layers, so each takes its own material and FogTerm
@@ -82,9 +75,6 @@ export interface WorldLayers {
   terrain: TerrainSurface;
   props: Mesh;
   structures: readonly ModelInstance[];
-  /** The water surfaces (the terrain material's water), drawn after
-   *  everything opaque without writing depth. */
-  water: Mesh;
   scenery: WorldScenery | null;
   /** The grass kinds the biome grows (scenery "grass" appearances) by catalog
    *  name; `null` draws no grass (a route without appearances, or a view
@@ -204,27 +194,30 @@ export interface BattleFrame {
    *  like the world. */
   setStructures(structures: SideStructures): void;
   /** The static batches of the scene's presentation frame
-   *  (`crates/presentation`): the map's buildings, each a kit module at a tier drawn into the view or cast
-   *  into the sun's cascades, as Rust walked them for this frame's camera and
-   *  what the side knows fell. Lit, shadow-casting and fogged like the world.
+   *  (`crates/presentation`): the map's buildings, each a kit module at a
+   *  tier, and its scenery (trees, shrubs, dressing, felled trees and their
+   *  stumps), drawn into the view or cast into the sun's cascades, as Rust
+   *  walked them for this frame's camera and what the side knows fell. Lit,
+   *  shadow-casting and fogged like the world.
    *  These are the frame's batches of rows marked `placed`
    *  (`setPresentationWorld`); `stats` is what the presentation says of its
    *  walk. Call every frame before drawing, with the frame `setFrame` took
    *  (taken again after any call into the module): a frame naming its static
    *  batches unchanged keeps what was uploaded. Returns whether what is
    *  drawn changed. Null draws none. */
-  setStaticFrame(frame: ReturnType<typeof frameViews> | null, stats: BuildingWalkStats): boolean;
+  setStaticFrame(
+    frame: ReturnType<typeof frameViews> | null,
+    stats: { buildings: BuildingWalkStats; scenery: SceneryWalkStats },
+  ): boolean;
+  /** The ground the scene's presentation resolved (`TerrainSurface.input`):
+   *  the terrain material's tables, the grass's and the water's mesh.
+   *  `null` draws no ground. */
+  setPresentedGround(ground: PresentedGround | null): void;
   /** The observing side's learned ground (the presentation's `LearnedGround`), drawn
    *  as scars on the terrain and grass. Called every animation frame: a new
    *  view is uploaded whole, the same view only where it changed since the
    *  last call. Returns whether anything drawn changed. `null` draws none. */
   setGround(ground: GroundMarks | null): boolean;
-  /** The forest trees the observing side knows have fallen (its
-   *  `fallenBodies`, each fall's tick as a presentation second): each leaves
-   *  the standing forest and falls on the clock (`setClock`), then lies by
-   *  its stump. A tree the forest never drew is ignored. Call when the list
-   *  changes, not every frame. */
-  setFelled(felled: readonly FelledTree[]): void;
   /** Display-space marks (orders, contacts, tracers, rings), drawn after post
    *  over the world's depth so their colours are exactly their own. */
   setOverlay(overlay: WorldMeshes): void;
@@ -284,12 +277,6 @@ export interface BattleFrame {
   /** Lab diagnostics: draw the trees (the forest's and the backdrop's) and
    *  their shadows or not. */
   setTreesShown(on: boolean): void;
-  /** Lab diagnostics: draw the forest floor's dressing or not (a paired cost
-   *  measure). */
-  setDressingShown(on: boolean): void;
-  /** Lab diagnostics: draw the shrubs under tree lines or not (a paired cost
-   *  measure). */
-  setUnderstoreyShown(on: boolean): void;
   /** Lab diagnostics: draw the buildings and their shadows or not (a paired
    *  cost measure). */
   setBuildingsShown(on: boolean): void;

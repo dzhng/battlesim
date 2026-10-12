@@ -115,7 +115,6 @@ export function benchWorld(figureAt: [number, number] | null): WorldLayers {
   return {
     terrain: benchTerrain(),
     props: figureAt ? scaleFigure(figureAt[0], figureAt[1]) : NONE,
-    water: NONE,
     structures: [],
     scenery: null,
     grass: null,

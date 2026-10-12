@@ -1,9 +1,12 @@
-// A battle's voice takes, decoded for one audio context. Separate from the
-// sound bank, which knows only `sounds.json` clip ids: voices load by URL from
-// each set's `pack.json`, in the background, and never hold up the battle's
-// readiness. Until a take is decoded it is absent, and a line asking for it is
-// dropped rather than waited for: the bank tells its listener (the line
-// arbitration, `Chatter`) each set's voices and each take as they arrive.
+// A battle's voice takes, for one audio context. Separate from the sound bank,
+// which knows only `sounds.json` clip ids: voices load by URL from each set's
+// `pack.json`, in the background, and never hold up the battle's readiness.
+// Until a take is fetched it is absent, and a line asking for it is dropped
+// rather than waited for: the bank tells its listener (the line arbitration,
+// `Chatter`) each set's voices and each take as it arrives, with the length
+// its pack records. A take is held as fetched (MP3, about a twentieth of its
+// decoded size) and decoded when a line plays it, the last few played staying
+// decoded, or once for a caller that keeps the audio (the shout pool).
 import type { Intensity, PackTake, Trigger, VoicePack } from "./voiceCatalog";
 import { packUrl } from "./voiceCatalog";
 
@@ -11,10 +14,14 @@ import { packUrl } from "./voiceCatalog";
 const key = (set: string, voice: string, trigger: Trigger, intensity: Intensity, take: number) =>
   `${set}/${voice}/${trigger}/${intensity}/${take}`;
 
-/** Takes fetched and decoded at once. A skirmish asks for thousands, and a
- *  browser refuses requests past a few hundred outstanding
- *  (`ERR_INSUFFICIENT_RESOURCES`), the battle's own downloads with them. */
+/** Takes fetched at once. A skirmish asks for hundreds, and a browser refuses
+ *  requests past a few hundred outstanding (`ERR_INSUFFICIENT_RESOURCES`), the
+ *  battle's own downloads with them. */
 export const TAKES_IN_FLIGHT = 8;
+
+/** Takes kept decoded, the most recently played: a few lines sound at once,
+ *  and a unit's next line is often one just heard. */
+export const DECODED_TAKES = 32;
 
 /** Where a set's pack comes from; the battle reads the served `pack.json`. */
 export type PackSource = (set: string, signal: AbortSignal) => Promise<VoicePack>;
@@ -28,7 +35,7 @@ export const servedPacks =
     return (await response.json()) as VoicePack;
   };
 
-/** Told what the bank holds as it arrives: a set's voices, then each decoded take. */
+/** Told what the bank holds as it arrives: a set's voices, then each take. */
 export interface BankListener {
   voices(set: string, voices: VoicePack["voices"]): void;
   loaded(
@@ -42,9 +49,14 @@ export interface BankListener {
 }
 
 export class VoiceBank {
-  private readonly buffers = new Map<string, AudioBuffer>();
-  /** Decoded takes by URL, so a take is fetched once however often it is asked for. */
+  /** Each loaded take's MP3 bytes, by name. */
+  private readonly bytes = new Map<string, ArrayBuffer>();
+  /** Each take's download by URL, so a take is fetched once however often it is asked for. */
+  private readonly fetched = new Map<string, Promise<ArrayBuffer>>();
+  /** The takes kept decoded, least recently played first. */
   private readonly decoded = new Map<string, Promise<AudioBuffer>>();
+  /** Lines waiting for their take to decode. */
+  private readonly lines = new Set<Promise<void>>();
   private readonly controller = new AbortController();
   /** Sets, or takes, that failed to load, with why. They stay silent. */
   readonly errors = new Map<string, string>();
@@ -87,16 +99,16 @@ export class VoiceBank {
           (this.options.select?.(pack) ?? pack.takes).map(async (take) => {
             const id = key(set, take.voice, take.trigger, take.intensity, take.take);
             try {
-              const buffer = await this.decode(take.url, admitted);
+              const bytes = await this.fetch(take.url, admitted);
               if (admitted.aborted) return;
-              this.buffers.set(id, buffer);
+              this.bytes.set(id, bytes);
               this.options.listener?.loaded(
                 set,
                 take.voice,
                 take.trigger,
                 take.intensity,
                 take.take,
-                buffer.duration,
+                take.duration_s,
               );
             } catch (error) {
               failed(id, error);
@@ -107,36 +119,106 @@ export class VoiceBank {
     );
   }
 
-  /** The audio a line's start command names: take `variant` of `sound`
-   *  (`set/voice/trigger/intensity`), or null when it isn't loaded. */
-  line(sound: string, variant: number): AudioBuffer | null {
-    return this.buffers.get(`${sound}/${variant}`) ?? null;
+  /** Every take loaded so far, by name (`set/voice/trigger/intensity/take`). */
+  names(): string[] {
+    return [...this.bytes.keys()];
   }
 
-  /** Every take loaded so far, by its name (`set/voice/trigger/intensity/take`). */
-  loaded(): [string, AudioBuffer][] {
-    return [...this.buffers];
+  /** Take `name`'s audio, decoded now for a caller that keeps it; null when it isn't loaded. */
+  decode(name: string): Promise<AudioBuffer> | null {
+    const bytes = this.bytes.get(name);
+    // A decode takes its bytes; the bank keeps its own.
+    return bytes ? this.context.decodeAudioData(bytes.slice(0)) : null;
+  }
+
+  /** Take `name`'s audio for a line, kept from a recent line or decoded now; null when it isn't loaded. */
+  private recent(name: string): Promise<AudioBuffer> | null {
+    let decoded = this.decoded.get(name);
+    if (!decoded) {
+      const fresh = this.decode(name);
+      if (!fresh) return null;
+      // A failed decode isn't kept: the next line tries again.
+      fresh.catch(() => {
+        if (this.decoded.get(name) === fresh) this.decoded.delete(name);
+      });
+      decoded = fresh;
+    }
+    // Most recently played last; past the limit, the least recent goes.
+    this.decoded.delete(name);
+    this.decoded.set(name, decoded);
+    for (const oldest of this.decoded.keys()) {
+      if (this.decoded.size <= DECODED_TAKES) break;
+      this.decoded.delete(oldest);
+    }
+    return decoded;
+  }
+
+  /** Plays the line a start command names, take `variant` of `sound`
+   *  (`set/voice/trigger/intensity`), through `play` once its take is decoded:
+   *  at `at`, or when decoded if that is later (`now`), unless that is more
+   *  than `wait` seconds past `at`, when it is dropped. False when the take
+   *  isn't loaded. */
+  play(
+    sound: string,
+    variant: number,
+    at: number,
+    wait: number,
+    now: () => number,
+    play: (buffer: AudioBuffer, at: number) => void,
+  ): boolean {
+    const decoded = this.recent(`${sound}/${variant}`);
+    if (!decoded) return false;
+    const line: Promise<void> = decoded.then(
+      (buffer) => {
+        this.lines.delete(line);
+        const time = now();
+        if (!this.controller.signal.aborted && time - at <= wait) play(buffer, Math.max(at, time));
+      },
+      (error: unknown) => {
+        this.lines.delete(line);
+        if (!this.controller.signal.aborted)
+          this.errors.set(
+            `${sound}/${variant}`,
+            error instanceof Error ? error.message : String(error),
+          );
+      },
+    );
+    this.lines.add(line);
+    return true;
+  }
+
+  /** Resolves once every decode asked for so far has finished, and its line played or dropped. */
+  async settled(): Promise<void> {
+    while (this.lines.size) await Promise.all(this.lines);
+  }
+
+  /** What the bank holds: takes loaded, their MP3 bytes, and takes kept decoded. */
+  held(): { takes: number; bytes: number; decoded: number } {
+    let bytes = 0;
+    for (const take of this.bytes.values()) bytes += take.byteLength;
+    return { takes: this.bytes.size, bytes, decoded: this.decoded.size };
   }
 
   dispose() {
     this.controller.abort();
-    this.buffers.clear();
+    this.bytes.clear();
+    this.fetched.clear();
     this.decoded.clear();
   }
 
-  private decode(url: string, signal: AbortSignal): Promise<AudioBuffer> {
-    let decoded = this.decoded.get(url);
-    if (!decoded) {
+  private fetch(url: string, signal: AbortSignal): Promise<ArrayBuffer> {
+    let fetched = this.fetched.get(url);
+    if (!fetched) {
       // Called unbound: a browser's fetch refuses any other receiver.
       const fetcher = this.fetcher;
-      decoded = (async () => {
+      fetched = (async () => {
         if (this.free > 0) this.free--;
         else await new Promise<void>((resolve) => this.waiting.push(resolve));
         try {
           signal.throwIfAborted();
           const response = await fetcher(url, { signal });
           if (!response.ok) throw new Error(`${url}: HTTP ${response.status}`);
-          return await this.context.decodeAudioData(await response.arrayBuffer());
+          return await response.arrayBuffer();
         } finally {
           // A finished take hands its slot straight to the next waiting one.
           const next = this.waiting.shift();
@@ -144,9 +226,9 @@ export class VoiceBank {
           else this.free++;
         }
       })();
-      decoded.catch(() => this.decoded.delete(url));
-      this.decoded.set(url, decoded);
+      fetched.catch(() => this.fetched.delete(url));
+      this.fetched.set(url, fetched);
     }
-    return decoded;
+    return fetched;
   }
 }

@@ -322,7 +322,7 @@ test("a battle loads its voice sets only once its sounds are ready, and its unit
   expect(played).not.toContain(take);
   audio.respond({ ...answer, groupKey: "order/2" });
   frame();
-  expect(played.filter((b) => b === take)).toHaveLength(1);
+  await vi.waitFor(() => expect(played.filter((b) => b === take)).toHaveLength(1));
   // Only the set asked for was fetched.
   expect(fetched.filter((url) => url.endsWith("pack.json"))).toEqual([
     "/audio/voices/tank/pack.json",
@@ -380,6 +380,7 @@ test("a battle's own shout plays its kind's bark where it was shouted, and the m
     fetcher,
   );
   audio.speakers({ own: { m1a2: "tank" }, enemy: { t90: "ru_tank" } });
+  audio.loadVoices(["tank"]);
   await vi.waitFor(() => expect(audio.stats()?.loading).toBe(false));
   await new Promise((resolve) => setTimeout(resolve, 0));
   const frame = () =>
@@ -403,8 +404,66 @@ test("a battle's own shout plays its kind's bark where it was shouted, and the m
     ],
   });
   frame();
-  expect(played.filter((b) => b === take)).toHaveLength(1);
+  await vi.waitFor(() => expect(played.filter((b) => b === take)).toHaveLength(1));
   expect(placed).toContainEqual([30, 10, 1]);
   const { depth } = game.presentation.audio.music.duck;
   expect(ducks).toHaveBeenCalledWith(depth, expect.any(Number), expect.any(Number));
+});
+
+test("a skirmish loads the sets of its fielded units and of enemy kinds once identified; the rest only lend their shout pool", async () => {
+  // Each set answers with its lead and barks with its gunner; the unseen
+  // shout pool takes a stressed bark from every enemy set.
+  const pack = (set: string) => ({
+    set,
+    voices: [
+      { id: "lead", speaks: "responses" },
+      { id: "gunner", speaks: "barks" },
+    ],
+    takes: [
+      ["lead", "move", "steady"],
+      ["gunner", "under_fire", "stressed"],
+    ].map(([voice, trigger, intensity]) => ({
+      voice,
+      trigger,
+      intensity,
+      take: 0,
+      url: `/audio/voices/${set}/${voice}-${trigger}-${intensity}-0.abcd1234.mp3`,
+      duration_s: 1,
+    })),
+  });
+  const fetched: string[] = [];
+  const fetcher = async (url: string) => {
+    fetched.push(url);
+    const set = /^\/audio\/voices\/(\w+)\/pack\.json$/.exec(url)?.[1];
+    if (set) return Response.json(pack(set));
+    return new Response(Uint8Array.of(1));
+  };
+  const audio = setupDecode(async () => buffer(1, 2, 8000), fetcher);
+  const takes = () =>
+    fetched
+      .filter((url) => url.endsWith(".mp3"))
+      .map((url) => url.split("/").slice(3, 5).join("/").split("-").slice(0, 1).join())
+      .sort();
+  audio.speakers({
+    own: { m1a2: "tank", m2: "ifv" },
+    enemy: { t90: "ru_tank", bmp: "ru_ifv" },
+  });
+  // The side fields tanks only (`UnitResponses` asks for its units' sets).
+  audio.loadVoices(["tank"]);
+  await vi.waitFor(() => expect(audio.stats()?.loading).toBe(false));
+  await vi.waitFor(() => expect(takes()).toHaveLength(4));
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(takes()).toEqual(["ru_ifv/gunner", "ru_tank/gunner", "tank/gunner", "tank/lead"]);
+  // A T-90 comes into sight: its set loads; the unseen BMP's still doesn't.
+  audio.identified(["t90"]);
+  await vi.waitFor(() => expect(takes()).toContain("ru_tank/lead"));
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(takes()).toEqual([
+    "ru_ifv/gunner",
+    "ru_tank/gunner",
+    "ru_tank/gunner",
+    "ru_tank/lead",
+    "tank/gunner",
+    "tank/lead",
+  ]);
 });

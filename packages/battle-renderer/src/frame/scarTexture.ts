@@ -46,6 +46,11 @@ export interface GroundMarks {
   readonly rows: number;
   /** Whether the side has seen cell (i, j) cleared. */
   isCleared(i: number, j: number): boolean;
+  /** Counts what was cleared: a change says the cleared ground changed. */
+  readonly clearedCount: number;
+  /** The cleared cells as tile and `start + length · 256` spans (16-cell
+   *  tiles, their cells row-major). */
+  clearedRuns(): Uint32Array;
   /** Whether the scars changed since the last call. */
   changed(): boolean;
   /** The regions to draw one by one, each after its own `prepare(region,

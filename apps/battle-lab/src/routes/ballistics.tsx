@@ -505,13 +505,6 @@ function startRun(
   return { lab, tick: 0, shots, events: [], paths, movers, bench };
 }
 
-/** What a struck label hit, as the battle publishes it. */
-function hitKind(movers: readonly Mover[], struck: string | undefined): string {
-  if (!struck?.startsWith("body")) return struck?.startsWith("prop") ? "prop" : "ground";
-  const m = movers.find((b) => b.id === Number(struck.slice(5)));
-  return m?.armored ? "hull" : m?.shape === "capsule" ? "soldier" : "prop";
-}
-
 /** Step the run one tick. */
 function stepRun(run: Run, view: WorldView) {
   const k = run.tick + 1;

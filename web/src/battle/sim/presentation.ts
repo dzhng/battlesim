@@ -40,6 +40,17 @@ import {
   type SceneBuildings,
 } from "@packages/battle-renderer/src/models/buildingReferences";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
+import type { StaticBundle } from "@packages/scene-assets/src/schema";
+import {
+  setGround,
+  type GroundInput,
+  type PresentedGround,
+} from "@packages/battle-renderer/src/terrain/terrainSurface";
+import { sceneryFacts } from "@packages/battle-renderer/src/scenery/appearance";
+import {
+  NO_SCENERY_WALK,
+  type SceneryWalkStats,
+} from "@packages/battle-renderer/src/frame/sceneryLayer";
 import { TEMPLATE_STATES, type TemplateState } from "@packages/scene-assets/src/templateLibrary";
 import { countedFetch } from "../../downloads";
 import type {
@@ -152,9 +163,26 @@ export interface PresentedAppearance {
   state: string;
   lies: number;
   placed: boolean;
+  /** What draws it (`Appearance.draws`): 0 a model or kit module, else the scenery. */
+  draws: number;
 }
 
 const buffer = () => memory!.buffer;
+
+/** The ground `rust` holds, as the renderer reads its tables: a new object
+ *  for each ground set, so a renderer knows to read them again. */
+function groundOf(rust: Presentation): PresentedGround {
+  return {
+    ground_terrain: () => rust.ground_terrain(),
+    ground_plots: (textured) => rust.ground_plots(textured),
+    ground_water_mesh: () => rust.ground_water_mesh(),
+    grass_kinds: () => rust.grass_kinds(),
+    grass_params: (shapes, density) => rust.grass_params(shapes, density),
+    grass_window: (eye, metresPerPx) => rust.grass_window(eye, metresPerPx),
+    grass_props: () => rust.grass_props(),
+    retune_grass: (rules) => rust.retune_grass(rules),
+  };
+}
 
 /** A map's buildings as `load_world` takes them: where they stand, the
  *  template art they are drawn from, which building each part prop is, and
@@ -284,6 +312,14 @@ export class ObservationDecoder {
   private art: BuildingArt | null = null;
   private style: BuildingStyle | null = null;
   private sun: PresentedSun | null = null;
+  /** The ground staged, the one set, and the scenery's art it was placed by. */
+  private staged: GroundInput | null = null;
+  private groundSet: GroundInput | null = null;
+  private placedBy: InstalledAppearances | null = null;
+  /** The ground the page reads tables from, new with each ground set. */
+  private presented: PresentedGround | null = null;
+  /** The cleared ground last handed over: the view and its count. */
+  private cleared: [GroundMarks | null, number] = [null, -1];
   /** Something staged changed since the last load. */
   private stale = false;
   /** The drawables of the last load, and those the page has not taken yet. */
@@ -370,6 +406,7 @@ export class ObservationDecoder {
         state: name(rows[o + Appearance.state], rows[o + Appearance.state_len]),
         lies: rows[o + Appearance.lies],
         placed: rows[o + Appearance.placed] === 1,
+        draws: rows[o + Appearance.draws],
       };
     }));
   }
@@ -394,6 +431,7 @@ export class ObservationDecoder {
   ) {
     if (installed !== this.installed) {
       this.installed = installed;
+      if (this.staged && installed !== this.placedBy) this.stale = true;
       const next = buildingArt(installed);
       const art = this.art;
       const same =
@@ -415,9 +453,82 @@ export class ObservationDecoder {
     [this.buildings, this.style, this.sun] = [buildings, style, sun];
   }
 
-  /** Load what is staged: the battle and the buildings, in one world. */
+  /** Stage the scene's ground (null: none), its scenery drawn from
+   *  the art `setBuildings` was given: set, placed and loaded with the rest
+   *  by the next frame when either is another. Cheap when nothing changed:
+   *  call every frame. */
+  setGround(ground: GroundInput | null) {
+    if (ground !== this.staged) [this.staged, this.stale] = [ground, true];
+  }
+
+  /** The ground the scene's presentation resolved, for the terrain, the
+   *  grass and the water; null before one is set. */
+  presentedGround(): PresentedGround | null {
+    return this.presented;
+  }
+
+  /** The ground the side has seen cleared (the client's learned ground):
+   *  shrubs and dressing on it leave. Cheap when nothing changed. */
+  setCleared(ground: GroundMarks | null) {
+    const count = ground?.clearedCount ?? 0;
+    if (ground === this.cleared[0] && count === this.cleared[1]) return;
+    this.cleared = [ground, count];
+    const runs = ground?.clearedRuns() ?? new Uint32Array(0);
+    this.rust.set_cleared(runs, ground?.cols ?? 0, ground?.rows ?? 0, ground?.cellM ?? 1);
+  }
+
+  /** The player's scenery settings: the trees' tier thresholds over the
+   *  biome's, and whether the forest floor's dressing and the tree lines'
+   *  shrubs draw. */
+  setSceneryQuality(treeLodScale: number, dressing: boolean, understorey: boolean) {
+    this.rust.set_scenery_quality(treeLodScale, dressing, understorey);
+  }
+
+  /** What the presentation says of the scenery it placed and walked. */
+  sceneryWalk(): SceneryWalkStats {
+    const [forest, understorey, backdrop, cells] = this.rust.scenery_stats();
+    if (forest === undefined) return NO_SCENERY_WALK;
+    return {
+      placed: [forest, understorey, backdrop],
+      cells,
+      pending: this.rust.scenery_pending(),
+      falling: this.rust.scenery_falling(),
+    };
+  }
+
+  /** Sets the staged ground and places its scenery once `installed` holds
+   *  every appearance it names. */
+  private loadGround() {
+    const ground = this.staged;
+    if (ground !== this.groundSet) {
+      this.groundSet = ground;
+      this.placedBy = null;
+      this.presented = null;
+      if (ground) {
+        setGround(this.rust, ground);
+        this.presented = groundOf(this.rust);
+      }
+    }
+    const installed = this.installed;
+    if (!ground || !installed || installed === this.placedBy) return;
+    const kinds = JSON.parse(this.rust.scenery_kinds()) as string[];
+    const entries = kinds.map((name) => installed.appearances.get(name));
+    if (!entries.every((e) => e?.bundle.kind === "static")) return;
+    const hinge = ground.biome.trees.felled.stump_height_m;
+    this.rust.place_scenery(
+      Float64Array.from(
+        entries.flatMap((e) =>
+          sceneryFacts(e!.bundle as StaticBundle, e!.scenery === "tree", hinge),
+        ),
+      ),
+    );
+    this.placedBy = installed;
+  }
+
+  /** Load what is staged: the battle, the buildings and the ground, in one world. */
   private load() {
     this.stale = false;
+    this.loadGround();
     const { battle, buildings, art, style, sun } = this;
     const drawn =
       buildings && art && style && buildings.placed.template.length > 0
@@ -490,13 +601,6 @@ export class ObservationDecoder {
    *  writes every one. */
   resendStatics() {
     this.rust.resend_statics();
-  }
-
-  /** How far a crater's bowl moves the scars a view ray reads, metres (the
-   *  static ground's `scar_reach_m`): the scar cache loads a region this far
-   *  past it. */
-  setScarReach(reachM: number) {
-    this.rust.set_scar_reach(reachM);
   }
 
   /** The cells the latest publication's ground patch covered. */

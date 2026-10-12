@@ -108,8 +108,8 @@ export async function surfaceFieldAgreement(ctx) {
         usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
       });
       for (const [name, surfaceOf, streams, map] of cases) {
-        const ground = surfaceOf.ground;
-        source.set(surfaceOf);
+        const ground = surface.presentGround(surfaceOf.input);
+        source.set(ground);
         // Seeded points over the map and a margin past it, as f32.
         let seed = 63;
         const next = () => {
@@ -161,7 +161,7 @@ export async function surfaceFieldAgreement(ctx) {
         device.queue.writeBuffer(input, 0, queries);
         const points = new Float64Array(count * 3);
         for (let q = 0; q < count; q++) points.set(queries.subarray(q * 4, q * 4 + 3), q * 3);
-        const cpu = ground.distances(points);
+        const cpu = ground.ground_distances(points);
         const encoder = root["~unstable"].createCommandEncoder();
         pipeline
           .with(source.group)
@@ -220,10 +220,10 @@ export async function surfaceFieldAgreement(ctx) {
         } finally {
           read.unmap();
         }
-        const tables = ground.terrain();
+        const tables = ground.ground_terrain();
         const [records, index] = [tables.surfaces(), tables.surface_index()];
         tables.free();
-        const [, , cellM, cols, rows, levels, exactToM] = ground.field_grid();
+        const [, , cellM, cols, rows, levels, exactToM] = ground.ground_field_grid();
         grown.push({
           name,
           records: records.length / fields.SURFACE_FLOATS,

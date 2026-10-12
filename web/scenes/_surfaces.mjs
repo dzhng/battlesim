@@ -106,9 +106,12 @@ export async function surfaceExportAgreement(ctx) {
       const interiorRow = layout.surfaceAreaKinds.indexOf("road");
       const world = mesh.buildWorldLayers(exported, layout, biome.default, "surface");
       // How far the play camera's widest exact pixel reads the paved rule.
-      reach = world.terrain.ground.reach(2)[0];
+      const ground = (
+        await import(file("packages/battle-renderer/src/terrain/terrainSurface.ts"))
+      ).presentGround(world.terrain.input);
+      reach = ground.ground_reach(2)[0];
       const source = terrain.createTerrainSource(root, registry);
-      source.set(world.terrain);
+      source.set(ground);
       const queryLayout = tgpu.bindGroupLayout({
         points: { storage: (n) => d.arrayOf(d.vec4f, n), access: "readonly" },
         output: { storage: (n) => d.arrayOf(d.vec4f, n), access: "mutable" },

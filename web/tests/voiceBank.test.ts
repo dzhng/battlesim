@@ -1,9 +1,11 @@
 // @vitest-environment node
 // The voice bank: a battle's sets load from their packs in the background, a
 // line whose take isn't loaded is simply not there, and one set's failure
-// never silences another.
+// never silences another. A loaded take stays compressed; it is decoded only
+// when a line plays it, and only the last few decoded stay decoded.
 import { expect, test } from "vitest";
 import {
+  DECODED_TAKES,
   TAKES_IN_FLIGHT,
   VoiceBank,
   type BankListener,
@@ -40,12 +42,28 @@ const TANK = voicePack(CATALOG, "tank", (id) =>
     : null,
 );
 
-/** A context whose decode turns the fetched bytes' length into a buffer's duration. */
-const context = {
-  async decodeAudioData(bytes: ArrayBuffer) {
-    return { duration: bytes.byteLength } as AudioBuffer;
-  },
-} as unknown as BaseAudioContext;
+/** A context whose decode turns the fetched bytes' length into a buffer's
+ *  duration, and counts its decodes. Like a browser's, it takes the bytes. */
+function decoding() {
+  const counted = { decodes: 0 };
+  const context = {
+    async decodeAudioData(bytes: ArrayBuffer) {
+      counted.decodes++;
+      const duration = bytes.byteLength;
+      structuredClone(bytes, { transfer: [bytes] });
+      return { duration } as AudioBuffer;
+    },
+  } as unknown as BaseAudioContext;
+  return { counted, context };
+}
+const { context } = decoding();
+
+/** The audio a line of take `variant` of `sound` plays, from `bank`, once decoded. */
+function heard(bank: VoiceBank, sound: string, variant: number) {
+  return new Promise<AudioBuffer | null>((resolve) => {
+    if (!bank.play(sound, variant, 0, 1, () => 0, resolve)) resolve(null);
+  });
+}
 
 /** What a bank told its listener, in order. */
 function listening() {
@@ -110,27 +128,109 @@ test("a pack lists a set's served takes, its voices and their roles", () => {
   ]);
 });
 
-test("loading runs in the background; a take is there only once its audio is decoded", async () => {
+test("loading runs in the background; a take is there once fetched, as long as its pack says", async () => {
   const { asked, fetcher, flush } = server({ tank: TANK });
   const { told, listener } = listening();
+  const { counted, context } = decoding();
   const bank = new VoiceBank(context, fetcher, undefined, { listener });
   const loaded = bank.load(["tank"]);
-  expect(bank.line("tank/lead/move/steady", 0)).toBeNull();
+  expect(
+    bank.play(
+      "tank/lead/move/steady",
+      0,
+      0,
+      1,
+      () => 0,
+      () => {},
+    ),
+  ).toBe(false);
   expect(told).toEqual([]);
   await flush();
   await loaded;
   expect(asked[0]).toBe(packUrl("tank"));
-  // The set's voices first, then each take as it decodes.
+  // The set's voices first, then each take as it arrives, with the length its pack records.
   expect(told).toEqual([
     "tank: lead, gunner",
-    "tank/lead/move/steady/0 3 s",
-    "tank/lead/move/stressed/1 3 s",
+    "tank/lead/move/steady/0 1.5 s",
+    "tank/lead/move/stressed/1 1.5 s",
   ]);
-  expect(bank.line("tank/lead/move/steady", 0)?.duration).toBe(3);
-  expect(bank.line("tank/lead/move/stressed", 1)?.duration).toBe(3);
+  // Loaded takes are held as fetched: nothing is decoded until a line plays.
+  expect(counted.decodes).toBe(0);
+  expect(bank.held()).toEqual({ takes: 2, bytes: 6, decoded: 0 });
+  expect((await heard(bank, "tank/lead/move/steady", 0))?.duration).toBe(3);
+  expect(counted.decodes).toBe(1);
   // Not in the pack: never fetched, never there.
-  expect(bank.line("tank/lead/move/steady", 1)).toBeNull();
+  expect(await heard(bank, "tank/lead/move/steady", 1)).toBeNull();
   expect(asked.filter((url) => url.endsWith(".mp3"))).toHaveLength(2);
+});
+
+test("a take decodes for each line that plays it while few others have played since", async () => {
+  // Decoded audio is ~20 times its MP3 bytes: a battle keeps only the last few decoded.
+  const every = voicePack(CATALOG, "tank", () => ({ sha256: SHA, duration_s: 1.5 }));
+  const { fetcher, flush } = server({ tank: every });
+  const { counted, context } = decoding();
+  const bank = new VoiceBank(context, fetcher);
+  const loaded = bank.load(["tank"]);
+  while (bank.held().takes < every.takes.length) await flush(1);
+  await loaded;
+  const sounds = every.takes.map(
+    (t) => [`tank/${t.voice}/${t.trigger}/${t.intensity}`, t.take] as const,
+  );
+  expect(sounds.length).toBeGreaterThan(DECODED_TAKES + 1);
+  for (const [sound, take] of sounds) await heard(bank, sound, take);
+  expect(counted.decodes).toBe(sounds.length);
+  expect(bank.held().decoded).toBe(DECODED_TAKES);
+  // The last played is still decoded; the first has to be decoded again.
+  await heard(bank, ...sounds.at(-1)!);
+  expect(counted.decodes).toBe(sounds.length);
+  expect((await heard(bank, ...sounds[0]))?.duration).toBe(3);
+  expect(counted.decodes).toBe(sounds.length + 1);
+  expect(bank.held().decoded).toBe(DECODED_TAKES);
+});
+
+test("a line plays when its take is decoded, unless that is past its wait", async () => {
+  const { fetcher, flush } = server({ tank: TANK });
+  let decoded!: () => void;
+  const slow = {
+    decodeAudioData: (bytes: ArrayBuffer) =>
+      new Promise<AudioBuffer>((resolve) => {
+        decoded = () => resolve({ duration: bytes.byteLength } as AudioBuffer);
+      }),
+  } as unknown as BaseAudioContext;
+  const bank = new VoiceBank(slow, fetcher);
+  const loaded = bank.load(["tank"]);
+  await flush();
+  await loaded;
+  let clock = 10;
+  const played: number[] = [];
+  // Asked to start at 10 s with 1 s to wait; decoded at 10.4 s, it starts then.
+  expect(
+    bank.play(
+      "tank/lead/move/steady",
+      0,
+      10,
+      1,
+      () => clock,
+      (_, at) => played.push(at),
+    ),
+  ).toBe(true);
+  clock = 10.4;
+  decoded();
+  await bank.settled();
+  expect(played).toEqual([10.4]);
+  // Decoded at 11.5 s, past its wait: dropped.
+  bank.play(
+    "tank/lead/move/stressed",
+    1,
+    10,
+    1,
+    () => clock,
+    (_, at) => played.push(at),
+  );
+  clock = 11.5;
+  decoded();
+  await bank.settled();
+  expect(played).toEqual([10.4]);
 });
 
 test("a battle's takes download a few at a time, and all of them arrive", async () => {
@@ -152,7 +252,7 @@ test("a battle's takes download a few at a time, and all of them arrive", async 
   await loaded;
   expect(every.takes.length).toBeGreaterThan(TAKES_IN_FLIGHT * 4);
   expect(peak).toBeLessThanOrEqual(TAKES_IN_FLIGHT);
-  expect(bank.loaded()).toHaveLength(every.takes.length);
+  expect(bank.held().takes).toBe(every.takes.length);
 });
 
 test("a set without a pack stays silent and the others still load", async () => {
@@ -162,7 +262,7 @@ test("a set without a pack stays silent and the others still load", async () => 
   const loaded = bank.load(["absent", "tank"]);
   await flush();
   await loaded;
-  expect(bank.line("tank/lead/move/steady", 0)).not.toBeNull();
+  expect(await heard(bank, "tank/lead/move/steady", 0)).not.toBeNull();
   expect(told.filter((t) => t.startsWith("absent"))).toEqual([]);
   expect([...bank.errors.keys()]).toEqual(["absent"]);
 });
@@ -177,7 +277,7 @@ test("disposing stops loading: nothing arrives after", async () => {
   bank.dispose();
   await flush();
   await loaded;
-  expect(bank.line("tank/lead/move/steady", 0)).toBeNull();
+  expect(await heard(bank, "tank/lead/move/steady", 0)).toBeNull();
   expect(told).toEqual(["tank: lead, gunner"]);
   expect(bank.errors.size).toBe(0);
 });

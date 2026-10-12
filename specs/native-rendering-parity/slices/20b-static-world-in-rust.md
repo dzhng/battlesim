@@ -165,3 +165,28 @@ Market-town's ground, tables and scenery resolve in about 0.5 s in WASM (124 ms 
 **Web suite:** green but `icons` (3 tests, the soldier models' LFS sources not pulled; identical on `origin/main` `57edae9bd`) and `viewport.test.tsx` (5 tests; identical on this branch's base `slice20b2`, passing on `origin/main`: older than step 3).
 
 **Left:** the dressing's per-frame cache (`scenery/dressing.ts`) and the scenery layer's walk stay TS until the `World` fold moves scenery through `Frame`'s static batches.
+
+## Step 4 findings: the `World` fold (2026-10-12)
+
+Built on `slice20b3` over steps 2 and 3 (on `main` at `5811511d9`), then merged with `main`'s native ground and Rust scars.
+
+**Contract.**
+- The scenery walk is Rust's: `static_world::ground::walk` holds the scenery's 128 m chunks, its four tiers, the forest floor's dressing (128 cells resident, 8 laid a walk), and the felled trees' fall (`fell_pose`, the biome's felled rules). `SceneryPopulation` is a `Population` beside the buildings', so `Frame.batches` carry the scenery through the same `StaticBatches` emitter; each list carries a print, and a batch is written only when its print changed.
+- `Appearance.pad` is now `draws`: 0 a model or kit module, 1 forest, 2 understorey, 3 backdrop, 4 dressing (`tint.w` its height over its fade), 5 felled (two records an instance: the tree with its fall, then squash, spread, trunk, landed, crown), 6 stump. The scenery shaders read the 64-byte `Instance`; their WGSL is unchanged, only the instance strides and offsets in `pipelines.json`.
+- The ground is set on `Presentation` (`set_ground`), not a separate `Ground` class, which is deleted. Its calls carry a `ground_` prefix where the name is generic: `ground_terrain`, `ground_plots`, `ground_water_mesh`, and the probes. The grass calls keep their names: `grass_kinds`, `grass_params(shapes, density)`, `grass_window`, `grass_props`, `retune_grass`. The scenery calls are `scenery_kinds` and `place_scenery`, with four numbers a kind (height, radius, trunk radius, crown base) from the installed bundles.
+- The player's settings are Presentation inputs: `set_scenery_quality(tree_lod_scale, dressing, understorey)`. So is the cleared ground, `set_cleared(runs, cols, rows, cell_m)`, which the lab can withhold. Felled trees come from the publication's fallen bodies inside Rust, so the page derives none. `scenery_pending`, `scenery_falling` and `scenery_stats` report the walk.
+- `set_ground` sets the scars' view-ray reach from its own ground. The page's `set_scar_reach` is deleted. Rust keeps `set_scar_reach` for native, which holds its own `Ground`. `Presentation::ground()` (the side's learned ground) is renamed `learned()`.
+- Deleted TypeScript: `scenery/felled.ts`, `lod.ts`, `dressing.ts` and `placement.ts`; the scenery layer's walk; the battle session's felled derivation.
+
+**Equality** against the TypeScript walk, dumped on the branch before the fold (`throwaway/slice20b3/walk`): over 120 views on each of market-town, paris-corner and river, with dressing settled and a cleared pattern and felled trees set, every list matches tier by tier and kind by kind. The lists are forest, understorey, backdrop, dressing and felled, plus the casters of forest and understorey. Market-town's totals are 429,053 forest, 262,437 forest casters, 5,215 understorey, 50,564 dressing and 170,640 felled. Stumps are record for record. Felled records are identical except for 51 of 1,422, which differ by one ulp in the fall's angle during the settle (`libm`'s sin against V8's: the accepted `libm` decision). The check was rerun after the merge with `main`, with the same result.
+
+**Browser before/after** (production build, under the GPU lock, interleaved; before is `main` at `7afb84774`, which has the TS walk). The machine's load average was 10 to 20 on 18 cores from parallel lanes, so the absolute numbers are about half of step 3's. The pairs agree within their noise:
+
+| graphics test | avg FPS | 1% low | p95 ms | GPU ms |
+| --- | --- | --- | --- | --- |
+| market-town before | 19.9, 24.6 | 8.6, 7.2 | 83.90, 51.35 | 27.52, 23.49 |
+| market-town after | 21.2, 29.7 | 13.0, 9.4 | 66.78, 50.05 | 19.96, 17.88 |
+| paris-corner before | 35.2, 34.5 | 8.3, 8.5 | 42.13, 41.98 | 15.87, 16.49 |
+| paris-corner after | 31.6, 33.2 | 7.6, 7.6 | 43.17, 41.90 | 17.59, 16.99 |
+
+**Net code** (comments and blanks excluded; against `main`): Rust +843, Rust tests +61, TypeScript −810, TS tests −462, mjs +11, tsx +11: **−346**.

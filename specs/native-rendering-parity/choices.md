@@ -632,3 +632,14 @@ The spec said phase 3 would be planned with the user. Under the implementation g
 | The ground scenes read Rust through `Ground`'s probes (`distances`, `reach`, `plots_json`, `plot_kind_at`, `drawn_strokes`, `field_grid`) where they read the TS readers; the field's CPU lookup takes the pixel's footprint as the GPU's does | The scenes check the WGSL against the CPU's own lookup, now Rust's; probes cost nothing per frame | Agent |
 | The deleted TS tests' contracts live in `ground/tests.rs` on one synthetic world, through `Ground`'s calls; the grass tests run through the WASM `Ground` | Test the behaviour where it is owned, at its outermost entry | Agent |
 | The presentation module grows from 1.37 MB to 1.81 MB raw | The biome's and tables' serde and the scenery port; within the startup budget | Agent |
+
+### Slice 20b: the static world in Rust, step 4 (the `World` fold)
+
+| Decision | Why | Closed by |
+| --- | --- | --- |
+| The scenery walk (chunks, tiers, dressing cells, felled poses) is a `Population` beside the buildings', so `Frame.batches` carry it through `StaticBatches`. Each list has a print, and a batch is written only when its print changes | One walk and one emitter for everything static; the renderer uploads what changed and decides nothing | Agent |
+| `Appearance.pad` becomes `draws`, which says which scenery shader draws a row (0 a model or kit module). A felled tree is two `Instance` records | The scenery shaders read the 64-byte `Instance` with no second record type; a fall needs more than 16 floats | Agent |
+| The ground lives on `Presentation`; the `Ground` wasm class is deleted, and generic names take a `ground_` prefix | One owner per map (coordinator brief); the frame's scenery walk needs the ground the page's tables come from | Agent |
+| Felled trees come from the publication's fallen bodies inside Rust. The cleared ground is still handed in (`set_cleared`) | The lab can hide the learned ground (`scarsSuppressed`), and a scene with no battle has none; reading `learned()` directly would lose both | Agent |
+| `set_ground` sets the scars' reach itself, and the page's `set_scar_reach` is deleted. Rust keeps it for native's own ground | The reach is the ground's fact; native has not moved its ground onto `Presentation` yet | Agent |
+| The felled angle is accepted at one ulp from the TS on 51 of 1,422 trees | The step 3 `libm` decision; it is invisible on screen | Agent |

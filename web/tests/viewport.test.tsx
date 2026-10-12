@@ -99,7 +99,7 @@ test("a viewport disposed during its build releases the late frame and never bec
       },
       setClock() {},
       setPresentationWorld() {},
-      setFelled() {},
+      setPresentedGround() {},
       setGround() {},
       dispose() {
         disposed = true;
@@ -162,7 +162,7 @@ test("appearance updates reach the installing frame and unmount releases it imme
     setModels() {},
     setClock() {},
     setPresentationWorld() {},
-    setFelled() {},
+    setPresentedGround() {},
     setGround() {},
     dispose() {
       disposed = true;
@@ -206,7 +206,7 @@ test("a covered viewport ignores camera keys and resumes steering when uncovered
       setFog() {},
       setClock() {},
       setPresentationWorld() {},
-      setFelled() {},
+      setPresentedGround() {},
       setGround: () => false,
       render() {},
       dispose() {},

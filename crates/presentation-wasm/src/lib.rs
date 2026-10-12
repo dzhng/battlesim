@@ -10,7 +10,9 @@ use std::sync::Arc;
 use presentation::presentation::{Ghost, Presentation as Inner, Ui};
 use presentation::records::{FrameHeader, WorldHeader};
 use presentation::sound::bank::{self, Bank, Core};
-use presentation::sound::frame::{self, Command, Listener, Motion, Scripted, Sound};
+use presentation::sound::frame::{
+    self, Command, Listener, Motion, Scripted, Sound, SoundSoldier, SoundVehicle,
+};
 use presentation::sound::synth;
 use presentation::sound::tables::{Cadence, Recipe};
 use presentation::sound::voices::{self, Request};
@@ -33,6 +35,8 @@ pub struct Presentation {
     taken_fog: Option<Arc<Fog>>,
     frame_header: FrameHeader,
     world_header: WorldHeader,
+    /// The biome's own grass rules, while a lab grows the ground's by others.
+    grass: Option<presentation::static_world::ground::biome::GrassRules>,
 }
 
 fn error(e: String) -> JsError {
@@ -71,6 +75,7 @@ impl Presentation {
             taken_fog: None,
             frame_header: FrameHeader::default(),
             world_header: WorldHeader::default(),
+            grass: None,
         })
     }
 
@@ -231,11 +236,6 @@ impl Presentation {
         self.inner.resend_scars();
     }
 
-    /// The crater's view-ray reach, metres (`Ground.scar_reach_m`).
-    pub fn set_scar_reach(&mut self, reach_m: f64) {
-        self.inner.set_scar_reach(reach_m);
-    }
-
     /// The scar cache's `ScarStats`, as JSON.
     pub fn scar_stats(&self) -> String {
         serde_json::to_string(&self.inner.scar_stats()).unwrap()
@@ -243,30 +243,30 @@ impl Presentation {
 
     /// The learned ground's epoch, revision and cleared cells (0 without a layout).
     pub fn ground_epoch(&self) -> f64 {
-        self.inner.ground().map_or(0.0, |g| g.epoch)
+        self.inner.learned().map_or(0.0, |g| g.epoch)
     }
     pub fn ground_revision(&self) -> f64 {
-        self.inner.ground().map_or(0.0, |g| g.revision)
+        self.inner.learned().map_or(0.0, |g| g.revision)
     }
     pub fn ground_cleared_count(&self) -> u32 {
-        self.inner.ground().map_or(0, |g| g.cleared_count() as u32)
+        self.inner.learned().map_or(0, |g| g.cleared_count() as u32)
     }
     /// The side whose ground it learned, once a snapshot came.
     pub fn ground_side(&self) -> Option<String> {
-        self.inner.ground().and_then(|g| g.side.clone())
+        self.inner.learned().and_then(|g| g.side.clone())
     }
 
     /// Whether the side has seen cell (i, j) cleared.
     pub fn ground_cleared(&self, i: u32, j: u32) -> bool {
         self.inner
-            .ground()
+            .learned()
             .is_some_and(|g| g.is_cleared(i as usize, j as usize))
     }
 
     /// The cleared spans in tile order: (tile, start + length × 256) pairs.
     pub fn ground_cleared_runs(&self) -> Vec<u32> {
         self.inner
-            .ground()
+            .learned()
             .map_or_else(Vec::new, |g| g.cleared_runs())
     }
 
@@ -274,7 +274,7 @@ impl Presentation {
     /// as drawn: crater, scorch, tracks, trampled a byte each) pairs.
     pub fn ground_marked(&self) -> Vec<u32> {
         self.inner
-            .ground()
+            .learned()
             .map_or_else(Vec::new, |g| g.marked_cells())
     }
 
@@ -581,23 +581,54 @@ impl SoundFrame {
         commands(self.inner.update(clock, wall, now, &motion, listener))
     }
 
-    /// Hears scripted `motion` (`SoundMotion` JSON) at presentation time
-    /// `clock` from `listener` (`Listener` JSON).
+    /// Hears scripted motion at presentation time `clock` from `listener`
+    /// (its position, then forward): `soldiers` four numbers each (id, x, y,
+    /// z), `vehicles` eight each (key, x, y, z, left and right travel,
+    /// turret, 1 reversing), and `classes` the vehicles' sound classes,
+    /// space-separated, in their order.
+    #[allow(clippy::too_many_arguments)]
     pub fn update_scripted(
         &mut self,
         clock: f64,
         wall: f64,
         now: f64,
-        motion: &str,
-        listener: &str,
-    ) -> Result<String, JsError> {
-        let motion: Motion =
-            serde_json::from_str(motion).map_err(|e| JsError::new(&e.to_string()))?;
-        let listener: Listener =
-            serde_json::from_str(listener).map_err(|e| JsError::new(&e.to_string()))?;
-        Ok(commands(
-            self.inner.update(clock, wall, now, &motion, listener),
-        ))
+        soldiers: &[f64],
+        vehicles: &[f64],
+        classes: &str,
+        listener: &[f64],
+    ) -> String {
+        let soldiers = soldiers
+            .as_chunks::<4>()
+            .0
+            .iter()
+            .map(|&[id, x, y, z]| SoundSoldier {
+                id,
+                position: [x, y, z],
+            })
+            .collect();
+        let vehicles = vehicles
+            .as_chunks::<8>()
+            .0
+            .iter()
+            .zip(classes.split(' '))
+            .map(
+                |(&[key, x, y, z, travel_l, travel_r, turret, reverse], class)| SoundVehicle {
+                    key,
+                    vehicle_class: class.to_owned(),
+                    position: [x, y, z],
+                    travel_l,
+                    travel_r,
+                    turret,
+                    reverse: reverse != 0.0,
+                },
+            )
+            .collect();
+        let listener = Listener {
+            position: [listener[0], listener[1], listener[2]],
+            forward: [listener[3], listener[4], listener[5]],
+        };
+        let motion = Motion { vehicles, soldiers };
+        commands(self.inner.update(clock, wall, now, &motion, listener))
     }
 
     /// Silences and forgets everything, from mixer time `now`.

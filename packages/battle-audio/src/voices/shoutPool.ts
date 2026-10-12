@@ -3,7 +3,8 @@
 // voice (the hearing cue says nothing of who shouted). This only loads the
 // takes; which take a shout plays, where and how muffled, is Rust's
 // (`presentation::sound::frame`). A set without a pack adds nothing, so an
-// empty pool is a silent shout, never an error.
+// empty pool is a silent shout, never an error. The frame starts a shout at
+// once, so the pool keeps every take decoded; `takes_per_voice` keeps it small.
 import { VoiceBank, type PackSource } from "./voiceBank";
 import { BARK_TRIGGERS, type PackTake, type VoicePack } from "./voiceCatalog";
 
@@ -39,10 +40,19 @@ export class ShoutPool {
     });
   }
 
-  /** Loads `sets`' share of the pool; resolves with every take loaded, never rejects. */
+  /** Loads `sets`' share of the pool; resolves with every take loaded and decoded, never rejects. */
   async load(sets: readonly string[]): Promise<ShoutTake[]> {
     await this.bank.load(sets);
-    return this.bank.loaded().map(([sound, buffer]) => ({ sound, buffer }));
+    const takes = await Promise.all(
+      this.bank.names().map(async (sound) => {
+        try {
+          return [{ sound, buffer: await this.bank.decode(sound)! }];
+        } catch {
+          return [];
+        }
+      }),
+    );
+    return takes.flat();
   }
 
   dispose() {

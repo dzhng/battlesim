@@ -72,6 +72,8 @@ export async function renderResponses(): Promise<ResponsesRender> {
       }
     }
     const update = lines.update([0, 0, 0]);
+    // A line's take decodes as it starts: let it, while the clock stands.
+    await lines.settled();
     played.push(...update.started);
     dropped.push(...update.dropped.map((d) => ({ trigger: d.request.trigger, reason: d.reason })));
   }

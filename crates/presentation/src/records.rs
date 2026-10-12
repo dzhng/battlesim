@@ -142,11 +142,17 @@ records! {
         lies: u32,
         /// Joints a palette for it holds (0: rigid).
         skin: u32,
-        /// 1 for a drawable of the static world (a building's kit module),
-        /// whose batches a frame writes only when they change and names
-        /// unchanged otherwise; 0 for one the frame poses every time.
+        /// 1 for a drawable of the static world (a building's kit module, a
+        /// tree), whose batches a frame writes only when they change and
+        /// names unchanged otherwise; 0 for one the frame poses every time.
         placed: u32,
-        pad: u32,
+        /// What draws it: 0 a model; scenery 1 the forest, 2 a tree line's
+        /// shrubs, 3 the backdrop, 4 forest-floor dressing (its seed is its
+        /// height over the size it fades at), 5 a felled tree (two records
+        /// an instance: the tree with its fall's way, angle and hinge; then
+        /// its press up-and-down and across, trunk, landing and crown base),
+        /// 6 a felled tree's stump (the renderer cuts it from the tree).
+        draws: u32,
     }
 
     /// What one frame draws of one drawable at one tier.
