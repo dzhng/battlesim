@@ -12,7 +12,7 @@ export async function modelGhostAgreement(ctx) {
     await page.goto(new URL(`/@fs/${repo}assets/runtime/catalog.json`, ctx.url).href);
     const result = await page.evaluate(async (repo) => {
       const file = (p) => `/@fs/${repo}${p}`;
-      const [gpu, frames, assets, poses, bench, views, light, fog, overlay, models] =
+      const [gpu, frames, assets, poses, bench, views, light, fog, overlay, models, presentation] =
         await Promise.all([
           import(file("packages/renderer-core/src/device.ts")),
           import(file("packages/battle-renderer/src/frame/battleFrame.ts")),
@@ -24,6 +24,7 @@ export async function modelGhostAgreement(ctx) {
           import(file("apps/battle-lab/src/gameFog.ts")),
           import(file("apps/battle-lab/src/gameOverlay.ts")),
           import(file("apps/battle-lab/src/gameModels.ts")),
+          import(file("web/src/battle/sim/presentation.ts")),
         ]);
       // Every unit's art: the probe draws one model of each kind, whoever wears it.
       const installed = await new assets.AppearanceLibrary().load("/");
@@ -53,15 +54,15 @@ export async function modelGhostAgreement(ctx) {
       });
       const read = device.createBuffer({ size: width * width * 4, usage: 0x09 });
       const frame = await frames.createBattleFrame(device, "rgba8unorm", {
-        light: light.gameLight,
+        // Resolved by the presentation crate, as every page's frame is.
+        light: await presentation.resolveLight(light.gameLight),
         fogGeometry: fog.gameFogGeometry,
-        fogStyle: fog.gameFogStyle,
+        fogLook: presentation.resolveFogLook(fog.gameFogStyle),
         overlayGlow: overlay.gameOverlayGlow,
         paint: overlay.gamePaint,
         xrayMinHiddenFragmentFraction: overlay.gameXrayMinHiddenFragmentFraction,
         models: models.gameModelDetail,
         glass: models.gameGlass,
-        buildings: models.gameBuildingStyle,
         world: bench.benchWorld(null),
         instances: [],
         width,
