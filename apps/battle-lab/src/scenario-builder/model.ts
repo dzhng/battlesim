@@ -113,6 +113,14 @@ export function parseBuilderDraft(text: string): ScenarioBundleDraft {
     !Array.isArray(parsed.slots)
   )
     throw new Error("the uploaded package is not a scenario bundle draft");
+  parsed.scenario.units = parsed.scenario.units.map((unit, index) => ({
+    ...unit,
+    id: Number.isInteger(unit.id) ? unit.id : index,
+  }));
+  parsed.slots = parsed.slots.map((slot) => ({
+    ...slot,
+    units: [...slot.units].sort((a, b) => a - b),
+  }));
   return parsed;
 }
 
