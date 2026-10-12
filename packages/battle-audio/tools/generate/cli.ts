@@ -1,5 +1,5 @@
 import { readFileSync, mkdirSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import {
   assignedSet,
   validateVoiceCatalog,
@@ -115,7 +115,7 @@ function html(path: string) {
         `<section><h2>${role}</h2><table><tr><th>trigger</th><th>steady</th><th>stressed</th></tr>${ALL_TRIGGERS.map((trigger) => `<tr><td>${trigger}</td><td>${value.lines[trigger].steady.join(" / ")}</td><td>${value.lines[trigger].stressed.join(" / ")}</td></tr>`).join("")}</table></section>`,
     )
     .join("");
-  mkdirSync(resolve(root, "specs/battle-voices-music/visualizations"), { recursive: true });
+  mkdirSync(dirname(resolve(root, path)), { recursive: true });
   writeFileSync(
     resolve(root, path),
     `<!doctype html><meta charset="utf-8"><title>Voice sets</title><style>body{font:14px system-ui;background:#111;color:#eee;padding:24px}table{border-collapse:collapse;margin:8px 0 24px;width:100%}td,th{border:1px solid #555;padding:5px;text-align:left;vertical-align:top}section{margin-top:32px}td:nth-child(2),td:nth-child(3){max-width:420px}</style><h1>Battle voice sets</h1><h2>Roster assignments</h2><table><tr><th>unit</th><th>faction</th><th>set</th><th>country</th><th>role</th><th>female response</th></tr>${rows}</table><h2>Per-set generation budget</h2><table><tr><th>set</th><th>voices</th><th>clips</th><th>characters</th></tr>${subtotals}</table>${scripts}`,
@@ -217,7 +217,7 @@ function lockReport() {
 if (command === "plan") {
   const result = report();
   if (args.includes("--html"))
-    html(flag("html") ?? "specs/battle-voices-music/visualizations/voice-sets.html");
+    html(flag("html") ?? "throwaway/voice-sets.html");
   if (!result.clips || !result.characters) process.exitCode = 1;
 } else if (command === "beds") {
   const { calls } = await generateBeds({ root, client: duetClient(), log });
