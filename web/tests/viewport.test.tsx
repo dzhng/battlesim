@@ -121,7 +121,7 @@ test("failed frame initialization releases the frame and reports its error to th
   let disposed = false;
   await act(async () =>
     gpu.resolve!({
-      setFog() {
+      setClock() {
         throw new Error("frame setup failed");
       },
       setModels() {
