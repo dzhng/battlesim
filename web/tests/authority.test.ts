@@ -225,6 +225,14 @@ test("building previews preserve battle outcomes and an invalid query leaves the
   );
 });
 
+test("ready reports the rules' tick rate exactly: the presentation's clock is the simulation's", async () => {
+  const h = harness();
+  await h.init();
+  const ready = h.replies.find((r) => r.type === "ready") as { tickHz: number };
+  // Not 1000 / (1000 / 30): the presentation times every effect from it.
+  expect(ready.tickHz).toBe(game.tick_hz);
+});
+
 test("nothing ticks before start, then ticks follow the clock", async () => {
   const h = harness();
   await h.init();

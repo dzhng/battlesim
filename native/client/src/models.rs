@@ -481,6 +481,9 @@ pub struct Models {
     drawn: Drawn,
     /// The props listed in view, by appearance: per tier.
     props: BTreeMap<String, [u32; 4]>,
+    /// The building modules listed in view, `row · 4 + tier` (a module's
+    /// row is its index among the walked modules, which come first).
+    buildings: Vec<u32>,
 }
 
 fn growable(device: &Device, label: &str, usage: BufferUsages, bytes: u64) -> Buffer {
@@ -681,6 +684,7 @@ impl Models {
             runs: Vec::new(),
             drawn: Drawn::default(),
             props: BTreeMap::new(),
+            buildings: Vec::new(),
         })
     }
 
@@ -748,6 +752,7 @@ impl Models {
         self.runs.clear();
         self.drawn = Drawn::default();
         self.props.clear();
+        self.buildings.clear();
         // The units' batches, from the frame's instances, then the static
         // world's, held.
         let units = frame
@@ -767,6 +772,13 @@ impl Models {
             if row.kind == Kind::Prop && pass == VIEW_PASS {
                 let levels = self.props.entry(row.name.clone()).or_default();
                 levels[(tier as usize).min(3)] += count;
+            }
+            if row.casts_own && pass == VIEW_PASS {
+                let at = appearance as usize * 4 + (tier as usize).min(3);
+                if self.buildings.len() <= at {
+                    self.buildings.resize(at + 1, 0);
+                }
+                self.buildings[at] += count;
             }
             if pass != CAST_PASS {
                 self.drawn.listed += count;
@@ -816,6 +828,12 @@ impl Models {
     /// (`DrawnInstances.props`).
     pub fn drawn_props(&self) -> &BTreeMap<String, [u32; 4]> {
         &self.props
+    }
+
+    /// The building modules the last prepared frame lists in view, as the
+    /// browser's `drawnBuildings`: `module · 4 + tier`, trailing zeros left off.
+    pub fn drawn_buildings(&self) -> &[u32] {
+        &self.buildings
     }
 
     /// The static world's batches the last frame listed: the scenery draws

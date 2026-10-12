@@ -1109,3 +1109,28 @@ Net lines against main, comments and blanks excluded:
 
 - Step 8's gates: three quiet runs a side, native against the browser, on both scenes, release build.
 - Main's late smoke puff (market-town, between ticks, off by one) is an effects lead, not this step's.
+
+## Effect counts equal on every plate (2026-10-12, branch `effectcounts`)
+
+Step 6 left plates drawn on a tick boundary with different effect counts, and step 5c one extra smoke puff late in market-town. Both had one cause, and neither was native's.
+
+### The cause
+
+The page's presentation ran at a tick rate that was not the simulation's. The sim worker reported its rate as `1000 / tickMs`, which is 29.999999999999996, not 30. The page built its `Presentation` from that, while the capture recorded the rules' 30, and native and the WASM replay used 30. Every effect's start and end (`tick · dt`) and the interpolated clock were therefore a few ULPs apart. Between ticks that never mattered. On a tick boundary it decided whether the next tick's tracers and flashes had started and whether the last tick's impacts had ended. Late in market-town it decided whether a puff's lifetime had run out.
+
+How it was found: the page logged every call into its Rust presentation, and every frame's publication, time and camera. All of them equalled the capture. Replaying the page's own frame sequence through the browser's WASM still differed on 1,050 of 6,947 frames, so the missing input was not in the per-frame calls. Shifting one boundary plate's time showed the page behaving as if its clock was a few ULPs early, which pointed at the rate.
+
+### The contract
+
+- **The worker reports the rules' rate as given** (`authority.ts`: `ready.tickHz` is `rules.tick_hz`; `tickMs` is derived from it, never the reverse). `authority.test.ts` holds it (red before the fix).
+- **The capture records the rate the page's presentation ran at** (`reelRun.ts` takes `tickHz` from the worker's `ready`), so the replay's `Presentation::new` gets the page's input. `validatePresentationCapture` already refuses a rate that is not an integer.
+- **Native checks building modules too:** `instanceCounts[].buildings` (`module · 4 + tier`, the view batches) against native's model layer (`Models::drawn_buildings`), beside the models, props, scenery and effects. Falsified once by miscounting.
+
+The capture scene, the frame records and native's replay are unchanged: every other input they carried was already exact.
+
+### Evidence
+
+- **The browser's own WASM:** replaying the page's whole frame sequence (8,115 frames, 1,018 on a tick boundary) gives the page's instance count on every frame but the last, which framed a publication drawn after the reel ended.
+- **Fresh controls, both scenes:** fog off `throwaway/native-parity/2026-10-12T21-04-36-341Z`, fog on `21-07-59-103Z`. All four pass `native-parity-capture`. Native's report says "model, building, prop, scenery and effect counts: equal to the browser's on every plate" for all 48 plates. Thirteen of them are on a tick boundary (paris-corner 3 and 1, market-town 5 and 4).
+- **Plates** (grayscale MAE, control against native): market-town 0.016–0.096 (fog on 0.015–0.107) and paris-corner 0–0.049 (fog on 0–0.061). That is the same as step 5c. Native draws the same pictures, and the browser's change is a few ULPs of time.
+- **Gates:** `cargo test` for `presentation` and `native-client`; clippy `-D warnings` on those and `presentation-wasm`; `cargo fmt --check`; the web typecheck; oxlint (no errors); `authority.test.ts` and `simSession.test.tsx`.

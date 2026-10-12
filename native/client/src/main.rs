@@ -506,6 +506,11 @@ impl Run {
                 &self.replay.instance_counts,
                 self.passes.models.drawn_props(),
             ));
+            self.count_mismatches.extend(building_mismatches(
+                &plate,
+                &self.replay.instance_counts,
+                self.passes.models.drawn_buildings(),
+            ));
             let scars = self.replay.presentation().scar_stats();
             println!(
                 "{plate}: drawn {drawn:?}, culled soldiers {}, effects {} and {} lights, scar pages {} ({})",
@@ -566,7 +571,7 @@ impl Run {
             );
         }
         if self.count_mismatches.is_empty() {
-            println!("model, scenery and effect counts: equal to the browser's on every plate");
+            println!("model, building, prop, scenery and effect counts: equal to the browser's on every plate");
         } else {
             println!("counts differ:\n  {}", self.count_mismatches.join("\n  "));
         }
@@ -781,6 +786,40 @@ fn prop_mismatches(
                 "{plate} props {n}: {:?} against {:?} (all props {} against {})",
                 drawn.get(n),
                 want.get(n),
+                total(drawn),
+                total(&want)
+            )
+        })
+        .collect()
+}
+
+/// Where `plate`'s building modules differ from the browser's
+/// (`instanceCounts[].buildings`, `module · 4 + tier`).
+fn building_mismatches(
+    plate: &str,
+    instance_counts: &[serde_json::Value],
+    drawn: &[u32],
+) -> Vec<String> {
+    let Some(want) = instance_counts.iter().find(|c| c["plate"] == plate) else {
+        return vec![];
+    };
+    let want: Vec<u32> = want["buildings"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|n| n.as_u64().unwrap_or(u64::MAX) as u32)
+        .collect();
+    let at = |list: &[u32], i: usize| list.get(i).copied().unwrap_or(0);
+    let total = |list: &[u32]| list.iter().sum::<u32>();
+    (0..want.len().max(drawn.len()))
+        .filter(|&i| at(drawn, i) != at(&want, i))
+        .map(|i| {
+            format!(
+                "{plate} building module {} tier {}: {} against {} (all modules {} against {})",
+                i / 4,
+                i % 4,
+                at(drawn, i),
+                at(&want, i),
                 total(drawn),
                 total(&want)
             )
