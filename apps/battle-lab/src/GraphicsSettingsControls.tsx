@@ -20,6 +20,7 @@ export function GraphicsSettingsControls({
 }) {
   const settings = useSyncExternalStore(graphicsSettings.subscribe, graphicsSettings.get);
   const [applying, setApplying] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const effective = resolveEffectiveTier(settings.mode, settings.detectedMode);
   const select = async (mode: GraphicsMode) => {
     if (applying || mode === settings.mode) return;
@@ -34,7 +35,12 @@ export function GraphicsSettingsControls({
   const last = settings.lastResult;
   const rerun = async () => {
     if (applying) return;
-    await (onRunAutoDetect ? onRunAutoDetect() : runAutoDetect());
+    setError(null);
+    try {
+      await (onRunAutoDetect ? onRunAutoDetect() : runAutoDetect());
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : String(reason));
+    }
   };
   return (
     <section className="graphics-settings" aria-label="Graphics" data-testid="graphics-settings">
@@ -70,6 +76,14 @@ export function GraphicsSettingsControls({
       >
         Run auto-detect again
       </button>
+      {error && (
+        <div role="alert" className="hud-error">
+          <p>Graphics detection failed: {error}</p>
+          <button type="button" className="hud-menu-item" onClick={() => window.location.reload()}>
+            Reload
+          </button>
+        </div>
+      )}
       {applying && <p role="status">Applying settings…</p>}
     </section>
   );

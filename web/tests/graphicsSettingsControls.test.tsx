@@ -34,6 +34,20 @@ test("rerun action is shared and selecting a tier waits for the rebuild", async 
   view.unmount();
 });
 
+test("rerun failures stay actionable in the settings surface", async () => {
+  const view = render(
+    <GraphicsSettingsControls
+      onRunAutoDetect={() => Promise.reject(new Error("no preset met the target"))}
+    />,
+  );
+  await act(async () =>
+    fireEvent.click(view.getByRole("button", { name: "Run auto-detect again" })),
+  );
+  expect(view.getByRole("alert").textContent).toContain("no preset met the target");
+  expect(view.getByRole("button", { name: "Reload" })).toBeTruthy();
+  view.unmount();
+});
+
 test("pause menu opens settings as a nested modal and Escape closes it", () => {
   const view = render(<PauseMenu onClose={() => {}} />);
   fireEvent.click(view.getByRole("button", { name: "Settings" }));
