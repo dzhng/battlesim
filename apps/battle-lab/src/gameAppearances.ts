@@ -193,6 +193,7 @@ export function useGameAppearances(
               state: "failed",
               error: error instanceof Error ? error.message : String(error),
             };
+            console.error("Appearance load failed.", error);
             appResources.refuse(error);
           }
         },
