@@ -17,11 +17,16 @@
 //! takes are those the player has loaded, and the take is chosen by the
 //! client's own seeded randomness (the browser's, [`crate::seed`]), never the
 //! simulation's.
+//!
+//! In a battle ([`Chatter::hear`]) it also takes the barks the battle's sound
+//! heard (an own unit's shout, or an identified enemy's, in its kind's set:
+//! [`Speakers::bark`]), and a bark it starts is spoken where the shout was,
+//! placed as every unit sound is; an answer stays dry and centred.
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use super::frame::{Command, Voice};
+use super::frame::{Command, Shout, Sound, Voice};
 use super::tables::Bus;
 use crate::seed::{hash_string, js_number, Mulberry32};
 use crate::world::Vec3;
@@ -134,13 +139,60 @@ pub struct Dropped {
     pub at: f64,
 }
 
-/// What one arbitration did: the commands a player carries out, and the
-/// lines started and dropped.
+/// What one arbitration did: the commands a player carries out, the lines
+/// started and dropped, and the barks it took from the battle's sound
+/// ([`Chatter::hear`]; none otherwise), whether they play or not.
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct Lines {
     pub commands: Vec<Command>,
     pub started: Vec<Started>,
     pub dropped: Vec<Dropped>,
+    pub heard: Vec<Request>,
+}
+
+/// Which voice set each unit kind speaks with (`voices.json`'s assignments,
+/// which the player resolves): for the side's own faction, and for its
+/// enemy's. A kind without one is silent.
+#[derive(Clone, Debug, Default, Deserialize)]
+pub struct Speakers {
+    #[serde(default)]
+    pub own: HashMap<String, String>,
+    #[serde(default)]
+    pub enemy: HashMap<String, String>,
+}
+
+impl Speakers {
+    /// The bark `shout` asks for at player time `at`: an own unit's as an
+    /// own bark, an identified enemy's as another's, in the set its kind
+    /// speaks with for its side, where it was shouted. None for a kind
+    /// without a set, or a tag that names no bark.
+    pub fn bark(&self, shout: &Shout, at: f64) -> Option<Request> {
+        let (tier, sets, side) = if shout.own {
+            (Tier::OwnBark, &self.own, "own")
+        } else {
+            (Tier::OtherBark, &self.enemy, "seen")
+        };
+        Some(Request {
+            tier,
+            // An own unit is the speaker its answers name, so it never
+            // shouts over its own answer.
+            speaker: format!("{side}/{}", js_number(shout.id)),
+            set: sets.get(&*shout.kind)?.clone(),
+            trigger: bark_name(&shout.trigger)?.to_owned(),
+            intensity: shout.intensity.to_string(),
+            position: Some(shout.position),
+            group_key: None,
+            at,
+        })
+    }
+}
+
+/// A bark's voice line name from the contract's tag: `b5_under_fire` is
+/// `under_fire`.
+fn bark_name(tag: &str) -> Option<&str> {
+    let (number, name) = tag.split_once('_')?;
+    number.strip_prefix('b')?.parse::<u8>().ok()?;
+    Some(name)
 }
 
 struct Pending {
@@ -348,6 +400,25 @@ impl Chatter {
             i += 1;
             !done[i - 1]
         });
+        &self.out
+    }
+
+    /// A battle's arbitration at player time `now`: takes the barks `sound`
+    /// heard, then starts what may start heard from where `sound` last
+    /// listened, each bark placed where it was shouted ([`Sound::place`]).
+    pub fn hear(&mut self, sound: &mut Sound, now: f64) -> &Lines {
+        let barks = sound.take_barks();
+        for bark in &barks {
+            self.request(bark.clone(), now);
+        }
+        self.update(now, sound.listener().position);
+        let out = &mut self.out;
+        for (command, line) in out.commands.iter_mut().zip(&out.started) {
+            if let (Command::Start { voice, .. }, Some(at)) = (command, line.request.position) {
+                sound.place(voice, at);
+            }
+        }
+        out.heard = barks;
         &self.out
     }
 

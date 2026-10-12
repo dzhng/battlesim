@@ -34,7 +34,7 @@
 - [x] 11 — Shout ledger: simulation barks from existing state, not yet published. [slice](slices/11-shout-ledger.md)
 - [x] 12 — Physical barks: B5 (under fire), B15 (incoming missile), B17 (friendly destroyed nearby), plus the anonymous unseen-shout hearing cue. [slice](slices/12-physical-barks.md)
 - [x] 13 — Publish shouts: the publication group and the single named re-bless. [slice](slices/13-publish-shouts.md)
-- [ ] 14 — Barks in battle: barks heard near the camera, and the music mood and ducking driven by own barks. [slice](slices/14-barks-in-battle.md)
+- [x] 14 — Barks in battle: barks heard near the camera, and the music mood and ducking driven by own barks. Built (uncommitted, for the orchestrator's review); its non-blocking listen waits on slice 06's bark takes. [slice](slices/14-barks-in-battle.md)
 - [x] 15 — Unseen shouts (client): the muffled generic pool; `cue_voices` deleted. [slice](slices/15-unseen-shouts.md)
 - [ ] 16 — Closeout: the full check and verify runs, docs, and close-spec. [slice](slices/16-closeout.md)
 

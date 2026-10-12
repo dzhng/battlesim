@@ -22,12 +22,12 @@ import { loadPresentation } from "@web/battle/sim/presentation";
 import { offlineSound } from "./soundFirefight";
 import { gameAudio } from "./soundFeed";
 
-const SET = "us_tank_crew";
+export const SET = "us_tank_crew";
 const SECONDS = 8.5;
 const FPS = 60;
 
 /** The stand-in pack: the lock's unflagged takes of `SET` not judged bad on their bytes. */
-function standInPack() {
+export function standInPack() {
   const takes = lock.takes as Record<
     string,
     {

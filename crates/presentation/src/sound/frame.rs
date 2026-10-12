@@ -15,7 +15,11 @@
 //!   vague sound from the cue's direction sector, louder in the near band and
 //!   muffled in the far one, never at a position; a shout as a muffled bark
 //!   from the enemy faction's generic pool ([`Sound::set_shouts`]), never
-//!   the speaker's own voice.
+//!   the speaker's own voice;
+//! - the observation's shouts: an own unit's, or an enemy's the side
+//!   identifies, asks the voice lines ([`super::voices::Chatter`]) for a
+//!   bark in its kind's set ([`Sound::set_speakers`]), spoken where the
+//!   shout was and placed as every unit sound is ([`Sound::place`]).
 //!
 //! So sound keeps fog of war as the picture does: every positional sound has
 //! a cause in the side's observation.
@@ -36,9 +40,10 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
-use sim::publication::reader::SoundCue;
+use sim::publication::reader::{Shout as PublishedShout, SoundCue};
 
 use super::tables::{pick, Bus, SoundTables, VehicleSound};
+use super::voices::{Request, Speakers, LINE_GAIN};
 use crate::effects::cook_off::CookOffFeel;
 use crate::effects::launches::Launch;
 use crate::effects::publication::EffectPublication;
@@ -56,11 +61,41 @@ const FADE_STEAL_S: f64 = 0.02;
 const FADE_LOOP_S: f64 = 0.15;
 
 /// One publication as sound hears it: what the effects read of it, the
-/// launches it shows, and the side's hearing cues.
+/// launches it shows, the side's hearing cues and the shouts it hears in
+/// the open.
 pub struct Heard<'a> {
     pub effects: &'a EffectPublication,
     pub launches: &'a [Launch],
     pub audible: Vec<Cue>,
+    pub shouts: Vec<Shout>,
+}
+
+/// A shout the side hears in the open: its own unit's, or an enemy's it
+/// identifies (an unseen enemy's reaches it only as a hearing cue). Who
+/// said it (`own`, and the unit id or identification handle), the
+/// speaker's unit kind, where, the bark (the contract's tag,
+/// `b5_under_fire`) and how stressed.
+#[derive(Clone, Debug, Deserialize)]
+pub struct Shout {
+    pub own: bool,
+    pub id: f64,
+    pub kind: Arc<str>,
+    pub position: Vec3,
+    pub trigger: Arc<str>,
+    pub intensity: Arc<str>,
+}
+
+impl From<&PublishedShout> for Shout {
+    fn from(s: &PublishedShout) -> Self {
+        Self {
+            own: s.own,
+            id: s.id,
+            kind: s.kind.clone(),
+            position: s.position,
+            trigger: s.trigger.clone(),
+            intensity: s.intensity.clone(),
+        }
+    }
 }
 
 /// A hearing cue: an unseen source's category, its direction sector from the
@@ -376,6 +411,8 @@ pub struct Scripted {
     launches: Vec<ScriptedShot>,
     #[serde(default)]
     audible: Vec<Cue>,
+    #[serde(default)]
+    shouts: Vec<Shout>,
 }
 
 #[derive(Deserialize)]
@@ -412,6 +449,7 @@ impl Scripted {
             effects: &self.effects,
             launches,
             audible: self.audible.clone(),
+            shouts: self.shouts.clone(),
         }
     }
 }
@@ -463,6 +501,10 @@ pub struct Sound {
     cue_heard: HashMap<String, f64>,
     /// The enemy faction's shout pool, as far as the player has loaded it.
     shouts: Vec<ShoutTake>,
+    /// Which set each unit kind speaks with, own and enemy.
+    speakers: Speakers,
+    /// Barks the publications asked for since the voice lines last took them.
+    barks: Vec<Request>,
     next_id: u32,
     last_tick: f64,
     clock: Option<f64>,
@@ -602,6 +644,8 @@ impl Sound {
             bursts: HashMap::new(),
             cue_heard: HashMap::new(),
             shouts: Vec::new(),
+            speakers: Speakers::default(),
+            barks: Vec::new(),
             next_id: 1,
             last_tick: -1.0,
             clock: None,
@@ -641,6 +685,32 @@ impl Sound {
     /// shouts are silent). A battle keeps its pool through a reset.
     pub fn set_shouts(&mut self, takes: Vec<ShoutTake>) {
         self.shouts = takes;
+    }
+
+    /// Which set each unit kind speaks with, for the side's own faction and
+    /// its enemy's: a shout of a kind without one is silent. A battle keeps
+    /// them through a reset.
+    pub fn set_speakers(&mut self, speakers: Speakers) {
+        self.speakers = speakers;
+    }
+
+    /// The barks heard since the last call, for the voice lines to arbitrate.
+    pub fn take_barks(&mut self) -> Vec<Request> {
+        std::mem::take(&mut self.barks)
+    }
+
+    /// Places a voice line spoken at `position` as every unit sound is
+    /// placed: its level by distance, and the air's low-pass, reverb send
+    /// and softened onset by how far off it is.
+    pub fn place(&self, voice: &mut Voice, position: Vec3) {
+        let air = self.tables.audio.air;
+        let u = self.far_share(&position);
+        voice.gain = self.level(voice.gain, Some(&position));
+        voice.lowpass = self.air_lowpass(u);
+        voice.wet = air.wet * u;
+        voice.attack = air.attack_s * u;
+        voice.position = Some(position);
+        voice.pan = None;
     }
 
     fn duration(&self, sound: &str, variant: u32) -> f64 {
@@ -698,6 +768,7 @@ impl Sound {
         self.motors.0.clear();
         self.bursts.clear();
         self.cue_heard.clear();
+        self.barks.clear();
         self.last_tick = -1.0;
         self.clock = None;
         self.held = false;
@@ -987,6 +1058,18 @@ impl Sound {
             };
             self.cue_heard.insert(key, t0);
             self.pending.push(cue);
+        }
+        // Shouts heard in the open: each a bark asked of the voice lines,
+        // for when the clock reaches its tick, as the transients wait; one
+        // too far off to be heard is never asked.
+        let at = now + self.clock.map_or(0.0, |c| (t0 - c).max(0.0));
+        for s in &heard.shouts {
+            let Some(bark) = self.speakers.bark(s, at) else {
+                continue;
+            };
+            if self.level(LINE_GAIN, Some(&s.position)) >= p.distance.cull {
+                self.barks.push(bark);
+            }
         }
         if self.pending.len() > PENDING_CAP {
             self.pending.drain(..self.pending.len() - PENDING_CAP);

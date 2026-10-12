@@ -5,7 +5,9 @@ import type { SoundFrameOptions } from "./soundFrame";
 import { soundSettings } from "./settings";
 import { SoundBank } from "./soundBank";
 import { WebAudioSink } from "./webAudioSink";
+import { BattleMusic } from "./music/battleMusic";
 import { MusicPlayer } from "./music/musicPlayer";
+import type { VoiceRequest } from "./voices/chatter";
 
 /** The menu's countryside bed, under its music (the catalog's `menu` mood). */
 export const MENU_AMBIENCE = { sound: "countryside", gain: 0.08 } as const;
@@ -24,6 +26,8 @@ export class AppAudio {
   private bank: SoundBank | null = null;
   private menu: WebAudioSink | null = null;
   private music: MusicPlayer | null = null;
+  /** The running battle's score, from its first drawn update. */
+  private score: BattleMusic | null = null;
   private battle: BattleAudio | null = null;
   private screen: AudioScreen = "other";
   private menuReady = false;
@@ -77,7 +81,10 @@ export class AppAudio {
 
   setScreen(screen: AudioScreen) {
     this.screen = screen;
-    if (screen === "menu") this.combatStarted = false;
+    if (screen === "menu") {
+      this.combatStarted = false;
+      this.endScore(0);
+    }
     if (screen === "menu" || screen === "loading") this.start();
     this.syncMenu();
   }
@@ -165,14 +172,34 @@ export class AppAudio {
     return battle;
   }
 
-  /** Only a running, prepared battle's first drawn audio update ends loading music. */
-  battleStarted(battle: BattleAudio) {
-    if (this.battle !== battle || this.combatStarted) return;
-    this.combatStarted = true;
-    this.syncMenu();
+  /** A running, prepared battle's drawn audio update, with the barks it
+   *  heard and whether a voice line sounds. The first ends the menu's music
+   *  and opens the battle's score, which the barks direct and the lines duck. */
+  battleHeard(battle: BattleAudio, barks: readonly VoiceRequest[], speaking: boolean) {
+    if (this.battle !== battle || !this.context) return;
+    if (!this.combatStarted) {
+      this.combatStarted = true;
+      this.syncMenu();
+      const { music } = this.options.presentation;
+      const { tension, combat } = this.options.catalog.music.moods;
+      this.score = this.music
+        ? new BattleMusic(music, { tension, combat }, this.music, Math.random)
+        : null;
+    }
+    this.score?.update(this.context.currentTime, barks, speaking);
   }
   releaseBattle(battle: BattleAudio) {
-    if (this.battle === battle) this.battle = null;
+    if (this.battle !== battle) return;
+    this.battle = null;
+    this.endScore(MENU_FADE_S);
+  }
+
+  /** The battle's score fades out over `fade` seconds, undipped. */
+  private endScore(fade: number) {
+    if (!this.score) return;
+    this.score = null;
+    this.music?.duck(0, 0, 0);
+    this.music?.stop(fade);
   }
 
   private prepareMenu() {

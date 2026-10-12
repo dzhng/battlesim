@@ -10,6 +10,7 @@ import {
   Chatter as RustChatter,
   type SoundFrame as RustSoundFrame,
 } from "@wasm/presentation/presentation_wasm.js";
+import type { VoiceSpec as LineSpec } from "../soundFrame";
 import type { Intensity, Trigger, VoiceSpec } from "./voiceCatalog";
 
 /** Who hears a line first: the owner's answers, then own units' shouts, then others'. */
@@ -44,16 +45,9 @@ export interface ChatterRules {
 
 /** A line to start on the voices bus: take `variant` of `sound`
  *  (`set/voice/trigger/intensity`), at `gain` before the take's calibration,
- *  dry and centred, from player time `at`. */
-export interface LineStart {
-  op: "start";
-  id: number;
-  sound: string;
-  variant: number;
-  bus: "voices";
-  at: number;
-  gain: number;
-}
+ *  from player time `at`; an answer dry and centred, a bark in a battle
+ *  placed where it was shouted (position, low-pass, reverb send). */
+export type LineStart = { op: "start"; id: number } & LineSpec;
 
 /** A line started: its start command's id, the voice and take, when and for how long. */
 export interface VoiceLine {
@@ -73,11 +67,13 @@ export interface DroppedLine {
   at: number;
 }
 
-/** What one arbitration did. */
+/** What one arbitration did; `heard` is the barks a battle's arbitration took
+ *  from its sound frame, whether they play or not (none otherwise). */
 export interface ChatterUpdate {
   commands: LineStart[];
   started: VoiceLine[];
   dropped: DroppedLine[];
+  heard: VoiceRequest[];
 }
 
 export class Chatter {
@@ -120,7 +116,8 @@ export class Chatter {
     return JSON.parse(this.rust.update(now, Float64Array.from(listener))) as ChatterUpdate;
   }
 
-  /** Arbitrates at player time `now`, heard from where battle sound `frame` last heard. */
+  /** A battle's arbitration at player time `now`: takes the barks battle
+   *  sound `frame` heard, heard from where it last heard. */
   hear(frame: RustSoundFrame, now: number): ChatterUpdate {
     return JSON.parse(this.rust.hear(frame, now)) as ChatterUpdate;
   }

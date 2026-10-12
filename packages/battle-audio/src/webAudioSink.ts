@@ -34,8 +34,10 @@ export class WebAudioSink implements VoiceSink {
   /** Each bus's distance-reverb input: voices send here by their wet. */
   private readonly reverbs: Record<Bus, GainNode>;
   private readonly voices = new Map<number, LiveVoice>();
-  /** Voice takes played by name (the enemy's shout pool), with their calibration. */
-  private readonly takes = new Map<string, { buffer: AudioBuffer; normalization: number }>();
+  /** Voice takes played by name (the enemy's shout pool). */
+  private readonly takes = new Map<string, AudioBuffer>();
+  /** Each voice take's calibration, measured once. */
+  private readonly calibrations = new WeakMap<AudioBuffer, number>();
   private readonly sounding = new Set<LiveVoice>();
   private readonly graph: AudioNode[] = [];
   private readonly ownsBank: boolean;
@@ -95,16 +97,39 @@ export class WebAudioSink implements VoiceSink {
 
   /** Voice takes the frame may start by name, calibrated as every take is. */
   addTakes(takes: Iterable<{ sound: string; buffer: AudioBuffer }>) {
-    for (const { sound, buffer } of takes)
-      if (!this.takes.has(sound))
-        this.takes.set(sound, { buffer, normalization: sourceNormalization(buffer) });
+    for (const { sound, buffer } of takes) if (!this.takes.has(sound)) this.takes.set(sound, buffer);
   }
 
   start(id: number, v: VoiceSpec) {
-    const ctx = this.context;
     const take = this.takes.get(v.sound);
-    const buffer = take?.buffer ?? this.bank.get(v.sound, v.variant);
-    const normalization = take?.normalization ?? this.bank.normalizationGain(buffer);
+    const buffer = take ?? this.bank.get(v.sound, v.variant);
+    const normalization = take ? this.calibration(take) : this.bank.normalizationGain(buffer);
+    this.voices.set(id, this.play(v, buffer, normalization, id));
+  }
+
+  /** A voice line (`Chatter`'s start command) of take `buffer`, calibrated
+   *  as every take is. It plays out: nothing glides or stops it but `clear`. */
+  line(v: VoiceSpec, buffer: AudioBuffer) {
+    this.play(v, buffer, this.calibration(buffer), null);
+  }
+
+  private calibration(take: AudioBuffer): number {
+    let gain = this.calibrations.get(take);
+    if (gain === undefined) {
+      gain = sourceNormalization(take);
+      this.calibrations.set(take, gain);
+    }
+    return gain;
+  }
+
+  /** One voice's graph, started; voice `id`'s when it has one. */
+  private play(
+    v: VoiceSpec,
+    buffer: AudioBuffer,
+    normalization: number,
+    id: number | null,
+  ): LiveVoice {
+    const ctx = this.context;
     const level = v.gain * normalization;
     const source = new AudioBufferSourceNode(ctx, {
       buffer,
@@ -139,7 +164,8 @@ export class WebAudioSink implements VoiceSink {
     const send = new GainNode(ctx, { gain: v.wet });
     out.connect(send).connect(this.reverbs[v.bus]);
     // Stagger repeated ambience/engine loops; authored music starts at its intro.
-    const offset = v.offset ?? (v.loop ? ((id * 0.6180339887) % 1) * buffer.duration : 0);
+    const offset =
+      v.offset ?? (v.loop && id !== null ? ((id * 0.6180339887) % 1) * buffer.duration : 0);
     source.start(v.at, offset);
     const voice: LiveVoice = {
       source,
@@ -150,15 +176,15 @@ export class WebAudioSink implements VoiceSink {
       send,
       normalization,
       release: () => {
-        if (this.voices.get(id) === voice) this.voices.delete(id);
+        if (id !== null && this.voices.get(id) === voice) this.voices.delete(id);
         this.sounding.delete(voice);
         source.onended = null;
         for (const node of [source, gain, filter, panner, stereo, send]) node?.disconnect();
       },
     };
-    this.voices.set(id, voice);
     this.sounding.add(voice);
     source.onended = voice.release;
+    return voice;
   }
 
   set(id: number, p: VoiceParams, at: number) {

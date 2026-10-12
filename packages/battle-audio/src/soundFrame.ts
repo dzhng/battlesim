@@ -58,9 +58,30 @@ export interface HeardPublication {
   }[];
 }
 
+/** A shout heard in the open, as the observation publishes it: an own
+ *  unit's (`own`, by unit id) or an identified enemy's (by handle). */
+export interface HeardShout {
+  own: boolean;
+  id: number;
+  /** The speaker's unit kind. */
+  kind: string;
+  position: Point;
+  /** The contract's bark tag, `b5_under_fire`. */
+  trigger: string;
+  intensity: string;
+}
+
 /** One scripted publication, as sound reads it. */
 export interface SoundPublication extends HeardPublication {
   audible: readonly SoundCue[];
+  shouts?: readonly HeardShout[];
+}
+
+/** Which voice set each unit kind speaks with: for the side's own faction,
+ *  and for its enemy's (`voices.json` assignments). */
+export interface Speakers {
+  own: Readonly<Record<string, string>>;
+  enemy: Readonly<Record<string, string>>;
 }
 
 /** A drawn vehicle, as a script poses it. */
@@ -258,6 +279,12 @@ export class SoundFrame {
     this.rust.shouts(JSON.stringify(takes));
   }
 
+  /** Which set each unit kind speaks with: a shout heard in the open asks
+   *  the voice lines for a bark in its kind's set. */
+  speakers(speakers: Speakers) {
+    this.rust.speakers(JSON.stringify(speakers));
+  }
+
   /** Silence and forget everything (a new battle). */
   reset() {
     if (this.frame) this.run(this.frame.reset(this.sink.now()));
@@ -292,7 +319,8 @@ export class SoundFrame {
     );
   }
 
-  /** Arbitrates `chatter`'s voice lines, heard from where this frame last heard. */
+  /** Arbitrates `chatter`'s voice lines with the barks this frame heard,
+   *  heard from where it last heard. */
   hearLines(chatter: Chatter): ChatterUpdate {
     return chatter.hear(this.rust, this.sink.now());
   }

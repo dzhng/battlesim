@@ -4,7 +4,7 @@
 // `default` row so a new kind sounds like something until its row is added.
 // Sound names are the synthesised bank's (`synth.ts` `SOUNDS`).
 import { requireDefaults } from "@packages/renderer-core/src/kindTable";
-import type { MusicDirection } from "./music/musicDirector";
+import type { BattleMusicRules } from "./music/battleMusic";
 import type { ChatterRules } from "./voices/chatter";
 
 /** The mixer's buses under the master. Music is not one of them: it streams
@@ -104,7 +104,7 @@ export interface AudioPresentation {
   /** Fire loops by smoke-source kind. */
   fires: Record<string, FireSound>;
   /** Battle music: its mood direction (`MusicDirector`) and its ducking while voice lines play. */
-  music: MusicDirection & { duck: { depth: number; attack_s: number; release_s: number } };
+  music: BattleMusicRules;
   /** Unit voice lines: how many sound at once, how long one may wait to start,
    *  and the window in which a group's answers collapse to one (`Chatter`). */
   voices: ChatterRules;

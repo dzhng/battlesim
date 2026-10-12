@@ -158,9 +158,19 @@ A unit answers its owner ([responses](src/voices/responses.ts)) when selected,
 when an order is accepted or refused for a reason the player caused, and when
 an ordered move (or a purchase's drive in) ends after a real journey. One unit
 answers for a group: the one clicked, else the highest-value. Only the owner
-hears an answer, dry and centred on the voices bus. A battle loads the packs
-of the sets its own units and pending purchases speak with, once its sounds are
-ready. `generate pack` writes a set's `pack.json` from the takes judged ok on
+hears an answer, dry and centred on the voices bus.
+
+A shout the side hears in the open, its own unit's or an identified enemy's,
+is a bark: Rust's sound frame asks the chatter for it in the set its kind
+speaks with for its side, and the line is spoken where the shout was, placed
+as every unit sound is (distance, the air's low-pass and reverb send). The
+page hands Rust each unit kind's set for its own faction and the enemy's
+(`BattleAudio.speakers`, from `voices.json`'s assignments), once; Rust never
+reads `voices.json`. Outside a skirmish the factions are unknown and shouts
+are silent. A battle loads the packs of every set those two factions speak
+with, and of its own units and pending purchases, once its sounds are ready;
+a set without a pack is silent. The page's line player is the mixer's
+(`WebAudioSink.line`), so a bark has the graph every unit sound has. `generate pack` writes a set's `pack.json` from the takes judged ok on
 the bytes served; before review, `--unreviewed` also lists unjudged takes the
 transcript check passed.
 
@@ -227,6 +237,10 @@ sets it to −26 LUFS. `--track` buys a track again.
 Which mood plays is the [music director's](src/music/musicDirector.ts) call: a
 pure rule on an injected clock, fed the side's own barks. Its numbers live in
 `presentation.audio.music`. It never repeats a track back to back within a mood.
+In a battle, [the score](src/music/battleMusic.ts) opens on `tension` as the
+menu's music fades, hears every bark the voice lines took (only the side's own
+move it), crossfades when the mood changes, and dips by the duck depth while
+any voice line sounds. It stays in TypeScript while the music tables do.
 
 Music feeds the same master as the rest of the menu mix, so master volume and
 mute cover it. Inside the player, a level gain carries the player's music

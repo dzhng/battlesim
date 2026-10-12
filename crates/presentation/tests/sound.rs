@@ -11,11 +11,12 @@ use presentation::effects::launches::Launch;
 use presentation::effects::publication::{EffectPublication, Segment};
 use presentation::sound::bank::{max_momentary_loudness, Bank};
 use presentation::sound::frame::{
-    sector_pan, Command, Cue, Heard, Listener, Motion, Scripted, ShoutTake, Sound, SoundSoldier,
-    Voice,
+    sector_pan, Command, Cue, Heard, Listener, Motion, Scripted, Shout, ShoutTake, Sound,
+    SoundSoldier, Voice,
 };
 use presentation::sound::synth;
 use presentation::sound::tables::{Bus, SoundTables};
+use presentation::sound::voices::{Chatter, Request, SetVoice, Speakers, Speaks, Tier, LINE_GAIN};
 use serde_json::{json, Value};
 
 fn fixture(name: &str) -> Value {
@@ -179,6 +180,7 @@ fn a_cannon_sounds_near_close_and_far_away_quieter_but_never_below_the_floor() {
                 effects: &e,
                 launches: &l,
                 audible: Vec::new(),
+                shouts: Vec::new(),
             },
             0.0,
         );
@@ -223,6 +225,7 @@ fn the_budget_holds_and_the_loudest_win() {
             effects: &e,
             launches: &[],
             audible: Vec::new(),
+            shouts: Vec::new(),
         },
         0.0,
     );
@@ -258,6 +261,7 @@ fn an_unseen_enemy_is_heard_only_by_direction() {
             effects: &e,
             launches: &[],
             audible: vec![cue],
+            shouts: Vec::new(),
         },
         0.0,
     );
@@ -290,6 +294,7 @@ fn hear_cues(s: &mut Sound, audible: Vec<Cue>) -> Vec<Voice> {
             effects: &e,
             launches: &[],
             audible,
+            shouts: Vec::new(),
         },
         0.0,
     );
@@ -390,6 +395,172 @@ fn nothing_plays_the_old_murmur() {
     assert!(!synth::exists("cue_voices"));
 }
 
+fn shout(own: bool, id: f64, kind: &str, position: [f64; 3], trigger: &str) -> Shout {
+    Shout {
+        own,
+        id,
+        kind: kind.into(),
+        position,
+        trigger: trigger.into(),
+        intensity: "stressed".into(),
+    }
+}
+
+/// A battle where the side's tanks speak with the US tank crew's set and
+/// the enemy's with the Russian one.
+fn speaking() -> Sound {
+    let mut s = ready();
+    s.set_speakers(Speakers {
+        own: HashMap::from([("m1a2".into(), "us_tank_crew".into())]),
+        enemy: HashMap::from([("t90".into(), "ru_tank_crew".into())]),
+    });
+    s
+}
+
+/// The barks one publication at tick 1 asks for.
+fn hear_shouts(s: &mut Sound, shouts: Vec<Shout>, audible: Vec<Cue>) -> Vec<Request> {
+    let e = shot(1.0, 4.0, [0.0; 3], "rifle").0;
+    s.note(
+        &Heard {
+            effects: &e,
+            launches: &[],
+            audible,
+            shouts,
+        },
+        2.0,
+    );
+    s.take_barks()
+}
+
+#[test]
+fn an_own_and_a_seen_shout_are_barks_in_their_sides_set_where_they_were_shouted() {
+    let mut s = speaking();
+    s.set_shouts(pool());
+    let barks = hear_shouts(
+        &mut s,
+        vec![
+            shout(true, 3.0, "m1a2", [40.0, 0.0, 1.0], "b5_under_fire"),
+            shout(false, 7.0, "t90", [300.0, 50.0, 2.0], "b2_contact_vehicle"),
+            // A kind the side has no set for says nothing.
+            shout(true, 4.0, "test_crate", [5.0, 0.0, 0.0], "b5_under_fire"),
+        ],
+        // An unseen enemy's shout is only a hearing cue: never a bark.
+        vec![cue("shout", 2.0, "near", false)],
+    );
+    let [own, seen] = &barks[..] else {
+        panic!("one bark per shout with a set, {barks:?}")
+    };
+    assert_eq!(
+        (
+            own.tier,
+            &*own.speaker,
+            &*own.set,
+            &*own.trigger,
+            &*own.intensity
+        ),
+        (
+            Tier::OwnBark,
+            "own/3",
+            "us_tank_crew",
+            "under_fire",
+            "stressed"
+        )
+    );
+    assert_eq!(own.position, Some([40.0, 0.0, 1.0]));
+    assert_eq!(
+        (seen.tier, &*seen.speaker, &*seen.set, &*seen.trigger),
+        (Tier::OtherBark, "seen/7", "ru_tank_crew", "contact_vehicle")
+    );
+    assert_eq!(seen.position, Some([300.0, 50.0, 2.0]));
+    assert!(own.at == 2.0 && seen.at == 2.0 && own.group_key.is_none());
+    assert!(s.take_barks().is_empty(), "each bark is taken once");
+}
+
+#[test]
+fn an_unseen_enemys_shout_never_asks_for_a_bark() {
+    let mut s = speaking();
+    s.set_shouts(pool());
+    let barks = hear_shouts(
+        &mut s,
+        Vec::new(),
+        vec![
+            cue("shout", 2.0, "near", false),
+            cue("shout", 6.0, "far", false),
+        ],
+    );
+    assert!(barks.is_empty(), "{barks:?}");
+}
+
+#[test]
+fn a_bark_is_spoken_where_it_was_shouted_and_an_answer_stays_dry() {
+    let mut s = speaking();
+    s.update(0.0, 0.0, 0.0, &Motion::default(), HERE);
+    let mut chatter = Chatter::new(s.tables().audio.voices, 1.0);
+    chatter.set_voices(
+        "us_tank_crew",
+        vec![
+            SetVoice {
+                id: "lead".into(),
+                speaks: Speaks::Responses,
+            },
+            SetVoice {
+                id: "soldier".into(),
+                speaks: Speaks::Barks,
+            },
+        ],
+    );
+    chatter.loaded("us_tank_crew", "soldier", "under_fire", "stressed", 0, 2.0);
+    chatter.loaded("us_tank_crew", "lead", "move", "steady", 0, 1.5);
+    let barks = vec![
+        shout(true, 1.0, "m1a2", [20.0, 0.0, 0.0], "b5_under_fire"),
+        shout(true, 2.0, "m1a2", [800.0, 0.0, 0.0], "b5_under_fire"),
+    ];
+    let e = shot(1.0, 4.0, [0.0; 3], "rifle").0;
+    s.note(
+        &Heard {
+            effects: &e,
+            launches: &[],
+            audible: Vec::new(),
+            shouts: barks,
+        },
+        0.0,
+    );
+    let answer: Request = serde_json::from_value(json!({
+        "tier": "response", "speaker": "own/5", "set": "us_tank_crew",
+        "trigger": "move", "intensity": "steady", "at": 0.0
+    }))
+    .unwrap();
+    chatter.request(answer, 0.0);
+    let lines = chatter.hear(&mut s, 0.0).clone();
+    assert_eq!(lines.heard.len(), 2, "both barks were heard");
+    let voice = |speaker: &str| {
+        let line = lines
+            .started
+            .iter()
+            .position(|l| l.request.speaker == speaker)
+            .unwrap_or_else(|| panic!("{speaker} speaks"));
+        let Command::Start { voice, .. } = &lines.commands[line] else {
+            panic!("a start")
+        };
+        voice.clone()
+    };
+    let (dry, near, far) = (voice("own/5"), voice("own/1"), voice("own/2"));
+    assert!(
+        dry.position.is_none() && dry.pan.is_none() && dry.wet == 0.0 && dry.gain == LINE_GAIN,
+        "an answer is the owner's radio: {dry:?}"
+    );
+    assert_eq!(near.position, Some([20.0, 0.0, 0.0]));
+    assert_eq!(far.position, Some([800.0, 0.0, 0.0]));
+    for v in [&dry, &near, &far] {
+        assert_eq!(v.bus, Bus::Voices);
+    }
+    // Farther is quieter, duller and wetter, by the unit sounds' own curves.
+    assert!(LINE_GAIN > near.gain && near.gain > far.gain);
+    let floor = s.tables().audio.distance.floor;
+    assert!(far.gain >= LINE_GAIN * floor);
+    assert!(near.lowpass > far.lowpass && near.wet < far.wet);
+}
+
 #[test]
 fn a_standing_clock_silences_transients_and_holds_loops() {
     let mut s = ready();
@@ -399,6 +570,7 @@ fn a_standing_clock_silences_transients_and_holds_loops() {
             effects: &e,
             launches: &l,
             audible: Vec::new(),
+            shouts: Vec::new(),
         },
         0.0,
     );

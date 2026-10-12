@@ -379,6 +379,15 @@ impl SoundFrame {
         Ok(())
     }
 
+    /// Which voice set each unit kind speaks with, JSON `{own: {kind: set},
+    /// enemy: {kind: set}}`: the side's own faction's and its enemy's.
+    pub fn speakers(&mut self, speakers: &str) -> Result<(), JsError> {
+        let speakers =
+            serde_json::from_str(speakers).map_err(|e| JsError::new(&format!("speakers: {e}")))?;
+        self.inner.set_speakers(speakers);
+        Ok(())
+    }
+
     /// Every sound a battle plays, JSON: what the page prepares.
     pub fn sounds(&self) -> String {
         serde_json::to_string(&self.inner.tables().battle_sounds()).expect("names serialize")
@@ -497,10 +506,10 @@ impl Chatter {
         serde_json::to_string(self.inner.update(now, listener)).expect("lines serialize")
     }
 
-    /// Arbitrates at mixer time `now`, heard from where `sound` last heard.
-    pub fn hear(&mut self, sound: &SoundFrame, now: f64) -> String {
-        let listener = sound.inner.listener().position;
-        serde_json::to_string(self.inner.update(now, listener)).expect("lines serialize")
+    /// A battle's arbitration at mixer time `now`: the barks `sound` heard,
+    /// heard from where it last heard, each placed where it was shouted.
+    pub fn hear(&mut self, sound: &mut SoundFrame, now: f64) -> String {
+        serde_json::to_string(self.inner.hear(&mut sound.inner, now)).expect("lines serialize")
     }
 
     /// Forgets every line waiting and sounding (a new battle).

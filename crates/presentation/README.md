@@ -35,8 +35,10 @@ wherever it runs.
   same publication the effects read, the frame's emitters and the side's
   hearing cues, as commands a player carries out (start, glide, stop a voice;
   listen from here); which units' voice lines play, started on the voices
-  bus; and the synthesized baselines and recipe buffers every player
-  prepares alike. `tests/sound.rs` holds it to every command the browser's
+  bus, a shout the side hears in the open asking for a bark in its kind's
+  set and spoken where it was shouted; and the synthesized baselines and
+  recipe buffers every player prepares alike. `tests/sound.rs` holds it to
+  every command the browser's
   TypeScript frame gave over the sound lab's firefight, and `tests/voices.rs`
   to every line the browser's TypeScript chatter started and dropped.
 

@@ -8,6 +8,7 @@ import {
   type SoundMotion,
   type SoundPublication,
   type SoundStats,
+  type Speakers,
 } from "./soundFrame";
 
 /** A frame a script draws: its presentation time, what moves, and where it is heard. */
@@ -61,7 +62,7 @@ export class BattleAudio {
   private frame: SoundFrame | null = null;
   private voices: BattleVoices | null = null;
   private shouts: ShoutPool | null = null;
-  private enemySets: readonly string[] = [];
+  private speakerSets: Speakers | null = null;
   private ready = false;
   private error: string | null = null;
   private disposed = false;
@@ -89,7 +90,7 @@ export class BattleAudio {
         this.ready = true;
         this.frame?.reset();
         void this.voices?.start();
-        this.loadShouts();
+        this.hearSpeakers();
       })
       .catch((error: unknown) => {
         if (this.sink !== sink) return;
@@ -119,20 +120,25 @@ export class BattleAudio {
   loadVoices(sets: Iterable<string>) {
     void this.voices?.want(sets);
   }
-  /** The voice sets the enemy faction speaks with: an unseen enemy's shout is
-   *  a bark drawn from them. They load once this battle's sounds are ready. */
-  hearEnemies(sets: Iterable<string>) {
-    this.enemySets = [...sets];
-    this.loadShouts();
+  /** Which voice set each unit kind speaks with, for the side's own faction
+   *  and its enemy's: a shout heard in the open is a bark in its kind's set,
+   *  and an unseen enemy's is drawn from the enemy's sets. Every one of those
+   *  sets loads once this battle's sounds are ready. */
+  speakers(speakers: Speakers) {
+    this.speakerSets = speakers;
+    this.hearSpeakers();
   }
-  private loadShouts() {
-    const { sink, frame } = this;
-    if (!this.ready || !sink || !frame || this.shouts || this.enemySets.length === 0) return;
+  private hearSpeakers() {
+    const { sink, frame, speakerSets } = this;
+    if (!this.ready || !sink || !frame || !speakerSets || this.shouts) return;
+    frame.speakers(speakerSets);
+    const enemySets = [...new Set(Object.values(speakerSets.enemy))].sort();
+    void this.voices?.want([...Object.values(speakerSets.own), ...enemySets]);
     const pool = (this.shouts = new ShoutPool(
       sink.context,
       this.options.presentation.cues.shout.takes_per_voice,
     ));
-    void pool.load(this.enemySets).then((takes) => {
+    void pool.load(enemySets).then((takes) => {
       if (this.shouts !== pool) return;
       sink.addTakes(takes);
       frame.shouts(takes.map(({ sound, buffer }) => ({ sound, duration: buffer.duration })));
@@ -145,9 +151,11 @@ export class BattleAudio {
     const wall = performance.now() / 1000;
     if (feed instanceof Presentation) frame.hear(feed, wall);
     else frame.update(feed.clock, wall, feed.motion, feed.listener);
-    // Lines are heard from where the frame just heard, in Rust.
-    this.voices?.hear(frame);
-    this.app.battleStarted(this);
+    // Lines are heard from where the frame just heard, in Rust, with the
+    // barks it heard; the score hears them too, and dips under any line.
+    const voices = this.voices;
+    const lines = voices?.hear(frame);
+    this.app.battleHeard(this, lines?.heard ?? [], voices?.speaking() ?? false);
   }
   reset() {
     this.frame?.reset();
