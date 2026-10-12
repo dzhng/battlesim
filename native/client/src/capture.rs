@@ -60,8 +60,8 @@ pub struct Record {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct Lens {
-    fov_y: f32,
-    near: f32,
+    fov_y: f64,
+    near: f64,
 }
 
 pub struct Replay {
@@ -189,7 +189,7 @@ impl Replay {
         Camera {
             eye: record.eye,
             target: record.target,
-            up: record.up.map(|v| v as f32),
+            up: record.up,
             fov_y: self.lens.fov_y,
             near: self.lens.near,
             size: record.canvas,

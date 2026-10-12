@@ -8,6 +8,7 @@
 use presentation::light::LightSettings;
 use presentation::presentation::{Frame, Presentation};
 use presentation::records::View;
+use presentation::shadow::sun_shadow;
 use presentation::view::Camera;
 use wgpu::*;
 
@@ -16,7 +17,6 @@ use crate::environment::{view_proj, Environment};
 use crate::grass::Grass;
 use crate::ground::Ground;
 use crate::models::Models;
-use crate::pending::shadow::sun_shadow;
 use crate::shadow::SunShadow;
 
 /// The lit world before post.
@@ -146,9 +146,10 @@ impl Passes {
         let height = f64::from(camera.size[1].max(1));
         self.grass.prepare(
             queue,
+            &self.ground.map.ground,
             &view_proj(&frame.view),
             camera.eye,
-            f64::from(camera.fov_y),
+            camera.fov_y,
             height,
         );
         self.models.prepare(device, queue, frame);

@@ -3,15 +3,16 @@
 //! moves, then drawn as two tiers of clumps by indexed indirect draws. The
 //! tables are the ground's (`Ground::grass_params`, `grass_props`) and the
 //! blade shapes packed from the grass appearances' bundles by the same crate.
-use presentation::static_world::ground::biome::GrassRules;
 use presentation::static_world::ground::grass::Quality;
 use presentation::static_world::ground::Ground as GroundTables;
 use wgpu::*;
 
 use crate::bundle::{Library, Shape};
 use crate::gpu::{bind, buffer};
-use crate::pending::grass::{self as field, KindMesh, TierMesh, Window, FIELD_SEGMENTS};
 use crate::pipelines::{Bound, BoundCompute, Pipelines};
+use presentation::static_world::ground::grass::{
+    self as field, KindMesh, TierMesh, Window, FIELD_SEGMENTS,
+};
 
 /// One clump as the build leaves it (`GrassClump`).
 const CLUMP_BYTES: u64 = 32;
@@ -31,8 +32,6 @@ pub struct Grass {
     words: Vec<u32>,
     args: Buffer,
     indices: Vec<(Buffer, u32)>,
-    rules: GrassRules,
-    lowest: f64,
     window: Window,
     /// The view the clumps were last grown for (view-projection, pixel
     /// scale): a still view draws the same clumps without regrowing.
@@ -65,6 +64,7 @@ impl Grass {
                 };
                 let state = states.first().ok_or(format!("grass {name} has no state"))?;
                 Ok(KindMesh {
+                    name,
                     tiers: state
                         .tiers
                         .iter()
@@ -82,7 +82,7 @@ impl Grass {
         let packed = field::pack_shapes(&kinds)?;
         let words =
             ground.grass_params(&packed.facts, &field::LIMITS, &Quality { density: 1.0 })?;
-        let rules = ground.biome.grass.clone();
+        let rules = &ground.biome.grass;
         let storage = BufferUsages::STORAGE;
         let uniform = BufferUsages::UNIFORM | BufferUsages::COPY_DST;
         let params = buffer(
@@ -169,8 +169,6 @@ impl Grass {
             words,
             args,
             indices,
-            lowest: ground.source.grid.min_height,
-            rules,
             window: Window {
                 x0: 0.0,
                 y0: 0.0,
@@ -190,6 +188,7 @@ impl Grass {
     pub fn prepare(
         &mut self,
         queue: &Queue,
+        ground: &GroundTables,
         view_proj: &[f32; 16],
         eye: [f64; 3],
         fov_y: f64,
@@ -198,7 +197,7 @@ impl Grass {
         self.drawn = false;
         self.regrow = false;
         let scale = field::metres_per_pixel(fov_y, height);
-        self.window = field::window(eye, self.lowest, scale, &self.rules);
+        self.window = ground.grass_window(eye, scale);
         if self.window.tiles_x * self.window.tiles_y == 0 {
             return;
         }

@@ -11,7 +11,6 @@ pub mod gpu;
 pub mod grass;
 pub mod ground;
 pub mod models;
-pub mod pending;
 pub mod pipelines;
 pub mod post;
 pub mod shadow;

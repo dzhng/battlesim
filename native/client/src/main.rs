@@ -26,13 +26,13 @@ use native_client::gpu::{self, Gpu};
 use native_client::grass::Grass;
 use native_client::ground::Ground;
 use native_client::models::Models;
-use native_client::pending::shadow::SunShadowFrame;
 use native_client::pipelines::Pipelines;
 use native_client::post::Post;
 use native_client::shadow::{ShadowPass, SunShadow};
 use native_client::sky::Sky;
 use native_client::world::{DepthPrepass, Ghosts, WorldColour};
 use presentation::records::View;
+use presentation::shadow::SunShadowFrame;
 use wgpu::{CommandEncoder, CurrentSurfaceTexture, PresentMode, Surface, SurfaceConfiguration};
 use winit::application::ApplicationHandler;
 use winit::dpi::{PhysicalPosition, PhysicalSize};
@@ -181,7 +181,7 @@ impl Run {
         let shadow = SunShadow::new(
             &gpu.device,
             &pipelines,
-            2048, // PENDING light.cascades.map_size
+            light.cascades.map_size,
             &SunShadowFrame::cold(light),
         );
         let environment = Environment::new(
@@ -200,8 +200,8 @@ impl Run {
             &gpu.device,
             &gpu.queue,
             &pipelines,
-            &map,
-            40000.0, // PENDING light.backdrop.reach_m
+            map,
+            light.backdrop.reach_m,
         )?;
         let installed = Instant::now();
         let library = Library::open(std::path::Path::new(RUNTIME))?;
@@ -209,7 +209,7 @@ impl Run {
             &gpu.device,
             &pipelines,
             &library,
-            &map.ground,
+            &ground.map.ground,
             &ground.heights,
         )?;
         println!(

@@ -24,6 +24,21 @@ and passes over the [presentation crate](../../crates/presentation/README.md)'s
   each `Frame` batch is one run of instances over one row's tier. A corpse is
   its body posed once by the presentation crate's rest palette; so is a body
   at the impostor tier (its far pose), since impostor cards are not baked yet.
+- **The ground** is the presentation crate's, resolved from the saved map
+  by the simulation's own world code (`static_world::files::ground`): the
+  terrain's tables, its meshes (terrain, skirt, backdrop, water), the grass's
+  tables and blade shapes, and the side's learned scars. The client uploads
+  them and draws the terrain into the depth prepass, the cascades and the lit
+  world. The grass grows on the GPU over the window the crate fits to each
+  view, through the exported build, finish and indirect draw.
+- **Sun shadows** are four cascades the presentation crate fits to each
+  frame's camera over the map's box (`presentation::shadow`): the receiver
+  block and each cascade's caster camera are records the client uploads. The
+  ground, the models and the buildings cast into them, a unit one tier
+  coarser than it draws and never as a card.
+- **Buildings** are the frame's static batches: the map's buildings placed
+  from the template art, in the state the side knows. A replay frames only the
+  plates it draws, so it asks for every static batch on those frames.
 - **Effects** are the frame's effect instances (`Presentation::effects`),
   drawn into the resolved lit world over the browser's own flipbook sheets
   (`assets/third-party/effects`, Git LFS), and the cast lights the
@@ -40,9 +55,9 @@ and passes over the [presentation crate](../../crates/presentation/README.md)'s
   synthesized sounds composed by the same Rust bank the browser's decisions
   were made against. `--sound <wav>` renders a replay's sound to a file; it is
   never played aloud by the replay, and the tests render to a buffer.
-- **What is bound but not drawn yet** reads as absent in every shader: the
-  sun's cascades (every surface takes the whole sun) and fog of war's sight
-  (every surface seen), whose inputs come with the static world.
+- **What is bound but not drawn yet** reads as absent in every shader: fog
+  of war's sight (every surface seen) and the painted ground marks (the UI
+  paints them; a replay has no UI).
 
 ## Running a parity scene
 

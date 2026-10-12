@@ -7,12 +7,9 @@ use wgpu::*;
 use crate::frame::{Inputs, Pass, DEPTH_FORMAT};
 use crate::gpu::{bind, buffer};
 use crate::models::Surface;
-use crate::pending::records::{Camera, SunShadow as Receiver};
-use crate::pending::shadow::SunShadowFrame;
 use crate::pipelines::{Bound, Pipelines};
-
-/// The receiver layout's cascade slots (`SunShadow.cascades`).
-pub const CASCADES: usize = 4;
+use presentation::records::{Camera, SunShadow as Receiver};
+use presentation::shadow::{SunShadowFrame, CASCADES};
 
 pub struct SunShadow {
     layers: Vec<TextureView>,

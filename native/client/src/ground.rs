@@ -3,12 +3,12 @@
 //! ground tables and meshes, uploaded once, drawn into the depth prepass,
 //! the sun's cascades and the lit world. The terrain's group (`terrainLayout`)
 //! is the grass build's too.
+use presentation::shadow::map_box;
 use presentation::static_world::files::MapGround;
+use presentation::static_world::ground::mesh::{self, VERTEX_FLOATS};
 use wgpu::*;
 
 use crate::gpu::{bind, buffer};
-use crate::pending::mesh::{self, VERTEX_FLOATS};
-use crate::pending::shadow::map_box;
 use crate::pipelines::{Bound, Pipelines};
 
 /// `TerrainParams`' last `vec4u`, the frame's view: the lit ground (not its
@@ -78,6 +78,8 @@ fn texture(device: &Device, label: &str, size: [u32; 2], format: TextureFormat) 
 }
 
 pub struct Ground {
+    /// What the ground was resolved from: its tables, the grass's rules.
+    pub map: MapGround,
     /// `terrainLayout`: the terrain's tables and the side's scars.
     pub group: BindGroup,
     /// The height pages fog and grass read (`Grid::pages`).
@@ -103,7 +105,7 @@ impl Ground {
         device: &Device,
         queue: &Queue,
         pipelines: &Pipelines,
-        map: &MapGround,
+        map: MapGround,
         backdrop_m: f64,
     ) -> Result<Self, String> {
         let ground = &map.ground;
@@ -196,14 +198,17 @@ impl Ground {
         let terrain = mesh::terrain(&map.positions, &map.indices, None);
         let map_box = map_box(&terrain);
         let backdrop = map_box.map_or_else(Vec::new, |b| mesh::backdrop(&b, backdrop_m));
+        let skirt = Mesh::new(device, "skirt", &mesh::skirt(&map.positions));
+        let water = Mesh::new(device, "water", &mesh::water(&ground.water_cells()));
         Ok(Self {
+            map,
             group,
             heights,
             map_box,
             terrain: Mesh::new(device, "terrain", &terrain),
-            skirt: Mesh::new(device, "skirt", &mesh::skirt(&map.positions)),
+            skirt,
             backdrop: Mesh::new(device, "backdrop", &backdrop),
-            water: Mesh::new(device, "water", &mesh::water(&ground.water_cells())),
+            water,
             identity: buffer(
                 device,
                 "identity",
