@@ -244,14 +244,6 @@ export default function ScenarioBuilder() {
               y2={((i + 1) * mapSize[1]) / 8}
             />
           ))}
-          <path
-            className="map-road"
-            d={`M 0 ${mapSize[1] * 0.52} C ${mapSize[0] * 0.25} ${mapSize[1] * 0.42}, ${mapSize[0] * 0.7} ${mapSize[1] * 0.62}, ${mapSize[0]} ${mapSize[1] * 0.5}`}
-          />
-          <path
-            className="map-river"
-            d={`M ${mapSize[0] * 0.48} 0 C ${mapSize[0] * 0.43} ${mapSize[1] * 0.28}, ${mapSize[0] * 0.55} ${mapSize[1] * 0.7}, ${mapSize[0] * 0.49} ${mapSize[1]} L ${mapSize[0] * 0.57} ${mapSize[1]} C ${mapSize[0] * 0.62} ${mapSize[1] * 0.7}, ${mapSize[0] * 0.5} ${mapSize[1] * 0.3}, ${mapSize[0] * 0.56} 0 Z`}
-          />
           <text className="map-label" x="16" y="26">
             resolved map snapshot · {mapSize[0]} × {mapSize[1]} m
           </text>
