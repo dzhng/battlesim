@@ -224,3 +224,53 @@ export function takeFile(take: VoiceTake, sha256: string): string {
 export function voiceUrl(take: VoiceTake, sha256: string): string {
   return `/audio/voices/${take.set}/${takeFile(take, sha256)}`;
 }
+
+/** One playable take in a pack. */
+export interface PackTake extends Omit<VoiceTake, "set"> {
+  url: string;
+  duration_s: number;
+}
+/** `pack.json`: what a set can say. A trigger without a take is silent. */
+export interface VoicePack {
+  set: string;
+  /** Each voice and whether it answers or shouts. */
+  voices: Pick<VoiceSpec, "id" | "speaks">[];
+  takes: PackTake[];
+}
+/** A set's pack, at a fixed name so the browser revalidates it: the only builder of this path. */
+export function packUrl(set: string): string {
+  return `/audio/voices/${set}/pack.json`;
+}
+/**
+ * A set's pack from the takes `served` admits: a take's served sha256 and length,
+ * or null to leave it out. The generation tool admits accepted takes; the
+ * workbench preview admits every take not judged bad.
+ */
+export function voicePack(
+  catalog: VoiceCatalog,
+  set: string,
+  served: (take: string) => { sha256: string; duration_s: number } | null,
+): VoicePack {
+  const takes: PackTake[] = [];
+  for (const voice of catalog.sets[set].voices)
+    for (const trigger of voiceTriggers(voice))
+      for (const intensity of ["steady", "stressed"] as const)
+        for (const take of [0, 1]) {
+          const id: VoiceTake = { set, voice: voice.id, trigger, intensity, take };
+          const file = served(takeId(id));
+          if (file)
+            takes.push({
+              voice: voice.id,
+              trigger,
+              intensity,
+              take,
+              url: voiceUrl(id, file.sha256),
+              duration_s: file.duration_s,
+            });
+        }
+  return {
+    set,
+    voices: catalog.sets[set].voices.map(({ id, speaks }) => ({ id, speaks })),
+    takes,
+  };
+}

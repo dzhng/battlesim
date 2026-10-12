@@ -70,6 +70,7 @@ function fixture() {
     live: vi.fn(),
     voice: vi.fn(async () => {}),
     music: vi.fn(async () => player),
+    lines: vi.fn(async () => null),
     stop: vi.fn(),
   };
   const music: MusicAPI = {

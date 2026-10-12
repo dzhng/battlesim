@@ -682,3 +682,178 @@
   max-width: 900px;
   font-size: 13px;
 }
+
+/* Chatter preview: one lane per speaker over the script's seconds. A tick is a
+   line asked for, a bar a line heard (its length the take's), a cross a drop. */
+.sw-chatter {
+  --sw-response: #a4d5c5;
+  --sw-own: #f2c14e;
+  --sw-other: #9fb4ff;
+}
+.sw-chatter [data-tier="response"] {
+  --tier: var(--sw-response);
+}
+.sw-chatter [data-tier="own_bark"] {
+  --tier: var(--sw-own);
+}
+.sw-chatter [data-tier="other_bark"] {
+  --tier: var(--sw-other);
+}
+.sw-chatter-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 18px;
+  margin: 4px 0 12px;
+  color: var(--sw-muted);
+}
+.sw-chatter-summary b {
+  color: var(--sw-text);
+  font-variant-numeric: tabular-nums;
+}
+.sw-chatter [data-reason="late"] {
+  --drop: #f0786e;
+}
+.sw-chatter [data-reason="group"] {
+  --drop: #d59cff;
+}
+.sw-chatter [data-reason="missing"] {
+  --drop: #74898a;
+}
+.sw-drop-mark {
+  font-style: normal;
+  color: var(--drop);
+}
+.sw-chatter-legend {
+  display: flex;
+  gap: 14px;
+  margin-left: auto;
+}
+.sw-chatter-legend span::before {
+  content: "";
+  display: inline-block;
+  width: 18px;
+  height: 8px;
+  margin-right: 6px;
+  background: var(--tier);
+}
+.sw-lanes {
+  border: 1px solid var(--sw-line);
+  background: #142125;
+}
+.sw-lane {
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
+  border-bottom: 1px solid var(--sw-line);
+}
+.sw-lane:last-child {
+  border-bottom: 0;
+}
+.sw-lane-name {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 6px 12px;
+  border-right: 1px solid var(--sw-line);
+  font-size: 13px;
+}
+.sw-lane-name small {
+  color: var(--sw-muted);
+  font-size: 11px;
+}
+.sw-lane-track {
+  position: relative;
+  height: 52px;
+  margin: 0 12px;
+}
+.sw-lane-axis .sw-lane-track {
+  height: 24px;
+}
+.sw-lane-tick {
+  position: absolute;
+  top: 4px;
+  transform: translateX(-50%);
+  color: var(--sw-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.sw-lane-ask {
+  position: absolute;
+  top: 4px;
+  width: 2px;
+  height: 8px;
+  background: var(--tier);
+  opacity: 0.55;
+}
+.sw-lane-line {
+  position: absolute;
+  top: 14px;
+  height: 16px;
+  min-width: 3px;
+  padding: 0 4px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--tier) 30%, transparent);
+  border-left: 2px solid var(--tier);
+  color: var(--sw-text);
+  font-size: 10px;
+  line-height: 16px;
+  white-space: nowrap;
+}
+.sw-lane-drop {
+  position: absolute;
+  top: 32px;
+  transform: translateX(-50%);
+  color: var(--drop);
+  font-size: 12px;
+  line-height: 14px;
+}
+.sw-lane-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--sw-active);
+}
+.sw-lane-track {
+  /* A guide every 5 s, under the axis labels. */
+  background-image: linear-gradient(to right, #ffffff14 1px, transparent 1px);
+  background-size: var(--sw-grid) 100%;
+}
+.sw-lane-tick::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 15px;
+  height: 5px;
+  border-left: 1px solid var(--sw-muted);
+}
+.sw-lane-ask {
+  width: 3px;
+  height: 9px;
+  opacity: 0.9;
+}
+.sw-lane-drop sup {
+  font-size: 9px;
+  margin-left: 1px;
+}
+.sw-chatter-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.sw-key-ask {
+  width: 3px;
+  height: 10px;
+  background: var(--sw-muted);
+}
+.sw-key-line {
+  width: 22px;
+  height: 10px;
+  margin-left: 10px;
+  background: #ffffff30;
+  border-left: 2px solid var(--sw-muted);
+}
+.sw-chatter-legend span::before {
+  width: 4px;
+  height: 12px;
+}
