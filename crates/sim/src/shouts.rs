@@ -5,23 +5,30 @@ use std::collections::{BTreeMap, BTreeSet};
 use contract::catalog::AltitudeLayer;
 use contract::ids::{Side, Tick, UnitId};
 use contract::observation::{
-    ActionReason, Intensity, Shout, ShoutSpeaker, ShoutTrigger, SuppressionTier,
+    ActionReason, Intensity, ObservedTargetId, Shout, ShoutSpeaker, ShoutTrigger, SuppressionTier,
 };
 use contract::scenario::Rules;
 
+use crate::battle::Round;
+use crate::flight::{FlightEvent, Projectile, ProjectileId};
 use crate::knowledge::SideKnowledge;
+use crate::math::Obb2;
 use crate::units::Unit;
-use crate::weapons::Target;
+use crate::weapons::{Arsenal, Target};
+use crate::world::WorldGeometry;
 
 /// When one unit has several barks on one tick, the earliest here speaks:
 /// the more specific moment first.
-pub const PRIORITY: [ShoutTrigger; 11] = [
+pub const PRIORITY: [ShoutTrigger; 14] = [
     ShoutTrigger::B16Destroyed,
+    ShoutTrigger::B15IncomingMissile,
     ShoutTrigger::B10BadlyDamaged,
     ShoutTrigger::B9ManDown,
     ShoutTrigger::B8Hit,
     ShoutTrigger::B7Pinned,
     ShoutTrigger::B6Suppressed,
+    ShoutTrigger::B17FriendlyDestroyedNearby,
+    ShoutTrigger::B5UnderFire,
     ShoutTrigger::B14MissileAway,
     ShoutTrigger::B13OutOfAmmo,
     ShoutTrigger::B12Reloading,
@@ -42,6 +49,74 @@ pub struct ShoutEvidence {
     pub triggers: BTreeMap<UnitId, BTreeSet<ShoutTrigger>>,
 }
 
+/// The physical moments flight leaves behind for one tick.
+#[derive(Clone, Debug, Default)]
+pub struct Physical {
+    /// Units an enemy round passed or landed near ([`under_fire`]).
+    pub under_fire: BTreeSet<UnitId>,
+    /// Units that see an enemy missile steering onto them ([`incoming`]).
+    pub incoming: BTreeSet<UnitId>,
+}
+
+/// One unit as barks last saw it: only what a bark compares across a tick,
+/// so a tick costs a few numbers per unit, not a copy of every unit.
+#[derive(Clone, Debug)]
+pub struct Before {
+    alive: bool,
+    hp: f64,
+    member_hp: Vec<f64>,
+    tier: SuppressionTier,
+    mounts: Vec<MountBefore>,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct MountBefore {
+    reason: ActionReason,
+    shots: u32,
+    missile: Option<ProjectileId>,
+}
+
+impl Before {
+    /// Health as barks read it: a vehicle's share of its hull's hp; a
+    /// squad's living members over its starting members.
+    fn health(&self, unit: &Unit, rules: &Rules) -> f64 {
+        if self.member_hp.is_empty() {
+            self.hp / unit.max_hp(rules)
+        } else {
+            self.member_hp.iter().filter(|&&hp| hp > 0.0).count() as f64
+                / self.member_hp.len() as f64
+        }
+    }
+}
+
+/// Note every unit as it stands, reusing the storage of the last tick's note.
+pub fn remember(before: &mut Vec<Before>, units: &[Unit], rules: &Rules) {
+    before.truncate(units.len());
+    for (i, unit) in units.iter().enumerate() {
+        if i == before.len() {
+            before.push(Before {
+                alive: false,
+                hp: 0.0,
+                member_hp: Vec::new(),
+                tier: SuppressionTier::None,
+                mounts: Vec::new(),
+            });
+        }
+        let b = &mut before[i];
+        b.alive = unit.alive();
+        b.hp = unit.hp;
+        b.member_hp.clear();
+        b.member_hp.extend(unit.members.iter().map(|m| m.hp));
+        b.tier = rules.suppression.tier(unit.suppression);
+        b.mounts.clear();
+        b.mounts.extend(unit.mounts.iter().map(|m| MountBefore {
+            reason: m.reason,
+            shots: m.shots,
+            missile: m.support.map(|s| s.projectile),
+        }));
+    }
+}
+
 /// Health as barks read it: a vehicle's share of its hull's hp; a squad's
 /// living members over its starting members.
 fn health(unit: &Unit, rules: &Rules) -> f64 {
@@ -60,9 +135,121 @@ fn tier_rank(tier: SuppressionTier) -> u8 {
     }
 }
 
+/// Every unit that heard an enemy round this tick: one passed it, struck
+/// it, glanced off it or landed within the round's suppression radius of
+/// it, scored as suppression scores a near miss. Hulls hear rounds too;
+/// a unit's own side's rounds never count. Read before flight forgets the
+/// rounds that ended this tick.
+pub fn under_fire(
+    events: &[FlightEvent],
+    rounds: &BTreeMap<ProjectileId, Round>,
+    units: &[Unit],
+    arsenal: &Arsenal,
+    rules: &Rules,
+) -> BTreeSet<UnitId> {
+    let mut out = BTreeSet::new();
+    for event in events {
+        let (projectile, point) = match event {
+            FlightEvent::NearMiss(n) => (n.projectile, None),
+            FlightEvent::Impact(i) => (i.projectile, Some(i.point)),
+            FlightEvent::Ricochet(r) => (r.projectile, Some(r.point)),
+            FlightEvent::Expired(_) | FlightEvent::Pass(_) => continue,
+        };
+        let Some(round) = rounds.get(&projectile) else {
+            continue;
+        };
+        let def = &arsenal.weapons[round.weapon].def;
+        let enemy = |unit: &&Unit| unit.side != round.side && unit.alive();
+        let Some(point) = point else {
+            // A near miss: flight measured the pass to the unit's nearest body.
+            let FlightEvent::NearMiss(n) = event else {
+                continue;
+            };
+            let unit = &units[n.unit.0 as usize];
+            if enemy(&unit) && crate::damage::near_miss(def, n.distance) > 0.0 {
+                out.insert(n.unit);
+            }
+            continue;
+        };
+        for unit in units.iter().filter(enemy) {
+            let distance = match unit.hull {
+                Some(_) => unit.hull_distance(point),
+                None => unit
+                    .members
+                    .iter()
+                    .filter(|m| m.alive())
+                    .map(|m| {
+                        (m.position + crate::math::v3(0.0, 0.0, rules.physics.infantry_center_m)
+                            - point)
+                            .length()
+                    })
+                    .fold(f64::INFINITY, f64::min),
+            };
+            if crate::damage::near_miss(def, distance) > 0.0 {
+                out.insert(unit.id);
+            }
+        }
+    }
+    out
+}
+
+/// Whether `point` lies on the unit: within its hull's extents seen from
+/// above, or within its squad's area.
+fn on_footprint(unit: &Unit, point: crate::math::V3, rules: &Rules) -> bool {
+    match unit.hull {
+        Some(half) => Obb2 {
+            center: unit.position.xy(),
+            yaw: unit.yaw,
+            half: half.xy(),
+        }
+        .contains(point.xy(), 0.0),
+        None => {
+            (point.xy() - unit.position.xy()).length()
+                <= unit.footprint_radius(rules.physics.soldier_radius_m)
+        }
+    }
+}
+
+/// Every unit that sees an enemy guided round in flight whose commanded
+/// point lies on it, supported or released.
+pub fn incoming(
+    world: &WorldGeometry,
+    projectiles: &[Projectile],
+    rounds: &BTreeMap<ProjectileId, Round>,
+    units: &[Unit],
+    rules: &Rules,
+) -> BTreeSet<UnitId> {
+    let mut out = BTreeSet::new();
+    for p in projectiles {
+        let (Some(guidance), Some(round)) = (p.guidance, rounds.get(&p.id)) else {
+            continue;
+        };
+        for unit in units {
+            if unit.side == round.side || !unit.alive() || out.contains(&unit.id) {
+                continue;
+            }
+            if on_footprint(unit, guidance.point, rules)
+                && crate::sensing::sees_point(
+                    world,
+                    crate::sensing::eye(unit, rules),
+                    p.position,
+                    &crate::sight::of(unit, rules),
+                    1.0,
+                    &rules.sensors,
+                )
+            {
+                out.insert(unit.id);
+            }
+        }
+    }
+    out
+}
+
 pub fn evidence(
-    before: &[Unit],
+    before: &[Before],
     after: &[Unit],
+    world: &WorldGeometry,
+    physical: &Physical,
     fired: BTreeSet<UnitId>,
     identified: Vec<(UnitId, AltitudeLayer)>,
     rules: &Rules,
@@ -71,38 +258,48 @@ pub fn evidence(
         identified,
         ..Default::default()
     };
+    let mut destroyed = Vec::new();
     for (old, now) in before.iter().zip(after) {
         // Already gone, or withdrawn rather than destroyed.
-        if !old.alive() || now.retired {
+        if !old.alive || now.retired {
             continue;
         }
         let mut t = BTreeSet::new();
         let lives = now.alive();
         if !lives {
             t.insert(ShoutTrigger::B16Destroyed);
+            destroyed.push(now);
         }
-        let (was, is) = (health(old, rules), health(now, rules));
+        let (was, is) = (old.health(now, rules), health(now, rules));
         let wounded = now
             .members
             .iter()
-            .zip(&old.members)
-            .any(|(n, o)| n.hp < o.hp);
+            .zip(&old.member_hp)
+            .any(|(n, &o)| n.hp < o);
         if lives && (now.hp < old.hp || wounded) {
             t.insert(ShoutTrigger::B8Hit);
         }
-        let dead = |u: &Unit| u.members.iter().filter(|m| !m.alive()).count();
-        if lives && dead(now) > dead(old) {
+        let dead_now = now.members.iter().filter(|m| !m.alive()).count();
+        let dead_then = old.member_hp.iter().filter(|&&hp| hp <= 0.0).count();
+        if lives && dead_now > dead_then {
             t.insert(ShoutTrigger::B9ManDown);
         }
         if lives && was > 1.0 / 3.0 && is <= 1.0 / 3.0 {
             t.insert(ShoutTrigger::B10BadlyDamaged);
         }
-        let tier = |u: &Unit| rules.suppression.tier(u.suppression);
-        if tier_rank(tier(now)) > tier_rank(tier(old)) {
-            t.insert(match tier(now) {
+        let tier = rules.suppression.tier(now.suppression);
+        if tier_rank(tier) > tier_rank(old.tier) {
+            t.insert(match tier {
                 SuppressionTier::Pinned => ShoutTrigger::B7Pinned,
                 _ => ShoutTrigger::B6Suppressed,
             });
+        }
+        // A suppressed or pinned squad's fire is B6's and B7's moment.
+        if lives && tier == SuppressionTier::None && physical.under_fire.contains(&now.id) {
+            t.insert(ShoutTrigger::B5UnderFire);
+        }
+        if lives && physical.incoming.contains(&now.id) {
+            t.insert(ShoutTrigger::B15IncomingMissile);
         }
         for (n, o) in now.mounts.iter().zip(&old.mounts) {
             let became = |r: ActionReason| n.reason == r && o.reason != r;
@@ -113,9 +310,7 @@ pub fn evidence(
             if became(ActionReason::OutOfAmmo) {
                 t.insert(ShoutTrigger::B13OutOfAmmo);
             }
-            if n.support
-                .is_some_and(|s| o.support.is_none_or(|p| p.projectile != s.projectile))
-            {
+            if n.support.is_some_and(|s| o.missile != Some(s.projectile)) {
                 t.insert(ShoutTrigger::B14MissileAway);
             }
         }
@@ -131,6 +326,33 @@ pub fn evidence(
         }
         if !t.is_empty() {
             e.triggers.insert(now.id, t);
+        }
+    }
+    // A loss is called by one witness, the nearest friendly that sees where
+    // it happened (where its crew or soldiers stood, not the bare ground
+    // under it), never by a chorus.
+    for dead in destroyed {
+        let at = crate::sensing::eye(dead, rules);
+        let witness = after
+            .iter()
+            .filter(|u| u.side == dead.side && u.alive())
+            .map(|u| (u, (u.position.xy() - at.xy()).length()))
+            .filter(|(u, _)| {
+                crate::sensing::sees_point(
+                    world,
+                    crate::sensing::eye(u, rules),
+                    at,
+                    &crate::sight::of(u, rules),
+                    1.0,
+                    &rules.sensors,
+                )
+            })
+            .min_by(|a, b| a.1.total_cmp(&b.1).then(a.0.id.cmp(&b.0.id)));
+        if let Some((witness, _)) = witness {
+            e.triggers
+                .entry(witness.id)
+                .or_default()
+                .insert(ShoutTrigger::B17FriendlyDestroyedNearby);
         }
     }
     e
@@ -281,16 +503,35 @@ pub fn heard(enemy: &[Shout], knowledge: &SideKnowledge, tick: Tick) -> Vec<Shou
     enemy
         .iter()
         .filter_map(|s| {
-            let ShoutSpeaker::Own(unit) = s.speaker else {
-                return None;
-            };
-            let track = knowledge
-                .track(unit)
-                .filter(|_| knowledge.identifies(unit, tick))?;
             Some(Shout {
-                speaker: ShoutSpeaker::Seen(track.id),
+                speaker: ShoutSpeaker::Seen(seen(s, knowledge, tick)?),
                 ..s.clone()
             })
         })
         .collect()
+}
+
+/// The enemy speakers a side does not identify as they shout: hearing
+/// turns each into an anonymous cue.
+pub fn unheard<'a>(
+    enemy: &'a [Shout],
+    knowledge: &'a SideKnowledge,
+    tick: Tick,
+) -> impl Iterator<Item = UnitId> + 'a {
+    enemy.iter().filter_map(move |s| match s.speaker {
+        ShoutSpeaker::Own(unit) if seen(s, knowledge, tick).is_none() => Some(unit),
+        _ => None,
+    })
+}
+
+/// The handle a side hears an enemy's shout under, while it identifies the
+/// speaker.
+fn seen(s: &Shout, knowledge: &SideKnowledge, tick: Tick) -> Option<ObservedTargetId> {
+    let ShoutSpeaker::Own(unit) = s.speaker else {
+        return None;
+    };
+    knowledge
+        .track(unit)
+        .filter(|_| knowledge.identifies(unit, tick))
+        .map(|t| t.id)
 }

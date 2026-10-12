@@ -1,8 +1,9 @@
 //! Sound as evidence: every living unit makes its own sound (its body row's
 //! `sound` and `loudness_m`), louder when
-//! moving; shots are their own category. Only a friendly listener within the
-//! category's hearing range turns an unseen enemy's sound into a cue, and the
-//! cue carries a broad direction and distance band, never a position.
+//! moving; shots are their own category, and so are shouts. Only a friendly
+//! listener within the category's hearing range turns an unseen enemy's
+//! sound into a cue, and the cue carries a broad direction and distance band,
+//! never a position.
 use std::collections::BTreeSet;
 
 use contract::ids::{Side, UnitId};
@@ -13,12 +14,16 @@ use crate::knowledge::SideKnowledge;
 use crate::units::Unit;
 
 /// Cues `side` hears this bucket, one per unseen source and category.
+/// `shouted` holds the enemies that shouted unseen since the last bucket: a
+/// shout carries as far as its speaker's own sound, and its cue says nothing
+/// of what was shouted or by whom.
 pub fn hear(
     side: Side,
     tick: u64,
     units: &[Unit],
     knowledge: &SideKnowledge,
     fired: &BTreeSet<UnitId>,
+    shouted: &BTreeSet<UnitId>,
     rules: &Rules,
 ) -> Vec<SoundCue> {
     let s = &rules.sensors;
@@ -37,7 +42,10 @@ pub fn hear(
         let shot = fired
             .contains(&source.id)
             .then_some((SoundCategory::Shot, s.hearing_shot_m));
-        for (category, range) in std::iter::once(base).chain(shot) {
+        let shout = shouted
+            .contains(&source.id)
+            .then_some((SoundCategory::Shout, sound.loudness_m));
+        for (category, range) in std::iter::once(base).chain(shot).chain(shout) {
             let nearest = listeners
                 .iter()
                 .map(|l| (l, (source.position.xy() - l.position.xy()).length()))
@@ -57,7 +65,7 @@ pub fn hear(
                 } else {
                     SoundBand::Far
                 },
-                moving: category != SoundCategory::Shot && source.state == MoveState::Moving,
+                moving: category == base.0 && source.state == MoveState::Moving,
             });
         }
     }

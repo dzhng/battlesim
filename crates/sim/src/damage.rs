@@ -664,7 +664,7 @@ fn hull_damage(
 }
 
 /// Weapon-specific suppression at `distance` from a round's path or impact.
-fn near_miss(def: &WeaponDefinition, distance: f64) -> f64 {
+pub(crate) fn near_miss(def: &WeaponDefinition, distance: f64) -> f64 {
     let r = def.ballistics.suppression_radius_m;
     if r <= 0.0 {
         return 0.0;
