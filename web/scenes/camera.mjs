@@ -161,7 +161,7 @@ export async function run(ctx) {
       async ([id, seconds]) => {
         window.__lab.route.ride(id);
         const frames = [];
-        for (const start = performance.now(); performance.now() - start < seconds * 1000;) {
+        for (const start = performance.now(); performance.now() - start < seconds * 1000; ) {
           await new Promise(requestAnimationFrame);
           const c = window.__lab.clearance();
           frames.push({

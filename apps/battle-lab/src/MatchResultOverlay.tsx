@@ -30,16 +30,38 @@ function EventRow({ event }: { event: MatchEventView }) {
       <div className="match-result-event" data-event="kill">
         <time>{`${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`}</time>
         <div className="match-result-actor">
-          {event.killer ? <UnitGlyph kind={event.killer.unitKind} side={event.killer.side} /> : <span className="match-result-unknown">?</span>}
-          <span className={`match-result-event-side match-result-event-side-${event.killer?.side ?? event.side}`}>
-            {event.killer ? <><b>{sideName(event.killer.side)}</b><UnitLabel kind={event.killer.unitKind} id={event.killer.unitId} cost={event.killer.cost} /></> : "UNKNOWN SOURCE"}
+          {event.killer ? (
+            <UnitGlyph kind={event.killer.unitKind} side={event.killer.side} />
+          ) : (
+            <span className="match-result-unknown">?</span>
+          )}
+          <span
+            className={`match-result-event-side match-result-event-side-${event.killer?.side ?? event.side}`}
+          >
+            {event.killer ? (
+              <>
+                <b>{sideName(event.killer.side)}</b>
+                <UnitLabel
+                  kind={event.killer.unitKind}
+                  id={event.killer.unitId}
+                  cost={event.killer.cost}
+                />
+              </>
+            ) : (
+              "UNKNOWN SOURCE"
+            )}
           </span>
         </div>
-        <Icon path={hudIcon("rejected")} className="match-result-action match-result-kill" title="killed" />
+        <Icon
+          path={hudIcon("rejected")}
+          className="match-result-action match-result-kill"
+          title="killed"
+        />
         <div className="match-result-actor match-result-victim">
           <UnitGlyph kind={event.unitKind} side={event.side} />
           <span className={`match-result-event-side match-result-event-side-${event.side}`}>
-            <b>{sideName(event.side)}</b><UnitLabel kind={event.unitKind} id={event.unitId} cost={event.victimCost} />
+            <b>{sideName(event.side)}</b>
+            <UnitLabel kind={event.unitKind} id={event.unitId} cost={event.victimCost} />
           </span>
         </div>
       </div>
@@ -52,11 +74,19 @@ function EventRow({ event }: { event: MatchEventView }) {
       <div className="match-result-actor">
         <UnitGlyph kind={event.unitKind} side={event.side} />
         <span className={`match-result-event-side match-result-event-side-${event.side}`}>
-          <b>{sideName(event.side)}</b><UnitLabel kind={event.unitKind} id={event.unitId} />
+          <b>{sideName(event.side)}</b>
+          <UnitLabel kind={event.unitKind} id={event.unitId} />
         </span>
       </div>
-      <Icon path={stateIcon(spawn ? "deploy" : "withdrawing")} className="match-result-action" title={spawn ? "spawned" : "refunded"} />
-      <span className="match-result-event-copy">{spawn ? "SPAWNED" : "REFUNDED"}<small>{spawn ? `${event.amount} credits` : `${event.amount.toFixed(0)} credits`}</small></span>
+      <Icon
+        path={stateIcon(spawn ? "deploy" : "withdrawing")}
+        className="match-result-action"
+        title={spawn ? "spawned" : "refunded"}
+      />
+      <span className="match-result-event-copy">
+        {spawn ? "SPAWNED" : "REFUNDED"}
+        <small>{spawn ? `${event.amount} credits` : `${event.amount.toFixed(0)} credits`}</small>
+      </span>
     </div>
   );
 }
@@ -70,10 +100,26 @@ function TotalsRail({ report }: { report: Report }) {
           <div className={`match-result-total-side match-result-total-${side}`} key={side}>
             <strong>{sideName(side as "blue" | "red")}</strong>
             <div className="match-result-total-items">
-              <span title="Units spawned"><Icon path={stateIcon("deploy")} /><b>{totals.spawned}</b><small>SPAWNED</small></span>
-              <span title="Credits spent"><Icon path={stateIcon("stock")} /><b>{totals.spent}</b><small>CREDITS SPENT</small></span>
-              <span title="Units killed"><Icon path={hudIcon("rejected")} /><b>{totals.killed}</b><small>UNITS KILLED</small></span>
-              <span title="Credits refunded"><Icon path={stateIcon("withdrawing")} /><b>{Math.round(totals.refunded)}</b><small>CREDITS REFUNDED</small></span>
+              <span title="Units spawned">
+                <Icon path={stateIcon("deploy")} />
+                <b>{totals.spawned}</b>
+                <small>SPAWNED</small>
+              </span>
+              <span title="Credits spent">
+                <Icon path={stateIcon("stock")} />
+                <b>{totals.spent}</b>
+                <small>CREDITS SPENT</small>
+              </span>
+              <span title="Units killed">
+                <Icon path={hudIcon("rejected")} />
+                <b>{totals.killed}</b>
+                <small>UNITS KILLED</small>
+              </span>
+              <span title="Credits refunded">
+                <Icon path={stateIcon("withdrawing")} />
+                <b>{Math.round(totals.refunded)}</b>
+                <small>CREDITS REFUNDED</small>
+              </span>
             </div>
           </div>
         );
@@ -91,12 +137,18 @@ export function MatchResultOverlay({ match }: { match: NonNullable<ObservationVi
       <section className={`match-result-modal match-result-${match.result ?? "draw"}`}>
         <header className="match-result-heading">
           <h1>{title}</h1>
-          <span className="match-result-score"><b>{Math.floor(match.scores[0])} — {Math.floor(match.scores[1])}</b></span>
+          <span className="match-result-score">
+            <b>
+              {Math.floor(match.scores[0])} — {Math.floor(match.scores[1])}
+            </b>
+          </span>
         </header>
         <TotalsRail report={report} />
         <div className="match-result-timeline-wrap">
           <div className="match-result-timeline" aria-label="Unit action timeline">
-            {report.events.map((event, index) => <EventRow event={event} key={`${event.tick}-${index}`} />)}
+            {report.events.map((event, index) => (
+              <EventRow event={event} key={`${event.tick}-${index}`} />
+            ))}
           </div>
         </div>
       </section>

@@ -97,7 +97,8 @@ export class WebAudioSink implements VoiceSink {
 
   /** Voice takes the frame may start by name, calibrated as every take is. */
   addTakes(takes: Iterable<{ sound: string; buffer: AudioBuffer }>) {
-    for (const { sound, buffer } of takes) if (!this.takes.has(sound)) this.takes.set(sound, buffer);
+    for (const { sound, buffer } of takes)
+      if (!this.takes.has(sound)) this.takes.set(sound, buffer);
   }
 
   start(id: number, v: VoiceSpec) {

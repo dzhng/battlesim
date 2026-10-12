@@ -183,9 +183,7 @@ export async function sampleReady(packs: boolean): Promise<ReadySample> {
     if (url.includes("/audio/voices/")) {
       asked[battle?.stats()?.loading === false ? "after" : "before"]++;
       if (url.endsWith("/pack.json"))
-        return Promise.resolve(
-          packs ? Response.json(pack) : new Response(null, { status: 404 }),
-        );
+        return Promise.resolve(packs ? Response.json(pack) : new Response(null, { status: 404 }));
     }
     return original(input, init);
   };

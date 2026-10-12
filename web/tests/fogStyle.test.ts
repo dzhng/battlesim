@@ -9,7 +9,11 @@ import {
   FOG_DISTANCE_CAP_PX,
   type FogPresentation,
 } from "@packages/battle-renderer/src/frame/fogStyle";
-import { FOG_EDGE_REACH_PX, FOG_LOOK_WORDS, FogLook } from "@packages/battle-renderer/src/records.gen";
+import {
+  FOG_EDGE_REACH_PX,
+  FOG_LOOK_WORDS,
+  FogLook,
+} from "@packages/battle-renderer/src/records.gen";
 import { loadPresentation, resolveFogLook } from "@web/battle/sim/presentation";
 import game from "@fixtures/game.json";
 

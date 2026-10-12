@@ -74,7 +74,13 @@ describe("auto-detect resolver", () => {
 
   test("returns unusable when results are incomplete or non-finite", async () => {
     const { resolveAutoDetect } = await loadStore();
-    expect(resolveAutoDetect({ low: { averageFps: 44, onePercentLowFps: 29 }, medium: null, high: null })).toEqual({
+    expect(
+      resolveAutoDetect({
+        low: { averageFps: 44, onePercentLowFps: 29 },
+        medium: null,
+        high: null,
+      }),
+    ).toEqual({
       mode: null,
       result: null,
       unusable: true,
@@ -93,9 +99,15 @@ describe("quality profiles", () => {
     expect(graphicsProfiles.low.castLights).toBe(true);
     expect(graphicsProfiles.low.grassDensity).toBeGreaterThan(0.5);
     expect(graphicsProfiles.medium.grassDensity).toBeGreaterThan(graphicsProfiles.low.grassDensity);
-    expect(graphicsProfiles.high.grassDensity).toBeGreaterThan(graphicsProfiles.medium.grassDensity);
-    expect(graphicsProfiles.low.shadowMapSize).toBeLessThanOrEqual(graphicsProfiles.medium.shadowMapSize);
-    expect(graphicsProfiles.medium.shadowMapSize).toBeLessThanOrEqual(graphicsProfiles.high.shadowMapSize);
+    expect(graphicsProfiles.high.grassDensity).toBeGreaterThan(
+      graphicsProfiles.medium.grassDensity,
+    );
+    expect(graphicsProfiles.low.shadowMapSize).toBeLessThanOrEqual(
+      graphicsProfiles.medium.shadowMapSize,
+    );
+    expect(graphicsProfiles.medium.shadowMapSize).toBeLessThanOrEqual(
+      graphicsProfiles.high.shadowMapSize,
+    );
     expect(graphicsProfiles.low.shadowReach).toBeLessThan(graphicsProfiles.medium.shadowReach);
     expect(graphicsProfiles.medium.shadowReach).toBeLessThan(graphicsProfiles.high.shadowReach);
   });

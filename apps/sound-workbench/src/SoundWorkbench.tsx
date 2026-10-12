@@ -54,9 +54,7 @@ export function SoundWorkbench({
   const [review, setReview] = useState<Review | null>(null);
   const [tab, setTab] = useState<
     "library" | "movement" | "effects" | "voices" | "music" | "chatter"
-  >(
-    "library",
-  );
+  >("library");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Selection | null>(null);
   const [busy, setBusy] = useState(false);

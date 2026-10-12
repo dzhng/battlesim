@@ -87,11 +87,17 @@ test("wasm publishes the combat stream's barks: its own units' and only identifi
   for (const frame of frames)
     for (const shout of frame.shouts) {
       const speakers = shout.own ? frame.own : frame.identified;
-      expect(speakers.map((unit) => unit.id), `tick ${frame.tick}`).toContain(shout.id);
+      expect(
+        speakers.map((unit) => unit.id),
+        `tick ${frame.tick}`,
+      ).toContain(shout.id);
       if (shout.own) own++;
       else seen++;
     }
-  expect([own > 0, seen > 0], "the firefight is called by both sides' voices").toEqual([true, true]);
+  expect([own > 0, seen > 0], "the firefight is called by both sides' voices").toEqual([
+    true,
+    true,
+  ]);
 });
 
 test("wasm large-coordinate arrangement matches native authoritative state before float32 packing", () => {

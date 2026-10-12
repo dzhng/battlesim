@@ -796,12 +796,7 @@ export function truckGlb(o: TruckOptions = {}): Uint8Array {
   const b = new GltfBuilder();
   const skip = (name: string) => o.omit === name || (!!o.stationary && name.startsWith("deploy_"));
   const motion = (extras: Record<string, number>) => (o.noDeployMotion ? undefined : extras);
-  const empty = (
-    name: string,
-    t: Vec3,
-    children: number[] = [],
-    extras?: Record<string, number>,
-  ) =>
+  const empty = (name: string, t: Vec3, children: number[] = [], extras?: Record<string, number>) =>
     skip(name) ? -1 : b.node({ name, t: g3(t), children: children.filter((c) => c >= 0), extras });
   const part = (name: string, min: Vec3, max: Vec3, tiers = LODS.length) =>
     tieredPart(b, name, gBox(b, min, max), tiers);

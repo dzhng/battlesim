@@ -327,7 +327,7 @@ export class GroundView {
     const keys = [...this.tiles.keys()]
       .filter((key) => groundPageMarked(this.tiles.get(key)!))
       .sort((a, b) => a - b);
-    for (let lo = 0; lo < keys.length;) {
+    for (let lo = 0; lo < keys.length; ) {
       const row = Math.floor(keys[lo] / this.tilesX);
       let hi = lo + 1;
       while (hi < keys.length && Math.floor(keys[hi] / this.tilesX) === row) hi++;
