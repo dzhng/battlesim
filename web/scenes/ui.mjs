@@ -265,6 +265,16 @@ async function picker(ctx, page, shot) {
 
 export async function run(ctx) {
   const page = await ctx.newPage({ viewport: { width: 1280, height: 800 } });
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      "battle.graphics",
+      JSON.stringify({
+        mode: "high",
+        detectedMode: "high",
+        lastResult: { averageFps: 60, onePercentLowFps: 60, selectedMode: "high" },
+      }),
+    );
+  });
   await ctx.openLab(page, ctx.url);
   const shots = await page
     .getByTestId("shots")
