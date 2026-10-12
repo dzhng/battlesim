@@ -490,9 +490,9 @@ export async function run(ctx) {
     ack.label.startsWith("reverse move") && ack.ack.error === null && (await mode()) === "move",
     JSON.stringify(ack),
   );
-  ack = await clickAt(330, 300, "x");
+  ack = await clickAt(330, 300, "c");
   ctx.check(
-    "X then right-click issues an attack-move",
+    "C then right-click issues an attack-move",
     ack.label.startsWith("attack-move") && ack.ack.error === null && (await mode()) === "move",
     JSON.stringify(ack),
   );

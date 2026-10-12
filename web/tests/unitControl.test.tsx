@@ -360,6 +360,22 @@ test("losing a selected unit leaves survivors commandable without reselecting", 
   hook.unmount();
 });
 
+test("the fire-policy key orders the selection it judged, even before a re-render", async () => {
+  const { client, sent } = recordingClient();
+  const observation = {
+    own: [own(1, "test_rifle"), own(2, "test_rifle")],
+    contacts: [],
+  } as unknown as ObservationView;
+  const hook = renderHook(() => useUnitControl(client, observation), { wrapper });
+  act(() => hook.result.current.setSelected([1, 2]));
+  // A key handler bound before the last render still holds the earlier toggle.
+  const toggle = hook.result.current.togglePolicy;
+  act(() => hook.result.current.setSelected([2]));
+  await act(async () => toggle());
+  expect(sent.map(({ order }) => "units" in order && order.units)).toEqual([[2]]);
+  hook.unmount();
+});
+
 test("successive double-clicks widen type to role; external selection and timeout start over", () => {
   const observation = {
     own: [own(1, "test_rifle"), own(2, "test_rifle"), own(3, "test_recon")],
