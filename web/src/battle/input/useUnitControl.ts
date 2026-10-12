@@ -267,12 +267,13 @@ export function useUnitControl(
     const units = selectedUnitsRef.current;
     if (!units.length) return;
     const hold = units.every((u) => u.engagement === "return_fire_only");
+    // The policy and its units come from one read of the live selection.
     void issue({
       kind: "set_engagement",
-      units: selected,
+      units: units.map((u) => u.id),
       policy: hold ? "fire_at_will" : "return_fire_only",
     });
-  }, [selected, issue]);
+  }, [issue]);
 
   /** Select own units whose screen position falls in a dragged rectangle. */
   const selectInRect = useCallback(
