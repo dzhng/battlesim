@@ -12,6 +12,7 @@ import voiceJson from "../../../../fixtures/voices.json";
 import { duetClient, type ElevenLabsClient } from "./elevenlabs";
 import { autoPicks, designVoices, pickVoice, renderPreviews } from "./design";
 import { LOCK, readLock, recordVerdicts } from "./lock";
+import { assetsEncoder, generateMusic } from "./music";
 import {
   assetsProcessor,
   checkVoices,
@@ -122,6 +123,9 @@ function html(path: string) {
 const USAGE = `usage: bun run generate <command>
   plan [--html path]       the whole library's clips and characters, per set
   beds                     generate the profiles' ambience beds (once)
+  music [--track a,b] [--dry-run]
+                           generate the battle score's missing or changed tracks;
+                           --track buys those tracks again
   voices [selection]       generate, process, transcribe and lock takes
          [--dry-run] [--max-chars N]
   process [selection]      re-render takes whose profile changed; no calls
@@ -214,6 +218,18 @@ if (command === "plan") {
 } else if (command === "beds") {
   const { calls } = await generateBeds({ root, client: duetClient(), log });
   console.log(`TOTAL calls=${calls}`);
+} else if (command === "music") {
+  const result = await generateMusic({
+    root,
+    client: duetClient(),
+    encoder: assetsEncoder,
+    tracks: list("track"),
+    dryRun: args.includes("--dry-run"),
+    log,
+  });
+  console.log(`TOTAL calls=${result.calls} seconds=${result.seconds} failed=${result.failed}`);
+  if (result.stopped) console.log(`STOPPED ${result.stopped.message}`);
+  if (result.failed) process.exitCode = 1;
 } else if (command === "voices") await voices(duetClient());
 else if (command === "process") await voices(null);
 else if (command === "check") {

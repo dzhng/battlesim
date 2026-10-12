@@ -87,6 +87,13 @@ function fixture() {
     footsteps: { sound: "footstep", gain: 0.07, stride_m: 0.8, max_step_m: 2 },
     runMps: 2,
     materials: ["ground", "hull"],
+    music: {
+      duck: { depth: 0.35, attack_s: 0.05, release_s: 0.8 },
+      combat_window_s: 20,
+      calm_s: 45,
+      crossfade_s: 4,
+      combat_triggers: ["under_fire"],
+    },
   };
   let saved = snapshot;
   const api: WorkbenchAPI = {
@@ -109,6 +116,7 @@ function fixture() {
     play: vi.fn(async () => {}),
     live: vi.fn(async () => mix),
     voice: vi.fn(async () => {}),
+    music: vi.fn(),
     stop: vi.fn(),
   };
   return {

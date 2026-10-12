@@ -179,6 +179,17 @@ by the asset tool's `music` command; the hash in the name keeps a re-encoded
 track from meeting a cached one. A track's gain sets its loudness in the mix:
 the menu bed's matches the integrated loudness the old decoded bed had.
 
+The battle score is generated, so its sources record how (`Generated`: model,
+prompt, length) instead of a licence, and only a recording can be cropped into
+a clip. `bun run generate music` owns those tracks: their table and prompts live
+in [the tool](tools/generate/music.ts), each raw master is paid for once and kept
+under `assets/source/audio/music/`, and each served encode is given the gain that
+sets it to −26 LUFS. `--track` buys a track again.
+
+Which mood plays is the [music director's](src/music/musicDirector.ts) call: a
+pure rule on an injected clock, fed the side's own barks. Its numbers live in
+`presentation.audio.music`. It never repeats a track back to back within a mood.
+
 Music feeds the same master as the rest of the menu mix, so master volume and
 mute cover it. Inside the player, a level gain carries the player's music
 setting and a separate duck gain dips under voice lines, so neither overwrites

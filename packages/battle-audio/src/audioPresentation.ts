@@ -4,6 +4,7 @@
 // `default` row so a new kind sounds like something until its row is added.
 // Sound names are the synthesised bank's (`synth.ts` `SOUNDS`).
 import { requireDefaults } from "@packages/renderer-core/src/kindTable";
+import type { MusicDirection } from "./music/musicDirector";
 
 /** The mixer's buses under the master. Music is not one of them: it streams
  *  through `MusicPlayer`, which takes its level from `buses.music`. */
@@ -101,8 +102,8 @@ export interface AudioPresentation {
   footsteps: OneShot & { stride_m: number; max_step_m: number };
   /** Fire loops by smoke-source kind. */
   fires: Record<string, FireSound>;
-  /** Music ducking while voice lines play. */
-  music: { depth: number; attack_s: number; release_s: number };
+  /** Battle music: its mood direction (`MusicDirector`) and its ducking while voice lines play. */
+  music: MusicDirection & { duck: { depth: number; attack_s: number; release_s: number } };
   /** The countryside bed, never positional. */
   ambience: OneShot;
   /** Unseen enemies, from hearing cues: a sound by `category` or

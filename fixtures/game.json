@@ -867,7 +867,13 @@
       "footsteps": { "sound": "footstep", "gain": 0.07, "stride_m": 0.8, "max_step_m": 2 },
       "fires": { "default": { "sound": "fire", "gain": 0.4, "smoulder_gain": 0.1 } },
       "ambience": { "sound": "countryside", "gain": 0.2 },
-      "music": { "depth": 0.35, "attack_s": 0.05, "release_s": 0.8 },
+      "music": {
+        "duck": { "depth": 0.35, "attack_s": 0.05, "release_s": 0.8 },
+        "combat_window_s": 20,
+        "calm_s": 45,
+        "crossfade_s": 4,
+        "combat_triggers": ["under_fire", "suppressed", "pinned", "hit", "man_down"]
+      },
       "cues": {
         "sounds": {
           "default": "cue_voices",

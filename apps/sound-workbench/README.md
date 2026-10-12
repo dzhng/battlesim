@@ -55,3 +55,9 @@ again. A generation always names its sets, so a click never spends on the whole 
 A voice without a saved voice offers its design candidates, played through the set's
 profile; Pick runs the tool's `pick`, and None of these bumps the voice's design
 retake and designs again.
+
+The Music tab plays the score through the battle's own music player and music
+director. Its mood switch drives the director on a clock the tab owns, so the
+reviewer hears the real crossfade, and Combat left alone falls back to Tension as
+it would in battle. Regenerating a track queues `generate music --track` behind any
+voice command, on the same one-at-a-time queue.

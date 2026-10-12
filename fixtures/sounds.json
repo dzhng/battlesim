@@ -1,8 +1,8 @@
 {
   "sources": {
     "battlefield2-menu": {
-      "label": "Battlefield 2 menu · user-supplied recording",
-      "author": "EA / DICE · uploaded by Leopard",
+      "label": "Battlefield 2 menu \u00b7 user-supplied recording",
+      "author": "EA / DICE \u00b7 uploaded by Leopard",
       "license": "All-Rights-Reserved",
       "url": "https://www.youtube.com/watch?v=X9ChkYgrBtQ",
       "path": "assets/third-party/audio/battlefield2-menu.mp3",
@@ -530,6 +530,72 @@
       "path": "assets/third-party/audio/uh60-blackhawk-b-roll.flac",
       "sha256": "8af59d49b12878a2e3c56b52e72eed2dbb9a8ad6d1d4756f255ef8ca735b9384",
       "notes": "Government field footage credited to Master Sgt. Jason Stadel (taken 2017-08-01), rehosted by Bridget Bosch. YouTube audio decoded to 48 kHz stereo FLAC. No voices or music. Edited B-roll: picture and sound cut near 4.0, 8.9, 17.5 and 23.0 s."
+    },
+    "combat_1": {
+      "kind": "Generated",
+      "generator": "ElevenLabs music",
+      "model": "music_v1",
+      "prompt": "Background underscore for a modern military real-time strategy game, in the style of hybrid analog-synth and orchestral game scores. It must sit underneath gunfire, explosions and radio dialogue: no lead melody, no hooks, no solos, no big hits or drops, consistent low-mid energy throughout, dark and wide. Instrumental. Steady pulsing analog synth bass ostinato in D minor, subdued electronic drums and low taiko kept far back in the mix, soft sustained low strings, distant brass swells. 125 BPM. The bass ostinato and low strings carry it; the drums are a soft, distant pulse; one flat, even intensity from start to end.",
+      "length_s": 150,
+      "date": "2026-10-12",
+      "plan": "Duet ElevenLabs",
+      "path": "assets/source/audio/music/combat_1.d63d2bdc.mp3",
+      "sha256": "d63d2bdc5de71029ea9a426e8036a970aca1a4f94475324b230f998117ef3804"
+    },
+    "combat_2": {
+      "kind": "Generated",
+      "generator": "ElevenLabs music",
+      "model": "music_v1",
+      "prompt": "Background underscore for a modern military real-time strategy game, in the style of hybrid analog-synth and orchestral game scores. It must sit underneath gunfire, explosions and radio dialogue: no lead melody, no hooks, no solos, no big hits or drops, consistent low-mid energy throughout, dark and wide. Instrumental. Steady pulsing analog synth bass ostinato in D minor, subdued electronic drums and low taiko kept far back in the mix, soft sustained low strings, distant brass swells. 125 BPM. The low taiko and electronic drums lead the texture, still far back; brass swells every eight bars; a slow build over the first minute, then a steady plateau.",
+      "length_s": 150,
+      "date": "2026-10-12",
+      "plan": "Duet ElevenLabs",
+      "path": "assets/source/audio/music/combat_2.040d92f9.mp3",
+      "sha256": "040d92f9907035164065a58945669a869c46c0342bd91feca92b7468d043fcff"
+    },
+    "combat_3": {
+      "kind": "Generated",
+      "generator": "ElevenLabs music",
+      "model": "music_v1",
+      "prompt": "Background underscore for a modern military real-time strategy game, in the style of hybrid analog-synth and orchestral game scores. It must sit underneath gunfire, explosions and radio dialogue: no lead melody, no hooks, no solos, no big hits or drops, consistent low-mid energy throughout, dark and wide. Instrumental. Steady pulsing analog synth bass ostinato in D minor, subdued electronic drums and low taiko kept far back in the mix, soft sustained low strings, distant brass swells. 125 BPM. Darker and more urgent: lower-register strings and a syncopated variation of the ostinato, gentle swells and recessions every thirty seconds, never peaking.",
+      "length_s": 150,
+      "date": "2026-10-12",
+      "plan": "Duet ElevenLabs",
+      "path": "assets/source/audio/music/combat_3.00d1ec52.mp3",
+      "sha256": "00d1ec52381435e1edd727ebcecd96c3a4a84f1d3e2c04ec4d9eed7a071ebda1"
+    },
+    "tension_sparse_1": {
+      "kind": "Generated",
+      "generator": "ElevenLabs music",
+      "model": "music_v1",
+      "prompt": "Background underscore for a modern military real-time strategy game, in the style of hybrid analog-synth and orchestral game scores. It must sit underneath gunfire, explosions and radio dialogue: no lead melody, no hooks, no solos, no big hits or drops, consistent low-mid energy throughout, dark and wide. Instrumental. Steady pulsing analog synth bass ostinato in D minor, low sustained strings, distant brass swells, same palette as a 125 BPM hybrid combat score. Calm reconnaissance version of that score: the bass ostinato at half intensity, filtered and soft, no drums at all, only a quiet ticking pulse, long low string pads. 125 BPM. Wide and still, the ticking pulse alone for long stretches.",
+      "length_s": 150,
+      "date": "2026-10-12",
+      "plan": "Duet ElevenLabs",
+      "path": "assets/source/audio/music/tension_sparse_1.bc8939dc.mp3",
+      "sha256": "bc8939dc86460f1654769dae81f5f74163f9481b3c2d9d6e649f284e6e0eb238"
+    },
+    "tension_sparse_2": {
+      "kind": "Generated",
+      "generator": "ElevenLabs music",
+      "model": "music_v1",
+      "prompt": "Background underscore for a modern military real-time strategy game, in the style of hybrid analog-synth and orchestral game scores. It must sit underneath gunfire, explosions and radio dialogue: no lead melody, no hooks, no solos, no big hits or drops, consistent low-mid energy throughout, dark and wide. Instrumental. Steady pulsing analog synth bass ostinato in D minor, low sustained strings, distant brass swells, same palette as a 125 BPM hybrid combat score. Calm reconnaissance version of that score: the bass ostinato at half intensity, filtered and soft, no drums at all, only a quiet ticking pulse, long low string pads. 125 BPM. Slightly uneasy: the filtered ostinato drifts in and out under slow string swells.",
+      "length_s": 150,
+      "date": "2026-10-12",
+      "plan": "Duet ElevenLabs",
+      "path": "assets/source/audio/music/tension_sparse_2.4700db51.mp3",
+      "sha256": "4700db51eec2de23d5595c9e5baa16b326abf911f3989d36733e54d331c39b06"
+    },
+    "tension_dark_1": {
+      "kind": "Generated",
+      "generator": "ElevenLabs music",
+      "model": "music_v1",
+      "prompt": "Background underscore for a modern military real-time strategy game, in the style of hybrid analog-synth and orchestral game scores. It must sit underneath gunfire, explosions and radio dialogue: no lead melody, no hooks, no solos, no big hits or drops, consistent low-mid energy throughout, dark and wide. Instrumental. Steady pulsing analog synth bass ostinato in D minor, low sustained strings, distant brass swells, same palette as a 125 BPM hybrid combat score. Brooding pre-battle version of that score: a slow low synth pulse and sub-bass heartbeat, faint distant taiko every few bars, dark pads and occasional low brass. 125 BPM.",
+      "length_s": 150,
+      "date": "2026-10-12",
+      "plan": "Duet ElevenLabs",
+      "path": "assets/source/audio/music/tension_dark_1.7e7a3347.mp3",
+      "sha256": "7e7a33472565556f0a4d1624374bb571aa9ab61d6514407dca0819738b995799"
     }
   },
   "clips": {
@@ -4290,15 +4356,12 @@
       "notes": "Hollywood optical effect (1930s-60s, USC transfer): M-4 pass by, squeaky clacking treads. Its steadiest 3 s, crossfaded into a loop."
     },
     "rotor-uh60": {
-      "label": "UH-60 rotor · running loop",
+      "label": "UH-60 rotor \u00b7 running loop",
       "category": "rotor",
       "role": "loop",
       "source": "uh60-b-roll",
       "source_rate": 48000,
-      "source_frames": [
-        950400,
-        1094400
-      ],
+      "source_frames": [950400, 1094400],
       "processing": "running-gear",
       "url": "/audio/clips/rotor-uh60.wav",
       "sha256": "1ba52497c58249870aad73e3bab269d448bd9ceaf85e13c19452389d1a4e554e",
@@ -5549,9 +5612,7 @@
     },
     "recorded-tracks-christerljung": {
       "label": "Tracks \u00b7 tracks moving (christerljung)",
-      "clips": [
-        "tracks-christerljung"
-      ],
+      "clips": ["tracks-christerljung"],
       "synth": null,
       "synth_gain": 0,
       "gain": 1,
@@ -5559,9 +5620,7 @@
     },
     "recorded-tracks-cognito-tracked": {
       "label": "Tracks \u00b7 tracked vehicle.wav (cognito perceptu)",
-      "clips": [
-        "tracks-cognito-tracked"
-      ],
+      "clips": ["tracks-cognito-tracked"],
       "synth": null,
       "synth_gain": 0,
       "gain": 1,
@@ -5569,9 +5628,7 @@
     },
     "recorded-tracks-cognito-construction": {
       "label": "Tracks \u00b7 construction equipment tracked.wav (cognito perceptu)",
-      "clips": [
-        "tracks-cognito-construction"
-      ],
+      "clips": ["tracks-cognito-construction"],
       "synth": null,
       "synth_gain": 0,
       "gain": 1,
@@ -5579,9 +5636,7 @@
     },
     "recorded-tracks-craigsmith-tanks-close": {
       "label": "Tracks \u00b7 G15-26-Tanks Close Up.wav (craigsmith)",
-      "clips": [
-        "tracks-craigsmith-tanks-close"
-      ],
+      "clips": ["tracks-craigsmith-tanks-close"],
       "synth": null,
       "synth_gain": 0,
       "gain": 1,
@@ -5589,16 +5644,14 @@
     },
     "recorded-tracks-craigsmith-m4-squeaky": {
       "label": "Tracks \u00b7 G15-24-M-4 Squeaky Pass By.wav (craigsmith)",
-      "clips": [
-        "tracks-craigsmith-m4-squeaky"
-      ],
+      "clips": ["tracks-craigsmith-m4-squeaky"],
       "synth": null,
       "synth_gain": 0,
       "gain": 1,
       "loop": true
     },
     "rotor": {
-      "label": "Synth · rotor",
+      "label": "Synth \u00b7 rotor",
       "clips": [],
       "synth": "rotor",
       "synth_gain": 1,
@@ -5606,10 +5659,8 @@
       "loop": true
     },
     "recorded-rotor-uh60": {
-      "label": "Rotor · UH-60 Blackhawk B-Roll (US Army)",
-      "clips": [
-        "rotor-uh60"
-      ],
+      "label": "Rotor \u00b7 UH-60 Blackhawk B-Roll (US Army)",
+      "clips": ["rotor-uh60"],
       "synth": null,
       "synth_gain": 0,
       "gain": 1,
@@ -5695,12 +5746,46 @@
     "rotor": "recorded-rotor-uh60"
   },
   "music": {
-    "moods": { "menu": ["battlefield2_menu"], "tension": [], "combat": [] },
+    "moods": {
+      "menu": ["battlefield2_menu"],
+      "tension": ["tension_sparse_1", "tension_sparse_2", "tension_dark_1"],
+      "combat": ["combat_1", "combat_2", "combat_3"]
+    },
     "tracks": {
       "battlefield2_menu": {
         "source": "battlefield2-menu",
         "sha256": "4d08699d94606aabdf14866fc9db9747346dc66860412aab1c27d377bdef6169",
         "gain": 0.16
+      },
+      "combat_1": {
+        "source": "combat_1",
+        "sha256": "68572d2f60d3c7ad8e63ded105d5aaa4c5a92e74d0d030b656e39c21e6640bb7",
+        "gain": 0.313
+      },
+      "combat_2": {
+        "source": "combat_2",
+        "sha256": "ded7570212ae3760b23d635fc0b968ee92f3c7c85d4e317bb7c19e61a8fc6d01",
+        "gain": 0.407
+      },
+      "combat_3": {
+        "source": "combat_3",
+        "sha256": "6bb32c4ea4afe815ebd3ebf3a9c19b5c7ee7ac35154bfff9bdc986b42c2147b8",
+        "gain": 0.299
+      },
+      "tension_sparse_1": {
+        "source": "tension_sparse_1",
+        "sha256": "a1f2a4bbf36383b6de15274cf6fac3c8d48a2860e8cc80b5fbc8f50ed6662133",
+        "gain": 0.457
+      },
+      "tension_sparse_2": {
+        "source": "tension_sparse_2",
+        "sha256": "29b8437f4077927076cb4e72c9489eb49dc3a450722e97bb121b8595778a6bdd",
+        "gain": 0.417
+      },
+      "tension_dark_1": {
+        "source": "tension_dark_1",
+        "sha256": "583b0553ff59943e45d64ff988a430abecd410496d6654b62f7e52793119a557",
+        "gain": 0.335
       }
     }
   }

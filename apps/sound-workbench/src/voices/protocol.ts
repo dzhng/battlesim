@@ -4,7 +4,7 @@ import type {
   VoiceCatalog,
 } from "../../../../packages/battle-audio/src/voices/voiceCatalog";
 import type { Match } from "../../../../packages/battle-audio/tools/generate/transcript";
-import type { Review, Save } from "../protocol";
+import type { GenerationJob, Review, Save } from "../protocol";
 
 /** One locked take as the review grid shows it. */
 export interface TakeView {
@@ -71,25 +71,17 @@ export interface VoiceScope {
   take?: number;
   only?: "missing" | "bad" | "flagged";
 }
-export interface VoiceJob {
-  id: string;
-  /** The generation tool's arguments. */
-  args: string[];
-  status: "queued" | "running" | "done" | "failed";
-  /** The tool's latest progress lines. */
-  lines: string[];
-}
 export interface VoiceAPI {
   snapshot(): Promise<VoiceSnapshot>;
   preview(draft: VoiceDraft): Promise<Review>;
   save(review: Save): Promise<VoiceSnapshot>;
   verdict(request: VerdictRequest): Promise<VerdictResult>;
-  generate(scope: VoiceScope): Promise<{ job: VoiceJob }>;
+  generate(scope: VoiceScope): Promise<{ job: GenerationJob }>;
   /** Designs new candidates for `<set>/<voice>`. */
-  design(voice: string): Promise<{ job: VoiceJob }>;
+  design(voice: string): Promise<{ job: GenerationJob }>;
   /** Saves candidate 1–3 as the voice; voices.json gains its voice_id. */
   pick(voice: string, candidate: number): Promise<VoiceSnapshot>;
-  jobs(): Promise<{ jobs: VoiceJob[] }>;
+  jobs(): Promise<{ jobs: GenerationJob[] }>;
 }
 /** A design candidate rendered through its set's profile. */
 export const candidateUrl = (voice: string, candidate: number) =>

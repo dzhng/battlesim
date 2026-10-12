@@ -337,3 +337,18 @@ There were four drafts: A fewest-slices (Claude), B risk-first (Codex), C seam-q
   - Served files of a superseded take are still removed: they are re-renderable derivations that would otherwise ship with every deploy.
   - The generated helicopter bed that 02b deleted is restored, unused, under `assets/source/audio/voices/beds/`.
   - The pilot's three superseded raw masters were deleted before this rule and were never committed, so they are gone.
+**2026-10-12, slice 08 (agent; preference 1 unless noted):**
+
+- **Generated sources join the catalog's `sources`.** A track's source is `Generated` provenance plus `length_s`, `path` (under `assets/source/audio/music/`) and `sha256`; a recording keeps its licence receipt. Validation refuses a clip cropped from a generated source. The `music` section's types and `musicUrl()` moved to `src/music/musicCatalog.ts`, so the Bun-run tool can name a served file without loading the synthesised bank.
+- **Track ids:** `combat_1..3`, `tension_sparse_1..2`, `tension_dark_1`; each source has its track's id. Length 150 s for all six.
+- **Prompt variations (delegated):** combat_1 keeps the ostinato and strings in front at one flat intensity; combat_2 lets the taiko and drums lead (still far back) with a slow build to a plateau; combat_3 is darker, with a syncopated ostinato and gentle swells every 30 s. The two sparse tracks differ by stillness versus unease; the dark track uses the table's prompt as written.
+- **Caching:** a raw master holds while its prompt, model and length are unchanged and its bytes match, as the beds do. `--track` buys that track again and deletes its old raw and served files. A kill between receiving and recording a master would pay for that track again; at six tracks that is accepted.
+- **−26 LUFS is the track's integrated loudness after its gain,** on the same scale the menu bed was matched on (−29.8). The gain is computed from the served file, measured by `assets.py music --input/--output`, the one music encoder.
+- **The tool writes `sounds.json` through oxfmt,** escaping non-ASCII as `assets.py build` does, so adding a track doesn't reflow the file. The first write also normalised about 40 lines of older layout drift.
+- **`assets.py build` decodes only the sources a clip crops.** Music masters stream and are never cut.
+- **`presentation.audio.music`** became `{ duck: {depth, attack_s, release_s}, combat_window_s: 20, calm_s: 45, crossfade_s: 4, combat_triggers: [B5–B9] }`. Nothing read the duck numbers yet.
+- **Director semantics:** combat starts when the latest qualifying bark is at most 20 s old when the mood is asked; it ends when the latest is over 45 s old. Shuffle is a bag per mood; a new bag never starts with the track just played.
+- **Workbench:** voices and music share one generation queue (`apps/sound-workbench/generation.ts`), so the tool's files keep one writer. The Music tab's mood switch drives `MusicDirector` on a clock the tab owns: Combat notes a B5 bark; Tension skips the calm period. Tracks play at their catalog gain, as in battle.
+- **Real spend:** 6 `music_v1` calls, 900 s of music, no retries needed.
+
+- **2026-10-12 (orchestrator):** generating a track again keeps the old raw master (the user's keep-everything rule) and drops only the old served file. The workbench shares one generation-tool queue for voices, design, pick and music, so `voices.lock.json` and `sounds.json` each keep a single writer. The user's listen to the six tracks is non-blocking. No track plays in a battle before slice 14, and every track can be regenerated from the Music tab.

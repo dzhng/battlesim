@@ -77,13 +77,17 @@ def ffmpeg(arguments, data=None):
 
 
 def sources(root, catalog):
+    """Decode every recording a clip crops; music masters stream and are never cut."""
     decoded = {}
+    cropped = {crop["source"] for clip in catalog["clips"].values() for crop in clip.get("layers", [clip])}
     # Admit every source before writes so a changed master cannot partly replace a library.
-    for name, source in catalog["sources"].items():
+    for name in sorted(cropped):
+        source = catalog["sources"][name]
         path = root / source["path"]
         if not path.is_file() or digest(path.read_bytes()) != source["sha256"]:
             raise ValueError(f"source {name}: hash mismatch or missing media (pull Git LFS)")
-    for name, source in catalog["sources"].items():
+    for name in sorted(cropped):
+        source = catalog["sources"][name]
         path = root / source["path"]
         info = json.loads(subprocess.check_output(["ffprobe", "-v", "error", "-show_streams", "-of", "json", str(path)]))["streams"][0]
         rate = int(info["sample_rate"])
@@ -267,6 +271,16 @@ def voice(profile, source, bed, output):
                                "-f", "mp3", "-"], pcm))
     return {"duration_s": round(duration, 3), "loudness_lufs": spec["loudness_lufs"]}
 
+def encode_music(master, output):
+    """A served music file: mono like the rest of the library, 128 kbps so it streams
+    without a whole-file decode. Encoded to a file, not a pipe, so ffmpeg can write the
+    seekable header. Returns its length and integrated loudness, which sets its gain."""
+    ffmpeg(["-y", "-i", str(master), "-ac", "1", "-b:a", "128k", str(output)])
+    rate = 48000
+    pcm = ffmpeg(["-i", str(output), "-ac", "1", "-ar", str(rate), "-f", "f32le", "-"])
+    return {"duration_s": round(len(pcm) / 4 / rate, 3), "loudness_lufs": round(loudness(pcm, rate), 2)}
+
+
 def music(root, catalog, path):
     """Encode each music track from its pinned source to runtime/audio/music/<track>.<sha8>.mp3."""
     for name, track in catalog["music"]["tracks"].items():
@@ -274,12 +288,10 @@ def music(root, catalog, path):
         master = root / source["path"]
         if not master.is_file() or digest(master.read_bytes()) != source["sha256"]:
             raise ValueError(f"music {name}: source hash mismatch or missing media (pull Git LFS)")
-        # Mono like the rest of the library; 128 kbps streams without a whole-file decode.
-        # Encoded to a file, not a pipe, so ffmpeg can write the seekable header.
         folder = root / "assets/runtime/audio/music"
         folder.mkdir(parents=True, exist_ok=True)
         encoded = folder / f"{name}.tmp.mp3"
-        ffmpeg(["-y", "-i", str(master), "-ac", "1", "-b:a", "128k", str(encoded)])
+        encode_music(master, encoded)
         served = digest(encoded.read_bytes())
         target = folder / f"{name}.{served[:8]}.mp3"
         encoded.replace(target)
@@ -295,9 +307,9 @@ def main():
     parser.add_argument("command", choices=["build", "check", "list", "voice", "voice-profiles", "music"])
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[3])
     parser.add_argument("--profile", help="voice: the take's processing profile")
-    parser.add_argument("--input", type=Path, help="voice: the raw master")
+    parser.add_argument("--input", type=Path, help="voice, music: the raw master")
     parser.add_argument("--bed", type=Path, help="voice: the profile's ambience, looped under the line")
-    parser.add_argument("--output", type=Path, help="voice: the served MP3")
+    parser.add_argument("--output", type=Path, help="voice, music: the served MP3")
     args = parser.parse_args()
     if args.command == "voice-profiles":
         print(json.dumps({"encoder": VOICE_ENCODER, "profiles": VOICE_PROFILES}))
@@ -306,6 +318,11 @@ def main():
         if not (args.profile and args.input and args.output):
             raise ValueError("voice needs --profile, --input and --output")
         print(json.dumps(voice(args.profile, args.input, args.bed, args.output)))
+        return
+    if args.command == "music" and (args.input or args.output):
+        if not (args.input and args.output):
+            raise ValueError("music encodes one master with both --input and --output")
+        print(json.dumps(encode_music(args.input, args.output)))
         return
     path = args.root / "fixtures/sounds.json"
     catalog = json.loads(path.read_text())

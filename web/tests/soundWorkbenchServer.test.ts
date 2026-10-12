@@ -7,7 +7,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
 import { SoundWorkbenchStore, soundWorkbenchMiddleware } from "../../apps/sound-workbench/server";
-import { validateSoundCatalog, type SoundCatalog } from "@packages/battle-audio/src/catalog";
+import {
+  recording,
+  validateSoundCatalog,
+  type SoundCatalog,
+} from "@packages/battle-audio/src/catalog";
 import { SOUNDS } from "@packages/battle-audio/src/synth";
 import {
   ALL_TRIGGERS,
@@ -17,9 +21,13 @@ import {
 } from "@packages/battle-audio/src/voices/voiceCatalog";
 import { recordVerdicts, type TakeRecord } from "@packages/battle-audio/tools/generate/lock";
 import {
+  GenerationQueue,
+  musicWorkbenchMiddleware,
+  type GenerateRunner,
+} from "../../apps/sound-workbench/generation";
+import {
   VoiceWorkbenchStore,
   voiceWorkbenchMiddleware,
-  type GenerateRunner,
 } from "../../apps/sound-workbench/voiceStore";
 
 vi.mock("node:fs/promises", async (importOriginal) => ({
@@ -320,7 +328,7 @@ test.each(["source", "clip"])(
     const source = await installRecording(root);
     const initial = (await request("snapshot")).body;
     const catalog: SoundCatalog = structuredClone(initial.catalog);
-    if (kind === "source") catalog.sources.master.label = "Edited master";
+    if (kind === "source") recording(catalog, "master").label = "Edited master";
     else catalog.clips.reload.label = "Edited reload";
     // The request must reach the immutable-provenance guard, not generic schema validation.
     expect(() => validateSoundCatalog(catalog)).not.toThrow();
@@ -407,7 +415,11 @@ async function voiceFixture(
     }),
   );
   const open = async () => {
-    const store = new VoiceWorkbenchStore(root, (value) => validateVoiceCatalog(value, null), run);
+    const store = new VoiceWorkbenchStore(
+      root,
+      (value) => validateVoiceCatalog(value, null),
+      new GenerationQueue(run),
+    );
     const middleware = voiceWorkbenchMiddleware(store);
     const server = createServer(
       (req, res) =>
@@ -657,4 +669,50 @@ test("a design candidate is played through the tool's preview, and pick runs the
 
   const designed = await request("design", { voice: "tank/soldier" });
   expect(designed.body.job.args).toEqual(["design", "tank/soldier"]);
+});
+
+test("the Music tab regenerates one named battle track through the generation tool's queue", async () => {
+  const ran: string[][] = [];
+  let finish = () => {};
+  const queue = new GenerationQueue(
+    (args) =>
+      new Promise((resolve) => {
+        ran.push(args);
+        finish = () => resolve(0);
+      }),
+  );
+  const middleware = musicWorkbenchMiddleware(queue);
+  const server = createServer(
+    (req, res) =>
+      void middleware(req, res, () => {
+        res.statusCode = 404;
+        res.end();
+      }),
+  );
+  servers.push(server);
+  await new Promise<void>((done) => server.listen(0, "127.0.0.1", done));
+  const address = server.address();
+  if (!address || typeof address === "string") throw new Error("No local server address");
+  const origin = `http://127.0.0.1:${address.port}`;
+  const post = (body: unknown) =>
+    fetch(`${origin}/__sound-workbench/music/regenerate`, {
+      method: "POST",
+      headers: { Origin: origin, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+  expect((await post({ track: "battlefield2_menu" })).status).toBe(400);
+  const response = await post({ track: "combat_2" });
+  expect(response.status).toBe(200);
+  expect((await response.json()).job.args).toEqual(["music", "--track", "combat_2"]);
+  // A second command waits for the first: the tool's files keep one writer.
+  await post({ track: "tension_dark_1" });
+  await vi.waitFor(() => expect(ran).toHaveLength(1));
+  finish();
+  await vi.waitFor(() => expect(ran).toHaveLength(2));
+  finish();
+  await vi.waitFor(async () => {
+    const { jobs } = await (await fetch(`${origin}/__sound-workbench/music/jobs`)).json();
+    expect(jobs.map((job: { status: string }) => job.status)).toEqual(["done", "done"]);
+  });
 });

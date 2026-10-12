@@ -1,5 +1,7 @@
 import { SoundBank } from "../../../packages/battle-audio/src/soundBank";
 import type { SoundCatalog } from "../../../packages/battle-audio/src/catalog";
+import type { MusicTrack } from "../../../packages/battle-audio/src/music/musicCatalog";
+import { MusicPlayer } from "../../../packages/battle-audio/src/music/musicPlayer";
 import { sourceNormalization } from "../../../packages/battle-audio/src/loudness";
 
 // A memoryless ceiling preserves safe short attacks; compressor startup can
@@ -39,6 +41,8 @@ export interface Auditioner {
   ): Promise<void>;
   /** Plays served voice takes back to back, each calibrated like a clip. */
   voice(urls: readonly string[]): Promise<void>;
+  /** Opens the battle's own music player, silent until told what to play. */
+  music(tracks: Record<string, MusicTrack>): Promise<Pick<MusicPlayer, "crossfadeTo" | "stop">>;
   stop(): void;
 }
 
@@ -48,8 +52,11 @@ export class SoundAuditioner implements Auditioner {
   private controller: AbortController | null = null;
   private bank: SoundBank | null = null;
   private sources = new Set<AudioBufferSourceNode>();
+  private player: MusicPlayer | null = null;
 
   stop() {
+    this.player?.dispose();
+    this.player = null;
     this.controller?.abort();
     this.controller = null;
     for (const source of this.sources) source.stop();
@@ -91,7 +98,7 @@ export class SoundAuditioner implements Auditioner {
       };
       // Whether this audition still sounds: a later one, or a stop, ends it.
       const current = () => this.controller === controller;
-      return { context, bank, prepared, level, start, current };
+      return { context, bank, prepared, level, start, current, output };
     } catch (error) {
       if (this.controller === controller) this.stop();
       throw error;
@@ -179,5 +186,11 @@ export class SoundAuditioner implements Auditioner {
       last.onended = () => {
         if (current()) this.stop();
       };
+  }
+
+  /** Music streams at its catalog gain, as in battle: the level is the track's, not the calibration's. */
+  async music(tracks: Record<string, MusicTrack>) {
+    const { context, output } = await this.open(null, async () => null);
+    return (this.player = new MusicPlayer(context, tracks, output));
   }
 }

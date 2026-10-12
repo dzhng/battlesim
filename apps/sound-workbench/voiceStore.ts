@@ -1,9 +1,7 @@
-import { spawn } from "node:child_process";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { createInterface } from "node:readline";
 import { FixturePublication } from "../fixture-publication/publication";
 import {
   ALL_TRIGGERS,
@@ -23,41 +21,21 @@ import {
   designRetake,
   previewFile,
 } from "../../packages/battle-audio/tools/generate/design";
+import type { GenerationQueue } from "./generation";
 import { WorkbenchError, equal, hash, jsonRoutes, localOnly, object } from "./http";
-import type { Review, Save } from "./src/protocol";
+import type { GenerationJob, Review, Save } from "./src/protocol";
 import type {
   SetCounts,
   TakeView,
   VerdictResult,
   VoiceDraft,
-  VoiceJob,
   VoiceScope,
   VoiceSnapshot,
 } from "./src/voices/protocol";
 
-/** Runs the generation tool with `args`, reporting each output line; resolves to its exit code. */
-export type GenerateRunner = (args: string[], line: (text: string) => void) => Promise<number>;
-
-/** The generation tool as a child process: the only writer of the lock and of voice audio. */
-export const generateTool =
-  (root: string): GenerateRunner =>
-  (args, line) =>
-    new Promise((resolve) => {
-      const child = spawn("bun", ["run", "generate", ...args], { cwd: root });
-      for (const stream of [child.stdout, child.stderr])
-        createInterface({ input: stream }).on("line", line);
-      child.on("error", (error) => {
-        line(error.message);
-        resolve(1);
-      });
-      child.on("close", (code) => resolve(code ?? 1));
-    });
-
 const VOICES = "fixtures/voices.json";
 const TAKE = /^[a-z0-9_]+\/[a-z0-9_]+\/[a-z_]+\/(steady|stressed)\/[01]$/;
 const SHA = /^[0-9a-f]{64}$/;
-const KEPT_JOBS = 10;
-const KEPT_LINES = 400;
 
 interface Inputs {
   text: string;
@@ -119,20 +97,17 @@ const strings = (value: unknown, allowed: (item: string) => boolean, what: strin
 /**
  * The Voices tab's store. People edit `voices.json` through fixture publication;
  * the lock is read here and written only by the generation tool, which this store
- * runs one command at a time so two writers never race.
+ * runs through the workbench's one generation queue so two writers never race.
  */
 export class VoiceWorkbenchStore {
   private readonly publication: FixturePublication;
   private readonly candidates = new Map<string, Candidate>();
-  private readonly jobs: VoiceJob[] = [];
   /** Voices whose candidate previews the tool brought up to date this session. */
   private readonly rendered = new Set<string>();
-  private tool: Promise<unknown> = Promise.resolve();
-  private nextJob = 1;
   constructor(
     private readonly root: string,
     private readonly validateCatalog: (value: unknown) => VoiceCatalog,
-    private readonly run: GenerateRunner,
+    private readonly queue: GenerationQueue,
   ) {
     this.publication = new FixturePublication(
       root,
@@ -258,13 +233,6 @@ export class VoiceWorkbenchStore {
     return this.snapshot();
   }
 
-  /** One tool command at a time: a verdict waits for a running generation, never races it. */
-  private serial<T>(run: () => Promise<T>): Promise<T> {
-    const job = this.tool.then(run);
-    this.tool = job.catch(() => {});
-    return job;
-  }
-
   async verdict(value: unknown): Promise<VerdictResult> {
     const request = object(value, ["verdict", "takes"]);
     if (request.verdict !== "ok" && request.verdict !== "bad")
@@ -285,8 +253,8 @@ export class VoiceWorkbenchStore {
     )
       throw new WorkbenchError("Name each judged take with the sha256 it was heard as");
     const lines: string[] = [];
-    const code = await this.serial(() =>
-      this.run(
+    const code = await this.queue.serial(() =>
+      this.queue.run(
         [
           "verdict",
           request.verdict as string,
@@ -313,7 +281,7 @@ export class VoiceWorkbenchStore {
   }
 
   /** Starts `generate voices` over a scope; its progress is read through `jobs`. */
-  async generate(value: unknown): Promise<{ job: VoiceJob }> {
+  async generate(value: unknown): Promise<{ job: GenerationJob }> {
     const { scope: raw } = object(value, ["scope"]);
     const scope = object(raw, ["sets", "voices", "triggers", "intensities", "take", "only"]);
     const { catalog } = await this.inputs();
@@ -349,28 +317,7 @@ export class VoiceWorkbenchStore {
       ...(selection.take === undefined ? [] : ["--take", String(selection.take)]),
       ...(selection.only ? ["--only", selection.only] : []),
     ];
-    return { job: this.start(args) };
-  }
-
-  /** Queues a tool run whose progress is read through `jobs`. */
-  private start(args: string[]): VoiceJob {
-    const job: VoiceJob = { id: String(this.nextJob++), args, status: "queued", lines: [] };
-    this.jobs.push(job);
-    if (this.jobs.length > KEPT_JOBS) this.jobs.splice(0, this.jobs.length - KEPT_JOBS);
-    const line = (text: string) => {
-      job.lines.push(text);
-      if (job.lines.length > KEPT_LINES) job.lines.splice(0, job.lines.length - KEPT_LINES);
-    };
-    void this.serial(async () => {
-      job.status = "running";
-      try {
-        job.status = (await this.run(args, line)) === 0 ? "done" : "failed";
-      } catch (error) {
-        line(error instanceof Error ? error.message : String(error));
-        job.status = "failed";
-      }
-    });
-    return job;
+    return { job: this.queue.start(args) };
   }
 
   /** A `<set>/<voice>` the catalog has. */
@@ -383,9 +330,9 @@ export class VoiceWorkbenchStore {
   }
 
   /** `generate design` for one voice; "None of these" bumps its design retake first. */
-  async design(value: unknown): Promise<{ job: VoiceJob }> {
+  async design(value: unknown): Promise<{ job: GenerationJob }> {
     const { voice } = object(value, ["voice"]);
-    return { job: this.start(["design", await this.voiceOf(voice)]) };
+    return { job: this.queue.start(["design", await this.voiceOf(voice)]) };
   }
 
   /** `generate pick`: saves a candidate as the voice; the tool writes voices.json. */
@@ -395,8 +342,8 @@ export class VoiceWorkbenchStore {
     if (![1, 2, 3].includes(request.candidate as number))
       throw new WorkbenchError("A candidate is 1, 2 or 3");
     const lines: string[] = [];
-    const code = await this.serial(() =>
-      this.run(["pick", voice, String(request.candidate)], (line) => lines.push(line)),
+    const code = await this.queue.serial(() =>
+      this.queue.run(["pick", voice, String(request.candidate)], (line) => lines.push(line)),
     );
     if (code !== 0) throw new WorkbenchError(`generate pick failed: ${lines.join("\n")}`, 500);
     return this.snapshot();
@@ -412,7 +359,9 @@ export class VoiceWorkbenchStore {
     if (![1, 2, 3].includes(candidate)) throw new WorkbenchError("A candidate is 1, 2 or 3", 404);
     if (!this.rendered.has(id)) {
       const lines: string[] = [];
-      const code = await this.serial(() => this.run(["preview", id], (l) => lines.push(l)));
+      const code = await this.queue.serial(() =>
+        this.queue.run(["preview", id], (l) => lines.push(l)),
+      );
       if (code !== 0) throw new WorkbenchError(`generate preview failed: ${lines.join("\n")}`, 500);
       this.rendered.add(id);
     }
@@ -423,8 +372,8 @@ export class VoiceWorkbenchStore {
     }
   }
 
-  listJobs(): Promise<{ jobs: VoiceJob[] }> {
-    return Promise.resolve({ jobs: this.jobs });
+  listJobs(): Promise<{ jobs: GenerationJob[] }> {
+    return Promise.resolve({ jobs: this.queue.jobs });
   }
 }
 

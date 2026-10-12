@@ -621,3 +621,64 @@
   align-items: center;
   gap: 8px;
 }
+.sw-mood-switch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  border: 1px solid var(--sw-line);
+  background: #132124;
+}
+.sw-mood-switch button {
+  min-width: 110px;
+}
+.sw-mood-switch p {
+  flex: 1 1 320px;
+  margin: 0 0 0 8px;
+  color: var(--sw-text);
+}
+.sw-mood-switch small {
+  display: block;
+  color: var(--sw-muted);
+}
+.sw-music-mood {
+  margin-top: 22px;
+}
+.sw-music-mood h2 small {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--sw-muted);
+  margin-left: 6px;
+}
+.sw-music-mood ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--sw-line);
+}
+.sw-music-mood li {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--sw-line);
+}
+.sw-music-mood li.sw-music-playing {
+  background: #203334;
+  box-shadow: inset 3px 0 0 var(--sw-active);
+}
+.sw-music-track {
+  display: grid;
+  grid-template-columns: minmax(160px, 220px) minmax(0, 1fr) auto minmax(108px, auto);
+  align-items: center;
+  gap: 12px;
+}
+.sw-music-mood details summary {
+  cursor: pointer;
+  color: var(--sw-muted);
+  font-size: 12px;
+  margin-top: 4px;
+}
+.sw-music-mood details p {
+  margin: 4px 0 2px;
+  max-width: 900px;
+  font-size: 13px;
+}

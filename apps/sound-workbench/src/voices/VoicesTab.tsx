@@ -10,11 +10,11 @@ import {
   type VoiceTake,
 } from "../../../../packages/battle-audio/src/voices/voiceCatalog";
 import type { Auditioner } from "../audition";
+import type { GenerationJob } from "../protocol";
 import {
   candidateUrl,
   type TakeView,
   type VoiceAPI,
-  type VoiceJob,
   type VoiceScope,
   type VoiceSnapshot,
 } from "./protocol";
@@ -74,7 +74,7 @@ export function VoicesTab({ api, audition }: { api: VoiceAPI; audition: Audition
   const [queue, setQueue] = useState<string[]>([]);
   const [current, setCurrent] = useState("");
   const [editing, setEditing] = useState<{ id: string; text: string } | null>(null);
-  const [jobs, setJobs] = useState<VoiceJob[]>([]);
+  const [jobs, setJobs] = useState<GenerationJob[]>([]);
   const [message, setMessage] = useState("");
   const latest = useRef<VoiceSnapshot | null>(null);
   latest.current = snapshot;
