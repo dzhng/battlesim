@@ -58,7 +58,7 @@ impl Pass for DepthPrepass {
         inputs.ground.draw_depth(&mut pass, camera);
         inputs
             .scenery
-            .draw_depth(&mut pass, camera, models.instances());
+            .draw_depth(&mut pass, camera, models.statics());
         for (bound, surface) in [
             (&self.solid, Surface::Solid),
             (&self.cutout, Surface::Cutout),
@@ -160,7 +160,7 @@ impl Pass for WorldColour {
                 models.draw_fogged(&mut pass, *surface, layer);
             }
         }
-        inputs.scenery.draw(&mut pass, &faces, models.instances());
+        inputs.scenery.draw(&mut pass, &faces, models.statics());
         inputs.grass.draw(&mut pass, &painted_ground);
         inputs.ground.draw_backdrop(&mut pass, &painted_ground);
         inputs
