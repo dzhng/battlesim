@@ -122,6 +122,10 @@ The camera is an input because the camera controller is UI (input handling and c
 
 **`Light`:** the values the browser's `LightPresentation` resolves to, with the sun as a unit vector toward the sun in sim space. Its fields are the existing `light` manifest section, unchanged in meaning, and the generated layout names each one. The sky lookup is baked by each renderer from these.
 
+*Amended 2026-10-11 (slice 25, step 3).* `Light` is five uniform records, which `presentation::light` resolves from `presentation.light`: `SkyLight`, `Aerial` (the haze), `Sun` (direction, radiance, shadow floor and fill, as the environment uniform carries them after its view), `Bloom` and `Grade`. Each record lays out as the struct its shader declares, and a renderer uploads its bytes as they are. The cascades still read the authored angles.
+- A frame is built with the light before any battle loads, and for scenes with none. So the browser takes the records from the module's free function `light_records(json)`, not from `load_world`.
+- Native links the crate and calls `LightSettings::records()`.
+
 **`Table`** (16 B): `name: u32`, `name_len: u32`, `first: u32` (word), `len: u32` (words). The tables are the ones the shaders already read: terrain `heights`, `nodes`, `plots`, `surfaces`, `surfaceIndex`, `params` and `water`; grass `params`, `props`, `shapes`, `indicesNear` and `indicesFar`; `scars` (its look, normalisation and empty directory); fog `heights` and `foliage`. Their record layouts are the existing `d.struct`s, moved into the generated layout (below). Market-town's tables total about 16 MB, most of it the surface index (6.6 MB) and grass props (7.4 MB).
 
 Static placement is **not** in World. Market-town places well over a million instances (*est.*: the dressing alone is 10.8 M words, about 900,000 rows at 12 floats, and the intact building modules 7.9 M words). Putting them in World would upload all of them to draw at most 63,000. Placement lives in Rust, and the selected instances arrive through Frame batches (open question 3).
@@ -154,6 +158,8 @@ Static placement is **not** in World. Market-town places well over a million ins
 | `size` | `[f32; 4]` | px width, height; `1/height`; pixels per metre at 1 m |
 | `cascades` | `[f32; 4]` | split distances, m from the eye; the renderer fits its shadow matrices to them |
 | `sun_penumbra` | `[f32; 4]` | the per-cascade softness the light policy gives |
+
+*Amended 2026-10-11 (slice 25, step 3).* `View` also carries the sky's three corner rays (`sky_origin`, `sky_dx`, `sky_dy`): the ray through the top-left pixel, and its change across the width and down the height. They are the sky shader's `Rays`, so the projection keeps one owner. `cascades` and `sun_penumbra` are filled when native draws shadows.
 
 **`Batch`** (32 B):
 
