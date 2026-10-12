@@ -37,6 +37,9 @@ export interface ScenarioBundleIdentity {
 export interface ScenarioBundleWasm {
   check_scenario_bundle(bundle: string): string;
   canonical_scenario_bundle(bundle: string): string;
+  /** Draft-only admission: derives hashes, then returns canonical bytes.
+   * Uploaded files use check/canonical directly and never this method. */
+  author_scenario_bundle?(bundle: string): string;
 }
 
 export class ScenarioBundleRefused extends Error {
