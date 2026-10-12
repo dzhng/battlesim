@@ -87,9 +87,14 @@ Use the narrowest check per slice, then run the repository-wide checks once at c
 
 ## Closeout evidence
 
-Focused native, catalog, browser and artillery-scene checks pass. The full
-`bun run check` was rerun with a local ALSA development sysroot; its workspace
-tests are still running in the current environment. The earlier lint-only
+Focused native, catalog, browser and artillery-scene checks pass. The scene
+harness now aborts on the first fatal WebGPU diagnostic, preserves the adapter
+limit message, suppresses repeated invalid-resource noise and includes page
+state on readiness timeouts; its focused five-test suite passes. The known
+SwiftShader parity probe now reports one primary texture-array failure instead
+of a page-close cascade. The full `bun run check` was rerun with a local ALSA
+development sysroot and completed with 859 Rust tests passing and five
+publication-pair failures. The earlier lint-only
 failure was environmental (`alsa-sys` could not find `alsa.pc`), while
 `cargo clippy -p sim --all-targets -- -D warnings` is clean. A full browser
 rerun after fetching the required LFS baselines and city inputs removed the
