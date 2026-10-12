@@ -3,19 +3,18 @@
 //! world's `Sun` and `Aerial` records, the cast lights, the sky lookup, its
 //! PMREM and the DFG table), and the fog. Each frame the camera, the
 //! environment's view and the cast lights the presentation chose are
-//! written.
+//! written. The sun's cascades are the shadow layer's (`shadow.rs`).
 //!
-//! Not built yet, and bound so that every shader reads them as absent:
-//! - the sun's cascades (step 4): no receiver falls inside a cascade, so
-//!   every surface takes the whole sun;
-//! - fog of war's sight (its inputs come with the static world): every fog
-//!   word zero (`enabled` 0, nothing painted), so every surface is seen.
+//! Not built yet, and bound so that every shader reads it as absent: fog of
+//! war's sight (its inputs come with the static world): every fog word zero
+//! (`enabled` 0, nothing painted), so every surface is seen.
 use presentation::records::{Aerial, CastLight, Sun, View};
 use wgpu::*;
 
 use crate::frame::HDR_FORMAT;
 use crate::gpu::{bind, buffer};
 use crate::pipelines::Pipelines;
+use crate::shadow::SunShadow;
 
 /// `Camera` in every shader: view-projection, its inverse, the eye, the near
 /// plane, the drawing size and the clock, in 160 bytes.
@@ -25,9 +24,6 @@ const SUN_AT: usize = 80;
 /// `CastLights`: a header (count, wrap) and up to 24 lights.
 const CAST_LIGHTS_MAX: usize = 24;
 const CAST_LIGHTS_BYTES: usize = 16 + CAST_LIGHTS_MAX * 32;
-/// `SunShadow`: four cascades (matrix, bias, interval) and the control.
-const CASCADES: usize = 4;
-const SUN_SHADOW_BYTES: usize = CASCADES * 96 + 16;
 /// Enough zeroed bytes for any of the fog group's structs or arrays.
 const FOG_ZEROS: usize = 4096;
 /// The sky lookup's width; the PMREM's levels follow from it (`pmrem.ts`).
@@ -80,6 +76,11 @@ fn invert(m: &[f64; 16]) -> [f64; 16] {
         return [0.0; 16];
     }
     inv.map(|v| v / det)
+}
+
+/// The view-projection of `view`, as the GPU holds it.
+pub fn view_proj(view: &View) -> [f32; 16] {
+    mul(&view.projection.map(f64::from), &view.view.map(f64::from)).map(|v| v as f32)
 }
 
 /// The camera uniform's bytes for `view` (`cameraUniform.ts`).
@@ -316,6 +317,7 @@ impl Environment {
         sky_lut: &TextureView,
         sun: &Sun,
         aerial: &Aerial,
+        shadow: &SunShadow,
     ) -> Self {
         let uniform = BufferUsages::UNIFORM | BufferUsages::COPY_DST;
         let camera_buffer = buffer(device, "camera", uniform, &[0; CAMERA_BYTES]);
@@ -357,31 +359,6 @@ impl Environment {
             min_filter: FilterMode::Linear,
             ..Default::default()
         });
-        // Every cascade's interval lies below zero: no receiver is inside one.
-        let mut shadow = [0.0f32; SUN_SHADOW_BYTES / 4];
-        for c in 0..CASCADES {
-            shadow[c * 24 + 20..c * 24 + 22].copy_from_slice(&[-2.0, -1.0]);
-        }
-        shadow[CASCADES * 24] = 1.0;
-        let sun_shadow = buffer(device, "sun-shadow", uniform, bytemuck::cast_slice(&shadow));
-        let sun_depth = texture(
-            device,
-            "sun-depth",
-            [1, 1, 1],
-            TextureFormat::Depth32Float,
-            TextureUsages::TEXTURE_BINDING,
-        );
-        let sun_depth = sun_depth.create_view(&TextureViewDescriptor {
-            dimension: Some(TextureViewDimension::D2Array),
-            ..Default::default()
-        });
-        let compare = device.create_sampler(&SamplerDescriptor {
-            label: Some("sun-compare"),
-            mag_filter: FilterMode::Linear,
-            min_filter: FilterMode::Linear,
-            compare: Some(CompareFunction::Greater),
-            ..Default::default()
-        });
         let environment = bind(
             device,
             pipelines.layout("environment"),
@@ -393,9 +370,9 @@ impl Environment {
                 BindingResource::TextureView(&pmrem),
                 BindingResource::TextureView(&dfg.create_view(&Default::default())),
                 BindingResource::Sampler(&linear),
-                sun_shadow.as_entire_binding(),
-                BindingResource::TextureView(&sun_depth),
-                BindingResource::Sampler(&compare),
+                shadow.receiver.as_entire_binding(),
+                BindingResource::TextureView(&shadow.depth),
+                BindingResource::Sampler(&shadow.compare),
             ],
         );
 

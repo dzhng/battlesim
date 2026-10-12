@@ -19,9 +19,13 @@ use native_client::environment::Environment;
 use native_client::fog_mask::fog_mask;
 use native_client::frame::{Passes, Targets, DISPLAY_FORMAT};
 use native_client::gpu::{self, Gpu};
+use native_client::grass::Grass;
+use native_client::ground::Ground;
 use native_client::models::Models;
+use native_client::pending::shadow::SunShadowFrame;
 use native_client::pipelines::Pipelines;
 use native_client::post::Post;
+use native_client::shadow::{ShadowPass, SunShadow};
 use native_client::sky::Sky;
 use native_client::world::{DepthPrepass, Ghosts, WorldColour};
 use presentation::records::View;
@@ -164,6 +168,12 @@ impl Run {
             &light.bloom(),
             &light.grade(),
         );
+        let shadow = SunShadow::new(
+            &gpu.device,
+            &pipelines,
+            2048, // PENDING light.cascades.map_size
+            &SunShadowFrame::cold(light),
+        );
         let environment = Environment::new(
             &gpu.device,
             &gpu.queue,
@@ -171,9 +181,32 @@ impl Run {
             &sky.lut,
             &light.sun(),
             &light.aerial(),
+            &shadow,
         );
+        let resolved = Instant::now();
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let map = presentation::static_world::files::ground(&root, &replay.map)?;
+        let ground = Ground::new(
+            &gpu.device,
+            &gpu.queue,
+            &pipelines,
+            &map,
+            40000.0, // PENDING light.backdrop.reach_m
+        )?;
         let installed = Instant::now();
         let library = Library::open(std::path::Path::new(RUNTIME))?;
+        let grass = Grass::new(
+            &gpu.device,
+            &pipelines,
+            &library,
+            &map.ground,
+            &ground.heights,
+        )?;
+        println!(
+            "ground: {} resolved and uploaded in {:.2} s",
+            replay.map,
+            (installed - resolved).as_secs_f64()
+        );
         let models = Models::new(
             &gpu.device,
             &gpu.queue,
@@ -195,13 +228,17 @@ impl Run {
             gpu,
             passes: Passes {
                 targets,
+                light: replay.light.clone(),
                 environment,
+                shadow,
+                ground,
+                grass,
                 models,
                 effects,
                 passes: vec![
-                    Box::new(sky),
+                    Box::new(ShadowPass::new(&pipelines)),
                     Box::new(DepthPrepass::new(&pipelines)),
-                    Box::new(WorldColour::new(&pipelines)),
+                    Box::new(WorldColour::new(&pipelines, sky)),
                     Box::new(EffectPass),
                     Box::new(fog_mask),
                     Box::new(Ghosts::new(&pipelines)),
@@ -258,13 +295,14 @@ impl Run {
         while let Some(record) = self.replay.records.get(self.next).cloned() {
             self.next += 1;
             let Some(plate) = record.plate.clone() else {
-                self.replay.frame(&record)?;
+                self.replay.frame(&record, false)?;
                 continue;
             };
-            let frame = self.replay.frame(&record)?;
+            let camera = self.replay.camera(&record);
+            let frame = self.replay.frame(&record, true)?;
             self.view = frame.view;
             let (device, queue) = (&self.gpu.device, &self.gpu.queue);
-            self.passes.prepare(device, queue, frame, record.target);
+            self.passes.prepare(device, queue, frame, &camera);
             let (counts, wrap) = (frame.counts, frame.light_wrap);
             let presentation = self.replay.presentation();
             self.passes

@@ -6,7 +6,7 @@ use presentation::static_world::ground::field::Field;
 use presentation::static_world::ground::grass::{KindFacts, Limits, Quality};
 use presentation::static_world::ground::scenery::{Scenery, Size};
 use presentation::static_world::ground::tables::{Grid, TerrainTables};
-use presentation::static_world::ground::{self, DrawnBy, Source, Tuning};
+use presentation::static_world::ground::{self, Source, Tuning};
 use serde::Deserialize;
 use wasm_bindgen::prelude::*;
 
@@ -33,18 +33,6 @@ struct GridHeader {
     spacing: f64,
     page_size: usize,
     min_height: f64,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct Layout {
-    prop_kinds: Vec<String>,
-    prop_appearance: std::collections::HashMap<String, Option<PropAppearance>>,
-}
-
-#[derive(Deserialize)]
-struct PropAppearance {
-    drawn_by: String,
 }
 
 #[wasm_bindgen]
@@ -83,19 +71,6 @@ impl Ground {
         tuning: &str,
     ) -> Result<Ground, JsError> {
         let g: GridHeader = serde_json::from_str(grid).map_err(error)?;
-        let layout: Layout = serde_json::from_str(layout).map_err(error)?;
-        let drawn_by = layout.prop_kinds.iter().map(|k| {
-            match layout
-                .prop_appearance
-                .get(k)
-                .and_then(|a| a.as_ref())
-                .map(|a| a.drawn_by.as_str())
-            {
-                Some("building") => Some(DrawnBy::Building),
-                Some("forest") => Some(DrawnBy::Forest),
-                _ => None,
-            }
-        });
         let source = Source {
             map: extents[..4].try_into().unwrap(),
             rendered: extents.get(4..8).map(|r| r.try_into().unwrap()),
@@ -109,7 +84,7 @@ impl Ground {
                 heights,
             },
             props,
-            drawn_by: drawn_by.collect(),
+            drawn_by: ground::drawn_by(layout).map_err(error)?,
             foliage,
             surface_strokes,
             surface_runs,

@@ -1,17 +1,23 @@
 //! The frame: one ordered list of passes, encoded in order each drawn frame
 //! (Bevy 0.19+'s fixed pass order without a render graph; `battleFrame.ts`
 //! is the browser's). Each presentation `Frame` first prepares the layers
-//! (the environment's view and cast lights, the models' palettes and
-//! instances, the effects' instances); then each pass reads the frame's
-//! `View`, the sized targets and the layers, and encodes its work. The list
-//! is the whole frame.
+//! (the environment's view and cast lights, the sun's cascades fitted to the
+//! camera, the grass's window, the models' palettes and instances, the
+//! effects' instances); then each pass reads the frame's `View`, the sized
+//! targets and the layers, and encodes its work. The list is the whole frame.
+use presentation::light::LightSettings;
 use presentation::presentation::{Frame, Presentation};
 use presentation::records::View;
+use presentation::view::Camera;
 use wgpu::*;
 
 use crate::effects::Effects;
-use crate::environment::Environment;
+use crate::environment::{view_proj, Environment};
+use crate::grass::Grass;
+use crate::ground::Ground;
 use crate::models::Models;
+use crate::pending::shadow::sun_shadow;
+use crate::shadow::SunShadow;
 
 /// The lit world before post.
 pub const HDR_FORMAT: TextureFormat = TextureFormat::Rgba16Float;
@@ -104,6 +110,9 @@ pub struct Inputs<'a> {
     pub view: &'a View,
     pub targets: &'a Targets,
     pub environment: &'a Environment,
+    pub shadow: &'a SunShadow,
+    pub ground: &'a Ground,
+    pub grass: &'a Grass,
     pub models: &'a Models,
     pub effects: &'a Effects,
 }
@@ -116,17 +125,32 @@ pub trait Pass {
 /// The layers and the passes in the order they draw.
 pub struct Passes {
     pub targets: Targets,
+    pub light: LightSettings,
     pub environment: Environment,
+    pub shadow: SunShadow,
+    pub ground: Ground,
+    pub grass: Grass,
     pub models: Models,
     pub effects: Effects,
     pub passes: Vec<Box<dyn Pass>>,
 }
 
 impl Passes {
-    /// Prepares the layers for `frame`, the haze measured from `observer`.
-    pub fn prepare(&mut self, device: &Device, queue: &Queue, frame: &Frame, observer: [f64; 3]) {
+    /// Prepares the layers for `frame`, framed from `camera`; the haze is
+    /// measured from the camera's target.
+    pub fn prepare(&mut self, device: &Device, queue: &Queue, frame: &Frame, camera: &Camera) {
         self.environment
-            .prepare(queue, &frame.view, observer, frame.clock as f32);
+            .prepare(queue, &frame.view, camera.target, frame.clock as f32);
+        let fit = sun_shadow(&self.light, camera, self.ground.map_box.as_ref());
+        self.shadow.prepare(queue, &fit);
+        let height = f64::from(camera.size[1].max(1));
+        self.grass.prepare(
+            queue,
+            &view_proj(&frame.view),
+            camera.eye,
+            f64::from(camera.fov_y),
+            height,
+        );
         self.models.prepare(device, queue, frame);
     }
 
@@ -154,6 +178,9 @@ impl Passes {
             view,
             targets: &self.targets,
             environment: &self.environment,
+            shadow: &self.shadow,
+            ground: &self.ground,
+            grass: &self.grass,
             models: &self.models,
             effects: &self.effects,
         };

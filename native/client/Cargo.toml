@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-presentation = { path = "../../crates/presentation" }
+presentation = { path = "../../crates/presentation", features = ["files"] }
 pipelines = { path = "../../crates/pipelines" }
 wgpu = "30.0.1"
 winit = "0.30"

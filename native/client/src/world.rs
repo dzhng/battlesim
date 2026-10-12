@@ -1,13 +1,15 @@
 //! The world's passes (`frame/worldPass.ts`), in the order `battleFrame`
-//! encodes them: the depth prepass, then the lit colour pass with its fog
-//! mask, both resolved for the effects and the fog mask passes, then the
-//! placement ghosts over the fogged world. Today only the model layer
-//! draws into them; the ground and the scenery join the same passes.
+//! encodes them: the depth prepass, then the grass's growth, the sky and
+//! the lit colour pass with its fog mask, both resolved for the effects and
+//! the fog mask passes, then the placement ghosts over the fogged world.
+//! The ground and the models draw into them; the scenery joins the same
+//! passes.
 use wgpu::*;
 
 use crate::frame::{Inputs, Pass};
 use crate::models::Surface;
 use crate::pipelines::{Bound, Pipelines};
+use crate::sky::Sky;
 
 fn depth(
     view: &TextureView,
@@ -24,8 +26,8 @@ fn depth(
     }
 }
 
-/// The frame's depth: every opaque surface before any colour, so the colour
-/// pass shades each sample once (`encodeDepth`).
+/// The frame's depth: every opaque surface before any colour, the world's
+/// ground first, so the colour pass shades each sample once (`encodeDepth`).
 pub struct DepthPrepass {
     solid: Bound,
     cutout: Bound,
@@ -53,6 +55,7 @@ impl Pass for DepthPrepass {
         });
         let models = inputs.models;
         let [camera, ..] = inputs.environment.groups();
+        inputs.ground.draw_depth(&mut pass, camera);
         for (bound, surface) in [
             (&self.solid, Surface::Solid),
             (&self.cutout, Surface::Cutout),
@@ -63,26 +66,31 @@ impl Pass for DepthPrepass {
     }
 }
 
-/// The lit world over the sky, at the prepass's depth, with the fog mask
-/// beside it; glass last, over everything (`encode`). Both resolve: the lit
-/// world into `lit`, the mask into `fog_mask`.
+/// The grass grown for the view, then the sky, then the lit world over it at
+/// the prepass's depth, with the fog mask beside it (`encode`): the terrain,
+/// the skirt, the models, the grass, the backdrop, and glass last, over
+/// everything. Both resolve: the lit world into `lit`, the mask into
+/// `fog_mask`.
 pub struct WorldColour {
+    sky: Sky,
     surfaces: Vec<(Bound, Surface)>,
+    glass: Bound,
 }
 
 impl WorldColour {
-    pub fn new(pipelines: &Pipelines) -> Self {
+    pub fn new(pipelines: &Pipelines, sky: Sky) -> Self {
         let surfaces = [
             ("modelOpaque", Surface::Opaque),
             ("modelCutout", Surface::Cutout),
             ("modelRooms", Surface::Room),
-            ("modelBlended", Surface::Blended),
         ];
         Self {
+            sky,
             surfaces: surfaces
                 .into_iter()
                 .map(|(name, surface)| (pipelines.bound(name), surface))
                 .collect(),
+            glass: pipelines.bound("modelBlended"),
         }
     }
 }
@@ -94,6 +102,10 @@ impl Pass for WorldColour {
 
     fn encode(&self, inputs: &Inputs, encoder: &mut CommandEncoder) {
         let t = inputs.targets;
+        inputs
+            .grass
+            .encode_build(encoder, inputs.ground.layout_group());
+        self.sky.encode(inputs, encoder);
         let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
             label: Some("world"),
             color_attachments: &[
@@ -119,13 +131,20 @@ impl Pass for WorldColour {
             depth_stencil_attachment: Some(depth(&t.depth, LoadOp::Load, false)),
             ..Default::default()
         });
+        let frame = inputs.environment.groups();
+        inputs.ground.draw_terrain(&mut pass, &frame);
+        inputs.ground.draw_skirt(&mut pass, &frame);
         let models = inputs.models;
-        let mut groups = inputs.environment.groups().to_vec();
+        let mut groups = frame.to_vec();
         groups.push(models.group());
         for (bound, surface) in &self.surfaces {
             bound.set(&mut pass, &groups);
             models.draw(&mut pass, *surface);
         }
+        inputs.grass.draw(&mut pass, &frame);
+        inputs.ground.draw_backdrop(&mut pass, &frame);
+        self.glass.set(&mut pass, &groups);
+        models.draw(&mut pass, Surface::Blended);
     }
 }
 

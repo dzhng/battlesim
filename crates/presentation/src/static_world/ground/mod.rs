@@ -56,6 +56,36 @@ pub enum DrawnBy {
     Forest,
 }
 
+/// The world layout's (`sim::world::export::layout_json`) prop kinds, as
+/// far as the ground reads them: what draws each.
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct Layout {
+    prop_kinds: Vec<String>,
+    prop_appearance: std::collections::HashMap<String, Option<PropAppearance>>,
+}
+
+#[derive(Deserialize)]
+struct PropAppearance {
+    drawn_by: String,
+}
+
+/// What draws each prop kind of the world layout `layout` (JSON), in kind order.
+pub fn drawn_by(layout: &str) -> Result<Vec<Option<DrawnBy>>, String> {
+    let layout: Layout = serde_json::from_str(layout).map_err(|e| format!("layout: {e}"))?;
+    Ok(layout
+        .prop_kinds
+        .iter()
+        .map(
+            |k| match layout.prop_appearance.get(k).and_then(|a| a.as_ref()) {
+                Some(a) if a.drawn_by == "building" => Some(DrawnBy::Building),
+                Some(a) if a.drawn_by == "forest" => Some(DrawnBy::Forest),
+                _ => None,
+            },
+        )
+        .collect())
+}
+
 /// What the ground is resolved from: the physical map `[min x, min y, max x,
 /// max y]`, its own rendered surroundings where it has them, its height
 /// grid, its exported streams as `WorldView` names them, and per prop kind
