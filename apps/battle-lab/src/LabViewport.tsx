@@ -81,10 +81,13 @@ import {
 } from "@packages/battle-renderer/src/effects/effectFrame";
 import type { Mesh } from "@packages/battle-renderer/src/mesh";
 import { pickBox, proxyPickBox, type PickBox } from "@packages/battle-renderer/src/picking";
+import type { GraphicsQualityProfile } from "./graphicsSettings";
 
 const NO_INSTANCES: readonly SceneInstance[] = [];
 
 interface LabViewportProps {
+  /** Resolved graphics profile; omitted keeps the authored High profile. */
+  quality?: GraphicsQualityProfile;
   fixture: string;
   /** A loading cover or menu owns player input while false. */
   inputEnabled?: boolean;
@@ -435,6 +438,7 @@ export function LabViewport({
   models,
   picks: fixedPicks,
   cameraConfig,
+  quality,
 }: LabViewportProps) {
   const inputEnabledRef = useRef(inputEnabled);
   inputEnabledRef.current = inputEnabled;
@@ -446,6 +450,8 @@ export function LabViewport({
   }, [inputEnabled]);
   const pilotRef = useRef(pilot);
   const cameraConfigRef = useRef(cameraConfig);
+  const qualityRef = useRef(quality);
+  qualityRef.current = quality;
   const appearancesRef = useRef(appearances);
   appearancesRef.current = appearances;
   const modelsRef = useRef(models);
@@ -723,6 +729,7 @@ export function LabViewport({
             models: gameModelDetail,
             glass: gameGlass,
             buildings: buildingStyleRef.current ?? gameBuildingStyle,
+            quality: qualityRef.current,
             world: worldRef.current.current!,
             instances: instancesRef.current,
             width: canvas.width,
@@ -1009,9 +1016,12 @@ export function LabViewport({
             see(0);
           },
           async rebuild() {
-            scene.dispose();
-            sceneRef.current = null;
-            scene = await build();
+            // Build the replacement while the current generation remains live;
+            // only swap after every GPU resource has initialized successfully.
+            const previous = scene;
+            const next = await build();
+            scene = next;
+            previous.dispose();
             if (signal.aborted) return;
             setInspecting((shown) => (shown ? scene : shown));
             await nextFrame();

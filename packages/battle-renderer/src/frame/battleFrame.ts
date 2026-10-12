@@ -52,6 +52,15 @@ const NO_LIGHTS = createCastLightList(0);
 const MIN_TARGET_PX = 64;
 
 export interface BattleFrameOptions {
+  /** Optional resolved graphics quality; omitted preserves authored High. */
+  quality?: {
+    unitLodScale: number;
+    buildingLodScale: number;
+    treeLodScale: number;
+    grassDensity: number;
+    shadowMapSize: 1024 | 1536 | 2048;
+    shadowReach: number;
+  };
   /** `presentation.light`: sun, sky, haze, grade, bloom and cascades. */
   light: LightPresentation;
   /** `presentation.fog_geometry`: the sight lights' resolution and budgets. */
@@ -100,8 +109,40 @@ export async function createBattleFrame(
     registry.adopt(() => root.destroy());
     const camera = registry.own(root.createBuffer(Camera).$usage("uniform"));
     const cameraGroup = root.createBindGroup(typegpuCameraLayout, { cam: camera });
-    const environment = await createEnvironmentFrame(device, registry, options.light);
-    const models = await createModelLayer(root, registry, options.models, options.buildings);
+    const quality = options.quality;
+    const effectiveLight = quality
+      ? {
+          ...options.light,
+          cascades: {
+            ...options.light.cascades,
+            map_size: quality.shadowMapSize,
+            max_far_m: quality.shadowReach,
+          },
+        }
+      : options.light;
+    const environment = await createEnvironmentFrame(device, registry, effectiveLight);
+    const models = await createModelLayer(
+      root,
+      registry,
+      quality
+        ? {
+            ...options.models,
+            lod_px: options.models.lod_px.map((v) => v * quality.unitLodScale) as [
+              number,
+              number,
+              number,
+            ],
+          }
+        : options.models,
+      quality
+        ? {
+            ...options.buildings,
+            lod_px_per_m: options.buildings.lod_px_per_m.map(
+              (v) => v * quality.buildingLodScale,
+            ) as [number, number, number],
+          }
+        : options.buildings,
+    );
     registry.adopt(() => models.dispose());
     const world = await createWorldPass(
       root,
@@ -112,6 +153,7 @@ export async function createBattleFrame(
       options.paint,
       options.xrayMinHiddenFragmentFraction,
       options.glass,
+      quality?.grassDensity ?? 1,
     );
     const fogMask = await createFogMaskPass(root, registry, displayFormat, options.fogStyle);
     const impostors = createImpostorBaker(root, registry, models, environment);
@@ -160,7 +202,7 @@ export async function createBattleFrame(
       const sun = {
         azimuth: options.light.sun_azimuth,
         elevation: options.light.sun_elevation,
-        maxFarM: options.light.cascades.max_far_m,
+        maxFarM: effectiveLight.cascades.max_far_m,
       };
       const rebuild = (width: number, height: number) =>
         targets.ensure(width, height).then(

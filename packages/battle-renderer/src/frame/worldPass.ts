@@ -173,6 +173,7 @@ export async function createWorldPass(
   paintStyle: PaintStyle,
   xrayMinHiddenFragmentFraction: number,
   glass: GlassStyle,
+  grassDensity = 1,
 ) {
   const worldFragment = tgpu.fragmentFn({
     in: {
@@ -560,7 +561,14 @@ export async function createWorldPass(
   const scenery = await createSceneryLayer(root, registry, environment);
   const terrain = createTerrainSource(root, registry);
   await terrain.ready();
-  const grass = await createGrassPass(root, registry, environment, terrain, terrainHeights);
+  const grass = await createGrassPass(
+    root,
+    registry,
+    environment,
+    terrain,
+    terrainHeights,
+    grassDensity,
+  );
   const paint = createPaintedMarks(root, registry);
   await paint.ready();
   fog.setPaintStyle(validatePaintStyle(paintStyle));
