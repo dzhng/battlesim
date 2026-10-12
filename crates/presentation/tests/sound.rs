@@ -92,7 +92,11 @@ fn every_command_equals_the_browsers() {
             let got = s
                 .note(&scripted.heard(&launches), step["now"].as_f64().unwrap())
                 .to_vec();
-            same(&serde_json::to_value(&got).unwrap(), &step["commands"], &format!("step {i}"));
+            same(
+                &serde_json::to_value(&got).unwrap(),
+                &step["commands"],
+                &format!("step {i}"),
+            );
             commands += got.len();
             continue;
         } else {
@@ -103,7 +107,11 @@ fn every_command_equals_the_browsers() {
             s.update(f("clock"), f("wall"), f("now"), &motion, listener)
         };
         // The browser's sink took a listener of [x, y, z] arrays.
-        same(&serde_json::to_value(got).unwrap(), &step["commands"], &format!("step {i}"));
+        same(
+            &serde_json::to_value(got).unwrap(),
+            &step["commands"],
+            &format!("step {i}"),
+        );
         commands += got.len();
     }
     assert!(commands > 3000, "{commands} commands compared");
@@ -217,7 +225,9 @@ fn the_budget_holds_and_the_loudest_win() {
         },
         0.0,
     );
-    let got = s.update(1.0 / 30.0, 0.0, 0.0, &Motion::default(), HERE).to_vec();
+    let got = s
+        .update(1.0 / 30.0, 0.0, 0.0, &Motion::default(), HERE)
+        .to_vec();
     let started = starts(&got);
     let budget = s.tables().audio.budget;
     assert_eq!(started.len(), budget.voices - budget.loops);
@@ -250,7 +260,9 @@ fn an_unseen_enemy_is_heard_only_by_direction() {
         },
         0.0,
     );
-    let got = s.update(1.0 / 30.0, 0.0, 0.0, &Motion::default(), HERE).to_vec();
+    let got = s
+        .update(1.0 / 30.0, 0.0, 0.0, &Motion::default(), HERE)
+        .to_vec();
     let [voice] = &starts(&got)[..] else {
         panic!("one cue sound")
     };
@@ -284,7 +296,10 @@ fn a_standing_clock_silences_transients_and_holds_loops() {
     let hold = s.tables().audio.hold_s;
     let got = s.update(1.0 / 30.0, hold * 2.0, hold * 2.0, &walking, HERE);
     assert!(got.iter().any(|c| matches!(c, Command::Stop { .. })));
-    assert!(!got.iter().any(|c| matches!(c, Command::Set { .. })), "loops hold as they are");
+    assert!(
+        !got.iter().any(|c| matches!(c, Command::Set { .. })),
+        "loops hold as they are"
+    );
     let stats = s.stats();
     assert!(stats.held && stats.transients == 0 && stats.loops == 1);
 }
@@ -320,10 +335,19 @@ fn a_bank_prepares_every_battle_sound_at_the_reference_loudness() {
         assert_eq!(buffers.len(), recipe.clips.len().max(1), "{name}");
         assert!(durations[&name].iter().all(|d| *d > 0.0), "{name}");
         for b in buffers {
-            let level = max_momentary_loudness(&b.channels, 48000.0) + 20.0 * b.normalization.log10();
-            let authored = recipe.gain * if recipe.clips.is_empty() { recipe.synth_gain } else { 1.0 };
+            let level =
+                max_momentary_loudness(&b.channels, 48000.0) + 20.0 * b.normalization.log10();
+            let authored = recipe.gain
+                * if recipe.clips.is_empty() {
+                    recipe.synth_gain
+                } else {
+                    1.0
+                };
             let want = -23.0 + 20.0 * authored.log10();
-            assert!((level - want).abs() < 1e-6, "{name}: {level} against {want}");
+            assert!(
+                (level - want).abs() < 1e-6,
+                "{name}: {level} against {want}"
+            );
         }
     }
 }

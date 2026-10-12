@@ -351,7 +351,9 @@ impl SoundTables {
         }
         let d = a.distance;
         if !((0.0..=1.0).contains(&d.floor) && d.cull >= 0.0) {
-            return Err("presentation.audio.distance: floor must be 0 to 1, cull at least 0".into());
+            return Err(
+                "presentation.audio.distance: floor must be 0 to 1, cull at least 0".into(),
+            );
         }
         let air = a.air;
         if !(air.near_hz >= air.far_hz && air.far_hz > 0.0 && air.far_m > 0.0) {
@@ -361,7 +363,11 @@ impl SoundTables {
             return Err("presentation.audio.air: wet 0 to 1, reverb_s > 0, attack_s ≥ 0".into());
         }
         for (name, r) in &self.catalog.sounds {
-            if let Some(c) = r.clips.iter().find(|c| !self.catalog.clips.contains_key(*c)) {
+            if let Some(c) = r
+                .clips
+                .iter()
+                .find(|c| !self.catalog.clips.contains_key(*c))
+            {
                 return Err(format!("sound {name}: unknown clip {c}"));
             }
             if let Some(s) = r.synth.as_deref().filter(|s| !synth::exists(s)) {

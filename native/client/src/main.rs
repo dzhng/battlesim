@@ -95,8 +95,8 @@ struct Run {
     paced: usize,
     presents: Presents,
     last: Option<Instant>,
-    /// The battle's sound, and what it rendered.
-    sound: Option<(Audio, Vec<f32>)>,
+    /// The battle's sound, rendered to a buffer.
+    sound: Option<Audio>,
 }
 
 impl Run {
@@ -208,7 +208,7 @@ impl Run {
                     &read(&format!("{root}sounds.json"))?,
                 );
                 let output = OutputSettings::Buffer(audio::SAMPLE_RATE);
-                Some((Audio::new(&setup, std::path::Path::new(RUNTIME), output)?, Vec::new()))
+                Some(Audio::new(&setup, std::path::Path::new(RUNTIME), output)?)
             }
         };
         Ok(Self {
@@ -280,13 +280,12 @@ impl Run {
             let now = record.reel_ms / 1000.0;
             let mut sound = self.sound.as_mut();
             self.replay.frame(&record, |p| {
-                if let Some((audio, _)) = sound.as_mut() {
+                if let Some(audio) = sound.as_mut() {
                     audio.note(p, now);
                 }
             })?;
-            if let Some((audio, samples)) = self.sound.as_mut() {
+            if let Some(audio) = self.sound.as_mut() {
                 audio.hear(self.replay.presentation(), now, now);
-                audio.render(now, samples);
             }
             let Some(plate) = record.plate.clone() else {
                 continue;
@@ -349,14 +348,16 @@ impl Run {
         Ok(false)
     }
 
-    fn report(&self, args: &Args) -> Result<(), String> {
+    fn report(&mut self, args: &Args) -> Result<(), String> {
         println!("plates: {} written to {}", self.plates, args.out.display());
-        if let (Some((audio, samples)), Some(path)) = (&self.sound, &args.sound) {
+        if let (Some(audio), Some(path)) = (&mut self.sound, &args.sound) {
+            let samples = audio.samples();
             write_wav(path, samples)?;
+            let seconds = samples.len() as f64 / 2.0 / f64::from(audio::SAMPLE_RATE);
             let (played, stats) = (audio.played(), audio.stats());
             println!(
                 "sound: {:.1} s to {}; {} voices started, {} stopped, {} sounding; the frame started {}, dropped {}, stole {}, {} cues",
-                samples.len() as f64 / 2.0 / f64::from(audio::SAMPLE_RATE),
+                seconds,
                 path.display(),
                 played.started,
                 played.stopped,
@@ -405,7 +406,15 @@ fn write_wav(path: &std::path::Path, samples: &[f32]) -> Result<(), String> {
     bytes.extend_from_slice(b"RIFF");
     bytes.extend_from_slice(&(36 + data).to_le_bytes());
     bytes.extend_from_slice(b"WAVEfmt ");
-    for (v, n) in [(16u32, 4), (3, 2), (2, 2), (rate, 4), (rate * 8, 4), (8, 2), (32, 2)] {
+    for (v, n) in [
+        (16u32, 4),
+        (3, 2),
+        (2, 2),
+        (rate, 4),
+        (rate * 8, 4),
+        (8, 2),
+        (32, 2),
+    ] {
         bytes.extend_from_slice(&v.to_le_bytes()[..n]);
     }
     bytes.extend_from_slice(b"data");

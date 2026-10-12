@@ -71,7 +71,10 @@ pub fn js_number(x: f64) -> String {
     if point <= 0 {
         format!("{sign}0.{}{digits}", "0".repeat(-point as usize))
     } else if point as usize >= digits.len() {
-        format!("{sign}{digits}{}", "0".repeat(point as usize - digits.len()))
+        format!(
+            "{sign}{digits}{}",
+            "0".repeat(point as usize - digits.len())
+        )
     } else {
         let (whole, fraction) = digits.split_at(point as usize);
         format!("{sign}{whole}.{fraction}")

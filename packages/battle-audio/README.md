@@ -130,8 +130,12 @@ generated bed, a raw master the tool's `beds` command buys once and the lock rec
 the tank's engine is one, since the game synthesises engines. Either way the bed's
 sha256 enters the processing key, so a changed clip or master re-renders its takes.
 
-The [sound frame](src/soundFrame.ts) owns timing, distance and voice allocation.
-Only implicit presentation slots follow shared effect replacements; an explicit
+What a battle hears, when, where and how loud (timing, distance, the air's
+colour, the voice budget and stealing, loops, footsteps, cues) is decided in
+Rust, once for both clients ([`presentation::sound`](../../crates/presentation/src/sound/));
+the [sound frame](src/soundFrame.ts) only carries its commands out on the
+page's mixer, and native carries the same commands out on `kira`. Only
+implicit presentation slots follow shared effect replacements; an explicit
 recipe selection keeps its identity. The [bank](src/soundBank.ts) prepares live
 and offline buffers through the same asynchronous path. Disposal aborts loading
 and prevents late admission.

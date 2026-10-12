@@ -49,7 +49,13 @@ fn weighting(sample_rate: f64) -> [Biquad; 2] {
     d = 1.0 + k / q + k * k;
     [
         shelf,
-        [1.0, -2.0, 1.0, 2.0 * (k * k - 1.0) / d, (1.0 - k / q + k * k) / d],
+        [
+            1.0,
+            -2.0,
+            1.0,
+            2.0 * (k * k - 1.0) / d,
+            (1.0 - k / q + k * k) / d,
+        ],
     ]
 }
 
@@ -81,7 +87,7 @@ pub fn max_momentary_loudness(channels: &[Vec<f32>], sample_rate: f64) -> f64 {
         if frame >= window {
             sum -= energy[frame - window];
         }
-        if frame + 1 >= window && (frame + 1 - window) % hop == 0 {
+        if frame + 1 >= window && (frame + 1 - window).is_multiple_of(hop) {
             maximum = maximum.max(sum / window as f64);
         }
     }
@@ -142,7 +148,7 @@ impl Bank {
                     recordings.insert(id.clone(), clip(id)?);
                 }
             }
-            let cores: Vec<(&[Vec<f32>], Cadence)> = recipe
+            let cores: Vec<Core> = recipe
                 .clips
                 .iter()
                 .map(|id| (&recordings[id][..], tables.catalog.clips[id].cadence()))
@@ -167,17 +173,25 @@ impl Bank {
     }
 }
 
+/// A recording's channels, and the shots its burst sounds.
+type Core<'a> = (&'a [Vec<f32>], Cadence);
+
 /// A recipe's alternatives: each recording with the synthesized support
 /// under each of its shots (once for a single report), or the support alone;
 /// a loop repeats each layer at its own period and softens the seam.
 pub fn compose(
     recipe: &Recipe,
-    cores: &[(&[Vec<f32>], Cadence)],
+    cores: &[Core],
     support: Option<&[Vec<f32>]>,
     sample_rate: f64,
 ) -> Vec<Buffer> {
-    let authored = recipe.gain * if cores.is_empty() { recipe.synth_gain } else { 1.0 };
-    let alternatives: Vec<Option<&(&[Vec<f32>], Cadence)>> = if cores.is_empty() {
+    let authored = recipe.gain
+        * if cores.is_empty() {
+            recipe.synth_gain
+        } else {
+            1.0
+        };
+    let alternatives: Vec<Option<&Core>> = if cores.is_empty() {
         vec![None]
     } else {
         cores.iter().map(Some).collect()
@@ -198,7 +212,7 @@ pub fn compose(
 
 fn mix(
     recipe: &Recipe,
-    core: Option<&(&[Vec<f32>], Cadence)>,
+    core: Option<&Core>,
     support: Option<&[Vec<f32>]>,
     sample_rate: f64,
 ) -> Vec<Vec<f32>> {
@@ -219,7 +233,9 @@ fn mix(
         .map(|k| js_round(k as f64 * cadence.interval_s * sample_rate) as usize)
         .collect();
     let core = core.map(|c| c.0);
-    let width = core.map_or(0, <[_]>::len).max(support.map_or(0, <[_]>::len));
+    let width = core
+        .map_or(0, <[_]>::len)
+        .max(support.map_or(0, <[_]>::len));
     let core_len = core.map_or(0, |c| c[0].len());
     let support_len = support.map_or(0, |s| s[0].len());
     let frames = core_len.max(shots.last().expect("one shot") + support_len);

@@ -42,7 +42,7 @@ fn biquad_by(x: &mut [f32], sr: f64, kind: Filter, hz: impl Fn(usize) -> f64, q:
     let (mut x1, mut x2, mut y1, mut y2) = (0.0f64, 0.0f64, 0.0f64, 0.0f64);
     let (mut b0, mut b1, mut b2, mut a1, mut a2) = (0.0, 0.0, 0.0, 0.0, 0.0);
     let mut last = -1.0;
-    for i in 0..x.len() {
+    for (i, v) in x.iter_mut().enumerate() {
         let f = hz(i);
         if f != last && (if fixed { i == 0 } else { i & 31 == 0 }) {
             last = f;
@@ -70,13 +70,13 @@ fn biquad_by(x: &mut [f32], sr: f64, kind: Filter, hz: impl Fn(usize) -> f64, q:
             a1 = (-2.0 * cw) / a0;
             a2 = (1.0 - alpha) / a0;
         }
-        let xi = f64::from(x[i]);
+        let xi = f64::from(*v);
         let y = b0 * xi + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2;
         x2 = x1;
         x1 = xi;
         y2 = y1;
         y1 = y;
-        x[i] = y as f32;
+        *v = y as f32;
     }
 }
 
@@ -184,11 +184,25 @@ fn report(sr: f64, rng: &mut Mulberry32, o: Report) -> Vec<f32> {
 }
 
 /// A far report: low-passed, a soft attack and a rolling echo.
-fn far_report(sr: f64, rng: &mut Mulberry32, seconds: f64, hz: f64, tau: f64, echo: f64) -> Vec<f32> {
+fn far_report(
+    sr: f64,
+    rng: &mut Mulberry32,
+    seconds: f64,
+    hz: f64,
+    tau: f64,
+    echo: f64,
+) -> Vec<f32> {
     let n = len(seconds, sr);
     let mut out = vec![0.0f32; n];
     let boom = biquad(noise(n, rng), sr, Filter::Lowpass, hz, Q);
-    mix(&mut out, &boom, sr, 1.0, |t| (t / 0.008).min(1.0) * exp(-t / tau), 0);
+    mix(
+        &mut out,
+        &boom,
+        sr,
+        1.0,
+        |t| (t / 0.008).min(1.0) * exp(-t / tau),
+        0,
+    );
     mix(
         &mut out,
         &boom,
@@ -237,7 +251,13 @@ fn explosion(sr: f64, rng: &mut Mulberry32, seconds: f64, far: bool) -> Vec<f32>
             let at = 0.25 + rng.sample() * (seconds - 0.6);
             let m = len(0.03, sr);
             let pattern = noise(m, rng);
-            let click = biquad(pattern, sr, Filter::Bandpass, 1200.0 + 2000.0 * rng.sample(), 2.0);
+            let click = biquad(
+                pattern,
+                sr,
+                Filter::Bandpass,
+                1200.0 + 2000.0 * rng.sample(),
+                2.0,
+            );
             mix(
                 &mut out,
                 &click,
@@ -271,7 +291,13 @@ fn engine(sr: f64, rng: &mut Mulberry32, hz: f64, seconds: f64, bright: f64) -> 
     }
     let mut out = biquad(out, sr, Filter::Lowpass, 180.0 + 500.0 * bright, 1.2);
     let mech = seamless(n, len(0.05, sr), |m| {
-        biquad(noise(m, rng), sr, Filter::Bandpass, 900.0 + 1500.0 * bright, 1.5)
+        biquad(
+            noise(m, rng),
+            sr,
+            Filter::Bandpass,
+            900.0 + 1500.0 * bright,
+            1.5,
+        )
     });
     for (i, o) in out.iter_mut().enumerate() {
         let swell = 0.8 + 0.2 * sin(TAU * i as f64 * 3.0 / n as f64);
@@ -320,7 +346,12 @@ fn hmg(sr: f64, rng: &mut Mulberry32) -> Vec<f32> {
 
 fn thump(sr: f64, rng: &mut Mulberry32) -> Vec<f32> {
     let n = len(0.35, sr);
-    let mut out = tone(n, sr, |t| 150.0 + 200.0 * exp(-t / 0.01), decay(0.05, 0.001));
+    let mut out = tone(
+        n,
+        sr,
+        |t| 150.0 + 200.0 * exp(-t / 0.01),
+        decay(0.05, 0.001),
+    );
     let body = biquad(noise(n, rng), sr, Filter::Bandpass, 700.0, 1.0);
     mix(&mut out, &body, sr, 1.2, decay(0.03, 0.0005), 0);
     to_peak(out)
@@ -338,7 +369,14 @@ fn launch(sr: f64, rng: &mut Mulberry32) -> Vec<f32> {
         1.2,
         false,
     );
-    mix(&mut out, &rush, sr, 2.0, |t| (t / 0.02).min(1.0) * exp(-t / 0.4), 0);
+    mix(
+        &mut out,
+        &rush,
+        sr,
+        2.0,
+        |t| (t / 0.02).min(1.0) * exp(-t / 0.4),
+        0,
+    );
     let thud = tone(n, sr, |_| 90.0, decay(0.06, 0.001));
     mix(&mut out, &thud, sr, 0.8, one, 0);
     to_peak(out)
@@ -396,14 +434,28 @@ fn impact_prop(sr: f64, rng: &mut Mulberry32) -> Vec<f32> {
         &rattle,
         sr,
         0.3,
-        |t| if t < 0.04 { 0.0 } else { exp(-(t - 0.04) / 0.1) },
+        |t| {
+            if t < 0.04 {
+                0.0
+            } else {
+                exp(-(t - 0.04) / 0.1)
+            }
+        },
         0,
     );
     to_peak(out)
 }
 
 /// Noise through `kind` at `hz`, under `env`.
-fn shaped(n: usize, sr: f64, rng: &mut Mulberry32, kind: Filter, hz: f64, q: f64, env: impl Fn(f64) -> f64) -> Vec<f32> {
+fn shaped(
+    n: usize,
+    sr: f64,
+    rng: &mut Mulberry32,
+    kind: Filter,
+    hz: f64,
+    q: f64,
+    env: impl Fn(f64) -> f64,
+) -> Vec<f32> {
     let mut out = biquad(noise(n, rng), sr, kind, hz, q);
     for (i, v) in out.iter_mut().enumerate() {
         *v = (f64::from(*v) * env(i as f64 / sr)) as f32;
@@ -413,7 +465,15 @@ fn shaped(n: usize, sr: f64, rng: &mut Mulberry32, kind: Filter, hz: f64, q: f64
 
 fn impact_soldier(sr: f64, rng: &mut Mulberry32) -> Vec<f32> {
     let n = len(0.18, sr);
-    to_peak(shaped(n, sr, rng, Filter::Lowpass, 450.0, Q, decay(0.035, 0.002)))
+    to_peak(shaped(
+        n,
+        sr,
+        rng,
+        Filter::Lowpass,
+        450.0,
+        Q,
+        decay(0.035, 0.002),
+    ))
 }
 
 fn ricochet(sr: f64, rng: &mut Mulberry32) -> Vec<f32> {
@@ -432,7 +492,15 @@ fn ricochet(sr: f64, rng: &mut Mulberry32) -> Vec<f32> {
 
 fn footstep(sr: f64, rng: &mut Mulberry32) -> Vec<f32> {
     let n = len(0.14, sr);
-    let mut out = shaped(n, sr, rng, Filter::Bandpass, 1400.0, 0.9, decay(0.02, 0.002));
+    let mut out = shaped(
+        n,
+        sr,
+        rng,
+        Filter::Bandpass,
+        1400.0,
+        0.9,
+        decay(0.02, 0.002),
+    );
     let thud = tone(n, sr, |_| 95.0, decay(0.025, 0.002));
     mix(&mut out, &thud, sr, 0.5, one, 0);
     to_peak(out)
@@ -476,7 +544,13 @@ fn tracks(sr: f64, rng: &mut Mulberry32) -> Vec<f32> {
         let at = js_round(k as f64 / 20.0 * n as f64 + (rng.sample() - 0.5) * 0.01 * sr) as i64;
         let m = len(0.06, sr);
         let pattern = noise(m, rng);
-        let clank = biquad(pattern, sr, Filter::Bandpass, 700.0 + 900.0 * rng.sample(), 3.0);
+        let clank = biquad(
+            pattern,
+            sr,
+            Filter::Bandpass,
+            700.0 + 900.0 * rng.sample(),
+            3.0,
+        );
         for (i, c) in clank.iter().enumerate() {
             let o = (at + i as i64 + n as i64) as usize % n;
             out[o] = (f64::from(out[o]) + f64::from(*c) * exp(-(i as f64) / sr / 0.012)) as f32;
@@ -559,7 +633,13 @@ fn fire(sr: f64, rng: &mut Mulberry32) -> Vec<f32> {
         let at = floor(rng.sample() * n as f64) as usize;
         let m = len(0.012, sr);
         let pattern = noise(m, rng);
-        let pop = biquad(pattern, sr, Filter::Bandpass, 1500.0 + 3500.0 * rng.sample(), 2.0);
+        let pop = biquad(
+            pattern,
+            sr,
+            Filter::Bandpass,
+            1500.0 + 3500.0 * rng.sample(),
+            2.0,
+        );
         let a = 0.3 + 1.4 * pow(rng.sample(), 3.0);
         for (i, p) in pop.iter().enumerate() {
             let o = (at + i) % n;
@@ -621,7 +701,8 @@ fn cue_voices(sr: f64, rng: &mut Mulberry32) -> Vec<f32> {
         .map(|i| {
             let t = i as f64 / sr;
             let syll = sin(TAU * 4.3 * t + 2.0 * sin(TAU * 1.1 * t)).max(0.0);
-            let v = (f64::from(a[i]) + 0.6 * f64::from(b[i])) * syll * sin(PI * i as f64 / n as f64);
+            let v =
+                (f64::from(a[i]) + 0.6 * f64::from(b[i])) * syll * sin(PI * i as f64 / n as f64);
             v as f32
         })
         .collect();
@@ -667,22 +748,49 @@ fn countryside(sr: f64, rng: &mut Mulberry32) -> Vec<Vec<f32>> {
             let chirp = tone(
                 m,
                 sr,
-                |t| base * if up { 1.0 + 0.4 * t / d } else { 1.4 - 0.4 * t / d },
+                |t| {
+                    base * if up {
+                        1.0 + 0.4 * t / d
+                    } else {
+                        1.4 - 0.4 * t / d
+                    }
+                },
                 |t| pow(sin(PI * t / d), 2.0),
             );
             let start = len(at + k as f64 * (d + 0.04 + 0.06 * rng.sample()), sr);
-            mix(&mut channels[0], &chirp, sr, 0.06 * (1.0 - pan * 0.7), one, start);
-            mix(&mut channels[1], &chirp, sr, 0.06 * (0.3 + pan * 0.7), one, start);
+            mix(
+                &mut channels[0],
+                &chirp,
+                sr,
+                0.06 * (1.0 - pan * 0.7),
+                one,
+                start,
+            );
+            mix(
+                &mut channels[1],
+                &chirp,
+                sr,
+                0.06 * (0.3 + pan * 0.7),
+                one,
+                start,
+            );
         }
     }
     // Crickets: a 4.6 kHz carrier pulsed 30 times a second, in trills.
-    for i in 0..n {
+    let [left, right] = &mut channels[..] else {
+        unreachable!("two channels")
+    };
+    for (i, (l, r)) in left.iter_mut().zip(right.iter_mut()).enumerate() {
         let t = i as f64 / sr;
-        let trill = if sin(TAU * 3.0 * i as f64 / nf) > -0.2 { 1.0 } else { 0.0 };
+        let trill = if sin(TAU * 3.0 * i as f64 / nf) > -0.2 {
+            1.0
+        } else {
+            0.0
+        };
         let pulse = pow(sin(TAU * 30.0 * t).max(0.0), 4.0);
         let s = 0.012 * trill * pulse * sin(TAU * 4600.0 * t);
-        channels[0][i] = (f64::from(channels[0][i]) + s) as f32;
-        channels[1][i] = (f64::from(channels[1][i]) + s * 0.7) as f32;
+        *l = (f64::from(*l) + s) as f32;
+        *r = (f64::from(*r) + s * 0.7) as f32;
     }
     let m = channels
         .iter()
@@ -699,9 +807,17 @@ type Mono = fn(f64, &mut Mulberry32) -> Vec<f32>;
 /// Every mono sound, by name, and whether it loops.
 const SOUNDS: &[(&str, Mono, bool)] = &[
     ("rifle", rifle, false),
-    ("rifle_far", |sr, rng| far_report(sr, rng, 1.2, 900.0, 0.09, 0.35), false),
+    (
+        "rifle_far",
+        |sr, rng| far_report(sr, rng, 1.2, 900.0, 0.09, 0.35),
+        false,
+    ),
     ("hmg", hmg, false),
-    ("hmg_far", |sr, rng| far_report(sr, rng, 1.3, 600.0, 0.11, 0.4), false),
+    (
+        "hmg_far",
+        |sr, rng| far_report(sr, rng, 1.3, 600.0, 0.11, 0.4),
+        false,
+    ),
     ("cannon", |sr, rng| explosion(sr, rng, 2.4, false), false),
     ("cannon_far", |sr, rng| explosion(sr, rng, 2.8, true), false),
     ("thump", thump, false),
@@ -712,11 +828,23 @@ const SOUNDS: &[(&str, Mono, bool)] = &[
     ("impact_soldier", impact_soldier, false),
     ("ricochet", ricochet, false),
     ("explosion", |sr, rng| explosion(sr, rng, 3.2, false), false),
-    ("explosion_far", |sr, rng| explosion(sr, rng, 3.4, true), false),
+    (
+        "explosion_far",
+        |sr, rng| explosion(sr, rng, 3.4, true),
+        false,
+    ),
     ("footstep", footstep, false),
     ("motor", motor, true),
-    ("engine_diesel", |sr, rng| engine(sr, rng, 28.0, 2.0, 0.2), true),
-    ("engine_small", |sr, rng| engine(sr, rng, 42.0, 2.0, 0.6), true),
+    (
+        "engine_diesel",
+        |sr, rng| engine(sr, rng, 28.0, 2.0, 0.2),
+        true,
+    ),
+    (
+        "engine_small",
+        |sr, rng| engine(sr, rng, 42.0, 2.0, 0.6),
+        true,
+    ),
     ("rotor", rotor, true),
     ("tracks", tracks, true),
     ("wheels", wheels, true),

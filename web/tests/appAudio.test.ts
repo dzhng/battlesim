@@ -260,7 +260,11 @@ test("battle exit keeps the page context and prepared buffers but disconnects it
   const first = app.createBattle({ tickHz: 30, presentation, smokeTimes: {}, cookOff });
   await vi.waitFor(() => expect(first.stats()?.loading).toBe(false));
   first.note(empty(8));
-  first.update({ clock: 8 / 30, motion: { vehicles: [], soldiers: [] }, listener: cameraListener(camera, 0.25) });
+  first.update({
+    clock: 8 / 30,
+    motion: { vehicles: [], soldiers: [] },
+    listener: cameraListener(camera, 0.25),
+  });
   expect(first.stats()?.tick).toBe(8);
   const oldSources = sources.filter((s) => !s.stopped);
   const ambient = oldSources.at(-1)!.buffer;
@@ -272,7 +276,11 @@ test("battle exit keeps the page context and prepared buffers but disconnects it
   await vi.waitFor(() => expect(second.stats()?.loading).toBe(false));
   expect(second.stats()).toMatchObject({ tick: -1, pending: 0 });
   second.note(empty(1));
-  second.update({ clock: 1 / 30, motion: { vehicles: [], soldiers: [] }, listener: cameraListener(camera, 0.25) });
+  second.update({
+    clock: 1 / 30,
+    motion: { vehicles: [], soldiers: [] },
+    listener: cameraListener(camera, 0.25),
+  });
   expect(sources.at(-1)!.buffer).toBe(ambient);
   expect(contexts).toHaveLength(1);
   app.dispose();
@@ -311,7 +319,11 @@ test("a blocked early attempt resumes on menu input and the bed lasts until batt
   const battle = app.createBattle({ tickHz: 30, presentation, smokeTimes: {}, cookOff });
   await vi.waitFor(() => expect(battle.stats()?.loading).toBe(false));
   battle.note(empty(4));
-  battle.update({ clock: 4 / 30, motion: { vehicles: [], soldiers: [] }, listener: cameraListener(camera, 0.25) });
+  battle.update({
+    clock: 4 / 30,
+    motion: { vehicles: [], soldiers: [] },
+    listener: cameraListener(camera, 0.25),
+  });
   expect(battle.stats()?.tick).toBe(-1);
   expect(sources.filter((s) => !s.stopped)).toHaveLength(1);
   permitted = true;
@@ -319,7 +331,11 @@ test("a blocked early attempt resumes on menu input and the bed lasts until batt
   await vi.waitFor(() => expect(app.stats().running).toBe(true));
   expect(sources.filter((s) => !s.stopped)).toHaveLength(1);
   battle.note(empty(5));
-  battle.update({ clock: 5 / 30, motion: { vehicles: [], soldiers: [] }, listener: cameraListener(camera, 0.25) });
+  battle.update({
+    clock: 5 / 30,
+    motion: { vehicles: [], soldiers: [] },
+    listener: cameraListener(camera, 0.25),
+  });
   expect(app.stats().menuPlaying).toBe(false);
   expect(sources.filter((s) => !s.stopped)).toHaveLength(1);
   battle.dispose();
@@ -339,7 +355,11 @@ test("repeated battle visits return every audio connection to the menu baseline"
     const battle = app.createBattle({ tickHz: 30, presentation, smokeTimes: {}, cookOff });
     await vi.waitFor(() => expect(battle.stats()?.loading).toBe(false));
     battle.note(empty(1));
-    battle.update({ clock: 1 / 30, motion: { vehicles: [], soldiers: [] }, listener: cameraListener(camera, 0.25) });
+    battle.update({
+      clock: 1 / 30,
+      motion: { vehicles: [], soldiers: [] },
+      listener: cameraListener(camera, 0.25),
+    });
     battle.dispose();
     app.setScreen("menu");
     expect(nodes.reduce((n, node) => n + node.connections.size, 0)).toBe(baseline);

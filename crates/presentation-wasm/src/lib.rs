@@ -408,10 +408,13 @@ impl SoundFrame {
         motion: &str,
         listener: &str,
     ) -> Result<String, JsError> {
-        let motion: Motion = serde_json::from_str(motion).map_err(|e| JsError::new(&e.to_string()))?;
+        let motion: Motion =
+            serde_json::from_str(motion).map_err(|e| JsError::new(&e.to_string()))?;
         let listener: Listener =
             serde_json::from_str(listener).map_err(|e| JsError::new(&e.to_string()))?;
-        Ok(commands(self.inner.update(clock, wall, now, &motion, listener)))
+        Ok(commands(
+            self.inner.update(clock, wall, now, &motion, listener),
+        ))
     }
 
     /// Silences and forgets everything, from mixer time `now`.
@@ -428,9 +431,17 @@ impl SoundFrame {
 /// The loops a vehicle of sound row `row` (`VehicleSound` JSON) sounds at
 /// `load` and `traverse`, JSON.
 #[wasm_bindgen]
-pub fn vehicle_loops(row: &str, load: f64, traverse: f64, reversing: bool) -> Result<String, JsError> {
+pub fn vehicle_loops(
+    row: &str,
+    load: f64,
+    traverse: f64,
+    reversing: bool,
+) -> Result<String, JsError> {
     let row = serde_json::from_str(row).map_err(|e| JsError::new(&e.to_string()))?;
-    Ok(serde_json::to_string(&frame::vehicle_loops(&row, load, traverse, reversing)).expect("loops serialize"))
+    Ok(
+        serde_json::to_string(&frame::vehicle_loops(&row, load, traverse, reversing))
+            .expect("loops serialize"),
+    )
 }
 
 /// A hearing cue's stereo position for a listener looking along `forward`.

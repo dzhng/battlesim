@@ -31,7 +31,12 @@ export function cameraListener(
   const eye = eyePosition(vec3.create(), camera as Camera3DParams);
   const s = Math.sin(camera.pitch);
   const up = [-s * Math.cos(camera.yaw), -s * Math.sin(camera.yaw), Math.cos(camera.pitch)];
-  const l = camera_listener(Float64Array.from(eye), Float64Array.from(camera.target), Float64Array.from(up), share);
+  const l = camera_listener(
+    Float64Array.from(eye),
+    Float64Array.from(camera.target),
+    Float64Array.from(up),
+    share,
+  );
   return { position: [l[0], l[1], l[2]], forward: [l[3], l[4], l[5]] };
 }
 

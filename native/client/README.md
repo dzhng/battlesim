@@ -24,6 +24,13 @@ and passes over the [presentation crate](../../crates/presentation/README.md)'s
   each `Frame` batch is one run of instances over one row's tier. A corpse is
   its body posed once by the presentation crate's rest palette; so is a body
   at the impostor tier (its far pose), since impostor cards are not baked yet.
+- **Sound** is the presentation crate's: it decides every voice, and the
+  client's `audio` module carries the commands out on `kira` (a track per
+  voice under its bus, low-pass, equal-power pan, reverb sends, a limiter),
+  with the recordings in `assets/runtime/audio/clips` (Git LFS) and the
+  synthesized sounds composed by the same Rust bank the browser's decisions
+  were made against. `--sound <wav>` renders a replay's sound to a file; it is
+  never played aloud by the replay, and the tests render to a buffer.
 - **What is bound but not drawn yet** reads as absent in every shader: the
   sun's cascades (every surface takes the whole sun), the cast lights (none)
   and fog of war (every surface seen).

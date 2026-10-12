@@ -578,7 +578,13 @@ impl Presentation {
         Some(Heard {
             effects,
             launches,
-            audible: self.latest.as_ref()?.audible.iter().map(Cue::from).collect(),
+            audible: self
+                .latest
+                .as_ref()?
+                .audible
+                .iter()
+                .map(Cue::from)
+                .collect(),
         })
     }
 
@@ -587,7 +593,11 @@ impl Presentation {
     pub fn motion(&self) -> Motion {
         let types = self.loaded.as_ref().map(|l| &l.units.types);
         Motion::of(&self.frame.emitters, |class| {
-            types?.values().nth(class as usize)?.vehicle_class.as_deref()
+            types?
+                .values()
+                .nth(class as usize)?
+                .vehicle_class
+                .as_deref()
         })
     }
 

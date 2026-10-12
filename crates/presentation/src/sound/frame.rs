@@ -505,7 +505,12 @@ pub struct VehicleLoop<'a> {
 /// whine by `traverse` (a share of `full_traverse_rps`) and, `reversing`, the
 /// back-up beeper, steady whatever the speed, as an alarm is. A layer below
 /// audibility is left out.
-pub fn vehicle_loops(row: &VehicleSound, load: f64, traverse: f64, reversing: bool) -> Vec<VehicleLoop<'_>> {
+pub fn vehicle_loops(
+    row: &VehicleSound,
+    load: f64,
+    traverse: f64,
+    reversing: bool,
+) -> Vec<VehicleLoop<'_>> {
     let mut loops = vec![VehicleLoop {
         slot: "engine",
         sound: &row.engine,
@@ -641,7 +646,11 @@ impl Sound {
     }
 
     fn clear(&mut self, now: f64) {
-        for v in self.transients.iter().chain(self.loops.0.iter().map(|(_, v)| v)) {
+        for v in self
+            .transients
+            .iter()
+            .chain(self.loops.0.iter().map(|(_, v)| v))
+        {
             self.out.push(Command::Stop {
                 id: v.id,
                 at: now,
@@ -1107,12 +1116,16 @@ impl Sound {
                 });
                 self.stats.stolen += 1;
             }
-            let far = matches!((&e.far, &e.position), (Some(_), Some(p)) if self.distance(p) > e.far_m);
+            let far =
+                matches!((&e.far, &e.position), (Some(_), Some(p)) if self.distance(p) > e.far_m);
             let sound = if far { e.far.expect("far") } else { e.sound };
             let at = now + (e.t - clock).max(0.0);
             let id = self.next_id;
             self.next_id += 1;
-            let u = e.position.as_ref().map_or(e.far_share, |p| self.far_share(p));
+            let u = e
+                .position
+                .as_ref()
+                .map_or(e.far_share, |p| self.far_share(p));
             let air = self.tables.audio.air;
             let end = at + self.duration(&sound, e.variant) / e.rate;
             self.out.push(Command::Start {
@@ -1122,7 +1135,11 @@ impl Sound {
                     variant: e.variant,
                     bus: e.bus,
                     at,
-                    gain: if e.position.is_some() { priority } else { e.gain },
+                    gain: if e.position.is_some() {
+                        priority
+                    } else {
+                        e.gain
+                    },
                     rate: e.rate,
                     lowpass: if e.position.is_some() {
                         self.air_lowpass(u)
@@ -1266,7 +1283,11 @@ impl Sound {
         for w in kept {
             let u = w.position.as_ref().map_or(0.0, |p| self.far_share(p));
             let params = Params {
-                gain: if w.position.is_some() { w.priority } else { w.gain },
+                gain: if w.position.is_some() {
+                    w.priority
+                } else {
+                    w.gain
+                },
                 rate: w.rate,
                 lowpass: self.air_lowpass(u),
                 wet: p.air.wet * u,
@@ -1275,7 +1296,11 @@ impl Sound {
             if let Some(v) = self.loops.get_mut(&w.key) {
                 v.priority = w.priority;
                 let id = v.id;
-                self.out.push(Command::Set { id, at: now, params });
+                self.out.push(Command::Set {
+                    id,
+                    at: now,
+                    params,
+                });
                 continue;
             }
             let id = self.next_id;
