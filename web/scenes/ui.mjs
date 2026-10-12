@@ -307,7 +307,7 @@ export async function run(ctx) {
   await page.evaluate(() => document.fonts.ready);
   await pointerAway(page);
   await mediaDecodes(ctx, page, "menu");
-  const body = page.locator("main.menu .menu-body");
+  const body = page.locator("main.menu:not([inert]) .menu-body");
   await ctx.matchBaseline(body, "menu", { style: MENU_UNPINNED });
   // The pages open in the plate's place: its top edge stays where the main
   // page's is, except the tutorial's, a plate as tall as the screen.
