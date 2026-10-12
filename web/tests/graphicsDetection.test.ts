@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { chooseTier, judgeIntervals, cancelAutoDetect, registerGraphicsDetectionRunner, runAutoDetect, graphicsDetectionState } from "@apps/battle-lab/src/graphicsDetection";
 import { graphicsSettings } from "@apps/battle-lab/src/graphicsSettings";
 
@@ -91,4 +91,42 @@ describe("canonical frame runner", () => {
     const result = await promise;
     expect(result.averageFps).toBeCloseTo(100);
   });
+});
+
+ test("bounds renderer preparation and aborts its work on timeout", async () => {
+    vi.useFakeTimers();
+    const { createCanonicalFrameRunner } = await import("@apps/battle-lab/src/graphicsDetection");
+    let preparationSignal!: AbortSignal;
+    const run = createCanonicalFrameRunner({
+      setTier: (_, signal) => { preparationSignal = signal; return new Promise(() => {}); },
+      subscribeFrames: () => () => {},
+      timeoutMs: 100,
+    });
+    const pending = run("high", new AbortController().signal);
+    const outcome = pending.then(() => "resolved", (error: Error) => error.message);
+    try {
+      await vi.advanceTimersByTimeAsync(100);
+      expect(await Promise.race([outcome, Promise.resolve("still pending")])).toContain("timed out");
+      expect(preparationSignal.aborted).toBe(true);
+    } finally { vi.useRealTimers(); }
+  });
+
+test("cancelled final tier cannot persist even if the adapter resolves late", async () => {
+  Object.defineProperty(navigator, "gpu", { configurable: true, value: {} });
+  let finish!: () => void;
+  let reachedLow!: () => void;
+  const low = new Promise<void>((resolve) => { reachedLow = resolve; });
+  const dispose = registerGraphicsDetectionRunner(async (tier) => {
+    if (tier === "low") await new Promise<void>((resolve) => { finish = resolve; reachedLow(); });
+    return { averageFps: tier === "high" ? 46 : 60, onePercentLowFps: 2 };
+  });
+  const before = graphicsSettings.get();
+  const pending = runAutoDetect();
+  await low;
+  cancelAutoDetect();
+  finish();
+  try {
+    await expect(pending).rejects.toThrow("cancelled");
+    expect(graphicsSettings.get()).toBe(before);
+  } finally { dispose(); }
 });

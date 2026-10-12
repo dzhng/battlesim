@@ -57,42 +57,51 @@ export function createCanonicalFrameRunner({
   sampleMs?: number;
   timeoutMs?: number;
 }): GraphicsDetectionRunner {
-  return async (tier, signal) => {
-    await setTier(tier, signal);
+  return (tier, signal) => new Promise<TierBenchmarkInput>((resolve, reject) => {
+    const preparation = new AbortController();
     const intervals: number[] = [];
     let previous = 0;
-    let started = 0;
+    let started: number | null = null;
     let done = false;
     let timeout: ReturnType<typeof setTimeout> | undefined;
     let unsubscribe = () => {};
-    const result = new Promise<TierBenchmarkInput>((resolve, reject) => {
-      const finish = (error?: unknown) => {
+    const abort = () => finish(new DOMException("Detection cancelled", "AbortError"));
+    const finish = (error?: unknown) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timeout);
+      signal.removeEventListener("abort", abort);
+      unsubscribe();
+      preparation.abort();
+      if (error) reject(error);
+      else {
+        try { resolve(judgeIntervals(intervals, tier)); } catch (reason) { reject(reason); }
+      }
+    };
+    if (signal.aborted) return abort();
+    signal.addEventListener("abort", abort, { once: true });
+    timeout = setTimeout(() => finish(new Error("Graphics auto-detect timed out before the scene produced enough frames.")), timeoutMs);
+    const ready = () => {
+      if (done) return;
+      const stop = subscribeFrames((timestampMs) => {
         if (done) return;
-        done = true;
-        if (timeout) clearTimeout(timeout);
-        unsubscribe();
-        if (error) reject(error);
-        else {
-          try { resolve(judgeIntervals(intervals, tier)); } catch (reason) { reject(reason); }
-        }
-      };
-      const abort = () => finish(new DOMException("Detection cancelled", "AbortError"));
-      if (signal.aborted) return abort();
-      signal.addEventListener("abort", abort, { once: true });
-      unsubscribe = subscribeFrames((timestampMs) => {
-        if (!Number.isFinite(timestampMs)) return;
-        if (!started) { started = timestampMs; previous = timestampMs; return; }
-        const elapsed = timestampMs - started;
-        if (elapsed < warmupMs) { previous = timestampMs; return; }
-        if (elapsed >= warmupMs + sampleMs) return finish();
+        if (!Number.isFinite(timestampMs)) return finish(new Error("Graphics auto-detect received an invalid frame timestamp."));
+        if (started === null) { started = timestampMs; previous = timestampMs; return; }
         const interval = timestampMs - previous;
+        if (interval <= 0) return finish(new Error("Graphics auto-detect received non-increasing frame timestamps."));
         previous = timestampMs;
-        if (interval > 0) intervals.push(interval);
+        const elapsed = timestampMs - started;
+        if (elapsed < warmupMs) return;
+        intervals.push(interval);
+        if (elapsed >= warmupMs + sampleMs) finish();
       });
-      timeout = setTimeout(() => finish(new Error("Graphics auto-detect timed out before the scene produced enough frames.")), timeoutMs);
-    });
-    return result;
-  };
+      unsubscribe = stop;
+      // A source may synchronously emit while being subscribed.
+      if (done) stop();
+    };
+    try { void setTier(tier, preparation.signal).then(ready).catch(finish); }
+    catch (error) { finish(error); }
+  });
 }
 
 let runner: GraphicsDetectionRunner | null = null;
@@ -141,6 +150,7 @@ export function runAutoDetect(): Promise<GraphicsTier> {
     for (const tier of GRAPHICS_TIERS) {
       if (controller.signal.aborted) throw new DOMException("Detection cancelled", "AbortError");
       const result = await runner!(tier, controller.signal);
+      if (controller.signal.aborted) throw new DOMException("Detection cancelled", "AbortError");
       if (!result || !Number.isFinite(result.averageFps) || result.averageFps < 0)
         throw new Error(`Graphics auto-detect returned unusable ${tier} FPS evidence.`);
       results[tier] = result;
