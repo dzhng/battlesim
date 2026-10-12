@@ -1,4 +1,14 @@
-@group(1) @binding(0) var<storage, read> palette: array<mat4x4f>;
+struct Joint {
+  x: vec4f,
+  y: vec4f,
+  z: vec4f,
+}
+
+@group(1) @binding(0) var<storage, read> palette: array<Joint>;
+
+fn moved(j: Joint, p: vec4f) -> vec4f {
+  return vec4f(dot(j.x, p), dot(j.y, p), dot(j.z, p), p.w);
+}
 
 struct Camera {
   viewProj: mat4x4f,
@@ -35,10 +45,10 @@ struct modelVertex_Output {
   let m1 = (&palette[(base + joints.y)]);
   let m2 = (&palette[(base + joints.z)]);
   let m3 = (&palette[(base + joints.w)]);
-  let skinned = (((((*m0) * p) * weights.x) + (((*m1) * p) * weights.y)) + ((((*m2) * p) * weights.z) + (((*m3) * p) * weights.w)));
-  let skinnedNormal = (((((*m0) * n) * weights.x) + (((*m1) * n) * weights.y)) + ((((*m2) * n) * weights.z) + (((*m3) * n) * weights.w)));
+  let skinned = (((moved((*m0), p) * weights.x) + (moved((*m1), p) * weights.y)) + ((moved((*m2), p) * weights.z) + (moved((*m3), p) * weights.w)));
+  let skinnedNormal = (((moved((*m0), n) * weights.x) + (moved((*m1), n) * weights.y)) + ((moved((*m2), n) * weights.z) + (moved((*m3), n) * weights.w)));
   let t = vec4f(tangent.xyz, 0f);
-  let skinnedTangent = (((((*m0) * t) * weights.x) + (((*m1) * t) * weights.y)) + ((((*m2) * t) * weights.z) + (((*m3) * t) * weights.w)));
+  let skinnedTangent = (((moved((*m0), t) * weights.x) + (moved((*m1), t) * weights.y)) + ((moved((*m2), t) * weights.z) + (moved((*m3), t) * weights.w)));
   let c = cos(placement.w);
   let s = sin(placement.w);
   let local = (skinned.xyz * scale.xyz);
