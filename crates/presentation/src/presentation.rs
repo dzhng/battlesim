@@ -25,9 +25,9 @@ use crate::static_world::batches::{Population, StaticBatches, Sun};
 use crate::static_world::buildings::{Buildings, PlacedBuildings};
 use crate::static_world::fallen::{Knowledge, Known};
 use crate::static_world::ground::biome::Biome;
-use crate::static_world::ground::scenery::Size;
+use crate::static_world::ground::kinds;
 use crate::static_world::ground::walk::{
-    Cleared, FelledTree, Quality as SceneryQuality, SceneryPopulation, SceneryWalk, Trunk, DRAWS,
+    Cleared, Draws, FelledTree, Quality as SceneryQuality, SceneryPopulation, SceneryWalk, DRAWS,
 };
 use crate::static_world::ground::{Ground, Source, Tuning};
 use crate::static_world::library::STATES;
@@ -375,13 +375,6 @@ impl Presentation {
     /// next upload writes them all.
     pub fn resend_scars(&mut self) {
         self.scars.resend();
-    }
-
-    /// The crater's view-ray reach in metres (`Ground::scar_reach_m`): a
-    /// region's scars load this far past it. `set_ground` sets it; a
-    /// renderer holding its own ground (the native client's) sets it here.
-    pub fn set_scar_reach(&mut self, reach_m: f64) {
-        self.scars.set_reach(reach_m);
     }
 
     pub fn scar_stats(&self) -> ScarStats {
@@ -902,14 +895,37 @@ impl Presentation {
         self.ground.as_mut()
     }
 
-    /// Places the ground's scenery, its kinds (`Ground::scenery_kinds`)
-    /// `sizes` big with `trunks`; drawn from the next `load_world`.
-    pub fn place_scenery(&mut self, sizes: Vec<Size>, trunks: Vec<Trunk>) -> Result<(), String> {
+    /// Places the ground's scenery, given each of its kinds' finest mesh
+    /// (`Ground::scenery_kinds` order) in the renderer's world vertex
+    /// (`ground::mesh::VERTEX_FLOATS`, 1 in the last float for foliage):
+    /// their sizes, a tree's trunk and crown, and its stump (`kinds`) are
+    /// read off it. Drawn from the next `load_world`.
+    pub fn place_scenery(&mut self, finest: &[&[f32]]) -> Result<(), String> {
         let ground = self
             .ground
             .as_ref()
             .ok_or("scenery stands on a ground: set_ground first")?;
+        let names = ground.scenery_kinds();
+        if finest.len() != names.len() {
+            return Err(format!(
+                "scenery: {} kinds' meshes for {} kinds",
+                finest.len(),
+                names.len()
+            ));
+        }
+        let trees = &ground.biome.trees;
+        let kinds = names
+            .iter()
+            .zip(finest)
+            .map(|(name, tier)| {
+                let tree = trees.species.iter().any(|s| &s.appearance == name);
+                kinds::kind(tier, tree.then_some(&trees.felled)).map_err(|e| format!("{name}: {e}"))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        let sizes: Vec<_> = kinds.iter().map(|k| k.size).collect();
+        let trunks = kinds.iter().map(|k| k.trunk).collect();
         let mut walk = SceneryWalk::new(ground.scenery(&sizes), sizes, trunks);
+        walk.stump_meshes = kinds.into_iter().map(|k| k.stump).collect();
         walk.set_quality(self.scenery_quality);
         self.scenery = Some(walk);
         self.felled_from = None;
@@ -939,6 +955,16 @@ impl Presentation {
     /// The props placed (none without them).
     pub fn props(&self) -> Option<&PropPopulation> {
         self.props.as_ref()
+    }
+
+    /// The mesh `World.appearances` row `row` draws, when it is a felled
+    /// tree's stump (`Appearance.draws` 6): cut from its kind's trunk, in
+    /// the renderer's world vertex. None for any other row.
+    pub fn stump_mesh(&self, row: u32) -> Option<&[f32]> {
+        let walk = self.scenery.as_ref()?;
+        let stumps = walk.rows.get(Draws::Stump as usize - 1)?;
+        let kind = stumps.iter().position(|&r| r == row)?;
+        walk.stump_meshes.get(kind)?.as_deref()
     }
 
     /// The player's scenery settings (`walk::Quality`).

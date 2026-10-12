@@ -120,7 +120,7 @@ impl SunShadow {
 }
 
 /// One clear-to-far depth pass per fitted cascade, drawing every caster:
-/// the ground's and the models' (`encodeShadows`).
+/// the ground's, the models' and the scenery's (`encodeShadows`).
 pub struct ShadowPass {
     solid: Bound,
     cutout: Bound,
@@ -165,6 +165,9 @@ impl Pass for ShadowPass {
                 bound.set(&mut pass, &[camera, models.group()]);
                 models.draw_casters(&mut pass, surface);
             }
+            inputs
+                .scenery
+                .draw_casters(&mut pass, camera, models.instances());
         }
     }
 }

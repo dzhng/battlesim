@@ -246,8 +246,8 @@ export function buildWorldLayers(
 }
 
 /** The trees and hedgerows of `biome.trees` and the forest floor's dressing:
- *  the installed appearances the scenery's rows name, and how a felled
- *  tree's stump is cut. Where they stand is the scene's presentation's. */
+ *  the installed appearances the scenery's rows name. Where they stand is
+ *  the scene's presentation's. */
 function worldScenery(biome: Biome, installed: InstalledAppearances): WorldScenery {
   const { trees, forest_floor } = biome;
   const dressed = forest_floor.dressing.kinds.map((k) => k.appearance);
@@ -263,6 +263,5 @@ function worldScenery(biome: Biome, installed: InstalledAppearances): WorldScene
       ...sceneryAppearances(installed, named, ["tree", "hedgerow"]),
       ...sceneryAppearances(installed, dressed, ["dressing"]),
     ]),
-    felled: trees.felled,
   };
 }

@@ -28,6 +28,7 @@ use native_client::ground::Ground;
 use native_client::models::Models;
 use native_client::pipelines::Pipelines;
 use native_client::post::Post;
+use native_client::scenery::{Drawn, Scenery};
 use native_client::shadow::{ShadowPass, SunShadow};
 use native_client::sky::Sky;
 use native_client::world::{DepthPrepass, Ghosts, WorldColour};
@@ -108,7 +109,13 @@ struct Run {
 impl Run {
     fn start(event_loop: &ActiveEventLoop, args: &Args) -> Result<Self, String> {
         let game = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/game.json");
-        let mut replay = Replay::open(&args.scene, &game)?;
+        let library = Library::open(std::path::Path::new(RUNTIME))?;
+        let opened = Instant::now();
+        let mut replay = Replay::open(&args.scene, &game, &library)?;
+        println!(
+            "world: ground set, scenery placed and the battle loaded in {:.2} s",
+            opened.elapsed().as_secs_f64()
+        );
         let size = replay.records.first().ok_or("no frame records")?.canvas;
         let mut attributes = Window::default_attributes()
             .with_title("battlegame native")
@@ -193,47 +200,29 @@ impl Run {
             &light.aerial(),
             &shadow,
         );
-        let resolved = Instant::now();
-        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-        let map = presentation::static_world::files::ground(&root, &replay.map)?;
+        let installed = Instant::now();
+        let presentation = replay.presentation();
+        let resolved = presentation.ground().ok_or("the replay set no ground")?;
+        let (positions, indices) = &replay.terrain;
         let ground = Ground::new(
             &gpu.device,
             &gpu.queue,
             &pipelines,
-            map,
+            resolved,
+            (positions, indices),
             light.backdrop.reach_m,
         )?;
-        let installed = Instant::now();
-        let library = Library::open(std::path::Path::new(RUNTIME))?;
-        let grass = Grass::new(
-            &gpu.device,
-            &pipelines,
-            &library,
-            &ground.map.ground,
-            &ground.heights,
-        )?;
-        // The scars a region loads reach as far as a crater's bowl moves them.
-        let scar_reach = ground.map.ground.scar_reach_m();
-        replay.presentation_mut().set_scar_reach(scar_reach);
-        // A fresh renderer holds no scars: the first upload writes them all.
-        replay.presentation_mut().resend_scars();
+        let grass = Grass::new(&gpu.device, &pipelines, &library, resolved, &ground.heights)?;
+        let models = Models::new(&gpu.device, &gpu.queue, &pipelines, &library, presentation)?;
+        let scenery = Scenery::new(&gpu.device, &pipelines, &library, presentation)?;
         println!(
-            "ground: {} resolved and uploaded in {:.2} s",
+            "{}: ground, grass, {} drawables and the scenery installed in {:.2} s",
             replay.map,
-            (installed - resolved).as_secs_f64()
-        );
-        let models = Models::new(
-            &gpu.device,
-            &gpu.queue,
-            &pipelines,
-            &library,
-            replay.presentation(),
-        )?;
-        println!(
-            "models: {} drawables installed in {:.2} s",
-            replay.presentation().world().appearances.len(),
+            presentation.world().appearances.len(),
             installed.elapsed().as_secs_f64()
         );
+        // A fresh renderer holds no scars: the first upload writes them all.
+        replay.presentation_mut().resend_scars();
         let effects = Effects::new(&gpu.device, &gpu.queue, &pipelines, &environment, &targets)?;
         let (fog_mask, fog_rim) = fog_mask(&gpu.device, &pipelines, &targets, &replay.fog_look);
         std::fs::create_dir_all(&args.out).map_err(|e| e.to_string())?;
@@ -265,6 +254,7 @@ impl Run {
                 ground,
                 grass,
                 models,
+                scenery,
                 effects,
                 passes: vec![
                     Box::new(ShadowPass::new(&pipelines)),
@@ -348,9 +338,10 @@ impl Run {
             let camera = self.replay.camera(&record);
             let frame = self.replay.last_frame();
             self.view = frame.view;
-            let (device, queue) = (&self.gpu.device, &self.gpu.queue);
-            self.passes.prepare(device, queue, frame, &camera);
             let (counts, wrap) = (frame.counts, frame.light_wrap);
+            let (device, queue) = (&self.gpu.device, &self.gpu.queue);
+            self.passes
+                .prepare(device, queue, self.replay.presentation(), &camera);
             self.passes
                 .prepare_scars(device, self.replay.presentation_mut());
             let presentation = self.replay.presentation();
@@ -393,6 +384,11 @@ impl Run {
                     }
                 }
             }
+            self.count_mismatches.extend(scenery_mismatches(
+                &plate,
+                &self.replay.instance_counts,
+                &self.passes.scenery.drawn(),
+            ));
             let scars = self.replay.presentation().scar_stats();
             println!(
                 "{plate}: drawn {drawn:?}, culled soldiers {}, effects {} and {} lights, scar pages {} ({})",
@@ -442,7 +438,7 @@ impl Run {
             );
         }
         if self.count_mismatches.is_empty() {
-            println!("model and effect counts: equal to the browser's on every plate");
+            println!("model, scenery and effect counts: equal to the browser's on every plate");
         } else {
             println!("counts differ:\n  {}", self.count_mismatches.join("\n  "));
         }
@@ -539,6 +535,44 @@ fn effect_mismatches(
         .into_iter()
         .filter(|(_, got, wanted)| got != wanted)
         .map(|(what, got, wanted)| format!("{plate} {what}: {got} against {wanted}"))
+        .collect()
+}
+
+/// Where `plate`'s scenery differs from the browser's (`instanceCounts`):
+/// the instances in view per population, kind and tier, and the stumps.
+fn scenery_mismatches(
+    plate: &str,
+    instance_counts: &[serde_json::Value],
+    drawn: &Drawn,
+) -> Vec<String> {
+    const POPULATIONS: [&str; 5] = ["forest", "understorey", "backdrop", "dressing", "felled"];
+    let Some(want) = instance_counts.iter().find(|c| c["plate"] == plate) else {
+        return vec![format!("{plate}: no instance counts in the manifest")];
+    };
+    let want = &want["scenery"];
+    let list = |v: &serde_json::Value| -> Vec<u32> {
+        v.as_array()
+            .map(|a| {
+                a.iter()
+                    .map(|n| n.as_u64().unwrap_or(u64::MAX) as u32)
+                    .collect()
+            })
+            .unwrap_or_default()
+    };
+    let total = |v: &[u32]| v.iter().sum::<u32>();
+    POPULATIONS
+        .iter()
+        .zip(&drawn.populations)
+        .map(|(name, got)| (*name, got.clone(), list(&want[name])))
+        .chain([("stumps", drawn.stumps.clone(), list(&want["stumps"]))])
+        .filter(|(_, got, wanted)| got != wanted)
+        .map(|(name, got, wanted)| {
+            format!(
+                "{plate} scenery {name}: {} against {} ({got:?} against {wanted:?})",
+                total(&got),
+                total(&wanted)
+            )
+        })
         .collect()
 }
 

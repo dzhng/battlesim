@@ -641,7 +641,7 @@ The spec said phase 3 would be planned with the user. Under the implementation g
 | `Appearance.pad` becomes `draws`, which says which scenery shader draws a row (0 a model or kit module). A felled tree is two `Instance` records | The scenery shaders read the 64-byte `Instance` with no second record type; a fall needs more than 16 floats | Agent |
 | The ground lives on `Presentation`; the `Ground` wasm class is deleted, and generic names take a `ground_` prefix | One owner per map (coordinator brief); the frame's scenery walk needs the ground the page's tables come from | Agent |
 | Felled trees come from the publication's fallen bodies inside Rust. The cleared ground is still handed in (`set_cleared`) | The lab can hide the learned ground (`scarsSuppressed`), and a scene with no battle has none; reading `learned()` directly would lose both | Agent |
-| `set_ground` sets the scars' reach itself, and the page's `set_scar_reach` is deleted. Rust keeps it for native's own ground | The reach is the ground's fact; native has not moved its ground onto `Presentation` yet | Agent |
+| `set_ground` sets the scars' reach itself, and the page's `set_scar_reach` is deleted. Rust keeps it for native's own ground | The reach is the ground's fact; native has not moved its ground onto `Presentation` yet | Agent; closed by slice 25 step 5b (native sets its ground on `Presentation`, and `set_scar_reach` is deleted) |
 | The felled angle is accepted at one ulp from the TS on 51 of 1,422 trees | The step 3 `libm` decision; it is invisible on screen | Agent |
 
 ### Slice 20b: the static world in Rust, step 5 (the props)
@@ -658,3 +658,13 @@ The spec said phase 3 would be planned with the user. Under the implementation g
 | The props are bucketed in 64 m chunks, each the box of its models' tested spheres, as the TypeScript did; a list is written when it changes | Market-town's 54,000 models walk every camera move; the chunks make a close view cost its neighbourhood | Agent |
 | The manifest's `props` keeps only `buildings`; the map's prop table and the fit's tables are deleted, and plates count props per tier | Native runs the presentation crate and reads nothing else of them | Agent |
 | The static chunk owner (`frame/staticChunks.ts`) is deleted with its last population, and the models layer's unused sun-shadow input with it | Nothing walks chunks in TypeScript any more | Agent |
+### Slice 25, step 5b: the scenery on native, the ground on `Presentation`
+
+| Decision | Why | Closed by |
+| --- | --- | --- |
+| `place_scenery` takes each kind's finest mesh, and Rust reads the size, trunk and crown off it; the stump mesh is Rust's (`stump_mesh`) | Native needed the same facts and stump. One owner, in Rust, instead of a second port; equal to the deleted TS bit for bit | Agent |
+| A tree is a biome `trees.species` kind | Rust has no catalog; it agrees with the catalog's `tree` on every kind | Agent |
+| The page places scenery from the world layers' scenery art, passed with the ground | Since 20b step 4 the battle handed its presentation only the models' pruned art, and no battle drew scenery | Agent |
+| Native's scenery draws runs from the frame's instance buffer, not per-key buffers | The replay resends statics on each drawn frame; a live client needs per-key buffers, as for the buildings | Agent |
+| The replay forwards the learned ground's cleared cells to `set_cleared`, as the page does | 20b step 4 kept `set_cleared` as an input; folding it into `Presentation` is open | Agent |
+

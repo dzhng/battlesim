@@ -409,6 +409,8 @@ pub struct SceneryWalk {
     quality: Quality,
     /// Per `DRAWS` and kind: the `World.appearances` row.
     pub rows: Vec<Vec<u32>>,
+    /// Per kind: a tree's stump mesh (`kinds::stump_mesh`).
+    pub stump_meshes: Vec<Option<Vec<f32>>>,
 }
 
 impl SceneryWalk {
@@ -466,6 +468,7 @@ impl SceneryWalk {
             cleared: Cleared::default(),
             quality: Quality::default(),
             rows: vec![],
+            stump_meshes: vec![],
             scenery,
             sizes,
             trunks,

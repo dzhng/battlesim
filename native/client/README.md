@@ -23,21 +23,32 @@ It runs the browser's own shaders and passes over the [presentation crate](../..
   each `Frame` batch is one run of instances over one row's tier. A corpse is
   its body posed once by the presentation crate's rest palette; so is a body
   at the impostor tier (its far pose), since impostor cards are not baked yet.
-- **The ground** is the presentation crate's, resolved from the saved map
-  by the simulation's own world code (`static_world::files::ground`): the
+- **The ground** is the presentation's (`Presentation::set_ground`), from
+  the saved map as the simulation's own world code exports it
+  (`static_world::files::ground`, what the page reads from `WorldView`): the
   terrain's tables, its meshes (terrain, skirt, backdrop, water), the grass's
   tables and blade shapes, and the side's learned scars. The client uploads
   them and draws the terrain into the depth prepass, the cascades and the lit
   world. The grass grows on the GPU over the window the crate fits to each
   view, through the exported build, finish and indirect draw.
+- **The scenery** (trees, the tree lines' shrubs, the scenery past the map,
+  the forest floor's dressing, felled trees and their stumps) is the frame's
+  static batches. The replay places it from each kind's finest mesh
+  (`place_scenery`), packed as the browser packs it; the presentation walks
+  it and cuts each felled tree's stump (`stump_mesh`). Each row's batches
+  draw through the browser's scenery pipelines, routed by
+  `Appearance.draws`, into the depth prepass, the lit world and, for what the
+  walk lists as casters, the cascades. Like the page, the replay hands back
+  the ground the side has seen cleared (`set_cleared`).
 - **Sun shadows** are four cascades the presentation crate fits to each
   frame's camera over the map's box (`presentation::shadow`): the receiver
   block and each cascade's caster camera are records the client uploads. The
   ground, the models and the buildings cast into them, a unit one tier
   coarser than it draws and never as a card.
-- **Buildings** are the frame's static batches: the map's buildings placed
-  from the template art, in the state the side knows. A replay frames only the
-  plates it draws, so it asks for every static batch on those frames.
+- **Buildings** are the frame's static batches too: the map's buildings
+  placed from the template art, in the state the side knows. A replay frames
+  only the plates it draws, so it asks for every static batch on those
+  frames.
 - **Effects** are the frame's effect instances (`Presentation::effects`),
   drawn into the resolved lit world over the browser's own flipbook sheets
   (`assets/third-party/effects`, Git LFS), and the cast lights the

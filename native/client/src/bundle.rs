@@ -84,7 +84,10 @@ pub enum Coverage {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Material {
-    pub base_color: [f32; 4],
+    pub name: String,
+    /// As authored (`f64`): the scenery multiplies it into its vertices
+    /// before narrowing, as the browser does.
+    pub base_color: [f64; 4],
     pub metallic: f32,
     pub roughness: f32,
     pub tint: f32,

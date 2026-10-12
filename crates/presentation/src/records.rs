@@ -151,8 +151,8 @@ records! {
         /// dressing (its seed is its height over the size it fades at), 5 a
         /// felled tree (two records an instance: the tree with its fall's
         /// way, angle and hinge; then its press up-and-down and across,
-        /// trunk, landing and crown base), 6 a felled tree's stump (the
-        /// renderer cuts it from the tree); a prop drawn as a model with the
+        /// trunk, landing and crown base), 6 a felled tree's stump
+        /// (`Presentation::stump_mesh`); a prop drawn as a model with the
         /// units, 7 fogged face by face, 8 a surface movers stand on, which
         /// takes the ground paint.
         draws: u32,

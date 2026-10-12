@@ -60,6 +60,7 @@ import {
   poseWorlds,
   posedMesh,
 } from "@packages/scene-assets/src/pose";
+import type { Mesh } from "../mesh";
 import { typegpuCameraLayout } from "../world/camera";
 import type { EnvironmentFrame } from "../frame/environmentFrame";
 import { fogCoverage, groundPaint, paintedAlbedo, paintedSeen, paintGlow } from "../frame/fogTerm";
@@ -190,6 +191,8 @@ export interface WorldAppearance {
   /** What draws it (`Appearance.draws`): 0 a model or a building's kit
    *  module; a prop (`PROP`, `PROP_GROUND`); the scenery layer's otherwise. */
   draws: number;
+  /** A felled tree's stump row's mesh (`Presentation::stump_mesh`). */
+  stump?: Mesh;
 }
 
 /** A prop's row (`Appearance.draws`): fogged face by face, or a surface

@@ -6,7 +6,7 @@
 //! effects' instances); then each pass reads the frame's `View`, the sized
 //! targets and the layers, and encodes its work. The list is the whole frame.
 use presentation::light::LightSettings;
-use presentation::presentation::{Frame, Presentation};
+use presentation::presentation::Presentation;
 use presentation::records::View;
 use presentation::shadow::sun_shadow;
 use presentation::view::Camera;
@@ -17,6 +17,7 @@ use crate::environment::{view_proj, Environment};
 use crate::grass::Grass;
 use crate::ground::Ground;
 use crate::models::Models;
+use crate::scenery::Scenery;
 use crate::shadow::SunShadow;
 
 /// The lit world before post.
@@ -115,6 +116,7 @@ pub struct Inputs<'a> {
     pub ground: &'a Ground,
     pub grass: &'a Grass,
     pub models: &'a Models,
+    pub scenery: &'a Scenery,
     pub effects: &'a Effects,
 }
 
@@ -132,28 +134,39 @@ pub struct Passes {
     pub ground: Ground,
     pub grass: Grass,
     pub models: Models,
+    pub scenery: Scenery,
     pub effects: Effects,
     pub passes: Vec<Box<dyn Pass>>,
 }
 
 impl Passes {
-    /// Prepares the layers for `frame`, framed from `camera`; the haze is
-    /// measured from the camera's target.
-    pub fn prepare(&mut self, device: &Device, queue: &Queue, frame: &Frame, camera: &Camera) {
+    /// Prepares the layers for `presentation`'s last frame, framed from
+    /// `camera`; the haze is measured from the camera's target.
+    pub fn prepare(
+        &mut self,
+        device: &Device,
+        queue: &Queue,
+        presentation: &Presentation,
+        camera: &Camera,
+    ) {
+        let frame = presentation.last_frame();
         self.environment
             .prepare(queue, &frame.view, camera.target, frame.clock as f32);
         let fit = sun_shadow(&self.light, camera, self.ground.map_box.as_ref());
         self.shadow.prepare(queue, &fit);
         let height = f64::from(camera.size[1].max(1));
-        self.grass.prepare(
-            queue,
-            &self.ground.map.ground,
-            &view_proj(&frame.view),
-            camera.eye,
-            camera.fov_y,
-            height,
-        );
+        if let Some(ground) = presentation.ground() {
+            self.grass.prepare(
+                queue,
+                ground,
+                &view_proj(&frame.view),
+                camera.eye,
+                camera.fov_y,
+                height,
+            );
+        }
         self.models.prepare(device, queue, frame);
+        self.scenery.prepare(frame);
     }
 
     /// Takes this frame's scars from `presentation`: the grass regrows over
@@ -192,6 +205,7 @@ impl Passes {
             ground: &self.ground,
             grass: &self.grass,
             models: &self.models,
+            scenery: &self.scenery,
             effects: &self.effects,
         };
         for pass in &self.passes {

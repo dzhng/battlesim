@@ -24,11 +24,11 @@ fn heights(positions: &[f32]) -> (f32, f32) {
 
 #[test]
 fn a_corpse_lies_on_the_ground() {
-    let replay = Replay::open(Path::new(RUN), Path::new(GAME)).unwrap();
+    let library = Library::open(Path::new(RUNTIME)).unwrap();
+    let replay = Replay::open(Path::new(RUN), Path::new(GAME), &library).unwrap();
     let presentation = replay.presentation();
     let world = presentation.world();
     let text = |at: u32, len: u32| &world.strings[at as usize..(at + len) as usize];
-    let library = Library::open(Path::new(RUNTIME)).unwrap();
     let mut checked = 0;
     for (row, a) in world.appearances.iter().enumerate() {
         if a.lies == NONE || text(a.name, a.name_len) != "rifle_squad_active_a" {
@@ -53,7 +53,8 @@ fn a_corpse_lies_on_the_ground() {
 /// its far pose, standing, not in the bind pose the raw mesh holds.
 #[test]
 fn a_far_body_stands_in_its_far_pose() {
-    let replay = Replay::open(Path::new(RUN), Path::new(GAME)).unwrap();
+    let library = Library::open(Path::new(RUNTIME)).unwrap();
+    let replay = Replay::open(Path::new(RUN), Path::new(GAME), &library).unwrap();
     let presentation = replay.presentation();
     let world = presentation.world();
     let row = world
@@ -65,7 +66,6 @@ fn a_far_body_stands_in_its_far_pose() {
                     == "rifle_squad_active_a"
         })
         .expect("a rifleman's body row");
-    let library = Library::open(Path::new(RUNTIME)).unwrap();
     let bundle = library.bundle("rifle_squad_active_a").unwrap();
     let Shape::Skinned(tiers) = &bundle.shape else {
         panic!("a soldier is skinned")

@@ -370,7 +370,7 @@ fn material_rows(m: &Material, layer: &mut dyn FnMut(&str) -> f32) -> [f32; MATE
         _ => 0.0,
     };
     let w = m.wear.unwrap_or([0.0, 0.0, 0.0, 1.0]);
-    let b = m.base_color;
+    let b = m.base_color.map(|c| c as f32);
     [
         b[0],
         b[1],
@@ -487,6 +487,11 @@ impl Models {
         let mut layers = Layers::default();
         let mut rows = Vec::new();
         for (r, a) in world.appearances.iter().enumerate() {
+            // The scenery's rows are the scenery layer's (`scenery.rs`).
+            if a.draws != 0 {
+                rows.push(None);
+                continue;
+            }
             let (name, state) = (text(a.name, a.name_len), text(a.state, a.state_len));
             if !bundles.contains_key(name) {
                 let bundle = library.bundle(name)?;
@@ -702,12 +707,12 @@ impl Models {
         self.runs.clear();
         self.drawn = Drawn::default();
         for b in &frame.batches {
-            if b.first != NONE && b.pass != CAST_PASS {
-                self.drawn.listed += b.count;
-            }
             let Some(Some(row)) = self.rows.get(b.appearance as usize) else {
                 continue;
             };
+            if b.first != NONE && b.pass != CAST_PASS {
+                self.drawn.listed += b.count;
+            }
             if b.first == NONE || b.count == 0 {
                 continue;
             }
@@ -746,6 +751,11 @@ impl Models {
             d.impostors += if impostor { b.count } else { 0 };
             d.triangles += u64::from(b.count * drawable.count / 3);
         }
+    }
+
+    /// The frame's instances: the scenery draws its batches' runs from them.
+    pub fn instances(&self) -> &Buffer {
+        &self.instances
     }
 
     /// What the last prepared frame draws.

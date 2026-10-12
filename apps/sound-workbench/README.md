@@ -54,7 +54,9 @@ a verdict names the served bytes it judged, so a regenerated take reads as unrev
 again. A generation always names its sets, so a click never spends on the whole library.
 A voice without a saved voice offers its design candidates, played through the set's
 profile; Pick runs the tool's `pick`, and None of these bumps the voice's design
-retake and designs again.
+retake and designs again. A picked voice still lists its candidates, the one in use
+marked: Use this runs `pick --replace`, then makes that voice's takes again and
+rebuilds the set's pack. The new takes stay out of the pack until reviewed.
 
 The Music tab plays the score through the battle's own music player and music
 director. Its mood switch drives the director on a clock the tab owns, so the

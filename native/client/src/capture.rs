@@ -1,8 +1,9 @@
 //! A browser parity run's scene, replayed through the presentation crate as
-//! 18b's capture replay does: the battle's world loaded once, then for each
-//! frame record in order, every publication up to its tick pushed and
-//! `frame()` asked at its sim time and camera. Every record is framed, since
-//! poses and effects carry state from frame to frame.
+//! 18b's capture replay does: the map's ground set and its scenery placed,
+//! the battle's world loaded once, then for each frame record in order,
+//! every publication up to its tick pushed and `frame()` asked at its sim
+//! time and camera. Every record is framed, since poses, effects and the
+//! scenery's walk carry state from frame to frame.
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -11,11 +12,15 @@ use presentation::light::LightSettings;
 use presentation::presentation::{Frame, Presentation, Ui};
 use presentation::records::FogLook;
 use presentation::static_world::files;
+use presentation::static_world::ground::walk::Cleared;
 use presentation::units::drawn::ClipTables;
 use presentation::view::Camera;
 use presentation::world::{Appearance, WorldInput};
 use serde::Deserialize;
 use serde_json::{json, Value};
+
+use crate::bundle::Library;
+use crate::scenery::tier_mesh;
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -76,6 +81,14 @@ pub struct Replay {
     pub model_counts: Vec<Value>,
     /// The browser's effect counts by plate (`effectCounts`).
     pub effect_counts: Vec<Value>,
+    /// The building modules, scenery and known props the browser drew by
+    /// plate (`instanceCounts`).
+    pub instance_counts: Vec<Value>,
+    /// The map's terrain triangles, as the simulation exports them:
+    /// vertices (x, y, z), then indices.
+    pub terrain: (Vec<f32>, Vec<u32>),
+    /// The cleared cells the scenery last followed.
+    cleared: usize,
     samples: Vec<Sample>,
     pushed: usize,
     lens: Lens,
@@ -89,8 +102,9 @@ fn read_json<T: for<'a> Deserialize<'a>>(path: &Path) -> Result<T, String> {
 
 impl Replay {
     /// Loads scene `dir` of a parity run; `game` is the rules fixture, for
-    /// the soldier's body and the aircraft's cruise height.
-    pub fn open(dir: &Path, game_path: &Path) -> Result<Self, String> {
+    /// the soldier's body and the aircraft's cruise height. The scenery is
+    /// placed from `library`'s bundles.
+    pub fn open(dir: &Path, game_path: &Path, library: &Library) -> Result<Self, String> {
         let capture: CaptureFile = read_json(&dir.join("capture.json"))?;
         if capture.schema != "battle-presentation-capture" {
             return Err(format!("capture schema {}", capture.schema));
@@ -157,6 +171,18 @@ impl Replay {
             .and_then(Path::parent)
             .ok_or("no repository root")?;
         let (buildings, _) = files::placed_buildings(root, &map, staged.parts, staged.shells)?;
+        // The ground, and its scenery placed from each kind's finest mesh.
+        let ground = files::ground(root, &map)?;
+        presentation.set_ground(ground.source, ground.biome, ground.tuning)?;
+        let kinds = presentation
+            .ground()
+            .map_or_else(Vec::new, |g| g.scenery_kinds());
+        let finest = kinds
+            .iter()
+            .map(|name| tier_mesh(name, &library.bundle(name)?, 0))
+            .collect::<Result<Vec<_>, String>>()?;
+        let finest: Vec<&[f32]> = finest.iter().map(Vec::as_slice).collect();
+        presentation.place_scenery(&finest)?;
         presentation.load_world(input, tables, Some(buildings))?;
         Ok(Self {
             dir: dir.to_owned(),
@@ -172,6 +198,12 @@ impl Replay {
                 .as_array()
                 .cloned()
                 .unwrap_or_default(),
+            instance_counts: manifest["instanceCounts"]
+                .as_array()
+                .cloned()
+                .unwrap_or_default(),
+            terrain: (ground.positions, ground.indices),
+            cleared: 0,
             samples: capture.samples,
             pushed: 0,
             lens,
@@ -208,7 +240,8 @@ impl Replay {
     /// Frames `record`: pushes the publications up to its tick, `heard`
     /// after each, then asks for its frame. A frame that is `drawn` lists
     /// every static batch, as a renderer that drew the frames between would
-    /// hold them.
+    /// hold them. Then, as the page does, the scenery follows the ground the
+    /// side has seen cleared, from the next frame on.
     pub fn frame(
         &mut self,
         record: &Record,
@@ -229,6 +262,15 @@ impl Replay {
         }
         let camera = self.camera(record);
         self.presentation
-            .frame(record.sim_time, &camera, &Ui::default())
+            .frame(record.sim_time, &camera, &Ui::default())?;
+        if let Some(learned) = self.presentation.learned() {
+            if learned.cleared_count() != self.cleared {
+                self.cleared = learned.cleared_count();
+                let runs = learned.cleared_runs();
+                let cleared = Cleared::from_runs(&runs, learned.cols, learned.rows, learned.cell_m);
+                self.presentation.set_cleared(cleared);
+            }
+        }
+        Ok(self.presentation.last_frame())
     }
 }
