@@ -3,7 +3,11 @@
 // line whose take isn't loaded is simply not there, and one set's failure
 // never silences another.
 import { expect, test } from "vitest";
-import { VoiceBank, type BankListener } from "@packages/battle-audio/src/voices/voiceBank";
+import {
+  TAKES_IN_FLIGHT,
+  VoiceBank,
+  type BankListener,
+} from "@packages/battle-audio/src/voices/voiceBank";
 import {
   packUrl,
   voicePack,
@@ -127,6 +131,28 @@ test("loading runs in the background; a take is there only once its audio is dec
   // Not in the pack: never fetched, never there.
   expect(bank.line("tank/lead/move/steady", 1)).toBeNull();
   expect(asked.filter((url) => url.endsWith(".mp3"))).toHaveLength(2);
+});
+
+test("a battle's takes download a few at a time, and all of them arrive", async () => {
+  // A skirmish asks for thousands of takes; a browser refuses requests past a
+  // few hundred outstanding, the battle's own downloads with them.
+  const every = voicePack(CATALOG, "tank", () => ({ sha256: SHA, duration_s: 1.5 }));
+  const { asked, fetcher, flush } = server({ tank: every });
+  const bank = new VoiceBank(context, fetcher);
+  const loaded = bank.load(["tank"]);
+  let answered = 0;
+  let peak = 0;
+  while (answered < every.takes.length) {
+    await flush(1);
+    const takes = asked.filter((url) => url.endsWith(".mp3")).length;
+    peak = Math.max(peak, takes - answered);
+    answered = takes;
+  }
+  await flush();
+  await loaded;
+  expect(every.takes.length).toBeGreaterThan(TAKES_IN_FLIGHT * 4);
+  expect(peak).toBeLessThanOrEqual(TAKES_IN_FLIGHT);
+  expect(bank.loaded()).toHaveLength(every.takes.length);
 });
 
 test("a set without a pack stays silent and the others still load", async () => {

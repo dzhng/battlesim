@@ -11,6 +11,11 @@ import { packUrl } from "./voiceCatalog";
 const key = (set: string, voice: string, trigger: Trigger, intensity: Intensity, take: number) =>
   `${set}/${voice}/${trigger}/${intensity}/${take}`;
 
+/** Takes fetched and decoded at once. A skirmish asks for thousands, and a
+ *  browser refuses requests past a few hundred outstanding
+ *  (`ERR_INSUFFICIENT_RESOURCES`), the battle's own downloads with them. */
+export const TAKES_IN_FLIGHT = 8;
+
 /** Where a set's pack comes from; the battle reads the served `pack.json`. */
 export type PackSource = (set: string, signal: AbortSignal) => Promise<VoicePack>;
 
@@ -43,6 +48,9 @@ export class VoiceBank {
   private readonly controller = new AbortController();
   /** Sets, or takes, that failed to load, with why. They stay silent. */
   readonly errors = new Map<string, string>();
+  /** Free download slots, and the takes waiting for one in the order asked. */
+  private free = TAKES_IN_FLIGHT;
+  private readonly waiting: (() => void)[] = [];
 
   constructor(
     private readonly context: BaseAudioContext,
@@ -122,9 +130,19 @@ export class VoiceBank {
       // Called unbound: a browser's fetch refuses any other receiver.
       const fetcher = this.fetcher;
       decoded = (async () => {
-        const response = await fetcher(url, { signal });
-        if (!response.ok) throw new Error(`${url}: HTTP ${response.status}`);
-        return this.context.decodeAudioData(await response.arrayBuffer());
+        if (this.free > 0) this.free--;
+        else await new Promise<void>((resolve) => this.waiting.push(resolve));
+        try {
+          signal.throwIfAborted();
+          const response = await fetcher(url, { signal });
+          if (!response.ok) throw new Error(`${url}: HTTP ${response.status}`);
+          return await this.context.decodeAudioData(await response.arrayBuffer());
+        } finally {
+          // A finished take hands its slot straight to the next waiting one.
+          const next = this.waiting.shift();
+          if (next) next();
+          else this.free++;
+        }
       })();
       decoded.catch(() => this.decoded.delete(url));
       this.decoded.set(url, decoded);
