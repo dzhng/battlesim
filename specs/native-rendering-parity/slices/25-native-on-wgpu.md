@@ -768,7 +768,8 @@ Net lines deleted, by language (generated `Cargo.lock` −129 apart):
 | Godot shaders (`.gdshader`, `.gdshaderinc`, the pose `.compute`) | 2,105 |
 | Rust (the binding, the probe and the two calls; +8 −1,340) | 1,332 |
 | Markdown (Godot's and the binding's READMEs, docs) | 560 |
-| Shell, Python, scenes, project and export files | 211 |
+| Shell, Python, and the Godot project, scene and export files | 201 |
+| TOML (the binding's manifest, the workspace) | 16 |
 | JavaScript and TypeScript (`fps-compare`'s Godot reader; the trace test grew in formatting) | 3 |
 
 Fixtures: about 0.6 MB of Godot-only vectors and run artifacts deleted.
