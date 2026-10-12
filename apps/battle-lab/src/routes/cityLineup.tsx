@@ -21,7 +21,7 @@
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import { useCallback, useMemo, useRef, useState } from "react";
 import catalogue from "@fixtures/prototype-building-templates.json";
-import type { SideBuildings } from "@packages/battle-renderer/src/models/buildingReferences";
+import type { SceneBuildings } from "@packages/battle-renderer/src/models/buildingReferences";
 import { apartKinds, buildWorldLayers } from "@packages/battle-renderer/src/worldMesh";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { CameraController, type CameraPose } from "@packages/renderer-core/src/cameraController";
@@ -37,7 +37,7 @@ import {
   cameraToFit,
   lineUp,
   lineupBuildings,
-  lineupFallen,
+  lineupKnown,
   lineupIn,
   poseAtRange,
   type Lineup,
@@ -263,11 +263,13 @@ function Rows({
       ),
     [lineup, solo, state, library],
   );
-  const buildings = useMemo<SideBuildings>(
-    () => ({ placed: lineupBuildings(shown), fallen: lineupFallen(shown, state) }),
+  // No battle publishes here: the line-up stands in for what a side that saw
+  // every one destroyed would know.
+  const buildings = useMemo<SceneBuildings>(
+    () => ({ placed: lineupBuildings(shown), ...lineupKnown(shown, state) }),
     [shown, state],
   );
-  const buildingsFeed = useFeed<SideBuildings | null>(buildings);
+  const buildingsFeed = useFeed<SceneBuildings | null>(buildings);
 
   // The tier every building is drawn at (null: by distance).
   const { tier, style, drawAt } = useBuildingTier(query.tier);

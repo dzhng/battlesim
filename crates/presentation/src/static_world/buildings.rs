@@ -16,11 +16,15 @@ const COARSEST: usize = TIERS - 1;
 
 /// A map's buildings and the art they are drawn from, as `load_world` takes
 /// them: the template library, every library module's mesh bounds (`None`:
-/// its kit is not installed) and the placed buildings.
+/// its kit is not installed), the placed buildings, and what a side's
+/// knowledge reads of them (`fallen.rs`): each part prop with its building,
+/// and the prop kinds a gutted building's parts become.
 pub struct PlacedBuildings {
     pub library: Library,
     pub bounds: Vec<Option<Bounds>>,
     pub placed: Vec<Placed>,
+    pub parts: Vec<(u32, usize)>,
+    pub shells: Vec<String>,
 }
 
 /// A building as the map places it: its owner prop, its template and the
@@ -278,6 +282,11 @@ impl Buildings {
                 chunk,
             });
         }
+    }
+
+    /// Building `b`'s template id.
+    pub fn template(&self, b: usize) -> &str {
+        &self.placed[b].template
     }
 
     pub fn len(&self) -> usize {

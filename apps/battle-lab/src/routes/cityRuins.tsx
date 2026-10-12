@@ -7,9 +7,10 @@
 // until its scripted walk takes it round the slabs.
 //
 // A building is drawn in the state the observed side was published of it
-// (`fallenBuildings`): its template's ruin, its gutted shell, or intact. The
-// camera's obstacles, the fog's occluders and the smoke over what is
-// destroyed follow the same knowledge.
+// (the presentation reads it from the battle's publications:
+// `static_world/fallen.rs`): its template's ruin, its gutted shell, or
+// intact. The camera's obstacles, the fog's occluders and the smoke over what
+// is destroyed follow the same knowledge.
 import { useEffect, useMemo, useState } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { CameraController } from "@packages/renderer-core/src/cameraController";
@@ -88,6 +89,7 @@ function Shelling({ battle }: { battle: SavedBattle }) {
         obstacles={session.cameraObstaclesFeed}
         fog={session.fogFeed}
         frame={session.frame}
+        presentation={session.presentation}
         appearances={session.appearances}
         initialCamera={OPENING}
         cameraConfig={cameraConfig}

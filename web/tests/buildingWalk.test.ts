@@ -1,9 +1,9 @@
 // @vitest-environment node
 // Buildings drawn from template art through the presentation's static
 // batches: a map's references, the rows a view draws of them at each tier,
-// the pool's residency as the camera moves, the state a side knows a
-// building in from what it was published, and what changes when it sees one
-// destroyed.
+// the pool's residency as the camera moves, and what changes when the side
+// sees one destroyed (the rule that reads its state from the known props is
+// `static_world/fallen.rs`'s, tested there).
 import { expect, test } from "vitest";
 import { loadPresentation } from "@web/battle/sim/presentation";
 import { color } from "math/color";
@@ -19,14 +19,13 @@ import {
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import {
   artCovers,
-  fallenBuildings,
   indexBuildings,
   validateBuildingStyle,
   type BuildingArt,
   type BuildingStyle,
   type PlacedBuildings,
 } from "@packages/battle-renderer/src/models/buildingReferences";
-import type { KnownProp, MapProp } from "@packages/battle-renderer/src/models/propAppearance";
+import type { MapProp } from "@packages/battle-renderer/src/models/propAppearance";
 import type { PublicBuildings } from "@packages/battle-renderer/src/worldMesh";
 import {
   presentBuildings,
@@ -180,14 +179,30 @@ const view = (x: number, y: number, distance: number): Camera3DParams => ({
  *  received about 2,600 m out. */
 const SUN: PresentedSun = { azimuth: Math.PI, elevation: Math.PI / 4, farM: 2000 };
 
+/** The prop types a gutted building's parts become, as the catalog names them. */
+const SHELLS: ReadonlySet<string> = new Set(["burnt_shell"]);
+
 /** The buildings `placed` presented from `ART` (or `art`), casting under
- *  `sun` (null: no shadows). */
+ *  `sun` (null: no shadows); each building one part, its owner prop. */
 const walkOf = (
   placed: PlacedBuildings,
   style = STYLE,
   art = ART,
   sun: PresentedSun | null = SUN,
-) => presentBuildings(placed, art, style, sun ?? undefined);
+) =>
+  presentBuildings(placed, art, style, sun ?? undefined, {
+    partBuilding: new Map(Array.from(placed.owners, (owner, b) => [owner, b])),
+    shells: SHELLS,
+  });
+
+/** What a side that saw building `b` (owner `100 + b`, as `placedOf` numbers
+ *  them) destroyed into `state` was published: its part's place taken by a
+ *  burnt shell or by remains. */
+const seen = (b: number, state: "ruin" | "gutted") => ({
+  authoredProp: 100 + b,
+  kind: state === "gutted" ? "burnt_shell" : "ruin",
+  destroyed: false,
+});
 type Walk = ReturnType<typeof walkOf>;
 
 /** Frames `camera` at 1080 pixels; true when what is drawn or cast changed. */
@@ -417,83 +432,6 @@ test("a map needs only the kits its own templates draw from, in every state", ()
   expect(tally(walk.drawn())).toEqual([`${BOX}@0`]);
 });
 
-/** The prop types a gutted building's parts become, as the catalog names them. */
-const SHELLS = new Set(["burnt_shell"]);
-
-test("a building's state is what the side was published of it: remains are a ruin, a standing shell is gutted, nothing seen is intact", () => {
-  // A house of two parts, a tower, and a shed as low as the least remains.
-  const buildings: PublicBuildings = {
-    catalogueHash: "h",
-    regionalFamily: "family",
-    buildings: (
-      [
-        ["house", 0, [0, 1]],
-        ["tower", 10, [10]],
-        ["house", 20, [20]],
-      ] as const
-    ).map(([templateId, owner, props], i) => ({
-      owner,
-      kind: "building",
-      templateId,
-      category: "detached_home",
-      regionalFamily: "china",
-      frame: { translation: [1000 + 40 * i, 2000, 0] as [number, number, number], yaw: 0 },
-      parts: props.map((prop, k) => ({ part: `p${k}`, prop })),
-    })),
-  };
-  const props = [
-    part(0, 1000, 2000, [5, 4, 3]),
-    part(1, 1004, 2004, [2, 2, 3]),
-    part(10, 1040, 2000, [5, 4, 30]),
-    part(20, 1080, 2000, [3, 3, 1]),
-  ];
-  const index = indexBuildings(buildings, props);
-  const seen = (known: KnownProp[]) => fallenBuildings(index, known, SHELLS);
-  const replacing = (prop: MapProp, kind: string, halfZ: number): KnownProp => ({
-    ...prop,
-    kind,
-    half: [prop.half[0], prop.half[1], halfZ],
-    authoredProp: prop.id,
-    replaces: prop.id,
-  });
-
-  // Whatever was destroyed that the side did not see: every building intact.
-  expect(seen([])).toEqual([]);
-  // A wreck is no building's.
-  const wreck: KnownProp = { ...props[0], kind: "heavy_wreck", authoredProp: null, replaces: null };
-  expect(seen([wreck])).toEqual([]);
-
-  // The house's parts known as remains: a ruin.
-  const remains = [replacing(props[0], "ruin", 1), replacing(props[1], "ruin", 1)];
-  expect(seen(remains)).toEqual([{ building: 0, state: "ruin" }]);
-  // One known part is the whole building's state: its art is one building's.
-  expect(seen([remains[1]])).toEqual([{ building: 0, state: "ruin" }]);
-  // A part seen destroyed with nothing left is a ruin's too.
-  expect(seen([{ ...remains[0], destroyed: true }])).toEqual([{ building: 0, state: "ruin" }]);
-
-  // The tower's part known as a shell at its full height: gutted.
-  const shell = replacing(props[2], "burnt_shell", 30);
-  expect(seen([shell])).toEqual([{ building: 1, state: "gutted" }]);
-  // The published prop decides, never its height: remains as tall as the
-  // shed they replace (the least a ruin stands) are a ruin, and a shell is
-  // gutted however low.
-  expect(seen([replacing(props[3], "ruin", 1)])).toEqual([{ building: 2, state: "ruin" }]);
-  expect(seen([replacing(props[3], "burnt_shell", 0.5)])).toEqual([
-    { building: 2, state: "gutted" },
-  ]);
-  // Parts known both ways (the simulation ends a building one way): a ruin,
-  // in either order.
-  const mixed = [replacing(props[0], "burnt_shell", 3), remains[1]];
-  expect(seen(mixed)).toEqual([{ building: 0, state: "ruin" }]);
-  expect(seen([...mixed].reverse())).toEqual([{ building: 0, state: "ruin" }]);
-
-  // Each building by its own knowledge, in the map's order.
-  expect(seen([shell, wreck, ...remains])).toEqual([
-    { building: 0, state: "ruin" },
-    { building: 1, state: "gutted" },
-  ]);
-});
-
 test("a building seen to collapse changes only its own records: it leaves the intact rows and draws as its template's ruin", () => {
   const walk = walkOf(
     placedOf([
@@ -516,8 +454,9 @@ test("a building seen to collapse changes only its own records: it leaves the in
       .sort();
   select(walk, near);
   expect(walk.stats().resident).toBe(8);
-  expect(walk.setFallen([{ building: 0, state: "ruin" }])).toEqual([]);
+  walk.know([seen(0, "ruin")]);
   select(walk, near);
+  expect(walk.fallen()).toEqual([{ building: 0, state: "ruin" }]);
   // Its chunk is expanded again without it; the neighbour is still whole.
   expect(walk.stats()).toMatchObject({ expanded: 4, resident: 4 });
   expect(kinds(walk.drawn())).toEqual(
@@ -549,7 +488,7 @@ test("a building seen to collapse changes only its own records: it leaves the in
   expect(kinds(walk.drawn(true))).toEqual(farDrawn);
 
   // The building is known intact again (another side's view): restored.
-  expect(walk.setFallen([])).toEqual([]);
+  walk.know([]);
   select(walk, far);
   expect(kinds(walk.drawn())).toEqual(
     [
@@ -583,7 +522,7 @@ test("a building known gutted is its template's gutted rows at every tier, and n
         burnt: Math.abs(d.tint[0] - burnt[0]) < 1e-5,
         height: d.transform[6],
       }));
-  expect(walk.setFallen([{ building: 0, state: "gutted" }])).toEqual([]);
+  walk.know([seen(0, "gutted")]);
   // Tiers 0, 1, 2 and 3, each from the distance the game changes to it at.
   for (const [distance, tier] of [
     [60, 0],
@@ -620,24 +559,15 @@ test("a destroyed building whose template has no rows for the state is refused b
   select(walk, far);
   const before = walk.drawn();
   // A tower stands gutted: it has no ruin. The dense block has neither. The
-  // walk hands back the buildings it refused, and the layer names them by
-  // their template's missing state.
-  expect(walk.setFallen([{ building: 0, state: "ruin" }])).toEqual([0]);
-  expect(() => templateRows(LIBRARY, placed.templates[placed.template[0]], "ruin")).toThrow(
-    /state\.missing: template "tower".*"ruin"/,
-  );
-  expect(
-    walk.setFallen([
-      { building: 0, state: "gutted" },
-      { building: 1, state: "gutted" },
-    ]),
-  ).toEqual([1]);
-  expect(() => templateRows(LIBRARY, placed.templates[placed.template[1]], "gutted")).toThrow(
-    /state\.missing: template "dense".*"gutted"/,
-  );
-  // The tower is not gutted either: a refused list changes nothing.
+  // frame refuses the building by its template's missing state.
+  walk.know([seen(0, "ruin")]);
+  expect(() => select(walk, far)).toThrow(/state\.missing: template "tower" has no "ruin" rows/);
+  walk.know([seen(0, "gutted"), seen(1, "gutted")]);
+  expect(() => select(walk, far)).toThrow(/state\.missing: template "dense" has no "gutted" rows/);
+  // The tower is not gutted either: a refused knowledge changes nothing.
   select(walk, far);
   expect(walk.drawn()).toEqual(before);
+  expect(walk.fallen()).toEqual([]);
 });
 
 test("identical neighbours differ a little in value, each the same every time", () => {

@@ -205,21 +205,17 @@ export interface BattleFrame {
    *  only what it hides and adds. Lit, graded, shadow-casting and fogged
    *  like the world. */
   setStructures(structures: SideStructures): void;
-  /** The static batches of the page's static presentation frame
-   *  (`crates/presentation`, a `Presentation` no battle publishes into): the
-   *  map's buildings, each a kit module at a tier drawn into the view or cast
+  /** The static batches of the scene's presentation frame
+   *  (`crates/presentation`): the map's buildings, each a kit module at a tier drawn into the view or cast
    *  into the sun's cascades, as Rust walked them for this frame's camera and
    *  what the side knows fell. Lit, shadow-casting and fogged like the world.
-   *  `world` names the batches' drawables by row, and `stats` is what the
-   *  presentation says of its walk. Call every frame before drawing: a frame
-   *  naming its batches unchanged keeps what was uploaded. Read at once: the
-   *  views last only until the next call into the module. Returns whether
-   *  what is drawn changed. Null draws none. */
-  setStaticFrame(
-    frame: ReturnType<typeof frameViews> | null,
-    world: readonly WorldAppearance[],
-    stats: BuildingWalkStats,
-  ): boolean;
+   *  These are the frame's batches of rows marked `placed`
+   *  (`setPresentationWorld`); `stats` is what the presentation says of its
+   *  walk. Call every frame before drawing, with the frame `setFrame` took
+   *  (taken again after any call into the module): a frame naming its static
+   *  batches unchanged keeps what was uploaded. Returns whether what is
+   *  drawn changed. Null draws none. */
+  setStaticFrame(frame: ReturnType<typeof frameViews> | null, stats: BuildingWalkStats): boolean;
   /** The observing side's learned ground (the client's `GroundView`), drawn
    *  as scars on the terrain and grass. Called every animation frame: a new
    *  view is uploaded whole, the same view only where it changed since the
@@ -240,7 +236,8 @@ export interface BattleFrame {
   setPointerMarks(painted: Mesh): void;
   setInstances(instances: readonly SceneInstance[]): void;
   /** This frame's presentation (`crates/presentation`'s `Frame`): the
-   *  units, corpses and ghosts as batches with their palettes, the combat
+   *  units, corpses and ghosts as batches with their palettes (the static
+   *  world's batches are `setStaticFrame`'s), the combat
    *  effects drawn into the lit world before fog and post, and the lights
    *  they cast (every world material and lit smoke). Read at once: the
    *  views last only until the next call into the module. Null draws none. */

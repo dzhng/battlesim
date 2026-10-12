@@ -195,6 +195,9 @@ export interface WorldAppearance {
   name: string;
   state: string;
   lies: number;
+  /** The static world's (`Appearance.placed`): its batches are the
+   *  buildings layer's, written only when they change. */
+  placed: boolean;
 }
 
 /** A batch's pass for a placement preview (`Batch.pass`). */
@@ -1375,9 +1378,10 @@ export async function createModelLayer(
   }
 
   /** The presentation frame's units, corpses, ghosts and moving pieces
-   *  (`crates/presentation`): its palettes and instance records are
-   *  uploaded whole, each batch draws as one run, and a card batch's
-   *  records are kept for the next pack with their atlas layer set. */
+   *  (`crates/presentation`): its palettes and their instance records are
+   *  uploaded, each batch draws as one run, and a card batch's records are
+   *  kept for the next pack with their atlas layer set. The static world's
+   *  batches are the buildings layer's (`setStaticFrame`). */
   function setFrame(frame: ReturnType<typeof frameViews> | null) {
     frameRunCount = 0;
     frameCardCount = 0;
@@ -1402,20 +1406,34 @@ export async function createModelLayer(
     growPalette(palettes.count);
     device.queue.writeBuffer(palette.current!, 0, palettes.f32);
     frameStats.palette = palettes.count;
-    if (instances.count > frameCapacity) {
-      frameCapacity = Math.max(64, instances.count * 2);
+    const words = batches.u32;
+    // The posed records follow the static world's: only theirs are uploaded.
+    let base = instances.count;
+    for (let b = 0; b < batches.count; b++) {
+      const o = b * BATCH_WORDS;
+      const first = words[o + Batch.first];
+      if (first !== NONE && !worldRows[words[o + Batch.appearance]]?.placed)
+        base = Math.min(base, first);
+    }
+    const posed = instances.count - base;
+    if (posed > frameCapacity) {
+      frameCapacity = Math.max(64, posed * 2);
       frameRecords.set(
         buffer("model-frame-records", frameCapacity * RECORD_FLOATS * 4, VERTEX_USAGE),
       );
     }
-    if (instances.count) device.queue.writeBuffer(frameRecords.current!, 0, instances.f32);
-    if (frameCards.length < instances.count * RECORD_FLOATS)
-      frameCards = new Float32Array(instances.count * RECORD_FLOATS);
-    const words = batches.u32;
+    if (posed)
+      device.queue.writeBuffer(
+        frameRecords.current!,
+        0,
+        instances.f32.subarray(base * RECORD_FLOATS) as Float32Array<ArrayBuffer>,
+      );
+    if (frameCards.length < posed * RECORD_FLOATS)
+      frameCards = new Float32Array(posed * RECORD_FLOATS);
     for (let b = 0; b < batches.count; b++) {
       const o = b * BATCH_WORDS;
       const row = worldRows[words[o + Batch.appearance]];
-      const gpu = row && appearances.get(row.name);
+      const gpu = row && !row.placed && appearances.get(row.name);
       const [first, count] = [words[o + Batch.first], words[o + Batch.count]];
       if (!gpu || first === NONE || !count) continue;
       const lying = row.lies === NONE ? null : (gpu.corpses[row.lies] ?? null);
@@ -1458,7 +1476,7 @@ export async function createModelLayer(
       run.drawable = drawable;
       run.ghost = ghost;
       run.fog = fog;
-      run.firstInstance = first;
+      run.firstInstance = first - base;
       run.instances = count;
       frameRunCount++;
       frameStats.instances += count;
@@ -1477,6 +1495,7 @@ export async function createModelLayer(
   /** The drawables the frame's batches name, by `World.appearances` row. */
   function setWorld(world: readonly WorldAppearance[]) {
     worldRows = world;
+    buildings.setWorld(world);
     dirty = true;
   }
 
@@ -1611,14 +1630,10 @@ export async function createModelLayer(
     get models(): readonly ModelInstance[] {
       return units;
     },
-    /** The static batches of the page's static presentation frame
+    /** The static world's batches of the presentation frame
      *  (`buildingLayer.ts`); whether what is drawn changed. */
-    setStaticFrame(
-      frame: ReturnType<typeof frameViews> | null,
-      world: readonly WorldAppearance[],
-      stats: BuildingWalkStats,
-    ): boolean {
-      return buildings.setFrame(frame, world, stats);
+    setStaticFrame(frame: ReturnType<typeof frameViews> | null, stats: BuildingWalkStats): boolean {
+      return buildings.setFrame(frame, stats);
     },
     setBuildingsShown(on: boolean) {
       buildings.setShown(on);

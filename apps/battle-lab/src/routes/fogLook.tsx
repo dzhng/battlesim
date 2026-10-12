@@ -244,6 +244,7 @@ function FogLookLab({ scenario }: { scenario: string }) {
         fogStyle={style}
         light={lightFor(sun, bloom)}
         frame={session.frame}
+        presentation={session.presentation}
         appearances={session.appearances}
         initialCamera={STREET_CAMERA}
         groundAt={surfaceZ}

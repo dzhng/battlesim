@@ -31,12 +31,12 @@ import {
   buildingArt,
   type BuildingArt,
   type BuildingStyle,
-  type FallenBuilding,
+  type KnownPart,
   type PlacedBuildings,
-  type SideBuildings,
+  type SceneBuildings,
 } from "@packages/battle-renderer/src/models/buildingReferences";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
-import { TEMPLATE_STATES, templateRows } from "@packages/scene-assets/src/templateLibrary";
+import { TEMPLATE_STATES, type TemplateState } from "@packages/scene-assets/src/templateLibrary";
 import { countedFetch } from "../../downloads";
 import type { ObservationLayout, ObservationView } from "./observationView";
 
@@ -97,11 +97,14 @@ export interface GhostBody {
 }
 
 /** What the UI decides of a frame: the selection, whether own units hidden
- *  by the world show through it, and the ghosts. */
+ *  by the world show through it, and the ghosts; and a lab's stand-in for
+ *  the publication's known props, where no battle publishes (a switch that
+ *  shows a building destroyed). */
 export interface PresentedUi {
   selected: readonly number[];
   xray: boolean;
   ghosts: readonly GhostBody[];
+  known?: readonly KnownPart[];
 }
 
 export type PresentedFrame = ReturnType<typeof frameViews>;
@@ -124,31 +127,75 @@ export interface PresentationProbe {
     articulation: Articulation;
   }[];
 }
-/** One drawable the frame's batches name, by `World.appearances` row. */
+/** One drawable the frame's batches name, by `World.appearances` row;
+ *  `placed` for the static world's (`Appearance.placed`). */
 export interface PresentedAppearance {
   name: string;
   state: string;
   lies: number;
+  placed: boolean;
 }
 
 const buffer = () => memory!.buffer;
 
-/** A map's buildings as `load_world` takes them: where they stand, and the
- *  template art they are drawn from. */
+/** A map's buildings as `load_world` takes them: where they stand, the
+ *  template art they are drawn from, which building each part prop is, and
+ *  the prop kinds a gutted building's parts become. */
 export interface PresentedBuildings {
   placed: PlacedBuildings;
   art: BuildingArt;
+  partBuilding?: ReadonlyMap<number, number>;
+  shells?: Iterable<string>;
+}
+
+/** What a battle loads into its presentation (`WorldInput`'s battle, as the
+ *  native manifest carries it, with each clip table's floats). */
+export interface PresentedBattle {
+  world: object;
+  tables: ReadonlyMap<string, Float32Array>;
+}
+
+/** The sun the static world casts under: azimuth and elevation (rad), and
+ *  the cascades' far plane (`light.cascades.max_far_m`). */
+export interface PresentedSun {
+  azimuth: number;
+  elevation: number;
+  farM: number;
+}
+
+/** A building a side knows destroyed, and the state it is drawn in. */
+export interface FallenBuilding {
+  building: number;
+  state: Exclude<TemplateState, "intact">;
 }
 
 /** One ordered side-publication stream, and its presentation; or, with no
  * layout, a presentation no battle publishes into (a world of statics).
  * Retained observations are immutable; unchanged fog and static groups
- * share their views. */
+ * share their views.
+ *
+ * A scene has one: what it draws is staged (`setBattle`, `setBuildings`)
+ * and loaded together, in one `load_world`, by the next frame after any of
+ * it changed. */
 export class ObservationDecoder {
   private readonly rust: Presentation;
   private last: ObservationView | null = null;
   /** The last frame's header. */
   private framePtr = 0;
+  private battle: PresentedBattle | null = null;
+  private buildings: SceneBuildings | null = null;
+  private installed: InstalledAppearances | null = null;
+  private art: BuildingArt | null = null;
+  private style: BuildingStyle | null = null;
+  private sun: PresentedSun | null = null;
+  /** Something staged changed since the last load. */
+  private stale = false;
+  /** The drawables of the last load, and those the page has not taken yet. */
+  private rows: readonly PresentedAppearance[] = [];
+  private loaded: PresentedAppearance[] | null = null;
+  /** The last frame wrote the static batches: its walk changed something. */
+  private walked = false;
+  private readonly walk = emptyBuildingWalkStats();
 
   /** `tickHz` paces the interpolation; decoding alone ignores it. */
   constructor(layout?: string | ObservationLayout, tickHz = 30) {
@@ -193,7 +240,7 @@ export class ObservationDecoder {
   ): PresentedAppearance[] {
     for (const [name, floats] of tables) this.rust.add_clip_table(name, floats);
     if (buildings) {
-      const { placed, art } = buildings;
+      const { placed, art, partBuilding = new Map(), shells = [] } = buildings;
       const bounds = new Float32Array(art.bounds.length * 6).fill(Number.NaN);
       art.bounds.forEach((b, m) => b && bounds.set([...b.min, ...b.max], m * 6));
       this.rust.add_buildings(
@@ -203,6 +250,9 @@ export class ObservationDecoder {
         placed.template,
         placed.frames,
         placed.owners,
+        Uint32Array.from(partBuilding.keys()),
+        Uint32Array.from(partBuilding.values()),
+        JSON.stringify([...shells].sort()),
       );
     }
     // The call may grow memory: the views are taken after it.
@@ -211,32 +261,133 @@ export class ObservationDecoder {
     const text = new TextDecoder();
     const rows = views.appearances.u32;
     const name = (at: number, len: number) => text.decode(views.strings.subarray(at, at + len));
-    return Array.from({ length: views.appearances.count }, (_, r) => {
+    return (this.rows = Array.from({ length: views.appearances.count }, (_, r) => {
       const o = r * APPEARANCE_WORDS;
       return {
         name: name(rows[o + Appearance.name], rows[o + Appearance.name_len]),
         state: name(rows[o + Appearance.state], rows[o + Appearance.state_len]),
         lies: rows[o + Appearance.lies],
+        placed: rows[o + Appearance.placed] === 1,
       };
+    }));
+  }
+
+  /** Stage what the battle draws (null: none); loaded with the rest by the
+   *  next frame when it is another. */
+  setBattle(battle: PresentedBattle | null) {
+    if (battle === this.battle) return;
+    this.battle = battle;
+    this.stale = true;
+  }
+
+  /** Stage the scene's buildings (null: none) drawn from `installed`'s
+   *  template art under `style`, casting under `sun`: loaded with the rest
+   *  by the next frame when any of it is another, and once the art covers
+   *  every kit they need. Cheap when nothing changed: call every frame. */
+  setBuildings(
+    buildings: SceneBuildings | null,
+    installed: InstalledAppearances | null,
+    style: BuildingStyle,
+    sun: PresentedSun,
+  ) {
+    if (installed !== this.installed) {
+      this.installed = installed;
+      const next = buildingArt(installed);
+      const art = this.art;
+      const same =
+        art?.library === next?.library &&
+        (next?.bounds ?? []).every((b, i) => (b === null) === (art!.bounds[i] === null));
+      if (!same) [this.art, this.stale] = [next, true];
+    }
+    const last = this.buildings;
+    if (
+      buildings?.placed !== last?.placed ||
+      buildings?.partBuilding !== last?.partBuilding ||
+      buildings?.shells !== last?.shells ||
+      style !== this.style ||
+      sun.azimuth !== this.sun?.azimuth ||
+      sun.elevation !== this.sun?.elevation ||
+      sun.farM !== this.sun?.farM
+    )
+      this.stale = true;
+    [this.buildings, this.style, this.sun] = [buildings, style, sun];
+  }
+
+  /** Load what is staged: the battle and the buildings, in one world. */
+  private load() {
+    this.stale = false;
+    const { battle, buildings, art, style, sun } = this;
+    const drawn =
+      buildings && art && style && buildings.placed.template.length > 0
+        ? artCovers(buildings.placed, art) && buildings
+        : null;
+    if (!battle && !sun) return;
+    const started = performance.now();
+    const lit = sun && {
+      sun_azimuth: sun.azimuth,
+      sun_elevation: sun.elevation,
+      cascade_far_m: sun.farM,
+    };
+    this.loaded = this.loadWorld(
+      { ...battle?.world, ...lit, buildings: drawn ? style : undefined },
+      battle?.tables,
+      drawn
+        ? {
+            placed: drawn.placed,
+            art: art!,
+            partBuilding: drawn.partBuilding,
+            shells: drawn.shells,
+          }
+        : undefined,
+    );
+    Object.assign(this.walk, emptyBuildingWalkStats());
+    this.walk.buildings = drawn ? drawn.placed.template.length : 0;
+    this.walk.pool.capacity = drawn ? style!.pool_records : 0;
+    this.walk.buildMs = performance.now() - started;
+  }
+
+  /** The drawables of the load the last frame made, once; null when it made none. */
+  takeWorld(): PresentedAppearance[] | null {
+    const rows = this.loaded;
+    this.loaded = null;
+    return rows;
+  }
+
+  /** The buildings the side knows destroyed, as the last frame drew them. */
+  fallenBuildings(): FallenBuilding[] {
+    const pairs = this.rust.fallen_buildings();
+    return Array.from({ length: pairs.length / 2 }, (_, i) => ({
+      building: pairs[i * 2],
+      state: TEMPLATE_STATES[pairs[i * 2 + 1]] as FallenBuilding["state"],
+    }));
+  }
+
+  /** The buildings' walk as the last frame left it. Calls into the module:
+   *  take the frame's views again after it (`lastFrame`). */
+  buildingWalk(): BuildingWalkStats {
+    const [chunks, coarse, resident, used, expanded, refused, ruins, ...ruinTiers] =
+      this.rust.building_stats();
+    const walk = this.walk;
+    Object.assign(walk, {
+      chunks: chunks ?? 0,
+      coarse: coarse ?? 0,
+      residentChunks: resident ?? 0,
+      expandedRows: expanded ?? 0,
+      refused: refused ?? 0,
+      ruins: ruins ?? 0,
+      ruinTiers: ruinTiers.length ? ruinTiers : walk.ruinTiers.map(() => 0),
+      fallen: this.rust.fallen_buildings().length / 2,
     });
+    walk.pool.used = used ?? 0;
+    if (this.walked) walk.totalExpandedRows += walk.expandedRows;
+    this.walked = false;
+    return walk;
   }
 
-  /** What the side knows destroyed of the loaded buildings; returns those
-   *  whose template has no rows for their state, and then changes nothing. */
-  setFallen(fallen: readonly FallenBuilding[]): number[] {
-    return [
-      ...this.rust.set_fallen(
-        Uint32Array.from(fallen, (f) => f.building),
-        Uint32Array.from(fallen, (f) => TEMPLATE_STATES.indexOf(f.state)),
-      ),
-    ];
-  }
-
-  /** The buildings' walk as the last frame left it: chunks, coarse rows,
-   *  chunks resident, rows resident, rows expanded, chunks refused room,
-   *  fallen rows, fallen rows drawn per tier. Empty without buildings. */
-  buildingStats(): Uint32Array {
-    return this.rust.building_stats();
+  /** The renderer holds no static batches (a new one): the next frame
+   *  writes every one. */
+  resendStatics() {
+    this.rust.resend_statics();
   }
 
   free() {
@@ -248,10 +399,14 @@ export class ObservationDecoder {
     return this.rust.clock(nowMs / 1000) ?? null;
   }
 
-  /** What to draw at presentation time `time` for `camera`: views over the
-   *  module's memory, valid until the next call into it. */
+  /** What to draw at presentation time `time` for `camera`, loading first
+   *  what was staged: views over the module's memory, valid until the next
+   *  call into it. A building the side knows in a state its template lacks
+   *  throws by name. */
   frame(time: number, camera: PresentedCamera, ui: PresentedUi): PresentedFrame {
+    if (this.stale) this.load();
     const c = camera;
+    const started = performance.now();
     const ptr = this.rust.frame(
       time,
       Float64Array.of(
@@ -272,9 +427,27 @@ export class ObservationDecoder {
       Uint32Array.from(ui.selected),
       ui.xray,
       ui.ghosts.length ? JSON.stringify(ui.ghosts) : "",
+      ui.known
+        ? JSON.stringify(
+            ui.known.map((k) => ({
+              authoredProp: k.authoredProp,
+              kind: k.kind,
+              destroyed: k.destroyed ?? false,
+            })),
+          )
+        : "",
     );
+    this.walk.selectMs = performance.now() - started;
     this.framePtr = ptr;
-    return frameViews(buffer(), ptr);
+    const views = frameViews(buffer(), ptr);
+    const batches = views.batches.u32;
+    this.walked = false;
+    for (let b = 0; b < views.batches.count && !this.walked; b++) {
+      const o = b * BATCH_WORDS;
+      this.walked =
+        batches[o + Batch.first] !== NONE && !!this.rows[batches[o + Batch.appearance]]?.placed;
+    }
+    return views;
   }
 
   /** The last frame's views, taken again after another call into the module. */
@@ -305,135 +478,4 @@ export class ObservationDecoder {
   movingWrecks(): Uint32Array {
     return this.rust.moving_wrecks();
   }
-}
-
-/** A frame of a world no battle publishes into: no time, no units. */
-const NO_UI: PresentedUi = { selected: [], xray: false, ghosts: [] };
-
-/** The page's static world: a presentation no battle publishes into, the
- *  map's buildings loaded into it from their template art and walked in
- *  Rust for each frame's camera. The module must be loaded
- *  (`loadPresentation`). */
-export function createStaticPresentation(sun: {
-  azimuth: number;
-  elevation: number;
-  /** `light.cascades.max_far_m`. */
-  farM: number;
-}) {
-  let presentation: ObservationDecoder | null = null;
-  let world: PresentedAppearance[] = [];
-  let installed: InstalledAppearances | null = null;
-  let art: BuildingArt | null = null;
-  let placed: PlacedBuildings | null = null;
-  let style: BuildingStyle | null = null;
-  let fallen: readonly FallenBuilding[] | null = null;
-  let stale = false;
-  const walk = emptyBuildingWalkStats();
-
-  /** What `side` knows destroyed, into the presentation. A template without
-   *  rows for a building's known state is refused by name. */
-  function setFallen(side: SideBuildings) {
-    fallen = side.fallen;
-    for (const b of presentation!.setFallen(side.fallen))
-      templateRows(
-        art!.library,
-        side.placed.templates[side.placed.template[b]],
-        side.fallen.find((f) => f.building === b)!.state,
-      );
-    walk.fallen = side.fallen.length;
-  }
-
-  function load(side: SideBuildings | null) {
-    presentation?.free();
-    presentation = null;
-    world = [];
-    Object.assign(walk, emptyBuildingWalkStats());
-    if (!art || !side || !style || side.placed.template.length === 0) return;
-    if (!artCovers(side.placed, art)) return;
-    const started = performance.now();
-    const next = new ObservationDecoder();
-    try {
-      world = next.loadWorld(
-        {
-          sun_azimuth: sun.azimuth,
-          sun_elevation: sun.elevation,
-          cascade_far_m: sun.farM,
-          buildings: style,
-        },
-        new Map(),
-        { placed: side.placed, art },
-      );
-    } catch (error) {
-      next.free();
-      throw error;
-    }
-    presentation = next;
-    setFallen(side);
-    walk.buildings = side.placed.template.length;
-    walk.pool.capacity = style.pool_records;
-    walk.buildMs = performance.now() - started;
-  }
-
-  return {
-    /** Draw `side`'s buildings from `nextInstalled`'s template art under
-     *  `nextStyle` (`side` null: none). Cheap when nothing changed: call
-     *  every frame. A new `placed`, style or art loads the buildings again;
-     *  a new `fallen` alone tells the presentation what the side knows. */
-    set(
-      side: SideBuildings | null,
-      nextInstalled: InstalledAppearances | null,
-      nextStyle: BuildingStyle,
-    ) {
-      if (nextInstalled !== installed) {
-        installed = nextInstalled;
-        const next = buildingArt(installed);
-        const same =
-          art?.library === next?.library &&
-          (next?.bounds ?? []).every((b, i) => (b === null) === (art!.bounds[i] === null));
-        if (!same) [art, stale] = [next, true];
-      }
-      if (stale || side?.placed !== placed || nextStyle !== style) {
-        [placed, style, stale] = [side?.placed ?? null, nextStyle, false];
-        load(side);
-      } else if (presentation && side && side.fallen !== fallen) setFallen(side);
-    },
-    /** The static batches for `camera`, the drawables they name and the
-     *  walk's stats; null with no buildings. Views valid until the next call
-     *  into the module. */
-    frame(camera: PresentedCamera): {
-      frame: PresentedFrame;
-      world: readonly PresentedAppearance[];
-      stats: BuildingWalkStats;
-    } | null {
-      if (!presentation) return null;
-      const started = performance.now();
-      presentation.frame(0, camera, NO_UI);
-      walk.selectMs = performance.now() - started;
-      const [chunks, coarse, resident, used, expanded, refused, ruins, ...ruinTiers] =
-        presentation.buildingStats();
-      Object.assign(walk, {
-        chunks,
-        coarse,
-        residentChunks: resident,
-        expandedRows: expanded,
-        refused,
-        ruins,
-        ruinTiers,
-      });
-      walk.pool.used = used;
-      // The stats call may grow memory: the views are taken after it.
-      const views = presentation.lastFrame();
-      const batches = views.batches.u32;
-      for (let b = 0; b < views.batches.count; b++)
-        if (batches[b * BATCH_WORDS + Batch.first] !== NONE) {
-          walk.totalExpandedRows += expanded;
-          break;
-        }
-      return { frame: views, world, stats: walk };
-    },
-    dispose() {
-      presentation?.free();
-      presentation = null;
-    },
-  };
 }

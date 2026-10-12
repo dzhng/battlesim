@@ -1,15 +1,20 @@
-// Buildings as the page's static presentation draws them: a `Presentation`
-// no battle publishes into, its buildings loaded from template art, framed by
-// a lab camera; what each frame's static batches hold, as the renderer keeps
-// them (a frame naming its batches unchanged leaves the last ones drawn).
-import { ObservationDecoder } from "@web/battle/sim/presentation";
+// Buildings as a lab's presentation draws them: a `Presentation` no battle
+// publishes into, its buildings loaded from template art, framed by a lab
+// camera, its side knowing what the lab says it knows (`ui.known`); what each
+// frame's static batches hold, as the renderer keeps them (a frame naming its
+// batches unchanged leaves the last ones drawn).
+import { readFileSync } from "node:fs";
+import { ObservationDecoder, type PresentedSun } from "@web/battle/sim/presentation";
+import { templateLibraryPath, type RuntimeCatalog } from "@packages/scene-assets/src/schema";
+import { decodeTemplateLibrary } from "@packages/scene-assets/src/templateLibrary";
+import { gzipTransport, unpackGzip } from "@packages/scene-assets/src/gzip";
 import { presentedCamera } from "@apps/battle-lab/src/presentedFrame";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import type {
   BuildingArt,
   BuildingStyle,
-  FallenBuilding,
   PlacedBuildings,
+  SceneBuildings,
 } from "@packages/battle-renderer/src/models/buildingReferences";
 import {
   Batch,
@@ -18,12 +23,24 @@ import {
   NONE,
 } from "@packages/battle-renderer/src/records.gen";
 
-/** The sun the buildings cast under: azimuth and elevation (rad), and the
- *  cascades' far plane (m). */
-export interface PresentedSun {
-  azimuth: number;
-  elevation: number;
-  farM: number;
+export type { PresentedSun };
+
+/** The template art that ships (`assets/runtime`), every module's bounds a
+ *  box: which module is drawn is the question, not where its edges are. */
+export async function shippedBuildingArt(): Promise<BuildingArt> {
+  const runtime = (path: string) =>
+    readFileSync(new URL(`../../../assets/runtime/${path}`, import.meta.url));
+  const catalog = JSON.parse(runtime("catalog.json").toString("utf8")) as RuntimeCatalog;
+  const hash = catalog.templates!.library;
+  const gzip = gzipTransport(catalog, hash);
+  const file = new Uint8Array(runtime(templateLibraryPath(gzip.hash)));
+  const bytes = await unpackGzip(file, gzip, hash);
+  const library = decodeTemplateLibrary(bytes);
+  return {
+    library,
+    bytes,
+    bounds: library.modules.map(() => ({ min: [-1, -1, 0], max: [1, 1, 1] })),
+  };
 }
 
 /** One module instance drawn (pass 0) or cast (pass 1). */
@@ -38,12 +55,15 @@ export interface DrawnModule {
 }
 
 /** `placed` drawn from `art` under `style`, casting under `sun` (none: no
- *  shadows). Loading refuses what has no art by name. */
+ *  shadows), each part prop's building and the gutted shells' kinds read
+ *  from `knowledge` (none: nothing ever falls). Loading refuses what has no
+ *  art by name. */
 export function presentBuildings(
   placed: PlacedBuildings,
   art: BuildingArt,
   style: BuildingStyle,
   sun?: PresentedSun,
+  knowledge?: Omit<SceneBuildings, "placed">,
 ) {
   const presentation = new ObservationDecoder();
   const world = presentation.loadWorld(
@@ -54,8 +74,9 @@ export function presentBuildings(
       buildings: style,
     },
     new Map(),
-    { placed, art },
+    { placed, art, partBuilding: knowledge?.partBuilding, shells: knowledge?.shells },
   );
+  let known = knowledge?.known ?? [];
   const { kits, modules } = art.library;
   const moduleOf = world.map(({ name, state }) =>
     modules.findIndex((m) => kits[m.kit].appearance === name && m.module === state),
@@ -70,6 +91,7 @@ export function presentBuildings(
         selected: [],
         xray: false,
         ghosts: [],
+        known,
       });
       const words = f.batches.u32;
       const records = f.instances.f32;
@@ -97,13 +119,24 @@ export function presentBuildings(
     drawn(casters = false): DrawnModule[] {
       return held.filter((d) => d.pass === (casters ? 1 : 0));
     },
-    /** What the side knows destroyed; returns those refused. */
-    setFallen: (fallen: readonly FallenBuilding[]) => presentation.setFallen(fallen),
+    /** What the side knows from the next frame on: the lab's stand-in for
+     *  the publication's known props. */
+    know(next: NonNullable<SceneBuildings["known"]>) {
+      known = next;
+    },
+    /** The buildings the side knows destroyed, as the last frame drew them. */
+    fallen: () => presentation.fallenBuildings(),
     /** The walk's stats, by name. */
     stats() {
-      const [chunks, coarse, residentChunks, resident, expanded, refused] =
-        presentation.buildingStats();
-      return { chunks, coarse, residentChunks, resident, expanded, refused };
+      const w = presentation.buildingWalk();
+      return {
+        chunks: w.chunks,
+        coarse: w.coarse,
+        residentChunks: w.residentChunks,
+        resident: w.pool.used,
+        expanded: w.expandedRows,
+        refused: w.refused,
+      };
     },
     free: () => presentation.free(),
   };

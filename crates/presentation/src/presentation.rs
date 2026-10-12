@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
-use sim::publication::reader::{Observation, Reader};
+use sim::publication::reader::{KnownProp, Observation, Reader, Shared};
 
 use crate::effects::cook_offs::{CookOffs, PlacedModel};
 use crate::effects::frame::{EffectBatch, EffectFrame, EffectPresentation, EFFECT_FLOATS};
@@ -21,6 +21,8 @@ use crate::records::{
 };
 use crate::static_world::batches::{Population, StaticBatches, Sun};
 use crate::static_world::buildings::{Buildings, PlacedBuildings};
+use crate::static_world::fallen::{Knowledge, Known};
+use crate::static_world::library::STATES;
 use crate::static_world::walk::{BuildingPopulation, BuildingWalk};
 use crate::units::articulation::{articulate, rest_locals, track_scroll};
 use crate::units::drawn::{ClipTables, DrawnModels};
@@ -46,6 +48,10 @@ pub struct Ui<'a> {
     /// Own units hidden by the world show through it.
     pub xray: bool,
     pub ghosts: &'a [Ghost],
+    /// A lab's stand-in for the publication's known props, where no battle
+    /// publishes (a switch that shows a building destroyed); none reads the
+    /// latest publication's.
+    pub known: Option<&'a [Known]>,
 }
 
 /// One body of a unit the UI shows where it will stand.
@@ -89,7 +95,7 @@ pub struct World {
 }
 
 impl World {
-    fn row(&mut self, name: &str, state: &str, lies: u32, skin: u32) -> u32 {
+    fn row(&mut self, name: &str, state: &str, lies: u32, skin: u32, placed: bool) -> u32 {
         let key = (name.to_owned(), state.to_owned(), lies);
         if let Some(&row) = self.rows.get(&key) {
             return row;
@@ -109,7 +115,8 @@ impl World {
             state_len,
             lies,
             skin,
-            pad: [0; 2],
+            placed: u32::from(placed),
+            pad: 0,
         });
         self.rows.insert(key, row);
         row
@@ -129,6 +136,15 @@ struct Model {
     /// First palette joint, or 0 (identity).
     palette: u32,
     scroll: [f64; 2],
+}
+
+/// What the buildings' known states were last derived from.
+#[derive(Default)]
+enum KnownFrom {
+    #[default]
+    Unread,
+    Lab(Vec<Known>),
+    Published(Option<Shared<KnownProp>>),
 }
 
 /// What a battle draws: its sections, and the per-frame chain's state.
@@ -164,6 +180,11 @@ pub struct Presentation {
     pending: Vec<Arc<Observation>>,
     loaded: Option<Loaded>,
     buildings: Option<BuildingPopulation>,
+    /// How the side's knowledge stands the buildings, what it stands them
+    /// in (building, `STATES` index), and what that was derived from.
+    knowledge: Knowledge,
+    fallen: Vec<(usize, usize)>,
+    known_from: KnownFrom,
     sun: Option<Sun>,
     statics: StaticBatches,
     world: World,
@@ -204,6 +225,9 @@ impl Presentation {
             pending: Vec::new(),
             loaded: None,
             buildings: None,
+            knowledge: Knowledge::default(),
+            fallen: Vec::new(),
+            known_from: KnownFrom::Unread,
             sun: None,
             statics: StaticBatches::default(),
             world: World::default(),
@@ -267,9 +291,13 @@ impl Presentation {
         // Every drawable a frame may name, so the renderer loads them once;
         // the buildings' first, a row per walked module.
         self.world = World::default();
+        self.fallen.clear();
+        self.known_from = KnownFrom::Unread;
+        self.knowledge = Knowledge::default();
         self.buildings = match buildings {
             None => None,
             Some(placed) => {
+                self.knowledge = Knowledge::new(placed.parts, placed.shells);
                 let style = input
                     .buildings
                     .ok_or("buildings are drawn under presentation.buildings")?;
@@ -278,7 +306,7 @@ impl Presentation {
                 let rows = (0..buildings.modules.len())
                     .map(|m| {
                         let (kit, module) = buildings.module(m);
-                        self.world.row(kit, module, NONE, 0)
+                        self.world.row(kit, module, NONE, 0, true)
                     })
                     .collect();
                 let walk = BuildingWalk::new(
@@ -324,20 +352,20 @@ impl Presentation {
                     corpse_poses,
                     ..
                 } => {
-                    self.world.row(name, "", NONE, joints.len() as u32);
+                    self.world.row(name, "", NONE, joints.len() as u32, false);
                     for lies in 0..corpse_poses.len() {
-                        self.world.row(name, "", lies as u32, 0);
+                        self.world.row(name, "", lies as u32, 0, false);
                     }
                 }
                 Appearance::Articulated { nodes, .. } => {
-                    self.world.row(name, "", NONE, nodes.len() as u32);
+                    self.world.row(name, "", NONE, nodes.len() as u32, false);
                 }
             }
         }
         // A cook-off draws its wreck's pieces: whole, hull, turret, debris.
         for look in input.effects.wreck_looks.values() {
             for state in ["default", "hull", "turret", "debris"] {
-                self.world.row(&look.appearance, state, NONE, 0);
+                self.world.row(&look.appearance, state, NONE, 0, false);
             }
         }
         let throw = 1.0 / elevation.tan();
@@ -372,18 +400,71 @@ impl Presentation {
         &self.world
     }
 
-    /// What the side knows destroyed: buildings and their states (`STATES`
-    /// index, 1 ruin or 2 gutted), replacing the last list. Returns those
-    /// whose template has no rows for their state, and then changes nothing.
-    pub fn set_fallen(&mut self, fallen: &[(usize, usize)]) -> Vec<usize> {
+    /// The buildings the side knows destroyed, each with its state (`STATES`
+    /// index, 1 ruin or 2 gutted), as the last frame drew them.
+    pub fn fallen(&self) -> &[(usize, usize)] {
+        &self.fallen
+    }
+
+    /// The renderer holds no static batches (a new one): the next frame
+    /// writes every one.
+    pub fn resend_statics(&mut self) {
+        self.statics.invalidate();
+    }
+
+    /// What the side knows of the buildings (`fallen.rs`), from `lab` or
+    /// else the latest publication's known props, derived again only when
+    /// that changed. A building known in a state its template has no rows
+    /// for is refused by name, and nothing changes.
+    fn know(&mut self, lab: Option<&[Known]>) -> Result<(), String> {
         let Some(buildings) = &mut self.buildings else {
-            return fallen.iter().map(|&(b, _)| b).collect();
+            return Ok(());
         };
-        let refused = buildings.walk.set_fallen(fallen);
-        if refused.is_empty() {
-            self.statics.invalidate();
+        let fallen = match lab {
+            Some(known) => {
+                if matches!(&self.known_from, KnownFrom::Lab(last) if last == known) {
+                    return Ok(());
+                }
+                self.known_from = KnownFrom::Lab(known.to_vec());
+                self.knowledge.fallen(
+                    known
+                        .iter()
+                        .map(|k| (k.authored_prop, k.kind.as_str(), k.destroyed)),
+                )
+            }
+            None => {
+                let group = self.latest.as_ref().map(|o| o.known_props.clone());
+                if let KnownFrom::Published(last) = &self.known_from {
+                    let same = match (last, &group) {
+                        (None, None) => true,
+                        (Some(a), Some(b)) => Arc::ptr_eq(a, b),
+                        _ => false,
+                    };
+                    if same {
+                        return Ok(());
+                    }
+                }
+                self.known_from = KnownFrom::Published(group.clone());
+                group.map_or_else(Vec::new, |g| {
+                    self.knowledge
+                        .fallen(g.iter().map(|k| (k.authored_prop, &*k.kind, k.destroyed)))
+                })
+            }
+        };
+        if fallen == self.fallen {
+            return Ok(());
         }
-        refused
+        if let Some(&b) = buildings.walk.set_fallen(&fallen).first() {
+            let state = fallen.iter().find(|f| f.0 == b).map_or(0, |f| f.1);
+            return Err(format!(
+                "state.missing: template \"{}\" has no \"{}\" rows",
+                buildings.walk.buildings.template(b),
+                STATES[state]
+            ));
+        }
+        self.fallen = fallen;
+        self.statics.invalidate();
+        Ok(())
     }
 
     /// The buildings' walk as the last frame left it (`BuildingWalk::stats`);
@@ -562,8 +643,10 @@ impl Presentation {
         })
     }
 
-    /// What to draw at presentation time `time` for `camera`.
-    pub fn frame(&mut self, time: f64, camera: &Camera, ui: &Ui) -> &Frame {
+    /// What to draw at presentation time `time` for `camera`; errs when the
+    /// side knows a building in a state its template lacks.
+    pub fn frame(&mut self, time: f64, camera: &Camera, ui: &Ui) -> Result<&Frame, String> {
+        self.know(ui.known)?;
         let f = &mut self.frame;
         f.index += 1;
         f.clock = time;
@@ -585,12 +668,12 @@ impl Presentation {
             .write(&mut populations, camera, &view, self.sun.as_ref(), f);
         let (Some(loaded), Some(sample)) = (self.loaded.as_mut(), self.interpolator.frame(time))
         else {
-            return &self.frame;
+            return Ok(&self.frame);
         };
         let f = &mut self.frame;
         f.tick = sample.observation.tick as u32;
         loaded.frame(sample, &view, ui, &self.world, f);
-        &self.frame
+        Ok(&self.frame)
     }
 }
 

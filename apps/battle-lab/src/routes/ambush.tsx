@@ -189,6 +189,7 @@ function AmbushLab({ battles }: { battles: Record<Variant, SavedBattle> }) {
         overlay={overlayFeed}
         fog={session.fogFeed}
         frame={session.frame}
+        presentation={session.presentation}
         appearances={session.appearances}
         initialCamera={AMBUSH_CAMERA}
         onPick={session.onPick}

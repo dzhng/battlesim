@@ -85,6 +85,7 @@ function SensorsLab({ battle }: { battle: SavedBattle }) {
         overlay={overlayFeed}
         fog={fogFeed}
         frame={session.frame}
+        presentation={session.presentation}
         appearances={session.appearances}
         initialCamera={SENSORS_CAMERA}
         onReady={session.onReady}

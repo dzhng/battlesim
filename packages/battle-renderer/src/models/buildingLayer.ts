@@ -5,12 +5,13 @@
 // layout.
 //
 // Rust resolves every building against the template art library and walks
-// the map's chunks for each view; each batch it hands over is one kit module
-// (its `World.appearances` row: the kit, and the module as the state) at one
-// tier, drawn into the view or cast into the sun's cascades. A frame whose
-// walk changed anything writes every batch, and this layer uploads them into
-// one buffer and draws each as a range; any other frame names them
-// unchanged, and the buffer is drawn as it stands.
+// the map's chunks for each view; each static batch it hands over is one kit
+// module (its `World.appearances` row, marked `placed`: the kit, and the
+// module as the state) at one tier, drawn into the view or cast into the
+// sun's cascades. A frame whose walk changed anything writes every static
+// batch, and this layer uploads their records into one buffer and draws each
+// as a range; any other frame names them unchanged, and the buffer is drawn
+// as it stands. The frame's other batches are the models layer's.
 //
 // The meshes of a kit's modules at a tier share a vertex and an index buffer,
 // so consecutive draws usually change only the range: those go straight to
@@ -64,8 +65,8 @@ export type BindBuildingDraw = (
   ): void;
 };
 
-/** What the page's static presentation says of its buildings and their
- *  walk (`Presentation::building_stats`). */
+/** What the presentation says of its buildings and their walk
+ *  (`Presentation::building_stats`). */
 export interface BuildingWalkStats {
   /** Buildings drawn from template art, and those of them the side knows
    *  destroyed (collapsed or gutted). */
@@ -145,7 +146,7 @@ export function createBuildingLayer(device: GPUDevice, registry: GpuRegistry) {
   let source: ModuleSource | null = null;
   /** The drawables the batches name, by row. */
   let rows: readonly WorldAppearance[] = [];
-  /** The batches last written: `Batch` words each. */
+  /** The static batches last written: `Batch` words each. */
   let batches = new Uint32Array(0);
   let batchCount = 0;
   let scope: GpuRegistry | null = null;
@@ -227,33 +228,46 @@ export function createBuildingLayer(device: GPUDevice, registry: GpuRegistry) {
       source = next;
       relist();
     },
-    /** The static batches of the page's static presentation frame (null:
-     *  none), the drawables they name, and what it says of its walk.
-     *  Returns whether what is drawn changed. Read at once: the views last
-     *  only until the next call into the module. */
-    setFrame(
-      frame: ReturnType<typeof frameViews> | null,
-      world: readonly WorldAppearance[],
-      stats: BuildingWalkStats,
-    ): boolean {
+    /** The drawables a new load's batches name: what the last load's
+     *  buildings held is returned. */
+    setWorld(world: readonly WorldAppearance[]) {
+      if (world === rows) return;
+      scope?.release();
+      [scope, buffer, rows, totalUploadBytes, batchCount] = [null, null, world, 0, 0];
+      relist();
+    },
+    /** The static batches of a presentation frame (null: none), and what it
+     *  says of its walk. Returns whether what is drawn changed. Read at
+     *  once: the views last only until the next call into the module. */
+    setFrame(frame: ReturnType<typeof frameViews> | null, stats: BuildingWalkStats): boolean {
       walk = stats;
-      const count = frame?.batches.count ?? 0;
+      const all = frame?.batches.count ?? 0;
       const words = frame?.batches.u32;
-      if (count && words) {
-        let written = false;
-        for (let b = 0; b < count && !written; b++)
-          written = words[b * BATCH_WORDS + Batch.first] !== NONE;
-        if (!written) return false;
-      } else if (!batchCount) return false;
-      if (world !== rows) {
-        // Another load's buildings: what the last ones held is returned.
-        scope?.release();
-        [scope, buffer, rows, totalUploadBytes] = [null, null, world, 0];
+      // The static batches, and whether this frame wrote them.
+      let count = 0;
+      let written = false;
+      let end = 0;
+      for (let b = 0; b < all; b++) {
+        const o = b * BATCH_WORDS;
+        if (!rows[words![o + Batch.appearance]]?.placed) continue;
+        count++;
+        const first = words![o + Batch.first];
+        if (first !== NONE) {
+          written = true;
+          end = Math.max(end, first + words![o + Batch.count]);
+        }
       }
+      if (count ? !written : !batchCount) return false;
       batchCount = count;
       if (batches.length < count * BATCH_WORDS) batches = new Uint32Array(count * BATCH_WORDS * 2);
-      if (words) batches.set(words);
-      const records = frame?.instances.f32;
+      for (let b = 0, at = 0; b < all; b++) {
+        const o = b * BATCH_WORDS;
+        if (!rows[words![o + Batch.appearance]]?.placed) continue;
+        batches.set(words!.subarray(o, o + BATCH_WORDS), at);
+        at += BATCH_WORDS;
+      }
+      // The static records lead the frame's: those up to the last are uploaded.
+      const records = frame?.instances.f32.subarray(0, end * INSTANCE_WORDS);
       uploadBytes = records?.byteLength ?? 0;
       totalUploadBytes += uploadBytes;
       if (records?.length) {

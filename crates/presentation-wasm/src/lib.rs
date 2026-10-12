@@ -8,6 +8,7 @@ use std::sync::Arc;
 use presentation::presentation::{Ghost, Presentation as Inner, Ui};
 use presentation::records::{FrameHeader, WorldHeader};
 use presentation::static_world::buildings::{Placed, PlacedBuildings};
+use presentation::static_world::fallen::Known;
 use presentation::static_world::library::{Bounds, Library};
 use presentation::units::drawn::ClipTables;
 use presentation::view::Camera;
@@ -130,9 +131,13 @@ impl Presentation {
 
     /// The map's buildings, before `load_world`: the template library's
     /// file, inflated; per library module its mesh bounds (min, max), NaN
-    /// where its kit is not installed; and per building its template (an
-    /// index of `templates`, a JSON list of ids), frame (x, y, z, yaw) and
-    /// owner prop. `load_world`'s `buildings` style places them.
+    /// where its kit is not installed; per building its template (an index
+    /// of `templates`, a JSON list of ids), frame (x, y, z, yaw) and owner
+    /// prop; each part prop (`part_props`) and its building
+    /// (`part_buildings`); and the prop kinds a gutted building's parts
+    /// become (`shells`, a JSON list). `load_world`'s `buildings` style
+    /// places them.
+    #[allow(clippy::too_many_arguments)]
     pub fn add_buildings(
         &mut self,
         library: &[u8],
@@ -141,9 +146,13 @@ impl Presentation {
         template: &[u16],
         frames: &[f64],
         owners: &[u32],
+        part_props: &[u32],
+        part_buildings: &[u32],
+        shells: &str,
     ) -> Result<(), JsError> {
-        let ids: Vec<String> =
-            serde_json::from_str(templates).map_err(|e| JsError::new(&e.to_string()))?;
+        let json = |e: serde_json::Error| JsError::new(&e.to_string());
+        let ids: Vec<String> = serde_json::from_str(templates).map_err(json)?;
+        let shells: Vec<String> = serde_json::from_str(shells).map_err(json)?;
         let bounds: Vec<Option<Bounds>> = bounds
             .as_chunks::<6>()
             .0
@@ -161,6 +170,12 @@ impl Presentation {
             library: Library::decode(library).map_err(error)?,
             bounds,
             placed,
+            parts: part_props
+                .iter()
+                .zip(part_buildings)
+                .map(|(&p, &b)| (p, b as usize))
+                .collect(),
+            shells,
         });
         Ok(())
     }
@@ -185,20 +200,20 @@ impl Presentation {
         Ok(&self.world_header as *const WorldHeader as u32)
     }
 
-    /// What the side knows destroyed: buildings and their states (1 ruin, 2
-    /// gutted). Returns those whose template has no rows for their state,
-    /// and then changes nothing.
-    pub fn set_fallen(&mut self, buildings: &[u32], states: &[u32]) -> Vec<u32> {
-        let fallen: Vec<(usize, usize)> = buildings
-            .iter()
-            .zip(states)
-            .map(|(&b, &s)| (b as usize, s as usize))
-            .collect();
+    /// The buildings the side knows destroyed as the last frame drew them:
+    /// building and state (1 ruin, 2 gutted), in pairs.
+    pub fn fallen_buildings(&self) -> Vec<u32> {
         self.inner
-            .set_fallen(&fallen)
-            .into_iter()
-            .map(|b| b as u32)
+            .fallen()
+            .iter()
+            .flat_map(|&(b, s)| [b as u32, s as u32])
             .collect()
+    }
+
+    /// The renderer holds no static batches (a new one): the next frame
+    /// writes every one.
+    pub fn resend_statics(&mut self) {
+        self.inner.resend_statics();
     }
 
     /// The buildings' walk as the last frame left it: chunks, coarse rows,
@@ -217,7 +232,10 @@ impl Presentation {
 
     /// What to draw at presentation time `time` for `camera` (eye xyz,
     /// target xyz, up xyz, fov y, near, width, height): the `FrameHeader`'s
-    /// address. Its sets are views valid until the next call.
+    /// address. Its sets are views valid until the next call. `known` is a
+    /// lab's stand-in for the publication's known props, JSON (empty: the
+    /// publication's); a building known in a state its template lacks throws
+    /// by name.
     pub fn frame(
         &mut self,
         time: f64,
@@ -225,6 +243,7 @@ impl Presentation {
         selected: &[u32],
         xray: bool,
         ghosts: &str,
+        known: &str,
     ) -> Result<u32, JsError> {
         let c = camera;
         let camera = Camera {
@@ -240,12 +259,18 @@ impl Presentation {
         } else {
             serde_json::from_str(ghosts).map_err(|e| JsError::new(&e.to_string()))?
         };
+        let known: Option<Vec<Known>> = if known.is_empty() {
+            None
+        } else {
+            Some(serde_json::from_str(known).map_err(|e| JsError::new(&e.to_string()))?)
+        };
         let ui = Ui {
             selected,
             xray,
             ghosts: &ghosts,
+            known: known.as_deref(),
         };
-        let f = self.inner.frame(time, &camera, &ui);
+        let f = self.inner.frame(time, &camera, &ui).map_err(error)?;
         let header = FrameHeader {
             clock: f.clock as f32,
             tick: f.tick,

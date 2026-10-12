@@ -56,8 +56,10 @@ export const Appearance = {
   lies: 4,
   /** Joints a palette for it holds (0: rigid). (u32) */
   skin: 5,
-  /**  (u32 × 2) */
-  pad: 6,
+  /** 1 for a drawable of the static world (a building's kit module), whose batches a frame writes only when they change and names unchanged otherwise; 0 for one the frame poses every time. (u32) */
+  placed: 6,
+  /**  (u32) */
+  pad: 7,
 } as const;
 export const APPEARANCE_WORDS = 8;
 

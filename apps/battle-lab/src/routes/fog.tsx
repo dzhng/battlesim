@@ -182,6 +182,7 @@ function FogLab({ scenario }: { scenario: string }) {
         buildings={session.buildingsFeed}
         fog={fogFeed}
         frame={session.frame}
+        presentation={session.presentation}
         appearances={session.appearances}
         initialCamera={STREET_CAMERA}
         groundAt={session.surfaceZ}

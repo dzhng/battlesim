@@ -10,7 +10,7 @@ import {
   cameraToFit,
   lineUp,
   lineupBuildings,
-  lineupFallen,
+  lineupKnown,
   lineupIn,
   poseAtRange,
   type LineupTemplate,
@@ -161,13 +161,28 @@ test("a line-up in a damage state is the templates that end in it, each destroye
   expect(ids("intact")).toEqual(lineup.entries.map((e) => e.id));
   expect(ids("ruin").sort()).toEqual(["farm", "house-a"]);
   expect(ids("gutted")).toEqual(["tower"]);
-  // Each of them is known destroyed into that state; intact, nothing is known.
-  const ruins = lineupIn(lineup.entries, "ruin", library);
-  expect(lineupFallen(ruins, "ruin")).toEqual([
+  // Each of them is drawn destroyed into that state; intact, none is.
+  const art: BuildingArt = { ...ART, library, bytes: encodeTemplateLibrary(library) };
+  const fallen = (state: "intact" | "ruin" | "gutted") => {
+    const shown = lineupIn(lineup.entries, state, library);
+    const walk = presentBuildings(
+      lineupBuildings(shown),
+      art,
+      STYLE,
+      undefined,
+      lineupKnown(shown, state),
+    );
+    walk.look({ ...LENS, target: [0, 0, 0], distance: 200, pitch: 1, yaw: 0 }, HEIGHT_PX);
+    const known = walk.fallen();
+    walk.free();
+    return known;
+  };
+  expect(fallen("ruin")).toEqual([
     { building: 0, state: "ruin" },
     { building: 1, state: "ruin" },
   ]);
-  expect(lineupFallen(lineup.entries, "intact")).toEqual([]);
+  expect(fallen("gutted")).toEqual([{ building: 0, state: "gutted" }]);
+  expect(fallen("intact")).toEqual([]);
 });
 
 // One template whose shell (the whole building at every tier but the finest,

@@ -130,6 +130,7 @@ function MovementLab({ battle }: { battle: SavedBattle }) {
         buildings={session.buildingsFeed}
         overlay={overlayFeed}
         frame={session.frame}
+        presentation={session.presentation}
         appearances={session.appearances}
         initialCamera={MOVEMENT_CAMERA}
         onPick={session.onPick}

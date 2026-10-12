@@ -80,6 +80,7 @@ function CookOffLab({ battle }: { battle: SavedBattle }) {
         overlay={overlayFeed}
         fog={session.fogFeed}
         frame={session.frame}
+        presentation={session.presentation}
         appearances={session.appearances}
         initialCamera={COOK_OFF_CAMERA}
         onPick={session.onPick}

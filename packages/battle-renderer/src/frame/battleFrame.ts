@@ -231,8 +231,8 @@ export async function createBattleFrame(
         setStructures(next) {
           if (!disposed) world.setStructures(next);
         },
-        setStaticFrame(frame, world, stats) {
-          return !disposed && models.setStaticFrame(frame, world, stats);
+        setStaticFrame(frame, stats) {
+          return !disposed && models.setStaticFrame(frame, stats);
         },
         setGround(next) {
           return !disposed && world.setGround(next);

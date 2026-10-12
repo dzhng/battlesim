@@ -2,50 +2,27 @@
 // The street test map's houses on the one building path, from what ships: the saved
 // map's buildings, as references into the baked template art library, drawn
 // standing until a side has seen one fall and as its ruin after.
-import { readFileSync } from "node:fs";
 import { afterAll, expect, test } from "vitest";
 import { loadPresentation } from "@web/battle/sim/presentation";
 import { TEST_RULES, UNITS } from "./catalog";
 import { gameBuildingStyle } from "@apps/battle-lab/src/gameModels";
-import { knownFallen } from "@apps/battle-lab/src/destroyedBuildings";
 import { WorldView, world_layout } from "@wasm/game_wasm.js";
+import { buildingRemains } from "@packages/scene-assets/src/authority";
 import {
   indexBuildings,
   type BuildingArt,
-  type FallenBuilding,
 } from "@packages/battle-renderer/src/models/buildingReferences";
 import { mapProps, type KnownProp } from "@packages/battle-renderer/src/models/propAppearance";
 import { readWorldExports, type WorldLayout } from "@packages/battle-renderer/src/worldMesh";
-import {
-  TIER_COUNT,
-  templateLibraryPath,
-  type RuntimeCatalog,
-} from "@packages/scene-assets/src/schema";
-import {
-  decodeTemplateLibrary,
-  templateRows,
-  type TemplateState,
-} from "@packages/scene-assets/src/templateLibrary";
+import { TIER_COUNT } from "@packages/scene-assets/src/schema";
+import { templateRows, type TemplateState } from "@packages/scene-assets/src/templateLibrary";
 import { loadMap } from "@web/maps/node";
-import { gzipTransport, unpackGzip } from "@packages/scene-assets/src/gzip";
-import { presentBuildings } from "./support/presentedBuildings";
+import { presentBuildings, shippedBuildingArt } from "./support/presentedBuildings";
 
 await loadPresentation();
 
-const runtime = (path: string) =>
-  readFileSync(new URL(`../../assets/runtime/${path}`, import.meta.url));
-const catalog = JSON.parse(runtime("catalog.json").toString("utf8")) as RuntimeCatalog;
-const hash = catalog.templates!.library;
-const gzip = gzipTransport(catalog, hash);
-const bytes = await unpackGzip(new Uint8Array(runtime(templateLibraryPath(gzip.hash))), gzip, hash);
-const library = decodeTemplateLibrary(bytes);
-// Which module is drawn is the question, not where its edges are: a box
-// stands for every kit mesh's bounds.
-const art: BuildingArt = {
-  library,
-  bytes,
-  bounds: library.modules.map(() => ({ min: [-1, -1, 0], max: [1, 1, 1] })),
-};
+const art: BuildingArt = await shippedBuildingArt();
+const { library } = art;
 
 // The street test map as the simulation builds it (loading the map starts the WebAssembly).
 const map = loadMap("street").definition;
@@ -72,7 +49,14 @@ function modulesIn(states: readonly TemplateState[]): string[] {
     .sort();
 }
 
-type Street = ReturnType<typeof presentBuildings>;
+/** The street's buildings as its presentation draws them, a side knowing
+ *  them by the catalog's building rows. */
+const presentStreet = () =>
+  presentBuildings(index.placed, art, gameBuildingStyle, undefined, {
+    partBuilding: index.partBuilding,
+    shells: buildingRemains(UNITS).shells,
+  });
+type Street = ReturnType<typeof presentStreet>;
 
 /** The whole street from far above, then every module drawn, by name. */
 function drawn(street: Street): string[] {
@@ -94,13 +78,8 @@ function drawn(street: Street): string[] {
     .sort();
 }
 
-/** What the side knows destroyed is `fallen`; none refused. */
-function setFallen(street: Street, fallen: readonly FallenBuilding[]) {
-  expect(street.setFallen(fallen)).toEqual([]);
-}
-
 test("a street house stands until the side has seen it fall, then lies as its ruin", () => {
-  const walk = presentBuildings(index.placed, art, gameBuildingStyle);
+  const walk = presentStreet();
   const houses = index.parts.map((): TemplateState => "intact");
   const standing = modulesIn(houses);
   expect(houses.length).toBeGreaterThan(1);
@@ -115,8 +94,9 @@ test("a street house stands until the side has seen it fall, then lies as its ru
     replaces: null,
     authoredProp: null,
   };
-  expect(knownFallen(UNITS, index, [wreck])).toEqual([]);
+  walk.know([wreck]);
   expect(drawn(walk)).toEqual(standing);
+  expect(walk.fallen()).toEqual([]);
 
   // It has seen the first house come down: that house's ruin, and the others
   // as they stood.
@@ -128,13 +108,14 @@ test("a street house stands until the side has seen it fall, then lies as its ru
     replaces: house.id,
     authoredProp: house.id,
   };
-  setFallen(walk, knownFallen(UNITS, index, [ruin]));
+  walk.know([ruin]);
   const fallen = modulesIn(houses.map((state, b) => (b === 0 ? "ruin" : state)));
   expect(fallen).not.toEqual(standing);
   expect(drawn(walk)).toEqual(fallen);
+  expect(walk.fallen()).toEqual([{ building: 0, state: "ruin" }]);
 
   // And forgetting is not a thing a side does, but a new battle is: none known, all stand.
-  setFallen(walk, knownFallen(UNITS, index, []));
+  walk.know([]);
   expect(drawn(walk)).toEqual(standing);
   walk.free();
 });

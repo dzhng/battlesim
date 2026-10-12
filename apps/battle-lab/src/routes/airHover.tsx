@@ -83,6 +83,7 @@ function AirHoverLab({ battles }: { battles: Record<Variant, SavedBattle> }) {
         overlay={overlayFeed}
         fog={session.fogFeed}
         frame={session.frame}
+        presentation={session.presentation}
         appearances={session.appearances}
         initialCamera={initial}
         onPick={session.onPick}

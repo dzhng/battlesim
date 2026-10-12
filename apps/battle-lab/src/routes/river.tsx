@@ -135,6 +135,7 @@ function RiverLab({ battle }: { battle: SavedBattle }) {
         buildings={view === "surface" ? session.buildingsFeed : undefined}
         overlay={overlayFeed}
         frame={session.frame}
+        presentation={session.presentation}
         appearances={session.appearances}
         initialCamera={RIVER_CAMERA}
         onPick={session.onPick}

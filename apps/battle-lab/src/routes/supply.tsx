@@ -113,6 +113,7 @@ function SupplyLab({ battle }: { battle: SavedBattle }) {
         overlay={overlayFeed}
         fog={session.fogFeed}
         frame={session.frame}
+        presentation={session.presentation}
         appearances={session.appearances}
         initialCamera={SUPPLY_CAMERA}
         onPick={session.onPick}

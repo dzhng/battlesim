@@ -105,6 +105,7 @@ function DeploymentLab({ battle }: { battle: SavedBattle }) {
         world={worldFeed}
         overlay={overlayFeed}
         frame={session.frame}
+        presentation={session.presentation}
         appearances={session.appearances}
         initialCamera={DEPLOYMENT_CAMERA}
         onPick={session.onPick}

@@ -236,6 +236,7 @@ export function BattleView({
           pointerMarks={pointerPaint.feed}
           fog={session.fogFeed}
           frame={session.frame}
+          presentation={session.presentation}
           appearances={session.appearances}
           initialCamera={camera}
           cameraConfig={cameraConfig}

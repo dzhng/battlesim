@@ -274,6 +274,7 @@ function BackdropBattle({
           buildings={session.buildingsFeed}
           obstacles={session.cameraObstaclesFeed}
           frame={session.frame}
+          presentation={session.presentation}
           appearances={session.appearances}
           initialCamera={reel.initial}
           groundAt={session.surfaceZ}

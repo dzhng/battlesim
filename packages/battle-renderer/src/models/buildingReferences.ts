@@ -1,6 +1,7 @@
 // A map's buildings as the frame draws them from template art: compact
 // references for the whole map (which template, where it was placed, whose
-// it is), what a side knows fell, and the template art they are drawn from.
+// it is), which building each part prop is, and the template art they are
+// drawn from.
 // Nothing here holds a module transform: Rust resolves and walks them
 // (`crates/presentation`'s static world), and `buildingLayer.ts` draws what
 // it chose.
@@ -12,14 +13,11 @@
 //
 // Knowledge is the rule every structure follows: a building stands intact
 // until the side has seen it destroyed, and is then drawn in the state the
-// simulation published of it (`fallenBuildings`), never one worked out here.
+// simulation published of it, never one worked out here. The presentation
+// reads that from the side's known props (`static_world/fallen.rs`).
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import type { Bounds } from "@packages/scene-assets/src/schema";
-import {
-  templateKits,
-  type TemplateArtLibrary,
-  type TemplateState,
-} from "@packages/scene-assets/src/templateLibrary";
+import { templateKits, type TemplateArtLibrary } from "@packages/scene-assets/src/templateLibrary";
 import type { KnownProp, MapProp } from "./propAppearance";
 import type { PublicBuildings } from "../worldMesh";
 
@@ -67,25 +65,21 @@ export interface PlacedBuildings {
   owners: Uint32Array;
 }
 
-/** The states a destroyed building is known in: collapsed to remains, or
- *  standing as a burnt shell. */
-export type DamageState = Exclude<TemplateState, "intact">;
-
-/** A building a side knows is no longer intact. */
-export interface FallenBuilding {
-  /** Which of `PlacedBuildings`. */
-  building: number;
-  /** The state its template is drawn in. */
-  state: DamageState;
-}
-
-/** The buildings a side draws: the map's, and which of them it has seen
- *  fall. `placed` keeps its identity while the map and the
- *  library do; only `fallen` follows knowledge. */
-export interface SideBuildings {
+/** The buildings a scene's presentation draws: the map's, which building
+ *  each part prop is, and the prop kinds a gutted building's parts become
+ *  (the catalog's building rows: `buildingRemains`), which the side's known
+ *  props are read against. A lab no battle publishes into hands its own
+ *  stand-in for those props (`known`); in a battle the publication's decide. */
+export interface SceneBuildings {
   placed: PlacedBuildings;
-  fallen: readonly FallenBuilding[];
+  partBuilding: ReadonlyMap<number, number>;
+  shells: ReadonlySet<string>;
+  known?: readonly KnownPart[];
 }
+
+/** What the rule reads of a known prop: the map prop whose place it took,
+ *  its kind, and whether it was destroyed with nothing left. */
+export type KnownPart = Pick<KnownProp, "authoredProp" | "kind" | "destroyed">;
 
 /** A map's buildings, and their parts' props. */
 export interface BuildingIndex {
@@ -127,35 +121,6 @@ export function indexBuildings(
     );
   });
   return { placed, partBuilding, parts };
-}
-
-/**
- * The buildings of `index` a side knows are destroyed, and how, from the props
- * it has learned (`known`). What the simulation published decides the state:
- * a part's place taken by a prop of a type in `shells` (the types a gutted
- * building's parts become, from the catalog's building rows: `buildingRemains`)
- * is a building that stands `gutted`; taken by anything else, or by nothing,
- * it is a `ruin`. A destruction the side has not seen leaves the building
- * intact, however long ago it was.
- *
- * The simulation destroys a building whole, by one rule, and a side that sees
- * any part of it learns every part, so one known part says what the building
- * is. Were a side ever to know parts in both states, the building is a ruin:
- * a shell is drawn only where nothing known says a part came down.
- */
-export function fallenBuildings(
-  index: BuildingIndex,
-  known: readonly KnownProp[],
-  shells: { has(kind: string): boolean },
-): FallenBuilding[] {
-  const states = new Map<number, DamageState>();
-  for (const k of known) {
-    const building = k.authoredProp === null ? undefined : index.partBuilding.get(k.authoredProp);
-    if (building === undefined) continue;
-    const stands = !k.destroyed && shells.has(k.kind);
-    states.set(building, stands && states.get(building) !== "ruin" ? "gutted" : "ruin");
-  }
-  return [...states].sort(([a], [b]) => a - b).map(([building, state]) => ({ building, state }));
 }
 
 /** The template art a scene draws from. */

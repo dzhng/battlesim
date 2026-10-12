@@ -257,6 +257,7 @@ function GroundInspector({ scenario, seed, camera, legend, extra }: InspectorPro
         overlay={overlayFeed}
         fog={session.fogFeed}
         frame={session.frame}
+        presentation={session.presentation}
         appearances={session.appearances}
         initialCamera={camera}
         onPick={session.onPick}

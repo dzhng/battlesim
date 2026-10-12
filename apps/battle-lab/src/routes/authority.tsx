@@ -112,6 +112,7 @@ function AuthorityLab({ battle }: { battle: SavedBattle }) {
         obstacles={session.cameraObstaclesFeed}
         buildings={session.buildingsFeed}
         frame={session.frame}
+        presentation={session.presentation}
         appearances={session.appearances}
         initialCamera={AUTHORITY_CAMERA}
         onPick={session.onPick}
