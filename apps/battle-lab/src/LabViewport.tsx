@@ -734,11 +734,13 @@ export function LabViewport({
           if (!own && moduleLoaded && buildingsRef.current?.current) own = new ObservationDecoder();
           return own;
         };
-        /** The buildings' style and sun, taken when the frame is built; a
-         *  new frame holds no static batches, so the next is sent them all. */
+        /** The buildings' style and sun, taken when the frame is built. A
+         *  new frame holds no static batches, so the first drawn through it
+         *  is sent them all (`resend`, raised when it replaces the last: the
+         *  last may draw on while it builds, and must not take them). */
         let staticStyle = gameBuildingStyle;
         let staticSun = { azimuth: 0, elevation: 1, farM: 0 };
-        let resend = false;
+        let resend = true;
         /** The presentation and quality the detail scale was last given to. */
         let detailed: [ObservationDecoder | null, GraphicsQualityProfile | undefined] = [
           null,
@@ -752,7 +754,6 @@ export function LabViewport({
             farM: lit.cascades.max_far_m,
           };
           staticStyle = buildingStyleRef.current ?? gameBuildingStyle;
-          resend = true;
           const next = await createBattleFrame(device!, info.format, {
             light: await resolveLight(lit),
             fogGeometry: gameFogGeometry,
@@ -1107,6 +1108,7 @@ export function LabViewport({
             const previous = scene;
             const next = await build();
             scene = next;
+            resend = true;
             previous.dispose();
             if (signal.aborted) return;
             setInspecting((shown) => (shown ? scene : shown));

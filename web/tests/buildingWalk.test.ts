@@ -24,6 +24,7 @@ import {
   type BuildingStyle,
   type PlacedBuildings,
 } from "@packages/battle-renderer/src/models/buildingReferences";
+import { tierStyle } from "@apps/battle-lab/src/buildingTier";
 import type { MapProp } from "@packages/battle-renderer/src/models/propAppearance";
 import type { PublicBuildings } from "@packages/battle-renderer/src/worldMesh";
 import {
@@ -293,6 +294,24 @@ test("a lower graphics quality draws a building coarser at the same distance, an
   expect(shell()).toBe(2);
   walk.setDetailScale(1, 1);
   expect(shell()).toBe(1);
+});
+
+test("a forced tier draws every building at that tier from any distance, and no other tier", () => {
+  // Two blocks of many rows a chunk apart, from near and from afar.
+  const placed = placedOf([
+    ["dense", [1000, 2000, 0, 0]],
+    ["house", [1100, 2000, 0, 0]],
+  ]);
+  for (const tier of [0, 1, 2, 3]) {
+    for (const distance of [60, 200, 500, 2000]) {
+      const walk = walkOf(placed, tierStyle(STYLE, tier));
+      select(walk, view(1050, 2000, distance));
+      const tiers = [...new Set(walk.drawn().map((d) => d.tier))];
+      expect(tiers, `tier ${tier} from ${distance} m`).toEqual([tier]);
+      expect(walk.stats().refused).toBe(0);
+      walk.free();
+    }
+  }
 });
 
 test("a chunk is expanded once when it comes near, and leaves the pool when it leaves", () => {
