@@ -1,3 +1,4 @@
+# Frozen: a port of the per-frame presentation `crates/presentation` now owns; no fixes here, deleted with Godot (slice 25).
 extends RefCounted
 
 ## The observation as the pose driver reads it, ported from the browser's

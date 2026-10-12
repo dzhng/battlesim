@@ -20,7 +20,7 @@ import {
   type BuildingScene,
 } from "@packages/battle-renderer/src/models/buildingPlacements";
 import { indexBuildings } from "@packages/battle-renderer/src/models/buildingReferences";
-import { MODEL_RECORD_FLOATS } from "@packages/battle-renderer/src/models/modelInstances";
+import { INSTANCE_WORDS as MODEL_RECORD_FLOATS } from "@packages/battle-renderer/src/records.gen";
 import { mapProps, type KnownProp } from "@packages/battle-renderer/src/models/propAppearance";
 import { readWorldExports, type WorldLayout } from "@packages/battle-renderer/src/worldMesh";
 import {

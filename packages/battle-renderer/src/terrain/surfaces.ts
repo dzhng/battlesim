@@ -76,7 +76,7 @@ export function drawnStrokes(
   const stride = site.surfaceStrokeStride;
   const out: number[] = [];
   let changed = false;
-  for (let o = 0; o < strokes.length; ) {
+  for (let o = 0; o < strokes.length;) {
     // A stroke's stretches are exported in order, each starting where the
     // last ended.
     let end = o + stride;

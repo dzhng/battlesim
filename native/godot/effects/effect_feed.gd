@@ -1,3 +1,4 @@
+# Frozen: a port of the per-frame presentation `crates/presentation` now owns; no fixes here, deleted with Godot (slice 25).
 extends RefCounted
 
 ## A side's decoded publication as the effects read it, ported from the

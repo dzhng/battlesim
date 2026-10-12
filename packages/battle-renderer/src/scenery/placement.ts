@@ -659,7 +659,7 @@ function placeBackdrop(
           trees.colour_jitter,
         );
       }
-      for (let t = random.float(rng, 0, rules.tree_gap_m[1]); t < length; ) {
+      for (let t = random.float(rng, 0, rules.tree_gap_m[1]); t < length;) {
         tree(rng, ...at(t));
         t += random.float(rng, rules.tree_gap_m[0], rules.tree_gap_m[1]);
       }

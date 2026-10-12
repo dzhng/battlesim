@@ -242,7 +242,6 @@ export function createImpostorBaker(
         const instance: ModelInstance = { appearance, x: 0, y: 0, z: 0, yaw: 0, pose, tier: 0 };
         models.packExact([instance]);
         const encoder = device.createCommandEncoder({ label: "impostor-bake" });
-        models.encodePose(encoder);
         const pass = encoder.beginRenderPass({
           label: "impostor-atlas",
           colorAttachments: [

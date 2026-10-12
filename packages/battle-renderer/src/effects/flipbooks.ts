@@ -1,10 +1,13 @@
 // The effect atlas's flipbooks: CC0 image sequences from Unity Labs' free VFX
 // flipbooks (sources and licence in assets/README.md), converted from their
 // TGA sheets to PNG. One layer each of a 2D array texture, in `LAYER` order
-// (`effectFrame.ts`).
+// (`crates/presentation/src/effects/frame.rs`).
 import fireUrl from "../../../../assets/third-party/effects/explosion00_5x5.png?url";
 import dustUrl from "../../../../assets/third-party/effects/cloud01_8x8.png?url";
-import { LAYER, LAYER_FRAMES } from "./effectFrame";
+/** The flipbook layers, and their frames, as the effects
+ *  (`crates/presentation/src/effects/frame.rs`) name them in `Effect.b`. */
+const LAYER = { fire: 0, dust: 1 } as const;
+const LAYER_FRAMES = [25, 64] as const;
 
 export interface Flipbook {
   url: string;

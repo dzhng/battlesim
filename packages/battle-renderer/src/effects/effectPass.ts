@@ -1,4 +1,5 @@
-// The effect pass: draws `EffectFrame`'s instances into the lit world, after
+// The effect pass: draws the presentation's effect instances (`Frame.effects`,
+// `crates/presentation/src/effects`) into the lit world, after
 // the world pass has resolved it and before the fog mask pass gives unseen
 // pixels their look, so effects take bloom, grade and tone map like any
 // light. Four shapes (`SHAPE`): three camera-facing quads, and a disc lying
@@ -33,7 +34,7 @@
 // (the feed decides what is published there, not the fog).
 //
 // Raw WebGPU; the camera is the frame's one uniform (`world/camera.ts`).
-import { EFFECT_FLOATS, type EffectBatch } from "./effectFrame";
+import { EFFECT_WORDS as EFFECT_FLOATS } from "../records.gen";
 import { CAST_FALLOFF, CastLights } from "../light/castLights";
 import { tgpu } from "typegpu";
 import { Camera } from "../world/camera";
@@ -564,12 +565,12 @@ export async function createEffectPass(
         ],
       });
     },
-    /** This frame's instances, replacing the last. */
-    set(batch: EffectBatch) {
-      count = batch.count;
+    /** This frame's instances (`Effect` records in draw order), replacing the last. */
+    set(data: Float32Array, next: number) {
+      count = next;
       if (count === 0) return;
-      if (capacity < batch.data.length / EFFECT_FLOATS) {
-        capacity = batch.data.length / EFFECT_FLOATS;
+      if (capacity < count) {
+        capacity = Math.max(1024, count * 2);
         instances.set(
           device.createBuffer({
             label: "effect-instances",
@@ -578,7 +579,7 @@ export async function createEffectPass(
           }),
         );
       }
-      device.queue.writeBuffer(instances.current!, 0, batch.data.buffer, 0, count * INSTANCE_BYTES);
+      device.queue.writeBuffer(instances.current!, 0, data, 0, count * EFFECT_FLOATS);
     },
     /** After the world pass, before the fog mask pass. */
     encode(encoder: GPUCommandEncoder, t: FrameTargets, group: GPUBindGroup) {

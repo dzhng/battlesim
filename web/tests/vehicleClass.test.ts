@@ -4,7 +4,7 @@
 // vehicle sounds and articulates as its kind with no table edit.
 import { expect, test } from "vitest";
 import { gameAudio } from "@apps/battle-lab/src/soundFeed";
-import { gamePose } from "@apps/battle-lab/src/poseFeed";
+import { gamePose } from "@apps/battle-lab/src/benchmark/unitPresentation";
 import {
   topSpeedKmh,
   vehicleClass,
@@ -69,7 +69,7 @@ test("each kind of hull the game fields has its own engine sound and track gauge
   for (const kind of kinds) {
     const cls = vehicleClass(kind)!;
     expect(gameAudio.vehicles[cls], cls).toBeDefined();
-    expect(gamePose.gauge[cls], cls).toBeDefined();
+    expect((gamePose.gauge as Record<string, number>)[cls], cls).toBeDefined();
   }
 });
 

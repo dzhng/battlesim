@@ -6,9 +6,8 @@ import type { AudioPresentation } from "@packages/battle-audio/src/audioPresenta
 import type { SoundCatalog } from "@packages/battle-audio/src/catalog";
 import { AppAudio } from "@packages/battle-audio/src/appAudio";
 import { soundSettings } from "@packages/battle-audio/src/settings";
-import type { EffectPresentation } from "@packages/battle-renderer/src/effects/effectFrame";
 
-const COOK_OFF = (game.presentation.effects as unknown as EffectPresentation).cook_off;
+const COOK_OFF = game.presentation.effects.cook_off;
 
 const param = () => ({
   setTargetAtTime() {},
@@ -35,7 +34,9 @@ function buffer(channels: number, length: number, sampleRate: number): AudioBuff
   } as unknown as AudioBuffer;
 }
 const empty = (tick: number) => ({
-  effects: { tick, shooters: [], segments: [], blasts: [], smokes: [] },
+  effects: { tick, segments: [], blasts: [], smokes: [] },
+  launches: [],
+  turretLandsS: 0,
   audible: [],
 });
 const active: AppAudio[] = [];

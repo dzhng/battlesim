@@ -118,3 +118,54 @@ Run 1 of the reel was 6–8% faster in both scenes; the cause wasn't found.
 - The GPU kernel scales far better: at 4,000 bodies it takes 0.08 ms, where CPU Rust would take about 5.7 ms. This matters only if posed meshes reach the thousands.
 
 **For slice 07 and this slice's gates.** On this GPU, `stats().gpu` reads about a third of the GPU's real busy time in the battle. Compare GPU cost with a labelled Metal trace's busy share, not the timestamp mean.
+
+## Research (2026-10-11)
+
+- **Call overhead.** One `frame()` call a drawn frame returns a pointer to a `FrameHeader`; `records.gen.ts`'s `frameViews` builds a `Float32Array`/`Uint32Array` per set over module memory. No JS object per entity crosses; the UI's facts (picks, emitters, counts) are read from the same views. Inputs are a 13-float camera, the selection and, only while ghosts show, a small ghost list as JSON.
+- **Straight into the GPU buffers.** The models layer uploads `Frame.instances` and `Frame.palettes` whole with one `writeBuffer` each, and draws each `Batch` as a run over them; the effect pass and the cast-light uniform take `Frame.effects` and `Frame.lights` the same way. Only impostor-card batches are copied, since the renderer writes its own atlas layer into each card record.
+- **Lifetime.** A view is valid until the next call into the module, which may grow memory; the frame consumes its views before returning to the loop, and `loadWorld` reads the world's rows after the call that built them.
+
+## Web half (built 2026-10-11)
+
+**Contract.** `crates/presentation` owns the per-frame presentation: `units/` (interpolation, the pose feed and driver, articulation, joint palettes, drawn muzzles and rotors), `effects/` (the effect publication, launches, the effect frame, cast-light choice, cook-offs), `view.rs` (the camera's view and the one tier rule, `model_detail`) and `presentation.rs` (18b's `Presentation`: `load_world`, `push_publication`, `clock`, `frame`, `observation`). `records.rs` defines every record once and generates `packages/battle-renderer/src/records.gen.ts`. `crates/presentation-wasm` is the browser binding; `web/src/battle/sim/presentation.ts` is the page's side of it.
+
+`frame(time, camera, ui)` returns:
+- `batches`/`instances`: units, corpses (lying and fading), ghosts and a cook-off's pieces, culled and tiered in Rust, one batch per drawable, tier and pass (2 a ghost). `Instance` is the renderer's 64 B model record (18b amended); `World.appearances` rows name a drawable as (appearance, state, way of lying).
+- `palettes`: `Joint` 3×4 rows, identity first; soldiers' `world · inverseBind`, vehicles' node worlds (a falling airframe's tilt folded in). The model vertex stage dots the rows; the GPU pose kernel and the clip tables' GPU path are deleted.
+- `effects` (the 16-float records unchanged), `lights` (chosen in view, at most 24) and `header.light_wrap`.
+- `picks` (each drawn body's box, and each unit's drawn position), `emitters` (audio's motion), `counts` (models posed, effects running, lights offered, effects dropped, models culled).
+
+**Equality** (before the TypeScript was deleted; the TS output is the committed vectors):
+- `tests/poses.rs`: every written frame of the paris-corner capture (counts, soldiers' clip, phase, facing, position and crossfade, vehicles' articulation, corpses) and the tank's articulations at fixed inputs, to the vectors' 1e-6 rounding. The joint worlds match to 6e-5 m: the browser wrote them from its CPU sampler (`poseWorlds`), and Rust samples the dense table as the GPU kernel did; the CPU sampler's own math over the same table reproduces them to 5e-7.
+- `tests/effects.rs`: every instance float and every cast light of `effect-vectors.json`, exactly after its rounding, and the paris-corner plate's effect counts.
+- 17 behaviour tests (`tests/pose_behaviour.rs`, `tests/effect_behaviour.rs`) cover what the vectors do not reach.
+
+**Measured** (2026-10-11; before is `93f27e459`, after is this slice rebased on it; production builds, headless Chromium on Apple Metal, under the GPU lock on a dedicated machine, before and after interleaved, three runs each; medians, and CPU and timestamp GPU are means of runs).
+
+| workload | | avg FPS | 1% low | p95 / p99 ms | main-thread CPU ms | GPU ms (timestamps) |
+| --- | --- | --- | --- | --- | --- | --- |
+| market-town reel | before | 67.5 (64.9–69.4) | 36.1 | 25.00 / 25.58 | 7.06 | 9.83 |
+| market-town reel | after | 77.4 (64.7–79.1) | 36.7 | 18.04 / 25.10 | 5.41 | 9.07 |
+| paris-corner reel | before | 102.0 (95.9–104.5) | 52.6 | 16.71 / 17.53 | 1.13 | 5.85 |
+| paris-corner reel | after | 108.3 (95.3–111.1) | 55.7 | 16.66 / 17.42 | 0.95 | 5.57 |
+| benchmark battle | before | 15.2 (14.4–15.2) | 4.3 | 133.3 / 191.7 | p50 28.6, p95 77.8 | 23.26 |
+| benchmark battle | after | 15.1 (13.8–15.3) | 4.6 | 133.6 / 175.6 | p50 28.1, p95 81.4 | 22.89 |
+
+- **GPU from a labelled Metal trace** (Dawn's `use_user_defined_labels_in_backend`): the market-town reel's GPU process is busy 0.77 of the wall before and 0.79 after (one trace each). The battle traces attached before the benchmark drew and are not usable; the battle's GPU is the timestamp mean above, which under-reads on this GPU.
+- Each first run of a pair was slower on both sides (the slice-19 pattern). The reel gains come from dropping the TS posing and the kernel; the battle's main-thread p95 rises about 3.6 ms (4.6%), the presentation's frame in WASM against the deleted TS, with frame rate, 1% low and p95 unchanged.
+- **Plates.** The two control captures put their plates on different frame records (the reel is paced live), so their counts cannot be compared plate by plate; count equality rests on the deterministic replay (`tests/poses.rs`, `tests/effects.rs`). Both captures passed every check.
+
+**Less code** (code lines without comments or blanks, fixtures and generated files excluded, against `93f27e459`):
+
+| | added | deleted | net |
+| --- | --- | --- | --- |
+| Rust (crate, WASM binding; in-file unit tests included) | 7,280 | 18 | +7,262 |
+| Rust tests | 1,497 | 0 | +1,497 |
+| TypeScript | 1,294 | 5,851 | −4,557 |
+| TypeScript tests and scenes | 158 | 5,080 | −4,922 |
+| GDScript | 0 | 0 | 0 (frozen-header comments only) |
+| Total | 10,229 | 10,949 | **−720** |
+
+## Native half (decided 2026-10-11)
+
+Native keeps its GDScript pose and effect ports and their compare tests, frozen (a header in each says so) and checked against pinned fixtures; it adopts the crate in phase 5 (slice 25), not here. Switching native now would need a Godot-only fold of every palette into the glTF skin's binds and native's palette slots; `wgpu` draws the browser's bundles and needs none of it.

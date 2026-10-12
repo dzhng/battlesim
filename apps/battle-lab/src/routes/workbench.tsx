@@ -19,18 +19,16 @@ import { SCENERY_KINDS } from "@packages/scene-assets/src/scenery";
 import type { LooseOptions } from "@packages/scene-assets/src/loose";
 import type { WorldMeshes } from "@packages/battle-renderer/src/scene";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import {
-  poseFrameInstances,
-  type ModelInstance,
-  type ModelPose,
-} from "@packages/battle-renderer/src/models/modelInstances";
-import { PoseDriver } from "@packages/battle-renderer/src/models/poseDriver";
+import type { ModelInstance } from "@packages/battle-renderer/src/models/modelInstances";
 import type { ImpostorAtlas } from "@packages/battle-renderer/src/models/impostor";
 import { LabViewport, type ViewportGpu } from "../LabViewport";
-import { benchOverlay, benchWorld, posedSockets } from "../workbench/benchWorld";
-import { beatAt, feedAt, replayLength, type ReplayUnit } from "../workbench/feedReplay";
-import { mountRoles } from "@packages/scene-assets/src/units";
-import { paletteError } from "../workbench/paletteCheck";
+import {
+  benchOverlay,
+  benchWorld,
+  drawnPose,
+  posedSockets,
+  type BenchPose,
+} from "../workbench/benchWorld";
 import {
   atlasCanvas,
   figureSpot,
@@ -50,7 +48,6 @@ import {
   sideTint,
   type LoadedModel,
 } from "../workbench/sources";
-import { gamePose } from "../poseFeed";
 import game from "@fixtures/game.json";
 import modelManifest from "@fixtures/units/model-manifest.json";
 import {
@@ -68,14 +65,12 @@ const NO_TINT = [1, 1, 1] as const;
 // seconds, see the validator's findings and our own production render — the
 // battle frame, light and pose paths — with every view needed to judge a
 // model or an animation: named views, a 1.8 m figure, the simulation's hit
-// box, socket gizmos, a clip and phase scrubber, a feed replay through the
-// pose driver, stats, sheets and the impostor bake.
+// box, socket gizmos, a clip and phase scrubber, stats, sheets and the
+// impostor bake.
 
 const EMPTY: WorldMeshes = { opaque: new Float32Array(0), translucent: new Float32Array(0) };
 const DEG = Math.PI / 180;
 const APPEARANCE_UNITS: AppearanceUnit[] = ["soldier", "vehicle", "scenery"];
-
-type PoseMode = "manual" | "feed";
 
 interface WorkbenchHandle {
   drop(name: string, bytes: Uint8Array, options?: LooseOptions): Promise<void>;
@@ -83,7 +78,7 @@ interface WorkbenchHandle {
   state(): {
     model: string | null;
     unit: AppearanceUnit | null;
-    /** The unit type it is fitted to and replayed as. */
+    /** The unit type it is fitted to. */
     type: string | null;
     findings: { code: string; severity: string; message: string }[];
     stats: unknown;
@@ -91,12 +86,10 @@ interface WorkbenchHandle {
     catalog: string[];
   };
   setView(view: WorkbenchView): Promise<void>;
-  setPose(pose: ModelPose, tier?: number): Promise<void>;
-  setFeed(time: number | null): Promise<void>;
+  setPose(pose: BenchPose, tier?: number): Promise<void>;
   show(options: { figure?: boolean; hitBox?: boolean; sockets?: boolean }): Promise<void>;
   /** Which army's tint the model wears (its tint-masked surfaces). */
   setSide(side: Side): Promise<void>;
-  paletteError(): Promise<number>;
   bakeImpostor(): Promise<{
     hash: string;
     width: number;
@@ -130,7 +123,7 @@ const toBase64 = (bytes: Uint8Array) => {
   return btoa(s);
 };
 
-function initialPose(model: LoadedModel | null): ModelPose | null {
+function initialPose(model: LoadedModel | null): BenchPose | null {
   if (!model) return null;
   const bundle = model.installed.appearances.get(model.name)?.bundle;
   if (!bundle) return null;
@@ -148,11 +141,9 @@ export default function Workbench() {
   const [model, setModel] = useState<LoadedModel | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [pose, setPose] = useState<ModelPose | null>(null);
+  const [pose, setPose] = useState<BenchPose | null>(null);
   const [tier, setTier] = useState(0);
   const [playing, setPlaying] = useState(false);
-  const [mode, setMode] = useState<PoseMode>("manual");
-  const [feedTime, setFeedTime] = useState(0);
   const [show, setShow] = useState({ figure: true, hitBox: true, sockets: true });
   // Material texture channels drawn, and whether the texture preview is open.
   const [channels, setChannels] = useState<Record<TextureChannel, boolean>>({
@@ -240,76 +231,26 @@ export default function Workbench() {
     });
   }, [catalog, units]);
 
-  // The replay drives the unit type the model is fitted to, its mounts drawn
-  // by the rigs the model declares.
-  const replay = useMemo((): ReplayUnit | null => {
-    if (!model?.type || UNIT_BUNDLE_KIND[model.unit] === "static") return null;
-    const draws = model.installed.appearances.get(model.name)?.mounts;
-    return { kind: model.type, mounts: mountRoles(units.type(model.type), draws), units };
-  }, [model, units]);
-
-  // The pose driver, fed by the replay; rebuilt per model. The model on the
-  // bench plays every kind the replay drives, so its clips and rigs answer
-  // for all.
-  const driver = useMemo(() => {
-    const facts = skeleton;
-    const mounts = replay?.mounts ?? [];
-    return new PoseDriver({
-      units,
-      mounts: () => mounts,
-      feel: gamePose,
-      leanHold: game.cover.lean_hold_s,
-      clip: (_kind, name) => {
-        const clip = facts?.clips.find((c) => c.name === name);
-        return clip
-          ? { duration: clip.duration, loop: clip.loop, stride_m: clip.stride_m ?? null }
-          : null;
-      },
-    });
-  }, [skeleton, replay, units]);
-
-  const feedModels = useCallback(
-    (t: number): ModelInstance[] => {
-      if (!model || !replay) return [];
-      const feed = feedAt(replay, t);
-      const frame = driver.update(feed);
-      // The view follows the unit: its models are drawn relative to where it
-      // started this frame, so the camera never loses a driving vehicle.
-      const [ox, oy] = feed.units[0]?.position ?? [0, 0];
-      const resolve = () => ({ appearance: model.name, tint: tint ?? NO_TINT });
-      const posed = poseFrameInstances([], frame, resolve).map((m) => ({
-        ...m,
-        pose: { ...m.pose },
-      }));
-      const lying: ModelInstance[] = frame.corpses.map((c) => ({
+  const models = useMemo<ModelInstance[]>(() => {
+    const bundle = model?.installed.appearances.get(model.name)?.bundle;
+    if (!model || !pose || !bundle) return [];
+    return [
+      {
         appearance: model.name,
-        x: c.position[0],
-        y: c.position[1],
-        z: c.position[2],
-        yaw: c.yaw,
-        pose: { kind: "corpse", lies: c.lies },
-      }));
-      return [...posed, ...lying].map((m) => ({
-        ...m,
-        x: m.x - ox,
-        y: m.y - oy,
+        x: 0,
+        y: 0,
+        z: 0,
+        yaw: 0,
+        pose: drawnPose(bundle, skeleton, pose),
         tier,
         tint,
-      }));
-    },
-    [driver, model, replay, tier, tint],
-  );
+      },
+    ];
+  }, [model, pose, skeleton, tier, tint]);
 
-  const models = useMemo<ModelInstance[]>(() => {
-    if (!model || !pose) return [];
-    if (mode === "feed") return feedModels(feedTime);
-    return [{ appearance: model.name, x: 0, y: 0, z: 0, yaw: 0, pose, tier, tint }];
-  }, [model, pose, tier, tint, mode, feedTime, feedModels]);
-
-  // Per-frame animation: a playing clip, or the playing feed replay.
-  const playRef = useRef({ playing, mode, last: 0 });
+  // Per-frame animation: a playing clip.
+  const playRef = useRef({ playing, last: 0 });
   playRef.current.playing = playing;
-  playRef.current.mode = mode;
   /** Advances the clock only: the models follow through React state. */
   const animate = useCallback(
     (now: number) => {
@@ -317,10 +258,6 @@ export default function Workbench() {
       const dt = state.last ? Math.min(0.1, (now - state.last) / 1000) : 0;
       state.last = now;
       if (!state.playing || !model || !pose) return null;
-      if (state.mode === "feed" && replay) {
-        setFeedTime((t) => (t + dt) % replayLength(replay));
-        return null;
-      }
       if (pose.kind === "skinned") {
         const clip = skeleton?.clips.find((c) => c.name === pose.clip);
         if (!clip) return null;
@@ -331,7 +268,7 @@ export default function Workbench() {
       }
       return null;
     },
-    [model, pose, skeleton, replay],
+    [model, pose, skeleton],
   );
 
   const world = useMemo(
@@ -344,7 +281,7 @@ export default function Workbench() {
     if (!bundle || !model || !framing) return EMPTY;
     const scale = Math.max(1, (framing.max[0] - framing.min[0]) / 3);
     const marks = models.map((m) =>
-      benchOverlay(m, model.body, posedSockets(bundle, skeleton, m.pose), show, scale),
+      benchOverlay(m, model.body, pose ? posedSockets(bundle, skeleton, pose) : [], show, scale),
     );
     const size = marks.reduce((n, m) => n + m.opaque.length, 0);
     const opaque = new Float32Array(size);
@@ -354,7 +291,7 @@ export default function Workbench() {
       at += m.opaque.length;
     }
     return { opaque, translucent: new Float32Array(0) };
-  }, [bundle, model, models, skeleton, show, framing]);
+  }, [bundle, model, models, pose, skeleton, show, framing]);
   const overlayFeed = useFeed(overlay);
 
   const install = useCallback((next: LoadedModel) => {
@@ -363,8 +300,6 @@ export default function Workbench() {
     setTier(0);
     setImpostor(null);
     setSheetUrl(null);
-    setMode("manual");
-    setFeedTime(0);
     setError(null);
   }, []);
 
@@ -588,24 +523,9 @@ export default function Workbench() {
         await drawn();
       },
       async setPose(p, t = 0) {
-        setMode("manual");
         setPlaying(false);
         setPose(p);
         setTier(t);
-        await new Promise((r) => setTimeout(r, 0));
-        await drawn();
-      },
-      async setFeed(time) {
-        setPlaying(false);
-        if (time === null) setMode("manual");
-        else {
-          setMode("feed");
-          driver.reset();
-          // Walk the driver up to `time` so gaits and phases are as if played.
-          if (latest.current.model && replay)
-            for (let t = 0; t < time; t += 1 / 30) driver.update(feedAt(replay, t));
-          setFeedTime(time);
-        }
         await new Promise((r) => setTimeout(r, 0));
         await drawn();
       },
@@ -618,12 +538,6 @@ export default function Workbench() {
         setSide(next);
         await new Promise((r) => setTimeout(r, 0));
         await drawn();
-      },
-      async paletteError() {
-        const m = latest.current.model;
-        const instance = latest.current.models[0];
-        if (!m || !instance || !gpu.current) return Infinity;
-        return paletteError(gpu.current.frame(), m.installed, instance);
       },
       async bakeImpostor() {
         const atlas = await latest.current.bake();
@@ -670,7 +584,7 @@ export default function Workbench() {
     return () => {
       if (window.__workbench === handle) delete window.__workbench;
     };
-  }, [install, reloadCatalog, setCamera, driver, replay, session, units]);
+  }, [install, reloadCatalog, setCamera, session, units]);
 
   const initialCamera = useMemo(
     () => viewCamera("q-front", { min: [-1, -1, 0], max: [1, 1, 2] }),
@@ -725,7 +639,7 @@ export default function Workbench() {
           gpu.current = g;
           setReady(true);
         }}
-        diagnostics={{ model: model?.name ?? null, view, mode }}
+        diagnostics={{ model: model?.name ?? null, view }}
       />
       {dragging && <div className="wb-dropping">Drop a .glb to validate and render it</div>}
       <aside className="hud-panel lab-panel wb-panel" data-testid="workbench-panel">
@@ -937,43 +851,11 @@ export default function Workbench() {
                 <div className="lab-hint">no textured materials</div>
               ))}
             <div className="lab-row">
-              <button
-                type="button"
-                aria-pressed={mode === "manual"}
-                onClick={() => setMode("manual")}
-              >
-                pose
-              </button>
-              {replay && (
-                <button
-                  type="button"
-                  aria-pressed={mode === "feed"}
-                  onClick={() => {
-                    driver.reset();
-                    setMode("feed");
-                  }}
-                >
-                  feed replay
-                </button>
-              )}
               <button type="button" aria-pressed={playing} onClick={() => setPlaying(!playing)}>
                 {playing ? "pause" : "play"}
               </button>
             </div>
-            {mode === "feed" && replay && (
-              <label>
-                t {feedTime.toFixed(1)} s · {beatAt(replay, feedTime)}
-                <input
-                  type="range"
-                  min={0}
-                  max={replayLength(replay)}
-                  step={0.05}
-                  value={feedTime}
-                  onChange={(e) => setFeedTime(Number(e.target.value))}
-                />
-              </label>
-            )}
-            {mode === "manual" && pose?.kind === "skinned" && (
+            {pose?.kind === "skinned" && (
               <>
                 <label>
                   clip
@@ -1001,7 +883,7 @@ export default function Workbench() {
                 </label>
               </>
             )}
-            {mode === "manual" && pose?.kind === "articulated" && (
+            {pose?.kind === "articulated" && (
               <>
                 {(
                   [
@@ -1052,7 +934,7 @@ export default function Workbench() {
                 </label>
               </>
             )}
-            {mode === "manual" && pose?.kind === "static" && bundle?.kind === "static" && (
+            {pose?.kind === "static" && bundle?.kind === "static" && (
               <label>
                 state
                 <select

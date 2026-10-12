@@ -7,7 +7,7 @@
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
 import { knownFallen } from "@apps/battle-lab/src/destroyedBuildings";
-import { effectPublication, gameEffects } from "@apps/battle-lab/src/effectFeed";
+import { gameEffects } from "@apps/battle-lab/src/benchmark/effectPresentation";
 import { TEST_RULES, labScenario } from "./catalog";
 import { type LabEncounter } from "@apps/battle-lab/src/scenarios";
 import { Battle, initSync, WorldView, world_layout } from "@wasm/game_wasm.js";
@@ -174,26 +174,9 @@ test("a side knows a building collapsed or gutted once it has seen it, and intac
     expect(tops("red", compound)).toEqual([fell.authored, fell.authored, fell.authored]);
     expect(tops("red", tower)).toEqual([stands.authored]);
 
-    // What a side knows destroyed smokes for it, each part where it stands:
-    // the compound's remains as a ruin does, the tower's shell as a gutted
-    // building does, each a look the fixture has. Nothing smokes for red.
-    const smokes = (side: "blue" | "red") =>
-      effectPublication(battle.sees(side), side, UNITS)
-        .smokes.map((s) => ({
-          kind: s.kind,
-          at: [s.center[0], s.center[1]],
-          top: s.center[2] + 2 * s.half[2],
-        }))
-        .sort((a, b) => a.at[1] - b.at[1] || a.at[0] - b.at[0]);
-    const smoking = (building: number, kind: string, top: number) =>
-      battle.index.parts[building].map((p) => ({ kind, at: [...p.center], top }));
-    expect(smokes("blue")).toEqual(
-      [...smoking(tower, "gutted", stands.authored), ...smoking(compound, "ruin", remains)].sort(
-        (a, b) => a.at[1] - b.at[1] || a.at[0] - b.at[0],
-      ),
-    );
+    // What a side knows destroyed smokes for it (the presentation's effects,
+    // `crates/presentation`): ruins and gutted shells each have a look.
     expect(Object.keys(gameEffects.smoke)).toEqual(expect.arrayContaining(["gutted", "ruin"]));
-    expect(smokes("red")).toEqual([]);
 
     // Long after, red has still not seen either: both intact for it.
     const walks = encounter.scripts[0].tick;

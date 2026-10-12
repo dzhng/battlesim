@@ -35,7 +35,7 @@ import {
 } from "./buildingPlacements";
 import type { BuildingStyle, SideBuildings } from "./buildingReferences";
 import { buildingCounts, buildingTables, type BuildingTables } from "./buildingTables";
-import { MODEL_RECORD_FLOATS } from "./modelInstances";
+import { INSTANCE_WORDS as MODEL_RECORD_FLOATS } from "../records.gen";
 import { flushPool } from "./placementPool";
 import {
   SURFACE_CLASSES,

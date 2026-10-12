@@ -8,7 +8,7 @@ import { useBuiltScenario } from "../useBuiltScenario";
 import { STREET_CAMERA, STREET_SEED } from "../streetScenario";
 import { REVIEW_LANES, buildProjectileReview, reviewLanePositions } from "../projectileReview";
 import { TickStatus } from "../TickStatus";
-import { gameEffects } from "../effectFeed";
+import { gameEffects } from "../benchmark/effectPresentation";
 
 const _projectiles_xy: Vec2 = [0, 0];
 function near(position: Vec3, at: Vec2) {

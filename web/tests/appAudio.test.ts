@@ -6,7 +6,6 @@ import { SOUNDS } from "@packages/battle-audio/src/synth";
 import { soundSettings } from "@packages/battle-audio/src/settings";
 import type { SoundCatalog } from "@packages/battle-audio/src/catalog";
 import type { AudioPresentation } from "@packages/battle-audio/src/audioPresentation";
-import type { EffectPresentation } from "@packages/battle-renderer/src/effects/effectFrame";
 
 const param = (value = 0) => ({
   value,
@@ -114,9 +113,11 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 const presentation = game.presentation.audio as unknown as AudioPresentation;
-const cookOff = (game.presentation.effects as unknown as EffectPresentation).cook_off;
+const cookOff = game.presentation.effects.cook_off;
 const empty = (tick: number) => ({
-  effects: { tick, shooters: [], segments: [], blasts: [], smokes: [] },
+  effects: { tick, segments: [], blasts: [], smokes: [] },
+  launches: [],
+  turretLandsS: 0,
   audible: [],
 });
 const camera = {
