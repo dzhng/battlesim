@@ -115,11 +115,17 @@ export class ElevenLabsClient {
     return ((await response.json()) as { previews: DesignedVoice[] }).previews;
   }
   /** Saves a designed candidate permanently and returns its voice_id. */
-  async saveVoice(name: string, description: string, generatedVoiceId: string) {
+  async saveVoice(
+    name: string,
+    description: string,
+    generatedVoiceId: string,
+    labels: Record<string, string> = {},
+  ) {
     const response = await this.post("/v1/text-to-voice", {
       voice_name: name,
       voice_description: description,
       generated_voice_id: generatedVoiceId,
+      labels,
     });
     return ((await response.json()) as { voice_id: string }).voice_id;
   }

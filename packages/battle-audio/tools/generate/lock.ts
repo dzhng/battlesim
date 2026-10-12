@@ -28,18 +28,47 @@ export interface TakeRecord {
   /** The reviewer's judgement, bound to the served bytes it judged. */
   verdict?: { value: "ok" | "bad"; sha256: string };
 }
+/** One Voice Design preview, kept as a raw master because its generated id is temporary. */
+export interface CandidateRecord {
+  /** Valid only for a while after the design; `generate pick` saves it as a permanent voice. */
+  generated_voice_id: string;
+  /** Raw master, relative to the repo root. */
+  raw: string;
+  raw_sha256: string;
+  /** As Voice Design reported it. */
+  duration_s: number;
+  /** Speech-to-text of the raw master; null until transcribed. */
+  transcript: string | null;
+  match: Match | null;
+}
+/** A voice's design: the candidates one description and audition text produced. */
+export interface DesignRecord {
+  description: string;
+  /** The role's audition text every candidate speaks. */
+  text: string;
+  model: string;
+  retake: number;
+  /** Hash of the four above: a design is bought again only when one changes. */
+  design_key: string;
+  date: string;
+  candidates: CandidateRecord[];
+  /** The candidate saved as the voice (1-based), and the permanent id it was saved as. */
+  picked?: { candidate: number; voice_id: string; date: string };
+}
 /** `fixtures/voices.lock.json`: written only by the generation tool. */
 export interface VoiceLock {
   beds: Record<string, BedRecord>;
+  /** Voice designs by `<set>/<voice>`. */
+  designs: Record<string, DesignRecord>;
   takes: Record<string, TakeRecord>;
 }
 
 export const LOCK = "fixtures/voices.lock.json";
 
 export function readLock(path: string): VoiceLock {
-  if (!existsSync(path)) return { beds: {}, takes: {} };
+  if (!existsSync(path)) return { beds: {}, designs: {}, takes: {} };
   const lock = JSON.parse(readFileSync(path, "utf8")) as Partial<VoiceLock>;
-  return { beds: lock.beds ?? {}, takes: lock.takes ?? {} };
+  return { beds: lock.beds ?? {}, designs: lock.designs ?? {}, takes: lock.takes ?? {} };
 }
 
 /** A take's standing verdict: one given to other bytes no longer holds. */
@@ -84,7 +113,11 @@ const sorted = <T>(record: Record<string, T>) =>
 export function writeLock(path: string, lock: VoiceLock): void {
   writeAtomic(
     path,
-    `${JSON.stringify({ beds: sorted(lock.beds), takes: sorted(lock.takes) }, null, 2)}\n`,
+    `${JSON.stringify(
+      { beds: sorted(lock.beds), designs: sorted(lock.designs), takes: sorted(lock.takes) },
+      null,
+      2,
+    )}\n`,
   );
 }
 

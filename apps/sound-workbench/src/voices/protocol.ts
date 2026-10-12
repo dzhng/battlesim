@@ -28,6 +28,14 @@ export interface SetCounts {
   ok: number;
   bad: number;
 }
+/** A voice's Voice Design candidates, by `<set>/<voice>`. */
+export interface DesignView {
+  /** The role's audition text every candidate speaks. */
+  text: string;
+  candidates: { transcript: string | null; score: number | null; duration_s: number }[];
+  /** The candidate saved as the voice (1-based), if any. */
+  picked: number | null;
+}
 export interface VoiceSnapshot {
   /** The `voices.json` generation a draft edits. Verdicts never change it. */
   revision: string;
@@ -35,6 +43,7 @@ export interface VoiceSnapshot {
   /** Locked takes by take id. */
   takes: Record<string, TakeView>;
   counts: Record<string, SetCounts>;
+  designs: Record<string, DesignView>;
 }
 export interface VoiceDraft {
   revision: string;
@@ -76,8 +85,15 @@ export interface VoiceAPI {
   save(review: Save): Promise<VoiceSnapshot>;
   verdict(request: VerdictRequest): Promise<VerdictResult>;
   generate(scope: VoiceScope): Promise<{ job: VoiceJob }>;
+  /** Designs new candidates for `<set>/<voice>`. */
+  design(voice: string): Promise<{ job: VoiceJob }>;
+  /** Saves candidate 1–3 as the voice; voices.json gains its voice_id. */
+  pick(voice: string, candidate: number): Promise<VoiceSnapshot>;
   jobs(): Promise<{ jobs: VoiceJob[] }>;
 }
+/** A design candidate rendered through its set's profile. */
+export const candidateUrl = (voice: string, candidate: number) =>
+  `/__sound-workbench/voices/candidate/${voice}/${candidate}`;
 
 async function request<T>(endpoint: string, body?: unknown): Promise<T> {
   const response = await fetch(
@@ -100,5 +116,7 @@ export const voiceAPI: VoiceAPI = {
   save: (review) => request("save", review),
   verdict: (body) => request("verdict", body),
   generate: (scope) => request("generate", { scope }),
+  design: (voice) => request("design", { voice }),
+  pick: (voice, candidate) => request("pick", { voice, candidate }),
   jobs: () => request("jobs"),
 };

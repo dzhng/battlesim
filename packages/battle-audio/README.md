@@ -116,6 +116,17 @@ high word error or a take longer than its trigger's talk time flags it for revie
 `check` proves the lock by hash and never re-encodes, since MP3 bytes differ between
 ffmpeg builds.
 
+A voice is bought before its takes. `design` asks Voice Design for three candidates
+from the voice's description, each speaking its role's audition: the role's own
+lines, steady to desperate, the same for every voice of the role so candidates
+compare. A candidate's generated id is temporary, so its preview is kept as a raw
+master (`assets/source/audio/voices/design/`), transcribed, and recorded in the
+lock's `designs`; a design is bought again only when the description, audition or
+the voice's design retake (`<set>/<voice>/design` in `retakes`) changes. `pick` saves
+one candidate as a permanent voice and writes its `voice_id` into `voices.json`
+through the workbench's fixture publication. Candidates are heard through the set's
+profile, rendered locally into the scratch folder.
+
 [`assets.py voice`](tools/assets.py) is the treatment: where the speaker sits
 decides it (dry in the open, a light radio over the tank's engine, an earpiece for
 recon, an intercom over the rotor). Each take is mixed with its profile's hiss and

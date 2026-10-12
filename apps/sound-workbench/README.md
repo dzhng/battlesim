@@ -52,3 +52,6 @@ the same publication. The voice lock has one writer, the generation tool: the
 workbench server runs it for each verdict and generation, one command at a time, and
 a verdict names the served bytes it judged, so a regenerated take reads as unreviewed
 again. A generation always names its sets, so a click never spends on the whole library.
+A voice without a saved voice offers its design candidates, played through the set's
+profile; Pick runs the tool's `pick`, and None of these bumps the voice's design
+retake and designs again.

@@ -23,7 +23,7 @@
 - [x] 03 — Voices tab: the workbench review grid, the keyboard review queue, verdicts, and regenerating a take. [slice](slices/03-voices-tab.md)
 - [x] 02b — Beds from the game's own sounds: the helicopter intercom bed uses the `rotor-uh60` catalog clip, low-passed to 900 Hz (user, `choices.md` → beds). Do this before 04.
 - [x] 04 — Pilot: `us_tank` with all 29 triggers, a credit and mismatch report, then straight on to the batch. [slice](slices/04-pilot.md)
-- [ ] 05 — Voice design: 3 candidates per voice, the user's pick saved permanently. [slice](slices/05-voice-design.md)
+- [x] 05 — Voice design: 3 candidates per voice, the user's pick saved permanently. [slice](slices/05-voice-design.md)
 - [ ] 06 — Full batch and packs: background generation, the user's review, and per-set packs. [slice](slices/06-full-batch.md)
 - [x] 07 — Music player: the `music` and `voices` buses, streaming, the settings sliders, the `music` catalog section, and moving the menu bed over. [slice](slices/07-music-player.md)
 - [ ] 08 — Music tracks: 3 combat and 3 tension tracks, the Music tab, and the mood director. [slice](slices/08-music-tracks.md)

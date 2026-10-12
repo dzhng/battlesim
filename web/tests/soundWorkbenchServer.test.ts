@@ -421,7 +421,7 @@ async function voiceFixture(
     const address = server.address();
     if (!address || typeof address === "string") throw new Error("No local server address");
     const origin = `http://127.0.0.1:${address.port}`;
-    return async (endpoint: string, body?: unknown) => {
+    return async (endpoint: string, body?: unknown, raw = false) => {
       const response = await fetch(
         `${origin}/__sound-workbench/voices/${endpoint}`,
         body === undefined
@@ -432,7 +432,11 @@ async function voiceFixture(
               body: JSON.stringify(body),
             },
       );
-      return { status: response.status, body: await response.json() };
+      return {
+        status: response.status,
+        type: response.headers.get("content-type"),
+        body: raw ? await response.text() : await response.json(),
+      };
     };
   };
   return { root, text, open };
@@ -563,6 +567,8 @@ test("voice edits publish line text, descriptions and retakes only", async () =>
   catalog.roles.crew.lines.move.steady[0] = "Moving out.";
   catalog.sets.tank.voices[1].description = "Young loader";
   catalog.retakes[LEAD_MOVE] = 1;
+  // "None of these" asks for a voice's design retake.
+  catalog.retakes["tank/soldier/design"] = 1;
   const review = await request("preview", { revision: initial.revision, catalog });
   expect(review.status).toBe(200);
   expect(await readFile(join(fixture.root, "fixtures/voices.json"), "utf8")).toBe(fixture.text);
@@ -572,7 +578,7 @@ test("voice edits publish line text, descriptions and retakes only", async () =>
   });
   expect(saved.status).toBe(200);
   expect(saved.body.catalog.roles.crew.lines.move.steady[0]).toBe("Moving out.");
-  expect(saved.body.catalog.retakes[LEAD_MOVE]).toBe(1);
+  expect(saved.body.catalog.retakes).toEqual({ [LEAD_MOVE]: 1, "tank/soldier/design": 1 });
   // Who speaks, with which voice and where, is not this editor's to change.
   for (const mutate of [
     (c: VoiceCatalog) => (c.sets.tank.voices[0].voice_id = "other"),
@@ -587,4 +593,68 @@ test("voice edits publish line text, descriptions and retakes only", async () =>
       (await request("preview", { revision: saved.body.revision, catalog: changed })).status,
     ).toBe(400);
   }
+});
+
+test("a design candidate is played through the tool's preview, and pick runs the tool's pick", async () => {
+  const runs: string[][] = [];
+  let root = "";
+  const fixture = await voiceFixture(async (args) => {
+    runs.push(args);
+    if (args[0] === "preview") {
+      await mkdir(join(root, "throwaway/voice-design/tank/soldier"), { recursive: true });
+      await writeFile(join(root, "throwaway/voice-design/tank/soldier/2.mp3"), "candidate-two");
+    }
+    if (args[0] === "pick") {
+      // The tool saves the voice and writes its id into voices.json.
+      const catalog = voiceCatalog();
+      catalog.sets.tank.voices[1].voice_id = "picked-id";
+      await writeFile(join(root, "fixtures/voices.json"), JSON.stringify(catalog, null, 2));
+    }
+    return 0;
+  });
+  root = fixture.root;
+  const lock = await lockOf(root);
+  const candidate = (n: number) => ({
+    generated_voice_id: `g${n}`,
+    raw: `assets/source/audio/voices/design/tank/soldier/candidate-${n}.mp3`,
+    raw_sha256: "r".repeat(64),
+    duration_s: 8 + n,
+    transcript: "heard",
+    match: { score: 0.9, missing: [], overlong: false, flagged: false },
+  });
+  lock.designs = {
+    "tank/soldier": {
+      description: "Crew",
+      text: "audition",
+      model: "m",
+      retake: 0,
+      design_key: "k",
+      date: "2026-10-12",
+      candidates: [1, 2, 3].map(candidate),
+    },
+  };
+  await writeFile(join(root, "fixtures/voices.lock.json"), JSON.stringify(lock));
+  const request = await fixture.open();
+  const snapshot = (await request("snapshot")).body;
+  expect(snapshot.designs["tank/soldier"].candidates[1]).toEqual({
+    transcript: "heard",
+    score: 0.9,
+    duration_s: 10,
+  });
+
+  const audio = await request("candidate/tank/soldier/2", undefined, true);
+  expect(audio).toMatchObject({ status: 200, type: "audio/mpeg", body: "candidate-two" });
+  // Rendered once per voice per session.
+  await request("candidate/tank/soldier/2", undefined, true);
+  expect(runs).toEqual([["preview", "tank/soldier"]]);
+  expect((await request("candidate/tank/nobody/1", undefined, true)).status).toBe(400);
+
+  const picked = await request("pick", { voice: "tank/soldier", candidate: 2 });
+  expect(picked.status).toBe(200);
+  expect(runs.at(-1)).toEqual(["pick", "tank/soldier", "2"]);
+  expect(picked.body.catalog.sets.tank.voices[1].voice_id).toBe("picked-id");
+  expect((await request("pick", { voice: "tank/soldier", candidate: 4 })).status).toBe(400);
+
+  const designed = await request("design", { voice: "tank/soldier" });
+  expect(designed.body.job.args).toEqual(["design", "tank/soldier"]);
 });
