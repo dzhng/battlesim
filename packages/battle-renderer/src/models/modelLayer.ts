@@ -644,10 +644,11 @@ interface DrawRun {
 }
 
 /** One of the props' static batches as last written: its records' buffer
- *  (grown, never shrunk), its row and tier, and how many it holds. */
+ *  (a power of two of records, in a scope of its own), its row and tier,
+ *  and how many it holds. */
 interface HeldProps {
-  slot: GpuSlot<GPUBuffer>;
-  capacity: number;
+  scope: GpuRegistry | null;
+  buffer: GPUBuffer | null;
   row: number;
   tier: number;
   count: number;
@@ -1137,7 +1138,7 @@ export async function createModelLayer(
       const row = worldRows[h.row];
       const gpu = row && appearances.get(row.name);
       const drawable = gpu?.states.get(row.state)?.[h.tier];
-      if (!drawable || !h.slot.current || !h.count) continue;
+      if (!drawable || !h.buffer || !h.count) continue;
       propRuns.push({
         run: {
           drawable,
@@ -1146,17 +1147,22 @@ export async function createModelLayer(
           firstInstance: 0,
           instances: h.count,
         },
-        buffer: h.slot.current,
+        buffer: h.buffer,
       });
     }
     dirty = true;
   }
 
   /** The props' batches of a presentation frame: their records copied
-   *  where the frame wrote them. True when what is drawn changed. */
+   *  where the frame wrote them, and those it no longer lists dropped (the
+   *  frame writes one anew when it comes back). The buffers held are those
+   *  of the batches listed, a power of two of records each: the same view
+   *  holds the same buffers, however it was reached. True when what is
+   *  drawn changed. */
   function setProps(frame: ReturnType<typeof frameViews> | null): boolean {
     let changed = false;
     const next: HeldProps[] = [];
+    const listed = new Set<number>();
     const words = frame?.batches.u32;
     for (let b = 0; b < (frame?.batches.count ?? 0); b++) {
       const o = b * BATCH_WORDS;
@@ -1164,27 +1170,33 @@ export async function createModelLayer(
       if (!isProp(worldRows[row])) continue;
       const key = words![o + Batch.key];
       let h = heldProps.get(key);
-      if (!h) {
-        propScope ??= registry.scope();
-        heldProps.set(key, (h = { slot: propScope.slot(), capacity: 0, row, tier: 0, count: 0 }));
-      }
+      if (!h) heldProps.set(key, (h = { scope: null, buffer: null, row, tier: 0, count: 0 }));
       const [first, count] = [words![o + Batch.first], words![o + Batch.count]];
       [h.row, h.tier, h.count] = [row, words![o + Batch.tier], count];
       if (first !== NONE) {
-        if (h.capacity < count) {
-          h.capacity = Math.max(64, count * 2);
-          h.slot.set(buffer("model-prop-records", h.capacity * RECORD_FLOATS * 4, VERTEX_USAGE));
+        const size = 2 ** Math.ceil(Math.log2(Math.max(1, count))) * RECORD_FLOATS * 4;
+        if (h.buffer?.size !== size) {
+          h.scope?.release();
+          propScope ??= registry.scope();
+          h.scope = propScope.scope();
+          h.buffer = h.scope.buffer({ label: "model-prop-records", size, usage: VERTEX_USAGE });
         }
         const records = frame!.instances.f32.subarray(
           first * RECORD_FLOATS,
           (first + count) * RECORD_FLOATS,
         );
-        device.queue.writeBuffer(h.slot.current!, 0, records as Float32Array<ArrayBuffer>);
+        device.queue.writeBuffer(h.buffer!, 0, records as Float32Array<ArrayBuffer>);
         changed = true;
       }
+      listed.add(key);
       next.push(h);
     }
-    if (next.length !== listedProps.length) changed = true;
+    for (const [key, h] of heldProps)
+      if (!listed.has(key)) {
+        h.scope?.release();
+        heldProps.delete(key);
+        changed = true;
+      }
     listedProps = next;
     if (changed) relistProps();
     return changed;
