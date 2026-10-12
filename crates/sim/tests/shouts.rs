@@ -33,14 +33,38 @@ fn observation_frame_exposes_shouts_without_affecting_initial_battle() {
     assert!(frame.shouts.is_empty());
 }
 
+/// Every source file under `dir`, however deep.
+fn rust_sources(dir: &std::path::Path) -> Vec<std::path::PathBuf> {
+    let mut found = Vec::new();
+    for entry in std::fs::read_dir(dir).unwrap() {
+        let path = entry.unwrap().path();
+        if path.is_dir() {
+            found.extend(rust_sources(&path));
+        } else if path.extension().is_some_and(|e| e == "rs") {
+            found.push(path);
+        }
+    }
+    found
+}
+
 #[test]
 fn ai_sources_do_not_read_the_shout_channel() {
-    let source = std::fs::read_to_string(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/src/skirmish_ai/mod.rs"
-    ))
-    .unwrap();
-    assert!(!source.contains(".shouts"));
+    // Both deciders that read observation frames: the skirmish AI and the
+    // encounter's defender. A new module in either is covered as it lands.
+    let src = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+    let files: Vec<_> = ["skirmish_ai", "encounter"]
+        .iter()
+        .flat_map(|dir| rust_sources(&src.join(dir)))
+        .collect();
+    assert!(files.len() >= 2, "{files:?}");
+    for file in files {
+        let source = std::fs::read_to_string(&file).unwrap();
+        assert!(
+            !source.contains(".shouts"),
+            "{} reads shouts",
+            file.display()
+        );
+    }
 }
 
 #[test]
