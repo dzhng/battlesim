@@ -34,6 +34,14 @@ const execFileAsync = promisify(execFile);
 
 export const WEBGPU_FLAGS = ["--enable-unsafe-webgpu", "--enable-features=WebGPU"];
 
+/** Errors that make a lab page unable to become ready.  Catching these at the
+ * runner boundary avoids turning one adapter-limit failure into a chain of
+ * readiness timeouts. Scenes that intentionally exercise validation pass
+ * `allowErrors` and keep their existing assertions. */
+export function fatalGpuMessage(message) {
+  return /WebGPU (?:uncaptured error|device lost)|GPUPipelineError|Invalid Texture/i.test(message);
+}
+
 const nativeTools = [
   {
     name: "mechanics validator",
@@ -207,6 +215,7 @@ export async function run(fixtures) {
       });
   const failures = [];
   const pageErrors = [];
+  const fatalGpuErrors = new WeakMap();
   const seconds = [];
   try {
     for (const fixture of fixtures) {
@@ -249,23 +258,37 @@ export async function run(fixtures) {
           if (!allowErrors) {
             page.on("pageerror", (e) => pageErrors.push(`${fixture.id}: ${e.message}`));
             page.on("console", (m) => {
-              if (m.type() === "error") pageErrors.push(`${fixture.id}: ${m.text()}`);
+              if (m.type() !== "error") return;
+              const text = m.text();
+              pageErrors.push(`${fixture.id}: ${text}`);
+              if (fatalGpuMessage(text)) fatalGpuErrors.set(page, text);
             });
           }
           return page;
         },
         async openLab(page, url = ctx.url, timeout = 30000) {
           await page.goto(url);
-          await page.waitForFunction(
-            () =>
-              window.__lab?.ready ||
-              window.__lab?.error ||
-              document.querySelector("[data-testid=error]"),
-            undefined,
-            {
-              timeout,
-            },
-          );
+          let timer;
+          try {
+            await Promise.race([
+              page.waitForFunction(
+                () =>
+                  window.__lab?.ready ||
+                  window.__lab?.error ||
+                  document.querySelector("[data-testid=error]"),
+                undefined,
+                { timeout },
+              ),
+              new Promise((_, reject) => {
+                timer = setInterval(() => {
+                  const failure = fatalGpuErrors.get(page);
+                  if (failure) reject(new Error(`fatal WebGPU error: ${failure}`));
+                }, 50);
+              }),
+            ]);
+          } finally {
+            clearInterval(timer);
+          }
           let error = await page.evaluate(() => window.__lab?.error);
           if (!error && (await page.getByTestId("error").isVisible())) {
             const details = page.getByRole("button", { name: "Details", exact: true });

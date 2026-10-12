@@ -6,7 +6,14 @@ import {
   parseArgs,
   pinnedFixtures,
   selectFixtures,
+  fatalGpuMessage,
 } from "./scene.mjs";
+
+test("fatal GPU diagnostics are identified before readiness timeouts", () => {
+  expect(fatalGpuMessage("WebGPU uncaptured error: Texture size exceeded maximum")).toBe(true);
+  expect(fatalGpuMessage('WebGPU uncaptured error: [Invalid Texture "<unnamed>"]')).toBe(true);
+  expect(fatalGpuMessage("the scene is still loading")).toBe(false);
+});
 
 test("native helpers live in the durable Cargo target by default", () => {
   vi.stubEnv("CARGO_TARGET_DIR", "target");
