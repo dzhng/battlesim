@@ -51,7 +51,7 @@ export function words(text: string): string[] {
   return out;
 }
 
-function distance(a: string[], b: string[]): number {
+function editDistance(a: string[], b: string[]): number {
   let row = Array.from({ length: b.length + 1 }, (_, j) => j);
   for (let i = 1; i <= a.length; i++) {
     const next = [i];
@@ -83,7 +83,7 @@ export function matches(
 ): Match {
   const said = words(script);
   const heard = words(transcript);
-  const wordError = said.length ? distance(said, heard) / said.length : heard.length ? 1 : 0;
+  const wordError = said.length ? editDistance(said, heard) / said.length : heard.length ? 1 : 0;
   const keywords = new Set([...words(callsign), ...KEYWORDS]);
   const missing = [...new Set(said.filter((word) => keywords.has(word) && !heard.includes(word)))];
   const overlong = durationS > talkS;
