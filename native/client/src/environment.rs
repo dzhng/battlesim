@@ -1,16 +1,16 @@
 //! The frame-level bind groups every lit pass takes (`frame/environmentFrame.ts`
 //! and `world/environment.ts`): the camera, the environment light (the
-//! world's `Sun` and `Aerial` records, the sky lookup, its PMREM and the DFG
-//! table), and the fog. Each frame only the camera and the environment's
-//! view are written.
+//! world's `Sun` and `Aerial` records, the cast lights, the sky lookup, its
+//! PMREM and the DFG table), and the fog. Each frame the camera, the
+//! environment's view and the cast lights the presentation chose are
+//! written.
 //!
 //! Not built yet, and bound so that every shader reads them as absent:
 //! - the sun's cascades (step 4): no receiver falls inside a cascade, so
 //!   every surface takes the whole sun;
-//! - the cast lights (effects): a zero count;
-//! - fog of war: every fog word zero (`enabled` 0, nothing painted), so
-//!   every surface is seen.
-use presentation::records::{Aerial, Sun, View};
+//! - fog of war's sight (its inputs come with the static world): every fog
+//!   word zero (`enabled` 0, nothing painted), so every surface is seen.
+use presentation::records::{Aerial, CastLight, Sun, View};
 use wgpu::*;
 
 use crate::frame::HDR_FORMAT;
@@ -22,8 +22,9 @@ use crate::pipelines::Pipelines;
 const CAMERA_BYTES: usize = 160;
 /// `Environment`'s members before the `Sun` record: the view and the observer.
 const SUN_AT: usize = 80;
-/// `CastLights`: a header and 24 lights.
-const CAST_LIGHTS_BYTES: usize = 16 + 24 * 32;
+/// `CastLights`: a header (count, wrap) and up to 24 lights.
+const CAST_LIGHTS_MAX: usize = 24;
+const CAST_LIGHTS_BYTES: usize = 16 + CAST_LIGHTS_MAX * 32;
 /// `SunShadow`: four cascades (matrix, bias, interval) and the control.
 const CASCADES: usize = 4;
 const SUN_SHADOW_BYTES: usize = CASCADES * 96 + 16;
@@ -39,8 +40,12 @@ pub struct Environment {
     pub camera: BindGroup,
     pub environment: BindGroup,
     pub fog: BindGroup,
-    camera_buffer: Buffer,
-    data: Buffer,
+    /// The camera uniform, the environment uniform, its PMREM and the cast
+    /// lights, which the effects bind beside their own resources.
+    pub camera_buffer: Buffer,
+    pub data: Buffer,
+    pub pmrem: TextureView,
+    pub cast_lights: Buffer,
     /// The environment uniform's light part, set once.
     image: Vec<f32>,
 }
@@ -327,7 +332,8 @@ impl Environment {
         image[SUN_AT / 4 + 8] = top_mip as f32;
         image.extend_from_slice(bytemuck::cast_slice(bytemuck::bytes_of(aerial)));
         let data = buffer(device, "environment", uniform, bytemuck::cast_slice(&image));
-        let lights = buffer(device, "cast-lights", uniform, &[0; CAST_LIGHTS_BYTES]);
+        let cast_lights = buffer(device, "cast-lights", uniform, &[0; CAST_LIGHTS_BYTES]);
+        let pmrem = pmrem.create_view(&Default::default());
         let dfg = texture(
             device,
             "dfg",
@@ -382,9 +388,9 @@ impl Environment {
             "environment",
             &[
                 data.as_entire_binding(),
-                lights.as_entire_binding(),
+                cast_lights.as_entire_binding(),
                 BindingResource::TextureView(sky_lut),
-                BindingResource::TextureView(&pmrem.create_view(&Default::default())),
+                BindingResource::TextureView(&pmrem),
                 BindingResource::TextureView(&dfg.create_view(&Default::default())),
                 BindingResource::Sampler(&linear),
                 sun_shadow.as_entire_binding(),
@@ -431,6 +437,8 @@ impl Environment {
             fog,
             camera_buffer,
             data,
+            pmrem,
+            cast_lights,
             image,
         }
     }
@@ -457,5 +465,16 @@ impl Environment {
             self.image[16 + i] = *v as f32;
         }
         queue.write_buffer(&self.data, 0, bytemuck::cast_slice(&self.image));
+    }
+
+    /// The frame's cast lights as the presentation chose them for the view,
+    /// each reaching `wrap` round a surface past facing it (`setCastLights`).
+    pub fn set_cast_lights(&self, queue: &Queue, lights: &[CastLight], wrap: f32) {
+        let lights = &lights[..lights.len().min(CAST_LIGHTS_MAX)];
+        let header = [lights.len() as f32, wrap, 0.0, 0.0];
+        queue.write_buffer(&self.cast_lights, 0, bytemuck::cast_slice(&header));
+        if !lights.is_empty() {
+            queue.write_buffer(&self.cast_lights, 16, bytemuck::cast_slice(lights));
+        }
     }
 }

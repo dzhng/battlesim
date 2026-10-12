@@ -2,7 +2,9 @@
 //! what the presentation crate's `Frame` lists (slice 25).
 pub mod bundle;
 pub mod capture;
+pub mod effects;
 pub mod environment;
+pub mod fog_mask;
 pub mod frame;
 pub mod gpu;
 pub mod models;

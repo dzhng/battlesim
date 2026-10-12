@@ -339,3 +339,14 @@ pub fn light_records(light: &str) -> Result<Vec<f32>, JsError> {
         .map_err(|e| JsError::new(&format!("presentation.light: {e}")))?;
     Ok(settings.records().words())
 }
+
+/// One unseen look (a `presentation.fog` style, JSON) resolved into the
+/// `FogLook` uniform's words (`fog.rs`); errs naming a field out of range.
+/// The fog mask passes need it when the frame is built and whenever a lab
+/// tunes the look, so this needs no `Presentation`.
+#[wasm_bindgen]
+pub fn fog_look(style: &str) -> Result<Vec<f32>, JsError> {
+    let style: presentation::fog::FogStyle =
+        serde_json::from_str(style).map_err(|e| JsError::new(&format!("fog style: {e}")))?;
+    Ok(style.look().map_err(error)?.words())
+}

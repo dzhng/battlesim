@@ -83,6 +83,7 @@ import {
 } from "./presentedFrame";
 import { emptyBuildingWalkStats } from "@packages/battle-renderer/src/models/buildingLayer";
 import {
+  resolveFogLook,
   resolveLight,
   type PresentedAppearance,
   type PresentedFrame,
@@ -563,7 +564,7 @@ export function LabViewport({
   fogStyleRef.current = fogStyle;
   const lightRef = useRef(light);
   useEffect(() => {
-    sceneRef.current?.setFogStyle(fogStyle ?? gameFogStyle);
+    sceneRef.current?.setFogLook(resolveFogLook(fogStyle ?? gameFogStyle));
     redrawRef.current();
   }, [fogStyle]);
   const fogSuppressed = useRef(false);
@@ -757,7 +758,7 @@ export function LabViewport({
           const next = await createBattleFrame(device!, info.format, {
             light: await resolveLight(lit),
             fogGeometry: gameFogGeometry,
-            fogStyle: fogStyleRef.current ?? gameFogStyle,
+            fogLook: resolveFogLook(fogStyleRef.current ?? gameFogStyle),
             overlayGlow: gameOverlayGlow,
             paint: gamePaint,
             xrayMinHiddenFragmentFraction: gameXrayMinHiddenFragmentFraction,

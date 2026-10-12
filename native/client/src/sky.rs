@@ -133,7 +133,7 @@ impl Pass for Sky {
             color_attachments: &[Some(RenderPassColorAttachment {
                 view: &targets.hdr_msaa,
                 depth_slice: None,
-                resolve_target: Some(&targets.hdr),
+                resolve_target: Some(&targets.lit),
                 // Kept: the world pass draws over it. It resolves too, since
                 // Metal skips the resolve of a tile a pass draws nothing into.
                 ops: Operations {

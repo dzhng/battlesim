@@ -8,7 +8,7 @@ import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "nod
 import { describe, expect, it } from "vitest";
 import { createBattleFrame } from "@packages/battle-renderer/src/frame/battleFrame";
 import type { LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
-import { resolveLight } from "@web/battle/sim/presentation";
+import { resolveFogLook, resolveLight } from "@web/battle/sim/presentation";
 import { benchWorld } from "../../apps/battle-lab/src/workbench/benchWorld";
 import { gameLight } from "../../apps/battle-lab/src/gameLight";
 import { gameFogGeometry, gameFogStyle } from "../../apps/battle-lab/src/gameFog";
@@ -35,7 +35,7 @@ async function record(light: LightPresentation, width: number, height: number) {
   const frame = await createBattleFrame(device, "bgra8unorm", {
     light: await resolveLight(light),
     fogGeometry: gameFogGeometry,
-    fogStyle: gameFogStyle,
+    fogLook: resolveFogLook(gameFogStyle),
     overlayGlow: gameOverlayGlow,
     paint: gamePaint,
     xrayMinHiddenFragmentFraction: gameXrayMinHiddenFragmentFraction,

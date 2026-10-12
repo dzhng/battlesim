@@ -7,7 +7,6 @@ import type { Mesh } from "./mesh";
 import type { ProxyKind } from "./proxies";
 import type { GpuFrameTime } from "./frame/gpuTiming";
 import type { FogInput } from "./frame/fogInputs";
-import type { FogStyle } from "./frame/fogStyle";
 import type { OverlayGlowStyle } from "./frame/overlayPass";
 import type { FogProbes, FogVisibilityStats } from "./frame/fogVisibility";
 import type { TerrainSurface } from "./terrain/terrainSurface";
@@ -266,8 +265,9 @@ export interface BattleFrame {
   /** Bake an installed appearance's far-pose impostor atlas with this frame's
    *  model path (`models/impostor.ts`). */
   bakeImpostor(appearance: string, spec?: ImpostorSpec): Promise<ImpostorAtlas>;
-  /** How unseen looks: identity on seen pixels, live from the next frame. */
-  setFogStyle(style: FogStyle): void;
+  /** How unseen looks (a `FogLook` record, `resolveFogLook`): identity on
+   *  seen pixels, live from the next frame. */
+  setFogLook(look: Float32Array): void;
   /** The overlays' own halo, live from the next frame (strength 0: none). */
   setOverlayGlow(glow: OverlayGlowStyle): void;
   /** Lab diagnostics: draw the painted ground marks or not (paired frames). */
