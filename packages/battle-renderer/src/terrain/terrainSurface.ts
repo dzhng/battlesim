@@ -3,10 +3,11 @@
 // flat-shaded, never resampled or exaggerated: landmine 11) under the biome's
 // material, whose tables (the plot split, the roads, forests and rivers
 // exactly as the simulation's surface rules define them, so a road is drawn
-// precisely where units find road), the ground's meshes, the water and the
-// scenery are resolved in Rust (`crates/presentation/src/static_world/ground`),
-// which the presentation module must have loaded (`loadPresentation`).
-import { Ground, terrain_mesh } from "@wasm/presentation/presentation_wasm.js";
+// precisely where units find road), the ground's meshes, the water's and the
+// scenery are resolved by the scene's presentation (`crates/presentation`'s
+// `static_world::ground`) from what is set here (`GroundInput`); the
+// presentation module must have loaded (`loadPresentation`).
+import { Presentation, terrain_mesh } from "@wasm/presentation/presentation_wasm.js";
 import game from "@fixtures/game.json";
 import type summer from "@fixtures/biomes/summer.json";
 import type { Mesh, Rgba } from "../mesh";
@@ -18,17 +19,41 @@ import type { TerrainGrid } from "./terrainGrid";
  *  window's and the scenery's few numbers. */
 export type Biome = typeof summer;
 
+/** What a presentation resolves a map's ground from (`Presentation.set_ground`). */
+export interface GroundInput {
+  exports: Partial<WorldExports> & Pick<WorldExports, "extents" | "terrain">;
+  layout: string;
+  biome: Biome;
+  family: string | null;
+}
+
+/** The ground a scene's presentation resolved: the calls the terrain
+ *  material, the grass and the water read its tables through. */
+export type PresentedGround = Pick<
+  Presentation,
+  | "ground_terrain"
+  | "ground_plots"
+  | "ground_water_mesh"
+  | "grass_kinds"
+  | "grass_params"
+  | "grass_window"
+  | "grass_props"
+  | "retune_grass"
+>;
+
 export interface TerrainSurface {
   /** Ground triangles in the one vertex format. The vertex colour is a tint
    *  over the biome material, its alpha the tint's weight: 0 draws the biome,
    *  1 the tint alone (the traversal view, render-only fixtures). */
   mesh: Mesh;
-  /** The ground Rust resolved: its tables, water and scenery. */
-  ground: Ground;
+  /** What the scene's presentation resolves the ground from. */
+  input: GroundInput;
   biome: Biome;
   /** The height grid grass is seated on; null where no grass grows (the
    *  traversal view, render-only patches: where the tint replaces the biome). */
   grid: TerrainGrid | null;
+  /** Whether the ground's water surface draws (not in the traversal view). */
+  water: boolean;
 }
 
 /** The traversal view's colours: ground units can or cannot enter. The
@@ -37,42 +62,46 @@ export interface TerrainSurface {
 export const OPEN: Rgba = [0.52, 0.56, 0.5, 1];
 export const BLOCKED: Rgba = [0.78, 0.3, 0.26, 1];
 
-/** The ground of `exports` under `biome`, in its map's region's finish. */
-function resolveGround(
-  exports: Partial<WorldExports> & Pick<WorldExports, "extents" | "terrain">,
-  layout: string,
-  biome: Biome,
-  family: string | null,
-): Ground {
+/** Sets `input`'s ground on `presentation` (`Presentation.set_ground`). */
+export function setGround(presentation: Presentation, input: GroundInput): void {
   const none = new Float32Array(0);
   const ids = new Uint32Array(0);
-  const { physical, rendered } = exports.extents;
-  const { pageIds, heights, ...grid } = exports.terrain;
-  return new Ground(
+  const { exports: e, layout, biome, family } = input;
+  const { physical, rendered } = e.extents;
+  const { pageIds, heights, ...grid } = e.terrain;
+  presentation.set_ground(
     Float64Array.from([...physical, ...(rendered[0] < 0 ? rendered : [])]),
     JSON.stringify(grid),
     pageIds,
     heights,
-    exports.props ?? none,
-    exports.foliage ?? none,
-    exports.surfaceStrokes ?? none,
-    exports.surfaceRuns ?? none,
-    exports.surfaceTriangles ?? none,
-    exports.surfaceBoundaries ?? none,
-    exports.rivers ?? none,
-    exports.riverRuns ?? none,
-    exports.forests ?? none,
-    exports.forestRectIds ?? ids,
-    exports.forestMetadata ?? none,
-    exports.forestStrokes ?? none,
-    exports.forestTriangles ?? none,
-    exports.forestBoundaries ?? none,
-    exports.forestTrunkRanges ?? ids,
+    e.props ?? none,
+    e.foliage ?? none,
+    e.surfaceStrokes ?? none,
+    e.surfaceRuns ?? none,
+    e.surfaceTriangles ?? none,
+    e.surfaceBoundaries ?? none,
+    e.rivers ?? none,
+    e.riverRuns ?? none,
+    e.forests ?? none,
+    e.forestRectIds ?? ids,
+    e.forestMetadata ?? none,
+    e.forestStrokes ?? none,
+    e.forestTriangles ?? none,
+    e.forestBoundaries ?? none,
+    e.forestTrunkRanges ?? ids,
     layout,
     JSON.stringify(biome),
     family ?? undefined,
     JSON.stringify(game.presentation),
   );
+}
+
+/** A presentation of `input`'s ground alone: the ground scenes' and the
+ *  tests' probes of what the material reads. Free it when done. */
+export function presentGround(input: GroundInput): Presentation {
+  const presentation = new Presentation();
+  setGround(presentation, input);
+  return presentation;
 }
 
 /** A ground of `map`, its triangles `gridM` wide, holding only `streams`
@@ -95,8 +124,8 @@ export function bareTerrain(
   };
   const extents = { physical: map, rendered: [0, 0, 0, 0] as const, playable: map };
   const layout = JSON.stringify({ propKinds: [], propAppearance: {} });
-  const ground = resolveGround({ ...streams, extents, terrain }, layout, biome, null);
-  return { mesh, ground, biome, grid: null };
+  const input = { exports: { ...streams, extents, terrain }, layout, biome, family: null };
+  return { mesh, input, biome, grid: null, water: true };
 }
 
 /** The ground of the exported world under `biome`, in its map's region's
@@ -111,11 +140,14 @@ export function buildTerrainSurface(
   const { positions, indices, triangleSurfaces } = exports;
   const traversal = overlay === "traversal" ? triangleSurfaces : undefined;
   const mesh = terrain_mesh(positions, indices, traversal, layout.flags.blocked) as Mesh;
-  const ground = resolveGround(
+  const input = {
     exports,
-    JSON.stringify(layout),
+    layout: JSON.stringify(layout),
     biome,
-    exports.buildings.regionalFamily,
-  );
-  return { mesh, ground, biome, grid: overlay === "surface" ? exports.terrain : null };
+    family: exports.buildings.regionalFamily,
+  };
+  // The traversal overlay shows the blocked flag alone; a water tint would
+  // muddy it. The water's look is the terrain material's (`waterSurface`).
+  const surface = overlay === "surface";
+  return { mesh, input, biome, grid: surface ? exports.terrain : null, water: surface };
 }

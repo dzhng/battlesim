@@ -35,7 +35,7 @@ type Box6 = [f64; 6];
 
 /// Whether a chunk out of `view` casts into it: its box swept along the fall
 /// of a shadow `size` metres tall meets the view within the reach.
-fn casts_into(view: &View, shadow: Option<&Shadow>, b: &Box6, size: f64) -> bool {
+pub(crate) fn casts_into(view: &View, shadow: Option<&Shadow>, b: &Box6, size: f64) -> bool {
     let Some(s) = shadow else { return false };
     let [fx, fy] = s.fall.map(|f| f * size);
     let swept = [
@@ -310,11 +310,15 @@ impl BuildingWalk {
 pub struct BuildingPopulation {
     pub walk: BuildingWalk,
     pub rows: Vec<u32>,
+    /// Counts the walks that changed what it draws: its lists' print.
+    pub changes: u64,
 }
 
 impl Population for BuildingPopulation {
     fn select(&mut self, view: &View, shadow: Option<&Shadow>) -> bool {
-        !self.walk.select(view, shadow).is_empty()
+        let changed = !self.walk.select(view, shadow).is_empty();
+        self.changes += u64::from(changed);
+        changed
     }
 
     fn each_list(&self, visit: &mut dyn FnMut(List)) {
@@ -326,6 +330,7 @@ impl Population for BuildingPopulation {
                     tier: (key % TIERS) as u32,
                     pass,
                     records: list,
+                    print: self.changes,
                 });
             }
         }

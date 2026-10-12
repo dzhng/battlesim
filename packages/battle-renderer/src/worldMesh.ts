@@ -16,18 +16,11 @@ import {
 } from "./models/propAppearance";
 import type { ModelInstance } from "./models/modelInstances";
 import { grassAppearancesOf } from "./terrain/grassField";
-import { concatMeshes, EMPTY_MESH, MeshBuilder, type Mesh, type Rgba } from "./mesh";
+import { concatMeshes, MeshBuilder, type Mesh, type Rgba } from "./mesh";
 import { skirt_mesh } from "@wasm/presentation/presentation_wasm.js";
 import type { WorldLayers, WorldScenery } from "./scene";
-import {
-  BLOCKED,
-  buildTerrainSurface,
-  OPEN,
-  type Biome,
-  type TerrainSurface,
-} from "./terrain/terrainSurface";
-import { kindSize, sceneryAppearances } from "./scenery/appearance";
-import { placeScenery, sceneryKinds } from "./scenery/placement";
+import { BLOCKED, buildTerrainSurface, OPEN, type Biome } from "./terrain/terrainSurface";
+import { sceneryAppearances } from "./scenery/appearance";
 
 /** Parsed `world_layout()` from the WASM boundary. */
 export interface WorldLayout {
@@ -318,37 +311,29 @@ export function buildWorldLayers(
     terrain,
     props: concatMeshes([skirt_mesh(exports.positions) as Mesh, props.build()]),
     structures: drawn,
-    // The traversal overlay shows the blocked flag alone; a water tint would
-    // muddy it. The water's look is the terrain material's (`waterSurface`).
-    water: overlay === "traversal" ? EMPTY_MESH : (terrain.ground.water_mesh() as Mesh),
-    scenery: overlay === "surface" && appearances ? worldScenery(terrain, appearances) : null,
+    scenery: overlay === "surface" && appearances ? worldScenery(biome, appearances) : null,
     grass: overlay === "surface" && appearances ? grassAppearancesOf(appearances) : null,
   };
 }
 
-/** The trees and hedgerows of `biome.trees` and the forest floor's dressing,
- *  instancing installed appearances. */
-function worldScenery(terrain: TerrainSurface, installed: InstalledAppearances): WorldScenery {
-  const { trees, forest_floor } = terrain.biome;
-  const dressing = forest_floor.dressing;
-  const dressed = dressing.kinds.map((k) => k.appearance);
-  const kinds = sceneryKinds(terrain.ground);
-  const appearances = new Map([
-    ...sceneryAppearances(
-      installed,
-      kinds.filter((name) => !dressed.includes(name)),
-      ["tree", "hedgerow"],
-    ),
-    ...sceneryAppearances(installed, dressed, ["dressing"]),
-  ]);
+/** The trees and hedgerows of `biome.trees` and the forest floor's dressing:
+ *  the installed appearances the scenery's rows name, and how a felled
+ *  tree's stump is cut. Where they stand is the scene's presentation's. */
+function worldScenery(biome: Biome, installed: InstalledAppearances): WorldScenery {
+  const { trees, forest_floor } = biome;
+  const dressed = forest_floor.dressing.kinds.map((k) => k.appearance);
+  const named = [
+    ...new Set([
+      ...trees.species.map((s) => s.appearance),
+      trees.hedgerows.appearance,
+      trees.understorey.appearance,
+    ]),
+  ].filter((name) => !dressed.includes(name));
   return {
-    placement: placeScenery(
-      terrain.ground,
-      kinds.map((name) => kindSize(appearances.get(name)!)),
-    ),
-    appearances,
-    lodPx: trees.lod_px as [number, number, number],
+    appearances: new Map([
+      ...sceneryAppearances(installed, named, ["tree", "hedgerow"]),
+      ...sceneryAppearances(installed, dressed, ["dressing"]),
+    ]),
     felled: trees.felled,
-    dressing: { lodPx: dressing.lod_px as [number, number, number], fadePx: dressing.fade_px },
   };
 }

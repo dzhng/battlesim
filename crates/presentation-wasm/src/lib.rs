@@ -35,6 +35,8 @@ pub struct Presentation {
     taken_fog: Option<Arc<Fog>>,
     frame_header: FrameHeader,
     world_header: WorldHeader,
+    /// The biome's own grass rules, while a lab grows the ground's by others.
+    grass: Option<presentation::static_world::ground::biome::GrassRules>,
 }
 
 fn error(e: String) -> JsError {
@@ -73,6 +75,7 @@ impl Presentation {
             taken_fog: None,
             frame_header: FrameHeader::default(),
             world_header: WorldHeader::default(),
+            grass: None,
         })
     }
 
@@ -233,11 +236,6 @@ impl Presentation {
         self.inner.resend_scars();
     }
 
-    /// The crater's view-ray reach, metres (`Ground.scar_reach_m`).
-    pub fn set_scar_reach(&mut self, reach_m: f64) {
-        self.inner.set_scar_reach(reach_m);
-    }
-
     /// The scar cache's `ScarStats`, as JSON.
     pub fn scar_stats(&self) -> String {
         serde_json::to_string(&self.inner.scar_stats()).unwrap()
@@ -245,30 +243,30 @@ impl Presentation {
 
     /// The learned ground's epoch, revision and cleared cells (0 without a layout).
     pub fn ground_epoch(&self) -> f64 {
-        self.inner.ground().map_or(0.0, |g| g.epoch)
+        self.inner.learned().map_or(0.0, |g| g.epoch)
     }
     pub fn ground_revision(&self) -> f64 {
-        self.inner.ground().map_or(0.0, |g| g.revision)
+        self.inner.learned().map_or(0.0, |g| g.revision)
     }
     pub fn ground_cleared_count(&self) -> u32 {
-        self.inner.ground().map_or(0, |g| g.cleared_count() as u32)
+        self.inner.learned().map_or(0, |g| g.cleared_count() as u32)
     }
     /// The side whose ground it learned, once a snapshot came.
     pub fn ground_side(&self) -> Option<String> {
-        self.inner.ground().and_then(|g| g.side.clone())
+        self.inner.learned().and_then(|g| g.side.clone())
     }
 
     /// Whether the side has seen cell (i, j) cleared.
     pub fn ground_cleared(&self, i: u32, j: u32) -> bool {
         self.inner
-            .ground()
+            .learned()
             .is_some_and(|g| g.is_cleared(i as usize, j as usize))
     }
 
     /// The cleared spans in tile order: (tile, start + length × 256) pairs.
     pub fn ground_cleared_runs(&self) -> Vec<u32> {
         self.inner
-            .ground()
+            .learned()
             .map_or_else(Vec::new, |g| g.cleared_runs())
     }
 
@@ -276,7 +274,7 @@ impl Presentation {
     /// as drawn: crater, scorch, tracks, trampled a byte each) pairs.
     pub fn ground_marked(&self) -> Vec<u32> {
         self.inner
-            .ground()
+            .learned()
             .map_or_else(Vec::new, |g| g.marked_cells())
     }
 

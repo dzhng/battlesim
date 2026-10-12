@@ -20,13 +20,16 @@ presentation crate, and no rules, so the main thread never loads the simulation.
 The web manifest's `build:wasm` builds it after `game-wasm`, into
 `web/src/wasm/presentation/`.
 
-It also hands the page the static world `static_world` resolves: `StaticWorld`
-is the buildings and their walk; `Ground` is a map's ground, built once per map
-from `WorldView`'s exports, the world layout, the biome file and the map's
-region: the terrain's GPU tables, the grass's (over the grass kinds' shapes,
-which `GrassShapes` packs from their bundles' tiers) and each frame's grass
-window, the water's mesh, and the scenery, the dressing laid a cell at a time on
-request. Its probes (`plots_json`, `distances` and the like) serve the ground
-scenes; no frame reads them. The ground's other meshes (terrain, skirt,
+The same `Presentation` holds the scene's static world: its buildings
+(`add_buildings`), and its ground (`set_ground`, from `WorldView`'s exports, the
+world layout, the biome file and the map's region), whose terrain and grass GPU
+tables (`ground_terrain`; `grass_params` over the grass kinds' shapes, which
+`GrassShapes` packs from their bundles' tiers) and water mesh the page reads
+once, and each frame's grass window (`grass_window`). Its scenery
+(`place_scenery`, from the renderer's facts about each kind's mesh) the frames'
+static batches carry, with the buildings'. The player's scenery settings
+(`set_scenery_quality`) and the ground the side has seen cleared (`set_cleared`)
+are its inputs. Its `ground_` probes (`ground_distances` and the like) serve the
+ground scenes; no frame reads them. The ground's other meshes (terrain, skirt,
 backdrop) and the map's box are free functions, and `SunShadow` fits the sun's
 cascades each frame.

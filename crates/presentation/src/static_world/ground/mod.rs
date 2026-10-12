@@ -18,6 +18,7 @@ pub mod tables;
 #[cfg(test)]
 mod tests;
 pub mod tuning;
+pub mod walk;
 mod water;
 
 use biome::{Biome, AREA_KINDS};

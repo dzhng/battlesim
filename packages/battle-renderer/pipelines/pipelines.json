@@ -3191,7 +3191,7 @@
             ]
           },
           {
-            "arrayStride": 48,
+            "arrayStride": 64,
             "stepMode": "instance",
             "attributes": [
               {
@@ -3201,7 +3201,7 @@
               },
               {
                 "format": "float32x4",
-                "offset": 16,
+                "offset": 48,
                 "shaderLocation": 4
               },
               {
@@ -3257,7 +3257,7 @@
             ]
           },
           {
-            "arrayStride": 48,
+            "arrayStride": 64,
             "stepMode": "instance",
             "attributes": [
               {
@@ -3267,7 +3267,7 @@
               },
               {
                 "format": "float32x4",
-                "offset": 16,
+                "offset": 48,
                 "shaderLocation": 4
               },
               {
@@ -3322,7 +3322,7 @@
             ]
           },
           {
-            "arrayStride": 48,
+            "arrayStride": 64,
             "stepMode": "instance",
             "attributes": [
               {
@@ -3332,7 +3332,7 @@
               },
               {
                 "format": "float32x4",
-                "offset": 16,
+                "offset": 48,
                 "shaderLocation": 4
               },
               {
@@ -3400,7 +3400,7 @@
             ]
           },
           {
-            "arrayStride": 48,
+            "arrayStride": 64,
             "stepMode": "instance",
             "attributes": [
               {
@@ -3410,7 +3410,7 @@
               },
               {
                 "format": "float32x4",
-                "offset": 16,
+                "offset": 48,
                 "shaderLocation": 4
               },
               {
@@ -3476,7 +3476,7 @@
             ]
           },
           {
-            "arrayStride": 48,
+            "arrayStride": 64,
             "stepMode": "instance",
             "attributes": [
               {
@@ -3486,7 +3486,7 @@
               },
               {
                 "format": "float32x4",
-                "offset": 16,
+                "offset": 48,
                 "shaderLocation": 4
               },
               {
@@ -3544,7 +3544,7 @@
             ]
           },
           {
-            "arrayStride": 48,
+            "arrayStride": 64,
             "stepMode": "instance",
             "attributes": [
               {
@@ -3554,7 +3554,7 @@
               },
               {
                 "format": "float32x4",
-                "offset": 16,
+                "offset": 48,
                 "shaderLocation": 4
               },
               {
@@ -3620,7 +3620,7 @@
             ]
           },
           {
-            "arrayStride": 96,
+            "arrayStride": 128,
             "stepMode": "instance",
             "attributes": [
               {
@@ -3630,7 +3630,7 @@
               },
               {
                 "format": "float32x4",
-                "offset": 16,
+                "offset": 48,
                 "shaderLocation": 4
               },
               {
@@ -3640,7 +3640,7 @@
               },
               {
                 "format": "float32x4",
-                "offset": 48,
+                "offset": 16,
                 "shaderLocation": 6
               },
               {
@@ -3701,7 +3701,7 @@
             ]
           },
           {
-            "arrayStride": 96,
+            "arrayStride": 128,
             "stepMode": "instance",
             "attributes": [
               {
@@ -3711,7 +3711,7 @@
               },
               {
                 "format": "float32x4",
-                "offset": 16,
+                "offset": 48,
                 "shaderLocation": 4
               },
               {
@@ -3721,7 +3721,7 @@
               },
               {
                 "format": "float32x4",
-                "offset": 48,
+                "offset": 16,
                 "shaderLocation": 6
               },
               {
@@ -3781,7 +3781,7 @@
             ]
           },
           {
-            "arrayStride": 96,
+            "arrayStride": 128,
             "stepMode": "instance",
             "attributes": [
               {
@@ -3791,7 +3791,7 @@
               },
               {
                 "format": "float32x4",
-                "offset": 16,
+                "offset": 48,
                 "shaderLocation": 4
               },
               {
@@ -3801,7 +3801,7 @@
               },
               {
                 "format": "float32x4",
-                "offset": 48,
+                "offset": 16,
                 "shaderLocation": 6
               },
               {

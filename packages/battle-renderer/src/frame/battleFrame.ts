@@ -50,15 +50,12 @@ const MIN_TARGET_PX = 64;
 
 export interface BattleFrameOptions {
   /** Optional resolved graphics quality; omitted preserves authored High.
-   *  The units' and buildings' detail is the presentation's
-   *  (`setDetailScale`): Rust tiers them. */
+   *  The units', buildings' and scenery's detail is the presentation's
+   *  (`setDetailScale`, `setSceneryQuality`): Rust tiers them. */
   quality?: {
-    treeLodScale: number;
     grassDensity: number;
     shadowMapSize: 1024 | 2048;
     shadowReach: number;
-    forestDressing: boolean;
-    understorey: boolean;
   };
   /** `presentation.light`: sun, sky, haze, grade, bloom and cascades. */
   light: ResolvedLight;
@@ -134,7 +131,6 @@ export async function createBattleFrame(
       options.xrayMinHiddenFragmentFraction,
       options.glass,
       quality?.grassDensity ?? 1,
-      quality?.treeLodScale ?? 1,
     );
     const fogMask = await createFogMaskPass(root, registry, displayFormat, options.fogLook);
     const impostors = createImpostorBaker(root, registry, models, environment);
@@ -167,10 +163,6 @@ export async function createBattleFrame(
     await targets.ensure(size(options.width), size(options.height));
     world.setWorld(options.world);
     world.setInstances(options.instances);
-    if (quality) {
-      world.setDressingShown(quality.forestDressing);
-      world.setUnderstoreyShown(quality.understorey);
-    }
     return frameOf();
 
     function frameOf(): BattleFrame {
@@ -262,17 +254,18 @@ export async function createBattleFrame(
           if (!disposed) world.setStructures(next);
         },
         setStaticFrame(frame, stats) {
-          return !disposed && models.setStaticFrame(frame, stats);
+          if (disposed) return false;
+          const buildings = models.setStaticFrame(frame, stats.buildings);
+          return world.setStaticFrame(frame, stats.scenery) || buildings;
+        },
+        setPresentedGround(ground) {
+          if (!disposed) world.setPresentedGround(ground);
         },
         setGround(next) {
           return !disposed && world.setGround(next);
         },
         setClock(seconds) {
           clock = seconds;
-          if (!disposed) world.setClock(seconds);
-        },
-        setFelled(next) {
-          if (!disposed) world.setFelled(next);
         },
         setOverlay(next) {
           if (!disposed) {
@@ -296,8 +289,10 @@ export async function createBattleFrame(
             ? new Float32Array(frame.header.buffer, frame.header.byteOffset)[FrameHeader.light_wrap]
             : 0;
         },
-        setPresentationWorld(world) {
-          if (!disposed) models.setWorld(world);
+        setPresentationWorld(rows) {
+          if (disposed) return;
+          models.setWorld(rows);
+          world.setSceneryWorld(rows);
         },
         setInstances(next) {
           if (!disposed) world.setInstances(next);
@@ -355,12 +350,6 @@ export async function createBattleFrame(
         },
         setTreesShown(on) {
           if (!disposed) world.setTreesShown(on);
-        },
-        setDressingShown(on) {
-          if (!disposed) world.setDressingShown(on);
-        },
-        setUnderstoreyShown(on) {
-          if (!disposed) world.setUnderstoreyShown(on);
         },
         setBuildingsShown(on) {
           if (!disposed) models.setBuildingsShown(on);

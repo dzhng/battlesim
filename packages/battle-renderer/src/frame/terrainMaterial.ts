@@ -32,8 +32,7 @@
 // feathered road-edge ideas; not its baked distance texture or rock layers.
 import { tgpu, d, std } from "typegpu";
 import { pcgHash } from "../shaders/pcgHash";
-import type { TerrainSurface } from "../terrain/terrainSurface";
-import type { Ground } from "@wasm/presentation/presentation_wasm.js";
+import type { PresentedGround } from "../terrain/terrainSurface";
 import {
   CUT_A,
   CUT_B,
@@ -2037,7 +2036,7 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
   let classView = false;
   let roadWear = true;
   /** The ground `set` last drew, and whether its plots carry their texture. */
-  let ground: Ground | null = null;
+  let ground: PresentedGround | null = null;
   let textured = true;
   const writeParams = () => {
     if (!look) return;
@@ -2067,7 +2066,7 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
     setFieldTexture(on: boolean): boolean {
       if (on === textured) return false;
       textured = on;
-      if (ground) plots.current!.write(ground.plots(textured).buffer as ArrayBuffer);
+      if (ground) plots.current!.write(ground.ground_plots(textured).buffer as ArrayBuffer);
       return true;
     },
     group: null as unknown as ReturnType<typeof groupOf>,
@@ -2098,22 +2097,32 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
     scarRegions(): readonly ScarRegion[] {
       return marks?.regions() ?? EMPTY_SCAR_REGIONS;
     },
-    set(surface: TerrainSurface) {
-      ground = surface.ground;
-      const tables = ground.terrain();
+    /** The ground the scene's presentation resolved; none uploads empty
+     *  tables until it has. */
+    set(next: PresentedGround | null) {
+      ground = next;
+      const tables = next?.ground_terrain();
       const upload = (words: Uint32Array | Float32Array) => words.buffer as ArrayBuffer;
-      const [nodeWords, plotWords] = [tables.nodes(), ground.plots(textured)];
-      const [records, index] = [tables.surfaces(), tables.surface_index()];
+      const none = new Uint32Array(PLOT_WORDS);
+      const [nodeWords, plotWords] = [
+        tables?.nodes() ?? none,
+        next?.ground_plots(textured) ?? none,
+      ];
+      const [records, index] = [
+        tables?.surfaces() ?? new Float32Array(SURFACE_FLOATS),
+        tables?.surface_index() ?? none,
+      ];
       nodes.set(nodeBuffer(nodeWords.length / NODE_WORDS)).write(upload(nodeWords));
       plots.set(plotBuffer(plotWords.length / PLOT_WORDS)).write(upload(plotWords));
       surfaces.set(surfaceBuffer(records.length / SURFACE_FLOATS)).write(upload(records));
       surfaceIndex.set(indexBuffer(index.length)).write(upload(index));
-      const packed = tables.params();
-      look = new Uint32Array(packed.length + 4);
-      look.set(packed);
+      look = new Uint32Array(d.sizeOf(TerrainParams) / 4);
+      if (tables) {
+        look.set(tables.params());
+        scarWords.set(tables.scars(), SCAR_PARAMS_WORDS);
+        tables.free();
+      }
       writeParams();
-      scarWords.set(tables.scars(), SCAR_PARAMS_WORDS);
-      tables.free();
       scarParams.write(scarWords.buffer as ArrayBuffer);
       source.group = groupOf();
     },

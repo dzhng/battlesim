@@ -1,36 +1,24 @@
-//! The ground for the page (`presentation::static_world::ground`): the map's
-//! exports resolved under the biome into the terrain's and grass's GPU
-//! tables, the ground's meshes, the grass field's shapes and per-frame
-//! window, and the scenery, as flat arrays.
+//! The map's ground on the page's presentation (`static_world::ground`):
+//! resolved from the map's exports under the biome into the terrain's and
+//! grass's GPU tables and the water's cells, and its scenery placed for the
+//! frames' static batches.
+use crate::{error, Presentation};
+use presentation::presentation::Presentation as Inner;
 use presentation::shadow;
-use presentation::static_world::ground::biome::{Biome, GrassRules};
 use presentation::static_world::ground::field::Field;
 use presentation::static_world::ground::grass::{
     blade_vertices, frame_params, metres_per_pixel, pack_shapes, strip_indices, KindMesh,
     PackedShapes, Quality, TierMesh, Window, FIELD_SEGMENTS, LIMITS,
 };
 use presentation::static_world::ground::mesh;
-use presentation::static_world::ground::scenery::{Scenery, Size};
+use presentation::static_world::ground::scenery::Size;
 use presentation::static_world::ground::tables::{Grid, TerrainTables};
-use presentation::static_world::ground::{self, Source, Tuning};
+use presentation::static_world::ground::walk::{Cleared, Quality as SceneryQuality, Trunk};
+use presentation::static_world::ground::{self, biome::Biome, Ground, Source, Tuning};
 use serde::Deserialize;
 use wasm_bindgen::prelude::*;
 
-fn error(e: impl ToString) -> JsError {
-    JsError::new(&e.to_string())
-}
-
-#[wasm_bindgen]
-pub struct Ground {
-    inner: ground::Ground,
-    scenery: Option<Scenery>,
-    /// The material's surface field, built once for the probes.
-    field: std::cell::OnceCell<Field>,
-    /// The biome's own grass rules, while a lab grows by others.
-    grass: GrassRules,
-}
-
-/// `WorldView.terrain_grid()`, and the layout's prop kinds.
+/// `WorldView.terrain_grid()`.
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct GridHeader {
@@ -41,17 +29,27 @@ struct GridHeader {
     min_height: f64,
 }
 
+fn ground(inner: &Inner) -> Result<&Ground, JsError> {
+    inner
+        .ground()
+        .ok_or_else(|| JsError::new("no ground is set"))
+}
+
+fn json(e: impl ToString) -> JsError {
+    JsError::new(&e.to_string())
+}
+
 #[wasm_bindgen]
-impl Ground {
-    /// The ground of a map: `extents` is the physical map's `[min x, min y,
+impl Presentation {
+    /// Sets the map's ground: `extents` is the physical map's `[min x, min y,
     /// max x, max y]`, then its rendered surroundings' where it has them;
     /// `grid` is `WorldView.terrain_grid()` with its page ids and heights;
     /// the streams are `WorldView`'s exports of the same names; `layout` is
     /// `world_layout()`; `biome` the biome's file and `family` the map's
     /// regional family (or none); `tuning` the fixture's `presentation` block.
-    #[wasm_bindgen(constructor)]
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
+    pub fn set_ground(
+        &mut self,
         extents: &[f64],
         grid: &str,
         page_ids: Vec<u32>,
@@ -75,8 +73,8 @@ impl Ground {
         biome: &str,
         family: Option<String>,
         tuning: &str,
-    ) -> Result<Ground, JsError> {
-        let g: GridHeader = serde_json::from_str(grid).map_err(error)?;
+    ) -> Result<(), JsError> {
+        let g: GridHeader = serde_json::from_str(grid).map_err(json)?;
         let source = Source {
             map: extents[..4].try_into().unwrap(),
             rendered: extents.get(4..8).map(|r| r.try_into().unwrap()),
@@ -90,7 +88,7 @@ impl Ground {
                 heights,
             },
             props,
-            drawn_by: ground::drawn_by(layout).map_err(error)?,
+            drawn_by: ground::drawn_by(layout).map_err(json)?,
             foliage,
             surface_strokes,
             surface_runs,
@@ -106,50 +104,54 @@ impl Ground {
             forest_boundaries,
             forest_trunk_ranges,
         };
-        let biome = Biome::load(biome, family.as_deref()).map_err(error)?;
+        let biome = Biome::load(biome, family.as_deref()).map_err(json)?;
+        self.grass = Some(biome.grass.clone());
         let tuning: Tuning =
-            serde_json::from_str(tuning).map_err(|e| error(format!("tuning: {e}")))?;
-        let inner = ground::Ground::new(source, biome, tuning).map_err(error)?;
-        Ok(Ground {
-            grass: inner.biome.grass.clone(),
-            inner,
-            scenery: None,
-            field: Default::default(),
-        })
+            serde_json::from_str(tuning).map_err(|e| json(format!("tuning: {e}")))?;
+        self.inner.set_ground(source, biome, tuning).map_err(error)
     }
 
     /// The terrain's GPU tables (`GroundTables`).
-    pub fn terrain(&self) -> Result<GroundTables, JsError> {
-        Ok(GroundTables(self.inner.terrain_tables(
-            self.inner.terrain_field().map_err(error)?,
-        )))
+    pub fn ground_terrain(&self) -> Result<GroundTables, JsError> {
+        let g = ground(&self.inner)?;
+        Ok(GroundTables(
+            g.terrain_tables(g.terrain_field().map_err(error)?),
+        ))
     }
 
     /// The plots' records, with or without their texture.
-    pub fn plots(&self, textured: bool) -> Vec<u32> {
-        self.inner.plot_records(textured)
+    pub fn ground_plots(&self, textured: bool) -> Result<Vec<u32>, JsError> {
+        Ok(ground(&self.inner)?.plot_records(textured))
     }
 
     /// The water's surface mesh (`ground::mesh::water` over the ground's
     /// water cells).
-    pub fn water_mesh(&self) -> Vec<f32> {
-        mesh::water(&self.inner.water_cells())
+    pub fn ground_water_mesh(&self) -> Result<Vec<f32>, JsError> {
+        Ok(mesh::water(&ground(&self.inner)?.water_cells()))
     }
 
     /// Grows the grass by `rules` (JSON, the biome's `grass` row) in place of
     /// the biome's, or by the biome's again: a lab compares fields that
     /// differ in a single number.
     pub fn retune_grass(&mut self, rules: Option<String>) -> Result<(), JsError> {
-        self.inner.biome.grass = match rules {
-            Some(json) => serde_json::from_str(&json).map_err(error)?,
-            None => self.grass.clone(),
+        let rules = match rules {
+            Some(text) => serde_json::from_str(&text).map_err(json)?,
+            None => self
+                .grass
+                .clone()
+                .ok_or_else(|| JsError::new("no ground is set"))?,
         };
+        let g = self
+            .inner
+            .ground_mut()
+            .ok_or_else(|| JsError::new("no ground is set"))?;
+        g.biome.grass = rules;
         Ok(())
     }
 
     /// The grass appearances the field draws, in kind order (JSON).
-    pub fn grass_kinds(&self) -> String {
-        serde_json::to_string(&self.inner.grass_kinds()).unwrap()
+    pub fn grass_kinds(&self) -> Result<String, JsError> {
+        Ok(serde_json::to_string(&ground(&self.inner)?.grass_kinds()).unwrap())
     }
 
     /// `GrassParams` for the kinds `shapes` packed (in `grass_kinds` order),
@@ -157,7 +159,7 @@ impl Ground {
     /// scale on the densest stand, 1 the biome's), its per-frame fields zero
     /// (`grass_frame_params` writes them).
     pub fn grass_params(&self, shapes: &GrassShapes, density: f64) -> Result<Vec<u32>, JsError> {
-        self.inner
+        ground(&self.inner)?
             .grass_params(&shapes.0.facts, &LIMITS, &Quality { density })
             .map_err(error)
     }
@@ -165,12 +167,10 @@ impl Ground {
     /// The window of tiles a camera at `eye` grows grass over, at
     /// `metres_per_px` (`grass_metres_per_pixel`): its corner x and y, tiles
     /// across and up, reach, and the far corner x and y.
-    pub fn grass_window(&self, eye: &[f64], metres_per_px: f64) -> Vec<f64> {
-        let w = self
-            .inner
-            .grass_window([eye[0], eye[1], eye[2]], metres_per_px);
+    pub fn grass_window(&self, eye: &[f64], metres_per_px: f64) -> Result<Vec<f64>, JsError> {
+        let w = ground(&self.inner)?.grass_window([eye[0], eye[1], eye[2]], metres_per_px);
         let [.., x1, y1] = w.bounds();
-        vec![
+        Ok(vec![
             w.x0,
             w.y0,
             f64::from(w.tiles_x),
@@ -178,73 +178,78 @@ impl Ground {
             w.reach,
             x1,
             y1,
-        ]
+        ])
     }
 
     /// The props' footprints where no grass grows, by grid cell.
-    pub fn grass_props(&self) -> Vec<u32> {
-        self.inner.grass_props()
+    pub fn grass_props(&self) -> Result<Vec<u32>, JsError> {
+        Ok(ground(&self.inner)?.grass_props())
     }
 
     /// The appearances the scenery places, in kind order (JSON).
-    pub fn scenery_kinds(&self) -> String {
-        serde_json::to_string(&self.inner.scenery_kinds()).unwrap()
+    pub fn scenery_kinds(&self) -> Result<String, JsError> {
+        Ok(serde_json::to_string(&ground(&self.inner)?.scenery_kinds()).unwrap())
     }
 
-    /// Places the scenery, its kinds sized `sizes` (height, reach each).
-    pub fn place_scenery(&mut self, sizes: &[f64]) {
-        let sizes: Vec<Size> = sizes
-            .as_chunks::<2>()
-            .0
+    /// Places the ground's scenery, its kinds (`scenery_kinds`) given four
+    /// numbers each: height, reach, and for a tree its trunk's radius at the
+    /// stump's top and where its leaves begin (zeros for any other); drawn
+    /// from the next `load_world`.
+    pub fn place_scenery(&mut self, kinds: &[f64]) -> Result<(), JsError> {
+        let kinds = kinds.as_chunks::<4>().0;
+        let sizes = kinds
             .iter()
-            .map(|s| Size {
-                height: s[0],
-                radius: s[1],
+            .map(|k| Size {
+                height: k[0],
+                radius: k[1],
             })
             .collect();
-        self.scenery = Some(self.inner.scenery(&sizes));
+        let trunks = kinds
+            .iter()
+            .map(|k| Trunk {
+                radius: k[2],
+                crown: k[3],
+            })
+            .collect();
+        self.inner.place_scenery(sizes, trunks).map_err(error)
     }
 
-    fn placed(&self) -> &Scenery {
-        self.scenery.as_ref().expect("the scenery is placed")
+    /// The player's scenery settings: the trees' tier thresholds over the
+    /// biome's, and whether the forest floor's dressing and the tree lines'
+    /// shrubs draw.
+    pub fn set_scenery_quality(&mut self, tree_lod_scale: f64, dressing: bool, understorey: bool) {
+        let quality = SceneryQuality {
+            tree_lod_scale,
+            dressing,
+            understorey,
+        };
+        self.inner.set_scenery_quality(quality);
     }
 
-    /// A placed population: 0 forest, 1 understorey, 2 backdrop.
-    pub fn trees(&self, population: u32) -> Vec<f32> {
-        let s = self.placed();
-        [&s.forest, &s.understorey, &s.backdrop][population as usize].clone()
+    /// The ground the side has seen cleared, as the learned ground's runs
+    /// (tile and `start + length · 256`, 16-cell tiles over `cols` × `rows`
+    /// cells `cell_m` metres a side).
+    pub fn set_cleared(&mut self, runs: &[u32], cols: usize, rows: usize, cell_m: f64) {
+        self.inner
+            .set_cleared(Cleared::from_runs(runs, cols, rows, cell_m));
     }
 
-    /// Per forest tree, the trunk prop it stands on.
-    pub fn forest_ids(&self) -> Vec<u32> {
-        self.placed().forest_ids.clone()
+    /// Wanted dressing cells are still to be laid: a capture frames again.
+    pub fn scenery_pending(&self) -> bool {
+        self.inner.scenery_pending()
     }
 
-    /// The dressing: its cell's side, capacity, top, reach, the ground's
-    /// lowest and highest points, then the kinds it lays.
-    pub fn dressing(&self) -> Vec<f64> {
-        let d = &self.placed().dressing;
-        let head = [
-            ground::scenery::DRESSING_CELL_M,
-            d.capacity as f64,
-            d.top_m,
-            d.reach_m,
-            d.ground[0],
-            d.ground[1],
-        ];
-        head.into_iter()
-            .chain(d.kinds.iter().map(|&k| k as f64))
-            .collect()
+    /// A felled tree still falls.
+    pub fn scenery_falling(&self) -> bool {
+        self.inner.scenery_falling()
     }
 
-    /// The cells a forest reaches, `i, j` pairs.
-    pub fn dressing_cells(&self) -> Vec<i32> {
-        self.placed().dressing.cells.clone()
-    }
-
-    /// The pieces of dressing cell `(i, j)`.
-    pub fn dress(&self, i: i32, j: i32) -> Vec<f32> {
-        self.inner.dress(self.placed(), i as i64, j as i64)
+    /// The scenery placed per population (forest, tree-line shrubs,
+    /// backdrop) and the dressing cells the last frame drew; empty with none.
+    pub fn scenery_stats(&self) -> Vec<u32> {
+        self.inner
+            .scenery_stats()
+            .map_or_else(Vec::new, |s| s.iter().map(|&n| n as u32).collect())
     }
 
     // Lab probes: the ground scenes read the ground as the material draws
@@ -252,62 +257,49 @@ impl Ground {
 
     /// The plots (JSON): each one's kind, sRGB colour, the unit vector across
     /// its rows and its outline.
-    pub fn plots_json(&self) -> String {
-        let plots = self.inner.plots.plots.iter().map(|p| {
+    pub fn ground_plots_json(&self) -> Result<String, JsError> {
+        let plots = ground(&self.inner)?.plots.plots.iter().map(|p| {
             serde_json::json!({ "kind": p.kind, "colour": p.colour, "across": p.across, "outline": p.outline })
         });
-        serde_json::Value::Array(plots.collect()).to_string()
+        Ok(serde_json::Value::Array(plots.collect()).to_string())
     }
 
     /// The plot kind under `(x, y)`, or -1 outside the patchwork.
-    pub fn plot_kind_at(&self, x: f64, y: f64) -> i32 {
-        let plots = &self.inner.plots;
-        plots.at(x, y).map_or(-1, |p| plots.plots[p].kind as i32)
+    pub fn ground_plot_kind_at(&self, x: f64, y: f64) -> Result<i32, JsError> {
+        let plots = &ground(&self.inner)?.plots;
+        Ok(plots.at(x, y).map_or(-1, |p| plots.plots[p].kind as i32))
     }
 
     /// The paved strokes as drawn; none where they are the export's.
-    pub fn drawn_strokes(&self) -> Option<Vec<f32>> {
-        self.inner.drawn.clone()
-    }
-
-    /// How far a crater's bowl moves the scars read along a view ray, metres
-    /// (`Presentation.set_scar_reach`).
-    pub fn scar_reach_m(&self) -> f64 {
-        self.inner.scar_reach_m()
+    pub fn ground_drawn_strokes(&self) -> Result<Option<Vec<f32>>, JsError> {
+        Ok(ground(&self.inner)?.drawn.clone())
     }
 
     /// How far past its edge each rule (paved, forest, water) is read by a
     /// pixel `footprint` metres wide.
-    pub fn reach(&self, footprint: f64) -> Vec<f64> {
-        self.inner.reach(footprint, 0.0).to_vec()
+    pub fn ground_reach(&self, footprint: f64) -> Result<Vec<f64>, JsError> {
+        Ok(ground(&self.inner)?.reach(footprint, 0.0).to_vec())
     }
 
     /// The material's surface field's grid: its low corner, finest cell,
     /// columns, rows, levels, and the widest pixel it reads exactly (infinite
     /// where its ladder ends in one cell).
-    pub fn field_grid(&self) -> Result<Vec<f64>, JsError> {
-        Ok(self.probed()?.grid.to_vec())
+    pub fn ground_field_grid(&self) -> Result<Vec<f64>, JsError> {
+        Ok(self.field()?.grid.to_vec())
     }
 
     /// The material's surface field's paved, forest and water distances at
     /// each `(x, y, footprint)`.
-    pub fn distances(&self, points: &[f64]) -> Result<Vec<f64>, JsError> {
-        let field = self.probed()?;
-        Ok(points
-            .as_chunks::<3>()
-            .0
-            .iter()
-            .flat_map(|&p| field.distances(p))
-            .collect())
+    pub fn ground_distances(&self, points: &[f64]) -> Result<Vec<f64>, JsError> {
+        let field = self.field()?;
+        let chunks = points.as_chunks::<3>().0.iter();
+        Ok(chunks.flat_map(|&p| field.distances(p)).collect())
     }
 }
 
-impl Ground {
-    fn probed(&self) -> Result<&Field, JsError> {
-        if self.field.get().is_none() {
-            let _ = self.field.set(self.inner.terrain_field().map_err(error)?);
-        }
-        Ok(self.field.get().unwrap())
+impl Presentation {
+    fn field(&self) -> Result<Field, JsError> {
+        ground(&self.inner)?.terrain_field().map_err(error)
     }
 }
 
@@ -422,7 +414,7 @@ impl GrassShapes {
         uvs: &[f32],
         colors: &[u8],
     ) -> Result<GrassShapes, JsError> {
-        let names: Vec<String> = serde_json::from_str(names).map_err(error)?;
+        let names: Vec<String> = serde_json::from_str(names).map_err(json)?;
         let mut at = 0;
         let mut v = 0;
         let mut kinds = Vec::with_capacity(names.len());

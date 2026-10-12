@@ -28,12 +28,14 @@ kits before drawing them; a catalog listing is not installed kit geometry.
 resolves for every client from the map's compiled shapes and the biome
 ([the ground](../../crates/presentation/src/static_world/ground/mod.rs): forests,
 plots, roads as drawn, surface fields, water cells, the terrain's and grass's GPU
-tables, and where every tree, shrub and piece of dressing stands); the renderer
-uploads the tables as given and instances admitted appearances where they stand. Physical bounds and visual-only landscape remain
+tables, and the scenery's walk: what trees, shrubs and dressing a view draws and
+casts at which tier, as the frame's static batches); the renderer uploads the
+tables and batches as given and draws admitted appearances. Physical bounds and
+visual-only landscape remain
 separate. Cosmetic geometry must not invent a physical obstruction or imply cover
 that the simulation does not provide: a tree the side has seen felled falls on the
-clock and lies pressed under cover height by its stump ([felled trees](src/scenery/felled.ts)),
-since the simulation gives it no body. A map's region (its `regional_family`) is a
+clock and lies pressed under cover height by its stump (`ground::walk`), since
+the simulation gives it no body. A map's region (its `regional_family`) is a
 look, never physics: the biome's paved rows take that region's own finish through
 one function (`Biome::load` in
 [the biome](../../crates/presentation/src/static_world/ground/biome.rs)), and
@@ -103,7 +105,7 @@ must release a late build rather than install it into a dead frame.
 
 Update a resource at its actual frequency: immutable world data, changed
 knowledge, view changes or frame animation. [Static chunks](src/frame/staticChunks.ts)
-and the buildings' Rust walk (`static_world::walk`) bound work and residency
+and the static world's Rust walks (`static_world`) bound work and residency
 without changing authoritative populations. Streaming work reports when it remains
 pending; a camera cut cannot be captured merely after an arbitrary number of frames.
 

@@ -56,7 +56,7 @@ import {
 } from "@wasm/presentation/presentation_wasm.js";
 import { typegpuCameraLayout } from "../world/camera";
 import { battleWorldDepth } from "../worldDepth";
-import type { Biome, TerrainSurface } from "../terrain/terrainSurface";
+import type { Biome, PresentedGround, TerrainSurface } from "../terrain/terrainSurface";
 
 type GrassRules = Biome["grass"];
 import {
@@ -763,6 +763,7 @@ export async function createGrassPass(
   };
 
   let surface: TerrainSurface | null = null;
+  let ground: PresentedGround | null = null;
   let appearances: GrassAppearances | null = null;
   let rules: GrassRules | null = null;
   /** The lab's rules in place of the biome's (`probes.retune`). */
@@ -774,11 +775,11 @@ export async function createGrassPass(
   let tiles = 0;
   let buildGroup: ReturnType<typeof makeBuildGroup> | null = null;
   let drawGroups: ReturnType<typeof makeDrawGroup>[] = [];
-  /** This frame's window (`Ground.grass_window`): its corner, tiles across
+  /** This frame's window (`Presentation.grass_window`): its corner, tiles across
    *  and up, reach, and far corner. */
   let window: Float64Array = new Float64Array(7);
   const eye = vec3.create();
-  /** `GrassParams` as the ground laid it (`Ground.grass_params`), its
+  /** `GrassParams` as the ground laid it (`Presentation.grass_params`), its
    *  per-frame fields (the planes, the eye, the window's corner and tile, its
    *  tiles) written over each regrow. */
   let frameParams: Uint32Array | null = null;
@@ -805,8 +806,7 @@ export async function createGrassPass(
   function rebuild() {
     ready = false;
     const grid = surface?.grid;
-    if (!surface || !grid || !appearances) return;
-    const ground = surface.ground;
+    if (!surface || !grid || !appearances || !ground) return;
     rules = retuned ?? surface.biome.grass;
     ground.retune_grass(retuned && JSON.stringify(retuned));
     const names = JSON.parse(ground.grass_kinds()) as string[];
@@ -861,20 +861,24 @@ export async function createGrassPass(
   let suppressed = false;
 
   return {
-    /** The terrain the grass grows on, and the grass kinds; null kinds grow none. */
-    setWorld(terrainSurface: TerrainSurface, kinds: GrassAppearances | null) {
-      surface = terrainSurface;
-      appearances = kinds;
+    /** The terrain the grass grows on, the grass kinds and the ground the
+     *  scene's presentation resolved for it; null grows none. */
+    setWorld(
+      terrainSurface: TerrainSurface | null,
+      kinds: GrassAppearances | null,
+      presented: PresentedGround | null,
+    ) {
+      [surface, appearances, ground] = [terrainSurface, kinds, presented];
       rebuild();
     },
     /** Fit this frame's window and write its parameters. */
     prepare(camera: Camera3DParams, viewProj: Mat4, heightPx: number) {
       drawn = false;
       regrow = false;
-      if (!ready || suppressed || !frameParams || !surface) return;
+      if (!ready || suppressed || !frameParams || !surface || !ground) return;
       eyePosition(eye, camera);
       const scale = grass_metres_per_pixel(camera.fovY, heightPx);
-      window = surface.ground.grass_window(Float64Array.from(eye), scale);
+      window = ground.grass_window(Float64Array.from(eye), scale);
       tiles = window[2] * window[3];
       if (!tiles) return;
       drawn = true;

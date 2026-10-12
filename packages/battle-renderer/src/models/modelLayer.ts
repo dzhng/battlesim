@@ -192,9 +192,12 @@ export interface WorldAppearance {
   name: string;
   state: string;
   lies: number;
-  /** The static world's (`Appearance.placed`): its batches are the
-   *  buildings layer's, written only when they change. */
+  /** The static world's (`Appearance.placed`): its batches are written
+   *  only when they change, the buildings layer's or the scenery's. */
   placed: boolean;
+  /** What draws it (`Appearance.draws`): 0 a model or a building's kit
+   *  module; the scenery layer's otherwise. */
+  draws: number;
 }
 
 /** A batch's pass for a placement preview (`Batch.pass`). */

@@ -141,6 +141,9 @@ const createDrawList = (): DrawList => ({
   surfaces: surfaceFlags(),
 });
 
+/** A row of the static world the buildings layer draws: a kit module. */
+const isModule = (row: WorldAppearance | undefined) => !!row?.placed && !row.draws;
+
 export function createBuildingLayer(device: GPUDevice, registry: GpuRegistry) {
   let source: ModuleSource | null = null;
   /** The drawables the batches name, by row. */
@@ -248,7 +251,7 @@ export function createBuildingLayer(device: GPUDevice, registry: GpuRegistry) {
       let end = 0;
       for (let b = 0; b < all; b++) {
         const o = b * BATCH_WORDS;
-        if (!rows[words![o + Batch.appearance]]?.placed) continue;
+        if (!isModule(rows[words![o + Batch.appearance]])) continue;
         count++;
         const first = words![o + Batch.first];
         if (first !== NONE) {
@@ -261,7 +264,7 @@ export function createBuildingLayer(device: GPUDevice, registry: GpuRegistry) {
       if (batches.length < count * BATCH_WORDS) batches = new Uint32Array(count * BATCH_WORDS * 2);
       for (let b = 0, at = 0; b < all; b++) {
         const o = b * BATCH_WORDS;
-        if (!rows[words![o + Batch.appearance]]?.placed) continue;
+        if (!isModule(rows[words![o + Batch.appearance]])) continue;
         batches.set(words!.subarray(o, o + BATCH_WORDS), at);
         at += BATCH_WORDS;
       }

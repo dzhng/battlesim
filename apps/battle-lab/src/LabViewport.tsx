@@ -44,7 +44,6 @@ import {
 } from "@packages/renderer-core/src/cameraObstacles";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import type { ModelInstance } from "@packages/battle-renderer/src/models/modelInstances";
-import type { FelledTree } from "@packages/battle-renderer/src/scenery/felled";
 import type { SideStructures } from "@packages/battle-renderer/src/models/propAppearance";
 import { trackHeldKeys } from "@web/battle/input/heldKeys";
 import type { Project } from "@web/battle/present/readouts";
@@ -82,6 +81,7 @@ import {
   type ModelCounts,
 } from "./presentedFrame";
 import { emptyBuildingWalkStats } from "@packages/battle-renderer/src/models/buildingLayer";
+import { NO_SCENERY_WALK } from "@packages/battle-renderer/src/frame/sceneryLayer";
 import {
   resolveFogLook,
   resolveLight,
@@ -198,9 +198,6 @@ export interface ViewportFrame {
   presented?: PresentedFrame;
   /** How many models of each kind the frame poses. */
   counts?: ModelCounts;
-  /** The trees the side knows have fallen: handed over only when the array
-   *  changes. */
-  felled?: readonly FelledTree[];
   /** The presentation clock, in seconds (the pose driver's and the wind's). */
   clock?: number;
   /** What the frame's effects hold, by kind and shape. */
@@ -472,7 +469,8 @@ export function LabViewport({
   const presentedWorldRef = useRef<readonly PresentedAppearance[]>([]);
   const countsRef = useRef<ModelCounts>(emptyModelCounts());
   const effectCountsRef = useRef<EffectCounts>(emptyEffectCounts());
-  const felledRef = useRef<readonly FelledTree[]>([]);
+  /** The lab's scenery switches: the dressing and the tree lines' shrubs. */
+  const sceneryShown = useRef({ dressing: true, understorey: true });
   const modelsSuppressed = useRef(false);
   const effectsSuppressed = useRef(false);
   const scarsSuppressed = useRef(false);
@@ -731,7 +729,7 @@ export function LabViewport({
         const scenePresentation = (): ObservationDecoder | null => {
           const battle = presentationRef.current;
           if (battle) return battle.current;
-          if (!own && moduleLoaded && buildingsRef.current?.current) own = new ObservationDecoder();
+          if (!own && moduleLoaded) own = new ObservationDecoder();
           return own;
         };
         /** The buildings' style and sun, taken when the frame is built. A
@@ -742,10 +740,12 @@ export function LabViewport({
         let staticSun = { azimuth: 0, elevation: 1, farM: 0 };
         let resend = true;
         /** The presentation and quality the detail scale was last given to. */
-        let detailed: [ObservationDecoder | null, GraphicsQualityProfile | undefined] = [
-          null,
-          undefined,
-        ];
+        let detailed: [
+          ObservationDecoder | null,
+          GraphicsQualityProfile | undefined,
+          boolean,
+          boolean,
+        ] = [null, undefined, true, true];
         const build = async () => {
           const lit = light();
           staticSun = {
@@ -791,7 +791,7 @@ export function LabViewport({
             if (modelsRef.current) next.setModels(modelsRef.current);
             next.setClock(clock);
             next.setPresentationWorld(presentedWorldRef.current);
-            next.setFelled(felledRef.current);
+            next.setPresentedGround(scenePresentation()?.presentedGround() ?? null);
             next.setGround(groundNow());
             return next;
           } catch (error) {
@@ -905,12 +905,24 @@ export function LabViewport({
                 staticStyle,
                 staticSun,
               );
+              decoder.setGround(worldRef.current.current?.terrain.input ?? null);
               if (resend) decoder.resendStatics();
               resend = false;
               const quality = qualityRef.current;
-              if (detailed[0] !== decoder || detailed[1] !== quality) {
-                detailed = [decoder, quality];
+              const shown = sceneryShown.current;
+              if (
+                detailed[0] !== decoder ||
+                detailed[1] !== quality ||
+                detailed[2] !== shown.dressing ||
+                detailed[3] !== shown.understorey
+              ) {
+                detailed = [decoder, quality, shown.dressing, shown.understorey];
                 decoder.setDetailScale(quality?.unitLodScale ?? 1, quality?.buildingLodScale ?? 1);
+                decoder.setSceneryQuality(
+                  quality?.treeLodScale ?? 1,
+                  (quality?.forestDressing ?? true) && shown.dressing,
+                  (quality?.understorey ?? true) && shown.understorey,
+                );
               }
             }
             animated = frameRef.current?.(now, snapshot());
@@ -921,6 +933,7 @@ export function LabViewport({
           }
           if (animated?.ground !== undefined) groundRef.current = animated.ground;
           if (scene.setGround(groundNow())) dirty = true;
+          decoder?.setCleared(groundNow());
           if (animated) {
             if (animated.clock !== undefined && animated.clock !== clock) {
               clock = animated.clock;
@@ -943,10 +956,6 @@ export function LabViewport({
               });
             if (animated.counts) countsRef.current = animated.counts;
             if (animated.effectCounts) effectCountsRef.current = animated.effectCounts;
-            if (animated.felled && animated.felled !== felledRef.current) {
-              felledRef.current = animated.felled;
-              scene.setFelled(animated.felled);
-            }
             dirty = true;
           }
           // The static world for the camera drawn: walked in Rust, its
@@ -956,6 +965,7 @@ export function LabViewport({
           try {
             let views: PresentedFrame | null = null;
             let walk = NO_WALK;
+            let scenery = NO_SCENERY_WALK;
             if (decoder) {
               if (!animated?.presented) {
                 decoder.frame(clock, presentedCamera(snapshot()), {
@@ -968,11 +978,13 @@ export function LabViewport({
                   scene.setPresentationWorld(world);
                 }
               }
-              // The stats call may grow memory: the views are taken after it.
+              // The stats calls may grow memory: the views are taken after them.
               walk = decoder.buildingWalk();
+              scenery = decoder.sceneryWalk();
               views = decoder.lastFrame();
+              scene.setPresentedGround(decoder.presentedGround());
             }
-            if (scene.setStaticFrame(views, walk)) dirty = true;
+            if (scene.setStaticFrame(views, { buildings: walk, scenery })) dirty = true;
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err);
             handle.error = message;
@@ -1162,11 +1174,11 @@ export function LabViewport({
             await nextFrame();
           },
           async suppressDressing(on: boolean) {
-            scene.setDressingShown(!on);
+            sceneryShown.current = { ...sceneryShown.current, dressing: !on };
             await nextFrame();
           },
           async suppressUnderstorey(on: boolean) {
-            scene.setUnderstoreyShown(!on);
+            sceneryShown.current = { ...sceneryShown.current, understorey: !on };
             await nextFrame();
           },
           async suppressBuildings(on: boolean) {

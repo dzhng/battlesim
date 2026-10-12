@@ -38,9 +38,12 @@ wherever it runs.
   marks don't fit at once; it derives nothing.
 - [The sun's shadow](src/shadow.rs): each frame's cascades fitted over where the
   map is in view depth, as the receiver block and each cascade's caster camera.
-- [The static world](src/static_world/): the buildings and their walk, and the
-  ground: its tables, its meshes (terrain, skirt, water, backdrop), the grass
-  field's shapes, window and per-frame parameters, and the scenery.
+- [The static world](src/static_world/): the buildings resolved from their
+  template art, and the ground from the map's exports under the biome: its
+  tables, its meshes (terrain, skirt, water, backdrop), the grass field's
+  shapes, window and per-frame parameters, and the scenery. Buildings and
+  scenery are walked per view into the frame's static batches, written only
+  when a list changes.
 - [Sound](src/sound/): what a battle hears, when, where and how loud, from the
   same publication the effects read, the frame's emitters and the side's
   hearing cues, as commands a player carries out (start, glide, stop a voice;

@@ -104,7 +104,8 @@ import {
 } from "./terrainMaterial";
 import game from "@fixtures/game.json";
 import { createSceneryLayer } from "./sceneryLayer";
-import type { FelledTree } from "../scenery/felled";
+import type { PresentedGround } from "../terrain/terrainSurface";
+import type { SceneryWalkStats } from "./sceneryLayer";
 import { createPaintedMarks, validatePaintStyle, type PaintStyle } from "./paintedMarks";
 import type { GroundMarks, ScarRegion } from "./scarTexture";
 import type { FogGeometryPresentation, FogInput } from "./fogInputs";
@@ -173,7 +174,6 @@ export async function createWorldPass(
   xrayMinHiddenFragmentFraction: number,
   glass: GlassStyle,
   grassDensity = 1,
-  treeLodScale = 1,
 ) {
   const worldFragment = tgpu.fragmentFn({
     in: {
@@ -570,7 +570,7 @@ export async function createWorldPass(
 
   const terrainHeights = createTerrainHeights(registry);
   const fog = await createFogVisibility(root, registry, fogGeometry, terrainHeights);
-  const scenery = await createSceneryLayer(root, registry, environment, treeLodScale);
+  const scenery = await createSceneryLayer(root, registry, environment);
   const terrain = createTerrainSource(root, registry);
   const grass = await createGrassPass(
     root,
@@ -652,6 +652,19 @@ export async function createWorldPass(
   };
 
   let classView = false;
+  const NO_WATER = new Float32Array(0);
+  /** The world's layers, and the ground the scene's presentation resolved
+   *  for them: the material, the grass and the water draw from both. */
+  let layers: WorldLayers | null = null;
+  let presented: PresentedGround | null = null;
+  function setGround() {
+    const ground = layers ? presented : null;
+    terrain.set(ground);
+    grass.setWorld(layers?.terrain ?? null, layers?.grass ?? null, ground);
+    world.water.set(
+      ground && layers?.terrain.water ? (ground.ground_water_mesh() as Mesh) : NO_WATER,
+    );
+  }
 
   return {
     setXrayCoverageEnabled(on: boolean) {
@@ -661,10 +674,9 @@ export async function createWorldPass(
     setWorld(next: WorldLayers) {
       world.ground.set(next.terrain.mesh);
       world.props.set(next.props);
-      world.water.set(next.water);
-      terrain.set(next.terrain);
+      layers = next;
       scenery.set(next.scenery);
-      grass.setWorld(next.terrain, next.grass);
+      setGround();
       worldProps = next.structures;
       setStatics();
       box = map_box(next.terrain.mesh) ?? null;
@@ -674,23 +686,26 @@ export async function createWorldPass(
       structures = next;
       setStatics();
     },
+    /** The ground the scene's presentation resolved: its tables, its grass
+     *  and its water. */
+    setPresentedGround(next: PresentedGround | null) {
+      if (next === presented) return;
+      presented = next;
+      setGround();
+    },
     /** Follow the side's learned ground: uploads what changed, and regrows
-     *  the grass and fells the cleared trees when anything did. */
+     *  the grass when anything did. */
     setGround(next: GroundMarks | null): boolean {
       const changed = terrain.setGround(next);
-      if (changed) {
-        grass.regrow();
-        scenery.setCleared(next);
-      }
+      if (changed) grass.regrow();
       return changed;
     },
-    /** The trees the side knows have fallen (`BattleFrame.setFelled`). */
-    setFelled(next: readonly FelledTree[]) {
-      scenery.setFelled(next);
+    /** The scenery's static batches (`BattleFrame.setStaticFrame`). */
+    setStaticFrame(frame: Parameters<typeof scenery.setFrame>[0], stats: SceneryWalkStats) {
+      return scenery.setFrame(frame, stats);
     },
-    /** Presentation seconds: felled trees fall on it. */
-    setClock(seconds: number) {
-      scenery.setClock(seconds);
+    setSceneryWorld(rows: Parameters<typeof scenery.setWorld>[0]) {
+      scenery.setWorld(rows);
     },
     /** The painted ground marks: still, and marching on the clock. */
     setPainted(still: Mesh, marching: Mesh) {
@@ -709,12 +724,6 @@ export async function createWorldPass(
     },
     setTreesShown(on: boolean) {
       scenery.setTreesShown(on);
-    },
-    setDressingShown(on: boolean) {
-      scenery.setDressingShown(on);
-    },
-    setUnderstoreyShown(on: boolean) {
-      scenery.setUnderstoreyShown(on);
     },
     /** Draw the ground's classes in place of the lit world (the
      *  "ground-classes" frame view), or not. */
@@ -761,7 +770,6 @@ export async function createWorldPass(
     ) {
       frameProjection = viewProj;
       environment.prepare(camera, width, height, view, rays, box ?? NO_BOX);
-      scenery.prepare(camera, height);
       grass.prepare(camera, viewProj, height);
     },
     encodeShadows(encoder: TgpuCommandEncoder) {

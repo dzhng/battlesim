@@ -116,7 +116,6 @@ import { posedSockets, type BenchPose } from "./workbench/benchWorld";
 import { describeProps } from "./benchmark/propPresentation";
 import { describeEffects } from "./benchmark/effectPresentation";
 import type { Vec3 } from "math";
-import type { FelledTree } from "@packages/battle-renderer/src/scenery/felled";
 import {
   GHOST_BLOCKED,
   GHOST_OWN,
@@ -566,11 +565,6 @@ export function useBattleSession({
   // the native manifest carries them. A new side or catalog loads again.
   const factions = skirmish?.factions;
   const presentation = sim.client?.presentation ?? null;
-  // How far a crater's bowl moves the scars a view ray reads: the static
-  // ground's, so the scar cache loads a region that far past it.
-  useEffect(() => {
-    if (presentation && meshes) presentation.setScarReach(meshes.terrain.ground.scar_reach_m());
-  }, [presentation, meshes]);
   const worldInput = useMemo(() => {
     if (!appearances || !props) return null;
     return presentationWorld({
@@ -623,19 +617,6 @@ export function useBattleSession({
         }),
       [],
     ),
-  );
-  // The trees the side knows have fallen, each from the start of the tick
-  // it fell (the clock is ticks over tick_hz, as the effects' are). The
-  // decoder keeps an unchanged list's reference, and so does this.
-  const tickHz = rules.tick_hz;
-  const felled = useMemo(
-    () =>
-      byReference(
-        (fallen: ObservationView["fallenBodies"]): readonly FelledTree[] =>
-          fallen.map((f) => ({ prop: f.prop, toward: f.toward, fellAt: (f.tick - 1) / tickHz })),
-        [],
-      ),
-    [tickHz],
   );
   const frame = useCallback(
     (now: number, viewport: ViewportCamera): ViewportFrame | null => {
@@ -697,7 +678,6 @@ export function useBattleSession({
         picks: drawn.current.picks,
         presented,
         counts,
-        felled: felled.of(published.fallenBodies),
         clock: time,
         effectCounts,
         ground: sim.ground.current,
@@ -705,7 +685,6 @@ export function useBattleSession({
     },
     [
       observation,
-      felled,
       sim.latest,
       sim.ground,
       presentation,

@@ -468,8 +468,13 @@ const generatedGround = (page) =>
       try {
         const exports = mesh.readWorldExports(view);
         const layout = JSON.parse(wasm.world_layout(rules));
+        const surface = mesh.buildWorldLayers(exports, layout, biome.default, "surface").terrain;
+        const { presentGround } = await import(
+          file("packages/battle-renderer/src/terrain/terrainSurface.ts")
+        );
         window.__generatedGround = {
-          surface: mesh.buildWorldLayers(exports, layout, biome.default, "surface").terrain,
+          surface,
+          ground: presentGround(surface.input),
           exports,
           layout,
         };
@@ -491,8 +496,8 @@ export async function drawnRoads(page, points) {
   await generatedGround(page);
   return page.evaluate(
     ({ points, beside }) => {
-      const { surface, exports, layout } = window.__generatedGround;
-      const drawn = surface.ground.drawn_strokes() ?? exports.surfaceStrokes;
+      const { ground, exports, layout } = window.__generatedGround;
+      const drawn = ground.ground_drawn_strokes() ?? exports.surfaceStrokes;
       // A stretch: `ax, ay, bx, by, half width, kind, cut ends` (1 at a, 2 at b).
       const stride = 7;
       const isRoad = (tag) => layout.roadAreaKinds.includes(layout.surfaceAreaKinds[tag]);
@@ -550,16 +555,16 @@ async function townEdges(page, centre) {
   await generatedGround(page);
   return page.evaluate(
     ({ centre: [cx, cy], end }) => {
-      const { surface, exports } = window.__generatedGround;
+      const { surface, ground, exports } = window.__generatedGround;
       const rules = surface.biome.field_rules;
       const yard = surface.biome.plots.findIndex((p) => p.name === rules.settlement_kind);
-      const isYard = (x, y) => surface.ground.plot_kind_at(x, y) === yard;
+      const isYard = (x, y) => ground.ground_plot_kind_at(x, y) === yard;
       let last = cx;
       for (let x = cx; x > last - end && x > 0; x -= 2) if (isYard(x, cy)) last = x;
       // A road stops, round, where it is drawn as a street from there on:
       // at a point no exported stretch ends at.
       const exported = exports.surfaceStrokes;
-      const drawn = surface.ground.drawn_strokes() ?? exported;
+      const drawn = ground.ground_drawn_strokes() ?? exported;
       const stride = 7;
       const ends = new Set();
       for (let o = 0; o < exported.length; o += stride)
@@ -899,8 +904,12 @@ const streetGround = (page) =>
         const exported = mesh.readWorldExports(view);
         const layout = JSON.parse(wasm.world_layout(rules));
         const surface = mesh.buildWorldLayers(exported, layout, biome.default, "surface").terrain;
+        const { presentGround } = await import(
+          file("packages/battle-renderer/src/terrain/terrainSurface.ts")
+        );
+        const ground = presentGround(surface.input);
         const distances = (x, y, footprint) =>
-          surface.ground.distances(Float64Array.of(x, y, footprint));
+          ground.ground_distances(Float64Array.of(x, y, footprint));
         // Where the first prop of each type stands; every prop's footprint
         // (`x, y, yaw, hx, hy`) and the buildings' centres.
         const first = {};
@@ -918,7 +927,7 @@ const streetGround = (page) =>
         window.__streetGround = {
           surface,
           map: exported.extents.physical,
-          plots: JSON.parse(surface.ground.plots_json()),
+          plots: JSON.parse(ground.ground_plots_json()),
           footprints,
           buildings,
           first,

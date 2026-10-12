@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
-use sim::publication::reader::{KnownProp, Observation, Reader, Shared};
+use sim::publication::reader::{FallenBody, KnownProp, Observation, Reader, Shared};
 
 use crate::effects::cook_offs::{CookOffs, PlacedModel};
 use crate::effects::frame::{EffectBatch, EffectFrame, EffectPresentation, EFFECT_FLOATS};
@@ -24,6 +24,12 @@ use crate::sound::frame::{Cue, Heard, Listener, Motion, Shout};
 use crate::static_world::batches::{Population, StaticBatches, Sun};
 use crate::static_world::buildings::{Buildings, PlacedBuildings};
 use crate::static_world::fallen::{Knowledge, Known};
+use crate::static_world::ground::biome::Biome;
+use crate::static_world::ground::scenery::Size;
+use crate::static_world::ground::walk::{
+    Cleared, FelledTree, Quality as SceneryQuality, SceneryPopulation, SceneryWalk, Trunk, DRAWS,
+};
+use crate::static_world::ground::{Ground, Source, Tuning};
 use crate::static_world::library::STATES;
 use crate::static_world::walk::{BuildingPopulation, BuildingWalk};
 use crate::units::articulation::{articulate, rest_locals, track_scroll};
@@ -93,12 +99,24 @@ pub struct Frame {
 pub struct World {
     pub appearances: Vec<Row>,
     pub strings: String,
-    rows: HashMap<(String, String, u32), u32>,
+    rows: HashMap<(String, String, u32, u32), u32>,
 }
 
 impl World {
     fn row(&mut self, name: &str, state: &str, lies: u32, skin: u32, placed: bool) -> u32 {
-        let key = (name.to_owned(), state.to_owned(), lies);
+        self.drawn_row(name, state, lies, skin, placed, 0)
+    }
+
+    fn drawn_row(
+        &mut self,
+        name: &str,
+        state: &str,
+        lies: u32,
+        skin: u32,
+        placed: bool,
+        draws: u32,
+    ) -> u32 {
+        let key = (name.to_owned(), state.to_owned(), lies, draws);
         if let Some(&row) = self.rows.get(&key) {
             return row;
         }
@@ -118,7 +136,7 @@ impl World {
             lies,
             skin,
             placed: u32::from(placed),
-            pad: 0,
+            draws,
         });
         self.rows.insert(key, row);
         row
@@ -189,6 +207,12 @@ pub struct Presentation {
     known_from: KnownFrom,
     sun: Option<Sun>,
     statics: StaticBatches,
+    /// The map's ground (`set_ground`), and its scenery's walk once placed.
+    ground: Option<Ground>,
+    scenery: Option<SceneryWalk>,
+    scenery_quality: SceneryQuality,
+    /// The fallen bodies the scenery last read.
+    felled_from: Option<Shared<FallenBody>>,
     /// The units' and the buildings' tier thresholds over their authored
     /// values (`set_detail_scale`).
     detail_scale: [f64; 2],
@@ -198,7 +222,7 @@ pub struct Presentation {
     camera: Option<Camera>,
     /// The side's learned ground (none without a layout), and its scars as
     /// the renderer holds them.
-    ground: Option<LearnedGround>,
+    learned: Option<LearnedGround>,
     scars: ScarCache,
 }
 
@@ -243,10 +267,10 @@ impl Presentation {
     /// `observation_layout`) names, at `tick_hz`; with no layout, of a world
     /// no battle publishes into (a lab's), drawn from `load_world` alone.
     pub fn new(layout: Option<&str>, tick_hz: f64) -> Result<Self, String> {
-        let ground = layout.map(ground_of).transpose()?;
+        let learned = layout.map(ground_of).transpose()?;
         Ok(Self {
-            scars: ScarCache::new(ground.as_ref().map(|g| (g.cols, g.rows, g.cell_m))),
-            ground,
+            scars: ScarCache::new(learned.as_ref().map(|g| (g.cols, g.rows, g.cell_m))),
+            learned,
             reader: layout.map(Reader::new).transpose()?,
             tick_hz,
             interpolator: TickInterpolator::new(tick_hz),
@@ -259,6 +283,10 @@ impl Presentation {
             known_from: KnownFrom::Unread,
             sun: None,
             statics: StaticBatches::default(),
+            ground: None,
+            scenery: None,
+            scenery_quality: SceneryQuality::default(),
+            felled_from: None,
             detail_scale: [1.0, 1.0],
             world: World::default(),
             frame: Frame::default(),
@@ -276,8 +304,8 @@ impl Presentation {
     /// `side` when named. The learned ground is blank until it does.
     pub fn invalidate(&mut self, side: Option<&str>) -> Result<(), String> {
         self.reader()?.invalidate(side)?;
-        if let Some(ground) = &mut self.ground {
-            ground.forget();
+        if let Some(learned) = &mut self.learned {
+            learned.forget();
         }
         self.latest = None;
         self.interpolator = TickInterpolator::new(self.tick_hz);
@@ -291,8 +319,8 @@ impl Presentation {
         let Some(observation) = self.reader()?.decode(words)? else {
             return Ok(false);
         };
-        if let Some(ground) = &mut self.ground {
-            ground.apply(&observation.ground_patch)?;
+        if let Some(learned) = &mut self.learned {
+            learned.apply(&observation.ground_patch)?;
         }
         let observation = Arc::new(observation);
         self.interpolator.push(observation.clone(), arrived_s);
@@ -316,14 +344,14 @@ impl Presentation {
     }
 
     /// The side's learned ground, as its publications taught it.
-    pub fn ground(&self) -> Option<&LearnedGround> {
-        self.ground.as_ref()
+    pub fn learned(&self) -> Option<&LearnedGround> {
+        self.learned.as_ref()
     }
 
     /// Whether the scars changed since the last call: what grows on them
     /// grows again.
     pub fn scars_changed(&mut self) -> bool {
-        self.scars.changed(self.ground.as_mut())
+        self.scars.changed(self.learned.as_mut())
     }
 
     /// The regions (metres, `[x0, y0, x1, y1]`) the terrain draws one by one,
@@ -336,7 +364,7 @@ impl Presentation {
     /// What the renderer uploads before drawing the scars over `region`
     /// (none: the whole view), clipped to it when `clipped`.
     pub fn prepare_scars(&mut self, region: Option<[f64; 4]>, clipped: bool) -> ScarUpload {
-        self.scars.prepare(self.ground.as_mut(), region, clipped)
+        self.scars.prepare(self.learned.as_mut(), region, clipped)
     }
 
     /// The renderer holds no scars (a new one, or scars shown again): the
@@ -346,7 +374,8 @@ impl Presentation {
     }
 
     /// The crater's view-ray reach in metres (`Ground::scar_reach_m`): a
-    /// region's scars load this far past it.
+    /// region's scars load this far past it. `set_ground` sets it; a
+    /// renderer holding its own ground (the native client's) sets it here.
     pub fn set_scar_reach(&mut self, reach_m: f64) {
         self.scars.set_reach(reach_m);
     }
@@ -393,9 +422,27 @@ impl Presentation {
                     style.pool_records,
                 );
                 walk.set_lod_scale(self.detail_scale[1]);
-                Some(BuildingPopulation { walk, rows })
+                Some(BuildingPopulation {
+                    walk,
+                    rows,
+                    changes: 0,
+                })
             }
         };
+        if let Some(walk) = &mut self.scenery {
+            let world = &mut self.world;
+            // Scenery draws its appearances' summer state (winter will be
+            // the next biome's).
+            walk.rows = DRAWS
+                .iter()
+                .map(|&d| {
+                    let names = walk.scenery.kinds.iter();
+                    names
+                        .map(|name| world.drawn_row(name, "summer", NONE, 0, true, d as u32))
+                        .collect()
+                })
+                .collect();
+        }
         self.sun = input.cascade_far_m.map(|far_m| Sun {
             azimuth: input.sun_azimuth,
             elevation: input.sun_elevation,
@@ -800,6 +847,109 @@ impl Presentation {
         })
     }
 
+    /// The map's ground, resolved from `source` under `biome` (its region's
+    /// finish) and the fixture's tuning; its scenery is placed by
+    /// `place_scenery` and drawn from the next `load_world`.
+    pub fn set_ground(
+        &mut self,
+        source: Source,
+        biome: Biome,
+        tuning: Tuning,
+    ) -> Result<(), String> {
+        let ground = Ground::new(source, biome, tuning)?;
+        // A region's scars load as far past it as a crater's bowl moves them.
+        self.scars.set_reach(ground.scar_reach_m());
+        self.ground = Some(ground);
+        self.scenery = None;
+        self.statics.invalidate();
+        Ok(())
+    }
+
+    pub fn ground(&self) -> Option<&Ground> {
+        self.ground.as_ref()
+    }
+
+    /// The ground's mutably (a lab growing grass by other rules).
+    pub fn ground_mut(&mut self) -> Option<&mut Ground> {
+        self.ground.as_mut()
+    }
+
+    /// Places the ground's scenery, its kinds (`Ground::scenery_kinds`)
+    /// `sizes` big with `trunks`; drawn from the next `load_world`.
+    pub fn place_scenery(&mut self, sizes: Vec<Size>, trunks: Vec<Trunk>) -> Result<(), String> {
+        let ground = self
+            .ground
+            .as_ref()
+            .ok_or("scenery stands on a ground: set_ground first")?;
+        let mut walk = SceneryWalk::new(ground.scenery(&sizes), sizes, trunks);
+        walk.set_quality(self.scenery_quality);
+        self.scenery = Some(walk);
+        self.felled_from = None;
+        Ok(())
+    }
+
+    /// The player's scenery settings (`walk::Quality`).
+    pub fn set_scenery_quality(&mut self, quality: SceneryQuality) {
+        self.scenery_quality = quality;
+        if let Some(walk) = &mut self.scenery {
+            walk.set_quality(quality);
+            self.statics.rewalk();
+        }
+    }
+
+    /// The ground the side has seen cleared.
+    pub fn set_cleared(&mut self, cleared: Cleared) {
+        if let Some(walk) = &mut self.scenery {
+            walk.set_cleared(cleared);
+            self.statics.rewalk();
+        }
+    }
+
+    /// Wanted dressing cells are still to be laid: frame again before
+    /// trusting a picture.
+    pub fn scenery_pending(&self) -> bool {
+        self.scenery.as_ref().is_some_and(|w| w.pending)
+    }
+
+    /// A felled tree still falls.
+    pub fn scenery_falling(&self) -> bool {
+        self.scenery.as_ref().is_some_and(|w| w.falling)
+    }
+
+    /// Instances placed per scenery population and dressing cells drawn.
+    pub fn scenery_stats(&self) -> Option<[usize; 4]> {
+        self.scenery.as_ref().map(SceneryWalk::stats)
+    }
+
+    /// The trees the latest publication says fell, falling on `time`.
+    fn follow_felled(&mut self, time: f64) {
+        let Some(walk) = &mut self.scenery else {
+            return;
+        };
+        let fallen = self.latest.as_ref().map(|o| o.fallen_bodies.clone());
+        let same = match (&fallen, &self.felled_from) {
+            (Some(a), Some(b)) => Arc::ptr_eq(a, b),
+            (None, None) => true,
+            _ => false,
+        };
+        if !same {
+            let felled = fallen.iter().flat_map(|f| f.iter()).filter_map(|f| {
+                Some(FelledTree {
+                    prop: f.prop? as u32,
+                    toward: f.toward,
+                    fell_at: (f.tick - 1.0) / self.tick_hz,
+                })
+            });
+            if walk.set_felled(felled.collect()) {
+                self.statics.rewalk();
+            }
+            self.felled_from = fallen;
+        }
+        if walk.set_clock(time) || walk.pending {
+            self.statics.rewalk();
+        }
+    }
+
     /// What to draw at presentation time `time` for `camera`; errs when the
     /// side knows a building in a state its template lacks.
     pub fn frame(&mut self, time: f64, camera: &Camera, ui: &Ui) -> Result<&Frame, String> {
@@ -818,10 +968,21 @@ impl Presentation {
         f.light_wrap = 0.0;
         let view = View::new(camera);
         f.view = view.record(camera);
+        self.follow_felled(time);
+        let mut scenery = match (&mut self.scenery, &self.ground) {
+            (Some(walk), Some(ground)) if !walk.rows.is_empty() => {
+                Some(SceneryPopulation { walk, ground })
+            }
+            _ => None,
+        };
         let mut populations: Vec<&mut dyn Population> = Vec::new();
         if let Some(b) = &mut self.buildings {
             populations.push(b);
         }
+        if let Some(s) = &mut scenery {
+            populations.push(s);
+        }
+        let f = &mut self.frame;
         self.statics
             .write(&mut populations, camera, &view, self.sun.as_ref(), f);
         let (Some(loaded), Some(sample)) = (self.loaded.as_mut(), self.interpolator.frame(time))
@@ -913,7 +1074,7 @@ impl Loaded {
         };
         let tint = |s: &str| units.tints.get(s).map_or([1.0; 3], |t| t.map(|v| v as f32));
         let row = |name: &str, state: &str, lies: u32| {
-            world.rows[&(name.to_owned(), state.to_owned(), lies)]
+            world.rows[&(name.to_owned(), state.to_owned(), lies, 0)]
         };
         models.clear();
         // Soldiers off screen, as the gates count bodies drawn, carded or culled.
