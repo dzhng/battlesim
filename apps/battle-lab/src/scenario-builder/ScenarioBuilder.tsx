@@ -22,7 +22,6 @@ import "./builder.css";
 
 const SIDES = ["blue", "red", "neutral"] as const;
 const CONTROLLERS: BuilderController[] = ["human", "active_ai", "passive_ai"];
-const FACTION_BY_SIDE = { blue: "us", red: "eastern" } as const;
 
 type Status = { kind: "idle" | "ok" | "error"; text: string };
 
