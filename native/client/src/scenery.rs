@@ -12,8 +12,10 @@
 //!   its second record (`felled*`);
 //! - every one of them into the depth prepass, and whatever the walk lists
 //!   as a caster into each of the sun's cascades.
-use presentation::presentation::{Frame, Presentation};
-use presentation::records::NONE;
+//!
+//! Its batches are held between frames with the rest of the static world's
+//! (`statics.rs`).
+use presentation::presentation::Presentation;
 use presentation::static_world::batches::{CAST_PASS, VIEW_PASS};
 use presentation::static_world::ground::mesh::VERTEX_FLOATS;
 use presentation::static_world::ground::walk::{Draws, DRAWS, TIERS};
@@ -22,14 +24,12 @@ use wgpu::*;
 use crate::bundle::{Bundle, Library, Shape};
 use crate::gpu::buffer;
 use crate::pipelines::{Bound, Pipelines};
+use crate::statics::Statics;
 
 /// The state scenery draws (winter will be the next biome's).
 const STATE: &str = "summer";
 /// The material whose triangles are foliage: shaded with leaf clumps.
 const FOLIAGE: &str = "leaves";
-/// One `Instance` record.
-const INSTANCE_BYTES: u64 = 64;
-
 /// `tier` of a scenery appearance as triangles in the world vertex
 /// (`tierMesh`): linear albedo (material colour times vertex colour) in rgb,
 /// 1 in the last float for foliage.
@@ -76,12 +76,12 @@ struct Row {
     stump: Option<Mesh>,
 }
 
-/// One listed batch: a run of the frame's instances over one row's tier.
+/// One listed batch: its held records over one row's tier.
 struct Run {
     row: usize,
     tier: usize,
     pass: u32,
-    first: u32,
+    key: u32,
     count: u32,
 }
 
@@ -177,26 +177,22 @@ impl Scenery {
         })
     }
 
-    /// Takes `frame`'s scenery batches. Their instances are the frame's, in
-    /// the models' instance buffer.
-    pub fn prepare(&mut self, frame: &Frame) {
+    /// Takes the scenery's batches of the static world's the frame lists.
+    pub fn prepare(&mut self, statics: &Statics) {
         self.runs.clear();
-        for b in &frame.batches {
-            let Some(Some(row)) = self.rows.get(b.appearance as usize) else {
+        for b in statics.listed() {
+            let Some(Some(row)) = self.rows.get(b.row as usize) else {
                 continue;
             };
-            if b.first == NONE || b.count == 0 {
-                continue;
-            }
             self.runs.push(Run {
-                row: b.appearance as usize,
+                row: b.row as usize,
                 tier: if row.stump.is_some() {
                     0
                 } else {
                     b.tier as usize
                 },
                 pass: b.pass,
-                first: b.first,
+                key: b.key,
                 count: b.count,
             });
         }
@@ -231,14 +227,14 @@ impl Scenery {
     }
 
     /// Every run of `pass`, each through the pipeline `bound` routes its
-    /// row's `draws` to, with `groups`; `instances` the frame's.
+    /// row's `draws` to, with `groups`, from its batch in `statics`.
     fn draw_runs<'a>(
         &'a self,
         pass: &mut RenderPass,
         which: u32,
         bound: impl Fn(Draws) -> &'a Bound,
         groups: &[(&str, &BindGroup)],
-        instances: &Buffer,
+        statics: &Statics,
     ) {
         for run in self.runs.iter().filter(|r| r.pass == which) {
             let row = self.rows[run.row].as_ref().expect("a scenery row");
@@ -249,8 +245,7 @@ impl Scenery {
                 .as_ref()
                 .unwrap_or(&self.tiers[row.kind][run.tier]);
             pass.set_vertex_buffer(0, mesh.slice(..));
-            let at = u64::from(run.first) * INSTANCE_BYTES;
-            pass.set_vertex_buffer(1, instances.slice(at..));
+            pass.set_vertex_buffer(1, statics.buffer(run.key).slice(..));
             pass.draw(0..*vertices, 0..self.instances(row, run.count));
         }
     }
@@ -260,39 +255,34 @@ impl Scenery {
         &self,
         pass: &mut RenderPass,
         camera: (&str, &BindGroup),
-        instances: &Buffer,
+        statics: &Statics,
     ) {
         let bound = |d| match d {
             Draws::Felled => &self.felled_caster,
             _ => &self.caster,
         };
-        self.draw_runs(pass, CAST_PASS, bound, &[camera], instances);
+        self.draw_runs(pass, CAST_PASS, bound, &[camera], statics);
     }
 
     /// The scenery in view into the depth prepass.
-    pub fn draw_depth(
-        &self,
-        pass: &mut RenderPass,
-        camera: (&str, &BindGroup),
-        instances: &Buffer,
-    ) {
+    pub fn draw_depth(&self, pass: &mut RenderPass, camera: (&str, &BindGroup), statics: &Statics) {
         let bound = |d| match d {
             Draws::Felled => &self.felled_prepass,
             Draws::Dressing => &self.dressing_prepass,
             _ => &self.prepass,
         };
-        self.draw_runs(pass, VIEW_PASS, bound, &[camera], instances);
+        self.draw_runs(pass, VIEW_PASS, bound, &[camera], statics);
     }
 
     /// The scenery in view, lit; `groups` the frame's (camera, environment,
     /// fog).
-    pub fn draw(&self, pass: &mut RenderPass, groups: &[(&str, &BindGroup)], instances: &Buffer) {
+    pub fn draw(&self, pass: &mut RenderPass, groups: &[(&str, &BindGroup)], statics: &Statics) {
         let bound = |d| match d {
             Draws::Backdrop => &self.backdrop,
             Draws::Felled => &self.felled,
             Draws::Dressing => &self.dressing,
             _ => &self.forest,
         };
-        self.draw_runs(pass, VIEW_PASS, bound, groups, instances);
+        self.draw_runs(pass, VIEW_PASS, bound, groups, statics);
     }
 }

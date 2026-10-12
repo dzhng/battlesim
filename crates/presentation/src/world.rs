@@ -178,6 +178,33 @@ pub struct Bounds {
     pub radius: f64,
 }
 
+/// A box as a bundle's state gives it (`bounds`): its least and greatest
+/// corners, metres.
+#[derive(Clone, Copy, Debug, Deserialize)]
+pub struct Corners {
+    pub min: Vec3,
+    pub max: Vec3,
+}
+
+impl Corners {
+    /// How big the box is drawn (`boundsSize`): its largest extent, and its
+    /// reach from its foot.
+    pub fn bounds(&self) -> Bounds {
+        bounds_size([self.min, self.max])
+    }
+}
+
+/// How big a box is drawn (`boundsSize`): its largest extent, and its reach
+/// from its foot.
+pub fn bounds_size([min, max]: [Vec3; 2]) -> Bounds {
+    let reach = |a: f64, b: f64| a.abs().max(b.abs());
+    let dz = max[2] - min[2];
+    Bounds {
+        size: dz.max(max[0] - min[0]).max(max[1] - min[1]),
+        radius: crate::seed::js_hypot(&[reach(min[0], max[0]), reach(min[1], max[1]), dz]),
+    }
+}
+
 #[derive(Clone, Debug, Deserialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum Appearance {

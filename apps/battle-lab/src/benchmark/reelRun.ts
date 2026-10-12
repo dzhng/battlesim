@@ -68,6 +68,7 @@ export interface ReelResult {
   recording: BenchmarkRecording;
   startTick: number;
   endTick: number;
+  /** The rate the page's presentation ran at (the authority's `ready`). */
   tickHz: number;
   layout: string;
   adapter: string | null;
@@ -104,6 +105,7 @@ export function createReelRun(
   const startTick = Math.round(scene.warm_s * tickHz);
   let endTick = startTick;
   let layout = "";
+  let presentedHz = tickHz;
   let warm = false;
   let finished = false;
   let adapter: string | null = null;
@@ -147,7 +149,7 @@ export function createReelRun(
       recording,
       startTick,
       endTick,
-      tickHz,
+      tickHz: presentedHz,
       layout,
       adapter,
       capture,
@@ -246,6 +248,7 @@ export function createReelRun(
     warmTo: startTick,
     onReady(info) {
       layout = info.layout;
+      presentedHz = info.tickHz;
     },
     onWarm() {
       warm = true;

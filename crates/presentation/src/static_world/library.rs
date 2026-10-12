@@ -4,9 +4,11 @@
 //! scene-assets containers (`codec.ts`): a 16-byte header (magic, version,
 //! header and body lengths), canonical JSON whose typed arrays are
 //! `{"$view": i}`, then the arrays.
+use crate::world::Corners;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use std::collections::HashMap;
+use std::io::Read;
 use std::ops::Range;
 
 const LIBRARY: (u32, u32) = (0x4c544742, 3); // "BGTL"
@@ -218,6 +220,42 @@ struct State {
 struct StateBounds {
     min: [f32; 3],
     max: [f32; 3],
+}
+
+#[derive(Deserialize)]
+struct Cornered {
+    states: Vec<CorneredState>,
+}
+
+#[derive(Deserialize)]
+struct CorneredState {
+    name: String,
+    bounds: Corners,
+}
+
+/// A static bundle's states, each with its bounds, from the head of the
+/// bundle as it travels, inflating as it is read (`read`): the header alone
+/// is read, never the meshes.
+pub fn state_corners(mut read: impl Read, what: &str) -> Result<Vec<(String, Corners)>, String> {
+    let fail = |e: std::io::Error| format!("{what}: {e}; is it a Git LFS pointer?");
+    let mut head = [0u8; 16];
+    read.read_exact(&mut head).map_err(fail)?;
+    let word = |at: usize| u32::from_le_bytes(head[at..at + 4].try_into().unwrap());
+    if (word(0), word(4)) != BUNDLE {
+        return Err(format!(
+            "{what}: not a container of format {BUNDLE:x?}; re-bake"
+        ));
+    }
+    let mut json = vec![0u8; word(8) as usize];
+    read.read_exact(&mut json).map_err(fail)?;
+    let header: Header<Cornered> =
+        serde_json::from_slice(&json).map_err(|e| format!("{what}: {e}"))?;
+    Ok(header
+        .content
+        .states
+        .into_iter()
+        .map(|s| (s.name, s.bounds))
+        .collect())
 }
 
 /// A kit bundle's module bounds by name, from the bundle's content as it

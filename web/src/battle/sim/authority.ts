@@ -59,7 +59,10 @@ export function createAuthority(host: AuthorityHost): Authority {
   let sim: SimModule | null = null;
   let battle: SimBattle | null = null;
   let side: SideName = "blue";
-  let tickMs = 1000 / 30;
+  // The rules' rate, kept as given: the page's presentation times every
+  // effect from it, so a rate derived back from `tickMs` would drift.
+  let tickHz = 30;
+  let tickMs = 1000 / tickHz;
   let disposed = false;
   let started = false;
   let paused = false;
@@ -178,7 +181,8 @@ export function createAuthority(host: AuthorityHost): Authority {
       switch (request.type) {
         case "init": {
           side = request.side;
-          tickMs = 1000 / JSON.parse(request.scenario).rules.tick_hz;
+          tickHz = JSON.parse(request.scenario).rules.tick_hz;
+          tickMs = 1000 / tickHz;
           // A refused scenario or replay throws while building: report it too.
           void host
             .load()
@@ -192,7 +196,7 @@ export function createAuthority(host: AuthorityHost): Authority {
               host.post({
                 type: "ready",
                 layout: battle.observation_layout(),
-                tickHz: 1000 / tickMs,
+                tickHz,
                 tick: battle.tick(),
               });
               setStatus("ready");

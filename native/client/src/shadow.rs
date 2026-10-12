@@ -167,7 +167,7 @@ impl Pass for ShadowPass {
             }
             inputs
                 .scenery
-                .draw_casters(&mut pass, camera, models.instances());
+                .draw_casters(&mut pass, camera, models.statics());
         }
     }
 }

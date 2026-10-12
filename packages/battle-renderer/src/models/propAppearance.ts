@@ -6,7 +6,6 @@
 // (`crates/presentation/src/static_world/props.rs`): the page draws the
 // frame's batches.
 import { STAND_IN_KIT, STAND_IN_MODULE } from "@packages/scene-assets/src/standInKit";
-import { boundsSize } from "@packages/scene-assets/src/pose";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import game from "@fixtures/game.json";
 import type { WorldExports, WorldLayout } from "../worldMesh";
@@ -86,8 +85,8 @@ export function knownStanding(
 
 /** What the presentation fits the props from (`PropInput`), as JSON: every
  *  installed static appearance with a footprint (its scenery kind, region,
- *  footprint, paints and how big it is drawn), each vehicle appearance's
- *  own wreck, the stand-in kit's box where it is installed with its module,
+ *  footprint, paints and its first state's bounds), each vehicle appearance's
+ *  own wreck, the stand-in kit's bounds where it is installed with its module,
  *  the stand-ins' tints, the map's regional family and the models' tiers. */
 export function propArt(installed: InstalledAppearances, family: string | null): string {
   const appearances = [];
@@ -101,13 +100,13 @@ export function propArt(installed: InstalledAppearances, family: string | null):
       family: a.regionalFamily,
       footprint: a.footprint,
       paints: a.paints,
-      ...boundsSize(a.bundle.states[0].bounds),
+      bounds: a.bundle.states[0].bounds,
     });
   }
   const kit = installed.appearances.get(STAND_IN_KIT)?.bundle;
   const standIn =
     kit?.kind === "static" && kit.states.some((s) => s.name === STAND_IN_MODULE)
-      ? boundsSize(kit.states[0].bounds)
+      ? kit.states[0].bounds
       : null;
   return JSON.stringify({
     appearances,

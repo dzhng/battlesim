@@ -46,9 +46,21 @@ It runs the browser's own shaders and passes over the [presentation crate](../..
   ground, the models and the buildings cast into them, a unit one tier
   coarser than it draws and never as a card.
 - **Buildings** are the frame's static batches too: the map's buildings
-  placed from the template art, in the state the side knows. A replay frames
-  only the plates it draws, so it asks for every static batch on those
-  frames.
+  placed from the template art, in the state the side knows.
+- **Props** (parked cars, lamps, walls, fences, hedges, benches, wrecks,
+  rubble, shoved bodies) are the frame's static batches as well: the replay
+  places the map's props (`place_props`) from the art a page running the
+  scene's units installs (`files::prop_art`: the catalog's footprints,
+  paints and wrecks, each look's bounds read from its bundle's header), and
+  the presentation fits them and adds what the side knows. Their rows
+  (`Appearance.draws` 7 and 8) draw through the model pipelines and cast as
+  a unit casts, a tier coarser.
+- **The static batches are held between frames** (`statics.rs`), as the
+  browser holds them: one buffer per batch key, rewritten only when the
+  frame writes it, dropped when the frame stops listing it. The models and
+  the scenery draw them from there. A replay that jumps between plates
+  frames the records between without drawing them, so on a drawn frame after
+  an undrawn one it asks for every static batch anew.
 - **Effects** are the frame's effect instances (`Presentation::effects`),
   drawn into the resolved lit world over the browser's own flipbook sheets
   (`assets/third-party/effects`, Git LFS), and the cast lights the
@@ -107,9 +119,9 @@ its GPU time between two timestamp marker passes. The CPU time is split into
 framing, preparing, encoding and submitting. The report goes to
 `native-<scene>-<time>.json` in the browser file's shape. A window that isn't
 shown presents nothing and never blocks, so the bench keeps at most two frames
-on the GPU, as a swap chain would. Every frame lists every static batch,
-because the models keep none from the frame before. Run it on a release build,
-under the GPU lock.
+on the GPU, as a swap chain would. Every frame is drawn, so the static batches
+are written only when they change. Run it on a release build, under the GPU
+lock.
 
 ## Checks
 

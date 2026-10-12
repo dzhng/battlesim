@@ -40,7 +40,7 @@ use crate::static_world::batches::{List, Population, VIEW_PASS};
 use crate::static_world::fallen::Known;
 use crate::static_world::walk::{Record, Shadow};
 use crate::view::{model_detail, View, CULLED, SHADOW_MARGIN_M};
-use crate::world::Detail;
+use crate::world::{Bounds, Corners, Detail};
 use serde::Deserialize;
 use sim::publication::reader::KnownProp;
 use sim::world::export::PROP_STRIDE;
@@ -95,7 +95,7 @@ impl PropLayout {
 
 /// An installed static appearance a prop may be drawn as: its scenery kind,
 /// regional family, the box it is authored to (half extents), its paints
-/// (sRGB) and how big it is drawn (its first state's height and reach).
+/// (sRGB) and its first state's bounds, which say how big it is drawn.
 #[derive(Clone, Debug, Deserialize)]
 pub struct Art {
     pub name: String,
@@ -106,20 +106,12 @@ pub struct Art {
     pub footprint: [f64; 3],
     #[serde(default)]
     pub paints: Option<Vec<[f64; 3]>>,
-    pub size: f64,
-    pub radius: f64,
-}
-
-/// How big the stand-in kit's box is drawn.
-#[derive(Clone, Copy, Debug, Deserialize)]
-pub struct Size {
-    pub size: f64,
-    pub radius: f64,
+    pub bounds: Corners,
 }
 
 /// What the props are drawn from: the installed appearances a prop may be
-/// drawn as, each vehicle appearance's own wreck, the stand-in kit's box
-/// when it is installed with its module, the stand-ins' tints by kind (sRGB,
+/// drawn as, each vehicle appearance's own wreck, the stand-in kit's first
+/// state's bounds when it is installed with its module, the stand-ins' tints by kind (sRGB,
 /// with a `default`; `presentation.stand_ins`), the map's regional family,
 /// and the models' tier thresholds (`presentation.models`).
 #[derive(Clone, Debug, Deserialize)]
@@ -128,7 +120,7 @@ pub struct PropInput {
     #[serde(default)]
     pub wrecks: BTreeMap<String, String>,
     #[serde(default)]
-    pub stand_in: Option<Size>,
+    pub stand_in: Option<Corners>,
     #[serde(default)]
     pub stand_in_tints: Option<BTreeMap<String, [f64; 3]>>,
     #[serde(default)]
@@ -153,8 +145,7 @@ struct Candidate {
     footprint: [f64; 3],
     /// Linear tints its paintable surfaces take.
     paints: Option<Vec<[f32; 3]>>,
-    size: f64,
-    radius: f64,
+    size: Bounds,
 }
 
 /// The fit: each bound kind's candidates in choosing order, each unit
@@ -166,7 +157,7 @@ pub struct PropArt {
     wrecks: HashMap<String, usize>,
     /// The kinds whose body stops no mover class: surfaces movers stand on.
     walked_on: HashSet<String>,
-    stand_in: Option<(Size, HashMap<String, [f32; 3]>)>,
+    stand_in: Option<(Bounds, HashMap<String, [f32; 3]>)>,
     detail: Detail,
 }
 
@@ -227,9 +218,9 @@ impl PropArt {
             .filter(|k| !blocking.contains(k))
             .cloned()
             .collect();
-        let stand_in = stand_in.zip(stand_in_tints).map(|(size, tints)| {
+        let stand_in = stand_in.zip(stand_in_tints).map(|(corners, tints)| {
             let tints = tints.into_iter().map(|(k, c)| (k, linear(c))).collect();
-            (size, tints)
+            (corners.bounds(), tints)
         });
         let mut art = PropArt {
             candidates: Vec::new(),
@@ -253,8 +244,7 @@ impl PropArt {
                     .paints
                     .as_ref()
                     .map(|p| p.iter().map(|&c| linear(c)).collect()),
-                size: a.size,
-                radius: a.radius,
+                size: a.bounds.bounds(),
             });
         }
         for (unit, model) in &art.layout.unit_appearance {
@@ -392,10 +382,7 @@ impl PropArt {
         let [fx, fy, fz] = cand.footprint;
         let [hx, hy, hz] = b.half;
         let look = looks.intern(&cand.name, STATE, self.draws(&b.kind));
-        let size = Size {
-            size: cand.size,
-            radius: cand.radius,
-        };
+        let size = cand.size;
         if !self.binding(&b.kind).is_some_and(|x| x.modular) {
             let tint = cand
                 .paints
@@ -448,7 +435,7 @@ fn placed(
     scale: [f64; 3],
     turn: f64,
     tint: [f32; 3],
-    size: Size,
+    size: Bounds,
 ) -> Model {
     let yaw = b.yaw + turn;
     let at = [
@@ -856,8 +843,11 @@ mod tests {
             family: family.map(Into::into),
             footprint,
             paints: None,
-            size: 2.0,
-            radius: 1.0,
+            // Drawn 2 m long, reaching 1 m from its foot.
+            bounds: Corners {
+                min: [-1.0, 0.0, 0.0],
+                max: [1.0, 0.0, 0.0],
+            },
         }
     }
 
@@ -876,9 +866,9 @@ mod tests {
                 art("deck_a", "deck", None, [5.0, 2.0, 0.5]),
             ],
             wrecks: [("tank_model".to_owned(), "tank_wreck".to_owned())].into(),
-            stand_in: Some(Size {
-                size: 1.0,
-                radius: 0.8,
+            stand_in: Some(Corners {
+                min: [-0.5, -0.5, 0.0],
+                max: [0.5, 0.5, 1.0],
             }),
             stand_in_tints: Some(
                 [

@@ -701,3 +701,11 @@ Resolves battle voices and music's [N2](../done/battle-voices-music/choices.md#n
 | The equality vectors hash each upload (FNV-1a) and commit the street's publications as words; the knowledge rules are held by Rust unit tests and `buildingKnowledge.test.ts` through Rust | The streams had no fallen or destroyed prop, so two falsifications passed the vectors | Agent |
 | A fog reel (`/graphics-test?fog=1`, `PARITY_FOG=1`) judges native's fog | Neither reel draws fog; the reel's own publications and cameras make the control | Agent |
 | `bareTerrain`'s playable rectangle is `[x, y, width, height]` | Fog reads the simulation's rectangle format; the facade's stations fell outside the old one | Agent |
+
+### Slice 25: effect counts
+
+| Decision | Why | Closed by |
+| --- | --- | --- |
+| The worker's `ready` reports the rules' `tick_hz` as given, and pacing derives `tickMs` from it | `1000 / (1000 / 30)` is 29.999999999999996, and the page's presentation times every effect from that rate. This is a fix in the browser's sim client, outside the capture lane, because the cause was there | Agent |
+| The capture's `tickHz` is the rate the page's presentation ran at (the worker's `ready`), not the rules' | Record the inputs the presentation framed from; the replay builds its `Presentation` from it | Agent |
+| Native checks building modules per module and tier against `instanceCounts[].buildings` | The plates' "statics" had no native check; models, props, scenery and effects did | Agent |

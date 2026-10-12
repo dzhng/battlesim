@@ -1029,3 +1029,108 @@ In `choices.md`, "Slice 25, step 6b".
 
 - Native draws the props' batches (`draws` 7 and 8): the critique's differences are all props. Bind each through `Layer::Faces`, or `Layer::PaintedFaces` for one movers stand on.
 - Step 8's gates. Look into paris-corner's building shadow on the road (152, 1161), which native casts and the browser does not.
+
+## Step 5c: the props, and the static batches held between frames (2026-10-12, branch `nativeprops`)
+
+Native draws the map's props and the known props from `Frame`'s static batches, as the browser does since 20b step 5. It now holds every static batch between frames rather than resending them.
+
+### The contract
+
+- **`PropInput` is read, not derived.** `Art.size` and `Art.radius` become `Art.bounds` (`{min, max}`: the appearance's first state's bounds), and `stand_in` is the stand-in kit's first state's bounds. Rust takes the drawn size from them (`world::Corners::bounds`, `bounds_size`, which moved from `presentation.rs` to `world.rs`). The page's `propArt` passes `bundle.states[0].bounds` and no longer calls `boundsSize`.
+- **`files::ground(root, map)`** builds the map under the rules of the battle fought on it: the game's catalog plus the units of the map's category (a menu map takes the menu's, a test map the tests'). `MapGround` gains `layout` (the world layout its props are placed under) and `family`. Under the game's catalog alone, the layout named no menu unit, so a menu tank's wreck had no art and drew as the stand-in box.
+- **`files::prop_art(root, family, wearing)`** is `PropInput` as a battle page wearing `wearing` installs it (`catalogLoadNames`, `familyLooks`, the stand-in kit). It reads the catalog's footprints, paints and wrecks, and each look's bounds from the head of its bundle (`library::state_corners`, which never inflates the meshes).
+- **`Replay::open`** places the props after the scenery: `place_props(ground.props, layout, prop_art(.., the manifest's unit appearances))`.
+- **Native's model layer** loads rows with `draws` 7 and 8 as props. They draw through the model pipelines under fog's `Faces` layer, or `PaintedFaces` for a surface movers stand on. Like a unit, a prop casts one tier coarser from its view batch; a building's module still casts only its own caster batches.
+- **`statics.rs` holds the static world's batches** (the buildings' modules, the props, the scenery). Each `placed` row's batch has its own buffer, keyed by `Batch.key` and sized to a power of two of records. A batch is written only when the frame writes it, and dropped when the frame stops listing it, as the browser's layers hold theirs. Models and scenery draw from these buffers. The frame's instance buffer now carries only what the frame wrote. A batch named unchanged that native does not hold is refused by name.
+- **The replay resends only when it jumps.** `Replay::frame(.., drawn)` asks for every static batch when a drawn frame follows an undrawn one, which is a plate replay skipping to its next plate. A drawn frame after a drawn one, which is every bench frame after the first, takes only what changed.
+- **Counts:** a plate's `instanceCounts[].props` (by appearance and tier) is checked beside the models, scenery and effects. The bench's `meanDrawn` gains `props`.
+
+### What draws, and what is left
+
+- **Draws:** everything the browser's frame lists of the static world: buildings, scenery, the map's props (parked cars, lamps, bollards, bins, utility boxes, fences, walls, hedges, benches, resting wrecks) and the known props (rubble, wrecks, shoved bodies, the stand-in box for a kind with no art).
+- **Left:** the painted ground marks, which a replay has no UI to paint. The step 8 gate itself, three quiet runs a side against the browser, is still open.
+
+### Evidence
+
+Controls were captured from this branch's tree: `throwaway/native-parity/2026-10-12T19-32-02-543Z`, before the merge of `389bf9b78` (fog's sight). After the merge, with fog off, the control is `20-07-17-354Z`; with fog on (`PARITY_FOG=1`), it is `20-11-12-980Z`. All three pass `native-parity-capture`. Plates, pairs and benches are in `throwaway/nativeprops/` (`cmp/`, `m/`, `bench/`).
+
+- **Counts:** props per appearance and tier, scenery, and models are equal on all 24 plates of every control. Effects differ only on plates drawn exactly on a tick boundary (step 6's capture rule), with one exception: after the merge, three market-town plates late in the reel are off by one smoke puff. Main's own native binary shows the same miss on the same control, so it is main's, not this step's.
+- **Plates** (`compare-screenshots`, grayscale MAE):
+
+  | | before (step 5b) | now |
+  | --- | --- | --- |
+  | market-town | 0.05–0.56 | 0.02–0.10 (fog on 0.02–0.11) |
+  | paris-corner | 0–0.74, and 4.54 on the parked-car street | 0–0.057 (fog on the same) |
+
+  The parked-car street is plate 234 in this control. It is 0.057 now, and its only differing pixels are the tank's road wheels and distant soldiers.
+- **Unprimed critique** (all 24 pairs, amplified differences, 3× crops of street level): no prop difference anywhere. Every car, fence, wall, hedge, lamp, bollard, wreck, box, piece of rubble and every shadow matches. The only differences it found are the tank's road wheels, soldiers' poses and sub-threshold noise. The defects it found are the same on both sides: plate 648 is inside a fireball, and the mortar lines on 1301 alias.
+- **Paris-corner's "building shadow on the road"** (plates 152 and 1161 of another control) is the props. On main, native draws none of them. The road's real building shadow is visible where the browser draws parked cars and their shadows over it. Main's binary on this branch's controls gives MAE 0.25–0.74 on the same shots (583, 809, 1105). This branch gives at most 0.002 there, fog on and off. This branch with prop drawing switched off reproduces main's numbers exactly. No caster, cull or stale cast list is involved.
+- **The bench** (release, under the GPU lock; `before` is the props with every static batch resent each frame, `after` holds them). The machine was busy with other lanes, so absolute numbers are higher than the quiet reading above. Two interleaved rounds were run:
+
+  | scene | round (load, 1 min) | | frame ms p50 / p95 | CPU ms p50 / p95 | CPU prepare p50 | GPU ms mean | instance bytes a frame |
+  | --- | --- | --- | --- | --- | --- | --- | --- |
+  | paris-corner | 1 (7.5 → 6.2) | before | 9.64 / 15.57 | 3.55 / 4.97 | 0.67 | 10.10 | 122,518 |
+  | | | after | 10.29 / 16.35 | **2.20** / 3.67 | **0.15** | 10.64 | **996** |
+  | | 2 (11 → 22) | before | 14.10 / 47.02 | 4.27 / 44.04 | 0.83 | 14.89 | 122,518 |
+  | | | after | 10.56 / 20.91 | 3.72 / 15.71 | 0.33 | 11.38 | 996 |
+  | market-town | 1 (6.2 → 3.4) | before | 19.08 / 31.08 | 4.13 / 8.35 | 0.96 | 18.15 | 326,071 |
+  | | | after | 14.78 / 20.33 | 3.29 / 11.48 | 1.11 | 13.61 | 194,095 |
+  | | 2 (3.5 → 11) | before | 16.53 / 24.13 | 5.37 / 13.80 | 1.16 | 15.22 | 326,071 |
+  | | | after | 14.31 / 20.31 | 4.94 / 11.87 | 1.56 | 14.13 | 194,095 |
+
+  - On paris-corner, the upload falls from 120 KB to 1 KB a frame, and the CPU frame p50 falls by 0.6–1.4 ms, mostly in preparing.
+  - Market-town's camera never stops, so its walk rewrites lists most frames: 190 KB a frame is still written. Its CPU frame is about 0.4–0.8 ms lower, within this machine's noise.
+  - GPU time is load, not the change.
+  - The gate's comparison with the browser still needs quiet runs.
+- **Tests:**
+  - `cargo test` passes for `presentation` (179), `pipelines` and `native-client` (all targets, with `assets/runtime/audio` pulled for `audio.rs`).
+  - `native-client`'s new `tests/props.rs` holds three things: the paris-corner replay's prop rows include the menu tank's own wreck, only Paris's regional looks are installed, and the layout names the menu's units. That last test was falsified once, by building under the game's catalog alone.
+  - Clippy `-D warnings` and `cargo fmt --check` are clean.
+  - The web typecheck, oxlint (no errors) and oxfmt are clean. `kitsOnRequest.test.ts` passes.
+
+### Code
+
+Net lines against main, comments and blanks excluded:
+
+| | Net |
+| --- | --- |
+| Rust, `presentation` | +122 (`prop_art` and the header reader; `Corners`; the props' input) |
+| Rust, native | +167 (`statics.rs` 90; the models' props, counts and held runs; the scenery on held batches; the replay's jump rule) |
+| Rust, tests | +53 |
+| TypeScript | −1 |
+
+### Decisions
+
+- **The art a prop is fitted from is read in Rust from the files**, the way the scenery's kinds and the buildings' kits are. The one derivation `propArt` held, the drawn size of a bounds, moved into `PropArt::new` first, so both clients now hand over plain readings.
+- **A map's battle is fought under its category's catalog**, the content owners' rule in the root README. Native has no session to ask.
+- **Native's held statics live with the models**, which own the instance layout. The scenery reads them through `Models::statics`. That gives one holder for the static world, where the browser has one per layer.
+
+### Next pickup
+
+- Step 8's gates: three quiet runs a side, native against the browser, on both scenes, release build.
+- Main's late smoke puff (market-town, between ticks, off by one) is an effects lead, not this step's.
+
+## Effect counts equal on every plate (2026-10-12, branch `effectcounts`)
+
+Step 6 left plates drawn on a tick boundary with different effect counts, and step 5c one extra smoke puff late in market-town. Both had one cause, and neither was native's.
+
+### The cause
+
+The page's presentation ran at a tick rate that was not the simulation's. The sim worker reported its rate as `1000 / tickMs`, which is 29.999999999999996, not 30. The page built its `Presentation` from that, while the capture recorded the rules' 30, and native and the WASM replay used 30. Every effect's start and end (`tick · dt`) and the interpolated clock were therefore a few ULPs apart. Between ticks that never mattered. On a tick boundary it decided whether the next tick's tracers and flashes had started and whether the last tick's impacts had ended. Late in market-town it decided whether a puff's lifetime had run out.
+
+How it was found: the page logged every call into its Rust presentation, and every frame's publication, time and camera. All of them equalled the capture. Replaying the page's own frame sequence through the browser's WASM still differed on 1,050 of 6,947 frames, so the missing input was not in the per-frame calls. Shifting one boundary plate's time showed the page behaving as if its clock was a few ULPs early, which pointed at the rate.
+
+### The contract
+
+- **The worker reports the rules' rate as given** (`authority.ts`: `ready.tickHz` is `rules.tick_hz`; `tickMs` is derived from it, never the reverse). `authority.test.ts` holds it (red before the fix).
+- **The capture records the rate the page's presentation ran at** (`reelRun.ts` takes `tickHz` from the worker's `ready`), so the replay's `Presentation::new` gets the page's input. `validatePresentationCapture` already refuses a rate that is not an integer.
+- **Native checks building modules too:** `instanceCounts[].buildings` (`module · 4 + tier`, the view batches) against native's model layer (`Models::drawn_buildings`), beside the models, props, scenery and effects. Falsified once by miscounting.
+
+The capture scene, the frame records and native's replay are unchanged: every other input they carried was already exact.
+
+### Evidence
+
+- **The browser's own WASM:** replaying the page's whole frame sequence (8,115 frames, 1,018 on a tick boundary) gives the page's instance count on every frame but the last, which framed a publication drawn after the reel ended.
+- **Fresh controls, both scenes:** fog off `throwaway/native-parity/2026-10-12T21-04-36-341Z`, fog on `21-07-59-103Z`. All four pass `native-parity-capture`. Native's report says "model, building, prop, scenery and effect counts: equal to the browser's on every plate" for all 48 plates. Thirteen of them are on a tick boundary (paris-corner 3 and 1, market-town 5 and 4).
+- **Plates** (grayscale MAE, control against native): market-town 0.016–0.096 (fog on 0.015–0.107) and paris-corner 0–0.049 (fog on 0–0.061). That is the same as step 5c. Native draws the same pictures, and the browser's change is a few ULPs of time.
+- **Gates:** `cargo test` for `presentation` and `native-client`; clippy `-D warnings` on those and `presentation-wasm`; `cargo fmt --check`; the web typecheck; oxlint (no errors); `authority.test.ts` and `simSession.test.tsx`.

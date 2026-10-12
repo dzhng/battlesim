@@ -7,13 +7,16 @@
 //! indices ordered by surface class (`surfaceParts.ts`): a posed body and an
 //! articulated hull skin by the frame's palettes; a corpse is its body posed
 //! once as it lies (`posedMesh`, by the presentation crate's palette for the
-//! row); a static state is rigid. Each frame the palettes and instances are
-//! written whole, and each batch is one run of instances over one row's tier.
-use std::collections::HashMap;
+//! row); a static state is rigid. Each frame the palettes and the units'
+//! instances are written whole; the static world's batches are held between
+//! frames (`statics.rs`). Each batch is one run of instances over one row's
+//! tier.
+use std::collections::{BTreeMap, HashMap};
 
 use presentation::presentation::{Presentation, GHOST_PASS};
 use presentation::records::{Joint, NONE};
 use presentation::static_world::batches::{CAST_PASS, VIEW_PASS};
+use presentation::static_world::props::{DRAWS_PROP, DRAWS_PROP_GROUND};
 use presentation::view::IMPOSTOR;
 use wgpu::*;
 
@@ -22,6 +25,7 @@ use crate::fog::Layer;
 use crate::bundle::{Bundle, Coverage, Library, Material, Mesh, Shape, Texture};
 use crate::gpu::bind;
 use crate::pipelines::Pipelines;
+use crate::statics::Statics;
 
 pub const VERTEX_BYTES: usize = 48;
 /// Material rows a material takes in the materials buffer (`MATERIAL_ROWS`).
@@ -97,15 +101,21 @@ enum Kind {
     Vehicle,
     Corpse,
     Piece,
+    /// The map's props and those the side knows (`Appearance.draws` 7, 8).
+    Prop,
 }
 
 struct Row {
+    /// Its appearance, by which the props are counted.
+    name: String,
     kind: Kind,
     /// How fog takes it (`modelFog.ts`): units never, a corpse as the
-    /// ground under it, the static world face by face.
+    /// ground under it, the static world face by face, a surface movers
+    /// stand on with the ground's paint.
     fog: Layer,
-    /// A drawable of the static world: it casts only in its caster batches.
-    placed: bool,
+    /// A building's module: it casts only in its caster batches. A prop
+    /// is listed in view only, and casts as a unit does.
+    casts_own: bool,
     tiers: Vec<Drawable>,
     /// A body's coarsest mesh posed in its far pose: what its impostor card
     /// shows, drawn in the card's place.
@@ -124,16 +134,18 @@ impl Row {
     }
 }
 
-/// One batch's draw: a run of the frame's instances over one row's tier.
+/// One batch's draw: a run of instances over one row's tier.
 struct Run {
     row: usize,
     tier: usize,
     /// Drawn in view, cast into the sun's cascades, or a placement ghost
     /// (`Batch.pass`).
     pass: u32,
-    /// The tier it casts with, if it casts: a unit in view casts one tier
-    /// coarser and never as a card; the static world in its caster batches.
+    /// The tier it casts with, if it casts: a unit or a prop in view casts
+    /// one tier coarser and never as a card; a building in its caster batches.
     caster: Option<usize>,
+    /// Its instances: the frame's from `first`, or a held static batch's.
+    held: Option<u32>,
     first: u32,
     count: u32,
 }
@@ -145,6 +157,7 @@ pub struct Drawn {
     pub vehicles: u32,
     pub corpses: u32,
     pub pieces: u32,
+    pub props: u32,
     pub ghosts: u32,
     /// Of those, at the impostor tier: drawn as the mesh their card shows.
     pub impostors: u32,
@@ -462,9 +475,15 @@ pub struct Models {
     sampler: Sampler,
     palette: Buffer,
     instances: Buffer,
+    statics: Statics,
     group: BindGroup,
     runs: Vec<Run>,
     drawn: Drawn,
+    /// The props listed in view, by appearance: per tier.
+    props: BTreeMap<String, [u32; 4]>,
+    /// The building modules listed in view, `row · 4 + tier` (a module's
+    /// row is its index among the walked modules, which come first).
+    buildings: Vec<u32>,
 }
 
 fn growable(device: &Device, label: &str, usage: BufferUsages, bytes: u64) -> Buffer {
@@ -493,7 +512,8 @@ impl Models {
         let mut rows = Vec::new();
         for (r, a) in world.appearances.iter().enumerate() {
             // The scenery's rows are the scenery layer's (`scenery.rs`).
-            if a.draws != 0 {
+            let prop = a.draws == DRAWS_PROP || a.draws == DRAWS_PROP_GROUND;
+            if a.draws != 0 && !prop {
                 rows.push(None);
                 continue;
             }
@@ -531,17 +551,19 @@ impl Models {
                         .map(|m| single(&posed_mesh(m, &palette), Some(0)))
                         .collect();
                     Row {
+                        name: name.to_owned(),
                         kind: Kind::Corpse,
                         fog: Layer::Ground,
-                        placed: false,
+                        casts_own: false,
                         tiers,
                         card: None,
                     }
                 }
                 Shape::Skinned(tiers) => Row {
+                    name: name.to_owned(),
                     kind: Kind::Soldier,
                     fog: Layer::Units,
-                    placed: false,
+                    casts_own: false,
                     card: match tiers.last() {
                         Some(m) => Some(single(&posed_mesh(m, &rest()?), Some(0))),
                         None => None,
@@ -571,9 +593,10 @@ impl Models {
                         })
                         .collect();
                     Row {
+                        name: name.to_owned(),
                         kind: Kind::Vehicle,
                         fog: Layer::Units,
-                        placed: false,
+                        casts_own: false,
                         tiers,
                         card: None,
                     }
@@ -590,14 +613,17 @@ impl Models {
                         continue;
                     };
                     Row {
-                        kind: Kind::Piece,
+                        name: name.to_owned(),
+                        kind: if prop { Kind::Prop } else { Kind::Piece },
                         // A row with no state is posed, as a unit is.
-                        fog: if a.placed == 0 && state.is_empty() {
+                        fog: if a.draws == DRAWS_PROP_GROUND {
+                            Layer::PaintedFaces
+                        } else if a.placed == 0 && state.is_empty() {
                             Layer::Units
                         } else {
                             Layer::Faces
                         },
-                        placed: a.placed != 0,
+                        casts_own: a.placed != 0 && !prop,
                         tiers: s.tiers.iter().map(|m| single(m, Some(0))).collect(),
                         card: None,
                     }
@@ -654,8 +680,11 @@ impl Models {
             sampler,
             palette,
             instances,
+            statics: Statics::new(presentation),
             runs: Vec::new(),
             drawn: Drawn::default(),
+            props: BTreeMap::new(),
+            buildings: Vec::new(),
         })
     }
 
@@ -682,13 +711,15 @@ impl Models {
         )
     }
 
-    /// Writes `frame`'s palettes and instances, and makes each batch a run.
+    /// Writes `frame`'s palettes and instances, takes its static batches,
+    /// and makes each batch a run.
     pub fn prepare(
         &mut self,
         device: &Device,
         queue: &Queue,
         frame: &presentation::presentation::Frame,
-    ) {
+    ) -> Result<(), String> {
+        self.statics.prepare(device, queue, frame)?;
         let palette: &[u8] = bytemuck::cast_slice(&frame.palettes);
         let instances: &[u8] = bytemuck::cast_slice(&frame.instances);
         if palette.len() as u64 > self.palette.size() {
@@ -720,56 +751,95 @@ impl Models {
         queue.write_buffer(&self.instances, 0, instances);
         self.runs.clear();
         self.drawn = Drawn::default();
-        for b in &frame.batches {
-            let Some(Some(row)) = self.rows.get(b.appearance as usize) else {
+        self.props.clear();
+        self.buildings.clear();
+        // The units' batches, from the frame's instances, then the static
+        // world's, held.
+        let units = frame
+            .batches
+            .iter()
+            .filter(|b| !self.statics.holds(b.appearance))
+            .map(|b| (b.appearance, b.tier, b.pass, None, b.first, b.count));
+        let statics = self
+            .statics
+            .listed()
+            .map(|h| (h.row, h.tier, h.pass, Some(h.key), 0, h.count));
+        let batches: Vec<_> = units.chain(statics).collect();
+        for (appearance, tier, pass, held, first, count) in batches {
+            let Some(Some(row)) = self.rows.get(appearance as usize) else {
                 continue;
             };
-            if b.first != NONE && b.pass != CAST_PASS {
-                self.drawn.listed += b.count;
+            if row.kind == Kind::Prop && pass == VIEW_PASS {
+                let levels = self.props.entry(row.name.clone()).or_default();
+                levels[(tier as usize).min(3)] += count;
             }
-            if b.first == NONE || b.count == 0 {
-                continue;
+            if row.casts_own && pass == VIEW_PASS {
+                let at = appearance as usize * 4 + (tier as usize).min(3);
+                if self.buildings.len() <= at {
+                    self.buildings.resize(at + 1, 0);
+                }
+                self.buildings[at] += count;
             }
-            let impostor = b.tier == IMPOSTOR as u32;
-            let tier = b.tier as usize;
+            if pass != CAST_PASS {
+                self.drawn.listed += count;
+            }
+            let impostor = tier == IMPOSTOR as u32;
+            let tier = tier as usize;
             let Some(drawable) = row.drawable(tier) else {
                 continue;
             };
-            let ghost = b.pass == GHOST_PASS;
-            let caster = match (row.placed, b.pass) {
-                (true, CAST_PASS) => Some(tier),
-                (false, VIEW_PASS) if !impostor => {
+            let ghost = pass == GHOST_PASS;
+            let caster = match pass {
+                CAST_PASS => Some(tier),
+                VIEW_PASS if !impostor && !row.casts_own => {
                     Some((tier + CASTER_COARSER).min(row.tiers.len().saturating_sub(1)))
                 }
                 _ => None,
             };
             self.runs.push(Run {
-                row: b.appearance as usize,
+                row: appearance as usize,
                 tier,
-                pass: b.pass,
+                pass,
                 caster,
-                first: b.first,
-                count: b.count,
+                held,
+                first,
+                count,
             });
-            if b.pass == CAST_PASS {
+            if pass == CAST_PASS {
                 continue;
             }
             let d = &mut self.drawn;
             match (ghost, row.kind) {
-                (true, _) => d.ghosts += b.count,
-                (_, Kind::Soldier) => d.soldiers += b.count,
-                (_, Kind::Vehicle) => d.vehicles += b.count,
-                (_, Kind::Corpse) => d.corpses += b.count,
-                (_, Kind::Piece) => d.pieces += b.count,
+                (true, _) => d.ghosts += count,
+                (_, Kind::Soldier) => d.soldiers += count,
+                (_, Kind::Vehicle) => d.vehicles += count,
+                (_, Kind::Corpse) => d.corpses += count,
+                (_, Kind::Piece) => d.pieces += count,
+                (_, Kind::Prop) => d.props += count,
             }
-            d.impostors += if impostor { b.count } else { 0 };
-            d.triangles += u64::from(b.count * drawable.count / 3);
+            d.impostors += if impostor { count } else { 0 };
+            d.triangles += u64::from(count * drawable.count / 3);
         }
+        Ok(())
     }
 
-    /// The frame's instances: the scenery draws its batches' runs from them.
-    pub fn instances(&self) -> &Buffer {
-        &self.instances
+    /// The props the last prepared frame lists in view, by appearance in
+    /// name order, per tier: what the browser's capture counts
+    /// (`DrawnInstances.props`).
+    pub fn drawn_props(&self) -> &BTreeMap<String, [u32; 4]> {
+        &self.props
+    }
+
+    /// The building modules the last prepared frame lists in view, as the
+    /// browser's `drawnBuildings`: `module · 4 + tier`, trailing zeros left off.
+    pub fn drawn_buildings(&self) -> &[u32] {
+        &self.buildings
+    }
+
+    /// The static world's batches the last frame listed: the scenery draws
+    /// its own from them.
+    pub fn statics(&self) -> &Statics {
+        &self.statics
     }
 
     /// What the last prepared frame draws.
@@ -789,7 +859,6 @@ impl Models {
         tier_of: impl Fn(&Run) -> Option<usize>,
         range: impl Fn(&Drawable) -> Part,
     ) {
-        pass.set_vertex_buffer(1, self.instances.slice(..));
         for run in &self.runs {
             let Some(tier) = tier_of(run) else { continue };
             let Some(row) = &self.rows[run.row] else {
@@ -802,6 +871,10 @@ impl Models {
             if part.count == 0 {
                 continue;
             }
+            let instances = run
+                .held
+                .map_or(&self.instances, |key| self.statics.buffer(key));
+            pass.set_vertex_buffer(1, instances.slice(..));
             pass.set_vertex_buffer(0, d.vertices.slice(..));
             pass.set_index_buffer(d.indices.slice(..), IndexFormat::Uint32);
             pass.draw_indexed(

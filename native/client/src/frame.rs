@@ -151,7 +151,7 @@ impl Passes {
         queue: &Queue,
         presentation: &Presentation,
         camera: &Camera,
-    ) {
+    ) -> Result<(), String> {
         let frame = presentation.last_frame();
         self.environment
             .prepare(queue, &frame.view, camera.target, frame.clock as f32);
@@ -168,8 +168,9 @@ impl Passes {
                 height,
             );
         }
-        self.models.prepare(device, queue, frame);
-        self.scenery.prepare(frame);
+        self.models.prepare(device, queue, frame)?;
+        self.scenery.prepare(self.models.statics());
+        Ok(())
     }
 
     /// Takes this frame's scars from `presentation`: the grass regrows over
