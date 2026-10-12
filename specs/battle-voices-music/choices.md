@@ -366,7 +366,7 @@ Suppose an own tank 200 m to the left shouts "Taking fire!". It plays from the l
 
 _Agent, plan and slice 14 · confidence high_
 
-Suppose a skirmish starts. The battle becomes playable without waiting for any voice. After `ready`, `VoiceBank` fetches the packs of every set the two factions' rosters speak with, plus the player's own units and purchases, and decodes their takes in the background. Until a take decodes, its bark is dropped. A set that fails to load stays silent. Music streams through an `<audio>` element into Web Audio (`MusicPlayer`), outside `WebAudioSink`, because offline rendering can't host a media element.
+Suppose a skirmish starts. The battle becomes playable without waiting for any voice. After `ready`, `VoiceBank` fetches, in the background, the packs of the sets the battle's units speak with (which sets, and how takes are held, is [S38](#s38-a-battle-loads-only-the-sets-on-its-battlefield-and-decodes-a-take-when-its-line-starts)). Until a take is fetched, its line is dropped. A set that fails to load stays silent. Music streams through an `<audio>` element into Web Audio (`MusicPlayer`), outside `WebAudioSink`, because offline rendering can't host a media element.
 
 - **Gap:** the plan's loading question.
 - **Reach:** startup cost stays flat however big the library grows.
@@ -486,5 +486,21 @@ Suppose someone adds a new generated sound. Its provenance uses the `Generated` 
 - **Gap:** the plan's structural questions.
 - **Reach:** one owner each for provenance, levels and review.
 - **Why sound:** it extends the owners that already existed.
+
+### S38. A battle loads only the sets on its battlefield, and decodes a take when its line starts
+
+_Agent, closeout memory fix · confidence high_
+
+Suppose a US player deploys into a small skirmish against the eastern faction. At closeout the battle loaded every set both factions' rosters speak with and kept every take decoded: a probe of that deploy fetched 3,909 takes (33 MB of MP3) and held 3,909 decoded buffers, 1,264 MB of PCM. Now:
+
+- **Which sets load.** Own units' and pending purchases' sets, as for answers (`UnitResponses`), and an enemy kind's set from the first time the side identifies one (`BattleAudio.identified`, fed each publication's `identified` kinds). Each loads in the background as it appears, so a newly seen kind's first barks, before its set arrives, are dropped as any unloaded take is. The unseen-shout pool still draws from every enemy set, bounded by `takes_per_voice`: 64 (US), 84 (eastern) or 100 (European) takes, 23 to 37 MB decoded.
+- **How a take is held.** `VoiceBank` keeps the fetched MP3 bytes and decodes when Rust's start command arrives; the last `DECODED_TAKES` = 32 played stay decoded. Rust learns each take's length when its bytes arrive, from the pack's `duration_s`, so nothing is decoded to measure it. That length is the rendered speech; ffmpeg decodes the MP3 0.05 to 0.06 s longer (encoder padding, 20 takes sampled), so a line now counts as sounding for that much less than its samples run.
+- **A line decoded late.** It starts when decoded, unless that is more than the chatter's `wait_s` (1 s) after its start command's time; then it is dropped. Rust has already counted it as started, so the cap and the score's duck treat it as sounding either way.
+
+The same deploy now fetches 84 takes (0.85 MB) and holds 84 decoded buffers, 32.5 MB: the enemy's shout pool and nothing else, because the player has fielded nothing yet. Fielding one Abrams adds its set's 116 takes (1.0 MB of MP3), and its first line decodes one more (32.8 MB in all).
+
+- **Gap:** the plan said a battle loads its sets, and didn't weigh a whole roster decoded.
+- **Reach:** every battle's memory, and when a line's first play pays for a decode (a few milliseconds for a 2 s take).
+- **Why sound:** Rust arbitrates the same requests by the same rules and seeded takes; only each take's length loses its padding. Memory falls by a factor of about forty, and the pool, the one set of takes kept decoded, is bounded by data. Decoding at a 24 kHz context would halve the pool again; it wasn't needed.
 
 Trivial discretion, not listed: command and flag names (`generate voices`, `process`, `pack`, `check`, `design`, `pick`, and the `--set`/`--voice`/`--trigger`/`--only` filters), track ids, and internal type names.

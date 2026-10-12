@@ -111,10 +111,15 @@ export function ChatterPreview({ api, audition }: { api: VoiceAPI; audition: Aud
           chatter.request({ ...request, at: t }, now);
         }
         const { commands, started, dropped } = chatter.update(now, LISTENER);
-        for (const line of commands) {
-          const buffer = bank.line(line.sound, line.variant);
-          if (buffer) sink.play(buffer, line.at);
-        }
+        for (const line of commands)
+          bank.play(
+            line.sound,
+            line.variant,
+            line.at,
+            RULES.wait_s,
+            () => sink.now(),
+            (buffer, at) => sink.play(buffer, at),
+          );
         if (started.length || dropped.length)
           setEvents((list) => [
             ...list,

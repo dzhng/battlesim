@@ -252,6 +252,8 @@ export function useBattleSession({
         setMovingWrecks((now) => (now.join() === moving.join() ? now : moving));
         audio?.note(presentation.wasm);
       }
+      // An enemy kind's voice set loads once the side first identifies one.
+      audio?.identified(o.identified.map((unit) => unit.kind));
       responses.current?.observed(o);
       onDecoded?.(o, digest);
     },
@@ -265,7 +267,8 @@ export function useBattleSession({
       audio && sim.client ? new UnitResponses(audio, units, faction, rules.tick_hz) : null;
   }, [audio, sim.client, units, faction, rules.tick_hz]);
   // A shout heard in the open is a bark in its kind's set for its side's
-  // faction; an unseen enemy's is drawn from the enemy faction's sets.
+  // faction; an unseen enemy's is drawn from the enemy faction's sets. Of
+  // those, only the sets of kinds fielded or identified load.
   // Outside a skirmish the factions are unknown, so shouts are silent.
   const enemy = skirmish ? skirmish.factions[side === "blue" ? 1 : 0] : null;
   useEffect(() => {

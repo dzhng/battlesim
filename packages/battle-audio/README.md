@@ -156,8 +156,12 @@ client's own seeded randomness, never the simulation's, and gives start commands
 on the voices bus that the page only carries out. Its takes come from
 [the voice bank](src/voices/voiceBank.ts), which loads a battle's sets from their
 `pack.json` in the background and tells the chatter each set's voices and each
-take as it arrives; a take not yet loaded is a dropped line, never a wait. The
-sound workbench's chatter preview runs the same two.
+take as it arrives, with the length its pack records; a take not yet loaded is a
+dropped line, never a wait. A loaded take stays as fetched, MP3 about a twentieth
+of its decoded size, and is decoded when a line starts it; the last 32 played
+stay decoded. A line plays when its take is decoded, or is dropped if that comes
+later than the chatter's wait after its start. The sound workbench's chatter
+preview runs the same two.
 
 A unit answers its owner ([responses](src/voices/responses.ts)) when selected,
 when an order is accepted or refused for a reason the player caused, and when
@@ -172,9 +176,10 @@ as every unit sound is (distance, the air's low-pass and reverb send). The
 page hands Rust each unit kind's set for its own faction and the enemy's
 (`BattleAudio.speakers`, from `voices.json`'s assignments), once; Rust never
 reads `voices.json`. Outside a skirmish the factions are unknown and shouts
-are silent. A battle loads the packs of every set those two factions speak
-with, and of its own units and pending purchases, once its sounds are ready;
-a set without a pack is silent. The page's line player is the mixer's
+are silent. Once its sounds are ready, a battle loads the sets of its own
+units and pending purchases, and an enemy kind's set from the first time the
+side identifies one, each in the background as it appears; a set without a
+pack is silent. The page's line player is the mixer's
 (`WebAudioSink.line`), so a bark has the graph every unit sound has.
 `generate pack` writes a set's `pack.json` from the takes judged ok on the
 bytes served; before review, `--unreviewed` also lists unjudged takes the
@@ -183,8 +188,10 @@ transcript check passed.
 An unseen enemy's shout reaches the side only as an anonymous hearing cue, so
 it plays a stressed bark from a generic pool of the enemy faction's sets, never
 the speaker's own voice, muffled past understanding. [The shout pool](src/voices/shoutPool.ts)
-only loads those takes, a few per shouting voice from each pack that exists;
-Rust picks the take and places it. With no pack loaded a shout is silent.
+only loads those takes, a few per shouting voice from each pack that exists,
+and keeps them decoded because a cue starts at once: 64 to 100 takes, 23 to
+37 MB, by faction. Rust picks the take and places it. With no pack loaded a
+shout is silent.
 
 What a battle hears, when, where and how loud (timing, distance, the air's
 colour, the voice budget and stealing, loops, footsteps, cues) is decided in

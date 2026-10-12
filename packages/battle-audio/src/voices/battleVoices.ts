@@ -3,7 +3,9 @@
 // Packs load only once `start` is called (the battle's own sounds are
 // ready), and each set once. A line plays on the mixer's voices bus as Rust
 // gives it, after its take's calibration: an answer dry and centred, the
-// owner's radio; a battle's bark where it was shouted.
+// owner's radio; a battle's bark where it was shouted. Its take is decoded
+// as it starts; a line whose take decodes later than the chatter's wait
+// after its start is dropped.
 import type { SoundFrame, VoiceSpec } from "../soundFrame";
 import { Chatter, type ChatterRules, type ChatterUpdate } from "./chatter";
 import type { ResponseRequest } from "./responses";
@@ -20,6 +22,7 @@ export interface LineOutput {
 export class BattleVoices {
   private readonly bank: VoiceBank;
   private readonly chatter: Chatter;
+  private readonly wait: number;
   private readonly wanted = new Set<string>();
   private readonly asked = new Set<string>();
   private started = false;
@@ -32,6 +35,7 @@ export class BattleVoices {
     options: { fetcher?: typeof fetch; packs?: PackSource; seed?: number } = {},
   ) {
     this.chatter = new Chatter(rules, options.seed ?? 0);
+    this.wait = rules.wait_s;
     this.bank = new VoiceBank(output.context, options.fetcher, options.packs, {
       listener: this.chatter,
     });
@@ -76,6 +80,11 @@ export class BattleVoices {
     this.chatter.reset();
   }
 
+  /** Resolves once every line started so far has played or been dropped. */
+  settled(): Promise<void> {
+    return this.bank.settled();
+  }
+
   /** Sets, or takes, that failed to load, with why. */
   get errors(): ReadonlyMap<string, string> {
     return this.bank.errors;
@@ -94,10 +103,11 @@ export class BattleVoices {
 
   /** Carries out an arbitration's start commands. */
   private play(update: ChatterUpdate): ChatterUpdate {
-    for (const { op: _, id: __, ...line } of update.commands) {
-      const buffer = this.bank.line(line.sound, line.variant);
-      if (buffer) this.output.line(line, buffer);
-    }
+    const now = () => this.output.now();
+    for (const { op: _, id: __, ...line } of update.commands)
+      this.bank.play(line.sound, line.variant, line.at, this.wait, now, (buffer, at) =>
+        this.output.line({ ...line, at }, buffer),
+      );
     for (const line of update.started) this.until = Math.max(this.until, line.at + line.duration);
     return update;
   }
