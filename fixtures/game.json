@@ -1044,12 +1044,11 @@
       "voices": { "lines": 4, "wait_s": 1, "group_s": 0.25 },
       "cues": {
         "sounds": {
-          "default": "cue_voices",
           "shot": "cue_gunfire",
           "vehicle": "cue_engine",
-          "infantry": "cue_voices",
           "infantry_moving": "cue_footsteps"
         },
+        "shout": { "gain": 1, "lowpass_hz": 600, "wet": 0.6, "takes_per_voice": 4 },
         "near_gain": 0.3,
         "far_gain": 0.12,
         "far_lowpass_hz": 900,

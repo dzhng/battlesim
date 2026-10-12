@@ -143,16 +143,33 @@ pub struct Footsteps {
 }
 
 /// Unseen enemies, from hearing cues: a sound by `category` or
-/// `category_moving`, its gain by band, the far band muffled, and the same
-/// cue not repeated within `repeat_s`.
+/// `category_moving` (a category with neither is silent), a shout from the
+/// enemy's pool, its gain by band, the far band muffled, and the same cue not
+/// repeated within `repeat_s`.
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Cues {
     pub sounds: HashMap<String, String>,
+    pub shout: ShoutCue,
     pub near_gain: f64,
     pub far_gain: f64,
     pub far_lowpass_hz: f64,
     pub repeat_s: f64,
+}
+
+/// An unseen enemy's shout: a stressed bark from the generic pool of the
+/// listener's enemy faction (never the speaker's own voice), on the voices
+/// bus at `gain` times its band's, through a `lowpass_hz` low-pass and a
+/// `wet` reverb send in either band, so the words can't be made out. The
+/// player loads the pool: up to `takes_per_voice` stressed barks of each
+/// shouting voice of every set the enemy fields.
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ShoutCue {
+    pub gain: f64,
+    pub lowpass_hz: f64,
+    pub wet: f64,
+    pub takes_per_voice: usize,
 }
 
 /// `presentation.audio`.
@@ -336,7 +353,6 @@ impl SoundTables {
             ("blasts", a.blasts.contains_key("default")),
             ("vehicles", a.vehicles.contains_key("default")),
             ("fires", a.fires.contains_key("default")),
-            ("cues.sounds", a.cues.sounds.contains_key("default")),
         ];
         if let Some((t, _)) = defaults.iter().find(|(_, ok)| !ok) {
             return Err(format!("presentation.audio.{t} needs a default"));
@@ -348,6 +364,12 @@ impl SoundTables {
         if !((0.0..=1.0).contains(&d.floor) && d.cull >= 0.0) {
             return Err(
                 "presentation.audio.distance: floor must be 0 to 1, cull at least 0".into(),
+            );
+        }
+        let shout = &a.cues.shout;
+        if !(shout.gain >= 0.0 && shout.lowpass_hz > 0.0 && (0.0..=1.0).contains(&shout.wet)) {
+            return Err(
+                "presentation.audio.cues.shout: gain at least 0, lowpass_hz > 0, wet 0 to 1".into(),
             );
         }
         let air = a.air;

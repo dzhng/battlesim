@@ -105,6 +105,8 @@ import { useSimSession, type ScriptedSim } from "./useSimSession";
 import { groundUnderRay, useMapBuildings, useStaticWorld } from "./useStaticWorld";
 import { createBattleAudio } from "./soundFeed";
 import { UnitResponses } from "./unitResponses";
+import { assignments as voiceAssignments } from "@fixtures/voices.json";
+import { factionSets } from "@packages/battle-audio/src/voices/voiceCatalog";
 import { frameCounts, presentationWorld, presentedCamera } from "./presentedFrame";
 import { gameLight } from "./gameLight";
 import type { ObservationDecoder } from "@web/battle/sim/presentation";
@@ -262,6 +264,14 @@ export function useBattleSession({
     responses.current =
       audio && sim.client ? new UnitResponses(audio, units, faction, rules.tick_hz) : null;
   }, [audio, sim.client, units, faction, rules.tick_hz]);
+  // An unseen enemy's shout is a bark from the enemy faction's sets; outside
+  // a skirmish the enemy's faction is unknown, so its shouts are silent.
+  const enemy = skirmish ? skirmish.factions[side === "blue" ? 1 : 0] : null;
+  useEffect(() => {
+    if (!audio || !enemy) return;
+    const rows = units.ids.map((id) => ({ id, factions: units.type(id).roster?.factions ?? [] }));
+    audio.hearEnemies(factionSets(voiceAssignments, rows, enemy));
+  }, [audio, units, enemy]);
   const { observation } = sim;
   const contactPresentation = useMemo(
     () => (sim.client ? new ContactPresentation(rules.tick_hz, gameContactStyle.fade_s) : null),

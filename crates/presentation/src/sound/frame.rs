@@ -13,7 +13,9 @@
 //!   soldier's footsteps by the distance he walks;
 //! - the observation's hearing cues: an unseen enemy is heard only as a
 //!   vague sound from the cue's direction sector, louder in the near band and
-//!   muffled in the far one, never at a position.
+//!   muffled in the far one, never at a position; a shout as a muffled bark
+//!   from the enemy faction's generic pool ([`Sound::set_shouts`]), never
+//!   the speaker's own voice.
 //!
 //! So sound keeps fog of war as the picture does: every positional sound has
 //! a cause in the side's observation.
@@ -41,7 +43,7 @@ use crate::effects::cook_off::CookOffFeel;
 use crate::effects::launches::Launch;
 use crate::effects::publication::EffectPublication;
 use crate::records::{Emitter, NONE};
-use crate::seed::{hash_string, js_hypot, js_number};
+use crate::seed::{hash_string, js_hypot, js_number, Mulberry32};
 use crate::world::Vec3;
 
 /// Pending transients held at most; past it the oldest go.
@@ -261,9 +263,11 @@ struct Pending {
     gain: f64,
     rate: f64,
     position: Option<Vec3>,
-    /// A cue's direction sector, its band's low-pass and far share.
+    /// A cue's direction sector, its low-pass, reverb send and far share
+    /// (its onset's softening).
     sector: f64,
     lowpass: f64,
+    wet: f64,
     far_share: f64,
 }
 
@@ -335,6 +339,14 @@ pub struct Timing {
     pub smoke: HashMap<String, SmokeTimes>,
     /// When a cook-off's fireballs go and its turret lands.
     pub cook_off: CookOffFeel,
+}
+
+/// One take of the enemy's shout pool: the sound a player plays it as, and
+/// its length at rate 1, seconds.
+#[derive(Clone, Debug, Deserialize)]
+pub struct ShoutTake {
+    pub sound: String,
+    pub duration: f64,
 }
 
 /// A battle's sound as a player builds it, JSON: `presentation.audio`, the
@@ -449,6 +461,8 @@ pub struct Sound {
     motors: Ordered<Motor>,
     bursts: HashMap<String, BurstVoice>,
     cue_heard: HashMap<String, f64>,
+    /// The enemy faction's shout pool, as far as the player has loaded it.
+    shouts: Vec<ShoutTake>,
     next_id: u32,
     last_tick: f64,
     clock: Option<f64>,
@@ -587,6 +601,7 @@ impl Sound {
             motors: Ordered::default(),
             bursts: HashMap::new(),
             cue_heard: HashMap::new(),
+            shouts: Vec::new(),
             next_id: 1,
             last_tick: -1.0,
             clock: None,
@@ -621,10 +636,22 @@ impl Sound {
         Ok(())
     }
 
+    /// The takes an unseen enemy's shout is drawn from: stressed barks of
+    /// the listener's enemy faction, whichever the player has loaded (none:
+    /// shouts are silent). A battle keeps its pool through a reset.
+    pub fn set_shouts(&mut self, takes: Vec<ShoutTake>) {
+        self.shouts = takes;
+    }
+
     fn duration(&self, sound: &str, variant: u32) -> f64 {
-        self.durations
-            .get(sound)
-            .map_or(0.0, |d| d[variant as usize % d.len()])
+        match self.durations.get(sound) {
+            Some(d) => d[variant as usize % d.len()],
+            None => self
+                .shouts
+                .iter()
+                .find(|t| t.sound == sound)
+                .map_or(0.0, |t| t.duration),
+        }
     }
 
     pub fn stats(&self) -> Stats {
@@ -884,42 +911,77 @@ impl Sound {
             .retain(|(key, _)| fx.smokes.iter().any(|k| &k.key == key));
 
         // Unseen enemies: one vague sound per distinct cue, not repeated
-        // within `repeat_s`, placed by direction and never at a position.
+        // within `repeat_s`, placed by direction and never at a position. A
+        // shout is a bark from the enemy's pool, muffled in either band; the
+        // cue says nothing of who shouted, so neither does the take.
         let cues = &p.cues;
         for c in &heard.audible {
             let category = &*c.category;
+            let shout = category == "shout";
+            if shout && self.shouts.is_empty() {
+                continue;
+            }
             let name = format!("{category}{}", if c.moving { "_moving" } else { "" });
+            let sound = if shout {
+                None
+            } else {
+                match cues.sounds.get(&name).or_else(|| cues.sounds.get(category)) {
+                    Some(sound) => Some(sound),
+                    None => continue,
+                }
+            };
             let key = format!("{name}/{}/{}", js_number(c.sector), c.band);
             if let Some(&last) = self.cue_heard.get(&key) {
                 if t0 - last < cues.repeat_s && t0 >= last {
                     continue;
                 }
             }
-            self.cue_heard.insert(key, t0);
-            let sound = cues
-                .sounds
-                .get(&name)
-                .or_else(|| cues.sounds.get(category))
-                .unwrap_or(&cues.sounds["default"]);
             let near = &*c.band == "near";
-            self.pending.push(Pending {
-                t: t0,
-                sound: tables.effect(sound).to_owned(),
-                variant: 0,
-                far: None,
-                far_m: 0.0,
-                bus: Bus::Effects,
-                gain: if near { cues.near_gain } else { cues.far_gain },
-                rate: 1.0,
-                position: None,
-                sector: c.sector,
-                lowpass: if near {
-                    p.air.near_hz
-                } else {
-                    cues.far_lowpass_hz
+            let band_gain = if near { cues.near_gain } else { cues.far_gain };
+            let cue = match sound {
+                Some(sound) => Pending {
+                    t: t0,
+                    sound: tables.effect(sound).to_owned(),
+                    variant: 0,
+                    far: None,
+                    far_m: 0.0,
+                    bus: Bus::Effects,
+                    gain: band_gain,
+                    rate: 1.0,
+                    position: None,
+                    sector: c.sector,
+                    lowpass: if near {
+                        p.air.near_hz
+                    } else {
+                        cues.far_lowpass_hz
+                    },
+                    wet: if near { 0.0 } else { p.air.wet },
+                    far_share: if near { 0.0 } else { 1.0 },
                 },
-                far_share: if near { 0.0 } else { 1.0 },
-            });
+                None => {
+                    // Which take: seeded by the cue and its time, so the
+                    // same battle hears the same takes.
+                    let seed = hash_string(&format!("{key}@{}", js_number(t0)));
+                    let pick = Mulberry32::new(seed).sample() * self.shouts.len() as f64;
+                    Pending {
+                        t: t0,
+                        sound: self.shouts[pick as usize].sound.clone(),
+                        variant: 0,
+                        far: None,
+                        far_m: 0.0,
+                        bus: Bus::Voices,
+                        gain: cues.shout.gain * band_gain,
+                        rate: 1.0,
+                        position: None,
+                        sector: c.sector,
+                        lowpass: cues.shout.lowpass_hz,
+                        wet: cues.shout.wet,
+                        far_share: 1.0,
+                    }
+                }
+            };
+            self.cue_heard.insert(key, t0);
+            self.pending.push(cue);
         }
         if self.pending.len() > PENDING_CAP {
             self.pending.drain(..self.pending.len() - PENDING_CAP);
@@ -957,6 +1019,7 @@ impl Sound {
             position: Some(position),
             sector: -1.0,
             lowpass: 0.0,
+            wet: 0.0,
             far_share: 0.0,
         });
     }
@@ -1146,7 +1209,11 @@ impl Sound {
                     } else {
                         e.lowpass
                     },
-                    wet: air.wet * u,
+                    wet: if e.position.is_some() {
+                        air.wet * u
+                    } else {
+                        e.wet
+                    },
                     attack: air.attack_s * u,
                     position: e.position,
                     pan: e

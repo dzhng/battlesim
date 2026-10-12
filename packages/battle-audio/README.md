@@ -160,6 +160,12 @@ ready. `generate pack` writes a set's `pack.json` from the takes judged ok on
 the bytes served; before review, `--unreviewed` also lists unjudged takes the
 transcript check passed.
 
+An unseen enemy's shout reaches the side only as an anonymous hearing cue, so
+it plays a stressed bark from a generic pool of the enemy faction's sets, never
+the speaker's own voice, muffled past understanding. [The shout pool](src/voices/shoutPool.ts)
+only loads those takes, a few per shouting voice from each pack that exists;
+Rust picks the take and places it. With no pack loaded a shout is silent.
+
 What a battle hears, when, where and how loud (timing, distance, the air's
 colour, the voice budget and stealing, loops, footsteps, cues) is decided in
 Rust, once for both clients ([`presentation::sound`](../../crates/presentation/src/sound/));

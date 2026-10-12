@@ -29,6 +29,5 @@ export const SOUNDS: Record<string, { loop: boolean }> = {
   cue_gunfire: { loop: false },
   cue_engine: { loop: false },
   cue_footsteps: { loop: false },
-  cue_voices: { loop: false },
   countryside: { loop: true },
 };

@@ -370,6 +370,14 @@ impl SoundFrame {
         self.inner.set_durations(d).map_err(error)
     }
 
+    /// The enemy faction's shout pool as far as it has loaded, JSON
+    /// `[{sound, duration}]`: the takes an unseen shout is drawn from.
+    pub fn shouts(&mut self, takes: &str) -> Result<(), JsError> {
+        let takes = serde_json::from_str(takes).map_err(|e| JsError::new(&e.to_string()))?;
+        self.inner.set_shouts(takes);
+        Ok(())
+    }
+
     /// Every sound a battle plays, JSON: what the page prepares.
     pub fn sounds(&self) -> String {
         serde_json::to_string(&self.inner.tables().battle_sounds()).expect("names serialize")

@@ -11,10 +11,11 @@ use presentation::effects::launches::Launch;
 use presentation::effects::publication::{EffectPublication, Segment};
 use presentation::sound::bank::{max_momentary_loudness, Bank};
 use presentation::sound::frame::{
-    Command, Cue, Heard, Listener, Motion, Scripted, Sound, SoundSoldier,
+    sector_pan, Command, Cue, Heard, Listener, Motion, Scripted, ShoutTake, Sound, SoundSoldier,
+    Voice,
 };
 use presentation::sound::synth;
-use presentation::sound::tables::SoundTables;
+use presentation::sound::tables::{Bus, SoundTables};
 use serde_json::{json, Value};
 
 fn fixture(name: &str) -> Value {
@@ -145,7 +146,7 @@ const HERE: Listener = Listener {
     forward: [0.0, 1.0, 0.0],
 };
 
-fn starts(commands: &[Command]) -> Vec<&presentation::sound::frame::Voice> {
+fn starts(commands: &[Command]) -> Vec<&Voice> {
     commands
         .iter()
         .filter_map(|c| match c {
@@ -270,6 +271,123 @@ fn an_unseen_enemy_is_heard_only_by_direction() {
     // North (sector 2) is straight ahead of a listener looking north.
     assert!(voice.pan.unwrap().abs() < 1e-9);
     assert_eq!(voice.lowpass, s.tables().audio.cues.far_lowpass_hz);
+}
+
+fn cue(category: &str, sector: f64, band: &str, moving: bool) -> Cue {
+    Cue {
+        category: category.into(),
+        sector,
+        band: band.into(),
+        moving,
+    }
+}
+
+/// The sounds `audible` starts, heard at tick 1.
+fn hear_cues(s: &mut Sound, audible: Vec<Cue>) -> Vec<Voice> {
+    let e = shot(1.0, 4.0, [0.0; 3], "rifle").0;
+    s.note(
+        &Heard {
+            effects: &e,
+            launches: &[],
+            audible,
+        },
+        0.0,
+    );
+    let got = s.update(1.0 / 30.0, 0.0, 0.0, &Motion::default(), HERE);
+    starts(got).into_iter().cloned().collect()
+}
+
+fn pool() -> Vec<ShoutTake> {
+    ["a", "b", "c"]
+        .map(|v| ShoutTake {
+            sound: format!("ru_rifle_squad/{v}/under_fire/stressed/0"),
+            duration: 2.0,
+        })
+        .to_vec()
+}
+
+#[test]
+fn an_unseen_shout_is_a_muffled_bark_from_the_enemys_pool_by_direction() {
+    let mut s = ready();
+    s.set_shouts(pool());
+    let heard = hear_cues(
+        &mut s,
+        vec![
+            cue("shout", 2.0, "near", false),
+            cue("shout", 0.0, "far", false),
+        ],
+    );
+    let [near, far] = &heard[..] else {
+        panic!("one line per shout, {heard:?}")
+    };
+    let cues = &s.tables().audio.cues;
+    for (voice, sector, band_gain) in [(near, 2.0, cues.near_gain), (far, 0.0, cues.far_gain)] {
+        assert!(
+            pool().iter().any(|t| t.sound == voice.sound),
+            "{}",
+            voice.sound
+        );
+        assert_eq!(voice.bus, Bus::Voices);
+        assert_eq!(voice.position, None, "never at a position");
+        assert_eq!(voice.pan, Some(sector_pan(sector, HERE.forward)));
+        assert_eq!(
+            voice.lowpass, cues.shout.lowpass_hz,
+            "muffled in either band"
+        );
+        assert_eq!(voice.wet, cues.shout.wet);
+        assert_eq!(voice.gain, cues.shout.gain * band_gain);
+    }
+    assert!(near.gain > far.gain);
+    assert_eq!(s.stats().cues, 2);
+    // The take is seeded by the cue alone: the same battle hears the same takes.
+    let mut again = ready();
+    again.set_shouts(pool());
+    let replay = hear_cues(
+        &mut again,
+        vec![
+            cue("shout", 2.0, "near", false),
+            cue("shout", 0.0, "far", false),
+        ],
+    );
+    assert_eq!(replay, heard);
+}
+
+#[test]
+fn a_shout_with_no_pool_loaded_is_silent() {
+    let mut s = ready();
+    assert!(hear_cues(&mut s, vec![cue("shout", 2.0, "near", false)]).is_empty());
+    assert_eq!(s.stats().cues, 0);
+}
+
+#[test]
+fn unseen_infantry_is_heard_moving_and_silent_idle() {
+    let mut s = ready();
+    let heard = hear_cues(
+        &mut s,
+        vec![
+            cue("infantry", 1.0, "near", false),
+            cue("infantry", 3.0, "near", true),
+        ],
+    );
+    let [moving] = &heard[..] else {
+        panic!("only the moving squad, {heard:?}")
+    };
+    assert_eq!(
+        moving.sound,
+        s.tables().audio.cues.sounds["infantry_moving"]
+    );
+}
+
+#[test]
+fn nothing_plays_the_old_murmur() {
+    let game = fixture("game.json");
+    let tables = format!(
+        "{}{}",
+        game["presentation"]["audio"],
+        fixture("sounds.json")
+    );
+    assert!(!tables.contains("cue_voices"));
+    assert!(!synth::exists("cue_voices"));
 }
 
 #[test]

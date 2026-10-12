@@ -4596,14 +4596,6 @@
       "gain": 1,
       "loop": false
     },
-    "cue_voices": {
-      "label": "Synth \u00b7 cue voices",
-      "clips": [],
-      "synth": "cue_voices",
-      "synth_gain": 1,
-      "gain": 1,
-      "loop": false
-    },
     "recorded-auto-01": {
       "label": "Auto 01 \u00b7 recording",
       "clips": ["auto-01-1", "auto-01-2"],

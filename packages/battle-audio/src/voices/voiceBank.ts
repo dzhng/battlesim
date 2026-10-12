@@ -3,10 +3,11 @@
 // each set's `pack.json`, in the background, and never hold up the battle's
 // readiness. Until a take is decoded it is absent, and a line asking for it is
 // dropped rather than waited for.
-import type { Intensity, Trigger, VoicePack } from "./voiceCatalog";
+import type { Intensity, PackTake, Trigger, VoicePack } from "./voiceCatalog";
 import { packUrl } from "./voiceCatalog";
 import type { LineSource } from "./chatter";
 
+/** A take's name in the bank: `set/voice/trigger/intensity/take`. */
 const key = (set: string, voice: string, trigger: Trigger, intensity: Intensity, take: number) =>
   `${set}/${voice}/${trigger}/${intensity}/${take}`;
 
@@ -35,6 +36,8 @@ export class VoiceBank implements LineSource {
     private readonly context: BaseAudioContext,
     private readonly fetcher: typeof fetch = fetch,
     private readonly source: PackSource = servedPacks(fetcher),
+    /** Which of a pack's takes to load: by default, all of them. */
+    private readonly select: (pack: VoicePack) => readonly PackTake[] = (pack) => pack.takes,
   ) {}
 
   /** Loads `sets` in the background. Resolves when every set has loaded or failed; never rejects. */
@@ -57,7 +60,7 @@ export class VoiceBank implements LineSource {
         if (admitted.aborted) return;
         this.packs.set(set, pack);
         await Promise.all(
-          pack.takes.map(async (take) => {
+          this.select(pack).map(async (take) => {
             const id = key(set, take.voice, take.trigger, take.intensity, take.take);
             try {
               const buffer = await this.decode(take.url, admitted);
@@ -85,6 +88,11 @@ export class VoiceBank implements LineSource {
     take: number,
   ): AudioBuffer | null {
     return this.buffers.get(key(set, voice, trigger, intensity, take)) ?? null;
+  }
+
+  /** Every take loaded so far, by its name (`set/voice/trigger/intensity/take`). */
+  loaded(): [string, AudioBuffer][] {
+    return [...this.buffers];
   }
 
   dispose() {

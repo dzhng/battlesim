@@ -692,23 +692,6 @@ fn cue_footsteps(sr: f64, rng: &mut Mulberry32) -> Vec<f32> {
     to_peak(out)
 }
 
-/// A murmur: formant-like bands under a syllable rhythm.
-fn cue_voices(sr: f64, rng: &mut Mulberry32) -> Vec<f32> {
-    let n = len(1.2, sr);
-    let a = biquad(noise(n, rng), sr, Filter::Bandpass, 500.0, 3.0);
-    let b = biquad(noise(n, rng), sr, Filter::Bandpass, 1300.0, 3.0);
-    let out = (0..n)
-        .map(|i| {
-            let t = i as f64 / sr;
-            let syll = sin(TAU * 4.3 * t + 2.0 * sin(TAU * 1.1 * t)).max(0.0);
-            let v =
-                (f64::from(a[i]) + 0.6 * f64::from(b[i])) * syll * sin(PI * i as f64 / n as f64);
-            v as f32
-        })
-        .collect();
-    to_peak(biquad(out, sr, Filter::Lowpass, 1500.0, Q))
-}
-
 /// The summer bed, stereo: gusting wind, leaves in the gusts, birdsong, and
 /// crickets. Gusts and chirps are placed on the loop, so it wraps.
 fn countryside(sr: f64, rng: &mut Mulberry32) -> Vec<Vec<f32>> {
@@ -854,7 +837,6 @@ const SOUNDS: &[(&str, Mono, bool)] = &[
     ("cue_gunfire", cue_gunfire, false),
     ("cue_engine", cue_engine, false),
     ("cue_footsteps", cue_footsteps, false),
-    ("cue_voices", cue_voices, false),
 ];
 
 const BED: &str = "countryside";

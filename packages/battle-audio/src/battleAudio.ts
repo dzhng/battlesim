@@ -21,6 +21,7 @@ import type { AppAudio } from "./appAudio";
 import type { SoundBank } from "./soundBank";
 import { WebAudioSink } from "./webAudioSink";
 import { BattleVoices } from "./voices/battleVoices";
+import { ShoutPool } from "./voices/shoutPool";
 import type { ResponseRequest } from "./voices/responses";
 
 /** Where a script's listener stands for a camera, as the battle's does
@@ -59,6 +60,8 @@ export class BattleAudio {
   private sink: WebAudioSink | null = null;
   private frame: SoundFrame | null = null;
   private voices: BattleVoices | null = null;
+  private shouts: ShoutPool | null = null;
+  private enemySets: readonly string[] = [];
   private ready = false;
   private error: string | null = null;
   private disposed = false;
@@ -86,6 +89,7 @@ export class BattleAudio {
         this.ready = true;
         this.frame?.reset();
         void this.voices?.start();
+        this.loadShouts();
       })
       .catch((error: unknown) => {
         if (this.sink !== sink) return;
@@ -114,6 +118,25 @@ export class BattleAudio {
   /** The voice sets this battle's units speak with; they load once its sounds are ready. */
   loadVoices(sets: Iterable<string>) {
     void this.voices?.want(sets);
+  }
+  /** The voice sets the enemy faction speaks with: an unseen enemy's shout is
+   *  a bark drawn from them. They load once this battle's sounds are ready. */
+  hearEnemies(sets: Iterable<string>) {
+    this.enemySets = [...sets];
+    this.loadShouts();
+  }
+  private loadShouts() {
+    const { sink, frame } = this;
+    if (!this.ready || !sink || !frame || this.shouts || this.enemySets.length === 0) return;
+    const pool = (this.shouts = new ShoutPool(
+      sink.context,
+      this.options.presentation.cues.shout.takes_per_voice,
+    ));
+    void pool.load(this.enemySets).then((takes) => {
+      if (this.shouts !== pool) return;
+      sink.addTakes(takes);
+      frame.shouts(takes.map(({ sound, buffer }) => ({ sound, duration: buffer.duration })));
+    });
   }
   /** Hear the battle's last frame from its camera, or a script's frame. */
   update(feed: Presentation | ScriptedHearing) {
@@ -160,6 +183,8 @@ export class BattleAudio {
     this.disposed = true;
     this.frame?.reset();
     this.voices?.dispose();
+    this.shouts?.dispose();
+    this.shouts = null;
     this.sink?.dispose();
     this.sink = null;
     this.frame = null;

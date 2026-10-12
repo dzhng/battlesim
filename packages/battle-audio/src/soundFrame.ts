@@ -251,6 +251,12 @@ export class SoundFrame {
     }
   }
 
+  /** The enemy faction's shout pool as far as it has loaded: the takes an
+   *  unseen shout is drawn from (the sink plays them by `sound`). */
+  shouts(takes: readonly { sound: string; duration: number }[]) {
+    this.rust.shouts(JSON.stringify(takes));
+  }
+
   /** Silence and forget everything (a new battle). */
   reset() {
     if (this.frame) this.run(this.frame.reset(this.sink.now()));
