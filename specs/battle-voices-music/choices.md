@@ -1,453 +1,490 @@
 # Battle voices and music: choices
 
-Every entry below is a given for whoever builds this. Each one says who closed it:
-
-- **user**;
-- **territory**, meaning the code or a live probe answered it;
-- **agent**, meaning I answered on the user's behalf under the delegation recorded below, with the preference and reason.
-
-Append build-time decisions under "Build log" at the end, attributed the same way. The walk happened on 2026-10-11. Its full map is [`visualizations/discovery-map.html`](visualizations/discovery-map.html), and this file supersedes it wherever they differ.
-
-## Delegation
-
-The user confirmed four preferences:
-
-1. Take the recommendation when it's grounded in the code.
-2. Atmosphere over leanness.
-3. The simulation is the authority.
-4. Numbers are guesses to tune.
-
-The user opted in to agent answers for **structural** questions: workbench layout, file formats and naming, and catalog records. **Not delegated:** taste (voices, accents, treatment, music), and account decisions. Spending on this feature's generation was delegated later; see "Closed after the plan".
-
-## Access and account
-
-- **D1 (territory):**
-  - ElevenLabs is reached through Duet's service proxy, `POST https://ctl.duet.so/v1/services/elevenlabs/<ElevenLabs path>?workspace=<slug>`, with the Duet bearer token from `~/.duet/config.json`.
-  - The workspace must go in the query parameter. Headers are refused with `workspace_ambiguous`.
-  - The proxy strips `xi-api-key` and injects Duet's key.
-  - Allowed: text-to-speech (v3 with audio tags), dialogue, voice design and create, speech-to-speech, speech-to-text (`scribe_v1`, multipart, verified), sound effects, music (`music_v1`).
-  - Denied: `voices_read`, `models_read`, `user_read`, so voices, models and the balance can't be listed.
-  - The route isn't in Duet's public reference. Keep the base URL in one constant.
-- **Account (user, 2026-10-11):** the user upgraded the account to **Pro**: 160 custom-voice slots, 8 concurrent TTS calls verified. Music allows about 2 concurrent calls and returned an occasional 500. This supersedes the map's Starter/Creator analysis (card L1) and A6.
-- **Voices (user):** every voice is a **Voice Design voice, saved permanently**.
-  - Rejected, premade voices with accent tags: the user compared them side by side and said the designed voice "sounds much better than the others".
-  - Rejected, cloning or re-cloning from a reference clip: unnecessary with permanent voices.
-  - The four T1 voices were saved on 2026-10-11, with ids in [`assets/saved-voices.json`](assets/saved-voices.json):
-    - us_tank `z0wdO1PMjmqh0usMe4hA`
-    - ru_rifle `Jqx4K9GHzgAqONoiSwhb`
-    - us_recon `HDZsRSSxHYdXkV0AKe32`
-    - uk_pilot `DqHWHfkdp2tajWvTPtM7`
-- **Licence (territory):** paid ElevenLabs plans allow commercial use in games. ElevenLabs keeps a training licence over the content. Provenance records "made under Duet's ElevenLabs plan".
-
-## What talks, and who hears it
-
-- **D2 (user):**
-  - **Responses** are R1–R12, heard by the owner only.
-  - **Barks** are B1–B17. They happen in the world, are heard near the camera, and play for every side.
-  - The user's reason: "in our hollywood realism battle you would be hearing people shouting all the time".
-- **D3 (user):** every line is in English. Non-English nations speak with their accent.
-- **D4 (user):** one voice set per **country × role**, about 40 sets. Squads get 2–3 voices: the leader answers responses and soldiers shout barks.
-  - Rejected: a set per unit type, about 90 sets (option B), and a later per-unit override (option C).
-- **D5 (user):** **the simulation emits shouts.**
-  - A side hears all of its own units' shouts, and an enemy's only while that enemy is seen.
-  - Picking the take is the client's, using its own seeded randomness.
-  - Rejected: the client deriving shouts (B), and unseen shouts at their true position (C).
-  - **The leak is accepted by name:** a seen enemy's _stressed_ take or a pinned bark reveals its state. The comment on `IdentifiedUnit` at `observation.rs:14-15` ("never health…") is amended in slice 13 to name this audible exception.
-- **D6 (user):** all 29 triggers, B17 included even though the agent recommended cutting it. Each has steady and stressed intensity × 2 takes.
-  - **Stressed** means health ≤ ½ or suppressed.
-  - **Agent:** for squads, "health" is living members ÷ starting members, because `OwnUnit.hp` is 0 for infantry (`observation.rs:457`). Preference 1; this resolves an undefined term.
-- **D7 (user):**
-  - In the simulation: an 8 s cooldown per unit per trigger, and a unit never talks over itself.
-  - In the client: at most 4 lines at once. Owner responses, then own barks, then others, nearest the camera first. A bark that can't start within 1 s is dropped. One unit answers for a group.
-  - Rejected: denser (B) and sparse radio-style (C).
-- **Callsigns (user):** one callsign per voice set, spoken in R1 and R11 only. Every other line is callsign-free, so B17 lines are generic ("We lost one!").
-  - Rejected: callsigns per unit type (about 700 more clips) and no callsigns at all.
-- **European generic infantry accent (user):** German. This covers the rifle, assault, marksman and recon-patrol squads. The agent had recommended British.
-- **Swearing (user):** allowed in stressed lines.
-- **Female voices (agent; A7, T5):** about 6 sets: pilots, plus one vehicle crew per faction. The user can veto any in slice 01's review. Preference: T8, cheap to change in review.
-
-## The three physical barks (agent, under tweak-mechanics; the user approved the slice list)
-
-These are presentation only. They change no outcome, and none adds state to `Unit` or draws RNG.
-
-- **B5, under fire:** a unit hears an **enemy** round. That means either:
-  - a `FlightEvent::NearMiss` within the weapon's `suppression_radius_m`; or
-  - an impact or ricochet on the unit, or within that radius of it.
-
-  This is the evidence suppression already scores (`damage.rs:380-500`, `near_miss` at `:667-672`), applied to every unit, hulls included. Details:
-  - Own-side rounds never count; a war film would show "check fire!", not "taking fire!".
-  - A squad that is already Suppressed or Pinned stays silent on B5, because B6 and B7 own that moment.
-  - The shooter need not be seen.
-  - Data check: only the MANPADS rows (Stinger, Igla-S, FN-6) have a zero radius. That's correct, because their threat to helicopters is B15's.
-
-- **B15, incoming missile:** an enemy guided round counts if both:
-  - its commanded point (`Guidance.point`, `flight/mod.rs:364-370`) lies within the unit's footprint (hull extents, or the squad area's radius);
-  - the unit sees it: `sensing::sees_point(world, eye(unit), missile, sight::of(unit), 1.0, sensors)` (`sensing.rs:102`).
-
-  A missile behind a ridge stays silent until it crests. A missile aimed at the neighbouring tank makes only the neighbour shout.
-
-- **B17, friendly destroyed nearby:** when a unit is destroyed (a vehicle wrecked, or a squad's last soldier dead), only the **nearest** living friendly that sees its position shouts. It is one witness, never a chorus; this mirrors `hearing.rs:41-46`'s nearest listener. A death nobody saw gets no shout.
-
-## Unseen enemies (user, reverses map T6)
-
-The user found the `cue_voices` murmur sounds "like footsteps or heavy breathing" and accepted the recommendation to replace it:
-
-- `cue_voices` is deleted.
-- An **unseen** enemy's shout reaches the other side through hearing as an **anonymous** cue: listener, 8-way sector, near/far band, and nothing else.
-- The client plays a random bark from a **generic pool**, never the speaker's own set, under heavy muffling (about 600 Hz low-pass plus reverb), so the words can't be made out.
-- Unseen infantry that isn't shouting is silent when idle, with the existing footsteps cue when moving.
-- **Agent:** using a generic pool and publishing no trigger or set keeps timbre and state from leaking. That follows the D5 fog rule and preference 3.
-
-## Taste (user, from generated samples)
-
-- **T1:** the reference voices are US tank **C**, Russian rifle **B**, US recon **B** and UK pilot **C**. Audio is in [`assets/reference-voices/`](assets/reference-voices/); the descriptions are in `saved-voices.json`. The same-role sets borrow their description style.
-- **T2:** treatment follows where the speaker sits.
-
-  | Speaker              | Treatment                                                                                                                                                   |
-  | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-  | Tank crew            | **light** radio (high-pass ~250 Hz, low-pass ~3.8 kHz, gentle compression, faint hiss) over a faint engine bed. "Processed, but less" than the first radio. |
-  | Infantry in the open | **dry** (slapback was rejected)                                                                                                                             |
-  | Recon                | quiet earpiece                                                                                                                                              |
-  | Pilots               | intercom over a rotor bed                                                                                                                                   |
-
-  References: `us_tank-radio-light.mp3`, `us_recon-earpiece-candidateA.mp3`, `uk_pilot-intercom-rotor-candidateA.mp3`.
-
-- **T7:** one score for every faction.
-- **T8:** the user is the only reviewer, so the workbench is built for fast spot checks and mark-bad → regenerate.
-- **T9–T12, music:** a Pulse-family **background underscore**:
-  - D minor, 125 BPM, a synth bass ostinato, drums and taiko far back, low strings, distant brass;
-  - no melody, hooks, solos or drops.
-
-  Moods:
-  - **Combat** ×3 (the "Pulse" direction).
-  - **Tension** ×3, mixing the "Pulse, sparse" direction (no drums) with "Pulse, dark" (sub-bass heartbeat, faint taiko).
-
-  Level: **−26 LUFS** under the battle mix by default.
-  - Rejected in round 1 as too foreground: hybrid, industrial, orchestral and rock.
-  - Rejected in round 2: arpeggio, muted drums, and a separate drone tension.
-
-  The prompt template is the `STYLE` constant in [`slices/08-music-tracks.md`](slices/08-music-tracks.md). The chosen sketches are in [`assets/reference-music/`](assets/reference-music/).
-
-- **D8 (user):** two moods. Any own B5–B9 bark within 20 s switches to combat; 45 s without one returns to tension; the crossfade is 4 s. Music plays on a music bus that dips under voices.
-  - Rejected: one playlist (B) and three moods (C).
-- **T13 (user):** players get **music** and **voices** levels next to master. The user's reason: "this way we don't need to over-analyze it". The level owner is `settings.ts`, and the control is `SoundControls.tsx` in both menus.
-
-## Structure (agent on the user's behalf unless marked; preference in brackets)
-
-- **A1 [1]:**
-  - The workbench gets a Voices tab: one set at a time, a grid of triggers × intensity × take, with flagged takes first, and a keyboard review queue.
-  - It gets a Music tab with a manual mood switch.
-  - It gets a 30 s chatter preview through the real `Chatter`.
-  - None of these reuse `Library.tsx`.
-- **A2 [3]:** `fixtures/voices.json` is the only voice authority. **Assignments live there, not on unit rows.**
-  - `UnitType` rejects unknown fields (`catalog.rs:113`).
-  - A row field would enter `Rules` and the contract for data the simulation never reads; the client chooses the speaker within a set.
-  - Shared rows (`rifle_squad`, `assault_squad`, Javelin, Stinger, AH-64E) need a per-faction assignment anyway.
-  - This supersedes D4's "each unit row gets `voice`".
-- **A3 [3]:** the `Shout` contract is as in the README.
-  - `kind` and `position` ride on the shout, so B16 can speak for a unit that has just died. `OwnUnit` drops dead units, and an `ObservedTargetId` can retire.
-  - `ShoutRules.talk_s` is a **nominal** talk time per trigger. The simulation never reads generated clip durations, and the generation tool flags any take that runs longer than it.
-- **A4 [1]:** the `Generated` provenance kind goes in `catalog.ts`, the existing owner, and voices import it.
-- **A5 [1]:** the generation tool is TypeScript in `packages/battle-audio/tools/generate/`.
-  - It has an injected `fetch` so it can be tested offline.
-  - It caches in two levels: the generation key is the hash of (text after callsign expansion, voice_id, model, settings, retake), giving a **raw master**; the processing key is the hash of (raw sha, profile, bed, encoder), giving the **served MP3**. Tuning processing therefore re-renders locally for free.
-  - It is resumable, runs at most 8 TTS calls at once (music 2), retries with backoff and jitter, and stops on 401 or quota errors.
-  - It prints one progress line per take.
-  - `assets.py` remains the only ffmpeg owner, with a `voice` subcommand. It gets loudness targets in place of fixed-peak normalisation and a second input for beds.
-- **A6 (superseded):** voices are saved permanently; see Access and account.
-- **Asset layout (agent; refined after the user said to "make sure the folder structure makes sense as a whole … don't just keep tacking on extra folders"):**
-  - Generated audio follows `assets/source/menu` → `assets/runtime/menu`.
-  - Raw masters go in `assets/source/audio/{voices,music}/`.
-  - Served files go in `assets/runtime/audio/{voices,music}/`, with a content hash in each filename.
-  - **Rejected:** a top-level `assets/generated/`, served at `/<sha>/` through a new Vite plugin and immutable cache rule. That is a new top-level kind plus serving machinery, and the bake's top-level sha namespace (`web/asset.mjs:272-279`) belongs to art.
-  - **Rejected:** separate `music.json`, `voices.review.json` and `voice-packs.json`. Music joins the sound catalog that already owns `menu_music`. Verdicts and pack data live in the tool's lock. Packs sit at fixed names and are revalidated by ETag.
-  - The `*.mp3` LFS rule is added in `.gitattributes`.
-- **Accents per unit (agent; the user may veto in slice 01):**
-  - Infantry speaks its **faction's default nationality**: US for US, German for Europe, Russian for Eastern. National teams keep their own nation: Akeron is French, the FN-6 team is Chinese.
-  - Vehicles and aircraft follow the equipment's **country of origin**.
-  - Where several nations built the equipment: NH90 → German, Tiger HAD → French, Tiger UHT → German, Boxer → German, CV90 family → Swedish, Centauro → Italian.
-  - Preference 1. This follows the user's "German for generic European infantry" pattern and resolves a gap the drafts found.
-- **Loading (agent, card L2):**
-  - Voice packs load in the background **after** `BattleAudio` `ready`, and only for the sets in this battle.
-  - A bark whose clip hasn't loaded is dropped.
-  - Music streams through `HTMLMediaElement` → `MediaElementAudioSourceNode`, outside `WebAudioSink`.
-  - Voice MP3 is mono at about 40 kbps; music is 128 kbps.
-- **L9 (agent):** every take is transcribed and compared with its script, after stripping tags and normalising numbers. A dropped keyword or an overlong take is flagged. This was found when "Gunner" came out as "Gutter".
-- **L10 (agent):** the menu bed moves to the music path, re-encoded to MP3. The WAV clip and the decode-whole-file path are deleted.
-- **L7 (territory):** the live deployment serves real LFS media, so the Vercel project's Git LFS setting is on. Documenting it in `web/README.md` is part of slice 07.
-- **Compatibility (default, user silent):** no backward compatibility and no migrations. Hard cutovers only. `ShoutRules` changes `config_digest`, so old replays are refused; they already are by build fingerprint.
-
-## Merging the drafts (agent, 2026-10-11)
-
-There were four drafts: A fewest-slices (Claude), B risk-first (Codex), C seam-quality (Claude), D asset-pipeline (Claude).
-
-**Agreed by all four, so firm:**
-
-- Shout state is per side and off `Unit`, with no RNG.
-- One named re-bless.
-- The library and review come before any battle playback.
-- A pilot gate comes before the batch.
-- `Chatter` and the voice bank are pure, separately tested modules.
-
-**Splits and the call made:**
-
-- **Slice count.** A had 4, C 21, D 12. Kept: 16, with 3 parallel lanes.
-  - A's merged "voices and music in battle" slice hides three seams: arbitration, music streaming and simulation publication.
-  - C's split of the simulation into ledger → physical barks → publish is kept, so the re-bless happens once, at the end.
-- **The browser media spike** (B's slice 2: MP3 streaming under COEP in every WebGPU browser). It is folded into slice 07 as its first acceptance check, ahead of music generation, so a failure stops music early without blocking voices.
-- **Where generated files go:** see "Asset layout" above.
-- **Assignments:** C put them on unit rows; A and the agent chose `voices.json` (A2).
-- **Where the response trigger comes from:** R11 "arrived" is taken from `OwnUnit.goal` going from `Some` to `None`, not from an ack. R12 is taken from `CommandAck.error` (`command.rs:259`).
-
-## Closed after the plan (user, 2026-10-11)
-
-- **Review gate (slice 06):** yes. After playing every flagged take and spot-checking, bulk-accepting a set's takes that passed speech-to-text counts as reviewed.
-- **Spend (slice 04):** the user delegated it: "don't let me block you here". The pilot reports cost and then the batch proceeds. This supersedes "spending is not delegated" in the Delegation section for this feature's generation budget.
-
-## Build log
-
-<!-- Append: date, slice, decision, who closed it, and why. -->
-
-**2026-10-12, slice 01 (agent; Codex implemented, orchestrator reviewed):**
-
-- **Sets:** 56, more than the planned ~40. Every country × role that the roster actually fields gets its own set, so no accent is borrowed.
-- **Role per unit:** taken from the unit row's own data (roster category, declared roles, squad slot bodies). This puts the Centauro II with tank crews, the Tiger HAD/UHT with attack pilots, the FN-6 team in a Chinese set, and squad-bodied recon rows with recon infantry.
-- **Voices per set:**
-  - Squads of 6 or more get 3 voices.
-  - Sniper, ATGM, MANPADS and small recon teams get 2.
-  - **Vehicle crews get 2:** a commander who speaks responses and a crew member who shouts barks. The spec hadn't said; one voice per crew would sound flat in battle.
-- **Female voices:** 8 sets have a female response voice, covering the attack and transport pilots plus one IFV crew per faction. The user can veto any of them in the Voices tab.
-- **Callsigns:** a national word plus a number ("Dragon 1", "Adler 6"), unique per set.
-- **The four saved T1 voices** sit on `us_tank_crew`, `ru_rifle_squad`, `us_recon_infantry` and `uk_attack_helicopter_pilot`. The alias sets the first pass created were deleted.
-- **Scripts were rewritten by hand** after review found Codex's version mechanical (`[urgent]` stuck on the steady text, duplicated tags):
-  - steady lines carry no tag;
-  - stressed lines carry one tag and different words;
-  - about 1 in 7 stressed lines swear;
-  - sniper teams whisper like recon.
-- **The CLI** is `packages/battle-audio/tools/generate/cli.ts`, run as `bun run generate plan`. It totals 7,108 clips and about 181k characters.
-
-**2026-10-12, slice 11 (agent; Codex implemented, a Claude worker wrote the tests during a Codex capacity outage, orchestrator reviewed):**
-
-- **Splitting a side's shouts:** `shouts::build` emits a side's **own** shouts. `shouts::heard` copies an enemy's own shouts into the other side's frame as `Seen(handle)`, only while that side identifies the speaker that tick. One owner builds each unit's shouts; hearing only filters them.
-- **Tie-break order** is data (`PRIORITY`): B16 > B10 > B9 > B8 > B7 > B6 > B14 > B13 > B12 > B11 > B4. A contact call speaks first and blocks that unit's other barks for its talk time.
-- **Transitions:**
-  - Contact fires on a **newly** identified enemy, spoken by the nearest unit that sees it.
-  - Altitude decides an air contact before body does, so helicopters count as air.
-  - B4 fires on a **new** target only.
-  - B6 and B7 fire when the tier **rises**.
-  - B12 is infantry-only, judged per weapon mount.
-  - B13 fires once when a weapon runs dry.
-  - Dead and withdrawn units never speak again.
-  - Writing the tests found 13 bugs of exactly this kind in the first implementation.
-- **`talk_s`** starts at 1.5 s for every trigger, a neutral value within the slice's 1–3 s.
-- **No compatibility shim.** `ShoutRules` serializes like every other rule. The two parity scenarios that embed rules gained the `shouts` block as data. Every pinned `digest` and `publication_sha256` was compared value by value and is unchanged.
-- **Tests stay in the one sim test binary** (`cargo test -p sim --test sim shouts::`). The spec's `--test shouts` wording was the orchestrator's mistake.
-- **Follow-up for slice 12:** evidence compares a full copy of every unit (`previous_units`) made each tick. Replace it with a minimal per-unit snapshot holding only what barks read (alive, health, member hp, tier, mount reasons, ammo), and check the cost on the benchmark.
-  **2026-10-12, slice 02 (agent; preference 1 unless noted):**
-- **Command names:** the generating command is `voices` (`bun run generate voices`), as slices 03, 04 and 06 already call it; `generate generate` read badly. `beds` generates the two beds. Selection adds `--trigger` and `--intensity` beside `--set`, `--take` and `--only`, because slice 02's own human check ("`--only R2`") needed a trigger filter that `--only missing|bad|flagged` can't express. Set names are the real ids (`us_tank_crew`), not the walk's short names.
-- **`process`** is `voices` without a client: it re-renders only takes already in the lock and never calls.
-- **Cache by file:** a raw master is trusted by its generation-key file name, so a kill before the lock flush never pays twice. A superseded take's old raw master and served file are deleted with it (one take, one of each).
-- **Speech-to-text reads the raw master,** so retuning a profile never re-transcribes. The overlong check uses the served duration.
-- **Processing key hashes the profile's whole definition** (from `assets.py voice-profiles`), not only its name, so tuning a constant re-renders. `assets.py` stays the owner of those definitions.
-- **Thresholds:** word error above 0.4 flags (one wrong word in a 3-word line is 0.33); talk time defaults to 3.5 s for every trigger until slice 11's `talk_s`. Keywords are the callsign plus "sabot" and "gunner".
-- **Numbers:** "two-one", "two one", "twenty one" and "21" all read as 21; "fifty five" as 55.
-- **Loudness:** −16 LUFS integrated for dry, radio-light and intercom; −19 for the earpiece ("quiet earpiece", and the approved earpiece reference measured −18.8). Linear gain plus a −1.5 dBFS limiter, so dynamics stay. Outputs land about 0.4 LU under target after MP3 encoding.
-- **Encoder:** mono, 40 kbps, 24 kHz (at 40 kbps a 44.1 kHz stream only wastes bits on bandwidth the radio profiles cut anyway). Bitexact flags and no metadata, so a take renders alike on one ffmpeg build.
-- **Intercom hiss amplitude** 0.015, as the radio's; the walk named only its band and weight.
-- **Beds:** the walk's prompts, regenerated through the tool so their provenance is recorded (`eleven_text_to_sound_v2`, `loop: true`, 12 s). A bed starts at an offset and the hiss is seeded from the take's bytes, so neighbouring lines don't open on the same engine note.
-- **v3 settings:** `stability: 0.5` (v3 accepts only 0, 0.5 and 1).
-- **Human check, by the brief:** the four saved voices spoke R2 `move` steady and stressed, take 0, through their own set's profile only: 8 text-to-speech and 8 speech-to-text calls, 232 characters, all matched at 1.00. The other profiles on the review page are local re-renders of the same raw masters, with no credits spent.
-- **Size note for slice 06:** these takes average about 12 KB (1–3 s at 40 kbps). At 7,108 clips the library would be about 85 MB, well over L2's 20 MB estimate. Slice 06 must report it before committing, as it already says.
-
-**2026-10-12, slice 02 review (orchestrator):**
-
-- **One owner for talk time.** Barks are held to the simulation's `ShoutRules.talk_s` in `fixtures/game.json`; the generation tool reads that file. Responses never reach the simulation, so the tool keeps one named ceiling for them, `RESPONSE_TALK_S` = 4 s. The tool's interim 3.5 s default is deleted.
-- **`talk_s` raised from 1.5 s to 2.5 s for every bark.** The tested takes run about 2–2.7 s, and at 1.5 s the simulation would start a unit's next shout while its last one is still playing. Digests are unaffected: shouts aren't digested, and the parity scenarios embed their own copy of the rules.
-- **Library size estimate: about 85 MB, not 20 MB.** At 40 kbps a take averages about 12 KB. That is acceptable: it lives in LFS, and a battle loads only its own sets, in the background after `ready`. Slice 06 reports the real figure before committing the batch.
-
-**2026-10-12, slice 03 (agent; a Claude worker implemented during the Codex capacity outage, orchestrator reviewed):**
-
-- **Verdicts:**
-  - A verdict carries the sha256 of the bytes the reviewer heard. `generate verdict` refuses any take whose bytes have changed since. One function, `verdictOf`, owns "a verdict holds only while the sha matches".
-  - The server runs every generation-tool command one at a time, so `voices.lock.json` keeps one writer.
-  - **Accept unflagged in set** is a single tool run.
-- **Regeneration:** `generate voices` gains `--voice`, so R regenerates exactly one take and never pays for a set's other missing takes.
-- **Snapshots** send a short per-take summary, and the server alone computes counts. The snapshot revision hashes only `voices.json`, so a verdict never makes a pending edit stale.
-- **Review flow:**
-  - Opening the tab is silent; only a key or a click plays audio.
-  - The queue is fixed when a set opens.
-  - A, X and R advance to the next take and play it.
-  - Line edits and R save without a review diff, to keep the keyboard flow fast.
-- **Not built:** a description editor per voice (the server supports it; there is no UI yet). Regenerating a description is slice 05's design loop.
-
-**2026-10-12, beds (user):**
-
-- **The helicopter bed is the game's own `rotor-uh60` loop,** the recording every helicopter already plays in battle. It is US Army UH-60 B-roll, public domain. For the intercom it is low-passed to 900 Hz ("cockpit-muffled"; the user chose option B in an A/B). It replaces the ElevenLabs-generated rotor bed.
-- **Rule:** a bed comes from the game's existing sound for that machine, so a sound has one owner across the game. The generation tool must take beds from catalog clips, not from `/v1/sound-generation`.
-- **Tank bed:** the game has no recorded engine (engines are synthesised; only the track rattle is recorded), so the tank bed stays generated until the user hears an alternative.
-- **Implementation is due before slice 05:** the generation tool's `beds` command, the `voice-intercom` profile and re-processing of the existing takes.
-**2026-10-12, slice 07 (agent; Codex implemented in part before its capacity outage, a Claude worker finished the review fixes, orchestrator reviewed):**
-- **Music is not a mixer bus.** It streams through `MusicPlayer`, which feeds the same master as the rest of the mix: element → track gain → level (`buses.music` × the music setting) → duck → master. The mixer's `Bus` list no longer has `music`, because a bus nothing plays on was dead structure. The voices bus keeps its distance-reverb send: barks are positional battle sounds (slices 14/15), and slice 07's "neither bus sends to the reverb" was wrong for voices.
-- **Level and ducking are two separate nodes,** so neither overwrites the other.
-- **Loudness:** the menu bed's track gain is 0.16, which matches the old WAV mix at −29.8 LUFS, within 0.2 dB. Codex's first version would have been about 17 dB louder.
-- **Catalog:** a music track names its `sources` record. `musicUrl()` alone builds `/audio/music/<track>.<sha8>.mp3`. The `music` section is required, and moods must be exactly menu/tension/combat. The old WAV clip, its recipe, the file and the `"music"` processing profile are deleted, together with the test that pinned that profile.
-- **Streaming:** checked in real Chrome inside the app (ranged 206 responses, playing) and in WebKit through the same element → Web Audio graph. This Playwright version can't launch its Firefox build.
-- **The `street` scene fails on clean `main` too** (checked in a separate worktree on 2026-10-12). That failure is already on `main` and is unrelated to this feature; it is left for its owner, and the closeout's full run will report it.
-
-**2026-10-12, 02b beds (agent):**
-
-- **One bed shape for both sources.** A profile's bed in `VOICE_PROFILES` is `{clip | generated, filter, volume}`: `clip` names a `sounds.json` clip, mixed from its prepared runtime file; `generated` names a lock bed. One resolver in the tool turns either into a file and its sha256, and the processing key hashes that sha. There is no second path for the tank. Its filter is `anull`, so its takes re-rendered to identical bytes.
-- **The catalog's recorded sha is the clip's identity.** A file that differs from it refuses to render ("pull Git LFS"), and so does a missing clip id.
-- **`check` reports a lock bed no profile names,** so a superseded generated master can't linger.
-
-**2026-10-12, slice 04 pilot (orchestrator ran it):**
-- **Scope:** `us_tank_crew` lead voice, all 12 responses × steady/stressed × 2 takes = 48 takes. The set's bark voice (`soldier`) has no designed voice until slice 05, so the pilot measured the lead voice only. That is enough to price the batch: cost scales with characters.
-- **Cost and speed:** 1,284 characters and 92 calls (48 speech, 44 transcription; 4 transcripts were already cached), in **20 s** wall time at 8 concurrent calls. The whole library is about 181k characters and 7,100 takes, so it projects to roughly an hour of generation and about 181k characters of text-to-speech credit (plus transcription), well within the Pro plan.
-- **Quality:** 3 of 48 takes were flagged (6.25%, under the 10% stop line).
-  - "Gunner" misheard as "Gutter" and "sabot" as "Sabo": one retake each fixed both.
-  - "Tank here, send it." came out as "Thank you" twice. It was reworded to "Armour here, send it."
-  - After that: **0 flagged, 0% mismatch**.
-- **Lesson for the batch:** the R/retake loop handles one-off misreads. A line misread twice gets reworded instead. No gate needed; the batch proceeds (user: "don't let me block you here").
-
-**2026-10-12, slice 12 (agent):**
-- **Hulls hear near misses (territory).** Flight's near-miss sweep measures every body, hulls included, out to the round's `suppression_radius_m`; only suppression drops hulls. `hulls_hear_near_misses_and_a_sabot_passing_a_tank_is_under_fire` pins it. B5 therefore reads flight's `NearMiss` for every unit, plus each impact and ricochet within the radius of the hull box or the nearest living soldier, scored by suppression's own `near_miss`. No ShoutRules floor was added: a tank under rifle fire does shout, as the slice asks.
-- **"Already suppressed"** is the squad's tier after this tick's rounds, so a squad whose tier rises this tick says B6 or B7, never B5.
-- **Tie-break order:** B16 > B15 > B10 > B9 > B8 > B7 > B6 > B17 > B5 > B14 > B13 > B12 > B11 > B4. An incoming missile is the most urgent thing a living unit can say; taking fire is the least specific stress bark.
-- **B15's footprint** is the hull's extents seen from above (a supported missile steers at the target's last sighting plus aim height, a released one at a ground point), or the squad's footprint radius.
-- **B17's witness looks at where the dead unit's crew or soldiers stood** (`sensing::eye`), not the bare ground point: a sight line ending on the terrain is refused, so "sees its position" would never hold. Nearest by ground distance, ties to the lower id.
-- **The unseen cue** carries as far as the speaker's own `loudness_m`. A shout spoken on a bucket tick is heard at the next bucket. A destroyed speaker's last shout makes no cue, since hearing hears living sources only.
-- **The publication does not change in this slice.** `SoundCategory::Shout` cues ride in `ObservationFrame.audible`, but the encoder leaves them out (`published_audible` in `publication.rs`) until slice 13 adds `Shout` to the layout's sound categories and deletes that filter. None of the five pinned publication streams contains a shout cue, so slice 13's re-bless gets no audible bytes from them.
-- **Snapshot:** `shouts::Before` keeps alive, hull hp, each soldier's hp, the tier and each mount's reason, shot count and guided missile, refilled in place each tick. The endurance soak (5 simulated minutes) went from 0.970 to 0.115 M instructions per tick in the phase that held the copy, and 781.2 to 774.3 G step instructions overall; the digest is unchanged.
-- **Tests for two table rows read the moment physically rather than literally.** "Behind a ridge": a guided missile needs a clear line from its launcher to the target, so terrain that hides the missile also hides the target; the test hides it beyond the tank's rear sight instead. The rule is the same `sees_point`. "The unit's own missile": a blue squad stands beside the red tank its own launcher fires at, so the missile steers onto the squad's area, and the launcher is checked too.
-
-**2026-10-12, slice 13 (agent; the re-bless commit is recorded when it lands):**
-- **Row layout:** `shouts` rows are `own, idLo, idHi, kind, x, y, z, trigger, intensity`. `own` is 1 for the side's own unit and 0 for an identified enemy, as crashes, corpses and projectiles mark it, rather than a new speaker table. The id is the unit id or the identification handle, in limbs. `shoutCount` ends the header and the group follows `crashes`: the newest group goes last.
-- **Tag tables:** the layout publishes `shoutTriggers` (the contract's serde names, `b1_contact_infantry` … `b17_friendly_destroyed_nearby`, in B order) and `intensities` (`steady`, `stressed`). `soundCategories` gains `shout`, and `published_audible` is deleted.
-- **One name mapping:** `barkTrigger` in `voiceCatalog.ts` turns a simulation tag into its voice name and refuses a tag whose number and name disagree. The generation tool's talk-time keys use it in place of its own regex. The contract test reads the layout from `codec-vectors.json`, whose bark, intensity and sound-category tables the encoder's codec test holds equal to the writer's.
-- **The re-bless:** `BLESS_PARITY=1` on `publication::` only. In the five streams every changed value is a `publication_sha256` (1,896 of them); every `digest`, `initial_digest` and `fog_sha256` is unchanged, compared value by value. `codec-vectors.json` changed its layout and bits, and its base frame gained two shouts (own and seen) and a shout cue. The combat stream carries three barks, one of them a seen enemy's; no stream carries a shout cue.
-- **Native captures re-encoded, not re-captured:** the Godot fixture captures (`market-town`, `paris-corner`) hold the old layout, which the reader refuses. Each record gained `shoutCount` 0 and the empty shouts delivery the writer emits (length 0, snapshot, payload 0), its expected observations gained `shouts: []`, and paris-corner's `captureHash` was recomputed. Their sample digests are untouched.
-
-**2026-10-12, slice 13 verification (orchestrator):** the re-bless proof parsed every leaf of the six publication records. Only `publication_sha256` values changed (1,896 of them). All 1,901 `digest`/`initial_digest` values and every `fog_sha256` are identical. The re-encoded native Godot captures pass the Rust reader test and the Godot `presentation_capture`, `frame_stepper` and `visual_manifest` tests. `parity_compose_test` fails with or without this slice's native changes (two layer-blocker cases), so that failure was there before this slice.
-**2026-10-12, slice 05 (a Claude worker built it; the user approved the picks):**
-- **117 voices designed,** 3 candidates each, with 0 failures: 117 design calls and 351 transcriptions in 376 s. The mean speech-to-text match was 0.956. The Chinese sets scored lowest, most likely because of the accent.
-- **Descriptions:** the designer replaced 109 placeholder descriptions with full ones in the T1 style (nation, gender, role, age, timbre, delivery, accent). The user saw them on the candidates page and approved the outcome.
-- **Picks:** `generate pick --auto` chose, for each voice, the candidate with the best match on its audition text, tie-broken by duration closest to the role's median. The user listened and said "your auto picked ones are good". All 121 voices now have a saved `voice_id`; any can be re-picked later with `generate pick --replace`.
-- **Keep everything (user, standing rule):** every generated or extracted asset is kept, unpicked candidates and superseded takes included ("we have more than enough space … we could use them as additional voice samples", as with the unused weapon recordings).
-  - The tool no longer deletes superseded raw masters, design candidates or beds.
-  - Served files of a superseded take are still removed: they are re-renderable derivations that would otherwise ship with every deploy.
-  - The generated helicopter bed that 02b deleted is restored, unused, under `assets/source/audio/voices/beds/`.
-  - The pilot's three superseded raw masters were deleted before this rule and were never committed, so they are gone.
-**2026-10-12, slice 08 (agent; preference 1 unless noted):**
-
-- **Generated sources join the catalog's `sources`.** A track's source is `Generated` provenance plus `length_s`, `path` (under `assets/source/audio/music/`) and `sha256`; a recording keeps its licence receipt. Validation refuses a clip cropped from a generated source. The `music` section's types and `musicUrl()` moved to `src/music/musicCatalog.ts`, so the Bun-run tool can name a served file without loading the synthesised bank.
-- **Track ids:** `combat_1..3`, `tension_sparse_1..2`, `tension_dark_1`; each source has its track's id. Length 150 s for all six.
-- **Prompt variations (delegated):** combat_1 keeps the ostinato and strings in front at one flat intensity; combat_2 lets the taiko and drums lead (still far back) with a slow build to a plateau; combat_3 is darker, with a syncopated ostinato and gentle swells every 30 s. The two sparse tracks differ by stillness versus unease; the dark track uses the table's prompt as written.
-- **Caching:** a raw master holds while its prompt, model and length are unchanged and its bytes match, as the beds do. `--track` buys that track again and deletes its old raw and served files. A kill between receiving and recording a master would pay for that track again; at six tracks that is accepted.
-- **−26 LUFS is the track's integrated loudness after its gain,** on the same scale the menu bed was matched on (−29.8). The gain is computed from the served file, measured by `assets.py music --input/--output`, the one music encoder.
-- **The tool writes `sounds.json` through oxfmt,** escaping non-ASCII as `assets.py build` does, so adding a track doesn't reflow the file. The first write also normalised about 40 lines of older layout drift.
-- **`assets.py build` decodes only the sources a clip crops.** Music masters stream and are never cut.
-- **`presentation.audio.music`** became `{ duck: {depth, attack_s, release_s}, combat_window_s: 20, calm_s: 45, crossfade_s: 4, combat_triggers: [B5–B9] }`. Nothing read the duck numbers yet.
-- **Director semantics:** combat starts when the latest qualifying bark is at most 20 s old when the mood is asked; it ends when the latest is over 45 s old. Shuffle is a bag per mood; a new bag never starts with the track just played.
-- **Workbench:** voices and music share one generation queue (`apps/sound-workbench/generation.ts`), so the tool's files keep one writer. The Music tab's mood switch drives `MusicDirector` on a clock the tab owns: Combat notes a B5 bark; Tension skips the calm period. Tracks play at their catalog gain, as in battle.
-- **Real spend:** 6 `music_v1` calls, 900 s of music, no retries needed.
-
-- **2026-10-12 (orchestrator):** generating a track again keeps the old raw master (the user's keep-everything rule) and drops only the old served file. The workbench shares one generation-tool queue for voices, design, pick and music, so `voices.lock.json` and `sounds.json` each keep a single writer. The user's listen to the six tracks is non-blocking. No track plays in a battle before slice 14, and every track can be regenerated from the Music tab.
-
-**2026-10-12, slice 09 (a Claude worker built it; the orchestrator reviewed):**
-- **`Chatter`** (`packages/battle-audio/src/voices/chatter.ts`) is the one place line rules live:
-  - at most 4 lines play at once;
-  - responses come before own barks, which come before a seen enemy's, nearest the camera first within each;
-  - a line is dropped after waiting 1 s;
-  - a speaker never overlaps itself;
-  - an order to a group gets one answer (requests within 250 ms collapse).
-  
-  The numbers are in `presentation.audio.voices`. Two choices the spec left open: a request with no position ranks as nearest, since it's the owner's radio; a line whose take isn't loaded is dropped at once.
-- **Takes and voices:**
-  - The take is drawn with `mulberry32` from the `math` package, keyed by speaker, trigger, intensity and request count.
-  - A bark's voice comes from a stable hash of the speaker, so one soldier always has the same voice.
-- **Pack format** (`voiceCatalog.ts`): `VoicePack { set, voices[], takes[] }` at `/audio/voices/<set>/pack.json`, built only by `voicePack()`. Slice 06's `generate pack` calls it with accepted takes only.
-- **`VoiceBank`** loads packs and MP3s by URL in the background and never blocks battle start. A failed set stays silent.
-- **The chatter preview** in the workbench runs a scripted firefight through the real `Chatter` with a fixed seed. Its lane view marks lines heard, collapsed and missing.
-
-**2026-10-12, sound decisions move to Rust (territory: the native-parity session, which works for the same user):**
-- The native-rendering-parity work (branch `phase5f`, slice 25 step 7) moves the battle's sound decisions from TypeScript into `crates/presentation/src/sound/`. Both clients read Rust's decisions; native plays them with `kira`.
-- Project rule: Rust as smart as possible, clients as dumb as possible. So:
-  - Chatter's arbitration moves to Rust as well (new slice 09b);
-  - slice 14's bark decisions and slice 15's unseen shout cue are built in Rust;
-  - TypeScript keeps playback, the voice assets and the generation tooling.
-- The ports wait for `phase5f` to land on `main`. Until then, no new decision logic goes into `battleAudio.ts` or `audioPresentation.ts`.
-
-**2026-10-12, slice 10 (agent; a Claude worker built it, uncommitted for the orchestrator's review):**
-- **The seam:** `responseFor(event)` in `voices/responses.ts` maps `selected`, `accepted` (an order and its ack `seq`), `refused` (`OrderError.reason`) and `arrived` to a positionless `tier: "response"` request. `BattleAudio.respond` forwards it to the same `Chatter` and `VoiceBank` the workbench uses (`voices/battleVoices.ts` composes them and plays a line dry on the voices bus). `useUnitControl` gained `onAck` and `onSelect` beside `onIssue`; `apps/battle-lab/src/unitResponses.ts` turns them, and each publication, into events.
-- **Who answers:** the clicked unit, else the highest value (ties to the lower id). The unit that answered the selection answers the group's later orders while it is in them. Group keys: `order/<seq>`, `selected` (rapid reselections collapse), `arrived/<journey>`.
-- **R12 list:** `out_of_bounds`, `no_valid_destination`, `unknown_target`, `air_contact`, `not_infantry`, `not_a_building`, `capacity_full`, `one_squad_per_building`, `building_occupied`. Purchase, rate, sequence, replay and stale-id refusals get no answer.
-- **R11:** the end of a journey begun by an accepted move, attack-move or building order, or by a purchased unit entering under way; reported once per journey by its first unit to arrive, and only after at least 3 s under way (`ARRIVED_AFTER_S`). Stop, attack (it may chase), withdraw and leave-building end a journey silently; a queued order leaves the current one running.
-- **Sets loaded:** the assignment of every own unit kind and pending purchase, for the player's faction (in a non-skirmish lab, the row's own faction, else its first roster faction). Each set loads once, after `ready`.
-- **Level:** `LINE_GAIN` 0.5 on the takes' loudness calibration. Kept as a constant rather than in `presentation.audio.voices`, because `audioPresentation.ts` was being moved into Rust at the time.
-- **`generate pack`:** admits a take judged ok on its served sha whose served file still hashes to it; `--unreviewed` (default off) also admits unjudged, unflagged takes. A set that admits none has no pack. It was not run against the real lock while the batch was writing it.
-
-**2026-10-12, slice 15 (agent; a Claude worker built it, uncommitted for the orchestrator's review):**
-- **The shout cue is its own row, `presentation.audio.cues.shout`:** `{ gain: 1, lowpass_hz: 600, wet: 0.6, takes_per_voice: 4 }`, not a `cues.sounds` entry, because a pool is not a recipe. `Sound::note` (`sound/frame.rs`) plays a `shout` cue as one non-positional line on the **voices** bus (so the voices slider covers it), panned by the cue's sector, at `gain` × its band's gain, through the 600 Hz low-pass and a 0.6 reverb send in **both** bands (near is louder, never clearer). The repeat rule (`repeat_s` per category, sector and band) is the other cues'.
-- **The take:** Mulberry32 seeded by the cue's key and its time (`shout/<sector>/<band>@<t0>`), indexing the pool. The cue carries no identity, so neither does the choice.
-- **The data path:** TypeScript hands Rust the loaded pool and nothing else: `SoundFrame.shouts([{sound, duration}])` (wasm) → `Sound::set_shouts`. A pool take's `sound` is its voice-bank key (`set/voice/trigger/intensity/take`); the sink (`WebAudioSink.addTakes`) plays it by that name, calibrated by `sourceNormalization` as every take is. Rust never learns factions: a sound frame is one side's, so "the listener's enemy's pool" is the only pool it holds. An empty pool (no packs yet, or a lab with no known enemy faction) makes a shout silent. The pool survives a reset, as the prepared sounds do.
-- **The pool (delegated size):** `factionSets` (`voiceCatalog.ts`) lists every set the enemy faction's roster fields; `ShoutPool` (`voices/shoutPool.ts`) loads, from each pack that exists, up to `takes_per_voice` (4) stressed barks of each voice that shouts, every trigger's first take before any second. Words are unintelligible, so variety of voices matters more than of lines; four per voice keeps a faction's pool around a hundred small takes. `VoiceBank` gained a take selector and `loaded()` for this; it is the one loader.
-- **Outside a skirmish** the enemy faction is unknown and shouts are silent (labs are developer arenas).
-- **`cue_voices` is deleted:** its synth (`synth.rs`), its `sounds.json` recipe, the `default` and `infantry` cue rows, its name in `synthSounds.gen.ts`, and its length in the recorded `sound-vectors.json` durations (extra, never played: every command still equals the browser's). `cues.sounds` no longer needs a `default`: a category with no row is silent, so idle unseen infantry is silent and moving infantry keeps `cue_footsteps`.
-**2026-10-12, slice 09b (a Claude worker built it, uncommitted for the orchestrator's review):**
-- **Vectors first:** before its rules were deleted, the TypeScript `Chatter` wrote `crates/presentation/tests/fixtures/chatter-vectors.json`: 11 cases (the 4-line cap, tier then distance, no position as nearest with the at/arrival tie-breaks, the 1 s late drop, missing takes and a take loading later, self-overlap and a reset, group collapse and its window, seeded takes for seeds 7 and 8 with an `all` voice, and the workbench preview's 33 s script). `tests/voices.rs` replays them; 255 lines and 17 drops match exactly, including the take. The writer was a one-off test, deleted with the rules.
-- **The take choice is the browser's exactly:** Mulberry32 over FNV-1a of `seed/speaker/trigger/intensity/count`, as `crate::seed` already defines it, and the `math` package's `choice`. No vector was regenerated.
-- **Contract:** `presentation::sound::voices::Chatter` takes a set's voices (`set_voices`), each loaded take with its length (`loaded`), requests (`request(request, now)`), and arbitrates (`update(now, listener)`) into `Lines { commands, started, dropped }`. A started line is a `Command::Start` on the `voices` bus: `sound` is `set/voice/trigger/intensity`, `variant` the take, `gain` `LINE_GAIN` (0.5, moved from TypeScript), dry (low-pass at 20 kHz, no reverb, no position or pan). Its ids are the chatter's own, apart from the effect frame's. `presentation.audio.voices` is now typed and checked in Rust (`ChatterRules`).
-- **Listener:** a battle's lines are now heard from Rust's own listener. The wasm `Chatter.hear(soundFrame, now)` reads where the sound frame last heard (`Sound::listener`); the browser passed the world origin before. The preview and the lab still pass their scripted listener.
-- **Browser:** `chatter.ts` is the binding only (types and JSON to the wasm `Chatter`). `VoiceBank` tells a `BankListener` (the chatter) each pack's voices and each decoded take, and plays a start command's take by `line(sound, variant)`; its `voices()` and `get()` are gone. `BattleVoices` carries out the start commands at the command's gain times the take's calibration.
-- **Left as it was:** the presentation wasm's `serde_json` lacks `float_roundtrip`, so a request's moment can read one ulp off the browser's in the page. It can only move a tie exactly on a window's edge.
-**2026-10-12, slice 06 (agent; the orchestrator's brief set the cleanup steps):**
-- **Batch:** 7,054 takes in one background run: 14,107 calls, 179,634 characters, 923 flagged (13.0% of the 7,107 locked takes), 1 failed. The branch was fast-forwarded to `main` first, because `generate pack` landed there with slice 10.
-- **The failed take** (`se_tank_crew/soldier/opens_fire/steady/0`, "Firing.", under half a second): the shared tank-crew line became "Firing on target." All 8 tank crews' take was bought again; all 8 passed (16 calls, 136 characters).
-- **Four voices redesigned** (over 30% flagged, not whispering roles). Their descriptions gained "Clear diction, easy to understand over a radio; moderate accent." Each picked the candidate with the best audition match, tie-broken by duration nearest the role's median. All their takes were bought again on the new voice; every lock row carries the new `voice_id`.
-
-  | Voice | Old id | New id | Flagged before → after redesign → after retake |
-  |---|---|---|---|
-  | `cn_transport_helicopter_pilot/soldier` | `3Myj6lhgB3MjsL0d3KLD` | `y2LxASTl8wxruxqnBuVT` | 53/68 → 10 → 6 |
-  | `ru_attack_helicopter_pilot/lead` | `M3jLQzbRL3dxSEKrz5Nm` | `IvsGJqum4QOI1snNfnfF` | 19/48 → 12 → 9 |
-  | `fr_transport_helicopter_pilot/soldier` | `HuCs4o9Kxff7jh9K8Cfj` | `MuBGU3pWWHU0A1yvXJmG` | 23/68 → 25 → 14 |
-  | `us_transport_helicopter_pilot/soldier` | `U9G51hy7lBz0hGSSbX1k` | `DX6QGC61tc7j0IOiRgv9` | 21/68 → 8 → 3 |
-
-  4 design calls, 12 transcriptions, 4 saves; regeneration took 504 calls and 6,204 characters.
-- **One retake per flagged take:** all 862 then-flagged takes had their `retakes` count bumped once: 1,723 calls, 20,808 characters. 389 passed. One retake failed, again under half a second (`ru_rifle_squad/lead/stop/steady/0`, "Halt."); its old flagged take stays.
-- **Flags:** 923 before, 474 after (6.7% of 7,108). Only `fr_recon_vehicle_crew/soldier` is still over 25% (19/68, 28%). Many of the remaining flags are the matcher's, not the voice's: "treeline" heard as "tree line", "Armour" as "Armor", "God damn it" as "goddammit", "stand by" as "standby". 98 of the retakes were flagged only for being overlong.
-- **Review gate:** verdict ok, bound to the served sha, for all 6,634 unflagged takes; the 474 flagged takes have no verdict and wait for the user's listen in the Voices tab.
-- **Packs:** 56 packs, 6,634 takes, accepted only. `generate check`: 0 problems. `check` doesn't read packs, so a separate script proved that every packed take's file exists, hashes to its lock sha and carries an ok verdict on that sha (0 problems).
-- **Spend for the whole slice:** 16,370 calls and 206,782 text-to-speech characters, plus the 4 design auditions.
-- **Size:** the served library is 61.8 MB (7,108 MP3s and 56 packs; the packed takes alone are 55.7 MB). The raw library is 306.3 MB (8,595 files, superseded masters and design candidates included under the keep-everything rule). The slice-02 estimate was about 85 MB, and L2's original guess was 20 MB.
-
-**2026-10-12, slice 14 (agent; a Claude worker built it, uncommitted for the orchestrator's review):**
-- **Where a bark is decided:** in Rust. `Sound::note` turns each published shout (`Heard.shouts`, the observation's `shouts`) into a `Request` through `Speakers::bark` (`sound/voices.rs`): tier `own_bark` for the side's own unit, `other_bark` for an identified enemy; set from the kind's row for that side; speaker `own/<id>` (the same name its answers use, so a unit never shouts over its own answer) or `seen/<handle>`; trigger the contract tag's voice name (`b5_under_fire` → `under_fire`); the shout's intensity and position. An unseen enemy's shout is still only a hearing cue (slice 15) and never a bark. A kind without a set, or a bark too far off to pass the distance cull, asks for nothing.
-- **The data path for `voices.json` (opaque to Rust):** the page hands Rust each unit kind's set, once per battle, for the side's own faction and its enemy's: `SoundFrame.speakers({own: {kind: set}, enemy: {kind: set}})` → `Sound::set_speakers`. `factionVoices` (`voiceCatalog.ts`) builds each table from the roster rows that faction fields; it replaced `factionSets`, which only it and a test used. `BattleAudio.speakers` replaces `hearEnemies`: the enemy table's sets also give the unseen-shout pool. Like slice 15, Rust never learns factions: a sound frame is one side's.
-- **When:** a bark asks for the moment the presentation clock reaches its tick (`now` plus the shout's tick time ahead of the clock), as the transients wait for theirs; the chatter's 1 s wait and 4-line cap apply as to every line.
-- **Spatial (delegated curve):** `Chatter::hear(&mut Sound, now)` takes the frame's barks, arbitrates from the frame's listener, and places each started bark with `Sound::place`: `LINE_GAIN` × the unit sounds' `distance_gain`, the air's low-pass, reverb send and onset softening by far share, at the shout's position. Answers stay dry and centred. `Chatter::update` (the workbench preview and the 09b vectors) is unchanged. `Lines` gained `heard`, the barks the arbitration took, whether they play or not.
-- **Playback:** `WebAudioSink.line(voice, buffer)` plays a chatter line through the same voice graph as every frame voice (gain, low-pass, panner or stereo pan, the voices bus's reverb send), calibrated once per take; it is not id-keyed, so chatter ids never collide with the frame's. `BattleVoices` lost its own dry graph and calibration cache.
-- **Sets loaded:** a skirmish loads, after `ready`, every set its own faction's roster and its enemy's speak with, plus slice 10's own units and purchases. Outside a skirmish the factions are unknown, so shouts are silent there (labs are developer arenas), as unseen shouts already were.
-- **Music in battle stays in TypeScript** (the music tables are TS-owned; moving one rule into Rust would split the score's owner). `BattleMusic` (`music/battleMusic.ts`) wraps the director: it opens on `tension` with `play(…, fade: crossfade_s)` so the menu bed's 1.2 s fade-out is left as it was, notes only `own_bark` requests (the director keeps the B5–B9 filter), crossfades on a mood change, and ducks to `duck.depth` while any chatter line sounds (`BattleVoices.speaking`, from the started lines' ends), restoring with `release_s`. `AppAudio.battleHeard(battle, barks, speaking)` replaces `battleStarted`; leaving the battle fades the score out over the menu fade and undoes the duck. Unseen-shout cues are frame sounds, not lines, so they don't duck the music. Track order uses `Math.random`: no replay depends on it.
-- **Evidence:** the sound scene renders a seen enemy's and an own tank's "under fire" from a stand-in pack (the pilot set's takes relabelled; no bark take exists yet): each plays on its side of the stereo field (L−R −10.4 and +11.1 dB) at −41.5 and −39.2 dBFS, about 9 dB under a dry answer at those distances; the score went tension@0 → combat@3.5 s on the own bark only and dipped under both lines. Load cost: four fresh battles alternating without and with the pilot pack served: ready 417/314 ms without, 317/313 ms with; no voice file was asked for before `ready` in any run, and the pack's 48 takes were fetched after it.
-- **The checkpoint listen** (a played skirmish) waits on slice 06's bark takes: until packs exist every bark is silent, by design.
-
-**2026-10-12, slice 06b, matcher and pack check (agent; Codex brief, a Claude worker implemented):**
-- **The transcript matcher sets spelling aside** (`transcript.ts`). Before the word error is counted:
-  - one spelling per word: a small British→American map (`armour`, `metres`, `defence`, `colour`, …) plus `goddammit`→`goddamnit`;
-  - a compound is one word on both sides when either side writes it joined: up to three words are joined only where the other side has exactly that word ("tree line"/"treeline", "stand by"/"standby", "back blast", "co-pilot"/"copilot", "under cover", "God damn it"/"goddamnit"). Hyphens already split words, so hyphenation falls under the same rule;
-  - "hundred" is read as a number ("four hundred" is 400, as "400" is).
-  
-  It stays strict on real misreads: "Rock it out" for "Rocket out" still differs (the joined words aren't the other side's word), keywords are judged on the words as written so joining can't hide a lost "gunner", and overlong is still a flag. Contractions ("We're done"/"We are done") and homophones ("hi"/"high", "Hello"/"Helo") are left flagged.
-- **Re-judged from stored transcripts** (`generate process`, 0 calls): 91 takes unflagged, none newly flagged; only `match` changed in the lock. Two of the 91 pass on the existing 0.4 word-error threshold with a real misread left ("Fail out. Fail out, goddammit" once, "Tubes four hundred meters" once); the threshold is slice 02's and was not changed.
-- **Verdict ok** through `generate verdict`, bound to each served sha, for the 91, and later for the 3 reworded takes.
-- **`generate check` proves the packs** (`checkPacks` in `packs.ts`, called by `checkVoices`): every packed take is in the lock, its URL names the lock's served sha, it is judged ok on that sha, and its file hashes to it; a pack that differs from what `generate pack` (reviewed takes only) would write now is reported stale, and a pack for a set `voices.json` lacks is reported. The slice-06 one-off script is no longer needed. A pack written with `--unreviewed` fails the check by design.
-- **"Halt." became "Halt, hold here."** (rifle_squad `stop` steady take 0), because the voice rendered "Halt." under half a second twice. It changed 3 takes (`de`/`ru`/`us_rifle_squad/lead`); all three were bought again and passed (6 calls, 48 characters, 1.5–1.7 s). Their old raw masters stay; their old served files went, as the tool does for every superseded take.
-- **Numbers:** flagged 474 → 383 after re-judging → 382 after the reword (5.4% of 7,108). Packed takes 6,634 → 6,725 → 6,726 in 56 packs. `generate check`: 0 problems.
-- **2026-10-12 (orchestrator, review of 06b):** three takes whose misread now falls under the 0.4 word-error threshold were judged **bad** by hand and left out of packs. Two are "Bail out" heard as "Fail out" (cn/de tank crew, destroyed); one is "Troops" heard as "Tubes". The threshold stays as it is; a reviewer's verdict is the backstop.
-
-### 16 — closeout review (agent, 2026-10-12)
-
-- **A bark without a talk time is refused at load** (`ShoutRules::check`), so the ledger reads `talk_s[trigger]` with no fallback (it had a silent 1.5 s). The trigger list is `ShoutTrigger::ALL` in the contract; the publication's copy is gone.
-- **The voice tool owns the talk time it checks** (`talkTime` and `RESPONSE_TALK_S` in `voices.ts`). The matcher checks a length only when given one, so a design candidate's audition is never held to a response's.
-- **The sound lab speaks with the real `us_tank_crew` pack.** Its stand-in packs (built from the lock, and the responses relabelled as barks) are deleted now that packs and bark takes are served.
-- **The `cue_voices` tombstone test is deleted;** `a_shout_with_no_pool_loaded_is_silent` already pins the behaviour.
+This is the final ledger of the decisions behind the feature, checked against the code as it shipped. Each entry says who closed it:
+
+- **user**: the user decided. These are listed first as givens and are not audited.
+- **territory**: the code or a live probe settled it.
+- **agent**: an agent decided on the user's behalf. The entry names the preference it relied on.
+
+The agent entries are grouped by verdict: needs-user, then unsound, then sound. Within each group the least confident comes first. "Confidence" means how sure the audit is that the user would have made the same call. The code is the reference for the how, and each entry points to it.
+
+**Review these first:** [N1](#n1-the-six-generated-tracks-play-in-battle-without-a-recorded-listen) (the score plays in battle without a recorded listen), [N2](#n2-the-scores-mood-logic-stays-in-typescript) (the score's mood logic stays in TypeScript while every other sound decision is Rust's), and [S1](#s1-a-misread-under-the-04-word-error-line-ships-unless-a-person-catches-it) (a misread that passes speech-to-text ships without anyone hearing it).
+
+## Words used below
+
+- **Response:** a unit answering its owner when selected or ordered (R1–R12, such as "Roger, moving out."). Only the owner hears it.
+- **Bark:** a unit shouting what is happening to it in the battle (B1–B17, such as "Taking fire!"). Anyone near the camera hears it.
+- **Shout:** the simulation's record of one bark: who, what kind of unit, where, which bark, steady or stressed.
+- **Steady / stressed:** the two deliveries of every line. A unit is stressed when its health is at or below half, or it is suppressed.
+- **Voice set:** the voices one country × role speaks with, such as `us_tank_crew`. Each set has a **lead** voice that gives responses and one or two **soldier** voices that bark.
+- **Take:** one generated recording of one line: set, voice, trigger, intensity, take number (0 or 1).
+- **Raw master:** the file ElevenLabs returned. **Served file:** the processed MP3 the game plays.
+- **Lock:** `fixtures/voices.lock.json`, the generation tool's record of every take: its hashes, transcript, match score and verdict.
+- **Verdict:** a reviewer's ok or bad on a take.
+- **Pack:** `pack.json` beside a set's MP3s, listing the takes the game may play.
+- **Chatter:** the arbiter that decides which requested lines actually play, and when (`crates/presentation/src/sound/voices.rs`).
+- **Publication:** the packed per-side byte stream the simulation sends the client each tick.
+
+## Givens
+
+### The user's preferences for delegated calls
+
+The user approved agent answers on structural questions: layout, formats, naming and catalog records. Taste and account decisions stayed with the user. The agent was to use four preferences:
+
+1. take the recommendation when it is grounded in the code;
+2. atmosphere over leanness;
+3. the simulation is the authority;
+4. numbers are guesses to tune.
+
+### What the user decided
+
+- **Two kinds of talk.** Responses R1–R12 are heard by the owner only. Barks B1–B17 happen in the world and are heard near the camera by every side, because "you would be hearing people shouting all the time".
+- **English only,** with each nation's accent. Generic European infantry speaks with a **German** accent.
+- **One voice set per country × role.** The lead voice answers and soldiers bark. A set per unit type was rejected.
+- **The simulation emits shouts.** A side hears all its own units' shouts and an enemy's only while that enemy is seen. The client picks the take with its own seeded randomness. The leak is accepted by name: a seen enemy's stressed take or a "pinned!" bark reveals its state, and the comment on `IdentifiedUnit` names this exception.
+- **All 29 triggers,** each steady and stressed, × 2 takes. B17 (friendly destroyed nearby) is included even though the agent recommended cutting it.
+- **Limits.** In the simulation, an **8 s** cooldown per unit per trigger, and a unit never talks over itself. In the client, at most **4** lines at once. Responses come first, then own barks, then others, nearest the camera first. A line that can't start within **1 s** is dropped. One unit answers for a group.
+- **Callsigns** are spoken in R1 (selected) and R11 (arrived) only, one per set.
+- **Swearing** is allowed in stressed lines.
+- **Voices** are ElevenLabs Voice Design voices, saved permanently. Premade voices and cloning were rejected. The account is on **Pro**.
+- **Unseen enemies** are heard as anonymous, muffled shouting from a direction: a random bark from a generic pool, never the speaker's own set, low-passed at about **600 Hz** with reverb so the words can't be made out. The old `cue_voices` murmur, which sounded "like footsteps or heavy breathing", is deleted.
+- **Taste.** The four reference voices are those in `assets/saved-voices.json`. Processing follows where the speaker sits: tank crew on a light radio over a faint engine bed, infantry dry, recon on a quiet earpiece, pilots on an intercom over a rotor bed.
+- **Beds come from the game's own sound for that machine.** The pilot bed is the `rotor-uh60` clip low-passed at **900 Hz**. The game has no recorded tank engine, so the tank bed stays generated.
+- **Music.** One score for every faction: a Pulse-family background underscore (D minor, 125 BPM, synth bass ostinato, no melody or hooks). There are 3 combat and 3 tension tracks at **−26 LUFS**. There are two moods: any own B5–B9 bark within **20 s** means combat, **45 s** without one returns to tension, and the crossfade is **4 s**.
+- **Players get music and voices levels** beside master volume, in both menus.
+- **Review.** The user is the only reviewer, so the workbench is built for spot checks and "mark bad, regenerate". A set's takes that pass speech-to-text may be bulk-accepted after the flagged takes are played.
+- **Spend is delegated.** The pilot reports cost, and the batch proceeds without waiting ("don't let me block you here").
+- **Keep everything.** Every generated asset is kept, including unpicked design candidates and superseded raw masters.
+- **The auto-picked voices are approved** ("your auto picked ones are good").
+- **No backward compatibility.** Cutovers are hard. `ShoutRules` changes the config digest, so old replays are refused; they already were, by build fingerprint.
+
+### What the code or a live probe settled (territory)
+
+- **ElevenLabs is reached only through Duet's proxy:** `POST https://ctl.duet.so/v1/services/elevenlabs/<path>?workspace=<slug>` with the Duet bearer token. The workspace must be a query parameter. Voice, model and user reads are denied, so credit use can only be read in the dashboard. The base URL is one constant, `BASE` in `tools/generate/elevenlabs.ts`.
+- **Licence.** Paid plans allow commercial use in games. Provenance records `plan: "Duet ElevenLabs"`.
+- **The deployed site serves real Git LFS media,** so the Vercel project's LFS setting is on. It is documented in `web/README.md`.
+- **Flight already measures near misses against hulls.** Only suppression ignores hulls, so B5 ("under fire") can read the same evidence for tanks as for squads.
+- **Sound decisions live in Rust.** The project rule from the native-parity work is "Rust as smart as possible, clients as dumb as possible". `crates/presentation/src/sound/` decides, and both the browser and the native client play what it decides.
+
+## Needs the user
+
+### N1. The six generated tracks play in battle without a recorded listen
+
+_Agent, slices 08 and 14 · confidence low_
+
+Suppose the player starts a skirmish. `BattleMusic` opens on a tension track and switches to a combat track when an own unit shouts "Taking fire!". Those six tracks were generated and gain-matched, and every one can be regenerated from the workbench's Music tab. But the feature's goal was that the user reviews everything in the workbench **before** it plays in battle. Voice takes enforce that: a take plays only if its pack lists it, and a pack lists only takes with an ok verdict. Music has no verdict at all. A track is in the catalog, so it plays.
+
+- **Gap:** slice 08 made the user's listen non-blocking, and nothing recorded whether it happened.
+- **Reach:** every battle's score. A track the user would reject plays until someone notices.
+- **Provisional call:** keep the tracks playing; the user listens in the Music tab. To reverse it, remove a track id from `music.moods` in `fixtures/sounds.json`, or regenerate the track from the tab.
+
+### N2. The score's mood logic stays in TypeScript
+
+_Agent, slice 14 · confidence low_
+
+Suppose a native client plays a battle. Rust tells it which barks, cues and lines to play. Nothing tells it which music mood to play. `MusicDirector` and `BattleMusic` (`packages/battle-audio/src/music/`) live in TypeScript. They decide tension or combat from the own barks that Rust's `Chatter` reports, and they duck the score while a line sounds. The agent kept them there because the music tables (`sounds.json`'s `music` section) are owned by TypeScript's catalog, and moving one rule would split the score's owner across two languages.
+
+- **Gap:** the "Rust decides" rule listed Chatter (09b), barks (14) and unseen shouts (15). It didn't mention music.
+- **Reach:** a native client gets no adaptive score without porting the director. Any new music rule (intensity layers, a victory sting) lands in TypeScript by imitation.
+- **Provisional call:** keep it in TypeScript until a native client needs music. Then move the music section's typed reading and `MusicDirector` into `crates/presentation/src/sound/` together, and leave TypeScript only the `MusicPlayer` streaming.
+
+## Unsound
+
+### X1. A line's level is a code constant, not data
+
+_Agent, slices 10 and 09b · confidence medium_
+
+Suppose a playtest finds every voice line a little too loud against gunfire. The tuner opens `fixtures/game.json` → `presentation.audio.voices` and finds `lines: 4`, `wait_s: 1` and `group_s: 0.25`, but no level. The level is `LINE_GAIN = 0.5`, a `const` in `crates/presentation/src/sound/voices.rs`, used for answers, for barks, and for the distance cull of heard shouts. It became a constant in slice 10 because the TypeScript file meant to hold it was about to move into Rust. That reason expired when 09b moved Chatter into Rust and gave `presentation.audio.voices` a typed reader (`ChatterRules`).
+
+- **Gap:** slice 10 left the line level unplaced while the move to Rust was pending.
+- **Reach:** every voice tuning pass. It is the one voice number a tuner can't find in the data.
+- **Corrected decision:** the line level is a field of `presentation.audio.voices` (`ChatterRules`), like the other line rules. It is read wherever `LINE_GAIN` is today.
+
+## Sound
+
+### S1. A misread under the 0.4 word-error line ships unless a person catches it
+
+_Agent, slices 02 and 06b · confidence low_
+
+Suppose a German tank crew's "Bail out!" take comes back as "Fail out!". Speech-to-text (`scribe_v1`) transcribes every raw master, and `transcript.ts` compares the transcript with the script. One wrong word in a three-word line is a word error of 0.33. That is under `MAX_WORD_ERROR = 0.4`, so the take is not flagged. Under the user's review gate, unflagged takes were bulk-accepted, so this take would ship unheard. Three such takes ("Fail out" twice, "Tubes" for "Troops") were found and judged bad by hand. Others may remain among the roughly 6,700 accepted takes. Two things narrow the gap. A keyword list (the callsign, "sabot", "gunner") flags any lost keyword whatever the word error. And the matcher ignores spelling-only differences, so it flags real misreads rather than "Armour" heard as "Armor".
+
+- **Gap:** the plan named the speech-to-text check but no threshold.
+- **Reach:** what "reviewed" means for the whole library. Lowering the threshold flags more takes for the user's ears; raising it lets more through.
+- **Why sound:** at 0.3 or below, every one-word slip in a short line would be flagged, which buries the user in harmless variants. A person's verdict is the backstop, and the user can mark any take bad in the Voices tab.
+
+### S2. Eight sets have a female response voice
+
+_Agent, slice 01 · confidence medium_
+
+Suppose the player selects a US Apache. A woman answers on the intercom. Female lead voices are on 8 sets: the attack helicopter pilots of Germany, France, Russia and the US, the US transport helicopter pilots, and one IFV crew per faction (German, Russian, US). The plan said "about 6: pilots, plus one vehicle crew per faction". The user can swap a voice's gender and description in `fixtures/voices.json`, and the Voices tab regenerates its takes.
+
+- **Gap:** the plan gave a rough count and no list.
+- **Reach:** which units sound female in every battle.
+- **Why sound:** it is close to the plan's figure. The user heard the auto-picked voices and approved them.
+
+### S3. Accents follow the faction for infantry and the country of origin for machines
+
+_Agent, slice 01 · confidence medium_
+
+Suppose a European player fields a Boxer, an Italian Centauro and a rifle squad. The squad speaks with a German accent, the faction default the user chose. The Boxer crew is German and the Centauro crew Italian, because a vehicle or aircraft follows the country that built it. Where several countries built it, there is a mapping: NH90 → German, Tiger HAD → French, Tiger UHT → German, Boxer → German, CV90 → Swedish, Centauro → Italian. National teams keep their own nation: the Akeron team is French, the FN-6 team is Chinese. The result is 56 sets (`fixtures/voices.json` → `sets`). A unit's role comes from its own row data (category, roles, squad bodies), so the Centauro II speaks as a tank crew and the Tiger as attack pilots.
+
+- **Gap:** the user set only the generic European infantry accent.
+- **Reach:** every set's accent. Adding a unit means choosing its set by the same rule.
+- **Why sound:** it extends the user's own "German for generic European infantry" pattern, and no accent is borrowed.
+
+### S4. The scripts: two different lines per trigger, tags only when stressed
+
+_Agent, slices 01, 04, 06 · confidence medium_
+
+Suppose a US rifle squad is ordered to stop twice. The first answer might be "Halt, hold here." and the second "We hold here.". Take 0 and take 1 are **different words**, not two renders of one line (`fixtures/voices.json` → `roles`). Steady lines carry no audio tag. Stressed lines carry one tag (`[urgent]`, `[shouting]`) and different words, about one in seven swears, and sniper teams whisper like recon. When a voice misread the same line twice, the line was reworded rather than retried a third time: "Tank here, send it." → "Armour here, send it.", "Firing." → "Firing on target.", "Halt." → "Halt, hold here.".
+
+- **Gap:** the plan had role scripts but didn't say what a second take is.
+- **Reach:** every line in the game, and the style future roles copy.
+- **Why sound:** two texts double the variety for the same cost, and rewording fixes a line the voice can't say.
+
+### S5. Every bark has the same 2.5 s talk time
+
+_Agent, slices 11 and 02 review · confidence medium_
+
+Suppose a tank shouts "Tank, front." at 0.0 s and is hit at 1.0 s. The simulation's `ShoutLedger` keeps the tank "talking" until 2.5 s, so the "We're hit" bark is not emitted. The talk time is `ShoutRules.talk_s` in `fixtures/game.json`: one number per trigger, all 2.5 s today. It is a nominal time. The simulation never reads clip lengths, and the generation tool flags any bark take longer than its trigger's `talk_s`. A response, which the simulation never sees, is held to the tool's `RESPONSE_TALK_S` = 4 s. A bark with no talk time is refused when the rules load (`ShoutRules::check`), so there is no silent default.
+
+- **Gap:** the plan said "talk_s per trigger" with no values.
+- **Reach:** how often a unit can shout. Raising one trigger's value thins that unit's later barks.
+- **Why sound:** the tested takes run about 2–2.7 s. The original 1.5 s would let a unit's next shout begin under its last. Per-trigger values are data, ready to tune.
+
+### S6. A contact nobody's sensor holds is called by the nearest own unit
+
+_Agent, slice 11 · confidence medium_
+
+Suppose the side identifies an enemy T-90 and two own units are nearby: a tank 300 m away whose sensor holds the T-90's track, and a squad 200 m away that doesn't see it. The tank calls "Tank, front.". Contact goes to the nearest own unit that sees the enemy (`shouts::build`, `crates/sim/src/shouts.rs`). If no own unit's sensor holds the track, the nearest own unit calls it anyway, as a radio relay would. Altitude decides an air contact before body type does, so a helicopter is always "air". A contact speaks before that unit's other barks, and its talk time blocks them.
+
+- **Gap:** the slice named the nearest seeing unit and didn't say what happens when there is none.
+- **Reach:** contact calls when identification comes from something other than an own unit's sight.
+- **Why sound:** the side learned of the enemy, so someone says so. Silence would hide a real moment.
+
+### S7. Responses are decided in TypeScript from the player's input
+
+_Agent, slice 10 · confidence medium_
+
+Suppose the player box-selects three tanks and orders a move. `responseFor` (`packages/battle-audio/src/voices/responses.ts`) turns each event into a request. A selection asks for R1. An accepted order asks for its R2–R10 line, keyed to the acknowledgement. A refusal reads `OrderError.reason`. Arrival, R11, is read from a unit's goal clearing. Rust's Chatter then arbitrates the request like any line. Only the arbitration is in Rust. Which answer to give is decided in TypeScript, because selection, clicks and acknowledgements exist only in the client.
+
+- **Gap:** the move to Rust named Chatter, barks and unseen shouts, not responses.
+- **Reach:** a native client needs its own port of `responses.ts` to answer the player.
+- **Why sound:** the inputs are client state. Moving them into Rust would mean publishing UI state into the presentation crate.
+
+### S8. Who answers, and which orders get an answer
+
+_Agent, slice 10 · confidence medium_
+
+Suppose the player clicks one Abrams in a group of three and orders an attack-move. The clicked tank answers. Without a clicked unit, the highest-value unit answers, with ties going to the lower id. The unit that answered the selection keeps answering the group's later orders while it is in the group. These requests share a group key (`order/<seq>`, `selected`, `arrived/<journey>`), and Chatter collapses requests with the same key within 250 ms, so one voice answers.
+
+- **R12 (refused)** is spoken for refusals a soldier would voice: out of bounds, no valid destination, unknown target, air contact, not infantry, not a building, capacity full, one squad per building, building occupied (`REFUSALS`). Purchase, rate, sequence, replay and stale-id refusals are silent.
+- **R11 (arrived)** ends a journey begun by a move, attack-move or building order, or by a purchased unit driving in. It is said once per journey, by the first unit to arrive, and only after at least 3 s under way (`ARRIVED_AFTER_S`). Stop, attack, withdraw and leave-building end a journey silently.
+
+- **Gap:** the plan named R11 and R12's sources and didn't say which refusals are spoken, or who answers.
+- **Reach:** how chatty the player's own units are.
+- **Why sound:** an answer comes from the unit the player addressed. Bookkeeping refusals aren't moments a crew would voice.
+
+### S9. The score ducks while any line sounds
+
+_Agent, slices 08 and 14 · confidence medium_
+
+Suppose a squad shouts "Man down!" over a combat track. While any Chatter line is sounding, the score dips by `duck.depth` 0.35 over 0.05 s, and it recovers over 0.8 s after the last line ends (`presentation.audio.music.duck`). Unseen-shout cues don't duck it: they are muffled frame sounds, not lines. The duck and the player's music level are separate audio nodes, so neither overwrites the other.
+
+- **Gap:** the user asked for a music bus that "dips under voices" and gave no numbers.
+- **Reach:** how present the score feels in a busy fight, where lines overlap and the score may stay ducked for long stretches.
+- **Why sound:** words must be heard over the music, and the numbers are data to tune.
+
+### S10. The unseen-shout pool: four stressed barks per bark voice of the enemy faction
+
+_Agent, slice 15 · confidence medium_
+
+Suppose a Russian squad behind a tree line shouts. Blue's speakers hear a muffled shout from the north-east. `ShoutPool` (`packages/battle-audio/src/voices/shoutPool.ts`) holds, from each pack of every set the **enemy faction** fields, up to `takes_per_voice` = 4 stressed barks per bark voice, taking every trigger's first take before any second. The pool comes to about a hundred small takes. Rust picks one with Mulberry32 seeded by the cue's sector, band and time, never by who shouted. The accent family is the faction's, but the voice is not the speaker's own.
+
+- **Gap:** the user chose a "generic pool" and didn't set its size or makeup.
+- **Reach:** what unseen fighting sounds like, and the load cost per battle.
+- **Why sound:** the words are unintelligible, so the variety of voices matters more than the variety of lines. A small pool loads quickly.
+
+### S11. How flagged voices were repaired
+
+_Agent, slices 05 and 06 · confidence medium_
+
+Suppose a pilot voice comes back with half its takes flagged. Every voice had 3 designed candidates. `generate pick --auto` kept the one whose audition best matched its text, with ties broken by the duration closest to the role's median. After the full batch, a voice with over 30% of its takes flagged (and not a whispering role) was designed again. Its description gained "Clear diction, easy to understand over a radio; moderate accent.", and all its takes were bought again on the new voice. That happened to four helicopter pilot voices. Then every remaining flagged take got exactly one retake. What stayed flagged waits for the user's ears.
+
+- **Gap:** the plan had a pilot stop line and a review gate, but no repair policy for the batch.
+- **Reach:** the template for the next batch, and the flagged takes still waiting, unjudged, in the Voices tab.
+- **Why sound:** spend is bounded (one redesign, one retake), and nothing flagged ships without a verdict.
+
+### S12. The whole library lives in Git LFS and ships with every deploy
+
+_Agent, slices 02 and 06 · confidence medium_
+
+Suppose a developer clones the repo. The served voice library is about 60 MB under `assets/runtime/audio/voices/`. The raw masters and design candidates are about 300 MB under `assets/source/audio/`. All of it is LFS (`*.mp3` in `.gitattributes`) and fetched only when needed. A deploy serves the runtime folder whole. A battle downloads only its own sets' packs, in the background.
+
+- **Gap:** the plan put audio in LFS but sized it far smaller.
+- **Reach:** deploy size, LFS bandwidth, and every new voice batch adding to both.
+- **Why sound:** a player never downloads the library, only a battle's sets. Raw size follows from the user's keep-everything rule.
+
+### S13. The six tracks' variations and length
+
+_Agent (delegated), slice 08 · confidence medium_
+
+Suppose the combat mood plays three tracks in turn. They differ on purpose. `combat_1` keeps the ostinato and strings in front at one flat intensity. `combat_2` lets the drums lead, still far back, building to a plateau. `combat_3` is darker, with a syncopated ostinato and swells every 30 s. Tension has `tension_sparse_1` and `_2` (stillness against unease) and `tension_dark_1`. Each is 150 s, built on the user's `STYLE` prompt (`tools/generate/music.ts`, provenance in `sounds.json` → `sources`).
+
+- **Gap:** the user chose the style and moods, not the individual tracks.
+- **Reach:** the score heard in every battle (see N1).
+- **Why sound:** the variations stay inside the chosen style, and each track can be regenerated alone.
+
+### S14. Voice loudness targets and the encoder
+
+_Agent, slice 02 · confidence medium_
+
+Suppose an infantry line and a recon line play back to back. The dry, light-radio and intercom profiles render to −16 LUFS integrated loudness, and the earpiece to −19 LUFS, so recon stays the "quiet earpiece" the user chose. Gain is linear, with a −1.5 dBFS limiter for peaks, so a shout stays louder than a mutter within a take. Takes are mono MP3, 40 kbps, 24 kHz, and encoded bit-exact. Hiss is seeded from the take's bytes, and the bed starts at a seeded offset so neighbouring lines don't begin on the same engine note (`VOICE_PROFILES`, `packages/battle-audio/tools/assets.py`).
+
+- **Gap:** the user chose the treatments by ear. The plan gave no loudness targets or encoder settings.
+- **Reach:** the balance of every line against the battle, and how much a take weighs.
+- **Why sound:** the levels match the approved references, and the radio bands make anything above 24 kHz wasted bits.
+
+### S15. The silence outside a skirmish
+
+_Agent, slices 14 and 15 · confidence high_
+
+Suppose a developer opens a lab scene with no skirmish factions. Own units still answer. Barks and unseen shouts are silent, because which voice set a unit kind speaks with depends on its faction, and a lab has none. `factionVoices` (`voiceCatalog.ts`) builds each side's kind → set table from the roster rows that faction fields. Rust never learns factions: a sound frame belongs to one side, so "the enemy's sets" is the only enemy table it holds.
+
+- **Gap:** the plan assumed a faction was always known.
+- **Reach:** labs can't be used to judge battle chatter. The sound lab speaks with a real pack instead.
+- **Why sound:** labs are developer arenas, not played.
+
+### S16. The voice data is one file, and assignments live in it
+
+_Agent, plan · confidence high_
+
+Suppose the roster gains a new Russian IFV. Its row in the unit catalog gets no voice field. Instead, `fixtures/voices.json` → `assignments` maps the faction's row to `ru_ifv_crew`. That file is the only voice authority: role scripts, sets (country, role, callsign, processing profile, voices with their saved `voice_id`), assignments and retake counts. `sounds.json` never lists a voice clip. Rows shared between factions (rifle squad, Javelin, Stinger) get one assignment per faction.
+
+- **Gap:** the user's D4 first said "each unit row gets `voice`".
+- **Reach:** adding a unit means touching `voices.json`, which the validator checks against the roster.
+- **Why sound:** `UnitType` rejects unknown fields, the simulation never reads voices, and shared rows need per-faction answers anyway.
+
+### S17. Voices per set and callsign names
+
+_Agent, slice 01 · confidence high_
+
+Suppose a 9-man rifle squad and a 2-man sniper team are both in a fight. The rifle squad has 3 voices: a lead who answers and two soldiers who bark. The sniper team has 2. Squads of 6 or more get 3 voices. Every other set (small teams and every vehicle or aircraft crew) gets 2: a commander who answers and a crew member who shouts. A barking soldier's voice comes from a stable hash of the unit, so one unit always sounds the same. Callsigns are a national word plus a number ("Dragon 1", "Adler 6"), unique per set.
+
+- **Gap:** the plan said "2–3 voices" for squads and didn't cover vehicles.
+- **Reach:** the size of every generation batch: a lead voice has 48 takes (12 responses × 2 intensities × 2 takes), a soldier voice 68 (17 barks × 2 × 2).
+- **Why sound:** a crew with one voice would sound flat when answers and barks interleave.
+
+### S18. B5, "under fire": any enemy round close enough to suppress
+
+_Agent under tweak-mechanics, slice 12 · confidence high_
+
+Suppose a rifle round cracks past an M1 Abrams, or lands within its suppression radius. The tank calls "Taking fire!". `shouts::under_fire` counts an enemy round's near miss, impact or ricochet within the weapon's `suppression_radius_m` of the hull box or of the nearest living soldier. It uses suppression's own `near_miss` score but, unlike suppression, includes hulls. Own-side rounds never count; a war film shows "check fire!", not "taking fire!". A squad that is already suppressed or pinned stays silent on B5, because B6 and B7 own that moment. The tier is read after this tick's rounds, so a squad whose tier rises this tick says B6 or B7. The shooter need not be seen.
+
+- **Gap:** the user asked for "under fire" with no physical definition.
+- **Reach:** the most common stress bark, and one of the barks that switch the music to combat.
+- **Why sound:** it reuses the evidence suppression already scores. No new rule or `Unit` state is added.
+
+### S19. B15 and B17: what a unit sees decides
+
+_Agent under tweak-mechanics, slice 12 · confidence high_
+
+Suppose an ATGM is steering at the second of two tanks. Only that tank shouts "Incoming missile!", and only once the missile clears the terrain into its view. B15 needs the missile's commanded point to lie on the unit's footprint (its hull box seen from above, or the squad's radius) and the unit to see the missile itself (`shouts::incoming`). Now suppose that tank is destroyed. Only the **nearest** friendly that can see where its crew sat shouts "We lost one!", with ties going to the lower id. One witness, never a chorus, and a loss nobody saw gets no shout. The witness looks at the dead unit's eye point, because a sight line ending on bare ground is refused.
+
+- **Gap:** the plan defined these in words. The code needed the geometry.
+- **Reach:** both barks follow the fog rules every other sense follows.
+- **Why sound:** they use the existing `sensing::sees_point`. No new sight rule was added.
+
+### S20. Which bark wins on a busy tick
+
+_Agent, slices 11 and 12 · confidence high_
+
+Suppose on one tick a squad loses a man, drops below a third of its strength and hears a round pass. It says one thing, B10 ("Heavy losses."). `PRIORITY` in `crates/sim/src/shouts.rs` orders the barks, most specific first: destroyed > incoming missile > badly damaged > man down > hit > pinned > suppressed > friendly destroyed > under fire > missile away > out of ammo > reloading > kill > opens fire. A bark fires on a change, never a steady state. B4 fires on a new target, B6 and B7 when the tier rises, B13 once when a weapon runs dry. B12 is for infantry only, because a crew's loader works unheard. A dead or withdrawn unit never speaks again, except B16, its own last line. A squad's "health" is living members over starting members, because a squad has no hull hp. That figure decides both "stressed" and B10.
+
+- **Gap:** the plan listed triggers, not ties or edges.
+- **Reach:** what the player hears first in every firefight.
+- **Why sound:** it is data, and specific beats generic.
+
+### S21. Shout state lives in a per-side ledger, outside the digest
+
+_Agent, slices 11 and 12 · confidence high_
+
+Suppose two runs of the same battle are compared. Their digests match whether or not anyone shouted. `ShoutLedger` (cooldowns, who is talking, last tick's contacts and targets) sits per side beside the observations. It is never on `Unit`, never digested, and never draws simulation randomness. Barks are found by comparing each unit with a small `Before` note made each tick (alive, hp, each soldier's hp, tier, and each mount's reason, shot count and missile), not with a full copy of every unit. `shouts::build` makes a side's own shouts. `shouts::heard` copies an enemy's shouts into the other side's frame as `Seen(handle)` while that side identifies the speaker. `shouts::unheard` turns the rest into anonymous hearing cues. One owner builds each unit's shouts; hearing only filters them.
+
+- **Gap:** the plan fixed the ledger's home and left its contents and split open.
+- **Reach:** any future presentation-only evidence should follow this pattern.
+- **Why sound:** the digest is the proof of determinism, and shouts change no outcome.
+
+### S22. An unseen shout's cue: range, timing and sound
+
+_Agent, slices 12 and 15 · confidence high_
+
+Suppose a hidden enemy squad shouts on a tick between hearing updates. Its cue reaches Blue at the next hearing update. It carries as far as the speaker's own `loudness_m`, and it holds only listener, 8-way sector and near/far band. A destroyed speaker's last shout makes no cue, because hearing hears living sources only. The client plays it on the **voices** bus, so the voices slider covers it. It is panned by sector, low-passed at 600 Hz and sent 0.6 to reverb in both bands: near is louder, never clearer (`presentation.audio.cues.shout`, `Sound::note` in `sound/frame.rs`). It has its own row because a pool is not a recipe. With no pool loaded, a shout is silent. Idle unseen infantry is silent, and moving infantry keeps its footsteps cue.
+
+- **Gap:** the user set the effect and left the plumbing open.
+- **Reach:** the anonymous-hearing contract. No set, trigger or position reaches the client.
+- **Why sound:** it reuses hearing's existing path and repeat rule.
+
+### S23. The shout's publication layout
+
+_Agent, slice 13 · confidence high_
+
+Suppose the browser decodes a tick's publication. After `crashes` comes a `shouts` group of rows: `own, idLo, idHi, kind, x, y, z, trigger, intensity`. `own` is 1 for the side's unit and 0 for an identified enemy, as crashes and corpses mark it. The id travels as 16-bit limbs. The layout publishes `shoutTriggers` (the contract's names, `b1_contact_infantry` … `b17_friendly_destroyed_nearby`, from `ShoutTrigger::ALL`) and `intensities`, so TypeScript hard-codes no tag. `barkTrigger` (`voiceCatalog.ts`) is the one TypeScript mapping from a tag to a voice line name. The publication was re-blessed once, by name. The native Godot fixture captures were re-encoded to the new layout, not captured again.
+
+- **Gap:** the plan named the contract, not the byte layout.
+- **Reach:** every reader of the publication: browser, native and fixtures.
+- **Why sound:** it follows the existing positional-group pattern exactly.
+
+### S24. Chatter's open edges
+
+_Agent, slices 09 and 09b · confidence high_
+
+Suppose the player orders a group and three answers arrive 100 ms apart. One plays, because requests sharing a group key within `group_s` (250 ms) collapse to the first. Other edges the plan left open:
+
+- A request without a position counts as nearest: an owner's radio is in the player's ear.
+- A line whose take hasn't loaded is dropped at once, not queued.
+- The take is chosen by Mulberry32 over a hash of seed, speaker, trigger, intensity and request count, so a battle replays the same takes.
+- Answers come from the set's first responding voice. A barking unit's voice comes from a hash of its name, and an own unit's name is the same for its answers and its barks, so it never shouts over its own answer.
+
+Chatter is pure (`crates/presentation/src/sound/voices.rs`). The workbench's chatter preview runs the same code. Vectors that the old TypeScript Chatter wrote before it was deleted still hold the Rust port to its behaviour.
+
+- **Gap:** the user set the limits and left the edges open.
+- **Reach:** every line played.
+- **Why sound:** each edge follows the user's rules, and the vectors pin them.
+
+### S25. Barks are placed in the world; answers are dry
+
+_Agent (delegated curve), slice 14 · confidence high_
+
+Suppose an own tank 200 m to the left shouts "Taking fire!". It plays from the left, quieter and duller with distance, using the same distance gain, air low-pass and reverb as every unit sound (`Sound::place`). A bark too far off to pass the distance cull asks for nothing. Its own answer to an order plays dry and centred, like a radio in the player's ear. A bark asks to play when the presentation clock reaches its tick, as gunshots wait for theirs.
+
+- **Gap:** the plan said barks are "heard near the camera" and didn't define the curve.
+- **Reach:** the feel of every bark.
+- **Why sound:** one placement rule covers every positional sound.
+
+### S26. Loading: packs after `ready`, only this battle's sets
+
+_Agent, plan and slice 14 · confidence high_
+
+Suppose a skirmish starts. The battle becomes playable without waiting for any voice. After `ready`, `VoiceBank` fetches the packs of every set the two factions' rosters speak with, plus the player's own units and purchases, and decodes their takes in the background. Until a take decodes, its bark is dropped. A set that fails to load stays silent. Music streams through an `<audio>` element into Web Audio (`MusicPlayer`), outside `WebAudioSink`, because offline rendering can't host a media element.
+
+- **Gap:** the plan's loading question.
+- **Reach:** startup cost stays flat however big the library grows.
+- **Why sound:** voice is never worth a slower start.
+
+### S27. Music is not a mixer bus, and the menu bed streams too
+
+_Agent, slice 07 · confidence high_
+
+Suppose the player drags the music slider in the menu. The menu bed, now an MP3 at gain 0.16 (matching the old WAV's level), changes through `MusicPlayer`'s chain: element → track gain → level → duck → master. The mixer's bus list is units, effects, ambience and voices, with no `music` bus, because nothing plays on one. The old decode-whole-file WAV path is deleted. The voices bus keeps its distance-reverb send, because barks are positional.
+
+- **Gap:** the plan named a `music` bus.
+- **Reach:** any new music feature goes through `MusicPlayer`.
+- **Why sound:** one music path, and no dead structure.
+
+### S28. How the director moves between moods
+
+_Agent, slices 08 and 14 · confidence high_
+
+Suppose the player's squad is pinned at 3 s. The score crossfades to combat. If nothing qualifying happens until 48 s, it crossfades back to tension. Only **own** barks in `combat_triggers` (under fire, suppressed, pinned, hit, man down) count, because enemies' barks would leak their state. Combat starts when the latest qualifying bark is at most 20 s old and ends when it is over 45 s old. Within a mood, tracks are drawn from a shuffled bag, and a new bag never starts with the track just played. The order uses unseeded randomness, because no replay depends on it. A battle opens on tension, fading in under the menu's fade-out.
+
+- **Gap:** the user set the numbers and left their reading open.
+- **Reach:** the score's whole behaviour (see N2).
+- **Why sound:** it reads the user's rule literally.
+
+### S29. Music in the sound catalog
+
+_Agent, slices 07 and 08 · confidence high_
+
+Suppose someone generates a fourth combat track. It joins `fixtures/sounds.json`. Its raw master is a `sources` record with `Generated` provenance (model, prompt, date, plan), plus a path under `assets/source/audio/music/` and a hash. Its entry in `music.tracks` names that source, the served file's hash and its gain. The gain is computed so the served file plays at −26 LUFS after gain, on the same scale the menu bed was matched on. The moods must be exactly menu, tension and combat. `musicUrl()` (`src/music/musicCatalog.ts`) alone builds `/audio/music/<track>.<sha8>.mp3`. The tool writes `sounds.json` through the formatter, so adding a track doesn't reflow the file.
+
+- **Gap:** the plan named the section, not its shape.
+- **Reach:** one catalog owns every recording's provenance, including generated ones.
+- **Why sound:** it extends the existing owner rather than adding a `music.json`.
+
+### S30. The generation tool's shape
+
+_Agent, plan and slice 02 · confidence high_
+
+Suppose the user marks a take bad and presses R. The workbench runs `bun run generate voices --set … --voice … --only bad` (`packages/battle-audio/tools/generate/`). Credits are spent only through this TypeScript tool. It caches at two levels:
+
+- a **generation key** (the text after callsign expansion, `voice_id`, model, settings and retake count) names the raw master, so a killed run never pays twice;
+- a **processing key** (the raw master's hash, the profile's whole definition, the bed's hash and the encoder) names the served file, so retuning a profile re-renders locally for free.
+
+At most 8 text-to-speech, 4 transcription, 3 design and 2 music calls run at once (`LIMITS`). Calls retry with jittered backoff, and a 401, 402 or quota error stops the run. Speech-to-text reads the raw master, so retuning never re-transcribes. `assets.py` stays the only owner of ffmpeg. The tool uses `eleven_v3` at stability 0.5, one of the three values v3 accepts.
+
+- **Gap:** the plan's choice of tooling.
+- **Reach:** every future batch, of voices or music.
+- **Why sound:** it is resumable, testable offline (fetch is injected) and cheap to retune.
+
+### S31. One bed shape, and the catalog's hash is a clip's identity
+
+_Agent, slice 02b · confidence high_
+
+Suppose a pilot take is rendered. Its profile's bed is `{clip: "rotor-uh60", filter, volume}`. The tank's is `{generated: "tank_engine", …}`. One resolver turns either into a file and its hash, and that hash enters the processing key. A catalog clip whose file differs from the hash in `sounds.json` refuses to render ("pull Git LFS"). `generate check` reports a generated bed that no profile names.
+
+- **Gap:** the user's beds rule needed a mechanism.
+- **Reach:** a new machine bed is one profile line.
+- **Why sound:** there is one path for both kinds of bed, and a stale file can't render silently.
+
+### S32. Verdicts are bound to the bytes heard, and packs carry only ok takes
+
+_Agent, slices 03, 10, 06b · confidence high_
+
+Suppose the user marks a take ok, then a profile tweak re-renders it. The verdict no longer holds, because it carries the hash of the bytes the user heard (`verdictOf`). `generate pack` lists only takes judged ok on their current served hash whose file still hashes to it. `--unreviewed` (off by default) also admits unjudged, unflagged takes, and `generate check` reports such a pack as stale. `check` proves each pack against the lock and the files. Packs sit at fixed URLs (`/audio/voices/<set>/pack.json`) and are revalidated by ETag. There is no pack index. Served takes are named `<voice>-<trigger>-<intensity>-<take>.<hash8>.mp3`, so a regenerated take never collides with a cached one.
+
+- **Gap:** the plan required review before play without saying how review binds to audio.
+- **Reach:** "reviewed" stays true through every re-render.
+- **Why sound:** a verdict can't outlive the sound it judged.
+
+### S33. One writer per file
+
+_Agent, plan and slices 03, 08 · confidence high_
+
+Suppose the user regenerates a music track while a voice batch is running. The workbench server queues both through one generation-tool queue (`apps/sound-workbench/generation.ts`), so `voices.lock.json` and `sounds.json` each have one writer. A verdict given in the Voices tab is recorded by the tool, not the server. People and the workbench's save path write `voices.json`. The browser never calls ElevenLabs.
+
+- **Gap:** the plan named the writers and didn't say how the workbench reaches them.
+- **Reach:** any new generated asset goes through the tool's queue.
+- **Why sound:** concurrent writers to one JSON file would lose data.
+
+### S34. The Voices tab's review flow
+
+_Agent, slice 03 · confidence high_
+
+Suppose the user opens `de_rifle_squad`. Nothing plays until a key or click. The queue (flagged takes first) is fixed when the set opens. A (accept), X (bad) and R (regenerate) each advance to the next take and play it. "Accept unflagged in set" is one tool run. Line edits and R save without a review diff, so the keyboard flow stays fast. The tab doesn't reuse the Library grid, and a snapshot hashes only `voices.json`, so a verdict never invalidates a pending edit. Voice descriptions are shown but not edited here.
+
+- **Gap:** the user wanted fast spot checks and left the controls open.
+- **Reach:** the user's main review surface.
+- **Why sound:** it follows the "mark bad → regenerate" loop the user asked for.
+
+### S35. Keeping everything, except stale served files
+
+_Agent, applying the user's rule, slices 05 and 08 · confidence high_
+
+Suppose a take is regenerated. Its old raw master stays under `assets/source/audio/voices/`, along with every unpicked design candidate and superseded bed. Its old **served** file is deleted, because it is a re-renderable derivative that would otherwise ship with every deploy.
+
+- **Gap:** the user's keep-everything rule didn't distinguish source from derivative.
+- **Reach:** the source folder only grows; the served folder matches the lock.
+- **Why sound:** it keeps all paid-for media and ships none that is stale.
+
+### S36. Where generated audio lives
+
+_Agent, plan · confidence high_
+
+Suppose a new generated asset is needed. Its raw master goes under `assets/source/audio/<kind>/` and its served file under `assets/runtime/audio/<kind>/`, following the `assets/source/menu` → `assets/runtime/menu` precedent. A top-level `assets/generated/` served by its own Vite plugin was rejected after the user asked to "make sure the folder structure makes sense as a whole". So were separate `music.json`, review and pack-index files. The art bake owns the top-level hash directories in `assets/runtime/`, so audio never uses one.
+
+- **Gap:** where generated media goes.
+- **Reach:** every future generated asset.
+- **Why sound:** it adds no new place or serving machinery.
+
+### S37. Workbench, provenance and levels owners
+
+_Agent, plan · confidence high_
+
+Suppose someone adds a new generated sound. Its provenance uses the `Generated` kind in `catalog.ts`, the existing provenance owner, which voices import. Player levels are `SoundSettings { muted, volume, music, voices }` in `settings.ts`, shown by one `SoundControls` in both menus. The workbench has a Voices tab, a Music tab with a manual mood switch, and a 30 s chatter preview through the real Chatter.
+
+- **Gap:** the plan's structural questions.
+- **Reach:** one owner each for provenance, levels and review.
+- **Why sound:** it extends the owners that already existed.
+
+Trivial discretion, not listed: command and flag names (`generate voices`, `process`, `pack`, `check`, `design`, `pick`, and the `--set`/`--voice`/`--trigger`/`--only` filters), track ids, and internal type names.
