@@ -1,54 +1,25 @@
 // @vitest-environment node
 // The battle's light: `presentation.light` in the
 // fixture is the one owner of the sun, sky, haze, grade, bloom and cascades.
-// What the sky, the haze, the sun and post make of it is resolved and tested
-// in the presentation crate (`crates/presentation/tests/light.rs`).
+// What the sky, the haze, the sun, post and the cascades make of it is
+// resolved and tested in the presentation crate (`crates/presentation/tests/
+// light.rs` and `shadow.rs`); here, the page's binding hands the renderer the
+// words its TypeGPU structs read.
 import { expect, test } from "vitest";
 import game from "@fixtures/game.json";
-import { loadMap } from "@web/maps/node";
 import {
   sunDirection,
   validateLight,
   type LightPresentation,
 } from "@packages/battle-renderer/src/light/sceneLight.ts";
-import { resolveLight } from "@web/battle/sim/presentation";
+import { loadPresentation, resolveLight } from "@web/battle/sim/presentation";
 import { createTypegpuPost } from "@packages/battle-renderer/src/world/post.ts";
-import { cascadeFrameFit, ShadowFrame } from "@packages/battle-renderer/src/shadowData.ts";
 import { Camera } from "@packages/battle-renderer/src/world/camera.ts";
-import { mapBox, receiverRange } from "@packages/battle-renderer/src/frame/receiverRange.ts";
-import { MeshBuilder } from "@packages/battle-renderer/src/mesh.ts";
-import {
-  createWorldRay,
-  viewMatrix,
-  screenRay,
-  type Camera3DParams,
-} from "@packages/renderer-core/src/camera3d.ts";
-import { mat4, vec2, vec3, type Mat4, type Vec3 } from "math";
+import { SunShadow } from "@packages/battle-renderer/src/world/shadow.ts";
+import { SunShadow as SunShadowFit } from "@wasm/presentation/presentation_wasm.js";
 import { d } from "typegpu";
 
-const streetMap = loadMap("street").definition;
-
-// Private receiver-blend oracle for checking production cascade-fit geometry.
-// Runtime blending is implemented independently in shaders/shadow.ts.
-function cascadeBlendWeight(
-  linearDepth: number,
-  interval: readonly [number, number],
-  position: { first: boolean; last: boolean },
-): number {
-  const [start, end] = interval;
-  const centre = (start + end) / 2;
-  const closestEdge = linearDepth < centre ? start : end;
-  const margin = 0.25 * closestEdge * closestEdge;
-  const low = start - margin / 2;
-  const high = position.last ? end : end + margin / 2;
-  if (linearDepth < low || linearDepth > high) return 0;
-  if (position.first && linearDepth <= centre) return 1;
-  // A zero-width band is fully inside, not a 0/0 sample. Unreachable for the
-  // shipped split (a positive near plane keeps every break above 0); the shader
-  // carries the same guard so no NaN can reach a fragment.
-  if (!(margin > 0)) return 1;
-  return Math.min(1, Math.max(0, Math.min(linearDepth - low, high - linearDepth) / margin));
-}
+await loadPresentation();
 
 const LIGHT = game.presentation.light as unknown as LightPresentation;
 const withLight = (edit: (l: LightPresentation) => void): LightPresentation => {
@@ -56,24 +27,6 @@ const withLight = (edit: (l: LightPresentation) => void): LightPresentation => {
   edit(copy);
   return copy;
 };
-
-const [MAP_W, MAP_H] = streetMap.size;
-/** The street test map's ground as one flat slab (its 20 m ridge is inside the box's
- *  standing headroom). */
-const MAP = mapBox(
-  new MeshBuilder().box(MAP_W / 2, MAP_H / 2, 0, MAP_W / 2, MAP_H / 2, 0, [0, 0, 0, 1]).build(),
-);
-
-const camera = (over: Partial<Camera3DParams>): Camera3DParams => ({
-  target: [800, 800, 0],
-  distance: 65,
-  pitch: 0.85,
-  yaw: -1.57,
-  fovY: 0.8,
-  aspect: 16 / 9,
-  near: 1,
-  ...over,
-});
 
 test("the street test map's light is valid, and a broken one is refused by name", () => {
   expect(validateLight(LIGHT)).toBe(LIGHT);
@@ -87,7 +40,7 @@ test("the street test map's light is valid, and a broken one is refused by name"
   expect(() => validateLight(withLight((l) => (l.shadow_floor = -0.1)))).toThrow(/shadow_floor/);
 });
 
-test("the sky, the environment light and the cascades share one sun", async () => {
+test("the sky and the environment light share one sun", async () => {
   const sun = sunDirection(LIGHT);
   expect(Math.hypot(...sun)).toBeCloseTo(1, 12);
   expect(sun[2]).toBeCloseTo(Math.sin(LIGHT.sun_elevation), 12);
@@ -95,130 +48,39 @@ test("the sky, the environment light and the cascades share one sun", async () =
   const light = await resolveLight(LIGHT);
   [...light.sky.subarray(0, 3)].forEach((c, i) => expect(c).toBeCloseTo(sun[i], 6));
   [...light.sun.subarray(0, 3)].forEach((c, i) => expect(c).toBeCloseTo(sun[i], 6));
-  // Each cascade light looks down the sun: its view's forward row is -sun.
-  const frame = cascadeFrameFit(LIGHT.cascades, camera({}), sun, [30, 400]);
-  for (const cascade of frame.cascades) {
-    const v = cascade.view;
-    [v[2], v[6], v[10]].forEach((c, i) => expect(c).toBeCloseTo(sun[i], 6));
-  }
 });
 
-const _inCascade_clip = vec3.create();
-/** A world point through a cascade's light: inside its clip square, within
- *  its reverse-Z depth range. */
-function inCascade(m: Mat4, p: Vec3): boolean {
-  const [u, v, depth] = vec3.transformMat4(_inCascade_clip, p, m);
-  return Math.abs(u) <= 1 && Math.abs(v) <= 1 && depth >= 0 && depth <= 1;
-}
-
-/** Every map point on screen, with its view depth. */
-function visibleGround(cam: Camera3DParams) {
-  const view = viewMatrix(mat4.create(), cam);
-  const ray = createWorldRay();
-  const points: { p: [number, number, number]; depth: number }[] = [];
-  const n = 24;
-  for (let iy = 0; iy <= n; iy++)
-    for (let ix = 0; ix <= n; ix++) {
-      const { origin, dir } = screenRay(ray, cam, (ix / n) * 2 - 1, (iy / n) * 2 - 1);
-      if (dir[2] >= 0) continue;
-      const t = -origin[2] / dir[2];
-      const p: [number, number, number] = [origin[0] + dir[0] * t, origin[1] + dir[1] * t, 0];
-      if (p[0] < 0 || p[1] < 0 || p[0] > MAP_W || p[1] > MAP_H) continue;
-      const depth = -vec3.transformMat4(vec3.create(), p, view)[2];
-      points.push({ p, depth });
+test("the cascades' words are the structs the renderer binds: a receiver block and a camera per cascade", () => {
+  const fit = new SunShadowFit(JSON.stringify(LIGHT));
+  try {
+    // Cold: no cascade, a whole receiver block.
+    expect(fit.receiver().byteLength).toBe(d.sizeOf(SunShadow));
+    expect(fit.casters()).toHaveLength(0);
+    // The default camera over the street map: eye, target, up, lens, viewport.
+    const camera = Float64Array.of(170, 758, 50, 170, 800, 0, 0, 0.75, 0.66, 0.8, 1, 1920, 1080);
+    const active = fit.fit(camera, Float64Array.of(0, 0, -1, 1600, 1600, 25));
+    expect(active).toBe(LIGHT.cascades.count);
+    const casters = fit.casters();
+    const size = d.sizeOf(Camera) / 4;
+    expect(casters).toHaveLength(active * size);
+    type CameraValue = d.Infer<typeof Camera>;
+    const at = (field: (c: CameraValue) => unknown) => d.memoryLayoutOf(Camera, field).offset / 4;
+    for (let i = 0; i < active; i++) {
+      const c = casters.subarray(i * size, (i + 1) * size);
+      // A cascade's viewport is its map, square, and its light's near is a metre.
+      expect([c[at((x) => x.width)], c[at((x) => x.height)]]).toEqual([
+        LIGHT.cascades.map_size,
+        LIGHT.cascades.map_size,
+      ]);
+      expect(c[at((x) => x.znear)]).toBe(1);
+      // The receiver's record holds the same light.
+      const record = fit.receiver().subarray(i * 24, i * 24 + 16);
+      const viewProj = at((x) => x.viewProj);
+      expect([...c.subarray(viewProj, viewProj + 16)]).toEqual([...record]);
     }
-  return points;
-}
-
-// The street test map's cameras: ground level, the Defilade default, the street at
-// 160 m, WARNO's 420 m, the route overview and the strategic camera.
-const CAMERAS: Record<string, Partial<Camera3DParams>> = {
-  ground: { target: [170, 800, 0], distance: 25, pitch: 0.22 },
-  default: { target: [170, 800, 0], distance: 65 },
-  game: { target: [990, 790, 0], distance: 160, yaw: -1.2 },
-  warno: { target: [700, 800, 0], distance: 420, yaw: -1.2 },
-  route: { target: [800, 800, 0], distance: 1150 },
-  strategic: { target: [170, 800, 0], distance: 2000 },
-};
-
-test.each(Object.entries(CAMERAS))(
-  "every map point the %s camera sees within the reach is inside a cascade that shades it",
-  (_, over) => {
-    const cam = camera(over);
-    const range = receiverRange(vec2.create(), cam, MAP);
-    const frame = cascadeFrameFit(LIGHT.cascades, cam, sunDirection(LIGHT), range);
-    expect(frame.cascades).toHaveLength(LIGHT.cascades.count);
-    // Splits start where the map starts, not at the camera's near plane.
-    expect(frame.near).toBeCloseTo(range[0], 6);
-    expect(frame.cappedFar).toBeLessThanOrEqual(LIGHT.cascades.max_far_m);
-    const last = frame.cascades.length - 1;
-    const points = visibleGround(cam).filter((g) => g.depth <= frame.cappedFar);
-    expect(points.length).toBeGreaterThan(20);
-    for (const { p, depth } of points) {
-      // The receiver shader's normalisation: a fraction of the receiver range.
-      const linear = Math.max(0, (depth - frame.near) / (frame.cappedFar - frame.near));
-      let weight = 0;
-      for (const c of frame.cascades) {
-        const w = cascadeBlendWeight(
-          linear,
-          [c.index === 0 ? 0 : frame.breaks[c.index - 1], frame.breaks[c.index]],
-          { first: c.index === 0, last: c.index === last },
-        );
-        if (w === 0) continue;
-        weight += w;
-        expect(inCascade(c.viewProjection, p), `${p} at ${depth} m in cascade ${c.index}`).toBe(
-          true,
-        );
-      }
-      // Full weight everywhere short of the last cascade's fade to its reach.
-      if (linear < frame.breaks[last - 1]) expect(weight).toBeCloseTo(1, 6);
-      else expect(weight).toBeGreaterThan(0);
-    }
-  },
-);
-
-test("each cascade draws its casters through the world camera, posed as its light", () => {
-  const cam = camera(CAMERAS.default);
-  const range = receiverRange(vec2.create(), cam, MAP);
-  const fit = cascadeFrameFit(LIGHT.cascades, cam, sunDirection(LIGHT), range);
-  let uploaded: Float32Array[] = [];
-  new ShadowFrame(LIGHT, (data) => {
-    uploaded = data.cascades.map((c) => c.camera);
-  }).update(cam, range);
-  expect(uploaded).toHaveLength(fit.cascades.length);
-  type CameraValue = d.Infer<typeof Camera>;
-  const at = (data: Float32Array, field: (c: CameraValue) => unknown) =>
-    data[d.memoryLayoutOf(Camera, field).offset / 4];
-  for (const [i, data] of uploaded.entries()) {
-    const c = fit.cascades[i];
-    expect(data.byteLength).toBe(d.sizeOf(Camera));
-    const viewProj = d.memoryLayoutOf(Camera, (x) => x.viewProj).offset / 4;
-    expect([...data.subarray(viewProj, viewProj + 16)]).toEqual([...c.viewProjection]);
-    expect([at(data, (x) => x.eye.x), at(data, (x) => x.eye.y), at(data, (x) => x.eye.z)]).toEqual(
-      [...c.position].map(Math.fround),
-    );
-    expect(at(data, (x) => x.znear)).toBe(Math.fround(c.near));
-    // A cascade's viewport is its map, square.
-    expect(at(data, (x) => x.width)).toBe(fit.mapSize);
-    expect(at(data, (x) => x.height)).toBe(fit.mapSize);
+  } finally {
+    fit.free();
   }
-});
-
-test("the strategic camera spends its cascades on the map, 1.6 km out and beyond", () => {
-  const cam = camera(CAMERAS.strategic);
-  const range = receiverRange(vec2.create(), cam, MAP);
-  const frame = cascadeFrameFit(LIGHT.cascades, cam, sunDirection(LIGHT), range);
-  // The map's whole visible depth, not the kilometre and a half of air above it.
-  const depths = visibleGround(cam).map((g) => g.depth);
-  expect(Math.min(...depths)).toBeGreaterThan(1400);
-  expect(frame.near).toBeGreaterThan(0.95 * Math.min(...depths));
-  expect(frame.cappedFar).toBeGreaterThanOrEqual(
-    Math.min(Math.max(...depths), LIGHT.cascades.max_far_m),
-  );
-  // At about two metres a texel or finer, and never past the reach.
-  for (const c of frame.cascades) expect(c.worldUnitsPerTexel).toBeLessThan(2.5);
-  const beyond = cascadeFrameFit(LIGHT.cascades, cam, sunDirection(LIGHT), [1600, 5000]);
-  expect(beyond.cappedFar).toBe(LIGHT.cascades.max_far_m);
 });
 
 test("post encodes sRGB itself, so it refuses an sRGB canvas that would encode twice", async () => {

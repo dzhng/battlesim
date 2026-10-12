@@ -16,7 +16,8 @@ import {
 } from "./models/propAppearance";
 import type { ModelInstance } from "./models/modelInstances";
 import { grassAppearancesOf } from "./terrain/grassField";
-import { MeshBuilder, type Rgba } from "./mesh";
+import { concatMeshes, EMPTY_MESH, MeshBuilder, type Mesh, type Rgba } from "./mesh";
+import { skirt_mesh } from "@wasm/presentation/presentation_wasm.js";
 import type { WorldLayers, WorldScenery } from "./scene";
 import {
   BLOCKED,
@@ -25,7 +26,6 @@ import {
   type Biome,
   type TerrainSurface,
 } from "./terrain/terrainSurface";
-import { waterSurfaceMesh } from "./terrain/waterSurface";
 import { kindSize, sceneryAppearances } from "./scenery/appearance";
 import { placeScenery, sceneryKinds } from "./scenery/placement";
 
@@ -212,9 +212,6 @@ export type WorldOverlay = "surface" | "traversal";
 
 /** Stops some mover classes but not others (a wreck stops vehicles only). */
 const PARTLY_BLOCKED: Rgba = [0.86, 0.6, 0.22, 1];
-const NO_WATER = new Float32Array(0);
-const SKIRT: Rgba = [0.33, 0.3, 0.26, 1];
-const SKIRT_DEPTH_M = 6;
 
 function fieldReader(fields: string[], stride: number, data: Float32Array) {
   const offset = Object.fromEntries(fields.map((f, i) => [f, i]));
@@ -306,8 +303,10 @@ export function buildWorldLayers(
   appearances: InstalledAppearances | null = null,
   standIns?: StandInStyle,
 ): WorldLayers {
+  // The skirt: vertical faces down from the map's boundary, so the bounded
+  // map reads as solid ground rather than a paper-thin sheet. They stand on
+  // the ground, so they draw with the props.
   const props = new MeshBuilder();
-  addSkirt(props, exports.positions);
   if (overlay === "traversal") addTraversalProps(props, exports, layout);
   const drawn =
     overlay === "surface" && appearances
@@ -317,11 +316,11 @@ export function buildWorldLayers(
   const terrain = buildTerrainSurface(exports, layout, biome, overlay);
   return {
     terrain,
-    props: props.build(),
+    props: concatMeshes([skirt_mesh(exports.positions) as Mesh, props.build()]),
     structures: drawn,
     // The traversal overlay shows the blocked flag alone; a water tint would
     // muddy it. The water's look is the terrain material's (`waterSurface`).
-    water: waterSurfaceMesh(overlay === "traversal" ? NO_WATER : terrain.ground.water_cells()),
+    water: overlay === "traversal" ? EMPTY_MESH : (terrain.ground.water_mesh() as Mesh),
     scenery: overlay === "surface" && appearances ? worldScenery(terrain, appearances) : null,
     grass: overlay === "surface" && appearances ? grassAppearancesOf(appearances) : null,
   };
@@ -352,37 +351,4 @@ function worldScenery(terrain: TerrainSurface, installed: InstalledAppearances):
     felled: trees.felled,
     dressing: { lodPx: dressing.lod_px as [number, number, number], fadePx: dressing.fade_px },
   };
-}
-
-/** Vertical faces down from the map's boundary vertices, so the bounded map
- *  reads as solid ground rather than a paper-thin sheet. They stand on the
- *  ground, so they draw with the props, as faces. Presentation only. */
-function addSkirt(mesh: MeshBuilder, positions: Float32Array) {
-  let maxX = 0,
-    maxY = 0,
-    minZ = Infinity;
-  for (let i = 0; i < positions.length; i += 3) {
-    maxX = Math.max(maxX, positions[i]);
-    maxY = Math.max(maxY, positions[i + 1]);
-    minZ = Math.min(minZ, positions[i + 2]);
-  }
-  const bottom = minZ - SKIRT_DEPTH_M;
-  const edges: [number, number, number][][] = [[], [], [], []];
-  for (let i = 0; i < positions.length; i += 3) {
-    const v: [number, number, number] = [positions[i], positions[i + 1], positions[i + 2]];
-    if (v[1] === 0) edges[0].push(v);
-    if (v[0] === maxX) edges[1].push(v);
-    if (v[1] === maxY) edges[2].push(v);
-    if (v[0] === 0) edges[3].push(v);
-  }
-  edges[0].sort((a, b) => a[0] - b[0]);
-  edges[1].sort((a, b) => a[1] - b[1]);
-  edges[2].sort((a, b) => b[0] - a[0]);
-  edges[3].sort((a, b) => b[1] - a[1]);
-  for (const edge of edges) {
-    for (let k = 0; k + 1 < edge.length; k++) {
-      const [a, b] = [edge[k], edge[k + 1]];
-      mesh.quad(a, b, [b[0], b[1], bottom], [a[0], a[1], bottom], SKIRT);
-    }
-  }
 }

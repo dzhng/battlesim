@@ -12,9 +12,9 @@ use crate::world::{Detail, Vec3};
 pub struct Camera {
     pub eye: Vec3,
     pub target: Vec3,
-    pub up: [f32; 3],
-    pub fov_y: f32,
-    pub near: f32,
+    pub up: Vec3,
+    pub fov_y: f64,
+    pub near: f64,
     /// Drawing size in device pixels.
     pub size: [u32; 2],
 }
@@ -46,7 +46,8 @@ pub const IMPOSTOR: i32 = 4;
 /// A model's sun shadow reaches this far past it.
 pub const SHADOW_MARGIN_M: f64 = 3.0;
 
-fn look_at(eye: Vec3, center: Vec3, up: [f64; 3]) -> [f32; 16] {
+/// `math`'s `mat4.lookAt`, stored in f32 as the GPU holds it.
+pub(crate) fn look_at(eye: Vec3, center: Vec3, up: [f64; 3]) -> [f32; 16] {
     let mut z = [eye[0] - center[0], eye[1] - center[1], eye[2] - center[2]];
     if z.iter().all(|c| c.abs() < 1e-6) {
         let mut m = [0.0; 16];
@@ -96,13 +97,21 @@ fn look_at(eye: Vec3, center: Vec3, up: [f64; 3]) -> [f32; 16] {
     .map(|v| v as f32)
 }
 
-fn perspective_reverse_z(fov_y: f64, aspect: f64, near: f64) -> [f32; 16] {
-    let f = 1.0 / (fov_y / 2.0).tan();
+/// Reverse-Z perspective (`perspectiveReverseZ`): near at depth 1, `far` at
+/// 0, or an infinite far plane without one; f32 as the GPU holds it.
+pub(crate) fn perspective_reverse_z(
+    fov_y: f64,
+    aspect: f64,
+    near: f64,
+    far: Option<f64>,
+) -> [f32; 16] {
+    let f = 1.0 / libm::tan(fov_y / 2.0);
     let mut m = [0.0f32; 16];
     m[0] = (f / aspect) as f32;
     m[5] = f as f32;
     m[11] = -1.0;
-    m[14] = near as f32;
+    m[10] = far.map_or(0.0, |far| (near / (far - near)) as f32);
+    m[14] = far.map_or(near, |far| near * far / (far - near)) as f32;
     m
 }
 
@@ -110,10 +119,9 @@ impl View {
     pub fn new(camera: &Camera) -> Self {
         let [w, h] = camera.size;
         let (w, h) = (f64::from(w.max(1)), f64::from(h.max(1)));
-        let fov = f64::from(camera.fov_y);
-        let up = camera.up.map(f64::from);
-        let view = look_at(camera.eye, camera.target, up);
-        let projection = perspective_reverse_z(fov, w / h, f64::from(camera.near));
+        let fov = camera.fov_y;
+        let view = look_at(camera.eye, camera.target, camera.up);
+        let projection = perspective_reverse_z(fov, w / h, camera.near, None);
         let (p, v) = (projection.map(f64::from), view.map(f64::from));
         // Rows 0, 1 and 3 of projection · view.
         let row = |r: usize| -> [f64; 4] {
@@ -200,7 +208,7 @@ impl View {
         let v = self.view.map(f64::from);
         // The view matrix's rows are the camera's right, up and back.
         let (right, up, back) = ([v[0], v[4], v[8]], [v[1], v[5], v[9]], [v[2], v[6], v[10]]);
-        let ty = (f64::from(camera.fov_y) / 2.0).tan();
+        let ty = (camera.fov_y / 2.0).tan();
         let tx = ty * w / h;
         let corner = |x: f64, y: f64| -> [f64; 3] {
             let d: [f64; 3] =

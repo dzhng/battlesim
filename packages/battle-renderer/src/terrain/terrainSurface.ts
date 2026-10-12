@@ -3,15 +3,13 @@
 // flat-shaded, never resampled or exaggerated: landmine 11) under the biome's
 // material, whose tables (the plot split, the roads, forests and rivers
 // exactly as the simulation's surface rules define them, so a road is drawn
-// precisely where units find road), the water's cells and the scenery are
-// resolved in Rust (`crates/presentation/src/static_world/ground`), which the
-// presentation module must have loaded (`loadPresentation`).
-import { vec3 } from "math";
-import { triangle3 } from "math/shapes";
-import { Ground } from "@wasm/presentation/presentation_wasm.js";
+// precisely where units find road), the ground's meshes, the water and the
+// scenery are resolved in Rust (`crates/presentation/src/static_world/ground`),
+// which the presentation module must have loaded (`loadPresentation`).
+import { Ground, terrain_mesh } from "@wasm/presentation/presentation_wasm.js";
 import game from "@fixtures/game.json";
 import type summer from "@fixtures/biomes/summer.json";
-import { VERTEX_FLOATS, type Mesh, type Rgba } from "../mesh";
+import type { Mesh, Rgba } from "../mesh";
 import type { WorldExports, WorldLayout, WorldOverlay } from "../worldMesh";
 import type { TerrainGrid } from "./terrainGrid";
 
@@ -33,10 +31,11 @@ export interface TerrainSurface {
   grid: TerrainGrid | null;
 }
 
-/** The traversal view's colours: ground units can or cannot enter. */
+/** The traversal view's colours: ground units can or cannot enter. The
+ *  ground's own triangles take them in Rust (`ground::mesh`); the props'
+ *  boxes and the labs' marks take them here. */
 export const OPEN: Rgba = [0.52, 0.56, 0.5, 1];
 export const BLOCKED: Rgba = [0.78, 0.3, 0.26, 1];
-const BIOME: Rgba = [0, 0, 0, 0];
 
 /** The ground of `exports` under `biome`, in its map's region's finish. */
 function resolveGround(
@@ -110,30 +109,8 @@ export function buildTerrainSurface(
   overlay: WorldOverlay = "surface",
 ): TerrainSurface {
   const { positions, indices, triangleSurfaces } = exports;
-  const mesh = new Float32Array(indices.length * VERTEX_FLOATS);
-  const a = vec3.create(),
-    b = vec3.create(),
-    c = vec3.create(),
-    normal = vec3.create();
-  const corners = [a, b, c];
-  for (let t = 0; t < indices.length; t += 3) {
-    const tint =
-      overlay === "traversal"
-        ? triangleSurfaces[(t / 3) * 2 + 1] & layout.flags.blocked
-          ? BLOCKED
-          : OPEN
-        : BIOME;
-    vec3.fromBuffer(a, positions, indices[t] * 3);
-    vec3.fromBuffer(b, positions, indices[t + 1] * 3);
-    vec3.fromBuffer(c, positions, indices[t + 2] * 3);
-    triangle3.normal(normal, a, b, c);
-    for (let k = 0; k < 3; k++) {
-      const at = (t + k) * VERTEX_FLOATS;
-      vec3.toBuffer(mesh, corners[k], at);
-      vec3.toBuffer(mesh, normal, at + 3);
-      mesh.set(tint, at + 6);
-    }
-  }
+  const traversal = overlay === "traversal" ? triangleSurfaces : undefined;
+  const mesh = terrain_mesh(positions, indices, traversal, layout.flags.blocked) as Mesh;
   const ground = resolveGround(
     exports,
     JSON.stringify(layout),

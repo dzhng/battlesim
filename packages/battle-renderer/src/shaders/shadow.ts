@@ -1,17 +1,11 @@
 // Adapted from ~/dev/game battle-renderer/src/shaders/shadow.ts (reuse
-// manifest). Local changes: CSM_CASCADES records instead of 2, and receiver
+// manifest). Local changes: SUN_CASCADES records instead of 2, and receiver
 // depth normalised over the receiver range [split near, capped far], the same
 // as the breaks.
 /** Sun-shadow receiver shading for the world's layered depth texture. */
-import { CSM_CASCADES } from "../light/shadowPolicy";
-
-/** One cascade's receiver record. Floats: matrix (16), then depth bias, normal
- *  bias, PCF radius, reserved, then interval start, end, reserved, reserved. */
-export const SUN_CASCADE_RECORD_FLOATS = 24;
-/** The full receiver block: one record per cascade plus the fit's control vector. */
-export const SUN_SHADOW_BLOCK_FLOATS = SUN_CASCADE_RECORD_FLOATS * CSM_CASCADES + 4;
-/** Float offset of the control vector: capped far, reserved, split near, reserved. */
-export const SUN_SHADOW_CONTROL_OFFSET = SUN_CASCADE_RECORD_FLOATS * CSM_CASCADES;
+// The receiver block (`SunShadow`) is the presentation crate's record
+// (`shadow.rs`), which documents each cascade's floats.
+import { SUN_CASCADES } from "../records.gen";
 
 /** Pinned Three r185 PCFShadowFilter: five Vogel disk taps with per-pixel IGN.
  * Shadow projection/fit and bias remain inputs, not a second lighting policy.
@@ -84,7 +78,7 @@ export function sunShadowSampleWgsl(): string {
   // The range is sampled on a ray grid, so a sliver of map can sit just
   // nearer than it: the first cascade takes that too.
   let linearDepth=max((-viewZ-sunShadow.control.z)/(sunShadow.control.x-sunShadow.control.z),0.0);
-  var shade=1.0;${Array.from({ length: CSM_CASCADES }, (_, i) => slice(i, i === CSM_CASCADES - 1)).join("")}
+  var shade=1.0;${Array.from({ length: SUN_CASCADES }, (_, i) => slice(i, i === SUN_CASCADES - 1)).join("")}
   return shade;
 }`;
 }

@@ -605,7 +605,12 @@ impl Presentation {
     /// from what it looks at to its eye; none before a frame.
     pub fn listener(&self, share: f64) -> Option<Listener> {
         let c = self.camera.as_ref()?;
-        Some(Listener::of_camera(c.eye, c.target, c.up, share))
+        Some(Listener::of_camera(
+            c.eye,
+            c.target,
+            c.up.map(|v| v as f32),
+            share,
+        ))
     }
 
     /// The last frame's presentation time.

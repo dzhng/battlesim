@@ -62,12 +62,17 @@ macro_rules! records {
         $(
             $(#[doc = $doc])*
             #[repr(C)]
-            #[derive(Clone, Copy, Debug, Default, PartialEq)]
+            #[derive(Clone, Copy, Debug, PartialEq)]
             pub struct $name { $($(#[doc = $fdoc])* pub $field: $ty),* }
             // SAFETY: `repr(C)`, every field a 4-byte scalar or an array of
             // them, and the size a multiple of 16 (asserted): no padding.
             unsafe impl bytemuck::Zeroable for $name {}
             unsafe impl bytemuck::Pod for $name {}
+            impl Default for $name {
+                fn default() -> Self {
+                    bytemuck::Zeroable::zeroed()
+                }
+            }
             const _: () = assert!(std::mem::size_of::<$name>() % 16 == 0);
             const _: () = assert!(
                 std::mem::size_of::<$name>() == 0 $(+ std::mem::size_of::<$ty>())*
@@ -394,6 +399,33 @@ records! {
         pad1: [f32; 2],
     }
 
+    /// A camera as every world, shadow and overlay shader binds it
+    /// (`Camera`): the frame's eye, or a sun cascade posed as its light.
+    Plain Camera {
+        view_proj: [f32; 16],
+        inv_view_proj: [f32; 16],
+        eye: [f32; 3],
+        znear: f32,
+        /// The viewport (px).
+        width: f32,
+        height: f32,
+        /// The animation clock (s).
+        time: f32,
+        pad: f32,
+    }
+
+    /// Every shadow receiver's sun cascades (`SunShadow`), from the frame's
+    /// fit (`shadow::sun_shadow`).
+    Plain SunShadow {
+        /// Per cascade (`shadow::CASCADES`), 24 floats: its light's
+        /// view-projection (16); depth bias, normal bias (m), PCF radius
+        /// (texels), 0; the receiver-depth interval it shades, 0, 0. An
+        /// unfitted cascade is the identity over [1, 1].
+        cascades: [f32; 96],
+        /// The receiver range's capped far, 0, its near, 0.
+        control: [f32; 4],
+    }
+
     /// What this frame poses and runs, for the gates.
     Plain Counts {
         soldiers: u32,
@@ -425,6 +457,11 @@ pub fn typescript() -> String {
         "/** The widest fog rim or soft edge a style may ask for, device pixels (`fog.rs`). */\n\
          export const FOG_EDGE_REACH_PX = {};\n",
         crate::fog::FOG_EDGE_REACH_PX
+    ));
+    out.push_str(&format!(
+        "/** The sun's cascade slots `SunShadow` holds (`shadow.rs`). */\n\
+         export const SUN_CASCADES = {};\n",
+        crate::shadow::CASCADES
     ));
     for l in LAYOUTS {
         out.push_str(&format!("\n/** {} */\n", l.doc.trim()));

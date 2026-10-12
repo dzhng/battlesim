@@ -1,14 +1,14 @@
 // Adapted from ~/dev/game battle-renderer/src/world/shadow.ts.
-// Local changes: cascade mode only, the map size from `presentation.light.cascades`, and `update(camera,
-// receiverRange)` in place of the single map's world rect.
-import type { Vec2 } from "math";
-import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
+// Local changes: cascade mode only, the map size from `presentation.light.cascades`, and the
+// cascades fitted each frame by the presentation crate (`shadow.rs`) over the map's box.
+import { vec3 } from "math";
+import { eyePosition, type Camera3DParams } from "@packages/renderer-core/src/camera3d";
+import { SunShadow as SunShadowFit } from "@wasm/presentation/presentation_wasm.js";
 import { tgpu, d, type TgpuCommandEncoder, type TgpuRenderPass } from "typegpu";
 import { shadowPcfWgsl, shadowVisibilityWgsl, sunShadowSampleWgsl } from "../shaders/shadow";
 import { BATTLE_DEPTH_ATTACHMENT } from "../worldDepth";
 import { Camera, typegpuCameraLayout } from "./camera";
-import { ShadowFrame, type ShadowFrameData } from "../shadowData";
-import { CSM_CASCADES } from "../light/shadowPolicy";
+import { CAMERA_WORDS, SUN_CASCADES } from "../records.gen";
 import type { LightPresentation } from "../light/sceneLight";
 
 /** One cascade's receiver record, as a typed schema: the shared 96-byte layout
@@ -22,7 +22,7 @@ export const SunCascade = d.struct({
  * The record count is the cascade policy's, so the typed schema and the
  * shared WGSL block describe the same bytes. */
 export const SunShadow = d.struct({
-  cascades: d.arrayOf(SunCascade, CSM_CASCADES),
+  cascades: d.arrayOf(SunCascade, SUN_CASCADES),
   control: d.vec4f,
 });
 
@@ -84,11 +84,13 @@ export function createTypegpuSunShadow(device: GPUDevice, light: LightPresentati
   const root = tgpu.initFromDevice({ device });
   const owned: { destroy(): void }[] = [];
   let disposed = false;
+  const fit = new SunShadowFit(JSON.stringify(light));
   const dispose = () => {
     if (disposed) return;
     disposed = true;
     for (const r of owned.reverse()) r.destroy();
     root.destroy();
+    fit.free();
   };
   const own = <T extends { destroy(): void }>(r: T) => {
     owned.push(r);
@@ -97,7 +99,7 @@ export function createTypegpuSunShadow(device: GPUDevice, light: LightPresentati
   const live = () => {
     if (disposed) throw Error("TypeGPU shadow disposed");
   };
-  const layers = CSM_CASCADES;
+  const layers = SUN_CASCADES;
   const mapSize = light.cascades.map_size;
   try {
     const depth = own(
@@ -127,43 +129,61 @@ export function createTypegpuSunShadow(device: GPUDevice, light: LightPresentati
       addressModeU: "clamp-to-edge",
       addressModeV: "clamp-to-edge",
     });
-    const frameData = new ShadowFrame(light, (data) => {
-      // Every distinct caster camera and the shared block are written once
-      // their inputs change; a cold frame publishes a legal empty block, so the
-      // receiver never samples uninitialized uniform memory.
-      for (const cascade of data.cascades) cameras[cascade.index].write(cascade.camera.buffer);
-      state.write(data.receiver.buffer);
-    });
+    // A cold frame publishes a legal empty block, so the receiver never
+    // samples uninitialized uniform memory.
+    let receiver = fit.receiver();
+    state.write(receiver.buffer as ArrayBuffer);
+    let active = 0;
+    const words = new Float64Array(13);
+    const eye = vec3.create();
     return {
       receiverView,
       cameraGroups,
       state,
       comparison,
-      update(camera: Camera3DParams, receiver: Vec2) {
+      /** Fit the cascades for `camera` drawn `width` by `height` pixels,
+       *  over the map's `box` (none: empty). */
+      update(camera: Camera3DParams, width: number, height: number, box: Float64Array) {
         live();
-        frameData.update(camera, receiver);
+        const s = Math.sin(camera.pitch);
+        words.set(eyePosition(eye, camera));
+        words.set(camera.target, 3);
+        words.set(
+          [-s * Math.cos(camera.yaw), -s * Math.sin(camera.yaw), Math.cos(camera.pitch)],
+          6,
+        );
+        words.set([camera.fovY, camera.near, width, height], 9);
+        active = fit.fit(words, box);
+        const casters = fit.casters();
+        for (let i = 0; i < active; i++)
+          cameras[i].write(casters.slice(i * CAMERA_WORDS, (i + 1) * CAMERA_WORDS).buffer);
+        receiver = fit.receiver();
+        state.write(receiver.buffer as ArrayBuffer);
       },
-      get data(): ShadowFrameData {
-        return frameData.data;
+      /** The fitted cascades, and the receiver range they split: its near
+       *  and capped far (m). */
+      stats() {
+        const control = receiver.subarray(receiver.length - 4);
+        return { cascades: active, receiverRange: [control[2], control[0]] as [number, number] };
       },
       /** Encodes one clear-to-0 depth pass per ACTIVE cascade, each pass
        * labelled with its cascade. A cold frame with no fit yet encodes
        * nothing rather than drawing casters against an unfitted box. */
       encode(encoder: TgpuCommandEncoder, draw: (pass: TgpuRenderPass, cascade: number) => void) {
         live();
-        for (const cascade of frameData.data.cascades) {
+        for (let cascade = 0; cascade < active; cascade++) {
           const pass = encoder.beginRenderPass({
-            label: `typegpu directional shadow ${cascade.index}`,
+            label: `typegpu directional shadow ${cascade}`,
             colorAttachments: [],
             depthStencilAttachment: {
-              view: layerViews[cascade.index],
+              view: layerViews[cascade],
               depthClearValue: BATTLE_DEPTH_ATTACHMENT.clearValue,
               depthLoadOp: BATTLE_DEPTH_ATTACHMENT.loadOp,
               depthStoreOp: BATTLE_DEPTH_ATTACHMENT.storeOp,
             },
           });
           try {
-            draw(pass, cascade.index);
+            draw(pass, cascade);
           } finally {
             pass.end();
           }

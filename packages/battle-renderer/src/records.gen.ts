@@ -5,6 +5,8 @@ import { d } from "typegpu";
 export const NONE = 0xffffffff;
 /** The widest fog rim or soft edge a style may ask for, device pixels (`fog.rs`). */
 export const FOG_EDGE_REACH_PX = 8;
+/** The sun's cascade slots `SunShadow` holds (`shadow.rs`). */
+export const SUN_CASCADES = 4;
 
 /** Where a frame's sets lie, as pointers into the module's memory and record counts (the WASM binding fills them; native reads the `Frame` directly). */
 export const FrameHeader = {
@@ -366,6 +368,36 @@ export const FogLook = {
   pad1: 22,
 } as const;
 export const FOG_LOOK_WORDS = 24;
+
+/** A camera as every world, shadow and overlay shader binds it (`Camera`): the frame's eye, or a sun cascade posed as its light. */
+export const Camera = {
+  /**  (f32 × 16) */
+  view_proj: 0,
+  /**  (f32 × 16) */
+  inv_view_proj: 16,
+  /**  (f32 × 3) */
+  eye: 32,
+  /**  (f32) */
+  znear: 35,
+  /** The viewport (px). (f32) */
+  width: 36,
+  /**  (f32) */
+  height: 37,
+  /** The animation clock (s). (f32) */
+  time: 38,
+  /**  (f32) */
+  pad: 39,
+} as const;
+export const CAMERA_WORDS = 40;
+
+/** Every shadow receiver's sun cascades (`SunShadow`), from the frame's fit (`shadow::sun_shadow`). */
+export const SunShadow = {
+  /** Per cascade (`shadow::CASCADES`), 24 floats: its light's view-projection (16); depth bias, normal bias (m), PCF radius (texels), 0; the receiver-depth interval it shades, 0, 0. An unfitted cascade is the identity over [1, 1]. (f32 × 96) */
+  cascades: 0,
+  /** The receiver range's capped far, 0, its near, 0. (f32 × 4) */
+  control: 96,
+} as const;
+export const SUN_SHADOW_WORDS = 100;
 
 /** What this frame poses and runs, for the gates. */
 export const Counts = {

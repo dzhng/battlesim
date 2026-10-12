@@ -214,7 +214,7 @@ export async function createBattleFrame(
           camera.write(state.bytes.buffer);
           const detail = setDetailView(detailView, camera3d, height);
           environment.setCastLights(lights, lightsShown ? lightCount : 0, lightWrap);
-          world.prepare(camera3d, state.view, state.viewProj, state.rays, height);
+          world.prepare(camera3d, state.view, state.viewProj, state.rays, width, height);
           models.prepare(detail, detailKey(camera3d, height), sunShadow(shadow, sun, camera3d));
 
           let encoder = root["~unstable"].createCommandEncoder({ label: "battle-frame" });

@@ -1,9 +1,15 @@
 //! The ground for the page (`presentation::static_world::ground`): the map's
 //! exports resolved under the biome into the terrain's and grass's GPU
-//! tables, the water's cells and the scenery, as flat arrays.
+//! tables, the ground's meshes, the grass field's shapes and per-frame
+//! window, and the scenery, as flat arrays.
+use presentation::shadow;
 use presentation::static_world::ground::biome::{Biome, GrassRules};
 use presentation::static_world::ground::field::Field;
-use presentation::static_world::ground::grass::{KindFacts, Limits, Quality};
+use presentation::static_world::ground::grass::{
+    blade_vertices, frame_params, metres_per_pixel, pack_shapes, strip_indices, KindMesh,
+    PackedShapes, Quality, TierMesh, Window, FIELD_SEGMENTS, LIMITS,
+};
+use presentation::static_world::ground::mesh;
 use presentation::static_world::ground::scenery::{Scenery, Size};
 use presentation::static_world::ground::tables::{Grid, TerrainTables};
 use presentation::static_world::ground::{self, Source, Tuning};
@@ -124,8 +130,10 @@ impl Ground {
         self.inner.plot_records(textured)
     }
 
-    pub fn water_cells(&self) -> Vec<f32> {
-        self.inner.water_cells()
+    /// The water's surface mesh (`ground::mesh::water` over the ground's
+    /// water cells).
+    pub fn water_mesh(&self) -> Vec<f32> {
+        mesh::water(&self.inner.water_cells())
     }
 
     /// Grows the grass by `rules` (JSON, the biome's `grass` row) in place of
@@ -144,32 +152,33 @@ impl Ground {
         serde_json::to_string(&self.inner.grass_kinds()).unwrap()
     }
 
-    /// `GrassParams` for the kinds' mesh facts, six numbers each in kind
-    /// order (highest vertex, top, blades, root width, near and far base),
-    /// under the scene assets' height variation and tallest grass, and the
-    /// player's grass density (a scale on the densest stand, 1 the biome's).
-    pub fn grass_params(
-        &self,
-        facts: &[f64],
-        variation: f64,
-        tallest: f64,
-        density: f64,
-    ) -> Result<Vec<u32>, JsError> {
-        let facts: Vec<KindFacts> = facts
-            .as_chunks::<6>()
-            .0
-            .iter()
-            .map(|f| KindFacts {
-                mesh_height: f[0],
-                top: f[1],
-                blades: f[2],
-                root_width: f[3],
-                bases: [f[4] as u32, f[5] as u32],
-            })
-            .collect();
+    /// `GrassParams` for the kinds `shapes` packed (in `grass_kinds` order),
+    /// under the scene assets' limits and the player's grass density (a
+    /// scale on the densest stand, 1 the biome's), its per-frame fields zero
+    /// (`grass_frame_params` writes them).
+    pub fn grass_params(&self, shapes: &GrassShapes, density: f64) -> Result<Vec<u32>, JsError> {
         self.inner
-            .grass_params(&facts, &Limits { variation, tallest }, &Quality { density })
+            .grass_params(&shapes.0.facts, &LIMITS, &Quality { density })
             .map_err(error)
+    }
+
+    /// The window of tiles a camera at `eye` grows grass over, at
+    /// `metres_per_px` (`grass_metres_per_pixel`): its corner x and y, tiles
+    /// across and up, reach, and the far corner x and y.
+    pub fn grass_window(&self, eye: &[f64], metres_per_px: f64) -> Vec<f64> {
+        let w = self
+            .inner
+            .grass_window([eye[0], eye[1], eye[2]], metres_per_px);
+        let [.., x1, y1] = w.bounds();
+        vec![
+            w.x0,
+            w.y0,
+            f64::from(w.tiles_x),
+            f64::from(w.tiles_y),
+            w.reach,
+            x1,
+            y1,
+        ]
     }
 
     /// The props' footprints where no grass grows, by grid cell.
@@ -346,4 +355,157 @@ impl GroundTables {
     pub fn water(&self) -> Vec<f32> {
         self.0.water.clone()
     }
+}
+
+/// The simulation's ground triangles as the renderer draws them
+/// (`ground::mesh::terrain`): untinted, or, given the triangle surfaces
+/// and the blocked flag, tinted by what ground units can enter.
+#[wasm_bindgen]
+pub fn terrain_mesh(
+    positions: &[f32],
+    indices: &[u32],
+    surfaces: Option<Vec<u8>>,
+    blocked: u8,
+) -> Vec<f32> {
+    mesh::terrain(
+        positions,
+        indices,
+        surfaces.as_deref().map(|s| (s, blocked)),
+    )
+}
+
+/// The map's skirt (`ground::mesh::skirt`).
+#[wasm_bindgen]
+pub fn skirt_mesh(positions: &[f32]) -> Vec<f32> {
+    mesh::skirt(positions)
+}
+
+/// The land past the map's edge (`ground::mesh::backdrop`) round `map_box`.
+#[wasm_bindgen]
+pub fn backdrop_mesh(map_box: &[f64], reach_m: f64) -> Vec<f32> {
+    mesh::backdrop(&std::array::from_fn(|i| map_box[i]), reach_m)
+}
+
+/// The box round a world mesh (`shadow::map_box`), none for an empty one.
+#[wasm_bindgen]
+pub fn map_box(mesh: &[f32]) -> Option<Vec<f64>> {
+    shadow::map_box(mesh).map(|b| b.to_vec())
+}
+
+/// The installed grass kinds' meshes packed for the field
+/// (`ground::grass::pack_shapes`), and their facts for `Ground.grass_params`.
+#[wasm_bindgen]
+pub struct GrassShapes(PackedShapes);
+
+#[wasm_bindgen]
+impl GrassShapes {
+    /// Packs the kinds `names` (JSON, in `Ground.grass_kinds` order): each
+    /// kind's first state's tier count (`tiers`) and top (`tops`), and per
+    /// tier its vertex count (`vertices`); the tiers' positions, normals,
+    /// uvs and colours one after another. Refuses a kind whose tiers are not
+    /// blade strips, by name.
+    #[wasm_bindgen(constructor)]
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        names: &str,
+        tiers: &[u32],
+        tops: &[f64],
+        vertices: &[u32],
+        positions: &[f32],
+        normals: &[i16],
+        uvs: &[f32],
+        colors: &[u8],
+    ) -> Result<GrassShapes, JsError> {
+        let names: Vec<String> = serde_json::from_str(names).map_err(error)?;
+        let mut at = 0;
+        let mut v = 0;
+        let mut kinds = Vec::with_capacity(names.len());
+        for (k, name) in names.iter().enumerate() {
+            let mut list = Vec::with_capacity(tiers[k] as usize);
+            for _ in 0..tiers[k] {
+                let n = vertices[at] as usize;
+                list.push(TierMesh {
+                    positions: &positions[v * 3..(v + n) * 3],
+                    normals: &normals[v * 4..(v + n) * 4],
+                    uvs: &uvs[v * 2..(v + n) * 2],
+                    colors: &colors[v * 4..(v + n) * 4],
+                });
+                (at, v) = (at + 1, v + n);
+            }
+            kinds.push(KindMesh {
+                name,
+                tiers: list,
+                top: tops[k],
+            });
+        }
+        Ok(GrassShapes(pack_shapes(&kinds).map_err(error)?))
+    }
+
+    /// Every kind's two field tiers as clump vertices.
+    pub fn shapes(&self) -> Vec<f32> {
+        self.0.shapes.clone()
+    }
+
+    /// The most blades any kind has: the index lists' blades.
+    pub fn max_blades(&self) -> u32 {
+        self.0.max_blades
+    }
+}
+
+/// The field's two tiers' segments a blade, near then far.
+#[wasm_bindgen]
+pub fn grass_field_segments() -> Vec<u32> {
+    FIELD_SEGMENTS.to_vec()
+}
+
+/// Vertices of one blade of `segments` segments.
+#[wasm_bindgen]
+pub fn grass_blade_vertices(segments: u32) -> u32 {
+    blade_vertices(segments)
+}
+
+/// The index list of `blades` blade strips of `segments` segments.
+#[wasm_bindgen]
+pub fn grass_strip_indices(blades: u32, segments: u32) -> Vec<u16> {
+    strip_indices(blades, segments)
+}
+
+/// The scene assets' limits Rust holds (`ground::grass::LIMITS`): the clump
+/// height variation's top and the tallest grass.
+#[wasm_bindgen]
+pub fn grass_limits() -> Vec<f64> {
+    vec![LIMITS.variation, LIMITS.tallest]
+}
+
+/// Metres one pixel spans per metre from the eye.
+#[wasm_bindgen]
+pub fn grass_metres_per_pixel(fov_y: f64, height_px: f64) -> f64 {
+    metres_per_pixel(fov_y, height_px)
+}
+
+/// Writes a frame's fields into `GrassParams`' `words`
+/// (`ground::grass::frame_params`): the side planes of `view_proj`, the
+/// `eye` and `metres_per_px`, and the window `Ground.grass_window` gave.
+#[wasm_bindgen]
+pub fn grass_frame_params(
+    words: &mut [u32],
+    view_proj: &[f32],
+    eye: &[f64],
+    metres_per_px: f64,
+    window: &[f64],
+) {
+    let window = Window {
+        x0: window[0],
+        y0: window[1],
+        tiles_x: window[2] as u32,
+        tiles_y: window[3] as u32,
+        reach: window[4],
+    };
+    frame_params(
+        words,
+        &std::array::from_fn(|i| view_proj[i]),
+        [eye[0], eye[1], eye[2]],
+        metres_per_px,
+        &window,
+    );
 }
