@@ -346,11 +346,11 @@ export class ObservationDecoder {
     this.walk.buildMs = performance.now() - started;
   }
 
-  /** The drawables of the load the last frame made, once; null when it made none. */
-  takeWorld(): PresentedAppearance[] | null {
-    const rows = this.loaded;
-    this.loaded = null;
-    return rows;
+  /** The drawables of the world last loaded (null before any): the same
+   *  array until another load, so a viewport built after the load (a lab
+   *  rebuilding its frame) installs them too. */
+  world(): PresentedAppearance[] | null {
+    return this.loaded;
   }
 
   /** The buildings the side knows destroyed, as the last frame drew them. */

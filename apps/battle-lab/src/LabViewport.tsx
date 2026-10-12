@@ -908,8 +908,8 @@ export function LabViewport({
               scene.setInstances(animated.instances);
             }
             if (animated.picks) picksRef.current = animated.picks;
-            const world = decoder?.takeWorld();
-            if (world) {
+            const world = decoder?.world();
+            if (world && world !== presentedWorldRef.current) {
               presentedWorldRef.current = world;
               scene.setPresentationWorld(world);
             }
@@ -939,8 +939,8 @@ export function LabViewport({
                   ...NO_UI,
                   known: buildingsRef.current?.current?.known,
                 });
-                const world = decoder.takeWorld();
-                if (world) {
+                const world = decoder.world();
+                if (world && world !== presentedWorldRef.current) {
                   presentedWorldRef.current = world;
                   scene.setPresentationWorld(world);
                 }
