@@ -11,7 +11,16 @@
 import { startupResources } from "./_startupResources.mjs";
 import { writeFile } from "node:fs/promises";
 import { readFileSync } from "node:fs";
-import { advance, buildingsSettled, hideHud, lab, obs, openMenu, openMenuPage } from "./_lab.mjs";
+import {
+  advance,
+  buildingsSettled,
+  hideHud,
+  lab,
+  menuShown,
+  obs,
+  openMenu,
+  openMenuPage,
+} from "./_lab.mjs";
 import { decode, pixel } from "./_png.mjs";
 import { flyTown } from "./_cameraClearance.mjs";
 import { bareClassMask, classAt } from "./_groundStations.mjs";
@@ -71,6 +80,7 @@ async function preparedBattle(page) {
  *  menu and the loading screen showed. */
 async function deployFromMenu(ctx, page, map, shots = false, beforeDeploy = async () => {}) {
   await page.goto(new URL("/", ctx.url).href);
+  await menuShown(page);
   await openMenuPage(page, "Skirmish");
   const drawn = await page.getByTestId("menu-deploy").getAttribute("href");
   await page.goto(new URL(`/?seed=${map.seed}`, ctx.url).href);
@@ -692,6 +702,7 @@ async function playRefusal(ctx, deadline = false) {
     );
   }
   await page.goto(new URL("/", ctx.url).href);
+  await menuShown(page);
   await openMenuPage(page, "Skirmish");
   const deploy = page.getByRole("link", { name: "Deploy" });
   ctx.check(
