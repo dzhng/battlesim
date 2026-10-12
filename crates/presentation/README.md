@@ -34,7 +34,9 @@ Soldier poses follow actual published soldiers rather than formation slots. A
 soldier down in a posture, or shooting, keeps his weapon toward the threat as he
 moves and steps, crouches or crawls the way he goes, with a clip for every way;
 otherwise, and at a run, he turns to face where he is going. No posture slides
-along the ground. A soldier dies from the posture he is in, never getting up to
+along the ground. His gait reads his speed, ground over time, so while the clock
+stands still (paused, or between ticks) he holds mid-stride and resumes the same
+step. A soldier dies from the posture he is in, never getting up to
 fall: standing, most are thrown onto their backs and the rest pitch onto their
 faces; kneeling or lying, they fall forward. His corpse lies as his fall ended,
 and past the corpse cap the oldest sinks away.

@@ -484,6 +484,10 @@ struct SoldierState {
     /// Where the simulation last put him (tucked in): his gait reads this,
     /// never the drawn position, so a lean is never a walk.
     at: Vec3,
+    /// His ground velocity, as last measured. Speed is ground over time, so
+    /// with no time passed (a paused clock, a frame between ticks) it stands
+    /// as it was and so does his gait.
+    velocity: [f64; 2],
     /// How far out on his lean he is drawn (0 tucked in, 1 out), and the
     /// point he slides to, kept while he eases back from it.
     lean_t: f64,
@@ -786,6 +790,7 @@ impl PoseDriver {
                             kick: Kick::default(),
                         },
                         at: soldier.position,
+                        velocity: [0.0; 2],
                         lean_t: 0.0,
                         lean_at: soldier.position,
                         posture: Posture::Stand,
@@ -811,7 +816,11 @@ impl PoseDriver {
             let dx = soldier.position[0] - state.at[0];
             let dy = soldier.position[1] - state.at[1];
             let moved = dx.hypot(dy);
-            let speed = if dt > 0.0 { moved / dt } else { 0.0 };
+            if dt > 0.0 {
+                state.velocity = [dx / dt, dy / dt];
+            }
+            let [vx, vy] = state.velocity;
+            let speed = vx.hypot(vy);
             let authored_hold = carried
                 .and_then(|c| {
                     units
@@ -895,7 +904,7 @@ impl PoseDriver {
             let rest = &feel.rest;
             let settled =
                 ((time - state.alert_at - rest.settle_s[0]) / rest.settle_s[1]).clamp(0.0, 1.0);
-            let travel = dy.atan2(dx);
+            let travel = vy.atan2(vx);
             let target = if speed > gait.facing_mps && gait_of.is_none() {
                 travel
             } else {
