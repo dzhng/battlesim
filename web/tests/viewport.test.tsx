@@ -23,11 +23,12 @@ vi.mock("@packages/renderer-core/src/device", () => ({
   }),
   gpuFailureMessage: String,
 }));
-// The frame is faked, so the light it would be built with need not be
-// resolved through the presentation module's WASM.
+// The frame is faked, so the light and fog look it would be built with need
+// not be resolved through the presentation module's WASM.
 vi.mock("@web/battle/sim/presentation", async (importOriginal) => ({
   ...(await importOriginal<object>()),
   resolveLight: async (light: unknown) => light,
+  resolveFogLook: () => new Float32Array(0),
 }));
 vi.mock("@packages/battle-renderer/src/frame/battleFrame", () => ({
   createBattleFrame: () =>
