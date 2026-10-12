@@ -62,7 +62,7 @@ export const graphicsProfiles: Readonly<Record<GraphicsTier, GraphicsQualityProf
     grassDensity: 0.75,
     forestDressing: true,
     understorey: true,
-    shadowMapSize: 1536,
+    shadowMapSize: 1024,
     shadowReach: 1600,
     bloom: true,
     castLights: true,

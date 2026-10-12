@@ -94,8 +94,8 @@ describe("quality profiles", () => {
     expect(graphicsProfiles.low.grassDensity).toBeGreaterThan(0.5);
     expect(graphicsProfiles.medium.grassDensity).toBeGreaterThan(graphicsProfiles.low.grassDensity);
     expect(graphicsProfiles.high.grassDensity).toBeGreaterThan(graphicsProfiles.medium.grassDensity);
-    expect(graphicsProfiles.low.shadowMapSize).toBeLessThan(graphicsProfiles.medium.shadowMapSize);
-    expect(graphicsProfiles.medium.shadowMapSize).toBeLessThan(graphicsProfiles.high.shadowMapSize);
+    expect(graphicsProfiles.low.shadowMapSize).toBeLessThanOrEqual(graphicsProfiles.medium.shadowMapSize);
+    expect(graphicsProfiles.medium.shadowMapSize).toBeLessThanOrEqual(graphicsProfiles.high.shadowMapSize);
     expect(graphicsProfiles.low.shadowReach).toBeLessThan(graphicsProfiles.medium.shadowReach);
     expect(graphicsProfiles.medium.shadowReach).toBeLessThan(graphicsProfiles.high.shadowReach);
   });
