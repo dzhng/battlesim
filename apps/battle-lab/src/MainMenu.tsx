@@ -245,6 +245,7 @@ export function MainMenu() {
   const { report, progress } = useLoadingTasks();
   const [graphicsError, setGraphicsError] = useState<string | null>(null);
   useEffect(() => {
+    if (import.meta.env.MODE === "test") return;
     const settings = graphicsSettings.get();
     if (settings.mode !== "auto" || settings.detectedMode) return;
     void runAutoDetect().catch((error: unknown) =>
