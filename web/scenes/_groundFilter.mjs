@@ -51,21 +51,28 @@ export async function groundFilterAdmission(ctx) {
       height: 64,
     };
     const sampler = device.createSampler.bind(device);
+    const warn = console.warn;
     let rejected = "",
-      returned = null;
+      created = false,
+      warnings = [];
     try {
+      // A device whose hardware filter disagrees with the measured rule.
       device.createSampler = (descriptor) =>
         sampler(
           descriptor?.label === "ground-scars"
             ? { ...descriptor, minFilter: "nearest", magFilter: "nearest" }
             : descriptor,
         );
+      console.warn = (...args) => warnings.push(String(args[0]));
       try {
-        returned = await frameModule.createBattleFrame(device, "bgra8unorm", options);
+        const returned = await frameModule.createBattleFrame(device, "bgra8unorm", options);
+        created = true;
+        returned.dispose();
       } catch (error) {
         rejected = error.message;
+      } finally {
+        console.warn = warn;
       }
-      returned?.dispose();
       const afterFailure = live();
       device.createSampler = sampler;
       const recovered = await frameModule.createBattleFrame(device, "bgra8unorm", options);
@@ -280,6 +287,8 @@ export async function groundFilterAdmission(ctx) {
       }
       return {
         rejected,
+        created,
+        warnings,
         baseline,
         afterFailure,
         afterRetry,
@@ -308,9 +317,14 @@ export async function groundFilterAdmission(ctx) {
       .update(await readFile(`${repo}packages/battle-renderer/src/frame/${name}.ts`))
       .digest("hex");
   await writeFile(ctx.evidencePath("ground-filter-query.json"), JSON.stringify(result, null, 2));
+  // The scars are filtered in the shader from loaded texels (sampleGroundLinear),
+  // never by the hardware sampler, so a device whose hardware filter differs
+  // still draws them exactly: it is told, not refused.
   ctx.check(
-    "unsupported ground filtering rejects frame creation and releases every allocation",
-    /ground.*filter.*compatib/i.test(result.rejected) &&
+    "differing hardware ground filtering still makes a frame, warns, and releases every allocation",
+    result.created &&
+      !result.rejected &&
+      result.warnings.some((w) => /ground filter.*manual filter/i.test(w)) &&
       JSON.stringify(result.afterFailure) === JSON.stringify(result.baseline),
     JSON.stringify(result),
   );
@@ -329,7 +343,7 @@ export async function groundFilterAdmission(ctx) {
     }),
   );
   ctx.check(
-    "failed initialization does not poison a compatible retry on the same device",
+    "a second frame on the same device, its filter now matching, releases every allocation",
     JSON.stringify(result.afterRetry) === JSON.stringify(result.baseline),
     JSON.stringify(result.afterRetry),
   );
