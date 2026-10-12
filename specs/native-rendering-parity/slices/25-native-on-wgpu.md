@@ -284,7 +284,7 @@ Step 3, the native skeleton, reads `crates/pipelines`'s directory and `pipelines
 - **`native/client`** is the native client: a library (the passes, the pipeline loader, the capture replay) and one binary that replays a parity scene and writes its plates. Its README holds the usage.
 - **Pipelines come only from the export.** `Pipelines::build` reads `pipelines.json` with every struct `deny_unknown_fields`, fills WebGPU's defaults where the export leaves a field out (a `buffer: {}` is a uniform), builds each pipeline inside an error scope, and fails listing every pipeline the device refuses. Passes look pipelines and layouts up by name. All 63 build on Apple M5 Pro: 5.7 s cold, 0.06–0.08 s once Metal's shader cache is warm. `tests/pipelines.rs` is the gate (falsified once by breaking `bake.wgsl`).
 - **Uniforms are presentation records, uploaded as bytes** (amends 18b):
-  - `World.light` is `presentation::light::LightSettings`: the fixture's `presentation.light` resolved into `SkyLight`, `Bloom` and `Grade` records. The sky's resolution is the browser's `skyModelParams` and `skyLight`, equal to the last bit on two lights (`tests/fixtures/sky-vectors.json`, written once by the browser's code; falsified).
+  - `World.light` is `presentation::light::LightSettings`: the fixture's `presentation.light` resolved into uniform records, which the browser also reads (below).
   - `Frame.view` is 18b's `View` (view, projection, eye, size), filled every frame, even before the world loads, plus the sky's three corner rays (`sky_origin`, `sky_dx`, `sky_dy`, the browser's `frameCamera` rays). `cascades` and `sun_penumbra` wait for shadows (step 4).
   - `crates/pipelines/tests/uniforms.rs` holds each record to the struct the exported WGSL declares, member by member and in span, via naga (falsified by swapping two fields).
 - **The frame is one ordered pass list.** `Passes { targets, passes: Vec<Box<dyn Pass>> }`, and a `Pass` has `name` and `encode(queue, view, targets, encoder)`. It is encoded in order each drawn frame, with a debug group per pass. Today the list is `[sky, post]`. There is no graph, no scheduling and no extract stage beyond `Frame` itself (Bevy 0.19+'s fixed order).
@@ -339,7 +339,7 @@ This step only adds code. Godot's deletions come at step 8.
 
 ### Decisions
 
-- **Rust resolves the light (18b's `World.light`).** The client derives nothing. Until the browser reads the same records, its `skyLight` and post packers are a second copy, held equal by the sky vectors. The browser's adoption deletes them (with slice 23 or the shared-renderer decision).
+- **Rust resolves the light (18b's `World.light`).** The client derives nothing, and the browser reads the same records (below).
 - **The sky rays go into `View`** rather than into each renderer: projection keeps one owner. They are an 18b amendment.
 - **Present by copying the display target** (`COPY_DST` surface), so plates and the window read the same texture. A visible window costs one 1280×720 copy a frame.
 - **The pass list is a `Vec<Box<dyn Pass>>`**, encoded in order. It has no render graph, as the research recommended.
@@ -360,3 +360,66 @@ Step 4, the ground:
 - terrain, shadows (fill `View.cascades`), scars, grass with its compute and indirect draw, and painted marks;
 - add their passes to the list between the sky and post, merging the sky into the world colour pass as the browser does;
 - plates against the same control.
+
+## Step 3, web first: the browser reads Rust's light (2026-10-11, branch `phase5b`)
+
+Set by the coordinator: a Rust contract lands in the browser first, so the light is resolved once.
+
+### The contract
+
+- **`presentation::light` resolves every uniform the light feeds:**
+  - `SkyLight`;
+  - `Aerial` (the haze);
+  - `Sun`: direction, radiance (the atmosphere's transmittance greyed by overcast, times the intensity), the shadow floor and the fill, laid out as the environment uniform's members after its view;
+  - `Bloom` and `Grade`.
+  
+  `LightSettings::records()` returns them all.
+- **The browser takes them through `presentation-wasm`'s free function `light_records(json)`** (sky, aerial, sun, bloom, grade, in order). `resolveLight` in `web/src/battle/sim/presentation.ts` splits them into a `ResolvedLight` by the generated record sizes.
+  - Not through `load_world`: the frame is built with its light before any battle loads, for labs with no battle, and per lab URL (`?sun=`). Rebuilding the frame when the world loads would rebuild its targets and pipelines.
+  - So the light needs the module, not a `Presentation`. The function is stateless, so there is still one presentation per scene.
+- **The renderer uploads the records as bytes.** `createBattleFrame`'s `light` is the `ResolvedLight`: the authored settings, which the cascades, the backdrop and the scenery still read, plus the five records.
+  - The sky and post write their uniforms from the records.
+  - The environment writes the `Sun` and `Aerial` records into its uniform once (at offsets from `d.memoryLayoutOf`) and only the view each frame.
+- **Deleted from TS:**
+  - `skyModelParams`, `transmittanceToSun` and the other derivations in `skyParameters.ts` (only the constants the sky's shader text splices remain);
+  - `physicalEnvironment.ts`;
+  - `aerialParameters.ts`;
+  - the `skyLight` and `aerial` packers;
+  - post's bloom and grade packers;
+  - `postSettings`.
+
+  `sunDirection` stays: the shadow cascades read it, and they are not records yet (step 4).
+- **The shader text is unchanged.** The export test passes without `UPDATE_PIPELINES`.
+
+### Evidence
+
+- **Equal values.**
+  - `crates/presentation/tests/light.rs` holds sky, aerial and sun to the browser's last values, on the game's light and on a low sun under half overcast. `tests/fixtures/light-vectors.json` was written by the TS before it was deleted.
+  - Each record is falsified once.
+  - A scratch sweep (`throwaway/phase5b/equal/`) ran the base's TS against the branch's WASM over the fixture's light, `?sun=0.3`, a sun at 0.12 and 60 seeded variants of every field. All 63 lights are equal word for word at authored precision.
+  - With 17-digit random inputs, 7 of 63 lights differ by one f32 ulp in one directly copied field. `serde_json`'s default float parse is not correctly rounded. Its `float_roundtrip` feature would fix that, but feature unification would also change how `sim` parses its fixtures in some builds and not others. So it stays off.
+- **Behaviour tests moved to Rust:** one sun for the sky and the ground, the shadow floor kept, finite non-negative light from horizon to zenith and clear to overcast, and clouds giving way to the overcast dome. `crates/pipelines/tests/uniforms.rs` holds `Aerial` and `Sun` to the WGSL structs.
+- **Scenes** (base `34afc4556` and branch, same machine, under the lock). `fog-look` and `air` pass the same 18 checks on both, and fail the same 4, which already fail on the base and are not light:
+  - units standing in fog are never fogged;
+  - the air lab's rifle and autocannon hits (three checks).
+
+  `graphics-test` passes.
+- **Plates.**
+  - Every fog-look `-world`, mask, glyph and whole-building frame is byte-identical, base to branch (32 frames).
+  - The full frames differ in about 1,000–1,700 scattered single pixels on the grass. A diff map shows only grass speckle; the browser's wind runs on wall time. The air frames differ in the same way.
+  - The sky, the buildings, the shadows and the haze are identical.
+- **Quick reel** (`graphics-fps`, paris-corner, production, headless, three interleaved runs per side). The light is set once, when the frame is built, so per-frame work is unchanged except that the environment write is now raw bytes.
+
+  | | avg FPS, median (min–max) | frame ms p50 / p95 | GPU ms mean |
+  | --- | --- | --- | --- |
+  | Branch | 93.2 (79.6–103.5) | 8.34 / 16.81 | 6.57 |
+  | Base | 82.8 (76.6–102.8) | 8.48 / 17.12 | 6.74 |
+
+  No regression; the spread is the headless pacing.
+- **Code** (this pass): production −115 net. That is TypeScript −432 +154 and Rust +189 (the light's derivations, the two records and the binding). Tests +187.
+
+### Decisions
+
+- **A free `light_records`, not `load_world`.** See the contract above. 18b is amended.
+- **Native Godot's own ports of these formulas** (`environment/light.gd`, `sky_model.gd`, `aerial.gd`) are frozen and leave with Godot at step 8. Their comments name the deleted TS.
+

@@ -97,7 +97,7 @@ Set by the user on 2026-10-11, after slice 15's Rust walk left market-town's gap
 
 - [ ] 25 — Native draws with wgpu: the browser's shaders and passes, once for both clients; Godot's project and ported shaders are deleted. [slice](slices/25-native-on-wgpu.md)
   - Steps 1 and 2 built (branch `phase5a`): the browser's shaders are one text for every light and size, and `packages/battle-renderer/pipelines/` exports each pipeline's WGSL and settings, held to the browser's code by a Vitest drift test and validated by naga (`crates/pipelines`).
-  - Step 3 built (branch `phase5b`): `native/client` builds all 63 exported pipelines on `wgpu` Metal and replays a parity scene through the presentation crate. One ordered pass list (sky, post) draws plates whose sky matches the control within 8 levels. Native's model counts equal the browser's on all 24 plates. An occluded or minimised window presents nothing on macOS. Next: step 4, the ground.
+  - Step 3 built (branch `phase5b`): `native/client` builds all 63 exported pipelines on `wgpu` Metal and replays a parity scene through the presentation crate. One ordered pass list (sky, post) draws plates whose sky matches the control within 8 levels. Native's model counts equal the browser's on all 24 plates. An occluded or minimised window presents nothing on macOS. The browser now reads the same light records from Rust; its TS light derivations are deleted. Next: step 4, the ground.
 
 ### Firewalls
 
