@@ -10,8 +10,10 @@
 // and effect counts), the plates read back in their own frames with each
 // frame lit without its grass, and the units' clip tables the manifest hashes.
 // The ground, grass and scenery travel as the map itself: Rust resolves them.
-// PARITY_SCENES=<map,…> films only those scenes (`?scenes=`). Run it under
-// the GPU lock; it waits on the route's stage, never on a timer.
+// PARITY_SCENES=<map,…> films only those scenes (`?scenes=`); PARITY_FOG=1
+// films them with the side's fog of war (`?fog=1`, the manifest's `fog`
+// layer). Run it under the GPU lock; it waits on the route's stage, never on
+// a timer.
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import { plainPlateFile } from "../src/battle/benchmark/presentationCapture.ts";
 import { writeVisualPresentation } from "../src/battle/benchmark/visualPresentation.ts";
@@ -49,7 +51,8 @@ export async function run(ctx) {
   const pageErrors = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
   const scenes = process.env.PARITY_SCENES;
-  const url = scenes ? `${ctx.url}&scenes=${encodeURIComponent(scenes)}` : ctx.url;
+  const fog = process.env.PARITY_FOG === "1" ? "&fog=1" : "";
+  const url = `${scenes ? `${ctx.url}&scenes=${encodeURIComponent(scenes)}` : ctx.url}${fog}`;
   await page.goto(url);
   await page.waitForFunction(() => window.__graphicsTest?.stage, undefined, { timeout: 60_000 });
   const refusal = await page.evaluate(() =>

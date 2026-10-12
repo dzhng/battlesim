@@ -4,6 +4,8 @@
 //! desaturated, pulled toward a night tint and ruled with fine screen-space
 //! lines, and the boundary carries a rim on its seen side. Both clients
 //! upload the record as it is.
+pub mod sight;
+
 use std::collections::BTreeMap;
 
 use serde::Deserialize;

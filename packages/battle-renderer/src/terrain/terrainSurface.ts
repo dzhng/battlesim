@@ -13,6 +13,7 @@ import type summer from "@fixtures/biomes/summer.json";
 import type { Mesh, Rgba } from "../mesh";
 import type { WorldExports, WorldLayout, WorldOverlay } from "../worldMesh";
 import type { TerrainGrid } from "./terrainGrid";
+import type { FogSource } from "../frame/fogVisibility";
 
 /** A biome file (`fixtures/biomes/`), as the page reads it: Rust admits it
  *  (`ground::biome`) and resolves the ground from it; the page reads the grass
@@ -30,7 +31,8 @@ export interface GroundInput {
 }
 
 /** The ground a scene's presentation resolved: the calls the terrain
- *  material, the grass and the water read its tables through. */
+ *  material, the grass and the water read its tables through, and fog of
+ *  war's sight over it. */
 export type PresentedGround = Pick<
   Presentation,
   | "ground_terrain"
@@ -41,7 +43,8 @@ export type PresentedGround = Pick<
   | "grass_window"
   | "grass_props"
   | "retune_grass"
->;
+> &
+  FogSource;
 
 export interface TerrainSurface {
   /** Ground triangles in the one vertex format. The vertex colour is a tint
@@ -69,10 +72,10 @@ export function setGround(presentation: Presentation, input: GroundInput): void 
   const none = new Float32Array(0);
   const ids = new Uint32Array(0);
   const { exports: e, layout, biome, family } = input;
-  const { physical, rendered } = e.extents;
+  const { physical, playable, rendered } = e.extents;
   const { pageIds, heights, ...grid } = e.terrain;
   presentation.set_ground(
-    Float64Array.from([...physical, ...(rendered[0] < 0 ? rendered : [])]),
+    Float64Array.from([...physical, ...playable, ...(rendered[0] < 0 ? rendered : [])]),
     JSON.stringify(grid),
     pageIds,
     heights,
@@ -124,7 +127,9 @@ export function bareTerrain(
     pageIds: new Uint32Array(0),
     heights: new Float32Array(0),
   };
-  const extents = { physical: map, rendered: [0, 0, 0, 0] as const, playable: map };
+  // The playable rectangle is `[x, y, width, height]`, as the simulation's.
+  const playable = [map[0], map[1], map[2] - map[0], map[3] - map[1]] as const;
+  const extents = { physical: map, rendered: [0, 0, 0, 0] as const, playable };
   const layout = JSON.stringify({ propKinds: [], propAppearance: {} });
   const input = { exports: { ...streams, extents, terrain }, layout, biome, family: null };
   return { mesh, input, biome, grid: null, water: true };

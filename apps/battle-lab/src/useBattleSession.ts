@@ -18,14 +18,6 @@ import { buildWorldLayers } from "@packages/battle-renderer/src/worldMesh";
 import { knownStanding, type PropBox } from "@packages/battle-renderer/src/models/propAppearance";
 import { pickBox, type SoldierBody } from "@packages/battle-renderer/src/picking";
 import {
-  fogEyes,
-  fogWorld,
-  knownOccluders,
-  mapOccluders,
-  type FogInput,
-  type FogSensorRules,
-} from "@packages/battle-renderer/src/frame/fogInputs";
-import {
   FRAME_FLOATS,
   type SceneBuildings,
 } from "@packages/battle-renderer/src/models/buildingReferences";
@@ -92,7 +84,7 @@ import { assignments as voiceAssignments } from "@fixtures/voices.json";
 import { factionVoices } from "@packages/battle-audio/src/voices/voiceCatalog";
 import { frameCounts, presentationWorld, presentedCamera } from "./presentedFrame";
 import { gameLight } from "./gameLight";
-import type { ObservationDecoder } from "@web/battle/sim/presentation";
+import type { FogRequest, ObservationDecoder } from "@web/battle/sim/presentation";
 import type { ViewportCamera } from "@packages/renderer-core/src/cameraUniform";
 import { useAppAudio } from "./AppAudio";
 import { useFeed } from "./feed";
@@ -167,7 +159,9 @@ export interface ScenarioRules extends PoseRules, PanelRules, RulerRules {
   weapons: PanelRules["weapons"] & RulerRules["weapons"];
   physics: SoldierBody & RulerRules["physics"];
   service: { radius_m: number };
-  sensors: FogSensorRules;
+  /** The sensor numbers fog of war shares with the simulation (the
+   *  presentation reads them: `presentation::fog::sight::Sensors`). */
+  sensors: object;
   /** An aircraft's ghost flies at its cruise height. */
   air: { cruise_agl_m: number };
 }
@@ -409,41 +403,20 @@ export function useBattleSession({
   );
   // What the camera keeps clear of: the ground, and every building part the
   // side knows stands (a fallen one's remains once it has seen the fall).
-  // Renderer fog: the side's eyes at the published tick over the static
-  // world, cut by the occluders it knows (rebuilt only when knowledge changes).
-  // Its foliage is the side's: less the trees on ground it has seen cleared
-  // (a lane knocked, a patch shelled), re-exported when that ground grows.
+  // Fog of war: the presentation sees from the side's eyes at each
+  // publication over the ground, cut by what the side knows stands. Its
+  // foliage is the side's: less the trees on ground it has seen cleared (a
+  // lane knocked, a patch shelled), re-exported when that ground grows.
   const clearedCount = observation ? (sim.ground.current?.clearedCount ?? 0) : 0;
   const clearingEpoch = sim.ground.current?.epoch ?? 0;
   const foliage = useMemo(() => {
     const g = sim.ground.current;
-    if (!world) return null;
-    return clearedCount > 0 && g
-      ? world.view.foliage_cleared(g.clearedRuns(), g.cols, g.cellM)
-      : world.exports.foliage;
+    if (!world || !(clearedCount > 0 && g)) return undefined;
+    return world.view.foliage_cleared(g.clearedRuns(), g.cols, g.cellM);
   }, [world, clearedCount, clearingEpoch, sim.ground]);
-  const fogMap = useMemo(() => world && fogWorld(world.exports, rules.sensors), [world, rules]);
-  const fogStatic = useMemo(
-    () => fogMap && foliage && (foliage === fogMap.foliage ? fogMap : { ...fogMap, foliage }),
-    [fogMap, foliage],
-  );
-  const staticOccluders = useMemo(
-    () => world && mapOccluders(world.exports, world.layout),
-    [world],
-  );
-  const occluders = useMemo(
-    () =>
-      staticOccluders
-        ? knownOccluders(staticOccluders, JSON.parse(knownKey) as KnownPropView[])
-        : [],
-    [staticOccluders, knownKey],
-  );
-  const fog = useMemo<FogInput | null>(
-    () =>
-      fogStatic && observation
-        ? { world: fogStatic, sight: { eyes: fogEyes(observation.own), occluders } }
-        : null,
-    [fogStatic, observation, occluders],
+  const fog = useMemo<FogRequest | null>(
+    () => (world ? { sensors: rules.sensors, foliage } : null),
+    [world, rules, foliage],
   );
 
   const fogFeed = useFeed(fog);
@@ -1017,9 +990,8 @@ export function useBattleSession({
         parts: knownStanding(parts, known, new Set(parts.map((p) => p.id))).map(box),
       }));
     },
-    /** The boxes the fog is handed as what hides the ground behind them: the
-     *  occluders the side knows stand. */
-    fogOccluders: () => occluders,
+    /** The boxes the fog is cut by: the occluders the side knows stand. */
+    fogOccluders: () => sim.client?.presentation?.fogOccluders() ?? [],
     /** The side's known craters: marked cells, and the centre of the
      *  `binM`-square block holding the most (framing a shelled field). */
     craters: (binM = 16) => {

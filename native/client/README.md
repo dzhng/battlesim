@@ -54,6 +54,15 @@ It runs the browser's own shaders and passes over the [presentation crate](../..
   (`assets/third-party/effects`, Git LFS), and the cast lights the
   presentation chose (`Presentation::lights`) light every lit material and
   the smoke.
+- **Fog of war's sight** is the presentation's (`Presentation::prepare_fog`):
+  each drawn frame the client uploads what it is handed (eyes, occluders,
+  rebuild records, the structures' grid and `FogParams`) and runs the
+  browser's `fogTerrain`, `fogMerge`, `fogWhole` and `fogCull` after the
+  depth prepass. Every fogged material binds the fragment group of what it is
+  (`fog::Layer`): units never fogged, corpses as the ground under them, the
+  static world face by face. A replay draws fog where the browser did (the
+  manifest's `fog` layer), the side's foliage following the ground it sees
+  cleared.
 - **Fog's mask** runs as the browser's does: the world resolves its fog mask
   beside the lit world, and the mask passes compose the fogged world into
   post's input and draw the rim after post, in the fixture's unseen look
@@ -71,9 +80,8 @@ It runs the browser's own shaders and passes over the [presentation crate](../..
   fetched is refused by name in the report. `--sound <wav>` renders a
   replay's sound to a file; it is never played aloud by the replay, and the
   tests render to a buffer.
-- **What is bound but not drawn yet** reads as absent in every shader: fog
-  of war's sight (every surface seen) and the painted ground marks (the UI
-  paints them; a replay has no UI).
+- **What is bound but not drawn yet** reads as absent in every shader: the
+  painted ground marks (the UI paints them; a replay has no UI).
 
 ## Running a parity scene
 

@@ -4,7 +4,6 @@
 //! under its transport hash (`packages/scene-assets/src/gzip.ts`).
 use crate::static_world::buildings::{Placed, PlacedBuildings};
 use crate::static_world::ground::biome::Biome;
-use crate::static_world::ground::tables::Grid;
 use crate::static_world::ground::{self, Source, Tuning};
 use crate::static_world::library::{kit_bounds, Bounds, Library};
 use crate::world::BuildingStyle;
@@ -39,10 +38,15 @@ pub struct MapGround {
     pub source: Source,
     pub biome: Biome,
     pub tuning: Tuning,
+    /// The sensor numbers sight shares with the simulation (`rules.sensors`).
+    pub sensors: crate::fog::sight::Sensors,
     /// The terrain's vertices (x, y, z) and triangles, as the simulation
     /// exports them.
     pub positions: Vec<f32>,
     pub indices: Vec<u32>,
+    /// The simulation's world, for what a side's knowledge changes of it
+    /// (the foliage left on ground it has seen cleared).
+    pub world: World,
 }
 
 /// The ground of saved map `map` (`fixtures/maps/<map>`), built by the
@@ -58,41 +62,11 @@ pub fn ground(root: &Path, map: &str) -> Result<MapGround, String> {
         serde_json::from_value(sim::fixtures::game()).map_err(|e| format!("rules: {e}"))?;
     let map_def = &resolved.definition;
     let world = sim::world::WorldGeometry::new(map_def, &rules);
-    let extents = map_def.extents();
-    let header: Value = serde_json::from_str(&world.export_terrain_grid())
-        .map_err(|e| format!("terrain grid: {e}"))?;
-    let n = |k: &str| header[k].as_f64().unwrap_or(0.0);
-    let source = Source {
-        map: extents.physical,
-        // The page hands the rendered surroundings only where they reach
-        // past the map (`resolveGround`).
-        rendered: (extents.rendered[0] < 0.0).then_some(extents.rendered),
-        grid: Grid {
-            nx: n("nx") as usize,
-            ny: n("ny") as usize,
-            spacing: n("spacing"),
-            page_size: n("pageSize") as usize,
-            min_height: n("minHeight"),
-            page_ids: world.export_terrain_page_ids(),
-            heights: world.export_terrain_heights(),
-        },
-        props: world.export_props(),
-        drawn_by: ground::drawn_by(&sim::world::export::layout_json(&rules.catalog))?,
-        foliage: world.export_foliage(),
-        surface_strokes: world.export_surface_strokes(),
-        surface_runs: world.export_surface_runs(),
-        surface_triangles: world.export_surface_triangles(),
-        surface_boundaries: world.export_surface_boundaries(),
-        rivers: world.export_rivers(),
-        river_runs: world.export_river_runs(),
-        forests: world.export_forests(),
-        forest_rect_ids: world.export_forest_rect_ids(),
-        forest_metadata: world.export_forest_metadata(),
-        forest_strokes: world.export_forest_strokes(),
-        forest_triangles: world.export_forest_triangles(),
-        forest_boundaries: world.export_forest_boundaries(),
-        forest_trunk_ranges: world.export_forest_trunk_ranges(),
-    };
+    let source = ground::source(
+        &world,
+        &map_def.extents(),
+        &sim::world::export::layout_json(&rules.catalog),
+    )?;
     let meta = json(&folder.join("meta.json"))?;
     let biome_name = meta["biome"].as_str().ok_or("meta.json has no biome")?;
     let biome_path = root
@@ -103,12 +77,33 @@ pub fn ground(root: &Path, map: &str) -> Result<MapGround, String> {
     let biome = Biome::load(&biome_text, map_def.regional_family.as_deref())?;
     let tuning: Tuning = serde_json::from_value(game["presentation"].clone())
         .map_err(|e| format!("presentation: {e}"))?;
+    let sensors =
+        serde_json::from_value(game["sensors"].clone()).map_err(|e| format!("sensors: {e}"))?;
     Ok(MapGround {
         source,
         biome,
         tuning,
+        sensors,
         positions: world.export_terrain_positions(),
         indices: world.export_terrain_indices(),
+        world,
+    })
+}
+
+/// The simulation's world a saved map's ground was built by.
+pub use sim::world::WorldGeometry as World;
+
+/// The foliage a side knows of `world`: less the trees on ground its
+/// `learned` ground says it has seen cleared (`WorldView.foliage_cleared`).
+pub fn side_foliage(world: &World, learned: &crate::scars::LearnedGround) -> Vec<f32> {
+    let (cols, rows, cell) = (learned.cols, learned.rows, learned.cell_m);
+    world.export_foliage_cleared(|x, y| {
+        let (i, j) = ((x / cell).floor(), (y / cell).floor());
+        i >= 0.0
+            && j >= 0.0
+            && (i as usize) < cols
+            && (j as usize) < rows
+            && learned.is_cleared(i as usize, j as usize)
     })
 }
 

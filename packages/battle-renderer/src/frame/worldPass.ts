@@ -79,7 +79,7 @@ import {
 } from "./fogTerm";
 import { createGrassPass } from "./grassPass";
 import { createTerrainHeights } from "./terrainHeights";
-import { createFogVisibility, type FogTiles } from "./fogVisibility";
+import { createFogVisibility, type FogShaders, type FogTiles } from "./fogVisibility";
 import {
   createTerrainSource,
   groundCell,
@@ -106,7 +106,6 @@ import type { PresentedGround } from "../terrain/terrainSurface";
 import type { SceneryWalkStats } from "./sceneryLayer";
 import { createPaintedMarks, validatePaintStyle, type PaintStyle } from "./paintedMarks";
 import type { GroundMarks, ScarRegion } from "./scarTexture";
-import type { FogGeometryPresentation, FogInput } from "./fogInputs";
 import { vec3, type Mat4 } from "math";
 import {
   createModelFragments,
@@ -166,7 +165,7 @@ export async function createWorldPass(
   root: Root,
   registry: GpuRegistry,
   environment: EnvironmentFrame,
-  fogGeometry: FogGeometryPresentation,
+  fogGeometry: FogShaders,
   models: ModelLayer,
   paintStyle: PaintStyle,
   xrayMinHiddenFragmentFraction: number,
@@ -638,6 +637,7 @@ export async function createWorldPass(
   function setGround() {
     const ground = layers ? presented : null;
     terrain.set(ground);
+    fog.setSource(ground, layers?.terrain.grid ?? null);
     grass.setWorld(layers?.terrain ?? null, layers?.grass ?? null, ground);
     world.water.set(
       ground && layers?.terrain.water ? (ground.ground_water_mesh() as Mesh) : NO_WATER,
@@ -709,9 +709,6 @@ export async function createWorldPass(
     },
     setInstances(next: readonly SceneInstance[]) {
       proxies.set(next);
-    },
-    setFog(next: FogInput | null) {
-      fog.set(next);
     },
     /** The fog tile lists for a frame size, in that size's scope. */
     fogTiles: fog.sized,

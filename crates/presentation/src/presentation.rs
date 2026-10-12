@@ -15,6 +15,9 @@ use crate::effects::launches::Launch;
 use crate::effects::lights::CastLights;
 use crate::effects::publication::{EffectFeed, EffectPublication};
 use crate::effects::MuzzleSource;
+use crate::fog::sight::{
+    Eye, FogSight, FogStats, FogUpload, KnownBox, Occluder, Sensors, SightWorld,
+};
 use crate::records::{
     Appearance as Row, Batch, CastLight, Counts, Effect, Emitter, Instance, Joint, Pick,
     View as ViewRecord, NONE,
@@ -227,6 +230,37 @@ pub struct Presentation {
     /// the renderer holds them.
     learned: Option<LearnedGround>,
     scars: ScarCache,
+    /// Fog of war's sight over the ground (`set_fog`); none draws no fog.
+    fog: Option<Fog>,
+}
+
+/// What a scene asks of fog of war (`Presentation::set_fog`).
+#[derive(Clone, Debug, Default, Deserialize)]
+pub struct FogSetup {
+    /// The rules' sensor numbers sight shares with the simulation.
+    pub sensors: Option<Sensors>,
+    /// The side's foliage (the simulation's export less what it has seen
+    /// cleared); none keeps the last, at first the ground's.
+    #[serde(skip)]
+    pub foliage: Option<Vec<f32>>,
+    /// A lab's stand-in for the publication's eyes.
+    pub eyes: Option<Vec<Eye>>,
+    /// Only these own units' eyes (a lab looking through one unit).
+    pub units: Option<Vec<f64>>,
+}
+
+/// The side's sight over the ground, and what it was last set from.
+struct Fog {
+    sight: FogSight,
+    sensors: Sensors,
+    eyes: Option<Vec<Eye>>,
+    units: Option<Vec<f64>>,
+    shown: bool,
+    /// The sight changed since the last frame (a new stand-in, fog shown).
+    dirty: bool,
+    /// The publication the eyes were last taken from, and the known props.
+    from: Option<Arc<Observation>>,
+    known_from: Option<Shared<KnownProp>>,
 }
 
 /// The layout's ground grid, learned blank.
@@ -295,6 +329,7 @@ impl Presentation {
             world: World::default(),
             frame: Frame::default(),
             camera: None,
+            fog: None,
         })
     }
 
@@ -879,6 +914,17 @@ impl Presentation {
         let ground = Ground::new(source, biome, tuning)?;
         // A region's scars load as far past it as a crater's bowl moves them.
         self.scars.set_reach(ground.scar_reach_m());
+        // Sight is cut by the new ground.
+        if let Some(fog) = &mut self.fog {
+            fog.sight = FogSight::new(ground.tuning.fog_geometry.clone())?;
+            fog.sight.set_world(
+                SightWorld::of(&ground.source, fog.sensors),
+                ground.source.foliage.clone(),
+            )?;
+            fog.from = None;
+            fog.known_from = None;
+            fog.dirty = true;
+        }
         self.ground = Some(ground);
         self.scenery = None;
         self.props = None;
@@ -1027,6 +1073,154 @@ impl Presentation {
         if walk.set_clock(time) || walk.pending {
             self.statics.rewalk();
         }
+    }
+
+    /// Draws the side's fog of war over the ground (none: everything seen):
+    /// its sight from its own units' eyes at each publication, cut by the
+    /// ground, the side's foliage and the occluders it knows. A lab may
+    /// stand eyes in for the publication's, or look through some units'.
+    pub fn set_fog(&mut self, setup: Option<FogSetup>) -> Result<(), String> {
+        let Some(setup) = setup else {
+            if let Some(fog) = &mut self.fog {
+                fog.shown = false;
+            }
+            return Ok(());
+        };
+        let ground = self
+            .ground
+            .as_ref()
+            .ok_or("fog of war is cut by a ground: set_ground first")?;
+        let sensors = match (setup.sensors, &self.fog) {
+            (Some(s), _) => s,
+            (None, Some(fog)) => fog.sensors,
+            (None, None) => return Err("fog: no sensor rules".into()),
+        };
+        let fresh = self.fog.as_ref().is_none_or(|f| {
+            let a = f.sensors;
+            (
+                a.fog_target_height_m,
+                a.foliage_full_block,
+                a.min_sight_gap_m,
+            ) != (
+                sensors.fog_target_height_m,
+                sensors.foliage_full_block,
+                sensors.min_sight_gap_m,
+            )
+        });
+        if fresh {
+            let mut sight = FogSight::new(ground.tuning.fog_geometry.clone())?;
+            sight.set_world(
+                SightWorld::of(&ground.source, sensors),
+                ground.source.foliage.clone(),
+            )?;
+            self.fog = Some(Fog {
+                sight,
+                sensors,
+                eyes: None,
+                units: None,
+                shown: true,
+                dirty: true,
+                from: None,
+                known_from: None,
+            });
+        }
+        let fog = self.fog.as_mut().unwrap();
+        if let Some(foliage) = setup.foliage {
+            fog.sight.set_foliage(foliage);
+        }
+        fog.dirty |= !fog.shown || fog.eyes != setup.eyes || fog.units != setup.units;
+        fog.eyes = setup.eyes;
+        fog.units = setup.units;
+        fog.shown = true;
+        Ok(())
+    }
+
+    /// One drawn frame's fog for `camera` (none: a probe's) over a
+    /// `width`×`height` target, with `probes` points to probe; none without
+    /// fog. The renderer uploads it as it is and runs its passes.
+    pub fn prepare_fog(
+        &mut self,
+        camera: Option<&crate::records::Camera>,
+        width: u32,
+        height: u32,
+        probes: u32,
+    ) -> Result<Option<FogUpload>, String> {
+        let Some(fog) = &mut self.fog else {
+            return Ok(None);
+        };
+        let latest = self.latest.clone();
+        let eyes = match (&fog.eyes, &latest) {
+            _ if !fog.shown => None,
+            (Some(eyes), _) => Some(eyes.clone()),
+            (None, Some(o)) => Some(Eye::of_units(
+                o.own
+                    .iter()
+                    .filter(|u| fog.units.as_ref().is_none_or(|ids| ids.contains(&u.id)))
+                    .map(|u| (u.id, &u.sight)),
+            )),
+            (None, None) => None,
+        };
+        match eyes {
+            None => fog.sight.clear_sight(),
+            Some(eyes) => {
+                let new = match (&fog.from, &latest) {
+                    (Some(a), Some(b)) => !Arc::ptr_eq(a, b),
+                    (None, None) => false,
+                    _ => true,
+                };
+                if fog.dirty || new {
+                    let group = latest.as_ref().map(|o| o.known_props.clone());
+                    let changed = match (&group, &fog.known_from) {
+                        (Some(a), Some(b)) => !Arc::ptr_eq(a, b),
+                        (None, None) => false,
+                        _ => true,
+                    };
+                    let known: Vec<KnownBox> = group
+                        .iter()
+                        .flat_map(|g| g.iter())
+                        .map(KnownBox::published)
+                        .collect();
+                    fog.sight
+                        .set_sight(&eyes, changed.then_some(known.as_slice()))?;
+                    fog.known_from = group;
+                    fog.from = latest;
+                    fog.dirty = false;
+                }
+            }
+        }
+        fog.sight.prepare(camera, width, height, probes).map(Some)
+    }
+
+    /// The renderer holds no fog (a new one): the next upload sends it all.
+    pub fn resend_fog(&mut self) {
+        if let Some(fog) = &mut self.fog {
+            fog.sight.resend();
+        }
+    }
+
+    /// Every eye's map rebuilds on the next frame (a cost probe).
+    pub fn rebuild_fog(&mut self) {
+        if let Some(fog) = &mut self.fog {
+            fog.sight.invalidate();
+        }
+    }
+
+    /// What the fog holds; none without fog.
+    pub fn fog_stats(&self) -> Option<FogStats> {
+        self.fog.as_ref().map(|f| f.sight.stats())
+    }
+
+    /// The eyes the fog sees from, as the last frame took them.
+    pub fn fog_eyes(&self) -> Vec<Eye> {
+        self.fog.as_ref().map_or_else(Vec::new, |f| f.sight.eyes())
+    }
+
+    /// The occluders the side's fog knows, in the order of the structures'
+    /// seen flags.
+    pub fn fog_occluders(&self) -> Vec<Occluder> {
+        self.fog
+            .as_ref()
+            .map_or_else(Vec::new, |f| f.sight.occluders())
     }
 
     /// What to draw at presentation time `time` for `camera`; errs when the

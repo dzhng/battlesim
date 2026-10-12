@@ -1,13 +1,10 @@
 //! The frame-level bind groups every lit pass takes (`frame/environmentFrame.ts`
-//! and `world/environment.ts`): the camera, the environment light (the
+//! and `world/environment.ts`): the camera and the environment light (the
 //! world's `Sun` and `Aerial` records, the cast lights, the sky lookup, its
-//! PMREM and the DFG table), and the fog. Each frame the camera, the
-//! environment's view and the cast lights the presentation chose are
-//! written. The sun's cascades are the shadow layer's (`shadow.rs`).
-//!
-//! Not built yet, and bound so that every shader reads it as absent: fog of
-//! war's sight (its inputs come with the static world): every fog word zero
-//! (`enabled` 0, nothing painted), so every surface is seen.
+//! PMREM and the DFG table). Each frame the camera, the environment's view
+//! and the cast lights the presentation chose are written. The sun's
+//! cascades are the shadow layer's (`shadow.rs`); fog's groups are fog's
+//! (`fog.rs`).
 use presentation::records::{Aerial, Camera as CameraRecord, CastLight, Sun, View};
 use presentation::shadow::camera_record;
 use wgpu::*;
@@ -22,8 +19,6 @@ const SUN_AT: usize = 80;
 /// `CastLights`: a header (count, wrap) and up to 24 lights.
 const CAST_LIGHTS_MAX: usize = 24;
 const CAST_LIGHTS_BYTES: usize = 16 + CAST_LIGHTS_MAX * 32;
-/// Enough zeroed bytes for any of the fog group's structs or arrays.
-const FOG_ZEROS: usize = 4096;
 /// The sky lookup's width; the PMREM's levels follow from it (`pmrem.ts`).
 const SKY_LUT_WIDTH: u32 = 384;
 /// The split-sum table (`shaders/dfgLut.ts`): read from the browser's file.
@@ -33,7 +28,6 @@ const DFG_LUT_SIZE: u32 = 16;
 pub struct Environment {
     pub camera: BindGroup,
     pub environment: BindGroup,
-    pub fog: BindGroup,
     /// The camera uniform, the environment uniform, its PMREM and the cast
     /// lights, which the effects bind beside their own resources.
     pub camera_buffer: Buffer,
@@ -58,7 +52,7 @@ pub fn view_proj(view: &View) -> [f32; 16] {
 }
 
 /// The camera uniform for `view` at `clock` seconds (`cameraUniform.ts`).
-fn camera(view: &View, clock: f32) -> CameraRecord {
+pub fn camera(view: &View, clock: f32) -> CameraRecord {
     let eye = [view.eye[0], view.eye[1], view.eye[2]];
     // The near plane is the reverse-Z projection's `near` term.
     let size = [view.size[0], view.size[1]];
@@ -344,42 +338,9 @@ impl Environment {
             ],
         );
 
-        let zeros = |usage| buffer(device, "fog-off", usage, &[0; FOG_ZEROS]);
-        let (u, s) = (zeros(BufferUsages::UNIFORM), zeros(BufferUsages::STORAGE));
-        let paint = texture(
-            device,
-            "fog-paint",
-            [1, 1, 1],
-            TextureFormat::Rgba8Unorm,
-            TextureUsages::TEXTURE_BINDING,
-        );
-        let wholes = texture(
-            device,
-            "fog-wholes",
-            [1, 1, 1],
-            TextureFormat::R32Uint,
-            TextureUsages::TEXTURE_BINDING,
-        );
-        let fog = bind(
-            device,
-            pipelines.layout("fogLayout"),
-            "fog-off",
-            &[
-                u.as_entire_binding(),
-                u.as_entire_binding(),
-                s.as_entire_binding(),
-                s.as_entire_binding(),
-                s.as_entire_binding(),
-                s.as_entire_binding(),
-                u.as_entire_binding(),
-                BindingResource::TextureView(&paint.create_view(&Default::default())),
-                BindingResource::TextureView(&wholes.create_view(&Default::default())),
-            ],
-        );
         Self {
             camera,
             environment,
-            fog,
             camera_buffer,
             data,
             pmrem,
@@ -389,11 +350,10 @@ impl Environment {
     }
 
     /// The frame-level groups by the layout each fills.
-    pub fn groups(&self) -> [(&'static str, &BindGroup); 3] {
+    pub fn groups(&self) -> [(&'static str, &BindGroup); 2] {
         [
             ("typegpuCameraLayout", &self.camera),
             ("environment", &self.environment),
-            ("fogLayout", &self.fog),
         ]
     }
 

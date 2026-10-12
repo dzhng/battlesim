@@ -36,6 +36,13 @@ wherever it runs.
   is handed (the directory's words, the pool's texels, `ScarParams`' words
   before the biome's look) and asks which regions to draw one by one when the
   marks don't fit at once; it derives nothing.
+- [Fog of war's sight](src/fog/sight.rs): each frame's eyes (the side's own
+  units' at the published tick, or a lab's stand-ins), the occluders the side
+  knows stand (the map's occluding props less those it saw fall, plus what it
+  learned), the eyes' map slots and rebuild schedule, the structures that
+  take fog whole, and the `FogParams` record, as one `FogUpload` a renderer
+  uploads as it is. A prop the side has not learned never reaches it. The
+  unseen look is [`fog`](src/fog/mod.rs)'s `FogLook`.
 - [The sun's shadow](src/shadow.rs): each frame's cascades fitted over where the
   map is in view depth, as the receiver block and each cascade's caster camera.
 - [The static world](src/static_world/): the buildings resolved from their
@@ -95,7 +102,7 @@ roll to the resting wreck.
 
 `tests/poses.rs` and `tests/effects.rs` hold it to the browser's recorded vectors
 (native's fixture capture and fixed effect causes), `tests/light.rs`,
-`shadow.rs`, `ground_meshes.rs` and `grass_field.rs` to what the browser's
+`shadow.rs`, `ground_meshes.rs`, `grass_field.rs` and `fog_sight.rs` to what the browser's
 TypeScript computed before it moved here, bit for bit, and `tests/scars.rs` holds
 every scar upload to the words the browser's own cache wrote; the behaviour
 tests beside them cover what those do not reach.

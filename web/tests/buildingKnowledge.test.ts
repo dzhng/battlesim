@@ -22,7 +22,7 @@ import {
   mapProps,
   type MapProp,
 } from "@packages/battle-renderer/src/models/propAppearance";
-import { knownOccluders, mapOccluders } from "@packages/battle-renderer/src/frame/fogInputs";
+import { gameBiome } from "@apps/battle-lab/src/gameBiome";
 import {
   readWorldExports,
   type WorldExports,
@@ -75,6 +75,8 @@ interface Played {
   /** The buildings a side's presentation draws destroyed now, from its
    *  whole publication. */
   drawn(side: "blue" | "red"): FallenBuilding[];
+  /** The boxes a side's fog of war is cut by now, from its whole publication. */
+  occluders(side: "blue" | "red"): ReturnType<ObservationDecoder["fogOccluders"]>;
   /** The building of `template`, as `index` numbers it. */
   building(template: string): number;
   free(): void;
@@ -128,6 +130,22 @@ function play(encounter: LabEncounter): Played {
         presentation.decode(new Float32Array(memory.buffer, battle.publication_ptr(), len));
         presentation.frame(0, OVERHEAD, { selected: [], xray: false, ghosts: [] });
         return presentation.fallenBuildings();
+      } finally {
+        presentation.free();
+      }
+    },
+    occluders(side) {
+      const presentation = new ObservationDecoder(observations);
+      try {
+        const ground = { exports, layout: JSON.stringify(layout), biome: gameBiome, family: null };
+        presentation.setGround(ground, null);
+        battle.resync_observation();
+        const len = battle.publish(side);
+        presentation.decode(new Float32Array(memory.buffer, battle.publication_ptr(), len));
+        presentation.frame(0, OVERHEAD, { selected: [], xray: false, ghosts: [] });
+        presentation.setFog({ sensors: TEST_RULES.sensors });
+        presentation.presentedGround()!.prepare_fog(undefined, 0, 0, 0)?.free();
+        return presentation.fogOccluders();
       } finally {
         presentation.free();
       }
@@ -203,10 +221,8 @@ test("a side knows a building collapsed or gutted once it has seen it, and intac
     const tops = (side: "blue" | "red", building: number) => {
       const parts = battle.index.parts[building];
       const at = new Set(parts.map((p) => p.center.join()));
-      return knownOccluders(
-        mapOccluders(battle.exports, battle.layout),
-        battle.sees(side).knownProps,
-      )
+      return battle
+        .occluders(side)
         .filter((o) => at.has([o.x, o.y].join()))
         .map((o) => o.top - o.base);
     };
