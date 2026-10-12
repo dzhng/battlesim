@@ -1,11 +1,12 @@
 //! The ground (`worldPass.ts`'s terrain, skirt and backdrop, and
-//! `terrainMaterial.ts`'s `createTerrainSource`): the presentation crate's
-//! ground tables and meshes, uploaded once, drawn into the depth prepass,
-//! the sun's cascades and the lit world. The terrain's group (`terrainLayout`)
-//! is the grass build's too, and holds the side's scars (`scars.rs`).
+//! `terrainMaterial.ts`'s `createTerrainSource`): the presentation's ground
+//! (`Presentation::ground`), its tables and meshes uploaded once, drawn into
+//! the depth prepass, the sun's cascades and the lit world. The terrain's
+//! group (`terrainLayout`) is the grass build's too, and holds the side's
+//! scars (`scars.rs`).
 use presentation::shadow::map_box;
-use presentation::static_world::files::MapGround;
 use presentation::static_world::ground::mesh::{self, VERTEX_FLOATS};
+use presentation::static_world::ground::Ground as Resolved;
 use wgpu::*;
 
 use presentation::presentation::Presentation;
@@ -82,8 +83,6 @@ fn table(device: &Device, label: &str, bytes: &[u8], record: usize) -> Buffer {
 }
 
 pub struct Ground {
-    /// What the ground was resolved from: its tables, the grass's rules.
-    pub map: MapGround,
     /// `terrainLayout`: the terrain's tables and the side's scars.
     pub group: BindGroup,
     layout: BindGroupLayout,
@@ -108,15 +107,16 @@ pub struct Ground {
 }
 
 impl Ground {
-    /// Uploads `map`'s ground, its backdrop reaching `backdrop_m` past the map.
+    /// Uploads `ground` over the simulation's terrain triangles (`positions`
+    /// and `indices`), its backdrop reaching `backdrop_m` past the map.
     pub fn new(
         device: &Device,
         queue: &Queue,
         pipelines: &Pipelines,
-        map: MapGround,
+        ground: &Resolved,
+        (positions, indices): (&[f32], &[u32]),
         backdrop_m: f64,
     ) -> Result<Self, String> {
-        let ground = &map.ground;
         let tables = ground.terrain_tables(ground.terrain_field()?);
         let uniform = BufferUsages::UNIFORM;
         let params: Vec<u32> = tables.params.iter().copied().chain(VIEW).collect();
@@ -156,13 +156,12 @@ impl Ground {
             BufferUsages::STORAGE,
             bytemuck::cast_slice(&ground.source.grid.pages()),
         );
-        let terrain = mesh::terrain(&map.positions, &map.indices, None);
+        let terrain = mesh::terrain(positions, indices, None);
         let map_box = map_box(&terrain);
         let backdrop = map_box.map_or_else(Vec::new, |b| mesh::backdrop(&b, backdrop_m));
-        let skirt = Mesh::new(device, "skirt", &mesh::skirt(&map.positions));
+        let skirt = Mesh::new(device, "skirt", &mesh::skirt(positions));
         let water = Mesh::new(device, "water", &mesh::water(&ground.water_cells()));
         Ok(Self {
-            map,
             group,
             layout,
             tables,

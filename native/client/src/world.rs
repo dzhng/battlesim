@@ -2,8 +2,7 @@
 //! encodes them: the depth prepass, then the grass's growth, the sky and
 //! the lit colour pass with its fog mask, both resolved for the effects and
 //! the fog mask passes, then the placement ghosts over the fogged world.
-//! The ground and the models draw into them; the scenery joins the same
-//! passes.
+//! The ground, the scenery and the models draw into them.
 use wgpu::*;
 
 use crate::frame::{Inputs, Pass};
@@ -56,6 +55,9 @@ impl Pass for DepthPrepass {
         let models = inputs.models;
         let [camera, ..] = inputs.environment.groups();
         inputs.ground.draw_depth(&mut pass, camera);
+        inputs
+            .scenery
+            .draw_depth(&mut pass, camera, models.instances());
         for (bound, surface) in [
             (&self.solid, Surface::Solid),
             (&self.cutout, Surface::Cutout),
@@ -68,8 +70,8 @@ impl Pass for DepthPrepass {
 
 /// The grass grown for the view, then the sky, then the lit world over it at
 /// the prepass's depth, with the fog mask beside it (`encode`): the terrain,
-/// the skirt, the models, the grass, the backdrop, the water, and glass last, over
-/// everything. Both resolve: the lit world into `lit`, the mask into
+/// the skirt, the models, the scenery, the grass, the backdrop, the water,
+/// and glass last, over everything. Both resolve: the lit world into `lit`, the mask into
 /// `fog_mask`.
 pub struct WorldColour {
     sky: Sky,
@@ -141,6 +143,7 @@ impl Pass for WorldColour {
             bound.set(&mut pass, &groups);
             models.draw(&mut pass, *surface);
         }
+        inputs.scenery.draw(&mut pass, &frame, models.instances());
         inputs.grass.draw(&mut pass, &frame);
         inputs.ground.draw_backdrop(&mut pass, &frame);
         inputs.ground.draw_water(&mut pass, &frame);

@@ -773,3 +773,89 @@ Net lines deleted, by language (generated `Cargo.lock` −129 apart):
 | JavaScript and TypeScript (`fps-compare`'s Godot reader; the trace test grew in formatting) | 3 |
 
 Fixtures: about 0.6 MB of Godot-only vectors and run artifacts deleted.
+
+## Step 5b: the scenery, and the ground on `Presentation` (2026-10-12, branch `native5i`)
+
+Native draws the scenery from `Frame`'s static batches (slice 20b step 4's walk) and reads its ground from `Presentation`. The map's props and the known props are the `props20b` lane's, not yet on main.
+
+### The contract
+
+- **`Presentation::place_scenery(finest: &[&[f32]])`** (amends 20b step 4) takes each scenery kind's finest tier in the renderer's world vertex (`ground::mesh::VERTEX_FLOATS`, 1 in the last float for foliage), in `scenery_kinds` order, and refuses the wrong count. Rust reads off it what the walk needs: the kind's height and reach, and a tree's trunk radius at the stump's top and its crown base (`static_world::ground::kinds`). A tree is a kind the biome names in `trees.species`.
+  - It was four numbers a kind, computed by the page (`sceneryFacts`).
+  - WASM: `place_scenery(meshes: Float32Array, floats: Uint32Array)`, the meshes one after another.
+- **`Presentation::stump_mesh(row) -> Option<&[f32]>`** is a felled tree's stump row's mesh (`Appearance.draws` 6): its kind's trunk cut at the biome's `stump_height_m`, in its bark's mean colour, the top in `felled.cut`. None for any other row, and for a shrub's or dressing's stump row, which nothing draws. WASM: `stump_mesh(row)`; the page puts it on the row (`PresentedAppearance.stump`, `WorldAppearance.stump`), and the scenery layer draws it.
+  - Deleted from TS: `sceneryFacts`, `kindSize`, `crownBase`, `trunkAt`, `stumpMesh` (`scenery/appearance.ts`), `WorldScenery.felled`, and `felled.test.ts` (its case moved to `kinds.rs`).
+- **The page places the scenery from the world's scenery art**, not from the art its buildings draw: `SimPresentation.setGround(ground, scenery: WorldScenery | null)`, which `LabViewport` passes from the world layers. Since 20b step 4 the battle had handed its presentation the models' pruned art (`mapAppearances`), which holds no scenery, so **no battle and no graphics test drew any scenery**. `native-parity-capture` now checks that every scene draws some.
+- **Native sets its ground on `Presentation`.**
+  - `files::ground(root, map)` returns what `set_ground` resolves from (`Source`, `Biome`, `Tuning`) and the simulation's terrain triangles, and no longer builds a `Ground`.
+  - `Replay::open(dir, game, library)` sets the ground, places the scenery from the bundles, then loads the world.
+  - `Ground::new` and `Grass::new` read `Presentation::ground()`; `Passes::prepare` takes the presentation.
+  - `Presentation::set_scar_reach` is deleted: `set_ground` sets the reach for both clients.
+  - The replay hands back the ground the side has seen cleared after each frame (`set_cleared`), as `LabViewport` does.
+- **Native's scenery layer** (`native/client/src/scenery.rs`) holds each scenery row and each kind's four tiers, packed as `tierMesh` packs them (shared by every row of the kind). It draws each batch from the frame's instance buffer at its first record. Routing by `draws` is `sceneryLayer.ts`'s:
+  - prepass: `felledPrepass`, `dressingPrepass`, otherwise `sceneryPrepass`;
+  - casters: `felledCaster`, otherwise `sceneryCaster`;
+  - lit: `backdropColour`, `felledColour`, `dressingColour`, otherwise `forestColour`.
+  
+  A felled tree's two records make one instance. Scenery draws after the ground in the prepass, after the models' casters in each cascade, and after the buildings in the lit pass, as `worldPass.ts` orders them. The model layer leaves rows with `draws ≠ 0` to it.
+- **The replay checks the scenery counts** (`instanceCounts[plate].scenery`: per population, kind and tier, and stumps per kind) beside the model and effect counts.
+
+### What draws, and what is left
+
+- **Draws:** the forest, the tree lines' shrubs, the scenery past the map, the forest floor's dressing (shrinking as it nears a few pixels), and felled trees with their stumps (no plate in either reel has a felled tree). All of it is shadowed and cast into the cascades as the walk lists it.
+- **Left:** the map's props and the known props (parked cars, lamps, bollards, fences, walls, hedges, benches, resting wrecks). They belong to `props20b`, which had not landed on main when this step closed. Painted marks and fog of war's sight are as in step 4.
+
+### Evidence
+
+Control `throwaway/native-parity/2026-10-12T17-33-32-749Z`, captured from this branch's tree. Native plates, pairs and crops are in `throwaway/native5i/` (`n1/`, `cmp/out/`, `cmp/crops/`).
+
+- **Equality, before the TypeScript was deleted.** A Vitest dump of the TS (V8, run on every tree, hedgerow and dressing appearance in the catalog: 13 kinds) against Rust:
+  - all four facts are equal bit for bit, and all 7 trees' stumps are equal float for float;
+  - native's `tier_mesh` equals the browser's `tierMesh` float for float on every kind's finest tier (up to 279,360 floats).
+  
+  Under Bun (JavaScriptCore), one fact differed by an ulp: JSC's `Math.hypot` is not V8's, which `js::hypot` reproduces.
+- **Counts:**
+  - Scenery counts (every population, kind and tier, and stumps) and model counts are equal on all 24 plates.
+  - Effects are equal on every plate drawn between ticks. The 7 market-town plates drawn exactly on a tick boundary differ, as in step 6.
+  - Paris-corner draws only backdrop scenery (501–628 a plate); market-town draws up to 25,659 forest, 347 shrubs, 30,208 backdrop and 2,152 dressing instances.
+- **Plates** (`compare-screenshots`, all 24):
+
+  | | grayscale MAE | pixelmatch ratio |
+  | --- | --- | --- |
+  | market-town | 0.05–0.56 (step 4: 0.72–3.48) | 0.00004–0.011 |
+  | paris-corner | 0–0.74, and 4.54 on 169 | 0–0.015, and 0.074 on 169 |
+
+  Paris 169 is the street of parked cars, all of them props.
+- **Unprimed critique** (all 24 pairs and four 2× crops, told only that they are two renderers of one moment): trees, copses and forest match in position, size, colour and shadows, and so do the shrubs, the clutter under the trees, the craters, the fields, the grass, the buildings, the effects and the units. Every difference it found is street furniture absent in native: cars, fences, walls, hedges, benches, tables, lamps, bollards, utility boxes and the static wreck hulks. It found no rendering defect in either. Its low-confidence notes (a tank's road-wheel shading, a pixel at distant soldiers, faint grass speckle) are within native's run-to-run floor (step 4).
+- **The browser regression:** the base (`003002e0c`) capture of market-town drew 0 scenery on all 18 plates, and its plates have no trees. The branch's capture draws them.
+- **Tests:**
+  - `cargo test` passes for `presentation`, `pipelines` and `native-client` (under the lock).
+  - `kinds.rs` holds three cases, and `native/client/tests/scenery.rs` checks that every tree kind's stump row is its trunk cut at the biome's height. That test was falsified once (stump cut 10 % high).
+  - Clippy `-D warnings` and `cargo fmt --check` are clean.
+  - The web typecheck and oxlint are clean, and 8 affected web test files pass (48 tests).
+  - `native-parity-capture` passes on both scenes.
+
+### Code
+
+Net lines, comments and blanks excluded:
+
+| | Rust | TypeScript and JS |
+| --- | --- | --- |
+| Production | +533 −57 in-module tests = **+476**: native `scenery.rs` 240, `ground/kinds.rs` 119, the rest the wiring (the replay's ground and scenery, the passes, the counts) | **−75** (TS +43 −119, TSX +1) |
+| Tests | +109 (`kinds.rs` cases, `tests/scenery.rs`) | −29 (`felled.test.ts`); the capture scene's check +5 |
+
+Generated: `records.gen.ts` (one comment). Docs: the native client's and `presentation-wasm`'s READMEs.
+
+### Decisions
+
+- **The scenery facts and the stump moved to Rust, browser first**, rather than being ported a second time into the native client. Each renderer still packs a bundle's tier into its own vertex (`tierMesh`, `tier_mesh`), as each packs models.
+- **A tree is a biome species** in Rust. The page used the catalog's `scenery: "tree"`; the two agree on every kind.
+- **The page's scenery art is the world layers' `scenery`** (the biome's appearances), handed with the ground. It is no longer whatever `setBuildings` was given.
+- **Native shares a kind's tiers across its rows.** The browser uploads them once per row: up to five copies of each kind.
+- **Native draws the scenery from the frame's instance buffer.** It keeps no buffer per batch key. That is right for the replay, which resends the statics on every drawn frame. A live client needs per-key buffers, as the buildings do (step 4's decision).
+- **The cleared ground is still handed back by the renderer** (20b step 4's decision; the lab can hide it). Native's replay does what the page does. Folding it into `Presentation` with a "shown" switch would remove that round trip from both clients.
+
+### Next pickup
+
+- Merge `props20b` when it lands and draw the props' batches. The model layer already loads any static row, and the critique's differences are all props.
+- Then step 8's gates: plates, counts and performance on both scenes in a release build.

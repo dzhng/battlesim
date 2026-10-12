@@ -19,8 +19,8 @@
 //   shrinks each piece to nothing as it nears a few pixels. A piece is drawn
 //   from both sides: a frond is one sheet.
 // - A tree the side knows has fallen is drawn apart, tipped about its
-//   stump's top on the clock, then lying, pressed flat, its stump (cut here
-//   from its trunk) standing where it grew.
+//   stump's top on the clock, then lying, pressed flat, its stump (the
+//   presentation's mesh, cut from its trunk) standing where it grew.
 //
 // Foliage adds leaf clumps per pixel (3D value noise bending the normal and
 // darkening the gaps, in the tree's own space so it never swims), fading to
@@ -31,7 +31,7 @@ import { VERTEX_FLOATS, type Mesh } from "../mesh";
 import { typegpuCameraLayout } from "../world/camera";
 import { battleWorldDepth } from "../worldDepth";
 import type { WorldScenery } from "../scene";
-import { KICK_RADII, stumpMesh, tierMesh } from "../scenery/appearance";
+import { KICK_RADII, tierMesh } from "../scenery/appearance";
 import type { EnvironmentFrame } from "./environmentFrame";
 import type { FogVisibility } from "./fogVisibility";
 import { fogCoverage, fogTerm } from "./fogTerm";
@@ -46,8 +46,9 @@ const FOREST = 1,
   UNDERSTOREY = 2,
   BACKDROP = 3,
   DRESSING = 4,
-  FELLED = 5,
-  STUMP = 6;
+  FELLED = 5;
+/** A felled tree's stump: one mesh, the presentation's (`stump_mesh`). */
+export const STUMP = 6;
 const POPULATIONS = ["forest", "understorey", "backdrop", "dressing", "felled", "stumps"] as const;
 const TIER_COUNT = 4;
 const CAST = 1;
@@ -576,10 +577,9 @@ export async function createSceneryLayer(
         buffer: scope!.own(vertexBuffer(root, mesh)),
         vertices: mesh.length / VERTEX_FLOATS,
       });
-      const tiers =
-        row.draws === STUMP
-          ? [own(stumpMesh(tierMesh(bundle, 0), given.felled.stump_height_m, given.felled.cut))]
-          : Array.from({ length: TIER_COUNT }, (_, t) => own(tierMesh(bundle, t)));
+      const tiers = row.stump
+        ? [own(row.stump)]
+        : Array.from({ length: TIER_COUNT }, (_, t) => own(tierMesh(bundle, t)));
       return { draws: row.draws, kind: kinds.indexOf(row.name), meshes: tiers };
     });
   }
@@ -608,8 +608,7 @@ export async function createSceneryLayer(
   }
 
   return {
-    /** The scenery's art: the appearances its rows name and how a felled
-     *  tree's stump is cut; `null` draws none. */
+    /** The scenery's art: the appearances its rows name; `null` draws none. */
     set(next: WorldScenery | null) {
       given = next;
       rebuild();

@@ -40,13 +40,15 @@ import {
   type SceneBuildings,
 } from "@packages/battle-renderer/src/models/buildingReferences";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
-import type { StaticBundle } from "@packages/scene-assets/src/schema";
 import {
   setGround,
   type GroundInput,
   type PresentedGround,
 } from "@packages/battle-renderer/src/terrain/terrainSurface";
-import { sceneryFacts } from "@packages/battle-renderer/src/scenery/appearance";
+import { tierMesh } from "@packages/battle-renderer/src/scenery/appearance";
+import { concatMeshes, type Mesh } from "@packages/battle-renderer/src/mesh";
+import { STUMP } from "@packages/battle-renderer/src/frame/sceneryLayer";
+import type { WorldScenery } from "@packages/battle-renderer/src/scene";
 import {
   NO_SCENERY_WALK,
   type SceneryWalkStats,
@@ -165,6 +167,8 @@ export interface PresentedAppearance {
   placed: boolean;
   /** What draws it (`Appearance.draws`): 0 a model or kit module, else the scenery. */
   draws: number;
+  /** A felled tree's stump row's mesh (`draws` 6; `Presentation::stump_mesh`). */
+  stump?: Mesh;
 }
 
 const buffer = () => memory!.buffer;
@@ -315,7 +319,9 @@ export class ObservationDecoder {
   /** The ground staged, the one set, and the scenery's art it was placed by. */
   private staged: GroundInput | null = null;
   private groundSet: GroundInput | null = null;
-  private placedBy: InstalledAppearances | null = null;
+  /** The art the staged ground's scenery draws, and the art it was placed by. */
+  private sceneryArt: WorldScenery | null = null;
+  private placedBy: WorldScenery | null = null;
   /** The ground the page reads tables from, new with each ground set. */
   private presented: PresentedGround | null = null;
   /** The cleared ground last handed over: the view and its count. */
@@ -399,16 +405,24 @@ export class ObservationDecoder {
     const text = new TextDecoder();
     const rows = views.appearances.u32;
     const name = (at: number, len: number) => text.decode(views.strings.subarray(at, at + len));
-    return (this.rows = Array.from({ length: views.appearances.count }, (_, r) => {
-      const o = r * APPEARANCE_WORDS;
-      return {
-        name: name(rows[o + Appearance.name], rows[o + Appearance.name_len]),
-        state: name(rows[o + Appearance.state], rows[o + Appearance.state_len]),
-        lies: rows[o + Appearance.lies],
-        placed: rows[o + Appearance.placed] === 1,
-        draws: rows[o + Appearance.draws],
-      };
-    }));
+    const loaded: PresentedAppearance[] = Array.from(
+      { length: views.appearances.count },
+      (_, r) => {
+        const o = r * APPEARANCE_WORDS;
+        return {
+          name: name(rows[o + Appearance.name], rows[o + Appearance.name_len]),
+          state: name(rows[o + Appearance.state], rows[o + Appearance.state_len]),
+          lies: rows[o + Appearance.lies],
+          placed: rows[o + Appearance.placed] === 1,
+          draws: rows[o + Appearance.draws],
+        };
+      },
+    );
+    // After the views: each call may grow memory.
+    loaded.forEach((row, r) => {
+      if (row.draws === STUMP) row.stump = this.rust.stump_mesh(r) as Mesh;
+    });
+    return (this.rows = loaded);
   }
 
   /** Stage what the battle draws (null: none); loaded with the rest by the
@@ -431,7 +445,6 @@ export class ObservationDecoder {
   ) {
     if (installed !== this.installed) {
       this.installed = installed;
-      if (this.staged && installed !== this.placedBy) this.stale = true;
       const next = buildingArt(installed);
       const art = this.art;
       const same =
@@ -453,12 +466,13 @@ export class ObservationDecoder {
     [this.buildings, this.style, this.sun] = [buildings, style, sun];
   }
 
-  /** Stage the scene's ground (null: none), its scenery drawn from
-   *  the art `setBuildings` was given: set, placed and loaded with the rest
-   *  by the next frame when either is another. Cheap when nothing changed:
-   *  call every frame. */
-  setGround(ground: GroundInput | null) {
+  /** Stage the scene's ground (null: none) and the art its scenery draws
+   *  (`WorldLayers.scenery`; null: none placed): set, placed and loaded with
+   *  the rest by the next frame when either is another. Cheap when nothing
+   *  changed: call every frame. */
+  setGround(ground: GroundInput | null, scenery: WorldScenery | null) {
     if (ground !== this.staged) [this.staged, this.stale] = [ground, true];
+    if (scenery !== this.sceneryArt) [this.sceneryArt, this.stale] = [scenery, true];
   }
 
   /** The ground the scene's presentation resolved, for the terrain, the
@@ -496,7 +510,7 @@ export class ObservationDecoder {
     };
   }
 
-  /** Sets the staged ground and places its scenery once `installed` holds
+  /** Sets the staged ground and places its scenery once its art holds
    *  every appearance it names. */
   private loadGround() {
     const ground = this.staged;
@@ -509,20 +523,17 @@ export class ObservationDecoder {
         this.presented = groundOf(this.rust);
       }
     }
-    const installed = this.installed;
-    if (!ground || !installed || installed === this.placedBy) return;
+    const art = this.sceneryArt;
+    if (!ground || !art || art === this.placedBy) return;
     const kinds = JSON.parse(this.rust.scenery_kinds()) as string[];
-    const entries = kinds.map((name) => installed.appearances.get(name));
-    if (!entries.every((e) => e?.bundle.kind === "static")) return;
-    const hinge = ground.biome.trees.felled.stump_height_m;
+    const bundles = kinds.map((name) => art.appearances.get(name));
+    if (!bundles.every((b) => b !== undefined)) return;
+    const finest = bundles.map((b) => tierMesh(b!, 0));
     this.rust.place_scenery(
-      Float64Array.from(
-        entries.flatMap((e) =>
-          sceneryFacts(e!.bundle as StaticBundle, e!.scenery === "tree", hinge),
-        ),
-      ),
+      concatMeshes(finest),
+      Uint32Array.from(finest, (m) => m.length),
     );
-    this.placedBy = installed;
+    this.placedBy = art;
   }
 
   /** Load what is staged: the battle, the buildings and the ground, in one world. */

@@ -26,8 +26,9 @@ world layout, the biome file and the map's region), whose terrain and grass GPU
 tables (`ground_terrain`; `grass_params` over the grass kinds' shapes, which
 `GrassShapes` packs from their bundles' tiers) and water mesh the page reads
 once, and each frame's grass window (`grass_window`). Its scenery
-(`place_scenery`, from the renderer's facts about each kind's mesh) the frames'
-static batches carry, with the buildings'. The player's scenery settings
+(`place_scenery`, given each kind's finest mesh, off which Rust reads its size,
+a tree's trunk and crown, and its stump, `stump_mesh`) the frames' static
+batches carry, with the buildings'. The player's scenery settings
 (`set_scenery_quality`) and the ground the side has seen cleared (`set_cleared`)
 are its inputs. Its `ground_` probes (`ground_distances` and the like) serve the
 ground scenes; no frame reads them. The ground's other meshes (terrain, skirt,

@@ -905,7 +905,8 @@ export function LabViewport({
                 staticStyle,
                 staticSun,
               );
-              decoder.setGround(worldRef.current.current?.terrain.input ?? null);
+              const layers = worldRef.current.current;
+              decoder.setGround(layers?.terrain.input ?? null, layers?.scenery ?? null);
               if (resend) decoder.resendStatics();
               resend = false;
               const quality = qualityRef.current;

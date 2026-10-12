@@ -11,9 +11,8 @@ use presentation::static_world::ground::grass::{
     PackedShapes, Quality, TierMesh, Window, FIELD_SEGMENTS, LIMITS,
 };
 use presentation::static_world::ground::mesh;
-use presentation::static_world::ground::scenery::Size;
 use presentation::static_world::ground::tables::{Grid, TerrainTables};
-use presentation::static_world::ground::walk::{Cleared, Quality as SceneryQuality, Trunk};
+use presentation::static_world::ground::walk::{Cleared, Quality as SceneryQuality};
 use presentation::static_world::ground::{self, biome::Biome, Ground, Source, Tuning};
 use serde::Deserialize;
 use wasm_bindgen::prelude::*;
@@ -191,27 +190,26 @@ impl Presentation {
         Ok(serde_json::to_string(&ground(&self.inner)?.scenery_kinds()).unwrap())
     }
 
-    /// Places the ground's scenery, its kinds (`scenery_kinds`) given four
-    /// numbers each: height, reach, and for a tree its trunk's radius at the
-    /// stump's top and where its leaves begin (zeros for any other); drawn
-    /// from the next `load_world`.
-    pub fn place_scenery(&mut self, kinds: &[f64]) -> Result<(), JsError> {
-        let kinds = kinds.as_chunks::<4>().0;
-        let sizes = kinds
+    /// Places the ground's scenery, given each of its kinds' (`scenery_kinds`)
+    /// finest tier in the renderer's world vertex, one after another,
+    /// `floats` floats each; drawn from the next `load_world`.
+    pub fn place_scenery(&mut self, meshes: &[f32], floats: &[u32]) -> Result<(), JsError> {
+        let mut at = 0;
+        let finest: Vec<&[f32]> = floats
             .iter()
-            .map(|k| Size {
-                height: k[0],
-                radius: k[1],
+            .map(|&n| {
+                let mesh = &meshes[at..at + n as usize];
+                at += n as usize;
+                mesh
             })
             .collect();
-        let trunks = kinds
-            .iter()
-            .map(|k| Trunk {
-                radius: k[2],
-                crown: k[3],
-            })
-            .collect();
-        self.inner.place_scenery(sizes, trunks).map_err(error)
+        self.inner.place_scenery(&finest).map_err(error)
+    }
+
+    /// A felled tree's stump mesh for `World.appearances` row `row` (its
+    /// `draws` 6), in the renderer's world vertex; none for any other row.
+    pub fn stump_mesh(&self, row: u32) -> Option<Vec<f32>> {
+        self.inner.stump_mesh(row).map(<[f32]>::to_vec)
     }
 
     /// The player's scenery settings: the trees' tier thresholds over the

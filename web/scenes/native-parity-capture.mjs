@@ -165,6 +165,13 @@ export async function run(ctx) {
     const scenery = parsed.instanceCounts.map((c) =>
       ["forest", "understorey", "backdrop", "dressing"].map((p) => sum(c.scenery[p])).join("/"),
     );
+    // Every reel map has scenery, at least past its edge: a scene that drew
+    // none placed none (its art never reached the presentation).
+    ctx.check(
+      `${map}: the scenery is drawn`,
+      parsed.instanceCounts.some((c) => sum(Object.values(c.scenery).flat()) > 0),
+      `forest/understorey/backdrop/dressing per plate ${scenery.join(", ")}`,
+    );
     const posed = parsed.modelCounts.map((c) =>
       [c.soldiers, c.vehicles, c.aircraft, c.corpses, c.fading].join("/"),
     );
