@@ -18,6 +18,7 @@ import type { UploadedTables } from "@packages/battle-renderer/src/frame/wordTab
 import { createReelRun, type ReelPlate, type ReelResult } from "../benchmark/reelRun";
 import { createReelReport, type ReelReport } from "../benchmark/reelReport";
 import { FrameChart } from "../benchmark/FrameChart";
+import { graphicsProfiles, type GraphicsTier } from "../graphicsSettings";
 
 const scenes = validateBackdrop(MENU_REEL_WORKLOAD, listMaps()).scenes;
 // The rig films every scene's closest framing, however few scenes run.
@@ -71,6 +72,10 @@ export default function GraphicsTest() {
   const [params] = useSearchParams();
   const [chosen] = useState(() => chooseScenes(params.get("scenes")));
   const [plates] = useState(() => params.get("plates") === "1");
+  const [quality] = useState<GraphicsTier | undefined>(() => {
+    const value = params.get("quality");
+    return value === "low" || value === "medium" || value === "high" ? value : undefined;
+  });
   const [stage, setStage] = useState<"ready" | "running" | "results">("ready");
   const [results, setResults] = useState<ReelResult[]>([]);
   const [failure, setFailure] = useState<string | null>(null);
@@ -122,6 +127,7 @@ export default function GraphicsTest() {
         key={results.length}
         scene={run[results.length]}
         plates={plates}
+        quality={quality}
         onDone={done}
         onFailure={(reason) => {
           setFailure(reason);
@@ -189,11 +195,13 @@ export default function GraphicsTest() {
 function ReelScene({
   scene,
   plates,
+  quality,
   onDone,
   onFailure,
 }: {
   scene: BackdropScene;
   plates: boolean;
+  quality?: GraphicsTier;
   onDone: (r: ReelResult) => void;
   onFailure: (reason: string) => void;
 }) {
@@ -207,18 +215,22 @@ function ReelScene({
     if (error) onFailure(error);
   }, [error, onFailure]);
   if (!built || buildFailed(built)) return null;
-  return <ReelBattle scene={scene} scenario={built} plates={plates} onDone={onDone} />;
+  return (
+    <ReelBattle scene={scene} scenario={built} plates={plates} quality={quality} onDone={onDone} />
+  );
 }
 
 function ReelBattle({
   scene,
   scenario,
   plates,
+  quality,
   onDone,
 }: {
   scene: BackdropScene;
   scenario: string;
   plates: boolean;
+  quality?: GraphicsTier;
   onDone: (r: ReelResult) => void;
 }) {
   const veil = useRef<HTMLDivElement>(null);
@@ -277,6 +289,7 @@ function ReelBattle({
         onReady={session.onReady}
         pilot={pilot}
         cameraConfig={cameraConfig}
+        quality={quality ? graphicsProfiles[quality] : undefined}
       />
       <div className="menu-backdrop-veil" ref={veil} style={{ opacity: 1 }} />
       <div role="status" className="bench-progress graphics-test-progress">
