@@ -26,3 +26,5 @@ pub mod scenario;
 pub mod skirmish;
 pub mod templates;
 pub mod weapons;
+
+pub mod script;

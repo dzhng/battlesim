@@ -2,11 +2,11 @@
 
 ## Status and next pickup
 
-**Status:** slices 00, 00b, and 01 are complete; offline admission is next. The exploration and write-spec interviews are closed.
+**Status:** slices 00, 00b, 01, and 05 are complete; offline admission is next. The exploration and write-spec interviews are closed.
 
 **Updated:** 2026-10-11.
 
-**Next pickup:** implement [`slices/02-offline-admission.md`](slices/02-offline-admission.md). Make an uploaded canonical bundle construct the normal prepared world without fixture or generator lookup. Slice 01 froze canonical JSON as the portable container, with embedded user bytes and hash-checked asset records. Slice 00's disposable probe proved that arbitrary side counts are a cross-owner rewrite; keep the production model at Blue, Red, and passive Neutral for this feature. Update this section before ending every pass.
+**Next pickup:** implement [`slices/02-offline-admission.md`](slices/02-offline-admission.md). Make an uploaded canonical bundle construct the normal prepared world without fixture or generator lookup. Slice 01 froze canonical JSON as the portable container, with embedded user bytes and hash-checked asset records. Slice 05 froze the deterministic script language and host API before builder fields are exposed. Slice 00's disposable probe proved that arbitrary side counts are a cross-owner rewrite; keep the production model at Blue, Red, and passive Neutral for this feature. Update this section before ending every pass.
 
 **Topology verdict (2026-10-11):** keep a fixed Blue/Red/Neutral model for this feature. The probe ran the real scenario → Battle → observation/replay path, then added a disposable Neutral variant and the minimum compile adaptations. `sim` compiled only after changing side-owned arrays in movement/route planning; a Neutral battle then panicked at `battle.rs:2448` indexing fixed-two sightings. The inventory found 172 side-indexed/fixed-two owners before the browser UI, plus fixed skirmish/objective/publication assumptions. Arbitrary FFA is deferred; no dynamic-side compatibility layer is carried forward.
 
@@ -110,7 +110,7 @@ Any slice that produces a visual shot must:
 - [ ] Prove offline map/catalog/audio admission — [`slices/02-offline-admission.md`](slices/02-offline-admission.md).
 - [ ] Materialize player-slot ownership — [`slices/03-player-slots.md`](slices/03-player-slots.md).
 - [ ] Implement active/passive controllers and deterministic takeover — [`slices/04-controllers.md`](slices/04-controllers.md).
-- [ ] Freeze and prove the authored-code sandbox — [`slices/05-script-sandbox.md`](slices/05-script-sandbox.md).
+- [x] Freeze and prove the authored-code sandbox — [`slices/05-script-sandbox.md`](slices/05-script-sandbox.md).
 - [ ] Integrate Sandbox/Economy and script-defined victory — [`slices/06-modes-and-victory.md`](slices/06-modes-and-victory.md).
 - [ ] Build the tactical canvas and explicit file I/O — [`slices/07-builder-canvas.md`](slices/07-builder-canvas.md).
 - [ ] Add normal upload/play and embedded media playback — [`slices/08-runtime-upload-play.md`](slices/08-runtime-upload-play.md).
