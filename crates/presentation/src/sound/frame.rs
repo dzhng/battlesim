@@ -43,7 +43,7 @@ use serde::{Deserialize, Serialize};
 use sim::publication::reader::{Shout as PublishedShout, SoundCue};
 
 use super::tables::{pick, Bus, SoundTables, VehicleSound};
-use super::voices::{Request, Speakers, LINE_GAIN};
+use super::voices::{Request, Speakers};
 use crate::effects::cook_off::CookOffFeel;
 use crate::effects::launches::Launch;
 use crate::effects::publication::EffectPublication;
@@ -1067,7 +1067,7 @@ impl Sound {
             let Some(bark) = self.speakers.bark(s, at) else {
                 continue;
             };
-            if self.level(LINE_GAIN, Some(&s.position)) >= p.distance.cull {
+            if self.level(p.voices.gain, Some(&s.position)) >= p.distance.cull {
                 self.barks.push(bark);
             }
         }

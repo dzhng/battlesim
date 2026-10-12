@@ -1041,7 +1041,7 @@
         "crossfade_s": 4,
         "combat_triggers": ["under_fire", "suppressed", "pinned", "hit", "man_down"]
       },
-      "voices": { "lines": 4, "wait_s": 1, "group_s": 0.25 },
+      "voices": { "lines": 4, "wait_s": 1, "group_s": 0.25, "gain": 0.5 },
       "cues": {
         "sounds": {
           "shot": "cue_gunfire",

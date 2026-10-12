@@ -31,8 +31,6 @@ use super::tables::Bus;
 use crate::seed::{hash_string, js_number, Mulberry32};
 use crate::world::Vec3;
 
-/// A line's level on the voices bus, before the calibration every take gets.
-pub const LINE_GAIN: f64 = 0.5;
 /// A line plays dry: no low-pass short of the top of hearing.
 const OPEN_HZ: f64 = 20_000.0;
 /// The takes a line may be recorded in.
@@ -48,17 +46,16 @@ pub struct ChatterRules {
     pub wait_s: f64,
     /// Seconds within which requests sharing a group key collapse to the first.
     pub group_s: f64,
+    /// A line's level on the voices bus, before the calibration every take gets.
+    pub gain: f64,
 }
 
 impl ChatterRules {
     pub fn check(&self) -> Result<(), String> {
-        if self.lines >= 1 && self.wait_s >= 0.0 && self.group_s >= 0.0 {
+        if self.lines >= 1 && self.wait_s >= 0.0 && self.group_s >= 0.0 && self.gain > 0.0 {
             Ok(())
         } else {
-            Err(
-                "presentation.audio.voices: lines a whole number from 1, wait_s and group_s ≥ 0"
-                    .into(),
-            )
+            Err("presentation.audio.voices: lines a whole number from 1, wait_s and group_s ≥ 0, gain > 0".into())
         }
     }
 }
@@ -375,7 +372,7 @@ impl Chatter {
                     variant: take,
                     bus: Bus::Voices,
                     at: now,
-                    gain: LINE_GAIN,
+                    gain: self.rules.gain,
                     rate: 1.0,
                     lowpass: OPEN_HZ,
                     wet: 0.0,

@@ -150,11 +150,12 @@ export function validateAudio(p: AudioPresentation): AudioPresentation {
       Number.isInteger(voices?.lines) &&
       voices.lines >= 1 &&
       voices.wait_s >= 0 &&
-      voices.group_s >= 0
+      voices.group_s >= 0 &&
+      voices.gain > 0
     )
   )
     throw new Error(
-      "presentation.audio.voices: lines a whole number from 1, wait_s and group_s ≥ 0",
+      "presentation.audio.voices: lines a whole number from 1, wait_s and group_s ≥ 0, gain > 0",
     );
   return p;
 }

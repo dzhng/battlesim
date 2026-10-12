@@ -14,7 +14,7 @@ import { Chatter, type VoiceRequest } from "@packages/battle-audio/src/voices/ch
 
 beforeAll(() => loadPresentation());
 
-const RULES = { lines: 1, wait_s: 1, group_s: 0.25 };
+const RULES = { lines: 1, wait_s: 1, group_s: 0.25, gain: 0.5 };
 
 /** A chatter that knows one set: a leader who answers and a soldier who shouts, every take 0.5 s. */
 function crew() {

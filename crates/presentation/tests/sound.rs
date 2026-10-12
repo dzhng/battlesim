@@ -16,7 +16,7 @@ use presentation::sound::frame::{
 };
 use presentation::sound::synth;
 use presentation::sound::tables::{Bus, SoundTables};
-use presentation::sound::voices::{Chatter, Request, SetVoice, Speakers, Speaks, Tier, LINE_GAIN};
+use presentation::sound::voices::{Chatter, Request, SetVoice, Speakers, Speaks, Tier};
 use serde_json::{json, Value};
 
 fn fixture(name: &str) -> Value {
@@ -533,8 +533,9 @@ fn a_bark_is_spoken_where_it_was_shouted_and_an_answer_stays_dry() {
         voice.clone()
     };
     let (dry, near, far) = (voice("own/5"), voice("own/1"), voice("own/2"));
+    let level = s.tables().audio.voices.gain;
     assert!(
-        dry.position.is_none() && dry.pan.is_none() && dry.wet == 0.0 && dry.gain == LINE_GAIN,
+        dry.position.is_none() && dry.pan.is_none() && dry.wet == 0.0 && dry.gain == level,
         "an answer is the owner's radio: {dry:?}"
     );
     assert_eq!(near.position, Some([20.0, 0.0, 0.0]));
@@ -543,9 +544,9 @@ fn a_bark_is_spoken_where_it_was_shouted_and_an_answer_stays_dry() {
         assert_eq!(v.bus, Bus::Voices);
     }
     // Farther is quieter, duller and wetter, by the unit sounds' own curves.
-    assert!(LINE_GAIN > near.gain && near.gain > far.gain);
+    assert!(level > near.gain && near.gain > far.gain);
     let floor = s.tables().audio.distance.floor;
-    assert!(far.gain >= LINE_GAIN * floor);
+    assert!(far.gain >= level * floor);
     assert!(near.lowpass > far.lowpass && near.wet < far.wet);
 }
 

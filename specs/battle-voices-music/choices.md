@@ -6,7 +6,7 @@ This is the final ledger of the decisions behind the feature, checked against th
 - **territory**: the code or a live probe settled it.
 - **agent**: an agent decided on the user's behalf. The entry names the preference it relied on.
 
-The agent entries are grouped by verdict: needs-user, then unsound, then sound. Within each group the least confident comes first. "Confidence" means how sure the audit is that the user would have made the same call. The code is the reference for the how, and each entry points to it.
+The agent entries are grouped by verdict: needs-user, then unsound (each since fixed), then sound. Within each group the least confident comes first. "Confidence" means how sure the audit is that the user would have made the same call. The code is the reference for the how, and each entry points to it.
 
 **Review these first:** [N1](#n1-the-six-generated-tracks-play-in-battle-without-a-recorded-listen) (the score plays in battle without a recorded listen), [N2](#n2-the-scores-mood-logic-stays-in-typescript) (the score's mood logic stays in TypeScript while every other sound decision is Rust's), and [S1](#s1-a-misread-under-the-04-word-error-line-ships-unless-a-person-catches-it) (a misread that passes speech-to-text ships without anyone hearing it).
 
@@ -88,17 +88,17 @@ Suppose a native client plays a battle. Rust tells it which barks, cues and line
 - **Reach:** a native client gets no adaptive score without porting the director. Any new music rule (intensity layers, a victory sting) lands in TypeScript by imitation.
 - **Provisional call:** keep it in TypeScript until a native client needs music. Then move the music section's typed reading and `MusicDirector` into `crates/presentation/src/sound/` together, and leave TypeScript only the `MusicPlayer` streaming.
 
-## Unsound
+## Unsound, since fixed
 
-### X1. A line's level is a code constant, not data
+### X1. A line's level is data, beside the other line rules
 
-_Agent, slices 10 and 09b · confidence medium_
+_Agent, slices 10 and 09b · confidence medium · unsound at audit, fixed · now sound_
 
-Suppose a playtest finds every voice line a little too loud against gunfire. The tuner opens `fixtures/game.json` → `presentation.audio.voices` and finds `lines: 4`, `wait_s: 1` and `group_s: 0.25`, but no level. The level is `LINE_GAIN = 0.5`, a `const` in `crates/presentation/src/sound/voices.rs`, used for answers, for barks, and for the distance cull of heard shouts. It became a constant in slice 10 because the TypeScript file meant to hold it was about to move into Rust. That reason expired when 09b moved Chatter into Rust and gave `presentation.audio.voices` a typed reader (`ChatterRules`).
+Suppose a playtest finds every voice line a little too loud against gunfire. At the audit, the tuner opened `fixtures/game.json` → `presentation.audio.voices` and found `lines`, `wait_s` and `group_s`, but no level: that was a `const LINE_GAIN = 0.5` in `crates/presentation/src/sound/voices.rs`, used for answers, for barks, and for the distance cull of heard shouts. It became a constant in slice 10 because the TypeScript file meant to hold it was about to move into Rust. That reason expired when 09b moved Chatter into Rust and gave `presentation.audio.voices` a typed reader (`ChatterRules`).
 
 - **Gap:** slice 10 left the line level unplaced while the move to Rust was pending.
-- **Reach:** every voice tuning pass. It is the one voice number a tuner can't find in the data.
-- **Corrected decision:** the line level is a field of `presentation.audio.voices` (`ChatterRules`), like the other line rules. It is read wherever `LINE_GAIN` is today.
+- **Reach:** every voice tuning pass. It was the one voice number a tuner couldn't find in the data.
+- **Fix:** the level is `gain` in `presentation.audio.voices` (`"gain": 0.5`), a field of `ChatterRules` in Rust and TypeScript, and both readers refuse a rules object without a positive gain. Chatter's start command and the frame's cull of heard shouts read it from the rules; the constant is gone. Outcomes are unchanged: the recorded chatter vectors carry the same 0.5 and still match line for line.
 
 ## Sound
 

@@ -41,6 +41,8 @@ export interface ChatterRules {
   wait_s: number;
   /** Seconds within which requests sharing a group key collapse to the first. */
   group_s: number;
+  /** A line's level on the voices bus, before the calibration every take gets. */
+  gain: number;
 }
 
 /** A line to start on the voices bus: take `variant` of `sound`

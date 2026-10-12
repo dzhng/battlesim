@@ -10,7 +10,7 @@
 //! chatter preview.
 use presentation::sound::frame::Command;
 use presentation::sound::tables::Bus;
-use presentation::sound::voices::{line_sound, Chatter, ChatterRules, Request, LINE_GAIN};
+use presentation::sound::voices::{line_sound, Chatter, ChatterRules, Request};
 use serde_json::{json, Value};
 
 /// `v` with every number as a float, so `0` and `0.0` compare equal and
@@ -32,6 +32,7 @@ fn every_line_equals_the_recorded_vectors() {
     for case in v["cases"].as_array().unwrap() {
         let name = case["name"].as_str().unwrap();
         let rules: ChatterRules = serde_json::from_value(case["rules"].clone()).unwrap();
+        let gain = rules.gain;
         let mut chatter = Chatter::new(rules, case["seed"].as_f64().unwrap());
         for (set, voices) in case["voices"].as_object().unwrap() {
             chatter.set_voices(set, serde_json::from_value(voices.clone()).unwrap());
@@ -100,7 +101,7 @@ fn every_line_equals_the_recorded_vectors() {
                     );
                     assert_eq!(
                         (voice.variant, voice.bus, voice.at, voice.gain),
-                        (s.take, Bus::Voices, s.at, LINE_GAIN)
+                        (s.take, Bus::Voices, s.at, gain)
                     );
                     assert!(voice.position.is_none() && voice.pan.is_none() && !voice.looping);
                 }
@@ -118,11 +119,28 @@ fn every_line_equals_the_recorded_vectors() {
 #[test]
 fn rules_out_of_range_are_refused() {
     for rules in [
-        json!({ "lines": 0, "wait_s": 1, "group_s": 0.25 }),
-        json!({ "lines": 4, "wait_s": -1, "group_s": 0.25 }),
-        json!({ "lines": 4, "wait_s": 1, "group_s": -0.25 }),
+        json!({ "lines": 0, "wait_s": 1, "group_s": 0.25, "gain": 0.5 }),
+        json!({ "lines": 4, "wait_s": -1, "group_s": 0.25, "gain": 0.5 }),
+        json!({ "lines": 4, "wait_s": 1, "group_s": -0.25, "gain": 0.5 }),
     ] {
         let rules: ChatterRules = serde_json::from_value(rules).unwrap();
         assert!(rules.check().is_err(), "{rules:?}");
+    }
+}
+
+#[test]
+fn rules_without_a_positive_gain_are_refused() {
+    let rules = |gain: Value| {
+        let mut r = json!({ "lines": 4, "wait_s": 1, "group_s": 0.25 });
+        if !gain.is_null() {
+            r["gain"] = gain;
+        }
+        serde_json::from_value::<ChatterRules>(r)
+            .map_err(|e| e.to_string())?
+            .check()
+    };
+    assert!(rules(json!(0.5)).is_ok());
+    for gain in [Value::Null, json!(0.0), json!(-0.5)] {
+        assert!(rules(gain.clone()).is_err(), "gain {gain}");
     }
 }
