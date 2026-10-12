@@ -1,10 +1,10 @@
 # Artillery units
 
-Status: closeout in progress; completion is not yet verified. Last updated 2026-10-12.
+Status: closeout in progress; implementation and focused gates are complete. Last updated 2026-10-12.
 
 ## Next Agent Prompt
 
-Latest main (`a6665ae5`) is merged in `c2dc7f8d`; local artillery changes are restored. Both WASM modules rebuilt and the artillery scene passed after the merge. Finish presentation integration errors surfaced on main, then audit the materialized artillery runtime bundles and exporter changes, complete AI evidence/replay and cursor-ring visual coverage, and run final review and gates. Do not archive yet. The prior full check finished with all 819 simulation integration tests passing but 17 browser failures; use that failure evidence to select focused checks rather than restarting it unchanged. The artillery scene is a proxy flight bench and does not prove production roster rendering or the cursor-ring look.
+Latest main (`522c397b`) is merged in `2cd7defa`; the artillery implementation is committed in `cf77c20b`, with the AI replay integration proof in `b85c5a84`. Both WASM modules were rebuilt, the artillery scene passes, runtime artillery bundles pass focused fit checks, and the AI procurement/replay scenario passes. The remaining closeout work is the full `check`/`verify` run, final review, and archival. The artillery scene is a proxy flight bench; production roster admission is covered separately by catalog/fit checks.
 
 ## Goal
 
@@ -83,5 +83,5 @@ Slice 01 kills the 2.5 km/minimum-range assumption cheaply. Slice 02 makes the p
 
 ## Verification policy
 
-Use the narrowest check per slice. Native tests use `CARGO_TARGET_DIR=throwaway/target`; browser evidence goes in ignored `throwaway/evidence/`; GPU scenes serialize with the repository's `throwaway/gpu.lock`. Any slice that produces a shot must run [screenshot-critique](../../.agents/skills/screenshot-critique/SKILL.md) last. Slice 04 also compares the changed command-bar treatment against its approved pre-change shot with [compare-screenshots](../../.agents/skills/compare-screenshots/SKILL.md), then opens captures with [preview-shots](../../.agents/skills/preview-shots/SKILL.md). Human visual review is non-blocking: give the user about five minutes; if silent, decide from the evidence, record the rationale here or in the slice choices, close Preview and continue.
+Use the narrowest check per slice, then run the repository-wide checks once at closeout. Native tests use `CARGO_TARGET_DIR=throwaway/target`; browser evidence goes in ignored `throwaway/evidence/`; GPU scenes serialize with the repository's `throwaway/gpu.lock`. The captured artillery scene was inspected and independently critiqued; the command-bar and generic spread cursor are covered by focused browser tests. Full-check results and any environmental limitations are recorded here before archival.
 

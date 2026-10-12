@@ -58,6 +58,7 @@ The slice is accepted when the command bar communicates the existing Attack Grou
 The command-bar unit suite passes with an indirect-weapon selection receiving a
 thin inset accent border and a direct-weapon selection retaining the existing
 button. The `artillery` lab route and scene are registered and reuse the
-production flight bench; browser scene execution is blocked in this checkout by
-pre-existing Git LFS runtime bundle pointers.
+production flight bench. The scene passes its ridge-clearance and minimum-range
+checks and its captured frame is retained in ignored evidence; the focused
+browser suite also covers the generic distance-scaled spread cursor.
 

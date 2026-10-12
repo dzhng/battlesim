@@ -45,6 +45,9 @@ The slice is accepted when the AI's command stream can be explained entirely fro
 
 The skirmish policy now procures the `artillery` role, emits ordinary identified
 target attacks, and emits deterministic ground guesses from fresh contacts and
-bounded observed movement. Fourteen focused skirmish-AI tests pass, including
-seed-repeatability and the existing engagement-policy contracts.
+bounded observed movement. Eighteen focused policy tests and twenty-five
+skirmish integration tests pass. The integration scenario also records an AI
+artillery purchase and replays every tick to the same digest; the public policy
+tests cover stale/expired evidence, bounded prediction, objective range checks,
+and engagement gates.
 

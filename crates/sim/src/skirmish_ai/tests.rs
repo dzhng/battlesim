@@ -812,7 +812,7 @@ fn artillery_uses_a_range_checked_public_objective_when_contacts_are_stale() {
     ))
     .is_empty());
     frame.skirmish.as_mut().unwrap().objectives[0].center = [300.0, 300.0];
-    let points = ground_orders(&mut BalancedDoctrine::default().decide(
+    let points = ground_orders(&BalancedDoctrine::default().decide(
         Side::Red,
         Faction::Us,
         &entry,
