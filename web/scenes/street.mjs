@@ -654,6 +654,7 @@ async function soldierTour(ctx) {
   );
 
   // Picking keeps the simulation's boxes: a soldier's torso picks his body's.
+  // The frame's pick records are f32, so his half width is the radius's f32.
   await aim(page, squad.position, { ...SQUAD_FRAMINGS.default, yaw: -Math.PI / 2 });
   await page.evaluate(() => window.__lab.frame());
   const m = squad.members[0];
@@ -663,7 +664,7 @@ async function soldierTour(ctx) {
   ctx.check(
     "clicking a soldier picks his box",
     picked >= 0 &&
-      box.half[0] === game.physics.soldier_radius_m &&
+      box.half[0] === Math.fround(game.physics.soldier_radius_m) &&
       Math.hypot(box.x - m[0], box.y - m[1]) < 1.5,
     JSON.stringify({ picked, box, member: m }),
   );
