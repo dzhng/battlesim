@@ -153,15 +153,21 @@ impl Bank {
                 .iter()
                 .map(|id| (&recordings[id][..], tables.catalog.clips[id].cadence()))
                 .collect();
-            let rate = self.sample_rate;
-            let support = match &recipe.synth {
-                Some(s) => Some(&self.synth(s)?.channels),
-                None => None,
-            };
-            let buffers = compose(recipe, &cores, support.map(|s| &s[..]), rate);
+            let buffers = self.recipe(recipe, &cores)?;
             self.sounds.insert(name, buffers);
         }
         Ok(())
+    }
+
+    /// `recipe`'s alternatives from its recordings `cores` (at this bank's
+    /// rate) and its synthesized support.
+    pub fn recipe(&mut self, recipe: &Recipe, cores: &[Core]) -> Result<Vec<Buffer>, String> {
+        let rate = self.sample_rate;
+        let support = match &recipe.synth {
+            Some(s) => Some(&self.synth(s)?.channels),
+            None => None,
+        };
+        Ok(compose(recipe, cores, support.map(|s| &s[..]), rate))
     }
 
     /// Each prepared sound's alternatives' lengths at rate 1, seconds.
@@ -174,7 +180,7 @@ impl Bank {
 }
 
 /// A recording's channels, and the shots its burst sounds.
-type Core<'a> = (&'a [Vec<f32>], Cadence);
+pub type Core<'a> = (&'a [Vec<f32>], Cadence);
 
 /// A recipe's alternatives: each recording with the synthesized support
 /// under each of its shots (once for a single report), or the support alone;

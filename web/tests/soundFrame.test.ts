@@ -24,7 +24,7 @@ import {
   type VoiceSpec,
   vehicleLoops,
 } from "@packages/battle-audio/src/soundFrame";
-import { synthesize } from "@packages/battle-audio/src/synth";
+import { synthesize } from "@packages/battle-audio/src/soundBank";
 
 const HZ = 30;
 const DT = 1 / HZ;

@@ -1,8 +1,11 @@
-import { SoundBank } from "../../../packages/battle-audio/src/soundBank";
+import {
+  loadSoundModule,
+  SoundBank,
+  sourceNormalization,
+} from "../../../packages/battle-audio/src/soundBank";
 import type { SoundCatalog } from "../../../packages/battle-audio/src/catalog";
 import type { MusicTrack } from "../../../packages/battle-audio/src/music/musicCatalog";
 import { MusicPlayer } from "../../../packages/battle-audio/src/music/musicPlayer";
-import { sourceNormalization } from "../../../packages/battle-audio/src/loudness";
 import type { LineSink, VoiceLine } from "../../../packages/battle-audio/src/voices/chatter";
 
 // A memoryless ceiling preserves safe short attacks; compressor startup can
@@ -98,7 +101,7 @@ export class SoundAuditioner implements Auditioner {
     const controller = (this.controller = new AbortController());
     const context = (this.context = new AudioContext({ latencyHint: "interactive" }));
     try {
-      await context.resume();
+      await Promise.all([context.resume(), loadSoundModule()]);
       const bank = (this.bank = catalog && new SoundBank(context, catalog));
       const prepared = await prepare(bank, controller.signal, context);
       controller.signal.throwIfAborted();

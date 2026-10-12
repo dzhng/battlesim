@@ -282,12 +282,17 @@ async function auditionTour(ctx, page) {
   const modules = [
     "../../apps/sound-workbench/src/audition.ts",
     "../../packages/battle-audio/src/shippedSounds.ts",
-    "../../packages/battle-audio/src/loudness.ts",
+    "../../packages/battle-audio/src/soundBank.ts",
     "../../packages/battle-audio/src/synth.ts",
   ].map((path) => `/@fs${fileURLToPath(new URL(path, import.meta.url))}`);
   const report = await page.evaluate(async (urls) => {
-    const [{ SoundAuditioner }, { gameSounds }, { maxMomentaryLoudness }, { SOUNDS, synthesize }] =
-      await Promise.all(urls.map((url) => import(/* @vite-ignore */ url)));
+    const [
+      { SoundAuditioner },
+      { gameSounds },
+      { loadSoundModule, maxMomentaryLoudness, synthesize },
+      { SOUNDS },
+    ] = await Promise.all(urls.map((url) => import(/* @vite-ignore */ url)));
+    await loadSoundModule();
     const Original = window.AudioContext;
     let context;
     let frames;

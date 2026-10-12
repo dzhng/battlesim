@@ -9,8 +9,10 @@ use std::sync::Arc;
 
 use presentation::presentation::{Ghost, Presentation as Inner, Ui};
 use presentation::records::{FrameHeader, WorldHeader};
+use presentation::sound::bank::{self, Bank, Core};
 use presentation::sound::frame::{self, Command, Listener, Motion, Scripted, Sound};
 use presentation::sound::synth;
+use presentation::sound::tables::{Cadence, Recipe};
 use presentation::static_world::buildings::{Placed, PlacedBuildings};
 use presentation::static_world::fallen::Known;
 use presentation::static_world::library::{Bounds, Library};
@@ -452,12 +454,109 @@ pub fn sector_pan(sector: f64, forward: &[f64]) -> f64 {
     frame::sector_pan(sector, [forward[0], forward[1], forward[2]])
 }
 
-/// The synthesized sound `name` at `sample_rate`: its channels one after
-/// another, each `samples` long.
+/// The synthesized sound `name` at `sample_rate`: its channel count, then
+/// its channels one after another.
 #[wasm_bindgen]
 pub fn synthesize(name: &str, sample_rate: f64) -> Result<Vec<f32>, JsError> {
     let s = synth::synthesize(name, sample_rate).map_err(error)?;
-    Ok(s.channels.concat())
+    Ok([vec![s.channels.len() as f32], s.channels.concat()].concat())
+}
+
+/// `samples` split into channels by `layout` (channels, then frames, per entry).
+fn split(layout: &[u32], samples: &[f32]) -> Vec<Vec<Vec<f32>>> {
+    let mut at = 0;
+    layout
+        .as_chunks::<2>()
+        .0
+        .iter()
+        .map(|&[channels, frames]| {
+            let (channels, frames) = (channels as usize, frames as usize);
+            (0..channels)
+                .map(|_| {
+                    at += frames;
+                    samples[at - frames..at].to_vec()
+                })
+                .collect()
+        })
+        .collect()
+}
+
+/// The loudest K-weighted 100 ms window of one sound (`layout`: its
+/// channels and frames), LUFS.
+#[wasm_bindgen]
+pub fn max_momentary_loudness(layout: &[u32], samples: &[f32], sample_rate: f64) -> f64 {
+    bank::max_momentary_loudness(&split(layout, samples)[0], sample_rate)
+}
+
+/// The gain bringing one sound to the library's reference, times `authored`.
+#[wasm_bindgen]
+pub fn source_normalization(
+    layout: &[u32],
+    samples: &[f32],
+    sample_rate: f64,
+    authored: f64,
+) -> f64 {
+    bank::source_normalization(&split(layout, samples)[0], sample_rate, authored)
+}
+
+/// The page's recipe composer at one sample rate (`sound::bank::Bank`),
+/// keeping the synthesized sounds it has made.
+#[wasm_bindgen]
+pub struct RecipeBank {
+    bank: Bank,
+    normalizations: Vec<f64>,
+}
+
+#[wasm_bindgen]
+impl RecipeBank {
+    #[wasm_bindgen(constructor)]
+    pub fn new(sample_rate: f64) -> RecipeBank {
+        RecipeBank {
+            bank: Bank::new(sample_rate),
+            normalizations: Vec::new(),
+        }
+    }
+
+    /// `recipe`'s (JSON) alternatives from its recordings: each one's
+    /// channels and frames in `layout`, its samples in `samples`, its burst
+    /// (shots, interval) in `cadences`. Out: per alternative, its channel
+    /// count and frames, then its channels; `normalizations` holds each
+    /// one's calibration.
+    pub fn compose(
+        &mut self,
+        recipe: &str,
+        cadences: &[f64],
+        layout: &[u32],
+        samples: &[f32],
+    ) -> Result<Vec<f32>, JsError> {
+        let recipe: Recipe =
+            serde_json::from_str(recipe).map_err(|e| JsError::new(&format!("recipe: {e}")))?;
+        let clips = split(layout, samples);
+        let cores: Vec<Core> = clips
+            .iter()
+            .zip(cadences.as_chunks::<2>().0)
+            .map(|(c, &[shots, interval_s])| {
+                let cadence = Cadence {
+                    shots: shots as usize,
+                    interval_s,
+                };
+                (&c[..], cadence)
+            })
+            .collect();
+        let buffers = self.bank.recipe(&recipe, &cores).map_err(error)?;
+        self.normalizations = buffers.iter().map(|b| b.normalization).collect();
+        let mut out = Vec::new();
+        for b in buffers {
+            out.extend([b.channels.len() as f32, b.channels[0].len() as f32]);
+            out.extend(b.channels.concat());
+        }
+        Ok(out)
+    }
+
+    /// The last composed alternatives' calibrations.
+    pub fn normalizations(&self) -> Vec<f64> {
+        self.normalizations.clone()
+    }
 }
 
 /// Where sound listens for a camera at `eye` looking at `target` with

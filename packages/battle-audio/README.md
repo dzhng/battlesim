@@ -33,7 +33,7 @@ and downloads only when auditioned, so growing it costs a battle nothing. Baseli
 selectable under their original IDs. A recorded recipe has a distinct ID.
 The bank measures each prepared clip or recipe once and keeps a separate source
 calibration gain. Audition and battle playback apply that gain before their authored
-volume controls. The [loudness owner](src/loudness.ts) uses K-weighted maximum short
+volume controls. The calibration ([`sound::bank`](../../crates/presentation/src/sound/bank.rs)) uses K-weighted maximum short
 windows, so short reports and long quiet tails share a useful reference. This is a
 library calibration, not a measurement of the final battle mix. Source samples,
 synthetic waveforms, decay and stereo balance remain intact; only playback gain
@@ -157,7 +157,12 @@ the [sound frame](src/soundFrame.ts) only carries its commands out on the
 page's mixer, and native carries the same commands out on `kira`. Only
 implicit presentation slots follow shared effect replacements; an explicit
 recipe selection keeps its identity. The [bank](src/soundBank.ts) prepares live
-and offline buffers through the same asynchronous path. Disposal aborts loading
+and offline buffers through the same asynchronous path: it decodes the
+recordings, and Rust synthesizes, composes and calibrates each recipe
+([`sound::synth`](../../crates/presentation/src/sound/synth.rs),
+[`sound::bank`](../../crates/presentation/src/sound/bank.rs)), so both clients
+play the same samples. The synthesized sounds' names are generated from Rust
+(`synthSounds.gen.ts`). Disposal aborts loading
 and prevents late admission.
 
 The [page audio owner](src/appAudio.ts) retains one context and bank across
