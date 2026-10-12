@@ -407,6 +407,18 @@ export async function offlineSound(
   return { sampleRate, ctx, sink, frame };
 }
 
+/** An offline render's two channels, interleaved. */
+export function interleave(buffer: AudioBuffer): Float32Array {
+  const samples = new Float32Array(buffer.length * 2);
+  const l = buffer.getChannelData(0);
+  const r = buffer.getChannelData(1);
+  for (let i = 0; i < buffer.length; i++) {
+    samples[2 * i] = l[i];
+    samples[2 * i + 1] = r[i];
+  }
+  return samples;
+}
+
 /** Render the firefight offline; `solo` keeps one bus and mutes the others. */
 export async function renderFirefight(
   units: UnitCatalog,
@@ -433,13 +445,7 @@ export async function renderFirefight(
   const r0 = performance.now();
   const buffer = await ctx.startRendering();
   const renderMs = performance.now() - r0;
-  const samples = new Float32Array(buffer.length * 2);
-  const l = buffer.getChannelData(0);
-  const r = buffer.getChannelData(1);
-  for (let i = 0; i < buffer.length; i++) {
-    samples[2 * i] = l[i];
-    samples[2 * i + 1] = r[i];
-  }
+  const samples = interleave(buffer);
   const stats = frame.stats();
   return {
     sampleRate,

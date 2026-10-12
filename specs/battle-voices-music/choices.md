@@ -444,3 +444,10 @@ There were four drafts: A fewest-slices (Claude), B risk-first (Codex), C seam-q
 - **"Halt." became "Halt, hold here."** (rifle_squad `stop` steady take 0), because the voice rendered "Halt." under half a second twice. It changed 3 takes (`de`/`ru`/`us_rifle_squad/lead`); all three were bought again and passed (6 calls, 48 characters, 1.5–1.7 s). Their old raw masters stay; their old served files went, as the tool does for every superseded take.
 - **Numbers:** flagged 474 → 383 after re-judging → 382 after the reword (5.4% of 7,108). Packed takes 6,634 → 6,725 → 6,726 in 56 packs. `generate check`: 0 problems.
 - **2026-10-12 (orchestrator, review of 06b):** three takes whose misread now falls under the 0.4 word-error threshold were judged **bad** by hand and left out of packs. Two are "Bail out" heard as "Fail out" (cn/de tank crew, destroyed); one is "Troops" heard as "Tubes". The threshold stays as it is; a reviewer's verdict is the backstop.
+
+### 16 — closeout review (agent, 2026-10-12)
+
+- **A bark without a talk time is refused at load** (`ShoutRules::check`), so the ledger reads `talk_s[trigger]` with no fallback (it had a silent 1.5 s). The trigger list is `ShoutTrigger::ALL` in the contract; the publication's copy is gone.
+- **The voice tool owns the talk time it checks** (`talkTime` and `RESPONSE_TALK_S` in `voices.ts`). The matcher checks a length only when given one, so a design candidate's audition is never held to a response's.
+- **The sound lab speaks with the real `us_tank_crew` pack.** Its stand-in packs (built from the lock, and the responses relabelled as barks) are deleted now that packs and bark takes are served.
+- **The `cue_voices` tombstone test is deleted;** `a_shout_with_no_pool_loaded_is_silent` already pins the behaviour.

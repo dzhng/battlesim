@@ -1,6 +1,3 @@
-/** The longest a response may run. Responses never reach the simulation, so they have no
- *  `ShoutRules.talk_s`; barks are held to theirs (fixtures/game.json `shouts.talk_s`). */
-export const RESPONSE_TALK_S = 4;
 /** Word error rate above which a take is flagged. Short lines make one wrong word worth 0.2–0.33. */
 export const MAX_WORD_ERROR = 0.4;
 /** Words whose loss changes the order; the set's callsign is always one. */
@@ -115,15 +112,12 @@ export interface Match {
   flagged: boolean;
 }
 
-/** Compares what a take says with its script, and its length with its trigger's talk time. */
+/** Compares what a take says with its script and, given `length`, its length with its
+ *  trigger's talk time. */
 export function matches(
   script: string,
   transcript: string,
-  {
-    callsign,
-    durationS = 0,
-    talkS = RESPONSE_TALK_S,
-  }: { callsign: string; durationS?: number; talkS?: number },
+  { callsign, length }: { callsign: string; length?: { durationS: number; talkS: number } },
 ): Match {
   const written = words(script);
   const spoken = words(transcript);
@@ -136,7 +130,7 @@ export function matches(
   const missing = [
     ...new Set(written.filter((word) => keywords.has(word) && !spoken.includes(word))),
   ];
-  const overlong = durationS > talkS;
+  const overlong = length !== undefined && length.durationS > length.talkS;
   const score = Math.max(0, 1 - wordError);
   return {
     score: Math.round(score * 100) / 100,

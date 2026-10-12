@@ -29,10 +29,11 @@ import {
 } from "./lock";
 import { checkPacks } from "./packs";
 import { LIMITS, Pool } from "./pool";
-import { RESPONSE_TALK_S, matches } from "./transcript";
+import { matches } from "./transcript";
 
-/** A bark's nominal talk time is the simulation's (`ShoutRules.talk_s`, keyed `b<n>_<trigger>`); a
+/** A bark's talk time is the simulation's (`ShoutRules.talk_s`, keyed `b<n>_<trigger>`); a
  *  response, which the simulation never sees, is held to `RESPONSE_TALK_S`. */
+const RESPONSE_TALK_S = 4;
 const BARK_TALK_S: Record<string, number> = Object.fromEntries(
   Object.entries(game.shouts.talk_s).map(([key, seconds]) => [barkTrigger(key), seconds]),
 );
@@ -276,8 +277,7 @@ export async function generateVoices(run: VoiceRun): Promise<VoiceRunResult> {
     }
     const match = matches(text, transcript, {
       callsign: set.callsign,
-      durationS: served.duration,
-      talkS: talkTime(take.trigger),
+      length: { durationS: served.duration, talkS: talkTime(take.trigger) },
     });
     const provenance: Generated = {
       kind: "Generated",

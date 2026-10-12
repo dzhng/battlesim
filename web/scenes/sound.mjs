@@ -280,8 +280,8 @@ export async function run(ctx) {
 }
 
 /** Barks in the open: a seen enemy off to the right, then an own tank off to
- *  the left, shout "under fire" (`soundBarks.ts`, a stand-in pack of the pilot
- *  set's takes). Each is heard on the voices bus from where it was shouted;
+ *  the left, shout "under fire" (`soundBarks.ts`, the tank crew's served
+ *  pack). Each is heard on the voices bus from where it was shouted;
  *  the score opens on tension, moves to combat on the own bark only, and
  *  dips under every line. */
 async function barksHeard(ctx, page) {
@@ -340,7 +340,7 @@ async function barksHeard(ctx, page) {
 
 /** Voice packs load after a battle's sounds are ready, so serving them leaves
  *  `ready` where it was: fresh battles alternately without and with the
- *  pilot set's pack. Wall time, so a sample to read, not a gate; the gate is
+ *  tank crew's pack. Wall time, so a sample to read, not a gate; the gate is
  *  that no voice file is asked for before `ready`. */
 async function readyWithPacks(ctx, page) {
   const samples = [];
@@ -370,7 +370,7 @@ async function readyWithPacks(ctx, page) {
 
 /** Units answering their owner: the lab plays a selection, a group's order
  *  (asked twice) and a refused order through the battle's voice lines, from
- *  a stand-in pack of the pilot set's takes (`soundResponses.ts`). Each answer
+ *  the tank crew's served pack (`soundResponses.ts`). Each answer
  *  is played once, on the voices bus, when it was asked for. */
 async function responsesHeard(ctx, page) {
   const r = await page.evaluate(() => window.__sound.responses());

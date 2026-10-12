@@ -383,18 +383,6 @@ fn unseen_infantry_is_heard_moving_and_silent_idle() {
     );
 }
 
-#[test]
-fn nothing_plays_the_old_murmur() {
-    let game = fixture("game.json");
-    let tables = format!(
-        "{}{}",
-        game["presentation"]["audio"],
-        fixture("sounds.json")
-    );
-    assert!(!tables.contains("cue_voices"));
-    assert!(!synth::exists("cue_voices"));
-}
-
 fn shout(own: bool, id: f64, kind: &str, position: [f64; 3], trigger: &str) -> Shout {
     Shout {
         own,

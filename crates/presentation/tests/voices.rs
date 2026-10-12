@@ -1,7 +1,7 @@
-//! Which voice lines play: equal to the browser's.
+//! Which voice lines play, held to recorded vectors.
 //!
-//! `fixtures/chatter-vectors.json` was written by the browser's `Chatter`
-//! (TypeScript, before it moved here): each case its set table, its loaded
+//! `fixtures/chatter-vectors.json` was recorded from the TypeScript
+//! arbitration this module replaced: each case its set table, its loaded
 //! takes and a script of requests, take loads, resets and arbitrations, with
 //! every line each arbitration started (voice, take, moment, length) and
 //! dropped (why). The cases cover the four-line cap, tier then distance
@@ -25,7 +25,7 @@ fn floats(v: &Value) -> Value {
 }
 
 #[test]
-fn every_line_equals_the_browsers() {
+fn every_line_equals_the_recorded_vectors() {
     let v: Value = serde_json::from_str(include_str!("fixtures/chatter-vectors.json")).unwrap();
     let mut lines = 0;
     let mut drops = 0;

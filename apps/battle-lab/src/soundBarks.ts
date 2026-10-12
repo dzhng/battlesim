@@ -2,12 +2,10 @@
 // side's own tanks, shout "under fire" in the open; the battle's sound frame
 // hears them, the voice lines (`BattleVoices`) speak them where they were
 // shouted, and the battle's score (`BattleMusic`) follows the side's own
-// barks and dips under every line. Rendered offline, voices bus alone; the
+// barks and dips under every line. Both tanks speak with the tank crew's
+// served pack. Rendered offline, voices bus alone; the
 // score streams from a media element, which an offline render has no form
 // of, so its player here records what it was asked to do.
-//
-// No bark take is generated yet, so the lab stands one in: the pilot set's
-// own takes (`standInPack`), relabelled as the barks it shouts.
 //
 // It also samples what loading voice packs costs a battle: how long a fresh
 // battle's sounds take to be ready, with packs served and without.
@@ -18,27 +16,14 @@ import type { BattleMood } from "@packages/battle-audio/src/music/musicDirector"
 import { gameSounds } from "@packages/battle-audio/src/shippedSounds";
 import type { HeardShout } from "@packages/battle-audio/src/soundFrame";
 import { BattleVoices } from "@packages/battle-audio/src/voices/battleVoices";
-import type { VoicePack } from "@packages/battle-audio/src/voices/voiceCatalog";
 import { loadPresentation } from "@web/battle/sim/presentation";
-import { offlineSound } from "./soundFirefight";
+import { interleave, offlineSound } from "./soundFirefight";
 import { createBattleAudio, gameAudio } from "./soundFeed";
-import { SET, standInPack } from "./soundResponses";
+import { KIND, SET } from "./soundResponses";
 
 const SECONDS = 7;
 const FPS = 60;
 const HZ = game.tick_hz;
-const KIND = "stand_in_tank";
-const BARKS = "stand_in_barks";
-
-/** The pilot set's takes, as a set whose one voice shouts them. */
-function barkPack(): VoicePack {
-  const takes = standInPack().takes.filter((t) => t.intensity === "stressed");
-  return {
-    set: BARKS,
-    voices: [{ id: "lead", speaks: "all" }],
-    takes: takes.slice(0, 2).map((t, take) => ({ ...t, trigger: "under_fire", take })),
-  };
-}
 
 /** Who shouts, and when (seconds): a seen enemy off to the right, then an
  *  own tank nearer, off to the left; the listener stands at the origin
@@ -91,10 +76,9 @@ export interface BarksRender {
 export async function renderBarks(): Promise<BarksRender> {
   await loadPresentation();
   const { sampleRate, ctx, sink, frame } = await offlineSound(SECONDS, "voices");
-  frame.speakers({ own: { [KIND]: BARKS }, enemy: { [KIND]: BARKS } });
-  const pack = barkPack();
-  const voices = new BattleVoices(sink, gameAudio.voices, { packs: async () => pack });
-  voices.want([BARKS]);
+  frame.speakers({ own: { [KIND]: SET }, enemy: { [KIND]: SET } });
+  const voices = new BattleVoices(sink, gameAudio.voices);
+  voices.want([SET]);
   await voices.start();
 
   const moods: BarksRender["moods"] = [];
@@ -143,16 +127,9 @@ export async function renderBarks(): Promise<BarksRender> {
   }
   const buffer = await ctx.startRendering();
   voices.dispose();
-  const samples = new Float32Array(buffer.length * 2);
-  const l = buffer.getChannelData(0);
-  const r = buffer.getChannelData(1);
-  for (let i = 0; i < buffer.length; i++) {
-    samples[2 * i] = l[i];
-    samples[2 * i + 1] = r[i];
-  }
   return {
     sampleRate,
-    samples,
+    samples: interleave(buffer),
     lines,
     shouted,
     moods,
@@ -170,20 +147,19 @@ export interface ReadySample {
   voiceFetchesAfter: number;
 }
 
-/** A fresh battle's sound, from creation to `ready`, with the pilot set's
+/** A fresh battle's sound, from creation to `ready`, with the tank crew's
  *  pack served (`packs`) or absent; its own tanks speak with that set. */
 export async function sampleReady(packs: boolean): Promise<ReadySample> {
   await loadPresentation();
   const original = window.fetch;
   let battle: ReturnType<typeof createBattleAudio> | null = null;
   const asked = { before: 0, after: 0 };
-  const pack = standInPack();
   window.fetch = (input, init) => {
     const url = String(input instanceof Request ? input.url : input);
     if (url.includes("/audio/voices/")) {
       asked[battle?.stats()?.loading === false ? "after" : "before"]++;
-      if (url.endsWith("/pack.json"))
-        return Promise.resolve(packs ? Response.json(pack) : new Response(null, { status: 404 }));
+      if (!packs && url.endsWith("/pack.json"))
+        return Promise.resolve(new Response(null, { status: 404 }));
     }
     return original(input, init);
   };
@@ -191,7 +167,7 @@ export async function sampleReady(packs: boolean): Promise<ReadySample> {
   try {
     const started = performance.now();
     const sound = (battle = createBattleAudio(HZ, app));
-    sound.speakers({ own: { m1a2: SET }, enemy: {} });
+    sound.speakers({ own: { [KIND]: SET }, enemy: {} });
     while (sound.stats()?.loading !== false) {
       if (performance.now() - started > 60000) throw new Error("battle sound never got ready");
       await new Promise((r) => setTimeout(r, 5));
@@ -199,9 +175,9 @@ export async function sampleReady(packs: boolean): Promise<ReadySample> {
     const readyMs = performance.now() - started;
     const error = sound.stats()?.error;
     if (error) throw new Error(error);
-    // Let the packs, now asked for, arrive.
+    // Let the pack, now asked for, and with it its first takes, be asked for.
     const until = performance.now() + 3000;
-    while (performance.now() < until && asked.after < (packs ? pack.takes.length + 1 : 1))
+    while (performance.now() < until && asked.after < (packs ? 2 : 1))
       await new Promise((r) => setTimeout(r, 20));
     return {
       packs,

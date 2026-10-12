@@ -44,6 +44,17 @@ fn ai_sources_do_not_read_the_shout_channel() {
 }
 
 #[test]
+fn rules_without_a_talk_time_for_every_bark_are_refused() {
+    let mut fixture = sim::fixtures::test_game();
+    fixture["shouts"]["talk_s"]
+        .as_object_mut()
+        .unwrap()
+        .remove("b11_kill");
+    let error = serde_json::from_value::<Rules>(fixture).expect_err("a bark without a talk time");
+    assert!(error.to_string().contains("b11_kill"), "{error}");
+}
+
+#[test]
 fn a_fresh_identification_emits_one_contact_bark_for_the_nearest_unit() {
     let setup = test_common::scenario(
         test_common::saved_map("geometry"),

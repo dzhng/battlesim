@@ -242,3 +242,26 @@ a reload clip does not create a reload event. [Battle audio](../packages/battle-
 owns preparation and source loudness, while [the sound workbench](../apps/sound-workbench/README.md)
 owns audition and reviewed edits. Gameplay ranges, cadence and hearing remain with
 their simulation owners.
+
+Its `music` section maps each mood (`menu`, `tension`, `combat`) to tracks, and
+each track to the source it was encoded from, the served file's hash and a gain.
+Music is streamed, never a clip, so no recipe or assignment names a track. Unit
+voices are not in this catalog: no clip here is ever a voice line.
+
+## Voices
+
+[`voices.json`](voices.json) is the only authority on what units say: each role's
+script (two takes of every trigger, steady and stressed), each country × role
+set's callsign, processing profile and voices, which unit type speaks with which
+set (by faction for a shared row), and the retake counts that buy a judged-bad take
+again. People write it, and so does the sound workbench's save path; unit rows
+carry no voice field. [The voice catalog](../packages/battle-audio/src/voices/voiceCatalog.ts)
+validates it, and every playable roster unit must resolve to a set.
+
+[`voices.lock.json`](voices.lock.json) is the generation tool's ledger and has no
+other writer: per take, the hashes of what it was made from, of its raw master and
+of its served file, its length, transcript, match against the script, provenance,
+and the verdict a reviewer gave, bound to the bytes it judged; each voice's
+design candidates; and each generated bed. Never edit it by hand; the workbench records verdicts through
+the tool. [Battle audio](../packages/battle-audio/README.md#generated-voices) owns
+generation, review and packs.

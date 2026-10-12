@@ -200,7 +200,7 @@ pub struct AudioPresentation {
     pub footsteps: Footsteps,
     pub fires: HashMap<String, FireSound>,
     /// Battle music's mood direction and ducking: the browser's music
-    /// director owns it for now, so the frame leaves it unread.
+    /// director owns it, so the frame leaves it unread.
     pub music: Value,
     /// How unit voice lines are chosen ([`super::voices`]).
     pub voices: ChatterRules,

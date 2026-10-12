@@ -689,8 +689,7 @@ describe("transcript match", () => {
     expect(
       matches("Enemy in the treeline.", "Enemy in the tree line", {
         callsign,
-        durationS: 5,
-        talkS: 3,
+        length: { durationS: 5, talkS: 3 },
       }),
     ).toMatchObject({ flagged: true, overlong: true });
   });
@@ -702,11 +701,15 @@ describe("transcript match", () => {
 
   it("flags a take longer than its trigger's talk time", () => {
     const line = "Roger, moving out.";
-    expect(matches(line, line, { callsign: "", durationS: 2, talkS: 3 }).flagged).toBe(false);
-    expect(matches(line, line, { callsign: "", durationS: 4, talkS: 3 })).toMatchObject({
-      flagged: true,
-      overlong: true,
-    });
+    expect(matches(line, line, { callsign: "", length: { durationS: 2, talkS: 3 } }).flagged).toBe(
+      false,
+    );
+    expect(matches(line, line, { callsign: "", length: { durationS: 4, talkS: 3 } })).toMatchObject(
+      {
+        flagged: true,
+        overlong: true,
+      },
+    );
   });
 });
 

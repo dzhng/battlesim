@@ -9,7 +9,7 @@ import type { ElevenLabsClient } from "./elevenlabs";
 import { writeAtomic } from "./lock";
 import { LIMITS, Pool } from "./pool";
 
-/** The approved opening of every prompt (slice 08): a restrained underscore, never a lead. */
+/** The approved opening of every prompt: a restrained underscore, never a lead. */
 export const STYLE =
   "Background underscore for a modern military real-time strategy game, in the style of hybrid analog-synth and orchestral game scores. It must sit underneath gunfire, explosions and radio dialogue: no lead melody, no hooks, no solos, no big hits or drops, consistent low-mid energy throughout, dark and wide. Instrumental.";
 /** The combat score's palette, which a tension track names so it reads as the same score. */

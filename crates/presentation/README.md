@@ -40,7 +40,7 @@ wherever it runs.
   recipe buffers every player prepares alike. `tests/sound.rs` holds it to
   every command the browser's
   TypeScript frame gave over the sound lab's firefight, and `tests/voices.rs`
-  to every line the browser's TypeScript chatter started and dropped.
+  to the lines recorded scripts start and drop.
 
 ## How a battle looks
 
