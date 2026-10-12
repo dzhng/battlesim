@@ -6,3 +6,4 @@ edition = "2021"
 [dev-dependencies]
 naga = { version = "30.0.1", features = ["wgsl-in", "msl-out"] }
 serde_json = "1"
+presentation = { path = "../presentation" }

@@ -16,7 +16,8 @@ use crate::effects::lights::CastLights;
 use crate::effects::publication::{EffectFeed, EffectPublication};
 use crate::effects::MuzzleSource;
 use crate::records::{
-    Appearance as Row, Batch, CastLight, Counts, Effect, Emitter, Instance, Joint, Pick, NONE,
+    Appearance as Row, Batch, CastLight, Counts, Effect, Emitter, Instance, Joint, Pick,
+    View as ViewRecord, NONE,
 };
 use crate::units::articulation::{articulate, rest_locals, track_scroll};
 use crate::units::drawn::{ClipTables, DrawnModels};
@@ -67,6 +68,7 @@ pub struct Frame {
     pub tick: u32,
     pub index: u32,
     pub light_wrap: f32,
+    pub view: ViewRecord,
     pub batches: Vec<Batch>,
     pub instances: Vec<Instance>,
     pub palettes: Vec<Joint>,
@@ -495,11 +497,12 @@ impl Presentation {
         f.emitters.clear();
         f.counts = Counts::default();
         f.light_wrap = 0.0;
+        let view = View::new(camera);
+        f.view = view.record(camera);
         let (Some(loaded), Some(sample)) = (self.loaded.as_mut(), self.interpolator.frame(time))
         else {
             return &self.frame;
         };
-        let view = View::new(camera);
         let f = &mut self.frame;
         f.tick = sample.observation.tick as u32;
         loaded.frame(sample, &view, ui, &self.world, f);

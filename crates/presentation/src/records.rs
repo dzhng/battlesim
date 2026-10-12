@@ -227,6 +227,96 @@ records! {
         motion: [f32; 4],
     }
 
+    /// What the frame's camera sees (sim space).
+    Plain View {
+        /// Sim → view, column-major.
+        view: [f32; 16],
+        /// Reverse-Z with an infinite far plane, column-major.
+        projection: [f32; 16],
+        /// The eye (m); w unused.
+        eye: [f32; 4],
+        /// Width and height (px), 1/height, pixels per metre at 1 m.
+        size: [f32; 4],
+        /// The unnormalised ray through the top-left corner, and its change
+        /// across the width and down the height (the sky's `Rays`: w unused).
+        sky_origin: [f32; 4],
+        sky_dx: [f32; 4],
+        sky_dy: [f32; 4],
+    }
+
+    /// The sky's light for the battle (`SkyLight` in the sky's shaders):
+    /// what the sky lookup bakes and the shown sky and its clouds read.
+    Plain SkyLight {
+        /// Unit vector toward the sun.
+        sun_direction: [f32; 3],
+        /// 0 clear to 1 overcast, from turbidity.
+        overcast: f32,
+        /// Max-channel-normalised transmittance toward the sun.
+        sun_transmittance: [f32; 3],
+        /// `sky.radiance`.
+        radiance: f32,
+        /// The lower hemisphere's ground bounce, greyed by overcast.
+        ground_tint: [f32; 3],
+        mie_scatter: f32,
+        mie_extinction: f32,
+        /// The multiple-scattering floor's share for this sun.
+        multiple_scatter: f32,
+        /// The low sun's aureole strength.
+        aureole: f32,
+        /// The overcast dome's brightness for this sun.
+        overcast_scale: f32,
+        /// The sun disc's radiance through the overcast.
+        disc_radiance: f32,
+        /// The cloud layer's height over its mass size.
+        cloud_reach: f32,
+        /// Cloud density's smoothstep edges about the coverage threshold.
+        cloud_edge: [f32; 2],
+        /// A step across the layer toward the sun.
+        cloud_to_sun: [f32; 2],
+        /// The coverage threshold, and where the sunward shadow and the
+        /// thick core saturate.
+        cloud_low: f32,
+        cloud_shadow_top: f32,
+        cloud_core_top: f32,
+        cloud_opacity: f32,
+        pad0: [f32; 2],
+        /// A sunlit top's radiance.
+        cloud_lit: [f32; 3],
+        /// The silver lining's radiance.
+        cloud_silver: f32,
+        /// A shaded base's radiance, before the sky shows through it.
+        cloud_base: [f32; 3],
+        pad1: f32,
+    }
+
+    /// The bloom (`Bloom` in post's highpass and composite).
+    Plain Bloom {
+        /// The first four blurred levels' shares of the composite.
+        weights: [f32; 4],
+        /// The fifth level's share.
+        weight4: f32,
+        strength: f32,
+        /// Where the highpass starts and where it is full (linear HDR luminance).
+        threshold: f32,
+        knee: f32,
+    }
+
+    /// The grade and exposure (`Grade` in post's final pass).
+    Plain Grade {
+        saturation: f32,
+        contrast: f32,
+        split_tone: f32,
+        shadow_lift: f32,
+        exposure: f32,
+        pad: [f32; 3],
+        /// rgb; w 1.
+        shadow_tint: [f32; 4],
+        /// rgb; w 1.
+        highlight_tint: [f32; 4],
+        /// rgb; w 0.
+        lift: [f32; 4],
+    }
+
     /// What this frame poses and runs, for the gates.
     Plain Counts {
         soldiers: u32,

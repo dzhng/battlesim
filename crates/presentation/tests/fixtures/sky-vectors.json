@@ -1,0 +1,304 @@
+{
+ "game": {
+  "light": {
+   "sun_azimuth": -0.35,
+   "sun_elevation": 0.7,
+   "sun_intensity": 6.5,
+   "shadow_floor": 0.4,
+   "sky": {
+    "turbidity": 2,
+    "radiance": 12,
+    "fill": [
+     1,
+     0.75,
+     0.47
+    ],
+    "clouds": {
+     "coverage": 0.42,
+     "height_m": 1600,
+     "scale_m": 600,
+     "softness": 0.05,
+     "opacity": 0.95,
+     "radiance": 1.5,
+     "shade": [
+      0.55,
+      0.6,
+      0.7
+     ]
+    }
+   },
+   "haze": {
+    "distance_scale": 4.6,
+    "clear_radius_m": 300,
+    "overview_from_m": 2000,
+    "range_near_m": 600,
+    "range_far_m": 3000,
+    "range_power": 1.3,
+    "range_strength": 0.8,
+    "sun_tint": [
+     1,
+     0.9,
+     0.75
+    ],
+    "sun_strength": 0.2,
+    "sun_power": 3.4,
+    "mist_color": [
+     0.7,
+     0.75,
+     0.8
+    ],
+    "mist_height_m": [
+     8,
+     46
+    ],
+    "mist_distance_m": [
+     1500,
+     5000
+    ],
+    "mist_color_strength": 0.25,
+    "mist_opacity": 0.08
+   },
+   "backdrop": {
+    "reach_m": 40000
+   },
+   "exposure": 1,
+   "grade": {
+    "saturation": 1.1,
+    "contrast": 0.5,
+    "split_tone": 0.6,
+    "shadow_lift": 1,
+    "shadow_tint": [
+     1.04,
+     1,
+     0.9
+    ],
+    "highlight_tint": [
+     1.02,
+     1,
+     0.97
+    ],
+    "lift": [
+     0.017,
+     0.021,
+     0.036
+    ]
+   },
+   "bloom": {
+    "strength": 0.085,
+    "radius": 0.56,
+    "threshold": 1.02,
+    "smooth_width": 0.75
+   },
+   "cascades": {
+    "count": 4,
+    "map_size": 2048,
+    "max_far_m": 2600,
+    "split_lambda": 0.5,
+    "normal_bias_texels": 1.5,
+    "normal_bias_min_m": 0.03,
+    "depth_bias": -0.00003,
+    "softness_m": 0.2
+   }
+  },
+  "sky": {
+   "sunDirection": [
+    0.718471884727478,
+    -0.2622627019882202,
+    0.6442176699638367
+   ],
+   "overcast": 0,
+   "sunTransmittance": [
+    1,
+    0.9106228947639465,
+    0.7192636132240295
+   ],
+   "radiance": 12,
+   "groundTint": [
+    0.3400000035762787,
+    0.30000001192092896,
+    0.25
+   ],
+   "mieScatter": 0.003996,
+   "mieExtinction": 0.00444,
+   "multipleScatter": 0.020438849062587014,
+   "aureole": 0.1497099606483998,
+   "overcastScale": 0.802631725785675,
+   "discRadiance": 2.5,
+   "cloudReach": 2.6666666666666665,
+   "cloudEdge": [
+    0.5299999713897705,
+    0.6299999952316284
+   ],
+   "cloudToSun": [
+    0.06575608998537064,
+    -0.02400284633040428
+   ],
+   "cloudLow": 0.5800000000000001,
+   "cloudShadowTop": 0.8800000000000001,
+   "cloudCoreTop": 0.93,
+   "cloudOpacity": 0.95,
+   "cloudLit": [
+    1.5,
+    1.3659343719482422,
+    1.0788954496383667
+   ],
+   "cloudSilver": 0.8999999999999999,
+   "cloudBase": [
+    0.57750004529953,
+    0.6299999952316284,
+    0.73499995470047
+   ]
+  }
+ },
+ "lowSunOvercast": {
+  "light": {
+   "sun_azimuth": 2.1,
+   "sun_elevation": 0.12,
+   "sun_intensity": 6.5,
+   "shadow_floor": 0.4,
+   "sky": {
+    "turbidity": 5.5,
+    "radiance": 12,
+    "fill": [
+     1,
+     0.75,
+     0.47
+    ],
+    "clouds": {
+     "coverage": 0.42,
+     "height_m": 1600,
+     "scale_m": 600,
+     "softness": 0.05,
+     "opacity": 0.95,
+     "radiance": 1.5,
+     "shade": [
+      0.55,
+      0.6,
+      0.7
+     ]
+    }
+   },
+   "haze": {
+    "distance_scale": 4.6,
+    "clear_radius_m": 300,
+    "overview_from_m": 2000,
+    "range_near_m": 600,
+    "range_far_m": 3000,
+    "range_power": 1.3,
+    "range_strength": 0.8,
+    "sun_tint": [
+     1,
+     0.9,
+     0.75
+    ],
+    "sun_strength": 0.2,
+    "sun_power": 3.4,
+    "mist_color": [
+     0.7,
+     0.75,
+     0.8
+    ],
+    "mist_height_m": [
+     8,
+     46
+    ],
+    "mist_distance_m": [
+     1500,
+     5000
+    ],
+    "mist_color_strength": 0.25,
+    "mist_opacity": 0.08
+   },
+   "backdrop": {
+    "reach_m": 40000
+   },
+   "exposure": 1,
+   "grade": {
+    "saturation": 1.1,
+    "contrast": 0.5,
+    "split_tone": 0.6,
+    "shadow_lift": 1,
+    "shadow_tint": [
+     1.04,
+     1,
+     0.9
+    ],
+    "highlight_tint": [
+     1.02,
+     1,
+     0.97
+    ],
+    "lift": [
+     0.017,
+     0.021,
+     0.036
+    ]
+   },
+   "bloom": {
+    "strength": 0.085,
+    "radius": 0.56,
+    "threshold": 1.02,
+    "smooth_width": 0.75
+   },
+   "cascades": {
+    "count": 4,
+    "map_size": 2048,
+    "max_far_m": 2600,
+    "split_lambda": 0.5,
+    "normal_bias_texels": 1.5,
+    "normal_bias_min_m": 0.03,
+    "depth_bias": -0.00003,
+    "softness_m": 0.2
+   }
+  },
+  "sky": {
+   "sunDirection": [
+    -0.5012155771255493,
+    0.8570017218589783,
+    0.11971220374107361
+   ],
+   "overcast": 0.5,
+   "sunTransmittance": [
+    1,
+    0.6252310872077942,
+    0.19148941338062286
+   ],
+   "radiance": 12,
+   "groundTint": [
+    0.6100000143051147,
+    0.5899999737739563,
+    0.5649999976158142
+   ],
+   "mieScatter": 0.017982,
+   "mieExtinction": 0.01998,
+   "multipleScatter": 0.008810678081128679,
+   "aureole": 0.1375,
+   "overcastScale": 0.3459945191602309,
+   "discRadiance": 1.25,
+   "cloudReach": 2.6666666666666665,
+   "cloudEdge": [
+    0.5299999713897705,
+    0.6299999952316284
+   ],
+   "cloudToSun": [
+    -0.03533922880887985,
+    0.06042465567588806
+   ],
+   "cloudLow": 0.5800000000000001,
+   "cloudShadowTop": 0.8800000000000001,
+   "cloudCoreTop": 0.93,
+   "cloudOpacity": 0.475,
+   "cloudLit": [
+    1.5,
+    0.9378466606140137,
+    0.2872341275215149
+   ],
+   "cloudSilver": 0.8999999999999999,
+   "cloudBase": [
+    0.57750004529953,
+    0.6299999952316284,
+    0.73499995470047
+   ]
+  }
+ }
+}

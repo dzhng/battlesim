@@ -162,6 +162,114 @@ export const Emitter = {
 } as const;
 export const EMITTER_WORDS = 12;
 
+/** What the frame's camera sees (sim space). */
+export const View = {
+  /** Sim → view, column-major. (f32 × 16) */
+  view: 0,
+  /** Reverse-Z with an infinite far plane, column-major. (f32 × 16) */
+  projection: 16,
+  /** The eye (m); w unused. (f32 × 4) */
+  eye: 32,
+  /** Width and height (px), 1/height, pixels per metre at 1 m. (f32 × 4) */
+  size: 36,
+  /** The unnormalised ray through the top-left corner, and its change across the width and down the height (the sky's `Rays`: w unused). (f32 × 4) */
+  sky_origin: 40,
+  /**  (f32 × 4) */
+  sky_dx: 44,
+  /**  (f32 × 4) */
+  sky_dy: 48,
+} as const;
+export const VIEW_WORDS = 52;
+
+/** The sky's light for the battle (`SkyLight` in the sky's shaders): what the sky lookup bakes and the shown sky and its clouds read. */
+export const SkyLight = {
+  /** Unit vector toward the sun. (f32 × 3) */
+  sun_direction: 0,
+  /** 0 clear to 1 overcast, from turbidity. (f32) */
+  overcast: 3,
+  /** Max-channel-normalised transmittance toward the sun. (f32 × 3) */
+  sun_transmittance: 4,
+  /** `sky.radiance`. (f32) */
+  radiance: 7,
+  /** The lower hemisphere's ground bounce, greyed by overcast. (f32 × 3) */
+  ground_tint: 8,
+  /**  (f32) */
+  mie_scatter: 11,
+  /**  (f32) */
+  mie_extinction: 12,
+  /** The multiple-scattering floor's share for this sun. (f32) */
+  multiple_scatter: 13,
+  /** The low sun's aureole strength. (f32) */
+  aureole: 14,
+  /** The overcast dome's brightness for this sun. (f32) */
+  overcast_scale: 15,
+  /** The sun disc's radiance through the overcast. (f32) */
+  disc_radiance: 16,
+  /** The cloud layer's height over its mass size. (f32) */
+  cloud_reach: 17,
+  /** Cloud density's smoothstep edges about the coverage threshold. (f32 × 2) */
+  cloud_edge: 18,
+  /** A step across the layer toward the sun. (f32 × 2) */
+  cloud_to_sun: 20,
+  /** The coverage threshold, and where the sunward shadow and the thick core saturate. (f32) */
+  cloud_low: 22,
+  /**  (f32) */
+  cloud_shadow_top: 23,
+  /**  (f32) */
+  cloud_core_top: 24,
+  /**  (f32) */
+  cloud_opacity: 25,
+  /**  (f32 × 2) */
+  pad0: 26,
+  /** A sunlit top's radiance. (f32 × 3) */
+  cloud_lit: 28,
+  /** The silver lining's radiance. (f32) */
+  cloud_silver: 31,
+  /** A shaded base's radiance, before the sky shows through it. (f32 × 3) */
+  cloud_base: 32,
+  /**  (f32) */
+  pad1: 35,
+} as const;
+export const SKY_LIGHT_WORDS = 36;
+
+/** The bloom (`Bloom` in post's highpass and composite). */
+export const Bloom = {
+  /** The first four blurred levels' shares of the composite. (f32 × 4) */
+  weights: 0,
+  /** The fifth level's share. (f32) */
+  weight4: 4,
+  /**  (f32) */
+  strength: 5,
+  /** Where the highpass starts and where it is full (linear HDR luminance). (f32) */
+  threshold: 6,
+  /**  (f32) */
+  knee: 7,
+} as const;
+export const BLOOM_WORDS = 8;
+
+/** The grade and exposure (`Grade` in post's final pass). */
+export const Grade = {
+  /**  (f32) */
+  saturation: 0,
+  /**  (f32) */
+  contrast: 1,
+  /**  (f32) */
+  split_tone: 2,
+  /**  (f32) */
+  shadow_lift: 3,
+  /**  (f32) */
+  exposure: 4,
+  /**  (f32 × 3) */
+  pad: 5,
+  /** rgb; w 1. (f32 × 4) */
+  shadow_tint: 8,
+  /** rgb; w 1. (f32 × 4) */
+  highlight_tint: 12,
+  /** rgb; w 0. (f32 × 4) */
+  lift: 16,
+} as const;
+export const GRADE_WORDS = 20;
+
 /** What this frame poses and runs, for the gates. */
 export const Counts = {
   /**  (u32) */

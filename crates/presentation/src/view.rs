@@ -4,6 +4,7 @@
 //! tier rule every drawn model takes is [`model_detail`]
 //! (`modelDetail.ts`): nothing off screen, one of four mesh tiers by
 //! projected height, or the impostor card.
+use crate::records::View as ViewRecord;
 use crate::world::{Detail, Vec3};
 
 /// 18b's camera input (sim space).
@@ -157,6 +158,36 @@ impl View {
         self.sides.iter().all(|p| {
             p.normal[0] * c[0] + p.normal[1] * c[1] + p.normal[2] * c[2] + p.constant >= -radius
         })
+    }
+
+    /// The frame's `View` record. The sky's rays are the unit rays through
+    /// the top-left, top-right and bottom-left corners (`frameCamera.ts`);
+    /// symmetric corners share one length, so the shader interpolates them
+    /// before normalising.
+    pub fn record(&self, camera: &Camera) -> ViewRecord {
+        let [w, h] = camera.size.map(|s| f64::from(s.max(1)));
+        let v = self.view.map(f64::from);
+        // The view matrix's rows are the camera's right, up and back.
+        let (right, up, back) = ([v[0], v[4], v[8]], [v[1], v[5], v[9]], [v[2], v[6], v[10]]);
+        let ty = (f64::from(camera.fov_y) / 2.0).tan();
+        let tx = ty * w / h;
+        let corner = |x: f64, y: f64| -> [f64; 3] {
+            let d: [f64; 3] =
+                std::array::from_fn(|i| -back[i] + x * tx * right[i] + y * ty * up[i]);
+            let len = (d[0] * d[0] + d[1] * d[1] + d[2] * d[2]).sqrt();
+            d.map(|c| c / len)
+        };
+        let (origin, across, down) = (corner(-1.0, 1.0), corner(1.0, 1.0), corner(-1.0, -1.0));
+        let ray = |d: [f64; 3]| [d[0] as f32, d[1] as f32, d[2] as f32, 0.0];
+        ViewRecord {
+            view: self.view,
+            projection: self.projection,
+            eye: [self.eye[0] as f32, self.eye[1] as f32, self.eye[2] as f32, 1.0],
+            size: [w as f32, h as f32, (1.0 / h) as f32, self.pixels_per_metre as f32],
+            sky_origin: ray(origin),
+            sky_dx: ray(std::array::from_fn(|i| across[i] - origin[i])),
+            sky_dy: ray(std::array::from_fn(|i| down[i] - origin[i])),
+        }
     }
 }
 

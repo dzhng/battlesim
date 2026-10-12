@@ -465,6 +465,7 @@ name = "pipelines"
 version = "0.1.0"
 dependencies = [
  "naga",
+ "presentation",
  "serde_json",
 ]
 
