@@ -141,14 +141,18 @@ generated bed, a raw master the tool's `beds` command buys once and the lock rec
 the tank's engine is one, since the game synthesises engines. Either way the bed's
 sha256 enters the processing key, so a changed clip or master re-renders its takes.
 
-Which lines play is decided in one place, [the chatter](src/voices/chatter.ts):
-answers before own shouts before a seen enemy's, nearest the camera first, a few
-lines at once (`presentation.audio.voices`), a line dropped when it can't start
+Which lines play is decided in one place, in Rust
+([`presentation::sound::voices`](../../crates/presentation/src/sound/voices.rs),
+bound by [the chatter](src/voices/chatter.ts)): answers before own shouts before a
+seen enemy's, nearest the listener first (a battle's is its sound frame's own), a
+few lines at once (`presentation.audio.voices`), a line dropped when it can't start
 soon, a unit never over itself, one answer per group. It picks the take with the
-client's own seeded randomness, never the simulation's. Its takes come from
+client's own seeded randomness, never the simulation's, and gives start commands
+on the voices bus that the page only carries out. Its takes come from
 [the voice bank](src/voices/voiceBank.ts), which loads a battle's sets from their
-`pack.json` in the background; a take not yet loaded is a dropped line, never a
-wait. The sound workbench's chatter preview runs the same two.
+`pack.json` in the background and tells the chatter each set's voices and each
+take as it arrives; a take not yet loaded is a dropped line, never a wait. The
+sound workbench's chatter preview runs the same two.
 
 A unit answers its owner ([responses](src/voices/responses.ts)) when selected,
 when an order is accepted or refused for a reason the player caused, and when

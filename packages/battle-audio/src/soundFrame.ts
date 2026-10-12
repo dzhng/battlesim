@@ -15,6 +15,7 @@ import {
 import type { AudioPresentation, Bus, VehicleSound } from "./audioPresentation";
 import type { SoundCatalog } from "./catalog";
 import { SOUNDS } from "./synth";
+import type { Chatter, ChatterUpdate } from "./voices/chatter";
 
 type P3 = readonly [number, number, number] | readonly number[];
 
@@ -289,6 +290,11 @@ export class SoundFrame {
         JSON.stringify(listener),
       ),
     );
+  }
+
+  /** Arbitrates `chatter`'s voice lines, heard from where this frame last heard. */
+  hearLines(chatter: Chatter): ChatterUpdate {
+    return chatter.hear(this.rust, this.sink.now());
   }
 
   stats(): SoundStats {

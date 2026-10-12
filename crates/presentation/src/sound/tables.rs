@@ -11,6 +11,7 @@ use serde::Deserialize;
 use serde_json::Value;
 
 use super::synth;
+use super::voices::ChatterRules;
 
 /// The mix buses under the master.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Deserialize, serde::Serialize)]
@@ -198,11 +199,11 @@ pub struct AudioPresentation {
     pub vehicles: HashMap<String, VehicleSound>,
     pub footsteps: Footsteps,
     pub fires: HashMap<String, FireSound>,
-    /// Battle music's mood direction and ducking, and how unit voice lines
-    /// are chosen: the browser's music director and chatter own these for
-    /// now (barks in battle are not built), so the frame leaves them unread.
+    /// Battle music's mood direction and ducking: the browser's music
+    /// director owns it for now, so the frame leaves it unread.
     pub music: Value,
-    pub voices: Value,
+    /// How unit voice lines are chosen ([`super::voices`]).
+    pub voices: ChatterRules,
     pub ambience: OneShot,
     pub cues: Cues,
 }
@@ -360,6 +361,7 @@ impl SoundTables {
         if !(a.budget.voices > a.budget.loops) {
             return Err("presentation.audio.budget: voices must exceed loops".into());
         }
+        a.voices.check()?;
         let d = a.distance;
         if !((0.0..=1.0).contains(&d.floor) && d.cull >= 0.0) {
             return Err(

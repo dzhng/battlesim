@@ -654,6 +654,11 @@ impl Sound {
         }
     }
 
+    /// Where the last update heard from (the origin, looking north, before any).
+    pub fn listener(&self) -> Listener {
+        self.listener
+    }
+
     pub fn stats(&self) -> Stats {
         Stats {
             transients: self.transients.len(),

@@ -145,8 +145,8 @@ export class BattleAudio {
     const wall = performance.now() / 1000;
     if (feed instanceof Presentation) frame.hear(feed, wall);
     else frame.update(feed.clock, wall, feed.motion, feed.listener);
-    // Answers have no position; a battle frame's listener stays in Rust.
-    this.voices?.update(feed instanceof Presentation ? [0, 0, 0] : feed.listener.position);
+    // Lines are heard from where the frame just heard, in Rust.
+    this.voices?.hear(frame);
     this.app.battleStarted(this);
   }
   reset() {

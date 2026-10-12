@@ -2,10 +2,10 @@
 // sound bank, which knows only `sounds.json` clip ids: voices load by URL from
 // each set's `pack.json`, in the background, and never hold up the battle's
 // readiness. Until a take is decoded it is absent, and a line asking for it is
-// dropped rather than waited for.
+// dropped rather than waited for: the bank tells its listener (the line
+// arbitration, `Chatter`) each set's voices and each take as they arrive.
 import type { Intensity, PackTake, Trigger, VoicePack } from "./voiceCatalog";
 import { packUrl } from "./voiceCatalog";
-import type { LineSource } from "./chatter";
 
 /** A take's name in the bank: `set/voice/trigger/intensity/take`. */
 const key = (set: string, voice: string, trigger: Trigger, intensity: Intensity, take: number) =>
@@ -23,8 +23,20 @@ export const servedPacks =
     return (await response.json()) as VoicePack;
   };
 
-export class VoiceBank implements LineSource {
-  private readonly packs = new Map<string, VoicePack>();
+/** Told what the bank holds as it arrives: a set's voices, then each decoded take. */
+export interface BankListener {
+  voices(set: string, voices: VoicePack["voices"]): void;
+  loaded(
+    set: string,
+    voice: string,
+    trigger: Trigger,
+    intensity: Intensity,
+    take: number,
+    duration: number,
+  ): void;
+}
+
+export class VoiceBank {
   private readonly buffers = new Map<string, AudioBuffer>();
   /** Decoded takes by URL, so a take is fetched once however often it is asked for. */
   private readonly decoded = new Map<string, Promise<AudioBuffer>>();
@@ -36,8 +48,12 @@ export class VoiceBank implements LineSource {
     private readonly context: BaseAudioContext,
     private readonly fetcher: typeof fetch = fetch,
     private readonly source: PackSource = servedPacks(fetcher),
-    /** Which of a pack's takes to load: by default, all of them. */
-    private readonly select: (pack: VoicePack) => readonly PackTake[] = (pack) => pack.takes,
+    private readonly options: {
+      /** Told each set's voices and each take as it arrives (the line arbitration). */
+      listener?: BankListener;
+      /** Which of a pack's takes to load: by default, all of them. */
+      select?: (pack: VoicePack) => readonly PackTake[];
+    } = {},
   ) {}
 
   /** Loads `sets` in the background. Resolves when every set has loaded or failed; never rejects. */
@@ -58,13 +74,22 @@ export class VoiceBank implements LineSource {
           return failed(set, error);
         }
         if (admitted.aborted) return;
-        this.packs.set(set, pack);
+        this.options.listener?.voices(set, pack.voices);
         await Promise.all(
-          this.select(pack).map(async (take) => {
+          (this.options.select?.(pack) ?? pack.takes).map(async (take) => {
             const id = key(set, take.voice, take.trigger, take.intensity, take.take);
             try {
               const buffer = await this.decode(take.url, admitted);
-              if (!admitted.aborted) this.buffers.set(id, buffer);
+              if (admitted.aborted) return;
+              this.buffers.set(id, buffer);
+              this.options.listener?.loaded(
+                set,
+                take.voice,
+                take.trigger,
+                take.intensity,
+                take.take,
+                buffer.duration,
+              );
             } catch (error) {
               failed(id, error);
             }
@@ -74,20 +99,10 @@ export class VoiceBank implements LineSource {
     );
   }
 
-  /** A loaded set's voices; none until its pack has arrived. */
-  voices(set: string) {
-    return this.packs.get(set)?.voices ?? [];
-  }
-
-  /** A take's audio, or null while it isn't loaded (the line is dropped). */
-  get(
-    set: string,
-    voice: string,
-    trigger: Trigger,
-    intensity: Intensity,
-    take: number,
-  ): AudioBuffer | null {
-    return this.buffers.get(key(set, voice, trigger, intensity, take)) ?? null;
+  /** The audio a line's start command names: take `variant` of `sound`
+   *  (`set/voice/trigger/intensity`), or null when it isn't loaded. */
+  line(sound: string, variant: number): AudioBuffer | null {
+    return this.buffers.get(`${sound}/${variant}`) ?? null;
   }
 
   /** Every take loaded so far, by its name (`set/voice/trigger/intensity/take`). */
@@ -97,7 +112,6 @@ export class VoiceBank implements LineSource {
 
   dispose() {
     this.controller.abort();
-    this.packs.clear();
     this.buffers.clear();
     this.decoded.clear();
   }

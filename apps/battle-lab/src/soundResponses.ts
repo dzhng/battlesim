@@ -18,6 +18,7 @@ import {
 } from "@packages/battle-audio/src/voices/responses";
 import { voicePack, type VoiceCatalog } from "@packages/battle-audio/src/voices/voiceCatalog";
 import type { VoiceLine } from "@packages/battle-audio/src/voices/chatter";
+import { loadPresentation } from "@web/battle/sim/presentation";
 import { offlineSound } from "./soundFirefight";
 import { gameAudio } from "./soundFeed";
 
@@ -78,6 +79,7 @@ export interface ResponsesRender {
 }
 
 export async function renderResponses(): Promise<ResponsesRender> {
+  await loadPresentation();
   const { sampleRate, ctx, sink } = await offlineSound(SECONDS, "voices");
   const pack = standInPack();
   const lines = new BattleVoices(sink, gameAudio.voices, {
@@ -120,7 +122,7 @@ export async function renderResponses(): Promise<ResponsesRender> {
       voice: line.voice,
       take: line.take,
       at: line.at,
-      duration: line.buffer.duration,
+      duration: line.duration,
     })),
     dropped,
     asked,

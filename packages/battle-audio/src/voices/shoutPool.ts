@@ -34,9 +34,9 @@ export class ShoutPool {
     perVoice: number,
     options: { fetcher?: typeof fetch; packs?: PackSource } = {},
   ) {
-    this.bank = new VoiceBank(context, options.fetcher, options.packs, (pack) =>
-      shoutTakes(pack, perVoice),
-    );
+    this.bank = new VoiceBank(context, options.fetcher, options.packs, {
+      select: (pack) => shoutTakes(pack, perVoice),
+    });
   }
 
   /** Loads `sets`' share of the pool; resolves with every take loaded, never rejects. */

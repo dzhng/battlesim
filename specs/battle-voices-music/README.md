@@ -30,7 +30,7 @@
 - [x] 08 — Music tracks: 3 combat and 3 tension tracks, the Music tab, and the mood director. Built; the six tracks wait for the user's listen before any battle plays them (slice 14). [slice](slices/08-music-tracks.md)
 - [x] 09 — Chatter: line arbitration, the per-set voice bank, and the 30 s chatter preview. [slice](slices/09-chatter.md)
 - [x] 10 — Responses in battle: R1–R12.
-- [ ] 09b — Chatter in Rust: once the native-parity work (branch `phase5f`) puts sound decisions in `crates/presentation/src/sound/`, port Chatter's rules into `sound/voices.rs`, held to the TS behaviour by vectors the TS writes first; then delete the TS rules. [slice](slices/09b-chatter-in-rust.md) [slice](slices/10-responses.md)
+- [x] 09b — Chatter in Rust: once the native-parity work (branch `phase5f`) puts sound decisions in `crates/presentation/src/sound/`, port Chatter's rules into `sound/voices.rs`, held to the TS behaviour by vectors the TS writes first; then delete the TS rules. [slice](slices/09b-chatter-in-rust.md) [slice](slices/10-responses.md)
 - [x] 11 — Shout ledger: simulation barks from existing state, not yet published. [slice](slices/11-shout-ledger.md)
 - [x] 12 — Physical barks: B5 (under fire), B15 (incoming missile), B17 (friendly destroyed nearby), plus the anonymous unseen-shout hearing cue. [slice](slices/12-physical-barks.md)
 - [x] 13 — Publish shouts: the publication group and the single named re-bless. [slice](slices/13-publish-shouts.md)
@@ -76,7 +76,7 @@ Non-goals:
 - **One writer per file.** People and the workbench save path write `voices.json`. The generation tool writes `voices.lock.json`, the packs and every audio file. A verdict given in the workbench is recorded by the tool. Credits are spent only through the generation tool. The browser and the workbench UI never call ElevenLabs; the workbench server runs the tool.
 - **No new places.** Two fixture files (`voices.json`, `voices.lock.json`). Audio goes under the existing `assets/source/audio/` and `assets/runtime/audio/`. Music lives in the existing sound catalog. Anything a slice wants to add beyond these needs a recorded reason in `choices.md`.
 - **`assets.py` is the only owner of ffmpeg and encoding.** The generator calls it.
-- **`Chatter` is the only place line limits are enforced.** Battle playback and the workbench preview use the same `Chatter`.
+- **`Chatter` is the only place line limits are enforced.** It lives in Rust (`crates/presentation/src/sound/voices.rs`, since 09b). Battle playback and the workbench preview use the same `Chatter`.
 - **`MusicPlayer` is the only music path,** menu included. The decode-whole-file path for music is deleted in slice 07.
 - **Hearing stays anonymous.** An unseen shout carries only listener, sector and band. No set, trigger or position reaches the client.
 - **One provenance owner and one levels owner.**

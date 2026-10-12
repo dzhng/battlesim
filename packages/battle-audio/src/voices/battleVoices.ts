@@ -1,15 +1,14 @@
 // A battle's voice lines: the takes of the sets it asks for (`VoiceBank`),
-// the one arbitration (`Chatter`), and where a line sounds. Packs load only
-// once `start` is called (the battle's own sounds are ready), and each set
-// once. A line plays dry and centred on the mixer's voices bus: an answer is
-// the owner's radio, never placed in the world.
+// the one arbitration (`Chatter`, in Rust), and playing what it starts.
+// Packs load only once `start` is called (the battle's own sounds are
+// ready), and each set once. A line plays dry and centred on the mixer's
+// voices bus at the level Rust gives it, after its take's calibration: an
+// answer is the owner's radio, never placed in the world.
 import { sourceNormalization } from "../soundBank";
-import { Chatter, type ChatterRules, type LineSink, type VoiceLine } from "./chatter";
+import type { SoundFrame } from "../soundFrame";
+import { Chatter, type ChatterRules, type ChatterUpdate } from "./chatter";
 import type { ResponseRequest } from "./responses";
 import { VoiceBank, type PackSource } from "./voiceBank";
-
-/** A line's level on the voices bus, after the calibration every take gets. */
-export const LINE_GAIN = 0.5;
 
 /** The mixer a battle's lines sound through, on its clock. */
 export interface LineOutput {
@@ -32,9 +31,10 @@ export class BattleVoices {
     rules: ChatterRules,
     options: { fetcher?: typeof fetch; packs?: PackSource; seed?: number } = {},
   ) {
-    this.bank = new VoiceBank(output.context, options.fetcher, options.packs);
-    const sink: LineSink = { now: () => output.now(), play: (line) => this.play(line) };
-    this.chatter = new Chatter(rules, this.bank, sink, options.seed ?? 0);
+    this.chatter = new Chatter(rules, options.seed ?? 0);
+    this.bank = new VoiceBank(output.context, options.fetcher, options.packs, {
+      listener: this.chatter,
+    });
   }
 
   /** Sets this battle speaks with; they load once started. */
@@ -49,14 +49,20 @@ export class BattleVoices {
     return this.load();
   }
 
-  /** Asks for a line now; the next `update` decides whether it plays. */
+  /** Asks for a line now; the next arbitration decides whether it plays. */
   respond(request: ResponseRequest) {
-    this.chatter.request({ ...request, at: this.output.now() });
+    const now = this.output.now();
+    this.chatter.request({ ...request, at: now }, now);
   }
 
-  /** Starts what may start, heard from `listener`. */
-  update(listener: readonly number[]) {
-    return this.chatter.update(listener);
+  /** Starts what may start, heard from where battle sound `frame` last heard. */
+  hear(frame: SoundFrame): ChatterUpdate {
+    return this.play(frame.hearLines(this.chatter));
+  }
+
+  /** Starts what may start, heard from `listener` (a script's). */
+  update(listener: readonly number[]): ChatterUpdate {
+    return this.play(this.chatter.update(this.output.now(), listener));
   }
 
   /** Forgets every line waiting; lines sounding play out. */
@@ -86,22 +92,28 @@ export class BattleVoices {
     return sets.length ? this.bank.load(sets) : Promise.resolve();
   }
 
-  private play(line: VoiceLine) {
+  /** Carries out an arbitration's start commands. */
+  private play(update: ChatterUpdate): ChatterUpdate {
     const { context, buses } = this.output;
-    let calibration = this.calibration.get(line.buffer);
-    if (calibration === undefined) {
-      calibration = sourceNormalization(line.buffer);
-      this.calibration.set(line.buffer, calibration);
+    for (const line of update.commands) {
+      const buffer = this.bank.line(line.sound, line.variant);
+      if (!buffer) continue;
+      let calibration = this.calibration.get(buffer);
+      if (calibration === undefined) {
+        calibration = sourceNormalization(buffer);
+        this.calibration.set(buffer, calibration);
+      }
+      const source = new AudioBufferSourceNode(context, { buffer });
+      const gain = new GainNode(context, { gain: line.gain * calibration });
+      source.connect(gain).connect(buses.voices);
+      source.onended = () => {
+        this.sounding.delete(source);
+        source.disconnect();
+        gain.disconnect();
+      };
+      this.sounding.add(source);
+      source.start(line.at);
     }
-    const source = new AudioBufferSourceNode(context, { buffer: line.buffer });
-    const gain = new GainNode(context, { gain: LINE_GAIN * calibration });
-    source.connect(gain).connect(buses.voices);
-    source.onended = () => {
-      this.sounding.delete(source);
-      source.disconnect();
-      gain.disconnect();
-    };
-    this.sounding.add(source);
-    source.start(line.at);
+    return update;
   }
 }
