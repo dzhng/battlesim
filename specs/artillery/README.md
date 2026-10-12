@@ -4,7 +4,7 @@ Status: closeout in progress; implementation and focused gates are complete. Las
 
 ## Next Agent Prompt
 
-Latest main (`522c397b`) is merged in `2cd7defa`; the artillery implementation is committed in `cf77c20b`, with the AI replay integration proof in `b85c5a84`. Both WASM modules were rebuilt, the artillery scene passes, runtime artillery fit tests pass after fetching the required LFS objects, and the AI procurement/replay scenario passes. Full `check`/`verify` attempts are recorded below; remaining work is the final review and archival decision. The artillery scene is a proxy flight bench; production roster admission is covered separately by the focused catalog/fit tests.
+Latest main (`003002e0c`) is merged in `f40d776f7`; the artillery implementation is committed in `cf77c20bc`, with the AI replay integration proof in `b85c5a84`. Both WASM modules were rebuilt, the artillery scene passes, runtime artillery fit tests pass after fetching the required LFS objects, and the AI procurement/replay scenario passes. Full `check`/`verify` attempts are recorded below; remaining work is the final review and archival decision. The artillery scene is a proxy flight bench; production roster admission is covered separately by the focused catalog/fit tests.
 
 ## Goal
 
@@ -100,4 +100,3 @@ passes both assertions. These logs remain in
 No approved artillery or command-bar baseline was supplied or added to the
 repository. The current capture is ignored evidence only (`throwaway/evidence/
 artillery/frame-artillery-crest.png`); it is not a close-spec visual reference.
-

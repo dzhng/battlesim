@@ -50,4 +50,3 @@ skirmish integration tests pass. The integration scenario also records an AI
 artillery purchase and replays every tick to the same digest; the public policy
 tests cover stale/expired evidence, bounded prediction, objective range checks,
 and engagement gates.
-

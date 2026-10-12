@@ -60,4 +60,3 @@ green. Each newly fetched source and wreck validates individually. The full
 `asset check` remains blocked by unrelated repository-wide LFS pointers in
 existing runtime bundles and source libraries; no baseline asset was replaced
 to hide that environmental failure.
-

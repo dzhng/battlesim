@@ -50,4 +50,3 @@ The synthetic probe uses an admitted indirect profile with `range_m = 2,500`, `s
 ## Acceptance and feedback
 
 The slice is accepted when the production path proves all listed behaviors and the long-range feasibility result is recorded. If the probe reveals a coupled constraint that changes range, speed, lifetime or spread, update the README decisions ledger before moving to slice 02.
-

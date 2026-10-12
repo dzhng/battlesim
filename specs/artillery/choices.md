@@ -109,7 +109,7 @@ changing weapon, command or AI data.
 
 Verdict: sound. Confidence: high.
 
-### AI guesses are deterministic, bounded area-biased ground orders
+### AI guesses are deterministic, bounded ground orders
 
 When an artillery unit has no suitable identified target, the policy chooses the
 nearest fresh ground contact inside the indirect weapon’s authored minimum and

@@ -61,4 +61,3 @@ button. The `artillery` lab route and scene are registered and reuse the
 production flight bench. The scene passes its ridge-clearance and minimum-range
 checks and its captured frame is retained in ignored evidence; the focused
 browser suite also covers the generic distance-scaled spread cursor.
-

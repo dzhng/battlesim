@@ -30,4 +30,3 @@ Do not broaden this closeout into balance tuning, new maps, sound production, re
 ## Acceptance and feedback
 
 The feature is ready for close-spec only when every checklist item is complete, all required visual shots have been critiqued and compared, full checks are green, and the hard-cutover identity change is recorded. Any remaining open item stays explicitly on the README rather than being silently delegated to a future implementer.
-
