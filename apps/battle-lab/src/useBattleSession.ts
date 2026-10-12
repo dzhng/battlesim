@@ -52,7 +52,7 @@ import {
   knownOf,
 } from "@packages/battle-renderer/src/buildingObstacles";
 import { gameBiome } from "./gameBiome";
-import { mapAppearances, useMapAppearances } from "./gameAppearances";
+import { installedUnitNames, mapAppearances, useMapAppearances } from "./gameAppearances";
 import { gameStandIns } from "./gameModels";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import { gameHud } from "@web/battle/present/hudTheme";
@@ -572,9 +572,16 @@ export function useBattleSession({
   const modelAppearances = useMemo<InstalledAppearances | null>(
     () =>
       appearances && props && drawnBuildings
-        ? mapAppearances(appearances, props.map, props.fit, drawnBuildings.placed, true)
+        ? mapAppearances(
+            appearances,
+            props.map,
+            props.fit,
+            drawnBuildings.placed,
+            true,
+            installedUnitNames(appearances, units.appearancesFor(requestedKinds)),
+          )
         : null,
-    [appearances, props, drawnBuildings],
+    [appearances, props, drawnBuildings, units, requestedKinds],
   );
 
   // What the battle draws, handed to the presentation once its appearances

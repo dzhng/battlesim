@@ -47,6 +47,22 @@ export function reloadGameAppearances(units: UnitCatalog): Promise<InstalledAppe
 
 const NOTHING: ReadonlySet<string> = new Set();
 
+/** Unit art needed by the renderer for a set of worn base appearances,
+ * including faction looks and vehicle wrecks that the catalog links from it. */
+export function installedUnitNames(
+  installed: InstalledAppearances,
+  worn: ReadonlySet<string>,
+): ReadonlySet<string> {
+  const names = new Set(worn);
+  for (const name of worn) {
+    const entry = installed.appearances.get(name);
+    if (!entry) continue;
+    if (entry.wreck) names.add(entry.wreck);
+    for (const look of Object.values(entry.factions ?? {})) names.add(look);
+  }
+  return names;
+}
+
 /** The installed appearances for the session's units (`useSessionCatalog`)
  *  with `asked` among them, or null until they have loaded, and while `asked`
  *  is null (the page does not know yet what it draws). Required failures
@@ -148,6 +164,7 @@ export function mapAppearances(
   fit: PropAppearances,
   buildings: PlacedBuildings,
   units: boolean,
+  unitNames: ReadonlySet<string> | null = null,
 ): InstalledAppearances {
   const drawn = fit.drawnFor(props.filter((p) => !fit.drawsTree(p.kind)));
   const kits = mapKits(appearances, buildings);
@@ -162,7 +179,9 @@ export function mapAppearances(
     appearances: new Map(
       [...appearances.appearances].filter(
         ([name, a]) =>
-          (units && (a.unit === "soldier" || a.unit === "vehicle")) ||
+          (units &&
+            (a.unit === "soldier" || a.unit === "vehicle") &&
+            (!unitNames || unitNames.has(name))) ||
           kits.has(name) ||
           drawn.has(name),
       ),
