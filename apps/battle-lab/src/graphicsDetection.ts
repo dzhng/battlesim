@@ -1,4 +1,9 @@
-import { graphicsSettings, type GraphicsTier, type TierBenchmarkInput } from "./graphicsSettings";
+import {
+  graphicsSettings,
+  resolveAutoDetect,
+  type GraphicsTier,
+  type TierBenchmarkInput,
+} from "./graphicsSettings";
 
 export const GRAPHICS_TARGET = { averageFps: 45, onePercentLowFps: 30 } as const;
 
@@ -13,14 +18,17 @@ export function judgeIntervals(intervalsMs: readonly number[], tier: GraphicsTie
 }
 
 export function chooseTier(samples: Partial<Record<GraphicsTier, TierBenchmarkInput>>): GraphicsTier {
-  for (const tier of ["high", "medium", "low"] as const) {
-    const sample = samples[tier];
-    if (sample && sample.averageFps >= GRAPHICS_TARGET.averageFps && sample.onePercentLowFps >= GRAPHICS_TARGET.onePercentLowFps)
-      return tier;
+  const result = resolveAutoDetect({
+    high: samples.high ?? null,
+    medium: samples.medium ?? null,
+    low: samples.low ?? null,
+  });
+  if ("unusable" in result || !result.mode) {
+    throw new Error(
+      `Graphics auto-detect could not meet the ${GRAPHICS_TARGET.averageFps}/${GRAPHICS_TARGET.onePercentLowFps} FPS target on any preset. Reload after closing other GPU-heavy applications.`,
+    );
   }
-  // A valid but slow adapter still gets the lowest playable profile; fatal is
-  // reserved for missing or unusable measurements.
-  return "low";
+  return result.mode;
 }
 
 export function runAutoDetect(): Promise<GraphicsTier> {
