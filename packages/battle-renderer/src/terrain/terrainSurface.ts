@@ -3,39 +3,49 @@
 // flat-shaded, never resampled or exaggerated: landmine 11) plus what the
 // biome material needs to paint them: the plot split, and the roads, forests
 // and rivers exactly as the simulation's surface rules define them, so a road
-// is drawn precisely where units find road.
-//
-// Rewritten from reading ~/dev/game
-// battle-renderer/src/world/terrain.ts and shaders/terrainMaterial.ts: there
-// the ground was a cell-centred bilinear grid with 1.6× relief and its roads
-// and mud came from a baked distance texture.
-import { vec2, vec3, type Vec2 } from "math";
+// is drawn precisely where units find road. The shapes are resolved in Rust
+// (`crates/static-world/src/ground`), which the presentation module must
+// have loaded (`loadPresentation`).
+import { vec3 } from "math";
 import { triangle3 } from "math/shapes";
+import { Ground } from "@wasm/presentation/presentation_wasm.js";
 import { VERTEX_FLOATS, type Mesh, type Rgba } from "../mesh";
 import { drawnBy } from "../models/propAppearance";
 import type { WorldExports, WorldLayout, WorldOverlay } from "../worldMesh";
-import { pick } from "@packages/renderer-core/src/kindTable";
+import { checkSurfaceKinds } from "./surfaces";
+import { regionalBiome, type Biome } from "./biome";
+import { plotTree, type PlotTree } from "./plots";
 import {
-  checkSurfaceKinds,
-  drawnStrokes,
-  SURFACE_AREA_KINDS,
-  type SurfaceAreaKind,
-  type SurfaceGeometry,
-} from "./surfaces";
-import { regionalBiome, roadRow, type Biome } from "./biome";
-import { generatePlots, plotAt, type PlotTree } from "./plots";
-import { buildForestShapes, type ForestShape } from "./forestShapes";
+  FOREST_BOUNDARY_FLOATS,
+  FOREST_TRIANGLE_FLOATS,
+  forestShapes,
+  type ForestShape,
+} from "./forestShapes";
 import { RIVER_FIELDS, RIVER_FLOATS } from "./rivers";
 import { checkStrokeLayout } from "./strokes";
 import type { TerrainGrid } from "./terrainGrid";
 
-/** Rects `x, y, w, h` per record. */
-export const RECT_FLOATS = 4;
 /** Prop footprints `x, y, yaw, hx, hy` per record: an oriented box. */
 export const FOOTPRINT_FLOATS = 5;
 
-/** Where the ground's features are, in world metres. */
-export interface TerrainSite extends SurfaceGeometry {
+/** What the ground is resolved from: the exported streams, as the
+ *  simulation's `WorldView` names them (`worldMesh.ts`), and the map. */
+export interface GroundSource extends Pick<
+  WorldExports,
+  | "surfaceStrokes"
+  | "surfaceRuns"
+  | "surfaceTriangles"
+  | "surfaceBoundaries"
+  | "rivers"
+  | "riverRuns"
+  | "forests"
+  | "forestRectIds"
+  | "forestMetadata"
+  | "forestStrokes"
+  | "forestTriangles"
+  | "forestBoundaries"
+  | "forestTrunkRanges"
+> {
   /** Physical terrain footprint for field/scenery placement, `[minX, minY, maxX, maxY]`.
    *  Common map extents publish the height grid's rounded boundary. */
   map: readonly [number, number, number, number];
@@ -44,17 +54,17 @@ export interface TerrainSite extends SurfaceGeometry {
   /** The height samples' spacing in metres: the ground's triangles are this
    *  wide. */
   gridM: number;
-  /** Exact rectangle fast-path forests (`RECT_FLOATS` each): the forest floor,
-   *  as the simulation's forest ground (less its cleared lanes, drawn as
-   *  crushed ground). */
-  forests: Float32Array;
-  /** Authored-order primitives and canopy metadata; also used to fit tree crowns. */
-  forestShapes: readonly ForestShape[];
-  /** Every river's rounded stretches (`RIVER_FLOATS` each, `terrain/rivers.ts`). */
-  rivers: Float32Array;
-  buildings: readonly Vec2[];
+  /** Building centres, `x, y` each. */
+  buildings: Float32Array;
   /** Every static prop's footprint (`FOOTPRINT_FLOATS` each), where no grass grows. */
   footprints: Float32Array;
+}
+
+/** Where the ground's features are, in world metres. */
+export interface TerrainSite extends GroundSource {
+  /** The forests in authored order, with their canopy; also used to fit
+   *  tree crowns. */
+  forestShapes: readonly ForestShape[];
 }
 
 export interface TerrainSurface {
@@ -64,15 +74,18 @@ export interface TerrainSurface {
   mesh: Mesh;
   site: TerrainSite;
   plots: PlotTree;
-  /** The site's paved strokes as the ground draws them (`drawnStrokes`): a
-   *  road through a settlement's own ground is tagged as the kind its row
-   *  names for a town (`biome.roads.<kind>.town`). The site's own array
-   *  where no road is. */
+  /** The site's paved strokes as the ground draws them: a road through a
+   *  settlement's own ground is tagged as the kind its row names for a
+   *  town (`biome.roads.<kind>.town`). The site's own array where no road
+   *  is. */
   strokes: Float32Array;
   biome: Biome;
   /** The height grid grass is seated on; null where no grass grows (the
    *  traversal view, render-only patches: where the tint replaces the biome). */
   grid: TerrainGrid | null;
+  /** The resolved ground, for its surface fields (`surfaceField`) and its
+   *  water's cells. */
+  ground: Ground;
 }
 
 /** The traversal view's colours: ground units can or cannot enter. */
@@ -80,52 +93,81 @@ export const OPEN: Rgba = [0.52, 0.56, 0.5, 1];
 export const BLOCKED: Rgba = [0.78, 0.3, 0.26, 1];
 const BIOME: Rgba = [0, 0, 0, 0];
 
+/** The ground of source `s` under `biome` (in its map's region's finish). */
 export function terrainSurface(
   mesh: Mesh,
-  site: TerrainSite,
+  s: GroundSource,
   biome: Biome,
   grid: TerrainGrid | null,
 ): TerrainSurface {
-  const plots = generatePlots(site, biome);
-  const settlement = biome.plots.findIndex((p) => p.name === biome.field_rules.settlement_kind);
-  const through = SURFACE_AREA_KINDS.map((kind) => {
-    const town = roadRow(biome, kind).town;
-    return town
-      ? {
-          as: SURFACE_AREA_KINDS.indexOf(town.kind as SurfaceAreaKind),
-          besideM: town.beside_m,
-          gapM: town.gap_m,
-          carryM: pick(biome.roads, town.kind).join_m,
-        }
-      : null;
-  });
-  const strokes = drawnStrokes(site, through, (x, y) => {
-    const at = plotAt(plots, x, y);
-    return at !== null && plots.plots[at.plot].kind === settlement;
-  });
-  return { mesh, site, plots, strokes, biome, grid };
+  const ground = new Ground(
+    Float64Array.from([...s.map, ...(s.rendered ?? [])]),
+    s.surfaceStrokes,
+    s.surfaceRuns,
+    s.surfaceTriangles,
+    s.surfaceBoundaries,
+    s.rivers,
+    s.riverRuns,
+    s.forests,
+    s.forestRectIds,
+    s.forestMetadata,
+    s.forestStrokes,
+    s.forestTriangles,
+    s.forestBoundaries,
+    s.forestTrunkRanges,
+    s.buildings,
+    JSON.stringify(biome),
+  );
+  return {
+    mesh,
+    site: { ...s, forestShapes: forestShapes(ground.forests(), s) },
+    plots: plotTree(ground),
+    strokes: ground.drawn_strokes() ?? s.surfaceStrokes,
+    biome,
+    grid,
+    ground,
+  };
 }
 
-/** Rects from an area export (`x, y, w, h, z` rows) without their height. */
-function rects(area: Float32Array, layout: WorldLayout): Float32Array {
-  const rows = area.length / layout.areaStride;
-  const out = new Float32Array(rows * RECT_FLOATS);
-  const at = ["x", "y", "w", "h"].map((f) => layout.areaFields.indexOf(f));
-  for (let r = 0; r < rows; r++)
-    for (let k = 0; k < RECT_FLOATS; k++)
-      out[r * RECT_FLOATS + k] = area[r * layout.areaStride + at[k]];
-  return out;
+/** A ground of `map` with nothing on it, its triangles `gridM` wide. */
+export function bareSource(map: GroundSource["map"], gridM: number): GroundSource {
+  const none = new Float32Array(0);
+  const ids = new Uint32Array(0);
+  return {
+    map,
+    gridM,
+    surfaceStrokes: none,
+    surfaceRuns: none,
+    surfaceTriangles: none,
+    surfaceBoundaries: none,
+    rivers: none,
+    riverRuns: none,
+    forests: none,
+    forestRectIds: ids,
+    forestMetadata: none,
+    forestStrokes: none,
+    forestTriangles: none,
+    forestBoundaries: none,
+    forestTrunkRanges: ids,
+    buildings: none,
+    footprints: none,
+  };
 }
 
-/** The exported river stretches, which must be the fields the water's
- *  distance reads, in its order. */
-function rivers(exports: WorldExports, layout: WorldLayout): Float32Array {
+/** Refuse a native layout whose streams the ground would misread. */
+function checkLayout(layout: WorldLayout) {
+  checkStrokeLayout(layout);
+  checkSurfaceKinds(layout);
+  if (
+    layout.forestTriangleStride !== FOREST_TRIANGLE_FLOATS ||
+    layout.forestBoundaryStride !== FOREST_BOUNDARY_FLOATS
+  )
+    throw new Error("forest primitive strides differ from the forest-floor shader's records");
   if (
     layout.riverStride !== RIVER_FLOATS ||
     RIVER_FIELDS.some((field, k) => layout.riverFields[k] !== field)
   )
     throw new Error("river stretch fields differ from the water distance's records");
-  return exports.rivers;
 }
 
 /** The ground of the exported world under `biome`, in its map's region's
@@ -137,6 +179,7 @@ export function buildTerrainSurface(
   biome: Biome,
   overlay: WorldOverlay = "surface",
 ): TerrainSurface {
+  checkLayout(layout);
   const { positions, indices, triangleSurfaces } = exports;
   const mesh = new Float32Array(indices.length * VERTEX_FLOATS);
   const a = vec3.create(),
@@ -144,8 +187,6 @@ export function buildTerrainSurface(
     c = vec3.create(),
     normal = vec3.create();
   const corners = [a, b, c];
-  const hasMargin = exports.extents.rendered[0] < 0;
-  const map = exports.extents.physical;
   for (let t = 0; t < indices.length; t += 3) {
     const tint =
       overlay === "traversal"
@@ -164,7 +205,7 @@ export function buildTerrainSurface(
       mesh.set(tint, at + 6);
     }
   }
-  const buildings: Vec2[] = [];
+  const buildings: number[] = [];
   const kindAt = layout.propFields.indexOf("kind");
   const at = ["x", "y", "yaw", "hx", "hy"].map((f) => layout.propFields.indexOf(f));
   const footprints = new Float32Array(
@@ -173,30 +214,17 @@ export function buildTerrainSurface(
   for (let o = 0, r = 0; o < exports.props.length; o += layout.propStride, r++) {
     at.forEach((f, k) => (footprints[r * FOOTPRINT_FLOATS + k] = exports.props[o + f]));
     if (drawnBy(layout, layout.propKinds[exports.props[o + kindAt]], "building"))
-      buildings.push(vec2.fromValues(exports.props[o + at[0]], exports.props[o + at[1]]));
+      buildings.push(exports.props[o + at[0]], exports.props[o + at[1]]);
   }
-  checkStrokeLayout(layout);
-  checkSurfaceKinds(layout);
+  const { physical, rendered } = exports.extents;
   return terrainSurface(
     mesh,
     {
-      map,
-      ...(hasMargin && { rendered: exports.extents.rendered }),
+      ...exports,
+      map: physical,
+      ...(rendered[0] < 0 && { rendered }),
       gridM: exports.terrain.spacing,
-      surfaceStrokes: exports.surfaceStrokes,
-      surfaceStrokeStride: layout.surfaceStrokeStride,
-      surfaceRuns: exports.surfaceRuns,
-      surfaceRunStride: layout.surfaceRunStride,
-      surfaceTriangles: exports.surfaceTriangles,
-      surfaceTriangleStride: layout.surfaceTriangleStride,
-      surfaceBoundaries: exports.surfaceBoundaries,
-      surfaceBoundaryStride: layout.surfaceBoundaryStride,
-      forests: rects(exports.forests, layout),
-      forestShapes: buildForestShapes(exports, layout),
-      rivers: rivers(exports, layout),
-      riverRuns: exports.riverRuns,
-      riverRunStride: layout.riverRunStride,
-      buildings,
+      buildings: Float32Array.from(buildings),
       footprints,
     },
     regionalBiome(biome, exports.buildings.regionalFamily),

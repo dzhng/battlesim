@@ -17,3 +17,8 @@ It links the [publication reader](../sim/src/publication/reader.rs) and the
 presentation crate, and no rules, so the main thread never loads the simulation.
 The web manifest's `build:wasm` builds it after `game-wasm`, into
 `web/src/wasm/presentation/`.
+
+It also hands the page the static world [`static-world`](../static-world/) resolves:
+`Ground` is a map's ground shapes (forest shapes, the plot split, the paved strokes
+as drawn, surface fields and water cells) as flat arrays, built once per map from
+`WorldView`'s exports and the regional biome.

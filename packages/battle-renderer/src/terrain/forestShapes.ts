@@ -1,8 +1,9 @@
-/** Native forest primitives. Bounds never substitute for physical membership. */
+/** The forests as shapes of the native forest primitives. Bounds never
+ *  substitute for physical membership. */
 import { vec2, type Vec2 } from "math";
 import { segment2, triangle2 } from "math/shapes";
-import type { WorldExports, WorldLayout } from "../worldMesh";
-import { checkStrokeLayout, STROKE_FLOATS, strokeInside } from "./strokes";
+import type { WorldExports } from "../worldMesh";
+import { STROKE_FLOATS, strokeInside } from "./strokes";
 
 export type ForestShapeKind = "rectangle" | "stroke" | "polygon";
 
@@ -18,80 +19,33 @@ export interface ForestShape {
   triangles: Float32Array;
   boundaries: Float32Array;
 }
-const EMPTY = new Float32Array(0);
 
 /** The floats per record the forest-floor shader reads; the native layout
  *  must publish the same strides. */
 export const FOREST_STROKE_FLOATS = STROKE_FLOATS;
 export const FOREST_TRIANGLE_FLOATS = 7;
 export const FOREST_BOUNDARY_FLOATS = 5;
+const KINDS: ForestShapeKind[] = ["rectangle", "stroke", "polygon"];
+/** Numbers per forest in the ground's table (`Ground.forests`). */
+const FOREST_NUMBERS = 14;
 
-/** Each primitive stream is grouped in authored-ID order by the native
- *  owner; `idAt` is where a record holds its forest's ID. */
-function ranges(records: Float32Array, stride: number, idAt: number): Map<number, Float32Array> {
-  const out = new Map<number, Float32Array>();
-  for (let first = 0; first < records.length;) {
-    const id = records[first + idAt];
-    let end = first + stride;
-    while (end < records.length && records[end + idAt] === id) end += stride;
-    if (out.has(id)) throw new Error("forest primitive groups must be contiguous");
-    out.set(id, records.subarray(first, end));
-    first = end;
-  }
-  return out;
-}
-
-export function buildForestShapes(exports: WorldExports, layout: WorldLayout): ForestShape[] {
-  checkStrokeLayout(layout);
-  if (
-    layout.forestTriangleStride !== FOREST_TRIANGLE_FLOATS ||
-    layout.forestBoundaryStride !== FOREST_BOUNDARY_FLOATS
-  )
-    throw new Error("forest primitive strides differ from the forest-floor shader's records");
-  const rects = new Map<number, readonly [number, number, number, number]>();
-  for (let r = 0; r < exports.forestRectIds.length; r++) {
-    const o = r * layout.areaStride;
-    rects.set(exports.forestRectIds[r], [
-      exports.forests[o],
-      exports.forests[o + 1],
-      exports.forests[o + 2],
-      exports.forests[o + 3],
-    ]);
-  }
-  const idAt = (fields: string[]) => fields.indexOf("id");
-  const strokes = ranges(
-    exports.forestStrokes,
-    layout.forestStrokeStride,
-    idAt(layout.forestStrokeFields),
-  );
-  const triangles = ranges(
-    exports.forestTriangles,
-    layout.forestTriangleStride,
-    idAt(layout.forestTriangleFields),
-  );
-  const boundaries = ranges(
-    exports.forestBoundaries,
-    layout.forestBoundaryStride,
-    idAt(layout.forestBoundaryFields),
-  );
+/** The forests the ground resolved (`table`, `Ground.forests`) over the
+ *  streams of `source` they index. */
+export function forestShapes(
+  table: Float64Array,
+  source: Pick<WorldExports, "forestStrokes" | "forestTriangles" | "forestBoundaries">,
+): ForestShape[] {
   const out: ForestShape[] = [];
-  for (let o = 0; o < exports.forestMetadata.length; o += layout.forestMetadataStride) {
-    const id = exports.forestMetadata[o];
-    const kind = layout.forestShapeKinds[exports.forestMetadata[o + 2]] as ForestShapeKind;
-    const rect = rects.get(id);
-    if (kind === "rectangle" && !rect)
-      throw new Error("rectangular forest has no native rectangle");
-    const range = id * layout.forestTrunkRangeStride;
-    if (range + 1 >= exports.forestTrunkRanges.length)
-      throw new Error("forest has no native source trunk range");
+  for (let o = 0; o < table.length; o += FOREST_NUMBERS) {
+    const f = table.subarray(o, o + FOREST_NUMBERS);
     out.push({
-      canopy: exports.forestMetadata[o + 1],
-      trunkRange: [exports.forestTrunkRanges[range], exports.forestTrunkRanges[range + 1]],
-      kind,
-      rect,
-      strokes: strokes.get(id) ?? EMPTY,
-      triangles: triangles.get(id) ?? EMPTY,
-      boundaries: boundaries.get(id) ?? EMPTY,
+      canopy: f[0],
+      trunkRange: [f[1], f[2]],
+      kind: KINDS[f[3]],
+      ...(!Number.isNaN(f[4]) && { rect: [f[4], f[5], f[6], f[7]] as const }),
+      strokes: source.forestStrokes.subarray(f[8], f[9]),
+      triangles: source.forestTriangles.subarray(f[10], f[11]),
+      boundaries: source.forestBoundaries.subarray(f[12], f[13]),
     });
   }
   return out;
@@ -133,21 +87,4 @@ export function forestInside(shape: ForestShape, x: number, y: number): number {
     nearest = Math.min(nearest, vec2.distance(_forestPoint, _forestClosest));
   }
   return inside ? nearest : -nearest;
-}
-
-/** The long straight stretches of every strip of forest (`ax, ay, bx, by`
- *  each): what fields are cut along, as along a road's runs, so a tree line
- *  stands on the boundary between two fields. A strip's bend is exported as
- *  chords far shorter than the strip is wide; those are left out, so a field
- *  meets a bend edge-on and is not cut along its samples. */
-export function forestStripRuns(shapes: readonly ForestShape[]): Float32Array {
-  const runs: number[] = [];
-  for (const shape of shapes) {
-    if (shape.kind !== "stroke") continue;
-    const s = shape.strokes;
-    for (let o = 0; o < s.length; o += FOREST_STROKE_FLOATS)
-      if (Math.hypot(s[o + 2] - s[o], s[o + 3] - s[o + 1]) > 2 * s[o + 4])
-        runs.push(s[o], s[o + 1], s[o + 2], s[o + 3]);
-  }
-  return Float32Array.from(runs);
 }

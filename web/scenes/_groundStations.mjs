@@ -442,6 +442,8 @@ const generatedGround = (page) =>
         import(file("fixtures/prototype-building-templates.json?raw")),
       ]);
       await wasm.default();
+      // The ground's shapes are resolved by the presentation module.
+      await (await import(file("web/src/battle/sim/presentation.ts"))).loadPresentation();
       const prepared = window.__lab.route.prepared();
       const rules = JSON.stringify(gameRules);
       const outcome = JSON.parse(
@@ -493,7 +495,7 @@ export async function drawnRoads(page, points) {
       ]);
       const { surface } = window.__generatedGround;
       const drawn = surface.strokes;
-      const stride = surface.site.surfaceStrokeStride;
+      const stride = strokes.STROKE_FLOATS;
       return points.map(([x, y]) => {
         let road = null;
         for (let o = 0; o < drawn.length; o += stride) {
@@ -542,7 +544,9 @@ async function townEdges(page, centre) {
       // at a point no exported stretch ends at.
       const drawn = surface.strokes;
       const exported = surface.site.surfaceStrokes;
-      const stride = surface.site.surfaceStrokeStride;
+      const { STROKE_FLOATS: stride } = await import(
+        `/@fs/${repo}packages/battle-renderer/src/terrain/strokes.ts`
+      );
       const ends = new Set();
       for (let o = 0; o < exported.length; o += stride)
         for (const k of [0, 2]) ends.add(`${exported[o + k]},${exported[o + k + 1]}`);
@@ -876,6 +880,7 @@ const streetGround = (page) =>
           import(file("fixtures/biomes/summer.json")),
         ]);
       await wasm.default();
+      await (await import(file("web/src/battle/sim/presentation.ts"))).loadPresentation();
       const setup = JSON.parse(await buildStreetScenario((await catalogSet("test")).rules));
       const rules = JSON.stringify(setup.rules);
       const view = new wasm.WorldView(JSON.stringify(setup.map), rules);
@@ -1008,7 +1013,9 @@ async function streetPlots(page) {
           cy > y0 + inset &&
           cy < y1 - inset &&
           clear > room &&
-          surface.site.buildings.every((b) => Math.hypot(b[0] - cx, b[1] - cy) > apart) &&
+          surface.site.buildings.every(
+            (_, k, b) => k % 2 === 1 || Math.hypot(b[k] - cx, b[k + 1] - cy) > apart,
+          ) &&
           [
             [0, 0],
             [room, 0],

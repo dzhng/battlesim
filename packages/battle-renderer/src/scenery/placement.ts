@@ -54,7 +54,7 @@ import type { Biome, BiomeTrees, ForestDressing } from "../terrain/biome";
 import { FOREST_TRIANGLE_FLOATS, forestInside, type ForestShape } from "../terrain/forestShapes";
 import { STROKE_FLOATS } from "../terrain/strokes";
 import {
-  buildSurfaceField,
+  surfaceField,
   forestDistance,
   pavedDistance,
   SURFACE_FOOTPRINT_M,
@@ -152,7 +152,7 @@ export function scenerySite(
   const low = ground.minHeight;
   const { clear_m, edge_m } = terrain.biome.forest_floor.dressing;
   const reach = { paved: clear_m, forest: edge_m, water: clear_m };
-  const field = buildSurfaceField(terrain.site, () => reach);
+  const field = surfaceField(terrain.ground, () => reach, false);
   // The sparse foliage export: the grid, then a record per foliage cell.
   const [columns, , fogCellM] = exports.foliage;
   const foliage = new Set<number>();

@@ -24,7 +24,9 @@ translate publications into this boundary. [Scene assets](../scene-assets/README
 owns installed appearance generations and fit. A map must request its building
 kits before drawing them; a catalog listing is not installed kit geometry.
 
-[Terrain](src/terrain/) uses compiled map shapes; [scenery](src/scenery/) places
+[Terrain](src/terrain/) uses compiled map shapes, resolved in Rust for every
+client ([the ground](../../crates/static-world/src/ground/mod.rs): forests, plots,
+roads as drawn, surface fields, water cells); [scenery](src/scenery/) places
 admitted appearances around them. Physical bounds and visual-only landscape remain
 separate. Cosmetic geometry must not invent a physical obstruction or imply cover
 that the simulation does not provide: a tree the side has seen felled falls on the

@@ -207,7 +207,7 @@ export type WorldOverlay = "surface" | "traversal";
 
 /** Stops some mover classes but not others (a wreck stops vehicles only). */
 const PARTLY_BLOCKED: Rgba = [0.86, 0.6, 0.22, 1];
-const NO_RIVERS = new Float32Array(0);
+const NO_WATER = new Float32Array(0);
 const SKIRT: Rgba = [0.33, 0.3, 0.26, 1];
 const SKIRT_DEPTH_M = 6;
 
@@ -316,7 +316,7 @@ export function buildWorldLayers(
     structures: drawn,
     // The traversal overlay shows the blocked flag alone; a water tint would
     // muddy it. The water's look is the terrain material's (`waterSurface`).
-    water: waterSurfaceMesh(overlay === "traversal" ? NO_RIVERS : terrain.site.rivers),
+    water: waterSurfaceMesh(overlay === "traversal" ? NO_WATER : terrain.ground.water_cells()),
     scenery:
       overlay === "surface" && appearances
         ? worldScenery(exports, layout, terrain, biome, appearances)

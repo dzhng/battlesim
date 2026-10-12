@@ -42,6 +42,8 @@ export async function surfaceFieldAgreement(ctx) {
     ]);
     const strokes = await import(file("packages/battle-renderer/src/terrain/strokes.ts"));
     await wasm.default();
+    // The ground's shapes are resolved by the presentation module.
+    await (await import(file("web/src/battle/sim/presentation.ts"))).loadPresentation();
     const adapter = await navigator.gpu.requestAdapter();
     const device = await adapter.requestDevice();
     const live = allocations.trackGpuAllocations(device);
@@ -105,7 +107,7 @@ export async function surfaceFieldAgreement(ctx) {
       });
       for (const [name, surfaceOf] of cases) {
         const site = surfaceOf.site;
-        const field = fields.buildSurfaceField(site, terrain.terrainReach(surfaceOf));
+        const field = fields.surfaceField(surfaceOf.ground, terrain.terrainReach(surfaceOf), false);
         source.set(surfaceOf);
         // Seeded points over the map and a margin past it, as f32.
         let seed = 63;
@@ -140,7 +142,7 @@ export async function surfaceFieldAgreement(ctx) {
                   ]);
             }
         };
-        around(site.surfaceStrokes, site.surfaceStrokeStride);
+        around(site.surfaceStrokes, strokes.STROKE_FLOATS);
         for (const shape of site.forestShapes) around(shape.strokes, strokes.STROKE_FLOATS);
         // As many of them as a fifth of the points, evenly through the list.
         const endPoints = Math.min(ends.length, POINTS / 5);
@@ -194,7 +196,7 @@ export async function surfaceFieldAgreement(ctx) {
           for (let q = 0; q < count; q++) {
             const [x, y, footprint] = queries.subarray(q * 4, q * 4 + 3);
             if (q < endPoints * FOOTPRINTS.length && q % FOOTPRINTS.length === 0) {
-              const round = capsule(site.surfaceStrokes, site.surfaceStrokeStride, x, y);
+              const round = capsule(site.surfaceStrokes, strokes.STROKE_FLOATS, x, y);
               const square = fields.pavedDistance(field, x, y, footprint);
               if (Math.abs(round) < 1e8 && Math.abs(round - square) > 0.05) cutValues++;
             }

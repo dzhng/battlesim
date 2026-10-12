@@ -24,6 +24,8 @@ export async function forestExportAgreement(ctx) {
         import(file("packages/renderer-core/src/gpuAllocations.ts")),
       ]);
     await wasm.default();
+    // The ground's shapes are resolved by the presentation module.
+    await (await import(file("web/src/battle/sim/presentation.ts"))).loadPresentation();
     const forest = (shape) => ({ shape });
     const map = {
       size: [256, 128],

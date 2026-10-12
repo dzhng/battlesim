@@ -24,6 +24,8 @@ export async function surfaceExportAgreement(ctx) {
         import(file("packages/renderer-core/src/gpuAllocations.ts")),
       ]);
     await wasm.default();
+    // The ground's shapes are resolved by the presentation module.
+    await (await import(file("web/src/battle/sim/presentation.ts"))).loadPresentation();
     const polygon = (ring) => ({ kind: "road", shape: { kind: "polygon", ring } });
     const map = {
       size: [32, 64],

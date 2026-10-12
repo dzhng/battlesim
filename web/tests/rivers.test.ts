@@ -21,6 +21,10 @@ import { plotAt } from "@packages/battle-renderer/src/terrain/plots.ts";
 import { validateBiome, type Biome } from "@packages/battle-renderer/src/terrain/biome.ts";
 import summer from "@fixtures/biomes/summer.json";
 import { loadMap } from "@web/maps/node";
+import { loadPresentation } from "@web/battle/sim/presentation";
+
+// The ground's shapes are resolved by the presentation module.
+await loadPresentation();
 
 const riverLab = loadMap("river").definition;
 const river = riverLab.rivers![0];

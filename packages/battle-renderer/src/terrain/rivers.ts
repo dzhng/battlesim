@@ -31,13 +31,6 @@ export const RIVER_FIELDS = [
 /** Where a stretch's fields sit. */
 export const RIVER_GRADE = 6;
 export const RIVER_BANK = 8;
-const RIVER_SURFACE_Z = 10;
-
-/** The water surface is laid as square cells this wide, and reaches this far
- *  past the water's edge: the fragment cuts the edge by distance, feathered
- *  over a pixel, so the cells only have to cover it. */
-const WATER_CELL_M = 8;
-const WATER_MARGIN_M = 4;
 
 const _a: Vec2 = [0, 0],
   _run: Vec2 = [0, 0],
@@ -78,46 +71,16 @@ export function longestBank(rivers: Float32Array): number {
 
 /** The water surface: flat cells at each river's surface height along its
  *  centreline, one per grid square the water (and a margin) touches
- *  (`waterCells`). */
-export function waterSurfaceMesh(rivers: Float32Array): Mesh {
+ *  (`Ground.water_cells`: four floats each, the south-west corner, the
+ *  surface height and the side, in metres). Cells never overlap, so the
+ *  blended surface is drawn once however the river bends. */
+export function waterSurfaceMesh(cells: Float32Array): Mesh {
   const mesh = new MeshBuilder();
-  const cells = waterCells(rivers);
   for (let o = 0; o < cells.length; o += 4) {
     const [x, y, z, cell] = [cells[o], cells[o + 1], cells[o + 2], cells[o + 3]];
     mesh.quad([x, y, z], [x + cell, y, z], [x + cell, y + cell, z], [x, y + cell, z], WHITE);
   }
   return mesh.build();
-}
-
-/** The water surface's square cells, four floats each: the south-west
- *  corner, the surface height and the side, in metres. Cells never overlap,
- *  so the blended surface is drawn once however the river bends; where
- *  rivers meet, the cell is the first river's. */
-export function waterCells(rivers: Float32Array): Float32Array {
-  const out: number[] = [];
-  const laid = new Set<number>();
-  const cell = WATER_CELL_M;
-  // A cell is kept when its centre is within the water's reach plus its own
-  // half diagonal: every cell the water touches, and a few it does not.
-  const slack = WATER_MARGIN_M + cell * Math.SQRT1_2;
-  for (let o = 0; o < rivers.length; o += RIVER_FLOATS) {
-    const reach = Math.max(rivers[o + 4], rivers[o + 5]) + slack;
-    const z = rivers[o + RIVER_SURFACE_Z];
-    const i0 = Math.floor((Math.min(rivers[o], rivers[o + 2]) - reach) / cell),
-      i1 = Math.floor((Math.max(rivers[o], rivers[o + 2]) + reach) / cell),
-      j0 = Math.floor((Math.min(rivers[o + 1], rivers[o + 3]) - reach) / cell),
-      j1 = Math.floor((Math.max(rivers[o + 1], rivers[o + 3]) + reach) / cell);
-    for (let j = j0; j <= j1; j++)
-      for (let i = i0; i <= i1; i++) {
-        if (stretchInside(rivers, o, (i + 0.5) * cell, (j + 0.5) * cell) < -slack) continue;
-        // Cell indices stay far inside 2^15 on any admitted map (20 km).
-        const key = (j + 0x8000) * 0x10000 + (i + 0x8000);
-        if (laid.has(key)) continue;
-        laid.add(key);
-        out.push(i * cell, j * cell, z, cell);
-      }
-  }
-  return Float32Array.from(out);
 }
 
 const WHITE: Rgba = [1, 1, 1, 1];

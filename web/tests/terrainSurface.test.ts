@@ -19,20 +19,23 @@ import {
   type WorldLayout,
 } from "@packages/battle-renderer/src/worldMesh.ts";
 import {
+  bareSource,
   buildTerrainSurface,
-  RECT_FLOATS,
+  terrainSurface,
+  type GroundSource,
   type TerrainSurface,
 } from "@packages/battle-renderer/src/terrain/terrainSurface.ts";
+import { loadPresentation } from "@web/battle/sim/presentation";
 import { forestInside } from "@packages/battle-renderer/src/terrain/forestShapes";
-import { plotGuideEdges } from "@packages/battle-renderer/src/terrain/surfaces";
 import {
   CUT_A,
   CUT_B,
   STROKE_CUTS,
+  STROKE_FLOATS,
   strokeInside,
 } from "@packages/battle-renderer/src/terrain/strokes";
-import { SURFACE_AREA_KINDS } from "@packages/battle-renderer/src/terrain/surfaces";
-import { generatePlots, plotAt } from "@packages/battle-renderer/src/terrain/plots.ts";
+import { isRoad, SURFACE_AREA_KINDS } from "@packages/battle-renderer/src/terrain/surfaces";
+import { plotAt } from "@packages/battle-renderer/src/terrain/plots.ts";
 import {
   PLOT_HUE_JITTER,
   PLOT_MIN_LSTAR,
@@ -62,10 +65,15 @@ afterEach(() => {
   for (const view of views.splice(0)) view.free();
 });
 
-beforeAll(() => {
+beforeAll(async () => {
   initSync({ module: readFileSync(new URL("../src/wasm/game_wasm_bg.wasm", import.meta.url)) });
   layout = JSON.parse(world_layout(JSON.stringify(TEST_RULES))) as WorldLayout;
+  await loadPresentation();
 });
+
+/** The plots of `source` under `biome`. */
+const plotsOf = (source: GroundSource, under: Biome) =>
+  terrainSurface(new Float32Array(0), source, under, null).plots;
 
 function world(map: unknown): { view: WorldView; exports: WorldExports } {
   const view = new WorldView(JSON.stringify(map), JSON.stringify(TEST_RULES));
@@ -294,8 +302,8 @@ test("the material's road, forest and water masks are the simulation's surface r
     const { view, exports } = world(map);
     const { site } = buildTerrainSurface(exports, layout, biome);
     const inRect = (rects: Float32Array, x: number, y: number) => {
-      for (let r = 0; r < rects.length; r += RECT_FLOATS) {
-        const [rx, ry, w, h] = rects.subarray(r, r + RECT_FLOATS);
+      for (let r = 0; r < rects.length; r += layout.areaStride) {
+        const [rx, ry, w, h] = rects.subarray(r, r + 4);
         if (x >= rx && x <= rx + w && y >= ry && y <= ry + h) return true;
       }
       return false;
@@ -305,7 +313,7 @@ test("the material's road, forest and water masks are the simulation's surface r
     // stretches, which end square where their stroke does.
     const roadInside = (x: number, y: number) => {
       let inside = -Infinity;
-      for (let r = 0; r < strokes.length; r += site.surfaceStrokeStride) {
+      for (let r = 0; r < strokes.length; r += STROKE_FLOATS) {
         const ax = strokes[r],
           ay = strokes[r + 1];
         const dx = strokes[r + 2] - ax,
@@ -320,7 +328,7 @@ test("the material's road, forest and water masks are the simulation's surface r
     };
     // The same, stopping at the first stretch that holds the point.
     const onRoad = (x: number, y: number) => {
-      for (let r = 0; r < strokes.length; r += site.surfaceStrokeStride) {
+      for (let r = 0; r < strokes.length; r += STROKE_FLOATS) {
         const ax = strokes[r],
           ay = strokes[r + 1];
         const dx = strokes[r + 2] - ax,
@@ -337,7 +345,7 @@ test("the material's road, forest and water masks are the simulation's surface r
     let roads = 0;
     // Round every end of every stroke, where a round cap would differ from
     // the square end: past the end, beside it, and off its two corners.
-    for (let r = 0; r < strokes.length; r += site.surfaceStrokeStride) {
+    for (let r = 0; r < strokes.length; r += STROKE_FLOATS) {
       const cuts = strokes[r + STROKE_CUTS];
       for (const [bit, from, to] of [
         [CUT_A, r, r + 2],
@@ -399,7 +407,7 @@ test("each paved stretch names its own area's kind, so a track is drawn as a tra
   const { site } = buildTerrainSurface(world(riverLab).exports, layout, biome);
   const kindAt = layout.surfaceStrokeFields.indexOf("kind");
   const widths = new Map<string, Set<number>>();
-  for (let r = 0; r < site.surfaceStrokes.length; r += site.surfaceStrokeStride) {
+  for (let r = 0; r < site.surfaceStrokes.length; r += STROKE_FLOATS) {
     const kind = SURFACE_AREA_KINDS[site.surfaceStrokes[r + kindAt]];
     widths.set(kind, (widths.get(kind) ?? new Set()).add(site.surfaceStrokes[r + 4] * 2));
   }
@@ -430,7 +438,7 @@ test("rounded strokes are the native samples, bit for bit", () => {
 test("roads split the patchwork: fields meet a road edge-on, never across it", () => {
   const { exports } = world(streetMap);
   const { site, plots } = buildTerrainSurface(exports, layout, biome);
-  for (let r = 0; r < site.surfaceStrokes.length; r += site.surfaceStrokeStride) {
+  for (let r = 0; r < site.surfaceStrokes.length; r += STROKE_FLOATS) {
     const [ax, ay, bx, by, half] = site.surfaceStrokes.subarray(r, r + 5);
     const len = Math.hypot(bx - ax, by - ay);
     const [nx, ny] = [-(by - ay) / len, (bx - ax) / len];
@@ -454,25 +462,10 @@ function offGrain(across: readonly number[], heading: number): number {
 test("open country keeps one grain: no tract turns further than the rules say, however large the land", () => {
   // 8 km of land with no road: turns must not add up from the region down
   // to the plots, or the patchwork fans out round the map's middle.
-  const bare = {
-    map: [0, 0, 8000, 8000] as const,
-    buildings: [],
-    surfaceStrokes: new Float32Array(),
-    surfaceStrokeStride: 1,
-    surfaceRuns: new Float32Array(),
-    surfaceRunStride: 4,
-    surfaceTriangles: new Float32Array(),
-    surfaceTriangleStride: 1,
-    surfaceBoundaries: new Float32Array(),
-    surfaceBoundaryStride: 5,
-    riverRuns: new Float32Array(),
-    riverRunStride: 4,
-    forestShapes: [],
-  };
   const rules = biome.field_rules;
   const most = ((rules.orientation_jitter_deg + rules.cut_jitter_deg) * Math.PI) / 180;
   const heading = (rules.orientation_deg * Math.PI) / 180;
-  const { plots } = generatePlots(bare, biome);
+  const { plots } = plotsOf(bareSource([0, 0, 8000, 8000], 4), biome);
   expect(plots.length).toBeGreaterThan(5000);
   const turned = plots.map((p) => offGrain(p.across, heading));
   expect(Math.max(...turned)).toBeLessThanOrEqual(most + 1e-6);
@@ -483,7 +476,13 @@ test("open country keeps one grain: no tract turns further than the rules say, h
 test("a field at a road's edge lies along a road beside it: its rows run with it or square to it", () => {
   const { exports } = world(streetMap);
   const { site, plots } = buildTerrainSurface(exports, layout, biome);
-  const roads = plotGuideEdges(site);
+  // What fields are cut along: the roads' and rivers' authored runs, and the
+  // roads' exposed boundary.
+  const boundaries = site.surfaceBoundaries;
+  const edges = [...site.surfaceRuns, ...site.riverRuns];
+  for (let o = 0; o < boundaries.length; o += 5)
+    if (isRoad(boundaries[o + 4])) edges.push(...boundaries.subarray(o, o + 4));
+  const roads = Float32Array.from(edges);
   /** Whether road `r` runs through `outline` or beside it, nearer than a plot is wide. */
   const borders = (outline: number[], r: number) => {
     const [ax, ay, bx, by] = roads.subarray(r, r + 4);
@@ -498,7 +497,7 @@ test("a field at a road's edge lies along a road beside it: its rows run with it
     return false;
   };
   let beside = 0;
-  for (let r = 0; r < site.surfaceStrokes.length; r += site.surfaceStrokeStride) {
+  for (let r = 0; r < site.surfaceStrokes.length; r += STROKE_FLOATS) {
     const [ax, ay, bx, by, half] = site.surfaceStrokes.subarray(r, r + 5);
     const len = Math.hypot(bx - ax, by - ay);
     const [nx, ny] = [-(by - ay) / len, (bx - ax) / len];
@@ -575,7 +574,7 @@ test.each([
     });
     const site = {
       ...buildTerrainSurface(exports, layout, biome).site,
-      buildings: [[80, 100]] as [number, number][],
+      buildings: Float32Array.of(80, 100),
     };
     const local = {
       ...biome,
@@ -587,7 +586,7 @@ test.each([
         settlement_m: 120,
       },
     };
-    const plots = generatePlots(site, local);
+    const plots = plotsOf(site, local);
     const kindAt = (x: number, y: number) =>
       local.plots[plots.plots[plotAt(plots, x, y)!.plot].kind];
     expect(kindAt(50, 100).name).toBe(local.field_rules.settlement_kind);
@@ -607,8 +606,12 @@ test("the ground round a building is the settlement's yard; the land round that 
   const seen = { yards: 0, round: 0 };
   plots.plots.forEach((plot, k) => {
     const centre = polygon2.centroid([0, 0], plot.outline, plot.outline.length / 2);
-    const within = (reach: number) =>
-      site.buildings.some((b) => Math.hypot(b[0] - centre[0], b[1] - centre[1]) <= reach);
+    const within = (reach: number) => {
+      const b = site.buildings;
+      for (let o = 0; o < b.length; o += 2)
+        if (Math.hypot(b[o] - centre[0], b[o + 1] - centre[1]) <= reach) return true;
+      return false;
+    };
     if (within(rules.yard_m)) {
       expect(plot.kind, `plot ${k} at the houses`).toBe(yard);
       seen.yards++;
@@ -779,7 +782,7 @@ test("a country road draws a street between actual houses and keeps its paving i
   };
   const pavingAt = (surface: TerrainSurface, x: number, y: number) => {
     const kinds = new Set<string>();
-    for (let o = 0; o < surface.strokes.length; o += surface.site.surfaceStrokeStride)
+    for (let o = 0; o < surface.strokes.length; o += STROKE_FLOATS)
       if (strokeInside(surface.strokes, o, x, y) >= 0)
         kinds.add(SURFACE_AREA_KINDS[surface.strokes[o + 5]]);
     return [...kinds].sort();

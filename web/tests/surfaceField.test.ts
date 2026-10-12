@@ -12,11 +12,18 @@ import { segment2, triangle2 } from "math/shapes";
 import { initSync, WorldView, world_layout } from "@wasm/game_wasm.js";
 import { readWorldExports, type WorldLayout } from "@packages/battle-renderer/src/worldMesh.ts";
 import {
+  bareSource,
   buildTerrainSurface,
-  RECT_FLOATS,
+  terrainSurface,
+  type GroundSource,
   type TerrainSite,
+  type TerrainSurface,
 } from "@packages/battle-renderer/src/terrain/terrainSurface.ts";
-import { forestInside, type ForestShape } from "@packages/battle-renderer/src/terrain/forestShapes";
+import {
+  FOREST_BOUNDARY_FLOATS,
+  FOREST_TRIANGLE_FLOATS,
+  forestInside,
+} from "@packages/battle-renderer/src/terrain/forestShapes";
 import {
   CUT_A,
   CUT_B,
@@ -27,15 +34,12 @@ import {
 import { RIVER_FLOATS, stretchInside } from "@packages/battle-renderer/src/terrain/rivers";
 import { validateBiome, type Biome } from "@packages/battle-renderer/src/terrain/biome.ts";
 import {
-  areaBearings,
-  buildSurfaceField,
   forestDistance,
   pavedDistance,
-  surfaceListBudget,
   SURFACE_FLOATS,
-  SURFACE_MAX_CELLS,
   SURFACE_STROKE_ALONG,
   surfaceCell,
+  surfaceField,
   waterDistance,
   type SurfaceField,
   type SurfaceReach,
@@ -43,8 +47,14 @@ import {
 import { CURATED_GROUND, denseGround } from "./surfaceGrounds";
 import summer from "@fixtures/biomes/summer.json";
 import { loadMap } from "@web/maps/node";
+import { loadPresentation } from "@web/battle/sim/presentation";
+
+// The ground's shapes are resolved by the presentation module.
+await loadPresentation();
 
 const geometry = loadMap("geometry").definition;
+/** Floats per exported forest row: `x, y, w, h, z`. */
+const AREA_FLOATS = 5;
 const streetMap = loadMap("street").definition;
 
 const biome = validateBiome(summer as unknown as Biome);
@@ -58,11 +68,14 @@ beforeAll(() => {
   layout = JSON.parse(world_layout(JSON.stringify(TEST_RULES))) as WorldLayout;
 });
 
-function siteOf(map: unknown): TerrainSite {
+function surfaceOf(map: unknown): TerrainSurface {
   const view = new WorldView(JSON.stringify(map), JSON.stringify(TEST_RULES));
   views.push(view);
-  return buildTerrainSurface(readWorldExports(view), layout, biome).site;
+  return buildTerrainSurface(readWorldExports(view), layout, biome);
 }
+const grounded = (source: GroundSource) => terrainSurface(new Float32Array(0), source, biome, null);
+/** The field of `surface`'s ground rules, its strokes as exported. */
+const fieldOf = (surface: TerrainSurface) => surfaceField(surface.ground, reach, false);
 
 /** How far each rule is read at a pixel `footprint` metres wide: the shape of
  *  the material's own reach (a fixed part and the pixel), not its numbers. */
@@ -87,26 +100,27 @@ function segmentDistance(records: Float32Array, o: number): number {
 function pavedEverywhere(site: TerrainSite, x: number, y: number): number {
   vec2.set(_p, x, y);
   let paved = -1e9;
-  for (let o = 0; o < site.surfaceStrokes.length; o += site.surfaceStrokeStride)
+  for (let o = 0; o < site.surfaceStrokes.length; o += STROKE_FLOATS)
     paved = Math.max(paved, strokeInside(site.surfaceStrokes, o, x, y));
   if (site.surfaceBoundaries.length === 0) return paved;
   let inside = false,
     nearest = 1e9;
-  for (let o = 0; o < site.surfaceTriangles.length; o += site.surfaceTriangleStride) {
+  for (let o = 0; o < site.surfaceTriangles.length; o += FOREST_TRIANGLE_FLOATS) {
     vec2.fromBuffer(_a, site.surfaceTriangles, o);
     vec2.fromBuffer(_b, site.surfaceTriangles, o + 2);
     vec2.fromBuffer(_c, site.surfaceTriangles, o + 4);
     inside ||= triangle2.containsPoint(_a, _b, _c, _p);
   }
-  for (let o = 0; o < site.surfaceBoundaries.length; o += site.surfaceBoundaryStride)
+  for (let o = 0; o < site.surfaceBoundaries.length; o += FOREST_BOUNDARY_FLOATS)
     nearest = Math.min(nearest, segmentDistance(site.surfaceBoundaries, o));
   return Math.max(paved, inside ? nearest : -nearest);
 }
-/** A rect `x, y, w, h` as the GPU table holds it: its far corner rounded to f32. */
+/** Forest rows `x, y, w, h, z`: a rect as the GPU table holds it, its far
+ *  corner rounded to f32. */
 function rectsEverywhere(rects: Float32Array, x: number, y: number): number {
   let inside = -1e9;
-  for (let o = 0; o < rects.length; o += RECT_FLOATS) {
-    const [sx, sy, w, h] = rects.subarray(o, o + RECT_FLOATS);
+  for (let o = 0; o < rects.length; o += AREA_FLOATS) {
+    const [sx, sy, w, h] = rects.subarray(o, o + 4);
     inside = Math.max(
       inside,
       Math.min(
@@ -146,14 +160,14 @@ function probes(site: TerrainSite, field: SurfaceField, count: number, seed: num
     for (let o = 0; o < records.length; o += stride)
       for (let k = 0; k < points; k++) anchors.push(records[o + k * 2], records[o + k * 2 + 1]);
   };
-  take(site.surfaceStrokes, site.surfaceStrokeStride, 2);
-  take(site.surfaceBoundaries, site.surfaceBoundaryStride, 2);
+  take(site.surfaceStrokes, STROKE_FLOATS, 2);
+  take(site.surfaceBoundaries, FOREST_BOUNDARY_FLOATS, 2);
   for (const shape of site.forestShapes) {
     take(shape.strokes, STROKE_FLOATS, 2);
     take(shape.boundaries, 5, 2);
   }
   take(site.rivers, RIVER_FLOATS, 2);
-  for (let o = 0; o < site.forests.length; o += RECT_FLOATS)
+  for (let o = 0; o < site.forests.length; o += AREA_FLOATS)
     anchors.push(
       site.forests[o],
       site.forests[o + 1],
@@ -186,8 +200,9 @@ function agrees(found: number, exact: number, r: number): boolean {
   return found === exact;
 }
 
-function expectFieldMatches(site: TerrainSite, count: number, seed: number) {
-  const field = buildSurfaceField(site, reach);
+function expectFieldMatches(surface: TerrainSurface, count: number, seed: number) {
+  const { site } = surface;
+  const field = fieldOf(surface);
   const wrong: unknown[] = [];
   for (const [x, y] of probes(site, field, count, seed)) {
     const exact = {
@@ -213,7 +228,8 @@ function expectFieldMatches(site: TerrainSite, count: number, seed: number) {
 }
 
 test("a field lookup is the all-primitives distance wherever a consumer reads it", () => {
-  const site = siteOf(CURATED_GROUND);
+  const surface = surfaceOf(CURATED_GROUND);
+  const { site } = surface;
   // The map holds what it claims to test: every primitive kind is exported.
   expect(site.surfaceStrokes.length).toBeGreaterThan(0);
   expect(site.surfaceTriangles.length).toBeGreaterThan(0);
@@ -229,19 +245,19 @@ test("a field lookup is the all-primitives distance wherever a consumer reads it
   // Two rivers, one with its bend rounded into many stretches.
   expect(site.rivers.length / RIVER_FLOATS).toBeGreaterThan(15);
   // Sparse ground keeps the whole-map level: exact at any pixel width.
-  expect(expectFieldMatches(site, 3000, 63).exactToM).toBe(Infinity);
+  expect(expectFieldMatches(surface, 3000, 63).exactToM).toBe(Infinity);
 });
 
 test("the shipped maps' fields match their all-primitives distances", () => {
-  expect(expectFieldMatches(siteOf(streetMap), 2000, 1).exactToM).toBe(Infinity);
-  expect(expectFieldMatches(siteOf(geometry), 2000, 2).exactToM).toBe(Infinity);
+  expect(expectFieldMatches(surfaceOf(streetMap), 2000, 1).exactToM).toBe(Infinity);
+  expect(expectFieldMatches(surfaceOf(geometry), 2000, 2).exactToM).toBe(Infinity);
 });
 
 test("on a dense map a lookup still matches, and visits what is near instead of the map", () => {
-  const site = denseGround(1600, 8, 40);
-  const segments = site.surfaceStrokes.length / site.surfaceStrokeStride;
+  const surface = grounded(denseGround(1600, 8, 40));
+  const segments = surface.site.surfaceStrokes.length / STROKE_FLOATS;
   expect(segments).toBeGreaterThanOrEqual(2000);
-  const field = expectFieldMatches(site, 1500, 5);
+  const field = expectFieldMatches(surface, 1500, 5);
   // What the old loops visited at every pixel: every record.
   const records = field.records.length / 8;
   const random = mulberry32.create(11);
@@ -270,29 +286,26 @@ test("on a dense map a lookup still matches, and visits what is near instead of 
     [8, 2],
     [1e9, field.levels - 1],
   ])
-    expect(visited(footprint)).toBeLessThan(surfaceListBudget(level) * 1.5);
+    // The ladder's list budget (`field.rs`): 24 records a cell, and sqrt(2)
+    // times more a level up.
+    expect(visited(footprint)).toBeLessThan(24 * Math.SQRT2 ** level * 1.5);
 });
 
 test("a stroke through its cells' corners is found in every cell it crosses", () => {
   // The diagonal of the grid: it enters and leaves each cell at a corner.
-  const strip: ForestShape = {
-    canopy: 12,
-    trunkRange: [0, 0],
-    kind: "stroke",
-    // Stretches from the middle of their strokes: neither end is cut.
-    strokes: Float32Array.of(96, 16, 160, 80, 9, 0, 0),
-    triangles: new Float32Array(0),
-    boundaries: new Float32Array(0),
-  };
-  const site: TerrainSite = {
-    ...denseGround(256, 0, 0),
-    surfaceStrokes: Float32Array.of(8, 8, 72, 72, 3, 1, 0),
-    forests: new Float32Array(0),
-    forestShapes: [strip],
-    // A river along the other diagonal, widening as it goes.
-    rivers: Float32Array.of(24, 200, 88, 136, 6, 10, 0.25, 0.25, 1, 1, -1),
-  };
-  const field = buildSurfaceField(site, reach);
+  const field = fieldOf(
+    grounded({
+      ...bareSource([0, 0, 256, 256], 4),
+      surfaceStrokes: Float32Array.of(8, 8, 72, 72, 3, 1, 0),
+      // A strip of forest, its stretch from the middle of its stroke:
+      // neither end is cut.
+      forestMetadata: Float32Array.of(0, 12, 1),
+      forestStrokes: Float32Array.of(96, 16, 160, 80, 9, 0, 0),
+      forestTrunkRanges: Uint32Array.of(0, 0),
+      // A river along the other diagonal, widening as it goes.
+      rivers: Float32Array.of(24, 200, 88, 136, 6, 10, 0.25, 0.25, 1, 1, -1),
+    }),
+  );
   for (let k = 0.5; k < 64; k += 1) {
     expect(pavedDistance(field, 8 + k, 8 + k, 0.08)).toBe(3);
     expect(forestDistance(field, 96 + k, 16 + k, 0.08)).toBe(9);
@@ -332,7 +345,7 @@ test("a paved stretch's record says how far along its stroke it starts", () => {
     [160, 40],
     [220, 110],
   ];
-  const site = siteOf({
+  const surface = surfaceOf({
     ...CURATED_GROUND,
     forests: [],
     rivers: [],
@@ -351,8 +364,8 @@ test("a paved stretch's record says how far along its stroke it starts", () => {
       },
     ],
   });
-  const { records } = buildSurfaceField(site, reach);
-  const stretches = site.surfaceStrokes.length / STROKE_FLOATS;
+  const { records } = fieldOf(surface);
+  const stretches = surface.site.surfaceStrokes.length / STROKE_FLOATS;
   expect(stretches).toBeGreaterThan(3);
   const ends: number[] = [];
   let length = 0;
@@ -371,83 +384,4 @@ test("a paved stretch's record says how far along its stroke it starts", () => {
   expect(ends).toHaveLength(2);
   expect(Math.abs(ends[0] - span(bent[0], bent[1]) - span(bent[1], bent[2]))).toBeLessThan(2);
   expect(ends[1]).toBeCloseTo(100, 3);
-});
-
-test("the field is the same bytes for the same ground", () => {
-  const first = buildSurfaceField(denseGround(1600, 8, 40), reach);
-  const again = buildSurfaceField(denseGround(1600, 8, 40), reach);
-  expect(again.index).toEqual(first.index);
-  expect(again.records).toEqual(first.records);
-});
-
-test("the field's memory is bounded by the cell budget, not the map's area", () => {
-  const empty = (sizeM: number) => buildSurfaceField(denseGround(sizeM, 0, 0), reach);
-  const town = empty(1600),
-    large = empty(10000),
-    huge = empty(40000);
-  // Six times the side is 39 times the cells at one cell size: the cell grows instead.
-  expect(large.cellM).toBeGreaterThan(town.cellM);
-  for (const field of [town, large, huge])
-    expect(field.cols * field.rows).toBeLessThanOrEqual(SURFACE_MAX_CELLS);
-  // Sixteen times the area again costs under twice the index (more levels share the finest cell).
-  expect(huge.index.byteLength).toBeLessThan(large.index.byteLength * 2);
-});
-
-test("every triangle of a paved area lays its slabs square to the area's longest side", () => {
-  // A 40 by 10 m yard turned 30 degrees, as two triangles, and a square
-  // apart from it turned 70 degrees.
-  const turned = (turn: number, [w, h]: number[], [cx, cy]: number[]) =>
-    [
-      [0, 0],
-      [w, 0],
-      [w, h],
-      [0, h],
-    ].map(([x, y]) => [
-      cx + x * Math.cos(turn) - y * Math.sin(turn),
-      cy + x * Math.sin(turn) + y * Math.cos(turn),
-    ]);
-  const fan = (ring: number[][]) => [
-    [...ring[0], ...ring[1], ...ring[2], 3],
-    [...ring[0], ...ring[2], ...ring[3], 3],
-  ];
-  const deg = Math.PI / 180;
-  const triangles = Float32Array.from(
-    [
-      ...fan(turned(30 * deg, [40, 10], [100, 100])),
-      ...fan(turned(70 * deg, [8, 8], [300, 300])),
-    ].flat(),
-  );
-  const bearings = Array.from(areaBearings(triangles, 7));
-  // The yard's long side, 30 degrees; the square's, 70 degrees within a
-  // quarter turn: 70 - 90 = -20, which is 70 again mod 90.
-  expect(bearings[0]).toBeCloseTo(30 * deg, 4);
-  expect(bearings[1]).toBeCloseTo(30 * deg, 4);
-  expect(bearings[2]).toBeCloseTo(bearings[3], 6);
-  expect(bearings[2]).toBeCloseTo(70 * deg, 4);
-});
-
-test("an area's triangles, and paving laid over it, share the area's one grid", () => {
-  const deg = Math.PI / 180;
-  // A fan of a pentagon court whose longest side, 50 m along 10 degrees, is
-  // an outer edge of its first triangle only; the second triangle's own
-  // longest outer edge runs at 100 degrees mod 90, so 10 + 25.
-  const at = (bearing: number, length: number, [x, y]: number[]) => [
-    x + length * Math.cos(bearing * deg),
-    y + length * Math.sin(bearing * deg),
-  ];
-  const p0 = [0, 0];
-  const p1 = at(10, 50, p0);
-  const p2 = at(100, 12, p1);
-  const p3 = at(160, 30, p2);
-  const p4 = at(215, 12, p3);
-  const court = [
-    [...p0, ...p1, ...p2, 3],
-    [...p0, ...p2, ...p3, 3],
-    [...p0, ...p3, ...p4, 3],
-  ];
-  // An apron inside it, turned 25 degrees, sharing no corner with it.
-  const c = [20, 10];
-  const apron = [[...c, ...at(25, 8, c), ...at(25 + 90, 6, at(25, 8, c)), 3]];
-  const bearings = Array.from(areaBearings(Float32Array.from([...court, ...apron].flat()), 7));
-  for (const b of bearings) expect(b).toBeCloseTo(10 * deg, 4);
 });

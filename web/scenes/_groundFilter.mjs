@@ -17,6 +17,8 @@ export async function groundFilterExact(ctx) {
       import(file("packages/renderer-core/src/gpuAllocations.ts")),
     ]);
     await wasm.default();
+    // The ground's shapes are resolved by the presentation module.
+    await (await import(file("web/src/battle/sim/presentation.ts"))).loadPresentation();
     const view = new wasm.WorldView(
       JSON.stringify({ size: [32, 32], height_grid_m: 4, fog_cell_m: 8, slope_cutoff_deg: 35 }),
       JSON.stringify(rules.rules),

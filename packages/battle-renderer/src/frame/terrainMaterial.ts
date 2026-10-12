@@ -34,7 +34,7 @@ import { pcgHash } from "../shaders/pcgHash";
 import { MAX_PLOT_DEPTH, NODE_FLOATS, type PlotTree } from "../terrain/plots";
 import type { TerrainSite, TerrainSurface } from "../terrain/terrainSurface";
 import {
-  buildSurfaceField,
+  surfaceField,
   SURFACE_CELL_WORDS,
   SURFACE_FLOATS,
   SURFACE_KIND_SHIFT,
@@ -1334,7 +1334,7 @@ const groundMarks = tgpu
  *  grain; along a stroke's lanes it is shaded by its ruts (`groundRuts`), and
  *  a narrow track's middle goes to the verge's grass (`groundStrip`); a walk
  *  is crossed by its slabs' joints (`walkJoint`), an area by its own slabs'
- *  joints, square to its outline's dominant bearing (`areaBearings`). Last a
+ *  joints, square to its outline's dominant bearing (the ground's `area_bearings`). Last a
  *  street's painted lines (`groundMarks`), worn in patches, and its
  *  kerbstones along its edge (`groundCurb`). `paved` is the point's `groundPaved`. */
 const groundRoads = tgpu
@@ -2065,7 +2065,7 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
     plots: ArrayBuffer;
     surfaces: ArrayBuffer;
     surfaceIndex: ArrayBuffer;
-    rivers: Float32Array;
+    water: Float32Array;
   } | null = null;
   const paramsNow = () =>
     look && { ...look, view: d.vec4u(classView ? 1 : 0, roadWear ? 0 : 1, 0, 0) };
@@ -2103,7 +2103,7 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
       return true;
     },
     /** The words `set` uploaded, the params and scar params as last
-     *  written, and the rivers; null before `set`. */
+     *  written, and the water's cells; null before `set`. */
     uploaded: () => {
       const now = paramsNow();
       return packed && now && scarWritten && { ...packed, params: now, scars: scarWritten };
@@ -2154,7 +2154,7 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
         plots: packPlots(fields, textured),
         surfaces: field.records.buffer as ArrayBuffer,
         surfaceIndex: field.index.buffer as ArrayBuffer,
-        rivers: site.rivers,
+        water: surface.ground.water_cells(),
       };
       nodes.set(nodeBuffer(tree.nodes.length / NODE_FLOATS)).write(packed.nodes);
       plots.set(plotBuffer(tree.plots.length)).write(packed.plots);
@@ -2223,10 +2223,7 @@ function triangleReach(site: TerrainSite): number {
  *  the paved strokes as they are drawn (`TerrainSurface.strokes`). The
  *  material and any check of its lookups both build this. */
 export function terrainField(surface: TerrainSurface): SurfaceField {
-  return buildSurfaceField(
-    { ...surface.site, surfaceStrokes: surface.strokes },
-    terrainReach(surface),
-  );
+  return surfaceField(surface.ground, terrainReach(surface), true);
 }
 
 /** How far each ground rule of `surface` is read at a pixel `footprint`

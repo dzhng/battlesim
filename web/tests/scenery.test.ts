@@ -34,6 +34,10 @@ import summer from "@fixtures/biomes/summer.json";
 import game from "@fixtures/game.json";
 import { loadMap } from "@web/maps/node";
 import { WHOLE_MAP_MS } from "./support/wholeMap";
+import { loadPresentation } from "@web/battle/sim/presentation";
+
+// The ground's shapes are resolved by the presentation module.
+await loadPresentation();
 
 const streetMap = loadMap("street").definition;
 

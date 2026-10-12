@@ -13,6 +13,10 @@ import type { StaticBundle } from "@packages/scene-assets/src/schema.ts";
 import { STAND_IN_KIT, STAND_IN_MODULE } from "@packages/scene-assets/src/standInKit.ts";
 import { validateBiome, type Biome } from "@packages/battle-renderer/src/terrain/biome.ts";
 import summer from "@fixtures/biomes/summer.json";
+import { loadPresentation } from "@web/battle/sim/presentation";
+
+// The ground's shapes are resolved by the presentation module.
+await loadPresentation();
 
 const biome = validateBiome(summer as unknown as Biome);
 
