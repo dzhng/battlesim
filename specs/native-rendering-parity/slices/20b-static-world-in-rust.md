@@ -207,3 +207,17 @@ Built on `props20b` over step 4 (`003002e0c`). The map's props and what a side k
 - The map's props: every view identical on all three maps (market-town 54,077 models, 694,846 drawn over the views; paris-corner 101; street 93).
 - With knowledge: every view's counts per appearance, state, fog class and tier are equal on all three maps (market-town 587,530 drawn; paris-corner 12,389; street 6,504). The records are identical on street, and on the other two differ only where a known car wears its paint: with the TypeScript's seed routed in (a scratch build), every view of all three maps is identical record for record. The TypeScript seeded a known body's paint by its own published id, so a shoved car changed colour; Rust seeds it by the authored prop, as the rule says.
 - What the models layer installs (`prop_appearances` against `drawnFor`): the same names on all three maps.
+- Two fixes the scenes found, outside the props: the scenery layer held a batch's buffer for every key it had ever drawn and grew it without shrinking, so the same view held different memory by its history; it now holds only the batches a frame lists, a power of two of records each, as the props do. And the felled trees' lists named themselves unchanged when a camera move retiered a tree, so the renderer drew the last view's records; their print now follows what they hold.
+
+**Checks.** `cargo test -p presentation` (13 new prop tests: the fit's rules, the install set, a side's knowledge, a moving wreck, the walk), clippy `-D warnings` on `presentation`, `presentation-wasm` and `native-client`, `cargo fmt`, `tsc`, oxlint (no errors) and oxfmt; the WGSL export unchanged (`shaderExport.test.ts`, no layout moved). Scenes: `city-block` (10 checks), `fog-look` (8), `graphics-test` (2) and `street`'s works, vehicles and effects tours (8), all PASS on the branch merged with `c34a9f1df`; the later merge of `361b88066` (sound and the native bench) was held by the Rust tests, clippy, types and the web suite. Full web suite: 1,254 of 1,259; the five failures are not this step's: `icons` (3, the soldier models' LFS sources not pulled), `mechanicsServer` (fails on the base too) and `navigationBrowser` (its cold dev server misses the 60 s click on the base as well, two runs of two).
+
+**Browser before/after** (production build, the graphics test's market-town, one run each under the GPU lock with the machine otherwise idle; before is `c34a9f1df`):
+
+| market-town | avg FPS | 1% low | frame ms p95 / p99 | CPU ms p50 | GPU ms |
+| --- | --- | --- | --- | --- | --- |
+| before | 68.1 | 33.7 | 25.01 / 25.56 | 5.71 | 9.10 |
+| after | 70.7 | 36.2 | 25.00 / 25.21 | 2.77 | 9.19 |
+
+The main thread's frame halves: the TypeScript statics walk (54,000 map models chunked and tiered every view) is gone, and Rust walks them when the view changes. The GPU frame is the same.
+
+**Net code** (comments and blanks excluded; against `c34a9f1df`): Rust +761, Rust tests +335, TypeScript −933, TS tests −802, TSX −54, mjs −4: **−697**.
