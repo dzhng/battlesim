@@ -1,8 +1,8 @@
 // The browser and native clients compared on the same numbers from the same
 // code (`web/fps-compare.mjs`). Each run carries its client's raw frames: the
 // browser's from the graphics test's recording (requestAnimationFrame
-// timestamps), native's from its bench (`Time.get_ticks_usec` at each frame's
-// end). Only that clock differs between them.
+// timestamps), native's from its bench (`std::time::Instant` at each frame's
+// start). Only that clock differs between them.
 import { frameTimeSummary, summarize } from "./recording.ts";
 
 /** One run of one client over one scene, after its warm-up. */
@@ -40,7 +40,7 @@ export function compareRuns(runs: readonly FrameRun[]) {
       runs: summarised.length,
       ...frames,
       averageFps: { median: middle, min: Math.min(...averages), max: Math.max(...averages) },
-      cpuMsP50: summarize(run.cpuMs)?.p50 ?? null,
+      cpuMs: summarize(run.cpuMs),
       gpuMsMean: run.gpuMs,
     };
   });
