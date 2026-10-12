@@ -46,7 +46,6 @@ This ledger carries decisions from the exploration and write-spec interviews. Us
 |---|---|
 | Arbitrary side count versus Blue/Red/Neutral | Slice 00 end-to-end owner inventory and acceptance evidence |
 | Bundle physical container | Slice 01 browser/native size and admission probe |
-| Script runtime and host API | Slice 05 deterministic portability/fuel probe |
 | Economy behavior after side verdict | Slice 06 against the accepted topology |
 | Asset limits and built-in catalog references | Slices 01–02 measured startup/memory/admission evidence |
 
