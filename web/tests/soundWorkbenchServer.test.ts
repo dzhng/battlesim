@@ -665,6 +665,16 @@ test("a design candidate is played through the tool's preview, and pick runs the
   expect(picked.status).toBe(200);
   expect(runs.at(-1)).toEqual(["pick", "tank/soldier", "2"]);
   expect(picked.body.catalog.sets.tank.voices[1].voice_id).toBe("picked-id");
+  // Replacing a voice already picked runs the tool's pick with --replace, then
+  // remakes that voice's takes (the old voice's takes are superseded) and the set's pack.
+  const replaced = await request("pick", { voice: "tank/soldier", candidate: 3, replace: true });
+  expect(replaced.status).toBe(200);
+  await vi.waitFor(() => expect(runs.at(-1)?.[0]).toBe("pack"));
+  expect(runs.slice(-3)).toEqual([
+    ["pick", "tank/soldier", "3", "--replace"],
+    ["voices", "--set", "tank", "--voice", "soldier"],
+    ["pack", "--set", "tank"],
+  ]);
   expect((await request("pick", { voice: "tank/soldier", candidate: 4 })).status).toBe(400);
 
   const designed = await request("design", { voice: "tank/soldier" });
