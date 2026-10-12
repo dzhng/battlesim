@@ -198,3 +198,57 @@ There were four drafts: A fewest-slices (Claude), B risk-first (Codex), C seam-q
 ## Build log
 
 <!-- Append: date, slice, decision, who closed it, and why. -->
+
+**2026-10-12, slice 01 (agent; Codex implemented, orchestrator reviewed):**
+- **Sets:** 56, more than the planned ~40. Every country × role that the roster actually fields gets its own set, so no accent is borrowed.
+- **Role per unit:** taken from the unit row's own data (roster category, declared roles, squad slot bodies). This puts the Centauro II with tank crews, the Tiger HAD/UHT with attack pilots, the FN-6 team in a Chinese set, and squad-bodied recon rows with recon infantry.
+- **Voices per set:**
+  - Squads of 6 or more get 3 voices.
+  - Sniper, ATGM, MANPADS and small recon teams get 2.
+  - **Vehicle crews get 2:** a commander who speaks responses and a crew member who shouts barks. The spec hadn't said; one voice per crew would sound flat in battle.
+- **Female voices:** 8 sets have a female response voice, covering the attack and transport pilots plus one IFV crew per faction. The user can veto any of them in the Voices tab.
+- **Callsigns:** a national word plus a number ("Dragon 1", "Adler 6"), unique per set.
+- **The four saved T1 voices** sit on `us_tank_crew`, `ru_rifle_squad`, `us_recon_infantry` and `uk_attack_helicopter_pilot`. The alias sets the first pass created were deleted.
+- **Scripts were rewritten by hand** after review found Codex's version mechanical (`[urgent]` stuck on the steady text, duplicated tags):
+  - steady lines carry no tag;
+  - stressed lines carry one tag and different words;
+  - about 1 in 7 stressed lines swear;
+  - sniper teams whisper like recon.
+- **The CLI** is `packages/battle-audio/tools/generate/cli.ts`, run as `bun run generate plan`. It totals 7,108 clips and about 181k characters.
+
+**2026-10-12, slice 11 (agent; Codex implemented, a Claude worker wrote the tests during a Codex capacity outage, orchestrator reviewed):**
+- **Splitting a side's shouts:** `shouts::build` emits a side's **own** shouts. `shouts::heard` copies an enemy's own shouts into the other side's frame as `Seen(handle)`, only while that side identifies the speaker that tick. One owner builds each unit's shouts; hearing only filters them.
+- **Tie-break order** is data (`PRIORITY`): B16 > B10 > B9 > B8 > B7 > B6 > B14 > B13 > B12 > B11 > B4. A contact call speaks first and blocks that unit's other barks for its talk time.
+- **Transitions:**
+  - Contact fires on a **newly** identified enemy, spoken by the nearest unit that sees it.
+  - Altitude decides an air contact before body does, so helicopters count as air.
+  - B4 fires on a **new** target only.
+  - B6 and B7 fire when the tier **rises**.
+  - B12 is infantry-only, judged per weapon mount.
+  - B13 fires once when a weapon runs dry.
+  - Dead and withdrawn units never speak again.
+  - Writing the tests found 13 bugs of exactly this kind in the first implementation.
+- **`talk_s`** starts at 1.5 s for every trigger, a neutral value within the slice's 1–3 s.
+- **No compatibility shim.** `ShoutRules` serializes like every other rule. The two parity scenarios that embed rules gained the `shouts` block as data. Every pinned `digest` and `publication_sha256` was compared value by value and is unchanged.
+- **Tests stay in the one sim test binary** (`cargo test -p sim --test sim shouts::`). The spec's `--test shouts` wording was the orchestrator's mistake.
+- **Follow-up for slice 12:** evidence compares a full copy of every unit (`previous_units`) made each tick. Replace it with a minimal per-unit snapshot holding only what barks read (alive, health, member hp, tier, mount reasons, ammo), and check the cost on the benchmark.
+**2026-10-12, slice 02 (agent; preference 1 unless noted):**
+- **Command names:** the generating command is `voices` (`bun run generate voices`), as slices 03, 04 and 06 already call it; `generate generate` read badly. `beds` generates the two beds. Selection adds `--trigger` and `--intensity` beside `--set`, `--take` and `--only`, because slice 02's own human check ("`--only R2`") needed a trigger filter that `--only missing|bad|flagged` can't express. Set names are the real ids (`us_tank_crew`), not the walk's short names.
+- **`process`** is `voices` without a client: it re-renders only takes already in the lock and never calls.
+- **Cache by file:** a raw master is trusted by its generation-key file name, so a kill before the lock flush never pays twice. A superseded take's old raw master and served file are deleted with it (one take, one of each).
+- **Speech-to-text reads the raw master,** so retuning a profile never re-transcribes. The overlong check uses the served duration.
+- **Processing key hashes the profile's whole definition** (from `assets.py voice-profiles`), not only its name, so tuning a constant re-renders. `assets.py` stays the owner of those definitions.
+- **Thresholds:** word error above 0.4 flags (one wrong word in a 3-word line is 0.33); talk time defaults to 3.5 s for every trigger until slice 11's `talk_s`. Keywords are the callsign plus "sabot" and "gunner".
+- **Numbers:** "two-one", "two one", "twenty one" and "21" all read as 21; "fifty five" as 55.
+- **Loudness:** −16 LUFS integrated for dry, radio-light and intercom; −19 for the earpiece ("quiet earpiece", and the approved earpiece reference measured −18.8). Linear gain plus a −1.5 dBFS limiter, so dynamics stay. Outputs land about 0.4 LU under target after MP3 encoding.
+- **Encoder:** mono, 40 kbps, 24 kHz (at 40 kbps a 44.1 kHz stream only wastes bits on bandwidth the radio profiles cut anyway). Bitexact flags and no metadata, so a take renders alike on one ffmpeg build.
+- **Intercom hiss amplitude** 0.015, as the radio's; the walk named only its band and weight.
+- **Beds:** the walk's prompts, regenerated through the tool so their provenance is recorded (`eleven_text_to_sound_v2`, `loop: true`, 12 s). A bed starts at an offset and the hiss is seeded from the take's bytes, so neighbouring lines don't open on the same engine note.
+- **v3 settings:** `stability: 0.5` (v3 accepts only 0, 0.5 and 1).
+- **Human check, by the brief:** the four saved voices spoke R2 `move` steady and stressed, take 0, through their own set's profile only: 8 text-to-speech and 8 speech-to-text calls, 232 characters, all matched at 1.00. The other profiles on the review page are local re-renders of the same raw masters, with no credits spent.
+- **Size note for slice 06:** these takes average about 12 KB (1–3 s at 40 kbps). At 7,108 clips the library would be about 85 MB, well over L2's 20 MB estimate. Slice 06 must report it before committing, as it already says.
+
+**2026-10-12, slice 02 review (orchestrator):**
+- **One owner for talk time.** Barks are held to the simulation's `ShoutRules.talk_s` in `fixtures/game.json`; the generation tool reads that file. Responses never reach the simulation, so the tool keeps one named ceiling for them, `RESPONSE_TALK_S` = 4 s. The tool's interim 3.5 s default is deleted.
+- **`talk_s` raised from 1.5 s to 2.5 s for every bark.** The tested takes run about 2–2.7 s, and at 1.5 s the simulation would start a unit's next shout while its last one is still playing. Digests are unaffected: shouts aren't digested, and the parity scenarios embed their own copy of the rules.
+- **Library size estimate: about 85 MB, not 20 MB.** At 40 kbps a take averages about 12 KB. That is acceptable: it lives in LFS, and a battle loads only its own sets, in the background after `ready`. Slice 06 reports the real figure before committing the batch.

@@ -1,0 +1,5232 @@
+{
+  "roles": {
+    "assault_squad": {
+      "lines": {
+        "selected": {
+          "steady": [
+            "{callsign}, ready.",
+            "Squad here, send it."
+          ],
+          "stressed": [
+            "[urgent] {callsign}, go!",
+            "[shouting] We're here, what now?"
+          ]
+        },
+        "move": {
+          "steady": [
+            "Moving.",
+            "On me, let's go."
+          ],
+          "stressed": [
+            "[shouting] Move, move, move!",
+            "[urgent] Go, go, stay low!"
+          ]
+        },
+        "attack": {
+          "steady": [
+            "Engaging.",
+            "Squad, take them."
+          ],
+          "stressed": [
+            "[shouting] Hit them hard!",
+            "[urgent] Get in there, kill them!"
+          ]
+        },
+        "attack_move": {
+          "steady": [
+            "Pushing forward.",
+            "Advance, fire as you go."
+          ],
+          "stressed": [
+            "[shouting] Push! Keep shooting!",
+            "[urgent] Forward, don't stop!"
+          ]
+        },
+        "stop": {
+          "steady": [
+            "Holding.",
+            "Squad, halt."
+          ],
+          "stressed": [
+            "[urgent] Down, stop here!",
+            "[shouting] Hold up, hold up!"
+          ]
+        },
+        "weapons_free": {
+          "steady": [
+            "Weapons free.",
+            "Free to engage."
+          ],
+          "stressed": [
+            "[shouting] Kill anything hostile!",
+            "[urgent] Open up, everyone!"
+          ]
+        },
+        "hold_fire": {
+          "steady": [
+            "Hold fire.",
+            "Cease fire."
+          ],
+          "stressed": [
+            "[shouting] Cease fire, damn it!",
+            "[urgent] Hold, hold your fire!"
+          ]
+        },
+        "enter_building": {
+          "steady": [
+            "Stacking up.",
+            "Breaching, going in."
+          ],
+          "stressed": [
+            "[shouting] Breach! Go, go!",
+            "[urgent] Inside, clear it fast!"
+          ]
+        },
+        "leave_building": {
+          "steady": [
+            "Moving out.",
+            "Exiting, on me."
+          ],
+          "stressed": [
+            "[urgent] Out, everyone out!",
+            "[shouting] Get out the back, go!"
+          ]
+        },
+        "withdraw": {
+          "steady": [
+            "Falling back.",
+            "Pulling back, cover each other."
+          ],
+          "stressed": [
+            "[panicked] Fall back, fall back!",
+            "[shouting] Back! Get back now!"
+          ]
+        },
+        "arrived": {
+          "steady": [
+            "{callsign}, in position.",
+            "Set, ready to breach."
+          ],
+          "stressed": [
+            "[breathless] {callsign}, we made it!",
+            "[urgent] In position, eyes up!"
+          ]
+        },
+        "refused": {
+          "steady": [
+            "Negative, no way through.",
+            "Can't do that."
+          ],
+          "stressed": [
+            "[urgent] Negative, can't get there!",
+            "[shouting] No way, it's blocked!"
+          ]
+        },
+        "contact_infantry": {
+          "steady": [
+            "Contact front.",
+            "Infantry, left."
+          ],
+          "stressed": [
+            "[shouting] Contact! Infantry, close!",
+            "[urgent] Enemy in the building!"
+          ]
+        },
+        "contact_vehicle": {
+          "steady": [
+            "Vehicle, front.",
+            "Armour coming."
+          ],
+          "stressed": [
+            "[shouting] Tank! Get off the road!",
+            "[panicked] Armour! Where's the damn rocket?"
+          ]
+        },
+        "contact_air": {
+          "steady": [
+            "Aircraft.",
+            "Helicopter, high."
+          ],
+          "stressed": [
+            "[shouting] Air! Get under cover!",
+            "[urgent] Helo! Down, down!"
+          ]
+        },
+        "opens_fire": {
+          "steady": [
+            "Firing.",
+            "Engaging."
+          ],
+          "stressed": [
+            "[shouting] Open fire!",
+            "[urgent] Light them up!"
+          ]
+        },
+        "under_fire": {
+          "steady": [
+            "Taking fire.",
+            "Rounds incoming."
+          ],
+          "stressed": [
+            "[shouting] Taking fire! Cover!",
+            "[urgent] Shit, they're on us!"
+          ]
+        },
+        "suppressed": {
+          "steady": [
+            "Heads down.",
+            "Heavy fire, stay low."
+          ],
+          "stressed": [
+            "[panicked] Can't lift my head!",
+            "[shouting] Shit, stay down!"
+          ]
+        },
+        "pinned": {
+          "steady": [
+            "Pinned down.",
+            "Can't move."
+          ],
+          "stressed": [
+            "[panicked] We're pinned! Heads down!",
+            "[shouting] Pinned! Get some damn smoke out!"
+          ]
+        },
+        "hit": {
+          "steady": [
+            "Took a hit.",
+            "Wounded, still fighting."
+          ],
+          "stressed": [
+            "[shouting] I'm hit!",
+            "[panicked] Agh, they got me!"
+          ]
+        },
+        "man_down": {
+          "steady": [
+            "Man down.",
+            "We've got wounded."
+          ],
+          "stressed": [
+            "[shouting] Man down! Medic!",
+            "[panicked] He's hit bad! Medic!"
+          ]
+        },
+        "badly_damaged": {
+          "steady": [
+            "Heavy losses.",
+            "Squad's hurt bad."
+          ],
+          "stressed": [
+            "[panicked] There's hardly any of us left!",
+            "[shouting] We're getting torn to shit!"
+          ]
+        },
+        "kill": {
+          "steady": [
+            "Got one.",
+            "Enemy down."
+          ],
+          "stressed": [
+            "[shouting] Got him!",
+            "[breathless] He's down, he's down!"
+          ]
+        },
+        "reloading": {
+          "steady": [
+            "Reloading.",
+            "Changing mags."
+          ],
+          "stressed": [
+            "[shouting] Reloading! Cover me!",
+            "[urgent] Mag out, cover!"
+          ]
+        },
+        "out_of_ammo": {
+          "steady": [
+            "Out of ammo.",
+            "Last mag."
+          ],
+          "stressed": [
+            "[panicked] I'm out, I'm out!",
+            "[shouting] Damn it, I'm dry!"
+          ]
+        },
+        "missile_away": {
+          "steady": [
+            "Rocket out.",
+            "Firing the launcher."
+          ],
+          "stressed": [
+            "[shouting] Backblast clear! Firing!",
+            "[urgent] Rocket away!"
+          ]
+        },
+        "incoming_missile": {
+          "steady": [
+            "Missile, incoming.",
+            "Rocket, inbound."
+          ],
+          "stressed": [
+            "[shouting] Incoming! Get down!",
+            "[panicked] Missile! Down, down!"
+          ]
+        },
+        "destroyed": {
+          "steady": [
+            "We're finished.",
+            "Squad's gone."
+          ],
+          "stressed": [
+            "[panicked] Everyone's down, oh God!",
+            "[shouting] They got us all!"
+          ]
+        },
+        "friendly_destroyed_nearby": {
+          "steady": [
+            "Lost a unit nearby.",
+            "Friendlies down."
+          ],
+          "stressed": [
+            "[shouting] We lost one!",
+            "[panicked] Oh hell, they're gone!"
+          ]
+        }
+      }
+    },
+    "atgm_team": {
+      "lines": {
+        "selected": {
+          "steady": [
+            "{callsign}, ready.",
+            "Missile team, go ahead."
+          ],
+          "stressed": [
+            "[urgent] {callsign}, send it!",
+            "[shouting] Yes, what is it?"
+          ]
+        },
+        "move": {
+          "steady": [
+            "Moving.",
+            "Packing up, relocating."
+          ],
+          "stressed": [
+            "[urgent] Grab the launcher, move!",
+            "[shouting] Go, go, carry it!"
+          ]
+        },
+        "attack": {
+          "steady": [
+            "Target, tracking.",
+            "Engaging, launcher up."
+          ],
+          "stressed": [
+            "[shouting] Target! Fire when ready!",
+            "[urgent] Kill that vehicle!"
+          ]
+        },
+        "attack_move": {
+          "steady": [
+            "Advancing, launcher ready.",
+            "Moving up, hunting armour."
+          ],
+          "stressed": [
+            "[urgent] Forward, find a firing spot!",
+            "[shouting] Push up, keep it ready!"
+          ]
+        },
+        "stop": {
+          "steady": [
+            "Holding.",
+            "Setting up here."
+          ],
+          "stressed": [
+            "[urgent] Stop, set it up!",
+            "[shouting] Down, here!"
+          ]
+        },
+        "weapons_free": {
+          "steady": [
+            "Weapons free.",
+            "Engage any armour."
+          ],
+          "stressed": [
+            "[shouting] Fire at any vehicle!",
+            "[urgent] Free to launch!"
+          ]
+        },
+        "hold_fire": {
+          "steady": [
+            "Hold fire.",
+            "Launcher safe."
+          ],
+          "stressed": [
+            "[urgent] Don't fire, hold!",
+            "[shouting] Hold it, hold!"
+          ]
+        },
+        "enter_building": {
+          "steady": [
+            "Into the building.",
+            "Finding a window."
+          ],
+          "stressed": [
+            "[urgent] Inside, quickly!",
+            "[shouting] In, watch the backblast!"
+          ]
+        },
+        "leave_building": {
+          "steady": [
+            "Leaving the building.",
+            "Out, relocating."
+          ],
+          "stressed": [
+            "[urgent] Out, now!",
+            "[shouting] Get out, move!"
+          ]
+        },
+        "withdraw": {
+          "steady": [
+            "Falling back.",
+            "Breaking off."
+          ],
+          "stressed": [
+            "[panicked] Leave it, run!",
+            "[shouting] Back, fall back!"
+          ]
+        },
+        "arrived": {
+          "steady": [
+            "{callsign}, in position.",
+            "Set, launcher up."
+          ],
+          "stressed": [
+            "[breathless] {callsign}, set!",
+            "[urgent] In position, tracking!"
+          ]
+        },
+        "refused": {
+          "steady": [
+            "Negative.",
+            "Can't get there."
+          ],
+          "stressed": [
+            "[urgent] We can't get there!",
+            "[shouting] No way, it's blocked!"
+          ]
+        },
+        "contact_infantry": {
+          "steady": [
+            "Infantry, front.",
+            "Troops, close."
+          ],
+          "stressed": [
+            "[shouting] Infantry! Rifles up!",
+            "[urgent] Enemy soldiers, protect the launcher!"
+          ]
+        },
+        "contact_vehicle": {
+          "steady": [
+            "Armour, front.",
+            "Vehicle, in range."
+          ],
+          "stressed": [
+            "[shouting] Tank! Get the damn launcher up!",
+            "[urgent] Armour, right there!"
+          ]
+        },
+        "contact_air": {
+          "steady": [
+            "Aircraft.",
+            "Helicopter, high."
+          ],
+          "stressed": [
+            "[shouting] Helo! Hide!",
+            "[urgent] Air, get down!"
+          ]
+        },
+        "opens_fire": {
+          "steady": [
+            "Firing.",
+            "Engaging."
+          ],
+          "stressed": [
+            "[shouting] Fire!",
+            "[urgent] Shooting!"
+          ]
+        },
+        "under_fire": {
+          "steady": [
+            "Taking fire.",
+            "Rounds on us."
+          ],
+          "stressed": [
+            "[shouting] Shit, they've seen us!",
+            "[urgent] They're onto us!"
+          ]
+        },
+        "suppressed": {
+          "steady": [
+            "Heads down.",
+            "Can't aim, too much fire."
+          ],
+          "stressed": [
+            "[panicked] Can't get up!",
+            "[shouting] Shit, keep down!"
+          ]
+        },
+        "pinned": {
+          "steady": [
+            "Pinned.",
+            "Can't move."
+          ],
+          "stressed": [
+            "[panicked] We're pinned!",
+            "[shouting] Pinned, need cover, damn it!"
+          ]
+        },
+        "hit": {
+          "steady": [
+            "Hit, but I'm okay.",
+            "Wounded, still working."
+          ],
+          "stressed": [
+            "[shouting] I'm hit!",
+            "[panicked] Agh, my side!"
+          ]
+        },
+        "man_down": {
+          "steady": [
+            "Gunner's down.",
+            "Loader's hit."
+          ],
+          "stressed": [
+            "[panicked] Gunner's hit! Take the sight!",
+            "[shouting] Man down!"
+          ]
+        },
+        "badly_damaged": {
+          "steady": [
+            "Team's hurt.",
+            "Heavy losses."
+          ],
+          "stressed": [
+            "[panicked] Christ, I'm the only one left!",
+            "[shouting] We can't keep this up!"
+          ]
+        },
+        "kill": {
+          "steady": [
+            "Target destroyed.",
+            "Hit, vehicle burning."
+          ],
+          "stressed": [
+            "[shouting] Direct hit! It's burning!",
+            "[breathless] Hell yes, got it!"
+          ]
+        },
+        "reloading": {
+          "steady": [
+            "Reloading.",
+            "New tube."
+          ],
+          "stressed": [
+            "[urgent] Reloading, hurry!",
+            "[shouting] Loading, cover us!"
+          ]
+        },
+        "out_of_ammo": {
+          "steady": [
+            "Out of missiles.",
+            "Last missile gone."
+          ],
+          "stressed": [
+            "[panicked] No missiles left!",
+            "[shouting] Damn it, we're out!"
+          ]
+        },
+        "missile_away": {
+          "steady": [
+            "Backblast clear. Launching.",
+            "Missile away, tracking."
+          ],
+          "stressed": [
+            "[shouting] Backblast clear! Missile away!",
+            "[urgent] Tracking, tracking, stay on it!"
+          ]
+        },
+        "incoming_missile": {
+          "steady": [
+            "Missile, incoming.",
+            "Launch, inbound."
+          ],
+          "stressed": [
+            "[shouting] Incoming! Get down!",
+            "[panicked] Missile! Run!"
+          ]
+        },
+        "destroyed": {
+          "steady": [
+            "We're done.",
+            "Team lost."
+          ],
+          "stressed": [
+            "[panicked] They got us!",
+            "[shouting] It's over, God help us!"
+          ]
+        },
+        "friendly_destroyed_nearby": {
+          "steady": [
+            "Friendly unit lost.",
+            "Friendlies down."
+          ],
+          "stressed": [
+            "[shouting] We lost one!",
+            "[panicked] Oh God, they're gone!"
+          ]
+        }
+      }
+    },
+    "attack_helicopter_pilot": {
+      "lines": {
+        "selected": {
+          "steady": [
+            "{callsign}, go ahead.",
+            "Gunship on station."
+          ],
+          "stressed": [
+            "[urgent] {callsign}, send it, we're hot!",
+            "[shouting] Go ahead, make it quick!"
+          ]
+        },
+        "move": {
+          "steady": [
+            "Roger, inbound to the waypoint.",
+            "Copy, two minutes out."
+          ],
+          "stressed": [
+            "[urgent] Moving, low and fast!",
+            "[shouting] Pushing, keep us low!"
+          ]
+        },
+        "attack": {
+          "steady": [
+            "Target in sight, engaging.",
+            "Copy, rolling in."
+          ],
+          "stressed": [
+            "[shouting] Rolling in, guns, guns, guns!",
+            "[urgent] Engaging, hit it now!"
+          ]
+        },
+        "attack_move": {
+          "steady": [
+            "Pushing in, weapons hot.",
+            "Moving up, hunting targets."
+          ],
+          "stressed": [
+            "[urgent] Pushing, shoot on the move!",
+            "[shouting] Weapons hot, going in!"
+          ]
+        },
+        "stop": {
+          "steady": [
+            "Holding in the hover.",
+            "Roger, holding."
+          ],
+          "stressed": [
+            "[urgent] Hover, hover, stop here!",
+            "[shouting] Hold here, behind the trees!"
+          ]
+        },
+        "weapons_free": {
+          "steady": [
+            "Weapons free.",
+            "Copy, cleared hot."
+          ],
+          "stressed": [
+            "[shouting] Cleared hot, kill it all!",
+            "[urgent] Weapons free, go!"
+          ]
+        },
+        "hold_fire": {
+          "steady": [
+            "Weapons hold.",
+            "Roger, holding fire."
+          ],
+          "stressed": [
+            "[urgent] Hold, hold, cease fire!",
+            "[shouting] Don't shoot, could be friendlies!"
+          ]
+        },
+        "enter_building": {
+          "steady": [
+            "Setting down by the building.",
+            "Hovering over the roof."
+          ],
+          "stressed": [
+            "[urgent] Set down by that building!",
+            "[shouting] Get us close to the roof!"
+          ]
+        },
+        "leave_building": {
+          "steady": [
+            "Lifting off.",
+            "Pulling up and away."
+          ],
+          "stressed": [
+            "[urgent] Pull up, pull up!",
+            "[shouting] Lift, lift, go!"
+          ]
+        },
+        "withdraw": {
+          "steady": [
+            "Breaking off, heading home.",
+            "Bingo, heading home."
+          ],
+          "stressed": [
+            "[panicked] Break off, get us out!",
+            "[shouting] Bugging out, go, go!"
+          ]
+        },
+        "arrived": {
+          "steady": [
+            "{callsign}, on station.",
+            "At the waypoint, holding."
+          ],
+          "stressed": [
+            "[breathless] {callsign}, on station, hot!",
+            "[urgent] At the waypoint, watch the trees!"
+          ]
+        },
+        "refused": {
+          "steady": [
+            "Negative, unable.",
+            "Can't get there, too much air defence."
+          ],
+          "stressed": [
+            "[urgent] Negative, we'll get shot down!",
+            "[shouting] Unable, unable!"
+          ]
+        },
+        "contact_infantry": {
+          "steady": [
+            "Infantry, on the ground.",
+            "Troops in the open."
+          ],
+          "stressed": [
+            "[shouting] Infantry, rolling in!",
+            "[urgent] Troops below, light them up!"
+          ]
+        },
+        "contact_vehicle": {
+          "steady": [
+            "Armour, tally.",
+            "Vehicles on the road."
+          ],
+          "stressed": [
+            "[shouting] Armour! Missiles ready!",
+            "[urgent] Tally tanks, engaging!"
+          ]
+        },
+        "contact_air": {
+          "steady": [
+            "Aircraft, tally.",
+            "Bandit, high."
+          ],
+          "stressed": [
+            "[shouting] Bandit! Break right!",
+            "[panicked] Enemy air, get low!"
+          ]
+        },
+        "opens_fire": {
+          "steady": [
+            "Guns.",
+            "Rockets away."
+          ],
+          "stressed": [
+            "[shouting] Guns, guns, guns!",
+            "[urgent] Firing, firing!"
+          ]
+        },
+        "under_fire": {
+          "steady": [
+            "Taking fire.",
+            "Ground fire, left side."
+          ],
+          "stressed": [
+            "[shouting] Taking fire! Break left!",
+            "[urgent] Tracers! Damn it, get us out!"
+          ]
+        },
+        "suppressed": {
+          "steady": [
+            "Heavy ground fire.",
+            "Too hot, staying low."
+          ],
+          "stressed": [
+            "[panicked] It's too hot, too hot!",
+            "[shouting] Shit, everything's shooting at us!"
+          ]
+        },
+        "pinned": {
+          "steady": [
+            "Masked, can't pop up.",
+            "Stuck behind the trees."
+          ],
+          "stressed": [
+            "[panicked] We can't move, they'll get us!",
+            "[shouting] Damn, can't get up, too much fire!"
+          ]
+        },
+        "hit": {
+          "steady": [
+            "We're hit, still flying.",
+            "Took a hit, systems okay."
+          ],
+          "stressed": [
+            "[shouting] We're hit! Damage check!",
+            "[panicked] Hit! Hold her steady!"
+          ]
+        },
+        "man_down": {
+          "steady": [
+            "Gunner's hit.",
+            "Co-pilot wounded."
+          ],
+          "stressed": [
+            "[panicked] Gunner's hit, gunner's hit!",
+            "[shouting] He's bleeding, I have the controls!"
+          ]
+        },
+        "badly_damaged": {
+          "steady": [
+            "Hydraulics failing.",
+            "Heavy damage, losing power."
+          ],
+          "stressed": [
+            "[panicked] Master caution! We're going down!",
+            "[shouting] Hell, she won't hold, we have to land!"
+          ]
+        },
+        "kill": {
+          "steady": [
+            "Target destroyed.",
+            "Good hit."
+          ],
+          "stressed": [
+            "[shouting] Splash! Target down!",
+            "[breathless] Hell yes, direct hit!"
+          ]
+        },
+        "reloading": {
+          "steady": [
+            "Rearming.",
+            "Switching weapons."
+          ],
+          "stressed": [
+            "[urgent] Switching, stand by!",
+            "[shouting] Rearming, hurry up!"
+          ]
+        },
+        "out_of_ammo": {
+          "steady": [
+            "Winchester.",
+            "Out of ordnance."
+          ],
+          "stressed": [
+            "[shouting] Winchester! We're dry!",
+            "[urgent] Nothing left, heading home!"
+          ]
+        },
+        "missile_away": {
+          "steady": [
+            "Missile launched.",
+            "Missile off the rail."
+          ],
+          "stressed": [
+            "[shouting] Missile away!",
+            "[urgent] Launched, keep the laser on!"
+          ]
+        },
+        "incoming_missile": {
+          "steady": [
+            "Missile, incoming.",
+            "Launch, left side."
+          ],
+          "stressed": [
+            "[shouting] Missile, missile! Flares, break left, break left!",
+            "[panicked] Shit, flares! Break right, break right!"
+          ]
+        },
+        "destroyed": {
+          "steady": [
+            "Going down.",
+            "We're going in."
+          ],
+          "stressed": [
+            "[panicked] Mayday, mayday! Going down!",
+            "[shouting] Brace, brace! Oh God!"
+          ]
+        },
+        "friendly_destroyed_nearby": {
+          "steady": [
+            "Friendly unit lost.",
+            "Friendly down."
+          ],
+          "stressed": [
+            "[shouting] We lost one!",
+            "[panicked] They're down, oh God!"
+          ]
+        }
+      }
+    },
+    "ifv_crew": {
+      "lines": {
+        "selected": {
+          "steady": [
+            "{callsign}, go ahead.",
+            "Crew here, send it."
+          ],
+          "stressed": [
+            "[urgent] {callsign}, talk fast!",
+            "[shouting] Go ahead, we're busy!"
+          ]
+        },
+        "move": {
+          "steady": [
+            "Moving out.",
+            "Driver, roll."
+          ],
+          "stressed": [
+            "[urgent] Move, move, driver!",
+            "[shouting] Get us rolling, now!"
+          ]
+        },
+        "attack": {
+          "steady": [
+            "Engaging with the cannon.",
+            "Gunner, put rounds on it."
+          ],
+          "stressed": [
+            "[shouting] Gunner, hit it, hit it!",
+            "[urgent] Light it up, now!"
+          ]
+        },
+        "attack_move": {
+          "steady": [
+            "Advancing, gun up.",
+            "Pushing forward, scanning."
+          ],
+          "stressed": [
+            "[urgent] Keep moving, keep shooting!",
+            "[shouting] Push through, fire on the move!"
+          ]
+        },
+        "stop": {
+          "steady": [
+            "Holding here.",
+            "Driver, halt."
+          ],
+          "stressed": [
+            "[urgent] Stop here, stop!",
+            "[shouting] Halt, halt!"
+          ]
+        },
+        "weapons_free": {
+          "steady": [
+            "Free to engage.",
+            "Gunner, weapons free."
+          ],
+          "stressed": [
+            "[shouting] Shoot anything hostile!",
+            "[urgent] Open up, gunner!"
+          ]
+        },
+        "hold_fire": {
+          "steady": [
+            "Hold fire.",
+            "Gunner, cease fire."
+          ],
+          "stressed": [
+            "[urgent] Cease fire, now!",
+            "[shouting] Stop shooting, hold it!"
+          ]
+        },
+        "enter_building": {
+          "steady": [
+            "Dropping the ramp.",
+            "Dismounts, into the building."
+          ],
+          "stressed": [
+            "[shouting] Ramp down! Get inside!",
+            "[urgent] Out and in, go!"
+          ]
+        },
+        "leave_building": {
+          "steady": [
+            "Pulling off the building.",
+            "Mounting up."
+          ],
+          "stressed": [
+            "[urgent] Everyone in, ramp up!",
+            "[shouting] Mount up, we're leaving!"
+          ]
+        },
+        "withdraw": {
+          "steady": [
+            "Falling back.",
+            "Reversing out."
+          ],
+          "stressed": [
+            "[panicked] Back up, get us out!",
+            "[shouting] Reverse, reverse!"
+          ]
+        },
+        "arrived": {
+          "steady": [
+            "{callsign}, in position.",
+            "Set, ready to dismount."
+          ],
+          "stressed": [
+            "[breathless] {callsign}, we're there!",
+            "[urgent] In position, eyes open!"
+          ]
+        },
+        "refused": {
+          "steady": [
+            "Negative, no route.",
+            "Unable, can't get through."
+          ],
+          "stressed": [
+            "[urgent] We can't do that!",
+            "[shouting] No way, no route!"
+          ]
+        },
+        "contact_infantry": {
+          "steady": [
+            "Infantry, front.",
+            "Dismounts, left side."
+          ],
+          "stressed": [
+            "[shouting] Infantry! Coax, coax!",
+            "[urgent] Troops, close! Hose them!"
+          ]
+        },
+        "contact_vehicle": {
+          "steady": [
+            "Armour, front.",
+            "Enemy vehicle, right."
+          ],
+          "stressed": [
+            "[shouting] Tank! Get the missile up!",
+            "[panicked] Armour! Damn it, we can't fight that!"
+          ]
+        },
+        "contact_air": {
+          "steady": [
+            "Aircraft, high.",
+            "Helicopter, low."
+          ],
+          "stressed": [
+            "[shouting] Helo! Elevate, elevate!",
+            "[urgent] Air threat, find cover!"
+          ]
+        },
+        "opens_fire": {
+          "steady": [
+            "Firing.",
+            "Cannon, on the way."
+          ],
+          "stressed": [
+            "[shouting] Firing, firing!",
+            "[urgent] Rounds out!"
+          ]
+        },
+        "under_fire": {
+          "steady": [
+            "Taking fire.",
+            "Contact, rounds on us."
+          ],
+          "stressed": [
+            "[shouting] Taking fire! Where from?",
+            "[urgent] We're being hit, find the bastard!"
+          ]
+        },
+        "suppressed": {
+          "steady": [
+            "Heavy fire, buttoned up.",
+            "Can't see, too much fire."
+          ],
+          "stressed": [
+            "[panicked] It's coming from everywhere!",
+            "[shouting] Shit, keep your heads in!"
+          ]
+        },
+        "pinned": {
+          "steady": [
+            "Pinned, can't move.",
+            "Stuck under fire."
+          ],
+          "stressed": [
+            "[panicked] Shit, we're trapped here!",
+            "[shouting] Pinned! We need support!"
+          ]
+        },
+        "hit": {
+          "steady": [
+            "We're hit, still moving.",
+            "Hit, armour held."
+          ],
+          "stressed": [
+            "[shouting] We're hit!",
+            "[panicked] Hit! Is everyone okay?"
+          ]
+        },
+        "man_down": {
+          "steady": [
+            "Gunner's hit.",
+            "Casualty in the back."
+          ],
+          "stressed": [
+            "[panicked] Man down in the back!",
+            "[shouting] Gunner's bleeding! Medic!"
+          ]
+        },
+        "badly_damaged": {
+          "steady": [
+            "Heavy damage.",
+            "Losing power, hull's hurt."
+          ],
+          "stressed": [
+            "[panicked] We can't take another hit!",
+            "[shouting] We're smoking! Get us the hell out!"
+          ]
+        },
+        "kill": {
+          "steady": [
+            "Target down.",
+            "Got it."
+          ],
+          "stressed": [
+            "[shouting] Got him!",
+            "[breathless] Damn, that's a kill!"
+          ]
+        },
+        "reloading": {
+          "steady": [
+            "Reloading the cannon.",
+            "Reloading, stand by."
+          ],
+          "stressed": [
+            "[urgent] Reloading, cover us!",
+            "[shouting] Gun's empty, loading!"
+          ]
+        },
+        "out_of_ammo": {
+          "steady": [
+            "Out of ammunition.",
+            "Gun's dry."
+          ],
+          "stressed": [
+            "[panicked] We're out, nothing left!",
+            "[shouting] Damn it, we're dry!"
+          ]
+        },
+        "missile_away": {
+          "steady": [
+            "Missile launched.",
+            "Launch, tracking."
+          ],
+          "stressed": [
+            "[shouting] Missile away!",
+            "[urgent] Launched, hold the sight!"
+          ]
+        },
+        "incoming_missile": {
+          "steady": [
+            "Missile, incoming.",
+            "Launch on us."
+          ],
+          "stressed": [
+            "[shouting] Missile! Smoke, smoke!",
+            "[panicked] Incoming! Move it!"
+          ]
+        },
+        "destroyed": {
+          "steady": [
+            "We're done, everyone out.",
+            "Vehicle lost."
+          ],
+          "stressed": [
+            "[panicked] Fire! Christ, everybody out!",
+            "[shouting] Get out! Get out!"
+          ]
+        },
+        "friendly_destroyed_nearby": {
+          "steady": [
+            "Friendly unit lost.",
+            "One of ours is down."
+          ],
+          "stressed": [
+            "[shouting] We lost one!",
+            "[panicked] Oh God, they're burning!"
+          ]
+        }
+      }
+    },
+    "manpads_team": {
+      "lines": {
+        "selected": {
+          "steady": [
+            "{callsign}, ready.",
+            "Air defence, go ahead."
+          ],
+          "stressed": [
+            "[urgent] {callsign}, quick!",
+            "[shouting] Go ahead, we're tracking!"
+          ]
+        },
+        "move": {
+          "steady": [
+            "Moving.",
+            "Relocating."
+          ],
+          "stressed": [
+            "[urgent] Move, take the launcher!",
+            "[shouting] Go, go!"
+          ]
+        },
+        "attack": {
+          "steady": [
+            "Engaging target.",
+            "Tracking target."
+          ],
+          "stressed": [
+            "[shouting] Get a lock, fire!",
+            "[urgent] Take it down!"
+          ]
+        },
+        "attack_move": {
+          "steady": [
+            "Moving up, eyes on the sky.",
+            "Advancing, launcher ready."
+          ],
+          "stressed": [
+            "[urgent] Forward, watch the sky!",
+            "[shouting] Push up, ready to fire!"
+          ]
+        },
+        "stop": {
+          "steady": [
+            "Holding.",
+            "Setting up here."
+          ],
+          "stressed": [
+            "[urgent] Stop, set up!",
+            "[shouting] Here, get down!"
+          ]
+        },
+        "weapons_free": {
+          "steady": [
+            "Weapons free.",
+            "Engage any aircraft."
+          ],
+          "stressed": [
+            "[shouting] Shoot anything that flies!",
+            "[urgent] Free to launch!"
+          ]
+        },
+        "hold_fire": {
+          "steady": [
+            "Hold fire.",
+            "Launcher safe."
+          ],
+          "stressed": [
+            "[urgent] Don't fire!",
+            "[shouting] Hold, it could be ours!"
+          ]
+        },
+        "enter_building": {
+          "steady": [
+            "Into the building.",
+            "Taking the roof."
+          ],
+          "stressed": [
+            "[urgent] Inside, quickly!",
+            "[shouting] Get to the roof!"
+          ]
+        },
+        "leave_building": {
+          "steady": [
+            "Leaving the building.",
+            "Out, moving."
+          ],
+          "stressed": [
+            "[urgent] Out, now!",
+            "[shouting] Get out, go!"
+          ]
+        },
+        "withdraw": {
+          "steady": [
+            "Falling back.",
+            "Pulling back."
+          ],
+          "stressed": [
+            "[panicked] Back, get back!",
+            "[shouting] Fall back, now!"
+          ]
+        },
+        "arrived": {
+          "steady": [
+            "{callsign}, in position.",
+            "Set, scanning the sky."
+          ],
+          "stressed": [
+            "[breathless] {callsign}, set!",
+            "[urgent] In position, watching the sky!"
+          ]
+        },
+        "refused": {
+          "steady": [
+            "Negative.",
+            "Can't get there."
+          ],
+          "stressed": [
+            "[urgent] We can't do that!",
+            "[shouting] Negative, it's blocked!"
+          ]
+        },
+        "contact_infantry": {
+          "steady": [
+            "Infantry, front.",
+            "Troops, left."
+          ],
+          "stressed": [
+            "[shouting] Infantry! Rifles!",
+            "[urgent] Enemy soldiers, close!"
+          ]
+        },
+        "contact_vehicle": {
+          "steady": [
+            "Vehicle, front.",
+            "Armour, far side."
+          ],
+          "stressed": [
+            "[shouting] Tank! Hide!",
+            "[panicked] Armour, get off the road!"
+          ]
+        },
+        "contact_air": {
+          "steady": [
+            "Aircraft, tracking.",
+            "Helicopter, in range."
+          ],
+          "stressed": [
+            "[shouting] Air! Launcher up!",
+            "[urgent] Helo, damn it, get it on him!"
+          ]
+        },
+        "opens_fire": {
+          "steady": [
+            "Firing.",
+            "Engaging."
+          ],
+          "stressed": [
+            "[shouting] Fire!",
+            "[urgent] Shooting!"
+          ]
+        },
+        "under_fire": {
+          "steady": [
+            "Taking fire.",
+            "Rounds close."
+          ],
+          "stressed": [
+            "[shouting] Contact! Rounds on us!",
+            "[urgent] They see us!"
+          ]
+        },
+        "suppressed": {
+          "steady": [
+            "Heads down.",
+            "Can't track, too much fire."
+          ],
+          "stressed": [
+            "[panicked] Can't lift my head!",
+            "[shouting] Damn it, stay down!"
+          ]
+        },
+        "pinned": {
+          "steady": [
+            "Pinned.",
+            "Can't move."
+          ],
+          "stressed": [
+            "[panicked] We're pinned!",
+            "[shouting] Pinned! Hell, we need help!"
+          ]
+        },
+        "hit": {
+          "steady": [
+            "Took a round, still here.",
+            "Wounded, carrying on."
+          ],
+          "stressed": [
+            "[shouting] I'm hit!",
+            "[panicked] Agh, they got me!"
+          ]
+        },
+        "man_down": {
+          "steady": [
+            "Gunner's down.",
+            "Man down."
+          ],
+          "stressed": [
+            "[panicked] Gunner's hit! Take the launcher!",
+            "[shouting] Man down, man down!"
+          ]
+        },
+        "badly_damaged": {
+          "steady": [
+            "Team's hurt.",
+            "Heavy losses."
+          ],
+          "stressed": [
+            "[panicked] God, I'm alone here!",
+            "[shouting] We can't hold!"
+          ]
+        },
+        "kill": {
+          "steady": [
+            "Splash one.",
+            "Aircraft down."
+          ],
+          "stressed": [
+            "[shouting] Splash! It's going down!",
+            "[breathless] Got him, he's burning!"
+          ]
+        },
+        "reloading": {
+          "steady": [
+            "Reloading.",
+            "New tube."
+          ],
+          "stressed": [
+            "[urgent] Reloading, hurry!",
+            "[shouting] Loading, cover!"
+          ]
+        },
+        "out_of_ammo": {
+          "steady": [
+            "Out of missiles.",
+            "No tubes left."
+          ],
+          "stressed": [
+            "[panicked] No missiles!",
+            "[shouting] Shit, we're out!"
+          ]
+        },
+        "missile_away": {
+          "steady": [
+            "Tone. Missile away.",
+            "Locked, missile away."
+          ],
+          "stressed": [
+            "[shouting] Got tone! Missile away!",
+            "[urgent] Fired, tracking!"
+          ]
+        },
+        "incoming_missile": {
+          "steady": [
+            "Missile, incoming.",
+            "Launch, inbound."
+          ],
+          "stressed": [
+            "[shouting] Incoming!",
+            "[panicked] Missile! Shit, get down!"
+          ]
+        },
+        "destroyed": {
+          "steady": [
+            "We're done.",
+            "Team lost."
+          ],
+          "stressed": [
+            "[panicked] They got us!",
+            "[shouting] Damn, we're finished!"
+          ]
+        },
+        "friendly_destroyed_nearby": {
+          "steady": [
+            "Lost a unit nearby.",
+            "Friendlies down."
+          ],
+          "stressed": [
+            "[shouting] We lost one!",
+            "[panicked] Damn, they're gone!"
+          ]
+        }
+      }
+    },
+    "marksman_squad": {
+      "lines": {
+        "selected": {
+          "steady": [
+            "{callsign}, ready.",
+            "Marksmen here."
+          ],
+          "stressed": [
+            "[urgent] {callsign}, go ahead!",
+            "[shouting] Yes, what do you need?"
+          ]
+        },
+        "move": {
+          "steady": [
+            "Moving.",
+            "Relocating, on me."
+          ],
+          "stressed": [
+            "[urgent] Move, stay low!",
+            "[shouting] Go, go!"
+          ]
+        },
+        "attack": {
+          "steady": [
+            "Target acquired, engaging.",
+            "On target, firing."
+          ],
+          "stressed": [
+            "[shouting] Take him, take the shot!",
+            "[urgent] Drop him, now!"
+          ]
+        },
+        "attack_move": {
+          "steady": [
+            "Advancing, scopes up.",
+            "Moving up, picking targets."
+          ],
+          "stressed": [
+            "[urgent] Forward, shoot on sight!",
+            "[shouting] Push, take what you see!"
+          ]
+        },
+        "stop": {
+          "steady": [
+            "Holding.",
+            "Halt, find a rest."
+          ],
+          "stressed": [
+            "[urgent] Stop, get down!",
+            "[shouting] Hold here!"
+          ]
+        },
+        "weapons_free": {
+          "steady": [
+            "Weapons free.",
+            "Pick your targets."
+          ],
+          "stressed": [
+            "[shouting] Take any shot you have!",
+            "[urgent] Free fire, go!"
+          ]
+        },
+        "hold_fire": {
+          "steady": [
+            "Hold fire.",
+            "Wait for my mark."
+          ],
+          "stressed": [
+            "[urgent] Hold, don't shoot!",
+            "[shouting] Cease fire!"
+          ]
+        },
+        "enter_building": {
+          "steady": [
+            "Taking the upper floor.",
+            "Into the building, find a window."
+          ],
+          "stressed": [
+            "[urgent] Inside, get to a window!",
+            "[shouting] In, in, go upstairs!"
+          ]
+        },
+        "leave_building": {
+          "steady": [
+            "Leaving the building.",
+            "Out, moving on."
+          ],
+          "stressed": [
+            "[urgent] Out, quickly!",
+            "[shouting] Get out, go!"
+          ]
+        },
+        "withdraw": {
+          "steady": [
+            "Falling back.",
+            "Breaking contact."
+          ],
+          "stressed": [
+            "[panicked] Back, get back!",
+            "[shouting] Pull out, now!"
+          ]
+        },
+        "arrived": {
+          "steady": [
+            "{callsign}, in position.",
+            "Set, good sight lines."
+          ],
+          "stressed": [
+            "[breathless] {callsign}, set!",
+            "[urgent] In position, scanning!"
+          ]
+        },
+        "refused": {
+          "steady": [
+            "Negative.",
+            "Can't reach that spot."
+          ],
+          "stressed": [
+            "[urgent] We can't get there!",
+            "[shouting] Negative, it's blocked!"
+          ]
+        },
+        "contact_infantry": {
+          "steady": [
+            "Infantry, far side.",
+            "Troops, four hundred metres."
+          ],
+          "stressed": [
+            "[shouting] Infantry, front!",
+            "[urgent] Movement! Enemy soldiers!"
+          ]
+        },
+        "contact_vehicle": {
+          "steady": [
+            "Vehicle, distant.",
+            "Armour, far left."
+          ],
+          "stressed": [
+            "[shouting] Armour! Get off the line!",
+            "[panicked] Shit, tank coming!"
+          ]
+        },
+        "contact_air": {
+          "steady": [
+            "Aircraft.",
+            "Helicopter, high right."
+          ],
+          "stressed": [
+            "[shouting] Helo! Down!",
+            "[urgent] Air! Hide!"
+          ]
+        },
+        "opens_fire": {
+          "steady": [
+            "Firing.",
+            "Sending it."
+          ],
+          "stressed": [
+            "[shouting] Shooting, shooting!",
+            "[urgent] Shot out!"
+          ]
+        },
+        "under_fire": {
+          "steady": [
+            "Taking fire.",
+            "Rounds near us."
+          ],
+          "stressed": [
+            "[shouting] Shit, they've spotted us!",
+            "[urgent] They found us!"
+          ]
+        },
+        "suppressed": {
+          "steady": [
+            "Heavy fire, heads down.",
+            "Can't get a shot."
+          ],
+          "stressed": [
+            "[panicked] Can't look up!",
+            "[shouting] Damn it, too much fire!"
+          ]
+        },
+        "pinned": {
+          "steady": [
+            "Pinned.",
+            "Can't move from here."
+          ],
+          "stressed": [
+            "[panicked] We're pinned down!",
+            "[shouting] Pinned! Need smoke, damn it!"
+          ]
+        },
+        "hit": {
+          "steady": [
+            "Hit, still shooting.",
+            "Took one, still here."
+          ],
+          "stressed": [
+            "[shouting] I'm hit!",
+            "[panicked] Agh, my arm!"
+          ]
+        },
+        "man_down": {
+          "steady": [
+            "Man down.",
+            "We have a casualty."
+          ],
+          "stressed": [
+            "[shouting] Man down, drag him back!",
+            "[panicked] He's hit! Medic!"
+          ]
+        },
+        "badly_damaged": {
+          "steady": [
+            "Heavy losses.",
+            "Squad's thin."
+          ],
+          "stressed": [
+            "[panicked] Almost everyone's down!",
+            "[shouting] Hell, we can't hold like this!"
+          ]
+        },
+        "kill": {
+          "steady": [
+            "Target down.",
+            "Hit, he's down."
+          ],
+          "stressed": [
+            "[shouting] Got him!",
+            "[breathless] Dropped him!"
+          ]
+        },
+        "reloading": {
+          "steady": [
+            "Reloading.",
+            "Changing mag."
+          ],
+          "stressed": [
+            "[urgent] Reloading, cover!",
+            "[shouting] Mag change!"
+          ]
+        },
+        "out_of_ammo": {
+          "steady": [
+            "Out of rounds.",
+            "Last mag."
+          ],
+          "stressed": [
+            "[panicked] I'm empty!",
+            "[shouting] Shit, no rounds!"
+          ]
+        },
+        "missile_away": {
+          "steady": [
+            "Rocket away.",
+            "Firing rocket."
+          ],
+          "stressed": [
+            "[shouting] Backblast clear!",
+            "[urgent] Rocket out!"
+          ]
+        },
+        "incoming_missile": {
+          "steady": [
+            "Missile, incoming.",
+            "Rocket inbound."
+          ],
+          "stressed": [
+            "[shouting] Incoming!",
+            "[panicked] Missile! Down!"
+          ]
+        },
+        "destroyed": {
+          "steady": [
+            "We're done.",
+            "Squad lost."
+          ],
+          "stressed": [
+            "[panicked] God, they got everyone!",
+            "[shouting] We're finished!"
+          ]
+        },
+        "friendly_destroyed_nearby": {
+          "steady": [
+            "Friendly unit lost.",
+            "Friendlies hit."
+          ],
+          "stressed": [
+            "[shouting] We lost one!",
+            "[panicked] Oh hell, they're gone!"
+          ]
+        }
+      }
+    },
+    "recon_infantry": {
+      "lines": {
+        "selected": {
+          "steady": [
+            "[whispers] {callsign}, copy.",
+            "[whispers] Recon here, send it."
+          ],
+          "stressed": [
+            "[urgent whisper] {callsign}, go, quick.",
+            "[urgent whisper] Listening, keep it short."
+          ]
+        },
+        "move": {
+          "steady": [
+            "[whispers] Copy. Moving, staying low.",
+            "[whispers] Moving to the next cover."
+          ],
+          "stressed": [
+            "[urgent whisper] Moving now, low and fast.",
+            "[urgent whisper] Go, quietly, go."
+          ]
+        },
+        "attack": {
+          "steady": [
+            "[whispers] Copy, engaging.",
+            "[whispers] Taking the shot."
+          ],
+          "stressed": [
+            "[urgent whisper] Engaging, this gives us away.",
+            "[urgent] Hit them, then we move!"
+          ]
+        },
+        "attack_move": {
+          "steady": [
+            "[whispers] Advancing, weapons ready.",
+            "[whispers] Moving up, eyes open."
+          ],
+          "stressed": [
+            "[urgent whisper] Pushing, shoot only if seen.",
+            "[urgent] Forward, fire if you must!"
+          ]
+        },
+        "stop": {
+          "steady": [
+            "[whispers] Holding.",
+            "[whispers] Stopping. Going quiet."
+          ],
+          "stressed": [
+            "[urgent whisper] Freeze.",
+            "[urgent whisper] Down, nobody move."
+          ]
+        },
+        "weapons_free": {
+          "steady": [
+            "[whispers] Weapons free.",
+            "[whispers] Clear to engage."
+          ],
+          "stressed": [
+            "[urgent whisper] Free to fire, make it count.",
+            "[urgent] Open up!"
+          ]
+        },
+        "hold_fire": {
+          "steady": [
+            "[whispers] Holding fire.",
+            "[whispers] Weapons tight. Stay hidden."
+          ],
+          "stressed": [
+            "[urgent whisper] Don't shoot, don't shoot.",
+            "[urgent whisper] Hold fire, they haven't seen us."
+          ]
+        },
+        "enter_building": {
+          "steady": [
+            "[whispers] Moving inside.",
+            "[whispers] Into the house, quiet."
+          ],
+          "stressed": [
+            "[urgent whisper] Inside, quickly.",
+            "[urgent whisper] In, in, stay off the windows."
+          ]
+        },
+        "leave_building": {
+          "steady": [
+            "[whispers] Leaving the house.",
+            "[whispers] Out the back."
+          ],
+          "stressed": [
+            "[urgent whisper] Out, now.",
+            "[urgent] Out, they're coming!"
+          ]
+        },
+        "withdraw": {
+          "steady": [
+            "[whispers] Pulling back.",
+            "[whispers] Breaking contact, slow."
+          ],
+          "stressed": [
+            "[urgent whisper] They have spotted us, pulling back now!",
+            "[panicked] Back, run, run, damn it!"
+          ]
+        },
+        "arrived": {
+          "steady": [
+            "[whispers] {callsign}, in position.",
+            "[whispers] Set. Eyes on."
+          ],
+          "stressed": [
+            "[urgent whisper] {callsign}, set, barely hidden.",
+            "[urgent whisper] In position. Close to them."
+          ]
+        },
+        "refused": {
+          "steady": [
+            "[whispers] Negative, too exposed.",
+            "[whispers] Can't get there unseen."
+          ],
+          "stressed": [
+            "[urgent whisper] No, we'd be seen.",
+            "[urgent whisper] Negative, no way through."
+          ]
+        },
+        "contact_infantry": {
+          "steady": [
+            "[whispers] Infantry, front.",
+            "[whispers] Foot patrol, left."
+          ],
+          "stressed": [
+            "[urgent whisper] Infantry, close, freeze.",
+            "[urgent whisper] Enemy, right on top of us."
+          ]
+        },
+        "contact_vehicle": {
+          "steady": [
+            "[whispers] Vehicle, on the road.",
+            "[whispers] Armour, moving east."
+          ],
+          "stressed": [
+            "[urgent whisper] Armour coming, keep still.",
+            "[urgent whisper] Tank, close. Don't breathe."
+          ]
+        },
+        "contact_air": {
+          "steady": [
+            "[whispers] Helicopter, high.",
+            "[whispers] Aircraft, north."
+          ],
+          "stressed": [
+            "[urgent whisper] Helo overhead, freeze.",
+            "[urgent whisper] Air, get under the trees."
+          ]
+        },
+        "opens_fire": {
+          "steady": [
+            "[whispers] Engaging.",
+            "[whispers] Firing."
+          ],
+          "stressed": [
+            "[urgent] Firing, they'll hear us!",
+            "[urgent whisper] Shots out, move after."
+          ]
+        },
+        "under_fire": {
+          "steady": [
+            "[whispers] Taking fire.",
+            "[whispers] Rounds close. We're seen."
+          ],
+          "stressed": [
+            "[urgent whisper] We are taking fire, pulling back!",
+            "[shouting] Shit, contact! They see us!"
+          ]
+        },
+        "suppressed": {
+          "steady": [
+            "[whispers] Heavy fire, heads down.",
+            "[whispers] Too much fire, staying down."
+          ],
+          "stressed": [
+            "[panicked] Stay down, stay down!",
+            "[urgent whisper] Shit, it's everywhere."
+          ]
+        },
+        "pinned": {
+          "steady": [
+            "[whispers] Pinned.",
+            "[whispers] Can't move."
+          ],
+          "stressed": [
+            "[panicked] We're pinned, can't move!",
+            "[urgent whisper] Stuck. Hell, need a way out."
+          ]
+        },
+        "hit": {
+          "steady": [
+            "[whispers] I'm hit, still moving.",
+            "[whispers] Grazed. I'm fine."
+          ],
+          "stressed": [
+            "[shouting] I'm hit!",
+            "[panicked] Agh, damn, they got me!"
+          ]
+        },
+        "man_down": {
+          "steady": [
+            "[whispers] Man down.",
+            "[whispers] We have wounded."
+          ],
+          "stressed": [
+            "[panicked] Man down! Stay with me!",
+            "[urgent whisper] He's hit, pull him back."
+          ]
+        },
+        "badly_damaged": {
+          "steady": [
+            "[whispers] Heavy losses.",
+            "[whispers] Only a few left."
+          ],
+          "stressed": [
+            "[panicked] We're nearly all down!",
+            "[breathless] We're hurt bad. Need out."
+          ]
+        },
+        "kill": {
+          "steady": [
+            "[whispers] Target down.",
+            "[whispers] He's down."
+          ],
+          "stressed": [
+            "[breathless] Got him.",
+            "[urgent whisper] Down. Move, now."
+          ]
+        },
+        "reloading": {
+          "steady": [
+            "[whispers] Reloading.",
+            "[whispers] Changing mags."
+          ],
+          "stressed": [
+            "[urgent whisper] Reloading, cover.",
+            "[urgent] Mag change!"
+          ]
+        },
+        "out_of_ammo": {
+          "steady": [
+            "[whispers] Out of ammo.",
+            "[whispers] Last mag."
+          ],
+          "stressed": [
+            "[urgent whisper] Empty. Nothing left.",
+            "[panicked] I'm out, damn it!"
+          ]
+        },
+        "missile_away": {
+          "steady": [
+            "[whispers] Rocket out.",
+            "[whispers] Launcher fired."
+          ],
+          "stressed": [
+            "[urgent] Rocket away, move!",
+            "[urgent whisper] Fired. Now we go."
+          ]
+        },
+        "incoming_missile": {
+          "steady": [
+            "[whispers] Missile, incoming.",
+            "[whispers] Launch, inbound."
+          ],
+          "stressed": [
+            "[shouting] Missile! Down!",
+            "[panicked] Incoming, go, go!"
+          ]
+        },
+        "destroyed": {
+          "steady": [
+            "[whispers] We're done.",
+            "[whispers] Team lost."
+          ],
+          "stressed": [
+            "[panicked] God, they got us, it's over!",
+            "[breathless] That's it. We're finished."
+          ]
+        },
+        "friendly_destroyed_nearby": {
+          "steady": [
+            "[whispers] Friendly unit lost.",
+            "[whispers] Friendlies down."
+          ],
+          "stressed": [
+            "[urgent whisper] We lost one.",
+            "[urgent whisper] Hell, they're gone."
+          ]
+        }
+      }
+    },
+    "recon_vehicle_crew": {
+      "lines": {
+        "selected": {
+          "steady": [
+            "[whispers] {callsign}, copy.",
+            "[whispers] Scout here, go ahead."
+          ],
+          "stressed": [
+            "[urgent whisper] {callsign}, send it, quick.",
+            "[urgent] Go ahead, we're moving!"
+          ]
+        },
+        "move": {
+          "steady": [
+            "[whispers] Copy, rolling quiet.",
+            "[whispers] Driver, ease forward."
+          ],
+          "stressed": [
+            "[urgent whisper] Move, driver, now.",
+            "[urgent] Go, go, get us moving!"
+          ]
+        },
+        "attack": {
+          "steady": [
+            "[whispers] Engaging.",
+            "[whispers] Gunner, take it."
+          ],
+          "stressed": [
+            "[urgent] Gunner, fire, fire!",
+            "[urgent whisper] Hit it, then we run."
+          ]
+        },
+        "attack_move": {
+          "steady": [
+            "[whispers] Advancing, scanning.",
+            "[whispers] Rolling up, gun ready."
+          ],
+          "stressed": [
+            "[urgent] Push, shoot what you see!",
+            "[urgent whisper] Forward, fire if spotted."
+          ]
+        },
+        "stop": {
+          "steady": [
+            "[whispers] Halt.",
+            "[whispers] Engine low, holding."
+          ],
+          "stressed": [
+            "[urgent whisper] Stop. Kill the noise.",
+            "[urgent whisper] Freeze, driver, freeze."
+          ]
+        },
+        "weapons_free": {
+          "steady": [
+            "[whispers] Weapons free.",
+            "[whispers] Gunner, clear to fire."
+          ],
+          "stressed": [
+            "[urgent] Open up, gunner!",
+            "[urgent whisper] Free to fire, make it count."
+          ]
+        },
+        "hold_fire": {
+          "steady": [
+            "[whispers] Weapons tight.",
+            "[whispers] Hold fire, stay hidden."
+          ],
+          "stressed": [
+            "[urgent whisper] Don't fire, don't fire.",
+            "[urgent whisper] Hold, they haven't seen us."
+          ]
+        },
+        "enter_building": {
+          "steady": [
+            "[whispers] Tucking in by the house.",
+            "[whispers] Hiding behind the building."
+          ],
+          "stressed": [
+            "[urgent whisper] Get us behind that wall.",
+            "[urgent] Into cover, driver!"
+          ]
+        },
+        "leave_building": {
+          "steady": [
+            "[whispers] Pulling out of cover.",
+            "[whispers] Leaving the wall."
+          ],
+          "stressed": [
+            "[urgent whisper] Out, quickly.",
+            "[urgent] Back out, go!"
+          ]
+        },
+        "withdraw": {
+          "steady": [
+            "[whispers] Pulling back.",
+            "[whispers] Reversing, quiet."
+          ],
+          "stressed": [
+            "[panicked] Reverse, reverse, they see us!",
+            "[urgent whisper] Back out, slow, now."
+          ]
+        },
+        "arrived": {
+          "steady": [
+            "[whispers] {callsign}, eyes on.",
+            "[whispers] Set. Watching."
+          ],
+          "stressed": [
+            "[urgent whisper] {callsign}, set, very close.",
+            "[urgent whisper] In position, engine off."
+          ]
+        },
+        "refused": {
+          "steady": [
+            "[whispers] Negative, too exposed.",
+            "[whispers] No quiet route there."
+          ],
+          "stressed": [
+            "[urgent whisper] No, we'd be seen.",
+            "[urgent whisper] Negative, can't get through."
+          ]
+        },
+        "contact_infantry": {
+          "steady": [
+            "[whispers] Infantry, front.",
+            "[whispers] Dismounts on the road."
+          ],
+          "stressed": [
+            "[urgent whisper] Troops, close. Engine off.",
+            "[urgent] Infantry, right beside us!"
+          ]
+        },
+        "contact_vehicle": {
+          "steady": [
+            "[whispers] Armour, far side.",
+            "[whispers] Column on the road."
+          ],
+          "stressed": [
+            "[urgent whisper] Tank, close, keep still.",
+            "[panicked] Shit, they're turning toward us!"
+          ]
+        },
+        "contact_air": {
+          "steady": [
+            "[whispers] Helicopter, high.",
+            "[whispers] Aircraft, low pass."
+          ],
+          "stressed": [
+            "[urgent whisper] Helo, freeze.",
+            "[urgent] Air! Under the trees!"
+          ]
+        },
+        "opens_fire": {
+          "steady": [
+            "[whispers] Firing.",
+            "[whispers] Rounds out."
+          ],
+          "stressed": [
+            "[shouting] Gun's up, firing!",
+            "[urgent] On the way!"
+          ]
+        },
+        "under_fire": {
+          "steady": [
+            "[whispers] Taking fire.",
+            "[whispers] Rounds on the hull."
+          ],
+          "stressed": [
+            "[shouting] Taking fire, we're spotted!",
+            "[urgent] Damn it, they found us, move!"
+          ]
+        },
+        "suppressed": {
+          "steady": [
+            "[whispers] Heavy fire, buttoned up.",
+            "[whispers] Can't see, staying down."
+          ],
+          "stressed": [
+            "[panicked] It's everywhere, can't see!",
+            "[shouting] Shit, button up!"
+          ]
+        },
+        "pinned": {
+          "steady": [
+            "[whispers] Pinned, can't move.",
+            "[whispers] Stuck in cover."
+          ],
+          "stressed": [
+            "[panicked] Hell, we're stuck, they're on us!",
+            "[urgent] Pinned! Need a way out!"
+          ]
+        },
+        "hit": {
+          "steady": [
+            "[whispers] Hit, still running.",
+            "[whispers] Armour held."
+          ],
+          "stressed": [
+            "[shouting] We're hit!",
+            "[panicked] Hit! Is everyone okay?"
+          ]
+        },
+        "man_down": {
+          "steady": [
+            "[whispers] Gunner's hit.",
+            "[whispers] Casualty inside."
+          ],
+          "stressed": [
+            "[panicked] Gunner's down!",
+            "[shouting] Driver's hit, take the wheel!"
+          ]
+        },
+        "badly_damaged": {
+          "steady": [
+            "[whispers] Heavy damage.",
+            "[whispers] Engine's hurt."
+          ],
+          "stressed": [
+            "[panicked] Christ, one more hit and we're done!",
+            "[shouting] We're smoking, get us out!"
+          ]
+        },
+        "kill": {
+          "steady": [
+            "[whispers] Target down.",
+            "[whispers] Got it."
+          ],
+          "stressed": [
+            "[breathless] Got him!",
+            "[urgent whisper] Down. Now we move."
+          ]
+        },
+        "reloading": {
+          "steady": [
+            "[whispers] Reloading.",
+            "[whispers] New belt."
+          ],
+          "stressed": [
+            "[urgent] Reloading, hold on!",
+            "[urgent whisper] Loading, keep watch."
+          ]
+        },
+        "out_of_ammo": {
+          "steady": [
+            "[whispers] Out of rounds.",
+            "[whispers] Gun's dry."
+          ],
+          "stressed": [
+            "[panicked] We're dry!",
+            "[shouting] Damn it, no rounds!"
+          ]
+        },
+        "missile_away": {
+          "steady": [
+            "[whispers] Missile launched.",
+            "[whispers] Launched, tracking."
+          ],
+          "stressed": [
+            "[shouting] Missile away!",
+            "[urgent] Launched, hold steady!"
+          ]
+        },
+        "incoming_missile": {
+          "steady": [
+            "[whispers] Missile, incoming.",
+            "[whispers] Launch, on us."
+          ],
+          "stressed": [
+            "[shouting] Missile! Smoke!",
+            "[panicked] Incoming, move!"
+          ]
+        },
+        "destroyed": {
+          "steady": [
+            "[whispers] We're done, bailing.",
+            "[whispers] Vehicle lost."
+          ],
+          "stressed": [
+            "[panicked] Fire! God, get out!",
+            "[shouting] Bail out, bail out!"
+          ]
+        },
+        "friendly_destroyed_nearby": {
+          "steady": [
+            "[whispers] Friendly unit lost.",
+            "[whispers] Friendly down."
+          ],
+          "stressed": [
+            "[urgent whisper] We lost one.",
+            "[urgent] Hell, they got one of ours!"
+          ]
+        }
+      }
+    },
+    "rifle_squad": {
+      "lines": {
+        "selected": {
+          "steady": [
+            "{callsign}, listening.",
+            "Squad ready."
+          ],
+          "stressed": [
+            "[urgent] {callsign}, quickly, orders!",
+            "[shouting] Yes, what is it?"
+          ]
+        },
+        "move": {
+          "steady": [
+            "Understood. We move now.",
+            "Follow me, quickly."
+          ],
+          "stressed": [
+            "[shouting] Move, move!",
+            "[urgent] Go, stay low, quickly!"
+          ]
+        },
+        "attack": {
+          "steady": [
+            "Engaging target.",
+            "Squad, open fire on them."
+          ],
+          "stressed": [
+            "[shouting] Fire on them, fire!",
+            "[urgent] Shoot, everybody shoot!"
+          ]
+        },
+        "attack_move": {
+          "steady": [
+            "Advancing, eyes open.",
+            "Moving up, fire when ready."
+          ],
+          "stressed": [
+            "[shouting] Forward! Keep firing!",
+            "[urgent] Advance, don't stop!"
+          ]
+        },
+        "stop": {
+          "steady": [
+            "Halt.",
+            "We hold here."
+          ],
+          "stressed": [
+            "[urgent] Stop, get down!",
+            "[shouting] Halt! Take cover here!"
+          ]
+        },
+        "weapons_free": {
+          "steady": [
+            "Weapons free.",
+            "Fire at will."
+          ],
+          "stressed": [
+            "[shouting] Shoot anything you see!",
+            "[urgent] Open fire, all of you!"
+          ]
+        },
+        "hold_fire": {
+          "steady": [
+            "Hold fire.",
+            "Cease fire, wait."
+          ],
+          "stressed": [
+            "[urgent] Cease fire, cease fire!",
+            "[shouting] Hold your fire!"
+          ]
+        },
+        "enter_building": {
+          "steady": [
+            "Into the building.",
+            "Taking the house."
+          ],
+          "stressed": [
+            "[urgent] Inside, quickly!",
+            "[shouting] Get in the building, go!"
+          ]
+        },
+        "leave_building": {
+          "steady": [
+            "Leaving the building.",
+            "Out, follow me."
+          ],
+          "stressed": [
+            "[urgent] Out, out, quickly!",
+            "[shouting] Get out of there!"
+          ]
+        },
+        "withdraw": {
+          "steady": [
+            "Falling back.",
+            "Pull back, by pairs."
+          ],
+          "stressed": [
+            "[panicked] Back, everybody back!",
+            "[shouting] Retreat, fall back now!"
+          ]
+        },
+        "arrived": {
+          "steady": [
+            "{callsign}, in position.",
+            "We are here, digging in."
+          ],
+          "stressed": [
+            "[breathless] {callsign}, we made it!",
+            "[urgent] In position, watch the front!"
+          ]
+        },
+        "refused": {
+          "steady": [
+            "Negative, we cannot.",
+            "No route there."
+          ],
+          "stressed": [
+            "[urgent] We cannot go there!",
+            "[shouting] Impossible, it's blocked!"
+          ]
+        },
+        "contact_infantry": {
+          "steady": [
+            "Contact, infantry.",
+            "Enemy in the treeline."
+          ],
+          "stressed": [
+            "[shouting] Contact! Infantry in the treeline!",
+            "[urgent] Enemy soldiers, front!"
+          ]
+        },
+        "contact_vehicle": {
+          "steady": [
+            "Vehicle, front.",
+            "Armour approaching."
+          ],
+          "stressed": [
+            "[shouting] Tank! Shit, take cover!",
+            "[panicked] Armour coming, get off the road!"
+          ]
+        },
+        "contact_air": {
+          "steady": [
+            "Aircraft overhead.",
+            "Helicopter, low."
+          ],
+          "stressed": [
+            "[shouting] Helicopter! Hide!",
+            "[urgent] Air, air! Under the trees!"
+          ]
+        },
+        "opens_fire": {
+          "steady": [
+            "Firing.",
+            "Open fire."
+          ],
+          "stressed": [
+            "[shouting] Fire, fire!",
+            "[urgent] Shoot them!"
+          ]
+        },
+        "under_fire": {
+          "steady": [
+            "Taking fire.",
+            "They are shooting at us."
+          ],
+          "stressed": [
+            "[shouting] Taking fire! Cover!",
+            "[urgent] Damn, they see us, get down!"
+          ]
+        },
+        "suppressed": {
+          "steady": [
+            "Heads down.",
+            "Heavy fire, stay low."
+          ],
+          "stressed": [
+            "[panicked] Keep your heads down!",
+            "[shouting] Damn, it's too heavy!"
+          ]
+        },
+        "pinned": {
+          "steady": [
+            "Pinned down.",
+            "We cannot move."
+          ],
+          "stressed": [
+            "[panicked] We are pinned! Heads down!",
+            "[shouting] Pinned! Damn it, we need help!"
+          ]
+        },
+        "hit": {
+          "steady": [
+            "Hit, I can fight.",
+            "Wounded, still fighting."
+          ],
+          "stressed": [
+            "[shouting] I'm hit!",
+            "[panicked] My leg, they got me!"
+          ]
+        },
+        "man_down": {
+          "steady": [
+            "Man down.",
+            "We have wounded."
+          ],
+          "stressed": [
+            "[panicked] Man down! Oh God, man down!",
+            "[shouting] Medic! Medic, here!"
+          ]
+        },
+        "badly_damaged": {
+          "steady": [
+            "Heavy losses.",
+            "Few of us left."
+          ],
+          "stressed": [
+            "[panicked] We are losing everyone!",
+            "[shouting] Damn it, we're being slaughtered!"
+          ]
+        },
+        "kill": {
+          "steady": [
+            "Enemy down.",
+            "Got one."
+          ],
+          "stressed": [
+            "[shouting] Got him!",
+            "[breathless] He's down!"
+          ]
+        },
+        "reloading": {
+          "steady": [
+            "Reloading.",
+            "Changing magazine."
+          ],
+          "stressed": [
+            "[shouting] Reloading, cover me!",
+            "[urgent] Magazine, cover!"
+          ]
+        },
+        "out_of_ammo": {
+          "steady": [
+            "Out of ammo.",
+            "Last magazine."
+          ],
+          "stressed": [
+            "[panicked] No ammo, I'm empty!",
+            "[shouting] Shit, who has ammo?"
+          ]
+        },
+        "missile_away": {
+          "steady": [
+            "Rocket away.",
+            "Firing the rocket."
+          ],
+          "stressed": [
+            "[shouting] Rocket! Clear behind!",
+            "[urgent] Firing, clear the back!"
+          ]
+        },
+        "incoming_missile": {
+          "steady": [
+            "Missile, incoming.",
+            "Rocket incoming."
+          ],
+          "stressed": [
+            "[shouting] Incoming! Get down!",
+            "[panicked] Missile! Down!"
+          ]
+        },
+        "destroyed": {
+          "steady": [
+            "We're finished.",
+            "Squad lost."
+          ],
+          "stressed": [
+            "[panicked] Everyone is dead!",
+            "[shouting] It's over, they got us!"
+          ]
+        },
+        "friendly_destroyed_nearby": {
+          "steady": [
+            "Friendly unit lost.",
+            "Friendlies down."
+          ],
+          "stressed": [
+            "[shouting] We lost one!",
+            "[panicked] Hell, they're dead, all dead!"
+          ]
+        }
+      }
+    },
+    "sniper_team": {
+      "lines": {
+        "selected": {
+          "steady": [
+            "[whispers] {callsign}, send.",
+            "[whispers] Sniper here."
+          ],
+          "stressed": [
+            "[urgent whisper] {callsign}, go, quickly.",
+            "[urgent whisper] Listening, make it fast."
+          ]
+        },
+        "move": {
+          "steady": [
+            "[whispers] Moving, slow and low.",
+            "[whispers] Relocating."
+          ],
+          "stressed": [
+            "[urgent whisper] Move, stay low, now.",
+            "[urgent whisper] Go, quietly, go."
+          ]
+        },
+        "attack": {
+          "steady": [
+            "[whispers] Target. Sending.",
+            "[whispers] On him. Wait for it."
+          ],
+          "stressed": [
+            "[urgent whisper] Take him, take him now.",
+            "[breathless] Got him in the scope, firing."
+          ]
+        },
+        "attack_move": {
+          "steady": [
+            "[whispers] Moving up, scope ready.",
+            "[whispers] Advancing, picking targets."
+          ],
+          "stressed": [
+            "[urgent whisper] Keep moving, shoot when clear.",
+            "[urgent] Push up, take what you see."
+          ]
+        },
+        "stop": {
+          "steady": [
+            "[whispers] Holding.",
+            "[whispers] Stopping here."
+          ],
+          "stressed": [
+            "[urgent whisper] Stop. Down.",
+            "[urgent whisper] Freeze, don't move."
+          ]
+        },
+        "weapons_free": {
+          "steady": [
+            "[whispers] Weapons free.",
+            "[whispers] Take any good shot."
+          ],
+          "stressed": [
+            "[urgent whisper] Free to fire, go.",
+            "[urgent] Shoot, any target!"
+          ]
+        },
+        "hold_fire": {
+          "steady": [
+            "[whispers] Holding fire.",
+            "[whispers] Don't shoot, wait."
+          ],
+          "stressed": [
+            "[urgent whisper] Hold, hold, don't fire.",
+            "[urgent whisper] Do not shoot."
+          ]
+        },
+        "enter_building": {
+          "steady": [
+            "[whispers] Into the building.",
+            "[whispers] Finding a high window."
+          ],
+          "stressed": [
+            "[urgent whisper] Inside, quickly.",
+            "[urgent whisper] Up the stairs, go."
+          ]
+        },
+        "leave_building": {
+          "steady": [
+            "[whispers] Leaving the hide.",
+            "[whispers] Out the back."
+          ],
+          "stressed": [
+            "[urgent whisper] Out, now, they know.",
+            "[urgent] Get out, move!"
+          ]
+        },
+        "withdraw": {
+          "steady": [
+            "[whispers] Pulling back.",
+            "[whispers] Breaking off."
+          ],
+          "stressed": [
+            "[urgent whisper] Back, back, quietly.",
+            "[panicked] They found us, run!"
+          ]
+        },
+        "arrived": {
+          "steady": [
+            "[whispers] {callsign}, in the hide.",
+            "[whispers] Set. Good view."
+          ],
+          "stressed": [
+            "[urgent whisper] {callsign}, set, barely.",
+            "[urgent whisper] In position, staying low."
+          ]
+        },
+        "refused": {
+          "steady": [
+            "[whispers] Negative, no way.",
+            "[whispers] Can't reach it."
+          ],
+          "stressed": [
+            "[urgent whisper] Negative, too exposed.",
+            "[urgent whisper] No, we'd be seen."
+          ]
+        },
+        "contact_infantry": {
+          "steady": [
+            "[whispers] Infantry, far side.",
+            "[whispers] Movement. Troops."
+          ],
+          "stressed": [
+            "[urgent whisper] Infantry, close, very close.",
+            "[urgent whisper] Hell, enemy right below us."
+          ]
+        },
+        "contact_vehicle": {
+          "steady": [
+            "[whispers] Vehicle, coming down the road.",
+            "[whispers] Armour, far left."
+          ],
+          "stressed": [
+            "[urgent whisper] Armour, keep still.",
+            "[urgent whisper] Tank. Don't move."
+          ]
+        },
+        "contact_air": {
+          "steady": [
+            "[whispers] Helicopter, high.",
+            "[whispers] Aircraft. Stay still."
+          ],
+          "stressed": [
+            "[urgent whisper] Helo, overhead, freeze.",
+            "[urgent whisper] Air, get under cover."
+          ]
+        },
+        "opens_fire": {
+          "steady": [
+            "[whispers] Sending.",
+            "[whispers] Shot out."
+          ],
+          "stressed": [
+            "[urgent] Firing!",
+            "[urgent whisper] Shot, shot."
+          ]
+        },
+        "under_fire": {
+          "steady": [
+            "[whispers] Rounds near us.",
+            "[whispers] We're spotted."
+          ],
+          "stressed": [
+            "[shouting] Taking fire, they see us!",
+            "[urgent whisper] Shit, they found us."
+          ]
+        },
+        "suppressed": {
+          "steady": [
+            "[whispers] Heavy fire, heads down.",
+            "[whispers] Can't take a shot."
+          ],
+          "stressed": [
+            "[panicked] Stay down, stay down!",
+            "[urgent whisper] Too much fire, don't move."
+          ]
+        },
+        "pinned": {
+          "steady": [
+            "[whispers] Pinned, waiting.",
+            "[whispers] Can't move."
+          ],
+          "stressed": [
+            "[panicked] We're pinned, can't move!",
+            "[urgent whisper] Stuck here. Damn it."
+          ]
+        },
+        "hit": {
+          "steady": [
+            "[whispers] I'm hit, still working.",
+            "[whispers] Grazed. Fine."
+          ],
+          "stressed": [
+            "[shouting] I'm hit!",
+            "[panicked] Agh, God, I'm hit bad!"
+          ]
+        },
+        "man_down": {
+          "steady": [
+            "[whispers] Spotter's hit.",
+            "[whispers] Partner down."
+          ],
+          "stressed": [
+            "[panicked] Spotter's down! Stay with me!",
+            "[shouting] He's hit, he's hit!"
+          ]
+        },
+        "badly_damaged": {
+          "steady": [
+            "[whispers] Both wounded.",
+            "[whispers] Hurt, still in the fight."
+          ],
+          "stressed": [
+            "[panicked] We're hurt bad, need out!",
+            "[breathless] I'm bleeding, can't hold the rifle."
+          ]
+        },
+        "kill": {
+          "steady": [
+            "[whispers] Target down.",
+            "[whispers] Hit. He's down."
+          ],
+          "stressed": [
+            "[breathless] Got him. Clean.",
+            "[urgent whisper] Down. Next target."
+          ]
+        },
+        "reloading": {
+          "steady": [
+            "[whispers] Reloading.",
+            "[whispers] New mag."
+          ],
+          "stressed": [
+            "[urgent whisper] Reloading, watch for me.",
+            "[urgent] Reloading, cover!"
+          ]
+        },
+        "out_of_ammo": {
+          "steady": [
+            "[whispers] Out of rounds.",
+            "[whispers] Last round gone."
+          ],
+          "stressed": [
+            "[urgent whisper] Empty. Nothing left.",
+            "[panicked] I'm out, damn it!"
+          ]
+        },
+        "missile_away": {
+          "steady": [
+            "[whispers] Rocket out.",
+            "[whispers] Grenade away."
+          ],
+          "stressed": [
+            "[urgent] Rocket away, move!",
+            "[urgent whisper] Fired, now we move."
+          ]
+        },
+        "incoming_missile": {
+          "steady": [
+            "[whispers] Missile, incoming.",
+            "[whispers] Launch, coming at us."
+          ],
+          "stressed": [
+            "[shouting] Missile! Get down!",
+            "[panicked] Incoming, shit, go, go!"
+          ]
+        },
+        "destroyed": {
+          "steady": [
+            "[whispers] We're done.",
+            "[whispers] Team lost."
+          ],
+          "stressed": [
+            "[panicked] They got us!",
+            "[breathless] That's it. We're finished."
+          ]
+        },
+        "friendly_destroyed_nearby": {
+          "steady": [
+            "[whispers] Lost a unit nearby.",
+            "[whispers] Friendlies down."
+          ],
+          "stressed": [
+            "[urgent whisper] We lost one.",
+            "[urgent whisper] Damn, they're gone."
+          ]
+        }
+      }
+    },
+    "supply_driver": {
+      "lines": {
+        "selected": {
+          "steady": [
+            "{callsign}, go ahead.",
+            "Supply here, what do you need?"
+          ],
+          "stressed": [
+            "[urgent] {callsign}, make it quick!",
+            "[panicked] Yeah, what? What is it?"
+          ]
+        },
+        "move": {
+          "steady": [
+            "On my way.",
+            "Rolling out."
+          ],
+          "stressed": [
+            "[urgent] Going, going!",
+            "[panicked] Okay, okay, moving!"
+          ]
+        },
+        "attack": {
+          "steady": [
+            "Trying, but we're unarmed.",
+            "We only carry the ammo."
+          ],
+          "stressed": [
+            "[panicked] We can't fight, we're a truck!",
+            "[shouting] With what? We're unarmed!"
+          ]
+        },
+        "attack_move": {
+          "steady": [
+            "Moving up, careful.",
+            "Rolling forward."
+          ],
+          "stressed": [
+            "[urgent] Going, but this is crazy!",
+            "[panicked] Into that? Okay, going!"
+          ]
+        },
+        "stop": {
+          "steady": [
+            "Stopping.",
+            "Parking here."
+          ],
+          "stressed": [
+            "[urgent] Stopping, stopping!",
+            "[shouting] Brakes on!"
+          ]
+        },
+        "weapons_free": {
+          "steady": [
+            "Copy, weapons free.",
+            "Rifles out, if we must."
+          ],
+          "stressed": [
+            "[urgent] Fine, shoot if they come!",
+            "[shouting] Grab your rifle!"
+          ]
+        },
+        "hold_fire": {
+          "steady": [
+            "Holding fire.",
+            "Copy, no shooting."
+          ],
+          "stressed": [
+            "[urgent] Don't shoot, don't shoot!",
+            "[shouting] Hold your fire!"
+          ]
+        },
+        "enter_building": {
+          "steady": [
+            "Pulling in by the building.",
+            "Parking under cover."
+          ],
+          "stressed": [
+            "[urgent] Get us under cover!",
+            "[panicked] Hide the truck, quick!"
+          ]
+        },
+        "leave_building": {
+          "steady": [
+            "Pulling out.",
+            "Back on the road."
+          ],
+          "stressed": [
+            "[urgent] Out, let's go!",
+            "[shouting] Go, out of here!"
+          ]
+        },
+        "withdraw": {
+          "steady": [
+            "Heading back.",
+            "Turning around."
+          ],
+          "stressed": [
+            "[panicked] Get us out of here!",
+            "[shouting] Turn around, turn around!"
+          ]
+        },
+        "arrived": {
+          "steady": [
+            "{callsign}, delivery's here.",
+            "Arrived, unloading."
+          ],
+          "stressed": [
+            "[breathless] {callsign}, made it, unloading!",
+            "[urgent] We're here, grab it fast!"
+          ]
+        },
+        "refused": {
+          "steady": [
+            "Can't get the truck there.",
+            "No road, sorry."
+          ],
+          "stressed": [
+            "[urgent] No way, we'll get stuck!",
+            "[shouting] Hell no, truck can't go there!"
+          ]
+        },
+        "contact_infantry": {
+          "steady": [
+            "Soldiers, up ahead.",
+            "Infantry by the road."
+          ],
+          "stressed": [
+            "[panicked] Soldiers! Enemy soldiers!",
+            "[shouting] Troops ahead, get down!"
+          ]
+        },
+        "contact_vehicle": {
+          "steady": [
+            "Armour on the road.",
+            "Vehicle, ahead."
+          ],
+          "stressed": [
+            "[panicked] Tank! Holy shit, that's a tank!",
+            "[shouting] Armour, turn around!"
+          ]
+        },
+        "contact_air": {
+          "steady": [
+            "Aircraft overhead.",
+            "Helicopter up there."
+          ],
+          "stressed": [
+            "[panicked] Helicopter! It's coming for us!",
+            "[shouting] Air! Hide the truck!"
+          ]
+        },
+        "opens_fire": {
+          "steady": [
+            "Shooting back.",
+            "Firing."
+          ],
+          "stressed": [
+            "[shouting] Firing back!",
+            "[panicked] Shooting, shooting!"
+          ]
+        },
+        "under_fire": {
+          "steady": [
+            "Taking fire.",
+            "They're shooting at us."
+          ],
+          "stressed": [
+            "[panicked] They're shooting at the truck!",
+            "[shouting] Shit, taking fire!"
+          ]
+        },
+        "suppressed": {
+          "steady": [
+            "Heads down.",
+            "Too much fire, staying low."
+          ],
+          "stressed": [
+            "[panicked] I can't see the road!",
+            "[shouting] Stay down, stay down!"
+          ]
+        },
+        "pinned": {
+          "steady": [
+            "Stuck here.",
+            "Can't move the truck."
+          ],
+          "stressed": [
+            "[panicked] We're stuck, help us!",
+            "[shouting] Pinned! Somebody help!"
+          ]
+        },
+        "hit": {
+          "steady": [
+            "Truck's hit, still going.",
+            "Took a hit."
+          ],
+          "stressed": [
+            "[shouting] We're hit!",
+            "[panicked] Oh God, we're hit!"
+          ]
+        },
+        "man_down": {
+          "steady": [
+            "Co-driver's hit.",
+            "Man down."
+          ],
+          "stressed": [
+            "[panicked] He's hit! He's bleeding!",
+            "[shouting] Medic! I need a medic!"
+          ]
+        },
+        "badly_damaged": {
+          "steady": [
+            "Truck's in bad shape.",
+            "Losing oil, engine's going."
+          ],
+          "stressed": [
+            "[panicked] Damn it, engine's on fire!",
+            "[shouting] She's falling apart!"
+          ]
+        },
+        "kill": {
+          "steady": [
+            "Got one.",
+            "Huh, got him."
+          ],
+          "stressed": [
+            "[shouting] Got him!",
+            "[breathless] Holy hell, I got him!"
+          ]
+        },
+        "reloading": {
+          "steady": [
+            "Reloading.",
+            "New mag."
+          ],
+          "stressed": [
+            "[urgent] Reloading, hang on!",
+            "[shouting] Reloading, cover me!"
+          ]
+        },
+        "out_of_ammo": {
+          "steady": [
+            "Out of rounds.",
+            "Rifle's empty."
+          ],
+          "stressed": [
+            "[panicked] I'm out!",
+            "[shouting] Damn it, empty!"
+          ]
+        },
+        "missile_away": {
+          "steady": [
+            "Rocket fired.",
+            "Fired the launcher."
+          ],
+          "stressed": [
+            "[shouting] Rocket away!",
+            "[urgent] Fired! Did it hit?"
+          ]
+        },
+        "incoming_missile": {
+          "steady": [
+            "Missile, incoming.",
+            "Rocket coming."
+          ],
+          "stressed": [
+            "[panicked] Missile! Jump out!",
+            "[shouting] Incoming!"
+          ]
+        },
+        "destroyed": {
+          "steady": [
+            "Truck's gone.",
+            "Lost the truck."
+          ],
+          "stressed": [
+            "[panicked] It's burning, get out!",
+            "[shouting] Out, the damn thing's going to blow!"
+          ]
+        },
+        "friendly_destroyed_nearby": {
+          "steady": [
+            "Lost a unit nearby.",
+            "One of ours is down."
+          ],
+          "stressed": [
+            "[panicked] They got one, oh God!",
+            "[shouting] We lost one!"
+          ]
+        }
+      }
+    },
+    "tank_crew": {
+      "lines": {
+        "selected": {
+          "steady": [
+            "{callsign}, go ahead.",
+            "Tank here, send it."
+          ],
+          "stressed": [
+            "[urgent] {callsign}, send it, quick!",
+            "[shouting] Go, we are listening!"
+          ]
+        },
+        "move": {
+          "steady": [
+            "Roger, moving out.",
+            "Driver, move out."
+          ],
+          "stressed": [
+            "[urgent] Driver, go, go, go!",
+            "[shouting] Moving! Driver, step on it!"
+          ]
+        },
+        "attack": {
+          "steady": [
+            "Gunner, target. Engaging.",
+            "Roger, target identified."
+          ],
+          "stressed": [
+            "[shouting] Gunner, sabot, tank, fire!",
+            "[urgent] Lay on it, gunner! Kill it!"
+          ]
+        },
+        "attack_move": {
+          "steady": [
+            "Advancing, guns ready.",
+            "Rolling forward, scanning."
+          ],
+          "stressed": [
+            "[urgent] Push forward, keep firing!",
+            "[shouting] Driver, move! Gunner, hit anything!"
+          ]
+        },
+        "stop": {
+          "steady": [
+            "Driver, stop.",
+            "Halting here."
+          ],
+          "stressed": [
+            "[urgent] Driver, stop, stop!",
+            "[shouting] Hold it here, hold it!"
+          ]
+        },
+        "weapons_free": {
+          "steady": [
+            "Weapons free, gunner.",
+            "Clear to engage."
+          ],
+          "stressed": [
+            "[shouting] Fire at will, gunner!",
+            "[urgent] Kill anything that moves!"
+          ]
+        },
+        "hold_fire": {
+          "steady": [
+            "Cease fire, gunner.",
+            "Holding fire."
+          ],
+          "stressed": [
+            "[urgent] Cease fire, cease fire!",
+            "[shouting] Hold your fire, damn it!"
+          ]
+        },
+        "enter_building": {
+          "steady": [
+            "Pulling in by the building.",
+            "Hugging the wall."
+          ],
+          "stressed": [
+            "[urgent] Get us next to that building!",
+            "[shouting] Driver, tuck in behind the wall!"
+          ]
+        },
+        "leave_building": {
+          "steady": [
+            "Pulling away from cover.",
+            "Moving off the wall."
+          ],
+          "stressed": [
+            "[urgent] Back out, back out of there!",
+            "[shouting] Driver, get us clear!"
+          ]
+        },
+        "withdraw": {
+          "steady": [
+            "Reversing, falling back.",
+            "Driver, back up."
+          ],
+          "stressed": [
+            "[panicked] Back up, back up!",
+            "[shouting] Reverse! Get us out of here!"
+          ]
+        },
+        "arrived": {
+          "steady": [
+            "{callsign}, in position.",
+            "Set, hull down."
+          ],
+          "stressed": [
+            "[breathless] {callsign}, in position, scanning!",
+            "[urgent] We are set, eyes out!"
+          ]
+        },
+        "refused": {
+          "steady": [
+            "Negative, cannot get there.",
+            "Unable, no way through."
+          ],
+          "stressed": [
+            "[urgent] Negative, we cannot do that!",
+            "[shouting] Can't get through, forget it!"
+          ]
+        },
+        "contact_infantry": {
+          "steady": [
+            "Infantry, front.",
+            "Troops in the open."
+          ],
+          "stressed": [
+            "[shouting] Infantry! Coax, coax!",
+            "[urgent] Dismounts, close, hose them!"
+          ]
+        },
+        "contact_vehicle": {
+          "steady": [
+            "Tank, front.",
+            "Armour, two o'clock."
+          ],
+          "stressed": [
+            "[shouting] Tank! Gunner, sabot!",
+            "[panicked] Shit, enemy armour, right there!"
+          ]
+        },
+        "contact_air": {
+          "steady": [
+            "Helicopter, high.",
+            "Aircraft, low and left."
+          ],
+          "stressed": [
+            "[shouting] Helo! Button up!",
+            "[urgent] Air, air! Get us under cover!"
+          ]
+        },
+        "opens_fire": {
+          "steady": [
+            "Firing.",
+            "On the way."
+          ],
+          "stressed": [
+            "[shouting] Fire! On the way!",
+            "[urgent] Shooting, shooting!"
+          ]
+        },
+        "under_fire": {
+          "steady": [
+            "Taking fire.",
+            "Rounds on the hull."
+          ],
+          "stressed": [
+            "[shouting] Taking fire, taking fire!",
+            "[urgent] They're hitting us, where the hell from?"
+          ]
+        },
+        "suppressed": {
+          "steady": [
+            "Heavy fire, buttoned up.",
+            "Can't see much, buttoned up."
+          ],
+          "stressed": [
+            "[panicked] Everything's hitting us! Stay down!",
+            "[shouting] Shit, we can't see a thing!"
+          ]
+        },
+        "pinned": {
+          "steady": [
+            "Pinned, holding here.",
+            "Can't move, too much fire."
+          ],
+          "stressed": [
+            "[panicked] We're stuck, we can't move!",
+            "[shouting] Pinned down! Somebody help us!"
+          ]
+        },
+        "hit": {
+          "steady": [
+            "We're hit, still running.",
+            "Hit, armour held."
+          ],
+          "stressed": [
+            "[shouting] We're hit! Damage report!",
+            "[panicked] Christ, we're hit!"
+          ]
+        },
+        "man_down": {
+          "steady": [
+            "Loader's hit.",
+            "Gunner's wounded."
+          ],
+          "stressed": [
+            "[panicked] Loader's down! He's bleeding bad!",
+            "[shouting] Gunner's hit! I need a hand!"
+          ]
+        },
+        "badly_damaged": {
+          "steady": [
+            "Heavy damage, still fighting.",
+            "Engine's hurt, losing power."
+          ],
+          "stressed": [
+            "[panicked] We are hit bad, we cannot take much more!",
+            "[shouting] Fire in the engine! Back up!"
+          ]
+        },
+        "kill": {
+          "steady": [
+            "Target destroyed.",
+            "Good hit, target down."
+          ],
+          "stressed": [
+            "[shouting] Got him! Target burning!",
+            "[breathless] Hell yes, he's done!"
+          ]
+        },
+        "reloading": {
+          "steady": [
+            "Loading.",
+            "Reloading, stand by."
+          ],
+          "stressed": [
+            "[urgent] Loading, loading, hurry!",
+            "[shouting] Come on, get it in!"
+          ]
+        },
+        "out_of_ammo": {
+          "steady": [
+            "Out of rounds.",
+            "Rack's empty."
+          ],
+          "stressed": [
+            "[panicked] We're dry, nothing left!",
+            "[shouting] No more rounds, damn it!"
+          ]
+        },
+        "missile_away": {
+          "steady": [
+            "Missile away.",
+            "Launching, tracking target."
+          ],
+          "stressed": [
+            "[shouting] Missile away, hold steady!",
+            "[urgent] Launched! Keep the sight on him!"
+          ]
+        },
+        "incoming_missile": {
+          "steady": [
+            "Missile, incoming.",
+            "Launch, left side."
+          ],
+          "stressed": [
+            "[shouting] Missile! Smoke, smoke!",
+            "[panicked] Incoming! Driver, move!"
+          ]
+        },
+        "destroyed": {
+          "steady": [
+            "We're done, bailing out.",
+            "Tank lost."
+          ],
+          "stressed": [
+            "[panicked] Fire! Get out, get out!",
+            "[shouting] Bail out! Bail out, God damn it!"
+          ]
+        },
+        "friendly_destroyed_nearby": {
+          "steady": [
+            "Friendly unit lost.",
+            "One of ours is gone."
+          ],
+          "stressed": [
+            "[shouting] We lost one!",
+            "[panicked] They're burning, oh God!"
+          ]
+        }
+      }
+    },
+    "transport_helicopter_pilot": {
+      "lines": {
+        "selected": {
+          "steady": [
+            "{callsign}, go ahead.",
+            "Lift here, send it."
+          ],
+          "stressed": [
+            "[urgent] {callsign}, quick, we're exposed!",
+            "[shouting] Go ahead, we're busy!"
+          ]
+        },
+        "move": {
+          "steady": [
+            "Roger, inbound to the waypoint.",
+            "Copy, moving, two minutes out."
+          ],
+          "stressed": [
+            "[urgent] Moving, keep us low!",
+            "[shouting] Going, hold on back there!"
+          ]
+        },
+        "attack": {
+          "steady": [
+            "Door gunner, engage.",
+            "Copy, guns on it."
+          ],
+          "stressed": [
+            "[shouting] Door gun, open up!",
+            "[urgent] Gunner, hit them!"
+          ]
+        },
+        "attack_move": {
+          "steady": [
+            "Moving in, door guns ready.",
+            "Pushing, gunners free."
+          ],
+          "stressed": [
+            "[urgent] Moving in, gunners, shoot!",
+            "[shouting] Going in hot!"
+          ]
+        },
+        "stop": {
+          "steady": [
+            "Holding in the hover.",
+            "Roger, hovering."
+          ],
+          "stressed": [
+            "[urgent] Hover here, hold it!",
+            "[shouting] Stop, stop here!"
+          ]
+        },
+        "weapons_free": {
+          "steady": [
+            "Gunners, weapons free.",
+            "Copy, cleared hot."
+          ],
+          "stressed": [
+            "[shouting] Gunners, fire at will!",
+            "[urgent] Weapons free, shoot!"
+          ]
+        },
+        "hold_fire": {
+          "steady": [
+            "Gunners, hold fire.",
+            "Weapons hold."
+          ],
+          "stressed": [
+            "[urgent] Cease fire, cease fire!",
+            "[shouting] Hold it, don't shoot!"
+          ]
+        },
+        "enter_building": {
+          "steady": [
+            "Landing by the building.",
+            "Setting down, troops out."
+          ],
+          "stressed": [
+            "[urgent] Landing, everyone out!",
+            "[shouting] Go, go, get off!"
+          ]
+        },
+        "leave_building": {
+          "steady": [
+            "Picking up, lifting off.",
+            "Everyone aboard, lifting."
+          ],
+          "stressed": [
+            "[urgent] Get on, get on, lifting!",
+            "[shouting] Everybody in, we're going!"
+          ]
+        },
+        "withdraw": {
+          "steady": [
+            "Breaking off, heading home.",
+            "Bingo, returning to base."
+          ],
+          "stressed": [
+            "[panicked] Get us out of here!",
+            "[shouting] Pull out, pull out!"
+          ]
+        },
+        "arrived": {
+          "steady": [
+            "{callsign}, at the landing zone.",
+            "Wheels down, clear to unload."
+          ],
+          "stressed": [
+            "[breathless] {callsign}, on the ground, move!",
+            "[urgent] At the landing zone, get off fast!"
+          ]
+        },
+        "refused": {
+          "steady": [
+            "Negative, can't land there.",
+            "Unable, too hot."
+          ],
+          "stressed": [
+            "[urgent] Negative, we'll get shot down!",
+            "[shouting] Hell no, it's too hot!"
+          ]
+        },
+        "contact_infantry": {
+          "steady": [
+            "Infantry below.",
+            "Troops in the open."
+          ],
+          "stressed": [
+            "[shouting] Troops below, gunner!",
+            "[urgent] Infantry, right under us!"
+          ]
+        },
+        "contact_vehicle": {
+          "steady": [
+            "Armour, on the road.",
+            "Vehicles, left."
+          ],
+          "stressed": [
+            "[shouting] Armour! Stay away from it!",
+            "[panicked] Armour below, get us clear!"
+          ]
+        },
+        "contact_air": {
+          "steady": [
+            "Aircraft, tally.",
+            "Bandit, high."
+          ],
+          "stressed": [
+            "[shouting] Bandit, break!",
+            "[panicked] Enemy air, get low!"
+          ]
+        },
+        "opens_fire": {
+          "steady": [
+            "Gunner's firing.",
+            "Guns."
+          ],
+          "stressed": [
+            "[shouting] Guns, guns!",
+            "[urgent] Firing!"
+          ]
+        },
+        "under_fire": {
+          "steady": [
+            "Taking fire.",
+            "Ground fire, right side."
+          ],
+          "stressed": [
+            "[shouting] Taking fire, taking fire!",
+            "[urgent] Tracers! Shit, break right!"
+          ]
+        },
+        "suppressed": {
+          "steady": [
+            "Heavy fire, staying low.",
+            "Too hot here."
+          ],
+          "stressed": [
+            "[panicked] Too hot, too hot!",
+            "[shouting] Shit, they're everywhere!"
+          ]
+        },
+        "pinned": {
+          "steady": [
+            "Can't move, too much fire.",
+            "Stuck behind the hill."
+          ],
+          "stressed": [
+            "[panicked] We're trapped here!",
+            "[shouting] Damn it, we can't get out!"
+          ]
+        },
+        "hit": {
+          "steady": [
+            "We're hit, still flying.",
+            "Took a hit, still good."
+          ],
+          "stressed": [
+            "[shouting] We're hit!",
+            "[panicked] Hit! God, hold on back there!"
+          ]
+        },
+        "man_down": {
+          "steady": [
+            "Crew chief's hit.",
+            "Gunner's wounded."
+          ],
+          "stressed": [
+            "[panicked] Crew chief's down!",
+            "[shouting] Wounded aboard, we need to go!"
+          ]
+        },
+        "badly_damaged": {
+          "steady": [
+            "Losing hydraulics.",
+            "Heavy damage, still flying."
+          ],
+          "stressed": [
+            "[panicked] Christ, she's shaking apart!",
+            "[shouting] We can't stay up long!"
+          ]
+        },
+        "kill": {
+          "steady": [
+            "Gunner got one.",
+            "Target down."
+          ],
+          "stressed": [
+            "[shouting] Got him!",
+            "[breathless] Nice shooting, gunner!"
+          ]
+        },
+        "reloading": {
+          "steady": [
+            "Gunner reloading.",
+            "Changing belts."
+          ],
+          "stressed": [
+            "[urgent] Reloading, hold on!",
+            "[shouting] Gun's empty, reloading!"
+          ]
+        },
+        "out_of_ammo": {
+          "steady": [
+            "Winchester.",
+            "Door guns empty."
+          ],
+          "stressed": [
+            "[shouting] Winchester! We're dry!",
+            "[urgent] No more rounds!"
+          ]
+        },
+        "missile_away": {
+          "steady": [
+            "Rockets out.",
+            "Firing rockets."
+          ],
+          "stressed": [
+            "[shouting] Rockets away!",
+            "[urgent] Firing, firing!"
+          ]
+        },
+        "incoming_missile": {
+          "steady": [
+            "Missile, incoming.",
+            "Launch, left side."
+          ],
+          "stressed": [
+            "[shouting] Missile! Flares, flares!",
+            "[panicked] Break left, break left!"
+          ]
+        },
+        "destroyed": {
+          "steady": [
+            "Going down.",
+            "We're going in."
+          ],
+          "stressed": [
+            "[panicked] Mayday, mayday! Oh God!",
+            "[shouting] Brace, brace, brace!"
+          ]
+        },
+        "friendly_destroyed_nearby": {
+          "steady": [
+            "Friendly unit lost.",
+            "Friendly down."
+          ],
+          "stressed": [
+            "[shouting] We lost one!",
+            "[panicked] Damn, they're gone!"
+          ]
+        }
+      }
+    }
+  },
+  "sets": {
+    "cn_attack_helicopter_pilot": {
+      "role": "attack_helicopter_pilot",
+      "country": "cn",
+      "callsign": "Dragon 1",
+      "processing": "voice-intercom",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "CN attack helicopter pilot lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "CN attack helicopter pilot soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "cn_ifv_crew": {
+      "role": "ifv_crew",
+      "country": "cn",
+      "callsign": "Dragon 2",
+      "processing": "voice-radio-light",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "CN ifv crew lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "CN ifv crew soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "cn_manpads_team": {
+      "role": "manpads_team",
+      "country": "cn",
+      "callsign": "Dragon 3",
+      "processing": "voice-dry",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "RU manpads team lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "RU manpads team soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "cn_tank_crew": {
+      "role": "tank_crew",
+      "country": "cn",
+      "callsign": "Dragon 4",
+      "processing": "voice-radio-light",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "CN tank crew lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "CN tank crew soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "cn_transport_helicopter_pilot": {
+      "role": "transport_helicopter_pilot",
+      "country": "cn",
+      "callsign": "Dragon 5",
+      "processing": "voice-intercom",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "CN transport helicopter pilot lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "CN transport helicopter pilot soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "de_assault_squad": {
+      "role": "assault_squad",
+      "country": "de",
+      "callsign": "Adler 6",
+      "processing": "voice-dry",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "DE assault squad lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "DE assault squad soldier",
+          "voice_id": null
+        },
+        {
+          "id": "soldier2",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "DE second voice",
+          "voice_id": null
+        }
+      ]
+    },
+    "de_atgm_team": {
+      "role": "atgm_team",
+      "country": "de",
+      "callsign": "Adler 7",
+      "processing": "voice-dry",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "DE atgm team lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "DE atgm team soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "de_attack_helicopter_pilot": {
+      "role": "attack_helicopter_pilot",
+      "country": "de",
+      "callsign": "Adler 8",
+      "processing": "voice-intercom",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "female",
+          "description": "German female attack helicopter pilot in her thirties speaking English with a crisp German accent, cool and decisive.",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "DE attack helicopter pilot soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "de_ifv_crew": {
+      "role": "ifv_crew",
+      "country": "de",
+      "callsign": "Adler 9",
+      "processing": "voice-radio-light",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "female",
+          "description": "German female infantry fighting vehicle commander in her thirties, low steady command voice over light radio, precise and professional.",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "DE ifv crew soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "de_manpads_team": {
+      "role": "manpads_team",
+      "country": "de",
+      "callsign": "Adler 10",
+      "processing": "voice-dry",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "DE manpads team lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "DE manpads team soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "de_marksman_squad": {
+      "role": "marksman_squad",
+      "country": "de",
+      "callsign": "Adler 11",
+      "processing": "voice-dry",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "DE marksman squad lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "DE marksman squad soldier",
+          "voice_id": null
+        },
+        {
+          "id": "soldier2",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "DE second voice",
+          "voice_id": null
+        }
+      ]
+    },
+    "de_recon_infantry": {
+      "role": "recon_infantry",
+      "country": "de",
+      "callsign": "Adler 12",
+      "processing": "voice-earpiece",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "DE recon infantry lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "DE recon infantry soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "de_recon_vehicle_crew": {
+      "role": "recon_vehicle_crew",
+      "country": "de",
+      "callsign": "Adler 13",
+      "processing": "voice-earpiece",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "DE recon vehicle crew lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "DE recon vehicle crew soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "de_rifle_squad": {
+      "role": "rifle_squad",
+      "country": "de",
+      "callsign": "Adler 14",
+      "processing": "voice-dry",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "DE rifle squad lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "DE rifle squad soldier",
+          "voice_id": null
+        },
+        {
+          "id": "soldier2",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "DE second voice",
+          "voice_id": null
+        }
+      ]
+    },
+    "de_supply_driver": {
+      "role": "supply_driver",
+      "country": "de",
+      "callsign": "Adler 15",
+      "processing": "voice-radio-light",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "DE supply driver lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "DE supply driver soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "de_tank_crew": {
+      "role": "tank_crew",
+      "country": "de",
+      "callsign": "Adler 16",
+      "processing": "voice-radio-light",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "DE tank crew lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "DE tank crew soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "de_transport_helicopter_pilot": {
+      "role": "transport_helicopter_pilot",
+      "country": "de",
+      "callsign": "Adler 17",
+      "processing": "voice-intercom",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "DE transport helicopter pilot lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "DE transport helicopter pilot soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "fr_atgm_team": {
+      "role": "atgm_team",
+      "country": "fr",
+      "callsign": "Aigle 18",
+      "processing": "voice-dry",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "FR atgm team lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "FR atgm team soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "fr_attack_helicopter_pilot": {
+      "role": "attack_helicopter_pilot",
+      "country": "fr",
+      "callsign": "Aigle 19",
+      "processing": "voice-intercom",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "female",
+          "description": "French female attack helicopter pilot in her thirties speaking English with a light French accent, confident and urgent.",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "DE transport helicopter pilot soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "fr_recon_vehicle_crew": {
+      "role": "recon_vehicle_crew",
+      "country": "fr",
+      "callsign": "Aigle 20",
+      "processing": "voice-earpiece",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "FR recon vehicle crew lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "FR recon vehicle crew soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "fr_tank_crew": {
+      "role": "tank_crew",
+      "country": "fr",
+      "callsign": "Aigle 21",
+      "processing": "voice-radio-light",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "FR tank crew lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "FR tank crew soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "fr_transport_helicopter_pilot": {
+      "role": "transport_helicopter_pilot",
+      "country": "fr",
+      "callsign": "Aigle 22",
+      "processing": "voice-intercom",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "FR transport helicopter pilot lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "FR transport helicopter pilot soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "it_ifv_crew": {
+      "role": "ifv_crew",
+      "country": "it",
+      "callsign": "Lupo 23",
+      "processing": "voice-radio-light",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "IT ifv crew lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "IT ifv crew soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "it_tank_crew": {
+      "role": "tank_crew",
+      "country": "it",
+      "callsign": "Lupo 24",
+      "processing": "voice-radio-light",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "DE tank crew lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "DE tank crew soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "ru_assault_squad": {
+      "role": "assault_squad",
+      "country": "ru",
+      "callsign": "Vostok 25",
+      "processing": "voice-dry",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "RU assault squad lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "RU assault squad soldier",
+          "voice_id": null
+        },
+        {
+          "id": "soldier2",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "RU second voice",
+          "voice_id": null
+        }
+      ]
+    },
+    "ru_atgm_team": {
+      "role": "atgm_team",
+      "country": "ru",
+      "callsign": "Vostok 26",
+      "processing": "voice-dry",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "RU atgm team lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "RU atgm team soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "ru_attack_helicopter_pilot": {
+      "role": "attack_helicopter_pilot",
+      "country": "ru",
+      "callsign": "Vostok 27",
+      "processing": "voice-intercom",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "female",
+          "description": "Russian female attack helicopter pilot in her thirties speaking English with a firm Russian accent, forceful and controlled.",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "RU attack helicopter pilot soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "ru_ifv_crew": {
+      "role": "ifv_crew",
+      "country": "ru",
+      "callsign": "Vostok 28",
+      "processing": "voice-radio-light",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "female",
+          "description": "Russian female armoured vehicle commander in her thirties speaking English with a strong Russian accent, blunt and controlled.",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "RU ifv crew soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "ru_manpads_team": {
+      "role": "manpads_team",
+      "country": "ru",
+      "callsign": "Vostok 29",
+      "processing": "voice-dry",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "RU manpads team lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "RU manpads team soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "ru_marksman_squad": {
+      "role": "marksman_squad",
+      "country": "ru",
+      "callsign": "Vostok 30",
+      "processing": "voice-dry",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "RU marksman squad lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "RU marksman squad soldier",
+          "voice_id": null
+        },
+        {
+          "id": "soldier2",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "RU second voice",
+          "voice_id": null
+        }
+      ]
+    },
+    "ru_recon_infantry": {
+      "role": "recon_infantry",
+      "country": "ru",
+      "callsign": "Vostok 31",
+      "processing": "voice-earpiece",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "RU recon infantry lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "RU recon infantry soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "ru_recon_vehicle_crew": {
+      "role": "recon_vehicle_crew",
+      "country": "ru",
+      "callsign": "Vostok 32",
+      "processing": "voice-earpiece",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "RU recon vehicle crew lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "RU recon vehicle crew soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "ru_rifle_squad": {
+      "role": "rifle_squad",
+      "country": "ru",
+      "callsign": "Vostok 33",
+      "processing": "voice-dry",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "Russian male infantry sergeant in his forties speaking English with a strong Russian accent, deep rough commanding voice, shouted battlefield delivery.",
+          "voice_id": "Jqx4K9GHzgAqONoiSwhb"
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "RU rifle squad soldier",
+          "voice_id": null
+        },
+        {
+          "id": "soldier2",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "RU second voice",
+          "voice_id": null
+        }
+      ]
+    },
+    "ru_sniper_team": {
+      "role": "sniper_team",
+      "country": "ru",
+      "callsign": "Vostok 34",
+      "processing": "voice-dry",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "RU sniper team lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "RU sniper team soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "ru_supply_driver": {
+      "role": "supply_driver",
+      "country": "ru",
+      "callsign": "Vostok 35",
+      "processing": "voice-radio-light",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "RU supply driver lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "RU supply driver soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "ru_tank_crew": {
+      "role": "tank_crew",
+      "country": "ru",
+      "callsign": "Vostok 36",
+      "processing": "voice-radio-light",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "RU tank crew lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "RU tank crew soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "ru_transport_helicopter_pilot": {
+      "role": "transport_helicopter_pilot",
+      "country": "ru",
+      "callsign": "Vostok 37",
+      "processing": "voice-intercom",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "RU transport helicopter pilot lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "RU transport helicopter pilot soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "se_ifv_crew": {
+      "role": "ifv_crew",
+      "country": "se",
+      "callsign": "Bjorn 38",
+      "processing": "voice-radio-light",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "SE ifv crew lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "SE ifv crew soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "se_tank_crew": {
+      "role": "tank_crew",
+      "country": "se",
+      "callsign": "Bjorn 39",
+      "processing": "voice-radio-light",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "SE tank crew lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "SE tank crew soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "uk_attack_helicopter_pilot": {
+      "role": "attack_helicopter_pilot",
+      "country": "uk",
+      "callsign": "Victor 40",
+      "processing": "voice-intercom",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "British male attack helicopter pilot in his thirties, crisp received pronunciation English accent, clipped military aviation phrasing, composed under pressure.",
+          "voice_id": "DqHWHfkdp2tajWvTPtM7"
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "British helicopter crew",
+          "voice_id": null
+        }
+      ]
+    },
+    "uk_recon_vehicle_crew": {
+      "role": "recon_vehicle_crew",
+      "country": "uk",
+      "callsign": "Victor 41",
+      "processing": "voice-earpiece",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "UK recon vehicle crew lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "UK recon vehicle crew soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "uk_tank_crew": {
+      "role": "tank_crew",
+      "country": "uk",
+      "callsign": "Victor 42",
+      "processing": "voice-radio-light",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "UK tank crew lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "UK tank crew soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "uk_transport_helicopter_pilot": {
+      "role": "transport_helicopter_pilot",
+      "country": "uk",
+      "callsign": "Victor 43",
+      "processing": "voice-intercom",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "UK transport helicopter pilot lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "UK transport helicopter pilot soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "us_assault_squad": {
+      "role": "assault_squad",
+      "country": "us",
+      "callsign": "Oscar 44",
+      "processing": "voice-dry",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "US assault squad lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "US assault squad soldier",
+          "voice_id": null
+        },
+        {
+          "id": "soldier2",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "US second voice",
+          "voice_id": null
+        }
+      ]
+    },
+    "us_atgm_team": {
+      "role": "atgm_team",
+      "country": "us",
+      "callsign": "Oscar 45",
+      "processing": "voice-dry",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "US atgm team lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "US atgm team soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "us_attack_helicopter_pilot": {
+      "role": "attack_helicopter_pilot",
+      "country": "us",
+      "callsign": "Oscar 46",
+      "processing": "voice-intercom",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "female",
+          "description": "American female attack helicopter pilot in her thirties, clear command voice over intercom, calm and clipped under fire.",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "US attack helicopter pilot soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "us_ifv_crew": {
+      "role": "ifv_crew",
+      "country": "us",
+      "callsign": "Oscar 47",
+      "processing": "voice-radio-light",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "female",
+          "description": "American female infantry fighting vehicle commander in her thirties, dry professional radio voice, calm and direct.",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "US ifv crew soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "us_manpads_team": {
+      "role": "manpads_team",
+      "country": "us",
+      "callsign": "Oscar 48",
+      "processing": "voice-dry",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "US manpads team lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "US manpads team soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "us_marksman_squad": {
+      "role": "marksman_squad",
+      "country": "us",
+      "callsign": "Oscar 49",
+      "processing": "voice-dry",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "US marksman squad lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "US marksman squad soldier",
+          "voice_id": null
+        },
+        {
+          "id": "soldier2",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "US second voice",
+          "voice_id": null
+        }
+      ]
+    },
+    "us_recon_infantry": {
+      "role": "recon_infantry",
+      "country": "us",
+      "callsign": "Oscar 50",
+      "processing": "voice-earpiece",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "American male special operations marine in his late twenties, low quiet controlled voice, speaks in hushed tones and whispers, very calm and precise.",
+          "voice_id": "HDZsRSSxHYdXkV0AKe32"
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "US recon infantry soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "us_recon_vehicle_crew": {
+      "role": "recon_vehicle_crew",
+      "country": "us",
+      "callsign": "Oscar 51",
+      "processing": "voice-earpiece",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "US recon vehicle crew lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "US recon vehicle crew soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "us_rifle_squad": {
+      "role": "rifle_squad",
+      "country": "us",
+      "callsign": "Oscar 52",
+      "processing": "voice-dry",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "US rifle squad lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "US rifle squad soldier",
+          "voice_id": null
+        },
+        {
+          "id": "soldier2",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "US second voice",
+          "voice_id": null
+        }
+      ]
+    },
+    "us_sniper_team": {
+      "role": "sniper_team",
+      "country": "us",
+      "callsign": "Oscar 53",
+      "processing": "voice-dry",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "US sniper team lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "US sniper team soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "us_supply_driver": {
+      "role": "supply_driver",
+      "country": "us",
+      "callsign": "Oscar 54",
+      "processing": "voice-radio-light",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "US supply driver lead",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "US supply driver soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "us_tank_crew": {
+      "role": "tank_crew",
+      "country": "us",
+      "callsign": "Oscar 55",
+      "processing": "voice-radio-light",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+          "voice_id": "z0wdO1PMjmqh0usMe4hA"
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "US tank crew soldier",
+          "voice_id": null
+        }
+      ]
+    },
+    "us_transport_helicopter_pilot": {
+      "role": "transport_helicopter_pilot",
+      "country": "us",
+      "callsign": "Oscar 56",
+      "processing": "voice-intercom",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "female",
+          "description": "American female transport pilot in her thirties, steady aviation intercom voice, warm but precise under pressure.",
+          "voice_id": null
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "female",
+          "description": "US transport helicopter pilot soldier",
+          "voice_id": null
+        }
+      ]
+    }
+  },
+  "assignments": {
+    "eastern_air_defense_team_fn_6": "cn_manpads_team",
+    "eastern_air_defense_team_igla_s": "ru_manpads_team",
+    "eastern_atgm_team_kornet": "ru_atgm_team",
+    "eastern_bmp_ifv_family_bmp_2m_berezhok": "ru_ifv_crew",
+    "eastern_bmp_ifv_family_bmp_3": "ru_ifv_crew",
+    "eastern_brm_brm_3k": "ru_recon_vehicle_crew",
+    "eastern_btr_btr_82a": "ru_ifv_crew",
+    "eastern_ka_52_alligator_ka_52m": "ru_attack_helicopter_pilot",
+    "eastern_marksman_squad_svd_equipped_longer_range_infantry": "ru_marksman_squad",
+    "eastern_mi_24_mi_35_hind_mi_35m": "ru_attack_helicopter_pilot",
+    "eastern_mi_28_havoc_mi_28nm": "ru_attack_helicopter_pilot",
+    "eastern_mi_8_hip_mi_8amtsh": "ru_transport_helicopter_pilot",
+    "eastern_rpg_team_rpg_29": "ru_atgm_team",
+    "eastern_rpg_team_rpg_7": "ru_atgm_team",
+    "eastern_scouts_light_patrol": "ru_recon_infantry",
+    "eastern_sniper_team_asvk_heavy_sniper_team": "ru_sniper_team",
+    "eastern_t_14_armata_main_battle_tank": "ru_tank_crew",
+    "eastern_t_15_armata_heavy_ifv": "ru_tank_crew",
+    "eastern_t_72_t_72b3_2016": "ru_tank_crew",
+    "eastern_t_80_t_80bvm": "ru_tank_crew",
+    "eastern_t_90_t_90m_proryv": "ru_tank_crew",
+    "eastern_tigr_tigr_m": "ru_ifv_crew",
+    "eastern_type_15_ztq_15_light_tank": "cn_tank_crew",
+    "eastern_type_99_ztz_99a": "cn_tank_crew",
+    "eastern_ural_4320_general_resupply": "ru_supply_driver",
+    "eastern_z_10_attack_helicopter": "cn_attack_helicopter_pilot",
+    "eastern_z_20_utility_transport": "cn_transport_helicopter_pilot",
+    "eastern_zbl_08_wheeled_ifv": "cn_ifv_crew",
+    "us_acv_acv_p": "us_ifv_crew",
+    "us_ah_1z_viper_attack_helicopter": "us_attack_helicopter_pilot",
+    "us_ah_6_mh_6_little_bird_ah_6m": "us_transport_helicopter_pilot",
+    "us_ah_6_mh_6_little_bird_mh_6m": "us_transport_helicopter_pilot",
+    "us_army_scouts_light_patrol": "us_recon_infantry",
+    "us_atgm_team_bgm_71_tow_2a": "us_atgm_team",
+    "us_ch_47_chinook_ch_47f": "us_transport_helicopter_pilot",
+    "us_force_recon_recon_patrol": "us_recon_infantry",
+    "us_lav_lav_25a2": "us_ifv_crew",
+    "us_lav_lav_at": "us_ifv_crew",
+    "us_m10_booker": "us_tank_crew",
+    "us_m1127_stryker_rv_reconnaissance_vehicle": "us_recon_vehicle_crew",
+    "us_m1151_hmmwv_hmg": "us_ifv_crew",
+    "us_m1_abrams_sep_v2": "us_tank_crew",
+    "us_m1_abrams_sep_v2_trophy": "us_tank_crew",
+    "us_m1_abrams_sep_v3_trophy": "us_tank_crew",
+    "us_m1e3_abrams": "us_tank_crew",
+    "us_m2_bradley_ifv_m2a4": "us_ifv_crew",
+    "us_m3_bradley_cfv_m3a3": "us_recon_vehicle_crew",
+    "us_m977_hemtt_general_resupply": "us_supply_driver",
+    "us_marine_squad_close_quarters_infantry": "us_assault_squad",
+    "us_marksman_squad_m110_equipped_longer_range_infantry": "us_marksman_squad",
+    "us_scout_snipers_m107_heavy_sniper_team": "us_sniper_team",
+    "us_stryker_m1126_icv": "us_ifv_crew",
+    "us_stryker_m1134_atgm": "us_ifv_crew",
+    "us_stryker_m1296_dragoon": "us_ifv_crew",
+    "us_uh_1y_venom_utility_transport": "us_transport_helicopter_pilot",
+    "us_uh_60_black_hawk_uh_60m": "us_transport_helicopter_pilot",
+    "ah_64e_guardian": {
+      "us": "us_attack_helicopter_pilot",
+      "europe": "de_attack_helicopter_pilot"
+    },
+    "assault_squad": {
+      "europe": "de_assault_squad",
+      "eastern": "ru_assault_squad"
+    },
+    "fgm_148_javelin_team": {
+      "us": "us_atgm_team",
+      "europe": "de_atgm_team"
+    },
+    "fim_92_stinger_team": {
+      "us": "us_manpads_team",
+      "europe": "de_manpads_team"
+    },
+    "rifle_squad": {
+      "us": "us_rifle_squad",
+      "europe": "de_rifle_squad",
+      "eastern": "ru_rifle_squad"
+    },
+    "europe_ajax_tracked_reconnaissance_vehicle": "uk_recon_vehicle_crew",
+    "europe_atgm_team_akeron_mp": "fr_atgm_team",
+    "europe_aw101_merlin_hc4": "de_transport_helicopter_pilot",
+    "europe_aw159_wildcat_ah1": "uk_transport_helicopter_pilot",
+    "europe_boxer_apc": "de_ifv_crew",
+    "europe_boxer_rct30": "de_ifv_crew",
+    "europe_centauro_ii": "it_tank_crew",
+    "europe_ch_47_chinook_hc6": "de_transport_helicopter_pilot",
+    "europe_challenger_challenger_2_tes": "uk_tank_crew",
+    "europe_challenger_challenger_3": "uk_tank_crew",
+    "europe_cv90120_light_tank": "se_tank_crew",
+    "europe_cv90_cv9040c": "se_ifv_crew",
+    "europe_cv90_mk_iv": "se_ifv_crew",
+    "europe_ebrc_jaguar_armed_reconnaissance_vehicle": "fr_recon_vehicle_crew",
+    "europe_ec665_tiger_had": "fr_attack_helicopter_pilot",
+    "europe_ec665_tiger_uht": "de_attack_helicopter_pilot",
+    "europe_fennek_reconnaissance_vehicle": "de_recon_vehicle_crew",
+    "europe_kf51_panther_prototype_main_battle_tank": "de_tank_crew",
+    "europe_leclerc_xlr": "fr_tank_crew",
+    "europe_leopard_2_2a6": "de_tank_crew",
+    "europe_leopard_2_2a7v": "de_tank_crew",
+    "europe_leopard_2_2a8": "de_tank_crew",
+    "europe_man_hx_general_resupply": "de_supply_driver",
+    "europe_marksman_squad_longer_range_infantry": "de_marksman_squad",
+    "europe_nh90_tth": "de_transport_helicopter_pilot",
+    "europe_puma_level_c": "de_tank_crew",
+    "europe_recon_patrol_light_patrol": "de_recon_infantry",
+    "europe_vbci_infantry_fighting_vehicle": "de_ifv_crew",
+    "europe_vbl_machine_gun_scout": "de_ifv_crew"
+  },
+  "retakes": {}
+}

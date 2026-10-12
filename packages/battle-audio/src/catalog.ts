@@ -1,6 +1,17 @@
 import type { NearFar } from "./audioPresentation";
 import { SOUNDS } from "./synth";
 
+export interface Generated {
+  kind: "Generated";
+  generator: string;
+  model: string;
+  text?: string;
+  prompt?: string;
+  voice_id?: string;
+  voice_description?: string;
+  date: string;
+  plan: "Duet ElevenLabs";
+}
 export interface SoundSource {
   label: string;
   author: string;

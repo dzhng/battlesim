@@ -2,10 +2,10 @@
 
 ## Next Agent Prompt
 
-**Status (2026-10-11):** planned; nothing is built. The discovery walk with the user and four independent drafts (fewest-slices, risk-first on Codex, seam-quality, asset-pipeline) produced this plan. Every entry in [`choices.md`](choices.md) is a given. It records who closed each decision and why.
+**Status (2026-10-12):** slices 01 (voice data) and 02 (generation tool, voice profiles, the two beds, the four saved voices' R2 takes) built. Slices 07 and 11 are in fix passes in their own worktrees. Next lane-A pickup: slice 03. The discovery walk with the user and four independent drafts (fewest-slices, risk-first on Codex, seam-quality, asset-pipeline) produced this plan. Every entry in [`choices.md`](choices.md) is a given. It records who closed each decision and why.
 
 **Pick up here:**
-- Start [slice 01](slices/01-voice-data.md).
+- Start [slice 03](slices/03-voices-tab.md).
 - Slices [07](slices/07-music-player.md) and [11](slices/11-shout-ledger.md) share no files with 01–06, so they can run in parallel lanes. Give each its own worktree.
 - Read `choices.md` first. Then read the slice file. Then read the owners each slice names.
 
@@ -15,8 +15,8 @@
 - **The battle digest must never change.** A digest change is a bug. Publication parity is re-blessed exactly once, in slice 13, by name.
 
 **Global TODO:**
-- [ ] 01 — Voice data: the `voices.json` schema, the `Generated` provenance kind, the set table, role scripts, assignments for every roster unit, and the `plan` report. [slice](slices/01-voice-data.md)
-- [ ] 02 — Generation tool and processing: the proxy client, cache, lock, speech-to-text check, voice profiles in `assets.py`, and mono MP3 under `assets/runtime/audio/voices/`. [slice](slices/02-generator-and-processing.md)
+- [x] 01 — Voice data: the `voices.json` schema, the `Generated` provenance kind, the set table, role scripts, assignments for every roster unit, and the `plan` report. [slice](slices/01-voice-data.md)
+- [x] 02 — Generation tool and processing: the proxy client, cache, lock, speech-to-text check, voice profiles in `assets.py`, and mono MP3 under `assets/runtime/audio/voices/`. [slice](slices/02-generator-and-processing.md)
 - [ ] 03 — Voices tab: the workbench review grid, the keyboard review queue, verdicts, and regenerating a take. [slice](slices/03-voices-tab.md)
 - [ ] 04 — Pilot: `us_tank` with all 29 triggers, a credit and mismatch report, then straight on to the batch. [slice](slices/04-pilot.md)
 - [ ] 05 — Voice design: 3 candidates per voice, the user's pick saved permanently. [slice](slices/05-voice-design.md)
@@ -25,7 +25,7 @@
 - [ ] 08 — Music tracks: 3 combat and 3 tension tracks, the Music tab, and the mood director. [slice](slices/08-music-tracks.md)
 - [ ] 09 — Chatter: line arbitration, the per-set voice bank, and the 30 s chatter preview. [slice](slices/09-chatter.md)
 - [ ] 10 — Responses in battle: R1–R12. [slice](slices/10-responses.md)
-- [ ] 11 — Shout ledger: simulation barks from existing state, not yet published. [slice](slices/11-shout-ledger.md)
+- [x] 11 — Shout ledger: simulation barks from existing state, not yet published. [slice](slices/11-shout-ledger.md)
 - [ ] 12 — Physical barks: B5 (under fire), B15 (incoming missile), B17 (friendly destroyed nearby), plus the anonymous unseen-shout hearing cue. [slice](slices/12-physical-barks.md)
 - [ ] 13 — Publish shouts: the publication group and the single named re-bless. [slice](slices/13-publish-shouts.md)
 - [ ] 14 — Barks in battle: barks heard near the camera, and the music mood and ducking driven by own barks. [slice](slices/14-barks-in-battle.md)
