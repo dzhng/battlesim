@@ -1,11 +1,14 @@
 // @vitest-environment jsdom
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, beforeAll, expect, test, vi } from "vitest";
+import { loadPresentation } from "@web/battle/sim/presentation";
 import game from "@fixtures/game.json";
 import { SOUNDS } from "@packages/battle-audio/src/synth";
 import type { AudioPresentation } from "@packages/battle-audio/src/audioPresentation";
 import type { SoundCatalog } from "@packages/battle-audio/src/catalog";
 import { AppAudio } from "@packages/battle-audio/src/appAudio";
 import { soundSettings } from "@packages/battle-audio/src/settings";
+
+beforeAll(() => loadPresentation());
 
 const COOK_OFF = game.presentation.effects.cook_off;
 
@@ -36,7 +39,6 @@ function buffer(channels: number, length: number, sampleRate: number): AudioBuff
 const empty = (tick: number) => ({
   effects: { tick, segments: [], blasts: [], smokes: [] },
   launches: [],
-  turretLandsS: 0,
   audible: [],
 });
 const active: AppAudio[] = [];

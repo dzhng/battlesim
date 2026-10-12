@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { resolveEffect, type SoundCatalog } from "../../../packages/battle-audio/src/catalog";
 import { vehicleLoops } from "../../../packages/battle-audio/src/soundFrame";
 import type { VehicleSound } from "../../../packages/battle-audio/src/audioPresentation";
+import { loadPresentation } from "../../../web/src/battle/sim/presentation";
 import type { LiveLoop, LiveMix } from "./audition";
 import type { EditorProps } from "./editorProps";
 
@@ -104,7 +105,9 @@ export function Movement({ snapshot, draft, edit, play, playing, mix, live, stop
     const sounds = [row.engine, row.running, row.turret, row.reverse]
       .filter((s): s is string => !!s)
       .map((s) => resolveEffect(draft, s));
-    (await live(key, sounds))?.loops(driveLoops(draft, row, drives[cls]));
+    // The battle's loop rule is the presentation module's.
+    const [audition] = await Promise.all([live(key, sounds), loadPresentation()]);
+    audition?.loops(driveLoops(draft, row, drives[cls]));
   };
   const setDrive = (cls: string, change: Partial<Drive>) => {
     const next = { ...drives[cls], ...change };

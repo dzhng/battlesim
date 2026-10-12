@@ -25,6 +25,8 @@ export interface PoseRecord {
 export interface UnitTypeRecord {
   /** Half the distance between its tracks or wheel rows (the pose driver's); null for a squad. */
   hull: { halfTrack: number } | null;
+  /** Its vehicle class (`vehicleClass`), the sound row it is heard as; null for a squad. */
+  vehicleClass: string | null;
   /** It flies (`airborne`). */
   airborne: boolean;
   /** How its model draws each mount, in mount order (`mountRoles`). */
@@ -398,10 +400,12 @@ function isDraws(value: unknown, appearances: Record<string, unknown>): boolean 
 }
 
 function isType(value: unknown, appearances: Record<string, unknown>): boolean {
-  if (!hasKeys(value, ["hull", "airborne", "roles", "mounts", "draws"])) return false;
+  if (!hasKeys(value, ["hull", "vehicleClass", "airborne", "roles", "mounts", "draws"]))
+    return false;
   const { hull, roles, mounts, draws } = value;
   return (
     (hull === null || (hasKeys(hull, ["halfTrack"]) && finite(hull.halfTrack))) &&
+    (value.vehicleClass === null || text(value.vehicleClass)) &&
     typeof value.airborne === "boolean" &&
     names(roles) &&
     Array.isArray(mounts) &&

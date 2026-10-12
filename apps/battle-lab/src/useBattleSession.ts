@@ -104,11 +104,10 @@ import { describeUnits, gamePose, type PoseRules } from "./benchmark/unitPresent
 import { useSimSession, type ScriptedSim } from "./useSimSession";
 import { groundUnderRay, useMapBuildings, useStaticWorld } from "./useStaticWorld";
 import { createBattleAudio } from "./soundFeed";
-import { frameCounts, frameSound, presentationWorld, presentedCamera } from "./presentedFrame";
+import { frameCounts, presentationWorld, presentedCamera } from "./presentedFrame";
 import { gameLight } from "./gameLight";
 import type { ObservationDecoder } from "@web/battle/sim/presentation";
 import type { ViewportCamera } from "@packages/renderer-core/src/cameraUniform";
-import type { SoundMotion } from "@packages/battle-audio/src/soundFrame";
 import { useAppAudio } from "./AppAudio";
 import { useFeed } from "./feed";
 import { posedSockets, type BenchPose } from "./workbench/benchWorld";
@@ -174,7 +173,7 @@ export interface BattleSessionOptions {
    *  world, so one seen destroyed leaves the map and its known remains (a
    *  ruin, rubble, a lighter wreck) stand in its place. */
   destroyable?: "apart";
-  /** Play the battle's sound (heard from the camera `hear` is given). */
+  /** Play the battle's sound (heard from the last frame's camera). */
   sound?: boolean;
   /** Menus and loading covers suspend command input without losing selection. */
   inputEnabled?: boolean;
@@ -246,8 +245,7 @@ export function useBattleSession({
       if (presentation) {
         const moving = [...presentation.movingWrecks()];
         setMovingWrecks((now) => (now.join() === moving.join() ? now : moving));
-        const heard = audio && presentation.soundPublication();
-        if (heard) audio.note({ ...heard, audible: o.audible });
+        audio?.note(presentation.wasm);
       }
       onDecoded?.(o, digest);
     },
@@ -530,8 +528,6 @@ export function useBattleSession({
   const drawnAt = useRef(new Map<number, Readonly<Vec3>>());
   const drawnEnemyAt = useRef(new Map<number, Readonly<Vec3>>());
   const readouts = useRef<ReadoutLayerHandle>(null);
-  // The last frame's clock and drawn motion, which sound hears at the camera.
-  const heard = useRef<{ clock: number; motion: SoundMotion } | null>(null);
   // The models layer installs only what the battle draws as models.
   const modelAppearances = useMemo<InstalledAppearances | null>(
     () =>
@@ -667,7 +663,6 @@ export function useBattleSession({
       drawn.current = sideInstances(presented, own, enemies, published, units);
       drawnAt.current = new Map([...own].map(([id, u]) => [id, u.position]));
       drawnEnemyAt.current = new Map([...enemies].map(([id, u]) => [id, u.position]));
-      if (audio) heard.current = { clock: time, motion: frameSound(presented, published, units) };
       const { models: counts, effects: effectCounts } = frameCounts(presented);
       return {
         picks: drawn.current.picks,
@@ -698,14 +693,11 @@ export function useBattleSession({
       surfaceZ,
     ],
   );
-  /** Sound for the last frame, heard from `camera`: call once a frame. */
-  const hear = useCallback(
-    (camera: Camera3DParams) => {
-      const h = heard.current;
-      if (audio && h) audio.update(h.clock, h.motion, camera);
-    },
-    [audio],
-  );
+  /** Sound for the last frame, heard from its camera: call once a frame. */
+  const hear = useCallback(() => {
+    const presentation = sim.client?.presentation;
+    if (audio && presentation) audio.update(presentation.wasm);
+  }, [audio, sim.client]);
 
   const semanticPick = useCallback(
     (pick: LabPick): PointerPick | null => {

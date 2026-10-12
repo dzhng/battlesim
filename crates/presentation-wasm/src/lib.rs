@@ -7,6 +7,8 @@ use std::sync::Arc;
 
 use presentation::presentation::{Ghost, Presentation as Inner, Ui};
 use presentation::records::{FrameHeader, WorldHeader};
+use presentation::sound::frame::{self, Command, Listener, Motion, Scripted, Sound};
+use presentation::sound::synth;
 use presentation::static_world::buildings::{Placed, PlacedBuildings};
 use presentation::static_world::fallen::Known;
 use presentation::static_world::library::{Bounds, Library};
@@ -293,12 +295,6 @@ impl Presentation {
         Ok(&self.frame_header as *const FrameHeader as u32)
     }
 
-    /// The last publication as sound reads it, JSON: its effect publication
-    /// (with the hulls the side watched brew up) and the launches it shows.
-    pub fn sound_publication(&self) -> String {
-        self.inner.sound_json()
-    }
-
     /// The last frame as the labs' scenes probe it, JSON.
     pub fn probe(&self) -> String {
         self.inner.probe_json()
@@ -332,4 +328,124 @@ pub fn light_records(light: &str) -> Result<Vec<f32>, JsError> {
     let settings: presentation::light::LightSettings = serde_json::from_str(light)
         .map_err(|e| JsError::new(&format!("presentation.light: {e}")))?;
     Ok(settings.records().words())
+}
+
+/// One battle's sound (`presentation::sound::frame::Sound`): publications
+/// and drawn frames in, the commands the page's mixer carries out out, as
+/// JSON.
+#[wasm_bindgen]
+pub struct SoundFrame {
+    inner: Sound,
+}
+
+fn commands(c: &[Command]) -> String {
+    serde_json::to_string(c).expect("commands serialize")
+}
+
+#[wasm_bindgen]
+impl SoundFrame {
+    /// From its setup JSON: `presentation.audio`, the sound catalog, the
+    /// game's weapon rows, the tick rate and `presentation.effects`' smoke
+    /// and cook-off.
+    #[wasm_bindgen(constructor)]
+    pub fn new(setup: &str) -> Result<SoundFrame, JsError> {
+        Ok(SoundFrame {
+            inner: Sound::from_json(setup).map_err(error)?,
+        })
+    }
+
+    /// The prepared sounds' lengths, JSON `{sound: [seconds per alternative]}`.
+    pub fn durations(&mut self, durations: &str) -> Result<(), JsError> {
+        let d = serde_json::from_str(durations).map_err(|e| JsError::new(&e.to_string()))?;
+        self.inner.set_durations(d).map_err(error)
+    }
+
+    /// Every sound a battle plays, JSON: what the page prepares.
+    pub fn sounds(&self) -> String {
+        serde_json::to_string(&self.inner.tables().battle_sounds()).expect("names serialize")
+    }
+
+    /// Takes `presentation`'s last publication, at mixer time `now`.
+    pub fn note(&mut self, presentation: &Presentation, now: f64) -> String {
+        match presentation.inner.heard() {
+            Some(heard) => commands(self.inner.note(&heard, now)),
+            None => "[]".into(),
+        }
+    }
+
+    /// Takes a scripted publication (`SoundPublication` JSON).
+    pub fn note_scripted(&mut self, publication: &str, now: f64) -> Result<String, JsError> {
+        let scripted: Scripted =
+            serde_json::from_str(publication).map_err(|e| JsError::new(&e.to_string()))?;
+        let launches = scripted.launches();
+        Ok(commands(self.inner.note(&scripted.heard(&launches), now)))
+    }
+
+    /// Hears `presentation`'s last frame at wall time `wall`, mixer time `now`.
+    pub fn hear(&mut self, presentation: &Presentation, wall: f64, now: f64) -> String {
+        let share = self.inner.tables().audio.listener_eye_share;
+        let Some(listener) = presentation.inner.listener(share) else {
+            return "[]".into();
+        };
+        let motion = presentation.inner.motion();
+        let clock = presentation.inner.clock_of_frame();
+        commands(self.inner.update(clock, wall, now, &motion, listener))
+    }
+
+    /// Hears scripted `motion` (`SoundMotion` JSON) at presentation time
+    /// `clock` from `listener` (`Listener` JSON).
+    pub fn update_scripted(
+        &mut self,
+        clock: f64,
+        wall: f64,
+        now: f64,
+        motion: &str,
+        listener: &str,
+    ) -> Result<String, JsError> {
+        let motion: Motion = serde_json::from_str(motion).map_err(|e| JsError::new(&e.to_string()))?;
+        let listener: Listener =
+            serde_json::from_str(listener).map_err(|e| JsError::new(&e.to_string()))?;
+        Ok(commands(self.inner.update(clock, wall, now, &motion, listener)))
+    }
+
+    /// Silences and forgets everything, from mixer time `now`.
+    pub fn reset(&mut self, now: f64) -> String {
+        commands(self.inner.reset(now))
+    }
+
+    /// Voices, budget, holds and counts, JSON (`SoundStats`).
+    pub fn stats(&self) -> String {
+        serde_json::to_string(&self.inner.stats()).expect("stats serialize")
+    }
+}
+
+/// The loops a vehicle of sound row `row` (`VehicleSound` JSON) sounds at
+/// `load` and `traverse`, JSON.
+#[wasm_bindgen]
+pub fn vehicle_loops(row: &str, load: f64, traverse: f64, reversing: bool) -> Result<String, JsError> {
+    let row = serde_json::from_str(row).map_err(|e| JsError::new(&e.to_string()))?;
+    Ok(serde_json::to_string(&frame::vehicle_loops(&row, load, traverse, reversing)).expect("loops serialize"))
+}
+
+/// A hearing cue's stereo position for a listener looking along `forward`.
+#[wasm_bindgen]
+pub fn sector_pan(sector: f64, forward: &[f64]) -> f64 {
+    frame::sector_pan(sector, [forward[0], forward[1], forward[2]])
+}
+
+/// The synthesized sound `name` at `sample_rate`: its channels one after
+/// another, each `samples` long.
+#[wasm_bindgen]
+pub fn synthesize(name: &str, sample_rate: f64) -> Result<Vec<f32>, JsError> {
+    let s = synth::synthesize(name, sample_rate).map_err(error)?;
+    Ok(s.channels.concat())
+}
+
+/// Where sound listens for a camera at `eye` looking at `target` with
+/// `up`, `share` of the way from the target to the eye: position, then facing.
+#[wasm_bindgen]
+pub fn camera_listener(eye: &[f64], target: &[f64], up: &[f64], share: f64) -> Vec<f64> {
+    let v = |a: &[f64]| [a[0], a[1], a[2]];
+    let l = Listener::of_camera(v(eye), v(target), v(up).map(|x| x as f32), share);
+    [l.position, l.forward].concat()
 }

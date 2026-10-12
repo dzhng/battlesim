@@ -19,6 +19,7 @@ use crate::records::{
     Appearance as Row, Batch, CastLight, Counts, Effect, Emitter, Instance, Joint, Pick,
     View as ViewRecord, NONE,
 };
+use crate::sound::frame::{Cue, Heard, Listener, Motion};
 use crate::static_world::batches::{Population, StaticBatches, Sun};
 use crate::static_world::buildings::{Buildings, PlacedBuildings};
 use crate::static_world::fallen::{Knowledge, Known};
@@ -189,6 +190,8 @@ pub struct Presentation {
     statics: StaticBatches,
     world: World,
     frame: Frame,
+    /// The camera the last frame was asked for.
+    camera: Option<Camera>,
 }
 
 /// Rows of the x-ray or ghost colour (`packXray`): rgb as one integer
@@ -232,6 +235,7 @@ impl Presentation {
             statics: StaticBatches::default(),
             world: World::default(),
             frame: Frame::default(),
+            camera: None,
         })
     }
 
@@ -552,29 +556,41 @@ impl Presentation {
         serde_json::to_string(&shots).map_err(|e| e.to_string())
     }
 
-    /// The last publication as sound reads it, JSON: its effect publication,
-    /// with the hulls the side watched brew up, the launches it shows, and
-    /// when a cook-off's turret lands (seconds after its tick starts).
-    pub fn sound_json(&self) -> String {
-        #[derive(Serialize)]
-        #[serde(rename_all = "camelCase")]
-        struct Heard<'a> {
-            effects: &'a EffectPublication,
-            launches: Vec<Shot>,
-            turret_lands_s: f64,
-        }
-        let Some(loaded) = &self.loaded else {
-            return "null".into();
-        };
-        let Some((effects, launches)) = &loaded.sound else {
-            return "null".into();
-        };
-        serde_json::to_string(&Heard {
+    /// The last publication as sound hears it: what the effects took of it,
+    /// the launches it shows and the side's hearing cues; none before one.
+    pub fn heard(&self) -> Option<Heard<'_>> {
+        let (effects, launches) = self.loaded.as_ref()?.sound.as_ref()?;
+        Some(Heard {
             effects,
-            launches: launches.iter().map(Shot::of).collect(),
-            turret_lands_s: loaded.effects.presentation().cook_off.impact_after(),
+            launches,
+            audible: self.latest.as_ref()?.audible.iter().map(Cue::from).collect(),
         })
-        .expect("a sound publication serializes")
+    }
+
+    /// What the last frame draws moving, as sound hears it: its emitters,
+    /// each vehicle as its type's vehicle class.
+    pub fn motion(&self) -> Motion {
+        let types = self.loaded.as_ref().map(|l| &l.units.types);
+        Motion::of(&self.frame.emitters, |class| {
+            types?.values().nth(class as usize)?.vehicle_class.as_deref()
+        })
+    }
+
+    /// Where sound listens for the last frame's camera, `share` of the way
+    /// from what it looks at to its eye; none before a frame.
+    pub fn listener(&self, share: f64) -> Option<Listener> {
+        let c = self.camera.as_ref()?;
+        Some(Listener::of_camera(c.eye, c.target, c.up, share))
+    }
+
+    /// The last frame's presentation time.
+    pub fn clock_of_frame(&self) -> f64 {
+        self.frame.clock
+    }
+
+    /// The last frame asked for.
+    pub fn last_frame(&self) -> &Frame {
+        &self.frame
     }
 
     /// Where the last frame draws the muzzle of the presented side's vehicle
@@ -692,6 +708,7 @@ impl Presentation {
     /// side knows a building in a state its template lacks.
     pub fn frame(&mut self, time: f64, camera: &Camera, ui: &Ui) -> Result<&Frame, String> {
         self.know(ui.known)?;
+        self.camera = Some(*camera);
         let f = &mut self.frame;
         f.index += 1;
         f.clock = time;
@@ -1078,7 +1095,7 @@ impl Loaded {
         f.counts.culled = culled;
         batches(models, f);
         picks(sample, units, input, f);
-        emitters(o, poses, side, f);
+        emitters(o, poses, side, units, f);
     }
 }
 
@@ -1229,7 +1246,7 @@ fn picks(sample: &FrameSample, units: &UnitsSection, input: &BattleInput, f: &mu
 
 /// What audio hears move this frame: each drawn vehicle's tracks and
 /// turret, and each drawn soldier.
-fn emitters(o: &Observation, poses: &PoseFrame, side: &str, f: &mut Frame) {
+fn emitters(o: &Observation, poses: &PoseFrame, side: &str, units: &UnitsSection, f: &mut Frame) {
     let reversing = |unit: f64, own: bool| {
         if own {
             o.own.iter().any(|u| u.id == unit && u.reversing)
@@ -1243,7 +1260,11 @@ fn emitters(o: &Observation, poses: &PoseFrame, side: &str, f: &mut Frame) {
         f.emitters.push(Emitter {
             unit: v.unit as u32,
             member: NONE,
-            class: NONE,
+            class: units
+                .types
+                .keys()
+                .position(|k| **k == *v.kind)
+                .map_or(NONE, |i| i as u32),
             flags: u32::from(!own) | if reversing(v.unit, own) { 2 } else { 0 },
             position: [
                 v.position[0] as f32,

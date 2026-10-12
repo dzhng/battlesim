@@ -1,17 +1,21 @@
 //! Replays a browser parity run's scene natively and writes its plates.
 //!
 //! `native-client --run <parity run> --scene <map> --out <dir>
-//!   [--window offscreen|minimised|hidden|visible] [--pace <frames>]`
+//!   [--window offscreen|minimised|hidden|visible] [--pace <frames>]
+//!   [--sound <wav>]`
 //!
 //! Every frame record is framed through the presentation crate; each one
 //! the browser wrote a plate of is drawn, presented and written to `--out`
 //! under the control plate's name. Then the last frame is drawn and presented
 //! `--pace` more times, and the report says how presenting went. The window
-//! opens off-screen unless told otherwise.
+//! opens off-screen unless told otherwise. With `--sound`, the battle's
+//! sound is heard through every record at the reel's own times and rendered
+//! to that file (never played aloud).
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
+use native_client::audio::{self, Audio, OutputSettings};
 use native_client::bundle::{Library, RUNTIME};
 use native_client::capture::Replay;
 use native_client::environment::Environment;
@@ -35,11 +39,13 @@ struct Args {
     out: PathBuf,
     window: String,
     pace: usize,
+    sound: Option<PathBuf>,
 }
 
 fn args() -> Result<Args, String> {
     let mut run = None;
     let (mut scene, mut out, mut window, mut pace) = (None, None, "offscreen".to_owned(), 120);
+    let mut sound = None;
     let mut it = std::env::args().skip(1);
     while let Some(flag) = it.next() {
         let mut value = || it.next().ok_or(format!("{flag} needs a value"));
@@ -49,6 +55,7 @@ fn args() -> Result<Args, String> {
             "--out" => out = Some(PathBuf::from(value()?)),
             "--window" => window = value()?,
             "--pace" => pace = value()?.parse().map_err(|e| format!("--pace: {e}"))?,
+            "--sound" => sound = Some(PathBuf::from(value()?)),
             other => return Err(format!("unknown argument {other}")),
         }
     }
@@ -62,6 +69,7 @@ fn args() -> Result<Args, String> {
         out: out.ok_or("--out is required")?,
         window,
         pace,
+        sound,
     })
 }
 
@@ -87,6 +95,8 @@ struct Run {
     paced: usize,
     presents: Presents,
     last: Option<Instant>,
+    /// The battle's sound, and what it rendered.
+    sound: Option<(Audio, Vec<f32>)>,
 }
 
 impl Run {
@@ -185,6 +195,22 @@ impl Run {
             installed.elapsed().as_secs_f64()
         );
         std::fs::create_dir_all(&args.out).map_err(|e| e.to_string())?;
+        let sound = match &args.sound {
+            None => None,
+            Some(_) => {
+                let read = |p: &str| -> Result<serde_json::Value, String> {
+                    let text = std::fs::read_to_string(p).map_err(|e| format!("{p}: {e}"))?;
+                    serde_json::from_str(&text).map_err(|e| format!("{p}: {e}"))
+                };
+                let root = concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/");
+                let setup = audio::setup(
+                    &read(&format!("{root}game.json"))?,
+                    &read(&format!("{root}sounds.json"))?,
+                );
+                let output = OutputSettings::Buffer(audio::SAMPLE_RATE);
+                Some((Audio::new(&setup, std::path::Path::new(RUNTIME), output)?, Vec::new()))
+            }
+        };
         Ok(Self {
             window,
             surface,
@@ -209,6 +235,7 @@ impl Run {
             paced: 0,
             presents: Presents::default(),
             last: None,
+            sound,
         })
     }
 
@@ -249,11 +276,22 @@ impl Run {
     fn step(&mut self, args: &Args) -> Result<bool, String> {
         while let Some(record) = self.replay.records.get(self.next).cloned() {
             self.next += 1;
+            // The reel's wall time is both the sound's wall and its mixer clock.
+            let now = record.reel_ms / 1000.0;
+            let mut sound = self.sound.as_mut();
+            self.replay.frame(&record, |p| {
+                if let Some((audio, _)) = sound.as_mut() {
+                    audio.note(p, now);
+                }
+            })?;
+            if let Some((audio, samples)) = self.sound.as_mut() {
+                audio.hear(self.replay.presentation(), now, now);
+                audio.render(now, samples);
+            }
             let Some(plate) = record.plate.clone() else {
-                self.replay.frame(&record)?;
                 continue;
             };
-            let frame = self.replay.frame(&record)?;
+            let frame = self.replay.last_frame();
             self.view = frame.view;
             let (device, queue) = (&self.gpu.device, &self.gpu.queue);
             self.passes.prepare(device, queue, frame, record.target);
@@ -311,8 +349,24 @@ impl Run {
         Ok(false)
     }
 
-    fn report(&self, args: &Args) {
+    fn report(&self, args: &Args) -> Result<(), String> {
         println!("plates: {} written to {}", self.plates, args.out.display());
+        if let (Some((audio, samples)), Some(path)) = (&self.sound, &args.sound) {
+            write_wav(path, samples)?;
+            let (played, stats) = (audio.played(), audio.stats());
+            println!(
+                "sound: {:.1} s to {}; {} voices started, {} stopped, {} sounding; the frame started {}, dropped {}, stole {}, {} cues",
+                samples.len() as f64 / 2.0 / f64::from(audio::SAMPLE_RATE),
+                path.display(),
+                played.started,
+                played.stopped,
+                played.live,
+                stats.started,
+                stats.dropped,
+                stats.stolen,
+                stats.cues
+            );
+        }
         if self.count_mismatches.is_empty() {
             println!("model counts: equal to the browser's on every plate");
         } else {
@@ -339,7 +393,27 @@ impl Run {
             at(0.95),
             ms.len()
         );
+        Ok(())
     }
+}
+
+/// Interleaved stereo float samples as a 32-bit float WAV.
+fn write_wav(path: &std::path::Path, samples: &[f32]) -> Result<(), String> {
+    let rate = audio::SAMPLE_RATE;
+    let data = (samples.len() * 4) as u32;
+    let mut bytes = Vec::with_capacity(44 + data as usize);
+    bytes.extend_from_slice(b"RIFF");
+    bytes.extend_from_slice(&(36 + data).to_le_bytes());
+    bytes.extend_from_slice(b"WAVEfmt ");
+    for (v, n) in [(16u32, 4), (3, 2), (2, 2), (rate, 4), (rate * 8, 4), (8, 2), (32, 2)] {
+        bytes.extend_from_slice(&v.to_le_bytes()[..n]);
+    }
+    bytes.extend_from_slice(b"data");
+    bytes.extend_from_slice(&data.to_le_bytes());
+    for s in samples {
+        bytes.extend_from_slice(&s.to_le_bytes());
+    }
+    std::fs::write(path, bytes).map_err(|e| format!("{}: {e}", path.display()))
 }
 
 fn write_png(path: &std::path::Path, size: [u32; 2], rgba: &[u8]) -> Result<(), String> {
@@ -391,7 +465,9 @@ impl ApplicationHandler for App {
         match run.step(&self.args) {
             Ok(true) => {}
             Ok(false) => {
-                run.report(&self.args);
+                if let Err(e) = run.report(&self.args) {
+                    self.error = Some(e);
+                }
                 self.run = None;
                 event_loop.exit();
             }

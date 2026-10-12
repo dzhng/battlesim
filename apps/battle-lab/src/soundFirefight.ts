@@ -61,7 +61,7 @@ const sideKey = (id: number, own: boolean) => id * 2 + (own ? 0 : 1);
 async function heard(pubs: readonly EffectPublication[]): Promise<HeardPublication[]> {
   await loadPresentation();
   const shots = JSON.parse(launches(JSON.stringify(pubs))) as HeardPublication["launches"][];
-  return pubs.map((effects, i) => ({ effects, launches: shots[i], turretLandsS: 0 }));
+  return pubs.map((effects, i) => ({ effects, launches: shots[i] }));
 }
 
 const FIREFIGHT_S = 8;
@@ -386,12 +386,13 @@ async function offlineSound(seconds: number, solo?: Bus, catalog: SoundCatalog =
       }
     : gameAudio;
   const sink = new OfflineSink(ctx, presentation, catalog);
-  await sink.bank.prepare(battleSounds(catalog));
+  await Promise.all([sink.bank.prepare(battleSounds(catalog)), loadPresentation()]);
   const frame = new SoundFrame(
     {
       tickHz: HZ,
       presentation,
       catalog,
+      weapons: game.weapons,
       smokeTimes: game.presentation.effects.smoke,
       cookOff: game.presentation.effects.cook_off,
     },

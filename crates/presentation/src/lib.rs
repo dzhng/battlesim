@@ -11,6 +11,7 @@ pub mod light;
 pub mod presentation;
 pub mod records;
 pub mod seed;
+pub mod sound;
 pub mod static_world;
 pub mod units;
 pub mod view;

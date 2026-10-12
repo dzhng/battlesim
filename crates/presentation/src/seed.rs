@@ -30,7 +30,9 @@ pub fn hash_string(key: &str) -> u32 {
 }
 
 /// `String(x)` as JavaScript writes it: the shortest digits that read back
-/// as `x`, in fixed notation from 1e-6 up to 1e21, `-0` as `0`.
+/// as `x`, in fixed notation from 1e-6 up to 1e21, `-0` as `0`. Where two
+/// such digit strings are equally near `x`, JavaScript takes the even one
+/// (`167.43655395507812`, not Rust's `…13`).
 pub fn js_number(x: f64) -> String {
     if x == 0.0 {
         return "0".into();
@@ -41,19 +43,39 @@ pub fn js_number(x: f64) -> String {
     if x.is_infinite() {
         return if x > 0.0 { "Infinity" } else { "-Infinity" }.into();
     }
-    let size = x.abs();
-    if (1e-6..1e21).contains(&size) {
-        return format!("{x}");
-    }
-    // Exponent notation: `d.ddde±n`.
-    let text = format!("{x:e}");
+    // The shortest length, then those digits rounded from `x`'s exact
+    // value, halves to even: `d.ddde±n`.
+    let shortest = format!("{x:e}");
+    let digits = shortest
+        .split_once('e')
+        .expect("exponent form")
+        .0
+        .bytes()
+        .filter(u8::is_ascii_digit)
+        .count();
+    let text = format!("{x:.*e}", digits - 1);
     let (mantissa, exponent) = text.split_once('e').expect("exponent form");
     let exponent: i32 = exponent.parse().expect("exponent");
-    format!(
-        "{mantissa}e{}{}",
-        if exponent < 0 { "-" } else { "+" },
-        exponent.abs()
-    )
+    if !(1e-6..1e21).contains(&x.abs()) {
+        return format!(
+            "{mantissa}e{}{}",
+            if exponent < 0 { "-" } else { "+" },
+            exponent.abs()
+        );
+    }
+    let (sign, mantissa) = mantissa
+        .strip_prefix('-')
+        .map_or(("", mantissa), |m| ("-", m));
+    let digits: String = mantissa.chars().filter(char::is_ascii_digit).collect();
+    let point = exponent + 1;
+    if point <= 0 {
+        format!("{sign}0.{}{digits}", "0".repeat(-point as usize))
+    } else if point as usize >= digits.len() {
+        format!("{sign}{digits}{}", "0".repeat(point as usize - digits.len()))
+    } else {
+        let (whole, fraction) = digits.split_at(point as usize);
+        format!("{sign}{whole}.{fraction}")
+    }
 }
 
 /// `Math.hypot` as V8 computes it: each value over the largest, squared and
@@ -130,6 +152,9 @@ mod tests {
             (1e21, "1e+21"),
             (1.5e-7, "1.5e-7"),
             (123456789012.0, "123456789012"),
+            (f64::from(167.43655f32), "167.43655395507812"),
+            (-0.00125, "-0.00125"),
+            (1e20, "100000000000000000000"),
         ] {
             assert_eq!(js_number(x), text, "{x}");
         }
