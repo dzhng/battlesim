@@ -3441,6 +3441,19 @@ async function captionsTour(ctx) {
   await page.goto(new URL("/", ctx.url).href);
   await menuShown(page);
   await openMenuPage(page, "Settings");
+  const graphicsChoices = await page
+    .getByRole("radio")
+    .evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-label")));
+  ctx.check(
+    "main menu graphics settings expose the four shared choices",
+    JSON.stringify(graphicsChoices) === JSON.stringify(["Auto-detect", "Low", "Medium", "High"]),
+    JSON.stringify(graphicsChoices),
+  );
+  await page.getByRole("radio", { name: "Low" }).click();
+  ctx.check(
+    "main menu graphics choice applies immediately",
+    (await page.getByRole("radio", { name: "Low" }).getAttribute("aria-checked")) === "true",
+  );
   ctx.check(
     "the main menu keeps audio preferences but has no caption opt-out",
     (await page.getByLabel("Subtitles", { exact: true }).count()) === 0 &&
@@ -3456,6 +3469,13 @@ async function captionsTour(ctx) {
     (await page.getByTestId("captions").count()) === 1,
   );
   await openMenu(page);
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("dialog", { name: "Settings" }).waitFor();
+  ctx.check(
+    "pause settings reuses the four graphics choices",
+    (await page.getByRole("radio").count()) === 4,
+  );
+  await page.getByRole("button", { name: "Close settings", exact: true }).click();
   ctx.check(
     "the pause menu has no caption opt-out",
     (await page.getByLabel("Subtitles", { exact: true }).count()) === 0,

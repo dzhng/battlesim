@@ -18,8 +18,8 @@ import {
 } from "@packages/renderer-core/src/camera3d";
 import type { CameraPose } from "@packages/renderer-core/src/cameraController";
 import type {
-  FallenBuilding,
   PlacedBuildings,
+  SceneBuildings,
 } from "@packages/battle-renderer/src/models/buildingReferences";
 import type { PropBox } from "@packages/battle-renderer/src/models/propAppearance";
 import {
@@ -186,15 +186,28 @@ export function lineupIn(
   return entries.filter((e) => templateArt(library, e.id).states[state] !== undefined);
 }
 
-/** What the side knows of `entries` (as `lineupBuildings` lists them) when
- *  every one is in `state`: nothing for intact, else each destroyed into it. */
-export function lineupFallen(
+/** A line-up's buildings (as `lineupBuildings` lists them), each one part
+ *  (its own index), and what a side that saw every one destroyed into
+ *  `state` knows of them: nothing for intact, else each part replaced by a
+ *  gutted shell or by remains. */
+export function lineupKnown(
   entries: readonly LineupEntry[],
   state: TemplateState,
-): FallenBuilding[] {
-  if (state === "intact") return [];
-  return entries.map((_, building) => ({ building, state }));
+): Omit<SceneBuildings, "placed"> {
+  const kind = state === "gutted" ? LINEUP_SHELL : "ruin";
+  return {
+    partBuilding: new Map(entries.map((_, i) => [i, i])),
+    shells: LINEUP_SHELLS,
+    known:
+      state === "intact"
+        ? []
+        : entries.map((_, i) => ({ authoredProp: i, kind, destroyed: false })),
+  };
 }
+
+/** The kind a line-up's gutted building's part becomes. */
+const LINEUP_SHELL = "gutted_shell";
+const LINEUP_SHELLS: ReadonlySet<string> = new Set([LINEUP_SHELL]);
 
 const _pose_eye = vec3.create();
 

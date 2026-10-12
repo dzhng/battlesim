@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/contract", "crates/sim", "crates/game-wasm", "crates/presentation-wasm", "crates/mapgen", "native/godot-binding"]
+members = ["crates/contract", "crates/sim", "crates/game-wasm", "crates/presentation", "crates/presentation-wasm", "crates/mapgen", "crates/pipelines", "native/godot-binding", "native/client"]
 resolver = "2"
 
 [profile.release]

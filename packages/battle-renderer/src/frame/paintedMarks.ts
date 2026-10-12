@@ -134,8 +134,10 @@ export function createPaintedMarks(root: Root, registry: GpuRegistry) {
     depthStencil: battleWorldDepth("read"),
     multisample: { count: FRAME_MSAA },
   } as const;
-  const still = root.createRenderPipeline({ ...base, vertex: paintVertex });
-  const marching = root.createRenderPipeline({ ...base, vertex: paintMarchVertex });
+  const still = root.createRenderPipeline({ ...base, vertex: paintVertex }).$name("paintStill");
+  const marching = root
+    .createRenderPipeline({ ...base, vertex: paintMarchVertex })
+    .$name("paintMarching");
   const identity = identityInstance(root, registry);
   const meshes = {
     still: new MeshSlot(root, registry, identity),

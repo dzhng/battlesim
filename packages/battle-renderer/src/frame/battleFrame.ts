@@ -23,7 +23,7 @@ import { Camera, typegpuCameraLayout } from "../world/camera";
 import { createTypegpuPost } from "../world/post";
 import { frameCamera } from "../frameCamera";
 import { battleWorldDepth } from "../worldDepth";
-import type { LightPresentation } from "../light/sceneLight";
+import type { ResolvedLight } from "../light/sceneLight";
 import type { FogGeometryPresentation } from "./fogInputs";
 import type { FogStyle } from "./fogStyle";
 import { createEnvironmentFrame } from "./environmentFrame";
@@ -40,20 +40,29 @@ import type { GlassStyle } from "../models/surfaceFragments";
 import { createImpostorBaker } from "../models/impostor";
 import { CARD_SPEC } from "../models/impostorCards";
 import type { ModelDetailPresentation } from "../models/modelDetail";
-import type { BuildingStyle } from "../models/buildingReferences";
 import { sunShadow } from "./staticChunks";
 import { createDetailView, detailKey, setDetailView } from "./detailView";
-import { createCastLightList, type CastLightList } from "../light/castLights";
+import { FrameHeader, type frameViews } from "../records.gen";
 import { EMPTY_MESH } from "../mesh";
 
-const NO_LIGHTS = createCastLightList(0);
-
 /** Post's five-level bloom needs at least this many pixels a side. */
+const EMPTY = new Float32Array(0);
 const MIN_TARGET_PX = 64;
 
 export interface BattleFrameOptions {
+  /** Optional resolved graphics quality; omitted preserves authored High. */
+  quality?: {
+    unitLodScale: number;
+    buildingLodScale: number;
+    treeLodScale: number;
+    grassDensity: number;
+    shadowMapSize: 1024 | 2048;
+    shadowReach: number;
+    forestDressing: boolean;
+    understorey: boolean;
+  };
   /** `presentation.light`: sun, sky, haze, grade, bloom and cascades. */
-  light: LightPresentation;
+  light: ResolvedLight;
   /** `presentation.fog_geometry`: the sight lights' resolution and budgets. */
   fogGeometry: FogGeometryPresentation;
   /** The unseen look to start with (`presentation.fog`'s selected style). */
@@ -66,8 +75,6 @@ export interface BattleFrameOptions {
   xrayMinHiddenFragmentFraction: number;
   /** `presentation.models`: the models' detail tiers and impostor size. */
   models: ModelDetailPresentation;
-  /** `presentation.buildings`: the buildings' tiers, chunks and pool. */
-  buildings: BuildingStyle;
   /** `presentation.glass`: how a pane of glass takes light. */
   glass: GlassStyle;
   world: WorldLayers;
@@ -100,8 +107,43 @@ export async function createBattleFrame(
     registry.adopt(() => root.destroy());
     const camera = registry.own(root.createBuffer(Camera).$usage("uniform"));
     const cameraGroup = root.createBindGroup(typegpuCameraLayout, { cam: camera });
-    const environment = await createEnvironmentFrame(device, registry, options.light);
-    const models = await createModelLayer(root, registry, options.models, options.buildings);
+    const quality = options.quality;
+    const effectiveLight = quality
+      ? {
+          ...options.light,
+          settings: {
+            ...options.light.settings,
+            cascades: {
+              ...options.light.settings.cascades,
+              map_size: quality.shadowMapSize,
+              max_far_m: quality.shadowReach,
+            },
+          },
+        }
+      : options.light;
+    const environment = await createEnvironmentFrame(device, registry, effectiveLight);
+    const models = await createModelLayer(
+      root,
+      registry,
+      quality
+        ? {
+            ...options.models,
+            lod_px: options.models.lod_px.map((v) => v * quality.unitLodScale) as [
+              number,
+              number,
+              number,
+            ],
+          }
+        : options.models,
+      quality
+        ? {
+            ...options.buildings,
+            lod_px_per_m: options.buildings.lod_px_per_m.map(
+              (v) => v * quality.buildingLodScale,
+            ) as [number, number, number],
+          }
+        : options.buildings,
+    );
     registry.adopt(() => models.dispose());
     const world = await createWorldPass(
       root,
@@ -112,6 +154,8 @@ export async function createBattleFrame(
       options.paint,
       options.xrayMinHiddenFragmentFraction,
       options.glass,
+      quality?.grassDensity ?? 1,
+      quality?.treeLodScale ?? 1,
     );
     const fogMask = await createFogMaskPass(root, registry, displayFormat, options.fogStyle);
     const impostors = createImpostorBaker(root, registry, models, environment);
@@ -127,7 +171,7 @@ export async function createBattleFrame(
         width,
         height,
         displayFormat,
-        environment.post,
+        effectiveLight,
       );
       scope.adopt(post.dispose);
       const fog = world.fogTiles(scope, width, height, t.depth, t.paint);
@@ -144,6 +188,10 @@ export async function createBattleFrame(
     await targets.ensure(size(options.width), size(options.height));
     world.setWorld(options.world);
     world.setInstances(options.instances);
+    if (quality) {
+      world.setDressingShown(quality.forestDressing);
+      world.setUnderstoreyShown(quality.understorey);
+    }
     return frameOf();
 
     function frameOf(): BattleFrame {
@@ -152,15 +200,17 @@ export async function createBattleFrame(
       let clock = 0;
       let disposed = false;
       let appearanceUpdates = Promise.resolve();
-      /** The effects' lights, as the last `setEffects` batch cast them. */
-      let lights: CastLightList = NO_LIGHTS;
+      /** The cast lights, as the last presentation frame chose them. */
+      let lights = new Float32Array(0);
+      let lightCount = 0;
+      let lightWrap = 0;
       let lightsShown = true;
       const detailView = createDetailView();
       const shadow = { fall: [0, 0] as [number, number], reach: 0 };
       const sun = {
-        azimuth: options.light.sun_azimuth,
-        elevation: options.light.sun_elevation,
-        maxFarM: options.light.cascades.max_far_m,
+        azimuth: options.light.settings.sun_azimuth,
+        elevation: options.light.settings.sun_elevation,
+        maxFarM: effectiveLight.settings.cascades.max_far_m,
       };
       const rebuild = (width: number, height: number) =>
         targets.ensure(width, height).then(
@@ -184,16 +234,13 @@ export async function createBattleFrame(
           const state = frameCamera({ camera3d, width, height, time: clock }, width, height);
           camera.write(state.bytes.buffer);
           const detail = setDetailView(detailView, camera3d, height);
-          environment.setCastLights(lightsShown ? lights : NO_LIGHTS, detail.sides, camera3d);
+          environment.setCastLights(lights, lightsShown ? lightCount : 0, lightWrap);
           world.prepare(camera3d, state.view, state.viewProj, state.rays, height);
           models.prepare(detail, detailKey(camera3d, height), sunShadow(shadow, sun, camera3d));
-          // Buildings expand into their pool a budget a frame: draw until done.
-          if (models.buildingsPending) options.requestRedraw?.();
 
           let encoder = root["~unstable"].createCommandEncoder({ label: "battle-frame" });
           let raw = root.unwrap(encoder);
           timer?.begin(raw);
-          models.encodePose(raw);
           world.encodeShadows(encoder);
           world.encodeDepth(encoder, raw, t, cameraGroup);
           world.encodeFog(raw, t.fog, state.bytes, width, height);
@@ -235,8 +282,8 @@ export async function createBattleFrame(
         setStructures(next) {
           if (!disposed) world.setStructures(next);
         },
-        setBuildings(next) {
-          if (!disposed) models.setBuildings(next);
+        setStaticFrame(frame, stats) {
+          return !disposed && models.setStaticFrame(frame, stats);
         },
         setGround(next) {
           return !disposed && world.setGround(next);
@@ -257,10 +304,21 @@ export async function createBattleFrame(
         setPointerMarks(marks) {
           if (!disposed) world.setPointerPaint(marks);
         },
-        setEffects(batch) {
+        setFrame(frame, shown = { models: true, effects: true }) {
           if (disposed) return;
-          effects.set(batch);
-          lights = batch.lights;
+          models.setFrame(shown.models ? frame : null);
+          const fx = shown.effects ? frame : null;
+          effects.set(fx?.effects.f32 ?? EMPTY, fx?.effects.count ?? 0);
+          // Copied: the views last only until the next call into the module.
+          lightCount = fx?.lights.count ?? 0;
+          if (lights.length < lightCount * 8) lights = new Float32Array(lightCount * 8);
+          if (fx) lights.set(fx.lights.f32);
+          lightWrap = frame
+            ? new Float32Array(frame.header.buffer, frame.header.byteOffset)[FrameHeader.light_wrap]
+            : 0;
+        },
+        setPresentationWorld(world) {
+          if (!disposed) models.setWorld(world);
         },
         setInstances(next) {
           if (!disposed) world.setInstances(next);
@@ -293,14 +351,9 @@ export async function createBattleFrame(
         setModels(next) {
           if (!disposed) models.setModels(next);
         },
-        setCorpses(next) {
-          if (!disposed) models.setCorpses(next);
-        },
         setTextureChannels(channels) {
           if (!disposed) models.setTextureChannels(channels);
         },
-        readPalette: () => models.readPalette(),
-        timePoseKernel: (reps, bodies) => models.timeKernel(reps, bodies),
         async bakeImpostor(appearance, spec) {
           const far = models.farPose(appearance);
           if (!far) throw new Error(`no installed appearance ${appearance}`);
@@ -351,7 +404,7 @@ export async function createBattleFrame(
         settled: () => targets.settled(),
         fogProbes: world.fog,
         grassProbes: world.grassProbes,
-        uploadedTables: () => ({ ...world.uploadedTables(), buildings: models.buildingTables() }),
+        uploadedTables: () => world.uploadedTables(),
         drawnInstances: () => ({
           buildings: models.drawnBuildings(),
           scenery: world.drawnScenery(),
@@ -387,7 +440,6 @@ export async function createBattleFrame(
             effects: {
               ...effects.stats(),
               lights: environment.stats().castLights,
-              lightsOffered: lights.count,
             },
             scars: passes.scars,
           };

@@ -51,6 +51,8 @@ export interface SimClientOptions {
 
 export interface SimClient {
   readonly ready: Promise<{ tickHz: number; tick: number; layout: string }>;
+  /** The side's presentation (`presentation.ts`), once the authority is ready. */
+  readonly presentation: ObservationDecoder | null;
   /** Explicit pause intent, independent of loading, visibility or consumer stalls. */
   readonly paused: boolean;
   start(): void;
@@ -216,7 +218,7 @@ export function createSimClient(options: SimClientOptions): SimClient {
           void loadPresentation()
             .then(() => {
               if (disposed || failure) return;
-              decoder = new ObservationDecoder(reply.layout);
+              decoder = new ObservationDecoder(reply.layout, reply.tickHz);
               decoder.invalidate(observedSide);
               resolveReady({ tickHz: reply.tickHz, tick: reply.tick, layout: reply.layout });
             })
@@ -257,7 +259,10 @@ export function createSimClient(options: SimClientOptions): SimClient {
           const buffer = reply.buffer;
           if (!decoder || !ground)
             throw new Error("publication arrived before the authority was ready");
-          const observation = decoder.decode(new Float32Array(buffer, 0, reply.length));
+          const observation = decoder.decode(
+            new Float32Array(buffer, 0, reply.length),
+            performance.now(),
+          );
           if (!observation) {
             returnCredit(buffer);
             releasedTick = Math.max(releasedTick, reply.tick);
@@ -327,6 +332,9 @@ export function createSimClient(options: SimClientOptions): SimClient {
 
   return {
     ready,
+    get presentation() {
+      return decoder;
+    },
     get paused() {
       return paused;
     },

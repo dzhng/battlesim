@@ -4,11 +4,12 @@
 // fielded unit type's facts and the appearance sets `AppearanceCatalog`
 // picks from, and each of those appearances' joints and clips or rig. The
 // browser resolves everything static here; native ports the per-frame
-// derivations (`poseDriver.ts`, `articulation.ts`, `clipTable.ts`).
+// derivations (`crates/presentation/src/units`).
 import game from "@fixtures/game.json";
 import type { SideFactions } from "@packages/scene-assets/src/appearanceCatalog";
 import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog";
 import { articulationRig } from "@packages/scene-assets/src/articulation";
+import { boundsSize, farPoseBounds, lyingBounds } from "@packages/scene-assets/src/pose";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import type { Side, Socket } from "@packages/scene-assets/src/schema";
 import {
@@ -18,7 +19,6 @@ import {
   type UnitCatalog,
 } from "@packages/scene-assets/src/units";
 import { buildClipTable } from "@packages/battle-renderer/src/models/clipTable";
-import type { PoseFeel } from "@packages/battle-renderer/src/models/poseDriver";
 import type {
   AppearanceMuzzle,
   AppearanceRecord,
@@ -29,6 +29,15 @@ import type {
 } from "@web/battle/benchmark/unitManifest";
 
 const SIDES: readonly Side[] = ["blue", "red"];
+
+/** `presentation.pose`: the pose driver's feel, as the presentation crate
+ *  reads it (and validates it, as it loads). */
+export const gamePose: Record<string, unknown> = game.presentation.pose;
+
+/** The rule blocks the pose driver reads (the scenario's or the fixture's). */
+export interface PoseRules {
+  cover: { lean_hold_s: number };
+}
 
 /** `words` as base64 of their little-endian bytes. */
 function base64(floats: Float32Array): string {
@@ -56,7 +65,7 @@ export function describeUnits({
   installed: InstalledAppearances;
   units: UnitCatalog;
   factions?: SideFactions;
-  pose: PoseFeel;
+  pose: Record<string, unknown>;
   leanHold: number;
 }): DrawnUnits {
   const catalog = new AppearanceCatalog(installed, units, factions);
@@ -86,7 +95,11 @@ export function describeUnits({
     });
     types[kind] = {
       hull: hull
-        ? { halfTrack: hull.half_extents_m[1] * ((cls ? pose.gauge[cls] : undefined) ?? 1) }
+        ? {
+            halfTrack:
+              hull.half_extents_m[1] *
+              ((cls ? (pose.gauge as Record<string, number>)[cls] : undefined) ?? 1),
+          }
         : null,
       airborne: airborne(type),
       roles: [...catalog.mountRoles(kind)],
@@ -150,6 +163,12 @@ export function describeUnits({
         farPose: { ...bundle.far_pose },
         corpsePoses: bundle.corpse_poses.map((p) => ({ ...p })),
         muzzle: muzzleSocket(bundle.sockets),
+        inverseBinds: bundle.joints.map((j) => Array.from(j.inverse_bind)),
+        tiers: bundle.tiers.length,
+        bounds: [
+          boundsSize(farPoseBounds(bundle, skeleton)),
+          ...bundle.corpse_poses.map((p) => boundsSize(lyingBounds(bundle, skeleton, p))),
+        ],
       };
     } else if (bundle.kind === "articulated") {
       const rig = articulationRig(bundle.nodes);
@@ -184,12 +203,14 @@ export function describeUnits({
           })),
           muzzles: muzzleNodes(bundle.nodes),
         },
+        tiers: bundle.nodes[0]?.tiers.length ?? 0,
+        bounds: [boundsSize(farPoseBounds(bundle, null))],
       };
     } else throw new Error(`appearance ${name} draws a unit but is a ${bundle.kind} bundle`);
   }
   const detail = game.presentation.models;
   return {
-    pose: pose as unknown as Record<string, unknown>,
+    pose,
     leanHold,
     detail: {
       lod_px: [detail.lod_px[0], detail.lod_px[1], detail.lod_px[2]],
@@ -215,7 +236,7 @@ const trs = (t: {
   s: [t.s[0], t.s[1], t.s[2]],
 });
 
-/** A body's weapon `muzzle` socket, as `DrawnModels.soldier` reads it; null
+/** A body's weapon `muzzle` socket, as the drawn muzzles read it; null
  *  where it has none. */
 function muzzleSocket(sockets: readonly Socket[]): AppearanceMuzzle {
   const socket = sockets.find((k) => k.name === "muzzle");
@@ -223,7 +244,7 @@ function muzzleSocket(sockets: readonly Socket[]): AppearanceMuzzle {
 }
 
 /** Each articulated mount's muzzle node by role (`MOUNT_NODES`), as
- *  `DrawnModels.vehicle` finds it by name, where the model has it. */
+ *  the drawn muzzles find it by name, where the model has it. */
 function muzzleNodes(nodes: readonly { name: string }[]): Record<string, number> {
   const out: Record<string, number> = {};
   for (const [role, { muzzle }] of Object.entries(MOUNT_NODES)) {

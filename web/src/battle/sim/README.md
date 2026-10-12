@@ -15,9 +15,9 @@ consumer releases a publication only after its readers finish; until credits
 return, the producer may stall rather than accumulate an unbounded queue.
 The lab's session decodes every publication but renders only the latest once
 an animation frame, so the page's cost per frame does not grow with the ticks
-that arrived during it. React's copy therefore lags the interpolator by up to a
+that arrived during it. React's copy therefore lags the presentation by up to a
 render, and a drawn frame never reads it: everything a frame draws or decides
-comes from the [interpolator's sample](../present/interpolate.ts), the
+comes from the presentation's frame (`crates/presentation`) and the latest
 publication its poses blend toward, so one frame shows one tick.
 
 Rust decodes. [The presentation module](presentation.ts) pushes each publication

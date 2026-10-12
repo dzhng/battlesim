@@ -57,7 +57,8 @@ const WEAPON_ICONS: Record<string, string> = {
   // Short and stubby, the long magazine straight down.
   smg: '<path d="M5 11h12"/><path d="M5 11v4h2.5l1-4"/><path d="M11.5 11v7"/>',
   // A long plain barrel over a pump fore-end.
-  shotgun: '<path d="M2 12h19"/><path d="M2 12l-0.5 3.5h4l1.5-3.5"/><rect x="12" y="13.5" width="5" height="2" rx="0.8"/>',
+  shotgun:
+    '<path d="M2 12h19"/><path d="M2 12l-0.5 3.5h4l1.5-3.5"/><rect x="12" y="13.5" width="5" height="2" rx="0.8"/>',
   autocannon:
     '<path d="M3 9h9v6H3z"/><path d="M12 12h8"/><path d="M18 10v4M21 10v4"/><path d="M6 15v4h3v-4"/>',
   rpg: '<path d="M2 11h11v2H2z"/><path d="M13 8.5h3l5 3.5-5 3.5h-3z"/><path d="M5 13v4M9 13v3"/>',

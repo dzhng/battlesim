@@ -53,16 +53,34 @@ export function specimenUnit(
   };
 }
 
+/** The test units a visual baseline pins, named rather than matched by
+ *  prefix: tests add test units of their own, and those must not move the
+ *  approved pictures. */
+const PINNED_UNITS = new Set([
+  "test_rifle",
+  "test_recon",
+  "test_at",
+  "test_tank",
+  "test_supply",
+  "test_jeep",
+  "test_gun_jeep",
+  "test_heli",
+]);
+
 /** Every specimen, in sheet order. The per-type groups draw every unit type
- *  of the catalog, or only the fixed test units with `testUnitsOnly` (what a
- *  visual baseline pins: the roster grows, the test units do not). */
+ *  of the catalog and the heard group every weapon row; with `testUnitsOnly`
+ *  (what a visual baseline pins: the roster grows, these do not) they draw
+ *  only the pinned test units and the weapons those units carry. */
 export function panelSpecimens(
   catalog: SessionCatalog,
   rules: PanelRules,
   { testUnitsOnly = false }: { testUnitsOnly?: boolean } = {},
 ): Specimen[] {
   const out: Specimen[] = [];
-  const kinds = catalog.units.ids.filter((kind) => !testUnitsOnly || kind.startsWith("test_"));
+  const kinds = catalog.units.ids.filter((kind) => !testUnitsOnly || PINNED_UNITS.has(kind));
+  const carried = new Set(
+    kinds.flatMap((kind) => catalog.units.type(kind).mounts.flatMap((m) => m.weapons)),
+  );
   const add = (
     group: string,
     label: string,
@@ -458,7 +476,7 @@ export function panelSpecimens(
       "contact",
     ),
   );
-  const rows = Object.keys(rules.weapons);
+  const rows = Object.keys(rules.weapons).filter((r) => !testUnitsOnly || carried.has(r));
   const mixes = [
     [],
     ...rows.map((r) => [r]),

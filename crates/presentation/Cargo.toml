@@ -1,0 +1,16 @@
+[package]
+name = "presentation"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+# Reads the repository's runtime assets and fixtures from disk (native).
+files = ["dep:flate2"]
+
+[dependencies]
+sim = { path = "../sim" }
+serde = { version = "1", features = ["derive", "rc"] }
+serde_json = "1"
+bytemuck = "1.25"
+libm = { version = "=0.2.16", default-features = false }
+flate2 = { version = "1", optional = true }

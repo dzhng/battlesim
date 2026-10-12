@@ -3,8 +3,10 @@ extends "res://tests/check.gd"
 ## The effects (`effects/effect_frame.gd`) draw what the browser's
 ## `EffectFrame` draws for the same causes, seeded as it seeds them: every
 ## instance's sixteen floats and every cast light at fixed clocks after a few
-## publications that exercise every kind of effect (`nativeEffectVectors.test.ts`
-## wrote them from the TypeScript). The flashes sit on the drawn muzzles the
+## publications that exercise every kind of effect. The vectors are pinned:
+## the deleted `nativeEffectVectors.test.ts` wrote them from the TypeScript,
+## and `crates/presentation`'s own tests (`tests/effects.rs`) now own the
+## behaviour. The flashes sit on the drawn muzzles the
 ## vectors name; a rotor is drawn throughout.
 
 const EffectFrame = preload("res://effects/effect_frame.gd")

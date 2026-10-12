@@ -1,3 +1,5 @@
+> **Built on `wgpu` inside phase 5 (2026-10-11),** not in Godot.
+
 # 22 — Completeness: what phase 3 left unported
 
 **Contract:** every visible difference phase 3 reported as "not ported" is closed in the Rust core or the shared crate:

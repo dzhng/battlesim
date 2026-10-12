@@ -1,0 +1,1324 @@
+//! 18b's `Presentation`: one side's publications in, a [`Frame`] of records
+//! out per drawn frame. It runs the browser's per-frame chain in one place:
+//! interpolation, the pose feed and driver, the drawn models' parts, the
+//! effects and the cook-offs, then chooses by the camera what is drawn and
+//! at which tier, and writes the batches, instances and palettes.
+use std::collections::HashMap;
+use std::sync::Arc;
+
+use serde::{Deserialize, Serialize};
+use sim::publication::reader::{KnownProp, Observation, Reader, Shared};
+
+use crate::effects::cook_offs::{CookOffs, PlacedModel};
+use crate::effects::frame::{EffectBatch, EffectFrame, EffectPresentation, EFFECT_FLOATS};
+use crate::effects::launches::Launch;
+use crate::effects::lights::CastLights;
+use crate::effects::publication::{EffectFeed, EffectPublication};
+use crate::effects::MuzzleSource;
+use crate::records::{
+    Appearance as Row, Batch, CastLight, Counts, Effect, Emitter, Instance, Joint, Pick,
+    View as ViewRecord, NONE,
+};
+use crate::static_world::batches::{Population, StaticBatches, Sun};
+use crate::static_world::buildings::{Buildings, PlacedBuildings};
+use crate::static_world::fallen::{Knowledge, Known};
+use crate::static_world::library::STATES;
+use crate::static_world::walk::{BuildingPopulation, BuildingWalk};
+use crate::units::articulation::{articulate, rest_locals, track_scroll};
+use crate::units::drawn::{ClipTables, DrawnModels};
+use crate::units::driver::PoseDriver;
+use crate::units::feed::ObservationFeed;
+use crate::units::interpolate::{FrameSample, TickInterpolator};
+use crate::units::pose::{Articulation, ClipBlend, Kick, PoseFrame};
+use crate::units::skin::{self, Mat4};
+use crate::view::{model_detail, Camera, View, CULLED, IMPOSTOR};
+use crate::world::{Appearance, BattleInput, Bounds, Trs, UnitsSection, Vec3, WorldInput};
+
+/// Publications kept for the effects while the world loads: two minutes at 30 Hz.
+const PENDING_MAX: usize = 3600;
+
+/// A batch's pass for a placement preview (18b's passes are 0 view, 1 caster).
+pub const GHOST_PASS: u32 = 2;
+
+/// What the UI decides of a frame (18b's `ui`).
+#[derive(Default)]
+pub struct Ui<'a> {
+    /// Selected own units, x-rayed in the selection's colour.
+    pub selected: &'a [u32],
+    /// Own units hidden by the world show through it.
+    pub xray: bool,
+    pub ghosts: &'a [Ghost],
+    /// A lab's stand-in for the publication's known props, where no battle
+    /// publishes (a switch that shows a building destroyed); none reads the
+    /// latest publication's.
+    pub known: Option<&'a [Known]>,
+}
+
+/// One body of a unit the UI shows where it will stand.
+#[derive(Clone, Debug, Deserialize)]
+pub struct Ghost {
+    pub kind: String,
+    pub slot: usize,
+    pub id: f64,
+    pub x: f64,
+    pub y: f64,
+    /// The ground under it; an aircraft's ghost flies its cruise height above.
+    pub z: f64,
+    pub yaw: f64,
+    /// 0 the side's own colour, 1 the selection's, 2 a refused purchase.
+    pub look: u32,
+}
+
+/// One drawn frame's records (18b's `Frame`); the effects and lights are
+/// [`Presentation::effects`] and [`Presentation::lights`].
+#[derive(Default)]
+pub struct Frame {
+    pub clock: f64,
+    pub tick: u32,
+    pub index: u32,
+    pub light_wrap: f32,
+    pub view: ViewRecord,
+    pub batches: Vec<Batch>,
+    pub instances: Vec<Instance>,
+    pub palettes: Vec<Joint>,
+    pub picks: Vec<Pick>,
+    pub emitters: Vec<Emitter>,
+    pub counts: Counts,
+}
+
+/// The world's records (18b's `World`, as far as slice 20 fills it).
+#[derive(Default)]
+pub struct World {
+    pub appearances: Vec<Row>,
+    pub strings: String,
+    rows: HashMap<(String, String, u32), u32>,
+}
+
+impl World {
+    fn row(&mut self, name: &str, state: &str, lies: u32, skin: u32, placed: bool) -> u32 {
+        let key = (name.to_owned(), state.to_owned(), lies);
+        if let Some(&row) = self.rows.get(&key) {
+            return row;
+        }
+        let mut text = |s: &str| {
+            let at = self.strings.len() as u32;
+            self.strings.push_str(s);
+            (at, s.len() as u32)
+        };
+        let (name_at, name_len) = text(name);
+        let (state_at, state_len) = text(state);
+        let row = self.appearances.len() as u32;
+        self.appearances.push(Row {
+            name: name_at,
+            name_len,
+            state: state_at,
+            state_len,
+            lies,
+            skin,
+            placed: u32::from(placed),
+            pad: 0,
+        });
+        self.rows.insert(key, row);
+        row
+    }
+}
+
+/// One model this frame may draw, before batching.
+struct Model {
+    row: u32,
+    tier: u32,
+    pass: u32,
+    at: Vec3,
+    yaw: f64,
+    tint: [f32; 3],
+    scale: [f32; 3],
+    colour: [f64; 4],
+    /// First palette joint, or 0 (identity).
+    palette: u32,
+    scroll: [f64; 2],
+}
+
+/// What the buildings' known states were last derived from.
+#[derive(Default)]
+enum KnownFrom {
+    #[default]
+    Unread,
+    Lab(Vec<Known>),
+    Published(Option<Shared<KnownProp>>),
+}
+
+/// What a battle draws: its sections, and the per-frame chain's state.
+struct Loaded {
+    input: BattleInput,
+    units: Arc<UnitsSection>,
+    tables: Arc<ClipTables>,
+    inverse_binds: HashMap<String, Vec<Mat4>>,
+    feed: ObservationFeed,
+    driver: PoseDriver,
+    drawn: DrawnModels,
+    effect_feed: EffectFeed,
+    effects: EffectFrame,
+    batch: EffectBatch,
+    lights: CastLights,
+    cook_offs: CookOffs,
+    pieces: Vec<PlacedModel>,
+    /// The last publication as sound reads it.
+    sound: Option<(EffectPublication, Vec<Launch>)>,
+    shadow_fall: [f64; 2],
+    locals: Vec<Trs>,
+    worlds: Vec<Mat4>,
+    models: Vec<Model>,
+}
+
+pub struct Presentation {
+    /// The side's stream; none for a world no battle publishes into.
+    reader: Option<Reader>,
+    tick_hz: f64,
+    interpolator: TickInterpolator,
+    latest: Option<Arc<Observation>>,
+    /// Publications taken before the world loaded, noted when it does.
+    pending: Vec<Arc<Observation>>,
+    loaded: Option<Loaded>,
+    buildings: Option<BuildingPopulation>,
+    /// How the side's knowledge stands the buildings, what it stands them
+    /// in (building, `STATES` index), and what that was derived from.
+    knowledge: Knowledge,
+    fallen: Vec<(usize, usize)>,
+    known_from: KnownFrom,
+    sun: Option<Sun>,
+    statics: StaticBatches,
+    world: World,
+    frame: Frame,
+}
+
+/// Rows of the x-ray or ghost colour (`packXray`): rgb as one integer
+/// under 2²⁴, exact in a float.
+fn pack_colour(c: [f64; 4]) -> f32 {
+    let byte = |v: f64| (v.clamp(0.0, 1.0) * 255.0).round();
+    (byte(c[0]) * 65536.0 + byte(c[1]) * 256.0 + byte(c[2])) as f32
+}
+
+const IDENTITY: Joint = Joint {
+    x: [1.0, 0.0, 0.0, 0.0],
+    y: [0.0, 1.0, 0.0, 0.0],
+    z: [0.0, 0.0, 1.0, 0.0],
+};
+
+fn joint(m: &[f32; 12]) -> Joint {
+    Joint {
+        x: [m[0], m[3], m[6], m[9]],
+        y: [m[1], m[4], m[7], m[10]],
+        z: [m[2], m[5], m[8], m[11]],
+    }
+}
+
+impl Presentation {
+    /// A presentation of the stream `layout` (the battle's
+    /// `observation_layout`) names, at `tick_hz`; with no layout, of a world
+    /// no battle publishes into (a lab's), drawn from `load_world` alone.
+    pub fn new(layout: Option<&str>, tick_hz: f64) -> Result<Self, String> {
+        Ok(Self {
+            reader: layout.map(Reader::new).transpose()?,
+            tick_hz,
+            interpolator: TickInterpolator::new(tick_hz),
+            latest: None,
+            pending: Vec::new(),
+            loaded: None,
+            buildings: None,
+            knowledge: Knowledge::default(),
+            fallen: Vec::new(),
+            known_from: KnownFrom::Unread,
+            sun: None,
+            statics: StaticBatches::default(),
+            world: World::default(),
+            frame: Frame::default(),
+        })
+    }
+
+    fn reader(&mut self) -> Result<&mut Reader, String> {
+        self.reader
+            .as_mut()
+            .ok_or_else(|| "this presentation has no publication layout".to_owned())
+    }
+
+    /// Records still in flight are stale; the next opens a new epoch, for
+    /// `side` when named.
+    pub fn invalidate(&mut self, side: Option<&str>) -> Result<(), String> {
+        self.reader()?.invalidate(side)?;
+        self.latest = None;
+        self.interpolator = TickInterpolator::new(self.tick_hz);
+        self.pending.clear();
+        Ok(())
+    }
+
+    /// Reads the next publication's words, received at wall time
+    /// `arrived_s`. False for a stale record; a malformed one errs.
+    pub fn push_publication(&mut self, words: &[u32], arrived_s: f64) -> Result<bool, String> {
+        let Some(observation) = self.reader()?.decode(words)? else {
+            return Ok(false);
+        };
+        let observation = Arc::new(observation);
+        self.interpolator.push(observation.clone(), arrived_s);
+        self.latest = Some(observation.clone());
+        match &mut self.loaded {
+            Some(loaded) => loaded.note(&observation),
+            None => {
+                // Older than any effect lives: a battle's appearances load in seconds.
+                if self.pending.len() == PENDING_MAX {
+                    self.pending.remove(0);
+                }
+                self.pending.push(observation);
+            }
+        }
+        Ok(true)
+    }
+
+    /// The latest publication's observation, for the game UI.
+    pub fn observation(&self) -> Option<&Observation> {
+        self.latest.as_deref()
+    }
+
+    /// Loads what the world draws: `buildings` placed from their template
+    /// art, and the battle's units and effects, `tables` being the skinned
+    /// bodies' dense clip tables by name. Publications already taken are
+    /// noted now.
+    pub fn load_world(
+        &mut self,
+        input: WorldInput,
+        tables: ClipTables,
+        buildings: Option<PlacedBuildings>,
+    ) -> Result<(), String> {
+        // Every drawable a frame may name, so the renderer loads them once;
+        // the buildings' first, a row per walked module.
+        self.world = World::default();
+        self.fallen.clear();
+        self.known_from = KnownFrom::Unread;
+        self.knowledge = Knowledge::default();
+        self.buildings = match buildings {
+            None => None,
+            Some(placed) => {
+                self.knowledge = Knowledge::new(placed.parts, placed.shells);
+                let style = input
+                    .buildings
+                    .ok_or("buildings are drawn under presentation.buildings")?;
+                let buildings =
+                    Buildings::new(placed.library, &placed.bounds, placed.placed, &style)?;
+                let rows = (0..buildings.modules.len())
+                    .map(|m| {
+                        let (kit, module) = buildings.module(m);
+                        self.world.row(kit, module, NONE, 0, true)
+                    })
+                    .collect();
+                let walk = BuildingWalk::new(
+                    buildings,
+                    style.lod_px_per_m,
+                    style.chunk_m,
+                    style.pool_records,
+                );
+                Some(BuildingPopulation { walk, rows })
+            }
+        };
+        self.sun = input.cascade_far_m.map(|far_m| Sun {
+            azimuth: input.sun_azimuth,
+            elevation: input.sun_elevation,
+            far_m,
+        });
+        self.statics.invalidate();
+        self.loaded = None;
+        let (azimuth, elevation) = (input.sun_azimuth, input.sun_elevation);
+        let Some(input) = input.battle else {
+            return Ok(());
+        };
+        let units = Arc::new(input.units.clone());
+        let tables = Arc::new(tables);
+        let presentation = EffectPresentation::from_value(&input.effects.presentation)?;
+        let capacity = presentation.capacity;
+        let side = input.side.clone();
+        let mut inverse_binds = HashMap::new();
+        for (name, a) in &units.appearances {
+            if let Appearance::Skinned {
+                joints,
+                inverse_binds: given,
+                ..
+            } = a
+            {
+                inverse_binds.insert(name.clone(), skin::inverse_binds(joints, given));
+            }
+        }
+        for (name, a) in &units.appearances {
+            match a {
+                Appearance::Skinned {
+                    joints,
+                    corpse_poses,
+                    ..
+                } => {
+                    self.world.row(name, "", NONE, joints.len() as u32, false);
+                    for lies in 0..corpse_poses.len() {
+                        self.world.row(name, "", lies as u32, 0, false);
+                    }
+                }
+                Appearance::Articulated { nodes, .. } => {
+                    self.world.row(name, "", NONE, nodes.len() as u32, false);
+                }
+            }
+        }
+        // A cook-off draws its wreck's pieces: whole, hull, turret, debris.
+        for look in input.effects.wreck_looks.values() {
+            for state in ["default", "hull", "turret", "debris"] {
+                self.world.row(&look.appearance, state, NONE, 0, false);
+            }
+        }
+        let throw = 1.0 / elevation.tan();
+        let mut loaded = Loaded {
+            feed: ObservationFeed::new(&side),
+            driver: PoseDriver::new(&units)?,
+            drawn: DrawnModels::new(units.clone(), tables.clone(), &side),
+            effect_feed: EffectFeed::new(&side),
+            effects: EffectFrame::new(self.tick_hz, presentation),
+            batch: EffectBatch::new(capacity),
+            lights: CastLights::default(),
+            cook_offs: CookOffs::new(self.tick_hz),
+            pieces: Vec::new(),
+            sound: None,
+            shadow_fall: [-azimuth.cos() * throw, -azimuth.sin() * throw],
+            locals: Vec::new(),
+            worlds: Vec::new(),
+            models: Vec::new(),
+            inverse_binds,
+            units,
+            tables,
+            input,
+        };
+        for o in self.pending.drain(..) {
+            loaded.note(&o);
+        }
+        self.loaded = Some(loaded);
+        Ok(())
+    }
+
+    pub fn world(&self) -> &World {
+        &self.world
+    }
+
+    /// The buildings the side knows destroyed, each with its state (`STATES`
+    /// index, 1 ruin or 2 gutted), as the last frame drew them.
+    pub fn fallen(&self) -> &[(usize, usize)] {
+        &self.fallen
+    }
+
+    /// The renderer holds no static batches (a new one): the next frame
+    /// writes every one.
+    pub fn resend_statics(&mut self) {
+        self.statics.invalidate();
+    }
+
+    /// What the side knows of the buildings (`fallen.rs`), from `lab` or
+    /// else the latest publication's known props, derived again only when
+    /// that changed. A building known in a state its template has no rows
+    /// for is refused by name, and nothing changes.
+    fn know(&mut self, lab: Option<&[Known]>) -> Result<(), String> {
+        let Some(buildings) = &mut self.buildings else {
+            return Ok(());
+        };
+        let fallen = match lab {
+            Some(known) => {
+                if matches!(&self.known_from, KnownFrom::Lab(last) if last == known) {
+                    return Ok(());
+                }
+                self.known_from = KnownFrom::Lab(known.to_vec());
+                self.knowledge.fallen(
+                    known
+                        .iter()
+                        .map(|k| (k.authored_prop, k.kind.as_str(), k.destroyed)),
+                )
+            }
+            None => {
+                let group = self.latest.as_ref().map(|o| o.known_props.clone());
+                let ptr = |g: &Option<Shared<KnownProp>>| g.as_ref().map(Arc::as_ptr);
+                if matches!(&self.known_from, KnownFrom::Published(last) if ptr(last) == ptr(&group))
+                {
+                    return Ok(());
+                }
+                self.known_from = KnownFrom::Published(group.clone());
+                group.map_or_else(Vec::new, |g| {
+                    self.knowledge
+                        .fallen(g.iter().map(|k| (k.authored_prop, &*k.kind, k.destroyed)))
+                })
+            }
+        };
+        if fallen == self.fallen {
+            return Ok(());
+        }
+        if let Some(&b) = buildings.walk.set_fallen(&fallen).first() {
+            let state = fallen.iter().find(|f| f.0 == b).map_or(0, |f| f.1);
+            return Err(format!(
+                "state.missing: template \"{}\" has no \"{}\" rows",
+                buildings.walk.buildings.template(b),
+                STATES[state]
+            ));
+        }
+        self.fallen = fallen;
+        self.statics.invalidate();
+        Ok(())
+    }
+
+    /// The buildings' walk as the last frame left it (`BuildingWalk::stats`);
+    /// none without buildings.
+    pub fn building_stats(&self) -> Option<&[usize]> {
+        self.buildings.as_ref().map(|b| &b.walk.stats[..])
+    }
+
+    /// A skinned row's body as it holds still (`World.appearances`): a
+    /// corpse row as it lies (its `corpse_poses` entry), a body row in its
+    /// far pose (what its impostor card shows). Each joint's bind-to-model
+    /// motion: a renderer skins the body's mesh by it once, when it loads
+    /// the row (`posedMesh`), and draws that mesh where the frame's
+    /// instance takes the identity. None for a rigid row, or before a world
+    /// loads.
+    pub fn rest_palette(&self, row: u32) -> Option<Vec<Joint>> {
+        let loaded = self.loaded.as_ref()?;
+        let r = self.world.appearances.get(row as usize)?;
+        let name = self
+            .world
+            .strings
+            .get(r.name as usize..(r.name + r.name_len) as usize)?;
+        let Some(Appearance::Skinned {
+            joints,
+            clips,
+            table,
+            far_pose,
+            corpse_poses,
+            ..
+        }) = loaded.units.appearances.get(name)
+        else {
+            return None;
+        };
+        let pose = match r.lies {
+            NONE => far_pose,
+            lies => corpse_poses.get(lies as usize)?,
+        };
+        let mut worlds = Vec::new();
+        let table = loaded.tables.get(table)?;
+        skin::joint_worlds(
+            joints,
+            clips,
+            table,
+            &pose.clip,
+            pose.phase,
+            None,
+            &mut worlds,
+        );
+        let ibs = &loaded.inverse_binds[name];
+        Some(
+            worlds
+                .iter()
+                .zip(ibs)
+                .map(|(w, ib)| joint(&skin::affine(&skin::mul(w, ib))))
+                .collect(),
+        )
+    }
+
+    /// The presentation time at wall time `wall_s` (live only).
+    pub fn clock(&self, wall_s: f64) -> Option<f64> {
+        self.interpolator.time(wall_s)
+    }
+
+    /// This frame's effect instances, in draw order.
+    pub fn effects(&self) -> &[Effect] {
+        self.loaded.as_ref().map_or(&[], |l| {
+            bytemuck::cast_slice(&l.batch.data[..l.batch.count * EFFECT_FLOATS])
+        })
+    }
+
+    /// This frame's cast lights, chosen for the view.
+    pub fn lights(&self) -> &[CastLight] {
+        self.loaded.as_ref().map_or(&[], |l| {
+            let count = l.lights.packed[0] as usize;
+            bytemuck::cast_slice(&l.lights.packed[4..4 + count * 8])
+        })
+    }
+
+    /// Each of a scripted run's publications' launches, JSON (`[[Shot]]`):
+    /// what a lab's sound hears without a battle, by the effects' own
+    /// derivation.
+    pub fn launches_json(publications: &str) -> Result<String, String> {
+        let publications: Vec<EffectPublication> =
+            serde_json::from_str(publications).map_err(|e| e.to_string())?;
+        let mut tracker = crate::effects::launches::LaunchTracker::default();
+        let shots: Vec<Vec<Shot>> = publications
+            .iter()
+            .map(|p| tracker.note(p, false, None).iter().map(Shot::of).collect())
+            .collect();
+        serde_json::to_string(&shots).map_err(|e| e.to_string())
+    }
+
+    /// The last publication as sound reads it, JSON: its effect publication,
+    /// with the hulls the side watched brew up, the launches it shows, and
+    /// when a cook-off's turret lands (seconds after its tick starts).
+    pub fn sound_json(&self) -> String {
+        #[derive(Serialize)]
+        #[serde(rename_all = "camelCase")]
+        struct Heard<'a> {
+            effects: &'a EffectPublication,
+            launches: Vec<Shot>,
+            turret_lands_s: f64,
+        }
+        let Some(loaded) = &self.loaded else {
+            return "null".into();
+        };
+        let Some((effects, launches)) = &loaded.sound else {
+            return "null".into();
+        };
+        serde_json::to_string(&Heard {
+            effects,
+            launches: launches.iter().map(Shot::of).collect(),
+            turret_lands_s: loaded.effects.presentation().cook_off.impact_after(),
+        })
+        .expect("a sound publication serializes")
+    }
+
+    /// Where the last frame draws the muzzle of the presented side's vehicle
+    /// `unit`'s mount `mount`, where its flash goes; None when no rig draws it.
+    pub fn drawn_muzzle(&mut self, unit: f64, mount: usize) -> Option<Vec3> {
+        let loaded = self.loaded.as_mut()?;
+        loaded
+            .drawn
+            .muzzle(crate::seed::side_key(unit, true), mount, None)
+    }
+
+    /// The last frame as the labs' scenes probe it, JSON: the effects'
+    /// state, instances and offered lights, the soldiers and vehicles as
+    /// posed, the corpses lying, and a cook-off's pieces.
+    pub fn probe_json(&self) -> String {
+        let Some(l) = &self.loaded else {
+            return "null".into();
+        };
+        let poses = l.driver.poses();
+        let units = &l.units;
+        let name = |kind: &str,
+                    side: &str,
+                    id: f64,
+                    slot: usize,
+                    op: Option<usize>,
+                    active: Option<usize>| {
+            units
+                .resolve(kind, side, id, slot, op, active)
+                .unwrap_or("")
+                .to_owned()
+        };
+        let stats = l.effects.stats();
+        let lights = &l.batch.lights;
+        let looks = &l.input.effects.wreck_looks;
+        let pieces: Vec<_> = l
+            .pieces
+            .iter()
+            .filter_map(|p| {
+                let state = p.state?;
+                let _ = looks;
+                Some(serde_json::json!({
+                    "appearance": &*p.appearance,
+                    "state": state,
+                    "sunk": -p.motion.map_or(0.0, |m| m[14]),
+                }))
+            })
+            .collect();
+        serde_json::json!({
+            "effects": {
+                "live": stats.live,
+                "instances": stats.instances,
+                "dropped": stats.dropped,
+                "sources": stats.sources,
+                "tick": stats.tick,
+            },
+            "effectInstances": l.batch.data[..l.batch.count * EFFECT_FLOATS]
+                .chunks(EFFECT_FLOATS)
+                .map(|d| serde_json::json!({
+                    "shape": d[12],
+                    "at": [d[0], d[1], d[2]],
+                    "to": [d[4], d[5], d[6]],
+                    "rgb": [d[8], d[9], d[10]],
+                    "size": d[3],
+                    "rays": d[6],
+                }))
+                .collect::<Vec<_>>(),
+            "castLights": (0..lights.count)
+                .map(|i| {
+                    let r = &lights.data[i * 8..i * 8 + 8];
+                    serde_json::json!({
+                        "at": [r[0], r[1], r[2]],
+                        "radius": r[3],
+                        "rgb": [r[4], r[5], r[6]],
+                        "cause": &*lights.causes[i],
+                    })
+                })
+                .collect::<Vec<_>>(),
+            "lying": poses.corpses.iter().map(|c| c.soldier).collect::<Vec<_>>(),
+            "cookOffPieces": pieces,
+            "soldiers": poses.soldiers.iter().map(|s| serde_json::json!({
+                "appearance": name(&s.kind, &s.side, s.soldier, s.slot, s.operator_mount, s.active_mount),
+                "position": s.position,
+                "yaw": s.facing,
+                "clip": &*s.clip,
+                "phase": s.phase,
+            })).collect::<Vec<_>>(),
+            "vehicles": poses.vehicles.iter().map(|v| {
+                let a = v.articulation;
+                serde_json::json!({
+                    "appearance": name(&v.kind, &v.side, v.unit, 0, None, None),
+                    "position": v.position,
+                    "yaw": v.yaw,
+                    "tint": units.tints.get(&*v.side),
+                    "articulation": {
+                        "turret_yaw": a.turret_yaw, "gun_pitch": a.gun_pitch, "recoil": a.recoil,
+                        "hmg_yaw": a.hmg_yaw, "hmg_pitch": a.hmg_pitch, "travel_l": a.travel_l,
+                        "travel_r": a.travel_r, "deploy": a.deploy, "rotor": a.rotor,
+                        "rotor_blur": a.rotor_blur,
+                    },
+                })
+            }).collect::<Vec<_>>(),
+        })
+        .to_string()
+    }
+
+    /// The known props whose wreck is drawn moving (a cook-off), which the
+    /// side's static structures leave out.
+    pub fn moving_wrecks(&self) -> Vec<u32> {
+        self.loaded.as_ref().map_or_else(Vec::new, |l| {
+            l.cook_offs.moving_props().map(|p| p as u32).collect()
+        })
+    }
+
+    /// What to draw at presentation time `time` for `camera`; errs when the
+    /// side knows a building in a state its template lacks.
+    pub fn frame(&mut self, time: f64, camera: &Camera, ui: &Ui) -> Result<&Frame, String> {
+        self.know(ui.known)?;
+        let f = &mut self.frame;
+        f.index += 1;
+        f.clock = time;
+        f.batches.clear();
+        f.instances.clear();
+        f.palettes.clear();
+        f.palettes.push(IDENTITY);
+        f.picks.clear();
+        f.emitters.clear();
+        f.counts = Counts::default();
+        f.light_wrap = 0.0;
+        let view = View::new(camera);
+        f.view = view.record(camera);
+        let mut populations: Vec<&mut dyn Population> = Vec::new();
+        if let Some(b) = &mut self.buildings {
+            populations.push(b);
+        }
+        self.statics
+            .write(&mut populations, camera, &view, self.sun.as_ref(), f);
+        let (Some(loaded), Some(sample)) = (self.loaded.as_mut(), self.interpolator.frame(time))
+        else {
+            return Ok(&self.frame);
+        };
+        let f = &mut self.frame;
+        f.tick = sample.observation.tick as u32;
+        loaded.frame(sample, &view, ui, &self.world, f);
+        Ok(&self.frame)
+    }
+}
+
+impl Loaded {
+    /// One publication noted for effects (and sound), with the hulls the
+    /// side watched brew up.
+    fn note(&mut self, o: &Observation) {
+        let mut publication =
+            self.effect_feed
+                .publication(o, &self.input.units, &self.input.effects);
+        let effects = &self.input.effects;
+        publication.cook_offs =
+            self.cook_offs
+                .note(o, &self.input.units, effects, &effects.wreck_looks);
+        let launches = self.effects.note(&publication);
+        self.sound = Some((publication, launches));
+    }
+
+    fn frame(&mut self, sample: &FrameSample, view: &View, ui: &Ui, world: &World, f: &mut Frame) {
+        let Loaded {
+            input,
+            units,
+            tables,
+            inverse_binds,
+            feed,
+            driver,
+            drawn,
+            effects,
+            batch,
+            lights,
+            cook_offs,
+            pieces,
+            shadow_fall,
+            worlds,
+            locals,
+            models,
+            ..
+        } = self;
+        let time = sample.time;
+        let poses = driver.update(feed.frame(sample, units, &input.effects), units);
+        drawn.update(poses);
+        let rotors = drawn.rotors();
+        effects.build(time, batch, Some(drawn), &rotors);
+        let counts = effects.counts(time, batch);
+        f.light_wrap = batch.lights.wrap as f32;
+        lights.pack(&batch.lights, view);
+        f.counts.running = counts.running.map(|n| n as u32);
+        f.counts.lights = counts.lights as u32;
+        f.counts.dropped = batch.dropped as u32;
+
+        let side: &str = &input.side;
+        let detail = units.detail;
+        let xray = input.xray;
+        let o = &sample.observation;
+        let indoor: Vec<f64> = o
+            .own
+            .iter()
+            .filter(|u| u.garrison.as_ref().is_some_and(|g| &*g.phase != "entering"))
+            .map(|u| u.id)
+            .collect();
+        // Own units the world hides draw through it, the selection in its colour.
+        let colour_of = |unit_side: &str, unit: f64| -> [f64; 4] {
+            if !ui.xray || unit_side != side || indoor.contains(&unit) {
+                [0.0; 4]
+            } else if ui.selected.contains(&(unit as u32)) {
+                xray.selected
+            } else {
+                xray.own
+            }
+        };
+        let tint = |s: &str| units.tints.get(s).map_or([1.0; 3], |t| t.map(|v| v as f32));
+        let row = |name: &str, state: &str, lies: u32| {
+            world.rows[&(name.to_owned(), state.to_owned(), lies)]
+        };
+        models.clear();
+        // Soldiers off screen, as the gates count bodies drawn, carded or culled.
+        let mut culled = 0;
+        let model = |row: u32,
+                     tier: i32,
+                     pass: u32,
+                     at: Vec3,
+                     yaw: f64,
+                     tint: [f32; 3],
+                     colour: [f64; 4],
+                     palette: u32,
+                     scroll: [f64; 2]| Model {
+            row,
+            tier: tier as u32,
+            pass,
+            at,
+            yaw,
+            tint,
+            scale: [1.0; 3],
+            colour,
+            palette,
+            scroll,
+        };
+
+        // Soldiers, living and dying: a body's far bounds tier him.
+        for s in &poses.soldiers {
+            let Some(name) = units.resolve(
+                &s.kind,
+                &s.side,
+                s.soldier,
+                s.slot,
+                s.operator_mount,
+                s.active_mount,
+            ) else {
+                continue;
+            };
+            f.counts.soldiers += 1;
+            let far = bounds(units, name, 0);
+            let tier = model_detail(&detail, view, s.position, far.size, far.radius, true, None);
+            if tier == CULLED {
+                culled += 1;
+                continue;
+            }
+            let palette = if tier == IMPOSTOR {
+                0
+            } else {
+                pose_body(
+                    units,
+                    tables,
+                    inverse_binds,
+                    worlds,
+                    &mut f.palettes,
+                    name,
+                    &s.clip,
+                    s.phase,
+                    s.blend.as_ref(),
+                    s.kick,
+                )
+            };
+            models.push(model(
+                row(name, "", NONE),
+                tier,
+                0,
+                s.position,
+                s.facing,
+                tint(&s.side),
+                colour_of(&s.side, s.unit),
+                palette,
+                [0.0; 2],
+            ));
+        }
+        // Vehicles and aircraft; an airframe's shadow lands its height along
+        // the sun's fall, and it draws while either is in view.
+        for v in &poses.vehicles {
+            let Some(name) = units.resolve(&v.kind, &v.side, v.unit, 0, None, None) else {
+                continue;
+            };
+            if v.airborne {
+                f.counts.aircraft += 1;
+            } else {
+                f.counts.vehicles += 1;
+            }
+            let far = bounds(units, name, 0);
+            let shadow = v.airborne.then(|| {
+                let lift = input.cruise_agl_m;
+                let p = v.position;
+                [
+                    p[0] + shadow_fall[0] * lift,
+                    p[1] + shadow_fall[1] * lift,
+                    p[2] - lift,
+                ]
+            });
+            let tier = model_detail(
+                &detail, view, v.position, far.size, far.radius, false, shadow,
+            );
+            if tier == CULLED {
+                continue;
+            }
+            let (palette, scroll) = pose_vehicle(
+                units,
+                locals,
+                worlds,
+                &mut f.palettes,
+                name,
+                &v.articulation,
+                v.motion.as_ref(),
+            );
+            models.push(model(
+                row(name, "", NONE),
+                tier,
+                0,
+                v.position,
+                v.yaw,
+                tint(&v.side),
+                colour_of(&v.side, v.unit),
+                palette,
+                scroll,
+            ));
+        }
+        // Corpses lying, and those the cap pushed out sinking away.
+        let lying = poses
+            .corpses
+            .iter()
+            .map(|c| (c, 0.0, false))
+            .chain(poses.fading.iter().map(|f| (&f.corpse, f.sink, true)));
+        for (c, sink, fading) in lying {
+            let Some(name) =
+                units.resolve(&c.kind, &c.side, c.soldier, c.slot, c.operator_mount, None)
+            else {
+                continue;
+            };
+            if fading {
+                f.counts.fading += 1;
+            } else {
+                f.counts.corpses += 1;
+            }
+            let at = [c.position[0], c.position[1], c.position[2] - sink];
+            let size = bounds(units, name, 1 + c.lies);
+            let tier = model_detail(&detail, view, at, size.size, size.radius, true, None);
+            if tier == CULLED {
+                continue;
+            }
+            models.push(model(
+                row(name, "", c.lies as u32),
+                tier,
+                0,
+                at,
+                c.yaw,
+                tint(&c.side),
+                [0.0; 4],
+                0,
+                [0.0; 2],
+            ));
+        }
+        // A cook-off's moving wreck and its thrown debris; a piece in
+        // motion is never a card, and reaches as far as it has moved.
+        let looks = &input.effects.wreck_looks;
+        pieces.clear();
+        cook_offs.models(
+            &poses.vehicles,
+            time,
+            units,
+            looks,
+            &effects.presentation().cook_off,
+            pieces,
+        );
+        for piece in pieces.iter() {
+            let size = match piece.state {
+                Some(_) => looks
+                    .values()
+                    .find(|l| *l.appearance == *piece.appearance)
+                    .map_or_else(Bounds::default, |l| bounds_size(l.bounds)),
+                None => bounds(units, &piece.appearance, 0),
+            };
+            let grow = piece.scale[0].max(piece.scale[1]).max(piece.scale[2]);
+            let moved = piece.motion.map_or(0.0, |m| {
+                grow * (m[12] * m[12] + m[13] * m[13] + m[14] * m[14]).sqrt()
+            });
+            let tier = model_detail(
+                &detail,
+                view,
+                piece.position,
+                size.size * grow,
+                size.radius * grow + moved,
+                false,
+                None,
+            );
+            if tier == CULLED {
+                continue;
+            }
+            let (palette, scroll) = match (&piece.articulation, &piece.motion) {
+                (Some(a), motion) => pose_vehicle(
+                    units,
+                    locals,
+                    worlds,
+                    &mut f.palettes,
+                    &piece.appearance,
+                    a,
+                    motion.as_ref(),
+                ),
+                (None, Some(m)) => {
+                    f.palettes.push(joint(&skin::affine(m)));
+                    (f.palettes.len() as u32 - 1, [0.0; 2])
+                }
+                (None, None) => (0, [0.0; 2]),
+            };
+            let tint = piece.tint.map_or([1.0; 3], |t| t.map(|v| v as f32));
+            let mut m = model(
+                row(&piece.appearance, piece.state.unwrap_or(""), NONE),
+                tier,
+                0,
+                piece.position,
+                piece.yaw,
+                tint,
+                [0.0; 4],
+                palette,
+                scroll,
+            );
+            m.scale = piece.scale.map(|v| v as f32);
+            models.push(m);
+        }
+        // Ghosts: where the UI's units will stand, at rest, in their colour.
+        for g in ui.ghosts {
+            let Some(ty) = units.types.get(&g.kind) else {
+                continue;
+            };
+            let Some(name) = units.resolve(&g.kind, side, g.id, g.slot, None, None) else {
+                continue;
+            };
+            let at = [
+                g.x,
+                g.y,
+                g.z + if ty.airborne { input.cruise_agl_m } else { 0.0 },
+            ];
+            let far = bounds(units, name, 0);
+            let tier = model_detail(&detail, view, at, far.size, far.radius, false, None);
+            if tier == CULLED {
+                continue;
+            }
+            let (palette, scroll) = match units.appearances.get(name) {
+                Some(Appearance::Skinned { far_pose, .. }) => (
+                    pose_body(
+                        units,
+                        tables,
+                        inverse_binds,
+                        worlds,
+                        &mut f.palettes,
+                        name,
+                        &far_pose.clip,
+                        far_pose.phase,
+                        None,
+                        Kick::default(),
+                    ),
+                    [0.0; 2],
+                ),
+                _ => pose_vehicle(
+                    units,
+                    locals,
+                    worlds,
+                    &mut f.palettes,
+                    name,
+                    &Articulation::default(),
+                    None,
+                ),
+            };
+            let colour = match g.look {
+                1 => xray.selected,
+                2 => input.blocked,
+                _ => xray.own,
+            };
+            models.push(model(
+                row(name, "", NONE),
+                tier,
+                GHOST_PASS,
+                at,
+                g.yaw,
+                [1.0; 3],
+                colour,
+                palette,
+                scroll,
+            ));
+        }
+        f.counts.culled = culled;
+        batches(models, f);
+        picks(sample, units, input, f);
+        emitters(o, poses, side, f);
+    }
+}
+
+/// The models as batches: one per drawable, tier and pass, in that order.
+fn batches(models: &mut [Model], f: &mut Frame) {
+    models.sort_by_key(|m| (m.row, m.tier, m.pass));
+    for run in models.chunk_by(|a, b| (a.row, a.tier, a.pass) == (b.row, b.tier, b.pass)) {
+        let m = &run[0];
+        f.batches.push(Batch {
+            key: (m.row << 8) | (m.tier << 4) | m.pass,
+            appearance: m.row,
+            tier: m.tier,
+            pass: m.pass,
+            cascades: 0,
+            version: f.index,
+            first: f.instances.len() as u32,
+            count: run.len() as u32,
+        });
+        let fract = |v: f64| (v - v.floor()) as f32;
+        f.instances.extend(run.iter().map(|m| Instance {
+            placement: [m.at[0] as f32, m.at[1] as f32, m.at[2] as f32, m.yaw as f32],
+            data: [
+                m.palette as f32,
+                fract(m.scroll[0]),
+                fract(m.scroll[1]),
+                pack_colour(m.colour),
+            ],
+            tint: [m.tint[0], m.tint[1], m.tint[2], -1.0],
+            scale: [m.scale[0], m.scale[1], m.scale[2], m.colour[3] as f32],
+        }));
+    }
+}
+
+/// A body in a clip at a phase, crossfaded and kicked: its palette's first joint.
+#[allow(clippy::too_many_arguments)]
+fn pose_body(
+    units: &UnitsSection,
+    tables: &ClipTables,
+    inverse_binds: &HashMap<String, Vec<Mat4>>,
+    worlds: &mut Vec<Mat4>,
+    palettes: &mut Vec<Joint>,
+    name: &str,
+    clip: &str,
+    phase: f64,
+    blend: Option<&ClipBlend>,
+    kick: Kick,
+) -> u32 {
+    let Some(Appearance::Skinned {
+        joints,
+        clips,
+        table,
+        ..
+    }) = units.appearances.get(name)
+    else {
+        return 0;
+    };
+    let Some(table) = tables.get(table) else {
+        return 0;
+    };
+    skin::joint_worlds(joints, clips, table, clip, phase, blend, worlds);
+    skin::kick_worlds(joints, kick, worlds);
+    let first = palettes.len() as u32;
+    let ibs = &inverse_binds[name];
+    palettes.extend(
+        worlds
+            .iter()
+            .zip(ibs)
+            .map(|(w, ib)| joint(&skin::affine(&skin::mul(w, ib)))),
+    );
+    first
+}
+
+/// A vehicle articulated, its whole model moved by `motion` (an aircraft's
+/// lean, a hull's kick): its palette's first joint and its track scrolls.
+fn pose_vehicle(
+    units: &UnitsSection,
+    locals: &mut Vec<Trs>,
+    worlds: &mut Vec<Mat4>,
+    palettes: &mut Vec<Joint>,
+    name: &str,
+    articulation: &Articulation,
+    motion: Option<&Mat4>,
+) -> (u32, [f64; 2]) {
+    let Some(Appearance::Articulated { nodes, rig, .. }) = units.appearances.get(name) else {
+        return (0, [0.0; 2]);
+    };
+    *locals = rest_locals(nodes);
+    articulate(locals, nodes, rig, articulation);
+    skin::node_worlds(nodes, locals, motion, worlds);
+    let first = palettes.len() as u32;
+    palettes.extend(worlds.iter().map(|w| joint(&skin::affine(w))));
+    (first, track_scroll(rig, articulation))
+}
+
+/// The boxes of every drawn soldier and vehicle, for the UI's hit tests:
+/// a hull's box, else each soldier's (`bodyBox`), and each unit's drawn
+/// position as a box of no size.
+fn picks(sample: &FrameSample, units: &UnitsSection, input: &BattleInput, f: &mut Frame) {
+    let o = &sample.observation;
+    let kinds = o
+        .own
+        .iter()
+        .map(|u| (u.id, &u.kind, 1))
+        .chain(o.identified.iter().map(|e| (e.id, &e.kind, 2)));
+    let poses = sample.own.iter().chain(&sample.identified);
+    let by_id: HashMap<(u64, u32), &Arc<str>> = kinds
+        .map(|(id, kind, flag)| ((id.to_bits(), flag), kind))
+        .collect();
+    let soldier = input.soldier;
+    for (pose, flag) in sample
+        .own
+        .iter()
+        .map(|p| (p, 1))
+        .chain(sample.identified.iter().map(|p| (p, 2)))
+    {
+        let _ = &poses;
+        let Some(kind) = by_id.get(&(pose.id.to_bits(), flag)) else {
+            continue;
+        };
+        let aloft = units.types.get(&***kind).is_some_and(|t| t.airborne);
+        let flags = flag | if aloft { 4 } else { 0 };
+        let pick = |member: u32, at: Vec3, half: Vec3| Pick {
+            unit: pose.id as u32,
+            member,
+            flags,
+            pad: 0,
+            centre: [
+                at[0] as f32,
+                at[1] as f32,
+                (at[2] + half[2]) as f32,
+                pose.yaw as f32,
+            ],
+            half: [half[0] as f32, half[1] as f32, half[2] as f32, 0.0],
+        };
+        match input.effects.types.get(&***kind).and_then(|t| t.half) {
+            Some(hull) => f.picks.push(pick(NONE, pose.position, hull)),
+            None => {
+                f.picks.push(pick(NONE, pose.position, [0.0; 3]));
+                let half = [soldier.radius_m, soldier.radius_m, soldier.height_m / 2.0];
+                for (at, id) in pose.members.iter().zip(&pose.member_ids) {
+                    f.picks
+                        .push(pick(id.map_or(NONE, |id| id as u32), *at, half));
+                }
+            }
+        }
+    }
+}
+
+/// What audio hears move this frame: each drawn vehicle's tracks and
+/// turret, and each drawn soldier.
+fn emitters(o: &Observation, poses: &PoseFrame, side: &str, f: &mut Frame) {
+    let reversing = |unit: f64, own: bool| {
+        if own {
+            o.own.iter().any(|u| u.id == unit && u.reversing)
+        } else {
+            o.identified.iter().any(|e| e.id == unit && e.reversing)
+        }
+    };
+    for v in &poses.vehicles {
+        let own = &*v.side == side;
+        let a = v.articulation;
+        f.emitters.push(Emitter {
+            unit: v.unit as u32,
+            member: NONE,
+            class: NONE,
+            flags: u32::from(!own) | if reversing(v.unit, own) { 2 } else { 0 },
+            position: [
+                v.position[0] as f32,
+                v.position[1] as f32,
+                v.position[2] as f32,
+                0.0,
+            ],
+            motion: [
+                a.travel_l as f32,
+                a.travel_r as f32,
+                a.turret_yaw as f32,
+                0.0,
+            ],
+        });
+    }
+    for s in &poses.soldiers {
+        f.emitters.push(Emitter {
+            unit: s.unit as u32,
+            member: s.soldier as u32,
+            class: NONE,
+            flags: u32::from(&*s.side != side),
+            position: [
+                s.position[0] as f32,
+                s.position[1] as f32,
+                s.position[2] as f32,
+                0.0,
+            ],
+            motion: [0.0; 4],
+        });
+    }
+}
+
+/// A launch as sound reads it.
+#[derive(Serialize)]
+struct Shot {
+    shooter: f64,
+    mount: usize,
+    soldier: Option<f64>,
+    x: f64,
+    y: f64,
+    z: f64,
+    kind: Arc<str>,
+}
+
+impl Shot {
+    fn of(l: &Launch) -> Self {
+        Self {
+            shooter: l.shooter,
+            mount: l.mount,
+            soldier: l.soldier,
+            x: l.at[0],
+            y: l.at[1],
+            z: l.at[2],
+            kind: l.kind.clone(),
+        }
+    }
+}
+
+/// How big a box is drawn (`boundsSize`): its largest extent, and its reach
+/// from its foot.
+fn bounds_size([min, max]: [Vec3; 2]) -> Bounds {
+    let reach = |a: f64, b: f64| a.abs().max(b.abs());
+    let dz = max[2] - min[2];
+    Bounds {
+        size: dz.max(max[0] - min[0]).max(max[1] - min[1]),
+        radius: crate::seed::js_hypot(&[reach(min[0], max[0]), reach(min[1], max[1]), dz]),
+    }
+}
+
+/// An appearance's drawn size: its far pose (`k` 0) or its `k − 1`th way of lying.
+fn bounds(units: &UnitsSection, name: &str, k: usize) -> Bounds {
+    match units.appearances.get(name) {
+        Some(Appearance::Skinned { bounds, .. } | Appearance::Articulated { bounds, .. }) => {
+            bounds.get(k).copied().unwrap_or_default()
+        }
+        None => Bounds::default(),
+    }
+}

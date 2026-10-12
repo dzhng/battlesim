@@ -1,12 +1,12 @@
 // The battle's sound: the one owner of what is heard, and when.
 // It reads exactly the feed the visuals read, and nothing else:
 //
-// - the effects' `EffectPublication`: gunfire at each launch (`launches.ts`,
-//   the muzzle flashes' own derivation), near or far by distance, a recorded
+// - the presentation's publication (`HeardPublication`, `crates/presentation`):
+//   gunfire at each launch (the muzzle flashes' own), near or far by distance, a recorded
 //   burst sounding the gun's next rounds on its cadence; a
 //   ricochet whine at each glance; an impact by hit kind; a blast; a hull
 //   cooking off, booming with each fireball and clanging where its turret
-//   lands, on the effects' own timing (`cookOff.ts`); a motor
+//   lands, on the effects' own timing; a motor
 //   on a flying guided round; fire crackle and roar on every smoke source
 //   the side knows (a wreck), burning then smouldering;
 // - the pose driver's motion: each drawn vehicle's engine (idle to load),
@@ -32,14 +32,8 @@
 // takes the quietest voice's place and a quieter one is dropped (counted).
 // The Web Audio graph is behind `VoiceSink` (`webAudioSink.ts`), so all of
 // this runs, and is tested, without an audio device.
-import {
-  sourceLifetime,
-  type EffectPublication,
-} from "@packages/battle-renderer/src/effects/effectFrame";
 import { clamp, lerp, vec3, type Vec3 } from "math";
 import { hashString } from "@packages/renderer-core/src/math";
-import { impactAfter, type CookOffFeel } from "@packages/battle-renderer/src/effects/cookOff";
-import { LaunchTracker } from "@packages/battle-renderer/src/effects/launches";
 import { pick } from "@packages/renderer-core/src/kindTable";
 import {
   validateAudio,
@@ -61,9 +55,40 @@ export interface SoundCue {
   moving: boolean;
 }
 
+type Point = readonly number[];
+
+/** One publication as the presentation hears it (`Presentation::sound_json`):
+ *  what the effects read of it, the launches it shows, and when a
+ *  cook-off's turret lands, seconds after its tick starts. */
+export interface HeardPublication {
+  effects: {
+    tick: number;
+    segments: readonly {
+      path: readonly Point[];
+      ricochets: readonly { point: number; normal: Point }[];
+      kind: string;
+      shooter: number | null;
+      hit: string;
+      normal: Point | null;
+    }[];
+    blasts: readonly { point: Point; radius: number; kind: string }[];
+    smokes: readonly { key: string; kind: string; center: Point; yaw: number; half: Point }[];
+    cookOffs?: readonly { center: Point; height: number; landing: Point | null }[];
+  };
+  launches: readonly {
+    shooter: number;
+    mount: number;
+    soldier: number | null;
+    x: number;
+    y: number;
+    z: number;
+    kind: string;
+  }[];
+  turretLandsS: number;
+}
+
 /** One publication, as sound reads it. */
-export interface SoundPublication {
-  effects: EffectPublication;
+export interface SoundPublication extends HeardPublication {
   audible: readonly SoundCue[];
 }
 
@@ -172,8 +197,14 @@ export interface SoundFrameOptions {
   catalog: SoundCatalog;
   /** How long each smoke kind burns and smoulders (`presentation.effects.smoke`). */
   smokeTimes: Record<string, { burn_s: number; smoulder_s: number }>;
-  /** When a cook-off's fireballs go and its turret lands (`presentation.effects.cook_off`). */
-  cookOff: CookOffFeel;
+  /** When a cook-off's fireballs go (`presentation.effects.cook_off`). */
+  cookOff: CookOffFireballs;
+}
+
+/** A cook-off's fireballs, as `presentation.effects.cook_off` times them. */
+export interface CookOffFireballs {
+  delay_s: number;
+  fireballs: readonly { after_s: number; radius_m: number }[];
 }
 
 /** A transient waiting for the clock. */
@@ -313,9 +344,8 @@ export class SoundFrame {
   private readonly p: AudioPresentation;
   private readonly catalog: SoundCatalog;
   private readonly dt: number;
-  private readonly launches: LaunchTracker;
   private readonly smokeTimes: SoundFrameOptions["smokeTimes"];
-  private readonly cookOff: CookOffFeel;
+  private readonly cookOff: CookOffFireballs;
   private pending: Pending[] = [];
   private transients: Voice[] = [];
   private readonly loops = new Map<string, Voice>();
@@ -340,7 +370,6 @@ export class SoundFrame {
     this.p = validateAudio(options.presentation);
     this.catalog = options.catalog;
     this.dt = 1 / options.tickHz;
-    this.launches = new LaunchTracker();
     this.smokeTimes = options.smokeTimes;
     this.cookOff = options.cookOff;
   }
@@ -353,7 +382,6 @@ export class SoundFrame {
     this.transients = [];
     this.loops.clear();
     this.pending = [];
-    this.launches.reset();
     this.movers.clear();
     this.strides.clear();
     this.fires.clear();
@@ -373,7 +401,6 @@ export class SoundFrame {
     const fx = pub.effects;
     if (fx.tick === this.lastTick) return;
     if (fx.tick < this.lastTick) this.reset();
-    const gap = this.lastTick >= 0 && fx.tick !== this.lastTick + 1;
     this.lastTick = fx.tick;
     const t0 = (fx.tick - 1) * this.dt;
     const t1 = fx.tick * this.dt;
@@ -381,7 +408,7 @@ export class SoundFrame {
 
     for (const [gun, b] of this.bursts)
       if (t0 > b.start + b.shots * b.interval) this.bursts.delete(gun);
-    for (const l of this.launches.note(fx, gap)) {
+    for (const l of pub.launches) {
       const base = pick(p.shots, l.kind);
       const s = resolveShot(this.catalog, base, l.kind);
       // A burst recording sounds the gun's next rounds too, while they land
@@ -505,7 +532,7 @@ export class SoundFrame {
       );
       if (c.landing)
         this.queue(
-          t0 + impactAfter(cook),
+          t0 + pub.turretLandsS,
           this.contact(
             p.cook_off.landing.hit,
             p.cook_off.landing.as,
@@ -779,7 +806,7 @@ export class SoundFrame {
       if (!times) continue;
       const row = pick(p.fires, f.kind);
       const age = clock - f.start;
-      if (age > sourceLifetime(times)) continue;
+      if (age > times.burn_s + times.smoulder_s) continue;
       // Full while it burns, easing to the smoulder over its last tenth.
       const burn = clamp((times.burn_s - age) / (times.burn_s * 0.1), 0, 1);
       wants.push({

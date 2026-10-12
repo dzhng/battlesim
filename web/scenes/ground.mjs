@@ -26,7 +26,7 @@
 import { writeFile } from "node:fs/promises";
 import { decode, mostChanged, pixel } from "./_png.mjs";
 import { lab, obs, advance, snapshot, openBattle, aim, groundCss } from "./_lab.mjs";
-import { groundFilterAdmission } from "./_groundFilter.mjs";
+import { groundFilterExact } from "./_groundFilter.mjs";
 import { surfaceExportAgreement } from "./_surfaces.mjs";
 import { forestExportAgreement } from "./_forests.mjs";
 import { surfaceFieldAgreement } from "./_surfaceField.mjs";
@@ -73,7 +73,7 @@ export async function run(ctx) {
   await surfaceExportAgreement(ctx);
   await forestExportAgreement(ctx);
   await surfaceFieldAgreement(ctx);
-  await groundFilterAdmission(ctx);
+  await groundFilterExact(ctx);
   if (process.env.SCAR_FILTER_ONLY) return;
   await groundRig(ctx);
   await grassGrowth(ctx);

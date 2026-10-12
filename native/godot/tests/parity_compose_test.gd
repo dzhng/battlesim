@@ -14,10 +14,10 @@ func run() -> bool:
 	check(listed.report.to_dictionary().budgets.any(func(row): return row.sourceId == "terrain.heights" and row.rendered > 0), "the ground is drawn from the run's terrain tables")
 	listed.root.free()
 
-	# The fixture keeps its buildings' tables out (they are the map's, and
-	# large): a listed buildings layer then stops at a named blocker.
-	var built := _compose(["buildings"])
-	check(built.report.to_dictionary().blockers.any(func(row): return row.name == "artifact" and row.detail.contains("buildings-buildings.u32")), "a listed layer whose tables are missing is a named blocker")
+	# A listed buildings layer resolves the capture's map from the
+	# repository: a map that is not there stops the run by name.
+	var built := _compose(["buildings"], "no-such-map")
+	check(built.report.to_dictionary().blockers.any(func(row): return row.name == "buildings" and row.detail.contains("no-such-map")), "a listed buildings layer whose map does not resolve is a named blocker")
 	built.root.free()
 
 	var without_sky := _compose(["terrain"])
@@ -64,14 +64,16 @@ func run() -> bool:
 	units.root.free()
 	return true
 
-## The fixture run's light (its sun turned), ground and world sections.
-func _compose(layers: Array) -> Dictionary:
+## The fixture run's light (its sun turned), ground and world sections, its
+## buildings those of saved map `map`.
+func _compose(layers: Array, map := FIXTURE_SCENE) -> Dictionary:
 	var root := Node3D.new()
 	var report := RenderReport.new()
 	var fixture: Dictionary = read_json(FIXTURE_RUN.path_join(FIXTURE_SCENE).path_join("manifest.json"))
 	var light: Dictionary = fixture.light
 	light.sunDirection = [sqrt(0.5), 0.0, sqrt(0.5)]
-	var manifest := {"layers": layers, "light": light, "tuning": fixture.tuning, "grass": fixture.grass, "lens": fixture.lens, "units": fixture.units, "buildings": fixture.buildings, "scenery": fixture.scenery, "props": fixture.props, "effects": fixture.effects}
+	var identity: Dictionary = fixture.identity.merged({"map": map}, true)
+	var manifest := {"identity": identity, "layers": layers, "light": light, "tuning": fixture.tuning, "grass": fixture.grass, "lens": fixture.lens, "units": fixture.units, "scenery": fixture.scenery, "props": fixture.props, "effects": fixture.effects}
 	var ground := ParityRun.read_ground(FIXTURE_RUN.path_join(FIXTURE_SCENE), fixture)
 	var world := ParityRun.compose(root, manifest, ground, SAMPLES, FIXTURE_RUN.path_join(FIXTURE_SCENE), "blue", report)
 	return {"root": root, "report": report, "world": world}

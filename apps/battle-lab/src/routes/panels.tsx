@@ -2,7 +2,7 @@ import { useLabLoading } from "../LabLoading";
 // The panel workbench: every info panel the battle can draw (the specimens
 // in `panelSpecimens.ts`), through the battle's own `InfoPanel`, on a plain
 // ground and one row over grass; `?scale=` zooms the page, `?units=test`
-// draws the per-type groups for the test units only. No 3D scene: the
+// draws the per-type and heard groups for the pinned test units only. No 3D scene: the
 // panels are DOM over the battlefield. The scene (`web/scenes/panels.mjs`)
 // shoots the contact sheet.
 import game from "@fixtures/game.json";

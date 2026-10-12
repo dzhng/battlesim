@@ -12,7 +12,6 @@ import { AppearanceLibrary, memoryFetch } from "@packages/scene-assets/src/loade
 import { importScene } from "@packages/scene-assets/src/scene.ts";
 import type { Catalog } from "@packages/scene-assets/src/schema.ts";
 import { UnitCatalog } from "@packages/scene-assets/src/units.ts";
-import { createPoseDriver } from "@apps/battle-lab/src/poseFeed";
 import {
   AUTHORITY,
   GltfBuilder,
@@ -186,48 +185,6 @@ test("variants share a hold family but a squad can mix rifle and launcher holds"
   );
   // Across the squad's soldier kinds.
   expect(() => new AppearanceCatalog(installed, units(["rifleman"], ["rifleman_b"]))).not.toThrow();
-});
-
-test("mixed soldier holds advance using their own installed clip duration", async () => {
-  const base = testCatalog();
-  const installed = await install({
-    ...base,
-    skeletons: { ...base.skeletons, "test-rig-2": base.skeletons["test-rig"] },
-    appearances: {
-      ...base.appearances,
-      rifleman_b: { ...base.appearances.rifleman, skeleton: "test-rig-2" },
-    },
-  });
-  const slow = installed.skeletons.get("test-rig-2")!;
-  installed.skeletons.set("test-rig-2", {
-    ...slow,
-    clips: slow.clips.map((c) => (c.name === "idle" ? { ...c, duration: 20 } : c)),
-  });
-  const catalog = units(["rifleman"], ["rifleman_b"]);
-  const phase = (slot: number) => {
-    const driver = createPoseDriver({ cover: { lean_hold_s: 0.1 } }, catalog, installed);
-    const actor = {
-      id: 1,
-      kind: "rifle",
-      side: "blue" as const,
-      position: [0, 0, 0] as [number, number, number],
-      yaw: 0,
-      soldiers: [
-        { id: 0, slot, activeMount: null, position: [0, 0, 0] as [number, number, number] },
-      ],
-      mounts: [],
-      deployment: null,
-      pinned: false,
-    };
-    driver.update({ time: 0, units: [actor], fallen: [] });
-    const pose = driver.update({ time: 0.1, units: [actor], fallen: [] }).soldiers[0];
-    expect(pose.clip).toBe("idle");
-    return pose.phase;
-  };
-  const fastDuration = installed.skeletons
-    .get("test-rig")!
-    .clips.find((c) => c.name === "idle")!.duration;
-  expect(phase(1)).toBeCloseTo((phase(0) * fastDuration) / 20, 8);
 });
 
 test("a material's glTF extras tint is its side-tint mask weight", () => {

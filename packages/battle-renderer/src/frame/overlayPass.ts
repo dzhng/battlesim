@@ -257,29 +257,33 @@ export async function createOverlayPass(
     targets: { format: OVERLAY_FORMAT, blend: premultiplying },
     multisample: { count: FRAME_MSAA },
   } as const;
-  const opaque = root.createRenderPipeline({
-    ...base,
-    depthStencil: battleWorldDepth("read-write"),
-  });
-  const translucent = root.createRenderPipeline({
-    ...base,
-    depthStencil: battleWorldDepth("read"),
-  });
-  const composite = root.createRenderPipeline({
-    vertex: common.fullScreenTriangle,
-    fragment: screen(compositeOverlay),
-    targets: { format: displayFormat, blend: over },
-  });
-  const rows = root.createRenderPipeline({
-    vertex: common.fullScreenTriangle,
-    fragment: screen(glowRows),
-    targets: { format: OVERLAY_FORMAT },
-  });
-  const columns = root.createRenderPipeline({
-    vertex: common.fullScreenTriangle,
-    fragment: screen(glowColumns),
-    targets: { format: OVERLAY_FORMAT },
-  });
+  const opaque = root
+    .createRenderPipeline({ ...base, depthStencil: battleWorldDepth("read-write") })
+    .$name("overlayOpaque");
+  const translucent = root
+    .createRenderPipeline({ ...base, depthStencil: battleWorldDepth("read") })
+    .$name("overlayTranslucent");
+  const composite = root
+    .createRenderPipeline({
+      vertex: common.fullScreenTriangle,
+      fragment: screen(compositeOverlay),
+      targets: { format: displayFormat, blend: over },
+    })
+    .$name("overlayComposite");
+  const rows = root
+    .createRenderPipeline({
+      vertex: common.fullScreenTriangle,
+      fragment: screen(glowRows),
+      targets: { format: OVERLAY_FORMAT },
+    })
+    .$name("glowRows");
+  const columns = root
+    .createRenderPipeline({
+      vertex: common.fullScreenTriangle,
+      fragment: screen(glowColumns),
+      targets: { format: OVERLAY_FORMAT },
+    })
+    .$name("glowColumns");
   await Promise.all([opaque, translucent, composite, rows, columns].map((p) => p.initAsync()));
 
   const identity = identityInstance(root, registry);

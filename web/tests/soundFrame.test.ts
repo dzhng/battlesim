@@ -15,6 +15,8 @@ import type { SoundCatalog } from "@packages/battle-audio/src/catalog";
 import {
   distanceGain,
   SoundFrame,
+  type CookOffFireballs,
+  type HeardPublication,
   type Listener,
   type SoundCue,
   type SoundMotion,
@@ -24,18 +26,24 @@ import {
   vehicleLoops,
 } from "@packages/battle-audio/src/soundFrame";
 import { synthesize } from "@packages/battle-audio/src/synth";
-import { impactAfter } from "@packages/battle-renderer/src/effects/cookOff";
-import type {
-  EffectPresentation,
-  EffectPublication,
-  EffectShooter,
-} from "@packages/battle-renderer/src/effects/effectFrame";
 
 const HZ = 30;
 const DT = 1 / HZ;
 const AUDIO = game.presentation.audio as unknown as AudioPresentation;
-const SMOKE = (game.presentation.effects as unknown as EffectPresentation).smoke;
-const COOK_OFF = (game.presentation.effects as unknown as EffectPresentation).cook_off;
+const SMOKE = game.presentation.effects.smoke;
+const COOK_OFF: CookOffFireballs = game.presentation.effects.cook_off;
+/** When a cook-off's turret lands, seconds after its tick starts (the
+ *  presentation's, `HeardPublication.turretLandsS`). */
+const TURRET_LANDS_S = 1.4;
+
+/** A publication as the presentation hears it: what the effects read, and
+ *  the launches it shows (the presentation derives them; here, given). */
+type Effects = HeardPublication["effects"] & { launches?: HeardPublication["launches"] };
+const heard = ({ launches = [], ...effects }: Effects): HeardPublication => ({
+  effects,
+  launches,
+  turretLandsS: TURRET_LANDS_S,
+});
 const LISTENER: Listener = { position: [0, -20, 20], forward: [0, 1, 0] };
 const STILL: SoundMotion = { vehicles: [], soldiers: [] };
 
@@ -92,20 +100,30 @@ function setup() {
   return { sink, frame };
 }
 
-const squad = (key: number, member: number, at: number[], shots: number): EffectShooter => ({
-  key,
-  position: at,
-  half: null,
-  yaw: 0,
-  members: [member],
-  mounts: [{ bearing: 0, elevation: 0, shots, kind: "rifle", muzzle: null }],
+const launch = (
+  shooter: number,
+  soldier: number | null,
+  at: number[],
+  kind: string,
+  mount = 0,
+) => ({
+  shooter,
+  mount,
+  soldier,
+  x: at[0],
+  y: at[1],
+  z: at[2],
+  kind,
 });
 
-/** A publication where each shooter's one soldier fires a new round at tick `tick`. */
-function firefight(tick: number, shooters: { key: number; at: number[] }[]): EffectPublication {
+/** A publication where each shooter's one soldier fires a new round at
+ *  tick `tick`: a squad's round is heard from the third tick it is seen,
+ *  as the launches name it (its counter rises the tick after it is first
+ *  seen, and the round leaves the tick after that). */
+function firefight(tick: number, shooters: { key: number; at: number[] }[]): Effects {
   return {
     tick,
-    shooters: shooters.map((s) => squad(s.key, s.key * 10, s.at, tick)),
+    launches: tick >= 3 ? shooters.map((s) => launch(s.key, s.key * 10, s.at, "rifle")) : [],
     segments: shooters.map((s) => ({
       path: [s.at, [s.at[0] + 10, s.at[1], s.at[2]]],
       ricochets: [],
@@ -125,12 +143,12 @@ function run(
   sink: FakeSink,
   from: number,
   to: number,
-  pub: (tick: number) => EffectPublication,
+  pub: (tick: number) => Effects,
   audible: (tick: number) => SoundCue[] = () => [],
   motion: SoundMotion = STILL,
 ) {
   for (let tick = from; tick <= to; tick++) {
-    frame.note({ effects: pub(tick), audible: audible(tick) });
+    frame.note({ ...heard(pub(tick)), audible: audible(tick) });
     sink.time = tick * DT;
     frame.update(tick * DT, tick * DT, motion, LISTENER);
   }
@@ -210,7 +228,7 @@ test("the voice budget holds in a 100-a-side firefight, loudest first", () => {
   let most = 0;
   let mostLoops = 0;
   for (let tick = 1; tick <= 90; tick++) {
-    frame.note({ effects: firefight(tick, shooters), audible: [] });
+    frame.note({ ...heard(firefight(tick, shooters)), audible: [] });
     sink.time = tick * DT;
     for (const v of vehicles) {
       v.travelL += 0.2;
@@ -260,7 +278,7 @@ test("a standing clock silences transients and holds loops; it plays on after", 
 
   // Resumed: the clock moves and shots sound again.
   for (let tick = 11; tick <= 14; tick++) {
-    frame.note({ effects: firefight(tick, [{ key: 2, at: [0, 0, 1] }]), audible: [] });
+    frame.note({ ...heard(firefight(tick, [{ key: 2, at: [0, 0, 1] }])), audible: [] });
     sink.time += DT;
     frame.update(tick * DT, sink.time, motion, LISTENER);
   }
@@ -283,7 +301,7 @@ test("reset, or a new battle, clears every voice and count", () => {
   // A publication earlier than the last is a new battle: the same.
   run(frame, sink, 20, 30, pub);
   expect(sink.voices.size).toBeGreaterThan(1);
-  frame.note({ effects: firefight(2, []), audible: [] });
+  frame.note({ ...heard(firefight(2, [])), audible: [] });
   expect(sink.voices.size).toBe(0);
 });
 
@@ -296,7 +314,7 @@ test("a known wreck burns, then smoulders quieter, then falls silent", () => {
     0;
   const at = (s: number) => {
     const tick = Math.round(s * HZ);
-    frame.note({ effects: { ...firefight(tick, []), smokes }, audible: [] });
+    frame.note({ ...heard({ ...firefight(tick, []), smokes }), audible: [] });
     sink.time = tick * DT;
     frame.update(tick * DT, tick * DT, STILL, LISTENER);
     return fireGain();
@@ -322,7 +340,7 @@ function farthestCamera(target: number[]) {
 function heardFrom(listener: Listener, at: number[]) {
   const { sink, frame } = setup();
   for (let tick = 1; tick <= 10; tick++) {
-    frame.note({ effects: firefight(tick, [{ key: 2, at }]), audible: [] });
+    frame.note({ ...heard(firefight(tick, [{ key: 2, at }])), audible: [] });
     sink.time = tick * DT;
     frame.update(tick * DT, tick * DT, STILL, listener);
   }
@@ -400,10 +418,7 @@ test("weapon row choices change reports without changing observed cadence or hid
       return {
         ...pub,
         segments: pub.segments.map((s, i) => ({ ...s, kind: weapon(i), hit: "none" })),
-        shooters: pub.shooters.map((s, i) => ({
-          ...s,
-          mounts: s.mounts.map((m) => ({ ...m, kind: weapon(i) })),
-        })),
+        launches: pub.launches?.map((l, i) => ({ ...l, kind: weapon(i) })),
       };
     },
     () => [{ category: "shot", sector: 1, band: "near", moving: false }],
@@ -420,20 +435,14 @@ test("weapon row choices change reports without changing observed cadence or hid
 
 /** One rifleman with weapon row `kind` at the origin, firing a round on each of `ticks`. */
 function rifleman(kind: string, ticks: readonly number[]) {
-  return (tick: number): EffectPublication => {
+  return (tick: number): Effects => {
     const pub = firefight(tick, [{ key: 2, at: [0, 0, 1] }]);
+    // A squad's round leaves its muzzle on the tick after the one that fired it.
+    const fired = ticks.includes(tick - 1);
     return {
       ...pub,
-      shooters: pub.shooters.map((s) => ({
-        ...s,
-        mounts: s.mounts.map((m) => ({
-          ...m,
-          kind,
-          shots: ticks.filter((t) => t <= tick).length,
-        })),
-      })),
-      // A squad's round leaves its muzzle on the tick after the one that fired it.
-      segments: ticks.includes(tick - 1) ? pub.segments.map((s) => ({ ...s, kind })) : [],
+      launches: fired ? [launch(2, 20, [0, 0, 1], kind)] : [],
+      segments: fired ? pub.segments.map((s) => ({ ...s, kind })) : [],
     };
   };
 }
@@ -497,27 +506,13 @@ test("a hull's mounts keep their weapons' explicit recipes while implicit impact
     { tickHz: HZ, presentation: AUDIO, smokeTimes: SMOKE, cookOff: COOK_OFF, catalog },
     sink,
   );
-  const pub = (tick: number): EffectPublication => ({
+  // A hull's mounts fire on the tick their counters rise: the second it is seen.
+  const pub = (tick: number): Effects => ({
     tick,
-    shooters: [
-      {
-        key: 2,
-        half: [3, 1, 1],
-        position: [0, 0, 1],
-        yaw: 0,
-        members: [],
-        mounts: [
-          {
-            bearing: 0,
-            elevation: 0,
-            shots: tick - 1,
-            kind: "tank_ap",
-            muzzle: null,
-          },
-          { bearing: 0, elevation: 0, shots: tick - 1, kind: "hmg", muzzle: null },
-        ],
-      },
-    ],
+    launches:
+      tick === 2
+        ? [launch(2, null, [0, 0, 1], "tank_ap"), launch(2, null, [0, 0, 1], "hmg", 1)]
+        : [],
     segments:
       tick === 2
         ? [
@@ -574,7 +569,6 @@ test("a glancing round's ricochet follows its kind, heavier rounds louder", () =
     );
     run(frame, sink, 1, 3, (tick) => ({
       tick,
-      shooters: [],
       segments:
         tick === 2
           ? [
@@ -624,7 +618,6 @@ test("a missile striking armour sounds the strike and its explosion; tank rounds
     const point = [0, 0, 1.5];
     run(frame, sink, 1, 3, (tick) => ({
       tick,
-      shooters: [],
       segments:
         tick === 2
           ? [
@@ -660,10 +653,9 @@ test("a cook-off booms as its ammunition goes and clangs where its turret lands"
   const { sink, frame } = setup();
   const landing = [1, 10, 2];
   const hit = 2;
-  const ticks = Math.ceil((impactAfter(COOK_OFF) + 0.5) * HZ) + hit;
+  const ticks = Math.ceil((TURRET_LANDS_S + 0.5) * HZ) + hit;
   run(frame, sink, 1, ticks, (tick) => ({
     tick,
-    shooters: [],
     segments: [],
     blasts: [],
     smokes: [],
@@ -681,8 +673,8 @@ test("a cook-off booms as its ammunition goes and clangs where its turret lands"
   // The turret striking the deck, where and when it lands.
   const clang = heard.filter((v) => v.sound === AUDIO.impacts.hull.sound);
   expect(clang.length).toBe(1);
-  expect(clang[0].at).toBeGreaterThanOrEqual(killed + impactAfter(COOK_OFF) - DT);
-  expect(clang[0].at).toBeLessThanOrEqual(killed + impactAfter(COOK_OFF) + DT);
+  expect(clang[0].at).toBeGreaterThanOrEqual(killed + TURRET_LANDS_S - DT);
+  expect(clang[0].at).toBeLessThanOrEqual(killed + TURRET_LANDS_S + DT);
   expect(near(clang[0], landing, 0.5)).toBe(true);
 });
 
@@ -692,10 +684,9 @@ test("the turret's landing clang is the catalog's tank shell striking armour", (
     { tickHz: HZ, presentation: AUDIO, smokeTimes: SMOKE, cookOff: COOK_OFF, catalog: gameSounds },
     sink,
   );
-  const ticks = Math.ceil((impactAfter(COOK_OFF) + 0.5) * HZ) + 2;
+  const ticks = Math.ceil((TURRET_LANDS_S + 0.5) * HZ) + 2;
   run(frame, sink, 1, ticks, (tick) => ({
     tick,
-    shooters: [],
     segments: [],
     blasts: [],
     smokes: [],

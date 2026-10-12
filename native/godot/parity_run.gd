@@ -277,7 +277,7 @@ func _count_instances(index: int, world: StaticWorld, manifest: Dictionary, brow
 	if browser.is_empty():
 		_report.add_blocker("instances", "plate-%d: the manifest has no instance counts for it" % index)
 		return
-	for difference in StaticWorld.differences(native, browser[0], manifest.buildings.modules, manifest.scenery.kinds):
+	for difference in StaticWorld.differences(native, browser[0], world.modules(), manifest.scenery.kinds):
 		_report.add_blocker("instances", "plate-%d: %s" % [index, difference])
 
 ## The plate's posed models by kind against the browser's (`modelCounts`):

@@ -5,6 +5,7 @@ use serde_json::from_str;
 use sim::battle::{Battle, Replay};
 use sim::publication::Publisher;
 
+mod building_walk;
 mod publication_reader;
 mod static_layers;
 

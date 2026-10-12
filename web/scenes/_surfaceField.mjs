@@ -77,7 +77,6 @@ export async function surfaceFieldAgreement(ctx) {
         ],
       ];
       const source = terrain.createTerrainSource(root, registry);
-      await source.ready();
       const queryLayout = tgpu.bindGroupLayout({
         points: { storage: (n) => d.arrayOf(d.vec4f, n), access: "readonly" },
         output: { storage: (n) => d.arrayOf(d.vec4f, n), access: "mutable" },

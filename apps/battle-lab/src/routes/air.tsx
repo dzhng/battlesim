@@ -9,10 +9,11 @@ import { TickStatus } from "../TickStatus";
 
 // The first helicopter checkpoint: the test helicopter flies one move order
 // over a village at cruise height, climbs over its tallest roofs, goes round the tower
-// in its way and over a little wood. A red rifle squad by the village plinks
-// at it, a tank far to the south never brings its gun to bear, and the gun
-// jeep beside the tank, told to fire once the helicopter hovers at the end of
-// its route and to hold again after one round, hurts it.
+// in its way and over a little wood, holding its fire unless fired on. A red
+// rifle squad beside the route plinks at it, a tank to the south never brings
+// its gun to bear, and the gun jeep beside the tank, within its autocannon's
+// reach of the hover, told to fire once the helicopter hovers at the end of
+// its route and to hold again after one burst, hurts it.
 const SEED = 7;
 
 // From the south-west over the village: the route from the first houses to
@@ -46,20 +47,12 @@ function AirLab({ battle }: { battle: SavedBattle }) {
       <LabViewport
         fixture="air"
         world={worldFeed}
-        structures={session.structures}
-        obstacles={session.cameraObstaclesFeed}
-        buildings={session.buildingsFeed}
+        {...session.known}
         overlay={overlayFeed}
         fog={session.fogFeed}
-        frame={session.frame}
-        appearances={session.appearances}
+        {...session.viewport}
         initialCamera={AIR_CAMERA}
-        onPick={session.onPick}
-        onRightPress={session.onRightPress}
-        onCursor={session.onCursor}
-        pointerMarks={session.pointerPaint.feed}
-        onBox={session.onBox}
-        onReady={session.onReady}
+        {...session.input}
         onFrame={session.placePanels}
         diagnostics={session.probes}
       />

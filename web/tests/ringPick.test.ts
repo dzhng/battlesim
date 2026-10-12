@@ -4,11 +4,10 @@
 // draws it.
 import { expect, test } from "vitest";
 import type { ObservationView, OwnUnitView, IdentifiedView } from "@web/battle/sim/observationView";
-import type { Pose } from "@web/battle/present/interpolate";
-import { ringUnder, sideInstances } from "@apps/battle-lab/src/sideInstances";
+import { ringUnder, sideInstances, type DrawnUnit } from "@apps/battle-lab/src/sideInstances";
+import type { PresentedFrame } from "@web/battle/sim/presentation";
 import { gameOrderStyle as STYLE } from "@apps/battle-lab/src/gameOverlay";
 import { UNITS } from "./catalog";
-import game from "../../fixtures/game.json";
 
 const own = (u: Partial<OwnUnitView>) =>
   ({
@@ -37,20 +36,22 @@ const seen = (u: Partial<IdentifiedView>) =>
     members: [],
     ...u,
   }) as IdentifiedView;
-const pose = (u: { id: number; position: readonly number[] }): Pose => ({
-  id: u.id,
-  position: [u.position[0], u.position[1], u.position[2]],
-  yaw: 0,
-  members: [],
-  memberIds: [],
-  deployment: null,
-});
+/** Where a frame drew each unit: at its published position. */
+const drawnAt = (units: { id: number; position: readonly number[] }[]) =>
+  new Map<number, DrawnUnit>(
+    units.map((u) => [
+      u.id,
+      { position: [u.position[0], u.position[1], u.position[2]], yaw: 0, members: [] },
+    ]),
+  );
+/** A frame that drew no body: only the rings pick. */
+const NO_PICKS = { picks: { count: 0 } } as unknown as PresentedFrame;
 const drawnFor = (mine: OwnUnitView[], theirs: IdentifiedView[] = []) =>
   sideInstances(
-    mine.map(pose),
-    theirs.map(pose),
+    NO_PICKS,
+    drawnAt(mine),
+    drawnAt(theirs),
     { own: mine, identified: theirs } as unknown as ObservationView,
-    game.physics,
     UNITS,
   );
 /** A vehicle's marker radius: its hull's half length plus the margin. */

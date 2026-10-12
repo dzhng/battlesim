@@ -28,7 +28,8 @@ import { useFeed } from "../feed";
 // tanks shell a red squad standing in craters and one in the open; a blue
 // squad walks the field. `?street` inspects the street test map's `rear`
 // encounter instead (`fixtures/maps/street/encounters/rear.json`): the street
-// fight, with blue's supply truck and jeep pulled back behind the ridge and
+// fight, with blue's supply truck and jeep starting in the rear, beyond red's
+// rifles, and driving back behind the ridge, and
 // red's jeep driven in from beyond the east wood, where a shell lands beside
 // it at the start, so each side learns ground, and a crater, the other never
 // saw. The flat cell view
@@ -255,15 +256,9 @@ function GroundInspector({ scenario, seed, camera, legend, extra }: InspectorPro
         world={worldFeed}
         overlay={overlayFeed}
         fog={session.fogFeed}
-        frame={session.frame}
-        appearances={session.appearances}
+        {...session.viewport}
         initialCamera={camera}
-        onPick={session.onPick}
-        onRightPress={session.onRightPress}
-        onCursor={session.onCursor}
-        pointerMarks={session.pointerPaint.feed}
-        onBox={session.onBox}
-        onReady={session.onReady}
+        {...session.input}
         diagnostics={diagnostics}
       />
       <aside className="hud-panel lab-panel" data-testid="ground-panel">

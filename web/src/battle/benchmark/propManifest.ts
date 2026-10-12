@@ -5,9 +5,8 @@
 // learns (wrecks, shoved bodies, rubble, fallen buildings) arrives per frame,
 // so native ports the fit and reads the tables it chooses from here.
 // Plain Node runs the writer, so this imports nothing the renderer owns.
+import type { Vec3 } from "math";
 import { finite, hasKeys, isRecord } from "./presentationCapture.ts";
-
-type Vec3 = [number, number, number];
 
 /** A look a prop model draws: an appearance and one of its states (`default`,
  *  or a kit's module for the stand-in box). */

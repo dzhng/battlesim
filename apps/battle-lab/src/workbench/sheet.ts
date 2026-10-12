@@ -13,7 +13,7 @@
 import { vec3, type Vec3 } from "math";
 import { createBattleFrame } from "@packages/battle-renderer/src/frame/battleFrame";
 import type { BattleFrame } from "@packages/battle-renderer/src/scene";
-import type { ModelInstance, ModelPose } from "@packages/battle-renderer/src/models/modelInstances";
+import type { ModelInstance } from "@packages/battle-renderer/src/models/modelInstances";
 import type { ImpostorAtlas } from "@packages/battle-renderer/src/models/impostor";
 import { REST_ARTICULATION, type Articulation } from "@packages/scene-assets/src/articulation";
 import type { ReferenceView } from "@packages/scene-assets/src/references";
@@ -27,10 +27,11 @@ import {
   type TextureChannel,
 } from "@packages/scene-assets/src/schema";
 import { gameLight } from "../gameLight";
+import { resolveLight } from "@web/battle/sim/presentation";
 import { gameFogGeometry, gameFogStyle } from "../gameFog";
 import { gameOverlayGlow, gamePaint, gameXrayMinHiddenFragmentFraction } from "../gameOverlay";
-import { gameBuildingStyle, gameGlass, gameModelDetail } from "../gameModels";
-import { benchOverlay, benchWorld, posedSockets } from "./benchWorld";
+import { gameGlass, gameModelDetail } from "../gameModels";
+import { benchOverlay, benchWorld, drawnPose, posedSockets, type BenchPose } from "./benchWorld";
 import { sideTint, type LoadedModel } from "./sources";
 import {
   REFERENCE_CAMERAS,
@@ -49,7 +50,7 @@ const LABEL = 22;
 
 export interface StripFrame {
   label: string;
-  pose: ModelPose;
+  pose: BenchPose;
   view: SheetView;
 }
 
@@ -94,7 +95,7 @@ export function figureSpot(bounds: Bounds, view: SheetView): [number, number] {
 }
 
 /** The pose a sheet shows the model in: idle for a body, rest for a vehicle. */
-export function sheetPose(bundle: Appearance, skeleton: SkeletonClips | null): ModelPose {
+export function sheetPose(bundle: Appearance, skeleton: SkeletonClips | null): BenchPose {
   if (bundle.kind === "skinned") {
     const clip = skeleton?.clips.find((c) => c.name === "idle") ?? skeleton?.clips[0];
     return { kind: "skinned", clip: clip?.name ?? "idle", phase: 0, blend: null };
@@ -104,7 +105,7 @@ export function sheetPose(bundle: Appearance, skeleton: SkeletonClips | null): M
   return { kind: "static", state: bundle.states[0].name };
 }
 
-const articulated = (a: Partial<Articulation>): ModelPose => ({
+const articulated = (a: Partial<Articulation>): BenchPose => ({
   kind: "articulated",
   articulation: { ...REST_ARTICULATION, ...a },
 });
@@ -210,7 +211,7 @@ export class SheetRenderer {
 
   static async create(device: GPUDevice, format: GPUTextureFormat, model: LoadedModel) {
     const frame = await createBattleFrame(device, format, {
-      light: gameLight,
+      light: await resolveLight(gameLight),
       fogGeometry: gameFogGeometry,
       fogStyle: gameFogStyle,
       overlayGlow: gameOverlayGlow,
@@ -218,7 +219,6 @@ export class SheetRenderer {
       xrayMinHiddenFragmentFraction: gameXrayMinHiddenFragmentFraction,
       models: gameModelDetail,
       glass: gameGlass,
-      buildings: gameBuildingStyle,
       world: benchWorld(null),
       instances: [],
       width: TILE,
@@ -231,7 +231,7 @@ export class SheetRenderer {
   /** One tile as RGBA pixels. */
   async tile(
     model: LoadedModel,
-    pose: ModelPose,
+    pose: BenchPose,
     view: SheetView,
     frameOn: Bounds,
     marks: { hitBox: boolean; sockets: boolean } = { hitBox: true, sockets: true },
@@ -246,7 +246,7 @@ export class SheetRenderer {
       y: 0,
       z: 0,
       yaw: 0,
-      pose,
+      pose: drawnPose(bundle, skeleton, pose),
       tint,
     };
     this.frame.setModels([instance]);
@@ -438,7 +438,7 @@ const CHANNEL_TILES: { label: string; channels: Partial<Record<TextureChannel, b
 async function renderSurface(
   renderer: SheetRenderer,
   model: LoadedModel,
-  pose: ModelPose,
+  pose: BenchPose,
   framing: Bounds,
   tint: Vec3 | undefined,
 ): Promise<HTMLCanvasElement> {

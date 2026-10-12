@@ -1,3 +1,4 @@
+# Frozen: a port of the per-frame presentation `crates/presentation` now owns; no fixes here, deleted with Godot (slice 25).
 extends RefCounted
 
 ## The light combat throws on what is round it, ported from the browser's

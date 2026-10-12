@@ -9,6 +9,18 @@ import { afterEach, expect, test, vi } from "vitest";
 import { SoundWorkbenchStore, soundWorkbenchMiddleware } from "../../apps/sound-workbench/server";
 import { validateSoundCatalog, type SoundCatalog } from "@packages/battle-audio/src/catalog";
 import { SOUNDS } from "@packages/battle-audio/src/synth";
+import {
+  ALL_TRIGGERS,
+  validateVoiceCatalog,
+  type Trigger,
+  type VoiceCatalog,
+} from "@packages/battle-audio/src/voices/voiceCatalog";
+import { recordVerdicts, type TakeRecord } from "@packages/battle-audio/tools/generate/lock";
+import {
+  VoiceWorkbenchStore,
+  voiceWorkbenchMiddleware,
+  type GenerateRunner,
+} from "../../apps/sound-workbench/voiceStore";
 
 vi.mock("node:fs/promises", async (importOriginal) => ({
   ...(await importOriginal<typeof import("node:fs/promises")>()),
@@ -317,3 +329,261 @@ test.each(["source", "clip"])(
     expect(await readFile(join(root, "fixtures/sounds.json"), "utf8")).toBe(source);
   },
 );
+
+// Voices: the review grid's store. The generation tool is the lock's only writer, so the
+// store runs it as a child process; tests replace only that process boundary.
+const LEAD_MOVE = "tank/lead/move/steady/0";
+const LEAD_MOVE_STRESSED = "tank/lead/move/stressed/0";
+function voiceCatalog(): VoiceCatalog {
+  const line = (text: string) => ({
+    steady: [`${text}.`, `${text}, steady.`] as [string, string],
+    stressed: [`${text}!`, `${text}, now!`] as [string, string],
+  });
+  return {
+    roles: {
+      crew: {
+        lines: Object.fromEntries(
+          ALL_TRIGGERS.map((trigger) => [trigger, line(trigger)]),
+        ) as Record<Trigger, ReturnType<typeof line>>,
+      },
+    },
+    sets: {
+      tank: {
+        role: "crew",
+        country: "us",
+        callsign: "Oscar 55",
+        processing: "voice-radio-light",
+        voices: [
+          { id: "lead", speaks: "responses", gender: "male", description: "Lead", voice_id: "v1" },
+          { id: "soldier", speaks: "barks", gender: "male", description: "Crew", voice_id: null },
+        ],
+      },
+    },
+    assignments: {},
+    retakes: {},
+  };
+}
+function takeRecord(text: string, served: string, flagged = false): TakeRecord {
+  return {
+    text,
+    generation_key: "g".repeat(64),
+    raw: "assets/source/audio/voices/tank/raw.mp3",
+    raw_sha256: "r".repeat(64),
+    processing_key: "p".repeat(64),
+    served_sha256: served,
+    duration_s: 1.2,
+    transcript: text,
+    match: { score: flagged ? 0.5 : 1, missing: [], overlong: false, flagged },
+    provenance: {
+      kind: "Generated",
+      generator: "test",
+      model: "test",
+      text,
+      date: "2026-10-12",
+      plan: "Duet ElevenLabs",
+    },
+  };
+}
+
+async function voiceFixture(
+  run: GenerateRunner = async () => {
+    throw new Error("unexpected generation run");
+  },
+) {
+  const root = await mkdtemp(join(tmpdir(), "voice-workbench-"));
+  roots.push(root);
+  await mkdir(join(root, "fixtures"));
+  const text = `${JSON.stringify(voiceCatalog(), null, 2)}\n`;
+  await writeFile(join(root, "fixtures/voices.json"), text);
+  await writeFile(
+    join(root, "fixtures/voices.lock.json"),
+    JSON.stringify({
+      beds: {},
+      takes: {
+        [LEAD_MOVE]: takeRecord("move.", "a".repeat(64)),
+        [LEAD_MOVE_STRESSED]: takeRecord("move!", "b".repeat(64), true),
+      },
+    }),
+  );
+  const open = async () => {
+    const store = new VoiceWorkbenchStore(root, (value) => validateVoiceCatalog(value, null), run);
+    const middleware = voiceWorkbenchMiddleware(store);
+    const server = createServer(
+      (req, res) =>
+        void middleware(req, res, () => {
+          res.statusCode = 404;
+          res.end();
+        }),
+    );
+    servers.push(server);
+    await new Promise<void>((done) => server.listen(0, "127.0.0.1", done));
+    const address = server.address();
+    if (!address || typeof address === "string") throw new Error("No local server address");
+    const origin = `http://127.0.0.1:${address.port}`;
+    return async (endpoint: string, body?: unknown) => {
+      const response = await fetch(
+        `${origin}/__sound-workbench/voices/${endpoint}`,
+        body === undefined
+          ? undefined
+          : {
+              method: "POST",
+              headers: { Origin: origin, "Content-Type": "application/json" },
+              body: JSON.stringify(body),
+            },
+      );
+      return { status: response.status, body: await response.json() };
+    };
+  };
+  return { root, text, open };
+}
+/** The generation tool's `verdict` command, run in-process against the fixture's lock. */
+const verdictTool =
+  (root: string): GenerateRunner =>
+  async ([command, value, ...judged], line) => {
+    if (command !== "verdict") throw new Error(`unexpected generate ${command}`);
+    return recordVerdicts(join(root, "fixtures/voices.lock.json"), value, judged, line) ? 0 : 1;
+  };
+const lockOf = async (root: string) =>
+  JSON.parse(await readFile(join(root, "fixtures/voices.lock.json"), "utf8"));
+
+test("a voice verdict is recorded by the generation tool and survives a reload", async () => {
+  let root = "";
+  const fixture = await voiceFixture((args, line) => verdictTool(root)(args, line));
+  root = fixture.root;
+  const request = await fixture.open();
+  const before = (await request("snapshot")).body;
+  expect(before.takes[LEAD_MOVE].verdict).toBeNull();
+  expect(before.counts.tank).toMatchObject({ takes: 2, unreviewed: 2, flagged: 1, bad: 0 });
+  const judged = await request("verdict", {
+    verdict: "ok",
+    takes: [{ take: LEAD_MOVE, sha256: before.takes[LEAD_MOVE].sha256 }],
+  });
+  expect(judged.status).toBe(200);
+  expect(judged.body.takes[LEAD_MOVE].verdict).toBe("ok");
+  expect(judged.body.counts.tank).toMatchObject({ unreviewed: 1, ok: 1 });
+  // The verdict is bound to the bytes that were heard.
+  expect((await lockOf(root)).takes[LEAD_MOVE].verdict).toEqual({
+    value: "ok",
+    sha256: "a".repeat(64),
+  });
+  const reloaded = (await (await fixture.open())("snapshot")).body;
+  expect(reloaded.takes[LEAD_MOVE].verdict).toBe("ok");
+});
+
+test("a regenerated take falls back to unreviewed, and a verdict on the old bytes is refused", async () => {
+  let root = "";
+  const fixture = await voiceFixture((args, line) => verdictTool(root)(args, line));
+  root = fixture.root;
+  const request = await fixture.open();
+  const heard = (await request("snapshot")).body.takes[LEAD_MOVE].sha256;
+  await request("verdict", { verdict: "bad", takes: [{ take: LEAD_MOVE, sha256: heard }] });
+  expect((await request("snapshot")).body.counts.tank.bad).toBe(1);
+  // The tool regenerates the take: new served bytes, the old verdict kept with its sha.
+  const lock = await lockOf(root);
+  lock.takes[LEAD_MOVE].served_sha256 = "c".repeat(64);
+  await writeFile(join(root, "fixtures/voices.lock.json"), JSON.stringify(lock));
+  const after = (await request("snapshot")).body;
+  expect(after.takes[LEAD_MOVE]).toMatchObject({ sha256: "c".repeat(64), verdict: null });
+  expect(after.counts.tank).toMatchObject({ bad: 0, unreviewed: 2 });
+  const stale = await request("verdict", {
+    verdict: "ok",
+    takes: [{ take: LEAD_MOVE, sha256: heard }],
+  });
+  expect(stale.status).toBe(200);
+  expect(stale.body.changed).toEqual([LEAD_MOVE]);
+  expect(stale.body.takes[LEAD_MOVE].verdict).toBeNull();
+  expect((await lockOf(root)).takes[LEAD_MOVE].verdict.value).toBe("bad");
+});
+
+test("generate spawns the tool's voices command with the requested scope and reports its progress", async () => {
+  const runs: string[][] = [];
+  let finish = () => {};
+  const fixture = await voiceFixture((args, line) => {
+    runs.push(args);
+    line("[1/4] tank/lead/move/steady/1 ok 1.4s match 1.00");
+    return new Promise((done) => (finish = () => done(0)));
+  });
+  const request = await fixture.open();
+  const started = await request("generate", {
+    scope: {
+      sets: ["tank"],
+      voices: ["lead"],
+      triggers: ["move"],
+      intensities: ["steady"],
+      take: 1,
+    },
+  });
+  expect(started.status).toBe(200);
+  await vi.waitFor(() => expect(runs).toHaveLength(1));
+  expect(runs[0]).toEqual([
+    "voices",
+    "--set",
+    "tank",
+    "--voice",
+    "lead",
+    "--trigger",
+    "move",
+    "--intensity",
+    "steady",
+    "--take",
+    "1",
+  ]);
+  const running = (await request("jobs")).body.jobs;
+  expect(running).toMatchObject([
+    {
+      id: started.body.job.id,
+      status: "running",
+      lines: ["[1/4] tank/lead/move/steady/1 ok 1.4s match 1.00"],
+    },
+  ]);
+  finish();
+  await vi.waitFor(async () => expect((await request("jobs")).body.jobs[0].status).toBe("done"));
+});
+
+test("generate refuses a scope without a known set; no tool runs", async () => {
+  const fixture = await voiceFixture();
+  const request = await fixture.open();
+  for (const scope of [
+    {},
+    { sets: [] },
+    { sets: ["unknown"] },
+    { sets: ["tank"], take: 2 },
+    { sets: ["tank"], triggers: ["dance"] },
+  ])
+    expect((await request("generate", { scope })).status).toBe(400);
+  expect((await request("jobs")).body.jobs).toEqual([]);
+});
+
+test("voice edits publish line text, descriptions and retakes only", async () => {
+  const fixture = await voiceFixture();
+  const request = await fixture.open();
+  const initial = (await request("snapshot")).body;
+  const catalog: VoiceCatalog = structuredClone(initial.catalog);
+  catalog.roles.crew.lines.move.steady[0] = "Moving out.";
+  catalog.sets.tank.voices[1].description = "Young loader";
+  catalog.retakes[LEAD_MOVE] = 1;
+  const review = await request("preview", { revision: initial.revision, catalog });
+  expect(review.status).toBe(200);
+  expect(await readFile(join(fixture.root, "fixtures/voices.json"), "utf8")).toBe(fixture.text);
+  const saved = await request("save", {
+    candidateId: review.body.candidateId,
+    revision: initial.revision,
+  });
+  expect(saved.status).toBe(200);
+  expect(saved.body.catalog.roles.crew.lines.move.steady[0]).toBe("Moving out.");
+  expect(saved.body.catalog.retakes[LEAD_MOVE]).toBe(1);
+  // Who speaks, with which voice and where, is not this editor's to change.
+  for (const mutate of [
+    (c: VoiceCatalog) => (c.sets.tank.voices[0].voice_id = "other"),
+    (c: VoiceCatalog) => (c.sets.tank.callsign = "Other 1"),
+    (c: VoiceCatalog) => (c.assignments.rifle = "tank"),
+    (c: VoiceCatalog) => (c.retakes["tank/lead/dance/steady/0"] = 1),
+    (c: VoiceCatalog) => (c.retakes[LEAD_MOVE] = -1),
+  ]) {
+    const changed = structuredClone(saved.body.catalog);
+    mutate(changed);
+    expect(
+      (await request("preview", { revision: saved.body.revision, catalog: changed })).status,
+    ).toBe(400);
+  }
+});

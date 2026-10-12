@@ -17,7 +17,6 @@ import {
 import type { TerrainTables } from "@packages/battle-renderer/src/frame/terrainTables";
 import type { GrassTables } from "@packages/battle-renderer/src/frame/grassTables";
 import type { WordTable } from "@packages/battle-renderer/src/frame/wordTables";
-import type { BuildingTables } from "@packages/battle-renderer/src/models/buildingTables";
 import type { SceneryTables } from "@packages/battle-renderer/src/scenery/sceneryTables";
 import { sunDirection } from "@packages/battle-renderer/src/light/sceneLight";
 import { terrainTuning } from "@packages/battle-renderer/src/terrain/terrainTuning";
@@ -64,6 +63,7 @@ const capture = (frames: PresentationFrame[]): PresentationCapture => ({
 /** Two joint samples of one clip, as a page's clip table holds them. */
 const CLIP_FLOATS = Float32Array.from([0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0.6, 0.8, 0.2, 0, 0, 1]);
 const REST = { t: [0, 0, 0], r: [0, 0, 0, 1], s: [1, 1, 1] } as const;
+const IDENTITY = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
 /** A squad of one soldier on a one-clip table and a tank on a two-node rig. */
 function units(): DrawnUnits {
   const soldier = (look: string) => ({ hull: [], slots: [[look]], operated: [null] });
@@ -103,6 +103,12 @@ function units(): DrawnUnits {
         farPose: { clip: "idle", phase: 0 },
         corpsePoses: [{ clip: "idle", phase: 1 }],
         muzzle: { joint: 1, offset: structuredClone(REST) as never },
+        inverseBinds: [IDENTITY, IDENTITY],
+        tiers: 1,
+        bounds: [
+          { size: 1.8, radius: 1 },
+          { size: 1.8, radius: 1.9 },
+        ],
       },
       tank: {
         kind: "articulated",
@@ -123,6 +129,8 @@ function units(): DrawnUnits {
           deploy: [],
           muzzles: { gun: 1 },
         },
+        tiers: 1,
+        bounds: [{ size: 3.6, radius: 4 }],
       },
     },
     tables: [{ name: "clips-0", base64: Buffer.from(CLIP_FLOATS.buffer).toString("base64") }],
@@ -181,6 +189,17 @@ const effects = (): EffectsManifest => ({
   },
   smokes: { heavy_wreck: "wreck" },
   wrecks: { abrams_wreck: { lies: [0.1, 0, 2.1], underside: 1.6, debrisTop: 0.5 } },
+  wreckLooks: {
+    tank: {
+      appearance: "abrams_wreck",
+      footprint: [4, 1.8, 1.2],
+      bounds: [
+        [-4, -1.8, 0],
+        [4, 1.8, 2.4],
+      ],
+      braking: 4,
+    },
+  },
 });
 
 const drawn: DrawnPresentation = {
@@ -252,26 +271,6 @@ const grass: GrassTables = {
   },
   kinds: ["meadow_grass", "wheat"],
 };
-/** Two buildings' tables: a record each, and module rows in each state. */
-const buildings: BuildingTables = {
-  tables: {
-    buildings: records([1, 2, 3, 4, 5, 6, 7, 8]),
-    intact: records([9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]),
-    ruin: records([21, 22, 23, 24]),
-    gutted: records([]),
-  },
-  modules: [
-    { kit: "city_kit_paris", module: "balcony" },
-    { kit: "city_kit_paris", module: "railing" },
-  ],
-  tiers: {
-    lodPxPerM: [12, 5, 2],
-    chunkM: 64,
-    poolRecords: 1024,
-    expandRows: 4000,
-    casterCoarser: 1,
-  },
-};
 const scenery: SceneryTables = {
   tables: {
     forest: records([0x40000000, 0, 0, 0]),
@@ -307,7 +306,7 @@ const scenery: SceneryTables = {
     cut: [0.26, 0.19, 0.11],
   },
 };
-const tables = { terrain, grass, buildings, scenery };
+const tables = { terrain, grass, scenery };
 const cells = (n: number) => Array.from({ length: 12 }, (_, i) => i * n);
 const tiered = (kinds: number, n: number) => Array.from({ length: kinds * 4 }, (_, i) => i * n);
 const instanceCounts: InstanceCount[] = [
@@ -390,7 +389,6 @@ test("the manifest names its battle by the capture's workload and the hashes of 
     omissions: [],
     terrain: expect.any(Array),
     grass: expect.any(Object),
-    buildings: expect.any(Object),
     scenery: expect.any(Object),
     grassCounts: [],
     instanceCounts: [],
@@ -480,8 +478,6 @@ test("the map's fitted props are an artifact before the units', and the fit, the
   const reject = (change: object) => () =>
     validateVisualPresentation({ ...manifest, props: { ...manifest.props, ...change } });
   const { buildings: parts, fit } = manifest.props;
-  // The buildings table places two buildings.
-  expect(reject({ buildings: { ...parts, parts: [[0, 1]] } })).toThrow(/2 placed/);
   expect(reject({ buildings: { ...parts, parts: [[0, 1], [1]] } })).toThrow(/part props/);
   expect(reject({ buildings: { parts: parts.parts } })).toThrow(/props/);
   const car = fit.kinds.parked_car;
@@ -669,17 +665,12 @@ test("the validator refuses a grass section with a missing table, a stray consta
   expect(reject({ seed: 1 })).toThrow(/grass/);
 });
 
-test("the buildings' and scenery's tables are artifacts after the grass's, with their kinds and tier rules", async () => {
+test("the scenery's tables are artifacts after the grass's, with its kinds and tier rules", async () => {
   const { manifest, artifacts } = await written(platedCapture(), grassCounts);
-  expect(manifest.buildings.modules).toEqual(buildings.modules);
-  expect(manifest.buildings.tiers).toEqual(buildings.tiers);
   expect(manifest.scenery.kinds).toEqual(scenery.kinds);
   expect(manifest.scenery.tiers).toEqual(scenery.tiers);
   let at = manifest.terrain.length + manifest.grass.tables.length;
-  for (const [group, source] of [
-    ["buildings", buildings.tables],
-    ["scenery", scenery.tables],
-  ] as const) {
+  for (const [group, source] of [["scenery", scenery.tables]] as const) {
     const entries = manifest[group].tables;
     expect(entries.map((t) => t.name)).toEqual(Object.keys(source));
     for (const entry of entries) {
@@ -699,7 +690,7 @@ test("the buildings' and scenery's tables are artifacts after the grass's, with 
   expect(artifacts).toHaveLength(at + 1 + manifest.units.tables.length);
 });
 
-test("instance counts hold one row per plate, sized by the modules and the scenery kinds", async () => {
+test("instance counts hold one row per plate, a count per module and tier and sized by the scenery kinds", async () => {
   const { manifest } = await written(platedCapture(), grassCounts);
   expect(manifest.instanceCounts).toEqual(instanceCounts);
   await expect(written(platedCapture(), grassCounts, [])).rejects.toThrow(/instance.*plate-1\.png/);
@@ -707,7 +698,7 @@ test("instance counts hold one row per plate, sized by the modules and the scene
   const reject = (change: object) => () =>
     validateVisualPresentation({ ...manifest, instanceCounts: [{ ...row, ...change }] });
   expect(reject({})).not.toThrow();
-  expect(reject({ buildings: tiered(1, 3) })).toThrow(/instance/);
+  expect(reject({ buildings: [1, 2, 3] })).toThrow(/instance/);
   expect(reject({ buildings: [-1, ...tiered(2, 3).slice(1)] })).toThrow(/instance/);
   expect(reject({ scenery: { ...row.scenery, forest: tiered(3, 1) } })).toThrow(/instance/);
   expect(reject({ scenery: { ...row.scenery, stumps: [1] } })).toThrow(/instance/);
@@ -723,21 +714,12 @@ test("instance counts hold one row per plate, sized by the modules and the scene
   );
 });
 
-test("the validator refuses building and scenery sections that are missing a table, a kind or a rule", async () => {
+test("the validator refuses a scenery section that is missing a table, a kind or a rule", async () => {
   const { manifest } = await written(platedCapture(), grassCounts);
-  const reject = (group: "buildings" | "scenery", change: object) => () =>
+  const reject = (group: "scenery", change: object) => () =>
     validateVisualPresentation({ ...manifest, [group]: { ...manifest[group], ...change } });
   const { scenery: _, ...bare } = manifest;
   expect(() => validateVisualPresentation(bare)).toThrow(/malformed/);
-  expect(reject("buildings", { tables: manifest.buildings.tables.slice(1) })).toThrow(/buildings/);
-  expect(reject("buildings", { modules: [{ kit: "city_kit_paris" }] })).toThrow(/buildings/);
-  const twice = [buildings.modules[0], buildings.modules[0]];
-  expect(reject("buildings", { modules: twice })).toThrow(/buildings/);
-  const { chunkM: _chunk, ...chunkless } = buildings.tiers;
-  expect(reject("buildings", { tiers: chunkless })).toThrow(/buildings/);
-  expect(reject("buildings", { tiers: { ...buildings.tiers, lodPxPerM: [12, 5] } })).toThrow(
-    /buildings/,
-  );
   expect(reject("scenery", { tables: manifest.scenery.tables.slice(0, 4) })).toThrow(/scenery/);
   expect(reject("scenery", { kinds: [] })).toThrow(/scenery/);
   expect(reject("scenery", { kinds: ["oak", "oak"] })).toThrow(/scenery/);

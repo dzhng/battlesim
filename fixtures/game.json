@@ -1286,7 +1286,6 @@
       "lod_px_per_m": [10, 4, 1.2],
       "chunk_m": 64,
       "pool_records": 131072,
-      "expand_rows": 40000,
       "tint_jitter": 0.08
     },
     "stand_ins": {
@@ -1672,6 +1671,28 @@
     "tracked": { "half_width_m": 2.1, "half_length_m": 4.8 },
     "wheeled": { "half_width_m": 1.6, "half_length_m": 6.2, "turning_radius_m": 8.0 },
     "air": { "half_width_m": 3.65, "half_length_m": 9.94 }
+  },
+  "shouts": {
+    "cooldown_s": 8,
+    "talk_s": {
+      "b1_contact_infantry": 2.5,
+      "b2_contact_vehicle": 2.5,
+      "b3_contact_air": 2.5,
+      "b4_opens_fire": 2.5,
+      "b5_under_fire": 2.5,
+      "b6_suppressed": 2.5,
+      "b7_pinned": 2.5,
+      "b8_hit": 2.5,
+      "b9_man_down": 2.5,
+      "b10_badly_damaged": 2.5,
+      "b11_kill": 2.5,
+      "b12_reloading": 2.5,
+      "b13_out_of_ammo": 2.5,
+      "b14_missile_away": 2.5,
+      "b15_incoming_missile": 2.5,
+      "b16_destroyed": 2.5,
+      "b17_friendly_destroyed_nearby": 2.5
+    }
   },
   "air": { "cruise_agl_m": 30, "clearance_m": 10, "ceiling_agl_m": 40, "obstacle_m": 30, "separation_m": 14, "acceleration_s": 4.5, "settle_share": 0.05, "settle_max_m": 4 }
 }

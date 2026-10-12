@@ -5,7 +5,6 @@ import { createSimClient, type Publication, type SimClient } from "@web/battle/s
 import type { GroundView } from "@web/battle/sim/ground";
 import type { ObservationView } from "@web/battle/sim/observationView";
 import type { AuthorityStatus } from "@web/battle/sim/protocol";
-import { TickInterpolator } from "@web/battle/present/interpolate";
 
 export interface SimSessionOptions {
   scenario: string;
@@ -59,7 +58,6 @@ export function useSimSession({
     slow: false,
   });
   useLabLoading("world", !!observation, error);
-  const interpolator = useRef<TickInterpolator | null>(null);
   // The newest decoded frame, updated synchronously (React state lags a render).
   const latest = useRef<ObservationView | null>(null);
   // The side's learned ground, patched by every publication (one per client).
@@ -115,7 +113,6 @@ export function useSimSession({
     };
     next.onPublication((publication) => {
       digest.current = publication.digest;
-      interpolator.current?.push(publication.observation, performance.now());
       latest.current = publication.observation;
       ground.current = publication.ground;
       if (warm) {
@@ -138,8 +135,6 @@ export function useSimSession({
     void next.ready.then(
       (info) => {
         plan?.onReady?.(info);
-        const { tickHz } = info;
-        interpolator.current = new TickInterpolator(1000 / tickHz);
         if (viewportReady.current) next.start();
       },
       () => {}, // reported through `error`
@@ -173,7 +168,6 @@ export function useSimSession({
     error,
     observation,
     status,
-    interpolator,
     latest,
     ground,
     digest,

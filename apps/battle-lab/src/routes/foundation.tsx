@@ -6,8 +6,10 @@ import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { MeshBuilder, type Rgba } from "@packages/battle-renderer/src/mesh";
 import type { SceneInstance, WorldLayers } from "@packages/battle-renderer/src/scene";
 import { terrainSurface } from "@packages/battle-renderer/src/terrain/terrainSurface";
-import { REST_ARTICULATION } from "@packages/scene-assets/src/articulation";
-import type { ModelInstance } from "@packages/battle-renderer/src/models/modelInstances";
+import {
+  posedPalette,
+  type ModelInstance,
+} from "@packages/battle-renderer/src/models/modelInstances";
 import { bodyBox, proxyPickBox, type PickBox } from "@packages/battle-renderer/src/picking";
 import { LabViewport } from "../LabViewport";
 import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog";
@@ -169,7 +171,8 @@ export default function Foundation() {
     const catalog = new AppearanceCatalog(appearances, units);
     return FOUNDATION.flatMap((p, i) => {
       const resolved = hullOf(units, p.kind) ? catalog.resolve(p.kind, "blue") : null;
-      return resolved
+      const bundle = resolved && appearances.appearances.get(resolved.appearance)?.bundle;
+      return resolved && bundle
         ? [
             {
               appearance: resolved.appearance,
@@ -178,7 +181,7 @@ export default function Foundation() {
               y: p.y,
               z: p.z,
               yaw: p.yaw,
-              pose: { kind: "articulated" as const, articulation: { ...REST_ARTICULATION } },
+              pose: posedPalette(bundle, null),
               highlight: i === selected,
             },
           ]

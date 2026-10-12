@@ -79,7 +79,7 @@ export interface ReelResult {
   /** The light the battle was built with; null before it was up. */
   light: LightPresentation | null;
   plates: readonly ReelPlate[];
-  /** The ground's, grass's, buildings' and scenery's tables the first
+  /** The ground's, grass's and scenery's tables the first
    *  plate drew with; null without plates. */
   tables: UploadedTables | null;
   /** What poses and draws the battle's units, as the first plate drew

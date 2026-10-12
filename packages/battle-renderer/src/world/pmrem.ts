@@ -97,8 +97,8 @@ export async function createTypegpuPmrem(device: GPUDevice, sourceLut: GPUTextur
         },
         targets: { format: "rgba16float" },
       });
-    const bake = pipeline(bakeShade),
-      filter = pipeline(filterShade);
+    const bake = pipeline(bakeShade).$name("pmremBake"),
+      filter = pipeline(filterShade).$name("pmremFilter");
     await Promise.all([bake.initAsync(), filter.initAsync()]);
     const geometry = Array.from({ length: count }, (_, lod) => {
       const data = pmremPlanes(2 ** Math.max(4, maxMip - lod));

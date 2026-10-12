@@ -1,11 +1,15 @@
 import { SoundBank } from "../../../packages/battle-audio/src/soundBank";
 import type { SoundCatalog } from "../../../packages/battle-audio/src/catalog";
+import { sourceNormalization } from "../../../packages/battle-audio/src/loudness";
 
 // A memoryless ceiling preserves safe short attacks; compressor startup can
 // attenuate a brief report before its gain has settled.
 const AUDITION_LIMIT_CURVE = Float32Array.from({ length: 2049 }, (_, index) =>
   Math.max(-0.98, Math.min(0.98, index / 1024 - 1)),
 );
+
+/** The pause between takes played back to back, as between two lines of radio traffic. */
+const VOICE_GAP_S = 0.35;
 
 /** A sounding loop of a live mix, keyed so a slot's level and rate can glide. */
 export interface LiveLoop {
@@ -33,6 +37,8 @@ export interface Auditioner {
     variant?: number,
     gain?: number,
   ): Promise<void>;
+  /** Plays served voice takes back to back, each calibrated like a clip. */
+  voice(urls: readonly string[]): Promise<void>;
   stop(): void;
 }
 
@@ -54,24 +60,25 @@ export class SoundAuditioner implements Auditioner {
     this.context = null;
   }
 
-  /** A fresh context and bank with `prepare` loaded, and the audition's output:
-   *  calibrated level, safety ceiling, mono centred in stereo. */
+  /** A fresh context, with a bank of `catalog` when given and `prepare` loaded, and the
+   *  audition's output: calibrated level, safety ceiling, mono centred in stereo. */
   private async open<T>(
-    catalog: SoundCatalog,
-    prepare: (bank: SoundBank, signal: AbortSignal) => Promise<T>,
+    catalog: SoundCatalog | null,
+    prepare: (bank: SoundBank | null, signal: AbortSignal, context: AudioContext) => Promise<T>,
   ) {
     this.stop();
     const controller = (this.controller = new AbortController());
     const context = (this.context = new AudioContext({ latencyHint: "interactive" }));
     try {
       await context.resume();
-      const bank = (this.bank = new SoundBank(context, catalog));
-      const prepared = await prepare(bank, controller.signal);
+      const bank = (this.bank = catalog && new SoundBank(context, catalog));
+      const prepared = await prepare(bank, controller.signal, context);
       controller.signal.throwIfAborted();
       const output = new WaveShaperNode(context, { curve: AUDITION_LIMIT_CURVE });
       output.connect(new StereoPannerNode(context, { pan: 0 })).connect(context.destination);
+      // A bank's buffers carry its calibration; a voice take is calibrated by the same law.
       const level = (buffer: AudioBuffer, gain: number) =>
-        0.4 * gain * bank.normalizationGain(buffer);
+        0.4 * gain * (bank ? bank.normalizationGain(buffer) : sourceNormalization(buffer));
       /** Sounds `buffer` `delay` seconds from now, from `offset` into it. */
       const start = (buffer: AudioBuffer, gain: number, loop: boolean, delay = 0, offset = 0) => {
         const source = new AudioBufferSourceNode(context, { buffer, loop });
@@ -92,9 +99,11 @@ export class SoundAuditioner implements Auditioner {
   }
 
   async live(catalog: SoundCatalog, sounds: readonly string[]): Promise<LiveMix> {
-    const { context, bank, level, start, current } = await this.open(catalog, (bank, signal) =>
-      bank.prepare([...new Set(sounds)], signal),
+    const opened = await this.open(catalog, (bank, signal) =>
+      bank!.prepare([...new Set(sounds)], signal),
     );
+    const { context, level, start, current } = opened;
+    const bank = opened.bank!;
     const voices = new Map<string, ReturnType<typeof start>>();
     return {
       loops: (layers) => {
@@ -129,8 +138,8 @@ export class SoundAuditioner implements Auditioner {
   async play(catalog: SoundCatalog, kind: "clip" | "sound", id: string, variant = 0, gain = 1) {
     const opened = await this.open(catalog, (bank, signal) =>
       kind === "clip"
-        ? bank.clip(id, signal)
-        : bank.prepare([id], signal).then(() => bank.get(id, variant)),
+        ? bank!.clip(id, signal)
+        : bank!.prepare([id], signal).then(() => bank!.get(id, variant)),
     ).catch((error: unknown) => {
       // A one-shot stopped or replaced while it loaded just never sounds.
       if (error instanceof DOMException && error.name === "AbortError") return null;
@@ -143,5 +152,32 @@ export class SoundAuditioner implements Auditioner {
     source.onended = () => {
       if (current()) this.stop();
     };
+  }
+
+  async voice(urls: readonly string[]) {
+    const opened = await this.open(null, (_, signal, context) =>
+      Promise.all(
+        urls.map(async (url) => {
+          const response = await fetch(url, { signal });
+          if (!response.ok) throw new Error(`Voice take ${url}: HTTP ${response.status}`);
+          return context.decodeAudioData(await response.arrayBuffer());
+        }),
+      ),
+    ).catch((error: unknown) => {
+      if (error instanceof DOMException && error.name === "AbortError") return null;
+      throw error;
+    });
+    if (!opened) return;
+    const { prepared, start, current } = opened;
+    let delay = 0;
+    let last: AudioBufferSourceNode | null = null;
+    for (const buffer of prepared) {
+      last = start(buffer, 1, false, delay).source;
+      delay += buffer.duration + VOICE_GAP_S;
+    }
+    if (last)
+      last.onended = () => {
+        if (current()) this.stop();
+      };
   }
 }

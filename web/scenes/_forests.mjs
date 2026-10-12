@@ -107,7 +107,6 @@ export async function forestExportAgreement(ctx) {
       const layout = JSON.parse(wasm.world_layout(JSON.stringify(rules.rules)));
       const world = mesh.buildWorldLayers(exported, layout, biome.default, "surface");
       const source = terrain.createTerrainSource(root, registry);
-      await source.ready();
       source.set(world.terrain);
       const queryLayout = tgpu.bindGroupLayout({
         points: { storage: (n) => d.arrayOf(d.vec4f, n), access: "readonly" },

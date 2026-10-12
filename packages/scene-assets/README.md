@@ -30,10 +30,11 @@ outgrows it and nothing visibly suffers.
 
 Skinned bodies share one skeleton's clip library. Bone-attached kit is baked into
 that skin, and sockets locate observed effects on the drawn weapon. A shot's
-kick turns the upper body about one named joint, so a rig without it is never
-kicked rather than kicked about the wrong bone. The fallen
-body uses a fixed corpse pose instead of retaining a live animation workload.
-[Pose construction](src/pose.ts) owns those transformations.
+kick turns the upper body about one named joint (`spine_01`, the presentation
+crate's), so a rig without it is never kicked rather than kicked about the wrong
+bone. The fallen body uses a fixed corpse pose instead of retaining a live
+animation workload. [Pose construction](src/pose.ts) owns the install-time
+transformations.
 
 Articulated vehicles preserve moving-node frames and mount ownership. A mount's
 catalog binding selects its drawn rig; its name cannot infer a pivot or muzzle.

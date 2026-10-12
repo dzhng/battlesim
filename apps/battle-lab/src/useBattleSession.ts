@@ -14,7 +14,6 @@ import type { PreparedSession } from "@web/battle/prepare/client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Project, ReadoutLayerHandle } from "@web/battle/present/readouts";
 import { metresPerPxAt, type Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import type { SoundMotion } from "@packages/battle-audio/src/soundFrame";
 import type { GpuAllocationCounts } from "@packages/renderer-core/src/gpuAllocations";
 import {
   apartKinds,
@@ -44,39 +43,19 @@ import {
 } from "@packages/battle-renderer/src/frame/fogInputs";
 import {
   FRAME_FLOATS,
-  type SideBuildings,
+  type SceneBuildings,
 } from "@packages/battle-renderer/src/models/buildingReferences";
+import { buildingRemains } from "@packages/scene-assets/src/authority";
 import {
   buildingObstacles,
   buildingPartProps,
   knownOf,
 } from "@packages/battle-renderer/src/buildingObstacles";
 import { gameBiome } from "./gameBiome";
-import { knownFallen } from "./destroyedBuildings";
-import {
-  CookOffWatch,
-  LastSeenHulls,
-  cookOffModels,
-  debrisModel,
-  type LastHull,
-  effectCookOff,
-  transitionOf,
-  type CookOffTransition,
-} from "./cookOffs";
-import { debrisGoneAfter, landedAfter } from "@packages/battle-renderer/src/effects/cookOff";
 import { mapAppearances, useMapAppearances } from "./gameAppearances";
 import { gameStandIns } from "./gameModels";
 import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
-import {
-  corpseInstances,
-  modelCounts,
-  poseFrameInstances,
-  type CorpseInstance,
-  type ModelInstance,
-  type ResolveAppearance,
-  type XrayOf,
-} from "@packages/battle-renderer/src/models/modelInstances";
 import { gameHud } from "@web/battle/present/hudTheme";
 import { gameOrderFlash, gameXray } from "./gameOverlay";
 import {
@@ -114,32 +93,37 @@ import type { RulerRules } from "@web/battle/present/rangeRuler";
 import type { KnownPropView, ObservationView } from "@web/battle/sim/observationView";
 import type { Order, SideName } from "@web/battle/sim/protocol";
 import type { LabBox, LabPick, ViewportFrame, ViewportGpu, ViewportPointer } from "./LabViewport";
-import { pickedUnit, pickToPointer, sideInstances, type DrawnInstances } from "./sideInstances";
-import { createPoseDriver, gamePose, ObservationFeed, type PoseRules } from "./poseFeed";
-import { describeUnits } from "./benchmark/unitPresentation";
-import { DrawnModels } from "@packages/battle-renderer/src/models/drawnModels";
-import { useSimSession, type ScriptedSim } from "./useSimSession";
-import { createEffectFrame, drawnMuzzleSource, effectPublication, gameEffects } from "./effectFeed";
 import {
-  createEffectBatch,
-  EFFECT_FLOATS,
-} from "@packages/battle-renderer/src/effects/effectFrame";
-import { offeredCastLights } from "@packages/battle-renderer/src/light/castLights";
+  drawnUnits,
+  pickedUnit,
+  pickToPointer,
+  sideInstances,
+  type DrawnInstances,
+} from "./sideInstances";
+import { describeUnits, gamePose, type PoseRules } from "./benchmark/unitPresentation";
+import { useSimSession, type ScriptedSim } from "./useSimSession";
 import { groundUnderRay, useMapBuildings, useStaticWorld } from "./useStaticWorld";
-import { createBattleAudio, soundMotion } from "./soundFeed";
+import { createBattleAudio } from "./soundFeed";
+import { frameCounts, frameSound, presentationWorld, presentedCamera } from "./presentedFrame";
+import { gameLight } from "./gameLight";
+import type { ObservationDecoder } from "@web/battle/sim/presentation";
+import type { ViewportCamera } from "@packages/renderer-core/src/cameraUniform";
+import type { SoundMotion } from "@packages/battle-audio/src/soundFrame";
 import { useAppAudio } from "./AppAudio";
 import { useFeed } from "./feed";
-import { posedSockets } from "./workbench/benchWorld";
+import { posedSockets, type BenchPose } from "./workbench/benchWorld";
 import { describeProps } from "./benchmark/propPresentation";
 import { describeEffects } from "./benchmark/effectPresentation";
 import type { Vec3 } from "math";
 import type { FelledTree } from "@packages/battle-renderer/src/scenery/felled";
 import {
+  GHOST_BLOCKED,
+  GHOST_OWN,
+  GHOST_SELECTED,
   fieldedSoldiers,
-  ghostAloft,
+  ghostBodies,
   orderedGhost,
   ownSoldiers,
-  pushGhostModels,
   type UnitGhost,
 } from "./unitGhosts";
 
@@ -245,72 +229,32 @@ export function useBattleSession({
     };
   }, [scenario, catalog]);
   const world = useStaticWorld(map, rules);
-  // Combat effects: every decoded publication noted (the frame dedupes),
-  // drawn at each animation frame's presentation clock.
-  const effects = useMemo(() => createEffectFrame(rules.tick_hz), [rules.tick_hz]);
-  const effectBatch = useMemo(() => createEffectBatch(gameEffects.capacity), []);
-  // Sound reads the same publication, plus the side's hearing cues.
+  // Sound reads the same publications as the effects, plus the side's hearing cues.
   const audio = useMemo(
     () => (sound ? createBattleAudio(rules.tick_hz, appAudio) : null),
     [sound, rules.tick_hz, appAudio],
   );
   useEffect(() => () => audio?.dispose(), [audio]);
-  // Hulls the side watched brew up (`cookOffs.ts`): the effects blow each
-  // up, and while its wreck moves it draws each frame, not
-  // among the side's structures. The wreck is fitted as the side's props
-  // are, once they can be. A side learns a wreck within a second of losing
-  // its hull.
-  const cookOffWatch = useMemo(
-    () => new CookOffWatch(units, rules.tick_hz),
-    [units, rules.tick_hz],
-  );
-  const transitionFitting = useRef<{
-    fit: PropAppearances;
-    installed: InstalledAppearances;
-  } | null>(null);
-  const [transitions, setTransitions] = useState<readonly CookOffTransition[]>([]);
-  // Cook-offs whose thrown debris is still drawn: it outlives the moving
-  // wreck (the static wreck takes over), sinking away on the clock.
-  const thrown = useRef<CookOffTransition[]>([]);
-  // Each vehicle as last drawn: a hull that brews up is drawn whole until
-  // its ammunition goes, and only then as its moving wreck.
-  const lastHulls = useMemo(
-    () =>
-      new LastSeenHulls(
-        // As the simulation stops a dead hull: full top speed lost in `wreck_stop_s`.
-        (kind) => topSpeedKmh(units.type(kind).mobility) / 3.6 / rules.movement.drive.wreck_stop_s,
-      ),
-    [units, rules],
-  );
-  // Each cook-off's hull, as last seen, found once as it starts.
-  const transitionHulls = useRef(new WeakMap<CookOffTransition, LastHull | null>());
-  const lastDecoded = useRef(-1);
+  // The presentation notes every publication for the effects as it decodes
+  // it (`presentation.ts`); sound hears the same, and the side's structures
+  // leave out a wreck it draws moving (a cook-off).
+  const presentationRef = useRef<ObservationDecoder | null>(null);
+  const [movingWrecks, setMovingWrecks] = useState<readonly number[]>([]);
   const noteDecoded = useCallback(
     (o: ObservationView, digest: string) => {
-      if (o.tick < lastDecoded.current) {
-        setTransitions([]);
-        thrown.current = [];
+      const presentation = presentationRef.current;
+      if (presentation) {
+        const moving = [...presentation.movingWrecks()];
+        setMovingWrecks((now) => (now.join() === moving.join() ? now : moving));
+        const heard = audio && presentation.soundPublication();
+        if (heard) audio.note({ ...heard, audible: o.audible });
       }
-      lastDecoded.current = o.tick;
-      const fitting = transitionFitting.current;
-      const brewed = cookOffWatch.note(o).map((c) => ({
-        c,
-        transition: fitting && transitionOf(c, fitting.fit, fitting.installed, rules.tick_hz),
-      }));
-      const moving = brewed.flatMap(({ transition }) => (transition ? [transition] : []));
-      if (moving.length) setTransitions((now) => [...now, ...moving]);
-      for (const f of moving) if (f.debrisTop !== null) thrown.current.push(f);
-      const pub = {
-        ...effectPublication(o, side, units),
-        cookOffs: brewed.map(({ c, transition }) => effectCookOff(c, transition)),
-      };
-      effects.note(pub);
-      audio?.note({ effects: pub, audible: o.audible });
       onDecoded?.(o, digest);
     },
-    [effects, audio, side, onDecoded, cookOffWatch, rules.tick_hz, units],
+    [audio, onDecoded],
   );
   const sim = useSimSession({ scenario, seed, onDecoded: noteDecoded, replay, scripted, prepared });
+  presentationRef.current = sim.client?.presentation ?? null;
   const { observation } = sim;
   const contactPresentation = useMemo(
     () => (sim.client ? new ContactPresentation(rules.tick_hz, gameContactStyle.fade_s) : null),
@@ -464,21 +408,27 @@ export function useBattleSession({
       JSON.stringify(knownOf(JSON.parse(knownKey) as KnownPropView[], buildingParts)),
     [knownKey, buildingParts],
   );
-  const buildings = useMemo<SideBuildings | null>(
+  // The map's buildings, which the battle's presentation draws in the state
+  // the side's publication knows them in.
+  const buildings = useMemo<SceneBuildings | null>(
     () =>
-      drawnBuildings && knownBuildingsKey
-        ? {
-            placed: drawnBuildings.placed,
-            fallen: knownFallen(
-              units,
-              drawnBuildings,
-              JSON.parse(knownBuildingsKey) as KnownPropView[],
-            ),
-          }
-        : null,
-    [drawnBuildings, knownBuildingsKey, units],
+      drawnBuildings && {
+        placed: drawnBuildings.placed,
+        partBuilding: drawnBuildings.partBuilding,
+        shells: buildingRemains(units).shells,
+      },
+    [drawnBuildings, units],
   );
   const buildingsFeed = useFeed(buildings);
+  // The battle's presentation as the viewport reads it each frame.
+  const presentationSource = useMemo(
+    () => ({
+      get current() {
+        return sim.client?.presentation ?? null;
+      },
+    }),
+    [sim.client],
+  );
   // The map's props drawn apart, fitted once for the battle; what the side
   // knows then hides those it replaced and fits only its own (`sideStructures`).
   const fittedMap = useMemo(
@@ -489,16 +439,12 @@ export function useBattleSession({
     if (!props || !fittedMap || !drawnBuildings) return null;
     const part = drawnBuildings.partBuilding;
     // A moving wreck is drawn each frame rather than among static props.
-    const moving = new Set(transitions.map((f) => f.cookOff.prop));
+    const moving = new Set(movingWrecks);
     const known = (JSON.parse(knownKey) as KnownPropView[]).filter(
       (k) => (k.authoredProp === null || !part.has(k.authoredProp)) && !moving.has(k.id),
     );
     return sideStructures(fittedMap, known, props.fit);
-  }, [props, fittedMap, drawnBuildings, knownKey, transitions]);
-  useEffect(() => {
-    transitionFitting.current =
-      props && appearances ? { fit: props.fit, installed: appearances } : null;
-  }, [props, appearances]);
+  }, [props, fittedMap, drawnBuildings, knownKey, movingWrecks]);
   const structures: SideStructures = sideProps ?? NO_STRUCTURES;
   const structuresFeed = useFeed<SideStructures>(structures);
   // What the camera keeps clear of: the ground, and every building part the
@@ -586,27 +532,6 @@ export function useBattleSession({
   const readouts = useRef<ReadoutLayerHandle>(null);
   // The last frame's clock and drawn motion, which sound hears at the camera.
   const heard = useRef<{ clock: number; motion: SoundMotion } | null>(null);
-  // The drawn publication's own units indoors.
-  const [indoorUnits] = useState(() =>
-    byReference(
-      (own: ObservationView["own"]): ReadonlySet<number> =>
-        new Set(own.filter((u) => u.garrison && u.garrison.phase !== "entering").map((u) => u.id)),
-      new Set<number>(),
-    ),
-  );
-  // Occupants stay occluded indoors; their panel identifies the building.
-  // The observing side's outdoor units are x-rayed where the world hides them: the
-  // selection in its colour, so a selected unit behind a house still reads
-  // as selected, the rest in the side's. Their visible parts are never tinted:
-  // the selection's marker is on the ground.
-  const xrayOf = useRef<XrayOf>(() => null);
-  xrayOf.current = (unitSide, unit) =>
-    !xray || unitSide !== side || indoorUnits.value.has(unit)
-      ? null
-      : control.selected.includes(unit)
-        ? gameXray.selected
-        : gameXray.own;
-
   // The models layer installs only what the battle draws as models.
   const modelAppearances = useMemo<InstalledAppearances | null>(
     () =>
@@ -616,31 +541,38 @@ export function useBattleSession({
     [appearances, props, drawnBuildings],
   );
 
-  // Soldiers: the observation, fed per soldier to the pose driver, drawn as
-  // the appearance for their kind and side, in the look of the faction the
-  // side fights for. A new side or catalog starts over.
+  // What the battle draws, handed to the presentation once its appearances
+  // are installed and its wrecks can be fitted: the units and effects as
+  // the native manifest carries them. A new side or catalog loads again.
   const factions = skirmish?.factions;
-  const posing = useMemo(() => {
-    if (!appearances) return null;
-    const drawing = new AppearanceCatalog(
-      appearances,
-      units,
-      factions && { blue: factions[0], red: factions[1] },
-    );
-    const resolve: ResolveAppearance = (kind, s, id, slot, operatorMount, activeMount) =>
-      drawing.resolve(kind, s, id, slot, operatorMount, activeMount);
-    const drawn = new DrawnModels(appearances, resolve, units);
-    return {
-      appearances,
-      driver: createPoseDriver(rules, units, appearances),
-      feed: new ObservationFeed(side, units),
-      resolve,
-      drawn,
-      source: drawnMuzzleSource(drawn, side),
-      models: [] as ModelInstance[],
-      corpses: { version: -1, list: [] as CorpseInstance[], soldiers: [] as number[] },
-    };
-  }, [appearances, rules, side, units, factions]);
+  const presentation = sim.client?.presentation ?? null;
+  const worldInput = useMemo(() => {
+    if (!appearances || !props) return null;
+    return presentationWorld({
+      units: describeUnits({
+        kinds: fielded,
+        installed: appearances,
+        units,
+        factions: factions && { blue: factions[0], red: factions[1] },
+        pose: gamePose,
+        leanHold: rules.cover.lean_hold_s,
+      }),
+      effects: describeEffects({
+        kinds: fielded,
+        units,
+        fit: props.fit,
+        installed: appearances,
+        wreckStopS: rules.movement.drive.wreck_stop_s,
+      }),
+      side,
+      tickHz: rules.tick_hz,
+      sun: { azimuth: gameLight.sun_azimuth, elevation: gameLight.sun_elevation },
+      soldier: rules.physics,
+      xray: gameXray,
+      blocked: PURCHASE_BLOCKED,
+      cruiseAglM: rules.air.cruise_agl_m,
+    });
+  }, [appearances, props, fielded, units, factions, rules, side]);
   // Each unit placed during preparation stands as a ghost where it will go,
   // turned as it was placed, until the battle starts.
   const [placedGhostList] = useState(() =>
@@ -661,13 +593,12 @@ export function useBattleSession({
               (placed?.spots ?? []).map(([sx, sy]) => [sx + dx, sy + dy] as const),
             ),
             yaw: placed?.facing ?? DEFAULT_PLACEMENT_FACING,
-            colour: gameXray.own,
+            look: GHOST_OWN,
           };
         }),
       [],
     ),
   );
-  const frameModels = useRef<ModelInstance[]>([]);
   // The trees the side knows have fallen, each from the start of the tick
   // it fell (the clock is ticks over tick_hz, as the effects' are). The
   // decoder keeps an unchanged list's reference, and so does this.
@@ -682,21 +613,19 @@ export function useBattleSession({
     [tickHz],
   );
   const frame = useCallback(
-    (now: number): ViewportFrame | null => {
+    (now: number, viewport: ViewportCamera): ViewportFrame | null => {
       // React's `observation` only says the session has a battle (it is reset
-      // with the battle, before a new interpolator exists). Everything this
-      // frame draws or decides reads the sample's publication, the tick its
-      // poses blend toward, never React's copy, which lags it by a render.
-      const sample = observation && sim.interpolator.current?.frame(now);
-      if (!sample) {
+      // with the battle). Everything this frame draws or decides reads the
+      // latest publication, the tick the presentation blends toward.
+      const published = sim.latest.current;
+      // Staged as soon as it is known: the presentation loads it with the
+      // buildings by its next frame, the viewport's until the first publication.
+      presentation?.setBattle(worldInput);
+      const time = observation && published ? presentation?.clock(now) : null;
+      if (time == null || !published || !presentation) {
         drawnObservation.current = null;
         return null;
       }
-      const { time, own, identified, observation: published } = sample;
-      const d = sideInstances(own, identified, published, rules.physics, units);
-      drawn.current = d;
-      drawnAt.current = new Map(own.map((p) => [p.id, p.position]));
-      drawnEnemyAt.current = new Map(identified.map((p) => [p.id, p.position]));
       drawnClock.current = time;
       drawnObservation.current = published;
       // The order just issued has not landed: its units still publish the old one.
@@ -711,77 +640,14 @@ export function useBattleSession({
         revealedRef.current = reveal;
         setRevealed(reveal);
       }
-      const ground = sim.ground.current;
-      const fallenTrees = felled.of(published.fallenBodies);
-      if (!posing) {
-        effects.build(time, effectBatch);
-        heard.current = { clock: time, motion: soundMotion(null, units, side) };
-        return { picks: d.picks, clock: time, effects: effectBatch, ground, felled: fallenTrees };
-      }
-      const poses = posing.driver.update(posing.feed.frame(sample));
-      // Flashes sit on the muzzles, and rotor blurs on the rotors, as this
-      // frame draws them.
-      posing.drawn.update(poses);
-      effects.build(time, effectBatch, posing.source, posing.drawn);
-      const effectCounts = effects.counts(time, effectBatch);
-      if (audio) {
-        const reversing = new Set(published.own.filter((u) => u.reversing).map((u) => u.id));
-        const enemyReversing = new Set(
-          published.identified.filter((u) => u.reversing).map((u) => u.id),
-        );
-        heard.current = {
-          clock: time,
-          motion: soundMotion(poses, units, side, reversing, enemyReversing),
-        };
-      }
-      indoorUnits.of(published.own);
-      const posed = poseFrameInstances(
-        posing.models,
-        poses,
-        posing.resolve,
-        xrayOf.current,
-        surfaceZ,
-      );
-      lastHulls.note(poses.vehicles, time);
-      // Each cooking-off hull: whole until its ammunition goes, then its
-      // moving wreck until a moment after it lies still, when the static
-      // wreck takes over (the structures, rebuilt as the transition ends).
-      const feel = gameEffects.cook_off;
-      const done = transitions.filter((f) => time - f.hitAt > landedAfter(feel) + LANDED_HOLD_S);
-      if (done.length) setTransitions((now) => now.filter((f) => !done.includes(f)));
-      const models = transitions.length
-        ? posed.concat(
-            transitions.flatMap((f) => {
-              if (!transitionHulls.current.has(f))
-                transitionHulls.current.set(f, lastHulls.at(f.cookOff, time, posing.resolve));
-              return cookOffModels(f, transitionHulls.current.get(f) ?? null, feel, time);
-            }),
-          )
-        : posed;
-      if (poses.corpsesVersion !== posing.corpses.version)
-        posing.corpses = {
-          version: poses.corpsesVersion,
-          list: corpseInstances(poses, posing.resolve),
-          soldiers: poses.corpses.map((c) => c.soldier),
-        };
-      const placement = purchaseGhost.current;
-      const composed = frameModels.current;
-      composed.length = 0;
-      for (const model of models) composed.push(model);
-      if (thrown.current.length) {
-        thrown.current = thrown.current.filter((f) => time - f.hitAt < debrisGoneAfter(feel));
-        for (const f of thrown.current) {
-          const debris = debrisModel(f, feel, time);
-          if (debris) composed.push(debris);
-        }
-      }
       // Ghosts: purchases placed, every ordered destination with Space held,
       // a held right-drag's destinations, and the purchase being placed.
+      const placement = purchaseGhost.current;
       const ghosts = [...placedGhostList.of(published.skirmish), ...dragGhosts.current];
       if (control.showOrders)
         for (const unit of published.own) {
           if (!reveal.has(unit.id)) continue;
-          const ghost = orderedGhost(unit, gameXray.own);
+          const ghost = orderedGhost(unit, GHOST_OWN);
           if (ghost) ghosts.push(ghost);
         }
       if (placement && inputEnabled)
@@ -790,48 +656,43 @@ export function useBattleSession({
           at: placement.destination,
           soldiers: fieldedSoldiers(placement.spots),
           yaw: placement.facing,
-          colour: placement.valid === false ? PURCHASE_BLOCKED : gameXray.selected,
+          look: placement.valid === false ? GHOST_BLOCKED : GHOST_SELECTED,
         });
-      pushGhostModels(
-        composed,
-        ghosts,
-        side,
-        posing.resolve,
-        posing.appearances,
-        surfaceZ,
-        (kind) => Boolean(units.hull(kind)),
-        ghostAloft(units, rules.air.cruise_agl_m),
-      );
+      const presented = presentation.frame(time, presentedCamera(viewport), {
+        selected: control.selected,
+        xray,
+        ghosts: ghostBodies(ghosts, (kind) => Boolean(units.hull(kind)), surfaceZ),
+      });
+      const { own, enemies } = drawnUnits(presented);
+      drawn.current = sideInstances(presented, own, enemies, published, units);
+      drawnAt.current = new Map([...own].map(([id, u]) => [id, u.position]));
+      drawnEnemyAt.current = new Map([...enemies].map(([id, u]) => [id, u.position]));
+      if (audio) heard.current = { clock: time, motion: frameSound(presented, published, units) };
+      const { models: counts, effects: effectCounts } = frameCounts(presented);
       return {
-        picks: d.picks,
-        models: composed,
-        counts: modelCounts(poses, posing.resolve),
-        corpses: posing.corpses.list,
-        felled: fallenTrees,
+        picks: drawn.current.picks,
+        presented,
+        counts,
+        felled: felled.of(published.fallenBodies),
         clock: time,
-        effects: effectBatch,
         effectCounts,
-        ground,
+        ground: sim.ground.current,
       };
     },
     [
       observation,
       felled,
-      sim.interpolator,
+      sim.latest,
       sim.ground,
-      posing,
-      rules,
+      presentation,
+      worldInput,
       units,
-      effects,
-      effectBatch,
       audio,
-      side,
       orderReveal,
       control.showOrders,
       control.acks,
-      transitions,
-      lastHulls,
-      indoorUnits,
+      control.selected,
+      xray,
       placedGhostList,
       inputEnabled,
       surfaceZ,
@@ -1041,7 +902,7 @@ export function useBattleSession({
                 at: d.goal,
                 soldiers: ownSoldiers(unit, d.spots),
                 yaw: d.facing,
-                colour: gameXray.selected,
+                look: GHOST_SELECTED,
               },
             ];
           })
@@ -1133,21 +994,14 @@ export function useBattleSession({
     /** The static pieces the last drawn frame drew beside the posed units (a
      *  cook-off's moving wreck and its debris): each one's appearance, state
      *  and how far its motion lowers it, metres. */
-    cookOffPieces: () =>
-      frameModels.current.flatMap((m) =>
-        m.pose.kind === "static"
-          ? [{ appearance: m.appearance, state: m.pose.state, sunk: -(m.pose.motion?.[14] ?? 0) }]
-          : [],
-      ),
+    cookOffPieces: () => presentationRef.current?.probe().cookOffPieces ?? [],
     /** The soldiers the last drawn frame lays as static corpses. */
-    lying: () => posing?.corpses.soldiers ?? [],
+    lying: () => presentationRef.current?.probe().lying ?? [],
     /** Where the last drawn frame draws the muzzle of the shown side's
      *  vehicle `id`'s mount `mount`, where its flash goes; null when no rig
      *  draws it. */
-    drawnMuzzle: (id: number, mount: number): Vec3 | null => {
-      const at: Vec3 = [0, 0, 0];
-      return posing?.drawn.vehicle(side, id, mount, at) ? at : null;
-    },
+    drawnMuzzle: (id: number, mount: number): Vec3 | null =>
+      presentationRef.current?.drawnMuzzle(id, mount) ?? null,
     digest: () => sim.digest.current,
     error: () => sim.error,
     status: () => sim.status,
@@ -1189,8 +1043,9 @@ export function useBattleSession({
      *  side knows them (`parts`: the remains or the shell of one it has seen
      *  destroyed), which are the boxes its camera keeps clear of. */
     buildings: () => {
-      if (!drawnBuildings || !buildings || !knownBuildingsKey) return [];
-      const state = new Map(buildings.fallen.map((f) => [f.building, f.state]));
+      if (!drawnBuildings || !knownBuildingsKey) return [];
+      const fallen = presentation?.fallenBuildings() ?? [];
+      const state = new Map(fallen.map((f) => [f.building, f.state]));
       const known = JSON.parse(knownBuildingsKey) as KnownPropView[];
       const { placed } = drawnBuildings;
       const box = (p: PropBox) => ({
@@ -1240,59 +1095,42 @@ export function useBattleSession({
     /** Sound: voices, budget, holds and counts; null before audio starts. */
     sound: () => audio?.stats() ?? null,
     /** Combat effects: running, drawn last frame, dropped, and the last tick noted. */
-    effects: () => effects.stats(),
+    effects: () => presentationRef.current?.probe().effects ?? null,
     /** The instances the effect pass drew last frame: shape (`SHAPE`), the
      *  point it sits on (a streak's tail), its size, and a glow's rays. */
-    effectInstances: () =>
-      Array.from({ length: effectBatch.count }, (_, i) => {
-        const d = effectBatch.data.subarray(i * EFFECT_FLOATS, (i + 1) * EFFECT_FLOATS);
-        return {
-          shape: d[12],
-          at: [d[0], d[1], d[2]],
-          to: [d[4], d[5], d[6]],
-          rgb: [d[8], d[9], d[10]],
-          size: d[3],
-          rays: d[6],
-        };
-      }),
-    /** The lights the effects cast last frame (`light/castLights.ts`): where,
-     *  how far, their colour × intensity, and what cast each. */
-    castLights: () => offeredCastLights(effectBatch.lights),
-    /** Every drawn model's muzzle sockets in the world, posed from the model
-     *  instances as drawn (the workbench's socket gizmos), with each model's
-     *  origin to select the firing body before its attachment is measured.
-     *  Computed apart from the flashes' own `DrawnModels`. */
-    muzzleSockets: () =>
-      (posing?.models ?? []).flatMap((m) => {
-        const bundle = appearances?.appearances.get(m.appearance)?.bundle;
+    effectInstances: () => presentationRef.current?.probe().effectInstances ?? [],
+    /** The lights the effects offered last frame: where, how far, their
+     *  colour × intensity, and what cast each. */
+    castLights: () => presentationRef.current?.probe().castLights ?? [],
+    /** Every drawn model's muzzle sockets in the world, as posed (the
+     *  workbench's socket gizmos), with each model's origin to select the
+     *  firing body before its attachment is measured. */
+    muzzleSockets: () => {
+      const probe = presentationRef.current?.probe();
+      if (!probe || !appearances) return [];
+      return [...probe.soldiers, ...probe.vehicles].flatMap((m) => {
+        const bundle = appearances.appearances.get(m.appearance)?.bundle;
         if (!bundle) return [];
         const skeleton =
-          bundle.kind === "skinned" ? (appearances?.skeletons.get(bundle.skeleton) ?? null) : null;
+          bundle.kind === "skinned" ? (appearances.skeletons.get(bundle.skeleton) ?? null) : null;
+        const [x, y, z] = m.position;
         const [c, s] = [Math.cos(m.yaw), Math.sin(m.yaw)];
-        return posedSockets(bundle, skeleton, m.pose)
+        const pose: BenchPose =
+          "clip" in m
+            ? { kind: "skinned", clip: m.clip, phase: m.phase, blend: null }
+            : { kind: "articulated", articulation: m.articulation };
+        return posedSockets(bundle, skeleton, pose)
           .filter((k) => k.name.endsWith("muzzle"))
           .map(({ name, frame: f }) => ({
             appearance: m.appearance,
-            origin: [m.x, m.y, m.z],
+            origin: [x, y, z],
             name,
-            at: [m.x + f[12] * c - f[13] * s, m.y + f[12] * s + f[13] * c, m.z + f[14]],
+            at: [x + f[12] * c - f[13] * s, y + f[12] * s + f[13] * c, z + f[14]],
           }));
-      }),
+      });
+    },
     /** The vehicles as last posed: appearance, placement and articulation. */
-    vehicles: () =>
-      (posing?.models ?? []).flatMap((m) =>
-        m.pose.kind === "articulated"
-          ? [
-              {
-                appearance: m.appearance,
-                position: [m.x, m.y, m.z],
-                yaw: m.yaw,
-                tint: m.tint,
-                articulation: { ...m.pose.articulation },
-              },
-            ]
-          : [],
-      ),
+    vehicles: () => presentationRef.current?.probe().vehicles ?? [],
     /** Every body drawn as models, the static world's and those drawn from
      *  what the side knows: how many, how many of them a building draws (its
      *  parts), how many neither a model nor a building draws, and how many
@@ -1330,9 +1168,18 @@ export function useBattleSession({
   return {
     world,
     meshes,
-    /** The props drawn from what the side knows (standing destroyable props
-     *  when "apart", their remains, and wrecks), fed to the viewport. */
-    structures: structuresFeed,
+    /** What every battle view hands its viewport (`LabViewport`): each
+     *  animation frame's drawn units and presentation clock, the battle's
+     *  presentation (which draws the buildings too), the appearances its
+     *  models layer installs, and the GPU's arrival. */
+    viewport: { frame, presentation: presentationSource, appearances: modelAppearances, onReady },
+    /** What the side knows stands, for a viewport that draws it: the props
+     *  drawn from that knowledge (standing destroyable props when "apart",
+     *  their remains, and wrecks), the map's buildings, and what the camera
+     *  keeps clear of. */
+    known: { structures: structuresFeed, buildings: buildingsFeed, obstacles: cameraObstaclesFeed },
+    /** The player's pointer on a viewport that takes orders. */
+    input: { onPick, onRightPress, onCursor, onBox, pointerMarks: pointerPaint.feed },
     /** What a second client needs to draw this side's props and fallen
      *  buildings (`describeProps`); null until the map's props are fitted. */
     describeProps: () =>
@@ -1345,12 +1192,6 @@ export function useBattleSession({
             units,
           })
         : null,
-    /** The map's buildings, and those the side has seen
-     *  fall, for the viewport. */
-    buildingsFeed,
-    /** What the camera keeps clear of, from what the side knows stands, for
-     *  the viewport. */
-    cameraObstaclesFeed,
     /** What renderer fog is drawn from; `fogFeed` carries it to the viewport. */
     fog,
     fogFeed,
@@ -1374,28 +1215,11 @@ export function useBattleSession({
     revealed,
     pointerPaint,
     surfaceZ,
-    /** The appearances the viewport's models layer installs. */
-    appearances: modelAppearances,
-    /** What a second client needs to pose and draw this battle's units
-     *  (`describeUnits`); null until its appearances are installed. */
-    describeUnits: () =>
-      posing &&
-      describeUnits({
-        kinds: fielded,
-        installed: posing.appearances,
-        units,
-        factions: factions && { blue: factions[0], red: factions[1] },
-        pose: gamePose,
-        leanHold: rules.cover.lean_hold_s,
-      }),
-    /** What a second client needs to draw this battle's combat effects
-     *  (`describeEffects`); null until the side's props can be fitted. */
-    describeEffects: () =>
-      props && appearances
-        ? describeEffects({ kinds: fielded, units, fit: props.fit, installed: appearances })
-        : null,
-    /** Every animation frame's drawn units and presentation clock, for the viewport. */
-    frame,
+    /** What a second client needs to pose and draw this battle's units and
+     *  its combat effects (`describeUnits`, `describeEffects`): the
+     *  presentation's own input; null until it can load. */
+    describeUnits: () => worldInput?.units ?? null,
+    describeEffects: () => worldInput?.effects ?? null,
     /** The battle's sound (null unless `sound`), and its per-frame listener. */
     audio,
     hear,
@@ -1420,11 +1244,6 @@ export function useBattleSession({
             }
           : null,
       ),
-    onPick,
-    onRightPress,
-    onCursor,
-    onBox,
-    onReady,
     gpuAllocations,
     probes,
   };

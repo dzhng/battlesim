@@ -154,14 +154,14 @@ const fogFoliage = tgpu
   let key=j*P.foliageNx+i;
   var lo=0u;
   var hi=arrayLength(&buildLayout.$.foliage);
-  loop {
-    if(lo>=hi){return vec2f(0.0);}
+  while(lo<hi){
     let mid=(lo+hi)/2u;
     let row=buildLayout.$.foliage[mid];
     let at=u32(row.y)*P.foliageNx+u32(row.x);
     if(at==key){return row.zw;}
     if(at<key){lo=mid+1u;}else{hi=mid;}
   }
+  return vec2f(0.0);
 }`)
   .$uses({ buildLayout });
 
@@ -887,12 +887,12 @@ export async function createFogVisibility(
   const g = geometry;
   const merge = mergeFn(g.radial_bins);
   const pipelines = {
-    terrain: root.createComputePipeline({ compute: terrainMarch }),
-    merge: root.createComputePipeline({ compute: merge }),
-    cull: root.createComputePipeline({ compute: cullFn(g.tile_px) }),
-    probe: root.createComputePipeline({ compute: probeFn }),
-    shape: root.createComputePipeline({ compute: shapeFn }),
-    whole: root.createComputePipeline({ compute: wholeFn }),
+    terrain: root.createComputePipeline({ compute: terrainMarch }).$name("fogTerrain"),
+    merge: root.createComputePipeline({ compute: merge }).$name("fogMerge"),
+    cull: root.createComputePipeline({ compute: cullFn(g.tile_px) }).$name("fogCull"),
+    probe: root.createComputePipeline({ compute: probeFn }).$name("fogProbe"),
+    shape: root.createComputePipeline({ compute: shapeFn }).$name("fogShape"),
+    whole: root.createComputePipeline({ compute: wholeFn }).$name("fogWhole"),
   };
   await Promise.all(Object.values(pipelines).map((p) => p.initAsync()));
 

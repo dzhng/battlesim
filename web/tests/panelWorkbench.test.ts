@@ -69,6 +69,19 @@ test("every reason a weapon can't fire shows its mark", () => {
   expect(marked.filter((r) => !shown.has(r))).toEqual([]);
 });
 
+test("the pinned test-unit sheet does not grow with new unit types or weapon rows", () => {
+  const sheet = (units: UnitCatalog, rules: PanelRules) =>
+    panelSpecimens({ ...TEST_CATALOG, units }, rules, { testUnitsOnly: true }).map((s) => s.id);
+  const view = TEST_CATALOG.units.view;
+  const rifle = view.units.find((type) => type.id === "test_rifle")!;
+  const moreUnits = new UnitCatalog({
+    ...view,
+    units: [...view.units, { ...rifle, id: "test_new", name: "New Section" }],
+  });
+  const moreWeapons = { ...RULES, weapons: { ...RULES.weapons, test_new: RULES.weapons.rifle } };
+  expect(sheet(moreUnits, moreWeapons)).toEqual(sheet(TEST_CATALOG.units, RULES));
+});
+
 test("selected and unselected, default and far zoom, each specimen once", () => {
   expect(specimens.some((s) => s.selected)).toBe(true);
   expect(specimens.some((s) => !s.selected)).toBe(true);

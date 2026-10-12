@@ -1,42 +1,26 @@
-// Buildings on the GPU: the buffers behind `buildingPlacements.ts` and the
-// draws it chooses. A part of the models layer (`modelLayer.ts`), which owns
-// the kits' meshes, the material and the pipelines: a building's module is
-// drawn exactly as any static model is, from a record of the same layout.
+// Buildings on the GPU: the static batches of a presentation frame
+// (`crates/presentation`), drawn. A part of the models layer (`modelLayer.ts`),
+// which owns the kits' meshes, the material and the pipelines: a building's
+// module is drawn exactly as any static model is, from a record of the same
+// layout.
 //
-// Three record buffers, each written where it changes and nowhere else: the
-// coarse population's (once a map, and a destroyed building's records when
-// knowledge changes), the pool's (a chunk's rows when it enters), and the
-// fallen population's (the ruins and gutted shells, rebuilt with knowledge).
-// A view change chooses the draws on the CPU, a walk over chunks, never over
-// modules; a still camera does nothing.
+// Rust resolves every building against the template art library and walks
+// the map's chunks for each view; each static batch it hands over is one kit
+// module (its `World.appearances` row, marked `placed`: the kit, and the
+// module as the state) at one tier, drawn into the view or cast into the
+// sun's cascades. A frame whose walk changed anything writes every static
+// batch, and this layer uploads their records into one buffer and draws each
+// as a range; any other frame names them unchanged, and the buffer is drawn
+// as it stands. The frame's other batches are the models layer's.
 //
-// A draw is a range of one buffer as one mesh range. The meshes of a kit's
-// modules at a tier share a vertex and an index buffer, so consecutive draws
-// usually change only the range: those go straight to the raw pass, and the
-// pipeline's whole state is set again only when a buffer changes.
-import type { InstalledTemplateArt } from "@packages/scene-assets/src/loader";
-import type { Bounds } from "@packages/scene-assets/src/schema";
+// The meshes of a kit's modules at a tier share a vertex and an index buffer,
+// so consecutive draws usually change only the range: those go straight to
+// the raw pass, and the pipeline's whole state is set again only when a
+// buffer changes.
 import { TIER_COUNT } from "@packages/scene-assets/src/schema";
-import type { DetailView } from "../frame/detailView";
 import type { GpuRegistry } from "../frame/registry";
-import type { SunShadow } from "../frame/staticChunks";
-import {
-  artCovers,
-  buildingCasters,
-  buildingDraws,
-  COARSE,
-  createBuildingScene,
-  POOL,
-  RUINS,
-  selectBuildings,
-  setFallenBuildings,
-  type BuildingArt,
-  type BuildingScene,
-} from "./buildingPlacements";
-import type { BuildingStyle, SideBuildings } from "./buildingReferences";
-import { buildingCounts, buildingTables, type BuildingTables } from "./buildingTables";
-import { MODEL_RECORD_FLOATS } from "./modelInstances";
-import { flushPool } from "./placementPool";
+import { Batch, BATCH_WORDS, INSTANCE_WORDS, NONE, type frameViews } from "../records.gen";
+import type { WorldAppearance } from "./modelLayer";
 import {
   SURFACE_CLASSES,
   partRange,
@@ -46,8 +30,12 @@ import {
   type SurfaceParts,
 } from "./surfaceParts";
 
-const RECORD_BYTES = MODEL_RECORD_FLOATS * 4;
+const RECORD_BYTES = INSTANCE_WORDS * 4;
 const VERTEX_USAGE = 0x20 | 0x08; // VERTEX | COPY_DST
+/** A static batch's passes (`Batch.pass`): drawn into the view, cast into
+ *  the sun's cascades. */
+const VIEW = 0;
+const CAST = 1;
 
 /** A module's mesh at one tier: ranges of its kit's buffers for that tier,
  *  one per surface class (`surfaceParts.ts`), `count` indices in all. */
@@ -58,13 +46,9 @@ export interface ModuleMesh {
   count: number;
 }
 
-/** How the installed kits answer for the library's modules. */
-export interface ModuleSource {
-  /** The mesh of module `state` of kit appearance `kit` at `tier`, or null. */
-  mesh(kit: string, state: number, tier: number): ModuleMesh | null;
-  /** That module's bounds in its own frame, or null when the kit is not installed. */
-  bounds(kit: string, state: number): Bounds | null;
-}
+/** How the installed kits answer for a module: the mesh of kit appearance
+ *  `kit`'s module `module` at `tier`, or null. */
+export type ModuleSource = (kit: string, module: string, tier: number) => ModuleMesh | null;
 
 /** A pipeline bound to a mesh and a record buffer, ready to draw ranges. */
 export type BindBuildingDraw = (
@@ -81,51 +65,71 @@ export type BindBuildingDraw = (
   ): void;
 };
 
-export interface BuildingStats {
+/** What the presentation says of its buildings and their walk
+ *  (`Presentation::building_stats`). */
+export interface BuildingWalkStats {
   /** Buildings drawn from template art, and those of them the side knows
    *  destroyed (collapsed or gutted). */
   buildings: number;
   fallen: number;
-  /** Chunks they are bucketed in, and those resident in the pool. */
+  /** Chunks they are bucketed in, their coarse rows, and the chunks resident
+   *  in the pool. */
   chunks: number;
-  residentChunks: number;
-  /** The pool: the records it can hold, holds now, and its buffer's bytes. */
-  pool: { capacity: number; used: number; bytes: number };
-  /** Records in the coarse population (the whole map's), its buffer's
-   *  bytes, and records in the fallen one. */
   coarse: number;
-  coarseBytes: number;
+  residentChunks: number;
+  /** The pool: the rows it can hold, and holds now. */
+  pool: { capacity: number; used: number };
+  /** The fallen buildings' rows (a ruin's or a gutted shell's), and those
+   *  drawn into the view per tier. */
   ruins: number;
-  /** Per tier: module instances and triangles drawn into the view, and those
-   *  of the instances that are the fallen population's (a destroyed
-   *  building's rows for its damage state). */
+  ruinTiers: number[];
+  /** The last walk: rows expanded into the pool, near chunks drawn coarse
+   *  for want of room, and the time the frame took in Rust. */
+  expandedRows: number;
+  refused: number;
+  selectMs: number;
+  /** Since the buildings were loaded: rows expanded, and how long loading took. */
+  totalExpandedRows: number;
+  buildMs: number;
+}
+
+export interface BuildingStats extends BuildingWalkStats {
+  /** The record buffer's bytes. */
+  recordBytes: number;
+  /** Per tier: module instances and triangles drawn into the view. */
   tiers: number[];
   triangles: number[];
-  ruinTiers: number[];
   /** Draw calls into the view, and into each of the sun's cascades with the
    *  triangles those draw. */
   draws: number;
   casterDraws: number;
   casterTriangles: number;
-  /** The last view change: rows expanded into the pool, the time choosing
-   *  and expanding took, the bytes it uploaded, near chunks drawn coarse for
-   *  want of room, and whether chunks still wait their turn. */
-  expandedRows: number;
-  selectMs: number;
+  /** The bytes the last written frame uploaded, and all of them since the
+   *  buildings were loaded. */
   uploadBytes: number;
-  refused: number;
-  pending: boolean;
-  /** Since the buildings were set: rows expanded, bytes uploaded, and how
-   *  long building the references' scene took. */
-  totalExpandedRows: number;
   totalUploadBytes: number;
-  buildMs: number;
 }
+
+export const emptyBuildingWalkStats = (): BuildingWalkStats => ({
+  buildings: 0,
+  fallen: 0,
+  chunks: 0,
+  coarse: 0,
+  residentChunks: 0,
+  pool: { capacity: 0, used: 0 },
+  ruins: 0,
+  ruinTiers: Array.from({ length: TIER_COUNT }, () => 0),
+  expandedRows: 0,
+  refused: 0,
+  selectMs: 0,
+  totalExpandedRows: 0,
+  buildMs: 0,
+});
 
 /** A list of draws, grown once. */
 interface DrawList {
   meshes: ModuleMesh[];
-  /** Per draw: source buffer, first record, records. */
+  /** Per draw: first record, records. */
   ranges: Int32Array;
   count: number;
   /** Whether any of its meshes has a surface of each class. */
@@ -133,120 +137,65 @@ interface DrawList {
 }
 const createDrawList = (): DrawList => ({
   meshes: [],
-  ranges: new Int32Array(3 * 64),
+  ranges: new Int32Array(2 * 64),
   count: 0,
   surfaces: surfaceFlags(),
 });
-const clearDrawList = (list: DrawList) => {
-  list.count = 0;
-  for (const c of SURFACE_CLASSES) list.surfaces[c] = false;
-};
 
-export function createBuildingLayer(
-  device: GPUDevice,
-  registry: GpuRegistry,
-  style: BuildingStyle,
-) {
-  let art: BuildingArt | null = null;
-  /** Per library module and tier. */
-  let meshes: (ModuleMesh | null)[][] = [];
-  let buildings: SideBuildings | null = null;
-  let scene: BuildingScene | null = null;
+export function createBuildingLayer(device: GPUDevice, registry: GpuRegistry) {
+  let source: ModuleSource | null = null;
+  /** The drawables the batches name, by row. */
+  let rows: readonly WorldAppearance[] = [];
+  /** The static batches last written: `Batch` words each. */
+  let batches = new Uint32Array(0);
+  let batchCount = 0;
   let scope: GpuRegistry | null = null;
-  let coarseRecords: GPUBuffer | null = null;
-  let poolRecords: GPUBuffer | null = null;
-  /** The fallen population's records, in a scope of their own: replaced
-   *  whenever knowledge changes, gone when nothing has fallen. */
-  let ruinScope: GpuRegistry | null = null;
-  let ruinRecords: GPUBuffer | null = null;
-  let ruinsVersion = -1;
-  let viewKey = "";
-  let dirty = true;
+  let buffer: GPUBuffer | null = null;
   let shown = true;
-  const view = createDrawList();
-  const cast = createDrawList();
-  const stats: BuildingStats = {
-    buildings: 0,
-    fallen: 0,
-    chunks: 0,
-    residentChunks: 0,
-    pool: { capacity: 0, used: 0, bytes: 0 },
-    coarse: 0,
-    coarseBytes: 0,
-    ruins: 0,
-    tiers: Array.from({ length: TIER_COUNT }, () => 0),
-    triangles: Array.from({ length: TIER_COUNT }, () => 0),
-    ruinTiers: Array.from({ length: TIER_COUNT }, () => 0),
-    draws: 0,
-    casterDraws: 0,
-    casterTriangles: 0,
-    expandedRows: 0,
-    selectMs: 0,
-    uploadBytes: 0,
-    refused: 0,
-    pending: false,
-    totalExpandedRows: 0,
-    totalUploadBytes: 0,
-    buildMs: 0,
-  };
+  const lists = [createDrawList(), createDrawList()];
+  const tiers = Array.from({ length: TIER_COUNT }, () => 0);
+  const triangles = Array.from({ length: TIER_COUNT }, () => 0);
+  let casterTriangles = 0;
+  let uploadBytes = 0;
+  let totalUploadBytes = 0;
+  let walk = emptyBuildingWalkStats();
 
-  const recordBuffer = (label: string, records: number) =>
-    device.createBuffer({ label, size: Math.max(1, records) * RECORD_BYTES, usage: VERTEX_USAGE });
-  const write = (
-    buffer: GPUBuffer,
-    at: number,
-    data: Float32Array,
-    first: number,
-    count: number,
-  ) => {
-    device.queue.writeBuffer(
-      buffer,
-      at * RECORD_BYTES,
-      data as Float32Array<ArrayBuffer>,
-      first * MODEL_RECORD_FLOATS,
-      count * MODEL_RECORD_FLOATS,
-    );
-    return count * RECORD_BYTES;
-  };
-
-  /** Build the scene for the buildings and the art in hand, or none. */
-  function rebuild() {
-    scope?.release();
-    scope = null;
-    scene = null;
-    coarseRecords = poolRecords = ruinRecords = null;
-    ruinScope = null;
-    ruinsVersion = -1;
-    dirty = true;
-    Object.assign(stats, { totalExpandedRows: 0, totalUploadBytes: 0, buildMs: 0 });
-    if (!art || !buildings || buildings.placed.template.length === 0) return;
-    if (!artCovers(buildings.placed, art)) return;
-    const started = performance.now();
-    scene = createBuildingScene(buildings.placed, art, style);
-    setFallenBuildings(scene, buildings.fallen);
-    scene.coarseDirty.length = 0;
-    scope = registry.scope();
-    coarseRecords = scope.own(recordBuffer("building-coarse", scene.coarse.count));
-    stats.totalUploadBytes += write(coarseRecords, 0, scene.coarse.records, 0, scene.coarse.count);
-    poolRecords = scope.own(recordBuffer("building-pool", scene.pool.capacity));
-    stats.buildMs = performance.now() - started;
+  /** The batches' draws, against the meshes installed now. */
+  function relist() {
+    for (const list of lists) {
+      list.count = 0;
+      for (const c of SURFACE_CLASSES) list.surfaces[c] = false;
+    }
+    tiers.fill(0);
+    triangles.fill(0);
+    casterTriangles = 0;
+    for (let b = 0; b < batchCount; b++) {
+      const o = b * BATCH_WORDS;
+      const row = rows[batches[o + Batch.appearance]];
+      const tier = batches[o + Batch.tier];
+      const mesh = row && source?.(row.name, row.state, tier);
+      if (!mesh) continue;
+      const count = batches[o + Batch.count];
+      const view = batches[o + Batch.pass] === VIEW;
+      push(lists[view ? VIEW : CAST], mesh, batches[o + Batch.first], count);
+      if (view) {
+        tiers[tier] += count;
+        triangles[tier] += (count * mesh.count) / 3;
+      } else casterTriangles += (count * mesh.count) / 3;
+    }
   }
 
-  function push(list: DrawList, mesh: ModuleMesh, source: number, first: number, count: number) {
-    if (list.ranges.length < (list.count + 1) * 3) {
+  function push(list: DrawList, mesh: ModuleMesh, first: number, count: number) {
+    if (list.ranges.length < (list.count + 1) * 2) {
       const grown = new Int32Array(list.ranges.length * 2);
       grown.set(list.ranges);
       list.ranges = grown;
     }
     list.meshes[list.count] = mesh;
-    list.ranges.set([source, first, count], list.count * 3);
+    list.ranges.set([first, count], list.count * 2);
     list.count++;
     for (const c of SURFACE_CLASSES) if (mesh.parts[c].count) list.surfaces[c] = true;
   }
-
-  /** The record buffer a draw's source names. */
-  const bufferOf = (source: number) =>
-    source === COARSE ? coarseRecords! : source === POOL ? poolRecords! : ruinRecords!;
 
   function drawList(
     list: DrawList,
@@ -256,136 +205,90 @@ export function createBuildingLayer(
     hidden: Readonly<SurfaceFlags>,
   ) {
     const has = list.surfaces;
-    if (surface === "solid" ? !has.opaque && !has.room : !has[surface]) return;
+    if (!buffer || (surface === "solid" ? !has.opaque && !has.room : !has[surface])) return;
     let vertices: GPUBuffer | null = null;
-    let source = -1;
     for (let i = 0; i < list.count; i++) {
       const mesh = list.meshes[i];
       const { first: firstIndex, count: indices } = partRange(mesh.parts, surface, hidden);
       if (!indices) continue;
-      const [from, first, count] = [
-        list.ranges[i * 3],
-        list.ranges[i * 3 + 1],
-        list.ranges[i * 3 + 2],
-      ];
+      const [first, count] = [list.ranges[i * 2], list.ranges[i * 2 + 1]];
       // The pipeline, its groups and buffers through the typed path once per
-      // mesh buffer and record buffer; the ranges after it straight to the pass.
-      if (mesh.vertices !== vertices || from !== source) {
+      // mesh buffer; the ranges after it straight to the pass.
+      if (mesh.vertices !== vertices) {
         vertices = mesh.vertices;
-        source = from;
-        bind(mesh.vertices, bufferOf(from), mesh.indices).drawIndexed(
-          indices,
-          count,
-          firstIndex,
-          0,
-          first,
-        );
+        bind(mesh.vertices, buffer, mesh.indices).drawIndexed(indices, count, firstIndex, 0, first);
       } else raw.drawIndexed(indices, count, firstIndex, 0, first);
     }
   }
 
   return {
-    /** The template art a generation installed and how its kits answer for
-     *  its modules (`undefined`: no building is drawn). The kits installed
-     *  are only those the map's buildings need (`templateKits`): a module of
-     *  any other is bound to no state and has no mesh here. */
-    setArt(installed: InstalledTemplateArt | undefined, source: ModuleSource) {
-      const modules = installed?.modules ?? [];
-      const bounds = modules.map((m) => (m.state === null ? null : source.bounds(m.kit, m.state)));
-      meshes = modules.map(({ kit, state }) =>
-        Array.from({ length: TIER_COUNT }, (_, tier) =>
-          state === null ? null : source.mesh(kit, state, tier),
-        ),
-      );
-      const same =
-        art?.library === installed?.library &&
-        bounds.every((b, i) => (b === null) === (art!.bounds[i] === null));
-      if (!same) {
-        art = installed ? { library: installed.library, bounds } : null;
-        rebuild();
-      }
-      // The meshes are a new generation's buffers either way.
-      dirty = true;
+    /** How the installed kits answer for the modules (a new generation's
+     *  buffers): the batches are drawn from these meshes now. */
+    setSource(next: ModuleSource | null) {
+      source = next;
+      relist();
     },
-    /** The buildings a side draws from template art (`null`: none). A new
-     *  `placed` builds the map's references; a new `fallen` alone changes
-     *  only the buildings whose knowledge changed. */
-    set(next: SideBuildings | null) {
-      const before = buildings;
-      buildings = next;
-      if (next?.placed !== before?.placed) rebuild();
-      else if (scene && next && next.fallen !== before?.fallen) {
-        setFallenBuildings(scene, next.fallen);
-        dirty = true;
+    /** The drawables a new load's batches name: what the last load's
+     *  buildings held is returned. */
+    setWorld(world: readonly WorldAppearance[]) {
+      if (world === rows) return;
+      scope?.release();
+      [scope, buffer, rows, totalUploadBytes, batchCount] = [null, null, world, 0, 0];
+      relist();
+    },
+    /** The static batches of a presentation frame (null: none), and what it
+     *  says of its walk. Returns whether what is drawn changed. Read at
+     *  once: the views last only until the next call into the module. */
+    setFrame(frame: ReturnType<typeof frameViews> | null, stats: BuildingWalkStats): boolean {
+      walk = stats;
+      const all = frame?.batches.count ?? 0;
+      const words = frame?.batches.u32;
+      // The static batches, and whether this frame wrote them.
+      let count = 0;
+      let written = false;
+      let end = 0;
+      for (let b = 0; b < all; b++) {
+        const o = b * BATCH_WORDS;
+        if (!rows[words![o + Batch.appearance]]?.placed) continue;
+        count++;
+        const first = words![o + Batch.first];
+        if (first !== NONE) {
+          written = true;
+          end = Math.max(end, first + words![o + Batch.count]);
+        }
       }
+      if (count ? !written : !batchCount) return false;
+      batchCount = count;
+      if (batches.length < count * BATCH_WORDS) batches = new Uint32Array(count * BATCH_WORDS * 2);
+      for (let b = 0, at = 0; b < all; b++) {
+        const o = b * BATCH_WORDS;
+        if (!rows[words![o + Batch.appearance]]?.placed) continue;
+        batches.set(words!.subarray(o, o + BATCH_WORDS), at);
+        at += BATCH_WORDS;
+      }
+      // The static records lead the frame's: those up to the last are uploaded.
+      const records = frame?.instances.f32.subarray(0, end * INSTANCE_WORDS);
+      uploadBytes = records?.byteLength ?? 0;
+      totalUploadBytes += uploadBytes;
+      if (records?.length) {
+        // A power of two that holds them: the same view holds the same
+        // buffer, however it was reached.
+        const size = 2 ** Math.ceil(Math.log2(records.byteLength));
+        if (!buffer || buffer.size !== size) {
+          scope?.release();
+          scope = registry.scope();
+          buffer = scope.own(
+            device.createBuffer({ label: "building-records", size, usage: VERTEX_USAGE }),
+          );
+        }
+        device.queue.writeBuffer(buffer, 0, records as Float32Array<ArrayBuffer>);
+      }
+      relist();
+      return true;
     },
     /** Lab diagnostics: draw the buildings and their shadows, or neither. */
     setShown(on: boolean) {
       shown = on;
-    },
-    /** Whether chunks wait to be expanded: the frame should draw again. */
-    get pending(): boolean {
-      return scene?.pending ?? false;
-    },
-    /** Choose this frame's draws for the camera (`detail`), when anything changed. */
-    prepare(detail: DetailView, key: string, shadow: SunShadow) {
-      if (!scene || (!dirty && key === viewKey && !scene.pending)) return;
-      viewKey = key;
-      dirty = false;
-      const started = performance.now();
-      selectBuildings(scene, detail, shadow);
-      stats.selectMs = performance.now() - started;
-
-      let uploaded = 0;
-      const changed = scene.coarseDirty;
-      for (let i = 0; i < changed.length; i += 2)
-        uploaded += write(
-          coarseRecords!,
-          changed[i],
-          scene.coarse.records,
-          changed[i],
-          changed[i + 1],
-        );
-      changed.length = 0;
-      if (ruinsVersion !== scene.ruinsVersion) {
-        ruinsVersion = scene.ruinsVersion;
-        ruinScope?.release();
-        ruinScope = ruinRecords = null;
-        if (scene.ruins) {
-          ruinScope = scope!.scope();
-          ruinRecords = ruinScope.own(recordBuffer("building-ruins", scene.ruins.count));
-          uploaded += write(ruinRecords, 0, scene.ruins.records, 0, scene.ruins.count);
-        }
-      }
-      const { pool } = scene;
-      flushPool(pool, (first, count) => {
-        uploaded += write(poolRecords!, first, pool.records, first, count);
-      });
-
-      clearDrawList(view);
-      clearDrawList(cast);
-      stats.tiers.fill(0);
-      stats.triangles.fill(0);
-      stats.ruinTiers.fill(0);
-      stats.casterTriangles = 0;
-      buildingDraws(scene, (source, module, tier, first, count) => {
-        const mesh = meshes[module]?.[tier];
-        if (!mesh) return;
-        push(view, mesh, source, first, count);
-        stats.tiers[tier] += count;
-        stats.triangles[tier] += (count * mesh.count) / 3;
-        if (source === RUINS) stats.ruinTiers[tier] += count;
-      });
-      buildingCasters(scene, (source, module, tier, first, count) => {
-        const mesh = meshes[module]?.[tier];
-        if (!mesh) return;
-        push(cast, mesh, source, first, count);
-        stats.casterTriangles += (count * mesh.count) / 3;
-      });
-      stats.expandedRows = scene.expandedRows;
-      stats.uploadBytes = uploaded;
-      stats.totalExpandedRows += scene.expandedRows;
-      stats.totalUploadBytes += uploaded;
     },
     /** One kind of surface of every building into the view (the depth prepass
      *  and the colour pass), less the classes `hidden` names. */
@@ -395,7 +298,7 @@ export function createBuildingLayer(
       surface: SurfacePart,
       hidden: Readonly<SurfaceFlags>,
     ) {
-      if (scene && shown) drawList(view, bind, raw, surface, hidden);
+      if (shown) drawList(lists[VIEW], bind, raw, surface, hidden);
     },
     /** One kind of surface of every casting building into one of the sun's cascades. */
     drawCasters(
@@ -404,43 +307,34 @@ export function createBuildingLayer(
       surface: SurfacePart,
       hidden: Readonly<SurfaceFlags>,
     ) {
-      if (scene && shown) drawList(cast, bind, raw, surface, hidden);
+      if (shown) drawList(lists[CAST], bind, raw, surface, hidden);
     },
-    /** The buildings as tables for a second client (`buildingTables.ts`);
-     *  refused while buildings wait for their art. */
-    tables(): BuildingTables {
-      if (!scene && buildings?.placed.template.length)
-        throw new Error("the buildings' template art is not installed yet");
-      return buildingTables(scene, style);
-    },
-    /** The module instances the last view drew, per exported module and
-     *  tier (`buildingCounts`); none while they are hidden. */
+    /** The module instances the last view drew, per row (a walked module)
+     *  and tier (`row · 4 + tier`); none while they are hidden. */
     drawn(): number[] {
-      const counts = buildingCounts(scene);
-      return shown ? counts : counts.fill(0);
+      const counts = Array.from({ length: rows.length * TIER_COUNT }, () => 0);
+      if (!shown) return counts;
+      for (let b = 0; b < batchCount; b++) {
+        const o = b * BATCH_WORDS;
+        if (batches[o + Batch.pass] !== VIEW) continue;
+        counts[batches[o + Batch.appearance] * TIER_COUNT + batches[o + Batch.tier]] +=
+          batches[o + Batch.count];
+      }
+      return counts;
     },
     stats(): BuildingStats {
       return {
-        ...stats,
-        buildings: scene?.placed.template.length ?? 0,
-        fallen: scene ? scene.fallen.reduce((n, f) => n + f, 0) : 0,
-        chunks: scene?.coarse.chunks.chunks.length ?? 0,
-        residentChunks: scene?.resident.length ?? 0,
-        pool: {
-          capacity: scene?.pool.capacity ?? 0,
-          used: scene?.pool.used ?? 0,
-          bytes: poolRecords?.size ?? 0,
-        },
-        coarse: scene?.coarse.count ?? 0,
-        coarseBytes: coarseRecords?.size ?? 0,
-        ruins: scene?.ruins?.count ?? 0,
-        tiers: [...stats.tiers],
-        triangles: [...stats.triangles],
-        ruinTiers: [...stats.ruinTiers],
-        draws: scene ? view.count : 0,
-        casterDraws: scene ? cast.count : 0,
-        refused: scene?.refused ?? 0,
-        pending: scene?.pending ?? false,
+        ...walk,
+        pool: { ...walk.pool },
+        ruinTiers: [...walk.ruinTiers],
+        recordBytes: buffer?.size ?? 0,
+        tiers: [...tiers],
+        triangles: [...triangles],
+        draws: lists[VIEW].count,
+        casterDraws: lists[CAST].count,
+        casterTriangles,
+        uploadBytes,
+        totalUploadBytes,
       };
     },
     dispose() {

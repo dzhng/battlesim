@@ -9,6 +9,7 @@ import { hudIcon } from "@packages/scene-assets/src/icons";
 import { Icon } from "@web/battle/present/icons";
 import type { SimClient } from "@web/battle/sim/client";
 import { DiagnosticsControls } from "./DiagnosticsControls";
+import { GraphicsSettingsControls } from "./GraphicsSettingsControls";
 import { SoundControls } from "./SoundControls";
 import { Tutorial } from "./Tutorial";
 
@@ -65,26 +66,30 @@ export function MenuButton({ onOpen }: { onOpen: () => void }) {
 export function PauseMenu({
   onClose,
   onRestart,
+  onSettingsApply,
   children,
 }: {
   onClose: () => void;
   /** Restart the battle from its seed; none where a run can't restart. */
   onRestart?: () => void;
+  onSettingsApply?: () => void | Promise<void>;
   /** The route's own items. */
   children?: ReactNode;
 }) {
   const [tutorialOpen, setTutorialOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   useEffect(() => {
-    if (!tutorialOpen) return;
+    if (!tutorialOpen && !settingsOpen) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.code !== "Escape" || e.repeat || e.defaultPrevented) return;
       e.preventDefault();
       e.stopPropagation();
       setTutorialOpen(false);
+      setSettingsOpen(false);
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [tutorialOpen]);
+  }, [tutorialOpen, settingsOpen]);
   return (
     <>
       <div className="hud-veil" data-occludes-readouts>
@@ -93,8 +98,8 @@ export function PauseMenu({
           role="dialog"
           aria-modal="true"
           aria-label="Paused"
-          aria-hidden={tutorialOpen || undefined}
-          inert={tutorialOpen || undefined}
+          aria-hidden={tutorialOpen || settingsOpen || undefined}
+          inert={tutorialOpen || settingsOpen || undefined}
         >
           <strong className="hud-menu-title">Paused</strong>
           <button type="button" className="hud-menu-item" onClick={onClose} autoFocus>
@@ -102,6 +107,9 @@ export function PauseMenu({
           </button>
           <button type="button" className="hud-menu-item" onClick={() => setTutorialOpen(true)}>
             Tutorial
+          </button>
+          <button type="button" className="hud-menu-item" onClick={() => setSettingsOpen(true)}>
+            Settings
           </button>
           {onRestart && (
             <button type="button" className="hud-menu-item" onClick={onRestart}>
@@ -112,12 +120,6 @@ export function PauseMenu({
           <Link className="hud-menu-item" to="/">
             Main menu
           </Link>
-          <section className="hud-menu-section" aria-label="Sound">
-            <SoundControls />
-          </section>
-          <section className="hud-menu-section" aria-label="Diagnostics">
-            <DiagnosticsControls />
-          </section>
         </div>
       </div>
       {tutorialOpen && (
@@ -140,6 +142,35 @@ export function PauseMenu({
               </button>
             </header>
             <Tutorial />
+          </div>
+        </div>
+      )}
+      {settingsOpen && (
+        <div className="hud-veil hud-tutorial-veil" data-occludes-readouts>
+          <div
+            className="hud-panel hud-tutorial-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Settings"
+          >
+            <header className="hud-tutorial-head">
+              <strong className="hud-menu-title">Settings</strong>
+              <button
+                type="button"
+                className="hud-menu-item"
+                onClick={() => setSettingsOpen(false)}
+                autoFocus
+              >
+                Close settings
+              </button>
+            </header>
+            <GraphicsSettingsControls onApply={onSettingsApply} />
+            <section className="hud-menu-section" aria-label="Sound">
+              <SoundControls />
+            </section>
+            <section className="hud-menu-section" aria-label="Diagnostics">
+              <DiagnosticsControls />
+            </section>
           </div>
         </div>
       )}

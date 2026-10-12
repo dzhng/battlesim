@@ -3,7 +3,7 @@ import { expect, test } from "vitest";
 import { createReelRun, grassCells, type ReelPlate } from "@apps/battle-lab/src/benchmark/reelRun";
 import type { UploadedTables } from "@packages/battle-renderer/src/frame/wordTables";
 import type { BackdropScene } from "@apps/battle-lab/src/menuReel";
-import { emptyEffectCounts } from "@packages/battle-renderer/src/effects/effectFrame";
+import { emptyEffectCounts } from "@apps/battle-lab/src/presentedFrame";
 import type { FramePlate } from "@apps/battle-lab/src/LabViewport";
 import type { DrawnUnits } from "@web/battle/benchmark/unitManifest";
 

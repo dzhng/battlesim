@@ -1,13 +1,15 @@
-// The battle's light: `presentation.light` in the fixture, as authored, and the
-// few values derived from it that every light consumer must agree on. The sky,
-// the environment light, the aerial haze and the cascades all read the one sun
-// direction from here; the camera uniform carries the same two angles.
+// The battle's light: `presentation.light` in the fixture, as authored, and
+// what the presentation crate resolves it to (`presentation::light`): the
+// uniform records of the sky, the haze, the sun and post, which the renderer
+// uploads as they are. The shadows' cascades still read the authored angles
+// through `sunDirection`.
 //
 // Rewritten from ~/dev/game
 // game-renderer/src/environment/environment.ts, whose named presets this
 // replaces: the battle has one light, and the fixture owns its numbers.
 import { vec3, type Vec3 } from "math";
 import { CSM_CASCADES } from "./shadowPolicy";
+import { AERIAL_WORDS, BLOOM_WORDS, GRADE_WORDS, SKY_LIGHT_WORDS, SUN_WORDS } from "../records.gen";
 
 export type Rgb = readonly [number, number, number];
 
@@ -138,8 +140,28 @@ export function sunDirection(
   );
 }
 
-export function postSettings(light: LightPresentation): PostSettings {
-  return { exposure: light.exposure, grade: light.grade, bloom: light.bloom };
+/** The light a frame is built with: the authored settings, and the records
+ *  the presentation crate resolved from them (`SkyLight`, `Aerial`, `Sun`,
+ *  `Bloom`, `Grade` in `records.gen.ts`), each its uniform's bytes. */
+export interface ResolvedLight {
+  settings: LightPresentation;
+  sky: Float32Array<ArrayBuffer>;
+  aerial: Float32Array<ArrayBuffer>;
+  sun: Float32Array<ArrayBuffer>;
+  bloom: Float32Array<ArrayBuffer>;
+  grade: Float32Array<ArrayBuffer>;
+}
+
+/** `settings` with its records, split from the crate's words in their order
+ *  (`light_records`). */
+export function resolvedLight(settings: LightPresentation, words: Float32Array): ResolvedLight {
+  const sizes = [SKY_LIGHT_WORDS, AERIAL_WORDS, SUN_WORDS, BLOOM_WORDS, GRADE_WORDS];
+  const total = sizes.reduce((a, b) => a + b);
+  if (words.length !== total)
+    throw new Error(`light records: ${words.length} words, expected ${total}`);
+  let at = 0;
+  const [sky, aerial, sun, bloom, grade] = sizes.map((n) => words.slice(at, (at += n)));
+  return { settings, sky, aerial, sun, bloom, grade };
 }
 
 /** Checks every number the GPU will see; throws naming the first bad field. */

@@ -7,8 +7,8 @@
     "dev": "bun run build:wasm && bun run build:mechanics && bun run build:map-workbench && bun run --cwd web dev",
     "dev:mechanics": "bun run dev --open /mechanics",
     "dev:maps": "bun run dev --open /map-workbench",
-    "build:mechanics": "CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-throwaway/target} cargo build -p sim --example mechanics_validate",
-    "build:map-workbench": "CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-throwaway/target} cargo build --release -p mapgen --example map_workbench_report",
+    "build:mechanics": "CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-target} cargo build -p sim --example mechanics_validate",
+    "build:map-workbench": "CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-target} cargo build --release -p mapgen --example map_workbench_report",
     "build": "bun run build:wasm && bun run build:web",
     "build:wasm": "bun run --cwd web build:wasm",
     "build:web": "bun run --cwd web build",
@@ -21,6 +21,7 @@
     "test:web": "bun run build:wasm && bun run build:mechanics && bun run build:map-workbench && bun run --cwd web test",
     "verify": "bun run build:wasm && bun run build:mechanics && bun run build:map-workbench && bun run --cwd web verify",
     "visual": "bun run build:wasm && bun run build:mechanics && bun run build:map-workbench && bun run --cwd web visual",
-    "check": "bun run fmt:check && bun run lint && bun run build:wasm && bun run build:mechanics && bun run build:map-workbench && bun run typecheck && bun run test:rust && bun run --cwd web test"
+    "check": "bun run fmt:check && bun run lint && bun run build:wasm && bun run build:mechanics && bun run build:map-workbench && bun run typecheck && bun run test:rust && bun run --cwd web test",
+    "generate": "bun packages/battle-audio/tools/generate/cli.ts"
   }
 }

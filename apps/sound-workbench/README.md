@@ -45,3 +45,10 @@ Saving changes the repository sound document under the shared accepted-generatio
 contract. Sound catalog hot reload is suppressed so it cannot replace a running
 battle's choices; reload or open a page to capture the latest saved generation. The development-only HTTP boundary accepts local same-origin writes, logical documents and reviewed candidate
 identities; the browser cannot choose publication paths.
+
+Voices are reviewed one set at a time on their own tab, never through the library.
+`voices.json` is edited here only for line text, voice descriptions and retakes, through
+the same publication. The voice lock has one writer, the generation tool: the
+workbench server runs it for each verdict and generation, one command at a time, and
+a verdict names the served bytes it judged, so a regenerated take reads as unreviewed
+again. A generation always names its sets, so a click never spends on the whole library.
