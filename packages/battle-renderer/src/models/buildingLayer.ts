@@ -245,7 +245,11 @@ export function createBuildingLayer(device: GPUDevice, registry: GpuRegistry) {
           written = words[b * BATCH_WORDS + Batch.first] !== NONE;
         if (!written) return false;
       } else if (!batchCount) return false;
-      rows = world;
+      if (world !== rows) {
+        // Another load's buildings: what the last ones held is returned.
+        scope?.release();
+        [scope, buffer, rows, totalUploadBytes] = [null, null, world, 0];
+      }
       batchCount = count;
       if (batches.length < count * BATCH_WORDS) batches = new Uint32Array(count * BATCH_WORDS * 2);
       if (words) batches.set(words);
@@ -253,16 +257,14 @@ export function createBuildingLayer(device: GPUDevice, registry: GpuRegistry) {
       uploadBytes = records?.byteLength ?? 0;
       totalUploadBytes += uploadBytes;
       if (records?.length) {
-        const bytes = records.byteLength;
-        if (!buffer || buffer.size < bytes) {
+        // A power of two that holds them: the same view holds the same
+        // buffer, however it was reached.
+        const size = 2 ** Math.ceil(Math.log2(records.byteLength));
+        if (!buffer || buffer.size !== size) {
           scope?.release();
           scope = registry.scope();
           buffer = scope.own(
-            device.createBuffer({
-              label: "building-records",
-              size: bytes * 2,
-              usage: VERTEX_USAGE,
-            }),
+            device.createBuffer({ label: "building-records", size, usage: VERTEX_USAGE }),
           );
         }
         device.queue.writeBuffer(buffer, 0, records as Float32Array<ArrayBuffer>);
