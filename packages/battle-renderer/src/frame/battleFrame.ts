@@ -60,6 +60,8 @@ export interface BattleFrameOptions {
     grassDensity: number;
     shadowMapSize: 1024 | 1536 | 2048;
     shadowReach: number;
+    forestDressing: boolean;
+    understorey: boolean;
   };
   /** `presentation.light`: sun, sky, haze, grade, bloom and cascades. */
   light: LightPresentation;
@@ -154,6 +156,7 @@ export async function createBattleFrame(
       options.xrayMinHiddenFragmentFraction,
       options.glass,
       quality?.grassDensity ?? 1,
+      quality?.treeLodScale ?? 1,
     );
     const fogMask = await createFogMaskPass(root, registry, displayFormat, options.fogStyle);
     const impostors = createImpostorBaker(root, registry, models, environment);
@@ -186,6 +189,10 @@ export async function createBattleFrame(
     await targets.ensure(size(options.width), size(options.height));
     world.setWorld(options.world);
     world.setInstances(options.instances);
+    if (quality) {
+      world.setDressingShown(quality.forestDressing);
+      world.setUnderstoreyShown(quality.understorey);
+    }
     return frameOf();
 
     function frameOf(): BattleFrame {

@@ -402,6 +402,7 @@ export async function createSceneryLayer(
   root: Root,
   registry: GpuRegistry,
   environment: EnvironmentFrame,
+  lodScale = 1,
 ) {
   /** Shading shared by both populations: albedo, leaf clumps and the light. */
   const surface = tgpu.fn(
@@ -634,7 +635,7 @@ export async function createSceneryLayer(
       staged: createStagedLevels(chunks),
       casts,
       meshes,
-      lodPx,
+      lodPx: lodPx.map((value) => value * lodScale) as TierView["lodPx"],
       far: chunks.sorted.map((instances) => {
         const buffer = scope.own(instanceBuffer(root, instances.length / INSTANCE_FLOATS));
         if (instances.length) buffer.write(instances.buffer);

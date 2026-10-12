@@ -96,6 +96,7 @@ function isFiniteFps(value: unknown): value is number {
 function isBenchmarkResult(value: unknown): value is GraphicsBenchmarkResult {
   if (!value || typeof value !== "object") return false;
   const result = value as Record<string, unknown>;
+  if (Object.keys(result).some((key) => !["averageFps", "onePercentLowFps", "selectedMode"].includes(key))) return false;
   return (
     isFiniteFps(result.averageFps) &&
     isFiniteFps(result.onePercentLowFps) &&
@@ -106,6 +107,7 @@ function isBenchmarkResult(value: unknown): value is GraphicsBenchmarkResult {
 function isSettings(value: unknown): value is GraphicsSettings {
   if (!value || typeof value !== "object") return false;
   const settings = value as Record<string, unknown>;
+  if (Object.keys(settings).some((key) => !["mode", "detectedMode", "lastResult"].includes(key))) return false;
   return (
     (settings.mode === "auto" || isTier(settings.mode)) &&
     (settings.detectedMode === null || isTier(settings.detectedMode)) &&

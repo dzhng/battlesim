@@ -19,6 +19,7 @@ describe("graphics settings persistence", () => {
     [undefined, "auto"],
     ["{}", "auto"],
     ['{"mode":"potato"}', "auto"],
+    ['{"mode":"high","detectedMode":null,"lastResult":null,"future":true}', "auto"],
     ['{"mode":"high","detected":"potato"}', "auto"],
     ['{"mode":"high","lastResult":{"averageFps":"fast"}}', "auto"],
   ])("uses first-launch auto for missing or malformed records (%s)", async (raw, mode) => {
