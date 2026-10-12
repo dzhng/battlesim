@@ -436,6 +436,12 @@ impl Run {
                 stats.stolen,
                 stats.cues
             );
+            println!(
+                "voice lines {}, music tracks {}; not played: {:?}",
+                played.lines,
+                played.tracks,
+                audio.errors()
+            );
         }
         if self.count_mismatches.is_empty() {
             println!("model, scenery and effect counts: equal to the browser's on every plate");

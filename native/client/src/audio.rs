@@ -10,12 +10,22 @@
 //!   or right by an equal-power pan (by direction from the listener, or the
 //!   cue's sector), and sending its share into its bus's reverb;
 //! - buses (units, effects, ambience, voices) sum under the master,
-//!   through a limiter.
+//!   through a limiter;
+//! - voice lines are the line arbitration's (`presentation::sound::voices`):
+//!   its answers and the barks the sound heard, each a take of a voice pack
+//!   ([`voices`]) on the voices bus;
+//! - the score is `presentation::sound::music`'s: its tracks stream on the
+//!   music bus under the master, crossfading, and dip under voice lines
+//!   ([`music`]).
 //!
 //! The output is the default device, or a buffer rendered on demand
 //! (`Output::Buffer`), which is how it is tested and recorded without
 //! playing aloud.
-use std::collections::HashMap;
+mod mp3;
+mod music;
+mod voices;
+
+use std::collections::{BTreeSet, HashMap};
 use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
@@ -34,7 +44,9 @@ use kira::{
 use presentation::presentation::Presentation;
 use presentation::sound::bank::Bank;
 use presentation::sound::frame::{Command, Listener, Params, Sound, Voice};
+use presentation::sound::music::Score;
 use presentation::sound::tables::Bus;
+use presentation::sound::voices::{Chatter, Request, Speakers};
 use presentation::world::Vec3;
 use serde_json::{json, Value};
 
@@ -42,6 +54,11 @@ use serde_json::{json, Value};
 pub const SAMPLE_RATE: u32 = 48_000;
 /// Seconds a live loop's parameters glide to a new value over.
 const GLIDE_S: f64 = 0.06;
+/// The seeds a battle's voice takes and score shuffle are drawn from: the
+/// browser's lines use 0; its score draws a seed per battle, which a replay
+/// has no source for.
+const CHATTER_SEED: f64 = 0.0;
+const SCORE_SEED: u32 = 0;
 const BUSES: [Bus; 4] = [Bus::Units, Bus::Effects, Bus::Ambience, Bus::Voices];
 
 fn tween(seconds: f64) -> Tween {
@@ -130,6 +147,9 @@ pub struct Played {
     pub refused: usize,
     /// Voices sounding now, by the player's own count.
     pub live: usize,
+    /// Voice lines started, and music tracks.
+    pub lines: usize,
+    pub tracks: usize,
 }
 
 pub struct Audio {
@@ -142,6 +162,12 @@ pub struct Audio {
     voices: HashMap<u32, Playing>,
     listener: Listener,
     played: Played,
+    chatter: Chatter,
+    score: Score,
+    packs: voices::Packs,
+    music: music::Music,
+    /// What could not be played, by name (a missing pack, take or track).
+    errors: Vec<String>,
 }
 
 /// The game's sound setup, as the browser builds it (`soundFeed.ts`):
@@ -296,8 +322,23 @@ impl Audio {
                     .map_err(|e| e.to_string())?,
             );
         }
+        let catalog: Value = serde_json::from_str(setup).map_err(|e| format!("sound: {e}"))?;
+        let music = music::Music::new(
+            &mut manager,
+            audio.buses.music,
+            &catalog["catalog"],
+            runtime,
+        )?;
         Ok(Self {
             manager,
+            chatter: Chatter::new(audio.voices, CHATTER_SEED),
+            score: Score::new(
+                audio.music.clone(),
+                tables.catalog.music.moods.clone(),
+                SCORE_SEED,
+            ),
+            packs: voices::Packs::new(runtime),
+            music,
             sound,
             sounds,
             buses,
@@ -308,14 +349,44 @@ impl Audio {
                 forward: [0.0, 1.0, 0.0],
             },
             played: Played::default(),
+            errors: Vec::new(),
         })
     }
 
     pub fn played(&self) -> Played {
         Played {
             live: self.voices.len(),
+            tracks: self.music.started,
             ..self.played
         }
+    }
+
+    /// What could not be played, by name.
+    pub fn errors(&self) -> &[String] {
+        &self.errors
+    }
+
+    /// Which voice set each unit kind speaks with, for the side's own
+    /// faction and its enemy's: every set named loads its pack, and a shout
+    /// heard in the open is a bark in its kind's set.
+    pub fn speakers(&mut self, speakers: Speakers) {
+        let sets: BTreeSet<&String> = speakers
+            .own
+            .values()
+            .chain(speakers.enemy.values())
+            .collect();
+        for set in sets {
+            if let Err(e) = self.packs.load(set, &mut self.chatter) {
+                self.errors.push(e);
+            }
+        }
+        self.sound.set_speakers(speakers);
+    }
+
+    /// A unit's answer to its owner, asked at player time `now`; the next
+    /// [`Audio::speak`] decides whether it plays.
+    pub fn respond(&mut self, request: Request, now: f64) {
+        self.chatter.request(request, now);
     }
 
     /// The sound's own counts (`presentation::sound::frame::Stats`).
@@ -345,6 +416,20 @@ impl Audio {
             .update(clock, wall, now, &motion, listener)
             .to_vec();
         self.run(&commands, now);
+        self.speak(now);
+    }
+
+    /// The voice lines and the score at player time `now`, once the sound
+    /// has heard the frame: the lines arbitrate the answers asked and the
+    /// barks the sound heard, and the score follows those barks and dips
+    /// under any line.
+    pub fn speak(&mut self, now: f64) {
+        let lines = self.chatter.hear(&mut self.sound, now);
+        let (commands, heard) = (lines.commands.clone(), lines.heard.clone());
+        self.run(&commands, now);
+        let speaking = self.chatter.speaking(now);
+        let music = self.score.hear(now, &heard, speaking).to_vec();
+        self.run(&music, now);
     }
 
     /// The sound the player carries out, for a script to drive.
@@ -366,6 +451,13 @@ impl Audio {
                     }
                 }
                 Command::Listen { listener, .. } => self.listen(*listener),
+                Command::Music { track, fade, .. } => {
+                    if let Err(e) = self.music.play(track, *fade) {
+                        self.errors.push(e);
+                    }
+                }
+                Command::MusicStop { fade, .. } => self.music.stop(*fade),
+                Command::Duck { depth, glide, .. } => self.music.duck(*depth, *glide),
             }
         }
         // A transient that has played out frees its voice.
@@ -404,10 +496,19 @@ impl Audio {
     }
 
     fn start(&mut self, id: u32, v: &Voice, now: f64) {
-        let Some(alternatives) = self.sounds.get(&v.sound) else {
-            return;
+        // A prepared sound, or else a voice line's take.
+        let (data, normalization) = match self.sounds.get(&v.sound) {
+            Some(alternatives) => alternatives[v.variant as usize % alternatives.len()].clone(),
+            None => match self.packs.take(&v.sound, v.variant) {
+                Some(Ok(take)) => {
+                    self.played.lines += 1;
+                    take
+                }
+                Some(Err(e)) => return self.errors.push(e),
+                None => return self.errors.push(format!("sound: no {}", v.sound)),
+            },
         };
-        let (data, normalization) = &alternatives[v.variant as usize % alternatives.len()];
+        let data = &data;
         let bus = BUSES.iter().position(|b| *b == v.bus).expect("a bus");
         let (panning, level) = self.panning(v.position.as_ref(), v.pan);
         let (filter, filter_handle) = {

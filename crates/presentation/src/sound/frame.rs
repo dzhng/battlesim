@@ -264,6 +264,18 @@ pub enum Command {
         #[serde(flatten)]
         listener: Listener,
     },
+    /// Stream music track `track` (a catalog id, whose file the player
+    /// resolves) on the music bus from `at`, looping, fading in over `fade`
+    /// seconds. A crossfade is a [`Command::MusicStop`] then this, over the
+    /// same span.
+    Music { at: f64, track: String, fade: f64 },
+    /// Fade every music track sounding out over `fade` seconds from `at`,
+    /// then free it.
+    #[serde(rename = "music_stop")]
+    MusicStop { at: f64, fade: f64 },
+    /// Dip the music bus by `depth` (0 restores it) from `at`, gliding there
+    /// with time constant `glide` seconds.
+    Duck { at: f64, depth: f64, glide: f64 },
 }
 
 #[derive(Clone, Copy, Debug, Default, Serialize)]

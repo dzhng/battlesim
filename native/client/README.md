@@ -63,8 +63,14 @@ It runs the browser's own shaders and passes over the [presentation crate](../..
   voice under its bus, low-pass, equal-power pan, reverb sends, a limiter),
   with the recordings in `assets/runtime/audio/clips` (Git LFS) and the
   synthesized sounds composed by the same Rust bank the browser's decisions
-  were made against. `--sound <wav>` renders a replay's sound to a file; it is
-  never played aloud by the replay, and the tests render to a buffer.
+  were made against. Voice lines (the crate's answers and barks) are takes
+  of the voice packs (`assets/runtime/audio/voices/<set>/pack.json`), read
+  and decoded when a line plays; the score (the crate's mood and track
+  choice) streams its MP3s from `assets/runtime/audio/music` on a music bus
+  that crossfades and dips under lines. A track or take Git LFS has not
+  fetched is refused by name in the report. `--sound <wav>` renders a
+  replay's sound to a file; it is never played aloud by the replay, and the
+  tests render to a buffer.
 - **What is bound but not drawn yet** reads as absent in every shader: fog
   of war's sight (every surface seen) and the painted ground marks (the UI
   paints them; a replay has no UI).

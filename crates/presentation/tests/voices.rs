@@ -144,3 +144,32 @@ fn rules_without_a_positive_gain_are_refused() {
         assert!(rules(gain.clone()).is_err(), "gain {gain}");
     }
 }
+
+#[test]
+fn a_line_is_heard_speaking_until_it_ends_even_through_a_reset() {
+    let rules = ChatterRules {
+        lines: 4,
+        wait_s: 1.0,
+        group_s: 0.25,
+        gain: 0.5,
+    };
+    let mut chatter = Chatter::new(rules, 1.0);
+    chatter.set_voices(
+        "s",
+        serde_json::from_value(json!([{ "id": "lead", "speaks": "all" }])).unwrap(),
+    );
+    chatter.loaded("s", "lead", "move", "steady", 0, 1.5);
+    assert!(!chatter.speaking(0.0));
+    let request: Request = serde_json::from_value(json!({
+        "tier": "response", "speaker": "own/1", "set": "s",
+        "trigger": "move", "intensity": "steady", "at": 2.0
+    }))
+    .unwrap();
+    chatter.request(request, 2.0);
+    assert_eq!(chatter.update(2.0, [0.0; 3]).started.len(), 1);
+    assert!(chatter.speaking(2.0) && chatter.speaking(3.4));
+    // A reset forgets what waits; the line already sounding plays out.
+    chatter.reset();
+    assert!(chatter.speaking(3.4));
+    assert!(!chatter.speaking(3.5));
+}

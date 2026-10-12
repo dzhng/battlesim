@@ -72,12 +72,12 @@ export class MusicPlayer {
     return next;
   }
 
-  /** Dips the music by `depth` (0..1) over `attack`, or with depth 0 restores it over `release`. */
-  duck(depth: number, attack: number, release: number) {
+  /** Dips the music by `depth` (0..1; 0 restores it), gliding there with time constant `glide`. */
+  duck(depth: number, glide: number) {
     const now = this.context.currentTime;
     const d = Math.min(1, Math.max(0, depth));
     this.ducking.gain.cancelScheduledValues(now);
-    this.ducking.gain.setTargetAtTime(1 - d, now, Math.max(0.001, d > 0 ? attack : release));
+    this.ducking.gain.setTargetAtTime(1 - d, now, Math.max(0.001, glide));
   }
 
   stop(fade = 0) {
