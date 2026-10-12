@@ -135,7 +135,6 @@ const PLACED_MATCH_M = 0.5;
 /** Ground heights the page remembers before starting afresh. */
 const SURFACE_HEIGHTS_MAX = 1 << 20;
 
-
 /** `derive` of the last input it was given, derived again only when the
  *  input's reference changes (the decoder keeps an unchanged list's), so a
  *  frame reads its publication without rebuilding what did not change. */
