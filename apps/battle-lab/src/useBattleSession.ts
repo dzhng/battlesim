@@ -54,7 +54,6 @@ import {
 import { gameBiome } from "./gameBiome";
 import { mapAppearances, useMapAppearances } from "./gameAppearances";
 import { gameStandIns } from "./gameModels";
-import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import { gameHud } from "@web/battle/present/hudTheme";
 import { gameOrderFlash, gameXray } from "./gameOverlay";
@@ -64,7 +63,7 @@ import {
   sameReveal,
   type RevealedOrders,
 } from "@web/battle/present/orderReveal";
-import { topSpeedKmh, type Faction } from "@packages/scene-assets/src/units";
+import type { Faction } from "@packages/scene-assets/src/units";
 import {
   DEFAULT_PLACEMENT_FACING,
   PurchasePlacementControl,
@@ -136,10 +135,6 @@ const PLACED_MATCH_M = 0.5;
 /** Ground heights the page remembers before starting afresh. */
 const SURFACE_HEIGHTS_MAX = 1 << 20;
 
-/** Seconds a cook-off's pieces stay drawn, still, before the whole wreck
- *  takes over: the swap rebuilds the side's structures, and this keeps the
- *  pieces drawn until it has. */
-const LANDED_HOLD_S = 0.5;
 
 /** `derive` of the last input it was given, derived again only when the
  *  input's reference changes (the decoder keeps an unchanged list's), so a
