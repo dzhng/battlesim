@@ -27,3 +27,40 @@ export function downloadScenarioBundle(canonicalJson: string, filename = "scenar
   anchor.click();
   queueMicrotask(() => URL.revokeObjectURL(url));
 }
+
+export interface ScenarioBundleIdentity {
+  sha256: string;
+  map_hash: string;
+  rules_hash: string;
+}
+
+export interface ScenarioBundleWasm {
+  check_scenario_bundle(bundle: string): string;
+  canonical_scenario_bundle(bundle: string): string;
+}
+
+export class ScenarioBundleRefused extends Error {
+  constructor(
+    readonly diagnostics: readonly { code: string; location: string; message: string }[],
+  ) {
+    super(diagnostics.map((diagnostic) => diagnostic.message).join("; "));
+  }
+}
+
+/** Validate and return the identity of an uploaded bundle through the shared Rust owner. */
+export function validateScenarioBundle(
+  wasm: ScenarioBundleWasm,
+  bundle: string,
+): ScenarioBundleIdentity {
+  const outcome = JSON.parse(wasm.check_scenario_bundle(bundle)) as
+    | { status: "ok"; identity: ScenarioBundleIdentity }
+    | { status: "error"; diagnostics: { code: string; location: string; message: string }[] };
+  if (outcome.status === "error") throw new ScenarioBundleRefused(outcome.diagnostics);
+  return outcome.identity;
+}
+
+/** Canonicalize a builder draft only after the Rust validator has admitted it. */
+export function canonicalScenarioBundle(wasm: ScenarioBundleWasm, bundle: string): string {
+  validateScenarioBundle(wasm, bundle);
+  return wasm.canonical_scenario_bundle(bundle);
+}

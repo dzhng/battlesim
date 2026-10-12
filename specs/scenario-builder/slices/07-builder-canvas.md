@@ -2,6 +2,8 @@
 
 ## Contract unlocked
 
+**Implementation status:** route and in-memory authoring checkpoint implemented; Rust authoring seam and normal upload/play wiring continue in slices 08–09.
+
 A developer can create/edit the common scenario fields on a map canvas, validate them through the canonical bundle contract, and Download/Upload without hidden persistence.
 
 ## Seam
@@ -12,7 +14,7 @@ The common UI covers resolved map snapshot import/preview, player slots, side/fa
 
 ## Runnable artifact
 
-The route starts from a tiny deterministic in-memory sample, lets the user add/select/move units, changes slot/controller fields, downloads a package, and uploads it back into a fresh draft. No codebase file or browser storage is written.
+The `/scenario-builder` route starts from a tiny deterministic in-memory sample, lets the user add/select/move units, changes slot/controller fields and mode/victory fields, attaches user bytes, downloads a package, and uploads it back into a fresh draft. No codebase file or browser storage is written.
 
 ## Visual gates
 

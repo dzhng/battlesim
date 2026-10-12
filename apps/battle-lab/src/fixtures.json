@@ -288,5 +288,11 @@
     "route": "/map-workbench",
     "describe": "Local generation and numerical validation tuning: searchable controls, authoritative plan, exact save review, retained inputs and seed samples.",
     "map": null
+  },
+  {
+    "id": "scenario-builder",
+    "route": "/scenario-builder",
+    "describe": "Tactical scenario authoring canvas: place units, edit controllers, and explicitly download or upload self-contained bundles.",
+    "map": null
   }
 ]

@@ -54,6 +54,7 @@ const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
   workbench: lazy(() => import("./routes/workbench")),
   "fog-look": lazy(() => import("./routes/fogLook")),
   sound: lazy(() => import("./routes/sound")),
+  "scenario-builder": lazy(() => import("./routes/scenarioBuilder")),
 };
 
 /** `/` is the main menu, `/labs` the index of every fixture route. */
@@ -136,7 +137,11 @@ function LabPage({ path: requestedPath }: { path: string }) {
   // the menu catalog because its reference reel is the menu's own content;
   // labs run the test set.
   const catalog =
-    fixture.id === "generated" ? "game" : fixture.id === "graphics-test" ? "menu" : "test";
+    fixture.id === "generated" || fixture.id === "scenario-builder"
+      ? "game"
+      : fixture.id === "graphics-test"
+        ? "menu"
+        : "test";
   const page = (
     <SessionCatalogScope set={catalog}>
       <Route />
