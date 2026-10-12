@@ -1,10 +1,10 @@
 # Artillery units
 
-Status: slices 01–04 implemented; slice 05 closeout is next. Last updated 2026-10-12.
+Status: implementation complete; closeout is blocked by the browser scene startup gate. Last updated 2026-10-12.
 
 ## Next Agent Prompt
 
-Start with [slice 05](slices/05-closeout.md). Slices 01–04 are implemented: the 12 artillery rows are physical, AI procurement/observation-bounded salvos are covered, the existing Attack Ground button is contextually emphasized, and the artillery lab reuses the production flight bench. Run the whole-spec review, consolidate the choices ledger, regenerate any derived catalog/runtime identities that are available in the checkout, and archive this spec. The browser scene gate still needs the repository's runtime LFS bundles; record that environmental limitation rather than weakening the check.
+The implementation is landed in commits `0fbd2638` through `e2a503e4`, and `origin/main` is already an ancestor of this branch. Focused native, catalog, publication, typecheck and command-deck gates are green. The artillery scene reaches the existing ballistics lab but times out during lab startup in this checkout, so the required visual critique/compare gate is not honestly green and this plan remains active. Do not weaken the scene timeout or archive until that environment can complete the production route. The full formatter gate also reports four untouched pre-existing files; the touched HUD stylesheet is formatted.
 
 ## Goal
 
