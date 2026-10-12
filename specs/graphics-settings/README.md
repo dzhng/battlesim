@@ -1,10 +1,13 @@
 # Graphics settings and auto-detect
 
-## Next Agent Prompt
+## Closeout status
 
-Slices 01–04 are implemented. The next pickup is closeout: run the canonical per-tier production sweep, browser UI scenes, visual review, whole-spec review, and then archive this spec. The current detector runs bounded RAF windows for High, Medium, and Low and persists the highest passing tier; keep the canonical reel evidence as the final gate. Update this section before ending your pass.
-
-Status: slices 01–04 implemented; closeout remains (2026-10-11).
+The implementation and harness work are in-tree. Focused graphics/settings tests,
+typecheck, the full Rust suite, and the production reel's per-profile runs pass.
+The full web suite still has unrelated pre-existing fixture and browser-harness
+failures; the UI baseline refresh is intentionally not archived until it can be
+reviewed in a stable browser session. The auto-detect gate is now average FPS ≥45;
+the reported 1% low remains diagnostic evidence only.
 
 ## Goal
 
@@ -29,7 +32,11 @@ The Windows Chrome / AMD RDNA 3 baseline used the existing reel:
 - Medium candidate: market-town 52.0 FPS, GPU mean 17.31 ms; paris-corner 92.2 FPS, GPU mean 10.92 ms.
 - Low candidate: market-town 51.4 FPS, GPU mean 15.61 ms; paris-corner 104.7 FPS, GPU mean 9.57 ms.
 
-The evidence is in `throwaway/perf/2026-10-11/` and the spike record in `throwaway/graphics-settings-spike.md`. These candidates are starting data, not permission to invent different bundles without recording the reason and rerunning the relevant visual/performance gates.
+The evidence is in `throwaway/perf/2026-10-11/`,
+`throwaway/perf/graphics-settings-closeout/`, and the spike record in
+`throwaway/graphics-settings-spike.md`. These candidates are starting data, not
+permission to invent different bundles without recording the reason and rerunning
+the relevant visual/performance gates.
 
 ## Slice graph
 
