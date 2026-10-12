@@ -28,7 +28,7 @@ import {
   knownOf,
 } from "@packages/battle-renderer/src/buildingObstacles";
 import { gameBiome } from "./gameBiome";
-import { mapAppearances, useMapAppearances } from "./gameAppearances";
+import { installedUnitNames, mapAppearances, useMapAppearances } from "./gameAppearances";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import { gameHud } from "@web/battle/present/hudTheme";
 import { gameOrderFlash, gameXray } from "./gameOverlay";
@@ -467,9 +467,15 @@ export function useBattleSession({
   const modelAppearances = useMemo<InstalledAppearances | null>(
     () =>
       appearances && world && drawnBuildings
-        ? mapAppearances(appearances, world, drawnBuildings.placed, true)
+        ? mapAppearances(
+            appearances,
+            world,
+            drawnBuildings.placed,
+            true,
+            installedUnitNames(appearances, units.appearancesFor(requestedKinds)),
+          )
         : null,
-    [appearances, world, drawnBuildings],
+    [appearances, world, drawnBuildings, units, requestedKinds],
   );
   const modelAppearancesFeed = useFeed(modelAppearances);
 
