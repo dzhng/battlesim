@@ -504,3 +504,13 @@ The same deploy now fetches 84 takes (0.85 MB) and holds 84 decoded buffers, 32.
 - **Why sound:** Rust arbitrates the same requests by the same rules and seeded takes; only each take's length loses its padding. Memory falls by a factor of about forty, and the pool, the one set of takes kept decoded, is bounded by data. Decoding at a 24 kHz context would halve the pool again; it wasn't needed.
 
 Trivial discretion, not listed: command and flag names (`generate voices`, `process`, `pack`, `check`, `design`, `pick`, and the `--set`/`--voice`/`--trigger`/`--only` filters), track ids, and internal type names.
+
+### S39. A picked voice can be swapped for another of its candidates
+
+_Agent, after closeout, at the user's request · confidence high_
+
+Suppose the user hears `us_tank_crew/soldier`'s second design candidate in the Voices tab and prefers it. The tab now lists every designed voice's candidates even after a pick, marks the one in use, and offers **Use this** on the others. A swap runs `generate pick --replace`. Then, on the same single queue, it remakes that voice's takes (the voice id is part of each take's generation key, so all of them are bought again) and rebuilds the set's pack. The new takes have no verdict, so the pack leaves that voice out until the user reviews it. A swap never leaves the old voice's accepted takes in the pack.
+
+- **Gap:** without the follow-up jobs, the old voice's takes would keep their ok verdicts and stay in the pack, and battles would go on playing the old voice.
+- **Reach:** `apps/sound-workbench/voiceStore.ts` (`pick`), `VoicesTab.tsx`.
+- **Not covered:** the four reference voices saved during the walk have no design record, so they show no candidates. Their alternatives are under `assets/exploration/`.

@@ -336,7 +336,9 @@ export class VoiceWorkbenchStore {
   }
 
   /** `generate pick`: saves a candidate as the voice; the tool writes voices.json.
-   *  `replace` swaps a voice already picked for another of its candidates. */
+   *  `replace` swaps a voice already picked for another of its candidates; the
+   *  old voice's takes are then superseded, so its takes are made again and the
+   *  set's pack is rebuilt. The new takes wait for review before they are packed. */
   async pick(value: unknown): Promise<VoiceSnapshot> {
     const request = object(value, ["voice", "candidate", "replace"]);
     const voice = await this.voiceOf(request.voice);
@@ -353,6 +355,11 @@ export class VoiceWorkbenchStore {
     const lines: string[] = [];
     const code = await this.queue.serial(() => this.queue.run(args, (line) => lines.push(line)));
     if (code !== 0) throw new WorkbenchError(`generate pick failed: ${lines.join("\n")}`, 500);
+    if (request.replace) {
+      const [set, id] = voice.split("/");
+      this.queue.start(["voices", "--set", set, "--voice", id]);
+      this.queue.start(["pack", "--set", set]);
+    }
     return this.snapshot();
   }
 

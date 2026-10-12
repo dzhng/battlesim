@@ -230,6 +230,8 @@ export function VoicesTab({ api, audition }: { api: VoiceAPI; audition: Audition
         const saved = await api.pick(voice, candidate, replace);
         latest.current = saved;
         setSnapshot(saved);
+        // A swap queues the voice's new takes and the set's pack: follow them.
+        if (replace) setJobs((await api.jobs()).jobs);
       } catch (error) {
         report(error);
       }
@@ -541,7 +543,7 @@ export function VoicesTab({ api, audition }: { api: VoiceAPI; audition: Audition
                           <button
                             aria-label={`Use candidate ${index + 1}`}
                             onClick={() => {
-                              const replace = `Use candidate ${index + 1} as ${id}? Its takes will need regenerating.`;
+                              const replace = `Use candidate ${index + 1} as ${id}? Its takes are made again with this voice and stay out of the pack until reviewed.`;
                               if (globalThis.confirm?.(replace) ?? true)
                                 void pick(id, index + 1, true);
                             }}

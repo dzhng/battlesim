@@ -278,6 +278,8 @@ test("a voice already picked keeps its candidates: the one in use is marked, ano
   expect(heard(audition)).toEqual([candidateUrl("tank/lead", 3)]);
   fireEvent.click(within(panel).getByRole("button", { name: "Use candidate 3" }));
   await waitFor(() => expect(voices.pick).toHaveBeenCalledWith("tank/lead", 3, true));
+  // The swap queues the voice's new takes: the tab follows those jobs.
+  await waitFor(() => expect(voices.jobs).toHaveBeenCalled());
 });
 
 test("a voice waiting for its designed voice offers its candidates through the set's profile", async () => {
