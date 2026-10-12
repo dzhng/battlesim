@@ -27,6 +27,7 @@ import {
   type TakeRecord,
   type VoiceLock,
 } from "./lock";
+import { checkPacks } from "./packs";
 import { LIMITS, Pool } from "./pool";
 import { RESPONSE_TALK_S, matches } from "./transcript";
 
@@ -381,7 +382,8 @@ export async function generateBeds(run: {
 /**
  * Proves the lock against the files by hash: every raw master and served file
  * exists with its recorded sha, and was processed with today's profile. It never
- * re-renders, because MP3 encoders differ between ffmpeg versions.
+ * re-renders, because MP3 encoders differ between ffmpeg versions. Then proves
+ * the served packs (`checkPacks`).
  */
 export function checkVoices(run: {
   root: string;
@@ -440,7 +442,7 @@ export function checkVoices(run: {
     if (current !== record.processing_key)
       problems.push(`${id}: processed with an older profile; run \`generate process\``);
   }
-  return problems;
+  return [...problems, ...checkPacks(root, catalog, lock)];
 }
 
 /** The processing owner's voice profiles and encoder. */

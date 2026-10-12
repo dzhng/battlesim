@@ -7242,7 +7242,7 @@
       "duration_s": 2.16,
       "transcript": "Can't get there. Too much air defense",
       "match": {
-        "score": 0.86,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -8172,10 +8172,10 @@
       "duration_s": 1.2,
       "transcript": "Armor tally",
       "match": {
-        "score": 0.5,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -8186,6 +8186,10 @@
         "voice_description": "Chinese male attack helicopter co-pilot gunner in his twenties, younger brighter tenor voice, sharp, fast intercom callouts. He speaks English with a clear Mandarin Chinese accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "987af8793a63e8c7cc08c43703958e1c15e91f2830828cb7dad201026a6b392b"
       }
     },
     "cn_attack_helicopter_pilot/soldier/contact_vehicle/steady/1": {
@@ -8228,7 +8232,7 @@
       "duration_s": 2,
       "transcript": "Armor, missiles ready",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -8914,10 +8918,10 @@
       "duration_s": 1.04,
       "transcript": "Copilot wounded",
       "match": {
-        "score": 0.33,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -8928,6 +8932,10 @@
         "voice_description": "Chinese male attack helicopter co-pilot gunner in his twenties, younger brighter tenor voice, sharp, fast intercom callouts. He speaks English with a clear Mandarin Chinese accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "84563077179dc54456f03f3d11cc07c0333ae7490c7554d5feb946f1ae57e796"
       }
     },
     "cn_attack_helicopter_pilot/soldier/man_down/stressed/0": {
@@ -9536,10 +9544,10 @@
       "duration_s": 1.76,
       "transcript": "Switching. Standby",
       "match": {
-        "score": 0.33,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -9550,6 +9558,10 @@
         "voice_description": "Chinese male attack helicopter co-pilot gunner in his twenties, younger brighter tenor voice, sharp, fast intercom callouts. He speaks English with a clear Mandarin Chinese accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "457fdd5a702a5ac8771e81f30d1a55e15d69859ae9f9cb20ba433dbda2b44b3c"
       }
     },
     "cn_attack_helicopter_pilot/soldier/reloading/stressed/1": {
@@ -11628,10 +11640,10 @@
       "duration_s": 1.36,
       "transcript": "Armor front",
       "match": {
-        "score": 0.5,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -11642,6 +11654,10 @@
         "voice_description": "Chinese male infantry fighting vehicle gunner in his mid twenties, raspy mid-range voice, quick tense callouts over the intercom. He speaks English with a strong Mandarin Chinese accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "9210740afd9de2b8bf4548ec12838353d1395701fedf1ff0fb763131e023d263"
       }
     },
     "cn_ifv_crew/soldier/contact_vehicle/steady/1": {
@@ -11714,7 +11730,7 @@
       "duration_s": 2.16,
       "transcript": "Armor. Damn it. We can't fight that",
       "match": {
-        "score": 0.86,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -12014,7 +12030,7 @@
       "duration_s": 1.36,
       "transcript": "Hit. Armor held",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -12974,10 +12990,10 @@
       "duration_s": 1.44,
       "transcript": "Reloading. Standby",
       "match": {
-        "score": 0.33,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -12988,6 +13004,10 @@
         "voice_description": "Chinese male infantry fighting vehicle gunner in his mid twenties, raspy mid-range voice, quick tense callouts over the intercom. He speaks English with a strong Mandarin Chinese accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "36f4dee28b7d52b6180a95ccfb757d2dfd3db592cc4bdb564dc16742854a33b8"
       }
     },
     "cn_ifv_crew/soldier/reloading/stressed/0": {
@@ -14290,7 +14310,7 @@
       "duration_s": 1.44,
       "transcript": "Air defense, go ahead.",
       "match": {
-        "score": 0.75,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -15122,7 +15142,7 @@
       "duration_s": 1.28,
       "transcript": "Armor, far side",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -17732,7 +17752,7 @@
       "duration_s": 1.28,
       "transcript": "Armor here. Send it",
       "match": {
-        "score": 0.75,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -18628,7 +18648,7 @@
       "duration_s": 1.92,
       "transcript": "Shit. Enemy armor right there",
       "match": {
-        "score": 0.8,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -18748,10 +18768,10 @@
       "duration_s": 1.76,
       "transcript": "Fail out. Fail out, goddammit",
       "match": {
-        "score": 0.29,
+        "score": 0.6,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -18762,6 +18782,10 @@
         "voice_description": "Chinese male tank gunner in his twenties, younger brighter tenor voice, tense, quick radio calls inside a loud vehicle. He speaks English with a clear Mandarin Chinese accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "bad",
+        "sha256": "967bb46d89cfcebc32ad256c8f76873998e2d197280e64b3e8b1e622c2707b0d"
       }
     },
     "cn_tank_crew/soldier/friendly_destroyed_nearby/steady/0": {
@@ -19880,10 +19904,10 @@
       "duration_s": 1.2,
       "transcript": "Reloading. Standby",
       "match": {
-        "score": 0.33,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -19894,6 +19918,10 @@
         "voice_description": "Chinese male tank gunner in his twenties, younger brighter tenor voice, tense, quick radio calls inside a loud vehicle. He speaks English with a clear Mandarin Chinese accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "c65baf7a0888871975f386a856dfa8ee2911ace17469166823b5223945b72252"
       }
     },
     "cn_tank_crew/soldier/reloading/stressed/0": {
@@ -22054,7 +22082,7 @@
       "duration_s": 2.32,
       "transcript": "Armor, stay away from it",
       "match": {
-        "score": 0.8,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -25528,7 +25556,7 @@
       "duration_s": 2.08,
       "transcript": "Armor, where's the damn rocket?",
       "match": {
-        "score": 0.8,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -26330,10 +26358,10 @@
       "duration_s": 2.32,
       "transcript": "Back blast clear. Firing",
       "match": {
-        "score": 0.33,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -26344,6 +26372,10 @@
         "voice_description": "German male assault infantryman in his early thirties, hoarse baritone voice, fierce shouted callouts, breathless. He speaks English with a strong German accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "daedeb3d215b3a4014d46cb80227ac0d0a955711852ff9ac8ddfe45c99a30600"
       }
     },
     "de_assault_squad/soldier/missile_away/stressed/1": {
@@ -27488,10 +27520,10 @@
       "duration_s": 1.2,
       "transcript": "Armor coming",
       "match": {
-        "score": 0.5,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -27502,6 +27534,10 @@
         "voice_description": "German male grenadier in his twenties, husky mid-range voice, rough loud shouting, adrenaline in the voice. He speaks English with a strong German accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "16c7e65361ad373762d72ac369dfe17ff6ef92c3691bb2ca323db38e56604b0c"
       }
     },
     "de_assault_squad/soldier2/contact_vehicle/stressed/0": {
@@ -27544,7 +27580,7 @@
       "duration_s": 2.16,
       "transcript": "Armor, where's the damn rocket?",
       "match": {
-        "score": 0.8,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -28350,10 +28386,10 @@
       "duration_s": 1.92,
       "transcript": "Back blast clear. Firing",
       "match": {
-        "score": 0.33,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -28364,6 +28400,10 @@
         "voice_description": "German male grenadier in his twenties, husky mid-range voice, rough loud shouting, adrenaline in the voice. He speaks English with a strong German accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "f23a362c94ef6f5a09b676e00b5c1158bd92ff64b8178bda179112f14eb0d6de"
       }
     },
     "de_assault_squad/soldier2/missile_away/stressed/1": {
@@ -29392,7 +29432,7 @@
       "duration_s": 1.76,
       "transcript": "Moving up. Hunting armor",
       "match": {
-        "score": 0.75,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -29572,10 +29612,10 @@
       "duration_s": 1.92,
       "transcript": "In. Watch the back blast",
       "match": {
-        "score": 0.5,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -29586,6 +29626,10 @@
         "voice_description": "German male anti-tank missile team leader in his forties, deep rough mid-low voice, firm shouted battlefield delivery. He speaks English with a noticeable German accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "3c798b1e2709d8446e636b2745eb476b12c5f74ff04d78917ee51ad9319611db"
       }
     },
     "de_atgm_team/lead/hold_fire/steady/0": {
@@ -30336,7 +30380,7 @@
       "duration_s": 1.52,
       "transcript": "Engage any armor",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -31730,10 +31774,10 @@
       "duration_s": 2,
       "transcript": "Back blast clear. Launching",
       "match": {
-        "score": 0.33,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -31744,6 +31788,10 @@
         "voice_description": "German male anti-tank missile gunner in his twenties, younger brighter tenor voice, tense focused callouts, shouts when hit. He speaks English with a noticeable German accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "95d10ad44e3ca24334022db53649076f41683346824f250fa9f0f0f0674fc2ff"
       }
     },
     "de_atgm_team/soldier/missile_away/steady/1": {
@@ -33432,7 +33480,7 @@
       "duration_s": 2.24,
       "transcript": "Can't get there. Too much air defense",
       "match": {
-        "score": 0.86,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -34362,10 +34410,10 @@
       "duration_s": 0.88,
       "transcript": "Armor tally",
       "match": {
-        "score": 0.5,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -34376,6 +34424,10 @@
         "voice_description": "German male attack helicopter co-pilot gunner in his mid twenties, raspy mid-range voice, sharp, fast intercom callouts. He speaks English with a crisp German accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "213b5d07e24ebb09f873238fdf5a0ee2875e5cb26634115f078f0a4a364d91df"
       }
     },
     "de_attack_helicopter_pilot/soldier/contact_vehicle/steady/1": {
@@ -34418,7 +34470,7 @@
       "duration_s": 1.52,
       "transcript": "Armor, missiles ready",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -35104,10 +35156,10 @@
       "duration_s": 1.2,
       "transcript": "Copilot wounded",
       "match": {
-        "score": 0.33,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -35118,6 +35170,10 @@
         "voice_description": "German male attack helicopter co-pilot gunner in his mid twenties, raspy mid-range voice, sharp, fast intercom callouts. He speaks English with a crisp German accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "89946477f9aedfb8ff00d0610d4af9f673be4665e457ae87adc42a8529ed9114"
       }
     },
     "de_attack_helicopter_pilot/soldier/man_down/stressed/0": {
@@ -35730,10 +35786,10 @@
       "duration_s": 1.28,
       "transcript": "Switching. Standby",
       "match": {
-        "score": 0.33,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -35744,6 +35800,10 @@
         "voice_description": "German male attack helicopter co-pilot gunner in his mid twenties, raspy mid-range voice, sharp, fast intercom callouts. He speaks English with a crisp German accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "1d840a7d4f541509775e5ccc6b96e8042afe91973afde579c67c579824a0e22a"
       }
     },
     "de_attack_helicopter_pilot/soldier/reloading/stressed/1": {
@@ -37818,10 +37878,10 @@
       "duration_s": 1.04,
       "transcript": "Armor front",
       "match": {
-        "score": 0.5,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -37832,6 +37892,10 @@
         "voice_description": "German male infantry fighting vehicle gunner in his early thirties, hoarse baritone voice, quick tense callouts over the intercom. He speaks English with a clear German accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "44cbbd89f9b5d6815e92abf72684384bc0b7063a2d73c1af72657cc8b4f827fd"
       }
     },
     "de_ifv_crew/soldier/contact_vehicle/steady/1": {
@@ -37904,7 +37968,7 @@
       "duration_s": 1.92,
       "transcript": "Armor? Damn it, we can't fight that",
       "match": {
-        "score": 0.86,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -38204,7 +38268,7 @@
       "duration_s": 1.44,
       "transcript": "Hit. Armor held",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -39164,10 +39228,10 @@
       "duration_s": 1.68,
       "transcript": "Reloading. Standby",
       "match": {
-        "score": 0.33,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -39178,6 +39242,10 @@
         "voice_description": "German male infantry fighting vehicle gunner in his early thirties, hoarse baritone voice, quick tense callouts over the intercom. He speaks English with a clear German accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "74dbb0aa8cf0f6ccb17ae1eb30dd8853bc79745cc5849a8cd4e28792e0932e7c"
       }
     },
     "de_ifv_crew/soldier/reloading/stressed/0": {
@@ -40477,7 +40545,7 @@
       "duration_s": 1.28,
       "transcript": "Air defense, go ahead",
       "match": {
-        "score": 0.75,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -41377,7 +41445,7 @@
       "duration_s": 1.68,
       "transcript": "Armor, get off the road",
       "match": {
-        "score": 0.8,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -41635,7 +41703,7 @@
       "duration_s": 1.52,
       "transcript": "Took around still here",
       "match": {
-        "score": 0.6,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -44631,10 +44699,10 @@
       "duration_s": 1.84,
       "transcript": "Troops, 400 meters",
       "match": {
-        "score": 0.25,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -44645,6 +44713,10 @@
         "voice_description": "German male designated marksman in his mid twenties, raspy mid-range voice, calm focused callouts that crack under pressure. He speaks English with a noticeable German accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "829e1e00f90b566c6c5cee3ad541e5ccc17a5d8f740f416aa9e6a598aca2fadc"
       }
     },
     "de_marksman_squad/soldier/contact_infantry/stressed/0": {
@@ -44747,7 +44819,7 @@
       "duration_s": 1.36,
       "transcript": "Armor far left",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -45613,10 +45685,10 @@
       "duration_s": 1.36,
       "transcript": "Back blast clear",
       "match": {
-        "score": 0,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -45627,6 +45699,10 @@
         "voice_description": "German male designated marksman in his mid twenties, raspy mid-range voice, calm focused callouts that crack under pressure. He speaks English with a noticeable German accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "e72cc28b8fb1449493005189ba823f400400b08f7b786bb4ed561c3375b5ff21"
       }
     },
     "de_marksman_squad/soldier/missile_away/stressed/1": {
@@ -46655,10 +46731,10 @@
       "duration_s": 2,
       "transcript": "Troops, 400 meters",
       "match": {
-        "score": 0.25,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -46669,6 +46745,10 @@
         "voice_description": "German male rifleman in his early twenties, higher raspy voice with nervous energy, shouted battlefield callouts, quick and tense. He speaks English with a noticeable German accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "0ede7006907f5fb6195ffce1092e8a803021e29342d0f393a71031ff16aa502f"
       }
     },
     "de_marksman_squad/soldier2/contact_infantry/stressed/0": {
@@ -46771,7 +46851,7 @@
       "duration_s": 1.36,
       "transcript": "Armor, far left",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -47637,10 +47717,10 @@
       "duration_s": 1.76,
       "transcript": "Back blast clear",
       "match": {
-        "score": 0,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -47651,6 +47731,10 @@
         "voice_description": "German male rifleman in his early twenties, higher raspy voice with nervous energy, shouted battlefield callouts, quick and tense. He speaks English with a noticeable German accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "7e2a3097761fc9580f8d8e968628a3ef02da97c836d53eceb989c72de359a344"
       }
     },
     "de_marksman_squad/soldier2/missile_away/stressed/1": {
@@ -50227,7 +50311,7 @@
       "duration_s": 2,
       "transcript": "Armor moving east",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -50257,7 +50341,7 @@
       "duration_s": 1.84,
       "transcript": "Armor coming. Keep still",
       "match": {
-        "score": 0.75,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -53647,7 +53731,7 @@
       "duration_s": 1.6,
       "transcript": "Armor far side",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -54037,10 +54121,10 @@
       "duration_s": 1.84,
       "transcript": "Armor held.",
       "match": {
-        "score": 0.5,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -54051,6 +54135,10 @@
         "voice_description": "German male scout vehicle crewman in his twenties, younger brighter tenor voice, alert, clipped radio callouts. He speaks English with a clear German accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "4ac956bd71dad15d1bb80f96835b6c1cd3e29e5139bc974066e643810ee15dfc"
       }
     },
     "de_recon_vehicle_crew/soldier/hit/stressed/0": {
@@ -56390,14 +56478,14 @@
       }
     },
     "de_rifle_squad/lead/stop/steady/0": {
-      "text": "Halt.",
-      "generation_key": "76394f61cbe1e9efd9d8b7b4e4bbe0e452880d91ba5b35fc82f0004914e37ec4",
-      "raw": "assets/source/audio/voices/de_rifle_squad/lead-stop-steady-0.76394f61.mp3",
-      "raw_sha256": "d09dde3ac9705eb8caff75aaccadcef3e987bca7cd910f99388b61d8a7904b42",
-      "processing_key": "cbbcda62bdf7646bd3cb3f7b43954a3bf602e73ab668369c624eaf395208cf4e",
-      "served_sha256": "7dc451f7954261d170ed540e0b422ebd793884f88450dffb708002dd7239116f",
-      "duration_s": 0.64,
-      "transcript": "Halt!",
+      "text": "Halt, hold here.",
+      "generation_key": "a287cb74dbf5f52bc90fd508f3f2a203d799c01c38571e41fbaa2b6ae06bf144",
+      "raw": "assets/source/audio/voices/de_rifle_squad/lead-stop-steady-0.a287cb74.mp3",
+      "raw_sha256": "dcc61a4cf4f9ea9c9deee698d1914785078c7674e5aec6ecce3d36a4c25f70bf",
+      "processing_key": "1a8a562900a1ddf09e7f887d65707aa5a48a7925986e0977dda177ad34866762",
+      "served_sha256": "16842870f8af9b389b87cb779a347faa42f9d5d2f24e12ce9f96de0ec446de45",
+      "duration_s": 1.52,
+      "transcript": "Halt! Hold here",
       "match": {
         "score": 1,
         "missing": [],
@@ -56408,7 +56496,7 @@
         "kind": "Generated",
         "generator": "ElevenLabs text-to-speech",
         "model": "eleven_v3",
-        "text": "Halt.",
+        "text": "Halt, hold here.",
         "voice_id": "82PZq2pbDL8WsMJ44GPq",
         "voice_description": "German male infantry squad leader in his thirties, gravelly baritone voice, commanding shouted battlefield delivery. He speaks English with a strong German accent.",
         "date": "2026-10-12",
@@ -56416,7 +56504,7 @@
       },
       "verdict": {
         "value": "ok",
-        "sha256": "7dc451f7954261d170ed540e0b422ebd793884f88450dffb708002dd7239116f"
+        "sha256": "16842870f8af9b389b87cb779a347faa42f9d5d2f24e12ce9f96de0ec446de45"
       }
     },
     "de_rifle_squad/lead/stop/steady/1": {
@@ -57029,10 +57117,10 @@
       "duration_s": 1.44,
       "transcript": "Enemy in the tree line",
       "match": {
-        "score": 0.5,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -57043,6 +57131,10 @@
         "voice_description": "German male rifleman in his mid twenties, raspy mid-range voice, shouted battlefield callouts, breathless and raw. He speaks English with a strong German accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "e10de12979715f6bdbb31ddcd5558625d68e2c80b6c2a044f2f6437ef71156de"
       }
     },
     "de_rifle_squad/soldier/contact_infantry/stressed/0": {
@@ -57055,7 +57147,7 @@
       "duration_s": 2.64,
       "transcript": "Contact. Infantry in the tree line",
       "match": {
-        "score": 0.6,
+        "score": 1,
         "missing": [],
         "overlong": true,
         "flagged": true
@@ -57141,10 +57233,10 @@
       "duration_s": 1.2,
       "transcript": "Armor approaching",
       "match": {
-        "score": 0.5,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -57155,6 +57247,10 @@
         "voice_description": "German male rifleman in his mid twenties, raspy mid-range voice, shouted battlefield callouts, breathless and raw. He speaks English with a strong German accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "5e5e9192cc7070df16459c5e99c4021dd8ef74fc662b6596cbbca11b8a1a86fe"
       }
     },
     "de_rifle_squad/soldier/contact_vehicle/stressed/0": {
@@ -57197,7 +57293,7 @@
       "duration_s": 2.16,
       "transcript": "Armor coming. Get off the road",
       "match": {
-        "score": 0.83,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -59049,10 +59145,10 @@
       "duration_s": 1.68,
       "transcript": "Enemy in the tree line",
       "match": {
-        "score": 0.5,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -59063,6 +59159,10 @@
         "voice_description": "German male machine gunner in his twenties, husky mid-range voice, loud, rough shouting over gunfire. He speaks English with a strong German accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "5d0ab534c572b5d10ea4b3e8fe5827afe0195152829c9aa3b936ec28924df3dd"
       }
     },
     "de_rifle_squad/soldier2/contact_infantry/stressed/0": {
@@ -59075,7 +59175,7 @@
       "duration_s": 3.04,
       "transcript": "Contact! Infantry in the tree line",
       "match": {
-        "score": 0.6,
+        "score": 1,
         "missing": [],
         "overlong": true,
         "flagged": true
@@ -59161,10 +59261,10 @@
       "duration_s": 1.36,
       "transcript": "Armor approaching",
       "match": {
-        "score": 0.5,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -59175,6 +59275,10 @@
         "voice_description": "German male machine gunner in his twenties, husky mid-range voice, loud, rough shouting over gunfire. He speaks English with a strong German accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "45665dcddd6891c6f0a886340fb1e633c96fc14636658ea501098d02cf0e63ba"
       }
     },
     "de_rifle_squad/soldier2/contact_vehicle/stressed/0": {
@@ -59217,7 +59321,7 @@
       "duration_s": 2.32,
       "transcript": "Armor coming. Get off the road",
       "match": {
-        "score": 0.83,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -61177,10 +61281,10 @@
       "duration_s": 1.28,
       "transcript": "Parking undercover",
       "match": {
-        "score": 0.33,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -61191,6 +61295,10 @@
         "voice_description": "German male logistics truck driver in his late thirties, low resonant voice, plain-spoken, working-man radio voice. He speaks English with a noticeable German accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "1f364d41048037393aa1864a5b12902b99c063842c906be45c57028815c60f59"
       }
     },
     "de_supply_driver/lead/enter_building/stressed/0": {
@@ -62667,7 +62775,7 @@
       "duration_s": 2.08,
       "transcript": "Armor, turn around",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -65235,7 +65343,7 @@
       "duration_s": 1.28,
       "transcript": "Armor here. Send it",
       "match": {
-        "score": 0.75,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -66063,7 +66171,7 @@
       "duration_s": 1.28,
       "transcript": "Armor two o'clock",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -66123,7 +66231,7 @@
       "duration_s": 2,
       "transcript": "Shit! Enemy armor right there",
       "match": {
-        "score": 0.8,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -66243,7 +66351,7 @@
       "duration_s": 2.8,
       "transcript": "Fail out! Fail out, goddammit!",
       "match": {
-        "score": 0.29,
+        "score": 0.6,
         "missing": [],
         "overlong": true,
         "flagged": true
@@ -66257,6 +66365,10 @@
         "voice_description": "German male tank gunner in his twenties, younger brighter tenor voice, tense, quick radio calls inside a loud vehicle. He speaks English with a crisp German accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "bad",
+        "sha256": "5198e6a0c9c12b872a2959f6b9a89e3490d76bcce4011cfd10f8adeb61a017eb"
       }
     },
     "de_tank_crew/soldier/friendly_destroyed_nearby/steady/0": {
@@ -66419,7 +66531,7 @@
       "duration_s": 1.44,
       "transcript": "Hit! Armor held",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -67375,10 +67487,10 @@
       "duration_s": 1.6,
       "transcript": "Reloading. Standby",
       "match": {
-        "score": 0.33,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -67389,6 +67501,10 @@
         "voice_description": "German male tank gunner in his twenties, younger brighter tenor voice, tense, quick radio calls inside a loud vehicle. He speaks English with a crisp German accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "81b3803e4da4287bf67bfe25e1488e9b0770ab7725852e9d9cd1e840f1cc0fb1"
       }
     },
     "de_tank_crew/soldier/reloading/stressed/0": {
@@ -69491,7 +69607,7 @@
       "duration_s": 1.36,
       "transcript": "Armor on the road",
       "match": {
-        "score": 0.75,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -69581,7 +69697,7 @@
       "duration_s": 2.08,
       "transcript": "Armor below. Get us clear",
       "match": {
-        "score": 0.8,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -71430,7 +71546,7 @@
       "duration_s": 1.36,
       "transcript": "Moving up, hunting armor",
       "match": {
-        "score": 0.75,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -71610,10 +71726,10 @@
       "duration_s": 1.68,
       "transcript": "In. Watch the back blast",
       "match": {
-        "score": 0.5,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -71624,6 +71740,10 @@
         "voice_description": "French male anti-tank missile team leader in his late thirties, low resonant voice, firm shouted battlefield delivery. He speaks English with a strong French accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "93c68fff88249fa7e185941d9e7ef55bb0d79ea1e42d41c6f771bba24923d1e7"
       }
     },
     "fr_atgm_team/lead/hold_fire/steady/0": {
@@ -72384,7 +72504,7 @@
       "duration_s": 1.76,
       "transcript": "Engage any armor",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -75436,7 +75556,7 @@
       "duration_s": 2,
       "transcript": "Can't get there. Too much air defense",
       "match": {
-        "score": 0.86,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -76414,7 +76534,7 @@
       "duration_s": 2,
       "transcript": "Armor, missiles ready",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -77096,10 +77216,10 @@
       "duration_s": 1.04,
       "transcript": "Copilot wounded",
       "match": {
-        "score": 0.33,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -77110,6 +77230,10 @@
         "voice_description": "French male attack helicopter co-pilot gunner in his twenties, younger brighter tenor voice, sharp, fast intercom callouts. He speaks English with a noticeable French accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "fd342e1988bbc829bcdc6d5413bb8104db8b8af2b326a9af61f090e68ab5ba64"
       }
     },
     "fr_attack_helicopter_pilot/soldier/man_down/stressed/0": {
@@ -77714,10 +77838,10 @@
       "duration_s": 1.44,
       "transcript": "Switching. Standby",
       "match": {
-        "score": 0.33,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -77728,6 +77852,10 @@
         "voice_description": "French male attack helicopter co-pilot gunner in his twenties, younger brighter tenor voice, sharp, fast intercom callouts. He speaks English with a noticeable French accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "dde07a1e61c6ae28f605b33628aebb362364ae104227f0cbd19186eaf97f6cf1"
       }
     },
     "fr_attack_helicopter_pilot/soldier/reloading/stressed/1": {
@@ -79782,7 +79910,7 @@
       "duration_s": 1.52,
       "transcript": "Armor far side",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -80160,10 +80288,10 @@
       "duration_s": 1.04,
       "transcript": "Armor held",
       "match": {
-        "score": 0.5,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -80174,6 +80302,10 @@
         "voice_description": "French male scout vehicle crewman in his mid twenties, raspy mid-range voice, alert, clipped radio callouts. He speaks English with a light French accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "c6ac20abb0c837adbcd2f545d83ac7390ccefcafb39da9736a05e1219a24e63b"
       }
     },
     "fr_recon_vehicle_crew/soldier/hit/stressed/0": {
@@ -81865,10 +81997,10 @@
       "duration_s": 1.04,
       "transcript": "Ceasefire Gunner",
       "match": {
-        "score": 0.33,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -81879,6 +82011,10 @@
         "voice_description": "French male tank commander in his late thirties, low resonant voice, clipped professional radio cadence, steady under fire. He speaks English with a clear French accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "9967c06c883e20bb0e2d376545a5d2fd7160b6513874fce6c571aa73e68a99ba"
       }
     },
     "fr_tank_crew/lead/hold_fire/steady/1": {
@@ -83210,7 +83346,7 @@
       "duration_s": 1.36,
       "transcript": "Armor, two o'clock",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -83270,7 +83406,7 @@
       "duration_s": 1.76,
       "transcript": "Shit, enemy armor right there",
       "match": {
-        "score": 0.8,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -83390,10 +83526,10 @@
       "duration_s": 2.32,
       "transcript": "Bail out! Bail out, goddammit!",
       "match": {
-        "score": 0.57,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -83404,6 +83540,10 @@
         "voice_description": "French male tank gunner in his early thirties, hoarse baritone voice, tense, quick radio calls inside a loud vehicle. He speaks English with a clear French accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "e6b3e6d2680293c6ed6147705f8bb983467800a13a56304772d2b05245a63c46"
       }
     },
     "fr_tank_crew/soldier/friendly_destroyed_nearby/steady/0": {
@@ -83566,7 +83706,7 @@
       "duration_s": 1.36,
       "transcript": "Hit. Armor held",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -84522,10 +84662,10 @@
       "duration_s": 1.28,
       "transcript": "Reloading. Standby",
       "match": {
-        "score": 0.33,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -84536,6 +84676,10 @@
         "voice_description": "French male tank gunner in his early thirties, hoarse baritone voice, tense, quick radio calls inside a loud vehicle. He speaks English with a clear French accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "6b727642d5176fd8339f1103615f2aefbeda4499c671c02d2c9f767ef26e7fb4"
       }
     },
     "fr_tank_crew/soldier/reloading/stressed/0": {
@@ -86723,7 +86867,7 @@
       "duration_s": 1.92,
       "transcript": "Armor below, get us clear",
       "match": {
-        "score": 0.8,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -89649,7 +89793,7 @@
       "duration_s": 1.36,
       "transcript": "Backup, get us out",
       "match": {
-        "score": 0.6,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -90069,10 +90213,10 @@
       "duration_s": 2.4,
       "transcript": "Armor front",
       "match": {
-        "score": 0.5,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -90083,6 +90227,10 @@
         "voice_description": "Italian male infantry fighting vehicle gunner in his mid twenties, raspy mid-range voice, quick tense callouts over the intercom. He speaks English with a strong Italian accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "734a705c2a270dd9dc23cd88cf5d521b5e2f03bad4cb360ef6309fa5d1dc2776"
       }
     },
     "it_ifv_crew/soldier/contact_vehicle/steady/1": {
@@ -90155,7 +90303,7 @@
       "duration_s": 2.4,
       "transcript": "Armor. Damn it, we can't fight that",
       "match": {
-        "score": 0.86,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -90455,7 +90603,7 @@
       "duration_s": 1.28,
       "transcript": "Hit. Armor held",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -91407,10 +91555,10 @@
       "duration_s": 1.2,
       "transcript": "Reloading. Standby",
       "match": {
-        "score": 0.33,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -91421,6 +91569,10 @@
         "voice_description": "Italian male infantry fighting vehicle gunner in his mid twenties, raspy mid-range voice, quick tense callouts over the intercom. He speaks English with a strong Italian accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "6f92d0150fc6fe21de49260ad199c71932fabf89a367b93d8f193b0e7769b91b"
       }
     },
     "it_ifv_crew/soldier/reloading/stressed/0": {
@@ -92723,7 +92875,7 @@
       "duration_s": 1.2,
       "transcript": "Armor here, send it",
       "match": {
-        "score": 0.75,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -93383,7 +93535,7 @@
       "duration_s": 1.92,
       "transcript": "Air, air. Get us undercover",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -93563,7 +93715,7 @@
       "duration_s": 1.36,
       "transcript": "Armor two o'clock",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -93623,7 +93775,7 @@
       "duration_s": 2,
       "transcript": "Shit. Enemy armor right there",
       "match": {
-        "score": 0.8,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -93915,7 +94067,7 @@
       "duration_s": 1.28,
       "transcript": "Hit. Armor held",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -94871,10 +95023,10 @@
       "duration_s": 1.44,
       "transcript": "Reloading. Standby",
       "match": {
-        "score": 0.33,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -94885,6 +95037,10 @@
         "voice_description": "Italian male tank gunner in his early thirties, hoarse baritone voice, tense, quick radio calls inside a loud vehicle. He speaks English with a noticeable Italian accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "b1972fe37a742e0df4bee51a11c3d3e3f2ff12deeb8824ceb4d20f6da7a9e487"
       }
     },
     "it_tank_crew/soldier/reloading/stressed/0": {
@@ -97023,10 +97179,10 @@
       "duration_s": 1.04,
       "transcript": "Armor coming",
       "match": {
-        "score": 0.5,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -97037,6 +97193,10 @@
         "voice_description": "Russian male assault infantryman in his twenties, younger brighter tenor voice, fierce shouted callouts, breathless. He speaks English with a strong Russian accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "3ed88eb6d0d3907929bf6e4c0e46d32d41c5bb76300b71ea189adae4bdefeabd"
       }
     },
     "ru_assault_squad/soldier/contact_vehicle/stressed/0": {
@@ -97079,7 +97239,7 @@
       "duration_s": 2.24,
       "transcript": "Armor, where's the damn rocket?",
       "match": {
-        "score": 0.8,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -97881,10 +98041,10 @@
       "duration_s": 2.24,
       "transcript": "Back blast clear. Firing",
       "match": {
-        "score": 0.33,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -97895,6 +98055,10 @@
         "voice_description": "Russian male assault infantryman in his twenties, younger brighter tenor voice, fierce shouted callouts, breathless. He speaks English with a strong Russian accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "caaa117995f2a167515a1c9bcf82170981bbaf28d1b08f4dcc8b46f3a7d69c10"
       }
     },
     "ru_assault_squad/soldier/missile_away/stressed/1": {
@@ -99039,10 +99203,10 @@
       "duration_s": 0.96,
       "transcript": "Armor coming",
       "match": {
-        "score": 0.5,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -99053,6 +99217,10 @@
         "voice_description": "Russian male grenadier in his early twenties, higher raspy voice with nervous energy, rough loud shouting, adrenaline in the voice. He speaks English with a strong Russian accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "af69f4125fd98ccac3e19b9ab5ce20468c2ef6ac95a1b64e16f786527a0c8e51"
       }
     },
     "ru_assault_squad/soldier2/contact_vehicle/stressed/0": {
@@ -99095,7 +99263,7 @@
       "duration_s": 2.32,
       "transcript": "Armor, where's the damn rocket?",
       "match": {
-        "score": 0.8,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -99901,10 +100069,10 @@
       "duration_s": 2.32,
       "transcript": "Back blast clear. Firing",
       "match": {
-        "score": 0.33,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -99915,6 +100083,10 @@
         "voice_description": "Russian male grenadier in his early twenties, higher raspy voice with nervous energy, rough loud shouting, adrenaline in the voice. He speaks English with a strong Russian accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "5472bae2e6a072b2178e5724e4a8126e853f236462ddfa5613b2510ae24c2a8f"
       }
     },
     "ru_assault_squad/soldier2/missile_away/stressed/1": {
@@ -100938,7 +101110,7 @@
       "duration_s": 1.68,
       "transcript": "Moving up. Hunting armor",
       "match": {
-        "score": 0.75,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -101118,10 +101290,10 @@
       "duration_s": 2.16,
       "transcript": "In. Watch the back blast",
       "match": {
-        "score": 0.5,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -101132,6 +101304,10 @@
         "voice_description": "Russian male anti-tank missile team leader in his thirties, gravelly baritone voice, firm shouted battlefield delivery. He speaks English with a heavy Russian accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "7815975742af1b20df35a948e6bb53f1441cd0d679d639e9b209ea6698c9b211"
       }
     },
     "ru_atgm_team/lead/hold_fire/steady/0": {
@@ -101889,7 +102065,7 @@
       "duration_s": 1.6,
       "transcript": "Engage any armor",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -102533,7 +102709,7 @@
       "duration_s": 1.84,
       "transcript": "Armor, right there",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -103279,10 +103455,10 @@
       "duration_s": 2.16,
       "transcript": "Back blast clear. Launching",
       "match": {
-        "score": 0.33,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -103293,6 +103469,10 @@
         "voice_description": "Russian male anti-tank missile gunner in his mid twenties, raspy mid-range voice, tense focused callouts, shouts when hit. He speaks English with a heavy Russian accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "f6f32e0b40d4be4cc265fe16cbaac34150a1459c0d0c2ed93413a994d9864110"
       }
     },
     "ru_atgm_team/soldier/missile_away/steady/1": {
@@ -103335,10 +103515,10 @@
       "duration_s": 2.08,
       "transcript": "Back blast clear. Missile away",
       "match": {
-        "score": 0.5,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -103349,6 +103529,10 @@
         "voice_description": "Russian male anti-tank missile gunner in his mid twenties, raspy mid-range voice, tense focused callouts, shouts when hit. He speaks English with a heavy Russian accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "ecf9108ede3e4d05d9a39351bef2e8f957d957d8fb8956d13a0cbfc377c00485"
       }
     },
     "ru_atgm_team/soldier/missile_away/stressed/1": {
@@ -104964,7 +105148,7 @@
       "duration_s": 2,
       "transcript": "Can't get there. Too much air defense",
       "match": {
-        "score": 0.86,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -105867,10 +106051,10 @@
       "duration_s": 2.24,
       "transcript": "Armor tally",
       "match": {
-        "score": 0.5,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -105881,6 +106065,10 @@
         "voice_description": "Russian male attack helicopter co-pilot gunner in his early thirties, hoarse baritone voice, sharp, fast intercom callouts. He speaks English with a thick Russian accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "cc626bdf278e3c866ea4d7e149f56bf91042147ee973b87b845cd250515b54ea"
       }
     },
     "ru_attack_helicopter_pilot/soldier/contact_vehicle/steady/1": {
@@ -105923,7 +106111,7 @@
       "duration_s": 2.48,
       "transcript": "Armor, missiles ready",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -106601,10 +106789,10 @@
       "duration_s": 1.28,
       "transcript": "Copilot wounded",
       "match": {
-        "score": 0.33,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -106615,6 +106803,10 @@
         "voice_description": "Russian male attack helicopter co-pilot gunner in his early thirties, hoarse baritone voice, sharp, fast intercom callouts. He speaks English with a thick Russian accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "ba8164007ddc150a6bc7049263fb4a9b3fc80b336a86bf07b69793a66f739a29"
       }
     },
     "ru_attack_helicopter_pilot/soldier/man_down/stressed/0": {
@@ -107219,10 +107411,10 @@
       "duration_s": 1.36,
       "transcript": "Switching. Standby",
       "match": {
-        "score": 0.33,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -107233,6 +107425,10 @@
         "voice_description": "Russian male attack helicopter co-pilot gunner in his early thirties, hoarse baritone voice, sharp, fast intercom callouts. He speaks English with a thick Russian accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "f2a4e1f283033309becdbe74d906fbe4b302439351d69685c9e7b916296354d5"
       }
     },
     "ru_attack_helicopter_pilot/soldier/reloading/stressed/1": {
@@ -109309,10 +109505,10 @@
       "duration_s": 1.04,
       "transcript": "Armor front",
       "match": {
-        "score": 0.5,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -109323,6 +109519,10 @@
         "voice_description": "Russian male infantry fighting vehicle gunner in his twenties, younger brighter tenor voice, quick tense callouts over the intercom. He speaks English with a clear Russian accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "bf94f88d56bd6b50df3347a309609cfdfe381066f1840096b4423c1aa9a0e923"
       }
     },
     "ru_ifv_crew/soldier/contact_vehicle/steady/1": {
@@ -109395,7 +109595,7 @@
       "duration_s": 2.16,
       "transcript": "Armor? Damn it, we can't fight that",
       "match": {
-        "score": 0.86,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -111951,7 +112151,7 @@
       "duration_s": 1.28,
       "transcript": "Air defense, go ahead",
       "match": {
-        "score": 0.75,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -112787,7 +112987,7 @@
       "duration_s": 1.36,
       "transcript": "Armor far side",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -116108,10 +116308,10 @@
       "duration_s": 1.84,
       "transcript": "Tubes four hundred meters",
       "match": {
-        "score": 0.5,
+        "score": 0.67,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -116122,6 +116322,10 @@
         "voice_description": "Russian male designated marksman in his early thirties, hoarse baritone voice, calm focused callouts that crack under pressure. He speaks English with a heavy Russian accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "bad",
+        "sha256": "719201f9fe9039148b6d4f627d5bd03e06675d31f35b0ec817e1d6fc902c7e72"
       }
     },
     "ru_marksman_squad/soldier/contact_infantry/stressed/0": {
@@ -116224,7 +116428,7 @@
       "duration_s": 1.44,
       "transcript": "Armor far left",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -117082,10 +117286,10 @@
       "duration_s": 2.4,
       "transcript": "Back blast clear",
       "match": {
-        "score": 0,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -117096,6 +117300,10 @@
         "voice_description": "Russian male designated marksman in his early thirties, hoarse baritone voice, calm focused callouts that crack under pressure. He speaks English with a heavy Russian accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "cd6405c4c8ab0f86a3374a11a17e5d1eb5b6197d73d10f71dbbb7a46e7370b68"
       }
     },
     "ru_marksman_squad/soldier/missile_away/stressed/1": {
@@ -118100,10 +118308,10 @@
       "duration_s": 1.92,
       "transcript": "Troops 400 meters",
       "match": {
-        "score": 0.25,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -118114,6 +118322,10 @@
         "voice_description": "Russian male rifleman in his twenties, husky mid-range voice, shouted battlefield callouts, quick and tense. He speaks English with a heavy Russian accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "ec377b3cf7b8c9c6c7c2286c1b4abc7777f0dadcfa19487617ea82bea3840e3a"
       }
     },
     "ru_marksman_squad/soldier2/contact_infantry/stressed/0": {
@@ -118216,7 +118428,7 @@
       "duration_s": 1.2,
       "transcript": "Armor far left",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -118246,7 +118458,7 @@
       "duration_s": 2.16,
       "transcript": "Armor, get off the line",
       "match": {
-        "score": 0.8,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -119086,10 +119298,10 @@
       "duration_s": 2,
       "transcript": "Back blast clear",
       "match": {
-        "score": 0,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -119100,6 +119312,10 @@
         "voice_description": "Russian male rifleman in his twenties, husky mid-range voice, shouted battlefield callouts, quick and tense. He speaks English with a heavy Russian accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "b2e48f4008d0a5890bc52740d0967462fbf562a426ce21a05eb549cf289b6e40"
       }
     },
     "ru_marksman_squad/soldier2/missile_away/stressed/1": {
@@ -121676,7 +121892,7 @@
       "duration_s": 1.44,
       "transcript": "Armor moving east",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -121706,7 +121922,7 @@
       "duration_s": 2.08,
       "transcript": "Armor coming. Keep still",
       "match": {
-        "score": 0.75,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -125104,7 +125320,7 @@
       "duration_s": 1.92,
       "transcript": "Armor far side",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -125490,10 +125706,10 @@
       "duration_s": 1.44,
       "transcript": "Armor held.",
       "match": {
-        "score": 0.5,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -125504,6 +125720,10 @@
         "voice_description": "Russian male scout vehicle crewman in his mid twenties, raspy mid-range voice, alert, clipped radio callouts. He speaks English with a clear Russian accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "414d10a54ce2bea1025ef8f5d33114a6c1026652259a69e661bca365f35c91e3"
       }
     },
     "ru_recon_vehicle_crew/soldier/hit/stressed/0": {
@@ -127837,29 +128057,33 @@
       }
     },
     "ru_rifle_squad/lead/stop/steady/0": {
-      "text": "Halt.",
-      "generation_key": "6fd4c3f26d0f7d518e7aae6887e6530e1bef17b819e357e64c9a7e5168ccb5c7",
-      "raw": "assets/source/audio/voices/ru_rifle_squad/lead-stop-steady-0.6fd4c3f2.mp3",
-      "raw_sha256": "5fd1067cad44e45b0eae35c3f8712216399687a35c64aa9062768e4e61d307fe",
-      "processing_key": "955186e967529abce9a5ca6e400ecadd823e8700309837c10af147002b1a3f2b",
-      "served_sha256": "d091e898982d633fc503a2d3443f9df3298bb23e8e5a4e08b8ba41a59681661c",
-      "duration_s": 0.64,
-      "transcript": "Out",
+      "text": "Halt, hold here.",
+      "generation_key": "7fb283e784866dc2c76167c5d16102e805c084b975d2e62253a10954c5a84c3c",
+      "raw": "assets/source/audio/voices/ru_rifle_squad/lead-stop-steady-0.7fb283e7.mp3",
+      "raw_sha256": "86eadd0c12d0e70db89f973157e2ad06f528008895d8b803529f758715a39a5d",
+      "processing_key": "a7850afb53d02ebbb50400837b0ff6762ba60281bf151c34e0e5a3d14fe3b149",
+      "served_sha256": "be20b4433612019872497593baa4880cc0fd48484d23d4a3e126138e10898639",
+      "duration_s": 1.68,
+      "transcript": "Halt. Hold here",
       "match": {
-        "score": 0,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
         "generator": "ElevenLabs text-to-speech",
         "model": "eleven_v3",
-        "text": "Halt.",
+        "text": "Halt, hold here.",
         "voice_id": "Jqx4K9GHzgAqONoiSwhb",
         "voice_description": "Russian male infantry sergeant in his forties speaking English with a strong Russian accent, deep rough commanding voice, shouted battlefield delivery.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "be20b4433612019872497593baa4880cc0fd48484d23d4a3e126138e10898639"
       }
     },
     "ru_rifle_squad/lead/stop/steady/1": {
@@ -128468,10 +128692,10 @@
       "duration_s": 1.28,
       "transcript": "Enemy in the tree line",
       "match": {
-        "score": 0.5,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -128482,6 +128706,10 @@
         "voice_description": "Russian male rifleman in his early thirties, hoarse baritone voice, shouted battlefield callouts, breathless and raw. He speaks English with a strong Russian accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "3c570ab13172451c6a797dbf7720d3aba279ebb23a9c3b1402656e2e7be0b6f8"
       }
     },
     "ru_rifle_squad/soldier/contact_infantry/stressed/0": {
@@ -128494,7 +128722,7 @@
       "duration_s": 2.32,
       "transcript": "Contact! Infantry in the tree line.",
       "match": {
-        "score": 0.6,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -128580,10 +128808,10 @@
       "duration_s": 1.12,
       "transcript": "Armor approaching",
       "match": {
-        "score": 0.5,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -128594,6 +128822,10 @@
         "voice_description": "Russian male rifleman in his early thirties, hoarse baritone voice, shouted battlefield callouts, breathless and raw. He speaks English with a strong Russian accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "6bcede44706c2d959d7530b589be7fabd750aed4e689272e2896d988d30fe056"
       }
     },
     "ru_rifle_squad/soldier/contact_vehicle/stressed/0": {
@@ -128636,7 +128868,7 @@
       "duration_s": 2.4,
       "transcript": "Armor coming. Get off the road",
       "match": {
-        "score": 0.83,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -130496,10 +130728,10 @@
       "duration_s": 1.2,
       "transcript": "Enemy in the tree line",
       "match": {
-        "score": 0.5,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -130510,6 +130742,10 @@
         "voice_description": "Russian male machine gunner in his early twenties, higher raspy voice with nervous energy, loud, rough shouting over gunfire. He speaks English with a strong Russian accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "c4afc516efa3f2eb60952f906eb0822999ccc2f850135b3c7b4c050064b8503e"
       }
     },
     "ru_rifle_squad/soldier2/contact_infantry/stressed/0": {
@@ -130522,7 +130758,7 @@
       "duration_s": 2.32,
       "transcript": "Contact infantry in the tree line",
       "match": {
-        "score": 0.6,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -130612,10 +130848,10 @@
       "duration_s": 1.2,
       "transcript": "Armor approaching",
       "match": {
-        "score": 0.5,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -130626,6 +130862,10 @@
         "voice_description": "Russian male machine gunner in his early twenties, higher raspy voice with nervous energy, loud, rough shouting over gunfire. He speaks English with a strong Russian accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "acb640144eb42709a2ef21e2b20c9575d670b3150ee1cfca3209774a55f2dfe2"
       }
     },
     "ru_rifle_squad/soldier2/contact_vehicle/stressed/0": {
@@ -130668,7 +130908,7 @@
       "duration_s": 2.08,
       "transcript": "Armor coming. Get off the road",
       "match": {
-        "score": 0.83,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -133903,10 +134143,10 @@
       "duration_s": 1.44,
       "transcript": "Air, get undercover",
       "match": {
-        "score": 0.5,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -133917,6 +134157,10 @@
         "voice_description": "Russian male sniper spotter in his twenties, younger brighter tenor voice, hushed whispered callouts, focused. He speaks English with a heavy Russian accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "1e6f49240c8ad1f1c07d843391c8bf6b60ffd635d11923e3de53d9fdaef78695"
       }
     },
     "ru_sniper_team/soldier/contact_infantry/steady/0": {
@@ -134075,7 +134319,7 @@
       "duration_s": 1.52,
       "transcript": "Armor far left",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -136091,10 +136335,10 @@
       "duration_s": 1.36,
       "transcript": "Parking undercover",
       "match": {
-        "score": 0.33,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -136105,6 +136349,10 @@
         "voice_description": "Russian male logistics truck driver in his thirties, gravelly baritone voice, plain-spoken, working-man radio voice. He speaks English with a thick Russian accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "3f75c861f26fe6261d29830158ab8dfe43338948a0efa968aa3e112a9f98f70c"
       }
     },
     "ru_supply_driver/lead/enter_building/stressed/0": {
@@ -136117,7 +136365,7 @@
       "duration_s": 1.52,
       "transcript": "Gettas Undercover",
       "match": {
-        "score": 0,
+        "score": 0.33,
         "missing": [],
         "overlong": false,
         "flagged": true
@@ -137483,7 +137731,7 @@
       "duration_s": 1.36,
       "transcript": "Armor on the road",
       "match": {
-        "score": 0.75,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -140141,7 +140389,7 @@
       "duration_s": 1.6,
       "transcript": "Armor here. Send it",
       "match": {
-        "score": 0.75,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -141029,7 +141277,7 @@
       "duration_s": 2.08,
       "transcript": "Shit. Enemy armor right there",
       "match": {
-        "score": 0.8,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -141149,10 +141397,10 @@
       "duration_s": 2.16,
       "transcript": "Bail out. Bail out, goddammit",
       "match": {
-        "score": 0.57,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -141163,6 +141411,10 @@
         "voice_description": "Russian male tank gunner in his early thirties, hoarse baritone voice, tense, quick radio calls inside a loud vehicle. He speaks English with a clear Russian accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "95236a4dcec97f3ea972c01f290f03550ccfa6b412942ac5a4e6f7930ae4bab3"
       }
     },
     "ru_tank_crew/soldier/friendly_destroyed_nearby/steady/0": {
@@ -141325,7 +141577,7 @@
       "duration_s": 1.52,
       "transcript": "Hit. Armor held",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -142277,10 +142529,10 @@
       "duration_s": 1.76,
       "transcript": "Reloading. Standby",
       "match": {
-        "score": 0.33,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -142291,6 +142543,10 @@
         "voice_description": "Russian male tank gunner in his early thirties, hoarse baritone voice, tense, quick radio calls inside a loud vehicle. He speaks English with a clear Russian accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "505c3b84c19503c5880db1ae90cbe6d451fa145966b97bc1691e1d3b95a00dc1"
       }
     },
     "ru_tank_crew/soldier/reloading/stressed/0": {
@@ -144395,7 +144651,7 @@
       "duration_s": 1.6,
       "transcript": "Armor on the road",
       "match": {
-        "score": 0.75,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -144485,7 +144741,7 @@
       "duration_s": 2,
       "transcript": "Armor below. Get us clear",
       "match": {
-        "score": 0.8,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -147851,10 +148107,10 @@
       "duration_s": 1.2,
       "transcript": "Armor front",
       "match": {
-        "score": 0.5,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -147865,6 +148121,10 @@
         "voice_description": "Swedish male infantry fighting vehicle gunner in his mid twenties, raspy mid-range voice, quick tense callouts over the intercom. He speaks English with a noticeable Swedish accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "2a57400a06db769933639348bec6621073a84fa2083c1f4f248588e8d74a062e"
       }
     },
     "se_ifv_crew/soldier/contact_vehicle/steady/1": {
@@ -147937,7 +148197,7 @@
       "duration_s": 2.32,
       "transcript": "Armor. Damn it, we can't fight that",
       "match": {
-        "score": 0.86,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -148237,7 +148497,7 @@
       "duration_s": 1.44,
       "transcript": "Hit. Armor held",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -150499,7 +150759,7 @@
       "duration_s": 1.44,
       "transcript": "Armor here. Send it",
       "match": {
-        "score": 0.75,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -151389,7 +151649,7 @@
       "duration_s": 1.68,
       "transcript": "Shit, enemy armor right there",
       "match": {
-        "score": 0.8,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -151505,10 +151765,10 @@
       "duration_s": 2.4,
       "transcript": "Bail out! Bail out, goddammit",
       "match": {
-        "score": 0.57,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -151519,6 +151779,10 @@
         "voice_description": "Swedish male tank gunner in his early thirties, hoarse baritone voice, tense, quick radio calls inside a loud vehicle. He speaks English with a light Swedish accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "345d7a70780fce3b79ef296155fb4773a23c2e362f32a6fd18c19f8b43c6341b"
       }
     },
     "se_tank_crew/soldier/friendly_destroyed_nearby/steady/0": {
@@ -151681,7 +151945,7 @@
       "duration_s": 1.2,
       "transcript": "Hit, armor held",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -152641,10 +152905,10 @@
       "duration_s": 1.28,
       "transcript": "Reloading. Standby.",
       "match": {
-        "score": 0.33,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -152655,6 +152919,10 @@
         "voice_description": "Swedish male tank gunner in his early thirties, hoarse baritone voice, tense, quick radio calls inside a loud vehicle. He speaks English with a light Swedish accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "9d9c2de23b11ca23f58e54a0c8e3e7424b90a36d5c48718b238830696f5db2c4"
       }
     },
     "se_tank_crew/soldier/reloading/stressed/0": {
@@ -153837,7 +154105,7 @@
       "duration_s": 1.76,
       "transcript": "Can't get there. Too much air defense",
       "match": {
-        "score": 0.86,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -154767,7 +155035,7 @@
       "duration_s": 1.04,
       "transcript": "Armor, Charlie",
       "match": {
-        "score": 0,
+        "score": 0.5,
         "missing": [],
         "overlong": false,
         "flagged": true
@@ -154823,7 +155091,7 @@
       "duration_s": 1.92,
       "transcript": "Armor, missiles ready",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -156131,10 +156399,10 @@
       "duration_s": 1.6,
       "transcript": "Switching standby",
       "match": {
-        "score": 0.33,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -156145,6 +156413,10 @@
         "voice_description": "British male attack helicopter co-pilot gunner in his twenties, younger brighter tenor voice, sharp, fast intercom callouts. He speaks with a West Country English accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "a84885d9a58bfc9f045acea7b5f3401c88720aedb04209d6fd2d45cdbed72ebd"
       }
     },
     "uk_attack_helicopter_pilot/soldier/reloading/stressed/1": {
@@ -158215,7 +158487,7 @@
       "duration_s": 2,
       "transcript": "Armor far side",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -158597,10 +158869,10 @@
       "duration_s": 1.68,
       "transcript": "Armor held",
       "match": {
-        "score": 0.5,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -158611,6 +158883,10 @@
         "voice_description": "British male scout vehicle crewman in his mid twenties, raspy mid-range voice, alert, clipped radio callouts. He speaks with a Northern English English accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "716575ee7b963bc792ab20583ea9dc3c9e24df58f2a15992ca689e5059097606"
       }
     },
     "uk_recon_vehicle_crew/soldier/hit/stressed/0": {
@@ -160861,7 +161137,7 @@
       "duration_s": 1.36,
       "transcript": "Armor here. Send it",
       "match": {
-        "score": 0.75,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -161693,7 +161969,7 @@
       "duration_s": 1.44,
       "transcript": "Armor two o'clock",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -161753,7 +162029,7 @@
       "duration_s": 1.92,
       "transcript": "Shit, enemy armor right there",
       "match": {
-        "score": 0.8,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -161873,7 +162149,7 @@
       "duration_s": 2.8,
       "transcript": "Bail out! Bail out, goddammit!",
       "match": {
-        "score": 0.57,
+        "score": 1,
         "missing": [],
         "overlong": true,
         "flagged": true
@@ -162993,10 +163269,10 @@
       "duration_s": 1.44,
       "transcript": "Reloading. Standby",
       "match": {
-        "score": 0.33,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -163007,6 +163283,10 @@
         "voice_description": "British male tank gunner in his early thirties, hoarse baritone voice, tense, quick radio calls inside a loud vehicle. He speaks with a London English accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "eb92cfb017347b186ae904dca82745ff896d30939193c0a0a87f159c766ef9ec"
       }
     },
     "uk_tank_crew/soldier/reloading/stressed/0": {
@@ -165105,7 +165385,7 @@
       "duration_s": 1.44,
       "transcript": "Armor on the road",
       "match": {
-        "score": 0.75,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -165165,7 +165445,7 @@
       "duration_s": 1.6,
       "transcript": "Armor, stay away from it",
       "match": {
-        "score": 0.8,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -165195,7 +165475,7 @@
       "duration_s": 3.2,
       "transcript": "Armor below. Get us clear",
       "match": {
-        "score": 0.8,
+        "score": 1,
         "missing": [],
         "overlong": true,
         "flagged": true
@@ -168587,10 +168867,10 @@
       "duration_s": 0.96,
       "transcript": "Armor coming",
       "match": {
-        "score": 0.5,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -168601,6 +168881,10 @@
         "voice_description": "American male assault infantryman in his mid twenties, raspy mid-range voice, fierce shouted callouts, breathless. He speaks with a Midwestern American accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "b8792ae2e704d989e62148d2a826b951da7facefb9c4e6bc1565d7d02410075b"
       }
     },
     "us_assault_squad/soldier/contact_vehicle/stressed/0": {
@@ -168643,7 +168927,7 @@
       "duration_s": 2.16,
       "transcript": "Armor, where's the damn rocket?",
       "match": {
-        "score": 0.8,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -169449,10 +169733,10 @@
       "duration_s": 2.16,
       "transcript": "Back blast clear. Firing",
       "match": {
-        "score": 0.33,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -169463,6 +169747,10 @@
         "voice_description": "American male assault infantryman in his mid twenties, raspy mid-range voice, fierce shouted callouts, breathless. He speaks with a Midwestern American accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "d19fa670451320c517d93aedcf1e6b20b89dc79d402e9ba464f1b2790eb99abb"
       }
     },
     "us_assault_squad/soldier/missile_away/stressed/1": {
@@ -170607,10 +170895,10 @@
       "duration_s": 1.04,
       "transcript": "Armor coming",
       "match": {
-        "score": 0.5,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -170621,6 +170909,10 @@
         "voice_description": "American male grenadier in his twenties, husky mid-range voice, rough loud shouting, adrenaline in the voice. He speaks with a Midwestern American accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "976e9e0b1caa27f1de5cd75b4910a6ddc4aa9b499ad88e94c2bdad8515003add"
       }
     },
     "us_assault_squad/soldier2/contact_vehicle/stressed/0": {
@@ -171469,10 +171761,10 @@
       "duration_s": 2.08,
       "transcript": "Back blast clear. Firing",
       "match": {
-        "score": 0.33,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -171483,6 +171775,10 @@
         "voice_description": "American male grenadier in his twenties, husky mid-range voice, rough loud shouting, adrenaline in the voice. He speaks with a Midwestern American accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "56a2b808934ae4417dc5577a114d8b6d3da764562a8c17d8889f44c3662d1036"
       }
     },
     "us_assault_squad/soldier2/missile_away/stressed/1": {
@@ -172515,7 +172811,7 @@
       "duration_s": 1.68,
       "transcript": "Moving up. Hunting armor",
       "match": {
-        "score": 0.75,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -172695,10 +172991,10 @@
       "duration_s": 2.24,
       "transcript": "In. Watch the back blast",
       "match": {
-        "score": 0.5,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -172709,6 +173005,10 @@
         "voice_description": "American male anti-tank missile team leader in his late thirties, low resonant voice, firm shouted battlefield delivery. He speaks with a Texan American accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "7e95dc3e110cf3fd64c14a6c7951c009412082bb600aaed713b81e31c61ac6b7"
       }
     },
     "us_atgm_team/lead/hold_fire/steady/0": {
@@ -173471,7 +173771,7 @@
       "duration_s": 1.44,
       "transcript": "Engage any armor",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -174041,10 +174341,10 @@
       "duration_s": 1.28,
       "transcript": "Armor front",
       "match": {
-        "score": 0.5,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -174055,6 +174355,10 @@
         "voice_description": "American male anti-tank missile gunner in his early thirties, hoarse baritone voice, tense focused callouts, shouts when hit. He speaks with a Texan American accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "28e11fce9961cf7bd38d2067deda6fd4d0c314a7694f487116b0a819f609efa6"
       }
     },
     "us_atgm_team/soldier/contact_vehicle/steady/1": {
@@ -174127,7 +174431,7 @@
       "duration_s": 2.4,
       "transcript": "Armor, right there",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -174869,10 +175173,10 @@
       "duration_s": 2,
       "transcript": "Back blast clear. Launching",
       "match": {
-        "score": 0.33,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -174883,6 +175187,10 @@
         "voice_description": "American male anti-tank missile gunner in his early thirties, hoarse baritone voice, tense focused callouts, shouts when hit. He speaks with a Texan American accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "af240ee88d0c20e59fa8a2abee284fcf68c565c7a13b96baf00477721382b352"
       }
     },
     "us_atgm_team/soldier/missile_away/steady/1": {
@@ -174925,10 +175233,10 @@
       "duration_s": 2.4,
       "transcript": "Back blast clear. Missile away",
       "match": {
-        "score": 0.5,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -174939,6 +175247,10 @@
         "voice_description": "American male anti-tank missile gunner in his early thirties, hoarse baritone voice, tense focused callouts, shouts when hit. He speaks with a Texan American accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "cad4aa022abd944ff2761b4227e123f1d97b1faf71a514cf6f2912a4591db9bc"
       }
     },
     "us_atgm_team/soldier/missile_away/stressed/1": {
@@ -176567,7 +176879,7 @@
       "duration_s": 2,
       "transcript": "Can't get there. Too much air defense",
       "match": {
-        "score": 0.86,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -177497,10 +177809,10 @@
       "duration_s": 1.04,
       "transcript": "Armor tally",
       "match": {
-        "score": 0.5,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -177511,6 +177823,10 @@
         "voice_description": "American male attack helicopter co-pilot gunner in his twenties, younger brighter tenor voice, sharp, fast intercom callouts. He speaks with a New England American accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "1db78746339f8fa7c35117a5d4186143c221f89f72eab803fb3d3d3919b8f6af"
       }
     },
     "us_attack_helicopter_pilot/soldier/contact_vehicle/steady/1": {
@@ -177553,7 +177869,7 @@
       "duration_s": 1.6,
       "transcript": "Armor, missiles ready",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -180961,10 +181277,10 @@
       "duration_s": 1.2,
       "transcript": "Armor front",
       "match": {
-        "score": 0.5,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -180975,6 +181291,10 @@
         "voice_description": "American male infantry fighting vehicle gunner in his mid twenties, raspy mid-range voice, quick tense callouts over the intercom. He speaks with a Californian American accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "5a1fd18b4acd7c0ef0eb8be6cc1e9cdc5fddbcc3fe8700379227d7ea5b533efb"
       }
     },
     "us_ifv_crew/soldier/contact_vehicle/steady/1": {
@@ -181047,7 +181367,7 @@
       "duration_s": 2.32,
       "transcript": "Armor. Damn it, we can't fight that",
       "match": {
-        "score": 0.86,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -181347,7 +181667,7 @@
       "duration_s": 1.44,
       "transcript": "Hit. Armor held",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -182307,10 +182627,10 @@
       "duration_s": 1.52,
       "transcript": "Reloading. Standby",
       "match": {
-        "score": 0.33,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -182321,6 +182641,10 @@
         "voice_description": "American male infantry fighting vehicle gunner in his mid twenties, raspy mid-range voice, quick tense callouts over the intercom. He speaks with a Californian American accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "f3cd47e444ab5aa2ba34b8afd8c37e40c17f3bb624da539baa505eb07226fab4"
       }
     },
     "us_ifv_crew/soldier/reloading/stressed/0": {
@@ -183623,7 +183947,7 @@
       "duration_s": 1.6,
       "transcript": "Air defense, go ahead",
       "match": {
-        "score": 0.75,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -184463,7 +184787,7 @@
       "duration_s": 1.44,
       "transcript": "Armor far side",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -187811,10 +188135,10 @@
       "duration_s": 1.6,
       "transcript": "Troops 400 meters",
       "match": {
-        "score": 0.25,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -187825,6 +188149,10 @@
         "voice_description": "American male designated marksman in his twenties, younger brighter tenor voice, calm focused callouts that crack under pressure. He speaks with a General American American accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "31dd2ea96598a5d7fb2c484b618feb4e74365e8a0cd9d978eeb76d553f29dc7e"
       }
     },
     "us_marksman_squad/soldier/contact_infantry/stressed/0": {
@@ -187927,7 +188255,7 @@
       "duration_s": 1.28,
       "transcript": "Armor, far left",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -187957,7 +188285,7 @@
       "duration_s": 2.48,
       "transcript": "Armor, get off the line",
       "match": {
-        "score": 0.8,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -188797,10 +189125,10 @@
       "duration_s": 1.52,
       "transcript": "Back blast clear",
       "match": {
-        "score": 0,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -188811,6 +189139,10 @@
         "voice_description": "American male designated marksman in his twenties, younger brighter tenor voice, calm focused callouts that crack under pressure. He speaks with a General American American accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "c1406d35d71655277a2b05eac1c5c795c89e61b869af6750e170696d4e0f6151"
       }
     },
     "us_marksman_squad/soldier/missile_away/stressed/1": {
@@ -189831,10 +190163,10 @@
       "duration_s": 2.08,
       "transcript": "Troops, 400 meters",
       "match": {
-        "score": 0.25,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -189845,6 +190177,10 @@
         "voice_description": "American male rifleman in his early twenties, higher raspy voice with nervous energy, shouted battlefield callouts, quick and tense. He speaks with a General American American accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "cb5ba1c5d8dbd8c4220af488570160a0cdae12d6e28056419a1074a1693734e2"
       }
     },
     "us_marksman_squad/soldier2/contact_infantry/stressed/0": {
@@ -189947,7 +190283,7 @@
       "duration_s": 1.52,
       "transcript": "Armor, far left!",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -189977,7 +190313,7 @@
       "duration_s": 2.16,
       "transcript": "Armor, get off the line!",
       "match": {
-        "score": 0.8,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -190817,10 +191153,10 @@
       "duration_s": 1.76,
       "transcript": "Back blast clear!",
       "match": {
-        "score": 0,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -190831,6 +191167,10 @@
         "voice_description": "American male rifleman in his early twenties, higher raspy voice with nervous energy, shouted battlefield callouts, quick and tense. He speaks with a General American American accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "058ff1bbd6c0d773c9449825831d4f1b36abfb8c8797b55f3c4a16063ef300e5"
       }
     },
     "us_marksman_squad/soldier2/missile_away/stressed/1": {
@@ -193419,7 +193759,7 @@
       "duration_s": 1.68,
       "transcript": "Armor moving east",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -193449,7 +193789,7 @@
       "duration_s": 1.84,
       "transcript": "Armor coming. Keep still",
       "match": {
-        "score": 0.75,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -196845,7 +197185,7 @@
       "duration_s": 2.08,
       "transcript": "Armor far side",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -197227,7 +197567,7 @@
       "duration_s": 1.52,
       "transcript": "Armor hell",
       "match": {
-        "score": 0,
+        "score": 0.5,
         "missing": [],
         "overlong": false,
         "flagged": true
@@ -199584,14 +199924,14 @@
       }
     },
     "us_rifle_squad/lead/stop/steady/0": {
-      "text": "Halt.",
-      "generation_key": "76b997bbdf3f77ab3e285e03c9c74f85fb0b1f536794392aead06fc8985be3a1",
-      "raw": "assets/source/audio/voices/us_rifle_squad/lead-stop-steady-0.76b997bb.mp3",
-      "raw_sha256": "2eb5a0b4b5d977249dc42ddef74039c2b72f7286350a4412b05b5f23c46854cf",
-      "processing_key": "20511ef90dbe130c95ef853f77aec790ea3020e4a03b341177a4533885470aa3",
-      "served_sha256": "28f87b200657e76f5204cce584b60980f7ddafb0011233922b567a6e92f276a9",
-      "duration_s": 0.72,
-      "transcript": "Halt!",
+      "text": "Halt, hold here.",
+      "generation_key": "a869cb0ebd20b6fad56e5bad5460a0ec4023305ca4f27456aec21cd31b5d82fc",
+      "raw": "assets/source/audio/voices/us_rifle_squad/lead-stop-steady-0.a869cb0e.mp3",
+      "raw_sha256": "7b7d379a5bdc6374c9e9d6e881851d00b71072a73309f77573e552f4044966b7",
+      "processing_key": "851b71440d968040a0481b0ef6592dc994d95db92aa12bf7d009eeb9bf7afd51",
+      "served_sha256": "651d975fa5dfb07dfd1b19f3a1f67f598abcb5e373a7712f1d0e210b06b9fde3",
+      "duration_s": 1.52,
+      "transcript": "Halt! Hold here",
       "match": {
         "score": 1,
         "missing": [],
@@ -199602,7 +199942,7 @@
         "kind": "Generated",
         "generator": "ElevenLabs text-to-speech",
         "model": "eleven_v3",
-        "text": "Halt.",
+        "text": "Halt, hold here.",
         "voice_id": "QXAR9SVme4PRkI85CfkL",
         "voice_description": "American male infantry squad leader in his forties, deep rough mid-low voice, commanding shouted battlefield delivery. He speaks with a New England American accent.",
         "date": "2026-10-12",
@@ -199610,7 +199950,7 @@
       },
       "verdict": {
         "value": "ok",
-        "sha256": "28f87b200657e76f5204cce584b60980f7ddafb0011233922b567a6e92f276a9"
+        "sha256": "651d975fa5dfb07dfd1b19f3a1f67f598abcb5e373a7712f1d0e210b06b9fde3"
       }
     },
     "us_rifle_squad/lead/stop/steady/1": {
@@ -200223,10 +200563,10 @@
       "duration_s": 1.44,
       "transcript": "Enemy in the tree line",
       "match": {
-        "score": 0.5,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -200237,6 +200577,10 @@
         "voice_description": "American male rifleman in his twenties, younger brighter tenor voice, shouted battlefield callouts, breathless and raw. He speaks with a New England American accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "80700ee2e6743193ff7cb17122c175037a1803d6b6c27c5c443bb1e9554a733b"
       }
     },
     "us_rifle_squad/soldier/contact_infantry/stressed/0": {
@@ -200249,7 +200593,7 @@
       "duration_s": 2.24,
       "transcript": "Contact! Infantry in the tree line",
       "match": {
-        "score": 0.6,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -200339,10 +200683,10 @@
       "duration_s": 1.28,
       "transcript": "Armor approaching",
       "match": {
-        "score": 0.5,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -200353,6 +200697,10 @@
         "voice_description": "American male rifleman in his twenties, younger brighter tenor voice, shouted battlefield callouts, breathless and raw. He speaks with a New England American accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "37a7c352b696841134807ca0df012c6e73dfa0e3d9836e8ca3836c8bf228688e"
       }
     },
     "us_rifle_squad/soldier/contact_vehicle/stressed/0": {
@@ -200395,7 +200743,7 @@
       "duration_s": 2,
       "transcript": "Armor coming. Get off the road",
       "match": {
-        "score": 0.83,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -202247,10 +202595,10 @@
       "duration_s": 1.68,
       "transcript": "Enemy in the tree line!",
       "match": {
-        "score": 0.5,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -202261,6 +202609,10 @@
         "voice_description": "American male machine gunner in his twenties, husky mid-range voice, loud, rough shouting over gunfire. He speaks with a New England American accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "e579f78523cd119b67d6b03e8e875aeb7bf0bfc7fce850241b7653916d2c0cba"
       }
     },
     "us_rifle_squad/soldier2/contact_infantry/stressed/0": {
@@ -202273,7 +202625,7 @@
       "duration_s": 2.8,
       "transcript": "Contact! Infantry in the tree line",
       "match": {
-        "score": 0.6,
+        "score": 1,
         "missing": [],
         "overlong": true,
         "flagged": true
@@ -202359,10 +202711,10 @@
       "duration_s": 1.2,
       "transcript": "Armor approaching!",
       "match": {
-        "score": 0.5,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -202373,6 +202725,10 @@
         "voice_description": "American male machine gunner in his twenties, husky mid-range voice, loud, rough shouting over gunfire. He speaks with a New England American accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "f11f4f97f2e39c8052b915032601955a0e9baebdd50c470662b42e2e45da95bb"
       }
     },
     "us_rifle_squad/soldier2/contact_vehicle/stressed/0": {
@@ -202415,7 +202771,7 @@
       "duration_s": 2.4,
       "transcript": "Armor coming. Get off the road",
       "match": {
-        "score": 0.83,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -205643,10 +205999,10 @@
       "duration_s": 1.52,
       "transcript": "Air. Get undercover",
       "match": {
-        "score": 0.5,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -205657,6 +206013,10 @@
         "voice_description": "American male sniper spotter in his mid twenties, raspy mid-range voice, hushed whispered callouts, focused. He speaks with a Californian American accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "97d8a5e5a3047912a8628e87d6a03e8aff95f4a77c2736d8494abc35c05c6f2f"
       }
     },
     "us_sniper_team/soldier/contact_infantry/steady/0": {
@@ -205815,7 +206175,7 @@
       "duration_s": 1.76,
       "transcript": "Armor far left",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -205845,7 +206205,7 @@
       "duration_s": 1.6,
       "transcript": "Armor, keep still",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -207851,10 +208211,10 @@
       "duration_s": 1.28,
       "transcript": "Parking undercover",
       "match": {
-        "score": 0.33,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -207865,6 +208225,10 @@
         "voice_description": "American male logistics truck driver in his late thirties, low resonant voice, plain-spoken, working-man radio voice. He speaks with a Southern American accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "b5285c5b98d398a927b292fd8ca5dbd2582f9a1c885bdd98b58b9cfd5f3859a7"
       }
     },
     "us_supply_driver/lead/enter_building/stressed/0": {
@@ -209339,7 +209703,7 @@
       "duration_s": 2.24,
       "transcript": "Armor, turn around!",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -211911,7 +212275,7 @@
       "duration_s": 1.36,
       "transcript": "Armor here. Send it",
       "match": {
-        "score": 0.75,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -212811,7 +213175,7 @@
       "duration_s": 1.76,
       "transcript": "Shit. Enemy armor right there",
       "match": {
-        "score": 0.8,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -212931,10 +213295,10 @@
       "duration_s": 2.48,
       "transcript": "Bail out! Bail out, goddammit!",
       "match": {
-        "score": 0.57,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -212945,6 +213309,10 @@
         "voice_description": "American male tank gunner in his twenties, younger brighter tenor voice, tense, quick radio calls inside a loud vehicle. He speaks with a General American American accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "ea865331c703c404f5f6bf4db0b9722c998fc1bb58f92fd56c344d71ba693297"
       }
     },
     "us_tank_crew/soldier/friendly_destroyed_nearby/steady/0": {
@@ -213107,7 +213475,7 @@
       "duration_s": 1.28,
       "transcript": "Hit. Armor held",
       "match": {
-        "score": 0.67,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -214067,10 +214435,10 @@
       "duration_s": 1.36,
       "transcript": "Reloading. Standby",
       "match": {
-        "score": 0.33,
+        "score": 1,
         "missing": [],
         "overlong": false,
-        "flagged": true
+        "flagged": false
       },
       "provenance": {
         "kind": "Generated",
@@ -214081,6 +214449,10 @@
         "voice_description": "American male tank gunner in his twenties, younger brighter tenor voice, tense, quick radio calls inside a loud vehicle. He speaks with a General American American accent.",
         "date": "2026-10-12",
         "plan": "Duet ElevenLabs"
+      },
+      "verdict": {
+        "value": "ok",
+        "sha256": "e40913d43e84382fa573a8d95803263460f0baf0bff3302c046fbd35f725c09d"
       }
     },
     "us_tank_crew/soldier/reloading/stressed/0": {
@@ -216193,7 +216565,7 @@
       "duration_s": 1.28,
       "transcript": "Armor on the road",
       "match": {
-        "score": 0.75,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -216253,7 +216625,7 @@
       "duration_s": 2,
       "transcript": "Armor, stay away from it",
       "match": {
-        "score": 0.8,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
@@ -216283,7 +216655,7 @@
       "duration_s": 1.52,
       "transcript": "Armor below. Get us clear",
       "match": {
-        "score": 0.8,
+        "score": 1,
         "missing": [],
         "overlong": false,
         "flagged": false
