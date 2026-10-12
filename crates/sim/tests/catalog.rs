@@ -617,12 +617,12 @@ fn a_hull_past_its_drives_limits_is_refused_at_load() {
         ),
         (
             "test_supply",
-            json!({ "body": { "hull": { "half_extents_m": [5.3, 1.4, 1.8] } } }),
+            json!({ "body": { "hull": { "half_extents_m": [6.3, 1.4, 1.8] } } }),
             "wheeled half length",
         ),
         (
             "test_supply",
-            json!({ "mobility": { "wheeled": { "turning_radius_m": 6.5 } } }),
+            json!({ "mobility": { "wheeled": { "turning_radius_m": 8.5 } } }),
             "wheeled turning radius",
         ),
     ] {

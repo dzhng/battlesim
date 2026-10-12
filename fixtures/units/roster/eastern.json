@@ -5,7 +5,9 @@
       "description": "2S19M2",
       "faction": "eastern",
       "family": "2s19_msta_s",
-      "roles": [],
+      "roles": [
+        "artillery"
+      ],
       "cost": 270,
       "roster": {
         "factions": [
@@ -15,15 +17,69 @@
         "variant": "2S19M2",
         "family_name": "2S19 Msta-S"
       },
-      "planned": {
-        "reason": "Artillery and indirect-support mechanics deferred",
-        "profile": "tracked-howitzer",
-        "weapons": [
-          {
-            "name": "Howitzer",
-            "icon": "howitzer"
-          }
-        ]
+      "extends": "roster_profile_light_tank",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.575,
+            1.79,
+            1.495
+          ],
+          "eye_m": 2.6910000000000003,
+          "hp": 150,
+          "armor": {
+            "front": 90,
+            "side": 55,
+            "rear": 35,
+            "roof": 25,
+            "ricochet": {
+              "front": 0.2,
+              "side": 0.15,
+              "rear": 0.1,
+              "roof": 0.25
+            }
+          },
+          "weight_class": "heavy",
+          "push_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 24,
+          "road_kmh": 58,
+          "turn_deg_s": 28,
+          "reverse_fraction": 0.3
+        }
+      },
+      "mounts": [
+        {
+          "id": "gun",
+          "name": "Howitzer",
+          "weapons": [
+            "artillery_howitzer"
+          ],
+          "turret": false,
+          "pivot_m": [
+            -2.1,
+            0,
+            3.0
+          ],
+          "muzzle_m": [
+            7.15,
+            0,
+            0
+          ]
+        }
+      ],
+      "appearance": "eastern_2s19_msta_s_2s19m2",
+      "sensors": {
+        "ground_m": 500,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        }
       }
     },
     "eastern_9k515_tornado_s_heavy_rocket_artillery": {
@@ -31,7 +87,9 @@
       "description": "Heavy rocket artillery",
       "faction": "eastern",
       "family": "9k515_tornado_s",
-      "roles": [],
+      "roles": [
+        "artillery"
+      ],
       "cost": 360,
       "roster": {
         "factions": [
@@ -41,15 +99,70 @@
         "variant": "Heavy rocket artillery",
         "family_name": "9K515 Tornado-S"
       },
-      "planned": {
-        "reason": "Artillery and indirect-support mechanics deferred",
-        "profile": "heavy-rocket",
-        "weapons": [
-          {
-            "name": "Rockets",
-            "icon": "rockets"
-          }
-        ]
+      "extends": "roster_profile_truck",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            6.05,
+            1.525,
+            1.525
+          ],
+          "eye_m": 2.745,
+          "hp": 150,
+          "armor": {
+            "front": 90,
+            "side": 55,
+            "rear": 35,
+            "roof": 25,
+            "ricochet": {
+              "front": 0.2,
+              "side": 0.15,
+              "rear": 0.1,
+              "roof": 0.25
+            }
+          },
+          "weight_class": "heavy",
+          "push_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "mobility": {
+        "wheeled": {
+          "offroad_kmh": 26,
+          "road_kmh": 82,
+          "turn_deg_s": 34,
+          "reverse_fraction": 0.3,
+          "turning_radius_m": 8
+        }
+      },
+      "mounts": [
+        {
+          "id": "gun",
+          "name": "Rockets",
+          "weapons": [
+            "artillery_rocket_heavy"
+          ],
+          "turret": false,
+          "pivot_m": [
+            -3.4,
+            0,
+            2.9
+          ],
+          "muzzle_m": [
+            7.6,
+            0,
+            0
+          ]
+        }
+      ],
+      "appearance": "eastern_9k515_tornado_s_heavy_rocket_artillery",
+      "sensors": {
+        "ground_m": 400,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        }
       }
     },
     "eastern_air_defense_team_fn_6": {
@@ -147,7 +260,9 @@
       "description": "BM-21 rocket artillery",
       "faction": "eastern",
       "family": "bm_21_grad",
-      "roles": [],
+      "roles": [
+        "artillery"
+      ],
       "cost": 220,
       "roster": {
         "factions": [
@@ -157,15 +272,70 @@
         "variant": "BM-21 rocket artillery",
         "family_name": "BM-21 Grad"
       },
-      "planned": {
-        "reason": "Artillery and indirect-support mechanics deferred",
-        "profile": "light-rocket",
-        "weapons": [
-          {
-            "name": "Rockets",
-            "icon": "rockets"
-          }
-        ]
+      "extends": "roster_profile_truck",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.675,
+            1.345,
+            1.545
+          ],
+          "eye_m": 2.781,
+          "hp": 120,
+          "armor": {
+            "front": 90,
+            "side": 55,
+            "rear": 35,
+            "roof": 25,
+            "ricochet": {
+              "front": 0.2,
+              "side": 0.15,
+              "rear": 0.1,
+              "roof": 0.25
+            }
+          },
+          "weight_class": "heavy",
+          "push_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "mobility": {
+        "wheeled": {
+          "offroad_kmh": 26,
+          "road_kmh": 82,
+          "turn_deg_s": 34,
+          "reverse_fraction": 0.3,
+          "turning_radius_m": 8
+        }
+      },
+      "mounts": [
+        {
+          "id": "gun",
+          "name": "Rockets",
+          "weapons": [
+            "artillery_rocket_light"
+          ],
+          "turret": false,
+          "pivot_m": [
+            -1.8,
+            0,
+            2.6
+          ],
+          "muzzle_m": [
+            3.0,
+            0,
+            0
+          ]
+        }
+      ],
+      "appearance": "eastern_bm_21_grad_bm_21_rocket_artillery",
+      "sensors": {
+        "ground_m": 400,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        }
       }
     },
     "eastern_bmp_ifv_family_bmp_2m_berezhok": {
@@ -1107,7 +1277,9 @@
       "description": "Chinese tracked 155 mm howitzer",
       "faction": "eastern",
       "family": "plz_05",
-      "roles": [],
+      "roles": [
+        "artillery"
+      ],
       "cost": 280,
       "roster": {
         "factions": [
@@ -1117,15 +1289,69 @@
         "variant": "Chinese tracked 155 mm howitzer",
         "family_name": "PLZ-05"
       },
-      "planned": {
-        "reason": "Artillery and indirect-support mechanics deferred",
-        "profile": "tracked-howitzer",
-        "weapons": [
-          {
-            "name": "Howitzer",
-            "icon": "howitzer"
-          }
-        ]
+      "extends": "roster_profile_light_tank",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.65,
+            1.7,
+            1.55
+          ],
+          "eye_m": 2.79,
+          "hp": 150,
+          "armor": {
+            "front": 90,
+            "side": 55,
+            "rear": 35,
+            "roof": 25,
+            "ricochet": {
+              "front": 0.2,
+              "side": 0.15,
+              "rear": 0.1,
+              "roof": 0.25
+            }
+          },
+          "weight_class": "heavy",
+          "push_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 24,
+          "road_kmh": 58,
+          "turn_deg_s": 28,
+          "reverse_fraction": 0.3
+        }
+      },
+      "mounts": [
+        {
+          "id": "gun",
+          "name": "Howitzer",
+          "weapons": [
+            "artillery_howitzer"
+          ],
+          "turret": false,
+          "pivot_m": [
+            -3.0,
+            0,
+            2.9
+          ],
+          "muzzle_m": [
+            8.06,
+            0,
+            0
+          ]
+        }
+      ],
+      "appearance": "eastern_plz_05_chinese_tracked_155_mm_howitzer",
+      "sensors": {
+        "ground_m": 500,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        }
       }
     },
     "eastern_rpg_team_rpg_29": {

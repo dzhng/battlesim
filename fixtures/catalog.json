@@ -37,6 +37,40 @@
       }
     },
     {
+      "cost": 270,
+      "description": "2S19M2",
+      "disabled_reason": null,
+      "family": "2s19_msta_s",
+      "id": "eastern_2s19_msta_s_2s19m2",
+      "name": "2S19M2 Msta-S",
+      "planned_weapons": [],
+      "roster": {
+        "category": "sup",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "2S19 Msta-S",
+        "variant": "2S19M2"
+      }
+    },
+    {
+      "cost": 360,
+      "description": "Heavy rocket artillery",
+      "disabled_reason": null,
+      "family": "9k515_tornado_s",
+      "id": "eastern_9k515_tornado_s_heavy_rocket_artillery",
+      "name": "Tornado-S",
+      "planned_weapons": [],
+      "roster": {
+        "category": "sup",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "9K515 Tornado-S",
+        "variant": "Heavy rocket artillery"
+      }
+    },
+    {
       "cost": 100,
       "description": "FN-6",
       "disabled_reason": null,
@@ -85,6 +119,23 @@
         ],
         "family_name": "ATGM Team",
         "variant": "Kornet"
+      }
+    },
+    {
+      "cost": 220,
+      "description": "BM-21 rocket artillery",
+      "disabled_reason": null,
+      "family": "bm_21_grad",
+      "id": "eastern_bm_21_grad_bm_21_rocket_artillery",
+      "name": "BM-21 Grad",
+      "planned_weapons": [],
+      "roster": {
+        "category": "sup",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "BM-21 Grad",
+        "variant": "BM-21 rocket artillery"
       }
     },
     {
@@ -238,6 +289,23 @@
         ],
         "family_name": "Mi-8 Hip",
         "variant": "Mi-8AMTSh"
+      }
+    },
+    {
+      "cost": 280,
+      "description": "Chinese tracked 155 mm howitzer",
+      "disabled_reason": null,
+      "family": "plz_05",
+      "id": "eastern_plz_05_chinese_tracked_155_mm_howitzer",
+      "name": "PLZ-05",
+      "planned_weapons": [],
+      "roster": {
+        "category": "sup",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "PLZ-05",
+        "variant": "Chinese tracked 155 mm howitzer"
       }
     },
     {
@@ -615,6 +683,23 @@
       }
     },
     {
+      "cost": 260,
+      "description": "8×8",
+      "disabled_reason": null,
+      "family": "caesar",
+      "id": "europe_caesar_88",
+      "name": "CAESAR 8×8",
+      "planned_weapons": [],
+      "roster": {
+        "category": "sup",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "CAESAR",
+        "variant": "8×8"
+      }
+    },
+    {
       "cost": 240,
       "description": "Wheeled 120 mm tank destroyer",
       "disabled_reason": null,
@@ -921,6 +1006,23 @@
       }
     },
     {
+      "cost": 340,
+      "description": "Multiple-launch rocket system",
+      "disabled_reason": null,
+      "family": "mars_ii",
+      "id": "europe_mars_ii_multiple_launch_rocket_system",
+      "name": "MARS II",
+      "planned_weapons": [],
+      "roster": {
+        "category": "sup",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "MARS II",
+        "variant": "Multiple-launch rocket system"
+      }
+    },
+    {
       "cost": 190,
       "description": "TTH",
       "disabled_reason": null,
@@ -952,6 +1054,23 @@
         ],
         "family_name": "Puma",
         "variant": "Level C"
+      }
+    },
+    {
+      "cost": 310,
+      "description": "Tracked 155 mm howitzer",
+      "disabled_reason": null,
+      "family": "pzh_2000",
+      "id": "europe_pzh_2000_tracked_155_mm_howitzer",
+      "name": "PzH 2000",
+      "planned_weapons": [],
+      "roster": {
+        "category": "sup",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "PzH 2000",
+        "variant": "Tracked 155 mm howitzer"
       }
     },
     {
@@ -1231,6 +1350,23 @@
       }
     },
     {
+      "cost": 280,
+      "description": "M109A7",
+      "disabled_reason": null,
+      "family": "m109_paladin",
+      "id": "us_m109_paladin_m109a7",
+      "name": "M109A7 Paladin",
+      "planned_weapons": [],
+      "roster": {
+        "category": "sup",
+        "factions": [
+          "us"
+        ],
+        "family_name": "M109 Paladin",
+        "variant": "M109A7"
+      }
+    },
+    {
       "cost": 240,
       "description": "Light tank",
       "disabled_reason": null,
@@ -1265,6 +1401,23 @@
       }
     },
     {
+      "cost": 180,
+      "description": "120 mm mortar carrier",
+      "disabled_reason": null,
+      "family": "m1129_stryker_mortar",
+      "id": "us_m1129_stryker_mortar_120_mm_mortar_carrier",
+      "name": "Stryker Mortar",
+      "planned_weapons": [],
+      "roster": {
+        "category": "sup",
+        "factions": [
+          "us"
+        ],
+        "family_name": "Stryker Mortar",
+        "variant": "120 mm mortar carrier"
+      }
+    },
+    {
       "cost": 90,
       "description": "HMG",
       "disabled_reason": null,
@@ -1279,6 +1432,40 @@
         ],
         "family_name": "M1151 HMMWV",
         "variant": "HMG"
+      }
+    },
+    {
+      "cost": 300,
+      "description": "GMLRS",
+      "disabled_reason": null,
+      "family": "m142_himars",
+      "id": "us_m142_himars_gmlrs",
+      "name": "HIMARS GMLRS",
+      "planned_weapons": [],
+      "roster": {
+        "category": "sup",
+        "factions": [
+          "us"
+        ],
+        "family_name": "M142 HIMARS",
+        "variant": "GMLRS"
+      }
+    },
+    {
+      "cost": 400,
+      "description": "PrSM",
+      "disabled_reason": null,
+      "family": "m142_himars",
+      "id": "us_m142_himars_prsm",
+      "name": "HIMARS PrSM",
+      "planned_weapons": [],
+      "roster": {
+        "category": "sup",
+        "factions": [
+          "us"
+        ],
+        "family_name": "M142 HIMARS",
+        "variant": "PrSM"
       }
     },
     {
@@ -1347,6 +1534,23 @@
         ],
         "family_name": "M1 Abrams",
         "variant": "M1E3"
+      }
+    },
+    {
+      "cost": 350,
+      "description": "M270A2",
+      "disabled_reason": null,
+      "family": "m270_mlrs",
+      "id": "us_m270_mlrs_m270a2",
+      "name": "M270A2 MLRS",
+      "planned_weapons": [],
+      "roster": {
+        "category": "sup",
+        "factions": [
+          "us"
+        ],
+        "family_name": "M270 MLRS",
+        "variant": "M270A2"
       }
     },
     {
@@ -1534,72 +1738,6 @@
         ],
         "family_name": "UH-60 Black Hawk",
         "variant": "UH-60M"
-      }
-    },
-    {
-      "cost": 270,
-      "description": "2S19M2",
-      "disabled_reason": "Artillery and indirect-support mechanics deferred",
-      "family": "2s19_msta_s",
-      "id": "eastern_2s19_msta_s_2s19m2",
-      "name": "2S19M2 Msta-S",
-      "planned_weapons": [
-        {
-          "icon": "howitzer",
-          "name": "Howitzer"
-        }
-      ],
-      "roster": {
-        "category": "sup",
-        "factions": [
-          "eastern"
-        ],
-        "family_name": "2S19 Msta-S",
-        "variant": "2S19M2"
-      }
-    },
-    {
-      "cost": 360,
-      "description": "Heavy rocket artillery",
-      "disabled_reason": "Artillery and indirect-support mechanics deferred",
-      "family": "9k515_tornado_s",
-      "id": "eastern_9k515_tornado_s_heavy_rocket_artillery",
-      "name": "Tornado-S",
-      "planned_weapons": [
-        {
-          "icon": "rockets",
-          "name": "Rockets"
-        }
-      ],
-      "roster": {
-        "category": "sup",
-        "factions": [
-          "eastern"
-        ],
-        "family_name": "9K515 Tornado-S",
-        "variant": "Heavy rocket artillery"
-      }
-    },
-    {
-      "cost": 220,
-      "description": "BM-21 rocket artillery",
-      "disabled_reason": "Artillery and indirect-support mechanics deferred",
-      "family": "bm_21_grad",
-      "id": "eastern_bm_21_grad_bm_21_rocket_artillery",
-      "name": "BM-21 Grad",
-      "planned_weapons": [
-        {
-          "icon": "rockets",
-          "name": "Rockets"
-        }
-      ],
-      "roster": {
-        "category": "sup",
-        "factions": [
-          "eastern"
-        ],
-        "family_name": "BM-21 Grad",
-        "variant": "BM-21 rocket artillery"
       }
     },
     {
@@ -1824,28 +1962,6 @@
       }
     },
     {
-      "cost": 280,
-      "description": "Chinese tracked 155 mm howitzer",
-      "disabled_reason": "Artillery and indirect-support mechanics deferred",
-      "family": "plz_05",
-      "id": "eastern_plz_05_chinese_tracked_155_mm_howitzer",
-      "name": "PLZ-05",
-      "planned_weapons": [
-        {
-          "icon": "howitzer",
-          "name": "Howitzer"
-        }
-      ],
-      "roster": {
-        "category": "sup",
-        "factions": [
-          "eastern"
-        ],
-        "family_name": "PLZ-05",
-        "variant": "Chinese tracked 155 mm howitzer"
-      }
-    },
-    {
       "cost": 90,
       "description": "Thermal",
       "disabled_reason": "Drone movement, sensing and mission mechanics deferred",
@@ -2061,28 +2177,6 @@
       }
     },
     {
-      "cost": 260,
-      "description": "8×8",
-      "disabled_reason": "Artillery and indirect-support mechanics deferred",
-      "family": "caesar",
-      "id": "europe_caesar_88",
-      "name": "CAESAR 8×8",
-      "planned_weapons": [
-        {
-          "icon": "howitzer",
-          "name": "Howitzer"
-        }
-      ],
-      "roster": {
-        "category": "sup",
-        "factions": [
-          "europe"
-        ],
-        "family_name": "CAESAR",
-        "variant": "8×8"
-      }
-    },
-    {
       "cost": 410,
       "description": "Tranche 3",
       "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
@@ -2209,28 +2303,6 @@
       }
     },
     {
-      "cost": 340,
-      "description": "Multiple-launch rocket system",
-      "disabled_reason": "Artillery and indirect-support mechanics deferred",
-      "family": "mars_ii",
-      "id": "europe_mars_ii_multiple_launch_rocket_system",
-      "name": "MARS II",
-      "planned_weapons": [
-        {
-          "icon": "rockets",
-          "name": "Rockets"
-        }
-      ],
-      "roster": {
-        "category": "sup",
-        "factions": [
-          "europe"
-        ],
-        "family_name": "MARS II",
-        "variant": "Multiple-launch rocket system"
-      }
-    },
-    {
       "cost": 290,
       "description": "2000D RMV",
       "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
@@ -2280,28 +2352,6 @@
         ],
         "family_name": "NASAMS",
         "variant": "NASAMS 3"
-      }
-    },
-    {
-      "cost": 310,
-      "description": "Tracked 155 mm howitzer",
-      "disabled_reason": "Artillery and indirect-support mechanics deferred",
-      "family": "pzh_2000",
-      "id": "europe_pzh_2000_tracked_155_mm_howitzer",
-      "name": "PzH 2000",
-      "planned_weapons": [
-        {
-          "icon": "howitzer",
-          "name": "Howitzer"
-        }
-      ],
-      "roster": {
-        "category": "sup",
-        "factions": [
-          "europe"
-        ],
-        "family_name": "PzH 2000",
-        "variant": "Tracked 155 mm howitzer"
       }
     },
     {
@@ -2722,116 +2772,6 @@
         ],
         "family_name": "Kamikaze Drone",
         "variant": "Anti-personnel"
-      }
-    },
-    {
-      "cost": 280,
-      "description": "M109A7",
-      "disabled_reason": "Artillery and indirect-support mechanics deferred",
-      "family": "m109_paladin",
-      "id": "us_m109_paladin_m109a7",
-      "name": "M109A7 Paladin",
-      "planned_weapons": [
-        {
-          "icon": "howitzer",
-          "name": "Howitzer"
-        }
-      ],
-      "roster": {
-        "category": "sup",
-        "factions": [
-          "us"
-        ],
-        "family_name": "M109 Paladin",
-        "variant": "M109A7"
-      }
-    },
-    {
-      "cost": 180,
-      "description": "120 mm mortar carrier",
-      "disabled_reason": "Artillery and indirect-support mechanics deferred",
-      "family": "m1129_stryker_mortar",
-      "id": "us_m1129_stryker_mortar_120_mm_mortar_carrier",
-      "name": "Stryker Mortar",
-      "planned_weapons": [
-        {
-          "icon": "mortar",
-          "name": "Mortar"
-        }
-      ],
-      "roster": {
-        "category": "sup",
-        "factions": [
-          "us"
-        ],
-        "family_name": "Stryker Mortar",
-        "variant": "120 mm mortar carrier"
-      }
-    },
-    {
-      "cost": 300,
-      "description": "GMLRS",
-      "disabled_reason": "Artillery and indirect-support mechanics deferred",
-      "family": "m142_himars",
-      "id": "us_m142_himars_gmlrs",
-      "name": "HIMARS GMLRS",
-      "planned_weapons": [
-        {
-          "icon": "rockets",
-          "name": "Rockets"
-        }
-      ],
-      "roster": {
-        "category": "sup",
-        "factions": [
-          "us"
-        ],
-        "family_name": "M142 HIMARS",
-        "variant": "GMLRS"
-      }
-    },
-    {
-      "cost": 400,
-      "description": "PrSM",
-      "disabled_reason": "Artillery and indirect-support mechanics deferred",
-      "family": "m142_himars",
-      "id": "us_m142_himars_prsm",
-      "name": "HIMARS PrSM",
-      "planned_weapons": [
-        {
-          "icon": "rockets",
-          "name": "Strike Missile"
-        }
-      ],
-      "roster": {
-        "category": "sup",
-        "factions": [
-          "us"
-        ],
-        "family_name": "M142 HIMARS",
-        "variant": "PrSM"
-      }
-    },
-    {
-      "cost": 350,
-      "description": "M270A2",
-      "disabled_reason": "Artillery and indirect-support mechanics deferred",
-      "family": "m270_mlrs",
-      "id": "us_m270_mlrs_m270a2",
-      "name": "M270A2 MLRS",
-      "planned_weapons": [
-        {
-          "icon": "rockets",
-          "name": "Rockets"
-        }
-      ],
-      "roster": {
-        "category": "sup",
-        "factions": [
-          "us"
-        ],
-        "family_name": "M270 MLRS",
-        "variant": "M270A2"
       }
     },
     {
@@ -4332,6 +4272,13 @@
           "symbol": [
             "infantry",
             "air_defense"
+          ]
+        },
+        "artillery": {
+          "description": "Long-range indirect fire that reaches over obstacles.",
+          "name": "Artillery",
+          "symbol": [
+            "artillery"
           ]
         },
         "at": {
@@ -6940,22 +6887,73 @@
           }
         },
         "eastern_2s19_msta_s_2s19m2": {
+          "appearance": "eastern_2s19_msta_s_2s19m2",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 90.0,
+                "rear": 35.0,
+                "ricochet": {
+                  "front": 0.2,
+                  "rear": 0.1,
+                  "roof": 0.25,
+                  "side": 0.15
+                },
+                "roof": 25.0,
+                "side": 55.0
+              },
+              "eye_m": 2.6910000000000003,
+              "half_extents_m": [
+                3.575,
+                1.79,
+                1.495
+              ],
+              "hp": 150.0,
+              "push_class": "heavy",
+              "weight_class": "heavy",
+              "wreck": "heavy_wreck"
+            }
+          },
+          "capabilities": {},
           "cost": 270,
           "description": "2S19M2",
           "faction": "eastern",
           "family": "2s19_msta_s",
-          "name": "2S19M2 Msta-S",
-          "planned": {
-            "profile": "tracked-howitzer",
-            "reason": "Artillery and indirect-support mechanics deferred",
-            "weapons": [
-              {
-                "icon": "howitzer",
-                "name": "Howitzer"
-              }
-            ]
+          "mobility": {
+            "tracked": {
+              "offroad_kmh": 24.0,
+              "reverse_fraction": 0.3,
+              "road_kmh": 58.0,
+              "turn_deg_s": 28.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "gun",
+              "muzzle_m": [
+                7.15,
+                0.0,
+                0.0
+              ],
+              "name": "Howitzer",
+              "on": null,
+              "pivot_m": [
+                -2.1,
+                0.0,
+                3.0
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "artillery_howitzer"
+              ]
+            }
+          ],
+          "name": "2S19M2 Msta-S",
+          "roles": [
+            "artillery"
+          ],
           "roster": {
             "category": "sup",
             "factions": [
@@ -6963,25 +6961,89 @@
             ],
             "family_name": "2S19 Msta-S",
             "variant": "2S19M2"
+          },
+          "sensors": {
+            "ground_m": 500.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.5
+            }
+          },
+          "sound": {
+            "loudness_m": 650.0,
+            "profile": "vehicle"
           }
         },
         "eastern_9k515_tornado_s_heavy_rocket_artillery": {
+          "appearance": "eastern_9k515_tornado_s_heavy_rocket_artillery",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 90.0,
+                "rear": 35.0,
+                "ricochet": {
+                  "front": 0.2,
+                  "rear": 0.1,
+                  "roof": 0.25,
+                  "side": 0.15
+                },
+                "roof": 25.0,
+                "side": 55.0
+              },
+              "eye_m": 2.745,
+              "half_extents_m": [
+                6.05,
+                1.525,
+                1.525
+              ],
+              "hp": 150.0,
+              "push_class": "heavy",
+              "weight_class": "heavy",
+              "wreck": "heavy_wreck"
+            }
+          },
+          "capabilities": {},
           "cost": 360,
           "description": "Heavy rocket artillery",
           "faction": "eastern",
           "family": "9k515_tornado_s",
-          "name": "Tornado-S",
-          "planned": {
-            "profile": "heavy-rocket",
-            "reason": "Artillery and indirect-support mechanics deferred",
-            "weapons": [
-              {
-                "icon": "rockets",
-                "name": "Rockets"
-              }
-            ]
+          "mobility": {
+            "wheeled": {
+              "offroad_kmh": 26.0,
+              "reverse_fraction": 0.3,
+              "road_kmh": 82.0,
+              "turn_deg_s": 34.0,
+              "turning_radius_m": 8.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "gun",
+              "muzzle_m": [
+                7.6,
+                0.0,
+                0.0
+              ],
+              "name": "Rockets",
+              "on": null,
+              "pivot_m": [
+                -3.4,
+                0.0,
+                2.9
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "artillery_rocket_heavy"
+              ]
+            }
+          ],
+          "name": "Tornado-S",
+          "roles": [
+            "artillery"
+          ],
           "roster": {
             "category": "sup",
             "factions": [
@@ -6989,6 +7051,18 @@
             ],
             "family_name": "9K515 Tornado-S",
             "variant": "Heavy rocket artillery"
+          },
+          "sensors": {
+            "ground_m": 400.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.5
+            }
+          },
+          "sound": {
+            "loudness_m": 650.0,
+            "profile": "vehicle"
           }
         },
         "eastern_air_defense_team_fn_6": {
@@ -7135,22 +7209,74 @@
           }
         },
         "eastern_bm_21_grad_bm_21_rocket_artillery": {
+          "appearance": "eastern_bm_21_grad_bm_21_rocket_artillery",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 90.0,
+                "rear": 35.0,
+                "ricochet": {
+                  "front": 0.2,
+                  "rear": 0.1,
+                  "roof": 0.25,
+                  "side": 0.15
+                },
+                "roof": 25.0,
+                "side": 55.0
+              },
+              "eye_m": 2.781,
+              "half_extents_m": [
+                3.675,
+                1.345,
+                1.545
+              ],
+              "hp": 120.0,
+              "push_class": "heavy",
+              "weight_class": "heavy",
+              "wreck": "heavy_wreck"
+            }
+          },
+          "capabilities": {},
           "cost": 220,
           "description": "BM-21 rocket artillery",
           "faction": "eastern",
           "family": "bm_21_grad",
-          "name": "BM-21 Grad",
-          "planned": {
-            "profile": "light-rocket",
-            "reason": "Artillery and indirect-support mechanics deferred",
-            "weapons": [
-              {
-                "icon": "rockets",
-                "name": "Rockets"
-              }
-            ]
+          "mobility": {
+            "wheeled": {
+              "offroad_kmh": 26.0,
+              "reverse_fraction": 0.3,
+              "road_kmh": 82.0,
+              "turn_deg_s": 34.0,
+              "turning_radius_m": 8.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "gun",
+              "muzzle_m": [
+                3.0,
+                0.0,
+                0.0
+              ],
+              "name": "Rockets",
+              "on": null,
+              "pivot_m": [
+                -1.8,
+                0.0,
+                2.6
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "artillery_rocket_light"
+              ]
+            }
+          ],
+          "name": "BM-21 Grad",
+          "roles": [
+            "artillery"
+          ],
           "roster": {
             "category": "sup",
             "factions": [
@@ -7158,6 +7284,18 @@
             ],
             "family_name": "BM-21 Grad",
             "variant": "BM-21 rocket artillery"
+          },
+          "sensors": {
+            "ground_m": 400.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.5
+            }
+          },
+          "sound": {
+            "loudness_m": 650.0,
+            "profile": "vehicle"
           }
         },
         "eastern_bmp_ifv_family_bmp_2m_berezhok": {
@@ -8316,22 +8454,73 @@
           }
         },
         "eastern_plz_05_chinese_tracked_155_mm_howitzer": {
+          "appearance": "eastern_plz_05_chinese_tracked_155_mm_howitzer",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 90.0,
+                "rear": 35.0,
+                "ricochet": {
+                  "front": 0.2,
+                  "rear": 0.1,
+                  "roof": 0.25,
+                  "side": 0.15
+                },
+                "roof": 25.0,
+                "side": 55.0
+              },
+              "eye_m": 2.79,
+              "half_extents_m": [
+                3.65,
+                1.7,
+                1.55
+              ],
+              "hp": 150.0,
+              "push_class": "heavy",
+              "weight_class": "heavy",
+              "wreck": "heavy_wreck"
+            }
+          },
+          "capabilities": {},
           "cost": 280,
           "description": "Chinese tracked 155 mm howitzer",
           "faction": "eastern",
           "family": "plz_05",
-          "name": "PLZ-05",
-          "planned": {
-            "profile": "tracked-howitzer",
-            "reason": "Artillery and indirect-support mechanics deferred",
-            "weapons": [
-              {
-                "icon": "howitzer",
-                "name": "Howitzer"
-              }
-            ]
+          "mobility": {
+            "tracked": {
+              "offroad_kmh": 24.0,
+              "reverse_fraction": 0.3,
+              "road_kmh": 58.0,
+              "turn_deg_s": 28.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "gun",
+              "muzzle_m": [
+                8.06,
+                0.0,
+                0.0
+              ],
+              "name": "Howitzer",
+              "on": null,
+              "pivot_m": [
+                -3.0,
+                0.0,
+                2.9
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "artillery_howitzer"
+              ]
+            }
+          ],
+          "name": "PLZ-05",
+          "roles": [
+            "artillery"
+          ],
           "roster": {
             "category": "sup",
             "factions": [
@@ -8339,6 +8528,18 @@
             ],
             "family_name": "PLZ-05",
             "variant": "Chinese tracked 155 mm howitzer"
+          },
+          "sensors": {
+            "ground_m": 500.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.5
+            }
+          },
+          "sound": {
+            "loudness_m": 650.0,
+            "profile": "vehicle"
           }
         },
         "eastern_rpg_team_rpg_29": {
@@ -10568,22 +10769,74 @@
           }
         },
         "europe_caesar_88": {
+          "appearance": "europe_caesar_88",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 90.0,
+                "rear": 35.0,
+                "ricochet": {
+                  "front": 0.2,
+                  "rear": 0.1,
+                  "roof": 0.25,
+                  "side": 0.15
+                },
+                "roof": 25.0,
+                "side": 55.0
+              },
+              "eye_m": 2.8800000000000003,
+              "half_extents_m": [
+                5.0,
+                1.275,
+                1.6
+              ],
+              "hp": 130.0,
+              "push_class": "heavy",
+              "weight_class": "heavy",
+              "wreck": "heavy_wreck"
+            }
+          },
+          "capabilities": {},
           "cost": 260,
           "description": "8×8",
           "faction": "europe",
           "family": "caesar",
-          "name": "CAESAR 8×8",
-          "planned": {
-            "profile": "wheeled-howitzer",
-            "reason": "Artillery and indirect-support mechanics deferred",
-            "weapons": [
-              {
-                "icon": "howitzer",
-                "name": "Howitzer"
-              }
-            ]
+          "mobility": {
+            "wheeled": {
+              "offroad_kmh": 26.0,
+              "reverse_fraction": 0.3,
+              "road_kmh": 82.0,
+              "turn_deg_s": 34.0,
+              "turning_radius_m": 8.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "gun",
+              "muzzle_m": [
+                8.06,
+                0.0,
+                0.0
+              ],
+              "name": "Howitzer",
+              "on": null,
+              "pivot_m": [
+                -2.95,
+                0.0,
+                3.0
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "artillery_howitzer"
+              ]
+            }
+          ],
+          "name": "CAESAR 8×8",
+          "roles": [
+            "artillery"
+          ],
           "roster": {
             "category": "sup",
             "factions": [
@@ -10591,6 +10844,18 @@
             ],
             "family_name": "CAESAR",
             "variant": "8×8"
+          },
+          "sensors": {
+            "ground_m": 500.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.5
+            }
+          },
+          "sound": {
+            "loudness_m": 650.0,
+            "profile": "vehicle"
           }
         },
         "europe_centauro_ii": {
@@ -12619,22 +12884,73 @@
           }
         },
         "europe_mars_ii_multiple_launch_rocket_system": {
+          "appearance": "europe_mars_ii_multiple_launch_rocket_system",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 90.0,
+                "rear": 35.0,
+                "ricochet": {
+                  "front": 0.2,
+                  "rear": 0.1,
+                  "roof": 0.25,
+                  "side": 0.15
+                },
+                "roof": 25.0,
+                "side": 55.0
+              },
+              "eye_m": 2.358,
+              "half_extents_m": [
+                3.485,
+                1.485,
+                1.31
+              ],
+              "hp": 125.0,
+              "push_class": "heavy",
+              "weight_class": "heavy",
+              "wreck": "heavy_wreck"
+            }
+          },
+          "capabilities": {},
           "cost": 340,
           "description": "Multiple-launch rocket system",
           "faction": "europe",
           "family": "mars_ii",
-          "name": "MARS II",
-          "planned": {
-            "profile": "heavy-rocket",
-            "reason": "Artillery and indirect-support mechanics deferred",
-            "weapons": [
-              {
-                "icon": "rockets",
-                "name": "Rockets"
-              }
-            ]
+          "mobility": {
+            "tracked": {
+              "offroad_kmh": 24.0,
+              "reverse_fraction": 0.3,
+              "road_kmh": 58.0,
+              "turn_deg_s": 28.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "gun",
+              "muzzle_m": [
+                1.0,
+                0.0,
+                0.0
+              ],
+              "name": "Rockets",
+              "on": null,
+              "pivot_m": [
+                -1.6,
+                0.0,
+                2.2
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "artillery_rocket_heavy"
+              ]
+            }
+          ],
+          "name": "MARS II",
+          "roles": [
+            "artillery"
+          ],
           "roster": {
             "category": "sup",
             "factions": [
@@ -12642,6 +12958,18 @@
             ],
             "family_name": "MARS II",
             "variant": "Multiple-launch rocket system"
+          },
+          "sensors": {
+            "ground_m": 450.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.5
+            }
+          },
+          "sound": {
+            "loudness_m": 650.0,
+            "profile": "vehicle"
           }
         },
         "europe_mirage_2000_2000d_rmv": {
@@ -12933,22 +13261,73 @@
           }
         },
         "europe_pzh_2000_tracked_155_mm_howitzer": {
+          "appearance": "europe_pzh_2000_tracked_155_mm_howitzer",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 90.0,
+                "rear": 35.0,
+                "ricochet": {
+                  "front": 0.2,
+                  "rear": 0.1,
+                  "roof": 0.25,
+                  "side": 0.15
+                },
+                "roof": 25.0,
+                "side": 55.0
+              },
+              "eye_m": 2.754,
+              "half_extents_m": [
+                3.935,
+                1.79,
+                1.53
+              ],
+              "hp": 150.0,
+              "push_class": "heavy",
+              "weight_class": "heavy",
+              "wreck": "heavy_wreck"
+            }
+          },
+          "capabilities": {},
           "cost": 310,
           "description": "Tracked 155 mm howitzer",
           "faction": "europe",
           "family": "pzh_2000",
-          "name": "PzH 2000",
-          "planned": {
-            "profile": "tracked-howitzer",
-            "reason": "Artillery and indirect-support mechanics deferred",
-            "weapons": [
-              {
-                "icon": "howitzer",
-                "name": "Howitzer"
-              }
-            ]
+          "mobility": {
+            "tracked": {
+              "offroad_kmh": 24.0,
+              "reverse_fraction": 0.3,
+              "road_kmh": 58.0,
+              "turn_deg_s": 28.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "gun",
+              "muzzle_m": [
+                8.06,
+                0.0,
+                0.0
+              ],
+              "name": "Howitzer",
+              "on": null,
+              "pivot_m": [
+                -3.0,
+                0.0,
+                2.9
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "artillery_howitzer"
+              ]
+            }
+          ],
+          "name": "PzH 2000",
+          "roles": [
+            "artillery"
+          ],
           "roster": {
             "category": "sup",
             "factions": [
@@ -12956,6 +13335,18 @@
             ],
             "family_name": "PzH 2000",
             "variant": "Tracked 155 mm howitzer"
+          },
+          "sensors": {
+            "ground_m": 500.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.5
+            }
+          },
+          "sound": {
+            "loudness_m": 650.0,
+            "profile": "vehicle"
           }
         },
         "europe_rafale_c_f4": {
@@ -14687,22 +15078,73 @@
           }
         },
         "us_m109_paladin_m109a7": {
+          "appearance": "us_m109_paladin_m109a7",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 90.0,
+                "rear": 35.0,
+                "ricochet": {
+                  "front": 0.2,
+                  "rear": 0.1,
+                  "roof": 0.25,
+                  "side": 0.15
+                },
+                "roof": 25.0,
+                "side": 55.0
+              },
+              "eye_m": 2.9250000000000003,
+              "half_extents_m": [
+                3.4,
+                1.95,
+                1.625
+              ],
+              "hp": 150.0,
+              "push_class": "heavy",
+              "weight_class": "heavy",
+              "wreck": "heavy_wreck"
+            }
+          },
+          "capabilities": {},
           "cost": 280,
           "description": "M109A7",
           "faction": "us",
           "family": "m109_paladin",
-          "name": "M109A7 Paladin",
-          "planned": {
-            "profile": "tracked-howitzer",
-            "reason": "Artillery and indirect-support mechanics deferred",
-            "weapons": [
-              {
-                "icon": "howitzer",
-                "name": "Howitzer"
-              }
-            ]
+          "mobility": {
+            "tracked": {
+              "offroad_kmh": 24.0,
+              "reverse_fraction": 0.3,
+              "road_kmh": 58.0,
+              "turn_deg_s": 28.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "gun",
+              "muzzle_m": [
+                6.0,
+                0.0,
+                0.0
+              ],
+              "name": "Howitzer",
+              "on": null,
+              "pivot_m": [
+                -2.3,
+                0.0,
+                3.0
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "artillery_howitzer"
+              ]
+            }
+          ],
+          "name": "M109A7 Paladin",
+          "roles": [
+            "artillery"
+          ],
           "roster": {
             "category": "sup",
             "factions": [
@@ -14710,6 +15152,18 @@
             ],
             "family_name": "M109 Paladin",
             "variant": "M109A7"
+          },
+          "sensors": {
+            "ground_m": 500.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.5
+            }
+          },
+          "sound": {
+            "loudness_m": 650.0,
+            "profile": "vehicle"
           }
         },
         "us_m10_booker": {
@@ -14917,22 +15371,74 @@
           }
         },
         "us_m1129_stryker_mortar_120_mm_mortar_carrier": {
+          "appearance": "us_m1129_stryker_mortar_120_mm_mortar_carrier",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 90.0,
+                "rear": 35.0,
+                "ricochet": {
+                  "front": 0.2,
+                  "rear": 0.1,
+                  "roof": 0.25,
+                  "side": 0.15
+                },
+                "roof": 25.0,
+                "side": 55.0
+              },
+              "eye_m": 2.25,
+              "half_extents_m": [
+                3.475,
+                1.36,
+                1.6
+              ],
+              "hp": 110.0,
+              "push_class": "heavy",
+              "weight_class": "heavy",
+              "wreck": "heavy_wreck"
+            }
+          },
+          "capabilities": {},
           "cost": 180,
           "description": "120 mm mortar carrier",
           "faction": "us",
           "family": "m1129_stryker_mortar",
-          "name": "Stryker Mortar",
-          "planned": {
-            "profile": "mortar-carrier",
-            "reason": "Artillery and indirect-support mechanics deferred",
-            "weapons": [
-              {
-                "icon": "mortar",
-                "name": "Mortar"
-              }
-            ]
+          "mobility": {
+            "wheeled": {
+              "offroad_kmh": 26.0,
+              "reverse_fraction": 0.3,
+              "road_kmh": 82.0,
+              "turn_deg_s": 34.0,
+              "turning_radius_m": 8.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "gun",
+              "muzzle_m": [
+                0.2,
+                0.0,
+                0.0
+              ],
+              "name": "Mortar",
+              "on": null,
+              "pivot_m": [
+                -1.1,
+                0.0,
+                2.35
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "artillery_mortar"
+              ]
+            }
+          ],
+          "name": "Stryker Mortar",
+          "roles": [
+            "artillery"
+          ],
           "roster": {
             "category": "sup",
             "factions": [
@@ -14940,6 +15446,18 @@
             ],
             "family_name": "Stryker Mortar",
             "variant": "120 mm mortar carrier"
+          },
+          "sensors": {
+            "ground_m": 500.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.5
+            }
+          },
+          "sound": {
+            "loudness_m": 650.0,
+            "profile": "vehicle"
           }
         },
         "us_m1151_hmmwv_hmg": {
@@ -15034,22 +15552,74 @@
           }
         },
         "us_m142_himars_gmlrs": {
+          "appearance": "us_m142_himars_gmlrs",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 90.0,
+                "rear": 35.0,
+                "ricochet": {
+                  "front": 0.2,
+                  "rear": 0.1,
+                  "roof": 0.25,
+                  "side": 0.15
+                },
+                "roof": 25.0,
+                "side": 55.0
+              },
+              "eye_m": 2.8800000000000003,
+              "half_extents_m": [
+                3.5,
+                1.2,
+                1.6
+              ],
+              "hp": 120.0,
+              "push_class": "heavy",
+              "weight_class": "heavy",
+              "wreck": "heavy_wreck"
+            }
+          },
+          "capabilities": {},
           "cost": 300,
           "description": "GMLRS",
           "faction": "us",
           "family": "m142_himars",
-          "name": "HIMARS GMLRS",
-          "planned": {
-            "profile": "light-rocket",
-            "reason": "Artillery and indirect-support mechanics deferred",
-            "weapons": [
-              {
-                "icon": "rockets",
-                "name": "Rockets"
-              }
-            ]
+          "mobility": {
+            "wheeled": {
+              "offroad_kmh": 26.0,
+              "reverse_fraction": 0.3,
+              "road_kmh": 82.0,
+              "turn_deg_s": 34.0,
+              "turning_radius_m": 8.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "gun",
+              "muzzle_m": [
+                1.0,
+                0.0,
+                0.0
+              ],
+              "name": "Rockets",
+              "on": null,
+              "pivot_m": [
+                -1.5,
+                0.0,
+                2.5
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "artillery_rocket_light"
+              ]
+            }
+          ],
+          "name": "HIMARS GMLRS",
+          "roles": [
+            "artillery"
+          ],
           "roster": {
             "category": "sup",
             "factions": [
@@ -15057,25 +15627,89 @@
             ],
             "family_name": "M142 HIMARS",
             "variant": "GMLRS"
+          },
+          "sensors": {
+            "ground_m": 450.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.5
+            }
+          },
+          "sound": {
+            "loudness_m": 650.0,
+            "profile": "vehicle"
           }
         },
         "us_m142_himars_prsm": {
+          "appearance": "us_m142_himars_prsm",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 90.0,
+                "rear": 35.0,
+                "ricochet": {
+                  "front": 0.2,
+                  "rear": 0.1,
+                  "roof": 0.25,
+                  "side": 0.15
+                },
+                "roof": 25.0,
+                "side": 55.0
+              },
+              "eye_m": 2.8800000000000003,
+              "half_extents_m": [
+                3.5,
+                1.2,
+                1.6
+              ],
+              "hp": 120.0,
+              "push_class": "heavy",
+              "weight_class": "heavy",
+              "wreck": "heavy_wreck"
+            }
+          },
+          "capabilities": {},
           "cost": 400,
           "description": "PrSM",
           "faction": "us",
           "family": "m142_himars",
-          "name": "HIMARS PrSM",
-          "planned": {
-            "profile": "light-rocket",
-            "reason": "Artillery and indirect-support mechanics deferred",
-            "weapons": [
-              {
-                "icon": "rockets",
-                "name": "Strike Missile"
-              }
-            ]
+          "mobility": {
+            "wheeled": {
+              "offroad_kmh": 26.0,
+              "reverse_fraction": 0.3,
+              "road_kmh": 82.0,
+              "turn_deg_s": 34.0,
+              "turning_radius_m": 8.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "gun",
+              "muzzle_m": [
+                1.0,
+                0.0,
+                0.0
+              ],
+              "name": "Strike Missile",
+              "on": null,
+              "pivot_m": [
+                -1.5,
+                0.0,
+                2.5
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "artillery_strike_missile"
+              ]
+            }
+          ],
+          "name": "HIMARS PrSM",
+          "roles": [
+            "artillery"
+          ],
           "roster": {
             "category": "sup",
             "factions": [
@@ -15083,6 +15717,18 @@
             ],
             "family_name": "M142 HIMARS",
             "variant": "PrSM"
+          },
+          "sensors": {
+            "ground_m": 450.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.5
+            }
+          },
+          "sound": {
+            "loudness_m": 650.0,
+            "profile": "vehicle"
           }
         },
         "us_m1_abrams_sep_v2": {
@@ -15573,22 +16219,73 @@
           }
         },
         "us_m270_mlrs_m270a2": {
+          "appearance": "us_m270_mlrs_m270a2",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 90.0,
+                "rear": 35.0,
+                "ricochet": {
+                  "front": 0.2,
+                  "rear": 0.1,
+                  "roof": 0.25,
+                  "side": 0.15
+                },
+                "roof": 25.0,
+                "side": 55.0
+              },
+              "eye_m": 2.358,
+              "half_extents_m": [
+                3.485,
+                1.485,
+                1.31
+              ],
+              "hp": 125.0,
+              "push_class": "heavy",
+              "weight_class": "heavy",
+              "wreck": "heavy_wreck"
+            }
+          },
+          "capabilities": {},
           "cost": 350,
           "description": "M270A2",
           "faction": "us",
           "family": "m270_mlrs",
-          "name": "M270A2 MLRS",
-          "planned": {
-            "profile": "heavy-rocket",
-            "reason": "Artillery and indirect-support mechanics deferred",
-            "weapons": [
-              {
-                "icon": "rockets",
-                "name": "Rockets"
-              }
-            ]
+          "mobility": {
+            "tracked": {
+              "offroad_kmh": 24.0,
+              "reverse_fraction": 0.3,
+              "road_kmh": 58.0,
+              "turn_deg_s": 28.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "gun",
+              "muzzle_m": [
+                1.0,
+                0.0,
+                0.0
+              ],
+              "name": "Rockets",
+              "on": null,
+              "pivot_m": [
+                -1.6,
+                0.0,
+                2.2
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "artillery_rocket_light"
+              ]
+            }
+          ],
+          "name": "M270A2 MLRS",
+          "roles": [
+            "artillery"
+          ],
           "roster": {
             "category": "sup",
             "factions": [
@@ -15596,6 +16293,18 @@
             ],
             "family_name": "M270 MLRS",
             "variant": "M270A2"
+          },
+          "sensors": {
+            "ground_m": 450.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.5
+            }
+          },
+          "sound": {
+            "loudness_m": 650.0,
+            "profile": "vehicle"
           }
         },
         "us_m2_bradley_ifv_m2a4": {
@@ -18062,6 +18771,13 @@
       "symbol": [
         "infantry",
         "air_defense"
+      ]
+    },
+    "artillery": {
+      "description": "Long-range indirect fire that reaches over obstacles.",
+      "name": "Artillery",
+      "symbol": [
+        "artillery"
       ]
     },
     "at": {
@@ -20808,6 +21524,189 @@
       }
     },
     {
+      "appearance": "eastern_2s19_msta_s_2s19m2",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 90.0,
+            "rear": 35.0,
+            "ricochet": {
+              "front": 0.2,
+              "rear": 0.1,
+              "roof": 0.25,
+              "side": 0.15
+            },
+            "roof": 25.0,
+            "side": 55.0
+          },
+          "eye_m": 2.6910000000000003,
+          "half_extents_m": [
+            3.575,
+            1.79,
+            1.495
+          ],
+          "hp": 150.0,
+          "push_class": "heavy",
+          "weight_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "capabilities": {},
+      "cost": 270,
+      "description": "2S19M2",
+      "faction": "eastern",
+      "family": "2s19_msta_s",
+      "id": "eastern_2s19_msta_s_2s19m2",
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 24.0,
+          "reverse_fraction": 0.3,
+          "road_kmh": 58.0,
+          "turn_deg_s": 28.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "gun",
+          "muzzle_m": [
+            7.15,
+            0.0,
+            0.0
+          ],
+          "name": "Howitzer",
+          "on": null,
+          "pivot_m": [
+            -2.1,
+            0.0,
+            3.0
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "artillery_howitzer"
+          ]
+        }
+      ],
+      "name": "2S19M2 Msta-S",
+      "roles": [
+        "artillery"
+      ],
+      "roster": {
+        "category": "sup",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "2S19 Msta-S",
+        "variant": "2S19M2"
+      },
+      "sensors": {
+        "ground_m": 500.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.5
+        }
+      },
+      "sound": {
+        "loudness_m": 650.0,
+        "profile": "vehicle"
+      }
+    },
+    {
+      "appearance": "eastern_9k515_tornado_s_heavy_rocket_artillery",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 90.0,
+            "rear": 35.0,
+            "ricochet": {
+              "front": 0.2,
+              "rear": 0.1,
+              "roof": 0.25,
+              "side": 0.15
+            },
+            "roof": 25.0,
+            "side": 55.0
+          },
+          "eye_m": 2.745,
+          "half_extents_m": [
+            6.05,
+            1.525,
+            1.525
+          ],
+          "hp": 150.0,
+          "push_class": "heavy",
+          "weight_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "capabilities": {},
+      "cost": 360,
+      "description": "Heavy rocket artillery",
+      "faction": "eastern",
+      "family": "9k515_tornado_s",
+      "id": "eastern_9k515_tornado_s_heavy_rocket_artillery",
+      "mobility": {
+        "wheeled": {
+          "offroad_kmh": 26.0,
+          "reverse_fraction": 0.3,
+          "road_kmh": 82.0,
+          "turn_deg_s": 34.0,
+          "turning_radius_m": 8.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "gun",
+          "muzzle_m": [
+            7.6,
+            0.0,
+            0.0
+          ],
+          "name": "Rockets",
+          "on": null,
+          "pivot_m": [
+            -3.4,
+            0.0,
+            2.9
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "artillery_rocket_heavy"
+          ]
+        }
+      ],
+      "name": "Tornado-S",
+      "roles": [
+        "artillery"
+      ],
+      "roster": {
+        "category": "sup",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "9K515 Tornado-S",
+        "variant": "Heavy rocket artillery"
+      },
+      "sensors": {
+        "ground_m": 400.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.5
+        }
+      },
+      "sound": {
+        "loudness_m": 650.0,
+        "profile": "vehicle"
+      }
+    },
+    {
       "body": {
         "squad": {
           "slots": [
@@ -21135,6 +22034,98 @@
       "sound": {
         "loudness_m": 200.0,
         "profile": "infantry"
+      }
+    },
+    {
+      "appearance": "eastern_bm_21_grad_bm_21_rocket_artillery",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 90.0,
+            "rear": 35.0,
+            "ricochet": {
+              "front": 0.2,
+              "rear": 0.1,
+              "roof": 0.25,
+              "side": 0.15
+            },
+            "roof": 25.0,
+            "side": 55.0
+          },
+          "eye_m": 2.781,
+          "half_extents_m": [
+            3.675,
+            1.345,
+            1.545
+          ],
+          "hp": 120.0,
+          "push_class": "heavy",
+          "weight_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "capabilities": {},
+      "cost": 220,
+      "description": "BM-21 rocket artillery",
+      "faction": "eastern",
+      "family": "bm_21_grad",
+      "id": "eastern_bm_21_grad_bm_21_rocket_artillery",
+      "mobility": {
+        "wheeled": {
+          "offroad_kmh": 26.0,
+          "reverse_fraction": 0.3,
+          "road_kmh": 82.0,
+          "turn_deg_s": 34.0,
+          "turning_radius_m": 8.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "gun",
+          "muzzle_m": [
+            3.0,
+            0.0,
+            0.0
+          ],
+          "name": "Rockets",
+          "on": null,
+          "pivot_m": [
+            -1.8,
+            0.0,
+            2.6
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "artillery_rocket_light"
+          ]
+        }
+      ],
+      "name": "BM-21 Grad",
+      "roles": [
+        "artillery"
+      ],
+      "roster": {
+        "category": "sup",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "BM-21 Grad",
+        "variant": "BM-21 rocket artillery"
+      },
+      "sensors": {
+        "ground_m": 400.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.5
+        }
+      },
+      "sound": {
+        "loudness_m": 650.0,
+        "profile": "vehicle"
       }
     },
     {
@@ -22198,6 +23189,97 @@
       },
       "sound": {
         "loudness_m": 900.0,
+        "profile": "vehicle"
+      }
+    },
+    {
+      "appearance": "eastern_plz_05_chinese_tracked_155_mm_howitzer",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 90.0,
+            "rear": 35.0,
+            "ricochet": {
+              "front": 0.2,
+              "rear": 0.1,
+              "roof": 0.25,
+              "side": 0.15
+            },
+            "roof": 25.0,
+            "side": 55.0
+          },
+          "eye_m": 2.79,
+          "half_extents_m": [
+            3.65,
+            1.7,
+            1.55
+          ],
+          "hp": 150.0,
+          "push_class": "heavy",
+          "weight_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "capabilities": {},
+      "cost": 280,
+      "description": "Chinese tracked 155 mm howitzer",
+      "faction": "eastern",
+      "family": "plz_05",
+      "id": "eastern_plz_05_chinese_tracked_155_mm_howitzer",
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 24.0,
+          "reverse_fraction": 0.3,
+          "road_kmh": 58.0,
+          "turn_deg_s": 28.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "gun",
+          "muzzle_m": [
+            8.06,
+            0.0,
+            0.0
+          ],
+          "name": "Howitzer",
+          "on": null,
+          "pivot_m": [
+            -3.0,
+            0.0,
+            2.9
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "artillery_howitzer"
+          ]
+        }
+      ],
+      "name": "PLZ-05",
+      "roles": [
+        "artillery"
+      ],
+      "roster": {
+        "category": "sup",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "PLZ-05",
+        "variant": "Chinese tracked 155 mm howitzer"
+      },
+      "sensors": {
+        "ground_m": 500.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.5
+        }
+      },
+      "sound": {
+        "loudness_m": 650.0,
         "profile": "vehicle"
       }
     },
@@ -24522,6 +25604,98 @@
       }
     },
     {
+      "appearance": "europe_caesar_88",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 90.0,
+            "rear": 35.0,
+            "ricochet": {
+              "front": 0.2,
+              "rear": 0.1,
+              "roof": 0.25,
+              "side": 0.15
+            },
+            "roof": 25.0,
+            "side": 55.0
+          },
+          "eye_m": 2.8800000000000003,
+          "half_extents_m": [
+            5.0,
+            1.275,
+            1.6
+          ],
+          "hp": 130.0,
+          "push_class": "heavy",
+          "weight_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "capabilities": {},
+      "cost": 260,
+      "description": "8×8",
+      "faction": "europe",
+      "family": "caesar",
+      "id": "europe_caesar_88",
+      "mobility": {
+        "wheeled": {
+          "offroad_kmh": 26.0,
+          "reverse_fraction": 0.3,
+          "road_kmh": 82.0,
+          "turn_deg_s": 34.0,
+          "turning_radius_m": 8.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "gun",
+          "muzzle_m": [
+            8.06,
+            0.0,
+            0.0
+          ],
+          "name": "Howitzer",
+          "on": null,
+          "pivot_m": [
+            -2.95,
+            0.0,
+            3.0
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "artillery_howitzer"
+          ]
+        }
+      ],
+      "name": "CAESAR 8×8",
+      "roles": [
+        "artillery"
+      ],
+      "roster": {
+        "category": "sup",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "CAESAR",
+        "variant": "8×8"
+      },
+      "sensors": {
+        "ground_m": 500.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.5
+        }
+      },
+      "sound": {
+        "loudness_m": 650.0,
+        "profile": "vehicle"
+      }
+    },
+    {
       "appearance": "europe_centauro_ii",
       "body": {
         "hull": {
@@ -26592,6 +27766,97 @@
       }
     },
     {
+      "appearance": "europe_mars_ii_multiple_launch_rocket_system",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 90.0,
+            "rear": 35.0,
+            "ricochet": {
+              "front": 0.2,
+              "rear": 0.1,
+              "roof": 0.25,
+              "side": 0.15
+            },
+            "roof": 25.0,
+            "side": 55.0
+          },
+          "eye_m": 2.358,
+          "half_extents_m": [
+            3.485,
+            1.485,
+            1.31
+          ],
+          "hp": 125.0,
+          "push_class": "heavy",
+          "weight_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "capabilities": {},
+      "cost": 340,
+      "description": "Multiple-launch rocket system",
+      "faction": "europe",
+      "family": "mars_ii",
+      "id": "europe_mars_ii_multiple_launch_rocket_system",
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 24.0,
+          "reverse_fraction": 0.3,
+          "road_kmh": 58.0,
+          "turn_deg_s": 28.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "gun",
+          "muzzle_m": [
+            1.0,
+            0.0,
+            0.0
+          ],
+          "name": "Rockets",
+          "on": null,
+          "pivot_m": [
+            -1.6,
+            0.0,
+            2.2
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "artillery_rocket_heavy"
+          ]
+        }
+      ],
+      "name": "MARS II",
+      "roles": [
+        "artillery"
+      ],
+      "roster": {
+        "category": "sup",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "MARS II",
+        "variant": "Multiple-launch rocket system"
+      },
+      "sensors": {
+        "ground_m": 450.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.5
+        }
+      },
+      "sound": {
+        "loudness_m": 650.0,
+        "profile": "vehicle"
+      }
+    },
+    {
       "appearance": "europe_nh90_tth",
       "body": {
         "hull": {
@@ -26814,6 +28079,97 @@
       "sensors": {
         "ground_m": 550.0,
         "on": "autocannon",
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.5
+        }
+      },
+      "sound": {
+        "loudness_m": 650.0,
+        "profile": "vehicle"
+      }
+    },
+    {
+      "appearance": "europe_pzh_2000_tracked_155_mm_howitzer",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 90.0,
+            "rear": 35.0,
+            "ricochet": {
+              "front": 0.2,
+              "rear": 0.1,
+              "roof": 0.25,
+              "side": 0.15
+            },
+            "roof": 25.0,
+            "side": 55.0
+          },
+          "eye_m": 2.754,
+          "half_extents_m": [
+            3.935,
+            1.79,
+            1.53
+          ],
+          "hp": 150.0,
+          "push_class": "heavy",
+          "weight_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "capabilities": {},
+      "cost": 310,
+      "description": "Tracked 155 mm howitzer",
+      "faction": "europe",
+      "family": "pzh_2000",
+      "id": "europe_pzh_2000_tracked_155_mm_howitzer",
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 24.0,
+          "reverse_fraction": 0.3,
+          "road_kmh": 58.0,
+          "turn_deg_s": 28.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "gun",
+          "muzzle_m": [
+            8.06,
+            0.0,
+            0.0
+          ],
+          "name": "Howitzer",
+          "on": null,
+          "pivot_m": [
+            -3.0,
+            0.0,
+            2.9
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "artillery_howitzer"
+          ]
+        }
+      ],
+      "name": "PzH 2000",
+      "roles": [
+        "artillery"
+      ],
+      "roster": {
+        "category": "sup",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "PzH 2000",
+        "variant": "Tracked 155 mm howitzer"
+      },
+      "sensors": {
+        "ground_m": 500.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -28587,6 +29943,97 @@
       }
     },
     {
+      "appearance": "us_m109_paladin_m109a7",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 90.0,
+            "rear": 35.0,
+            "ricochet": {
+              "front": 0.2,
+              "rear": 0.1,
+              "roof": 0.25,
+              "side": 0.15
+            },
+            "roof": 25.0,
+            "side": 55.0
+          },
+          "eye_m": 2.9250000000000003,
+          "half_extents_m": [
+            3.4,
+            1.95,
+            1.625
+          ],
+          "hp": 150.0,
+          "push_class": "heavy",
+          "weight_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "capabilities": {},
+      "cost": 280,
+      "description": "M109A7",
+      "faction": "us",
+      "family": "m109_paladin",
+      "id": "us_m109_paladin_m109a7",
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 24.0,
+          "reverse_fraction": 0.3,
+          "road_kmh": 58.0,
+          "turn_deg_s": 28.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "gun",
+          "muzzle_m": [
+            6.0,
+            0.0,
+            0.0
+          ],
+          "name": "Howitzer",
+          "on": null,
+          "pivot_m": [
+            -2.3,
+            0.0,
+            3.0
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "artillery_howitzer"
+          ]
+        }
+      ],
+      "name": "M109A7 Paladin",
+      "roles": [
+        "artillery"
+      ],
+      "roster": {
+        "category": "sup",
+        "factions": [
+          "us"
+        ],
+        "family_name": "M109 Paladin",
+        "variant": "M109A7"
+      },
+      "sensors": {
+        "ground_m": 500.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.5
+        }
+      },
+      "sound": {
+        "loudness_m": 650.0,
+        "profile": "vehicle"
+      }
+    },
+    {
       "appearance": "us_m10_booker",
       "body": {
         "hull": {
@@ -28796,6 +30243,98 @@
       }
     },
     {
+      "appearance": "us_m1129_stryker_mortar_120_mm_mortar_carrier",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 90.0,
+            "rear": 35.0,
+            "ricochet": {
+              "front": 0.2,
+              "rear": 0.1,
+              "roof": 0.25,
+              "side": 0.15
+            },
+            "roof": 25.0,
+            "side": 55.0
+          },
+          "eye_m": 2.25,
+          "half_extents_m": [
+            3.475,
+            1.36,
+            1.6
+          ],
+          "hp": 110.0,
+          "push_class": "heavy",
+          "weight_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "capabilities": {},
+      "cost": 180,
+      "description": "120 mm mortar carrier",
+      "faction": "us",
+      "family": "m1129_stryker_mortar",
+      "id": "us_m1129_stryker_mortar_120_mm_mortar_carrier",
+      "mobility": {
+        "wheeled": {
+          "offroad_kmh": 26.0,
+          "reverse_fraction": 0.3,
+          "road_kmh": 82.0,
+          "turn_deg_s": 34.0,
+          "turning_radius_m": 8.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "gun",
+          "muzzle_m": [
+            0.2,
+            0.0,
+            0.0
+          ],
+          "name": "Mortar",
+          "on": null,
+          "pivot_m": [
+            -1.1,
+            0.0,
+            2.35
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "artillery_mortar"
+          ]
+        }
+      ],
+      "name": "Stryker Mortar",
+      "roles": [
+        "artillery"
+      ],
+      "roster": {
+        "category": "sup",
+        "factions": [
+          "us"
+        ],
+        "family_name": "Stryker Mortar",
+        "variant": "120 mm mortar carrier"
+      },
+      "sensors": {
+        "ground_m": 500.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.5
+        }
+      },
+      "sound": {
+        "loudness_m": 650.0,
+        "profile": "vehicle"
+      }
+    },
+    {
       "appearance": "us_m1151_hmmwv_hmg",
       "body": {
         "hull": {
@@ -28877,6 +30416,190 @@
       "sensors": {
         "ground_m": 700.0,
         "on": "HMG",
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.5
+        }
+      },
+      "sound": {
+        "loudness_m": 650.0,
+        "profile": "vehicle"
+      }
+    },
+    {
+      "appearance": "us_m142_himars_gmlrs",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 90.0,
+            "rear": 35.0,
+            "ricochet": {
+              "front": 0.2,
+              "rear": 0.1,
+              "roof": 0.25,
+              "side": 0.15
+            },
+            "roof": 25.0,
+            "side": 55.0
+          },
+          "eye_m": 2.8800000000000003,
+          "half_extents_m": [
+            3.5,
+            1.2,
+            1.6
+          ],
+          "hp": 120.0,
+          "push_class": "heavy",
+          "weight_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "capabilities": {},
+      "cost": 300,
+      "description": "GMLRS",
+      "faction": "us",
+      "family": "m142_himars",
+      "id": "us_m142_himars_gmlrs",
+      "mobility": {
+        "wheeled": {
+          "offroad_kmh": 26.0,
+          "reverse_fraction": 0.3,
+          "road_kmh": 82.0,
+          "turn_deg_s": 34.0,
+          "turning_radius_m": 8.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "gun",
+          "muzzle_m": [
+            1.0,
+            0.0,
+            0.0
+          ],
+          "name": "Rockets",
+          "on": null,
+          "pivot_m": [
+            -1.5,
+            0.0,
+            2.5
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "artillery_rocket_light"
+          ]
+        }
+      ],
+      "name": "HIMARS GMLRS",
+      "roles": [
+        "artillery"
+      ],
+      "roster": {
+        "category": "sup",
+        "factions": [
+          "us"
+        ],
+        "family_name": "M142 HIMARS",
+        "variant": "GMLRS"
+      },
+      "sensors": {
+        "ground_m": 450.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.5
+        }
+      },
+      "sound": {
+        "loudness_m": 650.0,
+        "profile": "vehicle"
+      }
+    },
+    {
+      "appearance": "us_m142_himars_prsm",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 90.0,
+            "rear": 35.0,
+            "ricochet": {
+              "front": 0.2,
+              "rear": 0.1,
+              "roof": 0.25,
+              "side": 0.15
+            },
+            "roof": 25.0,
+            "side": 55.0
+          },
+          "eye_m": 2.8800000000000003,
+          "half_extents_m": [
+            3.5,
+            1.2,
+            1.6
+          ],
+          "hp": 120.0,
+          "push_class": "heavy",
+          "weight_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "capabilities": {},
+      "cost": 400,
+      "description": "PrSM",
+      "faction": "us",
+      "family": "m142_himars",
+      "id": "us_m142_himars_prsm",
+      "mobility": {
+        "wheeled": {
+          "offroad_kmh": 26.0,
+          "reverse_fraction": 0.3,
+          "road_kmh": 82.0,
+          "turn_deg_s": 34.0,
+          "turning_radius_m": 8.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "gun",
+          "muzzle_m": [
+            1.0,
+            0.0,
+            0.0
+          ],
+          "name": "Strike Missile",
+          "on": null,
+          "pivot_m": [
+            -1.5,
+            0.0,
+            2.5
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "artillery_strike_missile"
+          ]
+        }
+      ],
+      "name": "HIMARS PrSM",
+      "roles": [
+        "artillery"
+      ],
+      "roster": {
+        "category": "sup",
+        "factions": [
+          "us"
+        ],
+        "family_name": "M142 HIMARS",
+        "variant": "PrSM"
+      },
+      "sensors": {
+        "ground_m": 450.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -29376,6 +31099,97 @@
       "sensors": {
         "ground_m": 600.0,
         "on": "cannon",
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.5
+        }
+      },
+      "sound": {
+        "loudness_m": 650.0,
+        "profile": "vehicle"
+      }
+    },
+    {
+      "appearance": "us_m270_mlrs_m270a2",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 90.0,
+            "rear": 35.0,
+            "ricochet": {
+              "front": 0.2,
+              "rear": 0.1,
+              "roof": 0.25,
+              "side": 0.15
+            },
+            "roof": 25.0,
+            "side": 55.0
+          },
+          "eye_m": 2.358,
+          "half_extents_m": [
+            3.485,
+            1.485,
+            1.31
+          ],
+          "hp": 125.0,
+          "push_class": "heavy",
+          "weight_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "capabilities": {},
+      "cost": 350,
+      "description": "M270A2",
+      "faction": "us",
+      "family": "m270_mlrs",
+      "id": "us_m270_mlrs_m270a2",
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 24.0,
+          "reverse_fraction": 0.3,
+          "road_kmh": 58.0,
+          "turn_deg_s": 28.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "gun",
+          "muzzle_m": [
+            1.0,
+            0.0,
+            0.0
+          ],
+          "name": "Rockets",
+          "on": null,
+          "pivot_m": [
+            -1.6,
+            0.0,
+            2.2
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "artillery_rocket_light"
+          ]
+        }
+      ],
+      "name": "M270A2 MLRS",
+      "roles": [
+        "artillery"
+      ],
+      "roster": {
+        "category": "sup",
+        "factions": [
+          "us"
+        ],
+        "family_name": "M270 MLRS",
+        "variant": "M270A2"
+      },
+      "sensors": {
+        "ground_m": 450.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -30799,6 +32613,184 @@
       "top_speed_mps": 200.0,
       "trajectory": "direct",
       "turn_deg_s": 360.0
+    },
+    "artillery_howitzer": {
+      "accel_mps2": null,
+      "aim_s": 4.0,
+      "ammo": 24,
+      "anti_armor": false,
+      "armor_piercing": false,
+      "blast_radius_m": 18.0,
+      "damage": 120.0,
+      "default": false,
+      "description": "Indirect-fire howitzer shell for long-range support.",
+      "gravity_scale": 0.65,
+      "icon": "howitzer",
+      "interceptable": false,
+      "lifetime_s": 18.0,
+      "magazine": null,
+      "min_range_m": 350.0,
+      "name": "Howitzer",
+      "near_miss_suppression": 0.65,
+      "partial_from": null,
+      "penetration": 45.0,
+      "range_m": 2500.0,
+      "reload_s": 14.0,
+      "scatter_mrad": 18.0,
+      "speed_mps": 220.0,
+      "stationary": true,
+      "structural_damage": 180.0,
+      "suppression_radius_m": 18.0,
+      "targets": {
+        "ground": {}
+      },
+      "top_speed_mps": null,
+      "trajectory": "indirect",
+      "turn_deg_s": null
+    },
+    "artillery_mortar": {
+      "accel_mps2": null,
+      "aim_s": 3.0,
+      "ammo": 36,
+      "anti_armor": false,
+      "armor_piercing": false,
+      "blast_radius_m": 15.0,
+      "damage": 90.0,
+      "default": false,
+      "description": "High-angle mortar bomb for close indirect support.",
+      "gravity_scale": 1.0,
+      "icon": "mortar",
+      "interceptable": false,
+      "lifetime_s": 20.0,
+      "magazine": null,
+      "min_range_m": 180.0,
+      "name": "Mortar",
+      "near_miss_suppression": 0.55,
+      "partial_from": null,
+      "penetration": 25.0,
+      "range_m": 1800.0,
+      "reload_s": 9.0,
+      "scatter_mrad": 26.0,
+      "speed_mps": 115.0,
+      "stationary": true,
+      "structural_damage": 110.0,
+      "suppression_radius_m": 16.0,
+      "targets": {
+        "ground": {}
+      },
+      "top_speed_mps": null,
+      "trajectory": "indirect",
+      "turn_deg_s": null
+    },
+    "artillery_rocket_heavy": {
+      "accel_mps2": null,
+      "aim_s": 5.0,
+      "ammo": 12,
+      "anti_armor": false,
+      "armor_piercing": false,
+      "blast_radius_m": 24.0,
+      "damage": 150.0,
+      "default": false,
+      "description": "Heavy rocket salvo for deep area fire.",
+      "gravity_scale": 0.7,
+      "icon": "rockets",
+      "interceptable": false,
+      "lifetime_s": 16.0,
+      "magazine": {
+        "burst": null,
+        "rounds": 4,
+        "shot_interval_s": 0.45
+      },
+      "min_range_m": 700.0,
+      "name": "Heavy rocket salvo",
+      "near_miss_suppression": 0.8,
+      "partial_from": null,
+      "penetration": 45.0,
+      "range_m": 2500.0,
+      "reload_s": 28.0,
+      "scatter_mrad": 22.0,
+      "speed_mps": 300.0,
+      "stationary": true,
+      "structural_damage": 220.0,
+      "suppression_radius_m": 24.0,
+      "targets": {
+        "ground": {}
+      },
+      "top_speed_mps": null,
+      "trajectory": "indirect",
+      "turn_deg_s": null
+    },
+    "artillery_rocket_light": {
+      "accel_mps2": null,
+      "aim_s": 4.0,
+      "ammo": 18,
+      "anti_armor": false,
+      "armor_piercing": false,
+      "blast_radius_m": 20.0,
+      "damage": 100.0,
+      "default": false,
+      "description": "Unguided rocket salvo for deep area fire.",
+      "gravity_scale": 0.75,
+      "icon": "rockets",
+      "interceptable": false,
+      "lifetime_s": 16.0,
+      "magazine": {
+        "burst": null,
+        "rounds": 6,
+        "shot_interval_s": 0.35
+      },
+      "min_range_m": 500.0,
+      "name": "Rocket salvo",
+      "near_miss_suppression": 0.7,
+      "partial_from": null,
+      "penetration": 30.0,
+      "range_m": 2200.0,
+      "reload_s": 20.0,
+      "scatter_mrad": 24.0,
+      "speed_mps": 260.0,
+      "stationary": true,
+      "structural_damage": 150.0,
+      "suppression_radius_m": 20.0,
+      "targets": {
+        "ground": {}
+      },
+      "top_speed_mps": null,
+      "trajectory": "indirect",
+      "turn_deg_s": null
+    },
+    "artillery_strike_missile": {
+      "accel_mps2": null,
+      "aim_s": 5.0,
+      "ammo": 6,
+      "anti_armor": false,
+      "armor_piercing": false,
+      "blast_radius_m": 28.0,
+      "damage": 220.0,
+      "default": false,
+      "description": "Long-range unguided strike missile for deep area fire.",
+      "gravity_scale": 0.55,
+      "icon": "rockets",
+      "interceptable": false,
+      "lifetime_s": 14.0,
+      "magazine": null,
+      "min_range_m": 900.0,
+      "name": "Strike missile",
+      "near_miss_suppression": 0.9,
+      "partial_from": null,
+      "penetration": 80.0,
+      "range_m": 2500.0,
+      "reload_s": 35.0,
+      "scatter_mrad": 14.0,
+      "speed_mps": 360.0,
+      "stationary": true,
+      "structural_damage": 300.0,
+      "suppression_radius_m": 26.0,
+      "targets": {
+        "ground": {}
+      },
+      "top_speed_mps": null,
+      "trajectory": "indirect",
+      "turn_deg_s": null
     },
     "atgm": {
       "accel_mps2": 140.0,
