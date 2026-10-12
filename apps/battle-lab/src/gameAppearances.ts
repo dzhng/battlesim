@@ -19,7 +19,9 @@ import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import { TemplateArtError, templateKits } from "@packages/scene-assets/src/templateLibrary";
 import type { PlacedBuildings } from "@packages/battle-renderer/src/models/buildingReferences";
-import type { MapProp, PropAppearances } from "@packages/battle-renderer/src/models/propAppearance";
+import { propArt } from "@packages/battle-renderer/src/models/propAppearance";
+import type { WorldExports, WorldLayout } from "@packages/battle-renderer/src/worldMesh";
+import { prop_appearances } from "@wasm/presentation/presentation_wasm.js";
 import { appResources } from "./appResources";
 
 const library = new AppearanceLibrary(countedFetch);
@@ -31,11 +33,10 @@ let loading: Promise<InstalledAppearances> | null = null;
 export function gameAppearances(
   units: UnitCatalog,
   asked: Iterable<string> = [],
+  wearing: ReadonlySet<string> = units.appearances,
 ): Promise<InstalledAppearances> {
-  loading ??= library.load("/", units.appearances);
-  return loading
-    .then(() => library.withUnits(units.appearances))
-    .then(() => library.withAppearances(asked));
+  loading ??= library.load("/", wearing);
+  return loading.then(() => library.withUnits(wearing)).then(() => library.withAppearances(asked));
 }
 
 /** Load the catalog afresh (it was re-baked) for a session running `units`:
@@ -54,13 +55,18 @@ const NOTHING: ReadonlySet<string> = new Set();
  *  refuse the active view through the app boundary. */
 export function useGameAppearances(
   asked: ReadonlySet<string> | null = NOTHING,
+  kinds: Iterable<string> | null = null,
 ): InstalledAppearances | null {
   const { units } = useSessionCatalog();
+  const wearing = useMemo(
+    () => (kinds ? units.appearancesFor(kinds) : units.appearances),
+    [kinds, units],
+  );
   const [installed, setInstalled] = useState<InstalledAppearances | null>(null);
   useEffect(() => {
     if (!asked) return;
     let live = true;
-    gameAppearances(units, asked).then(
+    gameAppearances(units, asked, wearing).then(
       (next) => live && setInstalled(next),
       (error: unknown) => {
         if (live) appResources.refuse(error);
@@ -69,16 +75,20 @@ export function useGameAppearances(
     return () => {
       live = false;
     };
-  }, [asked, units]);
+  }, [asked, units, wearing]);
   // What an earlier request installed answers this one only if it has what it asked.
-  const held = installed && asked && [...asked].every((name) => installed.appearances.has(name));
+  const held =
+    installed &&
+    asked &&
+    [...asked].every((name) => installed.appearances.has(name)) &&
+    [...wearing].every((name) => installed.appearances.has(name));
   return held ? installed : null;
 }
 
 /** The kits a map of `placed` buildings draws from: those its templates'
  *  rows place, in every state (`templateKits`). With `standIns`, also the
- *  stand-in kit, whose box a prop with no art of its own is drawn as
- *  (`PropAppearances`). A map with buildings and a catalog
+ *  stand-in kit, whose box a prop with no art of its own is drawn as. A map
+ *  with buildings and a catalog
  *  with no template art for them is refused. */
 export function mapKits(
   catalog: InstalledAppearances,
@@ -114,8 +124,9 @@ export function useMapAppearances(
   placed: PlacedBuildings | null,
   family: string | null,
   standIns = false,
+  kinds: Iterable<string> | null = null,
 ): InstalledAppearances | null {
-  const catalog = useGameAppearances();
+  const catalog = useGameAppearances(NOTHING, kinds);
   const asked = useMemo(
     () => catalog && placed && mapDownloads(catalog, placed, family, standIns),
     [catalog, placed, family, standIns],
@@ -124,23 +135,27 @@ export function useMapAppearances(
 }
 
 /**
- * What the models layer installs to draw a map: with `units`, every soldier
+ * What the models layer installs to draw `world`: with `units`, every soldier
  * and vehicle; the appearance each of the map's props takes, and every wreck
- * and heap of rubble a battle can leave (`fit.drawnFor`); and, where the map
- * has buildings (`buildings`), the template art library and the kits those
- * buildings' templates draw from, no other. A kit of those that is not
- * installed refuses the map by name: no building is drawn without its art.
- * Trees, hedgerows and grass are the scenery layer's and the grass pass's,
- * which hold their own buffers.
+ * and heap of rubble a battle can leave (the presentation's
+ * `prop_appearances`); and, where the map has buildings (`buildings`), the
+ * template art library and the kits those buildings' templates draw from, no
+ * other. A kit of those that is not installed refuses the map by name: no
+ * building is drawn without its art. Trees, hedgerows and grass are the
+ * scenery layer's and the grass pass's, which hold their own buffers.
  */
 export function mapAppearances(
   appearances: InstalledAppearances,
-  props: readonly MapProp[],
-  fit: PropAppearances,
+  world: { exports: WorldExports; layout: WorldLayout },
   buildings: PlacedBuildings,
   units: boolean,
 ): InstalledAppearances {
-  const drawn = fit.drawnFor(props.filter((p) => !fit.drawsTree(p.kind)));
+  const art = propArt(appearances, world.exports.buildings.regionalFamily);
+  const drawn = new Set(
+    JSON.parse(
+      prop_appearances(JSON.stringify(world.layout), world.exports.props, art),
+    ) as string[],
+  );
   const kits = mapKits(appearances, buildings);
   for (const kit of kits)
     if (!appearances.appearances.has(kit))

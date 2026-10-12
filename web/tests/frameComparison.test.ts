@@ -24,7 +24,7 @@ test("each client and scene is one row: the median run's numbers, and the spread
   const browser = rows[0];
   expect(browser.averageFps).toEqual({ median: 100, min: 1000 / 12, max: 125 });
   expect(browser.frameMs.p95).toBe(10);
-  expect(browser.cpuMsP50).toBe(2);
+  expect([browser.cpuMs?.p50, browser.cpuMs?.p95]).toEqual([2, 2]);
   expect(browser.gpuMsMean).toBeNull();
 });
 

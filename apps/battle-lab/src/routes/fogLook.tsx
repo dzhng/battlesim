@@ -115,7 +115,7 @@ export default function FogLook() {
 }
 
 function FogLookLab({ scenario }: { scenario: string }) {
-  const session = useBattleSession({ scenario, seed: STREET_SEED, destroyable: "apart" });
+  const session = useBattleSession({ scenario, seed: STREET_SEED });
   const { meshes, sim, surfaceZ } = session;
   const specimenShapes = useMemo(() => specimensOf(session.units), [session.units]);
   const { observation } = sim;

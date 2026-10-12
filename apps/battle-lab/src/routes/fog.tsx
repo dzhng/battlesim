@@ -126,7 +126,6 @@ function FogLab({ scenario }: { scenario: string }) {
   const session = useBattleSession({
     scenario,
     seed: STREET_SEED,
-    destroyable: "apart",
     side,
   });
   const { meshes, sim, world } = session;

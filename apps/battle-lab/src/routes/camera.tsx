@@ -23,7 +23,7 @@ import {
 } from "@packages/battle-renderer/src/mesh";
 import { knownStanding } from "@packages/battle-renderer/src/models/propAppearance";
 import type { WorldMeshes } from "@packages/battle-renderer/src/scene";
-import { apartKinds, buildWorldLayers } from "@packages/battle-renderer/src/worldMesh";
+import { buildWorldLayers } from "@packages/battle-renderer/src/worldMesh";
 import { nearEnvelope } from "@packages/renderer-core/src/cameraClearance";
 import { CameraController, type CameraPose } from "@packages/renderer-core/src/cameraController";
 import {
@@ -135,14 +135,7 @@ function Arena({ map }: { map: MapDefinition }) {
     () =>
       world &&
       appearances &&
-      buildWorldLayers(
-        world.exports,
-        world.layout,
-        gameBiome,
-        "surface",
-        apartKinds(world.layout, true),
-        appearances,
-      ),
+      buildWorldLayers(world.exports, world.layout, gameBiome, "surface", appearances),
     [world, appearances],
   );
   const worldFeed = useFeed(meshes);

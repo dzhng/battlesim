@@ -48,9 +48,11 @@ wherever it runs.
 - [The static world](src/static_world/): the buildings resolved from their
   template art, and the ground from the map's exports under the biome: its
   tables, its meshes (terrain, skirt, water, backdrop), the grass field's
-  shapes, window and per-frame parameters, and the scenery. Buildings and
-  scenery are walked per view into the frame's static batches, written only
-  when a list changes.
+  shapes, window and per-frame parameters, and the scenery; and the map's
+  props fitted to their boxes from the installed art, less those the side
+  knows replaced, with what it knows (rubble, wrecks, shoved bodies).
+  Buildings, scenery and props are walked per view into the frame's static
+  batches, written only when a list changes.
 - [Sound](src/sound/): what a battle hears, when, where and how loud, from the
   same publication the effects read, the frame's emitters and the side's
   hearing cues, as commands a player carries out (start, glide, stop a voice;

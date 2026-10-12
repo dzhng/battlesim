@@ -431,7 +431,11 @@ impl Fog {
             pass.dispatch_workgroups(x, y, 1);
         };
         let [terrain, merge, cull, whole] = &self.pipelines;
-        let group = |g: &Option<BindGroup>| g.as_ref().expect("fog's groups are bound at its start").clone();
+        let group = |g: &Option<BindGroup>| {
+            g.as_ref()
+                .expect("fog's groups are bound at its start")
+                .clone()
+        };
         if let Some([t, m]) = self.due.rebuild {
             let build = group(&self.build);
             let build = [("buildLayout", &build)];

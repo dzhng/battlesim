@@ -23,10 +23,10 @@
 // - the proxies (lab markers);
 // - the models layer: appearance bundles, skinned, articulated and static
 //   (`models/modelLayer.ts`), with their own vertex stage, and far models as
-//   impostor cards (`models/impostorCards.ts`). Its static props are the
-//   world's (the map's props that cannot fall) and the structures, what the
-//   side knows stands of the rest: walls, their rubble and wrecks, fitted to
-//   their boxes. Each draw binds the fog group its class names (`modelFog`). A
+//   impostor cards (`models/impostorCards.ts`). Its static props are what
+//   the side knows stands of the map's props (walls, their rubble, wrecks),
+//   fitted to their boxes by the presentation and handed over as its static
+//   batches. Each draw binds the fog group its class names (`modelFog`). A
 //   model's surfaces are drawn by kind (`models/surfaceParts.ts`): opaque as
 //   the rest of the world; a cutout cut in the prepass and the cascades; a
 //   room behind a window as solid as a wall and shown unlit; glass last,
@@ -54,8 +54,6 @@ import {
 } from "@packages/renderer-core/src/camera3d";
 import type { SceneInstance, WorldLayers } from "../scene";
 import type { Mesh } from "../mesh";
-import type { ModelInstance } from "../models/modelInstances";
-import { NO_STRUCTURES, type SideStructures } from "../models/propAppearance";
 import { typegpuCameraLayout } from "../world/camera";
 import { battleWorldDepth, BATTLE_DEPTH_ATTACHMENT } from "../worldDepth";
 import type { SkyRays } from "../shaders/physicalSky";
@@ -588,26 +586,6 @@ export async function createWorldPass(
     props: new MeshSlot(root, registry, identity),
     water: new MeshSlot(root, registry, identity),
   };
-  // The models layer's statics: the world's props, then the side's map
-  // props less those it knows replaced, then what it knows. The first two
-  // join only when either list is replaced, never on a knowledge change.
-  let worldProps: readonly ModelInstance[] = [];
-  let structures: SideStructures = NO_STRUCTURES;
-  let joined: {
-    world: typeof worldProps;
-    map: typeof structures.map;
-    list: ModelInstance[];
-  } | null = null;
-  const setStatics = () => {
-    if (joined?.world !== worldProps || joined.map !== structures.map)
-      joined = { world: worldProps, map: structures.map, list: [...worldProps, ...structures.map] };
-    const offset = worldProps.length;
-    models.setStatics(
-      joined.list,
-      offset ? structures.hidden.map((i) => i + offset) : structures.hidden,
-      structures.known,
-    );
-  };
   const backdrop = new MeshSlot(root, registry, identity);
   const proxies = new ProxyInstances(root, registry);
   /** The map's box (`map_box`): what the cascades fit over, and what a
@@ -677,14 +655,8 @@ export async function createWorldPass(
       layers = next;
       scenery.set(next.scenery);
       setGround();
-      worldProps = next.structures;
-      setStatics();
       box = map_box(next.terrain.mesh) ?? null;
       if (box) backdrop.set(backdrop_mesh(box, environment.light.backdrop.reach_m) as Mesh);
-    },
-    setStructures(next: SideStructures) {
-      structures = next;
-      setStatics();
     },
     /** The ground the scene's presentation resolved: its tables, its grass
      *  and its water. */
@@ -1108,7 +1080,6 @@ export async function createWorldPass(
     stats() {
       return {
         worldVertices: world.ground.vertices + world.props.vertices + world.water.vertices,
-        structures: structures.map.length - structures.hidden.length + structures.known.length,
         instances: proxies.count,
         shadow: environment.stats(),
         fog: fog.stats(),

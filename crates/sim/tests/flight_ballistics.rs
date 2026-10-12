@@ -370,6 +370,43 @@ fn leading_steady_observed_motion_hits_and_aiming_at_the_present_misses() {
 }
 
 #[test]
+fn indirect_fire_at_a_last_seen_point_misses_after_target_relocation() {
+    let world = flat([1000.0, 600.0], "");
+    let artillery = profile("artillery_mortar");
+    let dt = config().tick_s();
+    let origin = v3(100.0, 200.0, 1.4);
+    let observed = v3(500.0, 200.0, 0.0);
+    let relocated = Mover::standing(7, 1, tank_shape(), observed - v3(0.0, 0.0, 1.0))
+        .moving(v3(0.0, 18.0, 0.0));
+    let aim = Aim {
+        origin,
+        target: observed,
+        target_velocity: V3::default(),
+    };
+    let solution = solve_launch_past(&world, &config(), &artillery, &aim, None).unwrap();
+    assert_eq!(solution.arc, ArcKind::High);
+    let mut store = Projectiles::new(config());
+    store.launch(fired(&artillery, origin, solution.velocity));
+    let events = fly(&mut store, &world, 2_000, |tick| {
+        vec![relocated.body(tick, dt)]
+    });
+    let hits = impacts(&events);
+    assert!(
+        !hits.is_empty(),
+        "the stale artillery round must end: {events:?}"
+    );
+    assert!(
+        hits.iter()
+            .all(|(_, hit)| hit.struck != Struck::Body(sim::flight::BodyId(7))),
+        "the relocated target must not be hit by a stale aim: {hits:?}"
+    );
+    assert!(
+        hits.iter().any(|(_, hit)| hit.struck == Struck::Terrain),
+        "the stale round should land on terrain: {hits:?}"
+    );
+}
+
+#[test]
 fn an_unguided_round_is_dodged_by_changing_motion_after_launch() {
     let world = flat([1000.0, 400.0], "");
     let grenade = lob_profile();
@@ -557,6 +594,102 @@ fn the_high_arc_is_used_only_by_indirect_fire_and_never_by_ignoring_a_ridge() {
 }
 
 #[test]
+fn a_synthetic_artillery_profile_reaches_2500m_on_the_high_arc() {
+    // This is the upper-range feasibility gate for artillery data. It uses a
+    // test-only row so the shipped roster remains out of this slice.
+    let artillery = config()
+        .profile(&WeaponBallistics {
+            range_m: 2_500.0,
+            speed_mps: 160.0,
+            gravity_scale: 1.0,
+            scatter_mrad: 12.0,
+            trajectory: Trajectory::Indirect,
+            lifetime_s: Some(30.0),
+            ..lob_weapon()
+        })
+        .expect("the long-range artillery row is admitted by flight rules");
+    let world = flat([3_200.0, 400.0], "");
+    let aim = Aim {
+        origin: v3(100.0, 200.0, 1.4),
+        target: v3(2_600.0, 200.0, 0.0),
+        target_velocity: V3::default(),
+    };
+    let solution = solve_launch_past(&world, &config(), &artillery, &aim, None)
+        .expect("2.5 km is reachable within the authored lifetime");
+    assert_eq!(solution.arc, ArcKind::High);
+    assert!(solution.time_of_flight_s < artillery.lifetime_s);
+
+    let mut store = Projectiles::new(config());
+    store.launch(fired(&artillery, aim.origin, solution.velocity));
+    let events = fly(&mut store, &world, 1_200, |_| Vec::new());
+    let [(_, hit)] = impacts(&events)[..] else {
+        panic!("one terrain impact expected: {events:?}")
+    };
+    assert_eq!(hit.struck, Struck::Terrain);
+    assert!(
+        (hit.point - aim.target).length() <= 0.02,
+        "landed at {:?}",
+        hit.point
+    );
+}
+
+#[test]
+fn every_shipped_artillery_row_reaches_its_declared_range_on_the_high_arc() {
+    let game: serde_json::Value =
+        serde_json::from_str(include_str!("../../../fixtures/game.json")).unwrap();
+    let rules: contract::ballistics::FlightRules =
+        serde_json::from_value(game["physics"].clone()).unwrap();
+    let config = FlightConfig::new(&rules, 30).unwrap();
+    for name in [
+        "artillery_howitzer",
+        "artillery_mortar",
+        "artillery_rocket_light",
+        "artillery_rocket_heavy",
+        "artillery_strike_missile",
+    ] {
+        let row: WeaponBallistics = serde_json::from_value(game["weapons"][name].clone()).unwrap();
+        let profile = config.profile(&row).unwrap();
+        let world = flat([row.range_m + 400.0, 400.0], "");
+        let aim = Aim {
+            origin: v3(100.0, 200.0, 1.4),
+            target: v3(100.0 + row.range_m, 200.0, 0.0),
+            target_velocity: V3::default(),
+        };
+        let solution = solve_launch_past(&world, &config, &profile, &aim, None)
+            .unwrap_or_else(|error| panic!("{name} cannot reach {} m: {error:?}", row.range_m));
+        assert_eq!(
+            solution.arc,
+            ArcKind::High,
+            "{name} must prefer the indirect arc"
+        );
+        assert!(
+            solution.time_of_flight_s < profile.lifetime_s,
+            "{name} expires before impact"
+        );
+    }
+}
+
+#[test]
+fn an_indirect_arc_still_stops_on_a_prop_in_its_curved_path() {
+    let world = flat(
+        [800.0, 400.0],
+        r#", "props":[{"kind":"wall","center":[300,200],"yaw":0,"half_extents":[0.15,6,400]}]"#,
+    );
+    let aim = Aim {
+        origin: v3(200.0, 200.0, 1.4),
+        target: v3(400.0, 200.0, 0.0),
+        target_velocity: V3::default(),
+    };
+    let Err(NoSolution::Blocked { arc, point, .. }) =
+        solve_launch_past(&world, &config(), &mortar(Trajectory::Indirect), &aim, None)
+    else {
+        panic!("a wall crossing the high arc must block the round")
+    };
+    assert_eq!(arc.arc, ArcKind::High);
+    assert!((299.0..301.0).contains(&point.x), "blocked at {point:?}");
+}
+
+#[test]
 fn chords_per_tick_follow_the_chord_error_and_the_declared_bound_is_enforced() {
     // The game's 30 Hz: a chord sags g·dt²/8 ≈ 1.4 mm, inside 2 cm, so one chord.
     assert_eq!(config().subsegments_per_tick(), 1);
@@ -610,10 +743,10 @@ fn every_round_has_a_bounded_lifetime() {
         config().profile(&too_long),
         Err(FlightConfigError::LifetimeExceedsBound {
             lifetime_s: 45.0,
-            max_s: 30.0
+            max_s: 35.0
         })
     );
-    // Straight up, still climbing at 30 s: it expires exactly at its lifetime.
+    // Straight up, still climbing at 35 s: it expires exactly at its lifetime.
     let world = flat([200.0, 200.0], "");
     let mut store = Projectiles::new(config());
     store.launch(launch(v3(100.0, 100.0, 2.0), v3(0.0, 0.0, 850.0)));
@@ -621,7 +754,7 @@ fn every_round_has_a_bounded_lifetime() {
     let [(tick, FlightEvent::Expired(e))] = events[..] else {
         panic!("{events:?}")
     };
-    assert_eq!((tick, e.cause), (900, Expiry::Lifetime));
+    assert_eq!((tick, e.cause), (1050, Expiry::Lifetime));
     assert!(store.active().is_empty());
     // A flat shot out of the closed map ends there.
     store.launch(launch(v3(100.0, 100.0, 50.0), v3(850.0, 0.0, 0.0)));
@@ -670,6 +803,19 @@ fn spread_is_a_truncated_gaussian_per_axis_across_the_line_of_fire() {
     let draw = |seed| scatter_aim(o, aim, sigma_mrad, &mut Rng::new(seed));
     assert_eq!(draw(7), draw(7));
     assert_ne!(draw(7), draw(8));
+}
+
+#[test]
+fn equal_angular_scatter_grows_with_distance() {
+    let origin = v3(100.0, 200.0, 1.4);
+    let near = v3(200.0, 200.0, 0.0);
+    let far = v3(1_100.0, 200.0, 0.0);
+    let near_offset = scatter_aim(origin, near, 12.0, &mut Rng::new(17)) - near;
+    let far_offset = scatter_aim(origin, far, 12.0, &mut Rng::new(17)) - far;
+    // Same angular draw and a ten-times farther point produce a ten-times
+    // larger miss radius; this checks distance scaling without pinning a draw.
+    assert!(far_offset.length() > near_offset.length() * 9.9);
+    assert!(far_offset.length() < near_offset.length() * 10.1);
 }
 
 #[test]

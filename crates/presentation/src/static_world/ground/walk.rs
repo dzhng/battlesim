@@ -502,7 +502,6 @@ impl SceneryWalk {
         self.forest
             .restand(&self.sizes, |i, _| ids.contains(&forest_ids[i]));
         self.felled = felled;
-        self.felled_print += 1;
         true
     }
 
@@ -510,9 +509,6 @@ impl SceneryWalk {
     pub fn set_clock(&mut self, clock: f64) -> bool {
         let moved = clock != self.clock && self.falling;
         self.clock = clock;
-        if moved {
-            self.felled_print += 1;
-        }
         moved
     }
 
@@ -625,10 +621,11 @@ impl SceneryWalk {
     }
 
     fn select_felled(&mut self, ground: &Ground, view: &View, lod: &[f64; 3]) {
-        self.felled_lists
-            .iter_mut()
-            .chain(&mut self.stumps)
-            .for_each(Vec::clear);
+        // What the last walk listed: a view that moves a tree to another
+        // tier writes its lists anew.
+        let before = std::mem::take(&mut self.felled_lists);
+        self.felled_lists = vec![vec![]; before.len()];
+        self.stumps.iter_mut().for_each(Vec::clear);
         self.falling = false;
         let rules = &ground.biome.trees.felled;
         let forest = self.scenery.forest.as_chunks::<FLOATS>().0;
@@ -672,6 +669,9 @@ impl SceneryWalk {
                 let view_list = self.felled_lists[k * TIERS + t].clone();
                 self.felled_lists[kinds * TIERS + k * TIERS + (t + 1).min(LAST)].extend(view_list);
             }
+        }
+        if self.felled_lists != before {
+            self.felled_print += 1;
         }
     }
 

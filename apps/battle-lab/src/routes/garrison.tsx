@@ -108,7 +108,6 @@ function GarrisonLab({ battle }: { battle: SavedBattle }) {
     onDecoded,
     // Once blue has seen a building fall, it is no longer drawn and its known
     // ruin stands in its place.
-    destroyable: "apart",
   });
   const { world, meshes, sim, control, surfaceZ } = session;
   const worldFeed = useFeed(meshes);

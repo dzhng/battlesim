@@ -1,8 +1,7 @@
 // One side's live battle session: the static world and its meshes, the worker
 // authority, the player command path, the drawn units (interpolated; soldiers
 // and vehicles posed by the pose driver as models, each picked by the
-// simulation's box for its body), the props the side knows stand (fitted
-// appearances), the buildings it knows stand or fell (template art), the
+// simulation's box for its body), the buildings it knows stand or fell, the
 // pick and box-select adapters over what is drawn, and the
 // base lab probes. The battle view and every lab that plays a battle
 // share it; routes add only what they show.
@@ -15,23 +14,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Project, ReadoutLayerHandle } from "@web/battle/present/readouts";
 import { metresPerPxAt, type Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import type { GpuAllocationCounts } from "@packages/renderer-core/src/gpuAllocations";
-import {
-  apartKinds,
-  buildWorldLayers,
-  worldStructureBodies,
-} from "@packages/battle-renderer/src/worldMesh";
-import {
-  knownStanding,
-  drawnBy,
-  PropAppearances,
-  drawnStructures,
-  fitMapProps,
-  NO_STRUCTURES,
-  sideStructures,
-  type DrawnBody,
-  type PropBox,
-  type SideStructures,
-} from "@packages/battle-renderer/src/models/propAppearance";
+import { buildWorldLayers } from "@packages/battle-renderer/src/worldMesh";
+import { knownStanding, type PropBox } from "@packages/battle-renderer/src/models/propAppearance";
 import { pickBox, type SoldierBody } from "@packages/battle-renderer/src/picking";
 import {
   FRAME_FLOATS,
@@ -45,7 +29,6 @@ import {
 } from "@packages/battle-renderer/src/buildingObstacles";
 import { gameBiome } from "./gameBiome";
 import { mapAppearances, useMapAppearances } from "./gameAppearances";
-import { gameStandIns } from "./gameModels";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import { gameHud } from "@web/battle/present/hudTheme";
 import { gameOrderFlash, gameXray } from "./gameOverlay";
@@ -71,6 +54,7 @@ import {
 import type { CursorAction } from "@web/battle/present/gameCursor";
 import {
   PointerPaint,
+  attackGroundSpread,
   rulerAt,
   previewForIntent,
   cursorForIntent,
@@ -105,7 +89,7 @@ import type { ViewportCamera } from "@packages/renderer-core/src/cameraUniform";
 import { useAppAudio } from "./AppAudio";
 import { useFeed } from "./feed";
 import { posedSockets, type BenchPose } from "./workbench/benchWorld";
-import { describeProps } from "./benchmark/propPresentation";
+import { describeBuildings } from "./benchmark/propPresentation";
 import { describeEffects } from "./benchmark/effectPresentation";
 import type { Vec3 } from "math";
 import {
@@ -157,10 +141,6 @@ export interface BattleSessionOptions {
   scripted?: ScriptedSim;
   /** Whose units and identified enemies are drawn (a lab's diagnostic side switch). */
   side?: SideName;
-  /** "apart": every prop kind fire can destroy is drawn apart from the
-   *  world, so one seen destroyed leaves the map and its known remains (a
-   *  ruin, rubble, a lighter wreck) stand in its place. */
-  destroyable?: "apart";
   /** Play the battle's sound (heard from the last frame's camera). */
   sound?: boolean;
   /** Menus and loading covers suspend command input without losing selection. */
@@ -193,7 +173,6 @@ export function useBattleSession({
   replay,
   scripted,
   side = "blue",
-  destroyable,
   sound = false,
   inputEnabled = true,
   xray = true,
@@ -227,18 +206,12 @@ export function useBattleSession({
   // The units' answers to their owner (R1–R12), one battle's at a time.
   const responses = useRef<UnitResponses | null>(null);
   // The presentation notes every publication for the effects as it decodes
-  // it (`presentation.ts`); sound hears the same, and the side's structures
-  // leave out a wreck it draws moving (a cook-off).
+  // it (`presentation.ts`); sound hears the same.
   const presentationRef = useRef<ObservationDecoder | null>(null);
-  const [movingWrecks, setMovingWrecks] = useState<readonly number[]>([]);
   const noteDecoded = useCallback(
     (o: ObservationView, digest: string) => {
       const presentation = presentationRef.current;
-      if (presentation) {
-        const moving = [...presentation.movingWrecks()];
-        setMovingWrecks((now) => (now.join() === moving.join() ? now : moving));
-        audio?.note(presentation.wasm);
-      }
+      if (presentation) audio?.note(presentation.wasm);
       // An enemy kind's voice set loads once the side first identifies one.
       audio?.identified(o.identified.map((unit) => unit.kind));
       responses.current?.observed(o);
@@ -253,6 +226,22 @@ export function useBattleSession({
     responses.current =
       audio && sim.client ? new UnitResponses(audio, units, faction, rules.tick_hz) : null;
   }, [audio, sim.client, units, faction, rules.tick_hz]);
+  // A battle may purchase or reveal a unit that was not in its opening
+  // scenario. Keep the appearance request live so those units are installed
+  // before the presentation names their models, without loading the whole
+  // roster on adapters with small texture-array limits.
+  const { observation } = sim;
+  const requestedKindKey = useMemo(() => {
+    const kinds = new Set(fielded);
+    for (const unit of observation?.own ?? []) kinds.add(unit.kind);
+    for (const unit of observation?.identified ?? []) kinds.add(unit.kind);
+    for (const pending of observation?.skirmish?.pending ?? []) kinds.add(pending.kind);
+    return [...kinds].sort().join("\0");
+  }, [fielded, observation]);
+  const requestedKinds = useMemo(
+    () => (requestedKindKey ? requestedKindKey.split("\0") : []),
+    [requestedKindKey],
+  );
   // A shout heard in the open is a bark in its kind's set for its side's
   // faction; an unseen enemy's is drawn from the enemy faction's sets. Of
   // those, only the sets of kinds fielded or identified load.
@@ -266,7 +255,6 @@ export function useBattleSession({
       enemy: factionVoices(voiceAssignments, rows, enemy),
     });
   }, [audio, units, faction, enemy]);
-  const { observation } = sim;
   const contactPresentation = useMemo(
     () => (sim.client ? new ContactPresentation(rules.tick_hz, gameContactStyle.fade_s) : null),
     [sim.client, rules.tick_hz],
@@ -369,51 +357,20 @@ export function useBattleSession({
     drawnBuildings?.placed ?? null,
     world?.exports.buildings.regionalFamily ?? null,
     true,
+    requestedKinds,
   );
-  // Props that can move (shoved) or be destroyed ("apart") are drawn from
-  // what the side knows, apart from the world.
-  const apart = useMemo(
-    () => (world ? apartKinds(world.layout, destroyable === "apart") : []),
-    [world, destroyable],
-  );
+  // The ground, and the art its scenery and grass draw from; its props and
+  // what the side knows of them (rubble, wrecks, shoved bodies where it last
+  // saw them) are the battle's presentation's to draw.
   const meshes = useMemo(
     () =>
       world &&
       appearances &&
-      buildWorldLayers(
-        world.exports,
-        world.layout,
-        gameBiome,
-        "surface",
-        apart,
-        appearances,
-        gameStandIns,
-      ),
-    [world, apart, appearances],
+      buildWorldLayers(world.exports, world.layout, gameBiome, "surface", appearances),
+    [world, appearances],
   );
-  // What the side knows stands, rebuilt only when knowledge changes: the
-  // props it has learned (rubble, wrecks, shoved bodies where it last saw
-  // them), and the map's props drawn apart that it has not seen fall or move,
-  // each a fitted appearance. Known rubble replaces its wall in the same
-  // list, a known shoved body its own map pose; an unseen fall or shove
-  // leaves the map's prop standing.
   const knownProps = observation?.knownProps;
   const knownKey = useMemo(() => JSON.stringify(knownProps ?? []), [knownProps]);
-  const props = useMemo(
-    () =>
-      world && placedProps && appearances
-        ? {
-            map: placedProps,
-            fit: new PropAppearances(
-              appearances,
-              world.layout,
-              world.exports.buildings.regionalFamily,
-              gameStandIns,
-            ),
-          }
-        : null,
-    [world, placedProps, appearances],
-  );
   // What the side knows of the map's buildings, apart from everything else
   // it knows: what follows changes only when that does.
   const buildingParts = useMemo(() => world && buildingPartProps(world.exports.buildings), [world]);
@@ -444,24 +401,6 @@ export function useBattleSession({
     }),
     [sim.client],
   );
-  // The map's props drawn apart, fitted once for the battle; what the side
-  // knows then hides those it replaced and fits only its own (`sideStructures`).
-  const fittedMap = useMemo(
-    () => props && fitMapProps(props.map, props.fit, (prop) => apart.includes(prop.kind)),
-    [props, apart],
-  );
-  const sideProps = useMemo(() => {
-    if (!props || !fittedMap || !drawnBuildings) return null;
-    const part = drawnBuildings.partBuilding;
-    // A moving wreck is drawn each frame rather than among static props.
-    const moving = new Set(movingWrecks);
-    const known = (JSON.parse(knownKey) as KnownPropView[]).filter(
-      (k) => (k.authoredProp === null || !part.has(k.authoredProp)) && !moving.has(k.id),
-    );
-    return sideStructures(fittedMap, known, props.fit);
-  }, [props, fittedMap, drawnBuildings, knownKey, movingWrecks]);
-  const structures: SideStructures = sideProps ?? NO_STRUCTURES;
-  const structuresFeed = useFeed<SideStructures>(structures);
   // What the camera keeps clear of: the ground, and every building part the
   // side knows stands (a fallen one's remains once it has seen the fall).
   // Fog of war: the presentation sees from the side's eyes at each
@@ -506,16 +445,16 @@ export function useBattleSession({
     };
   }, [world]);
   const cameraObstacles = useMemo(() => {
-    if (!props || !buildingParts || !knownBuildingsKey) return null;
+    if (!placedProps || !buildingParts || !knownBuildingsKey) return null;
     const started = performance.now();
     const view = buildingObstacles(
-      props.map,
+      placedProps,
       JSON.parse(knownBuildingsKey) as KnownPropView[],
       buildingParts,
       surfaceZ,
     );
     return { view, buildMs: performance.now() - started };
-  }, [props, buildingParts, knownBuildingsKey, surfaceZ]);
+  }, [placedProps, buildingParts, knownBuildingsKey, surfaceZ]);
   const cameraObstaclesFeed = useFeed(cameraObstacles?.view ?? null);
 
   // What the last frame drew: which unit or enemy each pick box is, and each
@@ -527,10 +466,10 @@ export function useBattleSession({
   // The models layer installs only what the battle draws as models.
   const modelAppearances = useMemo<InstalledAppearances | null>(
     () =>
-      appearances && props && drawnBuildings
-        ? mapAppearances(appearances, props.map, props.fit, drawnBuildings.placed, true)
+      appearances && world && drawnBuildings
+        ? mapAppearances(appearances, world, drawnBuildings.placed, true)
         : null,
-    [appearances, props, drawnBuildings],
+    [appearances, world, drawnBuildings],
   );
 
   // What the battle draws, handed to the presentation once its appearances
@@ -539,10 +478,10 @@ export function useBattleSession({
   const factions = skirmish?.factions;
   const presentation = sim.client?.presentation ?? null;
   const worldInput = useMemo(() => {
-    if (!appearances || !props) return null;
+    if (!appearances || !world) return null;
     return presentationWorld({
       units: describeUnits({
-        kinds: fielded,
+        kinds: requestedKinds,
         installed: appearances,
         units,
         factions: factions && { blue: factions[0], red: factions[1] },
@@ -550,9 +489,9 @@ export function useBattleSession({
         leanHold: rules.cover.lean_hold_s,
       }),
       effects: describeEffects({
-        kinds: fielded,
+        kinds: requestedKinds,
         units,
-        fit: props.fit,
+        layout: world.layout,
         installed: appearances,
         wreckStopS: rules.movement.drive.wreck_stop_s,
       }),
@@ -564,7 +503,7 @@ export function useBattleSession({
       blocked: PURCHASE_BLOCKED,
       cruiseAglM: rules.air.cruise_agl_m,
     });
-  }, [appearances, props, fielded, units, factions, rules, side]);
+  }, [appearances, world, requestedKinds, units, factions, rules, side]);
   // Each unit placed during preparation stands as a ghost where it will go,
   // turned as it was placed, until the battle starts.
   const [placedGhostList] = useState(() =>
@@ -813,6 +752,7 @@ export function useBattleSession({
         [],
         surfaceZ,
         metresPerPxAt(camera.distance, camera.fovY, window.innerHeight),
+        null,
       );
       return active ? (purchaseGhost.current?.valid === false ? "blocked" : "default") : null;
     }
@@ -908,11 +848,22 @@ export function useBattleSession({
             surfaceZ,
           )
         : null;
+    const attackGround =
+      active && intent.kind === "attack" && intent.target.kind === "ground" && shown
+        ? attackGroundSpread(
+            [intent.target.point[0], intent.target.point[1]],
+            control.selectedUnits,
+            drawnAt.current,
+            units,
+            catalog.weapons,
+          )
+        : null;
     pointerPaint.update(
       ruler,
       active ? preview : [],
       surfaceZ,
       metresPerPxAt(camera.distance, camera.fovY, window.innerHeight),
+      attackGround,
     );
     if (!active) return null;
     if (!held && pick?.unit != null) return "default";
@@ -1003,7 +954,7 @@ export function useBattleSession({
     },
     /** The static map's props of `kind` nearest (x, y), nearest first. */
     propsNear: (kind: string, x: number, y: number, count = 1) =>
-      (props?.map ?? [])
+      (placedProps ?? [])
         .filter((p) => p.kind === kind)
         .map((p) => ({ ...p, distance: Math.hypot(p.center[0] - x, p.center[1] - y) }))
         .sort((a, b) => a.distance - b.distance)
@@ -1105,38 +1056,12 @@ export function useBattleSession({
     },
     /** The vehicles as last posed: appearance, placement and articulation. */
     vehicles: () => presentationRef.current?.probe().vehicles ?? [],
-    /** Every body drawn as models, the static world's and those drawn from
-     *  what the side knows: how many, how many of them a building draws (its
-     *  parts), how many neither a model nor a building draws, and how many
-     *  models draw the side's. */
-    structureBodies: () => {
-      if (!world || !appearances) return null;
-      const statics = worldStructureBodies(
-        world.exports,
-        world.layout,
-        apart,
-        appearances,
-        gameStandIns,
-      );
-      const drawnBodies = sideProps?.bodies() ?? [];
-      const all: DrawnBody[] = [...statics, ...drawnBodies];
-      const part = (b: DrawnBody) => drawnBy(world.layout, b.body.kind, "building");
-      return {
-        bodies: all.length,
-        parts: all.filter(part).length,
-        unmodelled: all.filter((b) => !part(b) && b.models.length === 0).length,
-        sideModels: drawnBodies.reduce((n, b) => n + b.models.length, 0),
-      };
-    },
-    /** The props drawn from what the side knows: appearance, state and placement. */
-    structures: () =>
-      drawnStructures(structures).map((m) => ({
-        appearance: m.appearance,
-        state: m.pose.kind === "static" ? m.pose.state : null,
-        position: [m.x, m.y, m.z],
-        yaw: m.yaw,
-        scale: m.scale,
-      })),
+    /** What the props draw (`ObservationDecoder.propStats`): the bodies drawn,
+     *  those a building draws, those no model draws, the models placed and
+     *  those drawing what the side knows. */
+    structureBodies: () => presentationRef.current?.propStats() ?? null,
+    /** Every prop model the side draws: appearance, state and placement. */
+    structures: () => presentationRef.current?.propModels() ?? [],
   };
 
   return {
@@ -1147,25 +1072,14 @@ export function useBattleSession({
      *  presentation (which draws the buildings too), the appearances its
      *  models layer installs, and the GPU's arrival. */
     viewport: { frame, presentation: presentationSource, appearances: modelAppearances, onReady },
-    /** What the side knows stands, for a viewport that draws it: the props
-     *  drawn from that knowledge (standing destroyable props when "apart",
-     *  their remains, and wrecks), the map's buildings, and what the camera
-     *  keeps clear of. */
-    known: { structures: structuresFeed, buildings: buildingsFeed, obstacles: cameraObstaclesFeed },
+    /** What the side knows stands, for a viewport that draws it: the map's
+     *  buildings, and what the camera keeps clear of. */
+    known: { buildings: buildingsFeed, obstacles: cameraObstaclesFeed },
     /** The player's pointer on a viewport that takes orders. */
     input: { onPick, onRightPress, onCursor, onBox, pointerMarks: pointerPaint.feed },
-    /** What a second client needs to draw this side's props and fallen
-     *  buildings (`describeProps`); null until the map's props are fitted. */
-    describeProps: () =>
-      meshes && fittedMap && props && drawnBuildings
-        ? describeProps({
-            world: meshes.structures,
-            apart: fittedMap,
-            fit: props.fit,
-            buildings: drawnBuildings,
-            units,
-          })
-        : null,
+    /** What a second client needs to draw this side's fallen buildings
+     *  (`describeBuildings`); null until the map's buildings are known. */
+    describeBuildings: () => (drawnBuildings ? describeBuildings(drawnBuildings, units) : null),
     /** What renderer fog is drawn from; `fogFeed` carries it to the viewport. */
     fog,
     fogFeed,

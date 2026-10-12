@@ -72,8 +72,14 @@ It runs the browser's own shaders and passes over the [presentation crate](../..
   voice under its bus, low-pass, equal-power pan, reverb sends, a limiter),
   with the recordings in `assets/runtime/audio/clips` (Git LFS) and the
   synthesized sounds composed by the same Rust bank the browser's decisions
-  were made against. `--sound <wav>` renders a replay's sound to a file; it is
-  never played aloud by the replay, and the tests render to a buffer.
+  were made against. Voice lines (the crate's answers and barks) are takes
+  of the voice packs (`assets/runtime/audio/voices/<set>/pack.json`), read
+  and decoded when a line plays; the score (the crate's mood and track
+  choice) streams its MP3s from `assets/runtime/audio/music` on a music bus
+  that crossfades and dips under lines. A track or take Git LFS has not
+  fetched is refused by name in the report. `--sound <wav>` renders a
+  replay's sound to a file; it is never played aloud by the replay, and the
+  tests render to a buffer.
 - **What is bound but not drawn yet** reads as absent in every shader: the
   painted ground marks (the UI paints them; a replay has no UI).
 
@@ -89,6 +95,21 @@ The window opens borderless and off-screen by default, so nothing appears on
 the user's screen. On macOS, `wgpu` presents nothing to a window that isn't
 visible (off-screen, minimised or hidden all report `Occluded`), so those runs
 draw unpaced; plates never depend on presenting.
+
+## Timing a scene
+
+`--bench <dir>` is native's half of the [frame-rate
+comparison](../../web/src/battle/benchmark/README.md#the-frame-rate-comparison).
+It draws every frame record of the scene back to back through the whole pass
+list, framing each one as a plate is framed, and writes no plates. Each frame
+records the same things as the browser's reel: its interval, its CPU time, and
+its GPU time between two timestamp marker passes. The CPU time is split into
+framing, preparing, encoding and submitting. The report goes to
+`native-<scene>-<time>.json` in the browser file's shape. A window that isn't
+shown presents nothing and never blocks, so the bench keeps at most two frames
+on the GPU, as a swap chain would. Every frame lists every static batch,
+because the models keep none from the frame before. Run it on a release build,
+under the GPU lock.
 
 ## Checks
 

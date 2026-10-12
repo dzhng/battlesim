@@ -14,9 +14,9 @@ use presentation::sound::bank::{self, Bank, Core};
 use presentation::sound::frame::{
     self, Command, Listener, Motion, Scripted, Sound, SoundSoldier, SoundVehicle,
 };
-use presentation::sound::synth;
 use presentation::sound::tables::{Cadence, Recipe};
 use presentation::sound::voices::{self, Request};
+use presentation::sound::{music, synth};
 use presentation::static_world::buildings::{Placed, PlacedBuildings};
 use presentation::static_world::fallen::Known;
 use presentation::static_world::library::{Bounds, Library};
@@ -705,9 +705,45 @@ impl Chatter {
         serde_json::to_string(self.inner.hear(&mut sound.inner, now)).expect("lines serialize")
     }
 
+    /// A line is sounding at mixer time `now`.
+    pub fn speaking(&self, now: f64) -> bool {
+        self.inner.speaking(now)
+    }
+
     /// Forgets every line waiting and sounding (a new battle).
     pub fn reset(&mut self) {
         self.inner.reset();
+    }
+}
+
+/// The battle's score (`presentation::sound::music::Score`): the barks the
+/// voice lines heard in, the music bus's commands out, as JSON.
+#[wasm_bindgen]
+pub struct Score {
+    inner: music::Score,
+}
+
+#[wasm_bindgen]
+impl Score {
+    /// By `rules` (`presentation.audio.music`, JSON) over `moods` (the sound
+    /// catalog's `music.moods`, JSON; its battle moods), shuffled by `seed`.
+    #[wasm_bindgen(constructor)]
+    pub fn new(rules: &str, moods: &str, seed: u32) -> Result<Score, JsError> {
+        let rules = serde_json::from_str(rules)
+            .map_err(|e| JsError::new(&format!("presentation.audio.music: {e}")))?;
+        let moods =
+            serde_json::from_str(moods).map_err(|e| JsError::new(&format!("music.moods: {e}")))?;
+        Ok(Score {
+            inner: music::Score::new(rules, moods, seed),
+        })
+    }
+
+    /// At mixer time `now`: the barks heard (`VoiceRequest[]` JSON) and
+    /// whether a line sounds. The music bus's commands, JSON.
+    pub fn hear(&mut self, now: f64, barks: &str, speaking: bool) -> Result<String, JsError> {
+        let barks: Vec<Request> =
+            serde_json::from_str(barks).map_err(|e| JsError::new(&e.to_string()))?;
+        Ok(commands(self.inner.hear(now, &barks, speaking)))
     }
 }
 

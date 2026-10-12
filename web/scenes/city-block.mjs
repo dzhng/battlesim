@@ -204,7 +204,7 @@ export async function run(ctx) {
   const counts = await lab(page, () => ({
     ...window.__lab.route.counts(),
     references: window.__lab.route.buildings().length,
-    structures: window.__lab.stats().structures,
+    known: window.__lab.stats().props.known,
     block: window.__lab.route.block(),
   }));
   ctx.check(
@@ -214,7 +214,7 @@ export async function run(ctx) {
       counts.references === counts.buildings &&
       // The whole map can draw at the coarsest tier: a row or more a building.
       built.coarse >= built.buildings &&
-      counts.structures === 0 &&
+      counts.known === 0 &&
       counts.block.apartment !== null &&
       counts.block.house !== null,
     JSON.stringify({ ...counts, coarse: built.coarse }),

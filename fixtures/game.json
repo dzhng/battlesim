@@ -555,6 +555,139 @@
       "gravity_scale": 1.7651,
       "scatter_mrad": 8,
       "anti_armor": true
+    },
+    "artillery_howitzer": {
+      "targets": {
+        "ground": {}
+      },
+      "name": "Howitzer",
+      "description": "Indirect-fire howitzer shell for long-range support.",
+      "icon": "howitzer",
+      "stationary": true,
+      "range_m": 2500,
+      "min_range_m": 350,
+      "speed_mps": 160,
+      "gravity_scale": 1.0,
+      "lifetime_s": 35,
+      "aim_s": 4,
+      "reload_s": 14,
+      "ammo": 24,
+      "penetration": 45,
+      "damage": 120,
+      "scatter_mrad": 18,
+      "suppression_radius_m": 18,
+      "near_miss_suppression": 0.65,
+      "blast_radius_m": 18,
+      "structural_damage": 180,
+      "trajectory": "indirect"
+    },
+    "artillery_mortar": {
+      "targets": {
+        "ground": {}
+      },
+      "name": "Mortar",
+      "description": "High-angle mortar bomb for close indirect support.",
+      "icon": "mortar",
+      "stationary": true,
+      "range_m": 1800,
+      "min_range_m": 180,
+      "speed_mps": 145,
+      "gravity_scale": 1.0,
+      "lifetime_s": 35,
+      "aim_s": 3,
+      "reload_s": 9,
+      "ammo": 36,
+      "penetration": 25,
+      "damage": 90,
+      "scatter_mrad": 26,
+      "suppression_radius_m": 16,
+      "near_miss_suppression": 0.55,
+      "blast_radius_m": 15,
+      "structural_damage": 110,
+      "trajectory": "indirect"
+    },
+    "artillery_rocket_light": {
+      "targets": {
+        "ground": {}
+      },
+      "name": "Rocket salvo",
+      "description": "Unguided rocket salvo for deep area fire.",
+      "icon": "rockets",
+      "stationary": true,
+      "range_m": 2200,
+      "min_range_m": 500,
+      "speed_mps": 160,
+      "gravity_scale": 1.0,
+      "lifetime_s": 35,
+      "aim_s": 4,
+      "reload_s": 20,
+      "magazine": {
+        "rounds": 6,
+        "shot_interval_s": 0.35
+      },
+      "ammo": 18,
+      "penetration": 30,
+      "damage": 100,
+      "scatter_mrad": 24,
+      "suppression_radius_m": 20,
+      "near_miss_suppression": 0.7,
+      "blast_radius_m": 20,
+      "structural_damage": 150,
+      "trajectory": "indirect"
+    },
+    "artillery_rocket_heavy": {
+      "targets": {
+        "ground": {}
+      },
+      "name": "Heavy rocket salvo",
+      "description": "Heavy rocket salvo for deep area fire.",
+      "icon": "rockets",
+      "stationary": true,
+      "range_m": 2500,
+      "min_range_m": 700,
+      "speed_mps": 160,
+      "gravity_scale": 1.0,
+      "lifetime_s": 35,
+      "aim_s": 5,
+      "reload_s": 28,
+      "magazine": {
+        "rounds": 4,
+        "shot_interval_s": 0.45
+      },
+      "ammo": 12,
+      "penetration": 45,
+      "damage": 150,
+      "scatter_mrad": 22,
+      "suppression_radius_m": 24,
+      "near_miss_suppression": 0.8,
+      "blast_radius_m": 24,
+      "structural_damage": 220,
+      "trajectory": "indirect"
+    },
+    "artillery_strike_missile": {
+      "targets": {
+        "ground": {}
+      },
+      "name": "Strike missile",
+      "description": "Long-range unguided strike missile for deep area fire.",
+      "icon": "rockets",
+      "stationary": true,
+      "range_m": 2500,
+      "min_range_m": 900,
+      "speed_mps": 160,
+      "gravity_scale": 1.0,
+      "lifetime_s": 35,
+      "aim_s": 5,
+      "reload_s": 35,
+      "ammo": 6,
+      "penetration": 80,
+      "damage": 220,
+      "scatter_mrad": 14,
+      "suppression_radius_m": 26,
+      "near_miss_suppression": 0.9,
+      "blast_radius_m": 28,
+      "structural_damage": 300,
+      "trajectory": "indirect"
     }
   },
   "suppression": {
@@ -630,6 +763,11 @@
       "bastion": 20,
       "ifv_he": 5,
       "rpg_light": 10,
+      "artillery_howitzer": 12,
+      "artillery_mortar": 8,
+      "artillery_rocket_light": 10,
+      "artillery_rocket_heavy": 16,
+      "artillery_strike_missile": 24,
       "rpg_heavy": 10
     },
     "ammo_rounds_per_s": 1,
@@ -657,7 +795,7 @@
     "max_subsegments_per_tick": 32,
     "soldier_radius_m": 0.3,
     "soldier_height_m": 1.7,
-    "max_unguided_lifetime_s": 30,
+    "max_unguided_lifetime_s": 35,
     "min_spread_at_max_range_m": 2.4,
     "infantry_eye_m": 1.6,
     "infantry_muzzle_m": 1.4,
@@ -1705,7 +1843,7 @@
   },
   "hull_limits": {
     "tracked": { "half_width_m": 2.1, "half_length_m": 4.8 },
-    "wheeled": { "half_width_m": 1.6, "half_length_m": 5.2, "turning_radius_m": 6.0 },
+    "wheeled": { "half_width_m": 1.6, "half_length_m": 6.2, "turning_radius_m": 8.0 },
     "air": { "half_width_m": 3.65, "half_length_m": 9.94 }
   },
   "shouts": {

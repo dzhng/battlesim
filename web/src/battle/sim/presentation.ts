@@ -53,6 +53,7 @@ import {
   type FogOccluder,
 } from "@packages/battle-renderer/src/frame/fogVisibility";
 import type { WorldScenery } from "@packages/battle-renderer/src/scene";
+import { propArt, type KnownProp } from "@packages/battle-renderer/src/models/propAppearance";
 import {
   NO_SCENERY_WALK,
   type SceneryWalkStats,
@@ -139,7 +140,10 @@ export interface PresentedUi {
   selected: readonly number[];
   xray: boolean;
   ghosts: readonly GhostBody[];
-  known?: readonly KnownPart[];
+  /** A lab's stand-in for the publication's known props: what the
+   *  buildings read of each, and, for the props to draw it, its id and box
+   *  (`KnownProp`); none reads the publication's. */
+  known?: readonly (KnownPart & Partial<KnownProp>)[];
 }
 
 export type PresentedFrame = ReturnType<typeof frameViews>;
@@ -246,6 +250,24 @@ export interface PresentedSun {
   azimuth: number;
   elevation: number;
   farM: number;
+}
+
+/** What a scene's props draw (`ObservationDecoder.propStats`). */
+export interface PropStats {
+  bodies: number;
+  parts: number;
+  unmodelled: number;
+  models: number;
+  known: number;
+}
+
+/** A prop model the presentation placed. */
+export interface PropModel {
+  appearance: string;
+  state: string;
+  position: [number, number, number];
+  yaw: number;
+  scale: [number, number, number];
 }
 
 /** A building a side knows destroyed, and the state it is drawn in. */
@@ -357,6 +379,8 @@ export class ObservationDecoder {
   /** The art the staged ground's scenery draws, and the art it was placed by. */
   private sceneryArt: WorldScenery | null = null;
   private placedBy: WorldScenery | null = null;
+  /** The installed art the ground's props were placed from. */
+  private proppedBy: InstalledAppearances | null = null;
   /** The ground the page reads tables from, new with each ground set. */
   private presented: PresentedGround | null = null;
   /** The fog asked for, the one set, and the foliage handed over. */
@@ -484,6 +508,8 @@ export class ObservationDecoder {
   ) {
     if (installed !== this.installed) {
       this.installed = installed;
+      // The props are placed from what the models layer installs.
+      if (this.staged?.props) this.stale = true;
       const next = buildingArt(installed);
       const art = this.art;
       const same =
@@ -571,13 +597,15 @@ export class ObservationDecoder {
     };
   }
 
-  /** Sets the staged ground and places its scenery once its art holds
+  /** Sets the staged ground, places its props (in the surface view) from
+   *  what the models layer installs, and its scenery once its art holds
    *  every appearance it names. */
   private loadGround() {
     const ground = this.staged;
     if (ground !== this.groundSet) {
       this.groundSet = ground;
       this.placedBy = null;
+      this.proppedBy = null;
       this.presented = null;
       if (ground) {
         setGround(this.rust, ground);
@@ -585,6 +613,11 @@ export class ObservationDecoder {
         [this.fogSet, this.foliageSet] = [undefined, null];
         this.setFog(this.fogStaged);
       }
+    }
+    const installed = this.installed;
+    if (ground?.props && installed && installed !== this.proppedBy) {
+      this.rust.place_props(ground.layout, propArt(installed, ground.family));
+      this.proppedBy = installed;
     }
     const art = this.sceneryArt;
     if (!ground || !art || art === this.placedBy) return;
@@ -638,6 +671,19 @@ export class ObservationDecoder {
    *  rebuilding its frame) installs them too. */
   world(): PresentedAppearance[] | null {
     return this.loaded;
+  }
+
+  /** What the props draw (`Presentation.prop_stats`): the bodies drawn,
+   *  those a building draws, those no model draws, the models placed and
+   *  those drawing what the side knows. */
+  propStats(): PropStats {
+    const [bodies = 0, parts = 0, unmodelled = 0, models = 0, known = 0] = this.rust.prop_stats();
+    return { bodies, parts, unmodelled, models, known };
+  }
+
+  /** Every prop model placed: appearance, state, position, yaw and scale. */
+  propModels(): PropModel[] {
+    return JSON.parse(this.rust.prop_models()) as PropModel[];
   }
 
   /** The buildings the side knows destroyed, as the last frame drew them. */
@@ -728,15 +774,7 @@ export class ObservationDecoder {
       Uint32Array.from(ui.selected),
       ui.xray,
       ui.ghosts.length ? JSON.stringify(ui.ghosts) : "",
-      ui.known
-        ? JSON.stringify(
-            ui.known.map((k) => ({
-              authoredProp: k.authoredProp,
-              kind: k.kind,
-              destroyed: k.destroyed ?? false,
-            })),
-          )
-        : "",
+      ui.known ? JSON.stringify(ui.known) : "",
     );
     this.walk.selectMs = performance.now() - started;
     this.framePtr = ptr;

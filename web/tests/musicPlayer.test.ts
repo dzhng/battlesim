@@ -142,11 +142,11 @@ test("a long session of plays and stops leaves nothing connected but the playing
   expect(sources.filter((s) => s.outputs.size > 0)).toHaveLength(0);
 });
 
-test("ducking dips over the attack and restores over the release without touching the level", () => {
+test("ducking dips and restores over its glide without touching the level", () => {
   const music = player();
   music.play("menu");
   music.setLevel(0.5);
-  music.duck(0.35, 0.05, 0.8);
+  music.duck(0.35, 0.05);
   expect((music.ducking.gain as unknown as Param).events.at(-1)).toEqual([
     "target",
     0.65,
@@ -157,7 +157,7 @@ test("ducking dips over the attack and restores over the release without touchin
   expect(reach(sourceOf(media[0]))).toBeCloseTo(0.5 * 0.65);
   music.setLevel(0.2);
   expect(music.ducking.gain.value).toBeCloseTo(0.65);
-  music.duck(0, 0.05, 0.8);
+  music.duck(0, 0.8);
   expect((music.ducking.gain as unknown as Param).events.at(-1)).toEqual(["target", 1, 10, 0.8]);
   expect(reach(sourceOf(media[0]))).toBeCloseTo(0.2);
 });

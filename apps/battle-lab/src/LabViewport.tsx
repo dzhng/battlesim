@@ -4,6 +4,7 @@ import { diagnosticsSource } from "@web/diagnostics";
 import {
   loadPresentation,
   ObservationDecoder,
+  type PropStats,
   type PresentedUi,
 } from "@web/battle/sim/presentation";
 import { useCursorAction, type CursorAction } from "@web/battle/present/gameCursor";
@@ -44,7 +45,6 @@ import {
 } from "@packages/renderer-core/src/cameraObstacles";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import type { ModelInstance } from "@packages/battle-renderer/src/models/modelInstances";
-import type { SideStructures } from "@packages/battle-renderer/src/models/propAppearance";
 import { trackHeldKeys } from "@web/battle/input/heldKeys";
 import type { Project } from "@web/battle/present/readouts";
 import { gameCamera } from "./gameCamera";
@@ -105,10 +105,6 @@ interface LabViewportProps {
   inputEnabled?: boolean;
   /** The static world, fed like the overlay (`useFeed`); drawn once it is set. */
   world: FeedSource<WorldLayers | null>;
-  /** Knowledge-drawn props as fitted appearances (standing walls and field
-   *  works, remembered rubble and wrecks), lit and fogged with the world;
-   *  fed like the overlay (`SideStructures`). */
-  structures?: FeedSource<SideStructures>;
   /** The map's buildings, fed like the overlay; omitted or null draws none.
    *  They are drawn by the scene's one presentation: the battle's
    *  (`presentation`), else one the viewport makes with no layout, whose
@@ -320,7 +316,8 @@ interface LabHandle {
   ready: boolean;
   error: string | null;
   adapter?: { vendor: string; architecture: string; description: string; format: string };
-  stats?: () => ReturnType<BattleFrame["stats"]>;
+  /** The frame's statistics, and what the scene's props draw. */
+  stats?: () => ReturnType<BattleFrame["stats"]> & { props: PropStats };
   allocations?: GpuAllocationTracker;
   /** The camera drawn. */
   camera?: () => Camera3DParams;
@@ -415,7 +412,6 @@ export function LabViewport({
   fixture,
   inputEnabled = true,
   world,
-  structures,
   buildings,
   presentation,
   buildingStyle,
@@ -543,8 +539,6 @@ export function LabViewport({
       }),
     [pointerMarks],
   );
-  const structuresRef = useRef(structures);
-  structuresRef.current = structures;
   const buildingsRef = useRef(buildings);
   buildingsRef.current = buildings;
   const presentationRef = useRef(presentation);
@@ -576,15 +570,6 @@ export function LabViewport({
       }),
     [overlay],
   );
-  useEffect(() => {
-    const draw = (next: SideStructures) => {
-      sceneRef.current?.setStructures(next);
-      redrawRef.current();
-    };
-    if (!structures) return;
-    draw(structures.current);
-    return structures.subscribe(draw);
-  }, [structures]);
   useEffect(() => {
     const scene = sceneRef.current;
     if (!scene) return;
@@ -728,6 +713,14 @@ export function LabViewport({
           if (!own && moduleLoaded) own = new ObservationDecoder();
           return own;
         };
+        const propStats = (): PropStats =>
+          scenePresentation()?.propStats() ?? {
+            bodies: 0,
+            parts: 0,
+            unmodelled: 0,
+            models: 0,
+            known: 0,
+          };
         /** The buildings' style and sun, taken when the frame is built. A
          *  new frame holds no static batches, so the first drawn through it
          *  is sent them all (`resend`, raised when it replaces the last: the
@@ -773,7 +766,6 @@ export function LabViewport({
           // Prop effects and feeds can update this frame while appearances load.
           sceneRef.current = next;
           try {
-            if (structuresRef.current) next.setStructures(structuresRef.current.current);
             const meshes = overlayRef.current?.current;
             if (meshes) next.setOverlay(meshes);
             const marks = pointerMarksRef.current?.current;
@@ -1066,7 +1058,7 @@ export function LabViewport({
             description: info.description,
             format: info.format,
           },
-          stats: () => scene.stats(),
+          stats: () => ({ ...scene.stats(), props: propStats() }),
           allocations,
           camera: () => camera,
           setCamera(next: Camera3DParams) {
