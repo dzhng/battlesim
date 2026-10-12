@@ -53,6 +53,7 @@ export function BattleView({
   scenario,
   seed,
   prepared,
+  scenarioArt,
   slot,
   side,
   replay,
@@ -73,6 +74,8 @@ export function BattleView({
   scenario: string;
   seed: number;
   prepared?: PreparedConnectionSession;
+  /** Uploaded resolved sandbox bundles can narrow art to their fielded map. */
+  scenarioArt?: boolean;
   /** Player slot issuing commands in a slot-owned scenario. */
   slot?: string;
   /** Side whose observation and command stream this player controls. */
@@ -139,6 +142,7 @@ export function BattleView({
     scenario,
     seed,
     prepared,
+    scenarioArt,
     slot,
     side,
     onDecoded: (observation, digest) => {

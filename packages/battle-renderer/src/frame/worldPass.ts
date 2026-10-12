@@ -489,7 +489,9 @@ export async function createWorldPass(
   // x-rayed where it dips under the surface; a canopy or a wall hides by
   // metres.
   const xrayMinimum = registry.own(
-    root.createBuffer(d.f32, validateXrayFraction(xrayMinHiddenFragmentFraction)).$usage("uniform"),
+    root
+      .createBuffer(d.size(16, d.f32), validateXrayFraction(xrayMinHiddenFragmentFraction))
+      .$usage("uniform"),
   );
   const xrayCounts = registry.slot<GPUBuffer>();
   let xrayCapacity = 0;

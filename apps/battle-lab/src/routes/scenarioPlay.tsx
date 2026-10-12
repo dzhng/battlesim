@@ -32,9 +32,13 @@ export default function ScenarioPlay() {
     let preparation: ReturnType<typeof prepareUploadedScenarioBundle> | null = null;
     void loadWasm().then(() => {
       if (!live) return;
-      preparation = prepareUploadedScenarioBundle(bundle, (next) => {
-        if (next === "bundle") setStage("bundle");
-      }, activeHuman);
+      preparation = prepareUploadedScenarioBundle(
+        bundle,
+        (next) => {
+          if (next === "bundle") setStage("bundle");
+        },
+        activeHuman,
+      );
       preparation.battle.then(
         (loaded) => {
           if (!live) return;
@@ -62,7 +66,9 @@ export default function ScenarioPlay() {
     playedAsset.current = null;
     try {
       const text = await readScenarioBundle(file);
-      const parsed = JSON.parse(text) as { slots?: { id: string; side: string; human_capable?: boolean }[] };
+      const parsed = JSON.parse(text) as {
+        slots?: { id: string; side: string; human_capable?: boolean }[];
+      };
       const slots = (parsed.slots ?? [])
         .filter((slot) => slot.human_capable)
         .map(({ id, side }) => ({ id, side }));
@@ -87,16 +93,24 @@ export default function ScenarioPlay() {
             Active human slot
             <select
               value={activeHuman ?? "__none"}
-              onChange={(event) => setActiveHuman(event.target.value === "__none" ? null : event.target.value)}
+              onChange={(event) =>
+                setActiveHuman(event.target.value === "__none" ? null : event.target.value)
+              }
             >
               <option value="__none">No human · AI only</option>
-              {humanSlots.map((slot) => <option key={slot.id} value={slot.id}>{slot.id} · {slot.side}</option>)}
+              {humanSlots.map((slot) => (
+                <option key={slot.id} value={slot.id}>
+                  {slot.id} · {slot.side}
+                </option>
+              ))}
             </select>
           </label>
           <button type="button" className="hud-menu-item" onClick={() => setDeploy(true)}>
             Deploy scenario
           </button>
-          <Link className="hud-menu-item" to="/scenario-play">Choose another package</Link>
+          <Link className="hud-menu-item" to="/scenario-play">
+            Choose another package
+          </Link>
         </div>
       </main>
     );
@@ -214,6 +228,7 @@ function ScenarioBattle({
       <BattleView
         fixture="generated"
         scenario={prepared.scenario}
+        scenarioArt
         seed={1}
         prepared={prepared}
         replay={replayText}
@@ -273,7 +288,10 @@ function ScenarioBattle({
                   event.target.value = "";
                   if (!file) return;
                   try {
-                    const parsed = JSON.parse(await file.text()) as { scenario?: string; replay?: string };
+                    const parsed = JSON.parse(await file.text()) as {
+                      scenario?: string;
+                      replay?: string;
+                    };
                     if (parsed.scenario !== prepared.scenario || typeof parsed.replay !== "string")
                       throw new Error("replay does not belong to this uploaded scenario");
                     setReplayText(parsed.replay);

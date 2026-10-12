@@ -148,6 +148,8 @@ export interface BattleSessionOptions {
   /** Own units hidden by the world are drawn through it (the player's x-ray);
    *  off, the picture shows only what the camera sees. */
   xray?: boolean;
+  /** Uploaded resolved sandbox bundles may narrow art to their fielded map. */
+  scenarioArt?: boolean;
 }
 
 /** The rule values the scenario runs under (only what views read). Its
@@ -177,6 +179,7 @@ export function useBattleSession({
   inputEnabled = true,
   xray = true,
   prepared,
+  scenarioArt = false,
 }: BattleSessionOptions) {
   const appAudio = useAppAudio();
   const catalog = useSessionCatalog();
@@ -243,6 +246,13 @@ export function useBattleSession({
     [requestedKindKey],
   );
   const factionsForArt = useMemo(() => (skirmish ? new Set(skirmish.factions) : null), [skirmish]);
+  const sceneryForArt = useMemo(() => {
+    if (!scenarioArt) return undefined;
+    const candidate = map as { props?: unknown[]; forests?: unknown[] } | null;
+    return (candidate?.props?.length ?? 0) === 0 && (candidate?.forests?.length ?? 0) === 0
+      ? null
+      : undefined;
+  }, [map, scenarioArt]);
   // A shout heard in the open is a bark in its kind's set for its side's
   // faction; an unseen enemy's is drawn from the enemy faction's sets. Of
   // those, only the sets of kinds fielded or identified load.
@@ -360,6 +370,7 @@ export function useBattleSession({
     (world?.exports.props.length ?? 0) > 0 || (drawnBuildings?.placed.template.length ?? 0) > 0,
     requestedKinds,
     factionsForArt,
+    sceneryForArt,
   );
   // The ground, and the art its scenery and grass draw from; its props and
   // what the side knows of them (rubble, wrecks, shoved bodies where it last
@@ -368,8 +379,15 @@ export function useBattleSession({
     () =>
       world &&
       appearances &&
-      buildWorldLayers(world.exports, world.layout, gameBiome, "surface", appearances),
-    [world, appearances],
+      buildWorldLayers(
+        world.exports,
+        world.layout,
+        gameBiome,
+        "surface",
+        appearances,
+        sceneryForArt !== null,
+      ),
+    [world, appearances, sceneryForArt],
   );
   const knownProps = observation?.knownProps;
   const knownKey = useMemo(() => JSON.stringify(knownProps ?? []), [knownProps]);

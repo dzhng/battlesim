@@ -159,6 +159,7 @@ export const catalogLoadNames = (
   catalog: Pick<RuntimeCatalog, "appearances">,
   wearing?: ReadonlySet<string>,
   factions?: ReadonlySet<string> | null,
+  scenery?: ReadonlySet<string> | null,
 ): string[] => {
   const entries = Object.entries(catalog.appearances ?? {});
   const worn = (name: string) => !wearing || wearing.has(name);
@@ -179,7 +180,9 @@ export const catalogLoadNames = (
     .filter(([name, entry]) => {
       if (fetchedOnRequest(entry)) return false;
       if (wrecked.has(name)) return wrecks.has(name);
-      return entry.unit === "scenery" || worn(name) || looks.has(name);
+      return entry.unit === "scenery"
+        ? scenery === undefined || (scenery !== null && scenery.has(name))
+        : worn(name) || looks.has(name);
     })
     .map(([name]) => name);
 };

@@ -151,7 +151,7 @@ export function nextSlotId(slots: readonly BuilderSlot[], side: SideName): strin
 
 export function createBuilderDraft(rules: GameRules, units: UnitCatalog): ScenarioBundleDraft {
   const blueKind = units.ids[0] ?? "";
-  const redKind = units.ids.find((kind) => kind !== blueKind) ?? blueKind;
+  const redKind = blueKind;
   const authored: BuilderUnit[] = [
     { id: 0, side: "blue", kind: blueKind, position: [120, 240], yaw: 0 },
     { id: 1, side: "red", kind: redKind, position: [520, 240], yaw: Math.PI },
