@@ -2,7 +2,7 @@
  * and the main-thread client: ordered commands, acknowledgements, and one
  * completed-tick publication per credit. There is no simulation-shaped proxy. */
 
-export type SideName = "blue" | "red";
+export type SideName = "blue" | "red" | "neutral";
 export type RoutePolicy = "shortest" | "fastest";
 /** Mirrors `contract::command::MoveDirection`: a reverse move backs along
  *  its route with the facing held (Q31). */

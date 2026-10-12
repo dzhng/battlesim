@@ -8,10 +8,11 @@ pub type Tick = u64;
 pub enum Side {
     Blue,
     Red,
+    Neutral,
 }
 
 impl Side {
-    pub const ALL: [Side; 2] = [Side::Blue, Side::Red];
+    pub const ALL: [Side; 3] = [Side::Blue, Side::Red, Side::Neutral];
 
     pub fn index(self) -> usize {
         self as usize

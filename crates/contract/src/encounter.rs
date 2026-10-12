@@ -399,6 +399,7 @@ impl Forces {
         match side {
             Side::Blue => &self.blue,
             Side::Red => &self.red,
+            Side::Neutral => &[],
         }
     }
 }
@@ -408,6 +409,10 @@ impl EncounterRecipe {
         match self.attacker {
             Side::Blue => Side::Red,
             Side::Red => Side::Blue,
+            // `validate` rejects a neutral attacker before planning. Keep
+            // this accessor total for callers inspecting an unvalidated
+            // recipe without inventing a neutral opponent.
+            Side::Neutral => Side::Neutral,
         }
     }
 
@@ -424,6 +429,9 @@ impl EncounterRecipe {
     /// roster on each side, and posts a side can take. Each message names
     /// the field.
     pub fn validate(&self) -> Result<(), String> {
+        if self.attacker == Side::Neutral {
+            return Err("attacker neutral is unsupported by binary encounters".into());
+        }
         let positive = |name: &str, v: f64| {
             (v.is_finite() && v > 0.0)
                 .then_some(())
@@ -486,7 +494,9 @@ impl EncounterRecipe {
                 return Err(format!("{name} must be positive: nothing would be tried"));
             }
         }
-        for side in Side::ALL {
+        // Encounter recipes remain a binary input. Neutral is available to
+        // authored sandbox scenarios, but not to this planner's force schema.
+        for side in [Side::Blue, Side::Red] {
             let name = side_name(side);
             let rows = self.forces.side(side);
             if rows.is_empty() {
@@ -513,6 +523,7 @@ pub fn side_name(side: Side) -> &'static str {
     match side {
         Side::Blue => "blue",
         Side::Red => "red",
+        Side::Neutral => "neutral",
     }
 }
 
