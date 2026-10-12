@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 
 use presentation::fog::FogPresentation;
 use presentation::light::LightSettings;
-use presentation::presentation::{Frame, Presentation, Ui};
+use presentation::presentation::{FogSetup, Frame, Presentation, Ui};
 use presentation::records::FogLook;
 use presentation::static_world::files;
 use presentation::static_world::ground::walk::Cleared;
@@ -87,6 +87,9 @@ pub struct Replay {
     /// The map's terrain triangles, as the simulation exports them:
     /// vertices (x, y, z), then indices.
     pub terrain: (Vec<f32>, Vec<u32>),
+    /// The simulation's world, kept while fog is drawn: the side's foliage
+    /// follows the ground it sees cleared.
+    world: Option<files::World>,
     /// The cleared cells the scenery last followed.
     cleared: usize,
     samples: Vec<Sample>,
@@ -174,6 +177,16 @@ impl Replay {
         // The ground, and its scenery placed from each kind's finest mesh.
         let ground = files::ground(root, &map)?;
         presentation.set_ground(ground.source, ground.biome, ground.tuning)?;
+        // Fog of war, where the browser drew it: the side's sight under the
+        // game's sensor rules.
+        let layers = manifest["layers"].as_array().ok_or("manifest: no layers")?;
+        let fog = layers.iter().any(|l| l == "fog");
+        if fog {
+            presentation.set_fog(Some(FogSetup {
+                sensors: Some(ground.sensors),
+                ..FogSetup::default()
+            }))?;
+        }
         let kinds = presentation
             .ground()
             .map_or_else(Vec::new, |g| g.scenery_kinds());
@@ -203,6 +216,7 @@ impl Replay {
                 .cloned()
                 .unwrap_or_default(),
             terrain: (ground.positions, ground.indices),
+            world: fog.then_some(ground.world),
             cleared: 0,
             samples: capture.samples,
             pushed: 0,
@@ -268,7 +282,19 @@ impl Replay {
                 self.cleared = learned.cleared_count();
                 let runs = learned.cleared_runs();
                 let cleared = Cleared::from_runs(&runs, learned.cols, learned.rows, learned.cell_m);
+                // Fog's foliage is the side's: less the trees on ground it
+                // has seen cleared, as the page re-exports it.
+                let foliage = self
+                    .world
+                    .as_ref()
+                    .map(|world| files::side_foliage(world, learned));
                 self.presentation.set_cleared(cleared);
+                if let Some(foliage) = foliage {
+                    self.presentation.set_fog(Some(FogSetup {
+                        foliage: Some(foliage),
+                        ..FogSetup::default()
+                    }))?;
+                }
             }
         }
         Ok(self.presentation.last_frame())

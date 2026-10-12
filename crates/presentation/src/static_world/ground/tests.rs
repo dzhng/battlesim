@@ -76,7 +76,10 @@ fn world() -> Source {
             ..Grid::default()
         },
         props,
-        drawn_by: vec![Some(DrawnBy::Forest), Some(DrawnBy::Building), None],
+        kinds: super::PropKinds {
+            drawn_by: vec![Some(DrawnBy::Forest), Some(DrawnBy::Building), None],
+            ..Default::default()
+        },
         foliage,
         surface_strokes: ROAD.to_vec(),
         surface_runs: ROAD[..4].to_vec(),

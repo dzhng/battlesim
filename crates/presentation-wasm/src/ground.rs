@@ -41,7 +41,8 @@ fn json(e: impl ToString) -> JsError {
 #[wasm_bindgen]
 impl Presentation {
     /// Sets the map's ground: `extents` is the physical map's `[min x, min y,
-    /// max x, max y]`, then its rendered surroundings' where it has them;
+    /// max x, max y]`, the playable rectangle, then its rendered
+    /// surroundings' where it has them;
     /// `grid` is `WorldView.terrain_grid()` with its page ids and heights;
     /// the streams are `WorldView`'s exports of the same names; `layout` is
     /// `world_layout()`; `biome` the biome's file and `family` the map's
@@ -76,7 +77,8 @@ impl Presentation {
         let g: GridHeader = serde_json::from_str(grid).map_err(json)?;
         let source = Source {
             map: extents[..4].try_into().unwrap(),
-            rendered: extents.get(4..8).map(|r| r.try_into().unwrap()),
+            playable: extents[4..8].try_into().unwrap(),
+            rendered: extents.get(8..12).map(|r| r.try_into().unwrap()),
             grid: Grid {
                 nx: g.nx,
                 ny: g.ny,
@@ -87,7 +89,7 @@ impl Presentation {
                 heights,
             },
             props,
-            drawn_by: ground::drawn_by(layout).map_err(json)?,
+            kinds: ground::prop_kinds(layout).map_err(json)?,
             foliage,
             surface_strokes,
             surface_runs,

@@ -14,7 +14,7 @@
 // ends across it, `?azimuth=` and `?sun=` turn and raise the sun, and
 // `?order=reversed` hands the frame the same modules in the opposite order.
 import { useCallback, useMemo, useRef, useState } from "react";
-import type { FogInput } from "@packages/battle-renderer/src/frame/fogInputs";
+import type { FogRequest } from "@web/battle/sim/presentation";
 import { validateLight } from "@packages/battle-renderer/src/light/sceneLight";
 import type { ModelInstance } from "@packages/battle-renderer/src/models/modelInstances";
 import type { WorldLayers } from "@packages/battle-renderer/src/scene";
@@ -139,21 +139,7 @@ function worldOf(p: Placement, local: readonly [number, number, number]): [numbe
 
 /** Sight over the flat ground, from an eye 40 m before each station: it ends
  *  a metre and a half behind the station's middle. */
-function fogInput(): FogInput {
-  const n = 64;
-  const world = {
-    nx: n,
-    ny: n,
-    spacing: 8,
-    pageSize: 16,
-    minHeight: 0,
-    pageIds: new Uint32Array(0),
-    heights: NONE,
-    foliage: Float32Array.of(n, n, 8),
-    targetHeightM: game.sensors.fog_target_height_m,
-    foliageFullBlock: game.sensors.foliage_full_block,
-    minSightGapM: game.sensors.min_sight_gap_m,
-  };
+function fogRequest(): FogRequest {
   const eyes = (Object.keys(STATIONS) as Station[]).map((id) => {
     const { at, yaw } = STATIONS[id];
     const range = 40;
@@ -169,7 +155,7 @@ function fogInput(): FogInput {
       range,
     };
   });
-  return { world, sight: { eyes, occluders: [] } };
+  return { sensors: game.sensors, eyes };
 }
 
 export default function Facade() {
@@ -225,7 +211,7 @@ export default function Facade() {
     [],
   );
   const worldFeed = useFeed<WorldLayers | null>(world);
-  const fog = useMemo(() => (query.get("fog") === "1" ? fogInput() : null), [query]);
+  const fog = useMemo(() => (query.get("fog") === "1" ? fogRequest() : null), [query]);
   const fogFeed = useFeed(fog);
 
   const stations = useMemo(() => {

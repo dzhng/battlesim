@@ -5,6 +5,7 @@ pub mod bundle;
 pub mod capture;
 pub mod effects;
 pub mod environment;
+pub mod fog;
 pub mod fog_mask;
 pub mod frame;
 pub mod gpu;

@@ -6,7 +6,6 @@ import type { ViewportCamera } from "@packages/renderer-core/src/cameraUniform";
 import type { Mesh } from "./mesh";
 import type { ProxyKind } from "./proxies";
 import type { GpuFrameTime } from "./frame/gpuTiming";
-import type { FogInput } from "./frame/fogInputs";
 import type { OverlayGlowStyle } from "./frame/overlayPass";
 import type { FogProbes, FogVisibilityStats } from "./frame/fogVisibility";
 import type { TerrainSurface } from "./terrain/terrainSurface";
@@ -240,10 +239,6 @@ export interface BattleFrame {
   /** Presentation seconds: the wind's clock. Hold it and the frame holds
    *  (paused battles, deterministic captures). */
   setClock(seconds: number): void;
-  /** What the observing side sees from (its eyes at the published tick and
-   *  the occluders it knows), over the static world; `null` shows everything
-   *  clear. */
-  setFog(fog: FogInput | null): void;
   /** Install a catalog generation from `AppearanceLibrary` (the one loader);
    *  resolves once its meshes and impostor atlases (every
    *  body's far pose and corpse) are on the GPU. */

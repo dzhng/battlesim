@@ -48,6 +48,10 @@ import {
 import { tierMesh } from "@packages/battle-renderer/src/scenery/appearance";
 import { concatMeshes, type Mesh } from "@packages/battle-renderer/src/mesh";
 import { STUMP } from "@packages/battle-renderer/src/frame/sceneryLayer";
+import {
+  occluderBoxes,
+  type FogOccluder,
+} from "@packages/battle-renderer/src/frame/fogVisibility";
 import type { WorldScenery } from "@packages/battle-renderer/src/scene";
 import {
   NO_SCENERY_WALK,
@@ -177,6 +181,12 @@ const buffer = () => memory!.buffer;
  *  for each ground set, so a renderer knows to read them again. */
 function groundOf(rust: Presentation): PresentedGround {
   return {
+    prepare_fog: (camera, width, height, probes) =>
+      rust.prepare_fog(camera, width, height, probes),
+    resend_fog: () => rust.resend_fog(),
+    rebuild_fog: () => rust.rebuild_fog(),
+    fog_stats: () => rust.fog_stats(),
+    fog_occluders: () => rust.fog_occluders(),
     ground_terrain: () => rust.ground_terrain(),
     ground_plots: (textured) => rust.ground_plots(textured),
     ground_water_mesh: () => rust.ground_water_mesh(),
@@ -186,6 +196,31 @@ function groundOf(rust: Presentation): PresentedGround {
     grass_props: () => rust.grass_props(),
     retune_grass: (rules) => rust.retune_grass(rules),
   };
+}
+
+/** One own eye fog sees from (`presentation::fog::sight::Eye`). */
+export interface FogEye {
+  /** `<unit>:<eye>`: the same eye keeps its map while it stands still. */
+  key: string;
+  position: readonly [number, number, number];
+  forward: number;
+  shape: { front: number; side: number; rear: number };
+  range: number;
+}
+
+/** What a scene asks of fog of war (`Presentation.set_fog`): the
+ *  presentation sees from the side's own units at each publication, cut by
+ *  the ground and what the side knows stands. */
+export interface FogRequest {
+  /** The rules' sensor numbers fog shares with the simulation (`sensors`). */
+  sensors: object;
+  /** The side's foliage less the ground it has seen cleared, once it has
+   *  (`WorldView.foliage_cleared`); the map's until then. */
+  foliage?: Float32Array;
+  /** A lab's stand-in for the publication's eyes. */
+  eyes?: readonly FogEye[];
+  /** Only these own units' eyes (a lab looking through one unit). */
+  units?: readonly number[];
 }
 
 /** A map's buildings as `load_world` takes them: where they stand, the
@@ -324,6 +359,10 @@ export class ObservationDecoder {
   private placedBy: WorldScenery | null = null;
   /** The ground the page reads tables from, new with each ground set. */
   private presented: PresentedGround | null = null;
+  /** The fog asked for, the one set, and the foliage handed over. */
+  private fogStaged: FogRequest | null = null;
+  private fogSet: FogRequest | null | undefined = undefined;
+  private foliageSet: Float32Array | null = null;
   /** The cleared ground last handed over: the view and its count. */
   private cleared: [GroundMarks | null, number] = [null, -1];
   /** Something staged changed since the last load. */
@@ -475,6 +514,28 @@ export class ObservationDecoder {
     if (scenery !== this.sceneryArt) [this.sceneryArt, this.stale] = [scenery, true];
   }
 
+  /** The side's fog of war over the ground, or none; taken once the
+   *  ground is set. */
+  setFog(fog: FogRequest | null) {
+    this.fogStaged = fog;
+    if (!this.presented || fog === this.fogSet) return;
+    this.fogSet = fog;
+    const foliage = fog?.foliage !== this.foliageSet ? fog?.foliage : undefined;
+    if (foliage) this.foliageSet = foliage;
+    const { sensors, eyes, units } = fog ?? {};
+    this.rust.set_fog(fog ? JSON.stringify({ sensors, eyes, units }) : undefined, foliage);
+  }
+
+  /** The occluders the side's fog knows stand, as boxes. */
+  fogOccluders(): FogOccluder[] {
+    return occluderBoxes(this.rust.fog_occluders());
+  }
+
+  /** The eyes fog sees from, as its last frame took them. */
+  fogEyes(): FogEye[] {
+    return JSON.parse(this.rust.fog_eyes()) as FogEye[];
+  }
+
   /** The ground the scene's presentation resolved, for the terrain, the
    *  grass and the water; null before one is set. */
   presentedGround(): PresentedGround | null {
@@ -521,6 +582,8 @@ export class ObservationDecoder {
       if (ground) {
         setGround(this.rust, ground);
         this.presented = groundOf(this.rust);
+        [this.fogSet, this.foliageSet] = [undefined, null];
+        this.setFog(this.fogStaged);
       }
     }
     const art = this.sceneryArt;

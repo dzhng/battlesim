@@ -5,12 +5,12 @@
 // the GPU sight shape against Rust's vectors, and turn one eye's bearing
 // without moving it.
 import { useEffect, useMemo, useState } from "react";
-import type { FogEye, FogInput } from "@packages/battle-renderer/src/frame/fogInputs";
 import type { FogProbes } from "@packages/battle-renderer/src/frame/fogVisibility";
 import type { FrameView } from "@packages/battle-renderer/src/scene";
 import { loadWasm } from "@web/battle/sim/module";
 import type { ObservationView } from "@web/battle/sim/observationView";
 import type { SideName } from "@web/battle/sim/protocol";
+import type { FogEye, FogRequest } from "@web/battle/sim/presentation";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { STREET_CAMERA, STREET_SEED, useStreetScenario } from "../streetScenario";
@@ -135,9 +135,8 @@ function FogLab({ scenario }: { scenario: string }) {
   const [view, setView] = useState<FrameView>("final");
   /** Eyes the scene substitutes for the published ones (a turned turret). */
   const [eyes, setEyes] = useState<FogEye[] | null>(null);
-  const fog = useMemo<FogInput | null>(
-    () =>
-      session.fog && eyes ? { ...session.fog, sight: { ...session.fog.sight, eyes } } : session.fog,
+  const fog = useMemo<FogRequest | null>(
+    () => (session.fog && eyes ? { ...session.fog, eyes } : session.fog),
     [session.fog, eyes],
   );
   const fogFeed = useFeed(fog);
@@ -150,7 +149,16 @@ function FogLab({ scenario }: { scenario: string }) {
 
   const diagnostics = {
     ...session.probes,
-    fogInput: () => fog,
+    /** What fog sees from and is cut by, as its last frame took them. */
+    fogInput: () => {
+      const presentation = sim.client?.presentation;
+      return {
+        sight: {
+          eyes: presentation?.fogEyes() ?? [],
+          occluders: presentation?.fogOccluders() ?? [],
+        },
+      };
+    },
     setEyes,
     // Sent now, so a following advance already publishes the new side.
     setSide: (next: SideName) => {

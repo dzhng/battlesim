@@ -20,6 +20,7 @@ use native_client::bundle::{Library, RUNTIME};
 use native_client::capture::Replay;
 use native_client::effects::{EffectPass, Effects};
 use native_client::environment::Environment;
+use native_client::fog::{Fog, FogSight};
 use native_client::fog_mask::fog_mask;
 use native_client::frame::{Passes, Targets, DISPLAY_FORMAT};
 use native_client::gpu::{self, Gpu};
@@ -224,6 +225,9 @@ impl Run {
         // A fresh renderer holds no scars: the first upload writes them all.
         replay.presentation_mut().resend_scars();
         let effects = Effects::new(&gpu.device, &gpu.queue, &pipelines, &environment, &targets)?;
+        // Fog of war over the ground's height pages; a fresh renderer holds none.
+        let fog = Fog::new(&gpu.device, &pipelines, &targets, &ground.heights);
+        replay.presentation_mut().resend_fog();
         let (fog_mask, fog_rim) = fog_mask(&gpu.device, &pipelines, &targets, &replay.fog_look);
         std::fs::create_dir_all(&args.out).map_err(|e| e.to_string())?;
         let sound = match &args.sound {
@@ -256,9 +260,11 @@ impl Run {
                 models,
                 scenery,
                 effects,
+                fog,
                 passes: vec![
                     Box::new(ShadowPass::new(&pipelines)),
                     Box::new(DepthPrepass::new(&pipelines)),
+                    Box::new(FogSight),
                     Box::new(WorldColour::new(&pipelines, sky)),
                     Box::new(EffectPass),
                     Box::new(fog_mask),
@@ -344,6 +350,8 @@ impl Run {
                 .prepare(device, queue, self.replay.presentation(), &camera);
             self.passes
                 .prepare_scars(device, self.replay.presentation_mut());
+            self.passes
+                .prepare_fog(device, queue, self.replay.presentation_mut())?;
             let presentation = self.replay.presentation();
             self.passes
                 .prepare_effects(device, queue, presentation, wrap);

@@ -25,7 +25,8 @@ const cameraConfig = filmCamera(
   gameCamera.config,
   scenes.map((s) => s.reel),
 );
-/** What the reel's viewport is handed: the battle, with no fog overlay and no orders. */
+/** What the reel's viewport is handed: the battle, with no orders, and with
+ *  no fog of war unless `?fog=1` asks for the side's. */
 const REEL_LAYERS: readonly PresentationLayer[] = [
   "sky",
   "terrain",
@@ -69,6 +70,7 @@ export default function GraphicsTest() {
   const [params] = useSearchParams();
   const [chosen] = useState(() => chooseScenes(params.get("scenes")));
   const [plates] = useState(() => params.get("plates") === "1");
+  const [fog] = useState(() => params.get("fog") === "1");
   const [quality] = useState<GraphicsTier | undefined>(() => {
     const value = params.get("quality");
     return value === "low" || value === "medium" || value === "high" ? value : undefined;
@@ -81,7 +83,7 @@ export default function GraphicsTest() {
     createReelReport(done, {
       maps: run.map((s) => s.map),
       plates,
-      layers: REEL_LAYERS,
+      layers: fog ? [...REEL_LAYERS, "fog"] : REEL_LAYERS,
       interruption: reason ? { status: "failed", reason } : undefined,
     });
   const report = stage === "results" ? reportOf(results, failure) : null;
@@ -120,6 +122,7 @@ export default function GraphicsTest() {
         key={results.length}
         scene={run[results.length]}
         plates={plates}
+        fog={fog}
         quality={quality}
         onDone={done}
         onFailure={(reason) => {
@@ -188,12 +191,14 @@ export default function GraphicsTest() {
 function ReelScene({
   scene,
   plates,
+  fog,
   quality,
   onDone,
   onFailure,
 }: {
   scene: BackdropScene;
   plates: boolean;
+  fog: boolean;
   quality?: GraphicsTier;
   onDone: (r: ReelResult) => void;
   onFailure: (reason: string) => void;
@@ -209,7 +214,14 @@ function ReelScene({
   }, [error, onFailure]);
   if (!built || buildFailed(built)) return null;
   return (
-    <ReelBattle scene={scene} scenario={built} plates={plates} quality={quality} onDone={onDone} />
+    <ReelBattle
+      scene={scene}
+      scenario={built}
+      plates={plates}
+      fog={fog}
+      quality={quality}
+      onDone={onDone}
+    />
   );
 }
 
@@ -217,12 +229,15 @@ function ReelBattle({
   scene,
   scenario,
   plates,
+  fog,
   quality,
   onDone,
 }: {
   scene: BackdropScene;
   scenario: string;
   plates: boolean;
+  /** The side's fog of war (the reel films without it). */
+  fog: boolean;
   quality?: GraphicsTier;
   onDone: (r: ReelResult) => void;
 }) {
@@ -270,6 +285,7 @@ function ReelBattle({
         world={world}
         {...session.known}
         {...session.viewport}
+        fog={fog ? session.fogFeed : undefined}
         initialCamera={{
           ...first,
           target: [first.target[0], first.target[1], 0],

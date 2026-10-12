@@ -14,8 +14,11 @@ frames ([records](src/records.gen.ts)): batches already culled and tiered, joint
 palettes, effect instances in draw order and the lights chosen for the view. The
 renderer draws them as given and owns only what is per vertex, texel and pixel:
 the meshes and textures an appearance names, skinning by the given palette, the
-passes. [Models](src/models/) and [fog inputs](src/frame/fogInputs.ts) for the
-static world still consume immutable identities and published causes here.
+passes. Fog of war's sight is decided there too (`presentation::fog::sight`):
+[fog visibility](src/frame/fogVisibility.ts) uploads each frame's eyes,
+occluders, rebuilds and parameters as given and runs the compute.
+[Models](src/models/) for the static world still consume immutable identities
+and published causes here.
 Building damage follows the side's known physical remains, not a renderer guess
 from height or floor count.
 

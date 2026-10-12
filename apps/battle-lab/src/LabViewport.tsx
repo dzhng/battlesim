@@ -52,7 +52,6 @@ import { gameLightFor } from "./gameLight";
 import { gameFogGeometry, gameFogStyle } from "./gameFog";
 import { gameOverlayGlow, gamePaint, gameXrayMinHiddenFragmentFraction } from "./gameOverlay";
 import { gameBuildingStyle, gameGlass, gameModelDetail } from "./gameModels";
-import type { FogInput } from "@packages/battle-renderer/src/frame/fogInputs";
 import type { FogStyle } from "@packages/battle-renderer/src/frame/fogStyle";
 import type { LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
 import type {
@@ -85,6 +84,7 @@ import { NO_SCENERY_WALK } from "@packages/battle-renderer/src/frame/sceneryLaye
 import {
   resolveFogLook,
   resolveLight,
+  type FogRequest,
   type PresentedAppearance,
   type PresentedFrame,
 } from "@web/battle/sim/presentation";
@@ -130,9 +130,10 @@ interface LabViewportProps {
   /** Ground paint that follows the pointer (the range ruler), fed like the
    *  overlay and uploaded apart from it (`BattleFrame.setPointerMarks`). */
   pointerMarks?: FeedSource<Mesh>;
-  /** What the observing side sees from, over the static world, fed like the
-   *  overlay; omitted or null draws no fog. */
-  fog?: FeedSource<FogInput | null>;
+  /** The side's fog of war, which its presentation decides (its sensor
+   *  rules, foliage, and a lab's stand-ins), fed like the overlay; omitted
+   *  or null draws no fog. */
+  fog?: FeedSource<FogRequest | null>;
   /** How unseen looks; the fixture's selected style when omitted. Live. */
   fogStyle?: FogStyle;
   /** The light, fixed for the viewport's life; the fixture's when omitted. */
@@ -564,14 +565,9 @@ export function LabViewport({
     redrawRef.current();
   }, [fogStyle]);
   const fogSuppressed = useRef(false);
-  useEffect(() => {
-    const draw = (input: FogInput | null) => {
-      sceneRef.current?.setFog(fogSuppressed.current ? null : input);
-      redrawRef.current();
-    };
-    draw(fog?.current ?? null);
-    return fog?.subscribe(draw);
-  }, [fog]);
+  // The scene's presentation takes the fog each frame (`setFog` below); a
+  // change only asks for one.
+  useEffect(() => fog?.subscribe(() => redrawRef.current()), [fog]);
   useEffect(
     () =>
       overlay?.subscribe((meshes: WorldMeshes | undefined) => {
@@ -782,7 +778,6 @@ export function LabViewport({
             if (meshes) next.setOverlay(meshes);
             const marks = pointerMarksRef.current?.current;
             if (marks) next.setPointerMarks(marks);
-            next.setFog(fogRef.current?.current ?? null);
             if (appearancesRef.current) await next.setAppearances(appearancesRef.current);
             if (signal.aborted) {
               next.dispose();
@@ -907,6 +902,7 @@ export function LabViewport({
               );
               const layers = worldRef.current.current;
               decoder.setGround(layers?.terrain.input ?? null, layers?.scenery ?? null);
+              decoder.setFog(fogSuppressed.current ? null : (fogRef.current?.current ?? null));
               if (resend) decoder.resendStatics();
               resend = false;
               const quality = qualityRef.current;
@@ -1154,7 +1150,7 @@ export function LabViewport({
           },
           async suppressFog(on: boolean) {
             fogSuppressed.current = on;
-            scene.setFog(on ? null : (fogRef.current?.current ?? null));
+            dirty = true;
             await nextFrame();
           },
           async suppressScars(on: boolean) {

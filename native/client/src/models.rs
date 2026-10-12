@@ -17,6 +17,8 @@ use presentation::static_world::batches::{CAST_PASS, VIEW_PASS};
 use presentation::view::IMPOSTOR;
 use wgpu::*;
 
+use crate::fog::Layer;
+
 use crate::bundle::{Bundle, Coverage, Library, Material, Mesh, Shape, Texture};
 use crate::gpu::bind;
 use crate::pipelines::Pipelines;
@@ -99,6 +101,9 @@ enum Kind {
 
 struct Row {
     kind: Kind,
+    /// How fog takes it (`modelFog.ts`): units never, a corpse as the
+    /// ground under it, the static world face by face.
+    fog: Layer,
     /// A drawable of the static world: it casts only in its caster batches.
     placed: bool,
     tiers: Vec<Drawable>,
@@ -527,6 +532,7 @@ impl Models {
                         .collect();
                     Row {
                         kind: Kind::Corpse,
+                        fog: Layer::Ground,
                         placed: false,
                         tiers,
                         card: None,
@@ -534,6 +540,7 @@ impl Models {
                 }
                 Shape::Skinned(tiers) => Row {
                     kind: Kind::Soldier,
+                    fog: Layer::Units,
                     placed: false,
                     card: match tiers.last() {
                         Some(m) => Some(single(&posed_mesh(m, &rest()?), Some(0))),
@@ -565,6 +572,7 @@ impl Models {
                         .collect();
                     Row {
                         kind: Kind::Vehicle,
+                        fog: Layer::Units,
                         placed: false,
                         tiers,
                         card: None,
@@ -583,6 +591,12 @@ impl Models {
                     };
                     Row {
                         kind: Kind::Piece,
+                        // A row with no state is posed, as a unit is.
+                        fog: if a.placed == 0 && state.is_empty() {
+                            Layer::Units
+                        } else {
+                            Layer::Faces
+                        },
                         placed: a.placed != 0,
                         tiers: s.tiers.iter().map(|m| single(m, Some(0))).collect(),
                         card: None,
@@ -802,6 +816,16 @@ impl Models {
     /// pipeline and groups are set.
     pub fn draw(&self, pass: &mut RenderPass, surface: Surface) {
         let view = |r: &Run| (r.pass == VIEW_PASS).then_some(r.tier);
+        self.each_run(pass, view, |d| d.part(surface));
+    }
+
+    /// As `draw`, the runs of rows fog takes as `layer` only.
+    pub fn draw_fogged(&self, pass: &mut RenderPass, surface: Surface, layer: Layer) {
+        let rows = &self.rows;
+        let view = |r: &Run| {
+            let fogged = rows[r.row].as_ref().is_some_and(|row| row.fog == layer);
+            (r.pass == VIEW_PASS && fogged).then_some(r.tier)
+        };
         self.each_run(pass, view, |d| d.part(surface));
     }
 

@@ -24,7 +24,7 @@ import { createTypegpuPost } from "../world/post";
 import { frameCamera } from "../frameCamera";
 import { battleWorldDepth } from "../worldDepth";
 import type { ResolvedLight } from "../light/sceneLight";
-import type { FogGeometryPresentation } from "./fogInputs";
+import type { FogShaders } from "./fogVisibility";
 import { createEnvironmentFrame } from "./environmentFrame";
 import { GpuRegistry } from "./registry";
 import { allocateFrameTargets, SizedTargets } from "./targets";
@@ -59,8 +59,9 @@ export interface BattleFrameOptions {
   };
   /** `presentation.light`: sun, sky, haze, grade, bloom and cascades. */
   light: ResolvedLight;
-  /** `presentation.fog_geometry`: the sight lights' resolution and budgets. */
-  fogGeometry: FogGeometryPresentation;
+  /** The sight lights' pipeline text constants (`presentation.fog_geometry`);
+   *  the rest of the geometry is the presentation's. */
+  fogGeometry: FogShaders;
   /** The unseen look to start with: `presentation.fog`'s selected style as
    *  the presentation crate resolves it (a `FogLook` record). */
   fogLook: Float32Array;
@@ -149,7 +150,7 @@ export async function createBattleFrame(
         effectiveLight,
       );
       scope.adopt(post.dispose);
-      const fog = world.fogTiles(scope, width, height, t.depth, t.paint);
+      const fog = world.fogTiles(scope, t.depth, t.paint);
       return {
         ...t,
         post,
@@ -296,9 +297,6 @@ export async function createBattleFrame(
         },
         setInstances(next) {
           if (!disposed) world.setInstances(next);
-        },
-        setFog(next) {
-          if (!disposed) world.setFog(next);
         },
         setAppearances(next) {
           // Installation and card baking share model buffers: finish the whole

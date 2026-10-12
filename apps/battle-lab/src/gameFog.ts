@@ -1,14 +1,11 @@
 // Fog's presentation, from the one fixture owner's presentation block: the
-// sight lights' resolution and budgets, the unseen look (named styles, one
+// sight lights' pipeline constants, the unseen look (named styles, one
 // selected), the contact glyphs drawn over fog, and the border that marks
 // the playable area. The rendered margin outside that border stays clear.
-// Every lab route draws
-// with them.
+// Every lab route draws with them; the presentation crate reads and checks
+// the rest of the sight lights' geometry itself.
 import game from "@fixtures/game.json";
-import {
-  validateFogGeometry,
-  type FogGeometryPresentation,
-} from "@packages/battle-renderer/src/frame/fogInputs";
+import type { FogShaders } from "@packages/battle-renderer/src/frame/fogVisibility";
 import {
   validateContactGlyphStyle,
   type ContactGlyphStyle,
@@ -20,9 +17,8 @@ import {
 import type { FogPresentation, FogStyle } from "@packages/battle-renderer/src/frame/fogStyle";
 import { gameHud } from "@web/battle/present/hudTheme";
 
-export const gameFogGeometry: FogGeometryPresentation = validateFogGeometry(
-  game.presentation.fog_geometry as unknown as FogGeometryPresentation,
-);
+/** The numbers the sight lights' shader text takes (`fog_geometry`). */
+export const gameFogGeometry: FogShaders = game.presentation.fog_geometry;
 
 /** Its named unseen looks, checked by the presentation crate as each is
  *  resolved (`resolveFogLook`). */
