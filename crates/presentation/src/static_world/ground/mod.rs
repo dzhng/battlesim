@@ -14,6 +14,8 @@ pub mod scenery;
 mod shapes;
 mod strokes;
 pub mod tables;
+#[cfg(test)]
+mod tests;
 pub mod tuning;
 mod water;
 

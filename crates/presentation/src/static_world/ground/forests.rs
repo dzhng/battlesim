@@ -1,5 +1,6 @@
 //! The map's forests as shapes: each forest's primitives, as the simulation
 //! exports them grouped by forest id, gathered under its metadata row.
+use super::shapes::{closest, distance, stroke_inside, triangle_contains};
 use super::{chunks, js, Source, AREA, FOREST_BOUNDARY, FOREST_STROKE, FOREST_TRIANGLE};
 use std::collections::HashMap;
 use std::ops::Range;
@@ -23,6 +24,37 @@ pub struct Forest {
     pub strokes: Range<usize>,
     pub triangles: Range<usize>,
     pub boundaries: Range<usize>,
+}
+
+impl Forest {
+    /// How far `(x, y)` lies inside the forest's own primitives in `s`
+    /// (negative outside): a rectangle exactly, a strip ending square, a
+    /// polygon by its membership triangles and its ring's edges.
+    pub fn inside(&self, s: &Source, x: f64, y: f64) -> f64 {
+        if let Some([sx, sy, w, h]) = self.rect.map(|r| r.map(f64::from)) {
+            return js::min(js::min(js::min(x - sx, sx + w - x), y - sy), sy + h - y);
+        }
+        if self.kind == Kind::Stroke {
+            let strokes = chunks::<FOREST_STROKE>(&s.forest_strokes[self.strokes.clone()]);
+            return strokes
+                .iter()
+                .fold(-1e9, |d, r| js::max(d, stroke_inside(r, [x, y])));
+        }
+        let pt = |r: &[f32], k: usize| [r[k * 2] as f64, r[k * 2 + 1] as f64];
+        let triangles = chunks::<FOREST_TRIANGLE>(&s.forest_triangles[self.triangles.clone()]);
+        let inside = triangles
+            .iter()
+            .any(|t| triangle_contains(pt(t, 0), pt(t, 1), pt(t, 2), [x, y]));
+        let edges = chunks::<FOREST_BOUNDARY>(&s.forest_boundaries[self.boundaries.clone()]);
+        let nearest = edges.iter().fold(1e9, |n, e| {
+            js::min(n, distance([x, y], closest([x, y], pt(e, 0), pt(e, 1))))
+        });
+        if inside {
+            nearest
+        } else {
+            -nearest
+        }
+    }
 }
 
 type Groups = HashMap<u32, Range<usize>>;

@@ -24,12 +24,10 @@
 //! colour multiplies its albedo. The float order is the page's TypeScript's.
 use super::biome::{Biome, Trees};
 use super::field::{Field, FOOTPRINT_M};
-use super::forests::{Forest, Kind};
+use super::forests::Kind;
 use super::js::{self, Rng};
-use super::shapes::{
-    centroid, closest, distance, polygon_contains, stroke_inside, triangle_contains,
-};
-use super::{chunks, Ground, FOREST_BOUNDARY, FOREST_STROKE, FOREST_TRIANGLE, PROP};
+use super::shapes::{centroid, polygon_contains};
+use super::{chunks, Ground, FOREST_STROKE, FOREST_TRIANGLE, PROP};
 use std::collections::{HashMap, HashSet};
 use std::f64::consts::PI;
 
@@ -529,34 +527,6 @@ impl Ground {
     }
 }
 
-/// How far `(x, y)` lies inside forest `f`'s own primitives (negative
-/// outside): a rectangle exactly, a strip ending square, a polygon by its
-/// membership triangles and its ring's edges.
-fn forest_inside(s: &super::Source, f: &Forest, x: f64, y: f64) -> f64 {
-    if let Some([sx, sy, w, h]) = f.rect.map(|r| r.map(f64::from)) {
-        return js::min(js::min(js::min(x - sx, sx + w - x), y - sy), sy + h - y);
-    }
-    if f.kind == Kind::Stroke {
-        return chunks::<FOREST_STROKE>(&s.forest_strokes[f.strokes.clone()])
-            .iter()
-            .fold(-1e9, |d, r| js::max(d, stroke_inside(r, [x, y])));
-    }
-    let pt = |r: &[f32], k: usize| [r[k * 2] as f64, r[k * 2 + 1] as f64];
-    let triangles = chunks::<FOREST_TRIANGLE>(&s.forest_triangles[f.triangles.clone()]);
-    let inside = triangles
-        .iter()
-        .any(|t| triangle_contains(pt(t, 0), pt(t, 1), pt(t, 2), [x, y]));
-    let edges = chunks::<FOREST_BOUNDARY>(&s.forest_boundaries[f.boundaries.clone()]);
-    let nearest = edges.iter().fold(1e9, |n, e| {
-        js::min(n, distance([x, y], closest([x, y], pt(e, 0), pt(e, 1))))
-    });
-    if inside {
-        nearest
-    } else {
-        -nearest
-    }
-}
-
 fn forests(
     site: &Site,
     trees: &Trees,
@@ -583,7 +553,7 @@ fn forests(
             let inside = if f.kind == Kind::Stroke {
                 OPEN
             } else {
-                forest_inside(source, f, x, y)
+                f.inside(source, x, y)
             };
             let (kind, tint) = species.pick(&mut rng, x, y, inside);
             let k = size[kind];
@@ -715,10 +685,7 @@ fn understorey(site: &Site, b: &Biome, size: &[Size], kind: usize) -> Vec<f32> {
                 let y = r[1] as f64 + dy * (along - starts[stretch]) + dx * aside;
                 // Its whole reach on the strip's own ground: a shrub is drawn
                 // smaller to fit, and not at all where it would be smaller than its kind.
-                let scale = js::min(
-                    long,
-                    forest_inside(&site.ground.source, f, x, y) / shrub.radius,
-                );
+                let scale = js::min(long, f.inside(&site.ground.source, x, y) / shrub.radius);
                 if scale < rules.length[0] || !clear(x, y, shrub.radius * scale) {
                     continue;
                 }
