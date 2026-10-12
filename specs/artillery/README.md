@@ -88,13 +88,17 @@ Use the narrowest check per slice, then run the repository-wide checks once at c
 ## Closeout evidence
 
 Focused native, catalog, browser and artillery-scene checks pass. The full
-`bun run check` stops in workspace lint before tests because the workspace image
-has no ALSA development package for `alsa-sys`; `cargo clippy -p sim
---all-targets -- -D warnings` is clean. The full `bun run verify` exits with 152
-failures. They include the SwiftShader 256-layer limit against the complete
-roster's 477 layers, missing non-artillery source/baseline LFS objects, and
-cascading renderer/startup failures in unrelated scenes. The artillery scene
-passes both assertions. These logs remain in
+`bun run check` was rerun with a local ALSA development sysroot; its workspace
+tests are still running in the current environment. The earlier lint-only
+failure was environmental (`alsa-sys` could not find `alsa.pc`), while
+`cargo clippy -p sim --all-targets -- -D warnings` is clean. A full browser
+rerun after fetching the required LFS baselines and city inputs removed the
+pointer failures but still hit the SwiftShader 256-layer limit against the
+complete roster's 477-layer model texture array; it was stopped after 120
+reported failures and timeout cascades. The artillery scene itself passes both
+assertions. The rerun logs are in
+`throwaway/artillery-full-check-rerun2.log` and
+`throwaway/artillery-full-verify-rerun.log`; the original attempts remain in
 `throwaway/artillery-full-check.log` and `throwaway/artillery-full-verify.log`.
 
 No approved artillery or command-bar baseline was supplied or added to the
