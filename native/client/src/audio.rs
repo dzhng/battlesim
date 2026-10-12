@@ -9,8 +9,8 @@
 //!   its buffer's calibration, low-passed by the track's filter, placed left
 //!   or right by an equal-power pan (by direction from the listener, or the
 //!   cue's sector), and sending its share into its bus's reverb;
-//! - buses (units, effects, ambience) sum under the master, through a
-//!   limiter.
+//! - buses (units, effects, ambience, voices) sum under the master,
+//!   through a limiter.
 //!
 //! The output is the default device, or a buffer rendered on demand
 //! (`Output::Buffer`), which is how it is tested and recorded without
@@ -43,7 +43,7 @@ use serde_json::{json, Value};
 pub const SAMPLE_RATE: u32 = 48_000;
 /// Seconds a live loop's parameters glide to a new value over.
 const GLIDE_S: f64 = 0.06;
-const BUSES: [Bus; 3] = [Bus::Units, Bus::Effects, Bus::Ambience];
+const BUSES: [Bus; 4] = [Bus::Units, Bus::Effects, Bus::Ambience, Bus::Voices];
 
 fn tween(seconds: f64) -> Tween {
     Tween {
@@ -240,6 +240,7 @@ impl Audio {
                 Bus::Units => audio.buses.units,
                 Bus::Effects => audio.buses.effects,
                 Bus::Ambience => audio.buses.ambience,
+                Bus::Voices => audio.buses.voices,
             };
             // The distance reverb's tail joins its bus, so it takes the
             // bus's level; send tracks sum straight into the master.

@@ -21,7 +21,7 @@ export function nativeReporter(root: string): NativeReporter {
       const child = spawn(
         resolve(
           root,
-          process.env.CARGO_TARGET_DIR ?? "throwaway/target",
+          process.env.CARGO_TARGET_DIR ?? "target",
           "release/examples/map_workbench_report",
         ),
         [],

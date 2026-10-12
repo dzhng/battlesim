@@ -1,17 +1,5 @@
 {
   "beds": {
-    "helicopter_rotor": {
-      "raw": "assets/source/audio/voices/beds/helicopter_rotor.a8ead498.mp3",
-      "sha256": "a8ead4981f8756309dc82e73f792b05061b18506daf3cccdb1e671a1df499e59",
-      "provenance": {
-        "kind": "Generated",
-        "generator": "ElevenLabs sound effects",
-        "model": "eleven_text_to_sound_v2",
-        "prompt": "Inside a military helicopter cockpit: steady rotor thump and turbine whine, muffled, constant loop",
-        "date": "2026-10-12",
-        "plan": "Duet ElevenLabs"
-      }
-    },
     "tank_engine": {
       "raw": "assets/source/audio/voices/beds/tank_engine.88159717.mp3",
       "sha256": "88159717767116e476da22a74493698f77ca880cfce6db93d146a25ca5cf4b1b",
@@ -83,8 +71,8 @@
       "generation_key": "ecb42539c7c5598788cc7021db1bfe2ce7b4edf7c88099dd8e952cb5668c1892",
       "raw": "assets/source/audio/voices/uk_attack_helicopter_pilot/lead-move-steady-0.ecb42539.mp3",
       "raw_sha256": "949b77af253eaccbd259091452e89b91165749780f8b3f9157ad75ef7eb09e94",
-      "processing_key": "4a184f328cd35361c1e78f8100d20df75ec830469f8e633e6baaee6792e448f4",
-      "served_sha256": "1fd39a4a3500dbb0e23f6e98ee40906136049120b8b9e274b1bd61376d70d7b3",
+      "processing_key": "ef5d774caa21989d97eaa7ec5599762d9ed8096073ea1989d92437395a571c19",
+      "served_sha256": "4ec3284ae7aa0434f004062109ac969ea6d6cd8f2f67ef64601501e20c54c5dc",
       "duration_s": 1.68,
       "transcript": "Roger, inbound to the waypoint",
       "match": {
@@ -109,8 +97,8 @@
       "generation_key": "9f58a78dc82f052f010b0e7994ad93b7ad955bdaf1115ec0140bb764e22643f3",
       "raw": "assets/source/audio/voices/uk_attack_helicopter_pilot/lead-move-stressed-0.9f58a78d.mp3",
       "raw_sha256": "86710496de4d2252ec7d51e70b54257c668178cd226088a83e47d79e912dd2fb",
-      "processing_key": "c93c60fa914dd330346468945fbb7cb683a85220e23d679a5bd7ccca6f2668ff",
-      "served_sha256": "b7e110005dadb4c8fb0f045df360fce73c0af1329b18f137e4b75e3860164d05",
+      "processing_key": "f8b7774622c701fe7513b6a131d54c41e0bbee020da11bf64d19eb641ece4cdf",
+      "served_sha256": "f1728b7a26197766a3ae4b1ae2316c1d6666c8f2d58d0d8930e7ac51514f066a",
       "duration_s": 2.48,
       "transcript": "Moving low and fast",
       "match": {
@@ -182,12 +170,636 @@
         "plan": "Duet ElevenLabs"
       }
     },
+    "us_tank_crew/lead/arrived/steady/0": {
+      "text": "Oscar 55, in position.",
+      "generation_key": "e344a361ca4934e49e33cfbe59810681f1c43cb86842b98fb55170008b96e795",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-arrived-steady-0.e344a361.mp3",
+      "raw_sha256": "90bd5cf3bb95d3c2a28fe0b80474bbfafc21c6630b015b36bc91d3a8614f6171",
+      "processing_key": "a2235ec8c37314f107d9058f26f3848fbd98a6a2243b910571682fba72f21f1d",
+      "served_sha256": "dcd286531585dd2a48ce8902aa8467d17422b9fd8b020998d988eb801e57ad92",
+      "duration_s": 3.52,
+      "transcript": "Oscar 55 in position",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Oscar 55, in position.",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/arrived/steady/1": {
+      "text": "Set, hull down.",
+      "generation_key": "c74c02be274a064b555faa6fb3d922eab1d33ee5b47195cf392d4bec8ec3ff92",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-arrived-steady-1.c74c02be.mp3",
+      "raw_sha256": "3dafe36a0d0f49fa4c88e9fbf030af88cc875d7272a182ee51afeef620c3bb21",
+      "processing_key": "2900856f32c7a55162a2353e4d1faaefc7a92aaf0465a1f713dd26d6c73f73fa",
+      "served_sha256": "c229ba0bbae389dbc52f8b8b4f990a940581485a7441b7f3ce5632fc9e765263",
+      "duration_s": 1.36,
+      "transcript": "Set. Hull down",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Set, hull down.",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/arrived/stressed/0": {
+      "text": "[breathless] Oscar 55, in position, scanning!",
+      "generation_key": "24a48c54a94cfe0dd0060bff497d0a65bbb4fabffc55db8b519b27867da7c91e",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-arrived-stressed-0.24a48c54.mp3",
+      "raw_sha256": "e15a331964898566e3083c44adee1ba40709675d9012062722a5f9c8b0b7506a",
+      "processing_key": "5f2b5af0ca9a4311edf3947b02ea43ca1dabd6c868b352f3c7f4b85adc35115f",
+      "served_sha256": "cc210b309321f658a975aa7ce9cd9d1b1b1ac1a9a956c46cd5e7c97320949726",
+      "duration_s": 3.12,
+      "transcript": "Oscar 55 in position scanning",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "[breathless] Oscar 55, in position, scanning!",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/arrived/stressed/1": {
+      "text": "[urgent] We are set, eyes out!",
+      "generation_key": "3c470a9a8c0bbd56434d2877f57d1741d5f229b21a7c4a1f1d2058af31db42c2",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-arrived-stressed-1.3c470a9a.mp3",
+      "raw_sha256": "0b192b57b91b49b88401ffea243327a5e2b8c587304386669b633a067fc7da19",
+      "processing_key": "2d2dbcfeaef224d810298ab0b380fc16a37adc99c17d08cc942fcd9a7452a09b",
+      "served_sha256": "0964c8e5236eee226e254e449b832811e59bcd3f92ce946054824b6732630dbb",
+      "duration_s": 2.08,
+      "transcript": "We are set. Eyes out",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "[urgent] We are set, eyes out!",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/attack/steady/0": {
+      "text": "Gunner, target. Engaging.",
+      "generation_key": "0a917c4c21dafc28ff5b33d756adf7cfdb2a3fb30c5d6d3b0e1ad71232b46bef",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-attack-steady-0.0a917c4c.mp3",
+      "raw_sha256": "d961f57347c8013db31bd596a1ad98890fa56913d3414de175eccf99c369ebef",
+      "processing_key": "a7ea5c1bf762dbee37e3b319fb1e2fe5f5b7088c5fcdbecad73cc667a3f76a0e",
+      "served_sha256": "9bddf652d241edab7c5cc8640e702a6521c0381a49db1d03041f6f2f64e1fe75",
+      "duration_s": 2.32,
+      "transcript": "Gunner, target. Engaging",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Gunner, target. Engaging.",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/attack/steady/1": {
+      "text": "Roger, target identified.",
+      "generation_key": "5ae12b04370b3153920dd436cbd3d7a756eebe60fefdfd9afefd8457bb8ec4ec",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-attack-steady-1.5ae12b04.mp3",
+      "raw_sha256": "851ebed5e0ee56f4e8bb5d5d00ec287dc0b2dffa3339ee8ff23851475a34f56a",
+      "processing_key": "8a5ff8e70f017f3f8730241f0ffd6ff6f26c19770a00c22ffeb00373e02ccc48",
+      "served_sha256": "af3aa9022c48cf012b01a1c1476eeabcc51030d44b14be72367a24ada48216a9",
+      "duration_s": 1.68,
+      "transcript": "Roger, target identified",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Roger, target identified.",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/attack/stressed/0": {
+      "text": "[shouting] Gunner, sabot, tank, fire!",
+      "generation_key": "3ef258816fb35321816eb993803f203f7679ec66a49663d88cc0aa80c4badc26",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-attack-stressed-0.3ef25881.mp3",
+      "raw_sha256": "8bd91887426f373cc76190ad2613176b7f30bb973d1b61e5d6cf64efe719df12",
+      "processing_key": "e9f1f1054f1dad4104a6193819fc8decdfa61f80af9af7e96abcff7a156817b9",
+      "served_sha256": "236383162e34cf4b0b7dfd0d67927b9ed685d4eac9a372d3070991fee322fa9f",
+      "duration_s": 2.64,
+      "transcript": "Gunner, Sabot, tank, fire!",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "[shouting] Gunner, sabot, tank, fire!",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/attack/stressed/1": {
+      "text": "[urgent] Lay on it, gunner! Kill it!",
+      "generation_key": "62c6d84837725fbc6d59f7cfea107b6912d8405b1d6876ee734d91f81e382201",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-attack-stressed-1.62c6d848.mp3",
+      "raw_sha256": "6ad57a5d7846c028b4b66c8b87b49402793a13ddb5971cf967beef950865239b",
+      "processing_key": "94f8a1613cd945a576e4b4ab23eca8c7ba4d86473071cfa69d3ed9c38660b6dc",
+      "served_sha256": "e6c80ae1614231123ecfe56e35c5967ba2b834e945ed1424fb78636fb06051e7",
+      "duration_s": 2.56,
+      "transcript": "Lay on it, gunner. Kill it",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "[urgent] Lay on it, gunner! Kill it!",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/attack_move/steady/0": {
+      "text": "Advancing, guns ready.",
+      "generation_key": "47265f8a81544f38cd7602d9a164d49b6b226c70f11edf403f250280e4963aba",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-attack_move-steady-0.47265f8a.mp3",
+      "raw_sha256": "24b46223b612b1efa5ffaf73d02f3d4f479f50ce43393d459c3a0d555e94afec",
+      "processing_key": "4ac93a1257af470e1b117843bab86d18ea84c2b37aa65b8205861bb745464e22",
+      "served_sha256": "6e42cdf0ef20e587103d9382e0fcbb193bbe7db967b094bfd63167059209caa3",
+      "duration_s": 1.6,
+      "transcript": "Advancing, guns ready",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Advancing, guns ready.",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/attack_move/steady/1": {
+      "text": "Rolling forward, scanning.",
+      "generation_key": "0e586b4745af3a81fd983ea5303d9e4a37406ef09ff6f632680ce7ee6dbb8bfe",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-attack_move-steady-1.0e586b47.mp3",
+      "raw_sha256": "efad859b4316efb4dca3a07ba5562ae88392236f3321cd0aab0eec7489c72dd8",
+      "processing_key": "300b1c57a0184136d9683cfc7f96fbe08ff7ed691b6419a33dc97d8324d22163",
+      "served_sha256": "e3beeb0888351d7ac6c4955162af94a59cf4541918a025c8543f58d7aaf802ad",
+      "duration_s": 1.68,
+      "transcript": "Rowing forward, scanning",
+      "match": {
+        "score": 0.67,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Rolling forward, scanning.",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/attack_move/stressed/0": {
+      "text": "[urgent] Push forward, keep firing!",
+      "generation_key": "6ad25c0615ded18fdad55b584eb9706f113f0c678d220535ab8df40fe1712edc",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-attack_move-stressed-0.6ad25c06.mp3",
+      "raw_sha256": "699023ad32044d145bb698586e1f8de0fe37f20dd4f8776bbd50bc41f0196694",
+      "processing_key": "070225ee24f8f70b951fceeec67fa2e842658059c031ca742ee1ec5bb143a476",
+      "served_sha256": "2e36dfd0c3f2641a7b167128f04606bfeb3a7c1ddec8fee9d6fa1b7f533b7639",
+      "duration_s": 3.12,
+      "transcript": "Push forward. Keep firing.",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "[urgent] Push forward, keep firing!",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/attack_move/stressed/1": {
+      "text": "[shouting] Driver, move! Gunner, hit anything!",
+      "generation_key": "dcb0c5e00820ec331a95fed63e5cbb00510ecb5acb2ef641fefcbc9ff5db0f66",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-attack_move-stressed-1.dcb0c5e0.mp3",
+      "raw_sha256": "230c9b32e23d1c4383cb7988f0e26fd8c45aad00ceb5735e21b1b357fd4d95fa",
+      "processing_key": "f78064d947dbc818481d4bdbbc16d6c8b62d9a88ae847146c6f45138948a7f6e",
+      "served_sha256": "39be378b60eec7b20718035ca6c344cb627af3d820260a7f59bb8f65e7f40fa8",
+      "duration_s": 3.92,
+      "transcript": "Driver, move! Gunner, hit anything",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "[shouting] Driver, move! Gunner, hit anything!",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/enter_building/steady/0": {
+      "text": "Pulling in by the building.",
+      "generation_key": "7e51f0aa2f2daab37203b30bf8f385c19c372c3545bfa72cac79412bc8f0b983",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-enter_building-steady-0.7e51f0aa.mp3",
+      "raw_sha256": "b754eb049e7e5ca27cdd3674c006a5fe642a6d9ce8c9a0590722e5d2c1eb9ccc",
+      "processing_key": "ad7cf00e9915a7efb903fb3024b7618cb1ce5b1a92b1a9e963e6f6b71166df82",
+      "served_sha256": "ddefbe02273f6a0c6e4d9f231ec5044128aa767a4f189493b4d70b24f9c76de3",
+      "duration_s": 1.12,
+      "transcript": "Pulling in by the building",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Pulling in by the building.",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/enter_building/steady/1": {
+      "text": "Hugging the wall.",
+      "generation_key": "a38e33400d0399d1ea6a8bd89f584e212f8f0dd233c19f96f40477150bc61abb",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-enter_building-steady-1.a38e3340.mp3",
+      "raw_sha256": "89817f03f3b05a843cdd672b0851c2fa7573ad5b7d3e821a7871318e9a3f430c",
+      "processing_key": "2b1fddebfa9d4726d5029f3bb931fff3739a43cd54eb430d8a60f5ea4ae28906",
+      "served_sha256": "3b9f7b1cb2545b9a22128b2453316272b52fc4521224186a6de0bb1c5651b854",
+      "duration_s": 0.96,
+      "transcript": "Huggin' the wall",
+      "match": {
+        "score": 0.67,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Hugging the wall.",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/enter_building/stressed/0": {
+      "text": "[urgent] Get us next to that building!",
+      "generation_key": "7397237ecb2149aaf7393722d74973a4119755b75747872054c872cb7017e057",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-enter_building-stressed-0.7397237e.mp3",
+      "raw_sha256": "b26f5aedbcd391aa2c450958f3f31a2ed74940bf9730dd616a5a845640403142",
+      "processing_key": "68e77a36703cb919c2f17af83b20706b0eace9e797e281e8e82c71265b7094b7",
+      "served_sha256": "cfee8d501ddda310ad3b53f31aba6aee3d904b37248477dadddde92ed7886bda",
+      "duration_s": 1.92,
+      "transcript": "Get us next to that building",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "[urgent] Get us next to that building!",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/enter_building/stressed/1": {
+      "text": "[shouting] Driver, tuck in behind the wall!",
+      "generation_key": "79ddc3ce3cc6c3cfbedbe25bfe62527134f9a55a668d4156248a06ce4dc86806",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-enter_building-stressed-1.79ddc3ce.mp3",
+      "raw_sha256": "b4fbb2eba5b5e847128a0e0f16120679d0e9e018d55400989fdf9c3e4f12aea9",
+      "processing_key": "897b821f7450e6e3230c10b5580499c4bf0681f6ab11457467ccb1a4b5181153",
+      "served_sha256": "86bb05d20b200732bb5632f7e84858eff1a3816044a97b4c590652082e7dae6b",
+      "duration_s": 2,
+      "transcript": "Driver, tuck in behind the wall",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "[shouting] Driver, tuck in behind the wall!",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/hold_fire/steady/0": {
+      "text": "Cease fire, gunner.",
+      "generation_key": "dacdd1116246d4aff0bc0184fa66380fdcdefe69ab3e475b8f4884f37a09257a",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-hold_fire-steady-0.dacdd111.mp3",
+      "raw_sha256": "d78717be85c9401978838eca4b5662f1510a64d678dc7aded5693e64bb4fe747",
+      "processing_key": "9612f38c2c71789fb0e0a296edafa5e91ab25838f413e93585960b213205095e",
+      "served_sha256": "e80507d0f67f81f5fe243c5929063780d08e087b5847eff9ba59e65b04b82ff7",
+      "duration_s": 1.28,
+      "transcript": "Cease fire, gunner",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Cease fire, gunner.",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/hold_fire/steady/1": {
+      "text": "Holding fire.",
+      "generation_key": "b493a8def56d107e0c7deeaf5f3b3ad79774e2d255c501f0b73a16b7db886796",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-hold_fire-steady-1.b493a8de.mp3",
+      "raw_sha256": "8155e40cf88e69fb04da3b4193f7dc491f150e84ee4ec881e85a89ef2534df42",
+      "processing_key": "30ac319c3320f2e3705455fd5aed998866b194a6692db1fa8bb20564377d2d7e",
+      "served_sha256": "50c4ee0422a8a73c968a7ac0e87d7187495952bbd46bd038401cfb45bc22474c",
+      "duration_s": 0.96,
+      "transcript": "Holding fire",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Holding fire.",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/hold_fire/stressed/0": {
+      "text": "[urgent] Cease fire, cease fire!",
+      "generation_key": "b1ca0d5f4b021429c2643acec0ed3e14b41eee9226b80d1ed44ef0a6634d98fc",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-hold_fire-stressed-0.b1ca0d5f.mp3",
+      "raw_sha256": "7a89788a54a138e49d19289a1280d450348199c4e2718e8691cdc22254da4a54",
+      "processing_key": "f43a22406daf33c702b86e427236cf6b0ae33b124ce27d8a0e12ccf094c5a7fb",
+      "served_sha256": "2ce3645b621ebc0ab4c36ed766fb95e01e6262321b9da9bd97aaf0ca473c6614",
+      "duration_s": 2.4,
+      "transcript": "Cease fire. Cease fire",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "[urgent] Cease fire, cease fire!",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/hold_fire/stressed/1": {
+      "text": "[shouting] Hold your fire, damn it!",
+      "generation_key": "4b2d7afb98d42b7abba2bf92fdb0bfd58e8b395d131702bb4d8940e28c4ff353",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-hold_fire-stressed-1.4b2d7afb.mp3",
+      "raw_sha256": "13b833eee08516164fa997b9c32047f335d572af77902d2165a165af58419eaf",
+      "processing_key": "97cc093039138979bd74b83381ddd16dae414e0cd7c556f5cb2c1599dfe3ba74",
+      "served_sha256": "ca17533f8ddd07ad16f09ebe33686bc23323b2388ca02ff16c34ff5735ffc302",
+      "duration_s": 2.24,
+      "transcript": "Hold your fire, damn it!",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "[shouting] Hold your fire, damn it!",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/leave_building/steady/0": {
+      "text": "Pulling away from cover.",
+      "generation_key": "94172274e417aeb688738c13e631864e993c4b9c22be68cc3dcb6dfa09619fe4",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-leave_building-steady-0.94172274.mp3",
+      "raw_sha256": "2f175e5040a761be9bfc88ecc830aa31030ca5270e5a3c47ac43c7238e49ff85",
+      "processing_key": "f779d8427be0901653bd0b63c1cbb9fafaced6a63e396ad217335aba75d76889",
+      "served_sha256": "162e3b2103bd35a83065206f56aee61209e2aba7ab8719625d4884359a7d5d8c",
+      "duration_s": 1.12,
+      "transcript": "Pulling away from cover",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Pulling away from cover.",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/leave_building/steady/1": {
+      "text": "Moving off the wall.",
+      "generation_key": "ae32fe50712f575bd0c061110ba097d08f534e9d53a6a2b13494c89a30f30745",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-leave_building-steady-1.ae32fe50.mp3",
+      "raw_sha256": "ac5f3bf7b8f05a4aa5c1355493fba089e0473524f7db6a6befc25df4698af60a",
+      "processing_key": "8ec66303c997a5cf64b4cdeaa5e5e3a40824b657acd90c070c3989449b00d018",
+      "served_sha256": "0349bb43b64eca62a6d33ff9a048808d0de913b87efd5e1d272d43a2223c82fb",
+      "duration_s": 1.12,
+      "transcript": "Moving off the wall",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Moving off the wall.",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/leave_building/stressed/0": {
+      "text": "[urgent] Back out, back out of there!",
+      "generation_key": "8ef09c61d3007ab70bf953b0ec52d5beb31ac0dca02eb07c8088a1a5234973f0",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-leave_building-stressed-0.8ef09c61.mp3",
+      "raw_sha256": "3be2c3c2b15a84bf6c9f54e2f373492458e700fc15c458760a0ff60d13642fb8",
+      "processing_key": "c420dfcbc3fbbcb642496b240e88027982b49cb666ae4265e7fc0b832d6310e6",
+      "served_sha256": "65a3ba7b54c5d1b1e371c664e6b57ea42b2e210db4161a935f47374374554ad4",
+      "duration_s": 2,
+      "transcript": "Back out. Back out of there",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "[urgent] Back out, back out of there!",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/leave_building/stressed/1": {
+      "text": "[shouting] Driver, get us clear!",
+      "generation_key": "c495ade4ae6fa81e8c1a5348a9e7122d78ed4672dc6d443442f2c50046dc3ae2",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-leave_building-stressed-1.c495ade4.mp3",
+      "raw_sha256": "983584037984f26ed86dc174a3826c1687dc1da5f88ebab899d2f2d5d90503df",
+      "processing_key": "2936c9967a08e929462f05ba5b0f670f497ea0525a702643ee389d51d0f77e44",
+      "served_sha256": "18c5b4c0e5c4c49c4dc2600e4054fb11d78f806c42f2152bc4fc0da93b6c34da",
+      "duration_s": 2.64,
+      "transcript": "Driver, get us clear",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "[shouting] Driver, get us clear!",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
     "us_tank_crew/lead/move/steady/0": {
       "text": "Roger, moving out.",
       "generation_key": "811f525783dc9afdfb3ef7c8c1663258a2ee92c1ffd88dc5c81b871af83033cd",
       "raw": "assets/source/audio/voices/us_tank_crew/lead-move-steady-0.811f5257.mp3",
       "raw_sha256": "798c604227ae8dda868f1f6ce3d088cac508fc669ebbeb64be88c3e7fff335f4",
-      "processing_key": "d8dbbdac439559974f3a232c1e8b2b88b9b5801a9644ec9c9467dcce5b19943d",
+      "processing_key": "860ec474ff9365b5280432e5a42dc6aaea83c021b2ca14d3c7b8e43df1dbb755",
       "served_sha256": "966e9a972d25d781ab048d881f0367b0e9a67e506da0df5fac3253c36bbd9064",
       "duration_s": 1.12,
       "transcript": "Roger, moving out",
@@ -208,12 +820,38 @@
         "plan": "Duet ElevenLabs"
       }
     },
+    "us_tank_crew/lead/move/steady/1": {
+      "text": "Driver, move out.",
+      "generation_key": "8d8df42a2f9ca39e65629ccb9934fbb61b1d1cddf9b15e0d35a9563c9046b39c",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-move-steady-1.8d8df42a.mp3",
+      "raw_sha256": "8f9fb24446417db51e61205a6126fd887d662f05fab88057b8472b634ebf6fa6",
+      "processing_key": "2282de95550acc488aa686c66aa8e6d646da7807b2c2ff277884c07af618dd44",
+      "served_sha256": "95a2274e3f968e3e8a9acf3eef6baeecdfe2796eb45d77eb6a4de045485e8287",
+      "duration_s": 1.12,
+      "transcript": "Driver move out",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Driver, move out.",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
     "us_tank_crew/lead/move/stressed/0": {
       "text": "[urgent] Driver, go, go, go!",
       "generation_key": "e61579ca5a5a99c1f0c01609a2a4e6455bdd037aa48d018d0c2b293c9f80d903",
       "raw": "assets/source/audio/voices/us_tank_crew/lead-move-stressed-0.e61579ca.mp3",
       "raw_sha256": "52514410b53d9268050392489ee91b40a57c1648c487324b1eb4e24e3bfa38b6",
-      "processing_key": "956e8319af1534814a923cd9084b48bdf170c8bb62132377c140bd2a32a6d137",
+      "processing_key": "eb622c27117c0d4b08e3c6981870c356a6a107fb2176493dd3badca8215a0a47",
       "served_sha256": "cdce84b0c91db2922ebbc453f7cb0a87f3b722b9ac95ff334617a60ae5307921",
       "duration_s": 2.72,
       "transcript": "Driver, go, go, go!",
@@ -228,6 +866,552 @@
         "generator": "ElevenLabs text-to-speech",
         "model": "eleven_v3",
         "text": "[urgent] Driver, go, go, go!",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/move/stressed/1": {
+      "text": "[shouting] Moving! Driver, step on it!",
+      "generation_key": "d09a2af3f1b79e9a1edd096e542420bec074f925cbcded3fe5a5f88f95d6082e",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-move-stressed-1.d09a2af3.mp3",
+      "raw_sha256": "861377970dc7b02dd5f6d52605c9d6d7a59d37d9bff32fc22da4909260e615f2",
+      "processing_key": "19d98cf4d8cae85f05b3be93684d7e64021c5eaa5ab3dbc41c59f8f01bd20033",
+      "served_sha256": "d1dbb2f25baa50093eed7c70c3d69c288f2e83df42cab8b5edffa181893fb0e8",
+      "duration_s": 3.92,
+      "transcript": "Moving. Driver, step on it",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "[shouting] Moving! Driver, step on it!",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/refused/steady/0": {
+      "text": "Negative, cannot get there.",
+      "generation_key": "a5e8f557e81149f0ee533e1a09c746482a3012552ffdb48f7a4bd01267457fbb",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-refused-steady-0.a5e8f557.mp3",
+      "raw_sha256": "25fd8a8d2a1920ce0b9811ff0dfd7a0c4c9a669c492e799168e528fd92cb9665",
+      "processing_key": "f93de778f3b38341d0d8e29f9f6ebe6ec4bb251868c12d07f5fb1bcb4b268532",
+      "served_sha256": "82d6e6315fe07cd3fb5a16b3c24c500c899fc4afcf00f652ecbcdd07c6792ced",
+      "duration_s": 1.52,
+      "transcript": "Negative. Cannot get there",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Negative, cannot get there.",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/refused/steady/1": {
+      "text": "Unable, no way through.",
+      "generation_key": "e1d888902c759c6d08eb221110050fd9d8efbde6f6d907f0af27b7e187377b54",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-refused-steady-1.e1d88890.mp3",
+      "raw_sha256": "80118147c2797ebd9f5ebfdae323f4c2a878d53b7bd024011d070d7f0fdc7192",
+      "processing_key": "5f4ee87b4faef15e4d914ab3ecc62fdfd4181919fc706086d6484f7eb685968b",
+      "served_sha256": "a9247fc6fa948a1386a18017092c09cab712f2d888be41fb1816d8de52853db5",
+      "duration_s": 2,
+      "transcript": "Unable. No way through",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Unable, no way through.",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/refused/stressed/0": {
+      "text": "[urgent] Negative, we cannot do that!",
+      "generation_key": "eddb945d137d8f971ea71d53a4edc3538827a41f97397eba6e1ce348fc3f3f33",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-refused-stressed-0.eddb945d.mp3",
+      "raw_sha256": "565b1e9f38e95014dd3b9fffab4fd9a23e8d9b820ca71c36187dcc5bd2dc5c9f",
+      "processing_key": "bd76ca095a9209b04cc81c14cb03e33c61d450d53080201d0e0b6ac6e752308c",
+      "served_sha256": "50a8c512e8e01f435e92f2e81482e60ea3bf41d1670707ae8997d6e06d6bc18f",
+      "duration_s": 2.48,
+      "transcript": "Negative. We cannot do that",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "[urgent] Negative, we cannot do that!",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/refused/stressed/1": {
+      "text": "[shouting] Can't get through, forget it!",
+      "generation_key": "51465a63d207165950fbaad5584670fe1fa28a107a8550446c3b8179221d856e",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-refused-stressed-1.51465a63.mp3",
+      "raw_sha256": "de08efe15b1b32b5d121cffa8e9a845169fc570c71b859f5010809bf9e6300ba",
+      "processing_key": "8bcb23d717c751b5c2c8c11effdabc115dc4ab5d6dca456051bb865960e4f191",
+      "served_sha256": "f904dd58ec0ef026da6c2466cdf271605485c44b8c12290873878424585e24b9",
+      "duration_s": 1.84,
+      "transcript": "Can't get through. Forget it",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "[shouting] Can't get through, forget it!",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/selected/steady/0": {
+      "text": "Oscar 55, go ahead.",
+      "generation_key": "1e296c3be9de691dae019bccbabac1de548bc5c7ddafaf0640a4b1a94bc9a577",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-selected-steady-0.1e296c3b.mp3",
+      "raw_sha256": "546430c7a9854b281517a3501c5fd3cb1fae90dea3699b6f03368d7bb81448e5",
+      "processing_key": "89c2a3285299c560e41c76c833fcb7e879a434b24df88b3aae787a48a29c8cd3",
+      "served_sha256": "416d9ae89292d0e8b5440387414cf1f96ce497d42fcf6507b3002221175bfe97",
+      "duration_s": 1.6,
+      "transcript": "Oscar 55, go ahead",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Oscar 55, go ahead.",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/selected/steady/1": {
+      "text": "Armour here, send it.",
+      "generation_key": "6b61321777c313e70f2aad97cbf5179602371d7504a134f947df7e9a87d97a32",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-selected-steady-1.6b613217.mp3",
+      "raw_sha256": "0ea40f4f12b4a30939b923343c7b7b8db5b7d7e2f16e8dbe78f3cb0a1c4b9789",
+      "processing_key": "b2119a431c7648ebeee676444655fc5366d2c113e2e508d7f43b8ec6a34d3b88",
+      "served_sha256": "1b88cf1c9ee80f1656c245b655bede4e52fae320d6bd6af4c6c00c77566319e9",
+      "duration_s": 1.36,
+      "transcript": "Armor here. Send it",
+      "match": {
+        "score": 0.75,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Armour here, send it.",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/selected/stressed/0": {
+      "text": "[urgent] Oscar 55, send it, quick!",
+      "generation_key": "0ab4a4f0747ca73b1fd9add602ee5967a23d7f6ef5658115cb30ea7d1bd5614a",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-selected-stressed-0.0ab4a4f0.mp3",
+      "raw_sha256": "4b0f794a48a43bdc4909f766b6e10fb265cb04e46e4b3573c85d77d132e03e4b",
+      "processing_key": "d700407cf67233d6cd78cc8b640558263579401f085c9ee3b6e37191b508c837",
+      "served_sha256": "b45d6f03abf87fb658c4ab00165a9a18eab643393538286f882c8b0c20ada2e8",
+      "duration_s": 2.08,
+      "transcript": "Oscar 55, send it quick",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "[urgent] Oscar 55, send it, quick!",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/selected/stressed/1": {
+      "text": "[shouting] Go, we are listening!",
+      "generation_key": "e0a84dde30b1f1bfb5d9220b7f53f4b37da9a852ba3c26bb54ede0ab3666ad3c",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-selected-stressed-1.e0a84dde.mp3",
+      "raw_sha256": "552839e3261aed1b5ff95a00caa7ec98c25a5198b1a67f8638c487d0785905e0",
+      "processing_key": "a7531bcef91d997fe616e384432bc0c65da049de17f68b532c57b6dd0f7c72ce",
+      "served_sha256": "a2e39db7a61d7b128f89ed1198a3d1f448b416a9e72309d9aeaf036e40d487de",
+      "duration_s": 2.16,
+      "transcript": "Go. We are listening",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "[shouting] Go, we are listening!",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/stop/steady/0": {
+      "text": "Driver, stop.",
+      "generation_key": "f00ec0e900b94fd8d79dca5554a75fbfe3d5c1739e4400949f0f15d5261011ed",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-stop-steady-0.f00ec0e9.mp3",
+      "raw_sha256": "78aa55d62b0283df8fbfd01b1bd5304cc893a0e5d6a890431aab502f16340dfc",
+      "processing_key": "e48e2b6bd0025512785d8c0759a5bd360b82315d85a594a8638175ef09b8ffd2",
+      "served_sha256": "aab9f873dc5fe1d9969391c65bdf9976de67a388481ef235912829e0892b6d24",
+      "duration_s": 1.2,
+      "transcript": "Driver, stop",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Driver, stop.",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/stop/steady/1": {
+      "text": "Halting here.",
+      "generation_key": "e50c6f58ea3e243622f6f95b4b04282c22a126e898ab728b826039aa65af1514",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-stop-steady-1.e50c6f58.mp3",
+      "raw_sha256": "d64082f1dbadb76e2b902cb1546ff02696e1a0d9fd1becc20bdf92483ba9f9ee",
+      "processing_key": "3d3a4b75b5409954a95068fb8d30e99f78a8028b8a92235c05e6c0d7fbd65e99",
+      "served_sha256": "a56bf6acb82117a858b4c0b5d0ac15f2d7a47ecf0623e3bee0bfeb469d1f23b8",
+      "duration_s": 1.76,
+      "transcript": "Halting here.",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Halting here.",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/stop/stressed/0": {
+      "text": "[urgent] Driver, stop, stop!",
+      "generation_key": "824fce2ea3d41a4ce52344c4ad7481b4e8cb40a7d6ef1920bd3507fe8bfcf841",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-stop-stressed-0.824fce2e.mp3",
+      "raw_sha256": "10f643185c524d56e6810012e045fe0dded3649381086c83b734c7bac52e787b",
+      "processing_key": "b088fc7c5d154300e11733eb88e88f6c70e46c8d9bc6ebeec1313a209dff9391",
+      "served_sha256": "b870fca2f50f1081a095175f8bba84412d466131f1c0b5da52fff2bb3e05ff32",
+      "duration_s": 1.6,
+      "transcript": "Driver, stop. Stop",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "[urgent] Driver, stop, stop!",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/stop/stressed/1": {
+      "text": "[shouting] Hold it here, hold it!",
+      "generation_key": "61285e36ba52ebb0864f219fba33fa4065fb6214946a6d0de0b24f665bc79449",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-stop-stressed-1.61285e36.mp3",
+      "raw_sha256": "3331d638a9dee7b15ee25b4ea28882e925a74224a00b7a17122453c814aefe9b",
+      "processing_key": "62558fa3694ac6c63c174285dbd29c96a9bca36bfad1ac82bb8190d7a14a71e8",
+      "served_sha256": "dc57ce61e516b46e26056966a43b0eeb65735c911987a478ce0a990fb3be7b2b",
+      "duration_s": 2.64,
+      "transcript": "Hold it here. Hold it",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "[shouting] Hold it here, hold it!",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/weapons_free/steady/0": {
+      "text": "Weapons free, gunner.",
+      "generation_key": "04913b6bbc47635c9e137f9ebfd4c2ba6b588608982607258704a51be3c68330",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-weapons_free-steady-0.04913b6b.mp3",
+      "raw_sha256": "417802f8a85b6feccf8b4368dbcf66b4ccb35df88ab6c195deda556f27c820a4",
+      "processing_key": "fe13a244d34d03312888f908be2f64dfe42c81378affbb815048044294c1622b",
+      "served_sha256": "7da809a3ec3606d00299074f3e79df4e97e6dee609e39a05005f734c97216cc9",
+      "duration_s": 1.28,
+      "transcript": "Weapons free, gunner",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Weapons free, gunner.",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/weapons_free/steady/1": {
+      "text": "Clear to engage.",
+      "generation_key": "04a1f8ba2cd495ea21eea5b0f00e898f3b58a4eeffeea070d5d8891bff2d4009",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-weapons_free-steady-1.04a1f8ba.mp3",
+      "raw_sha256": "b38c08117fc21b8da3205b65a576db5aae03fb01d4fe8e8c4d971f7aaccf5422",
+      "processing_key": "f067254d25e97168c58929778d0f5969b762f09cb75386549448e3ab68c904e7",
+      "served_sha256": "b6285ca5a6534a396e3cd8664cc966b5549dbd3a883f1cfd04ad5b308ce5f000",
+      "duration_s": 1.12,
+      "transcript": "Clear to engage",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Clear to engage.",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/weapons_free/stressed/0": {
+      "text": "[shouting] Fire at will, gunner!",
+      "generation_key": "32d26d9828284990b5226e35efacfa93615e77a0accbd42f1a306cf07e78030e",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-weapons_free-stressed-0.32d26d98.mp3",
+      "raw_sha256": "b87509db50c2c5dcc18fef607725cf3fca01dc0b0ff51d6a2b69b956a24be14e",
+      "processing_key": "31f2025250c251d43bdc0cad498c84db7710627974ba95cfbcde047c741d1c7e",
+      "served_sha256": "9488f52b50ce438ce54766860a2144c63ed7a5c0834fea49ca6333bdf8cb89d8",
+      "duration_s": 2.16,
+      "transcript": "Fire at will, Gunner",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "[shouting] Fire at will, gunner!",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/weapons_free/stressed/1": {
+      "text": "[urgent] Kill anything that moves!",
+      "generation_key": "692b2f300f66a87b253fc59fd91725d0339dc4b942d92ae1187b53176bd28160",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-weapons_free-stressed-1.692b2f30.mp3",
+      "raw_sha256": "1301d0314d2bd6e7443b7a6d1151b9d21a75b1726287ef3314304e9e33cc4efc",
+      "processing_key": "4d59b27b3ed300d8716a08caf9e456cbbf9b46ebe330d271b1db33aafba203eb",
+      "served_sha256": "0ef27f2e7d55799cdbd04ecc796f6c9f7867d63439c594225086fc3ff107ebed",
+      "duration_s": 2.24,
+      "transcript": "Kill anything that moves.",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "[urgent] Kill anything that moves!",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/withdraw/steady/0": {
+      "text": "Reversing, falling back.",
+      "generation_key": "f12cc490d0d61a0167530b3684903a2c8a52afd9de297739d808e0973689cc75",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-withdraw-steady-0.f12cc490.mp3",
+      "raw_sha256": "d35902d95a06dc895abd7c9309bd6dcc61f5f414eec42e93841540801e666b65",
+      "processing_key": "b7c9c5d28132fb823ea68675ab4c16ad97dd1b7e12df270e3f6a95ac3c9c4fb2",
+      "served_sha256": "3ff272237fcebf47431ac83518ec534f1c71286c582a6ec55080b9f3fce61394",
+      "duration_s": 1.76,
+      "transcript": "Reversing. Falling back",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Reversing, falling back.",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/withdraw/steady/1": {
+      "text": "Driver, back up.",
+      "generation_key": "90043ce1508c3b7c20e4dfd6aedda070670419a5da3221dc747f456c7959fbe8",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-withdraw-steady-1.90043ce1.mp3",
+      "raw_sha256": "26b5f1f6419c17ebe134183243fb54027c0f750cd029a2d63e28d0747e20e866",
+      "processing_key": "2fdf571b02fe45406eef1f2b9281d731b69e44923f1928016dff1927b3c2061d",
+      "served_sha256": "71154a3a65cd0dd1e922f5379ba635591dd093810afcd8e7f936a96540214766",
+      "duration_s": 1.44,
+      "transcript": "Driver, back up",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "Driver, back up.",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/withdraw/stressed/0": {
+      "text": "[panicked] Back up, back up!",
+      "generation_key": "49e35b92184baeb3b24d72ed0be714d0925cfc1b415e85250939e38e695e0205",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-withdraw-stressed-0.49e35b92.mp3",
+      "raw_sha256": "f5a5c2a65a1061d2fd7558312181c8832b7b5281078f89f28928c02b52bd3321",
+      "processing_key": "b4ebb92954701ea43652aa4c06120c32b3dc9778498e9865fa72ac43e1e8adeb",
+      "served_sha256": "fb806fde8d9c1b8995fbe3bb5322dedd2cb1d75ef977bc4a186769d353d70f68",
+      "duration_s": 1.76,
+      "transcript": "Back up. Back up",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "[panicked] Back up, back up!",
+        "voice_id": "z0wdO1PMjmqh0usMe4hA",
+        "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+        "date": "2026-10-12",
+        "plan": "Duet ElevenLabs"
+      }
+    },
+    "us_tank_crew/lead/withdraw/stressed/1": {
+      "text": "[shouting] Reverse! Get us out of here!",
+      "generation_key": "c058baf05b1c39f113428f57c97c86dc8f3caff8832e43248372f33706f32ef4",
+      "raw": "assets/source/audio/voices/us_tank_crew/lead-withdraw-stressed-1.c058baf0.mp3",
+      "raw_sha256": "86a8b7f66c796c6aa978c58ab759413d2616a7829bb7ac5d95faa72c97c931aa",
+      "processing_key": "d24fd842bd8e0b73a554ebf2246097a11a4df344900b97b210c96b190507dc01",
+      "served_sha256": "35f341a8fc29f458b56facf57ba029a42149853906fd45696faa2186bd6c1c29",
+      "duration_s": 2.4,
+      "transcript": "Reverse! Get us out of here",
+      "match": {
+        "score": 1,
+        "missing": [],
+        "overlong": false,
+        "flagged": false
+      },
+      "provenance": {
+        "kind": "Generated",
+        "generator": "ElevenLabs text-to-speech",
+        "model": "eleven_v3",
+        "text": "[shouting] Reverse! Get us out of here!",
         "voice_id": "z0wdO1PMjmqh0usMe4hA",
         "voice_description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
         "date": "2026-10-12",

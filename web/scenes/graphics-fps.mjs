@@ -17,6 +17,7 @@ const ROOT = new URL("../../", import.meta.url);
 const VIEWPORT = { width: 1280, height: 720 };
 /** The scenes, in place of the route's (`?scenes=`, both reel maps). */
 const SCENES = process.env.FPS_SCENES;
+const QUALITY = process.env.GRAPHICS_QUALITY;
 const RUN = process.env.PERF_RUN ?? new Date().toISOString().slice(0, 10);
 /** Drawn frames per scene left out of the timing; native's `--bench` takes
  *  the same count. */
@@ -76,6 +77,7 @@ export async function run(ctx) {
   await page.addInitScript(watchCounter);
   const url = new URL(ctx.url);
   if (SCENES) url.searchParams.set("scenes", SCENES);
+  if (QUALITY) url.searchParams.set("quality", QUALITY);
   await page.goto(url.href);
   await page.waitForFunction(() => window.__graphicsTest?.stage, undefined, { timeout: 60_000 });
   const refusal = await page.evaluate(() =>
@@ -163,6 +165,7 @@ export async function run(ctx) {
     adapter: report.identity.adapters.join(", "),
     userAgent: report.identity.userAgent,
     pace: "display (headless rAF)",
+    profile: QUALITY ?? "high/current-client-settings",
   };
   await writeFile(
     file,

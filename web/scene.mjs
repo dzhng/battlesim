@@ -18,7 +18,10 @@
 // debugging, such as Windows Chrome from WSL, instead of launching Chromium.
 //
 //   UPDATE_BASELINES=panels bun run --cwd web scene -- panels
-import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { BASELINES, baselines } from "./scenes/_baseline.mjs";
 
@@ -26,8 +29,50 @@ const HERE = new URL(".", import.meta.url);
 const REGISTRY = new URL("../apps/battle-lab/src/fixtures.json", HERE);
 const SCENES_DIR = new URL("./scenes/", HERE);
 const EVIDENCE_DIR = new URL("../throwaway/evidence/", HERE);
+const ROOT = new URL("..", HERE).pathname;
+const execFileAsync = promisify(execFile);
 
 export const WEBGPU_FLAGS = ["--enable-unsafe-webgpu", "--enable-features=WebGPU"];
+
+const nativeTools = [
+  {
+    name: "mechanics validator",
+    path: "debug/examples/mechanics_validate",
+    build: "build:mechanics",
+  },
+  {
+    name: "map workbench report",
+    path: "release/examples/map_workbench_report",
+    build: "build:map-workbench",
+  },
+];
+
+export function nativeToolPath(relativePath) {
+  const target = process.env.CARGO_TARGET_DIR ?? "target";
+  return resolve(ROOT, target, relativePath);
+}
+
+/** Browser scenes may be run directly. Build native fixture helpers on demand
+ * so a clean checkout never fails later as an opaque Vite `/__mechanics` 500. */
+export async function ensureNativeTools() {
+  for (const tool of nativeTools) {
+    try {
+      await stat(nativeToolPath(tool.path));
+    } catch {
+      console.log(`building ${tool.name} (${tool.build})`);
+      try {
+        await execFileAsync("bun", ["run", tool.build], {
+          cwd: ROOT,
+          env: process.env,
+          maxBuffer: 8 * 1024 * 1024,
+        });
+      } catch (error) {
+        const detail = error?.stderr?.trim() || error?.message || String(error);
+        throw new Error(`Could not prepare ${tool.name}. bun run ${tool.build} failed: ${detail}`);
+      }
+    }
+  }
+}
 
 /** React's development build logs each commit's changed props into a
  *  `performance.measure` detail, walking two levels into objects, typed
@@ -145,6 +190,7 @@ export async function startServer(production = false) {
 }
 
 export async function run(fixtures) {
+  await ensureNativeTools();
   const { chromium } = await import("playwright");
   const servers = new Map();
   const serverFor = async (fixture) => {

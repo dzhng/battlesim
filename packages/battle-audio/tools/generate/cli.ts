@@ -2,15 +2,15 @@ import { readFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
   validateVoiceCatalog,
-  RESPONSE_TRIGGERS,
-  BARK_TRIGGERS,
+  ALL_TRIGGERS,
+  voiceTriggers,
   type VoiceCatalog,
   type Trigger,
   type Intensity,
 } from "../../src/voices/voiceCatalog";
 import voiceJson from "../../../../fixtures/voices.json";
 import { duetClient, type ElevenLabsClient } from "./elevenlabs";
-import { LOCK, readLock } from "./lock";
+import { LOCK, readLock, recordVerdicts } from "./lock";
 import {
   assetsProcessor,
   checkVoices,
@@ -29,9 +29,6 @@ for (const name of ["eastern", "europe", "shared", "us"]) {
   Object.assign(roster, rows);
 }
 const catalog = validateVoiceCatalog(voiceJson, roster);
-const allTriggers = [...RESPONSE_TRIGGERS, ...BARK_TRIGGERS];
-const triggersFor = (speaks: string): readonly Trigger[] =>
-  speaks === "responses" ? RESPONSE_TRIGGERS : speaks === "barks" ? BARK_TRIGGERS : allTriggers;
 function assignment(unit: string, faction: string) {
   const value = catalog.assignments[unit];
   return typeof value === "string" ? value : (value?.[faction] ?? "(missing)");
@@ -54,7 +51,7 @@ function setTotals(setId: string) {
   let clips = 0;
   let characters = 0;
   for (const voice of set.voices) {
-    for (const trigger of triggersFor(voice.speaks)) {
+    for (const trigger of voiceTriggers(voice)) {
       for (const intensity of ["steady", "stressed"] as const) {
         for (let take = 0; take < 2; take++) {
           clips++;
@@ -112,7 +109,7 @@ function html(path: string) {
   const scripts = Object.entries(catalog.roles)
     .map(
       ([role, value]) =>
-        `<section><h2>${role}</h2><table><tr><th>trigger</th><th>steady</th><th>stressed</th></tr>${allTriggers.map((trigger) => `<tr><td>${trigger}</td><td>${value.lines[trigger].steady.join(" / ")}</td><td>${value.lines[trigger].stressed.join(" / ")}</td></tr>`).join("")}</table></section>`,
+        `<section><h2>${role}</h2><table><tr><th>trigger</th><th>steady</th><th>stressed</th></tr>${ALL_TRIGGERS.map((trigger) => `<tr><td>${trigger}</td><td>${value.lines[trigger].steady.join(" / ")}</td><td>${value.lines[trigger].stressed.join(" / ")}</td></tr>`).join("")}</table></section>`,
     )
     .join("");
   mkdirSync(resolve(root, "specs/battle-voices-music/visualizations"), { recursive: true });
@@ -129,8 +126,10 @@ const USAGE = `usage: bun run generate <command>
   process [selection]      re-render takes whose profile changed; no calls
   check                    prove the lock against the files by hash
   report                   the plan, then what the lock holds
-selection: [--set a,b] [--trigger move,attack] [--intensity steady|stressed]
-           [--take K] [--only missing|bad|flagged]`;
+  verdict ok|bad <take>@<sha256> ...
+                           judge takes, each bound to the served bytes heard
+selection: [--set a,b] [--voice lead,soldier] [--trigger move,attack]
+           [--intensity steady|stressed] [--take K] [--only missing|bad|flagged]`;
 const [command, ...args] = process.argv.slice(2);
 const flag = (name: string) => {
   const at = args.indexOf(`--${name}`);
@@ -140,11 +139,12 @@ const list = (name: string) => flag(name)?.split(",");
 function selection(): VoiceSelection {
   const triggers = list("trigger");
   for (const trigger of triggers ?? [])
-    if (!allTriggers.includes(trigger as Trigger)) throw new Error(`unknown trigger ${trigger}`);
+    if (!ALL_TRIGGERS.includes(trigger as Trigger)) throw new Error(`unknown trigger ${trigger}`);
   const only = flag("only");
   if (only && !["missing", "bad", "flagged"].includes(only)) throw new Error(USAGE);
   return {
     sets: list("set"),
+    voices: list("voice"),
     triggers: triggers as Trigger[] | undefined,
     intensities: list("intensity") as Intensity[] | undefined,
     take: flag("take") === undefined ? undefined : Number(flag("take")),
@@ -196,6 +196,8 @@ else if (command === "check") {
   for (const problem of problems) console.log(`FAIL ${problem}`);
   console.log(`check: ${problems.length} problems`);
   if (problems.length) process.exitCode = 1;
+} else if (command === "verdict") {
+  if (!recordVerdicts(resolve(root, LOCK), args[0], args.slice(1), log)) process.exitCode = 1;
 } else if (command === "report") {
   report();
   lockReport();

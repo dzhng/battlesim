@@ -57,6 +57,10 @@ A focused invocation is `bun run --cwd web test -- tests/observation.test.ts`.
 A fixture and its [scene](scenes/) have matching identities. Files prefixed with
 an underscore are shared harness helpers, not separately registered scenes.
 Run a selected fixture with `bun run --cwd web scene -- <fixture-id>`.
+The runner prepares missing native fixture helpers automatically in the
+worktree's Cargo `target/` directory; `throwaway/` is reserved for evidence
+and other disposable output. Set `CARGO_TARGET_DIR` when a separate build
+directory is needed.
 
 The runner starts its own server unless configured otherwise; production timing
 fixtures require its production build. A development URL cannot silently stand in
@@ -94,3 +98,7 @@ This avoids contention corrupting frame measurements.
 Its bare invocation prints available commands. Audio preparation has a separate
 [audio tool](../packages/battle-audio/README.md#recording-preparation), because audio
 provenance and crops belong to the sound catalog rather than the appearance catalog.
+
+## Runtime audio sharp edge
+
+The Vercel project must have **Git LFS** enabled in its dashboard. Runtime music and voice MP3s are tracked LFS assets; without that setting a deployment serves pointer files instead of media.

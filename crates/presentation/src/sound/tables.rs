@@ -19,6 +19,7 @@ pub enum Bus {
     Units,
     Effects,
     Ambience,
+    Voices,
 }
 
 /// A gunshot or blast: a near and a far sound, switched at `far_m`.
@@ -76,6 +77,18 @@ pub struct Buses {
     pub units: f64,
     pub effects: f64,
     pub ambience: f64,
+    /// Streamed music's level: not a mixer bus (the browser's `MusicPlayer`).
+    pub music: f64,
+    pub voices: f64,
+}
+
+/// Music dipping under voice lines: by `depth`, in `attack_s`, back in `release_s`.
+#[derive(Clone, Copy, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Ducking {
+    pub depth: f64,
+    pub attack_s: f64,
+    pub release_s: f64,
 }
 
 /// Full within `ref_m`, then inverse (`rolloff`) down toward `floor`, a
@@ -177,6 +190,7 @@ pub struct AudioPresentation {
     pub vehicles: HashMap<String, VehicleSound>,
     pub footsteps: Footsteps,
     pub fires: HashMap<String, FireSound>,
+    pub music: Ducking,
     pub ambience: OneShot,
     pub cues: Cues,
 }

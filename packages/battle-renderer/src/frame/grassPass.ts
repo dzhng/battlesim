@@ -668,6 +668,7 @@ export async function createGrassPass(
   environment: EnvironmentFrame,
   terrain: TerrainSource,
   terrainHeights: TerrainHeights,
+  densityMultiplier = 1,
 ) {
   const device = registry.device;
   const fragment = tgpu.fragmentFn({
@@ -868,7 +869,7 @@ export async function createGrassPass(
       grid: d.vec4u(0, 0, capacity[0], capacity[1]),
       density: d.vec4f(
         rules.pixels_per_clump,
-        rules.max_clumps_m2,
+        rules.max_clumps_m2 * densityMultiplier,
         rules.fade_m_per_px[0],
         rules.fade_m_per_px[1],
       ),

@@ -89,6 +89,7 @@ import {
 } from "@web/battle/sim/presentation";
 import type { Mesh } from "@packages/battle-renderer/src/mesh";
 import { pickBox, proxyPickBox, type PickBox } from "@packages/battle-renderer/src/picking";
+import type { GraphicsQualityProfile } from "./graphicsSettings";
 
 const NO_INSTANCES: readonly SceneInstance[] = [];
 const NO_WALK = emptyBuildingWalkStats();
@@ -96,6 +97,8 @@ const NO_WALK = emptyBuildingWalkStats();
 const NO_UI: PresentedUi = { selected: [], xray: false, ghosts: [] };
 
 interface LabViewportProps {
+  /** Resolved graphics profile; omitted keeps the authored High profile. */
+  quality?: GraphicsQualityProfile;
   fixture: string;
   /** A loading cover or menu owns player input while false. */
   inputEnabled?: boolean;
@@ -442,6 +445,7 @@ export function LabViewport({
   models,
   picks: fixedPicks,
   cameraConfig,
+  quality,
 }: LabViewportProps) {
   const inputEnabledRef = useRef(inputEnabled);
   inputEnabledRef.current = inputEnabled;
@@ -453,6 +457,15 @@ export function LabViewport({
   }, [inputEnabled]);
   const pilotRef = useRef(pilot);
   const cameraConfigRef = useRef(cameraConfig);
+  const qualityRef = useRef(quality);
+  const qualityKey = quality ? JSON.stringify(quality) : "";
+  const previousQualityKey = useRef(qualityKey);
+  qualityRef.current = quality;
+  useEffect(() => {
+    if (previousQualityKey.current === qualityKey) return;
+    previousQualityKey.current = qualityKey;
+    void window.__lab?.rebuild?.();
+  }, [qualityKey]);
   const appearancesRef = useRef(appearances);
   appearancesRef.current = appearances;
   const modelsRef = useRef(models);
@@ -727,6 +740,11 @@ export function LabViewport({
         let staticStyle = gameBuildingStyle;
         let staticSun = { azimuth: 0, elevation: 1, farM: 0 };
         let resend = false;
+        /** The presentation and quality the detail scale was last given to. */
+        let detailed: [ObservationDecoder | null, GraphicsQualityProfile | undefined] = [
+          null,
+          undefined,
+        ];
         const build = async () => {
           const lit = light();
           staticSun = {
@@ -745,6 +763,7 @@ export function LabViewport({
             xrayMinHiddenFragmentFraction: gameXrayMinHiddenFragmentFraction,
             models: gameModelDetail,
             glass: gameGlass,
+            quality: qualityRef.current,
             world: worldRef.current.current!,
             instances: instancesRef.current,
             width: canvas.width,
@@ -889,6 +908,11 @@ export function LabViewport({
               );
               if (resend) decoder.resendStatics();
               resend = false;
+              const quality = qualityRef.current;
+              if (detailed[0] !== decoder || detailed[1] !== quality) {
+                detailed = [decoder, quality];
+                decoder.setDetailScale(quality?.unitLodScale ?? 1, quality?.buildingLodScale ?? 1);
+              }
             }
             animated = frameRef.current?.(now, snapshot());
           } catch (err) {
@@ -1080,9 +1104,12 @@ export function LabViewport({
             see(0);
           },
           async rebuild() {
-            scene.dispose();
-            sceneRef.current = null;
-            scene = await build();
+            // Build the replacement while the current generation remains live;
+            // only swap after every GPU resource has initialized successfully.
+            const previous = scene;
+            const next = await build();
+            scene = next;
+            previous.dispose();
             if (signal.aborted) return;
             setInspecting((shown) => (shown ? scene : shown));
             await nextFrame();

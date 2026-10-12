@@ -382,6 +382,8 @@ async function offlineSound(seconds: number, solo?: Bus, catalog: SoundCatalog =
           units: solo === "units" ? buses.units : 0,
           effects: solo === "effects" ? buses.effects : 0,
           ambience: solo === "ambience" ? buses.ambience : 0,
+          music: 0,
+          voices: solo === "voices" ? buses.voices : 0,
         },
       }
     : gameAudio;

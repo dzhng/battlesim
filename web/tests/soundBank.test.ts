@@ -36,6 +36,7 @@ function recordingCatalog(): SoundCatalog {
     defaults: {},
     impacts: {},
     effects: {},
+    music: { moods: { menu: [], tension: [], combat: [] }, tracks: {} },
   };
 }
 
