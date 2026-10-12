@@ -17,12 +17,12 @@ export const SURFACE_FLOATS = 8;
 export const CUT_A = 1;
 export const CUT_B = 2;
 
-/** An index entry: the record's kind in the top two bits, then whether it
- *  opens a new forest shape in its cell's list, then the record. */
+/** An index entry: the record's kind in the top two bits (a rect, a stroke's
+ *  stretch, a triangle, else a boundary edge), then whether it opens a new
+ *  forest shape in its cell's list, then the record. */
 export const SURFACE_RECT = 0;
 export const SURFACE_STROKE = 1;
 export const SURFACE_TRIANGLE = 2;
-export const SURFACE_EDGE = 3;
 export const SURFACE_KIND_SHIFT = 30;
 export const SURFACE_NEW_SHAPE = 1 << 29;
 export const SURFACE_RECORD_MASK = SURFACE_NEW_SHAPE - 1;
