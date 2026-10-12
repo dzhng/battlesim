@@ -15,6 +15,44 @@ pub fn instance(display: Box<dyn wgpu::wgt::WgpuHasDisplayHandle>) -> Instance {
     Instance::new(InstanceDescriptor::new_with_display_handle(display))
 }
 
+/// A buffer holding `bytes` from the start.
+pub fn buffer(device: &Device, label: &str, usage: BufferUsages, bytes: &[u8]) -> Buffer {
+    let buffer = device.create_buffer(&BufferDescriptor {
+        label: Some(label),
+        size: bytes.len() as u64,
+        usage,
+        mapped_at_creation: true,
+    });
+    buffer
+        .get_mapped_range_mut(..)
+        .expect("mapped at creation")
+        .copy_from_slice(bytes);
+    buffer.unmap();
+    buffer
+}
+
+/// A bind group of `layout` with `resources` at bindings 0, 1, …
+pub fn bind(
+    device: &Device,
+    layout: &BindGroupLayout,
+    label: &str,
+    resources: &[BindingResource],
+) -> BindGroup {
+    let entries: Vec<BindGroupEntry> = resources
+        .iter()
+        .enumerate()
+        .map(|(i, r)| BindGroupEntry {
+            binding: i as u32,
+            resource: r.clone(),
+        })
+        .collect();
+    device.create_bind_group(&BindGroupDescriptor {
+        label: Some(label),
+        layout,
+        entries: &entries,
+    })
+}
+
 pub fn headless_instance() -> Instance {
     Instance::new(InstanceDescriptor::new_without_display_handle())
 }

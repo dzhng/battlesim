@@ -134,6 +134,11 @@ impl Replay {
         })
     }
 
+    /// The presentation the replay drives: its world names what the models load.
+    pub fn presentation(&self) -> &Presentation {
+        &self.presentation
+    }
+
     /// Frames `record`: pushes the publications up to its tick, then asks
     /// for its frame.
     pub fn frame(&mut self, record: &Record) -> Result<&Frame, String> {

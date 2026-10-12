@@ -2,10 +2,11 @@
 //! five halving levels and composited, then graded and tone-mapped (AgX) into
 //! the display target. The bloom's and grade's numbers are the world light's
 //! records; only the blur's texel steps come from the target size.
-use presentation::records::{Bloom, Grade, View};
+use presentation::records::{Bloom, Grade};
 use wgpu::*;
 
-use crate::frame::{Pass, Targets, HDR_FORMAT};
+use crate::frame::{Inputs, Pass, Targets, HDR_FORMAT};
+use crate::gpu;
 use crate::pipelines::Pipelines;
 
 /// Bloom levels (`BLOOM_KERNEL_RADII`'s length).
@@ -42,40 +43,16 @@ fn texture(device: &Device, label: &str, size: [u32; 2]) -> TextureView {
 }
 
 fn uniform(device: &Device, bytes: &[u8]) -> Buffer {
-    let buffer = device.create_buffer(&BufferDescriptor {
-        label: Some("post"),
-        size: bytes.len() as u64,
-        usage: BufferUsages::UNIFORM,
-        mapped_at_creation: true,
-    });
-    buffer
-        .get_mapped_range_mut(..)
-        .expect("mapped at creation")
-        .copy_from_slice(bytes);
-    buffer.unmap();
-    buffer
+    gpu::buffer(device, "post", BufferUsages::UNIFORM, bytes)
 }
 
-/// A bind group of `layout` with `resources` at bindings 0, 1, …
 fn bind(
     device: &Device,
     pipelines: &Pipelines,
     layout: &str,
     resources: &[BindingResource],
 ) -> BindGroup {
-    let entries: Vec<BindGroupEntry> = resources
-        .iter()
-        .enumerate()
-        .map(|(i, r)| BindGroupEntry {
-            binding: i as u32,
-            resource: r.clone(),
-        })
-        .collect();
-    device.create_bind_group(&BindGroupDescriptor {
-        label: Some(layout),
-        layout: pipelines.layout(layout),
-        entries: &entries,
-    })
+    gpu::bind(device, pipelines.layout(layout), layout, resources)
 }
 
 impl Post {
@@ -181,7 +158,7 @@ impl Pass for Post {
         "post"
     }
 
-    fn encode(&self, _: &Queue, _: &View, _: &Targets, encoder: &mut CommandEncoder) {
+    fn encode(&self, _: &Inputs, encoder: &mut CommandEncoder) {
         for stage in &self.stages {
             let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
                 label: Some("post"),

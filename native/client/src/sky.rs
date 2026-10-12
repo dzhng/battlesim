@@ -1,10 +1,11 @@
 //! The sky (`world/sky.ts`): the clear-sky lookup baked once from the
 //! world's light, then each frame the shown sky along the view's rays, with
 //! its sun disc and clouds, into the multisampled HDR target, resolved.
-use presentation::records::{SkyLight, View};
+use presentation::records::SkyLight;
 use wgpu::*;
 
-use crate::frame::{Pass, Targets, HDR_FORMAT};
+use crate::frame::{Inputs, Pass, HDR_FORMAT};
+use crate::gpu::buffer;
 use crate::pipelines::Pipelines;
 
 /// The sky lookup's size: equirectangular, 2:1 (`SKY_LUT_WIDTH/HEIGHT`).
@@ -16,23 +17,17 @@ pub struct Sky {
     pipeline: RenderPipeline,
     group: BindGroup,
     rays: Buffer,
-    /// Owned by the background's bind group too; kept for its lifetime.
-    _lut: Texture,
+    /// The clear-sky lookup: the environment light and the haze read it too.
+    pub lut: TextureView,
 }
 
 fn uniform(device: &Device, label: &str, bytes: &[u8]) -> Buffer {
-    let buffer = device.create_buffer(&BufferDescriptor {
-        label: Some(label),
-        size: bytes.len() as u64,
-        usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
-        mapped_at_creation: true,
-    });
-    buffer
-        .get_mapped_range_mut(..)
-        .expect("mapped at creation")
-        .copy_from_slice(bytes);
-    buffer.unmap();
-    buffer
+    buffer(
+        device,
+        label,
+        BufferUsages::UNIFORM | BufferUsages::COPY_DST,
+        bytes,
+    )
 }
 
 impl Sky {
@@ -117,7 +112,7 @@ impl Sky {
             pipeline: pipelines.render("background").clone(),
             group,
             rays,
-            _lut: lut,
+            lut: lut_view,
         }
     }
 }
@@ -127,18 +122,23 @@ impl Pass for Sky {
         "sky"
     }
 
-    fn encode(&self, queue: &Queue, view: &View, targets: &Targets, encoder: &mut CommandEncoder) {
+    fn encode(&self, inputs: &Inputs, encoder: &mut CommandEncoder) {
+        let (view, targets) = (inputs.view, inputs.targets);
         let rays: &[f32] = &[view.sky_origin, view.sky_dx, view.sky_dy].concat();
-        queue.write_buffer(&self.rays, 0, bytemuck::cast_slice(rays));
+        inputs
+            .queue
+            .write_buffer(&self.rays, 0, bytemuck::cast_slice(rays));
         let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
             label: Some("sky"),
             color_attachments: &[Some(RenderPassColorAttachment {
                 view: &targets.hdr_msaa,
                 depth_slice: None,
                 resolve_target: Some(&targets.hdr),
+                // Kept: the world pass draws over it. It resolves too, since
+                // Metal skips the resolve of a tile a pass draws nothing into.
                 ops: Operations {
                     load: LoadOp::Clear(Color::BLACK),
-                    store: StoreOp::Discard,
+                    store: StoreOp::Store,
                 },
             })],
             ..Default::default()

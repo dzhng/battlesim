@@ -12,12 +12,16 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
+use native_client::bundle::{Library, RUNTIME};
 use native_client::capture::Replay;
+use native_client::environment::Environment;
 use native_client::frame::{Passes, Targets, DISPLAY_FORMAT};
 use native_client::gpu::{self, Gpu};
+use native_client::models::Models;
 use native_client::pipelines::Pipelines;
 use native_client::post::Post;
 use native_client::sky::Sky;
+use native_client::world::{DepthPrepass, Ghosts, WorldColour};
 use presentation::records::View;
 use wgpu::{CommandEncoder, CurrentSurfaceTexture, PresentMode, Surface, SurfaceConfiguration};
 use winit::application::ApplicationHandler;
@@ -158,6 +162,28 @@ impl Run {
             &light.bloom(),
             &light.grade(),
         );
+        let environment = Environment::new(
+            &gpu.device,
+            &gpu.queue,
+            &pipelines,
+            &sky.lut,
+            &light.sun(),
+            &light.aerial(),
+        );
+        let installed = Instant::now();
+        let library = Library::open(std::path::Path::new(RUNTIME))?;
+        let models = Models::new(
+            &gpu.device,
+            &gpu.queue,
+            &pipelines,
+            &library,
+            replay.presentation(),
+        )?;
+        println!(
+            "models: {} drawables installed in {:.2} s",
+            replay.presentation().world().appearances.len(),
+            installed.elapsed().as_secs_f64()
+        );
         std::fs::create_dir_all(&args.out).map_err(|e| e.to_string())?;
         Ok(Self {
             window,
@@ -165,7 +191,15 @@ impl Run {
             gpu,
             passes: Passes {
                 targets,
-                passes: vec![Box::new(sky), Box::new(post)],
+                environment,
+                models,
+                passes: vec![
+                    Box::new(sky),
+                    Box::new(DepthPrepass::new(&pipelines)),
+                    Box::new(WorldColour::new(&pipelines)),
+                    Box::new(Ghosts::new(&pipelines)),
+                    Box::new(post),
+                ],
             },
             replay,
             next: 0,
@@ -215,31 +249,49 @@ impl Run {
     fn step(&mut self, args: &Args) -> Result<bool, String> {
         while let Some(record) = self.replay.records.get(self.next).cloned() {
             self.next += 1;
+            let Some(plate) = record.plate.clone() else {
+                self.replay.frame(&record)?;
+                continue;
+            };
             let frame = self.replay.frame(&record)?;
             self.view = frame.view;
-            let Some(plate) = record.plate else { continue };
+            let (device, queue) = (&self.gpu.device, &self.gpu.queue);
+            self.passes.prepare(device, queue, frame, record.target);
             let counts = frame.counts;
+            let drawn = self.passes.models.drawn();
             let want = self
                 .replay
                 .model_counts
                 .iter()
                 .find(|c| c["plate"] == plate.as_str());
             if let Some(want) = want {
-                let got = [
-                    counts.soldiers,
-                    counts.vehicles,
-                    counts.aircraft,
-                    counts.corpses,
+                let n = |k: &str| want[k].as_u64().unwrap_or(u64::MAX) as u32;
+                // What the frame poses, and what the models draw of it: a
+                // soldier off screen is counted, not drawn.
+                let d = drawn;
+                let checks = [
+                    ("soldiers", counts.soldiers, n("soldiers")),
+                    ("vehicles", counts.vehicles, n("vehicles")),
+                    ("aircraft", counts.aircraft, n("aircraft")),
+                    ("corpses", counts.corpses, n("corpses")),
+                    ("fading", counts.fading, n("fading")),
+                    (
+                        "instances drawn of those listed",
+                        d.soldiers + d.vehicles + d.corpses + d.pieces + d.ghosts,
+                        d.listed,
+                    ),
                 ];
-                let names = ["soldiers", "vehicles", "aircraft", "corpses"];
-                for (n, g) in names.iter().zip(got) {
-                    if want[n].as_u64() != Some(u64::from(g)) {
+                for (what, got, wanted) in checks {
+                    if got != wanted {
                         self.count_mismatches
-                            .push(format!("{plate} {n}: {g} against {}", want[n]));
+                            .push(format!("{plate} {what}: {got} against {wanted}"));
                     }
                 }
             }
-            let (device, queue) = (&self.gpu.device, &self.gpu.queue);
+            println!(
+                "{plate}: drawn {drawn:?}, culled soldiers {}",
+                counts.culled
+            );
             let encoder = self.passes.encode(device, queue, &self.view);
             let rgba = self.passes.read_display(device, queue, encoder);
             write_png(&args.out.join(&plate), self.passes.targets.size, &rgba)?;
