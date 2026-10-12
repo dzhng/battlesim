@@ -17,10 +17,6 @@ import type {
   WordTable,
 } from "@packages/battle-renderer/src/frame/wordTables";
 import type {
-  BuildingTableName,
-  BuildingTiers,
-} from "@packages/battle-renderer/src/models/buildingTables";
-import type {
   SceneryTableName,
   SceneryTables,
   SceneryTiers,
@@ -135,13 +131,6 @@ export interface VisualPresentation extends Omit<DrawnPresentation, "units" | "p
     constants: GrassConstants;
     kinds: string[];
   };
-  /** Every building's module instances in each state its template has,
-   *  the kit modules they name, and the tier rule's numbers. */
-  buildings: {
-    tables: TableArtifact<BuildingTableName>[];
-    modules: { kit: string; module: string }[];
-    tiers: BuildingTiers;
-  };
   /** Every tree, shrub and piece of dressing, the appearances they name,
    *  and the tier rule's numbers. */
   scenery: {
@@ -179,12 +168,6 @@ export const TABLES = {
     "indicesNear",
     "indicesFar",
   ] as const satisfies readonly GrassTableName[],
-  buildings: [
-    "buildings",
-    "intact",
-    "ruin",
-    "gutted",
-  ] as const satisfies readonly BuildingTableName[],
   scenery: [
     "forest",
     "understorey",
@@ -237,8 +220,8 @@ export interface GrassCount {
 export const TIERS = 4;
 
 /** What a plate's frame drew of the buildings, the scenery and the props
- *  its side knows (`BattleFrame.drawnInstances`): per kit module of
- *  `buildings.modules` and tier, `module · TIERS + tier`; per population,
+ *  its side knows (`BattleFrame.drawnInstances`): per kit module Rust
+ *  resolved (`crates/presentation`'s static world) and tier, `module · TIERS + tier`; per population,
  *  appearance of `scenery.kinds` and tier likewise; the stumps per
  *  appearance alone; the known props per appearance, at each tier and then
  *  as a card. */
@@ -260,7 +243,6 @@ const MANIFEST_KEYS = [
   "omissions",
   "terrain",
   "grass",
-  "buildings",
   "scenery",
   "grassCounts",
   "instanceCounts",
@@ -361,24 +343,6 @@ const numbers = (value: unknown, n: number, valid: (v: unknown) => boolean) =>
 const distinct = (values: readonly unknown[]) =>
   new Set(values.map((v) => JSON.stringify(v))).size === values.length;
 
-/** Whether `value` is a building section: its tables, its distinct kit
- *  modules and its tier numbers. */
-function isBuildings(value: unknown): boolean {
-  if (!hasKeys(value, ["tables", "modules", "tiers"])) return false;
-  const { tables, modules, tiers } = value;
-  return (
-    isTableList(tables, TABLES.buildings) &&
-    Array.isArray(modules) &&
-    modules.every((m) => hasKeys(m, ["kit", "module"]) && text(m.kit) && text(m.module)) &&
-    distinct(modules) &&
-    hasKeys(tiers, ["lodPxPerM", "chunkM", "poolRecords", "expandRows", "casterCoarser"]) &&
-    numbers(tiers.lodPxPerM, 3, positive) &&
-    positive(tiers.chunkM) &&
-    [tiers.poolRecords, tiers.expandRows].every((n) => positive(n) && count(n)) &&
-    count(tiers.casterCoarser)
-  );
-}
-
 /** `biome.trees.felled`, as a felled tree reads it (`felled.ts`). */
 const FELLED_KEYS = [
   "fall_s",
@@ -430,9 +394,9 @@ function isScenery(value: unknown): boolean {
   );
 }
 
-/** Whether `value` counts what a plate drew of `modules` kit modules and
- *  `kinds` scenery appearances. */
-function isInstanceCount(value: unknown, modules: number, kinds: number): boolean {
+/** Whether `value` counts what a plate drew of the kit modules Rust resolved
+ *  (a count per module and tier) and `kinds` scenery appearances. */
+function isInstanceCount(value: unknown, kinds: number): boolean {
   if (!hasKeys(value, ["plate", "buildings", "scenery", "knownProps"]) || !text(value.plate))
     return false;
   const { scenery, knownProps } = value;
@@ -445,7 +409,9 @@ function isInstanceCount(value: unknown, modules: number, kinds: number): boolea
         numbers(p.levels, TIERS + 1, count),
     ) &&
     distinct(knownProps.map((p) => p.appearance)) &&
-    numbers(value.buildings, modules * TIERS, count) &&
+    Array.isArray(value.buildings) &&
+    value.buildings.length % TIERS === 0 &&
+    value.buildings.every(count) &&
     hasKeys(scenery, [...SCENERY_POPULATIONS, "stumps"]) &&
     SCENERY_POPULATIONS.every((p) => numbers(scenery[p], kinds * TIERS, count)) &&
     numbers(scenery.stumps, kinds, count)
@@ -531,10 +497,6 @@ export function validateVisualPresentation(value: unknown): VisualPresentation {
     throw new Error(
       `visual presentation grass needs tables ${TABLES.grass.join(", ")}, its constants and its distinct kinds`,
     );
-  if (!isBuildings(value.buildings))
-    throw new Error(
-      `visual presentation buildings need tables ${TABLES.buildings.join(", ")}, distinct kit modules and their tier numbers`,
-    );
   if (!isScenery(value.scenery))
     throw new Error(
       `visual presentation scenery needs tables ${TABLES.scenery.join(", ")}, distinct appearances and their tier numbers`,
@@ -556,25 +518,17 @@ export function validateVisualPresentation(value: unknown): VisualPresentation {
       `visual presentation grass counts need one row of ${GRASS_CELLS[0] * GRASS_CELLS[1]} whole counts per plate`,
     );
   const instances = value.instanceCounts;
-  const modules = (value.buildings as { modules: unknown[] }).modules.length;
   const kinds = (value.scenery as { kinds: unknown[] }).kinds.length;
   if (
     !Array.isArray(instances) ||
-    !instances.every((row) => isInstanceCount(row, modules, kinds)) ||
+    !instances.every((row) => isInstanceCount(row, kinds)) ||
     !distinct(instances.map((row) => row.plate))
   )
     throw new Error(
       "visual presentation instance counts need one row per plate, a count per kit module and tier, per scenery population, appearance and tier, and per known prop appearance and level",
     );
   validateUnits(value.units);
-  const props = validateProps(value.props);
-  const placed = (
-    value.buildings as { tables: { name: string; layout: { count: number } }[] }
-  ).tables.find((t) => t.name === "buildings")!.layout.count;
-  if (props.buildings.parts.length !== placed)
-    throw new Error(
-      `visual presentation props list parts for ${props.buildings.parts.length} buildings, not the ${placed} placed`,
-    );
+  validateProps(value.props);
   const models = value.modelCounts;
   if (
     !Array.isArray(models) ||
@@ -662,7 +616,6 @@ export async function writeVisualPresentation({
   const groups: Record<TableGroup, Record<string, WordTable>> = {
     terrain: tables.terrain,
     grass: tables.grass.tables,
-    buildings: tables.buildings.tables,
     scenery: tables.scenery.tables,
   };
   const files = (group: TableGroup) => {
@@ -678,7 +631,6 @@ export async function writeVisualPresentation({
   };
   const terrain = files("terrain");
   const grass = files("grass");
-  const buildings = files("buildings");
   const scenery = files("scenery");
   const entries = <Name extends string>(list: ReturnType<typeof files>) =>
     Promise.all(
@@ -714,11 +666,6 @@ export async function writeVisualPresentation({
       constants: tables.grass.constants,
       kinds: tables.grass.kinds,
     },
-    buildings: {
-      tables: await entries<BuildingTableName>(buildings),
-      modules: tables.buildings.modules,
-      tiers: tables.buildings.tiers,
-    },
     scenery: {
       tables: await entries<SceneryTableName>(scenery),
       kinds: tables.scenery.kinds,
@@ -736,7 +683,7 @@ export async function writeVisualPresentation({
   return {
     manifest: JSON.stringify(validateVisualPresentation(manifest)),
     artifacts: [
-      ...[...terrain, ...grass, ...buildings, ...scenery].map(({ file, bytes }) => ({
+      ...[...terrain, ...grass, ...scenery].map(({ file, bytes }) => ({
         file,
         bytes,
       })),

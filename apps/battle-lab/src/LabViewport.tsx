@@ -1,6 +1,11 @@
 import { FrameRate, type FrameRateHandle } from "@web/battle/present/frameRate";
 import { useLabLoading } from "./LabLoading";
 import { diagnosticsSource } from "@web/diagnostics";
+import {
+  loadPresentation,
+  ObservationDecoder,
+  type PresentedUi,
+} from "@web/battle/sim/presentation";
 import { useCursorAction, type CursorAction } from "@web/battle/present/gameCursor";
 import { useEffect, useRef, useState } from "react";
 import { gpuFailureMessage } from "@packages/renderer-core/src/device";
@@ -62,7 +67,7 @@ import type {
 import type { GroundMarks } from "@packages/battle-renderer/src/frame/scarTexture";
 import type {
   BuildingStyle,
-  SideBuildings,
+  SceneBuildings,
 } from "@packages/battle-renderer/src/models/buildingReferences";
 import type { SurfaceClass } from "@packages/battle-renderer/src/models/surfaceParts";
 import { createBattleFrame } from "@packages/battle-renderer/src/frame/battleFrame";
@@ -72,16 +77,28 @@ import type { FeedSource } from "./feed";
 import {
   emptyEffectCounts,
   emptyModelCounts,
+  presentedCamera,
   type EffectCounts,
   type ModelCounts,
 } from "./presentedFrame";
-import type { PresentedAppearance, PresentedFrame } from "@web/battle/sim/presentation";
+import { emptyBuildingWalkStats } from "@packages/battle-renderer/src/models/buildingLayer";
+import {
+  resolveLight,
+  type PresentedAppearance,
+  type PresentedFrame,
+} from "@web/battle/sim/presentation";
 import type { Mesh } from "@packages/battle-renderer/src/mesh";
 import { pickBox, proxyPickBox, type PickBox } from "@packages/battle-renderer/src/picking";
+import type { GraphicsQualityProfile } from "./graphicsSettings";
 
 const NO_INSTANCES: readonly SceneInstance[] = [];
+const NO_WALK = emptyBuildingWalkStats();
+/** A frame of a world no battle publishes into: no units, no selection. */
+const NO_UI: PresentedUi = { selected: [], xray: false, ghosts: [] };
 
 interface LabViewportProps {
+  /** Resolved graphics profile; omitted keeps the authored High profile. */
+  quality?: GraphicsQualityProfile;
   fixture: string;
   /** A loading cover or menu owns player input while false. */
   inputEnabled?: boolean;
@@ -91,9 +108,14 @@ interface LabViewportProps {
    *  works, remembered rubble and wrecks), lit and fogged with the world;
    *  fed like the overlay (`SideStructures`). */
   structures?: FeedSource<SideStructures>;
-  /** The map's buildings, and those the side has seen fall, fed like the
-   *  overlay; omitted or null draws none. */
-  buildings?: FeedSource<SideBuildings | null>;
+  /** The map's buildings, fed like the overlay; omitted or null draws none.
+   *  They are drawn by the scene's one presentation: the battle's
+   *  (`presentation`), else one the viewport makes with no layout, whose
+   *  side knows what the buildings' `known` says. */
+  buildings?: FeedSource<SceneBuildings | null>;
+  /** The battle's presentation (its sim client's), read each frame: null
+   *  until the battle has one. Omitted for a scene with no battle. */
+  presentation?: { readonly current: ObservationDecoder | null };
   /** How those buildings are tiered, chunked and pooled; the fixture's when
    *  omitted. The frame takes it when it is built: a change draws at the next
    *  `rebuild`. */
@@ -170,10 +192,9 @@ export interface ViewportFrame {
    *  an index into this list. */
   picks?: readonly PickBox[];
   /** The presentation's frame (`crates/presentation`): the units, corpses,
-   *  ghosts and effects it draws, read before the next call into the module. */
+   *  ghosts and effects it draws, and the static world's batches, read
+   *  before the next call into the module. */
   presented?: PresentedFrame;
-  /** The drawables the presentation's batches name, when they change. */
-  world?: readonly PresentedAppearance[];
   /** How many models of each kind the frame poses. */
   counts?: ModelCounts;
   /** The trees the side knows have fallen: handed over only when the array
@@ -399,6 +420,7 @@ export function LabViewport({
   world,
   structures,
   buildings,
+  presentation,
   buildingStyle,
   obstacles,
   overlay,
@@ -423,6 +445,7 @@ export function LabViewport({
   models,
   picks: fixedPicks,
   cameraConfig,
+  quality,
 }: LabViewportProps) {
   const inputEnabledRef = useRef(inputEnabled);
   inputEnabledRef.current = inputEnabled;
@@ -434,6 +457,15 @@ export function LabViewport({
   }, [inputEnabled]);
   const pilotRef = useRef(pilot);
   const cameraConfigRef = useRef(cameraConfig);
+  const qualityRef = useRef(quality);
+  const qualityKey = quality ? JSON.stringify(quality) : "";
+  const previousQualityKey = useRef(qualityKey);
+  qualityRef.current = quality;
+  useEffect(() => {
+    if (previousQualityKey.current === qualityKey) return;
+    previousQualityKey.current = qualityKey;
+    void window.__lab?.rebuild?.();
+  }, [qualityKey]);
   const appearancesRef = useRef(appearances);
   appearancesRef.current = appearances;
   const modelsRef = useRef(models);
@@ -517,16 +549,12 @@ export function LabViewport({
   structuresRef.current = structures;
   const buildingsRef = useRef(buildings);
   buildingsRef.current = buildings;
+  const presentationRef = useRef(presentation);
+  presentationRef.current = presentation;
   const buildingStyleRef = useRef(buildingStyle);
   buildingStyleRef.current = buildingStyle;
-  useEffect(
-    () =>
-      buildings?.subscribe((next) => {
-        sceneRef.current?.setBuildings(next);
-        redrawRef.current();
-      }),
-    [buildings],
-  );
+  // The frame loop reads the buildings: a change only asks for a frame.
+  useEffect(() => buildings?.subscribe(() => redrawRef.current()), [buildings]);
   const obstaclesRef = useRef(obstacles);
   obstaclesRef.current = obstacles;
   const fogRef = useRef(fog);
@@ -694,9 +722,35 @@ export function LabViewport({
         let clock = 0;
         // A route's own light, else the fixture's (a lab URL's `?sun=` sets it lower).
         const light = () => lightRef.current ?? gameLightFor(window.location.search);
+        /** The presentation the viewport makes for a scene with no battle,
+         *  once the module is loaded and there are buildings to draw. */
+        let own: ObservationDecoder | null = null;
+        let moduleLoaded = false;
+        void loadPresentation().then(() => (moduleLoaded = true));
+        signal.addEventListener("abort", () => own?.free());
+        /** The scene's one presentation: the battle's, else the viewport's own. */
+        const scenePresentation = (): ObservationDecoder | null => {
+          const battle = presentationRef.current;
+          if (battle) return battle.current;
+          if (!own && moduleLoaded && buildingsRef.current?.current) own = new ObservationDecoder();
+          return own;
+        };
+        /** The buildings' style and sun, taken when the frame is built; a
+         *  new frame holds no static batches, so the next is sent them all. */
+        let staticStyle = gameBuildingStyle;
+        let staticSun = { azimuth: 0, elevation: 1, farM: 0 };
+        let resend = false;
         const build = async () => {
+          const lit = light();
+          staticSun = {
+            azimuth: lit.sun_azimuth,
+            elevation: lit.sun_elevation,
+            farM: lit.cascades.max_far_m,
+          };
+          staticStyle = buildingStyleRef.current ?? gameBuildingStyle;
+          resend = true;
           const next = await createBattleFrame(device!, info.format, {
-            light: light(),
+            light: await resolveLight(lit),
             fogGeometry: gameFogGeometry,
             fogStyle: fogStyleRef.current ?? gameFogStyle,
             overlayGlow: gameOverlayGlow,
@@ -705,6 +759,7 @@ export function LabViewport({
             models: gameModelDetail,
             glass: gameGlass,
             buildings: buildingStyleRef.current ?? gameBuildingStyle,
+            quality: qualityRef.current,
             world: worldRef.current.current!,
             instances: instancesRef.current,
             width: canvas.width,
@@ -719,7 +774,6 @@ export function LabViewport({
           sceneRef.current = next;
           try {
             if (structuresRef.current) next.setStructures(structuresRef.current.current);
-            if (buildingsRef.current) next.setBuildings(buildingsRef.current.current);
             const meshes = overlayRef.current?.current;
             if (meshes) next.setOverlay(meshes);
             const marks = pointerMarksRef.current?.current;
@@ -836,7 +890,27 @@ export function LabViewport({
             dirty = true; // a piloted frame is always drawn: it is measured
           }
           see(dt);
-          const animated = frameRef.current?.(now, snapshot());
+          // The scene's presentation is staged with its buildings before the
+          // battle frames it (or, without one, the viewport frames it).
+          const decoder = scenePresentation();
+          let animated: ViewportFrame | null | undefined = null;
+          try {
+            if (decoder) {
+              decoder.setBuildings(
+                buildingsRef.current?.current ?? null,
+                appearancesRef.current ?? null,
+                staticStyle,
+                staticSun,
+              );
+              if (resend) decoder.resendStatics();
+              resend = false;
+            }
+            animated = frameRef.current?.(now, snapshot());
+          } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            handle.error = message;
+            setError(message);
+          }
           if (animated?.ground !== undefined) groundRef.current = animated.ground;
           if (scene.setGround(groundNow())) dirty = true;
           if (animated) {
@@ -849,9 +923,10 @@ export function LabViewport({
               scene.setInstances(animated.instances);
             }
             if (animated.picks) picksRef.current = animated.picks;
-            if (animated.world) {
-              presentedWorldRef.current = animated.world;
-              scene.setPresentationWorld(animated.world);
+            const world = decoder?.world();
+            if (world && world !== presentedWorldRef.current) {
+              presentedWorldRef.current = world;
+              scene.setPresentationWorld(world);
             }
             if (animated.presented)
               scene.setFrame(animated.presented, {
@@ -865,6 +940,35 @@ export function LabViewport({
               scene.setFelled(animated.felled);
             }
             dirty = true;
+          }
+          // The static world for the camera drawn: walked in Rust, its
+          // batches written only when what it draws changed. A battle's frame
+          // carries them; a scene without one (or before its first
+          // publication) is framed here for them alone.
+          try {
+            let views: PresentedFrame | null = null;
+            let walk = NO_WALK;
+            if (decoder) {
+              if (!animated?.presented) {
+                decoder.frame(clock, presentedCamera(snapshot()), {
+                  ...NO_UI,
+                  known: buildingsRef.current?.current?.known,
+                });
+                const world = decoder.world();
+                if (world && world !== presentedWorldRef.current) {
+                  presentedWorldRef.current = world;
+                  scene.setPresentationWorld(world);
+                }
+              }
+              // The stats call may grow memory: the views are taken after it.
+              walk = decoder.buildingWalk();
+              views = decoder.lastFrame();
+            }
+            if (scene.setStaticFrame(views, walk)) dirty = true;
+          } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            handle.error = message;
+            setError(message);
           }
           const drawn = dirty;
           if (drawn) draw();
@@ -991,9 +1095,12 @@ export function LabViewport({
             see(0);
           },
           async rebuild() {
-            scene.dispose();
-            sceneRef.current = null;
-            scene = await build();
+            // Build the replacement while the current generation remains live;
+            // only swap after every GPU resource has initialized successfully.
+            const previous = scene;
+            const next = await build();
+            scene = next;
+            previous.dispose();
             if (signal.aborted) return;
             setInspecting((shown) => (shown ? scene : shown));
             await nextFrame();

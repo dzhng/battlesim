@@ -402,6 +402,7 @@ export async function createSceneryLayer(
   root: Root,
   registry: GpuRegistry,
   environment: EnvironmentFrame,
+  lodScale = 1,
 ) {
   /** Shading shared by both populations: albedo, leaf clumps and the light. */
   const surface = tgpu.fn(
@@ -464,17 +465,21 @@ export async function createSceneryLayer(
     vertex: placedVertex,
     primitive: { topology: "triangle-list", cullMode: "back" },
   } as const;
-  const prepass = root.createRenderPipeline({
-    ...base,
-    depthStencil: battleWorldDepth("read-write"),
-    multisample: { count: FRAME_MSAA },
-  });
-  const caster = root.createRenderPipeline({
-    ...base,
-    // Both faces cast: a crown's far side must shadow its own underside.
-    primitive: { topology: "triangle-list", cullMode: "none" },
-    depthStencil: battleWorldDepth("read-write"),
-  });
+  const prepass = root
+    .createRenderPipeline({
+      ...base,
+      depthStencil: battleWorldDepth("read-write"),
+      multisample: { count: FRAME_MSAA },
+    })
+    .$name("sceneryPrepass");
+  const caster = root
+    .createRenderPipeline({
+      ...base,
+      // Both faces cast: a crown's far side must shadow its own underside.
+      primitive: { topology: "triangle-list", cullMode: "none" },
+      depthStencil: battleWorldDepth("read-write"),
+    })
+    .$name("sceneryCaster");
   const forestColour = root.createRenderPipeline({
     ...base,
     fragment: forestFragment,
@@ -634,7 +639,7 @@ export async function createSceneryLayer(
       staged: createStagedLevels(chunks),
       casts,
       meshes,
-      lodPx,
+      lodPx: lodPx.map((value) => value * lodScale) as unknown as TierView["lodPx"],
       far: chunks.sorted.map((instances) => {
         const buffer = scope.own(instanceBuffer(root, instances.length / INSTANCE_FLOATS));
         if (instances.length) buffer.write(instances.buffer);

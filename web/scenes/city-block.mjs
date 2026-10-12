@@ -90,7 +90,7 @@ async function cost(ctx, page) {
     const memory = await lab(page, () => window.__lab.stats().memory);
     rows.push({ id, drawn, median: median(differences), frame: median(absolute), differences });
     console.log(
-      `METRIC city-block cost ${id}: buildings ${median(differences).toFixed(2)} ms of a ${median(absolute).toFixed(2)} ms frame (paired differences ${differences.map((d) => d.toFixed(2)).join(", ")}); ${tiers(drawn)}; select ${drawn.selectMs.toFixed(2)} ms; building records ${(drawn.coarseBytes / 2 ** 20).toFixed(2)} MiB coarse and ${(drawn.pool.bytes / 2 ** 20).toFixed(1)} MiB pool; all buffers ${(memory.bufferBytes / 2 ** 20).toFixed(1)} MiB, textures ${(memory.textureBytes / 2 ** 20).toFixed(1)} MiB`,
+      `METRIC city-block cost ${id}: buildings ${median(differences).toFixed(2)} ms of a ${median(absolute).toFixed(2)} ms frame (paired differences ${differences.map((d) => d.toFixed(2)).join(", ")}); ${tiers(drawn)}; select ${drawn.selectMs.toFixed(2)} ms; building records ${(drawn.recordBytes / 2 ** 20).toFixed(2)} MiB; all buffers ${(memory.bufferBytes / 2 ** 20).toFixed(1)} MiB, textures ${(memory.textureBytes / 2 ** 20).toFixed(1)} MiB`,
     );
   }
   await ctx.writeEvidence("cost.json", {

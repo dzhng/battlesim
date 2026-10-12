@@ -4,10 +4,11 @@
 //! tier rule every drawn model takes is [`model_detail`]
 //! (`modelDetail.ts`): nothing off screen, one of four mesh tiers by
 //! projected height, or the impostor card.
+use crate::records::View as ViewRecord;
 use crate::world::{Detail, Vec3};
 
 /// 18b's camera input (sim space).
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct Camera {
     pub eye: Vec3,
     pub target: Vec3,
@@ -152,11 +153,82 @@ impl View {
         }
     }
 
+    /// A view that chooses detail only: its eye, pixels per metre and side
+    /// planes, with no matrices (a renderer's own camera, as native's).
+    pub fn for_detail(eye: Vec3, pixels_per_metre: f64, sides: [Plane; 4]) -> Self {
+        Self {
+            eye,
+            target: eye,
+            distance: 0.0,
+            pixels_per_metre,
+            sides,
+            view: [0.0; 16],
+            projection: [0.0; 16],
+        }
+    }
+
+    /// Whether a box (min x, y, z, max x, y, z) meets the view's sides: each
+    /// has its nearest corner inside.
+    pub fn sees_box(&self, b: &[f64; 6]) -> bool {
+        self.sides.iter().all(|p| {
+            let n = p.normal;
+            let at = |k: usize| if n[k] >= 0.0 { b[k + 3] } else { b[k] };
+            n[0] * at(0) + n[1] * at(1) + n[2] * at(2) + p.constant >= 0.0
+        })
+    }
+
+    /// The eye's distance to a box's nearest point.
+    pub fn distance_to_box(&self, b: &[f64; 6]) -> f64 {
+        let d = |k: usize| self.eye[k].min(b[k + 3]).max(b[k]) - self.eye[k];
+        let (x, y, z) = (d(0), d(1), d(2));
+        (x * x + y * y + z * z).sqrt()
+    }
+
     /// Whether a sphere reaches into the view's sides.
     pub fn sees_sphere(&self, c: Vec3, radius: f64) -> bool {
         self.sides.iter().all(|p| {
             p.normal[0] * c[0] + p.normal[1] * c[1] + p.normal[2] * c[2] + p.constant >= -radius
         })
+    }
+
+    /// The frame's `View` record. The sky's rays are the unit rays through
+    /// the top-left, top-right and bottom-left corners (`frameCamera.ts`);
+    /// symmetric corners share one length, so the shader interpolates them
+    /// before normalising.
+    pub fn record(&self, camera: &Camera) -> ViewRecord {
+        let [w, h] = camera.size.map(|s| f64::from(s.max(1)));
+        let v = self.view.map(f64::from);
+        // The view matrix's rows are the camera's right, up and back.
+        let (right, up, back) = ([v[0], v[4], v[8]], [v[1], v[5], v[9]], [v[2], v[6], v[10]]);
+        let ty = (f64::from(camera.fov_y) / 2.0).tan();
+        let tx = ty * w / h;
+        let corner = |x: f64, y: f64| -> [f64; 3] {
+            let d: [f64; 3] =
+                std::array::from_fn(|i| -back[i] + x * tx * right[i] + y * ty * up[i]);
+            let len = (d[0] * d[0] + d[1] * d[1] + d[2] * d[2]).sqrt();
+            d.map(|c| c / len)
+        };
+        let (origin, across, down) = (corner(-1.0, 1.0), corner(1.0, 1.0), corner(-1.0, -1.0));
+        let ray = |d: [f64; 3]| [d[0] as f32, d[1] as f32, d[2] as f32, 0.0];
+        ViewRecord {
+            view: self.view,
+            projection: self.projection,
+            eye: [
+                self.eye[0] as f32,
+                self.eye[1] as f32,
+                self.eye[2] as f32,
+                1.0,
+            ],
+            size: [
+                w as f32,
+                h as f32,
+                (1.0 / h) as f32,
+                self.pixels_per_metre as f32,
+            ],
+            sky_origin: ray(origin),
+            sky_dx: ray(std::array::from_fn(|i| across[i] - origin[i])),
+            sky_dy: ray(std::array::from_fn(|i| down[i] - origin[i])),
+        }
     }
 }
 
@@ -206,4 +278,13 @@ pub fn model_detail(
         (d[0] * d[0] + d[1] * d[1] + d[2] * d[2]).sqrt(),
         impostor,
     )
+}
+
+/// The buildings' tier (`presentation.buildings.lod_px_per_m`): a chunk
+/// `distance` metres off at its nearest point takes tier t while a metre there
+/// covers more than `lod[t]` pixels, else the coarsest. A window is the same
+/// size on a house and a tower, so it follows distance, not height.
+pub fn building_tier(view: &View, distance: f64, lod: &[f64; 3]) -> usize {
+    let px = view.pixels_per_metre / distance.max(1e-3);
+    lod.iter().position(|&t| px > t).unwrap_or(lod.len())
 }

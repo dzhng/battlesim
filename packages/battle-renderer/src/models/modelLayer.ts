@@ -100,8 +100,7 @@ import {
 } from "./modelDetail";
 import { uploadCardAtlases, type CardGroup } from "./impostorCards";
 import type { ImpostorAtlas } from "./impostor";
-import { createBuildingLayer, type BuildingStats } from "./buildingLayer";
-import type { BuildingStyle, SideBuildings } from "./buildingReferences";
+import { createBuildingLayer, type BuildingStats, type BuildingWalkStats } from "./buildingLayer";
 import type { SunShadow } from "../frame/staticChunks";
 
 type Root = ReturnType<typeof tgpu.initFromDevice>;
@@ -196,6 +195,9 @@ export interface WorldAppearance {
   name: string;
   state: string;
   lies: number;
+  /** The static world's (`Appearance.placed`): its batches are the
+   *  buildings layer's, written only when they change. */
+  placed: boolean;
 }
 
 /** A batch's pass for a placement preview (`Batch.pass`). */
@@ -699,10 +701,9 @@ export async function createModelLayer(
   root: Root,
   registry: GpuRegistry,
   detail: ModelDetailPresentation,
-  buildingStyle: BuildingStyle,
 ) {
   const device = root.device;
-  const buildings = createBuildingLayer(device, registry, buildingStyle);
+  const buildings = createBuildingLayer(device, registry);
   const buffer = (label: string, size: number, usage: number) =>
     device.createBuffer({ label, size: Math.max(16, Math.ceil(size / 16) * 16), usage });
   const upload = (
@@ -1089,17 +1090,11 @@ export async function createModelLayer(
     rebind();
     // The kits a template art library places are appearances like any other:
     // its modules are their states, and the buildings draw those meshes.
-    buildings.setArt(installed?.templates, {
-      mesh(kit, state, tier) {
-        const gpu = appearances.get(kit);
-        if (gpu?.bundle.kind !== "static") return null;
-        const drawable = gpu.states.get(gpu.bundle.states[state]?.name)?.[tier];
-        return drawable ? { ...drawable.mesh, parts: drawable.parts, count: drawable.count } : null;
-      },
-      bounds(kit, state) {
-        const bundle = appearances.get(kit)?.bundle;
-        return bundle?.kind === "static" ? (bundle.states[state]?.bounds ?? null) : null;
-      },
+    buildings.setSource((kit, module, tier) => {
+      const gpu = appearances.get(kit);
+      if (gpu?.bundle.kind !== "static") return null;
+      const drawable = gpu.states.get(module)?.[tier];
+      return drawable ? { ...drawable.mesh, parts: drawable.parts, count: drawable.count } : null;
     });
     dirty = true;
     old?.release();
@@ -1383,9 +1378,10 @@ export async function createModelLayer(
   }
 
   /** The presentation frame's units, corpses, ghosts and moving pieces
-   *  (`crates/presentation`): its palettes and instance records are
-   *  uploaded whole, each batch draws as one run, and a card batch's
-   *  records are kept for the next pack with their atlas layer set. */
+   *  (`crates/presentation`): its palettes and their instance records are
+   *  uploaded, each batch draws as one run, and a card batch's records are
+   *  kept for the next pack with their atlas layer set. The static world's
+   *  batches are the buildings layer's (`setStaticFrame`). */
   function setFrame(frame: ReturnType<typeof frameViews> | null) {
     frameRunCount = 0;
     frameCardCount = 0;
@@ -1410,20 +1406,34 @@ export async function createModelLayer(
     growPalette(palettes.count);
     device.queue.writeBuffer(palette.current!, 0, palettes.f32);
     frameStats.palette = palettes.count;
-    if (instances.count > frameCapacity) {
-      frameCapacity = Math.max(64, instances.count * 2);
+    const words = batches.u32;
+    // The posed records follow the static world's: only theirs are uploaded.
+    let base = instances.count;
+    for (let b = 0; b < batches.count; b++) {
+      const o = b * BATCH_WORDS;
+      const first = words[o + Batch.first];
+      if (first !== NONE && !worldRows[words[o + Batch.appearance]]?.placed)
+        base = Math.min(base, first);
+    }
+    const posed = instances.count - base;
+    if (posed > frameCapacity) {
+      frameCapacity = Math.max(64, posed * 2);
       frameRecords.set(
         buffer("model-frame-records", frameCapacity * RECORD_FLOATS * 4, VERTEX_USAGE),
       );
     }
-    if (instances.count) device.queue.writeBuffer(frameRecords.current!, 0, instances.f32);
-    if (frameCards.length < instances.count * RECORD_FLOATS)
-      frameCards = new Float32Array(instances.count * RECORD_FLOATS);
-    const words = batches.u32;
+    if (posed)
+      device.queue.writeBuffer(
+        frameRecords.current!,
+        0,
+        instances.f32.subarray(base * RECORD_FLOATS) as Float32Array<ArrayBuffer>,
+      );
+    if (frameCards.length < posed * RECORD_FLOATS)
+      frameCards = new Float32Array(posed * RECORD_FLOATS);
     for (let b = 0; b < batches.count; b++) {
       const o = b * BATCH_WORDS;
       const row = worldRows[words[o + Batch.appearance]];
-      const gpu = row && appearances.get(row.name);
+      const gpu = row && !row.placed && appearances.get(row.name);
       const [first, count] = [words[o + Batch.first], words[o + Batch.count]];
       if (!gpu || first === NONE || !count) continue;
       const lying = row.lies === NONE ? null : (gpu.corpses[row.lies] ?? null);
@@ -1466,7 +1476,7 @@ export async function createModelLayer(
       run.drawable = drawable;
       run.ghost = ghost;
       run.fog = fog;
-      run.firstInstance = first;
+      run.firstInstance = first - base;
       run.instances = count;
       frameRunCount++;
       frameStats.instances += count;
@@ -1485,6 +1495,7 @@ export async function createModelLayer(
   /** The drawables the frame's batches name, by `World.appearances` row. */
   function setWorld(world: readonly WorldAppearance[]) {
     worldRows = world;
+    buildings.setWorld(world);
     dirty = true;
   }
 
@@ -1619,9 +1630,10 @@ export async function createModelLayer(
     get models(): readonly ModelInstance[] {
       return units;
     },
-    /** The buildings a side draws from template art (`buildingLayer.ts`). */
-    setBuildings(next: SideBuildings | null) {
-      buildings.set(next);
+    /** The static world's batches of the presentation frame
+     *  (`buildingLayer.ts`); whether what is drawn changed. */
+    setStaticFrame(frame: ReturnType<typeof frameViews> | null, stats: BuildingWalkStats): boolean {
+      return buildings.setFrame(frame, stats);
     },
     setBuildingsShown(on: boolean) {
       buildings.setShown(on);
@@ -1631,14 +1643,9 @@ export async function createModelLayer(
     setSurfaceShown(surface: SurfaceClass, on: boolean) {
       hiddenSurfaces[surface] = !on;
     },
-    /** Whether buildings still wait to be expanded: draw another frame. */
-    get buildingsPending(): boolean {
-      return buildings.pending;
-    },
     /** Choose this frame's draws for the camera (`view`, with where the sun's
      *  shadows fall for it), when anything changed. */
     prepare(view: DetailView, key: string, shadow: SunShadow) {
-      buildings.prepare(view, key, shadow);
       shadowFall[0] = shadow.fall[0];
       shadowFall[1] = shadow.fall[1];
       if (!dirty && key === viewKey) return;
@@ -1796,7 +1803,6 @@ export async function createModelLayer(
     buildingStats: (): BuildingStats => buildings.stats(),
     /** The buildings as tables for a second client, and the module instances
      *  the last view drew (`buildingLayer.ts`). */
-    buildingTables: () => buildings.tables(),
     drawnBuildings: () => buildings.drawn(),
     /** The known props (wrecks, shoved bodies, rubble) the last pack drew,
      *  by appearance in name order, each per tier 0–3 then as a card. */

@@ -37,7 +37,8 @@ import {
   resolveMap,
   type MapChoice,
 } from "@web/maps/source";
-import { knownFallen, seenDestroyed } from "../destroyedBuildings";
+import { seenDestroyed } from "../destroyedBuildings";
+import { buildingRemains } from "@packages/scene-assets/src/authority";
 import { useFeed } from "../feed";
 import { mapAppearances, useMapAppearances } from "../gameAppearances";
 import { gameBiome } from "../gameBiome";
@@ -158,6 +159,8 @@ function streetNear(world: StaticWorld, center: [number, number]) {
   return null;
 }
 
+const NO_PARTS: ReadonlyMap<number, number> = new Map();
+
 /** Every other building of `placed`: another map's worth of references, as
  *  the frame sees it. */
 function everyOther(placed: PlacedBuildings): PlacedBuildings {
@@ -246,6 +249,7 @@ function Block({ choice, generated }: { choice: MapChoice; generated: GeneratedT
   const [fallen, setFallen] = useState(false);
   const [halved, setHalved] = useState(false);
   const half = useMemo(() => drawn && everyOther(drawn.index.placed), [drawn]);
+  const shells = useMemo(() => buildingRemains(units).shells, [units]);
   const standing = useMemo(() => {
     const library = appearances?.templates?.library;
     if (!world || !drawn || !block || !half || !library) return null;
@@ -254,10 +258,13 @@ function Block({ choice, generated }: { choice: MapChoice; generated: GeneratedT
       fallen && !halved && block.apartment !== null
         ? seenDestroyed(units, index, block.apartment, library)
         : [];
+    // No battle publishes here: the switch stands in for what the side knows.
     return {
       buildings: {
         placed: halved ? half : index.placed,
-        fallen: knownFallen(units, index, known),
+        partBuilding: halved ? NO_PARTS : index.partBuilding,
+        shells,
+        known,
       },
       obstacles: buildingObstacles(
         props,
@@ -266,7 +273,7 @@ function Block({ choice, generated }: { choice: MapChoice; generated: GeneratedT
         surfaceZ,
       ),
     };
-  }, [world, drawn, block, half, fallen, halved, surfaceZ, appearances, units]);
+  }, [world, drawn, block, half, fallen, halved, surfaceZ, appearances, units, shells]);
   const buildingsFeed = useFeed(standing?.buildings ?? null);
   const obstaclesFeed = useFeed(standing?.obstacles ?? null);
   const { style, drawAt } = useBuildingTier(askedTier(window.location.search));

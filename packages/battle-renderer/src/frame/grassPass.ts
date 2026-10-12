@@ -668,6 +668,7 @@ export async function createGrassPass(
   environment: EnvironmentFrame,
   terrain: TerrainSource,
   terrainHeights: TerrainHeights,
+  densityMultiplier = 1,
 ) {
   const device = registry.device;
   const fragment = tgpu.fragmentFn({
@@ -730,16 +731,18 @@ export async function createGrassPass(
     };
   });
 
-  const drawPipeline = root.createRenderPipeline({
-    vertex: grassVertex,
-    fragment,
-    targets: worldTargets(),
-    primitive: { topology: "triangle-list", cullMode: "none" },
-    depthStencil: battleWorldDepth("read-write"),
-    multisample: { count: FRAME_MSAA },
-  });
-  const build = root.createComputePipeline({ compute: buildFn });
-  const finish = root.createComputePipeline({ compute: finishFn });
+  const drawPipeline = root
+    .createRenderPipeline({
+      vertex: grassVertex,
+      fragment,
+      targets: worldTargets(),
+      primitive: { topology: "triangle-list", cullMode: "none" },
+      depthStencil: battleWorldDepth("read-write"),
+      multisample: { count: FRAME_MSAA },
+    })
+    .$name("grassDraw");
+  const build = root.createComputePipeline({ compute: buildFn }).$name("grassBuild");
+  const finish = root.createComputePipeline({ compute: finishFn }).$name("grassFinish");
   await Promise.all([drawPipeline.initAsync(), build.initAsync(), finish.initAsync()]);
 
   const { STORAGE, COPY_DST, COPY_SRC, INDIRECT, INDEX, MAP_READ } = GPUBufferUsage;
@@ -866,7 +869,7 @@ export async function createGrassPass(
       grid: d.vec4u(0, 0, capacity[0], capacity[1]),
       density: d.vec4f(
         rules.pixels_per_clump,
-        rules.max_clumps_m2,
+        rules.max_clumps_m2 * densityMultiplier,
         rules.fade_m_per_px[0],
         rules.fade_m_per_px[1],
       ),

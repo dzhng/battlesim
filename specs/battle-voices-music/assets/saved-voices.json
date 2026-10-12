@@ -1,0 +1,26 @@
+{
+  "us_tank": {
+    "voice_id": "z0wdO1PMjmqh0usMe4hA",
+    "label": "US tank crew",
+    "description": "American male tank commander in his thirties, gravelly mid-low voice, calm professional military radio cadence, slight Southern US drawl.",
+    "preview": "us_tank_2.mp3"
+  },
+  "ru_rifle": {
+    "voice_id": "Jqx4K9GHzgAqONoiSwhb",
+    "label": "Russian rifle squad leader",
+    "description": "Russian male infantry sergeant in his forties speaking English with a strong Russian accent, deep rough commanding voice, shouted battlefield delivery.",
+    "preview": "ru_rifle_1.mp3"
+  },
+  "us_recon": {
+    "voice_id": "HDZsRSSxHYdXkV0AKe32",
+    "label": "US Force Recon",
+    "description": "American male special operations marine in his late twenties, low quiet controlled voice, speaks in hushed tones and whispers, very calm and precise.",
+    "preview": "us_recon_1.mp3"
+  },
+  "uk_pilot": {
+    "voice_id": "DqHWHfkdp2tajWvTPtM7",
+    "label": "British attack helicopter pilot",
+    "description": "British male attack helicopter pilot in his thirties, crisp received pronunciation English accent, clipped military aviation phrasing, composed under pressure.",
+    "preview": "uk_pilot_2.mp3"
+  }
+}

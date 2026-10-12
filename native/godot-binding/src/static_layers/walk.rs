@@ -24,6 +24,12 @@ fn length(a: V3) -> f32 {
     (a[0] * a[0] + a[1] * a[1] + a[2] * a[2]).sqrt()
 }
 
+/// The caster region Godot `(x, _, z)` stands in.
+pub fn region(x: f32, z: f32) -> u32 {
+    let cell = |v: f32| ((v / REGION_M).floor() as i32 + 32768) as u32 & 0xffff;
+    cell(x) << 16 | cell(z)
+}
+
 /// Sim `(x, y, z)` as Godot `(x, z, −y)`.
 pub fn to_godot(p: V3) -> V3 {
     [p[0], p[2], -p[1]]
@@ -110,7 +116,7 @@ impl View {
 }
 
 /// One placed instance: its packed record, the centre and size its tier is
-/// chosen by, its reach, its kind, its tier mask (building rows), what hides
+/// chosen by, its reach, its kind, what hides
 /// it (or -1) and all it can draw (scenery chunks follow what stands).
 #[derive(Clone, Default)]
 pub struct Instance {
@@ -119,7 +125,6 @@ pub struct Instance {
     pub size: f32,
     pub radius: f32,
     pub kind: u32,
-    pub mask: u8,
     pub key: i64,
     pub bounds: Aabb,
 }
@@ -135,12 +140,6 @@ pub fn pack(position: V3, yaw: f32, [sx, sy, sz]: V3, [r, g, b]: V3) -> Vec<f32>
 /// The rule a population's chunks follow.
 #[derive(Clone, Copy, Default)]
 pub enum Rule {
-    /// `buildingPlacements.ts`: a chunk takes the tier a metre's pixels give
-    /// its nearest point; finer than coarse, it is resident while the pool
-    /// holds its rows, nearest first.
-    Buildings { pool: usize },
-    /// The fallen buildings: each chunk at its tier, its rows by mask.
-    Ruins,
     /// `lod.ts`: a chunk whose tallest takes the coarsest tier draws whole at
     /// it, else each instance by its own height.
     Scenery { casts: bool },
@@ -153,7 +152,6 @@ pub enum Rule {
 pub struct Chunk {
     pub bounds: Aabb,
     region: u32,
-    height: f32,
     pub all: Vec<u32>,
     standing: Vec<u32>,
     least: f32,
@@ -169,8 +167,6 @@ pub struct Population {
     hidden: Vec<bool>,
     /// Per kind and tier (`kind · 4 + tier`): what the last walk drew.
     pub counts: Vec<i32>,
-    /// The most rows the pool held (buildings).
-    pub most_resident: usize,
 }
 
 impl Population {
@@ -183,18 +179,15 @@ impl Population {
         }
     }
 
-    /// Adds a chunk of `all` within `bounds`, its shadow swept by `height`.
-    pub fn add_chunk(&mut self, bounds: Aabb, height: f32, all: Vec<u32>) {
-        let cell = |v: f32| ((v / REGION_M).floor() as i32 + 32768) as u32 & 0xffff;
-        let (x, z) = (
+    /// Adds a chunk of `all` within `bounds`.
+    pub fn add_chunk(&mut self, bounds: Aabb, all: Vec<u32>) {
+        let region = region(
             (bounds.lo[0] + bounds.hi[0]) / 2.0,
             (bounds.lo[2] + bounds.hi[2]) / 2.0,
         );
-        let region = cell(x) << 16 | cell(z);
         let mut chunk = Chunk {
             bounds,
             region,
-            height,
             all,
             ..Default::default()
         };
@@ -289,62 +282,8 @@ pub fn walk(pop: &mut Population, view: &View, lists: &mut Lists) {
     pop.counts.fill(0);
     let (lod, instances, chunks, counts) = (&pop.lod, &pop.instances, &pop.chunks, &mut pop.counts);
     let at = |i: &u32| &instances[*i as usize];
-    let has = |i: &u32, t: usize| at(i).mask & (1 << t) != 0;
     let standing = chunks.iter().filter(|c| !c.standing.is_empty());
     match pop.rule {
-        Rule::Buildings { pool } => {
-            let (mut near, mut coarse) = (vec![], vec![]);
-            for (c, chunk) in chunks.iter().enumerate().filter(|(_, c)| !c.all.is_empty()) {
-                if view.holds(&chunk.bounds, false) {
-                    let d = view.distance_to(&chunk.bounds);
-                    match view.tier(1.0, d, lod) {
-                        COARSEST => coarse.push((c, d as f64 <= view.reach)),
-                        t => near.push((d, c, t)),
-                    }
-                } else if view.casts_into_view(&chunk.bounds, chunk.height) {
-                    for i in chunk.standing.iter().filter(|i| has(i, COARSEST)) {
-                        lists.cast_at(at(i), COARSEST, chunk.region);
-                    }
-                }
-            }
-            near.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
-            let (mut used, mut full) = (0, false);
-            for (d, c, t) in near {
-                let rows = chunks[c].standing.iter().filter(|i| has(i, t));
-                full = full || used + rows.clone().count() > pool;
-                if full {
-                    coarse.push((c, d as f64 <= view.reach));
-                    continue;
-                }
-                used += rows.clone().count();
-                rows.for_each(|i| lists.draw(counts, at(i), t, coarser(t), chunks[c].region));
-            }
-            pop.most_resident = pop.most_resident.max(used);
-            for (c, casts) in coarse {
-                let cast = casts.then_some(COARSEST);
-                for i in chunks[c].standing.iter().filter(|i| has(i, COARSEST)) {
-                    lists.draw(counts, at(i), COARSEST, cast, chunks[c].region);
-                }
-            }
-        }
-        Rule::Ruins => {
-            for chunk in standing {
-                let (level, casts) = if view.holds(&chunk.bounds, false) {
-                    let d = view.distance_to(&chunk.bounds);
-                    (Some(view.tier(1.0, d, lod)), d as f64 <= view.reach)
-                } else {
-                    (None, view.casts_into_view(&chunk.bounds, chunk.height))
-                };
-                for i in &chunk.standing {
-                    if let Some(t) = level.filter(|&t| has(i, t)) {
-                        lists.draw(counts, at(i), t, None, chunk.region);
-                    }
-                    if casts && has(i, COARSEST) {
-                        lists.cast_at(at(i), COARSEST, chunk.region);
-                    }
-                }
-            }
-        }
         Rule::Scenery { casts } => {
             for chunk in standing {
                 if !view.holds(&chunk.bounds, false) {
@@ -435,7 +374,7 @@ mod tests {
                 ..Default::default()
             };
             pop.instances.push(inst);
-            pop.add_chunk(bounds, 2.0, vec![kind as u32]);
+            pop.add_chunk(bounds, vec![kind as u32]);
         }
         let mut lists = Lists::new(2 * TIERS);
         walk(&mut pop, &view, &mut lists);

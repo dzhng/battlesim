@@ -1,12 +1,14 @@
 // @vitest-environment node
 // Destroyed buildings from the simulation to the state a side draws: the
 // shelling encounter on the camera lab's map played in the built WebAssembly,
-// each side's publication decoded, and its buildings classified as the lab
-// classifies them. A low compound is shelled down and a tower gutted while
+// each side's publication pushed into a presentation that draws the map's
+// buildings, and the state its frame draws each in. A low compound is shelled down and a tower gutted while
 // blue watches and red stands behind two slabs; later red walks out and sees.
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
-import { knownFallen } from "@apps/battle-lab/src/destroyedBuildings";
+import { gameBuildingStyle } from "@apps/battle-lab/src/gameModels";
+import { buildingRemains } from "@packages/scene-assets/src/authority";
+import { shippedBuildingArt } from "./support/presentedBuildings";
 import { gameEffects } from "@apps/battle-lab/src/benchmark/effectPresentation";
 import { TEST_RULES, labScenario } from "./catalog";
 import { type LabEncounter } from "@apps/battle-lab/src/scenarios";
@@ -31,9 +33,14 @@ import { UNITS } from "./catalog";
 import { ruinHeight } from "@packages/scene-assets/src/templateSource";
 import { loadEncounter, loadMap } from "@web/maps/node";
 import type { ObservationLayout, ObservationView } from "../src/battle/sim/observationView";
-import { ObservationDecoder, loadPresentation } from "../src/battle/sim/presentation";
+import {
+  ObservationDecoder,
+  loadPresentation,
+  type FallenBuilding,
+} from "../src/battle/sim/presentation";
 
 await loadPresentation();
+const ART = await shippedBuildingArt();
 
 let memory: WebAssembly.Memory;
 beforeAll(() => {
@@ -43,6 +50,16 @@ beforeAll(() => {
 });
 
 const SEED = 7;
+/** A camera over the map: what it frames is not the question. */
+const OVERHEAD = {
+  eye: [0, 0, 800],
+  target: [1, 1, 0],
+  up: [0, 0, 1],
+  fovY: 0.8,
+  near: 1,
+  width: 1920,
+  height: 1080,
+};
 /** The compound the encounter shells down, and the tower it guts. */
 const [COMPOUND, TOWER] = ["china-apartment-block-u-5f", "china-tower-20f"];
 
@@ -55,6 +72,9 @@ interface Played {
   to(tick: number): void;
   /** A side's whole observation now. */
   sees(side: "blue" | "red"): ObservationView;
+  /** The buildings a side's presentation draws destroyed now, from its
+   *  whole publication. */
+  drawn(side: "blue" | "red"): FallenBuilding[];
   /** The building of `template`, as `index` numbers it. */
   building(template: string): number;
   free(): void;
@@ -90,6 +110,28 @@ function play(encounter: LabEncounter): Played {
         new Float32Array(memory.buffer, battle.publication_ptr(), len),
       )!;
     },
+    drawn(side) {
+      const presentation = new ObservationDecoder(observations);
+      try {
+        presentation.loadWorld(
+          { sun_azimuth: 0, sun_elevation: 1, buildings: gameBuildingStyle },
+          new Map(),
+          {
+            placed: index.placed,
+            art: ART,
+            partBuilding: index.partBuilding,
+            shells: buildingRemains(UNITS).shells,
+          },
+        );
+        battle.resync_observation();
+        const len = battle.publish(side);
+        presentation.decode(new Float32Array(memory.buffer, battle.publication_ptr(), len));
+        presentation.frame(0, OVERHEAD, { selected: [], xray: false, ghosts: [] });
+        return presentation.fallenBuildings();
+      } finally {
+        presentation.free();
+      }
+    },
     building: (template) => index.placed.template.indexOf(index.placed.templates.indexOf(template)),
     free() {
       view.free();
@@ -114,8 +156,7 @@ test("a side knows a building collapsed or gutted once it has seen it, and intac
   const battle = play(encounter);
   try {
     const [compound, tower] = [battle.building(COMPOUND), battle.building(TOWER)];
-    const drawn = (side: "blue" | "red") =>
-      knownFallen(UNITS, battle.index, battle.sees(side).knownProps);
+    const drawn = (side: "blue" | "red") => battle.drawn(side);
     // Before a round lands, both sides know the map.
     battle.to(30);
     expect(drawn("blue")).toEqual([]);
@@ -239,9 +280,7 @@ test("a side that sees part of a compound come down knows the whole building a r
     battle.to(lastBurst(encounter) + 30);
     expect(outOfSight()).toEqual(hidden);
     const known = battle.sees("blue").knownProps;
-    expect(knownFallen(UNITS, battle.index, known)).toEqual([
-      { building: compound, state: "ruin" },
-    ]);
+    expect(battle.drawn("blue")).toEqual([{ building: compound, state: "ruin" }]);
     // Every part is published, the hidden one too: the simulation ends a
     // building whole, and seeing a part of it reveals all of it.
     expect(known.map((k) => k.authoredProp).sort()).toEqual(parts.map((p) => p.id).sort());

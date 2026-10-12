@@ -93,6 +93,37 @@ model. Measurements prove onset, clipping and reproducibility; timbre choices
 remain reviewable in the workbench. Source quality and designed reuses are explicit
 in each clip's provenance.
 
+## Generated voices
+
+Unit voices are generated with ElevenLabs and never hand-edited. [`voices.json`](../../fixtures/voices.json)
+is the only authority on what is said, by which voice and through which profile;
+[the voice catalog](src/voices/voiceCatalog.ts) validates it and names a take
+(`set/voice/trigger/intensity/take`) and its served URL. Spending credits, and
+writing `fixtures/voices.lock.json` and every voice audio file, belong to
+[the generation tool](tools/generate/cli.ts) alone, run as `bun run generate`; its
+bare usage lists the commands. It reaches ElevenLabs only through Duet's proxy with
+this machine's Duet login.
+
+A take is two cached steps. Its **raw master** (`assets/source/audio/voices/`) is a
+function of the expanded line, voice, model, settings and retake count, so it is paid
+for once; bumping a retake in `voices.json` is how a judged-bad take is bought again.
+Its **served file** (`assets/runtime/audio/voices/<set>/`, content-hashed) is a
+function of the raw bytes, the profile's whole definition, its bed and the encoder,
+so tuning a profile re-renders locally for free. A killed run is simply rerun: raw
+masters on disk are trusted by name, and the lock is written atomically as it goes.
+Every take is transcribed and compared with its script after stripping audio tags
+and reading numbers as digits; a lost keyword (the callsign, "sabot", "gunner"), a
+high word error or a take longer than its trigger's talk time flags it for review.
+`check` proves the lock by hash and never re-encodes, since MP3 bytes differ between
+ffmpeg builds.
+
+[`assets.py voice`](tools/assets.py) is the treatment: where the speaker sits
+decides it (dry in the open, a light radio over the tank's engine, an earpiece for
+recon, an intercom over the rotor). Each take is mixed with its profile's hiss and
+generated bed, normalised by integrated loudness rather than peak, and encoded as
+mono MP3 at about 40 kbps. `assets.py voice-profiles` prints the definitions the tool
+hashes.
+
 The [sound frame](src/soundFrame.ts) owns timing, distance and voice allocation.
 Only implicit presentation slots follow shared effect replacements; an explicit
 recipe selection keeps its identity. The [bank](src/soundBank.ts) prepares live

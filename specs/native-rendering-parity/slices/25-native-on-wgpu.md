@@ -214,3 +214,261 @@ Each step is checked against the existing control plates and counts, scene by sc
 6. **Effects, fog (compute and mask) and overlays** (overlays only if native gains UI). Slice 22's completeness items land here, on `wgpu`.
 7. **Audio:** `kira` from `Frame.emitters`.
 8. **Gates:** plates, counts, and performance at or below the browser on both scenes in a release build. Then delete `native/godot`, its shaders and GDScript, the Godot glue, and the parity harness's Godot runner.
+
+## Steps 1 and 2: built (2026-10-11, branch `phase5a`)
+
+### The contract
+
+- **One shader text for every battle and every canvas size.** Nothing a battle or a size sets is spliced into WGSL any more:
+  - the shown sky and the LUT bake read a `SkyLight` uniform (`shaders/physicalSky.ts`, packed by `skyLight`);
+  - the haze reads `Environment.aerial`, an `Aerial` struct inside the environment uniform every lit pass already binds (`shaders/aerial.ts`, packed by `aerial`); it takes the sun from `Environment.sunDirection`;
+  - post reads a `Bloom` uniform (threshold, knee, level weights, strength) in the highpass and composite, and each blur stage a `vec2f` step uniform. One blur pipeline per level now serves both axes (15 post pipelines became 10).
+  - Each uniform field holds exactly the value the text used to hold. Where the text multiplied two literals, which the compiler folds, the packer folds them in f32 the same way (`cloudLit`, `cloudBase`).
+- **Both validators accept every module.** `scarEntry` breaks out of its probe and returns the uniform word after the loop; `fogFoliage` is a `while` loop. A trailing unreachable `return` (the research's fix) passed naga but made Tint warn "code is unreachable" on three modules, so it was replaced.
+- **Every pipeline has its own name** (`$name`): `worldPrepass`, `sceneryCaster`, `fogTerrain`, `grassBuild`, `bloomBlur2`, `postLook`, … Native looks pipelines up by these names. Two bind group layouts called `layout` are now `environment` and `scarFilter`.
+- **The export** is `packages/battle-renderer/pipelines/`: one `<name>.wgsl` per pipeline and `pipelines.json` with each pipeline's kind, shader file, entry points, vertex buffers, targets, primitive, depth-stencil, multisample and bind group layouts by name (with their entries). 63 pipelines.
+  - It is generated, never hand-edited: `web/tests/shaderExport.test.ts` builds the battle frame in Vitest on a recording WebGPU device (`web/tests/support/recordingDevice.ts`) and compares the resolved text and settings with the files. `UPDATE_PIPELINES=1` rewrites them. Vitest now runs TypeGPU through the same naming plugin Vite does (`server.deps.inline`), so the recorded text is the browser's byte for byte: the base's 68 modules matched the research capture of `/lab/air` exactly.
+  - The same file proves the first point: the frame built under a second light (every haze, sky, cloud and bloom number different) at 1003×611 resolves to identical text and settings.
+  - `crates/pipelines` runs naga 30.0.1 over every file: parse, validate, Metal Shading Language 2.4, and each listed entry point at its stage. Its capabilities are naga's defaults plus `SHADER_FLOAT16_IN_FLOAT32`, which `wgpu` grants every WebGPU-compliant adapter (`pack2x16float`).
+  - Marked `linguist-generated` and left out of the formatter (`.prettierignore`).
+- **Not exported yet:** the impostor bake and the pose kernel. Both are created only once appearances install, and the pose kernel's text depends on the installed joint count (slice 20 decides whether it survives). They are exported as they stand once slice 20 lands.
+
+### Evidence
+
+**Plates.** Six deterministic lab stills (`street`, `street` under a random sun, `street?sun=0.3`, `air`, `fog-look`, `ground`; each paused at a fixed tick, HUD hidden, 1280×720), two runs of the base and three of the branch, interleaved under the GPU lock (scratch: `throwaway/phase5a/`).
+
+| Shot | base vs base (noise floor) | base vs branch (final code) |
+| --- | --- | --- |
+| air | identical | identical |
+| fog-look | identical | identical |
+| ground | 1 px, 1 level | identical, or 1 px at 1 level |
+| street, `?sun=0.3` | 104 px, max 3 levels | 92 px, max 1–3 levels |
+| street | 897 px, max 88 levels | 103–112 px, max 3–4 levels (or 900 px, max 88, against the other base run) |
+
+Every difference is within the run-to-run floor of unchanged code. The branch logs no shader warning, and `fog-look`'s 8 TypeGPU buffer-size notices are the base's too.
+
+**Compile time** (the same lab, a light this browser had compiled against one it had not; summed pipeline-creation time, then wall time from the first module to the last pipeline ready):
+
+| | Known light | New light |
+| --- | --- | --- |
+| Base | 0.86–0.91 s; 6.2–6.6 s | **6.9–7.0 s; 7.8–7.9 s** |
+| Branch | 0.80–0.96 s; 5.8–7.0 s | **0.82–0.86 s; 6.1–6.6 s** |
+
+A new map's light no longer recompiles 17 modules; on the base it cost about 6 s of pipeline compilation and 1.5 s of wall time.
+
+**Scenes.** `graphics-test` and `generated` (the battle) pass on the branch, including its frame-rebuild allocation baseline and "no WebGPU validation warning".
+
+**Frame cost:** no meaningful change, under the GPU lock.
+- *The same still frame, timestamp queries* (300 forced redraws per lab, base and branch interleaved, three rounds; the controlled measure): street 1.81/1.72/1.72 ms against 1.78/1.74/1.72; air 1.65/1.62/1.82 against 1.61/1.55/1.52; ground 1.29/1.33/1.41 against 1.26/1.25/1.32. The uniform reads cost nothing measurable.
+- *Labelled Metal System Traces of Chrome's GPU process* (production builds, three interleaved runs per side, 3 s each): market-town's graphics-test reel 8 s into filming, GPU busy share 0.78/0.73/0.72 against 0.75/0.76/0.78; the city-contact benchmark's short run, 0.265/0.275/0.274 against 0.273/0.267/0.273. Busy per drawn frame moves with where in the reel or battle the 3 s land (reel 1.46/1.40/0.74 ms against 1.46/1.60/1.81, the 0.74 inside a fade; battle 3.21/2.02/2.74 against 2.54/3.16/2.36), so the still-frame timing above is the comparison that holds the frame fixed. One `xctrace` hung for 20 minutes holding the lock; it was killed and that run repeated.
+
+**Tests.** `shaderExport.test.ts` (two tests), the naga test, `light.test.ts`, `fogVisibility.test.ts` and `scarShaderInlining.test.ts` pass. The full Vitest run's 9 failures (`nativeEffectVectors`, `nativePoseVectors`, `downloadBudget`, `unitFit`, `mapWorkbenchNative`, `battleFailure`, `navigationBrowser`) fail identically on the base.
+
+**Code.** Production code +353 net lines (+764, −411) (TypeScript and the new crate, without tests, docs and the generated export); tests +368 (+375, −7). The export is 63 WGSL files and `pipelines.json`, about 0.9 MB, all generated. Most of the production growth is the three uniform structs and their packers (about 170 lines) and the naga crate (about 100); the pipeline names are one token each, but rewrap their statements. Nothing is deleted yet: Godot's ported shaders go at step 8.
+
+### Decisions
+
+- **The export runs in Vitest, not in a browser.** A recording device builds the real `createBattleFrame` in Node in about 0.2 s, so the drift check is an ordinary unit test. A browser capture would have made it a GPU-locked scene.
+- **Light uniforms extend the owners that already bind data**, not a new `Light` binding: the haze rides in `Environment` (bound to every lit pass), the sky keeps its own small uniform, post its own. 18b's `World.light` is what will fill them.
+- **Pipeline names are the native lookup key**, so every pipeline is named for its owner and role; the export refuses a missing or repeated name.
+- **The blur's two axes share one pipeline per level**, since their text became identical.
+
+### Next pickup
+
+Step 3, the native skeleton, reads `crates/pipelines`'s directory and `pipelines.json`. Regenerate the export (`UPDATE_PIPELINES=1 bun run --cwd web test -- tests/shaderExport.test.ts`) after slices 20 and 20b land, and add the impostor bake and pose kernel then.
+
+## Step 3: the native skeleton, built (2026-10-11, branch `phase5b`)
+
+### The contract
+
+- **`native/client`** is the native client: a library (the passes, the pipeline loader, the capture replay) and one binary that replays a parity scene and writes its plates. Its README holds the usage.
+- **Pipelines come only from the export.** `Pipelines::build` reads `pipelines.json` with every struct `deny_unknown_fields`, fills WebGPU's defaults where the export leaves a field out (a `buffer: {}` is a uniform), builds each pipeline inside an error scope, and fails listing every pipeline the device refuses. Passes look pipelines and layouts up by name. All 63 build on Apple M5 Pro: 5.7 s cold, 0.06–0.08 s once Metal's shader cache is warm. `tests/pipelines.rs` is the gate (falsified once by breaking `bake.wgsl`).
+- **Uniforms are presentation records, uploaded as bytes** (amends 18b):
+  - `World.light` is `presentation::light::LightSettings`: the fixture's `presentation.light` resolved into uniform records, which the browser also reads (below).
+  - `Frame.view` is 18b's `View` (view, projection, eye, size), filled every frame, even before the world loads, plus the sky's three corner rays (`sky_origin`, `sky_dx`, `sky_dy`, the browser's `frameCamera` rays). `cascades` and `sun_penumbra` wait for shadows (step 4).
+  - `crates/pipelines/tests/uniforms.rs` holds each record to the struct the exported WGSL declares, member by member and in span, via naga (falsified by swapping two fields).
+- **The frame is one ordered pass list.** `Passes { targets, passes: Vec<Box<dyn Pass>> }`, and a `Pass` has `name` and `encode(queue, view, targets, encoder)`. It is encoded in order each drawn frame, with a debug group per pass. Today the list is `[sky, post]`. There is no graph, no scheduling and no extract stage beyond `Frame` itself (Bevy 0.19+'s fixed order).
+- **What draws.** The sky bakes its 384×192 lookup once at load, then each frame draws the shown sky (disc and clouds) along `Frame.view`'s rays into the 4× `rgba16float` target, resolved. Post is the browser's chain: highpass, five levels of two-axis blur, composite, then `postLook` (grade, AgX) into a `bgra8unorm` display target, which is copied to the window and read back for plates. The browser's fog step (lit → hdr) is skipped, since the reel draws no fog, so the sky resolves straight into post's input.
+- **The replay drives the presentation crate through 18b's calls:** `Presentation::new(layout, tickHz)` and `load_world` (the manifest's `units` and `effects`, the clip tables, the light's sun, and the soldier's body and cruise height from `fixtures/game.json`). Then, for every frame record, every sample up to its tick is pushed, and `frame(simTime, camera from the record and the manifest's lens)` is called. The UI's x-ray and blocked colours are zeros, since a replay selects nothing.
+
+### Evidence
+
+Control `2026-10-11T18-47-00-317Z` (main checkout's `throwaway/native-parity/`), both scenes. Scratch is in `throwaway/phase5b/`: plates, contact sheets, `diff-market/`, `diff-paris/` and `critique/`.
+
+- **Counts.** `Frame.counts` (soldiers, vehicles, aircraft, corpses) equal the manifest's `modelCounts` on all 24 plates. So the replay feeds the presentation crate what the browser fed it.
+- **Sky region against the control.**
+  - The top 140 rows of the market-town plates with no smoke or buildings in them: 280, 599, 961, 1385, 1821, 2226, 3384 and 3780.
+    - Grayscale MAE 0.01–0.10.
+    - No pixel off by more than 8 levels in any channel (most at most 3).
+    - pixelmatch 0.
+  - Paris-corner 424's gap between buildings (160×100 px): at most 3 levels.
+  - The other market-town plates differ only where the browser draws smoke plumes or buildings into the band (effects and models are later steps).
+  - By eye, cloud shapes, positions, shading, the blue gradient and the horizon tint match. The unprimed critique found no difference in the three market-town pairs. Its Paris findings were checked at 3× zoom and come from the downscaled side-by-side, not the plates.
+- **Below the horizon** native shows the sky's horizon haze with faint vertical banding (the lookup's columns). The browser's ground and backdrop cover it.
+- **`cargo test`** (native-client, presentation, pipelines) and **clippy `-D warnings`** are clean. `presentation-wasm` and `godot-binding` still compile.
+
+### The window on macOS
+
+`wgpu` 30's Metal surface checks `NSWindow.occlusionState` before `nextDrawable` (its workaround for [wgpu#8309](https://github.com/gfx-rs/wgpu/issues/8309)) and returns `Occluded` for a window that isn't visible. Measured over 60–138 paced frames:
+
+| Window | Presented | Occluded | Frame interval p50 |
+| --- | --- | --- | --- |
+| Visible (on screen) | all | 0 | 8.33 ms (the 120 Hz display, `Fifo`) |
+| Off-screen (borderless, at 10000,10000) | 0 | all | 0.55–0.61 ms, unpaced |
+| Minimised | 0 | all | 0.54 ms |
+| Hidden | 0 | all | 0.57 ms |
+
+- **An occluded or minimised window presents nothing and nothing blocks.** Frames run unpaced, so plates never depend on presenting.
+- **A timing run must change.** Slice 12's minimised bench measured Godot presenting. On `wgpu` the same bench presents nothing, so step 8's performance gate must compare GPU busy time (Metal System Trace or the two timestamp markers), or present to a visible window.
+- **A live client needs its own pacing while occluded,** as Bevy throttles an unfocused window.
+- **AppKit pulls a titled window back on screen.** The first runs asked for 10000,10000 and opened at 1040,66: about 3 s on the user's screen, three times, before the window became borderless. A borderless window stays off-screen.
+- **Frames run from `about_to_wait` with `ControlFlow::Poll`,** not from redraw requests, which macOS doesn't deliver to a window it isn't showing.
+
+### Code
+
+The production code is +1,899 net lines:
+- the client, 1,543;
+- the presentation crate's light and view records, about 330.
+
+The rest of the change:
+- tests +206;
+- docs +45;
+- generated +2,567, almost all `Cargo.lock` (the `winit`/`wgpu` tree), plus `records.gen.ts` and the sky vectors.
+
+This step only adds code. Godot's deletions come at step 8.
+
+### Decisions
+
+- **Rust resolves the light (18b's `World.light`).** The client derives nothing, and the browser reads the same records (below).
+- **The sky rays go into `View`** rather than into each renderer: projection keeps one owner. They are an 18b amendment.
+- **Present by copying the display target** (`COPY_DST` surface), so plates and the window read the same texture. A visible window costs one 1280×720 copy a frame.
+- **The pass list is a `Vec<Box<dyn Pass>>`**, encoded in order. It has no render graph, as the research recommended.
+
+### Not built yet (step 3's research list)
+
+- the depth and fog-mask targets;
+- two-marker GPU timing;
+- the `Immediate` switch;
+- resizing (targets are fixed at the capture's canvas).
+
+These come with the passes that need them.
+- **Follow-up for the export:** the sky's two layouts carry TypeGPU's automatic names (`bake - Automatic Bind Group & Layout`). Name them in `sky.ts` when the export is next regenerated.
+
+### Next pickup
+
+Step 4, the ground:
+- terrain, shadows (fill `View.cascades`), scars, grass with its compute and indirect draw, and painted marks;
+- add their passes to the list between the sky and post, merging the sky into the world colour pass as the browser does;
+- plates against the same control.
+
+## Step 3, web first: the browser reads Rust's light (2026-10-11, branch `phase5b`)
+
+Set by the coordinator: a Rust contract lands in the browser first, so the light is resolved once.
+
+### The contract
+
+- **`presentation::light` resolves every uniform the light feeds:**
+  - `SkyLight`;
+  - `Aerial` (the haze);
+  - `Sun`: direction, radiance (the atmosphere's transmittance greyed by overcast, times the intensity), the shadow floor and the fill, laid out as the environment uniform's members after its view;
+  - `Bloom` and `Grade`.
+  
+  `LightSettings::records()` returns them all.
+- **The browser takes them through `presentation-wasm`'s free function `light_records(json)`** (sky, aerial, sun, bloom, grade, in order). `resolveLight` in `web/src/battle/sim/presentation.ts` splits them into a `ResolvedLight` by the generated record sizes.
+  - Not through `load_world`: the frame is built with its light before any battle loads, for labs with no battle, and per lab URL (`?sun=`). Rebuilding the frame when the world loads would rebuild its targets and pipelines.
+  - So the light needs the module, not a `Presentation`. The function is stateless, so there is still one presentation per scene.
+- **The renderer uploads the records as bytes.** `createBattleFrame`'s `light` is the `ResolvedLight`: the authored settings, which the cascades, the backdrop and the scenery still read, plus the five records.
+  - The sky and post write their uniforms from the records.
+  - The environment writes the `Sun` and `Aerial` records into its uniform once (at offsets from `d.memoryLayoutOf`) and only the view each frame.
+- **Deleted from TS:**
+  - `skyModelParams`, `transmittanceToSun` and the other derivations in `skyParameters.ts` (only the constants the sky's shader text splices remain);
+  - `physicalEnvironment.ts`;
+  - `aerialParameters.ts`;
+  - the `skyLight` and `aerial` packers;
+  - post's bloom and grade packers;
+  - `postSettings`.
+
+  `sunDirection` stays: the shadow cascades read it, and they are not records yet (step 4).
+- **The shader text is unchanged.** The export test passes without `UPDATE_PIPELINES`.
+
+### Evidence
+
+- **Equal values.**
+  - `crates/presentation/tests/light.rs` holds sky, aerial and sun to the browser's last values, on the game's light and on a low sun under half overcast. `tests/fixtures/light-vectors.json` was written by the TS before it was deleted.
+  - Each record is falsified once.
+  - A scratch sweep (`throwaway/phase5b/equal/`) ran the base's TS against the branch's WASM over the fixture's light, `?sun=0.3`, a sun at 0.12 and 60 seeded variants of every field. All 63 lights are equal word for word at authored precision.
+  - With 17-digit random inputs, 7 of 63 lights differ by one f32 ulp in one directly copied field. `serde_json`'s default float parse is not correctly rounded. Its `float_roundtrip` feature would fix that, but feature unification would also change how `sim` parses its fixtures in some builds and not others. So it stays off.
+- **Behaviour tests moved to Rust:** one sun for the sky and the ground, the shadow floor kept, finite non-negative light from horizon to zenith and clear to overcast, and clouds giving way to the overcast dome. `crates/pipelines/tests/uniforms.rs` holds `Aerial` and `Sun` to the WGSL structs.
+- **Scenes** (base `34afc4556` and branch, same machine, under the lock). `fog-look` and `air` pass the same 18 checks on both, and fail the same 4, which already fail on the base and are not light:
+  - units standing in fog are never fogged;
+  - the air lab's rifle and autocannon hits (three checks).
+
+  `graphics-test` passes.
+- **Plates.**
+  - Every fog-look `-world`, mask, glyph and whole-building frame is byte-identical, base to branch (32 frames).
+  - The full frames differ in about 1,000–1,700 scattered single pixels on the grass. A diff map shows only grass speckle; the browser's wind runs on wall time. The air frames differ in the same way.
+  - The sky, the buildings, the shadows and the haze are identical.
+- **Quick reel** (`graphics-fps`, paris-corner, production, headless, three interleaved runs per side). The light is set once, when the frame is built, so per-frame work is unchanged except that the environment write is now raw bytes.
+
+  | | avg FPS, median (min–max) | frame ms p50 / p95 | GPU ms mean |
+  | --- | --- | --- | --- |
+  | Branch | 93.2 (79.6–103.5) | 8.34 / 16.81 | 6.57 |
+  | Base | 82.8 (76.6–102.8) | 8.48 / 17.12 | 6.74 |
+
+  No regression; the spread is the headless pacing.
+- **Code** (this pass): production −115 net. That is TypeScript +136 −432 and Rust +189 −8 (the light's derivations, the two records and the binding). Tests +187.
+
+### Decisions
+
+- **A free `light_records`, not `load_world`.** See the contract above. 18b is amended.
+- **Native Godot's own ports of these formulas** (`environment/light.gd`, `sky_model.gd`, `aerial.gd`) are frozen and leave with Godot at step 8. Their comments name the deleted TS.
+
+
+## Step 5a: the models, built (2026-10-12, branch `phase5c`)
+
+Native draws every unit, corpse, ghost and moving wreck piece a `Frame` lists, through the browser's exported model pipelines. The ground (step 4) is not built, so the models stand over the sky's horizon haze; no placeholder ground was needed to judge them.
+
+### The contract
+
+- **The frame's pass list** is now `sky → depth prepass → world → ghosts → post`, the order `battleFrame` encodes its world (`worldPass.ts`'s `encodeDepth`, `encode`, `encodeGhosts`). The ground and scenery join these same passes at step 4.
+  - The depth prepass (reverse-Z, cleared to 0) draws `modelPrepass` over the solid parts and `modelPrepassCutout` over the cutouts.
+  - The world pass loads the sky, resolves into post's input, and writes the fog mask beside it (a new multisampled `rgba8unorm` target, never resolved until the fog mask passes exist). It draws `modelOpaque`, `modelCutout`, `modelRooms`, then `modelBlended`.
+  - The ghost pass draws `modelGhost` over the finished world, reading depth and writing none, only when a frame has ghosts.
+- **Each `Frame` first prepares the layers** (`Passes::prepare`): the environment's camera and view, then the models' palettes and instances, written whole. A pass then reads `Inputs` (queue, view, targets, environment, models). The `Pass` trait changed from `encode(queue, view, targets, encoder)` to `encode(inputs, encoder)`.
+- **Appearances load from the browser's bundles, not glTF** (`bundle.rs`). The browser never draws glTF: the bake turns sources into `assets/runtime` bundles, and that is what both clients read. The `gltf` crate the research proposed is not needed. Native reads the runtime catalog, the gzip transport, the `BGAT` container (JSON header, typed views) and each texture file, as `scene-assets`' `gzip.ts`, `codec.ts` and `texture.ts` do, and refuses an LFS pointer with the pull that fetches it.
+- **Every `World.appearances` row is loaded once** (`models.rs`), into the browser's 48-byte vertex (`packVertices`, ported with `Math.round`'s halves), with each tier's indices ordered by surface class (`orderSurfaces`), materials as the browser's five rows, and textures in the two arrays (`uploadTextureArray`). A batch is one run of the frame's instances over one row's tier, keyed by its row; a batch with `first == NONE` is skipped, as in the browser.
+- **Rest palettes come from Rust** (amends 18b): `Presentation::rest_palette(row)` is a skinned row's body as it holds still, a corpse row as it lies and a body row in its far pose. Native skins the row's mesh by it once at load (`posedMesh`), and the frame's instance takes the identity, as before. The browser still poses its corpses in TypeScript (`poseWorlds`); moving it onto `rest_palette` is a later cleanup.
+- **The environment** (`environment.rs`) owns the frame-level groups by layout name: the camera (`viewProj`, its inverse, eye, near, size, clock, from `View`), the environment light (the world's `Sun` and `Aerial` records, the sky lookup, the PMREM prefiltered from it as `pmrem.ts` does with the exported `pmremBake` and `pmremFilter`, and the DFG table read from the browser's `dfgLut.ts`), and fog.
+  - Bound, but read as absent by every shader: the sun's cascades (every interval below zero, so no receiver is inside one), the cast lights (a zero count) and fog of war (every word zero: `enabled` 0, nothing painted).
+- **A pass binds groups by the layout they fill** (`Pipelines::bound`, from each pipeline's exported layout list), not by number.
+
+### Next pickup
+
+- Step 4, the ground, adds its draws to the depth prepass and world passes, fills `View.cascades` and the sun-shadow binding, and adds the model casters (`modelCaster`, `modelCasterCutout`) into the cascades.
+- The statics (buildings, scenery, props, resting wrecks) come through `Frame` batches once slice 20b lands; the model layer already loads any static row and draws its state.
+- Bake impostor cards once the impostor bake is exported, and replace the far-pose stand-ins.
+
+### Decisions
+
+- **Impostor cards are not baked yet** (the impostor bake pipeline is not exported). At the impostor tier, a body draws its coarsest mesh posed in its far pose, which is what its card shows, and a corpse its coarsest lying mesh. Counts hold; a far soldier is a few hundred triangles instead of two.
+- **No model shadow casters yet.** The model pipelines need a sun-shadow binding, not casters; cascade fitting (`View.cascades`) belongs to step 4's shadows, and the casters join then.
+- **The cast lights stay empty** until the effects step feeds `Presentation::lights()`.
+- **A wreck piece the bundle lacks** (a helicopter wreck has no turret to throw) is a row nothing draws, as the browser's `states.get` returns nothing.
+- **A fresh control.** The control the skeleton used (`2026-10-11T18-47-00-317Z`) predates slice 20's manifest fields: its units carry no `bounds` or `tiers`, so every model's drawn size was zero and the presentation crate tiered every soldier and corpse as an impostor and every vehicle at tier 3. Its counts still matched, because counts don't depend on size. The new control is `throwaway/native-parity/2026-10-12T06-54-57-178Z` (this worktree's scratch), captured from this branch's tree. Its manifest also carries `wreckLooks`, so cook-off rows (73 wreck appearances) now load too.
+
+### Evidence
+
+Control `2026-10-12T06-54-57-178Z`, both scenes. Scratch: `throwaway/phase5c/` (`n-*` native plates, `p-*` cropped pairs with the control on top, `critique/`).
+
+- **Counts.** On all 24 plates, `Frame.counts` (soldiers, vehicles, aircraft, corpses, fading) equal the control's `modelCounts`, and native draws every instance the frame's batches list (for example market-town 2777: 5 soldiers, 3 vehicles, 35 corpses and 1 wreck piece of 44 listed; paris-corner 1420: 27 soldiers and 1 corpse of 28).
+- **Plates against the control** (`compare-screenshots`, pairs cropped to where native drew models, on silhouette, pose and placement):
+  - Paris-corner 359's Abrams matches the control in outline, its stowage, rails, antennas, turret and gun, the track and its textures, at the same pixels.
+  - Paris-corner 1420's squad matches man for man: the same standing, aiming, crouched, leaning and prone poses, rifles and kit, at the same places.
+  - Market-town 2777's corpses lie where the control's do, and its tanks and soldiers stand where the control's do.
+  - Native also draws the units the control hides behind buildings, bollards, grain and smoke. That is expected: those layers come later.
+  - Lighting differs (no ground bounce, shadows, haze from effects); that is out of scope for this step.
+- **Unprimed critique** (all 24 pairs and four zooms, no history): every living unit and every soldier corpse matches in position, size, pose, facing and turret and gun angle; no holes, stretching, z-fighting, wrong textures, or floating or sunk units.
+  - Its one high-confidence finding: **resting vehicle wrecks are missing** (market-town 3415, 3702, 3965, 4229, 4502, 4791). A wreck at rest is not a `Frame` batch: once its cook-off settles, the side knows it as a prop (the control's "known props per plate", `us_m1_abrams_sep_v2_wreck`), drawn by the static world with the buildings and scenery. It arrives with the statics, not here. Moving pieces during a cook-off are batches, and native draws them.
+  - Its low-confidence notes (one corpse looking more sprawled where the control's grain hides its legs; one leaning soldier's boots a pixel or two lower) were checked at zoom: grass occlusion and resolve noise.
+- **Load time.** All 367 market-town rows (27 unit appearances, their corpses, and 73 wreck looks' pieces) install in 3.2 s in a release build (49 s in a debug build).
+- **Tests.** `tests/models.rs`: a corpse row's posed body lies on the ground (falsified by posing at the bind pose: the body stood 1.71 m), and a far body stands in its far pose. `cargo test` for `native-client` (with the pipelines test under the GPU lock), `presentation` and `pipelines`, and clippy `-D warnings` on `native-client` and `presentation`, are clean. `presentation-wasm` and `godot-binding` still compile.

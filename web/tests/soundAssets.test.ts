@@ -254,3 +254,85 @@ test.skipIf(!hasFfmpeg)(
     }
   },
 );
+
+/** Integrated loudness (LUFS) and channel count of an encoded file, as ffmpeg reads them. */
+function measure(path: string) {
+  const loudness = spawnSync(
+    "ffmpeg",
+    ["-hide_banner", "-nostats", "-i", path, "-af", "ebur128", "-f", "null", "-"],
+    { encoding: "utf8" },
+  ).stderr;
+  const probe = spawnSync(
+    "ffprobe",
+    ["-v", "error", "-show_entries", "stream=codec_name,channels,bit_rate", "-of", "json", path],
+    { encoding: "utf8" },
+  );
+  const stream = JSON.parse(probe.stdout).streams[0];
+  return {
+    lufs: Number(/I:\s+(-?[\d.]+) LUFS/.exec(loudness.split("Summary:")[1])![1]),
+    codec: stream.codec_name as string,
+    channels: stream.channels as number,
+    kbps: Number(stream.bit_rate) / 1000,
+  };
+}
+
+test.skipIf(!hasFfmpeg)(
+  "a voice take comes out mono MP3 at its profile's loudness, over its bed",
+  () => {
+    const root = mkdtempSync(join(tmpdir(), "battle-audio-voice-"));
+    try {
+      const assets = resolve("../packages/battle-audio/tools/assets.py");
+      const rate = 48000;
+      // A quiet stereo "line": syllables of a voiced buzz, well under any target.
+      const line = new Float32Array(2 * rate);
+      for (let i = 0; i < line.length; i++)
+        line[i] =
+          0.05 *
+          Math.sin((2 * Math.PI * 180 * i) / rate) *
+          (Math.sin((Math.PI * 4 * i) / rate) > 0 ? 1 : 0.1);
+      writeFileSync(join(root, "line.wav"), wav(line, rate));
+      const engine = new Float32Array(3 * rate).map(
+        (_, i) => 0.3 * Math.sin((2 * Math.PI * 60 * i) / rate),
+      );
+      writeFileSync(join(root, "engine.wav"), wav(engine, rate));
+      const { profiles, encoder } = JSON.parse(
+        spawnSync("python3", [assets, "voice-profiles"], { encoding: "utf8" }).stdout,
+      );
+      const voice = (profile: string, ...more: string[]) =>
+        spawnSync(
+          "python3",
+          [
+            assets,
+            "voice",
+            "--profile",
+            profile,
+            "--input",
+            join(root, "line.wav"),
+            "--output",
+            join(root, `${profile}.mp3`),
+            ...more,
+          ],
+          { encoding: "utf8" },
+        );
+      for (const [profile, spec] of Object.entries<{
+        bed: { name: string } | null;
+        loudness_lufs: number;
+      }>(profiles)) {
+        const run = spec.bed ? voice(profile, "--bed", join(root, "engine.wav")) : voice(profile);
+        expect(run.stderr).toBe("");
+        expect(JSON.parse(run.stdout).duration_s).toBeCloseTo(2, 1);
+        const out = measure(join(root, `${profile}.mp3`));
+        expect(out).toMatchObject({ codec: "mp3", channels: 1 });
+        expect(Math.abs(out.kbps - parseInt(encoder.bitrate))).toBeLessThanOrEqual(2);
+        expect(Math.abs(out.lufs - spec.loudness_lufs)).toBeLessThanOrEqual(1);
+      }
+      // A profile heard over an engine refuses to render without one.
+      const bedded = Object.keys(profiles).find((name) => profiles[name].bed)!;
+      const missing = voice(bedded);
+      expect(missing.status).not.toBe(0);
+      expect(missing.stderr).toMatch(/bed/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  },
+);

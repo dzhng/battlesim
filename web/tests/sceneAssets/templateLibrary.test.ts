@@ -23,8 +23,6 @@ import {
   TemplateArtError,
   bindModules,
   decodeTemplateLibrary,
-  placeRows,
-  resolve,
   templateRows,
   type TemplateArtLibrary,
 } from "@packages/scene-assets/src/templateLibrary.ts";
@@ -251,47 +249,8 @@ test("a module its kit lacks is refused by name when the library is bound", asyn
   ]);
 });
 
-// ---------------------------------------------------------------- the resolver
-
-test("the resolver puts a row where the placed frame says", async () => {
-  const lib = await library();
-  // A quarter turn, then moved: the sill at (2, -4, 1.2) lands at (100 + 4, 50 + 2, 7 + 1.2).
-  const frame = { translation: [100, 50, 7], yaw: Math.PI / 2 } as const;
-  const placed = resolve("test-house", frame, "intact", lib);
-  expect(placed.rows).toEqual(templateRows(lib, "test-house", "intact"));
-  expect(placed.transforms).toHaveLength(2 * ROW_TRANSFORM_FLOATS);
-  close(placed.transforms.subarray(ROW_TRANSFORM_FLOATS), [104, 52, 8.2, Math.PI / 2, 1, 1, 1]);
-  // The shell keeps its stretch and turns with the building.
-  close(placed.transforms, [100, 50, 7, Math.PI / 2, 12, 8, 6]);
-  // A part's own yaw adds to the frame's.
-  const yard = resolve("test-yard", { translation: [0, 0, 0], yaw: 1 }, "intact", lib);
-  close(yard.transforms.subarray(ROW_TRANSFORM_FLOATS), [
-    10 * Math.cos(1),
-    10 * Math.sin(1),
-    0,
-    1.5,
-    8,
-    12,
-    4,
-  ]);
-});
-
-test("the resolver writes into the caller's buffer and nowhere else", async () => {
-  const lib = await library();
-  const out = new Float32Array(4 + 2 * ROW_TRANSFORM_FLOATS + 3).fill(-1);
-  const frame = { translation: [1, 2, 3], yaw: 0 } as const;
-  const placed = resolve("test-house", frame, "intact", lib, out, 4);
-  expect(placed.transforms).toBe(out);
-  expect(placed.offset).toBe(4);
-  expect([...out.subarray(0, 4), ...out.subarray(out.length - 3)]).toEqual(Array(7).fill(-1));
-  close(out.subarray(4 + ROW_TRANSFORM_FLOATS), [3, -2, 4.2, 0, 1, 1, 1]);
-  const end = placeRows(lib, placed.rows, frame, out, 4);
-  expect(end).toBe(4 + 2 * ROW_TRANSFORM_FLOATS);
-});
-
 test("missing art is refused by name, never replaced", async () => {
   const lib = await library();
-  const frame = { translation: [0, 0, 0], yaw: 0 } as const;
   const refusal = (run: () => unknown) => {
     try {
       run();
@@ -300,10 +259,10 @@ test("missing art is refused by name, never replaced", async () => {
     }
     return "resolved";
   };
-  expect(refusal(() => resolve("china-slab-35x11", frame, "intact", lib))).toMatch(
+  expect(refusal(() => templateRows(lib, "china-slab-35x11", "intact"))).toMatch(
     /^template\.missing \| .*template "china-slab-35x11" has no art/,
   );
-  expect(refusal(() => resolve("test-house", frame, "gutted", lib))).toMatch(
+  expect(refusal(() => templateRows(lib, "test-house", "gutted"))).toMatch(
     /^state\.missing \| .*template "test-house" \(set test\) has no "gutted" rows/,
   );
 });

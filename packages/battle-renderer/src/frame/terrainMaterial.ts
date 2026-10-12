@@ -71,7 +71,7 @@ import {
 } from "../terrain/biome";
 import type { Rgb } from "../light/sceneLight";
 import type { GpuRegistry, GpuSlot } from "./registry";
-import { groundFilterReady, scarFilterQuanta, scarFilterPosition } from "./scarFilter";
+import { scarFilterQuanta, scarFilterPosition } from "./scarFilter";
 import {
   createScarTexture,
   SCAR_UNIFORM,
@@ -1659,8 +1659,9 @@ const scarEntry = tgpu
  let tilesX=(P.pages.x+15u)/16u;let key=tile.y*tilesX+tile.x;
  var at=((key*0x9e3779b1u)^(key>>16u))&P.pages.z;
  loop {let dim=textureDimensions(terrainLayout.$.scarPages);let e=textureLoad(terrainLayout.$.scarPages,vec2i(i32(at%dim.x),i32(at/dim.x)),0).xy;
-  if(e.x==0u){return vec2u(${SCAR_UNIFORM}u,P.defaultWord.x);}
+  if(e.x==0u){break;}
   if((e.x&${SCAR_KEY_MASK}u)==key+1u){return e;}at=(at+1u)&P.pages.z;}
+ return vec2u(${SCAR_UNIFORM}u,P.defaultWord.x);
 }`)
   .$uses({ terrainLayout });
 const scarPoolWord = tgpu
@@ -2008,13 +2009,6 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
   const surfaces: GpuSlot<ReturnType<typeof surfaceBuffer>> = registry.slot();
   const surfaceIndex: GpuSlot<ReturnType<typeof indexBuffer>> = registry.slot();
   const scarParams = registry.own(root.createBuffer(ScarParams).$usage("uniform"));
-  const scarSampler = registry.device.createSampler({
-    label: "ground-scars",
-    magFilter: "linear",
-    minFilter: "linear",
-    addressModeU: "clamp-to-edge",
-    addressModeV: "clamp-to-edge",
-  });
   const scarLook = {
     full: d.vec4f(1, 1, 1, 1),
     crater: d.vec4f(),
@@ -2114,7 +2108,6 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
       const now = paramsNow();
       return packed && now && scarWritten && { ...packed, params: now, scars: scarWritten };
     },
-    ready: () => groundFilterReady(root, registry, scarSampler),
     group: null as unknown as ReturnType<typeof groupOf>,
     /** Follow the side's learned ground (null: none); true when the scars
      *  changed, so what grows on them must regrow. */

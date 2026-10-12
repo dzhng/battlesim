@@ -7,14 +7,12 @@ import {
 } from "./shadow";
 import { typegpuTextureBytes } from "./textureUpload";
 import { tgpu, d, std } from "typegpu";
-import type { LightPresentation } from "../light/sceneLight";
-import { photorealEnvironment } from "../light/physicalEnvironment";
-import { skyModelParams } from "../light/skyParameters";
+import { sunDirection, type ResolvedLight } from "../light/sceneLight";
 import { createTypegpuSky } from "./sky";
 import { createTypegpuPmrem } from "./pmrem";
 import { samplePmrem } from "./pmremSampling";
 import { standardPbrWgsl } from "../shaders/standardPbr";
-import { aerialWgsl } from "../shaders/aerial";
+import { Aerial, aerialWgsl } from "../shaders/aerial";
 import { equirectUvWgsl } from "../shaders/physicalSky";
 import { DFG_LUT_DATA, DFG_LUT_SIZE } from "../shaders/dfgLut";
 import { shadeEnvironmentWgsl } from "../shaders/environment";
@@ -36,7 +34,20 @@ export const Environment = d.struct({
   settings: d.vec4f,
   /** Linear rgb multiplier on the sky's environment light (the shadow fill). */
   fill: d.vec4f,
+  /** The battle's haze (`shaders/aerial.ts`). */
+  aerial: Aerial,
 });
+/** Where the light's records and the view lie in the uniform, in words: the
+ *  `Sun` record covers `sunDirection` to `fill`, the `Aerial` record `aerial`. */
+const word = (field: (e: d.Infer<typeof Environment>) => unknown) =>
+  d.memoryLayoutOf(Environment, field).offset / 4;
+const AT = {
+  view: word((e) => e.worldToView),
+  observer: word((e) => e.observer),
+  sun: word((e) => e.sunDirection),
+  topMip: word((e) => e.settings.x),
+  aerial: word((e) => e.aerial),
+};
 const environmentEntries = {
   data: { uniform: Environment, visibility: ["vertex", "fragment"] },
   /** The frame's cast lights (`light/castLights.ts`): flashes, motors, bursts, fires. */
@@ -46,7 +57,9 @@ const environmentEntries = {
   dfg: { texture: d.texture2d(), visibility: ["fragment"] },
   linear: { sampler: "filtering", visibility: ["fragment"] },
 } satisfies Parameters<typeof tgpu.bindGroupLayout>[0];
-const layout = tgpu.bindGroupLayout({ ...environmentEntries, ...sunShadowEntries });
+const layout = tgpu
+  .bindGroupLayout({ ...environmentEntries, ...sunShadowEntries })
+  .$name("environment");
 const standardPbr = tgpu
   .fn(
     [
@@ -108,10 +121,160 @@ const sampleSunShadow = tgpu.fn(
   );
 });
 
+const applyAerial = tgpu
+  .fn(
+    [d.vec4f, d.vec3f, d.vec3f, d.vec3f, d.vec3f, Aerial, d.texture2d(), d.sampler()],
+    d.vec4f,
+  )(aerialWgsl)
+  .$uses({ equirectUv, Aerial });
+const shadeAlgorithm = tgpu
+  .fn(
+    [
+      d.vec3f,
+      d.vec3f,
+      d.f32,
+      d.f32,
+      d.f32,
+      d.f32,
+      d.vec3f,
+      d.vec3f,
+      d.f32,
+      d.vec3f,
+      d.vec3f,
+      d.vec3f,
+      d.vec3f,
+      d.vec3f,
+      d.f32,
+      Aerial,
+      d.texture2d(),
+      d.texture2d(),
+      d.texture2d(),
+      d.sampler(),
+    ],
+    d.vec4f,
+  )(shadeEnvironmentWgsl)
+  .$uses({ standardPbr, applyAerial, Aerial });
+/** The frame's cast lights on a surface of albedo `base` at `position`
+ *  facing `normal`: each one's falloff inside its radius, its facing
+ *  wrapped by the header's wrap, as Lambert on the albedo greyed by
+ *  `CAST_ALBEDO_GREY` and held above `CAST_ALBEDO_FLOOR` (`light/castLights.ts`). */
+const castLight = tgpu.fn(
+  [d.vec3f, d.vec3f, d.vec3f],
+  d.vec3f,
+)((base, normal, position) => {
+  "use gpu";
+  const count = d.u32(layout.$.lights.header.x);
+  const wrap = layout.$.lights.header.y;
+  const n = std.normalize(normal);
+  let sum = d.vec3f(0);
+  for (let i = d.u32(0); i < count; i++) {
+    const toward = std.sub(layout.$.lights.lights[i].position.xyz, position);
+    const d2 = std.dot(toward, toward);
+    const x2 = d2 * layout.$.lights.lights[i].position.w;
+    if (x2 < 1) {
+      const falloff = ((1 - x2) * (1 - x2)) / (1 + CAST_FALLOFF * x2);
+      const facing = std.dot(n, toward) * std.inverseSqrt(std.max(d2, 1e-4));
+      const wrapped = std.clamp((facing + wrap) / (1 + wrap), 0, 1);
+      sum = std.add(sum, std.mul(layout.$.lights.lights[i].color.xyz, falloff * wrapped));
+    }
+  }
+  const grey = std.dot(base, d.vec3f(0.2126, 0.7152, 0.0722));
+  const albedo = std.max(
+    std.mix(base, d.vec3f(grey), CAST_ALBEDO_GREY),
+    d.vec3f(CAST_ALBEDO_FLOOR),
+  );
+  return std.mul(albedo, std.mul(sum, 1 / Math.PI));
+});
+const shade = tgpu.fn(
+  [d.vec3f, d.vec3f, d.f32, d.f32, d.f32, d.f32, d.vec3f, d.vec3f, d.f32, d.vec3f],
+  d.vec4f,
+)((base, emissive, roughness, geomRoughness, metal, ao, normal, position, shadow, eye) => {
+  "use gpu";
+  // A sun shadow keeps the light's shadow floor (`settings.y`) of the sun.
+  const sun = std.mix(layout.$.data.settings.y, 1, shadow);
+  return shadeAlgorithm(
+    base,
+    std.add(emissive, castLight(base, normal, position)),
+    roughness,
+    geomRoughness,
+    metal,
+    ao,
+    normal,
+    position,
+    sun,
+    eye,
+    layout.$.data.observer.xyz,
+    layout.$.data.sunDirection.xyz,
+    layout.$.data.sunRadiance.xyz,
+    layout.$.data.fill.xyz,
+    layout.$.data.settings.x,
+    layout.$.data.aerial,
+    layout.$.sky,
+    layout.$.pmrem,
+    layout.$.dfg,
+    layout.$.linear,
+  );
+});
+const unlitAlgorithm = tgpu
+  .fn(
+    [
+      d.vec3f,
+      d.vec3f,
+      d.vec3f,
+      d.vec3f,
+      d.vec3f,
+      d.vec3f,
+      d.vec3f,
+      d.f32,
+      d.f32,
+      Aerial,
+      d.texture2d(),
+      d.texture2d(),
+      d.sampler(),
+    ],
+    d.vec4f,
+  )(/* wgsl */ `(colour:vec3f,worldPosition:vec3f,eye:vec3f,observer:vec3f,sunDirection:vec3f,sunRadiance:vec3f,environmentIntensity:vec3f,shadowFloor:f32,maxMip:f32,air:Aerial,sky:texture_2d<f32>,pmrem:texture_2d<f32>,linear:sampler)->vec4f {
+    // What a white matte surface facing the sky returns in sun shadow: the
+    // sky's light and the shadow floor's share of the sun's, as shade and
+    // standardPbr's diffuse terms have them.
+    let skyLight=samplePmrem(pmrem,linear,vec3f(0.0,0.0,1.0),1.0,maxMip)*environmentIntensity;
+    let white=sunRadiance*max(sunDirection.z,0.0)*shadowFloor*0.3183098861837907+skyLight;
+    return applyAerial(vec4f(colour*white,1),worldPosition,eye,observer,sunDirection,air,sky,linear);
+  }`)
+  .$uses({ samplePmrem, applyAerial, Aerial });
+/** A finished picture's place in the frame: a surface that takes no
+ *  light of its own (a room behind a window, lit when its picture was
+ *  made). `colour` is shown at the scene's exposure, as bright as a matte
+ *  surface of that albedo lying in sun shadow under this sky (a room is a
+ *  shaded place, whichever way its wall faces), and behind the air
+ *  between it and the eye. Nothing of the surface's own enters: no
+ *  facing, no sun shadow test, no cast light. */
+const unlit = tgpu.fn(
+  [d.vec3f, d.vec3f, d.vec3f],
+  d.vec4f,
+)((colour, position, eye) => {
+  "use gpu";
+  return unlitAlgorithm(
+    colour,
+    position,
+    eye,
+    layout.$.data.observer.xyz,
+    layout.$.data.sunDirection.xyz,
+    layout.$.data.sunRadiance.xyz,
+    layout.$.data.fill.xyz,
+    layout.$.data.settings.y,
+    layout.$.data.settings.x,
+    layout.$.data.aerial,
+    layout.$.sky,
+    layout.$.pmrem,
+    layout.$.linear,
+  );
+});
+
 /** TypeGPU resource ownership; exposed GPU views are borrowed by component bindings. */
 export async function createTypegpuEnvironment(
   device: GPUDevice,
-  light: LightPresentation,
+  light: ResolvedLight,
   backgroundSamples: 1 | 4,
   shadow: TypegpuSunShadow,
 ) {
@@ -125,7 +288,7 @@ export async function createTypegpuEnvironment(
     root.destroy();
   };
   try {
-    const sky = await createTypegpuSky(device, skyModelParams(light), backgroundSamples);
+    const sky = await createTypegpuSky(device, light.sky, backgroundSamples);
     owned.push({ destroy: sky.dispose });
     const pmrem = await createTypegpuPmrem(device, sky.lut);
     owned.push({ destroy: pmrem.dispose });
@@ -154,152 +317,11 @@ export async function createTypegpuEnvironment(
       sunDepth: shadow.receiverView,
       sunCompare: shadow.comparison,
     });
-    const spec = photorealEnvironment(light);
-    const applyAerial = tgpu
-      .fn(
-        [d.vec4f, d.vec3f, d.vec3f, d.vec3f, d.texture2d(), d.sampler()],
-        d.vec4f,
-      )(aerialWgsl(light))
-      .$uses({ equirectUv });
-    const shadeAlgorithm = tgpu
-      .fn(
-        [
-          d.vec3f,
-          d.vec3f,
-          d.f32,
-          d.f32,
-          d.f32,
-          d.f32,
-          d.vec3f,
-          d.vec3f,
-          d.f32,
-          d.vec3f,
-          d.vec3f,
-          d.vec3f,
-          d.vec3f,
-          d.vec3f,
-          d.f32,
-          d.texture2d(),
-          d.texture2d(),
-          d.texture2d(),
-          d.sampler(),
-        ],
-        d.vec4f,
-      )(shadeEnvironmentWgsl)
-      .$uses({ standardPbr, applyAerial });
-    /** The frame's cast lights on a surface of albedo `base` at `position`
-     *  facing `normal`: each one's falloff inside its radius, its facing
-     *  wrapped by the header's wrap, as Lambert on the albedo greyed by
-     *  `CAST_ALBEDO_GREY` and held above `CAST_ALBEDO_FLOOR` (`light/castLights.ts`). */
-    const castLight = tgpu.fn(
-      [d.vec3f, d.vec3f, d.vec3f],
-      d.vec3f,
-    )((base, normal, position) => {
-      "use gpu";
-      const count = d.u32(layout.$.lights.header.x);
-      const wrap = layout.$.lights.header.y;
-      const n = std.normalize(normal);
-      let sum = d.vec3f(0);
-      for (let i = d.u32(0); i < count; i++) {
-        const toward = std.sub(layout.$.lights.lights[i].position.xyz, position);
-        const d2 = std.dot(toward, toward);
-        const x2 = d2 * layout.$.lights.lights[i].position.w;
-        if (x2 < 1) {
-          const falloff = ((1 - x2) * (1 - x2)) / (1 + CAST_FALLOFF * x2);
-          const facing = std.dot(n, toward) * std.inverseSqrt(std.max(d2, 1e-4));
-          const wrapped = std.clamp((facing + wrap) / (1 + wrap), 0, 1);
-          sum = std.add(sum, std.mul(layout.$.lights.lights[i].color.xyz, falloff * wrapped));
-        }
-      }
-      const grey = std.dot(base, d.vec3f(0.2126, 0.7152, 0.0722));
-      const albedo = std.max(
-        std.mix(base, d.vec3f(grey), CAST_ALBEDO_GREY),
-        d.vec3f(CAST_ALBEDO_FLOOR),
-      );
-      return std.mul(albedo, std.mul(sum, 1 / Math.PI));
-    });
-    const shade = tgpu.fn(
-      [d.vec3f, d.vec3f, d.f32, d.f32, d.f32, d.f32, d.vec3f, d.vec3f, d.f32, d.vec3f],
-      d.vec4f,
-    )((base, emissive, roughness, geomRoughness, metal, ao, normal, position, shadow, eye) => {
-      "use gpu";
-      // A sun shadow keeps the light's shadow floor (`settings.y`) of the sun.
-      const sun = std.mix(layout.$.data.settings.y, 1, shadow);
-      return shadeAlgorithm(
-        base,
-        std.add(emissive, castLight(base, normal, position)),
-        roughness,
-        geomRoughness,
-        metal,
-        ao,
-        normal,
-        position,
-        sun,
-        eye,
-        layout.$.data.observer.xyz,
-        layout.$.data.sunDirection.xyz,
-        layout.$.data.sunRadiance.xyz,
-        layout.$.data.fill.xyz,
-        layout.$.data.settings.x,
-        layout.$.sky,
-        layout.$.pmrem,
-        layout.$.dfg,
-        layout.$.linear,
-      );
-    });
-    const unlitAlgorithm = tgpu
-      .fn(
-        [
-          d.vec3f,
-          d.vec3f,
-          d.vec3f,
-          d.vec3f,
-          d.vec3f,
-          d.vec3f,
-          d.vec3f,
-          d.f32,
-          d.f32,
-          d.texture2d(),
-          d.texture2d(),
-          d.sampler(),
-        ],
-        d.vec4f,
-      )(/* wgsl */ `(colour:vec3f,worldPosition:vec3f,eye:vec3f,observer:vec3f,sunDirection:vec3f,sunRadiance:vec3f,environmentIntensity:vec3f,shadowFloor:f32,maxMip:f32,sky:texture_2d<f32>,pmrem:texture_2d<f32>,linear:sampler)->vec4f {
-        // What a white matte surface facing the sky returns in sun shadow: the
-        // sky's light and the shadow floor's share of the sun's, as shade and
-        // standardPbr's diffuse terms have them.
-        let skyLight=samplePmrem(pmrem,linear,vec3f(0.0,0.0,1.0),1.0,maxMip)*environmentIntensity;
-        let white=sunRadiance*max(sunDirection.z,0.0)*shadowFloor*0.3183098861837907+skyLight;
-        return applyAerial(vec4f(colour*white,1),worldPosition,eye,observer,sky,linear);
-      }`)
-      .$uses({ samplePmrem, applyAerial });
-    /** A finished picture's place in the frame: a surface that takes no
-     *  light of its own (a room behind a window, lit when its picture was
-     *  made). `colour` is shown at the scene's exposure, as bright as a matte
-     *  surface of that albedo lying in sun shadow under this sky (a room is a
-     *  shaded place, whichever way its wall faces), and behind the air
-     *  between it and the eye. Nothing of the surface's own enters: no
-     *  facing, no sun shadow test, no cast light. */
-    const unlit = tgpu.fn(
-      [d.vec3f, d.vec3f, d.vec3f],
-      d.vec4f,
-    )((colour, position, eye) => {
-      "use gpu";
-      return unlitAlgorithm(
-        colour,
-        position,
-        eye,
-        layout.$.data.observer.xyz,
-        layout.$.data.sunDirection.xyz,
-        layout.$.data.sunRadiance.xyz,
-        layout.$.data.fill.xyz,
-        layout.$.data.settings.y,
-        layout.$.data.settings.x,
-        layout.$.sky,
-        layout.$.pmrem,
-        layout.$.linear,
-      );
-    });
+    // The light's part of the uniform is set once; the view's each frame.
+    const image = new Float32Array(d.sizeOf(Environment) / 4);
+    image.set(light.sun, AT.sun);
+    image[AT.topMip] = pmrem.maxMip;
+    image.set(light.aerial, AT.aerial);
     return {
       group,
       /** The environment uniform and PMREM as raw resources, for raw passes
@@ -310,7 +332,7 @@ export async function createTypegpuEnvironment(
       unlit,
       sky,
       /** The one sun direction every material shades with. */
-      sunDirection: spec.sunDirection as readonly [number, number, number],
+      sunDirection: sunDirection(light.settings) as readonly [number, number, number],
       /** This frame's cast lights, a packed `CastLights` image
        *  (`packCastLights`): only the header and the lights in use are sent. */
       setCastLights(image: Float32Array<ArrayBuffer>, count: number) {
@@ -321,17 +343,9 @@ export async function createTypegpuEnvironment(
       setView(worldToView: ArrayLike<number>, observer: readonly [number, number, number]) {
         if (disposed) throw Error("TypeGPU environment disposed");
         if (worldToView.length !== 16) throw Error("Expected camera view matrix");
-        data.write({
-          worldToView: Array.from(worldToView),
-          observer: d.vec4f(...observer, 0),
-          sunDirection: d.vec4f(...spec.sunDirection, 0),
-          sunRadiance: d.vec4f(
-            ...(spec.sunColor.map((c) => c * spec.sunIntensity) as [number, number, number]),
-            0,
-          ),
-          settings: d.vec4f(pmrem.maxMip, spec.shadowFloor, 0, 0),
-          fill: d.vec4f(...spec.fill, 0),
-        });
+        image.set(worldToView, AT.view);
+        image.set(observer, AT.observer);
+        data.write(image.buffer);
       },
       dispose,
     };

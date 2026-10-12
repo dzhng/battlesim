@@ -9,6 +9,8 @@ import { workbenchAPI, type Review, type Snapshot, type WorkbenchAPI } from "./p
 import { Library, type Selection } from "./Library";
 import { GlobalAssignments } from "./Assignments";
 import { Movement } from "./Movement";
+import { VoicesTab } from "./voices/VoicesTab";
+import { voiceAPI, type VoiceAPI } from "./voices/protocol";
 import "./sound-workbench.css";
 
 function changedSettings(
@@ -33,13 +35,14 @@ function changedSettings(
 
 export function SoundWorkbench({
   api = workbenchAPI,
+  voices = voiceAPI,
   audition: suppliedAudition,
-}: { api?: WorkbenchAPI; audition?: Auditioner } = {}) {
+}: { api?: WorkbenchAPI; voices?: VoiceAPI; audition?: Auditioner } = {}) {
   const audition = useMemo(() => suppliedAudition ?? new SoundAuditioner(), [suppliedAudition]);
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [draft, setDraft] = useState<SoundCatalog | null>(null);
   const [review, setReview] = useState<Review | null>(null);
-  const [tab, setTab] = useState<"library" | "movement" | "effects">("library");
+  const [tab, setTab] = useState<"library" | "movement" | "effects" | "voices">("library");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Selection | null>(null);
   const [busy, setBusy] = useState(false);
@@ -170,31 +173,33 @@ export function SoundWorkbench({
           <h1>Sound workbench</h1>
           <p>Audition the library. Choose the sound of each unit and weapon mount.</p>
         </div>
-        <div className="sw-publication">
-          <span>{dirty ? "UNSAVED DRAFT" : "SAVED GENERATION"}</span>
-          <button
-            disabled={!draft || busy}
-            onClick={() =>
-              void action(async () => {
-                validateSoundCatalog(draft);
-                setReview(await api.preview({ revision: snapshot!.revision, catalog: draft! }));
-              })
-            }
-          >
-            {busy ? "Working…" : "Preview changes"}
-          </button>
-          <button
-            disabled={!snapshot || busy}
-            onClick={() =>
-              void action(async () => {
-                accept(await api.snapshot());
-                setMessage("Reloaded saved sources. Draft discarded.");
-              })
-            }
-          >
-            Discard draft and reload
-          </button>
-        </div>
+        {tab !== "voices" && (
+          <div className="sw-publication">
+            <span>{dirty ? "UNSAVED DRAFT" : "SAVED GENERATION"}</span>
+            <button
+              disabled={!draft || busy}
+              onClick={() =>
+                void action(async () => {
+                  validateSoundCatalog(draft);
+                  setReview(await api.preview({ revision: snapshot!.revision, catalog: draft! }));
+                })
+              }
+            >
+              {busy ? "Working…" : "Preview changes"}
+            </button>
+            <button
+              disabled={!snapshot || busy}
+              onClick={() =>
+                void action(async () => {
+                  accept(await api.snapshot());
+                  setMessage("Reloaded saved sources. Draft discarded.");
+                })
+              }
+            >
+              Discard draft and reload
+            </button>
+          </div>
+        )}
       </header>
       <nav className="sw-tabs" aria-label="Workbench views">
         {(
@@ -202,6 +207,7 @@ export function SoundWorkbench({
             ["library", "Library & recipes"],
             ["movement", "Movement"],
             ["effects", "Defaults & effects"],
+            ["voices", "Voices"],
           ] as const
         ).map(([value, label]) => (
           <button
@@ -234,7 +240,9 @@ export function SoundWorkbench({
           Audition · {draft?.sounds[playing]?.label ?? draft?.clips[playing]?.label ?? playing}
         </p>
       )}
-      {!snapshot || !draft ? (
+      {tab === "voices" ? (
+        <VoicesTab api={voices} audition={audition} />
+      ) : !snapshot || !draft ? (
         <p>{message ? "The saved library could not be loaded." : "Loading saved library…"}</p>
       ) : (
         <>

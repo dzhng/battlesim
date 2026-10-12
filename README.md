@@ -22,10 +22,12 @@ owner of the thing you want to change:
 | [Battle lab](apps/battle-lab/README.md) | Player pages and focused developer fixtures, composed from the same battle view. |
 | [Renderer primitives](packages/renderer-core/README.md) | Shared camera/depth contracts, device admission and GPU allocation accounting. |
 | [Battle renderer](packages/battle-renderer/README.md) | Observed feeds, terrain, models, light, fog, effects, overlays and GPU lifetime. |
+| [Pipelines](crates/pipelines/README.md) | The battle renderer's shaders and pipeline settings, exported for a native client and validated as `wgpu` compiles them. |
 | [Scene assets](packages/scene-assets/README.md) | Appearance contracts, validation, baking and loading; includes [Blender authoring](packages/scene-assets/README.md#authored-sources-blender). |
 | [Battle audio](packages/battle-audio/README.md) | Recorded and synthetic sound preparation, source calibration and playback from observed causes. |
 | [Fixtures](fixtures/README.md) | Authored rules, unit/prop catalogs, generator presets, saved maps and sound assignments. |
 | [Assets](assets/README.md) | Source media, prepared runtime files, review sheets and third-party provenance. |
+| [Native client](native/client/README.md) | The native client on `wgpu`: the browser's exported shaders and passes over the presentation crate's frames; it replaces the Godot client. |
 | [Native Godot client](native/godot/README.md) | A second client that renders the browser's recorded frames for side-by-side parity; its [Rust binding](native/godot-binding/README.md). |
 
 Development tools edit those existing owners: the [mechanics editor](apps/mechanics-editor/README.md),

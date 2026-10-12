@@ -7,6 +7,9 @@ use std::sync::Arc;
 
 use presentation::presentation::{Ghost, Presentation as Inner, Ui};
 use presentation::records::{FrameHeader, WorldHeader};
+use presentation::static_world::buildings::{Placed, PlacedBuildings};
+use presentation::static_world::fallen::Known;
+use presentation::static_world::library::{Bounds, Library};
 use presentation::units::drawn::ClipTables;
 use presentation::view::Camera;
 use serde::Serialize;
@@ -17,6 +20,7 @@ use wasm_bindgen::prelude::*;
 pub struct Presentation {
     inner: Inner,
     tables: ClipTables,
+    buildings: Option<PlacedBuildings>,
     /// The static groups and the fog the page last took, kept to compare by pointer.
     taken: Option<(Shared<Corpse>, Shared<KnownProp>, Shared<FallenBody>)>,
     taken_fog: Option<Arc<Fog>>,
@@ -46,12 +50,16 @@ fn splice<T: Serialize>(json: &mut String, name: &str, group: &Arc<T>, taken: Op
 
 #[wasm_bindgen]
 impl Presentation {
-    /// A presentation of the stream `layout` (the battle's `observation_layout`) names.
+    /// A presentation of the stream `layout` (the battle's
+    /// `observation_layout`) names, at `tick_hz` (30 when not given); with
+    /// no layout, of a world no battle publishes into, drawn from
+    /// `load_world` alone.
     #[wasm_bindgen(constructor)]
-    pub fn new(layout: &str, tick_hz: f64) -> Result<Presentation, JsError> {
+    pub fn new(layout: Option<String>, tick_hz: Option<f64>) -> Result<Presentation, JsError> {
         Ok(Presentation {
-            inner: Inner::new(layout, tick_hz).map_err(error)?,
+            inner: Inner::new(layout.as_deref(), tick_hz.unwrap_or(30.0)).map_err(error)?,
             tables: ClipTables::new(),
+            buildings: None,
             taken: None,
             taken_fog: None,
             frame_header: FrameHeader::default(),
@@ -121,12 +129,68 @@ impl Presentation {
         self.tables.insert(name, floats);
     }
 
-    /// Loads what the battle draws (18b's `load_world`, as `WorldInput`
-    /// JSON) with the clip tables added; returns the `WorldHeader`'s address.
+    /// The map's buildings, before `load_world`: the template library's
+    /// file, inflated; per library module its mesh bounds (min, max), NaN
+    /// where its kit is not installed; per building its template (an index
+    /// of `templates`, a JSON list of ids), frame (x, y, z, yaw) and owner
+    /// prop; each part prop (`part_props`) and its building
+    /// (`part_buildings`); and the prop kinds a gutted building's parts
+    /// become (`shells`, a JSON list). `load_world`'s `buildings` style
+    /// places them.
+    #[allow(clippy::too_many_arguments)]
+    pub fn add_buildings(
+        &mut self,
+        library: &[u8],
+        bounds: &[f32],
+        templates: &str,
+        template: &[u16],
+        frames: &[f64],
+        owners: &[u32],
+        part_props: &[u32],
+        part_buildings: &[u32],
+        shells: &str,
+    ) -> Result<(), JsError> {
+        let json = |e: serde_json::Error| JsError::new(&e.to_string());
+        let ids: Vec<String> = serde_json::from_str(templates).map_err(json)?;
+        let shells: Vec<String> = serde_json::from_str(shells).map_err(json)?;
+        let bounds: Vec<Option<Bounds>> = bounds
+            .as_chunks::<6>()
+            .0
+            .iter()
+            .map(|b| (!b[0].is_nan()).then_some(*b))
+            .collect();
+        let placed = (0..owners.len())
+            .map(|b| Placed {
+                owner: owners[b],
+                template: ids[template[b] as usize].clone(),
+                frame: frames[b * 4..b * 4 + 4].try_into().unwrap(),
+            })
+            .collect();
+        self.buildings = Some(PlacedBuildings {
+            library: Library::decode(library).map_err(error)?,
+            bounds,
+            placed,
+            parts: part_props
+                .iter()
+                .zip(part_buildings)
+                .map(|(&p, &b)| (p, b as usize))
+                .collect(),
+            shells,
+        });
+        Ok(())
+    }
+
+    /// Loads what the world draws (18b's `load_world`, as `WorldInput`
+    /// JSON) with the clip tables and buildings added; returns the
+    /// `WorldHeader`'s address.
     pub fn load_world(&mut self, json: &str) -> Result<u32, JsError> {
         let input = serde_json::from_str(json).map_err(|e| JsError::new(&e.to_string()))?;
         self.inner
-            .load_world(input, std::mem::take(&mut self.tables))
+            .load_world(
+                input,
+                std::mem::take(&mut self.tables),
+                self.buildings.take(),
+            )
             .map_err(error)?;
         let world = self.inner.world();
         self.world_header = WorldHeader {
@@ -136,6 +200,31 @@ impl Presentation {
         Ok(&self.world_header as *const WorldHeader as u32)
     }
 
+    /// The buildings the side knows destroyed as the last frame drew them:
+    /// building and state (1 ruin, 2 gutted), in pairs.
+    pub fn fallen_buildings(&self) -> Vec<u32> {
+        self.inner
+            .fallen()
+            .iter()
+            .flat_map(|&(b, s)| [b as u32, s as u32])
+            .collect()
+    }
+
+    /// The renderer holds no static batches (a new one): the next frame
+    /// writes every one.
+    pub fn resend_statics(&mut self) {
+        self.inner.resend_statics();
+    }
+
+    /// The buildings' walk as the last frame left it: chunks, coarse rows,
+    /// chunks resident, rows resident, rows expanded, chunks refused room,
+    /// the fallen rows and those drawn per tier. Empty without buildings.
+    pub fn building_stats(&self) -> Vec<u32> {
+        self.inner
+            .building_stats()
+            .map_or_else(Vec::new, |s| s.iter().map(|&n| n as u32).collect())
+    }
+
     /// The presentation time at wall time `wall_s`, sim seconds.
     pub fn clock(&self, wall_s: f64) -> Option<f64> {
         self.inner.clock(wall_s)
@@ -143,7 +232,10 @@ impl Presentation {
 
     /// What to draw at presentation time `time` for `camera` (eye xyz,
     /// target xyz, up xyz, fov y, near, width, height): the `FrameHeader`'s
-    /// address. Its sets are views valid until the next call.
+    /// address. Its sets are views valid until the next call. `known` is a
+    /// lab's stand-in for the publication's known props, JSON (empty: the
+    /// publication's); a building known in a state its template lacks throws
+    /// by name.
     pub fn frame(
         &mut self,
         time: f64,
@@ -151,6 +243,7 @@ impl Presentation {
         selected: &[u32],
         xray: bool,
         ghosts: &str,
+        known: &str,
     ) -> Result<u32, JsError> {
         let c = camera;
         let camera = Camera {
@@ -166,12 +259,18 @@ impl Presentation {
         } else {
             serde_json::from_str(ghosts).map_err(|e| JsError::new(&e.to_string()))?
         };
+        let known: Option<Vec<Known>> = if known.is_empty() {
+            None
+        } else {
+            Some(serde_json::from_str(known).map_err(|e| JsError::new(&e.to_string()))?)
+        };
         let ui = Ui {
             selected,
             xray,
             ghosts: &ghosts,
+            known: known.as_deref(),
         };
-        let f = self.inner.frame(time, &camera, &ui);
+        let f = self.inner.frame(time, &camera, &ui).map_err(error)?;
         let header = FrameHeader {
             clock: f.clock as f32,
             tick: f.tick,
@@ -222,4 +321,15 @@ impl Presentation {
 #[wasm_bindgen]
 pub fn launches(publications: &str) -> Result<String, JsError> {
     Inner::launches_json(publications).map_err(error)
+}
+
+/// The battle's light (`presentation.light`, JSON) resolved into its uniform
+/// records' words in order: sky, aerial, sun, bloom, grade (`light.rs`). The
+/// renderer needs them when it builds its frame, before any battle loads and
+/// for scenes with none, so this needs no `Presentation`.
+#[wasm_bindgen]
+pub fn light_records(light: &str) -> Result<Vec<f32>, JsError> {
+    let settings: presentation::light::LightSettings = serde_json::from_str(light)
+        .map_err(|e| JsError::new(&format!("presentation.light: {e}")))?;
+    Ok(settings.records().words())
 }

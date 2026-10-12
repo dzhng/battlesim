@@ -39,6 +39,9 @@ its region's appearances.
 [Renderer core](../renderer-core/README.md) owns the live camera and depth convention.
 [Light](src/light/sceneLight.ts) shares one fixture-owned sun and environment;
 [world shading](src/world/) and [shader functions](src/shaders/) reuse it.
+What the sky, the haze, the sun and post make of the light is resolved in Rust
+(`presentation::light`): the frame is built with those uniform records and
+uploads them as they are, so both clients light a battle from one derivation.
 The [sky](src/world/sky.ts) shows a fair-weather cloud layer over the clear
 atmosphere it bakes; the environment light is baked clear, so clouds never dim
 the sun on the ground.
@@ -71,6 +74,13 @@ It hands over the buildings' module instances and the scenery's instances the
 same way, expanded by the owners the layers draw from, so a second client places
 nothing itself, and `drawnInstances` says what the last frame drew of them.
 
+The shaders are the same text for every battle and every canvas size: a
+battle's light (sun, sky, clouds, haze, bloom) and a size's texel steps reach
+them through uniforms, never spliced in, so one compiled set serves every map.
+Every pipeline has its own name. A second client compiles this text, not a
+port: [the export](pipelines/) is each pipeline's WGSL and settings, written
+from this package's code and held to it by its test ([pipelines](../../crates/pipelines/README.md)).
+
 Placement and order previews (a unit being placed, a held facing drag, every
 ordered destination with Space held) name the same installed appearances and pose
 as a real unit, one per soldier for a squad.
@@ -90,9 +100,9 @@ Destroying a TypeGPU root alone does not destroy all resources it created. Size-
 must release a late build rather than install it into a dead frame.
 
 Update a resource at its actual frequency: immutable world data, changed
-knowledge, view changes or frame animation. [Model pools](src/models/placementPool.ts)
-and [static chunks](src/frame/staticChunks.ts) bound work and residency without
-changing authoritative populations. Streaming work reports when it remains
+knowledge, view changes or frame animation. [Static chunks](src/frame/staticChunks.ts)
+and the buildings' Rust walk (`crates/presentation`'s static world) bound work and residency
+without changing authoritative populations. Streaming work reports when it remains
 pending; a camera cut cannot be captured merely after an arbitrary number of frames.
 
 Diagnostics describe the last drawn frame. Cost and resource comparisons need the

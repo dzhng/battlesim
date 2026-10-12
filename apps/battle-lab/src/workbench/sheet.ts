@@ -27,9 +27,10 @@ import {
   type TextureChannel,
 } from "@packages/scene-assets/src/schema";
 import { gameLight } from "../gameLight";
+import { resolveLight } from "@web/battle/sim/presentation";
 import { gameFogGeometry, gameFogStyle } from "../gameFog";
 import { gameOverlayGlow, gamePaint, gameXrayMinHiddenFragmentFraction } from "../gameOverlay";
-import { gameBuildingStyle, gameGlass, gameModelDetail } from "../gameModels";
+import { gameGlass, gameModelDetail } from "../gameModels";
 import { benchOverlay, benchWorld, drawnPose, posedSockets, type BenchPose } from "./benchWorld";
 import { sideTint, type LoadedModel } from "./sources";
 import {
@@ -210,7 +211,7 @@ export class SheetRenderer {
 
   static async create(device: GPUDevice, format: GPUTextureFormat, model: LoadedModel) {
     const frame = await createBattleFrame(device, format, {
-      light: gameLight,
+      light: await resolveLight(gameLight),
       fogGeometry: gameFogGeometry,
       fogStyle: gameFogStyle,
       overlayGlow: gameOverlayGlow,
@@ -218,7 +219,6 @@ export class SheetRenderer {
       xrayMinHiddenFragmentFraction: gameXrayMinHiddenFragmentFraction,
       models: gameModelDetail,
       glass: gameGlass,
-      buildings: gameBuildingStyle,
       world: benchWorld(null),
       instances: [],
       width: TILE,

@@ -1,15 +1,16 @@
 // @vitest-environment node
 // The template line-up lab's own logic: where each template stands, the
 // references the frame is handed, a forced tier, and the camera stations at a
-// tier's boundary. The drawing is the renderer's, through the same scene a
-// generated town uses.
+// tier's boundary. The drawing is the renderer's, through the same building walk
+// a generated town uses.
 import { expect, test } from "vitest";
+import { loadPresentation } from "@web/battle/sim/presentation";
 import { boundaryRange, tierStyle } from "@apps/battle-lab/src/buildingTier";
 import {
   cameraToFit,
   lineUp,
   lineupBuildings,
-  lineupFallen,
+  lineupKnown,
   lineupIn,
   poseAtRange,
   type LineupTemplate,
@@ -21,19 +22,19 @@ import {
   projectPoint,
   viewProjMatrix,
 } from "@packages/renderer-core/src/camera3d";
-import { createDetailView, setDetailView } from "@packages/battle-renderer/src/frame/detailView";
-import {
-  buildingDraws,
-  createBuildingScene,
-  selectBuildings,
-  type BuildingArt,
-} from "@packages/battle-renderer/src/models/buildingPlacements";
 import {
   FRAME_FLOATS,
   validateBuildingStyle,
+  type BuildingArt,
   type BuildingStyle,
 } from "@packages/battle-renderer/src/models/buildingReferences";
-import type { TemplateArtLibrary } from "@packages/scene-assets/src/templateLibrary";
+import {
+  encodeTemplateLibrary,
+  type TemplateArtLibrary,
+} from "@packages/scene-assets/src/templateLibrary";
+import { presentBuildings } from "./support/presentedBuildings";
+
+await loadPresentation();
 
 const part = (
   center: [number, number],
@@ -160,13 +161,28 @@ test("a line-up in a damage state is the templates that end in it, each destroye
   expect(ids("intact")).toEqual(lineup.entries.map((e) => e.id));
   expect(ids("ruin").sort()).toEqual(["farm", "house-a"]);
   expect(ids("gutted")).toEqual(["tower"]);
-  // Each of them is known destroyed into that state; intact, nothing is known.
-  const ruins = lineupIn(lineup.entries, "ruin", library);
-  expect(lineupFallen(ruins, "ruin")).toEqual([
+  // Each of them is drawn destroyed into that state; intact, none is.
+  const art: BuildingArt = { ...ART, library, bytes: encodeTemplateLibrary(library) };
+  const fallen = (state: "intact" | "ruin" | "gutted") => {
+    const shown = lineupIn(lineup.entries, state, library);
+    const walk = presentBuildings(
+      lineupBuildings(shown),
+      art,
+      STYLE,
+      undefined,
+      lineupKnown(shown, state),
+    );
+    walk.look({ ...LENS, target: [0, 0, 0], distance: 200, pitch: 1, yaw: 0 }, HEIGHT_PX);
+    const known = walk.fallen();
+    walk.free();
+    return known;
+  };
+  expect(fallen("ruin")).toEqual([
     { building: 0, state: "ruin" },
     { building: 1, state: "ruin" },
   ]);
-  expect(lineupFallen(lineup.entries, "intact")).toEqual([]);
+  expect(fallen("gutted")).toEqual([{ building: 0, state: "gutted" }]);
+  expect(fallen("intact")).toEqual([]);
 });
 
 // One template whose shell (the whole building at every tier but the finest,
@@ -201,6 +217,7 @@ const LIBRARY: TemplateArtLibrary = {
 };
 const ART: BuildingArt = {
   library: LIBRARY,
+  bytes: encodeTemplateLibrary(LIBRARY),
   bounds: [
     { min: [-5, -4, 0], max: [5, 4, 5] },
     { min: [-0.5, -0.1, 0], max: [0.5, 0.1, 1] },
@@ -210,7 +227,6 @@ const STYLE: BuildingStyle = validateBuildingStyle({
   lod_px_per_m: [10, 4, 1.2],
   chunk_m: 64,
   pool_records: 1024,
-  expand_rows: 100000,
   tint_jitter: 0,
 });
 const LENS = { fovY: 0.8, aspect: 16 / 9, near: 1 };
@@ -219,20 +235,11 @@ const HEIGHT_PX = 1080;
 /** The tiers a camera `pose` draws the line-up's one house at. */
 function tiersDrawn(style: BuildingStyle, pose: ReturnType<typeof poseAtRange>): number[] {
   const lineup = lineUp([HOUSE_A], SPACING);
-  const scene = createBuildingScene(lineupBuildings(lineup.entries), ART, style);
-  const view = setDetailView(
-    createDetailView(),
-    { ...LENS, ...pose, target: [...pose.target, 0] },
-    HEIGHT_PX,
-  );
-  selectBuildings(scene, view, null);
-  const tiers = new Set<number>();
-  buildingDraws(scene, (source, _module, tier, first, count) => {
-    const records = source === 0 ? scene.coarse.records : scene.pool.records;
-    // A record hidden in place (a resident chunk's coarse row) draws nothing.
-    for (let i = first; i < first + count; i++) if (records[i * 16 + 12] !== 0) tiers.add(tier);
-  });
-  return [...tiers].sort();
+  const walk = presentBuildings(lineupBuildings(lineup.entries), ART, style);
+  walk.look({ ...LENS, ...pose, target: [...pose.target, 0] }, HEIGHT_PX);
+  const tiers = [...new Set(walk.drawn().map((d) => d.tier))];
+  walk.free();
+  return tiers.sort();
 }
 
 test("a forced tier draws the building at that tier from any distance", () => {

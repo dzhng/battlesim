@@ -30,6 +30,8 @@ import { useBattleSession, type BattleSession } from "./useBattleSession";
 import type { ScriptedSim } from "./useSimSession";
 import type { ViewportPilot } from "./LabViewport";
 import { useFeed } from "./feed";
+import { useSyncExternalStore } from "react";
+import { graphicsProfiles, graphicsSettings, resolveEffectiveTier } from "./graphicsSettings";
 import {
   RangeRulerLabels,
   type RangeRulerLabelsHandle,
@@ -145,6 +147,8 @@ export function BattleView({
   const objectiveMarkers = useRef<ObjectiveMarkersHandle>(null);
   const { clear: clearCues } = cues;
   const pause = usePauseMenu(sim.client, menuOpen, setMenuOpen);
+  const graphics = useSyncExternalStore(graphicsSettings.subscribe, graphicsSettings.get);
+  const quality = graphicsProfiles[resolveEffectiveTier(graphics.mode, graphics.detectedMode)];
   const { audio } = session;
   useEffect(() => {
     clearCues();
@@ -229,28 +233,25 @@ export function BattleView({
           fixture={fixture}
           inputEnabled={!pause.open && !matchFinished && loadStage === "playable"}
           world={worldFeed}
-          structures={session.structures}
-          buildings={session.buildingsFeed}
-          obstacles={session.cameraObstaclesFeed}
+          {...session.known}
           overlay={overlayFeed}
           pointerMarks={pointerPaint.feed}
           fog={session.fogFeed}
-          frame={session.frame}
-          appearances={session.appearances}
+          {...session.viewport}
           initialCamera={camera}
           cameraConfig={cameraConfig}
           groundAt={surfaceZ}
-          onPick={input ? session.onPick : undefined}
+          onPick={input ? session.input.onPick : undefined}
           leftDragAction={input && !!session.purchase?.placing}
-          onRightPress={session.onRightPress}
+          onRightPress={session.input.onRightPress}
           onCursor={(pointer, view, project) => {
-            const action = session.onCursor(pointer, view);
+            const action = session.input.onCursor(pointer, view);
             rulerLabels.current?.place(project, pointerPaint.shown);
             return action;
           }}
-          onBox={scripted ? undefined : session.onBox}
+          onBox={scripted ? undefined : session.input.onBox}
           onReady={(gpu) => {
-            session.onReady(gpu);
+            session.viewport.onReady(gpu);
             setViewportReady(true);
           }}
           pilot={scripted?.pilot}
@@ -266,6 +267,7 @@ export function BattleView({
             objectiveMarkers.current?.place(project, surfaceZ);
           }}
           diagnostics={{ ...session.probes, ...diagnostics?.(session) }}
+          quality={quality}
         />
       )}
       <ObjectiveMarkers
@@ -346,6 +348,7 @@ export function BattleView({
                   sim.restart();
                 }
           }
+          onSettingsApply={() => window.__lab?.rebuild?.()}
         >
           {menu?.(session)}
         </PauseMenu>

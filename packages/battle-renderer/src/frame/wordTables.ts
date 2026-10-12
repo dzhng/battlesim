@@ -1,10 +1,8 @@
 // A GPU table as the words the frame uploaded, with the layout a reader
 // needs to decode it without this code. A second client draws the
 // browser's ground and grass from them (`terrainTables.ts`, `grassTables.ts`),
-// and its buildings and scenery from the instances those layers expand
-// (`buildingTables.ts`, `sceneryTables.ts`).
+// and its scenery from the instances that layer expands (`sceneryTables.ts`).
 import { d, writeToArrayBuffer } from "typegpu";
-import type { BuildingTables } from "../models/buildingTables";
 import type { SceneryTables } from "../scenery/sceneryTables";
 import type { GrassTables } from "./grassTables";
 import type { TerrainTables } from "./terrainTables";
@@ -53,7 +51,6 @@ export interface WordTable {
 export interface UploadedTables {
   terrain: TerrainTables;
   grass: GrassTables;
-  buildings: BuildingTables;
   scenery: SceneryTables;
 }
 

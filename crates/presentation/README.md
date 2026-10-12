@@ -20,13 +20,17 @@ wherever it runs.
 - [Records](src/records.rs): every record a renderer reads, defined once;
   `records_are_current` generates `packages/battle-renderer/src/records.gen.ts`.
 - [Units](src/units/): interpolation between ticks, the pose feed and driver,
-  articulation, joint palettes, and where each drawn model's muzzles and rotors
-  are.
+  articulation, joint palettes (and each skinned row's rest palette: a corpse
+  as it lies, a body in its far pose, which a renderer poses its mesh by once),
+  and where each drawn model's muzzles and rotors are.
 - [Effects](src/effects/): the effect publication, launches (the one derivation
   the flashes, the firing soldiers and the gunfire sounds read), the effect frame,
   the cast lights it chooses for the view, and cook-offs.
-- [The view](src/view.rs): what the camera means for culling and detail, and
-  the one tier rule every drawn model takes.
+- [The view](src/view.rs): what the camera means for culling and detail, the one
+  tier rule every drawn model takes, and the frame's `View` record with the
+  sky's corner rays.
+- [The light](src/light.rs): the fixture's light resolved into the sky's,
+  bloom's and grade's uniform records, as the browser's sky model resolves it.
 
 ## How a battle looks
 

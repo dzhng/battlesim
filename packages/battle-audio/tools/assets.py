@@ -25,6 +25,33 @@ FILTERS = {
     "blast": "highpass=f=30,acompressor=threshold=0.18:ratio=2.2:attack=5:release=90",
 }
 
+# Generated voice takes: where the speaker sits decides the treatment (choices.md T2).
+# A hiss is noise band-limited like the radio; a bed is a generated ambience, looped
+# under the line. Each take is normalised to its profile's integrated loudness.
+VOICE_ENCODER = {"codec": "libmp3lame", "bitrate": "40k", "sample_rate": 24000, "channels": 1,
+                 "true_peak_db": -1.5}
+VOICE_PROFILES = {
+    "voice-dry": {"filter": "anull", "hiss": None, "bed": None, "loudness_lufs": -16},
+    "voice-radio-light": {
+        "filter": "highpass=f=250,lowpass=f=3800,acompressor=threshold=0.1:ratio=4:attack=5:release=60:makeup=2",
+        "hiss": {"color": "white", "amplitude": 0.015, "highpass": 500, "lowpass": 3000, "weight": 0.3},
+        "bed": {"name": "tank_engine", "volume": 0.3},
+        "loudness_lufs": -16,
+    },
+    "voice-earpiece": {
+        "filter": "highpass=f=250,lowpass=f=4500,acompressor=threshold=0.1:ratio=4:makeup=2",
+        "hiss": {"color": "pink", "amplitude": 0.01, "highpass": None, "lowpass": 3000, "weight": 0.5},
+        "bed": None,
+        "loudness_lufs": -19,
+    },
+    "voice-intercom": {
+        "filter": "highpass=f=300,lowpass=f=3400,acompressor=threshold=0.1:ratio=6:attack=5:release=60:makeup=3",
+        "hiss": {"color": "white", "amplitude": 0.015, "highpass": 500, "lowpass": 3000, "weight": 0.25},
+        "bed": {"name": "helicopter_rotor", "volume": 0.6},
+        "loudness_lufs": -16,
+    },
+}
+
 
 def digest(data):
     return hashlib.sha256(data).hexdigest()
@@ -173,11 +200,87 @@ def render(clip, decoded):
     return output.getvalue(), len(x)
 
 
+def loudness(pcm, rate):
+    """Integrated loudness (LUFS, EBU R128) of mono f32 PCM."""
+    result = subprocess.run(["ffmpeg", "-hide_banner", "-nostats", "-f", "f32le", "-ar", str(rate), "-ac", "1",
+                             "-i", "-", "-af", "ebur128", "-f", "null", "-"],
+                            input=pcm, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    summary = result.stderr.decode().rpartition("Summary:")[2]
+    for line in summary.splitlines():
+        if line.strip().startswith("I:"):
+            return float(line.split()[1])
+    raise ValueError(result.stderr.decode().strip() or "no loudness measured")
+
+
+def voice(profile, source, bed, output):
+    """Render one generated take through its profile to mono MP3 at the profile's loudness.
+
+    The bed starts at an offset taken from the take's bytes, so neighbouring lines
+    don't open on the same engine note, and the hiss is seeded the same way: a
+    take always renders alike on one ffmpeg build."""
+    spec = VOICE_PROFILES.get(profile)
+    if spec is None:
+        raise ValueError(f"unknown voice profile {profile}")
+    if bool(spec["bed"]) != bool(bed):
+        raise ValueError(f"profile {profile}: " + ("needs a bed (--bed)" if spec["bed"] else "takes no bed"))
+    seed = int(digest(source.read_bytes())[:8], 16)
+    rate = 48000
+    args = ["-i", str(source)]
+    graph = [f"[0:a]aformat=channel_layouts=mono,aresample={rate},{spec['filter']}[voice]"]
+    mix, weights = ["[voice]"], ["1"]
+    hiss = spec["hiss"]
+    if hiss:
+        bands = "".join(f",{kind}=f={hiss[kind]}" for kind in ("highpass", "lowpass") if hiss[kind])
+        graph.append(f"anoisesrc=color={hiss['color']}:amplitude={hiss['amplitude']}:sample_rate={rate}"
+                     f":seed={seed % 2**31}{bands}[hiss]")
+        mix.append("[hiss]")
+        weights.append(str(hiss["weight"]))
+    if bed:
+        length = float(subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "format=duration",
+                                                "-of", "csv=p=0", str(bed)]))
+        args += ["-stream_loop", "-1", "-ss", f"{(seed % 1000) / 1000 * length * 0.9:.3f}", "-i", str(bed)]
+        graph.append(f"[1:a]aformat=channel_layouts=mono,aresample={rate},volume={spec['bed']['volume']}[bed]")
+        mix.append("[bed]")
+        weights.append("1")
+    graph.append(f"{''.join(mix)}amix=inputs={len(mix)}:duration=first:normalize=0:weights={' '.join(weights)}[out]")
+    pcm = ffmpeg([*args, "-filter_complex", ";".join(graph), "-map", "[out]", "-ac", "1", "-ar", str(rate),
+                  "-f", "f32le", "-"])
+    frames = len(pcm) // 4
+    if frames < rate // 2:
+        raise ValueError("take shorter than half a second")
+    measured = loudness(pcm, rate)
+    if measured < -60:
+        raise ValueError("silent take")
+    duration = frames / rate
+    # Linear gain to the target keeps the line's dynamics; the limiter only catches peaks.
+    limit = 10 ** (VOICE_ENCODER["true_peak_db"] / 20)
+    chain = (f"volume={spec['loudness_lufs'] - measured:.2f}dB,alimiter=limit={limit:.4f}:level=0,"
+             f"afade=t=in:d=0.005,afade=t=out:st={max(0, duration - 0.05):.3f}:d=0.05")
+    output.write_bytes(ffmpeg(["-f", "f32le", "-ar", str(rate), "-ac", "1", "-i", "-", "-af", chain,
+                               "-ac", str(VOICE_ENCODER["channels"]), "-ar", str(VOICE_ENCODER["sample_rate"]),
+                               "-c:a", VOICE_ENCODER["codec"], "-b:a", VOICE_ENCODER["bitrate"],
+                               "-map_metadata", "-1", "-fflags", "+bitexact", "-flags:a", "+bitexact",
+                               "-f", "mp3", "-"], pcm))
+    return {"duration_s": round(duration, 3), "loudness_lufs": spec["loudness_lufs"]}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=["build", "check", "list"])
+    parser.add_argument("command", choices=["build", "check", "list", "voice", "voice-profiles"])
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[3])
+    parser.add_argument("--profile", help="voice: the take's processing profile")
+    parser.add_argument("--input", type=Path, help="voice: the raw master")
+    parser.add_argument("--bed", type=Path, help="voice: the profile's ambience, looped under the line")
+    parser.add_argument("--output", type=Path, help="voice: the served MP3")
     args = parser.parse_args()
+    if args.command == "voice-profiles":
+        print(json.dumps({"encoder": VOICE_ENCODER, "profiles": VOICE_PROFILES}))
+        return
+    if args.command == "voice":
+        if not (args.profile and args.input and args.output):
+            raise ValueError("voice needs --profile, --input and --output")
+        print(json.dumps(voice(args.profile, args.input, args.bed, args.output)))
+        return
     path = args.root / "fixtures/sounds.json"
     catalog = json.loads(path.read_text())
     if args.command == "list":
