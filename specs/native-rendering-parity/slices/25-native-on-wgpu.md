@@ -1134,3 +1134,27 @@ The capture scene, the frame records and native's replay are unchanged: every ot
 - **Fresh controls, both scenes:** fog off `throwaway/native-parity/2026-10-12T21-04-36-341Z`, fog on `21-07-59-103Z`. All four pass `native-parity-capture`. Native's report says "model, building, prop, scenery and effect counts: equal to the browser's on every plate" for all 48 plates. Thirteen of them are on a tick boundary (paris-corner 3 and 1, market-town 5 and 4).
 - **Plates** (grayscale MAE, control against native): market-town 0.016–0.096 (fog on 0.015–0.107) and paris-corner 0–0.049 (fog on 0–0.061). That is the same as step 5c. Native draws the same pictures, and the browser's change is a few ULPs of time.
 - **Gates:** `cargo test` for `presentation` and `native-client`; clippy `-D warnings` on those and `presentation-wasm`; `cargo fmt --check`; the web typecheck; oxlint (no errors); `authority.test.ts` and `simSession.test.tsx`.
+
+### Step 6b follow-up: fog's CPU cost on the city map (2026-10-12, branch `fogperf`)
+
+The slice 23 lane found `Presentation::prepare_fog` taking about 60 ms a frame on `city-contact`. There were three causes:
+- the whole-fog pass searched every eye's structures again on every rebuilding frame (the TypeScript had kept the lists of eyes that had not moved);
+- the broad phase deduplicated through a `HashSet` and sorted every result;
+- every frame took the side's eyes and known props again, not only on a new publication.
+
+**The fixes:**
+- the lists are kept per eye position on the same grid;
+- the broad phase uses bit sets read back in index order;
+- a rebuilt eye's whole-fog search also gives its merge candidates, filtered by the same circle test;
+- the sight is set only when a publication or a stand-in changes.
+
+The uploads are unchanged: `fog_sight.rs` still matches word for word.
+
+**Measured** (production build, `city-contact` short run):
+
+| | Before | After |
+| --- | --- | --- |
+| `prepare_fog`, CDP profile, 10 s | 6,208 ms (about 68 ms a frame) | 2,017 ms (about 16 ms a frame) |
+| Benchmark under the GPU lock (load average 8–10) | 9.1 FPS, CPU p95 164 ms | 12.6 FPS, CPU p95 102 ms |
+
+What remains is inherent to the schedule the vectors pin: up to 48 eyes rebuilt each frame (their searches and the sectors' `atan2`/`asin`) and the whole-fog rows.

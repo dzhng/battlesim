@@ -1151,44 +1151,43 @@ impl Presentation {
             return Ok(None);
         };
         let latest = self.latest.clone();
-        let eyes = match (&fog.eyes, &latest) {
-            _ if !fog.shown => None,
-            (Some(eyes), _) => Some(eyes.clone()),
-            (None, Some(o)) => Some(Eye::of_units(
-                o.own
-                    .iter()
-                    .filter(|u| fog.units.as_ref().is_none_or(|ids| ids.contains(&u.id)))
-                    .map(|u| (u.id, &u.sight)),
-            )),
-            (None, None) => None,
+        // The side sees from its stand-in eyes, else its latest publication's.
+        let sighted = fog.shown && (fog.eyes.is_some() || latest.is_some());
+        let new = match (&fog.from, &latest) {
+            (Some(a), Some(b)) => !Arc::ptr_eq(a, b),
+            (None, None) => false,
+            _ => true,
         };
-        match eyes {
-            None => fog.sight.clear_sight(),
-            Some(eyes) => {
-                let new = match (&fog.from, &latest) {
-                    (Some(a), Some(b)) => !Arc::ptr_eq(a, b),
-                    (None, None) => false,
-                    _ => true,
-                };
-                if fog.dirty || new {
-                    let group = latest.as_ref().map(|o| o.known_props.clone());
-                    let changed = match (&group, &fog.known_from) {
-                        (Some(a), Some(b)) => !Arc::ptr_eq(a, b),
-                        (None, None) => false,
-                        _ => true,
-                    };
-                    let known: Vec<KnownBox> = group
+        if !sighted {
+            fog.sight.clear_sight();
+        } else if fog.dirty || new {
+            // Only a new publication or stand-in changes the sight: the
+            // eyes and what the side knows are taken then, not each frame.
+            let eyes = match (&fog.eyes, &latest) {
+                (Some(eyes), _) => eyes.clone(),
+                (None, Some(o)) => Eye::of_units(
+                    o.own
                         .iter()
-                        .flat_map(|g| g.iter())
-                        .map(KnownBox::published)
-                        .collect();
-                    fog.sight
-                        .set_sight(&eyes, changed.then_some(known.as_slice()))?;
-                    fog.known_from = group;
-                    fog.from = latest;
-                    fog.dirty = false;
-                }
-            }
+                        .filter(|u| fog.units.as_ref().is_none_or(|ids| ids.contains(&u.id)))
+                        .map(|u| (u.id, &u.sight)),
+                ),
+                (None, None) => unreachable!("sighted"),
+            };
+            let group = latest.as_ref().map(|o| o.known_props.clone());
+            let changed = match (&group, &fog.known_from) {
+                (Some(a), Some(b)) => !Arc::ptr_eq(a, b),
+                (None, None) => false,
+                _ => true,
+            };
+            let known: Vec<KnownBox> = match (&group, changed) {
+                (Some(g), true) => g.iter().map(KnownBox::published).collect(),
+                _ => Vec::new(),
+            };
+            fog.sight
+                .set_sight(&eyes, changed.then_some(known.as_slice()))?;
+            fog.known_from = group;
+            fog.from = latest;
+            fog.dirty = false;
         }
         fog.sight.prepare(camera, width, height, probes).map(Some)
     }
