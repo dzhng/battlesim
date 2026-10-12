@@ -15,7 +15,7 @@
 use crate::static_world::batches::{List, Population, CAST_PASS, VIEW_PASS};
 use crate::static_world::buildings::{BuildingModule, Buildings, TIERS};
 use crate::view::{building_tier, View};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 const COARSEST: usize = TIERS - 1;
 
@@ -49,29 +49,6 @@ fn casts_into(view: &View, shadow: Option<&Shadow>, b: &Box6, size: f64) -> bool
     view.distance_to_box(&swept) <= s.reach && view.sees_box(&swept)
 }
 
-/// A row as drawn: its record, module (an index of `Buildings::modules`),
-/// tier mask and building.
-#[derive(Clone)]
-struct Row {
-    record: Record,
-    module: usize,
-    mask: u32,
-    building: usize,
-}
-
-fn row(m: &BuildingModule) -> Row {
-    let [x, y, z] = m.position;
-    let ([r, g, b], [sx, sy, sz]) = (m.tint, m.scale);
-    Row {
-        record: [
-            x, y, z, m.yaw, 0.0, 0.0, 0.0, 0.0, r, g, b, -1.0, sx, sy, sz, 0.0,
-        ],
-        module: m.kit_module as usize,
-        mask: m.tiers,
-        building: m.building as usize,
-    }
-}
-
 /// Buildings bucketed together: their box, the tallest's height, them, and
 /// the rows they draw (the coarse ones, or the fallen ones in their state).
 #[derive(Default)]
@@ -79,7 +56,7 @@ struct Chunk {
     bounds: Box6,
     size: f64,
     buildings: Vec<usize>,
-    rows: Vec<Row>,
+    rows: Vec<BuildingModule>,
 }
 
 impl Chunk {
@@ -88,14 +65,7 @@ impl Chunk {
         let bounds: Box6 =
             std::array::from_fn(|k| (if k < 3 { r.min[k] } else { r.max[k - 3] }) as f64);
         if self.buildings.is_empty() {
-            self.bounds = [
-                f64::INFINITY,
-                f64::INFINITY,
-                f64::INFINITY,
-                f64::NEG_INFINITY,
-                f64::NEG_INFINITY,
-                f64::NEG_INFINITY,
-            ];
+            self.bounds = bounds;
         }
         for k in 0..3 {
             self.bounds[k] = self.bounds[k].min(bounds[k]);
@@ -124,7 +94,7 @@ pub struct BuildingWalk {
     fallen: Vec<Option<usize>>,
     ruins: Vec<Chunk>,
     /// Resident chunks' rows at their tier, kept while they stay resident.
-    resident: HashMap<(usize, usize), Vec<Row>>,
+    resident: HashMap<(usize, usize), Vec<BuildingModule>>,
     pub lists: Lists,
     pub counts: Vec<u32>,
     /// The chunks and their coarse rows, then the last walk's chunks
@@ -146,12 +116,10 @@ impl BuildingWalk {
             .max()
             .unwrap_or(0) as usize;
         let mut chunks: Vec<Chunk> = (0..chunk_count).map(|_| Chunk::default()).collect();
-        let mut coarse = vec![];
         for b in 0..buildings.len() {
             if let Ok(c) = usize::try_from(buildings.records[b].chunk) {
                 chunks[c].add(&buildings, b);
-                buildings.rows(b, 0, Some(COARSEST), &mut coarse);
-                chunks[c].rows.extend(coarse.drain(..).map(|m| row(&m)));
+                buildings.rows(b, 0, Some(COARSEST), &mut chunks[c].rows);
             }
         }
         let keys = buildings.modules.len() * TIERS;
@@ -187,26 +155,18 @@ impl BuildingWalk {
             return refused;
         }
         self.fallen = vec![None; self.buildings.len()];
-        let mut cells: Vec<(i64, Chunk)> = vec![];
-        let mut rows = vec![];
+        let mut cells: BTreeMap<i64, Chunk> = BTreeMap::new();
         for &(b, s) in fallen {
             self.fallen[b] = Some(s);
             let [x, y, ..] = self.buildings.records[b].frame;
             let cell = |v: f32| (v as f64 / self.chunk_m).floor() as i64;
-            let id = (cell(y) + 4096) * 8192 + cell(x) + 4096;
-            let at = match cells.iter().position(|(c, _)| *c == id) {
-                Some(at) => at,
-                None => {
-                    cells.push((id, Chunk::default()));
-                    cells.len() - 1
-                }
-            };
-            cells[at].1.add(&self.buildings, b);
-            self.buildings.rows(b, s, None, &mut rows);
-            cells[at].1.rows.extend(rows.drain(..).map(|m| row(&m)));
+            let chunk = cells
+                .entry((cell(y) + 4096) * 8192 + cell(x) + 4096)
+                .or_default();
+            chunk.add(&self.buildings, b);
+            self.buildings.rows(b, s, None, &mut chunk.rows);
         }
-        cells.sort_by_key(|(id, _)| *id);
-        self.ruins = cells.into_iter().map(|(_, c)| c).collect();
+        self.ruins = cells.into_values().collect();
         self.resident.clear();
         vec![]
     }
@@ -220,20 +180,23 @@ impl BuildingWalk {
             cast: vec![vec![]; keys],
         };
         let mut counts = vec![0; keys];
-        let draw =
-            |lists: &mut Lists, counts: &mut [u32], r: &Row, tier: usize, cast: Option<usize>| {
-                lists.view[r.module * TIERS + tier].push(r.record);
-                counts[r.module * TIERS + tier] += 1;
-                if let Some(t) = cast {
-                    lists.cast[r.module * TIERS + t].push(r.record);
-                }
-            };
+        let draw = |lists: &mut Lists,
+                    counts: &mut [u32],
+                    r: &BuildingModule,
+                    tier: usize,
+                    cast: Option<usize>| {
+            lists.view[r.kit_module * TIERS + tier].push(r.record);
+            counts[r.kit_module * TIERS + tier] += 1;
+            if let Some(t) = cast {
+                lists.cast[r.kit_module * TIERS + t].push(r.record);
+            }
+        };
         let (mut near, mut coarse) = (vec![], vec![]);
         for (c, chunk) in self.chunks.iter().enumerate() {
             if !view.sees_box(&chunk.bounds) {
                 if casts_into(view, shadow, &chunk.bounds, chunk.size) {
                     for r in self.coarse_rows(c) {
-                        lists.cast[r.module * TIERS + COARSEST].push(r.record);
+                        lists.cast[r.kit_module * TIERS + COARSEST].push(r.record);
                     }
                 }
                 continue;
@@ -284,7 +247,7 @@ impl BuildingWalk {
             }
         }
         for chunk in &self.ruins {
-            let has = |r: &Row, t: usize| r.mask & (1 << t) != 0;
+            let has = |r: &BuildingModule, t: usize| r.tiers & (1 << t) != 0;
             if view.sees_box(&chunk.bounds) {
                 let d = view.distance_to_box(&chunk.bounds);
                 let t = building_tier(view, d, &self.lod);
@@ -294,12 +257,12 @@ impl BuildingWalk {
                         self.stats[7 + t] += 1;
                     }
                     if shadow.is_some_and(|s| d <= s.reach) && has(r, COARSEST) {
-                        lists.cast[r.module * TIERS + COARSEST].push(r.record);
+                        lists.cast[r.kit_module * TIERS + COARSEST].push(r.record);
                     }
                 }
             } else if casts_into(view, shadow, &chunk.bounds, chunk.size) {
                 for r in chunk.rows.iter().filter(|r| has(r, COARSEST)) {
-                    lists.cast[r.module * TIERS + COARSEST].push(r.record);
+                    lists.cast[r.kit_module * TIERS + COARSEST].push(r.record);
                 }
             }
         }
@@ -312,7 +275,7 @@ impl BuildingWalk {
     }
 
     /// Chunk `c`'s standing buildings' coarse rows.
-    fn coarse_rows(&self, c: usize) -> impl Iterator<Item = &Row> {
+    fn coarse_rows(&self, c: usize) -> impl Iterator<Item = &BuildingModule> {
         self.chunks[c]
             .rows
             .iter()
@@ -320,7 +283,7 @@ impl BuildingWalk {
     }
 
     /// Chunk `c`'s standing buildings' rows at tier `t`.
-    fn expand(&self, c: usize, t: usize) -> Vec<Row> {
+    fn expand(&self, c: usize, t: usize) -> Vec<BuildingModule> {
         let mut rows = vec![];
         for &b in self.chunks[c]
             .buildings
@@ -329,7 +292,7 @@ impl BuildingWalk {
         {
             self.buildings.rows(b, 0, Some(t), &mut rows);
         }
-        rows.iter().map(row).collect()
+        rows
     }
 }
 

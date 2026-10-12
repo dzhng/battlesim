@@ -434,15 +434,10 @@ impl Presentation {
             }
             None => {
                 let group = self.latest.as_ref().map(|o| o.known_props.clone());
-                if let KnownFrom::Published(last) = &self.known_from {
-                    let same = match (last, &group) {
-                        (None, None) => true,
-                        (Some(a), Some(b)) => Arc::ptr_eq(a, b),
-                        _ => false,
-                    };
-                    if same {
-                        return Ok(());
-                    }
+                let ptr = |g: &Option<Shared<KnownProp>>| g.as_ref().map(Arc::as_ptr);
+                if matches!(&self.known_from, KnownFrom::Published(last) if ptr(last) == ptr(&group))
+                {
+                    return Ok(());
                 }
                 self.known_from = KnownFrom::Published(group.clone());
                 group.map_or_else(Vec::new, |g| {

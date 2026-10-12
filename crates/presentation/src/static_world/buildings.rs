@@ -7,6 +7,7 @@
 //! them over three states. A renderer asks for a set of buildings' rows in
 //! one state ([`Buildings::rows`]) when a chunk comes near.
 use crate::static_world::library::{Bounds, Library, ROW_FLOATS};
+use crate::static_world::walk::Record;
 use crate::world::BuildingStyle;
 use std::ops::Range;
 
@@ -49,20 +50,15 @@ pub struct BuildingRecord {
     pub rows: [i32; 3],
 }
 
-/// A module instance (64 B): placed (scaled, turned by `yaw` about +Z, then
-/// moved to `position`), tinted (linear, times its building's value), its kit
-/// module (an index of [`Buildings::modules`]), its tier mask, its building
-/// and that building's chunk.
-#[derive(Clone, Copy, Default, Debug, PartialEq)]
+/// A module instance: its renderer record (placed, and tinted linear times
+/// its building's value), its kit module (an index of
+/// [`Buildings::modules`]), its tier mask and its building.
+#[derive(Clone)]
 pub struct BuildingModule {
-    pub position: [f32; 3],
-    pub yaw: f32,
-    pub scale: [f32; 3],
-    pub kit_module: u32,
-    pub tint: [f32; 3],
+    pub record: Record,
+    pub kit_module: usize,
     pub tiers: u32,
-    pub building: u32,
-    pub chunk: i32,
+    pub building: usize,
 }
 
 pub struct Buildings {
@@ -105,14 +101,8 @@ fn template_extent(
     if rows.is_empty() {
         return Ok([0.0; 6]);
     }
-    let mut e = [
-        f64::INFINITY,
-        f64::INFINITY,
-        f64::INFINITY,
-        f64::NEG_INFINITY,
-        f64::NEG_INFINITY,
-        f64::NEG_INFINITY,
-    ];
+    let mut e = [f64::INFINITY; 6];
+    e[3..].fill(f64::NEG_INFINITY);
     for r in rows {
         let module = library.module[r] as usize;
         let b = bounds[module].ok_or_else(|| {
@@ -172,12 +162,8 @@ impl Buildings {
             let e = extents[&p.template];
             let [x, y, z, yaw] = p.frame;
             let (cos, sin) = turn(yaw);
-            let mut b = [
-                f64::INFINITY,
-                f64::INFINITY,
-                f64::NEG_INFINITY,
-                f64::NEG_INFINITY,
-            ];
+            let mut b = [f64::INFINITY; 4];
+            b[2..].fill(f64::NEG_INFINITY);
             for lx in [e[0], e[3]] {
                 for ly in [e[1], e[4]] {
                     let (px, py) = (x + cos * lx - sin * ly, y + sin * lx + cos * ly);
@@ -259,27 +245,28 @@ impl Buildings {
         let [tx, ty, tz, yaw] = self.placed[b].frame;
         let (cos, sin) = turn(yaw);
         let value = self.value[b] as f64;
-        let chunk = self.records[b].chunk;
         for r in rows.filter(|&r| tier.is_none_or(|t| lib.tiers[r] & (1 << t) != 0)) {
             let t = &lib.transform[r * ROW_FLOATS..(r + 1) * ROW_FLOATS];
             let (x, y) = (t[0] as f64, t[1] as f64);
-            let tint = std::array::from_fn(|k| {
+            let [px, py, pz] = [
+                tx + cos * x - sin * y,
+                ty + sin * x + cos * y,
+                tz + t[2] as f64,
+            ]
+            .map(|v| v as f32);
+            let [red, green, blue]: [f32; 3] = std::array::from_fn(|k| {
                 (self.linear[lib.tint[r * 3 + k] as usize] as f64 * value) as f32
             });
+            let turned = (yaw + t[3] as f64) as f32;
+            let record = [
+                px, py, pz, turned, 0.0, 0.0, 0.0, 0.0, red, green, blue, -1.0, t[4], t[5], t[6],
+                0.0,
+            ];
             out.push(BuildingModule {
-                position: [
-                    tx + cos * x - sin * y,
-                    ty + sin * x + cos * y,
-                    tz + t[2] as f64,
-                ]
-                .map(|v| v as f32),
-                yaw: (yaw + t[3] as f64) as f32,
-                scale: [t[4], t[5], t[6]],
-                kit_module: self.compact[lib.module[r] as usize],
-                tint,
+                record,
+                kit_module: self.compact[lib.module[r] as usize] as usize,
                 tiers: lib.tiers[r] as u32,
-                building: b as u32,
-                chunk,
+                building: b,
             });
         }
     }
