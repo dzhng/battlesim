@@ -12,20 +12,33 @@ export async function modelGhostAgreement(ctx) {
     await page.goto(new URL(`/@fs/${repo}assets/runtime/catalog.json`, ctx.url).href);
     const result = await page.evaluate(async (repo) => {
       const file = (p) => `/@fs/${repo}${p}`;
-      const [gpu, frames, assets, poses, bench, views, light, fog, overlay, models, presentation] =
-        await Promise.all([
-          import(file("packages/renderer-core/src/device.ts")),
-          import(file("packages/battle-renderer/src/frame/battleFrame.ts")),
-          import(file("packages/scene-assets/src/loader.ts")),
-          import(file("packages/battle-renderer/src/models/modelInstances.ts")),
-          import(file("apps/battle-lab/src/workbench/benchWorld.ts")),
-          import(file("apps/battle-lab/src/workbench/views.ts")),
-          import(file("apps/battle-lab/src/gameLight.ts")),
-          import(file("apps/battle-lab/src/gameFog.ts")),
-          import(file("apps/battle-lab/src/gameOverlay.ts")),
-          import(file("apps/battle-lab/src/gameModels.ts")),
-          import(file("web/src/battle/sim/presentation.ts")),
-        ]);
+      const [
+        gpu,
+        frames,
+        assets,
+        poses,
+        bench,
+        views,
+        light,
+        fog,
+        overlay,
+        models,
+        presentation,
+        game,
+      ] = await Promise.all([
+        import(file("packages/renderer-core/src/device.ts")),
+        import(file("packages/battle-renderer/src/frame/battleFrame.ts")),
+        import(file("packages/scene-assets/src/loader.ts")),
+        import(file("packages/battle-renderer/src/models/modelInstances.ts")),
+        import(file("apps/battle-lab/src/workbench/benchWorld.ts")),
+        import(file("apps/battle-lab/src/workbench/views.ts")),
+        import(file("apps/battle-lab/src/gameLight.ts")),
+        import(file("apps/battle-lab/src/gameFog.ts")),
+        import(file("apps/battle-lab/src/gameOverlay.ts")),
+        import(file("apps/battle-lab/src/gameModels.ts")),
+        import(file("web/src/battle/sim/presentation.ts")),
+        import(file("fixtures/game.json")),
+      ]);
       // Every unit's art: the probe draws one model of each kind, whoever wears it.
       const installed = await new assets.AppearanceLibrary().load("/");
       // One model of each kind; the static one is named, so a model added to
@@ -53,6 +66,26 @@ export async function modelGhostAgreement(ctx) {
         usage: 0x11,
       });
       const read = device.createBuffer({ size: width * width * 4, usage: 0x09 });
+      const world = bench.benchWorld(null);
+      // Fog is the scene's presentation's: over the bench's ground, with no
+      // eye, every cell is unseen. The ground is drawn in every case, so
+      // only the fog differs between them.
+      await presentation.loadPresentation();
+      const sight = new presentation.ObservationDecoder();
+      sight.setGround(world.terrain.input, null);
+      sight.frame(
+        0,
+        {
+          eye: [0, 0, 800],
+          target: [1, 1, 0],
+          up: [0, 0, 1],
+          fovY: 0.8,
+          near: 1,
+          width,
+          height: width,
+        },
+        { selected: [], xray: false, ghosts: [] },
+      );
       const frame = await frames.createBattleFrame(device, "rgba8unorm", {
         // Resolved by the presentation crate, as every page's frame is.
         light: await presentation.resolveLight(light.gameLight),
@@ -63,13 +96,14 @@ export async function modelGhostAgreement(ctx) {
         xrayMinHiddenFragmentFraction: overlay.gameXrayMinHiddenFragmentFraction,
         models: models.gameModelDetail,
         glass: models.gameGlass,
-        world: bench.benchWorld(null),
+        world,
         instances: [],
         width,
         height: width,
       });
       const cases = [];
       try {
+        frame.setPresentedGround(sight.presentedGround());
         await frame.setAppearances({
           ...installed,
           appearances: new Map(chosen),
@@ -106,21 +140,7 @@ export async function modelGhostAgreement(ctx) {
           ]);
           const full = await pixels([{ ...instance, ghost: [0.1, 0.7, 1, 1] }]);
           const buried = await pixels([{ ...instance, z: -100, ghost: [0.1, 0.7, 1, 0.4] }]);
-          frame.setFog({
-            world: {
-              nx: 65,
-              ny: 65,
-              spacing: 4,
-              pageSize: 16,
-              minHeight: 0,
-              pageIds: new Uint32Array(0),
-              heights: new Float32Array(0),
-              foliage: new Float32Array([1, 1, 4]),
-              targetHeightM: 1,
-              foliageFullBlock: 1,
-            },
-            sight: { eyes: [], occluders: [] },
-          });
+          sight.setFog({ sensors: game.default.sensors, eyes: [] });
           const fogBackground = await pixels([]);
           const fogFull = await pixels([{ ...instance, ghost: [0.1, 0.7, 1, 1] }]);
           const fogHalf = await pixels([{ ...instance, ghost: [0.1, 0.7, 1, 0.4] }]);
@@ -134,7 +154,7 @@ export async function modelGhostAgreement(ctx) {
               if (delta(full, fogFull) < 8) fogStable++;
             }
           }
-          frame.setFog(null);
+          sight.setFog(null);
           const changed = (a, b) => a.reduce((n, x, i) => n + Number(i % 4 !== 3 && x !== b[i]), 0);
           cases.push({
             name,
@@ -155,6 +175,7 @@ export async function modelGhostAgreement(ctx) {
         return { cases, validation, width, layers };
       } finally {
         frame.dispose();
+        sight.free();
         target.destroy();
         read.destroy();
         device.destroy();
