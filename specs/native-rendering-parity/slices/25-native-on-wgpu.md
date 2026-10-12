@@ -755,4 +755,20 @@ The deletion half of step 8. The gates half (plates, counts and performance agai
 
 ### Evidence
 
-PLACEHOLDER_EVIDENCE
+- **The harness still feeds native.** A fresh paris-corner control from this branch (`throwaway/native-parity/2026-10-12T13-44-39-698Z`) passes `native-parity-capture`. `native-client` replays it, under the lock, into six plates (`throwaway/phase5h/plates/`). Model and building-module counts equal the control's on all six. Effects are equal on four. The other two, 1195 and 1593, are drawn exactly on tick boundaries (sim ticks 959 and 1169), which is step 6's known capture rule.
+- **Tests:** `cargo build --workspace`; `cargo test` for `native-client` (all five targets, under the lock), and for `presentation`'s lib, `effects`, `poses` and `pose_behaviour`, and `sim`'s publication reader, all reading the moved fixtures; clippy `-D warnings` on `presentation`, `sim`, `native-client` and `presentation-wasm`; `cargo fmt --check`; the web typecheck; `gpuTrace.test.ts` and `frameComparison.test.ts`.
+
+### Code
+
+Net lines deleted, by language (generated `Cargo.lock` −129 apart):
+
+| | Deleted |
+| --- | --- |
+| GDScript | 11,264 |
+| Godot shaders (`.gdshader`, `.gdshaderinc`, the pose `.compute`) | 2,105 |
+| Rust (the binding, the probe and the two calls; +8 −1,340) | 1,332 |
+| Markdown (Godot's and the binding's READMEs, docs) | 560 |
+| Shell, Python, scenes, project and export files | 211 |
+| JavaScript and TypeScript (`fps-compare`'s Godot reader; the trace test grew in formatting) | 3 |
+
+Fixtures: about 0.6 MB of Godot-only vectors and run artifacts deleted.
