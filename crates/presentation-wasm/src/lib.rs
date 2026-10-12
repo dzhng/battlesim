@@ -10,7 +10,9 @@ use std::sync::Arc;
 use presentation::presentation::{Ghost, Presentation as Inner, Ui};
 use presentation::records::{FrameHeader, WorldHeader};
 use presentation::sound::bank::{self, Bank, Core};
-use presentation::sound::frame::{self, Command, Listener, Motion, Scripted, Sound};
+use presentation::sound::frame::{
+    self, Command, Listener, Motion, Scripted, Sound, SoundSoldier, SoundVehicle,
+};
 use presentation::sound::synth;
 use presentation::sound::tables::{Cadence, Recipe};
 use presentation::sound::voices::{self, Request};
@@ -581,23 +583,54 @@ impl SoundFrame {
         commands(self.inner.update(clock, wall, now, &motion, listener))
     }
 
-    /// Hears scripted `motion` (`SoundMotion` JSON) at presentation time
-    /// `clock` from `listener` (`Listener` JSON).
+    /// Hears scripted motion at presentation time `clock` from `listener`
+    /// (its position, then forward): `soldiers` four numbers each (id, x, y,
+    /// z), `vehicles` eight each (key, x, y, z, left and right travel,
+    /// turret, 1 reversing), and `classes` the vehicles' sound classes,
+    /// space-separated, in their order.
+    #[allow(clippy::too_many_arguments)]
     pub fn update_scripted(
         &mut self,
         clock: f64,
         wall: f64,
         now: f64,
-        motion: &str,
-        listener: &str,
-    ) -> Result<String, JsError> {
-        let motion: Motion =
-            serde_json::from_str(motion).map_err(|e| JsError::new(&e.to_string()))?;
-        let listener: Listener =
-            serde_json::from_str(listener).map_err(|e| JsError::new(&e.to_string()))?;
-        Ok(commands(
-            self.inner.update(clock, wall, now, &motion, listener),
-        ))
+        soldiers: &[f64],
+        vehicles: &[f64],
+        classes: &str,
+        listener: &[f64],
+    ) -> String {
+        let soldiers = soldiers
+            .as_chunks::<4>()
+            .0
+            .iter()
+            .map(|&[id, x, y, z]| SoundSoldier {
+                id,
+                position: [x, y, z],
+            })
+            .collect();
+        let vehicles = vehicles
+            .as_chunks::<8>()
+            .0
+            .iter()
+            .zip(classes.split(' '))
+            .map(
+                |(&[key, x, y, z, travel_l, travel_r, turret, reverse], class)| SoundVehicle {
+                    key,
+                    vehicle_class: class.to_owned(),
+                    position: [x, y, z],
+                    travel_l,
+                    travel_r,
+                    turret,
+                    reverse: reverse != 0.0,
+                },
+            )
+            .collect();
+        let listener = Listener {
+            position: [listener[0], listener[1], listener[2]],
+            forward: [listener[3], listener[4], listener[5]],
+        };
+        let motion = Motion { vehicles, soldiers };
+        commands(self.inner.update(clock, wall, now, &motion, listener))
     }
 
     /// Silences and forgets everything, from mixer time `now`.

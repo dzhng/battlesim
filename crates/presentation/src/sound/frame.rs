@@ -314,8 +314,19 @@ struct Sounding {
     end: f64,
 }
 
+/// What a loop sounds for: one of a vehicle's layers (by its key's bits
+/// and slot), a fire (by its smoke source), a flying round's motor (by where
+/// its stretch ends), or the bed.
+#[derive(Clone, PartialEq)]
+enum LoopKey {
+    Vehicle(u64, &'static str),
+    Fire(String),
+    Motor(String),
+    Ambience,
+}
+
 struct LoopWant {
-    key: String,
+    key: LoopKey,
     sound: String,
     bus: Bus,
     gain: f64,
@@ -456,21 +467,21 @@ impl Scripted {
 
 /// An insertion-ordered map: the order loops and fires were first wanted
 /// is the order they are stopped and ranked in, as the browser's `Map` was.
-struct Ordered<T>(Vec<(String, T)>);
+struct Ordered<K, T>(Vec<(K, T)>);
 
-impl<T> Ordered<T> {
-    fn get(&self, key: &str) -> Option<&T> {
+impl<K: PartialEq, T> Ordered<K, T> {
+    fn get(&self, key: &K) -> Option<&T> {
         self.0.iter().find(|(k, _)| k == key).map(|(_, v)| v)
     }
-    fn get_mut(&mut self, key: &str) -> Option<&mut T> {
+    fn get_mut(&mut self, key: &K) -> Option<&mut T> {
         self.0.iter_mut().find(|(k, _)| k == key).map(|(_, v)| v)
     }
-    fn remove(&mut self, key: &str) -> Option<T> {
+    fn remove(&mut self, key: &K) -> Option<T> {
         let i = self.0.iter().position(|(k, _)| k == key)?;
         Some(self.0.remove(i).1)
     }
     /// Sets `key`, keeping its place if it was already there.
-    fn set(&mut self, key: String, value: T) {
+    fn set(&mut self, key: K, value: T) {
         match self.get_mut(&key) {
             Some(v) => *v = value,
             None => self.0.push((key, value)),
@@ -478,7 +489,7 @@ impl<T> Ordered<T> {
     }
 }
 
-impl<T> Default for Ordered<T> {
+impl<K, T> Default for Ordered<K, T> {
     fn default() -> Self {
         Self(Vec::new())
     }
@@ -492,11 +503,11 @@ pub struct Sound {
     durations: HashMap<String, Vec<f64>>,
     pending: Vec<Pending>,
     transients: Vec<Sounding>,
-    loops: Ordered<Sounding>,
+    loops: Ordered<LoopKey, Sounding>,
     movers: HashMap<u64, Mover>,
     strides: HashMap<u64, Stride>,
-    fires: Ordered<Fire>,
-    motors: Ordered<Motor>,
+    fires: Ordered<String, Fire>,
+    motors: Ordered<String, Motor>,
     bursts: HashMap<String, BurstVoice>,
     cue_heard: HashMap<String, f64>,
     /// The enemy faction's shout pool, as far as the player has loaded it.
@@ -899,9 +910,9 @@ impl Sound {
                         t0,
                     },
                 );
-                let old = format!("motor:{}", end_key(&s.path[0]));
+                let old = LoopKey::Motor(end_key(&s.path[0]));
                 if let Some(v) = self.loops.remove(&old) {
-                    self.loops.set(format!("motor:{}", end_key(&end)), v);
+                    self.loops.set(LoopKey::Motor(end_key(&end)), v);
                 }
             }
         }
@@ -1221,7 +1232,8 @@ impl Sound {
                 &variety,
             );
         }
-        self.strides.retain(|id, _| seen.contains(id));
+        seen.sort_unstable();
+        self.strides.retain(|id, _| seen.binary_search(id).is_ok());
     }
 
     /// Starts every pending transient due by `clock`, loudest first, within the budget.
@@ -1353,7 +1365,7 @@ impl Sound {
             let traverse = clamp01(m.traverse / row.full_traverse_rps);
             for layer in vehicle_loops(row, load, traverse, v.reverse) {
                 wants.push(LoopWant {
-                    key: format!("v{}:{}", js_number(v.key), layer.slot),
+                    key: LoopKey::Vehicle(key, layer.slot),
                     sound: layer.sound.to_owned(),
                     bus: Bus::Units,
                     gain: layer.gain,
@@ -1363,7 +1375,8 @@ impl Sound {
                 });
             }
         }
-        self.movers.retain(|key, _| seen.contains(key));
+        seen.sort_unstable();
+        self.movers.retain(|key, _| seen.binary_search(key).is_ok());
         for (key, f) in &self.fires.0 {
             let Some(times) = self
                 .timing
@@ -1381,7 +1394,7 @@ impl Sound {
             // Full while it burns, easing to the smoulder over its last tenth.
             let burn = clamp01((times.burn_s - age) / (times.burn_s * 0.1));
             wants.push(LoopWant {
-                key: format!("fire:{key}"),
+                key: LoopKey::Fire(key.clone()),
                 sound: row.sound.clone(),
                 bus: Bus::Ambience,
                 gain: lerp(row.smoulder_gain, row.gain, burn),
@@ -1395,7 +1408,7 @@ impl Sound {
             let at = [0, 1, 2].map(|i| m.from[i] + u * (m.to[i] - m.from[i]));
             let row = &p.motors[&*m.kind];
             wants.push(LoopWant {
-                key: format!("motor:{key}"),
+                key: LoopKey::Motor(key.clone()),
                 sound: row.sound.clone(),
                 bus: Bus::Effects,
                 gain: row.gain,
@@ -1415,7 +1428,7 @@ impl Sound {
         kept.truncate(p.budget.loops);
         // The bed is always on and outside the budget.
         kept.push(LoopWant {
-            key: "ambience".into(),
+            key: LoopKey::Ambience,
             sound: p.ambience.sound.clone(),
             bus: Bus::Ambience,
             gain: p.ambience.gain,

@@ -61,7 +61,8 @@ const sideKey = (id: number, own: boolean) => id * 2 + (own ? 0 : 1);
 async function heard(pubs: readonly EffectPublication[]): Promise<HeardPublication[]> {
   await loadPresentation();
   const shots = JSON.parse(launches(JSON.stringify(pubs))) as HeardPublication["launches"][];
-  return pubs.map((effects, i) => ({ effects, launches: shots[i] }));
+  // Sound reads the launches, not the shooters they came from.
+  return pubs.map(({ shooters: _, ...effects }, i) => ({ effects, launches: shots[i] }));
 }
 
 const FIREFIGHT_S = 8;

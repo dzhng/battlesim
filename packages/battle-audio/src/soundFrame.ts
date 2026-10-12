@@ -308,13 +308,30 @@ export class SoundFrame {
   /** Advance to presentation time `clock` at wall time `wall` (seconds),
    *  hearing scripted `motion` at `listener`. */
   update(clock: number, wall: number, motion: SoundMotion, listener: Listener) {
+    const soldiers = new Float64Array(motion.soldiers.length * 4);
+    motion.soldiers.forEach((s, i) => {
+      soldiers[i * 4] = s.id;
+      soldiers[i * 4 + 1] = s.position[0];
+      soldiers[i * 4 + 2] = s.position[1];
+      soldiers[i * 4 + 3] = s.position[2];
+    });
+    const vehicles = new Float64Array(motion.vehicles.length * 8);
+    motion.vehicles.forEach((v, i) => {
+      vehicles.set(
+        [v.key, v.position[0], v.position[1], v.position[2], v.travelL, v.travelR, v.turret],
+        i * 8,
+      );
+      vehicles[i * 8 + 7] = v.reverse ? 1 : 0;
+    });
     this.run(
       this.rust.update_scripted(
         clock,
         wall,
         this.sink.now(),
-        JSON.stringify(motion),
-        JSON.stringify(listener),
+        soldiers,
+        vehicles,
+        motion.vehicles.map((v) => v.vehicleClass).join(" "),
+        Float64Array.from([...listener.position, ...listener.forward]),
       ),
     );
   }
