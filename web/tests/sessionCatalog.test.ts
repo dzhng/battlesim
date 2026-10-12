@@ -108,6 +108,35 @@ test("a game page's catalog load leaves out the art only test units wear, and co
   expect(new Set(requests).size).toBe(requests.length);
 });
 
+test("a battle appearance load can be limited to its fielded unit kinds", async () => {
+  const sources = testSources();
+  const result = await bakeCatalog(testCatalog(), async (path) => sources[path], {
+    authority: AUTHORITY,
+  });
+  expect(result.ok).toBe(true);
+  const files = new Map<string, Uint8Array>([
+    ["catalog.json", new TextEncoder().encode(runtimeCatalogText(result.runtime))],
+    ...result.files,
+  ]);
+  const units = AUTHORITY.units;
+  const installed = await new AppearanceLibrary(memoryFetch(files, "/assets/")).load(
+    "/assets/",
+    units.appearancesFor(["tank"]),
+  );
+  expect(installed.appearances.has("tank")).toBe(true);
+  expect(installed.appearances.has("tank_wreck")).toBe(true);
+  expect(installed.appearances.has("truck")).toBe(false);
+  expect(installed.appearances.has("rifleman")).toBe(false);
+  expect(installed.appearances.has("crate")).toBe(true);
+  // A later spawn widens the same generation without refetching its first unit.
+  const library = new AppearanceLibrary(memoryFetch(files, "/assets/"));
+  const first = await library.load("/assets/", units.appearancesFor(["tank"]));
+  const widened = await library.withUnits(units.appearancesFor(["tank", "supply"]));
+  expect(widened.appearances.has("tank")).toBe(true);
+  expect(widened.appearances.has("truck")).toBe(true);
+  expect(widened.generation).toBeGreaterThan(first.generation);
+});
+
 test("a lab page after a game page adds its test units' art, fetching nothing twice", async () => {
   const { runtime, library, requests } = await sharedArt();
   await library.load("/assets/", (await catalogSet("game")).units.appearances);
