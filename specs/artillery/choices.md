@@ -159,3 +159,22 @@ Reach: future projectile presentation tests have one bench and one source of
 flight evidence to maintain.
 
 Verdict: sound. Confidence: medium.
+
+### Replay identity changes through the existing scenario/config digests
+
+The artillery catalog and weapon rows are part of the rules serialized into a
+battle's scenario and configuration digests. The integration test starts the
+AI opponent with its admitted artillery card, records every accepted command,
+then loads that replay through `Battle::from_replay` and compares each tick's
+digest. No separate artillery replay schema or migration was added. A replay
+whose rules omit the newly enabled catalog is therefore rejected by the same
+hard-cutover identity checks as any other changed ruleset.
+
+Gap: the plan required a named catalog/replay cutover but did not require a
+new saved parity fixture for a scenario that did not previously contain
+artillery.
+
+Reach: future artillery scenarios can add their own parity records without
+teaching the replay reader an old and new artillery format.
+
+Verdict: sound. Confidence: high.

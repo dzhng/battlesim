@@ -85,3 +85,15 @@ Slice 01 kills the 2.5 km/minimum-range assumption cheaply. Slice 02 makes the p
 
 Use the narrowest check per slice, then run the repository-wide checks once at closeout. Native tests use `CARGO_TARGET_DIR=throwaway/target`; browser evidence goes in ignored `throwaway/evidence/`; GPU scenes serialize with the repository's `throwaway/gpu.lock`. The captured artillery scene was inspected and independently critiqued; the command-bar and generic spread cursor are covered by focused browser tests. Full-check results and any environmental limitations are recorded here before archival.
 
+## Closeout evidence
+
+Focused native, catalog, browser and artillery-scene checks pass. The full
+`bun run check` stops before tests because the workspace image has no ALSA
+development package for `alsa-sys`; `cargo clippy -p sim --all-targets
+-- -D warnings` is clean. The full `bun run verify` completes its scene sweep
+but reports unrelated environment failures: SwiftShader caps texture arrays at
+256 layers while the complete roster asks for 477, and several remaining
+non-artillery scenes require source or baseline LFS objects absent from the
+checkout. The artillery scene itself passes both assertions. These logs remain
+in `throwaway/artillery-full-check.log` and `throwaway/artillery-full-verify.log`.
+
