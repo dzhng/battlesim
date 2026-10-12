@@ -24,24 +24,31 @@ export function chooseTier(samples: Partial<Record<GraphicsTier, TierBenchmarkIn
 }
 
 export function runAutoDetect(): Promise<GraphicsTier> {
-  return new Promise((resolve, reject) => {
-    if (!navigator.gpu) return reject(new Error("WebGPU is unavailable. Reload in a WebGPU-capable browser."));
-    let last = performance.now();
-    const samples: number[] = [];
-    const started = last;
-    const frame = (now: number) => {
-      samples.push(now - last);
-      last = now;
-      if (now - started < 1500) requestAnimationFrame(frame);
-      else {
-        try {
-          const result = judgeIntervals(samples, "high");
-          const tier = chooseTier({ high: result, medium: result, low: result });
-          graphicsSettings.set({ mode: "auto", detectedMode: tier, lastResult: { ...result, selectedMode: tier } });
-          resolve(tier);
-        } catch (error) { reject(error); }
-      }
-    };
-    requestAnimationFrame(frame);
-  });
+  if (!navigator.gpu) return Promise.reject(new Error("WebGPU is unavailable. Reload in a WebGPU-capable browser."));
+  const sample = (tier: GraphicsTier) =>
+    new Promise<TierBenchmarkInput>((resolve, reject) => {
+      graphicsSettings.set({ mode: tier });
+      setTimeout(() => {
+      let last = performance.now();
+      const samples: number[] = [];
+      const started = last;
+      const frame = (now: number) => {
+        samples.push(now - last);
+        last = now;
+        if (now - started < 1500) requestAnimationFrame(frame);
+        else {
+          try { resolve(judgeIntervals(samples, tier)); } catch (error) { reject(error); }
+        }
+      };
+      requestAnimationFrame(frame);
+      }, 250);
+    });
+  return (async () => {
+    const results: Partial<Record<GraphicsTier, TierBenchmarkInput>> = {};
+    for (const tier of ["high", "medium", "low"] as const) results[tier] = await sample(tier);
+    const selectedMode = chooseTier(results);
+    const result = results[selectedMode]!;
+    graphicsSettings.set({ mode: "auto", detectedMode: selectedMode, lastResult: { ...result, selectedMode } });
+    return selectedMode;
+  })();
 }

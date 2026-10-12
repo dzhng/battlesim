@@ -451,7 +451,14 @@ export function LabViewport({
   const pilotRef = useRef(pilot);
   const cameraConfigRef = useRef(cameraConfig);
   const qualityRef = useRef(quality);
+  const qualityKey = quality ? JSON.stringify(quality) : "";
+  const previousQualityKey = useRef(qualityKey);
   qualityRef.current = quality;
+  useEffect(() => {
+    if (previousQualityKey.current === qualityKey) return;
+    previousQualityKey.current = qualityKey;
+    void window.__lab?.rebuild?.();
+  }, [qualityKey]);
   const appearancesRef = useRef(appearances);
   appearancesRef.current = appearances;
   const modelsRef = useRef(models);

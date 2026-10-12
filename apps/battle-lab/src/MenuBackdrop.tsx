@@ -32,6 +32,7 @@ import { useBattleSession } from "./useBattleSession";
 import { useLabLoading } from "./LabLoading";
 import type { ScriptedSim } from "./useSimSession";
 import game from "@fixtures/game.json";
+import { graphicsProfiles, graphicsSettings, resolveEffectiveTier } from "./graphicsSettings";
 
 const SCENES = validateBackdrop(backdrop, listMaps()).scenes;
 const FILM_CAMERA = filmCamera(
@@ -91,10 +92,12 @@ function BackdropScenes({ plate, shown }: BackdropProps) {
   const { rules } = useSessionCatalog();
   // A refused page GPU leaves the menu its plain background, with nothing to wait for.
   const refused = useSyncExternalStore(appResources.subscribe, appResources.error);
+  const graphics = useSyncExternalStore(graphicsSettings.subscribe, graphicsSettings.get);
   useLabLoading("renderer", refused ? true : null);
   // Scenes played so far: the one playing is `played` modulo their count.
   const [played, setPlayed] = useState(0);
   const scene = SCENES[played % SCENES.length];
+  const quality = graphicsProfiles[resolveEffectiveTier(graphics.mode, graphics.detectedMode)];
   const next = SCENES[(played + 1) % SCENES.length];
   const battle = useBuiltScenario(scene, (_, s) => sceneScenario(s, rules));
   const failed = buildFailed(battle) ? battle.error : null;
@@ -111,6 +114,7 @@ function BackdropScenes({ plate, shown }: BackdropProps) {
       shown={shown}
       onWarm={() => void sceneScenario(next, rules).catch(() => {})}
       onEnd={() => setPlayed((n) => n + 1)}
+        quality={quality}
     />
   );
 }
@@ -220,6 +224,7 @@ function BackdropBattle({
   shown,
   onWarm,
   onEnd,
+  quality,
 }: {
   scene: BackdropScene;
   scenario: string;
@@ -229,6 +234,7 @@ function BackdropBattle({
   onWarm: () => void;
   /** Its reel has played to the end, under the veil. */
   onEnd: () => void;
+  quality: typeof graphicsProfiles.high;
 }) {
   const veil = useRef<HTMLDivElement>(null);
   // Ready to film once the battle first stands at its warm tick.
@@ -280,6 +286,7 @@ function BackdropBattle({
           onReady={session.onReady}
           pilot={reel.pilot}
           cameraConfig={FILM_CAMERA}
+          quality={quality}
         />
       </div>
       <div className="menu-backdrop-grade" />
