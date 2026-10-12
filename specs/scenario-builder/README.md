@@ -2,11 +2,11 @@
 
 ## Status and next pickup
 
-**Status:** slices 00 and 00b fixed topology complete; bundle implementation is next. The exploration and write-spec interviews are closed.
+**Status:** slices 00, 00b, and 01 are complete; offline admission is next. The exploration and write-spec interviews are closed.
 
 **Updated:** 2026-10-11.
 
-**Next pickup:** implement [`slices/01-bundle-contract.md`](slices/01-bundle-contract.md). Freeze the self-contained bundle and deterministic asset container on the now-working Blue/Red/Neutral runtime. Slice 00's disposable probe proved that arbitrary side counts are a cross-owner rewrite; keep the production model at Blue, Red, and passive Neutral for this feature. Update this section before ending every pass.
+**Next pickup:** implement [`slices/02-offline-admission.md`](slices/02-offline-admission.md). Make an uploaded canonical bundle construct the normal prepared world without fixture or generator lookup. Slice 01 froze canonical JSON as the portable container, with embedded user bytes and hash-checked asset records. Slice 00's disposable probe proved that arbitrary side counts are a cross-owner rewrite; keep the production model at Blue, Red, and passive Neutral for this feature. Update this section before ending every pass.
 
 **Topology verdict (2026-10-11):** keep a fixed Blue/Red/Neutral model for this feature. The probe ran the real scenario → Battle → observation/replay path, then added a disposable Neutral variant and the minimum compile adaptations. `sim` compiled only after changing side-owned arrays in movement/route planning; a Neutral battle then panicked at `battle.rs:2448` indexing fixed-two sightings. The inventory found 172 side-indexed/fixed-two owners before the browser UI, plus fixed skirmish/objective/publication assumptions. Arbitrary FFA is deferred; no dynamic-side compatibility layer is carried forward.
 
@@ -106,7 +106,7 @@ Any slice that produces a visual shot must:
 
 - [x] Run and record the side-topology verdict — [`slices/00-side-topology-spike.md`](slices/00-side-topology-spike.md); fixed Blue/Red/Neutral, arbitrary FFA deferred.
 - [x] Materialize fixed Blue/Red/Neutral state and publication — [`slices/00b-fixed-neutral-slot.md`](slices/00b-fixed-neutral-slot.md).
-- [ ] Freeze the self-contained bundle and asset container — [`slices/01-bundle-contract.md`](slices/01-bundle-contract.md).
+- [x] Freeze the self-contained bundle and asset container — [`slices/01-bundle-contract.md`](slices/01-bundle-contract.md).
 - [ ] Prove offline map/catalog/audio admission — [`slices/02-offline-admission.md`](slices/02-offline-admission.md).
 - [ ] Materialize player-slot ownership — [`slices/03-player-slots.md`](slices/03-player-slots.md).
 - [ ] Implement active/passive controllers and deterministic takeover — [`slices/04-controllers.md`](slices/04-controllers.md).
@@ -118,4 +118,4 @@ Any slice that produces a visual shot must:
 
 ## Next Agent Prompt
 
-You are picking up the scenario-builder implementation plan. Read this README and `choices.md`, then implement slice 01 only. Freeze the canonical self-contained ScenarioBundle and deterministic embedded asset container on the fixed Blue/Red/Neutral runtime. Keep explicit Download/Upload as the only persistence path; do not build the tactical editor yet. Update this handoff before ending the pass.
+You are picking up the scenario-builder implementation plan. Read this README and `choices.md`, then implement slice 02. Prove that an uploaded canonical ScenarioBundle constructs the normal prepared world from its embedded resolved inputs without fixture or generator lookup. Keep explicit Download/Upload as the only persistence path, and update this handoff before ending the pass.

@@ -3,6 +3,7 @@
 //! observation records. Units are metres, seconds and radians; XY is ground and
 //! +Z is up.
 pub mod ballistics;
+pub mod bundle;
 pub mod catalog;
 pub mod command;
 pub mod curve;

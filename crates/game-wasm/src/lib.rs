@@ -38,6 +38,33 @@ pub fn check_prepare_request(request_json: &str) -> String {
     contract::preparation::check_request_json(request_json)
 }
 
+/// Validate a downloaded ScenarioBundle without consulting repository
+/// fixtures. The bundle module owns canonical bytes, identities, topology,
+/// and embedded asset admission.
+#[wasm_bindgen]
+pub fn check_scenario_bundle(bundle_json: &str) -> String {
+    match contract::bundle::ScenarioBundle::from_json(bundle_json) {
+        Ok(bundle) => serde_json::json!({
+            "status": "ok",
+            "identity": bundle.identity().expect("validated bundle identity"),
+        })
+        .to_string(),
+        Err(contract::bundle::BundleError::Invalid(diagnostics)) => {
+            serde_json::json!({ "status": "error", "diagnostics": diagnostics }).to_string()
+        }
+    }
+}
+
+/// Return the canonical bytes of a validated ScenarioBundle.
+#[wasm_bindgen]
+pub fn canonical_scenario_bundle(bundle_json: &str) -> Result<String, JsError> {
+    let bundle = contract::bundle::ScenarioBundle::from_json(bundle_json)
+        .map_err(|error| js_error(error.to_string()))?;
+    bundle
+        .to_json()
+        .map_err(|error| js_error(error.to_string()))
+}
+
 /// The generator version a generation request pins: a request naming another
 /// is refused, so a caller that wants this build's maps asks here.
 #[wasm_bindgen]
