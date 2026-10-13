@@ -47,14 +47,13 @@
 // and the painted ground layers (terrain, grass, backdrop: fog's
 // `paintedGround`) take it as their own surface.
 import { tgpu, d, std, type TgpuCommandEncoder } from "typegpu";
-import { createProjectedPoint, projectPoint } from "@packages/renderer-core/src/camera3d";
 import type { SceneInstance, WorldLayers } from "../scene";
 import type { Mesh } from "../mesh";
 import { typegpuCameraLayout } from "../world/camera";
 import { battleWorldDepth, BATTLE_DEPTH_ATTACHMENT } from "../worldDepth";
 import { CameraAt } from "../records.gen";
 import type { EnvironmentFrame } from "./environmentFrame";
-import { backdrop_mesh, map_box } from "@wasm/presentation/presentation_wasm.js";
+import { backdrop_mesh, map_box, scar_scissor } from "@wasm/presentation/presentation_wasm.js";
 import {
   identityInstance,
   type CameraGroup,
@@ -102,7 +101,7 @@ import type { PresentedGround } from "../terrain/terrainSurface";
 import type { SceneryWalkStats } from "./sceneryLayer";
 import { createPaintedMarks, validatePaintStyle, type PaintStyle } from "./paintedMarks";
 import type { GroundMarks, ScarRegion } from "./scarTexture";
-import { vec3, type Mat4 } from "math";
+import type { Mat4 } from "math";
 import {
   createModelFragments,
   modelAttribs,
@@ -595,41 +594,16 @@ export async function createWorldPass(
   const proxies = new ProxyInstances(root, registry);
   /** The map's box (`map_box`): what a scar's scissor projects. */
   let box: Float64Array | null = null;
-  let frameProjection: Mat4 | null = null;
-  const corner = vec3.create(),
-    projected = createProjectedPoint();
-  // A projected convex region's extrema lie on its corners when entirely in
-  // front of the eye. Regions crossing the eye retain the full viewport.
+  let frameProjection: Float32Array | null = null;
+  /** The pixels a scar region can cover (`scar_scissor`), none off screen. */
   const scissor = (
     r: ScarRegion,
     width: number,
     height: number,
   ): readonly [number, number, number, number] | null => {
     if (!box || !frameProjection) return [0, 0, width, height];
-    let front = 0,
-      loX = Infinity,
-      loY = Infinity,
-      hiX = -Infinity,
-      hiY = -Infinity;
-    for (const x of [r[0], r[2]])
-      for (const y of [r[1], r[3]])
-        for (const z of [box[2], box[5]]) {
-          vec3.set(corner, x, y, z);
-          projectPoint(projected, frameProjection, corner);
-          if (projected.clipW <= 0) continue;
-          front++;
-          loX = Math.min(loX, projected.ndc[0]);
-          hiX = Math.max(hiX, projected.ndc[0]);
-          loY = Math.min(loY, projected.ndc[1]);
-          hiY = Math.max(hiY, projected.ndc[1]);
-        }
-    if (!front) return null;
-    if (front < 8) return [0, 0, width, height];
-    const x = Math.max(0, Math.floor(((loX + 1) * width) / 2) - 2),
-      y = Math.max(0, Math.floor(((1 - hiY) * height) / 2) - 2);
-    const right = Math.min(width, Math.ceil(((hiX + 1) * width) / 2) + 2),
-      bottom = Math.min(height, Math.ceil(((1 - loY) * height) / 2) + 2);
-    return right > x && bottom > y ? [x, y, right - x, bottom - y] : null;
+    const rect = scar_scissor(new Float64Array(r), box, frameProjection, width, height);
+    return rect.length ? [rect[0], rect[1], rect[2], rect[3]] : null;
   };
 
   let classView = false;
@@ -741,12 +715,9 @@ export async function createWorldPass(
       casters: Float32Array,
       count: number,
     ) {
-      frameProjection = camera.subarray(
-        CameraAt.view_proj,
-        CameraAt.view_proj + 16,
-      ) as unknown as Mat4;
+      frameProjection = camera.subarray(CameraAt.view_proj, CameraAt.view_proj + 16);
       environment.prepare(view, sunShadow, casters, count);
-      grass.prepare(frameProjection);
+      grass.prepare(frameProjection as unknown as Mat4);
     },
     encodeShadows(encoder: TgpuCommandEncoder) {
       scenery.beginFrame();

@@ -40,8 +40,12 @@ pub struct Scars {
     /// This frame's uploads: for the grass's window, then the view's.
     grass: Option<ScarUpload>,
     view: Option<ScarUpload>,
-    /// Or, when the marks don't fit at once, each region's.
-    regions: Vec<ScarUpload>,
+    /// Or, when the marks don't fit at once, each region on screen: its
+    /// scissor (`scars::scissor`) and its upload.
+    regions: Vec<([u32; 4], ScarUpload)>,
+    /// Whether the marks don't fit at once: the terrain draws by region
+    /// (none of them, when none is on screen).
+    regional: bool,
 }
 
 impl Scars {
@@ -85,6 +89,7 @@ impl Scars {
             grass: None,
             view: None,
             regions: Vec::new(),
+            regional: false,
         }
     }
 
@@ -100,30 +105,45 @@ impl Scars {
     }
 
     /// Takes this frame's uploads from `presentation`: for the grass's
-    /// window `grass` when it regrows, then the view's or each region's.
-    /// True when the directory outgrew its texture (the group must be made
-    /// again).
+    /// window `grass` when it regrows, then the view's or, for the regions
+    /// on screen through the map's box `map_box`, each region's. True when
+    /// the directory outgrew its texture (the group must be made again).
     pub fn prepare(
         &mut self,
         device: &Device,
         presentation: &mut Presentation,
         grass: Option<[f64; 4]>,
+        map_box: Option<&[f64; 6]>,
     ) -> bool {
         self.grass = grass.map(|window| presentation.prepare_scars(Some(window), false));
         let regions = presentation.scar_regions();
+        self.regional = !regions.is_empty();
+        let camera = presentation.last_frame().camera;
+        let size = [camera.width as u32, camera.height as u32];
+        let view_proj = camera.view_proj.first_chunk().expect("a 4×4 matrix");
+        let on_screen = |r| match map_box {
+            Some(b) => scars::scissor(r, b, view_proj, size),
+            None => Some([0, 0, size[0], size[1]]),
+        };
         (self.view, self.regions) = if regions.is_empty() {
             (Some(presentation.prepare_scars(None, false)), Vec::new())
         } else {
-            let each = regions.into_iter();
+            let shown: Vec<_> = regions
+                .into_iter()
+                .filter_map(|r| on_screen(r).map(|rect| (r, rect)))
+                .collect();
             (
                 None,
-                each.map(|r| presentation.prepare_scars(Some(r), true))
+                shown
+                    .into_iter()
+                    .map(|(r, rect)| (rect, presentation.prepare_scars(Some(r), true)))
                     .collect(),
             )
         };
         let size = self.directory.size();
         let [mut w, mut h] = [size.width, size.height];
-        let uploads = self.grass.iter().chain(&self.view).chain(&self.regions);
+        let regions = self.regions.iter().map(|(_, u)| u);
+        let uploads = self.grass.iter().chain(&self.view).chain(regions);
         for [uw, uh] in uploads.filter_map(|u| u.directory.as_ref().map(|d| d.1)) {
             (w, h) = (w.max(uw), h.max(uh));
         }
@@ -141,7 +161,7 @@ impl Scars {
 
     /// Whether the scars draw region by region this frame.
     pub fn regional(&self) -> bool {
-        !self.regions.is_empty()
+        self.regional
     }
 
     pub fn grass_upload(&self) -> Option<&ScarUpload> {
@@ -152,7 +172,8 @@ impl Scars {
         self.view.as_ref()
     }
 
-    pub fn region_uploads(&self) -> &[ScarUpload] {
+    /// Each region on screen: its scissor and its upload.
+    pub fn region_uploads(&self) -> &[([u32; 4], ScarUpload)] {
         &self.regions
     }
 

@@ -128,10 +128,14 @@ impl Pass for WorldColour {
                 inputs.device.create_command_encoder(&Default::default()),
             );
             queue.submit([done.finish()]);
-            for (i, upload) in scars.region_uploads().iter().enumerate() {
+            for (i, (rect, upload)) in scars.region_uploads().iter().enumerate() {
                 scars.apply(queue, upload);
                 let mut region = inputs.device.create_command_encoder(&Default::default());
-                let mut pass = world_pass(&mut region, inputs.targets, "ground-region", i == 0);
+                let first = i == 0;
+                let mut pass =
+                    world_pass(&mut region, inputs.targets, "ground-region", first, true);
+                let [x, y, w, h] = *rect;
+                pass.set_scissor_rect(x, y, w, h);
                 ground.draw_terrain(&mut pass, &painted_ground);
                 drop(pass);
                 queue.submit([region.finish()]);
@@ -139,7 +143,8 @@ impl Pass for WorldColour {
         } else if let Some(upload) = scars.view_upload() {
             scars.apply(queue, upload);
         }
-        let mut pass = world_pass(encoder, inputs.targets, "world", !regional);
+        let drew = !scars.region_uploads().is_empty();
+        let mut pass = world_pass(encoder, inputs.targets, "world", !drew, false);
         if !regional {
             ground.draw_terrain(&mut pass, &painted_ground);
         }
@@ -175,13 +180,21 @@ impl Pass for WorldColour {
 }
 
 /// A pass of the lit world over the sky and the prepass's depth, with the
-/// fog mask beside it (cleared when `first`); both resolve.
+/// fog mask beside it (cleared when `first`); both resolve. Only a pass
+/// another follows (a region of the ground) keeps the samples: the last
+/// one's resolves are all that is read after it.
 fn world_pass<'a>(
     encoder: &'a mut CommandEncoder,
     t: &'a crate::frame::Targets,
     label: &'static str,
     first: bool,
+    kept: bool,
 ) -> RenderPass<'a> {
+    let store = if kept {
+        StoreOp::Store
+    } else {
+        StoreOp::Discard
+    };
     encoder.begin_render_pass(&RenderPassDescriptor {
         label: Some(label),
         color_attachments: &[
@@ -191,7 +204,7 @@ fn world_pass<'a>(
                 resolve_target: Some(&t.lit),
                 ops: Operations {
                     load: LoadOp::Load,
-                    store: StoreOp::Store,
+                    store,
                 },
             }),
             Some(RenderPassColorAttachment {
@@ -204,7 +217,7 @@ fn world_pass<'a>(
                     } else {
                         LoadOp::Load
                     },
-                    store: StoreOp::Store,
+                    store,
                 },
             }),
         ],
