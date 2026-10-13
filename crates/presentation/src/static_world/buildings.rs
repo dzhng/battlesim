@@ -12,7 +12,7 @@ use crate::world::BuildingStyle;
 use std::ops::Range;
 
 /// Detail tiers, 0 finest; every building draws at the coarsest from afar.
-pub const TIERS: usize = 4;
+pub use crate::view::TIERS;
 const COARSEST: usize = TIERS - 1;
 
 /// A map's buildings and the art they are drawn from, as `load_world` takes

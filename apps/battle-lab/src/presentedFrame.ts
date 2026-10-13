@@ -58,18 +58,21 @@ export const emptyEffectCounts = (): EffectCounts => ({
   lights: 0,
 });
 
-/** The presentation's camera for the viewport's orbit camera, as the battle frame draws it. */
+/** The presentation's camera for the viewport's orbit camera: what the
+ *  frame's view, camera uniform and cascades are made for, drawn into
+ *  targets the battle frame's size. */
 export function presentedCamera(viewport: ViewportCamera): PresentedCamera {
   const camera = liveCamera(viewport);
   const s = Math.sin(camera.pitch);
+  const px = (v: number) => Math.max(MIN_TARGET_PX, Math.floor(v));
   return {
     eye: eyePosition(vec3.create(), camera),
     target: camera.target,
     up: [-s * Math.cos(camera.yaw), -s * Math.sin(camera.yaw), Math.cos(camera.pitch)],
     fovY: camera.fovY,
     near: camera.near,
-    width: viewport.width,
-    height: Math.max(MIN_TARGET_PX, Math.floor(viewport.height)),
+    width: px(viewport.width),
+    height: px(viewport.height),
   };
 }
 

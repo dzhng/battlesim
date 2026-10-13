@@ -11,7 +11,6 @@ use presentation::light::LightSettings;
 use presentation::presentation::{FogSetup, Frame, Presentation, Ui};
 use presentation::records::FogLook;
 use presentation::static_world::files;
-use presentation::static_world::ground::walk::Cleared;
 use presentation::units::drawn::ClipTables;
 use presentation::view::Camera;
 use presentation::world::{Appearance, WorldInput};
@@ -88,7 +87,7 @@ pub struct Replay {
     /// The simulation's world, kept while fog is drawn: the side's foliage
     /// follows the ground it sees cleared.
     world: Option<files::World>,
-    /// The cleared cells the scenery last followed.
+    /// The cleared cells fog's foliage last followed.
     cleared: usize,
     samples: Vec<Sample>,
     pushed: usize,
@@ -239,7 +238,7 @@ impl Replay {
     }
 
     /// The camera `record` was drawn from, under the manifest's lens.
-    pub fn camera(&self, record: &Record) -> Camera {
+    fn camera(&self, record: &Record) -> Camera {
         Camera {
             eye: record.eye,
             target: record.target,
@@ -258,8 +257,8 @@ impl Replay {
     /// Frames `record`: pushes the publications up to its tick, `heard`
     /// after each, then asks for its frame for a renderer at `generation`
     /// (`Presentation::frame`): a new one is written every static batch, the
-    /// same one only what changed. Then, as the page
-    /// does, the scenery follows the ground the side has seen cleared, from
+    /// same one only what changed. Then, as the page's simulation exports
+    /// it, fog's foliage follows the ground the side has seen cleared, from
     /// the next frame on.
     pub fn frame(
         &mut self,
@@ -279,24 +278,16 @@ impl Replay {
         let camera = self.camera(record);
         self.presentation
             .frame(record.sim_time, &camera, &Ui::default(), generation)?;
-        if let Some(learned) = self.presentation.learned() {
+        // Fog's foliage is the side's: less the trees on ground it has seen
+        // cleared, as the page re-exports it.
+        if let (Some(world), Some(learned)) = (&self.world, self.presentation.learned()) {
             if learned.cleared_count() != self.cleared {
                 self.cleared = learned.cleared_count();
-                let runs = learned.cleared_runs();
-                let cleared = Cleared::from_runs(&runs, learned.cols, learned.rows, learned.cell_m);
-                // Fog's foliage is the side's: less the trees on ground it
-                // has seen cleared, as the page re-exports it.
-                let foliage = self
-                    .world
-                    .as_ref()
-                    .map(|world| files::side_foliage(world, learned));
-                self.presentation.set_cleared(cleared);
-                if let Some(foliage) = foliage {
-                    self.presentation.set_fog(Some(FogSetup {
-                        foliage: Some(foliage),
-                        ..FogSetup::default()
-                    }))?;
-                }
+                let foliage = files::side_foliage(world, learned);
+                self.presentation.set_fog(Some(FogSetup {
+                    foliage: Some(foliage),
+                    ..FogSetup::default()
+                }))?;
             }
         }
         Ok(self.presentation.last_frame())

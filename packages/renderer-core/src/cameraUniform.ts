@@ -1,16 +1,10 @@
 // Adapted from ~/dev/game renderer-core/src/cameraUniform.ts:
 // the camera uniform every world, shadow and overlay shader binds at group 0.
 // Local changes: `liveCamera` is exported (the source's private `realParams`)
-// for CPU picking, the unused screen-space helpers are dropped, and the packer
-// writes into a caller-owned buffer through `math` scratch.
-import { vec3 } from "math";
-import {
-  createGpuMat4,
-  eyePosition,
-  invViewProj,
-  viewProjMatrix,
-  type Camera3DParams,
-} from "./camera3d";
+// for CPU picking, the unused screen-space helpers are dropped, and a frame's
+// camera is the presentation's (`Frame.camera`, `crates/presentation`): the
+// packer here writes a camera the page poses itself (an impostor bake's).
+import type { Camera3DParams } from "./camera3d";
 
 /** The projection camera and the viewport it is drawn into. */
 export interface ViewportCamera {
@@ -21,12 +15,6 @@ export interface ViewportCamera {
   /** Viewport in device pixels. */
   width: number;
   height: number;
-}
-
-export interface CameraSnapshot extends ViewportCamera {
-  /** Animation clock (seconds) packed into `cam.time`. Defaults to 0 — unset
-   *  means a frozen frame. */
-  time?: number;
 }
 
 // Packed layout of `struct Camera` (battle-renderer world/camera.ts),
@@ -49,15 +37,14 @@ const WIDTH_OFFSET = 36;
 const HEIGHT_OFFSET = 37;
 const TIME_OFFSET = 38;
 
-/** camera3d params with aspect pinned to the live viewport — the single owner
- *  for both the GPU packing and CPU picking. */
+/** camera3d params with aspect pinned to the live viewport: what the
+ *  presentation frames (`presentedCamera`) and CPU picking reads. */
 export function liveCamera(camera: ViewportCamera): Camera3DParams {
   return { ...camera.camera3d, aspect: camera.width / Math.max(1, camera.height) };
 }
 
-/** Packs a camera given by its matrices (the eye's, a cascade's light, an
- *  impostor bake's view) into `data` (`CAMERA_UNIFORM_FLOATS` long) and
- *  returns it: the one writer of the layout above. */
+/** Packs a camera given by its matrices (an impostor bake's view) into
+ *  `data` (`CAMERA_UNIFORM_FLOATS` long) and returns it. */
 export function packCameraUniform<T extends Float32Array>(
   data: T,
   viewProj: ArrayLike<number>,
@@ -76,23 +63,4 @@ export function packCameraUniform<T extends Float32Array>(
   data[HEIGHT_OFFSET] = height;
   data[TIME_OFFSET] = time;
   return data;
-}
-
-const _uniform_viewProj = createGpuMat4();
-const _uniform_inverse = createGpuMat4();
-const _uniform_eye = vec3.create();
-
-/** Packs `camera` into `data` (`CAMERA_UNIFORM_FLOATS` long) and returns it. */
-export function cameraUniformData<T extends Float32Array>(data: T, camera: CameraSnapshot): T {
-  const params = liveCamera(camera);
-  return packCameraUniform(
-    data,
-    viewProjMatrix(_uniform_viewProj, params),
-    invViewProj(_uniform_inverse, params),
-    eyePosition(_uniform_eye, params),
-    params.near,
-    camera.width,
-    camera.height,
-    camera.time ?? 0,
-  );
 }

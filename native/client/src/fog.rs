@@ -9,7 +9,9 @@
 //! never fogged.
 use presentation::fog::sight::{FogUpload, WHOLE_TEXTURE_WIDTH};
 use presentation::presentation::Presentation;
-use presentation::records::{Camera as CameraRecord, FogBox, FogEye, FogParams};
+use presentation::records::{
+    Camera as CameraRecord, FogBox, FogEye, FogParams, FOG_FACES, FOG_GROUND, FOG_PAINTED_FACES,
+};
 use wgpu::*;
 
 use crate::frame::{Inputs, Pass, Targets};
@@ -33,6 +35,18 @@ pub enum Layer {
     Faces,
     /// Units: never fogged.
     Units,
+}
+
+impl Layer {
+    /// The layer a batch's fog class names (`Batch.fog`).
+    pub fn of(fog: u32) -> Self {
+        match fog {
+            FOG_FACES => Layer::Faces,
+            FOG_GROUND => Layer::Ground,
+            FOG_PAINTED_FACES => Layer::PaintedFaces,
+            _ => Layer::Units,
+        }
+    }
 }
 
 const LAYERS: [[u32; 4]; 5] = [

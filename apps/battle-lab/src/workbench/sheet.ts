@@ -27,7 +27,8 @@ import {
   type TextureChannel,
 } from "@packages/scene-assets/src/schema";
 import { gameLight } from "../gameLight";
-import { resolveFogLook, resolveLight } from "@web/battle/sim/presentation";
+import { ScenePresentation, resolveFogLook, resolveLight } from "@web/battle/sim/presentation";
+import { presentedCamera } from "../presentedFrame";
 import { gameFogGeometry, gameFogStyle } from "../gameFog";
 import { gameOverlayGlow, gamePaint, gameXrayMinHiddenFragmentFraction } from "../gameOverlay";
 import { gameGlass, gameModelDetail } from "../gameModels";
@@ -186,10 +187,12 @@ export interface SheetResult {
   stats: Record<string, unknown>;
 }
 
-/** Renders tiles with a battle frame of its own on the viewport's device. */
+/** Renders tiles with a battle frame of its own on the viewport's device,
+ *  each framed by a presentation of its own. */
 export class SheetRenderer {
   private target: GPUTexture;
   private read: GPUBuffer;
+  private readonly presentation = new ScenePresentation();
 
   private constructor(
     private readonly device: GPUDevice,
@@ -256,9 +259,19 @@ export class SheetRenderer {
     this.frame.setOverlay(
       benchOverlay(instance, model.body, posedSockets(bundle, skeleton, pose), marks, scale),
     );
-    this.frame.setWorld(benchWorld(figureSpot(frameOn, view)));
+    const world = benchWorld(figureSpot(frameOn, view));
+    this.frame.setWorld(world);
     const camera = viewCamera(view, frameOn);
-    this.frame.render(this.target.createView(), { camera3d: camera, width: TILE, height: TILE });
+    this.presentation.setShadow(gameLight, world.terrain.mesh);
+    this.frame.setCamera(
+      this.presentation.frame(
+        0,
+        presentedCamera({ camera3d: camera, width: TILE, height: TILE }),
+        { selected: [], xray: false, ghosts: [] },
+        this.frame.staticGeneration,
+      ),
+    );
+    this.frame.render(this.target.createView());
     const encoder = this.device.createCommandEncoder();
     encoder.copyTextureToBuffer(
       { texture: this.target },
@@ -279,6 +292,7 @@ export class SheetRenderer {
   }
 
   dispose() {
+    this.presentation.free();
     this.frame.dispose();
     this.target.destroy();
     this.read.destroy();

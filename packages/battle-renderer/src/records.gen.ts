@@ -3,6 +3,11 @@
 import { d } from "typegpu";
 
 export const NONE = 0xffffffff;
+/** How fog of war takes a batch (`Batch.fog`). */
+export const FOG_UNITS = 0;
+export const FOG_FACES = 1;
+export const FOG_GROUND = 2;
+export const FOG_PAINTED_FACES = 3;
 /** The widest fog rim or soft edge a style may ask for, device pixels (`fog.rs`). */
 export const FOG_EDGE_REACH_PX = 8;
 /** Fog's foliage depth steps, the `wholes` texture's row and a structure box's words (`fog/sight.rs`). */
@@ -50,8 +55,16 @@ export const FrameHeader = {
   emitters: 16,
   /**  (u32 × 2) */
   counts: 18,
+  /** The frame's view: one `View`. (u32 × 2) */
+  view: 20,
+  /** The camera every world shader binds: one `Camera`. (u32 × 2) */
+  camera: 22,
+  /** The sun's cascades as every shadow receiver binds them: one `SunShadow`, or none before the presentation has a light. (u32 × 2) */
+  sun_shadow: 24,
+  /** Each fitted cascade's caster `Camera`. (u32 × 2) */
+  casters: 26,
 } as const;
-export const FRAME_HEADER_WORDS = 20;
+export const FRAME_HEADER_WORDS = 28;
 
 /** Where the world's sets lie (pointer, count), as `FrameHeader`. */
 export const WorldHeader = {
@@ -93,16 +106,20 @@ export const Batch = {
   tier: 2,
   /** 0 drawn in view; 1 cast into the sun's cascades; 2 a translucent ghost (no shadow, no depth write). (u32) */
   pass: 3,
-  /** Casters: bit n set if it reaches cascade n. (u32) */
-  cascades: 4,
+  /** The tier its instances cast into the sun's cascades with: a model in view one tier coarser, a caster batch its own, `NONE` for none (an impostor card, a ghost, a static world's view batch, which casts by its own caster batch). (u32) */
+  caster: 4,
+  /** How fog of war takes it (`FOG_UNITS` and the rest). (u32) */
+  fog: 5,
   /** Changes when the contents change. (u32) */
-  version: 5,
+  version: 6,
   /** First `Instance`, or `NONE` when unchanged since `version`. (u32) */
-  first: 6,
+  first: 7,
   /**  (u32) */
-  count: 7,
+  count: 8,
+  /**  (u32 × 3) */
+  pad: 9,
 } as const;
-export const BATCH_WORDS = 8;
+export const BATCH_WORDS = 12;
 
 /** One drawn model. Palette indices and the card layer are integral floats. */
 export const Instance = d.unstruct({
@@ -192,16 +209,18 @@ export const View = {
   projection: 16,
   /** The eye (m); w unused. (f32 × 4) */
   eye: 32,
+  /** What it looks at (m), where the haze is measured from; w unused. (f32 × 4) */
+  target: 36,
   /** Width and height (px), 1/height, pixels per metre at 1 m. (f32 × 4) */
-  size: 36,
-  /** The unnormalised ray through the top-left corner, and its change across the width and down the height (the sky's `Rays`: w unused). (f32 × 4) */
-  sky_origin: 40,
+  size: 40,
+  /** The unit ray through the top-left corner, and its change across the width and down the height (the sky's `Rays`: w unused). (f32 × 4) */
+  sky_origin: 44,
   /**  (f32 × 4) */
-  sky_dx: 44,
+  sky_dx: 48,
   /**  (f32 × 4) */
-  sky_dy: 48,
+  sky_dy: 52,
 } as const;
-export const VIEW_WORDS = 52;
+export const VIEW_WORDS = 56;
 
 /** The sky's light for the battle (`SkyLight` in the sky's shaders): what the sky lookup bakes and the shown sky and its clouds read. */
 export const SkyLight = {
@@ -570,7 +589,7 @@ export const COUNTS_WORDS = 16;
 /** Views over module memory of the Frame whose header is at `ptr`;
  *  valid until the next call into the module. */
 export function frameViews(memory: ArrayBuffer, ptr: number) {
-  const header = new Uint32Array(memory, ptr, 20);
+  const header = new Uint32Array(memory, ptr, 28);
   const set = (word: number, words: number) => {
     const count = header[word + 1];
     return {
@@ -589,6 +608,10 @@ export function frameViews(memory: ArrayBuffer, ptr: number) {
     picks: set(14, PICK_WORDS),
     emitters: set(16, EMITTER_WORDS),
     counts: set(18, COUNTS_WORDS),
+    view: set(20, VIEW_WORDS),
+    camera: set(22, CAMERA_WORDS),
+    sun_shadow: set(24, SUN_SHADOW_WORDS),
+    casters: set(26, CAMERA_WORDS),
   };
 }
 

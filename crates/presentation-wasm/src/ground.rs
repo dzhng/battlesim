@@ -7,12 +7,12 @@ use presentation::presentation::Presentation as Inner;
 use presentation::shadow;
 use presentation::static_world::ground::field::Field;
 use presentation::static_world::ground::grass::{
-    blade_vertices, frame_params, metres_per_pixel, pack_shapes, strip_indices, KindMesh,
-    PackedShapes, Quality, TierMesh, Window, FIELD_SEGMENTS, LIMITS,
+    blade_vertices, pack_shapes, strip_indices, KindMesh, PackedShapes, Quality, TierMesh, Window,
+    FIELD_SEGMENTS, LIMITS,
 };
 use presentation::static_world::ground::mesh;
 use presentation::static_world::ground::tables::{Grid, TerrainTables};
-use presentation::static_world::ground::walk::{Cleared, Quality as SceneryQuality};
+use presentation::static_world::ground::walk::Quality as SceneryQuality;
 use presentation::static_world::ground::{self, biome::Biome, Ground, Source, Tuning};
 use serde::Deserialize;
 use wasm_bindgen::prelude::*;
@@ -161,11 +161,14 @@ impl Presentation {
             .map_err(error)
     }
 
-    /// The window of tiles a camera at `eye` grows grass over, at
-    /// `metres_per_px` (`grass_metres_per_pixel`): its corner x and y, tiles
-    /// across and up, reach, and the far corner x and y.
-    pub fn grass_window(&self, eye: &[f64], metres_per_px: f64) -> Result<Vec<f64>, JsError> {
-        let w = ground(&self.inner)?.grass_window([eye[0], eye[1], eye[2]], metres_per_px);
+    /// The window of tiles the grass grows over for the last frame's camera:
+    /// its corner x and y, tiles across and up, reach, and the far corner x
+    /// and y; empty before a frame.
+    pub fn grass_window(&self) -> Result<Vec<f64>, JsError> {
+        ground(&self.inner)?;
+        let Some((w, _)) = self.inner.grass_window() else {
+            return Ok(Vec::new());
+        };
         let [.., x1, y1] = w.bounds();
         Ok(vec![
             w.x0,
@@ -176,6 +179,19 @@ impl Presentation {
             x1,
             y1,
         ])
+    }
+
+    /// Writes the last frame's fields into `GrassParams`' `words`
+    /// (`ground::grass::frame_params`) for the window `grass_window` gave.
+    pub fn grass_frame_params(&self, words: &mut [u32], window: &[f64]) {
+        let window = Window {
+            x0: window[0],
+            y0: window[1],
+            tiles_x: window[2] as u32,
+            tiles_y: window[3] as u32,
+            reach: window[4],
+        };
+        self.inner.grass_frame_params(words, &window);
     }
 
     /// The props' footprints where no grass grows, by grid cell.
@@ -263,14 +279,6 @@ impl Presentation {
             understorey,
         };
         self.inner.set_scenery_quality(quality);
-    }
-
-    /// The ground the side has seen cleared, as the learned ground's runs
-    /// (tile and `start + length · 256`, 16-cell tiles over `cols` × `rows`
-    /// cells `cell_m` metres a side).
-    pub fn set_cleared(&mut self, runs: &[u32], cols: usize, rows: usize, cell_m: f64) {
-        self.inner
-            .set_cleared(Cleared::from_runs(runs, cols, rows, cell_m));
     }
 
     /// Wanted dressing cells are still to be laid: a capture frames again.
@@ -512,39 +520,6 @@ pub fn grass_strip_indices(blades: u32, segments: u32) -> Vec<u16> {
 #[wasm_bindgen]
 pub fn grass_limits() -> Vec<f64> {
     vec![LIMITS.variation, LIMITS.tallest]
-}
-
-/// Metres one pixel spans per metre from the eye.
-#[wasm_bindgen]
-pub fn grass_metres_per_pixel(fov_y: f64, height_px: f64) -> f64 {
-    metres_per_pixel(fov_y, height_px)
-}
-
-/// Writes a frame's fields into `GrassParams`' `words`
-/// (`ground::grass::frame_params`): the side planes of `view_proj`, the
-/// `eye` and `metres_per_px`, and the window `Ground.grass_window` gave.
-#[wasm_bindgen]
-pub fn grass_frame_params(
-    words: &mut [u32],
-    view_proj: &[f32],
-    eye: &[f64],
-    metres_per_px: f64,
-    window: &[f64],
-) {
-    let window = Window {
-        x0: window[0],
-        y0: window[1],
-        tiles_x: window[2] as u32,
-        tiles_y: window[3] as u32,
-        reach: window[4],
-    };
-    frame_params(
-        words,
-        &std::array::from_fn(|i| view_proj[i]),
-        [eye[0], eye[1], eye[2]],
-        metres_per_px,
-        &window,
-    );
 }
 
 /// The appearances drawing a map's props (its exported `props` under the

@@ -316,6 +316,17 @@ impl Presentation {
             .map_or_else(Vec::new, |s| s.iter().map(|&n| n as u32).collect())
     }
 
+    /// Fits the sun's cascades under the battle's light (`presentation.light`,
+    /// JSON, as the renderer's quality sets it) over the box round the
+    /// map's ground mesh (empty: none) from the next frame on.
+    pub fn set_shadow(&mut self, light: &str, terrain: &[f32]) -> Result<(), JsError> {
+        let light: presentation::light::LightSettings = serde_json::from_str(light)
+            .map_err(|e| JsError::new(&format!("presentation.light: {e}")))?;
+        let map_box = presentation::shadow::map_box(terrain);
+        self.inner.set_shadow(Some((light, map_box)));
+        Ok(())
+    }
+
     /// The presentation time at wall time `wall_s`, sim seconds.
     pub fn clock(&self, wall_s: f64) -> Option<f64> {
         self.inner.clock(wall_s)
@@ -323,7 +334,7 @@ impl Presentation {
 
     /// What to draw at presentation time `time` for `camera` (eye xyz,
     /// target xyz, up xyz, fov y, near, width, height): the `FrameHeader`'s
-    /// address. Its sets are views valid until the next call. `known` is a
+    /// address, with the camera's view, its uniform and the sun's cascades. Its sets are views valid until the next call. `known` is a
     /// lab's stand-in for the publication's known props, JSON (empty: the
     /// publication's); a building known in a state its template lacks throws
     /// by name. `generation` is the renderer's, bumped whenever it holds no
@@ -360,6 +371,7 @@ impl Presentation {
             .inner
             .frame(time, &camera, &ui, generation)
             .map_err(error)?;
+        let shadow = f.shadow.as_ref();
         let header = FrameHeader {
             clock: f.clock as f32,
             tick: f.tick,
@@ -373,6 +385,10 @@ impl Presentation {
             picks: set(&f.picks),
             emitters: set(&f.emitters),
             counts: set(std::slice::from_ref(&f.counts)),
+            view: set(std::slice::from_ref(&f.view)),
+            camera: set(std::slice::from_ref(&f.camera)),
+            sun_shadow: set(shadow.map_or(&[][..], |s| std::slice::from_ref(&s.receiver))),
+            casters: set(shadow.map_or(&[][..], |s| &s.casters)),
         };
         self.frame_header = FrameHeader {
             effects: set(self.inner.effects()),
@@ -448,50 +464,6 @@ pub fn light_records(light: &str) -> Result<Vec<f32>, JsError> {
     let settings: presentation::light::LightSettings = serde_json::from_str(light)
         .map_err(|e| JsError::new(&format!("presentation.light: {e}")))?;
     Ok(settings.records().words())
-}
-
-/// The sun's shadow cascades (`presentation::shadow`), fitted once a frame:
-/// the frame's `SunShadow` receiver block and each active cascade's caster
-/// `Camera`, as words the renderer uploads as they are.
-#[wasm_bindgen]
-pub struct SunShadowFit {
-    light: presentation::light::LightSettings,
-    frame: presentation::shadow::SunShadowFrame,
-}
-
-#[wasm_bindgen]
-impl SunShadowFit {
-    /// For the battle's light (`presentation.light`, JSON), cold: no
-    /// cascade fitted, so no receiver is in one.
-    #[wasm_bindgen(constructor)]
-    pub fn new(light: &str) -> Result<SunShadowFit, JsError> {
-        let light: presentation::light::LightSettings = serde_json::from_str(light)
-            .map_err(|e| JsError::new(&format!("presentation.light: {e}")))?;
-        Ok(SunShadowFit {
-            frame: presentation::shadow::SunShadowFrame::cold(&light),
-            light,
-        })
-    }
-
-    /// Fits the cascades for `camera` (as `Presentation.frame` takes it)
-    /// over the map's box (six numbers; none, empty); returns how many are
-    /// active.
-    pub fn fit(&mut self, camera: &[f64], map_box: &[f64]) -> u32 {
-        let camera = camera_of(camera);
-        let b: Option<[f64; 6]> = map_box.try_into().ok();
-        self.frame = presentation::shadow::sun_shadow(&self.light, &camera, b.as_ref());
-        self.frame.casters.len() as u32
-    }
-
-    /// The receiver block's words (`SunShadow`).
-    pub fn receiver(&self) -> Vec<f32> {
-        bytemuck::cast_slice(std::slice::from_ref(&self.frame.receiver)).to_vec()
-    }
-
-    /// The active cascades' caster cameras' words (`Camera` each).
-    pub fn casters(&self) -> Vec<f32> {
-        bytemuck::cast_slice(&self.frame.casters).to_vec()
-    }
 }
 
 /// One battle's sound (`presentation::sound::frame::Sound`): publications

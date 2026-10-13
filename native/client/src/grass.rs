@@ -3,6 +3,7 @@
 //! moves, then drawn as two tiers of clumps by indexed indirect draws. The
 //! tables are the ground's (`Ground::grass_params`, `grass_props`) and the
 //! blade shapes packed from the grass appearances' bundles by the same crate.
+use presentation::presentation::Presentation;
 use presentation::static_world::ground::grass::Quality;
 use presentation::static_world::ground::Ground as GroundTables;
 use wgpu::*;
@@ -182,33 +183,27 @@ impl Grass {
         })
     }
 
-    /// Fits this frame's window to the view (`view_proj`, the eye, the
-    /// vertical field of view and the drawing height) and, if it moved,
-    /// writes the parameters for a regrow.
-    pub fn prepare(
-        &mut self,
-        queue: &Queue,
-        ground: &GroundTables,
-        view_proj: &[f32; 16],
-        eye: [f64; 3],
-        fov_y: f64,
-        height: f64,
-    ) {
+    /// Fits the window to `presentation`'s last frame and, if its view
+    /// moved, writes the parameters for a regrow.
+    pub fn prepare(&mut self, queue: &Queue, presentation: &Presentation) {
         self.drawn = false;
         self.regrow = false;
-        let scale = field::metres_per_pixel(fov_y, height);
-        self.window = ground.grass_window(eye, scale);
+        let Some((window, scale)) = presentation.grass_window() else {
+            return;
+        };
+        self.window = window;
         if self.window.tiles_x * self.window.tiles_y == 0 {
             return;
         }
         self.drawn = true;
-        let key = (*view_proj, scale as f32);
+        let view_proj = presentation.last_frame().camera.view_proj;
+        let key = (*view_proj.first_chunk().unwrap(), scale as f32);
         if self.grown_for == Some(key) {
             return;
         }
         self.grown_for = Some(key);
         self.regrow = true;
-        field::frame_params(&mut self.words, view_proj, eye, scale, &self.window);
+        presentation.grass_frame_params(&mut self.words, &self.window);
         queue.write_buffer(&self.params, 0, bytemuck::cast_slice(&self.words));
         let mut args = [0u32; ARGS_WORDS];
         args[0] = self.indices[0].1;

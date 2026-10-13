@@ -192,7 +192,8 @@ function groundOf(rust: Presentation): PresentedGround {
     ground_water_mesh: () => rust.ground_water_mesh(),
     grass_kinds: () => rust.grass_kinds(),
     grass_params: (shapes, density) => rust.grass_params(shapes, density),
-    grass_window: (eye, metresPerPx) => rust.grass_window(eye, metresPerPx),
+    grass_window: () => rust.grass_window(),
+    grass_frame_params: (words, window) => rust.grass_frame_params(words, window),
     grass_props: () => rust.grass_props(),
     retune_grass: (rules) => rust.retune_grass(rules),
   };
@@ -383,8 +384,8 @@ export class ScenePresentation {
   private fogStaged: FogRequest | null = null;
   private fogSet: FogRequest | null | undefined = undefined;
   private foliageSet: Float32Array | null = null;
-  /** The cleared ground last handed over: the view and its count. */
-  private cleared: [GroundMarks | null, number] = [null, -1];
+  /** The light and the ground mesh the cascades were last fitted under. */
+  private shadow: [LightPresentation | null, Float32Array | null] = [null, null];
   /** Something staged changed since the last load. */
   private stale = false;
   /** The drawables of the last load, and those the page has not taken yet. */
@@ -564,14 +565,13 @@ export class ScenePresentation {
     return this.presented;
   }
 
-  /** The ground the side has seen cleared (the client's learned ground):
-   *  shrubs and dressing on it leave. Cheap when nothing changed. */
-  setCleared(ground: GroundMarks | null) {
-    const count = ground?.clearedCount ?? 0;
-    if (ground === this.cleared[0] && count === this.cleared[1]) return;
-    this.cleared = [ground, count];
-    const runs = ground?.clearedRuns() ?? new Uint32Array(0);
-    this.rust.set_cleared(runs, ground?.cols ?? 0, ground?.rows ?? 0, ground?.cellM ?? 1);
+  /** Fit the sun's cascades under `light` (as the renderer's quality sets
+   *  them) over the map's ground `mesh` (null: none): every frame carries
+   *  them. Cheap when neither changed: call every frame. */
+  setShadow(light: LightPresentation, mesh: Float32Array | null) {
+    if (light === this.shadow[0] && mesh === this.shadow[1]) return;
+    this.shadow = [light, mesh];
+    this.rust.set_shadow(JSON.stringify(light), mesh ?? new Float32Array(0));
   }
 
   /** The player's scenery settings: the trees' tier thresholds over the

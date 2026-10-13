@@ -7,6 +7,15 @@
 /// `u32::MAX`: no row, no id.
 pub const NONE: u32 = u32::MAX;
 
+/// How fog of war takes a batch (`Batch.fog`): a unit never (it is drawn
+/// only while identified); the world's faces one by one; remains lying on
+/// the ground whole, as the ground under them; a surface movers stand on
+/// face by face, with the ground's paint.
+pub const FOG_UNITS: u32 = 0;
+pub const FOG_FACES: u32 = 1;
+pub const FOG_GROUND: u32 = 2;
+pub const FOG_PAINTED_FACES: u32 = 3;
+
 /// What a field holds, for the generated schemas.
 pub trait Field {
     /// `"f32"` or `"u32"`.
@@ -119,6 +128,15 @@ records! {
         picks: [u32; 2],
         emitters: [u32; 2],
         counts: [u32; 2],
+        /// The frame's view: one `View`.
+        view: [u32; 2],
+        /// The camera every world shader binds: one `Camera`.
+        camera: [u32; 2],
+        /// The sun's cascades as every shadow receiver binds them: one
+        /// `SunShadow`, or none before the presentation has a light.
+        sun_shadow: [u32; 2],
+        /// Each fitted cascade's caster `Camera`.
+        casters: [u32; 2],
     }
 
     /// Where the world's sets lie (pointer, count), as `FrameHeader`.
@@ -169,13 +187,19 @@ records! {
         /// 0 drawn in view; 1 cast into the sun's cascades; 2 a translucent
         /// ghost (no shadow, no depth write).
         pass: u32,
-        /// Casters: bit n set if it reaches cascade n.
-        cascades: u32,
+        /// The tier its instances cast into the sun's cascades with: a
+        /// model in view one tier coarser, a caster batch its own, `NONE`
+        /// for none (an impostor card, a ghost, a static world's view batch,
+        /// which casts by its own caster batch).
+        caster: u32,
+        /// How fog of war takes it (`FOG_UNITS` and the rest).
+        fog: u32,
         /// Changes when the contents change.
         version: u32,
         /// First `Instance`, or `NONE` when unchanged since `version`.
         first: u32,
         count: u32,
+        pad: [u32; 3],
     }
 
     /// One drawn model. Palette indices and the card layer are integral floats.
@@ -255,10 +279,12 @@ records! {
         projection: [f32; 16],
         /// The eye (m); w unused.
         eye: [f32; 4],
+        /// What it looks at (m), where the haze is measured from; w unused.
+        target: [f32; 4],
         /// Width and height (px), 1/height, pixels per metre at 1 m.
         size: [f32; 4],
-        /// The unnormalised ray through the top-left corner, and its change
-        /// across the width and down the height (the sky's `Rays`: w unused).
+        /// The unit ray through the top-left corner, and its change across
+        /// the width and down the height (the sky's `Rays`: w unused).
         sky_origin: [f32; 4],
         sky_dx: [f32; 4],
         sky_dy: [f32; 4],
@@ -548,6 +574,13 @@ pub fn typescript() -> String {
          export const NONE = 0xffffffff;\n",
     );
     out.push_str(&format!(
+        "/** How fog of war takes a batch (`Batch.fog`). */\n\
+         export const FOG_UNITS = {FOG_UNITS};\n\
+         export const FOG_FACES = {FOG_FACES};\n\
+         export const FOG_GROUND = {FOG_GROUND};\n\
+         export const FOG_PAINTED_FACES = {FOG_PAINTED_FACES};\n",
+    ));
+    out.push_str(&format!(
         "/** The widest fog rim or soft edge a style may ask for, device pixels (`fog.rs`). */\n\
          export const FOG_EDGE_REACH_PX = {};\n",
         crate::fog::FOG_EDGE_REACH_PX
@@ -675,6 +708,9 @@ fn record_of(set: &str) -> &'static str {
         "picks" => "Pick",
         "emitters" => "Emitter",
         "counts" => "Counts",
+        "view" => "View",
+        "camera" | "casters" => "Camera",
+        "sun_shadow" => "SunShadow",
         "appearances" => "Appearance",
         other => panic!("no record for set {other}"),
     }

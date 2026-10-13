@@ -24,14 +24,15 @@
 use super::biome::Felled as FelledRules;
 use super::scenery::{Scenery, Size, DRESSING_CELL_M, FLOATS};
 use super::Ground;
+use crate::records::{FOG_FACES, NONE};
 use crate::seed::js_hypot;
 use crate::static_world::batches::{print, List, Population, CAST_PASS, VIEW_PASS};
 use crate::static_world::walk::{casts_into, Record, Shadow};
-use crate::view::View;
+use crate::view::{caster_tier, View};
 use std::collections::{HashMap, HashSet};
 use std::f64::consts::FRAC_PI_2;
 
-pub const TIERS: usize = 4;
+pub use crate::view::TIERS;
 const LAST: usize = TIERS - 1;
 const CHUNK_M: f64 = 128.0;
 /// A crown's heart, where a whole tree probes fog, as a share of its height.
@@ -229,7 +230,7 @@ impl Pop {
                     self.view[k * TIERS + t].push(*r);
                     self.prints[k * TIERS + t] = print(self.prints[k * TIERS + t], mark);
                     if self.casts {
-                        let m = k * TIERS + (t + 1).min(LAST);
+                        let m = k * TIERS + caster_tier(t);
                         self.cast[m].push(*r);
                         self.prints[n + m] = print(self.prints[n + m], mark);
                     }
@@ -247,6 +248,8 @@ impl Pop {
                     row,
                     tier,
                     pass,
+                    caster: List::own_caster(pass, tier),
+                    fog: FOG_FACES,
                     records,
                     print: self.prints[at + key],
                 });
@@ -667,7 +670,7 @@ impl SceneryWalk {
         for k in 0..kinds {
             for t in 0..TIERS {
                 let view_list = self.felled_lists[k * TIERS + t].clone();
-                self.felled_lists[kinds * TIERS + k * TIERS + (t + 1).min(LAST)].extend(view_list);
+                self.felled_lists[kinds * TIERS + k * TIERS + caster_tier(t)].extend(view_list);
             }
         }
         if self.felled_lists != before {
@@ -687,10 +690,13 @@ impl SceneryWalk {
         let kinds = self.scenery.kinds.len();
         for (key, records) in self.dressing.iter().enumerate() {
             let print = self.dressing_prints[key];
+            // The forest floor's dressing casts nothing.
             visit(List {
                 row: row(Draws::Dressing)[key / TIERS],
                 tier: (key % TIERS) as u32,
                 pass: VIEW_PASS,
+                caster: NONE,
+                fog: FOG_FACES,
                 records,
                 print,
             });
@@ -701,10 +707,13 @@ impl SceneryWalk {
             } else {
                 (CAST_PASS, key - kinds * TIERS)
             };
+            let tier = (key % TIERS) as u32;
             visit(List {
                 row: row(Draws::Felled)[key / TIERS],
-                tier: (key % TIERS) as u32,
+                tier,
                 pass,
+                caster: List::own_caster(pass, tier),
+                fog: FOG_FACES,
                 records,
                 print: self.felled_print,
             });
@@ -715,6 +724,8 @@ impl SceneryWalk {
                     row: row(Draws::Stump)[kind],
                     tier: 0,
                     pass,
+                    caster: List::own_caster(pass, 0),
+                    fog: FOG_FACES,
                     records,
                     print: self.felled_print,
                 });

@@ -17,6 +17,8 @@ import {
   type ModelDetailPresentation,
 } from "@packages/battle-renderer/src/models/modelDetail";
 import { modelFog } from "@packages/battle-renderer/src/models/modelFog";
+import { loadPresentation, ScenePresentation } from "@web/battle/sim/presentation";
+import { presentedCamera } from "../../apps/battle-lab/src/presentedFrame";
 
 const DETAIL = validateModelDetail(game.presentation.models as ModelDetailPresentation);
 const HEIGHT = 1080;
@@ -33,7 +35,20 @@ const camera = (
   aspect: 16 / 9,
   near: 1,
 });
-const view = (distance: number) => setDetailView(createDetailView(), camera(distance), HEIGHT);
+await loadPresentation();
+const presentation = new ScenePresentation();
+/** The detail view of the frame the presentation makes for the camera. */
+const view = (distance: number) => {
+  const camera3d = camera(distance);
+  const ui = { selected: [], xray: false, ghosts: [] };
+  const frame = presentation.frame(
+    0,
+    presentedCamera({ camera3d, width: Math.round(HEIGHT * camera3d.aspect), height: HEIGHT }),
+    ui,
+    0,
+  );
+  return setDetailView(createDetailView(), frame.view.f32);
+};
 const SOLDIER = 1.8;
 
 test("a soldier's tier falls with his projected height, to a card only if he has one", () => {

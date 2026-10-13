@@ -16,14 +16,30 @@ use std::collections::HashMap;
 pub const VIEW_PASS: u32 = 0;
 pub const CAST_PASS: u32 = 1;
 
-/// One list a population draws: its appearance row, tier, pass and records,
-/// and a print that changes whenever the records do.
+/// One list a population draws: its appearance row, tier and pass, the tier
+/// it casts with and how fog takes it (`Batch.caster`, `Batch.fog`), its
+/// records, and a print that changes whenever the records do.
 pub struct List<'a> {
     pub row: u32,
     pub tier: u32,
     pub pass: u32,
+    pub caster: u32,
+    pub fog: u32,
     pub records: &'a [Record],
     pub print: u64,
+}
+
+impl List<'_> {
+    /// The tier a list of `pass` at `tier` casts with when its population
+    /// casts by caster lists of its own: a caster list its tier, a view
+    /// list none.
+    pub fn own_caster(pass: u32, tier: u32) -> u32 {
+        if pass == CAST_PASS {
+            tier
+        } else {
+            NONE
+        }
+    }
 }
 
 /// Folds `value` into a list's print.
@@ -124,6 +140,8 @@ impl StaticBatches {
                     row,
                     tier,
                     pass,
+                    caster,
+                    fog,
                     records,
                     print,
                 } = list;
@@ -138,7 +156,8 @@ impl StaticBatches {
                     appearance: row,
                     tier,
                     pass,
-                    cascades: 0,
+                    caster,
+                    fog,
                     version,
                     first: if held.is_some() {
                         NONE
@@ -146,6 +165,7 @@ impl StaticBatches {
                         f.instances.len() as u32
                     },
                     count: records.len() as u32,
+                    pad: [0; 3],
                 });
                 if held.is_none() {
                     f.instances.extend_from_slice(bytemuck::cast_slice(records));
@@ -162,6 +182,7 @@ impl StaticBatches {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::records::FOG_FACES;
 
     /// One building's list that never changes.
     struct Still([Record; 1]);
@@ -175,6 +196,8 @@ mod tests {
                 row: 3,
                 tier: 0,
                 pass: VIEW_PASS,
+                caster: NONE,
+                fog: FOG_FACES,
                 records: &self.0,
                 print: 7,
             });

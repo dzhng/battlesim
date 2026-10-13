@@ -2,7 +2,6 @@
 // battle frame to draw, and what the frame reports back. The frame itself is
 // `frame/battleFrame.ts`.
 import type { GpuAllocationCounts } from "@packages/renderer-core/src/gpuAllocations";
-import type { ViewportCamera } from "@packages/renderer-core/src/cameraUniform";
 import type { Mesh } from "./mesh";
 import type { ProxyKind } from "./proxies";
 import type { GpuFrameTime } from "./frame/gpuTiming";
@@ -137,7 +136,7 @@ export interface FrameStats {
   worldVertices: number;
   depth: InstalledDepthState;
   view: FrameView;
-  /** Presentation seconds: the wind's clock (`setClock`). */
+  /** Presentation seconds: the wind's clock, the camera's (`setCamera`). */
   clock: number;
   /** The frame's GPU time from `timestamp-query`, when the device has it. */
   gpu: GpuFrameTime | null;
@@ -173,10 +172,17 @@ export interface FrameStats {
 }
 
 export interface BattleFrame {
-  /** Draw one frame into `target` at `camera`'s viewport. While targets for a
-   *  new size are still being built the frame draws nothing and asks for a
-   *  redraw once they exist. */
-  render(target: GPUTextureView, camera: ViewportCamera): void;
+  /** Draw one frame into `target` for the camera `setCamera` took, at its
+   *  viewport. Before any camera, and while targets for a new size are still
+   *  being built, the frame draws nothing (and asks for a redraw once they
+   *  exist). */
+  render(target: GPUTextureView): void;
+  /** The presentation frame's camera (`crates/presentation`'s `Frame`): its
+   *  view, the camera uniform at the frame's clock (the wind's), and the
+   *  sun's cascades fitted to it, uploaded as they are. Read at once: the
+   *  views last only until the next call into the module. A frame without
+   *  cascades keeps the last. */
+  setCamera(frame: ReturnType<typeof frameViews>): void;
   /** The static world: the terrain and the props on it. */
   setWorld(world: WorldLayers): void;
   /** The static batches of the scene's presentation frame
@@ -231,9 +237,6 @@ export interface BattleFrame {
   ): void;
   /** The drawables the presentation's batches name, by `World.appearances` row. */
   setPresentationWorld(world: readonly WorldAppearance[]): void;
-  /** Presentation seconds: the wind's clock. Hold it and the frame holds
-   *  (paused battles, deterministic captures). */
-  setClock(seconds: number): void;
   /** Install a catalog generation from `AppearanceLibrary` (the one loader);
    *  resolves once its meshes and impostor atlases (every
    *  body's far pose and corpse) are on the GPU. */

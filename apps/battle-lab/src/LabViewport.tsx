@@ -68,7 +68,7 @@ import type {
   SceneBuildings,
 } from "@packages/battle-renderer/src/models/buildingReferences";
 import type { SurfaceClass } from "@packages/battle-renderer/src/models/surfaceParts";
-import { createBattleFrame } from "@packages/battle-renderer/src/frame/battleFrame";
+import { cascadeLight, createBattleFrame } from "@packages/battle-renderer/src/frame/battleFrame";
 import type { GrassClumpRow } from "@packages/battle-renderer/src/frame/grassPass";
 import { PassInspector } from "./PassInspector";
 import type { FeedSource } from "./feed";
@@ -728,9 +728,15 @@ export function LabViewport({
             models: 0,
             known: 0,
           };
-        /** The buildings' style and sun, taken when the frame is built. */
+        /** The buildings' style and sun, and the light the cascades are
+         *  fitted under, taken when the frame is built. */
         let staticStyle = gameBuildingStyle;
         let staticSun = { azimuth: 0, elevation: 1, farM: 0 };
+        let shadowLight: LightPresentation | null = null;
+        /** A presentation that frames the camera alone, while the battle's
+         *  is not there yet. */
+        let bare: ScenePresentation | null = null;
+        signal.addEventListener("abort", () => bare?.free());
         /** The presentation and quality the detail scale was last given to. */
         let detailed: [
           ScenePresentation | null,
@@ -746,6 +752,7 @@ export function LabViewport({
             farM: lit.cascades.max_far_m,
           };
           staticStyle = buildingStyleRef.current ?? gameBuildingStyle;
+          shadowLight = cascadeLight(lit, qualityRef.current);
           const next = await createBattleFrame(device!, info.format, {
             light: await resolveLight(lit),
             fogGeometry: gameFogGeometry,
@@ -779,7 +786,6 @@ export function LabViewport({
               return next;
             }
             if (modelsRef.current) next.setModels(modelsRef.current);
-            next.setClock(clock);
             next.setPresentationWorld(presentedWorldRef.current);
             next.setPresentedGround(scenePresentation()?.presentedGround() ?? null);
             next.setGround(groundNow());
@@ -813,7 +819,7 @@ export function LabViewport({
           syncSize();
           // Cleared first: a frame may ask to be drawn again (`requestRedraw`).
           dirty = false;
-          scene.render(context.getCurrentTexture().createView(), snapshot());
+          scene.render(context.getCurrentTexture().createView());
         };
         /** Whether the lab took the grass away (`suppressGrass`). */
         let grassSuppressed = false;
@@ -828,7 +834,7 @@ export function LabViewport({
             usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
           });
           scene.grassProbes.suppress(true);
-          scene.render(texture.createView(), snapshot());
+          scene.render(texture.createView());
           scene.grassProbes.suppress(grassSuppressed);
           return readTexturePng(device!, texture).finally(() => texture.destroy());
         };
@@ -886,6 +892,7 @@ export function LabViewport({
           // The scene's presentation is staged with its buildings before the
           // battle frames it (or, without one, the viewport frames it).
           const decoder = scenePresentation();
+          const terrain = worldRef.current.current?.terrain.mesh ?? null;
           let animated: ViewportFrame | null | undefined = null;
           try {
             if (decoder) {
@@ -897,6 +904,7 @@ export function LabViewport({
               );
               const layers = worldRef.current.current;
               decoder.setGround(layers?.terrain.input ?? null, layers?.scenery ?? null);
+              decoder.setShadow(shadowLight!, terrain);
               decoder.setFog(fogSuppressed.current ? null : (fogRef.current?.current ?? null));
               const quality = qualityRef.current;
               const shown = sceneryShown.current;
@@ -923,12 +931,8 @@ export function LabViewport({
           }
           if (animated?.ground !== undefined) groundRef.current = animated.ground;
           if (scene.setGround(groundNow())) dirty = true;
-          decoder?.setCleared(groundNow());
           if (animated) {
-            if (animated.clock !== undefined && animated.clock !== clock) {
-              clock = animated.clock;
-              scene.setClock(clock);
-            }
+            if (animated.clock !== undefined) clock = animated.clock;
             if (animated.instances) {
               instancesRef.current = animated.instances;
               scene.setInstances(animated.instances);
@@ -948,15 +952,20 @@ export function LabViewport({
             if (animated.effectCounts) effectCountsRef.current = animated.effectCounts;
             dirty = true;
           }
-          // The static world for the camera drawn: walked in Rust, its
-          // batches written only when what it draws changed. A battle's frame
-          // carries them; a scene without one (or before its first
-          // publication) is framed here for them alone.
+          // The camera drawn and the static world for it: walked in Rust,
+          // its batches written only when what it draws changed. A battle's
+          // frame carries them; a scene without one (or before its first
+          // publication) is framed here for them alone, and before the
+          // battle's presentation is there, the camera alone.
           try {
             let views: PresentedFrame | null = null;
             let walk = NO_WALK;
             let scenery = NO_SCENERY_WALK;
-            if (decoder) {
+            if (!decoder) {
+              bare ??= new ScenePresentation();
+              bare.setShadow(shadowLight!, terrain);
+              views = bare.frame(clock, presentedCamera(snapshot()), NO_UI, 0);
+            } else {
               if (!animated?.presented) {
                 decoder.frame(
                   clock,
@@ -976,7 +985,9 @@ export function LabViewport({
               views = decoder.lastFrame();
               scene.setPresentedGround(decoder.presentedGround());
             }
-            if (scene.setStaticFrame(views, { buildings: walk, scenery })) dirty = true;
+            if (views) scene.setCamera(views);
+            if (scene.setStaticFrame(decoder ? views : null, { buildings: walk, scenery }))
+              dirty = true;
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err);
             handle.error = message;

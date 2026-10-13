@@ -254,7 +254,7 @@ fn receiver_range(
 
 /// The unit direction from `eye` through the near-plane unprojection of an
 /// NDC pixel (`screenRayFrom`).
-fn screen_ray(inverse: &M4, eye: V3, x: f64, y: f64) -> V3 {
+pub(crate) fn screen_ray(inverse: &M4, eye: V3, x: f64, y: f64) -> V3 {
     let m = inverse.map(f64::from);
     let row = |r: usize| m[r] * x + m[4 + r] * y + m[8 + r] + m[12 + r];
     let w = row(3);
@@ -383,7 +383,7 @@ impl Basis {
     }
 }
 
-const IDENTITY: M4 = [
+pub(crate) const IDENTITY: M4 = [
     1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
 ];
 
@@ -400,7 +400,7 @@ fn orthographic_reverse_z(left: f64, right: f64, top: f64, bottom: f64, near: f6
 }
 
 /// `a · b`, column-major, in f64 and stored in f32 (`mat4.multiply`).
-fn multiply(a: &M4, b: &M4) -> M4 {
+pub(crate) fn multiply(a: &M4, b: &M4) -> M4 {
     let (a, b) = (a.map(f64::from), b.map(f64::from));
     std::array::from_fn(|i| {
         let (c, r) = (i / 4, i % 4);
@@ -410,7 +410,7 @@ fn multiply(a: &M4, b: &M4) -> M4 {
 }
 
 /// The inverse (`mat4.invert`), or none for a singular matrix.
-fn invert(m: &M4) -> Option<M4> {
+pub(crate) fn invert(m: &M4) -> Option<M4> {
     let a = m.map(f64::from);
     let [a00, a01, a02, a03, a10, a11, a12, a13, a20, a21, a22, a23, a30, a31, a32, a33] = a;
     let b00 = a00 * a11 - a01 * a10;

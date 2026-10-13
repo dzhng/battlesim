@@ -11,11 +11,10 @@ import {
   validateLight,
   type LightPresentation,
 } from "@packages/battle-renderer/src/light/sceneLight.ts";
-import { loadPresentation, resolveLight } from "@web/battle/sim/presentation";
+import { loadPresentation, resolveLight, ScenePresentation } from "@web/battle/sim/presentation";
 import { createTypegpuPost } from "@packages/battle-renderer/src/world/post.ts";
 import { Camera } from "@packages/battle-renderer/src/world/camera.ts";
 import { SunShadow } from "@packages/battle-renderer/src/world/shadow.ts";
-import { SunShadowFit } from "@wasm/presentation/presentation_wasm.js";
 import { d } from "typegpu";
 
 await loadPresentation();
@@ -48,17 +47,32 @@ test("the sky and the environment light share one sun", async () => {
   [...light.sky.subarray(0, 3)].forEach((c, i) => expect(c).toBeCloseTo(sun[i], 6));
 });
 
-test("the cascades' words are the structs the renderer binds: a receiver block and a camera per cascade", () => {
-  const fit = new SunShadowFit(JSON.stringify(LIGHT));
+test("a frame's cascades are the structs the renderer binds: a receiver block and a camera per cascade", () => {
+  const presentation = new ScenePresentation();
   try {
-    // Cold: no cascade, a whole receiver block.
-    expect(fit.receiver().byteLength).toBe(d.sizeOf(SunShadow));
-    expect(fit.casters()).toHaveLength(0);
     // The default camera over the street map: eye, target, up, lens, viewport.
-    const camera = Float64Array.of(170, 758, 50, 170, 800, 0, 0, 0.75, 0.66, 0.8, 1, 1920, 1080);
-    const active = fit.fit(camera, Float64Array.of(0, 0, -1, 1600, 1600, 25));
+    const camera = {
+      eye: [170, 758, 50],
+      target: [170, 800, 0],
+      up: [0, 0.75, 0.66],
+      fovY: 0.8,
+      near: 1,
+      width: 1920,
+      height: 1080,
+    };
+    const ui = { selected: [], xray: false, ghosts: [] };
+    // Before the light, a frame fits none.
+    expect(presentation.frame(0, camera, ui, 0).sun_shadow.count).toBe(0);
+    // The street map's ground: one flat slab, 1600 m square.
+    const slab = new Float32Array(40);
+    [0, 0, 1600, 0, 1600, 1600, 0, 1600].forEach((v, i) => (slab[(i >> 1) * 10 + (i & 1)] = v));
+    presentation.setShadow(LIGHT, slab);
+    const frame = presentation.frame(0, camera, ui, 0);
+    expect(frame.sun_shadow.f32.byteLength).toBe(d.sizeOf(SunShadow));
+    const active = frame.casters.count;
     expect(active).toBe(LIGHT.cascades.count);
-    const casters = fit.casters();
+    const casters = frame.casters.f32;
+    const receiver = frame.sun_shadow.f32;
     const size = d.sizeOf(Camera) / 4;
     expect(casters).toHaveLength(active * size);
     type CameraValue = d.Infer<typeof Camera>;
@@ -72,12 +86,12 @@ test("the cascades' words are the structs the renderer binds: a receiver block a
       ]);
       expect(c[at((x) => x.znear)]).toBe(1);
       // The receiver's record holds the same light.
-      const record = fit.receiver().subarray(i * 24, i * 24 + 16);
+      const record = receiver.subarray(i * 24, i * 24 + 16);
       const viewProj = at((x) => x.viewProj);
       expect([...c.subarray(viewProj, viewProj + 16)]).toEqual([...record]);
     }
   } finally {
-    fit.free();
+    presentation.free();
   }
 });
 

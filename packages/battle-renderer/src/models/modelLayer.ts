@@ -641,19 +641,23 @@ function tierCount(bundle: Exclude<Bundle, SkeletonClips>): number {
 interface DrawRun {
   ghost: boolean;
   drawable: Drawable;
+  /** What it casts into the sun's cascades in its place, if anything. */
+  caster: Drawable | null;
   fog: number;
   firstInstance: number;
   instances: number;
 }
 
 /** One of the props' static batches as last written: its records' buffer
- *  (a power of two of records, in a scope of its own), its row and tier,
- *  and how many it holds. */
+ *  (a power of two of records, in a scope of its own), its row, tier,
+ *  caster tier and fog class (`Batch`), and how many it holds. */
 interface HeldProps {
   scope: GpuRegistry | null;
   buffer: GPUBuffer | null;
   row: number;
   tier: number;
+  caster: number;
+  fog: number;
   count: number;
 }
 
@@ -1140,13 +1144,15 @@ export async function createModelLayer(
     for (const h of listedProps) {
       const row = worldRows[h.row];
       const gpu = row && appearances.get(row.name);
-      const drawable = gpu?.states.get(row.state)?.[h.tier];
+      const tiers = gpu?.states.get(row.state);
+      const drawable = tiers?.[h.tier];
       if (!drawable || !h.buffer || !h.count) continue;
       propRuns.push({
         run: {
           drawable,
           ghost: false,
-          fog: FOG_INDEX[row.draws === PROP_GROUND ? "paintedFaces" : "faces"],
+          caster: tiers?.[h.caster] ?? null,
+          fog: h.fog,
           firstInstance: 0,
           instances: h.count,
         },
@@ -1173,9 +1179,19 @@ export async function createModelLayer(
       if (!isProp(worldRows[row])) continue;
       const key = words![o + Batch.key];
       let h = heldProps.get(key);
-      if (!h) heldProps.set(key, (h = { scope: null, buffer: null, row, tier: 0, count: 0 }));
+      if (!h)
+        heldProps.set(
+          key,
+          (h = { scope: null, buffer: null, row, tier: 0, caster: NONE, fog: 0, count: 0 }),
+        );
       const [first, count] = [words![o + Batch.first], words![o + Batch.count]];
-      [h.row, h.tier, h.count] = [row, words![o + Batch.tier], count];
+      [h.row, h.tier, h.caster, h.fog, h.count] = [
+        row,
+        words![o + Batch.tier],
+        words![o + Batch.caster],
+        words![o + Batch.fog],
+        count,
+      ];
       if (first !== NONE) {
         const size = 2 ** Math.ceil(Math.log2(Math.max(1, count))) * RECORD_FLOATS * 4;
         if (h.buffer?.size !== size) {
@@ -1335,10 +1351,19 @@ export async function createModelLayer(
       const drawable = drawables[Math.floor(b / DRAW_CLASSES)];
       let run = runs[runCount];
       if (!run)
-        runs[runCount] = run = { drawable, ghost: false, fog: 0, firstInstance: 0, instances: 0 };
+        runs[runCount] = run = {
+          drawable,
+          ghost: false,
+          caster: null,
+          fog: 0,
+          firstInstance: 0,
+          instances: 0,
+        };
       run.drawable = drawable;
       run.fog = b % FOG_CLASSES;
       run.ghost = b % DRAW_CLASSES >= FOG_CLASSES;
+      // A lab's model casts a tier coarser; a placement preview casts nothing.
+      run.caster = run.ghost ? null : drawable.caster;
       run.firstInstance = first;
       run.instances = n;
       runCount++;
@@ -1461,7 +1486,8 @@ export async function createModelLayer(
         : row.state
           ? { kind: "static", state: row.state }
           : POSED;
-      const fog = fogClassOf(pose);
+      const fog = words[o + Batch.fog];
+      const casts = words[o + Batch.caster];
       let tier = words[o + Batch.tier];
       if (tier === IMPOSTOR) {
         const layer = lying ? lying.card : gpu.farCard;
@@ -1483,17 +1509,20 @@ export async function createModelLayer(
       const drawable = drawableOf(gpu, pose, tier);
       if (!drawable) continue;
       const ghost = words[o + Batch.pass] === GHOST_PASS;
+      const caster = casts === NONE ? null : drawableOf(gpu, pose, casts);
       let run = frameRuns[frameRunCount];
       if (!run)
         frameRuns[frameRunCount] = run = {
           drawable,
           ghost,
+          caster,
           fog,
           firstInstance: 0,
           instances: 0,
         };
       run.drawable = drawable;
       run.ghost = ghost;
+      run.caster = caster;
       run.fog = fog;
       run.firstInstance = first - base;
       run.instances = count;
@@ -1697,8 +1726,8 @@ export async function createModelLayer(
       if (!renderGroup || !drawn(surface)) return;
       const b = bound.with(modelLayout, renderGroup);
       eachRun((run, source) => {
-        if (run.ghost) return;
-        const caster = run.drawable.caster;
+        const caster = run.caster;
+        if (!caster) return;
         const part = partRange(caster.parts, surface, hiddenSurfaces);
         if (!part.count) return;
         b.with(modelVertexLayout, caster.mesh.vertices)

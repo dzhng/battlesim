@@ -35,11 +35,12 @@
 //! Each drawn model takes the units' tier rule (`view::model_detail`) by its
 //! appearance's size grown by its largest scale, and is listed by look (its
 //! appearance, state, and whether movers stand on it) and tier.
+use crate::records::{FOG_FACES, FOG_PAINTED_FACES};
 use crate::seed::{js_round, to_uint32, Mulberry32};
 use crate::static_world::batches::{List, Population, VIEW_PASS};
 use crate::static_world::fallen::Known;
 use crate::static_world::walk::{Record, Shadow};
-use crate::view::{model_detail, View, CULLED, SHADOW_MARGIN_M};
+use crate::view::{caster_tier, model_detail, View, CULLED, SHADOW_MARGIN_M, TIERS};
 use crate::world::{Bounds, Corners, Detail};
 use serde::Deserialize;
 use sim::publication::reader::KnownProp;
@@ -62,7 +63,6 @@ const STATE: &str = "default";
 const WRECK: &str = "wreck";
 /// Square chunks the map's props are bucketed in, metres.
 const CHUNK_M: f64 = 64.0;
-const TIERS: usize = 4;
 
 /// A prop kind's binding in the world layout (`propAppearance`).
 #[derive(Clone, Debug, Deserialize)]
@@ -772,10 +772,19 @@ impl Population for PropPopulation {
 
     fn each_list(&self, visit: &mut dyn FnMut(List)) {
         for (k, list) in self.lists.iter().enumerate() {
+            let tier = k % TIERS;
             visit(List {
                 row: self.rows[k / TIERS],
-                tier: (k % TIERS) as u32,
+                tier: tier as u32,
                 pass: VIEW_PASS,
+                // A prop casts as a unit does: no caster lists of its own.
+                caster: caster_tier(tier) as u32,
+                // A surface movers stand on takes the ground's paint.
+                fog: if self.looks.list[k / TIERS].2 == DRAWS_PROP_GROUND {
+                    FOG_PAINTED_FACES
+                } else {
+                    FOG_FACES
+                },
                 records: list,
                 print: self.prints[k],
             });

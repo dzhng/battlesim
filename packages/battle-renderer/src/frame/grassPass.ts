@@ -43,15 +43,11 @@
 // `crates/presentation`'s `ground::tuning`), spliced into the WGSL as a constant.
 import { tgpu, d, std, type TgpuBindGroup, type TgpuRenderPass } from "typegpu";
 import { pcgHash } from "../shaders/pcgHash";
-import { vec3, type Mat4 } from "math";
-import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import { eyePosition } from "@packages/renderer-core/src/camera3d";
+import type { Mat4 } from "math";
 import { GRASS_HEIGHT_VARIATION } from "@packages/scene-assets/src/grass.ts";
 import {
   grass_blade_vertices,
   grass_field_segments,
-  grass_frame_params,
-  grass_metres_per_pixel,
   grass_strip_indices,
 } from "@wasm/presentation/presentation_wasm.js";
 import { typegpuCameraLayout } from "../world/camera";
@@ -778,7 +774,6 @@ export async function createGrassPass(
   /** This frame's window (`Presentation.grass_window`): its corner, tiles across
    *  and up, reach, and far corner. */
   let window: Float64Array = new Float64Array(7);
-  const eye = vec3.create();
   /** `GrassParams` as the ground laid it (`Presentation.grass_params`), its
    *  per-frame fields (the planes, the eye, the window's corner and tile, its
    *  tiles) written over each regrow. */
@@ -872,29 +867,22 @@ export async function createGrassPass(
       rebuild();
     },
     /** Fit this frame's window and write its parameters. */
-    prepare(camera: Camera3DParams, viewProj: Mat4, heightPx: number) {
+    prepare(viewProj: Mat4) {
       drawn = false;
       regrow = false;
       if (!ready || suppressed || !frameParams || !surface || !ground) return;
-      eyePosition(eye, camera);
-      const scale = grass_metres_per_pixel(camera.fovY, heightPx);
-      window = ground.grass_window(Float64Array.from(eye), scale);
-      tiles = window[2] * window[3];
+      window = ground.grass_window();
+      tiles = window.length ? window[2] * window[3] : 0;
       if (!tiles) return;
       drawn = true;
-      let same = grownFor[16] === Math.fround(scale);
+      // The reach follows the pixel span alone.
+      let same = grownFor[16] === Math.fround(window[4]);
       for (let i = 0; i < 16 && same; i++) same = grownFor[i] === Math.fround(viewProj[i]);
       if (same) return;
       grownFor.set(viewProj);
-      grownFor[16] = scale;
+      grownFor[16] = window[4];
       regrow = true;
-      grass_frame_params(
-        frameParams,
-        Float32Array.from(viewProj),
-        Float64Array.from(eye),
-        scale,
-        window,
-      );
+      ground.grass_frame_params(frameParams, window);
       params.write(frameParams.buffer as ArrayBuffer);
       resetArgs.fill(0);
       resetArgs[0] = indexCounts[0];

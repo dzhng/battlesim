@@ -47,16 +47,12 @@
 // and the painted ground layers (terrain, grass, backdrop: fog's
 // `paintedGround`) take it as their own surface.
 import { tgpu, d, std, type TgpuCommandEncoder } from "typegpu";
-import {
-  createProjectedPoint,
-  projectPoint,
-  type Camera3DParams,
-} from "@packages/renderer-core/src/camera3d";
+import { createProjectedPoint, projectPoint } from "@packages/renderer-core/src/camera3d";
 import type { SceneInstance, WorldLayers } from "../scene";
 import type { Mesh } from "../mesh";
 import { typegpuCameraLayout } from "../world/camera";
 import { battleWorldDepth, BATTLE_DEPTH_ATTACHMENT } from "../worldDepth";
-import type { SkyRays } from "../shaders/physicalSky";
+import { Camera as CameraWord } from "../records.gen";
 import type { EnvironmentFrame } from "./environmentFrame";
 import { backdrop_mesh, map_box } from "@wasm/presentation/presentation_wasm.js";
 import {
@@ -154,8 +150,6 @@ const srgbToLinear = tgpu.fn(
   return std.pow(std.max(c, d.vec3f(0)), d.vec3f(2.2));
 });
 
-/** No map: the cascades fit just past the near plane. */
-const NO_BOX = new Float64Array(0);
 /** Selection glow added to a highlighted proxy. */
 const HIGHLIGHT = [0.95, 0.8, 0.2] as const;
 /** A rough dielectric: the flat box world has no material maps yet. */
@@ -588,8 +582,7 @@ export async function createWorldPass(
   };
   const backdrop = new MeshSlot(root, registry, identity);
   const proxies = new ProxyInstances(root, registry);
-  /** The map's box (`map_box`): what the cascades fit over, and what a
-   *  scar's scissor projects. */
+  /** The map's box (`map_box`): what a scar's scissor projects. */
   let box: Float64Array | null = null;
   let frameProjection: Mat4 | null = null;
   const corner = vec3.create(),
@@ -726,20 +719,23 @@ export async function createWorldPass(
     grassProbes: grass.probes,
     /** The scenery instances the last view drew (`sceneryLayer.ts`). */
     drawnScenery: () => scenery.drawn(),
-    /** Pose the environment and the cascades for this frame's camera, choose
-     *  the trees' detail and fit the grass for a viewport `width` by
-     *  `height` pixels. */
+    /** Pose the environment for the presentation frame's camera (its
+     *  `Camera` uniform and `View` record), upload the sun's cascades it
+     *  fitted (its `SunShadow` and `count` caster cameras) and fit the
+     *  grass. */
     prepare(
-      camera: Camera3DParams,
-      view: ArrayLike<number>,
-      viewProj: Mat4,
-      rays: SkyRays,
-      width: number,
-      height: number,
+      camera: Float32Array,
+      view: Float32Array,
+      sunShadow: Float32Array,
+      casters: Float32Array,
+      count: number,
     ) {
-      frameProjection = viewProj;
-      environment.prepare(camera, width, height, view, rays, box ?? NO_BOX);
-      grass.prepare(camera, viewProj, height);
+      frameProjection = camera.subarray(
+        CameraWord.view_proj,
+        CameraWord.view_proj + 16,
+      ) as unknown as Mat4;
+      environment.prepare(view, sunShadow, casters, count);
+      grass.prepare(frameProjection);
     },
     encodeShadows(encoder: TgpuCommandEncoder) {
       scenery.beginFrame();

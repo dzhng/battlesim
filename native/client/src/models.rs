@@ -30,9 +30,6 @@ use crate::statics::Statics;
 pub const VERTEX_BYTES: usize = 48;
 /// Material rows a material takes in the materials buffer (`MATERIAL_ROWS`).
 const MATERIAL_ROWS: usize = 5;
-/// Shadow casters draw this many tiers coarser than the view: a cascade
-/// texel is larger than the detail between tiers (`CASTER_COARSER`).
-const CASTER_COARSER: usize = 1;
 
 /// How a material's surface is drawn, in the order a mesh's indices take
 /// (`SURFACE_CLASSES`).
@@ -109,13 +106,8 @@ struct Row {
     /// Its appearance, by which the props are counted.
     name: String,
     kind: Kind,
-    /// How fog takes it (`modelFog.ts`): units never, a corpse as the
-    /// ground under it, the static world face by face, a surface movers
-    /// stand on with the ground's paint.
-    fog: Layer,
-    /// A building's module: it casts only in its caster batches. A prop
-    /// is listed in view only, and casts as a unit does.
-    casts_own: bool,
+    /// A building's module, counted as the browser counts them.
+    building: bool,
     tiers: Vec<Drawable>,
     /// A body's coarsest mesh posed in its far pose: what its impostor card
     /// shows, drawn in the card's place.
@@ -141,9 +133,10 @@ struct Run {
     /// Drawn in view, cast into the sun's cascades, or a placement ghost
     /// (`Batch.pass`).
     pass: u32,
-    /// The tier it casts with, if it casts: a unit or a prop in view casts
-    /// one tier coarser and never as a card; a building in its caster batches.
+    /// The tier it casts with, if it casts (`Batch.caster`).
     caster: Option<usize>,
+    /// The fog group it binds (`Batch.fog`).
+    fog: Layer,
     /// Its instances: the frame's from `first`, or a held static batch's.
     held: Option<u32>,
     first: u32,
@@ -553,8 +546,7 @@ impl Models {
                     Row {
                         name: name.to_owned(),
                         kind: Kind::Corpse,
-                        fog: Layer::Ground,
-                        casts_own: false,
+                        building: false,
                         tiers,
                         card: None,
                     }
@@ -562,8 +554,7 @@ impl Models {
                 Shape::Skinned(tiers) => Row {
                     name: name.to_owned(),
                     kind: Kind::Soldier,
-                    fog: Layer::Units,
-                    casts_own: false,
+                    building: false,
                     card: match tiers.last() {
                         Some(m) => Some(single(&posed_mesh(m, &rest()?), Some(0))),
                         None => None,
@@ -595,8 +586,7 @@ impl Models {
                     Row {
                         name: name.to_owned(),
                         kind: Kind::Vehicle,
-                        fog: Layer::Units,
-                        casts_own: false,
+                        building: false,
                         tiers,
                         card: None,
                     }
@@ -615,15 +605,7 @@ impl Models {
                     Row {
                         name: name.to_owned(),
                         kind: if prop { Kind::Prop } else { Kind::Piece },
-                        // A row with no state is posed, as a unit is.
-                        fog: if a.draws == DRAWS_PROP_GROUND {
-                            Layer::PaintedFaces
-                        } else if a.placed == 0 && state.is_empty() {
-                            Layer::Units
-                        } else {
-                            Layer::Faces
-                        },
-                        casts_own: a.placed != 0 && !prop,
+                        building: a.placed != 0 && !prop,
                         tiers: s.tiers.iter().map(|m| single(m, Some(0))).collect(),
                         card: None,
                     }
@@ -759,13 +741,16 @@ impl Models {
             .batches
             .iter()
             .filter(|b| !self.statics.holds(b.appearance))
-            .map(|b| (b.appearance, b.tier, b.pass, None, b.first, b.count));
-        let statics = self
-            .statics
-            .listed()
-            .map(|h| (h.row, h.tier, h.pass, Some(h.key), 0, h.count));
+            .map(|b| {
+                let run = (b.tier, b.pass, b.caster, b.fog);
+                (b.appearance, run, None, b.first, b.count)
+            });
+        let statics = self.statics.listed().map(|h| {
+            let run = (h.tier, h.pass, h.caster, h.fog);
+            (h.row, run, Some(h.key), 0, h.count)
+        });
         let batches: Vec<_> = units.chain(statics).collect();
-        for (appearance, tier, pass, held, first, count) in batches {
+        for (appearance, (tier, pass, caster, fog), held, first, count) in batches {
             let Some(Some(row)) = self.rows.get(appearance as usize) else {
                 continue;
             };
@@ -773,7 +758,7 @@ impl Models {
                 let levels = self.props.entry(row.name.clone()).or_default();
                 levels[(tier as usize).min(3)] += count;
             }
-            if row.casts_own && pass == VIEW_PASS {
+            if row.building && pass == VIEW_PASS {
                 let at = appearance as usize * 4 + (tier as usize).min(3);
                 if self.buildings.len() <= at {
                     self.buildings.resize(at + 1, 0);
@@ -789,18 +774,12 @@ impl Models {
                 continue;
             };
             let ghost = pass == GHOST_PASS;
-            let caster = match pass {
-                CAST_PASS => Some(tier),
-                VIEW_PASS if !impostor && !row.casts_own => {
-                    Some((tier + CASTER_COARSER).min(row.tiers.len().saturating_sub(1)))
-                }
-                _ => None,
-            };
             self.runs.push(Run {
                 row: appearance as usize,
                 tier,
                 pass,
-                caster,
+                caster: (caster != NONE).then_some(caster as usize),
+                fog: Layer::of(fog),
                 held,
                 first,
                 count,
@@ -892,13 +871,9 @@ impl Models {
         self.each_run(pass, view, |d| d.part(surface));
     }
 
-    /// As `draw`, the runs of rows fog takes as `layer` only.
+    /// As `draw`, the runs fog takes as `layer` only.
     pub fn draw_fogged(&self, pass: &mut RenderPass, surface: Surface, layer: Layer) {
-        let rows = &self.rows;
-        let view = |r: &Run| {
-            let fogged = rows[r.row].as_ref().is_some_and(|row| row.fog == layer);
-            (r.pass == VIEW_PASS && fogged).then_some(r.tier)
-        };
+        let view = |r: &Run| (r.pass == VIEW_PASS && r.fog == layer).then_some(r.tier);
         self.each_run(pass, view, |d| d.part(surface));
     }
 

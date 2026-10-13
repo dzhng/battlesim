@@ -24,7 +24,7 @@ use std::time::{Duration, Instant};
 use native_client::audio::{self, Audio, OutputSettings};
 use native_client::bench::{self, Bench};
 use native_client::bundle::{Library, RUNTIME};
-use native_client::capture::{Record, Replay};
+use native_client::capture::Replay;
 use native_client::effects::{EffectPass, Effects};
 use native_client::environment::Environment;
 use native_client::fog::{Fog, FogSight};
@@ -255,6 +255,9 @@ impl Run {
         );
         // A fresh renderer holds no scars: the first upload writes them all.
         replay.presentation_mut().resend_scars();
+        // The sun's cascades are fitted over the ground's box each frame.
+        let fitted = Some((replay.light.clone(), ground.map_box));
+        replay.presentation_mut().set_shadow(fitted);
         let effects = Effects::new(&gpu.device, &gpu.queue, &pipelines, &environment, &targets)?;
         // Fog of war over the ground's height pages; a fresh renderer holds none.
         let fog = Fog::new(&gpu.device, &pipelines, &targets, &ground.heights);
@@ -289,7 +292,6 @@ impl Run {
             gpu,
             passes: Passes {
                 targets,
-                light: replay.light.clone(),
                 environment,
                 shadow,
                 ground,
@@ -370,19 +372,18 @@ impl Run {
         index
     }
 
-    /// Prepares the layers to draw `record`'s frame, the last framed.
-    fn prepare(&mut self, record: &Record) -> Result<(), String> {
+    /// Prepares the layers to draw the last frame framed.
+    fn prepare(&mut self) -> Result<(), String> {
         // The scars changed under the grass: it regrows over them.
         if self.replay.presentation_mut().scars_changed() {
             self.passes.grass.regrow();
         }
-        let camera = self.replay.camera(record);
         let frame = self.replay.last_frame();
         self.view = frame.view;
         let wrap = frame.light_wrap;
         let (device, queue) = (&self.gpu.device, &self.gpu.queue);
         self.passes
-            .prepare(device, queue, self.replay.presentation(), &camera)?;
+            .prepare(device, queue, self.replay.presentation())?;
         self.passes
             .prepare_scars(device, self.replay.presentation_mut());
         self.passes
@@ -405,7 +406,7 @@ impl Run {
         // unchanged held from the frame before.
         self.replay.frame(&record, self.generation, |_| {})?;
         self.bench.as_mut().ok_or("not a bench")?.mark();
-        self.prepare(&record)?;
+        self.prepare()?;
         let d = self.passes.models.drawn();
         let scenery = self.passes.scenery.drawn();
         let trees: u32 = scenery.populations.iter().flatten().sum();
@@ -463,7 +464,7 @@ impl Run {
             let Some(plate) = record.plate.clone() else {
                 continue;
             };
-            self.prepare(&record)?;
+            self.prepare()?;
             let counts = self.replay.last_frame().counts;
             let (device, queue) = (&self.gpu.device, &self.gpu.queue);
             let presentation = self.replay.presentation();
