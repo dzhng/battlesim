@@ -54,11 +54,11 @@ const SCAN = 15;
 /** Where a kind the battle never fires is found instead: a lab that fires it. */
 const FALLBACK_LABS = [
   // The AT lab's late escape: the team guides its missile all the way in.
-  ["/lab/ambush", "late"],
+  ["/labs/ambush", "late"],
   // The weapons lab: a squad lobs grenades over a building.
-  ["/lab/weapons", null],
+  ["/labs/weapons", null],
   // The projectile review: the gun jeep's autocannon lane.
-  ["/lab/projectiles", null],
+  ["/labs/projectiles", null],
 ];
 /** How close the close view stands, metres, and its pitch: steep enough to
  *  look over a house beside the round's line. */

@@ -1,5 +1,5 @@
 // The native parity control run: the graphics test's reel with control plates
-// (`/graphics-test?plates=1`), at 1280×720 on a visible page, unattended.
+// (`/labs/graphics-test?plates=1`), at 1280×720 on a visible page, unattended.
 // For each scene it writes
 //
 //   throwaway/native-parity/<run>/<scene>/{capture.json, manifest.json,

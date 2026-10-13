@@ -74,18 +74,13 @@
     padding-left: max(48px, 7vw);
   }
 }
-/* What the menu centres: the plate at the slot's top. An open page's slot is
-   as tall as the main page (`--menu-home-height`, measured while it shows),
-   so a shorter page keeps the main page's top edge. The tutorial, as tall as
-   the screen, centres by its own height. */
+/* The menu centres each plate by its own height. The tutorial, as tall as the
+   screen, uses its own bounded scroll region. */
 .menu-slot {
   display: grid;
   width: 100%;
   justify-items: inherit;
-  align-content: start;
-}
-.menu[data-open]:not([data-open="tutorial"]) .menu-slot {
-  height: var(--menu-home-height, 0px);
+  align-content: center;
 }
 .menu-body {
   width: min(560px, 100%);
@@ -613,6 +608,50 @@
   background: rgba(10, 14, 20, 0.82);
   border: 1px solid rgba(143, 180, 224, 0.45);
   border-radius: 4px;
+}
+
+/* Graphics auto-detection keeps the canonical reel mounted so its runner can
+   continue receiving frames, but covers it completely while the player waits.
+   The moving highlight makes the otherwise static message feel alive. */
+.graphics-detection-cover {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(var(--hud-glass));
+}
+.graphics-detection-title {
+  margin: 0;
+  font: 700 clamp(18px, 3vw, 30px) var(--hud-font);
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: transparent;
+  background: linear-gradient(
+    110deg,
+    rgb(var(--hud-dim)) 20%,
+    rgb(var(--hud-accent)) 42%,
+    #fff 50%,
+    rgb(var(--hud-accent)) 58%,
+    rgb(var(--hud-dim)) 80%
+  );
+  background-size: 220% 100%;
+  background-position: 120% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: graphics-detection-shine 1.8s linear infinite;
+}
+@keyframes graphics-detection-shine {
+  to {
+    background-position: -120% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .graphics-detection-title {
+    animation: none;
+    background-position: 50% 0;
+  }
 }
 
 .bench-progress {

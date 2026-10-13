@@ -1,4 +1,4 @@
-// The battle view on the street test map (`/lab/street`). Blue plays through
+// The battle view on the street test map (`/labs/street`). Blue plays through
 // the production controls; the clock, seed and pause/reset work.
 // The camera tour, from the opening framing out to the
 // strategic height and in to the ground, through the real wheel.

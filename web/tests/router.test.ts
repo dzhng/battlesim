@@ -4,7 +4,7 @@ import { LAB_FIXTURES } from "@apps/battle-lab/src/fixtures";
 import { createElement } from "react";
 import { cleanup, fireEvent } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
-import { LabRouter } from "@apps/battle-lab/src/router";
+import { canonicalLabPath, LabRouter } from "@apps/battle-lab/src/router";
 
 afterEach(() => {
   cleanup();
@@ -34,14 +34,14 @@ test("the main menu at / opens each of its pages inside its plate, and Back retu
   const entries: Record<string, Record<string, string>> = {
     Skirmish: { Deploy: "/battle?play=1&type=mixed&size=small&faction=us" },
     Tutorial: {},
-    Settings: { "Graphics test": "/graphics-test" },
+    Settings: {},
     Developer: {
-      "Mechanics editor": "/mechanics",
-      "Map workbench": "/map-workbench",
-      "Scenario builder": "/scenario-builder",
-      "Scenario play": "/scenario-play",
-      "Sound workbench": "/sound-workbench",
-      Benchmark: "/benchmark",
+      "Mechanics editor": "/labs/mechanics",
+      "Map workbench": "/labs/map-workbench",
+      "Scenario builder": "/labs/scenario-builder",
+      "Scenario play": "/labs/scenario-play",
+      "Sound workbench": "/labs/sound-workbench",
+      Benchmark: "/labs/benchmark",
       Labs: "/labs",
     },
   };
@@ -61,9 +61,7 @@ test("the main menu at / opens each of its pages inside its plate, and Back retu
   }
   open("Settings");
   expect(menu.getByTestId("sound-controls")).toBeTruthy();
-  expect(menu.getByRole("link", { name: "Graphics test" }).getAttribute("href")).toBe(
-    "/graphics-test",
-  );
+  expect(menu.queryByRole("link", { name: "Graphics test" })).toBeNull();
   // Escape is Back, as in a game's menus.
   fireEvent.keyDown(window, { key: "Escape" });
   expect(menu.getByRole("button", { name: "Settings" })).toBeTruthy();
@@ -71,7 +69,12 @@ test("the main menu at / opens each of its pages inside its plate, and Back retu
   window.history.replaceState(null, "", "/labs");
   const index = await visit(createElement(LabRouter));
   const hrefs = index.getAllByRole("link").map((a) => a.getAttribute("href"));
-  for (const f of LAB_FIXTURES) expect(hrefs).toContain(f.route);
+  const labUrl = (route: string) => {
+    const url = new URL(route, "http://localhost");
+    const pathname = url.pathname.replace(/^\/lab\//, "/labs/");
+    return `${pathname}${url.search}`;
+  };
+  for (const f of LAB_FIXTURES) expect(hrefs).toContain(labUrl(f.route));
   index.unmount();
 });
 
@@ -84,6 +87,15 @@ test("the production menu does not offer source editing", async () => {
   expect(menu.queryByRole("link", { name: "Mechanics editor" })).toBeNull();
   expect(menu.queryByRole("link", { name: "Map workbench" })).toBeNull();
   expect(menu.queryByRole("link", { name: "Sound workbench" })).toBeNull();
-  expect(menu.getByRole("link", { name: "Benchmark" }).getAttribute("href")).toBe("/benchmark");
+  expect(menu.getByRole("link", { name: "Benchmark" }).getAttribute("href")).toBe(
+    "/labs/benchmark",
+  );
   menu.unmount();
+});
+
+test("lab fixture URLs use the /labs namespace and legacy paths canonicalize", () => {
+  expect(canonicalLabPath("/lab/street")).toBe("/labs/street");
+  expect(canonicalLabPath("/benchmark")).toBe("/labs/benchmark");
+  expect(canonicalLabPath("/labs/street")).toBe("/labs/street");
+  expect(canonicalLabPath("/battle")).toBe("/battle");
 });

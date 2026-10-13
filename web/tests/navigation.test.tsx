@@ -130,7 +130,13 @@ test("menu sound policy follows real page resolution, including fallback and pla
   for (const path of ["/", "/unknown", "/battle/unknown"])
     expect(screenForPath(path), path).toBe("menu");
   for (const path of ["/battle", "/battle/"]) expect(screenForPath(path), path).toBe("loading");
-  for (const path of ["/labs", "/lab/panels", "/lab/street", "/benchmark", "/workbench"])
+  for (const path of [
+    "/labs",
+    "/labs/panels",
+    "/labs/street",
+    "/labs/benchmark",
+    "/labs/workbench",
+  ])
     expect(screenForPath(path), path).toBe("other");
 });
 

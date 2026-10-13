@@ -81,7 +81,7 @@ test("startup failures replace loading with the shared refusal and diagnostics",
 });
 
 test("the router covers a lab while its route prepares", async () => {
-  window.history.replaceState(null, "", "/lab/contacts");
+  window.history.replaceState(null, "", "/labs/contacts");
   await visit(<LabRouter />);
   expect(screen.getByTestId("loading-subject").textContent).toBe("CONTACTS");
   await screen.findByText("Contact battle preparation");
@@ -89,9 +89,9 @@ test("the router covers a lab while its route prepares", async () => {
 });
 
 test.each([
-  { path: "/lab/cursor", label: "Arrow + action" },
-  { path: "/lab/panels", label: "Info panels" },
-  { path: "/benchmark", label: "Benchmark" },
+  { path: "/labs/cursor", label: "Arrow + action" },
+  { path: "/labs/panels", label: "Info panels" },
+  { path: "/labs/benchmark", label: "Benchmark" },
 ])("non-battle view $path becomes usable", async ({ path, label }) => {
   window.history.replaceState(null, "", path);
   await visit(<LabRouter />);

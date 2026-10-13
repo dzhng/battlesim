@@ -167,7 +167,7 @@ export async function restart(page) {
   await page.getByRole("button", { name: "Restart", exact: true }).click();
 }
 
-/** Mount the battle view afresh (`/lab/street`'s `remount` probe); resolves
+/** Mount the battle view afresh (`/labs/street`'s `remount` probe); resolves
  *  once the new battle runs. */
 export async function remount(page) {
   const next = (await lab(page, () => window.__lab.route.mount())) + 1;

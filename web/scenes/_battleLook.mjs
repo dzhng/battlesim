@@ -1,6 +1,6 @@
 // The street test map's battle as a game.
 //
-// On `/lab/street?watch` (scene `street-watch`: blue's start ordered onto
+// On `/labs/street?watch` (scene `street-watch`: blue's start ordered onto
 // the street at once):
 // - `battle`: the whole-battle frames the composed look is judged on, the
 //   battle stepped to BATTLE_TICK (default 3600, 2:00, as blue's
@@ -11,7 +11,7 @@
 //   fixed seed; each also HUD-free.
 // - `edge`: ground past the playable area's edge is always unseen, even within
 //   an eye's range, and a dim white border marks the area.
-// On `/lab/street` (scene `street`, the player's controls):
+// On `/labs/street` (scene `street`, the player's controls):
 // - `woods`: a squad sent into the west wood is drawn through the canopy as
 //   an x-ray, and a squad in the open is not.
 // - `cleanup`: repeated reset and remounts leave nothing behind:

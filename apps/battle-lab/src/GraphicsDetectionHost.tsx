@@ -23,6 +23,7 @@ export function GraphicsDetectionHost({
   enabled?: boolean;
 }) {
   const state = useSyncExternalStore(subscribeGraphicsDetection, graphicsDetectionState);
+  const settings = useSyncExternalStore(graphicsSettings.subscribe, graphicsSettings.get);
   useEffect(() => (runner ? registerGraphicsDetectionRunner(runner) : undefined), [runner]);
   useEffect(() => {
     if (!enabled || import.meta.env.MODE === "test") return;
@@ -42,12 +43,25 @@ export function GraphicsDetectionHost({
         </button>
       </main>
     );
-  if (state.status === "running")
+  const waitingForFirstDetection =
+    enabled &&
+    import.meta.env.MODE !== "test" &&
+    state.status === "idle" &&
+    settings.mode === "auto" &&
+    !settings.detectedMode;
+  if (state.status === "running" || waitingForFirstDetection)
     return (
-      <main className="lab-loading" role="status" data-testid="graphics-detection-progress">
-        <h1>Preparing graphics</h1>
-        <p>Testing the battle scene to choose the best graphics setting…</p>
-      </main>
+      <>
+        {children}
+        <main
+          className="graphics-detection-cover"
+          role="status"
+          aria-live="polite"
+          data-testid="graphics-detection-progress"
+        >
+          <h1 className="graphics-detection-title">Detecting Graphics</h1>
+        </main>
+      </>
     );
   return <>{children}</>;
 }

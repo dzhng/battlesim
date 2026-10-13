@@ -1,4 +1,4 @@
-// /lab/facade: what a facade material can say beyond "opaque", on the facade
+// /labs/facade: what a facade material can say beyond "opaque", on the facade
 // lab's kit (`packages/scene-assets/blender/city/facade_lab.py`), with no
 // battle and no map: its modules stand on a plain ground at three stations.
 //

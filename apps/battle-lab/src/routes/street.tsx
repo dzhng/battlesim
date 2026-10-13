@@ -1,4 +1,4 @@
-// /lab/street: a battle on the street test map, through the production
+// /labs/street: a battle on the street test map, through the production
 // controls and readouts: the map's saved encounter `attack`
 // (`fixtures/maps/street/encounters/attack.json`), blue at its start west of
 // the street, red holding the street under the encounter's defender policy.
