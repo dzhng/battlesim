@@ -25,7 +25,6 @@ import {
   buildAircraftMarks,
   buildOrderOverlay,
   buildDeploymentMarker,
-  deploymentOverlayMarker,
   type AircraftView,
   type OrderView,
   type SurfaceHeight,
@@ -335,10 +334,6 @@ export function buildBattleOverlay(
       ? [
           {
             paintedMarching: deployment,
-            // The entry marker is a player-facing world landmark. Keep a
-            // display-space copy over the fog so its location remains known
-            // after preparation ends and when the edge is unseen.
-            translucent: deploymentOverlayMarker(deployment),
           },
         ]
       : []),

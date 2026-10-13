@@ -236,6 +236,10 @@ export function useBattleSession({
   });
   presentationRef.current = sim.client?.presentation ?? null;
   const faction = skirmish ? skirmish.factions[side === "blue" ? 0 : 1] : null;
+  /** The chosen reinforcement must be requested before the cursor asks the
+   *  presentation to draw its ghost.  Keep this in React state so the art
+   *  request advances on the same render as the picker choice. */
+  const [purchasing, setPurchasing] = useState<string | null>(null);
   useEffect(() => {
     responses.current =
       audio && sim.client ? new UnitResponses(audio, units, faction, rules.tick_hz) : null;
@@ -247,11 +251,12 @@ export function useBattleSession({
   const { observation } = sim;
   const requestedKindKey = useMemo(() => {
     const kinds = new Set(fielded);
+    if (purchasing) kinds.add(purchasing);
     for (const unit of observation?.own ?? []) kinds.add(unit.kind);
     for (const unit of observation?.identified ?? []) kinds.add(unit.kind);
     for (const pending of observation?.skirmish?.pending ?? []) kinds.add(pending.kind);
     return [...kinds].sort().join("\0");
-  }, [fielded, observation]);
+  }, [fielded, observation, purchasing]);
   const requestedKinds = useMemo(
     () => (requestedKindKey ? requestedKindKey.split("\0") : []),
     [requestedKindKey],
@@ -328,7 +333,6 @@ export function useBattleSession({
     inputEnabled,
   );
   const [purchasePlacement] = useState(() => new PurchasePlacementControl());
-  const [purchasing, setPurchasing] = useState<string | null>(null);
   const purchaseGhost = useRef<PurchaseGhost | null>(null);
   /** The ghosts the authority accepted, for their facing: a pending purchase
    *  carries only its kind and destination. */
@@ -978,6 +982,8 @@ export function useBattleSession({
     pointerIntent: () => shownIntent.current,
     pointerResolution: () => ({ state: pointerPaint.state, building: pointerPaint.building }),
     movePreview: () => pointerPaint.preview,
+    /** The currently selected reinforcement's live cursor ghost. */
+    purchaseGhost: () => purchaseGhost.current,
     ruler: () => pointerPaint.shown,
     /** Space held: the order overlay shows every own unit (D2+). */
     showOrders: () => control.showOrders,

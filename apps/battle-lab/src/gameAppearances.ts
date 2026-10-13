@@ -292,7 +292,11 @@ export function useMapAppearances(
     () => catalog && placed && mapDownloads(catalog, placed, family, standIns),
     [catalog, placed, family, standIns],
   );
-  return useGameAppearances(asked, kinds, factions, scenery);
+  // A battle may ask for one new reinforcement while it is already live. Keep
+  // the complete generation on screen while that unit's art is fetched; the
+  // viewport must not unmount and reset the player's camera for a background
+  // appearance update.
+  return useGameAppearances(asked, kinds, factions, scenery, true);
 }
 
 /**

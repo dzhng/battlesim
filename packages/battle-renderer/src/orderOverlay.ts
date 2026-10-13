@@ -715,20 +715,8 @@ export function buildDeploymentMarker(
   return mesh.build();
 }
 
-/** A display-space copy of a deployment marker. Ground paint carries its
- * marching phase in the vertex normal; the un-fogged overlay needs a real
- * horizontal normal so the overlay shader does not interpret that phase as
- * lighting. The ground copy remains the animated source. */
-export function deploymentOverlayMarker(marker: Mesh): Mesh {
-  const out = new Float32Array(marker);
-  for (let i = 0; i < out.length; i += VERTEX_FLOATS) {
-    out[i + 3] = 0;
-    out[i + 4] = 0;
-    out[i + 5] = 1;
-  }
-  return out;
-}
-
+/** The player's entry chevrons are ground paint so a placement ghost can
+ * render over them in the world pass. */
 export function buildOrderOverlay(
   units: readonly OrderView[],
   z: SurfaceHeight,
