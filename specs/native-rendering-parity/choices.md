@@ -47,7 +47,7 @@ The caller reads files and Rust decides. `Fielding` takes `fixtures/game.json`, 
 - **Posed bounds:** these differ within 3.4e-7 relative. Rust poses them from the clip table's float32 rotations, the same table a renderer poses with.
 - **Unfielded wrecks:** the TypeScript listed a wreck look (160 to 171 entries) for every hull whose art the page had installed. The page installs the whole catalog's unit art. Rust lists the fielded kinds' hulls only, so what a battle loads depends on what it fields, not on the page's loading history. A kind the side meets later is fielded again: its wreck comes with it before it can die in view.
 
-Exact equality needed one fix. The crate's JSON parser was off by one float64 ULP in WebAssembly, so `serde_json`'s `float_roundtrip` is now on for the crate, as its tests already had it. The presentation module grew from 2.92 to 3.24 MB (0.99 to 1.09 MB gzipped).
+Exact equality needed one fix. The crate's JSON parser was off by one float64 ULP in WebAssembly, so `serde_json`'s `float_roundtrip` was turned on, and is now on in every build (see "Every build reads JSON numbers exactly"). The presentation module grew from 2.92 to 3.24 MB (0.99 to 1.09 MB gzipped).
 - **Reach:** a kind first requested mid-battle (a purchase, an identified enemy) loads after the page fetches its bundles, a few frames later than the synchronous TypeScript did. Until then the last battle's world stays drawn.
 - **Factions:** a replay knows no skirmish factions, so it resolves one look per soldier. `fielded` takes the factions when a caller has them.
 
@@ -193,11 +193,13 @@ The committed `<scene>-observations.json` files are what the TypeScript decoder 
 
 Native hashes `capture.json` and the saved map it loads (SHA-256) and checks both against `manifest.identity`. It also checks the capture's workload (scene, map, encounter, seed) against the identity, and reads the map and encounter from the hashed capture. On any difference it refuses to run and names the file (`native/client/tests/identity.rs`). This is the check Godot's runner did.
 
-### Native reads the page's numbers with std's parse, not serde_json's `float_roundtrip`
-*Agent, slice 25 (`effectflake`). Confidence: high.*
+### Every build reads JSON numbers exactly
+*User, `exactjson` (replacing `effectflake`'s local reader). Confidence: high.*
 
-serde_json's default float reader misreads about 12% of the frame times the page writes by one ULP, which flipped a tick's effects on boundary plates. Native's capture reader parses each frame's and the lens's numbers with `str::parse` (`capture.rs`'s `exact`). Turning on `float_roundtrip` would fix every reader in native's build, its simulation's included, and the page's WebAssembly simulation would still read the maps the default way.
-- **Verdict:** sound. A local reader for the one file the page's JavaScript writes. If the whole workspace ever reads JSON exactly, enable it in every crate at once, the WebAssembly ones included, and re-record whatever that moves.
+serde_json's default float reader lands one ULP off on about one 17-digit number in fifteen; its `float_roundtrip` reader is exact. Cargo unifies a crate's features per binary, so when only `presentation` enabled it, the simulation read JSON exactly in the binaries that link `presentation` (native, the presentation module) and the default way in the rest (the browser's simulation worker, `mechanics_validate`, the map workbench, `cargo test -p sim`). Two copies of one simulation could read a map's numbers apart, and market-town's map alone holds 9,164 numbers of 16 or more digits.
+- **The rule:** `float_roundtrip` is on in the workspace's one `serde_json` entry, which every crate takes. Native's local capture reader (`capture.rs`'s `exact`) is deleted: serde_json now reads the page's frame times exactly.
+- **What moved:** nothing. Every digest, paired record and fixture is unchanged; no committed battle's outcome turned on a misread number.
+- **Held by** a paired record, `fixtures/parity/exact-numbers.json`: a battle whose map, units and orders carry numbers the default reader misreads. `crates/sim/tests/exact_numbers.rs` checks the simulation reads each one exactly and pins its digests; `web/tests/exactNumbers.test.ts` steps the browser's simulation module on the same battle and must reach the same digests. With the default reader the browser's build ends at a different digest from tick 0. `native/client/tests/counts.rs` still holds native's counts on boundary frames.
 
 ### Labs that hand the renderer their own models take Rust's caster and fog rules
 *Agent, `derive2rust`; resolved `lastowners`. Confidence: high.*

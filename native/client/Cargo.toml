@@ -14,7 +14,7 @@ pollster = "0.4"
 bytemuck = "1.25"
 png = "0.17"
 serde = { version = "1", features = ["derive"] }
-serde_json = { version = "1", features = ["raw_value"] }
+serde_json.workspace = true
 sha2 = "0.10"
 
 [dev-dependencies]
