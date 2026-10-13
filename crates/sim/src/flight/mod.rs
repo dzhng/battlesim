@@ -610,6 +610,17 @@ pub trait ImpactResolver {
     fn intercept(&mut self, _event: &Interception) -> bool {
         false
     }
+    /// Reach of an authored anti-missile round, in metres. The default keeps
+    /// the projectile store unaware of weapon catalogs and preserves the
+    /// existing active-protection-only behaviour.
+    fn projectile_interceptor_reach(&self, _projectile: ProjectileId) -> f64 {
+        0.0
+    }
+    /// Resolve a projectile-to-projectile interception. Returning true
+    /// consumes both rounds; ordering is stable by projectile id.
+    fn intercept_projectile(&mut self, _interceptor: ProjectileId, _target: ProjectileId) -> bool {
+        false
+    }
 }
 
 impl<F: FnMut(&ImpactContext) -> ImpactDecision> ImpactResolver for F {
@@ -885,6 +896,36 @@ pub fn advance_projectiles(
         bodies,
         grid,
     };
+    // Projectile interception is checked before body standoffs. A short,
+    // deterministic proximity window is enough for two physical missiles to
+    // meet; later seeker work can replace this with continuous swept paths
+    // without changing the resolver seam.
+    let mut projectile_intercepts = std::collections::BTreeSet::new();
+    for (i, interceptor) in active.iter().enumerate() {
+        let reach = resolver.projectile_interceptor_reach(interceptor.id);
+        if !(reach.is_finite() && reach > 0.0) {
+            continue;
+        }
+        for target in active.iter().skip(i + 1) {
+            let relative_position = interceptor.position - target.position;
+            let relative_velocity = interceptor.velocity - target.velocity;
+            let speed2 = relative_velocity.dot(relative_velocity);
+            let closest_s = if speed2 > 0.0 {
+                (-relative_position.dot(relative_velocity) / speed2)
+                    .clamp(0.0, config.tick_s)
+            } else {
+                0.0
+            };
+            let closest = relative_position + relative_velocity * closest_s;
+            if closest.length() <= reach
+                && resolver.intercept_projectile(interceptor.id, target.id)
+            {
+                projectile_intercepts.insert(interceptor.id);
+                projectile_intercepts.insert(target.id);
+                break;
+            }
+        }
+    }
     // Protection decisions consume shared unit resources, so evaluate imminent
     // swept hits first and resolve by physical event time, then projectile id.
     let mut candidates: Vec<_> = active
@@ -904,6 +945,9 @@ pub fn advance_projectiles(
     scratch.passes.clear();
     scratch.misses.clear();
     active.retain_mut(|p| {
+        if projectile_intercepts.contains(&p.id) {
+            return false;
+        }
         if let Some(event) = intercepted.get(&p.id) {
             // Trace only to the premature detonation, preserving ordinary
             // pass-through and near-miss evidence before that point.

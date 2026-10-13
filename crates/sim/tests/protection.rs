@@ -37,6 +37,39 @@ fn shot(x: f64, speed: f64) -> Launch {
         fall: None,
     }
 }
+
+struct MissileShield {
+    intercepted: Vec<(ProjectileId, ProjectileId)>,
+}
+impl ImpactResolver for MissileShield {
+    fn resolve(&mut self, _: &ImpactContext) -> ImpactDecision {
+        ImpactDecision::Stop
+    }
+    fn projectile_interceptor_reach(&self, projectile: ProjectileId) -> f64 {
+        (projectile == ProjectileId(0))
+            .then_some(12.0)
+            .unwrap_or(0.0)
+    }
+    fn intercept_projectile(&mut self, interceptor: ProjectileId, target: ProjectileId) -> bool {
+        self.intercepted.push((interceptor, target));
+        true
+    }
+}
+
+#[test]
+fn projectile_interceptor_consumes_both_rounds_at_a_physical_meeting_point() {
+    let world = flat([1000.0, 400.0], "");
+    let mut store = Projectiles::new(config());
+    store.launch(shot(100.0, 0.0));
+    store.launch(shot(106.0, 0.0));
+    let mut events = Vec::new();
+    let mut shield = MissileShield {
+        intercepted: Vec::new(),
+    };
+    flight::advance_projectiles(&mut store, &world, &[], &mut events, &mut shield);
+    assert_eq!(shield.intercepted, vec![(ProjectileId(0), ProjectileId(1))]);
+    assert!(store.active().is_empty());
+}
 fn hull() -> Body {
     Body {
         id: BodyId(1),

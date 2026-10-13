@@ -920,6 +920,25 @@ fn assess(
     } else {
         ActionReason::NoCompatibleTarget
     })?;
+    let weapon = &ctx.arsenal.weapons[spec.kinds[k]].def;
+    // Air-defence crews need a physical view of an airborne target even for
+    // ballistic mounts.  A forest can hide the launcher, but it cannot turn
+    // foliage into a free firing lane.
+    if matches!(r.layer, AltitudeLayer::LowAir | AltitudeLayer::HighAir)
+        && unit.unit_type(ctx.rules).capabilities.air_defense.is_some()
+        && !guidance_clear(ctx.world, ctx.rules, unit, mount, r.point)
+    {
+        return Err(ActionReason::NoOwnSight);
+    }
+    // A seeker only acquires inside its authored forward cone.  Once the
+    // round is launched, its existing guidance contract takes over.
+    if let Some(fov) = weapon.seeker_fov_deg {
+        let bearing = bearing_from(unit, r.point);
+        let forward = if spec.turret { mount.bearing } else { unit.yaw };
+        if !seeker_in_fov(forward, bearing, fov) {
+            return Err(ActionReason::NoFacingSlot);
+        }
+    }
     // Shared identification supplies the target; the launcher still needs
     // a physical sight line to acquire and support it (P05).
     let guided = ctx.arsenal.weapons[spec.kinds[k]]
@@ -934,6 +953,16 @@ fn assess(
         return Err(ActionReason::NoOwnSight);
     }
     engage(ctx, unit, units, mount, spec, k, target, r).map(|_| k)
+}
+
+/// Whether a seeker can acquire a bearing inside its forward cone. This is
+/// kept as a small pure rule so native and WASM tests can pin the wraparound
+/// at north without constructing a battle.
+pub fn seeker_in_fov(forward: f64, bearing: f64, fov_deg: f64) -> bool {
+    fov_deg.is_finite()
+        && fov_deg > 0.0
+        && fov_deg <= 360.0
+        && wrap_angle(bearing - forward).abs() <= fov_deg.to_radians() * 0.5
 }
 
 /// Optical support is physical LOS from the operator, independent of spotting
@@ -2444,6 +2473,15 @@ pub fn readiness(
 mod target_priority_tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn seeker_acquisition_wraps_at_north_and_honours_forward_cone() {
+        let north = std::f64::consts::FRAC_PI_2;
+        assert!(seeker_in_fov(north, north + 0.5_f64.to_radians(), 70.0));
+        assert!(seeker_in_fov(north, north - 34.0_f64.to_radians(), 70.0));
+        assert!(!seeker_in_fov(north, north + 36.0_f64.to_radians(), 70.0));
+        assert!(seeker_in_fov(0.0, std::f64::consts::TAU - 0.1, 70.0));
+    }
 
     #[test]
     fn a_claimed_lean_preserves_the_launchers_full_bore_offset() {

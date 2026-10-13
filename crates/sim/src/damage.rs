@@ -282,6 +282,31 @@ impl ImpactResolver for HullResolver<'_> {
             .as_mut()
             .is_some_and(|state| state.intercept(cap, time, self.rules.tick_hz))
     }
+    fn projectile_interceptor_reach(&self, projectile: ProjectileId) -> f64 {
+        let Some(round) = self.rounds.get(&projectile) else {
+            return 0.0;
+        };
+        let def = &self.arsenal.weapons[round.weapon].def;
+        // Only an explicitly authored interception row may destroy another
+        // projectile.  `interceptable` remains the incoming missile flag.
+        def.interception
+            .is_some()
+            .then_some(def.ballistics.range_m)
+            .unwrap_or(0.0)
+    }
+    fn intercept_projectile(&mut self, interceptor: ProjectileId, target: ProjectileId) -> bool {
+        let Some(attacker) = self.rounds.get(&interceptor) else {
+            return false;
+        };
+        let Some(incoming) = self.rounds.get(&target) else {
+            return false;
+        };
+        let interceptor_def = &self.arsenal.weapons[attacker.weapon].def;
+        let incoming_def = &self.arsenal.weapons[incoming.weapon].def;
+        attacker.side != incoming.side
+            && interceptor_def.interception.is_some()
+            && incoming_def.interceptable
+    }
     fn resolve(&mut self, hit: &ImpactContext) -> ImpactDecision {
         let Some(round) = self.rounds.get(&hit.projectile) else {
             return ImpactDecision::Stop;
