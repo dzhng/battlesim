@@ -91,6 +91,29 @@ fn authored_high_air_is_retained_in_runtime_layer() {
 }
 
 #[test]
+fn air_sensor_ranges_use_the_observer_layer() {
+    let mut fixture = fixture();
+    let doc = fixture["catalog"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|doc| doc["units"].get("test_heli").is_some())
+        .unwrap();
+    doc["units"]["test_heli"]["sensors"]["low_air_m"] = json!(123.0);
+    doc["units"]["test_heli"]["sensors"]["high_air_m"] = json!(456.0);
+    let setup = serde_json::from_value(json!({
+        "map": open_map(),
+        "rules": fixture,
+        "units": [{ "side": "blue", "kind": "test_heli", "position": [300, 200] }],
+        "events": [], "scripts": []
+    })).unwrap();
+    let battle = Battle::new(&setup, 1);
+    let unit = battle.unit(UnitId(0)).unwrap();
+    let sight = sim::sight::of(unit, battle.rules());
+    assert_eq!(sight.range, 123.0);
+}
+
+#[test]
 fn high_air_has_no_ground_vision_but_can_identify_low_air() {
     let mut fixture = fixture();
     let doc = fixture["catalog"]

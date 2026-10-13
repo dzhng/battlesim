@@ -9,6 +9,7 @@
 //!
 //! The forward direction is a snapshot taken before the tick's fire, so this
 //! tick's spotting, sweep and publication agree on it.
+use contract::catalog::AltitudeLayer;
 use contract::scenario::{Rules, SightShape};
 
 use crate::math::wrap_angle;
@@ -68,9 +69,18 @@ pub fn snapshot(units: &mut [Unit], arsenal: &Arsenal) {
 /// `unit`'s sight this tick, from its snapshot.
 pub fn of(unit: &Unit, rules: &Rules) -> Sight {
     let sensors = &unit.unit_type(rules).sensors;
+    let range = match unit.layer() {
+        AltitudeLayer::Ground => sensors.ground_m,
+        AltitudeLayer::LowAir => (sensors.low_air_m > 0.0)
+            .then_some(sensors.low_air_m)
+            .unwrap_or(sensors.ground_m),
+        AltitudeLayer::HighAir => (sensors.high_air_m > 0.0)
+            .then_some(sensors.high_air_m)
+            .unwrap_or(sensors.ground_m),
+    };
     Sight {
         forward: unit.sight_forward,
         shape: sensors.sight_shape,
-        range: sensors.ground_m,
+        range,
     }
 }
