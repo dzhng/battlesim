@@ -48,7 +48,11 @@ const LEAN_SIDES: [LeanSide; 2] = [LeanSide::Left, LeanSide::Right];
 const POSTURES: [Posture; 2] = [Posture::Packed, Posture::Deployed];
 const POLICIES: [RoutePolicy; 2] = [RoutePolicy::Shortest, RoutePolicy::Fastest];
 const DIRECTIONS: [MoveDirection; 2] = [MoveDirection::Forward, MoveDirection::Reverse];
-const CONTACT_SOURCES: [ContactSource; 2] = [ContactSource::Firing, ContactSource::LastSeen];
+const CONTACT_SOURCES: [ContactSource; 3] = [
+    ContactSource::Firing,
+    ContactSource::LastSeen,
+    ContactSource::Radar,
+];
 const LAYERS: [AltitudeLayer; 3] = [
     AltitudeLayer::Ground,
     AltitudeLayer::LowAir,
@@ -223,7 +227,7 @@ const PENDING_FIELDS: [&str; 8] = [
     "blocked",
 ];
 const GROUND_FIELDS: [&str; 4] = ["tile", "span", "craterScorch", "tracksTrampledCleared"];
-const CONTACT_FIELDS: [&str; 13] = [
+const CONTACT_FIELDS: [&str; 15] = [
     "id",
     "source",
     "x",
@@ -237,6 +241,8 @@ const CONTACT_FIELDS: [&str; 13] = [
     "kind",
     "heardLow",
     "heardHigh",
+    "bearingDeg",
+    "rangeM",
 ];
 const AUDIBLE_FIELDS: [&str; 5] = ["listener", "category", "sector", "band", "moving"];
 const PROJECTILE_FIELDS: [&str; 10] = [
@@ -1162,6 +1168,8 @@ fn pack_record(
             c.kind.map_or(-1.0, |k| k.0 as f32),
             (c.heard & ((1 << HEARD_WORD_BITS) - 1)) as f32,
             (c.heard >> HEARD_WORD_BITS) as f32,
+            c.bearing_deg.unwrap_or(-1.0) as f32,
+            c.range_m.unwrap_or(-1.0) as f32,
         ]);
     }
     if let Some(ends) = ends.as_mut() {

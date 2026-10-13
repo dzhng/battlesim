@@ -249,6 +249,8 @@ fn a_contact_publishes_its_height_and_layer() {
         expires_tick: 900,
         kind: None,
         heard: 1,
+        bearing_deg: None,
+        range_m: None,
     };
     frame.contacts = vec![
         area(1, [120.0, 80.0, 2.5], AltitudeLayer::Ground),

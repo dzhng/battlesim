@@ -611,6 +611,8 @@ fn artillery_fires_a_bounded_ground_guess_from_a_contact() {
             expires_tick: 120,
             kind: None,
             heard: 0,
+            bearing_deg: None,
+            range_m: None,
         });
     let orders = BalancedDoctrine::default().decide(
         Side::Red,
@@ -677,6 +679,8 @@ fn firing_contact(
         expires_tick,
         kind: None,
         heard: 0,
+        bearing_deg: None,
+        range_m: None,
     }
 }
 

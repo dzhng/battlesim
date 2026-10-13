@@ -89,7 +89,8 @@ view!(Identified { id: f64, kind: Name, cost: f64, position: Point3, yaw: f64, v
     member_active_mounts: Vec<Option<f64>>, member_leans: Vec<Option<MemberLean>>,
     weapon_poses: Vec<WeaponPose>, reversing: bool, smoking: bool });
 view!(Contact { id: f64, source: Name, center: Point3, layer: Name, aloft: bool, radius: f64,
-    evidence_tick: f64, expires_tick: f64, kind: Option<Name>, heard: Vec<Name> });
+    evidence_tick: f64, expires_tick: f64, kind: Option<Name>, heard: Vec<Name>,
+    bearing_deg: Option<f64>, range_m: Option<f64> });
 view!(SoundCue {
     listener: f64,
     category: Name,
@@ -985,6 +986,8 @@ impl Reader {
                 .filter(|&k| mask >> k & 1 == 1)
                 .map(|k| kinds[k].clone())
                 .collect(),
+            bearing_deg: present(v!(f, "bearingDeg")),
+            range_m: present(v!(f, "rangeM")),
         })
     }
 
