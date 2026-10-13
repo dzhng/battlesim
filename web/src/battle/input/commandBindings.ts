@@ -10,6 +10,7 @@ export type KeyCommand =
   | "toggle_fire_policy"
   | "attack_ground"
   | "toggle_deployment"
+  | "toggle_afterburner"
   | "disarm";
 
 export interface CommandBinding {
@@ -26,6 +27,7 @@ export const CommandBindings: Readonly<Record<KeyCommand, CommandBinding>> = {
   toggle_fire_policy: { code: "KeyF", label: "F" },
   attack_ground: { code: "KeyG", label: "G" },
   toggle_deployment: { code: "KeyT", label: "T" },
+  toggle_afterburner: { code: "KeyB", label: "B" },
   disarm: { code: "Escape", label: "Esc" },
 };
 

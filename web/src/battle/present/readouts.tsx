@@ -653,6 +653,7 @@ export function CommandBar({
     | "stop"
     | "togglePolicy"
     | "toggleDeployment"
+    | "toggleAfterburner"
     | "exitBuilding"
   > & { refund?: () => void };
 }) {
@@ -667,6 +668,7 @@ export function CommandBar({
   );
   const hold = n > 0 && selected.every((u) => u.engagement === "return_fire_only");
   const packing = deployers.every((u) => u.deployment?.target === "deployed");
+  const aircraft = selected.filter((u) => u.fuelS != null);
   const artillery = armed.some((u) =>
     units
       .type(u.kind)
@@ -714,6 +716,13 @@ export function CommandBar({
         label: `${deployers.length > 0 && packing ? "Pack" : "Deploy"} ${key("toggle_deployment")}`,
         disabled: deployers.length === 0,
         onClick: control.toggleDeployment,
+      })}
+      {command({
+        icon: stateIcon(aircraft.length > 0 && aircraft.every((u) => u.afterburner) ? "afterburner" : "fuel"),
+        label: `${aircraft.length > 0 && aircraft.every((u) => u.afterburner) ? "Disable" : "Enable"} afterburners ${key("toggle_afterburner")}`,
+        pressed: aircraft.length > 0 && aircraft.every((u) => u.afterburner),
+        disabled: aircraft.length === 0,
+        onClick: control.toggleAfterburner,
       })}
       {control.refund &&
         command({
