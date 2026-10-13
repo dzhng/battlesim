@@ -7,7 +7,12 @@ export default mergeConfig(
   defineConfig({
     test: {
       environment: "jsdom",
-      include: ["tests/**/*.test.{ts,tsx}", "scene.test.mjs", "scenes/_*.test.mjs"],
+      include: [
+        "tests/**/*.test.{ts,tsx}",
+        "scene.test.mjs",
+        "browser.test.mjs",
+        "scenes/_*.test.mjs",
+      ],
       globals: false,
       setupFiles: ["tests/support/jsdom.ts"],
       // A test judges what happened, not how long this machine took: the

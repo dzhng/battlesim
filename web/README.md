@@ -73,6 +73,11 @@ loops. It keeps that first message and suppresses follow-on invalid-resource noi
 readiness timeouts include the page's published state so a slow or refused adapter
 does not look like an unexplained hang.
 
+Every check that draws gets its browser from [the browser choice](browser.mjs):
+Playwright's Chromium, or inside WSL headless Windows Chrome, because WSL's own
+Chromium has only a software GPU. Its header names the setting that keeps
+Chromium.
+
 Interface appearance is a regression gate. A scene can match a capture against
 an approved picture ([baselines](scenes/_baseline.mjs), stored in LFS beside the
 scenes); a mismatch fails and leaves the capture and a diff in its evidence.
@@ -87,16 +92,19 @@ component the player sees is drawn by a page whose scene pins it, or is named
 with why it cannot be ([coverage](tests/uiCoverage.test.ts)); the
 [UI gallery](../apps/battle-lab/src/routes/ui.tsx) draws what the panel workbench
 and cursor lab do not. Pictures are pinned only from fixed test content, since
-the roster grows. They are approved on the macOS development machine's browser
-and fonts; another platform rasterizes text differently, and the answer there
-is not a looser threshold.
+the roster grows. macOS is the canonical visual-check machine: pictures are
+approved, and the visual suite is judged, on the macOS development machine's
+browser and fonts. Another platform rasterizes text and GPU output differently,
+so a mismatch there is not a regression, and the answer is not a looser
+threshold or a second set of pictures.
 Beside the pictures, the [containment check](scenes/_spills.mjs) asks of every
 panel the geometric question a picture answers only once approved: does it
 hold its content?
 
 Every rendering job shares the machine's GPU. Concurrent sessions serialize through
 one lock in the main checkout, for example
-`lockf -k <main checkout>/throwaway/gpu.lock bun run --cwd web scene -- <fixture-id>`.
+`lockf -k <main checkout>/throwaway/gpu.lock bun run --cwd web scene -- <fixture-id>`
+(on Linux, `flock` in place of `lockf -k`).
 This avoids contention corrupting frame measurements.
 
 [The asset CLI](asset.mjs) is file IO around [scene-assets](../packages/scene-assets/README.md).

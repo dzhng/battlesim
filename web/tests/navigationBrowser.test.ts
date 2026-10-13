@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { expect, test } from "vitest";
-import { chromium, type Browser, type Page } from "playwright";
+import type { Browser, Page } from "playwright";
+import { launchBrowser } from "../browser.mjs";
 import { createServer } from "vite";
 import { fileURLToPath } from "node:url";
 
@@ -22,10 +23,7 @@ test("client exit and history keep the document while discarding preparation vis
   let browser: Browser | undefined;
   try {
     await server.listen();
-    browser = await chromium.launch({
-      channel: "chromium",
-      args: ["--enable-unsafe-webgpu", "--enable-features=WebGPU", "--mute-audio"],
-    });
+    browser = await launchBrowser({ args: ["--mute-audio"] });
     const page = await browser.newPage();
     await page.addInitScript(() =>
       localStorage.setItem(
