@@ -231,6 +231,112 @@ test("a covered viewport ignores camera keys and resumes steering when uncovered
   view.unmount();
 });
 
+test("N steps the camera through the side's contacts and Shift+N steps back", async () => {
+  const focusTargets = [
+    { id: 9, target: [1200, 300] as const, evidenceTick: 9 },
+    { id: 4, target: [200, 900] as const, evidenceTick: 4 },
+  ];
+  const { view, frames } = await mount({ focusTargets });
+  await building();
+  await act(async () =>
+    gpu.resolve!({
+      setFog() {},
+      setClock() {},
+      setPresentationWorld() {},
+      setPresentedGround() {},
+      setGround: () => false,
+      render() {},
+      dispose() {},
+    } as unknown as BattleFrame),
+  );
+  const advance = (now: number) => {
+    const scheduled = frames.splice(0);
+    for (const frame of scheduled) frame(now);
+  };
+  act(() => advance(performance.now() + 100));
+  fireEvent.keyDown(window, { code: "KeyN" });
+  act(() => advance(performance.now() + 200));
+  expect(window.__lab!.camera!().target.slice(0, 2)).toEqual([1200, 300]);
+  fireEvent.keyDown(window, { code: "KeyN" });
+  act(() => advance(performance.now() + 300));
+  expect(window.__lab!.camera!().target.slice(0, 2)).toEqual([200, 900]);
+  fireEvent.keyDown(window, { code: "KeyN", shiftKey: true });
+  act(() => advance(performance.now() + 400));
+  expect(window.__lab!.camera!().target.slice(0, 2)).toEqual([1200, 300]);
+  view.unmount();
+});
+
+test("a reused contact id starts a new cycle after the old contact leaves", async () => {
+  const initial = [
+    { id: 9, target: [1200, 300] as const, evidenceTick: 9 },
+    { id: 4, target: [200, 900] as const, evidenceTick: 4 },
+  ];
+  const { view, frames, props, Viewport } = await mount({ focusTargets: initial });
+  await building();
+  await act(async () =>
+    gpu.resolve!({
+      setFog() {},
+      setClock() {},
+      setPresentationWorld() {},
+      setPresentedGround() {},
+      setGround: () => false,
+      render() {},
+      dispose() {},
+    } as unknown as BattleFrame),
+  );
+  const advance = (now: number) => {
+    const scheduled = frames.splice(0);
+    for (const frame of scheduled) frame(now);
+  };
+  act(() => advance(performance.now() + 100));
+  fireEvent.keyDown(window, { code: "KeyN" });
+  act(() => advance(performance.now() + 200));
+  expect(window.__lab!.camera!().target.slice(0, 2)).toEqual([1200, 300]);
+
+  view.rerender(<Viewport {...props} focusTargets={[initial[1]]} />);
+  view.rerender(
+    <Viewport
+      {...props}
+      focusTargets={[{ id: 9, target: [700, 700] as const, evidenceTick: 10 }, initial[1]]}
+    />,
+  );
+  fireEvent.keyDown(window, { code: "KeyN" });
+  act(() => advance(performance.now() + 300));
+  expect(window.__lab!.camera!().target.slice(0, 2)).toEqual([700, 700]);
+  view.unmount();
+});
+
+test("a covered viewport ignores N like every other camera key", async () => {
+  const focusTargets = [{ id: 9, target: [1200, 300] as const, evidenceTick: 9 }];
+  const { view, frames, props, Viewport } = await mount({ inputEnabled: false, focusTargets });
+  await building();
+  await act(async () =>
+    gpu.resolve!({
+      setFog() {},
+      setClock() {},
+      setPresentationWorld() {},
+      setPresentedGround() {},
+      setGround: () => false,
+      render() {},
+      dispose() {},
+    } as unknown as BattleFrame),
+  );
+  const advance = (now: number) => {
+    const scheduled = frames.splice(0);
+    for (const frame of scheduled) frame(now);
+  };
+  act(() => advance(performance.now() + 100));
+  const before = [...window.__lab!.camera!().target];
+  fireEvent.keyDown(window, { code: "KeyN" });
+  act(() => advance(performance.now() + 200));
+  expect(window.__lab!.camera!().target).toEqual(before);
+  view.rerender(<Viewport {...props} inputEnabled />);
+  fireEvent.keyDown(window, { code: "KeyN" });
+  act(() => advance(performance.now() + 300));
+  expect(window.__lab!.camera!().target.slice(0, 2)).toEqual([1200, 300]);
+  view.unmount();
+});
+
 test("only a pilot that reads plates back makes the canvas copyable", async () => {
   const usage = async (pilot?: ComponentProps<typeof LabViewport>["pilot"]) => {
     const { view, configure } = await mount({ pilot });
