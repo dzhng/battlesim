@@ -57,8 +57,29 @@ describe("graphics detection runner boundary", () => {
       const second = runAutoDetect();
       expect(await first).toBe("high");
       expect(await second).toBe("high");
-      expect(seen).toEqual(["high", "medium", "low"]);
+      expect(seen).toEqual(["low", "medium", "high"]);
       expect(graphicsDetectionState()).toMatchObject({ status: "complete", tier: "high" });
+    } finally {
+      dispose();
+    }
+  });
+
+  test("starts at low and stops after the first tier that misses the target", async () => {
+    Object.defineProperty(navigator, "gpu", { configurable: true, value: {} });
+    const seen: string[] = [];
+    const dispose = registerGraphicsDetectionRunner(async (tier) => {
+      seen.push(tier);
+      if (tier === "high") throw new Error("high should not be tested after medium fails");
+      return { averageFps: tier === "medium" ? 44 : 60, onePercentLowFps: 4 };
+    });
+    try {
+      await expect(runAutoDetect()).resolves.toBe("low");
+      expect(seen).toEqual(["low", "medium"]);
+      expect(graphicsDetectionState()).toMatchObject({
+        status: "complete",
+        tier: "low",
+        completed: 2,
+      });
     } finally {
       dispose();
     }
