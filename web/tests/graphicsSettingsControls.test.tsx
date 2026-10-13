@@ -5,6 +5,7 @@ import { GraphicsSettingsControls } from "@apps/battle-lab/src/GraphicsSettingsC
 import { graphicsSettings } from "@apps/battle-lab/src/graphicsSettings";
 import { PauseMenu } from "@apps/battle-lab/src/PauseMenu";
 import { GraphicsDetectionHost } from "@apps/battle-lab/src/GraphicsDetectionHost";
+import { LoadingScreen } from "@apps/battle-lab/src/LoadingScreen";
 import {
   cancelAutoDetect,
   registerGraphicsDetectionRunner,
@@ -70,7 +71,7 @@ test("pause menu opens settings as a nested modal and Escape closes it", () => {
   view.unmount();
 });
 
-test("graphics detection covers the mounted menu while the canonical reel keeps running", async () => {
+test("graphics detection keeps the mounted menu covered by the shared loading card", async () => {
   Object.defineProperty(navigator, "gpu", { configurable: true, value: {} });
   const dispose = registerGraphicsDetectionRunner(
     (_, signal) =>
@@ -88,11 +89,45 @@ test("graphics detection covers the mounted menu while the canonical reel keeps 
     </GraphicsDetectionHost>,
   );
   const pending = runAutoDetect();
-  await waitFor(() => expect(view.getByTestId("graphics-detection-progress")).toBeTruthy());
+  await waitFor(() => expect(view.getByTestId("menu-reel")).toBeTruthy());
   expect(view.getByTestId("menu-reel")).toBeTruthy();
-  expect(view.getByRole("heading", { name: "Detecting Graphics" })).toBeTruthy();
+  expect(view.queryByTestId("graphics-detection-progress")).toBeNull();
   cancelAutoDetect();
   await expect(pending).rejects.toThrow("cancelled");
   dispose();
+  view.unmount();
+});
+
+test("the shared loading card shows graphics detection progress and the selected tier", () => {
+  const view = render(
+    <LoadingScreen
+      title="Deploying"
+      stages={[
+        { id: "preparation", label: "Preparing the battle" },
+        { id: "graphics", label: "Detecting Graphics" },
+      ]}
+      current="graphics"
+      stageDetail="Testing HIGH graphics · 1 of 3 presets"
+      back={null}
+    />,
+  );
+  expect(view.getByTestId("loading-stage").textContent).toContain("Detecting Graphics");
+  expect(view.getByRole("listitem", { name: "Detecting Graphics" }).getAttribute("data-state")).toBe(
+    "active",
+  );
+  expect(view.getByTestId("loading-stage-detail").textContent).toContain("Testing HIGH graphics");
+  view.rerender(
+    <LoadingScreen
+      title="Deploying"
+      stages={[
+        { id: "preparation", label: "Preparing the battle" },
+        { id: "graphics", label: "Detecting Graphics" },
+      ]}
+      current="graphics"
+      stageDetail="Graphics set to HIGH"
+      back={null}
+    />,
+  );
+  expect(view.getByTestId("loading-stage-detail").textContent).toBe("Graphics set to HIGH");
   view.unmount();
 });

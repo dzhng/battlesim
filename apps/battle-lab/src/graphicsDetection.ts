@@ -134,11 +134,20 @@ export function createCanonicalFrameRunner({
 let runner: GraphicsDetectionRunner | null = null;
 let active: { promise: Promise<GraphicsTier>; controller: AbortController } | null = null;
 const listeners = new Set<() => void>();
-let state: {
+export interface GraphicsDetectionState {
   status: "idle" | "running" | "complete" | "failed";
   tier: GraphicsTier | null;
+  currentTier: GraphicsTier | null;
+  completed: number;
   error: string | null;
-} = { status: "idle", tier: null, error: null };
+}
+let state: GraphicsDetectionState = {
+  status: "idle",
+  tier: null,
+  currentTier: null,
+  completed: 0,
+  error: null,
+};
 
 function publish(next: typeof state): void {
   state = next;
@@ -171,16 +180,30 @@ export function runAutoDetect(): Promise<GraphicsTier> {
     return fail("Graphics auto-detect is not ready. Keep the menu open and reload to try again.");
 
   const controller = new AbortController();
-  publish({ status: "running", tier: null, error: null });
+  publish({ status: "running", tier: null, currentTier: null, completed: 0, error: null });
   const promise = (async () => {
     const results: Partial<Record<GraphicsTier, TierBenchmarkInput>> = {};
-    for (const tier of GRAPHICS_TIERS) {
+    for (const [index, tier] of GRAPHICS_TIERS.entries()) {
       if (controller.signal.aborted) throw new DOMException("Detection cancelled", "AbortError");
+      publish({
+        status: "running",
+        tier: null,
+        currentTier: tier,
+        completed: index,
+        error: null,
+      });
       const result = await runner!(tier, controller.signal);
       if (controller.signal.aborted) throw new DOMException("Detection cancelled", "AbortError");
       if (!result || !Number.isFinite(result.averageFps) || result.averageFps < 0)
         throw new Error(`Graphics auto-detect returned unusable ${tier} FPS evidence.`);
       results[tier] = result;
+      publish({
+        status: "running",
+        tier: null,
+        currentTier: tier,
+        completed: index + 1,
+        error: null,
+      });
     }
     const selectedMode = chooseTier(results);
     const result = results[selectedMode]!;
@@ -189,12 +212,18 @@ export function runAutoDetect(): Promise<GraphicsTier> {
       detectedMode: selectedMode,
       lastResult: { ...result, selectedMode },
     });
-    publish({ status: "complete", tier: selectedMode, error: null });
+    publish({
+      status: "complete",
+      tier: selectedMode,
+      currentTier: null,
+      completed: GRAPHICS_TIERS.length,
+      error: null,
+    });
     return selectedMode;
   })()
     .catch((error: unknown) => {
       const reason = error instanceof Error ? error.message : String(error);
-      publish({ status: "failed", tier: null, error: reason });
+      publish({ status: "failed", tier: null, currentTier: null, completed: 0, error: reason });
       throw error instanceof Error ? error : new Error(reason);
     })
     .finally(() => {
@@ -209,6 +238,6 @@ export function cancelAutoDetect(): void {
 }
 
 function fail(message: string): Promise<never> {
-  publish({ status: "failed", tier: null, error: message });
+  publish({ status: "failed", tier: null, currentTier: null, completed: 0, error: message });
   return Promise.reject(new Error(message));
 }

@@ -14,6 +14,7 @@ import {
   useEffect,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 import { hudIcon } from "@packages/scene-assets/src/icons";
@@ -31,6 +32,12 @@ import { LoadingScreen } from "./LoadingScreen";
 import { Wordmark } from "./Wordmark";
 import { APP_COMMIT, simFingerprint } from "./buildIdentity";
 import { GraphicsDetectionHost } from "./GraphicsDetectionHost";
+import {
+  GRAPHICS_TIERS,
+  graphicsDetectionState,
+  subscribeGraphicsDetection,
+} from "./graphicsDetection";
+import { graphicsSettings } from "./graphicsSettings";
 
 interface Entry {
   label: string;
@@ -248,10 +255,43 @@ export function MainMenu() {
   );
   const plate = useRef<HTMLDivElement>(null);
   const { report, progress } = useLoadingTasks();
+  const detection = useSyncExternalStore(subscribeGraphicsDetection, graphicsDetectionState);
+  const settings = useSyncExternalStore(graphicsSettings.subscribe, graphicsSettings.get);
   // Covered only until the backdrop is first ready: its restarts happen
   // behind its own veil. One that cannot be made leaves the plain ground.
   const [revealed, setRevealed] = useState(false);
   const loading = !revealed && !progress.done && !progress.error;
+  const detectionNeeded = settings.mode === "auto" && !settings.detectedMode;
+  const [showDetection, setShowDetection] = useState(false);
+  useEffect(() => {
+    if (!loading && detectionNeeded) setShowDetection(true);
+  }, [loading, detectionNeeded]);
+  useEffect(() => {
+    if (detection.status !== "complete") return;
+    const dismiss = setTimeout(() => setShowDetection(false), 900);
+    return () => clearTimeout(dismiss);
+  }, [detection.status]);
+  const detectionStageVisible = detectionNeeded || showDetection;
+  const displayLoading = loading || showDetection;
+  const stages = detectionStageVisible
+    ? [...LOADING_STAGES, { id: "graphics", label: "Detecting Graphics" }]
+    : LOADING_STAGES;
+  const detectionCurrent = !loading && showDetection ? "graphics" : progress.current;
+  const detectionDetail =
+    detection.status === "running" && detection.currentTier
+      ? `Testing ${detection.currentTier.toUpperCase()} graphics · ${Math.min(
+          detection.completed + 1,
+          GRAPHICS_TIERS.length,
+        )} of ${GRAPHICS_TIERS.length} presets`
+      : detection.status === "complete" && detection.tier
+        ? `Graphics set to ${detection.tier.toUpperCase()}`
+        : detection.status === "idle" && showDetection
+          ? "Preparing graphics test…"
+          : undefined;
+  const detectionFailure =
+    detection.status === "failed" && showDetection
+      ? { message: "Graphics detection failed.", details: [detection.error ?? "Unknown error"] }
+      : null;
   const [shown] = useState(() => {
     let resolve = () => {};
     const promise = new Promise<void>((r) => (resolve = r));
@@ -318,7 +358,7 @@ export function MainMenu() {
     );
   return (
     <>
-      <main className="menu" data-open={page ?? undefined} inert={loading}>
+      <main className="menu" data-open={page ?? undefined} inert={displayLoading}>
         <LoadingTasks report={report}>
           <MenuBackdrop plate={plate} shown={shown.promise} />
         </LoadingTasks>
@@ -330,11 +370,24 @@ export function MainMenu() {
           </GraphicsDetectionHost>
         </div>
       </main>
-      {loading && (
+      {displayLoading && (
         <LoadingScreen
           title={<Wordmark />}
-          stages={LOADING_STAGES}
-          current={progress.current}
+          stages={stages}
+          current={detectionCurrent}
+          stageDetail={detectionDetail}
+          failure={detectionFailure}
+          recovery={
+            detectionFailure ? (
+              <button
+                type="button"
+                className="hud-menu-item"
+                onClick={() => window.location.reload()}
+              >
+                Reload
+              </button>
+            ) : undefined
+          }
           back={null}
         />
       )}
