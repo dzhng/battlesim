@@ -228,7 +228,7 @@
   {
     "id": "unit-roster",
     "route": "/battle?type=open&size=small&seed=1&faction=us",
-    "describe": "First-phase faction skirmish: empty preparation, grouped variant purchases, physical reinforcement entry, public objective scoring and basic opponent.",
+    "describe": "Final player journey: zoom into preparation, recruit units, preview and face placement ghosts, start the match, move and face a unit, hold Space for its order marker, and pin the journey's screenshots and GPU diagnostics.",
     "map": null
   },
   {

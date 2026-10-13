@@ -1459,13 +1459,19 @@ export async function createModelLayer(
     const words = batches.u32;
     // The posed records follow the static world's: only theirs are uploaded.
     let base = instances.count;
+    let end = base;
     for (let b = 0; b < batches.count; b++) {
       const o = b * BATCH_WORDS;
       const first = words[o + Batch.first];
-      if (first !== NONE && !worldRows[words[o + Batch.appearance]]?.placed)
+      if (first !== NONE && !worldRows[words[o + Batch.appearance]]?.placed) {
         base = Math.min(base, first);
+        end = Math.max(end, first + words[o + Batch.count]);
+      }
     }
-    const posed = instances.count - base;
+    // Draw ranges are the contract the GPU validates. Size from their actual
+    // end as well as the mixed frame's record count; a batch may outlive the
+    // dynamic tail after static records were split out of the upload.
+    const posed = Math.max(instances.count, end) - base;
     if (posed > frameCapacity) {
       frameCapacity = Math.max(64, posed * 2);
       frameRecords.set(

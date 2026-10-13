@@ -609,6 +609,8 @@ export async function createSceneryLayer(
       if (!pipeline) continue;
       const mesh = row.meshes[Math.min(h.tier, row.meshes.length - 1)];
       const layout = row.draws === FELLED ? felledLayout : placedLayout;
+      const records = row.draws === FELLED ? h.count * 2 : h.count;
+      if (records > h.capacity) continue;
       pipeline.with(vertexLayout, mesh.buffer).with(layout, h.buffer).draw(mesh.vertices, h.count);
       draws++;
     }
@@ -679,7 +681,12 @@ export async function createSceneryLayer(
           );
           changed = true;
         }
-        h.count = pairs ? records / 2 : records;
+        // `first === NONE` means the frame did not rewrite this batch. Its
+        // count is part of the uploaded record contract too, so keep the
+        // previous draw count until a rewritten batch supplies the new one.
+        // Updating it here would let a stale, smaller buffer be drawn with a
+        // larger instance range and invalidate the whole command buffer.
+        if (first !== NONE) h.count = pairs ? records / 2 : records;
         keys.add(key);
         next.push(h);
       }

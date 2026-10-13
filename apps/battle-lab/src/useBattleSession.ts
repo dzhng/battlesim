@@ -235,22 +235,26 @@ export function useBattleSession({
   });
   presentationRef.current = sim.client?.presentation ?? null;
   const faction = skirmish ? skirmish.factions[side === "blue" ? 0 : 1] : null;
+  /** The chosen reinforcement must be requested before the cursor asks the
+   *  presentation to draw its ghost.  Keep this in React state so the art
+   *  request advances on the same render as the picker choice. */
+  const [purchasing, setPurchasing] = useState<string | null>(null);
   useEffect(() => {
     responses.current =
       audio && sim.client ? new UnitResponses(audio, units, faction, rules.tick_hz) : null;
   }, [audio, sim.client, units, faction, rules.tick_hz]);
-  // A battle may purchase or reveal a unit that was not in its opening
-  // scenario. Keep the appearance request live so those units are installed
-  // before the presentation names their models, without loading the whole
-  // roster on adapters with small texture-array limits.
+  // A battle may purchase or reveal any unit in the catalog after its opening
+  // scenario. Keep every unit appearance resident from map startup so the
+  // cursor preview never installs a new GPU generation during interaction.
   const { observation } = sim;
   const requestedKindKey = useMemo(() => {
     const kinds = new Set(fielded);
+    if (purchasing) kinds.add(purchasing);
     for (const unit of observation?.own ?? []) kinds.add(unit.kind);
     for (const unit of observation?.identified ?? []) kinds.add(unit.kind);
     for (const pending of observation?.skirmish?.pending ?? []) kinds.add(pending.kind);
     return [...kinds].sort().join("\0");
-  }, [fielded, observation]);
+  }, [fielded, observation, purchasing]);
   const requestedKinds = useMemo(
     () => (requestedKindKey ? requestedKindKey.split("\0") : []),
     [requestedKindKey],
@@ -264,8 +268,9 @@ export function useBattleSession({
       : undefined;
   }, [map, scenarioArt]);
   // A shout heard in the open is a bark in its kind's set for its side's
-  // faction; an unseen enemy's is drawn from the enemy faction's sets. Of
-  // those, only the sets of kinds fielded or identified load.
+  // faction; an unseen enemy's is drawn from the enemy faction's sets. The
+  // requested kinds still scope the simulation's descriptions and voices;
+  // the renderer's unit art is resident for the complete catalog.
   // Outside a skirmish the factions are unknown, so shouts are silent.
   const enemy = skirmish ? skirmish.factions[side === "blue" ? 1 : 0] : null;
   useEffect(() => {
@@ -327,7 +332,6 @@ export function useBattleSession({
     inputEnabled,
   );
   const [purchasePlacement] = useState(() => new PurchasePlacementControl());
-  const [purchasing, setPurchasing] = useState<string | null>(null);
   const purchaseGhost = useRef<PurchaseGhost | null>(null);
   /** The ghosts the authority accepted, for their facing: a pending purchase
    *  carries only its kind and destination. */
@@ -378,7 +382,7 @@ export function useBattleSession({
     drawnBuildings?.placed ?? null,
     world?.exports.buildings.regionalFamily ?? null,
     (world?.exports.props.length ?? 0) > 0 || (drawnBuildings?.placed.template.length ?? 0) > 0,
-    requestedKinds,
+    null,
     factionsForArt,
     sceneryForArt,
   );
@@ -977,6 +981,8 @@ export function useBattleSession({
     pointerIntent: () => shownIntent.current,
     pointerResolution: () => ({ state: pointerPaint.state, building: pointerPaint.building }),
     movePreview: () => pointerPaint.preview,
+    /** The currently selected reinforcement's live cursor ghost. */
+    purchaseGhost: () => purchaseGhost.current,
     ruler: () => pointerPaint.shown,
     /** Space held: the order overlay shows every own unit (D2+). */
     showOrders: () => control.showOrders,
