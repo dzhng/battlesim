@@ -3,6 +3,7 @@
 //! vehicle's hull centre and top, each living soldier). Solid geometry blocks;
 //! foliage attenuates reach continuously and blocks outright past a full run;
 //! forest ground conceals a target by class, independently of tree crowns.
+use contract::catalog::AltitudeLayer;
 use contract::ids::{Side, UnitId};
 use contract::scenario::{Rules, SensorRules};
 
@@ -212,6 +213,10 @@ pub fn evaluate(
         .iter()
         .filter(|u| u.side == side && u.alive() && due(u))
     {
+        // Fixed-wing aircraft fly in HighAir and have no ground-facing
+        // vision. They still run the same optical pass for LowAir and
+        // HighAir targets, so air-to-air sensing remains authoritative here.
+        let observer_layer = observer.layer();
         let from = eyes(observer, rules);
         let sight = crate::sight::of(observer, rules);
         let concealed_range_multiplier =
@@ -219,6 +224,9 @@ pub fn evaluate(
         let observer_radius = observer.footprint_radius(body);
         for (target, target_radius, samples) in &targets {
             let (target, target_radius) = (*target, *target_radius);
+            if observer_layer == AltitudeLayer::HighAir && target.layer() == AltitudeLayer::Ground {
+                continue;
+            }
             // Every eye and sample lies within `spread` of the two centres, so
             // no sample can be seen past the widest reach across that arc.
             let spread = observer_radius + target_radius;

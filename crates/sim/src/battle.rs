@@ -2922,6 +2922,12 @@ impl Battle {
         let mut remembered = Vec::new();
         let mut views = Vec::new();
         for unit in self.units.iter().filter(|u| u.side == side && u.alive()) {
+            // HighAir aircraft see other air layers, but never illuminate
+            // the ground fog. Their ground view is intentionally absent;
+            // the optical sensing pass still handles air targets separately.
+            if unit.layer() == AltitudeLayer::HighAir {
+                continue;
+            }
             let sight = sight::of(unit, &self.rules);
             let eyes = sensing::eyes(unit, &self.rules);
             for eye in &eyes {

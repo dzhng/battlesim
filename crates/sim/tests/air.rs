@@ -71,6 +71,68 @@ fn a_helicopter_enters_the_battle_at_cruise_height() {
 }
 
 #[test]
+fn authored_high_air_is_retained_in_runtime_layer() {
+    let mut fixture = fixture();
+    let doc = fixture["catalog"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|doc| doc["units"].get("test_heli").is_some())
+        .unwrap();
+    doc["units"]["test_heli"]["mobility"]["air"]["layer"] = json!("high_air");
+    let b = battle_with(
+        &fixture,
+        open_map(),
+        json!([{ "side": "blue", "kind": "test_heli", "position": [300, 200] }]),
+    );
+    let jet = b.unit(UnitId(0)).unwrap();
+    assert_eq!(jet.layer(), AltitudeLayer::HighAir);
+    assert!(jet.airborne());
+}
+
+#[test]
+fn high_air_has_no_ground_vision_but_can_identify_low_air() {
+    let mut fixture = fixture();
+    let doc = fixture["catalog"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|doc| doc["units"].get("test_heli").is_some())
+        .unwrap();
+    let mut high = doc["units"]["test_heli"].clone();
+    high["mobility"]["air"]["layer"] = json!("high_air");
+    doc["units"]["test_high_air"] = high;
+    let b = battle_with(
+        &fixture,
+        open_map(),
+        json!([
+            { "side": "blue", "kind": "test_high_air", "position": [300, 200], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_rifle", "position": [500, 200], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_heli", "position": [500, 240], "engagement": "return_fire_only" }
+        ]),
+    );
+    let blue = b.observe(Side::Blue);
+    assert_eq!(
+        blue.own[0].sees.len(),
+        1,
+        "the aircraft sees the low-air helicopter"
+    );
+    assert_eq!(
+        blue.identified.len(),
+        1,
+        "the aircraft does not identify ground units"
+    );
+    assert_eq!(
+        blue.identified[0].kind,
+        b.rules().catalog.index("test_heli").unwrap()
+    );
+    assert!(
+        !blue.ground_visibility.visible(300.0, 200.0),
+        "high-air aircraft do not illuminate ground fog"
+    );
+}
+
+#[test]
 fn a_tank_drives_under_a_hovering_helicopter() {
     let fixture = fixture();
     let mut b = battle_with(

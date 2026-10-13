@@ -340,6 +340,8 @@ pub struct Flight {
     pub cruise_mps: f64,
     pub turn_rad_s: f64,
     pub climb_mps: f64,
+    /// Authored altitude band copied into runtime state at spawn.
+    pub layer: AltitudeLayer,
 }
 
 /// How a unit of type `t` moves.
@@ -349,11 +351,12 @@ pub fn motion(t: &UnitType, rules: &Rules) -> Motion {
             cruise_kmh,
             turn_deg_s,
             climb_mps,
-            ..
+            layer,
         } => Motion::Air(Flight {
             cruise_mps: cruise_kmh / 3.6,
             turn_rad_s: turn_deg_s.to_radians(),
             climb_mps,
+            layer,
         }),
         _ => Motion::Ground(ground_mobility(t, rules).expect("a ground mover")),
     }
@@ -477,7 +480,10 @@ impl Unit {
     /// The height band it occupies, which decides what can engage it.
     pub fn layer(&self) -> AltitudeLayer {
         if self.airborne() {
-            AltitudeLayer::LowAir
+            match self.motion {
+                Motion::Air(flight) => flight.layer,
+                Motion::Ground(_) => unreachable!("airborne unit has ground motion"),
+            }
         } else {
             AltitudeLayer::Ground
         }
