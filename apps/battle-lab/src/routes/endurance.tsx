@@ -1,4 +1,4 @@
-// /lab/endurance: the synthetic 100-a-side stress battle, played
+// /labs/endurance: the synthetic 100-a-side stress battle, played
 // in real time with the production view, and live telemetry for the scale
 // verdict. Clearly labelled stress input, on its saved or full generated world.
 import { useEffect, useRef, useState } from "react";

@@ -840,7 +840,7 @@
   inset: 0;
   z-index: 20;
   display: grid;
-  place-items: center;
+  place-items: safe center;
   padding: 24px;
   overflow: auto;
   background: rgb(var(--hud-glass) / 0.55);
@@ -957,6 +957,9 @@
   box-sizing: border-box;
   padding: 18px 20px;
   overflow: hidden;
+}
+.hud-panel.hud-settings-modal {
+  width: min(560px, 100%);
 }
 .hud-tutorial-head {
   display: grid;

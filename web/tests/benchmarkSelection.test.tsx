@@ -11,7 +11,7 @@ afterEach(() => {
 });
 
 test("the advertised city-contact address and the plain benchmark both select the city workload", () => {
-  for (const address of ["/benchmark?preset=city-contact", "/benchmark"]) {
+  for (const address of ["/labs/benchmark?preset=city-contact", "/labs/benchmark"]) {
     window.history.replaceState(null, "", address);
     const page = render(<BenchmarkPage />);
     const name = `city-contact v${CITY_CONTACT.version}`;
@@ -24,7 +24,7 @@ test("the advertised city-contact address and the plain benchmark both select th
 });
 
 test("an unknown preset refuses", () => {
-  window.history.replaceState(null, "", "/benchmark?preset=missing");
+  window.history.replaceState(null, "", "/labs/benchmark?preset=missing");
   render(<BenchmarkPage />);
   expect(screen.getByTestId("error").textContent).toBe("Unknown benchmark preset.");
   expect(screen.queryByRole("button", { name: /Short run/ })).toBeNull();

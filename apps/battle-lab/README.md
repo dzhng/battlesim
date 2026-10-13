@@ -15,7 +15,7 @@ check. The registry is the route inventory; docs do not maintain a parallel list
 A lab stands on a saved `test` map (its registry entry names it, and
 [`fixtureMap`](src/fixtures.ts) refuses any other category) or on a generated
 or synthetic world, and fields test units. The battle view itself is judged on
-the street test map's battle (`/lab/street`), a test's own encounter, so no
+the street test map's battle (`/labs/street`), a test's own encounter, so no
 lab plays on the game's content or the menu's. Player pages (`/battle`) only
 ever prepare generated maps.
 

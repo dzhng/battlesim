@@ -1,4 +1,4 @@
-// The template line-up (`/lab/city-lineup`): where each building template
+// The template line-up (`/labs/city-lineup`): where each building template
 // stands, the references the frame draws them from, and the cameras a
 // template is judged from. Pure: the route draws it
 // through the frame's own buildings path, as a generated town is drawn.

@@ -1,5 +1,5 @@
 // The browser's half of the frame-rate comparison with the native client
-// (native's `--bench`): the graphics test's reel (`/graphics-test?scenes=`)
+// (native's `--bench`): the graphics test's reel (`/labs/graphics-test?scenes=`)
 // without plates, on a production build at 1280×720, headless and paced to
 // the display. For each scene it writes, after the first WARMUP_FRAMES drawn
 // frames, the graphics test's own recording raw (each frame's

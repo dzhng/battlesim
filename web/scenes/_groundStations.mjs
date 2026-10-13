@@ -58,7 +58,7 @@ const SETTLEMENT = "yard";
  *  blue's start), so they follow the generator when its layouts change. */
 export const STATION_MAPS = {
   street: {
-    route: "/lab/street",
+    route: "/labs/street",
     stations: {
       ...Object.fromEntries(
         WILD.flatMap((kind) => [
@@ -93,7 +93,7 @@ export const STATION_MAPS = {
     },
   },
   river: {
-    route: "/lab/river",
+    route: "/labs/river",
     stations: {
       // The meander's first bend, and the 30 m stretch.
       "bend-25": at([150, 262], 25, LOW),

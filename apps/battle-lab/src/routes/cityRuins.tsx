@@ -1,4 +1,4 @@
-// /lab/city-ruins: buildings destroyed in a battle, drawn as each side knows
+// /labs/city-ruins: buildings destroyed in a battle, drawn as each side knows
 // them. The camera lab's map with its saved shelling encounter
 // (`fixtures/maps/camera-lab/encounters/shelling.json`): HE bursts scattered
 // over the five-floor U block's yard bring it down to remains, and more in

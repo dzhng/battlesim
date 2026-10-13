@@ -1,9 +1,15 @@
-import { act, cleanup, fireEvent } from "@testing-library/react";
+import { act, cleanup, fireEvent, waitFor } from "@testing-library/react";
 import { renderInRouter as render } from "./support/router";
 import { afterEach, expect, test, vi } from "vitest";
 import { GraphicsSettingsControls } from "@apps/battle-lab/src/GraphicsSettingsControls";
 import { graphicsSettings } from "@apps/battle-lab/src/graphicsSettings";
 import { PauseMenu } from "@apps/battle-lab/src/PauseMenu";
+import { GraphicsDetectionHost } from "@apps/battle-lab/src/GraphicsDetectionHost";
+import {
+  cancelAutoDetect,
+  registerGraphicsDetectionRunner,
+  runAutoDetect,
+} from "@apps/battle-lab/src/graphicsDetection";
 
 afterEach(() => {
   cleanup();
@@ -61,5 +67,32 @@ test("pause menu opens settings as a nested modal and Escape closes it", () => {
   expect(view.queryByRole("dialog", { name: "Settings" })).toBeNull();
   expect(view.getByRole("dialog", { name: "Paused" })).toBeTruthy();
   expect(view.queryByLabelText("Master volume")).toBeNull();
+  view.unmount();
+});
+
+test("graphics detection covers the mounted menu while the canonical reel keeps running", async () => {
+  Object.defineProperty(navigator, "gpu", { configurable: true, value: {} });
+  const dispose = registerGraphicsDetectionRunner(
+    (_, signal) =>
+      new Promise((_, reject) =>
+        signal.addEventListener(
+          "abort",
+          () => reject(new DOMException("Detection cancelled", "AbortError")),
+          { once: true },
+        ),
+      ),
+  );
+  const view = render(
+    <GraphicsDetectionHost runner={null}>
+      <div data-testid="menu-reel">menu reel</div>
+    </GraphicsDetectionHost>,
+  );
+  const pending = runAutoDetect();
+  await waitFor(() => expect(view.getByTestId("graphics-detection-progress")).toBeTruthy());
+  expect(view.getByTestId("menu-reel")).toBeTruthy();
+  expect(view.getByRole("heading", { name: "Detecting Graphics" })).toBeTruthy();
+  cancelAutoDetect();
+  await expect(pending).rejects.toThrow("cancelled");
+  dispose();
   view.unmount();
 });

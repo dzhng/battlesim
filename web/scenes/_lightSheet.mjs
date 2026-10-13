@@ -40,8 +40,8 @@ const BUSY_FLASHES = Number(process.env.LIGHT_BUSY ?? 6);
 const BUSY_REACH_M = 30;
 /** Where a kind the battle never fires is found instead. */
 const FALLBACK_LABS = [
-  ["/lab/ambush", "late"],
-  ["/lab/weapons", null],
+  ["/labs/ambush", "late"],
+  ["/labs/weapons", null],
 ];
 /** The close view: how far, and its pitch. */
 const CLOSE_M = 26;

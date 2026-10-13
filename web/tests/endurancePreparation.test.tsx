@@ -40,7 +40,7 @@ test("generated endurance adopts its prepared authority instead of starting a se
     }
   }
   vi.stubGlobal("Worker", Worker);
-  window.history.replaceState(null, "", "/lab/endurance?generated=1&seed=7");
+  window.history.replaceState(null, "", "/labs/endurance?generated=1&seed=7");
   // The router scopes every lab to the test set.
   const page = render(
     <WithTestCatalog>

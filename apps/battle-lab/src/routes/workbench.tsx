@@ -956,7 +956,7 @@ export default function Workbench() {
         )}
         {!model && (
           <div className="lab-hint">
-            Drop a .glb anywhere, choose one above, or open /workbench?bundle=name.
+            Drop a .glb anywhere, choose one above, or open /labs/workbench?bundle=name.
           </div>
         )}
       </aside>
