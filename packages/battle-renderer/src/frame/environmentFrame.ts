@@ -2,9 +2,10 @@
 // the resolved light (`presentation.light` and its records) it builds the sky
 // (its LUT and background), the PMREM environment light, the sun and its
 // cascades, and hands every world material the same bind group, `shade` and
-// `sampleSunShadow`. Each frame, `prepare` poses the sky and takes the cascades
-// the presentation fitted to the camera and the map, and `setCastLights` hands every material the
-// effects' lights (`light/castLights.ts`).
+// `sampleSunShadow`. Each frame, `prepare` poses the sky and takes the
+// cascades the presentation fitted to the camera and the map, and
+// `setCastLights` hands every material the effects' lights
+// (`light/castLights.ts`).
 import type { TgpuCommandEncoder, TgpuRenderPass } from "typegpu";
 import { createTypegpuEnvironment } from "../world/environment";
 import { createTypegpuSunShadow } from "../world/shadow";

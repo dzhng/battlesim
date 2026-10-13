@@ -850,7 +850,6 @@ export function LabViewport({
           })),
         );
         const draw = () => {
-          syncSize();
           // Cleared first: a frame may ask to be drawn again (`requestRedraw`).
           dirty = false;
           scene.render(context.getCurrentTexture().createView());
@@ -891,6 +890,9 @@ export function LabViewport({
           if (signal.aborted) return;
           const dt = Math.min(0.1, (now - lastFrame) / 1000);
           lastFrame = now;
+          // Sized before the camera is framed: the frame draws at the size
+          // its camera was framed for.
+          syncSize();
           // Held camera keys, and the pointer resting at the canvas border.
           let edge: [number, number] = [0, 0];
           if (

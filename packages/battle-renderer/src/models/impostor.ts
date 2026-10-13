@@ -222,7 +222,10 @@ export function createImpostorBaker(
         const cameras = frame.views.map((view) => {
           const data = new Float32Array(CAMERA_WORDS);
           data.set(view.viewProj, CameraAt.view_proj);
-          data.set(mat4.invert(mat4.create(), view.viewProj) ?? mat4.create(), CameraAt.inv_view_proj);
+          data.set(
+            mat4.invert(mat4.create(), view.viewProj) ?? mat4.create(),
+            CameraAt.inv_view_proj,
+          );
           data.set(view.eye, CameraAt.eye);
           const buffer = scope.own(root.createBuffer(Camera).$usage("uniform"));
           buffer.write(data.buffer);

@@ -1,9 +1,7 @@
 //! The effects draw what is recorded for the same causes: every instance's
 //! sixteen floats and every cast light at fixed clocks after a few
 //! publications that exercise every kind of effect, and a fixture run's
-//! plate's effect counts replayed from its capture. The browser's TypeScript
-//! wrote both before it was deleted; the instances were re-recorded from Rust
-//! when its seeds became integer keys.
+//! plate's effect counts replayed from its capture.
 use std::path::PathBuf;
 
 use presentation::effects::frame::{

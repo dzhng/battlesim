@@ -1,8 +1,7 @@
 //! The grass field's CPU side, word for word as recorded: every installed
 //! grass kind's packed shapes and facts, and the window and frame parameters
-//! over a camera tour of both reel maps (`fixtures/grass-vectors.json`,
-//! written by `grassField.ts` and `grassPass.ts` before they moved here, with
-//! the bundles' meshes; the facts re-recorded from Rust's `hypot`).
+//! over a camera tour of both reel maps (`fixtures/grass-vectors.json`, with
+//! the bundles' meshes).
 use presentation::static_world::ground::biome::GrassRules;
 use presentation::static_world::ground::grass::{
     blade_vertices, frame_params, metres_per_pixel, pack_shapes, strip_indices, window, KindMesh,

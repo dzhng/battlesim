@@ -1,9 +1,9 @@
 //! Every frame carries its camera as a renderer uploads it: the view, the
-//! camera uniform and the sky's corner rays, the browser's to the bit.
-//! `fixtures/camera-vectors.json` recorded the page's own frame camera
-//! (`frameCamera.ts`, before it moved here) over a tour of orbit cameras:
-//! three targets, four distances, four pitches up to straight down, three
-//! yaws, three lenses and five viewports.
+//! camera uniform and the sky's corner rays, to the bit of the page's camera
+//! math (`camera3d.ts`), which picking uses. `fixtures/camera-vectors.json`
+//! recorded that math over a tour of orbit cameras: three targets, four
+//! distances, four pitches up to straight down, three yaws, three lenses and
+//! five viewports.
 use presentation::presentation::{Presentation, Ui};
 use presentation::view::Camera;
 use serde_json::Value;

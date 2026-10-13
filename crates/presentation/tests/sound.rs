@@ -2,9 +2,8 @@
 //!
 //! `fixtures/sound-vectors.json` holds every command given over the sound
 //! lab's scripted firefight, a pause, a cook-off, a reversing truck and a new
-//! battle (first written by the TypeScript `SoundFrame` this replaced,
-//! re-recorded from Rust when its seeds became integer keys). The behaviour tests below cover what a mixer
-//! needs to hold: the budget, fog of war and distance.
+//! battle. The behaviour tests below cover what a mixer needs to hold: the
+//! budget, fog of war and distance.
 use std::collections::HashMap;
 
 use presentation::effects::launches::Launch;

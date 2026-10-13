@@ -334,8 +334,9 @@ impl Presentation {
 
     /// What to draw at presentation time `time` for `camera` (eye xyz,
     /// target xyz, up xyz, fov y, near, width, height): the `FrameHeader`'s
-    /// address, with the camera's view, its uniform and the sun's cascades. Its sets are views valid until the next call. `known` is a
-    /// lab's stand-in for the publication's known props, JSON (empty: the
+    /// address, with the camera's view, its uniform and the sun's cascades.
+    /// Its sets are views valid until the next call. `known` is a lab's
+    /// stand-in for the publication's known props, JSON (empty: the
     /// publication's); a building known in a state its template lacks throws
     /// by name. `generation` is the renderer's, bumped whenever it holds no
     /// static batches: a new one is written every one.
