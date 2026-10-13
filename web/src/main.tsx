@@ -20,7 +20,9 @@ void startWithMechanics(import.meta.env.DEV, async () => {
       <BrowserRouter unstable_useTransitions={false}>
         <AppShell />
       </BrowserRouter>
-      <Analytics />
+      {/* Deployed pages only: in development the debug script is cross-origin,
+          and the page's cross-origin isolation blocks it as a page error. */}
+      {import.meta.env.PROD && <Analytics />}
     </>,
   );
 }).catch((error: Error) => {
