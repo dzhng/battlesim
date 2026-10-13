@@ -39,7 +39,15 @@ import { type CameraGroup, vertexBuffer, vertexLayout, type VertexBuffer } from 
 import { FRAME_MSAA, WORLD_OUT, worldTargets } from "./targets";
 import type { GpuRegistry } from "./registry";
 import type { WorldAppearance } from "../models/modelLayer";
-import { Batch, BATCH_WORDS, INSTANCE_WORDS, NONE, type frameViews } from "../records.gen";
+import {
+  Batch,
+  BATCH_WORDS,
+  CAST_PASS,
+  INSTANCE_WORDS,
+  NONE,
+  VIEW_PASS,
+  type frameViews,
+} from "../records.gen";
 
 /** What draws a scenery row (`Appearance.draws`). */
 const FOREST = 1,
@@ -51,7 +59,6 @@ const FOREST = 1,
 export const STUMP = 6;
 const POPULATIONS = ["forest", "understorey", "backdrop", "dressing", "felled", "stumps"] as const;
 const TIER_COUNT = 4;
-const CAST = 1;
 
 /** The instances a view drew, per population: `kind · 4 + tier`; the
  *  stumps of felled trees per kind alone (a stump has one mesh). */
@@ -692,13 +699,15 @@ export async function createSceneryLayer(
     encodeShadows(pass: TgpuRenderPass, cameraGroup: CameraGroup) {
       const bound = caster.with(pass).with(cameraGroup) as unknown as Drawable;
       const felled = felledCaster.with(pass).with(cameraGroup) as unknown as Drawable;
-      drawListed(CAST, (draws) => (draws === FELLED ? felled : bound));
+      drawListed(CAST_PASS, (draws) => (draws === FELLED ? felled : bound));
     },
     encodeDepth(pass: TgpuRenderPass, cameraGroup: CameraGroup) {
       const bound = prepass.with(pass).with(cameraGroup) as unknown as Drawable;
       const felled = felledPrepass.with(pass).with(cameraGroup) as unknown as Drawable;
       const dressing = dressingPrepass.with(pass).with(cameraGroup) as unknown as Drawable;
-      drawListed(0, (draws) => (draws === FELLED ? felled : draws === DRESSING ? dressing : bound));
+      drawListed(VIEW_PASS, (draws) =>
+        draws === FELLED ? felled : draws === DRESSING ? dressing : bound,
+      );
     },
     encode(
       pass: TgpuRenderPass,
@@ -717,7 +726,7 @@ export async function createSceneryLayer(
         colour(felledColour as unknown as typeof forestColour),
         colour(dressingColour),
       ];
-      drawListed(0, (draws) =>
+      drawListed(VIEW_PASS, (draws) =>
         draws === BACKDROP
           ? backdrop
           : draws === FELLED
@@ -741,7 +750,7 @@ export async function createSceneryLayer(
       };
       for (const h of listed) {
         const row = meshes[h.row];
-        if (!row || h.pass !== 0) continue;
+        if (!row || h.pass !== VIEW_PASS) continue;
         if (!treesShown && row.draws !== DRESSING) continue;
         if (row.draws === STUMP) out.stumps[row.kind] += h.count;
         else out[POPULATIONS[row.draws - 1]][row.kind * TIER_COUNT + h.tier] += h.count;
@@ -761,7 +770,7 @@ export async function createSceneryLayer(
         for (const h of listed) {
           const row = meshes[h.row];
           if (row?.draws !== draws) continue;
-          if (h.pass === CAST) casters += h.count;
+          if (h.pass === CAST_PASS) casters += h.count;
           else {
             tiers[h.tier] += h.count;
             triangles += (h.count * row.meshes[h.tier].vertices) / 3;

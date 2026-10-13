@@ -12,8 +12,8 @@
 //! - **Fallen.** A building the side knows destroyed leaves both and draws its
 //!   template's rows for that state, chunked by where it stands, at the tier
 //!   its chunk takes.
-use crate::records::FOG_FACES;
-use crate::static_world::batches::{List, Population, CAST_PASS, VIEW_PASS};
+use crate::records::{CAST_PASS, FOG_FACES, VIEW_PASS};
+use crate::static_world::batches::{List, Population};
 use crate::static_world::buildings::{BuildingModule, Buildings};
 use crate::view::{building_tier, caster_tier, View, TIERS};
 use std::collections::{BTreeMap, HashMap};

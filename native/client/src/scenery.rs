@@ -16,7 +16,7 @@
 //! Its batches are held between frames with the rest of the static world's
 //! (`statics.rs`).
 use presentation::presentation::Presentation;
-use presentation::static_world::batches::{CAST_PASS, VIEW_PASS};
+use presentation::records::{CAST_PASS, VIEW_PASS};
 use presentation::static_world::ground::mesh::VERTEX_FLOATS;
 use presentation::static_world::ground::walk::{Draws, DRAWS};
 use presentation::view::TIERS;

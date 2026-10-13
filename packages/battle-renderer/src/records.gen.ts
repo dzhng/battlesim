@@ -3,6 +3,10 @@
 import { d } from "typegpu";
 
 export const NONE = 0xffffffff;
+/** What a batch draws for (`Batch.pass`). */
+export const VIEW_PASS = 0;
+export const CAST_PASS = 1;
+export const GHOST_PASS = 2;
 /** How fog of war takes a batch (`Batch.fog`). */
 export const FOG_UNITS = 0;
 export const FOG_FACES = 1;
@@ -104,7 +108,7 @@ export const Batch = {
   appearance: 1,
   /** Detail tier, 0 finest; 4 is the impostor card. (u32) */
   tier: 2,
-  /** 0 drawn in view; 1 cast into the sun's cascades; 2 a translucent ghost (no shadow, no depth write). (u32) */
+  /** `VIEW_PASS`, `CAST_PASS` or `GHOST_PASS`. (u32) */
   pass: 3,
   /** The tier its instances cast into the sun's cascades with: a model in view one tier coarser, a caster batch its own, `NONE` for none (an impostor card, a ghost, a static world's view batch, which casts by its own caster batch). (u32) */
   caster: 4,

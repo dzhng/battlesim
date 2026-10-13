@@ -22,12 +22,12 @@ use crate::fog::sight::{
 use crate::light::LightSettings;
 use crate::records::{
     Appearance as Row, Batch, Camera as CameraRecord, CastLight, Counts, Effect, Emitter, Instance,
-    Joint, Pick, View as ViewRecord, FOG_FACES, FOG_GROUND, FOG_UNITS, NONE,
+    Joint, Pick, View as ViewRecord, FOG_FACES, FOG_GROUND, FOG_UNITS, GHOST_PASS, NONE, VIEW_PASS,
 };
 use crate::scars::{LearnedGround, ScarCache, ScarStats, ScarUpload, MAX_AXIS};
 use crate::shadow::{sun_shadow, SunShadowFrame};
 use crate::sound::frame::{Cue, Heard, Listener, Motion, Shout};
-use crate::static_world::batches::{Population, StaticBatches, Sun, VIEW_PASS};
+use crate::static_world::batches::{Population, StaticBatches, Sun};
 use crate::static_world::buildings::{Buildings, PlacedBuildings};
 use crate::static_world::fallen::{Knowledge, Known};
 use crate::static_world::ground::biome::Biome;
@@ -54,9 +54,6 @@ use crate::world::{
 
 /// Publications kept for the effects while the world loads: two minutes at 30 Hz.
 const PENDING_MAX: usize = 3600;
-
-/// A batch's pass for a placement preview (the others are 0 view, 1 caster).
-pub const GHOST_PASS: u32 = 2;
 
 /// What the UI decides of a frame.
 #[derive(Default)]

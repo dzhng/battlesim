@@ -24,8 +24,8 @@
 use super::biome::Felled as FelledRules;
 use super::scenery::{Scenery, Size, DRESSING_CELL_M, FLOATS};
 use super::Ground;
-use crate::records::{FOG_FACES, NONE};
-use crate::static_world::batches::{print, List, Population, CAST_PASS, VIEW_PASS};
+use crate::records::{CAST_PASS, FOG_FACES, NONE, VIEW_PASS};
+use crate::static_world::batches::{print, List, Population};
 use crate::static_world::walk::{casts_into, Record, Shadow};
 use crate::view::{caster_tier, View, TIERS};
 use std::collections::{HashMap, HashSet};

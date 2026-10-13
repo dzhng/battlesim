@@ -13,9 +13,8 @@
 //! tier.
 use std::collections::{BTreeMap, HashMap};
 
-use presentation::presentation::{Presentation, GHOST_PASS};
-use presentation::records::{Joint, NONE};
-use presentation::static_world::batches::{CAST_PASS, VIEW_PASS};
+use presentation::presentation::Presentation;
+use presentation::records::{Joint, CAST_PASS, GHOST_PASS, NONE, VIEW_PASS};
 use presentation::static_world::props::{DRAWS_PROP, DRAWS_PROP_GROUND};
 use presentation::view::IMPOSTOR;
 use wgpu::*;

@@ -9,14 +9,11 @@
 // for each of the models' draws.
 import { tgpu, d } from "typegpu";
 import { fogIsGround, fogTerm } from "../frame/fogTerm";
+import { FOG_FACES, FOG_GROUND, FOG_PAINTED_FACES, FOG_UNITS } from "../records.gen";
 import type { ModelPose } from "./modelInstances";
 
 /** Which fog group a draw binds (`FogVisibility` layers). */
 export type ModelFog = "units" | "faces" | "ground" | "paintedFaces";
-export const UNITS = 0;
-const FACES = 1;
-const GROUND = 2;
-const PAINTED_FACES = 3;
 export const FOG_CLASSES = 4;
 
 /**
@@ -32,11 +29,12 @@ export function modelFog(pose: ModelPose): ModelFog {
   if (pose.kind === "static" && pose.ground) return "paintedFaces";
   return pose.kind === "corpse" ? "ground" : "faces";
 }
+/** Each class's group, numbered as a batch names it (`Batch.fog`). */
 export const FOG_INDEX: Record<ModelFog, number> = {
-  units: UNITS,
-  faces: FACES,
-  ground: GROUND,
-  paintedFaces: PAINTED_FACES,
+  units: FOG_UNITS,
+  faces: FOG_FACES,
+  ground: FOG_GROUND,
+  paintedFaces: FOG_PAINTED_FACES,
 };
 /** Fog for a model's fragment: through the ground group, whole at its foot
  *  as the ground there is (corpses); otherwise face by face (the units' group

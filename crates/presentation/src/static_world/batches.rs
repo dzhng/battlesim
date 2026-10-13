@@ -6,14 +6,10 @@
 //! renderer draws what it holds. A renderer that holds nothing says so with
 //! a new generation, and is written every list.
 use crate::presentation::Frame;
-use crate::records::{Batch, NONE};
+use crate::records::{Batch, CAST_PASS, NONE};
 use crate::static_world::walk::{Record, Shadow};
 use crate::view::{Camera, View};
 use std::collections::HashMap;
-
-/// A batch's pass: drawn into the view, or cast into the sun's cascades.
-pub const VIEW_PASS: u32 = 0;
-pub const CAST_PASS: u32 = 1;
 
 /// One list a population draws: its appearance row, tier and pass, the tier
 /// it casts with and how fog takes it (`Batch.caster`, `Batch.fog`), its
@@ -181,7 +177,7 @@ impl StaticBatches {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::records::FOG_FACES;
+    use crate::records::{FOG_FACES, VIEW_PASS};
 
     /// One building's list that never changes.
     struct Still([Record; 1]);

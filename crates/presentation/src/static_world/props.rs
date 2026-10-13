@@ -35,9 +35,9 @@
 //! Each drawn model takes the units' tier rule (`view::model_detail`) by its
 //! appearance's size grown by its largest scale, and is listed by look (its
 //! appearance, state, and whether movers stand on it) and tier.
-use crate::records::{FOG_FACES, FOG_PAINTED_FACES};
+use crate::records::{FOG_FACES, FOG_PAINTED_FACES, VIEW_PASS};
 use crate::seed::Key;
-use crate::static_world::batches::{List, Population, VIEW_PASS};
+use crate::static_world::batches::{List, Population};
 use crate::static_world::fallen::Known;
 use crate::static_world::walk::{Record, Shadow};
 use crate::view::{caster_tier, model_detail, View, CULLED, SHADOW_MARGIN_M, TIERS};

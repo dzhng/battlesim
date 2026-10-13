@@ -19,7 +19,15 @@
 // buffer changes.
 import { TIER_COUNT } from "@packages/scene-assets/src/schema";
 import type { GpuRegistry } from "../frame/registry";
-import { Batch, BATCH_WORDS, INSTANCE_WORDS, NONE, type frameViews } from "../records.gen";
+import {
+  Batch,
+  BATCH_WORDS,
+  CAST_PASS,
+  INSTANCE_WORDS,
+  NONE,
+  VIEW_PASS,
+  type frameViews,
+} from "../records.gen";
 import type { WorldAppearance } from "./modelLayer";
 import {
   SURFACE_CLASSES,
@@ -31,10 +39,6 @@ import {
 } from "./surfaceParts";
 
 const VERTEX_USAGE = 0x20 | 0x08; // VERTEX | COPY_DST
-/** A static batch's passes (`Batch.pass`): drawn into the view, cast into
- *  the sun's cascades. */
-const VIEW = 0;
-const CAST = 1;
 
 /** A module's mesh at one tier: ranges of its kit's buffers for that tier,
  *  one per surface class (`surfaceParts.ts`), `count` indices in all. */
@@ -178,8 +182,8 @@ export function createBuildingLayer(device: GPUDevice, registry: GpuRegistry) {
       const mesh = row && source?.(row.name, row.state, tier);
       if (!mesh) continue;
       const count = batches[o + Batch.count];
-      const view = batches[o + Batch.pass] === VIEW;
-      push(lists[view ? VIEW : CAST], mesh, batches[o + Batch.first], count);
+      const view = batches[o + Batch.pass] === VIEW_PASS;
+      push(lists[view ? VIEW_PASS : CAST_PASS], mesh, batches[o + Batch.first], count);
       if (view) {
         tiers[tier] += count;
         triangles[tier] += (count * mesh.count) / 3;
@@ -300,7 +304,7 @@ export function createBuildingLayer(device: GPUDevice, registry: GpuRegistry) {
       surface: SurfacePart,
       hidden: Readonly<SurfaceFlags>,
     ) {
-      if (shown) drawList(lists[VIEW], bind, raw, surface, hidden);
+      if (shown) drawList(lists[VIEW_PASS], bind, raw, surface, hidden);
     },
     /** One kind of surface of every casting building into one of the sun's cascades. */
     drawCasters(
@@ -309,7 +313,7 @@ export function createBuildingLayer(device: GPUDevice, registry: GpuRegistry) {
       surface: SurfacePart,
       hidden: Readonly<SurfaceFlags>,
     ) {
-      if (shown) drawList(lists[CAST], bind, raw, surface, hidden);
+      if (shown) drawList(lists[CAST_PASS], bind, raw, surface, hidden);
     },
     /** The module instances the last view drew, per row (a walked module)
      *  and tier (`row · 4 + tier`); none while they are hidden. */
@@ -318,7 +322,7 @@ export function createBuildingLayer(device: GPUDevice, registry: GpuRegistry) {
       if (!shown) return counts;
       for (let b = 0; b < batchCount; b++) {
         const o = b * BATCH_WORDS;
-        if (batches[o + Batch.pass] !== VIEW) continue;
+        if (batches[o + Batch.pass] !== VIEW_PASS) continue;
         counts[batches[o + Batch.appearance] * TIER_COUNT + batches[o + Batch.tier]] +=
           batches[o + Batch.count];
       }
@@ -332,8 +336,8 @@ export function createBuildingLayer(device: GPUDevice, registry: GpuRegistry) {
         recordBytes: buffer?.size ?? 0,
         tiers: [...tiers],
         triangles: [...triangles],
-        draws: lists[VIEW].count,
-        casterDraws: lists[CAST].count,
+        draws: lists[VIEW_PASS].count,
+        casterDraws: lists[CAST_PASS].count,
         casterTriangles,
         uploadBytes,
         totalUploadBytes,

@@ -7,6 +7,12 @@
 /// `u32::MAX`: no row, no id.
 pub const NONE: u32 = u32::MAX;
 
+/// What a batch draws for (`Batch.pass`): the view; the sun's cascades; a
+/// placement ghost, translucent (no shadow, no depth write).
+pub const VIEW_PASS: u32 = 0;
+pub const CAST_PASS: u32 = 1;
+pub const GHOST_PASS: u32 = 2;
+
 /// How fog of war takes a batch (`Batch.fog`): a unit never (it is drawn
 /// only while identified); the world's faces one by one; remains lying on
 /// the ground whole, as the ground under them; a surface movers stand on
@@ -189,8 +195,7 @@ records! {
         appearance: u32,
         /// Detail tier, 0 finest; 4 is the impostor card.
         tier: u32,
-        /// 0 drawn in view; 1 cast into the sun's cascades; 2 a translucent
-        /// ghost (no shadow, no depth write).
+        /// `VIEW_PASS`, `CAST_PASS` or `GHOST_PASS`.
         pass: u32,
         /// The tier its instances cast into the sun's cascades with: a
         /// model in view one tier coarser, a caster batch its own, `NONE`
@@ -586,6 +591,12 @@ pub fn typescript() -> String {
          import { d } from \"typegpu\";\n\n\
          export const NONE = 0xffffffff;\n",
     );
+    out.push_str(&format!(
+        "/** What a batch draws for (`Batch.pass`). */\n\
+         export const VIEW_PASS = {VIEW_PASS};\n\
+         export const CAST_PASS = {CAST_PASS};\n\
+         export const GHOST_PASS = {GHOST_PASS};\n",
+    ));
     out.push_str(&format!(
         "/** How fog of war takes a batch (`Batch.fog`). */\n\
          export const FOG_UNITS = {FOG_UNITS};\n\

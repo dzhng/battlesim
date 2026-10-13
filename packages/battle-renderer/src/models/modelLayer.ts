@@ -76,13 +76,15 @@ import {
   type SurfaceParts,
 } from "./surfaceParts";
 import type { DetailView } from "../frame/detailView";
-import { FOG_CLASSES, FOG_INDEX, UNITS, modelFog, modelSeen, type ModelFog } from "./modelFog";
+import { FOG_CLASSES, FOG_INDEX, modelFog, modelSeen, type ModelFog } from "./modelFog";
 import type { GpuRegistry, GpuSlot } from "../frame/registry";
 import { restingModelPose, type ModelInstance, type ModelPose } from "./modelInstances";
 import {
   BATCH_WORDS,
   Batch,
   Counts,
+  FOG_UNITS,
+  GHOST_PASS,
   INSTANCE_WORDS,
   Instance,
   JOINT_WORDS,
@@ -202,8 +204,6 @@ const PROP_GROUND = 8;
 const isProp = (row: WorldAppearance | undefined) =>
   !!row?.placed && (row.draws === PROP || row.draws === PROP_GROUND);
 
-/** A batch's pass for a placement preview (`Batch.pass`). */
-const GHOST_PASS = 2;
 /** A posed body's or vehicle's drawable and fog class. */
 const POSED: ModelPose = { kind: "posed", palette: new Float32Array(0) };
 
@@ -1335,7 +1335,7 @@ export async function createModelLayer(
         base = cursor++;
         writeJoint(paletteStaging, base, pose.motion);
       }
-      if (choice % DRAW_CLASSES === UNITS && (inst.xray?.[3] ?? 0) > 0) hasXrayMeshes = true;
+      if (choice % DRAW_CLASSES === FOG_UNITS && (inst.xray?.[3] ?? 0) > 0) hasXrayMeshes = true;
       writeRecord(recordStaging, bucketCursor[choice]++, inst, base, scrollL, scrollR, -1);
     }
 
@@ -1374,7 +1374,7 @@ export async function createModelLayer(
     }
     cardRunCount = 0;
     // Only skinned bodies carry atlases, so a lab's card is a standing soldier.
-    if (unitCards) pushCardRun(false, UNITS, 0, unitCards);
+    if (unitCards) pushCardRun(false, FOG_UNITS, 0, unitCards);
     cardStaging.set(frameCards.subarray(0, frameCardCount * RECORD_FLOATS), card * RECORD_FLOATS);
     for (const r of frameCardRuns) pushCardRun(false, r.fog, card + r.first, r.count);
     card += frameCardCount;
@@ -1534,7 +1534,7 @@ export async function createModelLayer(
         frameStats.bodyTiers[drawable.tier] += count;
         frameStats.skinned += count;
       }
-      if (fog === UNITS && !ghost)
+      if (fog === FOG_UNITS && !ghost)
         for (let i = first; i < first + count; i++)
           if (instances.f32[i * RECORD_FLOATS + 15] > 0) frameXray = true;
     }
