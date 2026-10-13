@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
-import type { LearnedGround, ObservationDecoder } from "@web/battle/sim/presentation";
+import type { LearnedGround, ScenePresentation } from "@web/battle/sim/presentation";
 import type { ObservationView } from "@web/battle/sim/observationView";
 import type { SideName } from "@web/battle/sim/protocol";
 import game from "@fixtures/game.json";
@@ -137,7 +137,7 @@ function GroundInspector({ scenario, seed, camera, legend, extra }: InspectorPro
   const maxDelta = useRef(0);
   // The cells the latest patch covered, read from the presentation as it decodes.
   const lastCells = useRef(0);
-  const decoderRef = useRef<ObservationDecoder | null>(null);
+  const decoderRef = useRef<ScenePresentation | null>(null);
   // The session's view of the side's learned ground (set once it exists).
   const groundRef = useRef<{ current: LearnedGround | null } | null>(null);
   const refreshGround = useCallback((tick?: number) => {

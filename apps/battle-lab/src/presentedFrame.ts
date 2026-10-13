@@ -60,7 +60,7 @@ export const emptyEffectCounts = (): EffectCounts => ({
 /** The smallest drawing the battle frame renders, pixels (`battleFrame.ts`). */
 const MIN_TARGET_PX = 64;
 
-/** 18b's camera for the viewport's orbit camera, as the battle frame draws it. */
+/** The presentation's camera for the viewport's orbit camera, as the battle frame draws it. */
 export function presentedCamera(viewport: ViewportCamera): PresentedCamera {
   const camera = liveCamera(viewport);
   const s = Math.sin(camera.pitch);

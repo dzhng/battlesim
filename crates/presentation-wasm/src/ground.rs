@@ -34,10 +34,6 @@ fn ground(inner: &Inner) -> Result<&Ground, JsError> {
         .ok_or_else(|| JsError::new("no ground is set"))
 }
 
-fn json(e: impl ToString) -> JsError {
-    JsError::new(&e.to_string())
-}
-
 #[wasm_bindgen]
 impl Presentation {
     /// Sets the map's ground: `extents` is the physical map's `[min x, min y,
@@ -74,7 +70,7 @@ impl Presentation {
         family: Option<String>,
         tuning: &str,
     ) -> Result<(), JsError> {
-        let g: GridHeader = serde_json::from_str(grid).map_err(json)?;
+        let g: GridHeader = serde_json::from_str(grid).map_err(error)?;
         let source = Source {
             map: extents[..4].try_into().unwrap(),
             playable: extents[4..8].try_into().unwrap(),
@@ -89,7 +85,7 @@ impl Presentation {
                 heights,
             },
             props,
-            kinds: ground::prop_kinds(layout).map_err(json)?,
+            kinds: ground::prop_kinds(layout).map_err(error)?,
             foliage,
             surface_strokes,
             surface_runs,
@@ -105,10 +101,10 @@ impl Presentation {
             forest_boundaries,
             forest_trunk_ranges,
         };
-        let biome = Biome::load(biome, family.as_deref()).map_err(json)?;
+        let biome = Biome::load(biome, family.as_deref()).map_err(error)?;
         self.grass = Some(biome.grass.clone());
         let tuning: Tuning =
-            serde_json::from_str(tuning).map_err(|e| json(format!("tuning: {e}")))?;
+            serde_json::from_str(tuning).map_err(|e| error(format!("tuning: {e}")))?;
         self.inner.set_ground(source, biome, tuning).map_err(error)
     }
 
@@ -136,7 +132,7 @@ impl Presentation {
     /// differ in a single number.
     pub fn retune_grass(&mut self, rules: Option<String>) -> Result<(), JsError> {
         let rules = match rules {
-            Some(text) => serde_json::from_str(&text).map_err(json)?,
+            Some(text) => serde_json::from_str(&text).map_err(error)?,
             None => self
                 .grass
                 .clone()
@@ -220,7 +216,7 @@ impl Presentation {
     /// and tints; the map's regional family; the models' tiers) under the
     /// world `layout`; drawn from the next `load_world`.
     pub fn place_props(&mut self, layout: &str, art: &str) -> Result<(), JsError> {
-        let input = serde_json::from_str(art).map_err(|e| json(format!("props: {e}")))?;
+        let input = serde_json::from_str(art).map_err(|e| error(format!("props: {e}")))?;
         let records = ground(&self.inner)?.source.props.clone();
         self.inner
             .place_props(&records, layout, input)
@@ -457,7 +453,7 @@ impl GrassShapes {
         uvs: &[f32],
         colors: &[u8],
     ) -> Result<GrassShapes, JsError> {
-        let names: Vec<String> = serde_json::from_str(names).map_err(json)?;
+        let names: Vec<String> = serde_json::from_str(names).map_err(error)?;
         let mut at = 0;
         let mut v = 0;
         let mut kinds = Vec::with_capacity(names.len());
@@ -556,7 +552,7 @@ pub fn grass_frame_params(
 /// JSON list of names: what the models layer installs for them.
 #[wasm_bindgen]
 pub fn prop_appearances(layout: &str, props: &[f32], art: &str) -> Result<String, JsError> {
-    let input = serde_json::from_str(art).map_err(|e| json(format!("props: {e}")))?;
+    let input = serde_json::from_str(art).map_err(|e| error(format!("props: {e}")))?;
     let names =
         presentation::static_world::props::appearances(props, layout, input).map_err(error)?;
     Ok(serde_json::to_string(&names).unwrap())

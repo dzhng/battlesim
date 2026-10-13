@@ -15,7 +15,7 @@ import {
   world_layout,
 } from "@wasm/game_wasm.js";
 import type { ObservationLayout } from "../src/battle/sim/observationView";
-import { ObservationDecoder, loadPresentation } from "../src/battle/sim/presentation";
+import { ScenePresentation, loadPresentation } from "../src/battle/sim/presentation";
 import { sightMultiplier } from "@packages/battle-renderer/src/sightOverlay";
 import { FogParams } from "@packages/battle-renderer/src/records.gen";
 import {
@@ -68,7 +68,7 @@ function fogOver(
   sensorRules: object,
   publication?: { layout: ObservationLayout; words: Float32Array },
 ) {
-  const decoder = new ObservationDecoder(publication?.layout);
+  const decoder = new ScenePresentation(publication?.layout);
   const { exports, layout } = staticWorld(map);
   decoder.setGround(
     { exports, layout: JSON.stringify(layout), biome: gameBiome, family: null },

@@ -1,4 +1,4 @@
-//! The battle's light as the shaders read it (18b's `World.light`): the
+//! The battle's light as the shaders read it (`World.light`): the
 //! fixture's `presentation.light` resolved into the uniform records of the
 //! sky, the haze, the sun and post ([`LightRecords`]). The sky model is a
 //! Hillaire-style atmosphere whose turbidity sets the haze, the sun's tint and

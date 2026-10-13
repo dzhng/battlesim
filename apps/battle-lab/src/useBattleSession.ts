@@ -84,7 +84,7 @@ import { assignments as voiceAssignments } from "@fixtures/voices.json";
 import { factionVoices } from "@packages/battle-audio/src/voices/voiceCatalog";
 import { frameCounts, presentationWorld, presentedCamera } from "./presentedFrame";
 import { gameLight } from "./gameLight";
-import type { FogRequest, ObservationDecoder } from "@web/battle/sim/presentation";
+import type { FogRequest, ScenePresentation } from "@web/battle/sim/presentation";
 import type { ViewportCamera } from "@packages/renderer-core/src/cameraUniform";
 import { useAppAudio } from "./AppAudio";
 import { useFeed } from "./feed";
@@ -207,7 +207,7 @@ export function useBattleSession({
   const responses = useRef<UnitResponses | null>(null);
   // The presentation notes every publication for the effects as it decodes
   // it (`presentation.ts`); sound hears the same.
-  const presentationRef = useRef<ObservationDecoder | null>(null);
+  const presentationRef = useRef<ScenePresentation | null>(null);
   const noteDecoded = useCallback(
     (o: ObservationView, digest: string) => {
       const presentation = presentationRef.current;
@@ -1068,7 +1068,7 @@ export function useBattleSession({
     },
     /** The vehicles as last posed: appearance, placement and articulation. */
     vehicles: () => presentationRef.current?.probe().vehicles ?? [],
-    /** What the props draw (`ObservationDecoder.propStats`): the bodies drawn,
+    /** What the props draw (`ScenePresentation.propStats`): the bodies drawn,
      *  those a building draws, those no model draws, the models placed and
      *  those drawing what the side knows. */
     structureBodies: () => presentationRef.current?.propStats() ?? null,

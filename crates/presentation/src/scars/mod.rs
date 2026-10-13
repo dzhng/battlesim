@@ -1,4 +1,4 @@
-//! The side's learned ground and the GPU's cache of its scars (slice 16):
+//! The side's learned ground and the GPU's cache of its scars:
 //! [`LearnedGround`] keeps what the side's publications taught it, cell by
 //! cell, and [`ScarCache`] turns it into what a renderer uploads as it is:
 //! the directory's words, the pool's texels and `ScarParams`' words before

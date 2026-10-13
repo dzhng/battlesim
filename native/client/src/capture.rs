@@ -1,5 +1,4 @@
-//! A browser parity run's scene, replayed through the presentation crate as
-//! 18b's capture replay does: the map's ground set and its scenery and props placed,
+//! A browser parity run's scene, replayed through the presentation crate: the map's ground set and its scenery and props placed,
 //! the battle's world loaded once, then for each frame record in order,
 //! every publication up to its tick pushed and `frame()` asked at its sim
 //! time and camera. Every record is framed, since poses, effects and the

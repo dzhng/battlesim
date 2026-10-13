@@ -2,7 +2,7 @@
 import { readFileSync } from "node:fs";
 import { expect, test } from "vitest";
 import type { ObservationLayout } from "../src/battle/sim/observationView";
-import { ObservationDecoder, loadPresentation } from "../src/battle/sim/presentation";
+import { ScenePresentation, loadPresentation } from "../src/battle/sim/presentation";
 
 await loadPresentation();
 
@@ -72,7 +72,7 @@ function packet(
 }
 
 test("group replacements preserve signed zero, earlier views and untouched persistent rows", () => {
-  const decoder = new ObservationDecoder(layout);
+  const decoder = new ScenePresentation(layout);
   const before = decoder.decode(packet("base", 1, true))!;
   const corpseGroup = layout.groups.findIndex((g) => g.name === "corpses");
   const after = decoder.decode(packet("base", 2, false, new Map([[corpseGroup, [0, 1, -0]]])))!;
@@ -83,7 +83,7 @@ test("group replacements preserve signed zero, earlier views and untouched persi
 });
 
 test("bad group ranges cannot advance any cursor; a corrected generation still applies", () => {
-  const decoder = new ObservationDecoder(layout);
+  const decoder = new ScenePresentation(layout);
   decoder.decode(packet("base", 1, true));
   const corpseGroup = layout.groups.findIndex((g) => g.name === "corpses");
   expect(() =>
@@ -95,7 +95,7 @@ test("bad group ranges cannot advance any cursor; a corrected generation still a
 });
 
 test("group growth must supply every new word and rejects gaps without consuming the generation", () => {
-  const decoder = new ObservationDecoder(layout);
+  const decoder = new ScenePresentation(layout);
   const before = decoder.decode(packet("base", 1, true))!;
   const group = layout.groups.findIndex((g) => g.name === "corpses");
   const words = Array.from(logical("base").groups[group]);
@@ -122,7 +122,7 @@ test("fixed-row copies retain exact canonical order through insertion, removal a
   const c = [...a];
   c[0] = 7;
   c[4] += 2;
-  const decoder = new ObservationDecoder(layout);
+  const decoder = new ScenePresentation(layout);
   const before = decoder.decode(
     packet("base", 1, true, new Map([[group, [...a, ...b]]]), new Map([[group, 18]])),
   )!;
@@ -136,7 +136,7 @@ test("fixed-row copies retain exact canonical order through insertion, removal a
       new Map([[group, 2]]),
     ),
   )!;
-  const oracle = new ObservationDecoder(layout).decode(
+  const oracle = new ScenePresentation(layout).decode(
     packet("base", 1, true, new Map([[group, [...b, ...c, ...a]]]), new Map([[group, 27]])),
   )!;
   expect(after.corpses).toEqual(oracle.corpses);
@@ -158,7 +158,7 @@ test("fixed-row copies retain exact canonical order through insertion, removal a
 test("malformed row copies leave the generation available for a corrected complete assembly", () => {
   const group = layout.groups.findIndex((g) => g.name === "corpses");
   const words = Array.from(logical("base").groups[group]);
-  const decoder = new ObservationDecoder(layout);
+  const decoder = new ScenePresentation(layout);
   const before = decoder.decode(packet("base", 1, true))!;
   const sizes = new Map([[group, words.length * 2]]);
   const encodings = new Map([[group, 2]]);
@@ -191,7 +191,7 @@ test("variable word copies insert and remove a route without consuming invalid g
   const added = [...words];
   added[routeCount] = 1;
   added.splice(routeStart, 0, 3, -0);
-  const decoder = new ObservationDecoder(layout);
+  const decoder = new ScenePresentation(layout);
   const before = decoder.decode(packet("base", 1, true))!;
   const sizes = new Map([[group, added.length]]);
   const encodings = new Map([[group, 2]]);
@@ -223,7 +223,7 @@ test("variable word copies insert and remove a route without consuming invalid g
   const after = decoder.decode(
     packet("base", 2, false, new Map([[group, payload]]), sizes, encodings),
   )!;
-  const oracle = new ObservationDecoder(layout).decode(
+  const oracle = new ScenePresentation(layout).decode(
     packet("base", 1, true, new Map([[group, added]]), sizes),
   )!;
   expect(after.own).toEqual(oracle.own);
@@ -260,7 +260,7 @@ test("variable word copies insert and remove a route without consuming invalid g
 });
 
 test("unchanged static groups reuse immutable arrays and rows while own units change", () => {
-  const decoder = new ObservationDecoder(layout);
+  const decoder = new ScenePresentation(layout);
   const before = decoder.decode(packet("base", 1, true))!;
   const own = layout.groups.findIndex((g) => g.name === "own");
   const x = layout.groups[own].fields.indexOf("x");
@@ -276,7 +276,7 @@ test("unchanged static groups reuse immutable arrays and rows while own units ch
 });
 
 test("cached static views still validate counts and commit only after the complete frame", () => {
-  const decoder = new ObservationDecoder(layout);
+  const decoder = new ScenePresentation(layout);
   const before = decoder.decode(packet("base", 1, true))!;
   const corpse = layout.groups.findIndex((g) => g.name === "corpses");
   const prop = layout.groups.findIndex((g) => g.name === "knownProps");
@@ -322,7 +322,7 @@ test("cached static views still validate counts and commit only after the comple
 });
 
 test("new epochs and side invalidation replace static views without accepting stale snapshots", () => {
-  const decoder = new ObservationDecoder(layout);
+  const decoder = new ScenePresentation(layout);
   const before = decoder.decode(packet("base", 1, true))!;
   decoder.invalidate("red");
   expect(decoder.decode(packet("base", 1, true))).toBeNull();
@@ -370,7 +370,7 @@ function compactPacket(revision: number, group: number, body: Float32Array) {
 }
 
 test("packed snapshots and residuals preserve NaN payload baselines, signed zero and prior frames", () => {
-  const decoder = new ObservationDecoder(layout);
+  const decoder = new ScenePresentation(layout);
   const g = layout.groups.findIndex((group) => group.name === "corpses");
   const raw = new Uint32Array(logical("base").groups[g].slice().buffer);
   raw[0] = 0x7fc12345;
@@ -401,7 +401,7 @@ test("packed snapshots and residuals preserve NaN payload baselines, signed zero
 });
 
 test("malformed packed groups roll back atomically and allow the corrected same generation", () => {
-  const decoder = new ObservationDecoder(layout);
+  const decoder = new ScenePresentation(layout);
   const before = decoder.decode(packet("base", 1, true))!;
   const g = layout.groups.findIndex((group) => group.name === "corpses");
   const fixtures = [
@@ -479,7 +479,7 @@ test("malformed packed groups roll back atomically and allow the corrected same 
     put(1, 8);
     put(5, 4);
   });
-  expect(() => new ObservationDecoder(layout).decode(compactPacket(1, g, coldXor))).toThrow(/tag/);
+  expect(() => new ScenePresentation(layout).decode(compactPacket(1, g, coldXor))).toThrow(/tag/);
 });
 
 function groundPacket(revision: number, rows: number, body: Float32Array) {
@@ -494,7 +494,7 @@ function groundPacket(revision: number, rows: number, body: Float32Array) {
 }
 
 test("packed ground preserves marks and retained rows, rejects invalid tails before retry", () => {
-  const decoder = new ObservationDecoder(layout);
+  const decoder = new ScenePresentation(layout);
   const full = compactBits((put) => {
     put(0, 8);
     put(0, 8);
@@ -566,7 +566,7 @@ test("a packed ground NaN carrier reconstructs finite canonical rows bit-exactly
   expect(new Uint32Array(body.buffer)[0]).toBe(0x7fc12345);
   const copied = body.slice();
   const wider = { ...layout, ground: { ...layout.ground, cols: 160, rows: 160 } };
-  const decoder = new ObservationDecoder(wider);
+  const decoder = new ScenePresentation(wider);
   decoder.decode(groundPacket(1, 1, copied));
   const expected = Float32Array.of(69, 35 + 194 * 256, 3 + 255 * 256, 16777215);
   expect(new Uint32Array(decoder.wasm.ground_runs().buffer)).toEqual(

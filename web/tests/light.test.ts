@@ -16,7 +16,7 @@ import { loadPresentation, resolveLight } from "@web/battle/sim/presentation";
 import { createTypegpuPost } from "@packages/battle-renderer/src/world/post.ts";
 import { Camera } from "@packages/battle-renderer/src/world/camera.ts";
 import { SunShadow } from "@packages/battle-renderer/src/world/shadow.ts";
-import { SunShadow as SunShadowFit } from "@wasm/presentation/presentation_wasm.js";
+import { SunShadowFit } from "@wasm/presentation/presentation_wasm.js";
 import { d } from "typegpu";
 
 await loadPresentation();

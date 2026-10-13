@@ -5,7 +5,7 @@ import { Battle, initSync } from "@wasm/game_wasm.js";
 import { labScenario, TEST_RULES } from "./catalog";
 import { projectileReviewRules } from "@apps/battle-lab/src/projectileReview";
 import type { ObservationLayout } from "../src/battle/sim/observationView";
-import { ObservationDecoder, loadPresentation } from "../src/battle/sim/presentation";
+import { ScenePresentation, loadPresentation } from "../src/battle/sim/presentation";
 
 await loadPresentation();
 
@@ -43,7 +43,7 @@ test("review combat keeps firing with unlimited reserves and leaves every body a
     ),
     12,
   );
-  const decoder = new ObservationDecoder(
+  const decoder = new ScenePresentation(
     JSON.parse(battle.observation_layout()) as ObservationLayout,
   );
   const observe = (side: string) => {
