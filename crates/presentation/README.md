@@ -18,7 +18,13 @@ wherever it runs.
 ## What it owns
 
 - [Records](src/records.rs): every record a renderer reads, defined once;
-  `records_are_current` generates `packages/battle-renderer/src/records.gen.ts`.
+  `records_are_current` generates `packages/battle-renderer/src/records.gen.ts`,
+  with each struct record's TypeGPU schema, so the browser's uniform and
+  storage structs are Rust's.
+- [The runtime assets](src/assets.rs): the one reader of the scene-assets
+  container the template library and the bundles travel in, and (feature
+  `files`) of the runtime directory: its catalog and each gzipped transport
+  file. The native client reads its models through it.
 - [Units](src/units/): interpolation between ticks, the pose feed and driver,
   articulation, joint palettes (and each skinned row's rest palette: a corpse
   as it lies, a body in its far pose, which a renderer poses its mesh by once),

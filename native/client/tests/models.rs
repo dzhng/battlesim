@@ -3,9 +3,10 @@
 //! Reads the fixture run's world and the rifleman's bundle (Git LFS).
 use std::path::Path;
 
-use native_client::bundle::{Library, Shape, RUNTIME};
+use native_client::bundle::{Library, Shape};
 use native_client::capture::Replay;
 use native_client::models::posed_mesh;
+use presentation::assets::RUNTIME;
 use presentation::records::NONE;
 
 const RUN: &str = concat!(
