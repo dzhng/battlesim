@@ -18,7 +18,7 @@ import {
   vehicleClass,
   type UnitCatalog,
 } from "@packages/scene-assets/src/units";
-import { buildClipTable } from "@packages/battle-renderer/src/models/clipTable";
+import { buildClipTable } from "./clipTable";
 import type {
   AppearanceMuzzle,
   AppearanceRecord,

@@ -51,24 +51,13 @@ export interface Lens {
   far: "infinite";
 }
 
-/** Something the browser meant to draw and did not. */
-export interface Omission {
-  owner: string;
-  reason: string;
-  sourceId: string;
-}
-
-/** The light the battle frame was built with (`presentation.light`, as
- *  `validateLight` admits it), with the one sun direction its angles give
- *  (`sunDirection`): a unit vector toward the sun in sim space, z up. */
-export type ManifestLight = LightPresentation & { sunDirection: [number, number, number] };
-
 /** What the page knows of its own drawing; the files give the rest. */
 export interface DrawnPresentation {
   lens: Lens;
-  light: ManifestLight;
+  /** The light the battle frame was built with (`presentation.light`, as
+   *  `validateLight` admits it). */
+  light: LightPresentation;
   layers: readonly PresentationLayer[];
-  omissions: readonly Omission[];
   /** What poses and draws the battle's units (`unitManifest.ts`). */
   units: DrawnUnits;
   /** What stands the side's fallen buildings (`propManifest.ts`). */
@@ -137,7 +126,6 @@ const MANIFEST_KEYS = [
   "lens",
   "light",
   "layers",
-  "omissions",
   "grassCounts",
   "instanceCounts",
   "units",
@@ -148,21 +136,6 @@ const MANIFEST_KEYS = [
 ];
 const text = (value: unknown) => typeof value === "string" && value.length > 0;
 const isHash = (value: unknown) => typeof value === "string" && /^[0-9a-f]{64}$/.test(value);
-
-/** `value` as the manifest's light: an object with a unit sun direction.
- *  The page admitted its numbers (`validateLight`) and derived the direction. */
-function validateManifestLight(value: unknown): ManifestLight {
-  if (!isRecord(value)) throw new Error("visual presentation light is malformed");
-  const sun = value.sunDirection;
-  if (
-    !Array.isArray(sun) ||
-    sun.length !== 3 ||
-    !sun.every(finite) ||
-    Math.abs(Math.hypot(...(sun as number[])) - 1) > 1e-6
-  )
-    throw new Error("visual presentation light needs a unit sunDirection");
-  return value as unknown as ManifestLight;
-}
 
 const count = (value: unknown) => Number.isInteger(value) && (value as number) >= 0;
 const positive = (value: unknown) => finite(value) && value > 0;
@@ -231,7 +204,7 @@ export function validateVisualPresentation(value: unknown): VisualPresentation {
     lens.far !== "infinite"
   )
     throw new Error("visual presentation lens is malformed");
-  validateManifestLight(value.light);
+  if (!isRecord(value.light)) throw new Error("visual presentation light is malformed");
   const layers = value.layers;
   if (
     !Array.isArray(layers) ||
@@ -239,15 +212,6 @@ export function validateVisualPresentation(value: unknown): VisualPresentation {
     new Set(layers).size !== layers.length
   )
     throw new Error("visual presentation layers must be distinct known layer names");
-  const omissions = value.omissions;
-  if (
-    !Array.isArray(omissions) ||
-    !omissions.every(
-      (o) =>
-        hasKeys(o, ["owner", "reason", "sourceId"]) && [o.owner, o.reason, o.sourceId].every(text),
-    )
-  )
-    throw new Error("visual presentation omission rows need an owner, reason and sourceId");
   const grass = value.grassCounts;
   if (
     !Array.isArray(grass) ||
@@ -364,7 +328,6 @@ export async function writeVisualPresentation({
     lens: drawn.lens,
     light: drawn.light,
     layers: drawn.layers,
-    omissions: drawn.omissions,
     grassCounts: plates.map((plate) => grassCounts.find((g) => g.plate === plate)!),
     instanceCounts: plates.map((plate) => instanceCounts.find((g) => g.plate === plate)!),
     units: units.units,

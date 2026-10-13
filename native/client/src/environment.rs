@@ -5,6 +5,7 @@
 //! and the cast lights the presentation chose are written. The sun's
 //! cascades are the shadow layer's (`shadow.rs`); fog's groups are fog's
 //! (`fog.rs`).
+use presentation::effects::lights::CAST_LIGHTS_MAX;
 use presentation::records::{Aerial, Camera as CameraRecord, CastLight, Sun, View};
 use presentation::shadow::camera_record;
 use wgpu::*;
@@ -17,8 +18,7 @@ use crate::shadow::SunShadow;
 /// `Environment`'s members before the `Sun` record: the view and the observer.
 const SUN_AT: usize = 80;
 /// `CastLights`: a header (count, wrap) and up to 24 lights.
-const CAST_LIGHTS_MAX: usize = 24;
-const CAST_LIGHTS_BYTES: usize = 16 + CAST_LIGHTS_MAX * 32;
+const CAST_LIGHTS_BYTES: usize = 16 + CAST_LIGHTS_MAX * size_of::<CastLight>();
 /// The sky lookup's width; the PMREM's levels follow from it (`pmrem.ts`).
 const SKY_LUT_WIDTH: u32 = 384;
 /// The split-sum table (`shaders/dfgLut.ts`): read from the browser's file.

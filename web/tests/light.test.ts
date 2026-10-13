@@ -8,7 +8,6 @@
 import { expect, test } from "vitest";
 import game from "@fixtures/game.json";
 import {
-  sunDirection,
   validateLight,
   type LightPresentation,
 } from "@packages/battle-renderer/src/light/sceneLight.ts";
@@ -41,13 +40,12 @@ test("the street test map's light is valid, and a broken one is refused by name"
 });
 
 test("the sky and the environment light share one sun", async () => {
-  const sun = sunDirection(LIGHT);
-  expect(Math.hypot(...sun)).toBeCloseTo(1, 12);
-  expect(sun[2]).toBeCloseTo(Math.sin(LIGHT.sun_elevation), 12);
   // The records the sky and the environment upload carry it.
   const light = await resolveLight(LIGHT);
+  const sun = [...light.sun.subarray(0, 3)];
+  expect(Math.hypot(...sun)).toBeCloseTo(1, 6);
+  expect(sun[2]).toBeCloseTo(Math.sin(LIGHT.sun_elevation), 6);
   [...light.sky.subarray(0, 3)].forEach((c, i) => expect(c).toBeCloseTo(sun[i], 6));
-  [...light.sun.subarray(0, 3)].forEach((c, i) => expect(c).toBeCloseTo(sun[i], 6));
 });
 
 test("the cascades' words are the structs the renderer binds: a receiver block and a camera per cascade", () => {

@@ -1,15 +1,16 @@
 // The battle's light: `presentation.light` in the fixture, as authored, and
 // what the presentation crate resolves it to (`presentation::light`): the
 // uniform records of the sky, the haze, the sun and post, which the renderer
-// uploads as they are. The shadows' cascades still read the authored angles
-// through `sunDirection`.
-//
-// Rewritten from ~/dev/game
-// game-renderer/src/environment/environment.ts, whose named presets this
-// replaces: the battle has one light, and the fixture owns its numbers.
-import { vec3, type Vec3 } from "math";
-import { SUN_CASCADES } from "../records.gen";
-import { AERIAL_WORDS, BLOOM_WORDS, GRADE_WORDS, SKY_LIGHT_WORDS, SUN_WORDS } from "../records.gen";
+// uploads as they are. The battle has one light, and the fixture owns its
+// numbers.
+import {
+  AERIAL_WORDS,
+  BLOOM_WORDS,
+  GRADE_WORDS,
+  SKY_LIGHT_WORDS,
+  SUN_CASCADES,
+  SUN_WORDS,
+} from "../records.gen";
 
 export type Rgb = readonly [number, number, number];
 
@@ -124,20 +125,6 @@ export interface CloudSettings {
   radiance: number;
   /** A cloud base's colour against its sunlit top, per linear channel. */
   shade: Rgb;
-}
-
-/** Unit vector toward the sun, z up: the one sun direction. */
-export function sunDirection(
-  light: Pick<LightPresentation, "sun_azimuth" | "sun_elevation">,
-): Vec3 {
-  // Azimuth about world +Z from +X, elevation above the ground plane. (The
-  // package's `spherical` is y-up, so the z-up angles are written out.)
-  const cosEl = Math.cos(light.sun_elevation);
-  return vec3.fromValues(
-    cosEl * Math.cos(light.sun_azimuth),
-    cosEl * Math.sin(light.sun_azimuth),
-    Math.sin(light.sun_elevation),
-  );
 }
 
 /** The light a frame is built with: the authored settings, and the records

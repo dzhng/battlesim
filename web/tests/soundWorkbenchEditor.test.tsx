@@ -2,7 +2,7 @@ import { MemoryRouter } from "react-router";
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
-import { SOUNDS } from "@packages/battle-audio/src/synth";
+import { SOUNDS } from "@packages/battle-audio/src/synthSounds.gen";
 import { SoundWorkbench } from "../../apps/sound-workbench/src/SoundWorkbench";
 import type { WorkbenchAPI, Snapshot } from "../../apps/sound-workbench/src/protocol";
 import type { Auditioner, LiveMix } from "../../apps/sound-workbench/src/audition";

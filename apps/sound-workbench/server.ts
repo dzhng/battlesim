@@ -230,7 +230,7 @@ export function soundWorkbenchPlugin(root: string): Plugin {
             ))
           : (sounds ??= Promise.all([
               load("packages/battle-audio/src/catalog.ts"),
-              load("packages/battle-audio/src/synth.ts"),
+              load("packages/battle-audio/src/synthSounds.gen.ts"),
             ]).then(([catalog, synth]) =>
               soundWorkbenchMiddleware(
                 new SoundWorkbenchStore(

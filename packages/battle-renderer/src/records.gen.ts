@@ -11,6 +11,8 @@ export const WHOLE_TEXTURE_WIDTH = 256;
 export const WHOLE_BOX_WORDS = 8;
 /** The sun's cascade slots `SunShadow` holds (`shadow.rs`). */
 export const SUN_CASCADES = 4;
+/** The cast lights a frame's uniform holds (`effects/lights.rs`). */
+export const CAST_LIGHTS_MAX = 24;
 /** The scar cache's directory flags over a tile key + 1, its pool texture
  *  and the normalization table at the pool's start, and `ScarParams`' words
  *  before the biome's look (`scars/mod.rs`). */

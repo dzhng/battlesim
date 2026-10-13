@@ -563,8 +563,11 @@ pub fn typescript() -> String {
     }
     out.push_str(&format!(
         "/** The sun's cascade slots `SunShadow` holds (`shadow.rs`). */\n\
-         export const SUN_CASCADES = {};\n",
-        crate::shadow::CASCADES
+         export const SUN_CASCADES = {};\n\
+         /** The cast lights a frame's uniform holds (`effects/lights.rs`). */\n\
+         export const CAST_LIGHTS_MAX = {};\n",
+        crate::shadow::CASCADES,
+        crate::effects::lights::CAST_LIGHTS_MAX
     ));
     {
         use crate::scars::*;

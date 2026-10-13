@@ -29,8 +29,8 @@ impact scale.
 
 A battle prepares only what it can play: the synthesized baselines and every
 assigned or replacing recipe. The rest of the library is stored for audition
-and downloads only when auditioned, so growing it costs a battle nothing. Baseline synthesized recipes remain
-selectable under their original IDs. A recorded recipe has a distinct ID.
+and downloads only when auditioned, so growing it costs a battle nothing. A synthesized baseline is
+selected by its sound's name; a recorded recipe has an ID of its own.
 The bank measures each prepared clip or recipe once and keeps a separate source
 calibration gain. Audition and battle playback apply that gain before their authored
 volume controls. The calibration ([`sound::bank`](../../crates/presentation/src/sound/bank.rs)) uses K-weighted maximum short

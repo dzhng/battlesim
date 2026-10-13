@@ -3,6 +3,7 @@
 // capture's plates record. And what the page hands the presentation once
 // per battle (`load_world`'s input).
 import { Counts, EFFECT_WORDS } from "@packages/battle-renderer/src/records.gen";
+import { MIN_TARGET_PX } from "@packages/battle-renderer/src/frame/battleFrame";
 import type { PresentedCamera, PresentedFrame } from "@web/battle/sim/presentation";
 import { liveCamera, type ViewportCamera } from "@packages/renderer-core/src/cameraUniform";
 import { eyePosition } from "@packages/renderer-core/src/camera3d";
@@ -56,9 +57,6 @@ export const emptyEffectCounts = (): EffectCounts => ({
   instances: Object.fromEntries(SHAPE_NAMES.map((k) => [k, 0])) as EffectCounts["instances"],
   lights: 0,
 });
-
-/** The smallest drawing the battle frame renders, pixels (`battleFrame.ts`). */
-const MIN_TARGET_PX = 64;
 
 /** The presentation's camera for the viewport's orbit camera, as the battle frame draws it. */
 export function presentedCamera(viewport: ViewportCamera): PresentedCamera {
