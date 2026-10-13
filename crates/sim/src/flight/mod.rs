@@ -901,24 +901,28 @@ pub fn advance_projectiles(
     // meet; later seeker work can replace this with continuous swept paths
     // without changing the resolver seam.
     let mut projectile_intercepts = std::collections::BTreeSet::new();
-    for (i, interceptor) in active.iter().enumerate() {
+    for interceptor in active.iter() {
+        if projectile_intercepts.contains(&interceptor.id) {
+            continue;
+        }
         let reach = resolver.projectile_interceptor_reach(interceptor.id);
         if !(reach.is_finite() && reach > 0.0) {
             continue;
         }
-        for target in active.iter().skip(i + 1) {
+        for target in active.iter() {
+            if target.id == interceptor.id || projectile_intercepts.contains(&target.id) {
+                continue;
+            }
             let relative_position = interceptor.position - target.position;
             let relative_velocity = interceptor.velocity - target.velocity;
             let speed2 = relative_velocity.dot(relative_velocity);
             let closest_s = if speed2 > 0.0 {
-                (-relative_position.dot(relative_velocity) / speed2)
-                    .clamp(0.0, config.tick_s)
+                (-relative_position.dot(relative_velocity) / speed2).clamp(0.0, config.tick_s)
             } else {
                 0.0
             };
             let closest = relative_position + relative_velocity * closest_s;
-            if closest.length() <= reach
-                && resolver.intercept_projectile(interceptor.id, target.id)
+            if closest.length() <= reach && resolver.intercept_projectile(interceptor.id, target.id)
             {
                 projectile_intercepts.insert(interceptor.id);
                 projectile_intercepts.insert(target.id);

@@ -315,6 +315,15 @@ pub struct AirState {
     /// Its arrival at the goal it flies to last, once it has turned onto
     /// the leg that ends there.
     pub settle: Option<Settle>,
+    /// Remaining endurance in seconds. It starts when an aircraft reaches
+    /// the map edge; off-map traversal never consumes fuel.
+    pub fuel_s: f64,
+    /// Explicit persistent afterburner toggle, consumed by the air mover.
+    pub afterburner: bool,
+    /// Paid aircraft still traversing from off-map to its ingress edge.
+    pub traversing: bool,
+    /// Ticks until the aircraft physically enters the map.
+    pub ingress_remaining: u64,
 }
 
 /// How an aircraft arrives: it aims a little past its goal, then, stopped
@@ -591,6 +600,10 @@ impl Unit {
                 Some(s) => d.u64(1).f64(s.aim.x).f64(s.aim.y).u64(s.back as u64),
                 None => d.u64(0),
             };
+            d.f64(a.fuel_s)
+                .u64(a.afterburner as u64)
+                .u64(a.traversing as u64)
+                .u64(a.ingress_remaining);
         }
         match self.manoeuvre {
             Some(m) => d.u64(1).f64(m.turn).f64(m.driven_m),

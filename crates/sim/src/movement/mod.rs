@@ -504,6 +504,9 @@ pub(crate) fn advance(
             continue;
         }
         if units[i].airborne() {
+            if units[i].air.is_some_and(|air| air.traversing) {
+                continue;
+            }
             air::step_aircraft(ctx, units, i, sides);
             continue;
         }

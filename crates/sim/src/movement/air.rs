@@ -47,11 +47,16 @@ pub(super) fn step_aircraft(
         unreachable!("only aircraft fly");
     };
     let side = units[i].side.index();
+    if units[i].air.is_some_and(|air| air.traversing) {
+        return;
+    }
     plan(ctx, &mut units[i], &mut sides[side]);
     let drift = separation(ctx, units, i);
+    let afterburner = unit_afterburner(&units[i], ctx.rules);
     let unit = &mut units[i];
     let here = unit.position.xy();
-    let accel = flight.cruise_mps / ctx.rules.air.acceleration_s;
+    let cruise_mps = flight.cruise_mps * afterburner.0;
+    let accel = cruise_mps / ctx.rules.air.acceleration_s;
     let air_rules = &ctx.rules.air;
     let wanted = if may_advance(ctx, unit) {
         let route = unit.route.as_ref().expect("a route to fly");
@@ -91,13 +96,12 @@ pub(super) fn step_aircraft(
             Some(&after) => {
                 let turn = leg.normalized().dot((after - route[0]).normalized());
                 let rest: f64 = route.windows(2).map(|w| (w[1] - w[0]).length()).sum();
-                (flight.cruise_mps * turn.max(0.0)).min((2.0 * BRAKING_SHARE * accel * rest).sqrt())
+                (cruise_mps * turn.max(0.0)).min((2.0 * BRAKING_SHARE * accel * rest).sqrt())
             }
             None => 0.0,
         };
-        let speed = flight
-            .cruise_mps
-            .min((corner * corner + 2.0 * BRAKING_SHARE * accel * leg.length()).sqrt());
+        let speed =
+            cruise_mps.min((corner * corner + 2.0 * BRAKING_SHARE * accel * leg.length()).sqrt());
         leg.normalized() * speed
     } else {
         v2(0.0, 0.0)
@@ -111,6 +115,7 @@ pub(super) fn step_aircraft(
         wanted
     };
     let velocity = air.velocity;
+    air.fuel_s = (air.fuel_s - dt * afterburner.1).max(0.0);
     let next = here + velocity * dt + drift * dt;
     let reach = unit.hull.map_or(0.0, |h| h.x);
     let target = height_target(ctx, next, velocity, flight, reach, sinks(unit));
@@ -143,6 +148,22 @@ pub(super) fn step_aircraft(
             air.settle = None;
         }
     }
+}
+
+/// Return the authored speed and fuel multipliers when the persistent toggle
+/// is enabled. A legacy air row has no afterburner capability and remains
+/// unchanged even if a stale toggle bit is present.
+fn unit_afterburner(unit: &Unit, rules: &Rules) -> (f64, f64) {
+    if !unit.air.is_some_and(|air| air.afterburner) {
+        return (1.0, 1.0);
+    }
+    unit.unit_type(rules)
+        .capabilities
+        .air
+        .as_ref()
+        .and_then(|air| air.afterburner)
+        .map(|a| (a.speed_multiplier, a.fuel_multiplier))
+        .unwrap_or((1.0, 1.0))
 }
 
 /// The resupply sink (D10): with no order and no target, inside a set-up

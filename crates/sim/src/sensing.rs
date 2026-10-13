@@ -200,7 +200,7 @@ pub fn evaluate(
     // Each with its samples and their concealment, which no observer changes.
     let targets: Vec<(&Unit, f64, Vec<Sample>)> = units
         .iter()
-        .filter(|u| u.side != side && u.alive())
+        .filter(|u| u.side != side && u.alive() && !u.air.is_some_and(|air| air.traversing))
         .map(|u| {
             let samples = samples(u)
                 .into_iter()
@@ -209,10 +209,9 @@ pub fn evaluate(
             (u, u.footprint_radius(body), samples)
         })
         .collect();
-    for observer in units
-        .iter()
-        .filter(|u| u.side == side && u.alive() && due(u))
-    {
+    for observer in units.iter().filter(|u| {
+        u.side == side && u.alive() && !u.air.is_some_and(|air| air.traversing) && due(u)
+    }) {
         // Fixed-wing aircraft fly in HighAir and have no ground-facing
         // vision. They still run the same optical pass for LowAir and
         // HighAir targets, so air-to-air sensing remains authoritative here.

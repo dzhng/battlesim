@@ -106,7 +106,8 @@ fn air_sensor_ranges_use_the_observer_layer() {
         "rules": fixture,
         "units": [{ "side": "blue", "kind": "test_heli", "position": [300, 200] }],
         "events": [], "scripts": []
-    })).unwrap();
+    }))
+    .unwrap();
     let battle = Battle::new(&setup, 1);
     let unit = battle.unit(UnitId(0)).unwrap();
     let sight = sim::sight::of(unit, battle.rules());
@@ -152,6 +153,37 @@ fn high_air_has_no_ground_vision_but_can_identify_low_air() {
     assert!(
         !blue.ground_visibility.visible(300.0, 200.0),
         "high-air aircraft do not illuminate ground fog"
+    );
+}
+
+#[test]
+fn authored_aircraft_fuel_starts_full_and_burns_on_map() {
+    let mut fixture = fixture();
+    sim::fixtures::patch_catalog(
+        &mut fixture,
+        "units",
+        "test_heli",
+        json!({
+            "capabilities": { "air": {
+                "fuel_capacity_s": 180.0,
+                "afterburner": { "speed_multiplier": 1.5, "fuel_multiplier": 2.0 },
+                "refund": { "health": 0.34, "ammunition": 0.33, "fuel": 0.33 }
+            }}
+        }),
+    );
+    let mut b = battle_with(
+        &fixture,
+        open_map(),
+        json!([{ "side": "blue", "kind": "test_heli", "position": [300, 200] }]),
+    );
+    assert_eq!(b.unit(UnitId(0)).unwrap().air.unwrap().fuel_s, 180.0);
+    for _ in 0..b.rules().tick_hz {
+        b.step();
+    }
+    let fuel = b.unit(UnitId(0)).unwrap().air.unwrap().fuel_s;
+    assert!(
+        (fuel - 179.0).abs() < 1e-9,
+        "one second of fuel burned: {fuel}"
     );
 }
 

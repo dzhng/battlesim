@@ -533,7 +533,17 @@ fn spawn_unit(
         } else {
             u.engagement.unwrap_or(Engagement::FireAtWill)
         },
-        air: airborne.then(units::AirState::default),
+        air: airborne.then(|| {
+            let fuel_s = t
+                .capabilities
+                .air
+                .as_ref()
+                .map_or(f64::INFINITY, |air| air.fuel_capacity_s);
+            units::AirState {
+                fuel_s,
+                ..Default::default()
+            }
+        }),
         mounts,
         attackers: BTreeSet::new(),
         reach: Default::default(),
@@ -601,6 +611,30 @@ fn config_digest(setup: &ScenarioDefinition) -> u64 {
 }
 
 impl Battle {
+    fn advance_air_ingress(&mut self) {
+        for unit in &mut self.units {
+            let fuel_s = unit
+                .unit_type(&self.rules)
+                .capabilities
+                .air
+                .as_ref()
+                .map_or(f64::INFINITY, |a| a.fuel_capacity_s);
+            let Some(air) = unit.air.as_mut().filter(|air| air.traversing) else {
+                continue;
+            };
+            air.ingress_remaining = air.ingress_remaining.saturating_sub(1);
+            if air.ingress_remaining == 0 {
+                air.traversing = false;
+                let ground = self
+                    .world
+                    .height_at(unit.position.x, unit.position.y)
+                    .unwrap_or(0.0);
+                air.fuel_s = fuel_s;
+                unit.position.z = ground + self.rules.air.cruise_agl_m;
+            }
+        }
+    }
+
     fn dispatch_reinforcements(&mut self) {
         use crate::encounter::legality::{apart, footprint, stands_on};
         let Some(skirmish) = &mut self.skirmish else {
@@ -618,8 +652,36 @@ impl Battle {
                 continue;
             };
             let entry = &skirmish.setup.sites.entries[index];
-            let at = v2(entry.center[0], entry.center[1]);
+            let destination = v2(
+                reservation.data.destination[0],
+                reservation.data.destination[1],
+            );
             let t = self.rules.catalog.get(reservation.data.kind);
+            let aircraft = units::ground_mobility(t, &self.rules).is_none();
+            let at = if aircraft {
+                let candidates = [
+                    v2(destination.x.clamp(0.0, self.world.width()), 0.0),
+                    v2(
+                        destination.x.clamp(0.0, self.world.width()),
+                        self.world.depth(),
+                    ),
+                    v2(0.0, destination.y.clamp(0.0, self.world.depth())),
+                    v2(
+                        self.world.width(),
+                        destination.y.clamp(0.0, self.world.depth()),
+                    ),
+                ];
+                *candidates
+                    .iter()
+                    .min_by(|a, b| {
+                        (**a - destination)
+                            .length()
+                            .total_cmp(&(**b - destination).length())
+                    })
+                    .unwrap()
+            } else {
+                v2(entry.center[0], entry.center[1])
+            };
             // An aircraft flies in at cruise height over whatever stands there.
             let clear = match units::ground_mobility(t, &self.rules) {
                 None => true,
@@ -662,7 +724,7 @@ impl Battle {
                 side,
                 owner: None,
                 kind: self.rules.catalog.id(reservation.data.kind).to_string(),
-                position: entry.center,
+                position: [at.x, at.y],
                 yaw: entry.yaw,
                 engagement: None,
                 condition: None,
@@ -677,6 +739,17 @@ impl Battle {
                 &mut self.last_soldier,
                 self.seed,
             );
+            if aircraft {
+                let mut rng = contract::random::Rng::new(contract::random::mix(
+                    self.seed ^ u64::from(unit.id.0),
+                ));
+                let delay_s = 15.0 + 15.0 * rng.unit();
+                if let Some(air) = unit.air.as_mut() {
+                    air.traversing = true;
+                    air.ingress_remaining =
+                        (delay_s * f64::from(self.rules.tick_hz)).round() as u64;
+                }
+            }
             unit.settle();
             unit.orders.push_back(UnitOrder::Move(MoveOrder {
                 destination: v2(
@@ -1584,6 +1657,7 @@ impl Battle {
         if let Some(skirmish) = &mut self.skirmish {
             skirmish.advance(self.tick, self.rules.tick_hz);
         }
+        self.advance_air_ingress();
         self.dispatch_reinforcements();
         completed(TickPhase::Orders);
         garrison::advance(
@@ -2894,6 +2968,7 @@ impl Battle {
         ));
         sightings.sort_by_key(|s| (s.observer, s.target));
         let identified = self.knowledge[side.index()].update(tick, &sightings, units, &self.rules);
+        self.knowledge[side.index()].update_radar(tick, side, units, &self.rules);
         self.sightings[side.index()] = sightings;
         // An attack on an area whose cause is now identified carries over to
         // that enemy, queued ones too, as if the player had right-clicked it.
