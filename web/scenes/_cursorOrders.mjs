@@ -167,7 +167,7 @@ export async function garrisonCursor(ctx) {
         return page;
       },
     },
-    { url: `${base(ctx)}/lab/garrison`, tick: 40 },
+    { url: `${base(ctx)}/labs/garrison`, tick: 40 },
   );
   await lab(page, () =>
     window.__lab.setCamera({
@@ -349,7 +349,7 @@ function delayedAdmission() {
 }
 
 export async function movementCursor(ctx) {
-  const page = await openBattle(ctx, { url: `${base(ctx)}/lab/movement`, tick: 40 });
+  const page = await openBattle(ctx, { url: `${base(ctx)}/labs/movement`, tick: 40 });
   await lab(page, () =>
     window.__lab.setCamera({
       ...window.__lab.camera(),
@@ -469,7 +469,7 @@ export async function battleCursor(ctx) {
         return page;
       },
     },
-    { url: `${base(ctx)}/lab/street`, tick: 40 },
+    { url: `${base(ctx)}/labs/street`, tick: 40 },
   );
   const o = await obs(page);
   const tank = o.own.find((u) => u.kind === "test_tank");
@@ -602,7 +602,7 @@ export async function battleCursor(ctx) {
 }
 
 export async function queuedBuildingCursor(ctx) {
-  const page = await openBattle(ctx, { url: `${base(ctx)}/lab/garrison`, tick: 40 });
+  const page = await openBattle(ctx, { url: `${base(ctx)}/labs/garrison`, tick: 40 });
   await select(page, [0, 2]);
   const first = await lab(page, () =>
     window.__lab.route.command({
@@ -651,7 +651,7 @@ export async function queuedBuildingCursor(ctx) {
 }
 
 export async function attackCursor(ctx) {
-  const page = await openBattle(ctx, { url: `${base(ctx)}/lab/weapons`, tick: 40 });
+  const page = await openBattle(ctx, { url: `${base(ctx)}/labs/weapons`, tick: 40 });
   const observation = await obs(page);
   const enemy =
     observation.identified.find((u) => u.kind === "test_tank") ?? observation.identified[0];
@@ -703,7 +703,7 @@ export async function partialBuildingCursor(ctx) {
     { width: 430, height: 800 },
   ]) {
     const page = await openBattle(ctx, {
-      url: `${base(ctx)}/lab/cursor-orders`,
+      url: `${base(ctx)}/labs/cursor-orders`,
       tick: 40,
       viewport,
     });
@@ -776,7 +776,7 @@ async function calloutFits(page, pointer) {
 
 export async function narrowRefusal(ctx) {
   const page = await openBattle(ctx, {
-    url: `${base(ctx)}/lab/cursor-orders`,
+    url: `${base(ctx)}/labs/cursor-orders`,
     tick: 40,
     viewport: { width: 430, height: 800 },
   });
@@ -804,7 +804,7 @@ async function resetWorkerBattle(page) {
 
 export async function readoutEdge(ctx) {
   const page = await openBattle(ctx, {
-    url: `${base(ctx)}/lab/cursor-orders`,
+    url: `${base(ctx)}/labs/cursor-orders`,
     tick: 40,
     viewport: { width: 430, height: 800 },
   });

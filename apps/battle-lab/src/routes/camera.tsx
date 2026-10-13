@@ -1,4 +1,4 @@
-// /lab/camera: camera clearance. Scripted camera trajectories round a wall,
+// /labs/camera: camera clearance. Scripted camera trajectories round a wall,
 // a tower, a corner of two tall slabs, a courtyard block and a concave
 // compound, each flown through the rig and its clearance. Watching, the free
 // camera sees the eye path asked for and the eye path drawn; riding, the

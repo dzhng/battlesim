@@ -623,7 +623,7 @@ export async function run(ctx) {
 }
 
 async function commandDeck(ctx) {
-  const page = await openBattle(ctx, { url: new URL("/lab/street?seed=14", ctx.url).href });
+  const page = await openBattle(ctx, { url: new URL("/labs/street?seed=14", ctx.url).href });
   const unit = (await obs(page)).own[0];
   await lab(page, (id) => window.__lab.route.select([id]), unit.id);
   await page.waitForFunction(() => window.__lab.route.selected().length === 1);

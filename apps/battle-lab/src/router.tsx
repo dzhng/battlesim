@@ -1,5 +1,5 @@
 import { lazy, Suspense, type ComponentType, type LazyExoticComponent } from "react";
-import { Link, useLocation } from "react-router";
+import { Link, Navigate, useLocation } from "react-router";
 import { PageVisit } from "./navigation";
 import { LAB_FIXTURES } from "./fixtures";
 import { listMaps } from "@web/maps/catalogue";
@@ -59,10 +59,29 @@ const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
   "scenario-play": lazy(() => import("./routes/scenarioPlay")),
 };
 
+/** Canonical URLs for the developer fixture surface all live below `/labs`. */
+export function canonicalLabPath(path: string): string {
+  if (path.startsWith("/lab/")) return `/labs/${path.slice("/lab/".length)}`;
+  if (path.startsWith("/labs/")) return `/labs/${path.slice("/labs/".length)}`;
+  const legacy = [
+    "/graphics-test",
+    "/benchmark",
+    "/workbench",
+    "/map-workbench",
+    "/mechanics",
+    "/scenario-play",
+    "/scenario-builder",
+    "/sound-workbench",
+  ];
+  return legacy.includes(path) ? `/labs${path}` : path;
+}
+
 /** `/` is the main menu, `/labs` the index of every fixture route. */
 export function LabRouter() {
   const location = useLocation();
-  const path = location.pathname;
+  const path = canonicalLabPath(location.pathname);
+  if (path !== location.pathname)
+    return <Navigate replace to={`${path}${location.search}${location.hash}`} />;
   return (
     <PageVisit>
       <LabPage path={path} />
@@ -71,13 +90,13 @@ export function LabRouter() {
 }
 
 const EDITORS: Record<string, LazyExoticComponent<ComponentType>> = {
-  "/sound-workbench": SoundWorkbench,
-  "/map-workbench": MapWorkbench,
-  "/mechanics": MechanicsEditor,
+  "/labs/sound-workbench": SoundWorkbench,
+  "/labs/map-workbench": MapWorkbench,
+  "/labs/mechanics": MechanicsEditor,
 };
 
 function resolvePage(path: string) {
-  const normalized = path.replace(/\/$/, "") || "/";
+  const normalized = canonicalLabPath(path.replace(/\/$/, "") || "/");
   const editor = import.meta.env.DEV ? EDITORS[normalized] : undefined;
   const fixture = LAB_FIXTURES.find((f) => f.route === normalized);
   const Route = fixture && ROUTES[fixture.id];
@@ -119,7 +138,7 @@ function LabPage({ path: requestedPath }: { path: string }) {
             .filter((map) => map.status !== "retired")
             .map((map) => (
               <li key={map.id}>
-                <Link to={`/lab/geometry?map=${map.id}`}>{map.label}</Link>
+                <Link to={`/labs/geometry?map=${map.id}`}>{map.label}</Link>
                 {map.status === "draft" && " — draft"}
               </li>
             ))}

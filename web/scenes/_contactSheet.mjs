@@ -16,7 +16,7 @@ import { curvePitch, game, streetMap, unitType } from "./_units.mjs";
 
 export async function contactTour(ctx) {
   const page = await openBattle(ctx, {
-    url: new URL("/lab/street", ctx.url).href,
+    url: new URL("/labs/street", ctx.url).href,
     viewport: { width: 1920, height: 1080 },
     tick: 600, // A fixed paused checkpoint keeps asset startup out of the seeded journey.
   });

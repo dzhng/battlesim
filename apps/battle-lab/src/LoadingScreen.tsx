@@ -51,6 +51,7 @@ export function LoadingScreen({
   subject,
   stages,
   current,
+  stageDetail,
   failure,
   recovery,
   back = "/",
@@ -61,6 +62,8 @@ export function LoadingScreen({
   stages: readonly LoadingStage[];
   /** The stage in progress (an id of `stages`). */
   current: string;
+  /** Short live detail for a stage that has measurable sub-progress. */
+  stageDetail?: ReactNode;
   failure?: LoadingFailure | null;
   recovery?: ReactNode;
   /** Where cancelling, or leaving a failure, goes: the menu. Null when
@@ -128,6 +131,11 @@ export function LoadingScreen({
             <div className="loading-stage" role="status" data-testid="loading-stage">
               {stages[at]?.label}
             </div>
+            {stageDetail && (
+              <div className="loading-stage-detail" data-testid="loading-stage-detail">
+                {stageDetail}
+              </div>
+            )}
             <Downloading />
             {back !== null && (
               <Link className="hud-menu-item loading-cancel" to={back} data-testid="loading-cancel">

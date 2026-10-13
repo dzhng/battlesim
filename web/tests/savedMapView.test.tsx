@@ -11,7 +11,7 @@ vi.mock("@apps/battle-lab/src/savedMaps", () => ({
 afterEach(() => window.history.replaceState(null, "", "/"));
 
 test("the generic geometry viewer asks for its catalogue id instead of the default arena", () => {
-  window.history.replaceState(null, "", "/lab/geometry?map=river");
+  window.history.replaceState(null, "", "/labs/geometry?map=river");
   const view = render(createElement(Geometry));
   expect(view.getByLabelText("Requested map").textContent).toBe("river");
   view.unmount();
