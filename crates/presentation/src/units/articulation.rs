@@ -25,7 +25,7 @@ pub(crate) fn quat_mul(a: Quat, b: Quat) -> Quat {
 }
 
 fn axis_angle(axis: Vec3, angle: f64) -> Quat {
-    let (s, c) = (angle * 0.5).sin_cos();
+    let (s, c) = libm::sincos(angle * 0.5);
     [s * axis[0], s * axis[1], s * axis[2], c]
 }
 
@@ -52,7 +52,7 @@ pub(crate) fn rotate(q: Quat, v: Vec3) -> Vec3 {
 
 /// Euler degrees about x, then y, then z (`quat.fromDegrees(…, "xyz")`).
 fn from_degrees_xyz(x: f64, y: f64, z: f64) -> Quat {
-    let half = |d: f64| (d * std::f64::consts::PI / 180.0 / 2.0).sin_cos();
+    let half = |d: f64| libm::sincos(d * std::f64::consts::PI / 180.0 / 2.0);
     let ((s1, c1), (s2, c2), (s3, c3)) = (half(x), half(y), half(z));
     [
         s1 * c2 * c3 + c1 * s2 * s3,

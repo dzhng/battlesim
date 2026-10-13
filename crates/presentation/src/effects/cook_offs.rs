@@ -226,7 +226,7 @@ pub fn effect_cook_off(c: &CookOff, transition: Option<&Transition>) -> publicat
         // The piece's underside under its centre, placed as the wreck is.
         let (m, [sx, sy, sz]) = (&f.wreck, f.wreck.scale);
         let (x, y) = (lies[0] * sx, lies[1] * sy);
-        let (s, cos) = m.yaw.sin_cos();
+        let (s, cos) = libm::sincos(m.yaw);
         let [mx, my, mz] = m.position;
         Some([
             mx + x * cos - y * s,
@@ -599,7 +599,7 @@ mod tests {
             .landing
             .expect("lands");
         // On the deck at its underside, beside the ring as the wreck is turned.
-        let (s, c) = 0.4f64.sin_cos();
+        let (s, c) = libm::sincos(0.4f64);
         let want = [
             100.0 + 0.5 * c - 0.2 * s,
             50.0 + 0.5 * s + 0.2 * c,

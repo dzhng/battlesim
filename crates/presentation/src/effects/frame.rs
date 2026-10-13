@@ -455,7 +455,7 @@ impl Pool {
     ) {
         let (hull, ground) = (&style.hull, &style.ground);
         let [x, y, z] = u.position;
-        let (s, c) = (u.yaw.sin(), u.yaw.cos());
+        let (s, c) = (libm::sin(u.yaw), libm::cos(u.yaw));
         let shaken = (hull.count * strength).round();
         let mut k = 0.0;
         while k < shaken {
@@ -603,8 +603,8 @@ impl Pool {
                 let a = rng.sample() * PI * 2.0;
                 let born = at + burst.over_s * (k / (burst.count - 1.0).max(1.0));
                 let p = [
-                    point[0] + a.cos() * r,
-                    point[1] + a.sin() * r,
+                    point[0] + libm::cos(a) * r,
+                    point[1] + libm::sin(a) * r,
                     point[2] + size * 0.2,
                 ];
                 self.puff(born, p, &burst.puff, scale, 1.0, rng);
@@ -645,8 +645,8 @@ impl Pool {
             let a = rng.sample() * PI * 2.0;
             let born = landed + plume.over_s * 0.5 * (k / (plume.count - 1.0).max(1.0));
             let at = [
-                landing[0] + a.cos() * r,
-                landing[1] + a.sin() * r,
+                landing[0] + libm::cos(a) * r,
+                landing[1] + libm::sin(a) * r,
                 landing[2],
             ];
             self.puff(born, at, &plume.puff, feel.landing_dust, 1.0, rng);
@@ -671,7 +671,7 @@ impl Pool {
         let a = rng.sample() * PI * 2.0;
         let spread = style.spread_mps * scale * rng.sample();
         let rise = style.rise_mps * scale * (0.7 + 0.6 * rng.sample());
-        e.n = [a.cos() * spread, a.sin() * spread, rise];
+        e.n = [libm::cos(a) * spread, libm::sin(a) * spread, rise];
         e.rotation = rng.sample() * PI * 2.0;
         e.size = rng.sample() - 0.5; // its spin
         e.frame = rng.sample() * (DUST_FRAMES - PUFF_TURN_FRAMES - 1.0);
@@ -745,7 +745,7 @@ impl Source {
         }
         let last = ((to.min(t1) - from) * hz).ceil() - 1.0;
         let mut k = self.emitted[stream].max(((t1 - life - from) * hz).ceil());
-        let (s, c) = self.yaw.sin_cos();
+        let (s, c) = libm::sincos(self.yaw);
         while k <= last {
             let at = from + k / hz;
             let seed =
@@ -1604,7 +1604,7 @@ fn draw_puff(wind: &[f64; 2], e: &Effect, s: &PuffStyle, age: f64, batch: &mut E
     let x = age / e.span;
     let a = smoke_at(wind, e.p, e.n, s.life_s, age);
     let radius = e.scale * puff_radius(s, x);
-    let fade = (age * PUFF_FADE_IN).min(1.0) * (1.0 - x).powf(1.2);
+    let fade = (age * PUFF_FADE_IN).min(1.0) * libm::pow(1.0 - x, 1.2);
     let turn = e.rotation + e.size * x * 1.5;
     let frame = e.frame + x * PUFF_TURN_FRAMES;
     let opacity = s.opacity * e.alpha * fade;
@@ -1627,7 +1627,7 @@ fn draw_flame(e: &Effect, s: &FlameStyle, age: f64, batch: &mut EffectBatch) {
     let x = age / e.span;
     let mut a = e.p;
     a[2] += s.size_m * e.scale * (0.3 + 1.2 * x);
-    let radius = s.size_m * e.scale * (0.8 + 0.4 * (PI * x).sin());
+    let radius = s.size_m * e.scale * (0.8 + 0.4 * libm::sin(PI * x));
     let opacity = (x * 6.0).min(1.0) * (1.0 - x);
     batch.flipbook(
         a,
@@ -1657,7 +1657,8 @@ fn draw_fire_light(src: &Source, clock: f64, noted: f64, keep: f64, batch: &mut 
         return; // over the budget
     }
     let phase = f64::from(src.seed % 1000) * 0.01;
-    let flicker = 0.7 + 0.3 * (clock * 11.3 + phase).sin() * (clock * 5.7 + phase * 1.7).sin();
+    let flicker =
+        0.7 + 0.3 * libm::sin(clock * 11.3 + phase) * libm::sin(clock * 5.7 + phase * 1.7);
     let strength = ((burn - age) / burn * 3.0).min(age * 4.0).min(1.0);
     let at = [src.x, src.y, src.top + 0.5];
     batch.glow(

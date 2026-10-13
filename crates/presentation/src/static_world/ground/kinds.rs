@@ -166,7 +166,7 @@ mod tests {
         };
         for k in 0..6 {
             let a = k as f64 / 6.0 * std::f64::consts::TAU;
-            let (c, s) = (a.cos(), a.sin());
+            let (c, s) = (libm::cos(a), libm::sin(a));
             push(0.5 * c, 0.5 * s, 0.0, [0.2, 0.1, 0.05], 0.0);
             push(0.3 * c, 0.3 * s, 1.0, [0.2, 0.1, 0.05], 0.0);
             push(0.2 * c, 0.2 * s, 4.0, [0.9, 0.9, 0.9], 0.0);
@@ -182,7 +182,7 @@ mod tests {
         let mut colours = std::collections::BTreeSet::new();
         for v in vertices(&mesh) {
             top = top.max(f64::from(v[2]));
-            reach = reach.max(f64::from(v[0]).hypot(f64::from(v[1])));
+            reach = reach.max(libm::hypot(f64::from(v[0]), f64::from(v[1])));
             colours.insert(format!("{:.3},{:.3},{:.3}", v[6], v[7], v[8]));
             assert_eq!(v[9], 0.0, "a stump is bark, never foliage");
         }

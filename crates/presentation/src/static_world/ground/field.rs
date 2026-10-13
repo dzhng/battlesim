@@ -543,7 +543,7 @@ mod tests {
 
     /// `[w, h]` turned `turn` about its corner at `centre`, as a ring.
     fn turned(turn: f64, [w, h]: [f64; 2], [cx, cy]: [f64; 2]) -> [[f64; 2]; 4] {
-        let (c, s) = (turn.cos(), turn.sin());
+        let (c, s) = (libm::cos(turn), libm::sin(turn));
         [[0.0, 0.0], [w, 0.0], [w, h], [0.0, h]]
             .map(|[x, y]| [cx + x * c - y * s, cy + x * s + y * c])
     }
@@ -580,7 +580,7 @@ mod tests {
         // degrees, is an outer edge of its first triangle only; the second
         // triangle's own longest outer edge runs at 100 degrees mod 90.
         let at = |deg: f64, m: f64, [x, y]: [f64; 2]| {
-            [x + m * (deg * DEG).cos(), y + m * (deg * DEG).sin()]
+            [x + m * libm::cos(deg * DEG), y + m * libm::sin(deg * DEG)]
         };
         let p0 = [0.0, 0.0];
         let p1 = at(10.0, 50.0, p0);

@@ -537,7 +537,7 @@ impl Presentation {
                 self.world.row(&look.appearance, state, NONE, 0, false);
             }
         }
-        let throw = 1.0 / elevation.tan();
+        let throw = 1.0 / libm::tan(elevation);
         let mut loaded = Loaded {
             feed: ObservationFeed::new(&side),
             driver: PoseDriver::new(&units)?,
@@ -549,7 +549,7 @@ impl Presentation {
             cook_offs: CookOffs::new(self.tick_hz),
             pieces: Vec::new(),
             sound: None,
-            shadow_fall: [-azimuth.cos() * throw, -azimuth.sin() * throw],
+            shadow_fall: [-libm::cos(azimuth) * throw, -libm::sin(azimuth) * throw],
             locals: Vec::new(),
             worlds: Vec::new(),
             models: Vec::new(),

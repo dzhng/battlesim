@@ -151,7 +151,7 @@ impl CookOffFeel {
         ];
         let tumble = 2.0 * PI * self.flip_turns * left + self.bounce_tilt_deg * DEG * hop(1.0, u);
         let across = Mulberry32::new(seed as u32).sample() * PI * 2.0;
-        let turn = axis_angle([across.cos(), across.sin(), 0.0], tumble);
+        let turn = axis_angle([libm::cos(across), libm::sin(across), 0.0], tumble);
         let q = multiply(
             axis_angle([0.0, 0.0, 1.0], 2.0 * PI * self.spin_turns * left),
             turn,
@@ -199,13 +199,13 @@ fn jolt(t: f64, settle: f64) -> f64 {
         return 0.0;
     }
     let u = t / settle;
-    (4.0 * PI * u).sin() * (1.0 - u) * (1.0 - u)
+    libm::sin(4.0 * PI * u) * (1.0 - u) * (1.0 - u)
 }
 
 type Quat = [f64; 4];
 
 fn axis_angle(axis: Vec3, angle: f64) -> Quat {
-    let (s, c) = ((angle * 0.5).sin(), (angle * 0.5).cos());
+    let (s, c) = (libm::sin(angle * 0.5), libm::cos(angle * 0.5));
     [s * axis[0], s * axis[1], s * axis[2], c]
 }
 

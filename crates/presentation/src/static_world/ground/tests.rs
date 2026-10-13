@@ -245,7 +245,7 @@ fn the_backdrop_stands_clear_of_the_map_and_within_reach() {
     assert!(records(&s.backdrop).count() > 0);
     for r in records(&s.backdrop) {
         let (x, y) = (r[0] as f64, r[1] as f64);
-        let out = ((-x).max(x - 200.0).max(0.0)).hypot((-y).max(y - 200.0).max(0.0));
+        let out = libm::hypot((-x).max(x - 200.0).max(0.0), (-y).max(y - 200.0).max(0.0));
         assert!(
             out >= b.clear_m && out <= b.reach_m,
             "{x}, {y} is {out} m off the map"
@@ -279,11 +279,11 @@ fn dressing_lies_on_forest_floor_off_paving_and_clear_of_trunks_and_bodies() {
                 "{x}, {y} on the road"
             );
             for p in g.source.props.as_chunks::<PROP>().0 {
-                let d = (p[3] as f64 - x).hypot(p[4] as f64 - y);
+                let d = libm::hypot(p[3] as f64 - x, p[4] as f64 - y);
                 let clear = if p[2] == 0.0 {
                     rules.trunk_clear_m
                 } else {
-                    (p[6] as f64).hypot(p[7] as f64) + rules.clear_m
+                    libm::hypot(p[6] as f64, p[7] as f64) + rules.clear_m
                 };
                 assert!(d >= clear - 1e-6, "{x}, {y} is {d} m from a body");
             }
@@ -437,7 +437,7 @@ fn a_points_props_cell_lists_every_prop_that_could_cover_it() {
             .collect();
         for p in g.source.props.as_chunks::<PROP>().0 {
             let (dx, dy) = (x - p[3] as f64, y - p[4] as f64);
-            let (c, s) = ((p[5] as f64).cos(), (p[5] as f64).sin());
+            let (c, s) = (libm::cos(p[5] as f64), libm::sin(p[5] as f64));
             let inside = (dx * c + dy * s).abs() <= p[6] as f64 + margin
                 && (-dx * s + dy * c).abs() <= p[7] as f64 + margin;
             if inside {

@@ -178,7 +178,7 @@ impl LaunchTracker {
 
 /// `p` rotated by `angle` about the vertical through `origin`.
 fn rotate_z(p: Vec3, origin: Vec3, angle: f64) -> Vec3 {
-    let (s, c) = angle.sin_cos();
+    let (s, c) = libm::sincos(angle);
     let (x, y) = (p[0] - origin[0], p[1] - origin[1]);
     [
         (x * c - y * s) + origin[0],
@@ -208,8 +208,8 @@ fn hull_launch(u: &Shooter, m: usize) -> Launch {
         let carried = muzzle.on.map_or(u.yaw, |on| u.mounts[on].bearing);
         muzzle_offset(muzzle, u.yaw, carried, mount.bearing)
     });
-    let (s, c) = mount.bearing.sin_cos();
-    let ce = mount.elevation.cos();
+    let (s, c) = libm::sincos(mount.bearing);
+    let ce = libm::cos(mount.elevation);
     Launch {
         shooter: u.key,
         mount: m,
@@ -219,7 +219,7 @@ fn hull_launch(u: &Shooter, m: usize) -> Launch {
             u.position[1] + at[1],
             u.position[2] + at[2],
         ],
-        dir: [ce * c, ce * s, mount.elevation.sin()],
+        dir: [ce * c, ce * s, libm::sin(mount.elevation)],
         kind: mount.kind.clone(),
         hull: true,
     }

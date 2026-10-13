@@ -320,11 +320,11 @@ mod tests {
         for s in strokes.as_chunks::<SURFACE_STROKE>().0 {
             let [ax, ay, bx, by, half, _, cuts]: [f64; 7] = std::array::from_fn(|k| s[k] as f64);
             let (dx, dy) = (bx - ax, by - ay);
-            let length = dx.hypot(dy);
+            let length = libm::hypot(dx, dy);
             let along = ((x - ax) * dx + (y - ay) * dy) / length;
             let aside = ((x - ax) * dy - (y - ay) * dx).abs() / length;
             let t = along.clamp(0.0, length);
-            let round = half - (along - t).hypot(aside);
+            let round = half - libm::hypot(along - t, aside);
             let cut = |bit: u32| cuts as u32 & bit != 0;
             let past = (if cut(CUT_A) {
                 -along
@@ -339,7 +339,7 @@ mod tests {
             let depth = if past <= 0.0 {
                 round.min(-past)
             } else {
-                -(aside - half).max(0.0).hypot(past)
+                -libm::hypot((aside - half).max(0.0), past)
             };
             deepest = deepest.max(depth);
         }

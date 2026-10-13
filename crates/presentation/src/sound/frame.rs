@@ -559,7 +559,7 @@ pub fn sector_pan(sector: f64, forward: Vec3) -> f64 {
     let len = if len == 0.0 { 1.0 } else { len };
     // Screen-right: forward × up.
     let (rx, ry) = (forward[1] / len, -forward[0] / len);
-    (a.cos() * rx + a.sin() * ry).clamp(-1.0, 1.0)
+    (libm::cos(a) * rx + libm::sin(a) * ry).clamp(-1.0, 1.0)
 }
 
 /// One of a vehicle's sounding loops.

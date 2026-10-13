@@ -1538,7 +1538,7 @@ mod tests {
             g.words[start..start + (cell & 255) as usize].to_vec()
         };
         for (i, b) in boxes.iter().enumerate() {
-            let (c, s) = (b.yaw.cos(), b.yaw.sin());
+            let (c, s) = (libm::cos(b.yaw), libm::sin(b.yaw));
             for u in [-1.0, -0.5, 0.0, 0.5, 1.0] {
                 for v in [-1.0, -0.5, 0.0, 0.5, 1.0] {
                     let (lu, lv) = (u * (b.hx + margin), v * (b.hy + margin));
@@ -1597,11 +1597,11 @@ mod tests {
             let theta = (ai as f64 + 0.5) / 8192.0 * std::f64::consts::TAU - std::f64::consts::PI;
             let candidates = list(((ai as f64 + 0.5) / 8192.0 * sectors as f64) as usize);
             for (i, b) in boxes.iter().enumerate() {
-                let (c, s) = (b.yaw.cos(), b.yaw.sin());
+                let (c, s) = (libm::cos(b.yaw), libm::sin(b.yaw));
                 let (ox, oy) = (-b.x * c - b.y * s, b.x * s - b.y * c);
                 let (dx, dy) = (
-                    theta.cos() * c + theta.sin() * s,
-                    -theta.cos() * s + theta.sin() * c,
+                    libm::cos(theta) * c + libm::sin(theta) * s,
+                    -libm::cos(theta) * s + libm::sin(theta) * c,
                 );
                 let (t0, t1) = ((-b.hx - ox) / dx, (b.hx - ox) / dx);
                 let (u0, u1) = ((-b.hy - oy) / dy, (b.hy - oy) / dy);

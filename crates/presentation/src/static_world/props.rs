@@ -299,7 +299,7 @@ impl PropArt {
         let mut least = f64::INFINITY;
         for &c in self.by_kind.get(&b.kind).into_iter().flatten() {
             let f = self.candidates[c].footprint;
-            let misfit: f64 = (0..3).map(|a| (b.half[a] / f[a]).ln().abs()).sum();
+            let misfit: f64 = (0..3).map(|a| libm::log(b.half[a] / f[a]).abs()).sum();
             if misfit < least {
                 (least, best) = (misfit, Some(c));
             }
