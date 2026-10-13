@@ -1510,6 +1510,7 @@ impl Battle {
             }
             Order::Stop { units }
             | Order::OccupyBuilding { units, .. }
+            | Order::SetAfterburner { units, .. }
             | Order::SetEngagement { units, .. }
             | Order::SetDeployment { units, .. }
             | Order::ExitBuilding { units } => units,
@@ -1626,6 +1627,7 @@ impl Battle {
                 | Order::Stop { units }
                 | Order::Attack { units, .. }
                 | Order::AttackMove { units, .. }
+                | Order::SetAfterburner { units, .. }
                 | Order::SetEngagement { units, .. }
                 | Order::SetDeployment { units, .. }
                 | Order::Garrison { units, .. }
@@ -3255,6 +3257,7 @@ impl Battle {
             | Order::AttackMove { units, .. }
             | Order::Stop { units }
             | Order::Attack { units, .. }
+            | Order::SetAfterburner { units, .. }
             | Order::SetEngagement { units, .. }
             | Order::SetDeployment { units, .. }
             | Order::Garrison { units, .. }
@@ -3440,6 +3443,13 @@ impl Battle {
             Order::SetEngagement { units, policy } => {
                 for id in units {
                     movers[id.0 as usize].engagement = policy;
+                }
+            }
+            Order::SetAfterburner { units, enabled } => {
+                for id in units {
+                    if let Some(air) = movers[id.0 as usize].air.as_mut() {
+                        air.afterburner = enabled;
+                    }
                 }
             }
             Order::Stop { units } => {
@@ -4032,6 +4042,9 @@ impl Battle {
                     .filter(|u| u.side == side && u.alive())
                     .map(|u| OwnUnit {
                         withdrawing: u.withdrawing,
+                        fuel_s: u.air.as_ref().map(|air| air.fuel_s),
+                        afterburner: u.air.as_ref().is_some_and(|air| air.afterburner),
+                        traversing: u.air.as_ref().is_some_and(|air| air.traversing),
                         protection: u.protection.as_ref().map(|p| {
                             let definition = u
                                 .unit_type(&self.rules)

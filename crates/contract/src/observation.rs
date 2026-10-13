@@ -486,6 +486,15 @@ pub struct ProtectionReadiness {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct OwnUnit {
     pub withdrawing: bool,
+    /// Remaining fuel seconds for an aircraft; absent for ground units.
+    #[serde(default)]
+    pub fuel_s: Option<f64>,
+    /// Whether the aircraft's persistent afterburner toggle is enabled.
+    #[serde(default)]
+    pub afterburner: bool,
+    /// Paid aircraft still traversing to its map-edge ingress point.
+    #[serde(default)]
+    pub traversing: bool,
     pub protection: Option<ProtectionReadiness>,
     pub id: UnitId,
     /// Its unit type: its rank in the catalog, the layout's `unitKinds`.

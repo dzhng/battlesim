@@ -89,6 +89,9 @@ export type Point3 = [number, number, number];
 
 export interface OwnUnitView {
   withdrawing: boolean;
+  fuelS: number | null;
+  afterburner: boolean;
+  traversing: boolean;
   /** Defensive charges and running cooldown progress; private to the owning side. */
   protection: { charges: number; cooldown: number | null } | null;
   id: number;
@@ -401,6 +404,10 @@ export interface ContactView {
   /** A firing report's weapon rows as heard (round kinds, each mount's
    *  every row: a report doesn't say which round); empty for a last sighting. */
   heard: string[];
+  /** Quantized bearing from the detecting SEAD aircraft, present for radar. */
+  bearingDeg: number | null;
+  /** Quantized range from the detecting SEAD aircraft, present for radar. */
+  rangeM: number | null;
 }
 
 /** A sound a friendly listener heard from an unseen enemy. */
