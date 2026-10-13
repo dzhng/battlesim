@@ -7,7 +7,7 @@
 // of megabytes a commit once a house fell in the ground lab, until cloning a
 // detail ran the page out of memory. The scene runner
 // fails any page whose measure details grow that large.
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /** What a consumer (the viewport) reads: the latest value and its changes. */
 export interface FeedSource<T> {
@@ -40,4 +40,19 @@ export function useFeed<T>(value: T): Feed<T> {
   const [feed] = useState(() => new Feed<T>(value));
   useEffect(() => feed.set(value), [feed, value]);
   return feed;
+}
+
+/** One object for the component's life whose `current` calls the latest
+ *  `read`: a large live value (the battle's presentation) the consumer reads
+ *  each frame, without a holder that changes with its source (a Restart's
+ *  new client) and so has the old value logged into the measure detail. */
+export function useLive<T>(read: () => T): { readonly current: T } {
+  const latest = useRef(read);
+  latest.current = read;
+  const [live] = useState(() => ({
+    get current() {
+      return latest.current();
+    },
+  }));
+  return live;
 }

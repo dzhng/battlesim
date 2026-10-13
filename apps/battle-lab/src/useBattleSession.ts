@@ -87,7 +87,7 @@ import { gameLight } from "./gameLight";
 import type { FogRequest, ScenePresentation } from "@web/battle/sim/presentation";
 import type { ViewportCamera } from "@packages/renderer-core/src/viewportCamera";
 import { useAppAudio } from "./AppAudio";
-import { useFeed } from "./feed";
+import { useFeed, useLive } from "./feed";
 import { describeBuildings } from "./benchmark/propPresentation";
 import { describeEffects } from "./benchmark/effectPresentation";
 import type { Vec3 } from "math";
@@ -427,15 +427,10 @@ export function useBattleSession({
     [drawnBuildings, units],
   );
   const buildingsFeed = useFeed(buildings);
-  // The battle's presentation as the viewport reads it each frame.
-  const presentationSource = useMemo(
-    () => ({
-      get current() {
-        return sim.client?.presentation ?? null;
-      },
-    }),
-    [sim.client],
-  );
+  // The battle's presentation as the viewport reads it each frame: one holder
+  // across clients (a Restart), so no prop change copies the old battle's tables.
+  const client = sim.client;
+  const presentationSource = useLive(() => client?.presentation ?? null);
   // What the camera keeps clear of: the ground, and every building part the
   // side knows stands (a fallen one's remains once it has seen the fall).
   // Fog of war: the presentation sees from the side's eyes at each
