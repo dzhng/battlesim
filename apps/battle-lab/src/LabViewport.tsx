@@ -211,18 +211,24 @@ export interface ViewportFrame {
   ground?: GroundMarks | null;
 }
 
-/** A drawn frame read back for a second client to draw against: the canvas
- *  as the player saw it, the grass clumps the frame grew, the building
- *  modules and scenery it drew, and the same frame drawn again offscreen lit
- *  without its grass. The canvas and the next frame are untouched. */
-export interface FramePlate {
-  png: Promise<Blob>;
-  clumps: Promise<readonly Pick<GrassClumpRow, "root">[]>;
+/** What a drawn frame drew, counted, for a second client to count against:
+ *  the building modules, scenery and props, the models it posed and the
+ *  combat effects. */
+export interface FrameCounts {
   drawn: DrawnInstances;
   /** The soldiers, vehicles and corpses the frame posed. */
   models: ModelCounts;
   /** The combat effects the frame drew. */
   effects: EffectCounts;
+}
+
+/** A drawn frame read back for a second client to draw against: the canvas
+ *  as the player saw it, the grass clumps the frame grew, its counts, and
+ *  the same frame drawn again offscreen lit without its grass. The canvas
+ *  and the next frame are untouched. */
+export interface FramePlate extends FrameCounts {
+  png: Promise<Blob>;
+  clumps: Promise<readonly Pick<GrassClumpRow, "root">[]>;
   plain: Promise<Blob>;
 }
 
@@ -242,15 +248,17 @@ export interface ViewportPilot {
    *  Null leaves the camera to the player for that frame. */
   pose(now: number): CameraPose | null;
   /** A drawn frame: its main-thread cost, the camera drawn, the sim time
-   *  it drew (the presentation clock) and the canvas size in pixels. With
-   *  `plates`, `plate` reads this frame back; called during `frame`, the
-   *  task that drew it, it reads exactly that frame. */
+   *  it drew (the presentation clock) and the canvas size in pixels.
+   *  `counts` counts what this frame drew; with `plates`, `plate` reads it
+   *  back. Called during `frame`, the task that drew it, both read exactly
+   *  that frame. */
   frame?(f: {
     now: number;
     cpuMs: number;
     camera: Camera3DParams;
     simTime: number;
     canvas: readonly [number, number];
+    counts: () => FrameCounts;
     plate?: () => FramePlate;
   }): void;
 }
@@ -865,14 +873,17 @@ export function LabViewport({
           scene.grassProbes.suppress(grassSuppressed);
           return readTexturePng(device!, texture).finally(() => texture.destroy());
         };
+        const counts = (): FrameCounts => ({
+          drawn: scene.drawnInstances(),
+          models: countsRef.current,
+          effects: effectCountsRef.current,
+        });
         // What the frame drew is read first: the grass-less draw changes the
         // frame, and may lay more dressing or expand more buildings.
         const plate = (): FramePlate => ({
           png: readTexturePng(device!, context.getCurrentTexture()),
           clumps: scene.grassProbes.clumps(),
-          drawn: scene.drawnInstances(),
-          models: countsRef.current,
-          effects: effectCountsRef.current,
+          ...counts(),
           plain: readPlain(),
         });
         redrawRef.current = () => (dirty = true);
@@ -1058,6 +1069,7 @@ export function LabViewport({
             camera,
             simTime: clock,
             canvas: [canvas.width, canvas.height],
+            counts,
             plate: plates ? plate : undefined,
           });
           raf = requestAnimationFrame(loop);

@@ -132,6 +132,11 @@ lock.
 ## Checks
 
 `tests/pipelines.rs` builds every exported pipeline on this machine's device.
+`tests/counts.rs` replays a committed count-only browser run (`fixtures/parity/capture/counts`,
+gzipped as written) and holds native's counts (`counts.rs`: the models, the
+effects, the building modules, the props and the scenery, all the
+presentation's) to the browser's on every frame it counted, on tick boundaries
+and between; it needs no GPU. A replay check of a plate counts the same way.
 The others replay the fixture run's world through what native reads (the
 models, the props, the scenery and the sound) and need the Git LFS files each
 names. Plates are judged against the control's, region by region, with the

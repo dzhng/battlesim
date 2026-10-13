@@ -28,12 +28,7 @@ import {
   knownOf,
 } from "@packages/battle-renderer/src/buildingObstacles";
 import { gameBiome } from "./gameBiome";
-import {
-  gameRuntime,
-  installedUnitNames,
-  mapAppearances,
-  useMapAppearances,
-} from "./gameAppearances";
+import { gameRuntime, mapAppearances, useMapAppearances } from "./gameAppearances";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import { gameHud } from "@web/battle/present/hudTheme";
 import { gameOrderFlash, gameXray } from "./gameOverlay";
@@ -504,11 +499,10 @@ export function useBattleSession({
             world,
             drawnBuildings.placed,
             true,
-            installedUnitNames(appearances, units.appearancesFor(requestedKinds)),
             skirmish !== undefined || world.exports.forests.length > 0,
           )
         : null,
-    [appearances, world, drawnBuildings, units, requestedKinds, skirmish],
+    [appearances, world, drawnBuildings, skirmish],
   );
   const modelAppearancesFeed = useFeed(modelAppearances);
 
@@ -661,7 +655,6 @@ export function useBattleSession({
       presentation,
       worldInput,
       units,
-      audio,
       orderReveal,
       control.showOrders,
       control.acks,

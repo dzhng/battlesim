@@ -11,7 +11,7 @@
 //! instances are written whole; the static world's batches are held between
 //! frames (`statics.rs`). Each batch is one run of instances over one row's
 //! tier.
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 
 use presentation::presentation::Presentation;
 use presentation::records::{Joint, CAST_PASS, GHOST_PASS, NONE, VIEW_PASS};
@@ -102,11 +102,7 @@ enum Kind {
 }
 
 struct Row {
-    /// Its appearance, by which the props are counted.
-    name: String,
     kind: Kind,
-    /// A building's module, counted as the browser counts them.
-    building: bool,
     tiers: Vec<Drawable>,
     /// A body's coarsest mesh posed in its far pose: what its impostor card
     /// shows, drawn in the card's place.
@@ -466,11 +462,6 @@ pub struct Models {
     group: BindGroup,
     runs: Vec<Run>,
     drawn: Drawn,
-    /// The props listed in view, by appearance: per tier.
-    props: BTreeMap<String, [u32; 4]>,
-    /// The building modules listed in view, `row · 4 + tier` (a module's
-    /// row is its index among the walked modules, which come first).
-    buildings: Vec<u32>,
 }
 
 fn growable(device: &Device, label: &str, usage: BufferUsages, bytes: u64) -> Buffer {
@@ -538,17 +529,13 @@ impl Models {
                         .map(|m| single(&posed_mesh(m, &palette), Some(0)))
                         .collect();
                     Row {
-                        name: name.to_owned(),
                         kind: Kind::Corpse,
-                        building: false,
                         tiers,
                         card: None,
                     }
                 }
                 Shape::Skinned(tiers) => Row {
-                    name: name.to_owned(),
                     kind: Kind::Soldier,
-                    building: false,
                     card: match tiers.last() {
                         Some(m) => Some(single(&posed_mesh(m, &rest()?), Some(0))),
                         None => None,
@@ -578,9 +565,7 @@ impl Models {
                         })
                         .collect();
                     Row {
-                        name: name.to_owned(),
                         kind: Kind::Vehicle,
-                        building: false,
                         tiers,
                         card: None,
                     }
@@ -597,9 +582,7 @@ impl Models {
                         continue;
                     };
                     Row {
-                        name: name.to_owned(),
                         kind: if prop { Kind::Prop } else { Kind::Piece },
-                        building: a.placed != 0 && !prop,
                         tiers: s.tiers.iter().map(|m| single(m, Some(0))).collect(),
                         card: None,
                     }
@@ -659,8 +642,6 @@ impl Models {
             statics: Statics::new(presentation),
             runs: Vec::new(),
             drawn: Drawn::default(),
-            props: BTreeMap::new(),
-            buildings: Vec::new(),
         })
     }
 
@@ -727,8 +708,6 @@ impl Models {
         queue.write_buffer(&self.instances, 0, instances);
         self.runs.clear();
         self.drawn = Drawn::default();
-        self.props.clear();
-        self.buildings.clear();
         // The units' batches, from the frame's instances, then the static
         // world's, held.
         let units = frame
@@ -748,17 +727,6 @@ impl Models {
             let Some(Some(row)) = self.rows.get(appearance as usize) else {
                 continue;
             };
-            if row.kind == Kind::Prop && pass == VIEW_PASS {
-                let levels = self.props.entry(row.name.clone()).or_default();
-                levels[(tier as usize).min(3)] += count;
-            }
-            if row.building && pass == VIEW_PASS {
-                let at = appearance as usize * 4 + (tier as usize).min(3);
-                if self.buildings.len() <= at {
-                    self.buildings.resize(at + 1, 0);
-                }
-                self.buildings[at] += count;
-            }
             if pass != CAST_PASS {
                 self.drawn.listed += count;
             }
@@ -794,19 +762,6 @@ impl Models {
             d.triangles += u64::from(count) * u64::from(drawable.count) / 3;
         }
         Ok(())
-    }
-
-    /// The props the last prepared frame lists in view, by appearance in
-    /// name order, per tier: what the browser's capture counts
-    /// (`DrawnInstances.props`).
-    pub fn drawn_props(&self) -> &BTreeMap<String, [u32; 4]> {
-        &self.props
-    }
-
-    /// The building modules the last prepared frame lists in view, as the
-    /// browser's `drawnBuildings`: `module · 4 + tier`, trailing zeros left off.
-    pub fn drawn_buildings(&self) -> &[u32] {
-        &self.buildings
     }
 
     /// The static world's batches the last frame listed: the scenery draws

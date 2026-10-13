@@ -1,6 +1,5 @@
 import type { LabScript, LabUnit } from "./scenarios";
 import { buildStreetScenario } from "./streetScenario";
-import type { Wasm } from "@web/battle/sim/module";
 import type { GameRules, SessionCatalog } from "@web/battle/catalog/compose";
 
 export const REVIEW_LANES = [
@@ -37,7 +36,7 @@ export function projectileReviewRules(game: GameRules): GameRules {
   return rules;
 }
 
-export async function buildProjectileReview(wasm: Wasm, catalog: SessionCatalog) {
+export async function buildProjectileReview(catalog: SessionCatalog) {
   const rules = projectileReviewRules(catalog.rules);
   const s = JSON.parse(await buildStreetScenario(rules)) as {
     units: LabUnit[];
