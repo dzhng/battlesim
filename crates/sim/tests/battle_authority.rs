@@ -87,18 +87,22 @@ fn slot_owned_commands_require_the_matching_player_slot() {
     setup.units[0].owner = Some("blue-1".into());
     let mut b = Battle::new(&setup, 7);
 
+    // A refused command still spends its sequence number, so each try is
+    // the next in sequence.
     let mut command = mv(Side::Blue, 1, 0, [100.0, 150.0], false);
     assert_eq!(
         b.accept(command.clone()).error,
         Some(OrderError::MissingSlot)
     );
 
+    command.seq = 2;
     command.slot = Some("blue-2".into());
     assert_eq!(
         b.accept(command.clone()).error,
         Some(OrderError::WrongSlot { unit: UnitId(0) })
     );
 
+    command.seq = 3;
     command.slot = Some("blue-1".into());
     assert_eq!(b.accept(command).error, None);
 }
