@@ -713,12 +713,6 @@ export class ObservationDecoder {
     return walk;
   }
 
-  /** The renderer holds no static batches (a new one): the next frame
-   *  writes every one. */
-  resendStatics() {
-    this.rust.resend_statics();
-  }
-
   /** The cells the latest publication's ground patch covered. */
   groundPatchCells(): number {
     const runs = this.rust.ground_runs();
@@ -744,9 +738,16 @@ export class ObservationDecoder {
 
   /** What to draw at presentation time `time` for `camera`, loading first
    *  what was staged: views over the module's memory, valid until the next
-   *  call into it. A building the side knows in a state its template lacks
+   *  call into it. `generation` is the renderer's, bumped whenever it holds
+   *  no static batches (a new GPU frame, a new world): a new one is written
+   *  every one. A building the side knows in a state its template lacks
    *  throws by name. */
-  frame(time: number, camera: PresentedCamera, ui: PresentedUi): PresentedFrame {
+  frame(
+    time: number,
+    camera: PresentedCamera,
+    ui: PresentedUi,
+    generation: number,
+  ): PresentedFrame {
     if (this.stale) this.load();
     const c = camera;
     const started = performance.now();
@@ -771,6 +772,7 @@ export class ObservationDecoder {
       ui.xray,
       ui.ghosts.length ? JSON.stringify(ui.ghosts) : "",
       ui.known ? JSON.stringify(ui.known) : "",
+      generation,
     );
     this.walk.selectMs = performance.now() - started;
     this.framePtr = ptr;

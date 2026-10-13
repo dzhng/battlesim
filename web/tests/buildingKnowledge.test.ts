@@ -128,7 +128,7 @@ function play(encounter: LabEncounter): Played {
         battle.resync_observation();
         const len = battle.publish(side);
         presentation.decode(new Float32Array(memory.buffer, battle.publication_ptr(), len));
-        presentation.frame(0, OVERHEAD, { selected: [], xray: false, ghosts: [] });
+        presentation.frame(0, OVERHEAD, { selected: [], xray: false, ghosts: [] }, 0);
         return presentation.fallenBuildings();
       } finally {
         presentation.free();
@@ -142,7 +142,7 @@ function play(encounter: LabEncounter): Played {
         battle.resync_observation();
         const len = battle.publish(side);
         presentation.decode(new Float32Array(memory.buffer, battle.publication_ptr(), len));
-        presentation.frame(0, OVERHEAD, { selected: [], xray: false, ghosts: [] });
+        presentation.frame(0, OVERHEAD, { selected: [], xray: false, ghosts: [] }, 0);
         presentation.setFog({ sensors: TEST_RULES.sensors });
         presentation.presentedGround()!.prepare_fog(undefined, 0, 0, 0)?.free();
         return presentation.fogOccluders();

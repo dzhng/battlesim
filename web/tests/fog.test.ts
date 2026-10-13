@@ -75,7 +75,7 @@ function fogOver(
     null,
   );
   if (publication) decoder.decode(publication.words);
-  decoder.frame(0, OVERHEAD, { selected: [], xray: false, ghosts: [] });
+  decoder.frame(0, OVERHEAD, { selected: [], xray: false, ghosts: [] }, 0);
   decoder.setFog({ sensors: sensorRules });
   const upload = decoder.presentedGround()!.prepare_fog(new Float32Array(40), 64, 64, 0)!;
   return { decoder, upload, exports };
