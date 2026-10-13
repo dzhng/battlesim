@@ -19,7 +19,6 @@ use sim::publication::reader::Observation;
 
 use super::cook_off::CookOffFeel;
 use super::publication;
-use crate::seed::js_hypot;
 use crate::units::pose::{Articulation, VehiclePose};
 use crate::world::{EffectsSection, UnitsSection, Vec3, Wreck, WreckLook};
 
@@ -149,7 +148,7 @@ impl CookOffWatch {
             };
             let watched = self.hulls.values().any(|h| {
                 h.kind == *wreck_of
-                    && js_hypot(&[p.center[0] - h.x, p.center[1] - h.y]) <= h.reach + ROLL_REACH_M
+                    && libm::hypot(p.center[0] - h.x, p.center[1] - h.y) <= h.reach + ROLL_REACH_M
             });
             if watched {
                 out.push(CookOff {
@@ -227,7 +226,7 @@ pub fn effect_cook_off(c: &CookOff, transition: Option<&Transition>) -> publicat
         // The piece's underside under its centre, placed as the wreck is.
         let (m, [sx, sy, sz]) = (&f.wreck, f.wreck.scale);
         let (x, y) = (lies[0] * sx, lies[1] * sy);
-        let (s, cos) = m.yaw.sin_cos();
+        let (s, cos) = libm::sincos(m.yaw);
         let [mx, my, mz] = m.position;
         Some([
             mx + x * cos - y * s,
@@ -334,10 +333,10 @@ impl LastSeenHulls {
         let mut best: Option<(&VehiclePose, f64)> = None;
         for (_, pose, at) in &self.hulls {
             let gone = *at < self.clock && clock - at <= REMEMBERED_S;
-            let d = js_hypot(&[
+            let d = libm::hypot(
                 pose.position[0] - c.center[0],
                 pose.position[1] - c.center[1],
-            ]);
+            );
             if gone
                 && pose.kind == c.wreck_of
                 && d <= c.half[0] + ROLL_REACH_M
@@ -386,7 +385,7 @@ pub fn cook_off_models(
     // Constant deceleration over `length` metres: done in √(2·length/braking) s.
     let [wx, wy, _] = f.wreck.position;
     let (dx, dy) = (wx - hull.position[0], wy - hull.position[1]);
-    let length = js_hypot(&[dx, dy]);
+    let length = libm::hypot(dx, dy);
     let done = (2.0 * length / braking).sqrt();
     let s = if t >= done {
         1.0
@@ -600,7 +599,7 @@ mod tests {
             .landing
             .expect("lands");
         // On the deck at its underside, beside the ring as the wreck is turned.
-        let (s, c) = 0.4f64.sin_cos();
+        let (s, c) = libm::sincos(0.4f64);
         let want = [
             100.0 + 0.5 * c - 0.2 * s,
             50.0 + 0.5 * s + 0.2 * c,

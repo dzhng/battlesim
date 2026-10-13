@@ -1,8 +1,9 @@
-//! The effects draw what the browser's `EffectFrame` draws for the same
-//! causes, seeded as it seeds them: every instance's sixteen floats and every
-//! cast light at fixed clocks after a few publications that exercise every
-//! kind of effect, and a fixture run's plate's effect counts replayed from
-//! its capture (the browser's TypeScript wrote both before it was deleted).
+//! The effects draw what is recorded for the same causes: every instance's
+//! sixteen floats and every cast light at fixed clocks after a few
+//! publications that exercise every kind of effect, and a fixture run's
+//! plate's effect counts replayed from its capture. The browser's TypeScript
+//! wrote both before it was deleted; the instances were re-recorded from Rust
+//! when its seeds became integer keys.
 use std::path::PathBuf;
 
 use presentation::effects::frame::{
@@ -12,7 +13,6 @@ use presentation::effects::lights::CAST_LIGHT_FLOATS;
 use presentation::effects::publication::{EffectFeed, EffectPublication};
 use presentation::effects::tables::EffectPresentation;
 use presentation::effects::{DrawnRotor, MuzzleSource};
-use presentation::seed::js_round;
 use presentation::world::{EffectsSection, UnitsSection, Vec3};
 use serde_json::Value;
 use sim::publication::reader::Reader;
@@ -25,7 +25,7 @@ fn fixture(path: &str) -> Value {
     serde_json::from_str(&text).expect("fixture JSON")
 }
 
-/// The browser's vectors regenerated with the shot's kick (`tests/fixtures`).
+/// The recorded vectors (`tests/fixtures`).
 fn kicked(name: &str) -> Value {
     let at = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("tests/fixtures")
@@ -33,9 +33,9 @@ fn kicked(name: &str) -> Value {
     serde_json::from_str(&std::fs::read_to_string(at).unwrap()).expect("fixture JSON")
 }
 
-/// The fixture's rounding: `Math.round(v * 1e6) / 1e6`.
+/// The fixture's rounding: to a millionth.
 fn round(v: f32) -> f64 {
-    js_round(f64::from(v) * 1e6) / 1e6
+    (f64::from(v) * 1e6).round() / 1e6
 }
 
 fn counts_of(want: &Value) -> EffectCounts {
@@ -61,7 +61,7 @@ impl MuzzleSource for Muzzles {
 }
 
 #[test]
-fn effects_match_the_browsers_vectors() {
+fn effects_match_the_recorded_vectors() {
     let v = kicked("effect-vectors.json");
     let p = EffectPresentation::from_value(&v["presentation"]).expect("presentation");
     let mut batch = EffectBatch::new(p.capacity);
@@ -93,7 +93,7 @@ fn effects_match_the_browsers_vectors() {
             let mine = round(batch.data[k]);
             assert!(
                 mine == theirs,
-                "at {clock} s: instance {} float {} is {mine}, not the browser's {theirs}",
+                "at {clock} s: instance {} float {} is {mine}, not the recorded {theirs}",
                 k / EFFECT_FLOATS,
                 k % EFFECT_FLOATS
             );

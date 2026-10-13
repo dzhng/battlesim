@@ -1,6 +1,6 @@
 //! The water surface's cells along the exported rivers.
 use super::shapes::distance;
-use super::{js, RIVER};
+use super::RIVER;
 use std::collections::HashSet;
 
 /// The water surface is laid as square cells this wide, and reaches this far
@@ -18,7 +18,7 @@ pub(super) fn stretch_inside(r: &[f32], x: f64, y: f64) -> f64 {
     let (rx, ry) = (bx - ax, by - ay);
     let length2 = rx * rx + ry * ry;
     let t = if length2 > 0.0 {
-        js::min(1.0, js::max(0.0, ((x - ax) * rx + (y - ay) * ry) / length2))
+        (((x - ax) * rx + (y - ay) * ry) / length2).clamp(0.0, 1.0)
     } else {
         0.0
     };
@@ -39,9 +39,9 @@ pub fn cells(rivers: &[f32]) -> Vec<f32> {
     let slack = MARGIN_M + cell * std::f64::consts::FRAC_1_SQRT_2;
     for r in rivers.as_chunks::<RIVER>().0 {
         let [ax, ay, bx, by, half_a, half_b] = [r[0], r[1], r[2], r[3], r[4], r[5]].map(f64::from);
-        let reach = js::max(half_a, half_b) + slack;
-        let first = |a: f64, b: f64| ((js::min(a, b) - reach) / cell).floor();
-        let last = |a: f64, b: f64| ((js::max(a, b) + reach) / cell).floor();
+        let reach = half_a.max(half_b) + slack;
+        let first = |a: f64, b: f64| ((a.min(b) - reach) / cell).floor();
+        let last = |a: f64, b: f64| ((a.max(b) + reach) / cell).floor();
         let mut j = first(ay, by);
         while j <= last(ay, by) {
             let mut i = first(ax, bx);

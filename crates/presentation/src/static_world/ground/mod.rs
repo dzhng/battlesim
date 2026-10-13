@@ -8,7 +8,6 @@ pub mod biome;
 pub mod field;
 pub mod forests;
 pub mod grass;
-pub(crate) mod js;
 pub mod kinds;
 pub mod mesh;
 pub mod plots;

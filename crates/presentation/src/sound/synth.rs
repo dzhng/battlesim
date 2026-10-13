@@ -9,7 +9,7 @@ use std::f64::consts::PI;
 
 use libm::{cos, exp, floor, pow, sin};
 
-use crate::seed::{hash_string, js_round, Mulberry32};
+use crate::seed::{Key, Mulberry32};
 
 /// Every sound's peak before the mix.
 const PEAK: f64 = 0.9;
@@ -22,7 +22,7 @@ pub struct Synth {
 }
 
 fn len(seconds: f64, sr: f64) -> usize {
-    js_round(seconds * sr) as usize
+    f64::round(seconds * sr) as usize
 }
 
 fn white(rng: &mut Mulberry32) -> f64 {
@@ -274,13 +274,13 @@ fn explosion(sr: f64, rng: &mut Mulberry32, seconds: f64, far: bool) -> Vec<f32>
 /// An engine at `hz` firings a second: a jittered pulse train through its
 /// exhaust (a low-pass), with mechanical noise. Whole cycles, so it loops.
 fn engine(sr: f64, rng: &mut Mulberry32, hz: f64, seconds: f64, bright: f64) -> Vec<f32> {
-    let cycles = js_round(hz * seconds);
-    let n = js_round(cycles / hz * sr) as usize;
+    let cycles = f64::round(hz * seconds);
+    let n = f64::round(cycles / hz * sr) as usize;
     let mut out = vec![0.0f32; n];
     let period = n as f64 / cycles;
     for c in 0..cycles as usize {
         let amp = 0.75 + 0.25 * rng.sample();
-        let at = js_round(c as f64 * period) as usize;
+        let at = f64::round(c as f64 * period) as usize;
         let mut i = 0usize;
         while (i as f64) < period * 0.9 && at + i < n {
             let fi = i as f64;
@@ -523,7 +523,7 @@ fn motor(sr: f64, rng: &mut Mulberry32) -> Vec<f32> {
 /// second at rate 1 (whole passes, so it loops), whatever its speed.
 fn rotor(sr: f64, rng: &mut Mulberry32) -> Vec<f32> {
     let passes = 34.0;
-    let n = js_round(passes / 17.0 * sr) as usize;
+    let n = f64::round(passes / 17.0 * sr) as usize;
     let air = seamless(n, len(0.05, sr), |m| {
         biquad(noise(m, rng), sr, Filter::Lowpass, 500.0, Q)
     });
@@ -541,7 +541,7 @@ fn tracks(sr: f64, rng: &mut Mulberry32) -> Vec<f32> {
     let n = len(2.0, sr);
     let mut out = vec![0.0f32; n];
     for k in 0..20 {
-        let at = js_round(k as f64 / 20.0 * n as f64 + (rng.sample() - 0.5) * 0.01 * sr) as i64;
+        let at = f64::round(k as f64 / 20.0 * n as f64 + (rng.sample() - 0.5) * 0.01 * sr) as i64;
         let m = len(0.06, sr);
         let pattern = noise(m, rng);
         let clank = biquad(
@@ -861,7 +861,7 @@ pub fn loops(name: &str) -> Option<bool> {
 
 /// `name` at `sample_rate`: the same samples every time.
 pub fn synthesize(name: &str, sample_rate: f64) -> Result<Synth, String> {
-    let mut rng = Mulberry32::new(hash_string(name));
+    let mut rng = Key::new().text(name).rng();
     if name == BED {
         return Ok(Synth {
             channels: countryside(sample_rate, &mut rng),

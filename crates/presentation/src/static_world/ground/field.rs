@@ -11,7 +11,7 @@
 use super::forests::{Forest, Kind};
 use super::shapes::{closest, convex_overlap, distance, stroke_inside, triangle_contains};
 use super::water::stretch_inside;
-use super::{chunks, js, Source, AREA, FOREST_BOUNDARY, FOREST_STROKE, FOREST_TRIANGLE, RIVER};
+use super::{chunks, Source, AREA, FOREST_BOUNDARY, FOREST_STROKE, FOREST_TRIANGLE, RIVER};
 use super::{SURFACE_BOUNDARY, SURFACE_STROKE, SURFACE_TRIANGLE};
 use std::collections::HashMap;
 use std::f64::consts::{PI, SQRT_2};
@@ -54,7 +54,7 @@ pub struct Field {
 /// Whether the closed segment `a`-`b` touches the closed box `low`-`high`,
 /// corners included (a diagonal street on a square grid).
 fn segment_touches_box(a: [f64; 2], b: [f64; 2], low: [f64; 2], high: [f64; 2]) -> bool {
-    let (mut enter, mut leave) = (0.0, 1.0);
+    let (mut enter, mut leave) = (0.0f64, 1.0f64);
     for axis in 0..2 {
         let run = b[axis] - a[axis];
         if run == 0.0 {
@@ -64,8 +64,8 @@ fn segment_touches_box(a: [f64; 2], b: [f64; 2], low: [f64; 2], high: [f64; 2]) 
             continue;
         }
         let (u, v) = ((low[axis] - a[axis]) / run, (high[axis] - a[axis]) / run);
-        enter = js::max(enter, js::min(u, v));
-        leave = js::min(leave, js::max(u, v));
+        enter = enter.max(u.min(v));
+        leave = leave.min(u.max(v));
     }
     enter <= leave
 }
@@ -93,8 +93,8 @@ pub fn field(
                 records[at + FLOATS - 1] = tail;
             }
             for p in chunks::<2>(&records[at..at + points * 2]) {
-                (min_x, max_x) = (js::min(min_x, p[0] as f64), js::max(max_x, p[0] as f64));
-                (min_y, max_y) = (js::min(min_y, p[1] as f64), js::max(max_y, p[1] as f64));
+                (min_x, max_x) = (min_x.min(p[0] as f64), max_x.max(p[0] as f64));
+                (min_y, max_y) = (min_y.min(p[1] as f64), max_y.max(p[1] as f64));
             }
             meta.push(m);
         };
@@ -106,7 +106,7 @@ pub fn field(
             along = 0.0;
         }
         put(r, along as f32, 2, (STROKE, PAVED, None, true));
-        along += js::hypot(r[2] as f64 - r[0] as f64, r[3] as f64 - r[1] as f64);
+        along += libm::hypot(r[2] as f64 - r[0] as f64, r[3] as f64 - r[1] as f64);
         last = Some(r);
     }
     // A paved triangle's tail is its area's slab bearing. Triangles only sign
@@ -167,7 +167,7 @@ pub fn field(
     // The grid covers the map and every primitive, so a point past it is
     // nearer the border cell it clamps to than to anything listed elsewhere.
     let origin = [min_x as f32 as f64, min_y as f32 as f64];
-    let across = |span: f64, cell: f64| js::max(1.0, (span / cell).ceil());
+    let across = |span: f64, cell: f64| (span / cell).ceil().max(1.0);
     let mut cell_m = CELL_M;
     while across(max_x - origin[0], cell_m) * across(max_y - origin[1], cell_m) > MAX_CELLS {
         cell_m *= 2.0;
@@ -184,7 +184,7 @@ pub fn field(
         max_y.abs(),
         1.0,
     ];
-    let pad = largest.into_iter().fold(f64::NEG_INFINITY, js::max) * CELL_PAD;
+    let pad = largest.into_iter().fold(f64::NEG_INFINITY, f64::max) * CELL_PAD;
 
     // How many times `level`'s cells double the finest, and their count.
     let doublings = |level: usize| {
@@ -207,10 +207,7 @@ pub fn field(
             reach[level]
         };
         let at = |v: f64, axis: usize, n: usize| {
-            js::min(
-                n as f64 - 1.0,
-                js::max(0.0, ((v - origin[axis]) / cell).floor()),
-            ) as usize
+            (n as f64 - 1.0).min(((v - origin[axis]) / cell).floor().max(0.0)) as usize
         };
         for (record, &(kind, rule, _, listed)) in meta.iter().enumerate() {
             if !listed {
@@ -221,7 +218,7 @@ pub fn field(
             // to its half width (a river's wider end) and the reach; an edge
             // and a rect to the reach.
             let half = match (kind, rule) {
-                (STROKE, WATER) => js::max(r[4], r[5]),
+                (STROKE, WATER) => r[4].max(r[5]),
                 (STROKE, _) => r[4],
                 _ => 0.0,
             };
@@ -232,12 +229,12 @@ pub fn field(
             }) + pad;
             let (mut low, mut high) = ([r[0], r[1]], [r[2], r[3]]);
             if kind != RECT {
-                low = [js::min(r[0], r[2]), js::min(r[1], r[3])];
-                high = [js::max(r[0], r[2]), js::max(r[1], r[3])];
+                low = [r[0].min(r[2]), r[1].min(r[3])];
+                high = [r[0].max(r[2]), r[1].max(r[3])];
             }
             if kind == TRIANGLE {
-                low = [js::min(low[0], r[4]), js::min(low[1], r[5])];
-                high = [js::max(high[0], r[4]), js::max(high[1], r[5])];
+                low = [low[0].min(r[4]), low[1].min(r[5])];
+                high = [high[0].max(r[4]), high[1].max(r[5])];
             }
             for cy in at(low[1] - grow, 1, level_rows)..=at(high[1] + grow, 1, level_rows) {
                 for cx in at(low[0] - grow, 0, level_cols)..=at(high[0] + grow, 0, level_cols) {
@@ -271,7 +268,7 @@ pub fn field(
             level_counts[slot] += 1;
             entries += 1;
         });
-        let budget = (c * r) as f64 * (LIST_BUDGET * js::pow(SQRT_2, level as f64));
+        let budget = (c * r) as f64 * (LIST_BUDGET * libm::pow(SQRT_2, level as f64));
         if level > 0 && entries as f64 > budget {
             exact_to_m = FOOTPRINT_M * 2f64.powi(level as i32 - 1);
             break;
@@ -347,7 +344,7 @@ impl Field {
         let inverse = 1.0 / cell as f32;
         let at = |v: f64, o: f64, n: f64| {
             let c = ((v as f32 - o as f32) * inverse).floor() as f64;
-            (js::min(n - 1.0, js::max(0.0, c)) as i32 >> shift) as usize
+            ((n - 1.0).min(c.max(0.0)) as i32 >> shift) as usize
         };
         let (cx, cy) = (at(x, ox, cols), at(y, oy, rows));
         let across = ((cols as i32 - 1) >> shift) as usize + 1;
@@ -371,51 +368,46 @@ impl Field {
     /// How far `(x, y)` lies inside the paving (negative outside): the
     /// deepest stroke, or the polygons' union by their exposed boundary.
     pub fn paved(&self, [x, y, footprint]: [f64; 3]) -> f64 {
-        let (mut paved, mut inside, mut nearest) = (-1e9, false, 1e9);
+        let (mut paved, mut inside, mut nearest) = (-1e9f64, false, 1e9f64);
         for (kind, _, r) in self.list(PAVED, [x, y, footprint]) {
             match kind {
-                STROKE => paved = js::max(paved, stroke_inside(r, [x, y])),
+                STROKE => paved = paved.max(stroke_inside(r, [x, y])),
                 TRIANGLE => inside = inside || in_triangle(r, [x, y]),
-                _ => nearest = js::min(nearest, edge_distance(r, [x, y])),
+                _ => nearest = nearest.min(edge_distance(r, [x, y])),
             }
         }
-        js::max(paved, if inside { nearest } else { -nearest })
+        paved.max(if inside { nearest } else { -nearest })
     }
 
     /// How far `(x, y)` lies inside the deepest forest shape (negative outside).
     pub fn forest(&self, [x, y, footprint]: [f64; 3]) -> f64 {
-        let (mut forest, mut distance, mut inside, mut nearest) = (-1e9, -1e9, false, 1e9);
+        let (mut forest, mut distance, mut inside, mut nearest) = (-1e9f64, -1e9f64, false, 1e9f64);
         for (kind, new_shape, r) in self.list(FOREST, [x, y, footprint]) {
             if new_shape {
-                forest = js::max(
-                    js::max(forest, distance),
-                    if inside { nearest } else { -nearest },
-                );
+                forest = forest
+                    .max(distance)
+                    .max(if inside { nearest } else { -nearest });
                 (distance, inside, nearest) = (-1e9, false, 1e9);
             }
             match kind {
                 RECT => {
                     let [x0, y0, x1, y1] = [r[0], r[1], r[2], r[3]].map(f64::from);
-                    forest = js::max(
-                        forest,
-                        js::min(js::min(x - x0, x1 - x), js::min(y - y0, y1 - y)),
-                    );
+                    forest = forest.max((x - x0).min(x1 - x).min((y - y0).min(y1 - y)));
                 }
-                STROKE => distance = js::max(distance, stroke_inside(r, [x, y])),
+                STROKE => distance = distance.max(stroke_inside(r, [x, y])),
                 TRIANGLE => inside = inside || in_triangle(r, [x, y]),
-                _ => nearest = js::min(nearest, edge_distance(r, [x, y])),
+                _ => nearest = nearest.min(edge_distance(r, [x, y])),
             }
         }
-        js::max(
-            js::max(forest, distance),
-            if inside { nearest } else { -nearest },
-        )
+        forest
+            .max(distance)
+            .max(if inside { nearest } else { -nearest })
     }
 
     /// How far `(x, y)` lies inside the water's edge (negative outside).
     pub fn water(&self, [x, y, footprint]: [f64; 3]) -> f64 {
         self.list(WATER, [x, y, footprint])
-            .fold(-1e9, |bed, (_, _, r)| js::max(bed, stretch_inside(r, x, y)))
+            .fold(-1e9, |bed, (_, _, r)| bed.max(stretch_inside(r, x, y)))
     }
 
     /// Paved, forest and water distances at `(x, y)` for a pixel `footprint` wide.
@@ -473,8 +465,8 @@ fn area_bearings(triangles: &[f32]) -> Vec<f32> {
             }
         }
         let [xs, ys] = [0, 1].map(|axis| [0, 1, 2].map(|k| at(t, k)[axis]));
-        let low = |v: [f64; 3]| bucket(js::min(js::min(v[0], v[1]), v[2]));
-        let high = |v: [f64; 3]| bucket(js::max(js::max(v[0], v[1]), v[2]));
+        let low = |v: [f64; 3]| bucket(v[0].min(v[1]).min(v[2]));
+        let high = |v: [f64; 3]| bucket(v[0].max(v[1]).max(v[2]));
         for i in low(xs)..=high(xs) {
             for j in low(ys)..=high(ys) {
                 cells.entry((i, j)).or_default().push(t);
@@ -514,8 +506,11 @@ fn area_bearings(triangles: &[f32]) -> Vec<f32> {
         for k in (0..3).filter(|&k| edges[&edge(t, k)] == 1) {
             let (a, b) = (at(t, k), at(t, (k + 1) % 3));
             let (dx, dy) = (b[0] - a[0], b[1] - a[1]);
-            let turn = js::atan2(dy, dx);
-            let side = (turn - (turn / quarter).floor() * quarter, js::hypot(dx, dy));
+            let turn = libm::atan2(dy, dx);
+            let side = (
+                turn - (turn / quarter).floor() * quarter,
+                libm::hypot(dx, dy),
+            );
             sides.entry(root(&parent, t)).or_default().push(side);
         }
     }
@@ -548,7 +543,7 @@ mod tests {
 
     /// `[w, h]` turned `turn` about its corner at `centre`, as a ring.
     fn turned(turn: f64, [w, h]: [f64; 2], [cx, cy]: [f64; 2]) -> [[f64; 2]; 4] {
-        let (c, s) = (turn.cos(), turn.sin());
+        let (c, s) = (libm::cos(turn), libm::sin(turn));
         [[0.0, 0.0], [w, 0.0], [w, h], [0.0, h]]
             .map(|[x, y]| [cx + x * c - y * s, cy + x * s + y * c])
     }
@@ -585,7 +580,7 @@ mod tests {
         // degrees, is an outer edge of its first triangle only; the second
         // triangle's own longest outer edge runs at 100 degrees mod 90.
         let at = |deg: f64, m: f64, [x, y]: [f64; 2]| {
-            [x + m * (deg * DEG).cos(), y + m * (deg * DEG).sin()]
+            [x + m * libm::cos(deg * DEG), y + m * libm::sin(deg * DEG)]
         };
         let p0 = [0.0, 0.0];
         let p1 = at(10.0, 50.0, p0);

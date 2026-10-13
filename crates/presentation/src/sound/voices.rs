@@ -28,7 +28,7 @@ use serde::{Deserialize, Serialize};
 
 use super::frame::{Command, Shout, Sound, Voice};
 use super::tables::Bus;
-use crate::seed::{hash_string, js_number, Mulberry32};
+use crate::seed::Key;
 use crate::world::Vec3;
 
 /// A line plays dry: no low-pass short of the top of hearing.
@@ -173,7 +173,7 @@ impl Speakers {
             tier,
             // An own unit is the speaker its answers name, so it never
             // shouts over its own answer.
-            speaker: format!("{side}/{}", js_number(shout.id)),
+            speaker: format!("{side}/{}", shout.id),
             set: sets.get(&*shout.kind)?.clone(),
             trigger: bark_name(&shout.trigger)?.to_owned(),
             intensity: shout.intensity.to_string(),
@@ -449,14 +449,13 @@ impl Chatter {
         if loaded.is_empty() {
             return None;
         }
-        let mut rng = Mulberry32::new(hash_string(&format!(
-            "{}/{}/{}/{}/{}",
-            js_number(self.seed),
-            r.speaker,
-            r.trigger,
-            r.intensity,
-            item.count
-        )));
+        let mut rng = Key::new()
+            .num(self.seed)
+            .text(&r.speaker)
+            .text(&r.trigger)
+            .text(&r.intensity)
+            .num(f64::from(item.count))
+            .rng();
         // `random.choice`: the math package's pick from a list.
         let n = loaded.len();
         let (take, duration) = loaded[(rng.sample() * n as f64).floor() as usize % n];
@@ -483,7 +482,7 @@ impl Chatter {
         let pick = if r.tier == Tier::Response {
             0
         } else {
-            hash_string(&r.speaker) as usize % voices.len()
+            Key::new().text(&r.speaker).seed() as usize % voices.len()
         };
         Some(voices[pick].id.clone())
     }

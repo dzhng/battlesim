@@ -193,7 +193,7 @@ pub fn pack_vertices(mesh: &Mesh, material_base: usize, rigid: Option<u8>, track
                 o[32..36].copy_from_slice(&joints[v * 4..v * 4 + 4]);
                 // Narrowed to unorm8, still summing to exactly one.
                 let w: [u16; 4] = std::array::from_fn(|c| weights[v * 4 + c]);
-                let mut narrow = w.map(|x| js_round(f64::from(x) / 65535.0 * 255.0) as i32);
+                let mut narrow = w.map(|x| f64::round(f64::from(x) / 65535.0 * 255.0) as i32);
                 let heaviest = (0..4).fold(0, |h, c| if w[c] > w[h] { c } else { h });
                 narrow[heaviest] += 255 - narrow.iter().sum::<i32>();
                 narrow.map(|x| x as u8)
@@ -206,18 +206,13 @@ pub fn pack_vertices(mesh: &Mesh, material_base: usize, rigid: Option<u8>, track
         o[36..40].copy_from_slice(&weights);
         if let Some(t) = &mesh.tangents {
             for c in 0..4 {
-                o[40 + c] = js_round(f64::from(t[v * 4 + c]) / 258.0) as i8 as u8;
+                o[40 + c] = f64::round(f64::from(t[v * 4 + c]) / 258.0) as i8 as u8;
             }
         }
         o[44..46].copy_from_slice(&material[v].to_le_bytes());
         o[46..48].copy_from_slice(&track.to_le_bytes());
     }
     out
-}
-
-/// JavaScript's `Math.round`: halves round up.
-fn js_round(x: f64) -> f64 {
-    (x + 0.5).floor()
 }
 
 /// `mesh` skinned once by `palette` (bind to model) into a rigid mesh
@@ -259,7 +254,7 @@ pub fn posed_mesh(mesh: &Mesh, palette: &[Joint]) -> Mesh {
         }
         posed.positions[v * 3..v * 3 + 3].copy_from_slice(&sp);
         let len = |a: [f32; 3]| (a[0] * a[0] + a[1] * a[1] + a[2] * a[2]).sqrt();
-        let snorm = |a: [f32; 3], l: f32| a.map(|c| js_round(f64::from(c / l * 32767.0)) as i16);
+        let snorm = |a: [f32; 3], l: f32| a.map(|c| f64::round(f64::from(c / l * 32767.0)) as i16);
         let ln = len(sn);
         if ln > 0.0 {
             posed.normals[v * 4..v * 4 + 3].copy_from_slice(&snorm(sn, ln));

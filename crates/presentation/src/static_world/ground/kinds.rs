@@ -4,7 +4,6 @@
 //! trunk and crown, which a felled tree falls by, and the stump a felled
 //! tree leaves standing.
 use super::biome::Felled;
-use super::js;
 use super::mesh::VERTEX_FLOATS;
 use super::scenery::Size;
 use super::walk::Trunk;
@@ -54,10 +53,10 @@ pub fn kind(tier: &[f32], felled: Option<&Felled>) -> Result<Kind, String> {
 
 /// Unscaled height and crown reach from the trunk's axis.
 pub fn size(tier: &[f32]) -> Size {
-    let (mut height, mut radius) = (0.0, 0.0);
+    let (mut height, mut radius) = (0.0f64, 0.0f64);
     for v in vertices(tier) {
-        height = js::max(height, f64::from(v[2]));
-        radius = js::max(radius, js::hypot(f64::from(v[0]), f64::from(v[1])));
+        height = height.max(f64::from(v[2]));
+        radius = radius.max(libm::hypot(f64::from(v[0]), f64::from(v[1])));
     }
     Size { height, radius }
 }
@@ -65,14 +64,14 @@ pub fn size(tier: &[f32]) -> Size {
 /// Where a tree's leaves begin, unscaled: its lowest leaf's height, or its
 /// top with none.
 pub fn crown_base(tier: &[f32]) -> f64 {
-    let (mut low, mut top) = (f64::INFINITY, 0.0);
+    let (mut low, mut top) = (f64::INFINITY, 0.0f64);
     for v in vertices(tier) {
-        top = js::max(top, f64::from(v[2]));
+        top = top.max(f64::from(v[2]));
         if foliage(v) {
-            low = js::min(low, f64::from(v[2]));
+            low = low.min(f64::from(v[2]));
         }
     }
-    js::min(low, top)
+    low.min(top)
 }
 
 /// A tree's trunk at `height` above its foot, unscaled: its radius and its
@@ -84,7 +83,7 @@ pub fn trunk_at(tier: &[f32], height: f64) -> Result<(f64, [f64; 3]), String> {
     let mut next = f64::INFINITY;
     for v in vertices(tier) {
         if !foliage(v) && f64::from(v[2]) > FOOT_M {
-            next = js::min(next, f64::from(v[2]));
+            next = next.min(f64::from(v[2]));
         }
     }
     // Each ring's summed radius and vertex count.
@@ -102,7 +101,7 @@ pub fn trunk_at(tier: &[f32], height: f64) -> Result<(f64, [f64; 3]), String> {
         } else {
             continue;
         };
-        ring.0 += js::hypot(f64::from(v[0]), f64::from(v[1]));
+        ring.0 += libm::hypot(f64::from(v[0]), f64::from(v[1]));
         ring.1 += 1;
         for (c, b) in bark.iter_mut().enumerate() {
             *b += f64::from(v[6 + c]);
@@ -115,7 +114,7 @@ pub fn trunk_at(tier: &[f32], height: f64) -> Result<(f64, [f64; 3]), String> {
     let n = (foot.1 + ring.1) as f64;
     let bark = bark.map(|b| b / n);
     let (r0, r1) = (foot.0 / foot.1 as f64, ring.0 / ring.1 as f64);
-    Ok((r0 + (r1 - r0) * js::min(1.0, height / next), bark))
+    Ok((r0 + (r1 - r0) * (height / next).min(1.0), bark))
 }
 
 /// A tree's stump: a short prism as wide as its trunk at `height`
@@ -131,8 +130,8 @@ pub fn stump_mesh(tier: &[f32], height: f64, cut: [f64; 3]) -> Result<Vec<f32>, 
     for k in 0..STUMP_SIDES {
         let (a0, a1) = (tau(k), tau(k + 1));
         let am = (a0 + a1) / 2.0;
-        let (c0, s0, c1, s1) = (js::cos(a0), js::sin(a0), js::cos(a1), js::sin(a1));
-        let (nx, ny) = (js::cos(am), js::sin(am));
+        let (c0, s0, c1, s1) = (libm::cos(a0), libm::sin(a0), libm::cos(a1), libm::sin(a1));
+        let (nx, ny) = (libm::cos(am), libm::sin(am));
         let (x0, y0, x1, y1) = (radius * c0, radius * s0, radius * c1, radius * s1);
         let side = [nx, ny, 0.0];
         // The side, counter-clockwise seen from outside.
@@ -167,7 +166,7 @@ mod tests {
         };
         for k in 0..6 {
             let a = k as f64 / 6.0 * std::f64::consts::TAU;
-            let (c, s) = (a.cos(), a.sin());
+            let (c, s) = (libm::cos(a), libm::sin(a));
             push(0.5 * c, 0.5 * s, 0.0, [0.2, 0.1, 0.05], 0.0);
             push(0.3 * c, 0.3 * s, 1.0, [0.2, 0.1, 0.05], 0.0);
             push(0.2 * c, 0.2 * s, 4.0, [0.9, 0.9, 0.9], 0.0);
@@ -183,7 +182,7 @@ mod tests {
         let mut colours = std::collections::BTreeSet::new();
         for v in vertices(&mesh) {
             top = top.max(f64::from(v[2]));
-            reach = reach.max(f64::from(v[0]).hypot(f64::from(v[1])));
+            reach = reach.max(libm::hypot(f64::from(v[0]), f64::from(v[1])));
             colours.insert(format!("{:.3},{:.3},{:.3}", v[6], v[7], v[8]));
             assert_eq!(v[9], 0.0, "a stump is bark, never foliage");
         }

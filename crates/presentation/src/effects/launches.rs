@@ -11,7 +11,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use super::publication::{EffectPublication, Segment, Shooter};
-use crate::seed::{hash_string, js_hypot, js_number, Mulberry32};
+use crate::seed::Key;
 use crate::world::{MountMuzzle, Vec3};
 
 /// One shot the publication shows, at the start of its tick.
@@ -30,21 +30,15 @@ pub struct Launch {
     pub hull: bool,
 }
 
-fn end_key(p: &Vec3) -> String {
-    format!(
-        "{},{},{}",
-        js_number(p[0]),
-        js_number(p[1]),
-        js_number(p[2])
+/// A flight: its round's kind, its shooter and where a stretch of it ends.
+type FlightKey = (Arc<str>, Option<u64>, [u64; 3]);
+
+fn flight_key(s: &Segment, p: &Vec3) -> FlightKey {
+    (
+        s.kind.clone(),
+        s.shooter.map(f64::to_bits),
+        p.map(f64::to_bits),
     )
-}
-
-fn shooter_text(s: Option<f64>) -> String {
-    s.map_or_else(|| "null".into(), js_number)
-}
-
-fn flight_key(s: &Segment, p: &Vec3) -> String {
-    format!("{}:{}:{}", s.kind, shooter_text(s.shooter), end_key(p))
 }
 
 #[derive(Default)]
@@ -53,7 +47,7 @@ pub struct LaunchTracker {
     counters: HashMap<u64, Vec<f64>>,
     /// Where the last publication's still-flying stretches ended, with
     /// whether each was shown.
-    flying: HashMap<String, Vec<bool>>,
+    flying: HashMap<FlightKey, Vec<bool>>,
     /// This publication's segments (by index) chosen as tracers.
     pub tracers: HashSet<usize>,
     /// Squads' rises in the last publication, by shooter key and mount.
@@ -122,7 +116,7 @@ impl LaunchTracker {
                         left -= 1.0;
                         let (a, b) = (s.path[0], s.path[1]);
                         let d = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
-                        let len = js_hypot(&d);
+                        let len = crate::world::length(d);
                         let len = if len == 0.0 || len.is_nan() { 1.0 } else { len };
                         out.push(Launch {
                             shooter: u.key,
@@ -140,7 +134,7 @@ impl LaunchTracker {
         self.owed = owed;
         // Units no longer seen start over when they are seen again.
         self.counters.retain(|k, _| seen.contains(k));
-        let mut flying: HashMap<String, Vec<bool>> = HashMap::new();
+        let mut flying: HashMap<FlightKey, Vec<bool>> = HashMap::new();
         self.tracers.clear();
         for (index, s) in pub_.segments.iter().enumerate() {
             if s.path.len() < 2 {
@@ -158,15 +152,13 @@ impl LaunchTracker {
             };
             let visible = previous.unwrap_or_else(|| {
                 probability >= 1.0
-                    || Mulberry32::new(hash_string(&format!(
-                        "{}:{}:{}:{}:{}",
-                        js_number(pub_.tick),
-                        index,
-                        s.kind,
-                        shooter_text(s.shooter),
-                        end_key(&s.path[0])
-                    )))
-                    .sample()
+                    || Key::new()
+                        .num(pub_.tick)
+                        .num(index as f64)
+                        .text(&s.kind)
+                        .num(s.shooter.unwrap_or(-1.0))
+                        .nums(&s.path[0])
+                        .unit()
                         < probability
             });
             if visible {
@@ -184,15 +176,14 @@ impl LaunchTracker {
     }
 }
 
-/// `p` rotated by `angle` about the vertical through `origin`, summed in
-/// `vec3.rotateZ`'s order so the bits match.
+/// `p` rotated by `angle` about the vertical through `origin`.
 fn rotate_z(p: Vec3, origin: Vec3, angle: f64) -> Vec3 {
-    let (s, c) = angle.sin_cos();
+    let (s, c) = libm::sincos(angle);
     let (x, y) = (p[0] - origin[0], p[1] - origin[1]);
     [
         (x * c - y * s) + origin[0],
         (x * s + y * c) + origin[1],
-        (p[2] - origin[2]) + origin[2],
+        p[2],
     ]
 }
 
@@ -217,8 +208,8 @@ fn hull_launch(u: &Shooter, m: usize) -> Launch {
         let carried = muzzle.on.map_or(u.yaw, |on| u.mounts[on].bearing);
         muzzle_offset(muzzle, u.yaw, carried, mount.bearing)
     });
-    let (s, c) = mount.bearing.sin_cos();
-    let ce = mount.elevation.cos();
+    let (s, c) = libm::sincos(mount.bearing);
+    let ce = libm::cos(mount.elevation);
     Launch {
         shooter: u.key,
         mount: m,
@@ -228,7 +219,7 @@ fn hull_launch(u: &Shooter, m: usize) -> Launch {
             u.position[1] + at[1],
             u.position[2] + at[2],
         ],
-        dir: [ce * c, ce * s, mount.elevation.sin()],
+        dir: [ce * c, ce * s, libm::sin(mount.elevation)],
         kind: mount.kind.clone(),
         hull: true,
     }

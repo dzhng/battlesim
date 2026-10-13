@@ -1,7 +1,7 @@
 //! The map's forests as shapes: each forest's primitives, as the simulation
 //! exports them grouped by forest id, gathered under its metadata row.
 use super::shapes::{closest, distance, stroke_inside, triangle_contains};
-use super::{chunks, js, Source, AREA, FOREST_BOUNDARY, FOREST_STROKE, FOREST_TRIANGLE};
+use super::{chunks, Source, AREA, FOREST_BOUNDARY, FOREST_STROKE, FOREST_TRIANGLE};
 use std::collections::HashMap;
 use std::ops::Range;
 
@@ -32,13 +32,13 @@ impl Forest {
     /// polygon by its membership triangles and its ring's edges.
     pub fn inside(&self, s: &Source, x: f64, y: f64) -> f64 {
         if let Some([sx, sy, w, h]) = self.rect.map(|r| r.map(f64::from)) {
-            return js::min(js::min(js::min(x - sx, sx + w - x), y - sy), sy + h - y);
+            return (x - sx).min(sx + w - x).min(y - sy).min(sy + h - y);
         }
         if self.kind == Kind::Stroke {
             let strokes = chunks::<FOREST_STROKE>(&s.forest_strokes[self.strokes.clone()]);
             return strokes
                 .iter()
-                .fold(-1e9, |d, r| js::max(d, stroke_inside(r, [x, y])));
+                .fold(-1e9, |d, r| d.max(stroke_inside(r, [x, y])));
         }
         let pt = |r: &[f32], k: usize| [r[k * 2] as f64, r[k * 2 + 1] as f64];
         let triangles = chunks::<FOREST_TRIANGLE>(&s.forest_triangles[self.triangles.clone()]);
@@ -46,8 +46,8 @@ impl Forest {
             .iter()
             .any(|t| triangle_contains(pt(t, 0), pt(t, 1), pt(t, 2), [x, y]));
         let edges = chunks::<FOREST_BOUNDARY>(&s.forest_boundaries[self.boundaries.clone()]);
-        let nearest = edges.iter().fold(1e9, |n, e| {
-            js::min(n, distance([x, y], closest([x, y], pt(e, 0), pt(e, 1))))
+        let nearest = edges.iter().fold(1e9f64, |n, e| {
+            n.min(distance([x, y], closest([x, y], pt(e, 0), pt(e, 1))))
         });
         if inside {
             nearest
@@ -119,7 +119,7 @@ pub fn strip_runs(s: &Source, forests: &[Forest]) -> Vec<f32> {
     for f in forests.iter().filter(|f| f.kind == Kind::Stroke) {
         for r in chunks::<FOREST_STROKE>(&s.forest_strokes[f.strokes.clone()]) {
             let [ax, ay, bx, by, half] = [r[0], r[1], r[2], r[3], r[4]].map(f64::from);
-            if js::hypot(bx - ax, by - ay) > 2.0 * half {
+            if libm::hypot(bx - ax, by - ay) > 2.0 * half {
                 runs.extend_from_slice(&r[..4]);
             }
         }

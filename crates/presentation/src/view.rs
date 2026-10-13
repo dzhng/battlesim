@@ -149,7 +149,7 @@ impl View {
             eye: camera.eye,
             target: camera.target,
             distance: (d[0] * d[0] + d[1] * d[1] + d[2] * d[2]).sqrt(),
-            pixels_per_metre: h / (2.0 * (fov / 2.0).tan()),
+            pixels_per_metre: h / (2.0 * libm::tan(fov / 2.0)),
             sides: [
                 plane(r3, r0, 1.0),
                 plane(r3, r0, -1.0),
@@ -194,7 +194,7 @@ impl View {
         let v = self.view.map(f64::from);
         // The view matrix's rows are the camera's right, up and back.
         let (right, up, back) = ([v[0], v[4], v[8]], [v[1], v[5], v[9]], [v[2], v[6], v[10]]);
-        let ty = (camera.fov_y / 2.0).tan();
+        let ty = libm::tan(camera.fov_y / 2.0);
         let tx = ty * w / h;
         let corner = |x: f64, y: f64| -> [f64; 3] {
             let d: [f64; 3] =

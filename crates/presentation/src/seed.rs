@@ -1,12 +1,11 @@
-//! The browser's seeded randomness, defined once for both clients: the
-//! `math` package's Mulberry32, `hashString` (FNV-1a over UTF-16 code
-//! units), and the text JavaScript writes for a number in a template string,
-//! which the seeds' keys embed.
+//! Seeded randomness, defined once for both clients: Mulberry32, seeded
+//! from a [`Key`] of the thing it decides for, so the same battle draws and
+//! sounds the same wherever it runs.
 
 /// 2³² over the golden ratio: spreads consecutive keys across the seeds.
 pub const GOLDEN: u32 = 0x9e37_79b1;
 
-/// A Mulberry32 state (`mulberry32.create`).
+/// A Mulberry32 state.
 #[derive(Clone, Copy, Debug)]
 pub struct Mulberry32(u32);
 
@@ -15,7 +14,7 @@ impl Mulberry32 {
         Self(seed)
     }
 
-    /// The next number in [0, 1) (`mulberry32.sample`).
+    /// The next number in [0, 1).
     pub fn sample(&mut self) -> f64 {
         self.0 = self.0.wrapping_add(0x6d2b_79f5);
         let mut t = self.0;
@@ -24,108 +23,64 @@ impl Mulberry32 {
         f64::from(t ^ (t >> 14)) / 4_294_967_296.0
     }
 
-    /// The next number in [lo, hi) (`random.float(rng, lo, hi)`).
+    /// The next number in [lo, hi).
     pub fn float(&mut self, lo: f64, hi: f64) -> f64 {
         self.sample() * (hi - lo) + lo
     }
 }
 
-/// `hashString(key)`: FNV-1a of `key`'s UTF-16 code units.
-pub fn hash_string(key: &str) -> u32 {
-    key.encode_utf16().fold(2_166_136_261u32, |h, c| {
-        (h ^ u32::from(c)).wrapping_mul(16_777_619)
-    })
-}
+/// A seed hashed from the parts that name what it decides for (FNV-1a over
+/// their bytes): numbers by their bits, names by their text.
+#[derive(Clone, Copy, Debug)]
+pub struct Key(u32);
 
-/// `String(x)` as JavaScript writes it: the shortest digits that read back
-/// as `x`, in fixed notation from 1e-6 up to 1e21, `-0` as `0`. Where two
-/// such digit strings are equally near `x`, JavaScript takes the even one
-/// (`167.43655395507812`, not Rust's `…13`).
-pub fn js_number(x: f64) -> String {
-    if x == 0.0 {
-        return "0".into();
+impl Key {
+    pub const fn new() -> Self {
+        Self(2_166_136_261)
     }
-    if x.is_nan() {
-        return "NaN".into();
-    }
-    if x.is_infinite() {
-        return if x > 0.0 { "Infinity" } else { "-Infinity" }.into();
-    }
-    // The shortest length, then those digits rounded from `x`'s exact
-    // value, halves to even: `d.ddde±n`.
-    let shortest = format!("{x:e}");
-    let digits = shortest
-        .split_once('e')
-        .expect("exponent form")
-        .0
-        .bytes()
-        .filter(u8::is_ascii_digit)
-        .count();
-    let text = format!("{x:.*e}", digits - 1);
-    let (mantissa, exponent) = text.split_once('e').expect("exponent form");
-    let exponent: i32 = exponent.parse().expect("exponent");
-    if !(1e-6..1e21).contains(&x.abs()) {
-        return format!(
-            "{mantissa}e{}{}",
-            if exponent < 0 { "-" } else { "+" },
-            exponent.abs()
-        );
-    }
-    let (sign, mantissa) = mantissa
-        .strip_prefix('-')
-        .map_or(("", mantissa), |m| ("-", m));
-    let digits: String = mantissa.chars().filter(char::is_ascii_digit).collect();
-    let point = exponent + 1;
-    if point <= 0 {
-        format!("{sign}0.{}{digits}", "0".repeat(-point as usize))
-    } else if point as usize >= digits.len() {
-        format!(
-            "{sign}{digits}{}",
-            "0".repeat(point as usize - digits.len())
+
+    fn bytes(self, bytes: &[u8]) -> Self {
+        Self(
+            bytes
+                .iter()
+                .fold(self.0, |h, &b| (h ^ u32::from(b)).wrapping_mul(16_777_619)),
         )
-    } else {
-        let (whole, fraction) = digits.split_at(point as usize);
-        format!("{sign}{whole}.{fraction}")
+    }
+
+    /// Adds a number; −0 is 0.
+    pub fn num(self, x: f64) -> Self {
+        self.bytes(&(x + 0.0).to_bits().to_le_bytes())
+    }
+
+    /// Adds each number of `xs`: a point, say.
+    pub fn nums(self, xs: &[f64]) -> Self {
+        xs.iter().fold(self, |k, &x| k.num(x))
+    }
+
+    /// Adds a name, ended so that two names never run together.
+    pub fn text(self, s: &str) -> Self {
+        self.bytes(s.as_bytes()).bytes(&[0xff])
+    }
+
+    pub fn seed(self) -> u32 {
+        self.0
+    }
+
+    /// A generator seeded by the key.
+    pub fn rng(self) -> Mulberry32 {
+        Mulberry32::new(self.0)
+    }
+
+    /// One number in [0, 1) for the key.
+    pub fn unit(self) -> f64 {
+        self.rng().sample()
     }
 }
 
-/// `Math.hypot` as V8 computes it: each value over the largest, squared and
-/// summed with Kahan's compensation, so lengths match the browser's bits.
-pub fn js_hypot(values: &[f64]) -> f64 {
-    let max = values.iter().fold(0.0f64, |m, v| m.max(v.abs()));
-    if max == f64::INFINITY {
-        return max;
+impl Default for Key {
+    fn default() -> Self {
+        Self::new()
     }
-    if values.iter().any(|v| v.is_nan()) {
-        return f64::NAN;
-    }
-    if max == 0.0 {
-        return 0.0;
-    }
-    let (mut sum, mut compensation) = (0.0, 0.0);
-    for v in values {
-        let n = v.abs() / max;
-        let summand = n * n - compensation;
-        let preliminary = sum + summand;
-        compensation = (preliminary - sum) - summand;
-        sum = preliminary;
-    }
-    sum.sqrt() * max
-}
-
-/// `Math.round`: the nearest whole number, halves up.
-pub fn js_round(x: f64) -> f64 {
-    let f = x.floor();
-    if x - f >= 0.5 {
-        f + 1.0
-    } else {
-        f
-    }
-}
-
-/// `x >>> 0` for a whole `x`: its value modulo 2³².
-pub fn to_uint32(x: f64) -> u32 {
-    x.trunc().rem_euclid(4_294_967_296.0) as u32
 }
 
 /// `sideKey(id, side, even)`: one number per (side, id), `even`'s ids even.
@@ -138,36 +93,19 @@ mod tests {
     use super::*;
 
     #[test]
-    fn mulberry32_matches_the_math_package() {
-        // `mulberry32.sample(mulberry32.create(1))`, from node.
+    fn mulberry32_is_the_published_generator() {
+        // Mulberry32 seeded with 1, as its reference implementation gives it.
         let mut m = Mulberry32::new(1);
         assert_eq!(m.sample(), 0.6270739405881613);
         assert_eq!(m.sample(), 0.002735721180215478);
     }
 
     #[test]
-    fn hash_string_is_fnv1a_over_code_units() {
-        assert_eq!(hash_string(""), 2_166_136_261);
-        assert_eq!(hash_string("a"), 0xe40c_292c);
-    }
-
-    #[test]
-    fn numbers_read_as_javascript_writes_them() {
-        for (x, text) in [
-            (0.0, "0"),
-            (-0.0, "0"),
-            (5.0, "5"),
-            (-2.5, "-2.5"),
-            (f64::from(0.1f32), "0.10000000149011612"),
-            (f64::from(2562.5f32), "2562.5"),
-            (1e21, "1e+21"),
-            (1.5e-7, "1.5e-7"),
-            (123456789012.0, "123456789012"),
-            (f64::from(167.43655f32), "167.43655395507812"),
-            (-0.00125, "-0.00125"),
-            (1e20, "100000000000000000000"),
-        ] {
-            assert_eq!(js_number(x), text, "{x}");
-        }
+    fn a_key_tells_its_parts_apart() {
+        let a = Key::new().text("ab").text("c").seed();
+        let b = Key::new().text("a").text("bc").seed();
+        assert_ne!(a, b);
+        assert_eq!(Key::new().num(-0.0).seed(), Key::new().num(0.0).seed());
+        assert_ne!(Key::new().num(1.0).seed(), Key::new().num(2.0).seed());
     }
 }

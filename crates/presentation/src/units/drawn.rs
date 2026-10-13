@@ -22,7 +22,7 @@ pub type ClipTables = HashMap<String, Vec<f32>>;
 
 /// A model-space point placed at `position`, turned by `yaw` about +Z.
 fn placed(position: Vec3, yaw: f64, x: f64, y: f64, z: f64) -> Vec3 {
-    let (s, c) = yaw.sin_cos();
+    let (s, c) = libm::sincos(yaw);
     [
         position[0] + x * c - y * s,
         position[1] + x * s + y * c,
@@ -223,7 +223,7 @@ impl DrawnModels {
             let tip_travel = self.rotor_turned.get(&key).copied().unwrap_or(0.0);
             for rotor in &rig.rotors {
                 let m = self.worlds[rotor.node];
-                let (s, c) = rotor.rest.sin_cos();
+                let (s, c) = libm::sincos(rotor.rest);
                 let along = |d: f64| {
                     placed(
                         v.position,

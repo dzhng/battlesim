@@ -10,10 +10,11 @@ per entity.
 It reads only the side's publication, so it never sees past fog of war, and it
 never touches the simulation, so tuning it never moves a digest or a replay.
 `frame()` is a pure function of the world it loaded, the publications pushed and
-the frames asked for: no wall clock, no unseeded randomness. Its seeds are the
-browser's (Mulberry32 over FNV-1a of keys that embed JavaScript's number text,
-[`seed.rs`](src/seed.rs)), so a dust puff or a tracer's chance falls the same
-wherever it runs.
+the frames asked for: no wall clock, no unseeded randomness. Every seed is
+Mulberry32 over a [`Key`](src/seed.rs) hashed from the numbers and names of
+what it decides for, and every transcendental function is `libm`'s, so a dust
+puff, a tracer's chance or a placed tree falls the same in WebAssembly and
+native.
 
 ## What it owns
 
@@ -66,8 +67,7 @@ wherever it runs.
   bus, a shout the side hears in the open asking for a bark in its kind's
   set and spoken where it was shouted; and the synthesized baselines and
   recipe buffers every player prepares alike. `tests/sound.rs` holds it to
-  every command the browser's
-  TypeScript frame gave over the sound lab's firefight, and `tests/voices.rs`
+  the commands recorded over the sound lab's firefight, and `tests/voices.rs`
   to the lines recorded scripts start and drop.
 
 ## How a battle looks
@@ -106,9 +106,12 @@ roll to the resting wreck.
 
 ## Checks
 
-`tests/poses.rs` and `tests/effects.rs` hold it to the browser's recorded vectors
-(native's fixture capture and fixed effect causes), `tests/light.rs`,
-`shadow.rs`, `ground_meshes.rs`, `grass_field.rs` and `fog_sight.rs` to recorded
-browser vectors bit for bit, and `tests/scars.rs` holds every scar upload to
-recorded cache words; the behaviour tests beside them cover what those do not
-reach.
+Rust is the only owner of everything here, so the recorded vectors are its
+own output: first recorded from the TypeScript each module replaced, and
+re-recorded from Rust when a change moves them on purpose. `tests/poses.rs` and
+`tests/effects.rs` hold it to vectors from native's fixture capture and fixed
+effect causes, `tests/light.rs`, `shadow.rs`, `ground_meshes.rs`,
+`grass_field.rs`, `fog_sight.rs`, `sound.rs`, `voices.rs` and `music.rs` to
+recorded vectors bit for bit, and `tests/scars.rs` holds every scar upload to
+recorded cache words. The behaviour tests beside them say what the game does,
+and hold through any re-recording.
