@@ -85,7 +85,7 @@
   align-content: start;
 }
 .menu[data-open]:not([data-open="tutorial"]) .menu-slot {
-  min-height: var(--menu-home-height, 0px);
+  height: var(--menu-home-height, 0px);
 }
 .menu-body {
   width: min(560px, 100%);
