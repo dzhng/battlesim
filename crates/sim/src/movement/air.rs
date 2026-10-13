@@ -56,9 +56,7 @@ pub(super) fn step_aircraft(
                 && !units[i].orders.iter().any(|o| {
                     matches!(
                         o,
-                        crate::units::UnitOrder::Move(_)
-                            | crate::units::UnitOrder::AttackMove(_)
-                            | crate::units::UnitOrder::Attack { .. }
+                        crate::units::UnitOrder::Move(_) | crate::units::UnitOrder::Attack { .. }
                     )
                 })
             {
